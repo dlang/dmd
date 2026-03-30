@@ -6639,6 +6639,8 @@ public:
     bool inAlignSection(bool v);
     bool systemInferred() const;
     bool systemInferred(bool v);
+    bool wasUsed() const;
+    bool wasUsed(bool v);
 private:
     uint32_t bitFields;
 public:
@@ -6973,6 +6975,14 @@ struct ModuleDeclaration final
     }
 };
 
+enum class LintFlags : uint32_t
+{
+    none = 0u,
+    constSpecial = 1u,
+    unusedParams = 2u,
+    all = 4294967295u,
+};
+
 struct Scope final
 {
     Scope* enclosing;
@@ -7047,6 +7057,7 @@ public:
     bool explicitVisibility() const;
     bool explicitVisibility(bool v);
     Previews previews;
+    LintFlags lintFlags;
     UserAttributeDeclaration* userAttribDecl;
     void* lastdc;
     void* anchorCounts;
@@ -7092,7 +7103,7 @@ public:
         argStruct()
     {
     }
-    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* switchStatement = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tryFinally = nullptr, ScopeGuardStatement* scopeGuard = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), STC stc = (STC)0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, uint16_t bitFields2 = 0u, Previews previews = Previews(), UserAttributeDeclaration* userAttribDecl = nullptr, void* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
+    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* switchStatement = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tryFinally = nullptr, ScopeGuardStatement* scopeGuard = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), STC stc = (STC)0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, uint16_t bitFields2 = 0u, Previews previews = Previews(), LintFlags lintFlags = (LintFlags)0u, UserAttributeDeclaration* userAttribDecl = nullptr, void* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
         enclosing(enclosing),
         _module(_module),
         scopesym(scopesym),
@@ -7125,6 +7136,7 @@ public:
         bitFields(bitFields),
         bitFields2(bitFields2),
         previews(previews),
+        lintFlags(lintFlags),
         userAttribDecl(userAttribDecl),
         lastdc(lastdc),
         anchorCounts(anchorCounts),
@@ -7981,11 +7993,23 @@ extern bool c_isalnum(const int32_t c);
 
 extern bool isAlphaASCII(const char32_t c);
 
+enum class ErrorKind
+{
+    warning = 0,
+    deprecation = 1,
+    error = 2,
+    tip = 3,
+    message = 4,
+    lint = 5,
+};
+
 extern void error(Loc loc, const char* format, ...);
 
 extern void error(const char* filename, uint32_t linnum, uint32_t charnum, const char* format, ...);
 
 extern void errorBackend(const char* filename, uint32_t linnum, uint32_t charnum, const char* format, ...);
+
+extern void lint(Loc loc, const char* ruleName, const char* format, ...);
 
 extern void errorSupplemental(Loc loc, const char* format, ...);
 
@@ -8717,6 +8741,11 @@ struct Id final
     static Identifier* Pinline;
     static Identifier* lib;
     static Identifier* linkerDirective;
+    static Identifier* lint;
+    static Identifier* constSpecial;
+    static Identifier* unusedParams;
+    static Identifier* none;
+    static Identifier* all;
     static Identifier* mangle;
     static Identifier* msg;
     static Identifier* startaddress;

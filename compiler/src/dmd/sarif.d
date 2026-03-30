@@ -204,6 +204,7 @@ string errorKindToString(ErrorKind kind) nothrow
         case ErrorKind.deprecation: return "note";  // Minor problem, opportunity for improvement
         case ErrorKind.tip: return "note";          // Minor improvement suggestion
         case ErrorKind.message: return "none";      // Not applicable for "fail" kind, so use "none"
+        case ErrorKind.lint: return "note";
     }
 }
 

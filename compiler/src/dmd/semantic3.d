@@ -76,6 +76,7 @@ import dmd.targetcompiler;
 import dmd.templateparamsem;
 import dmd.typesem;
 import dmd.visitor;
+import dmd.linter;
 
 version (IN_GCC) { /* Not using Fast DFA */ }
 else version = FastDFA;
@@ -1441,15 +1442,22 @@ private extern(C++) final class Semantic3Visitor : Visitor
             }
         }
 
+        if (global.errors == oldErrors && funcdecl.fbody && funcdecl.type.ty != Terror)
+        {
+            lintFunction(funcdecl);
+        }
+
         /* If this function had instantiated with gagging, error reproduction will be
          * done by TemplateInstance::semantic.
          * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
          */
         funcdecl.semanticRun = PASS.semantic3done;
+
         if ((global.errors != oldErrors) || (funcdecl.fbody && funcdecl.fbody.isErrorStatement()))
             funcdecl.hasSemantic3Errors = true;
         else
             funcdecl.hasSemantic3Errors = false;
+
         if (funcdecl.type.ty == Terror)
             funcdecl.errors = true;
         //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", funcdecl.parent.toChars(), funcdecl.toChars(), sc, funcdecl.loc.toChars());
@@ -1787,7 +1795,6 @@ void semanticTypeInfoMembers(StructDeclaration sd)
 
     runSemantic(sd.xeq, sd.xerreq);
     runSemantic(sd.xcmp, sd.xerrcmp);
-
 
     FuncDeclaration ftostr = search_toString(sd);
     if (ftostr &&

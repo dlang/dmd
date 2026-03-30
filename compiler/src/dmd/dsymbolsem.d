@@ -9082,8 +9082,33 @@ private extern(C++) class NewScopeVisitor : Visitor
             // then it's evaluated on demand in function semantic
             sc = prd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, sc.aligndecl, prd); // @suppress(dscanner.style.long_line)
         }
-    }
+        else if (prd.ident == Id.lint)
+        {
+            sc = prd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, sc.aligndecl, sc.inlining);
 
+            if (!prd.args || prd.args.length == 0)
+            {
+                sc.lintFlags |= LintFlags.all;
+            }
+            else
+            {
+                foreach (arg; *prd.args)
+                {
+                    auto id = arg.isIdentifierExp();
+                    if (!id) continue;
+
+                    if (id.ident == Id.constSpecial)
+                        sc.lintFlags |= LintFlags.constSpecial;
+                    else if (id.ident == Id.unusedParams)
+                        sc.lintFlags |= LintFlags.unusedParams;
+                    else if (id.ident == Id.none)
+                        sc.lintFlags = LintFlags.none;
+                    else if (id.ident == Id.all)
+                        sc.lintFlags |= LintFlags.all;
+                }
+            }
+        }
+    }
     /**************************************
      * Use the ForwardingScopeDsymbol as the parent symbol for members.
      */
