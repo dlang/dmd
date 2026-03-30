@@ -137,6 +137,7 @@ extern (C++) struct Scope
     Dsymbol parent;                 /// parent to use
     LabelStatement slabel;          /// enclosing labelled statement
     SwitchStatement switchStatement;/// enclosing switch statement
+    void* switchCases;              /// AA for O(n) duplicate case detection
     Statement tryBody;              /// enclosing _body of TryCatchStatement or TryFinallyStatement
     TryFinallyStatement tryFinally; /// enclosing try finally statement
     ScopeGuardStatement scopeGuard; /// enclosing scope(xxx) statement

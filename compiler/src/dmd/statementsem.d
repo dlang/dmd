@@ -67,6 +67,39 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 
+/**
+ * This struct is needed for the Expression of a CaseStatement to be the key
+ * in an associative array.
+ */
+private struct CaseExpressionBox
+{
+    Expression exp;
+    size_t hash;
+
+    this(Expression exp)
+    {
+        assert(exp.op == EXP.int64 || exp.op == EXP.string_);
+        this.exp = exp;
+
+        if (exp.isIntegerExp())
+            hash = hashOf(exp.toInteger());
+        else
+            hash = hashOf(exp.toStringExp().peekData());
+    }
+
+    size_t toHash() const @safe pure nothrow
+    {
+        return hash;
+    }
+
+    bool opEquals(ref const CaseExpressionBox s) @trusted const
+    {
+        static if (__VERSION__ < 2099)
+            return s.exp.equals(exp);
+        else
+            return exp.equals(s.exp);
+    }
+}
 version (DMDLIB)
 {
     version = CallbackAPI;
@@ -1908,7 +1941,20 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         sc = sc.push();
         sc.sbreak = ss;
         sc.switchStatement = ss;
-
+        static if (__VERSION__ >= 2101)
+            sc.switchCases = cast(void*) new bool[CaseExpressionBox];
+        else
+        {
+            // _aaNew didn't exist prior to 2.101.0, need to be a bit more
+            // creative to initialize a new "empty" hash table for switchCases.
+            static CaseExpressionBox csbox;
+            if (csbox.exp is null)
+            {
+                csbox.exp = new NullExp(Loc.initial);
+                csbox.hash = ~0;
+            }
+            sc.switchCases = cast(void*)[csbox: false];
+        }
         ss.cases = new CaseStatements();
         const inLoopSave = sc.inLoop;
         sc.inLoop = true;        // BUG: should use Scope::mergeCallSuper() for each case instead
@@ -2243,18 +2289,19 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             }
 
         L1:
-            // // Don't check other cases if this has errors
-            if (!cs.exp.isErrorExp())
-            foreach (cs2; *sw.cases)
+            if (cs.exp.isIntegerExp() || cs.exp.isStringExp())
             {
-                //printf("comparing '%s' with '%s'\n", exp.toChars(), cs.exp.toChars());
-                if (cs2.exp.equals(cs.exp))
+                // https://issues.dlang.org/show_bug.cgi?id=15909
+                // Use O(n) AA-based duplicate detection instead of O(n^2) linear scan
+                auto seen = *cast(bool[CaseExpressionBox]*) &sc.switchCases;
+                auto box = CaseExpressionBox(cs.exp);
+                if (box in seen)
                 {
-                    // https://issues.dlang.org/show_bug.cgi?id=15909
                     error(cs.loc, "duplicate `case %s` in `switch` statement", initialExp.toChars());
                     errors = true;
-                    break;
                 }
+                else
+                    seen[box] = true;
             }
 
             sw.cases.push(cs);
