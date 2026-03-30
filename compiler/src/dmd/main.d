@@ -72,6 +72,7 @@ import dmd.target;
 import dmd.timetrace;
 import dmd.utils;
 import dmd.vsoptions;
+import dmd.lint.engine : runLinter;
 
 /**
  * DMD's entry point, C main.
@@ -664,6 +665,8 @@ private int tryMain(const(char)[][] argv, out Param params)
     runDeferredSemantic3();
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
+
+    runLinter(modules[]);
 
     // Scan for modules with always inline functions
     foreach (m; modules)
