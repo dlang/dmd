@@ -209,6 +209,10 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
             eSink.error(pd.loc, "%s `%s` takes no argument", pd.kind, pd.toPrettyChars);
         return declarations();
     }
+    else if (pd.ident == Id.lint)
+    {
+        return declarations();
+    }
     else if (!global.params.ignoreUnsupportedPragmas)
     {
         eSink.error(pd.loc, "unrecognized `pragma(%s)`", pd.ident.toErrMsg());
@@ -356,6 +360,10 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
         Dsymbols decls = de ? Dsymbols(de.declaration) : Dsymbols();
         if (!pragmaMangleSemantic(ps.loc, sc, ps.args, decls.length ? &decls : null))
             return false;
+    }
+    else if (ps.ident == Id.lint)
+    {
+        // Linter will process this later. We accept it as a valid pragma.
     }
     else if (!global.params.ignoreUnsupportedPragmas)
     {
