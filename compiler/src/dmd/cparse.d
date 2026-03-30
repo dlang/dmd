@@ -2994,10 +2994,6 @@ final class CParser(AST) : Parser!AST
                         {
                             error("variable length arrays are not supported");
                         }
-                        if (isStatic) // C11 6.7.6.3
-                        {
-                            error("static array parameters are not supported");
-                        }
                         if (declarator != DTR.xparameter)
                         {
                             /* C11 6.7.6.2-4: '*' can only be used with function prototype scope.
