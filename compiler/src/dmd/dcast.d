@@ -177,6 +177,28 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
             return implicitCastTo(result, sc, t);
         }
 
+        // Try opImplicitCast
+        if (t.ty != Terror && e.type.ty != Terror)
+        {
+            import dmd.id : Id;
+            AggregateDeclaration ad = isAggregate(e.type);
+
+            if (ad)
+            {
+                if (Dsymbol fd = search_function(ad, Id.opImplicitCast))
+                {
+                    // Rewrite as: e.opImplicitCast!(t)()
+                    auto tiargs = new Objects();
+                    tiargs.push(t);
+                    Expression ex = new DotTemplateInstanceExp(e.loc, e, fd.ident, tiargs);
+                    ex = new CallExp(e.loc, ex);
+                    ex = ex.expressionSemantic(sc);
+                    if (!ex.isErrorExp())
+                        return ex;
+                }
+            }
+        }
+
         if (t.ty == Terror || e.type.ty == Terror)
             return ErrorExp.get();
 
