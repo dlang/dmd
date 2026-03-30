@@ -302,6 +302,8 @@ extern (C++) class FuncDeclaration : Declaration
 
     ParametersDFAInfo* parametersDFAInfo;
 
+    void* lintInfo;
+
     /// See the `FUNCFLAG` struct
     import dmd.common.bitfields;
     mixin(generateBitFields!(FUNCFLAG, uint));

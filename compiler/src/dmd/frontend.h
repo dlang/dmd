@@ -3819,6 +3819,7 @@ public:
     AttributeViolation* pureViolation;
     AttributeViolation* nothrowViolation;
     ParametersDFAInfo* parametersDFAInfo;
+    void* lintInfo;
     bool purityInprocess() const;
     bool purityInprocess(bool v);
     bool safetyInprocess() const;
@@ -5991,6 +5992,14 @@ enum class CPU : uint8_t
     native = 12u,
 };
 
+enum class LintFlags : uint32_t
+{
+    none = 0u,
+    constSpecial = 1u,
+    unusedParams = 2u,
+    all = 4294967295u,
+};
+
 enum class ErrorPrintMode : uint8_t
 {
     simpleError = 0u,
@@ -7907,6 +7916,35 @@ public:
     virtual void visit(typename AST::CInitializer ) override;
 };
 
+class LintVisitor final : public Visitor
+{
+public:
+    using Visitor::visit;
+    _d_dynamicArray< LintFlags > flagsStack;
+    void* unusedTrack;
+    LintVisitor();
+    LintFlags currentFlags();
+    void visit(Dsymbol* s) override;
+    void visit(Statement* s) override;
+    void visit(Expression* e) override;
+    void visit(Module* m) override;
+    void visit(AttribDeclaration* ad) override;
+    void visit(PragmaDeclaration* pd) override;
+    void visit(PragmaStatement* ps) override;
+    void visit(AggregateDeclaration* ad) override;
+    void visit(TemplateInstance* ti) override;
+    void visit(FuncDeclaration* fd) override;
+    void visit(VarExp* ve) override;
+    void visit(CompoundStatement* s) override;
+    void visit(ExpStatement* s) override;
+    void visit(IfStatement* s) override;
+    void visit(ReturnStatement* s) override;
+    void visit(ForStatement* s) override;
+    void visit(BinExp* e) override;
+    void visit(UnaExp* e) override;
+    void visit(CallExp* e) override;
+};
+
 extern _d_real creall(complex_t x);
 
 extern _d_real cimagl(complex_t x);
@@ -8916,6 +8954,11 @@ struct Id final
     static Identifier* ident;
     static Identifier* packed;
     static Identifier* op;
+    static Identifier* lint;
+    static Identifier* constSpecial;
+    static Identifier* unusedParams;
+    static Identifier* none;
+    static Identifier* all;
     static void initialize();
     Id()
     {
