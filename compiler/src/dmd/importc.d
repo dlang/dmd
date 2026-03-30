@@ -139,7 +139,7 @@ Expression fieldLookup(Expression e, Scope* sc, Identifier id, bool arrow)
         t = t.isTypePointer().next;
         auto pe = e.toChars();
         if (!arrow)
-            error(e.loc, "since `%s` is a pointer, use `%s->%s` instead of `%s.%s`", pe, pe, id.toChars(), pe, id.toChars());
+            error(e.loc, "since `%s` is a pointer, use `%s->%s` instead of `%s.%s`", pe, pe, id.toErrMsg(), pe, id.toErrMsg());
         e = new PtrExp(e.loc, e);
     }
     Dsymbol s;
@@ -147,7 +147,7 @@ Expression fieldLookup(Expression e, Scope* sc, Identifier id, bool arrow)
         s = ts.sym.search(e.loc, id, 0);
     if (!s)
     {
-        error(e.loc, "`%s` is not a member of `%s`", id.toChars(), t.toChars());
+        error(e.loc, "`%s` is not a member of `%s`", id.toErrMsg(), t.toErrMsg());
         return ErrorExp.get();
     }
     Expression ef = new DotVarExp(e.loc, e, s.isDeclaration());
@@ -538,7 +538,7 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
         if (!cTypeEquivalence(vd.type, vd2.type))
         {
             .error(vd.loc, "redefinition of `%s` with different type: `%s` vs `%s`",
-                vd2.ident.toChars(), vd2.type.toChars(), vd.type.toChars());
+                vd2.ident.toErrMsg(), vd2.type.toErrMsg(), vd.type.toErrMsg());
         }
         return vd2;
     }
@@ -666,13 +666,13 @@ void cEnumSemantic(Scope* sc, EnumDeclaration ed)
             if (!ie)
             {
                 // C11 6.7.2.2-2
-                .error(em.loc, "%s `%s` enum member must be an integral constant expression, not `%s` of type `%s`", em.kind, em.toPrettyChars, e.toChars(), e.type.toChars());
+                .error(em.loc, "%s `%s` enum member must be an integral constant expression, not `%s` of type `%s`", em.kind, em.toPrettyChars, e.toErrMsg(), e.type.toErrMsg());
                 return errorReturn(em);
             }
             if (ed.memtype && !ir.contains(getIntRange(ie)))
             {
                 // C11 6.7.2.2-2
-                .error(em.loc, "%s `%s` enum member value `%s` does not fit in `%s`", em.kind, em.toPrettyChars, e.toChars(), commonType.toChars());
+                .error(em.loc, "%s `%s` enum member value `%s` does not fit in `%s`", em.kind, em.toPrettyChars, e.toErrMsg(), commonType.toErrMsg());
                 return errorReturn(em);
             }
             nextValue = ie.toInteger();
@@ -689,7 +689,7 @@ void cEnumSemantic(Scope* sc, EnumDeclaration ed)
                 Expression max = getProperty(commonType, null, em.loc, Id.max, 0);
                 if (nextValue == max.toInteger())
                 {
-                    .error(em.loc, "%s `%s` initialization with `%s+1` causes overflow for type `%s`", em.kind, em.toPrettyChars, max.toChars(), commonType.toChars());
+                    .error(em.loc, "%s `%s` initialization with `%s+1` causes overflow for type `%s`", em.kind, em.toPrettyChars, max.toErrMsg(), commonType.toErrMsg());
                     return errorReturn(em);
                 }
                 nextValue += 1;

@@ -28,7 +28,6 @@ import dmd.expressionsem;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals : FeatureState;
-import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -197,7 +196,7 @@ bool checkMutableArguments(ref Scope sc, FuncDeclaration fd, TypeFunction tf,
                                 : "mutable and const references %s `%s` in arguments to `%s()`";
             sc.eSink.error((*arguments)[i].loc, msg,
                   referenceVerb,
-                  v.toChars(),
+                  v.toErrMsg(),
                   fd ? fd.toPrettyChars() : "indirectly");
         }
         errors = true;
@@ -891,7 +890,7 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
         {
             if (!gag)
                 sc.eSink.deprecation(ee.loc, "slice of static array temporary returned by `%s` assigned to longer lived variable `%s`",
-                    ee.toChars(), e1.toChars());
+                    ee.toErrMsg(), e1.toErrMsg());
             //result = true;
             return;
         }
@@ -1080,7 +1079,7 @@ bool checkNewEscape(ref Scope sc, Expression e, bool gag)
         if (log) printf("byexp %s\n", ee.toChars());
         if (!gag)
             sc.eSink.error(ee.loc, "escaping reference to stack allocated value returned by `%s` into allocated memory",
-                  ee.toChars());
+                  ee.toErrMsg());
         result = true;
     }
 
@@ -1165,7 +1164,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
         if (v.isTypesafeVariadicArray && p == sc.func)
         {
             if (!gag)
-                sc.eSink.error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toChars(), v.toChars());
+                sc.eSink.error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toErrMsg(), v.toErrMsg());
             result = false;
         }
         else if (v.isScope())
@@ -1376,7 +1375,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
         else
         {
             if (!gag)
-                sc.eSink.error(ee.loc, "escaping reference to stack allocated value returned by `%s`", ee.toChars());
+                sc.eSink.error(ee.loc, "escaping reference to stack allocated value returned by `%s`", ee.toErrMsg());
             result = true;
         }
     }

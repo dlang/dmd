@@ -13,6 +13,7 @@ module dmd.errors;
 
 public import core.stdc.stdarg;
 public import dmd.root.string: fTuple;
+public import dmd.hdrgen : toErrMsg;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -23,6 +24,7 @@ import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.console;
+import dmd.console : Color;
 import dmd.root.filename;
 import dmd.sarif;
 

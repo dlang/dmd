@@ -50,7 +50,7 @@ bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
 
     if (!symbolIsVisible(sc, smember))
     {
-        error(loc, "%s `%s` %s `%s` is not accessible", ad.kind(), ad.toPrettyChars(), smember.kind(), smember.toChars());
+        error(loc, "%s `%s` %s `%s` is not accessible", ad.kind(), ad.toPrettyChars(), smember.kind(), smember.toErrMsg());
         //printf("smember = %s %s, vis = %d, semanticRun = %d\n",
         //        smember.kind(), smember.toPrettyChars(), smember.visible() smember.semanticRun);
         return true;

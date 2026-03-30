@@ -838,8 +838,8 @@ extern(C++) private final class Supported : Objc
         enum supplementalMessage = "`offsetof` is not available for members " ~
             "of Objective-C classes. Please use the Objective-C runtime instead";
 
-        error(expression.loc, errorMessage, expression.toChars(),
-            expression.type.toChars());
+        error(expression.loc, errorMessage, expression.toErrMsg(),
+            expression.type.toErrMsg());
         errorSupplemental(expression.loc, supplementalMessage);
     }
 
@@ -848,7 +848,7 @@ extern(C++) private final class Supported : Objc
         if (type.sym.classKind != ClassKind.objc)
             return;
 
-        error(expression.loc, "no property `tupleof` for type `%s`", type.toChars());
+        error(expression.loc, "no property `tupleof` for type `%s`", type.toErrMsg());
         errorSupplemental(expression.loc, "`tupleof` is not available for members " ~
             "of Objective-C classes. Please use the Objective-C runtime instead");
     }

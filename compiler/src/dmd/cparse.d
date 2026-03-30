@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import core.stdc.string : memcpy;
 
 import dmd.astenums;
+import dmd.errors;
 import dmd.errorsink;
 import dmd.id;
 import dmd.identifier;
@@ -316,7 +317,7 @@ final class CParser(AST) : Parser!AST
             auto exp = cparseExpression();
             if (token.value == TOK.identifier && exp.op == EXP.identifier)
             {
-                error(token.loc, "found `%s` when expecting `;` or `=`, did you mean `%s %s = %s`?", peek(&token).toChars(), exp.toChars(), token.toChars(), peek(peek(&token)).toChars());
+                error(token.loc, "found `%s` when expecting `;` or `=`, did you mean `%s %s = %s`?", peek(&token).toChars(), exp.toErrMsg(), token.toChars(), peek(peek(&token)).toChars());
                 nextToken();
             }
             else
@@ -1794,7 +1795,7 @@ final class CParser(AST) : Parser!AST
             if (auto ti = tspec.isTypeIdentifier())
             {
                 // C11 6.7.2-2
-                error("type-specifier missing for declaration of `%s`", ti.ident.toChars());
+                error("type-specifier missing for declaration of `%s`", ti.ident.toErrMsg());
                 nextToken();
                 return;
             }
@@ -1811,7 +1812,7 @@ final class CParser(AST) : Parser!AST
             if (0 && tt.tok == TOK.enum_)    // C11 proscribes enums with no members, but we allow it
             {
                 if (!tt.members)
-                    error(tt.loc, "`enum %s` has no members", tt.toChars());
+                    error(tt.loc, "`enum %s` has no members", tt.toErrMsg());
             }
             return;
         }
@@ -1851,7 +1852,7 @@ final class CParser(AST) : Parser!AST
             /* C11 6.7.2-2
              * Special check for `const b = 1;` because some compilers allow it
              */
-            error("type-specifier omitted for declaration of `%s`", tspec.isTypeIdentifier().ident.toChars());
+            error("type-specifier omitted for declaration of `%s`", tspec.isTypeIdentifier().ident.toErrMsg());
             return scanPastSemicolon();
         }
 
@@ -2118,7 +2119,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.identifier:
                     if (s)
                     {
-                        error(token.loc, "missing comma or semicolon after declaration of `%s`, found `%s` instead", s.toChars(), token.toChars());
+                        error(token.loc, "missing comma or semicolon after declaration of `%s`, found `%s` instead", s.toErrMsg(), token.toChars());
                         goto Lend;
                     }
                     goto default;
@@ -2226,7 +2227,7 @@ final class CParser(AST) : Parser!AST
                 }
                 if (!p.type)
                 {
-                    error("no declaration for identifier `%s`", p.ident.toChars());
+                    error("no declaration for identifier `%s`", p.ident.toErrMsg());
                     p.type = AST.Type.terror;
                 }
             }
@@ -3021,7 +3022,7 @@ final class CParser(AST) : Parser!AST
                              * function type.
                              */
                             if (ta.isTypeSArray() && ta.isTypeSArray().isIncomplete() && !isVLA)
-                                error("array type has incomplete element type `%s`", ta.toChars());
+                                error("array type has incomplete element type `%s`", ta.toErrMsg());
                         }
 
                         // Apply type qualifiers to the constructed type.
@@ -3253,7 +3254,7 @@ final class CParser(AST) : Parser!AST
             {
                 if ((token.value == TOK.rightParenthesis || token.value == TOK.comma) &&
                     tspec.isTypeIdentifier())
-                    error("type-specifier omitted for parameter `%s`", tspec.isTypeIdentifier().ident.toChars());
+                    error("type-specifier omitted for parameter `%s`", tspec.isTypeIdentifier().ident.toErrMsg());
 
                 tspec = toConst(tspec);
                 specifier.mod = MOD.xnone;      // 'used' it
@@ -3922,7 +3923,7 @@ final class CParser(AST) : Parser!AST
             if (token.value == TOK.rightCurly)  // C11 6.7.2.2-1
             {
                 if (tag)
-                    error("no members for `enum %s`", tag.toChars());
+                    error("no members for `enum %s`", tag.toErrMsg());
                 else
                     error("no members for anonymous enum");
             }
@@ -4146,7 +4147,7 @@ final class CParser(AST) : Parser!AST
             {
                 if (auto ti = tspec.isTypeIdentifier())
                 {
-                    error("type-specifier omitted before declaration of `%s`", ti.ident.toChars());
+                    error("type-specifier omitted before declaration of `%s`", ti.ident.toErrMsg());
                 }
                 return; // legal but meaningless empty declaration
             }
@@ -4193,7 +4194,7 @@ final class CParser(AST) : Parser!AST
             {
                 if (auto ti = tspec.isTypeIdentifier())
                 {
-                    error("type-specifier omitted before bit field declaration of `%s`", ti.ident.toChars());
+                    error("type-specifier omitted before bit field declaration of `%s`", ti.ident.toErrMsg());
                     tspec = AST.Type.tint32;
                 }
 
@@ -5590,7 +5591,7 @@ final class CParser(AST) : Parser!AST
 
         void addSym(AST.Dsymbol s)
         {
-            //printf("addSym() %s\n", s.toChars());
+            //printf("addSym() %s\n", s.toErrMsg());
             if (auto v = s.isVarDeclaration())
                 v.isCmacro = true;       // mark it as coming from a C #define
             if (auto td = s.isTemplateDeclaration())
@@ -5600,7 +5601,7 @@ final class CParser(AST) : Parser!AST
              */
             if (size_t* pd = cast(void*)s.ident in defineTab)
             {
-                //printf("replacing %s\n", s.toChars());
+                //printf("replacing %s\n", s.toErrMsg());
                 newSymbols[*pd] = s;
                 return;
             }
@@ -5610,10 +5611,10 @@ final class CParser(AST) : Parser!AST
 
         void removeSym(Identifier ident)
         {
-            //printf("removeSym() %s\n", ident.toChars());
+            //printf("removeSym() %s\n", ident.toErrMsg());
             if (size_t* pd = cast(void*)ident in defineTab)
             {
-                //printf("removing %s\n", ident.toChars());
+                //printf("removing %s\n", ident.toErrMsg());
                 newSymbols[*pd] = null;
             }
         }
@@ -5823,7 +5824,7 @@ final class CParser(AST) : Parser!AST
                              * Create template function:
                              *    auto id(__MP1, __MP2)(__MP1 a, __MP1 b) { return expression; }
                              */
-                            //printf("functionlike %s\n", id.toChars());
+                            //printf("functionlike %s\n", id.toErrMsg());
 
                             // Capture the parameter list
                             VarArg varargs = VarArg.none;
@@ -5882,7 +5883,7 @@ final class CParser(AST) : Parser!AST
                             eLatch.sawErrors = false;
                             auto exp = cparseExpression();
 
-                            //printf("exp: %s tok: %s\n", exp.toChars(), Token.toChars(token.value));
+                            //printf("exp: %s tok: %s\n", exp.toErrMsg(), Token.toChars(token.value));
                             //printf("parsed: '%.*s'\n", cast(int)(p - pstart), pstart);
                             assert(symbols);
 

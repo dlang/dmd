@@ -1453,7 +1453,7 @@ private void resolveTupleIndex(Loc loc, Scope* sc, Dsymbol s, out Expression pe,
         eindex = symbolToExp(sindex, loc, sc, false);
     if (!eindex)
     {
-        .error(loc, "index `%s` is not an expression", oindex.toChars());
+        .error(loc, "index `%s` is not an expression", oindex.toErrMsg());
         pt = Type.terror;
         return;
     }
@@ -1516,7 +1516,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
             if (const n = importHint(id.toString()))
                 error(loc, "`%s` is not defined, perhaps `import %.*s;` ?", p, cast(int)n.length, n.ptr);
             else if (auto s2 = sc.search_correct(id))
-                error(mt.loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
+                error(mt.loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toErrMsg());
             else if (const q = search_correct_C(id))
                 error(mt.loc, "undefined identifier `%s`, did you mean `%s`?", p, q);
             else if ((id == Id.This   && sc.getStructClassScope()) ||
@@ -1529,7 +1529,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
             if (const n = cIncludeHint(id.toString()))
                 error(loc, "`%s` is not defined, perhaps `#include %.*s` ?", p, cast(int)n.length, n.ptr);
             else if (auto s2 = sc.search_correct(id))
-                error(mt.loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
+                error(mt.loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toErrMsg());
             else
                 error(mt.loc, "undefined identifier `%s`", p);
         }
@@ -1591,7 +1591,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
         {
             if (!sc.ignoresymbolvisibility && !symbolIsVisible(sc, sm))
             {
-                .error(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toChars());
+                .error(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toErrMsg());
                 sm = null;
             }
             // Same check as in dotIdSemanticProp(DotIdExp)
@@ -1717,7 +1717,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
         if (ti != mt && !ti.deco)
         {
             if (!ti.tempinst.errors)
-                error(loc, "forward reference to `%s`", ti.toChars());
+                error(loc, "forward reference to `%s`", ti.toErrMsg());
             pt = Type.terror;
             return;
         }
@@ -2014,13 +2014,13 @@ extern (D) bool checkComplexTransition(Type type, Loc loc, Scope* sc)
         if (t.isComplex())
         {
             deprecation(loc, "use of complex type `%s` is deprecated, use `std.complex.Complex!(%s)` instead",
-                type.toChars(), rt.toChars());
+                type.toErrMsg(), rt.toErrMsg());
             return true;
         }
         else
         {
             deprecation(loc, "use of imaginary type `%s` is deprecated, use `%s` instead",
-                type.toChars(), rt.toChars());
+                type.toErrMsg(), rt.toErrMsg());
             return true;
         }
     }
@@ -2903,7 +2903,7 @@ uinteger_t size(Type t, Loc loc)
 
     uinteger_t visitType(Type t)
     {
-        error(loc, "no size for type `%s`", t.toChars());
+        error(loc, "no size for type `%s`", t.toErrMsg());
         return SIZE_INVALID;
     }
 
@@ -2995,7 +2995,7 @@ uinteger_t size(Type t, Loc loc)
         if (overflow || sz >= uint.max)
         {
             if (elemsize != SIZE_INVALID && n != uint.max)
-                error(loc, "static array `%s` size overflowed to %lld", t.toChars(), cast(long)sz);
+                error(loc, "static array `%s` size overflowed to %lld", t.toErrMsg(), cast(long)sz);
             return SIZE_INVALID;
         }
         return sz;
@@ -3011,7 +3011,7 @@ uinteger_t size(Type t, Loc loc)
                 return type.size(loc);
         }
 
-        error(t.loc, "size of type `%s` is not known", t.toChars());
+        error(t.loc, "size of type `%s` is not known", t.toErrMsg());
         return SIZE_INVALID;
     }
 
@@ -3246,7 +3246,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         mtype.basetype = mtype.basetype.toBasetype().mutableOf();
         if (mtype.basetype.ty != Tsarray)
         {
-            .error(loc, "T in __vector(T) must be a static array, not `%s`", mtype.basetype.toChars());
+            .error(loc, "T in __vector(T) must be a static array, not `%s`", mtype.basetype.toErrMsg());
             return error();
         }
         TypeSArray t = mtype.basetype.isTypeSArray();
@@ -3264,12 +3264,12 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
         case 2:
             // invalid base type
-            .error(loc, "vector type `%s` is not supported on this platform", mtype.toChars());
+            .error(loc, "vector type `%s` is not supported on this platform", mtype.toErrMsg());
             return error();
 
         case 3:
             // invalid size
-            .error(loc, "%d byte vector type `%s` is not supported on this platform", sz, mtype.toChars());
+            .error(loc, "%d byte vector type `%s` is not supported on this platform", sz, mtype.toErrMsg());
             return error();
         }
         return merge(mtype);
@@ -3300,7 +3300,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             RootObject o = (*tup.objects)[cast(size_t)d];
             if (auto tt = o.isType())
                 return tt.addMod(mtype.mod);
-            .error(loc, "`%s` is not a type", mtype.toChars());
+            .error(loc, "`%s` is not a type", mtype.toErrMsg());
             return error();
         }
 
@@ -3355,7 +3355,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             Type overflowError()
             {
                 .error(loc, "`%s` size %llu * %llu exceeds 0x%llx size limit for static array",
-                        mtype.toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1, target.maxStaticDataSize);
+                        mtype.toErrMsg(), cast(ulong)tbn.size(loc), cast(ulong)d1, target.maxStaticDataSize);
                 return error();
             }
 
@@ -3405,7 +3405,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
         case Tfunction:
         case Tnone:
-            .error(loc, "cannot have array of `%s`", tbn.toChars());
+            .error(loc, "cannot have array of `%s`", tbn.toErrMsg());
             return error();
 
         default:
@@ -3413,7 +3413,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         }
         if (tbn.isScopeClass())
         {
-            .error(loc, "cannot have array of scope `%s`", tbn.toChars());
+            .error(loc, "cannot have array of scope `%s`", tbn.toErrMsg());
             return error();
         }
 
@@ -3436,7 +3436,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
         case Tfunction:
         case Tnone:
-            .error(loc, "cannot have array of `%s`", tbn.toChars());
+            .error(loc, "cannot have array of `%s`", tbn.toErrMsg());
             return error();
 
         case Terror:
@@ -3447,7 +3447,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         }
         if (tn.isScopeClass())
         {
-            .error(loc, "cannot have array of scope `%s`", tn.toChars());
+            .error(loc, "cannot have array of scope `%s`", tn.toErrMsg());
             return error();
         }
         mtype.next = tn;
@@ -3534,7 +3534,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         case Tvoid:
         case Tnone:
         case Ttuple:
-            .error(loc, "cannot have associative array key of `%s`", mtype.index.toBasetype().toChars());
+            .error(loc, "cannot have associative array key of `%s`", mtype.index.toBasetype().toErrMsg());
             goto case Terror;
         case Terror:
             return error();
@@ -3579,11 +3579,11 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             {
                 if (search_function(sd, Id.opEquals))
                 {
-                    .error(loc, "%sAA key type `%s` does not have `bool opEquals(ref const %s) const`", s, sd.toChars(), sd.toChars());
+                    .error(loc, "%sAA key type `%s` does not have `bool opEquals(ref const %s) const`", s, sd.toErrMsg(), sd.toErrMsg());
                 }
                 else
                 {
-                    .error(loc, "%sAA key type `%s` does not support const equality", s, sd.toChars());
+                    .error(loc, "%sAA key type `%s` does not support const equality", s, sd.toErrMsg());
                 }
                 return error();
             }
@@ -3591,11 +3591,11 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             {
                 if (search_function(sd, Id.opEquals))
                 {
-                    .error(loc, "%sAA key type `%s` should have `extern (D) size_t toHash() const nothrow @safe` if `opEquals` defined", s, sd.toChars());
+                    .error(loc, "%sAA key type `%s` should have `extern (D) size_t toHash() const nothrow @safe` if `opEquals` defined", s, sd.toErrMsg());
                 }
                 else
                 {
-                    .error(loc, "%sAA key type `%s` supports const equality but doesn't support const hashing", s, sd.toChars());
+                    .error(loc, "%sAA key type `%s` supports const equality but doesn't support const hashing", s, sd.toErrMsg());
                 }
                 return error();
             }
@@ -3641,7 +3641,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                     if (fcmp.vtblIndex < cd.vtbl.length && cd.vtbl[fcmp.vtblIndex] != fcmp)
                     {
                         const(char)* s = (mtype.index.toBasetype().ty != Tclass) ? "bottom of " : "";
-                        .error(loc, "%sAA key type `%s` now requires equality rather than comparison", s, cd.toChars());
+                        .error(loc, "%sAA key type `%s` now requires equality rather than comparison", s, cd.toErrMsg());
                         errorSupplemental(loc, "Please override `Object.opEquals` and `Object.toHash`.");
                     }
                 }
@@ -3656,7 +3656,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         case Tvoid:
         case Tnone:
         case Ttuple:
-            .error(loc, "cannot have associative array of `%s`", mtype.next.toChars());
+            .error(loc, "cannot have associative array of `%s`", mtype.next.toErrMsg());
             goto case Terror;
         case Terror:
             return error();
@@ -3665,7 +3665,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         }
         if (mtype.next.isScopeClass())
         {
-            .error(loc, "cannot have array of scope `%s`", mtype.next.toChars());
+            .error(loc, "cannot have array of scope `%s`", mtype.next.toErrMsg());
             return error();
         }
         return merge(mtype);
@@ -3682,7 +3682,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         switch (n.toBasetype().ty)
         {
         case Ttuple:
-            .error(loc, "cannot have pointer to `%s`", n.toChars());
+            .error(loc, "cannot have pointer to `%s`", n.toErrMsg());
             goto case Terror;
         case Terror:
             return error();
@@ -3831,7 +3831,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             errors |= tf.checkRetType(loc);
             if (tf.next.isScopeClass() && !tf.isCtor)
             {
-                .error(loc, "functions cannot return `scope %s`", tf.next.toChars());
+                .error(loc, "functions cannot return `scope %s`", tf.next.toErrMsg());
                 errors = true;
             }
             if (tf.next.hasWild())
@@ -3881,7 +3881,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             {
                 const(char)* errTxt = fparam.storageClass & STC.ref_ ? "ref" : "out";
                 .error(e.loc, "expression `%s` of type `%s` is not implicitly convertible to type `%s %s` of parameter `%s`",
-                      e.toErrMsg(), e.type.toChars(), errTxt, fparam.type.toChars(), fparam.toChars());
+                      e.toErrMsg(), e.type.toErrMsg(), errTxt, fparam.type.toErrMsg(), fparam.toChars());
             }
             e = e.implicitCastTo(sc, fparam.type);
 
@@ -4018,7 +4018,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
                 if (t.ty == Tfunction)
                 {
-                    .error(loc, "cannot have parameter of function type `%s`", fparam.type.toChars());
+                    .error(loc, "cannot have parameter of function type `%s`", fparam.type.toErrMsg());
                     errors = true;
                 }
                 else if (!fparam.isReference() &&
@@ -4031,17 +4031,17 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                         if (fparam.storageClass & STC.constscoperef)
                         {
                             .error(loc, "cannot infer `ref` for `in` parameter `%s` of opaque type `%s`",
-                                   fparam.toChars(), fparam.type.toChars());
+                                   fparam.toChars(), fparam.type.toErrMsg());
                         }
                         else
                             .error(loc, "cannot have parameter of opaque type `%s` by value",
-                                   fparam.type.toChars());
+                                   fparam.type.toErrMsg());
                         errors = true;
                     }
                 }
                 else if (!fparam.isLazy() && t.ty == Tvoid)
                 {
-                    .error(loc, "cannot have parameter of type `%s`", fparam.type.toChars());
+                    .error(loc, "cannot have parameter of type `%s`", fparam.type.toErrMsg());
                     errors = true;
                 }
 
@@ -4052,7 +4052,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                 {
                     // Deprecated in 2.111, kept as a legacy feature for compatibility (currently no plan to turn it into an error)
                     .deprecation(loc, "typesafe variadic parameters with a `class` type (`%s %s...`) are deprecated",
-                        t.isTypeClass().sym.ident.toChars(), fparam.toChars());
+                        t.isTypeClass().sym.ident.toErrMsg(), fparam.toChars());
                 }
 
                 if (isStackAllocatedVariadic)
@@ -4083,7 +4083,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                          * https://dlang.org/spec/function.html#typesafe_variadic_functions
                          */
                         .error(loc, "typesafe variadic function parameter `%s` of type `%s` cannot be marked `return`",
-                            fparam.ident ? fparam.ident.toChars() : "", t.toChars());
+                            fparam.ident ? fparam.ident.toErrMsg() : "", t.toErrMsg());
                         errors = true;
                     }
                 }
@@ -4092,7 +4092,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                 {
                     if (ubyte m = fparam.type.mod & (MODFlags.immutable_ | MODFlags.const_ | MODFlags.wild))
                     {
-                        .error(loc, "cannot have `%s out` parameter of type `%s`", MODtoChars(m), t.toChars());
+                        .error(loc, "cannot have `%s out` parameter of type `%s`", MODtoChars(m), t.toErrMsg());
                         errors = true;
                     }
                     else
@@ -4100,7 +4100,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                         Type tv = t.baseElemOf();
                         if (tv.ty == Tstruct && tv.isTypeStruct().sym.noDefaultCtor)
                         {
-                            .error(loc, "cannot have `out` parameter of type `%s` because the default construction is disabled", fparam.type.toChars());
+                            .error(loc, "cannot have `out` parameter of type `%s` because the default construction is disabled", fparam.type.toErrMsg());
                             errors = true;
                         }
                     }
@@ -4220,7 +4220,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
         if (wildreturn && !wildparams)
         {
-            .error(loc, "`inout` on `return` means `inout` must be on a parameter as well for `%s`", mtype.toChars());
+            .error(loc, "`inout` on `return` means `inout` must be on a parameter as well for `%s`", mtype.toErrMsg());
             errors = true;
         }
         tf.isInOutParam = (wildparams & 1) != 0;
@@ -4326,7 +4326,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             Dsymbol varDecl = mtype.toDsymbol(sc);
             Module varDeclModule = varDecl.getModule(); //This can be null
 
-            .error(loc, "variable `%s` is used as a type", mtype.toChars());
+            .error(loc, "variable `%s` is used as a type", mtype.toErrMsg());
             //Check for null to avoid https://issues.dlang.org/show_bug.cgi?id=22574
             if ((varDeclModule !is null) && varDeclModule != sc._module) // variable is imported
             {
@@ -4341,7 +4341,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             .errorSupplemental(varDecl.loc, "variable `%s` is declared here", varDecl.toChars);
         }
         else
-            .error(loc, "`%s` is used as a type", mtype.toChars());
+            .error(loc, "`%s` is used as a type", mtype.toErrMsg());
         return error();
     }
 
@@ -4366,10 +4366,10 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             {
                 // if there was an error evaluating the symbol, it might actually
                 // be a type. Avoid misleading error messages.
-                .error(loc, "`%s` had previous errors", mtype.toChars());
+                .error(loc, "`%s` had previous errors", mtype.toErrMsg());
             }
             else
-                .error(loc, "`%s` is used as a type", mtype.toChars());
+                .error(loc, "`%s` is used as a type", mtype.toErrMsg());
             return error();
         }
         return t;
@@ -4386,7 +4386,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             t = t.addMod(mtype.mod);
         if (!t)
         {
-            .error(loc, "`%s` is used as a type", mtype.toChars());
+            .error(loc, "`%s` is used as a type", mtype.toErrMsg());
             return error();
         }
         return t;
@@ -4419,7 +4419,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             t = t.addMod(mtype.mod);
         if (!t)
         {
-            .error(loc, "`%s` is used as a type", mtype.toChars());
+            .error(loc, "`%s` is used as a type", mtype.toErrMsg());
             return error();
         }
         return t;
@@ -4489,7 +4489,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         Type tbn = tn.toBasetype();
         if (tbn.ty != Ttuple)
         {
-            .error(loc, "can only slice type sequences, not `%s`", tbn.toChars());
+            .error(loc, "can only slice type sequences, not `%s`", tbn.toErrMsg());
             return error();
         }
         TypeTuple tt = cast(TypeTuple)tbn;
@@ -4641,7 +4641,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         {
             // no pre-existing declaration, so declare it
             if (mtype.tok == TOK.enum_ && !mtype.members)
-                .error(mtype.loc, "`enum %s` is incomplete without members", mtype.id.toChars()); // C11 6.7.2.3-3
+                .error(mtype.loc, "`enum %s` is incomplete without members", mtype.id.toErrMsg()); // C11 6.7.2.3-3
             declareTag();
             return returnType(mtype);
         }
@@ -4657,7 +4657,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             {
                 auto ed = s.isEnumDeclaration();
                 if (mtype.members && ed.members)
-                    .error(mtype.loc, "`%s` already has members", mtype.id.toChars());
+                    .error(mtype.loc, "`%s` already has members", mtype.id.toErrMsg());
                 else if (!ed.members)
                 {
                     ed.members = mtype.members;
@@ -4677,7 +4677,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                     /* struct S { int b; };
                      * struct S { int a; } *s;
                      */
-                    .error(mtype.loc, "`%s` already has members", mtype.id.toChars());
+                    .error(mtype.loc, "`%s` already has members", mtype.id.toErrMsg());
                 }
                 else if (!sd.members)
                 {
@@ -4708,7 +4708,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                 /* int S;
                  * struct S { int a; } *s;
                  */
-                .error(mtype.loc, "redeclaration of `%s`", mtype.id.toChars());
+                .error(mtype.loc, "redeclaration of `%s`", mtype.id.toErrMsg());
                 mtype.resolved = error();
             }
         }
@@ -4739,7 +4739,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                  * { struct S* s; }
                  */
                 .error(mtype.loc, "redeclaring `%s %s` as `%s %s`",
-                    s.kind(), s.toChars(), Token.toChars(mtype.tok), mtype.id.toChars());
+                    s.kind(), s.toErrMsg(), Token.toChars(mtype.tok), mtype.id.toErrMsg());
                 declareTag();
             }
         }
@@ -5064,7 +5064,7 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
         {
             if (!mt.deco)
             {
-                error(loc, "forward reference of type `%s.mangleof`", mt.toChars());
+                error(loc, "forward reference of type `%s.mangleof`", mt.toErrMsg());
                 return ErrorExp.get();
             }
             else
@@ -5460,7 +5460,7 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
         }
         else
         {
-            error(loc, "no property `%s` for sequence `%s`", ident.toChars(), mt.toChars());
+            error(loc, "no property `%s` for sequence `%s`", ident.toErrMsg(), mt.toErrMsg());
             e = ErrorExp.get();
         }
         return e;
@@ -5862,12 +5862,12 @@ void resolve(Type mt, Loc loc, Scope* sc, out Expression pe, out Type pt, out Ds
         Type t = mt.exp.type;
         if (!t)
         {
-            error(loc, "expression `%s` has no type", mt.exp.toChars());
+            error(loc, "expression `%s` has no type", mt.exp.toErrMsg());
             goto Lerr;
         }
         if (t.ty == Ttypeof)
         {
-            error(loc, "forward reference to `%s`", mt.toChars());
+            error(loc, "forward reference to `%s`", mt.toErrMsg());
             goto Lerr;
         }
         if (mt.idents.length == 0)
@@ -5906,7 +5906,7 @@ void resolve(Type mt, Loc loc, Scope* sc, out Expression pe, out Type pt, out Ds
             t = func.type.nextOf();
             if (!t)
             {
-                error(loc, "cannot use `typeof(return)` inside function `%s` with inferred return type", sc.func.toChars());
+                error(loc, "cannot use `typeof(return)` inside function `%s` with inferred return type", sc.func.toErrMsg());
                 return returnError();
             }
         }
@@ -6212,7 +6212,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                             value = ident == Id.bitoffsetof ? bf.bitOffset : bf.fieldWidth;
                         }
                         else
-                            error(v.loc, "`%s` is not a bitfield, cannot apply `%s`", v.toChars(), ident.toChars());
+                            error(v.loc, "`%s` is not a bitfield, cannot apply `%s`", v.toErrMsg(), ident.toErrMsg());
                     }
                     return new IntegerExp(e.loc, value, Type.tsize_t);
                 }
@@ -6610,7 +6610,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
 
         if (++nest > global.recursionLimit)
         {
-            .error(e.loc, "cannot resolve identifier `%s`", ident.toChars());
+            .error(e.loc, "cannot resolve identifier `%s`", ident.toErrMsg());
             return returnExp(gagError ? null : ErrorExp.get());
         }
 
@@ -6739,7 +6739,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
 
             if (!mt.sym.determineFields())
             {
-                error(e.loc, "unable to determine fields of `%s` because of forward references", mt.toChars());
+                error(e.loc, "unable to determine fields of `%s` because of forward references", mt.toErrMsg());
             }
 
             Expression e0;
@@ -6920,7 +6920,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         Declaration d = s.isDeclaration();
         if (!d)
         {
-            error(e.loc, "`%s.%s` is not a declaration", e.toErrMsg(), ident.toChars());
+            error(e.loc, "`%s.%s` is not a declaration", e.toErrMsg(), ident.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -7010,11 +7010,11 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             if (!(flag & 1) && !res)
             {
                 if (auto ns = mt.sym.search_correct(ident))
-                    error(e.loc, "no property `%s` for type `%s`. Did you mean `%s.%s` ?", ident.toChars(), mt.toChars(), mt.toChars(),
-                        ns.toChars());
+                    error(e.loc, "no property `%s` for type `%s`. Did you mean `%s.%s` ?", ident.toErrMsg(), mt.toErrMsg(), mt.toErrMsg(),
+                        ns.toErrMsg());
                 else
-                    error(e.loc, "no property `%s` for type `%s`", ident.toChars(),
-                        mt.toChars());
+                    error(e.loc, "no property `%s` for type `%s`", ident.toErrMsg(),
+                        mt.toErrMsg());
 
                 errorSupplemental(mt.sym.loc, "%s `%s` defined here",
                     mt.sym.kind, mt.toChars());
@@ -7351,7 +7351,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         Declaration d = s.isDeclaration();
         if (!d)
         {
-            error(e.loc, "`%s.%s` is not a declaration", e.toErrMsg(), ident.toChars());
+            error(e.loc, "`%s.%s` is not a declaration", e.toErrMsg(), ident.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -8001,7 +8001,7 @@ Type getComplexLibraryType(Loc loc, Scope* sc, TY ty)
     Dsymbol s = mConfig.searchX(Loc.initial, sc, id, SearchOpt.ignorePrivateImports);
     if (!s)
     {
-        error(loc, "`%s` not found in core.stdc.config", id.toChars());
+        error(loc, "`%s` not found in core.stdc.config", id.toErrMsg());
         return *pt;
     }
     s = s.toAlias();
@@ -8019,7 +8019,7 @@ Type getComplexLibraryType(Loc loc, Scope* sc, TY ty)
         return sd.type;
     }
 
-    error(loc, "`%s` must be an alias for a complex struct", s.toChars());
+    error(loc, "`%s` must be an alias for a complex struct", s.toErrMsg());
     return *pt;
 }
 
@@ -9325,7 +9325,7 @@ uint numberOfElems(Type t, Loc loc)
         n = mulu(n, (cast(TypeSArray)tb).dim.toUInteger(), overflow);
         if (overflow || n >= uint.max)
         {
-            error(loc, "static array `%s` size overflowed to %llu", t.toChars(), cast(ulong)n);
+            error(loc, "static array `%s` size overflowed to %llu", t.toErrMsg(), cast(ulong)n);
             return uint.max;
         }
         tb = (cast(TypeSArray)tb).next;
@@ -9352,7 +9352,7 @@ bool checkRetType(TypeFunction tf, Loc loc)
         {
             if (!ts.sym.members)
             {
-                error(loc, "functions cannot return opaque type `%s` by value", tb.toChars());
+                error(loc, "functions cannot return opaque type `%s` by value", tb.toErrMsg());
                 tf.next = Type.terror;
             }
         }
@@ -9550,7 +9550,7 @@ Expression getMaxMinValue(EnumDeclaration ed, Loc loc, Identifier id)
 
     if (ed.inuse)
     {
-        .error(loc, "%s `%s` recursive definition of `.%s` property", ed.kind, ed.toPrettyChars, id.toChars());
+        .error(loc, "%s `%s` recursive definition of `.%s` property", ed.kind, ed.toPrettyChars, id.toErrMsg());
         return errorReturn();
     }
     if (*pval)
@@ -9562,13 +9562,13 @@ Expression getMaxMinValue(EnumDeclaration ed, Loc loc, Identifier id)
         return errorReturn();
     if (!ed.members)
     {
-        .error(loc, "%s `%s` is opaque and has no `.%s`", ed.kind, ed.toPrettyChars, id.toChars(), id.toChars());
+        .error(loc, "%s `%s` is opaque and has no `.%s`", ed.kind, ed.toPrettyChars, id.toErrMsg(), id.toErrMsg());
         return errorReturn();
     }
     if (!(ed.memtype && ed.memtype.isIntegral()))
     {
-        .error(loc, "%s `%s` has no `.%s` property because base type `%s` is not an integral type", ed.kind, ed.toPrettyChars, id.toChars(),
-              id.toChars(), ed.memtype ? ed.memtype.toChars() : "");
+        .error(loc, "%s `%s` has no `.%s` property because base type `%s` is not an integral type", ed.kind, ed.toPrettyChars, id.toErrMsg(),
+              id.toErrMsg(), ed.memtype ? ed.memtype.toErrMsg() : "");
         return errorReturn();
     }
 
@@ -9586,7 +9586,7 @@ Expression getMaxMinValue(EnumDeclaration ed, Loc loc, Identifier id)
 
         if (em.semanticRun < PASS.semanticdone)
         {
-            .error(em.loc, "%s `%s` is forward referenced looking for `.%s`", em.kind, em.toPrettyChars, id.toChars());
+            .error(em.loc, "%s `%s` is forward referenced looking for `.%s`", em.kind, em.toPrettyChars, id.toErrMsg());
             ed.errors = true;
             continue;
         }
@@ -9663,7 +9663,7 @@ RootObject compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
     if (p.token.value != TOK.endOfFile)
     {
         .error(loc, "unexpected token `%s` after type `%s`",
-            p.token.toChars(), o.toChars());
+            p.token.toChars(), o.toErrMsg());
         .errorSupplemental(loc, "while parsing string mixin type `%s`",
             str.ptr);
         return null;

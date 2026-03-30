@@ -1213,7 +1213,7 @@ public:
         }
         if (loc.isValid())
         {
-            .error(loc, "`%s` matches conflicting symbols:", s1.ident.toChars());
+            .error(loc, "`%s` matches conflicting symbols:", s1.ident.toErrMsg());
             errorSupplemental(s1.loc, "%s `%s`", s1.kind(), s1.toPrettyChars());
             errorSupplemental(s2.loc, "%s `%s`", s2.kind(), s2.toPrettyChars());
 

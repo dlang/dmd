@@ -51,7 +51,7 @@ bool genTypeInfo(Expression e, Loc loc, Type torig, Scope* sc)
         {
             global.gag = 0;
             if (e)
-                .error(loc, "expression `%s` uses the GC and cannot be used with switch `-betterC`", e.toChars());
+                .error(loc, "expression `%s` uses the GC and cannot be used with switch `-betterC`", e.toErrMsg());
             else
                 .error(loc, "`TypeInfo` cannot be used with `-betterC`");
 

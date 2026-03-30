@@ -496,7 +496,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     {
         // error, no this. Prevent segfault.
         // Here should be unreachable by the strict 'this' check in front-end.
-        error(fd.loc, "%s `%s` need `this` to access member `%s`", fd.kind, fd.toPrettyChars, fd.toChars());
+        error(fd.loc, "%s `%s` need `this` to access member `%s`", fd.kind, fd.toPrettyChars, fd.toErrMsg());
         return CTFEExp.cantexp;
     }
 
@@ -519,7 +519,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
             if (!istate && (fparam.storageClass & STC.out_))
             {
                 // initializing an out parameter involves writing to it.
-                error(earg.loc, "global `%s` cannot be passed as an `out` parameter at compile time", earg.toChars());
+                error(earg.loc, "global `%s` cannot be passed as an `out` parameter at compile time", earg.toErrMsg());
                 return CTFEExp.cantexp;
             }
             // Convert all reference arguments into lvalue references
@@ -613,7 +613,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
             VarDeclaration vx = earg.isVarExp().var.isVarDeclaration();
             if (!vx)
             {
-                error(fd.loc, "%s `%s` cannot interpret `%s` as a `ref` parameter", fd.kind, fd.toPrettyChars, earg.toChars());
+                error(fd.loc, "%s `%s` cannot interpret `%s` as a `ref` parameter", fd.kind, fd.toPrettyChars, earg.toErrMsg());
                 return CTFEExp.cantexp;
             }
 
@@ -685,7 +685,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
 
         if (istatex.start)
         {
-            error(fd.loc, "%s `%s` CTFE internal error: failed to resume at statement `%s`", fd.kind, fd.toPrettyChars, istatex.start.toChars());
+            error(fd.loc, "%s `%s` CTFE internal error: failed to resume at statement `%s`", fd.kind, fd.toPrettyChars, istatex.start.toErrMsg());
             return CTFEExp.cantexp;
         }
 
@@ -823,7 +823,7 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
             istate.start = null;
         }
 
-        error(s.loc, "statement `%s` cannot be interpreted at compile time", s.toChars());
+        error(s.loc, "statement `%s` cannot be interpreted at compile time", s.toErrMsg());
         result = CTFEExp.cantexp;
     }
 
@@ -1286,7 +1286,7 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
         if (!scase)
         {
             if (!s.hasDefault)
-                error(s.loc, "no `default` or `case` for `%s` in `switch` statement", econdition.toChars());
+                error(s.loc, "no `default` or `case` for `%s` in `switch` statement", econdition.toErrMsg());
             scase = s.sdefault;
         }
 
@@ -1720,7 +1720,7 @@ public:
             printf("type = %s\n", e.type.toChars());
             showCtfeExpr(e);
         }
-        error(e.loc, "cannot interpret `%s` at compile time", e.toChars());
+        error(e.loc, "cannot interpret `%s` at compile time", e.toErrMsg());
         result = CTFEExp.cantexp;
     }
 
@@ -1866,14 +1866,14 @@ public:
         if (e.type.ty != Tpointer)
         {
             // Probably impossible
-            error(e.loc, "cannot interpret `%s` at compile time", e.toChars());
+            error(e.loc, "cannot interpret `%s` at compile time", e.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
         Type pointee = (cast(TypePointer)e.type).next;
         if (e.var.isThreadlocal())
         {
-            error(e.loc, "cannot take address of thread-local variable %s at compile time", e.var.toChars());
+            error(e.loc, "cannot take address of thread-local variable %s at compile time", e.var.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -1928,7 +1928,7 @@ public:
                     result = pue.exp();
                     return;
                 }
-                error(e.loc, "reinterpreting cast from `%s` to `%s` is not supported in CTFE", val.type.toChars(), e.type.toChars());
+                error(e.loc, "reinterpreting cast from `%s` to `%s` is not supported in CTFE", val.type.toErrMsg(), e.type.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
@@ -1969,7 +1969,7 @@ public:
             return;
         }
 
-        error(e.loc, "cannot convert `&%s` to `%s` at compile time", e.var.type.toChars(), e.type.toChars());
+        error(e.loc, "cannot convert `&%s` to `%s` at compile time", e.var.type.toErrMsg(), e.type.toErrMsg());
         result = CTFEExp.cantexp;
     }
 
@@ -1986,7 +1986,7 @@ public:
             // We cannot take the address of an imported symbol at compile time
             if (decl.isImportedSymbol())
             {
-                error(e.loc, "cannot take address of imported symbol `%s` at compile time", decl.toChars());
+                error(e.loc, "cannot take address of imported symbol `%s` at compile time", decl.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
@@ -2144,7 +2144,7 @@ public:
             }
             else if (!(v.isDataseg() || v.storage_class & STC.manifest) && !v.isCTFE() && !istate)
             {
-                error(loc, "variable `%s` cannot be read at compile time", v.toChars());
+                error(loc, "variable `%s` cannot be read at compile time", v.toErrMsg());
                 return CTFEExp.cantexp;
             }
             else
@@ -2157,14 +2157,14 @@ public:
                         e = v.type.defaultInitLiteral(loc);
                     else if (!v.isCTFE() && v.isDataseg())
                     {
-                        error(loc, "static variable `%s` cannot be read at compile time", v.toChars());
+                        error(loc, "static variable `%s` cannot be read at compile time", v.toErrMsg());
                         return CTFEExp.cantexp;
                     }
                     else
                     {
                         assert(!(v._init && v._init.isVoidInitializer()));
                         // CTFE initiated from inside a function
-                        error(loc, "variable `%s` cannot be read at compile time", v.toChars());
+                        error(loc, "variable `%s` cannot be read at compile time", v.toErrMsg());
                         return CTFEExp.cantexp;
                     }
                 }
@@ -2193,7 +2193,7 @@ public:
             // Struct static initializers, for example
             e = s.dsym.type.defaultInitLiteral(loc);
             if (e.op == EXP.error)
-                error(loc, "CTFE failed because of previous errors in `%s.init`", s.toChars());
+                error(loc, "CTFE failed because of previous errors in `%s.init`", s.toErrMsg());
             e = e.expressionSemantic(null);
             if (e.op == EXP.error)
                 e = CTFEExp.cantexp;
@@ -2201,7 +2201,7 @@ public:
                 e = interpret(e, istate, goal);
         }
         else
-            error(loc, "cannot interpret declaration `%s` at compile time", d.toChars());
+            error(loc, "cannot interpret declaration `%s` at compile time", d.toErrMsg());
         return e;
     }
 
@@ -2232,9 +2232,9 @@ public:
                     }
 
                     if (!v.isCTFE() && v.isDataseg())
-                        error(e.loc, "static variable `%s` cannot be read at compile time", v.toChars());
+                        error(e.loc, "static variable `%s` cannot be read at compile time", v.toErrMsg());
                     else // CTFE initiated from inside a function
-                        error(e.loc, "variable `%s` cannot be read at compile time", v.toChars());
+                        error(e.loc, "variable `%s` cannot be read at compile time", v.toErrMsg());
                     result = CTFEExp.cantexp;
                     return;
                 }
@@ -2326,7 +2326,7 @@ public:
                         }
                         else
                         {
-                            error(e.loc, "declaration `%s` is not yet implemented in CTFE", e.toChars());
+                            error(e.loc, "declaration `%s` is not yet implemented in CTFE", e.toErrMsg());
                             result = CTFEExp.cantexp;
                             return 1;
                         }
@@ -2373,7 +2373,7 @@ public:
                         return;
                     }
                 }
-                error(e.loc, "declaration `%s` is not yet implemented in CTFE", e.toChars());
+                error(e.loc, "declaration `%s` is not yet implemented in CTFE", e.toErrMsg());
                 result = CTFEExp.cantexp;
             }
             else if (v.type.size() == 0)
@@ -2383,7 +2383,7 @@ public:
             }
             else
             {
-                error(e.loc, "variable `%s` cannot be modified at compile time", v.toChars());
+                error(e.loc, "variable `%s` cannot be modified at compile time", v.toErrMsg());
                 result = CTFEExp.cantexp;
             }
             return;
@@ -2391,7 +2391,7 @@ public:
         if (s.isTemplateMixin() || s.isTupleDeclaration())
         {
             // These can be made to work, too lazy now
-            error(e.loc, "declaration `%s` is not yet implemented in CTFE", e.toChars());
+            error(e.loc, "declaration `%s` is not yet implemented in CTFE", e.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -2423,7 +2423,7 @@ public:
 
             if (result.op == EXP.null_)
             {
-                error(e.loc, "null pointer dereference evaluating typeid. `%s` is `null`", ex.toChars());
+                error(e.loc, "null pointer dereference evaluating typeid. `%s` is `null`", ex.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
@@ -2466,7 +2466,7 @@ public:
                 continue;
             if (ex.op == EXP.voidExpression)
             {
-                error(e.loc, "CTFE internal error: void element `%s` in sequence", exp.toChars());
+                error(e.loc, "CTFE internal error: void element `%s` in sequence", exp.toErrMsg());
                 assert(0);
             }
 
@@ -2803,7 +2803,7 @@ public:
 
         if (e.placement)
         {
-            error(e.placement.loc, "`new ( %s )` PlacementExpression cannot be evaluated at compile time", e.placement.toChars());
+            error(e.placement.loc, "`new ( %s )` PlacementExpression cannot be evaluated at compile time", e.placement.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -2929,7 +2929,7 @@ public:
                     }
                     auto m = e.member;
                     error(m.loc, "%s `%s` `%s` cannot be constructed at compile time, because the constructor has no available source code",
-                        m.kind, m.toPrettyChars, e.newtype.toChars());
+                        m.kind, m.toPrettyChars, e.newtype.toErrMsg());
                     result = CTFEExp.cantexp;
                     return;
                 }
@@ -2971,7 +2971,7 @@ public:
             result = pue.exp();
             return;
         }
-        error(e.loc, "cannot interpret `%s` at compile time", e.toChars());
+        error(e.loc, "cannot interpret `%s` at compile time", e.toErrMsg());
         result = CTFEExp.cantexp;
     }
 
@@ -3075,7 +3075,7 @@ public:
         }
         if (e.e1.type.ty == Tpointer || e.e2.type.ty == Tpointer)
         {
-            error(e.loc, "pointer expression `%s` cannot be interpreted at compile time", e.toChars());
+            error(e.loc, "pointer expression `%s` cannot be interpreted at compile time", e.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -3155,13 +3155,13 @@ public:
             if (e1.isConst() != 1)
             {
                 // The following should really be an assert()
-                error(e1.loc, "CTFE internal error: non-constant value `%s`", e1.toChars());
+                error(e1.loc, "CTFE internal error: non-constant value `%s`", e1.toErrMsg());
                 emplaceExp!CTFEExp(&ue, EXP.cantExpression);
                 return ue;
             }
             if (e2.isConst() != 1)
             {
-                error(e2.loc, "CTFE internal error: non-constant value `%s`", e2.toChars());
+                error(e2.loc, "CTFE internal error: non-constant value `%s`", e2.toErrMsg());
                 emplaceExp!CTFEExp(&ue, EXP.cantExpression);
                 return ue;
             }
@@ -3172,7 +3172,7 @@ public:
         *pue = evaluate(e.loc, e.type, e1, e2);
         result = (*pue).exp();
         if (CTFEExp.isCantExp(result))
-            error(e.loc, "`%s` cannot be interpreted at compile time", e.toChars());
+            error(e.loc, "`%s` cannot be interpreted at compile time", e.toErrMsg());
     }
 
     extern (D) private void interpretCompareCommon(BinExp e, fp2_t fp)
@@ -3219,7 +3219,7 @@ public:
             return;
         if (!isCtfeComparable(e1))
         {
-            error(e.loc, "cannot compare `%s` at compile time", e1.toChars());
+            error(e.loc, "cannot compare `%s` at compile time", e1.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -3228,7 +3228,7 @@ public:
             return;
         if (!isCtfeComparable(e2))
         {
-            error(e.loc, "cannot compare `%s` at compile time", e2.toChars());
+            error(e.loc, "cannot compare `%s` at compile time", e2.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -3355,7 +3355,7 @@ public:
         Expression e1 = e.e1;
         if (!istate)
         {
-            error(e.loc, "value of `%s` is not known at compile time", e1.toChars());
+            error(e.loc, "value of `%s` is not known at compile time", e1.toErrMsg());
             return;
         }
 
@@ -3545,14 +3545,14 @@ public:
             }
             else
             {
-                error(e.loc, "pointer expression `%s` cannot be interpreted at compile time", e.toChars());
+                error(e.loc, "pointer expression `%s` cannot be interpreted at compile time", e.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
             if (exceptionOrCant(newval))
             {
                 if (CTFEExp.isCantExp(newval))
-                    error(e.loc, "cannot interpret `%s` at compile time", e.toChars());
+                    error(e.loc, "cannot interpret `%s` at compile time", e.toErrMsg());
                 return;
             }
         }
@@ -3584,7 +3584,7 @@ public:
             Type t = e1.type.toBasetype();
             if (t.ty != Tarray)
             {
-                error(e.loc, "`%s` is not yet supported at compile time", e.toChars());
+                error(e.loc, "`%s` is not yet supported at compile time", e.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
@@ -3726,7 +3726,7 @@ public:
             }
             if (sle.ownedByCtfe != OwnedBy.ctfe)
             {
-                error(e.loc, "cannot modify read-only constant `%s`", sle.toChars());
+                error(e.loc, "cannot modify read-only constant `%s`", sle.toErrMsg());
                 return CTFEExp.cantexp;
             }
 
@@ -3734,7 +3734,7 @@ public:
                        : ex.isClassReferenceExp().findFieldIndexByName(v);
             if (fieldi == -1)
             {
-                error(e.loc, "CTFE internal error: cannot find field `%s` in `%s`", v.toChars(), ex.toChars());
+                error(e.loc, "CTFE internal error: cannot find field `%s` in `%s`", v.toErrMsg(), ex.toErrMsg());
                 return CTFEExp.cantexp;
             }
             assert(0 <= fieldi && fieldi < sle.elements.length);
@@ -3776,7 +3776,7 @@ public:
             {
                 if (existingSE.ownedByCtfe != OwnedBy.ctfe)
                 {
-                    error(e.loc, "cannot modify read-only string literal `%s`", ie.e1.toChars());
+                    error(e.loc, "cannot modify read-only string literal `%s`", ie.e1.toErrMsg());
                     return CTFEExp.cantexp;
                 }
                 existingSE.setCodeUnit(index, cast(dchar)newval.toInteger());
@@ -3784,7 +3784,7 @@ public:
             }
             if (aggregate.op != EXP.arrayLiteral)
             {
-                error(e.loc, "index assignment `%s` is not yet supported in CTFE ", e.toChars());
+                error(e.loc, "index assignment `%s` is not yet supported in CTFE ", e.toErrMsg());
                 return CTFEExp.cantexp;
             }
 
@@ -3792,7 +3792,7 @@ public:
             if (existingAE.ownedByCtfe != OwnedBy.ctfe)
             {
                 Expression literal = existingAE.aaLiteral ? existingAE.aaLiteral : existingAE;
-                error(e.loc, "cannot modify read-only constant `%s`", literal.toChars());
+                error(e.loc, "cannot modify read-only constant `%s`", literal.toErrMsg());
                 return CTFEExp.cantexp;
             }
 
@@ -3801,7 +3801,7 @@ public:
         }
         else
         {
-            error(e.loc, "`%s` cannot be evaluated at compile time", e.toChars());
+            error(e.loc, "`%s` cannot be evaluated at compile time", e.toErrMsg());
             return CTFEExp.cantexp;
         }
 
@@ -3837,7 +3837,7 @@ public:
                 newval = resolveSlice(newval);
                 if (CTFEExp.isCantExp(newval))
                 {
-                    error(e.loc, "CTFE internal error: assignment `%s`", e.toChars());
+                    error(e.loc, "CTFE internal error: assignment `%s`", e.toErrMsg());
                     return CTFEExp.cantexp;
                 }
             }
@@ -3983,7 +3983,7 @@ public:
         {
             if (existingSE.ownedByCtfe != OwnedBy.ctfe)
             {
-                error(e.loc, "cannot modify read-only string literal `%s`", existingSE.toChars());
+                error(e.loc, "cannot modify read-only string literal `%s`", existingSE.toErrMsg());
                 return CTFEExp.cantexp;
             }
 
@@ -4006,7 +4006,7 @@ public:
                     newval = resolveSlice(newval);
                     if (CTFEExp.isCantExp(newval))
                     {
-                        error(e.loc, "CTFE internal error: slice `%s`", orignewval.toChars());
+                        error(e.loc, "CTFE internal error: slice `%s`", orignewval.toErrMsg());
                         return CTFEExp.cantexp;
                     }
                 }
@@ -4044,7 +4044,7 @@ public:
         {
             if (existingAE.ownedByCtfe != OwnedBy.ctfe)
             {
-                error(e.loc, "cannot modify read-only constant `%s`", existingAE.toChars());
+                error(e.loc, "cannot modify read-only constant `%s`", existingAE.toErrMsg());
                 return CTFEExp.cantexp;
             }
 
@@ -4126,7 +4126,7 @@ public:
                     newval = resolveSlice(newval);
                     if (CTFEExp.isCantExp(newval))
                     {
-                        error(e.loc, "CTFE internal error: slice `%s`", orignewval.toChars());
+                        error(e.loc, "CTFE internal error: slice `%s`", orignewval.toErrMsg());
                         return CTFEExp.cantexp;
                     }
                 }
@@ -4247,7 +4247,7 @@ public:
             return interpret(pue, retslice, istate);
         }
 
-        error(e.loc, "slice operation `%s = %s` cannot be evaluated at compile time", e1.toChars(), newval.toChars());
+        error(e.loc, "slice operation `%s = %s` cannot be evaluated at compile time", e1.toErrMsg(), newval.toErrMsg());
         return CTFEExp.cantexp;
     }
 
@@ -4452,7 +4452,7 @@ public:
             }
             if (except)
             {
-                error(e.loc, "comparison `%s` of pointers to unrelated memory blocks remains indeterminate at compile time because exception `%s` was thrown while evaluating `%s`", e.e1.toChars(), except.toChars(), e.e2.toChars());
+                error(e.loc, "comparison `%s` of pointers to unrelated memory blocks remains indeterminate at compile time because exception `%s` was thrown while evaluating `%s`", e.e1.toErrMsg(), except.toErrMsg(), e.e2.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
@@ -4475,7 +4475,7 @@ public:
             // comparison is in the same direction as the first, or else
             // more than two memory blocks are involved (either two independent
             // invalid comparisons are present, or else agg3 == agg4).
-            error(e.loc, "comparison `%s` of pointers to unrelated memory blocks is indeterminate at compile time, even when combined with `%s`.", e.e1.toChars(), e.e2.toChars());
+            error(e.loc, "comparison `%s` of pointers to unrelated memory blocks is indeterminate at compile time, even when combined with `%s`.", e.e1.toErrMsg(), e.e2.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -4568,14 +4568,14 @@ public:
                 res = true;
             else
             {
-                error(e.loc, "`%s` does not evaluate to a `bool`", result.toChars());
+                error(e.loc, "`%s` does not evaluate to a `bool`", result.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
         }
         else
         {
-            error(e.loc, "`%s` cannot be interpreted as a `bool`", result.toChars());
+            error(e.loc, "`%s` cannot be interpreted as a `bool`", result.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -4734,13 +4734,13 @@ public:
         {
             // delegate.funcptr()
             // others
-            error(e.loc, "cannot call `%s` at compile time", e.toChars());
+            error(e.loc, "cannot call `%s` at compile time", e.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
         if (!fd)
         {
-            error(e.loc, "CTFE internal error: cannot evaluate `%s` at compile time", e.toChars());
+            error(e.loc, "CTFE internal error: cannot evaluate `%s` at compile time", e.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -4753,7 +4753,7 @@ public:
 
             if (pthis.op == EXP.typeid_)
             {
-                error(pthis.loc, "static variable `%s` cannot be read at compile time", pthis.toChars());
+                error(pthis.loc, "static variable `%s` cannot be read at compile time", pthis.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
@@ -4762,7 +4762,7 @@ public:
             if (pthis.op == EXP.null_)
             {
                 assert(pthis.type.toBasetype().ty == Tclass);
-                error(e.loc, "function call through null class reference `%s`", pthis.toChars());
+                error(e.loc, "function call through null class reference `%s`", pthis.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
@@ -4784,7 +4784,7 @@ public:
 
         if (fd && fd.semanticRun >= PASS.semantic3done && fd.hasSemantic3Errors)
         {
-            error(e.loc, "CTFE failed because of previous errors in `%s`", fd.toChars());
+            error(e.loc, "CTFE failed because of previous errors in `%s`", fd.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -4796,7 +4796,7 @@ public:
 
         if (!fd.fbody)
         {
-            error(e.loc, "`%s` cannot be interpreted at compile time, because it has no available source code", fd.toChars());
+            error(e.loc, "`%s` cannot be interpreted at compile time, because it has no available source code", fd.toErrMsg());
             result = CTFEExp.showcontext;
             return;
         }
@@ -4936,7 +4936,7 @@ public:
         }
         else
         {
-            error(e.loc, "`%s` does not evaluate to boolean result at compile time", e.econd.toChars());
+            error(e.loc, "`%s` does not evaluate to boolean result at compile time", e.econd.toErrMsg());
             result = CTFEExp.cantexp;
         }
     }
@@ -4954,7 +4954,7 @@ public:
             return;
         if (e1.op != EXP.string_ && e1.op != EXP.arrayLiteral && e1.op != EXP.slice && e1.op != EXP.null_)
         {
-            error(e.loc, "`%s` cannot be evaluated at compile time", e.toChars());
+            error(e.loc, "`%s` cannot be evaluated at compile time", e.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -5007,7 +5007,7 @@ public:
             return;
         if (e1.op != EXP.arrayLiteral && e1.op != EXP.int64 && e1.op != EXP.float64)
         {
-            error(e.loc, "`%s` cannot be evaluated at compile time", e.toChars());
+            error(e.loc, "`%s` cannot be evaluated at compile time", e.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -5037,7 +5037,7 @@ public:
             if (result.op != EXP.vector)
                 return;
         }
-        error(e.loc, "`%s` cannot be evaluated at compile time", e.toChars());
+        error(e.loc, "`%s` cannot be evaluated at compile time", e.toErrMsg());
         result = CTFEExp.cantexp;
     }
 
@@ -5051,7 +5051,7 @@ public:
         assert(e1);
         if (exceptionOrCant(e1))
             return;
-        error(e.loc, "`%s` cannot be evaluated at compile time", e.toChars());
+        error(e.loc, "`%s` cannot be evaluated at compile time", e.toErrMsg());
         result = CTFEExp.cantexp;
     }
 
@@ -5065,7 +5065,7 @@ public:
         assert(e1);
         if (exceptionOrCant(e1))
             return;
-        error(e.loc, "`%s` cannot be evaluated at compile time", e.toChars());
+        error(e.loc, "`%s` cannot be evaluated at compile time", e.toErrMsg());
         result = CTFEExp.cantexp;
     }
 
@@ -5091,7 +5091,7 @@ public:
             // Pointer to a non-array variable
             if (agg.op == EXP.symbolOffset)
             {
-                error(e.loc, "mutable variable `%s` cannot be %s at compile time, even through a pointer", cast(char*)(modify ? "modified" : "read"), agg.isSymOffExp().var.toChars());
+                error(e.loc, "mutable variable `%s` cannot be %s at compile time, even through a pointer", cast(char*)(modify ? "modified" : "read"), agg.isSymOffExp().var.toErrMsg());
                 return false;
             }
 
@@ -5110,9 +5110,9 @@ public:
                 if (ofs + indx != 0)
                 {
                     if (agg.op == EXP.null_)
-                        error(e.loc, "cannot index through null pointer `%s`", e.e1.toChars());
+                        error(e.loc, "cannot index through null pointer `%s`", e.e1.toErrMsg());
                     else if (agg.op == EXP.int64)
-                        error(e.loc, "cannot index through invalid pointer `%s` of value `%s`", e.e1.toChars(), e1.toChars());
+                        error(e.loc, "cannot index through invalid pointer `%s` of value `%s`", e.e1.toErrMsg(), e1.toErrMsg());
                     else
                         error(e.loc, "pointer index `[%lld]` lies outside memory block `[0..1]`", ofs + indx);
                     return false;
@@ -5128,7 +5128,7 @@ public:
             return false;
         if (e1.op == EXP.null_)
         {
-            error(e.loc, "cannot index null array `%s`", e.e1.toChars());
+            error(e.loc, "cannot index null array `%s`", e.e1.toErrMsg());
             return false;
         }
         if (auto ve = e1.isVectorExp())
@@ -5146,7 +5146,7 @@ public:
         {
             if (e1.op != EXP.arrayLiteral && e1.op != EXP.string_ && e1.op != EXP.slice && e1.op != EXP.vector)
             {
-                error(e.loc, "cannot determine length of `%s` at compile time", e.e1.toChars());
+                error(e.loc, "cannot determine length of `%s` at compile time", e.e1.toErrMsg());
                 return false;
             }
             len = resolveArrayLength(e1);
@@ -5165,7 +5165,7 @@ public:
             return false;
         if (e2.op != EXP.int64)
         {
-            error(e.loc, "CTFE internal error: non-integral index `[%s]`", e.e2.toChars());
+            error(e.loc, "CTFE internal error: non-integral index `[%s]`", e.e2.toErrMsg());
             return false;
         }
 
@@ -5264,7 +5264,7 @@ public:
             return;
         if (result.op == EXP.void_)
         {
-            error(e.loc, "`%s` is used before initialized", e.toChars());
+            error(e.loc, "`%s` is used before initialized", e.toErrMsg());
             errorSupplemental(result.loc, "originally uninitialized here");
             result = CTFEExp.cantexp;
             return;
@@ -5287,7 +5287,7 @@ public:
                 return;
             if (e1.op == EXP.int64)
             {
-                error(e.loc, "cannot slice invalid pointer `%s` of value `%s`", e.e1.toChars(), e1.toChars());
+                error(e.loc, "cannot slice invalid pointer `%s` of value `%s`", e.e1.toErrMsg(), e1.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
@@ -5315,7 +5315,7 @@ public:
                     result.type = e.type;
                     return;
                 }
-                error(e.loc, "cannot slice null pointer `%s`", e.e1.toChars());
+                error(e.loc, "cannot slice null pointer `%s`", e.e1.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
@@ -5327,7 +5327,7 @@ public:
             }
             if (agg.op != EXP.arrayLiteral && agg.op != EXP.string_)
             {
-                error(e.loc, "pointer `%s` cannot be sliced at compile time (it does not point to an array)", e.e1.toChars());
+                error(e.loc, "pointer `%s` cannot be sliced at compile time (it does not point to an array)", e.e1.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
@@ -5384,7 +5384,7 @@ public:
         {
             if (e1.op != EXP.arrayLiteral && e1.op != EXP.string_ && e1.op != EXP.null_ && e1.op != EXP.slice && e1.op != EXP.vector)
             {
-                error(e.loc, "cannot determine length of `%s` at compile time", e1.toChars());
+                error(e.loc, "cannot determine length of `%s` at compile time", e1.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
@@ -5524,7 +5524,7 @@ public:
 
         if (CTFEExp.isCantExp(result))
         {
-            error(e.loc, "`%s` cannot be interpreted at compile time", e.toChars());
+            error(e.loc, "`%s` cannot be interpreted at compile time", e.toErrMsg());
             return;
         }
         // We know we still own it, because we interpreted both e1 and e2
@@ -5566,7 +5566,7 @@ public:
         case Tclass:
             if (result.op != EXP.classReference)
             {
-                error(e.loc, "`delete` on invalid class reference `%s`", result.toChars());
+                error(e.loc, "`delete` on invalid class reference `%s`", result.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
@@ -5657,7 +5657,7 @@ public:
                 }
                 else if (ultimatePointee.ty != Tvoid && ultimateSrc.ty != Tvoid && !isSafePointerCast(elemtype, pointee))
                 {
-                    error(e.loc, "reinterpreting cast from `%s*` to `%s*` is not supported in CTFE", elemtype.toChars(), pointee.toChars());
+                    error(e.loc, "reinterpreting cast from `%s*` to `%s*` is not supported in CTFE", elemtype.toErrMsg(), pointee.toErrMsg());
                     result = CTFEExp.cantexp;
                     return;
                 }
@@ -5716,7 +5716,7 @@ public:
                     }
                     if (!isSafePointerCast(origType, pointee))
                     {
-                        error(e.loc, "using `void*` to reinterpret cast from `%s*` to `%s*` is not supported in CTFE", origType.toChars(), pointee.toChars());
+                        error(e.loc, "using `void*` to reinterpret cast from `%s*` to `%s*` is not supported in CTFE", origType.toErrMsg(), pointee.toErrMsg());
                         result = CTFEExp.cantexp;
                         return;
                     }
@@ -5760,7 +5760,7 @@ public:
                 Type origType = (cast(SymbolExp)e1).var.type;
                 if (castBackFromVoid && !isSafePointerCast(origType, pointee))
                 {
-                    error(e.loc, "using `void*` to reinterpret cast from `%s*` to `%s*` is not supported in CTFE", origType.toChars(), pointee.toChars());
+                    error(e.loc, "using `void*` to reinterpret cast from `%s*` to `%s*` is not supported in CTFE", origType.toErrMsg(), pointee.toErrMsg());
                     result = CTFEExp.cantexp;
                     return;
                 }
@@ -5777,7 +5777,7 @@ public:
             e1 = interpretRegion(e1, istate);
             if (e1.op != EXP.null_)
             {
-                error(e.loc, "pointer cast from `%s` to `%s` is not supported at compile time", e1.type.toChars(), e.to.toChars());
+                error(e.loc, "pointer cast from `%s` to `%s` is not supported at compile time", e1.type.toErrMsg(), e.to.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
@@ -5798,7 +5798,7 @@ public:
             SliceExp se = e1.isSliceExp();
             if (!isSafePointerCast(se.e1.type.nextOf(), e.to.nextOf()))
             {
-                error(e.loc, "array cast from `%s` to `%s` is not supported at compile time", se.e1.type.toChars(), e.to.toChars());
+                error(e.loc, "array cast from `%s` to `%s` is not supported at compile time", se.e1.type.toErrMsg(), e.to.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
@@ -5820,7 +5820,7 @@ public:
                 if ((se.len % sz) != 0)
                 {
                     error(e.loc, "hex string length %d must be a multiple of %d to cast to `%s`",
-                        cast(int) se.len, cast(int) sz, e.to.toChars());
+                        cast(int) se.len, cast(int) sz, e.to.toErrMsg());
                     result = CTFEExp.cantexp;
                     return;
                 }
@@ -5831,7 +5831,7 @@ public:
                 result.type = e.to;
                 return;
             }
-            error(e.loc, "array cast from `%s` to `%s` is not supported at compile time", e1.type.toChars(), e.to.toChars());
+            error(e.loc, "array cast from `%s` to `%s` is not supported at compile time", e1.type.toErrMsg(), e.to.toErrMsg());
             if (se && se.hexString && se.postfix != StringExp.NoPostfix)
                 errorSupplemental(e.loc, "perhaps remove postfix `%.*s` from hex string", 1, &se.postfix);
 
@@ -5884,16 +5884,16 @@ public:
                 if (StringExp se = result.toStringExp())
                     error(e.loc, "%s", se.toStringz().ptr);
                 else
-                    error(e.loc, "%s", result.toChars());
+                    error(e.loc, "%s", result.toErrMsg());
             }
             else
-                error(e.loc, "`%s` failed", e.toChars());
+                error(e.loc, "`%s` failed", e.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
         else
         {
-            error(e.loc, "`%s` is not a compile time boolean expression", e1.toChars());
+            error(e.loc, "`%s` is not a compile time boolean expression", e1.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -5976,7 +5976,7 @@ public:
                 result = getVarExp(e.loc, istate, soe.var, CTFEGoal.RValue);
                 return;
             }
-            error(e.loc, "cannot dereference pointer to static variable `%s` at compile time", soe.var.toChars());
+            error(e.loc, "cannot dereference pointer to static variable `%s` at compile time", soe.var.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -6001,9 +6001,9 @@ public:
         if (result.op != EXP.address)
         {
             if (result.op == EXP.null_)
-                error(e.loc, "dereference of null pointer `%s`", e.e1.toChars());
+                error(e.loc, "dereference of null pointer `%s`", e.e1.toErrMsg());
             else
-                error(e.loc, "dereference of invalid pointer `%s`", result.toChars());
+                error(e.loc, "dereference of invalid pointer `%s`", result.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -6034,7 +6034,7 @@ public:
     {
         void notImplementedYet()
         {
-            error(e.loc, "`%s.%s` is not yet implemented at compile time", e.e1.toChars(), e.var.toChars());
+            error(e.loc, "`%s.%s` is not yet implemented at compile time", e.e1.toErrMsg(), e.var.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -6063,7 +6063,7 @@ public:
         VarDeclaration v = e.var.isVarDeclaration();
         if (!v)
         {
-            error(e.loc, "CTFE internal error: `%s`", e.toChars());
+            error(e.loc, "CTFE internal error: `%s`", e.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -6071,9 +6071,9 @@ public:
         if (ex.op == EXP.null_)
         {
             if (ex.type.toBasetype().ty == Tclass)
-                error(e.loc, "class `%s` is `null` and cannot be dereferenced", e.e1.toChars());
+                error(e.loc, "class `%s` is `null` and cannot be dereferenced", e.e1.toErrMsg());
             else
-                error(e.loc, "CTFE internal error: null this `%s`", e.e1.toChars());
+                error(e.loc, "CTFE internal error: null this `%s`", e.e1.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -6117,7 +6117,7 @@ public:
         }
         if (i == -1)
         {
-            error(e.loc, "couldn't find field `%s` of type `%s` in `%s`", v.toChars(), e.type.toChars(), se.toChars());
+            error(e.loc, "couldn't find field `%s` of type `%s` in `%s`", v.toErrMsg(), e.type.toErrMsg(), se.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -6145,7 +6145,7 @@ public:
         result = (*se.elements)[i];
         if (!result)
         {
-            error(e.loc, "internal compiler error: null field `%s`", v.toChars());
+            error(e.loc, "internal compiler error: null field `%s`", v.toErrMsg());
             result = CTFEExp.cantexp;
             return;
         }
@@ -6217,7 +6217,7 @@ void interpretThrow(ref Expression result, Expression exp, Loc loc, InterState* 
     }
     else
     {
-        error(exp.loc, "to be thrown `%s` must be non-null", exp.toChars());
+        error(exp.loc, "to be thrown `%s` must be non-null", exp.toErrMsg());
         result = ErrorExp.get();
     }
 }
@@ -6542,7 +6542,7 @@ private Expression scrubReturnValue(Loc loc, Expression e)
     }
     else if (auto vie = e.isVoidInitExp())
     {
-        error(loc, "uninitialized variable `%s` cannot be returned from CTFE", vie.var.toChars());
+        error(loc, "uninitialized variable `%s` cannot be returned from CTFE", vie.var.toErrMsg());
         return ErrorExp.get();
     }
 
@@ -6975,7 +6975,7 @@ private Expression interpret_aaIn(UnionExp* pue, InterState* istate, Expression 
         auto aalit = eaa.isAssocArrayLiteralExp();
         if (!aalit)
         {
-            error(aa.loc, "`%s` cannot be interpreted at compile time", aa.toChars());
+            error(aa.loc, "`%s` cannot be interpreted at compile time", aa.toErrMsg());
             return CTFEExp.cantexp;
         }
 
@@ -7003,14 +7003,14 @@ private Expression interpret_aaGetRvalueX(UnionExp* pue, InterState* istate, Exp
     auto aalit = e1.isAssocArrayLiteralExp();
     if (!aalit)
     {
-        error(aa.loc, "cannot index null array `%s`", aa.toChars());
+        error(aa.loc, "cannot index null array `%s`", aa.toErrMsg());
         return CTFEExp.cantexp;
     }
     size_t idx;
     Expression result = findKeyInAA(aa.loc, aalit, e2, &idx);
     if (!result)
     {
-        error(aa.loc, "key `%s` not found in associative array `%s`", key.toChars(), aa.toChars());
+        error(aa.loc, "key `%s` not found in associative array `%s`", key.toErrMsg(), aa.toErrMsg());
         return  CTFEExp.cantexp;
     }
 
@@ -7204,7 +7204,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
 
     if (!se)
     {
-        error(str.loc, "CTFE internal error: cannot foreach `%s`", str.toChars());
+        error(str.loc, "CTFE internal error: cannot foreach `%s`", str.toErrMsg());
         return CTFEExp.cantexp;
     }
     Expressions args = Expressions(numParams);
@@ -7367,7 +7367,7 @@ private Expression evaluateIfBuiltin(UnionExp* pue, InterState* istate, Loc loc,
             e = eval_builtin(loc, fd, &args);
             if (!e)
             {
-                error(loc, "cannot evaluate unimplemented builtin `%s` at compile time", fd.toChars());
+                error(loc, "cannot evaluate unimplemented builtin `%s` at compile time", fd.toErrMsg());
                 e = CTFEExp.cantexp;
             }
         }

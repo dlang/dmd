@@ -18,6 +18,7 @@ import dmd.astenums;
 import dmd.canthrow;
 import dmd.dclass;
 import dmd.declaration;
+import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem : toBool;
@@ -523,7 +524,7 @@ BE checkThrow(Loc loc, Expression exp, FuncDeclaration func, ErrorSink eSink)
         return BE.errthrow;
     }
     if (eSink)
-        eSink.error(loc, "`%s` is thrown but not caught", exp.type.toChars());
+        eSink.error(loc, "`%s` is thrown but not caught", exp.type.toErrMsg());
     else if (func)
         func.setThrow(loc, "`%s` being thrown but not caught", exp.type);
 
