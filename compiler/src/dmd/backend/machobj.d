@@ -94,6 +94,20 @@ void MachObj_refGOTsym()
     assert(0);
 }
 
+/// Returns: a reference to the ___chkstk_darwin pointer to function
+@trusted
+Symbol* MachObj_getChkstkSym()
+{
+    __gshared Symbol* chkstkSym;
+    if (!chkstkSym)
+    {
+        chkstkSym = symbol_name("__chkstk_darwin",SC.global,tspvoid);
+    }
+    return chkstkSym;
+}
+
+
+
 // The object file is built is several separate pieces
 
 // String Table  - String table for all other names
@@ -969,6 +983,11 @@ void MachObj_term(const(char)[] objfilename)
                                     {
                                         rel.r_type = ARM64_RELOC_BRANCHY26;
                                         rel.r_pcrel = 1;
+                                    }
+                                    else if (s.Sfl == FL.unde)   // special case for __chkstk_darwin, need to research what PAGEOFF12 really means
+                                    {
+                                        rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
+                                        rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
                                     }
                                     else
                                     {
