@@ -213,7 +213,6 @@ else version (WASI)
         alias cpp_ulonglong = ulong;
     }
 }
-}
 else version (WebAssembly)
 {
     static if ( (void*).sizeof > int.sizeof )
