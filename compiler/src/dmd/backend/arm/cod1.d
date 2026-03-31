@@ -35,6 +35,7 @@ import dmd.backend.oper;
 import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.machobj  : MachObj_getChkstkSym;
 import dmd.backend.arm.cod2 : tyToExtend;
 import dmd.backend.arm.cod3 : COND, genBranch, conditionCode, gentstreg;
 import dmd.backend.arm.instr;
@@ -2160,10 +2161,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
             cgstate.needframe = true;
             cgstate.setSPtoFPonEpilog = true;
 
-            //Symbol* schkstk = getRtlsym(RTLSYM.CHKSTK);
-            //makeitextern(schkstk);
-
-            Symbol* schkstk = s;                // BUG AArch64 should be ___chkstk_darwin
+            Symbol* schkstk = MachObj_getChkstkSym();   // ___chkstk_darwin
             FL fl = schkstk.Sfl;
 
             enum reg_t R9 = 9;                  // argument to __chkstk_darwin
