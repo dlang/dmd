@@ -357,8 +357,9 @@ $(H2 $(LNAME2 static, Statically Allocated Data))
     - $(DDSUBLINK spec/const3, shared, `shared`) or
       $(DDSUBLINK spec/attribute, gshared, `__gshared`) - allocate global data
 
-    $(NOTE When *StorageClasses* includes `enum`, a variable declaration
-    $(DDSUBLINK spec/enum, single_member, will not have) any storage allocated.)
+    $(NOTE When *StorageClasses* includes $(DDSUBLINK spec/enum, single_member, `enum`)
+    or $(RELATIVE_LINK2 extern, `extern`), a variable declaration
+    will not have any storage allocated.)
 
     $(IMPLEMENTATION_DEFINED Static declarations whose initializer is `void` or whose
     bits are all zero may be listed in the
@@ -783,16 +784,15 @@ attribute it defaults to $(D extern(D)):)
 ---------------
 // variable allocated and initialized in this module with C linkage
 extern(C) int foo;
+
 // variable allocated outside this module with C linkage
 // (e.g. in a statically linked C library or another module)
 extern extern(C) int bar;
 ---------------
 
         $(BEST_PRACTICE
-        $(OL
-        $(LI The primary usefulness of $(I Extern Declarations) is to
+        The primary usefulness of $(I Extern Declarations) is to
         connect with global variables declarations and functions in C or C++ files.)
-        ))
 
 
 $(H2 $(LNAME2 typequal_vs_storageclass, Type Qualifiers vs. Storage Classes))
