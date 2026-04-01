@@ -341,12 +341,15 @@ $(H3 $(LNAME2 global_static_init, Global and Static Initializers))
 $(H2 $(LNAME2 static, Statically Allocated Data))
 
     $(P $(GLINK VarDeclarations) outside a function or aggregate type will be statically
-    allocated. By default, they will be thread-local unless marked
-    $(DDSUBLINK spec/const3, shared, `shared`) or
-    $(DDSUBLINK spec/attribute, gshared, `__gshared`).)
+    allocated. By default, such a variable will be thread-local unless it has one of the
+    following $(GLINK StorageClasses):)
+
+    - $(DDLINK spec/const3, Type Qualifiers, `const`) or `immutable`
+    - $(DDSUBLINK spec/const3, shared, `shared`) or
+      $(DDSUBLINK spec/attribute, gshared, `__gshared`)
 
     $(P By default, *VarDeclarations* inside a function will be allocated on the stack.
-    The following $(GLINK StorageClasses) will statically allocate data,
+    The following *StorageClasses* will instead statically allocate data,
     $(DDSUBLINK spec/function, local-static-variables, even inside a function) or
     aggregate type:)
 
