@@ -364,8 +364,7 @@ $(H2 $(LNAME2 static, Statically Allocated Data))
     $(IMPLEMENTATION_DEFINED Static declarations whose initializer is `void` or whose
     bits are all zero may be listed in the
     $(LINK2 https://en.wikipedia.org/wiki/.bss, `.bss`) section of the binary to save
-    storage space.
-    Otherwise, static data will be stored in the `.data` section.)
+    storage space.)
 
 
 $(H2 $(LNAME2 alias, Alias Declarations))
