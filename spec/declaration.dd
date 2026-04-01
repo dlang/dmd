@@ -354,8 +354,7 @@ $(H2 $(LNAME2 static, Statically Allocated Data))
     aggregate type:)
 
     - $(DDSUBLINK spec/attribute, static, `static`) - allocate thread-local data
-    - $(DDSUBLINK spec/const3, shared, `shared`) or
-      $(DDSUBLINK spec/attribute, gshared, `__gshared`) - allocate global data
+    - `shared static` or `__gshared` - allocate global data
 
     $(NOTE When *StorageClasses* includes $(DDSUBLINK spec/enum, single_member, `enum`)
     or $(RELATIVE_LINK2 extern, `extern`), a variable declaration
