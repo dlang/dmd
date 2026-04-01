@@ -298,7 +298,7 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
 }
 
 /**
- * Parse command line arguments for the last instance of -m32, -m64, -m32mscoff
+ * Parse command line arguments for the last instance of -m32, -m64, -m32mscoff, -maarch64
  * to detect the desired architecture.
  *
  * Params:
@@ -322,6 +322,9 @@ const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
             case "-m64":
             case "-m32mscoff":
                 arch = arg[2 .. 4];
+                continue;
+            case "-maarch64":
+                arch = arg[2 .. 9];
                 continue;
             case "-run":   // end of args to dmd
                 break;
@@ -1000,7 +1003,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
         {
             continue; // skip druntime options, e.g. used to configure the GC
         }
-        else if (arg == "-arm") // https://dlang.org/dmd.html#switch-arm
+        else if (arg == "-maarch64") // https://dlang.org/dmd.html#switch-maarch64
         {
             target.isAArch64 = true;
             target.isX86    = false;
@@ -1009,20 +1012,20 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
             target.isAArch64 = false;
-            target.isX86    = true;
-            target.isX86_64 = false;
+            target.isX86     = true;
+            target.isX86_64  = false;
         }
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
         {
             target.isAArch64 = false;
-            target.isX86    = false;
-            target.isX86_64 = true;
+            target.isX86     = false;
+            target.isX86_64  = true;
         }
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
         {
             target.isAArch64 = false;
-            target.isX86    = true;
-            target.isX86_64 = false;
+            target.isX86     = true;
+            target.isX86_64  = false;
         }
         else if (startsWith(p + 1, "mscrtlib="))
         {

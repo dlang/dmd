@@ -636,7 +636,11 @@ dmd -cov -unittest myprog.d
             `$(UNIX Compile a 64 bit executable. This is the default for the 64 bit dmd.)
             $(WINDOWS The generated object code is in MS-COFF and is meant to be used with the
             $(LINK2 https://msdn.microsoft.com/en-us/library/dd831853(v=vs.100).aspx, Microsoft Visual Studio 10)
-            or later compiler.`,
+            or later compiler.)`,
+        ),
+        Option("maarch64",
+            "generate AArch64 bit code",
+            "Compile an AArch64 bit executable. Only supported for OSX.",
         ),
         Option("main",
             "add default main() if not present already (e.g. for unittesting)",
