@@ -8655,7 +8655,6 @@ Type unSharedOf(Type type)
     {
         t = type.nullAttributes();
         t.mod = type.mod & ~MODFlags.shared_;
-        t.ctype = type.ctype;
         t = t.merge();
         t.fixTo(type);
     }
