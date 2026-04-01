@@ -605,7 +605,7 @@ void* _d_arrayliteralTX(T)(size_t length) @trusted pure nothrow
     else
     {
         import core.memory : GC;
-        import core.internal.traits : hasIndirections, hasElaborateDestructor;
+        import core.internal.traits : hasIndirections;
         alias BlkAttr = GC.BlkAttr;
 
         /* Same as in core.internal.array.utils.__typeAttrs!T,
@@ -615,7 +615,7 @@ void* _d_arrayliteralTX(T)(size_t length) @trusted pure nothrow
         uint attrs = BlkAttr.APPENDABLE;
         static if (!hasIndirections!T)
             attrs |= BlkAttr.NO_SCAN;
-        static if (is(T == struct) && hasElaborateDestructor!T)
+        static if (is(T == struct) && __traits(needsDestruction, T))
             attrs |= BlkAttr.FINALIZE;
 
         version (D_TypeInfo)

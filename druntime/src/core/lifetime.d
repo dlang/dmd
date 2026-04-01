@@ -1908,7 +1908,7 @@ pure nothrow @safe @nogc unittest
         static struct X { int n = 0; ~this(){n = 0;} }
         X x;
     }
-    static assert(hasElaborateDestructor!S3);
+    static assert(__traits(needsDestruction, S3));
     S3 s31, s32;
     s31.x.n = 1;
     move(s31, s32);
@@ -1980,14 +1980,12 @@ pure nothrow @safe @nogc unittest
 
 private void moveImpl(T)(scope ref T target, return scope ref T source)
 {
-    import core.internal.traits : hasElaborateDestructor;
-
     static if (is(T == struct))
     {
         //  Unsafe when compiling without -preview=dip1000
         if ((() @trusted => &source == &target)()) return;
         // Destroy target before overwriting it
-        static if (hasElaborateDestructor!T) target.__xdtor();
+        static if (__traits(needsDestruction, T)) target.__xdtor();
     }
     // move and emplace source into target
     moveEmplaceImpl(target, source);
@@ -2037,7 +2035,7 @@ private T trustedMoveImpl(T)(return scope ref T source) @trusted
         static struct X { int n = 0; ~this(){n = 0;} }
         X x;
     }
-    static assert(hasElaborateDestructor!S3);
+    static assert(__traits(needsDestruction, S3));
     S3 s31;
     s31.x.n = 1;
     S3 s32 = move(s31);
@@ -2217,7 +2215,7 @@ private void moveEmplaceImpl(T)(scope ref T target, return scope ref T source)
 //    }
 
     import core.internal.traits : hasElaborateAssign, isAssignable, hasElaborateMove,
-                                  hasElaborateDestructor, hasElaborateCopyConstructor;
+                                  hasElaborateCopyConstructor;
     static if (is(T == struct))
     {
 
@@ -2237,7 +2235,7 @@ private void moveEmplaceImpl(T)(scope ref T target, return scope ref T source)
 
         // If the source defines a destructor or a postblit hook, we must obliterate the
         // object in order to avoid double freeing and undue aliasing
-        static if (hasElaborateDestructor!T || hasElaborateCopyConstructor!T)
+        static if (__traits(needsDestruction, T) || hasElaborateCopyConstructor!T)
         {
             // If there are members that are nested structs, we must take care
             // not to erase any context pointers, so we might have to recurse
@@ -2251,8 +2249,8 @@ private void moveEmplaceImpl(T)(scope ref T target, return scope ref T source)
     {
         static if (T.length)
         {
-            static if (!hasElaborateMove!T &&
-                       !hasElaborateDestructor!T &&
+            static if (!__traits(needsDestruction, T) &&
+                       !hasElaborateMove!T &&
                        !hasElaborateCopyConstructor!T)
             {
                 // Single blit if no special per-instance handling is required
@@ -2885,8 +2883,4 @@ debug(SENTINEL) {} else
 }
 
 
-template TypeInfoSize(T)
-{
-    import core.internal.traits : hasElaborateDestructor;
-    enum TypeInfoSize = (is (T == struct) && hasElaborateDestructor!T) ? size_t.sizeof : 0;
-}
+enum TypeInfoSize(T) = (is (T == struct) && __traits(needsDestruction, T)) ? size_t.sizeof : 0;
