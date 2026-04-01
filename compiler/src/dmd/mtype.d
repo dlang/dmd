@@ -404,6 +404,10 @@ extern (C++) abstract class Type : ASTNode
          * we bank on the idea that usually only one of variants exist.
          * It will also speed up code because these are rarely referenced and
          * so need not be in the cache.
+         *
+         * NOTE: The cache stores the naked type at the "identity" position.
+         * For example, a "shared const T" type will have its naked "T" type
+         * in the field "scto". See also: dmd.typesem.nakedOf(Type).
          */
         Type cto;       // MODFlags.const_
         Type ito;       // MODFlags.immutable_
