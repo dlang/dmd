@@ -71,7 +71,12 @@ else
  */
 void logo()
 {
-    printf("DMD%llu D Compiler %.*s\n%.*s %.*s\n",
+    version (AArch64)
+        string host = " AArch";
+    else
+        string host = "";
+    printf("DMD%s%llu D Compiler %.*s\n%.*s %.*s\n",
+        host.ptr,
         cast(ulong)size_t.sizeof * 8,
         cast(int) global.versionString().length, global.versionString().ptr,
         cast(int)global.copyright.length, global.copyright.ptr,
