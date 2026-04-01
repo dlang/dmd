@@ -34,7 +34,6 @@ Params:
 void _d_arrayshrinkfit(Tarr: T[], T)(Tarr arr, bool isshared) @trusted
 {
     import core.exception : onFinalizeError;
-    import core.internal.traits: hasElaborateDestructor;
 
     debug(PRINTF) printf("_d_arrayshrinkfit, elemsize = %zd, arr.ptr = %p arr.length = %zd\n", T.sizeof, arr.ptr, arr.length);
     auto reqlen = arr.length;
@@ -52,7 +51,7 @@ void _d_arrayshrinkfit(Tarr: T[], T)(Tarr arr, bool isshared) @trusted
         return;
 
     // if the type has a destructor, destroy elements we are about to remove.
-    static if(is(T == struct) && hasElaborateDestructor!T)
+    static if(is(T == struct) && __traits(needsDestruction, T))
     {
         try
         {

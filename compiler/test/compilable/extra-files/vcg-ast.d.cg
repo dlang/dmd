@@ -173,7 +173,7 @@ _d_arrayliteralTX!(__c_wchar_t)
 		else
 		{
 			import core.memory : GC;
-			import core.internal.traits : hasIndirections, hasElaborateDestructor;
+			import core.internal.traits : hasIndirections;
 			alias BlkAttr = BlkAttr;
 			uint attrs = 8u;
 			attrs |= BlkAttr.NO_SCAN;
