@@ -17,16 +17,16 @@ import core.stdc.stdio;
 
 void main()
 {
-	S s2;
-	callMe();
+    S s2;
+    callMe();
 }
 
 struct S
 {
-	~this()
-	{
-		printf("exiting\n");
-	}
+    ~this()
+    {
+        printf("exiting\n");
+    }
 }
 
 void callMe() nothrow
