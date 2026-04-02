@@ -2189,15 +2189,14 @@ bool findMixinTempDecl(TemplateMixin tm, Scope* sc)
 private bool isDRuntimeHook(Identifier id)
 {
     return id == Id._d_HookTraceImpl ||
-        id == Id._d_newclassT || id == Id._d_newclassTTrace ||
-        id == Id._d_arraycatnTX || id == Id._d_arraycatnTXTrace ||
+        id == Id._d_newclassT ||
+        id == Id._d_arraycatnTX ||
         id == Id._d_newThrowable || id == Id._d_delThrowable ||
         id == Id._d_arrayassign_l || id == Id._d_arrayassign_r ||
         id == Id._d_arraysetassign || id == Id._d_arraysetctor ||
         id == Id._d_arrayctor ||
         id == Id._d_arraysetlengthT ||
-        id == Id._d_arraysetlengthTTrace ||
-        id == Id._d_arrayappendT || id == Id._d_arrayappendTTrace ||
+        id == Id._d_arrayappendT ||
         id == Id._d_arrayappendcTX;
 }
 

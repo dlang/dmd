@@ -2703,22 +2703,6 @@ if (is(T == class))
 }
 
 /**
- * TraceGC wrapper around $(REF _d_newclassT, core,lifetime).
- */
-T _d_newclassTTrace(T)(string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
-{
-    version (D_TypeInfo)
-    {
-        import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
-        mixin(TraceHook!("T", "_d_newclassT"));
-
-        return _d_newclassT!T();
-    }
-    else
-        assert(0, "Cannot create new class if compiling without support for runtime type information!");
-}
-
-/**
  * Allocate an initialized non-array item.
  *
  * This is an optimization to avoid things needed for arrays like the __arrayPad(size).
@@ -2900,33 +2884,6 @@ debug(SENTINEL) {} else
     assert(!test!InvalidMemoryOperationError);
 }
 
-version (D_ProfileGC)
-{
-    /**
-    * TraceGC wrapper around $(REF _d_newitemT, core,lifetime).
-    */
-    T* _d_newitemTTrace(T)(string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
-    {
-        version (D_TypeInfo)
-        {
-            static if (is(T == struct))
-            {
-                // prime the TypeInfo name, we don't want that affecting the allocated bytes
-                // Issue https://github.com/dlang/dmd/issues/20832
-                static string typeName(TypeInfo_Struct ti) nothrow @trusted => ti.name;
-                auto tnPure = cast(string function(TypeInfo_Struct ti) nothrow pure @trusted)&typeName;
-                cast(void)tnPure(typeid(T));
-            }
-
-            import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!("T", "_d_newitemT"));
-
-            return _d_newitemT!T();
-        }
-        else
-            assert(0, "Cannot create new `struct` if compiling without support for runtime type information!");
-    }
-}
 
 template TypeInfoSize(T)
 {

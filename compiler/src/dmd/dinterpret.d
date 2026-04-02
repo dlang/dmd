@@ -1021,7 +1021,7 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
             return;
 
         /**
-         * Interpret `return a ~= b` (i.e. `return _d_arrayappendT{,Trace}(a, b)`) as:
+         * Interpret `return a ~= b` (i.e. `return _d_arrayappendT(a, b)`) as:
          *     a ~= b;
          *     return a;
          * This is needed because `a ~= b` has to be interpreted as an lvalue, in order to avoid
@@ -7587,10 +7587,10 @@ private void removeHookTraceImpl(ref CallExp ce, ref FuncDeclaration fd)
     assert(hook.isDsymbol(), "Expected _d_HookTraceImpl's second template parameter to be an alias to the hook!");
     fd = (cast(Dsymbol)hook).isFuncDeclaration;
 
-    // Remove the first three trace parameters
+    // Remove the last three trace parameters
     auto arguments = new Expressions();
     arguments.reserve(ce.arguments.length - 3);
-    arguments.pushSlice((*ce.arguments)[3 .. $]);
+    arguments.pushSlice((*ce.arguments)[0 .. $ - 3]);
 
     ce = ctfeEmplaceExp!CallExp(ce.loc, ctfeEmplaceExp!VarExp(ce.loc, fd, false), arguments);
 

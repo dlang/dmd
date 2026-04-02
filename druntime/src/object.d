@@ -4711,34 +4711,40 @@ they are only intended to be instantiated by the compiler, not the user.
 
 public import core.internal.entrypoint : _d_cmain;
 
-public import core.internal.array.appending : _d_arrayappendT;
 version (D_ProfileGC)
 {
-    public import core.internal.array.appending : _d_arrayappendTTrace;
-    public import core.internal.array.appending : _d_arrayappendcTXTrace;
-    public import core.internal.array.concatenation : _d_arraycatnTXTrace;
-    public import core.lifetime : _d_newitemTTrace;
-    public import core.internal.array.construction : _d_newarrayTTrace;
-    public import core.internal.array.construction : _d_newarrayUTrace;
-    public import core.internal.array.construction : _d_newarraymTXTrace;
-    public import core.internal.array.capacity: _d_arraysetlengthTTrace;
-    public import core.internal.array.construction : _d_arrayliteralTXTrace;
+    public import core.internal.profile_gc : _d_arrayappendT;
+    public import core.internal.profile_gc : _d_arrayappendcTX;
+    public import core.internal.profile_gc : _d_arraycatnTX;
+    public import core.internal.profile_gc : _d_newitemT;
+    public import core.internal.profile_gc : _d_newarrayT;
+    public import core.internal.profile_gc : _d_newarrayU;
+    public import core.internal.profile_gc : _d_newarraymTX;
+    public import core.internal.profile_gc : _d_arraysetlengthT;
+    public import core.internal.profile_gc : _d_arrayliteralTX;
+    public import core.internal.profile_gc : _d_newclassT;
 }
-public import core.internal.array.appending : _d_arrayappendcTX;
+else
+{
+    public import core.internal.array.appending : _d_arrayappendT;
+    public import core.internal.array.appending : _d_arrayappendcTX;
+    public import core.internal.array.concatenation : _d_arraycatnTX;
+    public import core.lifetime : _d_newitemT;
+    public import core.internal.array.construction : _d_newarrayT;
+    public import core.internal.array.construction : _d_newarrayU;
+    public import core.internal.array.construction : _d_newarraymTX;
+    public import core.internal.array.capacity : _d_arraysetlengthT;
+    public import core.internal.array.construction : _d_arrayliteralTX;
+    public import core.lifetime : _d_newclassT;
+}
 public import core.internal.array.comparison : __cmp;
 public import core.internal.array.equality : __equals;
 public import core.internal.array.casting: __ArrayCast;
-public import core.internal.array.concatenation : _d_arraycatnTX;
 public import core.internal.array.construction : _d_arrayctor;
 public import core.internal.array.construction : _d_arraysetctor;
-public import core.internal.array.construction : _d_newarrayT;
-public import core.internal.array.construction : _d_newarrayU;
-public import core.internal.array.construction : _d_newarraymTX;
-public import core.internal.array.construction : _d_arrayliteralTX;
 public import core.internal.array.arrayassign : _d_arrayassign_l;
 public import core.internal.array.arrayassign : _d_arrayassign_r;
 public import core.internal.array.arrayassign : _d_arraysetassign;
-public import core.internal.array.capacity : _d_arraysetlengthT;
 public import core.internal.cast_: _d_cast;
 
 public import core.internal.dassert: _d_assert_fail;
@@ -4768,9 +4774,6 @@ auto _d_sqrt(T)(T x)
 }
 
 public import core.lifetime : _d_newThrowable;
-public import core.lifetime : _d_newclassT;
-public import core.lifetime : _d_newclassTTrace;
-public import core.lifetime : _d_newitemT;
 
 public @trusted @nogc nothrow pure extern (C) void _d_delThrowable(scope Throwable);
 

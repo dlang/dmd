@@ -5203,7 +5203,7 @@ Expression lowerArrayLiteral(ArrayLiteralExp ale, Scope* sc)
 {
     const dim = ale.elements ? ale.elements.length : 0;
 
-    Identifier hook = global.params.tracegc ? Id._d_arrayliteralTXTrace : Id._d_arrayliteralTX;
+    Identifier hook = Id._d_arrayliteralTX;
     if (!verifyHookExist(ale.loc, *sc, hook, "creating array literals"))
         return null;
 
@@ -6425,7 +6425,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!global.params.useGC || !sc.needsCodegen())
             return;
 
-        auto hook = global.params.tracegc ? Id._d_newitemTTrace : Id._d_newitemT;
+        auto hook = Id._d_newitemT;
         if (!verifyHookExist(ne.loc, *sc, hook, "new struct"))
             return;
 
@@ -6844,10 +6844,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                      !exp.placement &&
                      !exp.onstack && !exp.type.isScopeClass()) // these won't use the GC
             {
-                /* replace `new T(arguments)` with `core.lifetime._d_newclassT!T(arguments)`
-                 * or `_d_newclassTTrace`
-                 */
-                auto hook = global.params.tracegc ? Id._d_newclassTTrace : Id._d_newclassT;
+                /* replace `new T(arguments)` with `core.lifetime._d_newclassT!T(arguments)` */
+                auto hook = Id._d_newclassT;
                 if (!verifyHookExist(exp.loc, *sc, hook, "new class"))
                     return setError();
 
@@ -7032,7 +7030,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else if (nargs == 1)
             {
-                auto hook = global.params.tracegc ? Id._d_newarrayTTrace : Id._d_newarrayT;
+                auto hook = Id._d_newarrayT;
                 if (!verifyHookExist(exp.loc, *sc, hook, "new array"))
                     goto LskipNewArrayLowering;
 
@@ -7058,7 +7056,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else
             {
-                auto hook = global.params.tracegc ? Id._d_newarraymTXTrace : Id._d_newarraymTX;
+                auto hook = Id._d_newarraymTX;
                 if (!verifyHookExist(exp.loc, *sc, hook, "new multi-dimensional array"))
                     goto LskipNewArrayLowering;
 
@@ -12803,7 +12801,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             checkDefCtor(ale.loc, tn);
 
             // Choose correct GC hook
-            Identifier hook = global.params.tracegc ? Id._d_arraysetlengthTTrace : Id._d_arraysetlengthT;
+            Identifier hook = Id._d_arraysetlengthT;
 
             // Verify the correct hook exists
             if (!verifyHookExist(exp.loc, *sc, hook, "resizing arrays"))
@@ -13532,12 +13530,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (exp.op == EXP.concatenateAssign)
             {
-                Identifier hook = global.params.tracegc ? Id._d_arrayappendTTrace : Id._d_arrayappendT;
+                Identifier hook = Id._d_arrayappendT;
 
                 if (!verifyHookExist(exp.loc, *sc, hook, "appending array to arrays", Id.object))
                     return setError();
 
-                // Lower to object._d_arrayappendT{,Trace}({file, line, funcname}, e1, e2)
+                // Lower to object._d_arrayappendT(e1, e2)
                 Expression id = new IdentifierExp(exp.loc, Id.empty);
                 id = new DotIdExp(exp.loc, id, Id.object);
                 id = new DotIdExp(exp.loc, id, hook);
@@ -13565,11 +13563,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         return;
                 }
 
-                Identifier hook = global.params.tracegc ? Id._d_arrayappendcTXTrace : Id._d_arrayappendcTX;
+                Identifier hook = Id._d_arrayappendcTX;
                 if (!verifyHookExist(exp.loc, *sc, hook, "appending element to arrays", Id.object))
                     return setError();
 
-                // Lower to object._d_arrayappendcTX{,Trace}(e1, 1), e1[$-1]=e2
+                // Lower to object._d_arrayappendcTX(e1, 1), e1[$-1]=e2
                 Expression id = new IdentifierExp(exp.loc, Id.empty);
                 id = new DotIdExp(exp.loc, id, Id.object);
                 id = new DotIdExp(exp.loc, id, hook);
@@ -13880,9 +13878,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             (exp.e2.isStringExp() && (exp.e1.isIntegerExp() || exp.e1.isStringExp())))
             return exp;
 
-        bool useTraceGCHook = global.params.tracegc && sc.needsCodegen();
-
-        Identifier hook = useTraceGCHook ? Id._d_arraycatnTXTrace : Id._d_arraycatnTX;
+        Identifier hook = Id._d_arraycatnTX;
         if (!verifyHookExist(exp.loc, *sc, hook, "concatenating arrays"))
         {
             setError();
@@ -13903,15 +13899,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 Expression lowering = ce.lowering;
 
-                /* Skip `file`, `line`, and `funcname` if the hook of the parent
-                 * `CatExp` is `_d_arraycatnTXTrace`.
-                 */
                 if (auto callExp = isRuntimeHook(lowering, hook))
                 {
-                    if (hook == Id._d_arraycatnTX)
-                        arguments.pushSlice((*callExp.arguments)[]);
-                    else
+                    /* Under -profile=gc, the profiling wrapper appends `file`, `line`,
+                     * and `funcname` default arguments.  Strip them when flattening
+                     * nested concatenations so we don't accumulate stale locations.
+                     */
+                    if (global.params.tracegc)
                         arguments.pushSlice((*callExp.arguments)[0 .. $ - 3]);
+                    else
+                        arguments.pushSlice((*callExp.arguments)[]);
                 }
             }
             else

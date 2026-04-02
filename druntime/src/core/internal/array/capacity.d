@@ -368,24 +368,6 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
     return newlength;
 }
 
-version (D_ProfileGC)
-{
-    enum errorMessage = "Cannot resize arrays";
-    import core.internal.array.utils : _d_HookTraceImpl;
-
-    // Function wrapper around the hook, so it’s callable
-    size_t _d_arraysetlengthTTrace(Tarr : T[], T)(
-        return ref scope Tarr arr,
-        size_t newlength,
-        string file = __FILE__,
-        int line = __LINE__,
-        string func = __FUNCTION__
-    ) @trusted
-    {
-        alias Hook = _d_HookTraceImpl!(Tarr, _d_arraysetlengthT!Tarr, errorMessage);
-        return Hook(arr, newlength, file, line, func);
-    }
-}
 
 // @safe unittest remains intact
 @safe unittest
