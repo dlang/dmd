@@ -3491,7 +3491,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         // Don't care about paths that halt, either
         // Only rewrite if it was requested.
         // This has side effects where Error will not run destructors, unsafe.
-        if (global.params.rewriteNoExceptionToSeq && (blockexit & ~BE.halt) == BE.fallthru)
+        if (global.params.nothrowOptimizations && (blockexit & ~BE.halt) == BE.fallthru)
         {
             result = new CompoundStatement(tfs.loc, tfs._body, tfs.finalbody);
             return;

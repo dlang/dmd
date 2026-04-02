@@ -689,22 +689,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             params.useDeprecated = DiagnosticReporting.inform;
         else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
             driverParams.link = false;
-        else if (startsWith(p + 1, "checkactionfinally")) // https://dlang.org/dmd.html#switch-checkactionfinally
-        {
-            enum len = "-checkactionfinally".length;
-            switch(arg[len .. $])
-            {
-                case "=off":
-                    params.rewriteNoExceptionToSeq = true;
-                    break;
-                case "=on":
-                    params.rewriteNoExceptionToSeq = false;
-                    break;
-                default:
-                    errorInvalidSwitch(p, "-checkactionerror argument may only be `on` or `off`");
-                    return false;
-            }
-        }
         else if (startsWith(p + 1, "checkaction")) // https://dlang.org/dmd.html#switch-checkaction
         {
             /* Parse:
@@ -1648,6 +1632,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
         else if (arg == "-nothrow") // https://dlang.org/dmd.html#switch-nothrow
         {
             params.useExceptions = false;
+        }
+        else if (arg == "-nothrow-optimizations") // https://dlang.org/dmd.html#switch-nothrow-optimizations
+        {
+            params.nothrowOptimizations = true;
         }
         else if (arg == "-unittest")
             params.useUnitTests = true;
