@@ -145,7 +145,7 @@ import dmd.declaration;
 import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dsymbol;
-import dmd.dsymbolsem : toAlias;
+import dmd.dsymbolsem : printResolutionTrace, toAlias;
 import dmd.expressionsem : toInteger, toReal, toImaginary;
 import dmd.dtemplate;
 import dmd.errors;
@@ -875,6 +875,7 @@ public:
                     if (!d.type || !d.type.deco)
                     {
                         error(ti.loc, "%s `%s` forward reference of %s `%s`", ti.kind, ti.toPrettyChars, d.kind(), d.toChars());
+                        printResolutionTrace();
                         continue;
                     }
                 }
