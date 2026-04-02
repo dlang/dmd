@@ -8708,6 +8708,7 @@ struct Id final
     static Identifier* _d_arrayassign_l;
     static Identifier* _d_arrayassign_r;
     static Identifier* _d_cast;
+    static Identifier* _d_atomicOp;
     static Identifier* imported;
     static Identifier* InterpolationHeader;
     static Identifier* InterpolationFooter;
