@@ -6,9 +6,7 @@ TEST_OUTPUT:
 fail_compilation/failattr.d(103): Error: variable `failattr.C2901.v1` cannot be `synchronized`
 fail_compilation/failattr.d(104): Error: variable `failattr.C2901.v2` cannot be `override`
 fail_compilation/failattr.d(105): Error: variable `failattr.C2901.v3` cannot be `abstract`
-fail_compilation/failattr.d(106): Error: variable `failattr.C2901.v4` cannot be `final`, perhaps you meant `const`?
-fail_compilation/failattr.d(118): Error: variable `failattr.C2901.v13` cannot be `final abstract synchronized override`
-fail_compilation/failattr.d(120): Error: variable `failattr.C2901.v14` cannot be `final`, perhaps you meant `const`?
+fail_compilation/failattr.d(118): Error: variable `failattr.C2901.v13` cannot be `abstract synchronized override`
 fail_compilation/failattr.d(123): Error: undefined identifier `ERROR`
 ---
 */
