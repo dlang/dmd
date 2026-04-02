@@ -4752,8 +4752,6 @@ public import core.internal.postblit: __ArrayPostblit;
 public import core.internal.switch_: __switch;
 public import core.internal.switch_: __switch_error;
 
-public import core.lifetime : _d_delstructImpl;
-
 // Forwarding hook for the ^^ (pow) operator on floating-point types.
 // TODO: move implementation to druntime instead of Phobos.
 auto _d_pow(Base, Exp)(Base base, Exp exp)
