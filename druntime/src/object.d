@@ -4778,6 +4778,13 @@ auto _d_sqrt(T)(T x)
     return sqrt(x);
 }
 
+// Forwarding hook for shared static ctor/dtor gate operations.
+auto _d_atomicOp(string op, T, V1)(ref shared T val, V1 mod)
+{
+    import core.atomic : atomicOp;
+    return atomicOp!op(val, mod);
+}
+
 public import core.lifetime : _d_newThrowable;
 
 public @trusted @nogc nothrow pure extern (C) void _d_delThrowable(scope Throwable);

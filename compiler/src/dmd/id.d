@@ -292,6 +292,7 @@ immutable Msgtable[] msgtable =
     { "_d_arrayassign_l" },
     { "_d_arrayassign_r" },
     { "_d_cast" },
+    { "_d_atomicOp" },
 
     { "imported" },
     { "InterpolationHeader" },

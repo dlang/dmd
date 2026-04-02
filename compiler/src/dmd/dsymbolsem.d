@@ -4568,12 +4568,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             Expression e;
             if (isShared)
             {
-                e = doAtomicOp(isDestructor ? "-=" : "+=", v.ident, IntegerExp.literal!(1));
+                e = doAtomicOp(isDestructor ? "-=" : "+=", v.ident, IntegerExp.literal!(1), sc);
                 if (e is null)
-                {
-                    .error(sd.loc, "%s `%s` shared static %s within a template require `core.atomic : atomicOp` to be present", sd.kind, sd.toPrettyChars, what);
                     return;
-                }
             }
             else
             {
@@ -7414,19 +7411,6 @@ Module loadCoreStdcConfig()
     return loadModuleFromLibrary(core_stdc_config, pkgids, Id.config);
 }
 
-/****************************
- * A Singleton that loads core.atomic
- * Returns:
- *  Module of core.atomic, null if couldn't find it
- */
-private Module loadCoreAtomic()
-{
-    __gshared Module core_atomic;
-    auto pkgids = new Identifier[1];
-    pkgids[0] = Id.core;
-    return loadModuleFromLibrary(core_atomic, pkgids, Id.atomic);
-}
-
 /**********************************
  * Load a Module from the library.
  * Params:
@@ -7457,28 +7441,21 @@ extern (D) private static Module loadModuleFromLibrary(ref Module mod, Identifie
 }
 
 /// Do an atomic operation (currently tailored to [shared] static ctors|dtors) needs
-private CallExp doAtomicOp (string op, Identifier var, Expression arg)
+private CallExp doAtomicOp(string op, Identifier var, Expression arg, Scope* sc)
 {
     assert(op == "-=" || op == "+=");
 
-    Module mod = loadCoreAtomic();
-    if (!mod)
-        return null;    // core.atomic couldn't be loaded
-
     const loc = Loc.initial;
 
-    Objects* tiargs = new Objects(1);
-    (*tiargs)[0] = new StringExp(loc, op);
+    if (!verifyHookExist(loc, *sc, Id._d_atomicOp, "shared static ctors/dtors"))
+        return null;
 
-    Expressions* args = new Expressions(2);
-    (*args)[0] = new IdentifierExp(loc, var);
-    (*args)[1] = arg;
 
-    auto sc = new ScopeExp(loc, mod);
-    auto dti = new DotTemplateInstanceExp(
-        loc, sc, Id.atomicOp, tiargs);
+    Expression e = new IdentifierExp(loc, Id.empty);
+    e = new DotIdExp(loc, e, Id.object);
+    auto dti = new DotTemplateInstanceExp(loc, e, Id._d_atomicOp, new Objects(new StringExp(loc, op)));
 
-    return CallExp.create(loc, dti, args);
+    return CallExp.create(loc, dti, new Expressions(new IdentifierExp(loc, var), arg));
 }
 
 /***************************************************
