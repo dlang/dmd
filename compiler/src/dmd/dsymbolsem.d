@@ -4555,7 +4555,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              * shared int gate;
              * enum op  = isDestructor ? "-=" : "+=";
              * enum cmp = isDestructor ? 0 : 1;
-             * if (core.atomic.atomicOp!op(gate, 1) != cmp) return;
+             * if (._d_atomicOp!op(gate, 1) != cmp) return;
              * ```
              */
 
