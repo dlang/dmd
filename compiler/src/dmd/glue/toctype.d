@@ -14,7 +14,12 @@ module dmd.glue.toctype;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 
-import dmd.backend.cc : Classsym, Symbol;
+import dmd.backend.cc : Classsym, enum_t, Symbol;
+import dmd.backend.cdef : SC;
+import dmd.backend.dlist : list_append;
+import dmd.backend.el : el_long;
+import dmd.backend.mem : mem_calloc;
+import dmd.backend.symbol : symbol_calloc, symbol_name;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -253,9 +258,39 @@ type* Type_toCtype(Type t)
                 (cast(type*)t.ctype).Tcount++;
                 return cast(type*)t.ctype;
             }
-            else if (symMemtype.toBasetype().ty == Tint32)
+            else if (symMemtype.isIntegral())
             {
-                t.ctype = type_enum(sym.toPrettyChars(true), Type_toCtype(symMemtype));
+                type* basectype = Type_toCtype(symMemtype);
+                if (driverParams.symdebug && sym.members)
+                {
+                    // Use the base type for ABI (avoids TYenum hardcoded-to-4-bytes issues),
+                    // but attach a D enum Classsym via TF.denum so the DWARF backend can
+                    // emit DW_TAG_enumeration_type with member names and values.
+                    type* enumctype = type_alloc(tybasic(basectype.Tty));
+                    enumctype.Tcount++;
+                    enumctype.Tflags = cast(TF)(basectype.Tflags | TF.denum);
+                    import core.stdc.string : strlen;
+                    const name = sym.toPrettyChars(true);
+                    Symbol* s = symbol_calloc(name[0 .. strlen(name)]);
+                    s.Senum = cast(enum_t*)mem_calloc(enum_t.sizeof);
+                    s.Sclass = SC.enum_;
+                    s.Stype = enumctype;
+                    enumctype.Ttag = s;
+                    foreach (m; *sym.members)
+                    {
+                        EnumMember em = m.isEnumMember();
+                        if (!em)
+                            continue;
+                        Symbol* sf = symbol_name(em.ident.toString(), SC.enum_, basectype);
+                        sf.Svalue = el_long(totym(symMemtype.toBasetype()), em.value().toInteger());
+                        list_append(&s.Senum.SEenumlist, sf);
+                    }
+                    t.ctype = enumctype;
+                }
+                else
+                {
+                    t.ctype = basectype;
+                }
             }
             else
             {
@@ -270,12 +305,13 @@ type* Type_toCtype(Type t)
 
         // Copy mutable version of backend type and add modifiers
         type* mctype = Type_toCtype(t.castMod(0));
-        if (tybasic(mctype.Tty) == TYenum)
+        if (mctype.Tflags & TF.denum)
         {
             Classsym* s = mctype.Ttag;
             assert(s);
-            type* tr = type_allocn(TYenum, mctype.Tnext);
-            tr.Ttag = s; // enum tag name
+            type* tr = type_alloc(tybasic(mctype.Tty));
+            tr.Tflags = mctype.Tflags;
+            tr.Ttag = s;
             tr.Tcount++;
             tr.Tty |= modToTym(t.mod);
             return tr;
