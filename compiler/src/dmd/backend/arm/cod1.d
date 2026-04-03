@@ -2688,7 +2688,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
 
         reg = allocreg(cdb, forregs, tym);            // allocate registers
 
-        if (sz == 1)
+        if (0 && sz == 1)
         {   regm_t nregm;
 
             debug
