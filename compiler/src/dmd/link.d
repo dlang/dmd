@@ -443,7 +443,9 @@ public int runLINK(bool verbose, ErrorSink eSink)
             return STATUS_FAILED;
         if (driverParams.symdebug)
             argv.push("-g");
-        if (target.isX86_64)
+        if (target.isAArch64)
+            argv.push("-m64");
+        else if (target.isX86_64)
             argv.push("-m64");
         else
             argv.push("-m32");
@@ -1166,7 +1168,7 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
         }
 
         // Set memory model
-        argv.push(target.isX86_64 ? "-m64" : "-m32");
+        argv.push(target.isX86_64 || target.isAArch64 ? "-m64" : "-m32");
 
         // merge #define's with output
         argv.push("-dD");       // https://gcc.gnu.org/onlinedocs/cpp/Invocation.html#index-dD
