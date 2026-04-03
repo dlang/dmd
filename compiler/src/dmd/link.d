@@ -444,7 +444,10 @@ public int runLINK(bool verbose, ErrorSink eSink)
         if (driverParams.symdebug)
             argv.push("-g");
         if (target.isAArch64)
-            argv.push("-m64");
+        {
+            argv.push("-arch");
+            argv.push("arm64");
+        }
         else if (target.isX86_64)
             argv.push("-m64");
         else
