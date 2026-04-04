@@ -2528,6 +2528,11 @@ elem* toElem(Expression e, ref IRState irs)
                 elem* eto = toElem(ae.e1, irs);
                 elem* efrom = toElem(ae.e2, irs);
 
+                // https://github.com/dlang/dmd/issues/22659
+                // LHS is a SliceExp with static array type from cast(T[n]) slice.
+                if (t1.ty == Tsarray)
+                    return setResult(elAssign(eto, efrom, ae.e1.type, null));
+
                 uint size = cast(uint)t1.nextOf().size();
                 elem* esize = el_long(TYsize_t, size);
 
