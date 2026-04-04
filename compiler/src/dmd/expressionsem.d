@@ -8731,17 +8731,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         auto decl = s2.isDeclaration();
                         if (decl && (decl.storage_class & STC.local))
                             continue;
-                        if (sc.func.fes)
-                        {
-                            deprecation(e.loc, "%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
-                            deprecationSupplemental(s2.loc, "declared here");
-                        }
-                        else
-                        {
-                            error(e.loc, "%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
-                            errorSupplemental(s2.loc, "declared here");
+                        error(e.loc, "%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
+                        errorSupplemental(s2.loc, "declared here");
+                        if (!sc.func.fes)
                             return setError();
-                        }
                     }
                 }
             }
