@@ -17059,14 +17059,15 @@ Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
         if (exp.basis)
             exp.basis = exp.basis.resolveLoc(loc, sc);
 
-        if (!exp.elements)
-            return exp;
+        if (exp.elements)
+            foreach (ref element; *exp.elements)
+            {
+                if (element)
+                    element = element.resolveLoc(loc, sc);
+            }
 
-        foreach (ref element; *exp.elements)
-        {
-            if (element)
-                element = element.resolveLoc(loc, sc);
-        }
+        if (exp.lowering)
+            exp.lowering = exp.lowering.resolveLoc(loc, sc);
 
         return exp;
     }
@@ -17086,7 +17087,7 @@ Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
         }
 
         if (exp.lowering)
-            exp.lowering.resolveLoc(loc, sc);
+            exp.lowering = exp.lowering.resolveLoc(loc, sc);
 
         return exp;
     }
