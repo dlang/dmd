@@ -4158,6 +4158,16 @@ private bool functionParameters(Loc loc, Scope* sc,
             // this can happen when calling `typeof(freefunc)`
             if (buf.length)
                 error(loc, "%s", buf.peekChars());
+            else
+            {
+                // resolveNamedArgs returns null without an error message when there are
+                // too many positional arguments; report the error here
+                // https://github.com/dlang/dmd/issues/20875
+                const nArgs = argumentList.arguments ? argumentList.arguments.length : 0;
+                if (nArgs > nparams && tf.parameterList.varargs == VarArg.none)
+                    error(loc, "expected %llu arguments, not %llu for non-variadic function type `%s`",
+                          cast(ulong)nparams, cast(ulong)nArgs, tf.toErrMsg());
+            }
             return true;
         }
         // note: the argument list should be mutated with named arguments / default arguments,
