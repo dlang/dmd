@@ -694,8 +694,9 @@ public:
     d_bool noderef;       // true if the result of the expression will never be dereferenced
     d_bool wantsym;       // do not replace Symbol with its initializer during semantic()
     d_bool arrow;         // ImportC: if -> instead of .
+    Loc identLoc;         // location of the identifier (for accurate error reporting)
 
-    static DotIdExp *create(Loc loc, Expression *e, Identifier *ident);
+    static DotIdExp *create(Loc loc, Expression *e, Identifier *ident, Loc identLoc = Loc());
     void accept(Visitor *v) override { v->visit(this); }
 };
 
