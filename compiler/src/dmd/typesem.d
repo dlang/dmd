@@ -5110,9 +5110,6 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
         }
         else if (ident == Id.opCall && mt.ty == Tclass)
             error(loc, "no property `%s` for type `%s`, did you mean `new %s`?", ident.toErrMsg(), mt.toErrMsg(), mt.toPrettyChars());
-
-        else if (const n = importHint(ident.toString()))
-                error(loc, "no property `%s` for type `%s`, perhaps `import %.*s;` is needed?", ident.toErrMsg(), mt.toErrMsg(), cast(int)n.length, n.ptr);
         else
         {
             if (src)
@@ -5132,6 +5129,8 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
                         errorSupplemental(s2.loc, "did you mean %s `%s`?",
                             s2.kind(), s2.toErrMsg());
                 }
+                else if (const n = importHint(ident.toString()))
+                    errorSupplemental(loc, "perhaps `import %.*s;` is needed?", cast(int)n.length, n.ptr);
             }
             else
                 error(loc, "no property `%s` for type `%s`", ident.toErrMsg(), mt.toPrettyChars(true));
