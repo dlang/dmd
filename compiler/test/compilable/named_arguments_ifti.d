@@ -38,3 +38,21 @@ void testIssue21335()
 {
     f5(b: "hello");
 }
+
+// Variadic tuple with named argument for default parameter (post-tuple)
+// https://github.com/dlang/dmd/issues/22878
+int f6(T...)(T args, string file = __FILE__, int line = __LINE__) { return T.length; }
+static assert(f6(1, 2, file: __FILE__) == 2);
+static assert(f6(file: __FILE__) == 0);
+static assert(f6(1, 2, 3) == 3);
+
+static assert(f6(1, 2, file: __FILE__, 0) == 2);
+static assert(f6(file: __FILE__, 0) == 0);
+static assert(f6(1, 2, line: 0) == 2);
+static assert(f6(1, 2, line: 0, file: __FILE__) == 2);
+
+// Named argument for default parameter before the variadic tuple
+int f7(T...)(int x = 0, T args) { return x + cast(int) T.length; }
+static assert(f7(1, 2, 3) == 1 + 2);    // x=1, args=(2,3)
+static assert(f7(x: 5, 1, 2) == 5 + 2); // x=5 (named), args=(1,2)
+static assert(f7(x: 5) == 5 + 0);       // x=5 (named), args=()
