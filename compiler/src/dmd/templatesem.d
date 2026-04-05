@@ -4661,8 +4661,23 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
 
                 // Deduce prmtype from the defaultArg.
                 farg = fparam.defaultArg.syntaxCopy();
-                farg = farg.expressionSemantic(paramscope);
-                farg = resolveProperties(paramscope, farg);
+                if (argi == DEFAULT_ARGI)
+                {
+                    // Named arg: this parameter gets its default value because no named
+                    // argument matched it. Try to evaluate the default arg for type deduction,
+                    // but if it references template parameters not yet known (e.g. `A.init`
+                    // when A is unresolved), skip deduction here.
+                    const olderrors = global.startGagging();
+                    farg = farg.expressionSemantic(paramscope);
+                    farg = resolveProperties(paramscope, farg);
+                    if (global.endGagging(olderrors) || farg.op == EXP.error || farg.type.ty == Terror)
+                        continue;
+                }
+                else
+                {
+                    farg = farg.expressionSemantic(paramscope);
+                    farg = resolveProperties(paramscope, farg);
+                }
             }
             else
             {
