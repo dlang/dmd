@@ -8201,8 +8201,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 break;
             }
         case TOK.dollar:
-            if (!inBrackets)
-                error("`$` is valid only inside [] of index or slice");
             e = new AST.DollarExp(loc);
             nextToken();
             break;
@@ -9783,6 +9781,7 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.dotVariable : PREC.primary,
     EXP.scope_ : PREC.primary,
     EXP.identifier : PREC.primary,
+    EXP.dollar : PREC.primary,
     EXP.this_ : PREC.primary,
     EXP.super_ : PREC.primary,
     EXP.int64 : PREC.primary,

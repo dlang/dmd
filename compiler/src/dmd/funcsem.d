@@ -1975,6 +1975,30 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
         const(char)* lastprms = parametersTypeToChars(tf1.parameterList);
         const(char)* nextprms = parametersTypeToChars(tf2.parameterList);
 
+        bool hasDollarArg = false;
+        if (fargs)
+        {
+            foreach (arg; *fargs)
+            {
+                if (arg.isDollarExp() ||
+                    (arg.op == EXP.call && (cast(CallExp)arg).e1.isDollarExp()) ||
+                    (arg.op == EXP.dotIdentifier && (cast(DotIdExp)arg).e1.isDollarExp()))
+                {
+                    hasDollarArg = true;
+                    break;
+                }
+            }
+        }
+
+        if (hasDollarArg)
+        {
+            .error(loc, "`%s.%s` with inferred type from `$` matches multiple overloads:\n%s:     `%s%s%s`\nand:\n%s:     `%s%s%s`\n`$` type inference is ambiguous - consider using an explicit type cast",
+                s.parent.toPrettyChars(), s.ident.toChars(),
+                m.lastf.loc.toChars(), m.lastf.toPrettyChars(), lastprms, tf1.modToChars(),
+                m.nextf.loc.toChars(), m.nextf.toPrettyChars(), nextprms, tf2.modToChars());
+            return null;
+        }
+
         string match = "";
         final switch (m.last)
         {
