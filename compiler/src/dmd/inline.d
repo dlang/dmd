@@ -29,7 +29,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.expression;
-import dmd.expressionsem : canElideCopy, semanticTypeInfo;
+import dmd.expressionsem : canElideCopy, semanticTypeInfo, combine, extractLast;
 import dmd.errors : message;
 import dmd.errorsink;
 import dmd.func;
@@ -256,13 +256,13 @@ public:
                         e2.type = Type.tvoid;
                         e.type = Type.tvoid;
                     }
-                    result = Expression.combine(result, e);
+                    result = combine(result, e);
                 }
                 else
                 {
                     ids.foundReturn = false;
                     auto e = doInlineAs!Expression(sx, ids);
-                    result = Expression.combine(result, e);
+                    result = combine(result, e);
                 }
             }
 
@@ -291,7 +291,7 @@ public:
             static if (asStatements)
                 as.push(r);
             else
-                result = Expression.combine(result, r);
+                result = combine(result, r);
 
             if (ids.foundReturn)
                 break;
@@ -396,7 +396,7 @@ public:
                  */
                 auto ce = new ConstructExp(s.loc, ids.eret.copy(), exp);
                 ce.type = exp.type;
-                result = Expression.combine(ce, ids.eret.copy());
+                result = combine(ce, ids.eret.copy());
                 return;
             }
 
@@ -438,7 +438,7 @@ public:
 
                 // Chain the two together:
                 //   ( typeof(return) __inlineretval = ( inlined body )) , __inlineretval
-                exp = Expression.combine(de, new VarExp(s.loc, vd));
+                exp = combine(de, new VarExp(s.loc, vd));
             }
 
             result = exp;
@@ -1310,7 +1310,7 @@ public:
             return;
 
         Expression e0;
-        Expression elast = Expression.extractLast(s.exp, e0);
+        Expression elast = extractLast(s.exp, e0);
         inlineScan(e0);
 
         if (auto ce = elast.isCallExp())
@@ -1328,7 +1328,7 @@ public:
             inlineScan(elast);
         }
 
-        s.exp = Expression.combine(e0, elast);
+        s.exp = combine(e0, elast);
     }
 
     override void visit(SynchronizedStatement s)
@@ -1502,7 +1502,7 @@ public:
         void inlineConstruction(AssignExp e)
         {
             Expression e0;
-            Expression elast = Expression.extractLast(e.e2, e0);
+            Expression elast = extractLast(e.e2, e0);
             inlineScan(e0);   // Side effects
 
             auto ce = elast.isCallExp();
@@ -1512,14 +1512,14 @@ public:
 
                 if (eresult)
                 {
-                    eresult = Expression.combine(e0, eresult);
+                    eresult = combine(e0, eresult);
                     //printf("call with nrvo: %s ==> %s\n", e.toChars(), eresult.toChars());
                     return;
                 }
             }
 
             inlineScan(elast);
-            e.e2 = Expression.combine(e0, elast);
+            e.e2 = combine(e0, elast);
         }
 
         inlineScan(e.e1); // LHS
@@ -2282,7 +2282,7 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
     if (ethis)
     {
         Expression e0;
-        ethis = Expression.extractLast(ethis, e0);
+        ethis = extractLast(ethis, e0);
 
         if (VarDeclaration vthis2 = ecall.vthis2)
         {
@@ -2338,7 +2338,7 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
 
             auto de = new DeclarationExp(fd.loc, vthis);
             de.type = Type.tvoid;
-            e0 = Expression.combine(e0, de);
+            e0 = combine(e0, de);
         }
         ethis = e0;
 
@@ -2386,7 +2386,7 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
 
             auto de = new DeclarationExp(vto.loc, vto);
             de.type = Type.tvoid;
-            eparams = Expression.combine(eparams, de);
+            eparams = combine(eparams, de);
 
             /* If function pointer or delegate parameters are present,
              * inline scan again because if they are initialized to a symbol,
@@ -2479,8 +2479,8 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
             e.type = Type.tvoid;
         }
 
-        eresult = Expression.combine(eresult, eret, ethis, eparams);
-        eresult = Expression.combine(eresult, e);
+        eresult = combine(eresult, eret, ethis, eparams);
+        eresult = combine(eresult, e);
 
         if (ecall.rvalue || tf.isRvalue)
             eresult.rvalue = true;

@@ -342,7 +342,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
             e4 = new BlitExp(loc, new IdentifierExp(loc, Id.p), new VarExp(loc, swap));
         }
 
-        e = Expression.combine(e1, e2, e3, e4);
+        e = combine(e1, e2, e3, e4);
     }
     /* postblit was called when the value was passed to opAssign, we just need to blit the result */
     else if (sd.postblit)
@@ -367,7 +367,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
             auto ec = new AssignExp(loc,
                 new DotVarExp(loc, new ThisExp(loc), v),
                 new DotVarExp(loc, new IdentifierExp(loc, Id.p), v));
-            e = Expression.combine(e, ec);
+            e = combine(e, ec);
         }
     }
     if (e)
@@ -991,7 +991,7 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
 
                 ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayDtor), se);
             }
-            e = Expression.combine(ex, e); // combine in reverse order
+            e = combine(ex, e); // combine in reverse order
         }
 
         if (e || (stc & STC.disable))
@@ -1051,7 +1051,7 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
             ex = new DotVarExp(loc, ex, fd, false);
             CallExp ce = new CallExp(loc, ex);
             ce.directcall = true;
-            e = Expression.combine(e, ce);
+            e = combine(e, ce);
         }
         auto dd = new DtorDeclaration(declLoc, Loc.initial, stc, Id.__aggrDtor);
         dd.isGenerated = true;
@@ -1248,7 +1248,7 @@ FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
                     break;
                 }
             }
-            e = Expression.combine(e, new CallExp(Loc.initial, new VarExp(Loc.initial, inv, false)));
+            e = combine(e, new CallExp(Loc.initial, new VarExp(Loc.initial, inv, false)));
         }
         auto inv = new InvariantDeclaration(ad.loc, Loc.initial, stc | stcx,
                 Id.classInvariant, new ExpStatement(Loc.initial, e));
@@ -1501,7 +1501,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
             Expression ex = new ThisExp(loc);
             ex = new DotVarExp(loc, ex, fd, false);
             ex = new CallExp(loc, ex);
-            e = Expression.combine(e, ex);
+            e = combine(e, ex);
         }
 
         checkShared();
@@ -1606,7 +1606,7 @@ private Statement generateCtorBody(StructDeclaration sd, bool move)
         auto ec = new AssignExp(loc,
             new DotVarExp(loc, new ThisExp(loc), v),
             rhs);
-        e = Expression.combine(e, ec);
+        e = combine(e, ec);
         //printf("e.toChars = %s\n", e.toChars());
     }
     Statement s1 = new ExpStatement(loc, e);
