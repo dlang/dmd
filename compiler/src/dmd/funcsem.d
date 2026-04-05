@@ -2015,18 +2015,20 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
         {
             if (!od && !td.overnext)
             {
+                if (checkNamedArgErrorAndReport(td, argumentList, loc))
+                    return null;
+
                 .error(loc, "%s `%s` is not callable using argument types `!(%s)%s`",
                     td.kind(), td.ident.toChars(), tiargsBuf.peekChars(), fargsBuf.peekChars());
-
-                checkNamedArgErrorAndReport(td, argumentList, loc);
             }
             else
             {
+                if (checkNamedArgErrorAndReport(td, argumentList, loc))
+                    return null;
+
                 .error(loc, "none of the overloads of %s `%s.%s` are callable using argument types `!(%s)%s`",
                     td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
                     tiargsBuf.peekChars(), fargsBuf.peekChars());
-
-                checkNamedArgErrorAndReport(td, argumentList, loc);
             }
 
 
@@ -2045,10 +2047,12 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
 
     if (od)
     {
+        if (checkNamedArgErrorAndReportOverload(od, argumentList, loc))
+            return null;
+
         .error(loc, "none of the overloads of `%s` are callable using argument types `!(%s)%s`",
             od.ident.toChars(), tiargsBuf.peekChars(), fargsBuf.peekChars());
 
-        checkNamedArgErrorAndReportOverload(od, argumentList, loc);
         if (!global.gag || global.params.v.showGaggedErrors)
             printCandidates(loc, od, sc.isDeprecated());
         return null;
@@ -2185,11 +2189,13 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
  *      td = template declaration to check
  *      argumentList = arguments to check
  *      loc = location for error reporting
+ * Returns:
+ *      true if a primary error was reported
  */
-private void checkNamedArgErrorAndReport(TemplateDeclaration td, ArgumentList argumentList, Loc loc)
+private bool checkNamedArgErrorAndReport(TemplateDeclaration td, ArgumentList argumentList, Loc loc)
 {
     if (!argumentList.hasArgNames())
-        return;
+        return false;
     td.computeOneMember();
     auto tf = td.onemember ? td.onemember.isFuncDeclaration() : null;
     if (tf && tf.type && tf.type.ty == Tfunction)
@@ -2197,8 +2203,12 @@ private void checkNamedArgErrorAndReport(TemplateDeclaration td, ArgumentList ar
         OutBuffer buf;
         auto resolvedArgs = tf.type.isTypeFunction().resolveNamedArgs(argumentList, &buf);
         if (!resolvedArgs && buf.length)
-            .errorSupplemental(loc, "%s", buf.peekChars());
+        {
+            .error(loc, "%s", buf.peekChars());
+            return true;
+        }
     }
+    return false;
 }
 
 /******************************************
@@ -2207,35 +2217,59 @@ private void checkNamedArgErrorAndReport(TemplateDeclaration td, ArgumentList ar
  *      od = overload declaration to check
  *      argumentList = arguments to check
  *      loc = location for error report
+ * Returns:
+ *      true if a primary error was reported
  */
-private void checkNamedArgErrorAndReportOverload(Dsymbol od, ArgumentList argumentList, Loc loc)
+private bool checkNamedArgErrorAndReportOverload(Dsymbol od, ArgumentList argumentList, Loc loc)
 {
     if (!argumentList.hasArgNames())
-        return;
+        return false;
 
-    FuncDeclaration tf = null;
+    const(char)* commonError = null;
+    bool allSame = true;
+    bool anyError = false;
+
     overloadApply(od, (Dsymbol s) {
-        if (!tf)
+        TypeFunction tf = null;
+        if (auto fd = s.isFuncDeclaration())
+            tf = fd.type.isTypeFunction();
+        else if (auto td = s.isTemplateDeclaration())
         {
-            if (auto fd = s.isFuncDeclaration())
-                tf = fd;
-            else if (auto td = s.isTemplateDeclaration())
+            td.computeOneMember();
+            if (td.onemember && td.onemember.isFuncDeclaration())
+                tf = td.onemember.isFuncDeclaration().type.isTypeFunction();
+        }
+
+        if (tf)
+        {
+            OutBuffer buf;
+            auto resolvedArgs = tf.resolveNamedArgs(argumentList, &buf);
+            if (!resolvedArgs && buf.length)
             {
-                td.computeOneMember();
-                if (td.onemember)
-                    tf = td.onemember.isFuncDeclaration();
+                anyError = true;
+                const(char)* currentError = buf.peekChars();
+                if (commonError is null)
+                {
+                    import dmd.root.rmem : mem;
+                    commonError = mem.xstrdup(currentError);
+                }
+                else if (strcmp(commonError, currentError) != 0)
+                    allSame = false;
+            }
+            else
+            {
+                allSame = false; // This candidate matched (at least for named args)
             }
         }
         return 0;
     });
 
-    if (tf && tf.type && tf.type.ty == Tfunction)
+    if (anyError && allSame && commonError !is null)
     {
-        OutBuffer buf;
-        auto resolvedArgs = tf.type.isTypeFunction().resolveNamedArgs(argumentList, &buf);
-        if (!resolvedArgs && buf.length)
-            .errorSupplemental(loc, "%s", buf.peekChars());
+        .error(loc, "%s", commonError);
+        return true;
     }
+    return false;
 }
 
 /*******************************************
@@ -4023,16 +4057,14 @@ private void checkPrintfScanfSignature(FuncDeclaration funcdecl, TypeFunction f,
     const p = (funcdecl.printf ? Id.printf : Id.scanf).toChars();
     if (!(f.linkage == LINK.c || f.linkage == LINK.cpp))
     {
-        .error(funcdecl.loc, "`pragma(%s)` function `%s` must have `extern(C)` or `extern(C++)` linkage,"
-            ~" not `extern(%s)`",
+        .error(funcdecl.loc, "`pragma(%s)` function `%s` must have `extern(C)` or `extern(C++)` linkage, not `extern(%s)`",
             p, funcdecl.toChars(), f.linkage.linkageToChars());
     }
     if (f.parameterList.varargs == VarArg.variadic)
     {
         if (!(nparams >= 1 && isPointerToChar(f.parameterList[nparams - 1])))
         {
-            .error(funcdecl.loc, "`pragma(%s)` function `%s` must have"
-                ~ " signature `%s %s([parameters...], const(char)*, ...)` not `%s`",
+            .error(funcdecl.loc, "`pragma(%s)` function `%s` must have signature `%s %s([parameters...], const(char)*, ...)` not `%s`",
                 p, funcdecl.toChars(), f.next.toChars(), funcdecl.toChars(), funcdecl.type.toChars());
         }
     }
@@ -4041,8 +4073,7 @@ private void checkPrintfScanfSignature(FuncDeclaration funcdecl, TypeFunction f,
         import dmd.safe;
         if (!(nparams >= 2 && isPointerToChar(f.parameterList[nparams - 2]) &&
             isVa_list(f.parameterList[nparams - 1])))
-            .error(funcdecl.loc, "`pragma(%s)` function `%s` must have"~
-                " signature `%s %s([parameters...], const(char)*, va_list)`",
+            .error(funcdecl.loc, "`pragma(%s)` function `%s` must have signature `%s %s([parameters...], const(char)*, va_list)`",
                 p, funcdecl.toChars(), f.next.toChars(), funcdecl.toChars());
         else if (funcdecl.isSafe() || funcdecl.isTrusted())
             .error(funcdecl.loc, "`pragma(%s)` %s `%s` of `va_list` form must be `@system`",

@@ -14,6 +14,8 @@ module dmd.sideeffect;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
+import dmd.dsymbol;
+import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
@@ -26,6 +28,7 @@ import dmd.init;
 import dmd.mtype;
 import dmd.tokens;
 import dmd.typesem;
+import dmd.root.string : toDString;
 import dmd.visitor;
 import dmd.visitor.postorder;
 
@@ -295,6 +298,25 @@ bool discardValue(Expression e)
     // Assumption that error => no side effect
     case EXP.error:
         return true;
+    case EXP.overloadSet:
+        {
+            OverExp oe = cast(OverExp)e;
+            .error(e.loc, "`%s` matches multiple overloads", oe.vars.ident.toChars());
+            return false;
+        }
+    case EXP.scope_:
+        {
+            ScopeExp se = cast(ScopeExp)e;
+            if (auto ti = se.sds.isTemplateInstance())
+            {
+                if (ti.tempdecl && ti.tempdecl.isOverloadSet())
+                {
+                    .error(e.loc, "`%s` matches multiple overloads", ti.toChars());
+                    return false;
+                }
+            }
+            break;
+        }
     case EXP.variable:
         {
             VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
