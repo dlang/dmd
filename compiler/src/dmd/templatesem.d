@@ -4413,7 +4413,11 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
             }
             if (fname && !foundName)
             {
-                argi = DEFAULT_ARGI;
+                // For a variadic tuple parameter, don't mark as DEFAULT_ARGI.
+                // The named arg goes to a post-tuple parameter; the tuple will
+                // be handled below (possibly as an empty tuple T = ()).
+                if (!(fptupindex != IDX_NOTFOUND && parami == fptupindex))
+                    argi = DEFAULT_ARGI;
             }
 
             /* See function parameters which wound up
@@ -4433,20 +4437,26 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
 
                     /* Count function parameters with no defaults following a tuple parameter.
                      * void foo(U, T...)(int y, T, U, double, int bar = 0) {}  // rem == 2 (U, double)
+                     * Parameters provided as named arguments don't count towards rem.
                      */
                     size_t rem = 0;
                     foreach (j; parami + 1 .. nfparams)
                     {
                         Parameter p = fparameters[j];
                         if (p.defaultArg)
-                        {
                             break;
-                        }
-                        foreach(argLabel; fnames)
+                        // If covered by a named argument, no positional arg is needed for it
+                        bool coveredByNamedArg = false;
+                        foreach (argLabel; fnames)
                         {
-                            if (p.ident == argLabel.name)
+                            if (p.ident && p.ident == argLabel.name)
+                            {
+                                coveredByNamedArg = true;
                                 break;
+                            }
                         }
+                        if (coveredByNamedArg)
+                            continue;
                         if (!reliesOnTemplateParameters(p.type, (*td.parameters)[inferStart .. td.parameters.length]))
                         {
                             Type pt = p.type.syntaxCopy().typeSemantic(fd.loc, paramscope);
@@ -4461,12 +4471,26 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
                         }
                     }
 
-                    if (nfargs2 - argi < rem)
-                        return nomatch();
-                    declaredTuple.objects.setDim(nfargs2 - argi - rem);
-                    foreach (i; 0 .. declaredTuple.objects.length)
+                    // Named args are anonymous-tuple boundaries: they always target
+                    // explicitly-named post-tuple parameters. The first named arg
+                    // in the list marks where the tuple ends; any positional args
+                    // after it also go to post-tuple parameters (in order).
+                    size_t tupleEnd = nfargs2;
+                    foreach (i; argi .. nfargs2)
                     {
-                        farg = fargs[argi + i];
+                        if (i < fnames.length && fnames[i].name)
+                        {
+                            tupleEnd = i;
+                            break;
+                        }
+                    }
+
+                    if (tupleEnd - argi < rem)
+                        return nomatch();
+                    declaredTuple.objects.setDim(tupleEnd - argi - rem);
+                    foreach (i; argi .. tupleEnd - rem)
+                    {
+                        farg = fargs[i];
 
                         // Check invalid arguments to detect errors early.
                         if (farg.op == EXP.error || farg.type.ty == Terror)
@@ -4497,7 +4521,7 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
                         {
                             tt = tt.mutableOf();
                         }
-                        declaredTuple.objects[i] = tt;
+                        declaredTuple.objects[i - argi] = tt;
                     }
                     td.declareParameter(paramscope, tp, declaredTuple);
                 }
