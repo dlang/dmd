@@ -30,7 +30,7 @@ import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.expressionsem : canElideCopy, semanticTypeInfo;
-import dmd.errors : message;
+import dmd.errors;
 import dmd.errorsink;
 import dmd.func;
 import dmd.funcsem;
@@ -108,7 +108,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
     const cost = inlineCostExpression(e);
     if (cost >= COST_MAX)
     {
-        sc.eSink.error(e.loc, "cannot inline default argument `%s`", e.toChars());
+        sc.eSink.error(e.loc, "cannot inline default argument `%s`", e.toErrMsg());
         return ErrorExp.get();
     }
     scope ids = new InlineDoState(sc.parent, null);
@@ -682,7 +682,7 @@ public:
         override void visit(ThisExp e)
         {
             //if (!ids.vthis)
-            //    e.error("no `this` when inlining `%s`", ids.parent.toChars());
+            //    e.error("no `this` when inlining `%s`", ids.parent.toErrMsg());
             if (!ids.vthis)
             {
                 result = e;

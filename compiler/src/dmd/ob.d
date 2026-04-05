@@ -2052,12 +2052,12 @@ void checkObErrors(ref ObState obstate)
 
                     if (pvsr.state == Undefined)
                     {
-                        .error(e.loc, "%s `%s` is reading from `%s` which is Undefined", v.kind, v.toPrettyChars, r.toChars());
+                        .error(e.loc, "%s `%s` is reading from `%s` which is Undefined", v.kind, v.toPrettyChars, r.toErrMsg());
                     }
                     else if (isBorrowedPtr(v))  // v is going to borrow from r
                     {
                         if (pvsr.state == Readonly)
-                            .error(e.loc, "%s `%s` is borrowing from `%s` which is Readonly", v.kind, v.toPrettyChars, r.toChars());
+                            .error(e.loc, "%s `%s` is borrowing from `%s` which is Readonly", v.kind, v.toPrettyChars, r.toErrMsg());
 
                         pvs.state = Borrowed;
                     }
