@@ -20,7 +20,7 @@ Where:
   @<cmdfile>       read arguments from cmdfile
 $r:.*$
   -m64              generate 64 bit code
-  -maarch64         generate AArch64 bit code
+  -marm64           generate Arm 64 bit code
   -main             add default main() if not present already (e.g. for unittesting)
 $r:.*$
 ----
