@@ -2259,6 +2259,55 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             else
                 autoDollarDims = null;
         }
+        static bool hasDollarDimension(TypeSArray tsa)
+        {
+            auto d = tsa.dim;
+            if (!d)
+                return false;
+            auto ide = d.isIdentifierExp();
+            if (!ide)
+                return false;
+            return ide.ident == Id.dollar;
+        }
+        static bool hasUnresolvedDollar(Type t)
+        {
+            if (!t)
+                return false;
+            t = t.toBasetype();
+
+            auto tsa = t.isTypeSArray();
+            if (!tsa)
+            {
+                // catch int[$]*
+                auto next = t.nextOf();
+                return next ? hasUnresolvedDollar(next) : false;
+            }
+            if (hasDollarDimension(tsa))
+                return true;
+            return hasUnresolvedDollar(tsa.next);
+        }
+        static void resolveDollarToZero(Type t, Loc loc)
+        {
+            if (!t)
+                return;
+            t = t.toBasetype();
+
+            auto tsa = t.isTypeSArray();
+            if (tsa && hasDollarDimension(tsa))
+            {
+                tsa.dim = new IntegerExp(loc, 0, Type.tsize_t);
+            }
+
+            if (tsa)
+                resolveDollarToZero(tsa.next, loc);
+            else
+            {
+                // handle int[$]*
+                auto next = t.nextOf();
+                if (next)
+                    resolveDollarToZero(next, loc);
+            }
+        }
         if (!dsym.type)
         {
             dsym.inuse++;
@@ -2270,6 +2319,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 sc.condition = true;
                 sc = sc.startCTFE();
+            }
+            if (autoDollarDims.length && !dsym._init)
+            {
+                .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
+                dsym.type = Type.terror;
+                dsym.errors = true;
+                dsym.semanticRun = PASS.semanticdone;
+                return;
             }
             //printf("inferring type for %s with init %s\n", dsym.toChars(), dsym._init.toChars());
             dsym._init = dsym._init.inferType(sc);
@@ -2285,7 +2342,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     auto elem = t.nextOf();
                     if (!elem)
                     {
-                        .error(dsym.loc, "cannot infer static array element type for `auto[$]`, provide an array initializer");
+                        .error(dsym.loc,
+                            "cannot infer static array element type for `auto[$]`, " ~
+                            "provide an array initializer");
                         t = Type.terror;
                         break;
                     }
@@ -2317,6 +2376,19 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (!dsym.originalType)
                 dsym.originalType = dsym.type.syntaxCopy();
 
+            // `$` inference outside top-level static-array declarations is invalid.
+            if (hasUnresolvedDollar(dsym.type) && !dsym.type.toBasetype().isTypeSArray())
+            {
+                .error(dsym.loc,
+                    "cannot infer static array length from `$` in this type position; " ~
+                    "only direct static array declarations can infer `$` from an initializer");
+                resolveDollarToZero(dsym.type, dsym.loc);
+                dsym.type = Type.terror;
+                dsym.errors = true;
+                dsym.semanticRun = PASS.semanticdone;
+                return;
+            }
+
             /* Prefix function attributes of variable declaration can affect
              * its type:
              *      pure nothrow void function() fp;
@@ -2329,37 +2401,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.inuse--;
             sc2.pop();
         }
-        static bool hasDollarDimension(TypeSArray tsa)
-        {
-            auto d = tsa.dim;
-            if (!d)
-                return false;
-            auto ide = d.isIdentifierExp();
-            if (!ide)
-                return false;
-            return ide.ident == Id.dollar;
-        }
-        static bool hasUnresolvedDollar(Type t)
-        {
-            auto tsa = t.isTypeSArray();
-            if (!tsa)
-                return false;
-            if (hasDollarDimension(tsa))
-                return true;
-            return hasUnresolvedDollar(tsa.next);
-        }
-
-        static void resolveDollarToZero(Type t, Loc loc)
-        {
-            auto tsa = t.isTypeSArray();
-            if (!tsa)
-                return;
-            if (hasDollarDimension(tsa)) {
-                tsa.dim = new IntegerExp(loc, 0, Type.tsize_t);
-            }
-            resolveDollarToZero(tsa.next, loc);
-        }
-
         static bool inferExprLength(Expression e, out dinteger_t len)
         {
             if (!e)
@@ -2498,10 +2539,20 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
             }
         }
-        if (tsa && hasUnresolvedDollar(tsa.next))
+        if (hasUnresolvedDollar(dsym.type))
         {
-            .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
-            resolveDollarToZero(tsa.next, dsym.loc);
+            if (dsym.type.toBasetype().isTypeSArray())
+                .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
+            else
+            {
+                .error(dsym.loc,
+                    "cannot infer static array length from `$` in this type position; " ~
+                    "only direct static array declarations can infer `$` from an initializer");
+            }
+            resolveDollarToZero(dsym.type, dsym.loc);
+            dsym.type = Type.terror;
+            dsym.errors = true;
+            dsym.semanticRun = PASS.semanticdone;
             return;
         }
 
