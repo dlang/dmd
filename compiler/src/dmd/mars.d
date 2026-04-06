@@ -298,7 +298,7 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
 }
 
 /**
- * Parse command line arguments for the last instance of -m32, -m64, -m32mscoff, -maarch64
+ * Parse command line arguments for the last instance of -m32, -m64, -m32mscoff, -marm64
  * to detect the desired architecture.
  *
  * Params:
@@ -323,8 +323,8 @@ const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
             case "-m32mscoff":
                 arch = arg[2 .. 4];
                 continue;
-            case "-maarch64":
-                arch = arg[2 .. 9];
+            case "-marm64":
+                arch = arg[2 .. 7];
                 continue;
             case "-run":   // end of args to dmd
                 break;
@@ -1003,7 +1003,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
         {
             continue; // skip druntime options, e.g. used to configure the GC
         }
-        else if (arg == "-maarch64") // https://dlang.org/dmd.html#switch-maarch64
+        else if (arg == "-marm64") // https://dlang.org/dmd.html#switch-marm64
         {
             target.isAArch64 = true;
             target.isX86    = false;

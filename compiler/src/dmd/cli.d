@@ -638,9 +638,9 @@ dmd -cov -unittest myprog.d
             $(LINK2 https://msdn.microsoft.com/en-us/library/dd831853(v=vs.100).aspx, Microsoft Visual Studio 10)
             or later compiler.)`,
         ),
-        Option("maarch64",
-            "generate AArch64 bit code",
-            "Compile an AArch64 bit executable. Only supported for OSX.",
+        Option("marm64",
+            "generate Arm 64 bit code",
+            "Compile an Arm 64 bit executable. Only supported for OSX.",
         ),
         Option("main",
             "add default main() if not present already (e.g. for unittesting)",
