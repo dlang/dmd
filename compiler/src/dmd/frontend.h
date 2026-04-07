@@ -6983,6 +6983,7 @@ struct Scope final
     Dsymbol* parent;
     LabelStatement* slabel;
     SwitchStatement* switchStatement;
+    void* switchCases;
     Statement* tryBody;
     TryFinallyStatement* tryFinally;
     ScopeGuardStatement* scopeGuard;
@@ -7062,6 +7063,7 @@ public:
         parent(),
         slabel(),
         switchStatement(),
+        switchCases(),
         tryBody(),
         tryFinally(),
         scopeGuard(),
@@ -7092,7 +7094,7 @@ public:
         argStruct()
     {
     }
-    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* switchStatement = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tryFinally = nullptr, ScopeGuardStatement* scopeGuard = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), STC stc = (STC)0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, uint16_t bitFields2 = 0u, Previews previews = Previews(), UserAttributeDeclaration* userAttribDecl = nullptr, void* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
+    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* switchStatement = nullptr, void* switchCases = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tryFinally = nullptr, ScopeGuardStatement* scopeGuard = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), STC stc = (STC)0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, uint16_t bitFields2 = 0u, Previews previews = Previews(), UserAttributeDeclaration* userAttribDecl = nullptr, void* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
         enclosing(enclosing),
         _module(_module),
         scopesym(scopesym),
@@ -7101,6 +7103,7 @@ public:
         parent(parent),
         slabel(slabel),
         switchStatement(switchStatement),
+        switchCases(switchCases),
         tryBody(tryBody),
         tryFinally(tryFinally),
         scopeGuard(scopeGuard),
@@ -8682,6 +8685,8 @@ struct Id final
     static Identifier* _d_aaLen;
     static Identifier* _d_aaApply;
     static Identifier* _d_aaApply2;
+    static Identifier* _d_pow;
+    static Identifier* _d_sqrt;
     static Identifier* monitorenter;
     static Identifier* monitorexit;
     static Identifier* criticalenter;
@@ -8689,17 +8694,11 @@ struct Id final
     static Identifier* _d_delThrowable;
     static Identifier* _d_newThrowable;
     static Identifier* _d_newclassT;
-    static Identifier* _d_newclassTTrace;
     static Identifier* _d_newitemT;
-    static Identifier* _d_newitemTTrace;
     static Identifier* _d_newarrayT;
-    static Identifier* _d_newarrayTTrace;
     static Identifier* _d_newarrayU;
-    static Identifier* _d_newarrayUTrace;
     static Identifier* _d_newarraymTX;
-    static Identifier* _d_newarraymTXTrace;
     static Identifier* _d_arrayliteralTX;
-    static Identifier* _d_arrayliteralTXTrace;
     static Identifier* _d_assert_fail;
     static Identifier* _d_arrayctor;
     static Identifier* _d_arraysetctor;
@@ -8707,6 +8706,7 @@ struct Id final
     static Identifier* _d_arrayassign_l;
     static Identifier* _d_arrayassign_r;
     static Identifier* _d_cast;
+    static Identifier* _d_atomicOp;
     static Identifier* imported;
     static Identifier* InterpolationHeader;
     static Identifier* InterpolationFooter;
@@ -8730,13 +8730,9 @@ struct Id final
     static Identifier* rt_init;
     static Identifier* _d_HookTraceImpl;
     static Identifier* _d_arraysetlengthT;
-    static Identifier* _d_arraysetlengthTTrace;
     static Identifier* _d_arrayappendT;
-    static Identifier* _d_arrayappendTTrace;
     static Identifier* _d_arrayappendcTX;
-    static Identifier* _d_arrayappendcTXTrace;
     static Identifier* _d_arraycatnTX;
-    static Identifier* _d_arraycatnTXTrace;
     static Identifier* _d_assocarrayliteralTX;
     static Identifier* stdc;
     static Identifier* stdarg;

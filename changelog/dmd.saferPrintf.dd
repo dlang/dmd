@@ -8,9 +8,11 @@ This change allows calling a $(DDSUBLINK spec/pragma, printf,
 
 - the callee is marked `@safe` or `@trusted`
 - the format string passed is a literal
-- no zero-terminated string format specifiers are used
+- no string format specifiers are used
+- the callee has a `...` parameter after the format string
 
-Note: `pragma(printf)` already enforces type safety.
+Note: `pragma(printf)` already enforces type safety for a C-style
+variadic function.
 
 For example:
 

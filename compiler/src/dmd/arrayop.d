@@ -94,7 +94,7 @@ bool checkNonAssignmentArrayOp(Expression e, bool suggestion = false)
         const(char)* s = "";
         if (suggestion)
             s = " (possible missing [])";
-        error(e.loc, "array operation `%s` without destination memory not allowed%s", e.toChars(), s);
+        error(e.loc, "array operation `%s` without destination memory not allowed%s", e.toErrMsg(), s);
         return true;
     }
     return false;
@@ -169,7 +169,7 @@ Expression arrayOp(BinAssignExp e, Scope* sc)
 
     if (tn && (!tn.isMutable() || !tn.isAssignable()))
     {
-        error(e.loc, "slice `%s` is not mutable", e.e1.toChars());
+        error(e.loc, "slice `%s` is not mutable", e.e1.toErrMsg());
         if (e.op == EXP.addAssign)
             checkPossibleAddCatError!(AddAssignExp, CatAssignExp)(e.isAddAssignExp);
         return ErrorExp.get();
@@ -372,7 +372,7 @@ bool isArrayOpOperand(Expression e)
 
 ErrorExp arrayOpInvalidError(Expression e)
 {
-    error(e.loc, "invalid array operation `%s` (possible missing [])", e.toChars());
+    error(e.loc, "invalid array operation `%s` (possible missing [])", e.toErrMsg());
     if (e.op == EXP.add)
         checkPossibleAddCatError!(AddExp, CatExp)(e.isAddExp());
     else if (e.op == EXP.addAssign)

@@ -16,10 +16,10 @@
 module rt.tracegc;
 
 extern (C) void _d_callfinalizer(void* p);
-extern (C) void _d_callinterfacefinalizer(void *p);
+extern (C) void _d_callinterfacefinalizer(void* p);
 extern (C) void _d_delclass(Object* p);
 extern (C) void _d_delinterface(void** p);
-extern (C) void _d_delmemory(void* *p);
+extern (C) void _d_delmemory(void** p);
 extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c);
 extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c);
 extern (C) void* _d_allocmemory(size_t sz);
@@ -29,135 +29,154 @@ extern (C) void* _d_allocmemory(size_t sz);
 // module, causing a compile error.
 private struct BlkInfo
 {
-    void*  base;
+    void* base;
     size_t size;
-    uint   attr;
+    uint attr;
 }
+
 extern (C) void* gc_malloc(size_t sz, uint ba = 0, const scope TypeInfo ti = null);
 extern (C) BlkInfo gc_qalloc(size_t sz, uint ba = 0, const scope TypeInfo ti = null);
 extern (C) void* gc_calloc(size_t sz, uint ba = 0, const TypeInfo ti = null);
 extern (C) void* gc_realloc(return scope void* p, size_t sz, uint ba = 0, const TypeInfo ti = null);
 extern (C) size_t gc_extend(void* p, size_t mx, size_t sz, const TypeInfo ti = null);
 
-// Used as wrapper function body to get actual stats.
-//
-// Placed here as a separate string constant to simplify maintenance as it is
-// much more likely to be modified than rest of generation code.
-enum accumulator = q{
-    import rt.profilegc : accumulate;
-    import core.memory : GC;
-    import core.stdc.string : strstr;
-
-    static if (is(typeof(ci)))
-        string name = ci.name;
-    else static if (is(typeof(ti)))
-        string name = ti ? ti.toString() : "void[]";
-    else static if (__FUNCTION__ == "rt.tracegc._d_arrayappendcdTrace")
-        string name = "char[]";
-    else static if (__FUNCTION__ == "rt.tracegc._d_arrayappendwdTrace")
-        string name = "wchar[]";
-    else static if (__FUNCTION__ == "rt.tracegc._d_allocmemoryTrace")
-        string name = "closure";
-    else
-        string name = "";
-
-    ulong currentlyAllocated = GC.allocatedInCurrentThread;
-
-    scope(exit)
-    {
-        ulong size = GC.allocatedInCurrentThread - currentlyAllocated;
-        // Skip internal functions.
-        if (size > 0 && strstr(funcname.ptr, "core.internal") is null)
-            accumulate(file, line, funcname, name, size);
-    }
-};
-
-mixin(generateTraceWrappers());
-//pragma(msg, generateTraceWrappers());
-
-////////////////////////////////////////////////////////////////////////////////
-// code gen implementation
-
-private string generateTraceWrappers()
+private void accumulate2(string file, int line, string funcname, string name, ulong currentlyAllocated)
 {
-    string code;
-
-    foreach (name; __traits(allMembers, mixin(__MODULE__)))
-    {
-        static if (name.length > 3 && name[0..3] == "_d_")
-        {
-            mixin("alias Declaration = " ~ name ~ ";");
-            code ~= generateWrapper!Declaration();
-        }
-        static if (name.length > 3 && name[0..3] == "gc_")
-        {
-            mixin("alias Declaration = " ~ name ~ ";");
-            code ~= generateWrapper!(Declaration, ParamPos.back)();
-        }
-    }
-
-    return code;
+    auto size = GC.allocatedInCurrentThread - currentlyAllocated;
+    if (size > 0 && strstr(funcname.ptr, "core.internal") is null)
+        accumulate(file, line, funcname, name, size);
 }
 
-enum ParamPos { front, back }
+import rt.profilegc : accumulate;
+import core.memory : GC;
+import core.stdc.string : strstr;
 
-private string generateWrapper(alias Declaration, ParamPos pos = ParamPos.front)()
+extern (C) void _d_callfinalizerTrace(string file, int line, string funcname, void* p)
 {
-    static size_t findParamIndex(string s)
-    {
-        assert (s[$-1] == ')');
-        size_t brackets = 1;
-        while (brackets != 0)
-        {
-            s = s[0 .. $-1];
-            if (s[$-1] == ')')
-                ++brackets;
-            if (s[$-1] == '(')
-                --brackets;
-        }
+    const currentlyAllocated = GC.allocatedInCurrentThread;
+    scope (exit)
+        accumulate2(file, line, funcname, null, currentlyAllocated);
 
-        assert(s.length > 1);
-        return s.length - 1;
-    }
-
-    auto type_string = typeof(Declaration).stringof;
-    auto name = __traits(identifier, Declaration);
-    auto param_idx = findParamIndex(type_string);
-
-    static if (pos == ParamPos.front)
-        auto new_declaration = type_string[0 .. param_idx] ~ " " ~ name
-            ~ "Trace(string file, int line, string funcname, "
-            ~ type_string[param_idx+1 .. $];
-    else static if (pos == ParamPos.back)
-        auto new_declaration = type_string[0 .. param_idx] ~ " " ~ name
-            ~ "Trace(" ~ type_string[param_idx+1 .. $-1]
-            ~ `, string file = "", int line = 0, string funcname = "")`;
-    else
-        static assert(0);
-    auto call_original = "return "
-        ~ __traits(identifier, Declaration) ~ "(" ~ Arguments!Declaration() ~ ");";
-
-    return new_declaration ~ "\n{\n" ~
-           accumulator ~ "\n" ~
-           call_original ~ "\n" ~
-           "}\n";
+    return _d_callfinalizer(p);
 }
 
-string Arguments(alias Func)()
+extern (C) void _d_callinterfacefinalizerTrace(string file, int line, string funcname, void* p)
 {
-    string result = "";
+    const currentlyAllocated = GC.allocatedInCurrentThread;
+    scope (exit)
+        accumulate2(file, line, funcname, null, currentlyAllocated);
 
-    static if (is(typeof(Func) PT == __parameters))
-    {
-        foreach (idx, _; PT)
-            result ~= __traits(identifier, PT[idx .. idx + 1]) ~ ", ";
-    }
-
-    return result;
+    return _d_callinterfacefinalizer(p);
 }
 
-unittest
+extern (C) void _d_delclassTrace(string file, int line, string funcname, Object* p)
 {
-    void foo(int x, double y) { }
-    static assert (Arguments!foo == "x, y, ");
+    const currentlyAllocated = GC.allocatedInCurrentThread;
+    scope (exit)
+        accumulate2(file, line, funcname, null, currentlyAllocated);
+
+    return _d_delclass(p);
+}
+
+extern (C) void _d_delinterfaceTrace(string file, int line, string funcname, void** p)
+{
+    const currentlyAllocated = GC.allocatedInCurrentThread;
+    scope (exit)
+        accumulate2(file, line, funcname, null, currentlyAllocated);
+
+    return _d_delinterface(p);
+}
+
+extern (C) void _d_delmemoryTrace(string file, int line, string funcname, void** p)
+{
+    const currentlyAllocated = GC.allocatedInCurrentThread;
+    scope (exit)
+        accumulate2(file, line, funcname, null, currentlyAllocated);
+
+    return _d_delmemory(p);
+}
+
+extern (C) void[] _d_arrayappendcdTrace(string file, int line, string funcname, ref byte[] x, dchar c)
+{
+    const currentlyAllocated = GC.allocatedInCurrentThread;
+    scope (exit)
+        accumulate2(file, line, funcname, "char[]", currentlyAllocated);
+
+    return _d_arrayappendcd(x, c);
+}
+
+extern (C) void[] _d_arrayappendwdTrace(string file, int line, string funcname, ref byte[] x, dchar c)
+{
+    const currentlyAllocated = GC.allocatedInCurrentThread;
+    scope (exit)
+        accumulate2(file, line, funcname, "wchar[]", currentlyAllocated);
+
+    return _d_arrayappendwd(x, c);
+}
+
+extern (C) void* _d_allocmemoryTrace(string file, int line, string funcname, size_t sz)
+{
+    const currentlyAllocated = GC.allocatedInCurrentThread;
+    scope (exit)
+        accumulate2(file, line, funcname, "closure", currentlyAllocated);
+
+    return _d_allocmemory(sz);
+}
+
+extern (C) void* gc_mallocTrace(size_t sz, uint ba = 0, scope const(TypeInfo) ti = null,
+    string file = "", int line = 0, string funcname = "")
+{
+    auto name = ti ? ti.toString() : "void[]";
+
+    const currentlyAllocated = GC.allocatedInCurrentThread;
+    scope (exit)
+        accumulate2(file, line, funcname, name, currentlyAllocated);
+
+    return gc_malloc(sz, ba, ti);
+}
+
+private string nameFromTypeInfo(const(TypeInfo) ti)
+{
+    return ti ? ti.toString() : "void[]";
+}
+
+extern (C) BlkInfo gc_qallocTrace(size_t sz, uint ba = 0, scope const(TypeInfo) ti = null,
+    string file = "", int line = 0, string funcname = "")
+{
+
+    const currentlyAllocated = GC.allocatedInCurrentThread;
+    scope (exit)
+        accumulate2(file, line, funcname, nameFromTypeInfo(ti), currentlyAllocated);
+
+    return gc_qalloc(sz, ba, ti);
+}
+
+extern (C) void* gc_callocTrace(size_t sz, uint ba = 0, const(TypeInfo) ti = null,
+    string file = "", int line = 0, string funcname = "")
+{
+    const currentlyAllocated = GC.allocatedInCurrentThread;
+    scope (exit)
+        accumulate2(file, line, funcname, nameFromTypeInfo(ti), currentlyAllocated);
+
+    return gc_calloc(sz, ba, ti);
+}
+
+extern (C) void* gc_reallocTrace(return scope void* p, size_t sz, uint ba = 0,
+    const(TypeInfo) ti = null, string file = "", int line = 0, string funcname = "")
+{
+    const currentlyAllocated = GC.allocatedInCurrentThread;
+    scope (exit)
+        accumulate2(file, line, funcname, nameFromTypeInfo(ti), currentlyAllocated);
+
+    return gc_realloc(p, sz, ba, ti);
+}
+
+extern (C) size_t gc_extendTrace(void* p, size_t mx, size_t sz,
+    const(TypeInfo) ti = null, string file = "", int line = 0, string funcname = "")
+{
+    const currentlyAllocated = GC.allocatedInCurrentThread;
+    scope (exit)
+        accumulate2(file, line, funcname, nameFromTypeInfo(ti), currentlyAllocated);
+
+    return gc_extend(p, mx, sz, ti);
 }

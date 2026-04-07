@@ -85,7 +85,8 @@ void codgen(Symbol* sfunc)
     cgreg_init();
     CSE.initialize();
     cgstate.Alloca.initialize();
-    cgstate.anyiasm = 0;
+    cgstate.anyiasm = false;
+    cgstate.setSPtoFPonEpilog = false;
     cgstate.AArch64 = config.target_cpu == TARGET_AArch64;
     cgstate.BP = cgstate.AArch64 ? 29 : BP;
 
