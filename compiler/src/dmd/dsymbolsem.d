@@ -2403,9 +2403,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 Expression ie = dsym._init.initializerToExpression(null, sc.inCfile);
                 if (ie && ie.op != EXP.error)
                 {
-                    ie = ie.expressionSemantic(sc);
-                    ie = ie.optimize(WANTvalue);
+                    // Infer from literal syntax first to avoid prematurely
+                    // semantic-analyzing expressions that may depend on
+                    // incomplete types (e.g. recursive initializers).
+                    // https://github.com/dlang/dmd/issues/22887
                     bool dimInferred = inferSArrayDim(tsa, ie, dsym.loc, sc);
+                    if (!dimInferred)
+                    {
+                        ie = ie.expressionSemantic(sc);
+                        ie = ie.optimize(WANTvalue);
+                        dimInferred = inferSArrayDim(tsa, ie, dsym.loc, sc);
+                    }
                     if (!dimInferred)
                     {
                         .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
