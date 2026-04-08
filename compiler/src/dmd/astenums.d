@@ -480,8 +480,9 @@ extern (C++) struct structalign_t
     ubyte flags;       // Align semantic flags
     enum : ubyte
     {
-        PACK = 0x1,     // use #pragma pack semantics
-        ALIGNAS = 0x2,  // use _Alignas semantics
+        PACK = 0x1,         // use #pragma pack semantics
+        ALIGNAS = 0x2,      // use _Alignas semantics (can shrink below natural alignment)
+        ALIGN_ATTRIB = 0x4, // use __attribute__(align) semantics (only grow alignment)
     }
 
   public:
@@ -496,6 +497,8 @@ extern (C++) struct structalign_t
     void setPack()         { flags |= PACK; }
     bool fromAlignas() const { return !!(flags & ALIGNAS); }
     void setAlignas()      { flags |= ALIGNAS; }
+    bool fromCAlignAttribute() const { return !!(flags & ALIGN_ATTRIB); }
+    void setCAlignAttribute() { flags |= ALIGN_ATTRIB; }
 }
 
 /// Use to return D arrays from C++ functions

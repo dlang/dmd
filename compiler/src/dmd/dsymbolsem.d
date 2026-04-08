@@ -10173,13 +10173,16 @@ private extern(C++) class FinalizeSizeVisitor : Visitor
             }
         }
 
+        // C: __attribute__((aligned(N))) and similar can only increase alignment,
+        // not reduce it below the natural alignment. If N < sd.alignsize, ignore.
+        if (sd.alignment.fromCAlignAttribute() && sd.alignment.get() < sd.alignsize)
+            sd.alignment.setDefault();
+
         // Round struct size up to next alignsize boundary.
         // This will ensure that arrays of structs will get their internals
         // aligned properly.
-        if (sd.alignment.isDefault() || sd.alignment.isPack())
-            sd.structsize = (sd.structsize + sd.alignsize - 1) & ~(sd.alignsize - 1);
-        else
-            sd.structsize = (sd.structsize + sd.alignment.get() - 1) & ~(sd.alignment.get() - 1);
+        const alignTo = (sd.alignment.isDefault() || sd.alignment.isPack()) ? sd.alignsize : sd.alignment.get();
+        sd.structsize = (sd.structsize + alignTo - 1) & ~(alignTo - 1);
 
         sd.sizeok = Sizeok.done;
 
