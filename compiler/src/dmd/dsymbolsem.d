@@ -2389,6 +2389,24 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return true;
         }
 
+        static bool shouldTryDeepSArrayDimInference(Expression ie, Scope* sc)
+        {
+            if (!ie)
+                return false;
+
+            // `new` expressions cannot provide a compile-time static extent
+            // for inferring `$`, and may recurse through incomplete aggregates.
+            if (ie.isNewExp())
+                return false;
+
+            // Field initializers are especially prone to recursive semantic
+            // evaluation against incompletely defined aggregates.
+            if (sc && sc.parent && sc.parent.isAggregateDeclaration())
+                return false;
+
+            return true;
+        }
+
         auto tsa = dsym.type.isTypeSArray();
 
         if (tsa && hasDollarDimension(tsa))
@@ -2397,6 +2415,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
                 tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
+                dsym._init = new ErrorInitializer();
+                dsym.type = Type.terror;
+                dsym.errors = true;
+                dsym.semanticRun = PASS.semanticdone;
+                return;
             }
             else
             {
@@ -2408,7 +2431,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     // incomplete types (e.g. recursive initializers).
                     // https://github.com/dlang/dmd/issues/22887
                     bool dimInferred = inferSArrayDim(tsa, ie, dsym.loc, sc);
-                    if (!dimInferred)
+                    if (!dimInferred && shouldTryDeepSArrayDimInference(ie, sc))
                     {
                         ie = ie.expressionSemantic(sc);
                         ie = ie.optimize(WANTvalue);
@@ -2418,6 +2441,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     {
                         .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
                         tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
+                        dsym._init = new ErrorInitializer();
+                        dsym.type = Type.terror;
+                        dsym.errors = true;
+                        dsym.semanticRun = PASS.semanticdone;
+                        return;
                     }
                     if (auto ale = ie.isArrayLiteralExp())
                         dsym._init = new ExpInitializer(dsym.loc, ale);
