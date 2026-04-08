@@ -45,7 +45,7 @@ namespace dmd
     bool equals(const Dsymbol * const ds, const Dsymbol * const s);
     bool hasNestedFrameRefs(FuncDeclaration *fd);
     bool isVirtualMethod(FuncDeclaration *fd);
-    bool isVirtual(const FuncDeclaration *fd);
+    bool isVirtual(const FuncDeclaration * const fd);
 }
 
 //enum STC : ulong from astenums.d:
