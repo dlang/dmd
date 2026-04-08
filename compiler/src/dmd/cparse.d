@@ -1727,7 +1727,9 @@ final class CParser(AST) : Parser!AST
         {
             auto decls = new AST.Dsymbols(1);
             (*decls)[0] = stags;
-            stags = new AST.AlignDeclaration(stags.loc, tt.alignExps, decls);
+            auto ald = new AST.AlignDeclaration(stags.loc, tt.alignExps, decls);
+            ald.salign.setCAlignAttribute();
+            stags = ald;
         }
         symbols.push(stags);
     }
