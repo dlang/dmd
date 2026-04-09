@@ -75,3 +75,17 @@ struct S9 { _Alignas(8) int x; };
 #pragma pack()
 _Static_assert(sizeof(struct S9) == 4, "sizeof S9");
 _Static_assert(_Alignof(struct S9) == 2, "alignof S9");
+
+// pack(2) + aligned(8) on member: #pragma pack dominates __attribute__((aligned)) (matches GCC/clang)
+#pragma pack(2)
+struct S10 { int x __attribute__((aligned(8))); };
+#pragma pack()
+_Static_assert(sizeof(struct S10) == 4, "sizeof S10");
+_Static_assert(_Alignof(struct S10) == 2, "alignof S10");
+
+// pack(2) + __declspec(align(8)) on member: #pragma pack dominates (matches clang -fdeclspec)
+#pragma pack(2)
+struct S11 { __declspec(align(8)) int x; };
+#pragma pack()
+_Static_assert(sizeof(struct S11) == 4, "sizeof S11");
+_Static_assert(_Alignof(struct S11) == 2, "alignof S11");
