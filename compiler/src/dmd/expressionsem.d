@@ -6798,6 +6798,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.arguments = new Expressions();
                 if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.argumentList, f, exp.type, exp.argprefix))
                     return setError();
+                exp.names = null;
 
                 exp.member = f.isCtorDeclaration();
                 assert(exp.member);
@@ -6911,6 +6912,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.arguments = new Expressions();
                 if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.argumentList, f, exp.type, exp.argprefix))
                     return setError();
+                exp.names = null;
 
                 exp.member = f.isCtorDeclaration();
                 assert(exp.member);
@@ -8515,6 +8517,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.arguments = new Expressions();
         if (functionParameters(exp.loc, sc, cast(TypeFunction)t1, ethis, tthis, exp.argumentList, exp.f, exp.type, argprefix))
             return setError();
+        exp.names = null;
 
         if (!exp.type)
         {
