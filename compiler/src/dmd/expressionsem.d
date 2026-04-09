@@ -16939,163 +16939,6 @@ Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
 
     exp.loc = loc;
 
-    Expression visit(Expression exp)
-    {
-        if (auto binExp = exp.isBinExp())
-        {
-            binExp.e1 = binExp.e1.resolveLoc(loc, sc);
-            binExp.e2 = binExp.e2.resolveLoc(loc, sc);
-            return binExp;
-        }
-        if (auto unaExp = exp.isUnaExp())
-        {
-            unaExp.e1 = unaExp.e1.resolveLoc(loc, sc);
-            return unaExp;
-        }
-        return exp;
-    }
-
-    Expression visitCond(CondExp exp)
-    {
-        exp.e1 = exp.e1.resolveLoc(loc, sc);
-        exp.e2 = exp.e2.resolveLoc(loc, sc);
-        exp.econd = exp.econd.resolveLoc(loc, sc);
-        return exp;
-    }
-
-    Expression visitCat(CatExp exp)
-    {
-        exp.e1 = exp.e1.resolveLoc(loc, sc);
-        exp.e2 = exp.e2.resolveLoc(loc, sc);
-        if (exp.lowering)
-            exp.lowering = exp.lowering.resolveLoc(loc, sc);
-        return exp;
-    }
-
-    Expression visitStructLiteral(StructLiteralExp exp)
-    {
-        if (!exp.elements)
-            return exp;
-
-        foreach (ref element; *exp.elements)
-        {
-            if (element)
-                element = element.resolveLoc(loc, sc);
-        }
-
-        return exp;
-    }
-
-    Expression visitNew(NewExp exp)
-    {
-        if (exp.placement)
-            exp.placement = exp.placement.resolveLoc(loc, sc);
-        if (exp.thisexp)
-            exp.thisexp = exp.thisexp.resolveLoc(loc, sc);
-        if (exp.argprefix)
-            exp.argprefix = exp.argprefix.resolveLoc(loc, sc);
-        if (exp.lowering)
-            exp.lowering = exp.lowering.resolveLoc(loc, sc);
-
-        if (!exp.arguments)
-            return exp;
-
-        foreach (ref element; *exp.arguments)
-        {
-            if (element)
-                element = element.resolveLoc(loc, sc);
-        }
-
-        return exp;
-    }
-
-    Expression visitCall(CallExp exp)
-    {
-        if (!exp.arguments)
-            return exp;
-
-        foreach (ref element; *exp.arguments)
-        {
-            if (element)
-                element = element.resolveLoc(loc, sc);
-        }
-
-        return exp;
-    }
-
-    Expression visitArray(ArrayExp exp)
-    {
-        exp.e1 = exp.e1.resolveLoc(loc, sc);
-
-        if (!exp.arguments)
-            return exp;
-
-        foreach (ref element; *exp.arguments)
-        {
-            if (element)
-                element = element.resolveLoc(loc, sc);
-        }
-
-        return exp;
-    }
-
-    Expression visitSlice(SliceExp exp)
-    {
-        exp.e1 = exp.e1.resolveLoc(loc, sc);
-        if (exp.lwr)
-            exp.lwr = exp.lwr.resolveLoc(loc, sc);
-        if (exp.upr)
-            exp.upr = exp.upr.resolveLoc(loc, sc);
-
-        return exp;
-    }
-
-    Expression visitInterval(IntervalExp exp)
-    {
-        exp.lwr = exp.lwr.resolveLoc(loc, sc);
-        exp.upr = exp.upr.resolveLoc(loc, sc);
-
-        return exp;
-    }
-
-    Expression visitArrayLiteral(ArrayLiteralExp exp)
-    {
-        if (exp.basis)
-            exp.basis = exp.basis.resolveLoc(loc, sc);
-
-        if (exp.elements)
-            foreach (ref element; *exp.elements)
-            {
-                if (element)
-                    element = element.resolveLoc(loc, sc);
-            }
-
-        if (exp.lowering)
-            exp.lowering = exp.lowering.resolveLoc(loc, sc);
-
-        return exp;
-    }
-
-    Expression visitAssocArrayLiteral(AssocArrayLiteralExp exp)
-    {
-        foreach (ref element; *exp.keys)
-        {
-            if (element)
-                element = element.resolveLoc(loc, sc);
-        }
-
-        foreach (ref element; *exp.values)
-        {
-            if (element)
-                element = element.resolveLoc(loc, sc);
-        }
-
-        if (exp.lowering)
-            exp.lowering = exp.lowering.resolveLoc(loc, sc);
-
-        return exp;
-    }
-
     Expression visitFileInit(FileInitExp exp)
     {
         //printf("FileInitExp::resolve() %s\n", exp.toErrMsg());
@@ -17162,23 +17005,13 @@ Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
 
     switch(exp.op)
     {
-        default:                 return visit(exp);
-        case EXP.structLiteral:  return visitStructLiteral(exp.isStructLiteralExp());
-        case EXP.new_:           return visitNew(exp.isNewExp());
-        case EXP.concatenate:    return visitCat(exp.isCatExp());
-        case EXP.call:           return visitCall(exp.isCallExp());
-        case EXP.question:       return visitCond(exp.isCondExp());
-        case EXP.array:          return visitArray(exp.isArrayExp());
-        case EXP.slice:          return visitSlice(exp.isSliceExp());
-        case EXP.interval:       return visitInterval(exp.isIntervalExp());
-        case EXP.arrayLiteral:   return visitArrayLiteral(exp.isArrayLiteralExp());
-        case EXP.assocArrayLiteral: return visitAssocArrayLiteral(exp.isAssocArrayLiteralExp());
         case EXP.file:
         case EXP.fileFullPath:   return visitFileInit(exp.isFileInitExp());
         case EXP.line:           return visitLineInit(exp.isLineInitExp);
         case EXP.moduleString:   return visitModuleInit(exp.isModuleInitExp());
         case EXP.functionString: return visitFuncInit(exp.isFuncInitExp());
         case EXP.prettyFunction: return visitPrettyFunc(exp.isPrettyFuncInitExp());
+        default: assert(0);
     }
 }
 
