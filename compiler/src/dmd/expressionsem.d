@@ -15507,38 +15507,77 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = exps[imatch];
     }
 
-    override void visit(FileInitExp e)
+    override void visit(DefaultInitExp e)
     {
-        //printf("FileInitExp::semantic()\n");
-        e.type = Type.tstring;
-        result = e.resolveLoc(sc.callLoc.isValid() ? sc.callLoc : e.loc, sc);
-    }
+        e.type = e.tok == TOK.line ? Type.tint32 : Type.tstring;
 
-    override void visit(LineInitExp e)
-    {
-        e.type = Type.tint32;
-        result = e.resolveLoc(sc.callLoc.isValid() ? sc.callLoc : e.loc, sc);
-    }
+        // Don't replace the special keywords while inside a default argument.
+        // They are replaced later when copied to the call site.
+        if (sc.inDefaultArg)
+        {
+            result = e;
+            return;
+        }
 
-    override void visit(ModuleInitExp e)
-    {
-        //printf("ModuleInitExp::semantic()\n");
-        e.type = Type.tstring;
-        result = e.resolveLoc(sc.callLoc.isValid() ? sc.callLoc : e.loc, sc);
-    }
+        const loc = sc.callLoc.isValid() ? sc.callLoc : e.loc;
+        e.loc = loc;
 
-    override void visit(FuncInitExp e)
-    {
-        //printf("FuncInitExp::semantic()\n");
-        e.type = Type.tstring;
-        result = e.resolveLoc(sc.callLoc.isValid() ? sc.callLoc : e.loc, sc);
-    }
-
-    override void visit(PrettyFuncInitExp e)
-    {
-        //printf("PrettyFuncInitExp::semantic()\n");
-        e.type = Type.tstring;
-        result = e.resolveLoc(sc.callLoc.isValid() ? sc.callLoc : e.loc, sc);
+        switch (e.tok)
+        {
+            case TOK.file:
+            case TOK.fileFullPath:
+            {
+                const(char)* s;
+                if (e.tok == TOK.fileFullPath)
+                    s = FileName.toAbsolute(loc.isValid() ? loc.filename : sc._module.srcfile.toChars());
+                else
+                    s = loc.isValid() ? loc.filename : sc._module.ident.toErrMsg();
+                result = new StringExp(loc, s.toDString()).expressionSemantic(sc);
+                break;
+            }
+            case TOK.line:
+                result = new IntegerExp(loc, loc.linnum, Type.tint32).expressionSemantic(sc);
+                break;
+            case TOK.moduleString:
+            {
+                const auto s = (sc.callsc ? sc.callsc : sc)._module.toPrettyChars().toDString();
+                result = new StringExp(loc, s).expressionSemantic(sc);
+                break;
+            }
+            case TOK.functionString:
+            {
+                const(char)* s;
+                if (sc.callsc && sc.callsc.func)
+                    s = sc.callsc.func.Dsymbol.toPrettyChars();
+                else if (sc.func)
+                    s = sc.func.Dsymbol.toPrettyChars();
+                else
+                    s = "";
+                result = new StringExp(loc, s.toDString()).expressionSemantic(sc);
+                break;
+            }
+            case TOK.prettyFunction:
+            {
+                FuncDeclaration fd = (sc.callsc && sc.callsc.func)
+                                ? sc.callsc.func
+                                : sc.func;
+                const(char)* s;
+                if (fd)
+                {
+                    const funcStr = fd.Dsymbol.toPrettyChars();
+                    OutBuffer buf;
+                    functionToBufferWithIdent(fd.type.isTypeFunction(), buf, funcStr, fd.isStatic);
+                    s = buf.extractChars();
+                }
+                else
+                    s = "";
+                Expression e2 = new StringExp(loc, s.toDString()).expressionSemantic(sc);
+                e2.type = Type.tstring;
+                result = e2;
+                break;
+            }
+            default: assert(0);
+        }
     }
 }
 
@@ -16927,93 +16966,6 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
     return check(e, returnRef);
 }
 
-/****************************************
- * Resolve __FILE__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__, __FILE_FULL_PATH__ to loc.
- */
-Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
-{
-    // Don't replace the special keywords, while we are inside a default
-    // argument. They are replaced later when copied to the call site.
-    if (sc.inDefaultArg)
-        return exp;
-
-    exp.loc = loc;
-
-    Expression visitFileInit(FileInitExp exp)
-    {
-        //printf("FileInitExp::resolve() %s\n", exp.toErrMsg());
-        const(char)* s;
-        if (exp.op == EXP.fileFullPath)
-            s = FileName.toAbsolute(loc.isValid() ? loc.filename : sc._module.srcfile.toChars());
-        else
-            s = loc.isValid() ? loc.filename : sc._module.ident.toErrMsg();
-
-        Expression e = new StringExp(loc, s.toDString());
-        return e.expressionSemantic(sc);
-    }
-
-    Expression visitLineInit(LineInitExp exp)
-    {
-        Expression e = new IntegerExp(loc, loc.linnum, Type.tint32);
-        return e.expressionSemantic(sc);
-    }
-
-    Expression visitModuleInit(ModuleInitExp exp)
-    {
-        const auto s = (sc.callsc ? sc.callsc : sc)._module.toPrettyChars().toDString();
-        Expression e = new StringExp(loc, s);
-        return e.expressionSemantic(sc);
-    }
-
-    Expression visitFuncInit(FuncInitExp exp)
-    {
-        const(char)* s;
-        if (sc.callsc && sc.callsc.func)
-            s = sc.callsc.func.Dsymbol.toPrettyChars();
-        else if (sc.func)
-            s = sc.func.Dsymbol.toPrettyChars();
-        else
-            s = "";
-        Expression e = new StringExp(loc, s.toDString());
-        return e.expressionSemantic(sc);
-    }
-
-    Expression visitPrettyFunc(PrettyFuncInitExp exp)
-    {
-        FuncDeclaration fd = (sc.callsc && sc.callsc.func)
-                        ? sc.callsc.func
-                        : sc.func;
-
-        const(char)* s;
-        if (fd)
-        {
-            const funcStr = fd.Dsymbol.toPrettyChars();
-            OutBuffer buf;
-            functionToBufferWithIdent(fd.type.isTypeFunction(), buf, funcStr, fd.isStatic);
-            s = buf.extractChars();
-        }
-        else
-        {
-            s = "";
-        }
-
-        Expression e = new StringExp(loc, s.toDString());
-        e = e.expressionSemantic(sc);
-        e.type = Type.tstring;
-        return e;
-    }
-
-    switch(exp.op)
-    {
-        case EXP.file:
-        case EXP.fileFullPath:   return visitFileInit(exp.isFileInitExp());
-        case EXP.line:           return visitLineInit(exp.isLineInitExp);
-        case EXP.moduleString:   return visitModuleInit(exp.isModuleInitExp());
-        case EXP.functionString: return visitFuncInit(exp.isFuncInitExp());
-        case EXP.prettyFunction: return visitPrettyFunc(exp.isPrettyFuncInitExp());
-        default: assert(0);
-    }
-}
 
 /************************************************
  * Destructors are attached to VarDeclarations.
@@ -19651,7 +19603,7 @@ private Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, 
         Expression idrange = new IdentifierExp(loc, Id.empty);
         idrange = new DotIdExp(loc, idrange, Id.object);
         idrange = new DotIdExp(loc, idrange, Identifier.idPool("_d_arraybounds"));
-        auto locargs = new Expressions(new FileInitExp(loc, EXP.file), new LineInitExp(loc));
+        auto locargs = new Expressions(new DefaultInitExp(loc, TOK.file), new DefaultInitExp(loc, TOK.line));
         auto ex = new CallExp(loc, idrange, locargs);
 
         auto ve1 = new VarExp(loc, vardecl);

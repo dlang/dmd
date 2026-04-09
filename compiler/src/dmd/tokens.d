@@ -409,12 +409,7 @@ enum EXP : ubyte
 
     traits,
     overloadSet,
-    line,
-    file,
-    fileFullPath,
-    moduleString,   // __MODULE__
-    functionString, // __FUNCTION__
-    prettyFunction, // __PRETTY_FUNCTION__
+    defaultInit,    // DefaultInitExp
     pow,
     powAssign,
     vector,
