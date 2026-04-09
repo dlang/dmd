@@ -4245,12 +4245,14 @@ private bool functionParameters(Loc loc, Scope* sc,
                     goto L2;
                 return errorArgs();
             }
-            arg = p.defaultArg;
-            if (!arg.type)
-                arg = arg.expressionSemantic(sc);
-            arg = inlineCopy(arg, sc);
-            // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
-            arg = arg.resolveLoc(loc, sc);
+            arg = p.defaultArg.syntaxCopy();
+            {
+                Scope* sc2 = sc.push();
+                sc2.callLoc = loc;
+                arg = arg.expressionSemantic(sc2);
+                sc2.pop();
+            }
+            arg.loc = loc; // update loc for debug info
             if (i >= nargs)
             {
                 arguments.push(arg);
@@ -4261,7 +4263,11 @@ private bool functionParameters(Loc loc, Scope* sc,
         }
         else if (arg.isDefaultInitExp())
         {
-            arg = arg.resolveLoc(loc, sc);
+            Scope* sc2 = sc.push();
+            sc2.callLoc = loc;
+            arg = arg.expressionSemantic(sc2);
+            sc2.pop();
+            arg.loc = loc; // update loc for debug info
             (*arguments)[i] = arg;
         }
         else if (!(p.storageClass & (STC.ref_ | STC.out_)))
@@ -15505,34 +15511,34 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         //printf("FileInitExp::semantic()\n");
         e.type = Type.tstring;
-        result = e.resolveLoc(e.loc, sc);
+        result = e.resolveLoc(sc.callLoc.isValid() ? sc.callLoc : e.loc, sc);
     }
 
     override void visit(LineInitExp e)
     {
         e.type = Type.tint32;
-        result = e.resolveLoc(e.loc, sc);
+        result = e.resolveLoc(sc.callLoc.isValid() ? sc.callLoc : e.loc, sc);
     }
 
     override void visit(ModuleInitExp e)
     {
         //printf("ModuleInitExp::semantic()\n");
         e.type = Type.tstring;
-        result = e.resolveLoc(e.loc, sc);
+        result = e.resolveLoc(sc.callLoc.isValid() ? sc.callLoc : e.loc, sc);
     }
 
     override void visit(FuncInitExp e)
     {
         //printf("FuncInitExp::semantic()\n");
         e.type = Type.tstring;
-        result = e.resolveLoc(e.loc, sc);
+        result = e.resolveLoc(sc.callLoc.isValid() ? sc.callLoc : e.loc, sc);
     }
 
     override void visit(PrettyFuncInitExp e)
     {
         //printf("PrettyFuncInitExp::semantic()\n");
         e.type = Type.tstring;
-        result = e.resolveLoc(e.loc, sc);
+        result = e.resolveLoc(sc.callLoc.isValid() ? sc.callLoc : e.loc, sc);
     }
 }
 

@@ -2725,6 +2725,7 @@ class DefaultInitExp : public Expression
 {
 public:
     void accept(Visitor* v) override;
+    Expression* syntaxCopy() override;
 };
 
 class DelegateExp final : public UnaExp
@@ -2855,6 +2856,7 @@ class FileInitExp final : public DefaultInitExp
 {
 public:
     void accept(Visitor* v) override;
+    Expression* syntaxCopy() override;
 };
 
 enum class TOK : uint8_t
@@ -3102,6 +3104,7 @@ class FuncInitExp final : public DefaultInitExp
 {
 public:
     void accept(Visitor* v) override;
+    Expression* syntaxCopy() override;
 };
 
 class GenericExp final : public Expression
@@ -3201,6 +3204,7 @@ class LineInitExp final : public DefaultInitExp
 {
 public:
     void accept(Visitor* v) override;
+    Expression* syntaxCopy() override;
 };
 
 class LogicalExp final : public BinExp
@@ -3252,6 +3256,7 @@ class ModuleInitExp final : public DefaultInitExp
 {
 public:
     void accept(Visitor* v) override;
+    Expression* syntaxCopy() override;
 };
 
 class MulAssignExp final : public BinAssignExp
@@ -3368,6 +3373,7 @@ class PrettyFuncInitExp final : public DefaultInitExp
 {
 public:
     void accept(Visitor* v) override;
+    Expression* syntaxCopy() override;
 };
 
 class PtrExp final : public UnaExp
@@ -6994,6 +7000,7 @@ struct Scope final
     Statement* scontinue;
     ForeachStatement* fes;
     Scope* callsc;
+    Loc callLoc;
     Dsymbol* inunion;
     VarDeclaration* lastVar;
     ErrorSink* eSink;
@@ -7074,6 +7081,7 @@ public:
         scontinue(),
         fes(),
         callsc(),
+        callLoc(),
         inunion(),
         lastVar(),
         eSink(),
@@ -7097,7 +7105,7 @@ public:
         argStruct()
     {
     }
-    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* switchStatement = nullptr, void* switchCases = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tryFinally = nullptr, ScopeGuardStatement* scopeGuard = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), STC stc = (STC)0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, uint16_t bitFields2 = 0u, Previews previews = Previews(), UserAttributeDeclaration* userAttribDecl = nullptr, void* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
+    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* switchStatement = nullptr, void* switchCases = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tryFinally = nullptr, ScopeGuardStatement* scopeGuard = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Loc callLoc = Loc(), Dsymbol* inunion = nullptr, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), STC stc = (STC)0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, uint16_t bitFields2 = 0u, Previews previews = Previews(), UserAttributeDeclaration* userAttribDecl = nullptr, void* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
         enclosing(enclosing),
         _module(_module),
         scopesym(scopesym),
@@ -7114,6 +7122,7 @@ public:
         scontinue(scontinue),
         fes(fes),
         callsc(callsc),
+        callLoc(callLoc),
         inunion(inunion),
         lastVar(lastVar),
         eSink(eSink),

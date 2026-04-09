@@ -3806,6 +3806,11 @@ extern (C++) class DefaultInitExp : Expression
     {
         v.visit(this);
     }
+
+    override Expression syntaxCopy()
+    {
+        return new DefaultInitExp(loc, op);
+    }
 }
 
 /***********************************************************
@@ -3821,6 +3826,11 @@ extern (C++) final class FileInitExp : DefaultInitExp
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+
+    override Expression syntaxCopy()
+    {
+        return new FileInitExp(loc, op);
     }
 }
 
@@ -3838,6 +3848,11 @@ extern (C++) final class LineInitExp : DefaultInitExp
     {
         v.visit(this);
     }
+
+    override Expression syntaxCopy()
+    {
+        return new LineInitExp(loc);
+    }
 }
 
 /***********************************************************
@@ -3853,6 +3868,11 @@ extern (C++) final class ModuleInitExp : DefaultInitExp
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+
+    override Expression syntaxCopy()
+    {
+        return new ModuleInitExp(loc);
     }
 }
 
@@ -3870,6 +3890,11 @@ extern (C++) final class FuncInitExp : DefaultInitExp
     {
         v.visit(this);
     }
+
+    override Expression syntaxCopy()
+    {
+        return new FuncInitExp(loc);
+    }
 }
 
 /***********************************************************
@@ -3885,6 +3910,11 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+
+    override Expression syntaxCopy()
+    {
+        return new PrettyFuncInitExp(loc);
     }
 }
 

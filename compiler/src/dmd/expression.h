@@ -1264,36 +1264,42 @@ class DefaultInitExp : public Expression
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
+    Expression* syntaxCopy() override;
 };
 
 class FileInitExp final : public DefaultInitExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
+    Expression* syntaxCopy() override;
 };
 
 class LineInitExp final : public DefaultInitExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
+    Expression* syntaxCopy() override;
 };
 
 class ModuleInitExp final : public DefaultInitExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
+    Expression* syntaxCopy() override;
 };
 
 class FuncInitExp final : public DefaultInitExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
+    Expression* syntaxCopy() override;
 };
 
 class PrettyFuncInitExp final : public DefaultInitExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
+    Expression* syntaxCopy() override;
 };
 
 /****************************************************************/
