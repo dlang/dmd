@@ -1893,8 +1893,18 @@ int MachObj_jmpTableSegment(Symbol* s)
 int MachObj_getsegment(const(char)* sectname, const(char)* segname,
         int p2align, int flags)
 {
-    assert(strlen(sectname) <= 16);
-    assert(strlen(segname)  <= 16);
+    if (strlen(sectname) > 16)
+    {
+        error(Srcpos.init, "invalid section name, length too long for `%s`", sectname);
+        return 0;
+    }
+
+    if (strlen(segname) > 16)
+    {
+        error(Srcpos.init, "invalid segment name, length too long for `%s`", segname);
+        return 0;
+    }
+
     for (int seg = 1; seg < cast(int)SegData.length; seg++)
     {   seg_data* pseg = SegData[seg];
         if (I64)
