@@ -7986,7 +7986,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 /* Match in more than one overload set,
                  * even if one is a 'better' match than the other.
                  */
-                if (f.isCsymbol() && f2.isCsymbol())
+                if (f is f2)
+                {
+                    // https://github.com/dlang/dmd/issues/21899
+                    // Same function found via two different paths (e.g. direct import and
+                    // selective import alias), not an actual conflict.
+                }
+                else if (f.isCsymbol() && f2.isCsymbol())
                 {
                     /* C has global name space, so just pick one, such as f.
                      * If f and f2 are not compatible, that's how C rolls.
