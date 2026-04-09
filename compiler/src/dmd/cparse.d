@@ -3405,7 +3405,9 @@ final class CParser(AST) : Parser!AST
                 }
                 else if (token.ident == Id._align)
                 {
-                    // Microsoft spec is very imprecise as to how this actually works
+                    // https://learn.microsoft.com/en-us/cpp/cpp/align-cpp
+                    // __declspec(align(N)) sets the minimum alignment of the type,
+                    // like __attribute__((aligned(N))). It can only increase alignment.
                     nextToken();
                     check(TOK.leftParenthesis);
                     if (token.value == TOK.int32Literal)
@@ -3413,8 +3415,13 @@ final class CParser(AST) : Parser!AST
                         const n = token.unsvalue;
                         if (n < 1 || n & (n - 1) || 8192 < n)
                             error("__decspec(align(%lld)) must be an integer positive power of 2 and be <= 8,192", cast(ulong)n);
-                        specifier.packalign.set(cast(uint)n);
-                        specifier.packalign.setPack();
+                        else
+                        {
+                            auto e = new AST.IntegerExp(token.loc, n, AST.Type.tuns32);
+                            if (!specifier.alignAttrs)
+                                specifier.alignAttrs = new AST.Expressions();
+                            specifier.alignAttrs.push(e);
+                        }
                         nextToken();
                     }
                     else
