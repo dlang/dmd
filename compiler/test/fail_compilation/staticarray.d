@@ -4,6 +4,9 @@ TEST_OUTPUT:
 fail_compilation/staticarray.d(24): Error: cannot infer static array length from `$`, provide an initializer
 fail_compilation/staticarray.d(25): Error: cannot infer static array length from `$`, provide an initializer
 fail_compilation/staticarray.d(26): Error: cannot infer static array length from `$`, provide an initializer
+fail_compilation/staticarray.d(16): Error: cannot infer static array length from `$` in this type position; only direct static array declarations can infer `$` from an initializer
+fail_compilation/staticarray.d(17): Error: cannot infer static array length from `$` in this type position; only direct static array declarations can infer `$` from an initializer
+fail_compilation/staticarray.d(18): Error: cannot infer static array length from `$`, provide an initializer
 fail_compilation/staticarray.d(29): Error: cannot infer static array length from `$`, provide an initializer
 fail_compilation/staticarray.d(27): Error: struct `staticarray.ForwardRef1` circular or forward reference
 fail_compilation/staticarray.d(38): Error: cannot infer static array length from `$`, provide an initializer
@@ -24,6 +27,10 @@ fail_compilation/staticarray.d(33): Error: variable `staticarray.ForwardRef2.arr
 int[$] arr1;
 int[$] arr2 = void;
 int[$][1] arr3 = 1;
+int[$]* arr4 = [1, 2];
+auto[$]* arr5 = [1, 2];
+auto[$] arr6;
+
 struct ForwardRef1
 {
     ForwardRef1[$] arr = new ForwardRef1();
