@@ -136,6 +136,7 @@ COPY=\
 	$(IMPDIR)\core\sync\event.d \
 	$(IMPDIR)\core\sync\exception.d \
 	$(IMPDIR)\core\sync\mutex.d \
+	$(IMPDIR)\core\sync\package.d \
 	$(IMPDIR)\core\sync\rwmutex.d \
 	$(IMPDIR)\core\sync\semaphore.d \
 	\
