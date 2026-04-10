@@ -3086,21 +3086,33 @@ private bool checkPurity(FuncDeclaration f, Loc loc, Scope* sc)
         return false;
     if (sc.ctfe || sc.debug_)
         return false;
-    if (sc.inDefaultArg || sc.callLoc.isValid)
-        return false;
+
+    const bool useDeprecation = sc.inDefaultArg || sc.callLoc.isValid;
 
     // If the call has a pure parent, then the called func must be pure.
-    if (!f.isPure() && checkImpure(sc, loc, null, f))
+    if (!f.isPure())
     {
-        error(loc, "`pure` %s `%s` cannot call impure %s `%s`",
-            sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
-            f.toPrettyChars());
+        const bool violated = isRootTraitsCompilesScope(sc) || useDeprecation
+            ? sc.func.isPureBypassingInference() >= PURE.weak
+            : checkImpure(sc, loc, null, f);
+        if (violated)
+        {
+            if (useDeprecation)
+            {
+                .deprecation(loc, "`pure` %s `%s` calling impure %s `%s` in default argument",
+                    sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
+                return false;
+            }
+            error(loc, "`pure` %s `%s` cannot call impure %s `%s`",
+                sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
+                f.toPrettyChars());
 
-        if (!f.isDtorDeclaration())
-            errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ false, STC.pure_, global.errorSink);
+            if (!f.isDtorDeclaration())
+                errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ false, STC.pure_, global.errorSink);
 
-        f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().purity != PURE.impure, "impure");
-        return true;
+            f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().purity != PURE.impure, "impure");
+            return true;
+        }
     }
     return false;
 }
@@ -3283,6 +3295,8 @@ private bool checkPurity(VarDeclaration v, Loc loc, Scope* sc)
         }
     }
 
+    const bool useDeprecation = sc.callLoc.isValid;
+
     bool err = false;
     if (v.isDataseg())
     {
@@ -3291,11 +3305,20 @@ private bool checkPurity(VarDeclaration v, Loc loc, Scope* sc)
         if (v.ident == Id.gate)
             return false;
 
-        if (checkImpure(sc, loc, "accessing mutable static data `%s`", v))
+        const bool violated = useDeprecation
+            ? sc.func.isPureBypassingInference() >= PURE.weak
+            : checkImpure(sc, loc, "accessing mutable static data `%s`", v);
+        if (violated)
         {
-            error(loc, "`pure` %s `%s` cannot access mutable static data `%s`",
-                sc.func.kind(), sc.func.toPrettyChars(), v.toErrMsg());
-            err = true;
+            if (useDeprecation)
+                .deprecation(loc, "`pure` %s `%s` accessing mutable static data `%s` in default argument",
+                    sc.func.kind(), sc.func.toPrettyChars(), v.toErrMsg());
+            else
+            {
+                error(loc, "`pure` %s `%s` cannot access mutable static data `%s`",
+                    sc.func.kind(), sc.func.toPrettyChars(), v.toErrMsg());
+                err = true;
+            }
         }
     }
     else
@@ -3393,8 +3416,8 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions*
         return false;
     if (sc.ctfe && sc.func)
         return false;
-    if (sc.inDefaultArg || sc.callLoc.isValid)
-        return false;
+
+    const bool useDeprecation = sc.inDefaultArg || sc.callLoc.isValid;
 
     if (!sc.func)
     {
@@ -3445,12 +3468,22 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions*
 
     if (!f.isSafe() && !f.isTrusted())
     {
-        if (isRootTraitsCompilesScope(sc) ? sc.func.isSafeBypassingInference() : sc.func.setUnsafeCall(f))
+        const bool violated = isRootTraitsCompilesScope(sc) || useDeprecation
+            ? sc.func.isSafeBypassingInference()
+            : sc.func.setUnsafeCall(f);
+        if (violated)
         {
             if (!loc.isValid()) // e.g. implicitly generated dtor
                 loc = sc.func.loc;
 
             const prettyChars = f.toPrettyChars();
+            if (useDeprecation)
+            {
+                // Introduced in 2.113
+                .deprecation(loc, "`@safe` %s `%s` calling `@system` %s `%s` in default argument",
+                    sc.func.kind(), sc.func.toPrettyChars(), f.kind(), prettyChars);
+                return false;
+            }
             error(loc, "`@safe` %s `%s` cannot call `@system` %s `%s`",
                 sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
                 prettyChars);
@@ -3496,8 +3529,7 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
         return false;
     if (sc.ctfe || sc.debug_)
         return false;
-    if (sc.inDefaultArg || sc.callLoc.isValid)
-        return false;
+    const bool useDeprecation = sc.inDefaultArg || sc.callLoc.isValid;
 
     /* The original expressions (`new S(...)` or `new S[...]``) will be
      * verified instead. This is to keep errors related to the original code
@@ -3509,11 +3541,22 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
     if (f.isNogc())
         return false;
 
-    if (isRootTraitsCompilesScope(sc) ? !sc.func.isNogcBypassingInference() : !sc.setGCCall(sc.func, f))
+    const bool violated = isRootTraitsCompilesScope(sc) || useDeprecation
+        ? sc.func.isNogcBypassingInference()
+        : sc.setGCCall(sc.func, f);
+    if (!violated)
         return false;
 
     if (loc == Loc.initial) // e.g. implicitly generated dtor
         loc = sc.func.loc;
+
+    if (useDeprecation)
+    {
+        // Introduced in 2.113
+        .deprecation(loc, "`@nogc` %s `%s` calling non-@nogc %s `%s` in default argument",
+            sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
+        return false;
+    }
 
     // Lowered non-@nogc'd hooks will print their own error message inside of nogc.d (NOGCVisitor.visit(CallExp e)),
     // so don't print anything to avoid double error messages.
@@ -7264,7 +7307,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // https://issues.dlang.org/show_bug.cgi?id=12025
             // If the variable is not actually used in runtime code,
             // the purity violation error is redundant.
-            //checkPurity(sc, vd);
+            // However, check for violations in default arguments (emits deprecation).
+            if (sc.callLoc.isValid)
+                vd.checkPurity(e.loc, sc);
         }
         else if (fd)
         {
