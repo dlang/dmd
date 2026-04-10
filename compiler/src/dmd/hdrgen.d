@@ -3056,7 +3056,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitDefaultInit(DefaultInitExp e)
     {
-        buf.put(EXPtoString(e.op));
+        buf.put(Token.toString(e.tok));
     }
 
     void visitClassReference(ClassReferenceExp e)
@@ -4618,12 +4618,7 @@ string EXPtoString(EXP op)
         EXP.arrayLiteral : "arrayliteral",
         EXP.assocArrayLiteral : "assocarrayliteral",
         EXP.classReference : "classreference",
-        EXP.file : "__FILE__",
-        EXP.fileFullPath : "__FILE_FULL_PATH__",
-        EXP.line : "__LINE__",
-        EXP.moduleString : "__MODULE__",
-        EXP.functionString : "__FUNCTION__",
-        EXP.prettyFunction : "__PRETTY_FUNCTION__",
+        EXP.defaultInit : "defaultinit",
         EXP.typeid_ : "typeid",
         EXP.is_ : "is",
         EXP.assert_ : "assert",

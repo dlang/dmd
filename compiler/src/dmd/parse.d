@@ -8278,30 +8278,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             break;
 
         case TOK.file:
-            e = new AST.FileInitExp(loc, EXP.file);
-            nextToken();
-            break;
         case TOK.fileFullPath:
-            e = new AST.FileInitExp(loc, EXP.fileFullPath);
-            nextToken();
-            break;
-
         case TOK.line:
-            e = new AST.LineInitExp(loc);
-            nextToken();
-            break;
-
         case TOK.moduleString:
-            e = new AST.ModuleInitExp(loc);
-            nextToken();
-            break;
         case TOK.functionString:
-            e = new AST.FuncInitExp(loc);
-            nextToken();
-            break;
-
         case TOK.prettyFunction:
-            e = new AST.PrettyFuncInitExp(loc);
+            e = new AST.DefaultInitExp(loc, token.value);
             nextToken();
             break;
 
@@ -9793,12 +9775,7 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.arrayLiteral : PREC.primary,
     EXP.assocArrayLiteral : PREC.primary,
     EXP.classReference : PREC.primary,
-    EXP.file : PREC.primary,
-    EXP.fileFullPath : PREC.primary,
-    EXP.line : PREC.primary,
-    EXP.moduleString : PREC.primary,
-    EXP.functionString : PREC.primary,
-    EXP.prettyFunction : PREC.primary,
+    EXP.defaultInit : PREC.primary,
     EXP.typeid_ : PREC.primary,
     EXP.is_ : PREC.primary,
     EXP.assert_ : PREC.primary,

@@ -4087,7 +4087,7 @@ private RootObject defaultArg(TemplateParameter tp, Loc instLoc, Scope* sc)
 
         e = e.syntaxCopy();
         Scope* sc2 = sc.push();
-        sc2.inDefaultArg = true;
+        sc2.callLoc = instLoc;
         e = e.expressionSemantic(sc2);
         sc2.pop();
         if (e is null)
@@ -4108,7 +4108,6 @@ private RootObject defaultArg(TemplateParameter tp, Loc instLoc, Scope* sc)
         }
         if ((e = resolveProperties(sc, e)) is null)
             return null;
-        e = e.resolveLoc(instLoc, sc); // use the instantiated loc
         e = e.optimize(WANTvalue);
 
         return e;

@@ -3086,6 +3086,8 @@ private bool checkPurity(FuncDeclaration f, Loc loc, Scope* sc)
         return false;
     if (sc.ctfe || sc.debug_)
         return false;
+    if (sc.inDefaultArg || sc.callLoc.isValid)
+        return false;
 
     // If the call has a pure parent, then the called func must be pure.
     if (!f.isPure() && checkImpure(sc, loc, null, f))
@@ -3391,6 +3393,8 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions*
         return false;
     if (sc.ctfe && sc.func)
         return false;
+    if (sc.inDefaultArg || sc.callLoc.isValid)
+        return false;
 
     if (!sc.func)
     {
@@ -3492,6 +3496,9 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
         return false;
     if (sc.ctfe || sc.debug_)
         return false;
+    if (sc.inDefaultArg || sc.callLoc.isValid)
+        return false;
+
     /* The original expressions (`new S(...)` or `new S[...]``) will be
      * verified instead. This is to keep errors related to the original code
      * and not the lowering.
@@ -4245,12 +4252,14 @@ private bool functionParameters(Loc loc, Scope* sc,
                     goto L2;
                 return errorArgs();
             }
-            arg = p.defaultArg;
-            if (!arg.type)
-                arg = arg.expressionSemantic(sc);
-            arg = inlineCopy(arg, sc);
-            // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
-            arg = arg.resolveLoc(loc, sc);
+            arg = p.defaultArg.syntaxCopy();
+            {
+                Scope* sc2 = sc.push();
+                sc2.callLoc = loc;
+                arg = arg.expressionSemantic(sc2);
+                sc2.pop();
+            }
+            arg.loc = loc; // update loc for debug info
             if (i >= nargs)
             {
                 arguments.push(arg);
@@ -4261,7 +4270,11 @@ private bool functionParameters(Loc loc, Scope* sc,
         }
         else if (arg.isDefaultInitExp())
         {
-            arg = arg.resolveLoc(loc, sc);
+            Scope* sc2 = sc.push();
+            sc2.callLoc = loc;
+            arg = arg.expressionSemantic(sc2);
+            sc2.pop();
+            arg.loc = loc; // update loc for debug info
             (*arguments)[i] = arg;
         }
         else if (!(p.storageClass & (STC.ref_ | STC.out_)))
@@ -15501,38 +15514,77 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = exps[imatch];
     }
 
-    override void visit(FileInitExp e)
+    override void visit(DefaultInitExp e)
     {
-        //printf("FileInitExp::semantic()\n");
-        e.type = Type.tstring;
-        result = e.resolveLoc(e.loc, sc);
-    }
+        e.type = e.tok == TOK.line ? Type.tint32 : Type.tstring;
 
-    override void visit(LineInitExp e)
-    {
-        e.type = Type.tint32;
-        result = e.resolveLoc(e.loc, sc);
-    }
+        // Don't replace the special keywords while inside a default argument.
+        // They are replaced later when copied to the call site.
+        if (sc.inDefaultArg)
+        {
+            result = e;
+            return;
+        }
 
-    override void visit(ModuleInitExp e)
-    {
-        //printf("ModuleInitExp::semantic()\n");
-        e.type = Type.tstring;
-        result = e.resolveLoc(e.loc, sc);
-    }
+        const loc = sc.callLoc.isValid() ? sc.callLoc : e.loc;
+        e.loc = loc;
 
-    override void visit(FuncInitExp e)
-    {
-        //printf("FuncInitExp::semantic()\n");
-        e.type = Type.tstring;
-        result = e.resolveLoc(e.loc, sc);
-    }
-
-    override void visit(PrettyFuncInitExp e)
-    {
-        //printf("PrettyFuncInitExp::semantic()\n");
-        e.type = Type.tstring;
-        result = e.resolveLoc(e.loc, sc);
+        switch (e.tok)
+        {
+            case TOK.file:
+            case TOK.fileFullPath:
+            {
+                const(char)* s;
+                if (e.tok == TOK.fileFullPath)
+                    s = FileName.toAbsolute(loc.isValid() ? loc.filename : sc._module.srcfile.toChars());
+                else
+                    s = loc.isValid() ? loc.filename : sc._module.ident.toErrMsg();
+                result = new StringExp(loc, s.toDString()).expressionSemantic(sc);
+                break;
+            }
+            case TOK.line:
+                result = new IntegerExp(loc, loc.linnum, Type.tint32).expressionSemantic(sc);
+                break;
+            case TOK.moduleString:
+            {
+                const auto s = (sc.callsc ? sc.callsc : sc)._module.toPrettyChars().toDString();
+                result = new StringExp(loc, s).expressionSemantic(sc);
+                break;
+            }
+            case TOK.functionString:
+            {
+                const(char)* s;
+                if (sc.callsc && sc.callsc.func)
+                    s = sc.callsc.func.Dsymbol.toPrettyChars();
+                else if (sc.func)
+                    s = sc.func.Dsymbol.toPrettyChars();
+                else
+                    s = "";
+                result = new StringExp(loc, s.toDString()).expressionSemantic(sc);
+                break;
+            }
+            case TOK.prettyFunction:
+            {
+                FuncDeclaration fd = (sc.callsc && sc.callsc.func)
+                                ? sc.callsc.func
+                                : sc.func;
+                const(char)* s;
+                if (fd)
+                {
+                    const funcStr = fd.Dsymbol.toPrettyChars();
+                    OutBuffer buf;
+                    functionToBufferWithIdent(fd.type.isTypeFunction(), buf, funcStr, fd.isStatic);
+                    s = buf.extractChars();
+                }
+                else
+                    s = "";
+                Expression e2 = new StringExp(loc, s.toDString()).expressionSemantic(sc);
+                e2.type = Type.tstring;
+                result = e2;
+                break;
+            }
+            default: assert(0);
+        }
     }
 }
 
@@ -16921,260 +16973,6 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
     return check(e, returnRef);
 }
 
-/****************************************
- * Resolve __FILE__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__, __FILE_FULL_PATH__ to loc.
- */
-Expression resolveLoc(Expression exp, Loc loc, Scope* sc)
-{
-    // Don't replace the special keywords, while we are inside a default
-    // argument. They are replaced later when copied to the call site.
-    if (sc.inDefaultArg)
-        return exp;
-
-    exp.loc = loc;
-
-    Expression visit(Expression exp)
-    {
-        if (auto binExp = exp.isBinExp())
-        {
-            binExp.e1 = binExp.e1.resolveLoc(loc, sc);
-            binExp.e2 = binExp.e2.resolveLoc(loc, sc);
-            return binExp;
-        }
-        if (auto unaExp = exp.isUnaExp())
-        {
-            unaExp.e1 = unaExp.e1.resolveLoc(loc, sc);
-            return unaExp;
-        }
-        return exp;
-    }
-
-    Expression visitCond(CondExp exp)
-    {
-        exp.e1 = exp.e1.resolveLoc(loc, sc);
-        exp.e2 = exp.e2.resolveLoc(loc, sc);
-        exp.econd = exp.econd.resolveLoc(loc, sc);
-        return exp;
-    }
-
-    Expression visitCat(CatExp exp)
-    {
-        exp.e1 = exp.e1.resolveLoc(loc, sc);
-        exp.e2 = exp.e2.resolveLoc(loc, sc);
-        if (exp.lowering)
-            exp.lowering = exp.lowering.resolveLoc(loc, sc);
-        return exp;
-    }
-
-    Expression visitStructLiteral(StructLiteralExp exp)
-    {
-        if (!exp.elements)
-            return exp;
-
-        foreach (ref element; *exp.elements)
-        {
-            if (element)
-                element = element.resolveLoc(loc, sc);
-        }
-
-        return exp;
-    }
-
-    Expression visitNew(NewExp exp)
-    {
-        if (exp.placement)
-            exp.placement = exp.placement.resolveLoc(loc, sc);
-        if (exp.thisexp)
-            exp.thisexp = exp.thisexp.resolveLoc(loc, sc);
-        if (exp.argprefix)
-            exp.argprefix = exp.argprefix.resolveLoc(loc, sc);
-        if (exp.lowering)
-            exp.lowering = exp.lowering.resolveLoc(loc, sc);
-
-        if (!exp.arguments)
-            return exp;
-
-        foreach (ref element; *exp.arguments)
-        {
-            if (element)
-                element = element.resolveLoc(loc, sc);
-        }
-
-        return exp;
-    }
-
-    Expression visitCall(CallExp exp)
-    {
-        if (!exp.arguments)
-            return exp;
-
-        foreach (ref element; *exp.arguments)
-        {
-            if (element)
-                element = element.resolveLoc(loc, sc);
-        }
-
-        return exp;
-    }
-
-    Expression visitArray(ArrayExp exp)
-    {
-        exp.e1 = exp.e1.resolveLoc(loc, sc);
-
-        if (!exp.arguments)
-            return exp;
-
-        foreach (ref element; *exp.arguments)
-        {
-            if (element)
-                element = element.resolveLoc(loc, sc);
-        }
-
-        return exp;
-    }
-
-    Expression visitSlice(SliceExp exp)
-    {
-        exp.e1 = exp.e1.resolveLoc(loc, sc);
-        if (exp.lwr)
-            exp.lwr = exp.lwr.resolveLoc(loc, sc);
-        if (exp.upr)
-            exp.upr = exp.upr.resolveLoc(loc, sc);
-
-        return exp;
-    }
-
-    Expression visitInterval(IntervalExp exp)
-    {
-        exp.lwr = exp.lwr.resolveLoc(loc, sc);
-        exp.upr = exp.upr.resolveLoc(loc, sc);
-
-        return exp;
-    }
-
-    Expression visitArrayLiteral(ArrayLiteralExp exp)
-    {
-        if (exp.basis)
-            exp.basis = exp.basis.resolveLoc(loc, sc);
-
-        if (exp.elements)
-            foreach (ref element; *exp.elements)
-            {
-                if (element)
-                    element = element.resolveLoc(loc, sc);
-            }
-
-        if (exp.lowering)
-            exp.lowering = exp.lowering.resolveLoc(loc, sc);
-
-        return exp;
-    }
-
-    Expression visitAssocArrayLiteral(AssocArrayLiteralExp exp)
-    {
-        foreach (ref element; *exp.keys)
-        {
-            if (element)
-                element = element.resolveLoc(loc, sc);
-        }
-
-        foreach (ref element; *exp.values)
-        {
-            if (element)
-                element = element.resolveLoc(loc, sc);
-        }
-
-        if (exp.lowering)
-            exp.lowering = exp.lowering.resolveLoc(loc, sc);
-
-        return exp;
-    }
-
-    Expression visitFileInit(FileInitExp exp)
-    {
-        //printf("FileInitExp::resolve() %s\n", exp.toErrMsg());
-        const(char)* s;
-        if (exp.op == EXP.fileFullPath)
-            s = FileName.toAbsolute(loc.isValid() ? loc.filename : sc._module.srcfile.toChars());
-        else
-            s = loc.isValid() ? loc.filename : sc._module.ident.toErrMsg();
-
-        Expression e = new StringExp(loc, s.toDString());
-        return e.expressionSemantic(sc);
-    }
-
-    Expression visitLineInit(LineInitExp exp)
-    {
-        Expression e = new IntegerExp(loc, loc.linnum, Type.tint32);
-        return e.expressionSemantic(sc);
-    }
-
-    Expression visitModuleInit(ModuleInitExp exp)
-    {
-        const auto s = (sc.callsc ? sc.callsc : sc)._module.toPrettyChars().toDString();
-        Expression e = new StringExp(loc, s);
-        return e.expressionSemantic(sc);
-    }
-
-    Expression visitFuncInit(FuncInitExp exp)
-    {
-        const(char)* s;
-        if (sc.callsc && sc.callsc.func)
-            s = sc.callsc.func.Dsymbol.toPrettyChars();
-        else if (sc.func)
-            s = sc.func.Dsymbol.toPrettyChars();
-        else
-            s = "";
-        Expression e = new StringExp(loc, s.toDString());
-        return e.expressionSemantic(sc);
-    }
-
-    Expression visitPrettyFunc(PrettyFuncInitExp exp)
-    {
-        FuncDeclaration fd = (sc.callsc && sc.callsc.func)
-                        ? sc.callsc.func
-                        : sc.func;
-
-        const(char)* s;
-        if (fd)
-        {
-            const funcStr = fd.Dsymbol.toPrettyChars();
-            OutBuffer buf;
-            functionToBufferWithIdent(fd.type.isTypeFunction(), buf, funcStr, fd.isStatic);
-            s = buf.extractChars();
-        }
-        else
-        {
-            s = "";
-        }
-
-        Expression e = new StringExp(loc, s.toDString());
-        e = e.expressionSemantic(sc);
-        e.type = Type.tstring;
-        return e;
-    }
-
-    switch(exp.op)
-    {
-        default:                 return visit(exp);
-        case EXP.structLiteral:  return visitStructLiteral(exp.isStructLiteralExp());
-        case EXP.new_:           return visitNew(exp.isNewExp());
-        case EXP.concatenate:    return visitCat(exp.isCatExp());
-        case EXP.call:           return visitCall(exp.isCallExp());
-        case EXP.question:       return visitCond(exp.isCondExp());
-        case EXP.array:          return visitArray(exp.isArrayExp());
-        case EXP.slice:          return visitSlice(exp.isSliceExp());
-        case EXP.interval:       return visitInterval(exp.isIntervalExp());
-        case EXP.arrayLiteral:   return visitArrayLiteral(exp.isArrayLiteralExp());
-        case EXP.assocArrayLiteral: return visitAssocArrayLiteral(exp.isAssocArrayLiteralExp());
-        case EXP.file:
-        case EXP.fileFullPath:   return visitFileInit(exp.isFileInitExp());
-        case EXP.line:           return visitLineInit(exp.isLineInitExp);
-        case EXP.moduleString:   return visitModuleInit(exp.isModuleInitExp());
-        case EXP.functionString: return visitFuncInit(exp.isFuncInitExp());
-        case EXP.prettyFunction: return visitPrettyFunc(exp.isPrettyFuncInitExp());
-    }
-}
 
 /************************************************
  * Destructors are attached to VarDeclarations.
@@ -19812,7 +19610,7 @@ private Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, 
         Expression idrange = new IdentifierExp(loc, Id.empty);
         idrange = new DotIdExp(loc, idrange, Id.object);
         idrange = new DotIdExp(loc, idrange, Identifier.idPool("_d_arraybounds"));
-        auto locargs = new Expressions(new FileInitExp(loc, EXP.file), new LineInitExp(loc));
+        auto locargs = new Expressions(new DefaultInitExp(loc, TOK.file), new DefaultInitExp(loc, TOK.line));
         auto ex = new CallExp(loc, idrange, locargs);
 
         auto ve1 = new VarExp(loc, vardecl);

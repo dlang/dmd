@@ -29,6 +29,7 @@ import dmd.errorsink;
 import dmd.func;
 import dmd.globals;
 import dmd.identifier;
+import dmd.location : Loc;
 import dmd.root.rmem;
 import dmd.statement;
 
@@ -145,6 +146,7 @@ extern (C++) struct Scope
     Statement scontinue;            /// enclosing statement that supports "continue"
     ForeachStatement fes;           /// if nested function for ForeachStatement, this is it
     Scope* callsc;                  /// used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
+    Loc callLoc;                    /// call-site location for __FILE__, __LINE__, and __FILE_FULL_PATH__
     Dsymbol inunion;                /// != null if processing members of a union
     VarDeclaration lastVar;         /// Previous symbol used to prevent goto-skips-init
     ErrorSink eSink;                /// sink for error messages

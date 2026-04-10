@@ -217,11 +217,6 @@ public:
     CondExp* isCondExp();
     GenericExp* isGenericExp();
     DefaultInitExp* isDefaultInitExp();
-    FileInitExp* isFileInitExp();
-    LineInitExp* isLineInitExp();
-    ModuleInitExp* isModuleInitExp();
-    FuncInitExp* isFuncInitExp();
-    PrettyFuncInitExp* isPrettyFuncInitExp();
     ClassReferenceExp* isClassReferenceExp();
     ThrownExceptionExp* isThrownExceptionExp();
     UnaExp* isUnaExp();
@@ -1263,37 +1258,9 @@ class GenericExp final : Expression
 class DefaultInitExp : public Expression
 {
 public:
+    TOK tok;
     void accept(Visitor *v) override { v->visit(this); }
-};
-
-class FileInitExp final : public DefaultInitExp
-{
-public:
-    void accept(Visitor *v) override { v->visit(this); }
-};
-
-class LineInitExp final : public DefaultInitExp
-{
-public:
-    void accept(Visitor *v) override { v->visit(this); }
-};
-
-class ModuleInitExp final : public DefaultInitExp
-{
-public:
-    void accept(Visitor *v) override { v->visit(this); }
-};
-
-class FuncInitExp final : public DefaultInitExp
-{
-public:
-    void accept(Visitor *v) override { v->visit(this); }
-};
-
-class PrettyFuncInitExp final : public DefaultInitExp
-{
-public:
-    void accept(Visitor *v) override { v->visit(this); }
+    Expression* syntaxCopy() override;
 };
 
 /****************************************************************/
