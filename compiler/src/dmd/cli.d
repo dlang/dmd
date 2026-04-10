@@ -432,10 +432,10 @@ dmd -cov -unittest myprog.d
         ),
         Option("gu",
             "generate unwind tables",
-            `Generate unwind tables for all functions.
+            "Generate unwind tables for all functions.
              This enables the emission of metadata required for stack walking,
              allowing backtrace() and debuggers to function even when
-             exception handling is disabled or in `-betterC` code.`,
+             exception handling is disabled or in `-betterC` code.",
         ),
         Option("gx",
             "add stack stomp code",
