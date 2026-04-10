@@ -3086,6 +3086,8 @@ private bool checkPurity(FuncDeclaration f, Loc loc, Scope* sc)
         return false;
     if (sc.ctfe || sc.debug_)
         return false;
+    if (sc.inDefaultArg || sc.callLoc.isValid)
+        return false;
 
     // If the call has a pure parent, then the called func must be pure.
     if (!f.isPure() && checkImpure(sc, loc, null, f))
@@ -3391,6 +3393,8 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions*
         return false;
     if (sc.ctfe && sc.func)
         return false;
+    if (sc.inDefaultArg || sc.callLoc.isValid)
+        return false;
 
     if (!sc.func)
     {
@@ -3492,6 +3496,9 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
         return false;
     if (sc.ctfe || sc.debug_)
         return false;
+    if (sc.inDefaultArg || sc.callLoc.isValid)
+        return false;
+
     /* The original expressions (`new S(...)` or `new S[...]``) will be
      * verified instead. This is to keep errors related to the original code
      * and not the lowering.
