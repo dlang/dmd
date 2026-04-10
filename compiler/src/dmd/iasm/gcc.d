@@ -43,7 +43,7 @@ import dmd.typesem;
 public Statement gccAsmSemantic(GccAsmStatement s, Scope* sc)
 {
     //printf("GccAsmStatement.semantic()\n");
-    const bool doUnittests = global.params.parsingUnittestsRequired();
+    const bool doUnittests = global.params.parsingUnittestsRequired(sc._module.isRoot);
     scope p = (sc && sc.inCfile)
         ? new CParser!ASTCodegen(sc._module, "", false, global.errorSink, target.c, null, &global.compileEnv)
         : new Parser!ASTCodegen(sc._module, "", false, global.errorSink, &global.compileEnv, doUnittests);
