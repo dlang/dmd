@@ -549,6 +549,7 @@ enum ignoreTokens
     __thread,
     __pragma,
     __int128,
+    float16,
     __attribute__,
 
     max_,
