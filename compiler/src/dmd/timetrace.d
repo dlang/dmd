@@ -184,6 +184,8 @@ enum TimeTraceEventType
     sema1Function,
     sema2,
     sema3,
+    inlineGeneral,   /// top-level span for the entire inliner pass
+    inlineFunction,  /// per-function span during inlining
     dfa,
     ctfe,
     ctfeCall,
@@ -211,6 +213,8 @@ private immutable string[] eventPrefixes = [
     "Sema1: Function ",
     "Sema2: ",
     "Sema3: ",
+    "Inlining",
+    "Inline: ",
     "DFA: ",
     "Ctfe: ",
     "Ctfe: call ",

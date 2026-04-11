@@ -16,6 +16,7 @@ DFA: fun, object.fun
 DFA: id, object.id!int.id
 DFA: uses, object.uses
 Import object.object, object.object
+Inlining,
 Parse: Module object, object
 Parsing,
 Sema1: Function add, object.add
