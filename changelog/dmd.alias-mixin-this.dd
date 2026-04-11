@@ -1,0 +1,24 @@
+Aliasing mixed-in constructors can now use `this`
+
+Symbols introduced by a mixin template are shadowed by eponymous symbols in the same scope.
+To merge overload sets of functions, one has to name the mixin declaration and define an explicit alias.
+For constructors, because their name is the keyword `this`, that required using `__ctor` instead of the keyword.
+This limitation has been lifted.
+
+---
+mixin template M() { this(int x) { } }
+mixin template N() { this(string s) { } }
+
+struct S
+{
+    mixin m = M;
+    mixin n = N;
+
+    this(int x, string s) { }
+
+    // Merge constructor overload sets
+    alias
+        this = m.this,
+        this = n.this;
+}
+---

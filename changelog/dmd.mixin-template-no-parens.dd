@@ -1,0 +1,15 @@
+Template parameters for mixin templates are now optional
+
+Mixin templates with no template parameters needed empty parentheses specified.
+These are now optional.
+---
+mixin template M() { }
+mixin template N   { } // now allowed
+---
+This mirrors the optional empty parentheses when mixin templates are instantiated.
+
+Without a template parameter list, you cannot specify constraints.
+---
+mixin template M() if (true) { } // okay
+mixin template N   if (true) { } // error
+---
