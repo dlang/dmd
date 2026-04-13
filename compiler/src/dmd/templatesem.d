@@ -2830,8 +2830,8 @@ private MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t 
                 if (m2 == MATCH.nomatch)
                     return matchArgNoMatch();
             }
-            // check specialization if template arg is a type
-            else if (ta)
+            // check specialization if template arg is a type (and sa doesn't already match specAlias)
+            else if (ta && sa != tap.specAlias)
             {
                 if (Type tspec = isType(tap.specAlias))
                 {
@@ -2846,6 +2846,9 @@ private MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t 
                     return matchArgNoMatch();
                 }
             }
+            // reject expression arguments that don't match the specialization
+            else if (sa != tap.specAlias)
+                return matchArgNoMatch();
         }
         else if (dedtypes[i])
         {
