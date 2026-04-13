@@ -339,14 +339,20 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         const save = sc.stc;
         if (e.ident == Id.isDeprecated)
             sc.stc |= STC.deprecated_;
+        // Suppress @disable errors when checking if a symbol is disabled
+        const saveInIsDisabledTrait = sc.inIsDisabledTrait;
+        if (e.ident == Id.isDisabled)
+            sc.inIsDisabledTrait = true;
         Scope* sc2 = sc.startCTFE();
         scope(exit) { sc2.endCTFE(); }
         if (!TemplateInstance_semanticTiargs(e.loc, sc2, e.args, 1))
         {
             sc.stc = save;
+            sc.inIsDisabledTrait = saveInIsDisabledTrait;
             return ErrorExp.get();
         }
         sc.stc = save;
+        sc.inIsDisabledTrait = saveInIsDisabledTrait;
     }
     size_t dim = e.args ? e.args.length : 0;
 

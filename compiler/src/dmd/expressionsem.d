@@ -18677,6 +18677,10 @@ bool checkDisabled(Declaration d, Loc loc, Scope* sc, bool isAliasedDeclaration 
     if (sc.func && sc.func.storage_class & STC.disable)
         return true;
 
+    // Suppress error when evaluating __traits(isDisabled, ...)
+    if (sc.inIsDisabledTrait)
+        return true;
+
     if (auto p = d.toParent())
     {
         if (auto postblit = d.isPostBlitDeclaration())
