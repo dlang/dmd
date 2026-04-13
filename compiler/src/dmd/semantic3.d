@@ -693,7 +693,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                  * 2. structs should recognize delegating opAssign calls as well
                                  *    as delegating calls to other constructors
                                  */
-                                if (v.isCtorinit() && !v.type.isMutable() && cd)
+                                if (sc2.ctorflow.fieldinit[i].csx & CSX.halt)
+                                {
+                                    // constructor always halts on this path, no initialization needed
+                                }
+                                else if (v.isCtorinit() && !v.type.isMutable() && cd)
                                     .error(funcdecl.loc, "%s `%s` missing initializer for %s field `%s`", funcdecl.kind, funcdecl.toPrettyChars, MODtoChars(v.type.mod), v.toErrMsg());
                                 else if (v.storage_class & STC.nodefaultctor)
                                     error(funcdecl.loc, "field `%s` must be initialized in constructor", v.toErrMsg());
@@ -703,7 +707,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             else
                             {
                                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                                if (mustInit && !(sc2.ctorflow.fieldinit[i].csx & CSX.this_ctor))
+                                if (mustInit && !(sc2.ctorflow.fieldinit[i].csx & (CSX.this_ctor | CSX.halt)))
                                 {
                                     .error(funcdecl.loc, "%s `%s` field `%s` must be initialized but skipped", funcdecl.kind, funcdecl.toPrettyChars, v.toErrMsg());
                                 }

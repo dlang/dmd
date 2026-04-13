@@ -265,6 +265,8 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         s.exp = s.exp.checkGC(sc);
         if (s.exp.op == EXP.error)
             return setError();
+        if (s.exp.type && s.exp.type.ty == Tnoreturn)
+            sc.ctorflow.orCSX(CSX.halt);
         result = s;
     }
 
@@ -3622,7 +3624,10 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         //printf("ThrowStatement::semantic()\n");
         if (throwSemantic(ts.loc, ts.exp, sc))
+        {
+            sc.ctorflow.orCSX(CSX.halt);
             result = ts;
+        }
         else
             setError();
 
