@@ -336,12 +336,23 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 {
                     auto de = es.exp.isDeclarationExp();
                     auto vd = de.declaration.isVarDeclaration();
-                    if (vd && vd.aliasTuple && vd.aliasTuple.objects.length)
+                    if (vd && vd.aliasTuple)
                     {
-                        auto j = i;
-                        cs.statements.insert(i, vd.aliasTuple.objects.length - 1, null);
-                        vd.aliasTuple.foreachVar((v) { (*cs.statements)[j++] = toStatement(v); });
-                        s = (*cs.statements)[i];
+                        if (vd.aliasTuple.objects.length)
+                        {
+                            auto j = i;
+                            cs.statements.insert(i, vd.aliasTuple.objects.length - 1, null);
+                            vd.aliasTuple.foreachVar((v) { (*cs.statements)[j++] = toStatement(v); });
+                            s = (*cs.statements)[i];
+                        }
+                        else if (auto ei = vd._init ? vd._init.isExpInitializer() : null)
+                        {
+                            // Empty tuple: evaluate initializer expression for side effects
+                            // https://github.com/dlang/dmd/issues/20842
+                            if (auto te = ei.exp ? ei.exp.isTupleExp() : null)
+                                if (te.e0)
+                                    (*cs.statements)[i] = s = new ExpStatement(vd.loc, te.e0);
+                        }
                     }
                 }
             }
