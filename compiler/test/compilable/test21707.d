@@ -3,6 +3,7 @@
 
 /*
 REQUIRED_ARGS: -vcg-ast -o-
+OUTPUT_FILES: compilable/test21707.d.cg
 TEST_OUTPUT:
 ---
 foobar(T)
