@@ -1,10 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag9358.d(13): Error: `x` must be of integral or string type, it is a `double`
-fail_compilation/diag9358.d(15): Error: `case` expression must be a compile-time `string` or an integral constant, not `1.1`
-fail_compilation/diag9358.d(16): Error: `case` expression must be a compile-time `string` or an integral constant, not `2.1`
-fail_compilation/diag9358.d(26): Error: `case` expression must be a compile-time `string` or an integral constant, not `z`
+fail_compilation/diag9358.d(11): Error: `x` must be of integral or string type, it is a `double`
+fail_compilation/diag9358.d(24): Error: `case` expression must be a compile-time `string` or an integral constant, not `z`
 ---
 */
 void main()
