@@ -893,7 +893,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                 {
                                     if ((cast(TypeStruct)exp.type.immutableOf()).implicitConvToWithoutAliasThis(tret))
                                         exp = exp.castTo(sc2, exp.type.immutableOf());
-                                    else if ((cast(TypeStruct)exp.type.immutableOf()).implicitConvToWithoutAliasThis(tret))
+                                    else if ((cast(TypeStruct)exp.type.wildOf()).implicitConvToWithoutAliasThis(tret))
                                         exp = exp.castTo(sc2, exp.type.wildOf());
                                 }
                             }
