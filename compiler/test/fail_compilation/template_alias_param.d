@@ -16,3 +16,7 @@ template Foo(alias s : S) {}
 alias F = Foo!S; // valid: matching type specialization (issue 20997)
 alias G = Foo!1; // invalid: expression should not match type specialization (issue 20998)
 alias H = Foo!T; // invalid: wrong type should not match (issue 20998)
+
+template Bar(alias s : 3) {}
+alias BG = Bar!3;
+alias BH = Bar!(1 + 2);

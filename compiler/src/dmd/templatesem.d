@@ -2848,7 +2848,13 @@ private MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t 
             }
             // reject expression arguments that don't match the specialization
             else if (sa != tap.specAlias)
-                return matchArgNoMatch();
+            {
+                // allow expression specialization matched by value (e.g. `alias s : 3` matched by `Bar!3`)
+                Expression ea2 = isExpression(sa);
+                Expression espec = isExpression(tap.specAlias);
+                if (!ea2 || !espec || !ea2.equals(espec))
+                    return matchArgNoMatch();
+            }
         }
         else if (dedtypes[i])
         {
