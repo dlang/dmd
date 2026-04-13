@@ -1574,7 +1574,7 @@ struct T7694
     //next line causes ice
         match7694!(this)();
     //while this works:
-        alias this p;
+        ref p = this;
         match7694!(p)();
     }
 }
@@ -2086,7 +2086,7 @@ void test9022()
 
 mixin template node9026()
 {
-    static if (is(this == struct))
+    static if (is(typeof(this) == struct))
         alias typeof(this)* E;
     else
         alias typeof(this) E;
