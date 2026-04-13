@@ -4542,10 +4542,20 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (auto cldec = ad.isClassDeclaration())
                 {
                     assert (cldec.cppDtorVtblIndex == -1); // double-call check already by dd.type
-                    if (cldec.baseClass && cldec.baseClass.cppDtorVtblIndex != -1)
+                    // Walk up the base chain: an intermediate class may have no explicit
+                    // dtor (cppDtorVtblIndex == -1) yet still inherit a dtor vtbl slot.
+                    // https://github.com/dlang/dmd/issues/22709
+                    int inheritedDtorVtblIndex = -1;
+                    for (auto base = cldec.baseClass; base; base = base.baseClass)
+                        if (base.cppDtorVtblIndex != -1)
+                        {
+                            inheritedDtorVtblIndex = base.cppDtorVtblIndex;
+                            break;
+                        }
+                    if (inheritedDtorVtblIndex != -1)
                     {
                         // override the base virtual
-                        cldec.cppDtorVtblIndex = cldec.baseClass.cppDtorVtblIndex;
+                        cldec.cppDtorVtblIndex = inheritedDtorVtblIndex;
                     }
                     else if (!dd.isFinal())
                     {
