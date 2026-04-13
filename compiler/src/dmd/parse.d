@@ -3796,6 +3796,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.this_:
         case TOK.super_:
+            // defer `alias a = this.member;` error
+            if (peekNext() == TOK.dot)
+                goto case;
+
+            error("basic type expected, not `%s`, did you mean `typeof(%s)`?",
+                token.toChars(), token.toChars());
+            nextToken();
+            return AST.Type.terror;
+
         case TOK.identifier:
             loc = token.loc;
             id = token.ident;
