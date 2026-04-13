@@ -4108,7 +4108,15 @@ private RootObject defaultArg(TemplateParameter tp, Loc instLoc, Scope* sc)
         }
         if ((e = resolveProperties(sc, e)) is null)
             return null;
-        e = e.optimize(WANTvalue);
+
+        // Apply the same initialization semantics as for variable declarations
+        // to handle e.g. implicit constructor calls for struct types
+        // https://github.com/dlang/dmd/issues/20994
+        Type vt = tvp.valType.typeSemantic(tvp.loc, sc);
+        Initializer init = new ExpInitializer(tvp.loc, e);
+        init = init.initializerSemantic(sc, vt, INITinterpret);
+        if (auto ei2 = init.isExpInitializer())
+            e = ei2.exp;
 
         return e;
     }
