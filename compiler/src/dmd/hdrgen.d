@@ -1309,7 +1309,9 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         buf.put('{');
         buf.writenl();
         buf.level++;
-        visitAttribDeclaration(s);
+        if (s.decl)
+            foreach (de; *s.decl)
+                toCBuffer(de, buf, hgs);
         buf.level--;
         buf.put('}');
         buf.writenl();
