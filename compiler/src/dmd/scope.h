@@ -130,6 +130,8 @@ struct Scope final
     bool ctfeBlock(bool v);
     bool knownACompileTimeOnlyContext() const;
     bool knownACompileTimeOnlyContext(bool v);
+    bool inIsDisabledTrait() const;
+    bool inIsDisabledTrait(bool v);
 
     UserAttributeDeclaration *userAttribDecl;   // user defined attributes
 

@@ -6984,6 +6984,8 @@ struct Scope final
     bool ctfeBlock(bool v);
     bool knownACompileTimeOnlyContext() const;
     bool knownACompileTimeOnlyContext(bool v);
+    bool inIsDisabledTrait() const;
+    bool inIsDisabledTrait(bool v);
 private:
     uint16_t bitFields;
     uint16_t bitFields2;
