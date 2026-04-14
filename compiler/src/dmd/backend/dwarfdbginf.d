@@ -40,6 +40,7 @@ import core.stdc.errno;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
+import dmd.backend.arm.instr;
 
 version(Windows)
 {
@@ -401,6 +402,7 @@ static if (1)
     void dwarf_CFA_set_reg_offset(int reg, int offset)
     {
         int dw_reg = dwarf_regno(reg);
+        //printf("reg: %d dw_reg: %d CFA_state_current.reg: %d\n", reg, dw_reg, CFA_state_current.reg);
         if (dw_reg != CFA_state_current.reg)
         {
             if (offset == CFA_state_current.offset)
@@ -921,12 +923,21 @@ static if (1)
              *   push RBP
              *   mov  RSP,RSP
              */
+            reg_t sp = SP;
+            reg_t bp = BP;
+            if (config.target_cpu == TARGET_AArch64)
+            {
+                sp = INSTR.SP;
+                bp = INSTR.BP;
+            }
             int off = 2 * REGSIZE;
             dwarf_CFA_set_loc(1);
-            dwarf_CFA_set_reg_offset(SP, off);
-            dwarf_CFA_offset(BP, -off);
+            dwarf_CFA_set_reg_offset(sp, off);
+            dwarf_CFA_offset(bp, -off);
+            if (config.target_cpu == TARGET_AArch64)
+                dwarf_CFA_offset(30, -8);
             dwarf_CFA_set_loc(I64 ? 4 : 3);
-            dwarf_CFA_set_reg_offset(BP, off);
+            dwarf_CFA_set_reg_offset(bp, off);
         }
 
         // Length of FDE, not including padding
@@ -1726,7 +1737,7 @@ static if (1)
         {
             memset(&CFA_state_current,0,CFA_state.sizeof);
             CFA_state_current.offset   = 4;
-            CFA_state_current.reg      = 31;      // SP
+            CFA_state_current.reg      = INSTR.SP;
             CFA_state_current.regstates[32].offset = -8; // PC
         }
         else
@@ -2076,27 +2087,34 @@ static if (1)
         assert(cgstate.Para.size < 63); // avoid sLEB128 encoding
         ushort op_size = 0x0002;
         ushort loc_op;
+        reg_t bp = BP;
+        reg_t sp = SP;
+        if (config.target_cpu == TARGET_AArch64)
+        {
+            bp = INSTR.BP;
+            sp = INSTR.SP;
+        }
 
         // set the entry for this function in .debug_loc segment
         // after call
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 0);
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 1);
 
-        loc_op = cast(ushort)(((cgstate.Para.size - REGSIZE) << 8) | (DW_OP_breg0 + dwarf_regno(SP)));
+        loc_op = cast(ushort)(((cgstate.Para.size - REGSIZE) << 8) | (DW_OP_breg0 + dwarf_regno(sp)));
         debug_loc.buf.write32(loc_op << 16 | op_size);
 
         // after push EBP
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 1);
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 3);
 
-        loc_op = cast(ushort)(((cgstate.Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(SP)));
+        loc_op = cast(ushort)(((cgstate.Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(sp)));
         debug_loc.buf.write32(loc_op << 16 | op_size);
 
         // after mov EBP, ESP
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 3);
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + sfunc.Ssize);
 
-        loc_op = cast(ushort)(((cgstate.Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(BP)));
+        loc_op = cast(ushort)(((cgstate.Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(bp)));
         debug_loc.buf.write32(loc_op << 16 | op_size);
 
         // 2 zero addresses to end loc_list
