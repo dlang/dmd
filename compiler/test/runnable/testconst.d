@@ -3794,6 +3794,39 @@ static assert((   immutable dstring[1]  ).stringof ==    "immutable(dstring[1])"
 static assert((   immutable dstring[int]).stringof ==    "immutable(dstring[int])" );
 
 /************************************/
+// https://github.com/dlang/dmd/issues/21194
+// Global char[] initialized with dup of string literal must be in writable memory
+
+char[]  ta = "foo".dup;
+wchar[] tb = "bar"w.dup;
+dchar[] tc = "baz"d.dup;
+
+__gshared char[]  ga = "FOO".dup;
+__gshared wchar[] gb = "BAR"w.dup;
+__gshared dchar[] gc = "BAZ"d.dup;
+
+void test21194()
+{
+    ta[0] = 'B';
+    assert(ta == "Boo");
+
+    tb[0] = 'B';
+    assert(tb == "Bar"w);
+
+    tc[0] = 'B';
+    assert(tc == "Baz"d);
+
+    ga[0] = 'b';
+    assert(ga == "bOO");
+
+    gb[0] = 'b';
+    assert(gb == "bAR"w);
+
+    gc[0] = 'b';
+    assert(gc == "bAZ"d);
+}
+
+/************************************/
 
 int main()
 {
@@ -3924,6 +3957,7 @@ int main()
     test11226();
     test11768();
     test13011();
+    test21194();
 
     printf("Success\n");
     return 0;
