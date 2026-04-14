@@ -80,6 +80,7 @@ private extern (D) struct FlagBitFields
     assuming that attribute inference is not necessary.
     */
     bool deferSemantic3InCompilerHook;
+    bool inIsDisabledTrait;  /// inside __traits(isDisabled, ...)
 }
 
 private extern (D) struct NonFlagBitFields
@@ -273,6 +274,7 @@ extern (C++) struct Scope
         s.lastdc = null;
         s.knownACompileTimeOnlyContext = this.knownACompileTimeOnlyContext;
         s.deferSemantic3InCompilerHook = this.deferSemantic3InCompilerHook;
+        s.inIsDisabledTrait = this.inIsDisabledTrait;
         assert(&this != s);
         return s;
     }

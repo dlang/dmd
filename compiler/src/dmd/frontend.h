@@ -6986,6 +6986,8 @@ struct Scope final
     bool knownACompileTimeOnlyContext(bool v);
     bool deferSemantic3InCompilerHook() const;
     bool deferSemantic3InCompilerHook(bool v);
+    bool inIsDisabledTrait() const;
+    bool inIsDisabledTrait(bool v);
 private:
     uint16_t bitFields;
     uint16_t bitFields2;

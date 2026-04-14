@@ -132,6 +132,8 @@ struct Scope final
     bool knownACompileTimeOnlyContext(bool v);
     bool deferSemantic3InCompilerHook() const;
     bool deferSemantic3InCompilerHook(bool v);
+    bool inIsDisabledTrait() const;
+    bool inIsDisabledTrait(bool v);
 
     UserAttributeDeclaration *userAttribDecl;   // user defined attributes
 
