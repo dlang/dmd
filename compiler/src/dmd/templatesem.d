@@ -2843,8 +2843,8 @@ private MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t 
                 if (m2 == MATCH.nomatch)
                     return matchArgNoMatch();
             }
-            // check specialization if template arg is a type
-            else if (ta)
+            // check specialization if template arg is a type (and sa doesn't already match specAlias)
+            else if (ta && sa != tap.specAlias)
             {
                 if (Type tspec = isType(tap.specAlias))
                 {
@@ -2858,6 +2858,15 @@ private MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t 
                         tap.specAlias.toErrMsg());
                     return matchArgNoMatch();
                 }
+            }
+            // reject expression arguments that don't match the specialization
+            else if (sa != tap.specAlias)
+            {
+                // allow expression specialization matched by value (e.g. `alias s : 3` matched by `Bar!3`)
+                Expression ea2 = isExpression(sa);
+                Expression espec = isExpression(tap.specAlias);
+                if (!ea2 || !espec || !ea2.equals(espec))
+                    return matchArgNoMatch();
             }
         }
         else if (dedtypes[i])
