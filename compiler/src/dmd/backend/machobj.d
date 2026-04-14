@@ -34,6 +34,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.common.outbuffer;
+import dmd.root.hash;
 
 nothrow:
 @safe:
@@ -1893,10 +1894,14 @@ int MachObj_jmpTableSegment(Symbol* s)
 int MachObj_getsegment(const(char)* sectname, const(char)* segname,
         int p2align, int flags)
 {
-    if (strlen(sectname) > 16)
+    char[16] longSectionNameBuffer;
+    size_t sectionNameLength = strlen(sectname);
+
+    if (sectionNameLength > 16)
     {
-        error(Srcpos.init, "invalid section name, length too long for `%s`", sectname);
-        return 0;
+        uint hash = calcHash(sectname[0 .. sectionNameLength]);
+        snprintf(longSectionNameBuffer.ptr, 16, "_d_sect_%08X", hash);
+        sectname = longSectionNameBuffer.ptr;
     }
 
     if (strlen(segname) > 16)

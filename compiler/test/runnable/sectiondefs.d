@@ -1,6 +1,7 @@
 /*
 EXTRA_SOURCES: extra-files/sectiondefs.d
 EXTRA_FILES: extra-files/sectiondefs.d
+REQUIRED_ARGS:
 REQUIRED_ARGS(windows): -L/INCREMENTAL:NO
 */
 // Incremental linking must be turned off, or it will add padding.
@@ -118,4 +119,11 @@ void main()
     ] || my8IntsSection.range == [
         [64, 72, 9, 81, 21, 59, 45, 2], [46, 92, 11, 7, 2, 55, 33, 22]
     ]);
+}
+
+version(OSX)
+{
+    // For OSX we need to confirm that the compiler can support section names longer than 16 characters.
+    @section("abcdefghijklmonpqrstuvwxyz")
+    int osxSectLength;
 }
