@@ -547,6 +547,29 @@ public:
             assert(0);
     }
 
+    /***********************************************************
+     * Returns: `true` if `p` is a non-module, non-package symbol,
+     * i.e. a struct, class, enum, or other aggregate that could
+     * collide with a module name in the mangling.
+     */
+    static bool isNonModuleNonPackage(Dsymbol p)
+    {
+        if (!p)
+            return false;
+        if (p.isModule() || p.isPackage())
+            return false;
+        // Template instances, functions, and other symbols that
+        // appear as parents in the qualified name are also not
+        // modules/packages. However, template instances are handled
+        // separately via mangleTemplateInstance, and functions
+        // are followed by their type signature (M + TypeFunction),
+        // so there is no ambiguity for those. Only aggregate types
+        // (struct, class, enum, union) that appear as plain LNames
+        // can collide with module names.
+        return p.isAggregateDeclaration() !is null
+            || p.isEnumDeclaration() !is null;
+    }
+
     void mangleParent(Dsymbol s)
     {
         //printf("mangleParent() %s %s\n", s.kind(), s.toChars());
@@ -567,7 +590,18 @@ public:
             }
             else if (p.getIdent())
             {
-                mangleIdentifier(p.ident, s);
+                /* Use a leading zero in the length prefix for non-module,
+                 * non-package parent symbols (e.g. structs, classes, enums)
+                 * to disambiguate them from module names.
+                 * For example, struct `bar` is mangled as `03bar` while
+                 * module `bar` stays as `3bar`. Leading zeros don't change
+                 * the numeric value, so existing demanglers handle this
+                 * correctly.
+                 * See: https://github.com/dlang/dmd/issues/22688
+                 */
+                const zeroPad = isNonModuleNonPackage(p);
+                if (!backref.addRefToIdentifier(*buf, p.ident))
+                    toBuffer(*buf, p.ident.toString(), s, zeroPad);
                 if (FuncDeclaration f = p.isFuncDeclaration())
                     mangleFunc(f, true);
             }
@@ -1225,15 +1259,23 @@ void writeBackRef(ref OutBuffer buf, size_t pos) @safe
 
 /************************************************************
  * Write length prefixed string to buf.
+ * Params:
+ *      buf = buffer to write to
+ *      id = identifier string to write
+ *      s = symbol for error reporting
+ *      zeroPad = if true, prefix the length with a leading '0'
+ *          to disambiguate non-module symbols from modules
  */
 private
-extern (D) void toBuffer(ref OutBuffer buf, const(char)[] id, Dsymbol s)
+extern (D) void toBuffer(ref OutBuffer buf, const(char)[] id, Dsymbol s, bool zeroPad = false)
 {
     const len = id.length;
     if (buf.length + len >= 8 * 1024 * 1024) // 8 megs ought be enough for anyone
         error(s.loc, "%s `%s` excessive length %llu for symbol, possible recursive expansion?", s.kind, s.toPrettyChars, cast(ulong)(buf.length + len));
     else
     {
+        if (zeroPad)
+            buf.writeByte('0');
         buf.print(len);
         buf.writestring(id);
     }

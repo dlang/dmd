@@ -90,7 +90,7 @@ class C2774
 {
     int foo2774() { return 0; }
 }
-static assert(C2774.foo2774.mangleof == "_D6mangle5C27747foo2774MFZi");
+static assert(C2774.foo2774.mangleof == "_D6mangle05C27747foo2774MFZi");
 
 template TFoo2774(T) {}
 static assert(TFoo2774!int.mangleof == "6mangle"~tl!"15"~"__T8TFoo2774TiZ");
@@ -189,8 +189,8 @@ void test8847b()
 
 struct Test8847
 {
-    enum result1 = "S6mangle8Test8847"~tl!("8")~"__T3fooZ"~id!("3foo","Qf")~"MFZ6Result";
-    enum result2 = "S6mangle8Test8847"~tl!("8")~"__T3fooZ"~id!("3foo","Qf")~"MxFiZ6Result";
+    enum result1 = "S6mangle08Test8847"~tl!("8")~"__T3fooZ"~id!("3foo","Qf")~"MFZ6Result";
+    enum result2 = "S6mangle08Test8847"~tl!("8")~"__T3fooZ"~id!("3foo","Qf")~"MxFiZ6Result";
 
     auto foo()()
     {
@@ -304,13 +304,13 @@ auto bar12352()
 
     static assert(!__traits(compiles, bar12352.mangleof));   // forward reference to bar
     static assert(S     .mangleof ==  "S6mangle8bar12352FZ1S");
-    static assert(S.func.mangleof == "_D6mangle8bar12352FZ1S4funcMFZv");
+    static assert(S.func.mangleof == "_D6mangle8bar12352FZ01S4funcMFZv");
 
     return S();
 }
 static assert(       bar12352        .mangleof == "_D6mangle8bar12352FNaNbNiNfZS"~id!("6mangle8bar12352FZ","QBbQxFZ","QL2H")~"1S");
 static assert(typeof(bar12352())     .mangleof ==  "S6mangle8bar12352FZ1S");
-static assert(typeof(bar12352()).func.mangleof == "_D6mangle8bar12352FZ1S4funcMFZv");
+static assert(typeof(bar12352()).func.mangleof == "_D6mangle8bar12352FZ01S4funcMFZv");
 
 auto baz12352()
 {
@@ -318,13 +318,13 @@ auto baz12352()
 
     static assert(!__traits(compiles, baz12352.mangleof));   // forward reference to baz
     static assert(C     .mangleof ==  "C6mangle8baz12352FZ1C");
-    static assert(C.func.mangleof == "_D6mangle8baz12352FZ1C4funcMFZv");
+    static assert(C.func.mangleof == "_D6mangle8baz12352FZ01C4funcMFZv");
 
     return new C();
 }
 static assert(       baz12352      .mangleof == "_D6mangle8baz12352FNaNbNfZC"~id!("6mangle8baz12352FZ","QzQuFZ","QL2F")~"1C");
 static assert(typeof(baz12352())     .mangleof ==  "C6mangle8baz12352FZ1C");
-static assert(typeof(baz12352()).func.mangleof == "_D6mangle8baz12352FZ1C4funcMFZv");
+static assert(typeof(baz12352()).func.mangleof == "_D6mangle8baz12352FZ01C4funcMFZv");
 
 /*******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=9525
@@ -376,21 +376,21 @@ class C10249
     mixin Func10249!long;
     mixin Func10249!string;
     static assert(Seq10249!(.func10249)[0].mangleof == "6mangle9func10249");           // <- 9func10249
-    static assert(Seq10249!( func10249)[0].mangleof == "6mangle6C102499func10249");    // <- 9func10249
+    static assert(Seq10249!( func10249)[0].mangleof == "6mangle06C102499func10249");    // <- 9func10249
 
 static: // necessary to make overloaded symbols accessible via __traits(getOverloads, C10249)
     void foo(long) {}
     void foo(string) {}
-    static assert(Seq10249!(foo)[0].mangleof                                   ==   "6mangle6C102493foo");         // <- _D6mangle6C102493fooFlZv
-    static assert(Seq10249!(__traits(getOverloads, C10249, "foo"))[0].mangleof == "_D6mangle6C102493fooFlZv");     // <-
-    static assert(Seq10249!(__traits(getOverloads, C10249, "foo"))[1].mangleof == "_D6mangle6C102493fooFAyaZv");   // <-
+    static assert(Seq10249!(foo)[0].mangleof                                   ==   "6mangle06C102493foo");         // <- _D6mangle06C102493fooFlZv
+    static assert(Seq10249!(__traits(getOverloads, C10249, "foo"))[0].mangleof == "_D6mangle06C102493fooFlZv");     // <-
+    static assert(Seq10249!(__traits(getOverloads, C10249, "foo"))[1].mangleof == "_D6mangle06C102493fooFAyaZv");   // <-
 
     void g(string) {}
     alias bar = .f10249;
     alias bar =  g;
-    static assert(Seq10249!(bar)[0].mangleof                                   ==   "6mangle6C102493bar");         // <- _D6mangle1fFlZv
+    static assert(Seq10249!(bar)[0].mangleof                                   ==   "6mangle06C102493bar");         // <- _D6mangle06C102491fFlZv
     static assert(Seq10249!(__traits(getOverloads, C10249, "bar"))[0].mangleof == "_D6mangle6f10249FlZv");         // <-
-    static assert(Seq10249!(__traits(getOverloads, C10249, "bar"))[1].mangleof == "_D6mangle6C102491gFAyaZv");     // <-
+    static assert(Seq10249!(__traits(getOverloads, C10249, "bar"))[1].mangleof == "_D6mangle06C102491gFAyaZv");     // <-
 }
 
 /*******************************************/
@@ -582,7 +582,7 @@ class CC
     }
 }
 
-static assert(CC.member.mangleof == "_D6mangle2CC6memberMFNlZPi");
+static assert(CC.member.mangleof == "_D6mangle02CC6memberMFNlZPi");
 
 /***************************************************/
 
