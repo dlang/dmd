@@ -168,6 +168,6 @@ public import dmd.backend.gloop : dom;
 public import dmd.backend.util2 : binary;
 
 public import dmd.backend.go : go_flag, optfunc;
-public import dmd.backend.drtlsym : rtlsym_init, rtlsym_reset, rtlsym_term;
+public import dmd.backend.rtlsym : rtlsym_init, rtlsym_reset, rtlsym_term;
 public import dmd.backend.dwarfdbginf : dwarf_CFA_set_loc, dwarf_CFA_set_reg_offset,
     dwarf_CFA_offset, dwarf_CFA_args_size, dwarf_emit_eh_frame;

@@ -63,7 +63,7 @@ static if (1)
     import dmd.backend.barray;
     import dmd.backend.code;
     import dmd.backend.x86.code_x86;
-    import dmd.backend.drtlsym : getRtlsymPersonality;
+    import dmd.backend.rtlsym;
     import dmd.backend.dwarf;
     import dmd.backend.dwarf2;
     import dmd.backend.mem;

@@ -1595,7 +1595,7 @@ auto sourceFiles()
         "),
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d dt.d el.d global.d
-            obj.d oper.d rtlsym.d iasm.d codebuilder.d
+            obj.d oper.d iasm.d codebuilder.d
             ty.d type.d dlist.d
             dwarf.d dwarf2.d cv4.d
             melf.d mscoff.d mach.d
@@ -1638,7 +1638,7 @@ auto sourceFiles()
             dout.d inliner.d eh.d aarray.d
             gloop.d cgelem.d cgcs.d ee.d blockopt.d mem.d cg.d
             dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d
-            pdata.d util2.d var.d backconfig.d drtlsym.d ptrntab.d
+            pdata.d util2.d var.d backconfig.d rtlsym.d ptrntab.d
             dvarstats.d cgen.d goh.d barray.d cgcse.d elpicpie.d
             dwarfeh.d dwarfdbginf.d cv8.d dcgcv.d
             machobj.d elfobj.d mscoffobj.d
