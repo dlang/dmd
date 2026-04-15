@@ -3882,6 +3882,7 @@ static if (NTEXCEPTIONS == 2)
         if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
             config.ehmethod == EHmethod.EH_DWARF)
         {
+            // this code should be merged with the mTYnaked code in dwarfdbginf.d
             if (cgstate.AArch64)
             {
                 /*
