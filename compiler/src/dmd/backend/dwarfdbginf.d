@@ -937,7 +937,8 @@ static if (1)
             if (config.target_cpu == TARGET_AArch64)
                 dwarf_CFA_offset(30, -8);
             dwarf_CFA_set_loc(I64 ? 4 : 3);
-            dwarf_CFA_set_reg_offset(bp, off);
+            if (config.target_cpu != TARGET_AArch64) // i.e. Intel
+                dwarf_CFA_set_reg_offset(bp, off);
         }
 
         // Length of FDE, not including padding
