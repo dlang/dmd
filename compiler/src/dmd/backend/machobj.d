@@ -72,8 +72,6 @@ private __gshared OutBuffer* fobjbuf;
 
 enum DEST_LEN = (IDMAX + IDOHD + 1);
 
-public import dmd.backend.dwarfdbginf : except_table_seg, eh_frame_seg;
-
 /******************************************
  */
 

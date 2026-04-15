@@ -85,6 +85,7 @@ static if (1)
 
 
     nothrow:
+    private:
 
     __gshared
     {
@@ -199,6 +200,7 @@ static if (1)
     enum RELaddr = 0;       // straight address
     enum RELrel  = 1;       // relative to location to be fixed up
 
+    public
     void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val = 0)
     {
         if (config.objfmt == OBJ_ELF)
@@ -285,6 +287,7 @@ static if (1)
      * Returns:
      *      dwarf register
      */
+    public
     int dwarf_regno(int reg)
     {
         if (I32)
@@ -372,6 +375,7 @@ static if (1)
      * Params:
      *      location = offset from the start of the function
      */
+    public
     void dwarf_CFA_set_loc(uint location)
     {
         assert(location >= CFA_state_current.location);
@@ -399,6 +403,7 @@ static if (1)
      *      reg = machine register
      *      offset = offset from frame register
      */
+    public
     void dwarf_CFA_set_reg_offset(int reg, int offset)
     {
         int dw_reg = dwarf_regno(reg);
@@ -443,6 +448,7 @@ static if (1)
      *      reg = machine register
      *      offset = offset from frame register
      */
+    public
     void dwarf_CFA_offset(int reg, int offset)
     {
         int dw_reg = dwarf_regno(reg);
@@ -551,6 +557,7 @@ static if (1)
         public uint[TYMAX] typidx_tab;
     }
 
+    public
     void machDebugSectionsInit()
     {
         debug_pubnames = Section("__debug_pubnames");
@@ -562,6 +569,8 @@ static if (1)
         debug_str      = Section("__debug_str");
         debug_line     = Section("__debug_line");
     }
+
+    public
     void elfDebugSectionsInit()
     {
         debug_pubnames = Section(".debug_pubnames");
@@ -1046,11 +1055,13 @@ static if (1)
         assert(startsize + length + 4 == buf.length());
     }
 
+    public
     void dwarf_initfile(const(char)* filename)
     {
         dwarf_initfile(filename ? filename[0 .. strlen(filename)] : null);
     }
 
+    public
     void dwarf_initfile(const(char)[] filename)
     {
         if (config.ehmethod == EHmethod.EH_DWARF)
@@ -1452,12 +1463,14 @@ static if (1)
         return lastSep ? path[0 .. lastSep - path] : ".";
     }
 
+    public
     void dwarf_initmodule(const(char)* filename, const(char)* modname)
     {
         dwarf_initmodule(filename ? filename[0 .. strlen(filename)] : null,
                          modname ? modname[0 .. strlen(modname)] : null);
     }
 
+    public
     void dwarf_initmodule(const(char)[] filename, const(char)[] modname)
     {
         if (modname)
@@ -1479,6 +1492,7 @@ static if (1)
             hasModname = 0;
     }
 
+    public
     void dwarf_termmodule()
     {
         if (hasModname)
@@ -1488,6 +1502,7 @@ static if (1)
     /*************************************
      * Finish writing Dwarf debug info to object file.
      */
+    public
     void dwarf_termfile()
     {
         //printf("dwarf_termfile()\n");
@@ -1763,6 +1778,7 @@ static if (1)
     /*****************************************
      * Start of code gen for function.
      */
+    public
     void dwarf_func_start(Symbol* sfunc)
     {
         //printf("dwarf_func_start(%s)\n", sfunc.Sident.ptr);
@@ -1790,6 +1806,7 @@ static if (1)
     /*****************************************
      * End of code gen for function.
      */
+    public
     void dwarf_func_term(Symbol* sfunc)
     {
         //printf("dwarf_func_term(sfunc = '%s')\n", sfunc.Sident.ptr);
@@ -2160,6 +2177,7 @@ static if (1)
      * Write out symbol table for current function.
      */
 
+    public
     void dwarf_outsym(Symbol* s)
     {
         //printf("dwarf_outsym('%s')\n",s.Sident.ptr);
@@ -2265,6 +2283,7 @@ static if (1)
 
     /* ======================= Type Index ============================== */
 
+    public
     uint dwarf_typidx(type* t, Symbol* sym = null)
     {
         uint idx = 0;
@@ -3228,6 +3247,7 @@ static if (1)
         OutBuffer abuf;
     }
 
+    public
     uint dwarf_abbrev_code(const(ubyte)* data, size_t nbytes)
     {
         if (!abbrev_table)
@@ -3270,6 +3290,7 @@ static if (1)
      *      startoffset = size of function prolog
      *      retoffset = offset from start of function to epilog
      */
+    public
     void dwarf_except_gentables(Funcsym* sfunc, uint startoffset, uint retoffset)
     {
         if (!doUnwindEhFrame())
