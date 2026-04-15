@@ -3882,43 +3882,7 @@ static if (NTEXCEPTIONS == 2)
         if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
             config.ehmethod == EHmethod.EH_DWARF)
         {
-            // this code should be merged with the mTYnaked code in dwarfdbginf.d
-            if (cgstate.AArch64)
-            {
-                /*
-                CFA sequence to generate:
-                00 41 0e 20 9d 04 9e 03 0d 1d 43 00
-
-                00                DW_CFA_nop
-                41                DW_CFA_advance_loc 1 ; with code_align=4 advance 4 bytes
-                0e 20             DW_CFA_def_cfa_offset 32
-                9d 04             DW_CFA_offset r29, -32
-                9e 03             DW_CFA_offset r30, -24
-                0d 1d             DW_CFA_def_cfa_register r29
-                43                DW_CFA_advance_loc 3 ; advance 12 bytes
-                */
-                int off = 2 * REGSIZE + xlocalsize;
-                dwarf_CFA_set_loc(1);
-                dwarf_CFA_set_reg_offset(INSTR.SP, off); // CFA is now 8[SP]
-                dwarf_CFA_offset(INSTR.BP, -off); // BP is at 0[SP]
-                dwarf_CFA_offset(30, -(8 + xlocalsize));
-                dwarf_CFA_set_reg_offset(INSTR.BP, off);      // CFA is now 0[BP]
-                dwarf_CFA_set_loc(4);             // address after MOV BP,SP
-                cfa_offset = off;  // remember the difference between the CFA and the frame pointer
-            }
-            else
-            {
-                int off = 2 * REGSIZE;      // 1 for the return address + 1 for the PUSH EBP
-                dwarf_CFA_set_loc(1);           // address after PUSH EBP
-                dwarf_CFA_set_reg_offset(SP, off); // CFA is now 8[ESP]
-                dwarf_CFA_offset(BP, -off);       // EBP is at 0[ESP]
-                dwarf_CFA_set_loc(I64 ? 4 : 3);   // address after MOV EBP,ESP
-                /* Oddly, the CFA is not the same as the frame pointer,
-                 * which is why the offset of BP is set to 8
-                 */
-                dwarf_CFA_set_reg_offset(BP, off);        // CFA is now 0[EBP]
-                cfa_offset = off;  // remember the difference between the CFA and the frame pointer
-            }
+            dwarf_emit_eh_frame(cgstate.AArch64,xlocalsize,cfa_offset);
         }
         enter = false;              /* do not use ENTER instruction */
     }
