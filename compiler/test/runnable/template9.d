@@ -1574,7 +1574,7 @@ struct T7694
     //next line causes ice
         match7694!(this)();
     //while this works:
-        ref p = this;
+        alias this p;
         match7694!(p)();
     }
 }

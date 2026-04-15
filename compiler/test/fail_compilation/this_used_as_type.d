@@ -1,13 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/this_used_as_type.d(15): Error: basic type expected, not `this`, did you mean `typeof(this)`?
-fail_compilation/this_used_as_type.d(19): Error: basic type expected, not `super`, did you mean `typeof(super)`?
-fail_compilation/this_used_as_type.d(27): Error: basic type expected, not `this`, did you mean `typeof(this)`?
-fail_compilation/this_used_as_type.d(29): Error: basic type expected, not `this`, did you mean `typeof(this)`?
-fail_compilation/this_used_as_type.d(30): Error: basic type expected, not `super`, did you mean `typeof(super)`?
-fail_compilation/this_used_as_type.d(35): Error: basic type expected, not `this`, did you mean `typeof(this)`?
-fail_compilation/this_used_as_type.d(41): Error: basic type expected, not `super`, did you mean `typeof(super)`?
+fail_compilation/this_used_as_type.d(14): Error: basic type expected, not `this`, did you mean `typeof(this)`?
+fail_compilation/this_used_as_type.d(18): Error: basic type expected, not `super`, did you mean `typeof(super)`?
+fail_compilation/this_used_as_type.d(26): Error: basic type expected, not `this`, did you mean `typeof(this)`?
+fail_compilation/this_used_as_type.d(28): Error: basic type expected, not `this`, did you mean `typeof(this)`?
+fail_compilation/this_used_as_type.d(29): Error: basic type expected, not `super`, did you mean `typeof(super)`?
+fail_compilation/this_used_as_type.d(34): Error: basic type expected, not `super`, did you mean `typeof(super)`?
 ---
 */
 
@@ -28,12 +27,6 @@ struct Test
 
     void f()(this);
     void g()(super);
-
-    void h()
-    {
-        // used to work in a method, but not in spec grammar
-        alias this p;
-    }
 }
 
 class C
