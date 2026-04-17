@@ -3444,6 +3444,17 @@ public:
 class StructLiteralExp final : public Expression
 {
 public:
+    enum class StageFlags : uint8_t
+    {
+        none = 0u,
+        scrub = 1u,
+        searchPointers = 2u,
+        optimize = 4u,
+        apply = 8u,
+        inlineScan = 16u,
+        toCBuffer = 32u,
+    };
+
     struct BitFields final
     {
         bool useStaticInit;
@@ -3481,17 +3492,6 @@ public:
         StructLiteralExp* inlinecopy;
     };
     StructLiteralExp* origin;
-    enum class StageFlags : uint8_t
-    {
-        none = 0u,
-        scrub = 1u,
-        searchPointers = 2u,
-        optimize = 4u,
-        apply = 8u,
-        inlineScan = 16u,
-        toCBuffer = 32u,
-    };
-
     static StructLiteralExp* create(Loc loc, StructDeclaration* sd, void* elements, Type* stype = nullptr);
     StructLiteralExp* syntaxCopy() override;
     void accept(Visitor* v) override;
@@ -3936,10 +3936,6 @@ public:
 
 struct ParameterDFAInfo final
 {
-    int32_t parameterId;
-    Fact notNullIn;
-    Fact notNullOut;
-    bool specifiedByUser;
     enum class Fact : uint8_t
     {
         Unspecified = 0u,
@@ -3947,6 +3943,10 @@ struct ParameterDFAInfo final
         Guaranteed = 2u,
     };
 
+    int32_t parameterId;
+    Fact notNullIn;
+    Fact notNullOut;
+    bool specifiedByUser;
     ParameterDFAInfo() :
         parameterId(),
         specifiedByUser()

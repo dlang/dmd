@@ -1323,8 +1323,18 @@ public:
         auto save = adparent;
         adparent = sd;
 
+        // Emit enums defined inside the struct first,
+        // because in C++ a nested type must be declared before a field uses it as its type
         foreach (m; *sd.members)
         {
+            auto ed = m.isEnumDeclaration();
+            if (ed && ed.ident)
+                m.accept(this);
+        }
+        foreach (m; *sd.members)
+        {
+            if (m.isEnumDeclaration() && m.ident)
+                continue;
             m.accept(this);
         }
         // Generate default ctor
@@ -1527,8 +1537,18 @@ public:
         auto save = adparent;
         adparent = cd;
         buf.level++;
+        // Emit named nested enum declarations first so that fields using those
+        // enum types as their type are not declared before the enum is defined.
         foreach (m; *cd.members)
         {
+            auto ed = m.isEnumDeclaration();
+            if (ed && ed.ident)
+                m.accept(this);
+        }
+        foreach (m; *cd.members)
+        {
+            if (m.isEnumDeclaration() && m.ident)
+                continue;
             m.accept(this);
         }
         buf.level--;
