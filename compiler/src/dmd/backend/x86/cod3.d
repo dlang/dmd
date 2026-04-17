@@ -1052,7 +1052,7 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
                 bs1 = bs2;
                 bs2 = btmp;
             }
-            logexp(cdb,e,jcond,FL.block,cast(code*) bs1);
+            logexp(cgstate,cdb,e,jcond,FL.block,cast(code*) bs1);
             nextb = bs2;
         }
         L5:
