@@ -59,6 +59,8 @@ enum
     MFall   = 0xFFFF,          // do everything
 }
 
+enum Aetype { cse, arraybounds }
+
 /**********************************
  * Definition elem vector, used for reaching definitions.
  */
@@ -84,6 +86,7 @@ struct GlobalOptimizer
 {
     bool AArch64;       // AArch64 is the target
     mftype mfoptim;
+    Aetype aetype;      // cse, arraybounds
     uint changes;       // # of optimizations performed
     int flowxx;		// AE, CP or VBE
 
