@@ -1056,7 +1056,7 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
             nextb = bs2;
         }
         L5:
-            if (configv.addlinenumbers && bl.Bsrcpos.Slinnum &&
+            if (config.addlinenumbers && bl.Bsrcpos.Slinnum &&
                 !(funcsym_p.ty() & mTYnaked))
             {
                 //printf("BC.iftrue: %s(%u)\n", bl.Bsrcpos.Sfilename ? bl.Bsrcpos.Sfilename : "", bl.Bsrcpos.Slinnum);

@@ -625,7 +625,7 @@ private void adjustExpression(elem* e)
         //elem_debug(e);
         //dbg_printf("adjustExpression(%p) ",e);WROP(e.Eoper);dbg_printf("\n");
         // the debugger falls over on debugging inlines
-        if (configv.addlinenumbers)
+        if (config.addlinenumbers)
             e.Esrcpos.Slinnum = 0;             // suppress debug info for inlines
         if (!OTleaf(e.Eoper))
         {
