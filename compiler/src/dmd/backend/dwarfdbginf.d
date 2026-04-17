@@ -324,46 +324,6 @@ static if (1)
 
     private __gshared
     {
-        CFA_state CFA_state_init_32 =       // initial CFA state as defined by CIE
-        {   0,                // location
-            -1,               // register
-            4,                // offset
-            [   { 0 },        // 0: EAX
-                { 0 },        // 1: ECX
-                { 0 },        // 2: EDX
-                { 0 },        // 3: EBX
-                { 0 },        // 4: ESP
-                { 0 },        // 5: EBP
-                { 0 },        // 6: ESI
-                { 0 },        // 7: EDI
-                { -4 },       // 8: EIP
-            ]
-        };
-
-        CFA_state CFA_state_init_64 =       // initial CFA state as defined by CIE
-        {   0,                // location
-            -1,               // register
-            8,                // offset
-            [   { 0 },        // 0: RAX
-                { 0 },        // 1: RBX
-                { 0 },        // 2: RCX
-                { 0 },        // 3: RDX
-                { 0 },        // 4: RSI
-                { 0 },        // 5: RDI
-                { 0 },        // 6: RBP
-                { 0 },        // 7: RSP
-                { 0 },        // 8: R8
-                { 0 },        // 9: R9
-                { 0 },        // 10: R10
-                { 0 },        // 11: R11
-                { 0 },        // 12: R12
-                { 0 },        // 13: R13
-                { 0 },        // 14: R14
-                { 0 },        // 15: R15
-                { -8 },       // 16: RIP
-            ]
-        };
-
         CFA_state CFA_state_current;     // current CFA state
         OutBuffer cfa_buf;               // CFA instructions
     }
@@ -1782,24 +1742,28 @@ static if (1)
     void dwarf_func_start(Symbol* sfunc)
     {
         //printf("dwarf_func_start(%s)\n", sfunc.Sident.ptr);
+        CFA_state* cfa_state = &CFA_state_current;
+        memset(cfa_state,0,CFA_state.sizeof);
         if (config.target_cpu == TARGET_AArch64)
         {
-            memset(&CFA_state_current,0,CFA_state.sizeof);
-            CFA_state_current.offset   = 4;
-            CFA_state_current.reg      = INSTR.SP;
-            CFA_state_current.regstates[32].offset = -8; // PC
+            cfa_state.reg      = INSTR.SP;
+            cfa_state.offset   = OFFSET_FAC;
+            cfa_state.regstates[32].offset = -8;        // PC
+        }
+        else if (I64)
+        {
+            cfa_state.reg      = dwarf_regno(SP);
+            cfa_state.offset   = OFFSET_FAC;
+            cfa_state.regstates[16].offset = -8;        // RIP
+        }
+        else if (I16 || I32)
+        {
+            cfa_state.reg      = dwarf_regno(SP);
+            cfa_state.offset   = OFFSET_FAC;
+            cfa_state.regstates[ 8].offset = -4;        // EIP
         }
         else
-        {
-            if (I16 || I32)
-                CFA_state_current = CFA_state_init_32;
-            else if (I64)
-                CFA_state_current = CFA_state_init_64;
-            else
-                assert(0);
-            CFA_state_current.reg = dwarf_regno(SP);
-            assert(CFA_state_current.offset == OFFSET_FAC);
-        }
+            assert(0);
         cfa_buf.reset();
     }
 
