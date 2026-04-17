@@ -70,6 +70,14 @@ struct DefNode
     vec_t    DNunambig;     // vector of unambiguous definitions
 }
 
+// which kind of flow analysisis being done
+enum
+{
+    AE = 1,
+    CP,
+    VBE
+}
+
 /* Global Optimizer variables
  */
 struct GlobalOptimizer
@@ -77,6 +85,7 @@ struct GlobalOptimizer
     bool AArch64;       // AArch64 is the target
     mftype mfoptim;
     uint changes;       // # of optimizations performed
+    int flowxx;		// AE, CP or VBE
 
     Barray!DefNode defnod;    // array of definition elems
     uint unambigtop;    // number of unambiguous defininitions ( <= deftop )
