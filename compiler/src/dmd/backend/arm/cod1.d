@@ -371,7 +371,7 @@ int isscaledindex(tym_t ty, elem* e)
  */
 
 @trusted
-void logexp(ref CodeBuilder cdb, elem* e, uint jcond, FL fltarg, code* targ)
+void logexp(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint jcond, FL fltarg, code* targ)
 {
     //printf("logexp(e: %p jcond: %d fltarg: %d targ: %p)\n", e, jcond, fltarg == FL.code, targ); elem_print(e);
     if (tybasic(e.Ety) == TYnoreturn)
@@ -396,16 +396,16 @@ void logexp(ref CodeBuilder cdb, elem* e, uint jcond, FL fltarg, code* targ)
                 con_t regconsave;
                 if (jcond & 1)
                 {
-                    logexp(cdb, e.E1, jcond, fltarg, targ);
+                    logexp(cg, cdb, e.E1, jcond, fltarg, targ);
                     regconsave = cgstate.regcon;
-                    logexp(cdb, e.E2, jcond, fltarg, targ);
+                    logexp(cg, cdb, e.E2, jcond, fltarg, targ);
                 }
                 else
                 {
                     code* cnop = gen1(null, INSTR.nop);
-                    logexp(cdb, e.E1, jcond | 1, FL.code, cnop);
+                    logexp(cg, cdb, e.E1, jcond | 1, FL.code, cnop);
                     regconsave = cgstate.regcon;
-                    logexp(cdb, e.E2, jcond, fltarg, targ);
+                    logexp(cg, cdb, e.E2, jcond, fltarg, targ);
                     cdb.append(cnop);
                 }
                 andregcon(regconsave);
@@ -420,16 +420,16 @@ void logexp(ref CodeBuilder cdb, elem* e, uint jcond, FL fltarg, code* targ)
                 if (jcond & 1)
                 {
                     code* cnop = gen1(null, INSTR.nop);    // a dummy target address
-                    logexp(cdb, e.E1, jcond & ~1, FL.code, cnop);
+                    logexp(cg, cdb, e.E1, jcond & ~1, FL.code, cnop);
                     regconsave = cgstate.regcon;
-                    logexp(cdb, e.E2, jcond, fltarg, targ);
+                    logexp(cg, cdb, e.E2, jcond, fltarg, targ);
                     cdb.append(cnop);
                 }
                 else
                 {
-                    logexp(cdb, e.E1, jcond, fltarg, targ);
+                    logexp(cg, cdb, e.E1, jcond, fltarg, targ);
                     regconsave = cgstate.regcon;
-                    logexp(cdb, e.E2, jcond, fltarg, targ);
+                    logexp(cg, cdb, e.E2, jcond, fltarg, targ);
                 }
                 andregcon(regconsave);
                 freenode(e);
@@ -450,7 +450,7 @@ void logexp(ref CodeBuilder cdb, elem* e, uint jcond, FL fltarg, code* targ)
             case OPu32_64:
             case OPu32_d:
             case OPd_ld:
-                logexp(cdb, e.E1, jcond, fltarg, targ);
+                logexp(cg, cdb, e.E1, jcond, fltarg, targ);
                 freenode(e);
                 cgstate.stackclean--;
                 return;
@@ -459,16 +459,16 @@ void logexp(ref CodeBuilder cdb, elem* e, uint jcond, FL fltarg, code* targ)
             {
                 code* cnop2 = gen1(null, INSTR.nop);   // addresses of start of leaves
                 code* cnop = gen1(null, INSTR.nop);
-                logexp(cdb, e.E1, false, FL.code, cnop2);   // eval condition
+                logexp(cg, cdb, e.E1, false, FL.code, cnop2);   // eval condition
                 con_t regconold = cgstate.regcon;
-                logexp(cdb, e.E2.E1, jcond, fltarg, targ);
+                logexp(cg, cdb, e.E2.E1, jcond, fltarg, targ);
                 genBranch(cdb, COND.al, FL.code, cast(block*) cnop); // skip second leaf
 
                 con_t regconsave = cgstate.regcon;
                 cgstate.regcon = regconold;
 
                 cdb.append(cnop2);
-                logexp(cdb, e.E2.E2, jcond, fltarg, targ);
+                logexp(cg, cdb, e.E2.E2, jcond, fltarg, targ);
                 andregcon(regconold);
                 andregcon(regconsave);
                 freenode(e.E2);

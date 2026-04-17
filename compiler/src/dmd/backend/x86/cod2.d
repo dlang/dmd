@@ -2154,7 +2154,7 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
     code* cnop = gennop(null);
     code* ctrue = gennop(null);
-    logexp(cdb,e.E1,(op == OPnot) ? false : true,FL.code,ctrue);
+    logexp(cg, cdb,e.E1,(op == OPnot) ? false : true,FL.code,ctrue);
     forflags = pretregs & mPSW;
     if (I64 && sz == 8)
         forflags |= 64;
@@ -2494,7 +2494,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     code* cnop1 = gennop(null);
     code* cnop2 = gennop(null);         // dummy target addresses
-    logexp(cdb,e1,false,FL.code,cnop1);  // evaluate condition
+    logexp(cg, cdb,e1,false,FL.code,cnop1);  // evaluate condition
     const regconold = cgstate.regcon;
     const stackusedold = global87.stackused;
     const stackpushold = cgstate.stackpush;
@@ -2628,8 +2628,8 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     code* cnop3 = gennop(null);
     elem* e2 = e.E2;
     (e.Eoper == OPoror)
-        ? logexp(cdb,e.E1,1,FL.code,cnop1)
-        : logexp(cdb,e.E1,0,FL.code,cnop3);
+        ? logexp(cg, cdb,e.E1,1,FL.code,cnop1)
+        : logexp(cg, cdb,e.E1,0,FL.code,cnop3);
     con_t regconsave = cgstate.regcon;
     uint stackpushsave = cgstate.stackpush;
     if (pretregs == 0)                 // if don't want result
@@ -2711,7 +2711,7 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         return;
     }
 
-    logexp(cdb,e2,1,FL.code,cnop1);
+    logexp(cg, cdb,e2,1,FL.code,cnop1);
     andregcon(regconsave);
 
     // stack depth should not change when evaluating E2
