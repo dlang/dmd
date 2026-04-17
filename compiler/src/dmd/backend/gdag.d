@@ -34,10 +34,6 @@ import dmd.backend.dvec;
 nothrow:
 @safe:
 
-enum Aetype { cse, arraybounds }
-
-private __gshared Aetype aetype;
-
 @trusted
 bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.E1.Eoper == OPvar; }
 
@@ -80,7 +76,7 @@ void builddags(ref GlobalOptimizer go, ref BlockOpt bo)
     flowae(go, bo);                   /* compute available expressions */
     if (go.exptop <= 1)             /* if no AEs                     */
         return;
-    aetype = Aetype.cse;
+    go.aetype = Aetype.cse;
 
     debug
         foreach (i, e; go.expnod[])
@@ -184,7 +180,7 @@ private void aewalk(ref GlobalOptimizer go, elem** pn, vec_t ae)
     if (n.Eexp)                            // if an AE
     {   // Try to find an equivalent AE, and point to it instead
         assert(go.expnod[n.Eexp] == n);
-        if (aetype == Aetype.cse)
+        if (go.aetype == Aetype.cse)
         {
             for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i)
             {   elem* e = go.expnod[i];
