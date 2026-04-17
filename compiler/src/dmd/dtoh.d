@@ -102,6 +102,8 @@ void genCppHdrFiles(ref Modules ms, ErrorSink eSink)
     hashInclude(buf, "<math.h>");
     hashInclude(buf, "<stddef.h>");
     hashInclude(buf, "<stdint.h>");
+    if (v.hasVaList)
+        hashInclude(buf, "<stdarg.h>");
 //    buf.writestring(buf, "#include <stdio.h>\n");
 //    buf.writestring("#include <string.h>\n");
 
@@ -274,6 +276,9 @@ public:
 
     /// There are functions taking slices, which need a compatibility struct for C++
     bool hasDArray = false;
+
+    /// The generated header uses `va_list`, which requires `<stdarg.h>`
+    bool hasVaList = false;
 
     /// The generated header should contain comments for skipped declarations?
     const bool printIgnored;
@@ -1985,6 +1990,7 @@ public:
         if (ts && !strcmp(ts.sym.ident.toChars(), "__va_list_tag"))
         {
             buf.writestring("va_list");
+            hasVaList = true;
             return;
         }
 
