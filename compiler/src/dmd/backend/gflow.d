@@ -62,25 +62,6 @@ void* util_realloc(void* p, size_t n, size_t size)
     return q;
 }
 
-
-
-/* Since many routines are nearly identical, we can combine them with   */
-/* this flag:                                                           */
-
-private enum
-{
-    AE = 1,
-    CP,
-    VBE
-}
-
-
-private __gshared
-{
-    int flowxx;              // one of the above values
-}
-
-
 /***************** REACHING DEFINITIONS *********************/
 
 /************************************
@@ -512,8 +493,8 @@ private void accumrd(ref GlobalOptimizer go, vec_t GEN,vec_t KILL,elem* n,uint d
 @trusted
 void flowae(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    flowxx = AE;
-    flowaecp(go, bo, AE);
+    go.flowxx = AE;
+    flowaecp(go, bo);
 }
 
 /**************************** COPY PROPAGATION ************************/
@@ -530,21 +511,19 @@ void flowae(ref GlobalOptimizer go, ref BlockOpt bo)
 @trusted
 void flowcp(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    flowxx = CP;
-    flowaecp(go, bo, CP);
+    go.flowxx = CP;
+    flowaecp(go, bo);
 }
 
 /*****************************************
  * Common flow analysis routines for Available Expressions and
  * Copy Propagation.
- * Input:
- *      flowxx
  */
 
 @trusted
-private void flowaecp(ref GlobalOptimizer go, ref BlockOpt bo, int flowxx)
+private void flowaecp(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    aecpgenkill(go, bo, flowxx);   // Compute Bgen and Bkill for AEs or CPs
+    aecpgenkill(go, bo);   // Compute Bgen and Bkill for AEs or CPs
     if (go.exptop <= 1)        /* if no expressions                    */
         return;
 
@@ -672,7 +651,7 @@ private void flowaecp(ref GlobalOptimizer go, ref BlockOpt bo, int flowxx)
  */
 
 @trusted
-private void aecpgenkill(ref GlobalOptimizer go, ref BlockOpt bo, int flowxx)
+private void aecpgenkill(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     block* this_block;
 
@@ -743,7 +722,7 @@ private void aecpgenkill(ref GlobalOptimizer go, ref BlockOpt bo, int flowxx)
             ae = asgaeelems(n.E1);
             // Disallow starred references to avoid problems with VBE's
             // being hoisted before tests of an invalid pointer.
-            if (flowxx == VBE && op == OPind)
+            if (go.flowxx == VBE && op == OPind)
             {
                 n.Eexp = 0;
                 return false;
@@ -766,7 +745,7 @@ private void aecpgenkill(ref GlobalOptimizer go, ref BlockOpt bo, int flowxx)
         {
             n.Eexp = cast(uint)go.expnod.length;       // remember index into go.expnod[]
             go.expnod.push(n);
-            if (flowxx == VBE)
+            if (go.flowxx == VBE)
                 go.expblk.push(this_block);
             return true;
         }
@@ -787,7 +766,7 @@ private void aecpgenkill(ref GlobalOptimizer go, ref BlockOpt bo, int flowxx)
     {
         if (b.Belem)
         {
-            if (flowxx == CP)
+            if (go.flowxx == CP)
                 asgcpelems(b.Belem);
             else
             {
@@ -924,7 +903,7 @@ private void defstarkill(ref GlobalOptimizer go)
 {
     const exptop = go.exptop;
     vec_recycle(go.defkill, exptop);
-    if (flowxx == CP)
+    if (go.flowxx == CP)
     {
         vec_recycle(go.starkill, 0);
         vec_recycle(go.vptrkill, 0);
@@ -940,7 +919,7 @@ private void defstarkill(ref GlobalOptimizer go)
 
     auto defkill = go.defkill;
 
-    if (flowxx == CP)
+    if (go.flowxx == CP)
     {
         foreach (i, n; go.expnod[1 .. exptop])
         {
@@ -1025,7 +1004,7 @@ private void defstarkill(ref GlobalOptimizer go)
 @trusted
 void genkillae(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    flowxx = AE;
+    go.flowxx = AE;
     assert(go.exptop > 1);
     foreach (b; bo.dfo[])
     {
@@ -1058,7 +1037,7 @@ private void aecpelem(ref GlobalOptimizer go, out vec_t gen, out vec_t kill, ele
     kill = vec_calloc(exptop);
     if (n)
     {
-        if (flowxx == VBE)
+        if (go.flowxx == VBE)
             accumvbe(go, gen,kill,n);
         else
             accumaecp(go, gen,kill,n);
@@ -1103,7 +1082,7 @@ private void accumaecpx(ref GlobalOptimizer go, elem* n)
         case OPvar:
         case OPconst:
         case OPrelconst:
-            if ((flowxx == AE) && n.Eexp)
+            if ((go.flowxx == AE) && n.Eexp)
             {   uint b;
                 debug assert(go.expnod[n.Eexp] == n);
                 b = n.Eexp;
@@ -1180,7 +1159,7 @@ private void accumaecpx(ref GlobalOptimizer go, elem* n)
 
         case OPvp_fp:
         case OPcvp_fp:                          // if vptr access
-            if ((flowxx == AE) && n.Eexp)
+            if ((go.flowxx == AE) && n.Eexp)
                 vec_orass(KILL,go.vptrkill);       // kill all other vptr accesses
             break;
 
@@ -1216,7 +1195,7 @@ private void accumaecpx(ref GlobalOptimizer go, elem* n)
 
     /* Do copy propagation stuff first  */
 
-    if (flowxx == CP)
+    if (go.flowxx == CP)
     {
         if (!OTdef(op))                         /* if not def elem      */
             return;
@@ -1675,8 +1654,8 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
 @trusted
 void flowvbe(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    flowxx = VBE;
-    aecpgenkill(go, bo, VBE);   // compute Bgen and Bkill for VBEs
+    go.flowxx = VBE;
+    aecpgenkill(go, bo);   // compute Bgen and Bkill for VBEs
     if (go.exptop <= 1)     /* if no candidates for VBEs            */
         return;
 
