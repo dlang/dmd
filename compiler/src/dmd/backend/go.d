@@ -53,13 +53,15 @@ nothrow:
 @trusted
 void go_term(ref GlobalOptimizer go)
 {
-    vec_free(go.defkill);
-    vec_free(go.starkill);
-    vec_free(go.vptrkill);
+    if (go.defkill !is null) vec_free(go.defkill);
+    if (go.starkill !is null) vec_free(go.starkill);
+    if (go.vptrkill !is null) vec_free(go.vptrkill);
     go.defnod.dtor();
     go.expnod.dtor();
     go.expblk.dtor();
 }
+
+
 
 debug
 {

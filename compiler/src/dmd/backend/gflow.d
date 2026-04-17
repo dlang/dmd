@@ -33,7 +33,13 @@ import dmd.backend.dvec;
 nothrow:
 @safe:
 
-void vec_setclear(size_t b, vec_t vs, vec_t vc) { vec_setbit(b, vs); vec_clearbit(b, vc); }
+void vec_setclear(size_t b, vec_t vs, vec_t vc)
+{
+    if (vec_testbit(b, vs) && !vec_testbit(b, vc)) return; // Avoid redundant operations
+    vec_setbit(b, vs);
+    vec_clearbit(b, vc);
+}
+
 
 @trusted
 bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.E1.Eoper == OPvar; }
