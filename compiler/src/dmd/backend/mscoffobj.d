@@ -627,7 +627,7 @@ void build_syment_table(bool bigobj)
 void MsCoffObj_termfile()
 {
     //dbg_printf("MsCoffObj_termfile\n");
-    if (configv.addlinenumbers)
+    if (config.addlinenumbers)
     {
         cv8_termmodule();
     }
@@ -647,7 +647,7 @@ void MsCoffObj_term(const(char)[] objfilename)
     outfixlist();           // backpatches
     objflush_importTableRefs();
 
-    if (configv.addlinenumbers)
+    if (config.addlinenumbers)
     {
         cv8_termfile(objfilename);
     }

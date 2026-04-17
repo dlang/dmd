@@ -122,8 +122,6 @@ public import dmd.backend.var : OPTIMIZER, globsym, controlc_saw, pointertype, s
 public import dmd.backend.cg : fregsaved, localgot, tls_get_addr_sym;
 public import dmd.backend.var : bo;
 
-__gshared Configv configv;                // non-ph part of configuration
-
 public import dmd.backend.ee : eecontext_convs;
 public import dmd.backend.elem : exp2_copytotemp;
 public import dmd.backend.util2 : err_exit, ispow2;

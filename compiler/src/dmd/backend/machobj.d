@@ -612,7 +612,7 @@ void mach_numbersyms()
 void MachObj_termfile()
 {
     //dbg_printf("MachObj_termfile\n");
-    if (configv.addlinenumbers)
+    if (config.addlinenumbers)
     {
         dwarf_termmodule();
     }
@@ -627,7 +627,7 @@ void MachObj_term(const(char)[] objfilename)
     //printf("MachObj_term()\n");
     outfixlist();           // backpatches
 
-    if (configv.addlinenumbers)
+    if (config.addlinenumbers)
     {
         dwarf_termfile();
     }

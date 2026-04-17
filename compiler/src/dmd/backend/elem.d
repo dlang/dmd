@@ -101,7 +101,7 @@ private __gshared
 @trusted
 void el_init()
 {
-    if (!configv.addlinenumbers)
+    if (!config.addlinenumbers)
         elem_size = elem.sizeof - Srcpos.sizeof;
 }
 
@@ -500,7 +500,7 @@ elem* el_selecte1(elem* e)
     elem_debug(e1);
     if (e.E2) elem_debug(e.E2);
     e.E1 = null;                               // so e1 won't be freed
-    if (configv.addlinenumbers)
+    if (config.addlinenumbers)
     {
         if (e.Esrcpos.Slinnum)
             e1.Esrcpos = e.Esrcpos;
@@ -530,7 +530,7 @@ elem* el_selecte2(elem* e)
     e2 = e.E2;
     elem_debug(e2);
     e.E2 = null;                       // so e2 won't be freed
-    if (configv.addlinenumbers)
+    if (config.addlinenumbers)
     {
         if (e.Esrcpos.Slinnum)
             e2.Esrcpos = e.Esrcpos;
@@ -2383,7 +2383,7 @@ void elem_print(const elem* e, int nestlevel = 0)
         return;
     }
     elem_debug(e);
-    if (configv.addlinenumbers)
+    if (config.addlinenumbers)
     {
         if (e.Esrcpos.Sfilename)
             printf("%s(%u) ", e.Esrcpos.Sfilename, e.Esrcpos.Slinnum);

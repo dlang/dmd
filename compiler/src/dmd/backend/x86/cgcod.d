@@ -283,7 +283,7 @@ void codgen(Symbol* sfunc)
     cod5_prol_epi(bo.startblock);    // see where to place prolog/epilog
     CSE.finish();                 // compute addresses and sizes of CSE saves
 
-    if (configv.addlinenumbers)
+    if (config.addlinenumbers)
         objmod.linnum(sfunc.Sfunc.Fstartline,sfunc.Sseg,Offset(sfunc.Sseg));
 
     // Otherwise, jmp's to startblock will execute the prolog again
@@ -307,7 +307,7 @@ void codgen(Symbol* sfunc)
         switch (b.bc)
         {
             case BC.ret:
-                if (configv.addlinenumbers && b.Bsrcpos.Slinnum && !(sfunc.ty() & mTYnaked))
+                if (config.addlinenumbers && b.Bsrcpos.Slinnum && !(sfunc.ty() & mTYnaked))
                 {
                     CodeBuilder cdb; cdb.ctor();
                     cdb.append(b.Bcode);
@@ -441,7 +441,7 @@ void codgen(Symbol* sfunc)
             }
             assert(b.Boffset == Offset(sfunc.Sseg));
 
-            codout(sfunc.Sseg,b.Bcode,(configv.vasm ? &disasmBuf : null), framehandleroffset);   // output code
+            codout(sfunc.Sseg,b.Bcode,(config.vasm ? &disasmBuf : null), framehandleroffset);   // output code
         }
 static if (0)
         if (coffset != Offset(sfunc.Sseg))
@@ -453,7 +453,7 @@ static if (0)
         }
         sfunc.Ssize = Offset(sfunc.Sseg) - cgstate.funcoffset;    // size of function
 
-        if (configv.vasm)
+        if (config.vasm)
             disassemble(disasmBuf[]);                   // disassemble the code
 
         const nteh = cgstate.usednteh & NTEH_try;
@@ -495,7 +495,7 @@ static if (0)
                     break;
             }
         }
-        if (configv.addlinenumbers && !(sfunc.ty() & mTYnaked))
+        if (config.addlinenumbers && !(sfunc.ty() & mTYnaked))
             /* put line number at end of function on the
                start of the last instruction
              */
@@ -2823,7 +2823,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs,uin
         goto L1;
     }
 
-    if (configv.addlinenumbers && e.Esrcpos.Slinnum)
+    if (config.addlinenumbers && e.Esrcpos.Slinnum)
         cdb.genlinnum(e.Esrcpos);
 
     switch (op)
@@ -3257,7 +3257,7 @@ void docommas(ref CodeBuilder cdb, ref elem* pe)
     elem* e = pe;
     while (1)
     {
-        if (configv.addlinenumbers && e.Esrcpos.Slinnum)
+        if (config.addlinenumbers && e.Esrcpos.Slinnum)
         {
             cdb.genlinnum(e.Esrcpos);
             //e.Esrcpos.Slinnum = 0;               // don't do it twice

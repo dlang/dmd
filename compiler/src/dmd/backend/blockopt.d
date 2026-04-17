@@ -777,7 +777,7 @@ private void brrear(ref BlockOpt bo)
 
             while (bt.bc == BC.goto_ && !bt.Belem &&
                    mixin(additionalAnd) &&
-                   (OPTIMIZER || !(bt.Bsrcpos.Slinnum && configv.addlinenumbers)) &&
+                   (OPTIMIZER || !(bt.Bsrcpos.Slinnum && config.addlinenumbers)) &&
                    ++iter < 10)
             {
                 bl.ptr = list_ptr(bt.Bsucc);
