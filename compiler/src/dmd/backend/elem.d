@@ -79,20 +79,49 @@ private __gshared
     int elmax;                       /* max # of allocs at any point */
 }
 
-/////////////////////////////
-// Table to gather redundant strings in.
+/*************************
+ * Cache of strings that are referenced by a Symbol.
+ * Uses a rotating buffer, perhaps a hash table would be better?
+ */
 
-struct STAB
+struct Stab
 {
-    Symbol* sym;        // symbol that refers to the string
-    char[] str;         // the string
+  nothrow:
+    enum Length = 16;           // must be power of 2
+    size_t si;                  // next index into arrays
+    Symbol*[Length] symbols;    // Symbol that refers to the string
+    char[] [Length] strings;    // the string
+
+    @trusted
+    void insert(Symbol* sym, char[] str)
+    {
+        mem_free(strings[si].ptr);
+        symbols[si] = sym;
+        strings[si] = str;
+        si = (si + 1) & (Length - 1); // wrap-around increment
+    }
+
+    size_t lookup(char[] str)
+    {
+        foreach (i; 0 .. Length)
+        {
+            if (strings[i][] == str[])
+                return i;
+        }
+        return size_t.max;
+    }
+
+    @trusted
+    void reset()
+    {
+        foreach (str; strings)
+            mem_free(str.ptr);
+        this = Stab.init;
+    }
 }
 
-private __gshared
-{
-    STAB[16] stable;
-    int stable_si;
-}
+private __gshared Stab stable;
+
 
 /************************
  * Initialize el package.
@@ -112,10 +141,7 @@ void el_init()
 @trusted
 void el_reset()
 {
-    stable_si = 0;
-    for (int i = 0; i < stable.length; i++)
-        mem_free(stable[i].str.ptr);
-    memset(stable.ptr,0,stable.sizeof);
+    stable.reset();
 }
 
 /************************
@@ -127,8 +153,7 @@ void el_term()
 {
     static if (TERMCODE)
     {
-        for (int i = 0; i < stable.length; i++)
-            mem_free(stable[i].str.ptr);
+        stable.reset();
 
         debug printf("Max # of elems = %d\n",elmax);
 
@@ -1339,15 +1364,15 @@ private @trusted
 elem* el_convstring(elem* e)
 {
     //printf("el_convstring()\n");
-    int i;
     Symbol* s;
     char* p;
 
     elem_debug(e);
     assert(e.Eoper == OPstring);
     p = e.Vstring;
-    e.Vstring = null;
+    e.Vstring = null;           // transfer ownership to p
     size_t len = e.Vstrlen;
+    size_t idx;
 
     if (eecontext.EEin)                 // if compiling debugger expression
     {
@@ -1357,16 +1382,12 @@ elem* el_convstring(elem* e)
     }
 
     // See if e is already in the string table
-    for (i = 0; i < stable.length; i++)
+    idx = stable.lookup(p[0 .. len]);
+    if (idx != size_t.max)
     {
-        if (stable[i].str.length == len &&
-            memcmp(stable[i].str.ptr,p,len) == 0)
-        {
-            // Replace e with that symbol
-            mem_free(p);
-            s = stable[i].sym;
-            goto L1;
-        }
+        mem_free(p);
+        s = stable.symbols[idx];        // replace s with the one in stable
+        goto L1;
     }
 
     // Replace string with a symbol that refers to that string
@@ -1382,10 +1403,7 @@ elem* el_convstring(elem* e)
 
     // Remember the string for possible reuse later
     //printf("Adding %d, '%s'\n",stable_si,p);
-    mem_free(stable[stable_si].str.ptr);
-    stable[stable_si].str = p[0 .. cast(size_t)len];
-    stable[stable_si].sym = s;
-    stable_si = (stable_si + 1) & (stable.length - 1);
+    stable.insert(s, p[0 .. len]);
 
 L1:
     // Refer e to the symbol generated

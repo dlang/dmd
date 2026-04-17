@@ -88,7 +88,7 @@ struct GlobalOptimizer
     mftype mfoptim;
     Aetype aetype;      // cse, arraybounds
     uint changes;       // # of optimizations performed
-    int flowxx;		// AE, CP or VBE
+    int flowxx;         // AE, CP or VBE
 
     Barray!DefNode defnod;    // array of definition elems
     uint unambigtop;    // number of unambiguous defininitions ( <= deftop )
