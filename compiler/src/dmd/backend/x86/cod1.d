@@ -1752,12 +1752,12 @@ void fltregs(ref CodeBuilder cdb, code* pcs, tym_t tym)
  */
 
 @trusted
-void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
+void tstresult(ref CGstate cg, ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
 {
     if (cgstate.AArch64)
     {
         import dmd.backend.arm.cod1 : tstresult;
-        return tstresult(cdb, regm, tym, saveflag);
+        return tstresult(cg, cdb, regm, tym, saveflag);
     }
 
     reg_t scrreg;                      // scratch register
@@ -2085,7 +2085,7 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
             fixresult87(cdb, e, retregs, outretregs);
         }
         else
-            tstresult(cdb, retregs, tym, forregs != 0);
+            tstresult(cgstate, cdb, retregs, tym, forregs != 0);
     }
 }
 
@@ -5314,7 +5314,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
              */
             if (s.Sclass == SC.parameter)
                 cgstate.refparam = true;
-            tstresult(cdb,s.Sregm,e.Ety,true);
+            tstresult(cgstate,cdb,s.Sregm,e.Ety,true);
         }
         else if (sz <= REGSIZE)
         {

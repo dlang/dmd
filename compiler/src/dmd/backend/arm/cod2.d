@@ -2739,7 +2739,7 @@ void floatPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (regvar && pretregs == mPSW)
     {
-        tstresult(cdb, mask(reg),ty1,false);
+        tstresult(cgstate, cdb, mask(reg),ty1,false);
 
         // If lvalue is a register variable, mark it as modified
         getregs(cdb,retregs);
@@ -2874,7 +2874,7 @@ void complexPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs
 
     if (regvar && pretregs == mPSW)
     {
-        tstresult(cdb,retregs,ty1,false);
+        tstresult(cgstate,cdb,retregs,ty1,false);
 
         // If lvalue is a register variable, mark it as modified
         getregs(cdb,retregs);

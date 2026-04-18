@@ -1293,7 +1293,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
  *      saveflag = true means preserve the contents of the registers
  */
 @trusted
-void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
+void tstresult(ref CGstate cg, ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
 {
     //printf("tstresult(regm = %s, tym = x%x, saveflag = %d)\n",regm_str(regm),tym,saveflag);
 
@@ -1457,7 +1457,7 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
     }
     if (forccs)                           // if return result in flags
     {
-        tstresult(cdb, retregs, tym, forregs != 0);
+        tstresult(cgstate, cdb, retregs, tym, forregs != 0);
     }
 }
 

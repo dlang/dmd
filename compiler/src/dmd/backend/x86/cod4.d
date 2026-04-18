@@ -2449,7 +2449,7 @@ void cdshass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 NEWREG(cs.Irm,reg);
                 cdb.gen(&cs);
                 if (pretregs & mPSW)
-                    tstresult(cdb,retregs,tyml,true);
+                    tstresult(cgstate,cdb,retregs,tyml,true);
             }
             else        // flags only
             {
