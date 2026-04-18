@@ -1845,7 +1845,7 @@ struct CaseVal
  * Generate comparison of [reg2,reg] with val
  */
 @trusted
-private void cmpval(CGstate cg, ref CodeBuilder cdb, ulong val, uint sz, reg_t reg, reg_t reg2, reg_t sreg)
+private void cmpval(ref CGstate cg, ref CodeBuilder cdb, ulong val, uint sz, reg_t reg, reg_t reg2, reg_t sreg)
 {
     if (cg.AArch64)
     {
@@ -1898,7 +1898,7 @@ private void cmpval(CGstate cg, ref CodeBuilder cdb, ulong val, uint sz, reg_t r
 }
 
 @trusted
-private void ifthen(CGstate cg, ref CodeBuilder cdb, scope CaseVal[] casevals,
+private void ifthen(ref CGstate cg, ref CodeBuilder cdb, scope CaseVal[] casevals,
         uint sz, reg_t reg, reg_t reg2, reg_t sreg, block* bdefault, bool last)
 {
     const ncases = casevals.length;
