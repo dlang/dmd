@@ -462,7 +462,7 @@ void xmmcnvt(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         case OPld_d:
             if (e.Eoper == OPd_s64)
             {
-                cnvt87(cdb,e,pretregs); // precision
+                cnvt87(cg,cdb,e,pretregs); // precision
                 return;
             }
             goto default;
@@ -1943,7 +1943,7 @@ void cloadxmm(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     }
 
     // See test/complex.d for cases winding up here
-    cload87(cdb, e, pretregs);
+    cload87(cg, cdb, e, pretregs);
 }
 
 /***********************************

@@ -1957,7 +1957,7 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
     {
         if ((forregs | retregs) & (mST01 | mST0))
         {
-            fixresult87(cdb, e, retregs, outretregs);
+            fixresult87(cgstate, cdb, e, retregs, outretregs);
             return;
         }
         bool opsflag = false;
@@ -2080,7 +2080,7 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
         if (retregs & (mST01 | mST0))
         {
             outretregs |= forccs;
-            fixresult87(cdb, e, retregs, outretregs);
+            fixresult87(cgstate, cdb, e, retregs, outretregs);
         }
         else
             tstresult(cgstate, cdb, retregs, tym, forregs != 0);
@@ -4176,7 +4176,7 @@ static if (0)
         {
             //assert(global87.stackused == 0);
             push87(cdb);                // one item on 8087 stack
-            fixresult87(cdb,e,retregs,pretregs);
+            fixresult87(cgstate,cdb,e,retregs,pretregs);
             return;
         }
         else
@@ -4191,7 +4191,7 @@ static if (0)
             assert(global87.stackused == 0);
             push87(cdb);
             push87(cdb);                // two items on 8087 stack
-            fixresult_complex87(cdb, e, retregs, pretregs, true);
+            fixresult_complex87(cgstate, cdb, e, retregs, pretregs, true);
             return;
         }
         else
@@ -5278,12 +5278,12 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
         {
             if (outretregs & mST0)
             {
-                load87(cdb, e, 0, outretregs, null, -1);
+                load87(cg,cdb, e, 0, outretregs, null, -1);
                 return;
             }
             else if (tycomplex(tym))
             {
-                cload87(cdb, e, outretregs);
+                cload87(cg,cdb, e, outretregs);
                 return;
             }
         }
@@ -5387,7 +5387,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
             }
         }
         else if (sz == tysize(TYreal))               // TYreal
-            load87(cdb, e, 0, outretregs, null, -1);
+            load87(cg,cdb, e, 0, outretregs, null, -1);
         else
         {
             elem_print(e);

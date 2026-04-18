@@ -141,7 +141,7 @@ private void opassdbl(ref CodeBuilder cdb,elem* e,ref regm_t pretregs,OPER op)
 
     if (config.inline8087)
     {
-        opass87(cdb,e,pretregs);
+        opass87(cgstate,cdb,e,pretregs);
         return;
     }
 
@@ -232,13 +232,13 @@ private void opassdbl(ref CodeBuilder cdb,elem* e,ref regm_t pretregs,OPER op)
  */
 
 @trusted
-private void opnegassdbl(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
+private void opnegassdbl(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     assert(config.exe & EX_windos);  // for targets that may not have an 8087
 
     if (config.inline8087)
     {
-        cdnegass87(cdb,e,pretregs);
+        cdnegass87(cg,cdb,e,pretregs);
         return;
     }
     elem* e1 = e.E1;
@@ -376,7 +376,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         if (tycomplex(tyml))
         {
-            complex_eq87(cdb, e, pretregs);
+            complex_eq87(cg,cdb, e, pretregs);
             return;
         }
 
@@ -384,19 +384,19 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
               (e2oper == OPconst || e2oper == OPvar || e2oper == OPind))
            )
         {
-            eq87(cdb,e,pretregs);
+            eq87(cg,cdb,e,pretregs);
             return;
         }
         if (config.target_cpu >= TARGET_PentiumPro &&
             (e2oper == OPvar || e2oper == OPind)
            )
         {
-            eq87(cdb,e,pretregs);
+            eq87(cg,cdb,e,pretregs);
             return;
         }
         if (tyml == TYreal || tyml == TYireal)
         {
-            eq87(cdb,e,pretregs);
+            eq87(cg,cdb,e,pretregs);
             return;
         }
     }
@@ -873,14 +873,14 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         if (config.exe & EX_posix)
         {
             if (op == OPnegass)
-                cdnegass87(cdb,e,pretregs);
+                cdnegass87(cg,cdb,e,pretregs);
             else
-                opass87(cdb,e,pretregs);
+                opass87(cg,cdb,e,pretregs);
         }
         else
         {
             if (op == OPnegass)
-                opnegassdbl(cdb,e,pretregs);
+                opnegassdbl(cgstate,cdb,e,pretregs);
             else
                 opassdbl(cdb,e,pretregs,op);
         }
@@ -1437,7 +1437,7 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         if (config.exe & EX_posix)
         {
-            opass87(cdb,e,pretregs);
+            opass87(cg,cdb,e,pretregs);
         }
         else
         {
@@ -1723,7 +1723,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         if (config.exe & EX_posix)
         {
-            opass87(cdb,e,pretregs);
+            opass87(cg,cdb,e,pretregs);
         }
         else
         {
@@ -2585,11 +2585,11 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             if (tyxmmreg(tym))
                 orthxmm(cg,cdb,e,retregs);
             else
-                orth87(cdb,e,retregs);
+                orth87(cg,cdb,e,retregs);
         }
         else if (config.inline8087)
         {   retregs = mPSW;
-            orth87(cdb,e,retregs);
+            orth87(cg,cdb,e,retregs);
         }
         else
         {
@@ -3447,12 +3447,12 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             Lcomplex:
                     regm_t retregsx = mST01 | (pretregs & mPSW);
                     codelem(cgstate,cdb,e.E1, retregsx, false);
-                    fixresult_complex87(cdb, e, retregsx, pretregs);
+                    fixresult_complex87(cg,cdb, e, retregsx, pretregs);
                     return;
                 }
                 regm_t retregsx = mST0 | (pretregs & mPSW);
                 codelem(cgstate,cdb,e.E1, retregsx, false);
-                fixresult87(cdb, e, retregsx, pretregs);
+                fixresult87(cg,cdb, e, retregsx, pretregs);
                 return;
             }
 
@@ -3468,7 +3468,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                         // avoid double rounding for: (real -> double) -> float
                         regm_t retregsx = mST0 | (pretregs & mPSW);
                         codelem(cgstate, cdb, e.E1.E1, retregsx, false);
-                        fixresult87(cdb, e, retregsx, pretregs);
+                        fixresult87(cg, cdb, e, retregsx, pretregs);
                     }
                     else
                     {
@@ -3510,7 +3510,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             case OPs16_d:
             case OPu16_d:
             Lload87:
-                load87(cdb,e,0,pretregs,null,-1);
+                load87(cg,cdb,e,0,pretregs,null,-1);
                 return;
 
             case OPu32_d:
@@ -3532,7 +3532,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                     cdb.genfltreg(0xDF,5,0);     // FILD m64int
 
                     regm_t retregsy = mST0 /*| (pretregs & mPSW)*/;
-                    fixresult87(cdb, e, retregsy, pretregs);
+                    fixresult87(cgstate, cdb, e, retregsy, pretregs);
                     return;
                 }
                 break;
@@ -3553,7 +3553,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 
             case OPd_u16:
             Lcnvt87:
-                cnvt87(cdb,e,pretregs);
+                cnvt87(cg,cdb,e,pretregs);
                 return;
 
             case OPd_u32:               // use subroutine, not 8087
@@ -3564,7 +3564,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                 }
                 if (I32 || I64)
                 {
-                    cdd_u32(cdb,e,pretregs);
+                    cdd_u32(cg,cdb,e,pretregs);
                     return;
                 }
                 if (config.exe & EX_posix)
@@ -3580,7 +3580,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             case OPd_u64:
                 if (I32 || I64)
                 {
-                    cdd_u64(cdb,e,pretregs);
+                    cdd_u64(cg,cdb,e,pretregs);
                     return;
                 }
                 retregs = DOUBLEREGS;
@@ -3600,7 +3600,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             {
                 if (I32 || I64)
                 {
-                    cdd_u64(cdb,e,pretregs);
+                    cdd_u64(cg,cdb,e,pretregs);
                     return;
                 }
                 regm_t retregsx = mST0;
@@ -4695,7 +4695,7 @@ void cdpair(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 
     if (retregs & mST01)
     {
-        loadPair87(cdb, e, pretregs);
+        loadPair87(cg, cdb, e, pretregs);
         return;
     }
 
