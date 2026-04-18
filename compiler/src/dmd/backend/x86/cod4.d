@@ -368,7 +368,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (tyxmmreg(tyml) && config.fpxmmregs)
     {
-        xmmeq(cdb, e, CMP, e1, e2, pretregs);
+        xmmeq(cg, cdb, e, CMP, e1, e2, pretregs);
         return;
     }
 
@@ -676,7 +676,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             if (varregm & XMMREGS)
             {
                 // Could be an integer vector in the XMMREGS
-                xmmeq(cdb, e, CMP, e1, e2, pretregs);
+                xmmeq(cg, cdb, e, CMP, e1, e2, pretregs);
                 return;
             }
             regvar = true;
@@ -864,7 +864,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     // See if evaluate in XMM registers
     if (config.fpxmmregs && tyxmmreg(tyml) && op != OPnegass && !(pretregs & mST0))
     {
-        xmmopass(cdb,e,pretregs);
+        xmmopass(cg,cdb,e,pretregs);
         return;
     }
 
@@ -1429,7 +1429,7 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     // See if evaluate in XMM registers
     if (config.fpxmmregs && tyxmmreg(tyml) && !(pretregs & mST0))
     {
-        xmmopass(cdb,e,pretregs);
+        xmmopass(cg,cdb,e,pretregs);
         return;
     }
 
@@ -1715,7 +1715,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     // See if evaluate in XMM registers
     if (config.fpxmmregs && tyxmmreg(tyml) && op != OPmodass && !(pretregs & mST0))
     {
-        xmmopass(cdb,e,pretregs);
+        xmmopass(cg,cdb,e,pretregs);
         return;
     }
 
@@ -2558,7 +2558,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
 
     if (tyvector(tybasic(e1.Ety)))
-        return orthxmm(cdb,e,pretregs);
+        return orthxmm(cg,cdb,e,pretregs);
 
     uint jop = jmpopcode(e);        // must be computed before
                                         // leaves are free'd
@@ -2583,7 +2583,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         {
             retregs = mPSW;
             if (tyxmmreg(tym))
-                orthxmm(cdb,e,retregs);
+                orthxmm(cg,cdb,e,retregs);
             else
                 orth87(cdb,e,retregs);
         }
@@ -3472,7 +3472,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                     }
                     else
                     {
-                        xmmcnvt(cdb, e, pretregs);
+                        xmmcnvt(cg, cdb, e, pretregs);
                     }
                     return;
                 }
@@ -3502,7 +3502,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             case OPs32_d:
                 if (config.fpxmmregs && pretregs & XMMREGS)
                 {
-                    xmmcnvt(cdb, e, pretregs);
+                    xmmcnvt(cg, cdb, e, pretregs);
                     return;
                 }
                 goto Lload87;
@@ -3516,7 +3516,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             case OPu32_d:
                 if (I64 && config.fpxmmregs && pretregs & XMMREGS)
                 {
-                    xmmcnvt(cdb,e,pretregs);
+                    xmmcnvt(cg,cdb,e,pretregs);
                     return;
                 }
                 else if (!I16)
@@ -3546,7 +3546,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             case OPd_s32:
                 if (config.fpxmmregs)
                 {
-                    xmmcnvt(cdb,e,pretregs);
+                    xmmcnvt(cg,cdb,e,pretregs);
                     return;
                 }
                 goto Lcnvt87;
@@ -3559,7 +3559,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             case OPd_u32:               // use subroutine, not 8087
                 if (I64 && config.fpxmmregs)
                 {
-                    xmmcnvt(cdb,e,pretregs);
+                    xmmcnvt(cg,cdb,e,pretregs);
                     return;
                 }
                 if (I32 || I64)

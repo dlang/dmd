@@ -5271,7 +5271,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
             (outretregs & (XMMREGS | mPSW))
            )
         {
-            cloadxmm(cdb, e, outretregs);
+            cloadxmm(cg, cdb, e, outretregs);
             return;
         }
         else if (config.inline8087)
