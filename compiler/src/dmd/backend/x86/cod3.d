@@ -3067,7 +3067,7 @@ void cdframeptr(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretreg
     cs.Irex = 0;
     cs.Irm = cast(ubyte)reg;
     cdb.gen(&cs);
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cgstate,cdb,e,retregs,pretregs);
 }
 
 /***************************************
@@ -3088,7 +3088,7 @@ void cdgot(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
         cdb.genc(CALL,0,FL.unde,0,FL.got,0);     //     CALL L1
         cdb.genpop(reg);                  // L1: POP reg
 
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cgstate,cdb,e,retregs,pretregs);
     }
     else if (config.exe & EX_posix)
     {
@@ -3113,7 +3113,7 @@ void cdgot(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
         cgot.IEV2.Voffset = (reg == AX) ? 2 : 3;
 
         makeitextern(gotsym);
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cgstate,cdb,e,retregs,pretregs);
     }
     else
         assert(0);

@@ -146,7 +146,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     assert(0);
             }
             pretregs = retregs | PSW;
-            fixresult(cdb,e,retregs,pretregs);
+            fixresult(cg,cdb,e,retregs,pretregs);
             return;
         }
 
@@ -194,7 +194,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             }
         }
         pretregs = retregs | PSW;
-        fixresult(cdb,e,mask(Rd),pretregs);
+        fixresult(cg,cdb,e,mask(Rd),pretregs);
         return;
     }
 
@@ -243,7 +243,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
 
     pretregs = retregs | PSW;
-    fixresult(cdb,e,mask(Rd),pretregs);
+    fixresult(cg,cdb,e,mask(Rd),pretregs);
 }
 
 /*************************************************
@@ -341,7 +341,7 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     // madd Rd,Rn,Rm,Rzr
     cdb.gen1(INSTR.madd(sz == 8, Rm, 31, Rn, Rd));
 
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cg,cdb,e,retregs,pretregs);
 }
 
 /*****************************
@@ -453,7 +453,7 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             retregs = mask(Rquo) | mask(Rmod);
     }
 
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cg,cdb,e,retregs,pretregs);
 }
 
 /***************************
@@ -520,7 +520,7 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         //assert(encodeNImmrImms(0xFF,N,immr,imms));
         //cdb.gen1(INSTR.log_imm(0,0,0,immr,imms,Rd,Rd)); // AND Rd,Rd,#0xFF
         pretregs &= ~mPSW;                          // flags already set
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cg,cdb,e,retregs,pretregs);
     }
     else if (tyfloating(e1.Ety))
     {
@@ -541,7 +541,7 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         assert(encodeNImmrImms(0xFF,N,immr,imms));
         cdb.gen1(INSTR.log_imm(0,0,0,immr,imms,Rd,Rd)); // AND Rd,Rd,#0xFF
         pretregs &= ~mPSW;                              // flags already set
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cg,cdb,e,retregs,pretregs);
     }
     else
     {
@@ -568,7 +568,7 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         assert(encodeNImmrImms(0xFF,N,immr,imms));
         cdb.gen1(INSTR.log_imm(0,0,0,immr,imms,Rd,Rd)); // AND Rd,Rd,#0xFF
 
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cg,cdb,e,retregs,pretregs);
     }
 }
 
@@ -611,7 +611,7 @@ void cdcom(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     cdb.gen1(INSTR.log_shift(sf, 1, 0, 1, Rm, 0, 31, Rd));
     //pretregs &= ~mPSW;             // flags not set
 
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cg,cdb,e,retregs,pretregs);
 }
 
 /************************
@@ -657,7 +657,7 @@ void cdbswap(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     uint opcode2 = 0;
     uint opcode = sz == 2 ? 1 : sz == 4 ? 2 : 3;
     cdb.gen1(INSTR.dp_1src(sf, S, opcode2, opcode, Rn, Rd));
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cg,cdb,e,retregs,pretregs);
 }
 
 /*************************
@@ -821,7 +821,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             freenode(e22);
             freenode(e2);
 
-            fixresult(cdb,e,retregs,pretregs);
+            fixresult(cg,cdb,e,retregs,pretregs);
             cg.stackclean--;
             return;
         }
@@ -870,7 +870,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         freenode(e2);
         cdb.append(cnop1);
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cg,cdb,e,retregs,pretregs);
         cg.stackclean--;
         return;
     }
@@ -889,7 +889,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         if (!retregs)
             retregs = INSTR.ALLREGS;
         codelem(cg,cdb1,e21,retregs,false);
-        fixresult(cdb1,e21,retregs,pretregs);
+        fixresult(cg,cdb1,e21,retregs,pretregs);
     }
     else
         codelem(cg,cdb1,e21,retregs,false);
@@ -927,7 +927,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         if (!retregs)
             retregs = INSTR.ALLREGS;
         codelem(cg,cdb2,e22,retregs,false);
-        fixresult(cdb2,e22,retregs,pretregs);
+        fixresult(cg,cdb2,e22,retregs,pretregs);
     }
     else
         codelem(cg,cdb2,e22,retregs,false);   // use same regs as E1
@@ -1161,7 +1161,7 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
     cdb.gen1(INSTR.dp_2src(sf, S, Rm, opcode, Rn, Rd));
 
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cg,cdb,e,retregs,pretregs);
 }
 
 /***************************
@@ -1230,7 +1230,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             cdb.gen1(cs.Iop);
         }
 
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cg,cdb,e,retregs,pretregs);
         return;
     }
 
@@ -1255,7 +1255,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             cdb.gen1(INSTR.ldst_pos(3,0,1,imm12  ,Rn,Rlsw));
             cdb.gen1(INSTR.ldst_pos(3,0,1,imm12+1,Rn,Rmsw));
         }
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cg,cdb,e,retregs,pretregs);
         return;
     }
 
@@ -1308,7 +1308,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     uint imm12 = 0;
     cdb.gen1(INSTR.ldst_pos(size,VR,opc,imm12,Rn,Rt));
 
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cg,cdb,e,retregs,pretregs);
 }
 
 // void cdstrlen(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
@@ -1408,7 +1408,7 @@ void cdmemcmp(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     cdb.append(cnop2);                                  // L2:
 
     pretregs &= ~mPSW;
-    fixresult(cdb,e,retregsr,pretregs);
+    fixresult(cg,cdb,e,retregsr,pretregs);
 }
 
 //void cdstrcpy(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
@@ -1505,7 +1505,7 @@ void cdmemcpy(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     cdb.append(cnop2);                                  // L2:
 
     pretregs &= ~mPSW;
-    fixresult(cdb,e,retregs1,pretregs);
+    fixresult(cg,cdb,e,retregs1,pretregs);
 }
 
 /*********************************
@@ -1608,7 +1608,7 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         }
         for (; remainder; --remainder)
             cdb.gen1(INSTR.ldst_immpost(0,0,0,1,dstreg,valuereg));      // STRB valuereg,[dstreg],#1        // *dstreg++ = valuereg
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cg,cdb,e,retregs,pretregs);
         return;
     }
 
@@ -1771,7 +1771,7 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
     genBranch(cdb,COND.ne,FL.code,cast(block*)L2);                // b.ne L2
     cdb.append(c1);
 
-    fixresult(cdb,e,dregs,pretregs);
+    fixresult(cg,cdb,e,dregs,pretregs);
 }
 
 /**********************
@@ -1992,11 +1992,11 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             loadFromEA(cs,lsreg,8,8);                   // ldr  lsreg,[Rs]
             cdb.genc1(cs.Iop,0,FL.offset,0);
 
-            fixresult(cdb,e,retregs,pretregs);
+            fixresult(cg,cdb,e,retregs,pretregs);
             return;
         }
 
-        fixresult(cdb,e,dstregs,pretregs);
+        fixresult(cg,cdb,e,dstregs,pretregs);
     }
 }
 
@@ -2415,7 +2415,7 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             const ftype = INSTR.szToFtype(sz);
             cdb.gen1(INSTR.fneg_float(ftype, Vn, Vn));
         }
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cg,cdb,e,retregs,pretregs);
         return;
     }
 
@@ -2438,7 +2438,7 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     cdb.gen1(INSTR.addsub_shift(sf,1,S,0,Rm,0,31,Rm)); // NEG/NEGS <Rm>,<Rm>
 
     pretregs &= ~mPSW;             // flags already set
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cg,cdb,e,retregs,pretregs);
 }
 
 /******************
@@ -2491,7 +2491,7 @@ void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
             const ftype = INSTR.szToFtype(sz);
             cdb.gen1(INSTR.fabs_float(ftype, Vn, Vn));
         }
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cg,cdb,e,retregs,pretregs);
         return;
     }
 
@@ -2547,7 +2547,7 @@ void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
     cdb.gen1(ins);
 
     pretregs &= ~mPSW;             // flags already set
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cg,cdb,e,retregs,pretregs);
 }
 
 /**************************
@@ -2639,7 +2639,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         cdb.gen1(INSTR.addsub_imm(sz == 8,opx,0,0,n,reg,reg)); // SUB/ADD cs.reg,cs.reg,n);
 
         freenode(e2);
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cg,cdb,e,retregs,pretregs);
         return;
     }
     else if (0 && sz == 2 * REGSIZE)
@@ -2676,7 +2676,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         cs.IEV2.Vlong = cast(targ_long)(e2.Vullong >> (REGSIZE * 8));
         cdb.gen(&cs);                   // ADC/SBB EA,0
         freenode(e2);
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cg,cdb,e,retregs,pretregs);
         return;
      +/
     }
@@ -2809,7 +2809,7 @@ void floatPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         cssave(e1,retregs,!OTleaf(e1.Eoper)); // if lvalue is a CSE
     }
 
-    fixresult(cdb,e,resultregs,pretregs);
+    fixresult(cg,cdb,e,resultregs,pretregs);
     freenode(e1);
 }
 
@@ -2948,7 +2948,7 @@ void complexPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs
         cssave(e1,retregs,!OTleaf(e1.Eoper)); // if lvalue is a CSE
     }
 
-    fixresult(cdb,e,resultregs,pretregs);
+    fixresult(cg,cdb,e,resultregs,pretregs);
     freenode(e1);
 }
 

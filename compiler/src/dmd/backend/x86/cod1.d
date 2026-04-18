@@ -1905,12 +1905,12 @@ void tstresult(ref CGstate cg, ref CodeBuilder cdb, regm_t regm, tym_t tym, bool
  */
 
 @trusted
-void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretregs)
+void fixresult(ref CGstate cg, ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretregs)
 {
     if (cgstate.AArch64)
     {
         import dmd.backend.arm.cod1 : fixresult;
-        return fixresult(cdb, e, retregs, outretregs);
+        return fixresult(cg, cdb, e, retregs, outretregs);
     }
 
     //printf("fixresult(e = %p, retregs = %s, outretregs = %s)\n",e,regm_str(retregs),regm_str(outretregs));
@@ -2939,7 +2939,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, ref regm_t pretregs, regm
         cgstate.stackpush -= cinfo.pop;
     regm_t retregs = I16 ? cinfo.retregs16 : cinfo.retregs32;
     cdb.append(cdbpop);
-    fixresult(cdb, e, retregs, pretregs);
+    fixresult(cgstate, cdb, e, retregs, pretregs);
 }
 
 
@@ -3863,7 +3863,7 @@ void cdstrthis(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs
     cdb.genc1(LEA,(modregrm(0,4,SP) << 8) | modregxrm(2,reg,4),FL.const_,np);
     if (I64)
         code_orrex(cdb.last(), REX_W);
-    fixresult(cdb, e, mask(reg), pretregs);
+    fixresult(cg, cdb, e, mask(reg), pretregs);
 }
 
 /******************************
@@ -4264,7 +4264,7 @@ static if (0)
         retregs = mST01;
     }
 
-    fixresult(cdb, e, retregs, pretregs);
+    fixresult(cg, cdb, e, retregs, pretregs);
 }
 
 /***************************
@@ -5334,7 +5334,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
             {
                 reg = allocreg(cdb, regm, TYoffset);   // get a register
                 loadea(cg, cdb, e, cs, 0x8B, reg, 0, 0, 0);    // MOV reg,data
-                fixresult(cdb, e, regm, outretregs);
+                fixresult(cg, cdb, e, regm, outretregs);
             }
             else
             {   cs.IFL2 = FL.const_;
@@ -5407,7 +5407,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
             assert(!flags);
             const xreg = allocreg(cdb, forregs, tym);     // allocate registers
             movxmmconst(cdb, xreg, tym, &e.EV, flags);
-            fixresult(cdb, e, forregs, outretregs);
+            fixresult(cg, cdb, e, forregs, outretregs);
             return;
         }
 
@@ -5513,7 +5513,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
             assert(0);
         // Flags may already be set
         outretregs &= flags | ~mPSW;
-        fixresult(cdb, e, forregs, outretregs);
+        fixresult(cg, cdb, e, forregs, outretregs);
         return;
     }
     else
@@ -5539,7 +5539,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
 
                 cg.mfuncreg &= ~pregm;
                 cg.regcon.used |= pregm;
-                fixresult(cdb,e,pregm,outretregs);
+                fixresult(cg,cdb,e,pregm,outretregs);
                 return;
             }
         }
@@ -5683,7 +5683,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
             assert(0);
         // Flags may already be set
         outretregs &= flags | ~mPSW;
-        fixresult(cdb, e, forregs, outretregs);
+        fixresult(cg, cdb, e, forregs, outretregs);
         return;
     }
 }

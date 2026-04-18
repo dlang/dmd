@@ -1376,7 +1376,7 @@ void tstresult(ref CGstate cg, ref CodeBuilder cdb, regm_t regm, tym_t tym, bool
  *      outretregs = registers we want the result in, updated
  */
 @trusted
-void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretregs)
+void fixresult(ref CGstate cg, ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretregs)
 {
     //printf("arm.fixresult(e = %p, retregs = %s, outretregs = %s)\n",e,regm_str(retregs),regm_str(outretregs));
     //elem_print(e);
@@ -1681,7 +1681,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, ref regm_t pretregs, regm
 
     cdb.append(cdbpop);
     if (e)
-        fixresult(cdb, e, cinfo.retregs, pretregs);
+        fixresult(cgstate, cdb, e, cinfo.retregs, pretregs);
 }
 
 /***************************
@@ -2203,7 +2203,7 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
             cdb.append(cdbe);
             freenode(e1);
 
-            fixresult(cdb,e,retregs,pretregs);
+            fixresult(cg,cdb,e,retregs,pretregs);
             return;
 
             // MOV SP, x29   restore SP value
@@ -2444,7 +2444,7 @@ static if (0)
         }
     }
 
-    fixresult(cdb, e, retregs, pretregs);
+    fixresult(cg, cdb, e, retregs, pretregs);
 }
 
 /***************************
@@ -2558,7 +2558,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
     {
         regm_t retregs = tyfloating(tym) ? INSTR.FLOATREGS : INSTR.ALLREGS;
         loaddata(cg, cdb, e, retregs);
-        fixresult(cdb, e, retregs, outretregs);
+        fixresult(cg, cdb, e, retregs, outretregs);
         return;
     }
 
@@ -2575,7 +2575,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
             assert(!flags);
             const xreg = allocreg(cdb, forregs, tym);     // allocate registers
             movxmmconst(cdb, xreg, tym, &e.EV, flags);
-            fixresult(cdb, e, forregs, outretregs);
+            fixresult(cg, cdb, e, forregs, outretregs);
             return;
         }
 
@@ -2597,7 +2597,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
                     assert(0);          // TODO AArch64 for Linux
                 loadFloatRegConst(cdb,vreg_re,value_re,sz / 2);
                 loadFloatRegConst(cdb,vreg_im,value_im,sz / 2);
-                fixresult(cdb, e, forregs, outretregs);
+                fixresult(cg, cdb, e, forregs, outretregs);
                 return;
             }
             const vreg = allocreg(cdb, forregs, tym);     // allocate floating point register
@@ -2608,7 +2608,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
                 // cannot implicitly convert expression `(*e).EV.Vreal` of type `longdouble_soft` to `double` [D:\a\1\s\compiler\src\vcbuild\dmd.vcxproj]
                 value = cast(double)e.Vreal;
             loadFloatRegConst(cdb,vreg,value,sz);
-            fixresult(cdb, e, forregs, outretregs);
+            fixresult(cg, cdb, e, forregs, outretregs);
             return;
         }
 
@@ -2653,7 +2653,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
             assert(0);
         // Flags may already be set
         outretregs &= flags | ~mPSW;
-        fixresult(cdb, e, forregs, outretregs);
+        fixresult(cg, cdb, e, forregs, outretregs);
         return;
     }
     else
@@ -2681,7 +2681,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
                 cg.mfuncreg &= ~pregm;
                 cg.regcon.used |= pregm;
                 //printf("pregm: %s outretregs: %s\n", regm_str(pregm), regm_str(outretregs));
-                fixresult(cdb,e,pregm,outretregs);
+                fixresult(cg, cdb,e,pregm,outretregs);
                 return;
             }
         }
@@ -2802,7 +2802,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
         // Flags may already be set
         outretregs &= flags | ~mPSW;
         //printf("forregs: %s outretregs: %s\n", regm_str(forregs), regm_str(outretregs));
-        fixresult(cdb, e, forregs, outretregs);
+        fixresult(cg, cdb, e, forregs, outretregs);
         return;
     }
 }

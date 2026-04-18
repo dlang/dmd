@@ -547,7 +547,7 @@ void cdsetjmp(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs)
 
     cg.stackpush = stackpushsave;
     retregs = regmask(e.Ety, TYnfunc);
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cg,cdb,e,retregs,pretregs);
 }
 
 /****************************************
