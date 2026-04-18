@@ -2108,7 +2108,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 
     cg.stackclean--;
 
-    funccall(cdb,e,numpara,numalign,pretregs,keepmsk,false);
+    funccall(cgstate,cdb,e,numpara,numalign,pretregs,keepmsk,false);
 }
 
 /******************************
@@ -2124,7 +2124,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
  */
 
 @trusted
-private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
+private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
                       ref regm_t pretregs,regm_t keepmsk, bool usefuncarg)
 {
     //printf("funccall(e = %p, pretregs = %s, numpara = %d, numalign = %d, usefuncarg=%d)\n",e,regm_str(pretregs),numpara,numalign,usefuncarg);

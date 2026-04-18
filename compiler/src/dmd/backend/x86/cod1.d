@@ -51,8 +51,6 @@ private void genorreg(ref CodeBuilder c, uint t, uint f) { genregs(c, 0x09, f, t
 private __gshared const byte[8] regtorm32 =   [  0, 1, 2, 3,-1, 5, 6, 7 ];
 __gshared const   byte[8] regtorm   =   [ -1,-1,-1, 7,-1, 6, 4, 5 ];
 
-//void funccall(ref CodeBuilder cdb,elem* e,uint numpara,uint numalign,
-//        ref regm_t pretregs,regm_t keepmsk, bool usefuncarg);
 
 /*********************************
  * Determine if we should leave parameter `s` in the register it
@@ -3847,7 +3845,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 
     assert(usefuncarg || numpara == cgstate.stackpush - stackpushsave);
 
-    funccall(cdb,e,numpara,numalign,pretregs,keepmsk,usefuncarg);
+    funccall(cgstate,cdb,e,numpara,numalign,pretregs,keepmsk,usefuncarg);
     cgstate.funcargtos = funcargtossave;
 }
 
@@ -3880,7 +3878,7 @@ void cdstrthis(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs
  */
 
 @trusted
-private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
+private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
                       ref regm_t pretregs,regm_t keepmsk, bool usefuncarg)
 {
     //printf("funccall(e = %p, pretregs = %s, numpara = %d, numalign = %d, usefuncarg=%d)\n",e,regm_str(pretregs),numpara,numalign,usefuncarg);
