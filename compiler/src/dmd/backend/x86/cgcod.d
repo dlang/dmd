@@ -2528,11 +2528,11 @@ reload:                                 /* reload result from memory    */
                 (tyxmmreg(tym) || tysimd(tym)))
             {
                 regm_t retregs = XMMREGS | mPSW;
-                loaddata(cdb,e,retregs);
+                loaddata(cgstate,cdb,e,retregs);
                 cssave(e,retregs,false);
                 return;
             }
-            loaddata(cdb,e,pretregs);
+            loaddata(cgstate,cdb,e,pretregs);
             break;
     }
     cssave(e,pretregs,false);
@@ -2936,7 +2936,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs,uin
                     pretregs = tyfloating(e.Ety) ? INSTR.FLOATREGS : INSTR.ALLREGS;
                 }
             }
-            loaddata(cdb,e,pretregs);
+            loaddata(cgstate,cdb,e,pretregs);
             break;
     }
     cssave(e,pretregs,!OTleaf(op));

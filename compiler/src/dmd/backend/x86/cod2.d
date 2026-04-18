@@ -848,7 +848,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 goto L2;
             if (!test)
                 getregs(cdb,retregs);          // we will trash these regs
-            loadea(cdb,e2,cs,op1,
+            loadea(cgstate,cdb,e2,cs,op1,
                    ((numwords == 2) ? findreglsw(retregs) : reg),
                    0,retregs,retregs);
             if (!I16 && word)
@@ -869,7 +869,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     cdb.gen(&cs);                 // ADC reg,data+2
                 }
                 else
-                    loadea(cdb,e2,cs,op2,reg,REGSIZE,retregs,0);
+                    loadea(cgstate,cdb,e2,cs,op2,reg,REGSIZE,retregs,0);
             }
             else if (I64 && sz == 8)
                 code_orrex(cdb.last(), REX_W);
@@ -979,7 +979,7 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 (e2.E1.Eoper == OPind && !e2.E1.Ecount)
                )
             {
-                loadea(cdb,e2.E1,cs,0xF7,opx,0,mAX,mAX | mDX);
+                loadea(cgstate,cdb,e2.E1,cs,0xF7,opx,0,mAX,mAX | mDX);
             }
             else
             {
@@ -1234,7 +1234,7 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                         retregs = ALLREGS;
                     codelem(cgstate,cdb,e1,retregs,false);        // eval left leaf
                     regm_t resreg = retregs;
-                    loadea(cdb,e2,cs,0x0FAF,findreg(resreg),0,retregs,retregs);
+                    loadea(cgstate,cdb,e2,cs,0x0FAF,findreg(resreg),0,retregs,retregs);
                     freenode(e2);
                     fixresult(cdb,e,resreg,pretregs);
                     return;
@@ -1253,12 +1253,12 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     const reg = findreg(retregs);
                     getregs(cdb,mAX);
                     genmovreg(cdb,AX,reg);            // MOV AX,reg
-                    loadea(cdb,e2,cs,0xF7,4,REGSIZE,mAX | mDX | mskl(reg),mAX | mDX);  // MUL EA+2
+                    loadea(cgstate,cdb,e2,cs,0xF7,4,REGSIZE,mAX | mDX | mskl(reg),mAX | mDX);  // MUL EA+2
                     getregs(cdb,retregs);
                     cdb.gen1(0x90 + reg);                          // XCHG AX,reg
                     getregs(cdb,mAX | mDX);
                     if ((cs.Irm & 0xC0) == 0xC0)            // if EA is a register
-                        loadea(cdb,e2,cs,0xF7,4,0,mAX | mskl(reg),mAX | mDX); // MUL EA
+                        loadea(cgstate,cdb,e2,cs,0xF7,4,0,mAX | mskl(reg),mAX | mDX); // MUL EA
                     else
                     {   getlvalue_lsw(cs);
                         cdb.gen(&cs);                       // MUL EA
@@ -1275,7 +1275,7 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             // loadea() handles CWD or CLR DX for divides
             regm_t retregs = sz <= REGSIZE ? mAX : mDX|mAX;
             codelem(cgstate,cdb,e.E1,retregs,false);     // eval left leaf
-            loadea(cdb,e2,cs,0xF7 ^ isbyte,5 - uns,0,
+            loadea(cgstate,cdb,e2,cs,0xF7 ^ isbyte,5 - uns,0,
                    mAX,
                    mAX | mDX);
             freenode(e2);
@@ -1963,7 +1963,7 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             // loadea() handles CWD or CLR DX for divides
             regm_t retregs = mAX;
             codelem(cgstate,cdb,e.E1,retregs,false);     // eval left leaf
-            loadea(cdb,e2,cs,0xF7 ^ isbyte,7 - uns,0,
+            loadea(cgstate,cdb,e2,cs,0xF7 ^ isbyte,7 - uns,0,
                    mAX | mDX,
                    mAX | mDX);
             freenode(e2);
@@ -4956,7 +4956,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
 
                 const regx = allocreg(cdb,retregs,TYoffset);
                 reg = findreg(retregs);
-                loadea(cdb,e,cs,LEA,reg,0,0,0);    // LEA reg,EA
+                loadea(cgstate,cdb,e,cs,LEA,reg,0,0,0);    // LEA reg,EA
                 if (I64)
                     code_orrex(cdb.last(), REX_W);
                 cdb.genpush(reg);               // PUSH reg
@@ -4965,7 +4965,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
             }
             else
             {
-                loadea(cdb,e,cs,LEA,reg,0,0,0);   // LEA reg,EA
+                loadea(cgstate,cdb,e,cs,LEA,reg,0,0,0);   // LEA reg,EA
                 if (I64)
                     code_orrex(cdb.last(), REX_W);
             }
