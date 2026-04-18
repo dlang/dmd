@@ -2305,7 +2305,7 @@ static if (0)
 
                 const regx = allocreg(cdb,retregs,TYoffset);
                 reg = findreg(retregs);
-                loadea(cdb,e,cs,LEA,reg,0,0,0);    // LEA reg,EA
+                loadea(cgstate,cdb,e,cs,LEA,reg,0,0,0);    // LEA reg,EA
                 if (I64)
                     code_orrex(cdb.last(), REX_W);
                 cdb.genpush(reg);               // PUSH reg

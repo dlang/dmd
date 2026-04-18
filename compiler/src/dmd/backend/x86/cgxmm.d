@@ -1931,12 +1931,12 @@ void cloadxmm(ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 
         regm_t retregs0 = mXMM0;
         reg_t reg0 = allocreg(cdb, retregs0, ty);
-        loadea(cdb, e, cs, opmv, reg0, 0, 0, 0, RM.load);  // MOVSS/MOVSD XMM0,data
+        loadea(cgstate, cdb, e, cs, opmv, reg0, 0, 0, 0, RM.load);  // MOVSS/MOVSD XMM0,data
         checkSetVex(cdb.last(), ty);
 
         regm_t retregs1 = mXMM1;
         reg_t reg1 = allocreg(cdb, retregs1, ty);
-        loadea(cdb, e, cs, opmv, reg1, tysize(ty), 0, mXMM0, RM.load); // MOVSS/MOVSD XMM1,data+offset
+        loadea(cgstate, cdb, e, cs, opmv, reg1, tysize(ty), 0, mXMM0, RM.load); // MOVSS/MOVSD XMM1,data+offset
         checkSetVex(cdb.last(), ty);
 
         return;
