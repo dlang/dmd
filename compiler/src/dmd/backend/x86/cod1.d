@@ -3595,7 +3595,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             if (usefuncarg)
                 movParams(cdbparams, ep, stackalign, cast(uint)funcargtos, tyf);
             else
-                pushParams(cdbparams,ep,stackalign, tyf);
+                pushParams(cgstate,cdbparams,ep,stackalign, tyf);
             regm_t tosave = keepmsk & ~cgstate.msavereg;
             cgstate.msavereg &= ~keepmsk | overlap;
 
@@ -4505,7 +4505,7 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
  */
 
 @trusted
-void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
+void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
 {
     //printf("params(e = %p, stackalign = %d)\n", e, stackalign);
     //printf("params()\n"); elem_print(e);
@@ -4664,7 +4664,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
 
                 case OPpair:
                 case OPrpair:
-                    pushParams(cdb, e1, stackalign, tyf);
+                    pushParams(cgstate, cdb, e1, stackalign, tyf);
                     freenode(e);
                     return;
 
@@ -4816,7 +4816,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                     code_orflag(cdb.last(), CFopsize);        // push a word
                 cdb.genadjesp(stackalign);
                 cgstate.stackpush += stackalign;
-                pushParams(cdb, e1, stackalign, tyf);
+                pushParams(cgstate, cdb, e1, stackalign, tyf);
                 freenode(e);
                 return;
             }
@@ -5039,8 +5039,8 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             if ((op1 == OPvar || op1 == OPconst || op1 == OPrelconst) &&
                 (op2 == OPvar || op2 == OPconst || op2 == OPrelconst))
             {
-                pushParams(cdb, e.E2, stackalign, tyf);
-                pushParams(cdb, e.E1, stackalign, tyf);
+                pushParams(cgstate, cdb, e.E2, stackalign, tyf);
+                pushParams(cgstate, cdb, e.E1, stackalign, tyf);
                 freenode(e);
             }
             else if (tyfloating(e.E1.Ety) ||
@@ -5070,8 +5070,8 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             if ((op1 == OPvar || op1 == OPconst || op1 == OPrelconst) &&
                 (op2 == OPvar || op2 == OPconst || op2 == OPrelconst))
             {
-                pushParams(cdb, e.E1, stackalign, tyf);
-                pushParams(cdb, e.E2, stackalign, tyf);
+                pushParams(cgstate, cdb, e.E1, stackalign, tyf);
+                pushParams(cgstate, cdb, e.E2, stackalign, tyf);
                 freenode(e);
             }
             else if (tyfloating(e.E1.Ety) ||
