@@ -78,7 +78,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (0 && tyxmmreg(tyml))    // TODO AArch64
     {
-        xmmeq(cdb, e, CMP, e1, e2, pretregs);
+        xmmeq(cg, cdb, e, CMP, e1, e2, pretregs);
         return;
     }
 
@@ -175,7 +175,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             if (0 && varregm & XMMREGS) // TODO AArch64
             {
                 // Could be an integer vector in the XMMREGS
-                xmmeq(cdb, e, CMP, e1, e2, pretregs);
+                xmmeq(cg, cdb, e, CMP, e1, e2, pretregs);
                 return;
             }
             regvar = true;
@@ -292,7 +292,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     // See if evaluate in XMM registers
     if (0 && config.fpxmmregs && tyxmmreg(tyml) && op != OPnegass) // TODO AArch64
     {
-        xmmopass(cdb,e,pretregs);
+        xmmopass(cg,cdb,e,pretregs);
         return;
     }
 
@@ -779,7 +779,7 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     // See if evaluate in XMM registers
     if (0 && config.fpxmmregs && tyxmmreg(tyml) && !(pretregs & mST0)) // TODO AArch64
     {
-        xmmopass(cdb,e,pretregs);
+        xmmopass(cg,cdb,e,pretregs);
         return;
     }
 
@@ -846,7 +846,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     // See if evaluate in XMM registers
     if (0 && config.fpxmmregs && tyxmmreg(tyml) && op != OPmodass && !(pretregs & mST0))
     {
-        xmmopass(cdb,e,pretregs);
+        xmmopass(cg,cdb,e,pretregs);
         return;
     }
 

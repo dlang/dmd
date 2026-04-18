@@ -207,7 +207,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             !(ty == TYreal || ty == TYireal)  // watch out for shrinkLongDoubleConstantIfPossible()
            )
         {
-            orthxmm(cdb,e,pretregs);
+            orthxmm(cg,cdb,e,pretregs);
             return;
         }
         if (config.inline8087)
@@ -228,7 +228,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
     if (tyxmmreg(ty1))
     {
-        orthxmm(cdb,e,pretregs);
+        orthxmm(cg,cdb,e,pretregs);
         return;
     }
 
@@ -934,7 +934,7 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             !(ty == TYllong)  //   or passing to function through integer register
            )
         {
-            orthxmm(cdb,e,pretregs);
+            orthxmm(cg,cdb,e,pretregs);
             return;
         }
         if (config.exe & EX_posix)
@@ -947,7 +947,7 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (tyxmmreg(tyml))
     {
-        orthxmm(cdb,e,pretregs);
+        orthxmm(cg,cdb,e,pretregs);
         return;
     }
 
@@ -1323,7 +1323,7 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             !(ty == TYllong)  //   or passing to function through integer register
            )
         {
-            orthxmm(cdb,e,pretregs);
+            orthxmm(cg,cdb,e,pretregs);
             return;
         }
         if (config.exe & EX_posix)
@@ -1336,7 +1336,7 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (tyxmmreg(tyml))
     {
-        orthxmm(cdb,e,pretregs);
+        orthxmm(cg,cdb,e,pretregs);
         return;
     }
 
@@ -5010,7 +5010,7 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         }
         if (tyxmmreg(tyml) && e.Eoper == OPneg && pretregs & XMMREGS)
         {
-            xmmneg(cdb,e,pretregs);
+            xmmneg(cg,cdb,e,pretregs);
             return;
         }
         if (config.inline8087 &&
@@ -5093,7 +5093,7 @@ void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
     {
         if (tyxmmreg(tyml) && pretregs & XMMREGS)
         {
-            xmmabs(cdb,e,pretregs);
+            xmmabs(cg,cdb,e,pretregs);
             return;
         }
         if (config.inline8087 && ((pretregs & (ALLREGS | mBP)) == 0 || I64))
@@ -5226,7 +5226,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             !tycomplex(tyml) // SIMD code is not set up to deal with complex
            )
         {
-            xmmpost(cdb,e,pretregs);
+            xmmpost(cg,cdb,e,pretregs);
             return;
         }
 
@@ -5335,7 +5335,7 @@ if (config.exe & EX_windos)
     }
     if (tyxmmreg(tyml))
     {
-        xmmpost(cdb,e,pretregs);
+        xmmpost(cg,cdb,e,pretregs);
         return;
     }
 

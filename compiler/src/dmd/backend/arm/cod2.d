@@ -2579,7 +2579,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
     if (0 && tyxmmreg(tyml)) // TODO AArch64
     {
-        xmmpost(cdb,e,pretregs);
+        xmmpost(cg,cdb,e,pretregs);
         return;
     }
 
