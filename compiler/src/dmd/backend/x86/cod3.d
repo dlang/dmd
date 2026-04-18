@@ -1431,7 +1431,7 @@ static if (NTEXCEPTIONS)
                 {
                     assert(reg1 == lreg && reg2 == NOREG);
                     regm_t pretregs = mask(reg1) | mask(reg2);
-                    fixresult87(cdb, e, retregs, pretregs, true);
+                    fixresult87(cgstate, cdb, e, retregs, pretregs, true);
                 }
                 // fix return registers
                 else if (tybasic(e.Ety) == TYcfloat)
@@ -1464,7 +1464,7 @@ static if (NTEXCEPTIONS)
                     {
                         assert(reg1 == AX && reg2 == DX);
                         regm_t pretregs = mask(reg1) | mask(reg2);
-                        fixresult_complex87(cdb, e, retregs, pretregs, true);
+                        fixresult_complex87(cgstate, cdb, e, retregs, pretregs, true);
                     }
                 }
                 else if (reg2 == NOREG)

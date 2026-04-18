@@ -141,7 +141,7 @@ void opdouble(ref CodeBuilder cdb, elem* e,ref regm_t pretregs,uint clib)
 {
     if (config.inline8087)
     {
-        orth87(cdb,e,pretregs);
+        orth87(cgstate,cdb,e,pretregs);
         return;
     }
 
@@ -212,7 +212,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         }
         if (config.inline8087)
         {
-            orth87(cdb,e,pretregs);
+            orth87(cgstate,cdb,e,pretregs);
             return;
         }
         if (config.exe & EX_windos)
@@ -938,7 +938,7 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             return;
         }
         if (config.exe & EX_posix)
-            orth87(cdb,e,pretregs);
+            orth87(cgstate,cdb,e,pretregs);
         else
             opdouble(cdb,e,pretregs,(oper == OPmul) ? CLIB.dmul : CLIB.ddiv);
 
@@ -1327,7 +1327,7 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             return;
         }
         if (config.exe & EX_posix)
-            orth87(cdb,e,pretregs);
+            orth87(cgstate,cdb,e,pretregs);
         else
             opdouble(cdb,e,pretregs,(oper == OPmul) ? CLIB.dmul : CLIB.ddiv);
 
@@ -3256,20 +3256,20 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         {
             if (pretregs & mST0)
             {
-                cdind87(cdb, e, pretregs);
+                cdind87(cgstate,cdb, e, pretregs);
                 return;
             }
             if (I64 && tym == TYcfloat && pretregs & (ALLREGS | mBP))
             { }
             else if (tycomplex(tym))
             {
-                cload87(cdb, e, pretregs);
+                cload87(cgstate,cdb, e, pretregs);
                 return;
             }
 
             if (pretregs & mPSW)
             {
-                cdind87(cdb, e, pretregs);
+                cdind87(cgstate,cdb, e, pretregs);
                 return;
             }
         }
@@ -5005,7 +5005,7 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         if (tycomplex(tyml))
         {
-            neg_complex87(cdb, e, pretregs);
+            neg_complex87(cgstate, cdb, e, pretregs);
             return;
         }
         if (tyxmmreg(tyml) && e.Eoper == OPneg && pretregs & XMMREGS)
@@ -5016,7 +5016,7 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         if (config.inline8087 &&
             ((pretregs & (ALLREGS | mBP)) == 0 || e.Eoper == OPsqrt || I64))
             {
-                neg87(cdb,e,pretregs);
+                neg87(cgstate,cdb,e,pretregs);
                 return;
             }
         regm_t retregs = (I16 && sz == 8) ? DOUBLEREGS_16 : ALLREGS;
@@ -5098,7 +5098,7 @@ void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         }
         if (config.inline8087 && ((pretregs & (ALLREGS | mBP)) == 0 || I64))
         {
-            neg87(cdb,e,pretregs);
+            neg87(cgstate,cdb,e,pretregs);
             return;
         }
         regm_t retregs = (!I32 && sz == 8) ? DOUBLEREGS_16 : ALLREGS;
@@ -5232,7 +5232,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         if (config.inline8087)
         {
-            post87(cdb,e,pretregs);
+            post87(cgstate,cdb,e,pretregs);
             return;
         }
 if (config.exe & EX_windos)
