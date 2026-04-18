@@ -962,7 +962,7 @@ void epilog(block* b)
 
     if (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.exe == EX_WIN32 || MARS))
     {
-        nteh_epilog(cdbx);
+        nteh_epilog(cgstate, cdbx);
     }
 
     cpopds = null;

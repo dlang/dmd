@@ -1121,7 +1121,7 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
                 if (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) ||
                     config.ehmethod == EHmethod.EH_SEH)
                 {
-                    nteh_unwind(cdb,0,toindex);
+                    nteh_unwind(cgstate,cdb,0,toindex);
                 }
                 else
                 {
@@ -1270,14 +1270,14 @@ static if (NTEXCEPTIONS)
         {
             assert(!e);
             cgstate.usednteh |= NTEH_except;
-            nteh_setsp(cdb,0x8B);
+            nteh_setsp(cgstate, cdb,0x8B);
             getregsNoSave(cgstate.allregs);
             nextb = bl.nthSucc(0);
             goto L5;
         }
         case BC._filter:
         {
-            nteh_filter(cdb, bl);
+            nteh_filter(cgstate, cdb, bl);
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in filter blocks.
             getregsNoSave(cgstate.allregs);
@@ -1534,7 +1534,7 @@ static if (NTEXCEPTIONS)
                         }
                         else
                         {
-                            nteh_unwind(cdb,retregs,~0);
+                            nteh_unwind(cgstate, cdb,retregs,~0);
                         }
                         break;
                     }
@@ -3872,8 +3872,8 @@ static if (NTEXCEPTIONS == 2)
 {
         if (cg.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) || config.ehmethod == EHmethod.EH_SEH))
         {
-            nteh_prolog(cdb);
-            int sz = nteh_contextsym_size();
+            nteh_prolog(cgstate, cdb);
+            int sz = nteh_contextsym_size(cgstate);
             assert(sz != 0);        // should be 5*4, not 0
             xlocalsize -= sz;      // sz is already subtracted from ESP
                                     // by nteh_prolog()
@@ -4927,7 +4927,7 @@ void epilog(block* b)
 
     if (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.exe == EX_WIN32 || MARS))
     {
-        nteh_epilog(cdbx);
+        nteh_epilog(cgstate, cdbx);
     }
 
     cpopds = null;
