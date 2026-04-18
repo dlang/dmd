@@ -712,10 +712,10 @@ Lagain:
     cg.Fast.size = 0;
     static if (NTEXCEPTIONS == 2)
     {
-        cg.Fast.size -= nteh_contextsym_size();
+        cg.Fast.size -= nteh_contextsym_size(cgstate);
         if (config.exe & EX_windos)
         {
-            if (funcsym_p.Sfunc.Fflags3 & Ffakeeh && nteh_contextsym_size() == 0)
+            if (funcsym_p.Sfunc.Fflags3 & Ffakeeh && nteh_contextsym_size(cgstate) == 0)
                 cg.Fast.size -= 5 * 4;
         }
     }
@@ -997,7 +997,7 @@ else
             if (strcmp(sthis.Sident.ptr,"this".ptr) == 0)
                 break;
         }
-        nteh_monitor_prolog(cdbx,sthis);
+        nteh_monitor_prolog(cgstate,cdbx,sthis);
         cg.EBPtoESP += 3 * 4;
     }
 
@@ -1020,7 +1020,7 @@ Lcont:
     static if (NTEXCEPTIONS == 2)
     {
         if (cg.usednteh & NTEH_except)
-            nteh_setsp(cdb, 0x89);            // MOV __context[EBP].esp,ESP
+            nteh_setsp(cgstate, cdb, 0x89);            // MOV __context[EBP].esp,ESP
     }
 
     // Load register parameters off of the stack. Do not use
