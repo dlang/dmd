@@ -610,7 +610,7 @@ void logexp(ref CGstate cg, ref CodeBuilder cdb, elem* e, int jcond, FL fltarg, 
           (I32 && tybasic(e.E1.Ety) == TYllong && tybasic(e.E2.Ety) == TYllong))
        )
     {
-        longcmp(cdb, e, jcond != 0, fltarg, targ);
+        longcmp(cg, cdb, e, jcond != 0, fltarg, targ);
         cgstate.stackclean--;
         return;
     }
