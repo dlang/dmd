@@ -505,7 +505,7 @@ void comsub87(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t outretregs
             if (outretregs & XMMREGS)
                 fixresult87(cg,cdb,e,mST0,outretregs);
             else
-                fixresult(cdb,e,mST0,outretregs);
+                fixresult(cg,cdb,e,mST0,outretregs);
         }
         else
             // Reload
@@ -826,7 +826,7 @@ void fixresult87(ref CGstate cg,ref CodeBuilder cdb,elem* e,regm_t retregs, ref 
             if (outretregs & mPSW)
             {   // Set flags
                 regm_t r = retregs | mPSW;
-                fixresult(cdb,e,retregs,r);
+                fixresult(cg,cdb,e,retregs,r);
             }
             push87(cdb);
             if (sz == REGSIZE || (I64 && sz == 4))
@@ -848,7 +848,7 @@ void fixresult87(ref CGstate cg,ref CodeBuilder cdb,elem* e,regm_t retregs, ref 
         {
             regm_t regm = (sz == FLOATSIZE) ? FLOATREGS : DOUBLEREGS;
             regm |= outretregs & mPSW;
-            fixresult(cdb,e,retregs,regm);
+            fixresult(cg,cdb,e,retregs,regm);
             regm = 0;           // don't worry about result from CLIB.xxx
             callclib(cdb,e,
                     ((sz == FLOATSIZE) ? CLIB.fltto87 : CLIB.dblto87),
@@ -3035,7 +3035,7 @@ private void cdd_u64_I32(ref CGstate cg,ref CodeBuilder cdb, elem* e, ref regm_t
     cdb.append(cnop2);
 
     pop87();
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cg,cdb,e,retregs,pretregs);
 }
 
 @trusted
@@ -3121,7 +3121,7 @@ private void cdd_u64_I64(ref CGstate cg,ref CodeBuilder cdb, elem* e, ref regm_t
     cdb.append(cnop2);
 
     pop87();
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cg,cdb,e,retregs,pretregs);
 }
 
 /************************
@@ -3162,7 +3162,7 @@ void cdd_u32(ref CGstate cg,ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     cdb.genfltreg(LOD,reg,0);                    // MOV reg,floatreg
 
     pop87();
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cg,cdb,e,retregs,pretregs);
 }
 
 /************************
@@ -3287,7 +3287,7 @@ void cnvt87(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         if (szpush)
             cod3_stackadj(cdb, -szpush);
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cg,cdb,e,retregs,pretregs);
     }
     else
     {
@@ -3318,7 +3318,7 @@ void cnvt87(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         else
             cdb.genfltreg(LOD,reg,0);                // MOV reg,floatreg
         genSetRoundingMode(cdb, CW.roundtonearest);  // FLDCW roundtonearest
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cg,cdb,e,retregs,pretregs);
     }
 }
 
@@ -3376,7 +3376,7 @@ void cdrndtol(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         if (tysize(tym) == 8 && I64)
             code_orrex(cdb.last(), REX_W);
     }
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cg,cdb,e,retregs,pretregs);
 }
 
 /*************************
