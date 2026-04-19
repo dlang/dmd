@@ -82,9 +82,7 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    import core.sys.freebsd.config;
-
-    static if (__FreeBSD_version >= 1200000)
+    static if (__traits(getTargetInfo, "FreeBSDVersion") >= 1200000)
     {
         struct dirent
         {
@@ -240,8 +238,6 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    import core.sys.freebsd.config;
-
     // https://github.com/freebsd/freebsd/blob/master/sys/sys/dirent.h
     enum
     {
@@ -264,7 +260,7 @@ else version (FreeBSD)
     }
     else
     {
-        static if (__FreeBSD_version >= 1200000)
+        static if (__traits(getTargetInfo, "FreeBSDVersion") >= 1200000)
             pragma(mangle, "readdir@FBSD_1.5") dirent* readdir(DIR*);
         else
             pragma(mangle, "readdir@FBSD_1.0") dirent* readdir(DIR*);
@@ -536,7 +532,7 @@ else version (FreeBSD)
     }
     else
     {
-        static if (__FreeBSD_version >= 1200000)
+        static if (__traits(getTargetInfo, "FreeBSDVersion") >= 1200000)
             pragma(mangle, "readdir_r@FBSD_1.5") int readdir_r(DIR*, dirent*, dirent**);
         else
             pragma(mangle, "readdir_r@FBSD_1.0") int readdir_r(DIR*, dirent*, dirent**);

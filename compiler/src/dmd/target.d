@@ -26,6 +26,7 @@
 module dmd.target;
 
 import core.stdc.stdio;
+import core.stdc.stdlib;
 
 import dmd.astenums : CHECKENABLE;
 import dmd.globals : Param;
@@ -350,6 +351,7 @@ extern (C++) struct Target
 
     OS os;
     ubyte osMajor;
+    uint osVersionLong;       /// major, minor, patch version for getTargetInfo.
 
     // D ABI
     ubyte ptrsize;            /// size of a pointer in bytes
@@ -1275,14 +1277,17 @@ extern (C++) struct Target
         }
     }
 
-    // this guarantees `getTargetInfo` and `allTargetInfos` remain in sync
+    // NOTE: If `allTargetInfos` gets implemented, the platform-specific keys
+    // should be moved to a separate enum.
     private enum TargetInfoKeys
     {
         cppRuntimeLibrary,
         cppStd,
         floatAbi,
         objectFormat,
-        CET
+        CET,
+        OSXVersion,
+        FreeBSDVersion,
     }
 
     /**
@@ -1303,6 +1308,11 @@ extern (C++) struct Target
         {
             return new StringExp(loc, sval);
         }
+        IntegerExp osVersion(uint v)
+        {
+            osVersionLong = v;
+            return new IntegerExp(v);
+        }
 
         switch (name.toDString) with (TargetInfoKeys)
         {
@@ -1322,6 +1332,91 @@ extern (C++) struct Target
                 return new IntegerExp(params.cplusplus);
             case CET.stringof:
                 return new IntegerExp(driverParams.ibt);
+
+            case OSXVersion.stringof:
+                if (os == Target.OS.OSX)
+                {
+                    // Format of the version: XX_YY_ZZ
+                    if (osVersionLong)
+                        return new IntegerExp(osVersionLong);
+
+                    static uint macOSVersion(uint darwin)
+                    {
+                        // Darwin25 maps to macOS 26
+                        if (darwin >= 25)
+                            return (darwin + 1) * 1_00_00;
+                        // Darwin20 to 24 maps to macOS 11 to 15
+                        else if (darwin >= 20)
+                            return (darwin - 9) * 1_00_00;
+                        // Darwin4 to 19 map to macOS 10.0 to 10.15
+                        else if (darwin >= 4)
+                            return 10_00_00 + ((darwin - 4) * 1_00);
+                        return 0;
+                    }
+                    // Infer from the requested deployment target.
+                    if (const env = getenv("MACOSX_DEPLOYMENT_TARGET"))
+                    {
+                        uint major, minor, tiny;
+                        if (sscanf (env, "%u.%u.%u", &major, &minor, &tiny) >= 0)
+                            return osVersion((major * 1_00_00) + (minor * 1_00) + tiny);
+                    }
+                    // Infer from -target= os version (i.e: darwin20)
+                    if (auto macVersion = macOSVersion(osMajor))
+                        return osVersion(macVersion);
+                    // Infer from the running system.
+                    version (OSX)
+                    {
+                        char[32] buf = 0;
+                        size_t length = buf.length;
+                        uint major, minor, tiny;
+                        if (sysctlbyname("kern.osproductversion", buf.ptr, &length, null, 0) == 0)
+                        {
+                            // Returns the macOS version string, e.g: 12.6.0
+                            if (sscanf(buf.ptr, "%u.%u.%u", &major, &minor, &tiny) >= 0)
+                                return osVersion((major * 1_00_00) + (minor * 1_00) + tiny);
+                        }
+                        if (sysctlbyname("kern.osrelease", buf.ptr, &length, null, 0) == 0)
+                        {
+                            // Returns the darwin version string, map to macOS.
+                            if (sscanf(buf.ptr, "%u.%u.%u", &major, &minor, &tiny) >= 0)
+                            {
+                                if (auto macVersion = macOSVersion(major))
+                                    return osVersion(macVersion);
+                            }
+                        }
+                    }
+                    // Fallback on guessing appropriate minimum version.
+                    if (isAArch64)
+                        return osVersion(11_00_00);
+                    else if (isX86_64)
+                        return osVersion(10_06_00);
+                    else
+                        return osVersion(10_05_00);
+                }
+                goto default;
+
+            case FreeBSDVersion.stringof:
+                if (os == Target.OS.FreeBSD)
+                {
+                    // Format of the version: XX_YY_ZZZ
+                    if (osVersionLong)
+                        return new IntegerExp(osVersionLong);
+
+                    // Infer from -target= os version (i.e: freebsd13)
+                    if (osMajor)
+                        return osVersion(osMajor * 1_00_000);
+                    // Infer from the running system.
+                    version (FreeBSD)
+                    {
+                        int osreldate;
+                        size_t length = int.sizeof;
+                        if (sysctlbyname("kern.osreldate", &osreldate, &length, null, 0) == 0)
+                            return osVersion(osreldate);
+                    }
+                    // Fallback to minimum supported version.
+                    return osVersion(10_00_000);
+                }
+                goto default;
 
             default:
                 return null;
@@ -1718,3 +1813,19 @@ struct TargetObjC
 
 ////////////////////////////////////////////////////////////////////////////////
 extern (C++) __gshared Target target;
+
+private
+{
+    // Define our own version of C prototypes, as older compilers didn't have
+    // the core.sys.*.sysctl module.
+    version (OSX)
+    {
+        extern (C) int sysctlbyname(const char* name, void* oldp, size_t* oldlenp,
+                                    const void* newp, size_t newlen) nothrow @nogc;
+    }
+    version (FreeBSD)
+    {
+        extern (C) int sysctlbyname(const char* name, void* oldp, size_t* oldlenp,
+                                    const void* newp, size_t newlen) nothrow @nogc;
+    }
+}

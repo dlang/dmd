@@ -137,6 +137,7 @@ struct Target
 
     OS os;
     uint8_t osMajor;
+    uint32_t osVersionLong;
     // D ABI
     uint8_t ptrsize;
     uint8_t realsize;           // size a real consumes in memory

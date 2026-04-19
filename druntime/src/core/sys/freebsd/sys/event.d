@@ -39,7 +39,7 @@ enum
     EVFILT_SYSCOUNT =  11,
 }
 
-static if (__FreeBSD_version >= 1200000)
+static if (__traits(getTargetInfo, "FreeBSDVersion") >= 1200000)
 {
     struct kevent_t
     {
@@ -170,7 +170,7 @@ version (GNU)
 }
 else
 {
-    static if (__FreeBSD_version >= 1200000)
+    static if (__traits(getTargetInfo, "FreeBSDVersion") >= 1200000)
         pragma(mangle, "kevent@@FBSD_1.5")
         int kevent(int kq, const kevent_t *changelist, int nchanges,
                    kevent_t *eventlist, int nevents,

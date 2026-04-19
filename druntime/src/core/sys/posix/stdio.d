@@ -364,14 +364,12 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    import core.sys.freebsd.config;
-
     enum L_ctermid = 1024;
 
     int   fseeko(FILE*, off_t, int);
     off_t ftello(FILE*);
 
-    static if (__FreeBSD_version >= 800000)
+    static if (__traits(getTargetInfo, "FreeBSDVersion") >= 800000)
     {
         ssize_t getdelim(char**, size_t*, int, FILE*);
         ssize_t getline(char**, size_t*, FILE*);
