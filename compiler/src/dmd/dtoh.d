@@ -938,6 +938,10 @@ public:
         if (!shouldEmitAndMarkVisited(vd))
             return;
 
+        // Don't emit static foreach loop variables
+        if (vd.storage_class & AST.STC.foreach_)
+            return;
+
         // Tuple field are expanded into multiple VarDeclarations
         // (we'll visit them later)
         if (vd.type && vd.type.isTypeTuple())
