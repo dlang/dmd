@@ -4957,7 +4957,7 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
                                 MATCH m = dim.implicitConvTo(vt);
                                 if (m == MATCH.nomatch)
                                     return nomatch();
-                                (*dedtypes)[i] = dim;
+                                (*dedtypes)[i] = dim.implicitCastTo(sc, vt).ctfeInterpret();
                             }
                         }
                     }
