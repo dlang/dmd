@@ -363,6 +363,10 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             Statement sexception;
             Statement sfinally;
 
+            TOK scopeGuardTok = TOK.init;
+            if (auto sgs = s.isScopeGuardStatement())
+                scopeGuardTok = sgs.tok;
+
             (*cs.statements)[i] = s.scopeCode(sc, sentry, sexception, sfinally);
             if (sentry)
             {
@@ -425,9 +429,17 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     ctch.internalCatch = true;
                     auto catches = new Catches(ctch);
 
-                    Statement st = new TryCatchStatement(Loc.initial, _body, catches);
+                    auto stc = new TryCatchStatement(Loc.initial, _body, catches);
+                    if (scopeGuardTok)
+                        stc.loweredFromScopeGuard = scopeGuardTok;
+                    Statement st = stc;
                     if (sfinally)
-                        st = new TryFinallyStatement(Loc.initial, st, sfinally);
+                    {
+                        auto stf = new TryFinallyStatement(Loc.initial, st, sfinally);
+                        if (scopeGuardTok)
+                            stf.loweredFromScopeGuard = scopeGuardTok;
+                        st = stf;
+                    }
                     st = st.statementSemantic(sc);
 
                     cs.statements.push(st);
@@ -452,9 +464,13 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     cs.statements.setDim(i + 1);
 
                     auto _body = new CompoundStatement(Loc.initial, a);
-                    Statement stf = new TryFinallyStatement(Loc.initial, _body, sfinally);
-                    stf = stf.statementSemantic(sc);
-                    cs.statements.push(stf);
+                    auto stf = new TryFinallyStatement(Loc.initial, _body, sfinally);
+                    if (auto des = sfinally.isDtorExpStatement())
+                        stf.loweredFrom = des.var;
+                    else if (scopeGuardTok)
+                        stf.loweredFromScopeGuard = scopeGuardTok;
+                    Statement stfs = stf.statementSemantic(sc);
+                    cs.statements.push(stfs);
                     break;
                 }
             }
@@ -5193,6 +5209,33 @@ bool checkLabel(GotoStatement gs)
     {
         if (!stb)
         {
+            auto labelTryBody = gs.label.statement.tryBody;
+            TOK loweredFromScopeGuard = TOK.init;
+
+            if (auto stf = labelTryBody.isTryFinallyStatement())
+            {
+                if (stf.loweredFrom)
+                {
+                    error(gs.loc, "`goto` skips declaration of variable `%s`", stf.loweredFrom.toPrettyChars());
+                    errorSupplemental(stf.loweredFrom.loc, "declared here");
+                    return true;
+                }
+                loweredFromScopeGuard = stf.loweredFromScopeGuard;
+            }
+            else if (auto stc = labelTryBody.isTryCatchStatement())
+            {
+                if (stc.loweredFromScopeGuard)
+                {
+                    error(gs.loc, "cannot `goto` past `%s` block", Token.toChars(stc.loweredFromScopeGuard));
+                    return true;
+                }
+                loweredFromScopeGuard = stc.loweredFromScopeGuard;
+            }
+            if (loweredFromScopeGuard)
+            {
+                error(gs.loc, "cannot `goto` past `%s` block", Token.toChars(loweredFromScopeGuard));
+                return true;
+            }
             error(gs.loc, "cannot `goto` into `try` block");
             return true;
         }

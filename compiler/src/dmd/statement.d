@@ -1460,6 +1460,7 @@ extern (C++) final class TryCatchStatement : Statement
     Catches* catches;
 
     Statement tryBody;   /// set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
+    TOK loweredFromScopeGuard;  /// set when this was lowered from a scope guard (onScopeFailure, onScopeSuccess)
 
     extern (D) this(Loc loc, Statement _body, Catches* catches) @safe
     {
@@ -1532,6 +1533,8 @@ extern (C++) final class TryFinallyStatement : Statement
 
     Statement tryBody;   /// set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
     bool bodyFallsThru;  /// true if _body falls through to finally
+    TOK loweredFromScopeGuard;  /// set when this was lowered from a scope guard (onScopeExit, onScopeSuccess)
+    VarDeclaration loweredFrom; /// set when this was lowered from a variable with a destructor
 
     extern (D) this(Loc loc, Statement _body, Statement finalbody) @safe
     {

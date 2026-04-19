@@ -5232,6 +5232,7 @@ public:
     Statement* _body;
     Array<Catch* >* catches;
     Statement* tryBody;
+    TOK loweredFromScopeGuard;
     TryCatchStatement* syntaxCopy() override;
     bool hasBreak() const override;
     void accept(Visitor* v) override;
@@ -5244,6 +5245,8 @@ public:
     Statement* finalbody;
     Statement* tryBody;
     bool bodyFallsThru;
+    TOK loweredFromScopeGuard;
+    VarDeclaration* loweredFrom;
     static TryFinallyStatement* create(Loc loc, Statement* _body, Statement* finalbody);
     TryFinallyStatement* syntaxCopy() override;
     bool hasBreak() const override;
