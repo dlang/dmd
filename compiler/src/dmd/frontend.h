@@ -7867,6 +7867,12 @@ public:
     virtual void visit(typename AST::CInitializer ) override;
 };
 
+class StatementWalker : public SemanticTimeTransitiveVisitor
+{
+public:
+    void visit(Statement* st) final override;
+};
+
 extern _d_real creall(complex_t x);
 
 extern _d_real cimagl(complex_t x);
