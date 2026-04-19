@@ -2842,7 +2842,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
  */
 
 @trusted
-void callclib(ref CodeBuilder cdb, elem* e, uint clib, ref regm_t pretregs, regm_t keepmask)
+void callclib(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint clib, ref regm_t pretregs, regm_t keepmask)
 {
     //printf("callclib(e = %p, clib = %d, pretregs = %s, keepmask = %s\n", e, clib, regm_str(pretregs), regm_str(keepmask));
     //elem_print(e);

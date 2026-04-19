@@ -170,7 +170,7 @@ void opdouble(ref CodeBuilder cdb, elem* e,ref regm_t pretregs,uint clib)
     scodelem(cgstate,cdb,e.E2, retregs2, retregs1 & ~mSTACK, false);
     if (retregs1 & mSTACK)
         cgstate.stackclean--;
-    callclib(cdb, e, clib, pretregs, 0);
+    callclib(cgstate,cdb, e, clib, pretregs, 0);
 }
 
 /*****************************
@@ -1217,7 +1217,7 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 {
                     regm_t rretregs = mCX | mBX;           // second arg
                     scodelem(cgstate,cdb,e2,rretregs,retregs,true);  // get rvalue
-                    callclib(cdb,e,CLIB.lmul,pretregs,0);
+                    callclib(cg,cdb,e,CLIB.lmul,pretregs,0);
                     return;
                 }
             }
@@ -1950,7 +1950,7 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 }
 
                 regm_t keepregs = I32 ? mSI | mDI : 0;
-                callclib(cdb,e,lib,pretregs,keepregs);
+                callclib(cg,cdb,e,lib,pretregs,keepregs);
             }
             else
                     assert(0);
@@ -5287,13 +5287,13 @@ if (config.exe & EX_windos)
         if (tyml == TYdouble || tyml == TYdouble_alias)
         {
             retregs = DOUBLEREGS;
-            callclib(cdb,e,(op == OPpostinc) ? CLIB.dadd : CLIB.dsub,
+            callclib(cg,cdb,e,(op == OPpostinc) ? CLIB.dadd : CLIB.dsub,
                     retregs,idxregs);
         }
         else /* tyml == TYfloat */
         {
             retregs = FLOATREGS;
-            callclib(cdb,e,(op == OPpostinc) ? CLIB.fadd : CLIB.fsub,
+            callclib(cg,cdb,e,(op == OPpostinc) ? CLIB.fadd : CLIB.fsub,
                     retregs,idxregs);
         }
         cs.Iop = 0x89;                  /* MOV EA,DOUBLEREGS            */
