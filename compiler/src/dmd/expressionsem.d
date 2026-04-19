@@ -7965,6 +7965,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 else if (exp.arguments.length == 1)
                 {
+                    if (exp.names && (*exp.names)[0].name)
+                    {
+                        error(exp.loc, "no named argument `%s` allowed for scalar", (*exp.names)[0].name.toErrMsg());
+                        return setError();
+                    }
                     e = (*exp.arguments)[0];
                     e = e.implicitCastTo(sc, t1);
                     e = new CastExp(exp.loc, e, t1);

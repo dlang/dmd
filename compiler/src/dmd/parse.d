@@ -8492,7 +8492,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (token.value == TOK.leftParenthesis)
             {
                 e = new AST.TypeExp(loc, t);
-                e = new AST.CallExp(loc, e, parseArguments());
+                auto args = new AST.Expressions();
+                auto names = new AST.ArgumentLabels();
+                parseNamedArguments(args, names);
+                e = new AST.CallExp(loc, e, args, names);
                 break;
             }
             check(TOK.dot);
