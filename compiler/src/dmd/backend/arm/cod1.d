@@ -773,7 +773,7 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
                 if (ss)
                 {
                     /* Load index register with result of e11.E1       */
-                    cdisscaledindex(cdb, e11, idxregs, keepmsk);
+                    cdisscaledindex(cg, cdb, e11, idxregs, keepmsk);
                     reg = findreg(idxregs);
                     {
                         t = stackfl[f] ? 2 : 0;
@@ -953,7 +953,7 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
                 }
                 if ((ss = isscaledindex(ty, e11)) != 0)
                 {   // (v * scale) + const
-                    cdisscaledindex(cdb, e11, idxregs, keepmsk);
+                    cdisscaledindex(cg, cdb, e11, idxregs, keepmsk);
                     reg = findreg(idxregs);
                     pcs.Irm = modregrm(0, 0, 4);
                     pcs.Isib = modregrm(ss, reg & 7, 5);
@@ -985,14 +985,14 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
                 {
                     scodelem(cg,cdb, e11, idxregs, keepmsk, true);
                     idxregs2 = cg.allregs & ~(idxregs | keepmsk);
-                    cdisscaledindex(cdb, e12, idxregs2, keepmsk | idxregs);
+                    cdisscaledindex(cg, cdb, e12, idxregs2, keepmsk | idxregs);
                 }
 
                 // Look for *(v1 << scale + v2)
                 else if ((ss = isscaledindex(ty, e11)) != 0)
                 {
                     idxregs2 = idxregs;
-                    cdisscaledindex(cdb, e11, idxregs2, keepmsk);
+                    cdisscaledindex(cg, cdb, e11, idxregs2, keepmsk);
                     idxregs = cg.allregs & ~(idxregs2 | keepmsk);
                     scodelem(cg,cdb, e12, idxregs, keepmsk | idxregs2, true);
                 }
@@ -1004,7 +1004,7 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
                 {
                     pcs.IEV1.Vuns = e11.E2.Vuns;
                     idxregs2 = idxregs;
-                    cdisscaledindex(cdb, e11.E1, idxregs2, keepmsk);
+                    cdisscaledindex(cg, cdb, e11.E1, idxregs2, keepmsk);
                     idxregs = cg.allregs & ~(idxregs2 | keepmsk);
                     scodelem(cg,cdb, e12, idxregs, keepmsk | idxregs2, true);
                     freenode(e11.E2);
@@ -2452,7 +2452,7 @@ static if (0)
 /***************************
  * Generate code to move argument e on the argument stack.
  * Params:
- *      cg = cgstate
+ *      cg = code generator state
  *      cdb = code sink
  *      e = argument
  *      funcargtos = offset from SP to where argument goes

@@ -1140,7 +1140,7 @@ void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
     bool isPair = isRegisterPair(true, tybasic(s.Stype.Tty), 0);
     if (isPair)
         sz /= 2;
-    getlvalue(cdb,cs,e,keepmsk,rm);
+    getlvalue(cgstate,cdb,cs,e,keepmsk,rm);
     if (toreg)
         loadFromEA(cs,s.Sreglsw,(sz < 4 ? 4 : sz),sz);
     else

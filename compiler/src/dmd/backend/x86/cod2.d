@@ -303,7 +303,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             code cs;
             cs.Iflags = 0;
             cs.Irex = 0;
-            getlvalue(cdb,cs,e1,0);
+            getlvalue(cg,cdb,cs,e1,0);
             targ_size_t value = e2.Vpointer;
             if (sz == 2)
                 value &= 0xFFFF;
@@ -342,7 +342,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             code cs;
             cs.Iflags = 0;
             cs.Irex = 0;
-            getlvalue(cdb,cs,e1,0);
+            getlvalue(cg,cdb,cs,e1,0);
             code_newreg(&cs, reg);
             if (I64 && isbyte && reg >= 4)
                 cs.Irex |= REX;
@@ -386,7 +386,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             const inc = e.Ecount != 0;
             nest += inc;
             code csx;
-            getlvalue(cdb,csx,e,0);
+            getlvalue(cg,cdb,csx,e,0);
             nest -= inc;
             const regx = allocreg(cdb,pretregs,ty);
             csx.Iop = LEA;
@@ -2036,7 +2036,7 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     if (sz <= REGSIZE && e1.Eoper == OPvar)
     {   code cs;
 
-        getlvalue(cdb,cs,e1,0);
+        getlvalue(cg,cdb,cs,e1,0);
         freenode(e1);
         if (!I16 && sz == 2)
             cs.Iflags |= CFopsize;
@@ -3295,7 +3295,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     code cs;
 
-     getlvalue(cdb,cs,e,0,RM.load);          // get addressing mode
+     getlvalue(cg,cdb,cs,e,0,RM.load);          // get addressing mode
     //printf("Irex = %02x, Irm = x%02x, Isib = x%02x\n", cs.Irex, cs.Irm, cs.Isib);
     //fprintf(stderr,"cd2 :\n"); WRcodlst(c);
     if (pretregs == 0)
@@ -5238,7 +5238,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 if (config.exe & EX_windos)
 {
         assert(sz <= 8);
-        getlvalue(cdb,cs,e.E1,DOUBLEREGS);
+        getlvalue(cg,cdb,cs,e.E1,DOUBLEREGS);
         freenode(e.E1);
         regm_t idxregs = idxregm(&cs);  // mask of index regs used
         cs.Iop = 0x8B;                  /* MOV DOUBLEREGS,EA            */
@@ -5342,7 +5342,7 @@ if (config.exe & EX_windos)
     assert(e2.Eoper == OPconst);
     uint isbyte = (sz == 1);
     regm_t possregs = isbyte ? BYTEREGS : cgstate.allregs;
-    getlvalue(cdb,cs,e.E1,0);
+    getlvalue(cg,cdb,cs,e.E1,0);
     freenode(e.E1);
     regm_t idxregs = idxregm(&cs);       // mask of index regs used
     if (sz <= REGSIZE && pretregs == mPSW && (cs.Irm & 0xC0) == 0xC0 &&

@@ -99,18 +99,18 @@ int isscaledindex(elem* e)
 
 @trusted
 //private
-void cdisscaledindex(ref CodeBuilder cdb,elem* e,ref regm_t pidxregs,regm_t keepmsk)
+void cdisscaledindex(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pidxregs,regm_t keepmsk)
 {
     // Load index register with result of e.E1
     while (e.Eoper == OPcomma)
     {
         regm_t r = 0;
-        scodelem(cgstate,cdb, e.E1, r, keepmsk, true);
+        scodelem(cg,cdb, e.E1, r, keepmsk, true);
         freenode(e);
         e = e.E2;
     }
     assert(e.Eoper == OPshl);
-    scodelem(cgstate,cdb, e.E1, pidxregs, keepmsk, true);
+    scodelem(cg,cdb, e.E1, pidxregs, keepmsk, true);
     freenode(e.E2);
     freenode(e);
 }
@@ -643,7 +643,7 @@ void logexp(ref CGstate cg, ref CodeBuilder cdb, elem* e, int jcond, FL fltarg, 
  */
 
 @trusted
-void loadea(CGstate cg, ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_t offset,
+void loadea(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t reg,targ_size_t offset,
             regm_t keepmsk,regm_t desmsk, RM rmx = RM.rw)
 {
     if (cgstate.AArch64)
@@ -725,7 +725,7 @@ void loadea(CGstate cg, ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_t re
         }
     }
 
-    getlvalue(cdb, cs, e, keepmsk, rmx);
+    getlvalue(cg, cdb, cs, e, keepmsk, rmx);
     if (offset == REGSIZE)
         getlvalue_msw(cs);
     else
@@ -879,6 +879,7 @@ void getlvalue_lsw(ref code c)
  * Compute addressing mode.
  * Return in cs the info on it.
  * Params:
+ *      cg  = code generator state
  *      cdb = sink for any code generated
  *      pcs = set to addressing mode
  *      e   = the lvalue elem
@@ -889,7 +890,7 @@ void getlvalue_lsw(ref code c)
  */
 
 @trusted
-void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = RM.rw)
+void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = RM.rw)
 {
     FL fl;
     FL f;
@@ -1029,7 +1030,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
                     if (ss)
                     {
                         /* Load index register with result of e11.E1       */
-                        cdisscaledindex(cdb, e11, idxregs, keepmsk);
+                        cdisscaledindex(cg, cdb, e11, idxregs, keepmsk);
                         reg = findreg(idxregs);
                         {
                             t = stackfl[f] ? 2 : 0;
@@ -1289,7 +1290,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
                 }
                 if (!I16 && (ss = isscaledindex(e11)) != 0)
                 {   // (v * scale) + const
-                    cdisscaledindex(cdb, e11, idxregs, keepmsk);
+                    cdisscaledindex(cg, cdb, e11, idxregs, keepmsk);
                     reg = findreg(idxregs);
                     pcs.Irm = modregrm(0, 0, 4);
                     pcs.Isib = modregrm(ss, reg & 7, 5);
@@ -1321,14 +1322,14 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
                 {
                     scodelem(cgstate,cdb, e11, idxregs, keepmsk, true);
                     idxregs2 = cgstate.allregs & ~(idxregs | keepmsk);
-                    cdisscaledindex(cdb, e12, idxregs2, keepmsk | idxregs);
+                    cdisscaledindex(cg, cdb, e12, idxregs2, keepmsk | idxregs);
                 }
 
                 // Look for *(v1 << scale + v2)
                 else if ((ss = isscaledindex(e11)) != 0)
                 {
                     idxregs2 = idxregs;
-                    cdisscaledindex(cdb, e11, idxregs2, keepmsk);
+                    cdisscaledindex(cg, cdb, e11, idxregs2, keepmsk);
                     idxregs = cgstate.allregs & ~(idxregs2 | keepmsk);
                     scodelem(cgstate,cdb, e12, idxregs, keepmsk | idxregs2, true);
                 }
@@ -1340,7 +1341,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
                 {
                     pcs.IEV1.Vuns = e11.E2.Vuns;
                     idxregs2 = idxregs;
-                    cdisscaledindex(cdb, e11.E1, idxregs2, keepmsk);
+                    cdisscaledindex(cg, cdb, e11.E1, idxregs2, keepmsk);
                     idxregs = cgstate.allregs & ~(idxregs2 | keepmsk);
                     scodelem(cgstate,cdb, e12, idxregs, keepmsk | idxregs2, true);
                     freenode(e11.E2);

@@ -2305,7 +2305,7 @@ static if (0)
 
                 const regx = allocreg(cdb,retregs,TYoffset);
                 reg = findreg(retregs);
-                loadea(cgstate,cdb,e,cs,LEA,reg,0,0,0);    // LEA reg,EA
+                loadea(cg,cdb,e,cs,LEA,reg,0,0,0);    // LEA reg,EA
                 if (I64)
                     code_orrex(cdb.last(), REX_W);
                 cdb.genpush(reg);               // PUSH reg
@@ -2739,7 +2739,7 @@ void floatPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (regvar && pretregs == mPSW)
     {
-        tstresult(cgstate, cdb, mask(reg),ty1,false);
+        tstresult(cg, cdb, mask(reg),ty1,false);
 
         // If lvalue is a register variable, mark it as modified
         getregs(cdb,retregs);
@@ -2874,7 +2874,7 @@ void complexPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs
 
     if (regvar && pretregs == mPSW)
     {
-        tstresult(cgstate,cdb,retregs,ty1,false);
+        tstresult(cg,cdb,retregs,ty1,false);
 
         // If lvalue is a register variable, mark it as modified
         getregs(cdb,retregs);

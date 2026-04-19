@@ -5174,7 +5174,7 @@ void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
             cs.Iop = xmmload(s.Stype.Tty);        // MOVSS/D xreg,mem
         else
             cs.Iop = xmmstore(s.Stype.Tty);       // MOVSS/D mem,xreg
-        getlvalue(cdb,cs,e,keepmsk,rm);
+        getlvalue(cgstate,cdb,cs,e,keepmsk,rm);
         cs.orReg(s.Sreglsw - XMM0);
         cdb.gen(&cs);
     }
@@ -5183,7 +5183,7 @@ void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
         const int sz = cast(int)type_size(s.Stype);
         cs.Iop = toreg ? 0x8B : 0x89; // MOV reg,mem[ESP] : MOV mem[ESP],reg
         cs.Iop ^= (sz == 1);
-        getlvalue(cdb,cs,e,keepmsk,rm);
+        getlvalue(cgstate,cdb,cs,e,keepmsk,rm);
         cs.orReg(s.Sreglsw);
         if (I64 && sz == 1 && s.Sreglsw >= 4)
             cs.Irex |= REX;
