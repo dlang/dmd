@@ -122,13 +122,13 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 postinc = e11.E2.Vint;
                 if (e11.Eoper == OPpostdec)
                     postinc = -postinc;
-                getlvalue(cdb,cs,e1,0,RM.store);
+                getlvalue(cg,cdb,cs,e1,0,RM.store);
                 freenode(e11.E2);
             }
             else
             {
                 postinc = 0;
-                getlvalue(cdb,cs,e1,0,RM.store);
+                getlvalue(cg,cdb,cs,e1,0,RM.store);
             }
 
             // If loading result into a register
@@ -214,13 +214,13 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         postinc = e11.E2.Vint;
         if (e11.Eoper == OPpostdec)
             postinc = -postinc;
-        getlvalue(cdb,cs,e1,retregs,RM.store);
+        getlvalue(cg,cdb,cs,e1,retregs,RM.store);
         freenode(e11.E2);
     }
     else
     {
         postinc = 0;
-        getlvalue(cdb,cs,e1,retregs,RM.store);     // get lvalue (cl == null if regvar)
+        getlvalue(cg,cdb,cs,e1,retregs,RM.store);     // get lvalue (cl == null if regvar)
     }
 
     getregs(cdb,varregm);
@@ -334,7 +334,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (op == OPnegass)
     {
-        getlvalue(cdb,cs,e1,0);
+        getlvalue(cg,cdb,cs,e1,0);
         if (cs.reg == NOREG)
         {
             regm_t keepmsk = mask(cs.base) | mask(cs.index);
@@ -375,7 +375,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
          * e1 += (x >= y)   SBB EA,-1
          * e1 -= (x >= y)   ADC EA,-1
          */
-        getlvalue(cdb,cs,e1,0);             // get lvalue
+        getlvalue(cg,cdb,cs,e1,0);             // get lvalue
         modEA(cdb,&cs);
         regm_t keepmsk = idxregm(cs);
         retregs = mPSW;
@@ -403,7 +403,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         retregs = cg.allregs;                        // pick working reg
         scodelem(cg,cdb,e.E2,retregs,0,true);   // get rvalue
-        getlvalue(cdb,cs,e1,retregs);                // get lvalue
+        getlvalue(cg,cdb,cs,e1,retregs);                // get lvalue
         reg_t reg1;
         //printf("cs.reg: %s cs.base: %s cs.index: %s\n", regm_str(mask(cs.reg)), regm_str(mask(cs.base)), regm_str(mask(cs.index)));
         if (cs.reg != NOREG)
@@ -507,7 +507,7 @@ void floatOpAss(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     if (e.Eoper == OPnegass)
     {
         bool regvar;
-        getlvalue(cdb,cs,e1,0);
+        getlvalue(cg,cdb,cs,e1,0);
         if (isPair)
         {
             reg_t reglsw, regmsw;
@@ -622,7 +622,7 @@ void floatOpAss(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (!regvar)
     {
-        getlvalue(cdb,cs,e1,retregs2,RM.rw);         // get EA
+        getlvalue(cg,cdb,cs,e1,retregs2,RM.rw);         // get EA
         retregs = pretregs & INSTR.FLOATREGS & ~retregs2;
         if (!retregs)
             retregs = INSTR.FLOATREGS & ~retregs2;
@@ -684,7 +684,7 @@ void floatOpAss(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 clib = sz1 == 8 ? CLIB_A.divdc3 : CLIB_A.divsc3;
             Lclib:
                 regm_t idxregs = idxregm(cs);
-                callclib(cdb,e,clib,pretregs,idxregs);
+                callclib(cg,cdb,e,clib,pretregs,idxregs);
                 if (!regvar)
                 {
                     storeToEA(cs,reg,sz1);
@@ -710,7 +710,7 @@ void floatOpAss(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         }
         regm_t idxregs = idxregm(cs);  // save index registers so we can do the storeToEA() later
         regm_t dummy;
-        callclib(cdb,null,clib,dummy,idxregs);
+        callclib(cg,cdb,null,clib,dummy,idxregs);
     }
     else
     {
@@ -795,7 +795,7 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         regm2 = cg.allregs;
     codelem(cg,cdb,e2,regm2,false); // load rvalue in reg2
     reg_t reg2 = findreg(regm2);
-    getlvalue(cdb,cs,e1,regm2);  // get EA
+    getlvalue(cg,cdb,cs,e1,regm2);  // get EA
     regm_t earegm = mask(cs.base) | mask(cs.index);
     regm_t retregs;
     reg_t reg;
@@ -869,7 +869,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         Rdivisorm = cg.allregs;
     codelem(cg,cdb,e2,Rdivisorm,false); // load rvalue in Rdivisor
     reg_t Rdivisor = findreg(Rdivisorm);
-    getlvalue(cdb,cs,e1,Rdivisorm);  // get EA
+    getlvalue(cg,cdb,cs,e1,Rdivisorm);  // get EA
     regm_t earegm = mask(cs.base) | mask(cs.index);
     regm_t retregs;
     reg_t Rdividend;
@@ -946,7 +946,7 @@ void cdshass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         Rshiftcntm = cg.allregs;
     codelem(cg,cdb,e2,Rshiftcntm,false); // load rvalue in Rshiftcnt
     reg_t Rshiftcnt = findreg(Rshiftcntm);
-    getlvalue(cdb,cs,e1,Rshiftcntm);  // get EA
+    getlvalue(cg,cdb,cs,e1,Rshiftcntm);  // get EA
     regm_t earegm = mask(cs.base) | mask(cs.index);
     regm_t retregs;
     reg_t Rshiftee;
@@ -1115,7 +1115,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     default:        assert(0);
                 }
                 regm_t dummy;
-                callclib(cdb,null,clib,dummy,0);
+                callclib(cg,cdb,null,clib,dummy,0);
                 gentstreg(cdb,0,0);                          // CMP w0,#0
                 assert(0);      // TODO AArch64 registers not right for library call
             }
@@ -1274,7 +1274,7 @@ printf("OPconst:\n");
                  e1.Eoper == OPind) &&
                 !evalinregister(e1))
             {
-                getlvalue(cdb,cs,e1,0,RM.load);
+                getlvalue(cg,cdb,cs,e1,0,RM.load);
                 freenode(e1);
                 if (evalinregister(e2))
                 {
@@ -1409,7 +1409,7 @@ printf("OPconst:\n");
                )
             {
                 // CMP EA,e2
-                getlvalue(cdb,cs,e1,0,RM.load);
+                getlvalue(cg,cdb,cs,e1,0,RM.load);
                 freenode(e1);
                 cs.Iop = 0x39 ^ isbyte ^ reverse;
                 code_newreg(&cs,reg);
@@ -1693,7 +1693,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
             codelem(cg,cdb,e.E1,retregs1,false);
             import dmd.backend.arm.cod1 : CLIB_A, callclib;
             CLIB_A clib = e.Eoper == OPd_ld ? CLIB_A.doubleToReal : CLIB_A.realToDouble;
-            callclib(cdb,e,clib,pretregs,0);
+            callclib(cg,cdb,e,clib,pretregs,0);
             break;
 
         default:
@@ -1732,7 +1732,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             // EA:  LDR w0,[sp,#8]
             // reg: MOV w0,w1
             code cs;
-            getlvalue(cdb,cs,e1,0,RM.load);
+            getlvalue(cg,cdb,cs,e1,0,RM.load);
             cs.Sextend = (cs.Sextend & 8) | Extend.UXTW; // preserve S bit
             reg_t reg = allocreg(cdb,retregs,TYint);
             loadFromEA(cs,reg,8,4);
@@ -1744,7 +1744,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         {
             // AND x0,x0,0xFF
             code cs;
-            getlvalue(cdb,cs,e1.E1,0,RM.load);
+            getlvalue(cg,cdb,cs,e1.E1,0,RM.load);
             Extend extend = e1.Eoper == OPu8_16 ? Extend.UXTB : Extend.UXTH;
             cs.Sextend = cast(ubyte)((cs.Sextend & 8) | extend);  // preserve S bit
             reg_t reg = allocreg(cdb,retregs,TYint);
@@ -1780,7 +1780,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     {
         regm_t retregs = pretregs;
         code cs;
-        getlvalue(cdb,cs,e1.E1,0,RM.load);
+        getlvalue(cg,cdb,cs,e1.E1,0,RM.load);
         Extend extend = e1.Eoper == OPs8_16 ? Extend.SXTB : Extend.SXTH;
         cs.Sextend = cast(ubyte)((cs.Sextend & 8) | extend);  // preserve S bit
         reg_t reg = allocreg(cdb,retregs,TYint);
@@ -1812,7 +1812,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         {
             code cs;
 
-            getlvalue(cdb,cs,e11,0,RM.load);
+            getlvalue(cg,cdb,cs,e11,0,RM.load);
             retregs = pretregs;
             if (!retregs)
                 retregs = cg.allregs;
@@ -1837,7 +1837,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             (e1.Eoper == OPind && !e1.Ecount))
         {
             code cs;
-            getlvalue(cdb,cs,e1,0,RM.load);
+            getlvalue(cg,cdb,cs,e1,0,RM.load);
             retregs = pretregs;
             if (!retregs)
                 retregs = cg.allregs;
@@ -1995,7 +1995,7 @@ void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     if (e1.Eoper == OPvar || (e1.Eoper == OPind && !e1.Ecount))
     {
         code cs;
-        getlvalue(cdb,cs,e1,0,RM.load);
+        getlvalue(cg,cdb,cs,e1,0,RM.load);
         Extend extend = (op == OPu8_16) ? Extend.UXTB : Extend.SXTB;
         cs.Sextend = cast(ubyte)((cs.Sextend & 8) | extend);  // preserve S bit
         reg_t reg = allocreg(cdb,retregs,TYint);

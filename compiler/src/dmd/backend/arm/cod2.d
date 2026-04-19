@@ -163,7 +163,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 default:
                     assert(0);
             }
-            callclib(cdb,e,clib,pretregs,0);
+            callclib(cg,cdb,e,clib,pretregs,0);
         }
         else
         {
@@ -309,9 +309,9 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             regm_t retregs2 = mask(34) | mask(35);
             scodelem(cg, cdb, e2, retregs2, retregs1, false);
             if (ty1 == TYcfloat)
-                callclib(cdb,e,CLIB_A.mulsc3,pretregs,0);
+                callclib(cg,cdb,e,CLIB_A.mulsc3,pretregs,0);
             else if (ty1 == TYcdouble)
-                callclib(cdb,e,CLIB_A.muldc3,pretregs,0);
+                callclib(cg,cdb,e,CLIB_A.muldc3,pretregs,0);
             else
                 assert(0);
             return;
@@ -379,9 +379,9 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             regm_t retregs2 = mask(34) | mask(35);
             scodelem(cg, cdb, e2, retregs2, retregs1, false);
             if (ty1 == TYcfloat)
-                callclib(cdb,e,CLIB_A.divsc3,pretregs,0);
+                callclib(cg,cdb,e,CLIB_A.divsc3,pretregs,0);
             else if (ty1 == TYcdouble)
-                callclib(cdb,e,CLIB_A.divdc3,pretregs,0);
+                callclib(cg,cdb,e,CLIB_A.divdc3,pretregs,0);
             else
                 assert(0);
             return;
@@ -1632,7 +1632,7 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     regm_t dstregs = mask(0);
     scodelem(cg,cdb,e.E1,dstregs,nbytesregs | valueregs,false);
 
-    callclib(cdb,null,CLIB_A.memset,pretregs,0);        // memset(void* ptr, int value, size_t num)
+    callclib(cg,cdb,null,CLIB_A.memset,pretregs,0);        // memset(void* ptr, int value, size_t num)
 }
 
 /***********************************************
@@ -2589,7 +2589,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     regm_t possregs = cg.allregs;
     code cs;
-    getlvalue(cdb,cs,e.E1,0);
+    getlvalue(cg,cdb,cs,e.E1,0);
     freenode(e.E1);
     if (cs.reg != NOREG && pretregs == mPSW)
     {
@@ -2728,7 +2728,7 @@ void floatPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     code cs;
     if (!regvar)
     {
-        getlvalue(cdb,cs,e1,0,RM.rw);                // get EA
+        getlvalue(cg,cdb,cs,e1,0,RM.rw);                // get EA
         retregs = INSTR.FLOATREGS & ~pretregs;
         if (!retregs)
             retregs = INSTR.FLOATREGS;
@@ -2857,7 +2857,7 @@ void complexPost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs
     code cs;
     if (!regvar)
     {
-        getlvalue(cdb,cs,e1,0,RM.rw);                // get EA
+        getlvalue(cg,cdb,cs,e1,0,RM.rw);                // get EA
         retregs = INSTR.FLOATREGS & ~pretregs;
         if (!retregs)
             retregs = INSTR.FLOATREGS;
