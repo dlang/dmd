@@ -8930,7 +8930,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             t.toChars(), token.toChars());
                         return e;
                     }
-                    e = new AST.CallExp(loc, e, parseArguments());
+                    auto args = new AST.Expressions();
+                    auto names = new AST.ArgumentLabels();
+                    parseNamedArguments(args, names);
+                    e = new AST.CallExp(loc, e, args, names);
                 }
                 break;
             }
