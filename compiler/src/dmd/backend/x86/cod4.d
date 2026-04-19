@@ -218,7 +218,7 @@ private void opassdbl(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pret
     cg.stackclean++;
     scodelem(cg,cdb,e.E2,retregs2,idxregs,false);
     cg.stackclean--;
-    callclib(cdb,e,clib,retregs,0);
+    callclib(cg,cdb,e,clib,retregs,0);
     if (e1.Ecount)
         cssave(e1,retregs,!OTleaf(e1.Eoper));             // if lvalue is a CSE
     freenode(e1);
@@ -1679,7 +1679,7 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             }
             else
             {
-                callclib(cdb,e,CLIB.lmul,retregs,idxregm(&cs));
+                callclib(cg,cdb,e,CLIB.lmul,retregs,idxregm(&cs));
             }
         }
 
@@ -2270,7 +2270,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     uint lib = uns ? CLIB.uldiv : CLIB.ldiv;
     if (op == OPmodass)
         ++lib;
-    callclib(cdb,e,lib,retregs,idxregm(&cs));
+    callclib(cg,cdb,e,lib,retregs,idxregm(&cs));
 
     opAssStorePair(cg, cdb, cs, e, findregmsw(retregs), findreglsw(retregs), pretregs);
 }
@@ -2615,7 +2615,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                         clib += CLIB.dtst0exc - CLIB.dtst0;
                     codelem(cg,cdb,e1,retregs,false);
                     retregs = 0;
-                    callclib(cdb,e,clib,retregs,0);
+                    callclib(cg,cdb,e,clib,retregs,0);
                     freenode(e2);
                 }
                 else
@@ -2651,7 +2651,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         if (I16)
         {
             retregs = 0;
-            callclib(cdb,e,CLIB.lcmp,retregs,0);    // gross, but it works
+            callclib(cg,cdb,e,CLIB.lcmp,retregs,0);    // gross, but it works
         }
         else
         {
@@ -3591,7 +3591,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                 {
                     regm_t retregsx = I64 ? mAX : mAX|mDX;
                     codelem(cg,cdb,e.E1,retregsx,false);
-                    callclib(cdb,e,CLIB.u64_ldbl,pretregs,0);
+                    callclib(cg,cdb,e,CLIB.u64_ldbl,pretregs,0);
                     return;
                 }
                 break;
@@ -3605,7 +3605,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                 }
                 regm_t retregsx = mST0;
                 codelem(cg,cdb,e.E1,retregsx,false);
-                callclib(cdb,e,CLIB.ld_u64,pretregs,0);
+                callclib(cg,cdb,e,CLIB.ld_u64,pretregs,0);
                 return;
             }
 
@@ -3621,7 +3621,7 @@ L1:
         assert(i < clib.length);
         if (clib[i][0] == e.Eoper)
         {
-            callclib(cdb,e,clib[i][1],pretregs,0);
+            callclib(cg,cdb,e,clib[i][1],pretregs,0);
             break;
         }
     }
