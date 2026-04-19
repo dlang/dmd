@@ -580,6 +580,7 @@ public:
     Catches *catches;
 
     Statement *tryBody;   /// set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
+    TOK loweredFromScopeGuard;  // set when this was lowered from a scope guard (onScopeFailure, onScopeSuccess)
 
     TryCatchStatement *syntaxCopy() override;
     bool hasBreak() const override;
@@ -614,6 +615,8 @@ public:
 
     Statement *tryBody;   // set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
     d_bool bodyFallsThru;   // true if _body falls through to finally
+    TOK loweredFromScopeGuard;  // set when this was lowered from a scope guard (onScopeExit, onScopeSuccess)
+    VarDeclaration *loweredFrom; // set when this was lowered from a variable with a destructor
 
     static TryFinallyStatement *create(Loc loc, Statement *body, Statement *finalbody);
     TryFinallyStatement *syntaxCopy() override;
