@@ -2547,7 +2547,9 @@ public:
             }
         }
 
-        if (expsx !is e.elements)
+        // Only create new ArrayLiteralExp if needed (don't forget to check basis as well!)
+        // https://github.com/dlang/dmd/issues/21039
+        if (expsx !is e.elements || basis !is e.basis)
         {
             // todo: all tuple expansions should go in semantic phase.
             expandTuples(expsx);
