@@ -1549,12 +1549,7 @@ struct ExpressionWalker
 
         case EXP.traits:
         case EXP.overloadSet:
-        case EXP.line:
-        case EXP.file:
-        case EXP.fileFullPath:
-        case EXP.moduleString: // __MODULE__
-        case EXP.functionString: // __FUNCTION__
-        case EXP.prettyFunction: // __PRETTY_FUNCTION__
+        case EXP.defaultInit:
 
         case EXP.voidExpression:
         case EXP.cantExpression:

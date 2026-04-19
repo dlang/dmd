@@ -35,6 +35,7 @@ import dmd.backend.type;
 import dmd.backend.mscoff;
 
 import dmd.common.outbuffer;
+import dmd.root.hash;
 
 nothrow:
 @safe:
@@ -626,7 +627,7 @@ void build_syment_table(bool bigobj)
 void MsCoffObj_termfile()
 {
     //dbg_printf("MsCoffObj_termfile\n");
-    if (configv.addlinenumbers)
+    if (config.addlinenumbers)
     {
         cv8_termmodule();
     }
@@ -646,7 +647,7 @@ void MsCoffObj_term(const(char)[] objfilename)
     outfixlist();           // backpatches
     objflush_importTableRefs();
 
-    if (configv.addlinenumbers)
+    if (config.addlinenumbers)
     {
         cv8_termfile(objfilename);
     }
@@ -673,8 +674,28 @@ void MsCoffObj_term(const(char)[] objfilename)
     BIGOBJ_HEADER header = void;
     IMAGE_FILE_HEADER header_old = void;
 
-    time_t f_timedat = 0;
-    time(&f_timedat);
+    // Use a hash of the object content instead of current timestamp for reproducible builds
+    uint calcDeterministicTimestamp()
+    {
+        uint hash = 0;
+
+        // Hash each segment
+        for (segidx_t seg = 1; seg < SegData.length; seg++)
+        {
+            seg_data* pseg = SegData[seg];
+            if (pseg.SDbuf && pseg.SDbuf.length())
+            {
+                uint segHash = calcHash(cast(const(ubyte)[])pseg.SDbuf.buf[0..pseg.SDbuf.length()]);
+
+                // Mix this segment's hash into the overall hash
+                hash = cast(uint)mixHash(hash, segHash);
+            }
+        }
+
+        return hash;
+    }
+
+    uint deterministicTimestamp = calcDeterministicTimestamp();
     uint symtable_offset;
 
     if (bigobj)
@@ -684,7 +705,7 @@ void MsCoffObj_term(const(char)[] objfilename)
         header.Version = 2;
         header.Machine = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
         header.NumberOfSections = scnhdr_cnt;
-        header.TimeDateStamp = cast(uint)f_timedat;
+        header.TimeDateStamp = deterministicTimestamp;
         static immutable ubyte[16] uuid =
                                   [ '\xc7', '\xa1', '\xba', '\xd1', '\xee', '\xba', '\xa9', '\x4b',
                                     '\xaf', '\x20', '\xfa', '\xf6', '\x6a', '\xa4', '\xdc', '\xb8' ];
@@ -701,7 +722,7 @@ void MsCoffObj_term(const(char)[] objfilename)
     {
         header_old.Machine = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
         header_old.NumberOfSections = cast(ushort)scnhdr_cnt;
-        header_old.TimeDateStamp = cast(uint)f_timedat;
+        header_old.TimeDateStamp = deterministicTimestamp;
         header_old.SizeOfOptionalHeader = 0;
         header_old.Characteristics = 0;
         foffset = (header_old).sizeof;   // start after header
@@ -1401,8 +1422,12 @@ int MsCoffObj_jmpTableSegment(Symbol* s)
 segidx_t MsCoffObj_getsegment(const(char)* sectname, uint flags)
 {
     //printf("getsegment(%s)\n", sectname);
-    assert(strlen(sectname) <= 8);      // so it won't go into string_table
-    if (!(flags & IMAGE_SCN_LNK_COMDAT))
+
+    // As of writing there is no way to lookup where in the string_table sectname may be.
+    // Instead if the section name is > 8 characters long, we'll create a new section.
+    // This isn't an issue in practice, the linker will combine them, but it is less than ideal.
+
+    if (!(flags & IMAGE_SCN_LNK_COMDAT) && strlen(sectname) <= 8)
     {
         for (segidx_t seg = 1; seg < SegData.length; seg++)
         {   seg_data* pseg = SegData[seg];

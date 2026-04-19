@@ -121,7 +121,7 @@ struct FileMapping(Datum)
 
             if (size > 0 && size != ulong.max && size <= size_t.max)
             {
-                auto p = mmap(null, cast(size_t) size, is(Datum == const) ? PROT_READ : PROT_WRITE, MAP_SHARED, handle, 0);
+                auto p = mmap(null, cast(size_t) size, is(Datum == const) ? PROT_READ : (PROT_READ | PROT_WRITE), MAP_SHARED, handle, 0);
                 if (p == MAP_FAILED)
                 {
                     fprintf(stderr, "mmap(null, %zu) for \"%s\" failed: %s\n", cast(size_t) size, filename, strerror(errno));
@@ -382,8 +382,8 @@ struct FileMapping(Datum)
                 }
                 if (size > 0)
                 {
-                    auto p = mmap(null, size, PROT_WRITE, MAP_SHARED, handle, 0);
-                    if (cast(ssize_t) p == -1)
+                    auto p = mmap(null, size, PROT_READ | PROT_WRITE, MAP_SHARED, handle, 0);
+                    if (p == MAP_FAILED)
                     {
                         fprintf(stderr, "mmap() failed for \"%s\": %s\n", filename, strerror(errno));
                         exit(1);

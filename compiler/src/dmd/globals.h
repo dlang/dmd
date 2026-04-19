@@ -312,6 +312,8 @@ public:
     void setPack();
     bool fromAlignas() const;
     void setAlignas();
+    bool fromCAlignAttribute() const;
+    void setCAlignAttribute();
 };
 
 // magic value means "match whatever the underlying C compiler does"

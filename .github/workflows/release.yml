@@ -87,4 +87,4 @@ jobs:
           artifacts: ${{ steps.list-artifacts.outputs.artifacts_directory }}/*
           artifactErrorsFailBuild: true
           tag: ${{ github.event.inputs.tag }}
-          commit: ${{ github.event.inputs.branch }}
+          commit: ${{ needs.build-all-releases.outputs.dmd-revision }}

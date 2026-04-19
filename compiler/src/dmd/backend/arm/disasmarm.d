@@ -267,6 +267,12 @@ void disassemble(uint c) @trusted
     char[BUFMAX] buf = '\0';
     char[BUFMAX] url2buf = '\0';
     char[14] rbuf = '\0';
+    char[5 + uint.sizeof * 3 + 1 + 1] P4 = '\0';
+    char[4 + 3 + uint.sizeof * 3 + 1 + 1] P5 = '\0';
+    char[1 + 8 + 1 + 3 + uint.sizeof * 3 + 1 + 1] P5buf = '\0';
+    char[1 + 4 + 1 + 3 + uint.sizeof * 3 + 1 + 1] P5buf2 = '\0';
+    char[7 + uint.sizeof * 3 + 1] P5buf3 = '\0';
+    char[1 + 2 + 2 + 2 + 2 + 2 + 4 + 4 + 1] P5buf5;
 
     buf[0] = 0;
     sep = ",";
@@ -559,7 +565,6 @@ void disassemble(uint c) @trusted
         p2 = regString(sf, Rd);
         if (hw)
         {
-            __gshared char[5 + hw.sizeof * 3 + 1 + 1] P4 = '\0';
             const n = snprintf(P4.ptr, P4.length, "lsl #%d", hw * 16);
             p4 = P4[0 .. n];
         }
@@ -1450,7 +1455,6 @@ void disassemble(uint c) @trusted
         string[4] shiftstring = [ "", "lsr ", "asr ", "ror " ];
         if (imm6)
         {
-            __gshared char[4 + 3 + imm6.sizeof * 3 + 1 + 1] P5 = '\0';
             const n = snprintf(P5.ptr, P5.length, ((imm6 < 10) ? "%s #%d" : "#0x%X"), shiftstring[shift].ptr, imm6);
             p5 = P5[0 .. n];
         }
@@ -1491,7 +1495,6 @@ void disassemble(uint c) @trusted
         if (immed6) // defaults to 0
         {
             string[4] tab2 = [ "lsl", "lsr", "asr", "reserved" ];
-            __gshared char[1 + 8 + 1 + 3 + immed6.sizeof * 3 + 1 + 1] P5buf = '\0';
             const n = snprintf(P5buf.ptr, P5buf.length, ((immed6 < 10) ? "%s #%d".ptr : "#0x%X".ptr), tab2[shift].ptr, immed6);
             p5 = P5buf[0 .. n];
         }
@@ -1554,7 +1557,6 @@ void disassemble(uint c) @trusted
         else
             p4 = regString(sf, Rm);
 
-        __gshared char[1 + 4 + 1 + 3 + imm3.sizeof * 3 + 1 + 1] P5buf2 = '\0';
         if (imm3 == 0)
             p5 = extend;
         else
@@ -1613,7 +1615,6 @@ void disassemble(uint c) @trusted
             p4 = regString(sf, Rm);
             if (imm3)
             {
-                __gshared char[7 + imm3.sizeof * 3 + 1] P5buf3 = '\0';
                 size_t n = snprintf(P5buf3.ptr, P5buf3.length, ((imm3 < 10) ? "LSL #%d" : "LSL #0x%X"), imm3);
                 assert(n <= P5buf3.length);
                 p5 = P5buf3[0 .. n];
@@ -2564,7 +2565,6 @@ void disassemble(uint c) @trusted
             Lldst:
                 p2 = regString(size & 1,Rt);
             Lldst3:
-                __gshared char[1 + 2 + 2 + 2 + 2 + 2 + 4 + 4 + 1] P5buf5;
                 if (option == 3 && !S)
                 {
                     const n = snprintf(P5buf5.ptr, P5buf5.length, "[%s, %s]", regString(1,Rn).ptr, regString(1,Rm).ptr);

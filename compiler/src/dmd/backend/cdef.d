@@ -568,23 +568,9 @@ struct Config
     bool useTypeInfo;           // implement TypeInfo
     bool useExceptions;         // implement exception handling
     ubyte dwarf;                // DWARF version
-}
 
-enum THRESHMAX = 0xFFFF;
+    // Configuration that is not saved in precompiled header
 
-// Language for error messages
-enum LANG
-{
-    english,
-    german,
-    french,
-    japanese,
-}
-
-// Configuration that is not saved in precompiled header
-
-struct Configv
-{
     ubyte addlinenumbers;       // put line number info in .OBJ file
     ubyte vasm;                 // print generated assembler for each function
     ubyte verbose;              // 0: compile quietly (no messages)
@@ -592,9 +578,10 @@ struct Configv
                                 // 2: full verbosity
     char* csegname;             // code segment name
     char* deflibname;           // default library name
-    LANG language;              // message language
     int errmax;                 // max error count
 }
+
+enum THRESHMAX = 0xFFFF;
 
 alias reg_t = ubyte;            // register number
 alias regm_t = ulong;           // Register mask type

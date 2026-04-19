@@ -567,7 +567,13 @@ private Symbol* createImport(Symbol* sym, Loc loc)
     const char* n = sym.Sident.ptr;
     import core.stdc.stdlib : alloca;
     const allocLen = 6 + strlen(n) + 1 + type_paramsize(sym.Stype).sizeof*3 + 1;
-    char* id = cast(char *) alloca(allocLen);
+    version (AArch64) // TODO AArch64
+    {
+        char* id = cast(char *) Mem.xmalloc(allocLen);
+        scope (exit) Mem.xfree(id);
+    }
+    else
+        char* id = cast(char *) alloca(allocLen);
     int idlen;
     if (target.os & Target.OS.Posix)
     {

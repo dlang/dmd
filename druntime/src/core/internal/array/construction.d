@@ -460,40 +460,6 @@ unittest
     assert(pblits == 0);
 }
 
-version (D_ProfileGC)
-{
-    /**
-    * TraceGC wrapper around $(REF _d_newarrayT, core,internal.array.construction).
-    */
-    T[] _d_newarrayTTrace(T)(size_t length, bool isShared, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
-    {
-        version (D_TypeInfo)
-        {
-            import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!("T", "_d_newarrayT"));
-
-            return _d_newarrayT!T(length, isShared);
-        }
-        else
-            assert(0, "Cannot create new array if compiling without support for runtime type information!");
-    }
-
-    /**
-    * TraceGC wrapper around $(REF _d_newarrayU, core,internal.array.construction).
-    */
-    T[] _d_newarrayUTrace(T)(size_t length, bool isShared, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
-    {
-        version (D_TypeInfo)
-        {
-            import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!("T", "_d_newarrayU"));
-
-            return _d_newarrayUPureNothrow!T(length, isShared);
-        }
-        else
-            assert(0, "Cannot create new array if compiling without support for runtime type information!");
-    }
-}
 
 /**
  * Create a new multi-dimensional array. Also initalize elements if their type has an initializer.
@@ -608,26 +574,6 @@ unittest
     assert(!(GC.getAttr(a.ptr) & GC.BlkAttr.NO_SCAN));
 }
 
-version (D_ProfileGC)
-{
-    /**
-    * TraceGC wrapper around $(REF _d_newarraymT, core,internal,array,construction).
-    */
-    Tarr _d_newarraymTXTrace(Tarr : U[], T, U)(scope size_t[] dims, bool isShared=false, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
-    {
-        version (D_TypeInfo)
-        {
-            import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!("T", "_d_newarraymTX"));
-
-            return _d_newarraymTX!(Tarr, T)(dims, isShared);
-        }
-        else
-            assert(0, "Cannot create new multi-dimensional array if compiling without support for runtime type information!");
-    }
-}
-
-
 /**
 Allocate an array literal
 
@@ -659,7 +605,7 @@ void* _d_arrayliteralTX(T)(size_t length) @trusted pure nothrow
     else
     {
         import core.memory : GC;
-        import core.internal.traits : hasIndirections, hasElaborateDestructor;
+        import core.internal.traits : hasIndirections;
         alias BlkAttr = GC.BlkAttr;
 
         /* Same as in core.internal.array.utils.__typeAttrs!T,
@@ -669,23 +615,12 @@ void* _d_arrayliteralTX(T)(size_t length) @trusted pure nothrow
         uint attrs = BlkAttr.APPENDABLE;
         static if (!hasIndirections!T)
             attrs |= BlkAttr.NO_SCAN;
-        static if (is(T == struct) && hasElaborateDestructor!T)
+        static if (is(T == struct) && __traits(needsDestruction, T))
             attrs |= BlkAttr.FINALIZE;
 
-        return GC.malloc(allocsize, attrs, typeid(T));
+        version (D_TypeInfo)
+            return GC.malloc(allocsize, attrs, typeid(T));
+        else
+            return GC.malloc(allocsize, attrs, null);
     }
-}
-
-version (D_ProfileGC)
-void* _d_arrayliteralTXTrace(T)(size_t length, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted pure nothrow
-{
-    version (D_TypeInfo)
-    {
-        import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
-        mixin(TraceHook!((T[]).stringof, "_d_arrayliteralTX"));
-
-        return _d_arrayliteralTX!T(length);
-    }
-    else
-        assert(0);
 }

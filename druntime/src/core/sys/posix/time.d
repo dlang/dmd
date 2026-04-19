@@ -64,6 +64,7 @@ else version (FreeBSD)
 }
 else version (NetBSD)
 {
+    pragma(mangle, "__timegm50")
     time_t timegm(tm*); // non-standard
 }
 else version (OpenBSD)
@@ -378,14 +379,20 @@ else version (NetBSD)
     alias clockid_t = int; // <sys/_types.h>
     alias timer_t = int;
 
+    pragma(mangle, "__clock_getres50")
     int clock_getres(clockid_t, timespec*);
+    pragma(mangle, "__clock_gettime50")
     int clock_gettime(clockid_t, timespec*);
+    pragma(mangle, "__clock_settime50")
     int clock_settime(clockid_t, const scope timespec*);
+    pragma(mangle, "__nanosleep50")
     int nanosleep(const scope timespec*, timespec*);
     int timer_create(clockid_t, sigevent*, timer_t*);
     int timer_delete(timer_t);
+    pragma(mangle, "__timer_gettime50")
     int timer_gettime(timer_t, itimerspec*);
     int timer_getoverrun(timer_t);
+    pragma(mangle, "__timer_settime50")
     int timer_settime(timer_t, int, const scope itimerspec*, itimerspec*);
 }
 else version (OpenBSD)
@@ -576,8 +583,11 @@ else version (FreeBSD)
 else version (NetBSD)
 {
     char* asctime_r(const scope tm*, char*);
+    pragma(mangle, "__ctime_r50")
     char* ctime_r(const scope time_t*, char*);
+    pragma(mangle, "__gmtime_r50")
     tm*   gmtime_r(const scope time_t*, tm*);
+    pragma(mangle, "__localtime_r50")
     tm*   localtime_r(const scope time_t*, tm*);
 }
 else version (OpenBSD)

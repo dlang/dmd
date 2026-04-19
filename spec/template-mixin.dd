@@ -1,0 +1,420 @@
+Ddoc
+
+$(SPEC_S Template Mixins,
+
+$(HEADERNAV_TOC)
+
+        $(P A $(I TemplateMixin) takes an arbitrary set of declarations from
+        the body of a $(GLINK2 template, TemplateDeclaration) and inserts them
+        into the current context.)
+
+$(GRAMMAR
+$(GNAME TemplateMixinDeclaration):
+    $(D mixin) $(D template) $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters) $(GLINK2 template, Constraint)$(OPT) $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
+
+$(GNAME TemplateMixin):
+    $(D mixin) $(GLINK MixinTemplateName) $(GLINK2 template, TemplateArguments)$(OPT) $(GLINK_LEX Identifier)$(OPT) $(D ;)
+    $(D mixin) $(GLINK_LEX Identifier) `=` $(GLINK MixinTemplateName) $(GLINK2 template, TemplateArguments)$(OPT) $(D ;)
+
+$(GNAME MixinTemplateName):
+    $(D .) $(GLINK MixinQualifiedIdentifier)
+    $(GLINK MixinQualifiedIdentifier)
+    $(GLINK2 type, Typeof) $(D .) $(GLINK MixinQualifiedIdentifier)
+
+$(GNAME MixinQualifiedIdentifier):
+    $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(D .) $(GSELF MixinQualifiedIdentifier)
+    $(GLINK2 template, TemplateInstance) $(D .) $(GSELF MixinQualifiedIdentifier)
+)
+
+        $(P A $(I TemplateMixin) can occur in declaration lists of modules,
+        classes, structs, unions, or as a statement.
+        $(I MixinTemplateName) must refer to a $(I TemplateDeclaration) or
+        $(I TemplateMixinDeclaration).
+        If the $(I TemplateDeclaration) requires no parameters, $(I TemplateArguments)
+        can be omitted.
+        )
+
+        $(P Unlike a $(DDSUBLINK spec/template, instantiation_scope, template instantiation),
+        a template mixin's body is evaluated
+        within the scope where the mixin appears, not where the template declaration
+        is defined. It is analogous to cutting and pasting the body of
+        the template into the location of the mixin into a $(LINK2 #mixin_scope, nested scope). It is useful for injecting
+        parameterized $(SINGLEQUOTE boilerplate) code, as well as for creating
+        templated nested functions, which is not always possible with
+        template instantiations.
+        )
+
+        $(P A $(I TemplateMixinDeclaration) is the same as a $(I TemplateDeclaration),
+        but can not be instantiated outside of a $(I TemplateMixin).
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+------
+int y = 3;
+
+mixin template Foo()
+{
+    int abc() { return y; }
+}
+
+void test()
+{
+    int y = 8;
+    mixin Foo; // local y is picked up, not global y
+    assert(abc() == 8);
+}
+------
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+------
+import std.stdio : writeln;
+
+mixin template Foo()
+{
+    int x = 5;
+}
+
+mixin Foo;
+
+struct Bar
+{
+    mixin Foo;
+}
+
+void main()
+{
+    writeln("x = ", x);         // prints 5
+    {
+        Bar b;
+        int x = 3;
+
+        writeln("b.x = ", b.x); // prints 5
+        writeln("x = ", x);     // prints 3
+        {
+            mixin Foo;
+            writeln("x = ", x); // prints 5
+            x = 4;
+            writeln("x = ", x); // prints 4
+        }
+        writeln("x = ", x);     // prints 3
+    }
+    writeln("x = ", x);         // prints 5
+}
+------
+)
+
+$(H2 $(LNAME2 parameters, Mixin Parameters))
+
+        $(P Mixins can be
+        $(DDSUBLINK spec/template, parameters, parameterized):)
+
+------
+mixin template Foo(T)
+{
+    T x = 5;
+}
+
+mixin Foo!(int);           // create x of type int
+------
+
+        $(P Mixins can parameterize symbols using
+        $(DDSUBLINK spec/template, aliasparameters, alias parameters):)
+
+------
+mixin template Foo(alias b)
+{
+    int abc() { return b; }
+}
+
+void test()
+{
+    int y = 8;
+    mixin Foo!(y);
+    assert(abc() == 8);
+}
+------
+
+$(H3 $(LNAME2 example, Example))
+
+        $(P This example uses a mixin to implement a generic Duff's device
+        for an arbitrary statement (in this case, the arbitrary statement
+        is in bold). A nested function is generated as well as a
+        delegate literal, these can be inlined by the compiler:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+------
+import std.stdio : writeln;
+
+mixin template duffs_device(alias low, alias high, alias fun)
+{
+    void duff_loop()
+    {
+        if (low < high)
+        {
+            auto n = (high - low + 7) / 8;
+            switch ((high - low) % 8)
+            {
+                case 0: do { fun(); goto case;
+                case 7:      fun(); goto case;
+                case 6:      fun(); goto case;
+                case 5:      fun(); goto case;
+                case 4:      fun(); goto case;
+                case 3:      fun(); goto case;
+                case 2:      fun(); goto case;
+                case 1:      fun(); continue;
+                default:     assert(0, "Impossible");
+                        } while (--n > 0);
+            }
+        }
+    }
+}
+
+void main()
+{
+    int i = 1;
+    int j = 11;
+
+    mixin duffs_device!(i, j, delegate { writeln("foo"); });
+    duff_loop();  // executes foo() 10 times
+}
+------
+)
+
+$(H2 $(LNAME2 mixin_scope, Mixin Scope))
+
+        $(P The declarations in a mixin are placed in a nested scope and then
+        $(SINGLEQUOTE imported) into the surrounding
+        scope. If the name of a declaration in a mixin is the same
+        as a declaration in the surrounding scope, the surrounding declaration
+        overrides the mixin one:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+------
+import std.stdio : writeln;
+
+int x = 3;
+
+mixin template Foo()
+{
+    int x = 5;
+    int y = 5;
+}
+
+mixin Foo;
+int y = 3;
+
+void main()
+{
+    writeln("x = ", x);  // prints 3
+    writeln("y = ", y);  // prints 3
+}
+------
+)
+
+        $(P A mixin has its own scope, even if a declaration is overridden
+        by the enclosing one:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+------
+import std.stdio : writeln;
+
+int x = 4;
+
+mixin template Foo()
+{
+    int x = 5;
+    int bar() { return x; }
+}
+
+mixin Foo;
+
+void main()
+{
+    writeln("x = ", x);         // prints 4
+    writeln("bar() = ", bar()); // prints 5
+}
+------
+)
+
+        $(P If two different mixins are put in the same scope, and each
+        define a declaration with the same name, there is an ambiguity
+        error when the declaration is referenced:)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+------
+import std.stdio : writeln;
+
+mixin template Foo()
+{
+    int x = 5;
+    void func(int x) { }
+}
+
+mixin template Bar()
+{
+    int x = 4;
+    void func(long x) { }
+}
+
+mixin Foo;
+mixin Bar;
+
+void main()
+{
+    writeln("x = ", x);    // error, x is ambiguous
+    func(1);               // error, func is ambiguous
+}
+------
+)
+        $(P The call to $(D func()) is ambiguous because
+        `Foo.func` and `Bar.func` are in different scopes.
+        )
+
+$(H3 $(LNAME2 resolving_ambiguities, Resolving Ambiguities))
+
+        $(P If a mixin has an $(I Identifier), it can be used to
+        disambiguate between conflicting symbols:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+------
+import std.stdio : writeln;
+
+int x = 6;
+
+mixin template Foo()
+{
+    int x = 5;
+    int y = 7;
+    void func() { }
+}
+
+mixin template Bar()
+{
+    int x = 4;
+    void func() { }
+}
+
+mixin Foo F;
+mixin Bar B;
+
+void main()
+{
+    writeln("y = ", y);     // prints 7
+    writeln("x = ", x);     // prints 6
+    writeln("F.x = ", F.x); // prints 5
+    writeln("B.x = ", B.x); // prints 4
+    F.func();                  // calls Foo.func
+    B.func();                  // calls Bar.func
+}
+------
+)
+        $(P Alias declarations can be used to form an
+        $(DDSUBLINK spec/function, overload-sets, overload set) of
+        functions declared in different mixins:)
+
+-----
+mixin template Foo()
+{
+    void func(int x) {  }
+}
+
+mixin template Bar()
+{
+    void func(long x) {  }
+}
+
+mixin Foo!() F;
+mixin Bar!() B;
+
+alias func = F.func;
+alias func = B.func;
+
+void main()
+{
+    func(1);  // calls B.func
+    func(1L); // calls F.func
+}
+-----
+
+$(H2 $(LNAME2 aggregate_types, Aggregate Type Mixins))
+
+$(H3 $(LNAME2 virtual_functions, Mixin Virtual Functions))
+
+        $(P Mixins can add virtual functions to a class:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+------
+import std.stdio : writeln;
+
+mixin template Foo()
+{
+    void func() { writeln("Foo.func()"); }
+}
+
+class Bar
+{
+    mixin Foo;
+}
+
+class Code : Bar
+{
+    override void func() { writeln("Code.func()"); }
+}
+
+void main()
+{
+    Bar b = new Bar();
+    b.func();      // calls Foo.func()
+
+    b = new Code();
+    b.func();      // calls Code.func()
+}
+------
+)
+
+$(H3 $(LNAME2 destructors, Mixin Destructors))
+
+        $(P An aggregate type can mixin additional destructors.
+        Destructors are run in the opposite order to declaration order.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+import std.stdio;
+
+mixin template addNewDtor()
+{
+    ~this()
+    {
+        writeln("Mixin dtor");
+    }
+}
+
+struct S
+{
+    ~this()
+    {
+        writeln("Struct dtor");
+    }
+
+    mixin addNewDtor;
+}
+
+void main()
+{
+    S s;
+    // prints `Mixin dtor`
+    // prints `Struct dtor`
+}
+---
+)
+
+$(SPEC_SUBNAV_PREV_NEXT template, Templates, contracts, Contract Programming)
+)
+
+Macros:
+        CHAPTER=23
+        TITLE=Template Mixins
+        _=

@@ -118,8 +118,17 @@ version (DarwinBSDLocale)
     lconv*   localeconv();
     /// Create a new locale
     locale_t newlocale(int mask, const char* locale, locale_t base);
-    /// Set the C library's notion of natural language formatting style
-    char*    setlocale(int category, const char* locale);
+    version (NetBSD)
+    {
+        /// Set the C library's notion of natural language formatting style
+        pragma(mangle, "__setlocale50")
+        char*    setlocale(int category, const char* locale);
+    }
+    else
+    {
+        /// Set the C library's notion of natural language formatting style
+        char*    setlocale(int category, const char* locale);
+    }
     /// Set the per-thread locale
     locale_t uselocale (locale_t locale);
 }

@@ -7,9 +7,9 @@
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
  * Authors: Walter Bright, Sean Kelly, Martin Nowak, Jacob Carlborg
- * Source: $(DRUNTIMESRC rt/_sections_osx_x86_64.d)
+ * Source: $(DRUNTIMESRC rt/_sections_osx_64.d)
  */
-module rt.sections_osx_x86_64;
+module rt.sections_osx_64;
 
 version (OSX)
     version = Darwin;
@@ -21,7 +21,12 @@ else version (WatchOS)
     version = Darwin;
 
 version (Darwin):
-version (X86_64):
+
+version (X86_64)
+    version = X86_64_or_AArch64;
+else version (AArch64)
+    version = X86_64_or_AArch64;
+version (X86_64_or_AArch64):
 
 // debug = PRINTF;
 

@@ -2027,8 +2027,16 @@ private elem* elnot(elem* e, Goal goal)
             if (OTrel(op))                      /* ! OTrel => !OTrel            */
             {
                   /* Find the logical negation of the operator  */
+                  const e11ty = e1.E1.Ety;
+                  if (config.target_cpu == TARGET_AArch64 &&
+                     tyfloating(e11ty) &&
+                     !(op == OPeqeq || op == OPne))
+                  {
+                        break;  // no support for OPlg, OPnge, etc.
+                  }
+
                   auto op2 = rel_not(op);
-                  if (!tyfloating(e1.E1.Ety))
+                  if (!tyfloating(e11ty))
                   {   op2 = rel_integral(op2);
                       assert(OTrel(op2));
                   }
@@ -2131,6 +2139,7 @@ private elem* elcond(elem* e, Goal goal)
             e.E2 = e1;
             e1.Eoper = OPcond;
             e1.Ety = e.Ety;
+            e1.ET = e.ET;
             return optelem(e, Goal.value);
 
         case OPnot:
@@ -3296,7 +3305,7 @@ private elem* elbit(elem* e, Goal goal)
     e2.Ety = e.Ety;
 
     OPER shift = OPshr;
-    if (!tyuns(tym1))
+    if (!tyuns(tym1) && tybasic(tym1) != TYbool)
         shift = OPashr;
     e.E1 = el_bin(shift,tym1,
                 el_bin(OPshl,tym1,e.E1,el_long(TYint,c)),

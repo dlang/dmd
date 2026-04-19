@@ -3,7 +3,7 @@
 /// and compile with `-debug=VALGRIND` to access the declarations below.
 module etc.valgrind.valgrind;
 
-version (StdDdoc)
+version (CoreDdoc)
 {
     /// Mark the memory covered by `mem` as unaddressable.
     void makeMemNoAccess (const(void)[] mem) nothrow @nogc;

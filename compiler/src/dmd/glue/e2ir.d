@@ -692,7 +692,7 @@ elem* toElem(Expression e, ref IRState irs)
         //printf("\tparent = '%s'\n", se.var.parent ? se.var.parent.toChars() : "null");
         if (se.op == EXP.variable && se.var.needThis())
         {
-            irs.eSink.error(se.loc, "need `this` to access member `%s`", se.toChars());
+            irs.eSink.error(se.loc, "need `this` to access member `%s`", se.toErrMsg());
             return el_long(TYsize_t, 0);
         }
 
@@ -1340,7 +1340,7 @@ elem* toElem(Expression e, ref IRState irs)
 
                 if (!cd.vthis)
                 {
-                    irs.eSink.error(ne.loc, "forward reference to `%s`", cd.toChars());
+                    irs.eSink.error(ne.loc, "forward reference to `%s`", cd.toErrMsg());
                 }
                 else
                 {
@@ -1515,7 +1515,7 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else
         {
-            irs.eSink.error(ne.loc, "internal compiler error: cannot new type `%s`\n", t.toChars());
+            irs.eSink.error(ne.loc, "internal compiler error: cannot new type `%s`\n", t.toErrMsg());
             assert(0);
         }
 
@@ -1854,9 +1854,30 @@ elem* toElem(Expression e, ref IRState irs)
             ev = el_una(OPind, tym, ev);
         }
         elem* er = toElem(be.e2, irs);
-        elem* e = el_bin(op, tym, el, er);
-        e = el_combine(e, ev);
 
+        elem* e;
+        if (op == OPmodass &&
+            target.isAArch64 &&                 // x87 has FPREM instruction, others use fmod()
+            isFloating(be.type))
+        {
+            assert(!isComplex(be.type));
+
+            tym_t tym1 = tybasic(typemask(el));
+            RTLSYM rtlsym;
+            switch (_tysize[tym1])
+            {
+                case 4:  rtlsym = RTLSYM.FMODF; break;  // float
+                case 8:  rtlsym = RTLSYM.FMOD ; break;  // double
+                default: rtlsym = RTLSYM.FMODL; break;  // real
+            }
+
+            e = el_bin(OPcall,tym,el_var(getRtlsym(rtlsym)),el_param(el, er));
+        }
+        else
+        {
+            e = el_bin(op, tym, el, er);
+        }
+        e = el_combine(e, ev);
         elem_setLoc(e,be.loc);
         return e;
     }
@@ -1918,7 +1939,7 @@ elem* toElem(Expression e, ref IRState irs)
          */
         if (!irs.params.useGC)
         {
-            irs.eSink.error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with -betterC", ce.toChars());
+            irs.eSink.error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with -betterC", ce.toErrMsg());
             return el_long(TYint, 0);
         }
 
@@ -1949,6 +1970,27 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitMod(ModExp e)
     {
+        if (target.isAArch64 &&                 // x87 has FPREM instruction, others use fmod()
+            isFloating(e.type))
+        {
+            assert(!isComplex(e.type));
+            elem* el = toElem(e.e1, irs);
+            elem* er = toElem(e.e2, irs);
+
+            tym_t tym1 = tybasic(typemask(el));
+            RTLSYM rtlsym;
+            switch (_tysize[tym1])
+            {
+                case 4:  rtlsym = RTLSYM.FMODF; break;  // float
+                case 8:  rtlsym = RTLSYM.FMOD ; break;  // double
+                default: rtlsym = RTLSYM.FMODL; break;  // real
+            }
+
+            tym_t tym = totym(e.type);
+            elem* eresult = el_bin(OPcall,tym,el_var(getRtlsym(rtlsym)),el_param(el, er));
+            elem_setLoc(eresult, e.loc);
+            return eresult;
+        }
         return toElemBin(e, OPmod);
     }
 
@@ -2485,6 +2527,11 @@ elem* toElem(Expression e, ref IRState irs)
                  */
                 elem* eto = toElem(ae.e1, irs);
                 elem* efrom = toElem(ae.e2, irs);
+
+                // https://github.com/dlang/dmd/issues/22659
+                // LHS is a SliceExp with static array type from cast(T[n]) slice.
+                if (t1.ty == Tsarray)
+                    return setResult(elAssign(eto, efrom, ae.e1.type, null));
 
                 uint size = cast(uint)t1.nextOf().size();
                 elem* esize = el_long(TYsize_t, size);
@@ -3027,7 +3074,7 @@ elem* toElem(Expression e, ref IRState irs)
                 {
                     irs.eSink.error(ce.loc,
                         "appending to array in `%s` requires the GC which is not available with -betterC",
-                        ce.toChars());
+                        ce.toErrMsg());
                     return el_long(TYint, 0);
                 }
 
@@ -3282,13 +3329,13 @@ elem* toElem(Expression e, ref IRState irs)
     elem* visitType(TypeExp e)
     {
         //printf("TypeExp.toElem()\n");
-        irs.eSink.error(e.loc, "type `%s` is not an expression", e.toChars());
+        irs.eSink.error(e.loc, "type `%s` is not an expression", e.toErrMsg());
         return el_long(TYint, 0);
     }
 
     elem* visitScope(ScopeExp e)
     {
-        irs.eSink.error(e.loc, "`%s` is not an expression", e.sds.toChars());
+        irs.eSink.error(e.loc, "`%s` is not an expression", e.sds.toErrMsg());
         return el_long(TYint, 0);
     }
 
@@ -3301,7 +3348,7 @@ elem* toElem(Expression e, ref IRState irs)
         VarDeclaration v = dve.var.isVarDeclaration();
         if (!v)
         {
-            irs.eSink.error(dve.loc, "`%s` is not a field, but a %s", dve.var.toChars(), dve.var.kind());
+            irs.eSink.error(dve.loc, "`%s` is not a field, but a %s", dve.var.toErrMsg(), dve.var.kind());
             return el_long(TYint, 0);
         }
 
@@ -5332,7 +5379,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
                 //dump(0);
                 //printf("fty = %d, tty = %d, %d\n", fty, tty, t.ty);
                 // This error should really be pushed to the front end
-                irs.eSink.error(ce.loc, "e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toChars(), ce.e1.type.toChars(), t.toChars());
+                irs.eSink.error(ce.loc, "e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toErrMsg(), ce.e1.type.toErrMsg(), t.toErrMsg());
                 e = el_long(TYint, 0);
                 return e;
 
@@ -5474,7 +5521,7 @@ elem* callfunc(Loc loc,
         {
             Expression arg = (*arguments)[0];
             if (arg.op != EXP.int64)
-                irs.eSink.error(arg.loc, "simd operator must be an integer constant, not `%s`", arg.toChars());
+                irs.eSink.error(arg.loc, "simd operator must be an integer constant, not `%s`", arg.toErrMsg());
         }
 
         /* Convert arguments[] to elems[] in left-to-right order
@@ -5770,6 +5817,7 @@ elem* callfunc(Loc loc,
                 e.E1 = el_una(OPs32_d, TYdouble, e.E2);
                 e.E1 = el_una(OPd_ld, TYreal, e.E1);
                 e.E2 = et;
+                assert(!(config.exe == EX_OSX64 && target.isAArch64)); // TODO AArch64
             }
             else if (op == OPyl2x || op == OPyl2xp1)
             {
@@ -5809,13 +5857,19 @@ elem* callfunc(Loc loc,
             e = constructVa_start(ep);
         else if (op == OPtoPrec)
         {
+            const bool RealIsDouble = _tysize[TYreal] == 8;
+            if (RealIsDouble)
+            {
+                assert(tybasic(ep.Ety) != TYreal);
+                assert(tybasic(tyret) != TYreal);
+            }
             static int X(int fty, int tty) { return fty * TMAX + tty; }
 
             final switch (X(tybasic(ep.Ety), tybasic(tyret)))
             {
             case X(TYfloat, TYfloat):     // float -> float
             case X(TYdouble, TYdouble):   // double -> double
-            case X(TYreal, TYreal): // real -> real
+            case X(TYreal, TYreal):       // real -> real
                 e = ep;
                 break;
 

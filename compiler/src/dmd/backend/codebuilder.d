@@ -35,7 +35,7 @@ struct CodeBuilder
     code** pTail;
 
     enum BADINS = 0x1234_5678;
-//    enum BADINS = 0x3D_C0_07_A0;
+    //enum BADINS = 0x00_00_00_C7;
 
   nothrow:
   public:
@@ -114,6 +114,19 @@ assert(c.Iop != BADINS);
             cdb.ctor(c);
             append(cdb);
         }
+    }
+
+    /***
+     * Replace instruction `c` with the code sequence in `this`.
+     */
+    @trusted
+    void patch(code* c)
+    {
+        code* last = this.last();
+        last.next = c.next;
+        code* h = this.finish();
+        *c = *h;                // overwrite head of c with start of cdb
+        c.next = h.next;
     }
 
     void gen(code* cs)

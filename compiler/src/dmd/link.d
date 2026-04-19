@@ -443,7 +443,12 @@ public int runLINK(bool verbose, ErrorSink eSink)
             return STATUS_FAILED;
         if (driverParams.symdebug)
             argv.push("-g");
-        if (target.isX86_64)
+        if (target.isAArch64)
+        {
+            argv.push("-arch");
+            argv.push("arm64");
+        }
+        else if (target.isX86_64)
             argv.push("-m64");
         else
             argv.push("-m32");
@@ -962,9 +967,13 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
     version (Windows)
     {
         // generate unique temporary file name for preprocessed output
-        const(char)* tmpname = tmpnam(null);
-        assert(tmpname);
-        const(char)[] ifilename = tmpname[0 .. strlen(tmpname) + 1];
+        char[MAX_PATH] tempDir = void;
+        char[MAX_PATH] tempFile = void;
+        if (GetTempPathA(MAX_PATH, tempDir.ptr) == 0)
+            return STATUS_FAILED;
+        if (GetTempFileNameA(tempDir.ptr, "dmd", 0, tempFile.ptr) == 0)
+            return STATUS_FAILED;
+        const(char)[] ifilename = tempFile[0 .. strlen(tempFile.ptr) + 1];
         ifilename = xarraydup(ifilename);
         const(char)[] output = ifilename;
 
@@ -1162,7 +1171,7 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
         }
 
         // Set memory model
-        argv.push(target.isX86_64 ? "-m64" : "-m32");
+        argv.push(target.isX86_64 || target.isAArch64 ? "-m64" : "-m32");
 
         // merge #define's with output
         argv.push("-dD");       // https://gcc.gnu.org/onlinedocs/cpp/Invocation.html#index-dD

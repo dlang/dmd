@@ -18,6 +18,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.astenums;
+import dmd.astcodegen;
 import dmd.declaration;
 import dmd.denum;
 import dmd.dinterpret;
@@ -34,11 +35,11 @@ import dmd.identifier;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
-import dmd.optimize;
+import dmd.parse;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : pointerTo, size;
+import dmd.typesem : pointerTo, size, isIntegral;
 
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
@@ -63,12 +64,62 @@ import dmd.backend.iasm;
  */
 public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
 {
-    static if (0)
+    static if (1)
     {
         printf("InlineAsmAArch64Statement.semantic()\n");
         for (auto token = s.tokens; token; token = token.next)
         {
-            printf("token: %s\n", token.toChars());
+            printf("TOK.%s %s\n", token.toString(token.value).ptr, token.toChars());
+        }
+    }
+
+    const bool doUnittests = global.params.parsingUnittestsRequired();
+    scope p = new Parser!ASTCodegen(sc._module, "", false, global.errorSink, &global.compileEnv, doUnittests);
+
+    /* Set list of tokens that will be the input to the parser, and starting line number to use.
+     */
+    p.setTokenList(s.tokens, s.loc.linnum);
+
+    int errors;
+    static if (1)
+    {
+        if (p.token.value == TOK.identifier)
+        {
+            if (p.token.ident == Id.naked)
+            {
+                s.naked = true;
+                sc.func.isNaked = true;
+                p.nextToken();
+            }
+            else if (p.token.ident == Id.op)
+            {
+
+                p.nextToken();
+                Expression exp = p.parseAssignExp();
+                // Must evaluate to a constant, like an enum member does
+                exp = exp.expressionSemantic(sc);
+                exp = resolveProperties(sc, exp);
+                exp = exp.ctfeInterpret();
+                if (exp.op == EXP.error)
+                    return new ErrorStatement();
+
+                //printf("expression: %s\n", exp.toChars());
+                Type t = exp.type;
+                if (!(size(t) == 4 && isIntegral(t)))
+                    error(s.loc, "size of opcode must be 4 of integral type\n");
+                code* pc = code_calloc();
+                pc.Iflags |= CFpsw;            // assume we want to keep the flags
+                pc.Iop = cast(int)exp.toInteger();
+                s.asmcode = pc;
+            }
+
+            if (p.token.value != TOK.endOfFile && !errors)
+            {
+                error(s.loc, "end of instruction expected, not `%s`", p.token.toChars());
+                return new ErrorStatement();
+            }
+            else
+                return s;
         }
     }
 

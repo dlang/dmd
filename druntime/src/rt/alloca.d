@@ -198,6 +198,11 @@ extern (C) void* __alloca(int nbytes)
     }
     }
   }
+  else version (AArch64)
+  {
+        import core.stdc.stdlib : malloc;
+	return malloc(nbytes);   // TODO AArch64
+  }
   else
         static assert(0);
 }

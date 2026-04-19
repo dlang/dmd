@@ -310,8 +310,8 @@ static if (0)
     if (nofloat)
         cfg.flags3 |= CFG3wkfloat;
 
-    configv.vasm = vasm;
-    configv.verbose = verbose;
+    cfg.vasm = vasm;
+    cfg.verbose = verbose;
 
     go.AArch64 = arm;
     if (optimize)
@@ -322,21 +322,21 @@ static if (0)
         if (cfg.exe & (EX_LINUX | EX_LINUX64 | EX_OPENBSD | EX_OPENBSD64 | EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64 |
                           EX_SOLARIS | EX_SOLARIS64 | EX_OSX | EX_OSX64))
         {
-            configv.addlinenumbers = 1;
+            cfg.addlinenumbers = 1;
             cfg.fulltypes = (symdebug == 1) ? CVDWARF_D : CVDWARF_C;
         }
         if (cfg.exe & (EX_windos))
         {
             if (cfg.objfmt == OBJ_MSCOFF)
             {
-                configv.addlinenumbers = 1;
+                cfg.addlinenumbers = 1;
                 cfg.fulltypes = CV8;
                 if(symdebug > 1)
                     cfg.flags2 |= CFG2gms;
             }
             else
             {
-                configv.addlinenumbers = 1;
+                cfg.addlinenumbers = 1;
                 cfg.fulltypes = CV4;
             }
         }
@@ -345,7 +345,7 @@ static if (0)
     }
     else
     {
-        configv.addlinenumbers = 0;
+        cfg.addlinenumbers = 0;
         cfg.fulltypes = CVNONE;
         //cfg.flags &= ~CFGalwaysframe;
     }

@@ -441,6 +441,26 @@ else
     static assert(false, "Unsupported platform");
 }
 
+//
+// POSIX.1-2008
+//
+/*
+int dirfd(DIR*);
+*/
+version (NetBSD)
+{
+    // On NetBSD, this is a macro in dirent.h, not a function.
+    extern (D) int dirfd()(DIR* dir) nothrow @nogc
+    {
+        // ABI guarantees dd_fd remains the first field
+        return *(cast(int*) dir);
+    }
+}
+else
+{
+    nothrow @nogc int dirfd(DIR* dir);
+}
+
 // Only OS X out of the Darwin family needs special treatment.  Other Darwins
 // (iOS, TVOS, WatchOS) are fine with normal symbol names for these functions
 // in else below.

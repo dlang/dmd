@@ -72,8 +72,6 @@ private __gshared OutBuffer* fobjbuf;
 
 enum DEST_LEN = (IDMAX + IDOHD + 1);
 
-public import dmd.backend.dwarfdbginf : except_table_seg, eh_frame_seg;
-
 /******************************************
  */
 
@@ -93,6 +91,20 @@ void MachObj_refGOTsym()
 {
     assert(0);
 }
+
+/// Returns: a reference to the ___chkstk_darwin pointer to function
+@trusted
+Symbol* MachObj_getChkstkSym()
+{
+    __gshared Symbol* chkstkSym;
+    if (!chkstkSym)
+    {
+        chkstkSym = symbol_name("__chkstk_darwin",SC.global,tspvoid);
+    }
+    return chkstkSym;
+}
+
+
 
 // The object file is built is several separate pieces
 
@@ -600,7 +612,7 @@ void mach_numbersyms()
 void MachObj_termfile()
 {
     //dbg_printf("MachObj_termfile\n");
-    if (configv.addlinenumbers)
+    if (config.addlinenumbers)
     {
         dwarf_termmodule();
     }
@@ -615,7 +627,7 @@ void MachObj_term(const(char)[] objfilename)
     //printf("MachObj_term()\n");
     outfixlist();           // backpatches
 
-    if (configv.addlinenumbers)
+    if (config.addlinenumbers)
     {
         dwarf_termfile();
     }
@@ -902,7 +914,30 @@ void MachObj_term(const(char)[] objfilename)
                     //symbol_print(*s);
                     if (r.flag == 1)  // emit SUBTRACTOR/UNSIGNED pair
                     {
-                        if (I64)
+                        if (AArch64)
+                        {
+                            rel.r_type = ARM64_RELOC_SUBTRACTOR;
+                            rel.r_address = cast(int)r.offset;
+                            rel.r_symbolnum = r.funcsym.Sxtrnnum;
+                            rel.r_pcrel = 0;
+                            rel.r_length = 3;
+                            rel.r_extern = 1;
+                            fobjbuf.write(&rel, rel.sizeof);
+                            foffset += (rel).sizeof;
+                            ++nreloc;
+
+                            rel.r_type = ARM64_RELOC_UNSIGNED;
+                            rel.r_symbolnum = s.Sxtrnnum;
+                            fobjbuf.write(&rel, rel.sizeof);
+                            foffset += rel.sizeof;
+                            ++nreloc;
+
+                            // patch with fdesym.Soffset - offset
+                            long* p = cast(long*)patchAddr64(seg, r.offset);
+                            *p += r.funcsym.Soffset - r.offset;
+                            continue;
+                        }
+                        else if (I64)
                         {
                             rel.r_type = X86_64_RELOC_SUBTRACTOR;
                             rel.r_address = cast(int)r.offset;
@@ -969,6 +1004,11 @@ void MachObj_term(const(char)[] objfilename)
                                     {
                                         rel.r_type = ARM64_RELOC_BRANCHY26;
                                         rel.r_pcrel = 1;
+                                    }
+                                    else if (s.Sfl == FL.unde)   // special case for __chkstk_darwin, need to research what PAGEOFF12 really means
+                                    {
+                                        rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
+                                        rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
                                     }
                                     else
                                     {
@@ -1851,8 +1891,18 @@ int MachObj_jmpTableSegment(Symbol* s)
 int MachObj_getsegment(const(char)* sectname, const(char)* segname,
         int p2align, int flags)
 {
-    assert(strlen(sectname) <= 16);
-    assert(strlen(segname)  <= 16);
+    if (strlen(sectname) > 16)
+    {
+        error(Srcpos.init, "invalid section name, length too long for `%s`", sectname);
+        return 0;
+    }
+
+    if (strlen(segname) > 16)
+    {
+        error(Srcpos.init, "invalid segment name, length too long for `%s`", segname);
+        return 0;
+    }
+
     for (int seg = 1; seg < cast(int)SegData.length; seg++)
     {   seg_data* pseg = SegData[seg];
         if (I64)
@@ -2543,6 +2593,7 @@ size_t MachObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
 void MachObj_addrel(int seg, targ_size_t offset, Symbol* targsym,
         uint targseg, int rtype, int val = 0)
 {
+    //printf("MachObj_addrel()\n");
     Relocation rel = void;
     rel.offset = offset;
     rel.targsym = targsym;
@@ -3047,6 +3098,7 @@ int mach_dwarf_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t va
 @trusted
 int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol* s, targ_size_t val, Symbol* fdesym)
 {
+    //printf("dwarf_eh_frame_fixup()\n");
     OutBuffer* buf = SegData[dfseg].SDbuf;
     assert(offset == buf.length());
     assert(fdesym.Sseg == dfseg);

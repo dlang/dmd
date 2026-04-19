@@ -1,0 +1,824 @@
+Ddoc
+
+$(D_S Type Qualifiers,
+
+$(HEADERNAV_TOC)
+
+        $(P Type qualifiers modify a type by applying a $(GLINK2 type, TypeCtor).
+        $(I TypeCtor)s are: $(D const), $(D immutable), $(D shared), and $(D inout).
+        Each applies transitively to:)
+
+        - All $(DDSUBLINK spec/type, component-types, component types) of a derived data type
+        - All fields of an aggregate type
+
+$(H2 $(LNAME2 const_and_immutable, Const and Immutable))
+
+        $(P When examining a data structure or interface, it is very
+        helpful to be able to easily tell which data can be expected to not
+        change, which data might change, and who may change that data.
+        This is done with the aid of the language typing system.
+        Data can be marked as const or immutable, with the default being
+        changeable (or $(I mutable)).
+        )
+
+        $(P $(D immutable) applies to data that cannot change.
+        Immutable data values, once constructed, remain the same for
+        the duration of the program's
+        execution.
+        Immutable data can be placed in ROM (Read Only Memory) or in
+        memory pages marked by the hardware as read only.
+        Since immutable data does not change, it enables many opportunities
+        for program optimization, and has applications in functional
+        style programming.
+        )
+
+        $(P $(D const) applies to data that cannot be changed by
+        the const reference to that data. It may, however, be changed
+        by another reference to that same data.
+        Const finds applications in passing data through interfaces
+        that promise not to modify them.
+        )
+
+        $(P Both immutable and const are $(I transitive), which means
+        that any data reachable through an immutable reference is also
+        immutable, and likewise for const.
+        )
+
+$(H2 $(LNAME2 immutable_storage_class, Immutable Storage Class))
+
+        $(P
+        The simplest immutable declarations use it as a storage class.
+        It can be used to declare a variable whose value never changes.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+immutable int x = 3;  // x is set to 3
+//x = 4;        // error, x is immutable
+
+// x is initialized by a compile-time constant,
+// and it doesn't change, so the compiler knows its value
+static assert(x == 3);
+
+char[x] s;
+static assert(s.length == 3);
+---
+)
+        $(P The type can be inferred from the initializer:
+        )
+---
+immutable y = 4; // y is of type int
+y = 5;           // error, y is immutable
+---
+
+        $(P If the initializer is not present, the immutable variable can
+        be initialized from the corresponding $(DDSUBLINK spec/module, staticorder,
+        shared static constructor):
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+immutable int z;
+
+void main()
+{
+    assert(z == 3);
+    //z = 4; // error, z is immutable
+}
+
+shared static this()
+{
+    z = 3; // ok, can initialize immutable variable that doesn't
+           // have a static initializer
+}
+---
+)
+        $(P
+        The initializer for a non-$(DDSUBLINK spec/function, local-variables, local)/static
+        immutable declaration must be evaluatable at compile time:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+immutable x = 3 * 4;
+static assert(x == 12);
+
+int foo(int f) { return f * 3; }
+int i = 5;
+//immutable y = i + 1;    // error, cannot evaluate `i` at compile time
+immutable z = foo(2) + 1; // ok, foo(2) can be evaluated at compile time
+static assert(z == 7);
+---
+)
+
+        $(P The initializer for a non-static local immutable declaration
+        is evaluated at run time:
+        )
+---
+int foo(int f)
+{
+    immutable x = f + 1;  // evaluated at run time
+    x = 3;                // error, x is immutable
+}
+---
+
+        $(P
+        Because immutable is transitive, data referred to by an immutable
+        variable is also immutable:
+        )
+
+---
+immutable char[] s = "foo";
+s[0] = 'a';  // error, s refers to immutable data
+s = "bar";   // error, s is immutable
+---
+
+        $(P Immutable declarations can appear as lvalues, i.e. they can
+        have their address taken, and occupy storage.
+        )
+
+        $(P **See also:** $(DDSUBLINK spec/enum, manifest_constants, Manifest Constants).)
+
+$(H2 $(LNAME2 const_storage_class, Const Storage Class))
+
+        $(P
+        A const declaration is exactly like an immutable declaration,
+        with the following differences:
+        )
+
+        $(UL
+        $(LI Any data referenced by the const declaration cannot be
+        changed from the const declaration, but it might be changed
+        by other references to the same data.)
+
+        $(LI The type of a const declaration is itself const.)
+        )
+
+$(COMMENT
+$(TABLE
+
+$(TR $(TH $(NBSP)) $(TH AddrOf) $(TH CTFEInit) $(TH Static) $(TH Field) $(TH Stack) $(TH Ctor))
+
+$(TR $(TD $(NBSP))
+ $(TD Can the address be taken?)
+ $(TD Is compile time function evaluation done on the initializer?)
+ $(TD allocated as static data?)
+ $(TD allocated as a per-instance field?)
+ $(TD allocated on the stack?)
+ $(TD Can the variable be assigned to in a constructor?)
+)
+
+
+$(TR $(TH Global data))
+
+$(TR $(TD1 const T x;)          $(Y)    $(N)    $(Y)    $(N)    $(N)    $(Y))
+$(TR $(TD1 const T x = 3;)              $(N)    $(Y)    $(N)    $(N)    $(N)    $(N))
+$(TR $(TD1 static const T x;)   $(Y)    $(N)    $(Y)    $(N)    $(N)    $(Y))
+$(TR $(TD1 static const T x = 3;)       $(Y)    $(Y)    $(Y)    $(N)    $(N)    $(N))
+
+
+$(TR $(TH Class Members))
+
+$(TR $(TD1 const T x;)          $(Y)    $(N)    $(N)    $(Y)    $(N)    $(Y))
+$(TR $(TD1 const T x = 3;)              $(N)    $(Y)    $(N)    $(N)    $(N)    $(N))
+$(TR $(TD1 static const T x;)   $(Y)    $(N)    $(Y)    $(N)    $(N)    $(Y))
+$(TR $(TD1 static const T x = 3;)       $(Y)    $(Y)    $(Y)    $(N)    $(N)    $(N))
+
+
+$(TR $(TH Local Variables))
+
+$(TR $(TD1 const T x;)          $(Y)    $(Y)    $(N)    $(N)    $(Y)    $(N))
+$(TR $(TD1 const T x = 3;)              $(Y)    $(N)    $(N)    $(N)    $(Y)    $(N))
+$(TR $(TD1 static const T x;)   $(Y)    $(Y)    $(Y)    $(N)    $(N)    $(N))
+$(TR $(TD1 static const T x = 3;)       $(Y)    $(Y)    $(Y)    $(N)    $(N)    $(N))
+
+$(TR $(TH Function Parameters))
+
+$(TR $(TD1 const T x;)          $(Y)    $(N)    $(N)    $(N)    $(Y)    $(N))
+)
+
+
+$(P Notes:)
+
+$(OL
+$(LI If CTFEInit is true, then the initializer can also be used for
+constant folding.)
+)
+
+
+$(TABLE
+<caption>Template Argument Deduced Type</caption>
+$(TR $(TH $(NBSP))               $(TH mutable $(CODE T)) $(TH1 const(T)) $(TH1 immutable(T)))
+$(TR $(TD1 foo(U))              $(TDE T) $(TDE T) $(TDE T))
+$(TR $(TD1 foo(U:U))            $(TDE T) $(TDE const(T)) $(TDE immutable(T)))
+$(TR $(TD1 foo(U:const(U)))     $(TDI T) $(TDE T) $(TDI T))
+$(TR $(TD1 foo(U:immutable(U))) $(NM) $(NM) $(TDE T))
+)
+
+$(P Where:)
+
+$(TABLE
+$(TR $(TD $(GREEN green)) $(TD exact match))
+$(TR $(TD $(ORANGE orange)) $(TD implicit conversion))
+)
+)
+
+$(H2 $(LNAME2 immutable_type, Immutable Type))
+
+        $(P
+        Data that will never change its value can be typed as immutable.
+        The immutable keyword can be used as a $(I type qualifier):
+        )
+
+---
+immutable(char)[] s = "hello";
+---
+
+        $(P
+        The immutable applies to the type within the following parentheses.
+        So, while $(CODE s) can be assigned new values,
+        the contents of $(CODE s[]) cannot be:
+        )
+
+---
+s[0] = 'b';  // error, s[] is immutable
+s = null;    // ok, s itself is not immutable
+---
+
+        $(P
+        Immutability is transitive, meaning it applies to anything that
+        can be referenced from the immutable type:
+        )
+
+---
+immutable(char*)** p = ...;
+p = ...;        // ok, p is not immutable
+*p = ...;       // ok, *p is not immutable
+**p = ...;      // error, **p is immutable
+***p = ...;     // error, ***p is immutable
+---
+
+        $(P Immutable used as a storage class is equivalent to using
+        immutable as a type qualifier for the entire type of a
+        declaration:)
+
+---
+immutable int x = 3;   // x is typed as immutable(int)
+immutable(int) y = 3;  // y is immutable
+---
+
+
+$(H2 $(LNAME2 creating_immutable_data, Creating Immutable Data))
+
+        $(P
+        The first way is to use a literal that is already immutable,
+        such as string literals. String literals are always immutable.
+        )
+
+---
+auto s = "hello";   // s is immutable(char)[5]
+char[] p = "world"; // error, cannot implicitly convert immutable
+                    // to mutable
+---
+
+        $(P
+        The second way is to cast data to immutable.
+        When doing so, it is up to the programmer to ensure that any mutable
+        references to the same data are not used to modify the data after the
+        cast.
+        )
+
+---
+char[] s = ['a'];
+s[0] = 'b'; // ok
+immutable(char)[] p = cast(immutable)s; // ok, if data is not mutated
+                                        // through s anymore
+s[0] = 'c'; // undefined behavior
+immutable(char)[] q = cast(immutable)s.dup; // always ok, unique reference
+
+char[][] s2 = [['a', 'b'], ['c', 'd']];
+immutable(char[][]) p2 = cast(immutable)s2.dup; // dangerous, only the first
+                                                // level of elements is unique
+s2[0] = ['x', 'y']; // ok, doesn't affect p2
+s2[1][0] = 'z'; // undefined behavior
+immutable(char[][]) q2 = [s2[0].dup, s2[1].dup]; // always ok, unique references
+---
+
+        $(P
+        The $(CODE .idup) property is a convenient way to create an immutable
+        copy of an array:
+        )
+
+---
+auto p = s.idup;
+p[0] = ...;       // error, p[] is immutable
+---
+
+$(H2 $(LNAME2 removing_with_cast, Removing Immutable or Const with a Cast))
+
+        $(P
+        An immutable or const type qualifier can be removed with a cast:
+        )
+
+---
+immutable int* p = ...;
+int* q = cast(int*)p;
+---
+
+        $(P
+        This does not mean, however, that one can change the data:
+        )
+
+---
+*q = 3; // allowed by compiler, but result is undefined behavior
+---
+
+        $(P
+        The ability to cast away immutable-correctness is necessary in
+        some cases where the static typing is incorrect and not fixable, such
+        as when referencing code in a library one cannot change.
+        Casting is, as always, a blunt and effective instrument, and
+        when using it to cast away immutable-correctness, one must assume
+        the responsibility to ensure the immutability of the data, as
+        the compiler will no longer be able to statically do so.
+        )
+
+        $(UNDEFINED_BEHAVIOR
+        casting away a `const` qualifier and then mutating it,
+        even when the referenced data is mutable. This is so that
+        compilers and programmers can make assumptions based on `const` alone. For
+        example, here it may be assumed that $(D f) does not alter $(D x):
+        )
+
+---
+void f(const int* a);
+void main()
+{
+    int x = 1;
+    f(&x);
+    assert(x == 1); // guaranteed to hold
+}
+---
+
+$(H2 $(LNAME2 immutable_member_functions, Immutable Member Functions))
+
+        $(P
+        Immutable member functions are guaranteed that the object
+        and anything referred to by the $(DDSUBLINK spec/expression, this, `this` reference)
+        is immutable.
+        They are declared as:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+struct S
+{
+    int x;
+
+    void foo() immutable
+    {
+        x = 4;      // error, `x` is immutable
+        this = S(); // error, `this` is immutable
+    }
+}
+---
+)
+    $(P Note that using $(D_KEYWORD immutable) on the left hand side of a method does not apply to the return type:
+    )
+
+---
+struct S
+{
+    immutable int[] bar()  // bar is still immutable, return type is not!
+    {
+    }
+}
+---
+    $(P To make the return type $(D_KEYWORD immutable), surround it with parentheses:
+    )
+
+---
+struct S
+{
+    immutable(int[]) bar()  // bar is now mutable, return type is immutable.
+    {
+    }
+}
+---
+    $(P To make both the return type and the method $(D_KEYWORD immutable), write:
+    )
+---
+struct S
+{
+    immutable(int[]) bar() immutable
+    {
+    }
+}
+---
+
+        $(P **See also:** $(DDSUBLINK spec/function, nested-qualifiers,
+        Nested Functions with Method Attributes).)
+
+
+$(H2 $(LNAME2 const_type, Const Type))
+
+        $(P
+        Const types are like immutable types, except that const
+        forms a read-only $(I view) of data. Other aliases to that
+        same data may change it at any time.
+        )
+
+
+$(H2 $(LNAME2 const_member_functions, Const Member Functions))
+
+        $(P
+        Const member functions are functions that are not allowed to
+        change any part of the object through the member function's
+        $(DDSUBLINK spec/expression, this, `this` reference).
+        )
+
+
+$(H2 $(LNAME2 inout, Inout))
+
+    $(P Functions that differ only in whether the parameters are mutable, `const` or `immutable`,
+        and have corresponding mutable, `const` or `immutable` return types, can be combined
+        into one function using the $(D inout) type constructor. Consider the following
+        overload set:
+     )
+        ---
+        int[] slice(int[] a, int x, int y) { return a[x .. y]; }
+
+        const(int)[] slice(const(int)[] a, int x, int y) { return a[x .. y]; }
+
+        immutable(int)[] slice(immutable(int)[] a, int x, int y) { return a[x .. y]; }
+        ---
+
+    $(P The code generated by each of these functions is identical.
+        The $(D_KEYWORD inout) type constructor can combine them into one function:)
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        inout(int)[] slice(inout(int)[] a, int x, int y) { return a[x .. y]; }
+        ---
+        )
+
+    $(P The $(D_KEYWORD inout) keyword forms a wildcard that stands in for
+        mutable, `const`, `immutable`, `inout`, or `inout const`.
+        When calling the function, the `inout` state of the return type is changed to
+        match that of the argument type passed to the `inout` parameter.
+    )
+
+    $(P `inout` can also be used as a type constructor inside a function that has a
+        parameter declared with `inout`. The `inout` state of a type declared with
+        `inout` is changed to match that of the argument type passed to the `inout`
+        parameter:
+    )
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        inout(int)[] asymmetric(inout(int)[] input_data)
+        {
+            inout(int)[] r = input_data;
+            while (r.length > 1 && r[0] == r[$-1])
+                r = r[1..$-1];
+            return r;
+        }
+        ---
+        )
+
+    $(P Inout types can be implicitly converted to `const` or `inout const`,
+        but to nothing else. Other types cannot be implicitly converted to `inout`.
+        Casting to or from `inout` is not allowed in `@safe` functions.
+    )
+
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
+        void f(inout int* ptr)
+        {
+            const int* p = ptr;
+            int* q = ptr; // error
+            immutable int* r = ptr; // error
+        }
+        ---
+        )
+
+    $(H3 $(LNAME2 matching-an-inout-parameter, Matching an `inout` Parameter))
+
+    $(P A set of arguments to a function with `inout` parameters is considered
+        a match if any `inout` argument types match exactly, or:)
+
+    $(OL
+        $(LI No argument types are composed of `inout` types.)
+        $(LI A mutable, `const` or `immutable` argument type can be matched against each
+        corresponding parameter `inout` type.)
+    )
+
+    $(P If such a match occurs, `inout` is considered the common qualifier of
+        the matched qualifiers. If more than two parameters exist, the common
+        qualifier calculation is recursively applied.
+    )
+
+    $(TABLE2 Common qualifier of the two type qualifiers,
+        $(TROW , $(I mutable), $(D const), $(D immutable), $(D inout), $(D inout const))
+        $(TROW $(I mutable) $(LPAREN)= m$(RPAREN), m, c, c, c, c)
+        $(TROW $(D const) $(LPAREN)= c$(RPAREN), c, c, c, c, c)
+        $(TROW $(D immutable) $(LPAREN)= i$(RPAREN), c, c, i, wc, wc)
+        $(TROW $(D inout) $(LPAREN)= w$(RPAREN), c, c, wc, w, wc)
+        $(TROW $(D inout const) $(LPAREN)= wc$(RPAREN), c, c, wc, wc, wc)
+    )
+
+    $(P The `inout` in the return type is then rewritten to match the `inout`
+        qualifiers:)
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        int[] ma;
+        const(int)[] ca;
+        immutable(int)[] ia;
+
+        inout(int)[] foo(inout(int)[] a) { return a; }
+        void test1()
+        {
+            // inout matches to mutable, so inout(int)[] is
+            // rewritten to int[]
+            int[] x = foo(ma);
+
+            // inout matches to const, so inout(int)[] is
+            // rewritten to const(int)[]
+            const(int)[] y = foo(ca);
+
+            // inout matches to immutable, so inout(int)[] is
+            // rewritten to immutable(int)[]
+            immutable(int)[] z = foo(ia);
+        }
+
+        inout(const(int))[] bar(inout(int)[] a) { return a; }
+        void test2()
+        {
+            // inout matches to mutable, so inout(const(int))[] is
+            // rewritten to const(int)[]
+            const(int)[] x = bar(ma);
+
+            // inout matches to const, so inout(const(int))[] is
+            // rewritten to const(int)[]
+            const(int)[] y = bar(ca);
+
+            // inout matches to immutable, so inout(int)[] is
+            // rewritten to immutable(int)[]
+            immutable(int)[] z = bar(ia);
+        }
+        ---
+        )
+
+    $(P $(B Note:) Shared types cannot
+        be matched with `inout`.
+    )
+
+
+$(H2 $(LNAME2 shared, Shared))
+
+$(P Mutable data that is meant to be shared among multiple threads should be
+declared with the `shared` qualifier. This prevents unsynchronized
+reading and writing to the data, which would otherwise cause data races.
+The `shared` type attribute is transitive (like `const` and `immutable`).
+)
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+shared int x;
+shared(int)* p = &x;
+//int* q = p; // error, q is not shared
+---
+)
+$(P For basic data types, reading and writing can normally be done with
+atomic operations. Use $(MREF core, atomic) for portability:
+)
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import core.atomic;
+
+shared int x;
+
+void fun()
+{
+    //x++; // error, use atomicOp instead
+    x.atomicOp!"+="(1);
+}
+---
+)
+$(P $(RED Warning:) An individual read or write operation on shared
+data is not an error yet by default. To detect these, use the
+`-preview=nosharedaccess` compiler option. Normal initialization is
+allowed without an error.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+import core.atomic;
+
+int y;
+shared int x = y; // OK
+
+//x = 5; // write error with preview flag
+x.atomicStore(5); // OK
+//y = x; // read error with preview flag
+y = x.atomicLoad(); // OK
+assert(y == 5);
+---
+)
+
+$(H3 $(LNAME2 shared_cast, Casting))
+
+$(P When working with larger types, manual synchronization
+can be used. To do that, `shared` can be cast away for the
+duration while mutual exclusion has been established:
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct T;
+shared T* x;
+
+void fun()
+{
+    synchronized
+    {
+        T* p = cast(T*)x;
+        // operate on `*p`
+    }
+}
+---
+)
+
+$(P An unshared reference can be cast to shared only if the source data
+will not be accessed for the lifetime of the cast result.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+class C {}
+
+@trusted shared(C) create()
+{
+    auto c = new C;
+    // work with c without it escaping
+    return cast(shared)c; // OK
+}
+---
+)
+
+$(H3 $(LNAME2 shared_global, Shared Global Variables))
+
+$(P Global (or static) shared variables are stored in common storage which
+is accessible across threads. Global mutable variables are stored in
+thread-local storage by default.)
+
+$(P To declare global/static data to be implicitly shared across
+multiple threads without any compiler checks, see $(DDSUBLINK
+spec/attribute, gshared, `__gshared`).
+)
+
+
+$(H2 $(LNAME2 combining_qualifiers, Combining Qualifiers))
+
+$(P More than one qualifier may apply to a type. The order of application is
+irrelevant, for example given an unqualified type `T`, $(D const shared T) and
+$(D shared const T) are the same type. For that reason, this document depicts
+qualifier combinations without parentheses unless necessary and in alphabetic
+order.)
+
+$(P Applying a qualifier to a type that already has that qualifier is legal but
+has no effect, e.g. given an unqualified type `T`, $(D shared(const shared T))
+yields the type $(D const shared T).)
+
+$(PANEL Applying the `immutable` qualifier to any type (qualified or not) results in
+$(D immutable T). Applying any qualifier to $(D immutable T) results in
+`immutable T`. This makes `immutable` a fixed point of qualifier combinations and
+makes types such as $(D const(immutable(shared T))) impossible to create.
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+alias SInt = shared int;
+alias IInt = immutable int;
+static assert(is(immutable(SInt) == IInt));
+static assert(is(shared(IInt) == IInt));
+---
+)
+)
+
+$(P Assuming `T` is an unqualified type, the graph below illustrates how
+qualifiers combine (combinations with `immutable` are omitted). For each node,
+applying the qualifier labeling the edge leads to the resulting type.)
+
+$(COMMENT To generate images/qualifier-combinations.{svg,eps} refer to
+images/qualifier-combinations.dot.)
+
+$(HTMLTAG3 center, ,
+  <img id="conversions" alt="Qualifier combination rules"
+    src="$(STATIC images/qualifier-combinations.svg)">
+)
+$(LATEX
+{\centering
+\includegraphics{images/qualifier-combinations.eps}
+}
+)
+
+$(H2 $(LNAME2 implicit_qualifier_conversions, Implicit Qualifier Conversions))
+
+$(P Values that have no mutable indirections (including structs that don't
+contain any field with mutable indirections) can be implicitly converted across
+$(I mutable), $(D const), $(D immutable), $(D const shared), $(D inout) and
+$(D inout shared).)
+
+$(P References to qualified objects can be implicitly converted according to the
+following rules:)
+
+$(COMMENT To generate images/qualifier-conversions.{svg,eps} refer to
+images/qualifier-conversions.dot.)
+
+$(HTMLTAG3 center, ,
+  <img id="conversions" alt="Qualifier conversion rules"
+    src="$(STATIC images/qualifier-conversions.svg)">
+)
+$(LATEX
+{\centering
+\includegraphics{images/qualifier-conversions.eps}
+}
+)
+
+$(P In the graph above, any directed path is a legal implicit conversion. No
+other qualifier combinations than the ones shown is valid. If a directed path
+exists between two sets of qualifiers, the types thus qualified are called
+$(GLOSSARY qualifier-convertible). The same information is shown below in tabular
+format:)
+
+    $(TABLE_10 $(ARGS Implicit Conversion of Reference Types),
+    $(VERTROW from/to, $(I mutable), $(D const), $(D shared), $(D inout), $(D const shared), $(D const inout), $(D inout shared), $(D const inout shared), $(D immutable)),
+    $(TROW $(I mutable),            $(YES), $(YES), $(NO),  $(NO),  $(NO),  $(NO),  $(NO),  $(NO),  $(NO) )
+    $(TROW $(D const),              $(NO),  $(YES), $(NO),  $(NO),  $(NO),  $(NO),  $(NO),  $(NO),  $(NO) )
+    $(TROW $(D shared),             $(NO),  $(NO),  $(YES), $(NO),  $(YES), $(NO),  $(NO),  $(NO),  $(NO) )
+    $(TROW $(D inout),              $(NO),  $(YES), $(NO),  $(YES), $(NO),  $(YES), $(NO),  $(NO),  $(NO) )
+    $(TROW $(D const shared),       $(NO),  $(NO),  $(NO),  $(NO),  $(YES), $(NO),  $(NO),  $(NO),  $(NO) )
+    $(TROW $(D const inout),        $(NO),  $(YES), $(NO),  $(NO),  $(NO),  $(YES), $(NO),  $(NO),  $(NO) )
+    $(TROW $(D inout shared),       $(NO),  $(NO),  $(NO),  $(NO),  $(YES), $(NO),  $(YES), $(YES), $(NO) )
+    $(TROW $(D const inout shared), $(NO),  $(NO),  $(NO),  $(NO),  $(YES), $(NO),  $(NO),  $(YES), $(NO) )
+    $(TROW $(D immutable),          $(NO),  $(YES), $(NO),  $(NO),  $(YES), $(YES), $(NO),  $(YES), $(YES))
+    )
+
+$(H3 $(LNAME2 unique-expressions, Unique Expressions))
+
+        $(P If an implicit conversion is disallowed by the table, an $(GLINK2 expression, Expression)
+        may be implicitly converted as follows:
+        )
+        $(UL
+        $(LI From mutable or shared to immutable if the expression
+        is unique and all expressions it transitively refers to are either unique or immutable.
+        )
+        $(LI From mutable to shared if the expression
+        is unique and all expressions it transitively refers to are either unique, immutable,
+        or shared.
+        )
+        $(LI From immutable to mutable if the expression is unique.
+        )
+        $(LI From shared to mutable if the expression is unique.
+        )
+        )
+
+        $(P A $(I Unique Expression) is one for which there are no other references to the
+        value of the expression and all expressions it transitively refers to are either
+        also unique or are immutable. For example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void main()
+{
+    immutable int** p = new int*(null); // ok, unique
+
+    int x;
+    //immutable int** q = new int*(&x); // error, there may be other references to x
+
+    immutable int y;
+    immutable int** r = new immutable(int)*(&y); // ok, y is immutable
+}
+---
+)
+        $(P See also: $(DDSUBLINK spec/function, pure-factory-functions, Pure Factory Functions).)
+
+        $(P Otherwise, a $(GLINK2 expression, CastExpression) can be used to force a conversion
+        when an implicit version is disallowed, but this cannot be done in $(D @safe) code,
+        and the correctness of it must be verified by the user.
+        )
+
+$(SPEC_SUBNAV_PREV_NEXT enum, Enums, function, Functions)
+)
+
+Macros:
+        CHAPTER=19
+        TH1=<th class="nobr">$(CODE $0)</th>
+        TD1=<td class="nobr">$(CODE $0)</td>
+        TDE=<td class="nobr">$(GREEN $(CODE $0))</td>
+        TDI=<td class="nobr">$(ORANGE $(CODE $0))</td>
+        NM=$(TD $(RED no match))
+        Y=$(TD $(GREEN Yes))
+        N=$(TD $(RED No))
+        TITLE=Type Qualifiers
+        ERROR = $(RED $(B error))
+    META_KEYWORDS=D Programming Language, const, immutable
+    META_DESCRIPTION=Comparison of const between the D programming language, C++, and C++0x

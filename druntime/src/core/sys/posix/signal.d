@@ -3019,6 +3019,7 @@ else version (FreeBSD)
 else version (NetBSD)
 {
     int sigqueue(pid_t, int, const sigval);
+    pragma(mangle, "__sigtimedwait50")
     int sigtimedwait(const scope sigset_t*, siginfo_t*, const scope timespec*);
     int sigwaitinfo(const scope sigset_t*, siginfo_t*);
 }

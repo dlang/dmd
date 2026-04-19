@@ -393,6 +393,73 @@ void test22354()
     assert(aa["x"].length == 1);  // FAILS: length is still 0
 }
 
+// https://github.com/dlang/dmd/issues/22406
+void testShared()
+{
+    shared int[int] processes = [1: 1, 2:4, 3:9];
+
+    cast(void)processes.sizeof;
+    cast(void)processes.length;
+    cast(void)processes.dup;
+    cast(void)processes.rehash;
+    //cast(void)processes.clear;
+    //cast(void)processes.keys;
+    //cast(void)processes.values;
+    //cast(void)processes.byKey;
+    //cast(void)processes.byValue;
+    //cast(void)processes.byKeyValue;
+    processes.remove(3);
+    assert(2 in processes);
+
+    immutable int[int] iprocesses = [1: 1, 2:4, 3:9];
+
+    cast(void)iprocesses.sizeof;
+    cast(void)iprocesses.length;
+    cast(void)iprocesses.dup;
+    //cast(void)iprocesses.rehash;
+    //cast(void)iprocesses.clear;
+    cast(void)iprocesses.keys;
+    cast(void)iprocesses.values;
+    cast(void)iprocesses.byKey;
+    cast(void)iprocesses.byValue;
+    cast(void)iprocesses.byKeyValue;
+    //iprocesses.remove(3);
+    assert(2 in iprocesses);
+}
+
+// https://github.com/dlang/dmd/issues/22556
+void test22556()
+{
+    static struct RefCounted(T)
+    {
+        this(this) {}
+    }
+    struct S {}
+    alias R = RefCounted!S;
+    shared R[string] foo;
+
+    (cast (R[string]) foo).clear; // WORKS
+    (cast() foo).clear; // FAILS with 2.112.0, WORKS with 2.111.0
+    static assert(!__traits(compiles, foo.clear));
+}
+
+/***************************************************/
+
+// https://github.com/dlang/dmd/issues/22567
+void test22567()
+{
+    struct S
+    {
+        string[string] data;
+        alias this = data;
+    }
+
+    S[string] foo;
+    foo["bar"] = S();
+    foo["bar"]["baz"] = "boom";
+    assert(foo["bar"]["baz"] == "boom");
+}
+
 /***************************************************/
 
 void main()
@@ -421,4 +488,7 @@ void main()
     test12403();
     test21066();
     test22354();
+    testShared();
+    test22567();
+    test22556();
 }

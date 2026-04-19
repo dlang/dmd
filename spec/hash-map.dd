@@ -1,0 +1,613 @@
+Ddoc
+
+$(SPEC_S Associative Arrays,
+
+$(HEADERNAV_TOC)
+
+        $(P Associative arrays have an index that is not necessarily an integer,
+        and can be sparsely populated. The index for an associative array
+        is called the $(I key), and its type is called the $(I KeyType).)
+
+        $(P Associative arrays are declared by placing the $(I KeyType)
+        within the $(D [ ]) of an array declaration:
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---------
+        int[string] aa;   // Associative array of ints that are
+                          // indexed by string keys.
+                          // The KeyType is string.
+        aa["hello"] = 3;  // set value associated with key "hello" to 3
+        int value = aa["hello"];  // lookup value from a key
+        assert(value == 3);
+        ---------
+        )
+
+        $(P Neither the $(I KeyType)s nor the element types of an associative
+        array can be function types or $(D void).
+        )
+
+        $(IMPLEMENTATION_DEFINED The built-in associative arrays do not preserve the order
+        of the keys inserted into the array. In particular, in a $(D foreach) loop the
+        order in which the elements are iterated is typically unspecified.)
+
+$(H2 $(LNAME2 literals, Literals))
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+auto aa = [21u: "he", 38: "ho", 2: "hi"];
+static assert(is(typeof(aa) == string[uint]));
+assert(aa[2] == "hi");
+---
+)
+    $(P See $(DDSUBLINK spec/expression, associative_array_literals, Associative Array Literals).)
+
+$(H2 $(LNAME2 removing_keys, Removing Keys))
+
+        $(P Particular keys in an associative array can be removed with the
+        $(D remove) function:
+        )
+
+        ---------
+        aa.$(CODE_HIGHLIGHT remove)("hello");
+        ---------
+
+        $(P $(D remove(key)) does nothing if the given $(I key) does not exist and
+        returns $(D false).  If the given $(I key) does exist, it removes it
+        from the AA and returns $(D true).
+        )
+
+        $(P All keys can be removed by using the method `clear`.)
+
+$(H2 $(LNAME2 testing_membership, Testing Membership))
+
+        $(P The $(GLINK2 expression, InExpression) yields a pointer to the value
+        if the key is in the associative array, or $(D null) if not:
+        )
+
+        ---------
+        int* p;
+
+        p = "hello" $(CODE_HIGHLIGHT in) aa;
+        if (p !is null)
+        {
+            *p = 4;  // update value associated with key
+            assert(aa["hello"] == 4);
+        }
+        ---------
+
+        $(UNDEFINED_BEHAVIOR Adjusting the pointer to point before or after
+        the element whose address is returned, and then dereferencing it.)
+
+$(H2 $(LNAME2 using_classes_as_key, Using Classes as the KeyType))
+
+        $(P Classes can be used as the $(I KeyType). The behavior is controlled by the following member functions
+        of class $(D Object):)
+
+        $(UL
+        $(LI $(D size_t toHash() @trusted nothrow))
+        $(LI $(D bool opEquals(Object)))
+        )
+
+        $(P Note that the parameter to $(D opEquals) is of type
+        $(D Object), not the type of the class in which it is defined.)
+
+        $(P For example:)
+
+        ---
+        class Foo
+        {
+            int a, b;
+
+            override size_t $(CODE_HIGHLIGHT toHash)() { return a + b; }
+
+            override bool $(CODE_HIGHLIGHT opEquals)(Object o)
+            {
+                Foo foo = cast(Foo) o;
+                return foo && a == foo.a && b == foo.b;
+            }
+        }
+        ---
+        The default implementation of $(D opEquals) uses the address of the instance for comparisons,
+        and the default implementation of $(D toHash) hashes the address of the instance.
+
+        $(IMPLEMENTATION_DEFINED
+        `opCmp` is not used to check for equality by the
+        associative array. However, since the actual `opEquals` or
+        `opCmp` called is not decided until runtime, the compiler cannot always
+        detect mismatched functions. Because of legacy issues, the compiler may
+        reject an associative array key type that overrides `opCmp` but not
+        `opEquals`. This restriction may be removed in future versions.)
+
+        $(UNDEFINED_BEHAVIOR
+        $(OL
+        $(LI If $(D toHash) must consistently be the
+        same value when $(D opEquals) returns true. In other words, two objects
+        that are considered equal should always have the same hash value.
+        Otherwise, undefined behavior will result.)
+        ))
+
+        $(BEST_PRACTICE
+        $(OL
+        $(LI Use the attributes `@safe`, `@nogc`, `pure`, `const`, and `scope` as much as possible
+        on the `toHash` and `opEquals` overrides.)
+        ))
+
+$(H2 $(LNAME2 using_struct_as_key, Using Structs or Unions as the KeyType))
+
+        $(P If the $(I KeyType) is a struct or union type,
+        a default mechanism is used
+        to compute the hash and comparisons of it based on the
+        fields of the struct value. A custom mechanism can be used
+        by providing the following functions as struct members:
+        )
+
+        ---------
+        size_t $(CODE_HIGHLIGHT toHash)() const @safe pure nothrow;
+        bool $(CODE_HIGHLIGHT opEquals)(ref const typeof(this) s) const @safe pure nothrow;
+        ---------
+
+        $(P For example:)
+
+        ---------
+        import std.string;
+
+        struct MyString
+        {
+            string str;
+
+            size_t $(CODE_HIGHLIGHT toHash)() const @safe pure nothrow
+            {
+                size_t hash;
+                foreach (char c; str)
+                    hash = (hash * 9) + c;
+                return hash;
+            }
+
+            bool $(CODE_HIGHLIGHT opEquals)(ref const MyString s) const @safe pure nothrow
+            {
+                return std.string.cmp(this.str, s.str) == 0;
+            }
+        }
+        ---------
+
+        $(P The functions can use $(D @trusted) instead of $(D @safe).)
+
+        $(IMPLEMENTATION_DEFINED `opCmp` is not used to check for equality by the
+        associative array.  For this reason, and for legacy reasons, an
+        associative array key is not allowed to define a specialized `opCmp`,
+        but omit a specialized `opEquals`. This restriction may be
+        removed in future versions of D.)
+
+        $(UNDEFINED_BEHAVIOR
+        $(OL
+        $(LI If $(D toHash) must consistently be the
+        same value when $(D opEquals) returns true. In other words, two structs
+        that are considered equal should always have the same hash value.
+        Otherwise, undefined behavior will result.)
+        ))
+
+        $(BEST_PRACTICE
+        $(OL
+        $(LI Use the attributes `@nogc` as much as possible
+        on the `toHash` and `opEquals` overrides.)
+        ))
+
+$(H2 $(LNAME2 construction_assignment_entries, Construction or Assignment on Setting AA Entries))
+
+    $(P When an AA indexing access appears on the left side of an assignment
+    operator, it is specially handled for setting an AA entry associated with
+    the key.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---------
+        string[int] aa;
+        string s;
+
+        //s = aa[1];        // throws RangeError in runtime
+        aa[1] = "hello";    // handled for setting AA entry
+        s = aa[1];          // succeeds to lookup
+        assert(s == "hello");
+        ---------
+)
+    $(P If the assigned value type is equivalent with the AA element type:)
+
+      $(OL
+        $(LI If the indexing key does not yet exist in AA, a new AA entry will be
+        allocated, and it will be initialized with the assigned value.)
+        $(LI If the indexing key already exists in the AA, the setting runs normal
+        assignment.)
+      )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---------
+        struct S
+        {
+            int val;
+            void opAssign(S rhs) { this.val = rhs.val * 2; }
+        }
+        S[int] aa;
+        aa[1] = S(10);  // first setting initializes the entry aa[1]
+        assert(aa[1].val == 10);
+        aa[1] = S(10);  // second setting invokes normal assignment, and
+                        // operator-overloading rewrites it to member opAssign function.
+        assert(aa[1].val == 20);
+        ---------
+)
+
+    $(P If the assigned value type is $(B not) equivalent with the AA element
+    type, the expression could invoke operator overloading with normal indexing
+    access:)
+
+        ---------
+        struct S
+        {
+            int val;
+            void opAssign(int v) { this.val = v * 2; }
+        }
+        S[int] aa;
+        aa[1] = 10;     // is rewritten to: aa[1].opAssign(10), and
+                        // throws RangeError before opAssign is called
+        ---------
+
+        $(P However, if the AA element type is a struct which supports an
+        implicit constructor call from the assigned value, implicit construction
+        is used for setting the AA entry:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---------
+        struct S
+        {
+            int val;
+            this(int v) { this.val = v; }
+            void opAssign(int v) { this.val = v * 2; }
+        }
+        S s = 1;    // OK, rewritten to: S s = S(1);
+        s = 1;      // OK, rewritten to: s.opAssign(1);
+
+        S[int] aa;
+        aa[1] = 10; // first setting is rewritten to: aa[1] = S(10);
+        assert(aa[1].val == 10);
+        aa[1] = 10; // second setting is rewritten to: aa[1].opAssign(10);
+        assert(aa[1].val == 20);
+        ---------
+)
+        This is designed for efficient memory reuse with some value-semantics
+        structs, eg. $(REF BigInt, std,bigint).
+
+        ---------
+        import std.bigint;
+        BigInt[string] aa;
+        aa["a"] = 10;   // construct BigInt(10) and move it in AA
+        aa["a"] = 20;   // call aa["a"].opAssign(20)
+        ---------
+
+$(H2 $(LNAME2 inserting_if_not_present, Inserting if not present))
+
+    $(P When AA access requires that there must be a value corresponding to the
+        key, a value must be constructed and inserted if not present. The
+        $(D require) function provides a means to construct a new value via a
+        lazy argument. The lazy argument is evaluated when the key is not
+        present. The $(D require) operation avoids the need to perform multiple
+        key lookups.)
+
+        ---------
+        class C{}
+        C[string] aa;
+
+        auto a = aa.require("a", new C);   // lookup "a", construct if not present
+        ---------
+
+    $(P Sometimes it is necessary to know whether the value was constructed or
+        already exists. The $(D require) function doesn't provide a boolean
+        parameter to indicate whether the value was constructed but instead
+        allows the construction via a function or delegate. This allows the use
+        of any mechanism as demonstrated below.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---------
+        class C{}
+        C[string] aa;
+
+        bool constructed;
+        auto a = aa.require("a", { constructed=true; return new C;}());
+        assert(constructed == true);
+
+        C newc;
+        auto b = aa.require("b", { newc = new C; return newc;}());
+        assert(b is newc);
+        ---------
+)
+
+$(H2 $(LNAME2 advanced_updating, Advanced updating))
+
+    $(P Typically updating a value in an associative array is simply done with
+        an assign statement.)
+
+        ---------
+        int[string] aa;
+
+        aa["a"] = 3;  // set value associated with key "a" to 3
+        ---------
+
+    $(P Sometimes it is necessary to perform different operations depending on
+        whether a value already exists or needs to be constructed. The
+        $(D update) function provides a means to construct a new value via the
+        $(D creator) or update an existing value via the $(D updater).
+        The $(D update) operation avoids the need to perform multiple
+        key lookups.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---------
+        int[string] aa;
+
+        // create
+        aa.update("key",
+            () => 1,
+            (int) {} // not executed
+            );
+        assert(aa["key"] == 1);
+
+        // update value by ref
+        aa.update("key",
+            () => 0, // not executed
+            (ref int v) {
+                v += 1;
+            });
+        assert(aa["key"] == 2);
+        ---------
+)
+
+    $(P For details, see $(REF1 update, object).)
+
+$(H2 $(LNAME2 runtime_initialization, Runtime Initialization of Immutable AAs))
+
+    $(P Immutable associative arrays are often desirable, but sometimes
+        initialization must be done at runtime. This can be achieved with
+        a constructor (static constructor depending on scope),
+        a buffer associative array and $(D assumeUnique):)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---------
+        immutable long[string] aa;
+
+        shared static this()
+        {
+            import std.exception : assumeUnique;
+            import std.conv : to;
+
+            long[string] temp; // mutable buffer
+            foreach (i; 0 .. 10)
+            {
+                temp[to!string(i)] = i;
+            }
+            temp.rehash; // for faster lookups
+
+            aa = assumeUnique(temp);
+        }
+
+        void main()
+        {
+            assert(aa["1"] == 1);
+            assert(aa["5"] == 5);
+            assert(aa["9"] == 9);
+        }
+        ---------
+)
+
+$(H2 $(LNAME2 construction_and_ref_semantic, Construction and Reference Semantics))
+
+    $(P An Associative Array defaults to `null`, and is constructed upon assigning the first key/value
+        pair. However, once constructed, an associative array has $(I reference semantics), meaning that
+        assigning one array to another does not copy the data. This is especially important when attempting
+        to create multiple references to the same array.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+        ------
+        int[int] aa;             // defaults to null
+        int[int] aa2 = aa;       // copies the null reference
+
+        assert(aa is null);
+        aa[1] = 1;
+        assert(aa2.length == 0); // aa2 still is null
+        aa2 = aa;
+        aa2[2] = 2;
+        assert(aa[2] == 2);      // now both refer to the same instance
+        ------
+)
+
+    $(P A $(GLINK2 expression, NewExpression) allows constructing an associative array instance
+        immediately, rather than when $(DDSUBLINK spec/hash-map, construction_assignment_entries, inserting a key).)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        int[string] a = new int[string];
+        auto b = a; // a and b point to the same AA instance
+
+        assert(b !is null);
+        a["1"] = 1;
+        assert(b["1"] == 1);
+        ---
+        )
+
+$(H2 $(LNAME2 properties, Properties and Operations))
+
+    $(TABLE
+        $(THEAD Name, Description)
+        $(TROW $(D sizeof), $(ARGS The size of the reference to the associative
+        array; it is 4 in 32-bit builds and 8 on 64-bit builds.))
+        $(TROW $(D length), $(ARGS The number of values in the
+        associative array. Unlike for dynamic arrays, it is read-only.))
+        $(TROW $(OR dup), Returns `null` if the associative array is `null`;
+        otherwise returns a newly allocated associative array with copies of the keys and values of the associative array.)
+        $(TROW $(OR rehash), $(ARGS Reorganizes the associative array in place so that lookups
+        are more efficient. Calling $(D rehash) is effective when, for example,
+        the program is done loading up a symbol table and now needs
+        fast lookups in it. Returns a reference to the reorganized array.))
+        $(TROW $(OR clear), $(ARGS Removes all keys and values from an associative array.
+        The array is not rehashed after removal to allow for the existing storage to be reused.
+        This will affect all references to the same instance and is not equivalent to `destroy(aa)`
+        which only sets the current reference to `null`.))
+    )
+
+    $(NOTE There is no built-in `empty` property.
+        Phobos provides an implementation of `empty` in $(MREF std,range,primitives).)
+
+$(H3 $(LNAME2 iteration-ops, Iteration Operations))
+
+    $(TABLE
+        $(THEAD Operation, Description)
+        $(TROW $(OR keys), $(ARGS Returns a newly allocated dynamic array containing copies of the keys in
+        the associative array. The order is consistent with `values()` but otherwise unspecified.))
+        $(TROW $(OR values), $(ARGS Returns a newly allocated dynamic array containing copies of the values in
+        the associative array. The order is consistent with `keys()` but otherwise unspecified.))
+        $(TROW $(OR byKey), $(ARGS Returns a $(MREF_ALTTEXT forward range, std,range,primitives) enumerating the keys by reference.
+        The order is consistent with `byValue()` but otherwise unspecified.$(BR)
+        $(B Bug:) The keys are provided as mutable, but mutating them is undefined behavior.))
+        $(TROW $(OR byValue), $(ARGS Returns a forward range enumerating the values by reference.
+        The order is consistent with `byKey()` but otherwise unspecified.))
+        $(TROW $(OR byKeyValue), $(ARGS Returns a forward range enumerating opaque objects that provide `key` and `value` properties.
+        These properties return their result by reference.
+        The order of elements is unspecified.$(BR)
+        $(B Bug:) The keys are provided as mutable, but mutating them is undefined behavior.))
+    )
+
+    $(P The order of keys and values returned by
+        `keys()` and `values()` as well as
+        `byKey()`, `byValue()`, and `byKeyValue()` is unspecified,
+        but is guaranteed to be consistent as long as the associative array has not been reorganized,
+        e.g. by adding or removing keys between the calls.
+        Associating a new value to an existing key does not reorganize an associative array.
+        Reorganizing an associative array invalidates any input ranges
+        returned by `byKey()`, `byValue()`, and `byKeyValue()`.)
+
+    $(BEST_PRACTICE
+      * Calling `keys()` and `values()` incurs an allocation (unless the associative array is `null` or empty).
+        Use them if you need an independent copy of the keys and/or values;
+        otherwise consider `byKey()` and `byValue()`.
+
+      * Associative arrays support
+        $(DDSUBLINK spec/statement, foreach_over_associative_arrays, `foreach`)
+        directly for value iteration and key-value iteration.
+        Use `ref` on the key and value variables when necessary to avoid unnecessary copies.
+        For iterating the keys only, use key-value iteration and ignore the value.
+        Use `byKey()`, `byValue()`, or `byKeyValue()` for more elaborate cases such as
+        $(MREF_ALTTEXT range algorithms, std,algorithm).
+    )
+
+$(H3 $(LNAME2 lookup-ops, Key Lookup Operations))
+
+    $(TABLE
+        $(THEAD Operation, Description)
+        $(TROW $(D Value $(OR get)(Key key, lazy Value defVal)),
+        $(ARGS If the key exists, returns corresponding value;
+        otherwise evaluates and returns $(D defVal) without associating it with $(D key).))
+        $(TROW $(D ref Value $(OR require)(Key key, lazy Value value)),
+        $(ARGS If the key exists, returns corresponding value by reference;
+        otherwise evaluates $(D value) and associates it with $(D key) in the associative array,
+        then returns the newly stored value by reference.))
+        $(TROW $(D void $(OR update)(Key key, Creator creator, Updater updater)),
+        $(ARGS If the key exists, it calls `updater` with the corresponding value;
+        if it returns a value, it associates the value with the key.
+        If the key was not found, it invokes `creator` and associates the result with the key.))
+    )
+
+    $(P The `update` operation works with any `creator` and `updater` that is invokable as specified.
+        `updater` can modify the value in-place if it binds its argument by reference.)
+
+    $(BEST_PRACTICE A `void` returning `updater` with a `ref` parameter avoids unnecessary copies.)
+
+$(H2 $(LNAME2 examples, Examples))
+
+$(H3 $(LNAME2 aa_example, Associative Array Example: word count))
+
+$(RUNNABLE_EXAMPLE
+$(RUNNABLE_EXAMPLE_STDIN
+too many cooks
+too many ingredients
+)
+        ---------
+        import std.algorithm;
+        import std.stdio;
+
+        void main()
+        {
+            ulong[string] dictionary;
+            ulong wordCount, lineCount, charCount;
+
+            foreach (line; stdin.byLine(KeepTerminator.yes))
+            {
+                charCount += line.length;
+                foreach (word; splitter(line))
+                {
+                    wordCount += 1;
+                    if (auto count = word in dictionary)
+                        *count += 1;
+                    else
+                        dictionary[word.idup] = 1;
+                }
+
+                lineCount += 1;
+            }
+
+            writeln("   lines   words   bytes");
+            writefln("%8s%8s%8s", lineCount, wordCount, charCount);
+
+            const char[37] hr = '-';
+
+            writeln(hr);
+            foreach (word; sort(dictionary.keys))
+            {
+                writefln("%3s %s", dictionary[word], word);
+            }
+        }
+        ---------
+)
+    $(P See $(DDLINK wc, wc, wc) for the full version.)
+
+$(H3 $(LNAME2 aa_example_iteration, Associative Array Example: counting pairs))
+
+    $(P An Associative Array can be iterated in key/value fashion using a
+        $(DDSUBLINK spec/statement, ForeachStatement, foreach statement). As
+        an example, the number of occurrences of all possible substrings of
+        length 2 (aka 2-mers) in a string will be counted:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+        ------
+        import std.range : slide;
+        import std.stdio : writefln;
+        import std.utf : byCodeUnit; // avoids UTF-8 auto-decoding
+
+        int[string] aa;
+
+        // The string `arr` has a limited alphabet: {A, C, G, T}
+        // Thus, for better performance, iteration can be done _without_ decoding
+        auto arr = "AGATAGA".byCodeUnit;
+
+        // iterate over all pairs in the string and count each pair
+        // ('A', 'G'), ('G', 'A'), ('A', 'T'), ...
+        foreach (window; arr.slide(2))
+            aa[window.source]++; // source unwraps the code unit range
+
+        // iterate over all key/value pairs of the Associative Array
+        foreach (key, value; aa)
+        {
+            writefln("key: %s, value: %d", key, value);
+        }
+        ------
+)
+$(CONSOLE
+$(GT) rdmd count.d
+key: AT, value: 1
+key: GA, value: 2
+key: TA, value: 1
+key: AG, value: 2
+)
+)
+
+$(SPEC_SUBNAV_PREV_NEXT arrays, Arrays, struct, Structs and Unions)
+
+Macros:
+        CHAPTER=14
+        TITLE=Associative Arrays
+        OR=$(REF1 $1, object)

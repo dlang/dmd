@@ -115,7 +115,7 @@ struct Usage
     /**
     * Representation of a CLI `Option`
     *
-    * The DDoc description `ddoxText` is only available when compiled with `-version=DdocOptions`.
+    * The DDoc description `ddocText` is only available when compiled with `-version=DdocOptions`.
     */
     struct Option
     {
@@ -208,7 +208,7 @@ struct Usage
         ),
         Option("check=[assert|bounds|in|invariant|out|switch][=[on|off]]",
             "enable or disable specific checks",
-            `Overrides default, -boundscheck, -release and -unittest options to enable or disable specific checks.
+            q"{Overrides default, `-boundscheck`, `-release` and `-unittest` options to enable or disable specific checks.
                 $(UL
                     $(LI $(B assert): assertion checking)
                     $(LI $(B bounds): array bounds)
@@ -220,7 +220,7 @@ struct Usage
                 $(UL
                     $(LI $(B on) or not specified: specified check is enabled.)
                     $(LI $(B off): specified check is disabled.)
-                )`
+                )}"
         ),
         Option("check=[h|help|?]",
             "list information on all available checks"
@@ -256,14 +256,10 @@ struct Usage
             )`
         ),
         Option("conf=<filename>",
-            "use config file at filename"
+            "use config file at <filename>"
         ),
         Option("cov",
-            "do code coverage analysis"
-        ),
-        Option("cov=ctfe", "Include code executed during CTFE in coverage report"),
-        Option("cov=<nnn>",
-            "require at least nnn% code coverage",
+            "perform code coverage and generate `.lst` file",
             `Perform $(LINK2 $(ROOT_DIR)code_coverage.html, code coverage analysis) and generate
             $(TT .lst) file with report.)
 ---
@@ -271,11 +267,17 @@ dmd -cov -unittest myprog.d
 ---
             `,
         ),
+        Option("cov=ctfe", "Include code executed during CTFE in coverage report"),
+        Option("cov=<nnn>",
+            "require at least <nnn>% code coverage",
+            "Perform code coverage analysis, requiring at least <nnn>% code coverage.
+            Options can be combined, e.g. `-cov=100 -cov=ctfe`."
+        ),
         Option("cpp=<filename>",
-            "use filename as the name of the C preprocessor to use for ImportC files",
-            `Normally the C preprocessor used by the associated C compiler is used to
-            preprocess ImportC files,
-            this is overridden by the $(TT -cpp) switch.`
+            "use <filename> as the name of the C preprocessor to use for ImportC files",
+            `Sets the C preprocessor to <filename>.
+            Normally the C preprocessor used by the associated C compiler is used to
+            preprocess ImportC files.`
         ),
         Option("D",
             "generate documentation",
@@ -284,13 +286,13 @@ dmd -cov -unittest myprog.d
             `,
         ),
         Option("Dd<directory>",
-            "write documentation file to directory",
+            "write documentation file to <directory>",
             `Write documentation file to $(I directory) . $(SWLINK -op)
             can be used if the original package hierarchy should
             be retained`,
         ),
         Option("Df<filename>",
-            "write documentation file to filename"
+            "write documentation file to <filename>"
         ),
         Option("d",
             "silently allow deprecated features and symbols",
@@ -307,22 +309,18 @@ dmd -cov -unittest myprog.d
             "compile in debug code",
             `Compile in $(LINK2 spec/version.html#debug, debug) code`,
         ),
-        Option("debug=<level>",
-            "compile in debug code <= level",
-            `Compile in $(LINK2 spec/version.html#debug, debug level) &lt;= $(I level)`,
-        ),
         Option("debug=<ident>",
-            "compile in debug code identified by ident",
-            `Compile in $(LINK2 spec/version.html#debug, debug identifier) $(I ident)`,
+            "compile in debug code identified by <ident>",
+            `Compile in debug code with $(LINK2 spec/version.html#debug_specification, debug identifier) $(I ident)`,
         ),
-        Option("debuglib=<name>",
-            "set symbolic debug library to name",
+        Option("debuglib=<libname>",
+            "set symbolic debug library to <libname>",
             `Link in $(I libname) as the default library when
             compiling for symbolic debugging instead of $(B $(LIB)).
             If $(I libname) is not supplied, then no default library is linked in.`
         ),
-        Option("defaultlib=<name>",
-            "set default library to name",
+        Option("defaultlib=<libname>",
+            "set default library to <libname>",
             `Link in $(I libname) as the default library when
             not compiling for symbolic debugging instead of $(B $(LIB)).
             If $(I libname) is not supplied, then no default library is linked in.`,
@@ -331,14 +329,12 @@ dmd -cov -unittest myprog.d
             "print module dependencies (imports/file/version/debug/lib)"
         ),
         Option("deps=<filename>",
-            "write module dependencies to filename (only imports)",
-            `Without $(I filename), print module dependencies
-            (imports/file/version/debug/lib).
-            With $(I filename), write module dependencies as text to $(I filename)
+            "write module dependencies to <filename> (only imports)",
+            `Write module dependencies as text to $(I filename)
             (only imports).`,
         ),
-        Option("dllimport=<value>",
-            "Windows only: select symbols to dllimport (none/defaultLibsOnly/externalOnly/all)",
+        Option("dllimport=[none|defaultLibsOnly|externalOnly|all]",
+            "Windows only: select symbols to dllimport",
             `Which symbols to dllimport implicitly if not defined in a module that is being compiled
             $(UL
                 $(LI $(I none): None)
@@ -353,7 +349,8 @@ dmd -cov -unittest myprog.d
         ),
         Option("extern-std=<standard>",
             "set C++ name mangling compatibility with <standard>",
-            "Standards supported are:
+            "set C++ name mangling compatibility with <standard>.
+            Standards supported are:
             $(UL
                 $(LI $(I c++98): Use C++98 name mangling,
                     Sets `__traits(getTargetInfo, \"cppStd\")` to `199711`)
@@ -385,23 +382,26 @@ dmd -cov -unittest myprog.d
         ),
         Option("ftime-trace",
             "turn on compile time profiler, generate JSON file with results",
-            "Per function, the time to analyze it, call it from CTFE, generate code for it etc. will be measured,
-            and events with a time longer than 500 microseconds (adjustable with `-ftime-trace-granularity`)
+            "Measure the time to analyze, call from CTFE, and generate code for a function.
+            Events with a time longer than 500 microseconds (adjustable with `-ftime-trace-granularity`)
             will be recorded.
             The profiling result is output in the Chrome Trace Event Format,
             $(LINK2 https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/preview, described here).
             This can be turned into a more readable text file with the included tool `timetrace2txt`, or inspected
             with an interactive viewer such as $(LINK2 https://ui.perfetto.dev/, Perfetto)."
         ),
-        Option("ftime-trace-granularity=",
+        Option("ftime-trace-granularity=<μsecs>",
             "Minimum time granularity (in microseconds) traced by time profiler (default: 500)",
-            "Measured events shorter than the specified time will be discarded from the output.
+            "Minimum time granularity (in microseconds) traced by time profiler.
+            The default is `500`.
+            Measured events shorter than the specified time will be discarded from the output.
             Set it too high, and interesting events may not show up in the output.
             Set too low, and the profiler overhead will be larger, and the output will be cluttered with tiny events."
         ),
         Option("ftime-trace-file=<filename>",
-            "specify output file for -ftime-trace",
-            "By default, the output name is the same as the first object file name, but with the `.time-trace` extension appended.
+            "specify output file for `-ftime-trace`",
+            "Specify output file for `-ftime-trace`.
+            By default, the output name is the same as the first object file name, but with the `.time-trace` extension appended.
             A different filename can be chosen with this option, including a path relative to the current directory or an absolute path."
         ),
         Option("g",
@@ -412,18 +412,19 @@ dmd -cov -unittest myprog.d
             )
             $(UNIX
                 Add symbolic debug info in DWARF format
-                for debuggers such as
-                $(D gdb)
+                for debuggers such as $(D gdb).
             )`,
         ),
         Option("gdwarf=<version>",
-            "add DWARF symbolic debug info",
-            "The value of version may be 3, 4 or 5, defaulting to 3.",
+            "add DWARF symbolic debug info (default: 3)",
+            "Add DWARF symbolic debug info.
+            The value of <version> may be 3, 4 or 5, defaulting to 3.",
             cast(TargetOS) (TargetOS.all & ~cast(uint)TargetOS.Windows)
         ),
         Option("gf",
             "emit debug info for all referenced types",
-            `Symbolic debug info is emitted for all types referenced by the compiled code,
+            `Emit debug info for all referenced types.
+             Symbolic debug info is emitted for all types referenced by the compiled code,
              even if the definition is in an imported file not currently being compiled.`,
         ),
         Option("gs",
@@ -438,35 +439,37 @@ dmd -cov -unittest myprog.d
             `Generate $(RELATIVE_LINK2 $(ROOT_DIR)interface-files, D interface file)`,
         ),
         Option("Hd=<directory>",
-            "write 'header' file to directory",
+            "write 'header' file to <directory>",
             `Write D interface file to $(I directory). $(SWLINK -op)
             can be used if the original package hierarchy should
             be retained.`,
         ),
         Option("Hf=<filename>",
-            "write 'header' file to filename"
+            "write 'header' file to <filename>"
         ),
-        Option("HC[=[?|h|help|silent|verbose]]",
+        Option("HC=[silent|verbose]",
             "write C++ 'header' equivalent to stdout",
-            `write C++ 'header' equivalent to stdout configured with:",
+            `write C++ 'header' equivalent to stdout configured with:
             $(DL
-            $(DT ?|h|help)$(DD list available options for C++ 'header' file generation)
             $(DT silent)$(DD only list extern(C[++]) declarations (default))
             $(DT verbose)$(DD also add comments for ignored declarations (e.g. extern(D)))
             )`,
         ),
+        Option("HC=[?|h|help]",
+            "list available options for C++ 'header' file generation"
+        ),
         Option("HCd=<directory>",
-            "write C++ 'header' file to directory",
-            "write C++ 'header' file to directory, ignored if -HCf=<filename> is not present",
+            "write C++ 'header' file to <directory>",
+            "write C++ 'header' file to <directory>, ignored if `-HCf=<filename>` is not present",
         ),
         Option("HCf=<filename>",
-            "write C++ 'header' file to filename instead of stdout"
+            "write C++ 'header' file to <filename> instead of stdout"
         ),
         Option("-help",
             "print help and exit"
         ),
         Option("I=<directory>",
-            "look for imports also in directory",
+            "look for imports also in <directory>",
             q"{$(P Adds $(I directory) to the list of paths to be searched for imports.
              Multiple `-I`'s can be used, and the paths are searched in the same order.)
 
@@ -558,7 +561,7 @@ dmd -cov -unittest myprog.d
 
              $(P Note that multiple `-i=...` options are allowed, each one adds a pattern.)}"
         ),
-        Option("identifiers=<table>",
+        Option("identifiers=[UAX31|c99|c11|all]",
             "Specify the non-ASCII tables for D identifiers",
             `Set the identifier table to use for the non-ASCII values.
                 $(UL
@@ -568,7 +571,7 @@ dmd -cov -unittest myprog.d
                     $(LI $(I all): All, the least restrictive set, which comes with all others (default))
                 )`
         ),
-        Option("identifiers-importc=<table>",
+        Option("identifiers-importc=[UAX31|c99|c11|all]",
             "Specify the non-ASCII tables for ImportC identifiers",
             `Set the identifier table to use for the non-ASCII values.
                 $(UL
@@ -588,16 +591,16 @@ dmd -cov -unittest myprog.d
             it more difficult to use a debugger on it.`,
         ),
         Option("J=<directory>",
-            "look for string imports also in directory",
-            `Where to look for files for
+            "look for string imports also in <directory>",
+            "Where to look for files for
             $(LINK2 $(ROOT_DIR)spec/expression.html#ImportExpression, $(I ImportExpression))s.
             This switch is required in order to use $(I ImportExpression)s.
-            $(I path) is a ; separated
-            list of paths. Multiple $(B -J)'s can be used, and the paths
-            are searched in the same order.`,
+            $(I directory) is a `;` separated
+            list of paths. Multiple $(TT -J)'s can be used, and the paths
+            are searched in the same order.",
         ),
         Option("L=<linkerflag>",
-            "pass linkerflag to link",
+            "pass <linkerflag> to link",
             `Pass $(I linkerflag) to the
             $(WINDOWS linker $(OPTLINK))
             $(UNIX linker), for example, ld`,
@@ -625,7 +628,7 @@ dmd -cov -unittest myprog.d
             cast(TargetOS) (TargetOS.all & ~cast(uint)TargetOS.DragonFlyBSD)  // available on all OS'es except DragonFly, which does not support 32-bit binaries
         ),
         Option("m32mscoff",
-            "generate 32 bit code and write MS-COFF object files (deprecated use -m32)",
+            "generate 32 bit code and write MS-COFF object files (deprecated use `-m32`)",
             TargetOS.Windows
         ),
         Option("m64",
@@ -633,7 +636,11 @@ dmd -cov -unittest myprog.d
             `$(UNIX Compile a 64 bit executable. This is the default for the 64 bit dmd.)
             $(WINDOWS The generated object code is in MS-COFF and is meant to be used with the
             $(LINK2 https://msdn.microsoft.com/en-us/library/dd831853(v=vs.100).aspx, Microsoft Visual Studio 10)
-            or later compiler.`,
+            or later compiler.)`,
+        ),
+        Option("marm64",
+            "generate Arm 64 bit code",
+            "Compile an Arm 64 bit executable. Only supported for OSX.",
         ),
         Option("main",
             "add default main() if not present already (e.g. for unittesting)",
@@ -642,11 +649,11 @@ dmd -cov -unittest myprog.d
             in a library without having to manually define an entry-point function.`,
         ),
         Option("makedeps[=<filename>]",
-            "print dependencies in Makefile compatible format to filename or stdout.",
+            "print dependencies in Makefile compatible format to <filename> or stdout.",
             `Print dependencies in Makefile compatible format.
-            If filename is omitted, it prints to stdout.
+            If <filename> is omitted, it prints to stdout.
             The emitted targets are the compiled artifacts (executable, object files, libraries).
-            The emitted dependencies are imported modules and imported string files (via $(B -J) switch).
+            The emitted dependencies are imported modules and imported string files (via $(SWLINK -J) switch).
             Special characters in a dependency or target filename are escaped in the GNU Make manner.
             `,
         ),
@@ -675,12 +682,11 @@ dmd -cov -unittest myprog.d
             "generate linker .map file",
             `Generate a $(TT .map) file`,
         ),
-        Option("mcpu=<id>",
-            "generate instructions for architecture identified by 'id'",
+        Option("mcpu=[baseline|avx|native]",
+            "Set the target architecture for code generation",
             `Set the target architecture for code generation,
             where:
             $(DL
-            $(DT help)$(DD list alternatives)
             $(DT baseline)$(DD the minimum architecture for the target platform (default))
             $(DT avx)$(DD
             generate $(LINK2 https://en.wikipedia.org/wiki/Advanced_Vector_Extensions, AVX)
@@ -721,7 +727,7 @@ dmd -cov -unittest myprog.d
             can be omitted if they are the same.`,
         ),
         Option("noboundscheck",
-            "no array bounds checking (deprecated, use -boundscheck=off)",
+            "no array bounds checking (deprecated, use `-boundscheck=off`)",
             `Turns off all array bounds checking, even for safe functions. $(RED Deprecated
             (use $(TT $(SWLINK -boundscheck)=off) instead).)`,
         ),
@@ -747,14 +753,14 @@ dmd -cov -unittest myprog.d
             conjuction with $(SWLINK -D) or $(SWLINK -H) flags.`
         ),
         Option("od=<directory>",
-            "write object & library files to directory",
-            `Write object files relative to directory $(I objdir)
+            "write object & library files to <directory>",
+            `Write object files relative to $(I directory)
             instead of to the current directory. $(SWLINK -op)
             can be used if the original package hierarchy should
             be retained`,
         ),
         Option("of=<filename>",
-            "name output file to filename",
+            "name output file to <filename>",
             `Set output file name to $(I filename) in the output
             directory. The output file can be an object file,
             executable file, or library file depending on the other
@@ -762,15 +768,17 @@ dmd -cov -unittest myprog.d
         ),
         Option("op",
             "preserve source path for output files",
-            `Normally the path for $(B .d) source files is stripped
+            `Preserve source path for output files.
+            Normally the path for $(B .d) source files is stripped
             off when generating an object, interface, or Ddoc file
-            name. $(SWLINK -op) will leave it on.`,
+            name.`,
         ),
         Option("oq",
             "Write object files with fully qualified file names",
-            `When compiling pkg/app.d, the resulting object file name will be pkg_app.obj
-            instead of app.o. This helps to prevent name conflicts when compiling multiple
-            packages in the same directory with the $(SWLINK -od) flag.`,
+            "Write object files with fully qualified file names.
+            When compiling `pkg/app.d`, the resulting object file name will be `pkg_app.o`
+            instead of `app.o`. This helps to prevent name conflicts when compiling multiple
+            packages in the same directory with the $(SWLINK -od) flag.",
         ),
         Option("os=<os>",
             "sets target operating system to <os>",
@@ -787,14 +795,14 @@ dmd -cov -unittest myprog.d
                 )`
         ),
         Option("P=<preprocessorflag>",
-            "pass preprocessorflag to C preprocessor",
-            `Pass $(I preprocessorflag) to
-            $(WINDOWS cl.exe)
-            $(UNIX cpp)`,
+            "pass <preprocessorflag> to C preprocessor",
+            "Pass $(I preprocessorflag) to
+            $(WINDOWS `cl.exe`)
+            $(UNIX `cpp`). See also $(SWLINK -cpp)",
         ),
         Option("preview=<name>",
-            "enable an upcoming language change identified by 'name'",
-            `Preview an upcoming language change identified by $(I id)`,
+            "enable an upcoming language change identified by <name>",
+            `Preview an upcoming language change identified by <name>`,
         ),
         Option("preview=[h|help|?]",
             "list all upcoming language changes"
@@ -804,7 +812,7 @@ dmd -cov -unittest myprog.d
             `Instrument the generated code so that runtime performance data is collected
             when the generated program is run.
             Upon completion of the generated program, the files $(TT trace.log) and $(TT trace.def)
-            are generated. $(TT trace.log) has two sections,
+            are generated. $(TT trace.log) has two sections:
             $(OL
             $(LI Fan in and fan out for each profiled function. The name of the function is left-justified,
             the functions immediately preceding it are the other functions that call it (fan in) and how many times
@@ -818,13 +826,12 @@ dmd -cov -unittest myprog.d
             )
             The $(TT trace.def) file contains linker commands to associate functions which are strongly coupled
             so they appear adjacent in the resulting executable file.
-            For more information see $(LINK2 https://www.digitalmars.com/ctg/trace.html, profile)
+            For more information see $(LINK2 https://www.digitalmars.com/ctg/trace.html, profile).
             `,
         ),
         Option("profile=gc",
             "profile runtime allocations",
-            `$(UL
-                $(LI $(B gc): Instrument calls to GC memory allocation and
+                `Instrument calls to GC memory allocation and
                 write a report to the file $(TT profilegc.log) upon program
                 termination.  $(B Note:) Only instrumented calls will be
                 logged. These include:
@@ -834,8 +841,8 @@ dmd -cov -unittest myprog.d
                        $(LI GC allocations via core.memory.GC)
                    )
                    Allocations made by other means will not be logged,
-                   including direct calls to the GC's C API.)
-            )`,
+                   including direct calls to the GC's C API.
+            `,
         ),
         Option("release",
             "contracts and asserts are not emitted, and bounds checking is performed only in @safe functions",
@@ -845,43 +852,58 @@ dmd -cov -unittest myprog.d
             are undefined behaviour.`
         ),
         Option("revert=<name>",
-            "revert language change identified by 'name'",
-            `Revert language change identified by $(I id)`,
+            "revert language change identified by <name>",
+            `Revert language change identified by <name>`,
         ),
         Option("revert=[h|help|?]",
             "list all revertable language changes"
         ),
-        Option("run <srcfile>",
-            "compile, link, and run the program srcfile",
+        Option("run <srcfile> <args>",
+            "compile, link, and run the program <srcfile>",
             `Compile, link, and run the program $(I srcfile) with the
             rest of the
             command line, $(I args...), as the arguments to the program.
-            No .$(OBJEXT) or executable file is left behind.`
+            No $(TT .$(OBJEXT)) or executable file is left behind.`
         ),
         Option("shared",
             "generate shared library (DLL)",
             `$(UNIX Generate shared library)
              $(WINDOWS Generate DLL library)`,
         ),
-        Option("target=<triple>",
-               "use <triple> as <arch>-[<vendor>-]<os>[-<cenv>[-<cppenv]]",
-               "$(I arch) is the architecture: either `x86`, `x64`, `x86_64` or `x32`,
-               $(I vendor) is always ignored, but supported for easier interoperability,
-               $(I os) is the operating system, this may have a trailing version number:
-               `freestanding` for no operating system,
-               `darwin` or `osx` for MacOS, `dragonfly` or `dragonflybsd` for DragonflyBSD,
-               `freebsd`, `openbsd`, `linux`, `solaris` or `windows` for their respective operating systems.
-               $(I cenv) is the C runtime environment and is optional: `musl` for musl-libc,
-               `msvc` for the MSVC runtime, `bionic` for the Andriod libc, `gnu` or `glibc`
-               for the GCC C runtime, `newlib` or `uclibc` for their respective C runtimes.
-               ($ I cppenv) is the C++ runtime environment: `clang` for the LLVM C++ runtime,
-               `gcc` for GCC's C++ runtime, `msvc` for microsoft's MSVC C++ runtime,
-               `sun` for Sun's C++ runtime.
+        Option("target=<arch>-[<vendor>-]<os>[-<cenv>[-<cppenv>]]",
+               "set CPU architecture, OS, C runtime and C++ runtime",
+               "Set CPU architecture, OS, C runtime and C++ runtime:
+               $(UL
+                   $(LI $(I arch) is the architecture: either `x86`, `x64`, `x86_64` or `x32`)
+                   $(LI $(I vendor) is always ignored, but supported for easier interoperability)
+                   $(LI $(I os) is the operating system, this may have a trailing version number:)
+                   $(UL
+                       $(LI `freestanding` for no operating system)
+                       $(LI `darwin` or `osx` for MacOS)
+                       $(LI `dragonfly` or `dragonflybsd` for DragonflyBSD)
+                       $(LI `freebsd`, `openbsd`, `linux`, `solaris` or `windows` for their respective operating systems)
+                   )
+                   $(LI $(I cenv) is the C runtime environment and is optional:)
+                   $(UL
+                       $(LI `musl` for musl-libc)
+                       $(LI `msvc` for the MSVC runtime)
+                       $(LI `bionic` for the Android libc)
+                       $(LI `gnu` or `glibc` for the GCC C runtime)
+                       $(LI `newlib` or `uclibc` for their respective C runtimes)
+                   )
+                   $(LI $(I cppenv) is the C++ runtime environment:)
+                   $(UL
+                       $(LI `clang` for the LLVM C++ runtime)
+                       $(LI `gcc` for GCC's C++ runtime)
+                       $(LI `msvc` for microsoft's MSVC C++ runtime)
+                       $(LI `sun` for Sun's C++ runtime)
+                   )
+               )
                "
         ),
         Option("transition=<name>",
-            "help with language change identified by 'name'",
-            `Show additional info about language change identified by $(I id)`,
+            "help with language change identified by <name>",
+            `Show additional info about language change identified by <name>`,
         ),
         Option("transition=[h|help|?]",
             "list all language changes"
@@ -926,37 +948,33 @@ dmd -cov -unittest myprog.d
             )`,
         ),
         Option("verrors=spec",
-            "show errors from speculative compiles such as __traits(compiles,...)"
+            "show errors from speculative compiles such as `__traits(compiles, ...)`"
         ),
         Option("-version",
             "print compiler version and exit"
         ),
-        Option("version=<level>",
-            "compile in version code >= level",
-            `Compile in $(LINK2 $(ROOT_DIR)spec/version.html#version, version level) >= $(I level)`,
-        ),
         Option("version=<ident>",
-            "compile in version code identified by ident",
+            "compile in version code identified by <ident>",
             `Compile in $(LINK2 $(ROOT_DIR)spec/version.html#version, version identifier) $(I ident)`
         ),
         Option("vgc",
-            "list all gc allocations including hidden ones"
+            "list all GC allocations including hidden ones"
         ),
-        Option("visibility=<value>",
-            "default visibility of symbols (default/hidden/public)",
+        Option("visibility=[default|hidden|public]",
+            "default visibility of symbols",
             "$(UL
-               $(LI $(I default): Hidden for Windows targets without -shared, otherwise public)
-               $(LI $(I hidden):  Only export symbols marked with 'export')
+               $(LI $(I default): <hidden> for Windows targets without $(SWLINK -shared), otherwise <public>)
+               $(LI $(I hidden):  Only export symbols marked with `export`)
                $(LI $(I public):  Export all symbols)
             )",
         ),
         Option("vtls",
             "list all variables going into thread local storage"
         ),
-        Option("vtemplates=[list-instances]",
+        Option("vtemplates[=list-instances]",
             "list statistics on template instantiations",
-            `An optional argument determines extra diagnostics,
-            where:
+            `List statistics on template instantiations.
+            An optional argument determines extra diagnostics:
             $(DL
             $(DT list-instances)$(DD Also shows all instantiation contexts for each template.)
             )`,
@@ -967,8 +985,8 @@ dmd -cov -unittest myprog.d
         ),
         Option("wi",
             "warnings as messages (compilation will continue)",
-            `Enable $(LINK2 $(ROOT_DIR)articles/warnings.html, informational warnings (i.e. compilation
-            still proceeds normally))`,
+            `Enable $(LINK2 $(ROOT_DIR)articles/warnings.html, informational warnings) (i.e. compilation
+            still proceeds normally)`,
         ),
         Option("wo",
             "warnings about use of obsolete features (compilation will continue)",
@@ -979,10 +997,10 @@ dmd -cov -unittest myprog.d
             "generate JSON file"
         ),
         Option("Xf=<filename>",
-            "write JSON file to filename"
+            "write JSON file to <filename>"
         ),
         Option("Xcc=<driverflag>",
-            "pass driverflag to linker driver (cc)",
+            "pass <driverflag> to linker driver (cc)",
             "Pass $(I driverflag) to the linker driver (`$CC` or `cc`)",
             cast(TargetOS) (TargetOS.all & ~cast(uint)TargetOS.Windows)
         ),

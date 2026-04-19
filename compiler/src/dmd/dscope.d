@@ -29,6 +29,7 @@ import dmd.errorsink;
 import dmd.func;
 import dmd.globals;
 import dmd.identifier;
+import dmd.location : Loc;
 import dmd.root.rmem;
 import dmd.statement;
 
@@ -69,6 +70,7 @@ private extern (D) struct FlagBitFields
       to prevent perceived false positives for meta-programming heavy code.
     */
     bool knownACompileTimeOnlyContext;
+    bool inIsDisabledTrait;  /// inside __traits(isDisabled, ...)
 }
 
 private extern (D) struct NonFlagBitFields
@@ -137,6 +139,7 @@ extern (C++) struct Scope
     Dsymbol parent;                 /// parent to use
     LabelStatement slabel;          /// enclosing labelled statement
     SwitchStatement switchStatement;/// enclosing switch statement
+    void* switchCases;              /// AA for O(n) duplicate case detection
     Statement tryBody;              /// enclosing _body of TryCatchStatement or TryFinallyStatement
     TryFinallyStatement tryFinally; /// enclosing try finally statement
     ScopeGuardStatement scopeGuard; /// enclosing scope(xxx) statement
@@ -144,6 +147,7 @@ extern (C++) struct Scope
     Statement scontinue;            /// enclosing statement that supports "continue"
     ForeachStatement fes;           /// if nested function for ForeachStatement, this is it
     Scope* callsc;                  /// used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
+    Loc callLoc;                    /// call-site location for __FILE__, __LINE__, and __FILE_FULL_PATH__
     Dsymbol inunion;                /// != null if processing members of a union
     VarDeclaration lastVar;         /// Previous symbol used to prevent goto-skips-init
     ErrorSink eSink;                /// sink for error messages
@@ -259,6 +263,7 @@ extern (C++) struct Scope
         s.previews = this.previews;
         s.lastdc = null;
         s.knownACompileTimeOnlyContext = this.knownACompileTimeOnlyContext;
+        s.inIsDisabledTrait = this.inIsDisabledTrait;
         assert(&this != s);
         return s;
     }

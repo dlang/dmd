@@ -459,14 +459,14 @@ else version (NetBSD)
     c_long nrand48(ref ushort[3]);
     int    posix_openpt(int);
     char*  ptsname(int);
-    int    putenv(char*);
+    pragma(mangle, "__putenv50") int    putenv(char*);
     c_long random();
     char*  realpath(const scope char*, char*);
     ushort *seed48(ref ushort[3]);
     void   setkey(const scope char*);
     char*  setstate(const scope char*);
     void   srand48(c_long);
-    void   srandom(uint);
+    pragma(mangle, "__srandom60") void   srandom(uint);
     int    unlockpt(int);
 }
 else version (OpenBSD)

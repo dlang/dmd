@@ -530,7 +530,7 @@ else version (NetBSD)
 {
     int getpriority(int, int);
     int getrlimit(int, rlimit*);
-    int getrusage(int, rusage*);
+    pragma(mangle, "__getrusage50") int getrusage(int, rusage*);
     int setpriority(int, int, int);
     int setrlimit(int, const scope rlimit*);
 }

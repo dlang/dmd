@@ -694,7 +694,7 @@ private void cgreg_map(Symbol* s, reg_t regmsw, reg_t reglsw)
             }
         }
     }
-    s.Sreglsw = cast(ubyte)reglsw;
+    s.Sreglsw = reglsw;
     s.Sregm = (1UL << reglsw);
     cgstate.mfuncreg &= ~(1UL << reglsw);
     if (regmsw != NOREG)
@@ -717,8 +717,8 @@ private void cgreg_map(Symbol* s, reg_t regmsw, reg_t reglsw)
     }
     else
     {
-        assert(regmsw < 8);
-        s.Sregmsw = cast(ubyte)regmsw;
+        assert(regmsw < REGMAX);
+        s.Sregmsw = regmsw;
         s.Sregm |= 1UL << regmsw;
         cgstate.mfuncreg &= ~(1UL << regmsw);
         vec_orass(regrange[regmsw],s.Slvreg);

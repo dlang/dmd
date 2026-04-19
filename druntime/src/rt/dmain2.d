@@ -44,6 +44,9 @@ else version (Posix)
     import core.stdc.string : strlen;
 }
 
+version (DigitalMars) version (AArch64)
+    version = UseMalloc;   // cuz alloca() is not implemented yet
+
 // not sure why we can't define this in one place, but this is to keep this
 // module from importing core.runtime.
 struct UnitTestResult
@@ -279,14 +282,30 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
         // assert(wargc == argc); /* argc can be broken by Unicode arguments */
 
         // Allocate args[] on the stack - use wargc
-        char[][] args = (cast(char[]*) alloca(wargc * (char[]).sizeof))[0 .. wargc];
+        version (UseMalloc)
+        {
+            char[][] args = (cast(char[]*) malloc(wargc * (char[]).sizeof))[0 .. wargc];
+            if (wargc)
+                assert(args.ptr);
+            scope (exit) free(args.ptr);
+        }
+        else
+            char[][] args = (cast(char[]*) alloca(wargc * (char[]).sizeof))[0 .. wargc];
 
         // This is required because WideCharToMultiByte requires int as input.
         assert(wCommandLineLength <= cast(size_t) int.max, "Wide char command line length must not exceed int.max");
 
         immutable size_t totalArgsLength = WideCharToMultiByte(CP_UTF8, 0, wCommandLine, cast(int)wCommandLineLength, null, 0, null, null);
         {
-            char* totalArgsBuff = cast(char*) alloca(totalArgsLength);
+            version (UseMalloc)
+            {
+                char* totalArgsBuff = cast(char*) malloc(totalArgsLength);
+                if (totalArgsLength)
+                    assert(totalArgsBuff);
+                scope (exit) free(totalArgsBuff);
+            }
+            else
+                char* totalArgsBuff = cast(char*) alloca(totalArgsLength);
             size_t j = 0;
             foreach (i; 0 .. wargc)
             {
@@ -308,7 +327,15 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
     else version (Posix)
     {
         // Allocate args[] on the stack
-        char[][] args = (cast(char[]*) alloca(argc * (char[]).sizeof))[0 .. argc];
+        version (UseMalloc)
+        {
+            char[][] args = (cast(char[]*) malloc(argc * (char[]).sizeof))[0 .. argc];
+            if (argc)
+                assert(args.ptr);
+            scope (exit) free(args.ptr);
+        }
+        else
+            char[][] args = (cast(char[]*) alloca(argc * (char[]).sizeof))[0 .. argc];
 
         size_t totalArgsLength = 0;
         foreach (i, ref arg; args)
@@ -434,7 +461,17 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
      */
     {
         _d_args = cast(string[]) args;
-        auto buff = cast(char[]*) alloca(args.length * (char[]).sizeof + totalArgsLength);
+
+        auto length = args.length * (char[]).sizeof + totalArgsLength;
+        version (UseMalloc)
+        {
+            auto buff = cast(char[]*) malloc(length);
+            if (length)
+                assert(buff);
+            //scope (exit) buff;
+        }
+        else
+            auto buff = cast(char[]*) alloca(length);
 
         char[][] argsCopy = buff[0 .. args.length];
         auto argBuff = cast(char*) (buff + args.length);

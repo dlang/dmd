@@ -85,7 +85,8 @@ void codgen(Symbol* sfunc)
     cgreg_init();
     CSE.initialize();
     cgstate.Alloca.initialize();
-    cgstate.anyiasm = 0;
+    cgstate.anyiasm = false;
+    cgstate.setSPtoFPonEpilog = false;
     cgstate.AArch64 = config.target_cpu == TARGET_AArch64;
     cgstate.BP = cgstate.AArch64 ? 29 : BP;
 
@@ -282,7 +283,7 @@ void codgen(Symbol* sfunc)
     cod5_prol_epi(bo.startblock);    // see where to place prolog/epilog
     CSE.finish();                 // compute addresses and sizes of CSE saves
 
-    if (configv.addlinenumbers)
+    if (config.addlinenumbers)
         objmod.linnum(sfunc.Sfunc.Fstartline,sfunc.Sseg,Offset(sfunc.Sseg));
 
     // Otherwise, jmp's to startblock will execute the prolog again
@@ -306,7 +307,7 @@ void codgen(Symbol* sfunc)
         switch (b.bc)
         {
             case BC.ret:
-                if (configv.addlinenumbers && b.Bsrcpos.Slinnum && !(sfunc.ty() & mTYnaked))
+                if (config.addlinenumbers && b.Bsrcpos.Slinnum && !(sfunc.ty() & mTYnaked))
                 {
                     CodeBuilder cdb; cdb.ctor();
                     cdb.append(b.Bcode);
@@ -440,7 +441,7 @@ void codgen(Symbol* sfunc)
             }
             assert(b.Boffset == Offset(sfunc.Sseg));
 
-            codout(sfunc.Sseg,b.Bcode,(configv.vasm ? &disasmBuf : null), framehandleroffset);   // output code
+            codout(sfunc.Sseg,b.Bcode,(config.vasm ? &disasmBuf : null), framehandleroffset);   // output code
         }
 static if (0)
         if (coffset != Offset(sfunc.Sseg))
@@ -452,7 +453,7 @@ static if (0)
         }
         sfunc.Ssize = Offset(sfunc.Sseg) - cgstate.funcoffset;    // size of function
 
-        if (configv.vasm)
+        if (config.vasm)
             disassemble(disasmBuf[]);                   // disassemble the code
 
         const nteh = cgstate.usednteh & NTEH_try;
@@ -494,7 +495,7 @@ static if (0)
                     break;
             }
         }
-        if (configv.addlinenumbers && !(sfunc.ty() & mTYnaked))
+        if (config.addlinenumbers && !(sfunc.ty() & mTYnaked))
             /* put line number at end of function on the
                start of the last instruction
              */
@@ -711,10 +712,10 @@ Lagain:
     cg.Fast.size = 0;
     static if (NTEXCEPTIONS == 2)
     {
-        cg.Fast.size -= nteh_contextsym_size();
+        cg.Fast.size -= nteh_contextsym_size(cgstate);
         if (config.exe & EX_windos)
         {
-            if (funcsym_p.Sfunc.Fflags3 & Ffakeeh && nteh_contextsym_size() == 0)
+            if (funcsym_p.Sfunc.Fflags3 & Ffakeeh && nteh_contextsym_size(cgstate) == 0)
                 cg.Fast.size -= 5 * 4;
         }
     }
@@ -996,7 +997,7 @@ else
             if (strcmp(sthis.Sident.ptr,"this".ptr) == 0)
                 break;
         }
-        nteh_monitor_prolog(cdbx,sthis);
+        nteh_monitor_prolog(cgstate,cdbx,sthis);
         cg.EBPtoESP += 3 * 4;
     }
 
@@ -1019,7 +1020,7 @@ Lcont:
     static if (NTEXCEPTIONS == 2)
     {
         if (cg.usednteh & NTEH_except)
-            nteh_setsp(cdb, 0x89);            // MOV __context[EBP].esp,ESP
+            nteh_setsp(cgstate, cdb, 0x89);            // MOV __context[EBP].esp,ESP
     }
 
     // Load register parameters off of the stack. Do not use
@@ -1389,7 +1390,9 @@ private void blcodgen(ref CGstate cg, block* bl)
         CodeBuilder cdbload; cdbload.ctor();
         CodeBuilder cdbstore; cdbstore.ctor();
 
-        sflsave = cast(FL*) alloca(globsym.length * FL.sizeof);
+        // BUG AArch64 alloca() not implemented yet for AArch64
+        //sflsave = cast(FL*) alloca(globsym.length * FL.sizeof);
+        sflsave = cast(FL*) mem_malloc(globsym.length * FL.sizeof);
         foreach (i, s; globsym[])
         {
             sflsave[i] = s.Sfl;
@@ -1461,6 +1464,8 @@ private void blcodgen(ref CGstate cg, block* bl)
         Symbol* s = globsym[i];
         s.Sfl = sflsave[i];    // undo block register assignments
     }
+    if (sflsave)
+        mem_free(sflsave);
 
     if (cg.reflocal)
         bl.Bflags |= BFL.reflocal;
@@ -2276,13 +2281,13 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         {
             regm_t retregs = pretregs & mST0 ? XMMREGS : mXMM0 | mXMM1;
             comsub(cdb, e, retregs);
-            fixresult(cdb,e,retregs,pretregs);
+            fixresult(cgstate,cdb,e,retregs,pretregs);
             return;
         }
     }
     else if (tyfloating(e.Ety) && config.inline8087)
     {
-        comsub87(cdb,e,pretregs);
+        comsub87(cgstate,cdb,e,pretregs);
         return;
     }
 
@@ -2319,7 +2324,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
             if (!OTleaf(e.Eoper) || !(regm & cgstate.regcon.mvar) || (pretregs & cgstate.regcon.mvar) == pretregs)
             {
                 regm = mask(findreg(regm));
-                fixresult(cdb,e,regm,pretregs);
+                fixresult(cgstate,cdb,e,regm,pretregs);
                 return;
             }
         }
@@ -2371,7 +2376,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
                         gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
                         cgstate.regcon.cse.mval |= mask(reg); // cs is in a reg
                         cgstate.regcon.cse.value[reg] = e;
-                        fixresult(cdb,e,retregs,pretregs);
+                        fixresult(cgstate,cdb,e,retregs,pretregs);
                     }
                     else
                     {
@@ -2396,7 +2401,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
                 L10:
                     cgstate.regcon.cse.mval |= mask(reg); // cs is in a reg
                     cgstate.regcon.cse.value[reg] = e;
-                    fixresult(cdb,e,retregs,pretregs);
+                    fixresult(cgstate,cdb,e,retregs,pretregs);
                 }
             }
             return;
@@ -2468,7 +2473,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         }
 
         regm = mask(msreg) | mask(lsreg);       /* mask of result       */
-        fixresult(cdb,e,regm,pretregs);
+        fixresult(cgstate,cdb,e,regm,pretregs);
         return;
     }
     else if (tym == TYdouble || tym == TYdouble_alias)    // double
@@ -2484,7 +2489,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
                     loadcse(cdb,e,reg,mask(reg));
             }
             regm_t regm = DOUBLEREGS_16;
-            fixresult(cdb,e,regm,pretregs);
+            fixresult(cgstate,cdb,e,regm,pretregs);
             return;
         }
         if (OTleaf(e.Eoper)) goto reload;
@@ -2523,11 +2528,11 @@ reload:                                 /* reload result from memory    */
                 (tyxmmreg(tym) || tysimd(tym)))
             {
                 regm_t retregs = XMMREGS | mPSW;
-                loaddata(cdb,e,retregs);
+                loaddata(cgstate,cdb,e,retregs);
                 cssave(e,retregs,false);
                 return;
             }
-            loaddata(cdb,e,pretregs);
+            loaddata(cgstate,cdb,e,pretregs);
             break;
     }
     cssave(e,pretregs,false);
@@ -2818,7 +2823,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs,uin
         goto L1;
     }
 
-    if (configv.addlinenumbers && e.Esrcpos.Slinnum)
+    if (config.addlinenumbers && e.Esrcpos.Slinnum)
         cdb.genlinnum(e.Esrcpos);
 
     switch (op)
@@ -2844,7 +2849,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs,uin
                         regm_t retregs = pretregs & mST0 ? mXMM0 : mXMM0|mXMM1;
                         (*cdxxx[op])(cg,cdb,e,retregs);
                         cssave(e,retregs,!OTleaf(op));
-                        fixresult(cdb, e, retregs, pretregs);
+                        fixresult(cgstate,cdb, e, retregs, pretregs);
                         goto L1;
                     }
                     if (tysize(e.Ety) == 1)
@@ -2931,7 +2936,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs,uin
                     pretregs = tyfloating(e.Ety) ? INSTR.FLOATREGS : INSTR.ALLREGS;
                 }
             }
-            loaddata(cdb,e,pretregs);
+            loaddata(cgstate,cdb,e,pretregs);
             break;
     }
     cssave(e,pretregs,!OTleaf(op));
@@ -2991,7 +2996,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs,r
                 else
                     regm &= mLSW | XMMREGS;
             }
-            fixresult(cdb,e,regm,pretregs);
+            fixresult(cgstate,cdb,e,regm,pretregs);
             cssave(e,regm,0);
             freenode(e);
 
@@ -3252,7 +3257,7 @@ void docommas(ref CodeBuilder cdb, ref elem* pe)
     elem* e = pe;
     while (1)
     {
-        if (configv.addlinenumbers && e.Esrcpos.Slinnum)
+        if (config.addlinenumbers && e.Esrcpos.Slinnum)
         {
             cdb.genlinnum(e.Esrcpos);
             //e.Esrcpos.Slinnum = 0;               // don't do it twice

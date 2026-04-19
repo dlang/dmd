@@ -665,6 +665,10 @@ private int tryMain(const(char)[][] argv, out Param params)
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
 
+    {
+    timeTraceBeginEvent(TimeTraceEventType.inlineGeneral);
+    scope (exit) timeTraceEndEvent(TimeTraceEventType.inlineGeneral);
+
     // Scan for modules with always inline functions
     foreach (m; modules)
     {
@@ -685,6 +689,7 @@ private int tryMain(const(char)[][] argv, out Param params)
                 message("scan all inlines in %s", m.toChars());
             inlineScanAllFunctions(m, global.errorSink);
         }
+    }
     }
 
     if (global.warnings)

@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdarg.h>
 
 #ifdef CUSTOM_D_ARRAY_TYPE
 #define _d_dynamicArray CUSTOM_D_ARRAY_TYPE
@@ -274,11 +275,6 @@ class IdentityExp;
 class CondExp;
 class GenericExp;
 class DefaultInitExp;
-class FileInitExp;
-class LineInitExp;
-class ModuleInitExp;
-class FuncInitExp;
-class PrettyFuncInitExp;
 class ObjcClassReferenceExp;
 class ClassReferenceExp;
 class ThrownExceptionExp;
@@ -1400,11 +1396,6 @@ public:
     virtual void visit(typename AST::ImportExp e);
     virtual void visit(typename AST::DotTemplateInstanceExp e);
     virtual void visit(typename AST::ArrayExp e);
-    virtual void visit(typename AST::FuncInitExp e);
-    virtual void visit(typename AST::PrettyFuncInitExp e);
-    virtual void visit(typename AST::FileInitExp e);
-    virtual void visit(typename AST::LineInitExp e);
-    virtual void visit(typename AST::ModuleInitExp e);
     virtual void visit(typename AST::CommaExp e);
     virtual void visit(typename AST::PostExp e);
     virtual void visit(typename AST::PowExp e);
@@ -2247,25 +2238,20 @@ enum class EXP : uint8_t
     scope_ = 107u,
     traits = 108u,
     overloadSet = 109u,
-    line = 110u,
-    file = 111u,
-    fileFullPath = 112u,
-    moduleString = 113u,
-    functionString = 114u,
-    prettyFunction = 115u,
-    pow = 116u,
-    powAssign = 117u,
-    vector = 118u,
-    voidExpression = 119u,
-    cantExpression = 120u,
-    showCtfeContext = 121u,
-    objcClassReference = 122u,
-    vectorArray = 123u,
-    compoundLiteral = 124u,
-    _Generic_ = 125u,
-    interval = 126u,
-    loweredAssignExp = 127u,
-    rvalue = 128u,
+    defaultInit = 110u,
+    pow = 111u,
+    powAssign = 112u,
+    vector = 113u,
+    voidExpression = 114u,
+    cantExpression = 115u,
+    showCtfeContext = 116u,
+    objcClassReference = 117u,
+    vectorArray = 118u,
+    compoundLiteral = 119u,
+    _Generic_ = 120u,
+    interval = 121u,
+    loweredAssignExp = 122u,
+    rvalue = 123u,
 };
 
 class Expression : public ASTNode
@@ -2414,11 +2400,6 @@ public:
     CondExp* isCondExp();
     GenericExp* isGenericExp();
     DefaultInitExp* isDefaultInitExp();
-    FileInitExp* isFileInitExp();
-    LineInitExp* isLineInitExp();
-    ModuleInitExp* isModuleInitExp();
-    FuncInitExp* isFuncInitExp();
-    PrettyFuncInitExp* isPrettyFuncInitExp();
     ObjcClassReferenceExp* isObjcClassReferenceExp();
     ClassReferenceExp* isClassReferenceExp();
     ThrownExceptionExp* isThrownExceptionExp();
@@ -2721,142 +2702,6 @@ public:
     void accept(Visitor* v) override;
 };
 
-class DefaultInitExp : public Expression
-{
-public:
-    void accept(Visitor* v) override;
-};
-
-class DelegateExp final : public UnaExp
-{
-public:
-    FuncDeclaration* func;
-    bool hasOverloads;
-    VarDeclaration* vthis2;
-    void accept(Visitor* v) override;
-};
-
-class DelegateFuncptrExp final : public UnaExp
-{
-public:
-    void accept(Visitor* v) override;
-};
-
-class DelegatePtrExp final : public UnaExp
-{
-public:
-    void accept(Visitor* v) override;
-};
-
-class DeleteExp final : public UnaExp
-{
-public:
-    bool isRAII;
-    void accept(Visitor* v) override;
-};
-
-class DivAssignExp final : public BinAssignExp
-{
-public:
-    void accept(Visitor* v) override;
-};
-
-class DivExp final : public BinExp
-{
-public:
-    void accept(Visitor* v) override;
-};
-
-class IdentifierExp : public Expression
-{
-public:
-    Identifier* ident;
-    static IdentifierExp* create(Loc loc, Identifier* ident);
-    void accept(Visitor* v) override;
-};
-
-class DollarExp final : public IdentifierExp
-{
-public:
-    void accept(Visitor* v) override;
-};
-
-class DotExp final : public BinExp
-{
-public:
-    void accept(Visitor* v) override;
-};
-
-class DotIdExp final : public UnaExp
-{
-public:
-    Identifier* ident;
-    bool noderef;
-    bool wantsym;
-    bool arrow;
-    static DotIdExp* create(Loc loc, Expression* e, Identifier* ident);
-    void accept(Visitor* v) override;
-};
-
-class DotTemplateExp final : public UnaExp
-{
-public:
-    TemplateDeclaration* td;
-    void accept(Visitor* v) override;
-};
-
-class DotTemplateInstanceExp final : public UnaExp
-{
-public:
-    TemplateInstance* ti;
-    DotTemplateInstanceExp* syntaxCopy() override;
-    void accept(Visitor* v) override;
-};
-
-class DotTypeExp final : public UnaExp
-{
-public:
-    Dsymbol* sym;
-    void accept(Visitor* v) override;
-};
-
-class DotVarExp final : public UnaExp
-{
-public:
-    Declaration* var;
-    bool hasOverloads;
-    void accept(Visitor* v) override;
-};
-
-class DsymbolExp final : public Expression
-{
-public:
-    Dsymbol* s;
-    bool hasOverloads;
-    void accept(Visitor* v) override;
-};
-
-class EqualExp final : public BinExp
-{
-public:
-    Expression* lowering;
-    void accept(Visitor* v) override;
-};
-
-class ErrorExp final : public Expression
-{
-public:
-    static ErrorExp* get();
-    void accept(Visitor* v) override;
-    static ErrorExp* errorexp;
-};
-
-class FileInitExp final : public DefaultInitExp
-{
-public:
-    void accept(Visitor* v) override;
-};
-
 enum class TOK : uint8_t
 {
     reserved = 0u,
@@ -3088,6 +2933,138 @@ enum class TOK : uint8_t
     __attribute___ = 226u,
 };
 
+class DefaultInitExp : public Expression
+{
+public:
+    TOK tok;
+    void accept(Visitor* v) override;
+    Expression* syntaxCopy() override;
+};
+
+class DelegateExp final : public UnaExp
+{
+public:
+    FuncDeclaration* func;
+    bool hasOverloads;
+    VarDeclaration* vthis2;
+    void accept(Visitor* v) override;
+};
+
+class DelegateFuncptrExp final : public UnaExp
+{
+public:
+    void accept(Visitor* v) override;
+};
+
+class DelegatePtrExp final : public UnaExp
+{
+public:
+    void accept(Visitor* v) override;
+};
+
+class DeleteExp final : public UnaExp
+{
+public:
+    bool isRAII;
+    void accept(Visitor* v) override;
+};
+
+class DivAssignExp final : public BinAssignExp
+{
+public:
+    void accept(Visitor* v) override;
+};
+
+class DivExp final : public BinExp
+{
+public:
+    void accept(Visitor* v) override;
+};
+
+class IdentifierExp : public Expression
+{
+public:
+    Identifier* ident;
+    static IdentifierExp* create(Loc loc, Identifier* ident);
+    void accept(Visitor* v) override;
+};
+
+class DollarExp final : public IdentifierExp
+{
+public:
+    void accept(Visitor* v) override;
+};
+
+class DotExp final : public BinExp
+{
+public:
+    void accept(Visitor* v) override;
+};
+
+class DotIdExp final : public UnaExp
+{
+public:
+    Identifier* ident;
+    bool noderef;
+    bool wantsym;
+    bool arrow;
+    static DotIdExp* create(Loc loc, Expression* e, Identifier* ident);
+    void accept(Visitor* v) override;
+};
+
+class DotTemplateExp final : public UnaExp
+{
+public:
+    TemplateDeclaration* td;
+    void accept(Visitor* v) override;
+};
+
+class DotTemplateInstanceExp final : public UnaExp
+{
+public:
+    TemplateInstance* ti;
+    DotTemplateInstanceExp* syntaxCopy() override;
+    void accept(Visitor* v) override;
+};
+
+class DotTypeExp final : public UnaExp
+{
+public:
+    Dsymbol* sym;
+    void accept(Visitor* v) override;
+};
+
+class DotVarExp final : public UnaExp
+{
+public:
+    Declaration* var;
+    bool hasOverloads;
+    void accept(Visitor* v) override;
+};
+
+class DsymbolExp final : public Expression
+{
+public:
+    Dsymbol* s;
+    bool hasOverloads;
+    void accept(Visitor* v) override;
+};
+
+class EqualExp final : public BinExp
+{
+public:
+    Expression* lowering;
+    void accept(Visitor* v) override;
+};
+
+class ErrorExp final : public Expression
+{
+public:
+    static ErrorExp* get();
+    void accept(Visitor* v) override;
+    static ErrorExp* errorexp;
+};
+
 class FuncExp final : public Expression
 {
 public:
@@ -3095,12 +3072,6 @@ public:
     TemplateDeclaration* td;
     TOK tok;
     FuncExp* syntaxCopy() override;
-    void accept(Visitor* v) override;
-};
-
-class FuncInitExp final : public DefaultInitExp
-{
-public:
     void accept(Visitor* v) override;
 };
 
@@ -3197,12 +3168,6 @@ public:
 
 enum : bool { LOGSEMANTIC = false };
 
-class LineInitExp final : public DefaultInitExp
-{
-public:
-    void accept(Visitor* v) override;
-};
-
 class LogicalExp final : public BinExp
 {
 public:
@@ -3243,12 +3208,6 @@ public:
 };
 
 class ModExp final : public BinExp
-{
-public:
-    void accept(Visitor* v) override;
-};
-
-class ModuleInitExp final : public DefaultInitExp
 {
 public:
     void accept(Visitor* v) override;
@@ -3359,12 +3318,6 @@ public:
 };
 
 class PreExp final : public UnaExp
-{
-public:
-    void accept(Visitor* v) override;
-};
-
-class PrettyFuncInitExp final : public DefaultInitExp
 {
 public:
     void accept(Visitor* v) override;
@@ -3492,6 +3445,17 @@ public:
 class StructLiteralExp final : public Expression
 {
 public:
+    enum class StageFlags : uint8_t
+    {
+        none = 0u,
+        scrub = 1u,
+        searchPointers = 2u,
+        optimize = 4u,
+        apply = 8u,
+        inlineScan = 16u,
+        toCBuffer = 32u,
+    };
+
     struct BitFields final
     {
         bool useStaticInit;
@@ -3529,17 +3493,6 @@ public:
         StructLiteralExp* inlinecopy;
     };
     StructLiteralExp* origin;
-    enum class StageFlags : uint8_t
-    {
-        none = 0u,
-        scrub = 1u,
-        searchPointers = 2u,
-        optimize = 4u,
-        apply = 8u,
-        inlineScan = 16u,
-        toCBuffer = 32u,
-    };
-
     static StructLiteralExp* create(Loc loc, StructDeclaration* sd, void* elements, Type* stype = nullptr);
     StructLiteralExp* syntaxCopy() override;
     void accept(Visitor* v) override;
@@ -3984,10 +3937,6 @@ public:
 
 struct ParameterDFAInfo final
 {
-    int32_t parameterId;
-    Fact notNullIn;
-    Fact notNullOut;
-    bool specifiedByUser;
     enum class Fact : uint8_t
     {
         Unspecified = 0u,
@@ -3995,6 +3944,10 @@ struct ParameterDFAInfo final
         Guaranteed = 2u,
     };
 
+    int32_t parameterId;
+    Fact notNullIn;
+    Fact notNullOut;
+    bool specifiedByUser;
     ParameterDFAInfo() :
         parameterId(),
         specifiedByUser()
@@ -4082,6 +4035,7 @@ struct HdrGenState final
     bool fullDump;
     bool importcHdr;
     bool inCAlias;
+    bool inFuncReturn;
     bool doFuncBodies;
     bool vcg_ast;
     bool skipConstraints;
@@ -4101,6 +4055,7 @@ struct HdrGenState final
         fullDump(),
         importcHdr(),
         inCAlias(),
+        inFuncReturn(),
         doFuncBodies(),
         vcg_ast(),
         skipConstraints(),
@@ -4116,12 +4071,13 @@ struct HdrGenState final
         inEnumDecl()
     {
     }
-    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool inCAlias = false, bool doFuncBodies = false, bool vcg_ast = false, bool skipConstraints = false, bool showOneMember = true, bool errorMsg = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
+    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool inCAlias = false, bool inFuncReturn = false, bool doFuncBodies = false, bool vcg_ast = false, bool skipConstraints = false, bool showOneMember = true, bool errorMsg = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
         hdrgen(hdrgen),
         ddoc(ddoc),
         fullDump(fullDump),
         importcHdr(importcHdr),
         inCAlias(inCAlias),
+        inFuncReturn(inFuncReturn),
         doFuncBodies(doFuncBodies),
         vcg_ast(vcg_ast),
         skipConstraints(skipConstraints),
@@ -5531,9 +5487,7 @@ struct ASTCodegen final
     using EqualExp = ::EqualExp;
     using ErrorExp = ::ErrorExp;
     using Expression = ::Expression;
-    using FileInitExp = ::FileInitExp;
     using FuncExp = ::FuncExp;
-    using FuncInitExp = ::FuncInitExp;
     using GenericExp = ::GenericExp;
     using HaltExp = ::HaltExp;
     using IdentifierExp = ::IdentifierExp;
@@ -5545,7 +5499,6 @@ struct ASTCodegen final
     using InterpExp = ::InterpExp;
     using IntervalExp = ::IntervalExp;
     using IsExp = ::IsExp;
-    using LineInitExp = ::LineInitExp;
     using LogicalExp = ::LogicalExp;
     using LoweredAssignExp = ::LoweredAssignExp;
     using MemorySet = ::MemorySet;
@@ -5554,7 +5507,6 @@ struct ASTCodegen final
     using MixinExp = ::MixinExp;
     using ModAssignExp = ::ModAssignExp;
     using ModExp = ::ModExp;
-    using ModuleInitExp = ::ModuleInitExp;
     using MulAssignExp = ::MulAssignExp;
     using MulExp = ::MulExp;
     using NegExp = ::NegExp;
@@ -5571,7 +5523,6 @@ struct ASTCodegen final
     using PowAssignExp = ::PowAssignExp;
     using PowExp = ::PowExp;
     using PreExp = ::PreExp;
-    using PrettyFuncInitExp = ::PrettyFuncInitExp;
     using PtrExp = ::PtrExp;
     using RealExp = ::RealExp;
     using RemoveExp = ::RemoveExp;
@@ -6157,6 +6108,7 @@ private:
     {
         PACK = 1u,
         ALIGNAS = 2u,
+        ALIGN_ATTRIB = 4u,
     };
 
 public:
@@ -6170,6 +6122,8 @@ public:
     void setPack();
     bool fromAlignas() const;
     void setAlignas();
+    bool fromCAlignAttribute() const;
+    void setCAlignAttribute();
     structalign_t() :
         value(0u),
         flags()
@@ -6980,6 +6934,7 @@ struct Scope final
     Dsymbol* parent;
     LabelStatement* slabel;
     SwitchStatement* switchStatement;
+    void* switchCases;
     Statement* tryBody;
     TryFinallyStatement* tryFinally;
     ScopeGuardStatement* scopeGuard;
@@ -6987,6 +6942,7 @@ struct Scope final
     Statement* scontinue;
     ForeachStatement* fes;
     Scope* callsc;
+    Loc callLoc;
     Dsymbol* inunion;
     VarDeclaration* lastVar;
     ErrorSink* eSink;
@@ -7029,6 +6985,8 @@ struct Scope final
     bool ctfeBlock(bool v);
     bool knownACompileTimeOnlyContext() const;
     bool knownACompileTimeOnlyContext(bool v);
+    bool inIsDisabledTrait() const;
+    bool inIsDisabledTrait(bool v);
 private:
     uint16_t bitFields;
     uint16_t bitFields2;
@@ -7059,6 +7017,7 @@ public:
         parent(),
         slabel(),
         switchStatement(),
+        switchCases(),
         tryBody(),
         tryFinally(),
         scopeGuard(),
@@ -7066,6 +7025,7 @@ public:
         scontinue(),
         fes(),
         callsc(),
+        callLoc(),
         inunion(),
         lastVar(),
         eSink(),
@@ -7089,7 +7049,7 @@ public:
         argStruct()
     {
     }
-    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* switchStatement = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tryFinally = nullptr, ScopeGuardStatement* scopeGuard = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), STC stc = (STC)0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, uint16_t bitFields2 = 0u, Previews previews = Previews(), UserAttributeDeclaration* userAttribDecl = nullptr, void* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
+    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* switchStatement = nullptr, void* switchCases = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tryFinally = nullptr, ScopeGuardStatement* scopeGuard = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Loc callLoc = Loc(), Dsymbol* inunion = nullptr, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), STC stc = (STC)0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, uint16_t bitFields2 = 0u, Previews previews = Previews(), UserAttributeDeclaration* userAttribDecl = nullptr, void* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
         enclosing(enclosing),
         _module(_module),
         scopesym(scopesym),
@@ -7098,6 +7058,7 @@ public:
         parent(parent),
         slabel(slabel),
         switchStatement(switchStatement),
+        switchCases(switchCases),
         tryBody(tryBody),
         tryFinally(tryFinally),
         scopeGuard(scopeGuard),
@@ -7105,6 +7066,7 @@ public:
         scontinue(scontinue),
         fes(fes),
         callsc(callsc),
+        callLoc(callLoc),
         inunion(inunion),
         lastVar(lastVar),
         eSink(eSink),
@@ -7840,11 +7802,7 @@ public:
     virtual void visit(typename AST::ImportExp ) override;
     virtual void visit(typename AST::DotTemplateInstanceExp ) override;
     virtual void visit(typename AST::ArrayExp ) override;
-    virtual void visit(typename AST::FuncInitExp ) override;
-    virtual void visit(typename AST::PrettyFuncInitExp ) override;
-    virtual void visit(typename AST::FileInitExp ) override;
-    virtual void visit(typename AST::LineInitExp ) override;
-    virtual void visit(typename AST::ModuleInitExp ) override;
+    virtual void visit(typename AST::DefaultInitExp ) override;
     virtual void visit(typename AST::CommaExp ) override;
     virtual void visit(typename AST::PostExp ) override;
     virtual void visit(typename AST::PowExp ) override;
@@ -7975,6 +7933,8 @@ extern bool issinglechar(const char c);
 extern bool c_isxdigit(const int32_t c);
 
 extern bool c_isalnum(const int32_t c);
+
+extern bool isAlphaASCII(const char32_t c);
 
 extern void error(Loc loc, const char* format, ...);
 
@@ -8677,6 +8637,8 @@ struct Id final
     static Identifier* _d_aaLen;
     static Identifier* _d_aaApply;
     static Identifier* _d_aaApply2;
+    static Identifier* _d_pow;
+    static Identifier* _d_sqrt;
     static Identifier* monitorenter;
     static Identifier* monitorexit;
     static Identifier* criticalenter;
@@ -8684,17 +8646,11 @@ struct Id final
     static Identifier* _d_delThrowable;
     static Identifier* _d_newThrowable;
     static Identifier* _d_newclassT;
-    static Identifier* _d_newclassTTrace;
     static Identifier* _d_newitemT;
-    static Identifier* _d_newitemTTrace;
     static Identifier* _d_newarrayT;
-    static Identifier* _d_newarrayTTrace;
     static Identifier* _d_newarrayU;
-    static Identifier* _d_newarrayUTrace;
     static Identifier* _d_newarraymTX;
-    static Identifier* _d_newarraymTXTrace;
     static Identifier* _d_arrayliteralTX;
-    static Identifier* _d_arrayliteralTXTrace;
     static Identifier* _d_assert_fail;
     static Identifier* _d_arrayctor;
     static Identifier* _d_arraysetctor;
@@ -8702,6 +8658,7 @@ struct Id final
     static Identifier* _d_arrayassign_l;
     static Identifier* _d_arrayassign_r;
     static Identifier* _d_cast;
+    static Identifier* _d_atomicOp;
     static Identifier* imported;
     static Identifier* InterpolationHeader;
     static Identifier* InterpolationFooter;
@@ -8725,13 +8682,9 @@ struct Id final
     static Identifier* rt_init;
     static Identifier* _d_HookTraceImpl;
     static Identifier* _d_arraysetlengthT;
-    static Identifier* _d_arraysetlengthTTrace;
     static Identifier* _d_arrayappendT;
-    static Identifier* _d_arrayappendTTrace;
     static Identifier* _d_arrayappendcTX;
-    static Identifier* _d_arrayappendcTXTrace;
     static Identifier* _d_arraycatnTX;
-    static Identifier* _d_arraycatnTXTrace;
     static Identifier* _d_assocarrayliteralTX;
     static Identifier* stdc;
     static Identifier* stdarg;
@@ -8800,6 +8753,7 @@ struct Id final
     static Identifier* isAbstractClass;
     static Identifier* isArithmetic;
     static Identifier* isAssociativeArray;
+    static Identifier* isOverlapped;
     static Identifier* isBitfield;
     static Identifier* isFinalClass;
     static Identifier* isTemplate;
@@ -8877,6 +8831,7 @@ struct Id final
     static Identifier* udaOptional;
     static Identifier* udaMustUse;
     static Identifier* udaStandalone;
+    static Identifier* udaSection;
     static Identifier* TRUE;
     static Identifier* FALSE;
     static Identifier* ImportC;
@@ -8906,6 +8861,7 @@ struct Id final
     static Identifier* undef;
     static Identifier* ident;
     static Identifier* packed;
+    static Identifier* op;
     static void initialize();
     Id()
     {
