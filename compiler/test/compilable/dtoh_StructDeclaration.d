@@ -236,7 +236,7 @@ struct Loc final
 
 struct metas21496 final
 {
-    static const char* const hellos = "worlds";
+    static constexpr const char* hellos = "worlds";
 
     metas21496()
     {
