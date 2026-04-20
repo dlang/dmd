@@ -2623,7 +2623,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     clib = CLIB.dcmp;
                     if (rel_exception(op))
                         clib += CLIB.dcmpexc - CLIB.dcmp;
-                    opdouble(cdb,e,retregs,clib);
+                    opdouble(cg,cdb,e,retregs,clib);
                 }
             }
             else
