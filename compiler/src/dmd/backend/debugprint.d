@@ -173,16 +173,17 @@ const(char)* tym_str(tym_t ty)
 @trusted
 const(char)* bc_str(uint bc)
 {
-    __gshared const char[11][BC.max + 1] bcs =
-        ["BC.unde  ","BC.goto_  ","BC.true  ","BC.ret   ","BC.retexp",
-         "BC.exit  ","BC.asm_   ","BC.switch_","BC.ifthen","BC.jmptab",
-         "BC.try_   ","BC.catch_ ","BC.jump  ",
-         "BC._try  ","BC._filte","BC._final","BC._ret  ","BC._excep",
-         "BC.jcatch","BC._lpad ",
-        ];
-
     return bcs[bc].ptr;
 }
+
+private immutable char[8][BC.max + 1] bcs =
+    ["unde  ","goto_  ","true   ","ret   ","retexp",
+     "exit  ","asm_   ","switch_","ifthen","jmptab",
+     "try_  ","catch_ ","jump   ",
+     "_try  ","_filter","_final ","_ret  ","_excep",
+     "jcatch","_lpad  ",
+    ];
+
 
 /************************
  * Write arglst
@@ -401,7 +402,7 @@ void WRblock(block* b)
         }
         printf(" flags=x%x weight=%d",b.Bflags,b.Bweight);
         //printf("\tfile %p, line %d",b.Bfilptr,b.Blinnum);
-        printf(" %s Btry=%p Bindex=%d",bc_str(b.bc),b.Btry,b.Bindex);
+        printf(" BC.%s Btry=%p Bindex=%d",bc_str(b.bc),b.Btry,b.Bindex);
         if (b.bc == BC.try_)
             printf(" catchvar = %p",b.catchvar);
         printf("\n");
@@ -423,7 +424,7 @@ void WRblock(block* b)
     else
     {
         assert(b);
-        printf("%2d: %s", b.Bnumber, bc_str(b.bc));
+        printf("%2d: BC.%s", b.Bnumber, bc_str(b.bc));
         if (b.Btry)
             printf(" Btry=B%d",b.Btry ? b.Btry.Bnumber : 0);
         if (b.Bindex)

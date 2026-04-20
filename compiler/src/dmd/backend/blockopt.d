@@ -203,7 +203,7 @@ void block_pred(ref BlockOpt bo)
 
     for (block* b = bo.startblock; b; b = b.Bnext)       // for each block
     {
-        //printf("b = %p, BC = %s\n", b, bc_str(b.bc));
+        //printf("b = %p, BC = BC.%s\n", b, bc_str(b.bc));
         foreach (bp; ListRange(b.Bsucc))
         {                               /* for each successor to b      */
             //printf("\tbs = %p\n",list_block(bp));
