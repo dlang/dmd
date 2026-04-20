@@ -361,6 +361,7 @@ uint gensaverestore(regm_t regm,ref CodeBuilder cdbsave,ref CodeBuilder cdbresto
                 uint idx;
                 import dmd.backend.arm.cod3 : REGSAVE_save, REGSAVE_restore;
                 REGSAVE_save(cgstate.regsave,cdbsave,i,idx);
+                cgstate.reflocal = true;        // not sure why this is not on the x86 branch
                 REGSAVE_restore(cgstate.regsave,cdb,i,idx);
                 restore[i] = cdb.finish();
             }
