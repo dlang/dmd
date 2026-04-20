@@ -233,6 +233,15 @@ struct Loc final
     {
     }
 };
+
+struct metas21496 final
+{
+    static const char* const hellos = "worlds";
+
+    metas21496()
+    {
+    }
+};
 ---
 */
 
@@ -351,4 +360,14 @@ extern (C++) struct Loc
 {
     __gshared int showColumns;
     void toChars(int showColumns = Loc.showColumns) {}
+}
+
+// https://github.com/dlang/dmd/issues/21496
+enum string[string] meta21496 = ["hellos":"worlds"];
+extern(C++) struct metas21496
+{
+    static foreach(key, value; meta21496)
+    {
+        mixin("enum string " ~ key ~ " = `" ~ value ~ "`;");
+    }
 }
