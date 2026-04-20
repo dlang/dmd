@@ -4873,7 +4873,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
 void epilog(block* b)
 {
     if (cgstate.AArch64)
-        return dmd.backend.arm.cod3.epilog(b);
+        return dmd.backend.arm.cod3.epilog(cgstate, b);
 
     code* cpopds;
     reg_t reg;
