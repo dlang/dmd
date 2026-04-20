@@ -538,7 +538,7 @@ public:
     /// Checks whether `t` is a type that can be exported to C++
     private static bool containsSizeT(AST.Type t)
     {
-        while (auto tp = t.isTypePointer())
+        for (auto tp = t.isTypePointer(); tp; tp = t.isTypePointer())
             t = tp.next;
         return t == AST.Type.tsize_t || t == AST.Type.tptrdiff_t;
     }
