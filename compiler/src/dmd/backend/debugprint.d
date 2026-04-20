@@ -41,68 +41,62 @@ nothrow:
 void ferr(const(char)* p) { printf("%s", p); }
 
 /*******************************
- * Write out storage class.
+ * Params: storage class SC members
+ * Returns: storage class string
  */
 
 @trusted
 const(char)* class_str(SC c)
 {
-    __gshared const char[10][SCMAX] sc =
-    [
-        "unde",
-        "auto",
-        "static",
-        "thread",
-        "extern",
-        "register",
-        "pseudo",
-        "global",
-        "comdat",
-        "parameter",
-        "regpar",
-        "fastpar",
-        "shadowreg",
-        "typedef",
-        "explicit",
-        "mutable",
-        "label",
-        "struct",
-        "enum",
-        "field",
-        "const",
-        "member",
-        "anon",
-        "inline",
-        "sinline",
-        "einline",
-        "overload",
-        "friend",
-        "virtual",
-        "locstat",
-        "template",
-        "functempl",
-        "ftexpspec",
-        "linkage",
-        "public",
-        "comdef",
-        "bprel",
-        "namespace",
-        "alias",
-        "funcalias",
-        "memalias",
-        "stack",
-        "adl",
-    ];
-    __gshared char[9 + 3] buffer;
-
-    static assert(sc.length == SCMAX);
-    if (cast(uint) c < SCMAX)
-        snprintf(buffer.ptr,buffer.length,"SC%s",sc[c].ptr);
-    else
-        snprintf(buffer.ptr,buffer.length,"SC%u",cast(uint)c);
-    assert(strlen(buffer.ptr) < buffer.length);
-    return buffer.ptr;
+    return sc[c].ptr;
 }
+
+private immutable char[10][SCMAX] sc =
+[
+    "unde",
+    "auto",
+    "static",
+    "thread",
+    "extern",
+    "register",
+    "pseudo",
+    "global",
+    "comdat",
+    "parameter",
+    "regpar",
+    "fastpar",
+    "shadowreg",
+    "typedef",
+    "explicit",
+    "mutable",
+    "label",
+    "struct",
+    "enum",
+    "field",
+    "const",
+    "member",
+    "anon",
+    "inline",
+    "sinline",
+    "einline",
+    "overload",
+    "friend",
+    "virtual",
+    "locstat",
+    "template",
+    "functempl",
+    "ftexpspec",
+    "linkage",
+    "public",
+    "comdef",
+    "bprel",
+    "namespace",
+    "alias",
+    "funcalias",
+    "memalias",
+    "stack",
+    "adl",
+];
 
 /***************************
  * Convert OPER to string.
