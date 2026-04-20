@@ -4059,7 +4059,7 @@ void cdlngsht(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     else
     {
         if (e.E1.Eoper == OPrelconst)
-            offsetinreg(cdb,e.E1,retregs);
+            offsetinreg(cg,cdb,e.E1,retregs);
         else
         {
             retregs = pretregs ? ALLREGS : 0;

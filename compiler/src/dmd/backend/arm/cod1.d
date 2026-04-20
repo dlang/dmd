@@ -1663,7 +1663,7 @@ void callclib(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint clib, ref regm_
     int npushed = popcnt(keepmask);
     CodeBuilder cdbpop;
     cdbpop.ctor();
-    gensaverestore(keepmask, cdb, cdbpop);
+    gensaverestore(cg, keepmask, cdb, cdbpop);
 
     makeitextern(s);
     int nalign = 0;
@@ -1787,7 +1787,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             p.isVariadic = numExplicitParams && np - i + 1 > numExplicitParams;
             if (p.isVariadic)      // osx_aapcs64 does not pass variadic args in registers
                 continue;
-            if (FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, p.reg, p.reg2))
+            if (FuncParamRegs_alloc(cg, fpr, ep.ET, ep.Ety, p.reg, p.reg2))
                 continue;        // argument is passed in register
             /* The rightmost stack allocated argument, excluding variadics and enregisterd ones,
              * is used to initialize the variadic argument pointer
@@ -1977,7 +1977,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             cg.msavereg &= ~keepmsk | overlap;
             saved |= tosave;
             keepmsk &= ~tosave;             // don't need to keep these for rest of params
-            gensaverestore(tosave,cdbsave,cdbrestore);
+            gensaverestore(cg,tosave,cdbsave,cdbrestore);
 
             cdb.append(cdbsave);
             cdb.append(cdbparams);
@@ -2013,7 +2013,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                     regm_t tosave = keepmsk & retregs;
                     saved |= tosave;
                     keepmsk &= ~tosave;             // don't need to keep these for rest of params
-                    gensaverestore(tosave,cdbsave,cdbrestore);
+                    gensaverestore(cg,tosave,cdbsave,cdbrestore);
                 }
                 cdb.append(cdbsave);
 
@@ -2367,17 +2367,17 @@ static if (0)
                 cdb.genadjesp(-REGSIZE);
                 cg.stackpush -= REGSIZE;
                 if (numpara + numalign > REGSIZE)
-                    genstackclean(cdb, numpara + numalign - REGSIZE, retregs);
+                    genstackclean(cg, cdb, numpara + numalign - REGSIZE, retregs);
             }
             else
-                genstackclean(cdb, numpara + numalign, retregs);
+                genstackclean(cg, cdb, numpara + numalign, retregs);
         }
         else
         {
             cdb.genadjesp(-numpara);  // popped off by the callee's 'RET numpara'
             cg.stackpush -= numpara;
             if (numalign)               // callee doesn't know about alignment adjustment
-                genstackclean(cdb,numalign,retregs);
+                genstackclean(cg,cdb,numalign,retregs);
         }
     }
 

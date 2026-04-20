@@ -1003,7 +1003,7 @@ private code* callFinallyBlock(block* bf, regm_t retregs)
     int nalign = 0;
 
     cgstate.calledFinally = true;
-    uint npush = gensaverestore(retregs,cdbs,cdbr);
+    uint npush = gensaverestore(cgstate,retregs,cdbs,cdbr);
 
     if (STACKALIGN >= 16)
     {   npush += REGSIZE;
@@ -1526,7 +1526,7 @@ static if (NTEXCEPTIONS)
                             CodeBuilder cdbr; cdbr.ctor();
 
                             nteh_gensindex(cdb,-1);
-                            gensaverestore(retregs,cdbs,cdbr);
+                            gensaverestore(cgstate,retregs,cdbs,cdbr);
                             cdb.append(cdbs);
                             cdb.genc(0xE8,0,FL.unde,0,FL.block,cast(targ_size_t)bf.nthSucc(0));
                             cgstate.regcon.immed.mval = 0;

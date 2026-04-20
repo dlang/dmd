@@ -573,7 +573,7 @@ void nteh_unwind(ref CGstate cg, ref CodeBuilder cdb,regm_t saveregs,uint stop_i
     cdbs.ctor();
     CodeBuilder cdbr;
     cdbr.ctor();
-    gensaverestore(saveregs & desregs,cdbs,cdbr);
+    gensaverestore(cg,saveregs & desregs,cdbs,cdbr);
 
     CodeBuilder cdbx;
     cdbx.ctor();
@@ -690,7 +690,7 @@ void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs)
     cdbs.ctor();
     CodeBuilder cdbr;
     cdbr.ctor();
-    gensaverestore(retregs& desregs,cdbs,cdbr);
+    gensaverestore(cgstate,retregs& desregs,cdbs,cdbr);
     cdb.append(cdbs);
 
     getregs(cdb,desregs);
