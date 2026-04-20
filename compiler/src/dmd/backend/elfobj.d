@@ -2039,14 +2039,6 @@ static if (0)
 }
 }
 
-private char* unsstr(uint value)
-{
-    __gshared char[64] buffer = void;
-
-    snprintf(buffer.ptr, buffer.length, "%d", value);
-    return buffer.ptr;
-}
-
 /*******************************
  * Mangle a name.
  * Params:
@@ -2097,14 +2089,14 @@ private char[] obj_mangle2(ref Symbol s, char[] dest)
             bool cond = tyfunc(s.ty()) && !variadic(s.Stype);
             if (cond)
             {
-                char* pstr = unsstr(type_paramsize(s.Stype));
-                size_t pstrlen = strlen(pstr);
-                size_t dlen = len + 1 + pstrlen;
-
+                char[64] buffer = void;
+                int n = snprintf(buffer.ptr, buffer.length, "%u", type_paramsize(s.Stype));
+                assert(n < buffer.length);
+                size_t dlen = len + 1 + n;
                 setLength(dest, dlen);
                 memcpy(dest.ptr,name,len);
                 dest[len] = '@';
-                memcpy(dest.ptr + 1 + len, pstr, pstrlen + 1);
+                memcpy(dest.ptr + len + 1, buffer.ptr, n + 1);
                 len = dlen;
                 break;
             }
@@ -2530,15 +2522,13 @@ static if (0)
 
 /*******************************
  * Output a relocation entry for a segment
- * Input:
+ * Params:
  *      seg =           where the address is going
  *      offset =        offset within seg
  *      type =          ELF relocation type R_ARCH_XXXX
  *      index =         Related symbol table index
  *      val =           addend or displacement from address
  */
-
-__gshared int relcnt=0;
 
 void ElfObj_addrel(int seg, targ_size_t offset, uint type,
                     IDXSYM symidx, targ_size_t val)
@@ -2548,9 +2538,13 @@ void ElfObj_addrel(int seg, targ_size_t offset, uint type,
     IDXSEC secidx;
 
     //assert(val == 0);
-    relcnt++;
-    //dbg_printf("%d-ElfObj_addrel(seg %d,offset x%x,type x%x,symidx %d,val %d)\n",
-            //relcnt,seg, offset, type, symidx,val);
+    static if (0)
+    {
+        __gshared int relcnt = 0;
+        relcnt++;
+        printf("%d-ElfObj_addrel(seg %d,offset x%x,type x%x,symidx %d,val %d)\n",
+                relcnt, seg, offset, type, symidx,val);
+    }
 
     assert(seg >= 0 && seg < SegData.length);
     segdata = SegData[seg];

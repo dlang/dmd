@@ -1616,7 +1616,7 @@ void disassemble(uint c) @trusted
             if (imm3)
             {
                 size_t n = snprintf(P5buf3.ptr, P5buf3.length, ((imm3 < 10) ? "LSL #%d" : "LSL #0x%X"), imm3);
-                assert(n <= P5buf3.length);
+                assert(n < P5buf3.length);
                 p5 = P5buf3[0 .. n];
             }
         }
@@ -2908,7 +2908,7 @@ const(char)[] labeltostring(ulong w)
     __gshared char[2 + w.sizeof * 3 + 1] EA;
 
     const n = snprintf(EA.ptr, EA.length, ((w < 10) ? "%lld" : "0x%llX"), w);
-    assert(n <= EA.length);
+    assert(n < EA.length);
     return EA[0 .. n];
 }
 
@@ -2918,7 +2918,7 @@ const(char)[] indexString(uint reg)
     __gshared char[1 + 3 + 1 + 1] EA;
 
     const n = snprintf(EA.ptr, EA.length, "[%s]", regString(1, reg).ptr);
-    assert(n <= EA.length);
+    assert(n < EA.length);
     return EA[0 .. n];
 }
 
