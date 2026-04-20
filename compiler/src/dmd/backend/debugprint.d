@@ -209,104 +209,113 @@ void WRarglst(list_t a)
 
 /***************************
  * Write out equation elem.
+ * Params:
+ *	e = equation to print
  */
 
 @trusted
 void WReqn(elem* e)
-{ __gshared int nest;
+{
+    int nest;
 
-  if (!e)
-        return;
-  if (OTunary(e.Eoper))
-  {
-        ferr(oper_str(e.Eoper));
-        ferr(" ");
-        if (OTbinary(e.E1.Eoper))
-        {       nest++;
-                ferr("(");
-                WReqn(e.E1);
-                ferr(")");
-                nest--;
-        }
-        else
-                WReqn(e.E1);
-  }
-  else if (e.Eoper == OPcomma && !nest)
-  {     WReqn(e.E1);
-        printf(";\n\t");
-        WReqn(e.E2);
-  }
-  else if (OTbinary(e.Eoper))
-  {
-        if (OTbinary(e.E1.Eoper))
-        {       nest++;
-                ferr("(");
-                WReqn(e.E1);
-                ferr(")");
-                nest--;
-        }
-        else
-                WReqn(e.E1);
-        ferr(" ");
-        ferr(oper_str(e.Eoper));
-        ferr(" ");
-        if (e.Eoper == OPstreq)
-            printf("%d", cast(int)type_size(e.ET));
-        ferr(" ");
-        if (OTbinary(e.E2.Eoper))
-        {       nest++;
-                ferr("(");
-                WReqn(e.E2);
-                ferr(")");
-                nest--;
-        }
-        else
-                WReqn(e.E2);
-  }
-  else
-  {
-        switch (e.Eoper)
-        {   case OPconst:
-                elem_print_const(e);
-                break;
-            case OPrelconst:
-                ferr("#");
-                goto case OPvar;
+    nothrow void eqn(elem* e)
+    {
+	nothrow void nestEqn(elem* e)
+	{
+	    ++nest;
+	    ferr("(");
+	    eqn(e);
+	    ferr(")");
+	    --nest;
+	}
 
-            case OPvar:
-                printf("%s",e.Vsym.Sident.ptr);
-                if (e.Vsym.Ssymnum != SYMIDX.max)
-                    printf("(%d)", cast(int) e.Vsym.Ssymnum);
-                if (e.Voffset != 0)
-                {
-                    if (e.Voffset.sizeof == 8)
-                        printf(".x%llx", cast(ulong)e.Voffset);
-                    else
-                        printf(".%d",cast(int)e.Voffset);
-                }
-                break;
-            case OPasm:
-            case OPstring:
-                printf("\"%s\"",e.Vstring);
-                if (e.Voffset)
-                    printf("+%lld",cast(long)e.Voffset);
-                break;
-            case OPmark:
-            case OPgot:
-            case OPframeptr:
-            case OPhalt:
-            case OPdctor:
-            case OPddtor:
-                ferr(oper_str(e.Eoper));
-                ferr(" ");
-                break;
-            case OPstrthis:
-                break;
-            default:
-                ferr(oper_str(e.Eoper));
-                assert(0);
-        }
-  }
+	if (!e)
+	    return;
+	if (OTunary(e.Eoper))
+	{
+	    ferr(oper_str(e.Eoper));
+	    ferr(" ");
+	    if (OTbinary(e.E1.Eoper))
+		nestEqn(e.E1);
+	    else
+		eqn(e.E1);
+	}
+	else if (e.Eoper == OPcomma && !nest)
+	{
+	    eqn(e.E1);
+	    printf(";\n\t");
+	    eqn(e.E2);
+	}
+	else if (OTbinary(e.Eoper))
+	{
+	    if (OTbinary(e.E1.Eoper))
+		nestEqn(e.E1);
+	    else
+		eqn(e.E1);
+	    ferr(" ");
+	    ferr(oper_str(e.Eoper));
+	    ferr(" ");
+	    if (e.Eoper == OPstreq)
+		printf("%d", cast(int)type_size(e.ET));
+	    ferr(" ");
+	    if (OTbinary(e.E2.Eoper))
+		nestEqn(e.E2);
+	    else
+		eqn(e.E2);
+	}
+	else
+	{
+	    switch (e.Eoper)
+	    {
+		case OPconst:
+		    elem_print_const(e);
+		    break;
+
+		case OPrelconst:
+		    ferr("#");
+		    goto case OPvar;
+
+		case OPvar:
+		    printf("%s",e.Vsym.Sident.ptr);
+		    if (e.Vsym.Ssymnum != SYMIDX.max)
+			printf("(%d)", cast(int) e.Vsym.Ssymnum);
+		    if (e.Voffset != 0)
+		    {
+			if (e.Voffset.sizeof == 8)
+			    printf(".x%llx", cast(ulong)e.Voffset);
+			else
+			    printf(".%d",cast(int)e.Voffset);
+		    }
+		    break;
+
+		case OPasm:
+		case OPstring:
+		    printf("\"%s\"",e.Vstring);
+		    if (e.Voffset)
+			printf("+%lld",cast(long)e.Voffset);
+		    break;
+
+		case OPmark:
+		case OPgot:
+		case OPframeptr:
+		case OPhalt:
+		case OPdctor:
+		case OPddtor:
+		    ferr(oper_str(e.Eoper));
+		    ferr(" ");
+		    break;
+
+		case OPstrthis:
+		    break;
+
+		default:
+		    ferr(oper_str(e.Eoper));
+		    assert(0);
+	    }
+	}
+    }
+
+    eqn(e);
 }
 
 @trusted
