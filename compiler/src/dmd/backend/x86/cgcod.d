@@ -299,7 +299,7 @@ void codgen(Symbol* sfunc)
     targ_size_t coffset = Offset(sfunc.Sseg);
 
     if (eecontext.EEelem)
-        genEEcode();
+        genEEcode(cgstate);
 
     for (block* b = bo.startblock; b; b = b.Bnext)
     {
@@ -3026,7 +3026,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs,r
     if (tosave)
     {
         cg.stackclean++;
-        genstackclean(cdbx,cg.stackpush - stackpushsave,pretregs | cg.msavereg);
+        genstackclean(cgstate,cdbx,cg.stackpush - stackpushsave,pretregs | cg.msavereg);
         cg.stackclean--;
     }
 
@@ -3106,7 +3106,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs,r
             else                        // else use memory
             {
                 CodeBuilder cdby; cdby.ctor();
-                uint size = gensaverestore(mask(i), cdbs1, cdby);
+                uint size = gensaverestore(cg, mask(i), cdbs1, cdby);
                 cs2 = cat(cdby.finish(),cs2);
                 if (size)
                 {
@@ -3273,7 +3273,7 @@ void docommas(ref CodeBuilder cdb, ref elem* pe)
     pe = e;
     assert(cgstate.stackclean == 0);
     cgstate.stackclean = stackcleansave;
-    genstackclean(cdb,cgstate.stackpush - stackpushsave,0);
+    genstackclean(cgstate,cdb,cgstate.stackpush - stackpushsave,0);
 }
 
 /**************************
