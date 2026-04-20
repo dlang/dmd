@@ -1016,10 +1016,17 @@ public:
                     break;
 
                 case EnumKind.String, EnumKind.Enum:
-                    buf.writestring("static ");
+                    // constexpr allows in-class initialization; only available from C++11
+                    if (global.params.cplusplus >= CppStdRevision.cpp11)
+                        buf.writestring("static constexpr ");
+                    else
+                        buf.writestring("static ");
                     auto target = determineEnumType(type);
                     target.accept(this);
-                    buf.writestring(" const ");
+                    if (global.params.cplusplus < CppStdRevision.cpp11)
+                        buf.writestring(" const ");
+                    else
+                        buf.writestring(" ");
                     writeIdentifier(vd, true);
                     buf.writestring(" = ");
                     auto e = AST.initializerToExpression(vd._init);
