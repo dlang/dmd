@@ -1865,14 +1865,11 @@ private void dvwalk(elem* n,uint i)
  * Optimize very busy expressions (VBEs).
  */
 
-private __gshared vec_t blockseen; /* which blocks we have visited         */
-
 @trusted
 public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    elem** pn;
-
     if (debugc) printf("verybusyexp()\n");
+
     flowvbe(go, bo);                  /* compute VBEs                 */
     if (go.exptop <= 1) return;        /* if no VBEs                   */
     assert(go.expblk.length);
@@ -1883,7 +1880,61 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
     genkillae(go, bo);              /* compute Bgen and Bkill for   */
                                     /* AEs                          */
     /*chkvecdim(go.exptop,0);*/
-    blockseen = vec_calloc(bo.dfo.length);
+
+    vec_t blockseen = vec_calloc(bo.dfo.length); // which blocks we have visited
+
+    /****************************
+     * Returns: true if elem j is killed somewhere
+     * between b and bp.
+     */
+    @trusted
+    int killed(uint j,block* bp,block* b)
+    {
+        if (bp == b || vec_testbit(bp.Bdfoidx,blockseen))
+            return false;
+        if (vec_testbit(j,bp.Bkill))
+            return true;
+        vec_setbit(bp.Bdfoidx,blockseen);      /* mark as visited              */
+        foreach (bl; ListRange(bp.Bpred))
+            if (killed(j,list_block(bl),b))
+                return true;
+        return false;
+    }
+
+    /***************************
+     * Params:
+     *      b =    block where we want to put the VBE
+     *      bp =   block somewhere between b and block containing j
+     *      j =     VBE expression elem candidate (index into go.expnod[])
+     * Returns: true if there is a path from b to bp along which
+     * elem j is not used.
+     */
+    @trusted
+    int ispath(ref GlobalOptimizer go, uint j, block* bp, block* b)
+    {
+        /*chkvecdim(go.exptop,0);*/
+        if (bp == b) return true;              /* the trivial case             */
+        if (vec_testbit(bp.Bdfoidx,blockseen))
+            return false;                      /* already seen this block      */
+        vec_setbit(bp.Bdfoidx,blockseen);      /* we've visited this block     */
+
+        /* false if elem j is used in block bp (and reaches the end     */
+        /* of bp, indicated by it being an AE in Bgen)                  */
+        for (size_t i = 0; (i = vec_index(i, bp.Bgen)) < go.exptop; ++i) // look thru used expressions
+        {
+            if (i != j && go.expnod[i] && el_match(go.expnod[i],go.expnod[j]))
+                return false;
+        }
+
+        /* Not used in bp, see if there is a path through a predecessor */
+        /* of bp                                                        */
+        foreach (bl; ListRange(bp.Bpred))
+            if (ispath(go, j, list_block(bl), b))
+                return true;
+
+        return false;           /* j is used along all paths            */
+    }
+
 
     /* Go backwards through dfo so that VBEs are evaluated as       */
     /* close as possible to where they are used.                    */
@@ -1905,7 +1956,7 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
         }
 
         /* Find pointer to last statement in current elem */
-        pn = &(b.Belem);
+        elem** pn = &(b.Belem);
         if (*pn)
         {
             pn = el_scancommas(pn);
@@ -2039,58 +2090,4 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
         } /* foreach */
     } /* for */
     vec_free(blockseen);
-}
-
-/****************************
- * Return true if elem j is killed somewhere
- * between b and bp.
- */
-
-@trusted
-private int killed(uint j,block* bp,block* b)
-{
-    if (bp == b || vec_testbit(bp.Bdfoidx,blockseen))
-        return false;
-    if (vec_testbit(j,bp.Bkill))
-        return true;
-    vec_setbit(bp.Bdfoidx,blockseen);      /* mark as visited              */
-    foreach (bl; ListRange(bp.Bpred))
-        if (killed(j,list_block(bl),b))
-            return true;
-    return false;
-}
-
-/***************************
- * Return true if there is a path from b to bp along which
- * elem j is not used.
- * Input:
- *      b .    block where we want to put the VBE
- *      bp .   block somewhere between b and block containing j
- *      j =     VBE expression elem candidate (index into go.expnod[])
- */
-
-@trusted
-private int ispath(ref GlobalOptimizer go, uint j, block* bp, block* b)
-{
-    /*chkvecdim(go.exptop,0);*/
-    if (bp == b) return true;              /* the trivial case             */
-    if (vec_testbit(bp.Bdfoidx,blockseen))
-        return false;                      /* already seen this block      */
-    vec_setbit(bp.Bdfoidx,blockseen);      /* we've visited this block     */
-
-    /* false if elem j is used in block bp (and reaches the end     */
-    /* of bp, indicated by it being an AE in Bgen)                  */
-    for (size_t i = 0; (i = vec_index(i, bp.Bgen)) < go.exptop; ++i) // look thru used expressions
-    {
-        if (i != j && go.expnod[i] && el_match(go.expnod[i],go.expnod[j]))
-            return false;
-    }
-
-    /* Not used in bp, see if there is a path through a predecessor */
-    /* of bp                                                        */
-    foreach (bl; ListRange(bp.Bpred))
-        if (ispath(go, j, list_block(bl), b))
-            return true;
-
-    return false;           /* j is used along all paths            */
 }
