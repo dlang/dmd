@@ -707,7 +707,7 @@ PTRNTAB asm_classify(OP* pop, OPND[] opnds, out int outNumops)
 
             if (i == 0 && bRetry && opnd.s && !opnd.s.isLabel())
             {
-                error(asmstate.loc, "label expected", opnd.s.toChars());
+                error(asmstate.loc, "label expected", opnd.s.toErrMsg());
                 return;
             }
             opnd.usFlags |= CONSTRUCT_FLAGS(0, 0, 0, _fanysize);
@@ -2228,7 +2228,7 @@ void asm_merge_opnds(ref OPND o1, ref OPND o2)
                 break;
             default:
             }
-            error(asmstate.loc, "invalid asm operand `%s`", o1.s.toChars());
+            error(asmstate.loc, "invalid asm operand `%s`", o1.s.toErrMsg());
         }
     }
 
@@ -2365,12 +2365,12 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
 
         if (v.isThreadlocal())
         {
-            error(asmstate.loc, "cannot directly load TLS variable `%s`", v.toChars());
+            error(asmstate.loc, "cannot directly load TLS variable `%s`", v.toErrMsg());
             return;
         }
         else if (v.isDataseg() && driverParams.pic != PIC.fixed)
         {
-            error(asmstate.loc, "cannot directly load global variable `%s` with PIC or PIE code", v.toChars());
+            error(asmstate.loc, "cannot directly load global variable `%s` with PIC or PIE code", v.toErrMsg());
             return;
         }
     }
@@ -2385,10 +2385,10 @@ L2:
     Declaration d = s.isDeclaration();
     if (!d)
     {
-        error(asmstate.loc, "%s `%s` is not a declaration", s.kind(), s.toChars());
+        error(asmstate.loc, "%s `%s` is not a declaration", s.kind(), s.toErrMsg());
     }
     else if (d.getType())
-        error(asmstate.loc, "cannot use type `%s` as an operand", d.getType().toChars());
+        error(asmstate.loc, "cannot use type `%s` as an operand", d.getType().toErrMsg());
     else if (d.isTupleDeclaration())
     {
     }
@@ -3494,7 +3494,7 @@ code* asm_da_parse(OP* pop)
             LabelDsymbol label = asmstate.sc.func.searchLabel(asmstate.tok.ident, asmstate.loc);
             if (!label)
             {
-                error(asmstate.loc, "label `%s` not found", asmstate.tok.ident.toChars());
+                error(asmstate.loc, "label `%s` not found", asmstate.tok.ident.toErrMsg());
                 break;
             }
             else
@@ -4163,7 +4163,7 @@ void asm_una_exp(ref OPND o1)
             }
             else
             {
-                error(asmstate.loc, "property of basic type `%s` expected", ptype.toChars());
+                error(asmstate.loc, "property of basic type `%s` expected", ptype.toErrMsg());
             }
             asm_token();
             return;
@@ -4566,7 +4566,7 @@ TOK tryExpressionToOperand(Expression e, out OPND o1, out Dsymbol s)
             return TOK.const_;
         }
     }
-    error(asmstate.loc, "bad type/size of operands `%s`", e.toChars());
+    error(asmstate.loc, "bad type/size of operands `%s`", e.toErrMsg());
     return TOK.error;
 }
 

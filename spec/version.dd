@@ -153,7 +153,8 @@ version (Foo)
 }
 version = Foo;  // error, Foo already used
 ------
-        $(P $(I VersionSpecification)s may only appear at module scope.)
+        $(P $(I VersionSpecification)s may only appear at module scope,
+        and may not be generated with a $(GLINK2 expression, MixinExpression).)
 
         $(P While the $(RELATIVE_LINK2 debug, debug) and version conditions
         superficially behave the same,
@@ -505,7 +506,8 @@ debug (foo) writeln("Foo");
 debug = foo;    // error, foo used before set
 ------
 
-        $(P $(I DebugSpecification)s may only appear at module scope.)
+        $(P $(I DebugSpecification)s may only appear at module scope,
+        and may not be generated with a $(GLINK2 expression, MixinExpression).)
 
         $(P Various different debug builds can be built with a parameter to
         debug:

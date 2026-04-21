@@ -2139,6 +2139,7 @@ private elem* elcond(elem* e, Goal goal)
             e.E2 = e1;
             e1.Eoper = OPcond;
             e1.Ety = e.Ety;
+            e1.ET = e.ET;
             return optelem(e, Goal.value);
 
         case OPnot:
@@ -3304,7 +3305,7 @@ private elem* elbit(elem* e, Goal goal)
     e2.Ety = e.Ety;
 
     OPER shift = OPshr;
-    if (!tyuns(tym1))
+    if (!tyuns(tym1) && tybasic(tym1) != TYbool)
         shift = OPashr;
     e.E1 = el_bin(shift,tym1,
                 el_bin(OPshl,tym1,e.E1,el_long(TYint,c)),

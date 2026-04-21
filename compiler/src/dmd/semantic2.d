@@ -352,7 +352,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         {
             const uwidth = bfd.fieldWidth;
             error(ei.loc, "default initializer `%s` is not representable as bitfield type `%s:%lld`",
-                  ei.exp.toChars(), bfd.type.toBasetype().toChars(), cast(long)uwidth);
+                  ei.exp.toErrMsg(), bfd.type.toBasetype().toErrMsg(), cast(long)uwidth);
             if (isUnsigned)
                 errorSupplemental(bfd.loc, "bitfield `%s` default initializer must be a value between `%llu..%llu`",
                                   bfd.toChars(), bounds.imin.value, bounds.imax.value);
@@ -773,7 +773,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     // When `@gnuAbiTag` is used, the type will be the UDA, not the struct literal
     if (e.op == EXP.type)
     {
-        error(e.loc, "`@%s` at least one argument expected", Id.udaGNUAbiTag.toChars());
+        error(e.loc, "`@%s` at least one argument expected", Id.udaGNUAbiTag.toErrMsg());
         return;
     }
 
@@ -791,7 +791,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     auto ale = (*sle.elements)[0].isArrayLiteralExp();
     if (ale is null)
     {
-        error(e.loc, "`@%s` at least one argument expected", Id.udaGNUAbiTag.toChars());
+        error(e.loc, "`@%s` at least one argument expected", Id.udaGNUAbiTag.toErrMsg());
         return;
     }
 
@@ -800,7 +800,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     {
         const str1 = (*lastTag.isStructLiteralExp().elements)[0].toString();
         const str2 = ale.toString();
-        error(e.loc, "only one `@%s` allowed per symbol", Id.udaGNUAbiTag.toChars());
+        error(e.loc, "only one `@%s` allowed per symbol", Id.udaGNUAbiTag.toErrMsg());
         errorSupplemental(e.loc, "instead of `@%s @%s`, use `@%s(%.*s, %.*s)`",
             lastTag.toChars(), e.toChars(), Id.udaGNUAbiTag.toChars(),
             // Avoid [ ... ]
@@ -818,7 +818,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
         if (!str.length)
         {
             error(e.loc, "argument `%d` to `@%s` cannot be %s", cast(int)(idx + 1),
-                    Id.udaGNUAbiTag.toChars(),
+                    Id.udaGNUAbiTag.toErrMsg(),
                     elem.isNullExp() ? "`null`".ptr : "empty".ptr);
             continue;
         }
@@ -828,7 +828,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
             if (!c.isValidMangling())
             {
                 error(e.loc, "`@%s` char `0x%02x` not allowed in mangling",
-                        Id.udaGNUAbiTag.toChars(), c);
+                        Id.udaGNUAbiTag.toErrMsg(), c);
                 break;
             }
         }
@@ -1075,7 +1075,7 @@ void staticAssertFail(StaticAssert sa, Scope* sc)
         error(sa.loc, "static assert:  %s", msgbuf.extractChars());
     }
     else
-        error(sa.loc, "static assert:  `%s` is false", sa.exp.toChars());
+        error(sa.loc, "static assert:  `%s` is false", sa.exp.toErrMsg());
     if (sc.tinst)
         sc.tinst.printInstantiationTrace();
     if (!global.gag)

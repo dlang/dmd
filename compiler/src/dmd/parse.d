@@ -3796,6 +3796,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.this_:
         case TOK.super_:
+            // defer `alias a = this.member;` error
+            if (peekNext() == TOK.dot)
+                goto case;
+
+            error("basic type expected, not `%s`, did you mean `typeof(%s)`?",
+                token.toChars(), token.toChars());
+            nextToken();
+            return AST.Type.terror;
+
         case TOK.identifier:
             loc = token.loc;
             id = token.ident;
@@ -4968,6 +4977,17 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             addComment(s, comment);
             return a;
         }
+        // alias this Identifier;
+        // accepted in a method, but not in grammar
+        if (token.value == TOK.this_ && peekNext() == TOK.identifier)
+        {
+            auto tokThis = token.ident;
+            nextToken();
+            auto t = new AST.TypeIdentifier(loc, tokThis);
+            auto id = token.ident;
+            check(TOK.identifier);
+            return new AST.Dsymbols(new AST.AliasDeclaration(loc, id, t));
+        }
         /* Look for:
          *  alias this = identifier;
          */
@@ -5076,6 +5096,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     }
 
                     v = new AST.AliasDeclaration(loc, ident, s);
+                }
+                else if (token.value == TOK.this_ && peekNext() == TOK.semicolon)
+                {
+                    // `alias id = this;` accepted in a method, but not in grammar
+                    auto tokThis = token.ident;
+                    nextToken();
+                    auto t = new AST.TypeIdentifier(loc, tokThis);
+                    v = new AST.AliasDeclaration(loc, ident, t);
                 }
                 else
                 {
@@ -8278,30 +8306,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             break;
 
         case TOK.file:
-            e = new AST.FileInitExp(loc, EXP.file);
-            nextToken();
-            break;
         case TOK.fileFullPath:
-            e = new AST.FileInitExp(loc, EXP.fileFullPath);
-            nextToken();
-            break;
-
         case TOK.line:
-            e = new AST.LineInitExp(loc);
-            nextToken();
-            break;
-
         case TOK.moduleString:
-            e = new AST.ModuleInitExp(loc);
-            nextToken();
-            break;
         case TOK.functionString:
-            e = new AST.FuncInitExp(loc);
-            nextToken();
-            break;
-
         case TOK.prettyFunction:
-            e = new AST.PrettyFuncInitExp(loc);
+            e = new AST.DefaultInitExp(loc, token.value);
             nextToken();
             break;
 
@@ -8482,7 +8492,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (token.value == TOK.leftParenthesis)
             {
                 e = new AST.TypeExp(loc, t);
-                e = new AST.CallExp(loc, e, parseArguments());
+                auto args = new AST.Expressions();
+                auto names = new AST.ArgumentLabels();
+                parseNamedArguments(args, names);
+                e = new AST.CallExp(loc, e, args, names);
                 break;
             }
             check(TOK.dot);
@@ -8920,7 +8933,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             t.toChars(), token.toChars());
                         return e;
                     }
-                    e = new AST.CallExp(loc, e, parseArguments());
+                    auto args = new AST.Expressions();
+                    auto names = new AST.ArgumentLabels();
+                    parseNamedArguments(args, names);
+                    e = new AST.CallExp(loc, e, args, names);
                 }
                 break;
             }
@@ -9793,12 +9809,7 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.arrayLiteral : PREC.primary,
     EXP.assocArrayLiteral : PREC.primary,
     EXP.classReference : PREC.primary,
-    EXP.file : PREC.primary,
-    EXP.fileFullPath : PREC.primary,
-    EXP.line : PREC.primary,
-    EXP.moduleString : PREC.primary,
-    EXP.functionString : PREC.primary,
-    EXP.prettyFunction : PREC.primary,
+    EXP.defaultInit : PREC.primary,
     EXP.typeid_ : PREC.primary,
     EXP.is_ : PREC.primary,
     EXP.assert_ : PREC.primary,

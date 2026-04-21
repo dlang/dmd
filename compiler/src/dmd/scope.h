@@ -59,6 +59,7 @@ struct Scope final
     Dsymbol *parent;            // parent to use
     LabelStatement *slabel;     // enclosing labelled statement
     SwitchStatement *switchStatement; // enclosing switch statement
+    void *switchCases;              // AA for O(n) duplicate case detection
     Statement *tryBody;         // enclosing _body of TryCatchStatement or TryFinallyStatement
     TryFinallyStatement *tryFinally; // enclosing try finally statement
     ScopeGuardStatement *scopeGuard; // enclosing scope(xxx) statement
@@ -66,6 +67,7 @@ struct Scope final
     Statement *scontinue;       // enclosing statement that supports "continue"
     ForeachStatement *fes;      // if nested function for ForeachStatement, this is it
     Scope *callsc;              // used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
+    Loc callLoc;                // call-site location for __FILE__, __LINE__, and __FILE_FULL_PATH__
     Dsymbol *inunion;           // !=null if processing members of a union
     VarDeclaration *lastVar;    // Previous symbol used to prevent goto-skips-init
     ErrorSink *eSink;           // sink for error messages
@@ -128,6 +130,8 @@ struct Scope final
     bool ctfeBlock(bool v);
     bool knownACompileTimeOnlyContext() const;
     bool knownACompileTimeOnlyContext(bool v);
+    bool inIsDisabledTrait() const;
+    bool inIsDisabledTrait(bool v);
 
     UserAttributeDeclaration *userAttribDecl;   // user defined attributes
 

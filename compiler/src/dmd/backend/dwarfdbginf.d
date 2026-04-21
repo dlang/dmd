@@ -40,6 +40,7 @@ import core.stdc.errno;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
+import dmd.backend.arm.instr;
 
 version(Windows)
 {
@@ -62,7 +63,7 @@ static if (1)
     import dmd.backend.barray;
     import dmd.backend.code;
     import dmd.backend.x86.code_x86;
-    import dmd.backend.drtlsym : getRtlsymPersonality;
+    import dmd.backend.rtlsym;
     import dmd.backend.dwarf;
     import dmd.backend.dwarf2;
     import dmd.backend.mem;
@@ -84,6 +85,7 @@ static if (1)
 
 
     nothrow:
+    private:
 
     __gshared
     {
@@ -198,6 +200,7 @@ static if (1)
     enum RELaddr = 0;       // straight address
     enum RELrel  = 1;       // relative to location to be fixed up
 
+    public
     void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val = 0)
     {
         if (config.objfmt == OBJ_ELF)
@@ -284,6 +287,7 @@ static if (1)
      * Returns:
      *      dwarf register
      */
+    public
     int dwarf_regno(int reg)
     {
         if (I32)
@@ -320,46 +324,6 @@ static if (1)
 
     private __gshared
     {
-        CFA_state CFA_state_init_32 =       // initial CFA state as defined by CIE
-        {   0,                // location
-            -1,               // register
-            4,                // offset
-            [   { 0 },        // 0: EAX
-                { 0 },        // 1: ECX
-                { 0 },        // 2: EDX
-                { 0 },        // 3: EBX
-                { 0 },        // 4: ESP
-                { 0 },        // 5: EBP
-                { 0 },        // 6: ESI
-                { 0 },        // 7: EDI
-                { -4 },       // 8: EIP
-            ]
-        };
-
-        CFA_state CFA_state_init_64 =       // initial CFA state as defined by CIE
-        {   0,                // location
-            -1,               // register
-            8,                // offset
-            [   { 0 },        // 0: RAX
-                { 0 },        // 1: RBX
-                { 0 },        // 2: RCX
-                { 0 },        // 3: RDX
-                { 0 },        // 4: RSI
-                { 0 },        // 5: RDI
-                { 0 },        // 6: RBP
-                { 0 },        // 7: RSP
-                { 0 },        // 8: R8
-                { 0 },        // 9: R9
-                { 0 },        // 10: R10
-                { 0 },        // 11: R11
-                { 0 },        // 12: R12
-                { 0 },        // 13: R13
-                { 0 },        // 14: R14
-                { 0 },        // 15: R15
-                { -8 },       // 16: RIP
-            ]
-        };
-
         CFA_state CFA_state_current;     // current CFA state
         OutBuffer cfa_buf;               // CFA instructions
     }
@@ -371,6 +335,7 @@ static if (1)
      * Params:
      *      location = offset from the start of the function
      */
+    public
     void dwarf_CFA_set_loc(uint location)
     {
         assert(location >= CFA_state_current.location);
@@ -398,9 +363,11 @@ static if (1)
      *      reg = machine register
      *      offset = offset from frame register
      */
+    public
     void dwarf_CFA_set_reg_offset(int reg, int offset)
     {
         int dw_reg = dwarf_regno(reg);
+        //printf("reg: %d dw_reg: %d CFA_state_current.reg: %d\n", reg, dw_reg, CFA_state_current.reg);
         if (dw_reg != CFA_state_current.reg)
         {
             if (offset == CFA_state_current.offset)
@@ -441,6 +408,7 @@ static if (1)
      *      reg = machine register
      *      offset = offset from frame register
      */
+    public
     void dwarf_CFA_offset(int reg, int offset)
     {
         int dw_reg = dwarf_regno(reg);
@@ -549,6 +517,7 @@ static if (1)
         public uint[TYMAX] typidx_tab;
     }
 
+    public
     void machDebugSectionsInit()
     {
         debug_pubnames = Section("__debug_pubnames");
@@ -560,6 +529,8 @@ static if (1)
         debug_str      = Section("__debug_str");
         debug_line     = Section("__debug_line");
     }
+
+    public
     void elfDebugSectionsInit()
     {
         debug_pubnames = Section(".debug_pubnames");
@@ -885,6 +856,54 @@ static if (1)
         }
     }
 
+    /** Emit canonical eh_frame
+     * Params:
+     *  AArch64 = true for AArch64
+     *  xlocalsize = gap between FP and SP
+     *  cfa_offset = stack allocation size
+     */
+    public
+    void dwarf_emit_eh_frame(bool AArch64, uint xlocalsize, out int cfa_offset)
+    {
+        cfa_offset = 0;
+        if (AArch64)
+        {
+            /*
+            CFA sequence to generate:
+            00 41 0e 20 9d 04 9e 03 0d 1d 43 00
+
+            00                DW_CFA_nop
+            41                DW_CFA_advance_loc 1 ; with code_align=4 advance 4 bytes
+            0e 20             DW_CFA_def_cfa_offset 32
+            9d 04             DW_CFA_offset r29, -32
+            9e 03             DW_CFA_offset r30, -24
+            0d 1d             DW_CFA_def_cfa_register r29
+            43                DW_CFA_advance_loc 3 ; advance 12 bytes
+            */
+            int off = 2 * REGSIZE + xlocalsize;
+            dwarf_CFA_set_loc(1);
+            dwarf_CFA_set_reg_offset(INSTR.SP, off); // CFA is now 8[SP]
+            dwarf_CFA_offset(INSTR.BP, -off); // BP is at 0[SP]
+            dwarf_CFA_offset(30, -(8 + xlocalsize));
+            dwarf_CFA_set_reg_offset(INSTR.BP, off);      // CFA is now 0[BP]
+            dwarf_CFA_set_loc(4);             // address after MOV BP,SP
+            cfa_offset = off;  // remember the difference between the CFA and the frame pointer
+        }
+        else
+        {
+            int off = 2 * REGSIZE;             // 1 for the return address + 1 for the PUSH EBP
+            dwarf_CFA_set_loc(1);              // address after PUSH EBP
+            dwarf_CFA_set_reg_offset(SP, off); // CFA is now 8[ESP]
+            dwarf_CFA_offset(BP, -off);        // EBP is at 0[ESP]
+            dwarf_CFA_set_loc(I64 ? 4 : 3);    // address after MOV EBP,ESP
+            /* Oddly, the CFA is not the same as the frame pointer,
+             * which is why the offset of BP is set to 8
+             */
+            dwarf_CFA_set_reg_offset(BP, off);        // CFA is now 0[EBP]
+            cfa_offset = off;  // remember the difference between the CFA and the frame pointer
+        }
+    }
+
     /*********************************************
      * Append function's FDE (Frame Description Entry) to .eh_frame
      * Params:
@@ -917,16 +936,10 @@ static if (1)
 
         if (sfunc.ty() & mTYnaked)
         {
-            /* Do not have info on naked functions. Assume they are set up as:
-             *   push RBP
-             *   mov  RSP,RSP
+            /* Do not have info on naked functions. Assume they set up standard stack frame.
              */
-            int off = 2 * REGSIZE;
-            dwarf_CFA_set_loc(1);
-            dwarf_CFA_set_reg_offset(SP, off);
-            dwarf_CFA_offset(BP, -off);
-            dwarf_CFA_set_loc(I64 ? 4 : 3);
-            dwarf_CFA_set_reg_offset(BP, off);
+            int cfa_offset;
+            dwarf_emit_eh_frame(config.target_cpu == TARGET_AArch64, 0, cfa_offset);
         }
 
         // Length of FDE, not including padding
@@ -1002,11 +1015,13 @@ static if (1)
         assert(startsize + length + 4 == buf.length());
     }
 
+    public
     void dwarf_initfile(const(char)* filename)
     {
         dwarf_initfile(filename ? filename[0 .. strlen(filename)] : null);
     }
 
+    public
     void dwarf_initfile(const(char)[] filename)
     {
         if (config.ehmethod == EHmethod.EH_DWARF)
@@ -1408,12 +1423,14 @@ static if (1)
         return lastSep ? path[0 .. lastSep - path] : ".";
     }
 
+    public
     void dwarf_initmodule(const(char)* filename, const(char)* modname)
     {
         dwarf_initmodule(filename ? filename[0 .. strlen(filename)] : null,
                          modname ? modname[0 .. strlen(modname)] : null);
     }
 
+    public
     void dwarf_initmodule(const(char)[] filename, const(char)[] modname)
     {
         if (modname)
@@ -1435,6 +1452,7 @@ static if (1)
             hasModname = 0;
     }
 
+    public
     void dwarf_termmodule()
     {
         if (hasModname)
@@ -1444,6 +1462,7 @@ static if (1)
     /*************************************
      * Finish writing Dwarf debug info to object file.
      */
+    public
     void dwarf_termfile()
     {
         //printf("dwarf_termfile()\n");
@@ -1719,33 +1738,39 @@ static if (1)
     /*****************************************
      * Start of code gen for function.
      */
+    public
     void dwarf_func_start(Symbol* sfunc)
     {
         //printf("dwarf_func_start(%s)\n", sfunc.Sident.ptr);
+        CFA_state* cfa_state = &CFA_state_current;
+        memset(cfa_state,0,CFA_state.sizeof);
         if (config.target_cpu == TARGET_AArch64)
         {
-            memset(&CFA_state_current,0,CFA_state.sizeof);
-            CFA_state_current.offset   = 4;
-            CFA_state_current.reg      = 31;      // SP
-            CFA_state_current.regstates[32].offset = -8; // PC
+            cfa_state.reg      = INSTR.SP;
+            cfa_state.offset   = OFFSET_FAC;
+            cfa_state.regstates[32].offset = -8;        // PC
+        }
+        else if (I64)
+        {
+            cfa_state.reg      = dwarf_regno(SP);
+            cfa_state.offset   = OFFSET_FAC;
+            cfa_state.regstates[16].offset = -8;        // RIP
+        }
+        else if (I16 || I32)
+        {
+            cfa_state.reg      = dwarf_regno(SP);
+            cfa_state.offset   = OFFSET_FAC;
+            cfa_state.regstates[ 8].offset = -4;        // EIP
         }
         else
-        {
-            if (I16 || I32)
-                CFA_state_current = CFA_state_init_32;
-            else if (I64)
-                CFA_state_current = CFA_state_init_64;
-            else
-                assert(0);
-            CFA_state_current.reg = dwarf_regno(SP);
-            assert(CFA_state_current.offset == OFFSET_FAC);
-        }
+            assert(0);
         cfa_buf.reset();
     }
 
     /*****************************************
      * End of code gen for function.
      */
+    public
     void dwarf_func_term(Symbol* sfunc)
     {
         //printf("dwarf_func_term(sfunc = '%s')\n", sfunc.Sident.ptr);
@@ -2076,27 +2101,34 @@ static if (1)
         assert(cgstate.Para.size < 63); // avoid sLEB128 encoding
         ushort op_size = 0x0002;
         ushort loc_op;
+        reg_t bp = BP;
+        reg_t sp = SP;
+        if (config.target_cpu == TARGET_AArch64)
+        {
+            bp = INSTR.BP;
+            sp = INSTR.SP;
+        }
 
         // set the entry for this function in .debug_loc segment
         // after call
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 0);
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 1);
 
-        loc_op = cast(ushort)(((cgstate.Para.size - REGSIZE) << 8) | (DW_OP_breg0 + dwarf_regno(SP)));
+        loc_op = cast(ushort)(((cgstate.Para.size - REGSIZE) << 8) | (DW_OP_breg0 + dwarf_regno(sp)));
         debug_loc.buf.write32(loc_op << 16 | op_size);
 
         // after push EBP
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 1);
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 3);
 
-        loc_op = cast(ushort)(((cgstate.Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(SP)));
+        loc_op = cast(ushort)(((cgstate.Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(sp)));
         debug_loc.buf.write32(loc_op << 16 | op_size);
 
         // after mov EBP, ESP
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 3);
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + sfunc.Ssize);
 
-        loc_op = cast(ushort)(((cgstate.Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(BP)));
+        loc_op = cast(ushort)(((cgstate.Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(bp)));
         debug_loc.buf.write32(loc_op << 16 | op_size);
 
         // 2 zero addresses to end loc_list
@@ -2109,6 +2141,7 @@ static if (1)
      * Write out symbol table for current function.
      */
 
+    public
     void dwarf_outsym(Symbol* s)
     {
         //printf("dwarf_outsym('%s')\n",s.Sident.ptr);
@@ -2214,6 +2247,7 @@ static if (1)
 
     /* ======================= Type Index ============================== */
 
+    public
     uint dwarf_typidx(type* t, Symbol* sym = null)
     {
         uint idx = 0;
@@ -3177,6 +3211,7 @@ static if (1)
         OutBuffer abuf;
     }
 
+    public
     uint dwarf_abbrev_code(const(ubyte)* data, size_t nbytes)
     {
         if (!abbrev_table)
@@ -3219,6 +3254,7 @@ static if (1)
      *      startoffset = size of function prolog
      *      retoffset = offset from start of function to epilog
      */
+    public
     void dwarf_except_gentables(Funcsym* sfunc, uint startoffset, uint retoffset)
     {
         if (!doUnwindEhFrame())

@@ -85,6 +85,9 @@ void test24731()
     assert(solve!2(m) == 2);
 }
 
+// https://github.com/dlang/dmd/issues/20529
+int test20529(ubyte n)(int[n] a...) => n;
+static assert(test20529(1, 2, 3) == 3);
 
 void main() {
     Tst!(int) t = new Tst!(int);

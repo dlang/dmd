@@ -1908,7 +1908,7 @@ pure nothrow @safe @nogc unittest
         static struct X { int n = 0; ~this(){n = 0;} }
         X x;
     }
-    static assert(hasElaborateDestructor!S3);
+    static assert(__traits(needsDestruction, S3));
     S3 s31, s32;
     s31.x.n = 1;
     move(s31, s32);
@@ -1980,14 +1980,12 @@ pure nothrow @safe @nogc unittest
 
 private void moveImpl(T)(scope ref T target, return scope ref T source)
 {
-    import core.internal.traits : hasElaborateDestructor;
-
     static if (is(T == struct))
     {
         //  Unsafe when compiling without -preview=dip1000
         if ((() @trusted => &source == &target)()) return;
         // Destroy target before overwriting it
-        static if (hasElaborateDestructor!T) target.__xdtor();
+        static if (__traits(needsDestruction, T)) target.__xdtor();
     }
     // move and emplace source into target
     moveEmplaceImpl(target, source);
@@ -2037,7 +2035,7 @@ private T trustedMoveImpl(T)(return scope ref T source) @trusted
         static struct X { int n = 0; ~this(){n = 0;} }
         X x;
     }
-    static assert(hasElaborateDestructor!S3);
+    static assert(__traits(needsDestruction, S3));
     S3 s31;
     s31.x.n = 1;
     S3 s32 = move(s31);
@@ -2217,7 +2215,7 @@ private void moveEmplaceImpl(T)(scope ref T target, return scope ref T source)
 //    }
 
     import core.internal.traits : hasElaborateAssign, isAssignable, hasElaborateMove,
-                                  hasElaborateDestructor, hasElaborateCopyConstructor;
+                                  hasElaborateCopyConstructor;
     static if (is(T == struct))
     {
 
@@ -2237,7 +2235,7 @@ private void moveEmplaceImpl(T)(scope ref T target, return scope ref T source)
 
         // If the source defines a destructor or a postblit hook, we must obliterate the
         // object in order to avoid double freeing and undue aliasing
-        static if (hasElaborateDestructor!T || hasElaborateCopyConstructor!T)
+        static if (__traits(needsDestruction, T) || hasElaborateCopyConstructor!T)
         {
             // If there are members that are nested structs, we must take care
             // not to erase any context pointers, so we might have to recurse
@@ -2251,8 +2249,8 @@ private void moveEmplaceImpl(T)(scope ref T target, return scope ref T source)
     {
         static if (T.length)
         {
-            static if (!hasElaborateMove!T &&
-                       !hasElaborateDestructor!T &&
+            static if (!__traits(needsDestruction, T) &&
+                       !hasElaborateMove!T &&
                        !hasElaborateCopyConstructor!T)
             {
                 // Single blit if no special per-instance handling is required
@@ -2368,113 +2366,6 @@ pure nothrow @nogc @system unittest
 debug(PRINTF)
 {
     import core.stdc.stdio : printf;
-}
-
-/// Implementation of `_d_delstruct` and `_d_delstructTrace`
-template _d_delstructImpl(T)
-{
-    private void _d_delstructImpure(ref T p)
-    {
-        debug(PRINTF) printf("_d_delstruct(%p)\n", p);
-
-        import core.memory : GC;
-
-        destroy(*p);
-        GC.free(p);
-        p = null;
-    }
-
-    /**
-     * This is called for a delete statement where the value being deleted is a
-     * pointer to a struct with a destructor but doesn't have an overloaded
-     * `delete` operator.
-     *
-     * Params:
-     *   p = pointer to the value to be deleted
-     *
-     * Bugs:
-     *   This function template was ported from a much older runtime hook that
-     *   bypassed safety, purity, and throwabilty checks. To prevent breaking
-     *   existing code, this function template is temporarily declared
-     *   `@trusted` until the implementation can be brought up to modern D
-     *   expectations.
-     */
-    void _d_delstruct(ref T p) @trusted @nogc pure nothrow
-    {
-        if (p)
-        {
-            alias Type = void function(ref T P) @nogc pure nothrow;
-            (cast(Type) &_d_delstructImpure)(p);
-        }
-    }
-
-    version (D_ProfileGC)
-    {
-        import core.internal.array.utils : _d_HookTraceImpl;
-
-        private enum errorMessage = "Cannot delete struct if compiling without support for runtime type information!";
-
-        /**
-         * TraceGC wrapper around $(REF _d_delstruct, core,lifetime).
-         *
-         * Bugs:
-         *   This function template was ported from a much older runtime hook that
-         *   bypassed safety, purity, and throwabilty checks. To prevent breaking
-         *   existing code, this function template is temporarily declared
-         *   `@trusted` until the implementation can be brought up to modern D
-         *   expectations.
-         */
-        alias _d_delstructTrace = _d_HookTraceImpl!(T, _d_delstruct, errorMessage);
-    }
-}
-
-@system pure nothrow unittest
-{
-    int dtors = 0;
-    struct S { ~this() nothrow { ++dtors; } }
-
-    S *s = new S();
-    _d_delstructImpl!(typeof(s))._d_delstruct(s);
-
-    assert(s == null);
-    assert(dtors == 1);
-}
-
-@system pure unittest
-{
-    int innerDtors = 0;
-    int outerDtors = 0;
-
-    struct Inner { ~this() { ++innerDtors; } }
-    struct Outer
-    {
-        Inner *i1;
-        Inner *i2;
-
-        this(int x)
-        {
-            i1 = new Inner();
-            i2 = new Inner();
-        }
-
-        ~this()
-        {
-            ++outerDtors;
-
-            _d_delstructImpl!(typeof(i1))._d_delstruct(i1);
-            assert(i1 == null);
-
-           _d_delstructImpl!(typeof(i2))._d_delstruct(i2);
-            assert(i2 == null);
-        }
-    }
-
-    Outer *o = new Outer(0);
-    _d_delstructImpl!(typeof(o))._d_delstruct(o);
-
-    assert(o == null);
-    assert(innerDtors == 2);
-    assert(outerDtors == 1);
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=25552
@@ -2810,22 +2701,6 @@ if (is(T == class))
 }
 
 /**
- * TraceGC wrapper around $(REF _d_newclassT, core,lifetime).
- */
-T _d_newclassTTrace(T)(string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
-{
-    version (D_TypeInfo)
-    {
-        import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
-        mixin(TraceHook!("T", "_d_newclassT"));
-
-        return _d_newclassT!T();
-    }
-    else
-        assert(0, "Cannot create new class if compiling without support for runtime type information!");
-}
-
-/**
  * Allocate an initialized non-array item.
  *
  * This is an optimization to avoid things needed for arrays like the __arrayPad(size).
@@ -3007,36 +2882,5 @@ debug(SENTINEL) {} else
     assert(!test!InvalidMemoryOperationError);
 }
 
-version (D_ProfileGC)
-{
-    /**
-    * TraceGC wrapper around $(REF _d_newitemT, core,lifetime).
-    */
-    T* _d_newitemTTrace(T)(string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
-    {
-        version (D_TypeInfo)
-        {
-            static if (is(T == struct))
-            {
-                // prime the TypeInfo name, we don't want that affecting the allocated bytes
-                // Issue https://github.com/dlang/dmd/issues/20832
-                static string typeName(TypeInfo_Struct ti) nothrow @trusted => ti.name;
-                auto tnPure = cast(string function(TypeInfo_Struct ti) nothrow pure @trusted)&typeName;
-                cast(void)tnPure(typeid(T));
-            }
 
-            import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!("T", "_d_newitemT"));
-
-            return _d_newitemT!T();
-        }
-        else
-            assert(0, "Cannot create new `struct` if compiling without support for runtime type information!");
-    }
-}
-
-template TypeInfoSize(T)
-{
-    import core.internal.traits : hasElaborateDestructor;
-    enum TypeInfoSize = (is (T == struct) && hasElaborateDestructor!T) ? size_t.sizeof : 0;
-}
+enum TypeInfoSize(T) = (is (T == struct) && __traits(needsDestruction, T)) ? size_t.sizeof : 0;

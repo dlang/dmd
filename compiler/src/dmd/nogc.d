@@ -123,7 +123,7 @@ public:
         }
         if (sc.setGC(f, e.loc, msg))
         {
-            error(e.loc, "%s causes a GC allocation in `@nogc` %s `%s`", msg, f.kind(), f.toChars());
+            error(e.loc, "%s causes a GC allocation in `@nogc` %s `%s`", msg, f.kind(), f.toErrMsg());
             err = true;
             return true;
         }

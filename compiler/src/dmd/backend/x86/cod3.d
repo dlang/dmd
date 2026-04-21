@@ -1003,7 +1003,7 @@ private code* callFinallyBlock(block* bf, regm_t retregs)
     int nalign = 0;
 
     cgstate.calledFinally = true;
-    uint npush = gensaverestore(retregs,cdbs,cdbr);
+    uint npush = gensaverestore(cgstate,retregs,cdbs,cdbr);
 
     if (STACKALIGN >= 16)
     {   npush += REGSIZE;
@@ -1052,11 +1052,11 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
                 bs1 = bs2;
                 bs2 = btmp;
             }
-            logexp(cdb,e,jcond,FL.block,cast(code*) bs1);
+            logexp(cgstate,cdb,e,jcond,FL.block,cast(code*) bs1);
             nextb = bs2;
         }
         L5:
-            if (configv.addlinenumbers && bl.Bsrcpos.Slinnum &&
+            if (config.addlinenumbers && bl.Bsrcpos.Slinnum &&
                 !(funcsym_p.ty() & mTYnaked))
             {
                 //printf("BC.iftrue: %s(%u)\n", bl.Bsrcpos.Sfilename ? bl.Bsrcpos.Sfilename : "", bl.Bsrcpos.Slinnum);
@@ -1121,7 +1121,7 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
                 if (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) ||
                     config.ehmethod == EHmethod.EH_SEH)
                 {
-                    nteh_unwind(cdb,0,toindex);
+                    nteh_unwind(cgstate,cdb,0,toindex);
                 }
                 else
                 {
@@ -1270,14 +1270,14 @@ static if (NTEXCEPTIONS)
         {
             assert(!e);
             cgstate.usednteh |= NTEH_except;
-            nteh_setsp(cdb,0x8B);
+            nteh_setsp(cgstate, cdb,0x8B);
             getregsNoSave(cgstate.allregs);
             nextb = bl.nthSucc(0);
             goto L5;
         }
         case BC._filter:
         {
-            nteh_filter(cdb, bl);
+            nteh_filter(cgstate, cdb, bl);
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in filter blocks.
             getregsNoSave(cgstate.allregs);
@@ -1431,7 +1431,7 @@ static if (NTEXCEPTIONS)
                 {
                     assert(reg1 == lreg && reg2 == NOREG);
                     regm_t pretregs = mask(reg1) | mask(reg2);
-                    fixresult87(cdb, e, retregs, pretregs, true);
+                    fixresult87(cgstate, cdb, e, retregs, pretregs, true);
                 }
                 // fix return registers
                 else if (tybasic(e.Ety) == TYcfloat)
@@ -1464,7 +1464,7 @@ static if (NTEXCEPTIONS)
                     {
                         assert(reg1 == AX && reg2 == DX);
                         regm_t pretregs = mask(reg1) | mask(reg2);
-                        fixresult_complex87(cdb, e, retregs, pretregs, true);
+                        fixresult_complex87(cgstate, cdb, e, retregs, pretregs, true);
                     }
                 }
                 else if (reg2 == NOREG)
@@ -1526,7 +1526,7 @@ static if (NTEXCEPTIONS)
                             CodeBuilder cdbr; cdbr.ctor();
 
                             nteh_gensindex(cdb,-1);
-                            gensaverestore(retregs,cdbs,cdbr);
+                            gensaverestore(cgstate,retregs,cdbs,cdbr);
                             cdb.append(cdbs);
                             cdb.genc(0xE8,0,FL.unde,0,FL.block,cast(targ_size_t)bf.nthSucc(0));
                             cgstate.regcon.immed.mval = 0;
@@ -1534,7 +1534,7 @@ static if (NTEXCEPTIONS)
                         }
                         else
                         {
-                            nteh_unwind(cdb,retregs,~0);
+                            nteh_unwind(cgstate, cdb,retregs,~0);
                         }
                         break;
                     }
@@ -1845,7 +1845,7 @@ struct CaseVal
  * Generate comparison of [reg2,reg] with val
  */
 @trusted
-private void cmpval(CGstate cg, ref CodeBuilder cdb, ulong val, uint sz, reg_t reg, reg_t reg2, reg_t sreg)
+private void cmpval(ref CGstate cg, ref CodeBuilder cdb, ulong val, uint sz, reg_t reg, reg_t reg2, reg_t sreg)
 {
     if (cg.AArch64)
     {
@@ -1898,7 +1898,7 @@ private void cmpval(CGstate cg, ref CodeBuilder cdb, ulong val, uint sz, reg_t r
 }
 
 @trusted
-private void ifthen(CGstate cg, ref CodeBuilder cdb, scope CaseVal[] casevals,
+private void ifthen(ref CGstate cg, ref CodeBuilder cdb, scope CaseVal[] casevals,
         uint sz, reg_t reg, reg_t reg2, reg_t sreg, block* bdefault, bool last)
 {
     const ncases = casevals.length;
@@ -3067,7 +3067,7 @@ void cdframeptr(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretreg
     cs.Irex = 0;
     cs.Irm = cast(ubyte)reg;
     cdb.gen(&cs);
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cgstate,cdb,e,retregs,pretregs);
 }
 
 /***************************************
@@ -3088,7 +3088,7 @@ void cdgot(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
         cdb.genc(CALL,0,FL.unde,0,FL.got,0);     //     CALL L1
         cdb.genpop(reg);                  // L1: POP reg
 
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cgstate,cdb,e,retregs,pretregs);
     }
     else if (config.exe & EX_posix)
     {
@@ -3113,7 +3113,7 @@ void cdgot(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
         cgot.IEV2.Voffset = (reg == AX) ? 2 : 3;
 
         makeitextern(gotsym);
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cgstate,cdb,e,retregs,pretregs);
     }
     else
         assert(0);
@@ -3866,14 +3866,14 @@ void prolog_frame(ref CGstate cg, ref CodeBuilder cdb, bool farfunc, ref uint xl
                 code_orrex(cdb.last(), REX_W);   // MOV RBP,RSP
         }
         if ((config.objfmt & (OBJ_ELF | OBJ_MACH)) && config.fulltypes)
-            // Don't reorder instructions, as dwarf CFA relies on it
+            // Do not reorder instructions, as dwarf CFA relies on it
             code_orflag(cdb.last(), CFvolatile);
 static if (NTEXCEPTIONS == 2)
 {
         if (cg.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) || config.ehmethod == EHmethod.EH_SEH))
         {
-            nteh_prolog(cdb);
-            int sz = nteh_contextsym_size();
+            nteh_prolog(cgstate, cdb);
+            int sz = nteh_contextsym_size(cgstate);
             assert(sz != 0);        // should be 5*4, not 0
             xlocalsize -= sz;      // sz is already subtracted from ESP
                                     // by nteh_prolog()
@@ -3882,16 +3882,7 @@ static if (NTEXCEPTIONS == 2)
         if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
             config.ehmethod == EHmethod.EH_DWARF)
         {
-            int off = 2 * REGSIZE;      // 1 for the return address + 1 for the PUSH EBP
-            dwarf_CFA_set_loc(1);           // address after PUSH EBP
-            dwarf_CFA_set_reg_offset(SP, off); // CFA is now 8[ESP]
-            dwarf_CFA_offset(BP, -off);       // EBP is at 0[ESP]
-            dwarf_CFA_set_loc(I64 ? 4 : 3);   // address after MOV EBP,ESP
-            /* Oddly, the CFA is not the same as the frame pointer,
-             * which is why the offset of BP is set to 8
-             */
-            dwarf_CFA_set_reg_offset(BP, off);        // CFA is now 0[EBP]
-            cfa_offset = off;  // remember the difference between the CFA and the frame pointer
+            dwarf_emit_eh_frame(cgstate.AArch64,xlocalsize,cfa_offset);
         }
         enter = false;              /* do not use ENTER instruction */
     }
@@ -4882,7 +4873,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
 void epilog(block* b)
 {
     if (cgstate.AArch64)
-        return dmd.backend.arm.cod3.epilog(b);
+        return dmd.backend.arm.cod3.epilog(cgstate, b);
 
     code* cpopds;
     reg_t reg;
@@ -4936,7 +4927,7 @@ void epilog(block* b)
 
     if (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.exe == EX_WIN32 || MARS))
     {
-        nteh_epilog(cdbx);
+        nteh_epilog(cgstate, cdbx);
     }
 
     cpopds = null;
@@ -4958,7 +4949,7 @@ void epilog(block* b)
         regm_t retregs = 0;
         if (b.bc == BC.retexp)
             retregs = regmask(b.Belem.Ety, tym);
-        nteh_monitor_epilog(cdbx,retregs);
+        nteh_monitor_epilog(cgstate,cdbx,retregs);
         xlocalsize += 8;
     }
 
@@ -5183,7 +5174,7 @@ void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
             cs.Iop = xmmload(s.Stype.Tty);        // MOVSS/D xreg,mem
         else
             cs.Iop = xmmstore(s.Stype.Tty);       // MOVSS/D mem,xreg
-        getlvalue(cdb,cs,e,keepmsk,rm);
+        getlvalue(cgstate,cdb,cs,e,keepmsk,rm);
         cs.orReg(s.Sreglsw - XMM0);
         cdb.gen(&cs);
     }
@@ -5192,7 +5183,7 @@ void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
         const int sz = cast(int)type_size(s.Stype);
         cs.Iop = toreg ? 0x8B : 0x89; // MOV reg,mem[ESP] : MOV mem[ESP],reg
         cs.Iop ^= (sz == 1);
-        getlvalue(cdb,cs,e,keepmsk,rm);
+        getlvalue(cgstate,cdb,cs,e,keepmsk,rm);
         cs.orReg(s.Sreglsw);
         if (I64 && sz == 1 && s.Sreglsw >= 4)
             cs.Irex |= REX;

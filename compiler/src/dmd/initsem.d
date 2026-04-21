@@ -152,7 +152,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             if (sd.hasRegularCtor(true))
             {
                 error(i.loc, "Cannot use %s initializer syntax for %s `%s` because it has a constructor",
-                    sd.kind(), sd.kind(), sd.toChars());
+                    sd.kind(), sd.kind(), sd.toErrMsg());
                 errorSupplemental(i.loc, "Use `%s( arguments )` instead of `{ initializers }`",
                     sd.toChars());
                 return err();
@@ -199,7 +199,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             return ie.initializerSemantic(sc, t, needInterpret);
         }
         if (t.ty != Terror)
-            error(i.loc, "a struct is not a valid initializer for a `%s`", t.toChars());
+            error(i.loc, "a struct is not a valid initializer for a `%s`", t.toErrMsg());
         return err();
     }
 
@@ -230,7 +230,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 // Bugzilla 13987
                 if (!e)
                 {
-                    error(i.loc, "cannot use array to initialize `%s`", t.toChars());
+                    error(i.loc, "cannot use array to initialize `%s`", t.toErrMsg());
                     return err();
                 }
                 auto ei = new ExpInitializer(e.loc, e);
@@ -246,7 +246,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             return err();
 
         default:
-            error(i.loc, "cannot use array to initialize `%s`", t.toChars());
+            error(i.loc, "cannot use array to initialize `%s`", t.toErrMsg());
             return err();
         }
         i.type = t;
@@ -421,7 +421,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         }
         if (i.exp.op == EXP.type)
         {
-            error(i.exp.loc, "initializer must be an expression, not `%s`", i.exp.toChars());
+            error(i.exp.loc, "initializer must be an expression, not `%s`", i.exp.toErrMsg());
             // If the error location differs from the initializer location, show where it was used
             if (i.exp.loc != i.loc)
                 errorSupplemental(i.loc, "used in initialization here");
@@ -447,7 +447,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         // Make sure all pointers are constants
         if (needInterpret && hasNonConstPointers(i.exp))
         {
-            error(i.exp.loc, "cannot use non-constant CTFE pointer in an initializer `%s`", currExp.toChars());
+            error(i.exp.loc, "cannot use non-constant CTFE pointer in an initializer `%s`", currExp.toErrMsg());
             return err();
         }
         Type ti = i.exp.type.toBasetype();
@@ -619,7 +619,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             const errors = global.startGagging();
             i.exp = i.exp.implicitCastTo(sc, t);
             if (global.endGagging(errors))
-                error(currExp.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`", currExp.toErrMsg(), et.toChars(), t.toChars());
+                error(currExp.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`", currExp.toErrMsg(), et.toErrMsg(), t.toErrMsg());
         }
         }
     L1:
@@ -890,7 +890,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                             }
                             if (!found)
                             {
-                                error(ci.loc, "`.%s` is not a field of `%s`\n", id.toChars(), nstsd.toChars());
+                                error(ci.loc, "`.%s` is not a field of `%s`\n", id.toErrMsg(), nstsd.toErrMsg());
                                 return err();
                             }
 
@@ -966,7 +966,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                             continue Loop1;
                         }
                     }
-                    error(ci.loc, "`.%s` is not a field of `%s`\n", id.toChars(), sd.toChars());
+                    error(ci.loc, "`.%s` is not a field of `%s`\n", id.toErrMsg(), sd.toErrMsg());
                     return err();
                 }
 
@@ -1184,7 +1184,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             /* just convert _Complex = { a, b} to _Complex =. a + b*i */
             if (ci.initializerList[].length != 2)
             {
-                error(ci.loc, "only two initializers required for complex type `%s`", t.toChars());
+                error(ci.loc, "only two initializers required for complex type `%s`", t.toErrMsg());
                 return err();
             }
             auto rexp = ci.initializerList[0].initializer.initializerToExpression();
@@ -1199,7 +1199,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         }
         else
         {
-            error(ci.loc, "unrecognized C initializer `%s` for type `%s`", toChars(ci), t.toChars());
+            error(ci.loc, "unrecognized C initializer `%s` for type `%s`", toChars(ci), t.toErrMsg());
             return err();
         }
     }
@@ -1307,9 +1307,9 @@ Initializer inferType(Initializer init, Scope* sc)
         {
             TemplateInstance ti = se.sds.isTemplateInstance();
             if (ti && ti.semanticRun == PASS.semantic && !ti.aliasdecl)
-                error(se.loc, "cannot infer type from %s `%s`, possible circular dependency", se.sds.kind(), se.toChars());
+                error(se.loc, "cannot infer type from %s `%s`, possible circular dependency", se.sds.kind(), se.toErrMsg());
             else
-                error(se.loc, "cannot infer type from %s `%s`", se.sds.kind(), se.toChars());
+                error(se.loc, "cannot infer type from %s `%s`", se.sds.kind(), se.toErrMsg());
             return new ErrorInitializer();
         }
 
@@ -1323,7 +1323,7 @@ Initializer inferType(Initializer init, Scope* sc)
             }
             if (hasOverloads && !f.isUnique())
             {
-                error(init.exp.loc, "cannot infer type from overloaded function symbol `%s`", init.exp.toChars());
+                error(init.exp.loc, "cannot infer type from overloaded function symbol `%s`", init.exp.toErrMsg());
                 return new ErrorInitializer();
             }
         }
@@ -1331,7 +1331,7 @@ Initializer inferType(Initializer init, Scope* sc)
         {
             if (ae.e1.op == EXP.overloadSet)
             {
-                error(init.exp.loc, "cannot infer type from overloaded function symbol `%s`", init.exp.toChars());
+                error(init.exp.loc, "cannot infer type from overloaded function symbol `%s`", init.exp.toErrMsg());
                 return new ErrorInitializer();
             }
         }
@@ -1716,9 +1716,9 @@ Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* 
             {
                 s = sd.search_correct(id);
                 if (s)
-                    error(nameLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
+                    error(nameLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toErrMsg(), sd.toErrMsg(), s.kind(), s.toErrMsg());
                 else
-                    error(nameLoc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
+                    error(nameLoc, "`%s` is not a member of `%s`", id.toErrMsg(), sd.toErrMsg());
                 return null;
             }
             s.checkDeprecated(iloc, sc);
@@ -1729,7 +1729,7 @@ Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* 
             {
                 if (fieldi >= nfields)
                 {
-                    error(iloc, "`%s.%s` is not a per-instance initializable field", sd.toChars(), s.toChars());
+                    error(iloc, "`%s.%s` is not a per-instance initializable field", sd.toErrMsg(), s.toErrMsg());
                     return null;
                 }
                 if (s == sd.fields[fieldi])
@@ -1738,25 +1738,25 @@ Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* 
         }
         if (nfields == 0)
         {
-            error(argLoc, "initializer provided for struct `%s` with no fields", sd.toChars());
+            error(argLoc, "initializer provided for struct `%s` with no fields", sd.toErrMsg());
             return null;
         }
         if (j >= nfields)
         {
-            error(argLoc, "too many initializers for `%s` with %d field%s", sd.toChars(),
+            error(argLoc, "too many initializers for `%s` with %d field%s", sd.toErrMsg(),
                 cast(int) nfields, nfields != 1 ? "s".ptr : "".ptr);
             return null;
         }
         if (fieldi >= nfields)
         {
-            error(argLoc, "trying to initialize past the last field `%s` of `%s`", sd.fields[nfields - 1].toChars(), sd.toChars());
+            error(argLoc, "trying to initialize past the last field `%s` of `%s`", sd.fields[nfields - 1].toErrMsg(), sd.toErrMsg());
             return null;
         }
 
         VarDeclaration vd = sd.fields[fieldi];
         if (elems[fieldi])
         {
-            error(argLoc, "duplicate initializer for field `%s`", vd.toChars());
+            error(argLoc, "duplicate initializer for field `%s`", vd.toErrMsg());
             errors = true;
             elems[fieldi] = ErrorExp.get(); // for better diagnostics on multiple errors
             ++fieldi;
@@ -1785,7 +1785,7 @@ Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* 
         {
             if (vd.isOverlappedWith(v2) && elems[k])
             {
-                error(elems[k].loc, "overlapping initialization for field `%s` and `%s`", v2.toChars(), vd.toChars());
+                error(elems[k].loc, "overlapping initialization for field `%s` and `%s`", v2.toErrMsg(), vd.toErrMsg());
                 enum errorMsg = "`struct` initializers that contain anonymous unions" ~
                     " must initialize only the first member of a `union`. All subsequent" ~
                     " non-overlapping fields are default initialized";

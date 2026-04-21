@@ -60,7 +60,7 @@ void symbol_print(const ref Symbol s)
 debug
 {
     printf("symbol '%s'\n ", s.Sident.ptr);
-    printf(" Sclass = %s ", class_str(s.Sclass));
+    printf(" Sclass = SC.%s ", class_str(s.Sclass));
     printf(" Ssymnum = %d",cast(int)s.Ssymnum);
     printf(" Sfl = %s", fl_str(cast(FL) s.Sfl));
     printf(" Sseg = %d\n",s.Sseg);
