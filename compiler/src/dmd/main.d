@@ -53,6 +53,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.inline;
 import dmd.link;
+import dmd.lint.engine : runLinter;
 import dmd.location;
 import dmd.mars;
 import dmd.mtype;
