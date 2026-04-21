@@ -63,8 +63,6 @@ char* strupr(char* s)
     return s;
 }
 
-private __gshared OutBuffer* fobjbuf;
-
 enum DEST_LEN = (IDMAX + IDOHD + 1);
 
 
@@ -75,74 +73,68 @@ enum DEST_LEN = (IDMAX + IDOHD + 1);
 
 __gshared private
 {
+    OutBuffer* fobjbuf;		    // contents of object file
 
-// String Table  - String table for all other names
-    OutBuffer* string_table;
+    OutBuffer* string_table;	    // string table for all other names
+    public OutBuffer  *ScnhdrBuf;   // buffer to put section headers in
 
-// Section Headers
-    public OutBuffer  *ScnhdrBuf;             // Buffer to build section table in
+    int scnhdr_cnt;                 // number of sections in table
 
-// The -1 is because it is 1 based indexing
-    @trusted
-IMAGE_SECTION_HEADER* ScnhdrTab() { return cast(IMAGE_SECTION_HEADER*)ScnhdrBuf.buf - 1; }
+    OutBuffer* symbuf;		    // the symbol table
 
-    int scnhdr_cnt;          // Number of sections in table
-    enum SCNHDR_TAB_INITSIZE = 16;  // Initial number of sections in buffer
-    enum SCNHDR_TAB_INC = 4;        // Number of sections to increment buffer by
-
-    enum SYM_TAB_INIT = 100;        // Initial number of symbol entries in buffer
-    enum SYM_TAB_INC  = 50;         // Number of symbols to increment buffer by
-
-// The symbol table
-    OutBuffer* symbuf;
-
-    OutBuffer* syment_buf;   // array of struct syment
+    OutBuffer* syment_buf;          // array of struct syment
 
     segidx_t segidx_drectve = UNKNOWN;         // contents of ".drectve" section
     segidx_t segidx_debugS = UNKNOWN;
     segidx_t segidx_xdata = UNKNOWN;
     segidx_t segidx_pdata = UNKNOWN;
 
-    int jumpTableSeg;     // segment index for __jump_table
+    int jumpTableSeg;               // segment index for __jump_table
 
-    OutBuffer* indirectsymbuf2;      // indirect symbol table of Symbol*'s
-    int pointersSeg;      // segment index for __pointers
+    OutBuffer* indirectsymbuf2;     // indirect symbol table of Symbol*'s
+    int pointersSeg;                // segment index for __pointers
 
-    OutBuffer* ptrref_buf;           // buffer for pointer references
-    OutBuffer* impref_buf;           // buffer for import table references
-    OutBuffer* mangle_buf;           // buffer for name mangling
+    OutBuffer* ptrref_buf;          // buffer for pointer references
+    OutBuffer* impref_buf;          // buffer for import table references
+    OutBuffer* mangle_buf;          // buffer for name mangling
 
     int floatused;
 
-/* If an MsCoffObj_external_def() happens, set this to the string index,
- * to be added last to the symbol table.
- * Obviously, there can be only one.
- */
+    /* If an MsCoffObj_external_def() happens, set this to the string index,
+     * to be added last to the symbol table.
+     * Obviously, there can be only one.
+     */
     IDXSTR extdef;
 
-// Each compiler segment is a section
-// Predefined compiler segments CODE,DATA,CDATA,UDATA map to indexes
-//      into SegData[]
-//      New compiler segments are added to end.
+    // Each compiler segment is a section
+    // Predefined compiler segments CODE,DATA,CDATA,UDATA map to indexes
+    //      into SegData[]
+    //      New compiler segments are added to end.
 
-public:
+    segidx_t seg_tlsseg = UNKNOWN;
+    segidx_t seg_tlsseg_bss = UNKNOWN;
+}
+
+enum SCNHDR_TAB_INITSIZE = 16;  // initial number of sections in buffer
+enum SCNHDR_TAB_INC = 4;        // number of sections to increment buffer by
+
+enum SYM_TAB_INIT = 100;        // initial number of symbol entries in buffer
+enum SYM_TAB_INC  = 50;         // number of symbols to increment buffer by
 
 /******************************
  * Returns !=0 if this segment is a code segment.
  */
 
-@trusted
+public @trusted
 int mscoff_seg_data_isCode(const ref seg_data sd)
 {
     return (ScnhdrTab[sd.SDshtidx].Characteristics & IMAGE_SCN_CNT_CODE) != 0;
 }
 
+// The -1 is because it is 1 based indexing
+private @trusted
+IMAGE_SECTION_HEADER* ScnhdrTab() { return cast(IMAGE_SECTION_HEADER*)ScnhdrBuf.buf - 1; }
 
-
-private segidx_t seg_tlsseg = UNKNOWN;
-private segidx_t seg_tlsseg_bss = UNKNOWN;
-
-}
 
 /*******************************************************
  * Because the mscoff relocations cannot be computed until after
