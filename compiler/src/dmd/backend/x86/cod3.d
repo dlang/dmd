@@ -4949,7 +4949,7 @@ void epilog(block* b)
         regm_t retregs = 0;
         if (b.bc == BC.retexp)
             retregs = regmask(b.Belem.Ety, tym);
-        nteh_monitor_epilog(cdbx,retregs);
+        nteh_monitor_epilog(cgstate,cdbx,retregs);
         xlocalsize += 8;
     }
 
