@@ -73,7 +73,6 @@ import dmd.target;
 import dmd.timetrace;
 import dmd.utils;
 import dmd.vsoptions;
-import dmd.lint.engine : runLinter;
 
 /**
  * DMD's entry point, C main.
@@ -693,6 +692,10 @@ private int tryMain(const(char)[][] argv, out Param params)
     scope (exit) timeTraceEndEvent(TimeTraceEventType.inlineGeneral);
 
     runLinter(modules[]);
+
+    {
+    timeTraceBeginEvent(TimeTraceEventType.inlineGeneral);
+    scope (exit) timeTraceEndEvent(TimeTraceEventType.inlineGeneral);
 
     // Scan for modules with always inline functions
     foreach (m; modules)
