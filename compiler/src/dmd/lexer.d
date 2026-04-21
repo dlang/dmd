@@ -1953,9 +1953,16 @@ class Lexer
                 {
                     const length = p - 1 - pstart;
                     if (supportInterpolation)
-                        result.appendInterpolatedPart(pstart[0 .. length]);
+                    {
+                        normalizeCRLF(pstart[0 .. length]);
+                        result.appendInterpolatedPart(stringbuffer[]);
+                    }
                     else
-                        result.setString(pstart[0 .. length]);
+                    {
+                        normalizeCRLF(pstart[0 .. length]);
+                        result.setString(stringbuffer[]);
+                    }
+
                     stringPostfix(result);
                     return;
                 }
@@ -1964,8 +1971,7 @@ class Lexer
                 if (!supportInterpolation)
                     goto default;
 
-                stringbuffer.setsize(0);
-                stringbuffer.write(pstart, p - 1 - pstart);
+                normalizeCRLF(pstart[0 .. p - 1 - pstart]);
                 if (!handleInterpolatedSegment(result, start))
                     goto default;
 
@@ -1981,6 +1987,23 @@ class Lexer
             default:
                 continue;
             }
+        }
+    }
+
+    // Normalize CRLF to LF in raw source bytes and write into stringbuffer
+    private void normalizeCRLF(const(char)[] src)
+    {
+        stringbuffer.setsize(0);
+        foreach (i, char c; src)
+        {
+            if (c == '\r')
+            {
+                if (i + 1 < src.length && src[i + 1] == '\n')
+                    continue;
+                stringbuffer.writeByte('\n');
+            }
+            else
+                stringbuffer.writeByte(c);
         }
     }
 

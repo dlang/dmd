@@ -1,0 +1,10 @@
+Token strings now normalize `\r\n` to `\n`
+
+Token strings (`q{...}`) now normalize carriage return + line feed sequences to
+a single line feed, consistent with other string literal types.
+
+```d
+const string s = q{a
+b}; // file saved with CRLF line endings
+static assert(s == "a\nb");
+```
