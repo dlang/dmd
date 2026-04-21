@@ -71,7 +71,7 @@ enum DEST_LEN = (IDMAX + IDOHD + 1);
 
 // The object file is built in several separate pieces
 
-__gshared private
+struct MscoffObj
 {
     OutBuffer* fobjbuf;             // contents of object file
 
@@ -115,6 +115,8 @@ __gshared private
     segidx_t seg_tlsseg_bss = UNKNOWN;
 }
 
+__gshared MscoffObj mscoffobj;
+
 enum SCNHDR_TAB_INITSIZE = 16;  // initial number of sections in buffer
 enum SCNHDR_TAB_INC = 4;        // number of sections to increment buffer by
 
@@ -133,7 +135,7 @@ int mscoff_seg_data_isCode(const ref seg_data sd)
 
 // The -1 is because it is 1 based indexing
 private @trusted
-IMAGE_SECTION_HEADER* ScnhdrTab() { return cast(IMAGE_SECTION_HEADER*)ScnhdrBuf.buf - 1; }
+IMAGE_SECTION_HEADER* ScnhdrTab() { return cast(IMAGE_SECTION_HEADER*)mscoffobj.ScnhdrBuf.buf - 1; }
 
 
 /*******************************************************
@@ -251,69 +253,69 @@ Obj MsCoffObj_init(OutBuffer* objbuf, const(char)* filename, const(char)* csegna
     Obj obj = cast(Obj)mem_calloc(__traits(classInstanceSize, Obj));
 
     cseg = CODE;
-    fobjbuf = objbuf;
+    mscoffobj.fobjbuf = objbuf;
     assert(objbuf.length() == 0);
 
-    floatused = 0;
+    mscoffobj.floatused = 0;
 
-    segidx_drectve = UNKNOWN;
-    seg_tlsseg = UNKNOWN;
-    seg_tlsseg_bss = UNKNOWN;
+    mscoffobj.segidx_drectve = UNKNOWN;
+    mscoffobj.seg_tlsseg = UNKNOWN;
+    mscoffobj.seg_tlsseg_bss = UNKNOWN;
 
-    segidx_pdata = UNKNOWN;
-    segidx_xdata = UNKNOWN;
-    segidx_debugS = UNKNOWN;
+    mscoffobj.segidx_pdata = UNKNOWN;
+    mscoffobj.segidx_xdata = UNKNOWN;
+    mscoffobj.segidx_debugS = UNKNOWN;
 
     // Initialize buffers
 
-    if (!string_table)
+    if (!mscoffobj.string_table)
     {
-        string_table = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        if (!string_table)
+        mscoffobj.string_table = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+        if (!mscoffobj.string_table)
             err_nomem();
-        string_table.reserve(2048);
+        mscoffobj.string_table.reserve(2048);
     }
-    string_table.reset();
-    string_table.write32(4);           // first 4 bytes are length of string table
+    mscoffobj.string_table.reset();
+    mscoffobj.string_table.write32(4);           // first 4 bytes are length of string table
 
-    if (symbuf)
+    if (mscoffobj.symbuf)
     {
-        Symbol** p = cast(Symbol**)symbuf.buf;
-        const size_t n = symbuf.length() / (Symbol*).sizeof;
+        Symbol** p = cast(Symbol**)mscoffobj.symbuf.buf;
+        const size_t n = mscoffobj.symbuf.length() / (Symbol*).sizeof;
         for (size_t i = 0; i < n; ++i)
             symbol_reset(*p[i]);
-        symbuf.reset();
+        mscoffobj.symbuf.reset();
     }
     else
     {
-        symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        if (!symbuf)
+        mscoffobj.symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+        if (!mscoffobj.symbuf)
             err_nomem();
-        symbuf.reserve((Symbol*).sizeof * SYM_TAB_INIT);
+        mscoffobj.symbuf.reserve((Symbol*).sizeof * SYM_TAB_INIT);
     }
 
-    if (!syment_buf)
+    if (!mscoffobj.syment_buf)
     {
-        syment_buf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        if (!syment_buf)
+        mscoffobj.syment_buf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+        if (!mscoffobj.syment_buf)
             err_nomem();
-        syment_buf.reserve(SymbolTable32.sizeof * SYM_TAB_INIT);
+        mscoffobj.syment_buf.reserve(SymbolTable32.sizeof * SYM_TAB_INIT);
     }
-    syment_buf.reset();
+    mscoffobj.syment_buf.reset();
 
-    extdef = 0;
-    pointersSeg = 0;
+    mscoffobj.extdef = 0;
+    mscoffobj.pointersSeg = 0;
 
     // Initialize segments for CODE, DATA, UDATA and CDATA
-    if (!ScnhdrBuf)
+    if (!mscoffobj.ScnhdrBuf)
     {
-        ScnhdrBuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        if (!ScnhdrBuf)
+        mscoffobj.ScnhdrBuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+        if (!mscoffobj.ScnhdrBuf)
             err_nomem();
-        ScnhdrBuf.reserve(SCNHDR_TAB_INITSIZE * (IMAGE_SECTION_HEADER).sizeof);
+        mscoffobj.ScnhdrBuf.reserve(SCNHDR_TAB_INITSIZE * (IMAGE_SECTION_HEADER).sizeof);
     }
-    ScnhdrBuf.reset();
-    scnhdr_cnt = 0;
+    mscoffobj.ScnhdrBuf.reset();
+    mscoffobj.scnhdr_cnt = 0;
 
     /* Define sections. Although the order should not matter, we duplicate
      * the same order VC puts out just to avoid trouble.
@@ -392,14 +394,14 @@ void MsCoffObj_initfile(const(char)* filename, const(char)* csegname, const(char
 private
 int32_t* MsCoffObj_patchAddr(int seg, targ_size_t offset)
 {
-    return cast(int32_t*)(fobjbuf.buf + ScnhdrTab[SegData[seg].SDshtidx].PointerToRawData + offset);
+    return cast(int32_t*)(mscoffobj.fobjbuf.buf + ScnhdrTab[SegData[seg].SDshtidx].PointerToRawData + offset);
 }
 
 @trusted
 private
 int32_t* MsCoffObj_patchAddr64(int seg, targ_size_t offset)
 {
-    return cast(int32_t*)(fobjbuf.buf + ScnhdrTab[SegData[seg].SDshtidx].PointerToRawData + offset);
+    return cast(int32_t*)(mscoffobj.fobjbuf.buf + ScnhdrTab[SegData[seg].SDshtidx].PointerToRawData + offset);
 }
 
 private
@@ -411,7 +413,7 @@ void patch(seg_data* pseg, targ_size_t offset, int seg, targ_size_t value)
     //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", cast(uint)offset, seg, value);
     if (I64)
     {
-        int32_t* p = cast(int32_t*)(fobjbuf.buf + ScnhdrTab[pseg.SDshtidx].PointerToRawData  + offset);
+        int32_t* p = cast(int32_t*)(mscoffobj.fobjbuf.buf + ScnhdrTab[pseg.SDshtidx].PointerToRawData  + offset);
 
 static if (0)
         printf("\taddr1 = x%llx\n\taddr2 = x%llx\n\t*p = x%llx\n\tdelta = x%llx\n",
@@ -426,7 +428,7 @@ static if (0)
     }
     else
     {
-        int32_t* p = cast(int32_t*)(fobjbuf.buf + ScnhdrTab[pseg.SDshtidx].PointerToRawData + offset);
+        int32_t* p = cast(int32_t*)(mscoffobj.fobjbuf.buf + ScnhdrTab[pseg.SDshtidx].PointerToRawData + offset);
 
 static if (0)
         printf("\taddr1 = x%x\n\taddr2 = x%x\n\t*p = x%x\n\tdelta = x%x\n",
@@ -444,7 +446,7 @@ static if (0)
 
 /*********************************
  * Build syment[], the array of symbols.
- * Store them in syment_buf.
+ * Store them in mscoffobj.syment_buf.
  */
 
 @trusted
@@ -466,7 +468,7 @@ private void syment_set_name(SymbolTable32* sym, const(char)* name)
             len = buf.length;
             name = buf.peekChars();
         }
-        IDXSTR idx = MsCoffObj_addstr(string_table, name[0 .. len]);
+        IDXSTR idx = MsCoffObj_addstr(mscoffobj.string_table, name[0 .. len]);
         sym.Zeros = 0;
         sym.Offset = idx;
     }
@@ -483,15 +485,15 @@ void write_sym(SymbolTable32* sym, bool bigobj)
     assert((*sym).sizeof == 20);
     if (bigobj)
     {
-        syment_buf.write(sym[0 .. 1]);
+        mscoffobj.syment_buf.write(sym[0 .. 1]);
     }
     else
     {
         // the only difference between SymbolTable32 and SymbolTable
         // is that field SectionNumber is long instead of short
         uint scoff = cast(uint)(cast(char*)&sym.SectionNumber - cast(char*)sym);
-        syment_buf.write(sym, scoff + 2);
-        syment_buf.write(cast(char*)sym + scoff + 4, cast(uint)((*sym).sizeof - scoff - 4));
+        mscoffobj.syment_buf.write(sym, scoff + 2);
+        mscoffobj.syment_buf.write(cast(char*)sym + scoff + 4, cast(uint)((*sym).sizeof - scoff - 4));
     }
 }
 @trusted
@@ -544,29 +546,29 @@ void build_syment_table(bool bigobj)
 
 //        memset(&aux.x_section.Zeros, 0, 2);
 
-        syment_buf.write(&aux, symsize);
+        mscoffobj.syment_buf.write(&aux, symsize);
 
         assert((aux).sizeof == 18);
     }
 
     // allocate reusable buffer that lasts for the life of the compile
-    if (!mangle_buf)
+    if (!mscoffobj.mangle_buf)
     {
-        mangle_buf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        if (!mangle_buf)
+        mscoffobj.mangle_buf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+        if (!mscoffobj.mangle_buf)
             err_nomem();
     }
-    OutBuffer* buf = mangle_buf;  // local pointer for faster access
+    OutBuffer* buf = mscoffobj.mangle_buf;  // local pointer for faster access
     buf.reserve(DEST_LEN + 1);    // pre-allocate some space
 
     /* Add symbols from symbuf[]
      */
 
     int n = cast(int)SegData.length;
-    size_t dim = symbuf.length() / (Symbol*).sizeof;
+    size_t dim = mscoffobj.symbuf.length() / (Symbol*).sizeof;
     foreach (i; 0 .. dim)
-    {   Symbol* s = (cast(Symbol**)symbuf.buf)[i];
-        s.Sxtrnnum = cast(uint)(syment_buf.length() / symsize);
+    {   Symbol* s = (cast(Symbol**)mscoffobj.symbuf.buf)[i];
+        s.Sxtrnnum = cast(uint)(mscoffobj.syment_buf.length() / symsize);
         n++;
 
         SymbolTable32 sym;
@@ -633,7 +635,7 @@ void MsCoffObj_termfile()
 void MsCoffObj_term(const(char)[] objfilename)
 {
     //printf("MsCoffObj_term()\n");
-    assert(fobjbuf.length() == 0);
+    assert(mscoffobj.fobjbuf.length() == 0);
 
     objflush_pointerRefs();
     outfixlist();           // backpatches
@@ -648,7 +650,7 @@ void MsCoffObj_term(const(char)[] objfilename)
     // switch to new object file format (similar to C++ with /bigobj)
     // only when exceeding the limit for 16-bit section count according to
     // https://msdn.microsoft.com/en-us/library/8578y171%28v=vs.71%29.aspx
-    bool bigobj = scnhdr_cnt > 65_279;
+    bool bigobj = mscoffobj.scnhdr_cnt > 65_279;
     build_syment_table(bigobj);
 
     /* Write out the object file in the following order:
@@ -696,7 +698,7 @@ void MsCoffObj_term(const(char)[] objfilename)
         header.Sig2 = 0xFFFF;
         header.Version = 2;
         header.Machine = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
-        header.NumberOfSections = scnhdr_cnt;
+        header.NumberOfSections = mscoffobj.scnhdr_cnt;
         header.TimeDateStamp = deterministicTimestamp;
         static immutable ubyte[16] uuid =
                                   [ '\xc7', '\xa1', '\xba', '\xd1', '\xee', '\xba', '\xa9', '\x4b',
@@ -704,29 +706,29 @@ void MsCoffObj_term(const(char)[] objfilename)
         memcpy(header.UUID.ptr, uuid.ptr, 16);
         memset(header.unused.ptr, 0, (header.unused).sizeof);
         foffset = (header).sizeof;       // start after header
-        foffset += ScnhdrBuf.length();   // section headers
+        foffset += mscoffobj.ScnhdrBuf.length();   // section headers
         header.PointerToSymbolTable = foffset;      // offset to symbol table
         symtable_offset = foffset;
-        header.NumberOfSymbols = cast(uint)(syment_buf.length() / (SymbolTable32).sizeof);
+        header.NumberOfSymbols = cast(uint)(mscoffobj.syment_buf.length() / (SymbolTable32).sizeof);
         foffset += header.NumberOfSymbols * (SymbolTable32).sizeof;  // symbol table
     }
     else
     {
         header_old.Machine = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
-        header_old.NumberOfSections = cast(ushort)scnhdr_cnt;
+        header_old.NumberOfSections = cast(ushort)mscoffobj.scnhdr_cnt;
         header_old.TimeDateStamp = deterministicTimestamp;
         header_old.SizeOfOptionalHeader = 0;
         header_old.Characteristics = 0;
         foffset = (header_old).sizeof;   // start after header
-        foffset += ScnhdrBuf.length();   // section headers
+        foffset += mscoffobj.ScnhdrBuf.length();   // section headers
         header_old.PointerToSymbolTable = foffset;  // offset to symbol table
         symtable_offset = foffset;
-        header_old.NumberOfSymbols = cast(uint)(syment_buf.length() / (SymbolTable).sizeof);
+        header_old.NumberOfSymbols = cast(uint)(mscoffobj.syment_buf.length() / (SymbolTable).sizeof);
         foffset += header_old.NumberOfSymbols * (SymbolTable).sizeof;  // symbol table
     }
 
     uint string_table_offset = foffset;
-    foffset += string_table.length();            // string table
+    foffset += mscoffobj.string_table.length();            // string table
 
     // Compute file offsets of all the section data
 
@@ -778,34 +780,34 @@ void MsCoffObj_term(const(char)[] objfilename)
         }
     }
 
-    assert(fobjbuf.length() == 0);
+    assert(mscoffobj.fobjbuf.length() == 0);
 
     // Write the header
     if (bigobj)
     {
-        fobjbuf.write((&header)[0 .. 1]);
+        mscoffobj.fobjbuf.write((&header)[0 .. 1]);
         foffset = (header).sizeof;
     }
     else
     {
-        fobjbuf.write((&header_old)[0 .. 1]);
+        mscoffobj.fobjbuf.write((&header_old)[0 .. 1]);
         foffset = (header_old).sizeof;
     }
 
     // Write the section headers
-    fobjbuf.write((*ScnhdrBuf)[]);
-    foffset += ScnhdrBuf.length();
+    mscoffobj.fobjbuf.write((*mscoffobj.ScnhdrBuf)[]);
+    foffset += mscoffobj.ScnhdrBuf.length();
 
     // Write the symbol table
     assert(foffset == symtable_offset);
-    fobjbuf.write((*syment_buf)[]);
-    foffset += syment_buf.length();
+    mscoffobj.fobjbuf.write((*mscoffobj.syment_buf)[]);
+    foffset += mscoffobj.syment_buf.length();
 
     // Write the string table
     assert(foffset == string_table_offset);
-    *cast(uint*)(string_table.buf) = cast(uint)string_table.length();
-    fobjbuf.write((*string_table)[]);
-    foffset += string_table.length();
+    *cast(uint*)(mscoffobj.string_table.buf) = cast(uint)mscoffobj.string_table.length();
+    mscoffobj.fobjbuf.write((*mscoffobj.string_table)[]);
+    foffset += mscoffobj.string_table.length();
 
     // Write the section data
     for (segidx_t seg = 1; seg < SegData.length; seg++)
@@ -818,7 +820,7 @@ void MsCoffObj_term(const(char)[] objfilename)
             //printf("seg = %2d SDshtidx = %2d psechdr = %p s_scnptr = x%x, foffset = x%x\n", seg, pseg.SDshtidx, psechdr, cast(uint)psechdr.s_scnptr, cast(uint)foffset);
             assert(pseg.SDbuf.length() == psechdr.SizeOfRawData);
             assert(foffset == psechdr.PointerToRawData);
-            fobjbuf.write((*pseg.SDbuf)[]);
+            mscoffobj.fobjbuf.write((*pseg.SDbuf)[]);
             foffset += pseg.SDbuf.length();
         }
     }
@@ -845,7 +847,7 @@ void MsCoffObj_term(const(char)[] objfilename)
             if (psechdr.Characteristics & IMAGE_SCN_LNK_NRELOC_OVFL)
             {
                 auto rel = reloc(cast(uint)(sz / Relocation.sizeof) + 1);
-                fobjbuf.write((&rel)[0 .. 1]);
+                mscoffobj.fobjbuf.write((&rel)[0 .. 1]);
                 foffset += rel.sizeof;
             }
             for (; r != rend; r++)
@@ -988,7 +990,7 @@ void MsCoffObj_term(const(char)[] objfilename)
                 //assert(rel.r_symndx <= 20000);
 
                 assert(rel.r_type <= 0x14);
-                fobjbuf.write((&rel)[0 .. 1]);
+                mscoffobj.fobjbuf.write((&rel)[0 .. 1]);
                 foffset += (rel).sizeof;
             }
         }
@@ -1225,7 +1227,7 @@ private void emitSectionBrace(const(char)* segname, const(char)* symname, int at
     Symbol* beg = symbol_name(name[0 .. strlen(name.ptr)], SC.global, tspvoid);
     beg.Sseg = seg_bg;
     beg.Soffset = 0;
-    symbuf.write((&beg)[0 .. 1]);
+    mscoffobj.symbuf.write((&beg)[0 .. 1]);
     if (coffZeroBytes) // unnecessary, but required by current runtime
         MsCoffObj_bytes(seg_bg, 0, I64 ? 8 : 4, null);
 
@@ -1235,7 +1237,7 @@ private void emitSectionBrace(const(char)* segname, const(char)* symname, int at
     Symbol* end = symbol_name(name[0 .. strlen(name.ptr)], SC.global, tspvoid);
     end.Sseg = seg_en;
     end.Soffset = 0;
-    symbuf.write((&end)[0 .. 1]);
+    mscoffobj.symbuf.write((&end)[0 .. 1]);
     if (coffZeroBytes) // unnecessary, but required by current runtime
         MsCoffObj_bytes(seg_en, 0, I64 ? 8 : 4, null);
 
@@ -1285,7 +1287,7 @@ static if (0)
     Symbol* minfo_beg = symbol_name("_tlsstart", SC.global, tspvoid);
     minfo_beg.Sseg = segbg;
     minfo_beg.Soffset = 0;
-    symbuf.write((&minfo_beg)[0 .. 1]);
+    mscoffobj.symbuf.write((&minfo_beg)[0 .. 1]);
     MsCoffObj_bytes(segbg, 0, I64 ? 8 : 4, null);
 
     /* Create symbol _minfo_end that sits just after the .tls$AAB section
@@ -1293,7 +1295,7 @@ static if (0)
     Symbol* minfo_end = symbol_name("_tlsend", SC.global, tspvoid);
     minfo_end.Sseg = segen;
     minfo_end.Soffset = 0;
-    symbuf.write((&minfo_end)[0 .. 1]);
+    mscoffobj.symbuf.write((&minfo_end)[0 .. 1]);
     MsCoffObj_bytes(segen, 0, I64 ? 8 : 4, null);
   }
 }
@@ -1510,14 +1512,14 @@ IDXSEC MsCoffObj_addScnhdr(const(char)* scnhdr_name, uint flags)
     size_t len = strlen(scnhdr_name);
     if (len > 8)
     {   // Use /nnnn form
-        IDXSTR idx = MsCoffObj_addstr(string_table, scnhdr_name[0 .. len]);
+        IDXSTR idx = MsCoffObj_addstr(mscoffobj.string_table, scnhdr_name[0 .. len]);
         snprintf(cast(char*)sec.Name, IMAGE_SIZEOF_SHORT_NAME, "/%d", idx);
     }
     else
         memcpy(sec.Name.ptr, scnhdr_name, len);
     sec.Characteristics = flags;
-    ScnhdrBuf.write(cast(void*)&sec, (sec).sizeof);
-    return ++scnhdr_cnt;
+    mscoffobj.ScnhdrBuf.write(cast(void*)&sec, (sec).sizeof);
+    return ++mscoffobj.scnhdr_cnt;
 }
 
 /********************************
@@ -1542,7 +1544,7 @@ int MsCoffObj_codeseg(const char* name,int suffix)
 /*********************************
  * Define segments for Thread Local Storage.
  * Output:
- *      seg_tlsseg      set to segment number for TLS segment.
+ *      mscoffobj.seg_tlsseg      set to segment number for TLS segment.
  * Returns:
  *      segment for TLS segment
  */
@@ -1552,22 +1554,22 @@ seg_data* MsCoffObj_tlsseg()
 {
     //printf("MsCoffObj_tlsseg\n");
 
-    if (seg_tlsseg == UNKNOWN)
+    if (mscoffobj.seg_tlsseg == UNKNOWN)
     {
-        seg_tlsseg = MsCoffObj_getsegment(".tls$AAB", IMAGE_SCN_CNT_INITIALIZED_DATA |
+        mscoffobj.seg_tlsseg = MsCoffObj_getsegment(".tls$AAB", IMAGE_SCN_CNT_INITIALIZED_DATA |
                                               IMAGE_SCN_LNK_COMDAT |
                                               IMAGE_SCN_ALIGN_16BYTES |
                                               IMAGE_SCN_MEM_READ |
                                               IMAGE_SCN_MEM_WRITE);
     }
-    return SegData[seg_tlsseg];
+    return SegData[mscoffobj.seg_tlsseg];
 }
 
 
 /*********************************
  * Define segments for Thread Local Storage.
  * Output:
- *      seg_tlsseg_bss  set to segment number for TLS segment.
+ *      mscoffobj.seg_tlsseg_bss  set to segment number for TLS segment.
  * Returns:
  *      segment for TLS segment
  */
@@ -1592,25 +1594,25 @@ seg_data* MsCoffObj_tlsseg_data()
 @trusted
 segidx_t MsCoffObj_seg_pdata()
 {
-    if (segidx_pdata == UNKNOWN)
+    if (mscoffobj.segidx_pdata == UNKNOWN)
     {
-        segidx_pdata = MsCoffObj_getsegment(".pdata", IMAGE_SCN_CNT_INITIALIZED_DATA |
+        mscoffobj.segidx_pdata = MsCoffObj_getsegment(".pdata", IMAGE_SCN_CNT_INITIALIZED_DATA |
                                           IMAGE_SCN_ALIGN_4BYTES |
                                           IMAGE_SCN_MEM_READ);
     }
-    return segidx_pdata;
+    return mscoffobj.segidx_pdata;
 }
 
 @trusted
 segidx_t MsCoffObj_seg_xdata()
 {
-    if (segidx_xdata == UNKNOWN)
+    if (mscoffobj.segidx_xdata == UNKNOWN)
     {
-        segidx_xdata = MsCoffObj_getsegment(".xdata", IMAGE_SCN_CNT_INITIALIZED_DATA |
+        mscoffobj.segidx_xdata = MsCoffObj_getsegment(".xdata", IMAGE_SCN_CNT_INITIALIZED_DATA |
                                           IMAGE_SCN_ALIGN_4BYTES |
                                           IMAGE_SCN_MEM_READ);
     }
-    return segidx_xdata;
+    return mscoffobj.segidx_xdata;
 }
 
 @trusted
@@ -1638,14 +1640,14 @@ segidx_t MsCoffObj_seg_xdata_comdat(Symbol* sfunc)
 @trusted
 segidx_t MsCoffObj_seg_debugS()
 {
-    if (segidx_debugS == UNKNOWN)
+    if (mscoffobj.segidx_debugS == UNKNOWN)
     {
-        segidx_debugS = MsCoffObj_getsegment(".debug$S", IMAGE_SCN_CNT_INITIALIZED_DATA |
+        mscoffobj.segidx_debugS = MsCoffObj_getsegment(".debug$S", IMAGE_SCN_CNT_INITIALIZED_DATA |
                                           IMAGE_SCN_ALIGN_1BYTES |
                                           IMAGE_SCN_MEM_READ |
                                           IMAGE_SCN_MEM_DISCARDABLE);
     }
-    return segidx_debugS;
+    return mscoffobj.segidx_debugS;
 }
 
 
@@ -1674,13 +1676,13 @@ segidx_t MsCoffObj_seg_debugT()
 @trusted
 segidx_t MsCoffObj_seg_drectve()
 {
-    if (segidx_drectve == UNKNOWN)
+    if (mscoffobj.segidx_drectve == UNKNOWN)
     {
-        segidx_drectve = MsCoffObj_getsegment(".drectve", IMAGE_SCN_LNK_INFO |
+        mscoffobj.segidx_drectve = MsCoffObj_getsegment(".drectve", IMAGE_SCN_LNK_INFO |
                                           IMAGE_SCN_ALIGN_1BYTES |
                                           IMAGE_SCN_LNK_REMOVE);        // linker commands
     }
-    return segidx_drectve;
+    return mscoffobj.segidx_drectve;
 }
 
 
@@ -1889,17 +1891,17 @@ void MsCoffObj_pubdef(segidx_t seg, Symbol* s, targ_size_t offset)
     {
         case SC.global:
         case SC.inline:
-            symbuf.write((&s)[0 .. 1]);
+            mscoffobj.symbuf.write((&s)[0 .. 1]);
             break;
         case SC.comdat:
         case SC.comdef:
-            symbuf.write((&s)[0 .. 1]);
+            mscoffobj.symbuf.write((&s)[0 .. 1]);
             break;
         default:
-            symbuf.write((&s)[0 .. 1]);
+            mscoffobj.symbuf.write((&s)[0 .. 1]);
             break;
     }
-    //printf("%p\n", *cast(void**)symbuf.buf);
+    //printf("%p\n", *cast(void**)mscoffobj.symbuf.buf);
     s.Sxtrnnum = 1;
 }
 
@@ -1924,7 +1926,7 @@ int MsCoffObj_external_def(const(char)* name)
     //printf("MsCoffObj_external_def('%s')\n",name);
     assert(name);
     Symbol* s = symbol_name(name[0 .. strlen(name)], SC.extern_, tspvoid);
-    symbuf.write((&s)[0 .. 1]);
+    mscoffobj.symbuf.write((&s)[0 .. 1]);
     return 0;
 }
 
@@ -1944,7 +1946,7 @@ int MsCoffObj_external(Symbol* s)
 {
     //printf("MsCoffObj_external('%s') %x\n",s.Sident.ptr,s.Svalue);
     symbol_debug(s);
-    symbuf.write((&s)[0 .. 1]);
+    mscoffobj.symbuf.write((&s)[0 .. 1]);
     s.Sxtrnnum = 1;
     return 1;
 }
@@ -2123,7 +2125,7 @@ void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, Symbol* targsym,
         targsym = symbol_generate(SC.static_, tstypes[TYint]);
         targsym.Sseg = targseg;
         targsym.Soffset = val;
-        symbuf.write((&targsym)[0 .. 1]);
+        mscoffobj.symbuf.write((&targsym)[0 .. 1]);
     }
 
     Relocation rel = void;
@@ -2304,9 +2306,9 @@ static if (0)
         {
             if (SegData[seg].isCode() && flags & CFselfrel)
             {
-                seg_data* pseg = SegData[jumpTableSeg];
+                seg_data* pseg = SegData[mscoffobj.jumpTableSeg];
                 val -= offset + 4;
-                MsCoffObj_addrel(seg, offset, null, jumpTableSeg, RELrel, 0);
+                MsCoffObj_addrel(seg, offset, null, mscoffobj.jumpTableSeg, RELrel, 0);
             }
             else if (SegData[seg].isCode() &&
                     ((s.Sclass != SC.extern_ && SegData[s.Sseg].isCode()) || s.Sclass == SC.locstat ||
@@ -2317,18 +2319,18 @@ static if (0)
             }
             else if (SegData[seg].isCode() && !tyfunc(s.ty()))
             {
-                seg_data* pseg = SegData[pointersSeg];
+                seg_data* pseg = SegData[mscoffobj.pointersSeg];
 
-                if (!indirectsymbuf2)
+                if (!mscoffobj.indirectsymbuf2)
                 {
-                    indirectsymbuf2 = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-                    if (!indirectsymbuf2)
+                    mscoffobj.indirectsymbuf2 = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+                    if (!mscoffobj.indirectsymbuf2)
                         err_nomem();
                 }
                 else
                 {   // Look through indirectsym to see if it is already there
-                    int n = cast(int)(indirectsymbuf2.length() / (Symbol*).sizeof);
-                    Symbol** psym = cast(Symbol**)indirectsymbuf2.buf;
+                    int n = cast(int)(mscoffobj.indirectsymbuf2.length() / (Symbol*).sizeof);
+                    Symbol** psym = cast(Symbol**)mscoffobj.indirectsymbuf2.buf;
                     for (int i = 0; i < n; i++)
                     {   // Linear search, pretty pathetic
                         if (s == psym[i])
@@ -2342,11 +2344,11 @@ static if (0)
                 pseg.SDbuf.writezeros(_tysize[TYnptr]);
 
                 // Add symbol s to indirectsymbuf2
-                indirectsymbuf2.write((&s)[0 .. 1]);
+                mscoffobj.indirectsymbuf2.write((&s)[0 .. 1]);
 
              L2:
-                //printf("MsCoffObj_reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, offset, s.Sident.ptr, val, pointersSeg);
-                MsCoffObj_addrel(seg, offset, null, pointersSeg, RELaddr, 0);
+                //printf("MsCoffObj_reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, offset, s.Sident.ptr, val, mscoffobj.pointersSeg);
+                MsCoffObj_addrel(seg, offset, null, mscoffobj.pointersSeg, RELaddr, 0);
             }
             else
             {   //val -= s.Soffset;
@@ -2398,10 +2400,10 @@ void MsCoffObj_fltused()
     /* Otherwise, we'll get the dreaded
      *    "runtime error R6002 - floating point support not loaded"
      */
-    if (!floatused)
+    if (!mscoffobj.floatused)
     {
         MsCoffObj_external_def("_fltused");
-        floatused = 1;
+        mscoffobj.floatused = 1;
     }
 }
 
@@ -2414,7 +2416,7 @@ int elf_align(int size, int foffset)
     int offset = (foffset + size - 1) & ~(size - 1);
     //printf("offset = x%lx, foffset = x%lx, size = x%lx\n", offset, foffset, cast(int)size);
     if (offset > foffset)
-        fobjbuf.writezeros(offset - foffset);
+        mscoffobj.fobjbuf.writezeros(offset - foffset);
     return offset;
 }
 
@@ -2469,16 +2471,16 @@ Symbol* MsCoffObj_tlv_bootstrap()
 @trusted
 void MsCoffObj_write_pointerRef(Symbol* s, uint soff)
 {
-    if (!ptrref_buf)
+    if (!mscoffobj.ptrref_buf)
     {
-        ptrref_buf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        if (!ptrref_buf)
+        mscoffobj.ptrref_buf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+        if (!mscoffobj.ptrref_buf)
             err_nomem();
     }
 
     // defer writing pointer references until the symbols are written out
-    ptrref_buf.write((&s)[0 .. 1]);
-    ptrref_buf.write32(soff);
+    mscoffobj.ptrref_buf.write((&s)[0 .. 1]);
+    mscoffobj.ptrref_buf.write32(soff);
 }
 
 /*****************************************
@@ -2517,11 +2519,11 @@ private void objflush_pointerRef(Symbol* s, uint soff, ref segidx_t[2] segments)
 @trusted
 private void objflush_pointerRefs()
 {
-    if (!ptrref_buf)
+    if (!mscoffobj.ptrref_buf)
         return;
 
-    ubyte* p = ptrref_buf.buf;
-    ubyte* end = ptrref_buf.buf + ptrref_buf.length();
+    ubyte* p = mscoffobj.ptrref_buf.buf;
+    ubyte* end = mscoffobj.ptrref_buf.buf + mscoffobj.ptrref_buf.length();
     segidx_t[2] segments = UNKNOWN;
     while (p < end)
     {
@@ -2531,7 +2533,7 @@ private void objflush_pointerRefs()
         p += soff.sizeof;
         objflush_pointerRef(s, soff, segments);
     }
-    ptrref_buf.reset();
+    mscoffobj.ptrref_buf.reset();
 }
 
 /*****************************************
@@ -2547,17 +2549,17 @@ void write_importTableRef(segidx_t seg, targ_size_t soff, Symbol* imp)
     if (!imp.Sxtrnnum)
         MsCoffObj_external(imp);
 
-    if (!impref_buf)
+    if (!mscoffobj.impref_buf)
     {
-        impref_buf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        if (!impref_buf)
+        mscoffobj.impref_buf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+        if (!mscoffobj.impref_buf)
             err_nomem();
     }
 
     // defer writing pointer references until the symbols are written out
-    impref_buf.write32(seg);
-    impref_buf.write32(cast(uint)soff);
-    impref_buf.write((&imp)[0 .. 1]);
+    mscoffobj.impref_buf.write32(seg);
+    mscoffobj.impref_buf.write32(cast(uint)soff);
+    mscoffobj.impref_buf.write((&imp)[0 .. 1]);
 }
 
 /*****************************************
@@ -2567,7 +2569,7 @@ void write_importTableRef(segidx_t seg, targ_size_t soff, Symbol* imp)
 @trusted
 private void objflush_importTableRefs()
 {
-    if (!impref_buf)
+    if (!mscoffobj.impref_buf)
         return;
 
     auto align_ = I64 ? 16 : 4;
@@ -2581,8 +2583,8 @@ private void objflush_importTableRefs()
     OutBuffer* buf = SegData[seg].SDbuf;
     buf.setsize(cast(uint)offset);
 
-    ubyte* p = impref_buf.buf;
-    ubyte* end = impref_buf.buf + impref_buf.length();
+    ubyte* p = mscoffobj.impref_buf.buf;
+    ubyte* end = mscoffobj.impref_buf.buf + mscoffobj.impref_buf.length();
     while (p < end)
     {
         int sseg = *cast(int*)p;
@@ -2634,5 +2636,5 @@ private void objflush_importTableRefs()
     cbuf.fill0(I64 ? 8 : 4);
     SegData[cseg].SDoffset = cbuf.length();
 
-    impref_buf.reset();
+    mscoffobj.impref_buf.reset();
 }
