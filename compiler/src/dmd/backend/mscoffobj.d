@@ -73,14 +73,14 @@ enum DEST_LEN = (IDMAX + IDOHD + 1);
 
 __gshared private
 {
-    OutBuffer* fobjbuf;		    // contents of object file
+    OutBuffer* fobjbuf;             // contents of object file
 
-    OutBuffer* string_table;	    // string table for all other names
+    OutBuffer* string_table;        // string table for all other names
     public OutBuffer  *ScnhdrBuf;   // buffer to put section headers in
 
     int scnhdr_cnt;                 // number of sections in table
 
-    OutBuffer* symbuf;		    // the symbol table
+    OutBuffer* symbuf;              // the symbol table
 
     OutBuffer* syment_buf;          // array of struct syment
 
@@ -1704,14 +1704,6 @@ static if (0) // NOT_DONE
 }
 }
 
-@trusted
-private char* unsstr(uint value)
-{
-    __gshared char[64] buffer;
-
-    snprintf (buffer.ptr, buffer.length, "%d", value);
-    return buffer.ptr;
-}
 
 /*******************************
  * Mangle a name.

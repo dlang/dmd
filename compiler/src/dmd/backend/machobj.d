@@ -2181,14 +2181,6 @@ void MachObj_alias(const(char)* n1,const(char)* n2)
     assert(0);
 }
 
-@trusted
-private char* unsstr (uint value)
-{
-    __gshared char[64] buffer = void;
-
-    snprintf (buffer.ptr, buffer.length, "%d", value);
-    return buffer.ptr;
-}
 
 /*******************************
  * Mangle a name.
@@ -2225,15 +2217,15 @@ char* obj_mangle2(Symbol* s,char* dest)
             bool cond = (tyfunc(s.ty()) && !variadic(s.Stype));
             if (cond)
             {
-                char* pstr = unsstr(type_paramsize(s.Stype));
-                size_t pstrlen = strlen(pstr);
-                size_t destlen = len + 1 + pstrlen + 1;
-
+                char[64] buffer = void;
+                int n = snprintf(buffer.ptr, buffer.length, "%u", type_paramsize(s.Stype));
+                assert(n < buffer.length);
+                size_t destlen = len + 1 + n + 1; // n does not include terminating 0
                 if (destlen > DEST_LEN)
                     dest = cast(char*)mem_malloc(destlen);
                 memcpy(dest,name,len);
                 dest[len] = '@';
-                memcpy(dest + 1 + len, pstr, pstrlen + 1);
+                memcpy(dest + len + 1, buffer.ptr, n + 1);
                 break;
             }
             goto case;
