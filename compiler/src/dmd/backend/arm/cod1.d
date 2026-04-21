@@ -1191,7 +1191,7 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
                  */
                 if (tyxmmreg(ty) && !(s.Sregm & XMMREGS) ||
                     !tyxmmreg(ty) && (s.Sregm & XMMREGS))       // TODO AArch64
-                    cgreg_unregister(s.Sregm);
+                    cgreg_unregister(cg,s.Sregm);
 
                 if (
                     s.Sclass == SC.regpar ||

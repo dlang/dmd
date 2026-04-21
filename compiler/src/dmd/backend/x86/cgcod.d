@@ -234,10 +234,10 @@ void codgen(Symbol* sfunc)
         if (!(cgstate.allregs & mask(PICREG)) && !cgstate.gotref)
         {
             cgstate.allregs |= mask(PICREG);            // EBX can now be used
-            cgreg_assign(cgstate.retsym);
+            cgreg_assign(cgstate,cgstate.retsym);
             cgstate.pass = BackendPass.reg;
         }
-        else if (cgreg_assign(cgstate.retsym))          // if we found some registers
+        else if (cgreg_assign(cgstate,cgstate.retsym))          // if we found some registers
             cgstate.pass = BackendPass.reg;
         else
             cgstate.pass = BackendPass.final_;
@@ -3049,7 +3049,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs,r
     {
         //elem_print(e);
         //printf("test1: cg.regcon.mvar %s tosave %s\n", regm_str(cg.regcon.mvar), regm_str(tosave));
-        cgreg_unregister(cg.regcon.mvar & tosave);
+        cgreg_unregister(cg,cg.regcon.mvar & tosave);
     }
 
     /* which registers can we use to save other registers in? */
