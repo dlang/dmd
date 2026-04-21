@@ -669,12 +669,14 @@ void nteh_monitor_prolog(ref CGstate cg, ref CodeBuilder cdb, Symbol* shandle)
 
 /*************************************************
  * Release monitor, unhook monitor exception handler.
- * Input:
- *      retregs         registers to not destroy
+ * Params:
+ *      cg = code generator state
+ *      cdb = code sink
+ *      retregs = registers to not destroy
  */
 
 @trusted
-void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs)
+void nteh_monitor_epilog(ref CGstate cg,ref CodeBuilder cdb,regm_t retregs)
 {
     /*
      *  CALL    _d_monitor_epilog
@@ -690,7 +692,7 @@ void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs)
     cdbs.ctor();
     CodeBuilder cdbr;
     cdbr.ctor();
-    gensaverestore(cgstate,retregs& desregs,cdbs,cdbr);
+    gensaverestore(cg,retregs & desregs,cdbs,cdbr);
     cdb.append(cdbs);
 
     getregs(cdb,desregs);

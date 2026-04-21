@@ -332,7 +332,7 @@ void genEEcode(ref CGstate cg)
 /********************************************
  * Gen a save/restore sequence for mask of registers.
  * Params:
- *	cg = code generator state
+ *      cg = code generator state
  *      regm = mask of registers to save
  *      cdbsave = save code appended here
  *      cdbrestore = restore code appended here
@@ -429,8 +429,8 @@ uint gensaverestore(ref CGstate cg,regm_t regm,ref CodeBuilder cdbsave,ref CodeB
 /****************************************
  * Clean parameters off stack.
  * Params:
- *	cg     = code generator state
- *	cdb     = code sink
+ *      cg     = code generator state
+ *      cdb     = code sink
  *      numpara = amount to adjust stack pointer
  *      keepmsk = mask of registers to not modify
  */
@@ -3050,7 +3050,7 @@ FuncParamRegs FuncParamRegs_create(tym_t tyf)
 /*****************************************
  * Allocate parameter of type t and ty to registers* preg1 and* preg2.
  * Params:
- *	cg = code generator state
+ *      cg = code generator state
  *      fpr = context
  *      t = type, valid only if ty is TYstruct or TYarray
  *      ty = type
