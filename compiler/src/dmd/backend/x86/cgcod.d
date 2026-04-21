@@ -84,11 +84,13 @@ void codgen(Symbol* sfunc)
 
     cgreg_init();
     CSE.initialize();
-    cgstate.Alloca.initialize();
-    cgstate.anyiasm = false;
-    cgstate.setSPtoFPonEpilog = false;
-    cgstate.AArch64 = config.target_cpu == TARGET_AArch64;
-    cgstate.BP = cgstate.AArch64 ? 29 : BP;
+
+    CGstate* cg = &cgstate;
+    cg.Alloca.initialize();
+    cg.anyiasm = false;
+    cg.setSPtoFPonEpilog = false;
+    cg.AArch64 = config.target_cpu == TARGET_AArch64;
+    cg.BP = cg.AArch64 ? 29 : BP;
 
     /* Sadly, the dwarf and Windows unwinders relies on the function epilog to exist
      */
@@ -102,57 +104,57 @@ void codgen(Symbol* sfunc)
      * pass can generate opportunities for enregistering more variables,
      * loop until no more registers are free'd up.
      */
-    cgstate.pass = BackendPass.initial;
+    cg.pass = BackendPass.initial;
     while (1)
     {
         debug
         if (debugr)
             printf("------------------ PASS%s -----------------\n",
-                (cgstate.pass == BackendPass.initial) ? "init".ptr : ((cgstate.pass == BackendPass.reg) ? "reg".ptr : "final".ptr));
+                (cg.pass == BackendPass.initial) ? "init".ptr : ((cg.pass == BackendPass.reg) ? "reg".ptr : "final".ptr));
 
-        cgstate.lastRetregs[] = 0;
+        cg.lastRetregs[] = 0;
 
         // if no parameters, assume we don't need a stack frame
-        cgstate.needframe = 0;
-        cgstate.enforcealign = false;
-        cgstate.gotref = 0;
-        cgstate.stackchanged = 0;
-        cgstate.stackpush = 0;
-        cgstate.refparam = 0;
-        cgstate.calledafunc = 0;
-        cgstate.retsym = null;
+        cg.needframe = 0;
+        cg.enforcealign = false;
+        cg.gotref = 0;
+        cg.stackchanged = 0;
+        cg.stackpush = 0;
+        cg.refparam = 0;
+        cg.calledafunc = 0;
+        cg.retsym = null;
 
-        cgstate.stackclean = 1;
-        cgstate.funcarg.initialize();
-        cgstate.funcargtos = ~0;
-        cgstate.accessedTLS = false;
+        cg.stackclean = 1;
+        cg.funcarg.initialize();
+        cg.funcargtos = ~0;
+        cg.accessedTLS = false;
         STACKALIGN = TARGET_STACKALIGN;
 
-        cgstate.regsave.reset();
+        cg.regsave.reset();
         memset(global87.stack.ptr,0,global87.stack.sizeof);
 
-        cgstate.calledFinally = false;
-        cgstate.usednteh = 0;
+        cg.calledFinally = false;
+        cg.usednteh = 0;
 
         if (sfunc.Sfunc.Fflags3 & Fjmonitor &&
             config.exe & EX_windos)
-            cgstate.usednteh |= NTEHjmonitor;
+            cg.usednteh |= NTEHjmonitor;
 
         // Set on a trial basis, turning it off if anything might throw
         sfunc.Sfunc.Fflags3 |= Fnothrow;
 
-        cgstate.floatreg = false;
+        cg.floatreg = false;
         assert(global87.stackused == 0);             /* nobody in 8087 stack         */
 
         CSE.start();
-        memset(&cgstate.regcon,0,cgstate.regcon.sizeof);
-        cgstate.regcon.cse.mval = cgstate.regcon.cse.mops = 0;      // no common subs yet
-        cgstate.msavereg = 0;
+        memset(&cg.regcon,0,cg.regcon.sizeof);
+        cg.regcon.cse.mval = cg.regcon.cse.mops = 0;      // no common subs yet
+        cg.msavereg = 0;
         uint nretblocks = 0;
-        cgstate.mfuncreg = fregsaved;               // so we can see which are used
+        cg.mfuncreg = fregsaved;               // so we can see which are used
                                             // (bit is cleared each time
                                             //  we use one)
-        assert(!(cgstate.needframe && cgstate.mfuncreg & mask(cgstate.BP))); // needframe needs mBP
+        assert(!(cg.needframe && cg.mfuncreg & mask(cg.BP))); // needframe needs mBP
 
         for (block* b = bo.startblock; b; b = b.Bnext)
         {
@@ -160,7 +162,7 @@ void codgen(Symbol* sfunc)
             if (b.Belem)
                 resetEcomsub(b.Belem);     // reset all the Ecomsubs
             if (b.bc == BC.asm_)
-                cgstate.anyiasm = 1;                // we have inline assembler
+                cg.anyiasm = 1;                // we have inline assembler
             if (b.bc == BC.ret || b.bc == BC.retexp)
                 nretblocks++;
         }
@@ -175,7 +177,7 @@ void codgen(Symbol* sfunc)
                 {
                     case SC.fastpar:
                     case SC.shadowreg:
-                        cgstate.regcon.params |= s.Spregm();
+                        cg.regcon.params |= s.Spregm();
                         goto case SC.parameter;
 
                     case SC.parameter:
@@ -187,7 +189,7 @@ void codgen(Symbol* sfunc)
                         break;
                 }
             }
-            cgstate.regcon.params &= ~noparams;
+            cg.regcon.params &= ~noparams;
         }
 
         if (config.flags4 & CFG4optimized)
@@ -201,46 +203,46 @@ void codgen(Symbol* sfunc)
             cgreg_reset();
             foreach (i, b; bo.dfo[])
             {
-                cgstate.dfoidx = cast(int)i;
-                cgstate.regcon.used = cgstate.msavereg | cgstate.regcon.cse.mval;   // registers already in use
-                assert(!(cgstate.regcon.used & mPSW));
+                cg.dfoidx = cast(int)i;
+                cg.regcon.used = cg.msavereg | cg.regcon.cse.mval;   // registers already in use
+                assert(!(cg.regcon.used & mPSW));
                 blcodgen(cgstate, b);                 // gen code in depth-first order
                 //printf("b.Bregcon.used = %s\n", regm_str(b.Bregcon.used));
-                cgreg_used(cgstate.dfoidx, b.Bregcon.used); // gather register used information
+                cgreg_used(cg.dfoidx, b.Bregcon.used); // gather register used information
             }
         }
         else
         {
-            cgstate.pass = BackendPass.final_;
+            cg.pass = BackendPass.final_;
             for (block* b = bo.startblock; b; b = b.Bnext)
             {
                 blcodgen(cgstate, b);        // generate the code for each block
                 //for (code* cx = b.Bcode; cx; cx = code_next(cx)) printf("Bcode x%08x\n", cx.Iop);
             }
         }
-        cgstate.regcon.immed.mval = 0;
-        assert(!cgstate.regcon.cse.mops);           // should have all been used
+        cg.regcon.immed.mval = 0;
+        assert(!cg.regcon.cse.mops);           // should have all been used
 
-        if (cgstate.pass == BackendPass.final_ ||       // the final pass, so exit
-            cgstate.anyiasm)                            // possible LEA or LES opcodes
+        if (cg.pass == BackendPass.final_ ||       // the final pass, so exit
+            cg.anyiasm)                            // possible LEA or LES opcodes
         {
             break;
         }
 
         // See which variables we can put into registers
-        cgstate.allregs |= cod3_useBP();                // use EBP as general purpose register
+        cg.allregs |= cod3_useBP();                // use EBP as general purpose register
 
         // If pic code, but EBX was never needed
-        if (!(cgstate.allregs & mask(PICREG)) && !cgstate.gotref)
+        if (!(cg.allregs & mask(PICREG)) && !cg.gotref)
         {
-            cgstate.allregs |= mask(PICREG);            // EBX can now be used
-            cgreg_assign(cgstate,cgstate.retsym);
-            cgstate.pass = BackendPass.reg;
+            cg.allregs |= mask(PICREG);            // EBX can now be used
+            cgreg_assign(cgstate, cg.retsym);
+            cg.pass = BackendPass.reg;
         }
-        else if (cgreg_assign(cgstate,cgstate.retsym))          // if we found some registers
-            cgstate.pass = BackendPass.reg;
+        else if (cgreg_assign(cgstate, cg.retsym))          // if we found some registers
+            cg.pass = BackendPass.reg;
         else
-            cgstate.pass = BackendPass.final_;
+            cg.pass = BackendPass.final_;
 
         /* free up generated code for next pass
          */
@@ -255,7 +257,7 @@ void codgen(Symbol* sfunc)
     // See if we need to enforce a particular stack alignment
     foreach (s; globsym[])
     {
-        if (Symbol_Sisdead(*s, cgstate.anyiasm))
+        if (Symbol_Sisdead(*s, cg.anyiasm))
             continue;
 
         switch (s.Sclass)
@@ -270,7 +272,7 @@ void codgen(Symbol* sfunc)
                 if (sz > STACKALIGN && (I64 || config.exe == EX_OSX))
                 {
                     STACKALIGN = sz;
-                    cgstate.enforcealign = true;
+                    cg.enforcealign = true;
                 }
                 break;
 
@@ -295,7 +297,7 @@ void codgen(Symbol* sfunc)
     if (cprolog)
         pinholeopt(cprolog,null);       // optimize
 
-    cgstate.funcoffset = Offset(sfunc.Sseg);
+    cg.funcoffset = Offset(sfunc.Sseg);
     targ_size_t coffset = Offset(sfunc.Sseg);
 
     if (eecontext.EEelem)
@@ -329,7 +331,7 @@ void codgen(Symbol* sfunc)
         pinholeopt(b.Bcode,b);         // do pinhole optimization
         if (b.Bflags & BFL.prolog)      // do function prolog
         {
-            cgstate.startoffset = coffset + calcblksize(cprolog) - cgstate.funcoffset;
+            cg.startoffset = coffset + calcblksize(cprolog) - cg.funcoffset;
             b.Bcode = cat(cprolog,b.Bcode);
         }
         cgsched_block(b);
@@ -381,7 +383,7 @@ void codgen(Symbol* sfunc)
     debug
     debugw && printf("code jump optimization complete\n");
 
-    if (cgstate.usednteh & NTEH_try)
+    if (cg.usednteh & NTEH_try)
     {
         // Do this before code is emitted because we patch some instructions
         nteh_filltables();
@@ -451,12 +453,12 @@ static if (0)
 
             assert(0);
         }
-        sfunc.Ssize = Offset(sfunc.Sseg) - cgstate.funcoffset;    // size of function
+        sfunc.Ssize = Offset(sfunc.Sseg) - cg.funcoffset;    // size of function
 
         if (config.vasm)
             disassemble(disasmBuf[]);                   // disassemble the code
 
-        const nteh = cgstate.usednteh & NTEH_try;
+        const nteh = cg.usednteh & NTEH_try;
         if (nteh)
         {
             assert(!(config.flags & CFGromable));
@@ -480,18 +482,18 @@ static if (0)
                 case BC.ret:
                 case BC.retexp:
                     /* Compute offset to return code from start of function */
-                    cgstate.retoffset = b.Boffset + b.Bsize - cgstate.retsize - cgstate.funcoffset;
+                    cg.retoffset = b.Boffset + b.Bsize - cg.retsize - cg.funcoffset;
 
-                    /* Add 3 bytes to cgstate.retoffset in case we have an exception
+                    /* Add 3 bytes to cg.retoffset in case we have an exception
                      * handler. THIS PROBABLY NEEDS TO BE IN ANOTHER SPOT BUT
                      * IT FIXES THE PROBLEM HERE AS WELL.
                      */
-                    if (cgstate.usednteh & NTEH_try)
-                        cgstate.retoffset += 3;
+                    if (cg.usednteh & NTEH_try)
+                        cg.retoffset += 3;
                     break;
 
                 default:
-                    cgstate.retoffset = b.Boffset + b.Bsize - cgstate.funcoffset;
+                    cg.retoffset = b.Boffset + b.Bsize - cg.funcoffset;
                     break;
             }
         }
@@ -500,8 +502,8 @@ static if (0)
                start of the last instruction
              */
             /* Instead, try offset to cleanup code  */
-            if (cgstate.retoffset < sfunc.Ssize)
-                objmod.linnum(sfunc.Sfunc.Fendline,sfunc.Sseg,cgstate.funcoffset + cgstate.retoffset);
+            if (cg.retoffset < sfunc.Ssize)
+                objmod.linnum(sfunc.Sfunc.Fendline,sfunc.Sseg,cg.funcoffset + cg.retoffset);
 
         static if (MARS)
         {
@@ -511,12 +513,12 @@ static if (0)
 
         static if (MARS)
         {
-            if (cgstate.usednteh & NTEH_try)
+            if (cg.usednteh & NTEH_try)
             {
                 // Do this before code is emitted because we patch some instructions
                 nteh_gentables(sfunc);
             }
-            if (cgstate.usednteh & (EHtry | EHcleanup) &&   // saw BC.try_ or BC._try or OPddtor
+            if (cg.usednteh & (EHtry | EHcleanup) &&   // saw BC.try_ or BC._try or OPddtor
                 config.ehmethod == EHmethod.EH_DM)
             {
                 except_gentables();
@@ -524,7 +526,7 @@ static if (0)
             if (config.ehmethod == EHmethod.EH_DWARF)
             {
                 sfunc.Sfunc.Fstartblock = bo.startblock;
-                dwarf_except_gentables(sfunc, cast(uint)cgstate.startoffset, cast(uint)cgstate.retoffset);
+                dwarf_except_gentables(sfunc, cast(uint)cg.startoffset, cast(uint)cg.retoffset);
                 sfunc.Sfunc.Fstartblock = null;
             }
         }
@@ -539,7 +541,7 @@ static if (0)
     // Mask of regs saved
     // BUG: do interrupt functions save BP?
     tym_t functy = tybasic(sfunc.ty());
-    sfunc.Sregsaved = (functy == TYifunc) ? cast(regm_t) mBP : (cgstate.mfuncreg | fregsaved);
+    sfunc.Sregsaved = (functy == TYifunc) ? cast(regm_t) mBP : (cg.mfuncreg | fregsaved);
 
     debug
     if (global87.stackused != 0)
@@ -1536,12 +1538,13 @@ void freenode(elem* e)
     if (e.Ecomsub--) return;             /* usage count                  */
     if (e.Ecount)                        /* if it was a CSE              */
     {
-        for (size_t i = 0; i < cgstate.regcon.cse.value.length; i++)
+        CGstate* cg = &cgstate;
+        for (size_t i = 0; i < cg.regcon.cse.value.length; i++)
         {
-            if (cgstate.regcon.cse.value[i] == e)       /* if a register is holding it  */
+            if (cg.regcon.cse.value[i] == e)       /* if a register is holding it  */
             {
-                cgstate.regcon.cse.mval &= ~mask(cast(uint)i);
-                cgstate.regcon.cse.mops &= ~mask(cast(uint)i);    /* free masks                   */
+                cg.regcon.cse.mval &= ~mask(cast(uint)i);
+                cg.regcon.cse.mops &= ~mask(cast(uint)i);    /* free masks                   */
             }
         }
         CSE.remove(e);
@@ -1590,13 +1593,14 @@ bool isregvar(elem* e, ref regm_t pregm, ref reg_t preg)
     elem_debug(e);
     if (e.Eoper == OPvar || e.Eoper == OPrelconst)
     {
+        CGstate* cg = &cgstate;
         Symbol* s = e.Vsym;
         switch (s.Sfl)
         {
             case FL.reg:
                 if (s.Sclass == SC.parameter)
-                {   cgstate.refparam = true;
-                    cgstate.reflocal = true;
+                {   cg.refparam = true;
+                    cg.reflocal = true;
                 }
                 reg = e.Voffset ? s.Sregmsw : s.Sreglsw;  // e.Voffset implies a register pair
                 regm = s.Sregm;
@@ -1616,7 +1620,7 @@ static if (0)
                     }
                 }
 }
-                assert(regm & cgstate.regcon.mvar && !(regm & ~cgstate.regcon.mvar));
+                assert(regm & cg.regcon.mvar && !(regm & ~cg.regcon.mvar));
                 preg = reg;
                 pregm = regm;
                 return true;
@@ -1624,7 +1628,7 @@ static if (0)
             case FL.pseudo:
                 reg_t u = s.Sreglsw;
                 regm_t m = mask(u);
-                if (cgstate.AArch64)
+                if (cg.AArch64)
                 {
                     if (m & (INSTR.ALLREGS | INSTR.FLOATREGS))
                     {
@@ -1667,32 +1671,33 @@ reg_t allocreg(ref CodeBuilder cdb,ref regm_t outretregs,tym_t tym){
 @trusted
 reg_t allocreg(ref CodeBuilder cdb,ref regm_t outretregs,tym_t tym ,int line,const(char)* file)
 {
-        reg_t reg;
+        CGstate* cg = &cgstate;
 
 static if (0)
 {
-        if (cgstate.pass == BackendPass.final_)
+        if (cg.pass == BackendPass.final_)
         {
-            printf("allocreg %s,%d: cgstate.regcon.mvar %s regcon.cse.mval %s msavereg %s outretregs %s tym %s\n",
-                file,line,regm_str(cgstate.regcon.mvar),regm_str(cgstate.regcon.cse.mval),
-                regm_str(cgstate.msavereg),regm_str(outretregs),tym_str(tym));
+            printf("allocreg %s,%d: cg.regcon.mvar %s regcon.cse.mval %s msavereg %s outretregs %s tym %s\n",
+                file,line,regm_str(cg.regcon.mvar),regm_str(cg.regcon.cse.mval),
+                regm_str(cg.msavereg),regm_str(outretregs),tym_str(tym));
         }
 }
+        reg_t reg;
         tym = tybasic(tym);
         uint size = _tysize[tym];
-        bool AArch64 = cgstate.AArch64;
+        bool AArch64 = cg.AArch64;
         if (AArch64)
             outretregs &= INSTR.ALLREGS | INSTR.FLOATREGS;
         else
-            outretregs &= mES | cgstate.allregs | XMMREGS | INSTR.FLOATREGS;
+            outretregs &= mES | cg.allregs | XMMREGS | INSTR.FLOATREGS;
         regm_t retregs = outretregs;
-        regm_t[] lastRetregs = cgstate.lastRetregs[];
+        regm_t[] lastRetregs = cg.lastRetregs[];
         bool isPair = isRegisterPair(AArch64, tym, retregs);
 
         debug if (retregs == 0)
             printf("allocreg: file %s(%d)\n", file, line);
 
-        if ((retregs & cgstate.regcon.mvar) == retregs) // if exactly in reg vars
+        if ((retregs & cg.regcon.mvar) == retregs) // if exactly in reg vars
         {
             reg_t outreg;
             if (isPair)
@@ -1710,21 +1715,21 @@ static if (0)
         }
         int count = 0;
 L1:
-        //printf("L1: allregs = %s, outretregs = %s\n", regm_str(cgstate.allregs), regm_str(outretregs));
+        //printf("L1: allregs = %s, outretregs = %s\n", regm_str(cg.allregs), regm_str(outretregs));
         assert(++count < 20);           /* fail instead of hanging if blocked */
         assert(retregs);
         reg_t msreg = NOREG, lsreg = NOREG;  /* no value assigned yet        */
 L3:
-        //printf("L2: allregs = %s, outretregs = %s\n", regm_str(cgstate.allregs), regm_str(outretregs));
-        regm_t r = retregs & ~(cgstate.msavereg | cgstate.regcon.cse.mval | cgstate.regcon.params);
+        //printf("L2: allregs = %s, outretregs = %s\n", regm_str(cg.allregs), regm_str(outretregs));
+        regm_t r = retregs & ~(cg.msavereg | cg.regcon.cse.mval | cg.regcon.params);
         if (!r)
         {
-            r = retregs & ~(cgstate.msavereg | cgstate.regcon.cse.mval);
+            r = retregs & ~(cg.msavereg | cg.regcon.cse.mval);
             if (!r)
             {
-                r = retregs & ~(cgstate.msavereg | cgstate.regcon.cse.mops);
+                r = retregs & ~(cg.msavereg | cg.regcon.cse.mops);
                 if (!r)
-                {   r = retregs & ~cgstate.msavereg;
+                {   r = retregs & ~cg.msavereg;
                     if (!r)
                         r = retregs;
                 }
@@ -1734,7 +1739,7 @@ L3:
         static if (0)
         {
             printf("%s\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s outretregs %s, reg %d, tym x%x\n",
-                tym_str(tym),file,line,regm_str(cgstate.regcon.mvar),regm_str(cgstate.msavereg),regm_str(outretregs),reg,tym);
+                tym_str(tym),file,line,regm_str(cg.regcon.mvar),regm_str(cg.msavereg),regm_str(outretregs),reg,tym);
         }
 
         // TODO AArch64 needs work on floating point and complex floats
@@ -1779,10 +1784,10 @@ L3:
             else
             {
                 // If only one index register, prefer to not use LSW registers
-//                if (!cgstate.regcon.indexregs && r & ~INSTR.LSW)
+//                if (!cg.regcon.indexregs && r & ~INSTR.LSW)
 //                    r &= ~INSTR.LSW;
 
-                if (cgstate.pass == BackendPass.final_ && r & ~lastRetregs[0])
+                if (cg.pass == BackendPass.final_ && r & ~lastRetregs[0])
                 {   // Try not to always allocate the same register,
                     // to schedule better
 
@@ -1793,8 +1798,8 @@ L3:
                         else
                             break;
                     }
-                    if (r & ~cgstate.mfuncreg)
-                        r &= ~cgstate.mfuncreg;
+                    if (r & ~cg.mfuncreg)
+                        r &= ~cg.mfuncreg;
                 }
                 reg = findreg(r);
                 retregs = mask(reg);
@@ -1853,10 +1858,10 @@ L3:
                     r &= ~mBP;
 
                 // If only one index register, prefer to not use LSW registers
-                if (!cgstate.regcon.indexregs && r & ~mLSW)
+                if (!cg.regcon.indexregs && r & ~mLSW)
                     r &= ~mLSW;
 
-                if (cgstate.pass == BackendPass.final_ && r & ~lastRetregs[0] && !I16)
+                if (cg.pass == BackendPass.final_ && r & ~lastRetregs[0] && !I16)
                 {   // Try not to always allocate the same register,
                     // to schedule better
 
@@ -1867,8 +1872,8 @@ L3:
                         else
                             break;
                     }
-                    if (r & ~cgstate.mfuncreg)
-                        r &= ~cgstate.mfuncreg;
+                    if (r & ~cg.mfuncreg)
+                        r &= ~cg.mfuncreg;
                 }
                 reg = findreg(r);
                 retregs = mask(reg);
@@ -1886,14 +1891,14 @@ L3:
             reg = AX;
         }
 
-        if (retregs & cgstate.regcon.mvar)              // if conflict with reg vars
+        if (retregs & cg.regcon.mvar)              // if conflict with reg vars
         {
             bool pair = AArch64 ? (tycomplex(tym) || size > REGSIZE)
                                 : size > REGSIZE;
             regm_t PAIR = AArch64 ? 1|2 : mAX | mDX;
             if (!(pair && outretregs == PAIR))
             {
-                retregs = (outretregs &= ~(retregs & cgstate.regcon.mvar));
+                retregs = (outretregs &= ~(retregs & cg.regcon.mvar));
                 goto L1;                // try other registers
             }
         }
