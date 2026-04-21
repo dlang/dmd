@@ -86,12 +86,28 @@ struct MachObj
     OutBuffer* local_symbuf,
                public_symbuf,
                extern_symbuf;
+
+    OutBuffer* comdef_symbuf;        // Comdef's are stored here
+
+    OutBuffer* indirectsymbuf1;      // indirect symbol table of Symbol*'s
+    int jumpTableSeg;                // segment index for __jump_table
+
+    OutBuffer* indirectsymbuf2;      // indirect symbol table of Symbol*'s
+    int pointersSeg;                 // segment index for __pointers
+
+    /* If an MachObj_external_def() happens, set this to the string index,
+     * to be added last to the symbol table.
+     * Obviously, there can be only one.
+     */
+    IDXSTR extdef;
 }
 
 private __gshared MachObj machobj;
 
 
 enum DEST_LEN = (IDMAX + IDOHD + 1);
+
+struct Comdef { Symbol* sym; targ_size_t size; int count; }
 
 /******************************************
  */
@@ -152,24 +168,6 @@ private void reset_symbols(OutBuffer* buf)
         symbol_reset(*p[i]);
 }
 
-__gshared
-{
-
-struct Comdef { Symbol* sym; targ_size_t size; int count; }
-private OutBuffer* comdef_symbuf;        // Comdef's are stored here
-
-private OutBuffer* indirectsymbuf1;      // indirect symbol table of Symbol*'s
-private int jumpTableSeg;                // segment index for __jump_table
-
-private OutBuffer* indirectsymbuf2;      // indirect symbol table of Symbol*'s
-private int pointersSeg;                 // segment index for __pointers
-
-/* If an MachObj_external_def() happens, set this to the string index,
- * to be added last to the symbol table.
- * Obviously, there can be only one.
- */
-private IDXSTR extdef;
-}
 
 // Each compiler segment is a section
 // Predefined compiler segments CODE,DATA,CDATA,UDATA map to indexes
@@ -449,24 +447,24 @@ Obj MachObj_init(OutBuffer* objbuf, const(char)* filename, const(char)* csegname
         machobj.extern_symbuf.reserve((Symbol*).sizeof * SYM_TAB_INIT);
     }
 
-    if (!comdef_symbuf)
+    if (!machobj.comdef_symbuf)
     {
-        comdef_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        if (!comdef_symbuf)
+        machobj.comdef_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+        if (!machobj.comdef_symbuf)
             err_nomem();
-        comdef_symbuf.reserve((Symbol*).sizeof * SYM_TAB_INIT);
+        machobj.comdef_symbuf.reserve((Symbol*).sizeof * SYM_TAB_INIT);
     }
-    comdef_symbuf.reset();
+    machobj.comdef_symbuf.reset();
 
-    extdef = 0;
+    machobj.extdef = 0;
 
-    if (indirectsymbuf1)
-        indirectsymbuf1.reset();
-    jumpTableSeg = 0;
+    if (machobj.indirectsymbuf1)
+        machobj.indirectsymbuf1.reset();
+    machobj.jumpTableSeg = 0;
 
-    if (indirectsymbuf2)
-        indirectsymbuf2.reset();
-    pointersSeg = 0;
+    if (machobj.indirectsymbuf2)
+        machobj.indirectsymbuf2.reset();
+    machobj.pointersSeg = 0;
 
     // Initialize segments for CODE, DATA, UDATA and CDATA
     size_t struct_section_size = I64 ? section_64.sizeof : section.sizeof;
@@ -596,9 +594,9 @@ void mach_numbersyms()
         n++;
     }
 
-    dim = cast(int)(comdef_symbuf.length() / Comdef.sizeof);
+    dim = cast(int)(machobj.comdef_symbuf.length() / Comdef.sizeof);
     for (int i = 0; i < dim; i++)
-    {   Comdef* c = (cast(Comdef*)comdef_symbuf.buf) + i;
+    {   Comdef* c = (cast(Comdef*)machobj.comdef_symbuf.buf) + i;
         c.sym.Sxtrnnum = n;
         n++;
     }
@@ -738,21 +736,21 @@ void MachObj_term(const(char)[] objfilename)
      * field to the symbol index in the indirect symbol table of the
      * start of the __pointers symbols.
      */
-    if (pointersSeg)
+    if (machobj.pointersSeg)
     {
-        seg_data* pseg = SegData[pointersSeg];
+        seg_data* pseg = SegData[machobj.pointersSeg];
         if (I64)
         {
             section_64* psechdr = &SecHdrTab64[pseg.SDshtidx]; // corresponding section
-            psechdr.reserved1 = cast(uint)(indirectsymbuf1
-                ? indirectsymbuf1.length() / (Symbol*).sizeof
+            psechdr.reserved1 = cast(uint)(machobj.indirectsymbuf1
+                ? machobj.indirectsymbuf1.length() / (Symbol*).sizeof
                 : 0);
         }
         else
         {
             section* psechdr = &SecHdrTab[pseg.SDshtidx]; // corresponding section
-            psechdr.reserved1 = cast(uint)(indirectsymbuf1
-                ? indirectsymbuf1.length() / (Symbol*).sizeof
+            psechdr.reserved1 = cast(uint)(machobj.indirectsymbuf1
+                ? machobj.indirectsymbuf1.length() / (Symbol*).sizeof
                 : 0);
         }
     }
@@ -1375,7 +1373,7 @@ void MachObj_term(const(char)[] objfilename)
     dysymtab_cmd.nextdefsym = cast(uint)(machobj.public_symbuf.length() / (Symbol*).sizeof);
     dysymtab_cmd.iundefsym = dysymtab_cmd.iextdefsym + dysymtab_cmd.nextdefsym;
     int nexterns = cast(int)(machobj.extern_symbuf.length() / (Symbol*).sizeof);
-    int ncomdefs = cast(int)(comdef_symbuf.length() / Comdef.sizeof);
+    int ncomdefs = cast(int)(machobj.comdef_symbuf.length() / Comdef.sizeof);
     dysymtab_cmd.nundefsym  = nexterns + ncomdefs;
     symtab_cmd.nsyms =  dysymtab_cmd.nlocalsym +
                         dysymtab_cmd.nextdefsym +
@@ -1458,7 +1456,7 @@ void MachObj_term(const(char)[] objfilename)
         }
     }
     for (int i = 0; i < ncomdefs; i++)
-    {   Comdef* c = (cast(Comdef*)comdef_symbuf.buf) + i;
+    {   Comdef* c = (cast(Comdef*)machobj.comdef_symbuf.buf) + i;
         nlist_64 sym;
         sym.n_strx = mach_addmangled(c.sym);
         sym.n_value = c.size * c.count;
@@ -1489,10 +1487,10 @@ void MachObj_term(const(char)[] objfilename)
             machobj.fobjbuf.write(&sym32, sym32.sizeof);
         }
     }
-    if (extdef)
+    if (machobj.extdef)
     {
         nlist_64 sym;
-        sym.n_strx = extdef;
+        sym.n_strx = machobj.extdef;
         sym.n_value = 0;
         sym.n_type = N_EXT | N_UNDF;
         sym.n_desc = 0;
@@ -1524,20 +1522,20 @@ void MachObj_term(const(char)[] objfilename)
     // Put out indirectsym table, which is in two parts
     foffset = elf_align(I64 ? 8 : 4, foffset);
     dysymtab_cmd.indirectsymoff = foffset;
-    if (indirectsymbuf1)
+    if (machobj.indirectsymbuf1)
     {
-        dysymtab_cmd.nindirectsyms += indirectsymbuf1.length() / (Symbol*).sizeof;
+        dysymtab_cmd.nindirectsyms += machobj.indirectsymbuf1.length() / (Symbol*).sizeof;
         for (int i = 0; i < dysymtab_cmd.nindirectsyms; i++)
-        {   Symbol* s = (cast(Symbol**)indirectsymbuf1.buf)[i];
+        {   Symbol* s = (cast(Symbol**)machobj.indirectsymbuf1.buf)[i];
             machobj.fobjbuf.write32(s.Sxtrnnum);
         }
     }
-    if (indirectsymbuf2)
+    if (machobj.indirectsymbuf2)
     {
-        int n = cast(int)(indirectsymbuf2.length() / (Symbol*).sizeof);
+        int n = cast(int)(machobj.indirectsymbuf2.length() / (Symbol*).sizeof);
         dysymtab_cmd.nindirectsyms += n;
         for (int i = 0; i < n; i++)
-        {   Symbol* s = (cast(Symbol**)indirectsymbuf2.buf)[i];
+        {   Symbol* s = (cast(Symbol**)machobj.indirectsymbuf2.buf)[i];
             machobj.fobjbuf.write32(s.Sxtrnnum);
         }
     }
@@ -2408,8 +2406,8 @@ int MachObj_external_def(const(char)* name)
 {
     //printf("MachObj_external_def('%s')\n",name);
     assert(name);
-    assert(extdef == 0);
-    extdef = MachObj_addstr(machobj.symtab_strings, name);
+    assert(machobj.extdef == 0);
+    machobj.extdef = MachObj_addstr(machobj.symtab_strings, name);
     return 0;
 }
 
@@ -2458,7 +2456,7 @@ int MachObj_common_block(Symbol* s,targ_size_t size,targ_size_t count)
     comdef.sym = s;
     comdef.size = size;
     comdef.count = cast(int)count;
-    comdef_symbuf.write(&comdef, (comdef).sizeof);
+    machobj.comdef_symbuf.write(&comdef, (comdef).sizeof);
     s.Sxtrnnum = 1;
     if (!s.Sseg)
         s.Sseg = UDATA;
@@ -2734,27 +2732,27 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
         {
             if (SegData[seg].isCode() && flags & CFselfrel)
             {
-                if (!jumpTableSeg)
+                if (!machobj.jumpTableSeg)
                 {
-                    jumpTableSeg =
+                    machobj.jumpTableSeg =
                         MachObj_getsegment("__jump_table", "__IMPORT",  0, S_SYMBOL_STUBS | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS | S_ATTR_SELF_MODIFYING_CODE);
                 }
-                seg_data* pseg = SegData[jumpTableSeg];
+                seg_data* pseg = SegData[machobj.jumpTableSeg];
                 if (I64)
                     SecHdrTab64[pseg.SDshtidx].reserved2 = 5;
                 else
                     SecHdrTab[pseg.SDshtidx].reserved2 = 5;
 
-                if (!indirectsymbuf1)
+                if (!machobj.indirectsymbuf1)
                 {
-                    indirectsymbuf1 = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-                    if (!indirectsymbuf1)
+                    machobj.indirectsymbuf1 = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+                    if (!machobj.indirectsymbuf1)
                         err_nomem();
                 }
                 else
                 {   // Look through indirectsym to see if it is already there
-                    int n = cast(int)(indirectsymbuf1.length() / (Symbol*).sizeof);
-                    Symbol** psym = cast(Symbol**)indirectsymbuf1.buf;
+                    int n = cast(int)(machobj.indirectsymbuf1.length() / (Symbol*).sizeof);
+                    Symbol** psym = cast(Symbol**)machobj.indirectsymbuf1.buf;
                     for (int i = 0; i < n; i++)
                     {   // Linear search, pretty pathetic
                         if (s == psym[i])
@@ -2768,11 +2766,11 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
                 static immutable char[5] halts = [ 0xF4,0xF4,0xF4,0xF4,0xF4 ];
                 pseg.SDbuf.write(halts.ptr, 5);
 
-                // Add symbol s to indirectsymbuf1
-                indirectsymbuf1.write((&s)[0 .. 1]);
+                // Add symbol s to machobj.indirectsymbuf1
+                machobj.indirectsymbuf1.write((&s)[0 .. 1]);
              L1:
                 val -= offset + 4;
-                MachObj_addrel(seg, offset, null, jumpTableSeg, RELrel);
+                MachObj_addrel(seg, offset, null, machobj.jumpTableSeg, RELrel);
             }
             else if (SegData[seg].isCode() &&
                      !(flags & CFindirect) &&
@@ -2785,23 +2783,23 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
             else if ((flags & CFindirect) ||
                      SegData[seg].isCode() && !tyfunc(s.ty()))
             {
-                if (!pointersSeg)
+                if (!machobj.pointersSeg)
                 {
-                    pointersSeg =
+                    machobj.pointersSeg =
                         MachObj_getsegment("__pointers", "__IMPORT",  0, S_NON_LAZY_SYMBOL_POINTERS);
                 }
-                seg_data* pseg = SegData[pointersSeg];
+                seg_data* pseg = SegData[machobj.pointersSeg];
 
-                if (!indirectsymbuf2)
+                if (!machobj.indirectsymbuf2)
                 {
-                    indirectsymbuf2 = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-                    if (!indirectsymbuf2)
+                    machobj.indirectsymbuf2 = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+                    if (!machobj.indirectsymbuf2)
                         err_nomem();
                 }
                 else
                 {   // Look through indirectsym to see if it is already there
-                    int n = cast(int)(indirectsymbuf2.length() / (Symbol*).sizeof);
-                    Symbol** psym = cast(Symbol**)indirectsymbuf2.buf;
+                    int n = cast(int)(machobj.indirectsymbuf2.length() / (Symbol*).sizeof);
+                    Symbol** psym = cast(Symbol**)machobj.indirectsymbuf2.buf;
                     for (int i = 0; i < n; i++)
                     {   // Linear search, pretty pathetic
                         if (s == psym[i])
@@ -2815,16 +2813,16 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
                 pseg.SDbuf.writezeros(_tysize[TYnptr]);
 
                 // Add symbol s to indirectsymbuf2
-                indirectsymbuf2.write((&s)[0 .. 1]);
+                machobj.indirectsymbuf2.write((&s)[0 .. 1]);
 
              L2:
-                //printf("MachObj_reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, cast(int)offset, s.Sident.ptr, cast(int)val, pointersSeg);
+                //printf("MachObj_reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, cast(int)offset, s.Sident.ptr, cast(int)val, machobj.pointersSeg);
                 if (flags & CFindirect)
                 {
                     Relocation rel = void;
                     rel.offset = offset;
                     rel.targsym = null;
-                    rel.targseg = pointersSeg;
+                    rel.targseg = machobj.pointersSeg;
                     rel.rtype = RELaddr;
                     rel.flag = 0;
                     rel.funcsym = null;
@@ -2839,7 +2837,7 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
                     pseg2.SDrel.write(&rel, rel.sizeof);
                 }
                 else
-                    MachObj_addrel(seg, offset, null, pointersSeg, RELaddr);
+                    MachObj_addrel(seg, offset, null, machobj.pointersSeg, RELaddr);
             }
             else
             {   //val -= s.Soffset;
