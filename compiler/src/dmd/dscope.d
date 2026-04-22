@@ -70,6 +70,7 @@ private extern (D) struct FlagBitFields
       to prevent perceived false positives for meta-programming heavy code.
     */
     bool knownACompileTimeOnlyContext;
+    bool inIsDisabledTrait;  /// inside __traits(isDisabled, ...)
 }
 
 private extern (D) struct NonFlagBitFields
@@ -262,6 +263,7 @@ extern (C++) struct Scope
         s.previews = this.previews;
         s.lastdc = null;
         s.knownACompileTimeOnlyContext = this.knownACompileTimeOnlyContext;
+        s.inIsDisabledTrait = this.inIsDisabledTrait;
         assert(&this != s);
         return s;
     }

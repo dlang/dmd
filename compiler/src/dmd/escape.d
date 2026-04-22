@@ -1161,7 +1161,8 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
             return;
         }
 
-        if (v.isTypesafeVariadicArray && p == sc.func)
+        if (v.isTypesafeVariadicArray && p == sc.func &&
+            v.type.toBasetype().isTypeDArray())
         {
             if (!gag)
                 sc.eSink.error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toErrMsg(), v.toErrMsg());

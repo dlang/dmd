@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdarg.h>
 
 #ifdef CUSTOM_D_ARRAY_TYPE
 #define _d_dynamicArray CUSTOM_D_ARRAY_TYPE
@@ -3445,6 +3446,17 @@ public:
 class StructLiteralExp final : public Expression
 {
 public:
+    enum class StageFlags : uint8_t
+    {
+        none = 0u,
+        scrub = 1u,
+        searchPointers = 2u,
+        optimize = 4u,
+        apply = 8u,
+        inlineScan = 16u,
+        toCBuffer = 32u,
+    };
+
     struct BitFields final
     {
         bool useStaticInit;
@@ -3482,17 +3494,6 @@ public:
         StructLiteralExp* inlinecopy;
     };
     StructLiteralExp* origin;
-    enum class StageFlags : uint8_t
-    {
-        none = 0u,
-        scrub = 1u,
-        searchPointers = 2u,
-        optimize = 4u,
-        apply = 8u,
-        inlineScan = 16u,
-        toCBuffer = 32u,
-    };
-
     static StructLiteralExp* create(Loc loc, StructDeclaration* sd, void* elements, Type* stype = nullptr);
     StructLiteralExp* syntaxCopy() override;
     void accept(Visitor* v) override;
@@ -3937,10 +3938,6 @@ public:
 
 struct ParameterDFAInfo final
 {
-    int32_t parameterId;
-    Fact notNullIn;
-    Fact notNullOut;
-    bool specifiedByUser;
     enum class Fact : uint8_t
     {
         Unspecified = 0u,
@@ -3948,6 +3945,10 @@ struct ParameterDFAInfo final
         Guaranteed = 2u,
     };
 
+    int32_t parameterId;
+    Fact notNullIn;
+    Fact notNullOut;
+    bool specifiedByUser;
     ParameterDFAInfo() :
         parameterId(),
         specifiedByUser()
@@ -5232,6 +5233,7 @@ public:
     Statement* _body;
     Array<Catch* >* catches;
     Statement* tryBody;
+    TOK loweredFromScopeGuard;
     TryCatchStatement* syntaxCopy() override;
     bool hasBreak() const override;
     void accept(Visitor* v) override;
@@ -5244,6 +5246,8 @@ public:
     Statement* finalbody;
     Statement* tryBody;
     bool bodyFallsThru;
+    TOK loweredFromScopeGuard;
+    VarDeclaration* loweredFrom;
     static TryFinallyStatement* create(Loc loc, Statement* _body, Statement* finalbody);
     TryFinallyStatement* syntaxCopy() override;
     bool hasBreak() const override;
@@ -6985,6 +6989,8 @@ struct Scope final
     bool ctfeBlock(bool v);
     bool knownACompileTimeOnlyContext() const;
     bool knownACompileTimeOnlyContext(bool v);
+    bool inIsDisabledTrait() const;
+    bool inIsDisabledTrait(bool v);
 private:
     uint16_t bitFields;
     uint16_t bitFields2;
@@ -7858,6 +7864,12 @@ public:
     virtual void visit(typename AST::VoidInitializer ) override;
     virtual void visit(typename AST::DefaultInitializer ) override;
     virtual void visit(typename AST::CInitializer ) override;
+};
+
+class StatementWalker : public SemanticTimeTransitiveVisitor
+{
+public:
+    void visit(Statement* st) final override;
 };
 
 extern _d_real creall(complex_t x);

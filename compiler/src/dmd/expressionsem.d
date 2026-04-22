@@ -7117,7 +7117,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (exp.names && (*exp.names)[0].name)
                 {
-                    error(exp.loc, "no named argument `%s` allowed for scalar", (*exp.names)[0].name.toErrMsg());
+                    error(exp.loc, "no named argument `%s` allowed for basic type", (*exp.names)[0].name.toErrMsg());
                     return setError();
                 }
                 Expression e = (*exp.arguments)[0];
@@ -7965,6 +7965,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 else if (exp.arguments.length == 1)
                 {
+                    if (exp.names && (*exp.names)[0].name)
+                    {
+                        error(exp.loc, "no named argument `%s` allowed for basic type", (*exp.names)[0].name.toErrMsg());
+                        return setError();
+                    }
                     e = (*exp.arguments)[0];
                     e = e.implicitCastTo(sc, t1);
                     e = new CastExp(exp.loc, e, t1);
@@ -18675,6 +18680,10 @@ bool checkDisabled(Declaration d, Loc loc, Scope* sc, bool isAliasedDeclaration 
         return false;
 
     if (sc.func && sc.func.storage_class & STC.disable)
+        return true;
+
+    // Suppress error when evaluating __traits(isDisabled, ...)
+    if (sc.inIsDisabledTrait)
         return true;
 
     if (auto p = d.toParent())

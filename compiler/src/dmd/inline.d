@@ -1832,6 +1832,10 @@ public:
         fd.inlineScanned = true;
         fd.semanticRun = pass;
 
+        import dmd.timetrace;
+        timeTraceBeginEvent(TimeTraceEventType.inlineFunction);
+        scope (exit) timeTraceEndEvent(TimeTraceEventType.inlineFunction, fd);
+
         scope InlineScanVisitor v = new InlineScanVisitor(fd, pass, eSink);
 
         do

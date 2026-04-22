@@ -264,6 +264,7 @@ SRCS=\
 	src\core\sys\linux\sys\socket.d \
 	src\core\sys\linux\sys\syscall.d \
 	src\core\sys\linux\sys\sysinfo.d \
+	src\core\sys\linux\sys\timerfd.d \
 	src\core\sys\linux\sys\xattr.d \
 	src\core\sys\linux\sys\time.d \
 	src\core\sys\linux\sys\prctl.d \

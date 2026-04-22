@@ -306,6 +306,8 @@ The following is a list of all available settings:
                          default: (none)
                          note: the make variable REQUIRED_ARGS is also added to the $(DMD)
                                command line (see below)
+                         note: if you provide a platform string, it becomes a white list.
+                               add a second without the platform list so that it runs on all targets.
 
     RUN_OUTPUT:         output expected from running the compiled executable which must match
                         the actual output. The comparison adheres to the rules defined for

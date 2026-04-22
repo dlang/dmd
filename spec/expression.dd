@@ -3321,30 +3321,42 @@ $(GNAME TypeSpecialization):
 )
 
     $(P An $(I IsExpression) is evaluated at compile time and is
-        used to check if an expression is a valid type. In addition,
+        used to check if a symbol/type is a valid type. In addition,
         there are forms which can also:)
     $(UL
-    $(LI compare types for equivalence)
-    $(LI determine if one type can be implicitly converted to another)
-    $(LI use $(RELATIVE_LINK2 is-parameter-list, pattern matching) to:)
-        - deduce the types used in a derived data type
-        - deduce the template and template arguments of a type template instance
+    $(LI $(RELATIVE_LINK2 is-type-equal, compare types for equivalence))
+    $(LI determine if one type $(RELATIVE_LINK2 is-type-convert, can be implicitly
+        converted) to another)
+    $(LI check if a $(RELATIVE_LINK2 is-type-equal, type is a particular kind))
+    )
+    $(P When $(RELATIVE_LINK2 is-identifier, used as a `static if` condition),
+        an *IsExpression* can also:)
+    $(UL
+    $(LI $(RELATIVE_LINK2 is-type-identifier, define a type alias) for *Type* or
+        $(RELATIVE_LINK2 is-identifier-equal, *TypeSpecialization* pattern))
+    $(LI $(RELATIVE_LINK2 is-identifier-equal, define a new symbol) based on a
+        *TypeSpecialization* keyword)
+    $(LI use parameter list $(RELATIVE_LINK2 is-parameter-list, pattern matching) to:)
+        - $(RELATIVE_LINK2 is-derived-data-type, deduce the types) used in a derived data type
+        - $(RELATIVE_LINK2 is-type-template, deduce the template and template arguments)
+          of a type template instance
     )
     $(P
         The result of an $(I IsExpression) is a boolean which is `true`
         if the condition is satisfied and `false` if not.
     )
 
-    $(P $(I Type) is the type being tested. It must be syntactically
+    $(P $(I Type) is the symbol/type being tested. For a symbol, the symbol
+        must parse as a $(GLINK2 type, Type). *Type* must be syntactically
         correct, but it need not be semantically correct.
         If it is not semantically correct, the condition is not satisfied.
     )
 
     $(P $(I TypeSpecialization) is the type that $(I Type) is being
-        pattern matched against.
+        pattern matched against, or a type-related keyword.
     )
 
-    $(P $(I IsExpression)s may be used in conjunction with
+    $(NOTE An *IsExpression* may be used in conjunction with
     $(DDSUBLINK spec/type, typeof, `typeof`) to check
     whether an expression type checks correctly. For example, $(D is(typeof(foo)))
     will return $(D true) if $(D foo) has a valid type.

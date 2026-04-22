@@ -430,7 +430,20 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
                 goto case Tpointer;
 
             case Tpointer:
-                if (e.sz == 1)
+            {
+                // Through CTFE, a mutable char[] might be initialized with a StringExp,
+                // don't use immutable string symbol then
+                const mutableData = t.nextOf().isMutable();
+                if (mutableData)
+                {
+                    auto dtbdata = DtBuilder(0);
+                    dtbdata.nbytes((cast(const ubyte*)p)[0 .. n * e.sz]);
+                    if (auto d = dtbdata.finish())
+                        dtb.dtoff(d, 0);
+                    else
+                        dtb.size(0);
+                }
+                else if (e.sz == 1)
                 {
                     import dmd.glue.e2ir : toStringSymbol;
                     import dmd.glue : totym;
@@ -444,6 +457,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
                     dtb.abytes(0, p[0 .. n * e.sz], cast(uint) e.sz, pow2);
                 }
                 break;
+            }
 
             case Tsarray:
             {

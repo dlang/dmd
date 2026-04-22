@@ -825,6 +825,40 @@ $(H4 $(LNAME2 typed_alias_op, Typed Alias Parameters))
 
 $(H4 $(LNAME2 alias_parameter_specialization, Specialization))
 
+    $(P An alias parameter specialization constrains which arguments the parameter
+        will match. The specialization can be either a type or a compile-time expression.)
+
+    $(P $(B Type specialization:) The argument must refer to the same type symbol as
+        the specialization. Type qualifiers such as $(D const) are ignored, so
+        $(D const(S)) and $(D S) are treated as the same specialization.)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    struct S {}
+    struct T {}
+
+    template Foo(alias s : S) {}
+
+    alias f1 = Foo!S;         // ok
+    alias f2 = Foo!(const(S)); // ok: qualifiers ignored
+    //alias f3 = Foo!T;       // error: T is not S
+    //alias f4 = Foo!1;       // error: 1 is not a type symbol
+    ---
+    )
+
+    $(P $(B Expression specialization:) The argument must be a compile-time expression
+        that evaluates to the same value as the specialization.)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    template Bar(alias n : 3) {}
+
+    alias b1 = Bar!3;       // ok
+    alias b2 = Bar!(1 + 2); // ok: evaluates to 3
+    //alias b3 = Bar!4;     // error: 4 != 3
+    ---
+    )
+
     $(P Alias parameters can accept both literals and user-defined type symbols,
         but they are less specialized than the matches to type parameters and
         value parameters:)

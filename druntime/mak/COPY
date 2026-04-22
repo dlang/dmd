@@ -270,6 +270,7 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\sys\socket.d \
 	$(IMPDIR)\core\sys\linux\sys\syscall.d \
 	$(IMPDIR)\core\sys\linux\sys\sysinfo.d \
+	$(IMPDIR)\core\sys\linux\sys\timerfd.d \
 	$(IMPDIR)\core\sys\linux\sys\xattr.d \
 	$(IMPDIR)\core\sys\linux\sys\time.d \
 	$(IMPDIR)\core\sys\linux\sys\prctl.d \
