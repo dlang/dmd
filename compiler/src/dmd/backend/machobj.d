@@ -100,6 +100,39 @@ struct MachObj
      * Obviously, there can be only one.
      */
     IDXSTR extdef;
+
+    Symbol* tlv_bootstrap_sym;
+
+    /**
+     * Section index for the __thread_vars/__tls_data section.
+     *
+     * This section is used for the variable symbol for TLS variables.
+     */
+    int seg_tlsseg = UNKNOWN;
+
+    /**
+     * Section index for the __thread_bss section.
+     *
+     * This section is used for the data symbol ($tlv$init) for TLS variables
+     * without an initializer.
+     */
+    int seg_tlsseg_bss = UNKNOWN;
+
+    /**
+     * Section index for the __thread_data section.
+     *
+     * This section is used for the data symbol ($tlv$init) for TLS variables
+     * with an initializer.
+     */
+    int seg_tlsseg_data = UNKNOWN;
+
+    int seg_cstring = UNKNOWN;        // __cstring section
+    int seg_mod_init_func = UNKNOWN;  // __mod_init_func section
+    int seg_mod_term_func = UNKNOWN;  // __mod_term_func section
+    int seg_deh_eh = UNKNOWN;         // __deh_eh section
+    int seg_textcoal_nt = UNKNOWN;
+    int seg_tlscoal_nt = UNKNOWN;
+    int seg_datacoal_nt = UNKNOWN;
 }
 
 private __gshared MachObj machobj;
@@ -199,41 +232,6 @@ int mach_seg_data_isCode(const ref seg_data sd)
 }
 
 import dmd.backend.code: SegData;
-
-__gshared
-{
-
-/**
- * Section index for the __thread_vars/__tls_data section.
- *
- * This section is used for the variable symbol for TLS variables.
- */
-private int seg_tlsseg = UNKNOWN;
-
-/**
- * Section index for the __thread_bss section.
- *
- * This section is used for the data symbol ($tlv$init) for TLS variables
- * without an initializer.
- */
-private int seg_tlsseg_bss = UNKNOWN;
-
-/**
- * Section index for the __thread_data section.
- *
- * This section is used for the data symbol ($tlv$init) for TLS variables
- * with an initializer.
- */
-int seg_tlsseg_data = UNKNOWN;
-
-int seg_cstring = UNKNOWN;        // __cstring section
-int seg_mod_init_func = UNKNOWN;  // __mod_init_func section
-int seg_mod_term_func = UNKNOWN;  // __mod_term_func section
-int seg_deh_eh = UNKNOWN;         // __deh_eh section
-int seg_textcoal_nt = UNKNOWN;
-int seg_tlscoal_nt = UNKNOWN;
-int seg_datacoal_nt = UNKNOWN;
-}
 
 /*******************************************************
  * Because the Mach-O relocations cannot be computed until after
@@ -369,7 +367,7 @@ int MachObj_data_readonly(char* p, int len)
 int MachObj_string_literal_segment(uint sz)
 {
     if (sz == 1)
-        return getsegment2(seg_cstring, "__cstring", "__TEXT", 0, S_CSTRING_LITERALS);
+        return getsegment2(machobj.seg_cstring, "__cstring", "__TEXT", 0, S_CSTRING_LITERALS);
 
     return CDATA;  // no special handling for other wstring, dstring; use __const
 }
@@ -388,16 +386,16 @@ Obj MachObj_init(OutBuffer* objbuf, const(char)* filename, const(char)* csegname
     machobj.AArch64 = config.target_cpu == TARGET_AArch64;
     machobj.fobjbuf = objbuf;
 
-    seg_tlsseg = UNKNOWN;
-    seg_tlsseg_bss = UNKNOWN;
-    seg_tlsseg_data = UNKNOWN;
-    seg_cstring = UNKNOWN;
-    seg_mod_init_func = UNKNOWN;
-    seg_mod_term_func = UNKNOWN;
-    seg_deh_eh = UNKNOWN;
-    seg_textcoal_nt = UNKNOWN;
-    seg_tlscoal_nt = UNKNOWN;
-    seg_datacoal_nt = UNKNOWN;
+    machobj.seg_tlsseg = UNKNOWN;
+    machobj.seg_tlsseg_bss = UNKNOWN;
+    machobj.seg_tlsseg_data = UNKNOWN;
+    machobj.seg_cstring = UNKNOWN;
+    machobj.seg_mod_init_func = UNKNOWN;
+    machobj.seg_mod_term_func = UNKNOWN;
+    machobj.seg_deh_eh = UNKNOWN;
+    machobj.seg_textcoal_nt = UNKNOWN;
+    machobj.seg_tlscoal_nt = UNKNOWN;
+    machobj.seg_datacoal_nt = UNKNOWN;
 
     // Initialize buffers
 
@@ -1739,8 +1737,8 @@ void MachObj_setModuleCtorDtor(Symbol* sfunc, bool isCtor)
     const p2align = I64 ? 3 : 2; // align to _tysize[TYnptr]
 
     IDXSEC seg = isCtor
-                ? getsegment2(seg_mod_init_func, "__mod_init_func", "__DATA", p2align, S_MOD_INIT_FUNC_POINTERS)
-                : getsegment2(seg_mod_term_func, "__mod_term_func", "__DATA", p2align, S_MOD_TERM_FUNC_POINTERS);
+                ? getsegment2(machobj.seg_mod_init_func, "__mod_init_func", "__DATA", p2align, S_MOD_INIT_FUNC_POINTERS)
+                : getsegment2(machobj.seg_mod_term_func, "__mod_term_func", "__DATA", p2align, S_MOD_TERM_FUNC_POINTERS);
 
     const int relflags = I64 ? CFoff | CFoffset64 : CFoff;
     const int sz = MachObj_reftoident(seg, SegData[seg].SDoffset, sfunc, 0, relflags);
@@ -1765,7 +1763,7 @@ void MachObj_ehtables(Symbol* sfunc,uint size,Symbol* ehsym)
 
     int p2align = I64 ? 3 : 2;            // align to _tysize[TYnptr]
     // The size is (FuncTable).sizeof in deh2.d
-    int seg = getsegment2(seg_deh_eh, "__deh_eh", "__DATA", p2align, S_REGULAR);
+    int seg = getsegment2(machobj.seg_deh_eh, "__deh_eh", "__DATA", p2align, S_REGULAR);
 
     OutBuffer* buf = SegData[seg].SDbuf;
     if (I64)
@@ -1824,7 +1822,7 @@ int MachObj_comdat(Symbol* s)
         segname = "__TEXT";
         p2align = 2;              // 4 byte alignment
         flags = S_COALESCED | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS;
-        s.Sseg = getsegment2(seg_textcoal_nt, sectname, segname, p2align, flags);
+        s.Sseg = getsegment2(machobj.seg_textcoal_nt, sectname, segname, p2align, flags);
     }
     else if ((s.ty() & mTYLINK) == mTYweakLinkage)
     {
@@ -1839,7 +1837,7 @@ int MachObj_comdat(Symbol* s)
         if (I64)
             s.Sseg = objmod.tlsseg().SDseg;
         else
-            s.Sseg = getsegment2(seg_tlscoal_nt, "__tlscoal_nt", "__DATA", p2align, S_COALESCED);
+            s.Sseg = getsegment2(machobj.seg_tlscoal_nt, "__tlscoal_nt", "__DATA", p2align, S_COALESCED);
         MachObj_data_start(s, 1 << p2align, s.Sseg);
     }
     else
@@ -1848,7 +1846,7 @@ int MachObj_comdat(Symbol* s)
         sectname = "__datacoal_nt";
         segname = "__DATA";
         p2align = 4;              // 16 byte alignment
-        s.Sseg = getsegment2(seg_datacoal_nt, sectname, segname, p2align, S_COALESCED);
+        s.Sseg = getsegment2(machobj.seg_datacoal_nt, sectname, segname, p2align, S_COALESCED);
         MachObj_data_start(s, 1 << p2align, s.Sseg);
     }
                                 // find or create new segment
@@ -2034,7 +2032,7 @@ int MachObj_codeseg(const char* name,int suffix)
 /*********************************
  * Define segments for Thread Local Storage for 32bit.
  * Output:
- *      seg_tlsseg      set to segment number for TLS segment.
+ *      machobj.seg_tlsseg      set to segment number for TLS segment.
  * Returns:
  *      segment for TLS segment
  */
@@ -2042,8 +2040,8 @@ int MachObj_codeseg(const char* name,int suffix)
 seg_data* MachObj_tlsseg()
 {
     //printf("MachObj_tlsseg(\n");
-    int seg = I32 ? getsegment2(seg_tlsseg, "__tls_data", "__DATA", 2, S_REGULAR)
-                  : getsegment2(seg_tlsseg, "__thread_vars", "__DATA", 0, S_THREAD_LOCAL_VARIABLES);
+    int seg = I32 ? getsegment2(machobj.seg_tlsseg, "__tls_data", "__DATA", 2, S_REGULAR)
+                  : getsegment2(machobj.seg_tlsseg, "__thread_vars", "__DATA", 0, S_THREAD_LOCAL_VARIABLES);
     return SegData[seg];
 }
 
@@ -2084,12 +2082,12 @@ int MachObj_thread_vars(ref Symbol s, out targ_size_t offset, bool bss)
     if (bss)
     {
         MachObj_tlsseg_bss();
-        si.Sseg = seg_tlsseg_bss;
+        si.Sseg = machobj.seg_tlsseg_bss;
     }
     else
     {
         MachObj_tlsseg_data();
-        si.Sseg = seg_tlsseg_data;
+        si.Sseg = machobj.seg_tlsseg_data;
     }
     si.Sfl = FL.tlsdata;
     MachObj_data_start(si, 0,si.Sseg);
@@ -2099,7 +2097,7 @@ int MachObj_thread_vars(ref Symbol s, out targ_size_t offset, bool bss)
     /* Create __thread_vars section, and s will refer to it
      */
     seg_data* tvsegdata = MachObj_tlsseg(); // __thread_vars segment
-    int tvseg = seg_tlsseg;
+    int tvseg = machobj.seg_tlsseg;
     s.Sseg = tvseg;
     MachObj_pubdef(tvseg, &s, tvsegdata.SDbuf.length());
 
@@ -2126,7 +2124,7 @@ int MachObj_thread_vars(ref Symbol s, out targ_size_t offset, bool bss)
 /*********************************
  * Define segments for Thread Local Storage.
  * Output:
- *      seg_tlsseg_bss  set to segment number for TLS segment.
+ *      machobj.seg_tlsseg_bss  set to segment number for TLS segment.
  * Returns:
  *      segment for TLS segment
  */
@@ -2145,7 +2143,7 @@ seg_data* MachObj_tlsseg_bss()
     {
         // The alignment should actually be alignment of the largest variable in
         // the section, but this seems to work anyway.
-        int seg = getsegment2(seg_tlsseg_bss, "__thread_bss", "__DATA", 3, S_THREAD_LOCAL_ZEROFILL);
+        int seg = getsegment2(machobj.seg_tlsseg_bss, "__thread_bss", "__DATA", 3, S_THREAD_LOCAL_ZEROFILL);
         return SegData[seg];
     }
 }
@@ -2153,7 +2151,7 @@ seg_data* MachObj_tlsseg_bss()
 /*********************************
  * Define segments for Thread Local Storage data.
  * Output:
- *      seg_tlsseg_data    set to segment number for TLS data segment.
+ *      machobj.seg_tlsseg_data    set to segment number for TLS data segment.
  * Returns:
  *      segment for TLS data segment
  */
@@ -2165,7 +2163,7 @@ seg_data* MachObj_tlsseg_data()
 
     // The alignment should actually be alignment of the largest variable in
     // the section, but this seems to work anyway.
-    int seg = getsegment2(seg_tlsseg_data, "__thread_data", "__DATA", 4, S_THREAD_LOCAL_REGULAR);
+    int seg = getsegment2(machobj.seg_tlsseg_data, "__thread_data", "__DATA", 4, S_THREAD_LOCAL_REGULAR);
     return SegData[seg];
 }
 
@@ -3028,10 +3026,9 @@ void MachObj_gotref(Symbol* s)
 @trusted
 Symbol* MachObj_tlv_bootstrap()
 {
-    __gshared Symbol* tlv_bootstrap_sym;
-    if (!tlv_bootstrap_sym)
-        tlv_bootstrap_sym = symbol_name("__tlv_bootstrap", SC.extern_, type_fake(TYnfunc));
-    return tlv_bootstrap_sym;
+    if (!machobj.tlv_bootstrap_sym)
+        machobj.tlv_bootstrap_sym = symbol_name("__tlv_bootstrap", SC.extern_, type_fake(TYnfunc));
+    return machobj.tlv_bootstrap_sym;
 }
 
 

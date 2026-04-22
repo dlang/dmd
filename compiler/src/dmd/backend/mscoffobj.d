@@ -115,7 +115,7 @@ struct MscoffObj
     segidx_t seg_tlsseg_bss = UNKNOWN;
 }
 
-__gshared MscoffObj mscoffobj;
+private __gshared MscoffObj mscoffobj;
 
 enum SCNHDR_TAB_INITSIZE = 16;  // initial number of sections in buffer
 enum SCNHDR_TAB_INC = 4;        // number of sections to increment buffer by
