@@ -925,27 +925,17 @@ nothrow:
         return 0;
     }
 
-    extern(D) void appendInterpolatedPart(const ref OutBuffer buf)
-    {
-        appendInterpolatedPart(cast(const(char)*)buf[].ptr, buf.length);
-    }
-
     extern(D) void appendInterpolatedPart(const(char)[] str)
-    {
-        appendInterpolatedPart(str.ptr, str.length);
-    }
-
-    extern(D) void appendInterpolatedPart(const(char)* ptr, size_t length)
     {
         assert(value == TOK.interpolated);
         if (interpolatedSet is null)
             interpolatedSet = new InterpolatedSet;
 
-        auto s = cast(char*)mem.xmalloc_noscan(length + 1);
-        memcpy(s, ptr, length);
-        s[length] = 0;
+        auto s = cast(char*)mem.xmalloc_noscan(str.length + 1);
+        memcpy(s, str.ptr, str.length);
+        s[str.length] = 0;
 
-        interpolatedSet.parts ~= cast(string) s[0 .. length];
+        interpolatedSet.parts ~= cast(string) s[0 .. str.length];
     }
 
     /****

@@ -1643,7 +1643,7 @@ class Lexer
                 if (c == terminator)
                 {
                     if (supportInterpolation)
-                        result.appendInterpolatedPart(stringbuffer);
+                        result.appendInterpolatedPart(stringbuffer[]);
                     else
                         result.setString(stringbuffer[]);
 
@@ -1951,11 +1951,11 @@ class Lexer
             case TOK.rightCurly:
                 if (--nest == 0)
                 {
+                    const length = p - 1 - pstart;
                     if (supportInterpolation)
-                        result.appendInterpolatedPart(pstart, p - 1 - pstart);
+                        result.appendInterpolatedPart(pstart[0 .. length]);
                     else
-                        result.setString(pstart[0 .. p - 1 - pstart]);
-
+                        result.setString(pstart[0 .. length]);
                     stringPostfix(result);
                     return;
                 }
@@ -1994,7 +1994,7 @@ class Lexer
             // expression, at this level we need to scan until the closing ')'
 
             // always put the string part in first
-            token.appendInterpolatedPart(stringbuffer);
+            token.appendInterpolatedPart(stringbuffer[]);
             stringbuffer.setsize(0);
 
             int openParenCount = 1;
@@ -2119,7 +2119,7 @@ class Lexer
                 if (c != tc)
                     goto default;
                 if (supportInterpolation)
-                    t.appendInterpolatedPart(stringbuffer);
+                    t.appendInterpolatedPart(stringbuffer[]);
                 else
                     t.setString(stringbuffer[]);
                 if (!Ccompile)
@@ -3289,9 +3289,9 @@ class Lexer
     /***************************************
      * Scan forward to start of next line.
      * Params:
-     *    defines = send characters to `defines`
+     *    sink = send characters in the line to this delegate
      */
-    final void skipToNextLine(OutBuffer* defines = null)
+    final void skipToNextLine(void delegate(char c) nothrow sink = null)
     {
         while (1)
         {
@@ -3312,8 +3312,8 @@ class Lexer
                 break;
 
             default:
-                if (defines)
-                    defines.writeByte(*p); // don't care about Unicode line endings for C
+                if (sink)
+                    sink(*p); // don't care about Unicode line endings for C
                 else if (*p & 0x80)
                 {
                     const u = decodeUTF();
