@@ -3289,9 +3289,9 @@ class Lexer
     /***************************************
      * Scan forward to start of next line.
      * Params:
-     *    defines = send characters to `defines`
+     *    sink = send characters in the line to this delegate
      */
-    final void skipToNextLine(OutBuffer* defines = null)
+    final void skipToNextLine(void delegate(char c) nothrow sink = null)
     {
         while (1)
         {
@@ -3312,8 +3312,8 @@ class Lexer
                 break;
 
             default:
-                if (defines)
-                    defines.writeByte(*p); // don't care about Unicode line endings for C
+                if (sink)
+                    sink(*p); // don't care about Unicode line endings for C
                 else if (*p & 0x80)
                 {
                     const u = decodeUTF();
