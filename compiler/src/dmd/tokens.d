@@ -949,40 +949,23 @@ nothrow:
     }
 
     /****
-     * Set to contents of ptr[0..length]
+     * Set to contents of str
      * Params:
-     *  ptr = pointer to string
-     *  length = length of string
+     *  str = string
      */
-    void setString(const(char)* ptr, size_t length)
+    extern (D) void setString(const(char)[] str)
     {
         value = TOK.string_;
-        auto s = cast(char*)mem.xmalloc_noscan(length + 1);
-        memcpy(s, ptr, length);
-        s[length] = 0;
-        ustring = s;
-        len = cast(uint)length;
-        postfix = 0;
-    }
-
-    /****
-     * Set to contents of buf
-     * Params:
-     *  buf = string (not zero terminated)
-     */
-    void setString(const ref OutBuffer buf)
-    {
-        setString(cast(const(char)*)buf[].ptr, buf.length);
-    }
-
-    /****
-     * Set to empty string
-     */
-    void setString()
-    {
-        value = TOK.string_;
-        ustring = "";
-        len = 0;
+        len = cast(uint)str.length;
+        if (len)
+        {
+            auto s = cast(char*)mem.xmalloc_noscan(len + 1);
+            memcpy(s, str.ptr, len);
+            s[len] = 0;
+            ustring = s;
+        }
+        else
+            ustring = "";
         postfix = 0;
     }
 
