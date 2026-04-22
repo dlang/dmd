@@ -213,27 +213,86 @@ extern(C++) final class LintVisitor : Visitor
 
     private LintFlags parsePragmaArgs(Expressions* args)
     {
+        import core.stdc.string : strcmp;
+
         LintFlags newFlags = currentFlags();
         if (!args || args.length == 0)
         {
             newFlags |= LintFlags.all;
+            return newFlags;
         }
-        else
-        {
-            foreach (arg; *args)
-            {
-                if (!arg) continue;
-                auto id = arg.isIdentifierExp();
-                if (!id) continue;
 
-                if (id.ident == Id.constSpecial)
-                    newFlags |= LintFlags.constSpecial;
-                else if (id.ident == Id.unusedParams)
-                    newFlags |= LintFlags.unusedParams;
-                else if (id.ident == Id.none)
-                    newFlags = LintFlags.none;
-                else if (id.ident == Id.all)
-                    newFlags |= LintFlags.all;
+        foreach (arg; *args)
+        {
+            if (!arg) continue;
+
+            if (auto ve = arg.isVarExp())
+            {
+                if (ve.var && ve.var.isVarDeclaration() && ve.var.isVarDeclaration()._init)
+                {
+                    if (auto ei = ve.var.isVarDeclaration()._init.isExpInitializer())
+                        arg = ei.exp;
+                }
+            }
+
+            if (auto id = arg.isIdentifierExp())
+            {
+                if (id.ident == Id.constSpecial) newFlags |= LintFlags.constSpecial;
+                else if (id.ident == Id.unusedParams) newFlags |= LintFlags.unusedParams;
+                else if (id.ident == Id.none) newFlags = LintFlags.none;
+                else if (id.ident == Id.all) newFlags |= LintFlags.all;
+            }
+
+            else if (auto sle = arg.isStructLiteralExp())
+            {
+                if (sle.sd && sle.sd.ident && strcmp(sle.sd.ident.toChars(), "LintParams") == 0)
+                {
+                    bool masterEnabled = true;
+                    LintFlags tempFlags = newFlags;
+
+                    for (size_t i = 0; i < sle.elements.length; i++)
+                    {
+                        Expression e = (*sle.elements)[i];
+                        if (!e) continue;
+
+                        VarDeclaration field = sle.sd.fields[i];
+                        if (!field || !field.ident) continue;
+
+                        bool isFieldEnabled = false;
+
+                        if (auto ie = e.isIntegerExp())
+                        {
+                            isFieldEnabled = ie.getInteger() != 0;
+                        }
+                        else if (auto ce = e.isCastExp())
+                        {
+                            if (auto ce_ie = ce.e1.isIntegerExp())
+                                isFieldEnabled = ce_ie.getInteger() != 0;
+                        }
+
+                        const(char)* fieldName = field.ident.toChars();
+
+                        if (strcmp(fieldName, "enabled") == 0)
+                        {
+                            masterEnabled = isFieldEnabled;
+                        }
+                        else if (strcmp(fieldName, "constSpecial") == 0)
+                        {
+                            if (isFieldEnabled) tempFlags |= LintFlags.constSpecial;
+                            else tempFlags &= ~LintFlags.constSpecial;
+                        }
+                        else if (strcmp(fieldName, "unusedParams") == 0)
+                        {
+                            if (isFieldEnabled) tempFlags |= LintFlags.unusedParams;
+                            else tempFlags &= ~LintFlags.unusedParams;
+                        }
+                    }
+
+                    if (!masterEnabled)
+                        newFlags = LintFlags.none;
+                    else
+                        newFlags = tempFlags;
+                }
             }
         }
         return newFlags;

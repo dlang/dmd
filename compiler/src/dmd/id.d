@@ -543,6 +543,8 @@ immutable Msgtable[] msgtable =
     { "lint" },
     { "constSpecial" },
     { "unusedParams" },
+    { "LintParams" },
+    { "enabled" },
     { "none" },
     { "all" },
 
