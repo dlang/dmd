@@ -8932,6 +8932,8 @@ struct Id final
     static Identifier* lint;
     static Identifier* constSpecial;
     static Identifier* unusedParams;
+    static Identifier* LintParams;
+    static Identifier* enabled;
     static Identifier* none;
     static Identifier* all;
     static void initialize();
