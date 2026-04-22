@@ -2715,7 +2715,8 @@ public:
 
         foreach (i; 0 .. e.len)
         {
-            writeCharLiteral(*buf, e.getCodeUnit(i));
+            void sink(char c) { buf.writeByte(c); }
+            writeCharLiteral(e.getCodeUnit(i), &sink);
         }
         buf.writeByte('"');
     }
