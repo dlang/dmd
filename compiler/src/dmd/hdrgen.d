@@ -2401,7 +2401,8 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         const o = buf.length;
         foreach (i; 0 .. e.len)
         {
-            writeCharLiteral(buf, e.getCodeUnit(i));
+            void sink(char c) { buf.writeByte(c); }
+            writeCharLiteral(e.getCodeUnit(i), &sink);
         }
         if (hgs.ddoc)
             escapeDdocString(buf, o);
@@ -2421,7 +2422,10 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             if (idx % 2 == 0)
             {
                 foreach(ch; str)
-                    writeCharLiteral(buf, ch);
+                {
+                    void sink(char c) { buf.put(c); }
+                    writeCharLiteral(ch, &sink);
+                }
             }
             else
             {
