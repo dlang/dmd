@@ -8920,9 +8920,6 @@ struct Token final
         };
         Identifier* ident;
     };
-    void setString(const char* ptr, size_t length);
-    void setString(const OutBuffer& buf);
-    void setString();
     const char* toChars() const;
     static const char* toChars(TOK value);
     Token() :
