@@ -1224,7 +1224,7 @@ void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
     {
         localgot = null;                // no local variables
         CodeBuilder cdbgot; cdbgot.ctor();
-        load_localgot(cdbgot);          // load GOT in EBX
+        load_localgot(cgstate,cdbgot);          // load GOT in EBX
         code* c1 = cdbgot.finish();
         if (c1)
         {

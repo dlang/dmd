@@ -136,7 +136,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             {
                 getregs(cdb, cs.reg);
                 const p = cast(targ_size_t*) &(e2.EV);
-                movregconst(cdb,cs.reg,*p,sz == 8);
+                movregconst(cg,cdb,cs.reg,*p,sz == 8);
             }
             else
             {
@@ -150,7 +150,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 if (r >= 32)
                     loadFloatRegConst(cdb,r,e2.EV.Vdouble,sz);
                 else
-                    movregconst(cdb,r,*p,(sz == 8) ? 64 : 0);
+                    movregconst(cg,cdb,r,*p,(sz == 8) ? 64 : 0);
                 storeToEA(cs,r,sz);
                 cdb.gen(&cs);
             }
@@ -1501,21 +1501,21 @@ L3:
             else if (I64 && sz == 8)
             {
                 assert(!flag);
-                movregconst(cdb,reg,1,64|8);   // MOV reg,1
+                movregconst(cg,cdb,reg,1,64|8);   // MOV reg,1
                 nop = gennop(nop);
                 genjmp(cdb,jop,FL.code,cast(block*) nop);  // Jtrue nop
                                                             // MOV reg,0
-                movregconst(cdb,reg,0,(pretregs & mPSW) ? 64|8 : 64);
+                movregconst(cg,cdb,reg,0,(pretregs & mPSW) ? 64|8 : 64);
                 cg.regcon.immed.mval &= ~mask(reg);
             }
             else
             {
                 assert(!flag);
-                movregconst(cdb,reg,1,8);      // MOV reg,1
+                movregconst(cg,cdb,reg,1,8);      // MOV reg,1
                 nop = gennop(nop);
                 genjmp(cdb,jop,FL.code,cast(block*) nop);  // Jtrue nop
                                                             // MOV reg,0
-                movregconst(cdb,reg,0,(pretregs & mPSW) ? 8 : 0);
+                movregconst(cg,cdb,reg,0,(pretregs & mPSW) ? 8 : 0);
                 cg.regcon.immed.mval &= ~mask(reg);
             }
             pretregs = retregs;

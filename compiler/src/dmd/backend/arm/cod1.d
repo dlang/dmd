@@ -678,7 +678,7 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
 
     void Lptr(){
         if (config.flags3 & CFG3ptrchk)
-            cod3_ptrchk(cdb, pcs, keepmsk);        // validate pointer code
+            cod3_ptrchk(cg, cdb, pcs, keepmsk);        // validate pointer code
     }
 
     //printf("fl: %s\n", fl_str(fl));
@@ -2246,7 +2246,7 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
                 if (s != tls_get_addr_sym)
                 {
                     //printf("call %s\n", s.Sident.ptr);
-                    load_localgot(cdb);
+                    load_localgot(cg,cdb);
                     cdbe.gencs1(INSTR.branch_imm(1, 0), 0, fl, s);    // CALL extern
                 }
                 else
@@ -2272,7 +2272,7 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
         assert(e1.Eoper == OPind);
         elem* e11 = e1.E1;
         tym_t e11ty = tybasic(e11.Ety);
-        load_localgot(cdb);
+        load_localgot(cg,cdb);
 
         /* Mask of registers destroyed by the function call
          */
@@ -2642,14 +2642,14 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
             }
             else
             {
-                movregconst(cdb, reg, value, flags);
+                movregconst(cg, cdb, reg, value, flags);
                 flags = 0;                          // flags are already set
             }
         }
         else if (sz == 16)
         {
-            movregconst(cdb, findreg(forregs & INSTR.LSW), cast(targ_size_t)e.Vcent.lo, 64);
-            movregconst(cdb, findreg(forregs & INSTR.MSW), cast(targ_size_t)e.Vcent.hi, 64);
+            movregconst(cg, cdb, findreg(forregs & INSTR.LSW), cast(targ_size_t)e.Vcent.lo, 64);
+            movregconst(cg, cdb, findreg(forregs & INSTR.MSW), cast(targ_size_t)e.Vcent.hi, 64);
         }
         else
             assert(0);

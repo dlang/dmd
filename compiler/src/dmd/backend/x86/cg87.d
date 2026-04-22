@@ -2994,7 +2994,7 @@ private void cdd_u64_I32(ref CGstate cg,ref CodeBuilder cdb, elem* e, ref regm_t
     allocreg(cdb,retregs,tym);
     const reg  = findreglsw(retregs);
     reg_t reg2 = findregmsw(retregs);
-    movregconst(cdb,reg2,0x80000000,0);
+    movregconst(cg,cdb,reg2,0x80000000,0);
     getregs(cdb,mask(reg2) | mAX);
 
     cdb.genfltreg(0xC7,0,0);
@@ -3078,7 +3078,7 @@ private void cdd_u64_I64(ref CGstate cg,ref CodeBuilder cdb, elem* e, ref regm_t
     const reg = allocreg(cdb,retregs,tym);
     regm_t regm2 = ALLREGS & ~retregs & ~mAX;
     const reg2 = allocreg(cdb,regm2,tym);
-    movregconst(cdb,reg2,0x80000000,0);
+    movregconst(cg,cdb,reg2,0x80000000,0);
     getregs(cdb,mask(reg2) | mAX);
 
     cdb.genfltreg(0xC7,0,0);

@@ -230,7 +230,7 @@ void codgen(Symbol* sfunc)
         }
 
         // See which variables we can put into registers
-        cg.allregs |= cod3_useBP();                // use EBP as general purpose register
+        cg.allregs |= cod3_useBP(cgstate);             // use EBP as general purpose register
 
         // If pic code, but EBX was never needed
         if (!(cg.allregs & mask(PICREG)) && !cg.gotref)
@@ -1458,7 +1458,7 @@ private void blcodgen(ref CGstate cg, block* bl)
     cg.refparam = 0;
     assert((cg.regcon.cse.mops & cg.regcon.cse.mval) == cg.regcon.cse.mops);
 
-    outblkexitcode(cdb, bl, anyspill, sflsave, &cg.retsym, mfuncregsave);
+    outblkexitcode(cg, cdb, bl, anyspill, sflsave, &cg.retsym, mfuncregsave);
     bl.Bcode = cdb.finish();
 
     for (int i = 0; i < anyspill; i++)
