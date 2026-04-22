@@ -553,17 +553,17 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     if (cs.Irex & REX_B)
                         regx |= 8;
                     if (I64 && sz == 8)
-                        movregconst(cdb,regx,*p,64);
+                        movregconst(cg,cdb,regx,*p,64);
                     else
-                        movregconst(cdb,regx,*p,1 ^ (cs.Iop & 1));
+                        movregconst(cg,cdb,regx,*p,1 ^ (cs.Iop & 1));
                     if (sz == 2 * REGSIZE)
                     {   getlvalue_msw(cs);
                         if (REGSIZE == 2)
-                            movregconst(cdb,cs.Irm & 7,(cast(ushort*)p)[1],0);
+                            movregconst(cg,cdb,cs.Irm & 7,(cast(ushort*)p)[1],0);
                         else if (REGSIZE == 4)
-                            movregconst(cdb,cs.Irm & 7,(cast(uint*)p)[1],0);
+                            movregconst(cg,cdb,cs.Irm & 7,(cast(uint*)p)[1],0);
                         else if (REGSIZE == 8)
-                            movregconst(cdb,cs.Irm & 7,p[1],0);
+                            movregconst(cg,cdb,cs.Irm & 7,p[1],0);
                         else
                             assert(0);
                     }
@@ -1642,7 +1642,7 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             else
                 genmulimm(cdb,reg,DX,lsw);         // IMUL reg,EDX,lsw
 
-            movregconst(cdb,DX,lsw,0);             // MOV EDX,lsw
+            movregconst(cg,cdb,DX,lsw,0);             // MOV EDX,lsw
             getregs(cdb,mDX);
             cdb.gen2(0xF7,modregrm(3,4,DX));       // MUL EDX
             cdb.gen2(0x03,modregrm(3,DX,reg));     // ADD EDX,reg
@@ -1808,7 +1808,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
              *    q = -q
              */
             const bool mgt = mhighbit || m >= (1UL << (N - 1));
-            movregconst(cdb, AX, cast(targ_size_t)m, (sz == 8) ? 0x40 : 0);  // MOV EAX,m
+            movregconst(cg, cdb, AX, cast(targ_size_t)m, (sz == 8) ? 0x40 : 0);  // MOV EAX,m
             cdb.gen2(0xF7,grex | modregrmx(3,5,reg));               // IMUL reg
             if (mgt)
                 cdb.gen2(0x03,grex | modregrmx(3,DX,reg));          // ADD EDX,reg
@@ -1844,7 +1844,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     }
                     else
                     {
-                        movregconst(cdb,AX,d,(sz == 8) ? 0x40 : 0);     // MOV EAX,d
+                        movregconst(cg,cdb,AX,d,(sz == 8) ? 0x40 : 0);     // MOV EAX,d
                         cdb.gen2(0x0FAF,grex | modregrmx(3,AX,DX));     // IMUL EAX,EDX
                         getregsNoSave(mAX);                             // EAX no longer contains 'd'
                     }
@@ -1894,7 +1894,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 getregs(cdb, mAX|mDX);
 
                 genmovreg(cdb,AX,reg);                                // MOV EAX,reg
-                movregconst(cdb, DX, cast(targ_size_t)m, (sz == 8) ? 0x40 : 0); // MOV EDX,m
+                movregconst(cg, cdb, DX, cast(targ_size_t)m, (sz == 8) ? 0x40 : 0); // MOV EDX,m
                 getregs(cdb,mask(reg) | mDX | mAX);
                 cdb.gen2(0xF7,grex | modregrmx(3,4,DX));              // MUL EDX
                 genmovreg(cdb,AX,reg);                                // MOV EAX,reg
@@ -1938,7 +1938,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     cdb.genc2(0xC1,grex | modregrm(3,5,AX),shpre);      // SHR EAX,shpre
                 }
                 getregs(cdb,mDX);
-                movregconst(cdb, DX, cast(targ_size_t)m, (sz == 8) ? 0x40 : 0);  // MOV EDX,m
+                movregconst(cg, cdb, DX, cast(targ_size_t)m, (sz == 8) ? 0x40 : 0);  // MOV EDX,m
                 getregs(cdb,mDX | mAX);
                 cdb.gen2(0xF7,grex | modregrmx(3,4,DX));                // MUL EDX
                 if (shpost)
@@ -1966,7 +1966,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     else
                     {
                         assert(!(mask(r3) & mAX));
-                        movregconst(cdb,AX,e2factor,(sz == 8) ? 0x40 : 0);  // MOV EAX,e2factor
+                        movregconst(cg,cdb,AX,e2factor,(sz == 8) ? 0x40 : 0);  // MOV EAX,e2factor
                         getregs(cdb,mAX);
                         cdb.gen2(0x0FAF,grex | modregrmx(3,AX,r3));   // IMUL EAX,r3
                     }
@@ -2078,7 +2078,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             cs.Iop = LOD;
             cdb.gen(&cs);                   // MOV AX,EA
             if (uns)                        // if uint
-                movregconst(cdb,DX,0,0);    // CLR DX
+                movregconst(cg,cdb,DX,0,0);    // CLR DX
             else                            // else signed
             {
                 cdb.gen1(0x99);             // CWD
@@ -2182,7 +2182,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             cdb.genregs(0x09,rlo,rhi);                             // OR  rlo,rhi
             cdb.gen2(0x0F94,modregrmx(3,0,rlo));                   // SETZ rlo
             cdb.genregs(MOVZXb,rlo,rlo);                           // MOVZX rlo,rloL
-            movregconst(cdb,rhi,0,0);                              // MOV rhi,0
+            movregconst(cg,cdb,rhi,0,0);                              // MOV rhi,0
         }
 
         opAssStorePair(cg, cdb, cs, e, rlo, rhi, pretregs);
@@ -2671,7 +2671,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
              genregs(cdb,0x39,CX,DX);             // CMP EDX,ECX
              code* c1 = gennop(null);
              genjmp(cdb,JNE,FL.code,cast(block*)c1);  // JNE C1
-             movregconst(cdb,DX,0,0);             // XOR EDX,EDX
+             movregconst(cg,cdb,DX,0,0);             // XOR EDX,EDX
              genregs(cdb,0x39,BX,AX);             // CMP EAX,EBX
              genjmp(cdb,JE,FL.code,cast(block*)c1);   // JZ C1
              code* c3 = gen1(null,0x40 + DX);                  // INC EDX
@@ -3187,21 +3187,21 @@ L3:
             else if (I64 && sz == 8)
             {
                 assert(!flag);
-                movregconst(cdb,reg,1,64|8);   // MOV reg,1
+                movregconst(cg,cdb,reg,1,64|8);   // MOV reg,1
                 nop = gennop(nop);
                 genjmp(cdb,jop,FL.code,cast(block*) nop);  // Jtrue nop
                                                             // MOV reg,0
-                movregconst(cdb,reg,0,(pretregs & mPSW) ? 64|8 : 64);
+                movregconst(cg,cdb,reg,0,(pretregs & mPSW) ? 64|8 : 64);
                 cg.regcon.immed.mval &= ~mask(reg);
             }
             else
             {
                 assert(!flag);
-                movregconst(cdb,reg,1,8);      // MOV reg,1
+                movregconst(cg,cdb,reg,1,8);      // MOV reg,1
                 nop = gennop(nop);
                 genjmp(cdb,jop,FL.code,cast(block*) nop);  // Jtrue nop
                                                             // MOV reg,0
-                movregconst(cdb,reg,0,(pretregs & mPSW) ? 8 : 0);
+                movregconst(cg,cdb,reg,0,(pretregs & mPSW) ? 8 : 0);
                 cg.regcon.immed.mval &= ~mask(reg);
             }
             pretregs = retregs;
@@ -3697,7 +3697,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             cdb.gen2(0x8C,modregrm(3,segreg,reg));  // MOV reg,segreg
         }
         else
-            movregconst(cdb,reg,0,0);  // 0 extend
+            movregconst(cg,cdb,reg,0,0);  // 0 extend
 
         fixresult(cg,cdb,e,retregsx | regm,pretregs);
         return;
@@ -3761,7 +3761,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             if (!retregs)
                 retregs = BYTEREGS;
             reg = allocreg(cdb,retregs,TYint);
-            movregconst(cdb,reg,0,0);                   //  XOR reg,reg
+            movregconst(cg,cdb,reg,0,0);                   //  XOR reg,reg
             loadea(cg,cdb,e11,cs,0x8A,reg,0,retregs,retregs);  //  MOV regL,EA
             freenode(e11);
             freenode(e1);
@@ -3916,7 +3916,7 @@ void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 op == OPu8_16 && mask(reg) & BYTEREGS &&
                 config.target_cpu < TARGET_PentiumPro)
             {
-                movregconst(cdb,reg,0,0);                 //  XOR reg,reg
+                movregconst(cg,cdb,reg,0,0);                 //  XOR reg,reg
                 loadea(cg,cdb,e1,cs,0x8A,reg,0,retregsx,retregsx); //  MOV regL,EA
             }
             else
@@ -4410,11 +4410,11 @@ void cdbtst(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             }
             else
             {
-                movregconst(cdb,reg,1,8);      // MOV reg,1
+                movregconst(cg,cdb,reg,1,8);      // MOV reg,1
                 cnop = gennop(null);
                 genjmp(cdb,JC,FL.code, cast(block*) cnop);  // Jtrue nop
                                                             // MOV reg,0
-                movregconst(cdb,reg,0,8);
+                movregconst(cg,cdb,reg,0,8);
                 cg.regcon.immed.mval &= ~mask(reg);
             }
             pretregs = retregs;
@@ -4530,11 +4530,11 @@ void cdbt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
             }
             else
             {
-                movregconst(cdb,reg,1,8);      // MOV reg,1
+                movregconst(cg,cdb,reg,1,8);      // MOV reg,1
                 cnop = gennop(null);
                 genjmp(cdb,JC,FL.code, cast(block*) cnop);    // Jtrue nop
                                                             // MOV reg,0
-                movregconst(cdb,reg,0,8);
+                movregconst(cg,cdb,reg,0,8);
                 cg.regcon.immed.mval &= ~mask(reg);
             }
             pretregs = retregs;

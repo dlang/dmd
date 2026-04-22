@@ -936,7 +936,7 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
 
     void Lptr(){
         if (config.flags3 & CFG3ptrchk)
-            cod3_ptrchk(cdb, pcs, keepmsk);        // validate pointer code
+            cod3_ptrchk(cg, cdb, pcs, keepmsk);        // validate pointer code
     }
 
 
@@ -2931,7 +2931,7 @@ void callclib(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint clib, ref regm_
              */
             if (config.flags3 & CFG3pic)
             {
-                load_localgot(cdb);     // EBX gets set to this value
+                load_localgot(cg,cdb);     // EBX gets set to this value
             }
         }
 
@@ -3833,7 +3833,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     if (I64 && config.exe != EX_WIN64 && e.Eflags & EFLAGS_variadic)
     {
         getregs(cdb,mAX);
-        movregconst(cdb,AX,xmmcnt,1);
+        movregconst(cg,cdb,AX,xmmcnt,1);
         keepmsk |= mAX;
     }
 
@@ -3995,7 +3995,7 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
                 if (s != tls_get_addr_sym)
                 {
                     //printf("call %s\n", s.Sident.ptr);
-                    load_localgot(cdb);
+                    load_localgot(cg,cdb);
                     cdbe.gencs(0xE8, 0, fl, s);    // CALL extern
                 }
                 else if (I64)
@@ -4026,7 +4026,7 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
         elem* e11 = e1.E1;
         tym_t e11ty = tybasic(e11.Ety);
         assert(!I16 || (e11ty == (farfunc ? TYfptr : TYnptr)));
-        load_localgot(cdb);
+        load_localgot(cg,cdb);
         if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS)) // 32 bit only
         {
             if (config.flags3 & CFG3pic)
@@ -4697,7 +4697,7 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
             {
                 getregs_imm(cdb, mCX | retregs);
                                                     // MOV CX,sz/2
-                movregconst(cdb, CX, npushes, 0);
+                movregconst(cg,cdb, CX, npushes, 0);
                 if (!doneoff)
                 {   // This should be done when
                     // reg is loaded. Fix later
@@ -5445,7 +5445,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
             }
             else
             {
-                movregconst(cdb, reg, value, flags);
+                movregconst(cg, cdb, reg, value, flags);
                 flags = 0;                          // flags are already set
             }
         }
@@ -5457,14 +5457,14 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
             regm_t mswflags = 0;
             if (forregs & mES)
             {
-                movregconst(cdb, reg, msw, 0); // MOV reg,segment
+                movregconst(cg, cdb, reg, msw, 0); // MOV reg,segment
                 genregs(cdb, 0x8E, 0, reg);    // MOV ES,reg
                 msw = lsw;                               // MOV reg,offset
             }
             else
             {
                 sreg = findreglsw(forregs);
-                movregconst(cdb, sreg, lsw, 0);
+                movregconst(cg, cdb, sreg, lsw, 0);
                 reg = findregmsw(forregs);
                 /* Decide if we need to set flags when we load msw      */
                 if (flags && (msw && msw|lsw || !(msw|lsw)))
@@ -5472,7 +5472,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
                     flags = 0;
                 }
             }
-            movregconst(cdb, reg, msw, mswflags);
+            movregconst(cg, cdb, reg, msw, mswflags);
         }
         else if (sz == 8)
         {
@@ -5486,9 +5486,9 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
                      */
                     regm_t rm = ALLREGS;
                     const r = allocreg(cdb, rm, TYint);    // allocate scratch register
-                    movregconst(cdb, r, p[0], 0);
+                    movregconst(cg, cdb, r, p[0], 0);
                     cdb.genfltreg(0x89, r, 0);               // MOV floatreg,r
-                    movregconst(cdb, r, p[1], 0);
+                    movregconst(cg, cdb, r, p[1], 0);
                     cdb.genfltreg(0x89, r, 4);               // MOV floatreg+4,r
 
                     const opmv = xmmload(tym);
@@ -5496,24 +5496,24 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
                 }
                 else
                 {
-                    movregconst(cdb, findreglsw(forregs) ,p[0], 0);
-                    movregconst(cdb, findregmsw(forregs) ,p[1], 0);
+                    movregconst(cg, cdb, findreglsw(forregs) ,p[0], 0);
+                    movregconst(cg, cdb, findregmsw(forregs) ,p[1], 0);
                 }
             }
             else
             {   targ_short* p = &e.Vshort;  // point to start of Vdouble
 
                 assert(reg == AX);
-                movregconst(cdb, AX, p[3], 0);   // MOV AX,p[3]
-                movregconst(cdb, DX, p[0], 0);
-                movregconst(cdb, CX, p[1], 0);
-                movregconst(cdb, BX, p[2], 0);
+                movregconst(cg, cdb, AX, p[3], 0);   // MOV AX,p[3]
+                movregconst(cg, cdb, DX, p[0], 0);
+                movregconst(cg, cdb, CX, p[1], 0);
+                movregconst(cg, cdb, BX, p[2], 0);
             }
         }
         else if (I64 && sz == 16)
         {
-            movregconst(cdb, findreglsw(forregs), cast(targ_size_t)e.Vcent.lo, 64);
-            movregconst(cdb, findregmsw(forregs), cast(targ_size_t)e.Vcent.hi, 64);
+            movregconst(cg, cdb, findreglsw(forregs), cast(targ_size_t)e.Vcent.lo, 64);
+            movregconst(cg, cdb, findregmsw(forregs), cast(targ_size_t)e.Vcent.hi, 64);
         }
         else
             assert(0);

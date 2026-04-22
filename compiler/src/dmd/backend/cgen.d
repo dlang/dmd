@@ -241,7 +241,7 @@ reg_t regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value, regm_t fla
     regm_t save = cgstate.regcon.immed.mval;
     const reg = allocreg(cdb,regm,TYint);  // allocate register
     cgstate.regcon.immed.mval = save;
-    movregconst(cdb,reg,value,flags);   // store value into reg
+    movregconst(cgstate,cdb,reg,value,flags);   // store value into reg
     return reg;
 }
 
