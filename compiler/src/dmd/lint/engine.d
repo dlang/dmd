@@ -188,7 +188,7 @@ extern(C++) final class LintVisitor : Visitor
 
     private void checkConstSpecial(FuncDeclaration fd)
     {
-        if (fd.isGenerated() || (fd.storage_class & STC.const_) || (fd.type && fd.type.isConst()))
+        if (fd.isGenerated || (fd.storage_class & STC.const_) || (fd.type && fd.type.isConst()))
             return;
 
         if (fd.ident != Id.opEquals && fd.ident != Id.opCmp &&
