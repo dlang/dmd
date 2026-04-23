@@ -33,7 +33,7 @@ void lintConstSpecial(FuncDeclaration fd, bool isKnownStructMember = false)
     if (!fd || !fd._scope || !(fd._scope.lintFlags & LintFlags.constSpecial))
         return;
 
-    if (fd.isGenerated() || (fd.storage_class & STC.const_) || fd.type.isConst())
+    if (fd.isGenerated || (fd.storage_class & STC.const_) || fd.type.isConst())
         return;
 
     if (!isKnownStructMember)
