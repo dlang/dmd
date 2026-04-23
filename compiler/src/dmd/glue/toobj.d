@@ -1084,12 +1084,14 @@ private bool finishVtbl(ClassDeclaration cd)
 }
 
 /// Returns: classInstanceSize of TypeInfo_Class for `cd`
-uint classInfoSize(ClassDeclaration cd)
+uint classInfoSize()
 {
+    auto obj = ClassDeclaration.object;
+    const bool hasMonitor = !obj || !obj.symtab || obj.symtab.lookup(Id.__monitor) !is null;
     if (target.ptrsize == 8)
-        return 0x98 + 8 + (cd.hasMonitor ? 8 : 0); // 168 with monitor
+        return 0x98 + 8 + (hasMonitor ? 8 : 0); // 168 with monitor
     else
-        return 0x4C + 12 + (cd.hasMonitor ? 4 : 0); // 92 with monitor
+        return 0x4C + 12 + (hasMonitor ? 4 : 0); // 92 with monitor
 }
 
 /******************************************
@@ -1100,8 +1102,8 @@ uint classInfoSize(ClassDeclaration cd)
 uint baseVtblOffset(ClassDeclaration cd, BaseClass* bc)
 {
     //printf("ClassDeclaration.baseVtblOffset('%s', bc = %p)\n", cd.toChars(), bc);
-    uint csymoffset = cd.classInfoSize;    // must be ClassInfo.size
-    //printf("cd.classInfoSize: %d\n", csymoffset);
+    uint csymoffset = classInfoSize();    // must be ClassInfo.size
+    //printf("classInfoSize(): %d\n", csymoffset);
     csymoffset += cd.vtblInterfaces.length * (4 * target.ptrsize);
 
     for (size_t i = 0; i < cd.vtblInterfaces.length; i++)
@@ -1161,7 +1163,7 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass* b, ref FuncDeclarations bv
     if (id.vtblOffset())
     {
         // First entry is struct Interface reference
-        dtb.xoff(toSymbol(pc), cast(uint)(id.classInfoSize + k * (4 * target.ptrsize)), TYnptr);
+        dtb.xoff(toSymbol(pc), cast(uint)(classInfoSize() + k * (4 * target.ptrsize)), TYnptr);
         jstart = 1;
     }
 
@@ -1195,11 +1197,11 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
 {
     if (Type.typeinfoclass)
     {
-        if (Type.typeinfoclass.structsize != cd.classInfoSize)
+        if (Type.typeinfoclass.structsize != classInfoSize())
         {
-            debug printf("cd.classInfoSize = x%x, Type.typeinfoclass.structsize = x%x\n", cd.classInfoSize, Type.typeinfoclass.structsize);
+            debug printf("classInfoSize() = x%x, Type.typeinfoclass.structsize = x%x\n", classInfoSize(), Type.typeinfoclass.structsize);
             .error(cd.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
-                   cd.kind, cd.toPrettyChars, cast(uint)cd.classInfoSize, cast(uint)Type.typeinfoclass.structsize);
+                   cd.kind, cd.toPrettyChars, cast(uint)classInfoSize(), cast(uint)Type.typeinfoclass.structsize);
             .errorSupplemental(cd.loc, "check installation and import paths with `-v` compiler switch");
             fatal();
         }
@@ -1246,7 +1248,7 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
             uint[4] nameSig;
        }
      */
-    uint offset = cd.classInfoSize;    // must be ClassInfo.size
+    uint offset = classInfoSize();    // must be ClassInfo.size
 
     if (auto tic = Type.typeinfoclass)
     {
@@ -1528,7 +1530,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     dtb.size(0);
 
     // interfaces[]
-    uint offset = id.classInfoSize;
+    uint offset = classInfoSize();
     dtb.size(id.vtblInterfaces.length);
     if (id.vtblInterfaces.length)
     {
