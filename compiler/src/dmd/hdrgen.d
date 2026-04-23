@@ -2242,7 +2242,8 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             case Tdchar:
                 {
                     const o = buf.length;
-                    writeSingleCharLiteral(buf, cast(dchar) v);
+                    void sink(char c) { buf.writeByte(c); }
+                    writeSingleCharLiteral(cast(dchar) v, &sink);
                     if (hgs.ddoc)
                         escapeDdocString(buf, o);
                     break;

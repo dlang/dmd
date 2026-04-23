@@ -989,7 +989,8 @@ nothrow:
         case TOK.dcharLiteral:
         case TOK.charLiteral:
             OutBuffer buf;
-            buf.writeSingleCharLiteral(cast(dchar) intvalue);
+            void sink(char c) { buf.writeByte(c); }
+            writeSingleCharLiteral(cast(dchar) intvalue, &sink);
             return buf.extractSlice(true);
 
         case TOK.int64Literal:
@@ -1043,8 +1044,8 @@ nothrow:
             {
                 dchar d;
                 utf_decodeChar(ustring[0 .. len], i, d);
-                void sink(char c) { buf.writeByte(c); }
-                writeCharLiteral(d, &sink);
+                void sink2(char c) { buf.writeByte(c); }
+                writeCharLiteral(d, &sink2);
             }
             buf.writeByte('"');
             if (postfix)
@@ -1184,35 +1185,35 @@ unittest
  * Useful for printing '' char literals in e.g. error messages, ddoc, or the `.stringof` property
  *
  * Params:
- *   buf = buffer to append character in
  *   c = code point to write
+ *   sink = where the output goes
  */
 nothrow
-void writeSingleCharLiteral(ref OutBuffer buf, dchar c)
+void writeSingleCharLiteral(dchar c, void delegate(char c) nothrow sink)
 {
-    buf.writeByte('\'');
+    sink('\'');
     if (c == '\'')
-        buf.writeByte('\\');
+        sink('\\');
 
     if (c == '"')
-        buf.writeByte('"');
+        sink('"');
     else
     {
-        void sink(char c) { buf.writeByte(c); }
-        writeCharLiteral(c, &sink);
+        writeCharLiteral(c, sink);
     }
-    buf.writeByte('\'');
+    sink('\'');
 }
 
 unittest
 {
     OutBuffer buf;
-    writeSingleCharLiteral(buf, '\'');
+    void sink(char c) { buf.writeByte(c); }
+    writeSingleCharLiteral('\'', &sink);
     assert(buf[] == `'\''`);
     buf.reset();
-    writeSingleCharLiteral(buf, '"');
+    writeSingleCharLiteral('"', &sink);
     assert(buf[] == `'"'`);
     buf.reset();
-    writeSingleCharLiteral(buf, '\n');
+    writeSingleCharLiteral('\n', &sink);
     assert(buf[] == `'\n'`);
 }
