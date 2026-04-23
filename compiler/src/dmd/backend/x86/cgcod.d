@@ -319,15 +319,15 @@ void codgen(Symbol* sfunc)
                 goto case BC.retexp;
 
             case BC.retexp:
-                epilog(b);
+                epilog(cgstate,b);
                 break;
 
             default:
                 if (b.Bflags & BFL.epilog)
-                    epilog(b);
+                    epilog(cgstate,b);
                 break;
         }
-        assignaddr(b);                  // assign addresses
+        assignaddr(cgstate,b);          // assign addresses
         pinholeopt(b.Bcode,b);         // do pinhole optimization
         if (b.Bflags & BFL.prolog)      // do function prolog
         {
@@ -955,7 +955,7 @@ else
     {
         prolog_frameadj(cg, cdbx, tyf, xlocalsize, enter, &pushalloc);
         if (cg.Alloca.size)
-            prolog_setupalloca(cdbx);
+            prolog_setupalloca(cgstate, cdbx);
     }
     else if (cg.needframe)                      /* if variables or parameters   */
     {
@@ -963,7 +963,7 @@ else
         {
             prolog_frameadj(cg, cdbx, tyf, xlocalsize, enter, &pushalloc);
             if (cg.Alloca.size)
-                prolog_setupalloca(cdbx);
+                prolog_setupalloca(cgstate, cdbx);
         }
         else
             assert(cg.Alloca.size == 0);
@@ -1013,7 +1013,7 @@ Lcont:
     {
         if (variadic(funcsym_p.Stype))
             prolog_gen_win64_varargs(cdb);
-        prolog_loadparams(cdb, tyf, pushalloc);
+        prolog_loadparams(cgstate, cdb, tyf, pushalloc);
         return;
     }
 
@@ -1028,7 +1028,7 @@ Lcont:
     // Load register parameters off of the stack. Do not use
     // assignaddr(), as it will replace the stack reference with
     // the register!
-    prolog_loadparams(cdb, tyf, pushalloc);
+    prolog_loadparams(cgstate, cdb, tyf, pushalloc);
 
     if (sv64)
         prolog_genvarargs(cg, cdb, sv64);
