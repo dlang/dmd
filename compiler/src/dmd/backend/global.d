@@ -122,8 +122,6 @@ public import dmd.backend.var : OPTIMIZER, globsym, controlc_saw, pointertype, s
 public import dmd.backend.cg : fregsaved, localgot, tls_get_addr_sym;
 public import dmd.backend.var : bo;
 
-__gshared Configv configv;                // non-ph part of configuration
-
 public import dmd.backend.ee : eecontext_convs;
 public import dmd.backend.elem : exp2_copytotemp;
 public import dmd.backend.util2 : err_exit, ispow2;
@@ -168,6 +166,6 @@ public import dmd.backend.gloop : dom;
 public import dmd.backend.util2 : binary;
 
 public import dmd.backend.go : go_flag, optfunc;
-public import dmd.backend.drtlsym : rtlsym_init, rtlsym_reset, rtlsym_term;
+public import dmd.backend.rtlsym : rtlsym_init, rtlsym_reset, rtlsym_term;
 public import dmd.backend.dwarfdbginf : dwarf_CFA_set_loc, dwarf_CFA_set_reg_offset,
-    dwarf_CFA_offset, dwarf_CFA_args_size;
+    dwarf_CFA_offset, dwarf_emit_eh_frame;

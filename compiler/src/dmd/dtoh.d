@@ -102,6 +102,8 @@ void genCppHdrFiles(ref Modules ms, ErrorSink eSink)
     hashInclude(buf, "<math.h>");
     hashInclude(buf, "<stddef.h>");
     hashInclude(buf, "<stdint.h>");
+    if (v.hasVaList)
+        hashInclude(buf, "<stdarg.h>");
 //    buf.writestring(buf, "#include <stdio.h>\n");
 //    buf.writestring("#include <string.h>\n");
 
@@ -274,6 +276,9 @@ public:
 
     /// There are functions taking slices, which need a compatibility struct for C++
     bool hasDArray = false;
+
+    /// The generated header uses `va_list`, which requires `<stdarg.h>`
+    bool hasVaList = false;
 
     /// The generated header should contain comments for skipped declarations?
     const bool printIgnored;
@@ -933,6 +938,10 @@ public:
         if (!shouldEmitAndMarkVisited(vd))
             return;
 
+        // Don't emit static foreach loop variables
+        if (vd.storage_class & AST.STC.foreach_)
+            return;
+
         // Tuple field are expanded into multiple VarDeclarations
         // (we'll visit them later)
         if (vd.type && vd.type.isTypeTuple())
@@ -1007,10 +1016,17 @@ public:
                     break;
 
                 case EnumKind.String, EnumKind.Enum:
-                    buf.writestring("static ");
+                    // constexpr allows in-class initialization; only available from C++11
+                    if (global.params.cplusplus >= CppStdRevision.cpp11)
+                        buf.writestring("static constexpr ");
+                    else
+                        buf.writestring("static ");
                     auto target = determineEnumType(type);
                     target.accept(this);
-                    buf.writestring(" const ");
+                    if (global.params.cplusplus < CppStdRevision.cpp11)
+                        buf.writestring(" const ");
+                    else
+                        buf.writestring(" ");
                     writeIdentifier(vd, true);
                     buf.writestring(" = ");
                     auto e = AST.initializerToExpression(vd._init);
@@ -1326,8 +1342,18 @@ public:
         auto save = adparent;
         adparent = sd;
 
+        // Emit enums defined inside the struct first,
+        // because in C++ a nested type must be declared before a field uses it as its type
         foreach (m; *sd.members)
         {
+            auto ed = m.isEnumDeclaration();
+            if (ed && ed.ident)
+                m.accept(this);
+        }
+        foreach (m; *sd.members)
+        {
+            if (m.isEnumDeclaration() && m.ident)
+                continue;
             m.accept(this);
         }
         // Generate default ctor
@@ -1530,8 +1556,18 @@ public:
         auto save = adparent;
         adparent = cd;
         buf.level++;
+        // Emit named nested enum declarations first so that fields using those
+        // enum types as their type are not declared before the enum is defined.
         foreach (m; *cd.members)
         {
+            auto ed = m.isEnumDeclaration();
+            if (ed && ed.ident)
+                m.accept(this);
+        }
+        foreach (m; *cd.members)
+        {
+            if (m.isEnumDeclaration() && m.ident)
+                continue;
             m.accept(this);
         }
         buf.level--;
@@ -1968,6 +2004,7 @@ public:
         if (ts && !strcmp(ts.sym.ident.toChars(), "__va_list_tag"))
         {
             buf.writestring("va_list");
+            hasVaList = true;
             return;
         }
 
@@ -2945,6 +2982,11 @@ public:
             {
                 const l = dec.resolvedLinkage();
                 res = (l == LINK.cpp || l == LINK.c);
+            }
+            else if (auto ad = sym.isAggregateDeclaration())
+            {
+                import dmd.aggregate : ClassKind;
+                res = ad.classKind == ClassKind.cpp;
             }
         }
 

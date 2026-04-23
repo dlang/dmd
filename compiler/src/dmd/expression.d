@@ -451,15 +451,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(IdentityExp) isIdentityExp() { return (op == EXP.identity || op == EXP.notIdentity) ? cast(typeof(return))this : null; }
         inout(CondExp)     isCondExp() { return op == EXP.question ? cast(typeof(return))this : null; }
         inout(GenericExp)  isGenericExp() { return op == EXP._Generic ? cast(typeof(return))this : null; }
-        inout(DefaultInitExp)    isDefaultInitExp() { return
-            (op == EXP.prettyFunction    || op == EXP.functionString ||
-             op == EXP.line              || op == EXP.moduleString   ||
-             op == EXP.file              || op == EXP.fileFullPath   ) ? cast(typeof(return))this : null; }
-        inout(FileInitExp)       isFileInitExp() { return (op == EXP.file || op == EXP.fileFullPath) ? cast(typeof(return))this : null; }
-        inout(LineInitExp)       isLineInitExp() { return op == EXP.line ? cast(typeof(return))this : null; }
-        inout(ModuleInitExp)     isModuleInitExp() { return op == EXP.moduleString ? cast(typeof(return))this : null; }
-        inout(FuncInitExp)       isFuncInitExp() { return op == EXP.functionString ? cast(typeof(return))this : null; }
-        inout(PrettyFuncInitExp) isPrettyFuncInitExp() { return op == EXP.prettyFunction ? cast(typeof(return))this : null; }
+        inout(DefaultInitExp)    isDefaultInitExp() { return op == EXP.defaultInit ? cast(typeof(return))this : null; }
         inout(ObjcClassReferenceExp) isObjcClassReferenceExp() { return op == EXP.objcClassReference ? cast(typeof(return))this : null; }
         inout(ClassReferenceExp) isClassReferenceExp() { return op == EXP.classReference ? cast(typeof(return))this : null; }
         inout(ThrownExceptionExp) isThrownExceptionExp() { return op == EXP.thrownException ? cast(typeof(return))this : null; }
@@ -3791,100 +3783,22 @@ extern (C++) final class CondExp : BinExp
  */
 extern (C++) class DefaultInitExp : Expression
 {
-    /*************************
-     * Params:
-     *  loc = location
-     *  op = EXP.prettyFunction, EXP.functionString, EXP.moduleString,
-     *       EXP.line, EXP.file, EXP.fileFullPath
-     */
-    extern (D) this(Loc loc, EXP op) @safe
+    TOK tok; /// which special token this is
+
+    extern (D) this(Loc loc, TOK tok) @safe
     {
-        super(loc, op);
+        super(loc, EXP.defaultInit);
+        this.tok = tok;
     }
 
     override void accept(Visitor v)
     {
         v.visit(this);
     }
-}
 
-/***********************************************************
- * The `__FILE__` token as a default argument
- */
-extern (C++) final class FileInitExp : DefaultInitExp
-{
-    extern (D) this(Loc loc, EXP tok) @safe
+    override Expression syntaxCopy()
     {
-        super(loc, tok);
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
-/***********************************************************
- * The `__LINE__` token as a default argument
- */
-extern (C++) final class LineInitExp : DefaultInitExp
-{
-    extern (D) this(Loc loc) @safe
-    {
-        super(loc, EXP.line);
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
-/***********************************************************
- * The `__MODULE__` token as a default argument
- */
-extern (C++) final class ModuleInitExp : DefaultInitExp
-{
-    extern (D) this(Loc loc) @safe
-    {
-        super(loc, EXP.moduleString);
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
-/***********************************************************
- * The `__FUNCTION__` token as a default argument
- */
-extern (C++) final class FuncInitExp : DefaultInitExp
-{
-    extern (D) this(Loc loc) @safe
-    {
-        super(loc, EXP.functionString);
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
-/***********************************************************
- * The `__PRETTY_FUNCTION__` token as a default argument
- */
-extern (C++) final class PrettyFuncInitExp : DefaultInitExp
-{
-    extern (D) this(Loc loc) @safe
-    {
-        super(loc, EXP.prettyFunction);
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
+        return new DefaultInitExp(loc, tok);
     }
 }
 
@@ -4221,12 +4135,7 @@ private immutable ubyte[EXP.max+1] expSize = [
     EXP.scope_: __traits(classInstanceSize, ScopeExp),
     EXP.traits: __traits(classInstanceSize, TraitsExp),
     EXP.overloadSet: __traits(classInstanceSize, OverExp),
-    EXP.line: __traits(classInstanceSize, LineInitExp),
-    EXP.file: __traits(classInstanceSize, FileInitExp),
-    EXP.fileFullPath: __traits(classInstanceSize, FileInitExp),
-    EXP.moduleString: __traits(classInstanceSize, ModuleInitExp),
-    EXP.functionString: __traits(classInstanceSize, FuncInitExp),
-    EXP.prettyFunction: __traits(classInstanceSize, PrettyFuncInitExp),
+    EXP.defaultInit: __traits(classInstanceSize, DefaultInitExp),
     EXP.pow: __traits(classInstanceSize, PowExp),
     EXP.powAssign: __traits(classInstanceSize, PowAssignExp),
     EXP.vector: __traits(classInstanceSize, VectorExp),

@@ -8,7 +8,7 @@ myBool bool
 i
 s
 C6test42__T4T219TiZ1C
-C6test427test219FZ8__mixin11C
+C6test427test219FZ16__mixin_L3577_C31C
 ---
 */
 
@@ -1322,6 +1322,9 @@ void test79()
     sc.__monitor = p;
     assert(sc.__monitor == p);
 }
+
+// https://github.com/dlang/dmd/issues/22815
+__gshared Object o = new Object();
 
 /***************************************************/
 

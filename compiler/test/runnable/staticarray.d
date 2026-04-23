@@ -11,6 +11,58 @@ void main()
 	static assert(is(typeof(arr13) == const(int)[3]));
 	assert(arr1 == arr2);
 
+	auto[$] arrAuto = [1, 2];
+	assert(arrAuto.length == 2);
+	assert(arrAuto[0] == 1);
+	assert(arrAuto[1] == 2);
+	static assert(arrAuto.length == 2);
+	static assert(is(typeof(arrAuto) == int[2]));
+
+	auto[$] autoConcatA = [2];
+	auto[$] autoConcatB = [2];
+	auto[$] autoConcatC = autoConcatA ~ autoConcatB;
+	assert(autoConcatC.length == 2);
+	assert(autoConcatC[0] == 2);
+	assert(autoConcatC[1] == 2);
+	static assert(autoConcatC.length == 2);
+	static assert(is(typeof(autoConcatC) == int[2]));
+
+	auto[$][$] arrAutoNested = [[10, 11], [20, 21]];
+	assert(arrAutoNested.length == 2);
+	assert(arrAutoNested[0].length == 2);
+	assert(arrAutoNested[1].length == 2);
+	assert(arrAutoNested[0][0] == 10);
+	assert(arrAutoNested[0][1] == 11);
+	assert(arrAutoNested[1][0] == 20);
+	assert(arrAutoNested[1][1] == 21);
+	static assert(arrAutoNested.length == 2);
+	static assert(arrAutoNested[0].length == 2);
+	static assert(arrAutoNested[1].length == 2);
+	static assert(is(typeof(arrAutoNested) == int[2][2]));
+
+	auto[$][$] autoNestedConcatA = [[2]];
+	auto[$][$] autoNestedConcatB = [[2]];
+	auto[$][$] autoNestedConcatC = autoNestedConcatA ~ autoNestedConcatB;
+	assert(autoNestedConcatC.length == 2);
+	assert(autoNestedConcatC[0].length == 1);
+	assert(autoNestedConcatC[1].length == 1);
+	assert(autoNestedConcatC[0][0] == 2);
+	assert(autoNestedConcatC[1][0] == 2);
+	static assert(autoNestedConcatC.length == 2);
+	static assert(autoNestedConcatC[0].length == 1);
+	static assert(autoNestedConcatC[1].length == 1);
+	static assert(is(typeof(autoNestedConcatC) == int[1][2]));
+
+  // Standard array literals should remain dynamic arrays (slices)
+	auto standardArr = [1, 2, 3];
+	static assert(is(typeof(standardArr) == int[]));
+	static assert(!is(typeof(standardArr) == int[3]));
+
+	// String literals should remain immutable(char)[]
+	auto standardStr = "hello";
+	static assert(is(typeof(standardStr) == string));
+	static assert(!is(typeof(standardStr) == char[5]));
+
 	int[$] arr3 = [10] ~ [20];
 	assert(arr3.length == 2);
 	assert(arr3[0] == 10);

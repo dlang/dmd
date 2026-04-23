@@ -30,7 +30,7 @@ import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.expressionsem : canElideCopy, semanticTypeInfo;
-import dmd.errors : message;
+import dmd.errors;
 import dmd.errorsink;
 import dmd.func;
 import dmd.funcsem;
@@ -81,44 +81,6 @@ public void inlineScanAllFunctions(Module m, ErrorSink eSink)
 
     inlineScanModule(m, PASS.inlineAll, eSink);
 }
-
-/***********************************************************
- * Perform the "inline copying" of a default argument for a function parameter.
- *
- * Todo:
- *  The hack for https://issues.dlang.org/show_bug.cgi?id=4820 case is still questionable.
- *  Perhaps would have to handle a delegate expression with 'null' context properly in front-end.
- */
-public Expression inlineCopy(Expression e, Scope* sc)
-{
-    /* See https://issues.dlang.org/show_bug.cgi?id=2935
-     * for explanation of why just a copy() is broken
-     */
-    //return e.copy();
-    if (auto de = e.isDelegateExp())
-    {
-        if (de.func.isNested())
-        {
-            /* https://issues.dlang.org/show_bug.cgi?id=4820
-             * Defer checking until later if we actually need the 'this' pointer
-             */
-            return de.copy();
-        }
-    }
-    const cost = inlineCostExpression(e);
-    if (cost >= COST_MAX)
-    {
-        sc.eSink.error(e.loc, "cannot inline default argument `%s`", e.toChars());
-        return ErrorExp.get();
-    }
-    scope ids = new InlineDoState(sc.parent, null);
-    return doInlineAs!Expression(e, ids);
-}
-
-
-
-
-
 
 private:
 
@@ -682,7 +644,7 @@ public:
         override void visit(ThisExp e)
         {
             //if (!ids.vthis)
-            //    e.error("no `this` when inlining `%s`", ids.parent.toChars());
+            //    e.error("no `this` when inlining `%s`", ids.parent.toErrMsg());
             if (!ids.vthis)
             {
                 result = e;
@@ -1860,6 +1822,10 @@ public:
 
         fd.inlineScanned = true;
         fd.semanticRun = pass;
+
+        import dmd.timetrace;
+        timeTraceBeginEvent(TimeTraceEventType.inlineFunction);
+        scope (exit) timeTraceEndEvent(TimeTraceEventType.inlineFunction, fd);
 
         scope InlineScanVisitor v = new InlineScanVisitor(fd, pass, eSink);
 

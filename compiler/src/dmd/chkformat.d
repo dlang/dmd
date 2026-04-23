@@ -18,6 +18,7 @@ import dmd.cond;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
@@ -142,8 +143,32 @@ bool checkPrintfFormat(Loc loc, scope const char[] format, scope Expression[] ar
 
         void errorMsg(const char* prefix, Expression arg, const char* texpect, Type tactual)
         {
-            eSink.deprecation(arg.loc, "%sargument `%s` for format specification `\"%.*s\"` must be `%s`, not `%s`",
-                  prefix ? prefix : "", arg.toChars(), cast(int)slice.length, slice.ptr, texpect, tactual.toChars());
+            eSink.deprecation(arg.loc, "%sargument `%s` of type `%s` does not match format specification",
+                  prefix ? prefix : "", arg.toErrMsg(), tactual.toErrMsg());
+
+            eSink.deprecationSupplemental(arg.loc, "`\"%.*s\"` requires `%s`", cast(int) slice.length, slice.ptr, texpect);
+
+            if (prefix)
+                return; // width/precision args must be int; no useful format suggestion
+            auto tb = tactual.toBasetype();
+            const(char)* suggestion = integralFormatSpecifier(tb.ty);
+            if (!suggestion)
+            switch (tb.ty)
+            {
+                case Tfloat32:
+                case Tfloat64: suggestion = "%g";  break;
+                case Tfloat80: suggestion = "%Lg"; break;
+                case Tpointer:
+                    auto tn = tb.nextOf();
+                    if (tn && (tn.ty == Tchar || tn.ty == Tint8 || tn.ty == Tuns8))
+                        suggestion = "%s";
+                    else
+                        suggestion = "%p";
+                    break;
+                default: break;
+            }
+            if (suggestion)
+                eSink.deprecationSupplemental(arg.loc, "`%s` may be formatted with `\"%s\"`", tactual.toErrMsg(), suggestion);
         }
 
         if (widthStar)
@@ -412,8 +437,30 @@ bool checkScanfFormat(Loc loc, scope const char[] format, scope Expression[] arg
 
         void errorMsg(const char* prefix, Expression arg, const char* texpect, Type tactual)
         {
-            eSink.deprecation(arg.loc, "%sargument `%s` for format specification `\"%.*s\"` must be `%s`, not `%s`",
-                  prefix ? prefix : "", arg.toChars(), cast(int)slice.length, slice.ptr, texpect, tactual.toChars());
+            eSink.deprecation(arg.loc, "%sargument `%s` of type `%s` does not match format specification",
+                  prefix ? prefix : "", arg.toErrMsg(), tactual.toErrMsg());
+
+            eSink.deprecationSupplemental(arg.loc, "`\"%.*s\"` requires `%s`", cast(int)slice.length, slice.ptr, texpect);
+
+            auto tb = tactual.toBasetype();
+            if (tb.ty != Tpointer)
+                return;
+            auto tnb = tb.nextOf();
+            if (!tnb)
+                return;
+            tnb = tnb.toBasetype();
+            const(char)* suggestion = integralFormatSpecifier(tnb.ty);
+            if (!suggestion)
+                switch (tnb.ty)
+                {
+                    case Tchar:    suggestion = "%s";  break;
+                    case Tfloat32: suggestion = "%g";  break;
+                    case Tfloat64: suggestion = "%lg"; break;
+                    case Tfloat80: suggestion = "%Lg"; break;
+                    default: break;
+                }
+            if (suggestion)
+                eSink.deprecationSupplemental(arg.loc, "`%s` may be formatted with `\"%s\"`", tactual.toChars(), suggestion);
         }
 
         auto e = getNextArg();
@@ -564,6 +611,23 @@ bool checkScanfFormat(Loc loc, scope const char[] format, scope Expression[] arg
 /*****************************************************************************************************/
 
 private:
+
+/// Returns: format specifier string for `ty`, or `null` if not a recognized integer type
+const(char)* integralFormatSpecifier(TY ty) pure nothrow
+{
+    switch (ty)
+    {
+        case Tint8:  return "%hhd";
+        case Tuns8:  return "%hhu";
+        case Tint16: return "%hd";
+        case Tuns16: return "%hu";
+        case Tint32: return "%d";
+        case Tuns32: return "%u";
+        case Tint64: return "%lld";
+        case Tuns64: return "%llu";
+        default:     return null;
+    }
+}
 
 /**************************************
  * Parse the *format specifier* which is of the form:

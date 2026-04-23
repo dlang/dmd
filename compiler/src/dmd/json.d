@@ -806,6 +806,16 @@ public:
     {
         objectStart();
         jsonProperties(d);
+        if (d.members)
+        {
+            propertyStart("members");
+            arrayStart();
+            foreach (member; (*d.members))
+            {
+                member.accept(this);
+            }
+            arrayEnd();
+        }
         objectEnd();
     }
 

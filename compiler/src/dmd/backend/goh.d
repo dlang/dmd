@@ -59,6 +59,8 @@ enum
     MFall   = 0xFFFF,          // do everything
 }
 
+enum Aetype { cse, arraybounds }
+
 /**********************************
  * Definition elem vector, used for reaching definitions.
  */
@@ -70,13 +72,23 @@ struct DefNode
     vec_t    DNunambig;     // vector of unambiguous definitions
 }
 
+// which kind of flow analysisis being done
+enum
+{
+    AE = 1,
+    CP,
+    VBE
+}
+
 /* Global Optimizer variables
  */
 struct GlobalOptimizer
 {
     bool AArch64;       // AArch64 is the target
     mftype mfoptim;
+    Aetype aetype;      // cse, arraybounds
     uint changes;       // # of optimizations performed
+    int flowxx;         // AE, CP or VBE
 
     Barray!DefNode defnod;    // array of definition elems
     uint unambigtop;    // number of unambiguous defininitions ( <= deftop )

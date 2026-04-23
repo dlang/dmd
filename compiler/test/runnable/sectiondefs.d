@@ -1,6 +1,7 @@
 /*
 EXTRA_SOURCES: extra-files/sectiondefs.d
 EXTRA_FILES: extra-files/sectiondefs.d
+REQUIRED_ARGS:
 REQUIRED_ARGS(windows): -L/INCREMENTAL:NO
 */
 // Incremental linking must be turned off, or it will add padding.

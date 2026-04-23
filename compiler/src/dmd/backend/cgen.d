@@ -196,7 +196,7 @@ void gencodelem(ref CodeBuilder cdb,elem* e,ref regm_t pretregs,bool constflag)
         codelem(cgstate,cdb,e,pretregs,constflag);
         assert(cgstate.stackclean == 0);
         cgstate.stackclean = stackcleansave;
-        genstackclean(cdb,cgstate.stackpush - stackpushsave,pretregs);       // do defered cleaning
+        genstackclean(cgstate,cdb,cgstate.stackpush - stackpushsave,pretregs);       // do defered cleaning
     }
 }
 
@@ -241,7 +241,7 @@ reg_t regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value, regm_t fla
     regm_t save = cgstate.regcon.immed.mval;
     const reg = allocreg(cdb,regm,TYint);  // allocate register
     cgstate.regcon.immed.mval = save;
-    movregconst(cdb,reg,value,flags);   // store value into reg
+    movregconst(cgstate,cdb,reg,value,flags);   // store value into reg
     return reg;
 }
 

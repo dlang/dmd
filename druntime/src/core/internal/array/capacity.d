@@ -34,7 +34,6 @@ Params:
 void _d_arrayshrinkfit(Tarr: T[], T)(Tarr arr, bool isshared) @trusted
 {
     import core.exception : onFinalizeError;
-    import core.internal.traits: hasElaborateDestructor;
 
     debug(PRINTF) printf("_d_arrayshrinkfit, elemsize = %zd, arr.ptr = %p arr.length = %zd\n", T.sizeof, arr.ptr, arr.length);
     auto reqlen = arr.length;
@@ -52,7 +51,7 @@ void _d_arrayshrinkfit(Tarr: T[], T)(Tarr arr, bool isshared) @trusted
         return;
 
     // if the type has a destructor, destroy elements we are about to remove.
-    static if(is(T == struct) && hasElaborateDestructor!T)
+    static if(is(T == struct) && __traits(needsDestruction, T))
     {
         try
         {
@@ -368,24 +367,6 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
     return newlength;
 }
 
-version (D_ProfileGC)
-{
-    enum errorMessage = "Cannot resize arrays";
-    import core.internal.array.utils : _d_HookTraceImpl;
-
-    // Function wrapper around the hook, so it’s callable
-    size_t _d_arraysetlengthTTrace(Tarr : T[], T)(
-        return ref scope Tarr arr,
-        size_t newlength,
-        string file = __FILE__,
-        int line = __LINE__,
-        string func = __FUNCTION__
-    ) @trusted
-    {
-        alias Hook = _d_HookTraceImpl!(Tarr, _d_arraysetlengthT!Tarr, errorMessage);
-        return Hook(arr, newlength, file, line, func);
-    }
-}
 
 // @safe unittest remains intact
 @safe unittest

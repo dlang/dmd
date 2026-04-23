@@ -4605,11 +4605,7 @@ struct ASTBase
             inout(IdentityExp) isIdentityExp() { return (op == EXP.identity || op == EXP.notIdentity) ? cast(typeof(return))this : null; }
             inout(CondExp)     isCondExp() { return op == EXP.question ? cast(typeof(return))this : null; }
             inout(GenericExp)  isGenericExp() { return op == EXP._Generic ? cast(typeof(return))this : null; }
-            inout(FileInitExp)       isFileInitExp() { return (op == EXP.file || op == EXP.fileFullPath) ? cast(typeof(return))this : null; }
-            inout(LineInitExp)       isLineInitExp() { return op == EXP.line ? cast(typeof(return))this : null; }
-            inout(ModuleInitExp)     isModuleInitExp() { return op == EXP.moduleString ? cast(typeof(return))this : null; }
-            inout(FuncInitExp)       isFuncInitExp() { return op == EXP.functionString ? cast(typeof(return))this : null; }
-            inout(PrettyFuncInitExp) isPrettyFuncInitExp() { return op == EXP.prettyFunction ? cast(typeof(return))this : null; }
+            inout(DefaultInitExp)    isDefaultInitExp() { return op == EXP.defaultInit ? cast(typeof(return))this : null; }
             inout(AssignExp)         isConstructExp() { return op == EXP.construct ? cast(typeof(return))this : null; }
             inout(AssignExp)         isBlitExp()      { return op == EXP.blit ? cast(typeof(return))this : null; }
 
@@ -5139,9 +5135,12 @@ struct ASTBase
 
     extern (C++) class DefaultInitExp : Expression
     {
-        final extern (D) this(Loc loc, EXP op, int size)
+        TOK tok; /// which special token this is
+
+        final extern (D) this(Loc loc, TOK tok)
         {
-            super(loc, op, size);
+            super(loc, EXP.defaultInit, __traits(classInstanceSize, DefaultInitExp));
+            this.tok = tok;
         }
 
         override void accept(Visitor v)
@@ -5681,70 +5680,6 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class FuncInitExp : DefaultInitExp
-    {
-        extern (D) this(Loc loc)
-        {
-            super(loc, EXP.functionString, __traits(classInstanceSize, FuncInitExp));
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class PrettyFuncInitExp : DefaultInitExp
-    {
-        extern (D) this(Loc loc)
-        {
-            super(loc, EXP.prettyFunction, __traits(classInstanceSize, PrettyFuncInitExp));
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class FileInitExp : DefaultInitExp
-    {
-        extern (D) this(Loc loc, EXP tok)
-        {
-            super(loc, tok, __traits(classInstanceSize, FileInitExp));
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class LineInitExp : DefaultInitExp
-    {
-        extern (D) this(Loc loc)
-        {
-            super(loc, EXP.line, __traits(classInstanceSize, LineInitExp));
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class ModuleInitExp : DefaultInitExp
-    {
-        extern (D) this(Loc loc)
-        {
-            super(loc, EXP.moduleString, __traits(classInstanceSize, ModuleInitExp));
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
 
     extern (C++) final class CommaExp : BinExp
     {

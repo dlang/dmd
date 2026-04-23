@@ -160,6 +160,7 @@ struct CGstate
     bool hasframe;              // true if this function has a stack frame
     bool enforcealign;          // enforced stack alignment
     bool anyiasm;               // !=0 if any inline assembler
+    bool setSPtoFPonEpilog;     // set SP to FP in function epilog
     char calledafunc;           // !=0 if we called a function
 
     int stackclean;             // if != 0, then clean the stack after function call
@@ -335,8 +336,9 @@ struct FuncParamRegs
     //this(tym_t tyf);
     static FuncParamRegs create(tym_t tyf) { return FuncParamRegs_create(tyf); }
 
+    @trusted
     bool alloc(type* t, tym_t ty, out reg_t reg1, out reg_t reg2)
-    { return FuncParamRegs_alloc(this, t, ty, reg1, reg2); }
+    { return FuncParamRegs_alloc(cgstate, this, t, ty, reg1, reg2); }
 
   private:
   public: // for the moment

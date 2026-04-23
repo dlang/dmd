@@ -241,7 +241,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
         {
             printf("Expression.toDt() op = %d e = %s \n", e.op, e.toChars());
         }
-        error(e.loc, "non-constant expression `%s`", e.toChars());
+        error(e.loc, "non-constant expression `%s`", e.toErrMsg());
         dtb.nzeros(1);
     }
 
@@ -430,7 +430,20 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
                 goto case Tpointer;
 
             case Tpointer:
-                if (e.sz == 1)
+            {
+                // Through CTFE, a mutable char[] might be initialized with a StringExp,
+                // don't use immutable string symbol then
+                const mutableData = t.nextOf().isMutable();
+                if (mutableData)
+                {
+                    auto dtbdata = DtBuilder(0);
+                    dtbdata.nbytes((cast(const ubyte*)p)[0 .. n * e.sz]);
+                    if (auto d = dtbdata.finish())
+                        dtb.dtoff(d, 0);
+                    else
+                        dtb.size(0);
+                }
+                else if (e.sz == 1)
                 {
                     import dmd.glue.e2ir : toStringSymbol;
                     import dmd.glue : totym;
@@ -444,6 +457,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
                     dtb.abytes(0, p[0 .. n * e.sz], cast(uint) e.sz, pow2);
                 }
                 break;
+            }
 
             case Tsarray:
             {
@@ -545,7 +559,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             if ((v.isConst() || v.isImmutable()) &&
                 e.type.toBasetype().ty != Tsarray && v._init)
             {
-                error(e.loc, "recursive reference `%s`", e.toChars());
+                error(e.loc, "recursive reference `%s`", e.toErrMsg());
                 return;
             }
             v.inuse++;
@@ -724,7 +738,7 @@ void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb)
  */
 
 private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
-        Expressions* elements, size_t firstFieldIndex,
+        Expressions* elements, ptrdiff_t firstFieldIndex,
         ClassDeclaration concreteType,
         BaseClass*** ppb)
 {
@@ -854,9 +868,11 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
     // __monitor is emitted separately (not from CTFE elements), so exclude it from the count.
     // This applies to Object itself (the root class with no base class), not to interfaces.
     const size_t monitorExcluded = (cd && !cd.isInterfaceDeclaration() && !cd.baseClass && cd.hasMonitor()) ? 1 : 0;
-    assert(!elements ||
-           firstFieldIndex <= elements.length &&
-           firstFieldIndex + ad.fields.length - monitorExcluded <= elements.length);
+    if (elements && firstFieldIndex >= 0)
+    {
+        assert(firstFieldIndex <= elements.length);
+        assert(firstFieldIndex + ad.fields.length - monitorExcluded <= elements.length);
+    }
 
     uint bitByteOffset = 0;     // byte offset of bit field
     uint bitOffset = 0;         // starting bit number
@@ -1185,6 +1201,25 @@ void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, ref DtBuilder dtb)
     membersToDt(cd, dtb, ce.value.elements, firstFieldIndex, cd, null);
 }
 
+/*
+ * Lay out a (TypeInfo) subclass instance using the same logic as a `new Object()` from CTFE.
+ *
+ * Params:
+ *   cd       = the concrete (TypeInfo) class (e.g. Type.typeinfoconst)
+ *   elements = field-value expressions in the order expected by
+ *              ClassReferenceExp_toInstanceDt: base-class fields first
+ *              (deepest ancestor first), then cd's own fields, with
+ *              __monitor excluded (it is emitted automatically)
+ *   dtb      = output data builder
+ */
+private void classFieldsToDt(ClassDeclaration cd, Expressions* elements, ref DtBuilder dtb)
+{
+    auto sle = new StructLiteralExp(Loc.initial, cast(StructDeclaration) cd, elements, cd.type);
+    sle.origin = sle;
+    auto cre = new ClassReferenceExp(Loc.initial, sle, cd.type);
+    ClassReferenceExp_toInstanceDt(cre, dtb);
+}
+
 /****************************************************
  */
 private extern (C++) class TypeInfoDtVisitor : Visitor
@@ -1204,7 +1239,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
                     typeclass.toChars(), cast(uint)typeclass.structsize);
             }
             error(typeclass.loc, "`%s`: mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
-                typeclass.toChars(), cast(uint)expected, cast(uint)typeclass.structsize);
+                typeclass.toErrMsg(), cast(uint)expected, cast(uint)typeclass.structsize);
             errorSupplemental(typeclass.loc, "check installation and import paths with `-v` compiler switch");
             fatal();
         }
@@ -1220,67 +1255,39 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoDeclaration d)
     {
         //printf("TypeInfoDeclaration.toDt() %s\n", toChars());
-        verifyStructSize(Type.dtypeinfo, 2 * target.ptrsize);
-
-        dtb.xoff(toVtblSymbol(Type.dtypeinfo), 0);        // vtbl for TypeInfo
-        if (Type.dtypeinfo.hasMonitor())
-            dtb.size(0);                                  // monitor
+        classFieldsToDt(Type.dtypeinfo, null, *dtb);
     }
 
     override void visit(TypeInfoConstDeclaration d)
     {
         //printf("TypeInfoConstDeclaration.toDt() %s\n", toChars());
-        verifyStructSize(Type.typeinfoconst, 3 * target.ptrsize);
-
-        dtb.xoff(toVtblSymbol(Type.typeinfoconst), 0);    // vtbl for TypeInfo_Const
-        if (Type.typeinfoconst.hasMonitor())
-            dtb.size(0);                                  // monitor
-        Type tm = d.tinfo.mutableOf();
-        tm = tm.merge();
+        Type tm = d.tinfo.mutableOf().merge();
         TypeInfo_toObjFile(null, d.loc, tm);
-        dtb.xoff(toSymbol(tm.vtinfo), 0);
+        classFieldsToDt(Type.typeinfoconst, new Expressions(new SymOffExp(d.loc, tm.vtinfo, 0)), *dtb);
     }
 
     override void visit(TypeInfoInvariantDeclaration d)
     {
         //printf("TypeInfoInvariantDeclaration.toDt() %s\n", toChars());
-        verifyStructSize(Type.typeinfoinvariant, 3 * target.ptrsize);
-
-        dtb.xoff(toVtblSymbol(Type.typeinfoinvariant), 0);    // vtbl for TypeInfo_Invariant
-        if (Type.typeinfoinvariant.hasMonitor())
-            dtb.size(0);                                      // monitor
-        Type tm = d.tinfo.mutableOf();
-        tm = tm.merge();
+        Type tm = d.tinfo.mutableOf().merge();
         TypeInfo_toObjFile(null, d.loc, tm);
-        dtb.xoff(toSymbol(tm.vtinfo), 0);
+        classFieldsToDt(Type.typeinfoinvariant, new Expressions(new SymOffExp(d.loc, tm.vtinfo, 0)), *dtb);
     }
 
     override void visit(TypeInfoSharedDeclaration d)
     {
         //printf("TypeInfoSharedDeclaration.toDt() %s\n", toChars());
-        verifyStructSize(Type.typeinfoshared, 3 * target.ptrsize);
-
-        dtb.xoff(toVtblSymbol(Type.typeinfoshared), 0);   // vtbl for TypeInfo_Shared
-        if (Type.typeinfoshared.hasMonitor())
-            dtb.size(0);                                 // monitor
-        Type tm = d.tinfo.unSharedOf();
-        tm = tm.merge();
+        Type tm = d.tinfo.unSharedOf().merge();
         TypeInfo_toObjFile(null, d.loc, tm);
-        dtb.xoff(toSymbol(tm.vtinfo), 0);
+        classFieldsToDt(Type.typeinfoshared, new Expressions(new SymOffExp(d.loc, tm.vtinfo, 0)), *dtb);
     }
 
     override void visit(TypeInfoWildDeclaration d)
     {
         //printf("TypeInfoWildDeclaration.toDt() %s\n", toChars());
-        verifyStructSize(Type.typeinfowild, 3 * target.ptrsize);
-
-        dtb.xoff(toVtblSymbol(Type.typeinfowild), 0); // vtbl for TypeInfo_Wild
-        if (Type.typeinfowild.hasMonitor())
-            dtb.size(0);                              // monitor
-        Type tm = d.tinfo.mutableOf();
-        tm = tm.merge();
+        Type tm = d.tinfo.mutableOf().merge();
         TypeInfo_toObjFile(null, d.loc, tm);
-        dtb.xoff(toSymbol(tm.vtinfo), 0);
+        classFieldsToDt(Type.typeinfowild, new Expressions(new SymOffExp(d.loc, tm.vtinfo, 0)), *dtb);
     }
 
     override void visit(TypeInfoEnumDeclaration d)
@@ -1338,87 +1345,53 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoPointerDeclaration d)
     {
         //printf("TypeInfoPointerDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfopointer, 3 * target.ptrsize);
-
-        dtb.xoff(toVtblSymbol(Type.typeinfopointer), 0);  // vtbl for TypeInfo_Pointer
-        if (Type.typeinfopointer.hasMonitor())
-            dtb.size(0);                                  // monitor
-
         auto tc = d.tinfo.isTypePointer();
-
         TypeInfo_toObjFile(null, d.loc, tc.next);
-        dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for type being pointed to
+        classFieldsToDt(Type.typeinfopointer,
+            new Expressions(new SymOffExp(d.loc, tc.next.vtinfo, 0)), *dtb);
     }
 
     override void visit(TypeInfoArrayDeclaration d)
     {
         //printf("TypeInfoArrayDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfoarray, 3 * target.ptrsize);
-
-        dtb.xoff(toVtblSymbol(Type.typeinfoarray), 0);    // vtbl for TypeInfo_Array
-        if (Type.typeinfoarray.hasMonitor())
-            dtb.size(0);                                  // monitor
-
         auto tc = d.tinfo.isTypeDArray();
-
         TypeInfo_toObjFile(null, d.loc, tc.next);
-        dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for array of type
+        classFieldsToDt(Type.typeinfoarray,
+            new Expressions(new SymOffExp(d.loc, tc.next.vtinfo, 0)), *dtb);
     }
 
     override void visit(TypeInfoStaticArrayDeclaration d)
     {
         //printf("TypeInfoStaticArrayDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfostaticarray, 4 * target.ptrsize);
-
-        dtb.xoff(toVtblSymbol(Type.typeinfostaticarray), 0);  // vtbl for TypeInfo_StaticArray
-        if (Type.typeinfostaticarray.hasMonitor())
-            dtb.size(0);                                      // monitor
-
         auto tc = d.tinfo.isTypeSArray();
-
         TypeInfo_toObjFile(null, d.loc, tc.next);
-        dtb.xoff(toSymbol(tc.next.vtinfo), 0);   // TypeInfo for array of type
-
-        dtb.size(tc.dim.toInteger());          // length
+        classFieldsToDt(Type.typeinfostaticarray, new Expressions(
+            new SymOffExp(d.loc, tc.next.vtinfo, 0),
+            new IntegerExp(d.loc, tc.dim.toInteger(), Type.tsize_t)), *dtb);
     }
 
     override void visit(TypeInfoVectorDeclaration d)
     {
         //printf("TypeInfoVectorDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfovector, 3 * target.ptrsize);
-
-        dtb.xoff(toVtblSymbol(Type.typeinfovector), 0);   // vtbl for TypeInfo_Vector
-        if (Type.typeinfovector.hasMonitor())
-            dtb.size(0);                                  // monitor
-
         auto tc = d.tinfo.isTypeVector();
-
         TypeInfo_toObjFile(null, d.loc, tc.basetype);
-        dtb.xoff(toSymbol(tc.basetype.vtinfo), 0); // TypeInfo for equivalent static array
+        classFieldsToDt(Type.typeinfovector,
+            new Expressions(new SymOffExp(d.loc, tc.basetype.vtinfo, 0)), *dtb);
     }
 
     override void visit(TypeInfoAssociativeArrayDeclaration d)
     {
         //printf("TypeInfoAssociativeArrayDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfoassociativearray, 7 * target.ptrsize);
-
-        dtb.xoff(toVtblSymbol(Type.typeinfoassociativearray), 0); // vtbl for TypeInfo_AssociativeArray
-        if (Type.typeinfoassociativearray.hasMonitor())
-            dtb.size(0);                    // monitor
-
         auto tc = d.tinfo.isTypeAArray();
-
         TypeInfo_toObjFile(null, d.loc, tc.next);
-        dtb.xoff(toSymbol(tc.next.vtinfo), 0);   // TypeInfo for array of type
-
         TypeInfo_toObjFile(null, d.loc, tc.index);
-        dtb.xoff(toSymbol(tc.index.vtinfo), 0);  // TypeInfo for array of type
-
         TypeInfo_toObjFile(null, d.loc, d.entry);
-        dtb.xoff(toSymbol(d.entry.vtinfo), 0);  // TypeInfo for key,value-pair
-
-        dtb.xoff(toSymbol(d.xopEqual), 0);
-        dtb.xoff(toSymbol(d.xtoHash), 0);
+        classFieldsToDt(Type.typeinfoassociativearray, new Expressions(
+            new SymOffExp(d.loc, tc.next.vtinfo, 0),
+            new SymOffExp(d.loc, tc.index.vtinfo, 0),
+            new SymOffExp(d.loc, d.entry.vtinfo, 0),
+            new SymOffExp(d.loc, d.xopEqual, 0),
+            new SymOffExp(d.loc, d.xtoHash, 0)), *dtb);
     }
 
     override void visit(TypeInfoFunctionDeclaration d)
@@ -1617,43 +1590,30 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoInterfaceDeclaration d)
     {
         //printf("TypeInfoInterfaceDeclaration.toDt() %s\n", tinfo.toChars());
-        verifyStructSize(Type.typeinfointerface, 3 * target.ptrsize);
-
-        dtb.xoff(toVtblSymbol(Type.typeinfointerface), 0);    // vtbl for TypeInfoInterface
-        if (Type.typeinfointerface.hasMonitor())
-            dtb.size(0);                                  // monitor
-
         auto tc = d.tinfo.isTypeClass();
-
         if (!tc.sym.vclassinfo)
             tc.sym.vclassinfo = TypeInfoClassDeclaration.create(tc);
-        auto s = toSymbol(tc.sym.vclassinfo);
-        dtb.xoff(s, 0);    // ClassInfo for tinfo
+        classFieldsToDt(Type.typeinfointerface,
+            new Expressions(new SymOffExp(d.loc, tc.sym.vclassinfo, 0)), *dtb);
     }
 
     override void visit(TypeInfoTupleDeclaration d)
     {
         //printf("TypeInfoTupleDeclaration.toDt() %s\n", tinfo.toChars());
-        verifyStructSize(Type.typeinfotypelist, 4 * target.ptrsize);
-
-        dtb.xoff(toVtblSymbol(Type.typeinfotypelist), 0); // vtbl for TypeInfoInterface
-        if (Type.typeinfotypelist.hasMonitor())
-            dtb.size(0);                                  // monitor
-
         auto tu = d.tinfo.isTypeTuple();
 
-        const dim = tu.arguments.length;
-        dtb.size(dim);                       // elements.length
-
-        auto dtbargs = DtBuilder(0);
-        foreach (arg; *tu.arguments)
+        // Build an array literal for TypeInfo[] elements - one pointer per tuple argument.
+        auto args = new Expressions(tu.arguments.length);
+        foreach (i, arg; *tu.arguments)
         {
             TypeInfo_toObjFile(null, d.loc, arg.type);
-            Symbol* s = toSymbol(arg.type.vtinfo);
-            dtbargs.xoff(s, 0);
+            (*args)[i] = new SymOffExp(d.loc, arg.type.vtinfo, 0);
         }
-
-        dtb.dtoff(dtbargs.finish(), 0);                  // elements.ptr
+        // TypeInfo_Tuple has one field: TypeInfo[] elements. Derive its type from the
+        // runtime class definition so we match the exact field type.
+        Type elementsFieldType = Type.typeinfotypelist.fields[0].type;
+        classFieldsToDt(Type.typeinfotypelist,
+            new Expressions(new ArrayLiteralExp(d.loc, elementsFieldType, args)), *dtb);
     }
 }
 

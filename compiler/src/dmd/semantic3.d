@@ -493,7 +493,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     v.dsymbolSemantic(sc2);
                     if (!sc2.insert(v))
                     {
-                        .error(funcdecl.loc, "%s `%s` parameter `%s.%s` is already defined", funcdecl.kind, funcdecl.toPrettyChars, funcdecl.toChars(), v.toChars());
+                        .error(funcdecl.loc, "%s `%s` parameter `%s.%s` is already defined", funcdecl.kind, funcdecl.toPrettyChars, funcdecl.toErrMsg(), v.toErrMsg());
                         funcdecl.errors = true;
                     }
                     else
@@ -533,7 +533,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 //printf("declaring tuple %s\n", v.toChars());
                 v.isexp = true;
                 if (!sc2.insert(v))
-                    .error(funcdecl.loc, "%s `%s` parameter `%s.%s` is already defined", funcdecl.kind, funcdecl.toPrettyChars, funcdecl.toChars(), v.toChars());
+                    .error(funcdecl.loc, "%s `%s` parameter `%s.%s` is already defined", funcdecl.kind, funcdecl.toPrettyChars, funcdecl.toErrMsg(), v.toErrMsg());
                 funcdecl.localsymtab.insert(v);
                 v.parent = funcdecl;
             }
@@ -694,19 +694,23 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                  * 2. structs should recognize delegating opAssign calls as well
                                  *    as delegating calls to other constructors
                                  */
-                                if (v.isCtorinit() && !v.type.isMutable() && cd)
-                                    .error(funcdecl.loc, "%s `%s` missing initializer for %s field `%s`", funcdecl.kind, funcdecl.toPrettyChars, MODtoChars(v.type.mod), v.toChars());
+                                if (sc2.ctorflow.fieldinit[i].csx & CSX.halt)
+                                {
+                                    // constructor always halts on this path, no initialization needed
+                                }
+                                else if (v.isCtorinit() && !v.type.isMutable() && cd)
+                                    .error(funcdecl.loc, "%s `%s` missing initializer for %s field `%s`", funcdecl.kind, funcdecl.toPrettyChars, MODtoChars(v.type.mod), v.toErrMsg());
                                 else if (v.storage_class & STC.nodefaultctor)
-                                    error(funcdecl.loc, "field `%s` must be initialized in constructor", v.toChars());
+                                    error(funcdecl.loc, "field `%s` must be initialized in constructor", v.toErrMsg());
                                 else if (v.type.needsNested())
-                                    error(funcdecl.loc, "field `%s` must be initialized in constructor, because it is nested struct", v.toChars());
+                                    error(funcdecl.loc, "field `%s` must be initialized in constructor, because it is nested struct", v.toErrMsg());
                             }
                             else
                             {
                                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                                if (mustInit && !(sc2.ctorflow.fieldinit[i].csx & CSX.this_ctor))
+                                if (mustInit && !(sc2.ctorflow.fieldinit[i].csx & (CSX.this_ctor | CSX.halt)))
                                 {
-                                    .error(funcdecl.loc, "%s `%s` field `%s` must be initialized but skipped", funcdecl.kind, funcdecl.toPrettyChars, v.toChars());
+                                    .error(funcdecl.loc, "%s `%s` field `%s` must be initialized but skipped", funcdecl.kind, funcdecl.toPrettyChars, v.toErrMsg());
                                 }
                             }
                         }
@@ -812,7 +816,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     // Fallthrough despite being declared as noreturn? return is already rejected when evaluating the ReturnStatement
                     if (blockexit & BE.fallthru)
                     {
-                        .error(funcdecl.loc, "%s `%s` is typed as `%s` but does return", funcdecl.kind, funcdecl.toPrettyChars, f.next.toChars());
+                        .error(funcdecl.loc, "%s `%s` is typed as `%s` but does return", funcdecl.kind, funcdecl.toPrettyChars, f.next.toErrMsg());
                         funcdecl.loc.errorSupplemental("`noreturn` functions must either throw, abort or loop indefinitely");
                     }
                 }
@@ -821,7 +825,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if ((blockexit & BE.fallthru) && f.next.ty != Tvoid && !funcdecl.hasInlineAsm && !sc.inCfile)
                     {
                         if (!funcdecl.hasReturnExp)
-                            .error(funcdecl.loc, "%s `%s` has no `return` statement, but is expected to return a value of type `%s`", funcdecl.kind, funcdecl.toPrettyChars, f.next.toChars());
+                            .error(funcdecl.loc, "%s `%s` has no `return` statement, but is expected to return a value of type `%s`", funcdecl.kind, funcdecl.toPrettyChars, f.next.toErrMsg());
                         else
                             .error(funcdecl.loc, "%s `%s` no `return exp;` or `assert(0);` at end of function", funcdecl.kind, funcdecl.toPrettyChars);
                     }
@@ -894,7 +898,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                 {
                                     if ((cast(TypeStruct)exp.type.immutableOf()).implicitConvToWithoutAliasThis(tret))
                                         exp = exp.castTo(sc2, exp.type.immutableOf());
-                                    else if ((cast(TypeStruct)exp.type.immutableOf()).implicitConvToWithoutAliasThis(tret))
+                                    else if ((cast(TypeStruct)exp.type.wildOf()).implicitConvToWithoutAliasThis(tret))
                                         exp = exp.castTo(sc2, exp.type.wildOf());
                                 }
                             }
@@ -912,7 +916,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         {
                             if (!MODimplicitConv(exp.type.mod, tret.mod) && !tret.isTypeSArray())
                                 error(exp.loc, "expression `%s` of type `%s` is not implicitly convertible to return type `ref %s`",
-                                      exp.toChars(), exp.type.toChars(), tret.toChars());
+                                      exp.toErrMsg(), exp.type.toErrMsg(), tret.toErrMsg());
                             else
                                 exp = exp.implicitCastTo(sc2, tret);
 
@@ -1270,7 +1274,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                     else
                     {
-                        .error(funcdecl.loc, "%s `%s` synchronized function `%s` must be a member of a class", funcdecl.kind, funcdecl.toPrettyChars, funcdecl.toChars());
+                        .error(funcdecl.loc, "%s `%s` synchronized function `%s` must be a member of a class", funcdecl.kind, funcdecl.toPrettyChars, funcdecl.toErrMsg());
                     }
                 }
 
@@ -1287,7 +1291,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     LabelDsymbol label = cast(LabelDsymbol)keyValue.value;
                     if (!label.statement && (!label.deleted || label.iasm))
                     {
-                        .error(label.loc, "%s `%s` label `%s` is undefined", funcdecl.kind, funcdecl.toPrettyChars, label.toChars());
+                        .error(label.loc, "%s `%s` label `%s` is undefined", funcdecl.kind, funcdecl.toPrettyChars, label.toErrMsg());
                     }
                 }
 
@@ -1407,7 +1411,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             }
             if (isCppNonMappableType(f.next.toBasetype()) && !funcdecl.skipCodegen)
             {
-                .error(funcdecl.loc, "%s `%s` cannot return type `%s` because its linkage is `extern(C++)`", funcdecl.kind, funcdecl.toErrMsg(), f.next.toChars());
+                .error(funcdecl.loc, "%s `%s` cannot return type `%s` because its linkage is `extern(C++)`", funcdecl.kind, funcdecl.toErrMsg(), f.next.toErrMsg());
                 if (f.next.isTypeDArray())
                     errorSupplemental(funcdecl.loc, "slices are specific to D and do not have a counterpart representation in C++", f.next.toChars());
                 funcdecl.errors = true;
@@ -1416,7 +1420,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 if (isCppNonMappableType(param.type.toBasetype(), param))
                 {
-                    .error(funcdecl.loc, "%s `%s` cannot have parameter of type `%s` because its linkage is `extern(C++)`", funcdecl.kind, funcdecl.toErrMsg(), param.type.toChars());
+                    .error(funcdecl.loc, "%s `%s` cannot have parameter of type `%s` because its linkage is `extern(C++)`", funcdecl.kind, funcdecl.toErrMsg(), param.type.toErrMsg());
                     if (param.type.toBasetype().isTypeSArray())
                         errorSupplemental(funcdecl.loc, "perhaps use a `%s*` type instead",
                                           param.type.nextOf().mutableOf().unSharedOf().toChars());
@@ -1648,7 +1652,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         void notTemplateFunction(Loc loc, Identifier id)
         {
-            error(loc, "`%s` isn't a template function", id.toChars());
+            error(loc, "`%s` isn't a template function", id.toErrMsg());
         }
 
         // generate ti.entry
@@ -1883,13 +1887,13 @@ extern (D) bool checkClosure(FuncDeclaration fd)
 
     if (setGC(null, fd, fd.loc, "allocating a closure for `%s()`", fd))
     {
-        .error(fd.loc, "%s `%s` is `@nogc` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toChars());
+        .error(fd.loc, "%s `%s` is `@nogc` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toErrMsg());
         if (global.gag)     // need not report supplemental errors
             return true;
     }
     else if (!global.params.useGC)
     {
-        .error(fd.loc, "%s `%s` is `-betterC` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toChars());
+        .error(fd.loc, "%s `%s` is `-betterC` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toErrMsg());
         if (global.gag)     // need not report supplemental errors
             return true;
     }

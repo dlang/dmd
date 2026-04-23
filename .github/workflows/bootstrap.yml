@@ -5,10 +5,14 @@ on:
   pull_request:
     branches:
       - stable
+    paths-ignore:
+      - 'spec/**'
   push:
     branches:
       - master
       - stable
+    paths-ignore:
+      - 'spec/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

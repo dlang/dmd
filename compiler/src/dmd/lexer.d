@@ -1635,7 +1635,7 @@ class Lexer
             case 0:
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
-                result.setString();
+                result.setString(null);
                 // rewind `p` so it points to the EOF character
                 p--;
                 return;
@@ -1643,9 +1643,9 @@ class Lexer
                 if (c == terminator)
                 {
                     if (supportInterpolation)
-                        result.appendInterpolatedPart(stringbuffer);
+                        result.appendInterpolatedPart(stringbuffer[]);
                     else
-                        result.setString(stringbuffer);
+                        result.setString(stringbuffer[]);
 
                     stringPostfix(result);
                     return;
@@ -1698,7 +1698,7 @@ class Lexer
             case 0:
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
-                t.setString();
+                t.setString(null);
                 // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOK.endOfFile token).
                 p--;
                 return TOK.hexadecimalString;
@@ -1708,7 +1708,7 @@ class Lexer
                     error("odd number (%d) of hex characters in hex string", n);
                     stringbuffer.writeByte(cast(char)v);
                 }
-                t.setString(stringbuffer);
+                t.setString(stringbuffer[]);
                 stringPostfix(t);
                 return TOK.hexadecimalString;
             default:
@@ -1801,7 +1801,7 @@ class Lexer
             case 0:
             case 0x1A:
                 error("unterminated delimited string constant starting at %s", start.toChars());
-                result.setString();
+                result.setString(null);
                 // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOK.endOfFile token).
                 p--;
                 return;
@@ -1907,7 +1907,7 @@ class Lexer
             error("delimited string must end in `\"`");
         else
             error(token.loc, "delimited string must end in `%c\"`", delimright);
-        result.setString(stringbuffersecondary);
+        result.setString(stringbuffersecondary[]);
         stringPostfix(result);
     }
 
@@ -1951,11 +1951,11 @@ class Lexer
             case TOK.rightCurly:
                 if (--nest == 0)
                 {
+                    const length = p - 1 - pstart;
                     if (supportInterpolation)
-                        result.appendInterpolatedPart(pstart, p - 1 - pstart);
+                        result.appendInterpolatedPart(pstart[0 .. length]);
                     else
-                        result.setString(pstart, p - 1 - pstart);
-
+                        result.setString(pstart[0 .. length]);
                     stringPostfix(result);
                     return;
                 }
@@ -1976,7 +1976,7 @@ class Lexer
                 continue;
             case TOK.endOfFile:
                 error("unterminated token string constant starting at %s", start.toChars());
-                result.setString();
+                result.setString(null);
                 return;
             default:
                 continue;
@@ -1994,7 +1994,7 @@ class Lexer
             // expression, at this level we need to scan until the closing ')'
 
             // always put the string part in first
-            token.appendInterpolatedPart(stringbuffer);
+            token.appendInterpolatedPart(stringbuffer[]);
             stringbuffer.setsize(0);
 
             int openParenCount = 1;
@@ -2119,9 +2119,9 @@ class Lexer
                 if (c != tc)
                     goto default;
                 if (supportInterpolation)
-                    t.appendInterpolatedPart(stringbuffer);
+                    t.appendInterpolatedPart(stringbuffer[]);
                 else
-                    t.setString(stringbuffer);
+                    t.setString(stringbuffer[]);
                 if (!Ccompile)
                     stringPostfix(t);
                 return;
@@ -2131,7 +2131,7 @@ class Lexer
                 p--;
             Lunterminated:
                 error("unterminated string constant starting at %s", start.toChars());
-                t.setString();
+                t.setString(null);
                 return;
             default:
                 if (c & 0x80)
@@ -3289,9 +3289,9 @@ class Lexer
     /***************************************
      * Scan forward to start of next line.
      * Params:
-     *    defines = send characters to `defines`
+     *    sink = send characters in the line to this delegate
      */
-    final void skipToNextLine(OutBuffer* defines = null)
+    final void skipToNextLine(void delegate(char c) nothrow sink = null)
     {
         while (1)
         {
@@ -3312,8 +3312,8 @@ class Lexer
                 break;
 
             default:
-                if (defines)
-                    defines.writeByte(*p); // don't care about Unicode line endings for C
+                if (sink)
+                    sink(*p); // don't care about Unicode line endings for C
                 else if (*p & 0x80)
                 {
                     const u = decodeUTF();

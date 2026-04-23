@@ -1309,7 +1309,9 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         buf.put('{');
         buf.writenl();
         buf.level++;
-        visitAttribDeclaration(s);
+        if (s.decl)
+            foreach (de; *s.decl)
+                toCBuffer(de, buf, hgs);
         buf.level--;
         buf.put('}');
         buf.writenl();
@@ -1752,17 +1754,16 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
             /*
                 https://issues.dlang.org/show_bug.cgi?id=23223
                 https://issues.dlang.org/show_bug.cgi?id=23222
-                This special case (initially just for modules) avoids some segfaults
-                and nicer -vcg-ast output.
+                https://github.com/dlang/dmd/issues/21707
+                For named symbols (modules, functions, templates, aggregates),
+                print just the name to avoid segfaults, infinite recursion,
+                and for nicer -vcg-ast output. Anonymous symbols (function
+                literals) are printed in full.
             */
-            if (d.aliassym.isModule())
-            {
+            if (!d.aliassym.isFuncLiteralDeclaration() && d.aliassym.ident)
                 buf.put(d.aliassym.ident.toString());
-            }
             else
-            {
                 toCBuffer(d.aliassym, buf, hgs);
-            }
         }
         else if (d.type.ty == Tfunction)
         {
@@ -3056,7 +3057,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitDefaultInit(DefaultInitExp e)
     {
-        buf.put(EXPtoString(e.op));
+        buf.put(Token.toString(e.tok));
     }
 
     void visitClassReference(ClassReferenceExp e)
@@ -4618,12 +4619,7 @@ string EXPtoString(EXP op)
         EXP.arrayLiteral : "arrayliteral",
         EXP.assocArrayLiteral : "assocarrayliteral",
         EXP.classReference : "classreference",
-        EXP.file : "__FILE__",
-        EXP.fileFullPath : "__FILE_FULL_PATH__",
-        EXP.line : "__LINE__",
-        EXP.moduleString : "__MODULE__",
-        EXP.functionString : "__FUNCTION__",
-        EXP.prettyFunction : "__PRETTY_FUNCTION__",
+        EXP.defaultInit : "defaultinit",
         EXP.typeid_ : "typeid",
         EXP.is_ : "is",
         EXP.assert_ : "assert",
