@@ -961,111 +961,114 @@ nothrow:
 
     extern (C++) const(char)* toChars() const
     {
-        return toString().ptr;
+        OutBuffer buf;
+        toString(&buf.put);
+        return buf.extractChars();
     }
 
     /*********************************
+     * Params:
+     *  sink = where the generated characters get sent
      * Returns:
      *  a zero-terminated string representation of the token,
      *  sometimes reusing a static buffer, sometimes leaking memory
      */
-    extern (D) const(char)[] toString() const
+    extern (D) void toString(scope void delegate (ubyte c) nothrow sink) const
     {
+        nothrow void arraySink(const(char)[] s) { foreach (char c; s) sink(c); }
+
         const bufflen = 3 + 3 * floatvalue.sizeof + 1;
-        __gshared char[bufflen + 2] buffer;     // extra 2 for suffixes
+        char[bufflen + 2] buffer = void;     // extra 2 for suffixes
         char* p = &buffer[0];
+
+        Sink s = Sink(sink);
         switch (value)
         {
         case TOK.int32Literal:
-            const length = snprintf(p, bufflen, "%d", cast(int)intvalue);
-            return p[0 .. length];
+            s.printf("%d", cast(int)intvalue);
+            return;
 
         case TOK.uns32Literal:
         case TOK.wchar_tLiteral:
-            const length = snprintf(p, bufflen, "%uU", cast(uint)unsvalue);
-            return p[0 .. length];
+            s.printf("%uU", cast(uint)unsvalue);
+            return;
 
         case TOK.wcharLiteral:
         case TOK.dcharLiteral:
         case TOK.charLiteral:
-            OutBuffer buf;
-            void sink(char c) { buf.writeByte(c); }
-            writeSingleCharLiteral(cast(dchar) intvalue, &sink);
-            return buf.extractSlice(true);
+            writeSingleCharLiteral(cast(dchar) intvalue, sink);
+            return;
 
         case TOK.int64Literal:
-            const length = snprintf(p, bufflen, "%lldL", cast(long)intvalue);
-            return p[0 .. length];
+            s.printf("%lldL", cast(long)intvalue);
+            return;
 
         case TOK.uns64Literal:
-            const length = snprintf(p, bufflen, "%lluUL", cast(ulong)unsvalue);
-            return p[0 .. length];
+            s.printf("%lluUL", cast(ulong)unsvalue);
+            return;
 
         case TOK.float32Literal:
             const length = CTFloat.sprint(p, bufflen, 'g', floatvalue);
-            p[length] = 'f';
-            p[length + 1] = 0;
-            return p[0 .. length + 1];
+            arraySink(p[0 .. length]);
+            sink('f');
+            return;
 
         case TOK.float64Literal:
             const length = CTFloat.sprint(p, bufflen, 'g', floatvalue);
-            return p[0 .. length];
+            return arraySink(p[0 .. length]);
 
         case TOK.float80Literal:
             const length = CTFloat.sprint(p, bufflen, 'g', floatvalue);
-            p[length] = 'L';
-            p[length + 1] = 0;
-            return p[0 .. length + 1];
+            arraySink(p[0 .. length]);
+            sink('L');
+            return;
 
         case TOK.imaginary32Literal:
             const length = CTFloat.sprint(p, bufflen, 'g', floatvalue);
-            p[length    ] = 'f';
-            p[length + 1] = 'i';
-            p[length + 2] = 0;
-            return p[0 .. length + 2];
+            arraySink(p[0 .. length]);
+            sink('f');
+            sink('i');
+            return;
 
         case TOK.imaginary64Literal:
             const length = CTFloat.sprint(p, bufflen, 'g', floatvalue);
-            p[length] = 'i';
-            p[length + 1] = 0;
-            return p[0 .. length + 1];
+            arraySink(p[0 .. length]);
+            sink('i');
+            return;
 
         case TOK.imaginary80Literal:
             const length = CTFloat.sprint(p, bufflen, 'g', floatvalue);
-            p[length    ] = 'L';
-            p[length + 1] = 'i';
-            p[length + 2] = 0;
-            return p[0 .. length + 2];
+            arraySink(p[0 .. length]);
+            sink('L');
+            sink('i');
+            return;
 
         case TOK.string_:
-            OutBuffer buf;
-            buf.writeByte('"');
+            sink('"');
             for (size_t i = 0; i < len;)
             {
                 dchar d;
                 utf_decodeChar(ustring[0 .. len], i, d);
-                void sink2(char c) { buf.writeByte(c); }
-                writeCharLiteral(d, &sink2);
+                writeCharLiteral(d, sink);
             }
-            buf.writeByte('"');
+            sink('"');
             if (postfix)
-                buf.writeByte(postfix);
-            return buf.extractSlice(true);
+                sink(postfix);
+            return;
 
         case TOK.hexadecimalString:
-            OutBuffer buf;
-            buf.writeByte('x');
-            buf.writeByte('"');
+            sink('x');
+            sink('"');
             foreach (size_t i; 0 .. len)
             {
                 if (i)
-                    buf.writeByte(' ');
-                buf.printf("%02x", ustring[i]);
+                    sink(' ');
+                s.printf("%02x", ustring[i]);
             }
-            buf.writeByte('"');
+            sink('"');
             if (postfix)
-                buf.writeByte(postfix);
-            return buf.extractSlice(true);
+                sink(postfix);
+            return;
 
         case TOK.identifier:
         case TOK.enum_:
@@ -1095,10 +1098,10 @@ nothrow:
         case TOK.complex64:
         case TOK.complex80:
         case TOK.void_:
-            return ident.toString();
+            return arraySink(ident.toString());
 
         default:
-            return tochars[value];
+            return arraySink(tochars[value]);
         }
     }
 
@@ -1123,7 +1126,7 @@ nothrow:
  *   sink = sink for generated characters
  */
 nothrow
-void writeCharLiteral(dchar d, void delegate(char) nothrow sink)
+void writeCharLiteral(dchar d, scope void delegate(ubyte) nothrow sink)
 {
     char c;
     switch (d)
@@ -1136,7 +1139,7 @@ void writeCharLiteral(dchar d, void delegate(char) nothrow sink)
         case '\f': c = 'f';  goto Lput;
         Lput:
             sink('\\');
-            sink(cast(char)c);
+            sink(cast(ubyte)c);
             break;
 
         case '"':
@@ -1144,25 +1147,18 @@ void writeCharLiteral(dchar d, void delegate(char) nothrow sink)
             sink('\\');
             goto default;
         default:
-            char[2 + 8 + 1] buf = void;
-            int n = cast(int)buf.length;
+            Sink s = Sink(sink);
             if (d <= 0xFF)
             {
                 if (isprint(d))
-                {
-                    sink(cast(char)d);
-                    break;
-                }
+                    sink(cast(ubyte)d);
                 else
-                    n = snprintf(buf.ptr, n, "\\x%02x", d);
+                    s.printf("\\x%02x", d);
             }
             else if (d <= 0xFFFF)
-                n = snprintf(buf.ptr, n, "\\u%04x", d);
+                s.printf("\\u%04x", d);
             else
-                n = snprintf(buf.ptr, n, "\\U%08x", d);
-            assert(n < buf.length);
-            foreach (chr; buf[0 .. n])
-                sink(chr);
+                s.printf("\\U%08x", d);
             break;
     }
 }
@@ -1173,7 +1169,7 @@ unittest
     size_t i;
     foreach(dchar d; "a\n\r\t\b\f\0\x11\u7233\U00017233"d)
     {
-        void sink(char c) { buf[i++] = c; }
+        void sink(ubyte c) { buf[i++] = c; }
         writeCharLiteral(d, &sink);
     }
     assert(buf[0 .. i] == `a\n\r\t\b\f\0\x11\u7233\U00017233`);
@@ -1189,7 +1185,7 @@ unittest
  *   sink = where the output goes
  */
 nothrow
-void writeSingleCharLiteral(dchar c, void delegate(char c) nothrow sink)
+void writeSingleCharLiteral(dchar c, scope void delegate(ubyte c) nothrow sink)
 {
     sink('\'');
     if (c == '\'')
@@ -1207,13 +1203,82 @@ void writeSingleCharLiteral(dchar c, void delegate(char c) nothrow sink)
 unittest
 {
     OutBuffer buf;
-    void sink(char c) { buf.writeByte(c); }
-    writeSingleCharLiteral('\'', &sink);
+    writeSingleCharLiteral('\'', &buf.write);
     assert(buf[] == `'\''`);
     buf.reset();
-    writeSingleCharLiteral('"', &sink);
+    writeSingleCharLiteral('"', &buf.write);
     assert(buf[] == `'"'`);
     buf.reset();
-    writeSingleCharLiteral('\n', &sink);
+    writeSingleCharLiteral('\n', &buf.write);
     assert(buf[] == `'\n'`);
+}
+
+import core.stdc.stdarg;
+
+/* Because extern (C) functions cannot accept delegates as arguments
+ */
+struct Sink
+{
+    void delegate(ubyte) nothrow put;
+
+    /************************************************
+     * Works like printf, but writes the resulting characters to
+     * sink rather than stdout.
+     * Cribbed from common/outbuffer.d
+     * Params:
+     *  sink = where the output goes
+     *  format = printf-style format string
+     *  args = arguments to format
+     */
+
+    extern (C) void printf(const(char)* format, ...) nothrow @system
+    {
+        va_list ap;
+        va_start(ap, format);
+        vprintf(format, ap);
+        va_end(ap);
+    }
+
+    private
+    void vprintf(const(char)* format, va_list args) nothrow @system
+    {
+        debug
+            enum BUFSIZE = 1;   // flush out reallocation bugs
+        else
+            enum BUFSIZE = 32;
+        char[BUFSIZE] buf = void;       // 32 should be enough for anybody
+        uint psize = BUFSIZE;
+        char* pbuf = &buf[0];
+        uint count;
+        for (;;)
+        {
+            if (psize > BUFSIZE) // need a bigger boat
+            {
+                pbuf = cast(char*)mem.xrealloc_noscan((pbuf is &buf[0]) ? null : pbuf, psize);
+            }
+            va_list va;
+            va_copy(va, args);
+            /*
+                The functions vprintf(), vfprintf(), vsprintf(), vsnprintf()
+                are equivalent to the functions printf(), fprintf(), sprintf(),
+                snprintf(), respectively, except that they are called with a
+                va_list instead of a variable number of arguments. These
+                functions do not call the va_end macro. Consequently, the value
+                of ap is undefined after the call. The application should call
+                va_end(ap) itself afterwards.
+                */
+            count = vsnprintf(cast(char*)pbuf, psize, format, va);
+            va_end(va);
+            if (count == -1) // snn.lib and older libcmt.lib return -1 if buffer too small
+                psize *= 2;
+            else if (count >= psize)
+                psize = count + 1;      // count is number of characters that would have been written, excluding 0
+            else
+                break;
+        }
+        foreach (c; pbuf[0 .. count])
+            put(c);
+        if (psize > BUFSIZE)
+            mem.xfree(pbuf);
+    }
 }
