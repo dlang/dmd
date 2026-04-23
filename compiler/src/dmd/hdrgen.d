@@ -925,7 +925,7 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
         buf.level++;
         while (t)
         {
-            buf.put(t.toString());
+            t.toString(&buf.put);
             if (t.next &&
                 t.value != TOK.min      &&
                 t.value != TOK.comma    && t.next.value != TOK.comma    &&
@@ -2242,8 +2242,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             case Tdchar:
                 {
                     const o = buf.length;
-                    void sink(char c) { buf.writeByte(c); }
-                    writeSingleCharLiteral(cast(dchar) v, &sink);
+                    writeSingleCharLiteral(cast(dchar) v, &buf.put);
                     if (hgs.ddoc)
                         escapeDdocString(buf, o);
                     break;
@@ -2402,8 +2401,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         const o = buf.length;
         foreach (i; 0 .. e.len)
         {
-            void sink(char c) { buf.writeByte(c); }
-            writeCharLiteral(e.getCodeUnit(i), &sink);
+            writeCharLiteral(e.getCodeUnit(i), &buf.put);
         }
         if (hgs.ddoc)
             escapeDdocString(buf, o);
@@ -2423,10 +2421,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             if (idx % 2 == 0)
             {
                 foreach(ch; str)
-                {
-                    void sink(char c) { buf.put(c); }
-                    writeCharLiteral(ch, &sink);
-                }
+                    writeCharLiteral(ch, &buf.put);
             }
             else
             {

@@ -232,6 +232,15 @@ struct OutBuffer
 
     alias put = write;  // transition to output range which uses put()
 
+    void write(ubyte b) pure nothrow @safe
+    {
+        if (doindent && !notlinehead && b != '\n')
+            indent();
+        reserve(1);
+        this.data[offset] = b;
+        offset++;
+    }
+
     extern (C++) void write(scope const(void)* data, size_t nbytes) pure nothrow @system
     {
         put(data[0 .. nbytes]);
@@ -404,15 +413,6 @@ struct OutBuffer
     }
 
     extern (C++) void writeByte(ubyte b) pure nothrow @safe
-    {
-        if (doindent && !notlinehead && b != '\n')
-            indent();
-        reserve(1);
-        this.data[offset] = b;
-        offset++;
-    }
-
-    void write(ubyte b) pure nothrow @safe
     {
         if (doindent && !notlinehead && b != '\n')
             indent();
