@@ -8,24 +8,21 @@ struct TimeLineGeometry
     int minToSkip;
     int toSkipBuffer;
 
-    void delegate(int line, ref Diagnostic, LineClassification classification) columnDrawHandler;
-    void delegate(int line, bool haveStartOrEndColumnsToLeft, bool previousLineColumnIsActive) columnEmptyHandler;
-    void delegate(int line) onLineStart;
-    void delegate(int line) onLineEnd;
-    void delegate(int line) onLineSource;
-    void delegate(int startLine, int endLine) onLinesSkippedBeforeMargin;
-    void delegate(int startLine, int endLine) onLinesSkippedAfterMargin;
-    uint delegate(int line, int startColumn, int endColumn, ref Diagnostic diag, ref Message message) graphemesBetweenPositions;
+    void delegate(int line, ref Diagnostic, LineClassification classification) nothrow columnDrawHandler;
+    void delegate(int line, bool haveStartOrEndColumnsToLeft, bool previousLineColumnIsActive) nothrow columnEmptyHandler;
+    void delegate(int line) nothrow onLineStart;
+    void delegate(int line) nothrow onLineEnd;
+    void delegate(int line) nothrow onLineSource;
+    void delegate(int startLine, int endLine) nothrow onLinesSkippedBeforeMargin;
+    void delegate(int startLine, int endLine) nothrow onLinesSkippedAfterMargin;
+    uint delegate(int line, int startColumn, int endColumn, ref Diagnostic diag, ref Message message) nothrow graphemesBetweenPositions;
     void delegate(int line, int offsetToSquiggles, int numberOfSquiggles,
-            ref Diagnostic diag, ref Message message, bool spansMultipleLines) lineHighlight;
-    void delegate(int line, ref Diagnostic diag, ref Message message) printSingleLine;
-    // first line has had onLineStart and printMargin called for it automatically,
-    //  last line has had onLineEnd called for it automatically.
-    // call printMargin and emit offsetToMessage before you write a line of text
-    void delegate(scope void delegate() printMargin, uint offsetToMessage, int line,
-            int offsetToSquiggles, int numberOfSquiggles, ref Diagnostic diag, ref Message message) printMultiLine;
+            ref Diagnostic diag, ref Message message, bool spansMultipleLines) nothrow lineHighlight;
+    void delegate(int line, ref Diagnostic diag, ref Message message) nothrow printSingleLine;
+    void delegate(scope void delegate() nothrow printMargin, uint offsetToMessage, int line,
+        int offsetToSquiggles, int numberOfSquiggles, ref Diagnostic diag, ref Message message) nothrow printMultiLine;
 
-    void calculate()
+    void calculate() nothrow
     {
         assignColumns;
 
@@ -35,7 +32,7 @@ struct TimeLineGeometry
 
         for (;;)
         {
-            int lastColumnEmitted = -numberOfTokenColumns; // Tracks total columns emitted on this line (across all layers)
+            int lastColumnEmitted = -numberOfTokenColumns;
             int minimumActiveColumn = -numberOfTokenColumns;
             int numberOfEventsForThisLine;
             int nextActiveLine = int.max;
@@ -48,7 +45,7 @@ struct TimeLineGeometry
                 {
                     onLinesSkippedBeforeMargin(lineNumber, skipTo);
                     processDiagnosticLineEvents(lineNumber, 0,
-                    lastColumnEmitted, true, false, false);
+                            lastColumnEmitted, true, false, false);
                     onLinesSkippedAfterMargin(lineNumber, skipTo);
                     this.onLineEnd(lineNumber);
 
@@ -66,7 +63,6 @@ struct TimeLineGeometry
 
                     if (classification != LineClassification.Inactive)
                     {
-                        // Active on the current line. Update min column and event count.
                         if (diag.column < minimumActiveColumn)
                             minimumActiveColumn = diag.column;
 
@@ -95,24 +91,20 @@ struct TimeLineGeometry
                 onLineStart(lineNumber);
 
                 processDiagnosticLineEvents(lineNumber, minimumActiveColumn,
-                lastColumnEmitted, true, false, false);
+                        lastColumnEmitted, true, false, false);
 
                 onLineSource(lineNumber);
-                // we're responsible for calling onLineEnd due to withUser is set to false.
                 onLineEnd(lineNumber);
 
                 lastColumnEmitted = -numberOfTokenColumns;
             }
-
-            // At this point we know how many columns to ignore = minimumActiveColumn.
 
             while ((numberOfColumns == 0 || lastColumnEmitted < numberOfColumns)
                     && numberOfEventsForThisLine > 0)
             {
                 onLineStart(lineNumber);
                 processDiagnosticLineEvents(lineNumber, minimumActiveColumn,
-                lastColumnEmitted, false, false, true);
-                // userMessage is responsible for onLineEnd call due to withUser is set to true.
+                        lastColumnEmitted, false, false, true);
 
                 numberOfEventsForThisLine--;
             }
@@ -125,12 +117,9 @@ private:
     int numberOfColumns;
     int numberOfTokenColumns;
 
-    void assignColumns()
+    void assignColumns() nothrow
     {
         {
-            // Determine the number of diagnostics that will overlap.
-            // This is the maximum number of columns total.
-
             foreach (diag1; diagnostics)
             {
                 if (diag1.start == diag1.end)
@@ -217,22 +206,21 @@ private:
             }
         }
 
-        // Ensure there is at least one inactive column after the lines
         if (numberOfColumns > 0)
             numberOfColumns++;
     }
 
     void processDiagnosticLineEvents(int lineNumber, int minimumActiveColumn,
             ref int lastColumnEmitted, bool noStartEndAsInactive,
-            bool noStartEndAsContinue, bool withUser)
+            bool noStartEndAsContinue, bool withUser) nothrow
     {
         int emittedDiags = lastColumnEmitted;
         const ifCalledMoreThanOnceForLine = lastColumnEmitted > numberOfTokenColumns;
         scope (exit)
-        lastColumnEmitted = emittedDiags;
+            lastColumnEmitted = emittedDiags;
 
         Diagnostic* findActiveDiagInColumn(int lineNumber, int col,
-                out LineClassification classification, out bool startEndOnlyRange)
+                out LineClassification classification, out bool startEndOnlyRange) nothrow
         {
             if (lineNumber == 0)
                 return null;
@@ -250,10 +238,10 @@ private:
             return null;
         }
 
-        void emptyColumn(int onLine, int columnNumber, bool haveStartOrEndColumnsToLeft)
+        void emptyColumn(int onLine, int columnNumber, bool haveStartOrEndColumnsToLeft) nothrow
         {
             if (columnNumber < 0)
-            return;
+                return;
 
             LineClassification classification;
             bool startEndOnlyRange;
@@ -265,14 +253,14 @@ private:
             columnEmptyHandler(lineNumber, haveStartOrEndColumnsToLeft, isActive);
         }
 
-        void printMargin()
+        void printMargin() nothrow
         {
             int tempMaxDiagsEmitted = emittedDiags + 1;
             processDiagnosticLineEvents(lineNumber, minimumActiveColumn,
                     tempMaxDiagsEmitted, false, true, false);
         }
 
-        void userMessage(ref Diagnostic diag, ref Message message, bool spansMultipleLines)
+        void userMessage(ref Diagnostic diag, ref Message message, bool spansMultipleLines) nothrow
         {
             if (!withUser)
                 return;
@@ -282,7 +270,6 @@ private:
             const lengthOfSquiggles = this.graphemesBetweenPositions(lineNumber,
                     message.startColumn, message.endColumn, diag, message);
 
-            // 1. squiggles ──────^^^^
             lineHighlight(lineNumber, offsetToSquiggles, lengthOfSquiggles,
                     diag, message, spansMultipleLines);
 
@@ -292,7 +279,6 @@ private:
 
                 printMultiLine(&printMargin, offsetToSquiggles, lineNumber,
                         offsetToSquiggles, lengthOfSquiggles, diag, message);
-                // user is responsible for handling new lines
             }
             else
             {
@@ -302,12 +288,7 @@ private:
         }
 
         foreach (int column; 0 .. minimumActiveColumn)
-        {
-            // These columns do not have any active diagnostics in them.
-            // So we'll call the empty handler preemptively.
-            // No point checking for if a column is active in the main loop.
             columnEmptyHandler(lineNumber, false, false);
-        }
 
         for (int column = minimumActiveColumn; column < numberOfColumns; column++)
         {
@@ -358,13 +339,8 @@ private:
             case LineClassification.SpanEnd:
             case LineClassification.SpanStartEnd:
 
-                // This ends this call to processDiagnosticLineEvents.
-                // Due to seeing a start/end/startend event.
-                // Also ensures that all columns to the right are emitted.
-
-            if (column >= 0)
-                columnDrawHandler(lineNumber,
-                        *currentDiag, classification);
+                if (column >= 0)
+                    columnDrawHandler(lineNumber, *currentDiag, classification);
                 emittedDiags++;
 
                 const haveBefore = classification != LineClassification.SpanStartEnd;
@@ -387,8 +363,7 @@ private:
                 return;
 
             case LineClassification.SpanContinue:
-                columnDrawHandler(lineNumber,
-                        *currentDiag, classification);
+                columnDrawHandler(lineNumber, *currentDiag, classification);
                 emittedDiags++;
                 break;
 
@@ -405,7 +380,7 @@ private:
 private:
 
 LineClassification calculateLineClassification(ref Diagnostic diagnostic,
-        int lineNumber, out bool startEndOnlyRange)
+        int lineNumber, out bool startEndOnlyRange) nothrow
 {
     if (lineNumber < diagnostic.start || lineNumber > diagnostic.end)
         return LineClassification.Inactive;

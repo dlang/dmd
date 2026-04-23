@@ -1,174 +1,201 @@
 module dmd.diagreport.app;
 
-import core.stdc.stdio : vprintf, fflush, stderr;
-import core.stdc.string;
+import core.stdc.stdio : vsnprintf, fwrite, fflush, stderr;
+import core.stdc.stdarg;
+import core.stdc.string : strlen;
 import dmd.common.outbuffer;
 import dmd.errors;
 import dmd.diagreport.defs;
 import dmd.diagreport.geometry;
 import dmd.diagreport.renderer;
 import dmd.location;
-// import std.stdio;
-// import std.conv;
-// import std.range;
-// import std.array;
-// import std.string;
 
-
-/// Function to convert dmd.errors.Diagnostic object to dmd.diagreport.defs.Diagnostic objects
-dmd.diagreport.defs.Diagnostic convert(dmd.errors.Diagnostic d) 
+dmd.diagreport.defs.Diagnostic convert(dmd.errors.Diagnostic d) nothrow
 {
     dmd.diagreport.defs.Diagnostic obj;
     obj.start = d.loc.line;
     obj.end = d.loc.line;
-    obj.originalOffset = d.loc.fileOffset;
     obj.startMessage.startColumn = cast(int) getMessageStartColumn(d.loc.fileContent, d.loc.fileOffset);
     obj.startMessage.isMultiline = false;
     return obj;
 }
 
-/// function to call event() for diagnostics
-void callEvent(ref dmd.errors.Diagnostic[] diagnostics)
+void callEvent(ref dmd.errors.Diagnostic[] group) nothrow
 {
-    foreach(d; diagnostics)
+    if (group.length == 0) return;
+
+    auto primary = group[0];
+
+    dmd.diagreport.defs.Diagnostic[] diags;
+    string[] messages;
+
+    try
     {
-        dmd.diagreport.defs.Diagnostic diag = convert(d);
-        event(cast(string) d.loc.filename, cast(string) d.loc.fileContent, d.loc.line, [diag], [d.message], null);
+        foreach (i, ref d; group)
+        {
+            auto diag = convert(d);
+            diag.startMessage.id = i + 1;   // 1-based message id
+            diags ~= diag;
+            messages ~= d.message;
+        }
     }
+    catch (Exception) { return; }
+
+    event(cast(string) primary.loc.filename,
+          cast(string) primary.loc.fileContent,
+          primary.loc.line,
+          diags,
+          messages,
+          null);
 }
 
-void event(string filename, string source, int firstLineNumber, dmd.diagreport.defs.Diagnostic[] diagnostics, string[] messagesText, Help[] help)
+void event(string filename, string source, int firstLineNumber,
+           dmd.diagreport.defs.Diagnostic[] diagnostics,
+           string[] messagesText, Help[] help) nothrow
 {
     OutBuffer buf;
-    // string[] lines = source.splitLines;
+
+    string[] lines = splitLines(source);
 
     Renderer renderer;
     renderer.filename = filename;
     renderer.diagnostics = diagnostics;
     renderer.help = help;
 
-    renderer.emitRaw = (string text) => buf.printDiagnostic(text);
-    renderer.emitRawFormat = (const(char)* fmt, ...) {
-        import core.stdc.stdarg;
+    renderer.emitRaw = (string text) nothrow
+        => buf.printDiagnostic(text);
 
+    renderer.emitRawFormat = (const(char)* fmt, ...) nothrow
+    {
         va_list args;
         va_start(args, fmt);
-        vprintf(fmt, args);
+        char[64] tmp = void;
+        int n = vsnprintf(tmp.ptr, tmp.length, fmt, args);
         va_end(args);
+        if (n > 0)
+            buf.printDiagnostic(cast(string) tmp[0 .. n]);
     };
-    renderer.emitMargin = (string text) => buf.printDiagnostic("\x1b[33m", text, "\x1b[0m");
-    renderer.emitHeader = () => buf.printDiagnostic("\x1b[31merror\x1b[0m: ");
-    renderer.emitHeaderMultiLinePrefix = () => buf.printDiagnostic("       ");
-    renderer.emitFooter = () => buf.printDiagnostic("\x1b[34mnote:\x1b[0m ");
-    renderer.emitFooterMultiLinePrefix = () => buf.printDiagnostic("      ");
-    renderer.emitHelp = () => buf.printDiagnostic("\x1b[34mhelp:\x1b[0m ");
-    renderer.emitHelpMultiLinePrefix = () => buf.printDiagnostic("      ");
-    renderer.emitGutter = (string text) => buf.printDiagnostic("\x1b[34m", text, "\x1b[0m");
-    renderer.emitSquiggle = (string text) => buf.printDiagnostic("\x1b[31m", text, "\x1b[0m");
-    //renderer.getSourceCode = (int lineNumber) => lines[lineNumber - firstLineNumber];
-    renderer.getSourceCode = (int lineNumber)
+
+    renderer.emitMargin = (string text) nothrow
+        => buf.printDiagnostic("\x1b[33m", text, "\x1b[0m");
+
+    renderer.emitHeader = () nothrow
+        => buf.printDiagnostic("\x1b[31merror\x1b[0m: ");
+
+    renderer.emitHeaderMultiLinePrefix = () nothrow
+        => buf.printDiagnostic("       ");
+
+    renderer.emitFooter = () nothrow
+        => buf.printDiagnostic("\x1b[34mnote:\x1b[0m ");
+
+    renderer.emitFooterMultiLinePrefix = () nothrow
+        => buf.printDiagnostic("      ");
+
+    renderer.emitHelp = () nothrow
+        => buf.printDiagnostic("\x1b[34mhelp:\x1b[0m ");
+
+    renderer.emitHelpMultiLinePrefix = () nothrow
+        => buf.printDiagnostic("      ");
+
+    renderer.emitGutter = (string text) nothrow
+        => buf.printDiagnostic("\x1b[34m", text, "\x1b[0m");
+
+    renderer.emitSquiggle = (string text) nothrow
+        => buf.printDiagnostic("\x1b[31m", text, "\x1b[0m");
+
+    renderer.getSourceCode = (int lineNumber) nothrow @trusted
     {
-        auto range = LineRange(source); // Start at the beginning of the file
-        int current = firstLineNumber; 
-
-        while (!range.empty && current < lineNumber)
-        {
-            range.popFront();
-            current++;
-        }       
-
-        if (!range.empty && current == lineNumber)
-            return range.front();
-
-        return "";
+        int idx = lineNumber - firstLineNumber;
+        if (idx < 0 || idx >= cast(int) lines.length)
+            return "";
+        return lines[idx];
     };
 
-    renderer.emitMessageSingleLine = (ref Message message) {
+    renderer.emitMessageSingleLine = (ref Message message) nothrow
+    {
         if (message.id > 0 && message.id <= messagesText.length)
             buf.printDiagnostic(messagesText[message.id - 1]);
     };
-    renderer.emitMessageMultiLine = (scope void delegate(bool isLast) beforeTextOnLine,
-            ref Message message) {
-        if (message.id > 0 && message.id <= messagesText.length)
+
+    renderer.emitMessageMultiLine = (scope void delegate(bool isLast) nothrow beforeTextOnLine,
+            ref Message message) nothrow @trusted
+    {
+        if (message.id == 0 || message.id > messagesText.length)
+            return;
+
+        string text1 = messagesText[message.id - 1];
+        size_t start = 0;
+
+        while (start < text1.length)
         {
-            string text1 = messagesText[message.id - 1];
-            /*size_t done;
+            size_t i = start;
+            while (i < text1.length && text1[i] != '\n' && text1[i] != '\r')
+                i++;
 
-            foreach (text2; text1.lineSplitter!(Yes.keepTerminator))
+            if (i < text1.length)
             {
-                done += text2.length;
-                const isLast = done == text1.length;
+                if (text1[i] == '\r' && i + 1 < text1.length && text1[i + 1] == '\n')
+                    i += 2;
+                else
+                    i += 1;
+            }
 
-                beforeTextOnLine(isLast);
-                buf.printDiagnostic(text2);
+            string text2 = text1[start .. i];
+            start = i;
+            const isLast = (start == text1.length);
 
-                if (isLast)
-                    buf.writeByte('\n');
-            }*/ 
-            size_t start = 0;
+            beforeTextOnLine(isLast);
+            buf.printDiagnostic(text2);
 
-            while (start < text1.length)
-            {
-                size_t i = start;
-                // Scan until we find a newline character
-                while (i < text1.length && text1[i] != '\n' && text1[i] != '\r')
-                {
-                    i++;
-                }
-
-                // Handle the terminator (mimicking Yes.keepTerminator)
-                if (i < text1.length)
-                {
-                    if (text1[i] == '\r' && i + 1 < text1.length && text1[i + 1] == '\n')
-                        i += 2; // Include \r\n
-                    else
-                        i += 1; // Include \r or \n
-                }
-
-                string text2 = cast(string) text1[start .. i];
-                start = i; // Move start to the beginning of the next line
-                    
-                const isLast = (start == text1.length);
-
-                // Execute your existing logic
-                beforeTextOnLine(isLast);
-                printDiagnostic(buf, text2);
-
-                if (isLast)
-                    buf.writeByte('\n');
-            }            
+            if (isLast)
+                buf.writeByte('\n');
         }
     };
+
     renderer.render();
+
+    const data = buf[];
+    fwrite(data.ptr, 1, data.length, stderr);
     fflush(stderr);
+}
+
+// Split source into lines without Phobos 
+private string[] splitLines(string source) nothrow
+{
+    string[] result;
+    auto range = LineRange(source);
+    while (!range.empty)
+    {
+        try { result ~= range.front(); }
+        catch (Exception) { break; }
+        range.popFront();
+    }
+    return result;
 }
 
 void printDiagnostic(ref OutBuffer buf, string[] arr...) nothrow
 {
-    foreach(s; arr)
+    foreach (s; arr)
         buf.write(s);
 }
 
-// Given an error happening in source code `text`and at index `offset`, get the offending line
-// and a caret pointing to the error
 size_t getMessageStartColumn(const(char)[] text, size_t offset) nothrow @safe
 {
     import dmd.root.utf : utf_decodeChar;
 
     if (offset >= text.length)
-        return 0; // Out of bounds (missing source content in SourceLoc)
+        return 0;
 
-    // Scan backwards for beginning of line
     size_t s = offset;
     while (s > 0 && text[s - 1] != '\n')
         s--;
 
     const line = text[s .. $];
-    const byteColumn = offset - s; // column as reported in the error message (byte offset)
+    const byteColumn = offset - s;
     enum tabWidth = 4;
 
     size_t currentColumn = 0;
-    size_t caretColumn = 0; // actual display column taking into account tabs and unicode characters
+    size_t caretColumn = 0;
     for (size_t i = 0; i < line.length; )
     {
         dchar u;
@@ -176,42 +203,35 @@ size_t getMessageStartColumn(const(char)[] text, size_t offset) nothrow @safe
         const msg = utf_decodeChar(line, i, u);
         assert(msg is null, msg);
         if (u == '\t')
-        {
-            // How many spaces until column is the next multiple of tabWidth
-            const equivalentSpaces = tabWidth - (currentColumn % tabWidth);
-            currentColumn += equivalentSpaces;
-        }
+            currentColumn += tabWidth - (currentColumn % tabWidth);
         else if (u == '\r' || u == '\n')
             break;
         else
-        {
             currentColumn++;
-        }
-        if (i <= byteColumn)
+
+        if (start < byteColumn)
             caretColumn = currentColumn;
     }
     return caretColumn;
 }
 
-/// Line splitter to get rid of phobos string and range libraries
 struct LineRange
 {
     private const(char)[] content;
     private size_t pos;
 
-    this(const(char)[] source) { this.content = source; }
+    this(const(char)[] source) nothrow { content = source; }
+    bool empty() const nothrow { return pos >= content.length; }
 
-    bool empty() const { return pos >= content.length; }
-
-    string front() const
+    string front() const nothrow
     {
         size_t end = pos;
         while (end < content.length && content[end] != '\n' && content[end] != '\r')
             end++;
-        return cast(string)content[pos .. end];
+        return cast(string) content[pos .. end];
     }
 
-    void popFront()
+    void popFront() nothrow
     {
         while (pos < content.length && content[pos] != '\n' && content[pos] != '\r')
             pos++;

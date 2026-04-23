@@ -17,7 +17,6 @@ public import dmd.hdrgen : toErrMsg;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
-import dmd.diagreport.app;
 import dmd.errorsink;
 import dmd.globals;
 import dmd.location;
@@ -103,11 +102,26 @@ class ErrorSinkCompiler : ErrorSink
         // Exit if there are no collected diagnostics
         if (!diagnostics.length) return;
 
+        /*if(global.params.v.messageStyle == MessageStyle.dfa)
+        {
+            import dmd.diagreport.app : callEvent;
+            // Flush the last open event
+            if (diagnostics.length > 0)
+            {
+                try { completedEvents ~= diagnostics.dup; }
+                catch (Exception) {}
+                diagnostics.length = 0;
+            }
+
+            // Render each causal group as one event
+            foreach (ref group; completedEvents)
+                callEvent(group);
+
+            completedEvents.length = 0;
+        }*/
+
         // Generate the SARIF report with the current diagnostics
-        if(global.params.v.messageStyle == MessageStyle.sarif)
-            generateSarifReport(false);
-        else if(global.params.v.messageStyle == MessageStyle.dfa)
-            callEvent(diagnostics);           
+        generateSarifReport(false);
 
         // Clear diagnostics after generating the report
         diagnostics.length = 0;
@@ -486,7 +500,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
         if (!global.gag)
         {
             info.headerColor = Classification.error;
-            if (global.params.v.messageStyle == MessageStyle.sarif || global.params.v.messageStyle == MessageStyle.dfa)
+            if (global.params.v.messageStyle == MessageStyle.sarif)
             {
                 addSarifDiagnostic(loc, format, ap, kind);
                 return;
@@ -520,7 +534,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                 if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
                 {
                     info.headerColor = Classification.deprecation;
-                    if (global.params.v.messageStyle == MessageStyle.sarif || global.params.v.messageStyle == MessageStyle.dfa)
+                    if (global.params.v.messageStyle == MessageStyle.sarif)
                     {
                         addSarifDiagnostic(loc, format, ap, kind);
                         return;
@@ -541,7 +555,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
             if (!global.gag)
             {
                 info.headerColor = Classification.warning;
-                if (global.params.v.messageStyle == MessageStyle.sarif || global.params.v.messageStyle == MessageStyle.dfa)
+                if (global.params.v.messageStyle == MessageStyle.sarif)
                 {
                     addSarifDiagnostic(loc, format, ap, kind);
                     return;
@@ -557,7 +571,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
         if (!global.gag)
         {
             info.headerColor = Classification.tip;
-            if (global.params.v.messageStyle == MessageStyle.sarif || global.params.v.messageStyle == MessageStyle.dfa)
+            if (global.params.v.messageStyle == MessageStyle.sarif)
             {
                 addSarifDiagnostic(loc, format, ap, kind);
                 return;
@@ -577,7 +591,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
         fputs(tmp.peekChars(), stdout);
         fputc('\n', stdout);
         fflush(stdout);     // ensure it gets written out in case of compiler aborts
-        if (global.params.v.messageStyle == MessageStyle.sarif || global.params.v.messageStyle == MessageStyle.dfa)
+        if (global.params.v.messageStyle == MessageStyle.sarif)
         {
             addSarifDiagnostic(loc, format, ap, kind);
             return;

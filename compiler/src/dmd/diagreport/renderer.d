@@ -13,27 +13,21 @@ struct Renderer
     Message footer;
     Help[] help;
 
-    void delegate(string) emitRaw;
-    void delegate(const(char)* fmt, ...) emitRawFormat;
-    // num | << it is the |
-    void delegate(string) emitMargin;
-    // error:
-    void delegate() emitHeader;
-    // For multiline error messages, first is emitError.
-    void delegate() emitHeaderMultiLinePrefix;
-    void delegate() emitFooter;
-    void delegate() emitFooterMultiLinePrefix;
-    void delegate() emitHelp;
-    void delegate() emitHelpMultiLinePrefix;
-
-    // The ASCII art
-    void delegate(string text) emitGutter;
-    void delegate(string text) emitSquiggle;
-
-    string delegate(int lineNumber) getSourceCode;
-
-    void delegate(ref Message message) emitMessageSingleLine;
-    void delegate(scope void delegate(bool isLast) beforeTextOnLine, ref Message message) emitMessageMultiLine;
+    void delegate(string) nothrow emitRaw;
+    void delegate(const(char)* fmt, ...) nothrow emitRawFormat;
+    void delegate(string) nothrow emitMargin;
+    void delegate() nothrow emitHeader;
+    void delegate() nothrow emitHeaderMultiLinePrefix;
+    void delegate() nothrow emitFooter;
+    void delegate() nothrow emitFooterMultiLinePrefix;
+    void delegate() nothrow emitHelp;
+    void delegate() nothrow emitHelpMultiLinePrefix;
+    void delegate(string text) nothrow emitGutter;
+    void delegate(string text) nothrow emitSquiggle;
+    string delegate(int lineNumber) nothrow getSourceCode;
+    void delegate(ref Message message) nothrow emitMessageSingleLine;
+    void delegate(scope void delegate(bool isLast) nothrow beforeTextOnLine,
+            ref Message message) nothrow emitMessageMultiLine;
 
     private
     {
@@ -41,7 +35,6 @@ struct Renderer
         string columnWithoutNumber;
         string columnNumberFormat;
 
-        // temporary
         int lastLineNumber;
     }
 
@@ -68,7 +61,7 @@ struct Renderer
         string squiggle = "^";
     }
 
-    void render() 
+    void render() nothrow
     {
         if (diagnostics.length == 0)
             return;
@@ -82,18 +75,15 @@ struct Renderer
 
 private:
 
-    void calculate()
+    void calculate() nothrow
     {
-        import core.stdc.stdio;
+        import core.stdc.stdio : snprintf;
         import core.stdc.string : strlen;
-        // import std.conv : text;
-        // import std.uni;
-        // import std.algorithm : sort;
 
         int maxLineNumber;
         minLineNumber = int.max;
 
-        foreach (i, diag; diagnostics)
+        foreach (i, ref diag; diagnostics)
         {
             diag.originalOffset = i;
 
@@ -102,52 +92,54 @@ private:
             if (diag.end > maxLineNumber)
                 maxLineNumber = diag.end;
         }
-        // diagnostics.sort!((a, b) => a.start < b.start || (a.start == b.start && a.end < b.end));
 
-        void sortDiagnostics(ref Diagnostic[] diagnostics) // bubble sort to sort diagnostics
+        // Selection sort — avoids Phobos
+        for (int i = 0; i < cast(int) diagnostics.length; i++)
         {
-            for(int i=0; i<diagnostics.length; i++)
+            for (int j = i + 1; j < cast(int) diagnostics.length; j++)
             {
-                bool swapped = false;
-                for(int j=i+1; j<diagnostics.length; j++)
+                if (diagnostics[j].start < diagnostics[i].start ||
+                   (diagnostics[j].start == diagnostics[i].start &&
+                    diagnostics[j].end   <  diagnostics[i].end))
                 {
-                    if(diagnostics[j].start < diagnostics[i].start || (diagnostics[j].start == diagnostics[i].start 
-                        && diagnostics[j].end < diagnostics[i].end))
-                    {
-                        Diagnostic temp = diagnostics[j];
-                        diagnostics[j] = diagnostics[i];
-                        diagnostics[i] = temp;
-                        swapped = true;
-                    }
+                    Diagnostic tmp = diagnostics[i];
+                    diagnostics[i] = diagnostics[j];
+                    diagnostics[j] = tmp;
                 }
-                if(!swapped)
-                    break;
             }
         }
-        sortDiagnostics(diagnostics);
 
-        // Calculate the line number length, to get the required with and without number strings.
+        // Build columnWithoutNumber — spaces matching width of maxLineNumber
         {
             int lineNumberLength = snprintf(null, 0, "%d", maxLineNumber);
 
             char[] temp;
-            temp.length = lineNumberLength;
+            try { temp.length = lineNumberLength; }
+            catch (Exception) { temp = [' ']; }
             temp[] = ' ';
-
             columnWithoutNumber = cast(string) temp;
+        }
 
-            char[16] buf;
-            snprintf(buf.ptr,buf.length,"%d",lineNumberLength);
-
-            columnNumberFormat = cast(string) buf[0 .. strlen(buf.ptr)];
+        // Build columnNumberFormat — e.g. "%3d" for a 3-digit max line number
+        {
+            int lineNumberLength = snprintf(null, 0, "%d", maxLineNumber);
+            char[32] buf = void;
+            int n = snprintf(buf.ptr, buf.length, "%%%dd", lineNumberLength);
+            // Stack buffer — must copy to heap before storing
+            char[] fmt;
+            try { fmt = new char[n]; }
+            catch (Exception) { fmt = buf[0 .. (n > 0 ? n : 1)]; }
+            if (n > 0)
+                fmt[0 .. n] = buf[0 .. n];
+            columnNumberFormat = cast(string) fmt;
         }
     }
 
-    void emitHeader2()
+    void emitHeader2() nothrow
     {
         bool doneFirst;
 
-        void beforeTextOnLine(bool isLast)
+        void beforeTextOnLine(bool isLast) nothrow
         {
             if (doneFirst)
                 emitHeaderMultiLinePrefix();
@@ -178,7 +170,7 @@ private:
         }
     }
 
-    void emitMainDiag()
+    void emitMainDiag() nothrow
     {
         lastLineNumber = 0;
         TimeLineGeometry(diagnostics, 3, 1, &columnDrawHandler,
@@ -188,7 +180,7 @@ private:
             .calculate;
     }
 
-    void emitFooter2()
+    void emitFooter2() nothrow
     {
         bool doneFirst;
         bool haveSomethingAfter;
@@ -202,7 +194,7 @@ private:
             }
         }
 
-        void beforeTextOnLine(bool isLast)
+        void beforeTextOnLine(bool isLast) nothrow
         {
             emitRaw(columnWithoutNumber);
 
@@ -216,7 +208,7 @@ private:
                 }
                 else
                 {
-                    emitRaw("  ");
+                    emitRaw(" ");
                     emitMargin(config.margin);
                 }
 
@@ -257,11 +249,11 @@ private:
         }
     }
 
-    void emitHelp2()
+    void emitHelp2() nothrow
     {
         bool doneFirst;
 
-        void beforeTextOnLine(bool isLast)
+        void beforeTextOnLine(bool isLast) nothrow
         {
             emitRaw(columnWithoutNumber);
 
@@ -275,7 +267,7 @@ private:
                 }
                 else
                 {
-                    emitRaw("  ");
+                    emitRaw(" ");
                     emitMargin(config.margin);
                 }
 
@@ -304,7 +296,7 @@ private:
             doneFirst = true;
         }
 
-        void emitMessage(ref Message message)
+        void emitMessage(ref Message message) nothrow
         {
             if (message.id == 0)
                 return;
@@ -312,9 +304,7 @@ private:
             doneFirst = false;
 
             if (message.isMultiline)
-            {
                 emitMessageMultiLine(&beforeTextOnLine, message);
-            }
             else
             {
                 beforeTextOnLine(true);
@@ -341,7 +331,7 @@ private:
         }
     }
 
-    void columnDrawHandler(int line, ref Diagnostic, LineClassification classification)
+    void columnDrawHandler(int line, ref Diagnostic, LineClassification classification) nothrow
     {
         string glyph;
 
@@ -368,7 +358,7 @@ private:
     }
 
     void columnEmptyHandler(int line, bool haveStartOrEndColumnsToLeft,
-            bool previousLineColumnIsActive)
+            bool previousLineColumnIsActive) nothrow
     {
         string glyph;
 
@@ -385,7 +375,7 @@ private:
             emitGutter(glyph);
     }
 
-    void onLineStart(int line)
+    void onLineStart(int line) nothrow
     {
         if (lastLineNumber == line)
             emitRaw(columnWithoutNumber);
@@ -399,26 +389,33 @@ private:
         lastLineNumber = line;
     }
 
-    void onLineEnd(int line)
+    void onLineEnd(int line) nothrow
     {
         emitRaw("\n");
     }
 
-    void onLineSource(int line)
+    void onLineSource(int line) nothrow
     {
         emitRaw(getSourceCode(line));
     }
 
-    void onLinesSkippedAfterMargin(int startLine, int endLine)
+    void onLinesSkippedBeforeMargin(int startLine, int endLine) nothrow
+    {
+        emitRaw(columnWithoutNumber);
+        emitRaw(" ");
+        emitMargin(config.skippedLines);
+        emitRaw(" ");
+    }
+
+    void onLinesSkippedAfterMargin(int startLine, int endLine) nothrow
     {
         emitRawFormat("%.*s(%d)", cast(int) filename.length, filename.ptr, endLine);
     }
 
     uint graphemesBetweenPositions(int line, int startColumn, int endColumn,
-            ref Diagnostic diag, ref Message message)
+            ref Diagnostic diag, ref Message message) nothrow
     {
-        // import std.uni;
-        import dmd.root.utf;
+        import dmd.root.utf : utf_decodeChar;
 
         string text = getSourceCode(line);
 
@@ -427,19 +424,13 @@ private:
 
         text = text[startColumn .. endColumn];
         uint count;
-        size_t i = startColumn;
+        size_t i = 0;
 
-        /*foreach (_; text.byGrapheme)
-        {
-            count++;
-        }*/
-        while(i<endColumn)
+        while (i < text.length)
         {
             dchar c;
-            if(utf_decodeChar(text,i,c) !is null)
-            {
+            if (utf_decodeChar(text, i, c) !is null)
                 break;
-            }
             count++;
         }
 
@@ -447,14 +438,12 @@ private:
     }
 
     void lineHighlight(int line, int offsetToSquiggles, int numberOfSquiggles,
-            ref Diagnostic diag, ref Message message, bool spansMultipleLines)
+            ref Diagnostic diag, ref Message message, bool spansMultipleLines) nothrow
     {
         string offsetToSquigglesText = spansMultipleLines ? config.gutterToLabel : " ";
 
         foreach (_; 0 .. offsetToSquiggles)
-        {
             emitGutter(offsetToSquigglesText);
-        }
 
         if (numberOfSquiggles > 1)
         {
@@ -467,24 +456,17 @@ private:
             emitSquiggle(config.squiggle);
     }
 
-    void printSingleLine(int line, ref Diagnostic diag, ref Message message)
+    void printSingleLine(int line, ref Diagnostic diag, ref Message message) nothrow
     {
         emitRaw(" ");
         emitMessageSingleLine(message);
     }
 
-    void onLinesSkippedBeforeMargin(int startLine, int endLine)
+    void printMultiLine(scope void delegate() nothrow printMargin, uint offsetToMessage,
+            int line, int offsetToSquiggles, int numberOfSquiggles,
+            ref Diagnostic diag, ref Message message) nothrow
     {
-        emitRaw(columnWithoutNumber);
-        emitRaw(" ");
-        emitMargin(config.skippedLines);
-        emitRaw(" ");
-    }
-
-    void printMultiLine(scope void delegate() printMargin, uint offsetToMessage, int line,
-            int offsetToSquiggles, int numberOfSquiggles, ref Diagnostic diag, ref Message message)
-    {
-        void beforeTextOnLine(bool isLast)
+        void beforeTextOnLine(bool isLast) nothrow
         {
             onLineStart(line);
             printMargin();
