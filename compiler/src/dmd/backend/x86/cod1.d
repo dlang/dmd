@@ -321,7 +321,7 @@ void genEEcode(ref CGstate cg)
     cdb.genadjesp(cast(int)cg.EEStack.offset);
     gencodelem(cdb, eecontext.EEelem, retregs, false);
     code* c = cdb.finish();
-    assignaddrc(c);
+    assignaddrc(cg,c);
     pinholeopt(c,null);
     jmpaddr(c);
     eecontext.EEcode = gen1(c, 0xCC);        // INT 3

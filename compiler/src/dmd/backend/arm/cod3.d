@@ -703,7 +703,7 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
             disassemble(c.Iop);
         }
 
-        assignaddrc(cx);
+        assignaddrc(cgstate,cx);
         cdb.append(cx);
     }
 }
@@ -751,7 +751,7 @@ void prolog_genvarargs_osx(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
     code* cx = cdbx.finish();
     if (cx)
     {
-        assignaddrc(cx);
+        assignaddrc(cgstate,cx);
 
         static if (0)
         for (code* c = cx; c; c = code_next(c))
@@ -1228,7 +1228,7 @@ void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
         code* c1 = cdbgot.finish();
         if (c1)
         {
-            assignaddrc(c1);
+            assignaddrc(cgstate,c1);
             cdb.append(c1);
         }
     }
@@ -1721,7 +1721,7 @@ bool orr_solution(ulong value, out uint N, out uint immr, out uint imms)
  * Replace symbolic references with values
  */
 @trusted
-void assignaddrc(code* c)
+void assignaddrc(ref CGstate cg, code* c)
 {
     //printf("assignaddrc()\n");
     int sn;
@@ -1730,7 +1730,6 @@ void assignaddrc(code* c)
     uint sectionOff;
     ulong offset;
     code* csave = c;
-    auto cg = &cgstate;
 
     for (; c; c = code_next(c))
     {

@@ -1126,7 +1126,7 @@ private void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
      * are relative to the frame pointer.
      * Necessary for nested function access to lexically enclosing frames.
      */
-     cod3_adjSymOffsets();
+     cod3_adjSymOffsets(cgstate);
 
     if (symbol_iscomdat2(sfunc))         // if generated a COMDAT
     {

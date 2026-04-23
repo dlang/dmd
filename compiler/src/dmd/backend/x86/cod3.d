@@ -3817,7 +3817,7 @@ void prolog_frame(ref CGstate cg, ref CodeBuilder cdb, bool farfunc, ref uint xl
          config.flags4 & CFG4speed)
        )
     {
-        if (cgstate.AArch64)
+        if (cg.AArch64)
         {
             if (log) printf("prolog_frame: stp\n");
             if (16 + xlocalsize <= 512)
@@ -3872,8 +3872,8 @@ static if (NTEXCEPTIONS == 2)
 {
         if (cg.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) || config.ehmethod == EHmethod.EH_SEH))
         {
-            nteh_prolog(cgstate, cdb);
-            int sz = nteh_contextsym_size(cgstate);
+            nteh_prolog(cg, cdb);
+            int sz = nteh_contextsym_size(cg);
             assert(sz != 0);        // should be 5*4, not 0
             xlocalsize -= sz;      // sz is already subtracted from ESP
                                     // by nteh_prolog()
@@ -3882,7 +3882,7 @@ static if (NTEXCEPTIONS == 2)
         if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
             config.ehmethod == EHmethod.EH_DWARF)
         {
-            dwarf_emit_eh_frame(cgstate.AArch64,xlocalsize,cfa_offset);
+            dwarf_emit_eh_frame(cg.AArch64,xlocalsize,cfa_offset);
         }
         enter = false;              /* do not use ENTER instruction */
     }
@@ -3963,7 +3963,7 @@ void prolog_frameadj(ref CGstate cg, ref CodeBuilder cdb, tym_t tyf, uint xlocal
             useregs(mask(reg));
         }
     }
-    else if (cgstate.AArch64)
+    else if (cg.AArch64)
     {
 static if (0)
 {
@@ -4054,15 +4054,15 @@ void prolog_frameadj2(ref CGstate cg, ref CodeBuilder cdb, tym_t tyf, uint xloca
 }
 
 @trusted
-void prolog_setupalloca(ref CodeBuilder cdb)
+void prolog_setupalloca(ref CGstate cg, ref CodeBuilder cdb)
 {
     //printf("prolog_setupalloca() offset x%x size x%x alignment x%x\n",
-        //cast(int)cgstate.Alloca.offset, cast(int)cgstate.Alloca.size, cast(int)cgstate.Alloca.alignment);
+        //cast(int)cg.Alloca.offset, cast(int)cg.Alloca.size, cast(int)cg.Alloca.alignment);
     // Set up magic parameter for alloca()
     // MOV -REGSIZE[BP],localsize - BPoff
     cdb.genc(0xC7,modregrm(2,0,BPRM),
-            FL.const_,cgstate.Alloca.offset + cgstate.BPoff,
-            FL.const_,localsize - cgstate.BPoff);
+            FL.const_,cg.Alloca.offset + cg.BPoff,
+            FL.const_,localsize - cg.BPoff);
     if (I64)
         code_orrex(cdb.last(), REX_W);
 }
@@ -4510,12 +4510,13 @@ void prolog_gen_win64_varargs(ref CodeBuilder cdb)
  * Take the parameters passed in registers, and put them into the function's local
  * symbol table.
  * Params:
+ *	cg = code generator state
  *      cdb = generated code sink
  *      tf = what's the type of the function
  *      pushalloc = use PUSH to allocate on the stack rather than subtracting from SP
  */
 @trusted
-void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
+void prolog_loadparams(ref CGstate cg, ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
 {
     //printf("prolog_loadparams() %s\n", funcsym_p.Sident.ptr);
     debug
@@ -4532,7 +4533,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
         }
     }
 
-    bool AArch64 = cgstate.AArch64;
+    bool AArch64 = cg.AArch64;
     uint pushallocreg = (tyf == TYmfunc) ? CX : AX;
 
     /* Copy SCfastpar and SCshadowreg (parameters passed in registers) that were not assigned
@@ -4577,18 +4578,18 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
             }
         }
 
-        if (Symbol_Sisdead(*s, cgstate.anyiasm))
+        if (Symbol_Sisdead(*s, cg.anyiasm))
         {
             // Ignore it, as it is never referenced
             continue;
         }
 
-        targ_size_t offset = cgstate.Fast.size + cgstate.BPoff;
+        targ_size_t offset = cg.Fast.size + cg.BPoff;
         if (s.Sclass == SC.shadowreg)
-            offset = cgstate.Para.size;
+            offset = cg.Para.size;
         offset += s.Soffset;
-        if (!cgstate.hasframe || (cgstate.enforcealign && s.Sclass != SC.shadowreg))
-            offset += cgstate.EBPtoESP;
+        if (!cg.hasframe || (cg.enforcealign && s.Sclass != SC.shadowreg))
+            offset += cg.EBPtoESP;
 
 //        uint sz = cast(uint)type_size(s.Stype);
         reg_t preg = s.Spreg;
@@ -4609,7 +4610,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                 : 0x89;    // MOV x[EBP],preg
             if (!(pushalloc && preg == pushallocreg) || s.Sclass == SC.shadowreg)
             {
-                if (cgstate.hasframe && (!cgstate.enforcealign || s.Sclass == SC.shadowreg))
+                if (cg.hasframe && (!cg.enforcealign || s.Sclass == SC.shadowreg))
                 {
                     if (AArch64)
                     {
@@ -4648,7 +4649,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                         else
                         {
                             //printf("%s Fast.size = %d, BPoff = %d, Soffset = %d, sz = %d\n",
-                            //         s.Sident, (int)cgstate.Fast.size, (int)cgstate.BPoff, (int)s.Soffset, (int)sz);
+                            //         s.Sident, (int)cg.Fast.size, (int)cg.BPoff, (int)s.Soffset, (int)sz);
                             if (I64 && sz > 4)
                                 code_orrex(cdb.last(), REX_W);
                         }
@@ -4660,7 +4661,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                     {
                         // STR preg,[sp,#offset]
 //printf("prolog_loadparams sz=%d preg:%d\n", sz, preg);
-//printf("offset(%d) = Fast.size(%d) + BPoff(%d) + EBPtoESP(%d)\n",cast(int)offset,cast(int)cgstate.Fast.size,cast(int)cgstate.BPoff,cast(int)cgstate.EBPtoESP);
+//printf("offset(%d) = Fast.size(%d) + BPoff(%d) + EBPtoESP(%d)\n",cast(int)offset,cast(int)cg.Fast.size,cast(int)cg.BPoff,cast(int)cg.EBPtoESP);
                         uint imm = cast(uint)offset;
                         if (mask(preg) & INSTR.FLOATREGS)
                         {
@@ -4714,10 +4715,10 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
         for (int i = 0; i < vregs.length; ++i)
         {
             uint preg = vregs[i];
-            uint offset = cast(uint)(cgstate.Para.size + i * REGSIZE);
+            uint offset = cast(uint)(cg.Para.size + i * REGSIZE);
             if (!(shadowregm & (mask(preg) | mask(XMM0 + i))))
             {
-                if (cgstate.hasframe)
+                if (cg.hasframe)
                 {
                     // MOV x[EBP],preg
                     cdb.genc1(0x89,
@@ -4729,7 +4730,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                     // MOV offset[ESP],preg
                     cdb.genc1(0x89,
                                      (modregrm(0,4,SP) << 8) |
-                                     modregxrm(2,preg,4),FL.const_,offset + cgstate.EBPtoESP);
+                                     modregxrm(2,preg,4),FL.const_,offset + cg.EBPtoESP);
                 }
                 cdb.last().Irex |= REX_W;
             }
@@ -4805,7 +4806,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
 
         if (!((s.Sclass == SC.regpar || s.Sclass == SC.parameter) &&
             s.Sfl == FL.reg &&
-            (cgstate.refparam
+            (cg.refparam
                 // This variable has been reference by a nested function
                 || MARS && s.Stype.Tty & mTYvolatile
                 )))
@@ -4818,19 +4819,19 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
         {
             const op = xmmload(s.Stype.Tty);  // MOVSS/D xreg,mem
             uint xreg = s.Sreglsw - XMM0;
-            cdb.genc1(op,modregxrm(2,xreg,BPRM),FL.const_,cgstate.Para.size + s.Soffset);
-            if (!cgstate.hasframe)
+            cdb.genc1(op,modregxrm(2,xreg,BPRM),FL.const_,cg.Para.size + s.Soffset);
+            if (!cg.hasframe)
             {   // Convert to ESP relative address rather than EBP
                 code* c = cdb.last();
                 c.Irm = cast(ubyte)modregxrm(2,xreg,4);
                 c.Isib = modregrm(0,4,SP);
-                c.IEV1.Vpointer += cgstate.EBPtoESP;
+                c.IEV1.Vpointer += cg.EBPtoESP;
             }
             continue;
         }
 
         cdb.genc1(sz == 1 ? 0x8A : 0x8B,
-            modregxrm(2,s.Sreglsw,BPRM),FL.const_,cgstate.Para.size + s.Soffset);
+            modregxrm(2,s.Sreglsw,BPRM),FL.const_,cg.Para.size + s.Soffset);
         code* c = cdb.last();
         if (!I16 && sz == SHORTSIZE)
             c.Iflags |= CFopsize; // operand size
@@ -4838,26 +4839,26 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
             c.Irex |= REX_W;
         if (I64 && sz == 1 && s.Sreglsw >= 4)
             c.Irex |= REX;
-        if (!cgstate.hasframe)
+        if (!cg.hasframe)
         {   // Convert to ESP relative address rather than EBP
             assert(!I16);
             c.Irm = cast(ubyte)modregxrm(2,s.Sreglsw,4);
             c.Isib = modregrm(0,4,SP);
-            c.IEV1.Vpointer += cgstate.EBPtoESP;
+            c.IEV1.Vpointer += cg.EBPtoESP;
         }
         if (sz > REGSIZE)
         {
             cdb.genc1(0x8B,
-                modregxrm(2,s.Sregmsw,BPRM),FL.const_,cgstate.Para.size + s.Soffset + REGSIZE);
+                modregxrm(2,s.Sregmsw,BPRM),FL.const_,cg.Para.size + s.Soffset + REGSIZE);
             code* cx = cdb.last();
             if (I64)
                 cx.Irex |= REX_W;
-            if (!cgstate.hasframe)
+            if (!cg.hasframe)
             {   // Convert to ESP relative address rather than EBP
                 assert(!I16);
                 cx.Irm = cast(ubyte)modregxrm(2,s.Sregmsw,4);
                 cx.Isib = modregrm(0,4,SP);
-                cx.IEV1.Vpointer += cgstate.EBPtoESP;
+                cx.IEV1.Vpointer += cg.EBPtoESP;
             }
         }
     }
@@ -4870,10 +4871,10 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
  */
 
 @trusted
-void epilog(block* b)
+void epilog(ref CGstate cg, block* b)
 {
-    if (cgstate.AArch64)
-        return dmd.backend.arm.cod3.epilog(cgstate, b);
+    if (cg.AArch64)
+        return dmd.backend.arm.cod3.epilog(cg, b);
 
     code* cpopds;
     reg_t reg;
@@ -4889,7 +4890,7 @@ void epilog(block* b)
         goto Lret;                      // just generate RET
     regx = (b.bc == BC.ret) ? AX : CX;
 
-    cgstate.retsize = 0;
+    cg.retsize = 0;
 
     if (tyf & mTYnaked)                 // if no prolog/epilog
         return;
@@ -4925,9 +4926,9 @@ void epilog(block* b)
         useregs((ALLREGS | mBP | mES) & ~s.Sregsaved);
     }
 
-    if (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.exe == EX_WIN32 || MARS))
+    if (cg.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.exe == EX_WIN32 || MARS))
     {
-        nteh_epilog(cgstate, cdbx);
+        nteh_epilog(cg, cdbx);
     }
 
     cpopds = null;
@@ -4941,15 +4942,15 @@ void epilog(block* b)
      * by the prolog code. Remember to do them in the reverse
      * order they were pushed.
      */
-    topop = fregsaved & ~cgstate.mfuncreg;
-    epilog_restoreregs(cgstate, cdbx, topop);
+    topop = fregsaved & ~cg.mfuncreg;
+    epilog_restoreregs(cg, cdbx, topop);
 
-    if (cgstate.usednteh & NTEHjmonitor)
+    if (cg.usednteh & NTEHjmonitor)
     {
         regm_t retregs = 0;
         if (b.bc == BC.retexp)
             retregs = regmask(b.Belem.Ety, tym);
-        nteh_monitor_epilog(cgstate,cdbx,retregs);
+        nteh_monitor_epilog(cg,cdbx,retregs);
         xlocalsize += 8;
     }
 
@@ -4976,15 +4977,15 @@ void epilog(block* b)
         cdbx.genpop(BP);                        // POP BP
         if (config.wflags & WFincbp)
             cdbx.gen1(0x48 + BP);               // DEC BP
-        assert(cgstate.hasframe);
+        assert(cg.hasframe);
     }
     else
     {
-        if (cgstate.needframe || (xlocalsize && cgstate.hasframe))
+        if (cg.needframe || (xlocalsize && cg.hasframe))
         {
         L4:
-            assert(cgstate.hasframe);
-            if (xlocalsize || cgstate.enforcealign)
+            assert(cg.hasframe);
+            if (xlocalsize || cg.enforcealign)
             {
                 if (config.flags2 & CFG2stomp)
                 {   /*   MOV  ECX,0xBEAF
@@ -5004,7 +5005,7 @@ void epilog(block* b)
                     assert(I32 || I64);
                     targ_size_t value = 0x0000BEAF;
                     reg_t regcx = CX;
-                    cgstate.mfuncreg &= ~mask(regcx);
+                    cg.mfuncreg &= ~mask(regcx);
                     uint grex = I64 ? REX_W << 16 : 0;
                     cdbx.genc2(0xC7,grex | modregrmx(3,0,regcx),value);   // MOV regcx,value
                     cdbx.gen2sib(0x89,grex | modregrm(0,regcx,4),modregrm(0,4,SP)); // MOV [ESP],regcx
@@ -5028,9 +5029,9 @@ void epilog(block* b)
                     !(config.target_cpu >= TARGET_80386 && config.flags4 & CFG4speed)
                    )
                     cdbx.gen1(LEAVE);          // LEAVE
-                else if (0 && xlocalsize == REGSIZE && cgstate.Alloca.size == 0 && I32)
+                else if (0 && xlocalsize == REGSIZE && cg.Alloca.size == 0 && I32)
                 {   // This doesn't work - I should figure out why
-                    cgstate.mfuncreg &= ~mask(regx);
+                    cg.mfuncreg &= ~mask(regx);
                     cdbx.genpop(regx);    // POP regx
                     cdbx.genpop(BP);      // POP BP
                 }
@@ -5049,7 +5050,7 @@ void epilog(block* b)
         }
         else if (xlocalsize == REGSIZE && (!I16 || b.bc == BC.ret))
         {
-            cgstate.mfuncreg &= ~mask(regx);
+            cg.mfuncreg &= ~mask(regx);
             cdbx.genpop(regx);                     // POP regx
         }
         else if (xlocalsize)
@@ -5065,15 +5066,15 @@ Lret:
         }
         else if (!typfunc(tym) ||                       // if caller cleans the stack
                  config.exe == EX_WIN64 ||
-                 cgstate.Para.offset == 0)                      // or nothing pushed on the stack anyway
+                 cg.Para.offset == 0)                      // or nothing pushed on the stack anyway
         {
             op++;                                       // to a regular RET
             cdbx.gen1(op);
         }
         else
         {   // Stack is always aligned on register size boundary
-            cgstate.Para.offset = (cgstate.Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
-            if (cgstate.Para.offset >= 0x10000)
+            cg.Para.offset = (cg.Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
+            if (cg.Para.offset >= 0x10000)
             {
                 /*
                     POP REG
@@ -5081,7 +5082,7 @@ Lret:
                     JMP REG
                 */
                 cdbx.genpop(regx);
-                cdbx.genc2(0x81, modregrm(3,0,SP), cgstate.Para.offset);
+                cdbx.genc2(0x81, modregrm(3,0,SP), cg.Para.offset);
                 if (I64)
                     code_orrex(cdbx.last(), REX_W);
                 cdbx.genc2(0xFF, modregrm(3,4,regx), 0);
@@ -5089,7 +5090,7 @@ Lret:
                     code_orrex(cdbx.last(), REX_W);
             }
             else
-                cdbx.genc2(op,0,cgstate.Para.offset);          // RET Para.offset
+                cdbx.genc2(op,0,cg.Para.offset);          // RET Para.offset
         }
     }
 
@@ -5137,7 +5138,7 @@ static if (0)
     }
 
     pinholeopt(c, null);
-    cgstate.retsize += calcblksize(c);          // compute size of function epilog
+    cg.retsize += calcblksize(c);          // compute size of function epilog
     cdb.append(cdbx);
     b.Bcode = cdb.finish();
 }
@@ -5383,7 +5384,7 @@ void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
             code* c1 = cdbgot.finish();
             if (c1)
             {
-                assignaddrc(c1);
+                assignaddrc(cgstate,c1);
                 cdb.append(c1);
             }
         }
@@ -5615,7 +5616,7 @@ L3:
  */
 
 @trusted
-void cod3_adjSymOffsets()
+void cod3_adjSymOffsets(ref CGstate cg)
 {
     SYMIDX si;
 
@@ -5629,30 +5630,30 @@ void cod3_adjSymOffsets()
             case SC.parameter:
             case SC.regpar:
             case SC.shadowreg:
-//printf("s = '%s', Soffset = x%x, Para.size = x%x, EBPtoESP = x%x\n", s.Sident, s.Soffset, cgstate.Para.size, cgstate.EBPtoESP);
-                s.Soffset += cgstate.Para.size;
+//printf("s = '%s', Soffset = x%x, Para.size = x%x, EBPtoESP = x%x\n", s.Sident, s.Soffset, cg.Para.size, cg.EBPtoESP);
+                s.Soffset += cg.Para.size;
                 if (0 && !(funcsym_p.Sfunc.Fflags3 & Fmember))
                 {
-                    if (!cgstate.hasframe)
-                        s.Soffset += cgstate.EBPtoESP;
+                    if (!cg.hasframe)
+                        s.Soffset += cg.EBPtoESP;
                     if (funcsym_p.Sfunc.Fflags3 & Fnested)
                         s.Soffset += REGSIZE;
                 }
                 break;
 
             case SC.fastpar:
-//printf("\tfastpar %s %p Soffset %x Fast.size %x BPoff %x\n", s.Sident, s, cast(int)s.Soffset, cast(int)cgstate.Fast.size, cast(int)cgstate.BPoff);
-                s.Soffset += cgstate.Fast.size + cgstate.BPoff;
+//printf("\tfastpar %s %p Soffset %x Fast.size %x BPoff %x\n", s.Sident, s, cast(int)s.Soffset, cast(int)cg.Fast.size, cast(int)cg.BPoff);
+                s.Soffset += cg.Fast.size + cg.BPoff;
                 break;
 
             case SC.auto_:
             case SC.register:
                 if (s.Sfl == FL.fast)
-                    s.Soffset += cgstate.Fast.size + cgstate.BPoff;
+                    s.Soffset += cg.Fast.size + cg.BPoff;
                 else
-//printf("s = '%s', Soffset = x%x, Auto.size = x%x, BPoff = x%x EBPtoESP = x%x\n", s.Sident, cast(int)s.Soffset, cast(int)cgstate.Auto.size, cast(int)cgstate.BPoff, cast(int)cgstate.EBPtoESP);
+//printf("s = '%s', Soffset = x%x, Auto.size = x%x, BPoff = x%x EBPtoESP = x%x\n", s.Sident, cast(int)s.Soffset, cast(int)cg.Auto.size, cast(int)cg.BPoff, cast(int)cg.EBPtoESP);
 //              if (!(funcsym_p.Sfunc.Fflags3 & Fnested))
-                    s.Soffset += cgstate.Auto.size + cgstate.BPoff;
+                    s.Soffset += cg.Auto.size + cg.BPoff;
                 break;
 
             case SC.bprel:
@@ -5663,8 +5664,8 @@ void cod3_adjSymOffsets()
         }
         static if (0)
         {
-            if (!cgstate.hasframe)
-                s.Soffset += cgstate.EBPtoESP;
+            if (!cg.hasframe)
+                s.Soffset += cg.EBPtoESP;
         }
     }
 }
@@ -5675,28 +5676,28 @@ void cod3_adjSymOffsets()
  */
 
 @trusted
-void assignaddr(block* bl)
+void assignaddr(ref CGstate cg, block* bl)
 {
-    int EBPtoESPsave = cgstate.EBPtoESP;
-    const hasframesave = cgstate.hasframe;
+    int EBPtoESPsave = cg.EBPtoESP;
+    const hasframesave = cg.hasframe;
 
     if (bl.Bflags & BFL.outsideprolog)
     {
-        cgstate.EBPtoESP = -REGSIZE;
-        cgstate.hasframe = false;
+        cg.EBPtoESP = -REGSIZE;
+        cg.hasframe = false;
     }
-    assignaddrc(bl.Bcode);
-    cgstate.hasframe = hasframesave;
-    cgstate.EBPtoESP = EBPtoESPsave;
+    assignaddrc(cg,bl.Bcode);
+    cg.hasframe = hasframesave;
+    cg.EBPtoESP = EBPtoESPsave;
 }
 
 @trusted
-void assignaddrc(code* c)
+void assignaddrc(ref CGstate cg, code* c)
 {
-    if (cgstate.AArch64)
+    if (cg.AArch64)
     {
         import dmd.backend.arm.cod3 : assignaddrc;
-        return assignaddrc(c);
+        return assignaddrc(cg,c);
     }
 
     int sn;
@@ -5705,7 +5706,7 @@ void assignaddrc(code* c)
     targ_size_t soff;
     targ_size_t base;
 
-    base = cgstate.EBPtoESP;
+    base = cg.EBPtoESP;
     for (; c; c = code_next(c))
     {
         debug
@@ -5728,14 +5729,14 @@ void assignaddrc(code* c)
         {
             if (c.Iop == PSOP.adjesp)
             {
-                //printf("adjusting EBPtoESP (%d) by %ld\n",cgstate.EBPtoESP,cast(long)c.IEV1.Vint);
-                cgstate.EBPtoESP += c.IEV1.Vint;
+                //printf("adjusting EBPtoESP (%d) by %ld\n",cg.EBPtoESP,cast(long)c.IEV1.Vint);
+                cg.EBPtoESP += c.IEV1.Vint;
                 c.Iop = NOP;
             }
             else if (c.Iop == PSOP.fixesp)
             {
                 //printf("fix ESP\n");
-                if (cgstate.hasframe)
+                if (cg.hasframe)
                 {
                     // LEA ESP,-EBPtoESP[EBP]
                     c.Iop = LEA;
@@ -5744,8 +5745,8 @@ void assignaddrc(code* c)
                     c.Irm = modregrm(2,SP,BP);
                     c.Iflags = CFoff;
                     c.IFL1 = FL.const_;
-                    c.IEV1.Vuns = -cgstate.EBPtoESP;
-                    if (cgstate.enforcealign)
+                    c.IEV1.Vuns = -cg.EBPtoESP;
+                    if (cg.enforcealign)
                     {
                         // AND ESP, -STACKALIGN
                         code* cn = code_calloc();
@@ -5764,7 +5765,7 @@ void assignaddrc(code* c)
             else if (c.Iop == PSOP.frameptr)
             {   // Convert to load of frame pointer
                 // c.Irm is the register to use
-                if (cgstate.hasframe && !cgstate.enforcealign)
+                if (cg.hasframe && !cg.enforcealign)
                 {   // MOV reg,EBP
                     c.Iop = 0x89;
                     if (c.Irm & 8)
@@ -5780,7 +5781,7 @@ void assignaddrc(code* c)
                     c.Isib = modregrm(0,4,SP);
                     c.Iflags = CFoff;
                     c.IFL1 = FL.const_;
-                    c.IEV1.Vuns = cgstate.EBPtoESP;
+                    c.IEV1.Vuns = cg.EBPtoESP;
                 }
             }
             if (I64)
@@ -5848,19 +5849,19 @@ void assignaddrc(code* c)
 
             case FL.stack:
                 //printf("Soffset = %d, EBPtoESP = %d, base = %d, pointer = %d\n",
-                //s.Soffset,cgstate.EBPtoESP,base,c.IEV1.Vpointer);
-                c.IEV1.Vpointer += s.Soffset + cgstate.EBPtoESP - base - cgstate.EEStack.offset;
+                //s.Soffset,cg.EBPtoESP,base,c.IEV1.Vpointer);
+                c.IEV1.Vpointer += s.Soffset + cg.EBPtoESP - base - cg.EEStack.offset;
                 break;
 
             case FL.fast:
-                soff = cgstate.Fast.size;
+                soff = cg.Fast.size;
                 goto L1;
 
             case FL.reg:
             case FL.auto_:
-                soff = cgstate.Auto.size;
+                soff = cg.Auto.size;
             L1:
-                if (Symbol_Sisdead(*s, cgstate.anyiasm))
+                if (Symbol_Sisdead(*s, cg.anyiasm))
                 {
                     c.Iop = NOP;               // remove references to it
                     continue;
@@ -5887,14 +5888,14 @@ void assignaddrc(code* c)
                     goto do2;
                 }
                 else
-                {   c.IEV1.Vpointer += s.Soffset + soff + cgstate.BPoff;
+                {   c.IEV1.Vpointer += s.Soffset + soff + cg.BPoff;
                     if (s.Sflags & SFLunambig)
                         c.Iflags |= CFunambig;
             L2:
-                    if (!cgstate.hasframe || (cgstate.enforcealign && c.IFL1 != FL.para))
+                    if (!cg.hasframe || (cg.enforcealign && c.IFL1 != FL.para))
                     {   /* Convert to ESP relative address instead of EBP */
                         assert(!I16);
-                        c.IEV1.Vpointer += cgstate.EBPtoESP;
+                        c.IEV1.Vpointer += cg.EBPtoESP;
                         ubyte crm = c.Irm;
                         if ((crm & 7) == 4)              // if SIB byte
                         {
@@ -5915,22 +5916,22 @@ void assignaddrc(code* c)
 
             case FL.para:
                 //printf("s = %s, Soffset = %d, Para.size = %d, BPoff = %d, EBPtoESP = %d, Vpointer = %d\n",
-                //s.Sident.ptr, cast(int)s.Soffset, cast(int)Para.size, cast(int)cgstate.BPoff,
-                //cast(int)cgstate.EBPtoESP, cast(int)c.IEV1.Vpointer);
-                soff = cgstate.Para.size - cgstate.BPoff;    // cancel out add of BPoff
+                //s.Sident.ptr, cast(int)s.Soffset, cast(int)Para.size, cast(int)cg.BPoff,
+                //cast(int)cg.EBPtoESP, cast(int)c.IEV1.Vpointer);
+                soff = cg.Para.size - cg.BPoff;    // cancel out add of BPoff
                 goto L1;
 
             case FL.fltreg:
-                c.IEV1.Vpointer += cgstate.Foff + cgstate.BPoff;
+                c.IEV1.Vpointer += cg.Foff + cg.BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 
             case FL.allocatmp:
-                c.IEV1.Vpointer += cgstate.Alloca.offset + cgstate.BPoff;
+                c.IEV1.Vpointer += cg.Alloca.offset + cg.BPoff;
                 goto L2;
 
             case FL.funcarg:
-                c.IEV1.Vpointer += cgstate.funcarg.offset + cgstate.BPoff;
+                c.IEV1.Vpointer += cg.funcarg.offset + cg.BPoff;
                 goto L2;
 
             case FL.bprel:
@@ -5944,19 +5945,19 @@ void assignaddrc(code* c)
                     c.Iop = NOP;
                     continue;
                 }
-                c.IEV1.Vpointer = CSE.offset(sn) + cgstate.CSoff + cgstate.BPoff;
+                c.IEV1.Vpointer = CSE.offset(sn) + cg.CSoff + cg.BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 
             case FL.regsave:
                 sn = c.IEV1.Vuns;
-                c.IEV1.Vpointer = sn + cgstate.regsave.off + cgstate.BPoff;
+                c.IEV1.Vpointer = sn + cg.regsave.off + cg.BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 
             case FL.ndp:
                 assert(c.IEV1.Vuns < global87.save.length);
-                c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYreal) + cgstate.NDPoff + cgstate.BPoff;
+                c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYreal) + cg.NDPoff + cg.BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 
@@ -6032,31 +6033,31 @@ void assignaddrc(code* c)
                 /* NOTREACHED */
 
             case FL.fast:
-                c.IEV2.Vpointer += s.Soffset + cgstate.Fast.size + cgstate.BPoff;
+                c.IEV2.Vpointer += s.Soffset + cg.Fast.size + cg.BPoff;
                 break;
 
             case FL.auto_:
-                c.IEV2.Vpointer += s.Soffset + cgstate.Auto.size + cgstate.BPoff;
+                c.IEV2.Vpointer += s.Soffset + cg.Auto.size + cg.BPoff;
             L3:
-                if (!cgstate.hasframe || (cgstate.enforcealign && c.IFL2 != FL.para))
+                if (!cg.hasframe || (cg.enforcealign && c.IFL2 != FL.para))
                     /* Convert to ESP relative address instead of EBP */
-                    c.IEV2.Vpointer += cgstate.EBPtoESP;
+                    c.IEV2.Vpointer += cg.EBPtoESP;
                 break;
 
             case FL.para:
-                c.IEV2.Vpointer += s.Soffset + cgstate.Para.size;
+                c.IEV2.Vpointer += s.Soffset + cg.Para.size;
                 goto L3;
 
             case FL.fltreg:
-                c.IEV2.Vpointer += cgstate.Foff + cgstate.BPoff;
+                c.IEV2.Vpointer += cg.Foff + cg.BPoff;
                 goto L3;
 
             case FL.allocatmp:
-                c.IEV2.Vpointer += cgstate.Alloca.offset + cgstate.BPoff;
+                c.IEV2.Vpointer += cg.Alloca.offset + cg.BPoff;
                 goto L3;
 
             case FL.funcarg:
-                c.IEV2.Vpointer += cgstate.funcarg.offset + cgstate.BPoff;
+                c.IEV2.Vpointer += cg.funcarg.offset + cg.BPoff;
                 goto L3;
 
             case FL.bprel:
@@ -6064,7 +6065,7 @@ void assignaddrc(code* c)
                 break;
 
             case FL.stack:
-                c.IEV2.Vpointer += s.Soffset + cgstate.EBPtoESP - base;
+                c.IEV2.Vpointer += s.Soffset + cg.EBPtoESP - base;
                 break;
 
             case FL.cs:
