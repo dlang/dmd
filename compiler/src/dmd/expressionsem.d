@@ -15790,7 +15790,7 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
                 }
 
                 if (!hasOverloads)
-                    e = StringExp.create(loc, mangleExact(f));
+                    e = StringExp.create(loc, mangleExact(f.toAliasFunc()));
             }
 
             if (!e)
