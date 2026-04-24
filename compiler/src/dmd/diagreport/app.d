@@ -34,7 +34,7 @@ void callEvent(ref dmd.errors.Diagnostic[] group) nothrow
         foreach (i, ref d; group)
         {
             auto diag = convert(d);
-            diag.startMessage.id = i + 1;   // 1-based message id
+            diag.startMessage.id = i + 1; 
             diags ~= diag;
             messages ~= d.message;
         }
@@ -49,9 +49,7 @@ void callEvent(ref dmd.errors.Diagnostic[] group) nothrow
           null);
 }
 
-void event(string filename, string source, int firstLineNumber,
-           dmd.diagreport.defs.Diagnostic[] diagnostics,
-           string[] messagesText, Help[] help) nothrow
+void event(string filename, string source, int firstLineNumber, dmd.diagreport.defs.Diagnostic[] diagnostics, string[] messagesText, Help[] help) nothrow
 {
     OutBuffer buf;
 

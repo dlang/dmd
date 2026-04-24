@@ -52,6 +52,7 @@ struct Diagnostic
 }
 
 __gshared Diagnostic[] diagnostics = [];
+__gshared Diagnostic[][] completedEvents = [];
 
 /***************************
  * Error message sink for D compiler.
@@ -99,13 +100,11 @@ class ErrorSinkCompiler : ErrorSink
 
     void plugSink()
     {
-        // Exit if there are no collected diagnostics
-        if (!diagnostics.length) return;
-
-        /*if(global.params.v.messageStyle == MessageStyle.dfa)
+        if (global.params.v.messageStyle == MessageStyle.dfa)
         {
             import dmd.diagreport.app : callEvent;
-            // Flush the last open event
+
+            // Flush the last open causal group
             if (diagnostics.length > 0)
             {
                 try { completedEvents ~= diagnostics.dup; }
@@ -118,7 +117,10 @@ class ErrorSinkCompiler : ErrorSink
                 callEvent(group);
 
             completedEvents.length = 0;
-        }*/
+        }
+        
+        // Exit if there are no collected diagnostics
+        if (!diagnostics.length) return;
 
         // Generate the SARIF report with the current diagnostics
         generateSarifReport(false);
@@ -470,6 +472,46 @@ private struct DiagnosticContext
     bool supplemental;          // true if supplemental error
 }
 
+// functions to collect diagnostics for the dfa messagestyle
+private void collectDiagnostic(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind) nothrow
+{
+    // A new primary diagnostic means the previous causal group is complete
+    if (diagnostics.length > 0)
+    {
+        try { completedEvents ~= diagnostics.dup; }
+        catch (Exception) {}
+        diagnostics.length = 0;
+    }
+
+    OutBuffer tmp;
+    tmp.vprintf(format, ap);
+
+    Diagnostic d;
+    d.loc = loc;
+    d.kind = kind;
+    try { d.message = tmp.extractSlice().idup; }
+    catch (Exception) {}
+
+    try { diagnostics ~= d; }
+    catch (Exception) {}
+}
+
+private void collectSupplemental(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind) nothrow
+{
+    // Append to the currently open causal group
+    OutBuffer tmp;
+    tmp.vprintf(format, ap);
+
+    Diagnostic d;
+    d.loc = loc;
+    d.kind = kind;
+    try { d.message = tmp.extractSlice().idup; }
+    catch (Exception) {}
+
+    try { diagnostics ~= d; }
+    catch (Exception) {}
+}
+
 /**
  * Implements $(D error), $(D warning), $(D deprecation), $(D message), and
  * $(D tip). Report a diagnostic error, taking a va_list parameter, and
@@ -503,6 +545,11 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
             if (global.params.v.messageStyle == MessageStyle.sarif)
             {
                 addSarifDiagnostic(loc, format, ap, kind);
+                return;
+            }
+            if (global.params.v.messageStyle == MessageStyle.dfa)
+            {
+                collectDiagnostic(loc, format, ap, kind);
                 return;
             }
             printDiagnostic(format, ap, info);
@@ -539,6 +586,11 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                         addSarifDiagnostic(loc, format, ap, kind);
                         return;
                     }
+                    if (global.params.v.messageStyle == MessageStyle.dfa)
+                    {
+                        collectDiagnostic(loc, format, ap, kind);
+                        return;
+                    }
                     printDiagnostic(format, ap, info);
                 }
             }
@@ -560,6 +612,11 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                     addSarifDiagnostic(loc, format, ap, kind);
                     return;
                 }
+                if (global.params.v.messageStyle == MessageStyle.dfa)
+                {
+                    collectDiagnostic(loc, format, ap, kind);
+                    return;
+                }
                 printDiagnostic(format, ap, info);
                 if (global.params.useWarnings == DiagnosticReporting.error)
                     global.warnings++;
@@ -574,6 +631,11 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
             if (global.params.v.messageStyle == MessageStyle.sarif)
             {
                 addSarifDiagnostic(loc, format, ap, kind);
+                return;
+            }
+            if (global.params.v.messageStyle == MessageStyle.dfa)
+            {
+                collectDiagnostic(loc, format, ap, kind);
                 return;
             }
             printDiagnostic(format, ap, info);
@@ -594,6 +656,11 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
         if (global.params.v.messageStyle == MessageStyle.sarif)
         {
             addSarifDiagnostic(loc, format, ap, kind);
+            return;
+        }
+        if (global.params.v.messageStyle == MessageStyle.dfa)
+        {
+            collectDiagnostic(loc, format, ap, kind);
             return;
         }
         return;
@@ -632,6 +699,11 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
         }
         else
             info.headerColor = Classification.error;
+        if (global.params.v.messageStyle == MessageStyle.dfa)
+        {
+            collectSupplemental(loc, format, ap, kind);
+            return;
+        }
         printDiagnostic(format, ap, info);
         return;
 
@@ -643,6 +715,11 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
             if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
             {
                 info.headerColor = Classification.deprecation;
+                if (global.params.v.messageStyle == MessageStyle.dfa)
+                {
+                    collectSupplemental(loc, format, ap, kind);
+                    return;
+                }
                 printDiagnostic(format, ap, info);
             }
         }
