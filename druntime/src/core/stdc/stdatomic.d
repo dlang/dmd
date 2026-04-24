@@ -579,7 +579,7 @@ A atomic_exchange_explicit_impl(A, C)(shared(A)* obj, C desired, memory_order or
 pragma(inline, true)
 bool atomic_compare_exchange_strong_impl(A, B, C)(shared(A)* obj, B* expected, C desired) @trusted
 {
-    static assert(is(shared(B) : A), "Both expected and object must be the same type");
+    static assert(is(B == A), "Both expected and object must be the same type");
     return atomicCompareExchangeStrong(cast(B*)obj, expected, cast(B)desired);
 }
 
@@ -603,7 +603,7 @@ bool atomic_compare_exchange_strong_impl(A, B, C)(shared(A)* obj, B* expected, C
 pragma(inline, true)
 bool atomic_compare_exchange_weak_impl(A, B, C)(shared(A)* obj, B* expected, C desired) @trusted
 {
-    static assert(is(shared(B) : A), "Both expected and object must be the same type");
+    static assert(is(B == A), "Both expected and object must be the same type");
     return atomicCompareExchangeWeak(cast(B*)obj, expected, cast(B)desired);
 }
 
@@ -627,7 +627,7 @@ bool atomic_compare_exchange_weak_impl(A, B, C)(shared(A)* obj, B* expected, C d
 pragma(inline, true)
 bool atomic_compare_exchange_strong_explicit_impl(A, B, C)(shared(A)* obj, B* expected, C desired, memory_order succ, memory_order fail) @trusted
 {
-    static assert(is(shared(B) : A), "Both expected and object must be the same type");
+    static assert(is(B == A), "Both expected and object must be the same type");
     assert(obj !is null);
     // NOTE: To not have to deal with all invalid cases, the failure model is ignored for now.
 
@@ -675,7 +675,7 @@ bool atomic_compare_exchange_strong_explicit_impl(A, B, C)(shared(A)* obj, B* ex
 pragma(inline, true)
 bool atomic_compare_exchange_weak_explicit_impl(A, B, C)(shared(A)* obj, B* expected, C desired, memory_order succ, memory_order fail) @trusted
 {
-    static assert(is(shared(B) : A), "Both expected and object must be the same type");
+    static assert(is(B == A), "Both expected and object must be the same type");
     assert(obj !is null);
     // NOTE: To not have to deal with all invalid cases, the failure model is ignored for now.
 
