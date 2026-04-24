@@ -612,10 +612,10 @@ bool isPointer(Type t)
     return tb.ty == Tpointer && tb.nextOf().ty != Tfunction;
 }
 
-// For CTFE only. Returns true if 'e' is true or a non-null pointer.
+// For CTFE only. Returns true if 'e' is true or a non-null pointer/delegate.
 bool isTrueBool(Expression e)
 {
-    return e.toBool().hasValue(true) || ((e.type.ty == Tpointer || e.type.ty == Tclass) && e.op != EXP.null_);
+    return e.toBool().hasValue(true) || ((e.type.ty == Tpointer || e.type.ty == Tclass || e.type.ty == Tdelegate) && e.op != EXP.null_);
 }
 
 /* Is it safe to convert from srcPointee* to destPointee* ?
