@@ -8649,6 +8649,14 @@ Type unSharedOf(Type type)
         t = type.nullAttributes();
         t.mod = type.mod & ~MODFlags.shared_;
         t.ctype = type.ctype;
+        // Static arrays transitively apply shared to their element type,
+        // also strip from the element. (`makeMutable` does the same)
+        if (type.ty == Tsarray)
+        {
+            auto tn = cast(TypeNext) t;
+            if (tn.next.isShared())
+                tn.next = tn.next.unSharedOf();
+        }
         t = t.merge();
         t.fixTo(type);
     }
