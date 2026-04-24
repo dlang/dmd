@@ -15,7 +15,7 @@ import core.memory : GC;
 alias BlkAttr = GC.BlkAttr;
 
 /**
- * Check if the function `F` is calleable in a `nothrow` scope.
+ * Check if the function `F` is callable in a `nothrow` scope.
  * Params:
  *  F = Function that does not take any parameters
  * Returns:
@@ -24,11 +24,11 @@ alias BlkAttr = GC.BlkAttr;
 enum isNoThrow(alias F) = is(typeof(() nothrow { F(); }));
 
 /**
- * Check if the type `T`'s postblit is called in nothrow, if it exist
+ * Check if the type `T`'s postblit is called in nothrow, if it exists
  * Params:
  *  T = Type to check
  * Returns:
- *  if the postblit is callable in a `nothrow` scope, if it exist.
+ *  if the postblit is callable in a `nothrow` scope, if it exists.
  *  if it does not exist, return true.
  */
 template isPostblitNoThrow(T) {
@@ -87,7 +87,7 @@ Given an array of length `size` that needs to be expanded to `newlength`,
 compute a new capacity.
 
 Better version by Dave Fladebo, enhanced by Steven Schveighoffer:
-This uses an inverse logorithmic algorithm to pre-allocate a bit more
+This uses an inverse logarithmic algorithm to pre-allocate a bit more
 space for larger arrays.
 - The maximum "extra" space is about 80% of the requested space. This is for
 PAGE size and smaller.
@@ -119,10 +119,10 @@ size_t newCapacity(size_t newlength, size_t elemsize) pure nothrow
      * We use an inverse logarithm of the new capacity to add an extra 15%
      * to 83% capacity. Note that normally we humans think in terms of
      * percent, but using 128 instead of 100 for the denominator means we
-     * can avoid all division by simply bit-shifthing. Since there are only
+     * can avoid all division by simply bit-shifting. Since there are only
      * 64 bits in a long, the bsr of a size_t is going to be 0 - 63. Using
      * a lookup table allows us to precalculate the multiplier based on the
-     * inverse logarithm. The formula rougly is:
+     * inverse logarithm. The formula roughly is:
      *
      * newcap = request * (1.0 + min(0.83, 10.0 / (log(request) + 1)))
      */
