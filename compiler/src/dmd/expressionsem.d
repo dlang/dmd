@@ -18446,7 +18446,13 @@ private bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e
                     if (ad.fields[i] == var)
                         break;
                 }
-                assert(i < dim);
+                if (i == dim)
+                {
+                    // Field not found in ad.fields. This can happen if a prior
+                    // semantic error prevented the field from being added.
+                    // Treat as a non-initializing modification.
+                    return false;
+                }
                 auto fieldInit = &sc.ctorflow.fieldinit[i];
                 const fi = fieldInit.csx;
 
