@@ -30,7 +30,6 @@ import dmd.identifier;
 import dmd.statement;
 import dmd.expression;
 import dmd.typesem;
-import dmd.timetrace;
 import dmd.astenums;
 import dmd.mtype;
 import dmd.declaration;
@@ -77,82 +76,38 @@ final:
         return this.endScope(loc);
     }
 
-    DFAScopeRef endScope(ref Loc endLoc, bool handleLabelPopping = true)
+    void mergeEndScopeLabels()
     {
-        DFAScopeRef ret = dfaCommon.popScope;
-        dfaCommon.sdepth--;
-
-        if (handleLabelPopping)
+        while (dfaCommon.currentDFAScope.label !is null)
         {
-            while (ret.sc.label !is null)
-            {
-                Loc loc = *cast(Loc*)&ret.sc.label.loc;
+            DFAScopeRef scr = dfaCommon.popScope;
+            dfaCommon.sdepth--;
+            inLoopyLabel--;
 
-                dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
-                    ob.printf("End label scope %p:%p %s", ret.sc,
-                        dfaCommon.currentDFAScope, ret.sc.label.ident.toChars);
-                    if (loc.isValid)
-                        appendLoc(ob, loc);
-                    ob.writestring("\n");
-                });
-
-                ret.printStructure("*=", dfaCommon.sdepth, dfaCommon.currentFunction);
-                ret.check;
-
-                seeConvergeStatementLoopyLabels(ret, loc);
-                inLoopyLabel--;
-
-                ret = dfaCommon.popScope;
-                dfaCommon.sdepth--;
-            }
-        }
-
-        dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
-            ob.printf("End scope %p:%p", ret.sc, dfaCommon.currentDFAScope);
-            if (endLoc.isValid)
-                appendLoc(ob, endLoc);
-            ob.writestring("\n");
-        });
-
-        ret.printStructure("*=", dfaCommon.sdepth, dfaCommon.currentFunction);
-        ret.check;
-
-        dfaCommon.currentDFAScope.printStructure("parent", dfaCommon.sdepth,
-                dfaCommon.currentFunction);
-        dfaCommon.currentDFAScope.check;
-        return ret;
-    }
-
-    DFAScopeRef endScopeAndReport(ref Loc endLoc, bool endFunction = false)
-    {
-        analyzer.reporter.onEndOfScope(dfaCommon.currentFunction, endLoc);
-        if (endFunction)
-            analyzer.reporter.onEndOfFunction(dfaCommon.currentFunction, endLoc);
-
-        DFAScopeRef ret = dfaCommon.popScope;
-        dfaCommon.sdepth--;
-
-        while (ret.sc.label !is null)
-        {
-            Loc loc = *cast(Loc*)&ret.sc.label.loc;
+            Loc loc = *cast(Loc*)&scr.sc.label.loc;
 
             dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
-                ob.printf("End label scope %p:%p %s", ret.sc,
-                    dfaCommon.currentDFAScope, ret.sc.label.ident.toChars);
+                ob.printf("End label scope %p:%p %s", scr.sc,
+                    dfaCommon.currentDFAScope, scr.sc.label.ident.toChars);
                 if (loc.isValid)
                     appendLoc(ob, loc);
                 ob.writestring("\n");
             });
 
-            ret.printStructure("*=", dfaCommon.sdepth, dfaCommon.currentFunction);
-            ret.check;
+            scr.printStructure("*=", dfaCommon.sdepth);
+            scr.check;
 
-            seeConvergeStatementLoopyLabels(ret, loc);
-            inLoopyLabel--;
-
-            ret = dfaCommon.popScope;
-            dfaCommon.sdepth--;
+            seeConvergeStatementLoopyLabels(scr, loc);
         }
+    }
+
+    DFAScopeRef endScope(ref Loc endLoc, bool handleLabelPopping = true)
+    {
+        if (handleLabelPopping)
+            mergeEndScopeLabels();
+
+        DFAScopeRef ret = dfaCommon.popScope;
+        dfaCommon.sdepth--;
 
         dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
             ob.printf("End scope %p:%p", ret.sc, dfaCommon.currentDFAScope);
@@ -161,55 +116,42 @@ final:
             ob.writestring("\n");
         });
 
-        ret.printStructure("*=", dfaCommon.sdepth, dfaCommon.currentFunction);
+        ret.printStructure("*=", dfaCommon.sdepth);
         ret.check;
 
         if (dfaCommon.currentDFAScope !is null)
         {
-            dfaCommon.currentDFAScope.printStructure("parent",
-                    dfaCommon.sdepth, dfaCommon.currentFunction);
+            dfaCommon.currentDFAScope.printStructure("parent", dfaCommon.sdepth);
             dfaCommon.currentDFAScope.check;
         }
         return ret;
     }
 
-    void seeConvergeStatement(DFAScopeRef scr, bool ignoreWriteCount = false,
-            bool unknownAware = false)
+    DFAScopeRef endScopeAndReport(ref Loc endLoc, bool endFunction = false)
     {
-        dfaCommon.printStructure((ref OutBuffer ob,
-                scope PrintPrefixType prefix) => ob.printf("Converging statement: %d\n",
-                unknownAware));
-        scr.printStructure("input", dfaCommon.sdepth, dfaCommon.currentFunction);
-        scr.check;
+        mergeEndScopeLabels();
 
-        dfaCommon.check;
-        dfaCommon.currentDFAScope.printStructure("scope", dfaCommon.sdepth,
-                dfaCommon.currentFunction);
-        dfaCommon.check;
+        analyzer.reporter.onEndOfScope(dfaCommon.currentFunction, endLoc);
+        if (endFunction)
+            analyzer.reporter.onEndOfFunction(dfaCommon.currentFunction, endLoc);
 
-        analyzer.convergeStatement(scr, true, false, ignoreWriteCount, unknownAware);
-
-        dfaCommon.currentDFAScope.printStructure("so far", dfaCommon.sdepth,
-                dfaCommon.currentFunction);
-        dfaCommon.currentDFAScope.check;
+        return this.endScope(endLoc, false);
     }
 
     void seeConvergeScope(DFAScopeRef scr)
     {
         dfaCommon.printStructure((ref OutBuffer ob,
                 scope PrintPrefixType prefix) => ob.printf("Converging scope:\n"));
-        scr.printStructure("input", dfaCommon.sdepth, dfaCommon.currentFunction);
+        scr.printStructure("input", dfaCommon.sdepth);
         scr.check;
 
         dfaCommon.check;
-        dfaCommon.currentDFAScope.printStructure("scope", dfaCommon.sdepth,
-                dfaCommon.currentFunction);
+        dfaCommon.currentDFAScope.printStructure("scope", dfaCommon.sdepth);
         dfaCommon.check;
 
         analyzer.convergeScope(scr);
 
-        dfaCommon.currentDFAScope.printStructure("so far", dfaCommon.sdepth,
-                dfaCommon.currentFunction);
+        dfaCommon.currentDFAScope.printStructure("so far", dfaCommon.sdepth);
         dfaCommon.currentDFAScope.check;
     }
 
@@ -220,12 +162,11 @@ final:
         dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) => ob.printf(
                 "Converging statement if haveFalseBody=%d, unknownBranchTaken=%d, predicateNegation=%d:\n",
                 haveFalseBody, unknownBranchTaken, predicateNegation));
-        condition.printState("condition", dfaCommon.sdepth, dfaCommon.currentFunction);
-        scrTrue.printStructure("true", dfaCommon.sdepth, dfaCommon.currentFunction);
-        scrFalse.printStructure("false", dfaCommon.sdepth, dfaCommon.currentFunction);
+        condition.printState("condition", dfaCommon.sdepth);
+        scrTrue.printStructure("true", dfaCommon.sdepth);
+        scrFalse.printStructure("false", dfaCommon.sdepth);
 
-        dfaCommon.currentDFAScope.printStructure("scope", dfaCommon.sdepth,
-                dfaCommon.currentFunction);
+        dfaCommon.currentDFAScope.printStructure("scope", dfaCommon.sdepth,);
         dfaCommon.currentDFAScope.check;
 
         dfaCommon.check;
@@ -233,8 +174,7 @@ final:
                 haveFalseBody, unknownBranchTaken, predicateNegation);
         dfaCommon.check;
 
-        dfaCommon.currentDFAScope.printStructure("so far", dfaCommon.sdepth,
-                dfaCommon.currentFunction);
+        dfaCommon.currentDFAScope.printStructure("so far", dfaCommon.sdepth,);
         dfaCommon.currentDFAScope.check;
     }
 
@@ -259,19 +199,17 @@ final:
         dfaCommon.printStructure((ref OutBuffer ob,
                 scope PrintPrefixType prefix) => ob.writestring(
                 "Converging statement loopy labels:\n"));
-        scr.printStructure("input", dfaCommon.sdepth, dfaCommon.currentFunction);
+        scr.printStructure("input", dfaCommon.sdepth);
         scr.check;
 
-        dfaCommon.currentDFAScope.printStructure("scope", dfaCommon.sdepth,
-                dfaCommon.currentFunction);
+        dfaCommon.currentDFAScope.printStructure("scope", dfaCommon.sdepth,);
         dfaCommon.currentDFAScope.check;
 
         dfaCommon.check;
         analyzer.convergeStatementLoopyLabels(scr, loc);
         dfaCommon.check;
 
-        dfaCommon.currentDFAScope.printStructure("so far", dfaCommon.sdepth,
-                dfaCommon.currentFunction);
+        dfaCommon.currentDFAScope.printStructure("so far", dfaCommon.sdepth,);
         dfaCommon.currentDFAScope.check;
     }
 
@@ -296,19 +234,17 @@ final:
     {
         dfaCommon.printStructure((ref OutBuffer ob,
                 scope PrintPrefixType prefix) => ob.writestring("Converging forward goto:\n"));
-        scr.printStructure("input", dfaCommon.sdepth, dfaCommon.currentFunction);
+        scr.printStructure("input", dfaCommon.sdepth);
         scr.check;
 
-        dfaCommon.currentDFAScope.printStructure("scope", dfaCommon.sdepth,
-                dfaCommon.currentFunction);
+        dfaCommon.currentDFAScope.printStructure("scope", dfaCommon.sdepth,);
         dfaCommon.currentDFAScope.check;
 
         dfaCommon.check;
-        analyzer.convergeStatement(scr, false);
+        analyzer.convergeScope(scr);
         dfaCommon.check;
 
-        dfaCommon.currentDFAScope.printStructure("so far", dfaCommon.sdepth,
-                dfaCommon.currentFunction);
+        dfaCommon.currentDFAScope.printStructure("so far", dfaCommon.sdepth,);
         dfaCommon.currentDFAScope.check;
     }
 
@@ -316,14 +252,14 @@ final:
     {
         dfaCommon.printStructure((ref OutBuffer ob,
                 scope PrintPrefixType prefix) => ob.writestring("Loop stage:\n"));
-        previous.printStructure("previous", dfaCommon.sdepth, dfaCommon.currentFunction);
-        next.printStructure("next", dfaCommon.sdepth, dfaCommon.currentFunction);
+        previous.printStructure("previous", dfaCommon.sdepth);
+        next.printStructure("next", dfaCommon.sdepth);
 
         dfaCommon.check;
         DFAScopeRef ret = analyzer.transferLoopyLabelAwareStage(previous, next);
         dfaCommon.check;
 
-        ret.printStructure("result", dfaCommon.sdepth, dfaCommon.currentFunction);
+        ret.printStructure("result", dfaCommon.sdepth);
         return ret;
     }
 
@@ -351,7 +287,7 @@ final:
     void seeRead(ref DFALatticeRef lr, ref Loc loc)
     {
         dfaCommon.printStructureln("Seeing read of lr");
-        lr.printState("read lr", dfaCommon.sdepth, dfaCommon.currentFunction, dfaCommon.edepth);
+        lr.printState("read lr", dfaCommon.sdepth, dfaCommon.edepth);
 
         analyzer.onRead(lr, loc);
     }
@@ -372,18 +308,6 @@ final:
 
     void start(FuncDeclaration fd)
     {
-        dfaCommon.currentFunction = fd;
-
-        dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
-            ob.printf("Starting DFA walk on %s at ", fd.ident.toChars);
-            appendLoc(ob, fd.loc);
-            ob.writestring("\n");
-        });
-
-        timeTraceBeginEvent(TimeTraceEventType.dfa);
-        scope (exit)
-            timeTraceEndEvent(TimeTraceEventType.dfa, fd);
-
         this.startScope;
         dfaCommon.setScopeAsLoopyLabel;
 
@@ -391,17 +315,26 @@ final:
         DFAScopeVar* scv;
 
         {
-            if (fd.parametersDFAInfo is null)
-                fd.parametersDFAInfo = new ParametersDFAInfo;
+            ensureDFAParameters(fd);
 
             if (fd.vthis !is null)
             {
                 DFAVar* var = dfaCommon.findVariable(fd.vthis);
-                var.declaredAtDepth = dfaCommon.currentDFAScope.depth;
+                var.oldestLifeTimeAllowedDepth = dfaCommon.currentDFAScope.depth;
+                var.youngestLifeTimeAllowedDepth = dfaCommon.currentDFAScope.depth;
                 var.writeCount = 1;
                 var.param = &fd.parametersDFAInfo.thisPointer;
-                var.param.parameterId = -1;
                 scv = dfaCommon.acquireScopeVar(var);
+
+                if (var.isNullable)
+                {
+                    DFAConsequence* cctx = scv.lr.getContext;
+                    cctx.obj = dfaCommon.makeObject();
+                    cctx.obj.minimumDeclaredAtDepth = var.oldestLifeTimeAllowedDepth;
+                    cctx.obj.defaultTrackObj = true;
+                    cctx.obj.constrainedBy = var;
+                    cctx.obj.onTheStack = var.param.escapeIntoNothing;
+                }
 
                 dfaCommon.printStructure((ref OutBuffer ob,
                         scope PrintPrefixType prefix) => ob.printf("vthis is %p scv %p\n",
@@ -416,27 +349,33 @@ final:
 
             if (fd.parameters !is null)
             {
-                if (fd.parametersDFAInfo.parameters.length != fd.parameters.length)
-                    fd.parametersDFAInfo.parameters.length = fd.parameters.length;
-
                 foreach (i, param; *fd.parameters)
                 {
                     DFAVar* var = dfaCommon.findVariable(param);
-                    var.declaredAtDepth = dfaCommon.currentDFAScope.depth;
+                    var.oldestLifeTimeAllowedDepth = dfaCommon.currentDFAScope.depth;
+                    var.youngestLifeTimeAllowedDepth = dfaCommon.currentDFAScope.depth;
                     var.writeCount = 1;
                     var.param = &fd.parametersDFAInfo.parameters[i];
-                    *var.param = ParameterDFAInfo.init; // Array won't initialize it
-                    var.param.parameterId = cast(int) i;
                     scv = dfaCommon.acquireScopeVar(var);
 
-                    dfaCommon.printStructure((ref OutBuffer ob,
-                            scope PrintPrefixType prefix) => ob.printf("param (%zd) is `%s` %p scv %p stc %lld\n",
-                            i, param.ident !is null ? param.ident.toChars : null,
-                            var, scv, param.storage_class));
-                    assert(scv.var is var);
+                    if (var.isNullable)
+                    {
+                        DFAConsequence* cctx = scv.lr.getContext;
+                        cctx.obj = dfaCommon.makeObject();
+                        cctx.obj.minimumDeclaredAtDepth = var.oldestLifeTimeAllowedDepth;
+                        cctx.obj.defaultTrackObj = true;
+                        cctx.obj.constrainedBy = var;
+                        cctx.obj.onTheStack = var.param.escapeIntoNothing;
+                    }
 
-                    DFAScopeVar* scv2 = dfaCommon.currentDFAScope.findScopeVar(var);
-                    assert(scv is scv2);
+                    dfaCommon.printStructure((ref OutBuffer ob,
+                            scope PrintPrefixType prefix) => ob.printf(
+                            "param (%zd) is `%s` %p scv %p stc %lld escape %lld:%d/%lld:%d\n",
+                            i, param.ident !is null ? param.ident.toChars : null, var, scv,
+                            param.storage_class, var.param.userSupplied.escapesInto,
+                            var.param.userSupplied.escapeIntoNothing,
+                            var.param.inferred.escapesInto, var.param.inferred.escapeIntoNothing));
+                    assert(scv.var is var);
 
                     var.isByRef = (param.storage_class & STC.ref_) == STC.ref_;
 
@@ -469,14 +408,15 @@ final:
 
         {
             DFAVar* var = dfaCommon.getReturnVariable();
-            var.declaredAtDepth = dfaCommon.currentDFAScope.depth;
+            var.oldestLifeTimeAllowedDepth = dfaCommon.currentDFAScope.depth;
+            var.youngestLifeTimeAllowedDepth = dfaCommon.currentDFAScope.depth;
             var.writeCount = 1;
             var.param = &fd.parametersDFAInfo.returnValue;
-            var.param.parameterId = -2;
 
             TypeFunction tf = fd.type.isTypeFunction();
             assert(tf !is null);
 
+            var.isByRef = tf.isRef;
             var.isNullable = tf.isRef || isTypeNullable(tf.next);
             scv = dfaCommon.acquireScopeVar(var);
 
@@ -518,52 +458,43 @@ final:
             }
         }
 
-        this.visit(fd.fbody);
+        this.visitFlattened(fd.fbody);
 
         // implicit return
         // endScope call automatically infers/validates scope on to function.
-        dfaCommon.currentDFAScope.haveJumped = true;
-        dfaCommon.currentDFAScope.haveReturned = true;
+        dfaCommon.currentDFAScope.controlFlow |= DFAScope.ControlFlow.EndOfFunction;
         this.endScopeAndReport(fd.endloc, true);
+    }
 
-        dfaCommon.printIfStructure((ref OutBuffer ob, scope void delegate(const(char)*) prefix) {
-            dfaCommon.allocator.allVariables((DFAVar* var) {
-                prefix("var");
-                ob.printf(" %p base1=%p, base2=%p", var, var.base1, var.base2);
+    void visitFlattened(Statement st)
+    {
+        // Flattens out compound statements,
+        //  usually this applies to function bodies,
+        //  but it may apply to other statements where it matters.
+        // It matters mostly to function bodies due to function parameters,
+        //  they need the same lifetime as the first set of statements.
 
-                if (var.var !is null)
-                {
-                    ob.printf(", `%s` at ", var.var.ident.toChars);
-                    appendLoc(ob, var.var.loc);
-                }
-
-                ob.printf("\n");
-            });
-            dfaCommon.allocator.allObjects((DFAObject* obj) {
-                prefix("object");
-                ob.printf(" %p base1=%p, base2=%p, storageFor=%p, mayNotBeExactPointer=%d\n", obj,
-                obj.base1, obj.base2, obj.storageFor, obj.mayNotBeExactPointer);
-            });
-        });
-
-        if (fd.parametersDFAInfo !is null)
+        if (auto cs1 = st.isCompoundStatement)
         {
-            dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
-                ob.printf("return=%d:%d", fd.parametersDFAInfo.returnValue.notNullIn,
-                    fd.parametersDFAInfo.returnValue.notNullOut);
-                ob.writestring("\n");
-
-                ob.printf("this=%d:%d", fd.parametersDFAInfo.thisPointer.notNullIn,
-                    fd.parametersDFAInfo.thisPointer.notNullOut);
-                ob.writestring("\n");
-
-                foreach (i, param; fd.parametersDFAInfo.parameters)
+            if (cs1.statements !is null)
+            {
+                foreach (stmt1; *cs1.statements)
                 {
-                    ob.printf("%zd: %d:%d", i, param.notNullIn, param.notNullOut);
-                    ob.writestring("\n");
+                    if (auto cs2 = stmt1.isCompoundStatement)
+                    {
+                        if (cs2.statements !is null)
+                        {
+                            foreach (stmt2; *cs2.statements)
+                                this.visit(stmt2);
+                        }
+                    }
+                    else
+                        this.visit(stmt1);
                 }
-            });
+            }
         }
+        else
+            this.visit(st);
     }
 
     extern (C++) override void visit(Statement st)
@@ -584,8 +515,9 @@ final:
             dfaCommon.sdepth--;
         }
 
-        if (dfaCommon.currentDFAScope.haveReturned)
+        if (dfaCommon.currentDFAScope.controlFlowJumped)
         {
+            // We've jumped previously, which means we probably aren't valid anymore
             dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
                 ob.printf("%3d (%s): ignoring at ", st.stmt, AllStmtOpNames[st.stmt].ptr);
                 appendLoc(ob, st.loc);
@@ -621,6 +553,13 @@ final:
                 assert(0);
             }
         }
+        else version (none)
+        {
+            if (st.loc.linnum > 6902)
+            {
+                return;
+            }
+        }
 
         final switch (st.stmt)
         {
@@ -636,21 +575,25 @@ final:
             expWalker.seeConvergeExpression(lr);
             break;
         case STMT.Return:
-            Expression exp = st.isReturnStatement.exp;
-
-            if (exp !is null)
             {
-                DFALatticeRef lr = expWalker.seeAssign(dfaCommon.getReturnVariable,
-                        true, expWalker.walk(exp), exp.loc);
-                expWalker.seeConvergeExpression(lr);
-            }
+                // Class constructors return the this pointer, which upsets escape analysis, ignore.
+                if (!dfaCommon.isCurrentFunctionClassConstructor)
+                {
+                    Expression exp = st.isReturnStatement.exp;
 
-            // Mark the current scope as having returned.
-            // This signals that no code after this point in the current block is reachable.
-            dfaCommon.currentDFAScope.haveJumped = true;
-            dfaCommon.currentDFAScope.haveReturned = true;
-            analyzer.reporter.onEndOfScope(dfaCommon.currentFunction, st.loc);
-            break;
+                    if (exp !is null)
+                    {
+                        DFALatticeRef lr = expWalker.seeAssign(dfaCommon.getReturnVariable,
+                                true, expWalker.walk(exp), exp.loc);
+                        expWalker.seeConvergeExpression(lr);
+                    }
+                }
+
+                // Mark the current scope as having returned.
+                // This signals that no code after this point in the current block is reachable.
+                dfaCommon.currentDFAScope.controlFlow |= DFAScope.ControlFlow.Return;
+                break;
+            }
 
         case STMT.Compound:
             auto cs = st.isCompoundStatement;
@@ -670,7 +613,7 @@ final:
                 dfaCommon.currentDFAScope.inProgressCompoundStatement = i;
                 this.visit(st2);
 
-                if (dfaCommon.currentDFAScope.haveReturned)
+                if (dfaCommon.currentDFAScope.controlFlowReturned)
                 {
                     dfaCommon.printStructureln("Compound returned");
                     break;
@@ -710,14 +653,10 @@ final:
             DFAVar* conditionVar;
 
             {
-                this.startScope;
-                dfaCommon.currentDFAScope.sideEffectFree = true;
-
                 conditionLR = expWalker.walkCondition(ifs.condition, predicateNegation);
                 conditionVar = conditionLR.getGateConsequenceVariable;
 
                 seeRead(conditionLR, ifs.condition.loc);
-                this.endScope;
             }
 
             {
@@ -736,9 +675,10 @@ final:
                 version (none)
                 {
                     printf("if %d %d %d\n", takeTrueBranch, takeFalseBranch, unknownBranchTaken);
-                    conditionLR.printStructure("condition");
-                    trueCondition.printStructure("true condition");
-                    falseCondition.printStructure("false condition");
+                    conditionLR.printActual("condition");
+                    conditionLR.copy.printActual("copied");
+                    trueCondition.printActual("true condition");
+                    falseCondition.printActual("false condition");
                 }
             }
 
@@ -762,12 +702,12 @@ final:
 
                 assert(dfaCommon.currentDFAScope !is origScope);
 
-                ifbody = this.endScope;
+                ifbody = this.endScopeAndReport(*cast(Loc*)&ifs.ifbody.loc);
                 ifbody.check;
             }
             else
             {
-                this.endScope;
+                this.endScopeAndReport(*cast(Loc*)&ifs.ifbody.loc);
                 dfaCommon.printStructure((ref OutBuffer ob,
                         scope PrintPrefixType prefix) => ob.writestring("true ignored\n"));
             }
@@ -793,9 +733,11 @@ final:
                         this.visit(scs.statement);
                     else
                         this.visit(ifs.elsebody);
+                    elsebody = this.endScopeAndReport(*cast(Loc*)&ifs.elsebody.loc);
                 }
+                else
+                    elsebody = this.endScope;
 
-                elsebody = this.endScope;
                 elsebody.check;
             }
 
@@ -821,7 +763,7 @@ final:
                 ob.writestring("\n");
             });
 
-            DFAScopeRef scbody = this.endScope;
+            DFAScopeRef scbody = this.endScopeAndReport(*cast(Loc*)&sc.endloc);
             this.seeConvergeScope(scbody);
             break;
 
@@ -980,7 +922,7 @@ final:
                         scope PrintPrefixType prefix) => ob.writestring("For body:\n"));
                 this.visit(theBody);
 
-                if (!dfaCommon.currentDFAScope.haveJumped)
+                if (dfaCommon.currentDFAScope.controlFlowJumped)
                 {
                     dfaCommon.printStructure((ref OutBuffer ob,
                             scope PrintPrefixType prefix) => ob.writestring("For increment:\n"));
@@ -1032,7 +974,7 @@ final:
             seeRead(lrCondition, ds.condition.loc);
             expWalker.seeSilentAssert(lrCondition, false, true);
 
-            DFAScopeRef scr = this.endScope(ds.endloc);
+            DFAScopeRef scr = this.endScopeAndReport(*cast(Loc*)&ds.endloc);
             this.seeConvergeStatementLoopyLabels(scr, *cast(Loc*)&ds.loc);
             break;
 
@@ -1055,9 +997,9 @@ final:
                     this.startScope;
                     this.visit(stmt);
 
-                    DFAScopeRef scr = this.endScope;
+                    DFAScopeRef scr = this.endScopeAndReport(*cast(Loc*)&stmt.loc);
 
-                    if (scr.sc.haveReturned)
+                    if (scr.sc.controlFlowReturned)
                     {
                         this.seeConvergeScope(scr);
                         break;
@@ -1109,7 +1051,7 @@ final:
                             this.visit(ss.sdefault.statement);
                     }
 
-                    caState.containing = this.endScope;
+                    caState.containing = this.endScopeAndReport(*cast(Loc*)&ss.sdefault.loc);
                     assert(dfaCommon.currentDFAScope is oldScope);
                 }
 
@@ -1136,7 +1078,7 @@ final:
                         else
                             this.visit(cs.statement);
 
-                        caState.containing = this.endScope;
+                        caState.containing = this.endScopeAndReport(*cast(Loc*)&cs.loc);
                         assert(dfaCommon.currentDFAScope is oldScope);
                     }
                 }
@@ -1215,7 +1157,7 @@ final:
                 }
 
                 if (haveParentControlStatement)
-                    dfaCommon.currentDFAScope.haveJumped = true;
+                    dfaCommon.currentDFAScope.controlFlow |= DFAScope.ControlFlow.Continue;
             }
 
             if (auto forLoop = sc.controlStatement.isForStatement)
@@ -1262,7 +1204,7 @@ final:
                 }
 
                 if (haveParentControlStatement)
-                    dfaCommon.currentDFAScope.haveJumped = true;
+                    dfaCommon.currentDFAScope.controlFlow |= DFAScope.ControlFlow.Break;
             }
 
             seeGoto(sc, true);
@@ -1321,13 +1263,13 @@ final:
 
             dfaCommon.currentDFAScope.tryFinallyStatement = null;
 
-            DFAScopeRef scr = this.endScope;
+            DFAScopeRef scr = this.endScopeAndReport(*cast(Loc*)&tfs.loc);
             this.seeConvergeScope(scr);
             break;
 
         case STMT.Goto:
             auto gs = st.isGotoStatement;
-            dfaCommon.currentDFAScope.haveJumped = true;
+            dfaCommon.currentDFAScope.controlFlow |= DFAScope.ControlFlow.Goto;
 
             auto sc = dfaCommon.findScopeGivenLabel(gs.ident);
 
@@ -1357,7 +1299,7 @@ final:
             else
                 this.visit(ws._body);
 
-            DFAScopeRef scr = this.endScope(ws.endloc);
+            DFAScopeRef scr = this.endScopeAndReport(*cast(Loc*)&ws.endloc);
             this.seeConvergeScope(scr);
             break;
 
@@ -1367,7 +1309,7 @@ final:
 
             this.startScope;
             this.visit(tc._body);
-            DFAScopeRef inProgress = this.endScope();
+            DFAScopeRef inProgress = this.endScopeAndReport(*cast(Loc*)&tc.loc);
 
             if (tc.catches !is null)
             {
@@ -1383,11 +1325,12 @@ final:
 
         case STMT.Throw:
             auto ts = st.isThrowStatement;
-            DFALatticeRef lr = expWalker.walk(ts.exp);
-            expWalker.seeConvergeExpression(lr);
 
-            dfaCommon.currentDFAScope.haveJumped = true;
-            dfaCommon.currentDFAScope.haveReturned = true;
+            DFALatticeRef lr = expWalker.walk(ts.exp);
+            lr = expWalker.seeThrow(lr, ts.loc);
+
+            expWalker.seeConvergeExpression(lr);
+            dfaCommon.currentDFAScope.controlFlow |= DFAScope.ControlFlow.Thrown;
             break;
 
         case STMT.Asm:

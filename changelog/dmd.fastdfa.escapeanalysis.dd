@@ -1,0 +1,30 @@
+The fast DFA engine has gained escape analysis capabilities
+
+The engine works on the fundamental concept on "cells", a cell is a location in memory that holds something.
+So a variable that is on the stack has a cell that provides it, but also may point to another cell if its typed as a pointer.
+
+Due to the fast DFA engine not being able to model indirection, the outer cell is considered separately from cells seen via indirection.
+This is particularly interesting with how by-ref parameters handle it.
+The cell pointed at by the by-ref is the outer cell, even if its typed as a pointer.
+
+```d
+// Think of parameter as int* not int, so the outer cell is the container for the int.
+int* pointToRefCell(ref int arg) => &arg;
+```
+This allows you to escape values that come from indirection:
+
+```d
+struct Animal {
+    int* datem;
+}
+
+int* grabFromAnimal(scope Animal* animal) => animal.datem;
+```
+
+Partial violations of ``scope`` is allowed in non-@safe functions.
+Escaping via a throw statement will still error.
+
+The first 29 parameters may be treated as outputs, all others must be inputs only.
+This does not include the this pointer.
+
+No attributes have been added at this time for users to use, you must rely solely on existing ones and inference.

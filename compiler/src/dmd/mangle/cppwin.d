@@ -79,9 +79,10 @@ private extern (C++) final class VisualCPPMangler : Visitor
 
     extern (D) this(VisualCPPMangler rvl) scope @safe
     {
-        saved_idents[] = rvl.saved_idents[];
-        saved_types[]  = rvl.saved_types[];
-        loc            = rvl.loc;
+        this.saved_idents[] = rvl.saved_idents[];
+        this.saved_types[] = rvl.saved_types[];
+        this.loc = rvl.loc;
+        this.eSink = rvl.eSink;
     }
 
 public:
