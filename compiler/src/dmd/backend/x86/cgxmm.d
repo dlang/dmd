@@ -61,7 +61,7 @@ bool isXMMstore(opcode_t op)
  */
 
 @trusted
-void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, Vconst* pev, regm_t flags)
+void movxmmconst(ref CGstate cg, ref CodeBuilder cdb, reg_t xreg, tym_t ty, Vconst* pev, regm_t flags)
 {
     //printf("movxmmconst() %s ty: %s value: %lld\n", regm_str(mask(xreg)), tym_str(ty), pev.Vllong);
 
@@ -123,9 +123,9 @@ void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, Vconst* pev, regm_t 
         u.l[1] = 0;
         u.s = value;
         targ_long* p = &u.l[0];
-        movregconst(cgstate,cdb,r,p[0],0);
+        movregconst(cg,cdb,r,p[0],0);
         cdb.genfltreg(STO,r,0);                     // MOV floatreg,r
-        movregconst(cgstate,cdb,r,p[1],0);
+        movregconst(cg,cdb,r,p[1],0);
         cdb.genfltreg(STO,r,4);                     // MOV floatreg+4,r
 
         const op = xmmload(TYdouble, true);
@@ -192,7 +192,7 @@ void orthxmm(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
             signbit.Vint = 0x80000000;
             if (sz == 8)
                 signbit.Vllong = 0x8000_0000_0000_0000;
-            movxmmconst(cdb,sreg, e1.Ety, &signbit, 0);
+            movxmmconst(cg, cdb,sreg, e1.Ety, &signbit, 0);
             getregs(cdb,nretregs);
             const opcode_t xop = (sz == 8) ? XORPD : XORPS;       // XORPD/S rreg,sreg
             cdb.gen2(xop,modregxrmx(3,rreg-XMM0,sreg-XMM0));
@@ -714,7 +714,7 @@ void xmmneg(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     if (sz == 8)
         signbit.Vllong = 0x8000_0000_0000_0000;
 
-    movxmmconst(cdb,rreg, tyml, &signbit, 0);
+    movxmmconst(cg, cdb,rreg, tyml, &signbit, 0);
 
     getregs(cdb,retregs);
     const op = (sz == 8) ? XORPD : XORPS;       // XORPD/S reg,rreg
@@ -754,7 +754,7 @@ void xmmabs(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     mask.Vint = 0x7FFF_FFFF;
     if (sz == 8)
         mask.Vllong = 0x7FFF_FFFF_FFFF_FFFFL;
-    movxmmconst(cdb, rreg, tyml, &mask, 0);
+    movxmmconst(cg, cdb, rreg, tyml, &mask, 0);
 
     getregs(cdb,retregs);
     const op = (sz == 8) ? ANDPD : ANDPS;       // ANDPD/S reg,rreg
