@@ -996,14 +996,14 @@ void cgreg_set_priorities(tym_t ty, out const(reg_t)[] pseq, out const(reg_t)[] 
  *      code generated
  */
 @trusted
-private code* callFinallyBlock(block* bf, regm_t retregs)
+private code* callFinallyBlock(ref CGstate cg, block* bf, regm_t retregs)
 {
     CodeBuilder cdbs; cdbs.ctor();
     CodeBuilder cdbr; cdbr.ctor();
     int nalign = 0;
 
-    cgstate.calledFinally = true;
-    uint npush = gensaverestore(cgstate,retregs,cdbs,cdbr);
+    cg.calledFinally = true;
+    uint npush = gensaverestore(cg,retregs,cdbs,cdbr);
 
     if (STACKALIGN >= 16)
     {   npush += REGSIZE;
@@ -1150,7 +1150,7 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
                             continue;
 
                         // call __finally
-                        cdb.append(callFinallyBlock(bf.nthSucc(0), retregsx));
+                        cdb.append(callFinallyBlock(cg, bf.nthSucc(0), retregsx));
                     }
                 }
                 }
@@ -1229,7 +1229,7 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
 
                 assert(!e);
                 // Generate CALL to finalizer code
-                cdb.append(callFinallyBlock(bl.nthSucc(0), 0));
+                cdb.append(callFinallyBlock(cg, bl.nthSucc(0), 0));
 
                 // JMP bl.nthSucc(1)
                 nextb = bl.nthSucc(1);
@@ -1541,7 +1541,7 @@ static if (NTEXCEPTIONS)
                     else
                     {
                         // call __finally
-                        cdb.append(callFinallyBlock(bf.nthSucc(0), retregs));
+                        cdb.append(callFinallyBlock(cg, bf.nthSucc(0), retregs));
                     }
                 }
             }
@@ -5157,7 +5157,8 @@ targ_size_t cod3_spoff()
 @trusted
 void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
 {
-    if (cgstate.AArch64)
+    CGstate* cg = &cgstate;
+    if (cg.AArch64)
     {
         import dmd.backend.arm.cod3 : gen_spill_reg;
         return gen_spill_reg(cdb, s, toreg);
@@ -5175,7 +5176,7 @@ void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
             cs.Iop = xmmload(s.Stype.Tty);        // MOVSS/D xreg,mem
         else
             cs.Iop = xmmstore(s.Stype.Tty);       // MOVSS/D mem,xreg
-        getlvalue(cgstate,cdb,cs,e,keepmsk,rm);
+        getlvalue(*cg,cdb,cs,e,keepmsk,rm);
         cs.orReg(s.Sreglsw - XMM0);
         cdb.gen(&cs);
     }
@@ -5184,7 +5185,7 @@ void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
         const int sz = cast(int)type_size(s.Stype);
         cs.Iop = toreg ? 0x8B : 0x89; // MOV reg,mem[ESP] : MOV mem[ESP],reg
         cs.Iop ^= (sz == 1);
-        getlvalue(cgstate,cdb,cs,e,keepmsk,rm);
+        getlvalue(*cg,cdb,cs,e,keepmsk,rm);
         cs.orReg(s.Sreglsw);
         if (I64 && sz == 1 && s.Sreglsw >= 4)
             cs.Irex |= REX;
@@ -6096,29 +6097,29 @@ void assignaddrc(ref CGstate cg, code* c)
 @trusted
 targ_size_t cod3_bpoffset(Symbol* s)
 {
-    targ_size_t offset;
+    CGstate* cg = &cgstate;
 
     symbol_debug(s);
-    offset = s.Soffset;
+    targ_size_t offset = s.Soffset;
     switch (s.Sfl)
     {
         case FL.para:
-            offset += cgstate.Para.size;
+            offset += cg.Para.size;
             break;
 
         case FL.fast:
-            offset += cgstate.Fast.size + cgstate.BPoff;
+            offset += cg.Fast.size + cg.BPoff;
             break;
 
         case FL.auto_:
-            offset += cgstate.Auto.size + cgstate.BPoff;
+            offset += cg.Auto.size + cg.BPoff;
             break;
 
         default:
             symbol_print(*s);
             assert(0);
     }
-    assert(cgstate.hasframe);
+    assert(cg.hasframe);
     return offset;
 }
 
