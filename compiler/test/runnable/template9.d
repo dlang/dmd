@@ -52,7 +52,6 @@ Success
 
 module breaker;
 
-pragma(lint, none):
 import core.stdc.stdio, core.vararg;
 
 /**********************************/
