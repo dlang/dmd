@@ -1026,7 +1026,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitImport(Import imp)
     {
-        if (hgs.hdrgen && imp.id == Id.object)
+        if (hgs.hdrgen && imp.id == Id.object && imp.packages.length == 0)
             return; // object is imported by default
         if (imp.isstatic)
             buf.put("static ");
