@@ -15,7 +15,10 @@ dmd.diagreport.defs.Diagnostic convert(dmd.errors.Diagnostic d) nothrow
     dmd.diagreport.defs.Diagnostic obj;
     obj.start = d.loc.line;
     obj.end = d.loc.line;
-    obj.startMessage.startColumn = cast(int) getMessageStartColumn(d.loc.fileContent, d.loc.fileOffset);
+
+    const startCol = cast(int) getMessageStartColumn(d.loc.fileContent, d.loc.fileOffset);
+    obj.startMessage.startColumn = startCol;
+    obj.startMessage.endColumn = startCol + getTokenLength(d.loc.fileContent, d.loc.fileOffset);
     obj.startMessage.isMultiline = false;
     return obj;
 }
@@ -41,12 +44,7 @@ void callEvent(ref dmd.errors.Diagnostic[] group) nothrow
     }
     catch (Exception) { return; }
 
-    event(cast(string) primary.loc.filename,
-          cast(string) primary.loc.fileContent,
-          primary.loc.line,
-          diags,
-          messages,
-          null);
+    event(cast(string) primary.loc.filename, cast(string) primary.loc.fileContent, 1, diags, messages, null);
 }
 
 void event(string filename, string source, int firstLineNumber, dmd.diagreport.defs.Diagnostic[] diagnostics, string[] messagesText, Help[] help) nothrow
@@ -238,4 +236,40 @@ struct LineRange
         if (pos < content.length && content[pos] == '\n')
             pos++;
     }
+}
+
+private int getTokenLength(const(char)[] text, size_t offset) nothrow @safe
+{
+    import dmd.root.utf : utf_decodeChar;
+
+    if (offset >= text.length)
+        return 1;
+
+    // Find start of line
+    size_t s = offset;
+    while (s > 0 && text[s - 1] != '\n')
+        s--;
+
+    // Scan forward from offset to end of token
+    // Simple heuristic: scan until whitespace, punctuation, or end of line
+    size_t i = offset;
+    int count = 0;
+
+    while (i < text.length)
+    {
+        dchar c;
+        const prev = i;
+        if (utf_decodeChar(text, i, c) !is null)
+            break;
+        if (c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
+            c == ',' || c == ';' || c == ')' || c == '(' ||
+            c == ']' || c == '[' || c == '{' || c == '}')
+        {
+            if (count == 0) count = 1; 
+            break;
+        }
+        count++;
+    }
+
+    return count == 0 ? 1 : count;
 }

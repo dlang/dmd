@@ -31,6 +31,7 @@ struct Renderer
 
     private
     {
+        int primaryLineNumber;
         int minLineNumber;
         string columnWithoutNumber;
         string columnNumberFormat;
@@ -82,6 +83,7 @@ private:
 
         int maxLineNumber;
         minLineNumber = int.max;
+        primaryLineNumber = diagnostics[0].start;
 
         foreach (i, ref diag; diagnostics)
         {
@@ -123,15 +125,15 @@ private:
         // Build columnNumberFormat — e.g. "%3d" for a 3-digit max line number
         {
             int lineNumberLength = snprintf(null, 0, "%d", maxLineNumber);
-            char[32] buf = void;
+            char[32] buf;      
             int n = snprintf(buf.ptr, buf.length, "%%%dd", lineNumberLength);
-            // Stack buffer — must copy to heap before storing
+
             char[] fmt;
-            try { fmt = new char[n]; }
-            catch (Exception) { fmt = buf[0 .. (n > 0 ? n : 1)]; }
-            if (n > 0)
-                fmt[0 .. n] = buf[0 .. n];
-            columnNumberFormat = cast(string) fmt;
+            try { fmt = new char[n + 1]; } 
+            catch (Exception) { fmt = buf[0 .. n + 1]; }
+            fmt[0 .. n] = buf[0 .. n];
+            fmt[n] = '\0';                    
+            columnNumberFormat = cast(string) fmt[0 .. n]; 
         }
     }
 
@@ -166,7 +168,7 @@ private:
             emitMargin(config.marginUpRight);
             emitRaw(" ");
             emitRaw(filename);
-            emitRawFormat("(%d)\n", minLineNumber);
+            emitRawFormat("(%d)\n", primaryLineNumber);
         }
     }
 
