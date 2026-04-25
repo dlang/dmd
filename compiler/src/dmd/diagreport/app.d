@@ -44,10 +44,10 @@ void callEvent(ref dmd.errors.Diagnostic[] group) nothrow
     }
     catch (Exception) { return; }
 
-    event(cast(string) primary.loc.filename, cast(string) primary.loc.fileContent, 1, diags, messages, null);
+    event(cast(string) primary.loc.filename, cast(string) primary.loc.fileContent, diags, messages, null);
 }
 
-void event(string filename, string source, int firstLineNumber, dmd.diagreport.defs.Diagnostic[] diagnostics, string[] messagesText, Help[] help) nothrow
+void event(string filename, string source, dmd.diagreport.defs.Diagnostic[] diagnostics, string[] messagesText, Help[] help) nothrow
 {
     OutBuffer buf;
 
@@ -57,6 +57,8 @@ void event(string filename, string source, int firstLineNumber, dmd.diagreport.d
     renderer.filename = filename;
     renderer.diagnostics = diagnostics;
     renderer.help = help;
+
+    int firstLineNumber = 1; // for 1 based indexing
 
     renderer.emitRaw = (string text) nothrow
         => buf.printDiagnostic(text);
