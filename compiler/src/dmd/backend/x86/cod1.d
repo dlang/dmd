@@ -5412,7 +5412,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
         {
             assert(!flags);
             const xreg = allocreg(cdb, forregs, tym);     // allocate registers
-            movxmmconst(cdb, xreg, tym, &e.EV, flags);
+            movxmmconst(cg, cdb, xreg, tym, &e.EV, flags);
             fixresult(cg, cdb, e, forregs, outretregs);
             return;
         }
@@ -5440,7 +5440,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
                 flags |= 64;
             if (isXMMreg(reg))
             {
-                movxmmconst(cdb, reg, tym, &e.EV, 0);
+                movxmmconst(cg, cdb, reg, tym, &e.EV, 0);
                 flags = 0;
             }
             else
