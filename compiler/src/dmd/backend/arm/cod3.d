@@ -657,7 +657,7 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
     cs.IEV1.Vsym = sv;
     cs.IFL1 = sv.Sfl;
     cs.Iflags = CFoff;
-    cgstate.reflocal = true;
+    cg.reflocal = true;
 
     regm_t namedargs = prolog_namedArgs();
     foreach (reg_t x; 0 .. 8)
@@ -703,7 +703,7 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
             disassemble(c.Iop);
         }
 
-        assignaddrc(cgstate,cx);
+        assignaddrc(cg,cx);
         cdb.append(cx);
     }
 }
@@ -751,7 +751,7 @@ void prolog_genvarargs_osx(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
     code* cx = cdbx.finish();
     if (cx)
     {
-        assignaddrc(cgstate,cx);
+        assignaddrc(cg,cx);
 
         static if (0)
         for (code* c = cx; c; c = code_next(c))
