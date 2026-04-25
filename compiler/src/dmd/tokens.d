@@ -969,9 +969,6 @@ nothrow:
     /*********************************
      * Params:
      *  sink = where the generated characters get sent
-     * Returns:
-     *  a zero-terminated string representation of the token,
-     *  sometimes reusing a static buffer, sometimes leaking memory
      */
     extern (D) void toString(scope void delegate (ubyte c) nothrow sink) const
     {
