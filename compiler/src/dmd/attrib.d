@@ -145,7 +145,7 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
 
 /***********************************************************
  * Deprecation with an additional message applied to Dsymbols,
- * e.g. `deprecated("Superseeded by foo") int bar;`.
+ * e.g. `deprecated("Superseded by foo") int bar;`.
  * (Note that `deprecated int bar;` is currently represented as a
  * StorageClassDeclaration with STC.deprecated_)
  *

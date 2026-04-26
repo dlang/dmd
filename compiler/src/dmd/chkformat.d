@@ -65,7 +65,7 @@ bool isFormatSafe(scope const char[] format)
  *
  * Follows the C99 specification for printf.
  *
- * Takes a generous, rather than strict, view of compatiblity.
+ * Takes a generous, rather than strict, view of compatibility.
  * For example, an unsigned value can be formatted with a signed specifier.
  *
  * Diagnosed incompatibilities are:
@@ -366,7 +366,7 @@ bool checkPrintfFormat(Loc loc, scope const char[] format, scope Expression[] ar
  *
  * Follows the C99 specification for scanf.
  *
- * Takes a generous, rather than strict, view of compatiblity.
+ * Takes a generous, rather than strict, view of compatibility.
  * For example, an unsigned value can be formatted with a signed specifier.
  *
  * Diagnosed incompatibilities are:

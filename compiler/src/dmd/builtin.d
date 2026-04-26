@@ -119,7 +119,7 @@ BUILTIN determine_builtin(FuncDeclaration func)
     if (id3 == Id.sin)   return BUILTIN.sin;
     if (id3 == Id.cos)   return BUILTIN.cos;
     if (id3 == Id.tan)   return BUILTIN.tan;
-    if (id3 == Id.atan2) return BUILTIN.unimp; // N.B unimplmeneted
+    if (id3 == Id.atan2) return BUILTIN.unimp; // N.B unimplemented
 
     if (id3 == Id._sqrt) return BUILTIN.sqrt;
     if (id3 == Id.fabs)  return BUILTIN.fabs;
