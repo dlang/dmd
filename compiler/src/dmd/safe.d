@@ -542,7 +542,7 @@ bool setUnsafe(Scope* sc, bool gag, Loc loc, VarDeclaration scopeVar,
  *   loc = location of error
  *   format = printf-style format string
  *   args  = arguments for format string
- * Returns: whether an actual safe error (not deprecation) occured
+ * Returns: whether an actual safe error (not deprecation) occurred
  */
 bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)* format, RootObject[] args...)
 {

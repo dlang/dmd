@@ -17,7 +17,7 @@ import dmd.expression;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with
   * no semantic information. It defines all the AST nodes that the parser needs
-  * and also all the conveniance methods and variables. The resulting AST can be
+  * and also all the convenience methods and variables. The resulting AST can be
   * visited with the strict, permissive and transitive visitors.
   * The ASTBase family is used to instantiate the parser in the parser library.
   */

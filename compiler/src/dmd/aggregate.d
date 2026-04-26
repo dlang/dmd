@@ -72,7 +72,7 @@ const(char)* ClassKindToChars(ClassKind c) @safe
 }
 
 /**
- * If an aggregate has a pargma(mangle, ...) this holds the information
+ * If an aggregate has a pragma(mangle, ...) this holds the information
  * to mangle.
  */
 struct MangleOverride
