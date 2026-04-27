@@ -5135,7 +5135,6 @@ class ReturnStatement final : public Statement
 public:
     Expression* exp;
     size_t caseDim;
-    FuncDeclaration* fesFunc;
     ReturnStatement* syntaxCopy() override;
     ReturnStatement* endsWithReturnStatement() override;
     void accept(Visitor* v) override;
