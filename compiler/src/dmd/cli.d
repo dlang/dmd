@@ -206,10 +206,12 @@ struct Usage
         Option("c",
             "compile only, do not link"
         ),
-        Option("check=<option>[=[on|off]]",
-            "enable or disable specific checks for <option>: assert|bounds|in|invariant|nullderef|out|switch.",
+        Option("check=<action>[=[on|off]]",
+            "enable or disable specific checks for <action>: assert|bounds|in|invariant|nullderef|out|switch.",
             q"{Enable or disable specific checks.
-            Overrides default, `-boundscheck`, `-release` and `-unittest` options to enable or disable specific checks. *option* can be:
+            Overrides default, $(SWLINK -boundscheck), $(SWLINK -release) and
+            $(SWLINK -unittest) options to enable or disable specific checks.
+            *action* can be:
                 $(UL
                     $(LI $(B assert): assertion checking)
                     $(LI $(B bounds): array bounds)
@@ -219,12 +221,12 @@ struct Usage
                     $(LI $(B out): out contracts)
                     $(LI $(B switch): $(D final switch) failure checking)
                 )
-                *option* can be set to:
+                Each *action* can be set to:
                 $(UL
                     $(LI $(B on): specified check is enabled.)
                     $(LI $(B off): specified check is disabled.)
                 )
-                If no setting for *option* is given, it will default to `on`,
+                If no setting for *action* is given, it will default to `on`,
                 except `nullderef` defaults to `off`.}"
         ),
         Option("check=[on|off]",
