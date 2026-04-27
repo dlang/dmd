@@ -245,12 +245,12 @@ struct Usage
                     $(LI $(B context): Prints the error context as part of the unrecoverable $(D AssertError).)
                 )`
         ),
+        Option("checkaction=[h|help|?]",
+            "list information on all available check actions"
+        ),
         Option("checkactionfinally=[on|off]",
             "do finally statements that do not have an Exception thrown in try body get emitted?",
             "Default behavior is on. Turning this off means destructors may not run."
-        ),
-        Option("checkaction=[h|help|?]",
-            "list information on all available check actions"
         ),
         Option("color",
             "turn colored console output on"
