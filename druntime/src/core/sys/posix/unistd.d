@@ -159,8 +159,7 @@ else version (FreeBSD)
     int   setresgid(gid_t, gid_t, gid_t) @trusted;
     int   setresuid(uid_t, uid_t, uid_t) @trusted;
 
-    import core.sys.freebsd.config : __FreeBSD_version;
-  static if (__FreeBSD_version >= 800000)
+  static if (__traits(getTargetInfo, "FreeBSDVersion") >= 800000)
   {
     int   faccessat(int, const scope char*, int, int);
     int   fchownat(int, const scope char*, uid_t, gid_t, int);
@@ -170,16 +169,16 @@ else version (FreeBSD)
     int   symlinkat(const scope char*, int, const scope char*);
     int   unlinkat(int, const scope char*, int);
   }
-  static if (__FreeBSD_version >= 1000000)
+  static if (__traits(getTargetInfo, "FreeBSDVersion") >= 1000000)
   {
     int   dup3(int, int, int) @trusted;
     int   pipe2(ref int[2], int) @trusted;
   }
-  static if (__FreeBSD_version >= 1200000)
+  static if (__traits(getTargetInfo, "FreeBSDVersion") >= 1200000)
   {
     int   getentropy(void*, size_t);
   }
-  static if (__FreeBSD_version >= 1301000)
+  static if (__traits(getTargetInfo, "FreeBSDVersion") >= 1300000)
   {
     pid_t _Fork() @trusted;
   }

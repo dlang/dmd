@@ -34,7 +34,7 @@ struct fid
 
 enum MFSNAMELEN = 16;
 
-static if (__FreeBSD_version >= 1200000)
+static if (__traits(getTargetInfo, "FreeBSDVersion") >= 1200000)
 {
     enum MNAMELEN   = 1024;
     enum STATFS_VERSION = 0x20140518;
@@ -316,7 +316,7 @@ version (GNU)
 }
 else
 {
-    static if (__FreeBSD_version >= 1200000)
+    static if (__traits(getTargetInfo, "FreeBSDVersion") >= 1200000)
     {
         pragma(mangle, "fhstat@FBSD_1.5")     int fhstat(const fhandle_t*, stat_t*);
         pragma(mangle, "fhstatfs@FBSD_1.5")   int fhstatfs(const fhandle_t*, statfs_t*);

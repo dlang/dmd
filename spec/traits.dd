@@ -1776,6 +1776,15 @@ version (CppRuntime_Microsoft)
         $(LI $(D "objectFormat") - Target object format)
         )
 
+        $(P
+            These keys are platform-specific, and availability depends on the target the compiler is building for:
+        )
+
+        $(UL
+        $(LI $(D "OSXVersion") - The target MacOS X version, similar to the `__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__` macros in a C compiler)
+        $(LI $(D "FreeBSDVersion") - The target FreeBSD version, similar to the `__FreeBSD_version` macro in a C compiler)
+        )
+
 $(H3 $(GNAME getUnitTests))
 
         $(P

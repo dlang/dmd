@@ -56,9 +56,7 @@ static if (Glibc_Qsort_R)
 }
 else version (FreeBSD)
 {
-    import core.sys.freebsd.config : __FreeBSD_version;
-
-    static if (__FreeBSD_version >= 1400000)
+    static if (__traits(getTargetInfo, "FreeBSDVersion") >= 1400000)
     {
         // FreeBSD changed qsort_r function signature to POSIX in FreeBSD 14.0
         alias Cmp = extern (C) int function(scope const void*, scope const void*, scope void*);

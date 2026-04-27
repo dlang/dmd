@@ -1227,7 +1227,7 @@ else version (FreeBSD)
     import core.sys.freebsd.config;
 
     // https://github.com/freebsd/freebsd/blob/master/sys/sys/stat.h
-    static if (__FreeBSD_version >= INO64_FIRST)
+    static if (__traits(getTargetInfo, "FreeBSDVersion") >= INO64_FIRST)
     {
         struct stat_t
         {
@@ -2045,7 +2045,7 @@ else version (FreeBSD)
     }
     else
     {
-        static if (__FreeBSD_version >= INO64_FIRST)
+        static if (__traits(getTargetInfo, "FreeBSDVersion") >= INO64_FIRST)
         {
             pragma(mangle, "fstat@FBSD_1.5") int   fstat(int, stat_t*);
             pragma(mangle, "lstat@FBSD_1.5") int   lstat(const scope char*, stat_t*);
@@ -2058,14 +2058,14 @@ else version (FreeBSD)
             pragma(mangle, "stat@FBSD_1.0")  int   stat(const scope char*, stat_t*);
         }
     }
-    static if (__FreeBSD_version >= 800000)
+    static if (__traits(getTargetInfo, "FreeBSDVersion") >= 800000)
     {
         int fchmodat(int, const scope char*, mode_t, int);
         int fstatat(int, const scope char*, stat_t*, int);
         int mkdirat(int, const scope char*, mode_t);
         int mkfifoat(int, const scope char*, mode_t);
     }
-    static if (__FreeBSD_version >= 1003000)
+    static if (__traits(getTargetInfo, "FreeBSDVersion") >= 1000000)
     {
         int futimens(int, ref const(timespec)[2]);
         int utimensat(int, const scope char*, ref const(timespec)[2], int);
@@ -2345,7 +2345,7 @@ else version (FreeBSD)
     }
     else
     {
-        static if (__FreeBSD_version >= INO64_FIRST)
+        static if (__traits(getTargetInfo, "FreeBSDVersion") >= INO64_FIRST)
             pragma(mangle, "mknod@FBSD_1.5") int mknod(const scope char*, mode_t, dev_t);
         else
             pragma(mangle, "mknod@FBSD_1.0") int mknod(const scope char*, mode_t, dev_t);

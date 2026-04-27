@@ -209,13 +209,11 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    import core.sys.freebsd.config;
-
     // https://github.com/freebsd/freebsd/blob/master/sys/sys/_types.h
     alias blkcnt_t = long;
     alias blksize_t = uint;
 
-    static if (__FreeBSD_version >= 1200000)
+    static if (__traits(getTargetInfo, "FreeBSDVersion") >= 1200000)
     {
         alias dev_t = ulong;
         alias ino_t = ulong;
