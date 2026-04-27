@@ -4,10 +4,11 @@ import core.stdc.stdio : vsnprintf, fwrite, fflush, stderr;
 import core.stdc.stdarg;
 import core.stdc.string : strlen;
 import dmd.common.outbuffer;
-import dmd.errors;
 import dmd.diagreport.defs;
 import dmd.diagreport.geometry;
 import dmd.diagreport.renderer;
+import dmd.errors;
+import dmd.globals;
 import dmd.location;
 
 dmd.diagreport.defs.Diagnostic convert(dmd.errors.Diagnostic d) nothrow
@@ -47,7 +48,7 @@ void callEvent(ref dmd.errors.Diagnostic[] group) nothrow
     event(cast(string) primary.loc.filename, cast(string) primary.loc.fileContent, diags, messages, null);
 }
 
-void event(string filename, string source, dmd.diagreport.defs.Diagnostic[] diagnostics, string[] messagesText, Help[] help) nothrow
+void event(string filename, string source, dmd.diagreport.defs.Diagnostic[] diagnostics, string[] messagesText, dmd.diagreport.defs.Help[] help) nothrow
 {
     OutBuffer buf;
 
@@ -74,37 +75,61 @@ void event(string filename, string source, dmd.diagreport.defs.Diagnostic[] diag
             buf.printDiagnostic(cast(string) tmp[0 .. n]);
     };
 
-    renderer.emitMargin = (string text) nothrow
-        => buf.printDiagnostic("\x1b[33m", text, "\x1b[0m");
+    if(global.params.v.color)
+    {
+        renderer.emitMargin = (string text) nothrow
+            => buf.printDiagnostic("\x1b[33m", text, "\x1b[0m");
 
-    renderer.emitHeader = () nothrow
-        => buf.printDiagnostic("\x1b[31merror\x1b[0m: ");
+        renderer.emitHeader = () nothrow
+            => buf.printDiagnostic("\x1b[31merror\x1b[0m: ");
 
-    renderer.emitHeaderMultiLinePrefix = () nothrow
-        => buf.printDiagnostic("       ");
+        renderer.emitHeaderMultiLinePrefix = () nothrow
+            => buf.printDiagnostic("       ");
 
-    renderer.emitFooter = () nothrow
-        => buf.printDiagnostic("\x1b[34mnote:\x1b[0m ");
+        renderer.emitFooter = () nothrow
+            => buf.printDiagnostic("\x1b[34mnote:\x1b[0m ");
 
-    renderer.emitFooterMultiLinePrefix = () nothrow
-        => buf.printDiagnostic("      ");
+        renderer.emitFooterMultiLinePrefix = () nothrow
+            => buf.printDiagnostic("      ");
 
-    renderer.emitHelp = () nothrow
-        => buf.printDiagnostic("\x1b[34mhelp:\x1b[0m ");
+        renderer.emitHelp = () nothrow
+            => buf.printDiagnostic("\x1b[34mhelp:\x1b[0m ");
 
-    renderer.emitHelpMultiLinePrefix = () nothrow
-        => buf.printDiagnostic("      ");
+        renderer.emitHelpMultiLinePrefix = () nothrow
+            => buf.printDiagnostic("      ");
 
-    renderer.emitGutter = (string text) nothrow
-        => buf.printDiagnostic("\x1b[34m", text, "\x1b[0m");
+        renderer.emitGutter = (string text) nothrow
+            => buf.printDiagnostic("\x1b[34m", text, "\x1b[0m");
 
-    renderer.emitSquiggle = (string text) nothrow
-        => buf.printDiagnostic("\x1b[31m", text, "\x1b[0m");
-
+        renderer.emitSquiggle = (string text) nothrow
+            => buf.printDiagnostic("\x1b[31m", text, "\x1b[0m");
+    }
+    else 
+    {
+        renderer.emitMargin = (string text) nothrow
+            => buf.printDiagnostic(text);
+        renderer.emitHeader = () nothrow
+            => buf.printDiagnostic("error: ");
+        renderer.emitHeaderMultiLinePrefix = () nothrow
+            => buf.printDiagnostic("       ");
+        renderer.emitFooter = () nothrow
+            => buf.printDiagnostic("note: ");
+        renderer.emitFooterMultiLinePrefix = () nothrow
+            => buf.printDiagnostic("      ");
+        renderer.emitHelp = () nothrow
+            => buf.printDiagnostic("help: ");
+        renderer.emitHelpMultiLinePrefix = () nothrow
+            => buf.printDiagnostic("      ");
+        renderer.emitGutter = (string text) nothrow
+            => buf.printDiagnostic(text);
+        renderer.emitSquiggle = (string text) nothrow
+            => buf.printDiagnostic(text);
+    }        
+    
     renderer.getSourceCode = (int lineNumber) nothrow @trusted
     {
         int idx = lineNumber - firstLineNumber;
-        if (idx < 0 || idx >= cast(int) lines.length)
+        if (idx < 0 || idx >= lines.length)
             return "";
         return lines[idx];
     };

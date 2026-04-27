@@ -104,15 +104,15 @@ class ErrorSinkCompiler : ErrorSink
         {
             import dmd.diagreport.app : callEvent;
 
-            // Flush the last open causal group
+            // Flushes the last open causal group
             if (diagnostics.length > 0)
             {
-                try { completedEvents ~= diagnostics.dup; }
+                try { completedEvents ~= diagnostics; }
                 catch (Exception) {}
                 diagnostics.length = 0;
             }
 
-            // Render each causal group as one event
+            // Renders each causal group as one event
             foreach (ref group; completedEvents)
                 callEvent(group);
 
@@ -496,6 +496,7 @@ private void collectDiagnostic(const SourceLoc loc, const(char)* format, va_list
     catch (Exception) {}
 }
 
+// function to collect supplemental diagnostics for the dfa messagestyle
 private void collectSupplemental(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind) nothrow
 {
     // Append to the currently open causal group
