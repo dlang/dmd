@@ -469,6 +469,7 @@ extern (C++) class VarDeclaration : Declaration
         bool dllExport;         /// __declspec(dllexport)
         mixin VarDeclarationExtra;
         bool systemInferred;    /// @system was inferred from initializer
+        bool wasUsed;
     }
 
     import dmd.common.bitfields : generateBitFields;

@@ -31,6 +31,7 @@ import dmd.sarif;
 nothrow:
 
 /// Constants used to discriminate kinds of error messages.
+extern (C++)
 enum ErrorKind
 {
     warning,
@@ -38,6 +39,7 @@ enum ErrorKind
     error,
     tip,
     message,
+    lint,
 }
 
 /********************************
@@ -121,6 +123,7 @@ enum Classification : Color
     warning = Color.brightYellow,     /// for warnings
     deprecation = Color.brightCyan,   /// for deprecations
     tip = Color.brightGreen,          /// for tip messages
+    lint = Color.brightMagenta,       /// for lint messages
 }
 
 
@@ -222,6 +225,32 @@ extern(C++) void errorBackend(const(char)* filename, uint linnum, uint charnum, 
     vreportDiagnostic(loc, format, ap, ErrorKind.error);
     va_end(ap);
 }
+
+/**
+ * Print a lint message with the prefix and highlighting.
+ * Does NOT increase error or warning counts.
+ * Params:
+ * loc      = location of message
+ * ruleName = name of the lint rule to display in brackets
+ * format   = printf-style format specification
+ * ...      = printf-style variadic arguments
+ */
+static if (__VERSION__ < 2092)
+    extern (C++) void lint(Loc loc, const(char)* ruleName, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vreportDiagnostic(loc, format, ap, ErrorKind.lint, ruleName);
+        va_end(ap);
+    }
+else
+    pragma(printf) extern (C++) void lint(Loc loc, const(char)* ruleName, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        vreportDiagnostic(loc, format, ap, ErrorKind.lint, ruleName);
+        va_end(ap);
+    }
 
 /**
  * Print additional details about an error message.
@@ -579,6 +608,35 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
             return;
         }
         return;
+
+    case ErrorKind.lint:
+            global.errors++;
+            if (!global.gag)
+            {
+                info.headerColor = Classification.lint;
+                if (global.params.v.messageStyle == MessageStyle.sarif)
+                {
+                    addSarifDiagnostic(loc, format, ap, kind);
+                    return;
+                }
+                printDiagnostic(format, ap, info);
+
+                if (global.params.v.errorLimit && global.errors >= global.params.v.errorLimit)
+                {
+                    fprintf(stderr, "error limit (%d) reached, use `-verrors=0` to show all\n", global.params.v.errorLimit);
+                    fatal();
+                }
+            }
+            else
+            {
+                if (global.params.v.showGaggedErrors)
+                {
+                    info.headerColor = Classification.gagged;
+                    printDiagnostic(format, ap, info);
+                }
+                global.gaggedErrors++;
+            }
+            return;
     }
 }
 
@@ -638,6 +696,16 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
         }
         return;
 
+    case ErrorKind.lint:
+    case ErrorKind.tip:
+    case ErrorKind.message:
+        if (!global.gag)
+        {
+            info.headerColor = Classification.lint;
+            printDiagnostic(format, ap, info);
+        }
+        return;
+
     default:
         assert(false, "internal error: unhandled kind in error report");
     }
@@ -665,6 +733,7 @@ private void printDiagnostic(const(char)* format, va_list ap, ref DiagnosticCont
             case ErrorKind.warning:     header = "Warning: "; break;
             case ErrorKind.tip:         header = "  Tip: "; break;
             case ErrorKind.message:     assert(0);
+            case ErrorKind.lint:        header = "Lint: "; break;
         }
     }
 
@@ -696,8 +765,17 @@ private void printDiagnostic(const(char)* format, va_list ap, ref DiagnosticCont
     tmp.reset();
     if (info.p1)
     {
-        tmp.writestring(info.p1);
-        tmp.writestring(" ");
+        if (info.kind == ErrorKind.lint)
+        {
+            tmp.writeByte('[');
+            tmp.writestring(info.p1);
+            tmp.writestring("] ");
+        }
+        else
+        {
+            tmp.writestring(info.p1);
+            tmp.writestring(" ");
+        }
     }
     if (info.p2)
     {
