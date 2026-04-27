@@ -206,21 +206,30 @@ struct Usage
         Option("c",
             "compile only, do not link"
         ),
-        Option("check=[assert|bounds|in|invariant|out|switch][=[on|off]]",
-            "enable or disable specific checks",
-            q"{Overrides default, `-boundscheck`, `-release` and `-unittest` options to enable or disable specific checks.
+        Option("check=<option>[=[on|off]]",
+            "enable or disable specific checks for <option>: assert|bounds|in|invariant|nullderef|out|switch.",
+            q"{Enable or disable specific checks.
+            Overrides default, `-boundscheck`, `-release` and `-unittest` options to enable or disable specific checks. *option* can be:
                 $(UL
                     $(LI $(B assert): assertion checking)
                     $(LI $(B bounds): array bounds)
                     $(LI $(B in): in contracts)
                     $(LI $(B invariant): class/struct invariants)
+                    $(LI **nullderef**: null dereference)
                     $(LI $(B out): out contracts)
                     $(LI $(B switch): $(D final switch) failure checking)
                 )
+                *option* can be set to:
                 $(UL
-                    $(LI $(B on) or not specified: specified check is enabled.)
+                    $(LI $(B on): specified check is enabled.)
                     $(LI $(B off): specified check is disabled.)
-                )}"
+                )
+                If no setting for *option* is given, it will default to `on`,
+                except `nullderef` defaults to `off`.}"
+        ),
+        Option("check=[on|off]",
+            "enable or disable all checks above",
+            "Enable or disable all checks above."
         ),
         Option("check=[h|help|?]",
             "list information on all available checks"
@@ -1204,11 +1213,11 @@ struct CLIUsage
   =in[=[on|off]]        Generate In contracts
   =invariant[=[on|off]] Class/struct invariants
   =out[=[on|off]]       Out contracts
-  =switch[=[on|off]]    Final switch failure checking
+  =switch[=[on|off]]    `final switch` failure checking
   =nullderef[=[on|off]] Null dereference error
-  =on                   Enable all assertion checking
-                        (default for non-release builds)
-  =off                  Disable all assertion checking
+  =on                   Enable all checking
+                        (default for non-release builds, except `nullderef`)
+  =off                  Disable all checking
 ";
 
     /// Options supported by -extern-std
