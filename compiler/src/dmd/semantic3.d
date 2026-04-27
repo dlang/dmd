@@ -792,7 +792,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     {
                         Statement s = new ReturnStatement(funcdecl.loc, null);
                         s = s.statementSemantic(sc2);
-                        funcdecl.fbody = new CompoundStatement(funcdecl.loc, funcdecl.fbody, s);
+                        if (auto cs = funcdecl.fbody.isCompoundStatement())
+                            cs.statements.push(s);
+                        else
+                            funcdecl.fbody = new CompoundStatement(funcdecl.loc, funcdecl.fbody, s);
                         funcdecl.hasMultipleReturnExp = funcdecl.hasReturnExp;
                         funcdecl.hasReturnExp = true;
                     }
@@ -804,7 +807,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     {
                         Expression e = IntegerExp.literal!0;
                         Statement s = new ReturnStatement(Loc.initial, e);
-                        funcdecl.fbody = new CompoundStatement(Loc.initial, funcdecl.fbody, s);
+                        if (auto cs = funcdecl.fbody.isCompoundStatement())
+                            cs.statements.push(s);
+                        else
+                            funcdecl.fbody = new CompoundStatement(funcdecl.loc, funcdecl.fbody, s);
                         funcdecl.hasMultipleReturnExp = funcdecl.hasReturnExp;
                         funcdecl.hasReturnExp = true;
                     }
