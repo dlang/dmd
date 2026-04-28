@@ -479,6 +479,9 @@ private int tryMain(const(char)[][] argv, out Param params)
                 fatal();
             // BUG: convert file contents to UTF-8 before use
             //printf("file: '%.*s'\n", cast(int)buffer.data.length, buffer.data.ptr);
+            // Separate macro definitions from adjacent files lacking a final \n
+            // https://github.com/dlang/dmd/issues/18754
+            ddocbuf.writeByte('\n');
         }
         ddocbufIsRead = true;
     }
