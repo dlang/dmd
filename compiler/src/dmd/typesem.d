@@ -1804,7 +1804,7 @@ bool isCopyable(Type t)
         if (ts.sym.hasCopyCtor)
         {
             // check if there is a matching overload of the copy constructor and whether it is disabled or not
-            // `assert(ctor)` fails on Win32 and Win_32_64. See: https://auto-tester.puremagic.com/pull-history.ghtml?projectid=1&repoid=1&pullid=10575
+            // `assert(ctor)` fails on Win32 and Win32_64. See: https://auto-tester.puremagic.com/pull-history.ghtml?projectid=1&repoid=1&pullid=10575
             Dsymbol ctor = search_function(ts.sym, Id.ctor);
             assert(ctor);
             scope el = new IdentifierExp(Loc.initial, Id.p); // dummy lvalue
@@ -2394,7 +2394,7 @@ private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
     /* https://issues.dlang.org/show_bug.cgi?id=22202
      *
      * If a function was deduced by semantic on the CallExp,
-     * it means that resolveFuncCall completed succesfully.
+     * it means that resolveFuncCall completed successfully.
      * Therefore, there exists a callable copy constructor,
      * however, it cannot be called because scope constraints
      * such as purity, safety or nogc.

@@ -1,5 +1,5 @@
 /**
- * Enforce visibility contrains such as `public` and `private`.
+ * Enforce visibility constraints such as `public` and `private`.
  *
  * Specification: $(LINK2 https://dlang.org/spec/attribute.html#visibility_attributes, Visibility Attributes)
  *
