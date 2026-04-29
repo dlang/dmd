@@ -2,6 +2,7 @@
 // REQUIRED_ARGS: -D -Dd${RESULTS_DIR}/compilable -o-
 // TEST_OUTPUT_FILE: extra-files/ddoc_markdown_code.html
 // OUTPUT_FILES: ${RESULTS_DIR}/compilable/ddoc_markdown_code.html
+// EXTRA_SOURCES: extra-files/ddoc_minimal.ddoc
 
 /++
 # Code Blocks
