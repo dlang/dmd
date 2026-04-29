@@ -25,6 +25,13 @@ import core.time;
 // Platform Detection and Memory Allocation
 ///////////////////////////////////////////////////////////////////////////////
 
+version (Posix)
+    public import core.thread.posix_impl;
+else version (Windows)
+    public import core.thread.windows_impl;
+else
+    static assert(0, "unsupported operating system");
+
 version (OSX)
     version = Darwin;
 else version (iOS)

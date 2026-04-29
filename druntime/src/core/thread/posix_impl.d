@@ -10,7 +10,7 @@
  * Source:    $(DRUNTIMESRC core/thread/osthread.d)
  */
 
-module core.thread.osthread;
+module core.thread.posix_impl;
 
 import core.atomic;
 import core.exception : onOutOfMemoryError;
