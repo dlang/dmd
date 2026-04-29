@@ -17,7 +17,7 @@ import dmd.func;
 import dmd.mtype;
 import dmd.typesem;
 import dmd.identifier;
-import dmd.globals;
+import dmd.globals : dinteger_t;
 import dmd.dsymbol;
 import dmd.location;
 import dmd.expression;

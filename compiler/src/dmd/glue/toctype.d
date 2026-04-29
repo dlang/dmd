@@ -30,7 +30,6 @@ import dmd.dmdparams;
 import dmd.dstruct;
 import dmd.dsymbolsem : isPOD;
 import dmd.expressionsem : toInteger;
-import dmd.globals;
 import dmd.id;
 import dmd.mtype;
 import dmd.typesem;
@@ -191,6 +190,7 @@ type* Type_toCtype(Type t)
             /* Add in fields of the struct
              * (after setting ctype to avoid infinite recursion)
              */
+            import dmd.globals;
             if (driverParams.symdebug && !global.errors)
             {
                 foreach (v; sym.fields)

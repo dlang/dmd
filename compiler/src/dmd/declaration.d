@@ -22,7 +22,6 @@ import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
-import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -40,6 +39,7 @@ import dmd.visitor;
  */
 void ObjectNotFound(Loc loc, Identifier id)
 {
+    import dmd.globals;
     global.gag = 0; // never gag the fatal error
     const dmdConfFile = global.inifilename.length ? FileName.canonicalName(global.inifilename) : "not found";
 

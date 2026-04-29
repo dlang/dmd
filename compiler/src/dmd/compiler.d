@@ -20,7 +20,6 @@ import dmd.dmodule;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem : toInteger, toReal;
-import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
@@ -144,6 +143,7 @@ extern (C++) struct Compiler
             if (includeImportedModuleCheck(ModuleComponentRange(
                 m.md ? m.md.packages : [], m.ident, m.isPackageFile)))
             {
+                import dmd.globals;
                 if (global.params.v.verbose)
                     message("compileimport (%s)", m.srcfile.toChars);
                 compiledImports.push(m);

@@ -16,7 +16,6 @@ import dmd.dinterpret;
 import dmd.dsymbol;
 import dmd.dscope;
 import dmd.dtemplate;
-import dmd.globals;
 import dmd.location;
 import dmd.expression;
 import dmd.expressionsem;
@@ -173,6 +172,8 @@ RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o, TemplatePara
             return s;
         if (TypeInstance ti = ta.isTypeInstance())
         {
+            import dmd.globals;
+
             Type t;
             const errors = global.errors;
             ta.resolve(loc, sc, ea, t, s);
