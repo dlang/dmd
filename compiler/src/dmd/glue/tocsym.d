@@ -139,6 +139,11 @@ Symbol* toSymbol(Dsymbol s)
                 fprintf(stderr, "VarDeclaration.toSymbol(%s) needThis kind: %s\n", vd.toPrettyChars(), vd.kind());
             assert(!vd.needThis());
 
+            // foreach is already handled before this, so anything thats hitting it is an error case.
+            // No need to quit after error, at worse this will result in a linker error.
+            if (vd.isLinkerListDeclaration)
+                error(vd.loc, "Linker list declarations cannot be accessed except for iteration via foreach statement or appended during CTFE");
+
             import dmd.common.outbuffer : OutBuffer;
             OutBuffer buf;
             bool isNRVO = false;

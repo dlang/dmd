@@ -252,6 +252,10 @@ immutable Msgtable[] msgtable =
     { "apply", "opApply" },
     { "applyReverse", "opApplyReverse" },
 
+    // For linker list
+    { "__linkerlist" },
+    { "linkerlistApply", "_d_linkerlistApply" },
+
     // Ranges
     { "Fempty", "empty" },
     { "Ffront", "front" },
