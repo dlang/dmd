@@ -7,7 +7,7 @@ module dmd.visitor.strict;
 
 import dmd.visitor.parsetime;
 
-/** The StrictVisitor asserts 0 an all visiting functions in order to
+/** The StrictVisitor asserts 0 in all visiting functions in order to
   * make sure that all the nodes are visited.
   */
 extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST

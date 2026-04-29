@@ -821,7 +821,7 @@ package(dmd.visitor) mixin template ParseVisitMethods(AST)
 
     override void visit(AST.AliasDeclaration d)
     {
-        //printf("Visting AliasDeclaration\n");
+        //printf("Visiting AliasDeclaration\n");
         if (d.aliassym)
             d.aliassym.accept(this);
         else
@@ -830,7 +830,7 @@ package(dmd.visitor) mixin template ParseVisitMethods(AST)
 
     override void visit(AST.AliasAssign d)
     {
-        //printf("Visting AliasAssign\n");
+        //printf("Visiting AliasAssign\n");
         if (d.aliassym)
             d.aliassym.accept(this);
         else

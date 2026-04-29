@@ -152,7 +152,7 @@ extern(C++) struct VSOptions
             if (addpath)
             {
                 // debug info needs DLLs from $(VSInstallDir)\Common7\IDE for most linker versions
-                //  so prepend it too the PATH environment variable
+                //  so prepend it to the PATH environment variable
                 char* path = getenv("PATH"w);
                 const pathlen = strlen(path);
                 const addpathlen = strlen(addpath);
