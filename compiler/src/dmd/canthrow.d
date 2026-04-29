@@ -24,7 +24,6 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.typesem;
 import dmd.func;
-import dmd.globals;
 import dmd.mtype;
 import dmd.tokens;
 import dmd.visitor;
@@ -105,6 +104,7 @@ CT canThrow(Expression e, FuncDeclaration func, ErrorSink eSink)
             if (ce.inDebugStatement)
                 return;
 
+            import dmd.globals;
             if (global.errors && !ce.e1.type)
                 return; // error recovery
 

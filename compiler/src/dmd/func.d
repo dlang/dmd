@@ -27,7 +27,6 @@ import dmd.dclass;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.dtemplate;
-import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;

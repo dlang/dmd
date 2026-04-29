@@ -19,7 +19,6 @@ import core.stdc.string;
 
 import dmd.astenums;
 import dmd.errors;
-import dmd.globals;
 import dmd.link;
 import dmd.location;
 import dmd.target;
@@ -49,6 +48,7 @@ version (Windows) version = runPreprocessor;
 extern (C++)
 DArray!ubyte preprocess(FileName csrcfile, Loc loc, ref OutBuffer defines)
 {
+    import dmd.globals;
     /* Look for "importc.h" by searching along import path.
      */
     const(char)* importc_h = findImportcH(global.importPaths[]);
