@@ -4592,7 +4592,7 @@ void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, size_t of
                 else
                 {
                     i += endRowAndTable(buf, iLineStart, i, inlineDelimiters, columnAlignments);
-                    if (!lineQuoted && quoteLevel)
+                    if (!lineQuoted && (quoteLevel || nestedLists.length))
                     {
                         const delta = endAllListsAndQuotes(buf, iLineStart, nestedLists, quoteLevel, quoteMacroLevel);
                         i += delta;
