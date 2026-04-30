@@ -17,6 +17,7 @@ import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
 import core.memory : GC, pageSize;
 import core.thread.context;
+import core.thread.osthread;
 import core.thread.threadbase;
 import core.thread.types;
 import core.time;
