@@ -565,6 +565,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         }
     }
 
+    version(MARS)
     if (fd.inlinedNestedCallees)
     {
         /* https://issues.dlang.org/show_bug.cgi?id=15333
