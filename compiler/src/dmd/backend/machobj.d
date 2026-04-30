@@ -904,7 +904,10 @@ void MachObj_term(const(char)[] objfilename)
                 const(char)* rs = r.rtype == RELaddr ? "addr" :  // 32 bit address
                                   r.rtype == RELadd  ? "add"  :
                                                        "rel";
-                 //printf("%d:x%04llx : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
+                //printf("%d:x%04llx : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
+                bool isPersonality = strcmp(s.Sident.ptr, "__dmd_personality_v0") == 0 ||
+                                     strcmp(s.Sident.ptr, "___dmd_personality_v0") == 0; // temporary scaffolding
+                //symbol_print(*s);
                 relocation_info rel;
                 scattered_relocation_info srel;
                 if (s)
@@ -989,6 +992,7 @@ void MachObj_term(const(char)[] objfilename)
                     }
                     else if (pseg.isCode())
                     {
+                        //printf("isCode\n");
                         if (machobj.AArch64)
                         {
                             //printf("AArch64\n");
@@ -1003,6 +1007,20 @@ void MachObj_term(const(char)[] objfilename)
                                     {
                                         rel.r_type = ARM64_RELOC_BRANCHY26;
                                         rel.r_pcrel = 1;
+                                    }
+                                    else if (s.Sfl == FL.func && r.rtype == RELaddr &&
+                                             isPersonality) // temporary scaffolding
+                                    {
+                                        //printf("personality\n");
+                                        rel.r_type = ARM64_RELOC_POINTER_TO_GOT;
+                                        rel.r_pcrel = 0;
+                                    }
+                                    else if (s.Sfl == FL.extern_ && r.rtype == RELaddr)
+                                    {
+//printf("gcc_except\n");
+//                printf("%d:x%04llx : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
+                                        rel.r_type = ARM64_RELOC_POINTER_TO_GOT;
+                                        rel.r_pcrel = 0;
                                     }
                                     else if (s.Sfl == FL.unde)   // special case for __chkstk_darwin, need to research what PAGEOFF12 really means
                                     {
@@ -1028,6 +1046,8 @@ void MachObj_term(const(char)[] objfilename)
                                     break;
 
                                 case SC.global:
+                                    if (s.Sfl == FL.func && r.rtype == RELrel)
+                                        goto case SC.extern_;
                                     //rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
                                     rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                     if (s.Sfl == FL.tlsdata || s.Sfl == FL.data && (s.ty() & mTYLINK) == mTYthread)
@@ -1350,6 +1370,7 @@ void MachObj_term(const(char)[] objfilename)
                 }
             }
         }
+
         if (nreloc)
         {
             if (I64)
