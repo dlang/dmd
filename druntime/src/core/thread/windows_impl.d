@@ -244,7 +244,7 @@ class Thread : ThreadBase
     }
     do
     {
-        version (Windows)
+        version (all)
         {
             auto maxSleepMillis = dur!("msecs")( uint.max - 1 );
 
@@ -267,25 +267,6 @@ class Thread : ThreadBase
             }
             Sleep( cast(uint) val.total!"msecs" );
         }
-        else version (Posix)
-        {
-            timespec tin  = void;
-            timespec tout = void;
-
-            val.split!("seconds", "nsecs")(tin.tv_sec, tin.tv_nsec);
-            if ( val.total!"seconds" > tin.tv_sec.max )
-                tin.tv_sec  = tin.tv_sec.max;
-            while ( true )
-            {
-                if ( !nanosleep( &tin, &tout ) )
-                    return;
-                if ( errno != EINTR )
-                    assert(0, "Unable to sleep for the specified duration");
-                tin = tout;
-            }
-        }
-        else
-            static assert(0, "unsupported os");
     }
 
     static void yield() @nogc nothrow
