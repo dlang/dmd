@@ -232,18 +232,9 @@ class Thread : ThreadBase
         if (!super.isRunning())
             return false;
 
-        version (Windows)
-        {
-            uint ecode = 0;
-            GetExitCodeThread( m_hndl, &ecode );
-            return ecode == STILL_ACTIVE;
-        }
-        else version (Posix)
-        {
-            return atomicLoad(m_isRunning);
-        }
-        else
-            static assert(0, "unsupported os");
+        uint ecode = 0;
+        GetExitCodeThread( m_hndl, &ecode );
+        return ecode == STILL_ACTIVE;
     }
 
     static void sleep( Duration val ) @nogc nothrow @trusted
@@ -299,11 +290,6 @@ class Thread : ThreadBase
 
     static void yield() @nogc nothrow
     {
-        version (Windows)
-            SwitchToThread();
-        else version (Posix)
-            sched_yield();
-        else
-            static assert(0, "unsupported os");
+        SwitchToThread();
     }
 }
