@@ -13,7 +13,6 @@
 module core.thread.osthread;
 
 import core.atomic;
-import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
 import core.memory : GC, pageSize;
 import core.thread.context;
