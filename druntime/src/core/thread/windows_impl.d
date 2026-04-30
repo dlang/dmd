@@ -73,7 +73,7 @@ else
 version (CoreDdoc) {} else
 class Thread : ThreadBase
 {
-    private HANDLE          m_hndl;
+    package HANDLE m_hndl;
     alias TLSKey = uint;
 
     this( void function() fn, size_t sz = 0 ) @safe pure nothrow @nogc
