@@ -469,6 +469,13 @@ void cod3_setAArch64()
 @trusted
 void cod3_align_bytes(int seg, size_t nbytes)
 {
+    if (cgstate.AArch64)
+    {
+        foreach (i; 0 .. nbytes)
+            objmod.write_byte(SegData[seg],0);
+        return;
+    }
+
     /* Table 4-2 from Intel Instruction Set Reference M-Z
      * 1 bytes NOP                                        90
      * 2 bytes 66 NOP                                     66 90
@@ -524,7 +531,12 @@ void cod3_align_bytes(int seg, size_t nbytes)
 @trusted
 void cod3_align(int seg)
 {
-    if (config.exe & EX_windos)
+    if (cgstate.AArch64)
+    {
+        const nbytes = -Offset(seg) & 3;
+        cod3_align_bytes(seg, nbytes);
+    }
+    else if (config.exe & EX_windos)
     {
         if (config.flags4 & CFG4speed)      // if optimized for speed
         {
@@ -4510,7 +4522,7 @@ void prolog_gen_win64_varargs(ref CodeBuilder cdb)
  * Take the parameters passed in registers, and put them into the function's local
  * symbol table.
  * Params:
- *	cg = code generator state
+ *      cg = code generator state
  *      cdb = generated code sink
  *      tf = what's the type of the function
  *      pushalloc = use PUSH to allocate on the stack rather than subtracting from SP
