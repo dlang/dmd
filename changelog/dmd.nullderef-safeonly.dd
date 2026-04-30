@@ -1,0 +1,22 @@
+`-check=nullderef=safeonly` is now supported
+
+The `-check=nullderef` flag now accepts `safeonly` as a setting, which enables
+null dereference checking only in `@safe` functions. The D spec requires null
+dereferences to be detected in `@safe` code, and this flag allows opting into
+that behavior while the feature matures toward being on by default.
+
+---
+@safe void safeFn()
+{
+    int* p;
+    int x = *p; // null dereference error thrown at runtime
+}
+
+void systemFn()
+{
+    int* p;
+    int x = *p; // no check injected, relies on OS protection
+}
+---
+
+Compile with `-check=nullderef=safeonly` to enable this behavior.

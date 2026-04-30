@@ -747,7 +747,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             mixin(checkOptionsMixin("check",
                 "`-check=<action>` requires an action"));
             /* Parse:
-             *    -check=[assert|bounds|in|invariant|out|switch|nullderef][=[on|off]]
+             *    -check=[assert|bounds|in|invariant|out|switch|nullderef][=[on|off|safeonly]]
              */
 
             // Check for legal option string; return true if so
@@ -767,6 +767,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
                     else if (checkarg == "=off")
                     {
                         ce = CHECKENABLE.off;
+                        return true;
+                    }
+                    else if (checkarg == "=safeonly")
+                    {
+                        ce = CHECKENABLE.safeonly;
                         return true;
                     }
                 }
