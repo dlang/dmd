@@ -30,7 +30,7 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
-version (Posix)
+version (all)
 {
     static import core.sys.posix.pthread;
     static import core.sys.posix.signal;
@@ -93,8 +93,6 @@ version (Posix)
         // Use POSIX threads for suspend/resume
     }
 }
-else
-    static assert(0, "unsupported operating system");
 
 version (GNU)
 {
@@ -104,15 +102,7 @@ version (GNU)
 version (CoreDdoc) {} else
 class Thread : ThreadBase
 {
-    version (Windows)
-    {
-        private HANDLE          m_hndl;
-    }
-
-    version (Posix)
-    {
-        package /*FIXME: private*/ shared bool     m_isRunning;
-    }
+    package /*FIXME: private*/ shared bool     m_isRunning;
 
     version (Darwin)
     {
@@ -124,16 +114,7 @@ class Thread : ThreadBase
         private __gshared bool m_isRTClass;
     }
 
-    version (Windows)
-    {
-        alias TLSKey = uint;
-    }
-    else version (Posix)
-    {
-        alias TLSKey = pthread_key_t;
-    }
-    else
-        static assert(0, "unsupported os");
+    alias TLSKey = pthread_key_t;
 
     this( void function() fn, size_t sz = 0 ) @safe pure nothrow @nogc
     {
@@ -155,13 +136,7 @@ class Thread : ThreadBase
         if (super.destructBeforeDtor())
             return;
 
-        version (Windows)
-        {
-            m_addr = m_addr.init;
-            CloseHandle( m_hndl );
-            m_hndl = m_hndl.init;
-        }
-        else version (Posix)
+        version (all)
         {
             if (m_addr != m_addr.init)
                 pthread_detach( m_addr );
@@ -171,8 +146,6 @@ class Thread : ThreadBase
                 m_tmach = m_tmach.init;
             }
         }
-        else
-            static assert(0, "unsupported OS");
     }
 
     package /*FIXME: private*/ final void run()
@@ -185,23 +158,7 @@ class Thread : ThreadBase
         return ThreadBase.getThis().toThread;
     }
 
-    version (Windows)
-    {
-        version (X86)
-        {
-            uint[8]         m_reg; // edi,esi,ebp,esp,ebx,edx,ecx,eax
-        }
-        else version (X86_64)
-        {
-            ulong[16]       m_reg; // rdi,rsi,rbp,rsp,rbx,rdx,rcx,rax
-                                   // r8,r9,r10,r11,r12,r13,r14,r15
-        }
-        else
-        {
-            static assert(false, "Architecture not supported." );
-        }
-    }
-    else version (Darwin)
+    version (Darwin)
     {
         version (X86)
         {
@@ -263,11 +220,7 @@ class Thread : ThreadBase
 
     override final void[] savedRegisters() nothrow @nogc
     {
-        version (Windows)
-        {
-            return m_reg;
-        }
-        else version (Darwin)
+        version (Darwin)
         {
             return m_reg;
         }
@@ -418,24 +371,7 @@ class Thread : ThreadBase
         return null;
     }
 
-    version (Windows)
-    {
-        @property static int PRIORITY_MIN() @nogc nothrow pure @safe
-        {
-            return THREAD_PRIORITY_IDLE;
-        }
-
-        @property static const(int) PRIORITY_MAX() @nogc nothrow pure @safe
-        {
-            return THREAD_PRIORITY_TIME_CRITICAL;
-        }
-
-        @property static int PRIORITY_DEFAULT() @nogc nothrow pure @safe
-        {
-            return THREAD_PRIORITY_NORMAL;
-        }
-    }
-    else version (Posix)
+    version (all)
     {
         private struct Priority
         {
@@ -557,9 +493,6 @@ class Thread : ThreadBase
                 &loadGlobal!"PRIORITY_DEFAULT")();
         }
     }
-    else
-        static assert(0, "unsupported OS");
-
 
     version (NetBSD)
     {
@@ -570,15 +503,11 @@ class Thread : ThreadBase
 
     final @property int priority()
     {
-        version (Windows)
-        {
-            return GetThreadPriority( m_hndl );
-        }
-        else version (NetBSD)
+        version (NetBSD)
         {
            return fakePriority==int.max? PRIORITY_DEFAULT : fakePriority;
         }
-        else version (Posix)
+        else
         {
             int         policy;
             sched_param param;
@@ -591,8 +520,6 @@ class Thread : ThreadBase
             }
             return param.sched_priority;
         }
-        else
-            static assert(0, "unsupported os");
     }
 
     final @property void priority( int val )
@@ -603,12 +530,7 @@ class Thread : ThreadBase
     }
     do
     {
-        version (Windows)
-        {
-            if ( !SetThreadPriority( m_hndl, val ) )
-                throw new ThreadException( "Unable to set thread priority" );
-        }
-        else version (Solaris)
+        version (Solaris)
         {
             // the pthread_setschedprio(3c) and pthread_setschedparam functions
             // are broken for the default (TS / time sharing) scheduling class.
@@ -638,7 +560,7 @@ class Thread : ThreadBase
         {
            fakePriority = val;
         }
-        else version (Posix)
+        else
         {
             static if (__traits(compiles, core.sys.posix.pthread.pthread_setschedprio))
             {
@@ -673,8 +595,6 @@ class Thread : ThreadBase
                 }
             }
         }
-        else
-            static assert(0, "unsupported os");
     }
 
 
@@ -710,18 +630,7 @@ class Thread : ThreadBase
         if (!super.isRunning())
             return false;
 
-        version (Windows)
-        {
-            uint ecode = 0;
-            GetExitCodeThread( m_hndl, &ecode );
-            return ecode == STILL_ACTIVE;
-        }
-        else version (Posix)
-        {
-            return atomicLoad(m_isRunning);
-        }
-        else
-            static assert(0, "unsupported os");
+        return atomicLoad(m_isRunning);
     }
 
     static void sleep( Duration val ) @nogc nothrow @trusted
@@ -731,30 +640,7 @@ class Thread : ThreadBase
     }
     do
     {
-        version (Windows)
-        {
-            auto maxSleepMillis = dur!("msecs")( uint.max - 1 );
-
-            // avoid a non-zero time to be round down to 0
-            if ( val > dur!"msecs"( 0 ) && val < dur!"msecs"( 1 ) )
-                val = dur!"msecs"( 1 );
-
-            // NOTE: In instances where all other threads in the process have a
-            //       lower priority than the current thread, the current thread
-            //       will not yield with a sleep time of zero.  However, unlike
-            //       yield(), the user is not asking for a yield to occur but
-            //       only for execution to suspend for the requested interval.
-            //       Therefore, expected performance may not be met if a yield
-            //       is forced upon the user.
-            while ( val > maxSleepMillis )
-            {
-                Sleep( cast(uint)
-                       maxSleepMillis.total!"msecs" );
-                val -= maxSleepMillis;
-            }
-            Sleep( cast(uint) val.total!"msecs" );
-        }
-        else version (Posix)
+        version (all)
         {
             timespec tin  = void;
             timespec tout = void;
@@ -771,17 +657,10 @@ class Thread : ThreadBase
                 tin = tout;
             }
         }
-        else
-            static assert(0, "unsupported os");
     }
 
     static void yield() @nogc nothrow
     {
-        version (Windows)
-            SwitchToThread();
-        else version (Posix)
-            sched_yield();
-        else
-            static assert(0, "unsupported os");
+        sched_yield();
     }
 }
