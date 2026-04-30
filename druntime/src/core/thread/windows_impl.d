@@ -212,29 +212,7 @@ class Thread : ThreadBase
 
     final @property int priority()
     {
-        version (Windows)
-        {
-            return GetThreadPriority( m_hndl );
-        }
-        else version (NetBSD)
-        {
-           return fakePriority==int.max? PRIORITY_DEFAULT : fakePriority;
-        }
-        else version (Posix)
-        {
-            int         policy;
-            sched_param param;
-
-            if (auto err = pthread_getschedparam(m_addr, &policy, &param))
-            {
-                // ignore error if thread is not running => Bugzilla 8960
-                if (!atomicLoad(m_isRunning)) return PRIORITY_DEFAULT;
-                throw new ThreadException("Unable to get thread priority");
-            }
-            return param.sched_priority;
-        }
-        else
-            static assert(0, "unsupported os");
+        return GetThreadPriority( m_hndl );
     }
 
     final @property void priority( int val )
@@ -245,78 +223,8 @@ class Thread : ThreadBase
     }
     do
     {
-        version (Windows)
-        {
-            if ( !SetThreadPriority( m_hndl, val ) )
-                throw new ThreadException( "Unable to set thread priority" );
-        }
-        else version (Solaris)
-        {
-            // the pthread_setschedprio(3c) and pthread_setschedparam functions
-            // are broken for the default (TS / time sharing) scheduling class.
-            // instead, we use priocntl(2) which gives us the desired behavior.
-
-            // We hardcode the min and max priorities to the current value
-            // so this is a no-op for RT threads.
-            if (m_isRTClass)
-                return;
-
-            pcparms_t   pcparm;
-
-            pcparm.pc_cid = PC_CLNULL;
-            if (priocntl(idtype_t.P_LWPID, P_MYID, PC_GETPARMS, &pcparm) == -1)
-                throw new ThreadException( "Unable to get scheduling class" );
-
-            pri_t* clparms = cast(pri_t*)&pcparm.pc_clparms;
-
-            // clparms is filled in by the PC_GETPARMS call, only necessary
-            // to adjust the element that contains the thread priority
-            clparms[1] = cast(pri_t) val;
-
-            if (priocntl(idtype_t.P_LWPID, P_MYID, PC_SETPARMS, &pcparm) == -1)
-                throw new ThreadException( "Unable to set scheduling class" );
-        }
-        else version (NetBSD)
-        {
-           fakePriority = val;
-        }
-        else version (Posix)
-        {
-            static if (__traits(compiles, core.sys.posix.pthread.pthread_setschedprio))
-            {
-                import core.sys.posix.pthread : pthread_setschedprio;
-
-                if (auto err = pthread_setschedprio(m_addr, val))
-                {
-                    // ignore error if thread is not running => Bugzilla 8960
-                    if (!atomicLoad(m_isRunning)) return;
-                    throw new ThreadException("Unable to set thread priority");
-                }
-            }
-            else
-            {
-                // NOTE: pthread_setschedprio is not implemented on Darwin, FreeBSD, OpenBSD,
-                //       or DragonFlyBSD, so use the more complicated get/set sequence below.
-                int         policy;
-                sched_param param;
-
-                if (auto err = pthread_getschedparam(m_addr, &policy, &param))
-                {
-                    // ignore error if thread is not running => Bugzilla 8960
-                    if (!atomicLoad(m_isRunning)) return;
-                    throw new ThreadException("Unable to set thread priority");
-                }
-                param.sched_priority = val;
-                if (auto err = pthread_setschedparam(m_addr, policy, &param))
-                {
-                    // ignore error if thread is not running => Bugzilla 8960
-                    if (!atomicLoad(m_isRunning)) return;
-                    throw new ThreadException("Unable to set thread priority");
-                }
-            }
-        }
-        else
-            static assert(0, "unsupported os");
+        if ( !SetThreadPriority( m_hndl, val ) )
+            throw new ThreadException( "Unable to set thread priority" );
     }
 
 
