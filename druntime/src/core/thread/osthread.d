@@ -30,7 +30,7 @@ version (Posix)
 else version (Windows)
     public import core.thread.windows_impl;
 else
-    static assert(0, "unsupported operating system");
+    static assert(false, "Unknown threading implementation.");
 
 version (OSX)
     version = Darwin;
