@@ -1803,7 +1803,7 @@ extern (C) void thread_term() @nogc nothrow
 
 version (Windows)
 {
-    private
+    package
     {
         //
         // Entry point for Windows threads
