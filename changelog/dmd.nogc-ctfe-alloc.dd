@@ -1,0 +1,18 @@
+GC allocations in `if (__ctfe)` blocks are now allowed in `@nogc` functions
+
+Code inside an `if (__ctfe)` block only runs at compile time (CTFE),
+where GC allocation is the only available mechanism.
+Previously, the compiler incorrectly rejected such allocations with a
+`@nogc` violation error:
+
+---
+@nogc int[] makeArray()
+{
+    if (__ctfe)
+        return new int[](10); // was incorrectly rejected
+    return null;
+}
+---
+
+This is now accepted. The GC allocation is only reachable during CTFE,
+so no runtime GC usage occurs.
