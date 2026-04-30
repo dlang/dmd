@@ -338,37 +338,15 @@ class Thread : ThreadBase
 
     override final Throwable join( bool rethrow = true )
     {
-        version (Windows)
-        {
-            if ( m_addr != m_addr.init && WaitForSingleObject( m_hndl, INFINITE ) != WAIT_OBJECT_0 )
-                throw new ThreadException( "Unable to join thread" );
-            // NOTE: m_addr must be cleared before m_hndl is closed to avoid
-            //       a race condition with isRunning. The operation is done
-            //       with atomicStore to prevent compiler reordering.
-            atomicStore!(MemoryOrder.raw)(*cast(shared)&m_addr, m_addr.init);
-            CloseHandle( m_hndl );
-            m_hndl = m_hndl.init;
-        }
-        else version (Posix)
-        {
-            if ( m_addr != m_addr.init && pthread_join( m_addr, null ) != 0 )
-                throw new ThreadException( "Unable to join thread" );
-            // NOTE: pthread_join acts as a substitute for pthread_detach,
-            //       which is normally called by the dtor.  Setting m_addr
-            //       to zero ensures that pthread_detach will not be called
-            //       on object destruction.
-            m_addr = m_addr.init;
-        }
-        else
-            static assert(0, "unsupported OS");
+        if ( m_addr != m_addr.init && pthread_join( m_addr, null ) != 0 )
+            throw new ThreadException( "Unable to join thread" );
+        // NOTE: pthread_join acts as a substitute for pthread_detach,
+        //       which is normally called by the dtor.  Setting m_addr
+        //       to zero ensures that pthread_detach will not be called
+        //       on object destruction.
+        m_addr = m_addr.init;
 
-        if ( m_unhandled )
-        {
-            if ( rethrow )
-                throw m_unhandled;
-            return m_unhandled;
-        }
-        return null;
+        return super.join(rethrow);
     }
 
     version (all)
