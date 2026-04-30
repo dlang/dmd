@@ -1436,8 +1436,12 @@ void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 buf.writestring(ddoc_decl_dd_s);
                 {
                     dc.writeSections(sc, &dc.a, *buf);
-                    if (ScopeDsymbol sds = dc.a[0].isScopeDsymbol())
-                        emitMemberComments(sds, *buf, sc);
+                    foreach (sym; dc.a)
+                        if (ScopeDsymbol sds = sym.isScopeDsymbol())
+                        {
+                            emitMemberComments(sds, *buf, sc);
+                            break;
+                        }
                 }
                 buf.writestring(ddoc_decl_dd_e);
                 buf.writeByte(')');
