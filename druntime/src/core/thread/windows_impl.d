@@ -41,8 +41,7 @@ version (all)
 
 version (GNU)
 {
-    //FIXME: remove or not?
-    //~ import gcc.builtins;
+    import gcc.builtins;
 }
 
 /**

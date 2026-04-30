@@ -430,7 +430,7 @@ class Thread : ThreadBase
     }
 }
 
-package /*FIXME: private*/ Thread toThread(return scope ThreadBase t) @trusted nothrow @nogc pure
+package Thread toThread(return scope ThreadBase t) @trusted nothrow @nogc pure
 {
     return cast(Thread) cast(void*) t;
 }
@@ -1919,7 +1919,7 @@ else version (Posix)
         }
     }
 
-    package /*FIXME: private*/
+    package
     {
         //
         // Entry point for POSIX threads
@@ -2561,7 +2561,7 @@ nothrow @nogc unittest
 }
 
 version (Posix)
-package /*FIXME: private*/ size_t adjustStackSize(size_t sz) nothrow @nogc
+package size_t adjustStackSize(size_t sz) nothrow @nogc
 {
     if (sz == 0)
         return 0;

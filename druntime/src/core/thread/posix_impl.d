@@ -102,7 +102,7 @@ version (GNU)
 version (CoreDdoc) {} else
 class Thread : ThreadBase
 {
-    package /*FIXME: private*/ shared bool     m_isRunning;
+    package shared bool     m_isRunning;
 
     version (Darwin)
     {
@@ -148,7 +148,7 @@ class Thread : ThreadBase
         }
     }
 
-    package /*FIXME: private*/ final void run()
+    package final void run()
     {
         super.run();
     }
