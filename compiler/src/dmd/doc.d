@@ -877,8 +877,11 @@ final class ParamSection : Section
         TypeFunction tf = a.length == 1 ? isTypeFunction(s) : null;
         if (tf)
         {
-            size_t pcount = (tf.parameterList.parameters ? tf.parameterList.parameters.length : 0) +
-                            cast(int)(tf.parameterList.varargs == VarArg.variadic);
+            size_t pcount = cast(int)(tf.parameterList.varargs == VarArg.variadic);
+            if (tf.parameterList.parameters)
+                foreach (param; *tf.parameterList.parameters)
+                    if (param.ident)
+                        pcount++;
             if (pcount != paramcount)
             {
                 sc.eSink.warning(s.loc, "Ddoc: parameter count mismatch, expected %llu, got %llu",
