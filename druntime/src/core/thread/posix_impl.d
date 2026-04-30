@@ -249,23 +249,7 @@ class Thread : ThreadBase
                 multiThreadedFlag = false;
         }
 
-        version (Windows)
-        {
-            // NOTE: If a thread is just executing DllMain()
-            //       while another thread is started here, it holds an OS internal
-            //       lock that serializes DllMain with CreateThread. As the code
-            //       might request a synchronization on slock (e.g. in thread_findByAddr()),
-            //       we cannot hold that lock while creating the thread without
-            //       creating a deadlock
-            //
-            // Solution: Create the thread in suspended state and then
-            //       add and resume it with slock acquired
-            assert(m_sz <= uint.max, "m_sz must be less than or equal to uint.max");
-            m_hndl = cast(HANDLE) _beginthreadex( null, cast(uint) m_sz, &thread_entryPoint, cast(void*) this, CREATE_SUSPENDED, &m_addr );
-            if ( cast(size_t) m_hndl == 0 )
-                onThreadError( "Error creating thread" );
-        }
-        else version (Posix)
+        version (all)
         {
             size_t stksz = adjustStackSize( m_sz );
 
@@ -276,20 +260,13 @@ class Thread : ThreadBase
             if ( stksz && pthread_attr_setstacksize( &attr, stksz ) )
                 onThreadError( "Error initializing thread stack size" );
         }
-        else
-            static assert(0, "unsupported OS");
 
         slock.lock_nothrow();
         scope(exit) slock.unlock_nothrow();
         {
             incrementAboutToStart(this);
 
-            version (Windows)
-            {
-                if ( ResumeThread( m_hndl ) == -1 )
-                    onThreadError( "Error resuming thread" );
-            }
-            else version (Posix)
+            version (all)
             {
                 // NOTE: This is also set to true by thread_entryPoint, but set it
                 //       here as well so the calling thread will see the isRunning
@@ -329,8 +306,6 @@ class Thread : ThreadBase
                         onThreadError( "Error creating thread" );
                 }
             }
-            else
-                static assert(0, "unsupported OS");
 
             return this;
         }
