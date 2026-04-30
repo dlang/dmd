@@ -1564,7 +1564,8 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         buf.put('(');
         visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters, buf, hgs);
         buf.put(')');
-        visitTemplateConstraint(d.constraint);
+        if (!hgs.skipConstraints)
+            visitTemplateConstraint(d.constraint);
         if (hgs.hdrgen || hgs.fullDump)
         {
             hgs.tpltMember++;

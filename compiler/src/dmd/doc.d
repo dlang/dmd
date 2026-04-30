@@ -1758,6 +1758,20 @@ void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
             buf.writestring(";\n");
         }
 
+        override void visit(TemplateDeclaration td)
+        {
+            HdrGenState hgs;
+            hgs.ddoc = true;
+            hgs.skipConstraints = true;
+            toCBuffer(td, *buf, hgs);
+            if (td.constraint)
+            {
+                buf.writestring("$(DDOC_CONSTRAINT ");
+                toCBuffer(td.constraint, *buf, hgs);
+                buf.writestring(")");
+            }
+        }
+
         override void visit(AliasDeclaration ad)
         {
             //printf("AliasDeclaration::toDocbuffer() %s\n", ad.toChars());
