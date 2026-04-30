@@ -106,7 +106,7 @@ class Thread : ThreadBase
 
     version (Darwin)
     {
-        private mach_port_t     m_tmach;
+        package mach_port_t     m_tmach;
     }
 
     version (Solaris)
