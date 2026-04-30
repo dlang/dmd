@@ -180,40 +180,19 @@ class Thread : ThreadBase
 
     override final Throwable join( bool rethrow = true )
     {
-        version (Windows)
-        {
-            if ( m_addr != m_addr.init && WaitForSingleObject( m_hndl, INFINITE ) != WAIT_OBJECT_0 )
-                throw new ThreadException( "Unable to join thread" );
-            // NOTE: m_addr must be cleared before m_hndl is closed to avoid
-            //       a race condition with isRunning. The operation is done
-            //       with atomicStore to prevent compiler reordering.
-            atomicStore!(MemoryOrder.raw)(*cast(shared)&m_addr, m_addr.init);
-            CloseHandle( m_hndl );
-            m_hndl = m_hndl.init;
-        }
-        else version (Posix)
-        {
-            if ( m_addr != m_addr.init && pthread_join( m_addr, null ) != 0 )
-                throw new ThreadException( "Unable to join thread" );
-            // NOTE: pthread_join acts as a substitute for pthread_detach,
-            //       which is normally called by the dtor.  Setting m_addr
-            //       to zero ensures that pthread_detach will not be called
-            //       on object destruction.
-            m_addr = m_addr.init;
-        }
-        else
-            static assert(0, "unsupported OS");
+        if ( m_addr != m_addr.init && WaitForSingleObject( m_hndl, INFINITE ) != WAIT_OBJECT_0 )
+            throw new ThreadException( "Unable to join thread" );
+        // NOTE: m_addr must be cleared before m_hndl is closed to avoid
+        //       a race condition with isRunning. The operation is done
+        //       with atomicStore to prevent compiler reordering.
+        atomicStore!(MemoryOrder.raw)(*cast(shared)&m_addr, m_addr.init);
+        CloseHandle( m_hndl );
+        m_hndl = m_hndl.init;
 
-        if ( m_unhandled )
-        {
-            if ( rethrow )
-                throw m_unhandled;
-            return m_unhandled;
-        }
-        return null;
+        return super.join(rethrow);
     }
 
-    version (Windows)
+    version (all)
     {
         @property static int PRIORITY_MIN() @nogc nothrow pure @safe
         {
@@ -229,138 +208,6 @@ class Thread : ThreadBase
         {
             return THREAD_PRIORITY_NORMAL;
         }
-    }
-    else version (Posix)
-    {
-        private struct Priority
-        {
-            int PRIORITY_MIN = int.min;
-            int PRIORITY_DEFAULT = int.min;
-            int PRIORITY_MAX = int.min;
-        }
-
-        /*
-        Lazily loads one of the members stored in a hidden global variable of
-        type `Priority`. Upon the first access of either member, the entire
-        `Priority` structure is initialized. Multiple initializations from
-        different threads calling this function are tolerated.
-
-        `which` must be one of `PRIORITY_MIN`, `PRIORITY_DEFAULT`,
-        `PRIORITY_MAX`.
-        */
-        private static shared Priority cache;
-        private static int loadGlobal(string which)()
-        {
-            auto local = atomicLoad(mixin("cache." ~ which));
-            if (local != local.min) return local;
-            // There will be benign races
-            auto loaded = loadPriorities;
-            static foreach (i, _; loaded.tupleof)
-                atomicStore(cache.tupleof[i], loaded.tupleof[i]);
-            return atomicLoad(mixin("cache." ~ which));
-        }
-
-        /*
-        Loads all priorities and returns them as a `Priority` structure. This
-        function is thread-neutral.
-        */
-        private static Priority loadPriorities() @nogc nothrow @trusted
-        {
-            Priority result;
-            version (Solaris)
-            {
-                pcparms_t pcParms;
-                pcinfo_t pcInfo;
-
-                pcParms.pc_cid = PC_CLNULL;
-                if (priocntl(idtype_t.P_PID, P_MYID, PC_GETPARMS, &pcParms) == -1)
-                    assert( 0, "Unable to get scheduling class" );
-
-                pcInfo.pc_cid = pcParms.pc_cid;
-                // PC_GETCLINFO ignores the first two args, use dummy values
-                if (priocntl(idtype_t.P_PID, 0, PC_GETCLINFO, &pcInfo) == -1)
-                    assert( 0, "Unable to get scheduling class info" );
-
-                pri_t* clparms = cast(pri_t*)&pcParms.pc_clparms;
-                pri_t* clinfo = cast(pri_t*)&pcInfo.pc_clinfo;
-
-                result.PRIORITY_MAX = clparms[0];
-
-                if (pcInfo.pc_clname == "RT")
-                {
-                    m_isRTClass = true;
-
-                    // For RT class, just assume it can't be changed
-                    result.PRIORITY_MIN = clparms[0];
-                    result.PRIORITY_DEFAULT = clparms[0];
-                }
-                else
-                {
-                    m_isRTClass = false;
-
-                    // For all other scheduling classes, there are
-                    // two key values -- uprilim and maxupri.
-                    // maxupri is the maximum possible priority defined
-                    // for the scheduling class, and valid priorities
-                    // range are in [-maxupri, maxupri].
-                    //
-                    // However, uprilim is an upper limit that the
-                    // current thread can set for the current scheduling
-                    // class, which can be less than maxupri.  As such,
-                    // use this value for priorityMax since this is
-                    // the effective maximum.
-
-                    // maxupri
-                    result.PRIORITY_MIN = -cast(int)(clinfo[0]);
-                    // by definition
-                    result.PRIORITY_DEFAULT = 0;
-                }
-            }
-            else
-            {
-                int         policy;
-                sched_param param;
-                pthread_getschedparam( pthread_self(), &policy, &param ) == 0
-                    || assert(0, "Internal error in pthread_getschedparam");
-
-                result.PRIORITY_MIN = sched_get_priority_min( policy );
-                result.PRIORITY_MIN != -1
-                    || assert(0, "Internal error in sched_get_priority_min");
-                result.PRIORITY_DEFAULT = param.sched_priority;
-                result.PRIORITY_MAX = sched_get_priority_max( policy );
-                result.PRIORITY_MAX != -1 ||
-                    assert(0, "Internal error in sched_get_priority_max");
-            }
-            return result;
-        }
-
-        @property static int PRIORITY_MIN() @nogc nothrow pure @trusted
-        {
-            return (cast(int function() @nogc nothrow pure @safe)
-                &loadGlobal!"PRIORITY_MIN")();
-        }
-
-        @property static const(int) PRIORITY_MAX() @nogc nothrow pure @trusted
-        {
-            return (cast(int function() @nogc nothrow pure @safe)
-                &loadGlobal!"PRIORITY_MAX")();
-        }
-
-        @property static int PRIORITY_DEFAULT() @nogc nothrow pure @trusted
-        {
-            return (cast(int function() @nogc nothrow pure @safe)
-                &loadGlobal!"PRIORITY_DEFAULT")();
-        }
-    }
-    else
-        static assert(0, "unsupported OS");
-
-
-    version (NetBSD)
-    {
-        //NetBSD does not support priority for default policy
-        // and it is not possible change policy without root access
-        int fakePriority = int.max;
     }
 
     final @property int priority()
