@@ -298,9 +298,11 @@ struct seg_data
   nothrow:
     @trusted
     int isCode() { return config.objfmt == OBJ_MACH ? mach_seg_data_isCode(this) : mscoff_seg_data_isCode(this); }
+    @trusted
+    int isCodeNew() { return config.objfmt == OBJ_MACH ? mach_seg_data_isCodeNew(this) : mscoff_seg_data_isCode(this); }
 }
 
-public import dmd.backend.machobj : mach_seg_data_isCode;
+public import dmd.backend.machobj : mach_seg_data_isCode, mach_seg_data_isCodeNew;
 public import dmd.backend.mscoffobj : mscoff_seg_data_isCode;
 
 struct linnum_data

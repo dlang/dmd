@@ -211,6 +211,27 @@ private void reset_symbols(OutBuffer* buf)
  * Returns !=0 if this segment is a code segment.
  */
 @trusted
+int mach_seg_data_isCodeNew(const ref seg_data sd)
+{
+    // The codegen assumes that code.data references are indirect,
+    // but when CDATA is treated as code reftoident will emit a direct
+    // relocation.
+    if (&sd == SegData[CDATA])
+        return false;
+
+    if (I64)
+    {
+        //printf("SDshtidx = %d, x%x\n", SDshtidx, SecHdrTab64[sd.SDshtidx].flags);
+        return SecHdrTab64[sd.SDshtidx].flags & (S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
+    }
+    else
+    {
+        //printf("SDshtidx = %d, x%x\n", SDshtidx, SecHdrTab[sd.SDshtidx].flags);
+        return SecHdrTab[sd.SDshtidx].flags & (S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
+    }
+}
+
+@trusted
 int mach_seg_data_isCode(const ref seg_data sd)
 {
     // The codegen assumes that code.data references are indirect,
@@ -222,12 +243,14 @@ int mach_seg_data_isCode(const ref seg_data sd)
     if (I64)
     {
         //printf("SDshtidx = %d, x%x\n", SDshtidx, SecHdrTab64[sd.SDshtidx].flags);
-        return strcmp(SecHdrTab64[sd.SDshtidx].segname.ptr, "__TEXT") == 0;
+        return cgstate.AArch64 ? SecHdrTab64[sd.SDshtidx].flags & (S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS)
+                               : strcmp(SecHdrTab64[sd.SDshtidx].segname.ptr, "__TEXT") == 0;
     }
     else
     {
         //printf("SDshtidx = %d, x%x\n", SDshtidx, SecHdrTab[sd.SDshtidx].flags);
-        return strcmp(SecHdrTab[sd.SDshtidx].segname.ptr, "__TEXT") == 0;
+        return cgstate.AArch64 ? SecHdrTab[sd.SDshtidx].flags & (S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS)
+                               : strcmp(SecHdrTab[sd.SDshtidx].segname.ptr, "__TEXT") == 0;
     }
 }
 
@@ -1196,7 +1219,7 @@ void MachObj_term(const(char)[] objfilename)
                         }
                     }
                 }
-                else if (r.rtype == RELaddr && pseg.isCode())
+                else if (r.rtype == RELaddr && pseg.isCodeNew())
                 {
                     assert(!machobj.AArch64);   // AArch64 BUG
                     srel.r_scattered = 1;
@@ -2728,7 +2751,7 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
         }
         else
         {
-            if (SegData[seg].isCode() && flags & CFselfrel)
+            if (SegData[seg].isCodeNew() && flags & CFselfrel)
             {
                 if (!machobj.jumpTableSeg)
                 {
@@ -2770,16 +2793,16 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
                 val -= offset + 4;
                 MachObj_addrel(seg, offset, null, machobj.jumpTableSeg, RELrel);
             }
-            else if (SegData[seg].isCode() &&
+            else if (SegData[seg].isCodeNew() &&
                      !(flags & CFindirect) &&
-                    ((s.Sclass != SC.extern_ && SegData[s.Sseg].isCode()) || s.Sclass == SC.locstat ||
+                    ((s.Sclass != SC.extern_ && SegData[s.Sseg].isCodeNew()) || s.Sclass == SC.locstat ||
                      s.Sclass == SC.static_))
             {
                 val += s.Soffset;
                 MachObj_addrel(seg, offset, null, s.Sseg, RELaddr);
             }
             else if ((flags & CFindirect) ||
-                     SegData[seg].isCode() && !tyfunc(s.ty()))
+                     SegData[seg].isCodeNew() && !tyfunc(s.ty()))
             {
                 if (!machobj.pointersSeg)
                 {
