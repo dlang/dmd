@@ -97,24 +97,9 @@ class Thread : ThreadBase
         if (super.destructBeforeDtor())
             return;
 
-        version (Windows)
-        {
-            m_addr = m_addr.init;
-            CloseHandle( m_hndl );
-            m_hndl = m_hndl.init;
-        }
-        else version (Posix)
-        {
-            if (m_addr != m_addr.init)
-                pthread_detach( m_addr );
-            m_addr = m_addr.init;
-            version (Darwin)
-            {
-                m_tmach = m_tmach.init;
-            }
-        }
-        else
-            static assert(0, "unsupported OS");
+        m_addr = m_addr.init;
+        CloseHandle( m_hndl );
+        m_hndl = m_hndl.init;
     }
 
     private final void run()
@@ -127,7 +112,7 @@ class Thread : ThreadBase
         return ThreadBase.getThis().toThread;
     }
 
-    version (Windows)
+    version (all)
     {
         version (X86)
         {
@@ -137,65 +122,6 @@ class Thread : ThreadBase
         {
             ulong[16]       m_reg; // rdi,rsi,rbp,rsp,rbx,rdx,rcx,rax
                                    // r8,r9,r10,r11,r12,r13,r14,r15
-        }
-        else
-        {
-            static assert(false, "Architecture not supported." );
-        }
-    }
-    else version (Darwin)
-    {
-        version (X86)
-        {
-            uint[8]         m_reg; // edi,esi,ebp,esp,ebx,edx,ecx,eax
-        }
-        else version (X86_64)
-        {
-            ulong[16]       m_reg; // rdi,rsi,rbp,rsp,rbx,rdx,rcx,rax
-                                   // r8,r9,r10,r11,r12,r13,r14,r15
-        }
-        else version (AArch64)
-        {
-            ulong[33]       m_reg; // x0-x31, pc
-        }
-        else version (ARM)
-        {
-            uint[16]        m_reg; // r0-r15
-        }
-        else version (PPC)
-        {
-            // Make the assumption that we only care about non-fp and non-vr regs.
-            // ??? : it seems plausible that a valid address can be copied into a VR.
-            uint[32]        m_reg; // r0-31
-        }
-        else version (PPC64)
-        {
-            // As above.
-            ulong[32]       m_reg; // r0-31
-        }
-        else
-        {
-            static assert(false, "Architecture not supported." );
-        }
-    }
-    else version (Solaris)
-    {
-        version (X86)
-        {
-            uint[8]         m_reg; // edi,esi,ebp,esp,ebx,edx,ecx,eax
-        }
-        else version (X86_64)
-        {
-            ulong[16]       m_reg; // rdi,rsi,rbp,rsp,rbx,rdx,rcx,rax
-                                   // r8,r9,r10,r11,r12,r13,r14,r15
-        }
-        else version (SPARC)
-        {
-            int[33]         m_reg; // g0-7, o0-7, l0-7, i0-7, pc
-        }
-        else version (SPARC64)
-        {
-            long[33]        m_reg; // g0-7, o0-7, l0-7, i0-7, pc
         }
         else
         {
@@ -205,22 +131,7 @@ class Thread : ThreadBase
 
     override final void[] savedRegisters() nothrow @nogc
     {
-        version (Windows)
-        {
-            return m_reg;
-        }
-        else version (Darwin)
-        {
-            return m_reg;
-        }
-        else version (Solaris)
-        {
-            return m_reg;
-        }
-        else
-        {
-            return null;
-        }
+        return m_reg;
     }
 
     final Thread start() nothrow
