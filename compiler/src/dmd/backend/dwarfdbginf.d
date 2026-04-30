@@ -677,7 +677,7 @@ static if (1)
         else
             buf.writen("zR".ptr, 3);
         // not present: EH Data: 4 bytes for I32, 8 bytes for I64
-        buf.writeByten(AArch64 ? 4 : 1);                // code alignment factor
+        buf.writeByten(1);                              // code alignment factor
         buf.writeByten(cast(ubyte)(0x80 - OFFSET_FAC)); // data alignment factor (I64 ? -8 : -4)
         buf.writeByten(AArch64 ? 30 : (I64 ? 16 : 8));  // return address register
         if (ehunwind)
