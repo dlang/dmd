@@ -750,7 +750,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .target(env["G"].buildPath("cxxfrontend").objName)
         // No explicit if since CXX_KIND will always be either g++ or clang++
         .command([ env["CXX"], "-xc++", "-std=c++11",
-                   "-c", frontendRule.sources[0], "-o" ~ frontendRule.target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"])
+                   "-c", frontendRule.sources[0], "-o" ~ frontendRule.target, "-I" ~ env["D"] ~ "/../../include/dmd" ] ~ flags["CXXFLAGS"])
     );
 
     alias cxxUnittestExe = methodInit!(BuildRule, (exeBuilder, exeRule) => exeBuilder

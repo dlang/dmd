@@ -283,7 +283,7 @@ bool checkAssocArrayLiteralEscape(ref Scope sc, AssocArrayLiteralExp ae, bool ga
 }
 
 /**
- * An error occured due to `v` either being or not being `scope`.
+ * An error occurred due to `v` either being or not being `scope`.
  * If applicable, print why the `v` was inferred that way.
  *
  * Params:
@@ -1398,7 +1398,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
  * Params:
  *      va = variable to infer scope for
  *      reason = optional Expression that causes `va` to infer scope, used for supplemental error message
- * Returns: `true` if succesful or already `scope`
+ * Returns: `true` if successful or already `scope`
  */
 private
 bool inferScope(VarDeclaration va, RootObject reason)

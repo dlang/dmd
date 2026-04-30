@@ -538,6 +538,9 @@ Optional!bool toBool(Expression _this)
         case EXP.arrayLiteral: return arrayLiteralToBool(_this.isArrayLiteralExp());
         case EXP.assocArrayLiteral: return assocArrayLiteralToBool(_this.isAssocArrayLiteralExp());
         case EXP.symbolOffset: return typeof(return)(true);
+        // non-null delegate/function literal
+        case EXP.delegate_:
+        case EXP.function_: return typeof(return)(true);
         case EXP.address: return addrToBool(_this.isAddrExp());
         case EXP.slice: return _this.isSliceExp().e1.toBool();
         case EXP.comma: return _this.isCommaExp().e2.toBool();
@@ -15776,7 +15779,7 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
                 }
 
                 if (!hasOverloads)
-                    e = StringExp.create(loc, mangleExact(f));
+                    e = StringExp.create(loc, mangleExact(f.toAliasFunc()));
             }
 
             if (!e)
@@ -18446,7 +18449,13 @@ private bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e
                     if (ad.fields[i] == var)
                         break;
                 }
-                assert(i < dim);
+                if (i == dim)
+                {
+                    // Field not found in ad.fields. This can happen if a prior
+                    // semantic error prevented the field from being added.
+                    // Treat as a non-initializing modification.
+                    return false;
+                }
                 auto fieldInit = &sc.ctorflow.fieldinit[i];
                 const fi = fieldInit.csx;
 

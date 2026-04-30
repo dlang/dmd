@@ -5142,7 +5142,10 @@ final class CParser(AST) : Parser!AST
                  */
                 defines.writeByte('#');
                 defines.writestring(n.ident.toString());
-                skipToNextLine(defines);
+
+                nothrow void sink(char c) { defines.writeByte(c); }
+
+                skipToNextLine(&sink);          // skip over characters in rest of line
                 defines.writeByte(0);           // each #define line is 0 terminated
                 return true;
             }

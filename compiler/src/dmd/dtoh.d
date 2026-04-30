@@ -668,7 +668,7 @@ public:
                     entries.push(entry.value);
             }
 
-            // Seperate function because of a spurious dual-context deprecation
+            // Separate function because of a spurious dual-context deprecation
             static int compare(const AST.Dsymbol* a, const AST.Dsymbol* b)
             {
                 return strcmp(a.ident.toChars(), b.ident.toChars());
@@ -2718,7 +2718,7 @@ public:
 
         foreach (i; 0 .. e.len)
         {
-            writeCharLiteral(*buf, e.getCodeUnit(i));
+            writeCharLiteral(e.getCodeUnit(i), &buf.put);
         }
         buf.writeByte('"');
     }

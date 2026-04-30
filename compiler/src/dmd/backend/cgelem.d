@@ -55,12 +55,15 @@ enum LONGMASK  = 0xFFFFFFFF;
 enum LLONGMASK = 0xFFFFFFFFFFFFFFFFL;
 enum ZEROLL    = 0L;
 
-private __gshared
+struct CgElem
 {
+    Symbol* hdiff;
+    tym_t global_tyf;
     bool again;
     bool topair;
-    tym_t global_tyf;
 }
+
+__gshared CgElem cgel;
 
 private bool cnst(const elem* e) { return e.Eoper == OPconst; }
 
@@ -976,7 +979,7 @@ L1:
     {
         e.E2 = el_selecte1(e2);
         e.Eoper = OPmin;
-        again = 1;
+        cgel.again = true;
         return e;
     }
     // Replace (-v + e) with (e + -v)
@@ -1022,7 +1025,7 @@ L1:
                 e.E1.Ety = e1.Ety;
             }
         }
-        again = 1;
+        cgel.again = true;
         return e;
     }
     // Replace (e + e) with (e * 2)
@@ -1032,7 +1035,7 @@ L1:
         e.Eoper = OPmul;
         el_free(e2);
         e.E2 = el_long(e1.Ety,2);
-        again = 1;
+        cgel.again = true;
         return e;
     }
 
@@ -1123,7 +1126,7 @@ private elem* elmul(elem* e, Goal goal)
                     e1.Eoper = OPmul;
                     e.E2 = el_bin(OPmul,tym,e1.E2,e2);
                     e1.E2 = el_copytree(e2);
-                    again = 1;
+                    cgel.again = true;
                     return e;
                 }
 
@@ -1132,7 +1135,7 @@ private elem* elmul(elem* e, Goal goal)
                 {
                     e2.Vullong *= cast(targ_ullong)1 << el_tolong(e1.E2);
                     e1.E2.Vullong = 0;
-                    again = 1;
+                    cgel.again = true;
                     return e;
                 }
             }
@@ -1154,7 +1157,7 @@ private elem* elmul(elem* e, Goal goal)
                 e2.Ety = TYint;
                 e.Eoper = (e.Eoper == OPmul)  /* convert to shift left */
                         ? OPshl : OPshlass;
-                again = 1;
+                cgel.again = true;
                 return e;
             }
             else if (el_allbits(e2,-1) && (e.Eoper == OPmul || useNegass))
@@ -1172,7 +1175,7 @@ Lneg:
             ? OPneg : OPnegass;
     el_free(e.E2);
     e.E2 = null;
-    again = 1;
+    cgel.again = true;
     return e;
 }
 
@@ -1311,8 +1314,7 @@ private elem* elmin(elem* e, Goal goal)
 
     if (I16 && tybasic(e2.Ety) == TYhptr && tybasic(e.E1.Ety) == TYhptr)
     {   // Convert to _aNahdiff(e1,e2)
-        __gshared Symbol* hdiff;
-        if (!hdiff)
+        if (!cgel.hdiff)
         {
             Symbol* s = symbol_calloc(LARGECODE ? "_aFahdiff" : "_aNahdiff");
             s.Stype = tsclib;
@@ -1320,11 +1322,11 @@ private elem* elmin(elem* e, Goal goal)
             s.Sfl = FL.func;
             s.Ssymnum = 0;
             s.Sregsaved = mBX|mCX|mSI|mDI|mBP|mES;
-            hdiff = s;
+            cgel.hdiff = s;
         }
         e.Eoper = OPcall;
         e.E2 = el_bin(OPparam,TYint,e2,e.E1);
-        e.E1 = el_var(hdiff);
+        e.E1 = el_var(cgel.hdiff);
         return e;
     }
 
@@ -2570,7 +2572,7 @@ L2:
         }
     }
 Lret:
-    again = changes != 0;
+    cgel.again = changes != 0;
     return e;
 }
 
@@ -3357,13 +3359,13 @@ private elem* elind(elem* e, Goal goal)
             e.Ety = tym;
             e.E2 = el_una(OPind,tym,e.E2);
             e.E2.ET = t;
-            again = 1;
+            cgel.again = true;
             return e;
 
         default:
             break;
     }
-    topair |= (config.fpxmmregs && tycomplex(tym));
+    cgel.topair |= (config.fpxmmregs && tycomplex(tym));
     return e;
 }
 
@@ -3578,7 +3580,7 @@ elem* elstruct(elem* e, Goal goal)
     tym_t tym = ~0;
     tym_t ty = tybasic(t.Tty);
 
-    uint sz = (e.Eoper == OPstrpar && type_zeroSize(t, global_tyf)) ? 0 : cast(uint)type_size(t);
+    uint sz = (e.Eoper == OPstrpar && type_zeroSize(t, cgel.global_tyf)) ? 0 : cast(uint)type_size(t);
     //printf("\tsz = %d\n", cast(int)sz);
 
     type* targ1 = null;
@@ -3742,7 +3744,7 @@ elem* elstruct(elem* e, Goal goal)
             {
                 e.Eoper = OPcomma;
                 e = optelem(e, Goal.value);
-                again = 1;
+                cgel.again = true;
             }
             else
                 goto Ldefault;
@@ -5057,7 +5059,7 @@ private elem* ellngsht(elem* e, Goal goal)
             }
             e1.Ety = ty;
             e = el_selecte1(e);
-            again = 1;
+            cgel.again = true;
             return e;
         }
         break;
@@ -5948,10 +5950,10 @@ beg:
                 elem* e1 = e.E1 = optelem(e.E1, leftgoal);
 
                 // Need argument to type_zeroSize()
-                const tyf_save = global_tyf;
-                global_tyf = tyf;
+                const tyf_save = cgel.global_tyf;
+                cgel.global_tyf = tyf;
                 elem* e2 = e.E2 = optelem(e.E2, rightgoal);
-                global_tyf = tyf_save;
+                cgel.global_tyf = tyf_save;
 
                 if (!e1)
                 {
@@ -6321,17 +6323,17 @@ elem* doptelem(elem* e, Goal goal)
 {
     //printf("doptelem(e = %p, goal = x%x)\n", e, goal);
     do
-    {   again = false;
-        topair = false;
+    {   cgel.again = false;
+        cgel.topair = false;
         e = optelem(e,goal & (Goal.flags | Goal.value | Goal.none));
-    } while (again && goal & Goal.again && e);
+    } while (cgel.again && goal & Goal.again && e);
 
     /* If entire expression is a struct, and we can replace it with     */
     /* something simpler, do so.                                        */
     if (goal & Goal.struct_ && e && (tybasic(e.Ety) == TYstruct || tybasic(e.Ety) == TYarray))
         e = elstruct(e, goal);
 
-    if (topair && e)
+    if (cgel.topair && e)
         e = elToPair(e);
 
     return e;

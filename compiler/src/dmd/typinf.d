@@ -19,7 +19,6 @@ import dmd.dclass;
 import dmd.dstruct;
 import dmd.errors;
 import dmd.expression;
-import dmd.globals;
 import dmd.location;
 import dmd.mtype;
 import dmd.templatesem;
@@ -47,6 +46,7 @@ bool genTypeInfo(Expression e, Loc loc, Type torig, Scope* sc)
     // https://issues.dlang.org/show_bug.cgi?id=18472
     if (!sc || !sc.ctfe)
     {
+        import dmd.globals;
         if (!global.params.useTypeInfo)
         {
             global.gag = 0;

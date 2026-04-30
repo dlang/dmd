@@ -9,7 +9,7 @@
  * ---
  * The first form is an attribute and only affects mangling, and is implemented
  * in `dmd.attrib`.
- * The second form introduces a named scope and allows symbols to be refered
+ * The second form introduces a named scope and allows symbols to be referred
  * to with or without the namespace name, much like a named template mixin,
  * and is implemented in this module.
  * ---

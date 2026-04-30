@@ -1,9 +1,9 @@
 /**
  * Implements the serialization of a lambda function.
  *
- * The serializationis computed by visiting the abstract syntax subtree of the given lambda function.
+ * The serialization is computed by visiting the abstract syntax subtree of the given lambda function.
  * The serialization is a string which contains the type of the parameters and the string
- * represantation of the lambda expression.
+ * representation of the lambda expression.
  *
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)

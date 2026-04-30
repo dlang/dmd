@@ -1231,6 +1231,9 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
      */
     static void verifyStructSize(ClassDeclaration typeclass, size_t expected)
     {
+        if (!typeclass.hasMonitor)
+            expected -= target.ptrsize;
+
         if (typeclass.structsize != expected)
         {
             debug

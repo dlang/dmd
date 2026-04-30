@@ -27,7 +27,7 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errorsink;
 import dmd.func;
-import dmd.globals;
+import dmd.globals : FeatureState, Param;
 import dmd.identifier;
 import dmd.location : Loc;
 import dmd.root.rmem;

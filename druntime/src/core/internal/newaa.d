@@ -196,7 +196,7 @@ template pure_hashOf(K)
     }
 }
 
-// for backward compatibilty pretend the comparison is @safe, pure, etc
+// for backward compatibility pretend the comparison is @safe, pure, etc
 // this also breaks cyclic inference on recursive data types
 template pure_keyEqual(K1, K2 = K1)
 {

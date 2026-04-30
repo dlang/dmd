@@ -1,7 +1,7 @@
 /**
  * CodeView 8 symbolic debug info generation
  *
- * This module generates the `.debug$S` and ``.debug$T` sections for Win64,
+ * This module generates the `.debug$S` and `.debug$T` sections for Win64,
  * which are the MS-Coff symbolic debug info and type debug info sections.
  *
  * Compiler implementation of the
@@ -71,7 +71,7 @@ private __gshared OutBuffer* F2_buf;
 // The "F3" section, which is global and a string table of source file names.
 private __gshared OutBuffer* F3_buf;
 
-// The "F4" section, which is global and a lists info about source files.
+// The "F4" section, which is global and a list of info about source files.
 private __gshared OutBuffer* F4_buf;
 
 /* Fixups that go into F1 section

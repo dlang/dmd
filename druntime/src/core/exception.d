@@ -676,7 +676,7 @@ extern (C) void onAssertErrorMsg( string file, size_t line, string msg ) nothrow
  *
  * Params:
  *  file = The name of the file that signaled this error.
- *  line = The line number on which this error occured.
+ *  line = The line number on which this error occurred.
  */
 extern(C) void onNullPointerError(string file = __FILE__, size_t line = __LINE__) nothrow
 {

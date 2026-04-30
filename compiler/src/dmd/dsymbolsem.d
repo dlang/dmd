@@ -2148,7 +2148,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         version (none)
         {
             printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n",
-                   dsym.toChars(), sc.parent ? sc.parent.toChars() : null, dsym.semanticRun);
+                   dsym.toChars(), sc !is null && sc.parent ? sc.parent.toChars() : null, dsym.semanticRun);
             printf(" type = %s\n", dsym.type ? dsym.type.toChars() : "null");
             printf(" stc = x%llx\n", dsym.storage_class);
             printf(" storage_class = x%llx\n", dsym.storage_class);

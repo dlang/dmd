@@ -1354,7 +1354,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      *
      * Attributes can be builtin (e.g. `@safe`, `@nogc`, etc...),
      * or be user-defined (UDAs). In the former case, we return the storage
-     * class via the return value, while in thelater case we return `0`
+        * class via the return value, while in the latter case we return `0`
      * and set `pudas`.
      *
      * Params:

@@ -1227,7 +1227,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
             /* Compute the function signature and insert it in the
              * hashtable, if not present. This is needed so that
-             * traits(getOverlods, F3, "visit") does not count `int visit(int)`
+             * traits(getOverloads, F3, "visit") does not count `int visit(int)`
              * twice in the following example:
              *
              * =============================================
@@ -1730,7 +1730,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!s)
         {
             error(e.loc, "in expression `%s` `%s` can't have members", e.toErrMsg(), o.toErrMsg());
-            errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", o.toChars());
+            errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, a union, a class, an interface or a template instantiation", o.toChars());
 
             return ErrorExp.get();
         }
@@ -1753,7 +1753,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!sds || sds.isTemplateDeclaration())
         {
             error(e.loc, "in expression `%s` %s `%s` has no members", e.toErrMsg(), s.kind(), s.toErrMsg());
-            errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", s.toChars());
+            errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, a union, a class, an interface or a template instantiation", s.toChars());
             return ErrorExp.get();
         }
         // https://issues.dlang.org/show_bug.cgi?id=13668
@@ -2176,7 +2176,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             // Semantic processing will convert `extern(C++, "a", "b", "c")`
             // into `extern(C++, "a") extern(C++, "b") extern(C++, "c")`,
-            // creating a linked list what `a`'s `cppnamespace` points to `b`,
+            // creating a linked list where `a`'s `cppnamespace` points to `b`,
             // and `b`'s points to `c`. Our entry point is `a`.
             for (; ns !is null; ns = ns.cppnamespace)
             {

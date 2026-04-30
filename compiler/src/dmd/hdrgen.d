@@ -925,7 +925,7 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
         buf.level++;
         while (t)
         {
-            buf.put(t.toString());
+            t.toString(&buf.put);
             if (t.next &&
                 t.value != TOK.min      &&
                 t.value != TOK.comma    && t.next.value != TOK.comma    &&
@@ -1026,7 +1026,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitImport(Import imp)
     {
-        if (hgs.hdrgen && imp.id == Id.object)
+        if (hgs.hdrgen && imp.id == Id.object && imp.packages.length == 0)
             return; // object is imported by default
         if (imp.isstatic)
             buf.put("static ");
@@ -2242,7 +2242,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             case Tdchar:
                 {
                     const o = buf.length;
-                    writeSingleCharLiteral(buf, cast(dchar) v);
+                    writeSingleCharLiteral(cast(dchar) v, &buf.put);
                     if (hgs.ddoc)
                         escapeDdocString(buf, o);
                     break;
@@ -2401,7 +2401,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         const o = buf.length;
         foreach (i; 0 .. e.len)
         {
-            writeCharLiteral(buf, e.getCodeUnit(i));
+            writeCharLiteral(e.getCodeUnit(i), &buf.put);
         }
         if (hgs.ddoc)
             escapeDdocString(buf, o);
@@ -2421,7 +2421,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             if (idx % 2 == 0)
             {
                 foreach(ch; str)
-                    writeCharLiteral(buf, ch);
+                    writeCharLiteral(ch, &buf.put);
             }
             else
             {
