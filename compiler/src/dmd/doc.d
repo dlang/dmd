@@ -1525,7 +1525,17 @@ void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
             if (td.visible().kind == Visibility.Kind.private_ || sc.visibility.kind == Visibility.Kind.private_)
                 return;
             if (!td.comment)
+            {
+                // When the outer template has no comment, check if an eponymous member
+                // has its own comment (e.g. a function template wrapper: template foo(T...) { void foo(R)(){} })
+                if (Dsymbol ss = getEponymousMember(td))
+                    ss.accept(this);
+                else if (td.onemember)
+                    if (auto innerTd = td.onemember.isTemplateDeclaration())
+                        if (innerTd.comment)
+                            innerTd.accept(this);
                 return;
+            }
             if (Dsymbol ss = getEponymousMember(td))
             {
                 ss.accept(this);
