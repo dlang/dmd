@@ -326,7 +326,7 @@ class Thread : ThreadBase
 
     version (all)
     {
-        private struct Priority
+        package struct Priority
         {
             int PRIORITY_MIN = int.min;
             int PRIORITY_DEFAULT = int.min;
@@ -548,34 +548,6 @@ class Thread : ThreadBase
                 }
             }
         }
-    }
-
-
-    //FIXME: move to osthread module:
-    unittest
-    {
-        auto thr = Thread.getThis();
-        immutable prio = thr.priority;
-        scope (exit) thr.priority = prio;
-
-        assert(prio == PRIORITY_DEFAULT);
-        assert(prio >= PRIORITY_MIN && prio <= PRIORITY_MAX);
-        thr.priority = PRIORITY_MIN;
-        assert(thr.priority == PRIORITY_MIN);
-        thr.priority = PRIORITY_MAX;
-        assert(thr.priority == PRIORITY_MAX);
-    }
-
-    unittest // Bugzilla 8960
-    {
-        import core.sync.semaphore;
-
-        auto thr = new Thread({});
-        thr.start();
-        Thread.sleep(1.msecs);       // wait a little so the thread likely has finished
-        thr.priority = PRIORITY_MAX; // setting priority doesn't cause error
-        auto prio = thr.priority;    // getting priority doesn't cause error
-        assert(prio >= PRIORITY_MIN && prio <= PRIORITY_MAX);
     }
 
     override final @property bool isRunning() nothrow @nogc
