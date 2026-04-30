@@ -15,45 +15,13 @@ module core.thread.windows_impl;
 import core.atomic;
 import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
-import core.memory : GC, pageSize;
-import core.thread.context;
+import core.thread.osthread;
 import core.thread.threadbase;
-import core.thread.types;
 import core.time;
 
-///////////////////////////////////////////////////////////////////////////////
-// Platform Detection and Memory Allocation
-///////////////////////////////////////////////////////////////////////////////
+version (Windows):
 
-version (OSX)
-    version = Darwin;
-else version (iOS)
-    version = Darwin;
-else version (TVOS)
-    version = Darwin;
-else version (WatchOS)
-    version = Darwin;
-
-version (D_InlineAsm_X86)
-{
-    version (Windows)
-        version = AsmX86_Windows;
-    else version (Posix)
-        version = AsmX86_Posix;
-}
-else version (D_InlineAsm_X86_64)
-{
-    version (Windows)
-    {
-        version = AsmX86_64_Windows;
-    }
-    else version (Posix)
-    {
-        version = AsmX86_64_Posix;
-    }
-}
-
-version (Windows)
+version (all)
 {
     import core.stdc.stdint : uintptr_t; // for _beginthreadex decl below
     import core.stdc.stdlib : free, malloc, realloc;
@@ -70,75 +38,11 @@ version (Windows)
     private extern (Windows) alias btex_fptr = uint function(void*);
     private extern (C) uintptr_t _beginthreadex(void*, uint, btex_fptr, void*, uint, uint*) nothrow @nogc;
 }
-else version (Posix)
-{
-    static import core.sys.posix.pthread;
-    static import core.sys.posix.signal;
-    import core.stdc.errno : EINTR, errno;
-    import core.sys.posix.pthread : pthread_atfork, pthread_attr_destroy, pthread_attr_getstack, pthread_attr_init,
-        pthread_attr_setstacksize, pthread_create, pthread_detach, pthread_getschedparam, pthread_join, pthread_self,
-        pthread_setschedparam, sched_get_priority_max, sched_get_priority_min, sched_param, sched_yield;
-    import core.sys.posix.semaphore : sem_init, sem_post, sem_t, sem_wait;
-    import core.sys.posix.signal : pthread_kill, sigaction, sigaction_t, sigdelset, sigfillset, sigset_t, sigsuspend,
-        SIGUSR1, stack_t;
-    import core.sys.posix.stdlib : free, malloc, realloc;
-    import core.sys.posix.sys.types : pthread_attr_t, pthread_key_t, pthread_t;
-    import core.sys.posix.time : nanosleep, timespec;
-
-    version (Darwin)
-    {
-        // Use macOS threads for suspend/resume
-        import core.sys.darwin.mach.kern_return : KERN_SUCCESS;
-        import core.sys.darwin.mach.port : mach_port_t;
-        import core.sys.darwin.mach.thread_act : mach_msg_type_number_t,
-            thread_get_state, thread_resume, thread_suspend;
-        import core.sys.darwin.pthread : pthread_mach_thread_np;
-        version (X86)
-        {
-            import core.sys.darwin.mach.thread_act :
-             x86_THREAD_STATE32, x86_THREAD_STATE32_COUNT, x86_thread_state32_t;
-        }
-        else version (X86_64)
-        {
-            import core.sys.darwin.mach.thread_act :
-             x86_THREAD_STATE64, x86_THREAD_STATE64_COUNT, x86_thread_state64_t;
-        }
-        else version (AArch64)
-        {
-            import core.sys.darwin.mach.thread_act :
-             ARM_THREAD_STATE64, ARM_THREAD_STATE64_COUNT, arm_thread_state64_t;
-        }
-        else version (PPC)
-        {
-            import core.sys.darwin.mach.thread_act :
-             PPC_THREAD_STATE, PPC_THREAD_STATE_COUNT, ppc_thread_state_t;
-        }
-        else version (PPC64)
-        {
-            import core.sys.darwin.mach.thread_act :
-             PPC_THREAD_STATE64, PPC_THREAD_STATE64_COUNT, ppc_thread_state64_t;
-        }
-    }
-    else version (Solaris)
-    {
-        // Use Solaris threads for suspend/resume
-        import core.sys.posix.sys.wait : idtype_t;
-        import core.sys.solaris.sys.priocntl : PC_CLNULL, PC_GETCLINFO, PC_GETPARMS, PC_SETPARMS, pcinfo_t, pcparms_t, priocntl;
-        import core.sys.solaris.sys.types : P_MYID, pri_t;
-        import core.sys.solaris.thread : thr_stksegment, thr_suspend, thr_continue;
-        import core.sys.solaris.sys.procfs : PR_STOPPED, lwpstatus_t;
-    }
-    else
-    {
-        // Use POSIX threads for suspend/resume
-    }
-}
-else
-    static assert(0, "unsupported operating system");
 
 version (GNU)
 {
-    import gcc.builtins;
+    //FIXME: remove or not?
+    //~ import gcc.builtins;
 }
 
 /**
