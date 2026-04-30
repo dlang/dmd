@@ -37,25 +37,6 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
-version (D_InlineAsm_X86)
-{
-    version (Windows)
-        version = AsmX86_Windows;
-    else version (Posix)
-        version = AsmX86_Posix;
-}
-else version (D_InlineAsm_X86_64)
-{
-    version (Windows)
-    {
-        version = AsmX86_64_Windows;
-    }
-    else version (Posix)
-    {
-        version = AsmX86_64_Posix;
-    }
-}
-
 version (Posix)
 {
     static import core.sys.posix.pthread;
