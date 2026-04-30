@@ -101,7 +101,7 @@ class Thread : ThreadBase
         m_hndl = m_hndl.init;
     }
 
-    private final void run()
+    package final void run()
     {
         super.run();
     }
