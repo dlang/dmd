@@ -488,7 +488,7 @@ package:
     string              m_name;
     size_t              m_sz;
     bool                m_isDaemon;
-    Throwable           m_unhandled; //TODO: private
+    Throwable           m_unhandled;
 
     ///////////////////////////////////////////////////////////////////////////
     // Storage of Active Thread
