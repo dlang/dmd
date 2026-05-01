@@ -1,3 +1,4 @@
+import core.atomic : atomicLoad;
 import core.stdc.stdio : fprintf, stderr;
 
 // Make sure basic stuff works with future Throwable.message
@@ -56,7 +57,7 @@ void test(Throwable t)
     }
     catch (Throwable e)
     {
-        fprintf(stderr, "%.*s ", cast(int)e.message.length, e.message.ptr);
+        fprintf(atomicLoad(stderr), "%.*s ", cast(int)e.message.length, e.message.ptr);
     }
 }
 
@@ -66,5 +67,5 @@ void main()
      test(new WithMessage("exception"));
      test(new WithMessageNoOverride("exception"));
      test(new WithMessageNoOverrideAndDifferentSignature("exception"));
-     fprintf(stderr, "\n");
+     fprintf(atomicLoad(stderr), "\n");
 }

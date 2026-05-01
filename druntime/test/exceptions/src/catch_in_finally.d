@@ -1,3 +1,4 @@
+import core.atomic : atomicLoad;
 import core.stdc.stdio : fprintf, stderr;
 
 class MyException : Exception
@@ -185,5 +186,5 @@ void main() {
     test3();
     test4();
     test5();
-    fprintf(stderr, "success.\n");
+    fprintf(atomicLoad(stderr), "success.\n");
 }

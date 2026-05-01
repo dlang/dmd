@@ -36,6 +36,23 @@ template Unqual(T : const U, U)
         alias Unqual = U;
 }
 
+template Unshared(T)
+{
+    static if (is(T == shared U, U))
+        alias Unshared = U;
+    else
+        alias Unshared = T;
+}
+
+unittest
+{
+    static assert(is(Unshared!int == int));
+    static assert(is(Unshared!(shared int) == int));
+    static assert(is(Unshared!(const int) == const int));
+    static assert(is(Unshared!(shared const int) == const int));
+    static assert(is(Unshared!(immutable int) == immutable int));
+}
+
 template BaseElemOf(T)
 {
     static if (is(OriginalType!T == E[N], E, size_t N))

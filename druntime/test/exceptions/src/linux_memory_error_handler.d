@@ -1,4 +1,5 @@
 import etc.linux.memoryerror;
+import core.atomic : atomicLoad;
 import core.stdc.stdio : fprintf, stderr;
 
 void main()
@@ -39,5 +40,5 @@ void main()
 
         assert(deregisterMemoryErrorHandler());
     }
-    fprintf(stderr, "success.\n");
+    fprintf(atomicLoad(stderr), "success.\n");
 }
