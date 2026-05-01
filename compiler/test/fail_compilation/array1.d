@@ -2,9 +2,10 @@
 REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/array1.d(19): Deprecation: array initializer has 3 elements, but array length is 4
-fail_compilation/array1.d(19):        use `, ...]` if intentional
-fail_compilation/array1.d(22): Error: can only use `...` in static array initializer
+fail_compilation/array1.d(20): Deprecation: array initializer has 3 elements, but array length is 4
+fail_compilation/array1.d(20):        use `, ...]` if intentional
+fail_compilation/array1.d(23): Error: can only use `...` in static array initializer
+fail_compilation/array1.d(24): Error: cannot use both indices and `...` in static array initializer
 ---
 */
 
@@ -19,4 +20,5 @@ static assert(b[3] == 0);
 immutable int[4] c = [1,2,3];
 immutable int[4] d = [1:1]; // OK
 
-int[] e = [1,...];
+immutable int[] e = [1,...];
+immutable int[4] f = [2:1,...];

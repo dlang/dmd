@@ -322,6 +322,11 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             else
             {
                 ulong edim = tsa.dim.toInteger();
+                if (i.defaultInitialize && hasIndices)
+                {
+                    error(i.loc, "cannot use both indices and `...` in static array initializer");
+                    return err();
+                }
                 if (i.dim < edim && !i.defaultInitialize && !i.isCarray && !hasIndices &&
                     sc.hasEdition(Edition.v2024))
                 {
