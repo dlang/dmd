@@ -225,7 +225,7 @@ struct Usage
                 $(UL
                     $(LI $(B on): specified check is enabled.)
                     $(LI $(B off): specified check is disabled.)
-                    $(LI $(B safeonly): check is enabled only in $(D @safe) functions (only for $(B nullderef)).)
+                    $(LI $(B safeonly): check is enabled only in $(D @safe) functions.)
                 )
                 If no setting for *action* is given, it will default to `on`,
                 except `nullderef` defaults to `off`.}"
