@@ -336,6 +336,11 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 }
             }
         }
+        else if (i.defaultInitialize)
+        {
+            error(i.loc, "can only use `...` in static array initializer");
+            return err();
+        }
         if (errors)
             return err();
 
