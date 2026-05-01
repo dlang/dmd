@@ -322,12 +322,12 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             else
             {
                 ulong edim = tsa.dim.toInteger();
-                if (i.dim < edim && !i.defaultInitialize && !i.isCarray &&
+                if (i.dim < edim && !i.defaultInitialize && !i.isCarray && !hasIndices &&
                     sc.hasEdition(Edition.v2024))
                 {
-                    error(i.loc, "missing element in array initializer - got %u elements, need %llu", i.dim, edim);
-                    errorSupplemental(i.loc, "use `, ...]` if intentional");
-                    return err();
+                    deprecation(i.loc, "array initializer has %u elements, but array length is %llu", i.dim, edim);
+                    deprecationSupplemental(i.loc, "use `, ...]` if intentional");
+                    //return err();
                 }
                 if (i.dim > edim)
                 {
