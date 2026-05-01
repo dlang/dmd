@@ -1,6 +1,7 @@
-`-check=nullderef` now supports the `safeonly` setting, which enables null
-dereference checks only in `@safe` functions. Behavior in `@system` code is
-unchanged.
+`-check=nullderef` now supports `=safeonly`
+
+The `-check=nullderef` flag now accepts `safeonly` as a setting, which enables
+the explicit null dereference check only in `@safe` functions.
 
 ---
 @safe void safeFn()
@@ -12,7 +13,7 @@ unchanged.
 void systemFn()
 {
     int* p;
-    int x = *p; // no check injected, relies on OS protection
+    int x = *p; // no explicit check; relies on OS signal/exception
 }
 ---
 
