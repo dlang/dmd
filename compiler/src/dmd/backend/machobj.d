@@ -905,18 +905,18 @@ void MachObj_term(const(char)[] objfilename)
                                   r.rtype == RELadd  ? "add"  :
                                                        "rel";
                 //printf("%d:x%04llx : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
-                bool isPersonality = strcmp(s.Sident.ptr, "__dmd_personality_v0") == 0 ||
-                                     strcmp(s.Sident.ptr, "___dmd_personality_v0") == 0; // temporary scaffolding
+//                bool isPersonality = strcmp(s.Sident.ptr, "__dmd_personality_v0") == 0 ||
+//                                     strcmp(s.Sident.ptr, "___dmd_personality_v0") == 0; // temporary scaffolding
                 //symbol_print(*s);
                 relocation_info rel;
                 scattered_relocation_info srel;
-                if (s)
+                if (machobj.AArch64)
                 {
-                    //printf("Relocation\n");
-                    //symbol_print(*s);
-                    if (r.flag == 1)  // emit SUBTRACTOR/UNSIGNED pair
+                    if (s)
                     {
-                        if (machobj.AArch64)
+                        //printf("Relocation\n");
+                        //symbol_print(*s);
+                        if (r.flag == 1)  // emit SUBTRACTOR/UNSIGNED pair
                         {
                             rel.r_type = ARM64_RELOC_SUBTRACTOR;
                             rel.r_address = cast(int)r.offset;
@@ -939,61 +939,7 @@ void MachObj_term(const(char)[] objfilename)
                             *p += r.funcsym.Soffset - r.offset;
                             continue;
                         }
-                        else if (I64)
-                        {
-                            rel.r_type = X86_64_RELOC_SUBTRACTOR;
-                            rel.r_address = cast(int)r.offset;
-                            rel.r_symbolnum = r.funcsym.Sxtrnnum;
-                            rel.r_pcrel = 0;
-                            rel.r_length = 3;
-                            rel.r_extern = 1;
-                            machobj.fobjbuf.write(&rel, rel.sizeof);
-                            foffset += (rel).sizeof;
-                            ++nreloc;
-
-                            rel.r_type = X86_64_RELOC_UNSIGNED;
-                            rel.r_symbolnum = s.Sxtrnnum;
-                            machobj.fobjbuf.write(&rel, rel.sizeof);
-                            foffset += rel.sizeof;
-                            ++nreloc;
-
-                            // patch with fdesym.Soffset - offset
-                            long* p = cast(long*)patchAddr64(seg, r.offset);
-                            *p += r.funcsym.Soffset - r.offset;
-                            continue;
-                        }
-                        else
-                        {
-                            // address = segment + offset
-                            int targ_address = cast(int)(SecHdrTab[SegData[s.Sseg].SDshtidx].addr + s.Soffset);
-                            int fixup_address = cast(int)(psechdr.addr + r.offset);
-
-                            srel.r_scattered = 1;
-                            srel.r_type = GENERIC_RELOC_LOCAL_SECTDIFF;
-                            srel.r_address = cast(uint)r.offset;
-                            srel.r_pcrel = 0;
-                            srel.r_length = 2;
-                            srel.r_value = targ_address;
-                            machobj.fobjbuf.write((&srel)[0 .. 1]);
-                            foffset += srel.sizeof;
-                            ++nreloc;
-
-                            srel.r_type = GENERIC_RELOC_PAIR;
-                            srel.r_address = 0;
-                            srel.r_value = fixup_address;
-                            machobj.fobjbuf.write(&srel, srel.sizeof);
-                            foffset += srel.sizeof;
-                            ++nreloc;
-
-                            int32_t* p = patchAddr(seg, r.offset);
-                            *p += targ_address - fixup_address;
-                            continue;
-                        }
-                    }
-                    else if (pseg.isCode())
-                    {
-                        //printf("isCode\n");
-                        if (machobj.AArch64)
+                        else if (pseg.isCode())
                         {
                             //printf("AArch64\n");
                             //symbol_print(*s);
@@ -1007,20 +953,6 @@ void MachObj_term(const(char)[] objfilename)
                                     {
                                         rel.r_type = ARM64_RELOC_BRANCHY26;
                                         rel.r_pcrel = 1;
-                                    }
-                                    else if (s.Sfl == FL.func && r.rtype == RELaddr &&
-                                             isPersonality) // temporary scaffolding
-                                    {
-                                        //printf("personality\n");
-                                        rel.r_type = ARM64_RELOC_POINTER_TO_GOT;
-                                        rel.r_pcrel = 0;
-                                    }
-                                    else if (s.Sfl == FL.extern_ && r.rtype == RELaddr)
-                                    {
-//printf("gcc_except\n");
-//                printf("%d:x%04llx : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
-                                        rel.r_type = ARM64_RELOC_POINTER_TO_GOT;
-                                        rel.r_pcrel = 0;
                                     }
                                     else if (s.Sfl == FL.unde)   // special case for __chkstk_darwin, need to research what PAGEOFF12 really means
                                     {
@@ -1046,8 +978,6 @@ void MachObj_term(const(char)[] objfilename)
                                     break;
 
                                 case SC.global:
-                                    if (s.Sfl == FL.func && r.rtype == RELrel)
-                                        goto case SC.extern_;
                                     //rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
                                     rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                     if (s.Sfl == FL.tlsdata || s.Sfl == FL.data && (s.ty() & mTYLINK) == mTYthread)
@@ -1080,42 +1010,42 @@ void MachObj_term(const(char)[] objfilename)
                                     symbol_print(*s);
                                     assert(0);
                             }
-
                             continue;
                         }
-                        else if (I64)
+                        else
                         {
-                            //printf("I64\n");
-                            //symbol_print(*s);
-                            rel.r_type = (r.rtype == RELrel)
-                                    ? X86_64_RELOC_BRANCH
-                                    : X86_64_RELOC_SIGNED;
-                            if (r.val == -1)
-                                rel.r_type = X86_64_RELOC_SIGNED_1;
-                            else if (r.val == -2)
-                                rel.r_type = X86_64_RELOC_SIGNED_2;
-                            if (r.val == -4)
-                                rel.r_type = X86_64_RELOC_SIGNED_4;
-
-                            if (s.Sclass == SC.extern_ ||
-                                s.Sclass == SC.comdef  ||
-                                s.Sclass == SC.comdat  ||
-                                s.Sclass == SC.static_ ||
-                                s.Sclass == SC.global)
+                            if (s.Sclass == SC.locstat && s.Sfl == FL.tlsdata)
                             {
-                                if ((s.ty() & mTYLINK) == mTYthread && r.rtype == RELaddr)
-                                    rel.r_type = X86_64_RELOC_TLV;
-                                else if (s.Sfl == FL.func && s.Sclass == SC.static_ && r.rtype == RELaddr)
-                                    rel.r_type = X86_64_RELOC_SIGNED;
-                                else if ((s.Sfl == FL.func || s.Sfl == FL.extern_ || s.Sclass == SC.global ||
-                                          s.Sclass == SC.comdat || s.Sclass == SC.comdef) && r.rtype == RELaddr)
-                                    rel.r_type = X86_64_RELOC_GOT;
-
                                 rel.r_address = cast(int)r.offset;
                                 rel.r_symbolnum = s.Sxtrnnum;
-                                rel.r_pcrel = 1;
+                                rel.r_pcrel = 0;
+                                rel.r_length = 3;
+                                rel.r_extern = 1;
+                                rel.r_type = ARM64_RELOC_UNSIGNED;
+                                machobj.fobjbuf.write(&rel, rel.sizeof);
+                                foffset += rel.sizeof;
+                                nreloc++;
+                                //int32_t* p = patchAddr64(seg, r.offset);
+                                // Absolute address; add in addr of start of targ seg
+                                //  *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
+                                //patch(pseg, r.offset, s.Sseg, s.Soffset);
+                            }
+                            else if (s.Sclass == SC.extern_ ||
+                                s.Sclass == SC.comdef ||
+                                s.Sclass == SC.comdat)
+                            {
+                                assert(!machobj.AArch64);
+                                rel.r_address = cast(int)r.offset;
+                                rel.r_symbolnum = s.Sxtrnnum;
+                                rel.r_pcrel = 0;
                                 rel.r_length = 2;
                                 rel.r_extern = 1;
+                                rel.r_type = GENERIC_RELOC_VANILLA;
+                                if (I64)
+                                {
+                                    rel.r_type = X86_64_RELOC_UNSIGNED;
+                                    rel.r_length = 3;
+                                }
                                 machobj.fobjbuf.write(&rel, rel.sizeof);
                                 foffset += rel.sizeof;
                                 nreloc++;
@@ -1123,179 +1053,117 @@ void MachObj_term(const(char)[] objfilename)
                             }
                             else
                             {
+                                assert(!machobj.AArch64);
                                 rel.r_address = cast(int)r.offset;
                                 rel.r_symbolnum = s.Sseg;
-                                rel.r_pcrel = 1;
+                                rel.r_pcrel = 0;
                                 rel.r_length = 2;
                                 rel.r_extern = 0;
+                                rel.r_type = GENERIC_RELOC_VANILLA;
+                                if (I64)
+                                {
+                                    rel.r_type = X86_64_RELOC_UNSIGNED;
+                                    rel.r_length = 3;
+                                    if (0 && s.Sseg != seg)
+                                        rel.r_type = X86_64_RELOC_BRANCH;
+                                }
                                 machobj.fobjbuf.write(&rel, rel.sizeof);
                                 foffset += rel.sizeof;
                                 nreloc++;
-
-                                int32_t* p = patchAddr64(seg, r.offset);
-                                // Absolute address; add in addr of start of targ seg
-//printf("*p = x%x, .addr = x%x, Soffset = x%x\n", *p, cast(int)SecHdrTab64[SegData[s.Sseg].SDshtidx].addr, cast(int)s.Soffset);
-//printf("pseg = x%x, r.offset = x%x\n", cast(int)SecHdrTab64[pseg.SDshtidx].addr, cast(int)r.offset);
-                                *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr;
-                                *p += s.Soffset;
-                                *p -= SecHdrTab64[pseg.SDshtidx].addr + r.offset + 4;
-                                //patch(pseg, r.offset, s.Sseg, s.Soffset);
+                                if (I64)
+                                {
+                                    rel.r_length = 3;
+                                    int32_t* p = patchAddr64(seg, r.offset);
+                                    // Absolute address; add in addr of start of targ seg
+                                    *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
+                                    //patch(pseg, r.offset, s.Sseg, s.Soffset);
+                                }
+                                else
+                                {
+                                    int32_t* p = patchAddr(seg, r.offset);
+                                    // Absolute address; add in addr of start of targ seg
+                                    *p += SecHdrTab[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
+                                    //patch(pseg, r.offset, s.Sseg, s.Soffset);
+                                }
                                 continue;
                             }
                         }
                     }
-                    else
+                    else if (r.rtype == RELaddr && pseg.isCode())
                     {
-                        if (machobj.AArch64 && s.Sclass == SC.locstat && s.Sfl == FL.tlsdata)
+                        assert(!machobj.AArch64);
+                        srel.r_scattered = 1;
+
+                        srel.r_address = cast(uint)r.offset;
+                        srel.r_length = 2;
+                        if (I64)
                         {
-                            rel.r_address = cast(int)r.offset;
-                            rel.r_symbolnum = s.Sxtrnnum;
-                            rel.r_pcrel = 0;
-                            rel.r_length = 3;
-                            rel.r_extern = 1;
-                            rel.r_type = ARM64_RELOC_UNSIGNED;
-                            machobj.fobjbuf.write(&rel, rel.sizeof);
-                            foffset += rel.sizeof;
-                            nreloc++;
-                            //int32_t* p = patchAddr64(seg, r.offset);
-                            // Absolute address; add in addr of start of targ seg
-                            //  *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
-                            //patch(pseg, r.offset, s.Sseg, s.Soffset);
-                        }
-                        else if (s.Sclass == SC.extern_ ||
-                            s.Sclass == SC.comdef ||
-                            s.Sclass == SC.comdat)
-                        {
-                            rel.r_address = cast(int)r.offset;
-                            rel.r_symbolnum = s.Sxtrnnum;
-                            rel.r_pcrel = 0;
-                            rel.r_length = 2;
-                            rel.r_extern = 1;
-                            rel.r_type = GENERIC_RELOC_VANILLA;
-                            if (I64)
-                            {
-                                rel.r_type = X86_64_RELOC_UNSIGNED;
-                                rel.r_length = 3;
-                            }
-                            machobj.fobjbuf.write(&rel, rel.sizeof);
-                            foffset += rel.sizeof;
-                            nreloc++;
-                            continue;
+                            int32_t* p64 = patchAddr64(seg, r.offset);
+                            srel.r_type = X86_64_RELOC_GOT;
+                            srel.r_value = cast(int)(SecHdrTab64[SegData[r.targseg].SDshtidx].addr + *p64);
+                            //printf("SECTDIFF: x%llx + x%llx = x%x\n", SecHdrTab[SegData[r.targseg].SDshtidx].addr, *p, srel.r_value);
                         }
                         else
                         {
-                            rel.r_address = cast(int)r.offset;
-                            rel.r_symbolnum = s.Sseg;
-                            rel.r_pcrel = 0;
-                            rel.r_length = 2;
-                            rel.r_extern = 0;
-                            rel.r_type = GENERIC_RELOC_VANILLA;
-                            if (I64)
-                            {
-                                rel.r_type = X86_64_RELOC_UNSIGNED;
-                                rel.r_length = 3;
-                                if (0 && s.Sseg != seg)
-                                    rel.r_type = X86_64_RELOC_BRANCH;
-                            }
-                            machobj.fobjbuf.write(&rel, rel.sizeof);
-                            foffset += rel.sizeof;
-                            nreloc++;
-                            if (I64)
-                            {
-                                rel.r_length = 3;
-                                int32_t* p = patchAddr64(seg, r.offset);
-                                // Absolute address; add in addr of start of targ seg
-                                *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
-                                //patch(pseg, r.offset, s.Sseg, s.Soffset);
-                            }
-                            else
-                            {
-                                int32_t* p = patchAddr(seg, r.offset);
-                                // Absolute address; add in addr of start of targ seg
-                                *p += SecHdrTab[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
-                                //patch(pseg, r.offset, s.Sseg, s.Soffset);
-                            }
-                            continue;
+                            int32_t* p = patchAddr(seg, r.offset);
+                            srel.r_type = GENERIC_RELOC_LOCAL_SECTDIFF;
+                            srel.r_value = SecHdrTab[SegData[r.targseg].SDshtidx].addr + *p;
+                            //printf("SECTDIFF: x%x + x%x = x%x\n", SecHdrTab[SegData[r.targseg].SDshtidx].addr, *p, srel.r_value);
                         }
-                    }
-                }
-                else if (r.rtype == RELaddr && pseg.isCode())
-                {
-                    assert(!machobj.AArch64);   // AArch64 BUG
-                    srel.r_scattered = 1;
+                        srel.r_pcrel = 0;
+                        machobj.fobjbuf.write(&srel, srel.sizeof);
+                        foffset += srel.sizeof;
+                        nreloc++;
 
-                    srel.r_address = cast(uint)r.offset;
-                    srel.r_length = 2;
-                    if (I64)
-                    {
-                        int32_t* p64 = patchAddr64(seg, r.offset);
-                        srel.r_type = X86_64_RELOC_GOT;
-                        srel.r_value = cast(int)(SecHdrTab64[SegData[r.targseg].SDshtidx].addr + *p64);
-                        //printf("SECTDIFF: x%llx + x%llx = x%x\n", SecHdrTab[SegData[r.targseg].SDshtidx].addr, *p, srel.r_value);
-                    }
-                    else
-                    {
-                        int32_t* p = patchAddr(seg, r.offset);
-                        srel.r_type = GENERIC_RELOC_LOCAL_SECTDIFF;
-                        srel.r_value = SecHdrTab[SegData[r.targseg].SDshtidx].addr + *p;
-                        //printf("SECTDIFF: x%x + x%x = x%x\n", SecHdrTab[SegData[r.targseg].SDshtidx].addr, *p, srel.r_value);
-                    }
-                    srel.r_pcrel = 0;
-                    machobj.fobjbuf.write(&srel, srel.sizeof);
-                    foffset += srel.sizeof;
-                    nreloc++;
-
-                    srel.r_address = 0;
-                    srel.r_length = 2;
-                    if (I64)
-                    {
-                        srel.r_type = X86_64_RELOC_SIGNED;
-                        srel.r_value = cast(int)(SecHdrTab64[pseg.SDshtidx].addr +
-                                r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
-                    }
-                    else
-                    {
-                        srel.r_type = GENERIC_RELOC_PAIR;
-                        if (r.funcsym)
-                            srel.r_value = cast(int)(SecHdrTab[pseg.SDshtidx].addr +
+                        srel.r_address = 0;
+                        srel.r_length = 2;
+                        if (I64)
+                        {
+                            srel.r_type = X86_64_RELOC_SIGNED;
+                            srel.r_value = cast(int)(SecHdrTab64[pseg.SDshtidx].addr +
                                     r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
+                        }
                         else
-                            srel.r_value = cast(int)(psechdr.addr + r.offset);
-                        //printf("srel.r_value = x%x, psechdr.addr = x%x, r.offset = x%x\n",
-                            //cast(int)srel.r_value, cast(int)psechdr.addr, cast(int)r.offset);
-                    }
-                    srel.r_pcrel = 0;
-                    machobj.fobjbuf.write(&srel, srel.sizeof);
-                    foffset += srel.sizeof;
-                    nreloc++;
+                        {
+                            srel.r_type = GENERIC_RELOC_PAIR;
+                            if (r.funcsym)
+                                srel.r_value = cast(int)(SecHdrTab[pseg.SDshtidx].addr +
+                                        r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
+                            else
+                                srel.r_value = cast(int)(psechdr.addr + r.offset);
+                            //printf("srel.r_value = x%x, psechdr.addr = x%x, r.offset = x%x\n",
+                                //cast(int)srel.r_value, cast(int)psechdr.addr, cast(int)r.offset);
+                        }
+                        srel.r_pcrel = 0;
+                        machobj.fobjbuf.write(&srel, srel.sizeof);
+                        foffset += srel.sizeof;
+                        nreloc++;
 
-                    // Recalc due to possible realloc of machobj.fobjbuf.buf
-                    if (I64)
-                    {
-                        int32_t* p64 = patchAddr64(seg, r.offset);
-                        //printf("address = x%x, p64 = %p* p64 = x%llx\n", r.offset, p64, *p64);
-                        *p64 += SecHdrTab64[SegData[r.targseg].SDshtidx].addr -
-                              (SecHdrTab64[pseg.SDshtidx].addr + r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
+                        // Recalc due to possible realloc of machobj.fobjbuf.buf
+                        if (I64)
+                        {
+                            int32_t* p64 = patchAddr64(seg, r.offset);
+                            //printf("address = x%x, p64 = %p* p64 = x%llx\n", r.offset, p64, *p64);
+                            *p64 += SecHdrTab64[SegData[r.targseg].SDshtidx].addr -
+                                  (SecHdrTab64[pseg.SDshtidx].addr + r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
+                        }
+                        else
+                        {
+                            int32_t* p = patchAddr(seg, r.offset);
+                            //printf("address = x%x, p = %p* p = x%x\n", r.offset, p, *p);
+                            if (r.funcsym)
+                                *p += SecHdrTab[SegData[r.targseg].SDshtidx].addr -
+                                      (SecHdrTab[pseg.SDshtidx].addr + r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
+                            else
+                                // targ_address - fixup_address
+                                *p += SecHdrTab[SegData[r.targseg].SDshtidx].addr -
+                                      (psechdr.addr + r.offset);
+                        }
+                        continue;
                     }
                     else
                     {
-                        int32_t* p = patchAddr(seg, r.offset);
-                        //printf("address = x%x, p = %p* p = x%x\n", r.offset, p, *p);
-                        if (r.funcsym)
-                            *p += SecHdrTab[SegData[r.targseg].SDshtidx].addr -
-                                  (SecHdrTab[pseg.SDshtidx].addr + r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
-                        else
-                            // targ_address - fixup_address
-                            *p += SecHdrTab[SegData[r.targseg].SDshtidx].addr -
-                                  (psechdr.addr + r.offset);
-                    }
-                    continue;
-                }
-                else
-                {
-                    //printf("r.rtype: %d r.targseg: %d r.offset: x%llx\n", r.rtype, r.targseg, cast(long)r.offset);
-                    if (machobj.AArch64)
-                    {
+                        //printf("r.rtype: %d r.targseg: %d r.offset: x%llx\n", r.rtype, r.targseg, cast(long)r.offset);
                         rel.r_address = cast(int)r.offset;
                         rel.r_symbolnum = r.targseg;
                         rel.r_pcrel = (r.rtype == RELaddr) ? 0 : 1;
@@ -1322,55 +1190,311 @@ void MachObj_term(const(char)[] objfilename)
                         //printf("%d:x%04x before = x%04llx, after = x%04llx pcrel = %d\n", seg, r.offset, before, *p64, rel.r_pcrel);
                         continue;
                     }
-                    rel.r_address = cast(int)r.offset;
-                    rel.r_symbolnum = r.targseg;
-                    rel.r_pcrel = (r.rtype == RELaddr) ? 0 : 1;
-                    rel.r_length = 2;
-                    rel.r_extern = 0;
-                    rel.r_type = GENERIC_RELOC_VANILLA;
-                    if (I64)
+                }
+                else // *************** X86_64 ***************** //
+                {
+                    if (s)
                     {
-                        rel.r_type = X86_64_RELOC_UNSIGNED;
-                        rel.r_length = 3;
-                        if (0 && r.targseg != seg)
-                            rel.r_type = X86_64_RELOC_BRANCH;
-                    }
-                    machobj.fobjbuf.write(&rel, rel.sizeof);
-                    foffset += rel.sizeof;
-                    nreloc++;
-                    if (I64)
-                    {
-                        int32_t* p64 = patchAddr64(seg, r.offset);
-                        //long before = *p64;
-                        if (rel.r_pcrel)
-                            // Relative address
-                            patch(pseg, r.offset, r.targseg, 0);
-                        else
-                        {   // Absolute address; add in addr of start of targ seg
-//printf("*p = x%x, targ.addr = x%x\n", *p64, cast(int)SecHdrTab64[SegData[r.targseg].SDshtidx].addr);
-//printf("pseg = x%x, r.offset = x%x\n", cast(int)SecHdrTab64[pseg.SDshtidx].addr, cast(int)r.offset);
-                            *p64 += SecHdrTab64[SegData[r.targseg].SDshtidx].addr;
-                            //*p64 -= SecHdrTab64[pseg.SDshtidx].addr;
+                        //printf("Relocation\n");
+                        //symbol_print(*s);
+                        if (r.flag == 1)  // emit SUBTRACTOR/UNSIGNED pair
+                        {
+                            if (I64)
+                            {
+                                rel.r_type = X86_64_RELOC_SUBTRACTOR;
+                                rel.r_address = cast(int)r.offset;
+                                rel.r_symbolnum = r.funcsym.Sxtrnnum;
+                                rel.r_pcrel = 0;
+                                rel.r_length = 3;
+                                rel.r_extern = 1;
+                                machobj.fobjbuf.write(&rel, rel.sizeof);
+                                foffset += (rel).sizeof;
+                                ++nreloc;
+
+                                rel.r_type = X86_64_RELOC_UNSIGNED;
+                                rel.r_symbolnum = s.Sxtrnnum;
+                                machobj.fobjbuf.write(&rel, rel.sizeof);
+                                foffset += rel.sizeof;
+                                ++nreloc;
+
+                                // patch with fdesym.Soffset - offset
+                                long* p = cast(long*)patchAddr64(seg, r.offset);
+                                *p += r.funcsym.Soffset - r.offset;
+                                continue;
+                            }
+                            else
+                            {
+                                // address = segment + offset
+                                int targ_address = cast(int)(SecHdrTab[SegData[s.Sseg].SDshtidx].addr + s.Soffset);
+                                int fixup_address = cast(int)(psechdr.addr + r.offset);
+
+                                srel.r_scattered = 1;
+                                srel.r_type = GENERIC_RELOC_LOCAL_SECTDIFF;
+                                srel.r_address = cast(uint)r.offset;
+                                srel.r_pcrel = 0;
+                                srel.r_length = 2;
+                                srel.r_value = targ_address;
+                                machobj.fobjbuf.write((&srel)[0 .. 1]);
+                                foffset += srel.sizeof;
+                                ++nreloc;
+
+                                srel.r_type = GENERIC_RELOC_PAIR;
+                                srel.r_address = 0;
+                                srel.r_value = fixup_address;
+                                machobj.fobjbuf.write(&srel, srel.sizeof);
+                                foffset += srel.sizeof;
+                                ++nreloc;
+
+                                int32_t* p = patchAddr(seg, r.offset);
+                                *p += targ_address - fixup_address;
+                                continue;
+                            }
                         }
-                        //printf("%d:x%04x before = x%04llx, after = x%04llx pcrel = %d\n", seg, r.offset, before, *p64, rel.r_pcrel);
+                        else if (pseg.isCode())
+                        {
+                            if (I64)
+                            {
+                                //printf("I64\n");
+                                //symbol_print(*s);
+                                rel.r_type = (r.rtype == RELrel)
+                                        ? X86_64_RELOC_BRANCH
+                                        : X86_64_RELOC_SIGNED;
+                                if (r.val == -1)
+                                    rel.r_type = X86_64_RELOC_SIGNED_1;
+                                else if (r.val == -2)
+                                    rel.r_type = X86_64_RELOC_SIGNED_2;
+                                if (r.val == -4)
+                                    rel.r_type = X86_64_RELOC_SIGNED_4;
+
+                                if (s.Sclass == SC.extern_ ||
+                                    s.Sclass == SC.comdef  ||
+                                    s.Sclass == SC.comdat  ||
+                                    s.Sclass == SC.static_ ||
+                                    s.Sclass == SC.global)
+                                {
+                                    if ((s.ty() & mTYLINK) == mTYthread && r.rtype == RELaddr)
+                                        rel.r_type = X86_64_RELOC_TLV;
+                                    else if (s.Sfl == FL.func && s.Sclass == SC.static_ && r.rtype == RELaddr)
+                                        rel.r_type = X86_64_RELOC_SIGNED;
+                                    else if ((s.Sfl == FL.func || s.Sfl == FL.extern_ || s.Sclass == SC.global ||
+                                              s.Sclass == SC.comdat || s.Sclass == SC.comdef) && r.rtype == RELaddr)
+                                        rel.r_type = X86_64_RELOC_GOT;
+
+                                    rel.r_address = cast(int)r.offset;
+                                    rel.r_symbolnum = s.Sxtrnnum;
+                                    rel.r_pcrel = 1;
+                                    rel.r_length = 2;
+                                    rel.r_extern = 1;
+                                    machobj.fobjbuf.write(&rel, rel.sizeof);
+                                    foffset += rel.sizeof;
+                                    nreloc++;
+                                    continue;
+                                }
+                                else
+                                {
+                                    rel.r_address = cast(int)r.offset;
+                                    rel.r_symbolnum = s.Sseg;
+                                    rel.r_pcrel = 1;
+                                    rel.r_length = 2;
+                                    rel.r_extern = 0;
+                                    machobj.fobjbuf.write(&rel, rel.sizeof);
+                                    foffset += rel.sizeof;
+                                    nreloc++;
+
+                                    int32_t* p = patchAddr64(seg, r.offset);
+                                    // Absolute address; add in addr of start of targ seg
+    //printf("*p = x%x, .addr = x%x, Soffset = x%x\n", *p, cast(int)SecHdrTab64[SegData[s.Sseg].SDshtidx].addr, cast(int)s.Soffset);
+    //printf("pseg = x%x, r.offset = x%x\n", cast(int)SecHdrTab64[pseg.SDshtidx].addr, cast(int)r.offset);
+                                    *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr;
+                                    *p += s.Soffset;
+                                    *p -= SecHdrTab64[pseg.SDshtidx].addr + r.offset + 4;
+                                    //patch(pseg, r.offset, s.Sseg, s.Soffset);
+                                    continue;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (s.Sclass == SC.extern_ ||
+                                s.Sclass == SC.comdef ||
+                                s.Sclass == SC.comdat)
+                            {
+                                rel.r_address = cast(int)r.offset;
+                                rel.r_symbolnum = s.Sxtrnnum;
+                                rel.r_pcrel = 0;
+                                rel.r_length = 2;
+                                rel.r_extern = 1;
+                                rel.r_type = GENERIC_RELOC_VANILLA;
+                                if (I64)
+                                {
+                                    rel.r_type = X86_64_RELOC_UNSIGNED;
+                                    rel.r_length = 3;
+                                }
+                                machobj.fobjbuf.write(&rel, rel.sizeof);
+                                foffset += rel.sizeof;
+                                nreloc++;
+                                continue;
+                            }
+                            else
+                            {
+                                rel.r_address = cast(int)r.offset;
+                                rel.r_symbolnum = s.Sseg;
+                                rel.r_pcrel = 0;
+                                rel.r_length = 2;
+                                rel.r_extern = 0;
+                                rel.r_type = GENERIC_RELOC_VANILLA;
+                                if (I64)
+                                {
+                                    rel.r_type = X86_64_RELOC_UNSIGNED;
+                                    rel.r_length = 3;
+                                    if (0 && s.Sseg != seg)
+                                        rel.r_type = X86_64_RELOC_BRANCH;
+                                }
+                                machobj.fobjbuf.write(&rel, rel.sizeof);
+                                foffset += rel.sizeof;
+                                nreloc++;
+                                if (I64)
+                                {
+                                    rel.r_length = 3;
+                                    int32_t* p = patchAddr64(seg, r.offset);
+                                    // Absolute address; add in addr of start of targ seg
+                                    *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
+                                    //patch(pseg, r.offset, s.Sseg, s.Soffset);
+                                }
+                                else
+                                {
+                                    int32_t* p = patchAddr(seg, r.offset);
+                                    // Absolute address; add in addr of start of targ seg
+                                    *p += SecHdrTab[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
+                                    //patch(pseg, r.offset, s.Sseg, s.Soffset);
+                                }
+                                continue;
+                            }
+                        }
+                    }
+                    else if (r.rtype == RELaddr && pseg.isCode())
+                    {
+                        srel.r_scattered = 1;
+
+                        srel.r_address = cast(uint)r.offset;
+                        srel.r_length = 2;
+                        if (I64)
+                        {
+                            int32_t* p64 = patchAddr64(seg, r.offset);
+                            srel.r_type = X86_64_RELOC_GOT;
+                            srel.r_value = cast(int)(SecHdrTab64[SegData[r.targseg].SDshtidx].addr + *p64);
+                            //printf("SECTDIFF: x%llx + x%llx = x%x\n", SecHdrTab[SegData[r.targseg].SDshtidx].addr, *p, srel.r_value);
+                        }
+                        else
+                        {
+                            int32_t* p = patchAddr(seg, r.offset);
+                            srel.r_type = GENERIC_RELOC_LOCAL_SECTDIFF;
+                            srel.r_value = SecHdrTab[SegData[r.targseg].SDshtidx].addr + *p;
+                            //printf("SECTDIFF: x%x + x%x = x%x\n", SecHdrTab[SegData[r.targseg].SDshtidx].addr, *p, srel.r_value);
+                        }
+                        srel.r_pcrel = 0;
+                        machobj.fobjbuf.write(&srel, srel.sizeof);
+                        foffset += srel.sizeof;
+                        nreloc++;
+
+                        srel.r_address = 0;
+                        srel.r_length = 2;
+                        if (I64)
+                        {
+                            srel.r_type = X86_64_RELOC_SIGNED;
+                            srel.r_value = cast(int)(SecHdrTab64[pseg.SDshtidx].addr +
+                                    r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
+                        }
+                        else
+                        {
+                            srel.r_type = GENERIC_RELOC_PAIR;
+                            if (r.funcsym)
+                                srel.r_value = cast(int)(SecHdrTab[pseg.SDshtidx].addr +
+                                        r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
+                            else
+                                srel.r_value = cast(int)(psechdr.addr + r.offset);
+                            //printf("srel.r_value = x%x, psechdr.addr = x%x, r.offset = x%x\n",
+                                //cast(int)srel.r_value, cast(int)psechdr.addr, cast(int)r.offset);
+                        }
+                        srel.r_pcrel = 0;
+                        machobj.fobjbuf.write(&srel, srel.sizeof);
+                        foffset += srel.sizeof;
+                        nreloc++;
+
+                        // Recalc due to possible realloc of machobj.fobjbuf.buf
+                        if (I64)
+                        {
+                            int32_t* p64 = patchAddr64(seg, r.offset);
+                            //printf("address = x%x, p64 = %p* p64 = x%llx\n", r.offset, p64, *p64);
+                            *p64 += SecHdrTab64[SegData[r.targseg].SDshtidx].addr -
+                                  (SecHdrTab64[pseg.SDshtidx].addr + r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
+                        }
+                        else
+                        {
+                            int32_t* p = patchAddr(seg, r.offset);
+                            //printf("address = x%x, p = %p* p = x%x\n", r.offset, p, *p);
+                            if (r.funcsym)
+                                *p += SecHdrTab[SegData[r.targseg].SDshtidx].addr -
+                                      (SecHdrTab[pseg.SDshtidx].addr + r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
+                            else
+                                // targ_address - fixup_address
+                                *p += SecHdrTab[SegData[r.targseg].SDshtidx].addr -
+                                      (psechdr.addr + r.offset);
+                        }
+                        continue;
                     }
                     else
                     {
-                        int32_t* p = patchAddr(seg, r.offset);
-                        //int32_t before = *p;
-                        if (rel.r_pcrel)
-                            // Relative address
-                            patch(pseg, r.offset, r.targseg, 0);
+                        //printf("r.rtype: %d r.targseg: %d r.offset: x%llx\n", r.rtype, r.targseg, cast(long)r.offset);
+                        rel.r_address = cast(int)r.offset;
+                        rel.r_symbolnum = r.targseg;
+                        rel.r_pcrel = (r.rtype == RELaddr) ? 0 : 1;
+                        rel.r_length = 2;
+                        rel.r_extern = 0;
+                        rel.r_type = GENERIC_RELOC_VANILLA;
+                        if (I64)
+                        {
+                            rel.r_type = X86_64_RELOC_UNSIGNED;
+                            rel.r_length = 3;
+                            if (0 && r.targseg != seg)
+                                rel.r_type = X86_64_RELOC_BRANCH;
+                        }
+                        machobj.fobjbuf.write(&rel, rel.sizeof);
+                        foffset += rel.sizeof;
+                        nreloc++;
+                        if (I64)
+                        {
+                            int32_t* p64 = patchAddr64(seg, r.offset);
+                            //long before = *p64;
+                            if (rel.r_pcrel)
+                                // Relative address
+                                patch(pseg, r.offset, r.targseg, 0);
+                            else
+                            {   // Absolute address; add in addr of start of targ seg
+    //printf("*p = x%x, targ.addr = x%x\n", *p64, cast(int)SecHdrTab64[SegData[r.targseg].SDshtidx].addr);
+    //printf("pseg = x%x, r.offset = x%x\n", cast(int)SecHdrTab64[pseg.SDshtidx].addr, cast(int)r.offset);
+                                *p64 += SecHdrTab64[SegData[r.targseg].SDshtidx].addr;
+                                //*p64 -= SecHdrTab64[pseg.SDshtidx].addr;
+                            }
+                            //printf("%d:x%04x before = x%04llx, after = x%04llx pcrel = %d\n", seg, r.offset, before, *p64, rel.r_pcrel);
+                        }
                         else
-                            // Absolute address; add in addr of start of targ seg
-                            *p += SecHdrTab[SegData[r.targseg].SDshtidx].addr;
-                        //printf("%d:x%04x before = x%04x, after = x%04x pcrel = %d\n", seg, r.offset, before, *p, rel.r_pcrel);
+                        {
+                            int32_t* p = patchAddr(seg, r.offset);
+                            //int32_t before = *p;
+                            if (rel.r_pcrel)
+                                // Relative address
+                                patch(pseg, r.offset, r.targseg, 0);
+                            else
+                                // Absolute address; add in addr of start of targ seg
+                                *p += SecHdrTab[SegData[r.targseg].SDshtidx].addr;
+                            //printf("%d:x%04x before = x%04x, after = x%04x pcrel = %d\n", seg, r.offset, before, *p, rel.r_pcrel);
+                        }
+                        continue;
                     }
-                    continue;
                 }
             }
         }
-
         if (nreloc)
         {
             if (I64)
