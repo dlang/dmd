@@ -222,6 +222,7 @@ int mach_seg_data_isCode(const ref seg_data sd)
     if (I64)
     {
         //printf("SDshtidx = %d, x%x\n", SDshtidx, SecHdrTab64[sd.SDshtidx].flags);
+        //return SecHdrTab64[sd.SDshtidx].flags & (S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
         return strcmp(SecHdrTab64[sd.SDshtidx].segname.ptr, "__TEXT") == 0;
     }
     else
@@ -242,9 +243,9 @@ import dmd.backend.code: SegData;
 
 enum
 {
-    RELaddr = 0,      // straight address
+    RELaddr = 0,      // 32 bit fixup
     RELrel  = 1,      // relative to location to be fixed up
-    RELadd  = 2,      // add in extra bits of relocation
+    RELadd  = 2,      // add in 12 extra bits of relocation
 }
 
 struct Relocation
@@ -900,8 +901,10 @@ void MachObj_term(const(char)[] objfilename)
             Relocation* rend = cast(Relocation*)(pseg.SDrel.buf + pseg.SDrel.length());
             for (; r != rend; r++)
             {   Symbol* s = r.targsym;
-                const(char)* rs = r.rtype == RELaddr ? "addr" : "rel";
-                //printf("%d:x%04llx : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
+                const(char)* rs = r.rtype == RELaddr ? "addr" :  // 32 bit address
+                                  r.rtype == RELadd  ? "add"  :
+                                                       "rel";
+                 //printf("%d:x%04llx : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
                 relocation_info rel;
                 scattered_relocation_info srel;
                 if (s)
