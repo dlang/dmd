@@ -68,6 +68,7 @@ enum :ULONG{
     SECBUFFER_STREAM_HEADER = 7,
     SECBUFFER_PADDING = 9,
     SECBUFFER_STREAM = 10,
+    SECBUFFER_ALERT = 17,
     SECBUFFER_READONLY = 0x80000000,
     SECBUFFER_ATTRMASK = 0xf0000000,
 }
@@ -208,8 +209,7 @@ alias INITIALIZE_SECURITY_CONTEXT_FN_A = SECURITY_STATUS function(PCredHandle,PC
 alias ACCEPT_SECURITY_CONTEXT_FN = SECURITY_STATUS function(PCredHandle,PCtxtHandle,PSecBufferDesc,ULONG,ULONG,PCtxtHandle,PSecBufferDesc,PULONG,PTimeStamp);
 alias COMPLETE_AUTH_TOKEN_FN = SECURITY_STATUS function(PCtxtHandle,PSecBufferDesc);
 alias DELETE_SECURITY_CONTEXT_FN = SECURITY_STATUS function(PCtxtHandle);
-alias APPLY_CONTROL_TOKEN_FN_W = SECURITY_STATUS function(PCtxtHandle,PSecBufferDesc);
-alias APPLY_CONTROL_TOKEN_FN_A = SECURITY_STATUS function(PCtxtHandle,PSecBufferDesc);
+alias APPLY_CONTROL_TOKEN_FN = SECURITY_STATUS function(PCtxtHandle,PSecBufferDesc);
 alias QUERY_CONTEXT_ATTRIBUTES_FN_A = SECURITY_STATUS function(PCtxtHandle,ULONG,PVOID);
 alias QUERY_CONTEXT_ATTRIBUTES_FN_W = SECURITY_STATUS function(PCtxtHandle,ULONG,PVOID);
 alias IMPERSONATE_SECURITY_CONTEXT_FN = SECURITY_STATUS function(PCtxtHandle);
@@ -237,7 +237,7 @@ struct SecurityFunctionTableW{
     ACCEPT_SECURITY_CONTEXT_FN AcceptSecurityContext;
     COMPLETE_AUTH_TOKEN_FN CompleteAuthToken;
     DELETE_SECURITY_CONTEXT_FN DeleteSecurityContext;
-    APPLY_CONTROL_TOKEN_FN_W ApplyControlTokenW;
+    APPLY_CONTROL_TOKEN_FN ApplyControlToken;
     QUERY_CONTEXT_ATTRIBUTES_FN_W QueryContextAttributesW;
     IMPERSONATE_SECURITY_CONTEXT_FN ImpersonateSecurityContext;
     REVERT_SECURITY_CONTEXT_FN RevertSecurityContext;
@@ -267,7 +267,7 @@ struct SecurityFunctionTableA{
     ACCEPT_SECURITY_CONTEXT_FN AcceptSecurityContext;
     COMPLETE_AUTH_TOKEN_FN CompleteAuthToken;
     DELETE_SECURITY_CONTEXT_FN DeleteSecurityContext;
-    APPLY_CONTROL_TOKEN_FN_A ApplyControlTokenA;
+    APPLY_CONTROL_TOKEN_FN ApplyControlToken;
     QUERY_CONTEXT_ATTRIBUTES_FN_A QueryContextAttributesA;
     IMPERSONATE_SECURITY_CONTEXT_FN ImpersonateSecurityContext;
     REVERT_SECURITY_CONTEXT_FN RevertSecurityContext;
@@ -309,8 +309,7 @@ SECURITY_STATUS DecryptMessage(PCtxtHandle,PSecBufferDesc,ULONG,PULONG);
 SECURITY_STATUS EncryptMessage(PCtxtHandle,ULONG,PSecBufferDesc,ULONG);
 SECURITY_STATUS DeleteSecurityContext(PCtxtHandle);
 SECURITY_STATUS CompleteAuthToken(PCtxtHandle,PSecBufferDesc);
-SECURITY_STATUS ApplyControlTokenA(PCtxtHandle,PSecBufferDesc);
-SECURITY_STATUS ApplyControlTokenW(PCtxtHandle,PSecBufferDesc);
+SECURITY_STATUS ApplyControlToken(PCtxtHandle,PSecBufferDesc);
 SECURITY_STATUS ImpersonateSecurityContext(PCtxtHandle);
 SECURITY_STATUS RevertSecurityContext(PCtxtHandle);
 SECURITY_STATUS MakeSignature(PCtxtHandle,ULONG,PSecBufferDesc,ULONG);
@@ -340,12 +339,10 @@ version (Unicode) {
     alias QueryContextAttributes = QueryContextAttributesW;
     alias QueryCredentialsAttributes = QueryCredentialsAttributesW;
     alias QuerySecurityPackageInfo = QuerySecurityPackageInfoW;
-    alias ApplyControlToken = ApplyControlTokenW;
     alias ENUMERATE_SECURITY_PACKAGES_FN = ENUMERATE_SECURITY_PACKAGES_FN_W;
     alias QUERY_CREDENTIALS_ATTRIBUTES_FN = QUERY_CREDENTIALS_ATTRIBUTES_FN_W;
     alias ACQUIRE_CREDENTIALS_HANDLE_FN = ACQUIRE_CREDENTIALS_HANDLE_FN_W;
     alias INITIALIZE_SECURITY_CONTEXT_FN = INITIALIZE_SECURITY_CONTEXT_FN_W;
-    alias APPLY_CONTROL_TOKEN_FN = APPLY_CONTROL_TOKEN_FN_W;
     alias QUERY_CONTEXT_ATTRIBUTES_FN = QUERY_CONTEXT_ATTRIBUTES_FN_W;
     alias QUERY_SECURITY_PACKAGE_INFO_FN = QUERY_SECURITY_PACKAGE_INFO_FN_W;
     alias INIT_SECURITY_INTERFACE = INIT_SECURITY_INTERFACE_W;
@@ -369,12 +366,10 @@ version (Unicode) {
     alias QueryContextAttributes = QueryContextAttributesA;
     alias QueryCredentialsAttributes = QueryCredentialsAttributesA;
     alias QuerySecurityPackageInfo = QuerySecurityPackageInfoA;
-    alias ApplyControlToken = ApplyControlTokenA;
     alias ENUMERATE_SECURITY_PACKAGES_FN = ENUMERATE_SECURITY_PACKAGES_FN_A;
     alias QUERY_CREDENTIALS_ATTRIBUTES_FN = QUERY_CREDENTIALS_ATTRIBUTES_FN_A;
     alias ACQUIRE_CREDENTIALS_HANDLE_FN = ACQUIRE_CREDENTIALS_HANDLE_FN_A;
     alias INITIALIZE_SECURITY_CONTEXT_FN = INITIALIZE_SECURITY_CONTEXT_FN_A;
-    alias APPLY_CONTROL_TOKEN_FN = APPLY_CONTROL_TOKEN_FN_A;
     alias QUERY_CONTEXT_ATTRIBUTES_FN = QUERY_CONTEXT_ATTRIBUTES_FN_A;
     alias QUERY_SECURITY_PACKAGE_INFO_FN = QUERY_SECURITY_PACKAGE_INFO_FN_A;
     alias INIT_SECURITY_INTERFACE = INIT_SECURITY_INTERFACE_A;

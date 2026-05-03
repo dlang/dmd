@@ -148,6 +148,7 @@ enum {
     CRYPT_DELETEKEYSET = 16,
     CRYPT_MACHINE_KEYSET = 32,
     CRYPT_SILENT = 64,
+    CRYPT_USER_KEYSET = 0x00001000,
 }
 
 enum {
@@ -178,6 +179,17 @@ enum {
 
 enum {
     PKCS5_PADDING = 1,
+}
+
+enum {
+    PKCS12_IMPORT_SILENT                    = 0x00000040,
+    PKCS12_INCLUDE_EXTENDED_PROPERTIES      = 0x0010,
+    PKCS12_NO_PERSIST_KEY                   = 0x00008000,
+    PKCS12_ALWAYS_CNG_KSP                   = 0x00000200,
+    PKCS12_ONLY_NOT_ENCRYPTED_CERTIFICATES  = 0x00000800,
+    PKCS12_ONLY_CERTIFICATES                = 0x00000400,
+    PKCS12_PREFER_CNG_KSP                   = 0x00000100,
+    PKCS12_VIRTUAL_ISOLATION_KEY            = 0x00010000,
 }
 
 enum {
@@ -376,6 +388,17 @@ enum {
     CERT_NAME_STR_NO_QUOTING_FLAG = 268435456,
     CERT_NAME_STR_REVERSE_FLAG = 33554432,
     CERT_NAME_STR_ENABLE_T61_UNICODE_FLAG = 131072,
+}
+
+enum {
+    CERT_NAME_EMAIL_TYPE            = 1,
+    CERT_NAME_RDN_TYPE              = 2,
+    CERT_NAME_ATTR_TYPE             = 3,
+    CERT_NAME_SIMPLE_DISPLAY_TYPE   = 4,
+    CERT_NAME_FRIENDLY_DISPLAY_TYPE = 5,
+    CERT_NAME_DNS_TYPE              = 6,
+    CERT_NAME_URL_TYPE              = 7,
+    CERT_NAME_UPN_TYPE              = 8,
 }
 
 enum {
@@ -832,6 +855,11 @@ const(void)*, PCCERT_CONTEXT);
       PCCERT_CONTEXT, PCCERT_CONTEXT, DWORD*);
     PCCERT_CHAIN_CONTEXT CertFindChainInStore(HCERTSTORE, DWORD, DWORD, DWORD,
 const(void)*, PCCERT_CHAIN_CONTEXT);
+    HCERTSTORE     PFXImportCertStore(CRYPT_DATA_BLOB*, LPCWSTR, DWORD);
+    DWORD          CertGetNameStringA(PCCERT_CONTEXT, DWORD, DWORD, void*, LPSTR, DWORD);
+    DWORD          CertGetNameStringW(PCCERT_CONTEXT, DWORD, DWORD, void*, LPWSTR, DWORD);
+    PCCERT_CONTEXT CertCreateCertificateContext(DWORD, const(BYTE)*, DWORD);
+    BOOL           CertAddCertificateContextToStore(HCERTSTORE, PCCERT_CONTEXT, DWORD, PCCERT_CONTEXT*);
 
     BOOL CryptAcquireContextA(HCRYPTPROV*, LPCSTR, LPCSTR, DWORD, DWORD);
     BOOL CryptAcquireContextW(HCRYPTPROV*, LPCWSTR, LPCWSTR, DWORD, DWORD);
@@ -875,6 +903,7 @@ const(void)*, PCCERT_CHAIN_CONTEXT);
 
 version (Unicode) {
     alias CertNameToStr = CertNameToStrW;
+    alias CertGetNameString = CertGetNameStringW;
     alias CryptAcquireContext = CryptAcquireContextW;
     alias CryptSignHash = CryptSignHashW;
     alias CryptVerifySignature = CryptVerifySignatureW;
@@ -884,6 +913,7 @@ version (Unicode) {
     alias CERT_FIND_ISSUER_STR_W CERT_FIND_ISSUER_STR;+/
 } else {
     alias CertNameToStr = CertNameToStrA;
+    alias CertGetNameString = CertGetNameStringA;
     alias CryptAcquireContext = CryptAcquireContextA;
     alias CryptSignHash = CryptSignHashA;
     alias CryptVerifySignature = CryptVerifySignatureA;
