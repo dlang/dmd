@@ -17,8 +17,8 @@ static assert(a[3] == 0);
 immutable int[4] b = [1,2,3,...];
 static assert(b[3] == 0);
 
-immutable int[4] c = [1,2,3];
-immutable int[4] d = [1:1]; // OK
+int[4] c = [1,2,3];
+int[4] d = [1:1]; // OK
 
-immutable int[] e = [1,...];
-immutable int[4] f = [2:1,...];
+int[] e = [1,...];
+int[4] f = [2:1,...];
