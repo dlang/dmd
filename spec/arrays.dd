@@ -1152,9 +1152,8 @@ $(GNAME ArrayElementInitializer):
     $(GLINK2 expression, AssignExpression) $(D :) $(GLINK2 declaration, NonVoidInitializer)
 )
 
-        $(P An *ArrayInitializer* is a list of array
-        element values enclosed in `[ ]`. The values can be optionally
-        preceded by an index and a `:`.
+        $(P An *ArrayInitializer* is a list of element initializers enclosed in `[ ]`.
+        Each element initializer can be optionally preceded by an index expression and a `:`.
         If an index is not supplied, it is set to the previous index
         plus 1, or 0 if it is the first value.
         Any missing elements will be initialized to the default value
@@ -1164,8 +1163,11 @@ $(GNAME ArrayElementInitializer):
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 int[3] a = [ 1:2, 3 ]; // a[0] = 0, a[1] = 2, a[2] = 3
+int[3] b = [0, 2, 3];
+assert(a == b);
 
-assert(a == [0, 2, 3]);
+int[3][] s = [[1, 2, 3], [2:7]]; // nested array initializers
+assert(s == [[1, 2, 3], [0, 0, 7]]);
 ---------
 )
 
@@ -1205,18 +1207,25 @@ assert(value == [5, 6, 2]);
 
 $(H3 $(LNAME2 static-init-static, Static Initialization of Statically Allocated Arrays))
 
-        $(P All elements of a static array can be initialized to a specific value with:)
+        $(P All elements of a static array can be initialized to a specific value
+        which implicitly converts to the array element type:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 int[4] a = 42; // set all elements of a to 42
+int[4][] s = [42, 0]; // set all elements of each static array
 
-assert(a == [42, 42, 42, 42]);
+void main()
+{
+    assert(a == [42, 42, 42, 42]);
+    assert(s == [a, int[4].init]);
+}
 ---------
 )
 
         $(P These arrays are statically allocated when they appear in global scope.
-        Otherwise, they need to be marked with $(D const) or $(D static)
+        Otherwise, they need to be marked with the
+        $(DDSUBLINK spec/attribute, static, `static`) or $(D __gshared)
         storage classes to make them statically allocated arrays.)
 
 $(H4 $(LNAME2 static-string, String Literal Initializers))
