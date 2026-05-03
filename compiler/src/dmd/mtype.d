@@ -1452,7 +1452,7 @@ extern (C++) final class TypeFunction : TypeNext
         return linkage == LINK.d && parameterList.varargs == VarArg.variadic;
     }
 
-    /// Returns: `true` the function is `isInOutQual` or `isInOutParam` ,`false` otherwise.
+    /// Returns: `true` if the function is `isInOutQual` or `isInOutParam`, `false` otherwise.
     bool iswild() const pure nothrow @safe @nogc
     {
         return isInOutParam || isInOutQual;

@@ -1446,7 +1446,7 @@ extern (C++) final class StructLiteralExp : Expression
     {
         void* sym;            /// back end symbol to initialize with literal (used as a Symbol*)
 
-        /// those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
+        /// those fields need to prevent an infinite recursion when one field of struct initialized with 'this' pointer.
         StructLiteralExp inlinecopy;
     }
 
@@ -2393,7 +2393,7 @@ extern (C++) final class CallExp : UnaExp
     }
 
     /***********************************************************
-    * Instatiates a new function call expression
+    * Instantiates a new function call expression
     * Params:
     *       loc   = location
     *       fd    = the declaration of the function to call

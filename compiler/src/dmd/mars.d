@@ -304,7 +304,7 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
  * Params:
  *   args = Command line arguments
  *   arch = Default value to use for architecture.
- *          Should be "32" or "64"
+ *          Should be "32", "64", or "arm64"
  *
  * Returns:
  *   "32", or "64" if the "-m32", "-m64" flags were passed,
@@ -997,7 +997,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             driverParams.stackstomp = true;
         else if (arg == "-lowmem") // https://dlang.org/dmd.html#switch-lowmem
         {
-            // ignore, already handled in C main
+            // ignore, already handled in early argument parsing
         }
         else if (arg.length > 6 && arg[0..6] == "--DRT-")
         {
