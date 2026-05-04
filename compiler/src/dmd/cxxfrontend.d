@@ -26,7 +26,7 @@ import dmd.dtemplate /*: TemplateInstance, TemplateParameter, Tuple*/;
 import dmd.errorsink : ErrorSink;
 import dmd.expression /*: Expression*/;
 import dmd.func : FuncDeclaration;
-import dmd.globals : dinteger_t, uinteger_t, JsonFieldFlags;
+import dmd.globals : dinteger_t, uinteger_t, JsonFieldFlags, CppStdRevision;
 import dmd.identifier : Identifier;
 import dmd.init : Initializer, NeedInterpret;
 import dmd.location : Loc;
@@ -373,10 +373,10 @@ void printInstantiationTrace(TemplateInstance ti)
 /***********************************************************
  * dtoh.d
  */
-void genCppHdrFiles(ref Modules ms, ErrorSink eSink)
+void genCppHdrFiles(ref Modules ms, ErrorSink eSink, CppStdRevision cppStdRevision)
 {
     import dmd.dtoh;
-    return dmd.dtoh.genCppHdrFiles(ms, eSink);
+    return dmd.dtoh.genCppHdrFiles(ms, eSink, cppStdRevision);
 }
 
 /***********************************************************

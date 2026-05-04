@@ -49,15 +49,15 @@ import dmd.utils;
  * Params:
  *   ms = the modules
  *   eSink = where to report errors
+ *   cppStdRevision = make bindings conform to this C++ standard
  *
  * Notes:
  *  - the header is written to `<global.params.cxxhdrdir>/<global.params.cxxhdrfile>`
  *    or `stdout` if no explicit file was specified
- *  - bindings conform to the C++ standard defined in `global.params.cplusplus`
  *  - ignored declarations are mentioned in a comment if `global.params.doCxxHdrGeneration`
  *    is set to `CxxHeaderMode.verbose`
  */
-void genCppHdrFiles(ref Modules ms, ErrorSink eSink)
+void genCppHdrFiles(ref Modules ms, ErrorSink eSink, CppStdRevision cppStdRevision)
 {
     initialize();
 
@@ -71,7 +71,7 @@ void genCppHdrFiles(ref Modules ms, ErrorSink eSink)
     decl.doindent = true;
     decl.spaces = true;
 
-    scope v = new ToCppBuffer(&fwd, &done, &decl, eSink);
+    scope v = new ToCppBuffer(&fwd, &done, &decl, eSink, cppStdRevision);
 
     // Conditionally include another buffer for sanity checks
     debug (Debug_DtoH_Checks)
@@ -283,6 +283,9 @@ public:
     /// The generated header should contain comments for skipped declarations?
     const bool printIgnored;
 
+    /// Version of C++ standard to support
+    CppStdRevision cppStdRevision;
+
     /// State specific to the current context which depends
     /// on the currently visited node and it's parents
     static struct Context
@@ -340,13 +343,14 @@ public:
     }
     mixin(generateMembers());
 
-    this(OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf, ErrorSink eSink) scope
+    this(OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf, ErrorSink eSink, CppStdRevision cppStdRevision) scope
     {
         this.fwdbuf = fwdbuf;
         this.donebuf = donebuf;
         this.buf = buf;
         this.printIgnored = global.params.cxxhdr.fullOutput;
         this.eSink = eSink;
+        this.cppStdRevision = cppStdRevision;
     }
 
     /**
@@ -527,7 +531,7 @@ public:
         if (global.params.useWarnings != DiagnosticReporting.off || canFix)
         {
             // Warn about identifiers that are keywords in C++.
-            if (auto kc = keywordClass(ident))
+            if (auto kc = keywordClass(ident, cppStdRevision))
                 warnCxxCompat(kc);
         }
         buf.writestring(ident.toString());
@@ -598,7 +602,7 @@ public:
         const(char*) writeImport(AST.Dsymbol sym, const Identifier alias_)
         {
             /// `using` was introduced in C++ 11 and only works for types...
-            if (global.params.cplusplus < CppStdRevision.cpp11)
+            if (cppStdRevision < CppStdRevision.cpp11)
                 return "requires C++11";
 
             if (auto ad = sym.isAliasDeclaration())
@@ -866,14 +870,14 @@ public:
            }
         }
 
-        if (adparent && fd.isDisabled && global.params.cplusplus < CppStdRevision.cpp11)
+        if (adparent && fd.isDisabled && cppStdRevision < CppStdRevision.cpp11)
             writeProtection(AST.Visibility.Kind.private_);
         funcToBuffer(tf, fd);
         if (adparent)
         {
             if (tf && (tf.isConst() || tf.isImmutable()))
                 buf.writestring(" const");
-            if (global.params.cplusplus >= CppStdRevision.cpp11)
+            if (cppStdRevision >= CppStdRevision.cpp11)
             {
                 if (fd.vtblIndex != -1 && !(adparent.storage_class & AST.STC.final_) && fd.isFinalFunc())
                     buf.writestring(" final");
@@ -882,11 +886,11 @@ public:
             }
             if (fd.isAbstract())
                 buf.writestring(" = 0");
-            else if (global.params.cplusplus >= CppStdRevision.cpp11 && fd.isDisabled())
+            else if (cppStdRevision >= CppStdRevision.cpp11 && fd.isDisabled())
                 buf.writestring(" = delete");
         }
         buf.writestringln(";");
-        if (adparent && fd.isDisabled && global.params.cplusplus < CppStdRevision.cpp11)
+        if (adparent && fd.isDisabled && cppStdRevision < CppStdRevision.cpp11)
             writeProtection(AST.Visibility.Kind.public_);
 
         if (!adparent)
@@ -1003,7 +1007,7 @@ public:
             {
                 case EnumKind.Int, EnumKind.Numeric:
                     // 'enum : type' is only available from C++-11 onwards.
-                    if (global.params.cplusplus < CppStdRevision.cpp11)
+                    if (cppStdRevision < CppStdRevision.cpp11)
                         goto case;
                     buf.writestring("enum : ");
                     determineEnumType(type).accept(this);
@@ -1017,13 +1021,13 @@ public:
 
                 case EnumKind.String, EnumKind.Enum:
                     // constexpr allows in-class initialization; only available from C++11
-                    if (global.params.cplusplus >= CppStdRevision.cpp11)
+                    if (cppStdRevision >= CppStdRevision.cpp11)
                         buf.writestring("static constexpr ");
                     else
                         buf.writestring("static ");
                     auto target = determineEnumType(type);
                     target.accept(this);
-                    if (global.params.cplusplus < CppStdRevision.cpp11)
+                    if (cppStdRevision < CppStdRevision.cpp11)
                         buf.writestring(" const ");
                     else
                         buf.writestring(" ");
@@ -1062,7 +1066,7 @@ public:
                 ignored("variable %s because its type cannot be mapped to C++", vd.toPrettyChars());
                 return;
             }
-            if (auto kc = keywordClass(vd.ident))
+            if (auto kc = keywordClass(vd.ident, cppStdRevision))
             {
                 ignored("variable %s because its name is a %s", vd.toPrettyChars(), kc);
                 return;
@@ -1164,7 +1168,7 @@ public:
         }
         else if (auto td = ad.aliassym.isTemplateDeclaration())
         {
-            if (global.params.cplusplus < CppStdRevision.cpp11)
+            if (cppStdRevision < CppStdRevision.cpp11)
             {
                 ignored("%s because `using` declarations require C++ 11", ad.toPrettyChars());
                 return;
@@ -1203,7 +1207,7 @@ public:
             {
                 ignored("%s because free functions cannot be aliased in C++", ad.toPrettyChars());
             }
-            else if (global.params.cplusplus < CppStdRevision.cpp11)
+            else if (cppStdRevision < CppStdRevision.cpp11)
             {
                 ignored("%s because `using` declarations require C++ 11", ad.toPrettyChars());
             }
@@ -1614,7 +1618,7 @@ public:
         if (isOpaque)
         {
             // Opaque enums were introduced in C++ 11 (workaround?)
-            if (global.params.cplusplus < CppStdRevision.cpp11)
+            if (cppStdRevision < CppStdRevision.cpp11)
             {
                 ignored("%s because opaque enums require C++ 11", ed.toPrettyChars());
                 return;
@@ -1646,7 +1650,7 @@ public:
                 buf.writestring("enum");
                 // D enums are strong enums, but there exists only a direct mapping
                 // with 'enum class' from C++-11 onwards.
-                if (global.params.cplusplus >= CppStdRevision.cpp11)
+                if (cppStdRevision >= CppStdRevision.cpp11)
                 {
                     if (!isAnonymous)
                     {
@@ -1702,7 +1706,7 @@ public:
                 // C++-98 compatible enums must use the typename as a prefix to avoid
                 // collisions with other identifiers in scope.  For consistency with D,
                 // the enum member `Type.member` is emitted as `Type_member` in C++-98.
-                if (!isAnonymous && global.params.cplusplus < CppStdRevision.cpp11)
+                if (!isAnonymous && cppStdRevision < CppStdRevision.cpp11)
                 {
                     writeIdentifier(ed);
                     buf.writeByte('_');
@@ -1714,7 +1718,7 @@ public:
                 visitInteger(ie.toInteger(), memberType);
                 buf.writestring(",");
             }
-            else if (global.params.cplusplus >= CppStdRevision.cpp11 &&
+            else if (cppStdRevision >= CppStdRevision.cpp11 &&
                      manifestConstants && (memberKind == EnumKind.Int || memberKind == EnumKind.Numeric))
             {
                 buf.writestring("enum : ");
@@ -1914,7 +1918,7 @@ public:
     {
         debug (Debug_DtoH) mixin(traceVisit!t);
 
-        if (global.params.cplusplus >= CppStdRevision.cpp11)
+        if (cppStdRevision >= CppStdRevision.cpp11)
             buf.writestring("nullptr_t");
         else
             buf.writestring("void*");
@@ -2454,7 +2458,7 @@ public:
     private void printExpressionFor(AST.Type target, AST.Expression exp, const bool isCtor = false)
     {
         /// Determines if a static_cast is required
-        static bool needsCast(AST.Type target, AST.Expression exp)
+        bool needsCast(AST.Type target, AST.Expression exp)
         {
             // import std.stdio;
             // writefln("%s:%s: target = %s, type = %s (%s)", exp.loc.linnum, exp.loc.charnum, target, exp.type, exp.op);
@@ -2470,7 +2474,7 @@ public:
                 return true;
 
             // Conversions from enum class to base type require static_cast
-            if (global.params.cplusplus >= CppStdRevision.cpp11 &&
+            if (cppStdRevision >= CppStdRevision.cpp11 &&
                 source.isTypeEnum && !target.isTypeEnum)
                 return true;
 
@@ -2487,7 +2491,7 @@ public:
                 {
                     // Don't emit, use default ctor
                 }
-                else if (global.params.cplusplus >= CppStdRevision.cpp11)
+                else if (cppStdRevision >= CppStdRevision.cpp11)
                 {
                     // Prefer initializer list
                     buf.writestring("{}");
@@ -2506,7 +2510,7 @@ public:
                 // Rewrite as <length> + <literal> pair optionally
                 // wrapped in a initializer list/ctor call
 
-                const initList = global.params.cplusplus >= CppStdRevision.cpp11;
+                const initList = cppStdRevision >= CppStdRevision.cpp11;
                 if (!isCtor)
                 {
                     if (initList)
@@ -2694,7 +2698,7 @@ public:
     {
         debug (Debug_DtoH) mixin(traceVisit!e);
 
-        if (global.params.cplusplus >= CppStdRevision.cpp11)
+        if (cppStdRevision >= CppStdRevision.cpp11)
             buf.writestring("nullptr");
         else
             buf.writestring("NULL");
@@ -2744,7 +2748,7 @@ public:
         else
         {
             // Hex floating point literals were introduced in C++ 17
-            const allowHex = global.params.cplusplus >= CppStdRevision.cpp17;
+            const allowHex = cppStdRevision >= CppStdRevision.cpp17;
             floatToBuffer(e.type, e.value, *buf, allowHex);
         }
     }
@@ -3017,7 +3021,7 @@ public:
 
         // Eagerly include the symbol if we cannot create a valid forward declaration
         // Forwarding of scoped enums requires C++11 or above
-        if (!forwarding || (par && !par.isModule()) || (ed && global.params.cplusplus < CppStdRevision.cpp11))
+        if (!forwarding || (par && !par.isModule()) || (ed && cppStdRevision < CppStdRevision.cpp11))
         {
             // Emit the entire enclosing declaration if any
             includeSymbol(outermostSymbol(sym));
@@ -3238,7 +3242,7 @@ void hashInclude(ref OutBuffer buf, string content) @safe
 
 /// Determines whether `ident` is a reserved keyword in C++
 /// Returns: the kind of keyword or `null`
-const(char*) keywordClass(const Identifier ident)
+const(char*) keywordClass(const Identifier ident, CppStdRevision cppStdRevision)
 {
     if (!ident)
         return null;
@@ -3301,7 +3305,7 @@ const(char*) keywordClass(const Identifier ident)
         case "static_assert":
         case "thread_local":
         case "wchar_t":
-            if (global.params.cplusplus >= CppStdRevision.cpp11)
+            if (cppStdRevision >= CppStdRevision.cpp11)
                 return "keyword in C++11";
             return null;
 
@@ -3316,7 +3320,7 @@ const(char*) keywordClass(const Identifier ident)
         case "co_await":
         case "co_yield":
         case "co_return":
-            if (global.params.cplusplus >= CppStdRevision.cpp20)
+            if (cppStdRevision >= CppStdRevision.cpp20)
                 return "keyword in C++20";
             return null;
         case "restrict":
