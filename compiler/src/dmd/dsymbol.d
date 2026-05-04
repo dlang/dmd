@@ -1286,9 +1286,11 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
 {
     WithStatement withstate;
 
-    extern (D) this(WithStatement withstate) nothrow @safe
+    extern (D) this(WithStatement withstate, ScopeDsymbol parent) nothrow @safe
     {
         this.withstate = withstate;
+        this.endlinnum = withstate.endloc.linnum;
+        this.parent = parent;
         this.dsym = DSYM.withScopeSymbol;
     }
 

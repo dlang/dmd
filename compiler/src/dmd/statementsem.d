@@ -3303,9 +3303,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             return setError();
         if (ws.exp.op == EXP.scope_)
         {
-            sym = new WithScopeSymbol(ws);
-            sym.parent = sc.scopesym;
-            sym.endlinnum = ws.endloc.linnum;
+            sym = new WithScopeSymbol(ws, sc.scopesym);
         }
         else if (auto et = ws.exp.isTypeExp())
         {
@@ -3315,9 +3313,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 error(ws.loc, "`with` type `%s` has no members", ws.exp.toErrMsg());
                 return setError();
             }
-            sym = new WithScopeSymbol(ws);
-            sym.parent = sc.scopesym;
-            sym.endlinnum = ws.endloc.linnum;
+            sym = new WithScopeSymbol(ws, sc.scopesym);
         }
         else if (ws.prm)
         {
@@ -3368,9 +3364,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 ws.wthis.storage_class |= STC.temp;
                 ws.wthis.dsymbolSemantic(sc);
 
-                sym = new WithScopeSymbol(ws);
-                sym.parent = sc.scopesym;
-                sym.endlinnum = ws.endloc.linnum;
+                sym = new WithScopeSymbol(ws, sc.scopesym);
             }
             else if (t.ty == Tstruct)
             {
@@ -3398,18 +3392,14 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 ws.wthis = new VarDeclaration(ws.loc, e.type, Id.withSym, _init);
                 ws.wthis.storage_class |= STC.temp;
                 ws.wthis.dsymbolSemantic(sc);
-                sym = new WithScopeSymbol(ws);
+                sym = new WithScopeSymbol(ws, sc.scopesym);
                 // Need to set the scope to make use of resolveAliasThis
                 sym.setScope(sc);
-                sym.parent = sc.scopesym;
-                sym.endlinnum = ws.endloc.linnum;
             }
             else if (auto tenum = texp.isTypeEnum())
             {
                 ws.exp = new TypeExp(ws.exp.loc, tenum);
-                sym = new WithScopeSymbol(ws);
-                sym.parent = sc.scopesym;
-                sym.endlinnum = ws.endloc.linnum;
+                sym = new WithScopeSymbol(ws, sc.scopesym);
             }
             else
             {
