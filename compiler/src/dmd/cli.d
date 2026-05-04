@@ -206,7 +206,7 @@ struct Usage
         Option("c",
             "compile only, do not link"
         ),
-        Option("check=<action>[=[on|off]]",
+        Option("check=<action>[=[on|off|safeonly]]",
             "enable or disable specific checks for <action>: assert|bounds|in|invariant|nullderef|out|switch.",
             q"{Enable or disable specific checks.
             Overrides default, $(SWLINK -boundscheck), $(SWLINK -release) and
@@ -225,6 +225,7 @@ struct Usage
                 $(UL
                     $(LI $(B on): specified check is enabled.)
                     $(LI $(B off): specified check is disabled.)
+                    $(LI $(B safeonly): check is enabled only in $(D @safe) functions.)
                 )
                 If no setting for *action* is given, it will default to `on`,
                 except `nullderef` defaults to `off`.}"
