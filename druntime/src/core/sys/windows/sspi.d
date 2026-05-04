@@ -309,8 +309,11 @@ SECURITY_STATUS DecryptMessage(PCtxtHandle,PSecBufferDesc,ULONG,PULONG);
 SECURITY_STATUS EncryptMessage(PCtxtHandle,ULONG,PSecBufferDesc,ULONG);
 SECURITY_STATUS DeleteSecurityContext(PCtxtHandle);
 SECURITY_STATUS CompleteAuthToken(PCtxtHandle,PSecBufferDesc);
-SECURITY_STATUS ApplyControlTokenA(PCtxtHandle,PSecBufferDesc);
-SECURITY_STATUS ApplyControlTokenW(PCtxtHandle,PSecBufferDesc);
+SECURITY_STATUS ApplyControlToken(PCtxtHandle,PSecBufferDesc);
+deprecated("ApplyControlTokenW is not exported by secur32.dll; use ApplyControlToken")
+alias ApplyControlTokenW = ApplyControlToken;
+deprecated("ApplyControlTokenA is not exported by secur32.dll; use ApplyControlToken")
+alias ApplyControlTokenA = ApplyControlToken;
 SECURITY_STATUS ImpersonateSecurityContext(PCtxtHandle);
 SECURITY_STATUS RevertSecurityContext(PCtxtHandle);
 SECURITY_STATUS MakeSignature(PCtxtHandle,ULONG,PSecBufferDesc,ULONG);
@@ -340,7 +343,6 @@ version (Unicode) {
     alias QueryContextAttributes = QueryContextAttributesW;
     alias QueryCredentialsAttributes = QueryCredentialsAttributesW;
     alias QuerySecurityPackageInfo = QuerySecurityPackageInfoW;
-    alias ApplyControlToken = ApplyControlTokenW;
     alias ENUMERATE_SECURITY_PACKAGES_FN = ENUMERATE_SECURITY_PACKAGES_FN_W;
     alias QUERY_CREDENTIALS_ATTRIBUTES_FN = QUERY_CREDENTIALS_ATTRIBUTES_FN_W;
     alias ACQUIRE_CREDENTIALS_HANDLE_FN = ACQUIRE_CREDENTIALS_HANDLE_FN_W;
@@ -369,7 +371,6 @@ version (Unicode) {
     alias QueryContextAttributes = QueryContextAttributesA;
     alias QueryCredentialsAttributes = QueryCredentialsAttributesA;
     alias QuerySecurityPackageInfo = QuerySecurityPackageInfoA;
-    alias ApplyControlToken = ApplyControlTokenA;
     alias ENUMERATE_SECURITY_PACKAGES_FN = ENUMERATE_SECURITY_PACKAGES_FN_A;
     alias QUERY_CREDENTIALS_ATTRIBUTES_FN = QUERY_CREDENTIALS_ATTRIBUTES_FN_A;
     alias ACQUIRE_CREDENTIALS_HANDLE_FN = ACQUIRE_CREDENTIALS_HANDLE_FN_A;
