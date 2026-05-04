@@ -237,7 +237,7 @@ struct SecurityFunctionTableW{
     ACCEPT_SECURITY_CONTEXT_FN AcceptSecurityContext;
     COMPLETE_AUTH_TOKEN_FN CompleteAuthToken;
     DELETE_SECURITY_CONTEXT_FN DeleteSecurityContext;
-    APPLY_CONTROL_TOKEN_FN_W ApplyControlTokenW;
+    APPLY_CONTROL_TOKEN_FN_W ApplyControlToken;
     QUERY_CONTEXT_ATTRIBUTES_FN_W QueryContextAttributesW;
     IMPERSONATE_SECURITY_CONTEXT_FN ImpersonateSecurityContext;
     REVERT_SECURITY_CONTEXT_FN RevertSecurityContext;
@@ -267,7 +267,7 @@ struct SecurityFunctionTableA{
     ACCEPT_SECURITY_CONTEXT_FN AcceptSecurityContext;
     COMPLETE_AUTH_TOKEN_FN CompleteAuthToken;
     DELETE_SECURITY_CONTEXT_FN DeleteSecurityContext;
-    APPLY_CONTROL_TOKEN_FN_A ApplyControlTokenA;
+    APPLY_CONTROL_TOKEN_FN_A ApplyControlToken;
     QUERY_CONTEXT_ATTRIBUTES_FN_A QueryContextAttributesA;
     IMPERSONATE_SECURITY_CONTEXT_FN ImpersonateSecurityContext;
     REVERT_SECURITY_CONTEXT_FN RevertSecurityContext;
