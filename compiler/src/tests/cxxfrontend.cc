@@ -1780,7 +1780,7 @@ void hdrgen_h(Module *m, OutBuffer &buf, Modules &ms, ParameterList pl,
               Expression *e, Initializer *i, Statement *s, Type *t, ErrorSink *sink)
 {
     dmd::genhdrfile(m, true, buf);
-    dmd::genCppHdrFiles(ms, sink);
+    dmd::genCppHdrFiles(ms, sink, CppStdRevisionCpp11);
     dmd::moduleToBuffer(buf, true, m);
     dmd::parametersTypeToChars(pl);
     dmd::toChars(e);
