@@ -19,7 +19,6 @@ import core.stdc.string;
 import dmd.identifier;
 import dmd.location;
 import dmd.root.ctfloat;
-import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.utf;
 
@@ -961,6 +960,7 @@ nothrow:
 
     extern (C++) const(char)* toChars() const
     {
+        import dmd.common.outbuffer;
         OutBuffer buf;
         toString(&buf.put);
         return buf.extractChars();
@@ -1199,15 +1199,14 @@ void writeSingleCharLiteral(dchar c, scope void delegate(ubyte c) nothrow sink)
 
 unittest
 {
-    OutBuffer buf;
-    writeSingleCharLiteral('\'', &buf.write);
-    assert(buf[] == `'\''`);
-    buf.reset();
-    writeSingleCharLiteral('"', &buf.write);
-    assert(buf[] == `'"'`);
-    buf.reset();
-    writeSingleCharLiteral('\n', &buf.write);
-    assert(buf[] == `'\n'`);
+    char r;
+    void put(char c) { r = c; }
+    writeSingleCharLiteral('\'', &put);
+    assert(r == `'\''`);
+    writeSingleCharLiteral('"', &put);
+    assert(r == `'"'`);
+    writeSingleCharLiteral('\n', &put);
+    assert(r == `'\n'`);
 }
 
 import core.stdc.stdarg;
