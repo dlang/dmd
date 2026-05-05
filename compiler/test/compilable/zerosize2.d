@@ -115,8 +115,14 @@ version (X86_64)
     static assert(C19.sizeof == 0 && C19.alignof == 16);
 }
 
-// Anonymous bitfields *do* contribute to alignment.
 version (AArch64)
+{
+    version (Apple) { /* diverges */ } else
+        version = AAPCS64;
+}
+
+// Anonymous bitfields *do* contribute to alignment.
+version (AAPCS64)
 {
     // Empty
     static assert(D0.sizeof == 1 && D0.alignof == 1);
@@ -135,8 +141,8 @@ version (AArch64)
     // Zero sized arrays
     static assert(D5.sizeof == 1 && D5.alignof == 1);
     static assert(D6.sizeof == 2 && D6.alignof == 2);
-    static assert(D7.sizeof == 3 && D7.alignof == 4);
-    static assert(D8.sizeof == 4 && D8.alignof == 8);
+    static assert(D7.sizeof == 4 && D7.alignof == 4);
+    static assert(D8.sizeof == 8 && D8.alignof == 8);
     static assert(D15.sizeof == 16 && D15.alignof == 16);
     static assert(D16.sizeof == 16 && D16.alignof == 16);
     static assert(D17.sizeof == 16 && D17.alignof == 16);
