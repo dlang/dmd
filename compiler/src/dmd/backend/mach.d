@@ -9,6 +9,7 @@ module dmd.backend.mach;
 // Online documentation: https://dlang.org/phobos/dmd_backend_mach.html
 // location of system .h files on Mac: xcrun --show-sdk-path
 // location of machine.h: usr/include/mach
+// https://alexdremov.me/mystery-of-mach-o-object-file-builders/
 
 @safe:
 
@@ -423,16 +424,17 @@ enum
     ARM64_RELOC_AUTHENTICATED_POINTER   = 11,
 }
 
-struct relocation_info
+struct relocation_info  // https://developer.apple.com/documentation/kernel/relocation_info
 {
-    int r_address;
+    int r_address;      // offset from the section start to the item to be relocated
 
     /* LITTLE_ENDIAN for x86
-     * uint r_symbolnum:24,
-     *      r_pcrel    :1,
-     *      r_length   :2,
-     *      r_extern   :1,
-     *      r_type     :4;
+     * uint r_symbolnum:24,  // if r_extern is 1, then index into the symbol table
+     *                       // if r_extern is 0, then ordinal number of the section
+     *      r_pcrel    :1,   // one means PC-relative, 0 means absolute
+     *      r_length   :2,   // 0: 1 byte, 1: 2 bytes, 2: sizeof(long) bytes, 3: 8 bytes
+     *      r_extern   :1,   // see r_symbolnum
+     *      r_type     :4;   // ARM64_RELOC_xxxxx, X86_64_RELOC_xxxxx
      */
     uint xxx;
     nothrow:
