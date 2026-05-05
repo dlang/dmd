@@ -5081,11 +5081,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (TypeSArray asa = a.isTypeSArray())
             {
-                if (TypeSArray bsa = b.isTypeSArray())
-                {
-                    if (asa.dim && bsa.dim && asa.dim.toInteger() == bsa.dim.toInteger())
-                        return isCCompatibleType(asa.nextOf(), bsa.nextOf());
-                }
+                TypeSArray bsa = b.isTypeSArray();
+                if (bsa && asa.dim && bsa.dim && asa.dim.toInteger() == bsa.dim.toInteger())
+                    return isCCompatibleType(asa.nextOf(), bsa.nextOf());
             }
 
             return isCCompatibleUnnamedStruct(a, b);
