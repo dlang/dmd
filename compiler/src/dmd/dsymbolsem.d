@@ -4981,6 +4981,22 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return isCCompatible(ats.sym, bts.sym);
         }
 
+        // Treat arrays of anonymous structs/unions as compatible when element types match.
+        static bool isCCompatibleType(Type a, Type b)
+        {
+            if (a.equals(b))
+                return true;
+
+            if (TypeSArray asa = a.isTypeSArray())
+            {
+                TypeSArray bsa = b.isTypeSArray();
+                if (bsa && asa.dim && bsa.dim && asa.dim.toInteger() == bsa.dim.toInteger())
+                    return isCCompatibleType(asa.nextOf(), bsa.nextOf());
+            }
+
+            return isCCompatibleUnnamedStruct(a, b);
+        }
+
         if (a.fields.length != b.fields.length)
         {
             incompatError();
