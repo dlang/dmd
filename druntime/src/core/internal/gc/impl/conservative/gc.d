@@ -3621,6 +3621,8 @@ Lmark:
         else
             pullLoop!(false)();
 
+        evStackFilled.reset(); // symmetric with setIfInitialized() above; avoids livelock when no pop ever happened
+
         debug(PARALLEL_PRINTF) printf("waitForScanDone done\n");
     }
 
