@@ -1643,7 +1643,7 @@ class Lexer
                 if (c == terminator)
                 {
                     if (supportInterpolation)
-                        result.appendInterpolatedPart(stringbuffer[]);
+                        result.appendInterpolatedPart(stringbuffer[], Loc.init);
                     else
                         result.setString(stringbuffer[]);
 
@@ -1955,7 +1955,7 @@ class Lexer
                     if (supportInterpolation)
                     {
                         normalizeCRLF(pstart[0 .. length]);
-                        result.appendInterpolatedPart(stringbuffer[]);
+                        result.appendInterpolatedPart(stringbuffer[], Loc.init);
                     }
                     else
                     {
@@ -2017,12 +2017,13 @@ class Lexer
             // expression, at this level we need to scan until the closing ')'
 
             // always put the string part in first
-            token.appendInterpolatedPart(stringbuffer[]);
+            token.appendInterpolatedPart(stringbuffer[], Loc.init);
             stringbuffer.setsize(0);
 
             int openParenCount = 1;
             p++; // skip the first open paren
             auto pstart = p;
+            auto exprLoc = baseLoc.getLoc(cast(uint)(pstart - base));
             while (openParenCount > 0)
             {
                 // need to scan with the lexer to support embedded strings and other complex cases
@@ -2041,7 +2042,7 @@ class Lexer
             }
 
             // then put the interpolated string segment
-            token.appendInterpolatedPart(pstart[0 .. p - 1 - pstart]);
+            token.appendInterpolatedPart(pstart[0 .. p - 1 - pstart], exprLoc);
 
             stringbuffer.setsize(0); // make sure this is reset from the last token scan
             // otherwise something like i"$(func("thing")) stuff" can still include it
@@ -2142,7 +2143,7 @@ class Lexer
                 if (c != tc)
                     goto default;
                 if (supportInterpolation)
-                    t.appendInterpolatedPart(stringbuffer[]);
+                    t.appendInterpolatedPart(stringbuffer[], Loc.init);
                 else
                     t.setString(stringbuffer[]);
                 if (!Ccompile)

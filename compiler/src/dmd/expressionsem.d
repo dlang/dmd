@@ -5878,9 +5878,21 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else
             {
                 arguments.push(makeTemplateItem(Id.InterpolatedExpression, str));
-                Expressions* mix = new Expressions(new StringExp(e.loc, str));
-                auto mixinExp = new MixinExp(e.loc, mix);
-                auto res = mixinExp.expressionSemantic(sc);
+                const parseErrors = global.errors;
+                const bool doUnittests = global.params.parsingUnittestsRequired();
+                auto exprSl = SourceLoc(e.interpolatedSet.locs[idx]);
+                scope p = new Parser!ASTCodegen(sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
+                p.baseLoc.startLine = exprSl.line;
+                if (exprSl.column > 0)
+                    p.baseLoc.startColumn = exprSl.column;
+                p.linnum = p.baseLoc.startLine;
+                p.nextToken();
+                Expression parsed = p.parseExpression();
+                if (global.errors != parseErrors)
+                    return setError();
+                auto res = parsed.expressionSemantic(sc);
+                if (res.isErrorExp())
+                    return setError();
                 res = resolveProperties(sc, res);
                 arguments.push(res);
             }
