@@ -631,6 +631,8 @@ static immutable TOK[TOK.max + 1] Ckeywords =
 struct InterpolatedSet {
     // all strings in the parts are zero terminated at length+1
     string[] parts;
+    // source location for each part (used for accurate error reporting in expression parts)
+    Loc[] locs;
 }
 
 /***********************************************************
@@ -925,7 +927,7 @@ nothrow:
         return 0;
     }
 
-    extern(D) void appendInterpolatedPart(const(char)[] str)
+    extern(D) void appendInterpolatedPart(const(char)[] str, Loc loc)
     {
         assert(value == TOK.interpolated);
         if (interpolatedSet is null)
@@ -936,6 +938,7 @@ nothrow:
         s[str.length] = 0;
 
         interpolatedSet.parts ~= cast(string) s[0 .. str.length];
+        interpolatedSet.locs ~= loc;
     }
 
     /****
