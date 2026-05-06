@@ -244,13 +244,17 @@ private int tryMain(const(char)[][] argv, out Param params)
 
     if (params.help.usage)
     {
-        usage();
+        OutBuffer buf;
+        usage(buf);
+        fputs(buf.peekChars(), stdout);
         return EXIT_SUCCESS;
     }
 
     if (params.v.logo)
     {
-        logo();
+        OutBuffer buf;
+        logo(buf);
+        fputs(buf.peekChars(), stdout);
         return EXIT_SUCCESS;
     }
 
@@ -367,7 +371,9 @@ private int tryMain(const(char)[][] argv, out Param params)
                 fatal();
             return EXIT_SUCCESS;
         }
-        usage();
+        OutBuffer buf;
+        usage(buf);
+        fputs(buf.peekChars(), stdout);
         return EXIT_FAILURE;
     }
 
