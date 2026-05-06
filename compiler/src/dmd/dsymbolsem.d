@@ -5053,7 +5053,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             //   their members such that each pair of corresponding
             //   members are declared with compatible types;
             //
-            if (!a_field.type.equals(b_field.type) && !isCCompatibleUnnamedStruct(a_field.type, b_field.type))
+            if (!isCCompatibleType(a_field.type, b_field.type))
             {
                 // Already errored, just bail
                 incompatError();
