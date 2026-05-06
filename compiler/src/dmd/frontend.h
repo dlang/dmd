@@ -4129,9 +4129,10 @@ class ArrayInitializer final : public Initializer
 public:
     Array<Expression* > index;
     Array<Initializer* > value;
-    uint32_t dim;
     Type* type;
+    uint32_t dim;
     bool isCarray;
+    bool defaultInitialize;
     bool isAssociativeArray() const;
     void accept(Visitor* v) override;
 };
