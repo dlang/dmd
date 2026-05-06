@@ -4265,6 +4265,8 @@ private void initializerToBuffer(Initializer inx, ref OutBuffer buf, ref HdrGenS
             if (auto iz = ai.value[i])
                 initializerToBuffer(iz, buf, hgs);
         }
+        if (ai.defaultInitialize)
+            buf.put(", ...");
         buf.put(']');
     }
 
