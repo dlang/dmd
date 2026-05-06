@@ -67,15 +67,17 @@ else
     static assert(0);
 
 /**
- * Print DMD's logo on stdout
+ * Print DMD's logo to `buf`
+ * Params:
+ *   buf = output stream to print the information to
  */
-void logo()
+void logo(ref OutBuffer buf)
 {
     version (AArch64)
         string host = " AArch";
     else
         string host = "";
-    printf("DMD%s%llu D Compiler %.*s\n%.*s %.*s\n",
+    buf.printf("DMD%s%llu D Compiler %.*s\n%.*s %.*s\n",
         host.ptr,
         cast(ulong)size_t.sizeof * 8,
         cast(int) global.versionString().length, global.versionString().ptr,
@@ -106,15 +108,17 @@ void printInternalFailure(ref OutBuffer buf)
 }
 
 /**
- * Print DMD's usage message on stdout
+ * Print DMD's usage message to `buf`
+ * Params:
+ *   buf = output stream to print the information to
  */
-void usage()
+void usage(ref OutBuffer buf)
 {
     import dmd.cli : CLIUsage;
-    logo();
+    logo(buf);
     auto help = CLIUsage.usage;
     const inifileCanon = FileName.canonicalName(global.inifilename);
-    printf("
+    buf.printf("
 Documentation: https://dlang.org/
 Config file: %.*s
 Usage:
