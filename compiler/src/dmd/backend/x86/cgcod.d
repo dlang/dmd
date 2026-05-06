@@ -78,6 +78,18 @@ regm_t BYTEREGS() { return I64 ? ALLREGS
 @trusted
 void codgen(Symbol* sfunc)
 {
+    codgenx(cgstate, sfunc);
+}
+
+/***********************
+ * Same as codgen(), but adding in CGstate argument
+ * Params:
+ *	cg = code generator state
+ *      sfunc = function to generate code for
+ */
+private @trusted
+void codgenx(ref CGstate cg, Symbol* sfunc)
+{
     //printf("codgen('%s')\n",funcsym_p.Sident.ptr);
     assert(sfunc == funcsym_p);
     assert(cseg == funcsym_p.Sseg);
@@ -85,7 +97,6 @@ void codgen(Symbol* sfunc)
     cgreg_init();
     CSE.initialize();
 
-    CGstate* cg = &cgstate;
     cg.Alloca.initialize();
     cg.anyiasm = false;
     cg.setSPtoFPonEpilog = false;
@@ -206,7 +217,7 @@ void codgen(Symbol* sfunc)
                 cg.dfoidx = cast(int)i;
                 cg.regcon.used = cg.msavereg | cg.regcon.cse.mval;   // registers already in use
                 assert(!(cg.regcon.used & mPSW));
-                blcodgen(cgstate, b);                 // gen code in depth-first order
+                blcodgen(cg, b);                 // gen code in depth-first order
                 //printf("b.Bregcon.used = %s\n", regm_str(b.Bregcon.used));
                 cgreg_used(cg.dfoidx, b.Bregcon.used); // gather register used information
             }
@@ -216,7 +227,7 @@ void codgen(Symbol* sfunc)
             cg.pass = BackendPass.final_;
             for (block* b = bo.startblock; b; b = b.Bnext)
             {
-                blcodgen(cgstate, b);        // generate the code for each block
+                blcodgen(cg, b);        // generate the code for each block
                 //for (code* cx = b.Bcode; cx; cx = code_next(cx)) printf("Bcode x%08x\n", cx.Iop);
             }
         }
@@ -230,16 +241,16 @@ void codgen(Symbol* sfunc)
         }
 
         // See which variables we can put into registers
-        cg.allregs |= cod3_useBP(cgstate);             // use EBP as general purpose register
+        cg.allregs |= cod3_useBP(cg);             // use EBP as general purpose register
 
         // If pic code, but EBX was never needed
         if (!(cg.allregs & mask(PICREG)) && !cg.gotref)
         {
             cg.allregs |= mask(PICREG);            // EBX can now be used
-            cgreg_assign(cgstate, cg.retsym);
+            cgreg_assign(cg, cg.retsym);
             cg.pass = BackendPass.reg;
         }
-        else if (cgreg_assign(cgstate, cg.retsym))          // if we found some registers
+        else if (cgreg_assign(cg, cg.retsym))          // if we found some registers
             cg.pass = BackendPass.reg;
         else
             cg.pass = BackendPass.final_;
@@ -281,7 +292,7 @@ void codgen(Symbol* sfunc)
         }
     }
 
-    stackoffsets(cgstate, globsym, false); // compute final offsets of stack variables
+    stackoffsets(cg, globsym, false); // compute final offsets of stack variables
     cod5_prol_epi(bo.startblock);    // see where to place prolog/epilog
     CSE.finish();                 // compute addresses and sizes of CSE saves
 
@@ -292,7 +303,7 @@ void codgen(Symbol* sfunc)
     assert(!bo.startblock.Bpred);
 
     CodeBuilder cdbprolog; cdbprolog.ctor();
-    prolog(cgstate, cdbprolog);           // gen function start code
+    prolog(cg, cdbprolog);           // gen function start code
     code* cprolog = cdbprolog.finish();
     if (cprolog)
         pinholeopt(cprolog,null);       // optimize
@@ -301,7 +312,7 @@ void codgen(Symbol* sfunc)
     targ_size_t coffset = Offset(sfunc.Sseg);
 
     if (eecontext.EEelem)
-        genEEcode(cgstate);
+        genEEcode(cg);
 
     for (block* b = bo.startblock; b; b = b.Bnext)
     {
@@ -319,15 +330,15 @@ void codgen(Symbol* sfunc)
                 goto case BC.retexp;
 
             case BC.retexp:
-                epilog(cgstate,b);
+                epilog(cg,b);
                 break;
 
             default:
                 if (b.Bflags & BFL.epilog)
-                    epilog(cgstate,b);
+                    epilog(cg,b);
                 break;
         }
-        assignaddr(cgstate,b);          // assign addresses
+        assignaddr(cg,b);          // assign addresses
         pinholeopt(b.Bcode,b);         // do pinhole optimization
         if (b.Bflags & BFL.prolog)      // do function prolog
         {
@@ -714,10 +725,10 @@ Lagain:
     cg.Fast.size = 0;
     static if (NTEXCEPTIONS == 2)
     {
-        cg.Fast.size -= nteh_contextsym_size(cgstate);
+        cg.Fast.size -= nteh_contextsym_size(cg);
         if (config.exe & EX_windos)
         {
-            if (funcsym_p.Sfunc.Fflags3 & Ffakeeh && nteh_contextsym_size(cgstate) == 0)
+            if (funcsym_p.Sfunc.Fflags3 & Ffakeeh && nteh_contextsym_size(cg) == 0)
                 cg.Fast.size -= 5 * 4;
         }
     }
@@ -955,7 +966,7 @@ else
     {
         prolog_frameadj(cg, cdbx, tyf, xlocalsize, enter, &pushalloc);
         if (cg.Alloca.size)
-            prolog_setupalloca(cgstate, cdbx);
+            prolog_setupalloca(cg, cdbx);
     }
     else if (cg.needframe)                      /* if variables or parameters   */
     {
@@ -963,7 +974,7 @@ else
         {
             prolog_frameadj(cg, cdbx, tyf, xlocalsize, enter, &pushalloc);
             if (cg.Alloca.size)
-                prolog_setupalloca(cgstate, cdbx);
+                prolog_setupalloca(cg, cdbx);
         }
         else
             assert(cg.Alloca.size == 0);
@@ -999,7 +1010,7 @@ else
             if (strcmp(sthis.Sident.ptr,"this".ptr) == 0)
                 break;
         }
-        nteh_monitor_prolog(cgstate,cdbx,sthis);
+        nteh_monitor_prolog(cg,cdbx,sthis);
         cg.EBPtoESP += 3 * 4;
     }
 
@@ -1013,7 +1024,7 @@ Lcont:
     {
         if (variadic(funcsym_p.Stype))
             prolog_gen_win64_varargs(cdb);
-        prolog_loadparams(cgstate, cdb, tyf, pushalloc);
+        prolog_loadparams(cg, cdb, tyf, pushalloc);
         return;
     }
 
@@ -1022,13 +1033,13 @@ Lcont:
     static if (NTEXCEPTIONS == 2)
     {
         if (cg.usednteh & NTEH_except)
-            nteh_setsp(cgstate, cdb, 0x89);            // MOV __context[EBP].esp,ESP
+            nteh_setsp(cg, cdb, 0x89);            // MOV __context[EBP].esp,ESP
     }
 
     // Load register parameters off of the stack. Do not use
     // assignaddr(), as it will replace the stack reference with
     // the register!
-    prolog_loadparams(cgstate, cdb, tyf, pushalloc);
+    prolog_loadparams(cg, cdb, tyf, pushalloc);
 
     if (sv64)
         prolog_genvarargs(cg, cdb, sv64);
@@ -1041,7 +1052,7 @@ Lcont:
 }
 
 /************************************
- * Predicate for sorting auto symbols for qsort().
+ * Predicate for sorting auto symbols for C's qsort().
  * Returns:
  *      < 0     s1 goes farther from frame pointer
  *      > 0     s1 goes nearer the frame pointer
@@ -1049,8 +1060,9 @@ Lcont:
  */
 
 @trusted
-extern (C) int
- autosort_cmp(scope const void* ps1, scope const void* ps2)
+private
+extern (C)
+ int autosort_cmp(scope const void* ps1, scope const void* ps2)
 {
     Symbol* s1 = *cast(Symbol**)ps1;
     Symbol* s2 = *cast(Symbol**)ps2;
@@ -2112,11 +2124,12 @@ bool cssave(elem* e, regm_t regm, bool opsflag)
     /*if (e.Ecount && e.Ecount == e.Ecomsub)*/
     if (e.Ecount && e.Ecomsub)
     {
-        if (!opsflag && cgstate.pass != BackendPass.final_ && (I32 || I64))
+	CGstate* cg = &cgstate;
+        if (!opsflag && cg.pass != BackendPass.final_ && (I32 || I64))
             return false;
 
         //printf("cssave(e = %p, regm = %s, opsflag = x%x)\n", e, regm_str(regm), opsflag);
-        if (cgstate.AArch64)
+        if (cg.AArch64)
             regm &= INSTR.ALLREGS | INSTR.FLOATREGS;
         else
             regm &= mBP | ALLREGS | mES | XMMREGS;    /* just to be sure              */
@@ -2136,15 +2149,15 @@ bool cssave(elem* e, regm_t regm, bool opsflag)
 
                     // If we don't need this CSE, and the register already
                     // holds a CSE that we do need, don't mark the new one
-                    if (cgstate.regcon.cse.mval & mi && cgstate.regcon.cse.value[i] != e &&
-                        !opsflag && cgstate.regcon.cse.mops & mi)
+                    if (cg.regcon.cse.mval & mi && cg.regcon.cse.value[i] != e &&
+                        !opsflag && cg.regcon.cse.mops & mi)
                         continue;
 
-                    cgstate.regcon.cse.mval |= mi;
+                    cg.regcon.cse.mval |= mi;
                     if (opsflag)
-                        cgstate.regcon.cse.mops |= mi;
+                        cg.regcon.cse.mops |= mi;
                     //printf("cssave set: regcon.cse.value[%s] = %p\n",regm_str(mi),e);
-                    cgstate.regcon.cse.value[i] = e;
+                    cg.regcon.cse.value[i] = e;
                     result = true;
                 }
             }
@@ -2218,17 +2231,18 @@ bool evalinregister(elem* e)
 }
 
 /*******************************************************
- * Return mask of scratch registers.
+ * Returns: mask of scratch registers.
  */
 
 @trusted
 regm_t getscratch()
 {
     regm_t scratch = 0;
-    if (cgstate.pass == BackendPass.final_)
+    CGstate* cg = &cgstate;
+    if (cg.pass == BackendPass.final_)
     {
-        scratch = cgstate.allregs & ~(cgstate.regcon.mvar | cgstate.regcon.mpvar | cgstate.regcon.cse.mval |
-                  cgstate.regcon.immed.mval | cgstate.regcon.params | cgstate.mfuncreg);
+        scratch = cg.allregs & ~(cg.regcon.mvar | cg.regcon.mpvar | cg.regcon.cse.mval |
+                  cg.regcon.immed.mval | cg.regcon.params | cg.mfuncreg);
     }
     return scratch;
 }
