@@ -596,6 +596,7 @@ private Symbol* createImport(Symbol* sym, Loc loc)
     {
         idlen = snprintf(id, allocLen, (target.os == Target.OS.Windows && target.isX86_64) ? "__imp_%s" : (sym.Stype.Tmangle == Mangle.cpp) ? "_imp_%s" : "_imp__%s",n);
     }
+    assert(idlen != -1 && idlen < allocLen);
     auto t = type_alloc(TYnptr | mTYconst);
     t.Tnext = sym.Stype;
     t.Tnext.Tcount++;
@@ -641,6 +642,7 @@ Symbol* toThunkSymbol(FuncDeclaration fd, int offset)
     char[nameLen] name = void;
 
     const len = snprintf(name.ptr,nameLen,"_THUNK%d",tmpnum++);
+    assert(len != -1 && len < nameLen);
     auto sthunk = symbol_name(name[0 .. len],SC.static_,(cast(Symbol*)(fd.csym)).Stype);
     sthunk.Sflags |= SFLnodebug | SFLartifical;
     sthunk.Sflags |= SFLimplem;
