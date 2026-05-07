@@ -1071,7 +1071,8 @@ version (CoreUnittest)
     @betterC pure nothrow @nogc @safe unittest
     {
         int a;
-        if (casWeak!(MemoryOrder.acq_rel, MemoryOrder.raw)(&a, 0, 4))
+        int expected = 0;
+        if (casWeakByRef(a, expected, 4))
             assert(a == 4);
     }
 

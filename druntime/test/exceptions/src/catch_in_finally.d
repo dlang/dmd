@@ -1,5 +1,4 @@
-import core.atomic : atomicLoad;
-import core.stdc.stdio : fprintf, stderr;
+import core.stdc.stdio : FILE, fprintf, stderr;
 
 class MyException : Exception
 {
@@ -186,5 +185,6 @@ void main() {
     test3();
     test4();
     test5();
-    fprintf(atomicLoad(stderr), "success.\n");
+    // C stdio owns this shared global; this test only needs the current handle.
+    fprintf(cast(FILE*) stderr, "success.\n");
 }

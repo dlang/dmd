@@ -395,7 +395,7 @@ template hasElaborateCopyConstructor(S)
     static struct S
     {
         int x;
-        this(return scope ref typeof(this) rhs) { }
+        this(this) { }
         this(int x, int y) {}
     }
 
@@ -413,7 +413,7 @@ template hasElaborateCopyConstructor(S)
     static struct S3
     {
         int x;
-        this(return scope ref typeof(this) rhs, int x = 42) { }
+        this(this) { }
         this(int x, int y) {}
     }
 

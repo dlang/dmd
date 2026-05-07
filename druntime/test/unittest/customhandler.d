@@ -16,7 +16,7 @@ shared static this()
 
 void main()
 {
-    import core.atomic : atomicLoad;
-    import core.stdc.stdio : fprintf, stderr;
-    fprintf(atomicLoad(stderr), "main\n");
+    import core.stdc.stdio : FILE, fprintf, stderr;
+    // C stdio owns this shared global; the test only needs the current handle.
+    fprintf(cast(FILE*) stderr, "main\n");
 }
