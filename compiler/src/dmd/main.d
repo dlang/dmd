@@ -192,7 +192,7 @@ private int tryMain(const(char)[][] argv, out Param params)
 
     target.setTargetBuildDefaults();
 
-    if (parseCommandlineAndConfig(argv, params, files))
+    if (parseCommandlineAndConfig(argv, params, files, eSink))
         return EXIT_FAILURE;
 
     global.compileEnv.previewIn        = params.previewIn;
@@ -370,7 +370,7 @@ private int tryMain(const(char)[][] argv, out Param params)
         if (params.jsonFieldFlags)
         {
             Modules modules;            // empty
-            if (generateJson(modules, global.errorSink))
+            if (generateJson(modules, eSink))
                 fatal();
             return EXIT_SUCCESS;
         }
@@ -380,7 +380,7 @@ private int tryMain(const(char)[][] argv, out Param params)
         return EXIT_FAILURE;
     }
 
-    reconcileCommands(params, target);
+    reconcileCommands(params, target, eSink);
     setDefaultLibraries(target, driverParams.defaultlibname, driverParams.debuglibname);
 
     // Initialization
@@ -392,7 +392,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     Objc._init();
     Loc._init();
 
-    reconcileLinkRunLib(params, files.length, target.obj_ext);
+    reconcileLinkRunLib(params, files.length, target.obj_ext, eSink);
     version(CRuntime_Microsoft)
     {
         import dmd.root.longdouble;
@@ -465,7 +465,7 @@ private int tryMain(const(char)[][] argv, out Param params)
 
     // Create Modules
     Modules modules;
-    if (createModules(files, libmodules, params, target, global.errorSink, modules))
+    if (createModules(files, libmodules, params, target, eSink, modules))
         fatal();
 
     // Read files
@@ -546,7 +546,7 @@ private int tryMain(const(char)[][] argv, out Param params)
                 readDdocFiles(m.loc, global.params.ddoc.files, ddocbuf);
 
             ddocOutputText.setsize(0);
-            gendocfile(m, ddocbuf[], global.datetime.ptr, global.errorSink, ddocOutputText);
+            gendocfile(m, ddocbuf[], global.datetime.ptr, eSink, ddocOutputText);
 
             if (!writeFile(m.loc, m.docfile.toString(), ddocOutputText[]))
                 fatal();
@@ -688,7 +688,7 @@ private int tryMain(const(char)[][] argv, out Param params)
         {
             if (params.v.verbose)
                 eSink.message(Loc.initial, "scan pragma(inline) in %s", m.toChars());
-            inlineScanPragmaInline(m, global.errorSink);
+            inlineScanPragmaInline(m, eSink);
         }
     }
 
@@ -699,7 +699,7 @@ private int tryMain(const(char)[][] argv, out Param params)
         {
             if (params.v.verbose)
                 eSink.message(Loc.initial, "scan all inlines in %s", m.toChars());
-            inlineScanAllFunctions(m, global.errorSink);
+            inlineScanAllFunctions(m, eSink);
         }
     }
     }
@@ -734,12 +734,12 @@ private int tryMain(const(char)[][] argv, out Param params)
     }
 
     printCtfePerformanceStats();
-    printTemplateStats(global.params.v.templatesListInstances, global.errorSink);
+    printTemplateStats(global.params.v.templatesListInstances, eSink);
 
     // Generate output files
     if (params.json.doOutput)
     {
-        if (generateJson(modules, global.errorSink))
+        if (generateJson(modules, eSink))
             fatal();
     }
     if (!global.errors && params.ddoc.doOutput)
@@ -750,7 +750,7 @@ private int tryMain(const(char)[][] argv, out Param params)
                 readDdocFiles(m.loc, global.params.ddoc.files, ddocbuf);
 
             ddocOutputText.setsize(0);
-            gendocfile(m, ddocbuf[], global.datetime.ptr, global.errorSink, ddocOutputText);
+            gendocfile(m, ddocbuf[], global.datetime.ptr, eSink, ddocOutputText);
 
             if (!writeFile(m.loc, m.docfile.toString(), ddocOutputText[]))
                 fatal();
@@ -772,7 +772,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     }
 
     if (global.params.cxxhdr.doOutput)
-        genCppHdrFiles(modules, global.errorSink, global.params.cplusplus);
+        genCppHdrFiles(modules, eSink, global.params.cplusplus);
 
     if (global.errors)
         fatal();
@@ -816,14 +816,14 @@ private int tryMain(const(char)[][] argv, out Param params)
         {
             timeTraceBeginEvent(TimeTraceEventType.link);
             scope (exit) timeTraceEndEvent(TimeTraceEventType.link);
-            status = runLINK(global.params.v.verbose, global.errorSink);
+            status = runLINK(global.params.v.verbose, eSink);
         }
         if (params.run)
         {
             if (!status)
             {
                 restoreEnvVars();
-                status = runProgram(global.params.exefile, global.params.runargs[], global.params.v.verbose, global.errorSink);
+                status = runProgram(global.params.exefile, global.params.runargs[], global.params.v.verbose, eSink);
                 /* Delete .obj files and .exe file
                  */
                 foreach (m; modules)
@@ -907,14 +907,16 @@ private int tryMain(const(char)[][] argv, out Param params)
  *   argv = Array of string arguments passed via command line
  *   params = parameters from argv
  *   files = files from argv
+ *   eSink = error message sink
  * Returns: true on failure
  */
-bool parseCommandlineAndConfig(const(char)[][] argv, out Param params, ref Strings files)
+private
+bool parseCommandlineAndConfig(const(char)[][] argv, out Param params, ref Strings files, ErrorSink eSink)
 {
     // Detect malformed input
-    static bool badArgs()
+    bool badArgs()
     {
-        error(Loc.initial, "missing or null command line arguments");
+        eSink.error(Loc.initial, "missing or null command line arguments");
         return true;
     }
 
@@ -930,7 +932,7 @@ bool parseCommandlineAndConfig(const(char)[][] argv, out Param params, ref Strin
         arguments[i] = toCString(argv[i]).ptr;
     }
     if (const(char)* missingFile = responseExpand(arguments)) // expand response files
-        error(Loc.initial, "cannot open response file '%s'", missingFile);
+        eSink.error(Loc.initial, "cannot open response file '%s'", missingFile);
     //for (size_t i = 0; i < arguments.length; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
     // Set default values
     auto argv0 = arguments[0].toDString;
@@ -947,7 +949,7 @@ bool parseCommandlineAndConfig(const(char)[][] argv, out Param params, ref Strin
     {
         // can be empty as in -conf=
         if (global.inifilename.length && !FileName.exists(global.inifilename))
-            error(Loc.initial, "config file '%.*s' does not exist.",
+            eSink.error(Loc.initial, "config file '%.*s' does not exist.",
                   cast(int)global.inifilename.length, global.inifilename.ptr);
     }
     else
@@ -998,8 +1000,8 @@ bool parseCommandlineAndConfig(const(char)[][] argv, out Param params, ref Strin
     if (parseCommandLine(arguments, argc, params, files, target, driverParams, global.errorSink))
     {
         Loc loc;
-        errorSupplemental(loc, "run `dmd` to print the compiler manual");
-        errorSupplemental(loc, "run `dmd -man` to open browser on manual");
+        eSink.errorSupplemental(loc, "run `dmd` to print the compiler manual");
+        eSink.errorSupplemental(loc, "run `dmd -man` to open browser on manual");
         return true;
     }
 
@@ -1008,7 +1010,7 @@ bool parseCommandlineAndConfig(const(char)[][] argv, out Param params, ref Strin
         global.params.ddoc.files.shift(p);
 
     if (target.isX86_64 != isX86_64 && !target.isAArch64)
-        error(Loc.initial, "the architecture must not be changed in the %s section of %.*s",
+        eSink.error(Loc.initial, "the architecture must not be changed in the %s section of %.*s",
               envsection.ptr, cast(int)global.inifilename.length, global.inifilename.ptr);
 
     global.preprocess = &preprocess;
@@ -1044,9 +1046,9 @@ extern extern(C) __gshared string[] rt_options;
  *               and update in place
  *      target = more switches from the command line,
  *               update in place
- *      numSrcFiles = number of source files
+ *      eSink = sink for error messages
  */
-void reconcileCommands(ref Param params, ref Target target)
+void reconcileCommands(ref Param params, ref Target target, ErrorSink eSink)
 {
     if (target.os == Target.OS.OSX)
     {
@@ -1055,20 +1057,20 @@ void reconcileCommands(ref Param params, ref Target target)
     else if (target.os == Target.OS.Windows)
     {
         if (driverParams.pic)
-            error(Loc.initial, "`-fPIC` and `-fPIE` cannot be used when targetting windows");
+            eSink.error(Loc.initial, "`-fPIC` and `-fPIE` cannot be used when targetting windows");
         if (driverParams.dwarf)
-            error(Loc.initial, "`-gdwarf` cannot be used when targetting windows");
+            eSink.error(Loc.initial, "`-gdwarf` cannot be used when targetting windows");
     }
     else if (target.os == Target.OS.DragonFlyBSD)
     {
         if (!target.isX86_64)
-            error(Loc.initial, "`-m32` is not supported on DragonFlyBSD, it is 64-bit only");
+            eSink.error(Loc.initial, "`-m32` is not supported on DragonFlyBSD, it is 64-bit only");
     }
 
     if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
     {
         if (driverParams.lib && driverParams.dll)
-            error(Loc.initial, "cannot mix `-lib` and `-shared`");
+            eSink.error(Loc.initial, "cannot mix `-lib` and `-shared`");
     }
     if (target.os == Target.OS.Windows)
     {
@@ -1077,7 +1079,7 @@ void reconcileCommands(ref Param params, ref Target target)
             if (b)
             {
                 // Linking code is guarded by version (Posix):
-                error(Loc.initial, "`Xcc=` link switches not available for this operating system");
+                eSink.error(Loc.initial, "`Xcc=` link switches not available for this operating system");
                 break;
             }
         }
@@ -1085,7 +1087,7 @@ void reconcileCommands(ref Param params, ref Target target)
     else
     {
         if (driverParams.mscrtlib)
-            error(Loc.initial, "`-mscrtlib` can only be used when targetting windows");
+            eSink.error(Loc.initial, "`-mscrtlib` can only be used when targetting windows");
     }
 
     if (params.boundscheck != CHECKENABLE._default)
@@ -1166,8 +1168,10 @@ void reconcileCommands(ref Param params, ref Target target)
  *               and update in place
  *      numSrcFiles = number of source files
  *      obj_ext = object file extension
+ *	eSink = error message sink
  */
-void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_ext)
+private
+void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_ext, ErrorSink eSink)
 {
     if (!params.obj || driverParams.lib)
         driverParams.link = false;
@@ -1185,7 +1189,7 @@ void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_
             else
             {
                 if (driverParams.link)
-                    error(Loc.initial, "must supply `-mscrtlib` manually when cross compiling to windows");
+                    eSink.error(Loc.initial, "must supply `-mscrtlib` manually when cross compiling to windows");
             }
         }
     }
@@ -1212,7 +1216,7 @@ void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_
     }
     else if (params.run)
     {
-        error(Loc.initial, "flags conflict with -run");
+        eSink.error(Loc.initial, "flags conflict with -run");
         fatal();
     }
     else if (driverParams.lib)
