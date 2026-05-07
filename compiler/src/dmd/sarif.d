@@ -46,22 +46,6 @@ struct ToolInformation {
     }
 }
 
-/**
-Converts an integer to a string.
-
-Params:
-  value = The integer value to convert.
-
-Returns:
-  A string representation of the integer.
-*/
-string intToString(int value) nothrow {
-    char[32] buffer;
-    import core.stdc.stdio : sprintf;
-    sprintf(buffer.ptr, "%d", value);
-    return buffer[0 .. buffer.length].dup;
-}
-
 /// Represents a SARIF result containing a rule ID, message, and location.
 struct SarifResult
 {
@@ -77,19 +61,14 @@ struct SarifResult
     /// - A JSON string representing the SARIF result, including the rule ID, message, and location.
     string toJson() nothrow
     {
-        OutBuffer buffer;
-        buffer.writestring(`{"ruleId": "`);
-        buffer.writestring(ruleId);
-        buffer.writestring(`", "message": "`);
-        buffer.writestring(message);
-        buffer.writestring(`", "location": {"artifactLocation": {"uri": "`);
-        buffer.writestring(uri);
-        buffer.writestring(`"}, "region": {"startLine": `);
-        buffer.writestring(intToString(startLine));
-        buffer.writestring(`, "startColumn": `);
-        buffer.writestring(intToString(startColumn));
-        buffer.writestring(`}}}`);
-        return cast(string) buffer.extractChars()[0 .. buffer.length()].dup;
+        OutBuffer buf;
+        buf.printf(`{"ruleId": "%.*s", "message": "%.*s", "location": {"artifactLocation": {"uri": "%.*s"}, "region": {"startLine": %d, "startColumn": %d}}}`,
+            cast(int)ruleId.length, ruleId.ptr,
+            cast(int)message.length, message.ptr,
+            cast(int)uri.length, uri.ptr,
+            startLine,
+            startColumn);
+        return cast(string) buf[].dup;
     }
 }
 
@@ -106,7 +85,7 @@ Params:
 */
 void addSarifDiagnostic(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind) nothrow
 {
-    char[1024] buffer;
+    char[1024] buffer = void;
     int written = vsnprintf(buffer.ptr, buffer.length, format, ap);
 
     // Handle any truncation
