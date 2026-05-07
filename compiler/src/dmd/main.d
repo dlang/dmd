@@ -35,6 +35,7 @@ import dmd.dinifile;
 import dmd.dinterpret;
 import dmd.dmdparams;
 import dmd.dsymbolsem;
+import dmd.errorsink;
 import dmd.typesem : Type_init;
 import dmd.dtemplate;
 import dmd.dtoh;
@@ -175,6 +176,8 @@ private int tryMain(const(char)[][] argv, out Param params)
     Strings libmodules;
     global._init();
 
+    ErrorSink eSink = global.errorSink;
+
     scope(exit)
     {
         // If we are here then compilation has ended
@@ -274,20 +277,20 @@ private int tryMain(const(char)[][] argv, out Param params)
     /*
     Print a message to make it clear when warnings are treated as errors.
     */
-    static void errorOnWarning()
+    void errorOnWarning()
     {
-        error(Loc.initial, "warnings are treated as errors");
-        errorSupplemental(Loc.initial, "Use -wi if you wish to treat warnings only as informational.");
+        eSink.error(Loc.initial, "warnings are treated as errors");
+        eSink.errorSupplemental(Loc.initial, "Use -wi if you wish to treat warnings only as informational.");
     }
 
     // In case deprecation messages were omitted, inform the user about it
-    static void mentionOmittedDeprecations()
+    void mentionOmittedDeprecations()
     {
         if (global.params.v.errorLimit != 0 &&
             global.deprecations > global.params.v.errorLimit)
         {
             const omitted = global.deprecations - global.params.v.errorLimit;
-            message(Loc.initial, "%d deprecation warning%s omitted, use `-verrors=0` to show all",
+            eSink.message(Loc.initial, "%d deprecation warning%s omitted, use `-verrors=0` to show all",
                 omitted, omitted == 1 ? "".ptr : "s".ptr);
         }
     }
@@ -568,7 +571,7 @@ private int tryMain(const(char)[][] argv, out Param params)
 
     if (anydocfiles && modules.length && (driverParams.oneobj || params.objname))
     {
-        error(Loc.initial, "conflicting Ddoc and obj generation options");
+        eSink.error(Loc.initial, "conflicting Ddoc and obj generation options");
         fatal();
     }
     if (global.errors)
@@ -587,7 +590,7 @@ private int tryMain(const(char)[][] argv, out Param params)
             if (m.filetype == FileType.dhdr)
                 continue;
             if (params.v.verbose)
-                message("import    %s", m.toChars());
+                eSink.message(Loc.initial, "import    %s", m.toChars());
 
             buf.reset();         // reuse the buffer
             genhdrfile(m, params.dihdr.fullOutput, buf);
@@ -610,7 +613,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     foreach (m; modules)
     {
         if (params.v.verbose)
-            message("importall %s", m.toChars());
+            eSink.message(Loc.initial, "importall %s", m.toChars());
         m.importAll(null);
     }
     if (global.errors)
@@ -622,7 +625,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     foreach (m; modules)
     {
         if (params.v.verbose)
-            message("semantic  %s", m.toChars());
+            eSink.message(Loc.initial, "semantic  %s", m.toChars());
         m.dsymbolSemantic(null);
     }
     //if (global.errors)
@@ -633,7 +636,7 @@ private int tryMain(const(char)[][] argv, out Param params)
         for (size_t i = 0; i < Module.deferred.length; i++)
         {
             Dsymbol sd = Module.deferred[i];
-            error(sd.loc, "%s `%s` unable to resolve forward reference in definition", sd.kind(), sd.toPrettyChars());
+            eSink.error(sd.loc, "%s `%s` unable to resolve forward reference in definition", sd.kind(), sd.toPrettyChars());
         }
         //fatal();
     }
@@ -642,7 +645,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     foreach (m; modules)
     {
         if (params.v.verbose)
-            message("semantic2 %s", m.toChars());
+            eSink.message(Loc.initial, "semantic2 %s", m.toChars());
         m.semantic2(null);
     }
     runDeferredSemantic2();
@@ -653,7 +656,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     foreach (m; modules)
     {
         if (params.v.verbose)
-            message("semantic3 %s", m.toChars());
+            eSink.message(Loc.initial, "semantic3 %s", m.toChars());
         m.semantic3(null);
     }
     if (includeImports)
@@ -665,7 +668,7 @@ private int tryMain(const(char)[][] argv, out Param params)
             auto m = compiledImports[i];
             assert(m.isRoot);
             if (params.v.verbose)
-                message("semantic3 %s", m.toChars());
+                eSink.message(Loc.initial, "semantic3 %s", m.toChars());
             m.semantic3(null);
             modules.push(m);
         }
@@ -684,7 +687,7 @@ private int tryMain(const(char)[][] argv, out Param params)
         if (m.hasAlwaysInlines)
         {
             if (params.v.verbose)
-                message("scan pragma(inline) in %s", m.toChars());
+                eSink.message(Loc.initial, "scan pragma(inline) in %s", m.toChars());
             inlineScanPragmaInline(m, global.errorSink);
         }
     }
@@ -695,7 +698,7 @@ private int tryMain(const(char)[][] argv, out Param params)
         foreach (m; modules)
         {
             if (params.v.verbose)
-                message("scan all inlines in %s", m.toChars());
+                eSink.message(Loc.initial, "scan all inlines in %s", m.toChars());
             inlineScanAllFunctions(m, global.errorSink);
         }
     }
@@ -776,7 +779,7 @@ private int tryMain(const(char)[][] argv, out Param params)
 
     if (driverParams.lib && params.objfiles.length == 0)
     {
-        error(Loc.initial, "no input files");
+        eSink.error(Loc.initial, "no input files");
         return EXIT_FAILURE;
     }
 
@@ -805,7 +808,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     if (!params.objfiles.length)
     {
         if (driverParams.link)
-            error(Loc.initial, "no object files to link");
+            eSink.error(Loc.initial, "no object files to link");
     }
     else
     {
@@ -860,12 +863,12 @@ private int tryMain(const(char)[][] argv, out Param params)
             size_t n = fwrite(buf[].ptr, 1, buf.length, stdout);
             if (n != buf.length)
             {
-                error(Loc.initial, "Error writing -ftime-trace profile to stdout");
+                eSink.error(Loc.initial, "Error writing -ftime-trace profile to stdout");
             }
         }
         else if (!File.write(fileName, buf[]))
         {
-            error(Loc.initial,
+            eSink.error(Loc.initial,
                 "Error writing -ftime-trace profile: could not open '%*.s'",
                 cast(int) fileName.length, fileName.ptr);
         }
