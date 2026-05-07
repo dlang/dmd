@@ -7490,11 +7490,11 @@ void adjustLocForMixin(const(char)[] input, Loc loc, ref BaseLoc baseLoc, ref Ou
     /* Create a pseudo-filename for the mixin string, as it may not even exist
      * in the source file.
      */
-    auto len = sl.filename.length + 7 + (sl.linnum).sizeof * 3 + 1;
-    char* filename = cast(char*) mem.xmalloc(len);
-    snprintf(filename, len, "%.*s-mixin-%d", cast(int) sl.filename.length, sl.filename.ptr, cast(int) sl.linnum);
+    OutBuffer buf;
+    buf.reserve(sl.filename.length + 7 + (sl.linnum).sizeof * 3 + 1);
+    buf.printf("%.*s-mixin-%d", cast(int) sl.filename.length, sl.filename.ptr, cast(int) sl.linnum);
+    baseLoc.filename = buf.extractSlice(true);
     baseLoc.startLine = sl.line;
-    baseLoc.filename = filename.toDString;
 }
 
 /**************************************
