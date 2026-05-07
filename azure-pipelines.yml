@@ -30,11 +30,9 @@ jobs:
         x64:
           MODEL: 64
           ARCH: x64
-        # Windows x86 currently fails while archiving druntime with an MS-Coff
-        # object-format mismatch; keep this PR focused on nosharedaccess.
-        # x86:
-        #   MODEL: 32
-        #   ARCH: x86
+        x86:
+          MODEL: 32
+          ARCH: x86
     steps:
       - template: .azure-pipelines/windows.yml
       - template: .azure-pipelines/windows-artifact.yml
@@ -70,14 +68,12 @@ jobs:
           MODEL: 64
           ARCH: x64
           CONFIGURATION: Debug
-        # Windows x86 currently fails while archiving druntime with an MS-Coff
-        # object-format mismatch; keep this PR focused on nosharedaccess.
-        # x86-mscoff:
-        #   MODEL: 32
-        #   ARCH: x86
-        # x86-mscoff_MinGW:
-        #   MODEL: 32
-        #   ARCH: x86
-        #   C_RUNTIME: mingw
+        x86-mscoff:
+          MODEL: 32
+          ARCH: x86
+        x86-mscoff_MinGW:
+          MODEL: 32
+          ARCH: x86
+          C_RUNTIME: mingw
     steps:
       - template: .azure-pipelines/windows-visual-studio.yml
