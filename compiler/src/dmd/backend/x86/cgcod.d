@@ -1949,12 +1949,13 @@ reg_t allocScratchReg(ref CodeBuilder cdb, regm_t regm)
 @trusted
 regm_t lpadregs()
 {
+    CGstate* cg = &cgstate;
     regm_t used;
     if (config.ehmethod == EHmethod.EH_DWARF)
-        used = cgstate.allregs & ~cgstate.mfuncreg;
+        used = cg.allregs & ~cg.mfuncreg;
     else
-        used = (I32 | I64) ? cgstate.allregs : (ALLREGS | mES);
-    //printf("lpadregs(): used=%s, allregs=%s, mfuncreg=%s\n", regm_str(used), regm_str(cgstate.llregs), regm_str(mfuncreg));
+        used = (I32 | I64) ? cg.allregs : (ALLREGS | mES);
+    //printf("lpadregs(): used=%s, allregs=%s, mfuncreg=%s\n", regm_str(used), regm_str(cg.allregs), regm_str(mfuncreg));
     return used;
 }
 
@@ -1967,14 +1968,15 @@ regm_t lpadregs()
 void useregs(regm_t regm)
 {
     //printf("useregs(x%llx) %s\n", regm, regm_str(regm));
+    CGstate* cg = &cgstate;
     assert(REGMAX < 64);
     regm &= (1UL << REGMAX) - 1;
     assert(!(regm & mPSW));
-    cgstate.mfuncreg &= ~regm;
-    cgstate.regcon.used |= regm;                // registers used in this block
-    cgstate.regcon.params &= ~regm;
-    if (regm & cgstate.regcon.mpvar)            // if modified a fastpar register variable
-        cgstate.regcon.params = 0;              // toss them all out
+    cg.mfuncreg &= ~regm;
+    cg.regcon.used |= regm;                // registers used in this block
+    cg.regcon.params &= ~regm;
+    if (regm & cg.regcon.mpvar)            // if modified a fastpar register variable
+        cg.regcon.params = 0;              // toss them all out
 }
 
 /*************************
@@ -1986,11 +1988,12 @@ void useregs(regm_t regm)
 void getregs(ref CodeBuilder cdb, regm_t r)
 {
     //printf("getregs() %s\n", regm_str(r));
-    regm_t ms = r & cgstate.regcon.cse.mops;           // mask of common subs we must save
+    CGstate* cg = &cgstate;
+    regm_t ms = r & cg.regcon.cse.mops;           // mask of common subs we must save
     useregs(r);
-    cgstate.regcon.cse.mval &= ~r;
-    cgstate.msavereg &= ~r;                     // regs that are destroyed
-    cgstate.regcon.immed.mval &= ~r;
+    cg.regcon.cse.mval &= ~r;
+    cg.msavereg &= ~r;                     // regs that are destroyed
+    cg.regcon.immed.mval &= ~r;
     if (ms)
         cse_save(cdb, ms);
 }
@@ -2003,11 +2006,12 @@ void getregs(ref CodeBuilder cdb, regm_t r)
 void getregsNoSave(regm_t r)
 {
     //printf("getregsNoSave(x%x) %s\n", r, regm_str(r));
-    assert(!(r & cgstate.regcon.cse.mops));            // mask of common subs we must save
+    CGstate* cg = &cgstate;
+    assert(!(r & cg.regcon.cse.mops));            // mask of common subs we must save
     useregs(r);
-    cgstate.regcon.cse.mval &= ~r;
-    cgstate.msavereg &= ~r;                     // regs that are destroyed
-    cgstate.regcon.immed.mval &= ~r;
+    cg.regcon.cse.mval &= ~r;
+    cg.msavereg &= ~r;                     // regs that are destroyed
+    cg.regcon.immed.mval &= ~r;
 }
 
 /*****************************************
@@ -2018,14 +2022,14 @@ void getregsNoSave(regm_t r)
 private void cse_save(ref CodeBuilder cdb, regm_t ms)
 {
     //printf("cse_save() ms: %s\n", regm_str(ms));
-    assert((ms & cgstate.regcon.cse.mops) == ms);
+    CGstate* cg = &cgstate;
+    assert((ms & cg.regcon.cse.mops) == ms);
 
-    auto cg = &cgstate;
     cg.regcon.cse.mops &= ~ms;
 
     regm_t xMSW = mMSW;
     regm_t xLSW = mLSW | mBP;
-    if (cgstate.AArch64)
+    if (cg.AArch64)
     {
         xMSW = INSTR.MSW;
         xLSW = INSTR.LSW;
@@ -2036,7 +2040,7 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
     {
         if (regm & ms)
         {
-            const e = cgstate.regcon.cse.value[findreg(regm)];
+            const e = cg.regcon.cse.value[findreg(regm)];
             const sz = tysize(e.Ety);
             foreach (const ref cse; CSE.filter(e))
             {
@@ -2060,7 +2064,7 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
     {
         auto cse = CSE.add();
         reg_t reg = findreg(ms);          /* the register to save         */
-        cse.e = cgstate.regcon.cse.value[reg];
+        cse.e = cg.regcon.cse.value[reg];
         cse.regm = mask(reg);
 
         ms &= ~mask(reg);           /* turn off reg bit in ms       */
@@ -2072,7 +2076,7 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
         {
             CSE.updateSizeAndAlign(cse.e);
             gen_storecse(cdb, cse.e.Ety, reg, cse.slot);
-            cgstate.reflocal = true;
+            cg.reflocal = true;
         }
     }
 }
@@ -2084,9 +2088,10 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
 @trusted
 void getregs_imm(ref CodeBuilder cdb, regm_t r)
 {
-    regm_t save = cgstate.regcon.immed.mval;
+    CGstate* cg = &cgstate;
+    regm_t save = cg.regcon.immed.mval;
     getregs(cdb,r);
-    cgstate.regcon.immed.mval = save;
+    cg.regcon.immed.mval = save;
 }
 
 /******************************************
@@ -2184,17 +2189,18 @@ bool evalinregister(elem* e)
         return true;
 
     // Need to rethink this code if float or double can be CSE'd
-    bool AArch64 = cgstate.AArch64;
+    CGstate* cg = &cgstate;
+    bool AArch64 = cg.AArch64;
     uint sz = tysize(e.Ety);
     if (e.Ecount == e.Ecomsub)    /* elem is a CSE that needs     */
                                     /* to be generated              */
     {
         if ((I32 || I64) &&
-            //cgstate.pass == BackendPass.final_ && // bug 8987
+            //cg.pass == BackendPass.final_ && // bug 8987
             sz <= REGSIZE)
         {
             // Do it only if at least 2 registers are available
-            regm_t m = cgstate.allregs & ~cgstate.regcon.mvar;
+            regm_t m = cg.allregs & ~cg.regcon.mvar;
             if (sz == 1 && !AArch64)
                 m &= BYTEREGS;
             if (m & (m - 1))        // if more than one register
@@ -2214,10 +2220,10 @@ bool evalinregister(elem* e)
     /* it's in a register already, the computation should be done   */
     /* using that register.                                         */
     regm_t emask = 0;
-    for (uint i = 0; i < cgstate.regcon.cse.value.length; i++)
-        if (cgstate.regcon.cse.value[i] == e)
+    for (uint i = 0; i < cg.regcon.cse.value.length; i++)
+        if (cg.regcon.cse.value[i] == e)
             emask |= mask(i);
-    emask &= cgstate.regcon.cse.mval;       // mask of available CSEs
+    emask &= cg.regcon.cse.mval;       // mask of available CSEs
     if (sz <= REGSIZE)
         return emask != 0;      /* the CSE is in a register     */
     if (sz <= 2 * REGSIZE)
@@ -2260,7 +2266,8 @@ regm_t getscratch()
 @trusted
 private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
 {
-    const AArch64 = cgstate.AArch64;
+    CGstate* cg = &cgstate;
+    const AArch64 = cg.AArch64;
 
     //printf("comsub(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
     //elem_debug(e);
@@ -2282,13 +2289,13 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
      * have the right contents.
      */
     regm_t emask = 0;
-    foreach (i, ref v; cgstate.regcon.cse.value[])
+    foreach (i, ref v; cg.regcon.cse.value[])
     {
         //printf("regcon.cse.value[%d] = %p\n",cast(int)i,v);
         if (v == e)                       // if contents match
             emask |= mask(cast(uint)i);   // turn on bit for reg
     }
-    emask &= cgstate.regcon.cse.mval;                     // make sure all bits are valid
+    emask &= cg.regcon.cse.mval;                     // make sure all bits are valid
 
     if (AArch64)
     {    }
@@ -2300,13 +2307,13 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         {
             regm_t retregs = pretregs & mST0 ? XMMREGS : mXMM0 | mXMM1;
             comsub(cdb, e, retregs);
-            fixresult(cgstate,cdb,e,retregs,pretregs);
+            fixresult(*cg,cdb,e,retregs,pretregs);
             return;
         }
     }
     else if (tyfloating(e.Ety) && config.inline8087)
     {
-        comsub87(cgstate,cdb,e,pretregs);
+        comsub87(*cg,cdb,e,pretregs);
         return;
     }
 
@@ -2317,11 +2324,11 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
 
     debug if (debugw)
     {
-        printf("comsub(e=%p): pretregs=%s, emask=%s, csemask=%s, cgstate.regcon.cse.mval=%s, cgstate.regcon.mvar=%s\n",
+        printf("comsub(e=%p): pretregs=%s, emask=%s, csemask=%s, cg.regcon.cse.mval=%s, cg.regcon.mvar=%s\n",
                 e,regm_str(pretregs),regm_str(emask),regm_str(csemask),
-                regm_str(cgstate.regcon.cse.mval),regm_str(cgstate.regcon.mvar));
-        if (cgstate.regcon.cse.mval & 1)
-            elem_print(cgstate.regcon.cse.value[0]);
+                regm_str(cg.regcon.cse.mval),regm_str(cg.regcon.mvar));
+        if (cg.regcon.cse.mval & 1)
+            elem_print(cg.regcon.cse.value[0]);
     }
 
     tym_t tym = tybasic(e.Ety);
@@ -2340,10 +2347,10 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
             regm = emask;               /* try any other register       */
         if (regm)                       /* if it's in a register        */
         {
-            if (!OTleaf(e.Eoper) || !(regm & cgstate.regcon.mvar) || (pretregs & cgstate.regcon.mvar) == pretregs)
+            if (!OTleaf(e.Eoper) || !(regm & cg.regcon.mvar) || (pretregs & cg.regcon.mvar) == pretregs)
             {
                 regm = mask(findreg(regm));
-                fixresult(cgstate,cdb,e,regm,pretregs);
+                fixresult(*cg,cdb,e,regm,pretregs);
                 return;
             }
         }
@@ -2361,8 +2368,8 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
                 if (AArch64)
                 {
                     retregs = pretregs;
-                    if (!(retregs & cgstate.allregs | INSTR.FLOATREGS))
-                        retregs = cgstate.allregs | INSTR.FLOATREGS;
+                    if (!(retregs & cg.allregs | INSTR.FLOATREGS))
+                        retregs = cg.allregs | INSTR.FLOATREGS;
                     reg = allocreg(cdb,retregs,tym);
                     code* cr = &cse.csimple;
                     cr.reg = reg;
@@ -2372,8 +2379,8 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
                 retregs = pretregs;
                 if (byte_ && !(retregs & BYTEREGS))
                     retregs = BYTEREGS;
-                else if (!(retregs & cgstate.allregs))
-                    retregs = cgstate.allregs;
+                else if (!(retregs & cg.allregs))
+                    retregs = cg.allregs;
                 reg = allocreg(cdb,retregs,tym);
                 code* cr = &cse.csimple;
                 cr.setReg(reg);
@@ -2384,7 +2391,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
             }
             else
             {
-                cgstate.reflocal = true;
+                cg.reflocal = true;
                 cse.flags |= CSEload;
                 if (pretregs == mPSW && !AArch64)  // if result in CCs only
                 {
@@ -2393,9 +2400,9 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
                         retregs = XMMREGS;
                         reg = allocreg(cdb,retregs,tym);
                         gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
-                        cgstate.regcon.cse.mval |= mask(reg); // cs is in a reg
-                        cgstate.regcon.cse.value[reg] = e;
-                        fixresult(cgstate,cdb,e,retregs,pretregs);
+                        cg.regcon.cse.mval |= mask(reg); // cs is in a reg
+                        cg.regcon.cse.value[reg] = e;
+                        fixresult(*cg,cdb,e,retregs,pretregs);
                     }
                     else
                     {
@@ -2408,9 +2415,9 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
                     retregs = pretregs;
                     if (AArch64)
                     {
-                        if (!(retregs & (cgstate.allregs | INSTR.FLOATREGS)))
+                        if (!(retregs & (cg.allregs | INSTR.FLOATREGS)))
                         {
-                            retregs = tyfloating(tym) ? INSTR.FLOATREGS : cgstate.allregs;
+                            retregs = tyfloating(tym) ? INSTR.FLOATREGS : cg.allregs;
                         }
                     }
                     else if (byte_ && !(retregs & BYTEREGS))
@@ -2418,9 +2425,9 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
                     reg = allocreg(cdb,retregs,tym);
                     gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
                 L10:
-                    cgstate.regcon.cse.mval |= mask(reg); // cs is in a reg
-                    cgstate.regcon.cse.value[reg] = e;
-                    fixresult(cgstate,cdb,e,retregs,pretregs);
+                    cg.regcon.cse.mval |= mask(reg); // cs is in a reg
+                    cg.regcon.cse.value[reg] = e;
+                    fixresult(*cg,cdb,e,retregs,pretregs);
                 }
             }
             return;
@@ -2428,7 +2435,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
 
         debug
         {
-            printf("couldn't find cse e = %p, pass = %d\n",e,cgstate.pass);
+            printf("couldn't find cse e = %p, pass = %d\n",e,cg.pass);
             elem_print(e);
         }
         assert(0);                      /* should have found it         */
@@ -2492,7 +2499,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         }
 
         regm = mask(msreg) | mask(lsreg);       /* mask of result       */
-        fixresult(cgstate,cdb,e,regm,pretregs);
+        fixresult(*cg,cdb,e,regm,pretregs);
         return;
     }
     else if (tym == TYdouble || tym == TYdouble_alias)    // double
@@ -2508,7 +2515,7 @@ private void comsub(ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
                     loadcse(cdb,e,reg,mask(reg));
             }
             regm_t regm = DOUBLEREGS_16;
-            fixresult(cgstate,cdb,e,regm,pretregs);
+            fixresult(*cg,cdb,e,regm,pretregs);
             return;
         }
         if (OTleaf(e.Eoper)) goto reload;
@@ -2530,13 +2537,13 @@ reload:                                 /* reload result from memory    */
     switch (e.Eoper)
     {
         case OPrelconst:
-            cdrelconst(cgstate, cdb,e,pretregs);
+            cdrelconst(*cg, cdb,e,pretregs);
             break;
 
         case OPgot:
             if (config.exe & EX_posix)
             {
-                cdgot(cgstate, cdb,e,pretregs);
+                cdgot(*cg, cdb,e,pretregs);
                 break;
             }
             goto default;
@@ -2547,11 +2554,11 @@ reload:                                 /* reload result from memory    */
                 (tyxmmreg(tym) || tysimd(tym)))
             {
                 regm_t retregs = XMMREGS | mPSW;
-                loaddata(cgstate,cdb,e,retregs);
+                loaddata(*cg,cdb,e,retregs);
                 cssave(e,retregs,false);
                 return;
             }
-            loaddata(cgstate,cdb,e,pretregs);
+            loaddata(*cg,cdb,e,pretregs);
             break;
     }
     cssave(e,pretregs,false);
@@ -2570,10 +2577,11 @@ private void loadcse(ref CodeBuilder cdb,elem* e,reg_t reg,regm_t regm)
         //printf("CSE[%d] = %p, regm = %s\n", i, cse.e, regm_str(cse.regm));
         if (cse.regm & regm)
         {
-            cgstate.reflocal = true;
+	    CGstate* cg = &cgstate;
+            cg.reflocal = true;
             cse.flags |= CSEload;    /* it was loaded        */
-            cgstate.regcon.cse.value[reg] = e;
-            cgstate.regcon.cse.mval |= mask(reg);
+            cg.regcon.cse.value[reg] = e;
+            cg.regcon.cse.mval |= mask(reg);
             getregs(cdb,mask(reg));
             gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
             return;
@@ -3270,9 +3278,10 @@ const(char)* regm_str(regm_t rm)
 @trusted
 void docommas(ref CodeBuilder cdb, ref elem* pe)
 {
-    uint stackpushsave = cgstate.stackpush;
-    int stackcleansave = cgstate.stackclean;
-    cgstate.stackclean = 0;
+    CGstate* cg = &cgstate;
+    uint stackpushsave = cg.stackpush;
+    int stackcleansave = cg.stackclean;
+    cg.stackclean = 0;
     elem* e = pe;
     while (1)
     {
@@ -3284,44 +3293,45 @@ void docommas(ref CodeBuilder cdb, ref elem* pe)
         if (e.Eoper != OPcomma)
             break;
         regm_t retregs = 0;
-        codelem(cgstate,cdb,e.E1,retregs,true);
+        codelem(*cg,cdb,e.E1,retregs,true);
         elem* eold = e;
         e = e.E2;
         freenode(eold);
     }
     pe = e;
-    assert(cgstate.stackclean == 0);
-    cgstate.stackclean = stackcleansave;
-    genstackclean(cgstate,cdb,cgstate.stackpush - stackpushsave,0);
+    assert(cg.stackclean == 0);
+    cg.stackclean = stackcleansave;
+    genstackclean(*cg,cdb,cg.stackpush - stackpushsave,0);
 }
 
 /**************************
- * For elems in cgstate.regcon that don't match regconsave,
- * clear the corresponding bit in cgstate.regcon.cse.mval.
- * Do same for cgstate.regcon.immed.
+ * For elems in cg.regcon that don't match regconsave,
+ * clear the corresponding bit in cg.regcon.cse.mval.
+ * Do same for cg.regcon.immed.
  */
 
 @trusted
 void andregcon(const ref con_t pregconsave)
 {
+    CGstate* cg = &cgstate;
     regm_t m = ~1UL;
     foreach (i; 0 ..REGMAX)
     {
-        if (pregconsave.cse.value[i] != cgstate.regcon.cse.value[i])
-            cgstate.regcon.cse.mval &= m;
-        if (pregconsave.immed.value[i] != cgstate.regcon.immed.value[i])
-            cgstate.regcon.immed.mval &= m;
+        if (pregconsave.cse.value[i] != cg.regcon.cse.value[i])
+            cg.regcon.cse.mval &= m;
+        if (pregconsave.immed.value[i] != cg.regcon.immed.value[i])
+            cg.regcon.immed.mval &= m;
         m <<= 1;
         m |= 1;
     }
-    //printf("regcon.cse.mval = %s, cgstate.regconsave.mval = %s ",regm_str(regcon.cse.mval),regm_str(pregconsave.cse.mval));
-    cgstate.regcon.used |= pregconsave.used;
-    assert(!(cgstate.regcon.used & mPSW));
-    cgstate.regcon.cse.mval &= pregconsave.cse.mval;
-    cgstate.regcon.immed.mval &= pregconsave.immed.mval;
-    cgstate.regcon.params &= pregconsave.params;
-    //printf("regcon.cse.mval&regcon.cse.mops = %s, cgstate.regcon.cse.mops = %s\n",regm_str(cgstate.regcon.cse.mval & cgstate.regcon.cse.mops), regm_str(cgstate.regcon.cse.mops));
-    cgstate.regcon.cse.mops &= cgstate.regcon.cse.mval;
+    //printf("regcon.cse.mval = %s, cg.regconsave.mval = %s ",regm_str(regcon.cse.mval),regm_str(pregconsave.cse.mval));
+    cg.regcon.used |= pregconsave.used;
+    assert(!(cg.regcon.used & mPSW));
+    cg.regcon.cse.mval &= pregconsave.cse.mval;
+    cg.regcon.immed.mval &= pregconsave.immed.mval;
+    cg.regcon.params &= pregconsave.params;
+    //printf("regcon.cse.mval&regcon.cse.mops = %s, cg.regcon.cse.mops = %s\n",regm_str(cg.regcon.cse.mval & cg.regcon.cse.mops), regm_str(cg.regcon.cse.mops));
+    cg.regcon.cse.mops &= cg.regcon.cse.mval;
 }
 
 
