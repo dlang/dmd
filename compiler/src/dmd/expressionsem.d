@@ -13409,17 +13409,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (exp.e1.op == EXP.variable)
             {
-                // Rewrite: e1 = e1 ^^ e2
+                // Rewrite: e1 = cast(T)(e1 ^^ e2)
                 e = new PowExp(exp.loc, exp.e1.syntaxCopy(), exp.e2);
+                e = new CastExp(exp.loc, e, exp.e1.type);
                 e = new AssignExp(exp.loc, exp.e1, e);
             }
             else
             {
-                // Rewrite: ref tmp = e1; tmp = tmp ^^ e2
+                // Rewrite: ref tmp = e1; tmp = cast(T)(tmp ^^ e2)
                 auto v = copyToTemp(STC.ref_, "__powtmp", exp.e1);
                 auto de = new DeclarationExp(exp.e1.loc, v);
                 auto ve = new VarExp(exp.e1.loc, v);
                 e = new PowExp(exp.loc, ve, exp.e2);
+                e = new CastExp(exp.loc, e, exp.e1.type);
                 e = new AssignExp(exp.loc, new VarExp(exp.e1.loc, v), e);
                 e = new CommaExp(exp.loc, de, e);
             }
