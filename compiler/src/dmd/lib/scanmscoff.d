@@ -58,7 +58,7 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) nothrow 
     BIGOBJ_HEADER* header = cast(BIGOBJ_HEADER*)buf;
     bool is_old_coff = false;
     BIGOBJ_HEADER bigobj_header = void;
-    if (header.Sig2 != 0xFFFF && header.Version != 2)
+    if (header.Sig1 != IMAGE_FILE_MACHINE_UNKNOWN || header.Sig2 != 0xFFFF || header.Version != 2)
     {
         is_old_coff = true;
         IMAGE_FILE_HEADER header_old = *cast(IMAGE_FILE_HEADER*)buf;
