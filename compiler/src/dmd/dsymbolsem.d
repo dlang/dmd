@@ -16,48 +16,51 @@ import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;
 
-import dmd.aggregate;
-import dmd.aliasthis;
+import dmd.ast.aggregate;
+import dmd.ast.aliasthis;
+import dmd.ast.codegen;
+import dmd.ast.enums;
+import dmd.ast.attrib;
 import dmd.arraytypes;
-import dmd.astcodegen;
-import dmd.astenums;
-import dmd.attrib;
 import dmd.attribsem;
+import dmd.ast.cond;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.denum;
+import dmd.ast.dimport;
+import dmd.ast.dmodule;
+import dmd.ast.dstruct;
+import dmd.ast.dsymbol;
+import dmd.ast.dtemplate;
+import dmd.ast.dversion;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.init;
+import dmd.ast.mtype;
+import dmd.ast.nspace;
+import dmd.ast.staticassert;
+import dmd.ast.statement;
+
 import dmd.clone;
-import dmd.cond;
 import dmd.timetrace;
 import dmd.dcast;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.denum;
 import dmd.deps;
-import dmd.dimport;
 import dmd.dinterpret;
-import dmd.dmodule;
 import dmd.dscope;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.dversion;
 import dmd.enumsem;
 import dmd.errors;
 import dmd.errorsink;
-import dmd.expression;
 import dmd.expressionsem;
-import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.importc;
-import dmd.init;
 import dmd.initsem;
 import dmd.hdrgen;
 import dmd.lexer;
 import dmd.location;
-import dmd.mtype;
 import dmd.mustuse;
-import dmd.nspace;
 import dmd.objc;
 import dmd.optimize;
 import dmd.parse;
@@ -71,9 +74,7 @@ import dmd.safe;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.sideeffect;
-import dmd.staticassert;
 import dmd.tokens;
-import dmd.statement;
 import dmd.statementsem : ready;
 import dmd.target;
 import dmd.targetcompiler;
@@ -162,7 +163,7 @@ private void fixupInvariantIdent(InvariantDeclaration invd, size_t offset)
  */
 const(char)* search_correct_C(Identifier ident)
 {
-    import dmd.astenums : Twchar;
+    import dmd.ast.enums : Twchar;
     TOK tok;
     if (ident == Id.NULL)
         tok = TOK.null_;
@@ -1898,7 +1899,7 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool find
                 e = null;
         }
 
-        import dmd.dclass : ClassDeclaration;
+        import dmd.ast.dclass : ClassDeclaration;
         auto cd = ad.isClassDeclaration();
         if ((!e || !ad.aliasthis) && cd && cd.baseClass && cd.baseClass != ClassDeclaration.object)
         {
@@ -4682,7 +4683,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         visitStaticCDtorDeclaration(scd, false);
 
         foreachUda(scd, sc, (Expression e) {
-            import dmd.attrib : isEnumAttribute;
+            import dmd.ast.attrib : isEnumAttribute;
             if (!isEnumAttribute(e, Id.udaStandalone))
                 return 0;
 
@@ -9732,7 +9733,7 @@ bool hasStaticCtorOrDtor(Dsymbol d)
 
 private extern(C++) class HasStaticCtorOrDtor : Visitor
 {
-    import dmd.mtype : Type;
+    import dmd.ast.mtype : Type;
 
     alias visit = Visitor.visit;
     bool result;
@@ -10369,7 +10370,7 @@ bool hasPointers(Dsymbol d)
 
 private extern(C++) class HasPointersVisitor : Visitor
 {
-    import dmd.mtype : Type;
+    import dmd.ast.mtype : Type;
 
     alias visit = Visitor.visit;
     bool result;
@@ -10423,8 +10424,8 @@ int _foreach(Scope* sc, Dsymbols* members, scope ForeachDg dg, size_t* pn = null
     int result = 0;
     foreach (size_t i; 0 .. members.length)
     {
-        import dmd.attrib : AttribDeclaration;
-        import dmd.dtemplate : TemplateMixin;
+        import dmd.ast.attrib : AttribDeclaration;
+        import dmd.ast.dtemplate : TemplateMixin;
 
         Dsymbol s = (*members)[i];
         if (AttribDeclaration a = s.isAttribDeclaration())

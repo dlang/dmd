@@ -18,23 +18,24 @@ module dmd.lambdacomp;
 import core.stdc.stdio;
 import core.stdc.string;
 
-import dmd.astenums;
-import dmd.declaration;
-import dmd.denum;
-import dmd.dsymbol;
+import dmd.ast.enums;
+import dmd.ast.declaration;
+import dmd.ast.denum;
+import dmd.ast.dsymbol;
+import dmd.ast.dtemplate;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.mtype;
+import dmd.ast.statement;
+
 import dmd.dsymbolsem;
-import dmd.dtemplate;
-import dmd.expression;
 import dmd.expressionsem : getConstInitializer, toInteger;
-import dmd.func;
 import dmd.hdrgen;
 import dmd.mangle;
-import dmd.mtype;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.stringtable;
 import dmd.dscope;
-import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
 

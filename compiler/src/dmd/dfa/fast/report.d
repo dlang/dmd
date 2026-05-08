@@ -16,11 +16,14 @@
  */
 module dmd.dfa.fast.report;
 import dmd.dfa.fast.structure;
+
+import dmd.ast.declaration;
+import dmd.ast.enums;
+import dmd.ast.func;
+
 import dmd.location;
-import dmd.func;
 import dmd.errorsink;
-import dmd.declaration;
-import dmd.astenums;
+
 import core.stdc.stdio;
 
 alias Fact = ParameterDFAInfo.Fact;

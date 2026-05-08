@@ -15,28 +15,29 @@ module dmd.nogc;
 
 import core.stdc.stdio;
 
-import dmd.aggregate;
+import dmd.ast.aggregate;
+import dmd.ast.enums;
+import dmd.ast.attrib;
+import dmd.ast.declaration;
+import dmd.ast.dmodule;
+import dmd.ast.dsymbol : PASS, Dsymbol;
+import dmd.ast.dtemplate : isDsymbol;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.init;
+import dmd.ast.mtype;
+
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.attrib;
 import dmd.common.outbuffer;
-import dmd.declaration;
-import dmd.dmodule;
 import dmd.dscope;
-import dmd.dsymbol : PASS, Dsymbol;
-import dmd.dtemplate : isDsymbol;
 import dmd.errors;
 import dmd.escape;
-import dmd.expression;
 import dmd.expressionsem;
-import dmd.func;
 import dmd.funcsem : isRootTraitsCompilesScope;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
 import dmd.location;
-import dmd.mtype;
 import dmd.rootobject : RootObject, DYNCAST;
 import dmd.semantic2;
 import dmd.semantic3;
@@ -319,7 +320,7 @@ extern (D) void printGCUsage(FuncDeclaration fd, Loc loc, const(char)* warn)
 private FuncDeclaration stripHookTraceImpl(FuncDeclaration fd)
 {
     import dmd.id : Id;
-    import dmd.dsymbol : Dsymbol;
+    import dmd.ast.dsymbol : Dsymbol;
 
     if (fd.ident != Id._d_HookTraceImpl)
         return fd;

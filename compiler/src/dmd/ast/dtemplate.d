@@ -31,32 +31,33 @@
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dtemplate.d, _dtemplate.d)
- * Documentation:  https://dlang.org/phobos/dmd_dtemplate.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/dtemplate.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/dtemplate.d, _dtemplate.d)
+ * Documentation:  https://dlang.org/phobos/dmd_ast_dtemplate.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/ast/dtemplate.d
  */
 
-module dmd.dtemplate;
+module dmd.ast.dtemplate;
 
 import core.stdc.stdio;
 import core.stdc.string;
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.ast_node;
-import dmd.declaration;
-import dmd.dmodule;
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.node;
+import dmd.ast.declaration;
+import dmd.ast.dmodule;
+import dmd.ast.mtype;
+import dmd.ast.func;
+import dmd.ast.dsymbol;
+
 import dmd.dscope;
-import dmd.dsymbol;
 import dmd.errors;
 import dmd.errorsink;
-import dmd.expression;
-import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.identifier;
 import dmd.location;
 import dmd.mangle;
-import dmd.mtype;
 import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.rootobject;

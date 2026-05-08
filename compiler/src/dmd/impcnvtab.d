@@ -16,8 +16,8 @@
 
 module dmd.impcnvtab;
 
-import dmd.astenums;
-import dmd.mtype;
+import dmd.ast.enums;
+import dmd.ast.mtype;
 
 pure @nogc nothrow @safe:
 

@@ -15,9 +15,10 @@ Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/timetra
 */
 module dmd.timetrace;
 
+import dmd.ast.dsymbol;
+import dmd.ast.expression;
+
 import dmd.location;
-import dmd.dsymbol;
-import dmd.expression;
 import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.root.string : toDString;

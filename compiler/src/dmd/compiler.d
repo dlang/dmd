@@ -13,16 +13,17 @@ module dmd.compiler;
 
 import core.stdc.string;
 
-import dmd.astenums;
+import dmd.ast.dmodule;
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.mtype;
+
 import dmd.arraytypes;
 import dmd.ctfeexpr;
-import dmd.dmodule;
 import dmd.errors;
-import dmd.expression;
 import dmd.expressionsem : toInteger, toReal;
 import dmd.id;
 import dmd.identifier;
-import dmd.mtype;
 import dmd.typesem;
 import dmd.root.array;
 import dmd.root.ctfloat;
@@ -155,7 +156,7 @@ extern (C++) struct Compiler
 
     version (CallbackAPI)
     {
-        import dmd.statement;
+        import dmd.ast.statement;
         import dmd.dscope;
         alias OnStatementSemanticStart = void function(Statement, Scope*);
         alias OnStatementSemanticDone = void function(Statement, Scope*);

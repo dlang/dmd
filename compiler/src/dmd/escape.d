@@ -17,23 +17,25 @@ import core.stdc.string;
 
 import dmd.root.rmem;
 
-import dmd.aggregate;
-import dmd.astenums;
-import dmd.declaration;
+import dmd.ast.aggregate;
+import dmd.ast.expression;
+import dmd.ast.declaration;
+import dmd.ast.dsymbol;
+import dmd.ast.enums;
+import dmd.ast.func;
+import dmd.ast.init;
+import dmd.ast.mtype;
+import dmd.ast.print;
+
 import dmd.dscope;
-import dmd.dsymbol;
 import dmd.errors;
-import dmd.expression;
+
 import dmd.expressionsem;
-import dmd.func;
 import dmd.funcsem;
 import dmd.globals : FeatureState;
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
 import dmd.location;
-import dmd.mtype;
-import dmd.printast;
 import dmd.rootobject;
 import dmd.safe;
 import dmd.tokens;

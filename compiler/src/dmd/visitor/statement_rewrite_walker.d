@@ -13,7 +13,7 @@ module dmd.visitor.statement_rewrite_walker;
 
 import core.stdc.stdio;
 
-import dmd.statement;
+import dmd.ast.statement;
 import dmd.visitor;
 
 

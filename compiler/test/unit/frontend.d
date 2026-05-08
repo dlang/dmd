@@ -15,8 +15,8 @@ unittest
 {
     import std.algorithm : each;
 
-    import dmd.astcodegen : ASTCodegen;
-    import dmd.dclass : ClassDeclaration;
+    import dmd.ast.codegen : ASTCodegen;
+    import dmd.ast.dclass : ClassDeclaration;
     import dmd.frontend;
     import dmd.visitor : SemanticTimeTransitiveVisitor;
 

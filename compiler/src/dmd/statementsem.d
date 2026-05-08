@@ -15,40 +15,42 @@ module dmd.statementsem;
 
 import core.stdc.stdio;
 
-import dmd.aggregate;
+import dmd.ast.aggregate;
+import dmd.ast.codegen;
+import dmd.ast.enums;
+import dmd.ast.cond;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.denum;
+import dmd.ast.dimport;
+import dmd.ast.dmodule;
+import dmd.ast.dsymbol;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.init;
+import dmd.ast.mtype;
+import dmd.ast.statement;
+
 import dmd.arrayop;
 import dmd.arraytypes;
-import dmd.astcodegen;
-import dmd.astenums;
 import dmd.blockexit;
 import dmd.clone;
-import dmd.cond;
 import dmd.ctorflow;
 import dmd.dcast;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.denum;
-import dmd.dimport;
 import dmd.dinterpret;
-import dmd.dmodule;
 import dmd.dscope;
-import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.errors;
 import dmd.escape;
-import dmd.expression;
 import dmd.expressionsem;
-import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.importc;
-import dmd.init;
 import dmd.intrange;
 import dmd.location;
-import dmd.mtype;
 import dmd.mustuse;
 import dmd.nogc;
 import dmd.optimize;
@@ -59,7 +61,6 @@ import dmd.root.string;
 import dmd.safe : isSafe, isSaferD, setUnsafe;
 import dmd.semantic2;
 import dmd.sideeffect;
-import dmd.statement;
 import dmd.target;
 import dmd.targetcompiler;
 import dmd.tokens;
@@ -4763,7 +4764,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                 assert(e && !t);
                 auto ident = Identifier.generateId("__value");
                 declareVariable(STC.none, e.type, ident, e, null);
-                import dmd.cond: StaticForeach;
+                import dmd.ast.cond: StaticForeach;
                 auto field = Identifier.idPool(StaticForeach.tupleFieldName.ptr,StaticForeach.tupleFieldName.length);
                 Expression access = new DotIdExp(loc, e, field);
                 access = expressionSemantic(access, sc);
@@ -4797,7 +4798,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
         }
         else if (isDecl)
         {
-            import dmd.attrib: ForwardingAttribDeclaration;
+            import dmd.ast.attrib: ForwardingAttribDeclaration;
             d = new ForwardingAttribDeclaration(decls);
         }
         else

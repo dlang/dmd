@@ -6,16 +6,16 @@
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/aliasthis.d, _aliasthis.d)
- * Documentation:  https://dlang.org/phobos/dmd_aliasthis.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/aliasthis.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/aliasthis.d, _aliasthis.d)
+ * Documentation:  https://dlang.org/phobos/dmd_ast_aliasthis.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/ast/aliasthis.d
  */
 
-module dmd.aliasthis;
+module dmd.ast.aliasthis;
 
 import core.stdc.stdio;
 
-import dmd.dsymbol;
+import dmd.ast.dsymbol;
 import dmd.identifier;
 import dmd.location;
 import dmd.visitor;

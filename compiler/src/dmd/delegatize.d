@@ -14,20 +14,21 @@
 module dmd.delegatize;
 
 import core.stdc.stdio;
-import dmd.astenums;
-import dmd.declaration;
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.declaration;
+import dmd.ast.dsymbol;
+import dmd.ast.func;
+import dmd.ast.init;
+import dmd.ast.mtype;
+import dmd.ast.statement;
+
 import dmd.dscope;
-import dmd.dsymbol;
 import dmd.dsymbolsem : toParentP;
-import dmd.expression;
 import dmd.expressionsem;
-import dmd.func;
 import dmd.funcsem : checkNestedReference;
-import dmd.init;
 import dmd.initsem;
 import dmd.location;
-import dmd.mtype;
-import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
 import dmd.visitor.postorder;

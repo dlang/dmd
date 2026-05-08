@@ -17,17 +17,18 @@ import core.stdc.string;
 
 import dmd.glue;
 
-import dmd.aggregate;
+import dmd.ast.aggregate;
+import dmd.ast.enums;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.dmodule;
+import dmd.ast.dsymbol;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.mtype;
+
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dmodule;
-import dmd.dsymbol;
-import dmd.expression;
-import dmd.func;
 import dmd.identifier;
-import dmd.mtype;
 import dmd.objc;
 import dmd.target;
 

@@ -48,7 +48,7 @@ namespace dmd
     bool isVirtual(const FuncDeclaration * const fd);
 }
 
-//enum STC : ulong from astenums.d:
+//enum STC : ulong from ast/enums.d:
 
     #define STCundefined          0ULL
 

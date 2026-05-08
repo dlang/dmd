@@ -15,14 +15,15 @@ module dmd.iasm;
 
 import core.stdc.stdio;
 
+import dmd.ast.dsymbol;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.mtype;
+import dmd.ast.statement;
+
 import dmd.dscope;
-import dmd.dsymbol;
-import dmd.expression;
-import dmd.func;
-import dmd.mtype;
 import dmd.target;
 import dmd.tokens;
-import dmd.statement;
 import dmd.statementsem;
 
 version (NoBackend)

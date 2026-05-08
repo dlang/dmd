@@ -13,13 +13,15 @@ module dmd.iasm.gcc;
 
 import core.stdc.string;
 
+import dmd.ast.codegen;
+import dmd.ast.dsymbol;
+import dmd.ast.expression;
+import dmd.ast.statement;
+
 import dmd.arraytypes;
-import dmd.astcodegen;
 import dmd.dscope;
-import dmd.dsymbol;
 import dmd.errors;
 import dmd.errorsink;
-import dmd.expression;
 import dmd.expressionsem;
 import dmd.identifier;
 import dmd.globals;
@@ -28,7 +30,6 @@ import dmd.cparse;
 import dmd.parse;
 import dmd.target;
 import dmd.tokens;
-import dmd.statement;
 import dmd.statementsem;
 import dmd.typesem;
 
@@ -143,7 +144,7 @@ public void gccAsmSemantic(CAsmDeclaration ad, Scope* sc)
     ad.code.type = ad.code.type.nextOf().pointerTo();
 
     // Asm definition always needs emitting into the root module.
-    import dmd.dmodule : Module;
+    import dmd.ast.dmodule : Module;
     if (sc._module && sc._module.isRoot())
         return;
     if (Module m = Module.rootModule)
@@ -189,7 +190,7 @@ Expression semanticAsmString(Scope* sc, Expression exp, const char *s)
 {
     import dmd.dcast : implicitCastTo;
     import dmd.dsymbolsem : resolveAliasThis;
-    import dmd.mtype : Type;
+    import dmd.ast.mtype : Type;
     import dmd.typesem : isAggregate;
 
     exp = expressionSemantic(exp, sc);
@@ -554,7 +555,7 @@ GccAsmStatement parseGccAsm(Parser)(Parser p, GccAsmStatement s)
 
 unittest
 {
-    import dmd.mtype : TypeBasic;
+    import dmd.ast.mtype : TypeBasic;
     import dmd.typesem : merge;
 
     if (!global.errorSink)

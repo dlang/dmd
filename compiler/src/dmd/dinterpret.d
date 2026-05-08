@@ -16,39 +16,41 @@ module dmd.dinterpret;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
+
+import dmd.ast.attrib;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.dstruct;
+import dmd.ast.dsymbol;
+import dmd.ast.dtemplate;
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.init;
+import dmd.ast.mtype;
+import dmd.ast.statement;
+
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.attrib;
 import dmd.builtin;
 import dmd.constfold;
 import dmd.ctfeexpr;
 import dmd.dcast;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dstruct;
-import dmd.dsymbol;
 import dmd.dsymbolsem;
-import dmd.dtemplate;
 import dmd.errors;
-import dmd.expression;
 import dmd.expressionsem;
-import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
 import dmd.initsem;
 import dmd.location;
-import dmd.mtype;
 import dmd.root.rmem;
 import dmd.root.array;
 import dmd.root.ctfloat;
 import dmd.root.region;
 import dmd.rootobject;
 import dmd.root.utf;
-import dmd.statement;
 import dmd.semantic2 : findFunc;
 import dmd.tokens;
 import dmd.typesem;
@@ -5590,7 +5592,7 @@ public:
                         return;
 
                     // Dtors of Non-extern(D) classes use implicit chaining (like structs)
-                    import dmd.aggregate : ClassKind;
+                    import dmd.ast.aggregate : ClassKind;
                     if (cd.classKind != ClassKind.d)
                         break;
                 }

@@ -17,18 +17,20 @@ module dmd.constfold;
 
 import core.stdc.string;
 import core.stdc.stdio;
+
+import dmd.ast.declaration;
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.mtype;
+
 import dmd.arraytypes;
-import dmd.astenums;
 import dmd.ctfeexpr;
 import dmd.dcast;
-import dmd.declaration;
-import dmd.dstruct;
+import dmd.ast.dstruct;
 import dmd.errors;
-import dmd.expression;
 import dmd.expressionsem;
 import dmd.globals;
 import dmd.location;
-import dmd.mtype;
 import dmd.root.complex;
 import dmd.root.ctfloat;
 import dmd.root.port;

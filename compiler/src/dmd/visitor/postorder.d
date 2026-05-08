@@ -11,11 +11,11 @@
 
 module dmd.visitor.postorder;
 
-import dmd.dtemplate;
-import dmd.expression;
-import dmd.root.array;
-import dmd.statement;
 import dmd.visitor;
+import dmd.ast.dtemplate;
+import dmd.ast.expression;
+import dmd.ast.statement;
+import dmd.root.array;
 
 bool walkPostorder(Expression e, StoppableVisitor v)
 {

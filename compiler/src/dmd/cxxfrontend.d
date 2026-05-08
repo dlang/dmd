@@ -10,33 +10,34 @@
  */
 module dmd.cxxfrontend;
 
-import dmd.aggregate : AggregateDeclaration;
+import dmd.ast.aggregate : AggregateDeclaration;
+import dmd.ast.attrib;
+import dmd.ast.dclass : ClassDeclaration, BaseClass;
+import dmd.ast.declaration : TypeInfoDeclaration, VarDeclaration, TupleDeclaration;
+import dmd.ast.denum : EnumDeclaration;
+import dmd.ast.dmodule /*: Module*/;
+import dmd.ast.dstruct /*: StructDeclaration*/;
+import dmd.ast.dsymbol : Dsymbol, ScopeDsymbol, CAsmDeclaration, SearchOpt, SearchOptFlags;
+import dmd.ast.dtemplate /*: TemplateInstance, TemplateParameter, Tuple*/;
+import dmd.ast.enums;
+import dmd.ast.expression /*: Expression*/;
+import dmd.ast.func : FuncDeclaration;
+import dmd.ast.init : Initializer, NeedInterpret;
+import dmd.ast.mtype /*: Covariant, Type, Parameter, ParameterList*/;
+import dmd.ast.statement : Statement, AsmStatement, GccAsmStatement;
+
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.attrib;
 import dmd.common.outbuffer : OutBuffer;
-import dmd.dclass : ClassDeclaration, BaseClass;
-import dmd.declaration : TypeInfoDeclaration, VarDeclaration, TupleDeclaration;
-import dmd.denum : EnumDeclaration;
-import dmd.dmodule /*: Module*/;
 import dmd.dscope : Scope;
-import dmd.dstruct /*: StructDeclaration*/;
-import dmd.dsymbol : Dsymbol, ScopeDsymbol, CAsmDeclaration, SearchOpt, SearchOptFlags;
-import dmd.dtemplate /*: TemplateInstance, TemplateParameter, Tuple*/;
 import dmd.errorsink : ErrorSink;
-import dmd.expression /*: Expression*/;
-import dmd.func : FuncDeclaration;
 import dmd.globals : dinteger_t, uinteger_t, JsonFieldFlags, CppStdRevision;
 import dmd.identifier : Identifier;
-import dmd.init : Initializer, NeedInterpret;
 import dmd.location : Loc;
-import dmd.mtype /*: Covariant, Type, Parameter, ParameterList*/;
 import dmd.rootobject : RootObject;
 import dmd.root.optional;
 import dmd.root.longdouble : real_t = longdouble;
 import dmd.root.complex;
 import dmd.semantic3;
-import dmd.statement : Statement, AsmStatement, GccAsmStatement;
 
 // NB: At some point in the future, we can switch to shortened function syntax.
 extern (C++, "dmd"):
@@ -327,42 +328,42 @@ FuncDeclaration findGetMembers(ScopeDsymbol dsym)
  */
 inout(Expression) isExpression(inout RootObject o)
 {
-    return dmd.dtemplate.isExpression(o);
+    return dmd.ast.dtemplate.isExpression(o);
 }
 
 inout(Dsymbol) isDsymbol(inout RootObject o)
 {
-    return dmd.dtemplate.isDsymbol(o);
+    return dmd.ast.dtemplate.isDsymbol(o);
 }
 
 inout(Type) isType(inout RootObject o)
 {
-    return dmd.dtemplate.isType(o);
+    return dmd.ast.dtemplate.isType(o);
 }
 
 inout(Tuple) isTuple(inout RootObject o)
 {
-    return dmd.dtemplate.isTuple(o);
+    return dmd.ast.dtemplate.isTuple(o);
 }
 
 inout(Parameter) isParameter(inout RootObject o)
 {
-    return dmd.dtemplate.isParameter(o);
+    return dmd.ast.dtemplate.isParameter(o);
 }
 
 inout(TemplateParameter) isTemplateParameter(inout RootObject o)
 {
-    return dmd.dtemplate.isTemplateParameter(o);
+    return dmd.ast.dtemplate.isTemplateParameter(o);
 }
 
 bool isError(const RootObject o)
 {
-    return dmd.dtemplate.isError(o);
+    return dmd.ast.dtemplate.isError(o);
 }
 
 void printTemplateStats(bool listInstances, ErrorSink eSink)
 {
-    return dmd.dtemplate.printTemplateStats(listInstances, eSink);
+    return dmd.ast.dtemplate.printTemplateStats(listInstances, eSink);
 }
 
 void printInstantiationTrace(TemplateInstance ti)

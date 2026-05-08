@@ -9,12 +9,14 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/dfa/utils.d
  */
 module dmd.dfa.utils;
+
+import dmd.ast.enums;
+import dmd.ast.mtype;
+import dmd.ast.expression;
+
 import dmd.tokens;
-import dmd.astenums;
-import dmd.mtype;
 import dmd.visitor;
 import dmd.identifier;
-import dmd.expression;
 import dmd.typesem : isFloating;
 
 /***********************************************************

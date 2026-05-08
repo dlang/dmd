@@ -54,7 +54,7 @@ string stripDelimited(string str)
 
 const struct CompilationResult
 {
-    import dmd.dmodule : Module;
+    import dmd.ast.dmodule : Module;
 
     Diagnostic[] diagnostics;
     Module module_;

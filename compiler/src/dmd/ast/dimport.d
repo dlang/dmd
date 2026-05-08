@@ -4,16 +4,17 @@
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dimport.d, _dimport.d)
- * Documentation:  https://dlang.org/phobos/dmd_dimport.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/dimport.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/dimport.d, _dimport.d)
+ * Documentation:  https://dlang.org/phobos/dmd_ast_dimport.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/ast/dimport.d
  */
 
-module dmd.dimport;
+module dmd.ast.dimport;
+
+import dmd.ast.dmodule;
+import dmd.ast.dsymbol;
 
 import dmd.arraytypes;
-import dmd.dmodule;
-import dmd.dsymbol;
 import dmd.identifier;
 import dmd.location;
 import dmd.visitor;

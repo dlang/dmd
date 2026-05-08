@@ -17,20 +17,20 @@
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/attrib.d, _attrib.d)
- * Documentation:  https://dlang.org/phobos/dmd_attrib.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/attrib.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/attrib.d, _attrib.d)
+ * Documentation:  https://dlang.org/phobos/dmd_ast_attrib.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/ast/attrib.d
  */
 
-module dmd.attrib;
+module dmd.ast.attrib;
 
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.cond;
-import dmd.dmodule;
+import dmd.ast.enums;
+import dmd.ast.cond;
+import dmd.ast.dmodule;
+import dmd.ast.dsymbol;
+import dmd.ast.expression;
 import dmd.dscope;
-import dmd.dsymbol;
-import dmd.expression;
 import dmd.hdrgen : visibilityToBuffer;
 import dmd.id;
 import dmd.identifier;
@@ -803,7 +803,6 @@ int foreachUdaNoSemantic(Dsymbol sym, int delegate(Expression) dg)
  */
 bool isEnumAttribute(Expression e, Identifier id)
 {
-    import dmd.attrib : isCoreUda;
     import dmd.id : Id;
 
     // Logic based on dmd.objc.Supported.declaredAsOptionalCount

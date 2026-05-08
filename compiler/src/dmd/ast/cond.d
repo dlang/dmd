@@ -6,35 +6,38 @@
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/cond.d, _cond.d)
- * Documentation:  https://dlang.org/phobos/dmd_cond.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/cond.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/cond.d, _cond.d)
+ * Documentation:  https://dlang.org/phobos/dmd_ast_cond.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/ast/cond.d
  */
 
-module dmd.cond;
+module dmd.ast.cond;
 
 import core.stdc.string;
+
+import dmd.ast.node;
+import dmd.ast.dmodule;
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.mtype;
+import dmd.ast.statement;
+import dmd.ast.declaration;
+import dmd.ast.dstruct;
+import dmd.ast.func;
+
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.ast_node;
-import dmd.dmodule;
 import dmd.dscope;
 import dmd.errors;
-import dmd.expression;
 import dmd.globals;
 import dmd.identifier;
 import dmd.location;
-import dmd.mtype;
 import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.root.string;
 import dmd.tokens;
 import dmd.utils;
 import dmd.visitor;
-import dmd.statement;
-import dmd.declaration;
-import dmd.dstruct;
-import dmd.func;
+
 
 /***********************************************************
  */

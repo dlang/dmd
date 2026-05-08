@@ -11,31 +11,33 @@
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/func.d, _func.d)
- * Documentation:  https://dlang.org/phobos/dmd_func.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/func.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/func.d, _func.d)
+ * Documentation:  https://dlang.org/phobos/dmd_ast_func.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/ast/func.d
  */
 
-module dmd.func;
+module dmd.ast.func;
 
 import core.stdc.stdio;
 import core.stdc.string;
-import dmd.aggregate;
+
+import dmd.ast.aggregate;
+import dmd.ast.enums;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.dsymbol;
+import dmd.ast.dtemplate;
+import dmd.ast.mtype;
+import dmd.ast.statement;
+
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dsymbol;
-import dmd.dtemplate;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.mtype;
 import dmd.objc;
 import dmd.common.outbuffer;
 import dmd.rootobject;
-import dmd.statement;
 import dmd.targetcompiler;
 import dmd.tokens;
 import dmd.visitor;

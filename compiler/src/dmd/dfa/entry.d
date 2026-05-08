@@ -22,13 +22,16 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/dfa/entry.d
  */
 module dmd.dfa.entry;
+
 import dmd.common.outbuffer;
-import dmd.func;
-import dmd.astenums;
+
+import dmd.ast.func;
+import dmd.ast.enums;
+import dmd.ast.dsymbol;
+
 import dmd.globals;
 import dmd.mangle;
 import dmd.dscope;
-import dmd.dsymbol;
 import core.stdc.stdio;
 import core.stdc.string;
 

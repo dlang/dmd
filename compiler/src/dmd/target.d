@@ -27,7 +27,7 @@ module dmd.target;
 
 import core.stdc.stdio;
 
-import dmd.astenums : CHECKENABLE;
+import dmd.ast.enums : CHECKENABLE;
 import dmd.globals : Param;
 
 enum CPU : ubyte
@@ -108,7 +108,7 @@ ubyte defaultTargetOSMajor() @safe
 public
 void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
 {
-    import dmd.cond : VersionCondition;
+    import dmd.ast.cond : VersionCondition;
     import dmd.dmdparams : driverParams, PIC;
 
     VersionCondition.addPredefinedGlobalIdent("DigitalMars");
@@ -168,7 +168,7 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
 private
 void addPredefinedGlobalIdentifiers(const ref Target tgt)
 {
-    import dmd.cond : VersionCondition;
+    import dmd.ast.cond : VersionCondition;
 
     alias predef = VersionCondition.addPredefinedGlobalIdent;
     if ((tgt.isX86_64 || tgt.isX86) && tgt.cpu >= CPU.sse2)
@@ -253,7 +253,7 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
 private
 void addCRuntimePredefinedGlobalIdent(const ref TargetC c)
 {
-    import dmd.cond : VersionCondition;
+    import dmd.ast.cond : VersionCondition;
 
     alias predef = VersionCondition.addPredefinedGlobalIdent;
     with (TargetC.Runtime) switch (c.runtime)
@@ -273,7 +273,7 @@ void addCRuntimePredefinedGlobalIdent(const ref TargetC c)
 private
 void addCppRuntimePredefinedGlobalIdent(const ref TargetCPP cpp)
 {
-    import dmd.cond : VersionCondition;
+    import dmd.ast.cond : VersionCondition;
 
     alias predef = VersionCondition.addPredefinedGlobalIdent;
     with (TargetCPP.Runtime) switch (cpp.runtime)
@@ -310,15 +310,16 @@ void addCppRuntimePredefinedGlobalIdent(const ref TargetCPP cpp)
  */
 extern (C++) struct Target
 {
+    import dmd.ast.expression : Expression;
+    import dmd.ast.func : FuncDeclaration;
+    import dmd.ast.enums : LINK, TY;
+    import dmd.ast.mtype : Type, TypeFunction, TypeTuple;
+    import dmd.ast.statement : Statement;
+
     import dmd.dscope : Scope;
-    import dmd.expression : Expression;
-    import dmd.func : FuncDeclaration;
     import dmd.location;
-    import dmd.astenums : LINK, TY;
-    import dmd.mtype : Type, TypeFunction, TypeTuple;
     import dmd.typesem;
     import dmd.root.ctfloat : real_t;
-    import dmd.statement : Statement;
     import dmd.tokens : EXP;
 
     /// Bit decoding of the Target.OS
@@ -661,7 +662,7 @@ extern (C++) struct Target
             if (isX86_64 || isAArch64)
             {
                 import dmd.identifier : Identifier;
-                import dmd.mtype : TypeIdentifier;
+                import dmd.ast.mtype : TypeIdentifier;
                 import dmd.typesem : typeSemantic;
                 tvalist = new TypeIdentifier(Loc.initial, Identifier.idPool("__va_list_tag")).pointerTo();
                 tvalist = typeSemantic(tvalist, loc, sc);
@@ -1248,7 +1249,7 @@ extern (C++) struct Target
 
                 TypeTuple getArgTypes()
                 {
-                    import dmd.astenums : Sizeok;
+                    import dmd.ast.enums : Sizeok;
                     if (auto ts = t.toBasetype().isTypeStruct())
                     {
                         auto sd = ts.sym;
@@ -1291,7 +1292,7 @@ extern (C++) struct Target
     extern (C++) Expression getTargetInfo(const(char)* name, Loc loc)
     {
         import dmd.dmdparams : driverParams;
-        import dmd.expression : IntegerExp, StringExp;
+        import dmd.ast.expression : IntegerExp, StringExp;
         import dmd.root.string : toDString;
 
         StringExp stringExp(const(char)[] sval)
@@ -1419,7 +1420,7 @@ extern (C++) struct Target
  */
 struct TargetC
 {
-    import dmd.declaration : BitFieldDeclaration;
+    import dmd.ast.declaration : BitFieldDeclaration;
 
     enum Runtime : ubyte
     {
@@ -1536,10 +1537,10 @@ struct TargetC
  */
 struct TargetCPP
 {
-    import dmd.dsymbol : Dsymbol;
-    import dmd.dclass : ClassDeclaration;
-    import dmd.func : FuncDeclaration;
-    import dmd.mtype : Type;
+    import dmd.ast.dsymbol : Dsymbol;
+    import dmd.ast.dclass : ClassDeclaration;
+    import dmd.ast.func : FuncDeclaration;
+    import dmd.ast.mtype : Type;
 
     enum Runtime : ubyte
     {

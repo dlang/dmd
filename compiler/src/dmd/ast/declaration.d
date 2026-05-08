@@ -5,29 +5,31 @@
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/declaration.d, _declaration.d)
- * Documentation:  https://dlang.org/phobos/dmd_declaration.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/declaration.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/declaration.d, _declaration.d)
+ * Documentation:  https://dlang.org/phobos/dmd_ast_declaration.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/ast/declaration.d
  */
 
-module dmd.declaration;
+module dmd.ast.declaration;
 
 import core.stdc.stdio;
-import dmd.aggregate;
+
+import dmd.ast.aggregate;
+import dmd.ast.enums;
+import dmd.ast.dsymbol;
+import dmd.ast.dtemplate;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.init;
+import dmd.ast.mtype;
+
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.dsymbol;
-import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
-import dmd.expression;
-import dmd.func;
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
 import dmd.intrange;
 import dmd.location;
-import dmd.mtype;
 import dmd.common.outbuffer;
 import dmd.root.filename;
 import dmd.target;

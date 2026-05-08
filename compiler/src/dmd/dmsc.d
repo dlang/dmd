@@ -15,12 +15,13 @@ import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stddef;
 
+import dmd.ast.dclass;
+import dmd.ast.dmodule;
+import dmd.ast.mtype;
+
 import dmd.globals;
-import dmd.dclass;
 import dmd.dmdparams;
-import dmd.dmodule;
 import dmd.errors : errorBackend;
-import dmd.mtype;
 import dmd.target;
 
 import dmd.root.filename;

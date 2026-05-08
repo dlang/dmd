@@ -34,7 +34,7 @@ subPackage {
   sourcePaths
 
   sourceFiles \
-    "compiler/src/dmd/astenums.d" \
+    "compiler/src/dmd/ast/enums.d" \
     "compiler/src/dmd/console.d" \
     "compiler/src/dmd/entity.d" \
     "compiler/src/dmd/errors.d" \
@@ -71,7 +71,7 @@ subPackage {
   sourcePaths
 
   sourceFiles \
-    "compiler/src/dmd/astbase.d" \
+    "compiler/src/dmd/ast/base.d" \
     "compiler/src/dmd/parse.d" \
     "compiler/src/dmd/visitor/transitive.d" \
     "compiler/src/dmd/visitor/permissive.d" \
@@ -102,8 +102,8 @@ subPackage {
   excludedSourceFiles "compiler/src/dmd/lib/*"
   excludedSourceFiles "compiler/src/dmd/irgen/*"
   excludedSourceFiles "compiler/src/dmd/{\
-    astenums,\
-    astbase,\
+    ast/enums,\
+    ast/base,\
     console,\
     entity,\
     errors,\
