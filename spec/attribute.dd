@@ -42,6 +42,7 @@ $(GNAME FunctionAttributeKwd):
 $(GNAME AtAttribute):
     $(D @) $(RELATIVE_LINK2 disable, $(D disable))
     $(D @) $(RELATIVE_LINK2 future, $(D __future))
+    $(D @) $(RELATIVE_LINK2 ctfeonly, $(D __ctfe))
     $(D @) $(RELATIVE_LINK2 nogc, $(D nogc))
     $(D @) $(DDLINK spec/ob, Live Functions, `live`)
     $(GLINK Property)
@@ -457,6 +458,38 @@ $(H2 $(LNAME2 future, `@__future` attribute))
         ---
         )
 
+$(H2 $(LNAME2 ctfeonly, `@__ctfe` attribute))
+
+    $(P The `@__ctfe` attribute is used to mark a function as only able to be used during CTFE and will not codegen.
+    It will by-pass any restrictions on code generation sourced from command line flags.
+    Usage of this attribute requires the caller to call the callee from a CTFE context,
+    a runtime call will not be upgraded to a CTFE call.
+    )
+
+    $(NOTE Virtual methods cannot be marked as `@__ctfe` due to interactions with inheritance.)
+
+    ---
+    void entryPoint()
+    {
+        static int[] Data = calculate(1, 2);
+        assert(Data == [1, 2]);
+    }
+
+    int[] calculate(int a, int b) @__ctfe
+    {
+        int[] result;
+
+        inProgressOperation(result, a);
+        inProgressOperation(result, b);
+
+        return result;
+    }
+
+    void inProgressOperation(ref int[] result, int value) @__ctfe
+    {
+        result ~= value;
+    }
+    ---
 
 $(H2 $(LNAME2 visibility_attributes, Visibility Attributes))
 

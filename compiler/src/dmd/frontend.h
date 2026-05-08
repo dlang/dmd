@@ -777,13 +777,14 @@ enum class STC : uint64_t
     live = 4503599627370496LLU,
     register_ = 9007199254740992LLU,
     volatile_ = 18014398509481984LLU,
+    ctfeOnly = 36028797018963968LLU,
     safeGroup = 962072674304LLU,
     IOR = 333824LLU,
     TYPECTOR = 42983227396LLU,
-    FUNCATTR = 4575000774574080LLU,
-    visibleStorageClasses = 7954966260760479LLU,
+    FUNCATTR = 40603797793538048LLU,
+    visibleStorageClasses = 43983763279724447LLU,
     flowThruAggregate = 962072674304LLU,
-    flowThruFunction = 18446742978993322592LLU,
+    flowThruFunction = 18410714181974358624LLU,
 };
 
 template <typename T>
@@ -4383,6 +4384,7 @@ private:
         bool isCtor;
         bool isReturnScope;
         bool isRvalue;
+        bool isCtfeOnly;
         BitFields() :
             isNothrow(),
             isNogc(),
@@ -4398,10 +4400,11 @@ private:
             isInOutQual(),
             isCtor(),
             isReturnScope(),
-            isRvalue()
+            isRvalue(),
+            isCtfeOnly()
         {
         }
-        BitFields(bool isNothrow, bool isNogc = false, bool isProperty = false, bool isRef = false, bool isReturn = false, bool isScopeQual = false, bool isReturnInferred = false, bool isScopeInferred = false, bool isLive = false, bool incomplete = false, bool isInOutParam = false, bool isInOutQual = false, bool isCtor = false, bool isReturnScope = false, bool isRvalue = false) :
+        BitFields(bool isNothrow, bool isNogc = false, bool isProperty = false, bool isRef = false, bool isReturn = false, bool isScopeQual = false, bool isReturnInferred = false, bool isScopeInferred = false, bool isLive = false, bool incomplete = false, bool isInOutParam = false, bool isInOutQual = false, bool isCtor = false, bool isReturnScope = false, bool isRvalue = false, bool isCtfeOnly = false) :
             isNothrow(isNothrow),
             isNogc(isNogc),
             isProperty(isProperty),
@@ -4416,7 +4419,8 @@ private:
             isInOutQual(isInOutQual),
             isCtor(isCtor),
             isReturnScope(isReturnScope),
-            isRvalue(isRvalue)
+            isRvalue(isRvalue),
+            isCtfeOnly(isCtfeOnly)
             {}
     };
 
@@ -4451,6 +4455,8 @@ public:
     bool isReturnScope(bool v);
     bool isRvalue() const;
     bool isRvalue(bool v);
+    bool isCtfeOnly() const;
+    bool isCtfeOnly(bool v);
 private:
     uint16_t bitFields;
 public:

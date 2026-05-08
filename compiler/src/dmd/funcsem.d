@@ -507,6 +507,12 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
     if (sc.traitsCompiles)
         funcdecl.skipCodegen = true;
 
+    // Parser sets that a function is ctfeonly on the type when its applied postfix.
+    // However when its propergated from a declaration @__ctfe: it won't be applied.
+    // Normally we should be going through the cache, however this probably isn't required for this.
+    if (funcdecl.storage_class & STC.ctfeOnly)
+        tf.isCtfeOnly = true;
+
     funcdecl._linkage = sc.linkage;
     if (sc.inCfile && funcdecl.isFuncLiteralDeclaration())
         funcdecl._linkage = LINK.d; // so they are uniquely mangled
@@ -622,6 +628,8 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
             sc.stc |= STC.property;
         if (tf.purity == PURE.fwdref)
             sc.stc |= STC.pure_;
+        if (tf.isCtfeOnly)
+            sc.stc |= STC.ctfeOnly;
 
         if (tf.trust != TRUST.default_)
         {
@@ -772,6 +780,18 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
             .error(funcdecl.loc, "%s `%s` `static` member has no `this` to which `return` can apply", funcdecl.kind, funcdecl.toPrettyChars);
         else
             error(funcdecl.loc, "top-level function `%s` has no `this` to which `return` can apply", funcdecl.toErrMsg());
+    }
+
+    // @__ctfe functions should not be codegened
+    if (tf.isCtfeOnly)
+    {
+        funcdecl.skipCodegen = true;
+
+        if (funcdecl.isVirtual() && (funcdecl.isOverride() || !funcdecl.isFinalFunc()))
+        {
+            .error(funcdecl.loc, "class and interface methods cannot be marked as ctfe only due to inheritance");
+            .errorSupplemental(funcdecl.loc, "perhaps mark `%s` as final so it cannot be overridden", funcdecl.ident.toChars);
+        }
     }
 
     if (funcdecl.isAbstract() && !funcdecl.isVirtual())
