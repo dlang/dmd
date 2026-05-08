@@ -4,45 +4,46 @@
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dsymbol.d, _dsymbol.d)
- * Documentation:  https://dlang.org/phobos/dmd_dsymbol.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/dsymbol.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/dsymbol.d, _dsymbol.d)
+ * Documentation:  https://dlang.org/phobos/dmd_ast_dsymbol.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/ast/dsymbol.d
  */
 
-module dmd.dsymbol;
+module dmd.ast.dsymbol;
 
 import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;
 
-import dmd.aggregate;
+import dmd.ast.aggregate;
+import dmd.ast.attrib;
+import dmd.ast.enums;
+import dmd.ast.node;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.denum;
+import dmd.ast.dimport;
+import dmd.ast.dmodule;
+import dmd.ast.dversion;
+import dmd.ast.dstruct;
+import dmd.ast.dtemplate;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.mtype;
+import dmd.ast.nspace;
+import dmd.ast.statement;
+import dmd.ast.staticassert;
+
 import dmd.arraytypes;
-import dmd.attrib;
-import dmd.astenums;
-import dmd.ast_node;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.denum;
-import dmd.dimport;
-import dmd.dmodule;
-import dmd.dversion;
 import dmd.dscope;
-import dmd.dstruct;
-import dmd.dtemplate;
 import dmd.errors;
-import dmd.expression;
-import dmd.func;
 import dmd.identifier;
 import dmd.location;
-import dmd.mtype;
-import dmd.nspace;
 import dmd.root.aav;
 import dmd.root.rmem;
 import dmd.rootobject;
 import dmd.root.string;
-import dmd.statement;
-import dmd.staticassert;
 import dmd.tokens;
 import dmd.visitor;
 import dmd.common.outbuffer;

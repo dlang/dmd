@@ -4,9 +4,9 @@
 
 module semantic.covariance;
 
-import dmd.astenums : STC, StorageClass;
-import dmd.func : FuncDeclaration;
-import dmd.mtype : Covariant, Type;
+import dmd.ast.enums : STC, StorageClass;
+import dmd.ast.func : FuncDeclaration;
+import dmd.ast.mtype : Covariant, Type;
 import dmd.typesem : covariant;
 
 import support;
@@ -808,7 +808,7 @@ struct Config
  +/
 Config extractFunctions(const string code, const size_t line)
 {
-    import dmd.func : FuncDeclaration;
+    import dmd.ast.func : FuncDeclaration;
     import dmd.visitor : SemanticTimeTransitiveVisitor;
 
     auto result = compiles(code);

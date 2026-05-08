@@ -14,12 +14,13 @@ module dmd.argtypes_x86;
 import core.stdc.stdio;
 import core.checkedint;
 
-import dmd.astenums;
-import dmd.declaration;
+import dmd.ast.enums;
+import dmd.ast.declaration;
+import dmd.ast.mtype;
+
 import dmd.dsymbolsem : isPOD;
 import dmd.expressionsem : toInteger;
 import dmd.location;
-import dmd.mtype;
 import dmd.typesem;
 import dmd.target;
 import dmd.visitor;

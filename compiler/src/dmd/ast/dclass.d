@@ -6,27 +6,28 @@
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dclass.d, _dclass.d)
- * Documentation:  https://dlang.org/phobos/dmd_dclass.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/dclass.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dast/class.d, _dclass.d)
+ * Documentation:  https://dlang.org/phobos/dmd_ast_dclass.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/ast/dclass.d
  */
 
-module dmd.dclass;
+module dmd.ast.dclass;
 
 import core.stdc.stdio;
 import core.stdc.string;
 
-import dmd.aggregate;
+import dmd.ast.aggregate;
+import dmd.ast.enums;
+import dmd.ast.declaration;
+import dmd.ast.dsymbol;
+import dmd.ast.func;
+import dmd.ast.mtype;
+
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.declaration;
-import dmd.dsymbol;
 import dmd.errors;
-import dmd.func;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.mtype;
 import dmd.objc;
 import dmd.root.rmem;
 import dmd.visitor;

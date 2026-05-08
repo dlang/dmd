@@ -14,20 +14,22 @@
 module dmd.arrayop;
 
 import core.stdc.stdio;
+
+import dmd.ast.enums;
+import dmd.ast.declaration;
+import dmd.ast.expression;
+import dmd.ast.mtype;
+
 import dmd.arraytypes;
-import dmd.astenums;
 import dmd.dcast : implicitConvTo;
-import dmd.declaration;
 import dmd.dscope;
 import dmd.errors;
-import dmd.expression;
 import dmd.expressionsem;
 import dmd.funcsem;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.mtype;
 import dmd.common.outbuffer;
 import dmd.tokens;
 import dmd.typesem : isAssignable, nextOf, toBasetype;
@@ -132,7 +134,7 @@ Expression arrayOp(BinExp e, Scope* sc)
     auto tiargs = new Objects();
     auto args = buildArrayOp(sc, e, tiargs);
 
-    import dmd.dtemplate : TemplateDeclaration;
+    import dmd.ast.dtemplate : TemplateDeclaration;
     __gshared TemplateDeclaration arrayOp;
     if (arrayOp is null)
     {

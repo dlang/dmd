@@ -21,19 +21,21 @@ import dmd.dfa.fast.report;
 import dmd.dfa.fast.expression;
 import dmd.dfa.fast.structure;
 import dmd.dfa.utils;
+
+import dmd.ast.declaration;
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.mtype;
+import dmd.ast.statement;
+
 import dmd.common.outbuffer;
 import dmd.visitor;
 import dmd.visitor.foreachvar;
 import dmd.location;
-import dmd.func;
 import dmd.identifier;
-import dmd.statement;
-import dmd.expression;
 import dmd.typesem;
 import dmd.timetrace;
-import dmd.astenums;
-import dmd.mtype;
-import dmd.declaration;
 import core.stdc.stdio;
 
 /***********************************************************

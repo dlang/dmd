@@ -6,25 +6,26 @@
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dstruct.d, _dstruct.d)
- * Documentation:  https://dlang.org/phobos/dmd_dstruct.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/dstruct.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/dstruct.d, _dstruct.d)
+ * Documentation:  https://dlang.org/phobos/dmd_ast_dstruct.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/ast/dstruct.d
  */
 
-module dmd.dstruct;
+module dmd.ast.dstruct;
 
 import core.stdc.stdio;
 
-import dmd.aggregate;
+import dmd.ast.aggregate;
+import dmd.ast.enums;
+import dmd.ast.dmodule;
+import dmd.ast.dsymbol;
+import dmd.ast.func;
+import dmd.ast.mtype;
+
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.dmodule;
-import dmd.dsymbol;
-import dmd.func;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.mtype;
 import dmd.visitor;
 
 enum StructFlags : int

@@ -23,15 +23,16 @@ import dmd.root.rmem;
 import dmd.glue;
 import dmd.glue.tocvdebug;
 
-import dmd.astenums;
-import dmd.declaration;
-import dmd.denum;
+import dmd.ast.enums;
+import dmd.ast.declaration;
+import dmd.ast.denum;
+import dmd.ast.dstruct;
+import dmd.ast.mtype;
+
 import dmd.dmdparams;
-import dmd.dstruct;
 import dmd.dsymbolsem : isPOD;
 import dmd.expressionsem : toInteger;
 import dmd.id;
-import dmd.mtype;
 import dmd.typesem;
 
 package(dmd.glue):

@@ -16,7 +16,9 @@ module dmd.parse;
 import core.stdc.stdio;
 import core.stdc.string;
 
-import dmd.astenums;
+import dmd.ast.enums;
+import dmd.ast.expression;
+
 import dmd.errorsink;
 import dmd.id;
 import dmd.identifier;
@@ -28,7 +30,6 @@ import dmd.root.rmem;
 import dmd.rootobject;
 import dmd.root.string;
 import dmd.tokens;
-import dmd.expression;
 
 alias CompileEnv = dmd.lexer.CompileEnv;
 

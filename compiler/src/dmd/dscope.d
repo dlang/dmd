@@ -15,23 +15,26 @@ module dmd.dscope;
 
 import core.stdc.stdio;
 import core.stdc.string;
-import dmd.aggregate;
-import dmd.astenums;
-import dmd.attrib;
+
+import dmd.ast.aggregate;
+import dmd.ast.enums;
+import dmd.ast.attrib;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.dmodule;
+import dmd.ast.dstruct;
+import dmd.ast.dsymbol;
+import dmd.ast.dtemplate;
+import dmd.ast.func;
+import dmd.ast.statement;
+
 import dmd.ctorflow;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dmodule;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dtemplate;
 import dmd.errorsink;
-import dmd.func;
 import dmd.globals : FeatureState, Param;
 import dmd.identifier;
 import dmd.location : Loc;
 import dmd.root.rmem;
-import dmd.statement;
+
 
 //version=LOGSEARCH;
 

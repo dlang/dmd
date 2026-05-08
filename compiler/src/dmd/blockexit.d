@@ -14,22 +14,23 @@ module dmd.blockexit;
 import core.stdc.stdio;
 
 import dmd.arraytypes;
-import dmd.astenums;
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.func;
+import dmd.ast.mtype;
+import dmd.ast.statement;
+
 import dmd.canthrow;
-import dmd.dclass;
-import dmd.declaration;
 import dmd.errors;
 import dmd.errorsink;
-import dmd.expression;
 import dmd.expressionsem : toBool;
 import dmd.typesem : toBasetype;
-import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.mtype;
-import dmd.statement;
 import dmd.tokens;
 
 /**

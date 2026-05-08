@@ -3,17 +3,17 @@
  *
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/astbase.d, _astbase.d)
- * Documentation:  https://dlang.org/phobos/dmd_astbase.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/astbase.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/base.d, _base.d)
+ * Documentation:  https://dlang.org/phobos/dmd_ast_base.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/ast/base.d
  */
 
-module dmd.astbase;
+module dmd.ast.base;
 
-import dmd.astenums;
+import dmd.ast.enums;
+import dmd.ast.expression;
 import dmd.visitor.parsetime;
 import dmd.tokens : EXP;
-import dmd.expression;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with
   * no semantic information. It defines all the AST nodes that the parser needs

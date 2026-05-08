@@ -13,23 +13,25 @@ module dmd.ctfeexpr;
 
 import core.stdc.stdio;
 import core.stdc.string;
+
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.dstruct;
+import dmd.ast.dtemplate;
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.mtype;
+
 import dmd.arraytypes;
-import dmd.astenums;
 import dmd.constfold;
 import dmd.compiler;
 import dmd.dcast : implicitConvTo;
-import dmd.dclass;
-import dmd.declaration;
 import dmd.dinterpret;
-import dmd.dstruct;
-import dmd.dtemplate;
 import dmd.errors;
-import dmd.expression;
 import dmd.expressionsem;
-import dmd.func;
 import dmd.globals : dinteger_t, sinteger_t, uinteger_t;
 import dmd.location;
-import dmd.mtype;
 import dmd.root.bitarray;
 import dmd.root.ctfloat;
 import dmd.root.port;

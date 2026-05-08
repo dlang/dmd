@@ -4,37 +4,40 @@
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     Stefan Koch
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/asttypename.d, _asttypename.d)
- * Documentation:  https://dlang.org/phobos/dmd_asttypename.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/asttypename.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/typename.d, _typename.d)
+ * Documentation:  https://dlang.org/phobos/dmd_ast_typename.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/ast/typename.d
  */
 
-module dmd.asttypename;
+module dmd.ast.asttypename;
 
-import dmd.ast_node;
-import dmd.attrib;
-import dmd.aliasthis;
-import dmd.aggregate;
-import dmd.cond;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.denum;
-import dmd.dimport;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.dversion;
-import dmd.expression;
-import dmd.func;
-import dmd.dmodule;
-import dmd.mtype;
+import dmd.ast.node;
+import dmd.ast.attrib;
+import dmd.ast.aliasthis;
+import dmd.ast.aggregate;
+import dmd.ast.cond;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.denum;
+import dmd.ast.dimport;
+import dmd.ast.init;
+import dmd.ast.dmodule;
+import dmd.ast.dstruct;
+import dmd.ast.dsymbol;
+import dmd.ast.dtemplate;
+import dmd.ast.dversion;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.mtype;
+import dmd.ast.nspace;
+import dmd.ast.statement;
+import dmd.ast.staticassert;
+
 import dmd.identifier;
-import dmd.init;
 import dmd.root.complex;
 import dmd.rootobject;
-import dmd.statement;
-import dmd.staticassert;
-import dmd.nspace;
+
+
 import dmd.visitor;
 
 /// Returns: the typename of the dynamic ast-node-type
