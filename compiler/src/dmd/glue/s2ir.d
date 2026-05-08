@@ -74,13 +74,17 @@ import dmd.backend.type;
 
 package(dmd.glue):
 
+private:  // detect unmarked symbols that should be public
+
 alias StmtState = dmd.stmtstate.StmtState!block;
 
+public
 void elem_setLoc(elem* e, Loc loc) nothrow
 {
     e.Esrcpos = toSrcpos(loc);
 }
 
+public
 void Statement_toIR(Statement s, ref IRState irs)
 {
     /* Generate a block for each label
@@ -99,6 +103,7 @@ void Statement_toIR(Statement s, ref IRState irs)
     Statement_toIR(s, irs, &stmtstate);
 }
 
+public
 void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 {
     static import dmd.backend.blockopt;
@@ -1488,7 +1493,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
  * Params:
  *      startblock = first block in function
  */
-
+public
 void insertFinallyBlockCalls(block* startblock)
 {
     int flagvalue = 0;          // 0 is forunwind_resume
@@ -1663,7 +1668,7 @@ void insertFinallyBlockCalls(block* startblock)
  * Params:
  *      startblock = first block in function
  */
-
+public
 void insertFinallyBlockGotos(block* startblock)
 {
     enum log = false;
@@ -1713,6 +1718,10 @@ void insertFinallyBlockGotos(block* startblock)
         printf("-------------------------\n");
     }
 }
+
+/*************************************** private *******************************************/
+/*                              No public declarations past this                           */
+/*************************************** private *******************************************/
 
 private void block_setLoc(block* b, Loc loc) nothrow
 {
