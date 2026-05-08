@@ -258,6 +258,10 @@ type* Type_toCtype(Type t)
                 (cast(type*)t.ctype).Tcount++;
                 return cast(type*)t.ctype;
             }
+            else if (symMemtype.toBasetype().ty == Tint32)
+            {
+                t.ctype = type_enum(sym.toPrettyChars(true), Type_toCtype(symMemtype));
+            }
             else if (symMemtype.isIntegral())
             {
                 type* basectype = Type_toCtype(symMemtype);
