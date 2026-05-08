@@ -1,0 +1,50 @@
+Added `@__ctfe` attribute for compile-time function enforcement
+
+A new `@__ctfe` attribute has been added to mark functions that can only be executed
+at compile time. Functions marked with `@__ctfe` cannot be called from runtime code and
+will not generate any object code.
+
+When a `@__ctfe` function is used in a runtime context, the compiler will emit an error:
+
+```d
+int add(int a) @__ctfe => a + 2;
+
+void main() {
+    int x = add(9); // Error: function add marked with @__ctfe cannot be called at runtime
+}
+```
+
+The attribute is useful for defining helper functions that should only be evaluated
+during compilation, ensuring they don't contribute to binary size or runtime overhead:
+
+```d
+@__ctfe int square(int x) => x * x;
+
+enum Result = square(5); // OK - evaluated at compile time
+static assert(Result == 25);
+```
+
+Taking the address of a `@__ctfe` function in runtime code is also an error:
+
+```d
+int add(int a) @__ctfe => a + 2;
+
+void main() {
+    auto fp = &add; // Error: cannot take address of function marked with @__ctfe
+}
+```
+
+The `@__ctfe` attribute can be combined with other function attributes like `@nogc`,
+`@safe`, and `@trusted`. It also supports block syntax for applying the attribute to
+multiple declarations:
+
+```d
+void main() {
+    enum s = square(3); // OK - CTFE
+    enum c = cube(3);   // OK - CTFE
+}
+
+@__ctfe:
+int square(int x) => x * x;
+int cube(int x) => x * x * x;
+```
