@@ -241,6 +241,11 @@ private bool lambdaHasSideEffect(Expression e, bool assumeImpureCalls = false)
  */
 bool discardValue(Expression e)
 {
+    void checkOpOverload(CallExp ce)
+    {
+        if (ce.f && ce.f.ident == Id.opEquals && ce.fromOpOverload)
+            error(ce.loc, "the result of the equality expression `%s` is discarded", e.toErrMsg());
+    }
     if (lambdaHasSideEffect(e)) // check side-effect shallowly
     {
         // check for e.g. `arrayLiteral[index] = expr;`
@@ -276,6 +281,8 @@ bool discardValue(Expression e)
                 }
             }
         }
+        if (ce)
+            checkOpOverload(ce);
         return false;
     }
     switch (e.op)
@@ -311,11 +318,13 @@ bool discardValue(Expression e)
         auto ce = e.isCallExp();
         if (const f = ce.f)
         {
+            // check `==` lowering for slices
             if (f.ident == Id.__equals && ce.arguments && ce.arguments.length == 2)
             {
                 return discardValue(new EqualExp(EXP.equal, e.loc, (*ce.arguments)[0], (*ce.arguments)[1]));
             }
         }
+        checkOpOverload(ce);
         return false;
     case EXP.andAnd:
     case EXP.orOr:
