@@ -1342,6 +1342,7 @@ extern (C++) final class TypeFunction : TypeNext
         bool isCtor;           /// the function is a constructor
         bool isReturnScope;    /// `this` is returned by value
         bool isRvalue;         /// returned reference should be treated as rvalue
+        bool isCtfeOnly;       /// is @__ctfe
     }
 
     import dmd.common.bitfields : generateBitFields;
@@ -1372,6 +1373,8 @@ extern (C++) final class TypeFunction : TypeNext
             this.isProperty = true;
         if (stc & STC.live)
             this.isLive = true;
+        if (stc & STC.ctfeOnly)
+            this.isCtfeOnly = true;
 
         if (stc & STC.ref_)
             this.isRef = true;
