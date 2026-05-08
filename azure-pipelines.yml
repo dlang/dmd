@@ -6,7 +6,7 @@ jobs:
   - job: Windows_DMD_bootstrap
     timeoutInMinutes: 60
     pool:
-      vmImage: 'windows-2022'
+      vmImage: 'windows-2025'
     variables:
       D_COMPILER: dmd
       HOST_DMD_VERSION: 2.097.1
@@ -21,7 +21,7 @@ jobs:
   - job: Windows_DMD_latest
     timeoutInMinutes: 60
     pool:
-      vmImage: 'windows-2022'
+      vmImage: 'windows-2025'
     variables:
       D_COMPILER: dmd
       HOST_DMD_VERSION: LATEST
@@ -40,7 +40,7 @@ jobs:
   - job: Windows_Coverage
     timeoutInMinutes: 60
     pool:
-      vmImage: 'windows-2022'
+      vmImage: 'windows-2025'
     variables:
       D_COMPILER: dmd
       HOST_DMD_VERSION: LATEST
@@ -57,7 +57,7 @@ jobs:
   - job: Windows_VisualD_LDC
     timeoutInMinutes: 60
     pool:
-      vmImage: 'windows-2022'
+      vmImage: 'windows-2025'
     variables:
       D_COMPILER: ldc
       VISUALD_VER: v1.4.0
