@@ -36,6 +36,8 @@ import dmd.typesem;
 
 package(dmd.glue):
 
+private:
+
 /*******************
  * Determine backend tym bits corresponding to MOD
  * Params:
@@ -43,6 +45,7 @@ package(dmd.glue):
  * Returns:
  *  corresponding tym_t bits
  */
+package(dmd.glue)
 tym_t modToTym(MOD mod) pure @safe
 {
     switch (mod)
@@ -80,6 +83,7 @@ tym_t modToTym(MOD mod) pure @safe
  * Returns:
  *      back end equivalent `type`
  */
+package(dmd.glue)
 type* Type_toCtype(Type t)
 {
     if (t.ctype)
