@@ -85,6 +85,8 @@ import dmd.backend.type;
 
 package(dmd.glue):
 
+private:
+
 /* ================================================================== */
 
 /*****************************************
@@ -95,6 +97,7 @@ package(dmd.glue):
  *      s      = symbol that contains the data
  *      offset = offset of the data inside the Symbol's memory
  */
+package(dmd.glue)
 void write_pointers(Type type, Symbol* s, uint offset)
 {
     uint ty = type.toBasetype().ty;
@@ -112,6 +115,7 @@ void write_pointers(Type type, Symbol* s, uint offset)
 *      s      = symbol that contains the data
 *      offset = offset of the data inside the Symbol's memory
 */
+package(dmd.glue)
 void write_instance_pointers(Type type, Symbol* s, uint offset)
 {
     import dmd.typesem : hasPointers;
@@ -147,6 +151,7 @@ void write_instance_pointers(Type type, Symbol* s, uint offset)
  *      loc = the location for reporting line numbers in errors
  *      t   = the type to generate the `TypeInfo` object for
  */
+package(dmd.glue)
 void TypeInfo_toObjFile(Expression e, Loc loc, Type t)
 {
     // printf("TypeInfo_toObjFIle() %s\n", torig.toChars());
@@ -159,6 +164,7 @@ void TypeInfo_toObjFile(Expression e, Loc loc, Type t)
 
 /* ================================================================== */
 
+package(dmd.glue)
 void toObjFile(Dsymbol ds, bool multiobj)
 {
     //printf("toObjFile(%s %s)\n", ds.kind(), ds.toChars());
@@ -1016,6 +1022,57 @@ void toObjFile(Dsymbol ds, bool multiobj)
 }
 
 
+/******************************************
+ * Get offset of base class's vtbl[] initializer from start of csym.
+ * Returns ~0 if not this csym.
+ */
+
+package(dmd.glue)
+uint baseVtblOffset(ClassDeclaration cd, BaseClass* bc)
+{
+    //printf("ClassDeclaration.baseVtblOffset('%s', bc = %p)\n", cd.toChars(), bc);
+    uint csymoffset = classInfoSize();    // must be ClassInfo.size
+    //printf("classInfoSize(): %d\n", csymoffset);
+    csymoffset += cd.vtblInterfaces.length * (4 * target.ptrsize);
+
+    for (size_t i = 0; i < cd.vtblInterfaces.length; i++)
+    {
+        BaseClass* b = (*cd.vtblInterfaces)[i];
+
+        if (b == bc)
+            return csymoffset;
+        csymoffset += b.sym.vtbl.length * target.ptrsize;
+    }
+
+    // Put out the overriding interface vtbl[]s.
+    // This must be mirrored with ClassDeclaration.baseVtblOffset()
+    //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
+    ClassDeclaration cd2;
+
+    for (cd2 = cd.baseClass; cd2; cd2 = cd2.baseClass)
+    {
+        foreach (k; 0 .. cd2.vtblInterfaces.length)
+        {
+            BaseClass* bs = (*cd2.vtblInterfaces)[k];
+            if (bs.fillVtbl(cd, null, 0))
+            {
+                if (bc == bs)
+                {
+                    //printf("\tcsymoffset = x%x\n", csymoffset);
+                    return csymoffset;
+                }
+                csymoffset += bs.sym.vtbl.length * target.ptrsize;
+            }
+        }
+    }
+
+    return ~0;
+}
+
+/**********************************************************************************/
+/*                         private                                                */
+/**********************************************************************************/
+
 /*********************************
  * Finish semantic analysis of functions in vtbl[].
  * Params:
@@ -1084,6 +1141,7 @@ private bool finishVtbl(ClassDeclaration cd)
 }
 
 /// Returns: classInstanceSize of TypeInfo_Class for `cd`
+private
 uint classInfoSize()
 {
     auto obj = ClassDeclaration.object;
@@ -1092,52 +1150,6 @@ uint classInfoSize()
         return 0x98 + 8 + (hasMonitor ? 8 : 0); // 168 with monitor
     else
         return 0x4C + 12 + (hasMonitor ? 4 : 0); // 92 with monitor
-}
-
-/******************************************
- * Get offset of base class's vtbl[] initializer from start of csym.
- * Returns ~0 if not this csym.
- */
-
-uint baseVtblOffset(ClassDeclaration cd, BaseClass* bc)
-{
-    //printf("ClassDeclaration.baseVtblOffset('%s', bc = %p)\n", cd.toChars(), bc);
-    uint csymoffset = classInfoSize();    // must be ClassInfo.size
-    //printf("classInfoSize(): %d\n", csymoffset);
-    csymoffset += cd.vtblInterfaces.length * (4 * target.ptrsize);
-
-    for (size_t i = 0; i < cd.vtblInterfaces.length; i++)
-    {
-        BaseClass* b = (*cd.vtblInterfaces)[i];
-
-        if (b == bc)
-            return csymoffset;
-        csymoffset += b.sym.vtbl.length * target.ptrsize;
-    }
-
-    // Put out the overriding interface vtbl[]s.
-    // This must be mirrored with ClassDeclaration.baseVtblOffset()
-    //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
-    ClassDeclaration cd2;
-
-    for (cd2 = cd.baseClass; cd2; cd2 = cd2.baseClass)
-    {
-        foreach (k; 0 .. cd2.vtblInterfaces.length)
-        {
-            BaseClass* bs = (*cd2.vtblInterfaces)[k];
-            if (bs.fillVtbl(cd, null, 0))
-            {
-                if (bc == bs)
-                {
-                    //printf("\tcsymoffset = x%x\n", csymoffset);
-                    return csymoffset;
-                }
-                csymoffset += bs.sym.vtbl.length * target.ptrsize;
-            }
-        }
-    }
-
-    return ~0;
 }
 
 /*******************
