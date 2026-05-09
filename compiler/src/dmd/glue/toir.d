@@ -70,7 +70,7 @@ private:
 /****************************************
  * Our label symbol
  */
-public
+package(dmd.glue)
 struct Label
 {
     block* lblock;      // The block to which the label is defined.
@@ -79,7 +79,7 @@ struct Label
 /***********************************************************
  * Collect state variables needed by the intermediate representation (IR)
  */
-public
+package(dmd.glue)
 struct IRState
 {
     Module m;                       // module
@@ -163,7 +163,7 @@ struct IRState
  * References:
  * https://dlang.org/dmd-windows.html#switch-cov
  */
-public
+package(dmd.glue)
 extern (D) elem* incUsageElem(ref IRState irs, Loc loc)
 {
     uint linnum = loc.linnum;
@@ -206,7 +206,7 @@ extern (D) elem* incUsageElem(ref IRState irs, Loc loc)
  * 'origSc' is the original scope we inlined from.
  * This routine is critical for implementing nested functions.
  */
-public
+package(dmd.glue)
 elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol origSc = null)
 {
     elem* ethis;
@@ -424,7 +424,7 @@ elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol
  * Returns:
  *      *(ethis + offset);
  */
-public
+package(dmd.glue)
 elem* fixEthis2(elem* ethis, FuncDeclaration fd, bool ctxt2 = false)
 {
     if (fd && fd.hasDualContext)
@@ -442,7 +442,7 @@ elem* fixEthis2(elem* ethis, FuncDeclaration fd, bool ctxt2 = false)
  * Returns:
  *      *(ey + (ethis2 ? ad.vthis2 : ad.vthis).offset) = this;
  */
-public
+package(dmd.glue)
 elem* setEthis(Loc loc, ref IRState irs, elem* ey, AggregateDeclaration ad, bool setthis2 = false)
 {
     elem* ethis;
@@ -485,8 +485,8 @@ elem* setEthis(Loc loc, ref IRState irs, elem* ey, AggregateDeclaration ad, bool
     return ey;
 }
 
-public enum NotIntrinsic = -1;
-public enum OPtoPrec = OPMAX + 1; // front end only
+package(dmd.glue) enum NotIntrinsic = -1;
+package(dmd.glue) enum OPtoPrec = OPMAX + 1; // front end only
 
 /*******************************************
  * Convert intrinsic function to operator.
@@ -495,7 +495,7 @@ public enum OPtoPrec = OPMAX + 1; // front end only
  *      NotIntrinsic if not an intrinsic function,
  *      OPtoPrec if frontend-only intrinsic
  */
-public
+package(dmd.glue)
 int intrinsic_op(FuncDeclaration fd)
 {
     int op = NotIntrinsic;
@@ -641,7 +641,7 @@ Lva_start:
  * Returns:
  *      expression that initializes 'length'
  */
-public
+package(dmd.glue)
 elem* resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
 {
     //printf("resolveLengthVar()\n");
@@ -688,7 +688,7 @@ elem* resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
  *      sthis = the symbol of the current 'this' derived from fd.vthis
  *      fd = the nested function
  */
-public
+package(dmd.glue)
 type* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
 {
     if (sthis)
@@ -724,7 +724,7 @@ type* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
  * Returns:
  *      overall alignment of the closure
  */
-public
+package(dmd.glue)
 uint setClosureVarOffset(FuncDeclaration fd)
 {
     // Nothing to do
@@ -801,7 +801,7 @@ uint setClosureVarOffset(FuncDeclaration fd)
  * getEthis() and NewExp::toElem need to use sclosure, if set, rather
  * than the current frame pointer.
  */
-public
+package(dmd.glue)
 void buildClosure(FuncDeclaration fd, ref IRState irs)
 {
     //printf("buildClosure(fd = %s)\n", fd.toChars());
@@ -1016,7 +1016,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
  *      https://github.com/dlang/dmd/pull/9143 was an incomplete attempt to solve this problem
  *      that was merged. It should probably be removed.
  */
-public
+package(dmd.glue)
 void buildAlignSection(FuncDeclaration fd, ref IRState irs)
 {
     enum log = false;
@@ -1121,7 +1121,7 @@ void buildAlignSection(FuncDeclaration fd, ref IRState irs)
  * Params:
  *      fd = function
  */
-public
+package(dmd.glue)
 void buildCapture(FuncDeclaration fd)
 {
     if (!driverParams.symdebug)
@@ -1172,7 +1172,7 @@ void buildCapture(FuncDeclaration fd)
  * Returns:
  *   RET.stack if return value from function is on the stack, RET.regs otherwise
  */
-public
+package(dmd.glue)
 RET retStyle(TypeFunction tf, bool needsThis)
 {
     //printf("TypeFunction.retStyle() %s\n", toChars());
@@ -1182,7 +1182,7 @@ RET retStyle(TypeFunction tf, bool needsThis)
 /*********************************** private *********************************/
 /*                           private below the fold                          */
 /*****************************************************************************/
-
+private:
 /**************************************
  * Go through the variables in function fd that are
  * to be allocated in an aligned section, and set the .offset fields
