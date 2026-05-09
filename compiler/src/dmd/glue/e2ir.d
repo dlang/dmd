@@ -95,7 +95,7 @@ alias Elems = Array!(elem *);
  * Returns:
  *      true if actually implicitly passed by reference
  */
-public
+package(dmd.glue)
 bool ISX64REF(Declaration var)
 {
     if (var.isReference())
@@ -163,7 +163,7 @@ bool ISX64REF(ref IRState irs, Expression exp)
  * Returns:
  *      generated elem
  */
-public
+package(dmd.glue)
 elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
 {
     //printf("e1:\n"); elem_print(e1);
@@ -212,7 +212,7 @@ elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
  * Returns:
  *      Symbol
  */
-public
+package(dmd.glue)
 Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
 {
     //printf("toStringSymbol() %s\n", str);
@@ -304,7 +304,7 @@ Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
  *      e = elem to modify in place
  *      loc = to get file/line from
  */
-public
+package(dmd.glue)
 void toTraceGC(ref IRState irs, elem* e, Loc loc)
 {
     static immutable RTLSYM[2][5] map =
@@ -348,7 +348,7 @@ void toTraceGC(ref IRState irs, elem* e, Loc loc)
  * Returns:
  *      generated elem tree
  */
-public
+package(dmd.glue)
 elem* toElemDtor(Expression e, ref IRState irs, elem* ehidden = null)
 {
     //printf("Expression.toElemDtor() %s\n", e.toChars());
@@ -403,7 +403,7 @@ elem* toElemDtor(Expression e, ref IRState irs, elem* ehidden = null)
  * Returns:
  *      the equivalent of &e
  */
-public
+package(dmd.glue)
 elem* addressElem(elem* e, Type t, bool alwaysCopy = false)
 {
     //printf("addressElem()\n");
@@ -475,7 +475,7 @@ elem* addressElem(elem* e, Type t, bool alwaysCopy = false)
 /********************************
  * Reset stringTab[] between object files being emitted, because the symbols are local.
  */
-public
+package(dmd.glue)
 void clearStringTab()
 {
     //printf("clearStringTab()\n");
@@ -496,7 +496,7 @@ private __gshared StringTable!(Symbol*) *stringTab;
  * Returns:
  *      true if symbol should be imported from a DLL
  */
-public
+package(dmd.glue)
 bool isDllImported(Dsymbol symbl)
 {
     // Windows is the only platform which dmd supports, that uses the DllImport/DllExport scheme.
