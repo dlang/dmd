@@ -244,7 +244,15 @@ bool discardValue(Expression e)
     void checkOpOverload(CallExp ce)
     {
         if (ce.f && ce.f.ident == Id.opEquals && ce.fromOpOverload)
-            error(ce.loc, "the result of the equality expression `%s` is discarded", e.toErrMsg());
+        {
+            import dmd.root.string : startsWith;
+            // avoid breaking `lhs.should == rhs`
+            // https://github.com/atilaneves/unit-threaded#custom-assertions
+            // lowered: `should(lhs).opEquals(rhs)`
+            auto dve = ce.e1.isDotVarExp();
+            if (!dve || !dve.e1.type.toString().startsWith("Should"))
+                error(ce.loc, "the result of the equality expression `%s` is discarded", e.toErrMsg());
+        }
     }
     if (lambdaHasSideEffect(e)) // check side-effect shallowly
     {
