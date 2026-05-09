@@ -76,6 +76,18 @@ void _d_arrayshrinkfit(Tarr: T[], T)(Tarr arr, bool isshared) @trusted
     gc_shrinkArrayUsed(arr[0 .. reqlen], curlen * T.sizeof, isshared);
 }
 
+size_t _d_arraygetcapacity(size_t size, void[]* p, bool isshared) pure nothrow @trusted
+in
+{
+    assert(!(*p).length || (*p).ptr);
+}
+do
+{
+    auto datasize = (*p).length * size;
+    auto curCapacity = gc_reserveArrayCapacity((*p).ptr[0 .. datasize], 0, isshared);
+    return curCapacity / size;
+}
+
 /**
 Set the array capacity.
 
