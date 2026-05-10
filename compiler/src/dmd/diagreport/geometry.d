@@ -1,3 +1,6 @@
+/**
+    Defines the elements of the geometry of the diagnostic reporting mechanism
+**/
 module dmd.diagreport.geometry;
 import dmd.diagreport.defs;
 

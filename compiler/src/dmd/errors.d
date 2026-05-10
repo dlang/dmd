@@ -100,9 +100,9 @@ class ErrorSinkCompiler : ErrorSink
 
     void plugSink()
     {
-        if (global.params.v.messageStyle == MessageStyle.dfa)
+        if (global.params.v.messageStyle == MessageStyle.diagreport)
         {
-            import dmd.diagreport.app : callEvent;
+            import dmd.diagreport.glue : callEvent;
 
             // Flushes the last open causal group
             if (diagnostics.length > 0)
@@ -472,13 +472,20 @@ private struct DiagnosticContext
     bool supplemental;          // true if supplemental error
 }
 
-// functions to collect diagnostics for the dfa messagestyle
+/**
+ * Collects diagnostics for the diagreport messagestyle.
+ * Params:
+ *      loc         = location of error
+ *      format      = printf-style format specification
+ *      ap          = printf-style variadic arguments
+ *      kind        = kind of error being printed
+ */
 private void collectDiagnostic(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind) nothrow
 {
     // A new primary diagnostic means the previous causal group is complete
     if (diagnostics.length > 0)
     {
-        try { completedEvents ~= diagnostics.dup; }
+        try { completedEvents ~= diagnostics; }
         catch (Exception) {}
         diagnostics.length = 0;
     }
@@ -496,7 +503,14 @@ private void collectDiagnostic(const SourceLoc loc, const(char)* format, va_list
     catch (Exception) {}
 }
 
-// function to collect supplemental diagnostics for the dfa messagestyle
+/**
+ * Collects supplementals of diagnostics for the diagreport messagestyle.
+ * Params:
+ *      loc         = location of error
+ *      format      = printf-style format specification
+ *      ap          = printf-style variadic arguments
+ *      kind        = kind of error being printed
+ */
 private void collectSupplemental(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind) nothrow
 {
     // Append to the currently open causal group
@@ -548,7 +562,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                 addSarifDiagnostic(loc, format, ap, kind);
                 return;
             }
-            if (global.params.v.messageStyle == MessageStyle.dfa)
+            if (global.params.v.messageStyle == MessageStyle.diagreport)
             {
                 collectDiagnostic(loc, format, ap, kind);
                 return;
@@ -587,7 +601,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                         addSarifDiagnostic(loc, format, ap, kind);
                         return;
                     }
-                    if (global.params.v.messageStyle == MessageStyle.dfa)
+                    if (global.params.v.messageStyle == MessageStyle.diagreport)
                     {
                         collectDiagnostic(loc, format, ap, kind);
                         return;
@@ -613,7 +627,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                     addSarifDiagnostic(loc, format, ap, kind);
                     return;
                 }
-                if (global.params.v.messageStyle == MessageStyle.dfa)
+                if (global.params.v.messageStyle == MessageStyle.diagreport)
                 {
                     collectDiagnostic(loc, format, ap, kind);
                     return;
@@ -634,7 +648,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
                 addSarifDiagnostic(loc, format, ap, kind);
                 return;
             }
-            if (global.params.v.messageStyle == MessageStyle.dfa)
+            if (global.params.v.messageStyle == MessageStyle.diagreport)
             {
                 collectDiagnostic(loc, format, ap, kind);
                 return;
@@ -659,7 +673,7 @@ private extern(C++) void vreportDiagnostic(const SourceLoc loc, const(char)* for
             addSarifDiagnostic(loc, format, ap, kind);
             return;
         }
-        if (global.params.v.messageStyle == MessageStyle.dfa)
+        if (global.params.v.messageStyle == MessageStyle.diagreport)
         {
             collectDiagnostic(loc, format, ap, kind);
             return;
@@ -700,7 +714,7 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
         }
         else
             info.headerColor = Classification.error;
-        if (global.params.v.messageStyle == MessageStyle.dfa)
+        if (global.params.v.messageStyle == MessageStyle.diagreport)
         {
             collectSupplemental(loc, format, ap, kind);
             return;
@@ -716,7 +730,7 @@ private extern(C++) void vsupplementalDiagnostic(const SourceLoc loc, const(char
             if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
             {
                 info.headerColor = Classification.deprecation;
-                if (global.params.v.messageStyle == MessageStyle.dfa)
+                if (global.params.v.messageStyle == MessageStyle.diagreport)
                 {
                     collectSupplemental(loc, format, ap, kind);
                     return;

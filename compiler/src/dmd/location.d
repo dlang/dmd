@@ -24,7 +24,7 @@ enum MessageStyle : ubyte
     digitalmars,  /// filename.d(line): message
     gnu,          /// filename.d:line: message, see https://www.gnu.org/prep/standards/html_node/Errors.html
     sarif,        /// JSON SARIF output, see https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
-    dfa           /// dfa messagestyle
+    diagreport    /// diagnostics reporting messagestyle
 }
 /**
 A source code location
@@ -229,7 +229,7 @@ void writeSourceLoc(ref OutBuffer buf,
         case MessageStyle.sarif: // https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
             // No formatting needed here for SARIF
             break;
-        case MessageStyle.dfa: 
+        case MessageStyle.diagreport: 
             break;
     }
 }

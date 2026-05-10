@@ -1,9 +1,9 @@
-module dmd.diagreport.defs;
-
 /**
     Defines the vertical state of a diagnostic on a given line for drawing purposes.
     This enumeration captures the vertical state machine logic for a single diagnostic span.
 */
+module dmd.diagreport.defs;
+
 enum LineClassification
 {
     /// The line is not part of the diagnostic span.

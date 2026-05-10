@@ -1,4 +1,4 @@
-module dmd.diagreport.app;
+module dmd.diagreport.glue;
 
 import core.stdc.stdio : vsnprintf, fwrite, fflush, stderr;
 import core.stdc.stdarg;
