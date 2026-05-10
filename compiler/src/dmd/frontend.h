@@ -2575,6 +2575,7 @@ public:
     bool inDebugStatement;
     bool ignoreAttributes;
     bool isUfcsRewrite;
+    bool fromOpOverload;
     bool fromOpAssignment;
     VarDeclaration* vthis2;
     Expression* loweredFrom;
