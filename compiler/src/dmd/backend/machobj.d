@@ -246,9 +246,9 @@ import dmd.backend.code: SegData;
 
 enum
 {
-    RELaddr = 1,      // 32 bit fixup
-    RELrel  = 2,      // relative to location to be fixed up
-    RELadd  = 3,      // add in 12 extra bits of relocation
+    RELaddr = 0,      // 32 bit fixup
+    RELrel  = 1,      // relative to location to be fixed up
+    RELadd  = 2,      // add in 12 extra bits of relocation
 }
 
 struct Relocation
@@ -904,26 +904,19 @@ void MachObj_term(const(char)[] objfilename)
             Relocation* rend = cast(Relocation*)(pseg.SDrel.buf + pseg.SDrel.length());
             for (; r != rend; r++)
             {   Symbol* s = r.targsym;
-		assert(r.rtype);
                 const(char)* rs = r.rtype == RELaddr ? "addr" :  // 32 bit address
                                   r.rtype == RELadd  ? "add"  :
                                                        "rel";
                 //printf("%d:x%04llx : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
-//                bool isPersonality = strcmp(s.Sident.ptr, "__dmd_personality_v0") == 0 ||
-//                                     strcmp(s.Sident.ptr, "___dmd_personality_v0") == 0; // temporary scaffolding
-//                symbol_print(*s);
+                //  bool isPersonality = strcmp(s.Sident.ptr, "__dmd_personality_v0") == 0 ||
+                //                       strcmp(s.Sident.ptr, "___dmd_personality_v0") == 0; // temporary scaffolding
+                //symbol_print(*s);
                 relocation_info rel;
                 scattered_relocation_info srel;
                 if (machobj.AArch64)
                 {
                     if (s)
                     {
-if (1 || r.offset == 0x2C)
-{
-                        printf("Relocation\n");
-                        symbol_print(*s);
-                        printf("%d:x%04llx : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
-}
                         if (r.flag == 1)  // emit SUBTRACTOR/UNSIGNED pair
                         {
                             //printf("rel1\n");
@@ -1067,6 +1060,10 @@ if (1 || r.offset == 0x2C)
                                 machobj.fobjbuf.write(&rel, rel.sizeof);
                                 foffset += rel.sizeof;
                                 nreloc++;
+
+                                int32_t* p = patchAddr64(seg, r.offset);
+                                // Absolute address; add in addr of start of targ seg
+                                *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
                                 continue;
                             }
                         }
@@ -2756,7 +2753,6 @@ void MachObj_reftodatseg(int seg,targ_size_t offset,targ_size_t val,
     {
         assert(0);
     }
-printf("addrel xyzzy %llx\n", offset);
     MachObj_addrel(seg, offset, null, targetdatum, RELaddr);
     if (I64)
     {
@@ -2791,7 +2787,6 @@ void MachObj_reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
     int save = cast(int)buf.length();
     buf.setsize(cast(uint)offset);
     val -= funcsym_p.Soffset;
-printf("addrel plugh %s %llx\n", funcsym_p.Sident.ptr, offset);
     MachObj_addrel(seg, offset, funcsym_p, 0, RELaddr);
 //    if (I64)
 //        buf.write64(val);
@@ -3025,7 +3020,6 @@ int MachObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol* s, targ_size_
         }
         else
         {
-printf("********************** reftoidentAArch64() %s\n", s.Sident.ptr);
             MachObj_addrel(seg, offset, s, 0, RELaddr, v);
         }
     }
@@ -3217,8 +3211,7 @@ int mach_dwarf_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t va
 @trusted
 int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol* s, targ_size_t val, Symbol* fdesym)
 {
-printf("addrel plugh %s %llx\n", s.Sident.ptr, offset);
-    printf("dwarf_eh_frame_fixup()\n");
+    //printf("dwarf_eh_frame_fixup()\n");
     OutBuffer* buf = SegData[dfseg].SDbuf;
     assert(offset == buf.length());
     assert(fdesym.Sseg == dfseg);
