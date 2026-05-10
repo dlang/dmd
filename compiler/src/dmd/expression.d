@@ -2355,9 +2355,10 @@ extern (C++) final class CallExp : UnaExp
     bool inDebugStatement;  /// true if this was in a debug statement
     bool ignoreAttributes;  /// don't enforce attributes (e.g. call @gc function in @nogc code)
     bool isUfcsRewrite;     /// the first argument was pushed in here by a UFCS rewrite
+    bool fromOpOverload;    // set for operator overload method call
     bool fromOpAssignment;  // set when operator overload method call from assignment (2024 edition)
     VarDeclaration vthis2;  // container for multi-context
-    Expression loweredFrom; // set if this is the result of a lowering
+    Expression loweredFrom; // set if this is the result of a lowering (not for opOverloads)
 
     /// Puts the `arguments` and `names` into an `ArgumentList` for easily passing them around.
     /// The fields are still separate for backwards compatibility
