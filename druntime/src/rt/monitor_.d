@@ -39,7 +39,7 @@ else
 extern (C) void _d_setSameMutex(shared Object ownee, shared Object owner) @trusted nothrow
 in
 {
-    assert(ownee.__monitor is null);
+    assert(getMonitor(cast(Object) cast(void*) ownee) is null);
 }
 do
 {
@@ -49,7 +49,7 @@ do
         atomicOp!"+="(m.refs, size_t(1));
     }
     // Assume the monitor is garbage collected and simply copy the reference.
-    ownee.__monitor = owner.__monitor;
+    setMonitor(cast(Object) cast(void*) ownee, m);
 }
 
 extern (C) void _d_monitordelete(Object h, bool det)
