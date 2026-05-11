@@ -1,3 +1,5 @@
+import core.atomic : atomicLoad;
+import core.internal.traits : Unshared;
 import core.runtime;
 import core.stdc.string : strrchr;
 import core.thread;
@@ -47,7 +49,15 @@ void main(string[] args)
     static shared size_t finalizeCounter;
     SetFinalizeCounter setFinalizeCounter;
     loadSym(h, setFinalizeCounter, "setFinalizeCounter");
-    setFinalizeCounter(&finalizeCounter);
+    alias UnsharedCounter = Unshared!(typeof(finalizeCounter));
+    auto finalizeCounterPtr = (() @trusted
+    {
+        // This test must publish the address of a shared counter to a
+        // dynamically loaded library; the library performs the actual access
+        // atomically, but address formation itself has no atomic API.
+        return cast(shared(UnsharedCounter)*) &(*cast(UnsharedCounter*) &finalizeCounter);
+    })();
+    setFinalizeCounter(finalizeCounterPtr);
 
     runTest();
     auto thr = new Thread(&runTest);
@@ -59,7 +69,7 @@ void main(string[] args)
         assert(0);
     static if (!isDlcloseNoop)
     {
-        if (finalizeCounter != 4)
+        if (atomicLoad(finalizeCounter) != 4)
             assert(0);
     }
     if (nf1._finalizeCounter)

@@ -2218,5 +2218,5 @@ nothrow @nogc unittest
     for (int i = 0; i < tids.length; i++)
         joinLowLevelThread(tids[i]);
 
-    assert(task.n == tids.length);
+    assert(atomicLoad(task.n) == tids.length);
 }

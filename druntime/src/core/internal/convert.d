@@ -788,8 +788,14 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(T == delegate) || is(T : V*, V
 private const(ubyte)[] toUbyte_aggregate_ctfe(T)(const return ref scope T val)
 {
     pragma(inline, false);
+
+    // Walking `tupleof` on a shared aggregate is rejected by
+    // `-preview=nosharedaccess`.
+    import core.internal.traits : Unshared;
+    // `ref` avoids copying aggregates with disabled postblits or destructors.
+    ref const(Unshared!T) unsharedVal = *cast(const(Unshared!T)*) &val;
     ubyte[] bytes = ctfe_alloc(T.sizeof);
-    foreach (key, ref cur; val.tupleof)
+    foreach (key, ref cur; unsharedVal.tupleof)
     {
         static if (is(typeof(cur) EType == enum)) // Odd style is to avoid template instantiation in most cases.
             alias CurType = OriginalType!EType;
@@ -797,7 +803,7 @@ private const(ubyte)[] toUbyte_aggregate_ctfe(T)(const return ref scope T val)
             alias CurType = typeof(cur);
         static if (is(CurType == struct) || is(CurType == union) || __traits(isStaticArray, CurType) || !is(typeof(cur is null)))
         {
-            bytes[val.tupleof[key].offsetof .. val.tupleof[key].offsetof + CurType.sizeof] = toUbyte(cur)[];
+            bytes[unsharedVal.tupleof[key].offsetof .. unsharedVal.tupleof[key].offsetof + CurType.sizeof] = toUbyte(cur)[];
         }
         else
         {
