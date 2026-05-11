@@ -908,17 +908,15 @@ void MachObj_term(const(char)[] objfilename)
                                   r.rtype == RELadd  ? "add"  :
                                                        "rel";
                 //printf("%d:x%04llx : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
-//                bool isPersonality = strcmp(s.Sident.ptr, "__dmd_personality_v0") == 0 ||
-//                                     strcmp(s.Sident.ptr, "___dmd_personality_v0") == 0; // temporary scaffolding
-//                symbol_print(*s);
+                //  bool isPersonality = strcmp(s.Sident.ptr, "__dmd_personality_v0") == 0 ||
+                //                       strcmp(s.Sident.ptr, "___dmd_personality_v0") == 0; // temporary scaffolding
+                //symbol_print(*s);
                 relocation_info rel;
                 scattered_relocation_info srel;
                 if (machobj.AArch64)
                 {
                     if (s)
                     {
-                        //printf("Relocation\n");
-                        //symbol_print(*s);
                         if (r.flag == 1)  // emit SUBTRACTOR/UNSIGNED pair
                         {
                             //printf("rel1\n");
@@ -1056,12 +1054,16 @@ void MachObj_term(const(char)[] objfilename)
                                 rel.r_address = cast(int)r.offset;
                                 rel.r_symbolnum = s.Sseg;
                                 rel.r_pcrel = 0;
-                                rel.r_length = 2; // 3?
+                                rel.r_length = 3;
                                 rel.r_extern = 0;
                                 rel.r_type = ARM64_RELOC_UNSIGNED;
                                 machobj.fobjbuf.write(&rel, rel.sizeof);
                                 foffset += rel.sizeof;
                                 nreloc++;
+
+                                int32_t* p = patchAddr64(seg, r.offset);
+                                // Absolute address; add in addr of start of targ seg
+                                *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
                                 continue;
                             }
                         }
@@ -1144,10 +1146,9 @@ void MachObj_term(const(char)[] objfilename)
                         rel.r_address = cast(int)r.offset;
                         rel.r_symbolnum = r.targseg;
                         rel.r_pcrel = (r.rtype == RELaddr) ? 0 : 1;
-                        rel.r_length = 2;
+                        rel.r_length = 3;
                         rel.r_extern = 0;
                         rel.r_type = ARM64_RELOC_UNSIGNED;
-                        rel.r_length = 3;
 
                         machobj.fobjbuf.write(&rel, rel.sizeof);
                         foffset += rel.sizeof;
