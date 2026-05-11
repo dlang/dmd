@@ -379,6 +379,21 @@ static assert(EX_all == (EX_segmented ^ EX_flat));
 static assert(EX_all == (EX_16 ^ EX_32 ^ EX_64));
 static assert(EX_all == (EX_windos ^ EX_posix));
 
+/*******************************************************
+ * Because the relocations cannot be computed until after
+ * all the segments are written out, and we need more information
+ * than the relocations provide, make our own relocation
+ * type. Later, translate to Mach-O relocation structure.
+ */
+enum REL : ubyte
+{
+    address   = 1,   // complete address
+    rel       = 2,   // relative to location to be fixed up
+    add       = 3,   // add in 12 extra bits of relocation (ARCH64)
+    seg       = 4,   // 2 byte section
+    address32 = 5,   // 4 byte offset
+}
+
 alias config_flags_t = uint;
 enum
 {

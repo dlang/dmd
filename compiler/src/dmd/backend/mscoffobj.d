@@ -144,15 +144,6 @@ IMAGE_SECTION_HEADER* ScnhdrTab() { return cast(IMAGE_SECTION_HEADER*)mscoffobj.
  * than the mscoff relocations provide, make our own relocation
  * type. Later, translate to mscoff relocation structure.
  */
-
-enum
-{
-    RELaddr   = 0,     // straight address
-    RELrel    = 1,     // relative to location to be fixed up
-    RELseg    = 2,     // 2 byte section
-    RELaddr32 = 3,     // 4 byte offset
-}
-
 struct Relocation
 {   // Relocations are attached to the struct seg_data they refer to
     targ_size_t offset; // location in segment to be fixed up
@@ -857,7 +848,7 @@ void MsCoffObj_term(const(char)[] objfilename)
                 rel.r_type = 0;
 
                 Symbol* s = r.targsym;
-                const(char)* rs = r.rtype == RELaddr ? "addr" : "rel";
+                const(char)* rs = r.rtype == REL.address ? "addr" : "rel";
                 //printf("%d:x%04lx : tseg %d tsym %s REL%s\n", seg, cast(int)r.offset, r.targseg, s ? s.Sident.ptr : "0", rs);
                 if (s)
                 {
@@ -867,7 +858,7 @@ void MsCoffObj_term(const(char)[] objfilename)
                     {
                         if (I64)
                         {
-                            rel.r_type = (r.rtype == RELrel)
+                            rel.r_type = (r.rtype == REL.rel)
                                     ? IMAGE_REL_AMD64_REL32
                                     : IMAGE_REL_AMD64_REL32;
 
@@ -901,7 +892,7 @@ void MsCoffObj_term(const(char)[] objfilename)
                         }
                         else if (I32)
                         {
-                            rel.r_type = (r.rtype == RELrel)
+                            rel.r_type = (r.rtype == REL.rel)
                                     ? IMAGE_REL_I386_REL32
                                     : IMAGE_REL_I386_DIR32;
 
@@ -934,9 +925,9 @@ void MsCoffObj_term(const(char)[] objfilename)
                             else
                                 rel.r_type = IMAGE_REL_AMD64_ADDR64;
 
-                            if (r.rtype == RELseg)
+                            if (r.rtype == REL.seg)
                                 rel.r_type = IMAGE_REL_AMD64_SECTION;
-                            else if (r.rtype == RELaddr32)
+                            else if (r.rtype == REL.address32)
                                 rel.r_type = IMAGE_REL_AMD64_SECREL;
                         }
                         else if (I32)
@@ -946,9 +937,9 @@ void MsCoffObj_term(const(char)[] objfilename)
                             else
                                 rel.r_type = IMAGE_REL_I386_DIR32;
 
-                            if (r.rtype == RELseg)
+                            if (r.rtype == REL.seg)
                                 rel.r_type = IMAGE_REL_I386_SECTION;
-                            else if (r.rtype == RELaddr32)
+                            else if (r.rtype == REL.address32)
                                 rel.r_type = IMAGE_REL_I386_SECREL;
                         }
                         else
@@ -958,7 +949,7 @@ void MsCoffObj_term(const(char)[] objfilename)
                         rel.r_symndx = s.Sxtrnnum;
                     }
                 }
-                else if (r.rtype == RELaddr && pseg.isCode())
+                else if (r.rtype == REL.address && pseg.isCode())
                 {
                     int32_t* p = null;
                     p = MsCoffObj_patchAddr(seg, r.offset);
@@ -2111,11 +2102,11 @@ static if (0)
 
 @trusted
 void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, Symbol* targsym,
-        uint targseg, int rtype, int val)
+        uint targseg, REL rtype, int val)
 {
     if (targsym && targsym.Sflags & SFLimported && !SegData[seg].isCode())
     {
-        assert(rtype == RELaddr && val == 0);
+        assert(rtype == REL.address && val == 0);
         write_importTableRef(seg, offset, targsym);
         return;
     }
@@ -2188,7 +2179,7 @@ static if (0)
     {
         assert(0);
     }
-    MsCoffObj_addrel(seg, offset, null, targetdatum, RELaddr, 0);
+    MsCoffObj_addrel(seg, offset, null, targetdatum, REL.address, 0);
     if (I64)
     {
         if (flags & CFoffset64)
@@ -2224,8 +2215,8 @@ void MsCoffObj_reftocodeseg(segidx_t seg,targ_size_t offset,targ_size_t val)
     buf.setsize(cast(uint)offset);
     val -= funcsym_p.Soffset;
     if (I32)
-        MsCoffObj_addrel(seg, offset, funcsym_p, 0, RELaddr, 0);
-//    MsCoffObj_addrel(seg, offset, funcsym_p, 0, RELaddr);
+        MsCoffObj_addrel(seg, offset, funcsym_p, 0, REL.address, 0);
+//    MsCoffObj_addrel(seg, offset, funcsym_p, 0, REL.address);
 //    if (I64)
 //        buf.write64(val);
 //    else
@@ -2289,17 +2280,17 @@ static if (0)
             }
             if (flags & CFselfrel)
             {
-                MsCoffObj_addrel(seg, offset, s, 0, RELrel, v);
+                MsCoffObj_addrel(seg, offset, s, 0, REL.rel, v);
             }
             else if ((flags & (CFseg | CFoff)) == (CFseg | CFoff))
             {
-                MsCoffObj_addrel(seg, offset,     s, 0, RELaddr32, v);
-                MsCoffObj_addrel(seg, offset + 4, s, 0, RELseg, v);
+                MsCoffObj_addrel(seg, offset,     s, 0, REL.address32, v);
+                MsCoffObj_addrel(seg, offset + 4, s, 0, REL.seg, v);
                 refsize = 6;    // 4 bytes for offset, 2 for section
             }
             else
             {
-                MsCoffObj_addrel(seg, offset, s, 0, RELaddr, v);
+                MsCoffObj_addrel(seg, offset, s, 0, REL.address, v);
             }
         }
         else
@@ -2308,14 +2299,14 @@ static if (0)
             {
                 seg_data* pseg = SegData[mscoffobj.jumpTableSeg];
                 val -= offset + 4;
-                MsCoffObj_addrel(seg, offset, null, mscoffobj.jumpTableSeg, RELrel, 0);
+                MsCoffObj_addrel(seg, offset, null, mscoffobj.jumpTableSeg, REL.rel, 0);
             }
             else if (SegData[seg].isCode() &&
                     ((s.Sclass != SC.extern_ && SegData[s.Sseg].isCode()) || s.Sclass == SC.locstat ||
                      s.Sclass == SC.static_))
             {
                 val += s.Soffset;
-                MsCoffObj_addrel(seg, offset, null, s.Sseg, RELaddr, 0);
+                MsCoffObj_addrel(seg, offset, null, s.Sseg, REL.address, 0);
             }
             else if (SegData[seg].isCode() && !tyfunc(s.ty()))
             {
@@ -2348,11 +2339,11 @@ static if (0)
 
              L2:
                 //printf("MsCoffObj_reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, offset, s.Sident.ptr, val, mscoffobj.pointersSeg);
-                MsCoffObj_addrel(seg, offset, null, mscoffobj.pointersSeg, RELaddr, 0);
+                MsCoffObj_addrel(seg, offset, null, mscoffobj.pointersSeg, REL.address, 0);
             }
             else
             {   //val -= s.Soffset;
-//                MsCoffObj_addrel(seg, offset, s, 0, RELaddr, 0);
+//                MsCoffObj_addrel(seg, offset, s, 0, REL.address, 0);
             }
         }
 
@@ -2505,7 +2496,7 @@ private void objflush_pointerRef(Symbol* s, uint soff, ref segidx_t[2] segments)
 
     const seg = segments[isTls];
     targ_size_t offset = SegData[seg].SDoffset;
-    MsCoffObj_addrel(seg, offset, s, cast(uint)offset, RELaddr32, 0);
+    MsCoffObj_addrel(seg, offset, s, cast(uint)offset, REL.address32, 0);
     OutBuffer* buf = SegData[seg].SDbuf;
     buf.setsize(cast(uint)offset);
     buf.write32(soff);
@@ -2603,7 +2594,7 @@ private void objflush_importTableRefs()
         else
             buf.writeByte(0xA1);
         SegData[seg].SDoffset = offset = buf.length;
-        MsCoffObj_addrel(seg, offset, imp, 0, RELaddr32, 0);
+        MsCoffObj_addrel(seg, offset, imp, 0, REL.address32, 0);
         buf.write32(0);
 
         if (I64)
@@ -2619,7 +2610,7 @@ private void objflush_importTableRefs()
         }
 
         SegData[seg].SDoffset = offset = buf.length;
-        MsCoffObj_addrel(seg, offset, null, sseg, RELaddr32, 0);
+        MsCoffObj_addrel(seg, offset, null, sseg, REL.address32, 0);
         //buf.setsize(cast(uint)offset);
         buf.write32(soff);
     }
@@ -2631,7 +2622,7 @@ private void objflush_importTableRefs()
     const int attr = IMAGE_SCN_CNT_INITIALIZED_DATA | align2 | IMAGE_SCN_MEM_READ;
     const int cseg = MsCoffObj_getsegment(".CRT$XCB", attr);
 
-    MsCoffObj_addrel(cseg, SegData[cseg].SDoffset, null, seg, RELaddr, 0);
+    MsCoffObj_addrel(cseg, SegData[cseg].SDoffset, null, seg, REL.address, 0);
     OutBuffer* cbuf = SegData[cseg].SDbuf;
     cbuf.fill0(I64 ? 8 : 4);
     SegData[cseg].SDoffset = cbuf.length();

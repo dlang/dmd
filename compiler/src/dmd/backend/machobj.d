@@ -238,19 +238,11 @@ int mach_seg_data_isCode(const ref seg_data sd)
 import dmd.backend.code: SegData;
 
 /*******************************************************
- * Because the Mach-O relocations cannot be computed until after
+ * Because the relocations cannot be computed until after
  * all the segments are written out, and we need more information
- * than the Mach-O relocations provide, make our own relocation
+ * than the relocations provide, make our own relocation
  * type. Later, translate to Mach-O relocation structure.
  */
-
-enum
-{
-    RELaddr = 0,      // 32 bit fixup
-    RELrel  = 1,      // relative to location to be fixed up
-    RELadd  = 2,      // add in 12 extra bits of relocation
-}
-
 struct Relocation
 {   // Relocations are attached to the struct seg_data they refer to
     targ_size_t offset; // location in segment to be fixed up
@@ -259,7 +251,7 @@ struct Relocation
                         // to address of this symbol
     uint targseg;       // if !=0, then location is to be fixed up
                         // to address of start of this segment
-    ubyte rtype;        // RELaddr or RELrel or RELadd
+    REL rtype;          // REL.address or REL.rel or REL.add
     ubyte flag;         // 1: emit SUBTRACTOR/UNSIGNED pair
     short val;          // 0, -1, -2, -4
 }
@@ -904,8 +896,8 @@ void MachObj_term(const(char)[] objfilename)
             Relocation* rend = cast(Relocation*)(pseg.SDrel.buf + pseg.SDrel.length());
             for (; r != rend; r++)
             {   Symbol* s = r.targsym;
-                const(char)* rs = r.rtype == RELaddr ? "addr" :  // 32 bit address
-                                  r.rtype == RELadd  ? "add"  :
+                const(char)* rs = r.rtype == REL.address ? "addr" :  // 32 bit address
+                                  r.rtype == REL.add  ? "add"  :
                                                        "rel";
                 //printf("%d:x%04llx : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
                 //  bool isPersonality = strcmp(s.Sident.ptr, "__dmd_personality_v0") == 0 ||
@@ -952,22 +944,22 @@ void MachObj_term(const(char)[] objfilename)
                                 case SC.comdat:
                                 case SC.comdef:
                                 case SC.static_:
-                                    if (s.Sfl == FL.func && r.rtype == RELrel)
+                                    if (s.Sfl == FL.func && r.rtype == REL.rel)
                                     {
                                         rel.r_type = ARM64_RELOC_BRANCHY26;
                                         rel.r_pcrel = 1;
                                     }
                                     else if (s.Sfl == FL.unde)   // special case for __chkstk_darwin, need to research what PAGEOFF12 really means
                                     {
-                                        rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
-                                        rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
+                                        rel.r_type = r.rtype == REL.add ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
+                                        rel.r_pcrel = r.rtype == REL.add ? 0 : 1;
                                     }
                                     else
                                     {
                                         // BUG AArch64: failing test20050.d, should pick RELOC_PAGEOFF12 ??!!
-                                        //rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
-                                        rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
-                                        rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
+                                        //rel.r_type = r.rtype == REL.add ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
+                                        rel.r_type = r.rtype == REL.add ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
+                                        rel.r_pcrel = r.rtype == REL.add ? 0 : 1;
                                     }
                                     if (s.Sfl == FL.tlsdata && s.Sclass == SC.comdat)
                                         goto case SC.global;
@@ -981,12 +973,12 @@ void MachObj_term(const(char)[] objfilename)
                                     break;
 
                                 case SC.global:
-                                    //rel.r_type = r.rtype == RELadd ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
-                                    rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
+                                    //rel.r_type = r.rtype == REL.add ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
+                                    rel.r_type = r.rtype == REL.add ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                     if (s.Sfl == FL.tlsdata || s.Sfl == FL.data && (s.ty() & mTYLINK) == mTYthread)
-                                        rel.r_type = r.rtype == RELadd ? ARM64_RELOC_TLVP_LOAD_PAGEOFF12 : ARM64_RELOC_TLVP_LOAD_PAGE21;
+                                        rel.r_type = r.rtype == REL.add ? ARM64_RELOC_TLVP_LOAD_PAGEOFF12 : ARM64_RELOC_TLVP_LOAD_PAGE21;
 
-                                    rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
+                                    rel.r_pcrel = r.rtype == REL.add ? 0 : 1;
                                     rel.r_address = cast(int)r.offset;
                                     rel.r_symbolnum = s.Sxtrnnum;
                                     rel.r_length = 2;
@@ -998,8 +990,8 @@ void MachObj_term(const(char)[] objfilename)
 
                                 case SC.locstat:
                                     assert(s.Sfl != FL.tlsdata);
-                                    rel.r_type = r.rtype == RELadd ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
-                                    rel.r_pcrel = r.rtype == RELadd ? 0 : 1;
+                                    rel.r_type = r.rtype == REL.add ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
+                                    rel.r_pcrel = r.rtype == REL.add ? 0 : 1;
                                     rel.r_address = cast(int)r.offset;
                                     rel.r_symbolnum = s.Sxtrnnum;
                                     rel.r_length = 2;
@@ -1068,7 +1060,7 @@ void MachObj_term(const(char)[] objfilename)
                             }
                         }
                     }
-                    else if (r.rtype == RELaddr && pseg.isCode())
+                    else if (r.rtype == REL.address && pseg.isCode())
                     {
                         assert(!machobj.AArch64);
                         srel.r_scattered = 1;
@@ -1145,7 +1137,7 @@ void MachObj_term(const(char)[] objfilename)
                         //printf("r.rtype: %d r.targseg: %d r.offset: x%llx\n", r.rtype, r.targseg, cast(long)r.offset);
                         rel.r_address = cast(int)r.offset;
                         rel.r_symbolnum = r.targseg;
-                        rel.r_pcrel = (r.rtype == RELaddr) ? 0 : 1;
+                        rel.r_pcrel = (r.rtype == REL.address) ? 0 : 1;
                         rel.r_length = 3;
                         rel.r_extern = 0;
                         rel.r_type = ARM64_RELOC_UNSIGNED;
@@ -1234,7 +1226,7 @@ void MachObj_term(const(char)[] objfilename)
                             {
                                 //printf("I64\n");
                                 //symbol_print(*s);
-                                rel.r_type = (r.rtype == RELrel)
+                                rel.r_type = (r.rtype == REL.rel)
                                         ? X86_64_RELOC_BRANCH
                                         : X86_64_RELOC_SIGNED;
                                 if (r.val == -1)
@@ -1250,12 +1242,12 @@ void MachObj_term(const(char)[] objfilename)
                                     s.Sclass == SC.static_ ||
                                     s.Sclass == SC.global)
                                 {
-                                    if ((s.ty() & mTYLINK) == mTYthread && r.rtype == RELaddr)
+                                    if ((s.ty() & mTYLINK) == mTYthread && r.rtype == REL.address)
                                         rel.r_type = X86_64_RELOC_TLV;
-                                    else if (s.Sfl == FL.func && s.Sclass == SC.static_ && r.rtype == RELaddr)
+                                    else if (s.Sfl == FL.func && s.Sclass == SC.static_ && r.rtype == REL.address)
                                         rel.r_type = X86_64_RELOC_SIGNED;
                                     else if ((s.Sfl == FL.func || s.Sfl == FL.extern_ || s.Sclass == SC.global ||
-                                              s.Sclass == SC.comdat || s.Sclass == SC.comdef) && r.rtype == RELaddr)
+                                              s.Sclass == SC.comdat || s.Sclass == SC.comdef) && r.rtype == REL.address)
                                         rel.r_type = X86_64_RELOC_GOT;
 
                                     rel.r_address = cast(int)r.offset;
@@ -1350,7 +1342,7 @@ void MachObj_term(const(char)[] objfilename)
                             }
                         }
                     }
-                    else if (r.rtype == RELaddr && pseg.isCode())
+                    else if (r.rtype == REL.address && pseg.isCode())
                     {
                         srel.r_scattered = 1;
 
@@ -1426,7 +1418,7 @@ void MachObj_term(const(char)[] objfilename)
                         //printf("r.rtype: %d r.targseg: %d r.offset: x%llx\n", r.rtype, r.targseg, cast(long)r.offset);
                         rel.r_address = cast(int)r.offset;
                         rel.r_symbolnum = r.targseg;
-                        rel.r_pcrel = (r.rtype == RELaddr) ? 0 : 1;
+                        rel.r_pcrel = (r.rtype == REL.address) ? 0 : 1;
                         rel.r_length = 2;
                         rel.r_extern = 0;
                         rel.r_type = GENERIC_RELOC_VANILLA;
@@ -2705,14 +2697,14 @@ size_t MachObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
  */
 @trusted
 void MachObj_addrel(int seg, targ_size_t offset, Symbol* targsym,
-        uint targseg, int rtype, int val = 0)
+        uint targseg, REL rtype, int val = 0)
 {
     //printf("MachObj_addrel()\n");
     Relocation rel = void;
     rel.offset = offset;
     rel.targsym = targsym;
     rel.targseg = targseg;
-    rel.rtype = cast(ubyte)rtype;
+    rel.rtype = rtype;
     rel.flag = 0;
     rel.funcsym = funcsym_p;
     rel.val = cast(short)val;
@@ -2753,7 +2745,7 @@ void MachObj_reftodatseg(int seg,targ_size_t offset,targ_size_t val,
     {
         assert(0);
     }
-    MachObj_addrel(seg, offset, null, targetdatum, RELaddr);
+    MachObj_addrel(seg, offset, null, targetdatum, REL.address);
     if (I64)
     {
         if (flags & CFoffset64)
@@ -2787,7 +2779,7 @@ void MachObj_reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
     int save = cast(int)buf.length();
     buf.setsize(cast(uint)offset);
     val -= funcsym_p.Soffset;
-    MachObj_addrel(seg, offset, funcsym_p, 0, RELaddr);
+    MachObj_addrel(seg, offset, funcsym_p, 0, REL.address);
 //    if (I64)
 //        buf.write64(val);
 //    else
@@ -2845,11 +2837,11 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
                 v = cast(int)val;
             if (flags & CFselfrel)
             {
-                MachObj_addrel(seg, offset, s, 0, RELrel, v);
+                MachObj_addrel(seg, offset, s, 0, REL.rel, v);
             }
             else
             {
-                MachObj_addrel(seg, offset, s, 0, RELaddr, v);
+                MachObj_addrel(seg, offset, s, 0, REL.address, v);
             }
         }
         else
@@ -2894,7 +2886,7 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
                 machobj.indirectsymbuf1.write((&s)[0 .. 1]);
              L1:
                 val -= offset + 4;
-                MachObj_addrel(seg, offset, null, machobj.jumpTableSeg, RELrel);
+                MachObj_addrel(seg, offset, null, machobj.jumpTableSeg, REL.rel);
             }
             else if (SegData[seg].isCode() &&
                      !(flags & CFindirect) &&
@@ -2902,7 +2894,7 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
                      s.Sclass == SC.static_))
             {
                 val += s.Soffset;
-                MachObj_addrel(seg, offset, null, s.Sseg, RELaddr);
+                MachObj_addrel(seg, offset, null, s.Sseg, REL.address);
             }
             else if ((flags & CFindirect) ||
                      SegData[seg].isCode() && !tyfunc(s.ty()))
@@ -2947,7 +2939,7 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
                     rel.offset = offset;
                     rel.targsym = null;
                     rel.targseg = machobj.pointersSeg;
-                    rel.rtype = RELaddr;
+                    rel.rtype = REL.address;
                     rel.flag = 0;
                     rel.funcsym = null;
                     rel.val = 0;
@@ -2961,11 +2953,11 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
                     pseg2.SDrel.write(&rel, rel.sizeof);
                 }
                 else
-                    MachObj_addrel(seg, offset, null, machobj.pointersSeg, RELaddr);
+                    MachObj_addrel(seg, offset, null, machobj.pointersSeg, REL.address);
             }
             else
             {   //val -= s.Soffset;
-                MachObj_addrel(seg, offset, s, 0, RELaddr);
+                MachObj_addrel(seg, offset, s, 0, REL.address);
             }
         }
 
@@ -3012,15 +3004,15 @@ int MachObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol* s, targ_size_
             v = cast(int)val;
         if (flags & CFselfrel)
         {
-            MachObj_addrel(seg, offset, s, 0, RELrel, v);
+            MachObj_addrel(seg, offset, s, 0, REL.rel, v);
         }
         else if (flags & CFadd)
         {
-            MachObj_addrel(seg, offset, s, 0, RELadd, v);
+            MachObj_addrel(seg, offset, s, 0, REL.add, v);
         }
         else
         {
-            MachObj_addrel(seg, offset, s, 0, RELaddr, v);
+            MachObj_addrel(seg, offset, s, 0, REL.address, v);
         }
     }
 
@@ -3224,7 +3216,7 @@ int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol* s, targ_size_t v
     rel.offset = offset;
     rel.targsym = s;
     rel.targseg = 0;
-    rel.rtype = RELaddr;
+    rel.rtype = REL.address;
     rel.flag = 1;
     rel.funcsym = fdesym;
     rel.val = 0;

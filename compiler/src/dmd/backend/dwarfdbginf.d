@@ -196,17 +196,13 @@ static if (1)
         assert(0);
     }
 
-    // machobj.c
-    enum RELaddr = 0;       // straight address
-    enum RELrel  = 1;       // relative to location to be fixed up
-
     public
     void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val = 0)
     {
         if (config.objfmt == OBJ_ELF)
             Obj.addrel(seg, offset, I64 ? R_X86_64_32 : R_386_32, cast(int)MAP_SEG2SYMIDX(targseg), val);
         else if (config.objfmt == OBJ_MACH)
-            Obj.addrel(seg, offset, cast(Symbol*) null, targseg, RELaddr, cast(int)val);
+            Obj.addrel(seg, offset, cast(Symbol*) null, targseg, REL.address, cast(int)val);
         else
             assert(0);
     }
@@ -216,7 +212,7 @@ static if (1)
         if (config.objfmt == OBJ_ELF)
             Obj.addrel(seg, offset, R_X86_64_64, cast(int)MAP_SEG2SYMIDX(targseg), val);
         else if (config.objfmt == OBJ_MACH)
-            Obj.addrel(seg, offset, null, targseg, RELaddr, cast(uint)val);
+            Obj.addrel(seg, offset, null, targseg, REL.address, cast(uint)val);
         else
             assert(0);
     }
