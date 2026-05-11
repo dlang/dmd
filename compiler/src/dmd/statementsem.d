@@ -42,7 +42,6 @@ import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
-import dmd.iasm;
 import dmd.id;
 import dmd.identifier;
 import dmd.importc;
@@ -3751,7 +3750,13 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
          */
 
         //printf("AsmStatement()::semantic()\n");
-        result = asmSemantic(s, sc);
+        version (NoBackend)
+            result = s;
+        else
+        {
+            import dmd.iasm;
+            result = asmSemantic(s, sc);
+        }
     }
 
     void visitCompoundAsm(CompoundAsmStatement cas)
