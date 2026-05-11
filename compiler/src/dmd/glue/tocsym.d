@@ -67,39 +67,28 @@ import dmd.backend.ty;
 package(dmd.glue):
 
 /*************************************
- * Helper
+ * Create a backend symbol from a D symbol.
+ * Params:
+ *      ds = D symbol
+ *      prefix = string contributing to backend name
+ *      sclass = storage class for symbol
+ *      t = type for symbol
+ *      suffix = string at end
+ * Returns:
+ *      generated backend symbol
  */
 
 Symbol* toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type* t, const(char)* suffix)
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
-    import dmd.common.smallbuffer : SmallBuffer;
     import dmd.common.outbuffer : OutBuffer;
-
     OutBuffer buf;
+    buf.writestring("_D");
     mangleToBuffer(ds, buf);
-    size_t nlen = buf.length;
-    const(char)* n = buf.peekChars();
-    assert(n);
+    buf.printf("%zd%s%s", strlen(prefix), prefix, suffix);
+    Symbol* s = symbol_name(buf[], sclass, t);
 
-    import core.stdc.string : strlen;
-    size_t prefixlen = strlen(prefix);
-    size_t suffixlen = strlen(suffix);
-    size_t idlen = 2 + nlen + size_t.sizeof * 3 + prefixlen + suffixlen + 1;
-
-    char[64] idbuf = void;
-    auto sb = SmallBuffer!(char)(idlen, idbuf[]);
-    char* id = sb.ptr;
-
-    int nwritten = snprintf(id, idlen, "_D%.*s%d%.*s%.*s",
-        cast(int)nlen, n,
-        cast(int)prefixlen, cast(int)prefixlen, prefix,
-        cast(int)suffixlen, suffix);
-    assert(cast(uint)nwritten < idlen);         // nwritten does not include the terminating 0 char
-
-    Symbol* s = symbol_name(id[0 .. nwritten], sclass, t);
-
-    //printf("-Dsymbol::toSymbolX() %s\n", id);
+    //printf("-Dsymbol::toSymbolX() %s\n", buf.peekChars());
     return s;
 }
 
@@ -342,6 +331,15 @@ Symbol* toSymbol(Dsymbol s)
 
         override void visit(FuncDeclaration fd)
         {
+            /* @__ctfe functions cannot be used at runtime
+             */
+            if (fd.storage_class & STC.ctfeOnly)
+            {
+                error(fd.loc, "function `%s` is `@__ctfe` and cannot be used at runtime", fd.toPrettyChars());
+                result = null;
+                return;
+            }
+
             const(char)* id = mangleExact(fd);
 
             //printf("FuncDeclaration.toSymbol(%s %s)\n", fd.kind(), fd.toChars());
@@ -596,6 +594,7 @@ private Symbol* createImport(Symbol* sym, Loc loc)
     {
         idlen = snprintf(id, allocLen, (target.os == Target.OS.Windows && target.isX86_64) ? "__imp_%s" : (sym.Stype.Tmangle == Mangle.cpp) ? "_imp_%s" : "_imp__%s",n);
     }
+    assert(idlen != -1 && idlen < allocLen);
     auto t = type_alloc(TYnptr | mTYconst);
     t.Tnext = sym.Stype;
     t.Tnext.Tcount++;
@@ -641,6 +640,7 @@ Symbol* toThunkSymbol(FuncDeclaration fd, int offset)
     char[nameLen] name = void;
 
     const len = snprintf(name.ptr,nameLen,"_THUNK%d",tmpnum++);
+    assert(len != -1 && len < nameLen);
     auto sthunk = symbol_name(name[0 .. len],SC.static_,(cast(Symbol*)(fd.csym)).Stype);
     sthunk.Sflags |= SFLnodebug | SFLartifical;
     sthunk.Sflags |= SFLimplem;

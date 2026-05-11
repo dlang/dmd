@@ -23,7 +23,8 @@ enum MessageStyle : ubyte
 {
     digitalmars,  /// filename.d(line): message
     gnu,          /// filename.d:line: message, see https://www.gnu.org/prep/standards/html_node/Errors.html
-    sarif         /// JSON SARIF output, see https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
+    sarif,        /// JSON SARIF output, see https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
+    diagreport    /// diagnostics reporting messagestyle
 }
 /**
 A source code location
@@ -228,6 +229,8 @@ void writeSourceLoc(ref OutBuffer buf,
         case MessageStyle.sarif: // https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
             // No formatting needed here for SARIF
             break;
+        case MessageStyle.diagreport: 
+            break;
     }
 }
 
@@ -369,6 +372,7 @@ struct BaseLoc
     uint startIndex; /// Subtract this from Loc.index to get file offset
     int startLine = 1; /// Line number at index 0
     uint[] lines; /// For each line, the file offset at which it starts. At index 0 there's always a 0 entry.
+    uint startColumn = 1; /// Column number at byte offset 0 of the first line
     BaseLoc[] substitutions; /// Substitutions from #line / #file directives
 
     /// Cache for the last line lookup
@@ -425,7 +429,8 @@ struct BaseLoc
     private SourceLoc getSourceLoc(uint offset) @nogc
     {
         const i = getLineIndex(offset);
-        const sl = SourceLoc(filename, cast(int) (i + startLine), cast(int) (1 + offset - lines[i]), offset, fileContents);
+        const col = i == 0 ? cast(int)(startColumn + offset) : cast(int)(1 + offset - lines[i]);
+        const sl = SourceLoc(filename, cast(int) (i + startLine), col, offset, fileContents);
         return substitute(sl);
     }
 

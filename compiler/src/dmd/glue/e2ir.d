@@ -80,17 +80,13 @@ import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.util2 : mem_malloc2;
 
 import dmd.backend.x86.code_x86;
 
 package(dmd.glue):
 
 alias Elems = Array!(elem *);
-
-import dmd.backend.util2 : mem_malloc2;
-
-
-private int registerSize() { return _tysize[TYnptr]; }
 
 /*****
  * If variable var is a value that will actually be passed as a reference
@@ -99,6 +95,7 @@ private int registerSize() { return _tysize[TYnptr]; }
  * Returns:
  *      true if actually implicitly passed by reference
  */
+public
 bool ISX64REF(Declaration var)
 {
     if (var.isReference())
@@ -135,6 +132,7 @@ bool ISX64REF(Declaration var)
 
 /* If variable exp of type typ is a reference due to x64 calling conventions
  */
+private
 bool ISX64REF(ref IRState irs, Expression exp)
 {
     if (irs.target.os == Target.OS.Windows && irs.target.isX86_64)
@@ -165,6 +163,7 @@ bool ISX64REF(ref IRState irs, Expression exp)
  * Returns:
  *      generated elem
  */
+public
 elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
 {
     //printf("e1:\n"); elem_print(e1);
@@ -203,20 +202,6 @@ elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
     return e;
 }
 
-/*************************************************
- * Determine if zero bits need to be copied for this backend type
- * Params:
- *      t = backend type
- * Returns:
- *      true if 0 bits
- */
-bool type_zeroCopy(type* t)
-{
-    return type_size(t) == 0 ||
-        (tybasic(t.Tty) == TYstruct &&
-         (t.Ttag.Stype.Ttag.Sstruct.Sflags & STR0size));
-}
-
 /*******************************************************
  * Write read-only string to object file, create a local symbol for it.
  * Makes a copy of str's contents, does not keep a reference to it.
@@ -227,7 +212,7 @@ bool type_zeroCopy(type* t)
  * Returns:
  *      Symbol
  */
-
+public
 Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
 {
     //printf("toStringSymbol() %s\n", str);
@@ -312,30 +297,6 @@ Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
     return sv.value;
 }
 
-/*******************************************************
- * Turn StringExp into Symbol.
- */
-
-Symbol* toStringSymbol(StringExp se)
-{
-    Symbol* si;
-    string s;
-    const n = cast(int)se.numberOfCodeUnits(0, s);
-    if (se.sz == 1)
-    {
-        const slice = se.peekString();
-        si = toStringSymbol(slice.ptr, slice.length, 1);
-    }
-    else
-    {
-        auto p = cast(char *)mem.xmalloc(n * se.sz);
-        se.writeTo(p, false);
-        si = toStringSymbol(p, n, se.sz);
-        mem.xfree(p);
-    }
-    return si;
-}
-
 /******************************************************
  * Replace call to GC allocator with call to tracing GC allocator.
  * Params:
@@ -343,7 +304,7 @@ Symbol* toStringSymbol(StringExp se)
  *      e = elem to modify in place
  *      loc = to get file/line from
  */
-
+public
 void toTraceGC(ref IRState irs, elem* e, Loc loc)
 {
     static immutable RTLSYM[2][5] map =
@@ -387,7 +348,7 @@ void toTraceGC(ref IRState irs, elem* e, Loc loc)
  * Returns:
  *      generated elem tree
  */
-
+public
 elem* toElemDtor(Expression e, ref IRState irs, elem* ehidden = null)
 {
     //printf("Expression.toElemDtor() %s\n", e.toChars());
@@ -442,7 +403,7 @@ elem* toElemDtor(Expression e, ref IRState irs, elem* ehidden = null)
  * Returns:
  *      the equivalent of &e
  */
-
+public
 elem* addressElem(elem* e, Type t, bool alwaysCopy = false)
 {
     //printf("addressElem()\n");
@@ -514,6 +475,7 @@ elem* addressElem(elem* e, Type t, bool alwaysCopy = false)
 /********************************
  * Reset stringTab[] between object files being emitted, because the symbols are local.
  */
+public
 void clearStringTab()
 {
     //printf("clearStringTab()\n");
@@ -534,6 +496,7 @@ private __gshared StringTable!(Symbol*) *stringTab;
  * Returns:
  *      true if symbol should be imported from a DLL
  */
+public
 bool isDllImported(Dsymbol symbl)
 {
     // Windows is the only platform which dmd supports, that uses the DllImport/DllExport scheme.
@@ -640,6 +603,51 @@ bool isDllImported(Dsymbol symbl)
     return false;
 }
 
+/**************************************** private ************************************/
+
+private:
+
+
+int registerSize() { return _tysize[TYnptr]; }
+
+/*************************************************
+ * Determine if zero bits need to be copied for this backend type
+ * Params:
+ *      t = backend type
+ * Returns:
+ *      true if 0 bits
+ */
+private
+bool type_zeroCopy(type* t)
+{
+    return type_size(t) == 0 ||
+        (tybasic(t.Tty) == TYstruct &&
+         (t.Ttag.Stype.Ttag.Sstruct.Sflags & STR0size));
+}
+
+/*******************************************************
+ * Turn StringExp into Symbol.
+ */
+Symbol* toStringSymbol(StringExp se)
+{
+    Symbol* si;
+    string s;
+    const n = cast(int)se.numberOfCodeUnits(0, s);
+    if (se.sz == 1)
+    {
+        const slice = se.peekString();
+        si = toStringSymbol(slice.ptr, slice.length, 1);
+    }
+    else
+    {
+        auto p = cast(char *)mem.xmalloc(n * se.sz);
+        se.writeTo(p, false);
+        si = toStringSymbol(p, n, se.sz);
+        mem.xfree(p);
+    }
+    return si;
+}
+
 /*********************************************
  * Generate a backend symbol for a frontend symbol
  * Params:
@@ -656,7 +664,7 @@ Symbol* toExtSymbol(Dsymbol s)
         return toSymbol(s);
 }
 
-private elem* toEfilenamePtr(Module m)
+elem* toEfilenamePtr(Module m)
 {
     //printf("toEfilenamePtr(%s)\n", m.toChars());
     const(char)* id = m.srcfile.toChars();
@@ -715,6 +723,34 @@ elem* toElem(Expression e, ref IRState irs)
             {
                 fld.deferToObj = true;
                 irs.deferToObj.push(fld);
+            }
+        }
+
+        /* Check for @__ctfe functions - they cannot be referenced at runtime
+         */
+        if (FuncDeclaration fd = se.var.isFuncDeclaration())
+        {
+            if (auto tf = fd.type.isTypeFunction())
+            {
+                if (tf.isCtfeOnly)
+                {
+                    irs.eSink.error(se.loc, "function `%s` is `@__ctfe` and cannot be used at runtime", fd.toPrettyChars());
+                    return el_long(TYsize_t, 0);
+                }
+            }
+        }
+
+        /* Check for @__ctfe functions - they cannot be referenced at runtime
+         */
+        if (FuncDeclaration fd = se.var.isFuncDeclaration())
+        {
+            if (auto tf = fd.type.isTypeFunction())
+            {
+                if (tf.isCtfeOnly)
+                {
+                    irs.eSink.error(se.loc, "function `%s` is `@__ctfe` and cannot be used at runtime", fd.toPrettyChars());
+                    return el_long(TYsize_t, 0);
+                }
             }
         }
 
@@ -4312,8 +4348,6 @@ elem* toElemRVO(Expression e, elem* ehidden, ref IRState irs)
     }
 }
 
-private:
-
 /**************************************
  * Mirrors logic in Dsymbol_canThrow().
  */
@@ -6266,7 +6300,6 @@ elem* sarray_toDarray(Loc loc, Type tfrom, Type tto, elem* e)
  * Returns:
  *      TypeInfo
  */
-private
 elem* getTypeInfo(Expression e, Type t, ref IRState irs)
 {
     assert(t.ty != Terror);
@@ -6500,7 +6533,6 @@ Lagain:
  * tries to use aligned int stores whereever possible.
  * Update *poffset to end of initialized hole; *poffset will be >= offset2.
  */
-private
 elem* fillHole(Symbol* stmp, size_t poffset, size_t offset2, size_t maxoff)
 {
     elem* e = null;
@@ -7446,7 +7478,6 @@ elem* genHalt(Loc loc)
  * Returns:
  *      `ethis2` if successful, null otherwise
  */
-private
 elem* setEthis2(Loc loc, ref IRState irs, FuncDeclaration fd, elem* ethis2, ref elem* ethis, ref elem* eside)
 {
     if (!fd.hasDualContext)
@@ -7475,7 +7506,6 @@ elem* setEthis2(Loc loc, ref IRState irs, FuncDeclaration fd, elem* ethis2, ref 
  * Returns:
  *      OPva_start elem
  */
-private
 elem* constructVa_start(elem* e)
 {
     assert(e.Eoper == OPparam);
@@ -7508,7 +7538,6 @@ elem* constructVa_start(elem* e)
  * Returns:
  *      `e` or `e` converted to an OPstrpar
  */
-private
 elem* useOPstrpar(elem* e)
 {
     tym_t ty = tybasic(e.Ety);
@@ -7534,7 +7563,7 @@ elem* useOPstrpar(elem* e)
  *      argument is copied to memory allocated by the caller and the argument is replaced
  *      by a pointer to the copy."
  */
-private bool passTypeByRef(ref const Target target, Type t)
+bool passTypeByRef(ref const Target target, Type t)
 {
     return (target.isAArch64 && t.size(Loc.initial) > 16);
 }

@@ -359,7 +359,9 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
              */
             Expressions* a = ae.arguments.copy();
             Expression result = new DotIdExp(ae.loc, ae.e1, Id.opIndex);
-            result = new CallExp(ae.loc, result, a);
+            auto ce = new CallExp(ae.loc, result, a);
+            ce.fromOpOverload = true;
+            result = ce;
             if (maybeSlice) // a[] might be: a.opSlice()
                 result = result.trySemantic(sc);
             else
@@ -397,7 +399,9 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
                 a.push(ie.upr);
             }
             Expression result = new DotIdExp(ae.loc, ae.e1, Id.opSlice);
-            result = new CallExp(ae.loc, result, a);
+            auto ce = new CallExp(ae.loc, result, a);
+            ce.fromOpOverload = true;
+            result = ce;
             result = result.expressionSemantic(sc);
             return Expression.combine(e0, result);
         }
@@ -664,7 +668,9 @@ private Expression dotTemplateCall(Expression e, Identifier id, Objects* tiargs,
     auto ti = new DotTemplateInstanceExp(e.loc, e, id, tiargs);
     auto expressions = new Expressions();
     expressions.pushSlice(args);
-    return new CallExp(e.loc, ti, expressions);
+    auto ce = new CallExp(e.loc, ti, expressions);
+    ce.fromOpOverload = true;
+    return ce;
 }
 
 Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
@@ -730,11 +736,12 @@ Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
             Expression result = new IdentifierExp(e.loc, Id.empty);
             result = new DotIdExp(e.loc, result, Id.object);
             result = new DotIdExp(e.loc, result, Id.opEquals);
-            result = new CallExp(e.loc, result, e1x, e2x);
+            auto ce = new CallExp(e.loc, result, e1x, e2x);
+            ce.fromOpOverload = true;
+            result = ce;
             if (e.op == EXP.notEqual)
                 result = new NotExp(e.loc, result);
-            result = result.expressionSemantic(sc);
-            return result;
+            return result.expressionSemantic(sc);
         }
     }
 
@@ -896,8 +903,9 @@ Expression opOverloadCmp(CmpExp exp, Scope* sc, Type[2] aliasThisStop)
         arguments.push(exp.e1);
     }
 
-    cl = new CallExp(e.loc, cl, arguments);
-    cl = new CmpExp(cmpOp, exp.loc, cl, new IntegerExp(0));
+    auto ce = new CallExp(e.loc, cl, arguments);
+    ce.fromOpOverload = true;
+    cl = new CmpExp(cmpOp, exp.loc, ce, new IntegerExp(0));
     return cl.expressionSemantic(sc);
 }
 
@@ -1164,7 +1172,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id, ref EXP 
 /***********************************
  * Utility to build a function call out of this reference and argument.
  */
-Expression build_overload(Loc loc, Scope* sc, Expression ethis, Expression earg, Dsymbol d)
+private Expression build_overload(Loc loc, Scope* sc, Expression ethis, Expression earg, Dsymbol d)
 {
     assert(d);
     Expression e;
@@ -1172,9 +1180,9 @@ Expression build_overload(Loc loc, Scope* sc, Expression ethis, Expression earg,
         e = new DotVarExp(loc, ethis, decl, false);
     else
         e = new DotIdExp(loc, ethis, d.ident);
-    e = new CallExp(loc, e, earg);
-    e = e.expressionSemantic(sc);
-    return e;
+    auto ce = new CallExp(loc, e, earg);
+    ce.fromOpOverload = true;
+    return ce.expressionSemantic(sc);
 }
 
 /***************************************
