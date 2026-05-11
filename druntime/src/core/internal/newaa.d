@@ -649,12 +649,6 @@ auto _d_aaIn(T : V[K], K, V, K2)(shared T a, auto ref scope K2 key)
     // accept shared for backward compatibility, should be deprecated
     return _d_aaIn(cast(V[K]) a, key);
 }
-/// ditto
-auto _d_aaIn(T : V[K], K, V, K2)(const shared T a, auto ref scope K2 key)
-{
-    // accept shared for backward compatibility, should be deprecated
-    return _d_aaIn(cast(V[K]) a, key);
-}
 
 // fake purity for backward compatibility with runtime hooks
 private extern(C) bool gc_inFinalizer() pure nothrow @safe;

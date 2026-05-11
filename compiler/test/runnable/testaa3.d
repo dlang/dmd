@@ -425,6 +425,21 @@ void testShared()
     cast(void)iprocesses.byKeyValue;
     //iprocesses.remove(3);
     assert(2 in iprocesses);
+
+    const shared int[int] cprocesses = [1: 1, 2:4, 3:9];
+
+    cast(void)cprocesses.sizeof;
+    cast(void)cprocesses.length;
+    cast(void)cprocesses.dup;          // fails in 2.111
+    //cast(void)cprocesses.rehash;
+    //cast(void)cprocesses.clear;
+    //cast(void)cprocesses.keys;       // fails in 2.111
+    //cast(void)cprocesses.values;     // fails in 2.111
+    //cast(void)cprocesses.byKey;      // fails in 2.111
+    //cast(void)cprocesses.byValue;    // fails in 2.111
+    //cast(void)cprocesses.byKeyValue; // fails in 2.111
+    //cprocesses.remove(3);
+    assert(2 in cprocesses);
 }
 
 // https://github.com/dlang/dmd/issues/22556
