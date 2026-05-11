@@ -411,7 +411,7 @@ else
             return MsCoffObj_getsegment(sectname, flags);
         }
 
-        void addrel(int seg, targ_size_t offset, Symbol* targsym, uint targseg, int rtype, int val = 0)
+        void addrel(int seg, targ_size_t offset, Symbol* targsym, uint targseg, REL rtype, int val = 0)
         {
             switch (config.objfmt)
             {
