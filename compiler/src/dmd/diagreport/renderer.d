@@ -125,15 +125,15 @@ private:
         // Build columnNumberFormat — e.g. "%3d" for a 3-digit max line number
         {
             int lineNumberLength = snprintf(null, 0, "%d", maxLineNumber);
-            char[32] buf;      
+            char[32] buf;
             int n = snprintf(buf.ptr, buf.length, "%%%dd", lineNumberLength);
 
             char[] fmt;
-            try { fmt = new char[n + 1]; } 
+            try { fmt = new char[n + 1]; }
             catch (Exception) { fmt = buf[0 .. n + 1]; }
             fmt[0 .. n] = buf[0 .. n];
-            fmt[n] = '\0';                    
-            columnNumberFormat = cast(string) fmt[0 .. n]; 
+            fmt[n] = '\0';
+            columnNumberFormat = cast(string) fmt[0 .. n];
         }
     }
 

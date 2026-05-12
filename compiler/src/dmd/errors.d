@@ -118,7 +118,7 @@ class ErrorSinkCompiler : ErrorSink
 
             completedEvents.length = 0;
         }
-        
+
         // Exit if there are no collected diagnostics
         if (!diagnostics.length) return;
 
