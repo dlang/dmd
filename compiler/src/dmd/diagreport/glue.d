@@ -38,7 +38,7 @@ void callEvent(ref dmd.errors.Diagnostic[] group) nothrow
         foreach (i, ref d; group)
         {
             auto diag = convert(d);
-            diag.startMessage.id = i + 1; 
+            diag.startMessage.id = i + 1;
             diags ~= diag;
             messages ~= d.message;
         }
@@ -104,7 +104,7 @@ void event(string filename, string source, dmd.diagreport.defs.Diagnostic[] diag
         renderer.emitSquiggle = (string text) nothrow
             => buf.printDiagnostic("\x1b[31m", text, "\x1b[0m");
     }
-    else 
+    else
     {
         renderer.emitMargin = (string text) nothrow
             => buf.printDiagnostic(text);
@@ -124,8 +124,8 @@ void event(string filename, string source, dmd.diagreport.defs.Diagnostic[] diag
             => buf.printDiagnostic(text);
         renderer.emitSquiggle = (string text) nothrow
             => buf.printDiagnostic(text);
-    }        
-    
+    }
+
     renderer.getSourceCode = (int lineNumber) nothrow @trusted
     {
         int idx = lineNumber - firstLineNumber;
@@ -182,7 +182,7 @@ void event(string filename, string source, dmd.diagreport.defs.Diagnostic[] diag
     fflush(stderr);
 }
 
-// Split source into lines without Phobos 
+// Split source into lines without Phobos
 private string[] splitLines(string source) nothrow
 {
     string[] result;
@@ -292,7 +292,7 @@ private int getTokenLength(const(char)[] text, size_t offset) nothrow @safe
             c == ',' || c == ';' || c == ')' || c == '(' ||
             c == ']' || c == '[' || c == '{' || c == '}')
         {
-            if (count == 0) count = 1; 
+            if (count == 0) count = 1;
             break;
         }
         count++;
