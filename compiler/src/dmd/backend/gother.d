@@ -41,10 +41,8 @@ char symbol_isintab(const Symbol* s) { return sytab[s.Sclass] & SCSS; }
 
 /**********************************************************************/
 
-alias Elemdatas = Rarray!(Elemdata);
-
 // Lists to help identify ranges of variables
-struct Elemdata
+private struct Elemdata
 {
 nothrow:
     elem* pelem;            // the elem in question
@@ -69,6 +67,8 @@ nothrow:
     }
 }
 
+private alias Elemdatas = Rarray!(Elemdata);
+
 /********************************
  * Find `e` in Elemdata list.
  * Params:
@@ -78,7 +78,7 @@ nothrow:
  *      null if not
  */
 @trusted
-Elemdata* find(ref Elemdatas eds, elem* e)
+private Elemdata* find(ref Elemdatas eds, elem* e)
 {
     foreach (ref edl; eds)
     {
@@ -86,17 +86,6 @@ Elemdata* find(ref Elemdatas eds, elem* e)
             return &edl;
     }
     return null;
-}
-
-/*****************
- * Free list of Elemdata's.
- */
-
-private void elemdatafree(ref Elemdatas eds)
-{
-    foreach (ref ed; eds)
-        ed.reset();
-    eds.reset();
 }
 
 private struct EqRelInc
@@ -113,6 +102,16 @@ private struct EqRelInc
         elemdatafree(eqeqlist);
         elemdatafree(rellist);
         elemdatafree(inclist);
+    }
+
+    /*****************
+     * Free list of Elemdata's.
+     */
+    private static void elemdatafree(ref Elemdatas eds) nothrow
+    {
+        foreach (ref ed; eds)
+            ed.reset();
+        eds.reset();
     }
 }
 
