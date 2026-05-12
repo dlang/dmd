@@ -935,7 +935,7 @@ dmd -cov -unittest myprog.d
         Option("vcolumns",
             "print character (column) numbers in diagnostics"
         ),
-        Option("verror-style=[digitalmars|gnu|sarif]",
+        Option("verror-style=[digitalmars|gnu|sarif|diagreport]",
             "set the style for file/line number annotations on compiler messages",
             `Set the style for file/line number annotations on compiler messages,
             where:
@@ -943,6 +943,7 @@ dmd -cov -unittest myprog.d
             $(DT digitalmars)$(DD 'file(line[,column]): message'. This is the default.)
             $(DT gnu)$(DD 'file:line[:column]: message', conforming to the GNU standard used by gcc and clang.)
             $(DT sarif)$(DD 'Generates JSON output conforming to the SARIF (Static Analysis Results Interchange Format) standard, useful for integration with tools like GitHub and other SARIF readers.')
+            $(DT diagreport)$(DD 'Generates diagnostic report of errors, warnings, deprecations and tips.')
             )`,
         ),
         Option("verror-supplements=<num>",
