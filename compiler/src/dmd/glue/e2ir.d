@@ -3292,8 +3292,27 @@ elem* toElem(Expression e, ref IRState irs)
     elem* visitComma(CommaExp ce)
     {
         assert(ce.e1 && ce.e2);
+        elem* inlineCoverage(Expression e)
+        {
+            if (!ce.isInlineSequence || !irs.params.cov || !e || !e.loc.isValid())
+                return null;
+
+            // Nested inline-sequence commas are accounted for recursively.
+            if (auto nested = e.isCommaExp())
+            {
+                if (nested.isInlineSequence)
+                    return null;
+            }
+
+            return incUsageElem(irs, e.loc);
+        }
+
         elem* eleft  = toElem(ce.e1, irs);
+        eleft = el_combine(inlineCoverage(ce.e1), eleft);
+
         elem* eright = toElem(ce.e2, irs);
+        eright = el_combine(inlineCoverage(ce.e2), eright);
+
         elem* e = el_combine(eleft, eright);
         if (e)
             elem_setLoc(e, ce.loc);

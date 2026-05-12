@@ -120,6 +120,15 @@ private final class InlineDoState
     }
 }
 
+private Expression combineInlineSequence(Expression e1, Expression e2)
+{
+    auto result = Expression.combine(e1, e2);
+    if (result)
+        if (auto ce = result.isCommaExp())
+            ce.isInlineSequence = true;
+    return result;
+}
+
 /***********************************************************
  * Perform the inlining from (Statement or Expression) to (Statement or Expression).
  *
@@ -218,13 +227,13 @@ public:
                         e2.type = Type.tvoid;
                         e.type = Type.tvoid;
                     }
-                    result = Expression.combine(result, e);
+                    result = combineInlineSequence(result, e);
                 }
                 else
                 {
                     ids.foundReturn = false;
                     auto e = doInlineAs!Expression(sx, ids);
-                    result = Expression.combine(result, e);
+                    result = combineInlineSequence(result, e);
                 }
             }
 
@@ -253,7 +262,7 @@ public:
             static if (asStatements)
                 as.push(r);
             else
-                result = Expression.combine(result, r);
+                result = combineInlineSequence(result, r);
 
             if (ids.foundReturn)
                 break;
@@ -2350,7 +2359,7 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
             ids.from.push(vfrom);
             ids.to.push(vto);
 
-            auto de = new DeclarationExp(vto.loc, vto);
+            auto de = new DeclarationExp(Loc.initial, vto);
             de.type = Type.tvoid;
             eparams = Expression.combine(eparams, de);
 
@@ -2445,8 +2454,10 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
             e.type = Type.tvoid;
         }
 
-        eresult = Expression.combine(eresult, eret, ethis, eparams);
-        eresult = Expression.combine(eresult, e);
+        eresult = combineInlineSequence(eresult, eret);
+        eresult = combineInlineSequence(eresult, ethis);
+        eresult = combineInlineSequence(eresult, eparams);
+        eresult = combineInlineSequence(eresult, e);
 
         if (ecall.rvalue || tf.isRvalue)
             eresult.rvalue = true;
