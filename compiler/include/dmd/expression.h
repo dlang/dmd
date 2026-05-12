@@ -948,6 +948,7 @@ class CommaExp final : public BinExp
 {
 public:
     d_bool isGenerated;
+    d_bool isInlineSequence;
     d_bool allowCommaExp;
     Expression* originalExp;
     void accept(Visitor *v) override { v->visit(this); }

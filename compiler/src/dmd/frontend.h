@@ -2649,6 +2649,7 @@ class CommaExp final : public BinExp
 {
 public:
     const bool isGenerated;
+    bool isInlineSequence;
     bool allowCommaExp;
     Expression* originalExp;
     void accept(Visitor* v) override;

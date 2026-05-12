@@ -2829,6 +2829,9 @@ extern (C++) final class CommaExp : BinExp
     /// to trigger the deprecation.
     const bool isGenerated;
 
+    /// `true` if this comma chain was introduced by inline expansion.
+    bool isInlineSequence;
+
     /// Temporary variable to enable / disable deprecation of comma expression
     /// depending on the context.
     /// Since most constructor calls are rewritting, the only place where
