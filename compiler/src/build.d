@@ -1592,7 +1592,11 @@ auto sourceFiles()
             visitor/strict.d visitor/transitive.d
             cparse.d
             dfa/entry.d dfa/utils.d dfa/fast/structure.d dfa/fast/analysis.d dfa/fast/report.d dfa/fast/expression.d dfa/fast/statement.d
+<<<<<<< HEAD
             diagreport/defs.d diagreport/geometry.d diagreport/renderer.d 
+=======
+            diagreport/defs.d diagreport/geometry.d diagreport/renderer.d
+>>>>>>> 4f5148e7946b1ff822b0617c1f32756a28f1131a
         "),
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d dt.d el.d global.d
