@@ -122,7 +122,7 @@ private:
         // Build columnNumberFormat — e.g. "%3d" for a 3-digit max line number
         {
             int lineNumberLength = snprintf(null, 0, "%d", maxLineNumber);
-            char[32] buf;      
+            char[32] buf;
             int n = snprintf(buf.ptr, buf.length, "%%%dd", lineNumberLength);
             columnNumberFormat = cast(string) buf[0 .. n+1].idup[0 .. n];
         }

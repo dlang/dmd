@@ -229,7 +229,7 @@ void writeSourceLoc(ref OutBuffer buf,
         case MessageStyle.sarif: // https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
             // No formatting needed here for SARIF
             break;
-        case MessageStyle.diagreport: 
+        case MessageStyle.diagreport:
             break;
     }
 }
