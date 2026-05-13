@@ -33,18 +33,14 @@ void callEvent(ref dmd.errors.Diagnostic[] group) nothrow
     dmd.diagreport.defs.Diagnostic[] diags;
     string[] messages;
 
-    try
+    foreach (i, ref d; group)
     {
-        foreach (i, ref d; group)
-        {
-            auto diag = convert(d);
-            diag.startMessage.id = i + 1; 
-            diags ~= diag;
-            messages ~= d.message;
-        }
+        auto diag = convert(d);
+        diag.startMessage.id = i + 1; 
+        diags ~= diag;
+        messages ~= d.message;
     }
-    catch (Exception) { return; }
-
+    
     event(cast(string) primary.loc.filename, cast(string) primary.loc.fileContent, diags, messages, null);
 }
 
@@ -189,8 +185,7 @@ private string[] splitLines(string source) nothrow
     auto range = LineRange(source);
     while (!range.empty)
     {
-        try { result ~= range.front(); }
-        catch (Exception) { break; }
+        result ~= range.front();
         range.popFront();
     }
     return result;

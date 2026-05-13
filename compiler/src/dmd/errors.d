@@ -107,8 +107,7 @@ class ErrorSinkCompiler : ErrorSink
             // Flushes the last open causal group
             if (diagnostics.length > 0)
             {
-                try { completedEvents ~= diagnostics; }
-                catch (Exception) {}
+                completedEvents ~= diagnostics;
                 diagnostics.length = 0;
             }
 
@@ -485,8 +484,7 @@ private void collectDiagnostic(const SourceLoc loc, const(char)* format, va_list
     // A new primary diagnostic means the previous causal group is complete
     if (diagnostics.length > 0)
     {
-        try { completedEvents ~= diagnostics; }
-        catch (Exception) {}
+        completedEvents ~= diagnostics;
         diagnostics.length = 0;
     }
 
@@ -496,11 +494,8 @@ private void collectDiagnostic(const SourceLoc loc, const(char)* format, va_list
     Diagnostic d;
     d.loc = loc;
     d.kind = kind;
-    try { d.message = tmp.extractSlice().idup; }
-    catch (Exception) {}
-
-    try { diagnostics ~= d; }
-    catch (Exception) {}
+    d.message = tmp.extractSlice().idup;
+    diagnostics ~= d;
 }
 
 /**
@@ -520,11 +515,8 @@ private void collectSupplemental(const SourceLoc loc, const(char)* format, va_li
     Diagnostic d;
     d.loc = loc;
     d.kind = kind;
-    try { d.message = tmp.extractSlice().idup; }
-    catch (Exception) {}
-
-    try { diagnostics ~= d; }
-    catch (Exception) {}
+    d.message = tmp.extractSlice().idup;
+    diagnostics ~= d;
 }
 
 /**

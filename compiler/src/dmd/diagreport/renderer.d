@@ -114,12 +114,9 @@ private:
         // Build columnWithoutNumber — spaces matching width of maxLineNumber
         {
             int lineNumberLength = snprintf(null, 0, "%d", maxLineNumber);
-
-            char[] temp;
-            try { temp.length = lineNumberLength; }
-            catch (Exception) { temp = [' ']; }
+            char[] temp = new char[lineNumberLength];
             temp[] = ' ';
-            columnWithoutNumber = cast(string) temp;
+            columnWithoutNumber = cast(string) temp.idup;
         }
 
         // Build columnNumberFormat — e.g. "%3d" for a 3-digit max line number
@@ -127,13 +124,7 @@ private:
             int lineNumberLength = snprintf(null, 0, "%d", maxLineNumber);
             char[32] buf;      
             int n = snprintf(buf.ptr, buf.length, "%%%dd", lineNumberLength);
-
-            char[] fmt;
-            try { fmt = new char[n + 1]; } 
-            catch (Exception) { fmt = buf[0 .. n + 1]; }
-            fmt[0 .. n] = buf[0 .. n];
-            fmt[n] = '\0';                    
-            columnNumberFormat = cast(string) fmt[0 .. n]; 
+            columnNumberFormat = cast(string) buf[0 .. n+1].idup[0 .. n];
         }
     }
 
