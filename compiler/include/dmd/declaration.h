@@ -675,6 +675,8 @@ public:
     bool hasInlineAsm(bool v);
     bool hasMultipleReturnExp() const;
     bool hasMultipleReturnExp(bool v);
+    bool hasInferredAttributes() const;
+    bool hasInferredAttributes(bool v);
 
     // Data for a function declaration that is needed for the Objective-C
     // integration.
