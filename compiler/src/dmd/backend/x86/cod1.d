@@ -362,7 +362,7 @@ uint gensaverestore(ref CGstate cg,regm_t regm,ref CodeBuilder cdbsave,ref CodeB
                 uint idx;
                 import dmd.backend.arm.cod3 : REGSAVE_save, REGSAVE_restore;
                 REGSAVE_save(cg.regsave,cdbsave,i,idx);
-                cg.reflocal = true;        // not sure why this is not on the x86 branch
+                cg.reflocal = true;        // registers saved into local stackframe
                 REGSAVE_restore(cg.regsave,cdb,i,idx);
                 restore[i] = cdb.finish();
             }
@@ -396,8 +396,9 @@ uint gensaverestore(ref CGstate cg,regm_t regm,ref CodeBuilder cdbsave,ref CodeB
                 else if (i >= XMM0 || I64 || cg.funcarg.size)
                 {
                     uint idx;
-                    cg.regsave.save(cdbsave, i, idx);
-                    cg.regsave.restore(cdb, i, idx);
+                    REGSAVE_save(cg.regsave, cdbsave, i, idx);
+                    cg.reflocal = true;        // registers saved into local stackframe
+                    REGSAVE_restore(cg.regsave, cdb, i, idx);
                 }
                 else
                 {
@@ -3611,8 +3612,9 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                 if (mi & tosave)
                 {
                     uint idx;
-                    cg.regsave.save(cdbsave, j, idx);
-                    cg.regsave.restore(cdbrestore, j, idx);
+                    REGSAVE_save(cg.regsave, cdbsave, j, idx);
+                    cg.reflocal = true;        // registers saved into local stackframe
+                    REGSAVE_restore(cg.regsave, cdbrestore, j, idx);
                     saved |= mi;
                     keepmsk &= ~mi;             // don't need to keep these for rest of params
                     tosave &= ~mi;
@@ -3679,8 +3681,9 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
                         if (mi & tosave)
                         {
                             uint idx;
-                            cg.regsave.save(cdbsave, j, idx);
-                            cg.regsave.restore(cdbrestore, j, idx);
+                            REGSAVE_save(cg.regsave, cdbsave, j, idx);
+                            cg.reflocal = true;        // registers saved into local stackframe
+                            REGSAVE_restore(cg.regsave, cdbrestore, j, idx);
                             saved |= mi;
                             keepmsk &= ~mi;             // don't need to keep these for rest of params
                             tosave &= ~mi;
