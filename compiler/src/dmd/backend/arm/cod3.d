@@ -2346,7 +2346,7 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
  * Debug code to dump code structure.
  */
 
-void WRcodlst(code* c)
+void codeListPrint(code* c)
 {
     for (; c; c = code_next(c))
         code_print(c);

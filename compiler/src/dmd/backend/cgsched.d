@@ -163,7 +163,7 @@ public void cgsched_block(block* b)
         scratch &= ~(b.Bregcon.used | b.Bregcon.params | cgstate.mfuncreg);
         scratch &= ~(b.Bregcon.immed.mval | b.Bregcon.cse.mval);
         cgsched_pentium(&b.Bcode,scratch);
-        //printf("after schedule:\n"); WRcodlst(b.Bcode);
+        //printf("after schedule:\n"); code_print_list(b.Bcode);
     }
 }
 

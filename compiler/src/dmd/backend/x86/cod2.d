@@ -3297,7 +3297,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
      getlvalue(cg,cdb,cs,e,0,RM.load);          // get addressing mode
     //printf("Irex = %02x, Irm = x%02x, Isib = x%02x\n", cs.Irex, cs.Irm, cs.Isib);
-    //fprintf(stderr,"cd2 :\n"); WRcodlst(c);
+    //fprintf(stderr,"cd2 :\n"); codeListPrint(c);
     if (pretregs == 0)
     {
         if (e.Ety & mTYvolatile)               // do the load anyway
@@ -3528,7 +3528,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     L3:
         fixresult(cg,cdb,e,retregs,pretregs);
     }
-    //fprintf(stderr,"cdafter :\n"); WRcodlst(c);
+    //fprintf(stderr,"cdafter :\n"); codeListPrint(c);
 }
 
 
