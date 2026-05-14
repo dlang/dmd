@@ -1503,7 +1503,7 @@ Symbol* symboly(string name, regm_t desregs)
     s.Sclass = SC.extern_;
     s.Sfl = FL.func;
     s.Ssymnum = 0;
-    s.Sregsaved = fregsaved;  // assume C conventions
+    s.Sregsaved = cgstate.fregsaved;  // assume C conventions
     return s;
 }
 
@@ -2219,7 +2219,7 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
         }
         else if (!tyfunc(s.ty()) || !(config.flags4 & CFG4optimized))
             // so we can replace func at runtime
-            getregs(cdbe,~fregsaved & (INSTR.ALLREGS | INSTR.FLOATREGS));
+            getregs(cdbe,~cg.fregsaved & (INSTR.ALLREGS | INSTR.FLOATREGS));
         else
             getregs(cdbe,~s.Sregsaved & (INSTR.ALLREGS | INSTR.FLOATREGS));
         if (sytab[s.Sclass] & SCSS)    // if function is on stack (!)
@@ -2276,7 +2276,7 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
 
         /* Mask of registers destroyed by the function call
          */
-        regm_t desmsk = (INSTR.ALLREGS | INSTR.FLOATREGS) & ~fregsaved; // XMMREGS?
+        regm_t desmsk = (INSTR.ALLREGS | INSTR.FLOATREGS) & ~cg.fregsaved; // XMMREGS?
         //printf("desmsk: %s\n", regm_str(desmsk));
 
         //if ((!OTleaf(e11.Eoper) || e11.Eoper == OPconst) &&

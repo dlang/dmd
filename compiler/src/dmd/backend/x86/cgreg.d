@@ -294,7 +294,7 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
 
     // Make sure we have enough uses to justify
     // using a register we must save
-    if (fregsaved & (1UL << reg) & cg.mfuncreg)
+    if (cg.fregsaved & (1UL << reg) & cg.mfuncreg)
         benefit -= 1 + nretblocks;
 
     for (bi = 0; (bi = cast(uint) vec_index(bi, s.Srange)) < bo.dfo.length; ++bi)
@@ -1013,17 +1013,17 @@ Ltried:
      */
     if ((I32 || I64) &&                       // not worth the bother for 16 bit code
         !flag &&                              // if haven't already assigned registers in this pass
-        (cg.mfuncreg & ~fregsaved) & cg.allregs &&  // if unused non-floating scratch registers
+        (cg.mfuncreg & ~cg.fregsaved) & cg.allregs &&  // if unused non-floating scratch registers
         !(funcsym_p.Sflags & SFLexit))       // don't need save/restore if function never returns
     {
         foreach (s; globsym[])
         {
             if (s.Sfl == FL.reg &&                // if assigned to register
-                (1UL << s.Sreglsw) & fregsaved &&   // and that register is not scratch
+                (1UL << s.Sreglsw) & cg.fregsaved &&   // and that register is not scratch
                 type_size(s.Stype) <= REGSIZE && // don't bother with register pairs
                 !tyfloating(s.ty()))             // don't assign floating regs to non-floating regs
             {
-                s.Sreglsw = findreg((cg.mfuncreg & ~fregsaved) & cg.allregs);
+                s.Sreglsw = findreg((cg.mfuncreg & ~cg.fregsaved) & cg.allregs);
                 s.Sregm = 1UL << s.Sreglsw;
                 flag = true;
 

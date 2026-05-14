@@ -19,6 +19,7 @@ import core.stdc.string;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
+import dmd.backend.code;
 import dmd.backend.cgcv;
 import dmd.backend.dlist;
 import dmd.backend.dt;
@@ -352,13 +353,13 @@ Symbol* symbol_genauto(tym_t ty)
 @trusted @nogc
 void symbol_func(ref Symbol s)
 {
-    //printf("symbol_func(%s, x%x)\n", s.Sident.ptr, fregsaved);
+    //printf("symbol_func(%s, x%x)\n", s.Sident.ptr, cgstate.fregsaved);
     symbol_debug(&s);
     s.Sfl = FL.func;
     // Interrupt functions modify all registers
     // BUG: do interrupt functions really save BP?
-    // Note that fregsaved may not be set yet
-    s.Sregsaved = s.Stype && tybasic(s.Stype.Tty) == TYifunc ? cast(regm_t) mBP : fregsaved;
+    // Note that cgstate.fregsaved may not be set yet
+    s.Sregsaved = s.Stype && tybasic(s.Stype.Tty) == TYifunc ? cast(regm_t) mBP : cgstate.fregsaved;
     s.Sseg = UNKNOWN;          // don't know what segment it is in
     if (!s.Sfunc)
         s.Sfunc = func_calloc();
