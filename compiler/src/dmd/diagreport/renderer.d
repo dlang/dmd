@@ -39,7 +39,6 @@ struct Renderer
         int lastLineNumber;
     }
 
-    /// Assumption, all members of this are one grapheme in size.
     struct Config
     {
         string margin = "│";
@@ -95,7 +94,7 @@ private:
                 maxLineNumber = diag.end;
         }
 
-        // Selection sort — avoids Phobos
+        // Selection sort to sort diagnostics
         for (int i = 0; i < cast(int) diagnostics.length; i++)
         {
             for (int j = i + 1; j < cast(int) diagnostics.length; j++)

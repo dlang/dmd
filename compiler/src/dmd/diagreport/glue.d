@@ -178,7 +178,7 @@ void event(string filename, string source, dmd.diagreport.defs.Diagnostic[] diag
     fflush(stderr);
 }
 
-// Split source into lines without Phobos
+// Split source into lines
 private string[] splitLines(string source) nothrow
 {
     string[] result;
@@ -267,20 +267,18 @@ private int getTokenLength(const(char)[] text, size_t offset) nothrow @safe
     if (offset >= text.length)
         return 1;
 
-    // Find start of line
+    // Finds start of line
     size_t s = offset;
     while (s > 0 && text[s - 1] != '\n')
         s--;
 
-    // Scan forward from offset to end of token
-    // Simple heuristic: scan until whitespace, punctuation, or end of line
+    // Scan forward from offset to end of token until whitespace, punctuation, or end of line encountered
     size_t i = offset;
     int count = 0;
 
     while (i < text.length)
     {
         dchar c;
-        const prev = i;
         if (utf_decodeChar(text, i, c) !is null)
             break;
         if (c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
