@@ -225,6 +225,7 @@ struct CGstate
     regm_t mfuncreg;            // mask of registers preserved by function
     regm_t msavereg;            // Mask of registers that we would like to save.
                                 // they are temporaries (set by scodelem())
+    regm_t  fregsaved;          // mask of registers saved across function calls
 
     uint usednteh;              // if !=0, then used NT exception handling
     con_t regcon;               // register contents

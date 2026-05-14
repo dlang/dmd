@@ -326,7 +326,7 @@ void cod3_setdefault()
     CGstate* cg = &cgstate;
 
     cg.BP = BP;
-    fregsaved = mBP | mSI | mDI;
+    cg.fregsaved = mBP | mSI | mDI;
 
     /* hi and lo register masks
      */
@@ -349,12 +349,12 @@ void cod3_set32()
     inssize[0xA2] = T|5;
     inssize[0xA3] = T|5;
     BPRM = 5;                       /* [EBP] addressing mode        */
-    fregsaved = mBP | mBX | mSI | mDI;      // saved across function calls
+    cg.fregsaved = mBP | mBX | mSI | mDI;      // saved across function calls
     FLOATREGS = FLOATREGS_32;
     FLOATREGS2 = FLOATREGS2_32;
     DOUBLEREGS = DOUBLEREGS_32;
     if (config.flags3 & CFG3eseqds)
-        fregsaved |= mES;
+        cg.fregsaved |= mES;
 
     foreach (ref v; inssize2[0x80 .. 0x90])
         v = W|T|6;
@@ -385,7 +385,7 @@ void cod3_set64()
     inssize[0xA3] = T|5;                // MOV mem,RAX
     BPRM = 5;                           // [RBP] addressing mode
 
-    fregsaved = (config.exe & EX_windos)
+    cg.fregsaved = (config.exe & EX_windos)
         ? mBP | mBX | mDI | mSI | mR12 | mR13 | mR14 | mR15 | mES | mXMM6 | mXMM7 // also XMM8..15;
         : mBP | mBX | mR12 | mR13 | mR14 | mR15 | mES;      // saved across function calls
 
@@ -439,7 +439,7 @@ void cod3_setAArch64()
 
     /* Registers x19-x28, x29, v8-v15
      */
-    fregsaved = (1<<19) | (1<<20) | (1<<21) | (1<<22) | (1<<23) | (1<<24) | (1<<25) | (1<<26) | (1<<27) | (1<<28) |
+    cg.fregsaved = (1<<19) | (1<<20) | (1<<21) | (1<<22) | (1<<23) | (1<<24) | (1<<25) | (1<<26) | (1<<27) | (1<<28) |
                 (1<<29) |
                 (1L<<(32+8)) | (1L<<(32+9)) | (1L<<(32+10)) | (1L<<(32+11)) | (1L<<(32+12)) | (1L<<(32+13)) | (1L<<(32+14)) | (1L<<(32+15));
 
@@ -2791,7 +2791,7 @@ void cod3_ptrchk(ref CGstate cg, ref CodeBuilder cdb,ref code pcs,regm_t keepmsk
     }
 
     // registers destroyed by the function call
-    //used = (mBP | ALLREGS | mES) & ~fregsaved;
+    //used = (mBP | ALLREGS | mES) & ~cg.fregsaved;
     regm_t used = 0;                           // much less code generated this way
 
     code* cs2 = null;
@@ -4201,7 +4201,7 @@ private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topo
 
     debug
     if (topop & ~(XMMREGS | 0xFFFF))
-        printf("fregsaved = %s, mfuncreg = %s\n",regm_str(fregsaved),regm_str(cg.mfuncreg));
+        printf("fregsaved = %s, mfuncreg = %s\n",regm_str(cg.fregsaved),regm_str(cg.mfuncreg));
 
     assert(!(topop & ~(XMMREGS | 0xFFFF)));
     if (cg.pushoffuse)
@@ -4953,7 +4953,7 @@ void epilog(ref CGstate cg, block* b)
      * by the prolog code. Remember to do them in the reverse
      * order they were pushed.
      */
-    topop = fregsaved & ~cg.mfuncreg;
+    topop = cg.fregsaved & ~cg.mfuncreg;
     epilog_restoreregs(cg, cdbx, topop);
 
     if (cg.usednteh & NTEHjmonitor)

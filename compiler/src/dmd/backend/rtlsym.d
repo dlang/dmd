@@ -125,9 +125,6 @@ enum RTLSYM
 
 private __gshared Symbol*[RTLSYM.max + 1] rtlsym;
 
-// This varies depending on C ABI
-alias FREGSAVED = fregsaved;
-
 /******************************************
  * Get Symbol corresponding to Dwarf "personality" function.
  * Returns:
@@ -163,6 +160,8 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         tv.Tmangle = Mangle.c;
         tv.Tcount++;
     }
+
+    auto FREGSAVED = cgstate.fregsaved; // varies depending on C ABI
 
     // Lazilly initialize only what we use
     switch (i)
@@ -207,7 +206,7 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.ARRAYASSIGN_R:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayassign_r", 0, t); break;
         case RTLSYM.ARRAYASSIGN_L:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayassign_l", 0, t); break;
 
-        case RTLSYM.EXCEPT_HANDLER3:        symbolz(ps,FL.func,fregsaved,"_except_handler3", 0, tsclib); break;
+        case RTLSYM.EXCEPT_HANDLER3:        symbolz(ps,FL.func,FREGSAVED,"_except_handler3", 0, tsclib); break;
         case RTLSYM.CPP_HANDLER:            symbolz(ps,FL.func,FREGSAVED,"_cpp_framehandler", 0, tsclib); break;
         case RTLSYM.D_HANDLER:              symbolz(ps,FL.func,FREGSAVED,"_d_framehandler", 0, tsclib); break;
         case RTLSYM.D_LOCAL_UNWIND2:        symbolz(ps,FL.func,FREGSAVED,"_d_local_unwind2", 0, tsclib); break;
@@ -229,10 +228,10 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.EXCEPT_LIST:            symbolz(ps,FL.extern_,0,"_except_list",0,tstypes[TYint]); break;
         case RTLSYM.SETJMP3:                symbolz(ps,FL.func,FREGSAVED,"_setjmp3", 0, tsclib); break;
         case RTLSYM.LONGJMP:                symbolz(ps,FL.func,FREGSAVED,"_seh_longjmp_unwind@4", 0, tsclib); break;
-        case RTLSYM.ALLOCA:                 symbolz(ps,FL.func,fregsaved,"__alloca", 0, tsclib); break;
+        case RTLSYM.ALLOCA:                 symbolz(ps,FL.func,FREGSAVED,"__alloca", 0, tsclib); break;
         case RTLSYM.CPP_LONGJMP:            symbolz(ps,FL.func,FREGSAVED,"_cpp_longjmp_unwind@4", 0, tsclib); break;
-        case RTLSYM.PTRCHK:                 symbolz(ps,FL.func,fregsaved,"_ptrchk", 0, tsclib); break;
-        case RTLSYM.CHKSTK:                 symbolz(ps,FL.func,fregsaved,"_chkstk", 0, tsclib); break;
+        case RTLSYM.PTRCHK:                 symbolz(ps,FL.func,FREGSAVED,"_ptrchk", 0, tsclib); break;
+        case RTLSYM.CHKSTK:                 symbolz(ps,FL.func,FREGSAVED,"_chkstk", 0, tsclib); break;
         case RTLSYM.TRACE_PRO_N:            symbolz(ps,FL.func,ALLREGS|mBP|mES,"_trace_pro_n",0,tstrace); break;
         case RTLSYM.TRACE_PRO_F:            symbolz(ps,FL.func,ALLREGS|mBP|mES,"_trace_pro_f",0,tstrace); break;
         case RTLSYM.TRACE_EPI_N:            symbolz(ps,FL.func,ALLREGS|mBP|mES,"_trace_epi_n",0,tstrace); break;

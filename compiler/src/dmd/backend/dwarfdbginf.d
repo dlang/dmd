@@ -40,6 +40,7 @@ import core.stdc.errno;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
+import dmd.backend.code;
 import dmd.backend.arm.instr;
 
 version(Windows)
