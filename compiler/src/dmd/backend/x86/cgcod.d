@@ -162,7 +162,7 @@ void codgenx(ref CGstate cg, Symbol* sfunc)
         cg.regcon.cse.mval = cg.regcon.cse.mops = 0;      // no common subs yet
         cg.msavereg = 0;
         uint nretblocks = 0;
-        cg.mfuncreg = fregsaved;               // so we can see which are used
+        cg.mfuncreg = cg.fregsaved;         // so we can see which are used
                                             // (bit is cleared each time
                                             //  we use one)
         assert(!(cg.needframe && cg.mfuncreg & mask(cg.BP))); // needframe needs mBP
@@ -552,7 +552,7 @@ static if (0)
     // Mask of regs saved
     // BUG: do interrupt functions save BP?
     tym_t functy = tybasic(sfunc.ty());
-    sfunc.Sregsaved = (functy == TYifunc) ? cast(regm_t) mBP : (cg.mfuncreg | fregsaved);
+    sfunc.Sregsaved = (functy == TYifunc) ? cast(regm_t) mBP : (cg.mfuncreg | cg.fregsaved);
 
     debug
     if (global87.stackused != 0)
@@ -796,7 +796,7 @@ else
 
     cg.NDPoff = alignsection(cg.CSoff - global87.save.length * tysize(TYreal), REGSIZE, bias);
 
-    regm_t topush = fregsaved & ~cg.mfuncreg;          // mask of registers that need saving
+    regm_t topush = cg.fregsaved & ~cg.mfuncreg;          // mask of registers that need saving
     cg.pushoffuse = false;
     cg.pushoff = cg.NDPoff;
     /* We don't keep track of all the pushes and pops in a function. Hence,
@@ -3087,7 +3087,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs,r
     {
         touse = cg.mfuncreg & cg.allregs & ~(cg.msavereg | oldregcon | cg.regcon.cse.mval);
         /* Don't use registers we'll have to save/restore               */
-        touse &= ~(fregsaved & oldmfuncreg);
+        touse &= ~(cg.fregsaved & oldmfuncreg);
         /* Don't use registers that have constant values in them, since
            the code generated might have used the value.
          */

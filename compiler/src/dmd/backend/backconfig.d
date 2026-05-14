@@ -384,7 +384,7 @@ static if (0)
         machDebugSectionsInit();
     else if (cfg.objfmt == OBJ_ELF)
         elfDebugSectionsInit();
-    rtlsym_init(); // uses fregsaved, so must be after it's set inside cod3_set*
+    rtlsym_init(); // uses cgstate.fregsaved, so must be after it is set inside cod3_set*
 }
 
 /****************************

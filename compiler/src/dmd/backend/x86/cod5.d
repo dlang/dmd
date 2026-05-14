@@ -194,7 +194,7 @@ private void pe_add(block* b)
 @trusted
 private int need_prolog(block* b)
 {
-    if (b.Bregcon.used & fregsaved)
+    if (b.Bregcon.used & cgstate.fregsaved)
         goto Lneed;
 
     // If block referenced a param in 16 bit code

@@ -3191,7 +3191,7 @@ code* simpleops(code* c,regm_t scratch)
     code* c2;
 
     // Worry about using registers not saved yet by prolog
-    scratch &= ~fregsaved;
+    scratch &= ~cgstate.fregsaved;
 
     if (!(scratch & (scratch - 1)))     // if 0 or 1 registers
         return c;
