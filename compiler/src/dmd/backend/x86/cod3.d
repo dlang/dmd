@@ -8252,7 +8252,7 @@ private void do8bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev)
  * Debug code to dump code structure.
  */
 
-void WRcodlst(code* c)
+void codeListPrint(code* c)
 {
     for (; c; c = code_next(c))
         code_print(c);
@@ -8261,8 +8261,7 @@ void WRcodlst(code* c)
 @trusted
 void code_print(scope code* c)
 {
-    if (cgstate.AArch64)
-        return dmd.backend.arm.cod3.code_print(c);
+    debug assert(!cgstate.AArch64);
 
     ubyte ins;
     ubyte rexb;
