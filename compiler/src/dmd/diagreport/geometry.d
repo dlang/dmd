@@ -247,10 +247,9 @@ private:
                 return;
 
             LineClassification classification;
-            bool startEndOnlyRange;
+            // bool startEndOnlyRange;
             // Diagnostic* diag = findActiveDiagInColumn(onLine, columnNumber, classification, startEndOnlyRange);
-            const isActive = classification == LineClassification.SpanStart
-                || classification == LineClassification.SpanContinue;
+            const isActive = classification == LineClassification.SpanStart || classification == LineClassification.SpanContinue;
 
             columnEmptyHandler(lineNumber, haveStartOrEndColumnsToLeft, isActive);
         }
@@ -296,8 +295,7 @@ private:
         {
             LineClassification classification;
             bool startEndOnlyRange;
-            Diagnostic* currentDiag = findActiveDiagInColumn(lineNumber,
-                    column, classification, startEndOnlyRange);
+            Diagnostic* currentDiag = findActiveDiagInColumn(lineNumber, column, classification, startEndOnlyRange);
 
             if (column < lastColumnEmitted)
                 classification = LineClassification.Inactive;
