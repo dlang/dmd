@@ -892,12 +892,18 @@ bool _aaEqual(T : AA!(K, V), K, V)(scope T aa1, scope T aa2)
     return true;
 }
 
-/// compares 2 AAs for equality (compiler hook)
-bool _d_aaEqual(K, V)(scope const V[K] a1, scope const V[K] a2)
+private bool impl_aaEqual(K, V)(scope const V[K] a1, scope const V[K] a2) @trusted
 {
     scope aa1 = _toAA!(K, V)(a1);
     scope aa2 = _toAA!(K, V)(a2);
     return _aaEqual(aa1, aa2);
+}
+
+/// compares 2 AAs for equality (compiler hook)
+bool _d_aaEqual(K, V)(scope const V[K] a1, scope const V[K] a2) pure @nogc @safe nothrow
+{
+    enum pure_aaEqual(K, V) = cast(bool function(scope const V[K] a1, scope const V[K] a2) pure @nogc @safe nothrow) &impl_aaEqual!(K, V);
+    return pure_aaEqual!(K, V)(a1, a2);
 }
 
 /// callback from TypeInfo_AssociativeArray.equals (ignore const for now)

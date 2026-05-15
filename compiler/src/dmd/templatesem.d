@@ -1210,6 +1210,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
 
     if (sc.isKnownToHaveACompileTimeContext)
         _scope.knownACompileTimeOnlyContext = true;
+    _scope.deferSemantic3InCompilerHook = sc.deferSemantic3InCompilerHook;
 
     // Declare each template parameter as an alias for the argument type
     Scope* paramscope = _scope.push();
@@ -1346,6 +1347,95 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     if (global.errors != errorsave)
         goto Laftersemantic;
 
+    if (sc.deferSemantic3InCompilerHook)
+    {
+        sc2.setNoFree();
+        tempinst._scope = sc2;
+        addDeferredSemantic3(tempinst);
+    }
+    else
+        templateInstanceSemantic3(tempinst, sc, sc2);
+
+    if (tempinst.aliasdecl)
+    {
+        /* https://issues.dlang.org/show_bug.cgi?id=13816
+        * AliasDeclaration tries to resolve forward reference
+        * twice (See inuse check in AliasDeclaration.toAlias()). It's
+        * necessary to resolve mutual references of instantiated symbols, but
+        * it will left a true recursive alias in tuple declaration - an
+        * AliasDeclaration A refers TupleDeclaration B, and B contains A
+        * in its elements.  To correctly make it an error, we strictly need to
+        * resolve the alias of eponymous member.
+        */
+        tempinst.aliasdecl = tempinst.aliasdecl.toAlias2();
+
+        // stop AliasAssign tuple building
+        if (auto td = tempinst.aliasdecl.isTupleDeclaration())
+            td.building = false;
+    }
+
+Laftersemantic:
+    sc2.pop();
+    _scope.pop();
+
+    // Give additional context info if error occurred during instantiation
+    if (global.errors != errorsave)
+    {
+        if (!tempinst.errors)
+        {
+            if (!tempdecl.literal)
+                .error(tempinst.loc, "%s `%s` error instantiating", tempinst.kind, tempinst.toPrettyChars);
+            if (tempinst.tinst)
+                tempinst.tinst.printInstantiationTrace();
+        }
+        tempinst.errors = true;
+        if (tempinst.gagged)
+        {
+            // Errors are gagged, so remove the template instance from the
+            // instance/symbol lists we added it to and reset our state to
+            // finish clean and so we can try to instantiate it again later
+            // (see https://issues.dlang.org/show_bug.cgi?id=4302 and https://issues.dlang.org/show_bug.cgi?id=6602).
+            tempdecl.removeInstance(tempdecl_instance_idx);
+            if (target_symbol_list)
+            {
+                // Because we added 'this' in the last position above, we
+                // should be able to remove it without messing other indices up.
+                assert((*target_symbol_list)[target_symbol_list_idx] == tempinst);
+                target_symbol_list.remove(target_symbol_list_idx);
+                tempinst.memberOf = null;                    // no longer a member
+            }
+            tempinst.semanticRun = PASS.initial;
+            tempinst.inst = null;
+            tempinst.symtab = null;
+        }
+    }
+    else if (errinst)
+    {
+        /* https://issues.dlang.org/show_bug.cgi?id=14541
+        * If the previous gagged instance had failed by
+        * circular references, currrent "error reproduction instantiation"
+        * might succeed, because of the difference of instantiated context.
+        * On such case, the cached error instance needs to be overridden by the
+        * succeeded instance.
+        */
+        //printf("replaceInstance()\n");
+        assert(errinst.errors);
+        auto ti1 = TemplateInstanceBox(errinst);
+        (cast(TemplateInstance[TemplateInstanceBox])tempdecl.instances).remove(ti1);
+
+        auto ti2 = TemplateInstanceBox(tempinst);
+        (*(cast(TemplateInstance[TemplateInstanceBox]*) &tempdecl.instances))[ti2] = tempinst;
+    }
+
+    static if (LOG)
+    {
+        printf("-TemplateInstance.dsymbolSemantic('%s', this=%p)\n", tempinst.toChars(), tempinst);
+    }
+}
+
+void templateInstanceSemantic3(TemplateInstance tempinst, Scope* sc, Scope* sc2)
+{
+    //auto sc = sc2;
     if ((sc.func || sc.fullinst) && !tempinst.tinst)
     {
         /* If a template is instantiated inside function, the whole instantiation
@@ -1458,82 +1548,6 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
                     break;
             }
         }
-    }
-
-    if (tempinst.aliasdecl)
-    {
-        /* https://issues.dlang.org/show_bug.cgi?id=13816
-         * AliasDeclaration tries to resolve forward reference
-         * twice (See inuse check in AliasDeclaration.toAlias()). It's
-         * necessary to resolve mutual references of instantiated symbols, but
-         * it will left a true recursive alias in tuple declaration - an
-         * AliasDeclaration A refers TupleDeclaration B, and B contains A
-         * in its elements.  To correctly make it an error, we strictly need to
-         * resolve the alias of eponymous member.
-         */
-        tempinst.aliasdecl = tempinst.aliasdecl.toAlias2();
-
-        // stop AliasAssign tuple building
-        if (auto td = tempinst.aliasdecl.isTupleDeclaration())
-            td.building = false;
-    }
-
-Laftersemantic:
-    sc2.pop();
-    _scope.pop();
-
-    // Give additional context info if error occurred during instantiation
-    if (global.errors != errorsave)
-    {
-        if (!tempinst.errors)
-        {
-            if (!tempdecl.literal)
-                .error(tempinst.loc, "%s `%s` error instantiating", tempinst.kind, tempinst.toPrettyChars);
-            if (tempinst.tinst)
-                tempinst.tinst.printInstantiationTrace();
-        }
-        tempinst.errors = true;
-        if (tempinst.gagged)
-        {
-            // Errors are gagged, so remove the template instance from the
-            // instance/symbol lists we added it to and reset our state to
-            // finish clean and so we can try to instantiate it again later
-            // (see https://issues.dlang.org/show_bug.cgi?id=4302 and https://issues.dlang.org/show_bug.cgi?id=6602).
-            tempdecl.removeInstance(tempdecl_instance_idx);
-            if (target_symbol_list)
-            {
-                // Because we added 'this' in the last position above, we
-                // should be able to remove it without messing other indices up.
-                assert((*target_symbol_list)[target_symbol_list_idx] == tempinst);
-                target_symbol_list.remove(target_symbol_list_idx);
-                tempinst.memberOf = null;                    // no longer a member
-            }
-            tempinst.semanticRun = PASS.initial;
-            tempinst.inst = null;
-            tempinst.symtab = null;
-        }
-    }
-    else if (errinst)
-    {
-        /* https://issues.dlang.org/show_bug.cgi?id=14541
-         * If the previous gagged instance had failed by
-         * circular references, currrent "error reproduction instantiation"
-         * might succeed, because of the difference of instantiated context.
-         * On such case, the cached error instance needs to be overridden by the
-         * succeeded instance.
-         */
-        //printf("replaceInstance()\n");
-        assert(errinst.errors);
-        auto ti1 = TemplateInstanceBox(errinst);
-        (cast(TemplateInstance[TemplateInstanceBox])tempdecl.instances).remove(ti1);
-
-        auto ti2 = TemplateInstanceBox(tempinst);
-        (*(cast(TemplateInstance[TemplateInstanceBox]*) &tempdecl.instances))[ti2] = tempinst;
-    }
-
-    static if (LOG)
-    {
-        printf("-TemplateInstance.dsymbolSemantic('%s', this=%p)\n", tempinst.toChars(), tempinst);
     }
 }
 

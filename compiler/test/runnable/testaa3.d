@@ -458,6 +458,46 @@ void test22556()
     static assert(!__traits(compiles, foo.clear));
 }
 
+// https://github.com/dlang/dmd/issues/23064
+void test23064()
+{
+    static struct A(T)
+    {
+        static assert(is(typeof((T[string]).init == (T[string]).init)),
+                      "is(typeof(...)) is false for " ~ (T[string]).stringof);
+    }
+
+    static struct B { A!B x; }
+}
+
+// https://github.com/dlang/dmd/issues/23065
+void test23065()
+{
+    static struct C(T)
+    {
+        bool opEquals(R)(R rhs)
+            if (is(typeof(T.init == T.init)))
+            {
+                return false;
+            }
+    }
+
+    static struct A(T)
+    {
+        alias _ = C!(T[string]);
+
+        bool opEquals()(A rhs)
+        {
+            T[string] v;
+            return v == v;
+        }
+    }
+
+    static struct B { A!B x; }
+
+    A!B a;
+    a == a;
+}
 /***************************************************/
 
 // https://github.com/dlang/dmd/issues/22567
