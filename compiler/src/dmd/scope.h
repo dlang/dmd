@@ -128,6 +128,8 @@ struct Scope final
     bool ctfeBlock(bool v);
     bool knownACompileTimeOnlyContext() const;
     bool knownACompileTimeOnlyContext(bool v);
+    bool deferSemantic3InCompilerHook() const;
+    bool deferSemantic3InCompilerHook(bool v);
 
     UserAttributeDeclaration *userAttribDecl;   // user defined attributes
 

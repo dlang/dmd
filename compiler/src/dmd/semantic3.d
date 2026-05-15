@@ -74,6 +74,7 @@ import dmd.statement;
 import dmd.target;
 import dmd.targetcompiler;
 import dmd.templateparamsem;
+import dmd.templatesem;
 import dmd.typesem;
 import dmd.visitor;
 
@@ -117,6 +118,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
         if (tempinst.semanticRun >= PASS.semantic3)
             return;
         tempinst.semanticRun = PASS.semantic3;
+        if (tempinst._scope && tempinst._scope.deferSemantic3InCompilerHook)
+        {
+            tempinst._scope.deferSemantic3InCompilerHook = false;
+            templateInstanceSemantic3(tempinst, tempinst._scope, tempinst._scope);
+        }
+
         if (tempinst.errors || !tempinst.members)
             return;
 

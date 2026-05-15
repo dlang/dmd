@@ -69,6 +69,16 @@ private extern (D) struct FlagBitFields
       to prevent perceived false positives for meta-programming heavy code.
     */
     bool knownACompileTimeOnlyContext;
+
+    /**
+    When lowering builtin operations to druntime implementations, some assumptions
+    made by the previous implementations might no longer hold or have to be inferred
+    from the code. With recursive data structures this can easily hit limitations
+    of the semantic analysis. To help with backward compatibility, this flag will
+    cause semantic analysis of function bodies and template instances to be delayed
+    assuming that attribute inference is not necessary.
+    */
+    bool deferSemantic3InCompilerHook;
 }
 
 private extern (D) struct NonFlagBitFields
@@ -259,6 +269,7 @@ extern (C++) struct Scope
         s.previews = this.previews;
         s.lastdc = null;
         s.knownACompileTimeOnlyContext = this.knownACompileTimeOnlyContext;
+        s.deferSemantic3InCompilerHook = this.deferSemantic3InCompilerHook;
         assert(&this != s);
         return s;
     }
