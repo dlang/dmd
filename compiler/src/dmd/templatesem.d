@@ -1435,7 +1435,6 @@ Laftersemantic:
 
 void templateInstanceSemantic3(TemplateInstance tempinst, Scope* sc, Scope* sc2)
 {
-    //auto sc = sc2;
     if ((sc.func || sc.fullinst) && !tempinst.tinst)
     {
         /* If a template is instantiated inside function, the whole instantiation
