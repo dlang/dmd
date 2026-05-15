@@ -450,7 +450,7 @@ void codgenx(ref CGstate cg, Symbol* sfunc)
             {   uint u = b.Balign;
                 uint nalign = (u - cast(uint)Offset(sfunc.Sseg)) & (u - 1);
 
-                cod3_align_bytes(sfunc.Sseg, nalign);
+                cod3_align_bytes(cg.AArch64, sfunc.Sseg, nalign);
             }
             assert(b.Boffset == Offset(sfunc.Sseg));
 
