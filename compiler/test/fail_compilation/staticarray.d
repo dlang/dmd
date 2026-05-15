@@ -21,6 +21,9 @@ fail_compilation/staticarray.d(60): Error: cannot infer static array length from
 fail_compilation/staticarray.d(58): Error: struct `staticarray.ForwardRef7` circular or forward reference
 fail_compilation/staticarray.d(66): Error: struct `staticarray.ForwardRef8` cannot have field `arr` with static array of same struct type
 fail_compilation/staticarray.d(33): Error: variable `staticarray.ForwardRef2.arr` recursive initialization of field
+fail_compilation/staticarray.d(16): Error: cannot infer static array length from `$` in this type position; only direct static array declarations can infer `$` from an initializer
+fail_compilation/staticarray.d(17): Error: cannot infer static array length from `$` in this type position; only direct static array declarations can infer `$` from an initializer
+fail_compilation/staticarray.d(18): Error: cannot infer static array length from `$`, provide an initializer
 ---
 */
 
