@@ -462,13 +462,14 @@ void cod3_setAArch64()
 /*********************************
  * Word or dword align start of function.
  * Params:
+ *      AArch64 = target CPU
  *      seg = segment to write alignment bytes to
  *      nbytes = number of alignment bytes to write
  */
 @trusted
-void cod3_align_bytes(int seg, size_t nbytes)
+void cod3_align_bytes(bool AArch64, int seg, size_t nbytes)
 {
-    if (cgstate.AArch64)
+    if (AArch64)
     {
         foreach (i; 0 .. nbytes)
             objmod.write_byte(SegData[seg],0);
@@ -533,7 +534,7 @@ void cod3_align(int seg)
     if (cgstate.AArch64)
     {
         const nbytes = -Offset(seg) & 3;
-        cod3_align_bytes(seg, nbytes);
+        cod3_align_bytes(true, seg, nbytes);
     }
     else if (config.exe & EX_windos)
     {
@@ -547,14 +548,14 @@ void cod3_align(int seg)
 
                 const nbytes = -Offset(seg) & 15;
                 if (nbytes < 8)
-                    cod3_align_bytes(seg, nbytes);
+                    cod3_align_bytes(false, seg, nbytes);
             }
         }
     }
     else
     {
         const nbytes = -Offset(seg) & 7;
-        cod3_align_bytes(seg, nbytes);
+        cod3_align_bytes(false, seg, nbytes);
     }
 }
 
