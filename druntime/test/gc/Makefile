@@ -1,6 +1,6 @@
 TESTS:=attributes sentinel printf memstomp invariant logging \
        precise precisegc \
-       recoverfree nocollect
+       recoverfree collect nocollect
 
 ifneq ($(OS),windows)
     # some .d files are for Posix only
