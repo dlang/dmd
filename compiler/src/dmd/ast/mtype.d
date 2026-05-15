@@ -4,12 +4,12 @@
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mtype.d, _mtype.d)
- * Documentation:  https://dlang.org/phobos/dmd_mtype.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/mtype.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/mtype.d, _mtype.d)
+ * Documentation:  https://dlang.org/phobos/dmd_ast_mtype.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/ast/mtype.d
  */
 
-module dmd.mtype;
+module dmd.ast.mtype;
 
 import core.checkedint;
 import core.stdc.stdarg;
@@ -17,16 +17,17 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.ast.enums;
+import dmd.ast.node;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.denum;
+import dmd.ast.dstruct;
+import dmd.ast.dsymbol;
+import dmd.ast.dtemplate;
+import dmd.ast.expression;
+
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.ast_node;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.denum;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.expression;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
@@ -2280,7 +2281,7 @@ extern (C++) struct ParameterList
  */
 extern (C++) final class Parameter : ASTNode
 {
-    import dmd.attrib : UserAttributeDeclaration;
+    import dmd.ast.attrib : UserAttributeDeclaration;
 
     Loc loc;
     STC storageClass;

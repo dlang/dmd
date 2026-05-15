@@ -15,41 +15,46 @@ module dmd.expressionsem;
 
 import core.stdc.stdio;
 
+import dmd.ast.aggregate;
+import dmd.ast.aliasthis;
+import dmd.ast.attrib;
+import dmd.ast.codegen;
+import dmd.ast.cond;
+import dmd.ast.declaration;
+import dmd.ast.dclass;
+import dmd.ast.denum;
+import dmd.ast.dimport;
+import dmd.ast.dmodule;
+import dmd.ast.dstruct;
+import dmd.ast.dtemplate;
+import dmd.ast.dsymbol;
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.init;
+import dmd.ast.mtype;
+import dmd.ast.nspace;
+import dmd.ast.print;
+
 import dmd.access;
-import dmd.aggregate;
-import dmd.aliasthis;
 import dmd.arrayop;
 import dmd.arraytypes;
-import dmd.attrib;
-import dmd.astcodegen;
-import dmd.astenums;
 import dmd.canthrow;
 import dmd.chkformat;
-import dmd.cond;
 import dmd.ctorflow;
 import dmd.ctfeexpr : isCtfeReferenceValid;
 import dmd.dscope;
-import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.templatesem : computeOneMember;
-import dmd.declaration;
-import dmd.dclass;
 import dmd.dcast;
 import dmd.delegatize;
-import dmd.denum;
 import dmd.deps;
-import dmd.dimport;
 import dmd.dinterpret;
-import dmd.dmodule;
-import dmd.dstruct;
-import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.enumsem;
 import dmd.escape;
-import dmd.expression;
 import dmd.file_manager;
-import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
@@ -57,21 +62,17 @@ import dmd.id;
 import dmd.identifier;
 import dmd.imphint;
 import dmd.importc;
-import dmd.init;
 import dmd.initsem;
 import dmd.inline;
 import dmd.intrange;
 import dmd.location;
 import dmd.mangle;
-import dmd.mtype;
 import dmd.mustuse;
-import dmd.nspace;
 import dmd.nogc;
 import dmd.objc;
 import dmd.opover;
 import dmd.optimize;
 import dmd.parse;
-import dmd.printast;
 import dmd.root.array;
 import dmd.root.complex;
 import dmd.root.ctfloat;
@@ -3476,7 +3477,7 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions*
         }
         else if (!sc.func.safetyViolation)
         {
-            import dmd.func : AttributeViolation;
+            import dmd.ast.func : AttributeViolation;
             sc.func.safetyViolation = new AttributeViolation(loc, f);
         }
     }
@@ -19164,7 +19165,7 @@ bool fill(StructDeclaration sd, Loc loc, ref Expressions elements, bool ctorinit
 */
 void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
 {
-    import dmd.statement;
+    import dmd.ast.statement;
 
     auto nvars = sfe.aggrfe ? sfe.aggrfe.parameters.length : 1;
     auto aloc = sfe.aggrfe ? sfe.aggrfe.aggr.loc : sfe.rangefe.lwr.loc;
@@ -19532,7 +19533,7 @@ private extern(C++) class IncludeVisitor : Visitor {
             return;
         }
 
-        import dmd.staticcond;
+        import dmd.ast.staticcond;
         bool errors;
 
         bool local_result = evalStaticCondition(sc, sic.exp, sic.exp, errors);

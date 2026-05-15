@@ -16,20 +16,22 @@ module dmd.pragmasem;
 import core.stdc.stdio;
 import core.stdc.string;
 
-import dmd.astenums;
+import dmd.ast.enums;
+import dmd.ast.attrib;
+import dmd.ast.dsymbol;
+import dmd.ast.expression;
+import dmd.ast.statement;
+
 import dmd.arraytypes;
-import dmd.attrib;
 import dmd.dinterpret;
 import dmd.dscope;
-import dmd.dsymbol;
 import dmd.dsymbolsem : include;
 import dmd.errors;
-import dmd.expression;
 import dmd.expressionsem;
 import dmd.globals;
 import dmd.location;
 import dmd.id;
-import dmd.statement;
+
 
 /**
  * Run semantic on `pragma` declaration.
@@ -41,7 +43,7 @@ import dmd.statement;
 void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
 {
     import dmd.common.outbuffer;
-    import dmd.dmodule;
+    import dmd.ast.dmodule;
     import dmd.dsymbolsem;
     import dmd.identifier;
     import dmd.root.rmem;
@@ -452,7 +454,7 @@ private void setPragmaPrintf(Dsymbol s, bool printf)
  */
 private bool pragmaStartAddressSemantic(Loc loc, Scope* sc, Expressions* args)
 {
-    import dmd.dtemplate;
+    import dmd.ast.dtemplate;
 
     if (!args || args.length != 1)
     {
@@ -537,7 +539,7 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
 
         foreach (s; (*decls)[])
         {
-            import dmd.aggregate;
+            import dmd.ast.aggregate;
             import dmd.common.outbuffer;
             import dmd.dsymbolsem : dsymbolSemantic;
             import dmd.hdrgen : arrayObjectsToBuffer;

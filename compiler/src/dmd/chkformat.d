@@ -13,15 +13,16 @@ module dmd.chkformat;
 //import core.stdc.stdio : printf, scanf;
 import core.stdc.ctype : isdigit;
 
-import dmd.astenums;
-import dmd.cond;
+import dmd.ast.enums;
+import dmd.ast.cond;
+import dmd.ast.expression;
+import dmd.ast.mtype;
+
 import dmd.errorsink;
-import dmd.expression;
 import dmd.globals;
 import dmd.hdrgen : toErrMsg;
 import dmd.identifier;
 import dmd.location;
-import dmd.mtype;
 import dmd.typesem;
 import dmd.target;
 

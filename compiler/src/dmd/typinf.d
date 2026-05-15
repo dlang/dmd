@@ -11,16 +11,17 @@
 
 module dmd.typinf;
 
-import dmd.astenums;
-import dmd.declaration;
-import dmd.dmodule;
+import dmd.ast.declaration;
+import dmd.ast.dmodule;
+import dmd.ast.dclass;
+import dmd.ast.dstruct;
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.mtype;
+
 import dmd.dscope;
-import dmd.dclass;
-import dmd.dstruct;
 import dmd.errors;
-import dmd.expression;
 import dmd.location;
-import dmd.mtype;
 import dmd.templatesem;
 import dmd.typesem;
 import dmd.dsymbolsem : addDeferredSemantic3;

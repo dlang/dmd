@@ -16,34 +16,36 @@ module dmd.funcsem;
 import core.stdc.stdio;
 import core.stdc.string;
 
-import dmd.aggregate;
+import dmd.ast.aggregate;
+import dmd.ast.enums;
+import dmd.ast.attrib;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.dmodule;
+import dmd.ast.dstruct;
+import dmd.ast.dsymbol;
+import dmd.ast.dtemplate;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.init;
+import dmd.ast.mtype;
+import dmd.ast.statement;
+
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.attrib;
 import dmd.blockexit;
 import dmd.dcast;
-import dmd.dclass;
-import dmd.declaration;
 import dmd.delegatize;
 import dmd.dinterpret;
-import dmd.dmodule;
 import dmd.dscope;
-import dmd.dstruct;
-import dmd.dsymbol;
 import dmd.dsymbolsem;
-import dmd.dtemplate;
 import dmd.errors;
 import dmd.escape;
-import dmd.expression;
-import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.importc;
-import dmd.init;
 import dmd.location;
-import dmd.mtype;
 import dmd.mustuse;
 import dmd.objc;
 import dmd.opover;
@@ -57,7 +59,6 @@ import dmd.root.stringtable;
 import dmd.safe;
 import dmd.semantic2;
 import dmd.semantic3;
-import dmd.statement;
 import dmd.statementsem;
 import dmd.target;
 import dmd.targetcompiler;
@@ -2314,7 +2315,7 @@ private void printCandidates(Decl)(Loc loc, Decl declaration, bool showDeprecate
         }
         else if (auto td = s.isTemplateDeclaration())
         {
-            import dmd.staticcond;
+            import dmd.ast.staticcond;
 
             if (!print)
                 return true;

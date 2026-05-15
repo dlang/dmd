@@ -11,10 +11,11 @@
 
 module dmd.argtypes_aarch64;
 
+import dmd.ast.enums;
+import dmd.ast.mtype;
+
 import core.stdc.stdio;
-import dmd.astenums;
 import dmd.dsymbolsem : isPOD;
-import dmd.mtype;
 import dmd.typesem;
 import dmd.expressionsem : toUInteger;
 

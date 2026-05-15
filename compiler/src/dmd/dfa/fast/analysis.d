@@ -23,12 +23,14 @@ module dmd.dfa.fast.analysis;
 import dmd.dfa.fast.structure;
 import dmd.dfa.fast.report;
 import dmd.dfa.utils;
+
+import dmd.ast.declaration;
+import dmd.ast.enums;
+import dmd.ast.func;
+import dmd.ast.mtype;
+
 import dmd.location;
 import dmd.identifier;
-import dmd.func;
-import dmd.declaration;
-import dmd.astenums;
-import dmd.mtype;
 import dmd.root.array;
 import dmd.common.outbuffer;
 import core.stdc.stdio;

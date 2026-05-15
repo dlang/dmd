@@ -5,7 +5,7 @@ module parser.test_astbase;
 
 void main()
 {
-    import dmd.astbase;
+    import dmd.ast.base;
     import dmd.globals;
     import dmd.parse;
     import dmd.errorsink;

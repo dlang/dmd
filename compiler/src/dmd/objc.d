@@ -13,29 +13,30 @@
 
 module dmd.objc;
 
-import dmd.aggregate;
+import dmd.ast.aggregate;
+import dmd.ast.attrib;
+import dmd.ast.cond;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.denum;
+import dmd.ast.dstruct;
+import dmd.ast.dsymbol;
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.mtype;
+
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.attrib;
 import dmd.attribsem : foreachUda;
-import dmd.cond;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.denum;
 import dmd.dscope;
-import dmd.dstruct;
-import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.errors;
-import dmd.expression;
 import dmd.expressionsem;
-import dmd.func;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
 import dmd.mangle;
-import dmd.mtype;
 import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.root.stringtable;

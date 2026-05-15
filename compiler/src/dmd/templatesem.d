@@ -13,37 +13,39 @@ module dmd.templatesem;
 
 import core.stdc.stdio;
 import core.stdc.string;
-import dmd.aggregate;
-import dmd.aliasthis;
-import dmd.arraytypes;
-import dmd.astenums;
-import dmd.ast_node;
-import dmd.attrib;
-import dmd.dcast;
-import dmd.dclass;
-import dmd.declaration;
+
+import dmd.ast.aggregate;
+import dmd.ast.aliasthis;
+import dmd.ast.enums;
+import dmd.ast.node;
+import dmd.ast.attrib;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
 import dmd.dinterpret;
-import dmd.dmodule;
+import dmd.ast.dmodule;
+import dmd.ast.dstruct;
+import dmd.ast.dsymbol;
+import dmd.ast.dtemplate;
+import dmd.ast.expression;
+import dmd.ast.init;
+
+import dmd.arraytypes;
+import dmd.dcast;
 import dmd.dscope;
-import dmd.dstruct;
-import dmd.dsymbol;
 import dmd.dsymbolsem;
-import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
-import dmd.expression;
 import dmd.expressionsem;
-import dmd.func;
+import dmd.ast.func;
 import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.impcnvtab;
-import dmd.init;
 import dmd.initsem;
 import dmd.location;
-import dmd.mtype;
+import dmd.ast.mtype;
 import dmd.opover;
 import dmd.optimize;
 import dmd.root.array;
@@ -3571,7 +3573,7 @@ private bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Sco
     td.lastConstraintTiargs = ti.tiargs;
     td.lastConstraintNegs.setDim(0);
 
-    import dmd.staticcond;
+    import dmd.ast.staticcond;
 
     assert(ti.inst is null);
     ti.inst = ti; // temporary instantiation to enable genIdent()
@@ -3600,7 +3602,7 @@ private bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Sco
  */
 const(char)* getConstraintEvalError(TemplateDeclaration td, ref const(char)* tip)
 {
-    import dmd.staticcond;
+    import dmd.ast.staticcond;
     // there will be a full tree view in verbose mode, and more compact list in the usual
     const full = global.params.v.verbose;
     uint count;

@@ -5,8 +5,8 @@
 module semantic.control_flow;
 
 import dmd.blockexit : BE;
-import dmd.func : FuncDeclaration;
-import dmd.statement : Statement;
+import dmd.ast.func : FuncDeclaration;
+import dmd.ast.statement : Statement;
 import dmd.visitor : Visitor;
 
 import support;

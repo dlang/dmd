@@ -6,30 +6,31 @@
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/statement.d, _statement.d)
- * Documentation:  https://dlang.org/phobos/dmd_statement.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/statement.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/statement.d, _statement.d)
+ * Documentation:  https://dlang.org/phobos/dmd_ast_statement.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/ast/statement.d
  */
 
-module dmd.statement;
+module dmd.ast.statement;
 
 import core.stdc.stdarg;
 import core.stdc.stdio;
 
+import dmd.ast.enums;
+import dmd.ast.node;
+import dmd.ast.cond;
+import dmd.ast.declaration;
+import dmd.ast.dsymbol;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.mtype;
+import dmd.ast.staticassert;
+
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.ast_node;
-import dmd.cond;
-import dmd.declaration;
-import dmd.dsymbol;
-import dmd.expression;
-import dmd.func;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.mtype;
 import dmd.rootobject;
-import dmd.staticassert;
 import dmd.tokens;
 import dmd.visitor;
 import dmd.visitor.postorder;

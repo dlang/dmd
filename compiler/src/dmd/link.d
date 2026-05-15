@@ -16,7 +16,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
-import dmd.astenums;
+import dmd.ast.enums;
 import dmd.compiler : includeImports;
 import dmd.dmdparams;
 import dmd.errors;

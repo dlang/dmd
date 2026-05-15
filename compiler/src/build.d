@@ -962,7 +962,7 @@ alias html = makeRule!((htmlBuilder, htmlRule) {
     }
     const stddocs = env.get("STDDOC", "").split();
     auto docSources = .sources.common ~ .sources.root ~ .sources.lexer ~ .sources.dmd.all
-        ~ env["D"].buildPath("astbase.d")
+        ~ env["D"].buildPath("ast/base.d")
         ~ env["D"].buildPath("cxxfrontend.d")
         ~ env["D"].buildPath("frontend.d");
     htmlBuilder.deps(docSources.chunks(1).map!(sourceArray =>
@@ -1574,24 +1574,29 @@ auto sourceFiles()
             link.d mars.d main.d sarif.d lib/scanelf.d lib/scanmach.d lib/scanmscoff.d timetrace.d vsoptions.d
         "),
         frontend: fileArray(env["D"], "
-            access.d aggregate.d aliasthis.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
-            arraytypes.d astenums.d ast_node.d astcodegen.d asttypename.d attrib.d attribsem.d blockexit.d builtin.d canthrow.d chkformat.d
-            cli.d clone.d compiler.d cond.d constfold.d  cpreprocess.d ctfeexpr.d
-            ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d deps.d dimport.d
-            dinterpret.d dmacro.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
-            dtemplate.d dtoh.d dversion.d enumsem.d escape.d expression.d expressionsem.d func.d funcsem.d hdrgen.d
-            impcnvtab.d imphint.d importc.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d
-            mtype.d mustuse.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
-            parse.d pragmasem.d printast.d rootobject.d safe.d
-            semantic2.d semantic3.d sideeffect.d statement.d
-            statementsem.d staticassert.d staticcond.d stmtstate.d target.d targetcompiler.d templatesem.d templateparamsem.d traits.d
+            access.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
+            arraytypes.d attribsem.d blockexit.d builtin.d canthrow.d chkformat.d
+            cli.d clone.d compiler.d constfold.d cpreprocess.d ctfeexpr.d
+            ctorflow.d dcast.d delegatize.d deps.d
+            dinterpret.d dmacro.d doc.d dscope.d dsymbolsem.d
+            dtoh.d enumsem.d escape.d expressionsem.d funcsem.d hdrgen.d
+            impcnvtab.d imphint.d importc.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d
+            mustuse.d nogc.d ob.d objc.d opover.d optimize.d
+            parse.d pragmasem.d rootobject.d safe.d
+            semantic2.d semantic3.d sideeffect.d
+            statementsem.d stmtstate.d target.d targetcompiler.d templatesem.d templateparamsem.d traits.d
             typesem.d typinf.d utils.d
+            ast/aggregate.d ast/aliasthis.d ast/codegen.d ast/attrib.d ast/cond.d ast/dclass.d ast/declaration.d
+            ast/denum.d ast/dimport.d ast/dmodule.d ast/dstruct.d ast/dsymbol.d ast/dtemplate.d ast/dversion.d ast/enums.d
+            ast/expression.d ast/func.d ast/init.d ast/mtype.d ast/node.d ast/nspace.d ast/print.d ast/statement.d
+            ast/staticassert.d ast/staticcond.d ast/typename.d
+            dfa/entry.d dfa/utils.d dfa/fast/structure.d dfa/fast/analysis.d dfa/fast/report.d dfa/fast/expression.d dfa/fast/statement.d
             iasm/package.d iasm/gcc.d
             mangle/package.d mangle/basic.d mangle/cpp.d mangle/cppwin.d
             visitor/package.d visitor/foreachvar.d visitor/parsetime.d visitor/permissive.d visitor/postorder.d visitor/statement_rewrite_walker.d
             visitor/strict.d visitor/transitive.d
             cparse.d
-            dfa/entry.d dfa/utils.d dfa/fast/structure.d dfa/fast/analysis.d dfa/fast/report.d dfa/fast/expression.d dfa/fast/statement.d
+
         "),
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d dt.d el.d global.d

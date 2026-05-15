@@ -22,23 +22,25 @@ import dmd.root.rmem;
 
 import dmd.glue.toctype;
 
-import dmd.aggregate;
-import dmd.astenums;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.denum;
-import dmd.dmodule;
-import dmd.dsymbol;
+import dmd.ast.aggregate;
+import dmd.ast.enums;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.denum;
+import dmd.ast.dmodule;
+import dmd.ast.dsymbol;
+import dmd.ast.dstruct;
+import dmd.ast.dtemplate;
+import dmd.ast.func;
+import dmd.ast.mtype;
+
 import dmd.dsymbolsem : apply;
 import dmd.expressionsem : toInteger;
 import dmd.typesem;
-import dmd.dstruct;
-import dmd.dtemplate;
-import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
 import dmd.id;
-import dmd.mtype;
+
 import dmd.target;
 import dmd.visitor;
 

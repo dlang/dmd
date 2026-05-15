@@ -10,18 +10,20 @@
  */
 module dmd.dfa.fast.structure;
 import dmd.dfa.utils;
+
+import dmd.ast.declaration;
+import dmd.ast.dsymbol;
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.mtype;
+import dmd.ast.statement;
+
 import dmd.common.outbuffer;
-import dmd.declaration;
-import dmd.statement;
-import dmd.func;
-import dmd.mtype;
 import dmd.typesem;
 import dmd.identifier;
 import dmd.globals : dinteger_t;
-import dmd.dsymbol;
 import dmd.location;
-import dmd.expression;
-import dmd.astenums;
 import dmd.id;
 import core.stdc.stdio;
 

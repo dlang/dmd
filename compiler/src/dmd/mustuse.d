@@ -10,10 +10,11 @@
 
 module dmd.mustuse;
 
+import dmd.ast.dsymbol;
+import dmd.ast.expression;
+
 import dmd.dscope;
-import dmd.dsymbol;
 import dmd.errors;
-import dmd.expression;
 import dmd.identifier;
 import dmd.location;
 
@@ -57,7 +58,7 @@ bool checkMustUse(Expression e, Scope* sc)
  */
 void checkMustUseReserved(Dsymbol sym)
 {
-    import dmd.attrib : foreachUdaNoSemantic;
+    import dmd.ast.attrib : foreachUdaNoSemantic;
     import dmd.errors : error;
     import dmd.id : Id;
 
@@ -124,7 +125,7 @@ private bool isAssignmentOpId(Identifier id)
  */
 private bool isIncrementOrDecrement(Expression e)
 {
-    import dmd.dtemplate : isExpression;
+    import dmd.ast.dtemplate : isExpression;
     import dmd.location;
     import dmd.id : Id;
     import dmd.tokens : EXP;
@@ -209,7 +210,7 @@ private bool hasMustUseAttribute(Dsymbol sym, Scope* sc)
  */
 private bool isMustUseAttribute(Expression e)
 {
-    import dmd.attrib : isEnumAttribute;
+    import dmd.ast.attrib : isEnumAttribute;
     import dmd.id : Id;
     return isEnumAttribute(e, Id.udaMustUse);
 }

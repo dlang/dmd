@@ -12,10 +12,12 @@
 module dmd.argtypes_sysv_x64;
 
 import core.stdc.stdio;
-import dmd.astenums;
-import dmd.declaration;
+
+import dmd.ast.enums;
+import dmd.ast.declaration;
+import dmd.ast.mtype;
+
 import dmd.dsymbolsem : isPOD;
-import dmd.mtype;
 import dmd.typesem;
 import dmd.expressionsem : toInteger;
 import dmd.target;
