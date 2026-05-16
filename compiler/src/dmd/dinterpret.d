@@ -6833,7 +6833,7 @@ private Expression interpret_keys(UnionExp* pue, InterState* istate, Expression 
         return earg;
     if (earg.op == EXP.null_)
     {
-        emplaceExp!(NullExp)(pue, earg.loc, earg.type);
+        emplaceExp!(NullExp)(pue, earg.loc, returnType);
         return pue.exp();
     }
     if (earg.op != EXP.assocArrayLiteral && earg.type.toBasetype().ty != Taarray)
@@ -6856,7 +6856,7 @@ private Expression interpret_values(UnionExp* pue, InterState* istate, Expressio
         return earg;
     if (earg.op == EXP.null_)
     {
-        emplaceExp!(NullExp)(pue, earg.loc, earg.type);
+        emplaceExp!(NullExp)(pue, earg.loc, returnType);
         return pue.exp();
     }
     if (earg.op != EXP.assocArrayLiteral && earg.type.toBasetype().ty != Taarray)
