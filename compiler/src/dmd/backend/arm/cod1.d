@@ -1677,6 +1677,9 @@ void callclib(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint clib, ref regm_
     }
 
     cdb.gencs1(INSTR.branch_imm(1,0),0,FL.func,s);  // CALL s
+    code_orflag(cdb.last(), CFselfrel26);
+
+
     if (nalign)
         cod3_stackadj(cdb, -nalign);
     cg.calledafunc = 1;
@@ -2259,7 +2262,7 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
                     assert(0);  // TODO AArch64
                 }
             }
-            code_orflag(cdbe.last(), CFselfrel | CFoff);
+            code_orflag(cdbe.last(), CFselfrel | CFoff | CFselfrel26);
         }
     }
     else

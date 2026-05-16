@@ -1817,6 +1817,12 @@ void assignaddrc(ref CGstate cg, code* c)
             printf("FL: %-8s ", fl_str(c.IFL1));
             disassemble(ins);
         }
+
+static if (0)
+if ((ins & 0x9F00_0000) == 0x9000_0000)
+{ printf("ADRP: "); disassemble(ins);
+  if (code_next(c)) { printf("      "); disassemble(code_next(c).Iop); } else printf("fail\n");
+}
         switch (c.IFL1)
         {
             case FL.data:
