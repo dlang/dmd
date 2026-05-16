@@ -41,7 +41,7 @@ import dmd.visitor;
 /***********************************************************
  * Abstract attribute applied to Dsymbol's used as a common
  * ancestor for storage classes (StorageClassDeclaration),
- * linkage (LinkageDeclaration) and others.
+ * linkage (LinkDeclaration) and others.
  */
 extern (C++) abstract class AttribDeclaration : Dsymbol
 {
