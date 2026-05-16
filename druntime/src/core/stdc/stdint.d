@@ -337,7 +337,10 @@ else version (OpenBSD)
 }
 else version (Solaris)
 {
-    alias int8_t   = char;   ///
+    version (GNU)
+        alias int8_t = byte; ///
+    else
+        alias int8_t = char; ///
     alias int16_t  = short;  ///
     alias uint8_t  = ubyte;  ///
     alias uint16_t = ushort; ///
@@ -346,7 +349,10 @@ else version (Solaris)
     alias int64_t  = long;   ///
     alias uint64_t = ulong;  ///
 
-    alias int_least8_t   = char;   ///
+    version (GNU)
+        alias int_least8_t = byte; ///
+    else
+        alias int_least8_t = char; ///
     alias uint_least8_t  = ubyte;  ///
     alias int_least16_t  = short;  ///
     alias uint_least16_t = ushort; ///
@@ -355,7 +361,10 @@ else version (Solaris)
     alias int_least64_t  = long;   ///
     alias uint_least64_t = ulong;  ///
 
-    alias int_fast8_t   = char;  ///
+    version (GNU)
+        alias int_fast8_t = byte; ///
+    else
+        alias int_fast8_t = char; ///
     alias uint_fast8_t  = ubyte; ///
     alias int_fast16_t  = int;   ///
     alias uint_fast16_t = uint;  ///

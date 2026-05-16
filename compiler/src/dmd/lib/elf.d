@@ -1,7 +1,7 @@
 /**
  * A library in the ELF format, used on Unix.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/lib/elf.d, _libelf.d)
@@ -469,8 +469,8 @@ private:
             h.object_name[0] = '/';
             h.object_name[1] = '/';
             size_t len = snprintf(h.file_size.ptr, ELF_FILE_SIZE_SIZE, "%u", noffset);
-            assert(len < 10);
-            h.file_size[len] = ' ';
+            assert(len < ELF_FILE_SIZE_SIZE);
+            h.file_size[len] = ' '; // overwrite 0 with ' '
             h.trailer[0] = '`';
             h.trailer[1] = '\n';
             libbuf.write((&h)[0 .. 1]);
@@ -566,6 +566,7 @@ void ElfOmToHeader(ElfLibHeader* h, ElfObjModule* om)
         //     name_offset   file_time   u_id gr_id  fmode    fsize   trailer
         len = snprintf(buffer, ElfLibHeader.sizeof, "/%-15d%-12llu%-6u%-6u%-8o%-10u`", om.name_offset, cast(long)om.file_time, om.user_id, om.group_id, om.file_mode, om.length);
     }
+    assert(len + 1 != 0); // some old snprintf's return -1 on error
     assert(ElfLibHeader.sizeof > 0 && len == ElfLibHeader.sizeof - 1);
     // replace trailing \0 with \n
     buffer[len] = '\n';

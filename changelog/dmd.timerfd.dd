@@ -1,0 +1,10 @@
+core.sys.linux.timerfd moved to core.sys.linux.sys.timerfd
+
+Usually, a linux header that's included in C like `#include <sys/time.h>` gets its translation in `core/sys/linux/sys/time.d`.
+timerfd.d was an exception, not being put in the `sys` package.
+The module has been moved there, and the old module still exists as a deprecated module that publicly imports the new module.
+
+---
+import core.sys.linux.timerfd; // deprecated
+import core.sys.linux.sys.timerfd; // corrective action
+---

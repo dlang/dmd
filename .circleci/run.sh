@@ -66,7 +66,7 @@ install_deps() {
 
     download "https://dlang.org/install.sh" "https://nightlies.dlang.org/install.sh" "install.sh"
 
-    source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash install.sh dmd-$HOST_DMD_VER --activate)"
+    source "$(CURL_USER_AGENT="$CURL_USER_AGENT" bash install.sh dmd-$HOST_DMD_VER --activate)"
     $DC --version
     env
     deactivate
@@ -109,7 +109,7 @@ setup_repos() {
 coverage()
 {
     # load environment for bootstrap compiler
-    source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
+    source "$(CURL_USER_AGENT="$CURL_USER_AGENT" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
 
     local build_path=generated/linux/$BUILD/$MODEL
     local builder=generated/build
@@ -172,7 +172,7 @@ check_d_builder()
 {
     echo "Testing D build"
     # load environment for bootstrap compiler
-    source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
+    source "$(CURL_USER_AGENT="$CURL_USER_AGENT" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
     ./compiler/src/build.d clean
     rm -rf generated # just to be sure
     # TODO: add support for 32-bit builds
@@ -186,7 +186,7 @@ check_d_builder()
 test_cxx()
 {
     # load environment for bootstrap compiler
-    source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
+    source "$(CURL_USER_AGENT="$CURL_USER_AGENT" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
     echo "Test CXX frontend.h header generation"
     ./compiler/src/build.d
     make -j$N -C druntime MODEL=$MODEL BUILD=$BUILD

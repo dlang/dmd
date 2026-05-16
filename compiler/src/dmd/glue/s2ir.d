@@ -1,7 +1,7 @@
 /**
  * Convert statements to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/s2ir.d, _s2ir.d)
@@ -48,10 +48,12 @@ import dmd.statement;
 import dmd.stmtstate;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : pointerTo, isString;
+import dmd.typesem;
+import dmd.funcsem : genCfunc;
 import dmd.visitor;
 
 import dmd.backend.barray;
+import dmd.backend.blockopt : BlockOpt, block_next;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
@@ -63,6 +65,7 @@ import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.obj;
+import dmd.backend.var : bo;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
 import dmd.backend.symtab;
@@ -71,13 +74,17 @@ import dmd.backend.type;
 
 package(dmd.glue):
 
+private:  // detect unmarked symbols that should be public
+
 alias StmtState = dmd.stmtstate.StmtState!block;
 
+package(dmd.glue)
 void elem_setLoc(elem* e, Loc loc) nothrow
 {
     e.Esrcpos = toSrcpos(loc);
 }
 
+package(dmd.glue)
 void Statement_toIR(Statement s, ref IRState irs)
 {
     /* Generate a block for each label
@@ -89,15 +96,28 @@ void Statement_toIR(Statement s, ref IRState irs)
             //printf("  KV: %s = %s\n", keyValue.key.toChars(), keyValue.value.toChars());
             LabelDsymbol label = cast(LabelDsymbol)keyValue.value;
             if (label.statement)
-                label.statement.extra = dmd.backend.global.block_calloc();
+                label.statement.extra = dmd.backend.global.block_calloc(bo);
         }
 
     StmtState stmtstate;
     Statement_toIR(s, irs, &stmtstate);
 }
 
+package(dmd.glue)
 void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 {
+    static import dmd.backend.blockopt;
+
+    void block_next(BlockState* bctx, BC bc, block* bn)
+    {
+        return dmd.backend.blockopt.block_next(bo, bctx, bc, bn);
+    }
+
+    block* block_goto(BlockState* bx, BC bc, block* bn)
+    {
+        return dmd.backend.blockopt.block_goto(bo, bx, bc, bn);
+    }
+
     /****************************************
      * This should be overridden by each statement class.
      */
@@ -128,7 +148,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         StmtState mystate = StmtState(stmtstate, s);
 
         // bexit is the block that gets control after this IfStatement is done
-        block* bexit = mystate.breakBlock ? mystate.breakBlock : dmd.backend.global.block_calloc();
+        block* bexit = mystate.breakBlock ? mystate.breakBlock : dmd.backend.global.block_calloc(bo);
 
         incUsage(irs, s.loc);
         e = toElemDtor(s.condition, irs);
@@ -646,22 +666,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         {
             // Reference return, so convert to a pointer
             e = toElemDtor(s.exp, irs);
-
-            /* already taken care of for vresult in buildResultVar() and semantic3.d
-             * https://issues.dlang.org/show_bug.cgi?id=19384
-             */
-            if (func.vresult)
-                if (BlitExp be = s.exp.isBlitExp())
-                {
-                     if (VarExp ve = be.e1.isVarExp())
-                     {
-                        if (ve.var == func.vresult)
-                            goto Lskip;
-                     }
-                }
-
             e = addressElem(e, s.exp.type.pointerTo());
-         Lskip:
         }
         else
         {
@@ -907,19 +912,30 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
              *          HALT
              */
             // volatile so optimizer won't delete it
-            Symbol* seax = symbol_name("__EAX", SC.pseudo, type_fake(mTYvolatile | TYnptr));
-            seax.Sreglsw = 0;          // EAX, RAX, whatevs
-            symbol_add(seax);
-            Symbol* sedx = symbol_name("__EDX", SC.pseudo, type_fake(mTYvolatile | TYint));
-            sedx.Sreglsw = 2;          // EDX, RDX, whatevs
-            symbol_add(sedx);
+            Symbol* sreg0, sreg1;
+            if (irs.target.isAArch64)
+            {
+                sreg0 = symbol_name("__R0", SC.pseudo, type_fake(mTYvolatile | TYnptr));
+                sreg0.Sreglsw = 0;          // R0
+                sreg1 = symbol_name("__R1", SC.pseudo, type_fake(mTYvolatile | TYint));
+                sreg1.Sreglsw = 1;          // R1
+            }
+            else
+            {
+                sreg0 = symbol_name("__EAX", SC.pseudo, type_fake(mTYvolatile | TYnptr));
+                sreg0.Sreglsw = 0;          // EAX, RAX, whatevs
+                sreg1 = symbol_name("__EDX", SC.pseudo, type_fake(mTYvolatile | TYint));
+                sreg1.Sreglsw = 2;          // EDX, RDX, whatevs
+            }
+            symbol_add(sreg0);
+            symbol_add(sreg1);
             Symbol* shandler = symbol_name("__handler", SC.auto_, tstypes[TYint]);
             symbol_add(shandler);
             Symbol* seo = symbol_name("__exception_object", SC.auto_, tspvoid);
             symbol_add(seo);
 
-            elem* e1 = el_bin(OPeq, TYvoid, el_var(shandler), el_var(sedx)); // __handler = __RDX
-            elem* e2 = el_bin(OPeq, TYvoid, el_var(seo), el_var(seax)); // __exception_object = __RAX
+            elem* e1 = el_bin(OPeq, TYvoid, el_var(shandler), el_var(sreg1)); // __handler = __RDX
+            elem* e2 = el_bin(OPeq, TYvoid, el_var(seo),      el_var(sreg0)); // __exception_object = __RAX
 
             version (none)
             {
@@ -1028,7 +1044,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                          * Note that this is worst case code because it always sets up an exception handler.
                          * At some point should try to do better.
                          */
-                        FuncDeclaration fdend = FuncDeclaration.genCfunc(null, Type.tvoid, "__cxa_end_catch");
+                        FuncDeclaration fdend = genCfunc(null, Type.tvoid, "__cxa_end_catch");
                         Expression ec = VarExp.create(Loc.initial, fdend);
                         Expression ecc = CallExp.create(Loc.initial, ec);
                         ecc.type = Type.tvoid;
@@ -1229,7 +1245,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 Statement_toIR(s.finalbody, irs, &finallyState);
             block_goto(blx, BC.goto_, retblock);
 
-            block_next(blx,BC._ret,breakblock);
+            block_next(blx, BC._ret, breakblock);
         }
         else if (config.ehmethod == EHmethod.EH_NONE || blx.funcsym.Sfunc.Fflags3 & Feh_none)
         {
@@ -1477,7 +1493,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
  * Params:
  *      startblock = first block in function
  */
-
+package(dmd.glue)
 void insertFinallyBlockCalls(block* startblock)
 {
     int flagvalue = 0;          // 0 is forunwind_resume
@@ -1511,7 +1527,7 @@ void insertFinallyBlockCalls(block* startblock)
                 // Rewrite into a BC.goto_ => BC.ret
                 if (!bcret)
                 {
-                    bcret = dmd.backend.global.block_calloc();
+                    bcret = dmd.backend.global.block_calloc(bo);
                     bcret.bc = BC.ret;
                 }
                 b.bc = BC.goto_;
@@ -1527,7 +1543,7 @@ void insertFinallyBlockCalls(block* startblock)
                     goto case BC.ret;
                 if (!bcretexp)
                 {
-                    bcretexp = dmd.backend.global.block_calloc();
+                    bcretexp = dmd.backend.global.block_calloc(bo);
                     bcretexp.bc = BC.retexp;
                     type* t;
                     if ((ty == TYstruct || ty == TYarray) && e.ET)
@@ -1598,7 +1614,7 @@ void insertFinallyBlockCalls(block* startblock)
                     blast.setNthSucc(0, bf);
 
                     // Create new block, bnew, which will replace retblock
-                    block* bnew = dmd.backend.global.block_calloc();
+                    block* bnew = dmd.backend.global.block_calloc(bo);
 
                     /* Rewrite BC._ret block as:
                      *  if (sflag == flagvalue) goto breakblock; else goto bnew;
@@ -1652,7 +1668,7 @@ void insertFinallyBlockCalls(block* startblock)
  * Params:
  *      startblock = first block in function
  */
-
+package(dmd.glue)
 void insertFinallyBlockGotos(block* startblock)
 {
     enum log = false;
@@ -1703,6 +1719,12 @@ void insertFinallyBlockGotos(block* startblock)
     }
 }
 
+/*************************************** private *******************************************/
+/*                              No public declarations past this                           */
+/*************************************** private *******************************************/
+
+private:
+
 private void block_setLoc(block* b, Loc loc) nothrow
 {
     b.Bsrcpos = toSrcpos(loc);
@@ -1738,9 +1760,9 @@ private void setScopeIndex(BlockState* blx, block* b, int scope_index)
  * Allocate a new block, and set the tryblock.
  */
 
-private block* block_calloc(BlockState* blx) @safe
+private block* block_calloc(BlockState* blx) @trusted
 {
-    block* b = dmd.backend.global.block_calloc();
+    block* b = dmd.backend.global.block_calloc(bo);
     b.Btry = blx.tryblock;
     return b;
 }

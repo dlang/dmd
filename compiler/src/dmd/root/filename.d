@@ -1,7 +1,7 @@
 /**
  * Encapsulate path and file names.
  *
- * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/root/filename.d, root/_filename.d)
@@ -51,8 +51,9 @@ version (CRuntime_Glibc)
     extern (C) char* canonicalize_file_name(const char*) nothrow;
 }
 
-alias Strings = Array!(const(char)*);
+nothrow:
 
+alias Strings = Array!(const(char)*);
 
 // Check whether character is a directory separator
 bool isDirSeparator(char c) pure nothrow @nogc @safe

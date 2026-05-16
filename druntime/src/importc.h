@@ -39,6 +39,7 @@
 #define __volatile__ volatile
 #define __attribute __attribute__
 #define __alignof _Alignof
+#define __alignof__ _Alignof
 #define __vector_size__ vector_size
 #define __typeof typeof
 #define __typeof__ typeof
@@ -205,4 +206,18 @@ typedef struct {} __SVFloat64_t;
 
 #if __APPLE__
 #undef __SIZEOF_INT128__
+#endif
+
+#if __ANDROID__
+#undef __SIZEOF_INT128__
+#define __GNUC_VA_LIST
+#define _VA_LIST
+#define __builtin_va_list va_list
+#define __gnuc_va_list va_list
+
+// This macro resolves the ambiguity between Bionic and library ioctl.
+// https://android.googlesource.com/platform/bionic/+/master/libc/include/bits/ioctl.h
+#define BIONIC_IOCTL_NO_SIGNEDNESS_OVERLOAD
+
+#define __sync_synchronize()
 #endif

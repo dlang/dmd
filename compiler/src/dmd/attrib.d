@@ -14,7 +14,7 @@
  * - Protection (`private`, `public`)
  * - Deprecated declarations (`@deprecated`)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/attrib.d, _attrib.d)
@@ -35,14 +35,13 @@ import dmd.hdrgen : visibilityToBuffer;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.objc; // for objc.addSymbols
 import dmd.common.outbuffer;
 import dmd.visitor;
 
 /***********************************************************
  * Abstract attribute applied to Dsymbol's used as a common
  * ancestor for storage classes (StorageClassDeclaration),
- * linkage (LinkageDeclaration) and others.
+ * linkage (LinkDeclaration) and others.
  */
 extern (C++) abstract class AttribDeclaration : Dsymbol
 {
@@ -103,13 +102,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         return "attribute";
     }
 
-    /****************************************
-     */
-    override final void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
-    {
-        objc.addSymbols(this, classes, categories);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -153,7 +145,7 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
 
 /***********************************************************
  * Deprecation with an additional message applied to Dsymbols,
- * e.g. `deprecated("Superseeded by foo") int bar;`.
+ * e.g. `deprecated("Superseded by foo") int bar;`.
  * (Note that `deprecated int bar;` is currently represented as a
  * StorageClassDeclaration with STC.deprecated_)
  *

@@ -1,17 +1,14 @@
 /**
- * Runtime support for complex arithmetic code generation (for Posix).
+ * Runtime support for Intel x87 complex arithmetic code generation (for Posix).
  *
  * Copyright: Copyright Digital Mars 2001 - 2011.
- * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License: Distributed under the Boost Software License, Version 1.0.
+ *          See accompanying file LICENSE or copy at
+ *          $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Walter Bright, Sean Kelly
  * Source: $(DRUNTIMESRC rt/_cmath2.d)
  */
 
-/*          Copyright Digital Mars 2001 - 2011.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module rt.cmath2;
 
 import core.stdc.math : fabs;
@@ -19,6 +16,13 @@ import core.stdc.math : fabs;
 debug import core.stdc.stdio : printf;
 
 extern (C):
+
+version (D_InlineAsm_X86)
+    version = X87;
+version (D_InlineAsm_X86_64)
+    version = X87;
+
+version (X87):
 
 /****************************
  * Multiply two complex floating point numbers, x and y.

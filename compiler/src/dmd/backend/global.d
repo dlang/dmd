@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/global.d, backend/global.d)
@@ -116,13 +116,11 @@ int REGSIZE() @trusted { return _tysize[TYnptr]; }
 public import dmd.backend.var : debuga, debugb, debugc, debugd, debuge, debugf,
     debugr, debugs, debugt, debugu, debugw, debugx, debugy;
 
-extern (D) regm_t mask(uint m) { return cast(regm_t)1 << m; }
+regm_t mask(uint m) { return cast(regm_t)1 << m; }
 
 public import dmd.backend.var : OPTIMIZER, globsym, controlc_saw, pointertype, sytab;
-public import dmd.backend.cg : fregsaved, localgot, tls_get_addr_sym;
-public import dmd.backend.blockopt : bo;
-
-__gshared Configv configv;                // non-ph part of configuration
+public import dmd.backend.cg : localgot, tls_get_addr_sym;
+public import dmd.backend.var : bo;
 
 public import dmd.backend.ee : eecontext_convs;
 public import dmd.backend.elem : exp2_copytotemp;
@@ -168,6 +166,6 @@ public import dmd.backend.gloop : dom;
 public import dmd.backend.util2 : binary;
 
 public import dmd.backend.go : go_flag, optfunc;
-public import dmd.backend.drtlsym : rtlsym_init, rtlsym_reset, rtlsym_term;
+public import dmd.backend.rtlsym : rtlsym_init, rtlsym_reset, rtlsym_term;
 public import dmd.backend.dwarfdbginf : dwarf_CFA_set_loc, dwarf_CFA_set_reg_offset,
-    dwarf_CFA_offset, dwarf_CFA_args_size;
+    dwarf_CFA_offset, dwarf_emit_eh_frame;

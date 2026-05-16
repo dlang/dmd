@@ -46,9 +46,9 @@ nothrow:
 @nogc:
 
 ///
-alias float  float_t;
+alias float_t = float;
 ///
-alias double double_t;
+alias double_t = double;
 
 ///
 enum double HUGE_VAL      = double.infinity;

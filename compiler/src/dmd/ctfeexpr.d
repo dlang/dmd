@@ -1,7 +1,7 @@
 /**
  * CTFE for expressions involving pointers, slices, array concatenation etc.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ctfeexpr.d, _ctfeexpr.d)
@@ -122,7 +122,7 @@ void generateUncaughtError(ThrownExceptionExp tee)
     UnionExp ue = void;
     Expression e = resolveSlice((*tee.thrown.value.elements)[0], &ue);
     StringExp se = e.toStringExp();
-    error(tee.thrown.loc, "uncaught CTFE exception `%s(%s)`", tee.thrown.type.toChars(), se ? se.toChars() : e.toChars());
+    error(tee.thrown.loc, "uncaught CTFE exception `%s(%s)`", tee.thrown.type.toErrMsg(), se ? se.toErrMsg() : e.toErrMsg());
     /* Also give the line where the throw statement was. We won't have it
      * in the case where the ThrowStatement is generated internally
      * (eg, in ScopeStatement)
@@ -367,7 +367,7 @@ UnionExp copyLiteral(Expression e)
         emplaceExp!(UnionExp)(&ue, e);
         return ue;
     }
-    error(e.loc, "CTFE internal error: literal `%s`", e.toChars());
+    error(e.loc, "CTFE internal error: literal `%s`", e.toErrMsg());
     assert(0);
 }
 
@@ -438,7 +438,7 @@ private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
         // Can't type paint from struct to struct*; this needs another
         // level of indirection
         if (lit.op == EXP.structLiteral && isPointer(type))
-            error(lit.loc, "CTFE internal error: painting `%s`", type.toChars());
+            error(lit.loc, "CTFE internal error: painting `%s`", type.toErrMsg());
         ue = copyLiteral(lit);
     }
     ue.exp().type = type;
@@ -612,10 +612,10 @@ bool isPointer(Type t)
     return tb.ty == Tpointer && tb.nextOf().ty != Tfunction;
 }
 
-// For CTFE only. Returns true if 'e' is true or a non-null pointer.
+// For CTFE only. Returns true if 'e' is true or a non-null pointer/delegate.
 bool isTrueBool(Expression e)
 {
-    return e.toBool().hasValue(true) || ((e.type.ty == Tpointer || e.type.ty == Tclass) && e.op != EXP.null_);
+    return e.toBool().hasValue(true) || ((e.type.ty == Tpointer || e.type.ty == Tclass || e.type.ty == Tdelegate) && e.op != EXP.null_);
 }
 
 /* Is it safe to convert from srcPointee* to destPointee* ?
@@ -766,7 +766,7 @@ Expression pointerDifference(UnionExp* pue, Loc loc, Type type, Expression e1, E
     }
     else
     {
-        error(loc, "`%s - %s` cannot be interpreted at compile time: cannot subtract pointers to two different memory blocks", e1.toChars(), e2.toChars());
+        error(loc, "`%s - %s` cannot be interpreted at compile time: cannot subtract pointers to two different memory blocks", e1.toErrMsg(), e2.toErrMsg());
         emplaceExp!(CTFEExp)(pue, EXP.cantExpression);
     }
     return pue.exp();
@@ -843,7 +843,7 @@ Expression pointerArithmetic(UnionExp* pue, Loc loc, EXP op, Type type, Expressi
     }
     if (agg1.op != EXP.arrayLiteral && agg1.op != EXP.string_)
     {
-        error(loc, "CTFE internal error: pointer arithmetic `%s`", agg1.toChars());
+        error(loc, "CTFE internal error: pointer arithmetic `%s`", agg1.toErrMsg());
         return cant();
     }
     if (auto tsa = eptr.type.toBasetype().isTypeSArray())
@@ -1308,7 +1308,7 @@ private int ctfeRawCmp(Loc loc, Expression e1, Expression e2, bool identity = fa
         return e2.isAssocArrayLiteralExp.keys.length != 0;
     }
 
-    error(loc, "CTFE internal error: bad compare of `%s` and `%s`", e1.toChars(), e2.toChars());
+    error(loc, "CTFE internal error: bad compare of `%s` and `%s`", e1.toErrMsg(), e2.toErrMsg());
     assert(0);
 }
 
@@ -1504,7 +1504,7 @@ Expression ctfeIndex(UnionExp* pue, Loc loc, Type type, Expression e1, uinteger_
     {
         if (indx >= ale.elements.length)
         {
-            error(loc, "array index %llu is out of bounds `%s[0 .. %llu]`", indx, e1.toChars(), cast(ulong)ale.elements.length);
+            error(loc, "array index %llu is out of bounds `%s[0 .. %llu]`", indx, e1.toErrMsg(), cast(ulong)ale.elements.length);
             return CTFEExp.cantexp;
         }
         Expression e = (*ale.elements)[cast(size_t)indx];
@@ -1568,7 +1568,7 @@ Expression ctfeCast(UnionExp* pue, Loc loc, Type type, Type to, Expression e, bo
     }
 
     if (CTFEExp.isCantExp(r))
-        error(loc, "cannot cast `%s` to `%s` at compile time", e.toChars(), to.toChars());
+        error(loc, "cannot cast `%s` to `%s` at compile time", e.toErrMsg(), to.toErrMsg());
 
     if (auto ae = e.isArrayLiteralExp())
         ae.ownedByCtfe = OwnedBy.ctfe;
@@ -1861,7 +1861,7 @@ bool isCtfeValueValid(Expression newval)
             return true; // uninitialized value
 
         default:
-            error(newval.loc, "CTFE internal error: illegal CTFE value `%s`", newval.toChars());
+            error(newval.loc, "CTFE internal error: illegal CTFE value `%s`", newval.toErrMsg());
             return false;
     }
 }

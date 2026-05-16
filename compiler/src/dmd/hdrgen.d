@@ -3,7 +3,7 @@
  *
  * Also used to convert AST nodes to D code in general, e.g. for error messages or `printf` debugging.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/hdrgen.d, _hdrgen.d)
@@ -58,6 +58,7 @@ struct HdrGenState
     bool fullDump;      /// true if generating a full AST dump file
     bool importcHdr;    /// true if generating a .di file from an ImportC file
     bool inCAlias;      /// Set to prevent ImportC translating typedefs as `alias X = X`
+    bool inFuncReturn;  /// Set when printing function return type to avoid typedef name
     bool doFuncBodies;  /// include function bodies in output
     bool vcg_ast;       /// write out codegen-ast
     bool skipConstraints;  // skip constraints when doing templates
@@ -924,7 +925,7 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
         buf.level++;
         while (t)
         {
-            buf.put(t.toString());
+            t.toString(&buf.put);
             if (t.next &&
                 t.value != TOK.min      &&
                 t.value != TOK.comma    && t.next.value != TOK.comma    &&
@@ -1025,7 +1026,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitImport(Import imp)
     {
-        if (hgs.hdrgen && imp.id == Id.object)
+        if (hgs.hdrgen && imp.id == Id.object && imp.packages.length == 0)
             return; // object is imported by default
         if (imp.isstatic)
             buf.put("static ");
@@ -1308,7 +1309,9 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         buf.put('{');
         buf.writenl();
         buf.level++;
-        visitAttribDeclaration(s);
+        if (s.decl)
+            foreach (de; *s.decl)
+                toCBuffer(de, buf, hgs);
         buf.level--;
         buf.put('}');
         buf.writenl();
@@ -1561,7 +1564,8 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         buf.put('(');
         visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters, buf, hgs);
         buf.put(')');
-        visitTemplateConstraint(d.constraint);
+        if (!hgs.skipConstraints)
+            visitTemplateConstraint(d.constraint);
         if (hgs.hdrgen || hgs.fullDump)
         {
             hgs.tpltMember++;
@@ -1751,17 +1755,16 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
             /*
                 https://issues.dlang.org/show_bug.cgi?id=23223
                 https://issues.dlang.org/show_bug.cgi?id=23222
-                This special case (initially just for modules) avoids some segfaults
-                and nicer -vcg-ast output.
+                https://github.com/dlang/dmd/issues/21707
+                For named symbols (modules, functions, templates, aggregates),
+                print just the name to avoid segfaults, infinite recursion,
+                and for nicer -vcg-ast output. Anonymous symbols (function
+                literals) are printed in full.
             */
-            if (d.aliassym.isModule())
-            {
+            if (!d.aliassym.isFuncLiteralDeclaration() && d.aliassym.ident)
                 buf.put(d.aliassym.ident.toString());
-            }
             else
-            {
                 toCBuffer(d.aliassym, buf, hgs);
-            }
         }
         else if (d.type.ty == Tfunction)
         {
@@ -2240,7 +2243,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             case Tdchar:
                 {
                     const o = buf.length;
-                    writeSingleCharLiteral(buf, cast(dchar) v);
+                    writeSingleCharLiteral(cast(dchar) v, &buf.put);
                     if (hgs.ddoc)
                         escapeDdocString(buf, o);
                     break;
@@ -2399,7 +2402,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         const o = buf.length;
         foreach (i; 0 .. e.len)
         {
-            writeCharLiteral(buf, e.getCodeUnit(i));
+            writeCharLiteral(e.getCodeUnit(i), &buf.put);
         }
         if (hgs.ddoc)
             escapeDdocString(buf, o);
@@ -2419,7 +2422,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             if (idx % 2 == 0)
             {
                 foreach(ch; str)
-                    writeCharLiteral(buf, ch);
+                    writeCharLiteral(ch, &buf.put);
             }
             else
             {
@@ -2799,6 +2802,9 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitAssert(AssertExp e)
     {
+        if (e.loweredFrom)
+            return e.loweredFrom.expressionPrettyPrint(buf, hgs);
+
         buf.put("assert(");
         expToBuffer(e.e1, PREC.assign, buf, hgs);
         if (e.msg)
@@ -3052,7 +3058,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitDefaultInit(DefaultInitExp e)
     {
-        buf.put(EXPtoString(e.op));
+        buf.put(Token.toString(e.tok));
     }
 
     void visitClassReference(ClassReferenceExp e)
@@ -3184,7 +3190,8 @@ void floatToBuffer(Type type, const real_t value, ref OutBuffer buf, const bool 
 
     if (type)
     {
-        Type t = type.toBasetype();
+        Type t = type.toBaseTypeNonSemantic();
+
         switch (t.ty)
         {
         case Tfloat32:
@@ -3466,6 +3473,7 @@ string stcToString(ref STC stc) @safe
         SCstring(STC.disable, "@disable"),
         SCstring(STC.future, "@__future"),
         SCstring(STC.local, "__local"),
+        SCstring(STC.ctfeOnly, "@__ctfe"),
     ];
     foreach (ref entry; table)
     {
@@ -4092,7 +4100,9 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, ref O
         buf.write("static ");
     if (t.next)
     {
+        hgs.inFuncReturn = true;
         typeToBuffer(t.next, null, buf, hgs);
+        hgs.inFuncReturn = false;
         if (ident)
             buf.put(' ');
     }
@@ -4161,7 +4171,9 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
     }
     else if (t.next)
     {
+        hgs.inFuncReturn = true;
         typeToBuffer(t.next, null, buf, hgs);
+        hgs.inFuncReturn = false;
         if (ident)
             buf.put(' ');
     }
@@ -4340,7 +4352,7 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitDArray(TypeDArray t)
     {
-        auto basetype = t.next.toBasetype();
+        auto basetype = t.next;
         if (hgs.declstring)
             goto L1;
         if (basetype.ty == Tchar && basetype.isImmutable())
@@ -4543,7 +4555,7 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
         buf.put("noreturn");
     }
 
-    if (hgs.importcHdr && !hgs.inCAlias && t.mcache && t.mcache.typedefIdent)
+    if (hgs.importcHdr && !hgs.inCAlias && !hgs.inFuncReturn && t.mcache && t.mcache.typedefIdent)
     {
         buf.put(t.mcache.typedefIdent.toString());
         return;
@@ -4609,12 +4621,7 @@ string EXPtoString(EXP op)
         EXP.arrayLiteral : "arrayliteral",
         EXP.assocArrayLiteral : "assocarrayliteral",
         EXP.classReference : "classreference",
-        EXP.file : "__FILE__",
-        EXP.fileFullPath : "__FILE_FULL_PATH__",
-        EXP.line : "__LINE__",
-        EXP.moduleString : "__MODULE__",
-        EXP.functionString : "__FUNCTION__",
-        EXP.prettyFunction : "__PRETTY_FUNCTION__",
+        EXP.defaultInit : "defaultinit",
         EXP.typeid_ : "typeid",
         EXP.is_ : "is",
         EXP.assert_ : "assert",

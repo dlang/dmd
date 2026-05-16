@@ -133,6 +133,8 @@ else version (Posix)
         // Use POSIX threads for suspend/resume
     }
 }
+else
+    static assert(0, "unsupported operating system");
 
 version (GNU)
 {
@@ -204,10 +206,6 @@ else
     }
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// Thread
-///////////////////////////////////////////////////////////////////////////////
-
 /**
  * This class encapsulates all threading functionality for the D
  * programming language.  As thread manipulation is a required facility
@@ -216,11 +214,219 @@ else
  * A new thread may be created using either derivation or composition, as
  * in the following example.
  */
+version (CoreDdoc)
 class Thread : ThreadBase
 {
+    /**
+     * Initializes a thread object which is associated with a static
+     * D function.
+     *
+     * Params:
+     *  fn = The thread function.
+     *  sz = The stack size for this thread.
+     *
+     * In:
+     *  fn must not be null.
+     */
+    this( void function() fn, size_t sz = 0 ) @safe pure nothrow @nogc
+    {
+    }
+
+
+    /**
+     * Initializes a thread object which is associated with a dynamic
+     * D function.
+     *
+     * Params:
+     *  dg = The thread function.
+     *  sz = The stack size for this thread.
+     *
+     * In:
+     *  dg must not be null.
+     */
+    this( void delegate() dg, size_t sz = 0 ) @safe pure nothrow @nogc
+    {
+    }
+
+    package this( size_t sz = 0 ) @safe pure nothrow @nogc
+    {
+    }
+
+    /**
+     * Cleans up any remaining resources used by this object.
+     */
+    ~this() nothrow @nogc
+    {
+    }
+
     //
-    // Standard thread data
+    // Thread entry point.  Invokes the function or delegate passed on
+    // construction (if any).
     //
+    private final void run()
+    {
+    }
+
+    /**
+     * Provides a reference to the calling thread.
+     *
+     * Returns:
+     *  The thread object representing the calling thread.  The result of
+     *  deleting this object is undefined.  If the current thread is not
+     *  attached to the runtime, a null reference is returned.
+     */
+    static Thread getThis() @safe nothrow @nogc
+    {
+        return null;
+    }
+
+    ///
+    override final void[] savedRegisters() nothrow @nogc
+    {
+        return null;
+    }
+
+    /**
+     * Starts the thread and invokes the function or delegate passed upon
+     * construction.
+     *
+     * In:
+     *  This routine may only be called once per thread instance.
+     *
+     * Throws:
+     *  ThreadException if the thread fails to start.
+     */
+    final Thread start() nothrow
+    {
+        return null;
+    }
+
+    /**
+     * Waits for this thread to complete.  If the thread terminated as the
+     * result of an unhandled exception, this exception will be rethrown.
+     *
+     * Params:
+     *  rethrow = Rethrow any unhandled exception which may have caused this
+     *            thread to terminate.
+     *
+     * Throws:
+     *  ThreadException if the operation fails.
+     *  Any exception not handled by the joined thread.
+     *
+     * Returns:
+     *  Any exception not handled by this thread if rethrow = false, null
+     *  otherwise.
+     */
+    override final Throwable join( bool rethrow = true )
+    {
+        return null;
+    }
+
+    /**
+     * The minimum scheduling priority that may be set for a thread.  On
+     * systems where multiple scheduling policies are defined, this value
+     * represents the minimum valid priority for the scheduling policy of
+     * the process.
+     */
+    @property static int PRIORITY_MIN() @nogc nothrow pure @trusted
+    {
+        return 0;
+    }
+
+    /**
+     * The maximum scheduling priority that may be set for a thread.  On
+     * systems where multiple scheduling policies are defined, this value
+     * represents the maximum valid priority for the scheduling policy of
+     * the process.
+     */
+    @property static const(int) PRIORITY_MAX() @nogc nothrow pure @trusted
+    {
+        return 0;
+    }
+
+    /**
+     * The default scheduling priority that is set for a thread.  On
+     * systems where multiple scheduling policies are defined, this value
+     * represents the default priority for the scheduling policy of
+     * the process.
+     */
+    @property static int PRIORITY_DEFAULT() @nogc nothrow pure @trusted
+    {
+        return 0;
+    }
+
+    /**
+     * Gets the scheduling priority for the associated thread.
+     *
+     * Note: Getting the priority of a thread that already terminated
+     * might return the default priority.
+     *
+     * Returns:
+     *  The scheduling priority of this thread.
+     */
+    final @property int priority()
+    {
+        return 0;
+    }
+
+    /**
+     * Sets the scheduling priority for the associated thread.
+     *
+     * Note: Setting the priority of a thread that already terminated
+     * might have no effect.
+     *
+     * Params:
+     *  val = The new scheduling priority of this thread.
+     */
+    final @property void priority( int val )
+    {
+    }
+
+    /**
+     * Tests whether this thread is running.
+     *
+     * Returns:
+     *  true if the thread is running, false if not.
+     */
+    override final @property bool isRunning() nothrow @nogc
+    {
+        return false;
+    }
+
+    /**
+     * Suspends the calling thread for at least the supplied period.  This may
+     * result in multiple OS calls if period is greater than the maximum sleep
+     * duration supported by the operating system.
+     *
+     * Params:
+     *  val = The minimum duration the calling thread should be suspended.
+     *
+     * In:
+     *  period must be non-negative.
+     *
+     * Example:
+     * ------------------------------------------------------------------------
+     *
+     * Thread.sleep( dur!("msecs")( 50 ) );  // sleep for 50 milliseconds
+     * Thread.sleep( dur!("seconds")( 5 ) ); // sleep for 5 seconds
+     *
+     * ------------------------------------------------------------------------
+     */
+    static void sleep( Duration val ) @nogc nothrow @trusted
+    {
+    }
+
+    /**
+     * Forces a context switch to occur away from the calling thread.
+     */
+    static void yield() @nogc nothrow
+    {
+    }
+}
+
+version (CoreDdoc) {} else
+class Thread : ThreadBase
+{
     version (Windows)
     {
         private HANDLE          m_hndl;
@@ -241,9 +447,6 @@ class Thread : ThreadBase
         private __gshared bool m_isRTClass;
     }
 
-    //
-    // Standard types
-    //
     version (Windows)
     {
         alias TLSKey = uint;
@@ -252,40 +455,14 @@ class Thread : ThreadBase
     {
         alias TLSKey = pthread_key_t;
     }
+    else
+        static assert(0, "unsupported os");
 
-    ///////////////////////////////////////////////////////////////////////////
-    // Initialization
-    ///////////////////////////////////////////////////////////////////////////
-
-
-    /**
-     * Initializes a thread object which is associated with a static
-     * D function.
-     *
-     * Params:
-     *  fn = The thread function.
-     *  sz = The stack size for this thread.
-     *
-     * In:
-     *  fn must not be null.
-     */
     this( void function() fn, size_t sz = 0 ) @safe pure nothrow @nogc
     {
         super(fn, sz);
     }
 
-
-    /**
-     * Initializes a thread object which is associated with a dynamic
-     * D function.
-     *
-     * Params:
-     *  dg = The thread function.
-     *  sz = The stack size for this thread.
-     *
-     * In:
-     *  dg must not be null.
-     */
     this( void delegate() dg, size_t sz = 0 ) @safe pure nothrow @nogc
     {
         super(dg, sz);
@@ -296,9 +473,6 @@ class Thread : ThreadBase
         super(sz);
     }
 
-    /**
-     * Cleans up any remaining resources used by this object.
-     */
     ~this() nothrow @nogc
     {
         if (super.destructBeforeDtor())
@@ -315,39 +489,24 @@ class Thread : ThreadBase
             if (m_addr != m_addr.init)
                 pthread_detach( m_addr );
             m_addr = m_addr.init;
+            version (Darwin)
+            {
+                m_tmach = m_tmach.init;
+            }
         }
-        version (Darwin)
-        {
-            m_tmach = m_tmach.init;
-        }
+        else
+            static assert(0, "unsupported OS");
     }
 
-    //
-    // Thread entry point.  Invokes the function or delegate passed on
-    // construction (if any).
-    //
     private final void run()
     {
         super.run();
     }
 
-    /**
-     * Provides a reference to the calling thread.
-     *
-     * Returns:
-     *  The thread object representing the calling thread.  The result of
-     *  deleting this object is undefined.  If the current thread is not
-     *  attached to the runtime, a null reference is returned.
-     */
     static Thread getThis() @safe nothrow @nogc
     {
         return ThreadBase.getThis().toThread;
     }
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Thread Context and GC Scanning Support
-    ///////////////////////////////////////////////////////////////////////////
-
 
     version (Windows)
     {
@@ -445,21 +604,6 @@ class Thread : ThreadBase
         }
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // General Actions
-    ///////////////////////////////////////////////////////////////////////////
-
-
-    /**
-     * Starts the thread and invokes the function or delegate passed upon
-     * construction.
-     *
-     * In:
-     *  This routine may only be called once per thread instance.
-     *
-     * Throws:
-     *  ThreadException if the thread fails to start.
-     */
     final Thread start() nothrow
     in
     {
@@ -473,19 +617,6 @@ class Thread : ThreadBase
         {
             if ( !wasThreaded )
                 multiThreadedFlag = false;
-        }
-
-        version (Windows) {} else
-        version (Posix)
-        {
-            size_t stksz = adjustStackSize( m_sz );
-
-            pthread_attr_t  attr;
-
-            if ( pthread_attr_init( &attr ) )
-                onThreadError( "Error initializing thread attributes" );
-            if ( stksz && pthread_attr_setstacksize( &attr, stksz ) )
-                onThreadError( "Error initializing thread stack size" );
         }
 
         version (Windows)
@@ -504,6 +635,19 @@ class Thread : ThreadBase
             if ( cast(size_t) m_hndl == 0 )
                 onThreadError( "Error creating thread" );
         }
+        else version (Posix)
+        {
+            size_t stksz = adjustStackSize( m_sz );
+
+            pthread_attr_t  attr;
+
+            if ( pthread_attr_init( &attr ) )
+                onThreadError( "Error initializing thread attributes" );
+            if ( stksz && pthread_attr_setstacksize( &attr, stksz ) )
+                onThreadError( "Error initializing thread stack size" );
+        }
+        else
+            static assert(0, "unsupported OS");
 
         slock.lock_nothrow();
         scope(exit) slock.unlock_nothrow();
@@ -547,34 +691,21 @@ class Thread : ThreadBase
                 }
                 if ( pthread_attr_destroy( &attr ) != 0 )
                     onThreadError( "Error destroying thread attributes" );
+
+                version (Darwin)
+                {
+                    m_tmach = pthread_mach_thread_np( m_addr );
+                    if ( m_tmach == m_tmach.init )
+                        onThreadError( "Error creating thread" );
+                }
             }
-            version (Darwin)
-            {
-                m_tmach = pthread_mach_thread_np( m_addr );
-                if ( m_tmach == m_tmach.init )
-                    onThreadError( "Error creating thread" );
-            }
+            else
+                static assert(0, "unsupported OS");
 
             return this;
         }
     }
 
-    /**
-     * Waits for this thread to complete.  If the thread terminated as the
-     * result of an unhandled exception, this exception will be rethrown.
-     *
-     * Params:
-     *  rethrow = Rethrow any unhandled exception which may have caused this
-     *            thread to terminate.
-     *
-     * Throws:
-     *  ThreadException if the operation fails.
-     *  Any exception not handled by the joined thread.
-     *
-     * Returns:
-     *  Any exception not handled by this thread if rethrow = false, null
-     *  otherwise.
-     */
     override final Throwable join( bool rethrow = true )
     {
         version (Windows)
@@ -598,6 +729,9 @@ class Thread : ThreadBase
             //       on object destruction.
             m_addr = m_addr.init;
         }
+        else
+            static assert(0, "unsupported OS");
+
         if ( m_unhandled )
         {
             if ( rethrow )
@@ -606,11 +740,6 @@ class Thread : ThreadBase
         }
         return null;
     }
-
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Thread Priority Actions
-    ///////////////////////////////////////////////////////////////////////////
 
     version (Windows)
     {
@@ -629,7 +758,7 @@ class Thread : ThreadBase
             return THREAD_PRIORITY_NORMAL;
         }
     }
-    else
+    else version (Posix)
     {
         private struct Priority
         {
@@ -653,7 +782,9 @@ class Thread : ThreadBase
             auto local = atomicLoad(mixin("cache." ~ which));
             if (local != local.min) return local;
             // There will be benign races
-            cache = loadPriorities;
+            auto loaded = loadPriorities;
+            static foreach (i, _; loaded.tupleof)
+                atomicStore(cache.tupleof[i], loaded.tupleof[i]);
             return atomicLoad(mixin("cache." ~ which));
         }
 
@@ -713,7 +844,7 @@ class Thread : ThreadBase
                     result.PRIORITY_DEFAULT = 0;
                 }
             }
-            else version (Posix)
+            else
             {
                 int         policy;
                 sched_param param;
@@ -728,49 +859,30 @@ class Thread : ThreadBase
                 result.PRIORITY_MAX != -1 ||
                     assert(0, "Internal error in sched_get_priority_max");
             }
-            else
-            {
-                static assert(0, "Your code here.");
-            }
             return result;
         }
 
-        /**
-         * The minimum scheduling priority that may be set for a thread.  On
-         * systems where multiple scheduling policies are defined, this value
-         * represents the minimum valid priority for the scheduling policy of
-         * the process.
-         */
         @property static int PRIORITY_MIN() @nogc nothrow pure @trusted
         {
             return (cast(int function() @nogc nothrow pure @safe)
                 &loadGlobal!"PRIORITY_MIN")();
         }
 
-        /**
-         * The maximum scheduling priority that may be set for a thread.  On
-         * systems where multiple scheduling policies are defined, this value
-         * represents the maximum valid priority for the scheduling policy of
-         * the process.
-         */
         @property static const(int) PRIORITY_MAX() @nogc nothrow pure @trusted
         {
             return (cast(int function() @nogc nothrow pure @safe)
                 &loadGlobal!"PRIORITY_MAX")();
         }
 
-        /**
-         * The default scheduling priority that is set for a thread.  On
-         * systems where multiple scheduling policies are defined, this value
-         * represents the default priority for the scheduling policy of
-         * the process.
-         */
         @property static int PRIORITY_DEFAULT() @nogc nothrow pure @trusted
         {
             return (cast(int function() @nogc nothrow pure @safe)
                 &loadGlobal!"PRIORITY_DEFAULT")();
         }
     }
+    else
+        static assert(0, "unsupported OS");
+
 
     version (NetBSD)
     {
@@ -779,15 +891,6 @@ class Thread : ThreadBase
         int fakePriority = int.max;
     }
 
-    /**
-     * Gets the scheduling priority for the associated thread.
-     *
-     * Note: Getting the priority of a thread that already terminated
-     * might return the default priority.
-     *
-     * Returns:
-     *  The scheduling priority of this thread.
-     */
     final @property int priority()
     {
         version (Windows)
@@ -811,18 +914,10 @@ class Thread : ThreadBase
             }
             return param.sched_priority;
         }
+        else
+            static assert(0, "unsupported os");
     }
 
-
-    /**
-     * Sets the scheduling priority for the associated thread.
-     *
-     * Note: Setting the priority of a thread that already terminated
-     * might have no effect.
-     *
-     * Params:
-     *  val = The new scheduling priority of this thread.
-     */
     final @property void priority( int val )
     in
     {
@@ -901,6 +996,8 @@ class Thread : ThreadBase
                 }
             }
         }
+        else
+            static assert(0, "unsupported os");
     }
 
 
@@ -930,12 +1027,6 @@ class Thread : ThreadBase
         assert(prio >= PRIORITY_MIN && prio <= PRIORITY_MAX);
     }
 
-    /**
-     * Tests whether this thread is running.
-     *
-     * Returns:
-     *  true if the thread is running, false if not.
-     */
     override final @property bool isRunning() nothrow @nogc
     {
         if (!super.isRunning())
@@ -951,33 +1042,10 @@ class Thread : ThreadBase
         {
             return atomicLoad(m_isRunning);
         }
+        else
+            static assert(0, "unsupported os");
     }
 
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Actions on Calling Thread
-    ///////////////////////////////////////////////////////////////////////////
-
-
-    /**
-     * Suspends the calling thread for at least the supplied period.  This may
-     * result in multiple OS calls if period is greater than the maximum sleep
-     * duration supported by the operating system.
-     *
-     * Params:
-     *  val = The minimum duration the calling thread should be suspended.
-     *
-     * In:
-     *  period must be non-negative.
-     *
-     * Example:
-     * ------------------------------------------------------------------------
-     *
-     * Thread.sleep( dur!("msecs")( 50 ) );  // sleep for 50 milliseconds
-     * Thread.sleep( dur!("seconds")( 5 ) ); // sleep for 5 seconds
-     *
-     * ------------------------------------------------------------------------
-     */
     static void sleep( Duration val ) @nogc nothrow @trusted
     in
     {
@@ -1025,18 +1093,18 @@ class Thread : ThreadBase
                 tin = tout;
             }
         }
+        else
+            static assert(0, "unsupported os");
     }
 
-
-    /**
-     * Forces a context switch to occur away from the calling thread.
-     */
     static void yield() @nogc nothrow
     {
         version (Windows)
             SwitchToThread();
         else version (Posix)
             sched_yield();
+        else
+            static assert(0, "unsupported os");
     }
 }
 
@@ -1241,6 +1309,7 @@ version (Posix)
     private __gshared int resumeSignalNumber;
 }
 
+version (CoreDdoc) {} else
 private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
 {
     Thread thisThread = _thisThread.toThread();
@@ -1263,6 +1332,8 @@ private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
 
         atomicStore!(MemoryOrder.raw)(thisThread.toThread.m_isRunning, true);
     }
+    else
+        static assert(0, "unsupported os");
     thisThread.m_isDaemon = true;
     thisThread.tlsRTdataInit();
     Thread.setThis( thisThread );
@@ -1416,7 +1487,7 @@ in (fn)
                 enum int j = 13 + i; // source register
                 asm pure nothrow @nogc
                 {
-                    "stw "~regname~j.stringof~", %0" : "=m" (regs[i]);
+                    ("stw "~regname~j.stringof~", %0") : "=m" (regs[i]);
                 }
             }}
             sp = cast(void*)&regs[0];
@@ -1433,7 +1504,7 @@ in (fn)
                 enum int j = 13 + i; // source register
                 asm pure nothrow @nogc
                 {
-                    "std "~regname~j.stringof~", %0" : "=m" (regs[i]);
+                    ("std "~regname~j.stringof~", %0") : "=m" (regs[i]);
                 }
             }}
             sp = cast(void*)&regs[0];
@@ -1527,6 +1598,27 @@ in (fn)
             mov sp[RBP], RSP;
         }
     }
+    else version (AArch64)
+    {
+        // Callee-save registers, x19-x28 according to AAPCS64, section
+        // 5.1.1.  Include x29 fp because it optionally can be a callee
+        // saved reg
+        size_t[11] regs = void;
+        // store the registers in pairs
+        asm pure nothrow @nogc
+        {
+        /*
+            stp x19, x20, regs[0];
+            stp x21, x22, regs[2];
+            stp x23, x24, regs[4];
+            stp x25, x26, regs[6];
+            stp x27, x28, regs[8];
+            str x29, regs[10];
+            mov [sp], sp;
+         */
+        }
+        assert(0, "implement AArch64 inline assembler for callWithStackShell()"); // TODO AArch64
+    }
     else
     {
         static assert(false, "Architecture not supported.");
@@ -1552,6 +1644,8 @@ else version (Windows)
 {
     alias getpid = imported!"core.sys.windows.winbase".GetCurrentProcessId;
 }
+else
+    static assert(0, "unsupported os");
 
 extern (C) @nogc nothrow
 {
@@ -1576,6 +1670,11 @@ private extern(D) void* getStackTop() nothrow @nogc
         asm pure nothrow @nogc { naked; mov EAX, ESP; ret; }
     else version (D_InlineAsm_X86_64)
         asm pure nothrow @nogc { naked; mov RAX, RSP; ret; }
+    else version (AArch64)
+        //asm pure nothrow @nogc { naked; mov x0, SP; ret; }    // TODO AArch64
+    {
+        return null;
+    }
     else version (GNU)
         return __builtin_frame_address(0);
     else
@@ -2025,6 +2124,8 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
             t.m_curr.tstack = getStackTop();
         }
     }
+    else
+        static assert(0, "unsupported os");
     return true;
 }
 
@@ -2110,6 +2211,11 @@ extern (C) void thread_suspendAll() nothrow
                 }
             }
         }
+        else version (Windows)
+        {
+        }
+        else
+            static assert(0, "unsupported os");
     }
 }
 
@@ -2208,6 +2314,9 @@ private extern (D) void resume(ThreadBase _t) nothrow @nogc
  * garbage collector on startup and before any other thread routines
  * are called.
  */
+version (CoreDdoc)
+    extern (C) void thread_init() @nogc nothrow {}
+else
 extern (C) void thread_init() @nogc nothrow
 {
     // NOTE: If thread_init itself performs any allocations then the thread
@@ -2219,7 +2328,10 @@ extern (C) void thread_init() @nogc nothrow
     initLowlevelThreads();
     Thread.initLocks();
 
-    version (Darwin)
+    version (Windows)
+    {
+    }
+    else version (Darwin)
     {
         // thread id different in forked child process
         static extern(C) void initChildAfterFork()
@@ -2311,6 +2423,8 @@ extern (C) void thread_init() @nogc nothrow
         status = sem_init( &suspendCount, 0, 0 );
         assert( status == 0 );
     }
+    else
+        static assert(0, "unsupported os");
     _mainThreadStore[] = cast(void[]) __traits(initSymbol, Thread)[];
     Thread.sm_main = attachThread((cast(Thread)_mainThreadStore.ptr).__ctor());
 }
@@ -2456,6 +2570,7 @@ else version (Posix)
         //
         // Entry point for POSIX threads
         //
+        version (CoreDdoc) {} else
         extern (C) void* thread_entryPoint( void* arg ) nothrow
         {
             version (Shared)
@@ -2777,43 +2892,38 @@ private
 
     version (CRuntime_Microsoft)
         extern(C) extern __gshared ubyte msvcUsesUCRT; // from rt/msvc.d
+    extern(C) extern __gshared void* __ImageBase; // symbol at the beginning of module, added by linker
+    enum HMODULE runtimeModule = &__ImageBase;
 
     /// set during termination of a DLL on Windows, i.e. while executing DllMain(DLL_PROCESS_DETACH)
     public __gshared bool thread_DLLProcessDetaching;
 
-    __gshared HMODULE ll_dllModule;
     __gshared ThreadID ll_dllMonitorThread;
 
-    int ll_countLowLevelThreadsWithDLLUnloadCallback() nothrow
+    int ll_countLowLevelThreadsWithDLLUnloadCallback(HMODULE hMod) nothrow
     {
         lowlevelLock.lock_nothrow();
         scope(exit) lowlevelLock.unlock_nothrow();
 
         int cnt = 0;
         foreach (i; 0 .. ll_nThreads)
-            if (ll_pThreads[i].cbDllUnload)
+            if (ll_pThreads[i].cbDllUnload && ll_pThreads[i].hMod == hMod)
                 cnt++;
         return cnt;
     }
 
-    bool ll_dllHasExternalReferences() nothrow
+    bool ll_dllHasExternalReferences(HMODULE hMod) nothrow
     {
-        int internalReferences =  msvcUsesUCRT ? 1 + ll_countLowLevelThreadsWithDLLUnloadCallback() : 1;
-        int refcnt = dll_getRefCount(ll_dllModule);
+        int unloadCallbacks = ll_countLowLevelThreadsWithDLLUnloadCallback(hMod);
+        int internalReferences = hMod != runtimeModule ? unloadCallbacks
+            : (ll_dllMonitorThread ? 1 : 0) + (msvcUsesUCRT ? unloadCallbacks : 0);
+        int refcnt = dll_getRefCount(hMod);
         return refcnt > internalReferences;
     }
 
-    private void monitorDLLRefCnt() nothrow
+    void notifyUnloadLowLevelThreads(HMODULE hMod) nothrow
     {
-        // this thread keeps the DLL alive until all external references are gone
-        while (ll_dllHasExternalReferences())
-        {
-            Thread.sleep(100.msecs);
-        }
-
-        // the current thread will be terminated below
-        ll_removeThread(GetCurrentThreadId());
-
+        HMODULE toFree;
         for (;;)
         {
             ThreadID tid;
@@ -2823,36 +2933,70 @@ private
                 scope(exit) lowlevelLock.unlock_nothrow();
 
                 foreach (i; 0 .. ll_nThreads)
-                    if (ll_pThreads[i].cbDllUnload)
+                    if (ll_pThreads[i].cbDllUnload && ll_pThreads[i].hMod == hMod)
                     {
+                        if (!toFree)
+                            toFree = ll_getModuleHandle(hMod, true); // keep the module alive until the callback returns
                         cbDllUnload = ll_pThreads[i].cbDllUnload;
-                        tid = ll_pThreads[0].tid;
+                        tid = ll_pThreads[i].tid;
+                        break;
                     }
             }
             if (!cbDllUnload)
                 break;
-            cbDllUnload();
+            cbDllUnload(); // must wait for thread termination
             assert(!findLowLevelThread(tid));
         }
-
-        FreeLibraryAndExitThread(ll_dllModule, 0);
+        if (toFree)
+            FreeLibrary(toFree);
     }
 
-    int ll_getDLLRefCount() nothrow @nogc
+    private void monitorDLLRefCnt() nothrow
     {
-        if (!ll_dllModule &&
-            !GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                                cast(const(wchar)*) &ll_getDLLRefCount, &ll_dllModule))
-            return -1;
-        return dll_getRefCount(ll_dllModule);
+        // this thread keeps the DLL alive until all external references are gone
+        // (including those from DLLs using druntime in a shared DLL)
+        while (ll_dllHasExternalReferences(runtimeModule))
+        {
+            // find and unload module that only has internal references left
+            HMODULE hMod;
+            {
+                lowlevelLock.lock_nothrow();
+                scope(exit) lowlevelLock.unlock_nothrow();
+
+                foreach (i; 0 .. ll_nThreads)
+                    if (ll_pThreads[i].cbDllUnload && ll_pThreads[i].hMod != runtimeModule)
+                        if (!ll_dllHasExternalReferences(ll_pThreads[i].hMod))
+                        {
+                            hMod = ll_pThreads[i].hMod;
+                            break;
+                        }
+            }
+            if (hMod)
+                notifyUnloadLowLevelThreads(hMod);
+            else
+                Thread.sleep(100.msecs);
+        }
+
+        notifyUnloadLowLevelThreads(runtimeModule);
+
+        // the current thread will be terminated without cleanup within the thread
+        ll_removeThread(GetCurrentThreadId());
+
+        FreeLibraryAndExitThread(runtimeModule, 0);
+    }
+
+    HMODULE ll_getModuleHandle(void* funcptr, bool addref = false) nothrow @nogc
+    {
+        HMODULE hmod;
+        DWORD refflag = addref ? 0 : GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
+        if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | refflag,
+                                cast(const(wchar)*) funcptr, &hmod))
+            return null;
+        return hmod;
     }
 
     bool ll_startDLLUnloadThread() nothrow @nogc
     {
-        int refcnt = ll_getDLLRefCount();
-        if (refcnt < 0)
-            return false; // not a dynamically loaded DLL
-
         if (ll_dllMonitorThread !is ThreadID.init)
             return true;
 
@@ -2860,13 +3004,10 @@ private
         // to avoid the DLL being unloaded while the thread is still running. Mimick this behavior here for all
         // runtimes not doing this
         bool needRef = !msvcUsesUCRT;
-
         if (needRef)
-        {
-            HMODULE hmod;
-            GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, cast(const(wchar)*) &ll_getDLLRefCount, &hmod);
-        }
+            ll_getModuleHandle(runtimeModule, true);
 
+        // the monitor thread must be a low-level thread so the runtime does not attach to it
         ll_dllMonitorThread = createLowLevelThread(() { monitorDLLRefCnt(); });
         return ll_dllMonitorThread != ThreadID.init;
     }
@@ -2890,8 +3031,15 @@ private
 ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
                               void delegate() nothrow cbDllUnload = null) nothrow @nogc
 {
-    void delegate() nothrow* context = cast(void delegate() nothrow*)malloc(dg.sizeof);
-    *context = dg;
+    static struct Context
+    {
+        void delegate() nothrow dg;
+        version (Windows)
+            HMODULE cbMod;
+    }
+    auto context = cast(Context*)malloc(Context.sizeof);
+    scope(exit) free(context);
+    context.dg = dg;
 
     ThreadID tid;
     version (Windows)
@@ -2899,14 +3047,30 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
         // the thread won't start until after the DLL is unloaded
         if (thread_DLLProcessDetaching)
             return ThreadID.init;
+        context.cbMod = cbDllUnload ? ll_getModuleHandle(cbDllUnload.funcptr) : null;
+        if (context.cbMod)
+        {
+            int refcnt = dll_getRefCount(context.cbMod);
+            if (refcnt < 0)
+            {
+                // not a dynamically loaded DLL, so never unloaded
+                cbDllUnload = null;
+                context.cbMod = null;
+            }
+            if (refcnt == 0)
+                return ThreadID.init; // createLowLevelThread called while DLL is unloading
+        }
 
         static extern (Windows) uint thread_lowlevelEntry(void* ctx) nothrow
         {
-            auto dg = *cast(void delegate() nothrow*)ctx;
+            auto context = *cast(Context*)ctx;
             free(ctx);
 
-            dg();
+            context.dg();
+
             ll_removeThread(GetCurrentThreadId());
+            if (context.cbMod && context.cbMod != runtimeModule)
+                FreeLibrary(context.cbMod);
             return 0;
         }
 
@@ -2922,11 +3086,20 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
 
     ll_nThreads++;
     ll_pThreads = cast(ll_ThreadData*)realloc(ll_pThreads, ll_ThreadData.sizeof * ll_nThreads);
+    ll_pThreads[ll_nThreads - 1] = ll_ThreadData.init;
 
     version (Windows)
     {
         ll_pThreads[ll_nThreads - 1].tid = tid;
-        ll_pThreads[ll_nThreads - 1].cbDllUnload = cbDllUnload;
+        // ignore callback if not a dynamically loaded DLL
+        if (cbDllUnload)
+        {
+            ll_pThreads[ll_nThreads - 1].cbDllUnload = cbDllUnload;
+            ll_pThreads[ll_nThreads - 1].hMod = context.cbMod;
+            if (context.cbMod != runtimeModule)
+                ll_getModuleHandle(context.cbMod, true); // increment ref count
+        }
+
         if (ResumeThread(hThread) == -1)
             onThreadError("Error resuming thread");
         CloseHandle(hThread);
@@ -2938,10 +3111,10 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
     {
         static extern (C) void* thread_lowlevelEntry(void* ctx) nothrow
         {
-            auto dg = *cast(void delegate() nothrow*)ctx;
+            auto context = *cast(Context*)ctx;
             free(ctx);
 
-            dg();
+            context.dg();
             ll_removeThread(pthread_self());
             return null;
         }
@@ -2957,11 +3130,14 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
             return ThreadID.init;
         if ((rc = pthread_create(&tid, &attr, &thread_lowlevelEntry, context)) != 0)
             return ThreadID.init;
-        if ((rc = pthread_attr_destroy(&attr)) != 0)
-            return ThreadID.init;
+        rc = pthread_attr_destroy(&attr);
+        assert(rc == 0);
 
         ll_pThreads[ll_nThreads - 1].tid = tid;
     }
+    else
+        static assert(0, "unsupported os");
+    context = null; // free'd in thread
     return tid;
 }
 
@@ -3001,6 +3177,8 @@ void joinLowLevelThread(ThreadID tid) nothrow @nogc
         if (pthread_join(tid, null) != 0)
             onThreadError("Unable to join thread");
     }
+    else
+        static assert(0, "unsupported os");
 }
 
 nothrow @nogc unittest

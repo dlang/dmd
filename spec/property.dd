@@ -1,0 +1,347 @@
+Ddoc
+
+$(SPEC_S Properties,
+
+$(HEADERNAV_TOC)
+
+$(H2 $(LNAME2 common, Common Properties))
+
+        $(P Every symbol, type, and expression has properties that can be queried:)
+
+$(TABLE
+$(THEAD  Property, Description)
+$(TROW $(RELATIVE_LINK2 mangleof, $(D .mangleof)), string representing the $(SINGLEQUOTE mangled) representation of the type)
+$(TROW $(RELATIVE_LINK2 stringof, $(D .stringof)), string representing the source representation of the type)
+)
+
+$(TABLE2 Examples,
+$(THEAD Expression,     Value)
+$(TROW $(D int.mangleof),       yields the string "i")
+$(TROW $(D int.stringof),       yields the string "int")
+$(TROW $(D (1+2).stringof),     yields the string "1 + 2")
+)
+
+$(H2 $(LNAME2 type, Type Properties))
+
+        $(P Every type has properties that can be queried. Every expression also
+        has these properties, which are equivalent to the properties of the
+        expression's type. These properties are:)
+
+$(TABLE
+$(THEAD  Property, Description)
+$(TROW $(RELATIVE_LINK2 init, $(D .init)),      initializer)
+$(TROW $(RELATIVE_LINK2 sizeof, $(D .sizeof)), size in bytes)
+$(TROW $(RELATIVE_LINK2 alignof, $(D .alignof)), alignment size)
+)
+
+$(TABLE2 Examples,
+$(THEAD Expression,     Value)
+$(TROW $(D int.init),   yields 0)
+$(TROW $(D int.sizeof), yields 4)
+$(TROW $(D (3).sizeof), yields 4 (because 3 is an int))
+)
+
+$(H2 $(LNAME2 numeric, Numeric Properties))
+
+$(TABLE2 Properties for Integral Types,
+$(THEAD Property, Description)
+$(TROW $(D .max), maximum value)
+$(TROW $(D .min), minimum value)
+)
+
+$(BR)
+
+$(TABLE_2COLS Properties for Floating Point Types,
+$(THEAD Property, Description)
+$(TROW $(D .infinity), infinity value)
+$(TROW $(D .nan), NaN - $(HTTPS en.wikipedia.org/wiki/NaN, Not a Number) value
+    (other NaN values can be produced))
+$(TROW $(D .dig), number of decimal digits of precision)
+$(TROW $(D .epsilon), smallest increment to the value 1)
+$(TROW $(D .mant_dig), number of bits in mantissa)
+$(TROW $(D .max_10_exp), maximum int value such that 10$(SUPERSCRIPT $(D max_10_exp)) is representable)
+$(TROW $(D .max_exp), maximum int value such that 2$(SUPERSCRIPT $(D max_exp-1)) is representable)
+$(TROW $(D .min_10_exp), minimum int value such that 10$(SUPERSCRIPT $(D min_10_exp)) is representable as a normalized value)
+$(TROW $(D .min_exp), minimum int value such that 2$(SUPERSCRIPT $(D min_exp-1)) is representable as a normalized value)
+$(TROW $(D .max), largest representable value that's not infinity)
+
+$(TROW $(D .min_normal), smallest representable normalized value that's not 0)
+$(TROW $(D .re), real part)
+$(TROW $(D .im), imaginary part)
+)
+
+$(TABLE2 Floating Point Examples,
+$(THEAD Expression,     Value)
+$(TROW $(D float.nan),  yields the floating point NaN value)
+$(TROW $(D (2.5F).nan),        yields the floating point NaN value)
+)
+
+$(H2 $(LNAME2 derived-type, Derived Type Properties))
+
+        $(P See:)
+
+        * $(DDSUBLINK spec/arrays, array-properties, Array Properties)
+        * $(DDSUBLINK spec/hash-map, properties, Associative Array Properties)
+        * $(DDSUBLINK spec/simd, properties, Vector Properties)
+
+
+$(H2 $(LNAME2 user-defined-type, User-Defined Type Properties))
+
+        $(P See:)
+
+        * $(DDSUBLINK spec/class, class_properties, Class Properties)
+        * $(DDSUBLINK spec/enum, enum_properties, Enum Properties)
+        * $(DDSUBLINK spec/struct, struct_properties, Struct Properties)
+
+
+$(H2 $(LNAME2 init, .init Property))
+
+        $(P $(D .init) produces a constant expression that is the default
+        initializer. If applied to a type, it is the default initializer
+        for that type. If applied to a variable or field, it is the
+        default initializer for that variable or field's type.
+        The default values for different kinds of types are described below:
+        )
+
+$(TABLE
+$(THEAD Type, `.init` Value)
+$(TROW `char`, `'\xff'`)
+$(TROW `dchar`, `'\xffff'`)
+$(TROW `wchar`, `'\xffff'`)
+$(TROW Enum, first member value)
+$(TROW Integers, `0`)
+$(TROW Floating Point, NaN)
+$(TROW Reference Types, `null`)
+$(TROW Structs, each $(DDSUBLINK spec/struct, default_struct_init, field's default value))
+$(TROW Unions, first member value)
+)
+
+    $(RATIONALE Where possible, the default value for a type is an invalid value.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+----------------
+int a;
+int b = 1;
+
+static assert(int.init == 0);
+static assert(a.init == 0);
+static assert(b.init == 0);
+
+struct Foo
+{
+    int a;
+    int b = 7;
+}
+
+static assert(Foo.init.a == 0);
+static assert(Foo.init.b == 7);
+----------------
+)
+
+$(H3 $(LNAME2 init-vs-construction, `.init` vs Default Construction))
+
+    $(P Note that $(D .init) produces a default initialized object, not a
+    default constructed one. If there is a default constructor for an object,
+    it may produce a different value.)
+
+    $(OL
+        $(LI If $(D T) is a nested struct, the context pointer in $(D T.init)
+        is $(D null).)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+----------------
+void main()
+{
+    int x;
+    struct S
+    {
+        void foo() { x = 1; }  // access x in enclosing scope via context pointer
+    }
+    S s1;           // OK. S() correctly initialize its context pointer.
+    S s2 = S();     // OK. same as s1
+    s1.foo();       // OK
+
+    S s3 = S.init;  // Bad. the context pointer in s3 is null
+    s3.foo();       // Access violation
+}
+----------------
+)
+        $(LI If $(D T) is a struct which has $(CODE @disable this();), $(D T.init)
+        might return a logically incorrect object.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+----------------
+struct S
+{
+    int x;
+    @disable this();
+    this(int n) { x = n; }
+    invariant { assert(x > 0); }
+    void check() {}
+}
+
+void main()
+{
+  //S s1;           // Error: variable s1 initializer required for type S
+  //S s2 = S();     // Error: constructor S.this is not callable
+                    // because it is annotated with @disable
+    S s3 = S.init;  // Bad. s3.x == 0, and it violates the invariant of S
+    s3.check();     // Assertion failure
+}
+----------------
+)
+    )
+
+
+$(H2 $(LNAME2 stringof, .stringof Property))
+
+        $(P $(D .stringof) produces a constant string that is the
+        source representation of its prefix.
+        If applied to a type, it is the string for that type.
+        If applied to an expression, it is the source representation
+        of that expression. The expression will not be evaluated.
+        )
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    module test;
+    import std.stdio;
+
+    struct Dog { }
+
+    enum Color { Red }
+
+    int i = 4;
+
+    void main()
+    {
+        writeln((1+2).stringof);       // "1 + 2"
+        writeln(test.stringof);        // "module test"
+        writeln(Dog.stringof);         // "Dog"
+        writeln(int.stringof);         // "int"
+        writeln((int*[5][]).stringof); // "int*[5][]"
+        writeln(Color.Red.stringof);   // "Red"
+        writeln((5).stringof);         // "5"
+
+        writeln((++i).stringof);       // "i += 1"
+        assert(i == 4);                // `++i` was not evaluated
+    }
+    ---
+    )
+
+    $(IMPLEMENTATION_DEFINED The string representation for a type or expression
+    can vary.)
+
+    $(BEST_PRACTICE Do not use `.stringof` for code generation.
+    Instead use the
+    $(DDSUBLINK spec/traits, identifier, identifier) trait,
+    or one of the Phobos helper functions such as $(REF fullyQualifiedName, std,traits).)
+
+$(H2 $(LNAME2 sizeof, .sizeof Property))
+
+        $(P $(CODE e.sizeof) gives the size in bytes of the expression
+        $(D e).
+        )
+
+        $(P When getting the size of a member, it is not necessary for
+        there to be a $(I this) object:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int a;
+}
+
+static assert(S.a.sizeof == 4);
+static assert(Object.sizeof == (void*).sizeof);
+---
+)
+
+        $(P $(CODE .sizeof) applied to a class object returns the size of
+        the class reference, not the class instantiation.)
+
+        $(P See also: $(DDSUBLINK spec/traits, classInstanceSize, `__traits(classInstanceSize)`).)
+
+$(H2 $(LNAME2 alignof, .alignof Property))
+
+        $(P $(CODE .alignof) gives the aligned size of an expression or type.
+        For example, an aligned size of 1 means that it is aligned on
+        a byte boundary, 4 means it is aligned on a 32 bit boundary.
+        )
+
+    $(P See $(DDSUBLINK spec/attribute, align, the `align` attribute) for an example.)
+
+    $(IMPLEMENTATION_DEFINED the actual aligned size.)
+
+    $(BEST_PRACTICE Be particularly careful when laying out an object that must
+    line up with an externally imposed layout. Data misalignment can result in
+    particularly pernicious bugs. It's often worth putting in an `assert` to assure
+    it is correct.)
+
+$(H2 $(LNAME2 mangleof, .mangleof Property))
+
+    $(P Mangling refers to how a symbol is represented in text form in the
+    generated object file. $(CODE .mangleof) returns a string literal
+    of the representation of the type or symbol it is applied to.
+    The mangling of types and symbols with D linkage is defined by
+    $(DDSUBLINK spec/abi, name_mangling, Name Mangling).
+    )
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI whether a leading underscore is added to a symbol)
+    $(LI the mangling of types and symbols with non-D linkage.
+    For C and C++ linkage, this will typically
+    match what the associated C or C++ compiler does.)
+    )
+    )
+
+$(H2 $(LNAME2 classinfo, .classinfo Property))
+
+$(P $(CODE .classinfo) provides information about the dynamic type of a class
+object. It returns a reference to type $(DDLINK phobos/object, TypeInfo_Class,
+$(D object.TypeInfo_Class)).)
+
+$(P $(CODE .classinfo) applied to an interface gives the information for the
+interface, not the class it might be an instance of.)
+
+$(H2 $(LNAME2 tupleof, .tupleof Property))
+
+$(P $(CODE .tupleof) provides a symbol sequence of all the non-static fields in a struct or class.
+The order of the fields in the tuple matches the order in which the fields are declared.
+
+For classes, hidden fields and fields of the bass class are excluded.
+
+A common use case is to iterate over the fields with a $(CODE foreach) loop.)
+
+---
+struct Vector3
+{
+    int x, y, z;
+}
+
+void test()
+{
+    Vector3 v = Vector3(5, 10, 15);
+    float sum = 0;
+    foreach(num; v.tupleof)
+    {
+        sum+= num;
+    }
+    writeln(sum); //30
+}
+---
+
+
+$(H2 $(LNAME2 classproperties, User-Defined Properties))
+
+        $(P User-defined properties can be created using $(LINK2 function.html#property-functions, Property Functions).)
+
+$(SPEC_SUBNAV_PREV_NEXT type, Types, attribute, Attributes)
+)
+
+Macros:
+        CHAPTER=8
+        TITLE=Properties

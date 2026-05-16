@@ -1,7 +1,7 @@
 /**
  * The base class for a D symbol, which can be a module, variable, function, enum, etc.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dsymbol.d, _dsymbol.d)
@@ -45,11 +45,9 @@ import dmd.statement;
 import dmd.staticassert;
 import dmd.tokens;
 import dmd.visitor;
-
 import dmd.common.outbuffer;
-
 /***************************************
- * Calls dg(Dsymbol* sym) for each Dsymbol.
+ * Calls dg(Dsymbol sym) for each Dsymbol.
  * If dg returns !=0, stops and returns that value else returns 0.
  * Params:
  *    symbols = Dsymbols
@@ -78,7 +76,7 @@ int foreachDsymbol(Dsymbols* symbols, scope int delegate(Dsymbol) dg)
 }
 
 /***************************************
- * Calls dg(Dsymbol* sym) for each Dsymbol.
+ * Calls dg(Dsymbol sym) for each Dsymbol.
  * Params:
  *    symbols = Dsymbols
  *    dg = delegate to call for each Dsymbol
@@ -99,6 +97,62 @@ void foreachDsymbol(Dsymbols* symbols, scope void delegate(Dsymbol) dg)
         }
     }
 }
+
+private void addComment(Dsymbol d, const(char)* comment)
+{
+    scope v = new AddCommentVisitor(comment);
+    d.accept(v);
+}
+
+extern (C++) private class AddCommentVisitor: Visitor
+{
+    alias visit = Visitor.visit;
+
+    const(char)* comment;
+
+    this(const(char)* comment)
+    {
+        this.comment = comment;
+    }
+
+    override void visit(Dsymbol d)
+    {
+        if (!comment || !*comment)
+            return;
+
+        //printf("addComment '%s' to Dsymbol %p '%s'\n", comment, this, toChars());
+        void* h = cast(void*)d;      // just the pointer is the key
+        auto p = h in d.commentHashTable;
+        if (!p)
+        {
+            d.commentHashTable[h] = comment;
+            return;
+        }
+        if (strcmp(*p, comment) != 0)
+        {
+            // Concatenate the two
+            import dmd.lexer;
+            *p = Lexer.combineComments((*p).toDString(), comment.toDString(), true);
+        }
+    }
+    override void visit(AttribDeclaration atd)
+    {
+        if (comment && atd.decl)
+        {
+            atd.decl.foreachDsymbol( s => s.addComment(comment) );
+        }
+    }
+    override void visit(ConditionalDeclaration cd)
+    {
+        if (comment)
+        {
+            cd.decl    .foreachDsymbol( s => s.addComment(comment) );
+            cd.elsedecl.foreachDsymbol( s => s.addComment(comment) );
+        }
+    }
+    override void visit(StaticForeachDeclaration sfd) {}
+}
+
 
 struct Visibility
 {
@@ -765,20 +819,6 @@ extern (C++) class Dsymbol : ASTNode
         assert(0);
     }
 
-    void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
-    {
-    }
-
-    /****************************************
-     * Add documentation comment to Dsymbol.
-     * Ignore NULL comments.
-     */
-    void addComment(const(char)* comment)
-    {
-        import dmd.dsymbolsem;
-        dmd.dsymbolsem.addComment(this, comment);
-    }
-
     /// get documentation comment for this Dsymbol
     final const(char)* comment()
     {
@@ -790,10 +830,10 @@ extern (C++) class Dsymbol : ASTNode
         }
         return null;
     }
-
-    /* Shell around addComment() to avoid disruption for the moment */
-    final void comment(const(char)* comment) { addComment(comment); }
-
+    final void addComment(const(char)* c)
+    {
+        .addComment(this, c);
+    }
     extern (D) __gshared const(char)*[void*] commentHashTable;
 
 
@@ -1076,7 +1116,7 @@ public:
     {
         //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
         ScopeDsymbol sds = s ? cast(ScopeDsymbol)s : new ScopeDsymbol(ident);
-        sds.comment = comment;
+        sds.addComment(comment);
         sds.members = arraySyntaxCopy(members);
         sds.endlinnum = endlinnum;
         return sds;
@@ -1173,7 +1213,7 @@ public:
         }
         if (loc.isValid())
         {
-            .error(loc, "`%s` matches conflicting symbols:", s1.ident.toChars());
+            .error(loc, "`%s` matches conflicting symbols:", s1.ident.toErrMsg());
             errorSupplemental(s1.loc, "%s `%s`", s1.kind(), s1.toPrettyChars());
             errorSupplemental(s2.loc, "%s `%s`", s2.kind(), s2.toPrettyChars());
 
@@ -1246,9 +1286,11 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
 {
     WithStatement withstate;
 
-    extern (D) this(WithStatement withstate) nothrow @safe
+    extern (D) this(WithStatement withstate, ScopeDsymbol parent) nothrow @safe
     {
         this.withstate = withstate;
+        this.endlinnum = withstate.endloc.linnum;
+        this.parent = parent;
         this.dsym = DSYM.withScopeSymbol;
     }
 

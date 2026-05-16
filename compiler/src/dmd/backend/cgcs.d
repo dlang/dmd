@@ -7,7 +7,7 @@
  * Compute common subexpressions for non-optimized builds.
  *
  * Copyright:   Copyright (C) 1985-1995 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcs.d
@@ -20,6 +20,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 
 import dmd.backend.cc;
+import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.el;
@@ -42,11 +43,11 @@ nothrow:
  */
 
 @trusted
-public void comsubs(ref GlobalOptimizer go)
+public void comsubs(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     debug if (debugx) printf("comsubs(%p)\n",bo.startblock);
 
-    comsubs2(bo.startblock, cgcsdata, go);
+    comsubs2(bo.startblock, cgcsdata, go, bo);
 
     debug if (debugx)
         printf("done with comsubs()\n");
@@ -74,10 +75,10 @@ alias hash_t = uint;    // for hash values
  * String together as many blocks as we can.
  */
 @trusted
-void comsubs2(block* startblock, ref CGCS cgcs, ref GlobalOptimizer go)
+void comsubs2(block* startblock, ref CGCS cgcs, ref GlobalOptimizer go, ref BlockOpt bo)
 {
     // No longer just compute Bcount - eliminate unreachable blocks too
-    block_compbcount(go);                 // eliminate unreachable blocks
+    block_compbcount(go, bo);                 // eliminate unreachable blocks
 
     cgcs.start();
 

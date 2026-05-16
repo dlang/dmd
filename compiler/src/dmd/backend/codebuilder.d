@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/codebuilder.d, backend/_codebuilder.d)
@@ -35,7 +35,7 @@ struct CodeBuilder
     code** pTail;
 
     enum BADINS = 0x1234_5678;
-    //enum BADINS = 0x00_66_0F_6E;
+    //enum BADINS = 0x00_00_00_C7;
 
   nothrow:
   public:
@@ -109,11 +109,24 @@ struct CodeBuilder
     {
         if (c)
         {
-            CodeBuilder cdb = void;
+            CodeBuilder cdb;
 assert(c.Iop != BADINS);
             cdb.ctor(c);
             append(cdb);
         }
+    }
+
+    /***
+     * Replace instruction `c` with the code sequence in `this`.
+     */
+    @trusted
+    void patch(code* c)
+    {
+        code* last = this.last();
+        last.next = c.next;
+        code* h = this.finish();
+        *c = *h;                // overwrite head of c with start of cdb
+        c.next = h.next;
     }
 
     void gen(code* cs)
@@ -399,10 +412,7 @@ assert(op != BADINS);
     @trusted
     code* last()
     {
-        // g++ and clang++ complain about offsetof() because of the code::code() constructor.
-        // return (code *)((char *)pTail - offsetof(code, next));
-        // So do our own.
-        return cast(code*)(cast(void*)pTail - (cast(void*)&(*pTail).next - cast(void*)*pTail));
+        return cast(code*)(cast(void*)pTail - code.next.offsetof);
     }
 
     /*************************************

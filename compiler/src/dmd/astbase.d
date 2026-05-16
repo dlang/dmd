@@ -1,7 +1,7 @@
 /**
  * Defines AST nodes for the parsing stage.
  *
- * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/astbase.d, _astbase.d)
  * Documentation:  https://dlang.org/phobos/dmd_astbase.html
@@ -17,7 +17,7 @@ import dmd.expression;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with
   * no semantic information. It defines all the AST nodes that the parser needs
-  * and also all the conveniance methods and variables. The resulting AST can be
+  * and also all the convenience methods and variables. The resulting AST can be
   * visited with the strict, permissive and transitive visitors.
   * The ASTBase family is used to instantiate the parser in the parser library.
   */
@@ -539,10 +539,9 @@ struct ASTBase
         uint fieldWidth;
         uint bitOffset;
 
-        final extern (D) this(Loc loc, Type type, Identifier id, Expression width)
+        final extern (D) this(Loc loc, Type type, Identifier id, Expression width, Initializer _init = null)
         {
-            super(loc, type, id, cast(Initializer)null, cast(StorageClass)STC.none);
-
+            super(loc, type, id, _init, cast(StorageClass)STC.none);
             this.width = width;
             this.storage_class |= STC.field;
         }
@@ -2321,13 +2320,15 @@ struct ASTBase
 
     extern (C++) final class WithStatement : Statement
     {
+        Parameter prm;
         Expression exp;
         Statement _body;
         Loc endloc;
 
-        extern (D) this(Loc loc, Expression exp, Statement _body, Loc endloc)
+        extern (D) this(Loc loc, Parameter prm, Expression exp, Statement _body, Loc endloc)
         {
             super(loc, STMT.With);
+            this.prm = prm;
             this.exp = exp;
             this._body = _body;
             this.endloc = endloc;
@@ -2940,73 +2941,6 @@ struct ASTBase
 
             Type t = this;
             assert(t);
-            return t;
-        }
-
-        final Type addSTC(StorageClass stc)
-        {
-            Type t = this;
-            if (t.isImmutable())
-            {
-            }
-            else if (stc & STC.immutable_)
-            {
-                t = t.makeImmutable();
-            }
-            else
-            {
-                if ((stc & STC.shared_) && !t.isShared())
-                {
-                    if (t.isWild())
-                    {
-                        if (t.isConst())
-                            t = t.makeSharedWildConst();
-                        else
-                            t = t.makeSharedWild();
-                    }
-                    else
-                    {
-                        if (t.isConst())
-                            t = t.makeSharedConst();
-                        else
-                            t = t.makeShared();
-                    }
-                }
-                if ((stc & STC.const_) && !t.isConst())
-                {
-                    if (t.isShared())
-                    {
-                        if (t.isWild())
-                            t = t.makeSharedWildConst();
-                        else
-                            t = t.makeSharedConst();
-                    }
-                    else
-                    {
-                        if (t.isWild())
-                            t = t.makeWildConst();
-                        else
-                            t = t.makeConst();
-                    }
-                }
-                if ((stc & STC.wild) && !t.isWild())
-                {
-                    if (t.isShared())
-                    {
-                        if (t.isConst())
-                            t = t.makeSharedWildConst();
-                        else
-                            t = t.makeSharedWild();
-                    }
-                    else
-                    {
-                        if (t.isConst())
-                            t = t.makeWildConst();
-                        else
-                            t = t.makeWild();
-                    }
-                }
-            }
             return t;
         }
 
@@ -3949,6 +3883,7 @@ struct ASTBase
             incomplete      = 0x0200, // return type or default arguments removed
             inoutParam      = 0x0400, // inout on the parameters
             inoutQual       = 0x0800, // inout on the qualifier
+            isCtfeOnly      = 0x1000, // is @__ctfe
         }
 
         LINK linkage;               // calling convention
@@ -3975,6 +3910,8 @@ struct ASTBase
                 this.isProperty = true;
             if (stc & STC.live)
                 this.isLive = true;
+            if (stc & STC.ctfeOnly)
+                this.isCtfeOnly = true;
 
             if (stc & STC.ref_)
                 this.isRef = true;
@@ -4009,6 +3946,7 @@ struct ASTBase
             t.isScopeInferred = isScopeInferred;
             t.isInOutParam = isInOutParam;
             t.isInOutQual = isInOutQual;
+            t.isCtfeOnly = isCtfeOnly;
             t.trust = trust;
             t.fargs = fargs;
             return t;
@@ -4157,6 +4095,19 @@ struct ASTBase
             if (v) funcFlags |= FunctionFlag.inoutQual;
             else funcFlags &= ~FunctionFlag.inoutQual;
         }
+
+        /// set or get if the function has the `@__ctfe` attribute
+        bool isCtfeOnly() const pure nothrow @safe @nogc
+        {
+            return (funcFlags & FunctionFlag.isCtfeOnly) != 0;
+        }
+        /// ditto
+        void isCtfeOnly(bool v) pure nothrow @safe @nogc
+        {
+            if (v) funcFlags |= FunctionFlag.isCtfeOnly;
+            else funcFlags &= ~FunctionFlag.isCtfeOnly;
+        }
+
         /// Returns: `true` the function is `isInOutQual` or `isInOutParam` ,`false` otherwise.
         bool iswild() const pure nothrow @safe @nogc
         {
@@ -4671,11 +4622,7 @@ struct ASTBase
             inout(IdentityExp) isIdentityExp() { return (op == EXP.identity || op == EXP.notIdentity) ? cast(typeof(return))this : null; }
             inout(CondExp)     isCondExp() { return op == EXP.question ? cast(typeof(return))this : null; }
             inout(GenericExp)  isGenericExp() { return op == EXP._Generic ? cast(typeof(return))this : null; }
-            inout(FileInitExp)       isFileInitExp() { return (op == EXP.file || op == EXP.fileFullPath) ? cast(typeof(return))this : null; }
-            inout(LineInitExp)       isLineInitExp() { return op == EXP.line ? cast(typeof(return))this : null; }
-            inout(ModuleInitExp)     isModuleInitExp() { return op == EXP.moduleString ? cast(typeof(return))this : null; }
-            inout(FuncInitExp)       isFuncInitExp() { return op == EXP.functionString ? cast(typeof(return))this : null; }
-            inout(PrettyFuncInitExp) isPrettyFuncInitExp() { return op == EXP.prettyFunction ? cast(typeof(return))this : null; }
+            inout(DefaultInitExp)    isDefaultInitExp() { return op == EXP.defaultInit ? cast(typeof(return))this : null; }
             inout(AssignExp)         isConstructExp() { return op == EXP.construct ? cast(typeof(return))this : null; }
             inout(AssignExp)         isBlitExp()      { return op == EXP.blit ? cast(typeof(return))this : null; }
 
@@ -5205,9 +5152,12 @@ struct ASTBase
 
     extern (C++) class DefaultInitExp : Expression
     {
-        final extern (D) this(Loc loc, EXP op, int size)
+        TOK tok; /// which special token this is
+
+        final extern (D) this(Loc loc, TOK tok)
         {
-            super(loc, op, size);
+            super(loc, EXP.defaultInit, __traits(classInstanceSize, DefaultInitExp));
+            this.tok = tok;
         }
 
         override void accept(Visitor v)
@@ -5747,74 +5697,11 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class FuncInitExp : DefaultInitExp
-    {
-        extern (D) this(Loc loc)
-        {
-            super(loc, EXP.functionString, __traits(classInstanceSize, FuncInitExp));
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class PrettyFuncInitExp : DefaultInitExp
-    {
-        extern (D) this(Loc loc)
-        {
-            super(loc, EXP.prettyFunction, __traits(classInstanceSize, PrettyFuncInitExp));
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class FileInitExp : DefaultInitExp
-    {
-        extern (D) this(Loc loc, EXP tok)
-        {
-            super(loc, tok, __traits(classInstanceSize, FileInitExp));
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class LineInitExp : DefaultInitExp
-    {
-        extern (D) this(Loc loc)
-        {
-            super(loc, EXP.line, __traits(classInstanceSize, LineInitExp));
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class ModuleInitExp : DefaultInitExp
-    {
-        extern (D) this(Loc loc)
-        {
-            super(loc, EXP.moduleString, __traits(classInstanceSize, ModuleInitExp));
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
 
     extern (C++) final class CommaExp : BinExp
     {
         const bool isGenerated;
+        bool isInlineSequence;
         bool allowCommaExp;
 
         extern (D) this(Loc loc, Expression e1, Expression e2, bool generated = true)
@@ -6343,7 +6230,7 @@ struct ASTBase
 
     extern (C++) final class ErrorExp : Expression
     {
-        private extern (D) this()
+        extern (D) this()
         {
             super(Loc.initial, EXP.error, __traits(classInstanceSize, ErrorExp));
             type = Type.terror;
@@ -6926,6 +6813,7 @@ struct ASTBase
             SCstring(STC.disable, "@disable"),
             SCstring(STC.future, "@__future"),
             SCstring(STC.local, "__local"),
+            SCstring(STC.ctfeOnly, "@__ctfe"),
         ];
         foreach (ref entry; table)
         {
@@ -6966,6 +6854,73 @@ struct ASTBase
     {
         extern (C++) __gshared int ptrsize;
         extern (C++) __gshared bool isLP64;
+    }
+
+    static Type addSTC(Type _this, StorageClass stc)
+    {
+        Type t = _this;
+        if (t.isImmutable())
+        {
+        }
+        else if (stc & STC.immutable_)
+        {
+            t = t.makeImmutable();
+        }
+        else
+        {
+            if ((stc & STC.shared_) && !t.isShared())
+            {
+                if (t.isWild())
+                {
+                    if (t.isConst())
+                        t = t.makeSharedWildConst();
+                    else
+                        t = t.makeSharedWild();
+                }
+                else
+                {
+                    if (t.isConst())
+                        t = t.makeSharedConst();
+                    else
+                        t = t.makeShared();
+                }
+            }
+            if ((stc & STC.const_) && !t.isConst())
+            {
+                if (t.isShared())
+                {
+                    if (t.isWild())
+                        t = t.makeSharedWildConst();
+                    else
+                        t = t.makeSharedConst();
+                }
+                else
+                {
+                    if (t.isWild())
+                        t = t.makeWildConst();
+                    else
+                        t = t.makeConst();
+                }
+            }
+            if ((stc & STC.wild) && !t.isWild())
+            {
+                if (t.isShared())
+                {
+                    if (t.isConst())
+                        t = t.makeSharedWildConst();
+                    else
+                        t = t.makeSharedWild();
+                }
+                else
+                {
+                    if (t.isConst())
+                        t = t.makeWildConst();
+                    else
+                        t = t.makeWild();
+                }
+            }
+        }
+        return t;
     }
 }
 

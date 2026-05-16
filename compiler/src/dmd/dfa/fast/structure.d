@@ -1,7 +1,7 @@
 /**
  * Structure and representation of the fast Data Flow Analysis engine.
  *
- * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:   $(LINK2 https://cattermole.co.nz, Richard (Rikki) Andrew Cattermole)
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dfa/fast/structure.d, dfa/fast/structure.d)
@@ -15,12 +15,14 @@ import dmd.declaration;
 import dmd.statement;
 import dmd.func;
 import dmd.mtype;
+import dmd.typesem;
 import dmd.identifier;
-import dmd.globals;
+import dmd.globals : dinteger_t;
 import dmd.dsymbol;
 import dmd.location;
 import dmd.expression;
 import dmd.astenums;
+import dmd.id;
 import core.stdc.stdio;
 
 package static immutable PrintPipeText = "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||";
@@ -40,6 +42,16 @@ enum DFACleanup = __VERSION__ >= 2102;
 
 //version = DebugJoinMeetOp;
 
+/***********************************************************
+ * The central context for a DFA run.
+ *
+ * This structure manages the memory allocator, holds references to global
+ * variables (like return values), and tracks the current scope being analyzed.
+ *
+ * Performance Note:
+ * It uses a custom `DFAAllocator` (bump-pointer allocator) to avoid the overhead
+ * of the GC or standard `malloc` for the thousands of tiny nodes created during analysis.
+ */
 struct DFACommon
 {
     DFAAllocator allocator;
@@ -62,7 +74,9 @@ struct DFACommon
     private
     {
         DFAVar*[16] vars;
-        DFAVar*[16] varPairs;
+        DFAVar*[16] varPairs; // do not change, 16 is hardcoded in usage
+        DFAObject*[16] objects;
+        DFAObject*[16] objectPairs;
         DFAVar* returnVar;
         DFAVar* infiniteLifetimeVar;
         DFAVar* unknownVar;
@@ -207,6 +221,8 @@ struct DFACommon
         if (vd is null)
             return null;
 
+        DFAVar* ret;
+
         if (childOf is null)
         {
             DFAVar** bucket = &vars[(cast(size_t) cast(void*) vd) % vars.length];
@@ -219,13 +235,22 @@ struct DFACommon
             if (*bucket !is null && (*bucket).var is vd)
                 return *bucket;
 
-            DFAVar* ret = allocator.makeVar(vd);
+            ret = allocator.makeVar(vd);
             ret.next = *bucket;
             *bucket = ret;
-            return ret;
         }
         else
-            return allocator.makeVar(vd, childOf);
+            ret = allocator.makeVar(vd, childOf);
+
+        if (vd.ident is Id.dollar)
+        {
+            // __dollar creates problems because it isn't a real variable
+            // https://issues.dlang.org/show_bug.cgi?id=3326
+
+            ret.unmodellable = true;
+        }
+
+        return ret;
     }
 
     DFAVar* findVariablePair(DFAVar* a, DFAVar* b)
@@ -305,6 +330,21 @@ struct DFACommon
         return childOf.indexVar;
     }
 
+    DFAVar* findAsSliceVar(DFAVar* childOf)
+    {
+        if (childOf is null)
+            return null;
+
+        if (childOf.asSliceVar is null)
+        {
+            childOf.asSliceVar = allocator.makeVar(null);
+            childOf.asSliceVar.base1 = childOf;
+            childOf.asSliceVar.haveInfiniteLifetime = childOf.haveInfiniteLifetime;
+        }
+
+        return childOf.asSliceVar;
+    }
+
     DFAVar* findSliceLengthVar(DFAVar* childOf)
     {
         if (childOf is null)
@@ -364,7 +404,23 @@ struct DFACommon
         {
             if (auto de = e.isDeclarationExp)
             {
-                return de.declaration.isVarDeclaration !is null;
+                if (auto ad = de.declaration.isAttribDeclaration)
+                {
+                    // ImportC wraps their declarations
+
+                    if (ad.decl !is null)
+                    {
+                        foreach (symbol; *ad.decl)
+                        {
+                            if (symbol.isVarDeclaration !is null)
+                                return true;
+                        }
+                    }
+
+                    return false;
+                }
+                else
+                    return de.declaration.isVarDeclaration !is null;
             }
             else if (auto be = e.isBinExp)
                 return walkExpression(be.e1) || walkExpression(be.e2);
@@ -558,6 +614,8 @@ struct DFACommon
         {
             this.infiniteLifetimeVar = allocator.makeVar(null);
             this.infiniteLifetimeVar.haveInfiniteLifetime = true;
+            this.infiniteLifetimeVar.isTruthy = true;
+            this.infiniteLifetimeVar.isNullable = true;
         }
 
         return this.infiniteLifetimeVar;
@@ -565,7 +623,7 @@ struct DFACommon
 
     DFAVar* getUnknownVar()
     {
-        if (this.infiniteLifetimeVar is null)
+        if (this.unknownVar is null)
         {
             this.unknownVar = allocator.makeVar(null);
             this.unknownVar.unmodellable = true;
@@ -584,6 +642,34 @@ struct DFACommon
         }
 
         return current;
+    }
+
+    DFAObject* makeObject(DFAVar* storageForVar)
+    {
+        if (storageForVar is null)
+            return null;
+        else if (storageForVar.storageFor !is null)
+            return storageForVar.storageFor;
+
+        DFAObject* ret = allocator.makeObject;
+        ret.storageFor = storageForVar;
+
+        storageForVar.storageFor = ret;
+        return ret;
+    }
+
+    DFAObject* makeObject(DFAObject* base1 = null, DFAObject* base2 = null)
+    {
+        if (base2 !is null && base1 is null)
+        {
+            base1 = base2;
+            base2 = null;
+        }
+
+        DFAObject* ret = allocator.makeObject;
+        ret.base1 = base1;
+        ret.base2 = base2;
+        return ret;
     }
 
     DFALatticeRef makeLatticeRef()
@@ -619,6 +705,19 @@ struct DFACommon
 
         scv.lr.check;
         return scv;
+    }
+
+    bool haveForwardLabelState(Identifier ident)
+    {
+        DFALabelState** bucket = &this.forwardLabels[(
+                    cast(size_t) cast(void*) ident) % this.forwardLabels.length];
+
+        while (*bucket !is null && cast(void*)(*bucket).ident < cast(void*) ident)
+        {
+            bucket = &(*bucket).next;
+        }
+
+        return *bucket !is null && (*bucket).ident is ident;
     }
 
     void swapForwardLabelScope(Identifier ident, scope DFAScopeRef delegate(DFAScopeRef) del)
@@ -747,13 +846,15 @@ struct DFACommon
         }
         else
         {
-            while (current.parent !is null && current.label !is ident)
+            while (current.parent !is null && (current.label is null || current
+                    .label.ident !is ident))
             {
                 current = current.parent;
             }
         }
 
-        return (current !is null && (current.label is ident || current.controlStatement !is null)) ? current
+        return (current !is null && ((current.label !is null
+                && current.label.ident is ident) || current.controlStatement !is null)) ? current
             : null;
     }
 
@@ -831,6 +932,11 @@ struct DFACommon
 
 struct DFAAllocator
 {
+    package(dmd.dfa)
+    {
+        DFACommon* dfaCommon;
+    }
+
     private
     {
         static struct Region
@@ -851,11 +957,14 @@ struct DFAAllocator
         //enum RegionAllocationStep = 1_048_576;
 
         DFAVar* allocatedlistvar, allocatedlistlastvar;
+        DFAObject* allocatedlistobject;
+
         // We use free lists to reuse memory, during our operation.
         DFALabelState* freelistlabel;
         DFACaseState* freelistcase;
         DFAVar* freelistvar;
         DFAScopeVar* freelistscopevar;
+        DFAObject* freelistobject;
         DFAScope* freelistscope;
         DFALattice* freelistlattice;
         DFAConsequence* freelistconsequence;
@@ -932,7 +1041,7 @@ struct DFAAllocator
         {
             bucket = &childOf.childVars[(cast(size_t) cast(void*) vd) % childOf.childVars.length];
 
-            while (*bucket !is null && cast(void*)(*bucket).next < cast(void*) vd)
+            while (*bucket !is null && cast(void*)(*bucket).var < cast(void*) vd)
             {
                 bucket = &(*bucket).next;
             }
@@ -952,6 +1061,8 @@ struct DFAAllocator
         if (childOf !is null)
         {
             ret.haveInfiniteLifetime = childOf.haveInfiniteLifetime;
+            ret.offsetFromBase = vd.offset;
+
             ret.next = *bucket;
             *bucket = ret;
         }
@@ -985,6 +1096,15 @@ struct DFAAllocator
         return ret;
     }
 
+    DFAObject* makeObject()
+    {
+        DFAObject* ret = allocInternal!DFAObject(freelistobject);
+
+        ret.listnext = this.allocatedlistobject;
+        this.allocatedlistobject = ret;
+        return ret;
+    }
+
     DFALattice* makeLattice(DFACommon* dfaCommon)
     {
         DFALattice* ret = allocInternal!DFALattice(freelistlattice);
@@ -995,18 +1115,23 @@ struct DFAAllocator
     DFAConsequence* makeConsequence(DFAVar* var, DFAConsequence* copyFrom = null)
     {
         DFAConsequence* ret = allocInternal!DFAConsequence(freelistconsequence);
+        ret.dfaCommon = dfaCommon;
+        ret.var = var;
 
-        if (copyFrom is null)
+        if (copyFrom !is null)
         {
-            ret.var = var;
-        }
-        else
-        {
-            *ret = *copyFrom;
-            ret.previous = null;
-            ret.next = null;
+            ret.copyFrom(copyFrom);
+
+            if (var !is null)
+            {
+                if (!var.isTruthy)
+                    ret.truthiness = Truthiness.Unknown;
+                if (!var.isNullable)
+                    ret.nullable = Nullable.Unknown;
+            }
         }
 
+        ret.var = var;
         return ret;
     }
 
@@ -1038,7 +1163,7 @@ struct DFAAllocator
 
     void free(DFAScope* s)
     {
-        version (all)
+        static if (DFACommon.debugVerify)
         {
             DFAScope* current = s.dfaCommon.currentDFAScope;
 
@@ -1095,6 +1220,28 @@ struct DFAAllocator
         freelistconsequence = c;
     }
 
+    void allObjects(scope void delegate(DFAObject* obj) del)
+    {
+        DFAObject* current = allocatedlistobject;
+
+        while (current !is null)
+        {
+            del(current);
+            current = current.listnext;
+        }
+    }
+
+    void allVariables(scope void delegate(DFAVar* obj) del)
+    {
+        DFAVar* current = allocatedlistvar;
+
+        while (current !is null)
+        {
+            del(current);
+            current = current.listnext;
+        }
+    }
+
 private:
     T* allocInternal(T)(ref T* freelist)
     {
@@ -1128,6 +1275,7 @@ private:
                 }
                 else
                 {
+                    // Acquire the next block of memory to allocate from
                     Region* got = cast(Region*) Mem.xmalloc(RegionAllocationStep);
                     assert(got !is null);
 
@@ -1149,8 +1297,10 @@ private:
         }
 
         // Initialize it to the right type
-        T valInit;
-        memcpy(ret, &valInit, T.sizeof);
+        // Note: D has changed its behavior surrounding getting the init value over many years.
+        // A variable like this, is guaranteed good for all of them.
+        __gshared immutable(T) valInit;
+        memcpy(ret, cast(void*)&valInit, T.sizeof);
 
         assert(ret !is null);
         return ret;
@@ -1182,6 +1332,17 @@ struct DFACaseState
     DFAScopeRef jumpedTo; // When its jumped to this case, this is the meet'd state
 }
 
+/***********************************************************
+ * Represents the identity of a variable being tracked.
+ *
+ * This does NOT store the current value of the variable (that changes depending on
+ * where you are in the code). Instead, it stores immutable properties like:
+ * - Is it a boolean? (`isBoolean`)
+ * - Can it be null? (`isNullable`)
+ * - Is it a reference to another variable? (`base1`, `indexVar`)
+ *
+ * Think of this as the "Key" in a map, where the "Value" is the DFALattice.
+ */
 struct DFAVar
 {
     private
@@ -1190,12 +1351,14 @@ struct DFAVar
         DFAVar* next;
         DFAVar*[16] childVars;
         DFAVar* childOffsetVars;
-        DFAVar* indexVar;
-        DFAVar* lengthVar;
     }
 
     DFAVar* base1;
     DFAVar* base2;
+
+    DFAVar* indexVar;
+    DFAVar* lengthVar;
+    DFAVar* asSliceVar;
 
     VarDeclaration var;
     dinteger_t offsetFromBase; // -1 if its not an offset
@@ -1208,9 +1371,11 @@ struct DFAVar
 
     bool isBoolean;
     bool isStaticArray;
+    bool isFloatingPoint;
     bool isByRef;
 
     bool haveInfiniteLifetime;
+    bool wasDefaultInitialized; // may not be accurate for all variables
 
     int declaredAtDepth;
     int writeCount;
@@ -1218,9 +1383,12 @@ struct DFAVar
     DFAVar* dereferenceVar; // child var
 
     bool unmodellable; // DO NOT REPORT!!!!
+    bool doNotInferNonNull; // i.e. was the rhs of >
     int assertedCount;
 
     ParameterDFAInfo* param;
+
+    DFAObject* storageFor;
 
     bool haveBase()
     {
@@ -1314,7 +1482,7 @@ struct DFAVar
         {
             while (var.base2 is null && var.base1 !is null)
             {
-                if (var.offsetFromBase != -1 && var.var is null)
+                if (var.offsetFromBase != -1)
                     refed++;
                 else if (var.base1.dereferenceVar is var)
                     refed++;
@@ -1339,7 +1507,8 @@ struct DFAVar
     }
 
     /// If this variable is a reference to another, takes into account dereferencing.
-    void visitReferenceToAnotherVar(scope void delegate(DFAVar* var) del)
+    void visitReferenceToAnotherVar(scope void delegate(DFAVar* var) hasIndirection,
+            scope void delegate(DFAVar* var) noIndirection = null)
     {
         void handle(DFAVar* var, int refed)
         {
@@ -1363,7 +1532,51 @@ struct DFAVar
                 handle(var.base2, refed);
             }
             else if (refed > 0)
-                del(var);
+            {
+                if (hasIndirection !is null)
+                    hasIndirection(var);
+            }
+            else if (noIndirection !is null)
+                noIndirection(var);
+        }
+
+        handle(&this, 0);
+    }
+
+    /// If this variable is a reference to another, takes into account dereferencing.
+    void visitIfReadOfReferenceToAnotherVar(scope void delegate(DFAVar* var) resolvedIndirection)
+    {
+        void handle(DFAVar* var, int refed)
+        {
+            if (!(var.base1 !is null || var.base2 !is null || refed != 0))
+                return;
+
+            while (var.base2 is null && var.base1 !is null)
+            {
+                if (var.offsetFromBase != -1 && var.var is null)
+                    refed++;
+                else if (var.base1.dereferenceVar is var)
+                    refed--;
+                else if (var.base1.indexVar is var)
+                    refed++;
+                else if (var.base1.lengthVar is var && var.base1.isStaticArray
+                        && !var.base1.haveBase)
+                    return; // Statically known length, base doesn't matter as it won't be read
+                else if (var.base1.asSliceVar is var && !var.base1.haveBase && refed == 0)
+                    return; // base1[] is a slice this does not inherently make it a read
+                else
+                    break;
+
+                var = var.base1;
+            }
+
+            if (var.base2 !is null)
+            {
+                handle(var.base1, refed);
+                handle(var.base2, refed);
+            }
+            else if (refed < 0)
+                resolvedIndirection(var);
         }
 
         handle(&this, 0);
@@ -1429,6 +1642,37 @@ struct DFAScopeVarMergable
             this.nullAssignWriteCount = other.nullAssignWriteCount;
         if (other.nullAssignAssertedCount > this.nullAssignAssertedCount)
             this.nullAssignAssertedCount = other.nullAssignAssertedCount;
+    }
+}
+
+struct DFAObject
+{
+    private
+    {
+        DFAObject* listnext;
+    }
+
+    DFAVar* storageFor;
+
+    DFAObject* base1;
+    DFAObject* base2;
+
+    // Pointer arithmetic may mean this object isn't 1:1 with the object start.
+    bool mayNotBeExactPointer;
+
+    void walkRoots(scope void delegate(DFAObject* root) del)
+    {
+        DFAObject* obj = &this;
+
+        while (obj.base1 !is null)
+        {
+            if (obj.base2 !is null)
+                obj.base2.walkRoots(del);
+
+            obj = obj.base1;
+        }
+
+        del(obj);
     }
 }
 
@@ -1550,6 +1794,15 @@ struct DFAScopeRef
         this.sc.printState(prefix, sdepth, currentFunction, depth);
     }
 
+    void printActual(const(char)* prefix = "", int sdepth = 0,
+            FuncDeclaration currentFunction = null, int depth = 0)
+    {
+        if (this.isNull)
+            return;
+
+        this.sc.printActual(prefix, sdepth, currentFunction, depth);
+    }
+
     int opApply(scope int delegate(DFALattice*) dg)
     {
         if (this.sc is null)
@@ -1589,6 +1842,16 @@ struct DFAScopeRef
     }
 }
 
+/***********************************************************
+ * Represents a specific region of code execution (a scope).
+ *
+ * As the DFA walks through the code, it pushes and pops scopes.
+ * Each scope holds a table (`buckets`) of the current state of variables
+ * within that block.
+ *
+ * When the analysis branches (e.g., inside an `if`), a new child scope is
+ * created to track the state changes specific to that branch.
+ */
 struct DFAScope
 {
     private
@@ -1611,7 +1874,7 @@ struct DFAScope
     bool sideEffectFree; // No side effects should be stored in this scope use a parent instead.
 
     Statement controlStatement; // needed to apply on iteration for continue, loops switch statements ext.
-    Identifier label;
+    LabelStatement label;
 
     CompoundStatement compoundStatement;
     size_t inProgressCompoundStatement;
@@ -1649,8 +1912,13 @@ struct DFAScope
 
         DFAScopeVar** bucket = &this.buckets[cast(size_t) contextVar % this.buckets.length];
 
-        while (*bucket !is null && (*bucket).var < contextVar)
+        DFAVar* lastVar;
+
+        while (*bucket !is null && (*bucket).var < contextVar && lastVar < (*bucket).var)
+        {
+            lastVar = (*bucket).var;
             bucket = &(*bucket).next;
+        }
 
         if (*bucket is null || (*bucket).var !is contextVar)
             return null;
@@ -1757,7 +2025,7 @@ struct DFAScope
             printActual(prefix, sdepth, currentFunction, depth);
     }
 
-    private void printActual(const(char)* prefix = "", int sdepth = 0,
+    void printActual(const(char)* prefix = "", int sdepth = 0,
             FuncDeclaration currentFunction = null, int depth = 0)
     {
         printPrefix("%s Scope", sdepth, currentFunction, depth, prefix);
@@ -1765,7 +2033,7 @@ struct DFAScope
                 this.haveReturned, this.haveJumped);
 
         if (this.label !is null)
-            printf(", label=`%s`\n", this.label.toChars);
+            printf(", label=`%s`\n", this.label.ident.toChars);
         else
             printf("\n");
 
@@ -1840,25 +2108,18 @@ struct DFAScope
     {
         static if (DFACommon.debugVerify)
         {
-            foreach (contextVar1, l1; this)
+            foreach (scv; this.buckets)
             {
-                assert(l1 !is null);
-
-                DFALatticeRef lr1;
-                lr1.lattice = l1;
-
-                size_t count;
-
-                foreach (contextVar2, l2; this)
+                while (scv !is null)
                 {
-                    if (contextVar1 is contextVar2)
-                        count++;
+                    assert(scv.lr.lattice !is null);
+
+                    if (scv.next !is null)
+                        assert(scv.next.var > scv.var);
+
+                    scv.lr.check;
+                    scv = scv.next;
                 }
-
-                assert(count == 1);
-                lr1.check;
-
-                lr1.lattice = null;
             }
         }
     }
@@ -2027,7 +2288,7 @@ struct DFALatticeRef
 
     DFAConsequence* getContext(out DFAVar* var)
     {
-        if (this.isNull)
+        if (this.isNull || this.lattice.context is null)
             return null;
 
         var = this.lattice.context.var;
@@ -2096,7 +2357,8 @@ struct DFALatticeRef
         return this.lattice.acquireConstantAsContext;
     }
 
-    DFAConsequence* acquireConstantAsContext(Truthiness truthiness, Nullable nullable)
+    DFAConsequence* acquireConstantAsContext(Truthiness truthiness,
+            Nullable nullable, DFAObject* obj)
     {
         assert(!isNull);
 
@@ -2105,6 +2367,7 @@ struct DFALatticeRef
 
         ret.truthiness = truthiness;
         ret.nullable = nullable;
+        ret.obj = obj;
         return ret;
     }
 
@@ -2176,6 +2439,13 @@ struct DFALatticeRef
     }
 }
 
+/***********************************************************
+ * The collection of values and facts known about a variable.
+ *
+ * A DFALattice contains one or more `DFAConsequence` nodes.
+ * Each `DFAConsequence` represents the state of a variable at the current
+ * point in time.
+ */
 struct DFALattice
 {
     private
@@ -2209,7 +2479,13 @@ struct DFALattice
 
         if (var is null)
         {
-            ret = dfaCommon.allocator.makeConsequence(var, copyFrom);
+            if (this.constant is null)
+            {
+                ret = dfaCommon.allocator.makeConsequence(var, copyFrom);
+            }
+            else
+                ret = this.constant;
+
             this.constant = ret;
         }
         else
@@ -2228,13 +2504,7 @@ struct DFALattice
             ret.next = this.lastInSequence;
             this.lastInSequence = ret;
 
-            if (copyFrom !is null)
-            {
-                ret.invertedOnce = copyFrom.invertedOnce;
-                ret.protectElseNegate = copyFrom.protectElseNegate;
-                ret.writeOnVarAtThisPoint = copyFrom.writeOnVarAtThisPoint;
-            }
-            else
+            if (copyFrom is null)
             {
                 ret.writeOnVarAtThisPoint = var.writeCount;
             }
@@ -2506,10 +2776,937 @@ enum Nullable : ubyte
     NonNull
 }
 
+enum PAMathOp : ubyte
+{
+    add,
+    sub,
+    mul,
+    div,
+    mod,
+    and,
+    or,
+    xor,
+    pow,
+    leftShift,
+    rightShiftSigned,
+    rightShiftUnsigned,
+
+    postInc,
+    postDec
+}
+
+// Point analysis, tracking of integral values such as a slice length or an integer typed variable/constant.
+// Note that the math op functions here may not be correct.
+// They'll just have to be fixed once a test case appears.
+struct DFAPAValue
+{
+    enum Unknown = DFAPAValue(DFAPAValue.Kind.Unknown);
+
+    Kind kind;
+
+    // We use long to represent the VRP value, however this cuts off long.max .. ulong.max, represent this with UnknownUpperPositive.
+    // By doing long we can ignore signedness and lower negative long.min .. int.min, making things simpler.
+    long value;
+
+    enum Kind : ubyte
+    {
+        Unknown,
+        UnknownUpperPositive,
+        Lower, // VRP lower inclusive
+        Upper, // VRP upper inclusive
+        Concrete
+    }
+
+    this(Kind kind)
+    {
+        this.kind = kind;
+    }
+
+    this(long value)
+    {
+        this.kind = Kind.Concrete;
+        this.value = value;
+    }
+
+    int opCmp(const ref DFAPAValue other) const
+    {
+        if (this.kind != other.kind)
+        {
+            const difference = cast(int) this.kind - cast(int) other.kind;
+            return difference < 0 ? -1 : 1;
+        }
+        else if (this.kind == Kind.Concrete && other.kind == Kind.Concrete)
+            return this.value < other.value ? -1 : (this.value == other.value ? 0 : 1);
+        else
+            return 0;
+    }
+
+    DFAPAValue meet(DFAPAValue other)
+    {
+        if (this.kind != other.kind || this.kind != Kind.Concrete || this.value != other.value)
+            return Unknown;
+        else
+            return this;
+    }
+
+    DFAPAValue join(DFAPAValue other)
+    {
+        if (this > other)
+            return this;
+        else
+            return other;
+    }
+
+    bool canFitIn(Type type)
+    {
+        if (this.kind < Kind.Lower)
+            return false;
+
+        switch (type.ty)
+        {
+        case TY.Tint8:
+            return byte.min <= this.value && this.value <= byte.max;
+
+        case TY.Tuns8:
+            return 0 <= this.value && this.value <= ubyte.max;
+
+        case TY.Tint16:
+            return short.min <= this.value && this.value <= short.max;
+
+        case TY.Tuns16:
+            return 0 <= this.value && this.value <= ushort.max;
+
+        case TY.Tint32:
+            return int.min <= this.value && this.value <= int.max;
+
+        case TY.Tuns32:
+            return 0 <= this.value && this.value <= uint.max;
+
+        case TY.Tuns64:
+        case TY.Tuns128:
+            return 0 <= this.value;
+
+        case TY.Tint64:
+        case TY.Tint128:
+            return true;
+
+        default:
+            return false;
+        }
+    }
+
+    Truthiness compareEqual(ref DFAPAValue other)
+    {
+        if (this.kind == DFAPAValue.Kind.Unknown || other.kind == DFAPAValue.Kind.Unknown)
+            return Truthiness.Unknown;
+
+        const lhsConcrete = this.kind == DFAPAValue.Kind.Concrete;
+        const rhsConcrete = other.kind == DFAPAValue.Kind.Concrete;
+
+        if (lhsConcrete && rhsConcrete)
+            return this.value == other.value ? Truthiness.True : Truthiness.False;
+        else if ((lhsConcrete || rhsConcrete) && (this.kind == DFAPAValue.Kind.UnknownUpperPositive
+                || other.kind == DFAPAValue.Kind.UnknownUpperPositive))
+            return Truthiness.False;
+
+        return Truthiness.Maybe;
+    }
+
+    Truthiness compareNotEqual(ref DFAPAValue other)
+    {
+        if (this.kind == DFAPAValue.Kind.Unknown || other.kind == DFAPAValue.Kind.Unknown)
+            return Truthiness.Unknown;
+        else if (this.kind < DFAPAValue.Kind.Concrete || other.kind < DFAPAValue.Kind.Concrete)
+            return Truthiness.Maybe; // we can't know the value at this time of development but it could be equal
+
+        if (this.kind == DFAPAValue.Kind.Concrete && other.kind == DFAPAValue.Kind.Concrete)
+            return (this.value == other.value) ? Truthiness.False : Truthiness.True;
+
+        return Truthiness.Maybe;
+    }
+
+    Truthiness greaterThan(ref DFAPAValue other)
+    {
+        Truthiness ret = Truthiness.Maybe;
+
+        if (this.kind == DFAPAValue.Kind.Concrete && other.kind == DFAPAValue.Kind.Concrete)
+            ret = this.value > other.value ? Truthiness.True : Truthiness.False;
+        else if (this.kind == DFAPAValue.Kind.Concrete
+                && other.kind == DFAPAValue.Kind.UnknownUpperPositive)
+            ret = Truthiness.False;
+
+        if (ret == Truthiness.False)
+        {
+            this = Unknown;
+            other = Unknown;
+        }
+        else
+        {
+            DFAPAValue temp = other;
+
+            if (temp.kind == DFAPAValue.Kind.Concrete)
+            {
+                if (temp.value < long.max)
+                    temp.value++;
+                else
+                    temp.kind = DFAPAValue.Kind.UnknownUpperPositive;
+            }
+
+            other = other.meet(this);
+            this = this.join(temp);
+
+            if (other.kind > Kind.Lower)
+                other.kind = Kind.Upper;
+            if (this.kind >= Kind.Lower)
+                this.kind = Kind.Lower;
+        }
+
+        return ret;
+    }
+
+    Truthiness greaterThanOrEqual(ref DFAPAValue other)
+    {
+        Truthiness ret = Truthiness.Maybe;
+
+        if (this.kind == DFAPAValue.Kind.Concrete && other.kind == DFAPAValue.Kind.Concrete)
+            ret = this.value >= other.value ? Truthiness.True : Truthiness.False;
+        else if (this.kind == DFAPAValue.Kind.Concrete
+                && other.kind == DFAPAValue.Kind.UnknownUpperPositive)
+            ret = Truthiness.False;
+
+        if (ret == Truthiness.False)
+        {
+            this = Unknown;
+            other = Unknown;
+        }
+        else
+        {
+            other = other.meet(this);
+            this = this.join(other);
+
+            if (other.kind > Kind.Lower)
+                other.kind = Kind.Upper;
+            if (this.kind >= Kind.Lower)
+                this.kind = Kind.Lower;
+        }
+
+        return ret;
+    }
+
+    void negate(Type type)
+    {
+        if (this.kind != Kind.Concrete || type is null)
+        {
+            this.kind = Kind.Unknown;
+            return;
+        }
+
+        switch (type.ty)
+        {
+        case TY.Tint8:
+            this.value = -cast(int)(cast(byte) this.value);
+            break;
+        case TY.Tint16:
+            this.value = -cast(int)(cast(short) this.value);
+            break;
+        case TY.Tint32:
+            this.value = -cast(int) this.value;
+            break;
+        case TY.Tint64:
+        case TY.Tint128:
+            this.value = -this.value;
+            break;
+
+        case TY.Tuns8:
+            this.value = -cast(int)(cast(ubyte) this.value);
+            break;
+        case TY.Tuns16:
+            this.value = -cast(int)(cast(ushort) this.value);
+            break;
+        case TY.Tuns32:
+            this.value = -cast(uint) this.value;
+            break;
+        case TY.Tuns64:
+        case TY.Tuns128:
+            this.value = -this.value;
+            break;
+
+        default:
+            this.kind = Kind.Unknown;
+            break;
+        }
+    }
+
+    void addFrom(DFAPAValue other, Type type)
+    {
+        if (this.kind != Kind.Concrete || other.kind != Kind.Concrete)
+        {
+            this.kind = Kind.Unknown;
+            return;
+        }
+
+        if (type.isUnsigned)
+        {
+            if (this.value > 0 && other.value > 0 && this.value > (long.max - other.value))
+            {
+                // long.max .. ulong.max
+                this.kind = Kind.UnknownUpperPositive;
+                return;
+            }
+        }
+
+        switch (type.ty)
+        {
+        case TY.Tint8:
+            this.value = cast(byte) this.value + cast(byte) other.value;
+            break;
+        case TY.Tint16:
+            this.value = cast(short) this.value + cast(short) other.value;
+            break;
+        case TY.Tint32:
+            this.value = cast(int) this.value + cast(int) other.value;
+            break;
+        case TY.Tint64:
+        case TY.Tint128:
+            this.value = this.value + other.value;
+            break;
+
+        case TY.Tuns8:
+            this.value = cast(ubyte) this.value + cast(ubyte) other.value;
+            break;
+        case TY.Tuns16:
+            this.value = cast(ushort) this.value + cast(ushort) other.value;
+            break;
+        case TY.Tuns32:
+            this.value = cast(uint) this.value + cast(uint) other.value;
+            break;
+        case TY.Tuns64:
+        case TY.Tuns128:
+            this.value = this.value + other.value;
+            break;
+
+        default:
+            this.kind = Kind.Unknown;
+            break;
+        }
+    }
+
+    void subtractFrom(DFAPAValue other, Type type)
+    {
+        if (this.kind != Kind.Concrete || other.kind != Kind.Concrete)
+        {
+            this.kind = Kind.Unknown;
+            return;
+        }
+
+        if (type.isUnsigned)
+        {
+            if (other.value > this.value)
+            {
+                this.kind = Kind.Unknown;
+                return;
+            }
+        }
+
+        switch (type.ty)
+        {
+        case TY.Tint8:
+            this.value = cast(byte) this.value - cast(byte) other.value;
+            break;
+        case TY.Tint16:
+            this.value = cast(short) this.value - cast(short) other.value;
+            break;
+        case TY.Tint32:
+            this.value = cast(int) this.value - cast(int) other.value;
+            break;
+        case TY.Tint64:
+        case TY.Tint128:
+            this.value = this.value - other.value;
+            break;
+
+        case TY.Tuns8:
+            this.value = cast(ubyte) this.value - cast(ubyte) other.value;
+            break;
+        case TY.Tuns16:
+            this.value = cast(ushort) this.value - cast(ushort) other.value;
+            break;
+        case TY.Tuns32:
+            this.value = cast(uint) this.value - cast(uint) other.value;
+            break;
+        case TY.Tuns64:
+        case TY.Tuns128:
+            this.value = this.value - other.value;
+            break;
+
+        default:
+            this.kind = Kind.Unknown;
+            break;
+        }
+    }
+
+    void multiplyFrom(DFAPAValue other, Type type)
+    {
+        if (this.kind != Kind.Concrete || other.kind != Kind.Concrete)
+        {
+            this.kind = Kind.Unknown;
+            return;
+        }
+
+        if (type.isUnsigned)
+        {
+            if (this.value > 1 && other.value > 1 && this.value > (long.max / other.value))
+            {
+                this.kind = Kind.UnknownUpperPositive;
+                return;
+            }
+        }
+
+        switch (type.ty)
+        {
+        case TY.Tint8:
+            this.value = cast(byte) this.value * cast(byte) other.value;
+            break;
+        case TY.Tint16:
+            this.value = cast(short) this.value * cast(short) other.value;
+            break;
+        case TY.Tint32:
+            this.value = cast(int) this.value * cast(int) other.value;
+            break;
+        case TY.Tint64:
+        case TY.Tint128:
+            this.value = this.value * other.value;
+            break;
+
+        case TY.Tuns8:
+            this.value = cast(ubyte) this.value * cast(ubyte) other.value;
+            break;
+        case TY.Tuns16:
+            this.value = cast(ushort) this.value * cast(ushort) other.value;
+            break;
+        case TY.Tuns32:
+            this.value = cast(uint) this.value * cast(uint) other.value;
+            break;
+        case TY.Tuns64:
+        case TY.Tuns128:
+            this.value = this.value * other.value;
+            break;
+
+        default:
+            this.kind = Kind.Unknown;
+            break;
+        }
+    }
+
+    void divideFrom(DFAPAValue other, Type type)
+    {
+        if (this.kind != Kind.Concrete || other.kind != Kind.Concrete)
+        {
+            this.kind = Kind.Unknown;
+            return;
+        }
+
+        this.kind = Kind.Unknown;
+
+        if (!type.isUnsigned && this.value == long.min && other.value == -1)
+        {
+            return;
+        }
+
+        switch (type.ty)
+        {
+        case TY.Tint8:
+            if (cast(byte) other.value == 0)
+                return;
+            this.value = cast(byte) this.value / cast(byte) other.value;
+            break;
+        case TY.Tint16:
+            if (cast(short) other.value == 0)
+                return;
+            this.value = cast(short) this.value / cast(short) other.value;
+            break;
+        case TY.Tint32:
+            if (cast(int) other.value == 0)
+                return;
+            this.value = cast(int) this.value / cast(int) other.value;
+            break;
+        case TY.Tint64:
+        case TY.Tint128:
+            if (other.value == 0)
+                return;
+            this.value = this.value / other.value;
+            break;
+
+        case TY.Tuns8:
+            if (cast(ubyte) other.value == 0)
+                return;
+            this.value = cast(ubyte) this.value / cast(ubyte) other.value;
+            break;
+        case TY.Tuns16:
+            if (cast(ushort) other.value == 0)
+                return;
+            this.value = cast(ushort) this.value / cast(ushort) other.value;
+            break;
+        case TY.Tuns32:
+            if (cast(uint) other.value == 0)
+                return;
+            this.value = cast(uint) this.value / cast(uint) other.value;
+            break;
+        case TY.Tuns64:
+        case TY.Tuns128:
+            if (cast(ulong) other.value == 0)
+                return;
+            // Must cast to ulong to perform correct unsigned 64-bit division before final assignment.
+            this.value = cast(long)(cast(ulong) this.value / cast(ulong) other.value);
+            break;
+
+        default:
+            return;
+        }
+
+        this.kind = Kind.Concrete;
+    }
+
+    void modulasFrom(DFAPAValue other, Type type)
+    {
+        if (this.kind != Kind.Concrete || other.kind != Kind.Concrete || other.value == 0)
+        {
+            this.kind = Kind.Unknown;
+            return;
+        }
+
+        if (!type.isUnsigned)
+        {
+            if (this.value == long.min && other.value == -1)
+            {
+                this.kind = Kind.Unknown;
+                return;
+            }
+        }
+
+        switch (type.ty)
+        {
+        case TY.Tint8:
+            this.value = cast(byte) this.value % cast(byte) other.value;
+            break;
+        case TY.Tint16:
+            this.value = cast(short) this.value % cast(short) other.value;
+            break;
+        case TY.Tint32:
+            this.value = cast(int) this.value % cast(int) other.value;
+            break;
+        case TY.Tint64:
+        case TY.Tint128:
+            this.value = this.value % other.value;
+            break;
+
+        case TY.Tuns8:
+            this.value = cast(ubyte) this.value % cast(ubyte) other.value;
+            break;
+        case TY.Tuns16:
+            this.value = cast(ushort) this.value % cast(ushort) other.value;
+            break;
+        case TY.Tuns32:
+            this.value = cast(uint) this.value % cast(uint) other.value;
+            break;
+        case TY.Tuns64:
+        case TY.Tuns128:
+            this.value = cast(long)(cast(ulong) this.value % cast(ulong) other.value);
+            break;
+
+        default:
+            this.kind = Kind.Unknown;
+            break;
+        }
+    }
+
+    void leftShiftBy(DFAPAValue other, Type type)
+    {
+        if (this.kind != Kind.Concrete || other.kind != Kind.Concrete || other.value < 0)
+        {
+            this.kind = Kind.Unknown;
+            return;
+        }
+
+        switch (type.ty)
+        {
+        case TY.Tint8:
+            this.value = cast(byte) this.value << cast(byte) other.value;
+            break;
+        case TY.Tint16:
+            this.value = cast(short) this.value << cast(short) other.value;
+            break;
+        case TY.Tint32:
+            this.value = cast(int) this.value << cast(int) other.value;
+            break;
+        case TY.Tint64:
+        case TY.Tint128:
+            this.value = this.value << other.value;
+            break;
+
+        case TY.Tuns8:
+            this.value = cast(ubyte) this.value << cast(ubyte) other.value;
+            break;
+        case TY.Tuns16:
+            this.value = cast(ushort) this.value << cast(ushort) other.value;
+            break;
+        case TY.Tuns32:
+            this.value = cast(uint) this.value << cast(uint) other.value;
+            break;
+        case TY.Tuns64:
+        case TY.Tuns128:
+            this.value = cast(ulong) this.value << cast(ulong) other.value;
+            break;
+
+        default:
+            this.kind = Kind.Unknown;
+            break;
+        }
+    }
+
+    void rightShiftSignedBy(DFAPAValue other, Type type)
+    {
+        if (this.kind != Kind.Concrete || other.kind != Kind.Concrete || other.value < 0)
+        {
+            this.kind = Kind.Unknown;
+            return;
+        }
+
+        switch (type.ty)
+        {
+        case TY.Tint8:
+            this.value = cast(byte) this.value >> cast(byte) other.value;
+            break;
+        case TY.Tint16:
+            this.value = cast(short) this.value >> cast(short) other.value;
+            break;
+        case TY.Tint32:
+            this.value = cast(int) this.value >> cast(int) other.value;
+            break;
+        case TY.Tint64:
+        case TY.Tint128:
+            this.value = this.value >> other.value;
+            break;
+
+        case TY.Tuns8:
+            this.value = cast(ubyte) this.value >>> cast(ubyte) other.value;
+            break;
+        case TY.Tuns16:
+            this.value = cast(ushort) this.value >>> cast(ushort) other.value;
+            break;
+        case TY.Tuns32:
+            this.value = cast(uint) this.value >>> cast(uint) other.value;
+            break;
+        case TY.Tuns64:
+        case TY.Tuns128:
+            this.value = cast(ulong) this.value >>> cast(ulong) other.value;
+            break;
+
+        default:
+            this.kind = Kind.Unknown;
+            break;
+        }
+    }
+
+    void rightShiftUnsignedBy(DFAPAValue other, Type type)
+    {
+        if (this.kind != Kind.Concrete || other.kind != Kind.Concrete || other.value < 0)
+        {
+            this.kind = Kind.Unknown;
+            return;
+        }
+
+        switch (type.ty)
+        {
+            // We cast to the unsigned equivalent of the target size (ubyte, ushort, uint)
+            // to force the logical shift behavior (zero-filling).
+        case TY.Tint8:
+        case TY.Tuns8:
+            this.value = cast(ubyte) this.value >>> cast(ubyte) other.value;
+            break;
+        case TY.Tint16:
+        case TY.Tuns16:
+            this.value = cast(ushort) this.value >>> cast(ushort) other.value;
+            break;
+        case TY.Tint32:
+        case TY.Tuns32:
+            this.value = cast(uint) this.value >>> cast(uint) other.value;
+            break;
+        case TY.Tint64:
+        case TY.Tuns64:
+        case TY.Tint128:
+        case TY.Tuns128:
+            // For 64-bit, we use ulong to perform the logical shift before casting back to long.
+            this.value = cast(ulong) this.value >>> cast(ulong) other.value;
+            break;
+
+        default:
+            this.kind = Kind.Unknown;
+            break;
+        }
+    }
+
+    void powerBy(DFAPAValue other, Type type)
+    {
+        const exponent = other.value;
+        const base = this.value;
+
+        if (this.kind != Kind.Concrete || other.kind != Kind.Concrete || exponent < 0)
+        {
+            this.kind = Kind.Unknown;
+            return;
+        }
+        else if (exponent == 0)
+        {
+            // base ^^ 0
+            this.value = 1;
+            return;
+        }
+        else if (base == 0)
+        {
+            // 0 ^^ exponent
+            this.value = 0;
+            return;
+        }
+        else if (exponent == 1)
+        {
+            // base ^^ 1
+            return;
+        }
+
+        const temp = cast(ulong) base ^^ cast(ulong) exponent;
+
+        if (temp > long.max)
+        {
+            this.kind = Kind.UnknownUpperPositive;
+            return;
+        }
+
+        switch (type.ty)
+        {
+        case TY.Tint8:
+            this.value = cast(byte) temp;
+            break;
+        case TY.Tint16:
+            this.value = cast(short) temp;
+            break;
+        case TY.Tint32:
+            this.value = cast(int) temp;
+            break;
+        case TY.Tint64:
+        case TY.Tint128:
+            this.value = cast(long) temp;
+            break;
+
+        case TY.Tuns8:
+            this.value = cast(ubyte) temp;
+            break;
+        case TY.Tuns16:
+            this.value = cast(ushort) temp;
+            break;
+        case TY.Tuns32:
+            this.value = cast(uint) temp;
+            break;
+        case TY.Tuns64:
+        case TY.Tuns128:
+            this.value = temp;
+            break;
+
+        default:
+            this.kind = Kind.Unknown;
+            break;
+        }
+    }
+
+    void bitwiseAndBy(DFAPAValue other, Type type)
+    {
+        if (this.kind != Kind.Concrete || other.kind != Kind.Concrete)
+        {
+            this.kind = Kind.Unknown;
+            return;
+        }
+
+        switch (type.ty)
+        {
+        case TY.Tint8:
+            this.value = cast(byte) this.value & cast(byte) other.value;
+            break;
+        case TY.Tint16:
+            this.value = cast(short) this.value & cast(short) other.value;
+            break;
+        case TY.Tint32:
+            this.value = cast(int) this.value & cast(int) other.value;
+            break;
+        case TY.Tint64:
+        case TY.Tint128:
+            this.value = this.value & other.value;
+            break;
+
+        case TY.Tuns8:
+            this.value = cast(ubyte) this.value & cast(ubyte) other.value;
+            break;
+        case TY.Tuns16:
+            this.value = cast(ushort) this.value & cast(ushort) other.value;
+            break;
+        case TY.Tuns32:
+            this.value = cast(uint) this.value & cast(uint) other.value;
+            break;
+        case TY.Tuns64:
+        case TY.Tuns128:
+            this.value = cast(ulong) this.value & cast(ulong) other.value;
+            break;
+
+        default:
+            this.kind = Kind.Unknown;
+            break;
+        }
+    }
+
+    void bitwiseOrBy(DFAPAValue other, Type type)
+    {
+        if (this.kind != Kind.Concrete || other.kind != Kind.Concrete)
+        {
+            this.kind = Kind.Unknown;
+            return;
+        }
+
+        switch (type.ty)
+        {
+        case TY.Tint8:
+            this.value = cast(byte) this.value | cast(byte) other.value;
+            break;
+        case TY.Tint16:
+            this.value = cast(short) this.value | cast(short) other.value;
+            break;
+        case TY.Tint32:
+            this.value = cast(int) this.value | cast(int) other.value;
+            break;
+        case TY.Tint64:
+        case TY.Tint128:
+            this.value = this.value | other.value;
+            break;
+
+        case TY.Tuns8:
+            this.value = cast(ubyte) this.value | cast(ubyte) other.value;
+            break;
+        case TY.Tuns16:
+            this.value = cast(ushort) this.value | cast(ushort) other.value;
+            break;
+        case TY.Tuns32:
+            this.value = cast(uint) this.value | cast(uint) other.value;
+            break;
+        case TY.Tuns64:
+        case TY.Tuns128:
+            this.value = cast(ulong) this.value | cast(ulong) other.value;
+            break;
+
+        default:
+            this.kind = Kind.Unknown;
+            break;
+        }
+    }
+
+    void bitwiseXorBy(DFAPAValue other, Type type)
+    {
+        if (this.kind != Kind.Concrete || other.kind != Kind.Concrete)
+        {
+            this.kind = Kind.Unknown;
+            return;
+        }
+
+        switch (type.ty)
+        {
+        case TY.Tint8:
+            this.value = cast(byte) this.value ^ cast(byte) other.value;
+            break;
+        case TY.Tint16:
+            this.value = cast(short) this.value ^ cast(short) other.value;
+            break;
+        case TY.Tint32:
+            this.value = cast(int) this.value ^ cast(int) other.value;
+            break;
+        case TY.Tint64:
+        case TY.Tint128:
+            this.value = this.value ^ other.value;
+            break;
+
+        case TY.Tuns8:
+            this.value = cast(ubyte) this.value ^ cast(ubyte) other.value;
+            break;
+        case TY.Tuns16:
+            this.value = cast(ushort) this.value ^ cast(ushort) other.value;
+            break;
+        case TY.Tuns32:
+            this.value = cast(uint) this.value ^ cast(uint) other.value;
+            break;
+        case TY.Tuns64:
+        case TY.Tuns128:
+            this.value = cast(ulong) this.value ^ cast(ulong) other.value;
+            break;
+
+        default:
+            this.kind = Kind.Unknown;
+            break;
+        }
+    }
+
+    void bitwiseInvert(Type type)
+    {
+        if (this.kind != Kind.Concrete)
+        {
+            this.kind = Kind.Unknown;
+            return;
+        }
+
+        switch (type.ty)
+        {
+        case TY.Tint8:
+            this.value = ~cast(int)(cast(byte) this.value);
+            break;
+        case TY.Tint16:
+            this.value = ~cast(int)(cast(short) this.value);
+            break;
+        case TY.Tint32:
+            this.value = ~cast(int) this.value;
+            break;
+        case TY.Tint64:
+        case TY.Tint128:
+            this.value = ~this.value;
+            break;
+
+        case TY.Tuns8:
+            this.value = ~cast(int)(cast(ubyte) this.value);
+            break;
+        case TY.Tuns16:
+            this.value = ~cast(int)(cast(ushort) this.value);
+            break;
+        case TY.Tuns32:
+            this.value = ~cast(uint) this.value;
+            break;
+        case TY.Tuns64:
+        case TY.Tuns128:
+            this.value = ~this.value;
+            break;
+
+        default:
+            this.kind = Kind.Unknown;
+            break;
+        }
+    }
+}
+
+/***********************************************************
+ * A specific fact known about a variable at the current point in time.
+ *
+ * Examples of consequences:
+ * - "This variable is definitely not null" (`nullable == NonNull`)
+ * - "This variable is True" (`truthiness == True`)
+ * - "This variable has the integer value 5" (`pa` - Point Analysis)
+ */
 struct DFAConsequence
 {
     private
     {
+        DFACommon* dfaCommon;
         DFAConsequence* listnext;
         DFAConsequence* previous, next, bucketNext;
     }
@@ -2531,6 +3728,27 @@ struct DFAConsequence
     // When the context is maybe, look at this instead
     DFAVar* maybe;
     bool maybeTopSeen;
+    // Point analysis value, tracking of integral/length values
+    DFAPAValue pa;
+    // The object that this is if its non-null
+    DFAObject* obj;
+
+    void copyFrom(DFAConsequence* other)
+    {
+        if (other is null)
+            return;
+
+        if (this.var is other.var)
+            this.writeOnVarAtThisPoint = other.writeOnVarAtThisPoint;
+
+        this.truthiness = other.truthiness;
+        this.nullable = other.nullable;
+        this.invertedOnce = other.invertedOnce;
+        this.maybe = other.maybe;
+        this.protectElseNegate = other.protectElseNegate;
+        this.pa = other.pa;
+        this.obj = other.obj;
+    }
 
     void meetConsequence(DFAConsequence* c1, DFAConsequence* c2, bool couldScopeNotHaveRan = false)
     {
@@ -2545,6 +3763,8 @@ struct DFAConsequence
 
             this.invertedOnce = c.invertedOnce;
             this.writeOnVarAtThisPoint = c.writeOnVarAtThisPoint;
+            this.pa = couldScopeNotHaveRan ? DFAPAValue.Unknown : c.pa;
+            this.obj = couldScopeNotHaveRan ? dfaCommon.makeObject(c.obj) : c.obj;
 
             if (this.var is null || this.var.isTruthy)
                 this.truthiness = couldScopeNotHaveRan ? Truthiness.Unknown : c.truthiness;
@@ -2569,6 +3789,8 @@ struct DFAConsequence
             this.invertedOnce = this.truthiness == Truthiness.Unknown
                 ? false : (c1.invertedOnce || c2.invertedOnce);
 
+            this.pa = couldScopeNotHaveRan ? DFAPAValue.Unknown : c1.pa.meet(c2.pa);
+
             if (this.var is null || this.var.isTruthy)
             {
                 this.truthiness = (couldScopeNotHaveRan && c1.truthiness != c2.truthiness)
@@ -2579,8 +3801,18 @@ struct DFAConsequence
             }
 
             if (this.var is null || this.var.isNullable)
+            {
                 this.nullable = (couldScopeNotHaveRan && c1.nullable != c2.nullable)
                     ? Nullable.Unknown : (c1.nullable < c2.nullable ? c1.nullable : c2.nullable);
+
+                if (c1.obj !is null || c2.obj !is null)
+                {
+                    if (c1.obj !is c2.obj)
+                        this.obj = dfaCommon.makeObject(c1.obj, c2.obj);
+                    else
+                        this.obj = c1.obj !is null ? c1.obj : c2.obj;
+                }
+            }
         }
 
         const writeCount = this.var.writeCount;
@@ -2616,13 +3848,15 @@ struct DFAConsequence
             }
 
             this.invertedOnce = c.invertedOnce;
+            this.writeOnVarAtThisPoint = c.writeOnVarAtThisPoint;
+            this.maybe = c.maybe;
+            this.pa = c.pa;
+            this.obj = c.obj;
+
             if (this.var is null || this.var.isTruthy)
                 this.truthiness = c.truthiness;
             if (this.var is null || this.var.isNullable)
                 this.nullable = c.nullable;
-
-            this.writeOnVarAtThisPoint = c.writeOnVarAtThisPoint;
-            this.maybe = c.maybe;
         }
 
         void doMulti(DFAConsequence* c2)
@@ -2639,6 +3873,7 @@ struct DFAConsequence
             this.invertedOnce = c1.invertedOnce || c2.invertedOnce;
             this.writeOnVarAtThisPoint = c1.writeOnVarAtThisPoint < c2.writeOnVarAtThisPoint
                 ? c2.writeOnVarAtThisPoint : c1.writeOnVarAtThisPoint;
+            this.pa = c1.pa.join(c2.pa);
 
             if (this.var is null || this.var.isTruthy)
             {
@@ -2656,6 +3891,14 @@ struct DFAConsequence
                     this.nullable = Nullable.Unknown;
                 else
                     this.nullable = c1.nullable < c2.nullable ? c2.nullable : c1.nullable;
+
+                if (c1.obj !is null || c2.obj !is null)
+                {
+                    if (c1.obj !is c2.obj)
+                        this.obj = dfaCommon.makeObject(c1.obj, c2.obj);
+                    else
+                        this.obj = c1.obj !is null ? c1.obj : c2.obj;
+                }
             }
 
             this.maybe = c2.maybe;
@@ -2671,10 +3914,10 @@ struct DFAConsequence
 
         version (DebugJoinMeetOp)
         {
-            printf("join consequence c1=%p, c2=%p, rhsCtx=%p\n", c1, c2, rhsCtx);
-            printf("            vars c1=%p, c2=%p, rhsCtx=%p\n", c1 !is null
-                    ? c1.var : null, c2 !is null ? c2.var : null, rhsCtx !is null ? rhsCtx.var
-                    : null);
+            printf("join consequence c1=%p, c2=%p, rhsCtx=%p, this=%p\n", c1, c2, rhsCtx, &this);
+            printf("            vars c1=%p, c2=%p, rhsCtx=%p, this=%p\n", c1 !is null
+                    ? c1.var : null, c2 !is null ? c2.var : null, rhsCtx !is null
+                    ? rhsCtx.var : null, this.var);
             printf("  writeCount=%d/%d:%d\n", writeCount,
                     c1.writeOnVarAtThisPoint, c2 !is null ? c2.writeOnVarAtThisPoint : -1);
             printf("  isC1Context=%d, unknownAware=%d, ignoreWriteCount=%d\n",
@@ -2723,9 +3966,10 @@ struct DFAConsequence
                 NullableStr[this.nullable], this.writeOnVarAtThisPoint);
         printf("maybe=%p:%d, protectElseNegate=%d, invertedOnce=%d ", maybe,
                 maybeTopSeen, protectElseNegate, invertedOnce);
-        printf("previous=%p, next=%p ", this.previous, this.next);
+        printf("previous=%p, next=%p, pa=%03d/%lld", this.previous, this.next,
+                this.pa.kind, this.pa.value);
 
-        printf("%p", this.var);
+        printf(", %p", this.var);
         if (this.var !is null)
         {
             printf("=%d:%lld:b/%p/%p", this.var.assertedCount,
@@ -2733,9 +3977,9 @@ struct DFAConsequence
 
             if (this.var !is null && this.var.var !is null)
                 printf("@%p=`%s`", this.var.var, this.var.var.toChars);
-
         }
 
+        printf(", obj=%p", this.obj);
         printf("\n", this.var);
     }
 }
@@ -2748,6 +3992,8 @@ void applyType(DFAVar* var, VarDeclaration vd)
 
     var.isStaticArray = vd.type.isTypeSArray !is null;
     var.isBoolean = vd.type.ty == Tbool;
+    var.isFloatingPoint = vd.type.isTypeBasic !is null
+        && (vd.type.isTypeBasic.flags & TFlags.floating) != 0;
 
     // Unfortunately isDataseg can have very undesirable side effects that kill compilation,
     //  even if it shouldn't when this is ran.

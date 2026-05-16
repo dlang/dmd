@@ -1,7 +1,7 @@
 /**
  * Convert to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/toir.d, _toir.d)
@@ -50,6 +50,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : followInstantiationContext, toParentP;
 import dmd.expressionsem : toInteger;
 import dmd.dtemplate;
+import dmd.errors;
 import dmd.errorsink;
 import dmd.func;
 import dmd.funcsem;
@@ -64,10 +65,12 @@ import dmd.target;
 
 package(dmd.glue):
 
+private:
+
 /****************************************
  * Our label symbol
  */
-
+package(dmd.glue)
 struct Label
 {
     block* lblock;      // The block to which the label is defined.
@@ -76,6 +79,7 @@ struct Label
 /***********************************************************
  * Collect state variables needed by the intermediate representation (IR)
  */
+package(dmd.glue)
 struct IRState
 {
     Module m;                       // module
@@ -93,6 +97,7 @@ struct IRState
     ErrorSink eSink;                // sink for error messages
     bool mayThrow;                  // the expression being evaluated may throw
     bool Cfile;                     // use C semantics
+    int countNullDerefCheckDisable; // should the null check be disabled due to backend fragility
 
     this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels,
         const Param* params, const Target* target, ErrorSink eSink)
@@ -127,6 +132,15 @@ struct IRState
         return dmd.funcsem.arrayBoundsCheck(getFunc());
     }
 
+    /**********************
+     * Returns:
+     *    true if do null dereference checking for the current function
+     */
+    bool nullDerefCheck()
+    {
+        return countNullDerefCheckDisable == 0 && dmd.funcsem.nullDerefCheck(getFunc());
+    }
+
     /****************************
      * Returns:
      *  true if in a nothrow section of code
@@ -149,6 +163,7 @@ struct IRState
  * References:
  * https://dlang.org/dmd-windows.html#switch-cov
  */
+package(dmd.glue)
 extern (D) elem* incUsageElem(ref IRState irs, Loc loc)
 {
     uint linnum = loc.linnum;
@@ -191,6 +206,7 @@ extern (D) elem* incUsageElem(ref IRState irs, Loc loc)
  * 'origSc' is the original scope we inlined from.
  * This routine is critical for implementing nested functions.
  */
+package(dmd.glue)
 elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol origSc = null)
 {
     elem* ethis;
@@ -327,7 +343,7 @@ elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol
     {
         if (!irs.sthis)                // if no frame pointer for this function
         {
-            irs.eSink.error(loc, "`%s` is a nested function and cannot be accessed from `%s`", fd.toChars(), irs.getFunc().toPrettyChars());
+            irs.eSink.error(loc, "`%s` is a nested function and cannot be accessed from `%s`", fd.toErrMsg(), irs.getFunc().toPrettyChars());
             return el_long(TYnptr, 0); // error recovery
         }
 
@@ -408,6 +424,7 @@ elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol
  * Returns:
  *      *(ethis + offset);
  */
+package(dmd.glue)
 elem* fixEthis2(elem* ethis, FuncDeclaration fd, bool ctxt2 = false)
 {
     if (fd && fd.hasDualContext)
@@ -425,6 +442,7 @@ elem* fixEthis2(elem* ethis, FuncDeclaration fd, bool ctxt2 = false)
  * Returns:
  *      *(ey + (ethis2 ? ad.vthis2 : ad.vthis).offset) = this;
  */
+package(dmd.glue)
 elem* setEthis(Loc loc, ref IRState irs, elem* ey, AggregateDeclaration ad, bool setthis2 = false)
 {
     elem* ethis;
@@ -467,8 +485,8 @@ elem* setEthis(Loc loc, ref IRState irs, elem* ey, AggregateDeclaration ad, bool
     return ey;
 }
 
-enum NotIntrinsic = -1;
-enum OPtoPrec = OPMAX + 1; // front end only
+package(dmd.glue) enum NotIntrinsic = -1;
+package(dmd.glue) enum OPtoPrec = OPMAX + 1; // front end only
 
 /*******************************************
  * Convert intrinsic function to operator.
@@ -477,6 +495,7 @@ enum OPtoPrec = OPMAX + 1; // front end only
  *      NotIntrinsic if not an intrinsic function,
  *      OPtoPrec if frontend-only intrinsic
  */
+package(dmd.glue)
 int intrinsic_op(FuncDeclaration fd)
 {
     int op = NotIntrinsic;
@@ -587,6 +606,14 @@ int intrinsic_op(FuncDeclaration fd)
         if ((op == OPbsf || op == OPbsr) && argtype1 is Type.tuns64)
             return NotIntrinsic;
     }
+    else if (target.isAArch64)
+    {
+        if (op == OPbsf || op == OPbsr || op == OPbtc || op == OPbtr || op == OPbts)
+            return NotIntrinsic;        // TODO AArch64
+        if (op == OPcos || op == OPsin || op == OPrint || op == OPsqrt || op == OPscale ||
+            op == OPrndtol || op == OPyl2xp1 || op == OPtoPrec)
+            return NotIntrinsic;        // x87 only
+    }
     return op;
 
 Lva_start:
@@ -614,6 +641,7 @@ Lva_start:
  * Returns:
  *      expression that initializes 'length'
  */
+package(dmd.glue)
 elem* resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
 {
     //printf("resolveLengthVar()\n");
@@ -660,6 +688,7 @@ elem* resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
  *      sthis = the symbol of the current 'this' derived from fd.vthis
  *      fd = the nested function
  */
+package(dmd.glue)
 type* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
 {
     if (sthis)
@@ -695,6 +724,7 @@ type* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
  * Returns:
  *      overall alignment of the closure
  */
+package(dmd.glue)
 uint setClosureVarOffset(FuncDeclaration fd)
 {
     // Nothing to do
@@ -771,6 +801,7 @@ uint setClosureVarOffset(FuncDeclaration fd)
  * getEthis() and NewExp::toElem need to use sclosure, if set, rather
  * than the current frame pointer.
  */
+package(dmd.glue)
 void buildClosure(FuncDeclaration fd, ref IRState irs)
 {
     //printf("buildClosure(fd = %s)\n", fd.toChars());
@@ -956,56 +987,6 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
     }
 }
 
-/**************************************
- * Go through the variables in function fd that are
- * to be allocated in an aligned section, and set the .offset fields
- * for those variables to their positions relative to the start
- * of the aligned section instance.
- * Params:
- *      fd = function
- * Returns:
- *      overall alignment of the align section
- * Reference:
- *      setClosureVarOffset
- */
-private
-uint setAlignSectionVarOffset(FuncDeclaration fd)
-{
-    // Nothing to do
-    if (!fd.alignSectionVars)
-        return 0;
-
-    uint offset = 0;
-    uint aggAlignment = offset;        // overall alignment for the closure
-
-    // first go through and find overall alignment for the entire section
-    foreach (v; (*fd.alignSectionVars)[])
-    {
-        if (v.inClosure)
-            continue;
-
-        /* Align and allocate space for v in the align closure
-         * just like AggregateDeclaration.addField() does.
-         */
-        const memsize = cast(uint)v.type.size();
-        const memalignsize = v.type.alignsize();
-        const xalign = v.alignment;
-
-        offset = alignmember(xalign, memalignsize, offset);
-        v.offset = offset;
-        //printf("align closure var %s, offset = %d\n", v.toChars(), offset);
-
-        offset += memsize;
-
-        uint actualAlignment = xalign.isDefault() ? memalignsize : xalign.get();
-        //printf("actualAlignment = x%x, x%x\n", actualAlignment, xalign.get());
-        if (aggAlignment < actualAlignment)
-            aggAlignment = actualAlignment;     // take the largest
-    }
-
-    return aggAlignment;
-}
-
 /*************************************
  * Aligned sections are implemented by taking the local variables that
  * need alignment that is larger than the stack alignment.
@@ -1035,6 +1016,7 @@ uint setAlignSectionVarOffset(FuncDeclaration fd)
  *      https://github.com/dlang/dmd/pull/9143 was an incomplete attempt to solve this problem
  *      that was merged. It should probably be removed.
  */
+package(dmd.glue)
 void buildAlignSection(FuncDeclaration fd, ref IRState irs)
 {
     enum log = false;
@@ -1139,12 +1121,11 @@ void buildAlignSection(FuncDeclaration fd, ref IRState irs)
  * Params:
  *      fd = function
  */
+package(dmd.glue)
 void buildCapture(FuncDeclaration fd)
 {
     if (!driverParams.symdebug)
         return;
-    if (target.objectFormat() != Target.ObjectFormat.coff)  // toDebugClosure only implemented for CodeView,
-        return;                 //  but optlink crashes for negative field offsets
 
     if (fd.closureVars.length && !fd.needsClosure)
     {
@@ -1191,8 +1172,63 @@ void buildCapture(FuncDeclaration fd)
  * Returns:
  *   RET.stack if return value from function is on the stack, RET.regs otherwise
  */
+package(dmd.glue)
 RET retStyle(TypeFunction tf, bool needsThis)
 {
     //printf("TypeFunction.retStyle() %s\n", toChars());
     return target.isReturnOnStack(tf, needsThis) ? RET.stack : RET.regs;
+}
+
+/*********************************** private *********************************/
+/*                           private below the fold                          */
+/*****************************************************************************/
+private:
+/**************************************
+ * Go through the variables in function fd that are
+ * to be allocated in an aligned section, and set the .offset fields
+ * for those variables to their positions relative to the start
+ * of the aligned section instance.
+ * Params:
+ *      fd = function
+ * Returns:
+ *      overall alignment of the align section
+ * Reference:
+ *      setClosureVarOffset
+ */
+private
+uint setAlignSectionVarOffset(FuncDeclaration fd)
+{
+    // Nothing to do
+    if (!fd.alignSectionVars)
+        return 0;
+
+    uint offset = 0;
+    uint aggAlignment = offset;        // overall alignment for the closure
+
+    // first go through and find overall alignment for the entire section
+    foreach (v; (*fd.alignSectionVars)[])
+    {
+        if (v.inClosure)
+            continue;
+
+        /* Align and allocate space for v in the align closure
+         * just like AggregateDeclaration.addField() does.
+         */
+        const memsize = cast(uint)v.type.size();
+        const memalignsize = v.type.alignsize();
+        const xalign = v.alignment;
+
+        offset = alignmember(xalign, memalignsize, offset);
+        v.offset = offset;
+        //printf("align closure var %s, offset = %d\n", v.toChars(), offset);
+
+        offset += memsize;
+
+        uint actualAlignment = xalign.isDefault() ? memalignsize : xalign.get();
+        //printf("actualAlignment = x%x, x%x\n", actualAlignment, xalign.get());
+        if (aggAlignment < actualAlignment)
+            aggAlignment = actualAlignment;     // take the largest
+    }
+
+    return aggAlignment;
 }

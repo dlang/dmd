@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/function.html#nothrow-functions, Nothrow Functions)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/canthrow.d, _canthrow.d)
@@ -18,11 +18,12 @@ import dmd.astenums;
 import dmd.blockexit : BE, checkThrow;
 import dmd.dsymbol;
 import dmd.dsymbolsem : include, toAlias;
+import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
-import dmd.expressionsem : errorSupplementalInferredAttr, isLvalue, calledFunctionType;
+import dmd.expressionsem;
+import dmd.typesem;
 import dmd.func;
-import dmd.globals;
 import dmd.mtype;
 import dmd.tokens;
 import dmd.visitor;
@@ -103,6 +104,7 @@ CT canThrow(Expression e, FuncDeclaration func, ErrorSink eSink)
             if (ce.inDebugStatement)
                 return;
 
+            import dmd.globals;
             if (global.errors && !ce.e1.type)
                 return; // error recovery
 
@@ -141,7 +143,7 @@ CT canThrow(Expression e, FuncDeclaration func, ErrorSink eSink)
                 auto e1 = ce.e1;
                 if (auto pe = e1.isPtrExp())   // print 'fp' if e1 is (*fp)
                     e1 = pe.e1;
-                eSink.error(ce.loc, "`%s` is not `nothrow`", e1.toChars());
+                eSink.error(ce.loc, "`%s` is not `nothrow`", e1.toErrMsg());
             }
             result |= CT.exception;
         }

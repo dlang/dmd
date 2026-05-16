@@ -52,7 +52,7 @@ void destroy(void* data) nothrow @nogc
     .free(data);
 }
 
-alias void delegate(void* pstart, void* pend) nothrow ScanDg;
+alias ScanDg = void delegate(void* pstart, void* pend) nothrow;
 
 /**
  * GC scan hook, called FOR each thread. Can be used to scan

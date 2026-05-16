@@ -74,10 +74,10 @@ enum MAPI_UNREAD            = 0x0001;
 enum MAPI_RECEIPT_REQUESTED = 0x0002;
 enum MAPI_SENT              = 0x0004;
 
-alias uint FLAGS;
-alias uint* LPULONG;
-alias ULONG_PTR LHANDLE;
-alias ULONG_PTR* LPLHANDLE;
+alias FLAGS = uint;
+alias LPULONG = uint*;
+alias LHANDLE = ULONG_PTR;
+alias LPLHANDLE = ULONG_PTR*;
 
 struct MapiRecipDesc {
     ULONG  ulReserved;
@@ -87,7 +87,7 @@ struct MapiRecipDesc {
     ULONG  ulEIDSize;
     LPVOID lpEntryID;
 }
-alias MapiRecipDesc* lpMapiRecipDesc;
+alias lpMapiRecipDesc = MapiRecipDesc*;
 
 struct MapiFileDesc {
     ULONG  ulReserved;
@@ -97,7 +97,7 @@ struct MapiFileDesc {
     LPSTR  lpszFileName;
     LPVOID lpFileType;
 }
-alias MapiFileDesc* lpMapiFileDesc;
+alias lpMapiFileDesc = MapiFileDesc*;
 
 struct MapiFileTagExt {
     ULONG  ulReserved;
@@ -106,7 +106,7 @@ struct MapiFileTagExt {
     ULONG  cbEncoding;
     LPBYTE lpEncoding;
 }
-alias MapiFileTagExt* lpMapiFileTagExt;
+alias lpMapiFileTagExt = MapiFileTagExt*;
 
 struct MapiMessage {
     ULONG           ulReserved;
@@ -122,7 +122,7 @@ struct MapiMessage {
     ULONG           nFileCount;
     lpMapiFileDesc  lpFiles;
 }
-alias MapiMessage* lpMapiMessage;
+alias lpMapiMessage = MapiMessage*;
 
 extern (Windows) {
     ULONG MAPILogon(ULONG_PTR, LPSTR, LPSTR, FLAGS, ULONG, LPLHANDLE);
@@ -145,26 +145,18 @@ extern (Windows) {
     ULONG MAPI_NSCP_SynchronizeClient(LHANDLE, ULONG);
 
     // Handles for use with GetProcAddress
-    alias ULONG function(ULONG_PTR, LPSTR, LPSTR, FLAGS, ULONG, LPLHANDLE)
-      LPMAPILOGON;
-    alias ULONG function(LHANDLE, ULONG_PTR, lpMapiMessage, FLAGS, ULONG)
-      LPMAPISENDMAIL;
-    alias ULONG function(ULONG_PTR, LPSTR, LPSTR, LPSTR, ULONG)
-      LPMAPISENDDOCUMENTS;
-    alias ULONG function(LHANDLE, ULONG_PTR, LPSTR, FLAGS, ULONG, lpMapiMessage*)
-      LPMAPIREADMAIL;
-    alias ULONG function(LHANDLE, ULONG_PTR, LPSTR, LPSTR, FLAGS, ULONG, LPSTR)
-      LPMAPIFINDNEXT;
-    alias ULONG function(LHANDLE, ULONG_PTR, LPSTR, FLAGS, ULONG,
-      lpMapiRecipDesc*) LPMAPIRESOLVENAME;
-    alias ULONG function(LHANDLE, ULONG_PTR, LPSTR, ULONG, LPSTR, ULONG,
-      lpMapiRecipDesc, FLAGS, ULONG, LPULONG, lpMapiRecipDesc*) LPMAPIADDRESS;
-    alias ULONG function(LPVOID lpv) LPMAPIFREEBUFFER;
-    alias ULONG function(LHANDLE, ULONG_PTR, lpMapiRecipDesc, FLAGS, ULONG)
-      LPMAPIDETAILS;
-    alias ULONG function(LHANDLE, ULONG_PTR, lpMapiMessage, FLAGS, ULONG, LPSTR)
-      LPMAPISAVEMAIL;
-    alias ULONG function(LHANDLE, ULONG_PTR, LPSTR, FLAGS, ULONG)
-      LPMAPIDELETEMAIL;
-    alias ULONG function(LHANDLE, ULONG_PTR, FLAGS, ULONG) LPMAPILOGOFF;
+    alias LPMAPILOGON = ULONG function(ULONG_PTR, LPSTR, LPSTR, FLAGS, ULONG, LPLHANDLE);
+    alias LPMAPISENDMAIL = ULONG function(LHANDLE, ULONG_PTR, lpMapiMessage, FLAGS, ULONG);
+    alias LPMAPISENDDOCUMENTS = ULONG function(ULONG_PTR, LPSTR, LPSTR, LPSTR, ULONG);
+    alias LPMAPIREADMAIL = ULONG function(LHANDLE, ULONG_PTR, LPSTR, FLAGS, ULONG, lpMapiMessage*);
+    alias LPMAPIFINDNEXT = ULONG function(LHANDLE, ULONG_PTR, LPSTR, LPSTR, FLAGS, ULONG, LPSTR);
+    alias LPMAPIRESOLVENAME = ULONG function(LHANDLE, ULONG_PTR, LPSTR, FLAGS, ULONG,
+      lpMapiRecipDesc*);
+    alias LPMAPIADDRESS = ULONG function(LHANDLE, ULONG_PTR, LPSTR, ULONG, LPSTR, ULONG,
+      lpMapiRecipDesc, FLAGS, ULONG, LPULONG, lpMapiRecipDesc*);
+    alias LPMAPIFREEBUFFER = ULONG function(LPVOID lpv);
+    alias LPMAPIDETAILS = ULONG function(LHANDLE, ULONG_PTR, lpMapiRecipDesc, FLAGS, ULONG);
+    alias LPMAPISAVEMAIL = ULONG function(LHANDLE, ULONG_PTR, lpMapiMessage, FLAGS, ULONG, LPSTR);
+    alias LPMAPIDELETEMAIL = ULONG function(LHANDLE, ULONG_PTR, LPSTR, FLAGS, ULONG);
+    alias LPMAPILOGOFF = ULONG function(LHANDLE, ULONG_PTR, FLAGS, ULONG);
 }

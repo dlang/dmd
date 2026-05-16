@@ -1,7 +1,7 @@
 /**
  * Functions for raising errors.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/errors.d, _errors.d)
@@ -13,6 +13,7 @@ module dmd.errors;
 
 public import core.stdc.stdarg;
 public import dmd.root.string: fTuple;
+public import dmd.hdrgen : toErrMsg;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -23,6 +24,7 @@ import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.console;
+import dmd.console : Color;
 import dmd.root.filename;
 import dmd.sarif;
 

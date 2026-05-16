@@ -1,7 +1,7 @@
 /**
  * An expandable buffer in which you can write text or binary data.
  *
- * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/common/outbuffer.d, root/_outbuffer.d)
@@ -232,6 +232,15 @@ struct OutBuffer
 
     alias put = write;  // transition to output range which uses put()
 
+    void write(ubyte b) pure nothrow @safe
+    {
+        if (doindent && !notlinehead && b != '\n')
+            indent();
+        reserve(1);
+        this.data[offset] = b;
+        offset++;
+    }
+
     extern (C++) void write(scope const(void)* data, size_t nbytes) pure nothrow @system
     {
         put(data[0 .. nbytes]);
@@ -404,15 +413,6 @@ struct OutBuffer
     }
 
     extern (C++) void writeByte(ubyte b) pure nothrow @safe
-    {
-        if (doindent && !notlinehead && b != '\n')
-            indent();
-        reserve(1);
-        this.data[offset] = b;
-        offset++;
-    }
-
-    void write(ubyte b) pure nothrow @safe
     {
         if (doindent && !notlinehead && b != '\n')
             indent();

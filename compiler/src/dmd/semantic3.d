@@ -3,7 +3,7 @@
  * function bodies and late semantic checks for templates, mixins,
  * aggregates, and special members.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/semantic3.d, _semantic3.d)
@@ -60,6 +60,7 @@ import dmd.opover;
 import dmd.optimize;
 import dmd.parse;
 import dmd.root.filename;
+import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.rootobject;
@@ -75,7 +76,12 @@ import dmd.targetcompiler;
 import dmd.templateparamsem;
 import dmd.typesem;
 import dmd.visitor;
-import dmd.dfa.entry;
+
+version (IN_GCC) { /* Not using Fast DFA */ }
+else version = FastDFA;
+
+version (FastDFA)
+    import dmd.dfa.entry;
 
 enum LOG = false;
 
@@ -228,20 +234,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
         timeTraceBeginEvent(TimeTraceEventType.sema3);
         scope (exit) timeTraceEndEvent(TimeTraceEventType.sema3, funcdecl);
 
-        /* Determine if function should add `return 0;`
-         */
-        bool addReturn0()
-        {
-            //printf("addReturn0()\n");
-            auto f = funcdecl.type.isTypeFunction();
-
-            // C11 5.1.2.2.3
-            if (sc.inCfile && funcdecl.isCMain() && f.next.ty == Tint32)
-                return true;
-
-            return f.next.ty == Tvoid && (funcdecl.isMain() || funcdecl.isCMain());
-        }
-
         VarDeclaration _arguments = null;
 
         if (!funcdecl.parent)
@@ -302,7 +294,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             return;
         funcdecl.semanticRun = PASS.semantic3;
         funcdecl.hasSemantic3Errors = false;
-        funcdecl.saferD = sc.previews.safer;
+        funcdecl.saferD = sc.previews.safer && !sc.inCfile;
 
         if (!funcdecl.type || funcdecl.type.ty != Tfunction)
             return;
@@ -500,7 +492,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     v.dsymbolSemantic(sc2);
                     if (!sc2.insert(v))
                     {
-                        .error(funcdecl.loc, "%s `%s` parameter `%s.%s` is already defined", funcdecl.kind, funcdecl.toPrettyChars, funcdecl.toChars(), v.toChars());
+                        .error(funcdecl.loc, "%s `%s` parameter `%s.%s` is already defined", funcdecl.kind, funcdecl.toPrettyChars, funcdecl.toErrMsg(), v.toErrMsg());
                         funcdecl.errors = true;
                     }
                     else
@@ -540,7 +532,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 //printf("declaring tuple %s\n", v.toChars());
                 v.isexp = true;
                 if (!sc2.insert(v))
-                    .error(funcdecl.loc, "%s `%s` parameter `%s.%s` is already defined", funcdecl.kind, funcdecl.toPrettyChars, funcdecl.toChars(), v.toChars());
+                    .error(funcdecl.loc, "%s `%s` parameter `%s.%s` is already defined", funcdecl.kind, funcdecl.toPrettyChars, funcdecl.toErrMsg(), v.toErrMsg());
                 funcdecl.localsymtab.insert(v);
                 v.parent = funcdecl;
             }
@@ -644,7 +636,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         Expression exp = (*funcdecl.returns)[i].exp;
                         if (exp.op == EXP.variable && (cast(VarExp)exp).var == funcdecl.vresult)
                         {
-                            if (addReturn0())
+                            if (fds.addReturn0())
                                 exp.type = Type.tint32;
                             else
                                 exp.type = f.next;
@@ -701,19 +693,23 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                  * 2. structs should recognize delegating opAssign calls as well
                                  *    as delegating calls to other constructors
                                  */
-                                if (v.isCtorinit() && !v.type.isMutable() && cd)
-                                    .error(funcdecl.loc, "%s `%s` missing initializer for %s field `%s`", funcdecl.kind, funcdecl.toPrettyChars, MODtoChars(v.type.mod), v.toChars());
+                                if (sc2.ctorflow.fieldinit[i].csx & CSX.halt)
+                                {
+                                    // constructor always halts on this path, no initialization needed
+                                }
+                                else if (v.isCtorinit() && !v.type.isMutable() && cd)
+                                    .error(funcdecl.loc, "%s `%s` missing initializer for %s field `%s`", funcdecl.kind, funcdecl.toPrettyChars, MODtoChars(v.type.mod), v.toErrMsg());
                                 else if (v.storage_class & STC.nodefaultctor)
-                                    error(funcdecl.loc, "field `%s` must be initialized in constructor", v.toChars());
+                                    error(funcdecl.loc, "field `%s` must be initialized in constructor", v.toErrMsg());
                                 else if (v.type.needsNested())
-                                    error(funcdecl.loc, "field `%s` must be initialized in constructor, because it is nested struct", v.toChars());
+                                    error(funcdecl.loc, "field `%s` must be initialized in constructor, because it is nested struct", v.toErrMsg());
                             }
                             else
                             {
                                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                                if (mustInit && !(sc2.ctorflow.fieldinit[i].csx & CSX.this_ctor))
+                                if (mustInit && !(sc2.ctorflow.fieldinit[i].csx & (CSX.this_ctor | CSX.halt)))
                                 {
-                                    .error(funcdecl.loc, "%s `%s` field `%s` must be initialized but skipped", funcdecl.kind, funcdecl.toPrettyChars, v.toChars());
+                                    .error(funcdecl.loc, "%s `%s` field `%s` must be initialized but skipped", funcdecl.kind, funcdecl.toPrettyChars, v.toErrMsg());
                                 }
                             }
                         }
@@ -819,7 +815,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     // Fallthrough despite being declared as noreturn? return is already rejected when evaluating the ReturnStatement
                     if (blockexit & BE.fallthru)
                     {
-                        .error(funcdecl.loc, "%s `%s` is typed as `%s` but does return", funcdecl.kind, funcdecl.toPrettyChars, f.next.toChars());
+                        .error(funcdecl.loc, "%s `%s` is typed as `%s` but does return", funcdecl.kind, funcdecl.toPrettyChars, f.next.toErrMsg());
                         funcdecl.loc.errorSupplemental("`noreturn` functions must either throw, abort or loop indefinitely");
                     }
                 }
@@ -828,7 +824,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if ((blockexit & BE.fallthru) && f.next.ty != Tvoid && !funcdecl.hasInlineAsm && !sc.inCfile)
                     {
                         if (!funcdecl.hasReturnExp)
-                            .error(funcdecl.loc, "%s `%s` has no `return` statement, but is expected to return a value of type `%s`", funcdecl.kind, funcdecl.toPrettyChars, f.next.toChars());
+                            .error(funcdecl.loc, "%s `%s` has no `return` statement, but is expected to return a value of type `%s`", funcdecl.kind, funcdecl.toPrettyChars, f.next.toErrMsg());
                         else
                             .error(funcdecl.loc, "%s `%s` no `return exp;` or `assert(0);` at end of function", funcdecl.kind, funcdecl.toPrettyChars);
                     }
@@ -836,7 +832,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 if (funcdecl.returns)
                 {
-                    bool implicit0 = addReturn0();
+                    bool implicit0 = fds.addReturn0();
                     Type tret = implicit0 ? Type.tint32 : f.next;
                     assert(tret.ty != Tvoid);
                     if (funcdecl.vresult || funcdecl.returnLabel)
@@ -901,7 +897,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                 {
                                     if ((cast(TypeStruct)exp.type.immutableOf()).implicitConvToWithoutAliasThis(tret))
                                         exp = exp.castTo(sc2, exp.type.immutableOf());
-                                    else if ((cast(TypeStruct)exp.type.immutableOf()).implicitConvToWithoutAliasThis(tret))
+                                    else if ((cast(TypeStruct)exp.type.wildOf()).implicitConvToWithoutAliasThis(tret))
                                         exp = exp.castTo(sc2, exp.type.wildOf());
                                 }
                             }
@@ -919,7 +915,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         {
                             if (!MODimplicitConv(exp.type.mod, tret.mod) && !tret.isTypeSArray())
                                 error(exp.loc, "expression `%s` of type `%s` is not implicitly convertible to return type `ref %s`",
-                                      exp.toChars(), exp.type.toChars(), tret.toChars());
+                                      exp.toErrMsg(), exp.type.toErrMsg(), tret.toErrMsg());
                             else
                                 exp = exp.implicitCastTo(sc2, tret);
 
@@ -969,8 +965,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                             /* https://issues.dlang.org/show_bug.cgi?id=10789
                              * If NRVO is not possible, all returned lvalues should call their postblits.
+                             * For functions with a __result variable, postblits will be called later
+                             * during initialization of __result.
                              */
-                            if (!funcdecl.isNRVO)
+                            if (!funcdecl.isNRVO && !funcdecl.vresult)
                                 exp = doCopyOrMove(sc2, exp, f.next, true, true);
 
                             if (tret.hasPointers())
@@ -981,9 +979,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                         if (funcdecl.vresult)
                         {
-                            // Create: return vresult = exp;
-                            exp = new BlitExp(rs.loc, funcdecl.vresult, exp);
-                            exp.type = funcdecl.vresult.type;
+                            Scope* scret = rs.fesFunc ? rs.fesFunc._scope : sc2;
+
+                            // Create: return (vresult = exp, vresult);
+                            exp = new ConstructExp(rs.loc, funcdecl.vresult, exp);
+                            exp = exp.expressionSemantic(scret);
+                            exp = Expression.combine(exp, new VarExp(rs.loc, funcdecl.vresult));
 
                             if (rs.caseDim)
                                 exp = Expression.combine(exp, new IntegerExp(rs.caseDim));
@@ -1106,6 +1107,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
             else
             {
                 auto a = new Statements();
+
+                size_t expectedSize = (funcdecl.parameters ? funcdecl.parameters.length : 0) + 7;
+                    a.reserve(expectedSize);
+
                 // Merge in initialization of 'out' parameters
                 if (funcdecl.parameters)
                 {
@@ -1187,7 +1192,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         a.push(s);
                     }
                 }
-                if (addReturn0())
+                if (fds.addReturn0())
                 {
                     // Add a return 0; statement
                     Statement s = new ReturnStatement(Loc.initial, IntegerExp.literal!0);
@@ -1268,7 +1273,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                     else
                     {
-                        .error(funcdecl.loc, "%s `%s` synchronized function `%s` must be a member of a class", funcdecl.kind, funcdecl.toPrettyChars, funcdecl.toChars());
+                        .error(funcdecl.loc, "%s `%s` synchronized function `%s` must be a member of a class", funcdecl.kind, funcdecl.toPrettyChars, funcdecl.toErrMsg());
                     }
                 }
 
@@ -1285,7 +1290,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     LabelDsymbol label = cast(LabelDsymbol)keyValue.value;
                     if (!label.statement && (!label.deleted || label.iasm))
                     {
-                        .error(label.loc, "%s `%s` label `%s` is undefined", funcdecl.kind, funcdecl.toPrettyChars, label.toChars());
+                        .error(label.loc, "%s `%s` label `%s` is undefined", funcdecl.kind, funcdecl.toPrettyChars, label.toErrMsg());
                     }
                 }
 
@@ -1403,9 +1408,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 return false;
             }
-            if (isCppNonMappableType(f.next.toBasetype()))
+            if (isCppNonMappableType(f.next.toBasetype()) && !funcdecl.skipCodegen)
             {
-                .error(funcdecl.loc, "%s `%s` cannot return type `%s` because its linkage is `extern(C++)`", funcdecl.kind, funcdecl.toErrMsg(), f.next.toChars());
+                .error(funcdecl.loc, "%s `%s` cannot return type `%s` because its linkage is `extern(C++)`", funcdecl.kind, funcdecl.toErrMsg(), f.next.toErrMsg());
                 if (f.next.isTypeDArray())
                     errorSupplemental(funcdecl.loc, "slices are specific to D and do not have a counterpart representation in C++", f.next.toChars());
                 funcdecl.errors = true;
@@ -1414,7 +1419,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 if (isCppNonMappableType(param.type.toBasetype(), param))
                 {
-                    .error(funcdecl.loc, "%s `%s` cannot have parameter of type `%s` because its linkage is `extern(C++)`", funcdecl.kind, funcdecl.toErrMsg(), param.type.toChars());
+                    .error(funcdecl.loc, "%s `%s` cannot have parameter of type `%s` because its linkage is `extern(C++)`", funcdecl.kind, funcdecl.toErrMsg(), param.type.toErrMsg());
                     if (param.type.toBasetype().isTypeSArray())
                         errorSupplemental(funcdecl.loc, "perhaps use a `%s*` type instead",
                                           param.type.nextOf().mutableOf().unSharedOf().toChars());
@@ -1430,11 +1435,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
             oblive(funcdecl);
         }
 
-        if (global.params.useFastDFA && global.errors == oldErrors && funcdecl.fbody && funcdecl.type.ty != Terror)
+        version (FastDFA)
         {
-            // Don't run DFA if there are errors,
-            //  this is a costly enough operation that it warrents the explicit check.
-            dfaEntry(funcdecl, sc);
+            if (global.params.useFastDFA && global.errors == oldErrors && funcdecl.fbody && funcdecl.type.ty != Terror)
+            {
+                // Don't run DFA if there are errors,
+                //  this is a costly enough operation that it warrents the explicit check.
+                dfaEntry(funcdecl, sc);
+            }
         }
 
         /* If this function had instantiated with gagging, error reproduction will be
@@ -1458,6 +1466,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
         if (ctor.semanticRun >= PASS.semantic3)
             return;
 
+        if (!ctor.fbody)
+            return visit(cast(FuncDeclaration)ctor);
+
+
         /* If any of the fields of the aggregate have a destructor, add
          *   scope (failure) { this.fieldDtor(); }
          * as the first statement of the constructor (unless the constructor
@@ -1468,7 +1480,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
          * https://issues.dlang.org/show_bug.cgi?id=14246
          */
         AggregateDeclaration ad = ctor.isMemberDecl();
-        if (!ctor.fbody || !ad || !ad.fieldDtor ||
+        if (!ad || !ad.fieldDtor ||
             global.params.dtorFields == FeatureState.disabled || !global.params.useExceptions || ctor.type.toTypeFunction.isNothrow)
             return visit(cast(FuncDeclaration)ctor);
 
@@ -1540,7 +1552,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
         visit(cast(FuncDeclaration)ctor);
     }
-
 
     override void visit(Nspace ns)
     {
@@ -1633,7 +1644,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         void notTemplateFunction(Loc loc, Identifier id)
         {
-            error(loc, "`%s` isn't a template function", id.toChars());
+            error(loc, "`%s` isn't a template function", id.toErrMsg());
         }
 
         // generate ti.entry
@@ -1717,6 +1728,21 @@ private struct FuncDeclSem3
             }
         }
     }
+
+    /* Determine if function should add `return 0;`
+     */
+    bool addReturn0()
+    {
+        //printf("addReturn0()\n");
+        auto f = funcdecl.type.isTypeFunction();
+        if (!f) return false;
+
+        // C11 5.1.2.2.3
+        if (sc.inCfile && funcdecl.isCMain() && f.next.ty == Tint32)
+            return true;
+
+        return f.next.ty == Tvoid && (funcdecl.isMain() || funcdecl.isCMain());
+    }
 }
 
 /***************************************
@@ -1752,25 +1778,20 @@ FuncDeclaration search_toString(StructDeclaration sd)
  */
 void semanticTypeInfoMembers(StructDeclaration sd)
 {
-    if (sd.xeq &&
-        sd.xeq._scope &&
-        sd.xeq.semanticRun < PASS.semantic3done)
+    void runSemantic(ref FuncDeclaration fd, ref FuncDeclaration errFd)
     {
-        const errors = global.startGagging();
-        sd.xeq.semantic3(sd.xeq._scope);
-        if (global.endGagging(errors))
-            sd.xeq = sd.xerreq;
+        if (fd && fd._scope && fd.semanticRun < PASS.semantic3done)
+        {
+            const errors = global.startGagging();
+            fd.semantic3(fd._scope);
+            if (global.endGagging(errors))
+                fd = errFd;
+        }
     }
 
-    if (sd.xcmp &&
-        sd.xcmp._scope &&
-        sd.xcmp.semanticRun < PASS.semantic3done)
-    {
-        const errors = global.startGagging();
-        sd.xcmp.semantic3(sd.xcmp._scope);
-        if (global.endGagging(errors))
-            sd.xcmp = sd.xerrcmp;
-    }
+    runSemantic(sd.xeq, sd.xerreq);
+    runSemantic(sd.xcmp, sd.xerrcmp);
+
 
     FuncDeclaration ftostr = search_toString(sd);
     if (ftostr &&
@@ -1859,23 +1880,50 @@ extern (D) bool checkClosure(FuncDeclaration fd)
 
     if (setGC(null, fd, fd.loc, "allocating a closure for `%s()`", fd))
     {
-        .error(fd.loc, "%s `%s` is `@nogc` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toChars());
+        .error(fd.loc, "%s `%s` is `@nogc` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toErrMsg());
         if (global.gag)     // need not report supplemental errors
             return true;
     }
     else if (!global.params.useGC)
     {
-        .error(fd.loc, "%s `%s` is `-betterC` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toChars());
+        .error(fd.loc, "%s `%s` is `-betterC` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toErrMsg());
         if (global.gag)     // need not report supplemental errors
             return true;
     }
     else
     {
         fd.printGCUsage(fd.loc, "using closure causes GC allocation");
+
+        findClosureVars(fd, (FuncDeclaration f, VarDeclaration v) {
+            if (!fd.vgcEnabled)
+                return;
+
+            .message(f.loc, "vgc: %s `%s` closes over variable `%s`",
+                f.kind, f.toErrMsg(), v.toErrMsg());
+            if (v.ident != Id.This)
+                .message(v.loc, "vgc: `%s` declared here", v.toErrMsg());
+        });
         return false;
     }
 
+    findClosureVars(fd, (FuncDeclaration f, VarDeclaration v) {
+        .errorSupplemental(f.loc, "%s `%s` closes over variable `%s`",
+            f.kind, f.toErrMsg(), v.toErrMsg());
+        if (v.ident != Id.This)
+            .errorSupplemental(v.loc, "`%s` declared here", v.toErrMsg());
+    });
+    return true;
+}
+
+/// For an outer function `fd`, find inner functions that cause a closure to be generated for it.
+/// Pass to `sink` each nested function along with the local variable that closes over `fd`'s stackframe
+private void findClosureVars(FuncDeclaration fd, scope void delegate(FuncDeclaration, VarDeclaration) sink)
+{
     FuncDeclarations a;
+
+    if (fd.closureVars.length > 0)
+        a.reserve(fd.closureVars.length);
+
     foreach (v; fd.closureVars)
     {
         foreach (f; v.nestedrefs)
@@ -1888,26 +1936,16 @@ extern (D) bool checkClosure(FuncDeclaration fd)
                 auto fx = s.isFuncDeclaration();
                 if (!fx)
                     continue;
-                if (fx.isThis() ||
-                    fx.tookAddressOf ||
-                    checkEscapingSiblings(fx, fd))
+                if (fx.isThis() || fx.tookAddressOf || checkEscapingSiblings(fx, fd))
                 {
-                    foreach (f2; a)
+                    if (!a.contains(f))
                     {
-                        if (f2 == f)
-                            break LcheckAncestorsOfANestedRef;
+                        a.push(f);
+                        sink(f, v);
                     }
-                    a.push(f);
-                    .errorSupplemental(f.loc, "%s `%s` closes over variable `%s`",
-                        f.kind, f.toErrMsg(), v.toChars());
-                    if (v.ident != Id.This)
-                        .errorSupplemental(v.loc, "`%s` declared here", v.toChars());
-
                     break LcheckAncestorsOfANestedRef;
                 }
             }
         }
     }
-
-    return true;
 }

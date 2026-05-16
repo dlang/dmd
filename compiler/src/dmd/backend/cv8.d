@@ -1,13 +1,13 @@
 /**
  * CodeView 8 symbolic debug info generation
  *
- * This module generates the `.debug$S` and ``.debug$T` sections for Win64,
+ * This module generates the `.debug$S` and `.debug$T` sections for Win64,
  * which are the MS-Coff symbolic debug info and type debug info sections.
  *
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:    Copyright (C) 2012-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:    Copyright (C) 2012-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/cv8.d, backend/cv8.d)
@@ -71,7 +71,7 @@ private __gshared OutBuffer* F2_buf;
 // The "F3" section, which is global and a string table of source file names.
 private __gshared OutBuffer* F3_buf;
 
-// The "F4" section, which is global and a lists info about source files.
+// The "F4" section, which is global and a list of info about source files.
 private __gshared OutBuffer* F4_buf;
 
 /* Fixups that go into F1 section

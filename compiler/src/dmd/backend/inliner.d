@@ -15,7 +15,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2022-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2022-2026 by The D Language Foundation, All Rights Reserved
  *              Some parts based on an inliner from the Digital Mars C compiler.
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
@@ -625,7 +625,7 @@ private void adjustExpression(elem* e)
         //elem_debug(e);
         //dbg_printf("adjustExpression(%p) ",e);WROP(e.Eoper);dbg_printf("\n");
         // the debugger falls over on debugging inlines
-        if (configv.addlinenumbers)
+        if (config.addlinenumbers)
             e.Esrcpos.Slinnum = 0;             // suppress debug info for inlines
         if (!OTleaf(e.Eoper))
         {

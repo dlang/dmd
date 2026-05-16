@@ -13,7 +13,7 @@ version (Windows)
     import core.sys.windows.winbase : GetCurrentThreadId, VirtualAlloc, VirtualFree;
     import core.sys.windows.winnt : MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_READWRITE;
 
-    alias int pthread_t;
+    alias pthread_t = int;
 
     pthread_t pthread_self() nothrow
     {

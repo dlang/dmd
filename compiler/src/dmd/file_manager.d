@@ -1,7 +1,7 @@
 /**
  * Read a file from disk and store it in memory.
  *
- * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/file_manager.d, _file_manager.d)
  * Documentation:  https://dlang.org/phobos/dmd_file_manager.html
@@ -16,7 +16,7 @@ import dmd.root.stringtable : StringTable;
 import dmd.root.file : File;
 import dmd.root.filename : FileName, isDirSeparator;
 import dmd.root.string : toDString;
-import dmd.globals;
+import dmd.globals : mars_ext, hdr_ext, i_ext, h_ext, c_ext, ImportPathInfo;
 import dmd.identifier;
 import dmd.location;
 

@@ -71,7 +71,7 @@ else
 
 debug (PRINTF) import core.stdc.stdio : printf;
 
-alias DSO SectionGroup;
+alias SectionGroup = DSO;
 struct DSO
 {
     static int opApply(scope int delegate(ref DSO) dg)

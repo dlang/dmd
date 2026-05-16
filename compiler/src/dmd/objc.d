@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/objc_interface.html, Interfacing to Objective-C)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/objc.d, _objc.d)
@@ -838,8 +838,8 @@ extern(C++) private final class Supported : Objc
         enum supplementalMessage = "`offsetof` is not available for members " ~
             "of Objective-C classes. Please use the Objective-C runtime instead";
 
-        error(expression.loc, errorMessage, expression.toChars(),
-            expression.type.toChars());
+        error(expression.loc, errorMessage, expression.toErrMsg(),
+            expression.type.toErrMsg());
         errorSupplemental(expression.loc, supplementalMessage);
     }
 
@@ -848,7 +848,7 @@ extern(C++) private final class Supported : Objc
         if (type.sym.classKind != ClassKind.objc)
             return;
 
-        error(expression.loc, "no property `tupleof` for type `%s`", type.toChars());
+        error(expression.loc, "no property `tupleof` for type `%s`", type.toErrMsg());
         errorSupplemental(expression.loc, "`tupleof` is not available for members " ~
             "of Objective-C classes. Please use the Objective-C runtime instead");
     }

@@ -84,6 +84,32 @@ else
 }
 
 /**
+* When applied to a global variable, causes it to be emitted to a
+* non-standard object file/executable section.
+*
+* The target platform might impose certain restrictions on the format for
+* section names.
+*
+* Examples:
+* ---
+* import core.attributes;
+*
+* @section("mySection") int myGlobal;
+* ---
+*/
+version (DigitalMars)
+{
+    struct section
+    {
+        string name;
+    }
+}
+else
+{
+    // GDC and LDC declare this attribute in their own modules.
+}
+
+/**
  * Use this attribute to attach an Objective-C selector to a method.
  *
  * This is a special compiler recognized attribute, it has several

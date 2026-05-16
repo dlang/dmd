@@ -41,8 +41,8 @@ enum : UINT {
 struct IP_ADDRESS_STRING {
     char[16] String = 0;
 }
-alias IP_ADDRESS_STRING IP_MASK_STRING;
-alias IP_ADDRESS_STRING* PIP_ADDRESS_STRING, PIP_MASK_STRING;
+alias IP_MASK_STRING = IP_ADDRESS_STRING;
+alias PIP_ADDRESS_STRING = IP_ADDRESS_STRING*, PIP_MASK_STRING = IP_ADDRESS_STRING*;
 
 struct IP_ADDR_STRING {
     IP_ADDR_STRING*   Next;
@@ -50,7 +50,7 @@ struct IP_ADDR_STRING {
     IP_MASK_STRING    IpMask;
     DWORD             Context;
 }
-alias IP_ADDR_STRING* PIP_ADDR_STRING;
+alias PIP_ADDR_STRING = IP_ADDR_STRING*;
 
 struct IP_ADAPTER_INFO {
     IP_ADAPTER_INFO* Next;
@@ -72,7 +72,7 @@ struct IP_ADAPTER_INFO {
     time_t           LeaseObtained;
     time_t           LeaseExpires;
 }
-alias IP_ADAPTER_INFO* PIP_ADAPTER_INFO;
+alias PIP_ADAPTER_INFO = IP_ADAPTER_INFO*;
 
 struct IP_PER_ADAPTER_INFO {
     UINT AutoconfigEnabled;
@@ -80,7 +80,7 @@ struct IP_PER_ADAPTER_INFO {
     PIP_ADDR_STRING CurrentDnsServer;
     IP_ADDR_STRING DnsServerList;
 }
-alias IP_PER_ADAPTER_INFO* PIP_PER_ADAPTER_INFO;
+alias PIP_PER_ADAPTER_INFO = IP_PER_ADAPTER_INFO*;
 
 struct FIXED_INFO {
     char[MAX_HOSTNAME_LEN+4]    HostName = 0;
@@ -93,4 +93,4 @@ struct FIXED_INFO {
     UINT                        EnableProxy;
     UINT                        EnableDns;
 }
-alias FIXED_INFO* PFIXED_INFO;
+alias PFIXED_INFO = FIXED_INFO*;

@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/symbol.d
@@ -19,6 +19,7 @@ import core.stdc.string;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
+import dmd.backend.code;
 import dmd.backend.cgcv;
 import dmd.backend.dlist;
 import dmd.backend.dt;
@@ -30,6 +31,7 @@ import dmd.backend.oper;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.var : bo;
 
 
 nothrow:
@@ -59,7 +61,7 @@ void symbol_print(const ref Symbol s)
 debug
 {
     printf("symbol '%s'\n ", s.Sident.ptr);
-    printf(" Sclass = %s ", class_str(s.Sclass));
+    printf(" Sclass = SC.%s ", class_str(s.Sclass));
     printf(" Ssymnum = %d",cast(int)s.Ssymnum);
     printf(" Sfl = %s", fl_str(cast(FL) s.Sfl));
     printf(" Sseg = %d\n",s.Sseg);
@@ -351,13 +353,13 @@ Symbol* symbol_genauto(tym_t ty)
 @trusted @nogc
 void symbol_func(ref Symbol s)
 {
-    //printf("symbol_func(%s, x%x)\n", s.Sident.ptr, fregsaved);
+    //printf("symbol_func(%s, x%x)\n", s.Sident.ptr, cgstate.fregsaved);
     symbol_debug(&s);
     s.Sfl = FL.func;
     // Interrupt functions modify all registers
     // BUG: do interrupt functions really save BP?
-    // Note that fregsaved may not be set yet
-    s.Sregsaved = s.Stype && tybasic(s.Stype.Tty) == TYifunc ? cast(regm_t) mBP : fregsaved;
+    // Note that cgstate.fregsaved may not be set yet
+    s.Sregsaved = s.Stype && tybasic(s.Stype.Tty) == TYifunc ? cast(regm_t) mBP : cgstate.fregsaved;
     s.Sseg = UNKNOWN;          // don't know what segment it is in
     if (!s.Sfunc)
         s.Sfunc = func_calloc();
@@ -499,7 +501,7 @@ debug
                 func_t* f = s.Sfunc;
 
                 debug assert(f);
-                blocklist_free(&f.Fstartblock);
+                blocklist_free(bo, &f.Fstartblock);
                 freesymtab(f.Flocsym[].ptr,0,f.Flocsym.length);
 
                 f.Flocsym.dtor();

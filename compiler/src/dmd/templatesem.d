@@ -1,7 +1,7 @@
 /**
  * Template semantics.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/templatesem.d, _templatesem.d)
@@ -47,6 +47,7 @@ import dmd.mtype;
 import dmd.opover;
 import dmd.optimize;
 import dmd.root.array;
+import dmd.root.string : toDString;
 import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.semantic2;
@@ -71,7 +72,7 @@ enum LOG = false;
  */
 bool reliesOnTident(Type t, TemplateParameters* tparams, size_t iStart = 0)
 {
-    return reliesOnTemplateParameters(t, (*tparams)[0 .. tparams.length]);
+    return reliesOnTemplateParameters(t, (*tparams)[iStart .. tparams.length]);
 }
 
 /***********************************************************
@@ -455,6 +456,44 @@ void computeOneMember(TemplateDeclaration td)
     }
 }
 
+private void computeIsTrivialAlias(TemplateDeclaration td, Dsymbol s)
+{
+    /* Set isTrivialAliasSeq if this fits the pattern:
+     *   template AliasSeq(T...) { alias AliasSeq = T; }
+     * or set isTrivialAlias if this fits the pattern:
+     *   template Alias(T) { alias Alias = qualifiers(T); }
+     */
+    if (!(td.parameters && td.parameters.length == 1))
+        return;
+
+    auto ad = s.isAliasDeclaration();
+    if (!ad || !ad.type)
+        return;
+
+    auto ti = ad.type.isTypeIdentifier();
+
+    if (!ti || ti.idents.length != 0)
+        return;
+
+    if (auto ttp = (*td.parameters)[0].isTemplateTupleParameter())
+    {
+        if (ti.ident is ttp.ident &&
+            ti.mod == 0)
+        {
+            //printf("found isTrivialAliasSeq %s %s\n", s.toChars(), ad.type.toChars());
+            td.isTrivialAliasSeq = true;
+        }
+    }
+    else if (auto ttp = (*td.parameters)[0].isTemplateTypeParameter())
+    {
+        if (ti.ident is ttp.ident)
+        {
+            //printf("found isTrivialAlias %s %s\n", s.toChars(), ad.type.toChars());
+            td.isTrivialAlias = true;
+        }
+    }
+}
+
 bool declareParameter(TemplateParameter _this, Scope* sc)
 {
     static bool typeDeclareParameter(TemplateTypeParameter _this, Scope* sc)
@@ -765,7 +804,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
         TemplateParameter tp = (*tempdecl.parameters)[i];
         if (!tp.declareParameter(paramscope))
         {
-            error(tp.loc, "parameter `%s` multiply defined", tp.ident.toChars());
+            error(tp.loc, "parameter `%s` multiply defined", tp.ident.toErrMsg());
             tempdecl.errors = true;
         }
         if (!tp.tpsemantic(paramscope, tempdecl.parameters))
@@ -827,6 +866,18 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
 
 void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList argumentList)
 {
+    void Lerror()
+    {
+        if (tempinst.gagged)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=13220
+            // Roll back status for later semantic re-running
+            tempinst.semanticRun = PASS.initial;
+        }
+        else
+            tempinst.inst = tempinst;
+        tempinst.errors = true;
+    }
     //printf("[%s] TemplateInstance.dsymbolSemantic('%s', this=%p, gag = %d, sc = %p)\n", tempinst.loc.toChars(), tempinst.toChars(), tempinst, global.gag, sc);
     version (none)
     {
@@ -873,11 +924,10 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     }
 
     timeTraceBeginEvent(TimeTraceEventType.sema1TemplateInstance);
-    scope (exit) timeTraceEndEvent(TimeTraceEventType.sema1TemplateInstance, tempinst);
-
+    scope (exit) timeTraceEndEvent(TimeTraceEventType.sema1TemplateInstance, tempinst,
+        () => tempinst.toPrettyChars().toDString());
     // Get the enclosing template instance from the scope tinst
     tempinst.tinst = sc.tinst;
-
     // Get the instantiating module from the scope minst
     tempinst.minst = sc.minst;
     // https://issues.dlang.org/show_bug.cgi?id=10920
@@ -900,19 +950,33 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
      * then run semantic on each argument (place results in tiargs[]),
      * last find most specialized template from overload list/set.
      */
-    if (!tempinst.findTempDecl(sc, null) || !tempinst.semanticTiargs(sc) || !tempinst.findBestMatch(sc, argumentList))
+    if (!tempinst.findTempDecl(sc, null))
+        return Lerror();
+
+    // Trace template argument semantic analysis as a sub-span of the template instance
     {
-    Lerror:
-        if (tempinst.gagged)
+        bool tiargs_ok;
         {
-            // https://issues.dlang.org/show_bug.cgi?id=13220
-            // Roll back status for later semantic re-running
-            tempinst.semanticRun = PASS.initial;
+            timeTraceBeginEvent(TimeTraceEventType.sema1TemplateArgSemantic);
+            scope (exit) timeTraceEndEvent(TimeTraceEventType.sema1TemplateArgSemantic, tempinst,
+                () => tempinst.toPrettyChars().toDString());
+            tiargs_ok = tempinst.semanticTiargs(sc);
         }
-        else
-            tempinst.inst = tempinst;
-        tempinst.errors = true;
-        return;
+        if (!tiargs_ok)
+            return Lerror();
+    }
+
+    // Trace overload resolution (findBestMatch) as a sub-span of the template instance
+    {
+        bool match_ok;
+        {
+            timeTraceBeginEvent(TimeTraceEventType.sema1TemplateOverloadResolution);
+            scope (exit) timeTraceEndEvent(TimeTraceEventType.sema1TemplateOverloadResolution, tempinst,
+                () => tempinst.toPrettyChars().toDString());
+            match_ok = tempinst.findBestMatch(sc, argumentList);
+        }
+        if (!match_ok)
+            return Lerror();
     }
     TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
     assert(tempdecl);
@@ -926,12 +990,12 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     if (tempdecl.ismixin)
     {
         .error(tempinst.loc, "%s `%s` mixin templates are not regular templates", tempinst.kind, tempinst.toPrettyChars);
-        goto Lerror;
+        return Lerror();
     }
 
     tempinst.hasNestedArgs(tempinst.tiargs, tempdecl.isstatic);
     if (tempinst.errors)
-        goto Lerror;
+        return Lerror();
 
     // Copy the tempdecl namespace (not the scope one)
     tempinst.cppnamespace = tempdecl.cppnamespace;
@@ -1155,7 +1219,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     if (tempdecl.semanticRun == PASS.initial)
     {
         .error(tempinst.loc, "%s `%s` template instantiation `%s` forward references template declaration `%s`",
-           tempinst.kind, tempinst.toPrettyChars, tempinst.toChars(), tempdecl.toChars());
+           tempinst.kind, tempinst.toPrettyChars, tempinst.toErrMsg(), tempdecl.toErrMsg());
         return;
     }
 
@@ -1242,7 +1306,12 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     sc2.tinst = tempinst;
     sc2.minst = tempinst.minst;
     sc2.stc &= ~STC.deprecated_;
-    tempinst.tryExpandMembers(sc2);
+    {
+        timeTraceBeginEvent(TimeTraceEventType.sema1TemplateMembers);
+        tempinst.tryExpandMembers(sc2);
+        timeTraceEndEvent(TimeTraceEventType.sema1TemplateMembers, tempinst,
+            () => tempinst.toPrettyChars().toDString());
+    }
 
     tempinst.semanticRun = PASS.semanticdone;
 
@@ -1303,7 +1372,10 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
          * are forward referenced. Find a way to defer semantic()
          * on this template.
          */
+        timeTraceBeginEvent(TimeTraceEventType.sema1TemplateInstanceSema2);
         tempinst.semantic2(sc2);
+        timeTraceEndEvent(TimeTraceEventType.sema1TemplateInstanceSema2, tempinst,
+            () => tempinst.toPrettyChars().toDString());
     }
     if (global.errors != errorsave)
         goto Laftersemantic;
@@ -1330,7 +1402,12 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
         if (sc.isDeprecated() && isDRuntimeHook(tempinst.name))
             global.params.useDeprecated = DiagnosticReporting.off;
 
-        tempinst.trySemantic3(sc2);
+        {
+            timeTraceBeginEvent(TimeTraceEventType.sema1TemplateInstanceSema3);
+            tempinst.trySemantic3(sc2);
+            timeTraceEndEvent(TimeTraceEventType.sema1TemplateInstanceSema3, tempinst,
+                () => tempinst.toPrettyChars().toDString());
+        }
 
         global.params.useDeprecated = saveUseDeprecated;
 
@@ -1571,8 +1648,8 @@ private bool hasNestedArgs(TemplateInstance _this, Objects* args, bool isstatic)
         if (search(dparent, _this.enclosing))
         {
             .error(_this.loc, "%s `%s` `%s` is nested in both `%s` and `%s`",
-                   _this.kind, _this.toPrettyChars(), _this.toChars(),
-                   _this.enclosing.toChars(), dparent.toChars());
+                   _this.kind, _this.toPrettyChars(), _this.toErrMsg(),
+                   _this.enclosing.toErrMsg(), dparent.toErrMsg());
             _this.errors = true;
         }
         //printf("\tnested inside %s as it references %s\n", enclosing.toChars(), sa.toChars());
@@ -1641,7 +1718,7 @@ private bool hasNestedArgs(TemplateInstance _this, Objects* args, bool isstatic)
         if (ea.op != EXP.int64 && ea.op != EXP.float64 && ea.op != EXP.complex80 && ea.op != EXP.null_ && ea.op != EXP.string_ && ea.op != EXP.arrayLiteral && ea.op != EXP.assocArrayLiteral && ea.op != EXP.structLiteral)
         {
             if (!ea.type.isTypeError())
-                .error(ea.loc, "%s `%s` expression `%s` is not a valid template value argument", _this.kind, _this.toPrettyChars, ea.toChars());
+                .error(ea.loc, "%s `%s` expression `%s` is not a valid template value argument", _this.kind, _this.toPrettyChars, ea.toErrMsg());
             _this.errors = true;
         }
     }
@@ -1980,9 +2057,9 @@ bool findTempDecl(TemplateInstance ti, Scope* sc, WithScopeSymbol* pwithsym)
         {
             s = sc.search_correct(id);
             if (s)
-                .error(ti.loc, "%s `%s` template `%s` is not defined, did you mean %s?", ti.kind, ti.toPrettyChars(), id.toChars(), s.toChars());
+                .error(ti.loc, "%s `%s` template `%s` is not defined, did you mean %s?", ti.kind, ti.toPrettyChars(), id.toErrMsg(), s.toErrMsg());
             else
-                .error(ti.loc, "%s `%s` template `%s` is not defined", ti.kind, ti.toPrettyChars(), id.toChars());
+                .error(ti.loc, "%s `%s` template `%s` is not defined", ti.kind, ti.toPrettyChars(), id.toErrMsg());
             return false;
         }
         static if (LOG)
@@ -2051,7 +2128,7 @@ bool findTempDecl(TemplateInstance ti, Scope* sc, WithScopeSymbol* pwithsym)
                 if (td.semanticRun == PASS.initial)
                 {
                     .error(ti.loc, "%s `%s` `%s` forward references template declaration `%s`",
-                           ti.kind, ti.toPrettyChars(), ti.toChars(), td.toChars());
+                           ti.kind, ti.toPrettyChars(), ti.toErrMsg(), td.toErrMsg());
                     return 1;
                 }
             }
@@ -2103,7 +2180,7 @@ bool findMixinTempDecl(TemplateMixin tm, Scope* sc)
         if (!tm.tempdecl)
         {
             .error(tm.loc, "%s `%s` - `%s` is a %s, not a template", tm.kind,
-                   tm.toPrettyChars, s.toChars(), s.kind());
+                   tm.toPrettyChars, s.toErrMsg(), s.kind());
             return false;
         }
     }
@@ -2151,15 +2228,14 @@ bool findMixinTempDecl(TemplateMixin tm, Scope* sc)
 private bool isDRuntimeHook(Identifier id)
 {
     return id == Id._d_HookTraceImpl ||
-        id == Id._d_newclassT || id == Id._d_newclassTTrace ||
-        id == Id._d_arraycatnTX || id == Id._d_arraycatnTXTrace ||
+        id == Id._d_newclassT ||
+        id == Id._d_arraycatnTX ||
         id == Id._d_newThrowable || id == Id._d_delThrowable ||
         id == Id._d_arrayassign_l || id == Id._d_arrayassign_r ||
         id == Id._d_arraysetassign || id == Id._d_arraysetctor ||
         id == Id._d_arrayctor ||
         id == Id._d_arraysetlengthT ||
-        id == Id._d_arraysetlengthTTrace ||
-        id == Id._d_arrayappendT || id == Id._d_arrayappendTTrace ||
+        id == Id._d_arrayappendT ||
         id == Id._d_arrayappendcTX;
 }
 
@@ -2754,8 +2830,8 @@ private MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t 
                 if (m2 == MATCH.nomatch)
                     return matchArgNoMatch();
             }
-            // check specialization if template arg is a type
-            else if (ta)
+            // check specialization if template arg is a type (and sa doesn't already match specAlias)
+            else if (ta && sa != tap.specAlias)
             {
                 if (Type tspec = isType(tap.specAlias))
                 {
@@ -2766,9 +2842,18 @@ private MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t 
                 else
                 {
                     error(tap.loc, "template parameter specialization for a type must be a type and not `%s`",
-                        tap.specAlias.toChars());
+                        tap.specAlias.toErrMsg());
                     return matchArgNoMatch();
                 }
+            }
+            // reject expression arguments that don't match the specialization
+            else if (sa != tap.specAlias)
+            {
+                // allow expression specialization matched by value (e.g. `alias s : 3` matched by `Bar!3`)
+                Expression ea2 = isExpression(sa);
+                Expression espec = isExpression(tap.specAlias);
+                if (!ea2 || !espec || !ea2.equals(espec))
+                    return matchArgNoMatch();
             }
         }
         else if (dedtypes[i])
@@ -2778,7 +2863,9 @@ private MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t 
             if (!sa || si != sa)
                 return matchArgNoMatch();
         }
-        dedtypes[i] = sa;
+        // Note: Dsymbol can't have type qualifiers, so use type if it has them
+        // https://github.com/dlang/dmd/issues/17959
+        dedtypes[i] = ta && ta.mod ? ta : sa;
 
         if (psparam)
         {
@@ -2879,7 +2966,7 @@ bool updateTempDecl(TemplateInstance ti, Scope* sc, Dsymbol s)
         }
         if (!s)
         {
-            .error(ti.loc, "%s `%s` template `%s` is not defined", ti.kind, ti.toPrettyChars, id.toChars());
+            .error(ti.loc, "%s `%s` template `%s` is not defined", ti.kind, ti.toPrettyChars, id.toErrMsg());
             return false;
         }
     }
@@ -2910,7 +2997,7 @@ bool updateTempDecl(TemplateInstance ti, Scope* sc, Dsymbol s)
         Dsymbol s2 = dmd.dsymbolsem.getType(s).toDsymbol(sc);
         if (!s2)
         {
-            .error(ti.loc, "`%s` is not a valid template instance, because `%s` is not a template declaration but a type (`%s == %s`)", ti.toChars(), id.toChars(), id.toChars(), dmd.dsymbolsem.getType(s).kind());
+            .error(ti.loc, "`%s` is not a valid template instance, because `%s` is not a template declaration but a type (`%s == %s`)", ti.toErrMsg(), id.toErrMsg(), id.toErrMsg(), dmd.dsymbolsem.getType(s).kind());
             return false;
         }
         // because s can be the alias created for a TemplateParameter
@@ -2951,7 +3038,7 @@ bool updateTempDecl(TemplateInstance ti, Scope* sc, Dsymbol s)
     else
     {
         .error(ti.loc, "%s `%s` `%s` is not a template declaration, it is a %s",
-               ti.kind, ti.toPrettyChars, id.toChars(), s.kind());
+               ti.kind, ti.toPrettyChars, id.toErrMsg(), s.kind());
         return false;
     }
 }
@@ -3471,7 +3558,7 @@ private bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Sco
             if (!ti.symtab)
                 ti.symtab = new DsymbolTable();
             if (!scx.insert(v))
-                .error(td.loc, "%s `%s` parameter `%s.%s` is already defined", td.kind, td.toPrettyChars, td.toChars(), v.toChars());
+                .error(td.loc, "%s `%s` parameter `%s.%s` is already defined", td.kind, td.toPrettyChars, td.toErrMsg(), v.toErrMsg());
             else
                 v.parent = fd;
         }
@@ -3673,7 +3760,7 @@ bool findBestMatch(TemplateInstance ti, Scope* sc, ArgumentList argumentList)
         if (td_ambig)
         {
             .error(ti.loc, "%s `%s.%s` matches more than one template declaration:",
-                td_best.kind(), td_best.parent.toPrettyChars(), td_best.ident.toChars());
+                td_best.kind(), td_best.parent.toPrettyChars(), td_best.ident.toErrMsg());
             .errorSupplemental(td_best.loc, "`%s`\nand:", td_best.toChars());
             .errorSupplemental(td_ambig.loc, "`%s`", td_ambig.toChars());
             return false;
@@ -4009,7 +4096,7 @@ private RootObject defaultArg(TemplateParameter tp, Loc instLoc, Scope* sc)
 
         e = e.syntaxCopy();
         Scope* sc2 = sc.push();
-        sc2.inDefaultArg = true;
+        sc2.callLoc = instLoc;
         e = e.expressionSemantic(sc2);
         sc2.pop();
         if (e is null)
@@ -4030,7 +4117,6 @@ private RootObject defaultArg(TemplateParameter tp, Loc instLoc, Scope* sc)
         }
         if ((e = resolveProperties(sc, e)) is null)
             return null;
-        e = e.resolveLoc(instLoc, sc); // use the instantiated loc
         e = e.optimize(WANTvalue);
 
         return e;
@@ -4335,7 +4421,11 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
             }
             if (fname && !foundName)
             {
-                argi = DEFAULT_ARGI;
+                // For a variadic tuple parameter, don't mark as DEFAULT_ARGI.
+                // The named arg goes to a post-tuple parameter; the tuple will
+                // be handled below (possibly as an empty tuple T = ()).
+                if (!(fptupindex != IDX_NOTFOUND && parami == fptupindex))
+                    argi = DEFAULT_ARGI;
             }
 
             /* See function parameters which wound up
@@ -4355,20 +4445,26 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
 
                     /* Count function parameters with no defaults following a tuple parameter.
                      * void foo(U, T...)(int y, T, U, double, int bar = 0) {}  // rem == 2 (U, double)
+                     * Parameters provided as named arguments don't count towards rem.
                      */
                     size_t rem = 0;
                     foreach (j; parami + 1 .. nfparams)
                     {
                         Parameter p = fparameters[j];
                         if (p.defaultArg)
-                        {
                             break;
-                        }
-                        foreach(argLabel; fnames)
+                        // If covered by a named argument, no positional arg is needed for it
+                        bool coveredByNamedArg = false;
+                        foreach (argLabel; fnames)
                         {
-                            if (p.ident == argLabel.name)
+                            if (p.ident && p.ident == argLabel.name)
+                            {
+                                coveredByNamedArg = true;
                                 break;
+                            }
                         }
+                        if (coveredByNamedArg)
+                            continue;
                         if (!reliesOnTemplateParameters(p.type, (*td.parameters)[inferStart .. td.parameters.length]))
                         {
                             Type pt = p.type.syntaxCopy().typeSemantic(fd.loc, paramscope);
@@ -4383,12 +4479,26 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
                         }
                     }
 
-                    if (nfargs2 - argi < rem)
-                        return nomatch();
-                    declaredTuple.objects.setDim(nfargs2 - argi - rem);
-                    foreach (i; 0 .. declaredTuple.objects.length)
+                    // Named args are anonymous-tuple boundaries: they always target
+                    // explicitly-named post-tuple parameters. The first named arg
+                    // in the list marks where the tuple ends; any positional args
+                    // after it also go to post-tuple parameters (in order).
+                    size_t tupleEnd = nfargs2;
+                    foreach (i; argi .. nfargs2)
                     {
-                        farg = fargs[argi + i];
+                        if (i < fnames.length && fnames[i].name)
+                        {
+                            tupleEnd = i;
+                            break;
+                        }
+                    }
+
+                    if (tupleEnd - argi < rem)
+                        return nomatch();
+                    declaredTuple.objects.setDim(tupleEnd - argi - rem);
+                    foreach (i; argi .. tupleEnd - rem)
+                    {
+                        farg = fargs[i];
 
                         // Check invalid arguments to detect errors early.
                         if (farg.op == EXP.error || farg.type.ty == Terror)
@@ -4419,7 +4529,7 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
                         {
                             tt = tt.mutableOf();
                         }
-                        declaredTuple.objects[i] = tt;
+                        declaredTuple.objects[i - argi] = tt;
                     }
                     td.declareParameter(paramscope, tp, declaredTuple);
                 }
@@ -4536,7 +4646,7 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
                                     matchTiargs = m2; // pick worst match
                                 if (!rootObjectsEqual((*dedtypes)[i], oded))
                                     .error(td.loc, "%s `%s` specialization not allowed for deduced parameter `%s`",
-                                        td.kind, td.toPrettyChars, td.kind, td.toPrettyChars, tparam.ident.toChars());
+                                        td.kind, td.toPrettyChars, td.kind, td.toPrettyChars, tparam.ident.toErrMsg());
                             }
                             else
                             {
@@ -4583,8 +4693,23 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
 
                 // Deduce prmtype from the defaultArg.
                 farg = fparam.defaultArg.syntaxCopy();
-                farg = farg.expressionSemantic(paramscope);
-                farg = resolveProperties(paramscope, farg);
+                if (argi == DEFAULT_ARGI)
+                {
+                    // Named arg: this parameter gets its default value because no named
+                    // argument matched it. Try to evaluate the default arg for type deduction,
+                    // but if it references template parameters not yet known (e.g. `A.init`
+                    // when A is unresolved), skip deduction here.
+                    const olderrors = global.startGagging();
+                    farg = farg.expressionSemantic(paramscope);
+                    farg = resolveProperties(paramscope, farg);
+                    if (global.endGagging(olderrors) || farg.op == EXP.error || farg.type.ty == Terror)
+                        continue;
+                }
+                else
+                {
+                    farg = farg.expressionSemantic(paramscope);
+                    farg = resolveProperties(paramscope, farg);
+                }
             }
             else
             {
@@ -4832,7 +4957,7 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
                                 MATCH m = dim.implicitConvTo(vt);
                                 if (m == MATCH.nomatch)
                                     return nomatch();
-                                (*dedtypes)[i] = dim;
+                                (*dedtypes)[i] = dim.implicitCastTo(sc, vt).ctfeInterpret();
                             }
                         }
                     }
@@ -4938,7 +5063,7 @@ Lmatch:
                 if (m2 < matchTiargs)
                     matchTiargs = m2; // pick worst match
                 if (!rootObjectsEqual((*dedtypes)[i],oded))
-                    .error(td.loc, "%s `%s` specialization not allowed for deduced parameter `%s`", td.kind, td.toPrettyChars, tparam.ident.toChars());
+                    .error(td.loc, "%s `%s` specialization not allowed for deduced parameter `%s`", td.kind, td.toPrettyChars, tparam.ident.toErrMsg());
             }
             else
             {
@@ -4985,7 +5110,7 @@ Lmatch:
                 if (m2 < matchTiargs)
                     matchTiargs = m2; // pick worst match
                 if (!rootObjectsEqual((*dedtypes)[i], oded))
-                    .error(td.loc, "%s `%s` specialization not allowed for deduced parameter `%s`", td.kind, td.toPrettyChars, tparam.ident.toChars());
+                    .error(td.loc, "%s `%s` specialization not allowed for deduced parameter `%s`", td.kind, td.toPrettyChars, tparam.ident.toErrMsg());
             }
         }
         oded = td.declareParameter(paramscope, tparam, oded);
@@ -5242,7 +5367,7 @@ private RootObject declareParameter(TemplateDeclaration td, Scope* sc, TemplateP
     }
 
     if (!sc.insert(d))
-        .error(td.loc, "%s `%s` declaration `%s` is already defined", td.kind, td.toPrettyChars, tp.ident.toChars());
+        .error(td.loc, "%s `%s` declaration `%s` is already defined", td.kind, td.toPrettyChars, tp.ident.toErrMsg());
     d.dsymbolSemantic(sc);
     /* So the caller's o gets updated with the result of semantic() being run on o
      */
@@ -5569,7 +5694,7 @@ bool TemplateInstance_semanticTiargs(Loc loc, Scope* sc, Objects* tiargs, int fl
  *      errorHelper = delegate to send error message to if not null
  */
 void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs,
-    Type tthis, ArgumentList argumentList, void delegate(const(char)*) scope errorHelper = null)
+    Type tthis, ArgumentList argumentList, void delegate(const(char)*, Loc argloc = Loc.initial) scope errorHelper = null)
 {
     version (none)
     {
@@ -5621,7 +5746,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         }
         if (fd.semanticRun < PASS.semanticdone)
         {
-            .error(loc, "forward reference to template `%s`", fd.toChars());
+            .error(loc, "forward reference to template `%s`", fd.toErrMsg());
             return 1;
         }
         //printf("fd = %s %s, fargs = %s\n", fd.toChars(), fd.type.toChars(), fargs.toChars());
@@ -5794,7 +5919,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         }
         if (td.semanticRun == PASS.initial)
         {
-            .error(loc, "forward reference to template `%s`", td.toChars());
+            .error(loc, "forward reference to template `%s`", td.toErrMsg());
         Lerror:
             m.lastf = null;
             m.count = 0;
@@ -5840,7 +5965,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                         {
                             if (scx == p.sc)
                             {
-                                error(loc, "recursive template expansion while looking for `%s.%s`", ti.toChars(), tdx.toChars());
+                                error(loc, "recursive template expansion while looking for `%s.%s`", ti.toErrMsg(), tdx.toErrMsg());
                                 goto Lerror;
                             }
                         }
@@ -7598,7 +7723,39 @@ MATCH deduceType(scope RootObject o, scope Scope* sc, scope Type tparam,
                 //printf("\ttf  = %s\n", tf.toChars());
                 const dim = tf.parameterList.length;
 
-                if (tof.parameterList.length != dim || tof.parameterList.varargs != tf.parameterList.varargs)
+                if (tof.parameterList.varargs != tf.parameterList.varargs)
+                    return;
+
+                // https://github.com/dlang/dmd/issues/19905
+                // Resolve and expand TypeTuples (e.g. from AliasSeq) in tof's parameters
+                // before comparing counts. We can't call TypeFunction.typeSemantic because
+                // the return type may contain unresolved template parameters.
+                Types* expandedTypes;
+                foreach (pto; *tof.parameterList.parameters)
+                {
+                    Type pt = pto.type;
+                    if (!reliesOnTemplateParameters(pt, parameters[inferStart .. parameters.length]))
+                    {
+                        pt = pt.syntaxCopy().typeSemantic(e.loc, sc);
+                        if (pt.ty == Terror)
+                            return;
+                    }
+                    if (auto tt = pt.isTypeTuple())
+                    {
+                        if (!expandedTypes)
+                            expandedTypes = new Types();
+                        foreach (arg; *tt.arguments)
+                            expandedTypes.push(arg.type);
+                    }
+                    else
+                    {
+                        if (!expandedTypes)
+                            expandedTypes = new Types();
+                        expandedTypes.push(pt);
+                    }
+                }
+
+                if (!expandedTypes || expandedTypes.length != dim)
                     return;
 
                 auto tiargs = new Objects();
@@ -7614,15 +7771,19 @@ MATCH deduceType(scope RootObject o, scope Scope* sc, scope Type tparam,
                         ++u;
                     }
                     assert(u < dim);
-                    Parameter pto = tof.parameterList[u];
-                    if (!pto)
+                    Type t = (*expandedTypes)[u];
+                    if (!t)
                         break;
-                    Type t = pto.type.syntaxCopy(); // https://issues.dlang.org/show_bug.cgi?id=11774
                     if (reliesOnTemplateParameters(t, parameters[inferStart .. parameters.length]))
                         return;
-                    t = t.typeSemantic(e.loc, sc);
-                    if (t.ty == Terror)
-                        return;
+                    // https://issues.dlang.org/show_bug.cgi?id=11774
+                    t = t.syntaxCopy();
+                    if (!t.deco)
+                    {
+                        t = t.typeSemantic(e.loc, sc);
+                        if (t.ty == Terror)
+                            return;
+                    }
                     tiargs.push(t);
                 }
 

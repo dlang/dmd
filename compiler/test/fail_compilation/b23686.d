@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/b23686.d(107): Error: undefined identifier `eFN1`, did you mean template `eFN0()()`?
+fail_compilation/b23686.d-mixin-107(107): Error: undefined identifier `eFN1`, did you mean template `eFN0()()`?
 fail_compilation/b23686.d(107): Error: `mixin(_error_)` does not give a valid type
 fail_compilation/b23686.d(115):        while looking for match for `eload!(int, 1)`
 fail_compilation/b23686.d-mixin-121(121): Error: undefined identifier `FNwtf`

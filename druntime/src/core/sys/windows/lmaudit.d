@@ -97,7 +97,7 @@ struct AUDIT_ENTRY{
     DWORD ae_data_offset;
     DWORD ae_data_size;
 }
-alias AUDIT_ENTRY* PAUDIT_ENTRY, LPAUDIT_ENTRY;
+alias PAUDIT_ENTRY = AUDIT_ENTRY*, LPAUDIT_ENTRY = AUDIT_ENTRY*;
 
 struct HLOG{
     DWORD time;
@@ -105,32 +105,32 @@ struct HLOG{
     DWORD offset;
     DWORD rec_offset;
 }
-alias HLOG* PHLOG, LPHLOG;
+alias PHLOG = HLOG*, LPHLOG = HLOG*;
 
 struct AE_SRVSTATUS{
     DWORD ae_sv_status;
 }
-alias AE_SRVSTATUS* PAE_SRVSTATUS, LPAE_SRVSTATUS;
+alias PAE_SRVSTATUS = AE_SRVSTATUS*, LPAE_SRVSTATUS = AE_SRVSTATUS*;
 
 struct AE_SESSLOGON{
     DWORD ae_so_compname;
     DWORD ae_so_username;
     DWORD ae_so_privilege;
 }
-alias AE_SESSLOGON* PAE_SESSLOGON, LPAE_SESSLOGON;
+alias PAE_SESSLOGON = AE_SESSLOGON*, LPAE_SESSLOGON = AE_SESSLOGON*;
 
 struct AE_SESSLOGOFF{
     DWORD ae_sf_compname;
     DWORD ae_sf_username;
     DWORD ae_sf_reason;
 }
-alias AE_SESSLOGOFF* PAE_SESSLOGOFF, LPAE_SESSLOGOFF;
+alias PAE_SESSLOGOFF = AE_SESSLOGOFF*, LPAE_SESSLOGOFF = AE_SESSLOGOFF*;
 
 struct AE_SESSPWERR{
     DWORD ae_sp_compname;
     DWORD ae_sp_username;
 }
-alias AE_SESSPWERR* PAE_SESSPWERR, LPAE_SESSPWERR;
+alias PAE_SESSPWERR = AE_SESSPWERR*, LPAE_SESSPWERR = AE_SESSPWERR*;
 
 struct AE_CONNSTART{
     DWORD ae_ct_compname;
@@ -138,7 +138,7 @@ struct AE_CONNSTART{
     DWORD ae_ct_netname;
     DWORD ae_ct_connid;
 }
-alias AE_CONNSTART* PAE_CONNSTART, LPAE_CONNSTART;
+alias PAE_CONNSTART = AE_CONNSTART*, LPAE_CONNSTART = AE_CONNSTART*;
 
 struct AE_CONNSTOP{
     DWORD ae_cp_compname;
@@ -147,7 +147,7 @@ struct AE_CONNSTOP{
     DWORD ae_cp_connid;
     DWORD ae_cp_reason;
 }
-alias AE_CONNSTOP* PAE_CONNSTOP, LPAE_CONNSTOP;
+alias PAE_CONNSTOP = AE_CONNSTOP*, LPAE_CONNSTOP = AE_CONNSTOP*;
 
 struct AE_CONNREJ{
     DWORD ae_cr_compname;
@@ -155,7 +155,7 @@ struct AE_CONNREJ{
     DWORD ae_cr_netname;
     DWORD ae_cr_reason;
 }
-alias AE_CONNREJ* PAE_CONNREJ, LPAE_CONNREJ;
+alias PAE_CONNREJ = AE_CONNREJ*, LPAE_CONNREJ = AE_CONNREJ*;
 
 struct AE_RESACCESS{
     DWORD ae_ra_compname;
@@ -166,7 +166,7 @@ struct AE_RESACCESS{
     DWORD ae_ra_restype;
     DWORD ae_ra_fileid;
 }
-alias AE_RESACCESS* PAE_RESACCESS, LPAE_RESACCESS;
+alias PAE_RESACCESS = AE_RESACCESS*, LPAE_RESACCESS = AE_RESACCESS*;
 
 struct AE_RESACCESSREJ{
     DWORD ae_rr_compname;
@@ -174,7 +174,7 @@ struct AE_RESACCESSREJ{
     DWORD ae_rr_resname;
     DWORD ae_rr_operation;
 }
-alias AE_RESACCESSREJ* PAE_RESACCESSREJ, LPAE_RESACCESSREJ;
+alias PAE_RESACCESSREJ = AE_RESACCESSREJ*, LPAE_RESACCESSREJ = AE_RESACCESSREJ*;
 
 struct AE_CLOSEFILE{
     DWORD ae_cf_compname;
@@ -184,7 +184,7 @@ struct AE_CLOSEFILE{
     DWORD ae_cf_duration;
     DWORD ae_cf_reason;
 }
-alias AE_CLOSEFILE* PAE_CLOSEFILE, LPAE_CLOSEFILE;
+alias PAE_CLOSEFILE = AE_CLOSEFILE*, LPAE_CLOSEFILE = AE_CLOSEFILE*;
 
 struct AE_SERVICESTAT{
     DWORD ae_ss_compname;
@@ -195,7 +195,7 @@ struct AE_SERVICESTAT{
     DWORD ae_ss_text;
     DWORD ae_ss_returnval;
 }
-alias AE_SERVICESTAT* PAE_SERVICESTAT, LPAE_SERVICESTAT;
+alias PAE_SERVICESTAT = AE_SERVICESTAT*, LPAE_SERVICESTAT = AE_SERVICESTAT*;
 
 struct AE_ACLMOD{
     DWORD ae_am_compname;
@@ -204,7 +204,7 @@ struct AE_ACLMOD{
     DWORD ae_am_action;
     DWORD ae_am_datalen;
 }
-alias AE_ACLMOD* PAE_ACLMOD, LPAE_ACLMOD;
+alias PAE_ACLMOD = AE_ACLMOD*, LPAE_ACLMOD = AE_ACLMOD*;
 
 struct AE_UASMOD{
     DWORD ae_um_compname;
@@ -214,7 +214,7 @@ struct AE_UASMOD{
     DWORD ae_um_action;
     DWORD ae_um_datalen;
 }
-alias AE_UASMOD* PAE_UASMOD, LPAE_UASMOD;
+alias PAE_UASMOD = AE_UASMOD*, LPAE_UASMOD = AE_UASMOD*;
 
 struct AE_NETLOGON{
     DWORD ae_no_compname;
@@ -222,7 +222,7 @@ struct AE_NETLOGON{
     DWORD ae_no_privilege;
     DWORD ae_no_authflags;
 }
-alias AE_NETLOGON* PAE_NETLOGON, LPAE_NETLOGON;
+alias PAE_NETLOGON = AE_NETLOGON*, LPAE_NETLOGON = AE_NETLOGON*;
 
 struct AE_NETLOGOFF{
     DWORD ae_nf_compname;
@@ -230,7 +230,7 @@ struct AE_NETLOGOFF{
     DWORD ae_nf_reserved1;
     DWORD ae_nf_reserved2;
 }
-alias AE_NETLOGOFF* PAE_NETLOGOFF, LPAE_NETLOGOFF;
+alias PAE_NETLOGOFF = AE_NETLOGOFF*, LPAE_NETLOGOFF = AE_NETLOGOFF*;
 
 struct AE_ACCLIM{
     DWORD ae_al_compname;
@@ -238,7 +238,7 @@ struct AE_ACCLIM{
     DWORD ae_al_resname;
     DWORD ae_al_limit;
 }
-alias AE_ACCLIM* PAE_ACCLIM, LPAE_ACCLIM;
+alias PAE_ACCLIM = AE_ACCLIM*, LPAE_ACCLIM = AE_ACCLIM*;
 
 struct AE_LOCKOUT{
     DWORD ae_lk_compname;
@@ -246,7 +246,7 @@ struct AE_LOCKOUT{
     DWORD ae_lk_action;
     DWORD ae_lk_bad_pw_count;
 }
-alias AE_LOCKOUT* PAE_LOCKOUT, LPAE_LOCKOUT;
+alias PAE_LOCKOUT = AE_LOCKOUT*, LPAE_LOCKOUT = AE_LOCKOUT*;
 
 struct AE_GENERIC{
     DWORD ae_ge_msgfile;
@@ -262,7 +262,7 @@ struct AE_GENERIC{
     DWORD ae_ge_param8;
     DWORD ae_ge_param9;
 }
-alias AE_GENERIC* PAE_GENERIC, LPAE_GENERIC;
+alias PAE_GENERIC = AE_GENERIC*, LPAE_GENERIC = AE_GENERIC*;
 
 extern (Windows) {
 deprecated {

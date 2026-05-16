@@ -4,7 +4,7 @@
  * For standalone disasmarm: dmd disasmarm.d -version=StandAlone -fPIC
  *
  * Copyright:   Copyright (C) 1982-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Reference:   Arm A64 Instruction Set for A-profile Architecture ISA_A64_xml_A_profile-2025-03.pdf
@@ -267,6 +267,12 @@ void disassemble(uint c) @trusted
     char[BUFMAX] buf = '\0';
     char[BUFMAX] url2buf = '\0';
     char[14] rbuf = '\0';
+    char[5 + uint.sizeof * 3 + 1 + 1] P4 = '\0';
+    char[4 + 3 + uint.sizeof * 3 + 1 + 1] P5 = '\0';
+    char[1 + 8 + 1 + 3 + uint.sizeof * 3 + 1 + 1] P5buf = '\0';
+    char[1 + 4 + 1 + 3 + uint.sizeof * 3 + 1 + 1] P5buf2 = '\0';
+    char[7 + uint.sizeof * 3 + 1] P5buf3 = '\0';
+    char[1 + 2 + 2 + 2 + 2 + 2 + 4 + 4 + 1] P5buf5;
 
     buf[0] = 0;
     sep = ",";
@@ -559,7 +565,6 @@ void disassemble(uint c) @trusted
         p2 = regString(sf, Rd);
         if (hw)
         {
-            __gshared char[5 + hw.sizeof * 3 + 1 + 1] P4 = '\0';
             const n = snprintf(P4.ptr, P4.length, "lsl #%d", hw * 16);
             p4 = P4[0 .. n];
         }
@@ -1450,7 +1455,6 @@ void disassemble(uint c) @trusted
         string[4] shiftstring = [ "", "lsr ", "asr ", "ror " ];
         if (imm6)
         {
-            __gshared char[4 + 3 + imm6.sizeof * 3 + 1 + 1] P5 = '\0';
             const n = snprintf(P5.ptr, P5.length, ((imm6 < 10) ? "%s #%d" : "#0x%X"), shiftstring[shift].ptr, imm6);
             p5 = P5[0 .. n];
         }
@@ -1491,7 +1495,6 @@ void disassemble(uint c) @trusted
         if (immed6) // defaults to 0
         {
             string[4] tab2 = [ "lsl", "lsr", "asr", "reserved" ];
-            __gshared char[1 + 8 + 1 + 3 + immed6.sizeof * 3 + 1 + 1] P5buf = '\0';
             const n = snprintf(P5buf.ptr, P5buf.length, ((immed6 < 10) ? "%s #%d".ptr : "#0x%X".ptr), tab2[shift].ptr, immed6);
             p5 = P5buf[0 .. n];
         }
@@ -1554,7 +1557,6 @@ void disassemble(uint c) @trusted
         else
             p4 = regString(sf, Rm);
 
-        __gshared char[1 + 4 + 1 + 3 + imm3.sizeof * 3 + 1 + 1] P5buf2 = '\0';
         if (imm3 == 0)
             p5 = extend;
         else
@@ -1613,9 +1615,8 @@ void disassemble(uint c) @trusted
             p4 = regString(sf, Rm);
             if (imm3)
             {
-                __gshared char[7 + imm3.sizeof * 3 + 1] P5buf3 = '\0';
                 size_t n = snprintf(P5buf3.ptr, P5buf3.length, ((imm3 < 10) ? "LSL #%d" : "LSL #0x%X"), imm3);
-                assert(n <= P5buf3.length);
+                assert(n < P5buf3.length);
                 p5 = P5buf3[0 .. n];
             }
         }
@@ -2038,12 +2039,16 @@ void disassemble(uint c) @trusted
         uint o2 = field(ins,11,11);
         uint Rd = field(ins,4,0);
 
-        if (Q == 1 && op == 1 && cmode == 0xE)
+        if (op == 1 && cmode == 0xE)
         {
             url2 = "movi_advsimd";
             p1 = "movi";    // https://www.scs.stanford.edu/~zyedidia/arm64/movi_advsimd.html
             // TODO AArch64 implement https://www.scs.stanford.edu/~zyedidia/arm64/shared_pseudocode.html#impl-shared.AdvSIMDExpandImm.3
-            uint n = snprintf(buf.ptr, cast(uint)buf.length, "v%d.2d,#0x%x", Rd, abcdefgh);
+            uint n;
+            if (Q)
+                n = snprintf(buf.ptr, cast(uint)buf.length, "v%d.2d,#0x%x", Rd, abcdefgh);
+            else
+                n = snprintf(buf.ptr, cast(uint)buf.length, "d%d,#0x%x", Rd, abcdefgh);
             p2 = buf[0 .. n];
         }
     }
@@ -2209,6 +2214,7 @@ void disassemble(uint c) @trusted
             p3 = (Rm == 0 && (opcode2 & 8)) ? "#0.0" : fregString(rbuf[4..8],"sd h"[ftype],Rm);
         }
     }
+    else
 
     // Floating-point immediate http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatimm
     if (field(ins,31,24) == 0x1E && field(ins,21,21) == 1 && field(ins,12,10) == 4)
@@ -2226,7 +2232,33 @@ void disassemble(uint c) @trusted
     }
     else
 
-    // Floating-point conditional compare
+    // Floating-point conditional compare https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatccmp
+    if (field(ins, 30, 30) == 0 && field(ins, 28, 24) == 0x1E && field(ins,21,21) == 1 && field(ins, 11, 10) == 1)
+    {
+        url = "floatccmp";
+
+        uint M       = field(ins,31,31);
+        uint S       = field(ins,29,29);
+        uint ftype   = field(ins,23,22);
+        uint Rm      = field(ins,20,16);
+        uint cond    = field(ins,15,12);
+        uint Rn      = field(ins, 9, 5);
+        uint op      = field(ins, 4, 4);
+        uint nzcv    = field(ins, 3, 0);
+
+        if (M == 0 && S == 0)
+        {
+            // fccmp d5,d5,#0,vs
+            url = op ? "fccmpe_float" : "fccmp_float";
+            p1 = op ? "fccmpe" : "fccmp";
+            p2 = fregString(rbuf[0..4],"sd h"[ftype],Rn);
+            p3 = fregString(rbuf[4..8],"sd h"[ftype],Rm);
+            uint n = snprintf(buf.ptr, cast(uint)buf.length,"#0x%x", nzcv);
+            p4 = buf[0 .. n];
+            p5 = condstring[cond];
+        }
+    }
+    else
 
     // Floating-point data-processing (2 source) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp2
     if (field(ins, 30, 30) == 0 && field(ins, 28, 24) == 0x1E && field(ins,21,21) == 1 &&  field(ins, 11, 10) == 2)
@@ -2533,7 +2565,6 @@ void disassemble(uint c) @trusted
             Lldst:
                 p2 = regString(size & 1,Rt);
             Lldst3:
-                __gshared char[1 + 2 + 2 + 2 + 2 + 2 + 4 + 4 + 1] P5buf5;
                 if (option == 3 && !S)
                 {
                     const n = snprintf(P5buf5.ptr, P5buf5.length, "[%s, %s]", regString(1,Rn).ptr, regString(1,Rm).ptr);
@@ -2877,7 +2908,7 @@ const(char)[] labeltostring(ulong w)
     __gshared char[2 + w.sizeof * 3 + 1] EA;
 
     const n = snprintf(EA.ptr, EA.length, ((w < 10) ? "%lld" : "0x%llX"), w);
-    assert(n <= EA.length);
+    assert(n < EA.length);
     return EA[0 .. n];
 }
 
@@ -2887,7 +2918,7 @@ const(char)[] indexString(uint reg)
     __gshared char[1 + 3 + 1 + 1] EA;
 
     const n = snprintf(EA.ptr, EA.length, "[%s]", regString(1, reg).ptr);
-    assert(n <= EA.length);
+    assert(n < EA.length);
     return EA[0 .. n];
 }
 
@@ -3216,8 +3247,11 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[96] cases64 =      // 64 bit code gen
+    string[100] cases64 =      // 64 bit code gen
     [
+        "1E 61 04 00         fccmp  d0,d1,#0x0,eq",
+        "1E 65 64 A0         fccmp  d5,d5,#0x0,vs",
+        "1E 65 64 B0         fccmpe d5,d5,#0x0,vs",
         "79 C0 47 AB         ldrsh  w11,[x29,#0x22]",
         "F8 1F 03 A8         stur   x8,[x29,#-0x10]",
         "B8 00 04 62         str    w2,[x3],#0",
@@ -3231,6 +3265,7 @@ unittest
         "B8 00 93 E0         stur   w0,[sp,#9]",
         "F8 00 84 5F         str    xzr,[x2],#8",
         "6F 00 E4 01         movi   v1.2d,#0x0",
+        "2F 00 E4 1F         movi   d31,#0x0",
         "9E AF 00 3E         fmov   v30.d[1],x1",
         "4E BE 1F C0         mov    v0.16b,v30.16b",
         "D4 20 00 20         brk    #1",

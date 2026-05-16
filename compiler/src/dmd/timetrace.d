@@ -6,7 +6,7 @@ here: https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKch
 
 This file is originally from LDC (the LLVM D compiler).
 
-Copyright: Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
 Authors:   Johan Engelen, Max Haughton, Dennis Korpel
 License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
 Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/timetrace.d, common/_timetrace.d)
@@ -176,9 +176,16 @@ enum TimeTraceEventType
     sema1Module,
     sema1TemplateDecl,
     sema1TemplateInstance,
+    sema1TemplateArgSemantic,        /// semantic analysis of template arguments (semanticTiargs)
+    sema1TemplateOverloadResolution, /// overload resolution / best-match selection (findBestMatch)
+    sema1TemplateMembers,            /// sema1 pass on template instance members (expandMembers)
+    sema1TemplateInstanceSema2,      /// sema2 pass on template instance members
+    sema1TemplateInstanceSema3,      /// sema3 pass on template instance members
     sema1Function,
     sema2,
     sema3,
+    inlineGeneral,   /// top-level span for the entire inliner pass
+    inlineFunction,  /// per-function span during inlining
     dfa,
     ctfe,
     ctfeCall,
@@ -198,9 +205,16 @@ private immutable string[] eventPrefixes = [
     "Sema1: Module ",
     "Sema1: Template Declaration ",
     "Sema1: Template Instance ",
+    "Sema1: Template Arg Semantic: ", /// sema1TemplateArgSemantic
+    "Sema1: Overload Resolution: ",   /// sema1TemplateOverloadResolution
+    "Sema1: Template Members: ",      /// sema1TemplateMembers
+    "Sema2: Template Instance: ",     /// sema1TemplateInstanceSema2
+    "Sema3: Template Instance: ",     /// sema1TemplateInstanceSema3
     "Sema1: Function ",
     "Sema2: ",
     "Sema3: ",
+    "Inlining",
+    "Inline: ",
     "DFA: ",
     "Ctfe: ",
     "Ctfe: call ",

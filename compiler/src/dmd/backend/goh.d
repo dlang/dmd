@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              https://www.boost.org/LICENSE_1_0.txt
@@ -59,6 +59,8 @@ enum
     MFall   = 0xFFFF,          // do everything
 }
 
+enum Aetype { cse, arraybounds }
+
 /**********************************
  * Definition elem vector, used for reaching definitions.
  */
@@ -70,13 +72,23 @@ struct DefNode
     vec_t    DNunambig;     // vector of unambiguous definitions
 }
 
+// which kind of flow analysisis being done
+enum
+{
+    AE = 1,
+    CP,
+    VBE
+}
+
 /* Global Optimizer variables
  */
 struct GlobalOptimizer
 {
     bool AArch64;       // AArch64 is the target
     mftype mfoptim;
+    Aetype aetype;      // cse, arraybounds
     uint changes;       // # of optimizations performed
+    int flowxx;         // AE, CP or VBE
 
     Barray!DefNode defnod;    // array of definition elems
     uint unambigtop;    // number of unambiguous defininitions ( <= deftop )

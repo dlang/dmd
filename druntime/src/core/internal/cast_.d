@@ -134,7 +134,7 @@ void* _d_cast(To, From)(From o) @trusted
 {
     static if (is(From == To))
     {
-        return cast(void*)o;
+        return *cast(void**) &o;
     }
     else static if (is(From == class) && is(To == interface))
     {
@@ -297,4 +297,14 @@ private bool _d_isbaseof2(To)(scope ClassInfo oc, scope ref size_t offset)
     I3 ci = new C();
     assert(_d_cast!I1(ci) !is null); // I3(c) to I1
     assert(_d_interface_cast!I1(cast(void*)ci) !is null);
+}
+
+// https://github.com/dlang/dmd/issues/21646
+@system pure unittest {
+    static class C {
+        @disable void opCast(T)();
+    }
+
+    const(C) const_c = new C();
+    C mutable_c = cast() const_c;
 }

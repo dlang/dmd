@@ -1,7 +1,20 @@
 /**
  * Entry point into Data Flow Analysis engine.
  *
- * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * This engine performs a structural analysis of the code to detect
+ * issues like nullability and truthiness.
+ *
+ * Design:
+ * - Structural Definition Algorithm: It performs a single forward pass
+ * over the AST (O(1) cost per node), minimizing compilation time.
+ * - Non-Iterative: Unlike "chaotic iteration" solvers (which can be O(n^2)),
+ * this engine does not loop until convergence. It tries to limit its visitation of each node to once.
+ *
+ * See_Also:
+ * https://forum.dlang.org/post/xmssfygefvldeiyodfya@forum.dlang.org
+ * (Why we should not enable a slow DFA by default)
+ *
+ * Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:   $(LINK2 https://cattermole.co.nz, Richard (Rikki) Andrew Cattermole)
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dfa/entry.d, dfa/entry.d)
@@ -41,7 +54,23 @@ void dfaEntry(FuncDeclaration fd, Scope* sc)
 }
 
 private:
-
+/***********************************************************
+ * Performs the fast Data Flow Analysis on a function declaration.
+ *
+ * This function acts as the coordinator. It:
+ * 1. Checks if the function needs analysis (skips CTFE-only code).
+ * 2. Instantiates the components:
+ *  - StatementWalker: Traverses statements (if, while, return).
+ *  - ExpressionWalker: Traverses expressions (a + b, func()).
+ *  - DFAAnalyzer: Tracks the state of variables (The Brain).
+ *  - DFAReporter: Reports errors and handles inferring.
+ * 3. Wires them together but separates them for separation of concerns reasons.
+ * 4. Starts the single-pass walk.
+ *
+ * Params:
+ *      fd = The function to analyze.
+ *      sc = The scope of the function.
+ */
 void fastDFA(FuncDeclaration fd, Scope* sc)
 {
     import dmd.dfa.fast.structure;
@@ -66,11 +95,11 @@ void fastDFA(FuncDeclaration fd, Scope* sc)
     }
 
     // Use these if statements for debugging specific things.
-    //if (fd.ident.toString != "incrementEffect") return;
-    //if (!(fd.ident.toString == "test3632" || fd.ident.toString == "test")) return;
-    //if (fd.loc.linnum < 1380) return;
+    //if (fd.ident.toString != "checkFloatInit5") return;
+    //if (!(fd.ident.toString == "replaceReferenceDefinition" || fd.ident.toString == "extractReferences")) return;
+    //if (fd.loc.linnum != 54) return;
     //if (fd.getModule.ident.toString != "start") return;
-    //if (strcmp(mangleExact(fd), "_D5ocean4util9container5cache16ExpiringLRUCache__TQvTSQCaQBxQBvQBo20ExpiredCacheReloader__TQzTSQDpQDmQDkQDd25ExpiredCacheReloader_test7TrivialZQCz10CacheValueZQFa19getExpiringOrCreateMFmJbbZPQFi") != 0) return;
+    //if (strcmp(mangleExact(fd), "_D4core9exception15ArraySliceError6__ctorMFNaNbNiNfmmmAyamC6object9ThrowableZCQCyQCwQCp") != 0) return;
 
     // Protect functions based upon safetiness of it.
     // It may be desirable to disable some behaviors in @system code, or completely.
@@ -87,6 +116,8 @@ void fastDFA(FuncDeclaration fd, Scope* sc)
     ExpressionWalker expWalker;
     DFAAnalyzer analyzer;
     DFAReporter reporter;
+
+    dfaCommon.allocator.dfaCommon = &dfaCommon;
 
     stmtWalker.dfaCommon = &dfaCommon;
     expWalker.dfaCommon = &dfaCommon;
@@ -122,12 +153,30 @@ void fastDFA(FuncDeclaration fd, Scope* sc)
 
     version (none)
     {
-        printf("function %s : %s = %s at %s\n", fd.getModule.ident.toChars,
+        printf("function s %s : %s = %s at %s\n", fd.getModule.ident.toChars,
                 mangleExact(fd), fd.toFullSignature, fd.loc.toChars);
         fflush(stdout);
     }
 
+    version (none)
+    {
+        import dmd.hdrgen;
+
+        OutBuffer buf;
+        HdrGenState hgs;
+        hgs.vcg_ast = true;
+        toCBuffer(fd, buf, hgs);
+        printf(buf.extractChars);
+    }
+
     stmtWalker.start(fd);
+
+    version (none)
+    {
+        printf("function e %s : %s = %s at %s\n", fd.getModule.ident.toChars,
+                mangleExact(fd), fd.toFullSignature, fd.loc.toChars);
+        fflush(stdout);
+    }
 
     dfaCommon.printIfStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
         ob.printf("------------------------------ %s : %s = %s at ",

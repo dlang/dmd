@@ -4,7 +4,7 @@
  * utilities needed for arguments parsing, path manipulation, etc...
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mars.d, _mars.d)
@@ -67,11 +67,18 @@ else
     static assert(0);
 
 /**
- * Print DMD's logo on stdout
+ * Print DMD's logo to `buf`
+ * Params:
+ *   buf = output stream to print the information to
  */
-void logo()
+void logo(ref OutBuffer buf)
 {
-    printf("DMD%llu D Compiler %.*s\n%.*s %.*s\n",
+    version (AArch64)
+        string host = " AArch";
+    else
+        string host = "";
+    buf.printf("DMD%s%llu D Compiler %.*s\n%.*s %.*s\n",
+        host.ptr,
         cast(ulong)size_t.sizeof * 8,
         cast(int) global.versionString().length, global.versionString().ptr,
         cast(int)global.copyright.length, global.copyright.ptr,
@@ -101,15 +108,17 @@ void printInternalFailure(ref OutBuffer buf)
 }
 
 /**
- * Print DMD's usage message on stdout
+ * Print DMD's usage message to `buf`
+ * Params:
+ *   buf = output stream to print the information to
  */
-void usage()
+void usage(ref OutBuffer buf)
 {
     import dmd.cli : CLIUsage;
-    logo();
+    logo(buf);
     auto help = CLIUsage.usage;
     const inifileCanon = FileName.canonicalName(global.inifilename);
-    printf("
+    buf.printf("
 Documentation: https://dlang.org/
 Config file: %.*s
 Usage:
@@ -293,13 +302,13 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
 }
 
 /**
- * Parse command line arguments for the last instance of -m32, -m64, -m32mscoff
+ * Parse command line arguments for the last instance of -m32, -m64, -m32mscoff, -marm64
  * to detect the desired architecture.
  *
  * Params:
  *   args = Command line arguments
  *   arch = Default value to use for architecture.
- *          Should be "32" or "64"
+ *          Should be "32", "64", or "arm64"
  *
  * Returns:
  *   "32", or "64" if the "-m32", "-m64" flags were passed,
@@ -317,6 +326,9 @@ const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
             case "-m64":
             case "-m32mscoff":
                 arch = arg[2 .. 4];
+                continue;
+            case "-marm64":
+                arch = arg[2 .. 7];
                 continue;
             case "-run":   // end of args to dmd
                 break;
@@ -739,7 +751,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             mixin(checkOptionsMixin("check",
                 "`-check=<action>` requires an action"));
             /* Parse:
-             *    -check=[assert|bounds|in|invariant|out|switch][=[on|off]]
+             *    -check=[assert|bounds|in|invariant|out|switch|nullderef][=[on|off|safeonly]]
              */
 
             // Check for legal option string; return true if so
@@ -761,6 +773,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
                         ce = CHECKENABLE.off;
                         return true;
                     }
+                    else if (checkarg == "=safeonly")
+                    {
+                        ce = CHECKENABLE.safeonly;
+                        return true;
+                    }
                 }
                 return false;
             }
@@ -774,6 +791,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
                 params.useInvariants    = CHECKENABLE.on;
                 params.useOut           = CHECKENABLE.on;
                 params.useSwitchError   = CHECKENABLE.on;
+                params.useNullCheck     = CHECKENABLE.on;
             }
             else if (checkarg == "off")
             {
@@ -783,13 +801,15 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
                 params.useInvariants    = CHECKENABLE.off;
                 params.useOut           = CHECKENABLE.off;
                 params.useSwitchError   = CHECKENABLE.off;
+                params.useNullCheck     = CHECKENABLE.off;
             }
             else if (!(check(checkarg, "assert",    params.useAssert) ||
                   check(checkarg, "bounds",    params.useArrayBounds) ||
                   check(checkarg, "in",        params.useIn         ) ||
                   check(checkarg, "invariant", params.useInvariants ) ||
                   check(checkarg, "out",       params.useOut        ) ||
-                  check(checkarg, "switch",    params.useSwitchError)))
+                  check(checkarg, "switch",    params.useSwitchError) ||
+                  check(checkarg, "nullderef",    params.useNullCheck)))
             {
                 errorInvalidSwitch(p);
                 params.help.check = true;
@@ -908,6 +928,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
                 auto filename = p + 1+7+1+4;
                 files.push(filename);
                 params.editionFiles[filename] = params.edition;
+                // FIXME: params.edition should not be set when there's a filename
+                error("`-edition` is not supported with a filename yet");
             }
         }
         else if (arg == "-fIBT")
@@ -984,13 +1006,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             driverParams.stackstomp = true;
         else if (arg == "-lowmem") // https://dlang.org/dmd.html#switch-lowmem
         {
-            // ignore, already handled in C main
+            // ignore, already handled in early argument parsing
         }
         else if (arg.length > 6 && arg[0..6] == "--DRT-")
         {
             continue; // skip druntime options, e.g. used to configure the GC
         }
-        else if (arg == "-arm") // https://dlang.org/dmd.html#switch-arm
+        else if (arg == "-marm64") // https://dlang.org/dmd.html#switch-marm64
         {
             target.isAArch64 = true;
             target.isX86    = false;
@@ -999,20 +1021,20 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
             target.isAArch64 = false;
-            target.isX86    = true;
-            target.isX86_64 = false;
+            target.isX86     = true;
+            target.isX86_64  = false;
         }
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
         {
             target.isAArch64 = false;
-            target.isX86    = false;
-            target.isX86_64 = true;
+            target.isX86     = false;
+            target.isX86_64  = true;
         }
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
         {
             target.isAArch64 = false;
-            target.isX86    = true;
-            target.isX86_64 = false;
+            target.isX86     = true;
+            target.isX86_64  = false;
         }
         else if (startsWith(p + 1, "mscrtlib="))
         {

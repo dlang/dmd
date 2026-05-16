@@ -22,38 +22,36 @@ public import core.thread.context;
 
 // this test is here to avoid a cyclic dependency between
 // core.thread and core.atomic
-unittest
+@system unittest
 {
     import core.atomic;
 
-    // Use heap memory to ensure an optimizing
-    // compiler doesn't put things in registers.
-    uint* x = new uint();
-    bool* f = new bool();
-    uint* r = new uint();
+    shared uint x;
+    shared bool f;
+    shared uint r;
 
     auto thr = new Thread(()
     {
-        while (!*f)
+        while (!atomicLoad(f))
         {
         }
 
-        atomicFence();
+        atomicFence(); // make sure load+store below happens after waiting for f
 
-        *r = *x;
+        cast() r = cast() x;
     });
 
-    thr.start();
+    thr.start(); // new thread will wait until f is set
 
-    *x = 42;
+    cast() x = 42;
 
-    atomicFence();
+    atomicFence(); // make sure x is set before setting f
 
-    *f = true;
+    cast() f = true;
 
     atomicFence();
 
     thr.join();
 
-    assert(*r == 42);
+    assert(cast() r == 42);
 }

@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/version.html, Conditional Compilation)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/cond.d, _cond.d)
@@ -149,6 +149,7 @@ extern (C++) final class StaticForeach : RootObject
         auto tf = new TypeFunction(ParameterList(), null, LINK.default_, STC.none);
         auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOK.reserved, null);
         fd.fbody = s;
+        fd.skipCodegen = true;
         auto fe = new FuncExp(loc, fd);
         auto ce = new CallExp(loc, fe, new Expressions());
         return ce;

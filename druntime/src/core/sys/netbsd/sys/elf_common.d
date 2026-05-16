@@ -82,11 +82,11 @@ enum STV_EXPORTED =    4;
 enum STV_SINGLETON =   5;
 enum STV_ELIMINATE =   6;
 
-alias VER_NDX VER_DEF_IDX;
+alias VER_DEF_IDX = VER_NDX;
 
 enum VER_NEED_WEAK =    32768;
 enum VER_NEED_HIDDEN = VER_NDX_HIDDEN;
-alias VER_NDX VER_NEED_IDX;
+alias VER_NEED_IDX = VER_NDX;
 
 enum VER_NDX_GIVEN =           2;
 enum VER_NDX_HIDDEN =      32768;

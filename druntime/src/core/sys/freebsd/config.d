@@ -14,7 +14,10 @@ public import core.sys.posix.config;
 // NOTE: When adding newer versions of FreeBSD, verify all current versioned
 // bindings are still compatible with the release.
 
-     version (FreeBSD_14) enum __FreeBSD_version = 1400000;
+     version (CoreDdoc)   enum __FreeBSD_version = 1600011; // keep at latest
+else version (FreeBSD_16) enum __FreeBSD_version = 1600011;
+else version (FreeBSD_15) enum __FreeBSD_version = 1500063;
+else version (FreeBSD_14) enum __FreeBSD_version = 1400097;
 else version (FreeBSD_13) enum __FreeBSD_version = 1301000;
 else version (FreeBSD_12) enum __FreeBSD_version = 1203000;
 else version (FreeBSD_11) enum __FreeBSD_version = 1104000;

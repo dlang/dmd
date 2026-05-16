@@ -196,7 +196,7 @@ template pure_hashOf(K)
     }
 }
 
-// for backward compatibilty pretend the comparison is @safe, pure, etc
+// for backward compatibility pretend the comparison is @safe, pure, etc
 // this also breaks cyclic inference on recursive data types
 template pure_keyEqual(K1, K2 = K1)
 {
@@ -463,6 +463,18 @@ size_t _d_aaLen(K, V)(inout V[K] a)
     auto aa = _toAA!(K, V)(a);
     return aa ? aa.length : 0;
 }
+/// ditto
+size_t _d_aaLen(K, V)(shared V[K] a)
+{
+    // accept shared for backward compatibility, should be deprecated
+    return _d_aaLen(cast(V[K]) a);
+}
+/// ditto
+size_t _d_aaLen(K, V)(const shared V[K] a)
+{
+    // accept shared for backward compatibility, should be deprecated
+    return _d_aaLen(cast(V[K]) a);
+}
 
 /******************************
  * Lookup key in aa.
@@ -630,6 +642,18 @@ auto _d_aaIn(T : V[K], K, V, K2)(inout T a, auto ref scope K2 key)
     if (auto p = aa.findSlotLookup(hash, key2))
         return &p.entry.value;
     return null;
+}
+/// ditto
+auto _d_aaIn(T : V[K], K, V, K2)(shared T a, auto ref scope K2 key)
+{
+    // accept shared for backward compatibility, should be deprecated
+    return _d_aaIn(cast(V[K]) a, key);
+}
+/// ditto
+auto _d_aaIn(T : V[K], K, V, K2)(const shared T a, auto ref scope K2 key)
+{
+    // accept shared for backward compatibility, should be deprecated
+    return _d_aaIn(cast(V[K]) a, key);
 }
 
 // fake purity for backward compatibility with runtime hooks

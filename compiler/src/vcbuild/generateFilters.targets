@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- write file to import with all the D source files -->
+  <Target Name="GenerateSourcesFile" Outputs="$(SourcesFile)">
+    <!-- Write XML header -->
+    <WriteLinesToFile File="$(SourcesFile)" Overwrite="true" Lines="&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;" />
+    <WriteLinesToFile File="$(SourcesFile)" Lines="&lt;Project ToolsVersion=&quot;4.0&quot; xmlns=&quot;http://schemas.microsoft.com/developer/msbuild/2003&quot;&gt;" />
+    <WriteLinesToFile File="$(SourcesFile)" Overwrite="false" Lines="  &lt;ItemGroup&gt;" />
+    <!-- Write source files entries -->
+    <WriteLinesToFile File="$(SourcesFile)" Overwrite="false" Lines="@(SourceFiles->'    &lt;DCompile Include=&quot;%(Identity)&quot;/&gt;')" />
+    <!-- Write header files entries -->
+    <WriteLinesToFile File="$(SourcesFile)" Overwrite="false" Lines="@(HeaderFiles->'    &lt;ClInclude Include=&quot;%(Identity)&quot;/&gt;')" />
+    <WriteLinesToFile File="$(SourcesFile)" Overwrite="false" Lines="  &lt;/ItemGroup&gt;" />
+    <WriteLinesToFile File="$(SourcesFile)" Overwrite="false" Lines="&lt;/Project&gt;" />
+	<Message Text="### $(SourcesFile) written. Please reload the solution!" Importance="high" />
+  </Target>
+
+  <Target Name="VerifySourcesFile" Outputs="$(SourcesFile)">
+    <Message Condition="'@(DCompile)' != '@(SourceFiles)'" Importance="high"
+             Text="### Source files no longer up-to-date. Please delete $(SourcesFile) to rebuild it!" />
+  </Target>
+
+  <Target Name="GenerateFiltersFile" Outputs="$(FiltersFile)">
+    <!-- Assign Filter metadata by extracting folder paths (removing trailing slash) -->
+    <ItemGroup>
+      <SourceFilesWithFilter Include="@(SourceFiles)">
+        <Filter>$([System.String]::Copy('%(RelativeDir)').Replace('$(SourcesRoot)', '').TrimEnd('\\'))</Filter>
+      </SourceFilesWithFilter>
+      <HeaderFilesWithFilter Include="@(HeaderFiles)">
+        <Filter>$([System.String]::Copy('%(RelativeDir)').Replace('$(SourcesRoot)', '').TrimEnd('\\'))</Filter>
+      </HeaderFilesWithFilter>
+    </ItemGroup>
+    <!-- Collect distinct filters from all files -->
+    <ItemGroup>
+      <AllFilters Include="@(SourceFilesWithFilter-&gt;Metadata('Filter'));@(HeaderFilesWithFilter-&gt;Metadata('Filter'))" />
+    </ItemGroup>
+	<!-- prepare cutting off the last dir name from the filters -->
+    <ItemGroup>
+      <AllFiltersWithDirName Include="@(AllFilters-&gt;Distinct())">
+		<DirName>$([System.IO.Path]::GetFileName('%(Identity)'))</DirName>
+		<DirNameLength>0</DirNameLength>
+		<DirNameLength Condition="$([System.String]::Copy('%(Identity)').Contains('\'))">$([MSBuild]::Add($([System.IO.Path]::GetFileName('%(Identity)').Length()), 1))</DirNameLength>
+		<IdentityLength>$([System.String]::Copy('%(Identity)').Length)</IdentityLength>
+	  </AllFiltersWithDirName>
+    </ItemGroup>
+    <ItemGroup>
+      <AllFiltersWithParentName Include="@(AllFiltersWithDirName)">
+		<ParentName>$([System.String]::Copy('%(Identity)').SubString(0, $([MSBuild]::Subtract(%(IdentityLength), %(DirNameLength)))))</ParentName>
+	  </AllFiltersWithParentName>
+    </ItemGroup>
+	<!-- add parent folders, in case they are not added by source files. These are necessary so VS builds the filter tree.
+         ATM only one level of empty parent folders is supported -->
+	<ItemGroup>
+      <AllFiltersAndParents Include="@(AllFiltersWithParentName-&gt;'%(Identity)')" />
+      <AllFiltersAndParents Include="@(AllFiltersWithParentName-&gt;'%(ParentName)')" />
+	</ItemGroup>
+    <CreateItem Include="@(AllFiltersAndParents-&gt;Distinct())">
+      <Output TaskParameter="Include" ItemName="DistinctFilters" />
+    </CreateItem>
+	<!-- Generate UniqueIdentifier for each filter via hash -->
+    <ItemGroup>
+      <DistinctFiltersWithHash Include="@(DistinctFilters)">
+        <Hash>$([System.String]::Copy('%(Identity)').GetHashCode())</Hash>
+      </DistinctFiltersWithHash>
+    </ItemGroup>
+    <ItemGroup>
+      <DistinctFiltersWithGuid Include="@(DistinctFiltersWithHash)">
+        <Guid>$([System.String]::Format('{{00000000-0000-0000-0000-{0:000000000000}}}', $([MSBuild]::Add($([System.Int32]::Parse('%(Hash)')),100000000000))))</Guid>
+      </DistinctFiltersWithGuid>
+    </ItemGroup>
+
+    <!-- Write XML header -->
+    <WriteLinesToFile File="$(FiltersFile)" Overwrite="true" Lines="&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;" />
+    <WriteLinesToFile File="$(FiltersFile)" Lines="&lt;Project ToolsVersion=&quot;4.0&quot; xmlns=&quot;http://schemas.microsoft.com/developer/msbuild/2003&quot;&gt;" />
+    <WriteLinesToFile File="$(FiltersFile)" Overwrite="false" Lines="  &lt;ItemGroup&gt;" />
+    <!-- Write Filter entries with placeholder GUIDs -->
+    <WriteLinesToFile File="$(FiltersFile)" Overwrite="false" Lines="@(DistinctFiltersWithGuid->'    &lt;Filter Include=&quot;%(Identity)&quot;&gt;&lt;UniqueIdentifier&gt;%(Guid)&lt;/UniqueIdentifier&gt;&lt;/Filter&gt;')" />
+    <WriteLinesToFile File="$(FiltersFile)" Overwrite="false" Lines="  &lt;/ItemGroup&gt;" />
+    <WriteLinesToFile File="$(FiltersFile)" Overwrite="false" Lines="  &lt;ItemGroup&gt;" />
+    <!-- Write source files entries -->
+    <WriteLinesToFile File="$(FiltersFile)" Overwrite="false" Lines="@(SourceFilesWithFilter->'    &lt;DCompile Include=&quot;%(Identity)&quot;&gt;&lt;Filter&gt;%(Filter)&lt;/Filter&gt;&lt;/DCompile&gt;')" />
+    <!-- Write header files entries -->
+    <WriteLinesToFile File="$(FiltersFile)" Overwrite="false" Lines="@(HeaderFilesWithFilter->'    &lt;ClInclude Include=&quot;%(Identity)&quot;&gt;&lt;Filter&gt;%(Filter)&lt;/Filter&gt;&lt;/ClInclude&gt;')" />
+    <WriteLinesToFile File="$(FiltersFile)" Overwrite="false" Lines="  &lt;/ItemGroup&gt;" />
+    <WriteLinesToFile File="$(FiltersFile)" Overwrite="false" Lines="&lt;/Project&gt;" />
+  </Target>
+</Project>

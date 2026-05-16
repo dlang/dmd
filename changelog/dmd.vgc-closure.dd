@@ -1,0 +1,26 @@
+-vgc now reports locations of nested functions that create closures
+
+When a GC-allocated closure was created, the `-vgc` switch would only point to the outer function that a closure was created for.
+For a big function, this still requires you to search where the nested function requiring the closure actually is.
+It now reports the closure function and variable location just like in error messages for `@nogc`.
+
+```
+auto closure()
+{
+    int x;
+    int bar() { return x; }
+    return &bar;
+}
+```
+
+After:
+
+$(CONSOLE
+vgc.d(1): vgc: using closure causes GC allocation
+)
+
+$(CONSOLE
+vgc.d(1): vgc: using closure causes GC allocation
+vgc.d(4): vgc: function `bar` closes over variable `x`
+vgc.d(3): vgc: `x` declared here
+)

@@ -9,6 +9,7 @@
  */
 
 module etc.linux.memoryerror;
+public import core.exception : InvalidPointerError, NullPointerError;
 
 version (linux)
 {
@@ -50,6 +51,7 @@ import ucontext = core.sys.posix.ucontext;
 
 version (MemoryAssertSupported)
 {
+    import core.stdc.stdlib : malloc;
     import core.sys.posix.signal : SA_ONSTACK, sigaltstack, SIGSTKSZ, stack_t;
 }
 
@@ -92,73 +94,6 @@ version (MemoryErrorSupported)
         auto oldptr = &oldSigactionMemoryError;
 
         return !sigaction(SIGSEGV, oldptr, null);
-    }
-
-    /**
-     * Thrown on POSIX systems when a SIGSEGV signal is received.
-     */
-    class InvalidPointerError : Error
-    {
-        this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) nothrow
-        {
-            super("", file, line, next);
-        }
-
-        this(Throwable next, string file = __FILE__, size_t line = __LINE__) nothrow
-        {
-            super("", file, line, next);
-        }
-    }
-
-    /**
-     * Thrown on null pointer dereferences.
-     */
-    class NullPointerError : InvalidPointerError
-    {
-        this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) nothrow
-        {
-            super(file, line, next);
-        }
-
-        this(Throwable next, string file = __FILE__, size_t line = __LINE__) nothrow
-        {
-            super(file, line, next);
-        }
-    }
-
-    unittest
-    {
-        int* getNull() { return null; }
-
-        assert(registerMemoryErrorHandler());
-
-        bool b;
-
-        try
-        {
-            *getNull() = 42;
-        }
-        catch (NullPointerError)
-        {
-            b = true;
-        }
-
-        assert(b);
-
-        b = false;
-
-        try
-        {
-            *getNull() = 42;
-        }
-        catch (InvalidPointerError)
-        {
-            b = true;
-        }
-
-        assert(b);
-
-        assert(deregisterMemoryErrorHandler());
     }
 
     // Signal handler space.
@@ -423,7 +358,30 @@ version (MemoryAssertSupported)
 
         // Set up alternate stack, because segfaults can be caused by stack overflow,
         // in which case the stack is already exhausted
-        __gshared ubyte[SIGSTKSZ] altStack;
+
+        __gshared void[] altStack; // lazily allocated once only via malloc; never free'd
+        if (altStack.ptr is null)
+        {
+            version (CRuntime_Glibc)
+            {
+                // glibc v2.34 switched to a dynamic SIGSTKSZ
+                import core.sys.posix.unistd : sysconf, _SC_SIGSTKSZ;
+
+                auto size = sysconf(_SC_SIGSTKSZ);
+                if (size <= 0)
+                    size = SIGSTKSZ;
+            }
+            else
+            {
+                const size = SIGSTKSZ;
+            }
+
+            if (auto p = malloc(size))
+                altStack = p[0 .. size];
+            else
+                return false;
+        }
+
         stack_t ss;
         ss.ss_sp = altStack.ptr;
         ss.ss_size = altStack.length;

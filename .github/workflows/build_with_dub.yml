@@ -1,8 +1,12 @@
 name: Build D compiler using dub
 
 on:
-  - pull_request
-  - push
+  pull_request:
+    paths-ignore:
+      - 'spec/**'
+  push:
+    paths-ignore:
+      - 'spec/**'
 
 jobs:
     test:

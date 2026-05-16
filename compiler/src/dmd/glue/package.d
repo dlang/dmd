@@ -3,7 +3,7 @@
  *
  * generateCodeAndWrite() is the only function seen by the front end.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/glue.d, _glue.d)
@@ -42,6 +42,7 @@ import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.obj;
+import dmd.backend.var : bo;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
 import dmd.backend.symtab;
@@ -57,13 +58,13 @@ import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : getLocalClasses, getType;
+import dmd.dsymbolsem : getLocalClasses, getType, findGetMembers;
 import dmd.expressionsem : toInteger;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
-import dmd.funcsem : onlyOneMain;
+import dmd.funcsem : onlyOneMain, isVirtual;
 import dmd.globals;
 import dmd.identifier;
 import dmd.id;
@@ -73,6 +74,7 @@ import dmd.mtype;
 import dmd.statement;
 import dmd.target;
 import dmd.typesem;
+import dmd.funcsem : genCfunc;
 import dmd.utils;
 
 /**
@@ -256,13 +258,13 @@ tym_t totym(Type tx)
         case Tuns64:    t = TYullong;   break;
         case Tfloat32:  t = TYfloat;    break;
         case Tfloat64:  t = TYdouble;   break;
-        case Tfloat80:  t = RealIsDouble ? TYdouble : TYldouble;  break;
+        case Tfloat80:  t = RealIsDouble ? TYdouble : TYreal;  break;
         case Timaginary32: t = TYifloat; break;
         case Timaginary64: t = TYidouble; break;
-        case Timaginary80: t = RealIsDouble ? TYidouble : TYildouble; break;
+        case Timaginary80: t = RealIsDouble ? TYidouble : TYireal; break;
         case Tcomplex32: t = TYcfloat;  break;
         case Tcomplex64: t = TYcdouble; break;
-        case Tcomplex80: t = RealIsDouble ? TYcdouble : TYcldouble; break;
+        case Tcomplex80: t = RealIsDouble ? TYcdouble : TYcreal; break;
         case Tbool:     t = TYbool;     break;
         case Tchar:     t = TYchar;     break;
         case Twchar:    t = TYwchar_t;  break;
@@ -292,13 +294,13 @@ tym_t totym(Type tx)
             else if (id == Id.__c_ulong)
                 t = tb.ty == Tuns32 ? TYulong : TYullong;
             else if (id == Id.__c_long_double)
-                t = tb.size() == 8 ? TYdouble : TYldouble;
+                t = tb.size() == 8 ? TYdouble : TYreal;
             else if (id == Id.__c_complex_float)
                 t = TYcfloat;
             else if (id == Id.__c_complex_double)
                 t = TYcdouble;
             else if (id == Id.__c_complex_real)
-                t = tb.size() == 16 ? TYcdouble : TYcldouble;
+                t = tb.size() == 16 ? TYcdouble : TYcreal;
             else
                 t = totym(tb);
             break;
@@ -308,7 +310,7 @@ tym_t totym(Type tx)
         case Ttypeof:
         case Tmixin:
             //printf("ty = %d, '%s'\n", tx.ty, tx.toChars());
-            error(Loc.initial, "forward reference of `%s`", tx.toChars());
+            error(Loc.initial, "forward reference of `%s`", tx.toErrMsg());
             t = TYint;
             break;
 
@@ -359,7 +361,7 @@ tym_t totym(Type tx)
                     if (target.os == Target.OS.Windows)
                     {
                     }
-                    else if (!target.isX86_64 && retStyle(tf, false) == RET.stack)
+                    else if (target.isX86 && retStyle(tf, false) == RET.stack)
                         t = TYhfunc;
                     break;
 
@@ -463,7 +465,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     scope (exit) timeTraceEndEvent(TimeTraceEventType.codegenFunction, fd);
 
     if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration()
-        && !(fd.isCrtCtor || fd.isCrtDtor))
+        && !(fd.isCrtCtor || fd.isCrtDtor) && !(fd.storage_class & STC.static_ && fd.isCsymbol()))
     {
         obj_append(fd);
         return;
@@ -636,15 +638,17 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         char[hiddenparamLen] hiddenparam = void;
         __gshared uint hiddenparami;    // how many we've generated so far
 
-        const(char)* name;
+        const(char)[] name;
         if (fd.isNRVO && fd.nrvo_var)
-            name = fd.nrvo_var.ident.toChars();
+            name = fd.nrvo_var.ident.toString();
         else
         {
-            snprintf(hiddenparam.ptr, hiddenparamLen, "__HID%u", ++hiddenparami);
-            name = hiddenparam.ptr;
+            int length = snprintf(hiddenparam.ptr, hiddenparamLen, "__HID%u", ++hiddenparami);
+            assert(length != -1 &&     // for bad old snprintf()
+                   length < hiddenparamLen);
+            name = hiddenparam[0 .. length];
         }
-        shidden = symbol_name(name[0 .. strlen(name)], SC.parameter, thidden);
+        shidden = symbol_name(name, SC.parameter, thidden);
         shidden.Sflags |= SFLtrue | SFLfree | SFLhidden;
         if (fd.isNRVO && fd.nrvo_var && fd.nrvo_var.nestedrefs.length)
             type_setcv(&shidden.Stype, shidden.Stype.Tty | mTYvolatile);
@@ -783,7 +787,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     Statement sbody = fd.fbody;
 
     BlockState bx;
-    bx.startblock = block_calloc();
+    bx.startblock = block_calloc(bo);
     bx.curblock = bx.startblock;
     bx.funcsym = s;
     bx.scope_index = -1;
@@ -847,13 +851,13 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         se.type = Type.tstring;
         se.type = se.type.typeSemantic(Loc.initial, null);
         Expressions* exps = new Expressions(se);
-        FuncDeclaration fdpro = FuncDeclaration.genCfunc(null, Type.tvoid, "trace_pro");
+        FuncDeclaration fdpro = genCfunc(null, Type.tvoid, "trace_pro");
         Expression ec = VarExp.create(Loc.initial, fdpro);
         Expression e = CallExp.create(Loc.initial, ec, exps);
         e.type = Type.tvoid;
         Statement sp = ExpStatement.create(fd.loc, e);
 
-        FuncDeclaration fdepi = FuncDeclaration.genCfunc(null, Type.tvoid, "_c_trace_epi");
+        FuncDeclaration fdepi = genCfunc(null, Type.tvoid, "_c_trace_epi");
         ec = VarExp.create(Loc.initial, fdepi);
         e = CallExp.create(Loc.initial, ec);
         e.type = Type.tvoid;
@@ -1029,7 +1033,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             newConstructor.Sclass = SC.static_;
             func_t* funcState = newConstructor.Sfunc;
             //Init start block
-            funcState.Fstartblock = block_calloc();
+            funcState.Fstartblock = block_calloc(bo);
             block* startBlk = funcState.Fstartblock;
             //Make that block run __cxa_atexit(&func);
             auto atexitSym = getRtlsym(RTLSYM.CXA_ATEXIT);
@@ -1046,7 +1050,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             auto exec = el_bin(OPcall, TYvoid, el_var(atexitSym), paramPack);
             block_appendexp(startBlk, exec); //payload
             startBlk.bc = BC.goto_;
-            auto next = block_calloc();
+            auto next = block_calloc(bo);
             startBlk.appendSucc(next);
             startBlk.Bnext = next;
             next.bc = BC.ret;
@@ -1231,7 +1235,7 @@ private Symbol* callFuncsAndGates(Module m, Symbol*[] sctors, StaticDtorDeclarat
         ector = el_combine(ector, e);
     }
 
-    block* b = block_calloc();
+    block* b = block_calloc(bo);
     b.bc = BC.ret;
     b.Belem = ector;
     sctor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
@@ -1498,7 +1502,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
         {
             localgot = glue.ictorlocalgot;
 
-            block* b = block_calloc();
+            block* b = block_calloc(bo);
             b.bc = BC.ret;
             b.Belem = glue.eictor;
             msictor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;

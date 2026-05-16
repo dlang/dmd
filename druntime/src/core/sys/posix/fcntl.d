@@ -886,13 +886,13 @@ version (CRuntime_Glibc)
     static if ( __USE_FILE_OFFSET64 )
     {
         int   creat64(const scope char*, mode_t);
-        alias creat64 creat;
+        alias creat = creat64;
 
         int   open64(const scope char*, int, ...);
-        alias open64 open;
+        alias open = open64;
 
         int   openat64(int, const scope char*, int, ...);
-        alias openat64 openat;
+        alias openat = openat64;
     }
     else
     {
@@ -941,9 +941,9 @@ else version (Solaris)
 
         static if (__USE_LARGEFILE64)
         {
-            alias creat creat64;
-            alias open open64;
-            alias openat openat64;
+            alias creat64 = creat;
+            alias open64 = open;
+            alias openat64 = openat;
         }
     }
     else
@@ -951,13 +951,13 @@ else version (Solaris)
         static if (__USE_LARGEFILE64)
         {
             int creat64(const scope char*, mode_t);
-            alias creat64 creat;
+            alias creat = creat64;
 
             int open64(const scope char*, int, ...);
-            alias open64 open;
+            alias open = open64;
 
             int openat64(int, const scope char*, int, ...);
-            alias openat64 openat;
+            alias openat = openat64;
         }
         else
         {
@@ -984,13 +984,13 @@ else version (CRuntime_UClibc)
     static if ( __USE_FILE_OFFSET64 )
     {
         int   creat64(const scope char*, mode_t);
-        alias creat64 creat;
+        alias creat = creat64;
 
         int   open64(const scope char*, int, ...);
-        alias open64 open;
+        alias open = open64;
 
         int openat64(int, const scope char*, int, ...);
-        alias openat64 openat;
+        alias openat = openat64;
     }
     else
     {

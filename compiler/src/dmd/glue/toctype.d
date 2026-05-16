@@ -1,7 +1,7 @@
 /**
  * Convert a D type to a type the backend understands.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/toctype.d, _toctype.d)
@@ -30,12 +30,13 @@ import dmd.dmdparams;
 import dmd.dstruct;
 import dmd.dsymbolsem : isPOD;
 import dmd.expressionsem : toInteger;
-import dmd.globals;
 import dmd.id;
 import dmd.mtype;
 import dmd.typesem;
 
 package(dmd.glue):
+
+private:
 
 /*******************
  * Determine backend tym bits corresponding to MOD
@@ -44,6 +45,7 @@ package(dmd.glue):
  * Returns:
  *  corresponding tym_t bits
  */
+package(dmd.glue)
 tym_t modToTym(MOD mod) pure @safe
 {
     switch (mod)
@@ -81,6 +83,7 @@ tym_t modToTym(MOD mod) pure @safe
  * Returns:
  *      back end equivalent `type`
  */
+package(dmd.glue)
 type* Type_toCtype(Type t)
 {
     if (t.ctype)
@@ -161,14 +164,37 @@ type* Type_toCtype(Type t)
         //printf("TypeStruct::toCtype() '%s'\n", t.sym.toChars());
         if (t.mod == 0)
         {
-            // Create a new backend type
             StructDeclaration sym = t.sym;
             auto arg1type = sym.argType(0);
             auto arg2type = sym.argType(1);
+
+            //if (arg1type) printf("  arg1type: %s\n", arg1type.toChars());
+            //if (arg2type) printf("  arg2type: %s\n", arg2type.toChars());
+
+            /* Adjust arg1type and arg2type based on toArgTypes_aarch64() putting things in a static array
+             * instead of arg1type and arg2type
+             */
+            if (arg1type && arg1type.isTypeSArray())
+            {
+                auto tsa = arg1type.isTypeSArray();
+                if (auto dim = tsa.dim.toInteger())
+                {
+                    Type arg = tsa.next;
+                    arg1type = arg;
+                    if (dim == 2)
+                    {
+                        assert(!arg2type);
+                        arg2type = arg;
+                    }
+                }
+            }
+
+            // Create a new backend type
             t.ctype = type_struct_class(sym.toPrettyChars(true), sym.alignsize, sym.structsize, arg1type ? Type_toCtype(arg1type) : null, arg2type ? Type_toCtype(arg2type) : null, sym.isUnionDeclaration() !is null, false, sym.isPOD() != 0, sym.hasNoFields);
             /* Add in fields of the struct
              * (after setting ctype to avoid infinite recursion)
              */
+            import dmd.globals;
             if (driverParams.symdebug && !global.errors)
             {
                 foreach (v; sym.fields)

@@ -3,7 +3,7 @@
  *
  * Specification: C11
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/cparse.d, _cparse.d)
@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import core.stdc.string : memcpy;
 
 import dmd.astenums;
+import dmd.errors;
 import dmd.errorsink;
 import dmd.id;
 import dmd.identifier;
@@ -27,7 +28,7 @@ import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.tokens;
-import dmd.typesem : size, makeImmutable;
+import dmd.typesem : size, makeImmutable, nextOf;
 
 /***********************************************************
  */
@@ -36,6 +37,8 @@ final class CParser(AST) : Parser!AST
     AST.Dsymbols* symbols;      // symbols declared in current scope
 
     bool addFuncName;           /// add declaration of __func__ to function symbol table
+    bool refFuncName;           // declaration of __FUNCTION__
+    bool pretFuncName;          // declaration for __PRETTY_FUNCTION__
     bool importBuiltins;        /// seen use of C compiler builtins, so import __importc_builtins;
 
     private
@@ -314,7 +317,7 @@ final class CParser(AST) : Parser!AST
             auto exp = cparseExpression();
             if (token.value == TOK.identifier && exp.op == EXP.identifier)
             {
-                error(token.loc, "found `%s` when expecting `;` or `=`, did you mean `%s %s = %s`?", peek(&token).toChars(), exp.toChars(), token.toChars(), peek(peek(&token)).toChars());
+                error(token.loc, "found `%s` when expecting `;` or `=`, did you mean `%s %s = %s`?", peek(&token).toChars(), exp.toErrMsg(), token.toChars(), peek(peek(&token)).toChars());
                 nextToken();
             }
             else
@@ -752,6 +755,12 @@ final class CParser(AST) : Parser!AST
             const id = token.ident.toString();
             if (id.length > 2 && id[0] == '_' && id[1] == '_')  // leading double underscore
             {
+                if (token.ident is Id.FUNCTION)
+                    refFuncName = true; // implicitly declare __FUNCTION__
+
+                if (token.ident is Id.PRETTY_FUNCTION)
+                    pretFuncName = true; // implicitly declare __PRETTY_FUNCTION__
+
                 if (token.ident is Id.__func__)
                 {
                     addFuncName = true;     // implicitly declare __func__
@@ -1718,7 +1727,9 @@ final class CParser(AST) : Parser!AST
         {
             auto decls = new AST.Dsymbols(1);
             (*decls)[0] = stags;
-            stags = new AST.AlignDeclaration(stags.loc, tt.alignExps, decls);
+            auto ald = new AST.AlignDeclaration(stags.loc, tt.alignExps, decls);
+            ald.salign.setCAlignAttribute();
+            stags = ald;
         }
         symbols.push(stags);
     }
@@ -1786,7 +1797,7 @@ final class CParser(AST) : Parser!AST
             if (auto ti = tspec.isTypeIdentifier())
             {
                 // C11 6.7.2-2
-                error("type-specifier missing for declaration of `%s`", ti.ident.toChars());
+                error("type-specifier missing for declaration of `%s`", ti.ident.toErrMsg());
                 nextToken();
                 return;
             }
@@ -1803,7 +1814,7 @@ final class CParser(AST) : Parser!AST
             if (0 && tt.tok == TOK.enum_)    // C11 proscribes enums with no members, but we allow it
             {
                 if (!tt.members)
-                    error(tt.loc, "`enum %s` has no members", tt.toChars());
+                    error(tt.loc, "`enum %s` has no members", tt.toErrMsg());
             }
             return;
         }
@@ -1843,7 +1854,7 @@ final class CParser(AST) : Parser!AST
             /* C11 6.7.2-2
              * Special check for `const b = 1;` because some compilers allow it
              */
-            error("type-specifier omitted for declaration of `%s`", tspec.isTypeIdentifier().ident.toChars());
+            error("type-specifier omitted for declaration of `%s`", tspec.isTypeIdentifier().ident.toErrMsg());
             return scanPastSemicolon();
         }
 
@@ -2110,7 +2121,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.identifier:
                     if (s)
                     {
-                        error(token.loc, "missing comma or semicolon after declaration of `%s`, found `%s` instead", s.toChars(), token.toChars());
+                        error(token.loc, "missing comma or semicolon after declaration of `%s`, found `%s` instead", s.toErrMsg(), token.toChars());
                         goto Lend;
                     }
                     goto default;
@@ -2218,13 +2229,16 @@ final class CParser(AST) : Parser!AST
                 }
                 if (!p.type)
                 {
-                    error("no declaration for identifier `%s`", p.ident.toChars());
+                    error("no declaration for identifier `%s`", p.ident.toErrMsg());
                     p.type = AST.Type.terror;
                 }
             }
         }
 
-        addFuncName = false;    // gets set to true if somebody references __func__ in this function
+        /* gets set to true if somebody references __func__ in this function, //ditto for __FUNCTION__ */
+        addFuncName = false;
+        refFuncName = false;
+        pretFuncName = false;
         const locFunc = token.loc;
 
         auto body = cparseStatement(ParseStatementFlags.curly);  // don't start a new scope; continue with parameter scope
@@ -2235,11 +2249,20 @@ final class CParser(AST) : Parser!AST
         auto fd = new AST.FuncDeclaration(id.loc, prevloc, id.name, stc, ft, specifier.noreturn);
         specifiersToFuncDeclaration(fd, specifier);
 
+        auto stmts = new AST.Statements();
+
         if (addFuncName)
-        {
-            auto s = createFuncName(locFunc, id.name);
-            body = new AST.CompoundStatement(locFunc, s, body);
-        }
+            stmts.push(createFuncName(locFunc, id.name, Id.__func__));
+
+        if (refFuncName)
+            stmts.push(createFuncName(locFunc, id.name, Id.FUNCTION));
+
+        if (pretFuncName)
+            stmts.push(createPrettyFunc(locFunc, fd));
+
+        stmts.push(body);
+
+        body = new AST.CompoundStatement(locFunc, stmts);
         fd.fbody = body;
 
         // TODO add `symbols` to the function's local symbol table `sc2` in FuncDeclaration::semantic3()
@@ -2375,7 +2398,6 @@ final class CParser(AST) : Parser!AST
             xllong     = 0x40,
             xfloat     = 0x80,
             xdouble    = 0x100,
-            xldouble   = 0x200,
             xtag       = 0x400,
             xident     = 0x800,
             xvoid      = 0x1000,
@@ -3002,7 +3024,7 @@ final class CParser(AST) : Parser!AST
                              * function type.
                              */
                             if (ta.isTypeSArray() && ta.isTypeSArray().isIncomplete() && !isVLA)
-                                error("array type has incomplete element type `%s`", ta.toChars());
+                                error("array type has incomplete element type `%s`", ta.toErrMsg());
                         }
 
                         // Apply type qualifiers to the constructed type.
@@ -3234,7 +3256,7 @@ final class CParser(AST) : Parser!AST
             {
                 if ((token.value == TOK.rightParenthesis || token.value == TOK.comma) &&
                     tspec.isTypeIdentifier())
-                    error("type-specifier omitted for parameter `%s`", tspec.isTypeIdentifier().ident.toChars());
+                    error("type-specifier omitted for parameter `%s`", tspec.isTypeIdentifier().ident.toErrMsg());
 
                 tspec = toConst(tspec);
                 specifier.mod = MOD.xnone;      // 'used' it
@@ -3383,7 +3405,9 @@ final class CParser(AST) : Parser!AST
                 }
                 else if (token.ident == Id._align)
                 {
-                    // Microsoft spec is very imprecise as to how this actually works
+                    // https://learn.microsoft.com/en-us/cpp/cpp/align-cpp
+                    // __declspec(align(N)) sets the minimum alignment of the type,
+                    // like __attribute__((aligned(N))). It can only increase alignment.
                     nextToken();
                     check(TOK.leftParenthesis);
                     if (token.value == TOK.int32Literal)
@@ -3391,8 +3415,13 @@ final class CParser(AST) : Parser!AST
                         const n = token.unsvalue;
                         if (n < 1 || n & (n - 1) || 8192 < n)
                             error("__decspec(align(%lld)) must be an integer positive power of 2 and be <= 8,192", cast(ulong)n);
-                        specifier.packalign.set(cast(uint)n);
-                        specifier.packalign.setPack();
+                        else
+                        {
+                            auto e = new AST.IntegerExp(token.loc, n, AST.Type.tuns32);
+                            if (!specifier.alignAttrs)
+                                specifier.alignAttrs = new AST.Expressions();
+                            specifier.alignAttrs.push(e);
+                        }
                         nextToken();
                     }
                     else
@@ -3637,109 +3666,108 @@ final class CParser(AST) : Parser!AST
         if (!isGnuAttributeName())
             return;
 
-        if (token.value == TOK.identifier)
+        if (token.value != TOK.identifier)
         {
-            if (token.ident == Id.aligned)
+            nextToken();
+            if (token.value == TOK.leftParenthesis)
+                cparseParens();
+            return;
+        }
+
+        if (token.ident == Id.aligned)
+        {
+            nextToken();
+            if (token.value == TOK.leftParenthesis)
             {
                 nextToken();
-                if (token.value == TOK.leftParenthesis)
-                {
-                    nextToken();
-                    AST.Expression exp = cparseConstantExp();
-                    if (!specifier.alignAttrs)
-                        specifier.alignAttrs = new AST.Expressions();
-                    specifier.alignAttrs.push(exp);
-                    check(TOK.rightParenthesis);
-                }
-                else
-                {
-                    /* ignore __attribute__((aligned)), which sets the alignment to the largest value for any data
-                     * type on the target machine. It's the opposite of __attribute__((packed))
-                     */
-                }
-            }
-            else if (token.ident == Id.packed)
-            {
-                specifier.packalign.set(1);
-                specifier.packalign.setPack();
-                nextToken();
-            }
-            else if (token.ident == Id.always_inline) // https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html
-            {
-                specifier.scw |= SCW.xinline;
-                nextToken();
-            }
-            else if (token.ident == Id._deprecated)
-            {
-                specifier._deprecated = true;
-                nextToken();
-                if (token.value == TOK.leftParenthesis)  // optional deprecation message
-                {
-                    nextToken();
-                    specifier.depMsg = cparseExpression();
-                    check(TOK.rightParenthesis);
-                }
-            }
-            else if (token.ident == Id.dllimport)
-            {
-                specifier.dllimport = true;
-                nextToken();
-            }
-            else if (token.ident == Id.dllexport)
-            {
-                specifier.dllexport = true;
-                nextToken();
-            }
-            else if (token.ident == Id.naked)
-            {
-                specifier.naked = true;
-                nextToken();
-            }
-            else if (token.ident == Id.noinline)
-            {
-                specifier.scw |= SCW.xnoinline;
-                nextToken();
-            }
-            else if (token.ident == Id.noreturn)
-            {
-                specifier.noreturn = true;
-                nextToken();
-            }
-            else if (token.ident == Id._nothrow)
-            {
-                specifier._nothrow = true;
-                nextToken();
-            }
-            else if (token.ident == Id._pure)
-            {
-                specifier._pure = true;
-                nextToken();
-            }
-            else if (token.ident == Id.vector_size)
-            {
-                nextToken();
-                check(TOK.leftParenthesis);
-                if (token.value == TOK.int32Literal)
-                {
-                    const n = token.unsvalue;
-                    if (n < 1 || n & (n - 1) || ushort.max < n)
-                        error("__attribute__((vector_size(%lld))) must be an integer positive power of 2 and be <= 32,768", cast(ulong)n);
-                    specifier.vector_size = cast(uint) n;
-                    nextToken();
-                }
-                else
-                {
-                    error("value for vector_size expected, not `%s`", token.toChars());
-                    nextToken();
-                }
+                AST.Expression exp = cparseConstantExp();
+                if (!specifier.alignAttrs)
+                    specifier.alignAttrs = new AST.Expressions();
+                specifier.alignAttrs.push(exp);
                 check(TOK.rightParenthesis);
             }
             else
             {
-                nextToken();
-                if (token.value == TOK.leftParenthesis)
-                    cparseParens();
+                /* ignore __attribute__((aligned)), which sets the alignment to the largest value for any data
+                 * type on the target machine. It's the opposite of __attribute__((packed))
+                 */
             }
+        }
+        else if (token.ident == Id.packed)
+        {
+            specifier.packalign.set(1);
+            specifier.packalign.setPack();
+            nextToken();
+        }
+        else if (token.ident == Id.always_inline) // https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html
+        {
+            specifier.scw |= SCW.xinline;
+            nextToken();
+        }
+        else if (token.ident == Id._deprecated)
+        {
+            specifier._deprecated = true;
+            nextToken();
+            if (token.value == TOK.leftParenthesis)  // optional deprecation message
+            {
+                nextToken();
+                specifier.depMsg = cparseExpression();
+                check(TOK.rightParenthesis);
+            }
+        }
+        else if (token.ident == Id.dllimport)
+        {
+            specifier.dllimport = true;
+            nextToken();
+        }
+        else if (token.ident == Id.dllexport)
+        {
+            specifier.dllexport = true;
+            nextToken();
+        }
+        else if (token.ident == Id.naked)
+        {
+            specifier.naked = true;
+            nextToken();
+        }
+        else if (token.ident == Id.noinline)
+        {
+            specifier.scw |= SCW.xnoinline;
+            nextToken();
+        }
+        else if (token.ident == Id.noreturn)
+        {
+            specifier.noreturn = true;
+            nextToken();
+        }
+        else if (token.ident == Id._nothrow)
+        {
+            specifier._nothrow = true;
+            nextToken();
+        }
+        else if (token.ident == Id._pure)
+        {
+            specifier._pure = true;
+            nextToken();
+        }
+        else if (token.ident == Id.vector_size)
+        {
+            nextToken();
+            check(TOK.leftParenthesis);
+            if (token.value == TOK.int32Literal)
+            {
+                const n = token.unsvalue;
+                if (n < 1 || n & (n - 1) || ushort.max < n)
+                    error("__attribute__((vector_size(%lld))) must be an integer positive power of 2 and be <= 32,768", cast(ulong)n);
+                specifier.vector_size = cast(uint) n;
+                nextToken();
+            }
+            else
+            {
+                error("value for vector_size expected, not `%s`", token.toChars());
+                nextToken();
+            }
+            check(TOK.rightParenthesis);
         }
         else
         {
@@ -3904,7 +3932,7 @@ final class CParser(AST) : Parser!AST
             if (token.value == TOK.rightCurly)  // C11 6.7.2.2-1
             {
                 if (tag)
-                    error("no members for `enum %s`", tag.toChars());
+                    error("no members for `enum %s`", tag.toErrMsg());
                 else
                     error("no members for anonymous enum");
             }
@@ -4128,7 +4156,7 @@ final class CParser(AST) : Parser!AST
             {
                 if (auto ti = tspec.isTypeIdentifier())
                 {
-                    error("type-specifier omitted before declaration of `%s`", ti.ident.toChars());
+                    error("type-specifier omitted before declaration of `%s`", ti.ident.toErrMsg());
                 }
                 return; // legal but meaningless empty declaration
             }
@@ -4175,7 +4203,7 @@ final class CParser(AST) : Parser!AST
             {
                 if (auto ti = tspec.isTypeIdentifier())
                 {
-                    error("type-specifier omitted before bit field declaration of `%s`", ti.ident.toChars());
+                    error("type-specifier omitted before bit field declaration of `%s`", ti.ident.toErrMsg());
                     tspec = AST.Type.tint32;
                 }
 
@@ -4849,18 +4877,48 @@ final class CParser(AST) : Parser!AST
      *    loc = location for this declaration
      *    id = identifier of function
      * Returns:
-     *    statement representing the declaration of __func__
+     *    statement representing the declaration of __func__, __FUNCTION__, or __PRETTY-FUNCTION__
      */
-    private AST.Statement createFuncName(Loc loc, Identifier id)
+    private AST.Statement createFuncName(Loc loc, Identifier id, Identifier cident)
     {
         const fn = id.toString();  // function-name
         auto efn = new AST.StringExp(loc, fn, fn.length, 1, 'c');
         auto ifn = new AST.ExpInitializer(loc, efn);
-        auto lenfn = new AST.IntegerExp(loc, fn.length + 1, AST.Type.tuns32); // +1 for terminating 0
+        auto lenfn = new AST.IntegerExp(loc, fn.length + 1, AST.Type.tuns32); // +1 for terminating 0, ditto for __pretty_chars__
         auto tfn = new AST.TypeSArray(AST.Type.tchar, lenfn);
         efn.type = tfn.makeImmutable();
         efn.committed = true;
-        auto sfn = new AST.VarDeclaration(loc, tfn, Id.__func__, ifn, STC.gshared | STC.immutable_);
+        auto sfn = new AST.VarDeclaration(loc, tfn, cident, ifn, STC.gshared | STC.immutable_);
+        auto e = new AST.DeclarationExp(loc, sfn);
+        return new AST.ExpStatement(loc, e);
+    }
+
+    /* function for C __PRETTY_FUNCTION__ for non-linux systems */
+    private AST.Statement createPrettyFunc(Loc loc, AST.FuncDeclaration fd)
+    {
+        auto tf = fd.type.isTypeFunction();
+        auto funcSig = tf.next.toString();
+        funcSig ~= " ";
+        funcSig ~= fd.ident.toString();
+        funcSig ~= "(";
+
+        foreach (i, fparam ; tf.parameterList)
+        {
+            if (i > 0)
+                funcSig ~= ", ";
+
+            AST.Type t = tf.parameterList[i].type;
+            funcSig ~= t.toString();
+        }
+        funcSig ~= ")";
+
+        auto efn = new AST.StringExp(loc, funcSig);
+        auto ifn = new AST.ExpInitializer(loc, efn);
+        auto lenfn = new AST.IntegerExp(loc, funcSig.length + 1, AST.Type.tuns32); // +1 for terminating 0
+        auto tfn = new AST.TypeSArray(AST.Type.tchar, lenfn);
+        efn.type = tfn.makeImmutable();
+        efn.committed = true;
+        auto sfn = new AST.VarDeclaration(loc, tfn, Id.PRETTY_FUNCTION, ifn, STC.gshared | STC.immutable_);
         auto e = new AST.DeclarationExp(loc, sfn);
         return new AST.ExpStatement(loc, e);
     }
@@ -4887,7 +4945,7 @@ final class CParser(AST) : Parser!AST
         // `const` is always applied to the return type, not the
         // type function itself.
         if (auto tf = t.isTypeFunction())
-            tf.next = tf.next.addSTC(STC.const_);
+            tf.next = AST.addSTC(tf.next, STC.const_);
         else if (auto tt = t.isTypeTag())
             tt.mod |= MODFlags.const_;
         else
@@ -4896,7 +4954,7 @@ final class CParser(AST) : Parser!AST
              */
             auto tn = t.nextOf();
             if (!tn || tn.isConst())
-                t = t.addSTC(STC.const_);
+                t = AST.addSTC(t, STC.const_);
         }
         return t;
     }
@@ -5026,8 +5084,7 @@ final class CParser(AST) : Parser!AST
             if (pt && *pt)
                 t = *pt;
         }
-        if (t.mcache && t.mcache.typedefIdent)
-        {
+        if ((t.mcache && t.mcache.typedefIdent) || t.isTypeBasic()) {
             t = t.copy();
             t.mcache = null;
         }
@@ -5085,7 +5142,10 @@ final class CParser(AST) : Parser!AST
                  */
                 defines.writeByte('#');
                 defines.writestring(n.ident.toString());
-                skipToNextLine(defines);
+
+                nothrow void sink(char c) { defines.writeByte(c); }
+
+                skipToNextLine(&sink);          // skip over characters in rest of line
                 defines.writeByte(0);           // each #define line is 0 terminated
                 return true;
             }
@@ -5543,7 +5603,7 @@ final class CParser(AST) : Parser!AST
 
         void addSym(AST.Dsymbol s)
         {
-            //printf("addSym() %s\n", s.toChars());
+            //printf("addSym() %s\n", s.toErrMsg());
             if (auto v = s.isVarDeclaration())
                 v.isCmacro = true;       // mark it as coming from a C #define
             if (auto td = s.isTemplateDeclaration())
@@ -5553,7 +5613,7 @@ final class CParser(AST) : Parser!AST
              */
             if (size_t* pd = cast(void*)s.ident in defineTab)
             {
-                //printf("replacing %s\n", s.toChars());
+                //printf("replacing %s\n", s.toErrMsg());
                 newSymbols[*pd] = s;
                 return;
             }
@@ -5563,10 +5623,10 @@ final class CParser(AST) : Parser!AST
 
         void removeSym(Identifier ident)
         {
-            //printf("removeSym() %s\n", ident.toChars());
+            //printf("removeSym() %s\n", ident.toErrMsg());
             if (size_t* pd = cast(void*)ident in defineTab)
             {
-                //printf("removing %s\n", ident.toChars());
+                //printf("removing %s\n", ident.toErrMsg());
                 newSymbols[*pd] = null;
             }
         }
@@ -5577,6 +5637,24 @@ final class CParser(AST) : Parser!AST
             while (*p)
                 ++p;
             ++p; // advance to start of next line
+        }
+
+        /* Create a nullary template function from an expression:
+         *   auto id()() { return exp; }
+         */
+        void addNullaryTemplate(AST.Expression exp, Identifier id)
+        {
+            auto ret = new AST.ReturnStatement(exp.loc, exp);
+            auto parameterList = AST.ParameterList(new AST.Parameters(), VarArg.none, STC.none);
+            STC stc = STC.auto_;
+            auto tf = new AST.TypeFunction(parameterList, null, LINK.d, stc);
+            auto fd = new AST.FuncDeclaration(exp.loc, exp.loc, id, stc, tf, 0);
+            fd.fbody = ret;
+            AST.Dsymbols* decldefs = new AST.Dsymbols();
+            decldefs.push(fd);
+            AST.TemplateParameters* tpl = new AST.TemplateParameters();
+            auto tempdecl = new AST.TemplateDeclaration(exp.loc, id, tpl, null, decldefs, false);
+            addSym(tempdecl);
         }
 
         while (p < endp)
@@ -5702,6 +5780,32 @@ final class CParser(AST) : Parser!AST
                             }
                             break;
 
+                        case TOK.identifier:
+                        {
+                            /* Look for:
+                             *  #define ID identifier ( args )
+                             * where the macro body is exactly a function-like macro call
+                             * (no additional operators that could cause precedence issues).
+                             * Rewrite to a template function:
+                             *  auto ID()() { return identifier(args); }
+                             */
+                            assert(!params);                    // would be TOK.leftParenthesis
+                            eLatch.sawErrors = false;
+                            auto exp = cparseExpression();
+                            if (eLatch.sawErrors)               // parsing errors
+                                break;                          // abandon this #define
+                            if (token.value != TOK.endOfFile)   // did not consume the entire line
+                                break;
+                            // Only allow bare function calls to avoid precedence issues.
+                            // E.g., `#define X FUNC(5)` is safe, but `#define X FUNC(5) + 1`
+                            // would have different semantics in D vs C when used as `X * 2`.
+                            if (!exp.isCallExp())
+                                break;
+                            addNullaryTemplate(exp, id);
+                            ++p;
+                            continue;
+                        }
+
                         case TOK.leftParenthesis:
                         {
                             /* Look for:
@@ -5721,18 +5825,7 @@ final class CParser(AST) : Parser!AST
                             nextToken();
                             if (token.value != TOK.endOfFile)
                                 break;
-                            auto ret = new AST.ReturnStatement(exp.loc, exp);
-                            auto parameterList = AST.ParameterList(new AST.Parameters(), VarArg.none, STC.none);
-                            STC stc = STC.auto_;
-                            auto tf = new AST.TypeFunction(parameterList, null, LINK.d, stc);
-                            auto fd = new AST.FuncDeclaration(exp.loc, exp.loc, id, stc, tf, 0);
-                            fd.fbody = ret;
-                            AST.Dsymbols* decldefs = new AST.Dsymbols();
-                            decldefs.push(fd);
-                            AST.TemplateParameters* tpl = new AST.TemplateParameters();
-                            AST.Expression constraint = null;
-                            auto tempdecl = new AST.TemplateDeclaration(exp.loc, id, tpl, constraint, decldefs, false);
-                            addSym(tempdecl);
+                            addNullaryTemplate(exp, id);
                             ++p;
                             continue;
                         }
@@ -5743,7 +5836,7 @@ final class CParser(AST) : Parser!AST
                              * Create template function:
                              *    auto id(__MP1, __MP2)(__MP1 a, __MP1 b) { return expression; }
                              */
-                            //printf("functionlike %s\n", id.toChars());
+                            //printf("functionlike %s\n", id.toErrMsg());
 
                             // Capture the parameter list
                             VarArg varargs = VarArg.none;
@@ -5802,7 +5895,7 @@ final class CParser(AST) : Parser!AST
                             eLatch.sawErrors = false;
                             auto exp = cparseExpression();
 
-                            //printf("exp: %s tok: %s\n", exp.toChars(), Token.toChars(token.value));
+                            //printf("exp: %s tok: %s\n", exp.toErrMsg(), Token.toChars(token.value));
                             //printf("parsed: '%.*s'\n", cast(int)(p - pstart), pstart);
                             assert(symbols);
 

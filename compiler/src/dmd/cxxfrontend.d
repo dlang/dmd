@@ -1,7 +1,7 @@
 /**
  * Contains C++ interfaces for interacting with DMD as a library.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/cxxfrontend.d, _cxxfrontend.d)
@@ -26,7 +26,7 @@ import dmd.dtemplate /*: TemplateInstance, TemplateParameter, Tuple*/;
 import dmd.errorsink : ErrorSink;
 import dmd.expression /*: Expression*/;
 import dmd.func : FuncDeclaration;
-import dmd.globals : dinteger_t, uinteger_t, JsonFieldFlags;
+import dmd.globals : dinteger_t, uinteger_t, JsonFieldFlags, CppStdRevision;
 import dmd.identifier : Identifier;
 import dmd.init : Initializer, NeedInterpret;
 import dmd.location : Loc;
@@ -111,14 +111,6 @@ void mangleToBuffer(TemplateInstance ti, ref OutBuffer buf)
 {
     import dmd.mangle;
     return dmd.mangle.mangleToBuffer(ti, buf);
-}
-
-/***********************************************************
- * dmodule.d
- */
-FuncDeclaration findGetMembers(ScopeDsymbol dsym)
-{
-    return dmd.dmodule.findGetMembers(dsym);
 }
 
 /***********************************************************
@@ -299,9 +291,16 @@ void runDeferredSemantic3()
     return dmd.dsymbolsem.runDeferredSemantic3();
 }
 
-bool isOverlappedWith(VarDeclaration vd, VarDeclaration v){
+bool isOverlappedWith(VarDeclaration vd, VarDeclaration v)
+{
     import dmd.dsymbolsem;
     return dmd.dsymbolsem.isOverlappedWith(vd, v);
+}
+
+Scope* newScope(AggregateDeclaration ad, Scope* sc)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.newScope(ad, sc);
 }
 
 Dsymbol search(Scope* sc, Loc loc, Identifier ident, out Dsymbol pscopesym,
@@ -309,6 +308,18 @@ Dsymbol search(Scope* sc, Loc loc, Identifier ident, out Dsymbol pscopesym,
 {
     import dmd.dsymbolsem;
     return dmd.dsymbolsem.search(sc, loc, ident, pscopesym, flags);
+}
+
+void addObjcSymbols(Dsymbol sym, ClassDeclarations* classes, ClassDeclarations* categories)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.addObjcSymbols(sym, classes, categories);
+}
+
+FuncDeclaration findGetMembers(ScopeDsymbol dsym)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.findGetMembers(dsym);
 }
 
 /***********************************************************
@@ -362,10 +373,10 @@ void printInstantiationTrace(TemplateInstance ti)
 /***********************************************************
  * dtoh.d
  */
-void genCppHdrFiles(ref Modules ms, ErrorSink eSink)
+void genCppHdrFiles(ref Modules ms, ErrorSink eSink, CppStdRevision cppStdRevision)
 {
     import dmd.dtoh;
-    return dmd.dtoh.genCppHdrFiles(ms, eSink);
+    return dmd.dtoh.genCppHdrFiles(ms, eSink, cppStdRevision);
 }
 
 /***********************************************************
@@ -417,6 +428,12 @@ bool isLvalue(Expression exp)
 {
     import dmd.expressionsem;
     return dmd.expressionsem.isLvalue(exp);
+}
+
+bool canElideCopy(Expression exp, Type to, bool checkMod)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.canElideCopy(exp, to, checkMod);
 }
 
 int getFieldIndex(ClassReferenceExp cre, Type fieldtype, uint fieldoffset)
@@ -474,21 +491,20 @@ real_t toImaginary(Expression exp)
 }
 
 /***********************************************************
- * func.d
+ * funcsem.d
  */
 FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, StorageClass stc = STC.none)
 {
-    return FuncDeclaration.genCfunc(fparams, treturn, name, cast(STC) stc);
+    import dmd.funcsem;
+    return dmd.funcsem.genCfunc(fparams, treturn, name, cast(STC) stc);
 }
 
 FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, StorageClass stc = STC.none)
 {
-    return FuncDeclaration.genCfunc(fparams, treturn, id, cast(STC) stc);
+    import dmd.funcsem;
+    return dmd.funcsem.genCfunc(fparams, treturn, id, cast(STC) stc);
 }
 
-/***********************************************************
- * funcsem.d
- */
 bool functionSemantic(FuncDeclaration fd)
 {
     import dmd.funcsem;
@@ -511,6 +527,30 @@ PURE isPure(FuncDeclaration fd)
 {
     import dmd.funcsem;
     return dmd.funcsem.isPure(fd);
+}
+
+bool needsClosure(FuncDeclaration fd)
+{
+    import dmd.funcsem;
+    return dmd.funcsem.needsClosure(fd);
+}
+
+bool hasNestedFrameRefs(FuncDeclaration fd)
+{
+    import dmd.funcsem;
+    return dmd.funcsem.hasNestedFrameRefs(fd);
+}
+
+bool isVirtualMethod(FuncDeclaration fd)
+{
+    import dmd.funcsem;
+    return dmd.funcsem.isVirtualMethod(fd);
+}
+
+bool isVirtual(const FuncDeclaration fd)
+{
+    import dmd.funcsem;
+    return dmd.funcsem.isVirtual(fd);
 }
 
 /***********************************************************
@@ -621,14 +661,6 @@ JsonFieldFlags tryParseJsonField(const(char)* fieldName)
 }
 
 /***********************************************************
- * mtype.d
- */
-AggregateDeclaration isAggregate(Type t)
-{
-    return dmd.mtype.isAggregate(t);
-}
-
-/***********************************************************
  * optimize.d
  */
 Expression optimize(Expression e, int result, bool keepLvalue = false)
@@ -687,6 +719,18 @@ bool tpsemantic(TemplateParameter tp, Scope* sc, TemplateParameters* parameters)
 /***********************************************************
  * typesem.d
  */
+bool hasDeprecatedAliasThis(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.hasDeprecatedAliasThis(type);
+}
+
+AggregateDeclaration isAggregate(Type t)
+{
+    import dmd.typesem;
+    return dmd.typesem.isAggregate(t);
+}
+
 bool hasPointers(Type t)
 {
     import dmd.typesem;
@@ -715,6 +759,12 @@ Type merge2(Type type)
 {
     import dmd.typesem;
     return dmd.typesem.merge2(type);
+}
+
+Type toBasetype(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.toBasetype(type);
 }
 
 Expression defaultInit(Type mt, Loc loc, const bool isCfile = false)
@@ -1012,6 +1062,24 @@ Type makeSharedWildConst(Type type)
     return dmd.typesem.makeSharedWildConst(type);
 }
 
+Type nextOf(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.nextOf(type);
+}
+
+Type baseElemOf(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.baseElemOf(type);
+}
+
+Type isLazyArray(Parameter param)
+{
+    import dmd.typesem;
+    return dmd.typesem.isLazyArray(param);
+}
+
 MOD deduceWild(Type type, Type t, bool isRef)
 {
     import dmd.typesem;
@@ -1028,6 +1096,12 @@ bool isFloating(Type type)
 {
     import dmd.typesem;
     return dmd.typesem.isFloating(type);
+}
+
+bool isScalar(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.isScalar(type);
 }
 
 bool isReal(Type type)

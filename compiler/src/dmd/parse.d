@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/grammar.html, D Grammar)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/parse.d, _parse.d)
@@ -77,6 +77,21 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         this.mod = _module;
         this.linkage = LINK.d;
         this.doUnittests = doUnittests;
+    }
+
+    /** Instead of parsing text to get tokens, provide a list of tokens ending with null.
+     * Note that the token list will be consumed (added to the tokenFreelist) by the lexer4.
+     * Params:
+     *    pToken = pointer to first token in list, take ownership of list
+     *    linnum = line number to use for the tokens
+     */
+    extern (D)
+    void setTokenList(ref Token* pToken, int linnum)
+    {
+        this.token = *pToken;
+        pToken = null;          // take ownership
+        this.baseLoc.startLine = linnum;
+        this.linnum = linnum;
     }
 
     /++
@@ -662,6 +677,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 goto Lstc;
 
             case TOK.auto_:
+                if (peekNext() == TOK.leftBracket)
+                    goto Ldeclaration;
                 stc = STC.auto_;
                 if (peekNext() == TOK.ref_)
                     stc |= STC.autoref;
@@ -1337,7 +1354,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      *
      * Attributes can be builtin (e.g. `@safe`, `@nogc`, etc...),
      * or be user-defined (UDAs). In the former case, we return the storage
-     * class via the return value, while in thelater case we return `0`
+        * class via the return value, while in the latter case we return `0`
      * and set `pudas`.
      *
      * Params:
@@ -2552,7 +2569,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         AST.Expression constraint = tpl ? parseConstraint() : null;
 
         AST.Type tf = new AST.TypeFunction(parameterList, null, linkage, stc); // ReturnType -> auto
-        tf = tf.addSTC(stc);
+        tf = AST.addSTC(tf, stc);
 
         auto f = new AST.CtorDeclaration(loc, Loc.initial, stc, tf);
         AST.Dsymbol s = parseContracts(f, !!tpl);
@@ -2872,6 +2889,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         auto parameters = new AST.Parameters();
         VarArg varargs = VarArg.none;
         STC varargsStc;
+        bool hasAutoRefParam = false;
 
         // Attributes allowed for ...
         enum VarArgsStc = STC.const_ | STC.immutable_ | STC.shared_ | STC.scope_ | STC.return_ | STC.returnScope | STC.returnRef;
@@ -3007,6 +3025,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 L2:
                     storageClass = appendStorageClass(storageClass, stc);
+                    hasAutoRefParam |= (storageClass & (STC.auto_ | STC.ref_)) == (STC.auto_ | STC.ref_);
                     continue;
 
                 default:
@@ -3038,6 +3057,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         }
                         else
                         {
+                            if (tpl && !*tpl && hasAutoRefParam)
+                                *tpl = new AST.TemplateParameters();
                             at = parseType(&ai, &loc);
                         }
                         ae = null;
@@ -3650,7 +3671,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         t = parseDeclarator(t, alt, pident, null);
         checkCstyleTypeSyntax(typeLoc, t, alt, pident ? *pident : null);
 
-        t = t.addSTC(stc);
+        t = AST.addSTC(t, stc);
         return t;
     }
 
@@ -3775,6 +3796,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         case TOK.this_:
         case TOK.super_:
+            // defer `alias a = this.member;` error
+            if (peekNext() == TOK.dot)
+                goto case;
+
+            error("basic type expected, not `%s`, did you mean `typeof(%s)`?",
+                token.toChars(), token.toChars());
+            nextToken();
+            return AST.Type.terror;
+
         case TOK.identifier:
             loc = token.loc;
             id = token.ident;
@@ -4091,7 +4121,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         if (save == TOK.function_)
                             error("`const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions");
                         else
-                            tf = cast(AST.TypeFunction)tf.addSTC(stc);
+                            tf = cast(AST.TypeFunction)AST.addSTC(tf, stc);
                     }
                     t = save == TOK.delegate_ ? new AST.TypeDelegate(tf) : new AST.TypePointer(tf); // pointer to function
                     continue;
@@ -4265,7 +4295,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     STC stc = parsePostfix(storageClass, pudas);
 
                     AST.Type tf = new AST.TypeFunction(parameterList, t, linkage, stc);
-                    tf = tf.addSTC(stc);
+                    tf = AST.addSTC(tf, stc);
                     if (pdisable)
                         *pdisable = stc & STC.disable ? true : false;
 
@@ -4501,6 +4531,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             isAliasDeclaration = true;
         }
 
+        const typeLoc = token.loc;
         AST.Type ts;
 
         if (!autodecl)
@@ -4593,8 +4624,20 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 else
                 {
-                    ts = parseBasicType();
-                    ts = parseTypeSuffixes(ts);
+                    if ((storage_class & STC.auto_) &&
+                        token.value == TOK.leftBracket &&
+                        peekNext() == TOK.dollar &&
+                        peekNext2() == TOK.rightBracket)
+                    {
+                        auto autoIdent = Identifier.idPool(Token.toString(TOK.auto_));
+                        ts = new AST.TypeIdentifier(token.loc, autoIdent);
+                        ts = parseTypeSuffixes(ts);
+                    }
+                    else
+                    {
+                        ts = parseBasicType();
+                        ts = parseTypeSuffixes(ts);
+                    }
                 }
             }
         }
@@ -4637,9 +4680,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             if (isAliasDeclaration)
             {
-                AST.Declaration v;
-                AST.Initializer _init = null;
-
+                if (ident && mod.edition >= Edition.v2024)
+                {
+                    eSink.error(token.loc, "use `alias %s = ...;` syntax instead of `alias ... %s;`",
+                        ident.toChars(), ident.toChars());
+                }
                 /* Aliases can no longer have multiple declarators, storage classes,
                  * linkages, or auto declarations.
                  * These never made any sense, anyway.
@@ -4650,6 +4695,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (udas)
                     error("user-defined attributes not allowed for `alias` declarations");
 
+                AST.Initializer _init = null;
                 if (token.value == TOK.assign)
                 {
                     nextToken();
@@ -4659,7 +4705,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 {
                     error("alias cannot have initializer");
                 }
-                v = new AST.AliasDeclaration(aliasLoc, ident, t);
+                AST.Declaration v = new AST.AliasDeclaration(aliasLoc, ident, t);
 
                 v.storage_class = storage_class;
                 if (pAttrs)
@@ -4788,11 +4834,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 AST.Dsymbol s;
                 if (width)
                 {
-                    if (_init)
-                        error("initializer not allowed for bitfield declaration");
                     if (storage_class)
                         error("storage class not allowed for bitfield declaration");
-                    s = new AST.BitFieldDeclaration(width.loc, t, ident, width);
+                    s = new AST.BitFieldDeclaration(ident.isAnonymous() ? typeLoc : loc, t, ident, width, _init);
                 }
                 else
                 {
@@ -4933,6 +4977,17 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             addComment(s, comment);
             return a;
         }
+        // alias this Identifier;
+        // accepted in a method, but not in grammar
+        if (token.value == TOK.this_ && peekNext() == TOK.identifier)
+        {
+            auto tokThis = token.ident;
+            nextToken();
+            auto t = new AST.TypeIdentifier(loc, tokThis);
+            auto id = token.ident;
+            check(TOK.identifier);
+            return new AST.Dsymbols(new AST.AliasDeclaration(loc, id, t));
+        }
         /* Look for:
          *  alias this = identifier;
          */
@@ -5041,6 +5096,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     }
 
                     v = new AST.AliasDeclaration(loc, ident, s);
+                }
+                else if (token.value == TOK.this_ && peekNext() == TOK.semicolon)
+                {
+                    // `alias id = this;` accepted in a method, but not in grammar
+                    auto tokThis = token.ident;
+                    nextToken();
+                    auto t = new AST.TypeIdentifier(loc, tokThis);
+                    v = new AST.AliasDeclaration(loc, ident, t);
                 }
                 else
                 {
@@ -5276,7 +5339,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         }
 
         auto tf = new AST.TypeFunction(parameterList, tret, linkage, stc);
-        tf = cast(AST.TypeFunction)tf.addSTC(stc);
+        tf = cast(AST.TypeFunction)AST.addSTC(tf, stc);
         auto fd = new AST.FuncLiteralDeclaration(loc, Loc.initial, tf, save, null, null, stc & STC.auto_);
 
         if (token.value == TOK.goesTo)
@@ -5328,10 +5391,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 error("missing `do { ... }` after `in` or `out`");
             const returnloc = token.loc;
             nextToken();
-            if (f.isCtorDeclaration)
-                f.fbody = new AST.ExpStatement(returnloc, parseExpression());
-            else
-                f.fbody = new AST.ReturnStatement(returnloc, parseExpression());
+            f.fbody = new AST.ReturnStatement(returnloc, parseExpression());
             f.endloc = token.loc;
             check(TOK.semicolon);
             break;
@@ -5757,14 +5817,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     }
 
     /***
-     * Parse an assignment condition for `if`, `switch` or `while` statements.
+     * Parse an assignment condition for `if`, `switch`, `while` or `with` statements.
      *
      * Returns:
      *      The variable that is declared inside the condition
      */
-    AST.Parameter parseAssignCondition()
+    AST.Parameter parseAssignCondition(bool _with = false)
     {
-        AST.Parameter param = null;
         STC storageClass = STC.none;
         STC stc = STC.none;
     Lwhile:
@@ -5833,7 +5892,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             const aloc = token.loc;
             nextToken();
             check(TOK.assign);
-            param = new AST.Parameter(aloc, storageClass, at, ai, null, null);
+            return new AST.Parameter(aloc, storageClass, at, ai, null, null);
         }
         else if (isDeclaration(&token, NeedDeclaratorId.must, TOK.assign, null))
         {
@@ -5841,12 +5900,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             const aloc = token.loc;
             AST.Type at = parseType(&ai);
             check(TOK.assign);
-            param = new AST.Parameter(aloc, storageClass, at, ai, null, null);
+            return new AST.Parameter(aloc, storageClass, at, ai, null, null);
         }
-        else if (storageClass != 0)
+        else if (storageClass != 0 && !_with)
+        {
             error("found `%s` while expecting `=` or identifier", n.toChars());
-
-        return param;
+        }
+        return null;
     }
 
     /*****************************************
@@ -6658,10 +6718,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 nextToken();
                 check(TOK.leftParenthesis);
+                auto param = parseAssignCondition(true);
                 exp = parseExpression();
-                closeCondition("with", null, exp);
+                closeCondition("with", param, exp);
                 _body = parseStatement(ParseStatementFlags.scope_, null, &endloc);
-                s = new AST.WithStatement(loc, exp, _body, endloc);
+                s = new AST.WithStatement(loc, param, exp, _body, endloc);
                 break;
             }
         case TOK.try_:
@@ -8245,30 +8306,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             break;
 
         case TOK.file:
-            e = new AST.FileInitExp(loc, EXP.file);
-            nextToken();
-            break;
         case TOK.fileFullPath:
-            e = new AST.FileInitExp(loc, EXP.fileFullPath);
-            nextToken();
-            break;
-
         case TOK.line:
-            e = new AST.LineInitExp(loc);
-            nextToken();
-            break;
-
         case TOK.moduleString:
-            e = new AST.ModuleInitExp(loc);
-            nextToken();
-            break;
         case TOK.functionString:
-            e = new AST.FuncInitExp(loc);
-            nextToken();
-            break;
-
         case TOK.prettyFunction:
-            e = new AST.PrettyFuncInitExp(loc);
+            e = new AST.DefaultInitExp(loc, token.value);
             nextToken();
             break;
 
@@ -8449,7 +8492,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (token.value == TOK.leftParenthesis)
             {
                 e = new AST.TypeExp(loc, t);
-                e = new AST.CallExp(loc, e, parseArguments());
+                auto args = new AST.Expressions();
+                auto names = new AST.ArgumentLabels();
+                parseNamedArguments(args, names);
+                e = new AST.CallExp(loc, e, args, names);
                 break;
             }
             check(TOK.dot);
@@ -8730,7 +8776,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             error("expression expected, not `%s`", token.toChars());
         Lerr:
             // Anything for e, as long as it's not NULL
-            e = AST.ErrorExp.get();
+            e = new AST.ErrorExp();
             nextToken();
             break;
         }
@@ -8848,7 +8894,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 else
                 {
                     AST.Type t = parseType(); // cast( type )
-                    t = t.addSTC(AST.ModToStc(m)); // cast( const type )
+                    t = AST.addSTC(t, AST.ModToStc(m)); // cast( const type )
                     check(TOK.rightParenthesis);
                     e = parseUnaryExp();
                     e = new AST.CastExp(loc, e, t);
@@ -8863,7 +8909,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 STC stc = parseTypeCtor();
 
                 AST.Type t = parseBasicType();
-                t = t.addSTC(stc);
+                t = AST.addSTC(t, stc);
 
                 if (stc == 0 && token.value == TOK.dot)
                 {
@@ -8872,7 +8918,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     {
                         error("identifier expected following `%s.`, not `%s`",
                             t.toChars(), token.toChars());
-                        return AST.ErrorExp.get();
+                        return new AST.ErrorExp();
                     }
                     e = new AST.DotIdExp(loc, new AST.TypeExp(loc, t), token.ident);
                     nextToken();
@@ -8887,7 +8933,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             t.toChars(), token.toChars());
                         return e;
                     }
-                    e = new AST.CallExp(loc, e, parseArguments());
+                    auto args = new AST.Expressions();
+                    auto names = new AST.ArgumentLabels();
+                    parseNamedArguments(args, names);
+                    e = new AST.CallExp(loc, e, args, names);
                 }
                 break;
             }
@@ -8986,7 +9035,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                                     {
                                         error("identifier or new keyword expected following `(...)`.");
                                         nextToken();
-                                        return AST.ErrorExp.get();
+                                        return new AST.ErrorExp();
                                     }
                                     e = new AST.TypeExp(loc, t);
                                     e.parens = true;
@@ -9635,7 +9684,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         const stc = parseTypeCtor();
         auto t = parseBasicType(true);
         t = parseTypeSuffixes(t);
-        t = t.addSTC(stc);
+        t = AST.addSTC(t, stc);
         if (t.ty == Taarray)
         {
             AST.TypeAArray taa = cast(AST.TypeAArray)t;
@@ -9682,15 +9731,17 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      */
     static STC isBuiltinAtAttribute(Identifier ident)
     {
-        return (ident == Id.property) ? STC.property :
-               (ident == Id.nogc)     ? STC.nogc     :
-               (ident == Id.safe)     ? STC.safe     :
-               (ident == Id.trusted)  ? STC.trusted  :
-               (ident == Id.system)   ? STC.system   :
-               (ident == Id.live)     ? STC.live     :
-               (ident == Id.future)   ? STC.future   :
-               (ident == Id.disable)  ? STC.disable  :
-               STC.none;
+        STC result = (ident == Id.property) ? STC.property :
+             (ident == Id.nogc)     ? STC.nogc     :
+             (ident == Id.safe)     ? STC.safe     :
+             (ident == Id.trusted)  ? STC.trusted  :
+             (ident == Id.system)   ? STC.system   :
+             (ident == Id.live)     ? STC.live     :
+             (ident == Id.future)   ? STC.future   :
+             (ident == Id.disable)  ? STC.disable  :
+             (ident == Id.ctfe)     ? STC.ctfeOnly :
+             STC.none;
+        return result;
     }
 
     enum STC atAttrGroup =
@@ -9701,7 +9752,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 STC.system   |
                 STC.live     |
                 /*STC.future   |*/ // probably should be included
-                STC.disable;
+                STC.disable  |
+                STC.ctfeOnly;
 
     void usageOfBodyKeyword()
     {
@@ -9760,12 +9812,7 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.arrayLiteral : PREC.primary,
     EXP.assocArrayLiteral : PREC.primary,
     EXP.classReference : PREC.primary,
-    EXP.file : PREC.primary,
-    EXP.fileFullPath : PREC.primary,
-    EXP.line : PREC.primary,
-    EXP.moduleString : PREC.primary,
-    EXP.functionString : PREC.primary,
-    EXP.prettyFunction : PREC.primary,
+    EXP.defaultInit : PREC.primary,
     EXP.typeid_ : PREC.primary,
     EXP.is_ : PREC.primary,
     EXP.assert_ : PREC.primary,

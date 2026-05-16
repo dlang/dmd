@@ -217,7 +217,7 @@ nothrow @nogc:
      * Wait for the event to be signaled without timeout.
      *
      * Returns:
-     *  `true` if the event is in signaled state, `false` if the event is uninitialized or another error occured
+     *  `true` if the event is in signaled state, `false` if the event is uninitialized or another error occurred
      */
     bool wait()
     {
@@ -238,7 +238,7 @@ nothrow @nogc:
      *  tmout = the maximum time to wait
      * Returns:
      *  `true` if the event is in signaled state, `false` if the event was nonsignaled for the given time or
-     *  the event is uninitialized or another error occured
+     *  the event is uninitialized or another error occurred
      */
     bool wait(Duration tmout)
     {

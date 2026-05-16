@@ -6,10 +6,10 @@
  +/
 module core.sys.linux.net.if_;
 
+version (linux):
 public import core.sys.posix.sys.socket : sockaddr;
 public import core.sys.linux.hdlc.ioctl;
 
-version (linux):
 extern(C):
 @nogc:
 nothrow:

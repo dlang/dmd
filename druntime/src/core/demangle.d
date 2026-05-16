@@ -805,7 +805,7 @@ pure @safe:
             return ret;
         }
 
-        // call parseType() and return error if occured
+        // call parseType() and return error if occurred
         enum parseTypeOrF = "parseType(errStatus); if (errStatus) return dst.bslice_empty;";
 
         switch ( t )
@@ -1286,7 +1286,7 @@ pure @safe:
                     pos--;
             }
 
-            // call parseType() and return error if occured
+            // call parseType() and return error if occurred
             enum parseTypeOrF = "parseType(errStatus); if (errStatus) return;";
 
             switch ( front )

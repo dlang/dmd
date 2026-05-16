@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2012-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2012-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/pdata.d, backend/pdata.d)
@@ -42,7 +42,10 @@ private bool symbol_iscomdat3(Symbol* s)
         config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
 }
 
-enum ALLOCA_LIMIT = 0x10000;
+version (AArch64)
+    enum ALLOCA_LIMIT = 0;      // TODO AArch64
+else
+    enum ALLOCA_LIMIT = 0x10000;
 
 /**********************************
  * The .pdata section is used on Win64 by the VS debugger and dbghelp to get information
@@ -63,7 +66,7 @@ public void win64_pdata(Symbol* sf, targ_size_t localsize)
 
     // Generate the pdata name, which is $pdata$funcname
     size_t sflen = strlen(sf.Sident.ptr);
-    char* pdata_name = cast(char*)(sflen < ALLOCA_LIMIT ? alloca(7 + sflen + 1) : malloc(7 + sflen + 1));
+    char* pdata_name = cast(char*)(sflen >= ALLOCA_LIMIT ? malloc(7 + sflen + 1) : alloca(7 + sflen + 1));
     assert(pdata_name);
     memcpy(pdata_name, "$pdata$".ptr, 7);
     memcpy(pdata_name + 7, sf.Sident.ptr, sflen + 1);      // include terminating 0
@@ -108,7 +111,7 @@ private Symbol* win64_unwind(Symbol* sf, targ_size_t localsize)
 {
     // Generate the unwind name, which is $unwind$funcname
     size_t sflen = strlen(sf.Sident.ptr);
-    char* unwind_name = cast(char*)(sflen < ALLOCA_LIMIT ? alloca(8 + sflen + 1) : malloc(8 + sflen + 1));
+    char* unwind_name = cast(char*)(sflen >= ALLOCA_LIMIT ? malloc(8 + sflen + 1) : alloca(8 + sflen + 1));
     assert(unwind_name);
     memcpy(unwind_name, "$unwind$".ptr, 8);
     memcpy(unwind_name + 8, sf.Sident.ptr, sflen + 1);     // include terminating 0

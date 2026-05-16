@@ -3,7 +3,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/dtype.d
@@ -24,7 +24,6 @@ import dmd.backend.mem;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
-
 
 nothrow:
 @safe:
@@ -160,7 +159,7 @@ uint type_alignsize(type* t)
                         sz = t.Ttag.Sstruct.Sstructalign + 1;
                     break;
 
-                case TYldouble:
+                case TYreal:
                     assert(0);
 
                 case TYcdouble:
@@ -190,7 +189,11 @@ uint type_alignsize(type* t)
 @trusted
 bool type_zeroSize(type* t, tym_t tyf)
 {
-    if (tyf != TYjfunc && config.exe & (EX_FREEBSD | EX_OPENBSD | EX_OSX))
+    //printf("type_zeroSize(t: %p tyf: %s)\n", t, tym_str(tyf));
+    //type_print(t);
+    if (tyf != TYjfunc &&
+        (config.exe & (EX_FREEBSD | EX_OPENBSD | EX_OSX) ||
+         config.exe & EX_OSX64 && config.target_cpu == TARGET_AArch64)) // the Arm Mac
     {
         /* Use clang convention for 0 size structs
          */
@@ -204,7 +207,7 @@ bool type_zeroSize(type* t, tym_t tyf)
 
             if (ts.Ttag.Sstruct.Sflags & STR0size)
             {
-                //printf("0size\n"); type_print(t); *(char*)0=0;
+                //printf("0size\n"); type_print(t);
                 return true;
             }
         }
@@ -222,6 +225,7 @@ bool type_zeroSize(type* t, tym_t tyf)
  */
 uint type_parameterSize(type* t, tym_t tyf)
 {
+    //debug printf("type_parameterSize(t: %p)\n", t);
     if (type_zeroSize(t, tyf))
         return 0;
     return cast(uint)type_size(t);
@@ -465,7 +469,7 @@ type* type_struct_class(const(char)* name, uint alignsize, uint structsize,
 {
     static if (0)
     {
-        printf("type_struct_class(%s, %p, %p)\n", name, arg1type, arg2type);
+        printf("type_struct_class(%s, %p, %p, is0size: %d)\n", name, arg1type, arg2type, is0size);
         if (arg1type)
         {
             printf("arg1type:\n");
@@ -477,6 +481,7 @@ type* type_struct_class(const(char)* name, uint alignsize, uint structsize,
             type_print(arg2type);
         }
     }
+
     Symbol* s = symbol_calloc(name[0 .. strlen(name)]);
     s.Sclass = SC.struct_;
     s.Sstruct = struct_calloc();
@@ -589,13 +594,13 @@ void type_init()
     tstypes[TYfloat]   = type_allocbasic(TYfloat);
     tstypes[TYdouble]  = type_allocbasic(TYdouble);
     tstypes[TYdouble_alias]  = type_allocbasic(TYdouble_alias);
-    tstypes[TYldouble] = type_allocbasic(TYldouble);
+    tstypes[TYreal] = type_allocbasic(TYreal);
     tstypes[TYifloat]  = type_allocbasic(TYifloat);
     tstypes[TYidouble] = type_allocbasic(TYidouble);
-    tstypes[TYildouble] = type_allocbasic(TYildouble);
+    tstypes[TYireal] = type_allocbasic(TYireal);
     tstypes[TYcfloat]   = type_allocbasic(TYcfloat);
     tstypes[TYcdouble]  = type_allocbasic(TYcdouble);
-    tstypes[TYcldouble] = type_allocbasic(TYcldouble);
+    tstypes[TYcreal] = type_allocbasic(TYcreal);
 
     if (I64)
     {

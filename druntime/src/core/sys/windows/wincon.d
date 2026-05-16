@@ -117,7 +117,7 @@ struct CHAR_INFO {
     }
     WORD Attributes;
 }
-alias CHAR_INFO* PCHAR_INFO;
+alias PCHAR_INFO = CHAR_INFO*;
 
 struct SMALL_RECT {
     SHORT Left;
@@ -125,25 +125,25 @@ struct SMALL_RECT {
     SHORT Right;
     SHORT Bottom;
 }
-alias SMALL_RECT* PSMALL_RECT;
+alias PSMALL_RECT = SMALL_RECT*;
 
 struct CONSOLE_CURSOR_INFO {
     DWORD dwSize;
     BOOL  bVisible;
 }
-alias CONSOLE_CURSOR_INFO* PCONSOLE_CURSOR_INFO;
+alias PCONSOLE_CURSOR_INFO = CONSOLE_CURSOR_INFO*;
 
 struct COORD {
     SHORT X;
     SHORT Y;
 }
-alias COORD* PCOORD;
+alias PCOORD = COORD*;
 
 struct CONSOLE_FONT_INFO {
     DWORD nFont;
     COORD dwFontSize;
 }
-alias CONSOLE_FONT_INFO* PCONSOLE_FONT_INFO;
+alias PCONSOLE_FONT_INFO = CONSOLE_FONT_INFO*;
 
 struct CONSOLE_SCREEN_BUFFER_INFO {
     COORD      dwSize;
@@ -152,9 +152,9 @@ struct CONSOLE_SCREEN_BUFFER_INFO {
     SMALL_RECT srWindow;
     COORD      dwMaximumWindowSize;
 }
-alias CONSOLE_SCREEN_BUFFER_INFO* PCONSOLE_SCREEN_BUFFER_INFO;
+alias PCONSOLE_SCREEN_BUFFER_INFO = CONSOLE_SCREEN_BUFFER_INFO*;
 
-alias extern(Windows) BOOL function(DWORD) nothrow PHANDLER_ROUTINE;
+alias PHANDLER_ROUTINE = extern(Windows) BOOL function(DWORD) nothrow;
 
 struct KEY_EVENT_RECORD {
     BOOL  bKeyDown;
@@ -172,7 +172,7 @@ struct KEY_EVENT_RECORD {
     }
     DWORD dwControlKeyState;
 }
-alias KEY_EVENT_RECORD* PKEY_EVENT_RECORD;
+alias PKEY_EVENT_RECORD = KEY_EVENT_RECORD*;
 
 struct MOUSE_EVENT_RECORD {
     COORD dwMousePosition;
@@ -180,22 +180,22 @@ struct MOUSE_EVENT_RECORD {
     DWORD dwControlKeyState;
     DWORD dwEventFlags;
 }
-alias MOUSE_EVENT_RECORD* PMOUSE_EVENT_RECORD;
+alias PMOUSE_EVENT_RECORD = MOUSE_EVENT_RECORD*;
 
 struct WINDOW_BUFFER_SIZE_RECORD {
     COORD dwSize;
 }
-alias WINDOW_BUFFER_SIZE_RECORD* PWINDOW_BUFFER_SIZE_RECORD;
+alias PWINDOW_BUFFER_SIZE_RECORD = WINDOW_BUFFER_SIZE_RECORD*;
 
 struct MENU_EVENT_RECORD {
     UINT dwCommandId;
 }
-alias MENU_EVENT_RECORD* PMENU_EVENT_RECORD;
+alias PMENU_EVENT_RECORD = MENU_EVENT_RECORD*;
 
 struct FOCUS_EVENT_RECORD {
     BOOL bSetFocus;
 }
-alias FOCUS_EVENT_RECORD* PFOCUS_EVENT_RECORD;
+alias PFOCUS_EVENT_RECORD = FOCUS_EVENT_RECORD*;
 
 struct INPUT_RECORD {
     WORD EventType;
@@ -215,7 +215,7 @@ struct INPUT_RECORD {
         _Event Event;
     }
 }
-alias INPUT_RECORD* PINPUT_RECORD;
+alias PINPUT_RECORD = INPUT_RECORD*;
 
 extern (Windows) nothrow @nogc:
 
@@ -286,31 +286,31 @@ BOOL WriteConsoleOutputCharacterA(HANDLE, LPCSTR, DWORD, COORD, PDWORD);
 BOOL WriteConsoleOutputCharacterW(HANDLE, LPCWSTR, DWORD, COORD, PDWORD);
 
 version (Unicode) {
-    alias FillConsoleOutputCharacterW FillConsoleOutputCharacter;
-    alias GetConsoleTitleW GetConsoleTitle;
-    alias PeekConsoleInputW PeekConsoleInput;
-    alias ReadConsoleW ReadConsole;
-    alias ReadConsoleInputW ReadConsoleInput;
-    alias ReadConsoleOutputW ReadConsoleOutput;
-    alias ReadConsoleOutputCharacterW ReadConsoleOutputCharacter;
-    alias ScrollConsoleScreenBufferW ScrollConsoleScreenBuffer;
-    alias SetConsoleTitleW SetConsoleTitle;
-    alias WriteConsoleW WriteConsole;
-    alias WriteConsoleInputW WriteConsoleInput;
-    alias WriteConsoleOutputW WriteConsoleOutput;
-    alias WriteConsoleOutputCharacterW WriteConsoleOutputCharacter;
+    alias FillConsoleOutputCharacter = FillConsoleOutputCharacterW;
+    alias GetConsoleTitle = GetConsoleTitleW;
+    alias PeekConsoleInput = PeekConsoleInputW;
+    alias ReadConsole = ReadConsoleW;
+    alias ReadConsoleInput = ReadConsoleInputW;
+    alias ReadConsoleOutput = ReadConsoleOutputW;
+    alias ReadConsoleOutputCharacter = ReadConsoleOutputCharacterW;
+    alias ScrollConsoleScreenBuffer = ScrollConsoleScreenBufferW;
+    alias SetConsoleTitle = SetConsoleTitleW;
+    alias WriteConsole = WriteConsoleW;
+    alias WriteConsoleInput = WriteConsoleInputW;
+    alias WriteConsoleOutput = WriteConsoleOutputW;
+    alias WriteConsoleOutputCharacter = WriteConsoleOutputCharacterW;
 } else {
-    alias FillConsoleOutputCharacterA FillConsoleOutputCharacter;
-    alias GetConsoleTitleA GetConsoleTitle;
-    alias PeekConsoleInputA PeekConsoleInput;
-    alias ReadConsoleA ReadConsole;
-    alias ReadConsoleInputA ReadConsoleInput;
-    alias ReadConsoleOutputA ReadConsoleOutput;
-    alias ReadConsoleOutputCharacterA ReadConsoleOutputCharacter;
-    alias ScrollConsoleScreenBufferA ScrollConsoleScreenBuffer;
-    alias SetConsoleTitleA SetConsoleTitle;
-    alias WriteConsoleA WriteConsole;
-    alias WriteConsoleInputA WriteConsoleInput;
-    alias WriteConsoleOutputA WriteConsoleOutput;
-    alias WriteConsoleOutputCharacterA WriteConsoleOutputCharacter;
+    alias FillConsoleOutputCharacter = FillConsoleOutputCharacterA;
+    alias GetConsoleTitle = GetConsoleTitleA;
+    alias PeekConsoleInput = PeekConsoleInputA;
+    alias ReadConsole = ReadConsoleA;
+    alias ReadConsoleInput = ReadConsoleInputA;
+    alias ReadConsoleOutput = ReadConsoleOutputA;
+    alias ReadConsoleOutputCharacter = ReadConsoleOutputCharacterA;
+    alias ScrollConsoleScreenBuffer = ScrollConsoleScreenBufferA;
+    alias SetConsoleTitle = SetConsoleTitleA;
+    alias WriteConsole = WriteConsoleA;
+    alias WriteConsoleInput = WriteConsoleInputA;
+    alias WriteConsoleOutput = WriteConsoleOutputA;
+    alias WriteConsoleOutputCharacter = WriteConsoleOutputCharacterA;
 }

@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/gdag.d, backend/gdag.d)
@@ -18,6 +18,7 @@ import core.stdc.stdio;
 import core.stdc.time;
 
 import dmd.backend.cc;
+import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cdef;
 import dmd.backend.oper;
 import dmd.backend.global;
@@ -32,10 +33,6 @@ import dmd.backend.dvec;
 
 nothrow:
 @safe:
-
-enum Aetype { cse, arraybounds }
-
-private __gshared Aetype aetype;
 
 @trusted
 bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.E1.Eoper == OPvar; }
@@ -70,16 +67,16 @@ private bool cse_float(elem* e)
  *              (this is generally target-dependent)
  */
 @trusted
-void builddags(ref GlobalOptimizer go)
+void builddags(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     vec_t aevec;
 
     debug if (debugc) printf("builddags()\n");
     assert(bo.dfo);
-    flowae(go);                       /* compute available expressions */
+    flowae(go, bo);                   /* compute available expressions */
     if (go.exptop <= 1)             /* if no AEs                     */
         return;
-    aetype = Aetype.cse;
+    go.aetype = Aetype.cse;
 
     debug
         foreach (i, e; go.expnod[])
@@ -183,7 +180,7 @@ private void aewalk(ref GlobalOptimizer go, elem** pn, vec_t ae)
     if (n.Eexp)                            // if an AE
     {   // Try to find an equivalent AE, and point to it instead
         assert(go.expnod[n.Eexp] == n);
-        if (aetype == Aetype.cse)
+        if (go.aetype == Aetype.cse)
         {
             for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i)
             {   elem* e = go.expnod[i];
@@ -592,15 +589,15 @@ L1:
  */
 
 @trusted
-void boolopt(ref GlobalOptimizer go)
+void boolopt(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     vec_t aevec;
     vec_t aevecval;
 
     debug if (debugc) printf("boolopt()\n");
     if (!bo.dfo.length)
-        compdfo(bo.dfo, bo.startblock);
-    flowae(go);                       /* compute available expressions */
+        compdfo(bo, bo.dfo, bo.startblock);
+    flowae(go, bo);                   /* compute available expressions */
     if (go.exptop <= 1)             /* if no AEs                     */
         return;
     static if (0)

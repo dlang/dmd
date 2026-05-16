@@ -2,7 +2,7 @@
  * Other global optimizations
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              https://www.boost.org/LICENSE_1_0.txt
@@ -18,6 +18,7 @@ import core.stdc.stdlib;
 import core.stdc.time;
 
 import dmd.backend.cc;
+import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cdef;
 import dmd.backend.oper;
 import dmd.backend.global;
@@ -40,10 +41,8 @@ char symbol_isintab(const Symbol* s) { return sytab[s.Sclass] & SCSS; }
 
 /**********************************************************************/
 
-alias Elemdatas = Rarray!(Elemdata);
-
 // Lists to help identify ranges of variables
-struct Elemdata
+private struct Elemdata
 {
 nothrow:
     elem* pelem;            // the elem in question
@@ -68,6 +67,8 @@ nothrow:
     }
 }
 
+private alias Elemdatas = Rarray!(Elemdata);
+
 /********************************
  * Find `e` in Elemdata list.
  * Params:
@@ -77,7 +78,7 @@ nothrow:
  *      null if not
  */
 @trusted
-Elemdata* find(ref Elemdatas eds, elem* e)
+private Elemdata* find(ref Elemdatas eds, elem* e)
 {
     foreach (ref edl; eds)
     {
@@ -85,17 +86,6 @@ Elemdata* find(ref Elemdatas eds, elem* e)
             return &edl;
     }
     return null;
-}
-
-/*****************
- * Free list of Elemdata's.
- */
-
-private void elemdatafree(ref Elemdatas eds)
-{
-    foreach (ref ed; eds)
-        ed.reset();
-    eds.reset();
 }
 
 private struct EqRelInc
@@ -113,6 +103,16 @@ private struct EqRelInc
         elemdatafree(rellist);
         elemdatafree(inclist);
     }
+
+    /*****************
+     * Free list of Elemdata's.
+     */
+    private static void elemdatafree(ref Elemdatas eds) nothrow
+    {
+        foreach (ref ed; eds)
+            ed.reset();
+        eds.reset();
+    }
 }
 
 private __gshared
@@ -129,9 +129,9 @@ private __gshared
  */
 
 @trusted
-void constprop(ref GlobalOptimizer go)
+void constprop(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    rd_compute(go, eqrelinc);
+    rd_compute(go, bo, eqrelinc);
     intranges(go, eqrelinc.rellist, eqrelinc.inclist);        // compute integer ranges
     eqeqranges(eqrelinc.eqeqlist);       // see if we can eliminate some relationals
 
@@ -144,15 +144,15 @@ void constprop(ref GlobalOptimizer go)
  */
 
 @trusted
-private void rd_compute(ref GlobalOptimizer go, ref EqRelInc eqrelinc)
+private void rd_compute(ref GlobalOptimizer go, ref BlockOpt bo, ref EqRelInc eqrelinc)
 {
     if (debugc) printf("constprop()\n");
     assert(bo.dfo);
-    flowrd(go);               /* compute reaching definitions (rd)    */
+    flowrd(go, bo);           /* compute reaching definitions (rd)    */
     if (go.defnod.length == 0)     /* if no reaching defs                  */
         return;
     assert(eqrelinc.rellist.length == 0 && eqrelinc.inclist.length == 0 && eqrelinc.eqeqlist.length == 0);
-    block_clearvisit();
+    block_clearvisit(bo);
     foreach (b; bo.dfo[])    // for each block
     {
         switch (b.bc)
@@ -832,7 +832,7 @@ private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemda
             // ib:      block of increment
             // rb:      block of relational
             i = loopcheck(ib,ib,rb);
-            block_clearvisit();
+            block_clearvisit(bo);
             if (i)
                 continue;
         }
@@ -950,7 +950,7 @@ public bool findloopparameters(ref GlobalOptimizer go, elem* erel, ref elem* rde
     if (!(sytab[v.Sclass] & SCRD))
         return false;
 
-    rd_compute(go, eqrelinc);     // compute rellist, inclist, eqeqlist
+    rd_compute(go, bo, eqrelinc);     // compute rellist, inclist, eqeqlist
 
     /* Find `erel` in `rellist`
      */
@@ -1036,7 +1036,7 @@ public bool findloopparameters(ref GlobalOptimizer go, elem* erel, ref elem* rde
      * rel.pblock = block of relational
      */
     int i = loopcheck(iel.pblock,iel.pblock,rel.pblock);
-    block_clearvisit();
+    block_clearvisit(bo);
     if (i)
     {
         if (log) printf("\tnot loopcheck()\n");
@@ -1074,7 +1074,7 @@ private int loopcheck(block* start,block* inc,block* rel)
 
 
 @trusted
-public void copyprop(ref GlobalOptimizer go)
+public void copyprop(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     out_regcand(&globsym);
     if (debugc) printf("copyprop()\n");
@@ -1083,7 +1083,7 @@ public void copyprop(ref GlobalOptimizer go)
 Louter:
     while (1)
     {
-        flowcp(go);               /* compute available copy statements    */
+        flowcp(go, bo);           /* compute available copy statements    */
         if (go.exptop <= 1)
             return;             // none available
         static if (0)
@@ -1370,10 +1370,10 @@ private __gshared
 }
 
 @trusted
-public void rmdeadass(ref GlobalOptimizer go)
+public void rmdeadass(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     if (debugc) printf("rmdeadass()\n");
-    flowlv();                       /* compute live variables       */
+    flowlv(bo);                     /* compute live variables       */
     foreach (b; bo.dfo[])         // for each block b
     {
         if (!b.Belem)          /* if no elems at all           */
@@ -1801,7 +1801,7 @@ public void deadvar()
 
         /* Compute live variables. Set bit for block in live range      */
         /* if variable is in the IN set for that block.                 */
-        flowlv();                       /* compute live variables       */
+        flowlv(bo);                       /* compute live variables       */
         foreach (i, s; globsym[])
         {
             if (s.Srange /*&& s.Sclass != CLMOS*/)
@@ -1864,25 +1864,76 @@ private void dvwalk(elem* n,uint i)
  * Optimize very busy expressions (VBEs).
  */
 
-private __gshared vec_t blockseen; /* which blocks we have visited         */
-
 @trusted
-public void verybusyexp(ref GlobalOptimizer go)
+public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    elem** pn;
-
     if (debugc) printf("verybusyexp()\n");
-    flowvbe(go);                      /* compute VBEs                 */
+
+    flowvbe(go, bo);                  /* compute VBEs                 */
     if (go.exptop <= 1) return;        /* if no VBEs                   */
     assert(go.expblk.length);
-    if (blockinit())
+    if (blockinit(bo))
         return;                     // can't handle ASM blocks
-    compdom();                      /* compute dominators           */
+    compdom(bo);                    /* compute dominators           */
     /*setvecdim(go.exptop);*/
-    genkillae(go);                  /* compute Bgen and Bkill for   */
+    genkillae(go, bo);              /* compute Bgen and Bkill for   */
                                     /* AEs                          */
     /*chkvecdim(go.exptop,0);*/
-    blockseen = vec_calloc(bo.dfo.length);
+
+    vec_t blockseen = vec_calloc(bo.dfo.length); // which blocks we have visited
+
+    /****************************
+     * Returns: true if elem j is killed somewhere
+     * between b and bp.
+     */
+    @trusted
+    int killed(uint j,block* bp,block* b)
+    {
+        if (bp == b || vec_testbit(bp.Bdfoidx,blockseen))
+            return false;
+        if (vec_testbit(j,bp.Bkill))
+            return true;
+        vec_setbit(bp.Bdfoidx,blockseen);      /* mark as visited              */
+        foreach (bl; ListRange(bp.Bpred))
+            if (killed(j,list_block(bl),b))
+                return true;
+        return false;
+    }
+
+    /***************************
+     * Params:
+     *      b =    block where we want to put the VBE
+     *      bp =   block somewhere between b and block containing j
+     *      j =     VBE expression elem candidate (index into go.expnod[])
+     * Returns: true if there is a path from b to bp along which
+     * elem j is not used.
+     */
+    @trusted
+    int ispath(ref GlobalOptimizer go, uint j, block* bp, block* b)
+    {
+        /*chkvecdim(go.exptop,0);*/
+        if (bp == b) return true;              /* the trivial case             */
+        if (vec_testbit(bp.Bdfoidx,blockseen))
+            return false;                      /* already seen this block      */
+        vec_setbit(bp.Bdfoidx,blockseen);      /* we've visited this block     */
+
+        /* false if elem j is used in block bp (and reaches the end     */
+        /* of bp, indicated by it being an AE in Bgen)                  */
+        for (size_t i = 0; (i = vec_index(i, bp.Bgen)) < go.exptop; ++i) // look thru used expressions
+        {
+            if (i != j && go.expnod[i] && el_match(go.expnod[i],go.expnod[j]))
+                return false;
+        }
+
+        /* Not used in bp, see if there is a path through a predecessor */
+        /* of bp                                                        */
+        foreach (bl; ListRange(bp.Bpred))
+            if (ispath(go, j, list_block(bl), b))
+                return true;
+
+        return false;           /* j is used along all paths            */
+    }
+
 
     /* Go backwards through dfo so that VBEs are evaluated as       */
     /* close as possible to where they are used.                    */
@@ -1904,7 +1955,7 @@ public void verybusyexp(ref GlobalOptimizer go)
         }
 
         /* Find pointer to last statement in current elem */
-        pn = &(b.Belem);
+        elem** pn = &(b.Belem);
         if (*pn)
         {
             pn = el_scancommas(pn);
@@ -1936,7 +1987,7 @@ public void verybusyexp(ref GlobalOptimizer go)
         {
             if (go.expnod[j] == null ||
                 !!OTleaf(go.expnod[j].Eoper) ||
-                !dom(b,go.expblk[j]))
+                !dom(bo, b,go.expblk[j]))
                 vec_clearbit(j,b.Bout);
             else
                 done = false;
@@ -2038,58 +2089,4 @@ public void verybusyexp(ref GlobalOptimizer go)
         } /* foreach */
     } /* for */
     vec_free(blockseen);
-}
-
-/****************************
- * Return true if elem j is killed somewhere
- * between b and bp.
- */
-
-@trusted
-private int killed(uint j,block* bp,block* b)
-{
-    if (bp == b || vec_testbit(bp.Bdfoidx,blockseen))
-        return false;
-    if (vec_testbit(j,bp.Bkill))
-        return true;
-    vec_setbit(bp.Bdfoidx,blockseen);      /* mark as visited              */
-    foreach (bl; ListRange(bp.Bpred))
-        if (killed(j,list_block(bl),b))
-            return true;
-    return false;
-}
-
-/***************************
- * Return true if there is a path from b to bp along which
- * elem j is not used.
- * Input:
- *      b .    block where we want to put the VBE
- *      bp .   block somewhere between b and block containing j
- *      j =     VBE expression elem candidate (index into go.expnod[])
- */
-
-@trusted
-private int ispath(ref GlobalOptimizer go, uint j, block* bp, block* b)
-{
-    /*chkvecdim(go.exptop,0);*/
-    if (bp == b) return true;              /* the trivial case             */
-    if (vec_testbit(bp.Bdfoidx,blockseen))
-        return false;                      /* already seen this block      */
-    vec_setbit(bp.Bdfoidx,blockseen);      /* we've visited this block     */
-
-    /* false if elem j is used in block bp (and reaches the end     */
-    /* of bp, indicated by it being an AE in Bgen)                  */
-    for (size_t i = 0; (i = vec_index(i, bp.Bgen)) < go.exptop; ++i) // look thru used expressions
-    {
-        if (i != j && go.expnod[i] && el_match(go.expnod[i],go.expnod[j]))
-            return false;
-    }
-
-    /* Not used in bp, see if there is a path through a predecessor */
-    /* of bp                                                        */
-    foreach (bl; ListRange(bp.Bpred))
-        if (ispath(go, j, list_block(bl), b))
-            return true;
-
-    return false;           /* j is used along all paths            */
 }

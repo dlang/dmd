@@ -1,7 +1,7 @@
 /**
  * Utilities for Data Flow Analysis.
  *
- * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:   $(LINK2 https://cattermole.co.nz, Richard (Rikki) Andrew Cattermole)
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dfa/utils.d, dfa/utils.d)
@@ -17,6 +17,15 @@ import dmd.identifier;
 import dmd.expression;
 import dmd.typesem : isFloating;
 
+/***********************************************************
+ * Checks if a type is capable of being null at runtime.
+ *
+ * The DFA uses this to determine if a null-check is required
+ * for a specific variable.
+ *
+ * Returns:
+ *      true if the type is a pointer, array, class, delegate, etc.
+ */
 bool isTypeNullable(Type type)
 {
     if (type is null)
@@ -33,6 +42,16 @@ bool isTypeNullable(Type type)
     }
 }
 
+/***********************************************************
+ * Checks if a type can be evaluated as a boolean (truthy/falsey).
+ *
+ * Used by the DFA to determine if control flow (like `if` statements)
+ * depends on this variable.
+ *
+ * Returns:
+ *      false for types like `void` (noreturn) or `struct` (unless they define opCast),
+ *      true for integers, pointers, bools, etc.
+ */
 bool isTypeTruthy(Type type)
 {
     if (type is null)
@@ -51,6 +70,7 @@ bool isTypeTruthy(Type type)
     case TY.Ttag:
     case TY.Tsarray:
     case TY.Tstruct:
+    case TY.Tvector:
         return false;
 
     default:
@@ -84,8 +104,32 @@ int concatNullableResult(Type lhs, Type rhs)
     return 0; // Unknown
 }
 
-int equalityArgTypes(Type lhs, Type rhs)
+enum EqualityArgType
 {
+    Unknown,
+    Struct,
+    FloatingPoint,
+    StaticArray,
+    StaticArrayLHS,
+    StaticArrayRHS,
+    DynamicArray,
+    AssociativeArray,
+    Nullable
+}
+
+/***********************************************************
+ * Classifies how two types are compared for equality at runtime.
+ *
+ * This mirrors the logic in the compiler backend/glue layer.
+ * The DFA needs this to accurately predict if an equality check (`==`)
+ * involves simple integer comparison, array comparison, or struct comparison.
+ */
+/// See_Also: EqualityArgType
+EqualityArgType equalityArgTypes(Type lhs, Type rhs)
+{
+    // This logic originally came from dmd's glue layer.
+    // It was copied over and modified so that the DFA is accruate to runtime actions.
+
     // struct
     // floating point
     // lhs && rhs    static, dyamic array
@@ -93,27 +137,27 @@ int equalityArgTypes(Type lhs, Type rhs)
     // otherwise integral
 
     if (lhs.ty == Tstruct)
-        return 1;
+        return EqualityArgType.Struct;
     else if (lhs.isFloating)
-        return 2;
+        return EqualityArgType.FloatingPoint;
 
     if (rhs is null)
         rhs = lhs; // Assume rhs is similar to lhs
 
     const lhsSArray = lhs.isTypeSArray !is null, rhsSArray = rhs.isTypeSArray !is null;
     if (lhsSArray && rhsSArray)
-        return 3;
+        return EqualityArgType.StaticArray;
     else if (lhsSArray)
-        return 4;
+        return EqualityArgType.StaticArrayLHS;
     else if (rhsSArray)
-        return 5;
+        return EqualityArgType.StaticArrayRHS;
 
     if (lhs.isTypeDArray || rhs.isTypeDArray)
-        return 6;
+        return EqualityArgType.DynamicArray;
     else if (lhs.ty == Taarray && rhs.ty == Taarray)
-        return 7;
+        return EqualityArgType.AssociativeArray;
     else if (isTypeNullable(lhs))
-        return 8;
+        return EqualityArgType.Nullable;
     else
-        return 0;
+        return EqualityArgType.Unknown;
 }

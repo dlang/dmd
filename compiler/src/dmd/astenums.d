@@ -1,7 +1,7 @@
 /**
  * Defines enums common to dmd and dmd as parse library.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/astenums.d, _astenums.d)
  * Documentation:  https://dlang.org/phobos/dmd_astenums.html
@@ -120,11 +120,12 @@ enum STC : ulong  // transfer changes to declaration.h
     live                = 0x10_0000_0000_0000,   /// function `@live` attribute
     register            = 0x20_0000_0000_0000,   /// `register` storage class (ImportC)
     volatile_           = 0x40_0000_0000_0000,   /// destined for volatile in the back end
+    ctfeOnly            = 0x80_0000_0000_0000,   /// `@__ctfe` - can only be used at compile time
 
     safeGroup = STC.safe | STC.trusted | STC.system,
     IOR  = STC.constscoperef | STC.in_ | STC.ref_ | STC.out_,
     TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
-    FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.live |
+    FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.live | STC.ctfeOnly |
                 safeGroup),
 
     /* These are visible to the user, i.e. are expressed by the user
@@ -133,14 +134,14 @@ enum STC : ulong  // transfer changes to declaration.h
         (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ |
          STC.deprecated_ | STC.future | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest |
          STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared |
-         STC.property | STC.safeGroup | STC.disable | STC.local | STC.live),
+         STC.property | STC.safeGroup | STC.disable | STC.local | STC.live | STC.ctfeOnly),
 
     /* These storage classes "flow through" to the inner scope of a Dsymbol
      */
     flowThruAggregate = STC.safeGroup,    /// for an AggregateDeclaration
     flowThruFunction = ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.abstract_ | STC.deprecated_ | STC.override_ |
                          STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
-                         STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system), /// for a FuncDeclaration
+                         STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system | STC.ctfeOnly), /// for a FuncDeclaration
 
 }
 
@@ -150,7 +151,7 @@ enum STC : ulong  // transfer changes to declaration.h
 alias StorageClass = ulong;
 
 /********
- * Determine if it's the ambigous case of where `return` attaches to.
+ * Determine if it's the ambiguous case of where `return` attaches to.
  * Params:
  *   stc = STC flags
  * Returns:
@@ -480,8 +481,9 @@ extern (C++) struct structalign_t
     ubyte flags;       // Align semantic flags
     enum : ubyte
     {
-        PACK = 0x1,     // use #pragma pack semantics
-        ALIGNAS = 0x2,  // use _Alignas semantics
+        PACK = 0x1,         // use #pragma pack semantics
+        ALIGNAS = 0x2,      // use _Alignas semantics (can shrink below natural alignment)
+        ALIGN_ATTRIB = 0x4, // use __attribute__(align) semantics (only grow alignment)
     }
 
   public:
@@ -496,6 +498,8 @@ extern (C++) struct structalign_t
     void setPack()         { flags |= PACK; }
     bool fromAlignas() const { return !!(flags & ALIGNAS); }
     void setAlignas()      { flags |= ALIGNAS; }
+    bool fromCAlignAttribute() const { return !!(flags & ALIGN_ATTRIB); }
+    void setCAlignAttribute() { flags |= ALIGN_ATTRIB; }
 }
 
 /// Use to return D arrays from C++ functions

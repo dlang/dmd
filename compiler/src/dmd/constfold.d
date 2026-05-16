@@ -5,7 +5,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/float.html#fp_const_folding, Floating Point Constant Folding)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/constfold.d, _constfold.d)
@@ -1073,7 +1073,7 @@ UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
         {
             // have to change to internal compiler error
             // all invalid casts should be handled already in Expression::castTo().
-            error(loc, "cannot cast `%s` to `%s`", e1.type.toChars(), type.toChars());
+            error(loc, "cannot cast `%s` to `%s`", e1.type.toErrMsg(), type.toErrMsg());
         }
         emplaceExp!(ErrorExp)(&ue);
     }
@@ -1142,7 +1142,7 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
         if (i >= length && (e1.op == EXP.arrayLiteral || !indexIsInBounds))
         {
             // C code only checks bounds if an ArrayLiteralExp
-            error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toChars(), length);
+            error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toErrMsg(), length);
             emplaceExp!(ErrorExp)(&ue);
         }
         else if (ArrayLiteralExp ale = e1.isArrayLiteralExp())
@@ -1165,7 +1165,7 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
         {
             if (i >= ale.elements.length)
             {
-                error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toChars(), cast(ulong) ale.elements.length);
+                error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toErrMsg(), cast(ulong) ale.elements.length);
                 emplaceExp!(ErrorExp)(&ue);
             }
             else

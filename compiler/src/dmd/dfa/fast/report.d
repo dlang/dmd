@@ -1,7 +1,13 @@
 /**
  * Reporting mechanism for the fast Data Flow Analysis engine.
  *
- * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * This module translates the abstract state of the DFA into concrete compiler errors.
+ * It is responsible for:
+ * 1. Null Checks: Reporting errors when null pointers are dereferenced.
+ * 2. Contract Validation: Ensuring functions fulfill their `out` contracts (e.g., returning non-null).
+ * 3. Logic Errors: Detecting assertions that are provably false at compile time.
+ *
+ * Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:   $(LINK2 https://cattermole.co.nz, Richard (Rikki) Andrew Cattermole)
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dfa/fast/report.d, dfa/fast/report.d)
@@ -14,15 +20,33 @@ import dmd.location;
 import dmd.func;
 import dmd.errorsink;
 import dmd.declaration;
+import dmd.astenums;
 import core.stdc.stdio;
 
 alias Fact = ParameterDFAInfo.Fact;
 
+/***********************************************************
+ * The interface for reporting DFA errors and warnings.
+ *
+ * This struct acts as the sink for all findings. It checks if a specific
+ * violation (like a null dereference) should be reported based on the
+ * variable's modellability and depth, then sends it to the global `ErrorSink`.
+ */
 struct DFAReporter
 {
     DFACommon* dfaCommon;
     ErrorSink errorSink;
 
+    /***********************************************************
+     * Reports an error if a variable is dereferenced while known to be null.
+     *
+     * This is triggered by expressions like `*ptr` or `ptr.field` when the DFA
+     * determines `ptr` has a `Nullable.Null` state.
+     *
+     * Params:
+     *      on = The consequence containing the variable state (must be Nullable).
+     *      loc = The source location of the dereference.
+     */
     void onDereference(DFAConsequence* on, ref Loc loc)
     {
         if (!dfaCommon.debugUnknownAST && on is null)
@@ -48,7 +72,7 @@ struct DFAReporter
         }
     }
 
-    void onLoopyLabelLessNullThan(DFAVar* var, ref const(Loc) loc)
+    void onLoopyLabelLessNullThan(DFAVar* var, ref const Loc loc)
     {
         if (var !is null && !var.isModellable)
             return;
@@ -57,7 +81,15 @@ struct DFAReporter
                 var.var.ident.toChars);
     }
 
-    void onEndOfScope(FuncDeclaration fd, ref Loc loc)
+    /***********************************************************
+     * Validates constraints at the end of a scope.
+     *
+     * This checks if output parameters (like `out` or `ref` parameters) meet their
+     * guaranteed post-conditions. For example, if a function parameter is marked
+     * to guarantee a non-null output, this ensures the variable is actually non-null
+     * when the scope exits.
+     */
+    void onEndOfScope(FuncDeclaration fd, ref const Loc loc)
     {
         // this is where we validate escapes, for a specific location
 
@@ -136,7 +168,7 @@ struct DFAReporter
 
                     if (scv.var.isByRef)
                     {
-                        if (scv.var.writeCount > 0)
+                        if (scv.var.writeCount > 1)
                         {
                             if (param.notNullOut == Fact.Unspecified)
                                 param.notNullOut = Fact.NotGuaranteed;
@@ -159,6 +191,12 @@ struct DFAReporter
         });
     }
 
+    /***********************************************************
+     * Reports an error if an assertion is statically provable to be false.
+     *
+     * If the DFA determines that the condition `x` in `assert(x)` is definitively false
+     * (e.g., `assert(null)` or `assert(0)` after analysis), it reports this logic error.
+     */
     void onAssertIsFalse(ref DFALatticeRef lr, ref Loc loc)
     {
         DFAConsequence* cctx;
@@ -168,6 +206,11 @@ struct DFAReporter
         errorSink.error(loc, "Assert can be proven to be false");
     }
 
+    /***********************************************************
+     * Reports an error if a function argument violates the callee's expectations.
+     *
+     * Example: Passing `null` to a function parameter marked as requiring non-null.
+     */
     void onFunctionCallArgumentLessThan(DFAConsequence* c,
             ParameterDFAInfo* paramInfo, FuncDeclaration calling, ref Loc loc)
     {
@@ -185,6 +228,59 @@ struct DFAReporter
         }
         else
             errorSink.errorSupplemental(calling.loc, "For parameter `this` in called function");
+    }
+
+    void onReadOfUninitialized(DFAVar* var, ref DFALatticeRef lr, ref Loc loc, bool forMathOp)
+    {
+        if (!var.isModellable || var.declaredAtDepth == 0 || (!forMathOp
+                && var.isFloatingPoint) || var.var is null)
+            return;
+        else if ((var.var.storage_class & STC.temp) != 0)
+            return; // Compiler generated, likely to be "fine"
+        else if (var.declaredAtDepth < dfaCommon.lastLoopyLabel.depth)
+            return; // Can we really know what state the variable is in? I don't think so.
+
+        // The reason floating point is special cased here, is to allow catching of mathematical operations,
+        //  on a floating point typed variable, that was default initialized.
+        // The NaN will propagate on that operation, which is basically never wanted.
+        // It is essentially a special case of uninitialized variables,
+        //  where the default could never be what someone wants, even if it was zero.
+        const floatingPointDefaultInit = var.isFloatingPoint && var.wasDefaultInitialized;
+
+        if (floatingPointDefaultInit)
+        {
+            errorSink.error(loc,
+                    "Expression reads a default initialized variable that is a floating point type");
+            errorSink.errorSupplemental(loc,
+                    "It will have the value of Not Any Number(nan), it will be propagated with mathematical operations");
+
+            errorSink.errorSupplemental(var.var.loc, "For variable `%s`", var.var.ident.toChars);
+            errorSink.errorSupplemental(var.var.loc,
+                    "Initialize to %s.nan or 0 explicitly to disable this error", var.var.type.kind);
+        }
+        else
+        {
+            errorSink.error(loc,
+                    "Expression reads from an uninitialized variable, it must be written to at least once before reading");
+            errorSink.errorSupplemental(var.var.loc, "For variable `%s`", var.var.ident.toChars);
+        }
+
+        version (none)
+        {
+            lr.printActual("uninit report");
+
+            dfaCommon.allocator.allVariables((DFAVar* var) {
+                printf("var %p base1=%p, base2=%p, writeCount=%d, isStaticArray=%d",
+                    var, var.base1, var.base2, var.writeCount, var.isStaticArray);
+
+                if (var.var !is null)
+                {
+                    printf(", `%s` at %s", var.var.ident.toChars, var.var.loc.toChars);
+                }
+
+                printf("\n");
+            });
+        }
     }
 }
 

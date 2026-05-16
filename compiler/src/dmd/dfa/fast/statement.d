@@ -1,7 +1,14 @@
 /**
  * Statement walker for the fast Data Flow Analysis engine.
  *
- * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * This module implements the AST visitor that handles Control Flow.
+ * It is responsible for:
+ * 1. Managing Scopes: Pushing and popping `DFAScope` as it enters/leaves blocks.
+ * 2. Handling Branching: Splitting execution for `if` and `switch` statements.
+ * 3. Handling Loops: Managing state for `for`, `while`, and `do` loops.
+ * 4. Handling Jumps: Resolving `break`, `continue`, `goto`, and `return`.
+ *
+ * Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:   $(LINK2 https://cattermole.co.nz, Richard (Rikki) Andrew Cattermole)
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dfa/fast/statement.d, dfa/fast/statement.d)
@@ -22,12 +29,24 @@ import dmd.func;
 import dmd.identifier;
 import dmd.statement;
 import dmd.expression;
+import dmd.typesem;
 import dmd.timetrace;
 import dmd.astenums;
 import dmd.mtype;
 import dmd.declaration;
 import core.stdc.stdio;
 
+/***********************************************************
+ * Visits Statement nodes to drive the Data Flow Analysis.
+ *
+ * This class navigates the structure of the function. When it encounters
+ * control flow (like an `if` statement), it acts as a traffic director:
+ * 1. It creates a new Scope for the "True" branch.
+ * 2. It analyzes that branch.
+ * 3. It creates a new Scope for the "False" branch.
+ * 4. It analyzes that branch.
+ * 5. It calls `analyzer.converge...` to merge the results back together.
+ */
 extern (D) class StatementWalker : SemanticTimeTransitiveVisitor
 {
     alias visit = SemanticTimeTransitiveVisitor.visit;
@@ -58,10 +77,35 @@ final:
         return this.endScope(loc);
     }
 
-    DFAScopeRef endScope(ref Loc endLoc)
+    DFAScopeRef endScope(ref Loc endLoc, bool handleLabelPopping = true)
     {
         DFAScopeRef ret = dfaCommon.popScope;
         dfaCommon.sdepth--;
+
+        if (handleLabelPopping)
+        {
+            while (ret.sc.label !is null)
+            {
+                Loc loc = *cast(Loc*)&ret.sc.label.loc;
+
+                dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
+                    ob.printf("End label scope %p:%p %s", ret.sc,
+                        dfaCommon.currentDFAScope, ret.sc.label.ident.toChars);
+                    if (loc.isValid)
+                        appendLoc(ob, loc);
+                    ob.writestring("\n");
+                });
+
+                ret.printStructure("*=", dfaCommon.sdepth, dfaCommon.currentFunction);
+                ret.check;
+
+                seeConvergeStatementLoopyLabels(ret, loc);
+                inLoopyLabel--;
+
+                ret = dfaCommon.popScope;
+                dfaCommon.sdepth--;
+            }
+        }
 
         dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
             ob.printf("End scope %p:%p", ret.sc, dfaCommon.currentDFAScope);
@@ -87,6 +131,28 @@ final:
 
         DFAScopeRef ret = dfaCommon.popScope;
         dfaCommon.sdepth--;
+
+        while (ret.sc.label !is null)
+        {
+            Loc loc = *cast(Loc*)&ret.sc.label.loc;
+
+            dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
+                ob.printf("End label scope %p:%p %s", ret.sc,
+                    dfaCommon.currentDFAScope, ret.sc.label.ident.toChars);
+                if (loc.isValid)
+                    appendLoc(ob, loc);
+                ob.writestring("\n");
+            });
+
+            ret.printStructure("*=", dfaCommon.sdepth, dfaCommon.currentFunction);
+            ret.check;
+
+            seeConvergeStatementLoopyLabels(ret, loc);
+            inLoopyLabel--;
+
+            ret = dfaCommon.popScope;
+            dfaCommon.sdepth--;
+        }
 
         dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
             ob.printf("End scope %p:%p", ret.sc, dfaCommon.currentDFAScope);
@@ -282,6 +348,14 @@ final:
         dfaCommon.check;
     }
 
+    void seeRead(ref DFALatticeRef lr, ref Loc loc)
+    {
+        dfaCommon.printStructureln("Seeing read of lr");
+        lr.printState("read lr", dfaCommon.sdepth, dfaCommon.currentFunction, dfaCommon.edepth);
+
+        analyzer.onRead(lr, loc);
+    }
+
     void constructVariable(VarDeclaration vd, bool isNonNull)
     {
         DFAVar* var = dfaCommon.findVariable(vd);
@@ -292,7 +366,7 @@ final:
         c.nullable = isNonNull ? Nullable.NonNull : Nullable.Null;
 
         dfaCommon.check;
-        expWalker.seeConvergeExpression(expWalker.seeAssign(var, true, lr));
+        expWalker.seeConvergeExpression(expWalker.seeAssign(var, true, lr, *cast(Loc*)&vd.loc));
         dfaCommon.check;
     }
 
@@ -324,6 +398,7 @@ final:
             {
                 DFAVar* var = dfaCommon.findVariable(fd.vthis);
                 var.declaredAtDepth = dfaCommon.currentDFAScope.depth;
+                var.writeCount = 1;
                 var.param = &fd.parametersDFAInfo.thisPointer;
                 var.param.parameterId = -1;
                 scv = dfaCommon.acquireScopeVar(var);
@@ -348,6 +423,7 @@ final:
                 {
                     DFAVar* var = dfaCommon.findVariable(param);
                     var.declaredAtDepth = dfaCommon.currentDFAScope.depth;
+                    var.writeCount = 1;
                     var.param = &fd.parametersDFAInfo.parameters[i];
                     *var.param = ParameterDFAInfo.init; // Array won't initialize it
                     var.param.parameterId = cast(int) i;
@@ -375,11 +451,26 @@ final:
                     dfaCommon.check;
                 }
             }
+
+            if (fd.v_argptr !is null)
+            {
+                // C vararg _argptr
+                DFAVar* var = dfaCommon.findVariable(fd.v_argptr);
+                var.unmodellable = true;
+            }
+
+            if (fd.v_arguments !is null)
+            {
+                // D vararg _arguments
+                DFAVar* var = dfaCommon.findVariable(fd.v_arguments);
+                var.unmodellable = true;
+            }
         }
 
         {
             DFAVar* var = dfaCommon.getReturnVariable();
             var.declaredAtDepth = dfaCommon.currentDFAScope.depth;
+            var.writeCount = 1;
             var.param = &fd.parametersDFAInfo.returnValue;
             var.param.parameterId = -2;
 
@@ -435,6 +526,26 @@ final:
         dfaCommon.currentDFAScope.haveReturned = true;
         this.endScopeAndReport(fd.endloc, true);
 
+        dfaCommon.printIfStructure((ref OutBuffer ob, scope void delegate(const(char)*) prefix) {
+            dfaCommon.allocator.allVariables((DFAVar* var) {
+                prefix("var");
+                ob.printf(" %p base1=%p, base2=%p", var, var.base1, var.base2);
+
+                if (var.var !is null)
+                {
+                    ob.printf(", `%s` at ", var.var.ident.toChars);
+                    appendLoc(ob, var.var.loc);
+                }
+
+                ob.printf("\n");
+            });
+            dfaCommon.allocator.allObjects((DFAObject* obj) {
+                prefix("object");
+                ob.printf(" %p base1=%p, base2=%p, storageFor=%p, mayNotBeExactPointer=%d\n", obj,
+                obj.base1, obj.base2, obj.storageFor, obj.mayNotBeExactPointer);
+            });
+        });
+
         if (fd.parametersDFAInfo !is null)
         {
             dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
@@ -453,11 +564,6 @@ final:
                 }
             });
         }
-    }
-
-    DFALatticeRef walkExpression(DFAVar* assignTo, DFAVar* constructInto, Expression exp)
-    {
-        return expWalker.entry(assignTo, constructInto, exp);
     }
 
     extern (C++) override void visit(Statement st)
@@ -502,7 +608,7 @@ final:
         */
         version (none)
         {
-            if (st.loc.linnum == 342)
+            if (st.loc.linnum == 423)
             {
                 DFAScope* sc = dfaCommon.currentDFAScope;
                 while (sc !is null)
@@ -519,23 +625,31 @@ final:
         final switch (st.stmt)
         {
         case STMT.DtorExp:
-            expWalker.seeConvergeExpression(walkExpression(null,
-                    null, st.isDtorExpStatement.exp));
+            expWalker.seeConvergeExpression(expWalker.walk(st.isDtorExpStatement.exp));
             break;
 
         case STMT.Exp:
-            expWalker.seeConvergeExpression(walkExpression(null,
-                    null, st.isExpStatement.exp));
+            Expression exp = st.isExpStatement.exp;
+
+            DFALatticeRef lr = expWalker.walk(exp);
+            seeRead(lr, exp.loc);
+            expWalker.seeConvergeExpression(lr);
             break;
         case STMT.Return:
             Expression exp = st.isReturnStatement.exp;
-            if (exp !is null)
-                expWalker.seeConvergeExpression(walkExpression(null,
-                        dfaCommon.getReturnVariable, exp));
 
+            if (exp !is null)
+            {
+                DFALatticeRef lr = expWalker.seeAssign(dfaCommon.getReturnVariable,
+                        true, expWalker.walk(exp), exp.loc);
+                expWalker.seeConvergeExpression(lr);
+            }
+
+            // Mark the current scope as having returned.
+            // This signals that no code after this point in the current block is reachable.
             dfaCommon.currentDFAScope.haveJumped = true;
             dfaCommon.currentDFAScope.haveReturned = true;
-            analyzer.reporter.onEndOfScope(dfaCommon.currentFunction, exp.loc);
+            analyzer.reporter.onEndOfScope(dfaCommon.currentFunction, st.loc);
             break;
 
         case STMT.Compound:
@@ -579,12 +693,20 @@ final:
                 ob.writestring("\n");
             });
 
-            bool ignoreTrueBranch, ignoreFalseBranch;
+            // CRITICAL: We split the analysis here.
+            // 1. We analyze the condition to see if it implies anything about variables
+            //    (e.g., `if (ptr)` implies `ptr` is NonNull in the true branch).
+            // 2. We visit the `ifbody` with that knowledge.
+            // 3. We visit the `elsebody` (if it exists).
+            // 4. We merge the resulting states from both branches.
+
+            bool takeTrueBranch, takeFalseBranch;
             bool unknownBranchTaken;
 
             dfaCommon.printStructureln("If condition:");
             int predicateNegation;
             DFALatticeRef conditionLR;
+            DFALatticeRef trueCondition, falseCondition;
             DFAVar* conditionVar;
 
             {
@@ -594,7 +716,30 @@ final:
                 conditionLR = expWalker.walkCondition(ifs.condition, predicateNegation);
                 conditionVar = conditionLR.getGateConsequenceVariable;
 
+                seeRead(conditionLR, ifs.condition.loc);
                 this.endScope;
+            }
+
+            {
+                trueCondition = expWalker.adaptConditionForBranch(conditionLR.copy,
+                        ifs.condition.type, true);
+                falseCondition = expWalker.adaptConditionForBranch(conditionLR.copy,
+                        ifs.condition.type, false);
+
+                this.isBranchTakenIf(trueCondition, falseCondition, ifs,
+                        takeTrueBranch, takeFalseBranch);
+
+                DFAConsequence* cctx = conditionLR.getContext;
+                if (cctx is null || cctx.truthiness <= Truthiness.Maybe)
+                    unknownBranchTaken = true;
+
+                version (none)
+                {
+                    printf("if %d %d %d\n", takeTrueBranch, takeFalseBranch, unknownBranchTaken);
+                    conditionLR.printStructure("condition");
+                    trueCondition.printStructure("true condition");
+                    falseCondition.printStructure("false condition");
+                }
             }
 
             {
@@ -602,28 +747,13 @@ final:
                 this.startScope;
                 dfaCommon.currentDFAScope.inConditional = true;
 
-                DFAConsequence* c = conditionLR.getContext;
-                if (c !is null)
-                {
-                    if (c.truthiness == Truthiness.False)
-                        ignoreTrueBranch = true;
-                    else if (c.truthiness == Truthiness.True)
-                        ignoreFalseBranch = true;
-                    else
-                        unknownBranchTaken = true;
-                }
-                else
-                    unknownBranchTaken = true;
-
-                DFALatticeRef trueCondition = expWalker.adaptConditionForBranch(conditionLR.copy,
-                        ifs.condition.type, true);
                 expWalker.seeSilentAssert(trueCondition, true, true);
                 this.applyGateOnBranch(conditionVar, predicateNegation, true);
             }
 
             DFAScopeRef ifbody, elsebody;
 
-            if (!ignoreTrueBranch)
+            if (takeTrueBranch)
             {
                 if (auto scs = ifs.ifbody.isScopeStatement)
                     this.visit(scs.statement);
@@ -643,7 +773,6 @@ final:
             }
 
             assert(dfaCommon.currentDFAScope is origScope);
-            bool haveFalseBody;
 
             {
                 dfaCommon.printStructureln("If false branch:");
@@ -651,19 +780,15 @@ final:
                 this.startScope;
                 dfaCommon.currentDFAScope.inConditional = true;
 
-                if (!ignoreTrueBranch)
-                {
-                    DFALatticeRef falseCondition = expWalker.adaptConditionForBranch(conditionLR.copy,
-                            ifs.condition.type, false);
+                // If the true branch can be taken, the false branch needs the condition inverted.
+                // But if it won't be taken, its clearly false already no need to invert.
+                if (takeTrueBranch)
                     expWalker.seeSilentAssert(falseCondition, true, true);
-                }
 
                 this.applyGateOnBranch(conditionVar, predicateNegation, false);
 
-                if (!ignoreFalseBranch && ifs.elsebody !is null)
+                if (takeFalseBranch)
                 {
-                    haveFalseBody = true;
-
                     if (auto scs = ifs.elsebody.isScopeStatement)
                         this.visit(scs.statement);
                     else
@@ -675,7 +800,7 @@ final:
             }
 
             seeConvergeStatementIf(conditionLR, ifbody, elsebody,
-                    haveFalseBody, unknownBranchTaken, predicateNegation);
+                    takeFalseBranch, unknownBranchTaken, predicateNegation);
             break;
 
         case STMT.Scope:
@@ -701,17 +826,16 @@ final:
             break;
 
         case STMT.Label:
+            // Note: it is the responsibility of endScope to handle poping these scopes off
             auto ls = st.isLabelStatement;
             dfaCommon.printStructure((ref OutBuffer ob,
                     scope PrintPrefixType prefix) => ob.printf("label %s %p %p\n",
                     ls.ident !is null ? ls.ident.toChars : null, ls.gotoTarget, ls.gotoTarget));
 
             inLoopyLabel++;
-            scope (exit)
-                inLoopyLabel--;
 
             this.startScope;
-            dfaCommon.currentDFAScope.label = ls.ident;
+            dfaCommon.currentDFAScope.label = ls;
             dfaCommon.setScopeAsLoopyLabel;
             dfaCommon.currentDFAScope.isLoopyLabelKnownToHaveRun = true;
 
@@ -742,21 +866,20 @@ final:
             // by-pass scope statement processing with a dedicated variation here.
             if (ls.statement is null)
             {
-                // empty block, this is ok.
-                scr = this.endScope;
             }
             else if (auto scs = ls.statement.isScopeStatement)
             {
                 this.visit(scs.statement);
-                scr = this.endScope(*cast(Loc*)&ls.loc);
+                scr = this.endScope(*cast(Loc*)&ls.loc, false);
+                inLoopyLabel--;
             }
             else
             {
                 this.visit(ls.statement);
-                scr = this.endScope;
             }
 
-            seeConvergeStatementLoopyLabels(scr, *cast(Loc*)&ls.loc);
+            if (!scr.isNull)
+                seeConvergeStatementLoopyLabels(scr, *cast(Loc*)&ls.loc);
             break;
 
         case STMT.For:
@@ -768,6 +891,14 @@ final:
                 appendLoc(ob, fs.endloc);
                 ob.writestring("\n");
             });
+
+            // Loops are handled by creating a "LoopyLabel" scope.
+            // This allows `break` and `continue` statements inside the loop
+            // to find this scope and update the state accordingly.
+            //
+            // Since this is a single-pass engine, we do not iterate until convergence.
+            // Instead, we analyze the body once, and then use `convergeStatementLoopyLabels`
+            // to assume the worst-case scenario for variables modified in the loop.
 
             inLoopyLabel++;
             scope (exit)
@@ -784,6 +915,10 @@ final:
                 } else {
                     break;
                 }
+            }
+            May also be:
+            for(;condition;) {
+                ...
             }
             */
             if (theCondition !is null)
@@ -804,26 +939,42 @@ final:
                 }
             }
 
+            DFALatticeRef lrCondition;
+            DFALatticeRef lrConditionTrue;
+
+            if (theCondition !is null)
+            {
+                lrCondition = expWalker.walk(theCondition);
+                seeRead(lrCondition, theCondition.loc);
+                lrCondition.printStructure("lrCondition");
+
+                lrConditionTrue = expWalker.adaptConditionForBranch(lrCondition.copy,
+                        theCondition.type, true);
+                lrConditionTrue.printStructure("lrConditionTrue");
+            }
+
+            if (theCondition is null || isBranchTaken(lrConditionTrue, theBody))
             {
                 this.startScope;
                 dfaCommon.currentDFAScope.controlStatement = st;
                 dfaCommon.currentDFAScope.inConditional = true;
                 dfaCommon.setScopeAsLoopyLabel;
 
+                if (theCondition !is null)
                 {
                     dfaCommon.printStructure((ref OutBuffer ob,
                             scope PrintPrefixType prefix) => ob.writestring("For condition:\n"));
-                    DFALatticeRef lrCondition = expWalker.adaptConditionForBranch(theCondition,
-                            true);
 
-                    if (auto c = lrCondition.getContext)
+                    if (auto c = lrConditionTrue.getContext)
                     {
                         dfaCommon.currentDFAScope.isLoopyLabelKnownToHaveRun
                             = c.truthiness == Truthiness.True;
                     }
 
-                    expWalker.seeAssert(lrCondition, theCondition.loc, true);
+                    expWalker.seeAssert(lrConditionTrue, theCondition.loc, true);
                 }
+                else
+                    dfaCommon.currentDFAScope.isLoopyLabelKnownToHaveRun = true;
 
                 dfaCommon.printStructure((ref OutBuffer ob,
                         scope PrintPrefixType prefix) => ob.writestring("For body:\n"));
@@ -833,7 +984,8 @@ final:
                 {
                     dfaCommon.printStructure((ref OutBuffer ob,
                             scope PrintPrefixType prefix) => ob.writestring("For increment:\n"));
-                    DFALatticeRef lrIncrement = this.walkExpression(null, null, fs.increment);
+                    DFALatticeRef lrIncrement = expWalker.walk(fs.increment);
+                    seeRead(lrIncrement, fs.increment.loc);
                     expWalker.seeConvergeExpression(lrIncrement);
                 }
 
@@ -845,15 +997,19 @@ final:
                         scope PrintPrefixType prefix) => ob.writestring(
                         "For (effect) condition:\n"));
 
-                DFALatticeRef lrCondition = expWalker.adaptConditionForBranch(theCondition, false);
-                expWalker.seeSilentAssert(lrCondition, true, true);
-            }
+                if (theCondition !is null)
+                {
+                    DFALatticeRef lrConditionFalse = expWalker.adaptConditionForBranch(lrCondition,
+                            theCondition.type, false);
+                    expWalker.seeSilentAssert(lrConditionFalse, true, true);
+                }
 
-            dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
-                ob.writestring("finished for loop at ");
-                appendLoc(ob, fs.endloc);
-                ob.writestring("\n");
-            });
+                dfaCommon.printStructure((ref OutBuffer ob, scope PrintPrefixType prefix) {
+                    ob.writestring("finished for loop at ");
+                    appendLoc(ob, fs.endloc);
+                    ob.writestring("\n");
+                });
+            }
 
             break;
 
@@ -872,10 +1028,10 @@ final:
 
             this.visit(ds._body);
 
-            DFALatticeRef lrCondition = this.walkExpression(null, null, ds.condition);
+            DFALatticeRef lrCondition = expWalker.walk(ds.condition);
+            seeRead(lrCondition, ds.condition.loc);
             expWalker.seeSilentAssert(lrCondition, false, true);
 
-            dfaCommon.currentDFAScope.haveJumped = true;
             DFAScopeRef scr = this.endScope(ds.endloc);
             this.seeConvergeStatementLoopyLabels(scr, *cast(Loc*)&ds.loc);
             break;
@@ -923,8 +1079,9 @@ final:
             dfaCommon.currentDFAScope.controlStatement = ss;
             dfaCommon.currentDFAScope.inConditional = true;
 
-            DFALatticeRef lrCondition = this.walkExpression(null, null, ss.condition);
+            DFALatticeRef lrCondition = expWalker.walk(ss.condition);
             lrCondition.check;
+            seeRead(lrCondition, ss.condition.loc);
 
             DFAScope* oldScope = dfaCommon.currentDFAScope;
 
@@ -966,7 +1123,7 @@ final:
                         dfaCommon.currentDFAScope.controlStatement = cs;
                         dfaCommon.setScopeAsLoopyLabel;
 
-                        DFALatticeRef equalTo = this.walkExpression(null, null, cs.exp);
+                        DFALatticeRef equalTo = expWalker.walk(cs.exp);
                         lrCondition.check;
                         DFALatticeRef lrCondition2 = lrCondition.copy;
                         lrCondition2.check;
@@ -1063,7 +1220,7 @@ final:
 
             if (auto forLoop = sc.controlStatement.isForStatement)
             {
-                DFALatticeRef lr = this.walkExpression(null, null, forLoop.increment);
+                DFALatticeRef lr = expWalker.walk(forLoop.increment);
                 expWalker.seeConvergeExpression(lr);
             }
 
@@ -1191,7 +1348,8 @@ final:
 
             this.startScope;
 
-            DFALatticeRef lr = this.walkExpression(null, null, ws.exp);
+            DFALatticeRef lr = expWalker.walk(ws.exp);
+            seeRead(lr, ws.exp.loc);
             expWalker.seeConvergeExpression(lr);
 
             if (auto ss = ws._body.isScopeStatement)
@@ -1225,7 +1383,8 @@ final:
 
         case STMT.Throw:
             auto ts = st.isThrowStatement;
-            expWalker.seeConvergeExpression(this.walkExpression(null, null, ts.exp));
+            DFALatticeRef lr = expWalker.walk(ts.exp);
+            expWalker.seeConvergeExpression(lr);
 
             dfaCommon.currentDFAScope.haveJumped = true;
             dfaCommon.currentDFAScope.haveReturned = true;
@@ -1279,7 +1438,7 @@ final:
             printf("Run finalizers up to scope %p", targetHeadScope);
 
             if (targetHeadScope !is null && targetHeadScope.label !is null)
-                printf("%s\n", targetHeadScope.label.toChars);
+                printf("%s\n", targetHeadScope.label.ident.toChars);
             else
                 printf("\n");
         }
@@ -1313,24 +1472,192 @@ final:
                 var.unmodellable = true;
         }
 
-        void perExpr(Expression expr)
+        foreachExpAndVar(s, &expWalker.markUnmodellable, &perVar);
+    }
+
+    /// Check if a if statement will be branched into by a goto or by the condition
+    void isBranchTakenIf(ref DFALatticeRef trueLR, ref DFALatticeRef falseLR,
+            IfStatement ifs, out bool forTrue, out bool forFalse)
+    {
+        DFAConsequence* cctx = trueLR.getContext;
+
+        if (cctx !is null)
         {
-            if (auto ve = expr.isVarExp)
+            if (cctx.truthiness == Truthiness.True)
             {
-                if (auto vd = ve.var.isVarDeclaration)
-                    perVar(vd);
+                forTrue = ifs.ifbody !is null;
+                return;
             }
-            else if (auto ue = expr.isUnaExp)
+            else if (cctx.truthiness == Truthiness.False)
             {
-                perExpr(ue.e1);
-            }
-            else if (auto be = expr.isBinExp)
-            {
-                perExpr(be.e1);
-                perExpr(be.e2);
+                forFalse = ifs.elsebody !is null;
+                return;
             }
         }
 
-        foreachExpAndVar(s, &perExpr, &perVar);
+        forTrue = isBranchTaken(trueLR, ifs.ifbody);
+
+        {
+            cctx = falseLR.getContext;
+
+            if (ifs.elsebody is null)
+                forFalse = false;
+            else if (cctx is null || cctx.truthiness != Truthiness.False)
+                forFalse = true;
+            else
+                forFalse = isBranchTaken(ifs.elsebody);
+        }
+    }
+
+    /// Check if a statement will be branched into either by a goto or by the condition.
+    bool isBranchTaken(ref DFALatticeRef condition, Statement stmt)
+    {
+        DFAConsequence* cctx = condition.getContext;
+
+        if (stmt is null)
+            return false;
+        else if (cctx is null || cctx.truthiness != Truthiness.False)
+            return true;
+        else
+            return isBranchTaken(stmt);
+    }
+
+    /// Check if a statement will be branched into either by a goto.
+    bool isBranchTaken(Statement stmt)
+    {
+        if (stmt is null)
+            return false;
+
+        bool walkExpression(Expression e)
+        {
+            if (auto de = e.isDeclarationExp)
+            {
+                return de.declaration.isVarDeclaration !is null
+                    || de.declaration.isAttribDeclaration !is null;
+            }
+            else if (auto be = e.isBinExp)
+                return walkExpression(be.e1) || walkExpression(be.e2);
+            else if (auto ue = e.isUnaExp)
+                return walkExpression(ue.e1);
+            else
+                return false;
+        }
+
+        int check(Statement stmt)
+        {
+            int ret = -1;
+
+            void attempt(Statement stmt2)
+            {
+                if (ret != -1 || stmt2 is null)
+                    return;
+
+                ret = check(stmt2);
+            }
+
+            switch (stmt.stmt)
+            {
+            case STMT.Exp:
+                auto es = stmt.isExpStatement;
+                if (es.exp !is null && walkExpression(es.exp))
+                    return 0;
+                return ret;
+
+            case STMT.Compound:
+                auto cs = stmt.isCompoundStatement;
+
+                if (cs.statements !is null)
+                {
+                    foreach (s; *cs.statements)
+                    {
+                        attempt(s);
+                    }
+                }
+
+                return ret;
+
+            case STMT.UnrolledLoop:
+                auto uls = stmt.isUnrolledLoopStatement;
+
+                if (uls.statements !is null)
+                {
+                    foreach (s; *uls.statements)
+                    {
+                        attempt(s);
+                    }
+                }
+
+                return ret;
+
+            case STMT.Scope:
+                auto ss = stmt.isScopeStatement;
+                attempt(ss.statement);
+                return ret;
+
+            case STMT.Do:
+                auto ds = stmt.isDoStatement;
+                attempt(ds._body);
+                return ret;
+
+            case STMT.For:
+                auto fs = stmt.isForStatement;
+                attempt(fs._body);
+                return ret;
+
+            case STMT.If:
+                auto ifs = stmt.isIfStatement;
+                attempt(ifs.ifbody);
+                attempt(ifs.elsebody);
+                return ret;
+
+            case STMT.Switch:
+                auto ss = stmt.isSwitchStatement;
+
+                if (ss.cases !is null)
+                {
+                    foreach (c; *ss.cases)
+                    {
+                        attempt(c.statement);
+
+                        if (ret != -1)
+                            return ret;
+                    }
+                }
+
+                return ret;
+
+            case STMT.With:
+                auto ws = stmt.isWithStatement;
+                attempt(ws._body);
+                return ret;
+
+            case STMT.TryCatch:
+                auto tcs = stmt.isTryCatchStatement;
+                attempt(tcs._body);
+
+                if (ret == -1 && tcs.catches !is null && tcs.catches.length > 0)
+                    ret = 0; // catch statements have a var declaration
+                return ret;
+
+            case STMT.TryFinally:
+                auto tfs = stmt.isTryFinallyStatement;
+                attempt(tfs._body);
+                attempt(tfs.finalbody);
+                return ret;
+
+            case STMT.Label:
+                auto ls = stmt.isLabelStatement;
+                return cast(int) dfaCommon.haveForwardLabelState(ls.ident);
+
+            default:
+                return ret;
+            }
+        }
+
+        int got = check(stmt);
+        if (got == -1)
+            return false;
+        else
+            return cast(bool) got;
     }
 }

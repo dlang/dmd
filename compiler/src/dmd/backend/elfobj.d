@@ -7,7 +7,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) ?-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/elfobj.d, backend/elfobj.d)
@@ -253,7 +253,6 @@ enum
 }
 
 IDXSEC      MAP_SEG2SECIDX(int seg) { return SegData[seg].SDshtidx; }
-extern (D)
 IDXSYM      MAP_SEG2SYMIDX(int seg) { return SegData[seg].SDsymidx; }
 Elf32_Shdr* MAP_SEG2SEC(int seg)    { return &elfobj.SecHdrTab[MAP_SEG2SECIDX(seg)]; }
 int         MAP_SEG2TYP(int seg)    { return MAP_SEG2SEC(seg).sh_flags & SHF_EXECINSTR ? CODE : DATA; }
@@ -955,7 +954,7 @@ void* elf_renumbersyms()
 void ElfObj_termfile()
 {
     //dbg_printf("ElfObj_termfile\n");
-    if (configv.addlinenumbers)
+    if (config.addlinenumbers)
     {
         dwarf_termmodule();
     }
@@ -974,7 +973,7 @@ void ElfObj_term(const(char)[] objfilename)
     //printf("ElfObj_term()\n");
     outfixlist();           // backpatches
 
-    if (configv.addlinenumbers)
+    if (config.addlinenumbers)
         dwarf_termfile();
 
     if (config.useModuleInfo)
@@ -2040,14 +2039,6 @@ static if (0)
 }
 }
 
-private extern (D) char* unsstr(uint value)
-{
-    __gshared char[64] buffer = void;
-
-    snprintf(buffer.ptr, buffer.length, "%d", value);
-    return buffer.ptr;
-}
-
 /*******************************
  * Mangle a name.
  * Params:
@@ -2057,8 +2048,7 @@ private extern (D) char* unsstr(uint value)
  *      mangled name with terminating 0
  */
 
-private extern (D)
-char[] obj_mangle2(ref Symbol s, char[] dest)
+private char[] obj_mangle2(ref Symbol s, char[] dest)
 {
     //printf("ElfObj_mangle('%s'), mangle = x%x\n",s.Sident.ptr,type_mangle(s.Stype));
     symbol_debug(&s);
@@ -2099,14 +2089,14 @@ char[] obj_mangle2(ref Symbol s, char[] dest)
             bool cond = tyfunc(s.ty()) && !variadic(s.Stype);
             if (cond)
             {
-                char* pstr = unsstr(type_paramsize(s.Stype));
-                size_t pstrlen = strlen(pstr);
-                size_t dlen = len + 1 + pstrlen;
-
+                char[64] buffer = void;
+                int n = snprintf(buffer.ptr, buffer.length, "%u", type_paramsize(s.Stype));
+                assert(n < buffer.length);
+                size_t dlen = len + 1 + n;
                 setLength(dest, dlen);
                 memcpy(dest.ptr,name,len);
                 dest[len] = '@';
-                memcpy(dest.ptr + 1 + len, pstr, pstrlen + 1);
+                memcpy(dest.ptr + len + 1, buffer.ptr, n + 1);
                 len = dlen;
                 break;
             }
@@ -2532,15 +2522,13 @@ static if (0)
 
 /*******************************
  * Output a relocation entry for a segment
- * Input:
+ * Params:
  *      seg =           where the address is going
  *      offset =        offset within seg
  *      type =          ELF relocation type R_ARCH_XXXX
  *      index =         Related symbol table index
  *      val =           addend or displacement from address
  */
-
-__gshared int relcnt=0;
 
 void ElfObj_addrel(int seg, targ_size_t offset, uint type,
                     IDXSYM symidx, targ_size_t val)
@@ -2550,9 +2538,13 @@ void ElfObj_addrel(int seg, targ_size_t offset, uint type,
     IDXSEC secidx;
 
     //assert(val == 0);
-    relcnt++;
-    //dbg_printf("%d-ElfObj_addrel(seg %d,offset x%x,type x%x,symidx %d,val %d)\n",
-            //relcnt,seg, offset, type, symidx,val);
+    static if (0)
+    {
+        __gshared int relcnt = 0;
+        relcnt++;
+        printf("%d-ElfObj_addrel(seg %d,offset x%x,type x%x,symidx %d,val %d)\n",
+                relcnt, seg, offset, type, symidx,val);
+    }
 
     assert(seg >= 0 && seg < SegData.length);
     segdata = SegData[seg];
@@ -3434,8 +3426,7 @@ static if (TERMCODE)
 }
 +/
 
-private extern (D)
-int elf_align(targ_size_t size,int foffset)
+private int elf_align(targ_size_t size,int foffset)
 {
     if (size <= 1)
         return foffset;

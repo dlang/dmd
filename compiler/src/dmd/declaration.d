@@ -2,7 +2,7 @@
  * Miscellaneous declarations, including typedef, alias, variable declarations including the
  * implicit this declaration, type tuples, ClassInfo, ModuleInfo and various TypeInfos.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/declaration.d, _declaration.d)
@@ -22,7 +22,6 @@ import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
-import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -40,6 +39,7 @@ import dmd.visitor;
  */
 void ObjectNotFound(Loc loc, Identifier id)
 {
+    import dmd.globals;
     global.gag = 0; // never gag the fatal error
     const dmdConfFile = global.inifilename.length ? FileName.canonicalName(global.inifilename) : "not found";
 
@@ -361,7 +361,7 @@ extern (C++) final class AliasDeclaration : Declaration
         //printf("AliasDeclaration::syntaxCopy()\n");
         assert(!s);
         AliasDeclaration sa = type ? new AliasDeclaration(loc, ident, type.syntaxCopy()) : new AliasDeclaration(loc, ident, aliassym.syntaxCopy(null));
-        sa.comment = comment;
+        sa.addComment(comment);
         sa.storage_class = storage_class;
         return sa;
     }
@@ -421,6 +421,8 @@ extern (C++) final class OverDeclaration : Declaration
 }
 
 /***********************************************************
+ * Note: dsymbolSemantic turns a VarDeclaration inside a function into
+ * AssignExp(e1: VarExp, e2: ConstructExp or BlitExp).
  */
 extern (C++) class VarDeclaration : Declaration
 {
@@ -510,7 +512,7 @@ extern (C++) class VarDeclaration : Declaration
         //printf("VarDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
         auto v = new VarDeclaration(loc, type ? type.syntaxCopy() : null, ident, _init ? _init.syntaxCopy() : null, storage_class);
-        v.comment = comment;
+        v.addComment(comment);
         return v;
     }
 
@@ -663,9 +665,9 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
     uint fieldWidth;
     uint bitOffset;
 
-    final extern (D) this(Loc loc, Type type, Identifier ident, Expression width)
+    final extern (D) this(Loc loc, Type type, Identifier ident, Expression width, Initializer _init = null)
     {
-        super(loc, type, ident, null);
+        super(loc, type, ident, _init);
         this.dsym = DSYM.bitFieldDeclaration;
         this.width = width;
         this.storage_class |= STC.field;
@@ -675,8 +677,8 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
     {
         //printf("BitFieldDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
-        auto bf = new BitFieldDeclaration(loc, type ? type.syntaxCopy() : null, ident, width.syntaxCopy());
-        bf.comment = comment;
+        auto bf = new BitFieldDeclaration(loc, type ? type.syntaxCopy() : null, ident, width.syntaxCopy(), _init ? _init.syntaxCopy() : null);
+        bf.addComment(comment);
         return bf;
     }
 
@@ -707,33 +709,25 @@ extern (C++) final class SymbolDeclaration : Declaration
 }
 
 /***********************************************************
+ * Generate Identifier for TypeInfo corresponding to `t`
+ * Params:
+ *	t = type to generate TypeInfo identifier for
+ * Returns:
+ *	the identifier
  */
 private Identifier getTypeInfoIdent(Type t)
 {
-    import dmd.mangle;
-    import core.stdc.stdlib;
-    import dmd.root.rmem;
     // _init_10TypeInfo_%s
     OutBuffer buf;
     buf.reserve(32);
+    import dmd.mangle;
     mangleToBuffer(t, buf);
 
-    const slice = buf[];
+    OutBuffer buf2;
+    buf2.reserve(19 + size_t.sizeof * 3 + buf.length + 1);
+    buf2.printf("_D%zuTypeInfo_%.*s6__initZ", 9+buf.length, cast(int)buf.length, buf[].ptr);
 
-    // Allocate buffer on stack, fail over to using malloc()
-    char[128] namebuf;
-    const namelen = 19 + size_t.sizeof * 3 + slice.length + 1;
-    auto name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)Mem.check(malloc(namelen));
-
-    const length = snprintf(name, namelen, "_D%lluTypeInfo_%.*s6__initZ",
-            cast(ulong)(9 + slice.length), cast(int)slice.length, slice.ptr);
-    //printf("%p %s, deco = %s, name = %s\n", this, toChars(), deco, name);
-    assert(0 < length && length < namelen); // don't overflow the buffer
-
-    auto id = Identifier.idPool(name[0 .. length]);
-
-    if (name != namebuf.ptr)
-        free(name);
+    auto id = Identifier.idPool(buf2[]);
     return id;
 }
 

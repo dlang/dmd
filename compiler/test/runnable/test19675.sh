@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+$DMD -m${MODEL} -I${EXTRA_FILES} -of${OUTPUT_BASE}${LIBEXT} -lib ${EXTRA_FILES}/gc19675.d ${EXTRA_FILES}/memory19675.d
+$DMD -m${MODEL} -I${EXTRA_FILES} -of${OUTPUT_BASE}${EXE} ${EXTRA_FILES}/main19675.d ${OUTPUT_BASE}${LIBEXT}
+
+rm_retry ${OUTPUT_BASE}{${LIBEXT},${EXE}}

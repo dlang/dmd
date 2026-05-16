@@ -33,68 +33,68 @@ import core.sys.linux.elf;
 // <bits/elfclass.h>
 version (Android)
 {
-    alias __WORDSIZE __ELF_NATIVE_CLASS;
+    alias __ELF_NATIVE_CLASS = __WORDSIZE;
     version (D_LP64)
-        alias uint64_t Elf_Symndx;
+        alias Elf_Symndx = uint64_t;
     else
-        alias uint32_t Elf_Symndx;
+        alias Elf_Symndx = uint32_t;
 }
 else version (X86_Any)
 {
     // http://sourceware.org/git/?p=glibc.git;a=blob;f=bits/elfclass.h
-    alias __WORDSIZE __ELF_NATIVE_CLASS;
-    alias uint32_t Elf_Symndx;
+    alias __ELF_NATIVE_CLASS = __WORDSIZE;
+    alias Elf_Symndx = uint32_t;
 }
 else version (HPPA_Any)
 {
     // http://sourceware.org/git/?p=glibc.git;a=blob;f=bits/elfclass.h
-    alias __WORDSIZE __ELF_NATIVE_CLASS;
-    alias uint32_t Elf_Symndx;
+    alias __ELF_NATIVE_CLASS = __WORDSIZE;
+    alias Elf_Symndx = uint32_t;
 }
 else version (MIPS_Any)
 {
     // http://sourceware.org/git/?p=glibc.git;a=blob;f=bits/elfclass.h
-    alias __WORDSIZE __ELF_NATIVE_CLASS;
-    alias uint32_t Elf_Symndx;
+    alias __ELF_NATIVE_CLASS = __WORDSIZE;
+    alias Elf_Symndx = uint32_t;
 }
 else version (PPC_Any)
 {
     // http://sourceware.org/git/?p=glibc.git;a=blob;f=bits/elfclass.h
-    alias __WORDSIZE __ELF_NATIVE_CLASS;
-    alias uint32_t Elf_Symndx;
+    alias __ELF_NATIVE_CLASS = __WORDSIZE;
+    alias Elf_Symndx = uint32_t;
 }
 else version (ARM_Any)
 {
     // http://sourceware.org/git/?p=glibc.git;a=blob;f=bits/elfclass.h
-    alias __WORDSIZE __ELF_NATIVE_CLASS;
-    alias uint32_t Elf_Symndx;
+    alias __ELF_NATIVE_CLASS = __WORDSIZE;
+    alias Elf_Symndx = uint32_t;
 }
 else version (RISCV_Any)
 {
     // http://sourceware.org/git/?p=glibc.git;a=blob;f=bits/elfclass.h
-    alias __WORDSIZE __ELF_NATIVE_CLASS;
-    alias uint32_t Elf_Symndx;
+    alias __ELF_NATIVE_CLASS = __WORDSIZE;
+    alias Elf_Symndx = uint32_t;
 }
 else version (SPARC_Any)
 {
     // http://sourceware.org/git/?p=glibc.git;a=blob;f=bits/elfclass.h
-    alias __WORDSIZE __ELF_NATIVE_CLASS;
-    alias uint32_t Elf_Symndx;
+    alias __ELF_NATIVE_CLASS = __WORDSIZE;
+    alias Elf_Symndx = uint32_t;
 }
 else version (IBMZ_Any)
 {
     // http://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/s390/bits/elfclass.h
-    alias __WORDSIZE __ELF_NATIVE_CLASS;
+    alias __ELF_NATIVE_CLASS = __WORDSIZE;
     static if (__WORDSIZE == 64)
-        alias uint64_t Elf_Symndx;
+        alias Elf_Symndx = uint64_t;
     else
-        alias uint32_t Elf_Symndx;
+        alias Elf_Symndx = uint32_t;
 }
 else version (LoongArch64)
 {
     // http://sourceware.org/git/?p=glibc.git;a=blob;f=bits/elfclass.h
-    alias __WORDSIZE __ELF_NATIVE_CLASS;
-    alias uint32_t Elf_Symndx;
+    alias __ELF_NATIVE_CLASS = __WORDSIZE;
+    alias Elf_Symndx = uint32_t;
 }
 else
     static assert(0, "unimplemented");
@@ -102,7 +102,7 @@ else
 
 template ElfW(string type)
 {
-    mixin("alias Elf"~__ELF_NATIVE_CLASS.stringof~"_"~type~" ElfW;");
+    mixin("alias ElfW = Elf"~__ELF_NATIVE_CLASS.stringof~"_"~type~";");
 }
 
 enum
@@ -182,8 +182,8 @@ struct dl_phdr_info
     void *dlpi_tls_data;
 }
 
-private alias extern(C) int function(dl_phdr_info*, size_t, void *) dl_iterate_phdr_cb;
-private alias extern(C) int function(dl_phdr_info*, size_t, void *) @nogc dl_iterate_phdr_cb_ngc;
+private alias dl_iterate_phdr_cb = extern(C) int function(dl_phdr_info*, size_t, void *);
+private alias dl_iterate_phdr_cb_ngc = extern(C) int function(dl_phdr_info*, size_t, void *) @nogc;
 extern int dl_iterate_phdr(dl_iterate_phdr_cb __callback, void*__data);
 extern int dl_iterate_phdr(dl_iterate_phdr_cb_ngc __callback, void*__data) @nogc;
 

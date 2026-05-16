@@ -1,7 +1,7 @@
 /**
  * Check the arguments to `printf` and `scanf` against the `format` string.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/chkformat.d, _chkformat.d)
@@ -18,6 +18,7 @@ import dmd.cond;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
@@ -25,13 +26,46 @@ import dmd.typesem;
 import dmd.target;
 
 
+/**********************************************
+ * While in general printf is not @safe (and should be marked @system), many uses of printf are safe.
+ * This function determines if a particular call of printf is safe.
+ * Params:
+ *      format = printf format string
+ * Returns:
+ *      true if @safe
+ */
+public
+bool isFormatSafe(scope const char[] format)
+{
+    //printf("isFormatSafe('%.*s')\n", cast(int)format.length, format.ptr);
+    /* Only need to check the format string, any other errors are checked
+     * for later with checkPrintfFormat()
+     */
+    for (size_t i = 0; i < format.length;)
+    {
+        if (format[i] != '%')
+        {
+            ++i;
+            continue;
+        }
+        bool widthStar;
+        bool precisionStar;
+        size_t j = i;
+        const fmt = parsePrintfFormatSpecifier(format, j, widthStar, precisionStar);
+        i = j;
+        if (fmt == Format.s || fmt == Format.ls || fmt == Format.error)
+            return false;
+    }
+    return true;
+}
+
 /******************************************
  * Check that arguments to a printf format string are compatible
  * with that string. Issue errors for incompatibilities.
  *
  * Follows the C99 specification for printf.
  *
- * Takes a generous, rather than strict, view of compatiblity.
+ * Takes a generous, rather than strict, view of compatibility.
  * For example, an unsigned value can be formatted with a signed specifier.
  *
  * Diagnosed incompatibilities are:
@@ -65,7 +99,7 @@ import dmd.target;
 public
 bool checkPrintfFormat(Loc loc, scope const char[] format, scope Expression[] args, bool isVa_list, ErrorSink eSink)
 {
-    //printf("checkPrintFormat('%.*s')\n", cast(int)format.length, format.ptr);
+    //printf("checkPrintfFormat('%.*s')\n", cast(int)format.length, format.ptr);
     size_t n;    // index in args
     for (size_t i = 0; i < format.length;)
     {
@@ -109,8 +143,32 @@ bool checkPrintfFormat(Loc loc, scope const char[] format, scope Expression[] ar
 
         void errorMsg(const char* prefix, Expression arg, const char* texpect, Type tactual)
         {
-            eSink.deprecation(arg.loc, "%sargument `%s` for format specification `\"%.*s\"` must be `%s`, not `%s`",
-                  prefix ? prefix : "", arg.toChars(), cast(int)slice.length, slice.ptr, texpect, tactual.toChars());
+            eSink.deprecation(arg.loc, "%sargument `%s` of type `%s` does not match format specification",
+                  prefix ? prefix : "", arg.toErrMsg(), tactual.toErrMsg());
+
+            eSink.deprecationSupplemental(arg.loc, "`\"%.*s\"` requires `%s`", cast(int) slice.length, slice.ptr, texpect);
+
+            if (prefix)
+                return; // width/precision args must be int; no useful format suggestion
+            auto tb = tactual.toBasetype();
+            const(char)* suggestion = integralFormatSpecifier(tb.ty);
+            if (!suggestion)
+            switch (tb.ty)
+            {
+                case Tfloat32:
+                case Tfloat64: suggestion = "%g";  break;
+                case Tfloat80: suggestion = "%Lg"; break;
+                case Tpointer:
+                    auto tn = tb.nextOf();
+                    if (tn && (tn.ty == Tchar || tn.ty == Tint8 || tn.ty == Tuns8))
+                        suggestion = "%s";
+                    else
+                        suggestion = "%p";
+                    break;
+                default: break;
+            }
+            if (suggestion)
+                eSink.deprecationSupplemental(arg.loc, "`%s` may be formatted with `\"%s\"`", tactual.toErrMsg(), suggestion);
         }
 
         if (widthStar)
@@ -308,7 +366,7 @@ bool checkPrintfFormat(Loc loc, scope const char[] format, scope Expression[] ar
  *
  * Follows the C99 specification for scanf.
  *
- * Takes a generous, rather than strict, view of compatiblity.
+ * Takes a generous, rather than strict, view of compatibility.
  * For example, an unsigned value can be formatted with a signed specifier.
  *
  * Diagnosed incompatibilities are:
@@ -379,8 +437,30 @@ bool checkScanfFormat(Loc loc, scope const char[] format, scope Expression[] arg
 
         void errorMsg(const char* prefix, Expression arg, const char* texpect, Type tactual)
         {
-            eSink.deprecation(arg.loc, "%sargument `%s` for format specification `\"%.*s\"` must be `%s`, not `%s`",
-                  prefix ? prefix : "", arg.toChars(), cast(int)slice.length, slice.ptr, texpect, tactual.toChars());
+            eSink.deprecation(arg.loc, "%sargument `%s` of type `%s` does not match format specification",
+                  prefix ? prefix : "", arg.toErrMsg(), tactual.toErrMsg());
+
+            eSink.deprecationSupplemental(arg.loc, "`\"%.*s\"` requires `%s`", cast(int)slice.length, slice.ptr, texpect);
+
+            auto tb = tactual.toBasetype();
+            if (tb.ty != Tpointer)
+                return;
+            auto tnb = tb.nextOf();
+            if (!tnb)
+                return;
+            tnb = tnb.toBasetype();
+            const(char)* suggestion = integralFormatSpecifier(tnb.ty);
+            if (!suggestion)
+                switch (tnb.ty)
+                {
+                    case Tchar:    suggestion = "%s";  break;
+                    case Tfloat32: suggestion = "%g";  break;
+                    case Tfloat64: suggestion = "%lg"; break;
+                    case Tfloat80: suggestion = "%Lg"; break;
+                    default: break;
+                }
+            if (suggestion)
+                eSink.deprecationSupplemental(arg.loc, "`%s` may be formatted with `\"%s\"`", tactual.toChars(), suggestion);
         }
 
         auto e = getNextArg();
@@ -531,6 +611,23 @@ bool checkScanfFormat(Loc loc, scope const char[] format, scope Expression[] arg
 /*****************************************************************************************************/
 
 private:
+
+/// Returns: format specifier string for `ty`, or `null` if not a recognized integer type
+const(char)* integralFormatSpecifier(TY ty) pure nothrow
+{
+    switch (ty)
+    {
+        case Tint8:  return "%hhd";
+        case Tuns8:  return "%hhu";
+        case Tint16: return "%hd";
+        case Tuns16: return "%hu";
+        case Tint32: return "%d";
+        case Tuns32: return "%u";
+        case Tint64: return "%lld";
+        case Tuns64: return "%llu";
+        default:     return null;
+    }
+}
 
 /**************************************
  * Parse the *format specifier* which is of the form:

@@ -171,7 +171,7 @@ private template getPrintfFormat(T)
  * Params:
  *   v = the value to print
  *
- * Returns: a string respresenting `v` or `V.stringof` if `V` is not supported
+ * Returns: a string representing `v` or `V.stringof` if `V` is not supported
  */
 private string miniFormat(V)(const scope ref V v)
 {

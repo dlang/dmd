@@ -1,0 +1,1224 @@
+Ddoc
+
+$(SPEC_S Lexical,
+
+$(HEADERNAV_TOC)
+
+$(P The lexical analysis is independent of the syntax parsing and the semantic
+analysis. The lexical analyzer splits the source text into tokens. The
+lexical grammar describes the syntax of these tokens. The grammar is designed to
+be suitable for high-speed scanning and to facilitate the implementation of a correct
+scanner. It has a minimum of special case rules and there is only one
+phase of translation.)
+
+$(H2 $(LNAME2 source_text, Source Text))
+
+$(GRAMMAR
+$(GNAME SourceFile):
+    $(GLINK ByteOrderMark) $(GLINK2 module, Module)$(OPT)
+    $(GLINK Shebang) $(GLINK2 module, Module)$(OPT)
+    $(GLINK2 module, Module)$(OPT)
+)
+$(GRAMMAR_LEX
+$(GNAME ByteOrderMark):
+    $(B \uFEFF)
+
+$(GNAME Shebang):
+    $(B #!) $(GLINK Characters)$(OPT) $(GLINK EndOfShebang)
+
+$(GNAME EndOfShebang):
+    $(B \u000A)
+    $(GLINK EndOfFile)
+)
+
+$(P Source text can be encoded as any one of the following:)
+
+        $(LIST
+        ASCII (strictly, 7-bit ASCII),
+        UTF-8,
+        UTF-16BE,
+        UTF-16LE,
+        UTF-32BE,
+        UTF-32LE
+        )
+
+$(P One of the following UTF
+BOMs (Byte Order Marks) can be present at the beginning of the source text:)
+
+$(TABLE2 UTF Byte Order Marks,
+    $(THEAD Format, BOM)
+        $(TROW UTF-8, EF BB BF)
+        $(TROW UTF-16BE, FE FF)
+        $(TROW UTF-16LE, FF FE)
+    $(TROW UTF-32BE, 00 00 FE FF)
+        $(TROW UTF-32LE, FF FE 00 00)
+        $(TROW ASCII, no BOM)
+)
+
+$(P If the source file does not begin with a BOM, then the first character must
+be less than or equal to U+0000007F.)
+
+$(P The source text is decoded from its source representation into Unicode
+$(GLINK Character)s. The $(GLINK Character)s are further divided into: $(GLINK
+WhiteSpace), $(GLINK EndOfLine), $(GLINK Comment)s, $(GLINK
+SpecialTokenSequence)s, and $(GLINK Token)s, with the source terminated by an $(GLINK EndOfFile).)
+
+$(P The source text is split into tokens using the maximal munch algorithm,
+i.e., the lexical analyzer assumes the longest possible token. For example,
+$(D >>) is a right-shift token rather than two greater-than tokens. There are two
+exceptions to this rule:)
+
+$(UL
+        $(LI A $(D ..) embedded between what appear to be two floating point
+                literals, as in $(D 1..2), is interpreted as if the $(D ..) were
+                separated by a space from the first integer.)
+        $(LI A `1.a` is interpreted as the three tokens `1`, `.`, and `a`,
+                whereas `1. a` is interpreted as the two tokens `1.` and `a`.)
+)
+
+$(H2 $(LNAME2 character_set, Character Set))
+
+$(GRAMMAR_LEX
+$(GNAME Character):
+    $(I any Unicode character)
+)
+
+$(H2 $(LNAME2 end_of_file, End of File))
+
+$(GRAMMAR_LEX
+$(GNAME EndOfFile):
+    $(I physical end of the file)
+    $(B \u0000)
+    $(B \u001A)
+)
+
+$(P The source text is terminated by whichever comes first.)
+
+$(H2 $(LNAME2 end_of_line, End of Line))
+
+$(GRAMMAR_LEX
+$(GNAME EndOfLine):
+    $(B \u000D)
+    $(B \u000A)
+    $(B \u000D) $(B \u000A)
+    $(B \u2028)
+    $(B \u2029)
+    $(GLINK EndOfFile)
+)
+
+
+$(H2 $(LNAME2 white_space, White Space))
+
+$(GRAMMAR_LEX
+$(GNAME WhiteSpace):
+    $(GLINK Space)
+    $(GLINK Space) $(GSELF WhiteSpace)
+
+$(GNAME Space):
+    $(B \u0020)
+    $(B \u0009)
+    $(B \u000B)
+    $(B \u000C)
+)
+
+
+$(H2 $(LNAME2 comment, Comments))
+
+$(GRAMMAR_LEX
+$(GNAME Comment):
+    $(GLINK BlockComment)
+    $(GLINK LineComment)
+    $(GLINK NestingBlockComment)
+
+$(GNAME BlockComment):
+    $(B /*) $(GLINK Characters)$(OPT) $(B */)
+
+$(GNAME LineComment):
+    $(B //) $(GLINK Characters)$(OPT) $(GLINK EndOfLine)
+
+$(GNAME NestingBlockComment):
+    $(B /+) $(GLINK NestingBlockCommentCharacters)$(OPT) $(B +/)
+
+$(GNAME NestingBlockCommentCharacters):
+    $(GLINK NestingBlockCommentCharacter)
+    $(GLINK NestingBlockCommentCharacter) $(GSELF NestingBlockCommentCharacters)
+
+$(GNAME NestingBlockCommentCharacter):
+    $(GLINK Character)
+    $(GLINK NestingBlockComment)
+
+$(GNAME Characters):
+    $(GLINK Character)
+    $(GLINK Character) $(GSELF Characters)
+)
+
+    $(P There are three kinds of comments:)
+
+        $(OL
+        $(LI Block comments can span multiple lines, but do not nest.)
+        $(LI Line comments terminate at the end of the line.)
+        $(LI Nesting block comments can span multiple lines and can nest.)
+        )
+
+        $(P
+        The contents of strings and comments are not tokenized.  Consequently,
+        comment openings occurring within a string do not begin a comment, and
+        string delimiters within a comment do not affect the recognition of
+        comment closings and nested `/+` comment openings.  With the exception
+        of `/+` occurring within a `/+` comment, comment openings within a
+        comment are ignored.
+        )
+
+-------------
+a = /+ // +/ 1;    // parses as if 'a = 1;'
+a = /+ "+/" +/ 1"; // parses as if 'a = " +/ 1";'
+a = /+ /* +/ */ 3; // parses as if 'a = */ 3;'
+-------------
+
+$(P Comments cannot be used as token concatenators, for example, $(D abc/**/def)
+is two tokens, $(D abc) and $(D def), not one $(D abcdef) token.)
+
+$(H2 $(LNAME2 tokens, Tokens))
+
+$(GRAMMAR
+$(GNAME Tokens):
+    $(GLINK Token)
+    $(GLINK Token) $(GSELF Tokens)
+
+$(GNAME Token):
+    $(D {)
+    $(D })
+    $(GLINK TokenNoBraces)
+
+$(GNAME TokenNoBraces):
+$(MULTICOLS 4,     $(GLINK Identifier)
+    $(GLINK StringLiteral)
+    $(GLINK2 istring, InterpolationExpressionSequence)
+    $(GLINK CharacterLiteral)
+    $(GLINK IntegerLiteral)
+    $(GLINK FloatLiteral)
+    $(GLINK Keyword)
+    $(D /)
+    $(D /=)
+    $(D .)
+    $(D ..)
+    $(D ...)
+    $(D $(AMP))
+    $(D $(AMP)=)
+    $(D $(AMP)$(AMP))
+    $(D |)
+    $(D |=)
+    $(D ||)
+    $(D -)
+    $(D -=)
+    $(D --)
+    $(D +)
+    $(D +=)
+    $(D ++)
+    $(D <)
+    $(D <=)
+    $(D <<)
+    $(D <<=)
+    $(D >)
+    $(D >=)
+    $(D >>=)
+    $(D >>>=)
+    $(D >>)
+    $(D >>>)
+    $(D !)
+    $(D !=)
+    $(D $(LPAREN))
+    $(D $(RPAREN))
+    $(D [)
+    $(D ])
+    $(D ?)
+    $(D ,)
+    $(D ;)
+    $(D :)
+    $(D $)
+    $(D =)
+    $(D ==)
+    $(D *)
+    $(D *=)
+    $(D %)
+    $(D %=)
+    $(D ^)
+    $(D ^=)
+    $(D ^^)
+    $(D ^^=)
+    $(D ~)
+    $(D ~=)
+    $(D @)
+    $(D =>)
+)
+)
+
+$(H2 $(LNAME2 identifiers, Identifiers))
+
+$(GRAMMAR_LEX
+$(GNAME Identifier):
+    $(GLINK IdentifierStart)
+    $(GLINK IdentifierStart) $(GLINK IdentifierChars)
+
+$(GNAME IdentifierChars):
+    $(GLINK IdentifierChar)
+    $(GLINK IdentifierChar) $(GSELF IdentifierChars)
+
+$(GNAME IdentifierStart):
+    $(B _)
+    $(I Letter)
+    $(I UniversalAlpha)
+
+$(GNAME IdentifierChar):
+    $(GLINK IdentifierStart)
+    $(B 0)
+    $(GLINK NonZeroDigit)
+)
+
+
+$(P Identifiers start with a letter, $(D _), or universal alpha, and are
+followed by any number of letters, $(D _), digits, or universal alphas.
+Universal alphas are as defined in ISO/IEC 9899:1999(E) Appendix D of the C99 Standard.
+Identifiers can be arbitrarily long, and are case sensitive.)
+
+$(IMPLEMENTATION_DEFINED Identifiers starting with $(D __) (two underscores) are reserved.)
+
+$(H2 $(LNAME2 string_literals, String Literals))
+
+$(GRAMMAR
+$(GNAME StringLiteral):
+    $(GLINK WysiwygString)
+    $(GLINK AlternateWysiwygString)
+    $(GLINK DoubleQuotedString)
+    $(GLINK DelimitedString)
+    $(GLINK TokenString)
+    $(GLINK HexString)
+)
+$(P
+A string literal is either a wysiwyg quoted string, a double quoted
+string, a delimited string, a token string, or a hex string.
+)
+
+$(P In all string literal forms, an $(GLINK EndOfLine) is regarded as a single
+$(D \n) character.)
+
+$(H3 $(LNAME2 wysiwyg, Wysiwyg Strings))
+$(GRAMMAR_LEX
+$(GNAME WysiwygString):
+    $(B r") $(GLINK WysiwygCharacters)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
+
+$(GNAME AlternateWysiwygString):
+    $(B $(BACKTICK)) $(GLINK WysiwygCharacters)$(OPT) $(B $(BACKTICK)) $(GLINK StringPostfix)$(OPT)
+
+$(GNAME WysiwygCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF WysiwygCharacters)
+
+$(GNAME WysiwygCharacter):
+    $(GLINK Character)
+    $(GLINK EndOfLine)
+)
+        $(P
+        Wysiwyg ("what you see is what you get") quoted strings can be defined
+        using either of two syntaxes.
+        )
+
+        $(P
+        In the first form, they are enclosed between `r"` and `"`.
+        All characters between
+        the `r"` and `"` are part of the string.
+        There are no escape sequences inside wysiwyg strings.
+        )
+
+        ---
+        r"I am Oz"
+        r"c:\games\Sudoku.exe"
+        r"ab\n" // string is 4 characters,
+                // 'a', 'b', '\', 'n'
+        ---
+
+        $(P
+        Alternatively, wysiwyg strings can be enclosed by backquotes,
+        using the $(BACKTICK) character.
+        )
+
+        ---
+        `the Great and Powerful.`
+        `c:\games\Empire.exe`
+        `The "lazy" dog`
+        `a"b\n`  // string is 5 characters,
+                 // 'a', '"', 'b', '\', 'n'
+        ---
+
+$(P See also $(GLINK2 istring, InterpolatedWysiwygLiteral))
+
+$(H3 $(LNAME2 double_quoted_strings, Double Quoted Strings))
+$(GRAMMAR_LEX
+$(GNAME DoubleQuotedString):
+    $(B ") $(GLINK DoubleQuotedCharacters)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
+
+$(GNAME DoubleQuotedCharacters):
+    $(GLINK DoubleQuotedCharacter)
+    $(GLINK DoubleQuotedCharacter) $(GSELF DoubleQuotedCharacters)
+
+$(GNAME DoubleQuotedCharacter):
+    $(GLINK Character)
+    $(GLINK EscapeSequence)
+    $(GLINK EndOfLine)
+)
+
+        $(P Double quoted strings are enclosed by "". $(GLINK EscapeSequence)s can be
+        embedded in them.)
+
+        ---
+        "Who are you?"
+        "c:\\games\\Doom.exe"
+        "ab\n"   // string is 3 characters,
+                 // 'a', 'b', and a linefeed
+        "ab
+        "        // string is 3 characters,
+                 // 'a', 'b', and a linefeed
+        ---
+
+$(P See also $(GLINK2 istring, InterpolatedDoubleQuotedLiteral))
+
+$(H3 $(LNAME2 delimited_strings, Delimited Strings))
+$(GRAMMAR_LEX
+$(GNAME DelimitedString):
+    $(B q") $(GLINK Delimiter) $(GLINK WysiwygCharacters)$(OPT) $(GLINK MatchingDelimiter) $(B ") $(GLINK StringPostfix)$(OPT)
+    $(B q"$(LPAREN)) $(GLINK ParenDelimitedCharacters)$(OPT) $(B $(RPAREN)") $(GLINK StringPostfix)$(OPT)
+    $(B q"[) $(GLINK BracketDelimitedCharacters)$(OPT) $(B ]") $(GLINK StringPostfix)$(OPT)
+    $(B q"{) $(GLINK BraceDelimitedCharacters)$(OPT) $(B }") $(GLINK StringPostfix)$(OPT)
+    $(B q"<) $(GLINK AngleDelimitedCharacters)$(OPT) $(B >") $(GLINK StringPostfix)$(OPT)
+
+$(GNAME Delimiter):
+    $(GLINK Identifier)
+
+$(GNAME MatchingDelimiter):
+    $(GLINK Identifier)
+
+$(GNAME ParenDelimitedCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF ParenDelimitedCharacters)
+    $(B $(LPAREN)) $(GSELF ParenDelimitedCharacters)$(OPT) $(B $(RPAREN))
+
+$(GNAME BracketDelimitedCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF BracketDelimitedCharacters)
+    $(B [) $(GSELF BracketDelimitedCharacters)$(OPT) $(B ])
+
+$(GNAME BraceDelimitedCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF BraceDelimitedCharacters)
+    $(B {) $(GSELF BraceDelimitedCharacters)$(OPT) $(B })
+
+$(GNAME AngleDelimitedCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF AngleDelimitedCharacters)
+    $(B <) $(GSELF AngleDelimitedCharacters)$(OPT) $(B >)
+)
+
+        $(P Delimited strings use various forms of delimiters.
+        The delimiter, whether a character or identifier,
+        must immediately follow the " without any intervening whitespace.
+        The terminating delimiter must immediately precede the closing "
+        without any intervening whitespace.
+        A $(I nesting delimiter) nests, and is one of the
+        following characters:
+        )
+
+        $(TABLE2 Nesting Delimiters,
+        $(THEAD Delimiter, Matching Delimiter)
+        $(TROW $(D [), $(D ]))
+        $(TROW $(LPAREN), $(RPAREN))
+        $(TROW $(D <), $(D >))
+        $(TROW $(CODE_LCURL), $(CODE_RCURL))
+        )
+
+---
+q"(foo(xxx))"   // "foo(xxx)"
+q"[foo{]"       // "foo{"
+---
+
+        $(P If the delimiter is an identifier, the identifier must
+        be immediately followed by a newline, and the matching
+        delimiter must be the same identifier starting at the beginning
+        of the line:
+        )
+---
+writeln(q"EOS
+This
+is a multi-line
+heredoc string
+EOS"
+);
+---
+        $(P The newline following the opening identifier is not part
+        of the string, but the last newline before the closing
+        identifier is part of the string. The closing identifier
+    must be placed on its own line at the leftmost column.
+        )
+
+        $(P Otherwise, the matching delimiter is the same as
+        the delimiter character:)
+
+---
+q"/foo]/"          // "foo]"
+// q"/abc/def/"    // error
+---
+
+$(H3 $(LNAME2 token_strings, Token Strings))
+$(GRAMMAR
+$(GNAME TokenString):
+    $(D q{) $(GLINK TokenStringTokens)$(OPT) $(D }) $(GLINK StringPostfix)$(OPT)
+
+$(GNAME TokenStringTokens):
+    $(GLINK TokenStringToken)
+    $(GLINK TokenStringToken) $(GSELF TokenStringTokens)
+
+$(GNAME TokenStringToken):
+    $(GLINK TokenNoBraces)
+    $(D {) $(GLINK TokenStringTokens)$(OPT) $(D })
+)
+
+        $(P Token strings open with the characters $(D q)$(CODE_LCURL) and close with
+        the token $(CODE_RCURL). In between must be valid D tokens.
+        The $(CODE_LCURL) and $(CODE_RCURL) tokens nest.
+        The string is formed of all the characters between the opening
+        and closing of the token string, including comments.
+        )
+
+        ---
+        q{this is the voice of} // "this is the voice of"
+        q{/*}*/ }               // "/*}*/ "
+        q{ world(q{control}); } // " world(q{control}); "
+        q{ __TIME__ }           // " __TIME__ "
+                                // i.e. it is not replaced with the time
+        // q{ __EOF__ }         // error
+                                // __EOF__ is not a token, it's end of file
+        ---
+
+$(P See also $(GLINK2 istring, InterpolatedTokenLiteral))
+
+$(H3 $(LNAME2 hex_strings, Hex Strings))
+$(GRAMMAR
+$(GNAME HexString):
+    $(B x") $(GLINK HexStringChars)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
+
+$(GNAME HexStringChars):
+    $(GLINK HexStringChar)
+    $(GLINK HexStringChar) $(GSELF HexStringChars)
+
+$(GNAME HexStringChar):
+    $(GLINK HexDigit)
+    $(GLINK WhiteSpace)
+    $(GLINK EndOfLine)
+)
+
+        $(P Hex strings allow string literals to be created using hex data.
+        The hex data need not form valid UTF characters.
+        )
+
+        ---
+        x"0A"              // same as "\x0A"
+        x"00 FBCD 32FD 0A" // same as "\x00\xFB\xCD\x32\xFD\x0A"
+        ---
+
+        $(P Whitespace and newlines are ignored, so the hex data can be easily
+        formatted. The number of hex characters must be a multiple of 2.)
+
+$(H3 $(LNAME2 string_postfix, String Postfix))
+
+$(GRAMMAR_LEX
+$(GNAME StringPostfix):
+    $(B c)
+    $(B w)
+    $(B d)
+)
+
+        $(P The optional $(I StringPostfix) character gives a specific type
+        to the string, rather than it being inferred from the context.
+        The types corresponding to the postfix characters are:
+        )
+
+
+        $(TABLE2 String Literal Postfix Characters,
+        $(THEAD Postfix, Type, Alias)
+        $(TROW $(B c), $(D immutable(char)[]), $(D string))
+        $(TROW $(B w), $(D immutable(wchar)[]), $(D wstring))
+        $(TROW $(B d), $(D immutable(dchar)[]), $(D dstring))
+        )
+
+---
+"hello"c  // string
+"hello"w  // wstring
+"hello"d  // dstring
+---
+
+        $(P The string literals are assembled as UTF-8 char arrays,
+        and the postfix is applied
+        to convert to wchar or dchar as necessary as a final step.)
+
+$(H2 $(LNAME2 escape_sequences, Escape Sequences))
+
+$(GRAMMAR_LEX
+$(GNAME EscapeSequence):
+    $(B \\')
+    $(B \\")
+    $(B \\?)
+    $(B \\\\)
+    $(B \0)
+    $(B \a)
+    $(B \b)
+    $(B \f)
+    $(B \n)
+    $(B \r)
+    $(B \t)
+    $(B \v)
+    $(B \x) $(GLINK HexDigit) $(GLINK HexDigit)
+    $(B \\) $(GLINK OctalDigit)
+    $(B \\) $(GLINK OctalDigit) $(GLINK OctalDigit)
+    $(B \\) $(GLINK OctalDigit) $(GLINK OctalDigit) $(GLINK OctalDigit)
+    $(B \u) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
+    $(B \U) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
+    $(B \\) $(GLINK2 entity, NamedCharacterEntity)
+
+$(GNAME OctalDigit):
+    $(B 0)
+    $(B 1)
+    $(B 2)
+    $(B 3)
+    $(B 4)
+    $(B 5)
+    $(B 6)
+    $(B 7)
+)
+
+    $(LONGTABLE_2COLS 0.8, Escape Sequences,
+    $(THEAD Sequence, Meaning),
+    $(TROW `\'`, Literal single-quote: $(D '))
+    $(TROW `\"`, Literal double-quote: $(D "))
+    $(TROW `\?`, Literal question mark: $(D ?))
+    $(TROW `\\`, Literal backslash: `\`)
+    $(TROW `\0`, Binary zero (NUL, U+0000).)
+    $(TROW `\a`, BEL (alarm) character (U+0007).)
+    $(TROW `\b`, Backspace (U+0008).)
+    $(TROW `\f`, Form feed (FF) (U+000C).)
+    $(TROW `\n`, End-of-line (U+000A).)
+    $(TROW `\r`, Carriage return (U+000D).)
+    $(TROW `\t`, Horizontal tab (U+0009).)
+    $(TROW `\v`, Vertical tab (U+000B).)
+    $(TROW `\x`$(I nn), Byte value in hexadecimal$(COMMA) where $(I nn) is
+        specified as two hexadecimal digits.$(BR)For example: `\xFF`
+        represents the character with the value 255.$(BR)
+        See also: $(REF hexString, std,conv).)
+    $(TROW `\`$(I n)$(BR)`\`$(I nn)$(BR)`\`$(I nnn), Byte value in
+        octal.$(BR)For example: `\101` represents the character with the
+        value 65 ($(D 'A')). Analogous to hexadecimal characters$(COMMA)
+        the largest byte value is `\377` (= `\xFF` in hexadecimal
+        or $(D 255) in decimal)$(BR)
+        See also: $(REF octal, std,conv).)
+    $(TROW `\u`$(I nnnn), Unicode character U+$(I nnnn)$(COMMA) where
+        $(I nnnn) are four hexadecimal digits.$(BR)For example$(COMMA)
+        `\u03B3` represents the Unicode character $(GAMMA) (U+03B3 - GREEK SMALL LETTER GAMMA).)
+    $(TROW `\U`$(I nnnnnnnn), Unicode character U+$(I nnnnnnnn)$(COMMA)
+        where $(I nnnnnnnn) are 8 hexadecimal digits.$(BR)For example$(COMMA)
+        `\U0001F603` represents the Unicode character U+1F603 (SMILING FACE
+        WITH OPEN MOUTH).)
+    $(TROW `\`$(I name), $(ARGS Named character entity from the HTML5
+        specification. $(BR)
+        These names begin with $(CODE_AMP) and end with $(D ;), e.g.$(COMMA) $(D $(AMP)euro;).
+        See $(GLINK2 entity, NamedCharacterEntity).))
+    )
+
+$(H2 $(LNAME2 characterliteral, Character Literals))
+
+$(GRAMMAR_LEX
+$(GNAME CharacterLiteral):
+    $(B ') $(GLINK SingleQuotedCharacter) $(B ')
+
+$(GNAME SingleQuotedCharacter):
+    $(GLINK Character)
+    $(GLINK EscapeSequence)
+)
+
+$(P Character literals are a single character or escape sequence enclosed by
+single quotes.)
+
+    ---
+    'h'   // the letter h
+    '\n'  // newline
+    '\\'  // the backslash character
+    ---
+
+$(P A character literal resolves to one
+    of type $(D char), $(D wchar), or $(D dchar)
+    (see $(DDSUBLINK spec/type, basic-data-types, Basic Data Types)).)
+
+$(UL
+    $(LI If the literal is a $(D \u) escape sequence, it resolves to type $(D wchar).)
+    $(LI If the literal is a $(D \U) escape sequence, it resolves to type $(D dchar).)
+)
+$(P Otherwise, it resolves to the type with the smallest size it
+    will fit into.)
+
+$(H2 $(LNAME2 integerliteral, Integer Literals))
+
+$(GRAMMAR_LEX
+$(GNAME IntegerLiteral):
+    $(GLINK Integer)
+    $(GLINK Integer) $(GLINK IntegerSuffix)
+
+$(GNAME Integer):
+    $(GLINK DecimalInteger)
+    $(GLINK BinaryInteger)
+    $(GLINK HexadecimalInteger)
+
+$(GNAME IntegerSuffix):
+    $(B L)
+    $(B u)
+    $(B U)
+    $(B Lu)
+    $(B LU)
+    $(B uL)
+    $(B UL)
+)
+
+$(GRAMMAR_LEX
+$(GNAME DecimalInteger):
+    $(B 0) $(GLINK Underscores)$(OPT)
+    $(GLINK NonZeroDigit)
+    $(GLINK NonZeroDigit) $(GLINK DecimalDigitsUS)
+
+$(GNAME Underscores):
+    $(B _)
+    $(GLINK Underscores) $(B _)
+
+$(GNAME NonZeroDigit):
+    $(B 1)
+    $(B 2)
+    $(B 3)
+    $(B 4)
+    $(B 5)
+    $(B 6)
+    $(B 7)
+    $(B 8)
+    $(B 9)
+
+$(GNAME DecimalDigits):
+    $(GLINK DecimalDigit)
+    $(GLINK DecimalDigit) $(GSELF DecimalDigits)
+
+$(GNAME DecimalDigitsUS):
+    $(GLINK DecimalDigitUS)
+    $(GLINK DecimalDigitUS) $(GSELF DecimalDigitsUS)
+
+$(GNAME DecimalDigitsNoSingleUS):
+    $(GLINK DecimalDigitsUS)$(OPT) $(GLINK DecimalDigit) $(GLINK DecimalDigitsUS)$(OPT)
+
+$(GNAME DecimalDigitsNoStartingUS):
+    $(GLINK DecimalDigit)
+    $(GLINK DecimalDigit) $(GLINK DecimalDigitsUS)
+
+$(GNAME DecimalDigit):
+    $(B 0)
+    $(GLINK NonZeroDigit)
+
+$(GNAME DecimalDigitUS):
+    $(GLINK DecimalDigit)
+    $(B _)
+)
+
+$(GRAMMAR_LEX
+$(GNAME BinaryInteger):
+    $(GLINK BinPrefix) $(GLINK BinaryDigitsNoSingleUS)
+
+$(GNAME BinPrefix):
+    $(B 0b)
+    $(B 0B)
+
+$(GNAME BinaryDigitsNoSingleUS):
+    $(GLINK BinaryDigitsUS)$(OPT) $(GLINK BinaryDigit) $(GLINK BinaryDigitsUS)$(OPT)
+
+$(GNAME BinaryDigitsUS):
+    $(GLINK BinaryDigitUS)
+    $(GLINK BinaryDigitUS) $(GSELF BinaryDigitsUS)
+
+$(GNAME BinaryDigit):
+    $(B 0)
+    $(B 1)
+
+$(GNAME BinaryDigitUS):
+    $(GLINK BinaryDigit)
+    $(B _)
+)
+
+$(GRAMMAR_LEX
+$(GNAME HexadecimalInteger):
+    $(GLINK HexPrefix) $(GLINK HexDigitsNoSingleUS)
+
+$(GNAME HexDigits):
+    $(GLINK HexDigit)
+    $(GLINK HexDigit) $(GSELF HexDigits)
+
+$(GNAME HexDigitsUS):
+    $(GLINK HexDigitUS)
+    $(GLINK HexDigitUS) $(GSELF HexDigitsUS)
+
+$(GNAME HexDigitsNoSingleUS):
+    $(GLINK HexDigitsUS)$(OPT) $(GLINK HexDigit) $(GLINK HexDigitsUS)$(OPT)
+
+$(GNAME HexDigitsNoStartingUS):
+    $(GLINK HexDigit)
+    $(GLINK HexDigit) $(GLINK HexDigitsUS)
+
+$(GNAME HexDigit):
+    $(GLINK DecimalDigit)
+    $(GLINK HexLetter)
+
+$(GNAME HexDigitUS):
+    $(GLINK HexDigit)
+    $(B _)
+
+$(GNAME HexLetter):
+    $(B a)
+    $(B b)
+    $(B c)
+    $(B d)
+    $(B e)
+    $(B f)
+    $(B A)
+    $(B B)
+    $(B C)
+    $(B D)
+    $(B E)
+    $(B F)
+)
+
+        $(P Integers can be specified in decimal, binary, or hexadecimal.)
+
+        $(UL
+        $(LI Decimal integers are a sequence of decimal digits.)
+
+        $(LI $(LNAME2 binary-literals, Binary integers) are a sequence of binary digits preceded
+        by a $(SINGLEQUOTE 0b) or $(SINGLEQUOTE 0B).
+        )
+
+        $(LI C-style octal integer notation (e.g. `0167`) was deemed too easy to mix up with decimal notation;
+        it is only fully supported in string literals.
+        D still supports octal integer literals interpreted at compile time through the $(REF octal, std,conv)
+        template, as in $(D octal!167).)
+
+        $(LI Hexadecimal integers are a sequence of hexadecimal digits preceded
+        by a $(SINGLEQUOTE 0x) or $(SINGLEQUOTE 0X).
+        )
+        )
+
+---
+10      // decimal
+0b1010  // binary
+0xA     // hex
+---
+
+        $(P Integers can have embedded $(SINGLEQUOTE $(UNDERSCORE)) characters after a digit to improve readability, which are ignored.
+        )
+
+        ---
+        20_000        // leagues under the sea
+        867_5309      // number on the wall
+        1_522_000     // thrust of F1 engine (lbf sea level)
+        0xBAAD_F00D   // magic number for debugging
+        ---
+
+        $(P Integers can be immediately followed by one $(SINGLEQUOTE L) or one of
+        $(SINGLEQUOTE u) or $(SINGLEQUOTE U) or both.
+        Note that there is no $(SINGLEQUOTE l) suffix.
+        )
+
+        $(P The type of the integer is resolved as follows:)
+
+        $(TABLE2 Decimal Literal Types,
+        $(THEAD Literal, Type)
+    $(TROW_EXPLANATORY $(I Usual decimal notation))
+        $(TROW $(D 0 .. 2_147_483_647), $(D int))
+        $(TROW $(D 2_147_483_648 .. 9_223_372_036_854_775_807), $(D long))
+        $(TROW $(D 9_223_372_036_854_775_808 .. 18_446_744_073_709_551_615), $(D ulong))
+    $(MIDRULE)
+    $(TROW_EXPLANATORY $(I Explicit suffixes))
+        $(TROW $(D 0L .. 9_223_372_036_854_775_807L), $(D long))
+        $(TROW $(D 0U .. 4_294_967_295U), $(D uint))
+        $(TROW $(D 4_294_967_296U .. 18_446_744_073_709_551_615U), `ulong`)
+        $(TROW $(D 0UL .. 18_446_744_073_709_551_615UL), $(D ulong))
+    $(MIDRULE)
+    $(TROW_EXPLANATORY $(I Hexadecimal notation))
+        $(TROW $(D 0x0 .. 0x7FFF_FFFF), $(D int))
+        $(TROW $(D 0x8000_0000 .. 0xFFFF_FFFF), $(D uint))
+        $(TROW $(D 0x1_0000_0000 .. 0x7FFF_FFFF_FFFF_FFFF), $(D long))
+        $(TROW $(D 0x8000_0000_0000_0000 .. 0xFFFF_FFFF_FFFF_FFFF), `ulong`)
+    $(MIDRULE)
+    $(TROW_EXPLANATORY $(I Hexadecimal notation with explicit suffixes))
+        $(TROW $(D 0x0L .. 0x7FFF_FFFF_FFFF_FFFFL), $(D long))
+        $(TROW $(D 0x8000_0000_0000_0000L .. 0xFFFF_FFFF_FFFF_FFFFL), `ulong`)
+        $(TROW $(D 0x0U .. 0xFFFF_FFFFU), $(D uint))
+        $(TROW $(D 0x1_0000_0000U .. 0xFFFF_FFFF_FFFF_FFFFU), `ulong`)
+        $(TROW $(D 0x0UL .. 0xFFFF_FFFF_FFFF_FFFFUL), $(D ulong))
+        )
+
+        $(P An integer literal may not exceed these values.)
+
+        $(BEST_PRACTICE Octal integer notation is not supported for integer literals.
+        However, octal integer literals can be interpreted at compile time through
+        the $(REF octal, std,conv) template, as in $(D octal!167).)
+
+
+
+$(H2 $(LNAME2 floatliteral, Floating Point Literals))
+
+$(GRAMMAR_LEX
+$(GNAME FloatLiteral):
+    $(GLINK Float) $(GLINK Suffix)$(OPT)
+    $(GLINK Integer) $(GLINK FloatSuffix) $(GLINK ImaginarySuffix)$(OPT)
+    $(GLINK Integer) $(GLINK RealSuffix)$(OPT) $(GLINK ImaginarySuffix)
+
+$(GNAME Float):
+    $(GLINK DecimalFloat)
+    $(GLINK HexFloat)
+
+$(GNAME DecimalFloat):
+    $(GLINK LeadingDecimal) $(B .) $(GLINK DecimalDigitsNoStartingUS)$(OPT)
+    $(GLINK LeadingDecimal) $(B .) $(GLINK DecimalDigitsNoStartingUS) $(GLINK DecimalExponent)
+    $(B .) $(GLINK DecimalDigitsNoStartingUS) $(GLINK DecimalExponent)$(OPT)
+    $(GLINK LeadingDecimal) $(GLINK DecimalExponent)
+
+$(GNAME DecimalExponent):
+    $(GLINK DecimalExponentStart) $(GLINK DecimalDigitsNoSingleUS)
+
+$(GNAME DecimalExponentStart):
+    $(B e)
+    $(B E)
+    $(B e+)
+    $(B E+)
+    $(B e-)
+    $(B E-)
+
+$(GNAME HexFloat):
+    $(GLINK HexPrefix) $(GLINK HexDigitsNoSingleUS) $(B .) $(GLINK HexDigitsNoStartingUS) $(GLINK HexExponent)
+    $(GLINK HexPrefix) $(B .) $(GLINK HexDigitsNoStartingUS) $(GLINK HexExponent)
+    $(GLINK HexPrefix) $(GLINK HexDigitsNoSingleUS) $(GLINK HexExponent)
+    $(GLINK HexPrefix) $(GLINK HexExponent)
+
+$(GNAME HexPrefix):
+    $(B 0x)
+    $(B 0X)
+
+$(GNAME HexExponent):
+    $(GLINK HexExponentStart) $(GLINK DecimalDigitsNoSingleUS)
+
+$(GNAME HexExponentStart):
+    $(B p)
+    $(B P)
+    $(B p+)
+    $(B P+)
+    $(B p-)
+    $(B P-)
+
+
+$(GNAME Suffix):
+    $(GLINK FloatSuffix) $(GLINK ImaginarySuffix)$(OPT)
+    $(GLINK RealSuffix) $(GLINK ImaginarySuffix)$(OPT)
+    $(GLINK ImaginarySuffix)
+
+$(GNAME FloatSuffix):
+    $(B f)
+    $(B F)
+
+$(GNAME RealSuffix):
+    $(B L)
+
+$(GDEPRECATED $(GNAME ImaginarySuffix)):
+    $(B i)
+
+$(GNAME LeadingDecimal):
+    $(GLINK DecimalInteger)
+    $(B 0) $(GLINK DecimalDigitsNoSingleUS)
+)
+
+        $(P Floats can be in decimal or hexadecimal format, and must have
+        at least one digit and either a decimal point, an exponent, or
+        a *FloatSuffix*.)
+
+        $(P Decimal floats can have an exponent which is `e` or `E` followed
+        by a decimal number serving as the exponent of 10.)
+
+---
+-1.0
+1e2               // 100.0
+1e-2              // 0.01
+-1.175494351e-38F // float.min
+---
+
+        $(P Hexadecimal floats are preceded by a $(B 0x) or $(B 0X) and the
+        exponent is a $(B p) or $(B P) followed by a decimal number serving as
+        the exponent of 2.
+        )
+
+---
+0xAp0                  // 10.0
+0x1p2                  // 4.0
+0x1.FFFFFFFFFFFFFp1023 // double.max
+0x1p-52                // double.epsilon
+---
+
+        $(P Floating literals can have embedded $(D $(UNDERSCORE)) characters
+        after a digit to improve readability, which are ignored.
+        )
+
+        ---
+        2.645_751
+        6.022140857E+23
+        6_022.140857E+20
+        6_022_.140_857E+20_
+        ---
+
+        * Floating literals with no suffix are of type `double`.
+        * Floating literals followed by $(B f) or $(B F) are of type `float`.
+        * Floating literals followed by $(B L) are of type `real`.
+
+---------
+0.0                    // double
+0F                     // float
+0.0L                   // real
+---------
+
+        $(P The literal may not exceed the range of the type.
+        The literal is rounded to fit into
+        the significant digits of the type.
+        )
+        $(P If a floating literal has a $(D .) and a type suffix, at least one
+            digit must be in-between:)
+
+        ---
+        1f;  // OK, float
+        1.f; // error
+        1.;  // OK, double
+        ---
+
+        $(NOTE Floating literals followed by $(B i) to denote imaginary
+        floating point values have been deprecated.)
+
+
+$(H2 $(LNAME2 keywords, Keywords))
+
+        $(P Keywords are reserved identifiers.)
+
+
+$(GRAMMAR
+$(GNAME Keyword):
+$(MULTICOLS 4,
+    $(LINK2 attribute.html#abstract, $(D abstract))
+    $(LINK2 declaration.html#alias, $(D alias))
+    $(LINK2 attribute.html#align, $(D align))
+    $(LINK2 statement.html#AsmStatement, $(D asm))
+    $(LINK2 expression.html#AssertExpression, $(D assert))
+    $(LINK2 attribute.html#auto, $(D auto))
+
+    $(GDEPRECATED $(LINK2 function.html#BodyStatement, $(D body)))
+    $(LINK2 type.html, $(D bool))
+    $(LINK2 statement.html#BreakStatement, $(D break))
+    $(LINK2 type.html, $(D byte))
+
+    $(LINK2 statement.html#SwitchStatement, $(D case))
+    $(LINK2 expression.html#CastExpression, $(D cast))
+    $(LINK2 statement.html#TryStatement, $(D catch))
+    $(GDEPRECATED $(LINK2 type.html, $(D cdouble)))
+    $(GDEPRECATED $(LINK2 type.html, $(D cent)))
+    $(GDEPRECATED $(LINK2 type.html, $(D cfloat)))
+    $(LINK2 type.html, $(D char))
+    $(LINK2 class.html, $(D class))
+    $(LINK2 attribute.html#const, $(D const))
+    $(LINK2 statement.html#ContinueStatement, $(D continue))
+    $(GDEPRECATED $(LINK2 type.html, $(D creal)))
+
+    $(LINK2 type.html, $(D dchar))
+    $(LINK2 version.html#debug, $(D debug))
+    $(LINK2 statement.html#SwitchStatement, $(D default))
+    $(LINK2 type.html#delegates, $(D delegate))
+    $(GDEPRECATED $(LINK2 expression.html#DeleteExpression, $(D delete)))
+    $(LINK2 attribute.html#deprecated, $(D deprecated))
+    $(LINK2 statement.html#DoStatement, $(D do))
+    $(LINK2 type.html, $(D double))
+
+    $(LINK2 statement.html#IfStatement, $(D else))
+    $(LINK2 enum.html, $(D enum))
+    $(LINK2 attribute.html#visibility_attributes, $(D export))
+    $(LINK2 attribute.html#linkage, $(D extern))
+
+    $(LINK2 type.html, $(D false))
+    $(LINK2 class.html#final, $(D final))
+    $(LINK2 statement.html#TryStatement, $(D finally))
+    $(LINK2 type.html, $(D float))
+    $(LINK2 statement.html#ForStatement, $(D for))
+    $(LINK2 statement.html#ForeachStatement, $(D foreach))
+    $(LINK2 statement.html#ForeachStatement, $(D foreach_reverse))
+    $(LINK2 expression.html#FunctionLiteral, $(D function))
+
+    $(LINK2 statement.html#GotoStatement, $(D goto))
+
+    $(GDEPRECATED $(LINK2 type.html, $(D idouble)))
+    $(LINK2 statement.html#IfStatement, $(D if))
+    $(GDEPRECATED $(LINK2 type.html, $(D ifloat)))
+    $(LINK2 attribute.html#immutable, $(D immutable))
+    $(LINK2 expression.html#ImportExpression, $(D import))
+    $(LINK2 expression.html#InExpression, $(D in))
+    $(LINK2 function.html#inout-functions, $(D inout))
+    $(LINK2 type.html, $(D int))
+    $(LINK2 interface.html, $(D interface))
+    $(LINK2 contracts.html, $(D invariant))
+    $(GDEPRECATED $(LINK2 type.html, $(D ireal)))
+    $(LINK2 expression.html#IsExpression, $(D is))
+
+    $(LINK2 function.html#overload-sets, $(D lazy))
+    $(LINK2 type.html, $(D long))
+
+    $(GRESERVED $(D macro))
+    $(LINK2 expression.html#MixinExpression, $(D mixin))
+    $(LINK2 module.html#ModuleDeclaration, $(D module))
+
+    $(LINK2 expression.html#NewExpression, $(D new))
+    $(LINK2 function.html#nothrow-functions, $(D nothrow))
+    $(LINK2 expression.html#null, $(D null))
+
+    $(LINK2 function.html#OutStatement, $(D out))
+    $(LINK2 attribute.html#override, $(D override))
+
+    $(LINK2 attribute.html#visibility_attributes, $(D package))
+    $(LINK2 pragma.html, $(D pragma))
+    $(LINK2 attribute.html#visibility_attributes, $(D private))
+    $(LINK2 attribute.html#visibility_attributes, $(D protected))
+    $(LINK2 attribute.html#visibility_attributes, $(D public))
+    $(LINK2 function.html#pure-functions, $(D pure))
+
+    $(LINK2 type.html, $(D real))
+    $(LINK2 function.html#ref-functions, $(D ref))
+    $(LINK2 statement.html#ReturnStatement, $(D return))
+
+    $(LINK2 statement.html#ScopeGuardStatement, $(D scope))
+    $(LINK2 attribute.html#shared, $(D shared))
+    $(LINK2 type.html, $(D short))
+    $(LINK2 version.html#staticif, $(D static))
+    $(LINK2 struct.html, $(D struct))
+    $(LINK2 expression.html#super, $(D super))
+    $(LINK2 statement.html#SwitchStatement, $(D switch))
+    $(LINK2 statement.html#SynchronizedStatement, $(D synchronized))
+
+    $(LINK2 template.html, $(D template))
+    $(LINK2 expression.html#this, $(D this))
+    $(LINK2 statement.html#ThrowStatement, $(D throw))
+    $(LINK2 type.html, $(D true))
+    $(LINK2 statement.html#TryStatement, $(D try))
+    $(LINK2 expression.html#TypeidExpression, $(D typeid))
+    $(LINK2 type.html#Typeof, $(D typeof))
+
+    $(LINK2 type.html, $(D ubyte))
+    $(GDEPRECATED $(LINK2 type.html, $(D ucent)))
+    $(LINK2 type.html, $(D uint))
+    $(LINK2 type.html, $(D ulong))
+    $(LINK2 struct.html, $(D union))
+    $(LINK2 unittest.html, $(D unittest))
+    $(LINK2 type.html, $(D ushort))
+
+    $(LINK2 version.html#version, $(D version))
+    $(LINK2 declaration.html#VoidInitializer, $(D void))
+
+    $(LINK2 type.html, $(D wchar))
+    $(LINK2 statement.html#WhileStatement, $(D while))
+    $(LINK2 statement.html#WithStatement, $(D with))
+
+    $(LINK2 expression.html#specialkeywords, $(D __FILE__))
+    $(LINK2 expression.html#specialkeywords, $(D __FILE_FULL_PATH__))
+    $(LINK2 expression.html#specialkeywords, $(D __FUNCTION__))
+    $(LINK2 expression.html#specialkeywords, $(D __LINE__))
+    $(LINK2 expression.html#specialkeywords, $(D __MODULE__))
+    $(LINK2 expression.html#specialkeywords, $(D __PRETTY_FUNCTION__))
+
+    $(LINK2 attribute.html#gshared, $(D __gshared))
+    $(LINK2 expression.html#IsExpression, $(D __parameters))
+    $(LINK2 expression.html#RvalueExpression, $(D __rvalue))
+    $(LINK2 traits.html, $(D __traits))
+    $(LINK2 $(ROOT_DIR)phobos/core_simd.html#.Vector, $(D __vector))
+)
+)
+
+
+$(H2 $(LNAME2 specialtokens, Special Tokens))
+
+        $(P
+        These tokens are replaced with other tokens according to the following
+        table:
+        )
+
+        $(TABLE_2COLS Special Tokens,
+        $(THEAD Special Token, Replaced with)
+
+        $(TROW $(D __DATE__), string literal of the date of compilation "$(I mmm dd yyyy)")
+        $(TROW $(D __EOF__), tells the scanner to ignore everything after this token)
+
+        $(TROW $(D __TIME__), string literal of the time of compilation "$(I hh:mm:ss)")
+        $(TROW $(D __TIMESTAMP__), string literal of the date and time of compilation "$(I www mmm dd hh:mm:ss yyyy)")
+        $(TROW $(D __VENDOR__), $(ARGS Compiler vendor string))
+        $(TROW $(D __VERSION__), $(ARGS Compiler version as an integer))
+        )
+
+        $(IMPLEMENTATION_DEFINED
+        The replacement string literal for `__VENDOR__` and the replacement integer value for `__VERSION__`.
+        )
+
+$(H2 $(LEGACY_LNAME2 Special Token Sequence, special-token-sequence, Special Token Sequences))
+
+$(GRAMMAR
+$(GNAME SpecialTokenSequence):
+    $(D # line) $(GLINK IntegerLiteral) $(GLINK Filespec)$(OPT) $(GLINK EndOfLine)
+    $(D # line) $(D __LINE__) $(GLINK Filespec)$(OPT) $(GLINK EndOfLine)
+)
+$(GRAMMAR_LEX
+$(GNAME Filespec):
+    $(B ") $(GLINK DoubleQuotedCharacters)$(OPT) $(B ")
+)
+
+        $(P Special token sequences are processed by the lexical analyzer, may
+        appear between any other tokens, and do not affect the syntax
+        parsing.
+        )
+
+        $(P Special token sequences are terminated by the first newline that
+            follows the first $(D #) token at the beginning of the sequence.
+        )
+
+        $(P There is currently only one special token sequence, $(D #line).
+        )
+
+        $(P This sets the line number of the next source line to $(GLINK IntegerLiteral),
+        and optionally the current source file name to $(GLINK Filespec),
+        beginning with the next line of source text.
+        )
+
+        $(P For example:
+        )
+
+-----------------
+int #line 6 "pkg/mod.d"
+x;  // this is now line 6 of file pkg/mod.d
+-----------------
+
+        $(IMPLEMENTATION_DEFINED
+        The source file and line number is typically used for printing error messages
+        and for mapping generated code back to the source for the symbolic
+        debugging output.
+        )
+
+$(SPEC_SUBNAV_PREV_NEXT intro, Introduction, istring, Interpolation Expression Sequence)
+)
+
+Macros:
+CHAPTER = 2
+TITLE = Lexical

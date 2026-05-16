@@ -257,7 +257,7 @@ else version (CRuntime_Musl)
     extern (D) bool WIFSIGNALED()( int status ) { return (status&0xffff)-1U < 0xffU; }
     extern (D) bool WIFSTOPPED()( int status ) { return cast(short)(((status&0xffff)*0x10001)>>8) > 0x7f00; }
     extern (D) int  WTERMSIG()( int status ) { return status & 0x7F; }
-    alias WEXITSTATUS WSTOPSIG;
+    alias WSTOPSIG = WEXITSTATUS;
 }
 else version (CRuntime_UClibc)
 {

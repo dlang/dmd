@@ -30,7 +30,7 @@ version (X86_64)  version = X86_Any;
 import core.stdc.stdint: uint64_t;
 
 /// Type for the event counter
-alias uint64_t eventfd_t;
+alias eventfd_t = uint64_t;
 
 /* Return file descriptor for generic event channel.  Set initial
    value to count.  */

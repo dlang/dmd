@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/ddoc.html, Documentation Generator)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/doc.d, _doc.d)
@@ -52,6 +52,7 @@ import dmd.root.string;
 import dmd.root.utf;
 import dmd.tokens;
 import dmd.visitor;
+
 
 /****************************************************
  * Generate Ddoc text for Module `m` and append it to `outbuf`.
@@ -210,44 +211,6 @@ public
 void gendocfile(Module m, const char* ddoctext_ptr, size_t ddoctext_length, const char* datetime, ErrorSink eSink, ref OutBuffer outbuf)
 {
     gendocfile(m, ddoctext_ptr[0 .. ddoctext_length], datetime, eSink, outbuf);
-}
-
-public
-struct Escape
-{
-    const(char)[][char.max] strings;
-
-    /***************************************
-     * Find character string to replace c with.
-     */
-    const(char)[] escapeChar(char c) @safe
-    {
-        version (all)
-        {
-            //printf("escapeChar('%c') => %p, %p\n", c, strings, strings[c].ptr);
-            return strings[c];
-        }
-        else
-        {
-            const(char)[] s;
-            switch (c)
-            {
-            case '<':
-                s = "&lt;";
-                break;
-            case '>':
-                s = "&gt;";
-                break;
-            case '&':
-                s = "&amp;";
-                break;
-            default:
-                s = null;
-                break;
-            }
-            return s;
-        }
-    }
 }
 
 /***********************************************************
@@ -660,6 +623,53 @@ struct DocComment
 
 private:
 
+/** Lazily initializes and returns the escape table.
+Turns out it eats a lot of memory.
+*/
+Escape* escapetable(Module _this) nothrow
+{
+    if (!_this._escapetable)
+        _this._escapetable = new Escape();
+    return cast(Escape*) _this._escapetable;
+}
+
+struct Escape
+{
+    const(char)[][char.max] strings;
+
+    /***************************************
+     * Find character string to replace c with.
+     */
+    const(char)[] escapeChar(char c) @safe
+    {
+        version (all)
+        {
+            //printf("escapeChar('%c') => %p, %p\n", c, strings, strings[c].ptr);
+            return strings[c];
+        }
+        else
+        {
+            const(char)[] s;
+            switch (c)
+            {
+            case '<':
+                s = "&lt;";
+                break;
+            case '>':
+                s = "&gt;";
+                break;
+            case '&':
+                s = "&amp;";
+                break;
+            default:
+                s = null;
+                break;
+            }
+            return s;
+        }
+    }
+}
+
 /***********************************************************
  */
 class Section
@@ -867,8 +877,11 @@ final class ParamSection : Section
         TypeFunction tf = a.length == 1 ? isTypeFunction(s) : null;
         if (tf)
         {
-            size_t pcount = (tf.parameterList.parameters ? tf.parameterList.parameters.length : 0) +
-                            cast(int)(tf.parameterList.varargs == VarArg.variadic);
+            size_t pcount = cast(int)(tf.parameterList.varargs == VarArg.variadic);
+            if (tf.parameterList.parameters)
+                foreach (param; *tf.parameterList.parameters)
+                    if (param.ident)
+                        pcount++;
             if (pcount != paramcount)
             {
                 sc.eSink.warning(s.loc, "Ddoc: parameter count mismatch, expected %llu, got %llu",
@@ -1381,11 +1394,11 @@ void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
         {
             if (s && sc.lastdc && isDitto(com))
             {
-                sc.lastdc.a.push(s);
+                (cast(DocComment*) sc.lastdc).a.push(s);
                 return;
             }
             // Put previous doc comment if exists
-            if (DocComment* dc = sc.lastdc)
+            if (auto dc = cast(DocComment*) sc.lastdc)
             {
                 assert(dc.a.length > 0, "Expects at least one declaration for a" ~
                     "documentation comment");
@@ -1426,8 +1439,12 @@ void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 buf.writestring(ddoc_decl_dd_s);
                 {
                     dc.writeSections(sc, &dc.a, *buf);
-                    if (ScopeDsymbol sds = dc.a[0].isScopeDsymbol())
-                        emitMemberComments(sds, *buf, sc);
+                    foreach (sym; dc.a)
+                        if (ScopeDsymbol sds = sym.isScopeDsymbol())
+                        {
+                            emitMemberComments(sds, *buf, sc);
+                            break;
+                        }
                 }
                 buf.writestring(ddoc_decl_dd_e);
                 buf.writeByte(')');
@@ -1743,6 +1760,20 @@ void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
             if (d.isDeprecated())
                 buf.writestring(")");
             buf.writestring(";\n");
+        }
+
+        override void visit(TemplateDeclaration td)
+        {
+            HdrGenState hgs;
+            hgs.ddoc = true;
+            hgs.skipConstraints = true;
+            toCBuffer(td, *buf, hgs);
+            if (td.constraint)
+            {
+                buf.writestring("$(DDOC_CONSTRAINT ");
+                toCBuffer(td.constraint, *buf, hgs);
+                buf.writestring(")");
+            }
         }
 
         override void visit(AliasDeclaration ad)
@@ -4582,7 +4613,7 @@ void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, size_t of
                 else
                 {
                     i += endRowAndTable(buf, iLineStart, i, inlineDelimiters, columnAlignments);
-                    if (!lineQuoted && quoteLevel)
+                    if (!lineQuoted && (quoteLevel || nestedLists.length))
                     {
                         const delta = endAllListsAndQuotes(buf, iLineStart, nestedLists, quoteLevel, quoteMacroLevel);
                         i += delta;

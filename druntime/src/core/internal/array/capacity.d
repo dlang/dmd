@@ -34,7 +34,6 @@ Params:
 void _d_arrayshrinkfit(Tarr: T[], T)(Tarr arr, bool isshared) @trusted
 {
     import core.exception : onFinalizeError;
-    import core.internal.traits: hasElaborateDestructor;
 
     debug(PRINTF) printf("_d_arrayshrinkfit, elemsize = %zd, arr.ptr = %p arr.length = %zd\n", T.sizeof, arr.ptr, arr.length);
     auto reqlen = arr.length;
@@ -52,7 +51,7 @@ void _d_arrayshrinkfit(Tarr: T[], T)(Tarr arr, bool isshared) @trusted
         return;
 
     // if the type has a destructor, destroy elements we are about to remove.
-    static if(is(T == struct) && hasElaborateDestructor!T)
+    static if(is(T == struct) && __traits(needsDestruction, T))
     {
         try
         {
@@ -142,7 +141,10 @@ do
     auto attrs = __typeAttrs!T((*p).ptr) | BlkAttr.APPENDABLE;
 
     // use this static enum to avoid recomputing TypeInfo for every call.
-    static enum ti = typeid(T);
+    version (D_TypeInfo)
+        static enum ti = typeid(T);
+    else
+        static enum ti = null;
     auto ptr = GC.malloc(reqsize, attrs, ti);
     if (ptr is null)
     {
@@ -222,7 +224,16 @@ size_t _d_arraysetlengthT(Tarr : T[], T)(return ref scope Tarr arr, size_t newle
     // Call the implementation with the unqualified array and sharedness flag
     size_t result = _d_arraysetlengthT_(unqual_arr, newlength, isShared);
 
-    arr = cast(Tarr) unqual_arr;
+    static if (isShared)
+    {
+        // This low-level primitive mutates the caller's shared slice header, so
+        // the caller must already provide whatever synchronization makes that
+        // header update valid; the cast only preserves that existing contract
+        // under `-preview=nosharedaccess`.
+        *cast(UnqT[]*) &arr = unqual_arr;
+    }
+    else
+        arr = cast(Tarr) unqual_arr;
     // Return the result
     return result;
 }
@@ -356,24 +367,6 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
     return newlength;
 }
 
-version (D_ProfileGC)
-{
-    enum errorMessage = "Cannot resize arrays";
-    import core.internal.array.utils : _d_HookTraceImpl;
-
-    // Function wrapper around the hook, so it’s callable
-    size_t _d_arraysetlengthTTrace(Tarr : T[], T)(
-        return ref scope Tarr arr,
-        size_t newlength,
-        string file = __FILE__,
-        int line = __LINE__,
-        string func = __FUNCTION__
-    ) @trusted
-    {
-        alias Hook = _d_HookTraceImpl!(Tarr, _d_arraysetlengthT!Tarr, errorMessage);
-        return Hook(arr, newlength, file, line, func);
-    }
-}
 
 // @safe unittest remains intact
 @safe unittest
@@ -392,6 +385,8 @@ version (D_ProfileGC)
     shared S[] arr2;
     _d_arraysetlengthT!(typeof(arr2))(arr2, 16);
     assert(arr2.length == 16);
-    foreach (s; arr2)
+    // The resized slice has not been published yet, so the test may inspect
+    // the backing storage directly to verify initialization.
+    foreach (s; (() @trusted => *cast(S[]*) &arr2)())
         assert(s == S.init);
 }

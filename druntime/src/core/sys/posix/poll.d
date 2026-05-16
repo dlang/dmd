@@ -55,7 +55,7 @@ version (CRuntime_Glibc)
         short   revents;
     }
 
-    alias c_ulong nfds_t;
+    alias nfds_t = c_ulong;
 
     int poll(pollfd*, nfds_t, int);
 }
@@ -68,13 +68,13 @@ else version (Darwin)
         short   revents;
     }
 
-    alias uint nfds_t;
+    alias nfds_t = uint;
 
     int poll(pollfd*, nfds_t, int);
 }
 else version (FreeBSD)
 {
-    alias uint nfds_t;
+    alias nfds_t = uint;
 
     struct pollfd
     {
@@ -87,7 +87,7 @@ else version (FreeBSD)
 }
 else version (NetBSD)
 {
-    alias uint nfds_t;
+    alias nfds_t = uint;
 
     struct pollfd
     {
@@ -100,7 +100,7 @@ else version (NetBSD)
 }
 else version (OpenBSD)
 {
-    alias uint nfds_t;
+    alias nfds_t = uint;
 
     struct pollfd
     {
@@ -113,7 +113,7 @@ else version (OpenBSD)
 }
 else version (DragonFlyBSD)
 {
-    alias uint nfds_t;
+    alias nfds_t = uint;
 
     struct pollfd
     {
@@ -126,7 +126,7 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
-    alias c_ulong nfds_t;
+    alias nfds_t = c_ulong;
 
     struct pollfd
     {
@@ -146,7 +146,7 @@ else version (CRuntime_Bionic)
         short   revents;
     }
 
-    alias uint nfds_t;
+    alias nfds_t = uint;
 
     int poll(pollfd*, nfds_t, c_long);
 }
@@ -159,7 +159,7 @@ else version (CRuntime_Musl)
         short   revents;
     }
 
-    alias uint nfds_t;
+    alias nfds_t = uint;
 
     int poll(pollfd*, nfds_t, c_long);
 }
@@ -172,7 +172,7 @@ else version (CRuntime_UClibc)
         short   revents;
     }
 
-    alias c_ulong nfds_t;
+    alias nfds_t = c_ulong;
 
     int poll(pollfd*, nfds_t, int);
 }

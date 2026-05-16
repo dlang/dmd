@@ -1,7 +1,7 @@
 /**
  * Generate `TypeInfo` objects, which are needed for run-time introspection of types.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/typinf.d, _typinf.d)
@@ -19,7 +19,6 @@ import dmd.dclass;
 import dmd.dstruct;
 import dmd.errors;
 import dmd.expression;
-import dmd.globals;
 import dmd.location;
 import dmd.mtype;
 import dmd.templatesem;
@@ -47,11 +46,12 @@ bool genTypeInfo(Expression e, Loc loc, Type torig, Scope* sc)
     // https://issues.dlang.org/show_bug.cgi?id=18472
     if (!sc || !sc.ctfe)
     {
+        import dmd.globals;
         if (!global.params.useTypeInfo)
         {
             global.gag = 0;
             if (e)
-                .error(loc, "expression `%s` uses the GC and cannot be used with switch `-betterC`", e.toChars());
+                .error(loc, "expression `%s` uses the GC and cannot be used with switch `-betterC`", e.toErrMsg());
             else
                 .error(loc, "`TypeInfo` cannot be used with `-betterC`");
 

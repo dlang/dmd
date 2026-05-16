@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/debugprint.d, backend/debugprint.d)
@@ -41,68 +41,64 @@ nothrow:
 void ferr(const(char)* p) { printf("%s", p); }
 
 /*******************************
- * Write out storage class.
+ * Params:
+ *      c = storage class SC members
+ * Returns:
+ *      storage class string
  */
 
 @trusted
 const(char)* class_str(SC c)
 {
-    __gshared const char[10][SCMAX] sc =
-    [
-        "unde",
-        "auto",
-        "static",
-        "thread",
-        "extern",
-        "register",
-        "pseudo",
-        "global",
-        "comdat",
-        "parameter",
-        "regpar",
-        "fastpar",
-        "shadowreg",
-        "typedef",
-        "explicit",
-        "mutable",
-        "label",
-        "struct",
-        "enum",
-        "field",
-        "const",
-        "member",
-        "anon",
-        "inline",
-        "sinline",
-        "einline",
-        "overload",
-        "friend",
-        "virtual",
-        "locstat",
-        "template",
-        "functempl",
-        "ftexpspec",
-        "linkage",
-        "public",
-        "comdef",
-        "bprel",
-        "namespace",
-        "alias",
-        "funcalias",
-        "memalias",
-        "stack",
-        "adl",
-    ];
-    __gshared char[9 + 3] buffer;
-
-    static assert(sc.length == SCMAX);
-    if (cast(uint) c < SCMAX)
-        snprintf(buffer.ptr,buffer.length,"SC%s",sc[c].ptr);
-    else
-        snprintf(buffer.ptr,buffer.length,"SC%u",cast(uint)c);
-    assert(strlen(buffer.ptr) < buffer.length);
-    return buffer.ptr;
+    return sc[c].ptr;
 }
+
+private immutable char[10][SCMAX] sc =
+[
+    "unde",
+    "auto",
+    "static",
+    "thread",
+    "extern",
+    "register",
+    "pseudo",
+    "global",
+    "comdat",
+    "parameter",
+    "regpar",
+    "fastpar",
+    "shadowreg",
+    "typedef",
+    "explicit",
+    "mutable",
+    "label",
+    "struct",
+    "enum",
+    "field",
+    "const",
+    "member",
+    "anon",
+    "inline",
+    "sinline",
+    "einline",
+    "overload",
+    "friend",
+    "virtual",
+    "locstat",
+    "template",
+    "functempl",
+    "ftexpspec",
+    "linkage",
+    "public",
+    "comdef",
+    "bprel",
+    "namespace",
+    "alias",
+    "funcalias",
+    "memalias",
+    "stack",
+    "adl",
+];
 
 /***************************
  * Convert OPER to string.
@@ -179,16 +175,17 @@ const(char)* tym_str(tym_t ty)
 @trusted
 const(char)* bc_str(uint bc)
 {
-    __gshared const char[11][BC.max + 1] bcs =
-        ["BC.unde  ","BC.goto_  ","BC.true  ","BC.ret   ","BC.retexp",
-         "BC.exit  ","BC.asm_   ","BC.switch_","BC.ifthen","BC.jmptab",
-         "BC.try_   ","BC.catch_ ","BC.jump  ",
-         "BC._try  ","BC._filte","BC._final","BC._ret  ","BC._excep",
-         "BC.jcatch","BC._lpad ",
-        ];
-
     return bcs[bc].ptr;
 }
+
+private immutable char[8][BC.max + 1] bcs =
+[
+    "unde   ", "goto_  ", "true   ", "ret   ", "retexp ",
+    "exit   ", "asm_   ", "switch_", "ifthen", "jmptab ",
+    "try_   ", "catch_ ", "jump   ", "_try  ", "_filter",
+    "_final ", "_ret   ", "_excep ", "jcatch", "_lpad  ",
+];
+
 
 /************************
  * Write arglst
@@ -196,117 +193,131 @@ const(char)* bc_str(uint bc)
 
 @trusted
 void WRarglst(list_t a)
-{ int n = 1;
-
-  if (!a) printf("0 args\n");
-  while (a)
-  {     const(char)* c = cast(const(char)*)list_ptr(a);
-        printf("arg %d: '%s'\n", n, c ? c : "NULL");
-        a = a.next;
-        n++;
-  }
+{
+    if (a)
+    {
+        int n = 1;
+        do
+        {
+            const(char)* c = cast(const(char)*)list_ptr(a);
+            printf("arg %d: '%s'\n", n, c ? c : "NULL");
+            a = a.next;
+            n++;
+        } while (a);
+    }
+    else
+        printf("0 args\n");
 }
 
 /***************************
  * Write out equation elem.
+ * Params:
+ *      e = equation to print
  */
 
 @trusted
 void WReqn(elem* e)
-{ __gshared int nest;
+{
+    int nest;
 
-  if (!e)
-        return;
-  if (OTunary(e.Eoper))
-  {
-        ferr(oper_str(e.Eoper));
-        ferr(" ");
-        if (OTbinary(e.E1.Eoper))
-        {       nest++;
-                ferr("(");
-                WReqn(e.E1);
-                ferr(")");
-                nest--;
+    nothrow void eqn(elem* e)
+    {
+        nothrow void nestEqn(elem* e)
+        {
+            ++nest;
+            ferr("(");
+            eqn(e);
+            ferr(")");
+            --nest;
         }
-        else
-                WReqn(e.E1);
-  }
-  else if (e.Eoper == OPcomma && !nest)
-  {     WReqn(e.E1);
-        printf(";\n\t");
-        WReqn(e.E2);
-  }
-  else if (OTbinary(e.Eoper))
-  {
-        if (OTbinary(e.E1.Eoper))
-        {       nest++;
-                ferr("(");
-                WReqn(e.E1);
-                ferr(")");
-                nest--;
-        }
-        else
-                WReqn(e.E1);
-        ferr(" ");
-        ferr(oper_str(e.Eoper));
-        ferr(" ");
-        if (e.Eoper == OPstreq)
-            printf("%d", cast(int)type_size(e.ET));
-        ferr(" ");
-        if (OTbinary(e.E2.Eoper))
-        {       nest++;
-                ferr("(");
-                WReqn(e.E2);
-                ferr(")");
-                nest--;
-        }
-        else
-                WReqn(e.E2);
-  }
-  else
-  {
-        switch (e.Eoper)
-        {   case OPconst:
-                elem_print_const(e);
-                break;
-            case OPrelconst:
-                ferr("#");
-                goto case OPvar;
 
-            case OPvar:
-                printf("%s",e.Vsym.Sident.ptr);
-                if (e.Vsym.Ssymnum != SYMIDX.max)
-                    printf("(%d)", cast(int) e.Vsym.Ssymnum);
-                if (e.Voffset != 0)
-                {
-                    if (e.Voffset.sizeof == 8)
-                        printf(".x%llx", cast(ulong)e.Voffset);
-                    else
-                        printf(".%d",cast(int)e.Voffset);
-                }
-                break;
-            case OPasm:
-            case OPstring:
-                printf("\"%s\"",e.Vstring);
-                if (e.Voffset)
-                    printf("+%lld",cast(long)e.Voffset);
-                break;
-            case OPmark:
-            case OPgot:
-            case OPframeptr:
-            case OPhalt:
-            case OPdctor:
-            case OPddtor:
-                ferr(oper_str(e.Eoper));
-                ferr(" ");
-                break;
-            case OPstrthis:
-                break;
-            default:
-                ferr(oper_str(e.Eoper));
-                assert(0);
+        if (!e)
+            return;
+        if (OTunary(e.Eoper))
+        {
+            ferr(oper_str(e.Eoper));
+            ferr(" ");
+            if (OTbinary(e.E1.Eoper))
+                nestEqn(e.E1);
+            else
+                eqn(e.E1);
         }
-  }
+        else if (e.Eoper == OPcomma && !nest)
+        {
+            eqn(e.E1);
+            printf(";\n\t");
+            eqn(e.E2);
+        }
+        else if (OTbinary(e.Eoper))
+        {
+            if (OTbinary(e.E1.Eoper))
+                nestEqn(e.E1);
+            else
+                eqn(e.E1);
+            ferr(" ");
+            ferr(oper_str(e.Eoper));
+            ferr(" ");
+            if (e.Eoper == OPstreq)
+                printf("%d", cast(int)type_size(e.ET));
+            ferr(" ");
+            if (OTbinary(e.E2.Eoper))
+                nestEqn(e.E2);
+            else
+                eqn(e.E2);
+        }
+        else
+        {
+            switch (e.Eoper)
+            {
+                case OPconst:
+                    elem_print_const(e);
+                    break;
+
+                case OPrelconst:
+                    ferr("#");
+                    goto case OPvar;
+
+                case OPvar:
+                    printf("%s",e.Vsym.Sident.ptr);
+                    if (e.Vsym.Ssymnum != SYMIDX.max)
+                        printf("(%d)", cast(int) e.Vsym.Ssymnum);
+                    if (e.Voffset != 0)
+                    {
+                        if (e.Voffset.sizeof == 8)
+                            printf(".x%llx", cast(ulong)e.Voffset);
+                        else
+                            printf(".%d",cast(int)e.Voffset);
+                    }
+                    break;
+
+                case OPasm:
+                case OPstring:
+                    printf("\"%s\"",e.Vstring);
+                    if (e.Voffset)
+                        printf("+%lld",cast(long)e.Voffset);
+                    break;
+
+                case OPmark:
+                case OPgot:
+                case OPframeptr:
+                case OPhalt:
+                case OPdctor:
+                case OPddtor:
+                    ferr(oper_str(e.Eoper));
+                    ferr(" ");
+                    break;
+
+                case OPstrthis:
+                    break;
+
+                default:
+                    ferr(oper_str(e.Eoper));
+                    assert(0);
+            }
+        }
+    }
+
+    eqn(e);
 }
 
 @trusted
@@ -326,19 +337,20 @@ void WRblocklist(list_t bl)
 
 @trusted
 void WRdefnod(ref GlobalOptimizer go)
-{ int i;
-
-  for (i = 0; i < go.defnod.length; i++)
-  {     printf("defnod[%d] in B%d = (", go.defnod[i].DNblock.Bdfoidx, i);
+{
+    foreach (i; 0 .. go.defnod.length)
+    {
+        printf("defnod[%d] in B%zu = (", go.defnod[i].DNblock.Bdfoidx, i);
         WReqn(go.defnod[i].DNelem);
         printf(");\n");
-  }
+    }
 }
 
 const(char)* fl_str(FL fl)
 {
     immutable char*[FL.max + 1] fls =
-    [   "FL.unde",
+    [
+        "FL.unde",
         "FL.const_",
         "FL.oper",
         "FL.func",
@@ -389,29 +401,32 @@ void WRblock(block* b)
     if (OPTIMIZER)
     {
         if (b && b.Bweight)
-                printf("B%d: (%p), weight=%d",b.Bdfoidx,b,b.Bweight);
+            printf("B%d: (%p), weight=%d",b.Bdfoidx,b,b.Bweight);
         else
-                printf("block %p",b);
+            printf("block %p",b);
         if (!b)
-        {       ferr("\n");
-                return;
+        {
+            ferr("\n");
+            return;
         }
         printf(" flags=x%x weight=%d",b.Bflags,b.Bweight);
         //printf("\tfile %p, line %d",b.Bfilptr,b.Blinnum);
-        printf(" %s Btry=%p Bindex=%d",bc_str(b.bc),b.Btry,b.Bindex);
+        printf(" BC.%s Btry=%p Bindex=%d",bc_str(b.bc),b.Btry,b.Bindex);
         if (b.bc == BC.try_)
             printf(" catchvar = %p",b.catchvar);
         printf("\n");
         printf("\tBpred: "); WRblocklist(b.Bpred);
         printf("\tBsucc: "); WRblocklist(b.Bsucc);
         if (b.Belem)
-        {       if (debugf)                     /* if full output       */
-                        elem_print(b.Belem);
-                else
-                {       ferr("\t");
-                        WReqn(b.Belem);
-                        printf(";\n");
-                }
+        {
+            if (debugf)                     /* if full output       */
+                elem_print(b.Belem);
+            else
+            {
+                ferr("\t");
+                WReqn(b.Belem);
+                printf(";\n");
+            }
         }
         if (b.Bcode)
             b.Bcode.print();
@@ -420,7 +435,7 @@ void WRblock(block* b)
     else
     {
         assert(b);
-        printf("%2d: %s", b.Bnumber, bc_str(b.bc));
+        printf("%2d: BC.%s", b.Bnumber, bc_str(b.bc));
         if (b.Btry)
             printf(" Btry=B%d",b.Btry ? b.Btry.Bnumber : 0);
         if (b.Bindex)
@@ -501,9 +516,9 @@ void WRblock(block* b)
  */
 void numberBlocks(block* startblock)
 {
-    uint number = 0;
+    uint n = 0;
     for (block* b = startblock; b; b = b.Bnext)
-        b.Bnumber = ++number;
+        b.Bnumber = ++n;
 }
 
 /**************************************

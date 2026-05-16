@@ -2,38 +2,128 @@
 REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a + 1.0F` of type `float` to `int`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a - 1.0F` of type `float` to `int`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a * 1.0F` of type `float` to `int`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a / 1.0F` of type `float` to `int`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a % 1.0F` of type `float` to `int`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a + 1.0F` of type `float` to `uint`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a - 1.0F` of type `float` to `uint`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a * 1.0F` of type `float` to `uint`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a / 1.0F` of type `float` to `uint`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a % 1.0F` of type `float` to `uint`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a + 1.0F` of type `float` to `long`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a - 1.0F` of type `float` to `long`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a * 1.0F` of type `float` to `long`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a / 1.0F` of type `float` to `long`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a % 1.0F` of type `float` to `long`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(double)a + 1.0` of type `double` to `long`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(double)a - 1.0` of type `double` to `long`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(double)a * 1.0` of type `double` to `long`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(double)a / 1.0` of type `double` to `long`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(double)a % 1.0` of type `double` to `long`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a + 1.0F` of type `float` to `ulong`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a - 1.0F` of type `float` to `ulong`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a * 1.0F` of type `float` to `ulong`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a / 1.0F` of type `float` to `ulong`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(float)a % 1.0F` of type `float` to `ulong`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(double)a + 1.0` of type `double` to `ulong`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(double)a - 1.0` of type `double` to `ulong`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(double)a * 1.0` of type `double` to `ulong`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(double)a / 1.0` of type `double` to `ulong`
-fail_compilation/failexpression4.d-mixin-50(50): Error: cannot implicitly convert expression `cast(double)a % 1.0` of type `double` to `ulong`
-fail_compilation/failexpression4.d(60): Error: template instance `failexpression4.X!(integral, floating, arith)` error instantiating
-fail_compilation/failexpression4.d(65):        instantiated from here: `OpReAssignCases!(TestOpAndAssign)`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a + 1.0F` of type `float` to `byte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a - 1.0F` of type `float` to `byte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a * 1.0F` of type `float` to `byte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a / 1.0F` of type `float` to `byte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a % 1.0F` of type `float` to `byte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a + 1.0` of type `double` to `byte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a - 1.0` of type `double` to `byte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a * 1.0` of type `double` to `byte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a / 1.0` of type `double` to `byte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a % 1.0` of type `double` to `byte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a + 1.0L` of type `real` to `byte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a - 1.0L` of type `real` to `byte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a * 1.0L` of type `real` to `byte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a / 1.0L` of type `real` to `byte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a % 1.0L` of type `real` to `byte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a + 1.0F` of type `float` to `ubyte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a - 1.0F` of type `float` to `ubyte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a * 1.0F` of type `float` to `ubyte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a / 1.0F` of type `float` to `ubyte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a % 1.0F` of type `float` to `ubyte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a + 1.0` of type `double` to `ubyte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a - 1.0` of type `double` to `ubyte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a * 1.0` of type `double` to `ubyte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a / 1.0` of type `double` to `ubyte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a % 1.0` of type `double` to `ubyte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a + 1.0L` of type `real` to `ubyte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a - 1.0L` of type `real` to `ubyte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a * 1.0L` of type `real` to `ubyte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a / 1.0L` of type `real` to `ubyte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a % 1.0L` of type `real` to `ubyte`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a + 1.0F` of type `float` to `short`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a - 1.0F` of type `float` to `short`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a * 1.0F` of type `float` to `short`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a / 1.0F` of type `float` to `short`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a % 1.0F` of type `float` to `short`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a + 1.0` of type `double` to `short`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a - 1.0` of type `double` to `short`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a * 1.0` of type `double` to `short`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a / 1.0` of type `double` to `short`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a % 1.0` of type `double` to `short`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a + 1.0L` of type `real` to `short`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a - 1.0L` of type `real` to `short`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a * 1.0L` of type `real` to `short`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a / 1.0L` of type `real` to `short`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a % 1.0L` of type `real` to `short`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a + 1.0F` of type `float` to `ushort`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a - 1.0F` of type `float` to `ushort`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a * 1.0F` of type `float` to `ushort`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a / 1.0F` of type `float` to `ushort`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)cast(int)a % 1.0F` of type `float` to `ushort`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a + 1.0` of type `double` to `ushort`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a - 1.0` of type `double` to `ushort`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a * 1.0` of type `double` to `ushort`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a / 1.0` of type `double` to `ushort`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)cast(int)a % 1.0` of type `double` to `ushort`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a + 1.0L` of type `real` to `ushort`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a - 1.0L` of type `real` to `ushort`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a * 1.0L` of type `real` to `ushort`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a / 1.0L` of type `real` to `ushort`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)cast(int)a % 1.0L` of type `real` to `ushort`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a + 1.0F` of type `float` to `int`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a - 1.0F` of type `float` to `int`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a * 1.0F` of type `float` to `int`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a / 1.0F` of type `float` to `int`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a % 1.0F` of type `float` to `int`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a + 1.0` of type `double` to `int`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a - 1.0` of type `double` to `int`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a * 1.0` of type `double` to `int`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a / 1.0` of type `double` to `int`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a % 1.0` of type `double` to `int`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a + 1.0L` of type `real` to `int`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a - 1.0L` of type `real` to `int`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a * 1.0L` of type `real` to `int`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a / 1.0L` of type `real` to `int`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a % 1.0L` of type `real` to `int`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a + 1.0F` of type `float` to `uint`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a - 1.0F` of type `float` to `uint`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a * 1.0F` of type `float` to `uint`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a / 1.0F` of type `float` to `uint`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a % 1.0F` of type `float` to `uint`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a + 1.0` of type `double` to `uint`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a - 1.0` of type `double` to `uint`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a * 1.0` of type `double` to `uint`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a / 1.0` of type `double` to `uint`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a % 1.0` of type `double` to `uint`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a + 1.0L` of type `real` to `uint`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a - 1.0L` of type `real` to `uint`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a * 1.0L` of type `real` to `uint`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a / 1.0L` of type `real` to `uint`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a % 1.0L` of type `real` to `uint`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a + 1.0F` of type `float` to `long`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a - 1.0F` of type `float` to `long`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a * 1.0F` of type `float` to `long`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a / 1.0F` of type `float` to `long`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a % 1.0F` of type `float` to `long`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a + 1.0` of type `double` to `long`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a - 1.0` of type `double` to `long`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a * 1.0` of type `double` to `long`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a / 1.0` of type `double` to `long`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a % 1.0` of type `double` to `long`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a + 1.0L` of type `real` to `long`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a - 1.0L` of type `real` to `long`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a * 1.0L` of type `real` to `long`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a / 1.0L` of type `real` to `long`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a % 1.0L` of type `real` to `long`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a + 1.0F` of type `float` to `ulong`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a - 1.0F` of type `float` to `ulong`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a * 1.0F` of type `float` to `ulong`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a / 1.0F` of type `float` to `ulong`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(float)a % 1.0F` of type `float` to `ulong`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a + 1.0` of type `double` to `ulong`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a - 1.0` of type `double` to `ulong`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a * 1.0` of type `double` to `ulong`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a / 1.0` of type `double` to `ulong`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(double)a % 1.0` of type `double` to `ulong`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a + 1.0L` of type `real` to `ulong`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a - 1.0L` of type `real` to `ulong`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a * 1.0L` of type `real` to `ulong`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a / 1.0L` of type `real` to `ulong`
+fail_compilation/failexpression4.d-mixin-139(139): Error: cannot implicitly convert expression `cast(real)a % 1.0L` of type `real` to `ulong`
+fail_compilation/failexpression4.d(149): Error: template instance `failexpression4.X!(integral, floating, arith)` error instantiating
+fail_compilation/failexpression4.d(154):        instantiated from here: `OpReAssignCases!(TestOpAndAssign)`
 ---
 */
 template TT(T...) { alias T TT; }
@@ -42,7 +132,6 @@ void TestOpAndAssign(Tx, Ux, ops)()
 {
     foreach(T; Tx.x)
     foreach(U; Ux.x)
-    static if (U.sizeof <= T.sizeof && T.sizeof >= 4)
     foreach(op; ops.x)
     {
         T a = cast(T)1;

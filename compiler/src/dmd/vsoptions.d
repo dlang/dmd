@@ -1,7 +1,7 @@
 /**
  * When compiling on Windows with the Microsoft toolchain, try to detect the Visual Studio setup.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/vsoptions.d, _vsoptions.d)
@@ -152,7 +152,7 @@ extern(C++) struct VSOptions
             if (addpath)
             {
                 // debug info needs DLLs from $(VSInstallDir)\Common7\IDE for most linker versions
-                //  so prepend it too the PATH environment variable
+                //  so prepend it to the PATH environment variable
                 char* path = getenv("PATH"w);
                 const pathlen = strlen(path);
                 const addpathlen = strlen(addpath);
@@ -831,12 +831,15 @@ const(char)* detectVSInstallDirViaCOM()
             continue; // not a newer version, skip
 
         const installDirLength = thisInstallDir.length;
-        const vcInstallDirLength = installDirLength + 4;
-        auto vcInstallDir = (cast(wchar*) mem.xmalloc_noscan(vcInstallDirLength * wchar.sizeof))[0 .. vcInstallDirLength];
-        scope(exit) mem.xfree(vcInstallDir.ptr);
-        vcInstallDir[0 .. installDirLength] = thisInstallDir.ptr[0 .. installDirLength];
-        vcInstallDir[installDirLength .. $] = "\\VC\0"w;
-        if (!exists(vcInstallDir.ptr))
+        // note: the `VC` subdir alone is not sufficient (can exist without having installed the Visual C++ component)
+        const vcToolsSuffix = `\VC\Tools`w;
+        const vcToolsDirLength = installDirLength + vcToolsSuffix.length + 1; // incl. terminating 0
+        auto vcToolsDir = (cast(wchar*) mem.xmalloc_noscan(vcToolsDirLength * wchar.sizeof))[0 .. vcToolsDirLength];
+        scope(exit) mem.xfree(vcToolsDir.ptr);
+        vcToolsDir[0 .. installDirLength] = thisInstallDir.ptr[0 .. installDirLength];
+        vcToolsDir[installDirLength .. $-1] = vcToolsSuffix;
+        vcToolsDir[$-1] = 0;
+        if (!exists(vcToolsDir.ptr))
             continue; // Visual C++ not included, skip
 
         thisVersionString.moveTo(versionString);

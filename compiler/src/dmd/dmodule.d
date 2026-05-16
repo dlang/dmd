@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/module.html, Modules)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dmodule.d, _dmodule.d)
@@ -26,7 +26,6 @@ import dmd.compiler;
 import dmd.cparse;
 import dmd.declaration;
 import dmd.dmacro;
-import dmd.doc;
 import dmd.dsymbol;
 import dmd.errors;
 import dmd.expression;
@@ -394,7 +393,7 @@ extern (C++) final class Module : Package
     Identifiers* versionidsNot; // forward referenced version identifiers
 
     MacroTable macrotable;      // document comment macros
-    Escape* _escapetable;       // document comment escapes
+    void* _escapetable;         // document comment escapes (Escape*)
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
@@ -437,7 +436,7 @@ extern (C++) final class Module : Package
         if (doHdrGen)
             hdrfile = setOutfilename(global.params.dihdr.name, global.params.dihdr.dir, arg, hdr_ext);
 
-        this.edition = Edition.min;
+        this.edition = global.params.edition;
     }
 
     extern (D) this(const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
@@ -708,7 +707,7 @@ extern (C++) final class Module : Package
          */
         if (buf.length>= 4 && buf[0..4] == "Ddoc")
         {
-            comment = buf.ptr + 4;
+            this.addComment(buf.ptr + 4);
             filetype = FileType.ddoc;
             if (!docfile)
                 setDocfile();
@@ -721,7 +720,7 @@ extern (C++) final class Module : Package
          */
         if (FileName.equalsExt(arg, dd_ext))
         {
-            comment = buf.ptr; // the optional Ddoc, if present, is handled above.
+            this.addComment(buf.ptr); // the optional Ddoc, if present, is handled above.
             filetype = FileType.ddoc;
             if (!docfile)
                 setDocfile();
@@ -881,7 +880,7 @@ extern (C++) final class Module : Package
             if (Module mprev = prev.isModule())
             {
                 if (!FileName.equals(srcname, mprev.srcfile.toChars()))
-                    error(loc, "%s `%s` from file %s conflicts with another module %s from file %s", kind, toPrettyChars, srcname, mprev.toChars(), mprev.srcfile.toChars());
+                    error(loc, "%s `%s` from file %s conflicts with another module %s from file %s", kind, toPrettyChars, srcname, mprev.toErrMsg(), mprev.srcfile.toChars());
                 else if (isRoot() && mprev.isRoot())
                     error(loc, "%s `%s` from file %s is specified twice on the command line", kind, toPrettyChars, srcname);
                 else
@@ -896,7 +895,7 @@ extern (C++) final class Module : Package
                 if (isPackageFile)
                     amodules.push(this); // Add to global array of all modules
                 else
-                    error(md ? md.loc : loc, "%s `%s` from file %s conflicts with package name %s", kind, toPrettyChars, srcname, pkg.toChars());
+                    error(md ? md.loc : loc, "%s `%s` from file %s conflicts with package name %s", kind, toPrettyChars, srcname, pkg.toErrMsg());
             }
             else
                 assert(global.errors);
@@ -1020,15 +1019,6 @@ extern (C++) final class Module : Package
         }
     }
 
-    /** Lazily initializes and returns the escape table.
-    Turns out it eats a lot of memory.
-    */
-    extern(D) Escape* escapetable() nothrow
-    {
-        if (!_escapetable)
-            _escapetable = new Escape();
-        return _escapetable;
-    }
 }
 
 /***********************************************************
@@ -1260,36 +1250,4 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
     }
 
     return buf;
-}
-
-/*******************************************
- * Look for member of the form:
- *      const(MemberInfo)[] getMembers(string);
- * Returns NULL if not found
- */
-FuncDeclaration findGetMembers(ScopeDsymbol dsym)
-{
-    import dmd.opover : search_function;
-    Dsymbol s = search_function(dsym, Id.getmembers);
-    FuncDeclaration fdx = s ? s.isFuncDeclaration() : null;
-    version (none)
-    {
-        // Finish
-        __gshared TypeFunction tfgetmembers;
-        if (!tfgetmembers)
-        {
-            Scope sc;
-            sc.eSink = global.errorSink;
-            Parameters* p = new Parameter(STC.in_, Type.tchar.constOf().arrayOf(), null, null);
-            auto parameters = new Parameters(p);
-            Type tret = null;
-            TypeFunction tf = new TypeFunction(parameters, tret, VarArg.none, LINK.d);
-            tfgetmembers = tf.dsymbolSemantic(Loc.initial, &sc).isTypeFunction();
-        }
-        if (fdx)
-            fdx = fdx.overloadExactMatch(tfgetmembers);
-    }
-    if (fdx && fdx.isVirtual())
-        fdx = null;
-    return fdx;
 }

@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail20779.d(12): Error: struct `fail20779.X` cannot have field `x` with same struct type
+fail_compilation/fail20779.d(14): Error: struct `fail20779.X` cannot have field `x` with same struct type
 ---
 */
 

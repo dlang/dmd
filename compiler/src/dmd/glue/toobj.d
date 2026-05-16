@@ -1,7 +1,7 @@
 /**
  * Convert an AST that went through all semantic phases into an object file.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/glue/toobj.d, _toobj.d)
@@ -49,6 +49,7 @@ import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem : getDsymbol, toInteger;
+import dmd.typesem;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
@@ -84,6 +85,8 @@ import dmd.backend.type;
 
 package(dmd.glue):
 
+private:
+
 /* ================================================================== */
 
 /*****************************************
@@ -94,6 +97,7 @@ package(dmd.glue):
  *      s      = symbol that contains the data
  *      offset = offset of the data inside the Symbol's memory
  */
+package(dmd.glue)
 void write_pointers(Type type, Symbol* s, uint offset)
 {
     uint ty = type.toBasetype().ty;
@@ -111,6 +115,7 @@ void write_pointers(Type type, Symbol* s, uint offset)
 *      s      = symbol that contains the data
 *      offset = offset of the data inside the Symbol's memory
 */
+package(dmd.glue)
 void write_instance_pointers(Type type, Symbol* s, uint offset)
 {
     import dmd.typesem : hasPointers;
@@ -146,6 +151,7 @@ void write_instance_pointers(Type type, Symbol* s, uint offset)
  *      loc = the location for reporting line numbers in errors
  *      t   = the type to generate the `TypeInfo` object for
  */
+package(dmd.glue)
 void TypeInfo_toObjFile(Expression e, Loc loc, Type t)
 {
     // printf("TypeInfo_toObjFIle() %s\n", torig.toChars());
@@ -158,6 +164,7 @@ void TypeInfo_toObjFile(Expression e, Loc loc, Type t)
 
 /* ================================================================== */
 
+package(dmd.glue)
 void toObjFile(Dsymbol ds, bool multiobj)
 {
     //printf("toObjFile(%s %s)\n", ds.kind(), ds.toChars());
@@ -395,9 +402,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 // Generate static initializer
                 auto sinit = toInitializer(sd);
-                if (sinit.Sclass == SC.extern_)
+                if (sinit.Sclass == SC.extern_ &&
+                    strcmp(sinit.Sident.ptr, "__bzeroBytes") != 0) // might be from another object file
                 {
-                    if (sinit == bzeroSymbol) assert(0);
                     sinit.Sclass = sd.isInstantiated() ? SC.comdat : SC.global;
                     sinit.Sfl = FL.data;
                     auto dtb = DtBuilder(0);
@@ -428,6 +435,10 @@ void toObjFile(Dsymbol ds, bool multiobj)
                  */
                 sd.members.foreachDsymbol( (s) { s.accept(this); } );
 
+                /* Emit the special __xopEquals/__xopCmp/__xtoHash member functions
+                 * required for the TypeInfo, but not added as struct members.
+                 * (Note that `postblit` and `tidtor` are struct members in `sd.members`.)
+                 */
                 if (sd.xeq && sd.xeq != StructDeclaration.xerreq)
                     sd.xeq.accept(this);
                 if (sd.xcmp && sd.xcmp != StructDeclaration.xerrcmp)
@@ -461,6 +472,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
+            // Check to see if we're doing special section mangling, these are not regular variables.
+            // Do not prepend an underscore to the name, it won't work.
+            if (config.objfmt == OBJ_MACH && vd.mangleOverride.length > 8 && vd.mangleOverride[0 .. 8] == "section$")
+                vd.noUnderscore = true;
+
             if (!vd.isDataseg() || vd.storage_class & STC.extern_)
                 return;
 
@@ -479,6 +495,101 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             Dsymbol parent = vd.toParent();
             s.Sclass = SC.global;
+
+            {
+                string userDefinedSection;
+
+                // find the @section("name") uda
+                foreachUdaNoSemantic(vd, (e) {
+                    import dmd.expressionsem : toUTF8;
+
+                    if (!e.isStructLiteralExp())
+                        return 0;
+
+                    auto literal = e.isStructLiteralExp();
+                    assert(literal.sd);
+
+                    if (!isCoreUda(literal.sd, Id.udaSection))
+                        return 0;
+
+                    if (userDefinedSection)
+                    {
+                        error(vd.loc, "%s `%s` can only have one section attribute", vd.kind, vd.toPrettyChars);
+                        return 1;
+                    }
+
+                    assert(literal.elements.length == 1);
+                    auto se = (*literal.elements)[0].isStringExp();
+                    assert(se);
+
+                    userDefinedSection = cast(string)se.toUTF8(vd._scope).toStringz();
+                    return 0;
+                });
+
+                if (userDefinedSection)
+                {
+                    import core.bitop;
+                    const canBeReadOnly = !vd.type.isMutable;
+
+                    // Alignment of a type will be a power of 2 and will not be 0.
+                    const alignTo = vd.type.alignsize();
+                    const alignToPower = bsr(alignTo);
+
+                    switch (config.objfmt)
+                    {
+                        case OBJ_MACH:
+                            import dmd.backend.mach;
+
+                            // name does not start with a _
+                            //s.Sflags |= SFLnounderscore;
+
+                            s.Sseg = Obj.getsegment(
+                                userDefinedSection.ptr,
+                                canBeReadOnly ? "__TEXT" : "__DATA",
+                                alignToPower, // convert alignment to the power of
+
+                                //S_ATTR_NO_DEAD_STRIP |
+                                S_REGULAR // flags
+                            );
+                            break;
+                        case OBJ_ELF:
+                            import dmd.backend.elfobj;
+                            import dmd.backend.melf;
+
+                            s.Sseg = Obj.getsegment(
+                                userDefinedSection.ptr,
+                                null, // suffix
+                                SHT_PROGBITS, // type
+
+                                //SHF_GNU_RETAIN |
+                                SHF_ALLOC | (canBeReadOnly ? 0 : SHF_WRITE), // flags
+
+                                alignTo // align
+                            );
+                            break;
+                        case OBJ_MSCOFF:
+                            import dmd.backend.mscoff;
+
+                            const alignTo2 = IMAGE_SCN_ALIGN_1BYTES * (alignToPower + 1);
+                            const alignTo3 = alignTo2 <= IMAGE_SCN_ALIGN_8192BYTES ? alignTo2 : IMAGE_SCN_ALIGN_8192BYTES;
+
+                            // Windows will not dead strip symbols, as long as start/end are used.
+
+                            s.Sseg = Obj.getsegment(
+                                userDefinedSection.ptr,
+
+                                // flags
+                                alignTo3
+                                | IMAGE_SCN_MEM_READ
+                                | IMAGE_SCN_CNT_INITIALIZED_DATA
+                                | (canBeReadOnly ? 0 : IMAGE_SCN_MEM_WRITE)
+                            );
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
 
             /* Make C static functions SCstatic
              */
@@ -588,8 +699,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     scclass = SC.comdat;
 
                 // Generate static initializer
-                toInitializer(ed);
-                auto sinit = cast(Symbol*) ed.sinit;
+                auto sinit = toInitializer(ed);
                 sinit.Sclass = scclass;
                 sinit.Sfl = FL.data;
                 auto dtb = DtBuilder(0);
@@ -662,7 +772,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 assert(e.op == EXP.string_);
 
                 StringExp se = e.isStringExp();
-                char* name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
+                string s;
+                char* name = cast(char *)mem.xmalloc(se.numberOfCodeUnits(0, s) + 1);
 
                 se.writeTo(name, true);
 
@@ -911,6 +1022,57 @@ void toObjFile(Dsymbol ds, bool multiobj)
 }
 
 
+/******************************************
+ * Get offset of base class's vtbl[] initializer from start of csym.
+ * Returns ~0 if not this csym.
+ */
+
+package(dmd.glue)
+uint baseVtblOffset(ClassDeclaration cd, BaseClass* bc)
+{
+    //printf("ClassDeclaration.baseVtblOffset('%s', bc = %p)\n", cd.toChars(), bc);
+    uint csymoffset = classInfoSize();    // must be ClassInfo.size
+    //printf("classInfoSize(): %d\n", csymoffset);
+    csymoffset += cd.vtblInterfaces.length * (4 * target.ptrsize);
+
+    for (size_t i = 0; i < cd.vtblInterfaces.length; i++)
+    {
+        BaseClass* b = (*cd.vtblInterfaces)[i];
+
+        if (b == bc)
+            return csymoffset;
+        csymoffset += b.sym.vtbl.length * target.ptrsize;
+    }
+
+    // Put out the overriding interface vtbl[]s.
+    // This must be mirrored with ClassDeclaration.baseVtblOffset()
+    //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
+    ClassDeclaration cd2;
+
+    for (cd2 = cd.baseClass; cd2; cd2 = cd2.baseClass)
+    {
+        foreach (k; 0 .. cd2.vtblInterfaces.length)
+        {
+            BaseClass* bs = (*cd2.vtblInterfaces)[k];
+            if (bs.fillVtbl(cd, null, 0))
+            {
+                if (bc == bs)
+                {
+                    //printf("\tcsymoffset = x%x\n", csymoffset);
+                    return csymoffset;
+                }
+                csymoffset += bs.sym.vtbl.length * target.ptrsize;
+            }
+        }
+    }
+
+    return ~0;
+}
+
+/**********************************************************************************/
+/*                         private                                                */
+/**********************************************************************************/
+
 /*********************************
  * Finish semantic analysis of functions in vtbl[].
  * Params:
@@ -978,50 +1140,16 @@ private bool finishVtbl(ClassDeclaration cd)
     return !hasError;
 }
 
-
-/******************************************
- * Get offset of base class's vtbl[] initializer from start of csym.
- * Returns ~0 if not this csym.
- */
-
-uint baseVtblOffset(ClassDeclaration cd, BaseClass* bc)
+/// Returns: classInstanceSize of TypeInfo_Class for `cd`
+private
+uint classInfoSize()
 {
-    //printf("ClassDeclaration.baseVtblOffset('%s', bc = %p)\n", cd.toChars(), bc);
-    uint csymoffset = target.classinfosize;    // must be ClassInfo.size
-    csymoffset += cd.vtblInterfaces.length * (4 * target.ptrsize);
-
-    for (size_t i = 0; i < cd.vtblInterfaces.length; i++)
-    {
-        BaseClass* b = (*cd.vtblInterfaces)[i];
-
-        if (b == bc)
-            return csymoffset;
-        csymoffset += b.sym.vtbl.length * target.ptrsize;
-    }
-
-    // Put out the overriding interface vtbl[]s.
-    // This must be mirrored with ClassDeclaration.baseVtblOffset()
-    //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
-    ClassDeclaration cd2;
-
-    for (cd2 = cd.baseClass; cd2; cd2 = cd2.baseClass)
-    {
-        foreach (k; 0 .. cd2.vtblInterfaces.length)
-        {
-            BaseClass* bs = (*cd2.vtblInterfaces)[k];
-            if (bs.fillVtbl(cd, null, 0))
-            {
-                if (bc == bs)
-                {
-                    //printf("\tcsymoffset = x%x\n", csymoffset);
-                    return csymoffset;
-                }
-                csymoffset += bs.sym.vtbl.length * target.ptrsize;
-            }
-        }
-    }
-
-    return ~0;
+    auto obj = ClassDeclaration.object;
+    const bool hasMonitor = !obj || !obj.symtab || obj.symtab.lookup(Id.__monitor) !is null;
+    if (target.ptrsize == 8)
+        return 0x98 + 8 + (hasMonitor ? 8 : 0); // 168 with monitor
+    else
+        return 0x4C + 12 + (hasMonitor ? 4 : 0); // 92 with monitor
 }
 
 /*******************
@@ -1047,7 +1175,7 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass* b, ref FuncDeclarations bv
     if (id.vtblOffset())
     {
         // First entry is struct Interface reference
-        dtb.xoff(toSymbol(pc), cast(uint)(target.classinfosize + k * (4 * target.ptrsize)), TYnptr);
+        dtb.xoff(toSymbol(pc), cast(uint)(classInfoSize() + k * (4 * target.ptrsize)), TYnptr);
         jstart = 1;
     }
 
@@ -1081,11 +1209,11 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
 {
     if (Type.typeinfoclass)
     {
-        if (Type.typeinfoclass.structsize != target.classinfosize)
+        if (Type.typeinfoclass.structsize != classInfoSize())
         {
-            debug printf("target.classinfosize = x%x, Type.typeinfoclass.structsize = x%x\n", target.classinfosize, Type.typeinfoclass.structsize);
+            debug printf("classInfoSize() = x%x, Type.typeinfoclass.structsize = x%x\n", classInfoSize(), Type.typeinfoclass.structsize);
             .error(cd.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
-                   cd.kind, cd.toPrettyChars, cast(uint)target.classinfosize, cast(uint)Type.typeinfoclass.structsize);
+                   cd.kind, cd.toPrettyChars, cast(uint)classInfoSize(), cast(uint)Type.typeinfoclass.structsize);
             .errorSupplemental(cd.loc, "check installation and import paths with `-v` compiler switch");
             fatal();
         }
@@ -1132,7 +1260,7 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
             uint[4] nameSig;
        }
      */
-    uint offset = target.classinfosize;    // must be ClassInfo.size
+    uint offset = classInfoSize();    // must be ClassInfo.size
 
     if (auto tic = Type.typeinfoclass)
     {
@@ -1147,7 +1275,8 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
     }
 
     // m_init[]
-    assert(cd.structsize >= 8 || (cd.classKind == ClassKind.cpp && cd.structsize >= 4));
+    // Class instances always have at least a vtable pointer
+    assert(cd.structsize >= target.ptrsize || (cd.classKind == ClassKind.cpp && cd.structsize >= 4));
     dtb.size(cd.structsize);           // size
     dtb.xoff(sinit, 0, TYnptr);         // initializer
 
@@ -1219,17 +1348,15 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
 Louter:
     for (ClassDeclaration pc = cd; pc; pc = pc.baseClass)
     {
-        if (pc.members)
+        foreach (vd; pc.fields)
         {
-            for (size_t i = 0; i < pc.members.length; i++)
+            //printf("vd = %s %s\n", vd.kind(), vd.toChars());
+            if (vd.ident == Id.__monitor)
+                continue;   // __monitor is not GC-managed
+            if (vd.hasPointers())
             {
-                Dsymbol sm = (*pc.members)[i];
-                //printf("sm = %s %s\n", sm.kind(), sm.toChars());
-                if (sm.hasPointers())
-                {
-                    flags &= ~ClassFlags.noPointers;  // not no-how, not no-way
-                    break Louter;
-                }
+                flags &= ~ClassFlags.noPointers;  // not no-how, not no-way
+                break Louter;
             }
         }
     }
@@ -1418,7 +1545,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     dtb.size(0);
 
     // interfaces[]
-    uint offset = target.classinfosize;
+    uint offset = classInfoSize();
     dtb.size(id.vtblInterfaces.length);
     if (id.vtblInterfaces.length)
     {
