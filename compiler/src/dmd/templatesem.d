@@ -72,7 +72,7 @@ enum LOG = false;
  */
 bool reliesOnTident(Type t, TemplateParameters* tparams, size_t iStart = 0)
 {
-    return reliesOnTemplateParameters(t, (*tparams)[0 .. tparams.length]);
+    return reliesOnTemplateParameters(t, (*tparams)[iStart .. tparams.length]);
 }
 
 /***********************************************************
