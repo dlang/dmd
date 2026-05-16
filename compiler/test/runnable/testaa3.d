@@ -515,6 +515,26 @@ void test22567()
     assert(foo["bar"]["baz"] == "boom");
 }
 
+// https://github.com/dlang/dmd/issues/19829
+void test19829()
+{
+    auto foo() {
+        bool[string] p;
+        return p.keys ~ "bar";
+    }
+    enum a = foo;
+    static assert(a == ["bar"]);
+    assert(foo == ["bar"]);
+
+    auto bar() {
+        bool[string] p;
+        return p.values ~ true;
+    }
+    enum b = bar;
+    static assert(b == [true]);
+    assert(bar == [true]);
+}
+
 /***************************************************/
 
 void main()
@@ -546,4 +566,5 @@ void main()
     testShared();
     test22567();
     test22556();
+    test19829();
 }
