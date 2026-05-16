@@ -896,19 +896,22 @@ void MachObj_term(const(char)[] objfilename)
             Relocation* rend = cast(Relocation*)(pseg.SDrel.buf + pseg.SDrel.length());
             for (; r != rend; r++)
             {   Symbol* s = r.targsym;
-                const(char)* rs = r.rtype == REL.address ? "addr" :  // 32 bit address
-                                  r.rtype == REL.add  ? "add"  :
-                                                       "rel";
-                //printf("%d:x%04llx : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
-                //  bool isPersonality = strcmp(s.Sident.ptr, "__dmd_personality_v0") == 0 ||
-                //                       strcmp(s.Sident.ptr, "___dmd_personality_v0") == 0; // temporary scaffolding
-                //symbol_print(*s);
+                const(char)* rs = r.rtype == REL.address ? "address" :  // 32 bit address
+                                  r.rtype == REL.add     ? "add"  :
+                                  r.rtype == REL.rel26   ? "rel26"  :
+                                                           "rel";
                 relocation_info rel;
                 scattered_relocation_info srel;
                 if (machobj.AArch64)
                 {
                     if (s)
                     {
+                        //printf("s.Sident: %s\n", s.Sident.ptr);
+                        bool isPersonality = strcmp(s.Sident.ptr,  "_D6object8TypeInfo8opEqualsMxFNbNfxCQBbZb") == 0;
+                        if (isPersonality)
+                        {   symbol_print(*s);
+                            printf("%d:x%04llx isCode %x : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, pseg.isCode(), r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
+                        }
                         if (r.flag == 1)  // emit SUBTRACTOR/UNSIGNED pair
                         {
                             //printf("rel1\n");
@@ -944,8 +947,9 @@ void MachObj_term(const(char)[] objfilename)
                                 case SC.comdat:
                                 case SC.comdef:
                                 case SC.static_:
-                                    if (s.Sfl == FL.func && r.rtype == REL.rel)
+                                    if (/*s.Sfl == FL.func &&*/ r.rtype == REL.rel26)
                                     {
+                                        //printf("BRANCHY26\n");
                                         rel.r_type = ARM64_RELOC_BRANCHY26;
                                         rel.r_pcrel = 1;
                                     }
@@ -973,6 +977,8 @@ void MachObj_term(const(char)[] objfilename)
                                     break;
 
                                 case SC.global:
+                                    if (/*s.Sfl == FL.func &&*/ r.rtype == REL.rel26)
+                                        goto case SC.extern_;
                                     //rel.r_type = r.rtype == REL.add ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
                                     rel.r_type = r.rtype == REL.add ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                     if (s.Sfl == FL.tlsdata || s.Sfl == FL.data && (s.ty() & mTYLINK) == mTYthread)
@@ -989,6 +995,8 @@ void MachObj_term(const(char)[] objfilename)
                                     break;
 
                                 case SC.locstat:
+                                    if (/*s.Sfl == FL.func &&*/ r.rtype == REL.rel26)
+                                        goto case SC.extern_;
                                     assert(s.Sfl != FL.tlsdata);
                                     rel.r_type = r.rtype == REL.add ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                     rel.r_pcrel = r.rtype == REL.add ? 0 : 1;
@@ -2800,6 +2808,7 @@ void MachObj_reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
  *                      CFoff: get offset
  *                      CFpc32: [RIP] addressing, val is 0, -1, -2 or -4
  *                      CFoffset64: 8 byte offset for 64 bit builds
+ *                      CFselfrel26: 26 bit offset for BL function calls
  * Returns:
  *      number of bytes in reference (4 or 8)
  */
@@ -3002,7 +3011,11 @@ int MachObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol* s, targ_size_
         int v = 0;
         if (flags & CFpc32)
             v = cast(int)val;
-        if (flags & CFselfrel)
+        if (flags & CFselfrel26)
+        {
+            MachObj_addrel(seg, offset, s, 0, REL.rel26, v);
+        }
+        else if (flags & CFselfrel)
         {
             MachObj_addrel(seg, offset, s, 0, REL.rel, v);
         }

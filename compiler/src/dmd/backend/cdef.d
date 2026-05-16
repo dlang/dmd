@@ -389,9 +389,10 @@ enum REL : ubyte
 {
     address   = 1,   // complete address
     rel       = 2,   // relative to location to be fixed up
-    add       = 3,   // add in 12 extra bits of relocation (ARCH64)
+    add       = 3,   // add in 12 extra bits of relocation (AArch64)
     seg       = 4,   // 2 byte section
     address32 = 5,   // 4 byte offset
+    rel26     = 6,   // 26 bit signed offset for BL (AArch64)
 }
 
 alias config_flags_t = uint;
