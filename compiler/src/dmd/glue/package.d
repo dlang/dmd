@@ -13,6 +13,7 @@
 
 module dmd.glue;
 
+import dmd.dsymbolsem;
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;
@@ -549,7 +550,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             // functions without D or C++ name mangling mixed in at global scope
             // shouldn't have multiple definitions
-            const linkage = fd.resolvedLinkage();
+            const linkage = dmd.dsymbolsem.resolvedLinkage(fd);
             if (p.isTemplateMixin() && (linkage == LINK.c || linkage == LINK.windows ||
                 linkage == LINK.objc))
             {
