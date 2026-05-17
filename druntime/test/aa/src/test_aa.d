@@ -46,6 +46,7 @@ void main()
     testNew();
     testAliasThis();
     testAliasThis2();
+    test17641();
 }
 
 void testKeysValues1()
@@ -1082,4 +1083,25 @@ void test22510()
 
     auto aa_cti = testDup!(const(T[int]))();
     static assert(is(typeof(aa_cti) == const(T)[int]));
+}
+
+void test17641() @safe
+{
+    alias BinBlob = int[32];
+    BinBlob rv(int i) @safe { BinBlob r = i; return r; }
+
+    int[BinBlob] myMap;
+    foreach (int i; 1 .. 10)
+        myMap[rv(i)] = i;
+
+    int i = 10;
+    BinBlob[] keys_second_pass;
+    foreach (key, value; myMap) // terminates because it iterates over the initial bucket array only
+    {
+        version (BugFree) { /* Not storing the key does not segv */ }
+        else               keys_second_pass ~= key;
+
+        foreach (int j; 0 .. 100_000)
+            myMap[rv(++i)]=i;
+    }
 }

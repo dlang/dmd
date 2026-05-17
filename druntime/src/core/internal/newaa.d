@@ -339,7 +339,7 @@ private:
         firstUsed = 0;
         used -= deleted;
         deleted = 0;
-        obuckets.length = 0; // safe to free b/c impossible to reference, but doesn't really free
+        // must not free obuckets, because it might still be iterated over
     }
 
     void clear() pure nothrow
