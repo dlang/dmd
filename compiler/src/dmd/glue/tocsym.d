@@ -190,7 +190,7 @@ Symbol* toSymbol(Dsymbol s)
 
             import dmd.common.outbuffer : OutBuffer;
             OutBuffer buf;
-            bool isNRVO = false;
+            bool isNRVO = vd.nrvo;
             const(char)[] id = vd.ident.toString();
             if (vd.isDataseg())
             {
@@ -326,7 +326,16 @@ Symbol* toSymbol(Dsymbol s)
                      * dereferences.
                      */
                     //printf("\tnested ref, not register\n");
-                    type_setcv(&t, t.Tty | mTYvolatile);
+                    FuncDeclaration fd = vd.toParent2().isFuncDeclaration();
+                    if (fd && vd.nrvo)
+                    {
+                        Symbol* shidden = cast(Symbol*)fd.shidden;
+                        type_setcv(&shidden.Stype, shidden.Stype.Tty | mTYvolatile);
+                    }
+                    else
+                    {
+                        type_setcv(&t, t.Tty | mTYvolatile);
+                    }
                 }
             }
 
