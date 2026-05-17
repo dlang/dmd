@@ -23,7 +23,6 @@ import dmd.backend.code;
 import dmd.backend.global;
 import dmd.backend.x86.xmm;
 
-import dmd.backend.cdef;
 import dmd.backend.dlist;
 import dmd.backend.ty;
 
