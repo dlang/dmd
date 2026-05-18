@@ -52,6 +52,7 @@ DOCS=\
 	$(DOCDIR)\core_internal_array_concatenation.html \
 	$(DOCDIR)\core_internal_array_duplication.html \
 	$(DOCDIR)\core_internal_array_equality.html \
+	$(DOCDIR)\core_internal_array_iteration.html \
 	$(DOCDIR)\core_internal_array_operations.html \
 	$(DOCDIR)\core_internal_array_utils.html \
 	$(DOCDIR)\core_internal_array_appending.html \
@@ -552,8 +553,6 @@ DOCS=\
 	$(DOCDIR)\core_internal_gc_impl_manual_gc.html \
 	$(DOCDIR)\core_internal_gc_impl_proto_gc.html \
 	\
-	$(DOCDIR)\rt_aApply.html \
-	$(DOCDIR)\rt_aApplyR.html \
 	$(DOCDIR)\rt_alloca.html \
 	$(DOCDIR)\rt_arraycat.html \
 	$(DOCDIR)\rt_config.html \
