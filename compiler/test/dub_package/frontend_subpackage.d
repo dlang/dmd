@@ -10,6 +10,5 @@ import dmd.frontend;
 
 void main()
 {
-    static assert(false, "temporary: verify CI runs this");
     initDMD();
 }
