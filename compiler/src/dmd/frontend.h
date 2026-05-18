@@ -676,7 +676,7 @@ public:
 
 struct BitArray final
 {
-    typedef uint64_t Chunk_t;
+    typedef size_t Chunk_t;
     enum : uint64_t { ChunkSize = 8LLU };
 
     enum : uint64_t { BitsPerChunk = 64LLU };
@@ -684,14 +684,14 @@ struct BitArray final
 private:
     ~BitArray();
     size_t len;
-    uint64_t* ptr;
+    size_t* ptr;
 public:
     BitArray() :
         len(),
         ptr()
     {
     }
-    BitArray(uint64_t len, uint64_t* ptr = nullptr) :
+    BitArray(size_t len, size_t* ptr = nullptr) :
         len(len),
         ptr(ptr)
         {}
