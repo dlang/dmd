@@ -160,7 +160,7 @@ jobs:
       - name: Test dmd
         run: ci/run.sh test_dmd
       - name: Test dub package
-        if: '!matrix.coverage && (success() || failure())'
+        if: '!matrix.coverage && (success() || failure()) && (matrix.host_dmd == ''dmd'' || matrix.host_dmd == ''dmd-latest'')'
         run: ci/run.sh test_dub_package
       - name: Test druntime
         if: '!matrix.coverage && (success() || failure())'
@@ -261,9 +261,11 @@ jobs:
             ci/run.sh test_dmd
             echo '::endgroup::'
 
-            echo '::group::Test dub package'
-            ci/run.sh test_dub_package
-            echo '::endgroup::'
+            if [ "$HOST_DMD" = "dmd" ]; then
+              echo '::group::Test dub package'
+              ci/run.sh test_dub_package
+              echo '::endgroup::'
+            fi
 
             echo '::group::Test druntime'
             ci/run.sh test_druntime
