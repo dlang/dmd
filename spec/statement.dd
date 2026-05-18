@@ -1274,6 +1274,9 @@ $(H3 $(LNAME2 foreach_restrictions, Foreach Restrictions))
         while `foreach` is iterating over the elements.
         )
 
+        $(UNDEFINED_BEHAVIOR If one of those operations occurs and it is `@system`.)
+        $(IMPLEMENTATION_DEFINED If resizing or reassignment occurs and it is `@safe`.)
+
 --------------
 int[] a = [1, 2, 3];
 auto fun = { a ~= 4; };
