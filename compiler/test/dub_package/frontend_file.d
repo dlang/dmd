@@ -63,7 +63,7 @@ double average(int[] array)
 }
 }.replace("SIZE_T", size_t.sizeof == 8 ? "ulong" : "uint");
 
-    assert(generated.canFind(expected));
+    assert(generated.canFind(expected), generated);
 }
 
 /**

@@ -3455,8 +3455,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         if (dsym.semanticRun >= PASS.semanticdone)
             return;
-        import dmd.iasm : asmSemantic;
-        asmSemantic(dsym, sc);
+        version (NoBackend) {}
+        else
+        {
+            import dmd.iasm : asmSemantic;
+            asmSemantic(dsym, sc);
+        }
         dsym.semanticRun = PASS.semanticdone;
     }
 

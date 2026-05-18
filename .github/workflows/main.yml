@@ -159,6 +159,9 @@ jobs:
           arch: ${{ env.MODEL == '64' && 'x64' || 'x86' }}
       - name: Test dmd
         run: ci/run.sh test_dmd
+      - name: Test frontend subpackage
+        if: '!matrix.coverage && (success() || failure()) && (matrix.host_dmd == ''dmd'' || matrix.host_dmd == ''dmd-latest'')'
+        run: ci/run.sh test_frontend_subpackage
       - name: Test druntime
         if: '!matrix.coverage && (success() || failure())'
         run: ci/run.sh test_druntime
@@ -257,6 +260,12 @@ jobs:
             echo '::group::Test dmd'
             ci/run.sh test_dmd
             echo '::endgroup::'
+
+            if [ "$HOST_DMD" = "dmd" ]; then
+              echo '::group::Test frontend subpackage'
+              ci/run.sh test_frontend_subpackage
+              echo '::endgroup::'
+            fi
 
             echo '::group::Test druntime'
             ci/run.sh test_druntime
