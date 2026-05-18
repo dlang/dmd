@@ -8633,6 +8633,7 @@ struct Id final
     static Identifier* opOpAssign;
     static Identifier* opIndexOpAssign;
     static Identifier* opSliceOpAssign;
+    static Identifier* opUnwrapIfTrue;
     static Identifier* classNew;
     static Identifier* classDelete;
     static Identifier* apply;
