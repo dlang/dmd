@@ -159,6 +159,9 @@ jobs:
           arch: ${{ env.MODEL == '64' && 'x64' || 'x86' }}
       - name: Test dmd
         run: ci/run.sh test_dmd
+      - name: Test dub package
+        if: '!matrix.coverage && (success() || failure())'
+        run: ci/run.sh test_dub_package
       - name: Test druntime
         if: '!matrix.coverage && (success() || failure())'
         run: ci/run.sh test_druntime
@@ -256,6 +259,10 @@ jobs:
 
             echo '::group::Test dmd'
             ci/run.sh test_dmd
+            echo '::endgroup::'
+
+            echo '::group::Test dub package'
+            ci/run.sh test_dub_package
             echo '::endgroup::'
 
             echo '::group::Test druntime'
