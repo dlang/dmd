@@ -172,7 +172,7 @@ test_dub_package() {
         echo "Skipping DUB examples on GDC."
     else
         local abs_build_path="$PWD/$build_path"
-        pushd test/dub_package
+        pushd compiler/test/dub_package
         for file in *.d ; do
             dubcmd=""
             # running impvisitor is failing right now
@@ -186,7 +186,7 @@ test_dub_package() {
         done
         popd
         # Test rdmd build
-        "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jsrc/dmd/res -Isrc -i -run test/dub_package/frontend.d
+        "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jcompiler/src/dmd/res -Icompiler/src -i -run compiler/test/dub_package/frontend.d
     fi
     if [ "$OS_NAME" != "windows" ]; then
         deactivate

@@ -35,6 +35,7 @@ common_steps_template: &COMMON_STEPS_TEMPLATE
       ./ci/run.sh test_dmd
     fi
 
+  test_dub_package_script: \[ "${DMD_TEST_COVERAGE:-0}" == "1" \] || ./ci/run.sh test_dub_package
   test_druntime_script: \[ "${DMD_TEST_COVERAGE:-0}" == "1" \] || ./ci/run.sh test_druntime
   test_phobos_script: \[ "${DMD_TEST_COVERAGE:-0}" == "1" \] || ./ci/run.sh test_phobos
 
