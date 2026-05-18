@@ -1,0 +1,19 @@
+Attribute violations in default arguments now emit deprecations
+
+Calling an impure, `@system`, or non-`@nogc` function in a default argument
+of a `pure`, `@safe`, or `@nogc` function was silently accepted.
+These violations are now reported as deprecations.
+
+```d
+int stderr() => 0;
+void write(int outfile = stderr()) pure {}
+
+void main() pure
+{
+    write(); // stderr() gets inserted as argument
+}
+```
+
+$(CONSOLE
+test.d(2): Deprecation: `pure` function `main` calling impure function `stderr` in default argument
+)
