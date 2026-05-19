@@ -100,8 +100,8 @@ void genhdrfile(Module m, bool doFuncBodies, ref OutBuffer buf)
 /**
  * Convert `o` to a string for error messages.
  * Params:
- *      e = object to convert
- * Returns: string representation of `e`
+ *      o = object to convert
+ * Returns: string representation of `o`
  */
 const(char)* toErrMsg(const RootObject o)
 {
