@@ -1259,16 +1259,7 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
     bzeroSymbol = null;
     rtlsym_reset();
     clearStringTab();
-
-    version (Windows)
-    {
-        import dmd.backend.mscoffobj;
-        objmod = MsCoffObj_init(&objbuf, srcfile, null);
-    }
-    else
-    {
-        objmod = Obj.initialize(&objbuf, srcfile, null);
-    }
+    objmod = Obj.initialize(&objbuf, srcfile, null);
 
     OutBuffer buf;
     buf.write("DMD ");
