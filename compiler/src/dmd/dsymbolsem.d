@@ -3768,8 +3768,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         const len = buf.length;
         buf.writeByte(0);
         const str = buf.extractSlice()[0 .. len];
-        const bool doUnittests = global.params.parsingUnittestsRequired();
-        scope p = new Parser!ASTCodegen(sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
+        auto mod = sc._module;
+        const bool doUnittests = global.params.parsingUnittestsRequired(mod.isRoot);
+        scope p = new Parser!ASTCodegen(mod, str, false, global.errorSink, &global.compileEnv, doUnittests);
         adjustLocForMixin(str, cd.loc, *p.baseLoc, global.params.mixinOut);
         p.linnum = p.baseLoc.startLine;
         p.nextToken();
@@ -4723,7 +4724,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
 
-        if (global.params.useUnitTests)
+        auto use = global.params.useUnitTests;
+        if (use && global.params.useUnitTestsRootOnly)
+        {
+            auto m = sc._module;
+            if (m && !m.isRoot())
+                use = false;
+        }
+        if (use)
         {
             if (!utd.type)
                 utd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, utd.storage_class);

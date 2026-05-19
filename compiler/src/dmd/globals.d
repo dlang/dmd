@@ -165,6 +165,7 @@ extern (C++) struct Param
     bool vcg_ast;           // write-out codegen-ast
     DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
     bool useUnitTests;          // generate unittest code
+    bool useUnitTestsRootOnly;          // generate unittest code for root modules only
     bool useInline = false;     // inline expand functions
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
@@ -277,9 +278,9 @@ extern (C++) struct Param
     const(char)* timeTraceFile; /// File path of output file
 
     ///
-    bool parsingUnittestsRequired() @safe
+    bool parsingUnittestsRequired(bool isRoot) @safe
     {
-        return useUnitTests || ddoc.doOutput || dihdr.doOutput;
+        return (useUnitTests && (!useUnitTestsRootOnly || isRoot)) || ddoc.doOutput || dihdr.doOutput;
     }
 }
 
