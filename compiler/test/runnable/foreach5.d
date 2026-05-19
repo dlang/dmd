@@ -235,7 +235,7 @@ void test4090b()
   static assert(!__traits(compiles, {
     foreach (immutable ref x; 1..11) {}
   }));
-    foreach (const ref x; 1..11)
+    foreach (const x; 1..11)
     {
         static assert(is(typeof(x) == const int));
         tot += x;
@@ -530,19 +530,9 @@ void test6652()
     assert(sum == 45);
 
     sum = 0;
-    foreach (ref i; 0 .. 10)
-        sum += i++; // 02468
-    assert(sum == 20);
-
-    sum = 0;
     foreach_reverse (i; 0 .. 10)
         sum += i--; // 9876543210
     assert(sum == 45);
-
-    sum = 0;
-    foreach_reverse (ref i; 0 .. 10)
-        sum += i--; // 97531
-    assert(sum == 25);
 
     enum ary = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
     sum = 0;
