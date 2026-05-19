@@ -908,6 +908,8 @@ Ldone:
 
     funcdecl.semanticRun = PASS.semanticdone;
 
+    symbolForOpUDAOn(funcdecl, sc);
+
     /* Save scope for possible later use (if we need the
      * function internals)
      */
