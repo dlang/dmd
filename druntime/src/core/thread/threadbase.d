@@ -182,7 +182,18 @@ class ThreadBase
      *  Any exception not handled by this thread if rethrow = false, null
      *  otherwise.
      */
-    abstract Throwable join(bool rethrow = true);
+    abstract Throwable join(bool rethrow = true)
+    {
+        if ( m_unhandled )
+        {
+            if ( rethrow )
+                throw m_unhandled;
+
+            return m_unhandled;
+        }
+
+        return null;
+    }
 
     /**
      * Filter any exceptions that escaped the thread entry point.

@@ -563,6 +563,8 @@ SRCS=\
 	src\core\thread\threadgroup.d \
 	src\core\thread\threadbase.d \
 	src\core\thread\osthread.d \
+	src\core\thread\posix_impl.d \
+	src\core\thread\windows_impl.d \
 	src\core\thread\context.d \
 	src\core\thread\package.d \
 	\
