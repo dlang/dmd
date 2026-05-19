@@ -4,10 +4,6 @@
  * need to pass the x86 compiler.
  */
 
-import core.stdc.stdio;
-
-/******************************************************/
-
 pragma(inline, false)
 {
 ulong movregconst64_0()  { return 0x123456789abcdef0; }
@@ -30,34 +26,33 @@ uint movregconst32_4() { return 0xAAAAAAAA; }
 uint movregconst32_5() { return 0xFFFFFFFF; }
 }
 
-void testmovregconst()
+// Returns nonzero if any value is wrong
+int testmovregconst()
 {
-    assert(movregconst64_0() == 0x123456789abcdef0);
-    assert(movregconst64_1() == 0x12345678);
-    assert(movregconst64_2() == 0xFFFF5678);
-    assert(movregconst64_3() == 0x1234FFFF);
-    assert(movregconst64_4() == 0xFFFF_FFFF_FFFF_1234);
-    assert(movregconst64_5() == 0xFFFF_FFFF_1234_FFFF);
-    assert(movregconst64_6() == 0xFFFF_1234_FFFF_FFFF);
-    assert(movregconst64_7() == 0x1234_FFFF_FFFF_FFFF);
-    assert(movregconst64_8() == 0x5555_5555_5555_5555);
-    assert(movregconst64_9() == 0xAAAA_AAAA_AAAA_AAAA);
-    assert(movregconst64_10() == 0xFFFF_FFFF_FFFF_FFFE);
-
-    assert(movregconst32_0() == 0x12345678);
-    assert(movregconst32_1() == 0xFFFF5678);
-    assert(movregconst32_2() == 0x1234FFFF);
-    assert(movregconst32_3() == 0x55555555);
-    assert(movregconst32_4() == 0xAAAAAAAA);
-    assert(movregconst32_5() == 0xFFFFFFFF);
+    int r;
+    r |= movregconst64_0()  != 0x123456789abcdef0;
+    r |= movregconst64_1()  != 0x12345678;
+    r |= movregconst64_2()  != 0xFFFF5678;
+    r |= movregconst64_3()  != 0x1234FFFF;
+    r |= movregconst64_4()  != 0xFFFF_FFFF_FFFF_1234;
+    r |= movregconst64_5()  != 0xFFFF_FFFF_1234_FFFF;
+    r |= movregconst64_6()  != 0xFFFF_1234_FFFF_FFFF;
+    r |= movregconst64_7()  != 0x1234_FFFF_FFFF_FFFF;
+    r |= movregconst64_8()  != 0x5555_5555_5555_5555;
+    r |= movregconst64_9()  != 0xAAAA_AAAA_AAAA_AAAA;
+    r |= movregconst64_10() != 0xFFFF_FFFF_FFFF_FFFE;
+    r |= movregconst32_0()  != 0x12345678;
+    r |= movregconst32_1()  != 0xFFFF5678;
+    r |= movregconst32_2()  != 0x1234FFFF;
+    r |= movregconst32_3()  != 0x55555555;
+    r |= movregconst32_4()  != 0xAAAAAAAA;
+    r |= movregconst32_5()  != 0xFFFFFFFF;
+    return r;
 }
 
 /******************************************************/
 
-int main()
+extern(C) int main()
 {
-    testmovregconst();
-
-    printf("Success\n");
-    return 0;
+    return testmovregconst();
 }
