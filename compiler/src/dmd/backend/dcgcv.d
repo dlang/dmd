@@ -959,14 +959,17 @@ idx_t cv4_struct(Classsym* s,int flags)
     return s.Stypidx;
 }
 
+/* Write a forward-reference enum record for the linker to fold with
+ * the full definition emitted by cv4_Denum (via toDebug).
+ * Params:
+ *  s   = enum tag symbol
+ *  bty = CV base type code for the enum's integer base type
+ */
 @trusted
-private uint cv4_fwdenum(type* t)
+private uint cv4_fwdenum(Symbol* s, uint bty)
 {
-    Symbol* s = t.Ttag;
-
-    // write a forward reference enum record that is enough for the linker to
-    // fold with original definition from EnumDeclaration
-    uint bty = dttab4[tybasic(t.Tnext.Tty)];
+    if (s.Stypidx)
+        return s.Stypidx;
     const id = prettyident(s);
     uint len = config.fulltypes == CV8 ? 14 : 10;
     debtyp_t* d = debtyp_alloc(len + cv_stringbytes(id));
@@ -981,7 +984,7 @@ private uint cv4_fwdenum(type* t)
             break;
 
         case CV4:
-            TOWORD(d.data.ptr,LF_ENUM);
+            TOWORD(d.data.ptr, LF_ENUM);
             TOWORD(d.data.ptr + 2, 0);    // count
             TOWORD(d.data.ptr + 4, bty);  // memtype
             TOLONG(d.data.ptr + 6, 0);    // fieldlist
@@ -1055,6 +1058,8 @@ uint cv4_typidx(type* t)
     if (!t)
         return dttab4[TYint];           // assume int
     type_debug(t);
+    if (t.Tflags & TF.denum)
+        return cv4_fwdenum(t.Ttag, dttab4[tybasic(t.Tty)]);
     next = cv4_typidx(t.Tnext);
     tycv = t.Tty;
     tym = tybasic(tycv);
@@ -1425,7 +1430,7 @@ else
             {
             }
             else
-                typidx = cv4_fwdenum(t);
+                typidx = cv4_fwdenum(t.Ttag, dttab4[tybasic(t.Tnext.Tty)]);
             break;
 
         case TYref:

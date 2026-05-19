@@ -1,0 +1,6 @@
+DWARF debug info now includes enum members
+
+The DMD compiler now generates `DW_TAG_enumerator` entries for D enum members in DWARF debug info.
+Previously, enum types were always emitted as forward references with no member information.
+
+Debuggers can now inspect enum member names and values for `int`-based enums.
