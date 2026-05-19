@@ -30,11 +30,12 @@ void format8(string spec, S8[1] s)
     assert (spec    == "lengthy");
     assert (s[0].m  == 42);
 }
-struct S42 { ubyte[42] m = [42]; }
+struct S42 { ubyte[42] m = [42, ...]; }
 void format42(string spec, S42[1] s)
 {
     assert (spec        == "lengthy");
     assert (s[0].m[0]   == 42);
+    assert (s[0].m[1]   == 0);
 }
 
 void main()

@@ -108,6 +108,7 @@ template imported()
 alias myImport = vcg_ast_import;
 enum bool compiles = true;
 enum bool isexp = true;
+int[3] arr = [1, ...];
 R!int
 {
 	struct _R
