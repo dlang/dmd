@@ -1994,6 +1994,7 @@ extern (D) Expression doCopyOrMove(Scope* sc, Expression e, Type t, bool nrvo, b
  *    (tmp = e),tmp
  * Params:
  *      sc = just used to specify the scope of created temporary variable
+ *      e = the expression to copy-construct
  *      destinationType = the type of the object on which the copy constructor is called;
  *                        may be null if the struct defines a postblit
  *      nrvo = true if the generated copy can be treated as NRVO

@@ -97,8 +97,8 @@ This needs to be done $(I before) calling any function.
 Params:
     diagnosticHandler = a delegate to configure what to do with diagnostics (other than printing to console or stderr).
     fatalErrorHandler = a delegate to configure what to do with fatal errors (default is to call exit(EXIT_FAILURE)).
-    contractChecks = indicates which contracts should be enabled or not
     versionIdentifiers = a list of version identifiers that should be enabled
+    contractChecks = indicates which contracts should be enabled or not
 */
 void initDMD(
     DiagnosticHandler diagnosticHandler = null,

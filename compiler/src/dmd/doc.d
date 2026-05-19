@@ -964,6 +964,7 @@ immutable ddoc_decl_dd_e = ")\n";
  *  respectBackslashEscapes = if true, always replace parentheses that are
  *    directly preceeded by a backslash with $(LPAREN) or $(RPAREN) instead of
  *    counting them as stray parentheses
+ *  eSink = send error messages to eSink
  */
 private void escapeStrayParenthesis(Loc loc, ref OutBuffer buf, size_t start, bool respectBackslashEscapes, ErrorSink eSink)
 {
