@@ -48,6 +48,8 @@ import dmd.backend.type;
 import dmd.backend.mach;
 import dmd.backend.obj;
 
+private:
+
 public void ObjcGlue_initialize()
 {
     if (target.objc.supported)
@@ -57,8 +59,6 @@ public void ObjcGlue_initialize()
 }
 
 package(dmd.glue):
-
-private __gshared Objcglue _objc;
 
 Objcglue objc()
 {
@@ -134,7 +134,14 @@ extern(C++) abstract class Objcglue
     abstract elem* getOffset(VarDeclaration var, Type type, elem* offset) const;
 }
 
+/********************************************************************************/
+/*                                private                                       */
+/********************************************************************************/
+
 private:
+
+private __gshared Objcglue _objc;
+
 
 extern(C++) final class Unsupported : Objcglue
 {
@@ -1561,8 +1568,6 @@ private:
     }
 }
 
-private:
-
 /*
  * Formats the given arguments into the given buffer.
  *
@@ -1576,6 +1581,7 @@ private:
  *
  * Returns: the formatted result, a slice of the given buffer
  */
+private
 char[] format(size_t bufLength, Args...)(return ref char[bufLength] buffer,
     const(char)* format, const Args args)
 {
@@ -1588,6 +1594,7 @@ char[] format(size_t bufLength, Args...)(return ref char[bufLength] buffer,
 }
 
 /// Returns: the symbol of the given selector
+private
 Symbol* toNameSymbol(const ObjcSelector* selector)
 {
     return Symbols.getMethVarName(selector.toString());
@@ -1600,6 +1607,7 @@ Symbol* toNameSymbol(const ObjcSelector* selector)
  *  dtb = the dt builder to add the symbol to
  *  symbol = the symbol to add
  */
+private
 void xoffOrNull(ref DtBuilder dtb, Symbol* symbol) @safe
 {
     if (symbol)
