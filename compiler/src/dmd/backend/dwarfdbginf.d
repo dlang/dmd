@@ -925,7 +925,8 @@ static if (1)
                 err_nomem();
             memcpy(name, getSymName(sfunc), len);
             memcpy(name + len, ".eh".ptr, 3 + 1);
-            fdesym = symbol_name(name[0 .. len + 3], SC.global, tspvoid);
+            SC sclass = (config.target_cpu == TARGET_AArch64) ? SC.locstat : SC.global;
+            fdesym = symbol_name(name[0 .. len + 3], sclass, tspvoid);
             Obj.pubdef(dfseg, fdesym, startsize);
             symbol_keep(fdesym);
             free(name);

@@ -900,6 +900,7 @@ void MachObj_term(const(char)[] objfilename)
                                   r.rtype == REL.add     ? "add"  :
                                   r.rtype == REL.rel26   ? "rel26"  :
                                                            "rel";
+                //if (s) printf("seg: %d targsym %s funcsym %s\n", seg, s ? s.Sident.ptr : "null", r.funcsym ? r.funcsym.Sident.ptr : "null");
                 relocation_info rel;
                 scattered_relocation_info srel;
                 if (machobj.AArch64)
@@ -912,6 +913,10 @@ void MachObj_term(const(char)[] objfilename)
                         {   symbol_print(*s);
                             printf("%d:x%04llx isCode %x : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, pseg.isCode(), r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
                         }
+                        if (0)//s.Sclass == SC.locstat)
+                        {   symbol_print(*s);
+                            printf("%d:x%04llx isCode %x : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, pseg.isCode(), r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
+                        }
                         if (r.flag == 1)  // emit SUBTRACTOR/UNSIGNED pair
                         {
                             //printf("rel1\n");
@@ -920,7 +925,7 @@ void MachObj_term(const(char)[] objfilename)
                             rel.r_symbolnum = r.funcsym.Sxtrnnum;
                             rel.r_pcrel = 0;
                             rel.r_length = 3;
-                            rel.r_extern = 1;
+                            rel.r_extern = r.funcsym.Sclass == SC.locstat ? 0 : 1;
                             machobj.fobjbuf.write(&rel, rel.sizeof);
                             foffset += (rel).sizeof;
                             ++nreloc;
@@ -1003,7 +1008,7 @@ void MachObj_term(const(char)[] objfilename)
                                     rel.r_address = cast(int)r.offset;
                                     rel.r_symbolnum = s.Sxtrnnum;
                                     rel.r_length = 2;
-                                    rel.r_extern = 1;
+                                    rel.r_extern = 1; // 0?
                                     machobj.fobjbuf.write(&rel, rel.sizeof);
                                     foffset += rel.sizeof;
                                     nreloc++;
@@ -1040,8 +1045,16 @@ void MachObj_term(const(char)[] objfilename)
                             {
                                 rel.r_address = cast(int)r.offset;
                                 rel.r_symbolnum = s.Sxtrnnum;
-                                rel.r_pcrel = 0;
-                                rel.r_length = 3;
+                                if (r.rtype == REL.rel)
+                                {
+                                    rel.r_pcrel = 1;
+                                    rel.r_length = 2;
+                                }
+                                else
+                                {
+                                    rel.r_pcrel = 0;
+                                    rel.r_length = 3;
+                                }
                                 rel.r_extern = 1;
                                 rel.r_type = ARM64_RELOC_UNSIGNED; // RELOC_POINTER_TO_GOT?
                                 machobj.fobjbuf.write(&rel, rel.sizeof);
@@ -2508,6 +2521,7 @@ void MachObj_pubdef(int seg, Symbol* s, targ_size_t offset)
             }
             goto default;
         default:
+            //printf("Writing to local symbuf: %s\n", s.Sident.ptr);
             machobj.local_symbuf.write((&s)[0 .. 1]);
             break;
     }
@@ -2707,7 +2721,7 @@ size_t MachObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
 void MachObj_addrel(int seg, targ_size_t offset, Symbol* targsym,
         uint targseg, REL rtype, int val = 0)
 {
-    //printf("MachObj_addrel()\n");
+    //printf("MachObj_addrel() %s\n", targsym.Sident.ptr);
     Relocation rel = void;
     rel.offset = offset;
     rel.targsym = targsym;
@@ -2993,10 +3007,10 @@ int MachObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol* s, targ_size_
     {
         debug printf("\nMachObj_reftoidentAArch64('%s' seg %d, offset x%llx, val x%llx, flags x%x) ",
                      s.Sident.ptr,seg,cast(ulong)offset,cast(ulong)val,flags);
-        CF_print(flags);
-        debug printf("retsize = %d\n", retsize);
+        //CF_print(flags);
+        //debug printf("retsize = %d\n", retsize);
         //dbg_printf("Sseg = %d, Sxtrnnum = %d\n",s.Sseg,s.Sxtrnnum);
-        symbol_print(*s);
+        //symbol_print(*s);
     }
     assert(seg > 0);
     if (s.Sclass != SC.locstat && !s.Sxtrnnum)
@@ -3177,10 +3191,14 @@ void MachObj_write_pointerRef(Symbol* s, uint off)
  * Returns:
  *      number of bytes written at seg:offset
  */
+@trusted
 int mach_dwarf_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val)
 {
     //printf("dwarf_reftoident(seg=%d offset=x%x s=%s val=x%x\n", seg, cast(int)offset, s.Sident.ptr, cast(int)val);
-    MachObj_reftoident(seg, offset, s, val + 4, I64 ? CFoff : CFindirect);
+    if (machobj.AArch64)
+        MachObj_reftoident(seg, offset, s, val + 4, CFselfrel);
+    else
+        MachObj_reftoident(seg, offset, s, val + 4, I64 ? CFoff : CFindirect);
     return 4;
 }
 
@@ -3216,7 +3234,7 @@ int mach_dwarf_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t va
 @trusted
 int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol* s, targ_size_t val, Symbol* fdesym)
 {
-    //printf("dwarf_eh_frame_fixup()\n");
+    //printf("dwarf_eh_frame_fixup() %s\n", fdesym.Sident.ptr);
     OutBuffer* buf = SegData[dfseg].SDbuf;
     assert(offset == buf.length());
     assert(fdesym.Sseg == dfseg);
