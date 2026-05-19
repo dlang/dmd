@@ -8545,6 +8545,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         assert(t1.ty == Tfunction);
 
+        // semantic on arguments and return type should not be delayed to infer attributes
+        Scope* sc2 = sc;
+        if (sc.deferSemantic3InCompilerHook)
+        {
+            sc = sc.push();
+            sc.deferSemantic3InCompilerHook = false;
+        }
+        scope(exit)
+        {
+            if (sc2 != sc)
+                sc.pop();
+        }
         Expression argprefix;
         if (!exp.arguments)
             exp.arguments = new Expressions();
@@ -10050,11 +10062,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (t1.ty == Tpointer)
                 t1 = t1.nextOf();
 
-            // __monitor is always void* regardless of shared - strip shared from the mod
-            auto t1mod = t1.mod;
-            if (exp.var.ident == Id.__monitor)
-                t1mod &= ~MODFlags.shared_;
-            exp.type = exp.type.addMod(t1mod);
+            exp.type = exp.type.addMod(t1.mod);
 
             // https://issues.dlang.org/show_bug.cgi?id=23109
             // Run semantic on the DotVarExp type
@@ -14888,14 +14896,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         auto arguments = new Expressions(ee.e1, ee.e2);
         auto ce = new CallExp(ee.loc, id, arguments);
+        Expression e = ce;
         if (ee.op == EXP.notEqual)
         {
             auto ne = new NotExp(ee.loc, ce);
             ne.loweredFrom = ee;
-            return ne.expressionSemantic(sc);
+            e = ne;
         }
-        ce.loweredFrom = ee;
-        return ce.expressionSemantic(sc);
+        else
+            ce.loweredFrom = ee;
+        auto sc2 = sc.push();
+        sc2.deferSemantic3InCompilerHook = true;
+        e = e.expressionSemantic(sc2);
+        sc2.pop();
+        return e;
     }
 
     override void visit(EqualExp exp)

@@ -2512,6 +2512,24 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return true;
         }
 
+        static bool shouldTryDeepSArrayDimInference(Expression ie, Scope* sc)
+        {
+            if (!ie)
+                return false;
+
+            // `new` expressions cannot provide a compile-time static extent
+            // for inferring `$`, and may recurse through incomplete aggregates.
+            if (ie.isNewExp())
+                return false;
+
+            // Field initializers are especially prone to recursive semantic
+            // evaluation against incompletely defined aggregates.
+            if (sc && sc.parent && sc.parent.isAggregateDeclaration())
+                return false;
+
+            return true;
+        }
+
         auto tsa = dsym.type.isTypeSArray();
 
         if (tsa && hasDollarDimension(tsa))
@@ -2520,19 +2538,37 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
                 tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
+                dsym._init = new ErrorInitializer();
+                dsym.type = Type.terror;
+                dsym.errors = true;
+                dsym.semanticRun = PASS.semanticdone;
+                return;
             }
             else
             {
                 Expression ie = dsym._init.initializerToExpression(null, sc.inCfile);
                 if (ie && ie.op != EXP.error)
                 {
-                    ie = ie.expressionSemantic(sc);
-                    ie = ie.optimize(WANTvalue);
+                    // Infer from literal syntax first to avoid prematurely
+                    // semantic-analyzing expressions that may depend on
+                    // incomplete types (e.g. recursive initializers).
+                    // https://github.com/dlang/dmd/issues/22887
                     bool dimInferred = inferSArrayDim(tsa, ie, dsym.loc, sc);
+                    if (!dimInferred && shouldTryDeepSArrayDimInference(ie, sc))
+                    {
+                        ie = ie.expressionSemantic(sc);
+                        ie = ie.optimize(WANTvalue);
+                        dimInferred = inferSArrayDim(tsa, ie, dsym.loc, sc);
+                    }
                     if (!dimInferred)
                     {
                         .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
                         tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
+                        dsym._init = new ErrorInitializer();
+                        dsym.type = Type.terror;
+                        dsym.errors = true;
+                        dsym.semanticRun = PASS.semanticdone;
+                        return;
                     }
                     if (auto ale = ie.isArrayLiteralExp())
                         dsym._init = new ExpInitializer(dsym.loc, ale);
@@ -5077,6 +5113,22 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return isCCompatible(ats.sym, bts.sym);
         }
 
+        // Treat arrays of anonymous structs/unions as compatible when element types match.
+        static bool isCCompatibleType(Type a, Type b)
+        {
+            if (a.equals(b))
+                return true;
+
+            if (TypeSArray asa = a.isTypeSArray())
+            {
+                TypeSArray bsa = b.isTypeSArray();
+                if (bsa && asa.dim && bsa.dim && asa.dim.toInteger() == bsa.dim.toInteger())
+                    return isCCompatibleType(asa.nextOf(), bsa.nextOf());
+            }
+
+            return isCCompatibleUnnamedStruct(a, b);
+        }
+
         if (a.fields.length != b.fields.length)
         {
             incompatError();
@@ -5133,7 +5185,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             //   their members such that each pair of corresponding
             //   members are declared with compatible types;
             //
-            if (!a_field.type.equals(b_field.type) && !isCCompatibleUnnamedStruct(a_field.type, b_field.type))
+            if (!isCCompatibleType(a_field.type, b_field.type))
             {
                 // Already errored, just bail
                 incompatError();
@@ -10077,6 +10129,8 @@ private extern(C++) class FinalizeSizeVisitor : Visitor
         {
             outerCd.alignsize = target.ptrsize;
             outerCd.structsize = target.ptrsize;      // allow room for __vptr
+            if (outerCd.hasMonitor())
+                outerCd.structsize += target.ptrsize; // allow room for __monitor
         }
 
         //printf("finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);

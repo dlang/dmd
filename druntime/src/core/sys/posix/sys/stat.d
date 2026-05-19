@@ -2030,10 +2030,12 @@ else version (Darwin)
         int stat(const scope char*, stat_t*);
     }
     int   fchmodat(int, const scope char*, mode_t, int);
-    int   futimens(int, ref const(timespec)[2]);
     int   mkdirat(int, const scope char*, mode_t);
-    int   mkfifoat(int, const scope char*, mode_t);
-    int   utimensat(int, const scope char*, ref const(timespec)[2], int);
+    // OSX available starting 10.12
+    //int   futimens(int, ref const(timespec)[2]);
+    //int   utimensat(int, const scope char*, ref const(timespec)[2], int);
+    // OSX available starting 13
+    //int   mkfifoat(int, const scope char*, mode_t);
 }
 else version (FreeBSD)
 {

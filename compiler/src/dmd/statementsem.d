@@ -1959,8 +1959,8 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             ss.condition = ErrorExp.get();
         ss.condition = ss.condition.optimize(WANTvalue);
         ss.condition = ss.condition.checkGC(sc);
-        if (ss.condition.op == EXP.error)
-            conditionError = true;
+        if (conditionError || ss.condition.op == EXP.error)
+            return setError();
 
         bool needswitcherror = false;
 
@@ -1989,7 +1989,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         ss._body = ss._body.statementSemantic(sc);
         sc.inLoop = inLoopSave;
 
-        if (conditionError || (ss._body && ss._body.isErrorStatement()))
+        if (ss._body && ss._body.isErrorStatement())
         {
             sc.pop();
             return setError();
@@ -2430,6 +2430,13 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             error(crs.loc, "had %llu cases which is more than 257 cases in case range", 1 + lval - fval);
             errors = true;
             lval = fval + 256;
+        }
+
+        // If the first and last values aren't integer types, then the toInteger()
+        // call above would have resulted in an error.
+        if  (!crs.first.type.isIntegral() || !crs.last.type.isIntegral())
+        {
+            errors = true;
         }
 
         if (errors)
@@ -3204,12 +3211,14 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 ss.exp = new CastExp(ss.loc, ss.exp, t);
                 ss.exp = ss.exp.expressionSemantic(sc);
             }
+
             if (!cd.hasMonitor())
             {
                 error(ss.loc, "cannot `synchronize` on a `%s` because `object.Object` has no `__monitor` field",
                       cd.toErrMsg());
                 return setError();
             }
+
             version (all)
             {
                 /* Rewrite as:
@@ -3562,7 +3571,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         // Don't care about paths that halt, either
         // Only rewrite if it was requested.
         // This has side effects where Error will not run destructors, unsafe.
-        if (global.params.rewriteNoExceptionToSeq && (blockexit & ~BE.halt) == BE.fallthru)
+        if (global.params.nothrowOptimizations && (blockexit & ~BE.halt) == BE.fallthru)
         {
             result = new CompoundStatement(tfs.loc, tfs._body, tfs.finalbody);
             return;

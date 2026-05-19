@@ -753,6 +753,14 @@ dmd -cov -unittest myprog.d
             function attribute for partial disabling of Exceptions instead,
             and only use this flag to globally disable Exceptions.",
         ),
+        Option("nothrow-optimizations",
+            "allow skipping destructors when an Error unwinds through a nothrow function",
+            `Controls whether $(D finally) blocks are emitted when the try body is $(D nothrow).
+             By default, finally blocks always run, ensuring cleanup on $(D Error) as well.
+             With this option, finally blocks are skipped in nothrow try bodies, which may prevent
+             destructors and scope(exit) blocks (which implicitly generate a try-finally block)
+             from running when an $(D Error) is thrown.`
+        ),
         Option("O",
             "optimize",
             `Optimize generated code. For fastest executables, compile

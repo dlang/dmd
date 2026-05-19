@@ -105,17 +105,11 @@ else version (AArch64)
     else version = WithArgTypes;
 }
 
-static assert(Object.__monitor.offsetof == size_t.sizeof);
-
 /**
  * All D class objects inherit from Object.
  */
 class Object
 {
-    // This is an internal field that is omitted from .tupleof, __traits(allMembers), pointer bitmaps etc.
-    // It can be removed in a custom druntime, but if it's there it must remain the first field.
-    void* __monitor;
-
     /**
      * Convert Object to a human readable string.
      */
@@ -3918,6 +3912,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 }
 
 
+import core.internal.array.capacity : _d_arraygetcapacity;
 // HACK:  This is a lie.  `_d_arraysetcapacity` is neither `nothrow` nor `pure`, but this lie is
 // necessary for now to prevent breaking code.
 import core.internal.array.capacity : _d_arraysetcapacityPureNothrow;
@@ -3937,9 +3932,7 @@ Note: The _capacity of a slice may be impacted by operations on other slices.
 @property size_t capacity(T)(T[] arr) pure nothrow @trusted
 {
     const isshared = is(T == shared);
-    alias Unqual_T = Unqual!T;
-    // The postblit of T may be impure, so we need to use the `pure nothrow` wrapper
-    return _d_arraysetcapacityPureNothrow!Unqual_T(0, cast(void[]*)&arr, isshared);
+    return _d_arraygetcapacity(T.sizeof, cast(void[]*)&arr, isshared);
 }
 
 ///
@@ -3963,6 +3956,18 @@ Note: The _capacity of a slice may be impacted by operations on other slices.
         assert(a.capacity == b.capacity + 1); //both a and b share the same tail
     }
     assert(c.capacity == 0);              //an append to c must relocate c.
+}
+
+// https://github.com/dlang/dmd/issues/23102
+@safe unittest
+{
+    static struct S
+    {
+        @disable this(this);
+    }
+
+    S[] s;
+    auto c = s.capacity;
 }
 
 /**

@@ -425,6 +425,21 @@ void testShared()
     cast(void)iprocesses.byKeyValue;
     //iprocesses.remove(3);
     assert(2 in iprocesses);
+
+    const shared int[int] cprocesses = [1: 1, 2:4, 3:9];
+
+    cast(void)cprocesses.sizeof;
+    cast(void)cprocesses.length;
+    cast(void)cprocesses.dup;          // fails in 2.111
+    //cast(void)cprocesses.rehash;
+    //cast(void)cprocesses.clear;
+    //cast(void)cprocesses.keys;       // fails in 2.111
+    //cast(void)cprocesses.values;     // fails in 2.111
+    //cast(void)cprocesses.byKey;      // fails in 2.111
+    //cast(void)cprocesses.byValue;    // fails in 2.111
+    //cast(void)cprocesses.byKeyValue; // fails in 2.111
+    //cprocesses.remove(3);
+    assert(2 in cprocesses);
 }
 
 // https://github.com/dlang/dmd/issues/22556
@@ -443,6 +458,46 @@ void test22556()
     static assert(!__traits(compiles, foo.clear));
 }
 
+// https://github.com/dlang/dmd/issues/23064
+void test23064()
+{
+    static struct A(T)
+    {
+        static assert(is(typeof((T[string]).init == (T[string]).init)),
+                      "is(typeof(...)) is false for " ~ (T[string]).stringof);
+    }
+
+    static struct B { A!B x; }
+}
+
+// https://github.com/dlang/dmd/issues/23065
+void test23065()
+{
+    static struct C(T)
+    {
+        bool opEquals(R)(R rhs)
+            if (is(typeof(T.init == T.init)))
+            {
+                return false;
+            }
+    }
+
+    static struct A(T)
+    {
+        alias _ = C!(T[string]);
+
+        bool opEquals()(A rhs)
+        {
+            T[string] v;
+            return v == v;
+        }
+    }
+
+    static struct B { A!B x; }
+
+    A!B a;
+    a == a;
+}
 /***************************************************/
 
 // https://github.com/dlang/dmd/issues/22567

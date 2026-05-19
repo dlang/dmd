@@ -1085,9 +1085,6 @@ public:
 
         if (adparent)
         {
-            if (vd.ident && vd.ident == Id.__monitor)
-                return;
-
             writeProtection(vd.visibility.kind);
             typeToBuffer(type, vd, true);
             buf.writestringln(";");
