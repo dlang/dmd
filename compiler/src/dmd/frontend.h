@@ -370,6 +370,7 @@ enum class MessageStyle : uint8_t
     digitalmars = 0u,
     gnu = 1u,
     sarif = 2u,
+    diagreport = 3u,
 };
 
 struct SourceLoc final
