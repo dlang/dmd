@@ -44,8 +44,6 @@ else
 enum IDMAX = 900;              // identifier max (excluding terminating 0)
 enum IDOHD = 4+1+int.sizeof*3; // max amount of overhead to ID added by
 
-struct token_t;
-
 alias Funcsym = Symbol;
 
 alias symlist_t = list_t;
@@ -492,10 +490,6 @@ struct func_t
     elem* Fbaseinit;            // list of member initializers (meminit_t)
                                 // this field has meaning only for
                                 // functions which are constructors
-    token_t* Fbody;             // if deferred parse, this is the list
-                                // of tokens that make up the function
-                                // body
-                                // also used if SCfunctempl, SCftexpspec
     uint Fsequence;             // sequence number at point of definition
     Symbol* Ftempl;         // if Finstance this is the template that generated it
     Funcsym* Falias;            // SCfuncalias: function Symbol referenced
@@ -885,29 +879,11 @@ const(char)* prettyident(const Symbol* s) { return &s.Sident[0]; }
  * Function parameters:
  *      Pident          identifier of parameter
  *      Ptype           type of argument
- *      Pelem           default value for argument
  *      Psym            symbol corresponding to Pident when using the
  *                      parameter list as a symbol table
- * For template-parameter-list:
- *      Pident          identifier of parameter
- *      Ptype           if NULL, this is a type-parameter
- *                      else the type for a parameter-declaration value argument
- *      Pelem           default value for value argument
- *      Pdeftype        default value for type-parameter
- *      Pptpl           template-parameter-list for template-template-parameter
- *      Psym            default value for template-template-parameter
- * For template-arg-list: (actual arguments)
- *      Pident          NULL
- *      Ptype           type-name
- *      Pelem           expression (either Ptype or Pelem is NULL)
- *      Psym            SCtemplate for template-template-argument
  */
 
 alias pflags_t = uint;
-enum
-{
-    PFexplicit = 1,       // this template argument was explicit, i.e. in < >
-}
 
 /************************
  * Params:
@@ -930,33 +906,19 @@ nothrow:
 
     char* Pident;               // identifier
     type* Ptype;                // type of parameter (NULL if not known yet)
-    elem* Pelem;                // default value
-    token_t* PelemToken;        // tokens making up default elem
-    type* Pdeftype;             // Ptype==NULL: default type for type-argument
-    param_t* Pptpl;             // template-parameter-list for template-template-parameter
-    Symbol* Psym;
     param_t* Pnext;             // next in list
-    pflags_t Pflags;
 
-    param_t* createTal(param_t* p) // create template-argument-list blank from
-                                // template-parameter-list
-    { return param_t_createTal(&this, p); }
+    // number of parameters in list
+    uint length() { return param_t_length(&this); }
 
-    param_t* search(char* id) return // look for Pident matching id
-    { return param_t_search(&this, id); }
+    // print this param_t
+    void print() { param_t_print(&this); }
 
-    uint length()               // number of parameters in list
-    { return param_t_length(&this); }
-
-    void print()                // print this param_t
-    { param_t_print(&this); }
-
-    void print_list()           // print this list of param_t's
-    { param_t_print_list(&this); }
+    // print this list of param_t's
+    void print_list() { param_t_print_list(&this); }
 }
 
-import dmd.backend.dtype : param_t_print, param_t_print_list, param_t_length, param_t_createTal,
-    param_t_search, param_t_searchn;
+import dmd.backend.dtype : param_t_print, param_t_print_list, param_t_length;
 
 void param_debug(const param_t* p)
 {

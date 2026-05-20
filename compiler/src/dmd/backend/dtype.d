@@ -735,7 +735,6 @@ type* type_copy(type* t)
                         {
                             pn.Pident = cast(char*)mem_strdup(p.Pident);
                         }
-                        assert(!p.Pelem);
                     }
                 }
                 else if (tn.Tkey && typtr(tn.Tty))
@@ -861,58 +860,6 @@ type* type_setdependent(type* t)
     return t;
 }
 
-/************************************
- * Determine if type t is a dependent type.
- */
-
-@trusted
-int type_isdependent(type* t)
-{
-    Symbol* stempl;
-
-    //printf("type_isdependent(%p)\n", t);
-    //type_print(t);
-    type* tstart = t;
-    for (; t; t = t.Tnext)
-    {
-        type_debug(t);
-        if (t.Tflags & TF.dependent)
-            goto Lisdependent;
-        if (tyfunc(t.Tty) ||
-            tybasic(t.Tty) == TYtemplate
-           )
-        {
-            for (param_t* p = t.Tparamtypes; p; p = p.Pnext)
-            {
-                if (p.Ptype && type_isdependent(p.Ptype))
-                    goto Lisdependent;
-                if (p.Pelem && el_isdependent(p.Pelem))
-                    goto Lisdependent;
-            }
-        }
-        else if (type_struct(t) &&
-                 (stempl = t.Ttag.Sstruct.Stempsym) != null)
-        {
-            for (param_t* p = t.Ttag.Sstruct.Sarglist; p; p = p.Pnext)
-            {
-                if (p.Ptype && type_isdependent(p.Ptype))
-                    goto Lisdependent;
-                if (p.Pelem && el_isdependent(p.Pelem))
-                    goto Lisdependent;
-            }
-        }
-    }
-    //printf("\tis not dependent\n");
-    return 0;
-
-Lisdependent:
-    //printf("\tis dependent\n");
-    // Dependence on a dependent type makes this type dependent as well
-    tstart.Tflags |= TF.dependent;
-    return 1;
-}
-
-
 /*******************************
  * Recursively check if type u is embedded in type t.
  * Returns:
@@ -1003,14 +950,12 @@ void type_print(const type* t)
                 {   printf("\nTP%d (%p): ",i++,p);
                     fflush(stdout);
 
-                    printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pelem,p.Pnext);
+                    printf("Pident=%p,Ptype=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pnext);
                     param_debug(p);
                     if (p.Pident)
                         printf("'%s' ", p.Pident);
                     if (p.Ptype)
                         type_print(p.Ptype);
-                    if (p.Pelem)
-                        elem_print(p.Pelem);
                 }
             }
             break;
@@ -1023,7 +968,7 @@ void type_print(const type* t)
                 {   printf("\nP%d (%p): ",i++,p);
                     fflush(stdout);
 
-                    printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pelem,p.Pnext);
+                    printf("Pident=%p,Ptype=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pnext);
                     param_debug(p);
                     if (p.Pident)
                         printf("'%s' ", p.Pident);
@@ -1043,31 +988,13 @@ void type_print(const type* t)
 @trusted
 void param_t_print(const scope param_t* p)
 {
-    printf("Pident=%p,Ptype=%p,Pelem=%p,Psym=%p,Pnext=%p\n",p.Pident,p.Ptype,p.Pelem,p.Psym,p.Pnext);
+    printf("Pident=%p,Ptype=%p,Pnext=%p\n",p.Pident,p.Ptype,p.Pnext);
     if (p.Pident)
         printf("\tPident = '%s'\n", p.Pident);
     if (p.Ptype)
     {
         printf("\tPtype =\n");
         type_print(p.Ptype);
-    }
-    if (p.Pelem)
-    {
-        printf("\tPelem =\n");
-        elem_print(p.Pelem);
-    }
-    if (p.Pdeftype)
-    {
-        printf("\tPdeftype =\n");
-        type_print(p.Pdeftype);
-    }
-    if (p.Psym)
-    {
-        printf("\tPsym = '%s'\n", p.Psym.Sident.ptr);
-    }
-    if (p.Pptpl)
-    {
-        printf("\tPptpl = %p\n", p.Pptpl);
     }
 }
 
@@ -1150,10 +1077,6 @@ void param_free(param_t** pparamlst)
         pn = p.Pnext;
         type_free(p.Ptype);
         mem_free(p.Pident);
-        el_free(p.Pelem);
-        type_free(p.Pdeftype);
-        if (p.Pptpl)
-            param_free(&p.Pptpl);
 
         debug p.id = 0;
 
@@ -1175,49 +1098,6 @@ uint param_t_length(scope param_t* p)
     return nparams;
 }
 
-/*************************************
- * Create template-argument-list blank from
- * template-parameter-list
- * Input:
- *      ptali   initial template-argument-list
- */
-
-@trusted
-param_t* param_t_createTal(scope param_t* p, param_t* ptali)
-{
-    param_t* ptal = null;
-    param_t** pp = &ptal;
-
-    for (; p; p = p.Pnext)
-    {
-        *pp = param_calloc();
-        if (p.Pident)
-        {
-            // Should find a way to just point rather than dup
-            (*pp).Pident = cast(char*)mem_strdup(p.Pident);
-        }
-        if (ptali)
-        {
-            if (ptali.Ptype)
-            {
-                (*pp).Ptype = ptali.Ptype;
-                (*pp).Ptype.Tcount++;
-            }
-            if (ptali.Pelem)
-            {
-                elem* e = el_copytree(ptali.Pelem);
-                (*pp).Pelem = e;
-            }
-            (*pp).Psym = ptali.Psym;
-            (*pp).Pflags = ptali.Pflags;
-            assert(!ptali.Pptpl);
-            ptali = ptali.Pnext;
-        }
-        pp = &(*pp).Pnext;
-    }
-    return ptal;
-}
-
 /**********************************
  * Look for Pident matching id
  */
@@ -1231,49 +1111,6 @@ param_t* param_t_search(return scope param_t* p, const(char)* id)
             break;
     }
     return p;
-}
-
-/**********************************
- * Look for Pident matching id
- */
-
-@trusted
-int param_t_searchn(param_t* p, char* id)
-{
-    int n = 0;
-    for (; p; p = p.Pnext)
-    {
-        if (p.Pident && strcmp(p.Pident, id) == 0)
-            return n;
-        n++;
-    }
-    return -1;
-}
-
-/*************************************
- * Search for member, create symbol as needed.
- * Used for symbol tables for VLA's such as:
- *      void func(int n, int a[n]);
- */
-
-@trusted
-Symbol* param_search(const(char)* name, param_t** pp)
-{
-    Symbol* s = null;
-    param_t* p = (*pp).search(cast(char*)name);
-    if (p)
-    {
-        s = p.Psym;
-        if (!s)
-        {
-            s = symbol_calloc(p.Pident[0 .. strlen(p.Pident)]);
-            s.Sclass = SC.parameter;
-            s.Stype = p.Ptype;
-            s.Stype.Tcount++;
-            p.Psym = s;
-        }
-    }
-    return s;
 }
 
 // Return TRUE if type lists match.
