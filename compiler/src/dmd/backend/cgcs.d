@@ -434,7 +434,6 @@ void ecom(ref CGCS cgcs, ref elem* pe)
         // Explicitly list all the unary ops for speed
         case OPnot: case OPcom: case OPneg: case OPuadd:
         case OPabs: case OPrndtol: case OPrint:
-        case OPpreinc: case OPpredec:
         case OPbool: case OPstrlen: case OPs16_32: case OPu16_32:
         case OPs32_d: case OPu32_d: case OPd_s16: case OPs16_d: case OP32_16:
         case OPf_d:
@@ -445,7 +444,6 @@ void ecom(ref CGCS cgcs, ref elem* pe)
         case OPu64_128: case OPs64_128: case OP128_64:
         case OPs64_d: case OPd_u64: case OPu64_d:
         case OPstrctor: case OPu16_d: case OPd_u16:
-        case OParrow:
         case OPvoid:
         case OPbsf: case OPbsr: case OPbswap: case OPpopcnt: case OPvector:
         case OPld_u64:

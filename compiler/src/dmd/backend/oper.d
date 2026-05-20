@@ -230,17 +230,6 @@ enum
         OPinp,                  // input from I/O port
         OPoutp,                 // output to I/O port
 
-        // C++ operators
-        OPnew,                  // operator new
-        OPanew,                 // operator new[]
-        OPdelete,               // operator delete
-        OPadelete,              // operator delete[]
-        OPbrack,                // [] subscript
-        OParrow,                // for -> overloading
-        OParrowstar,            // for ->* overloading
-        OPpreinc,               // ++x overloading
-        OPpredec,               // --x overloading
-
         OPva_start,             // va_start intrinsic (dmd)
         OPprefetch,             // prefetch intrinsic (dmd)
 
@@ -680,8 +669,6 @@ static immutable string[OPMAX] debtab =
     OPmemcmp:  "memcmp",
     OPsetjmp:  "setjmp",
     OPnegass:  "negass",
-    OPpreinc:  "U++",
-    OPpredec:  "U--",
     OPstreq:   "streq",
     OPpostinc: "++",
     OPpostdec: "--",
@@ -769,8 +756,6 @@ static immutable string[OPMAX] debtab =
     OPld_u64:  "ld_u64",
     OPparam:   "param",
     OPsizeof:  "sizeof",
-    OParrow:   "->",
-    OParrowstar: "->*",
     OPcolon:   "colon",
     OPcolon2:  "colon2",
     OPbool:    "bool",
@@ -784,11 +769,6 @@ static immutable string[OPMAX] debtab =
     OPconst:   "const",
     OPvar:     "var",
     OPreg:     "reg",
-    OPnew:     "new",
-    OPanew:    "new[]",
-    OPdelete:  "delete",
-    OPadelete: "delete[]",
-    OPbrack:   "brack",
     OPframeptr: "frameptr",
     OPgot:     "got",
 
@@ -822,7 +802,7 @@ enum Ebinary =
         OPpostinc,OPpostdec,OPeq,OPaddass,OPminass,OPmulass,OPdivass,
         OPmodass,OPshrass,OPashrass,OPshlass,OPandass,OPxorass,OPorass,
         OPle,OPgt,OPlt,OPge,OPeqeq,OPne,OPparam,OPcall,OPcallns,OPcolon,OPcolon2,
-        OPbit,OPbrack,OParrowstar,OPmemcpy,OPmemcmp,OPmemset,
+        OPbit,OPmemcpy,OPmemcmp,OPmemset,
         OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
         OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
         OPinfo,OPpair,OPrpair,
@@ -837,7 +817,6 @@ enum Eunary =
     [
         OPnot,OPcom,OPind,OPaddr,OPneg,OPuadd,
         OPabs,OPrndtol,OPrint,
-        OPpreinc,OPpredec,
         OPbool,OPstrlen,
         OPb_8,OPs16_32,OPu16_32,OPd_s32,OPd_u32,
         OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,
@@ -847,7 +826,7 @@ enum Eunary =
         OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
         OP128_64,OPs64_128,OPu64_128,
         OPucall,OPucallns,OPstrpar,OPstrctor,OPu16_d,OPd_u16,
-        OParrow,OPnegass,OPtoprec,
+        OPnegass,OPtoprec,
         OPctor,OPdtor,OPsetjmp,OPvoid,
         OPbsf,OPbsr,OPbswap,OPpopcnt,
         OPddtor,
