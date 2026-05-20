@@ -1,5 +1,7 @@
 /**
- * Generate Mach-O object files
+ * Generate Mach-O object files.
+ * Does 64 bit X86_64 and 64 bit AArch64.
+ * 32 bit X86_64 is more or less abandoned.
  *
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
@@ -252,7 +254,7 @@ struct Relocation
     uint targseg;       // if !=0, then location is to be fixed up
                         // to address of start of this segment
     REL rtype;          // REL.address or REL.rel or REL.add
-    ubyte flag;         // 1: emit SUBTRACTOR/UNSIGNED pair
+    bool subtractor;    // true: emit SUBTRACTOR/UNSIGNED pair
     short val;          // 0, -1, -2, -4
 }
 
@@ -911,13 +913,13 @@ void MachObj_term(const(char)[] objfilename)
                         bool isPersonality = strcmp(s.Sident.ptr,  "_D6object8TypeInfo8opEqualsMxFNbNfxCQBbZb") == 0;
                         if (isPersonality)
                         {   symbol_print(*s);
-                            printf("%d:x%04llx isCode %x : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, pseg.isCode(), r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
+                            printf("%d:x%04llx isCode %x : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, pseg.isCode(), r.targseg, s ? s.Sident.ptr : "0", rs, r.subtractor);
                         }
                         if (0)//s.Sclass == SC.locstat)
                         {   symbol_print(*s);
-                            printf("%d:x%04llx isCode %x : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, pseg.isCode(), r.targseg, s ? s.Sident.ptr : "0", rs, r.flag);
+                            printf("%d:x%04llx isCode %x : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, pseg.isCode(), r.targseg, s ? s.Sident.ptr : "0", rs, r.subtractor);
                         }
-                        if (r.flag == 1)  // emit SUBTRACTOR/UNSIGNED pair
+                        if (r.subtractor)  // emit SUBTRACTOR/UNSIGNED pair
                         {
                             //printf("rel1\n");
                             rel.r_type = ARM64_RELOC_SUBTRACTOR;
@@ -1188,7 +1190,7 @@ void MachObj_term(const(char)[] objfilename)
                     {
                         //printf("Relocation\n");
                         //symbol_print(*s);
-                        if (r.flag == 1)  // emit SUBTRACTOR/UNSIGNED pair
+                        if (r.subtractor)  // emit SUBTRACTOR/UNSIGNED pair
                         {
                             if (I64)
                             {
@@ -2727,7 +2729,7 @@ void MachObj_addrel(int seg, targ_size_t offset, Symbol* targsym,
     rel.targsym = targsym;
     rel.targseg = targseg;
     rel.rtype = rtype;
-    rel.flag = 0;
+    rel.subtractor = false;
     rel.funcsym = funcsym_p;
     rel.val = cast(short)val;
     seg_data* pseg = SegData[seg];
@@ -2963,7 +2965,7 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
                     rel.targsym = null;
                     rel.targseg = machobj.pointersSeg;
                     rel.rtype = REL.address;
-                    rel.flag = 0;
+                    rel.subtractor = false;
                     rel.funcsym = null;
                     rel.val = 0;
                     seg_data* pseg2 = SegData[seg];
@@ -3248,7 +3250,7 @@ int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol* s, targ_size_t v
     rel.targsym = s;
     rel.targseg = 0;
     rel.rtype = REL.address;
-    rel.flag = 1;
+    rel.subtractor = true;
     rel.funcsym = fdesym;
     rel.val = 0;
     seg_data* pseg = SegData[dfseg];
