@@ -125,6 +125,8 @@ private struct FUNCFLAG
     bool hasReturnExp;         /// Has return exp; statement
     bool hasInlineAsm;         /// Has asm{} statement
     bool hasMultipleReturnExp; /// Has multiple return exp; statements
+
+    bool hasInferredAttributes; /// If it attempted to infer attributes
 }
 
 /***********************************************************

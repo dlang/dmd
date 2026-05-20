@@ -130,7 +130,7 @@ CT canThrow(Expression e, FuncDeclaration func, ErrorSink eSink)
              * then this expression cannot throw.
              * Note that pure functions can throw.
              */
-            if (ce.f && ce.f == func)
+            if (ce.f && ce.f == func && ce.f.hasInferredAttributes) // if recursive and inferred, leave it to inferrence
                 return;
             const tf = ce.calledFunctionType();
             if (tf && tf.isNothrow)

@@ -3835,6 +3835,8 @@ public:
     bool hasInlineAsm(bool v);
     bool hasMultipleReturnExp() const;
     bool hasMultipleReturnExp(bool v);
+    bool hasInferredAttributes() const;
+    bool hasInferredAttributes(bool v);
 private:
     uint32_t bitFields;
 public:

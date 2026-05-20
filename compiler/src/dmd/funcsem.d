@@ -1546,6 +1546,8 @@ private void initInferAttributes(FuncDeclaration fd)
 
     // Initialize for inferring STC.scope_
     fd.scopeInprocess = true;
+
+    fd.hasInferredAttributes = true;
 }
 
 /****************************************************
