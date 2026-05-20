@@ -296,7 +296,7 @@ static if (1)
             }
             return reg;
         }
-        else if (config.target_cpu == TARGET_AArch64)
+        else if (AArch64)
         {   // https://github.com/ARM-software/abi-aa/blob/main/aadwarf64/aadwarf64.rst#dwarf-register-names
             return (reg < 32) ? reg : reg - 32 + 64;
         }
@@ -652,7 +652,7 @@ static if (1)
          * EH code: "zPLR"
          */
 
-        const bool AArch64 = config.target_cpu == TARGET_AArch64;
+        const bool AArch64 = AArch64();
         const uint startsize = cast(uint)buf.length();
 
         // Length of CIE, not including padding
@@ -925,7 +925,7 @@ static if (1)
                 err_nomem();
             memcpy(name, getSymName(sfunc), len);
             memcpy(name + len, ".eh".ptr, 3 + 1);
-            SC sclass = (config.target_cpu == TARGET_AArch64) ? SC.locstat : SC.global;
+            SC sclass = AArch64 ? SC.locstat : SC.global;
             fdesym = symbol_name(name[0 .. len + 3], sclass, tspvoid);
             Obj.pubdef(dfseg, fdesym, startsize);
             symbol_keep(fdesym);
@@ -937,7 +937,7 @@ static if (1)
             /* Do not have info on naked functions. Assume they set up standard stack frame.
              */
             int cfa_offset;
-            dwarf_emit_eh_frame(config.target_cpu == TARGET_AArch64, 0, cfa_offset);
+            dwarf_emit_eh_frame(AArch64, 0, cfa_offset);
         }
 
         // Length of FDE, not including padding
@@ -965,7 +965,7 @@ static if (1)
         if (config.objfmt == OBJ_ELF)
         {
             fixup = I64 ? R_X86_64_PC32 : R_386_PC32;
-            if (config.target_cpu == TARGET_AArch64)
+            if (AArch64)
                 fixup = R_AARCH64_PREL32;
             buf.write32(cast(uint)(I64 ? 0 : sfunc.Soffset));             // address of function
             Obj.addrel(dfseg, startsize + 8, fixup, cast(int)MAP_SEG2SYMIDX(sfunc.Sseg), sfunc.Soffset);
@@ -1742,7 +1742,7 @@ static if (1)
         //printf("dwarf_func_start(%s)\n", sfunc.Sident.ptr);
         CFA_state* cfa_state = &CFA_state_current;
         memset(cfa_state,0,CFA_state.sizeof);
-        if (config.target_cpu == TARGET_AArch64)
+        if (AArch64)
         {
             cfa_state.reg      = INSTR.SP;
             cfa_state.offset   = OFFSET_FAC;
@@ -3324,3 +3324,6 @@ private char* filespecname(const(char)* filespec) nothrow
     { }
     return cast(char*)p;
 }
+
+private nothrow
+bool AArch64() { return config.target_cpu == TARGET_AArch64; }
