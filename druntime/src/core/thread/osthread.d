@@ -265,14 +265,6 @@ class Thread : ThreadBase
     {
     }
 
-    //
-    // Thread entry point.  Invokes the function or delegate passed on
-    // construction (if any).
-    //
-    private final void run()
-    {
-    }
-
     /**
      * Provides a reference to the calling thread.
      *
@@ -1855,7 +1847,7 @@ version (Windows)
                 rt_moduleTlsCtor();
                 try
                 {
-                    obj.run();
+                    obj.runFromEntryPoint();
                 }
                 catch ( Throwable t )
                 {
@@ -2023,7 +2015,7 @@ else version (Posix)
                 rt_moduleTlsCtor();
                 try
                 {
-                    obj.run();
+                    obj.runFromEntryPoint();
                 }
                 catch ( Throwable t )
                 {
