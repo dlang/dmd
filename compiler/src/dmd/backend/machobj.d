@@ -911,16 +911,19 @@ void MachObj_term(const(char)[] objfilename)
                     {
                         //printf("s.Sident: %s\n", s.Sident.ptr);
                         bool isPersonality = strcmp(s.Sident.ptr,  "_D6object8TypeInfo8opEqualsMxFNbNfxCQBbZb") == 0;
-                        if (isPersonality)
-                        {   symbol_print(*s);
-                            printf("%d:x%04llx isCode %x : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, pseg.isCode(), r.targseg, s ? s.Sident.ptr : "0", rs, r.subtractor);
-                        }
                         if (0)//s.Sclass == SC.locstat)
                         {   symbol_print(*s);
-                            printf("%d:x%04llx isCode %x : targseg %d targsym %s REL%s flag %d\n", seg, r.offset, pseg.isCode(), r.targseg, s ? s.Sident.ptr : "0", rs, r.subtractor);
+                            printf("%d:x%04llx isCode %x : targseg %d targsym %s REL%s subtractor %d\n", seg, r.offset, pseg.isCode(), r.targseg, s ? s.Sident.ptr : "0", rs, r.subtractor);
                         }
                         if (r.subtractor)  // emit SUBTRACTOR/UNSIGNED pair
                         {
+                            if (0)//s.Sclass == SC.locstat)
+                            {
+                                printf("----------------------------------------\n");
+                                symbol_print(*s);
+                                if (s) printf("seg: %d targsym: %s funcsym: %s\n", seg, s ? s.Sident.ptr : "null", r.funcsym ? r.funcsym.Sident.ptr : "null");
+                                printf("%d:x%04llx isCode %x : targseg %d targsym %s REL%s subtractor %d\n", seg, r.offset, pseg.isCode(), r.targseg, s ? s.Sident.ptr : "0", rs, r.subtractor);
+                            }
                             //printf("rel1\n");
                             rel.r_type = ARM64_RELOC_SUBTRACTOR;
                             rel.r_address = cast(int)r.offset;
@@ -1024,7 +1027,7 @@ void MachObj_term(const(char)[] objfilename)
                         }
                         else
                         {
-                            //printf("rel3\n");
+                            //printf("rel3*************************\n");
                             if (s.Sclass == SC.locstat && s.Sfl == FL.tlsdata)
                             {
                                 rel.r_address = cast(int)r.offset;
@@ -1068,17 +1071,29 @@ void MachObj_term(const(char)[] objfilename)
                             {
                                 rel.r_address = cast(int)r.offset;
                                 rel.r_symbolnum = s.Sseg;
-                                rel.r_pcrel = 0;
-                                rel.r_length = 3;
+                                if (r.rtype == REL.rel)
+                                {
+                                    rel.r_pcrel = 1;
+                                    rel.r_length = 2;
+                                }
+                                else
+                                {
+                                    rel.r_pcrel = 0;
+                                    rel.r_length = 3;
+                                }
                                 rel.r_extern = 0;
                                 rel.r_type = ARM64_RELOC_UNSIGNED;
                                 machobj.fobjbuf.write(&rel, rel.sizeof);
                                 foffset += rel.sizeof;
                                 nreloc++;
 
-                                int32_t* p = patchAddr64(seg, r.offset);
-                                // Absolute address; add in addr of start of targ seg
-                                *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
+                                //printf("rs: %s s.Soffset: x%zx\n", rs, s.Soffset);
+                                if (r.rtype == REL.address)
+                                {
+                                    int32_t* p = patchAddr64(seg, r.offset);
+                                    // Absolute address; add in addr of start of targ seg
+                                    *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
+                                }
                                 continue;
                             }
                         }
@@ -1157,11 +1172,12 @@ void MachObj_term(const(char)[] objfilename)
                     }
                     else
                     {
-                        //printf("r.rtype: %d r.targseg: %d r.offset: x%llx\n", r.rtype, r.targseg, cast(long)r.offset);
+                        //printf("rs: REL.%s r.targseg: %d r.offset: x%llx\n", rs, r.targseg, cast(long)r.offset);
                         rel.r_address = cast(int)r.offset;
                         rel.r_symbolnum = r.targseg;
                         rel.r_pcrel = (r.rtype == REL.address) ? 0 : 1;
-                        rel.r_length = 3;
+                        //printf("r_pcrel: %d\n", rel.r_pcrel);
+                        rel.r_length = (r.rtype == REL.address) ? 3 : 2;
                         rel.r_extern = 0;
                         rel.r_type = ARM64_RELOC_UNSIGNED;
 
@@ -3249,8 +3265,8 @@ int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol* s, targ_size_t v
     rel.offset = offset;
     rel.targsym = s;
     rel.targseg = 0;
-    rel.rtype = REL.address;
-    rel.subtractor = true;
+    rel.rtype = machobj.AArch64 ? REL.rel : REL.address;
+    rel.subtractor = !machobj.AArch64;
     rel.funcsym = fdesym;
     rel.val = 0;
     seg_data* pseg = SegData[dfseg];
