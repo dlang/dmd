@@ -696,11 +696,17 @@ static if (1)
             else if (config.objfmt == OBJ_MACH)
             {
                 personality_pointer_encoding =
-                            DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata4;
-                LSDA_pointer_encoding =
-                            DW_EH_PE_pcrel | DW_EH_PE_ptr;
-                address_pointer_encoding =
-                            DW_EH_PE_pcrel | DW_EH_PE_ptr;
+                           DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata4;
+                if (AArch64)
+                {
+                    LSDA_pointer_encoding    = DW_EH_PE_pcrel | DW_EH_PE_sdata4;
+                    address_pointer_encoding = DW_EH_PE_pcrel | DW_EH_PE_sdata4;
+                }
+                else
+                {
+                    LSDA_pointer_encoding    = DW_EH_PE_pcrel | DW_EH_PE_ptr;
+                    address_pointer_encoding = DW_EH_PE_pcrel | DW_EH_PE_ptr;
+                }
             }
             buf.writeByten(7);                                  // Augmentation Length
             buf.writeByten(personality_pointer_encoding);       // P: personality routine address encoding
@@ -974,7 +980,10 @@ static if (1)
         }
         if (config.objfmt == OBJ_MACH)
         {
-            dwarf_eh_frame_fixup(dfseg, buf.length(), sfunc, 0, fdesym);
+//printf("======= PC Begin sfunc %s fdesym %s\n", sfunc.Sident.ptr, fdesym.Sident.ptr);
+//symbol_print(*sfunc);
+//symbol_print(*fdesym);
+            dwarf_eh_frame_fixup(dfseg, buf.length(), sfunc, 0, fdesym); // PC Begin
 
             if (I64)
                 buf.write64(sfunc.Ssize);                     // PC Range
@@ -998,7 +1007,10 @@ static if (1)
             }
             if (config.objfmt == OBJ_MACH)
             {
-                buf.writeByten(I64 ? 8 : 4);                   // Augmentation Data Length
+                ubyte len = config.target_cpu == TARGET_AArch64 ? 4 :
+                              I64 ? 8 : 4;
+                buf.writeByten(len);                   // Augmentation Data Length goes here
+//printf("1buf.length: x%zx %s %s\n", buf.length(), sfunc.Sfunc.LSDAsym.Sident.ptr, fdesym.Sident.ptr);
                 dwarf_eh_frame_fixup(dfseg, buf.length(), sfunc.Sfunc.LSDAsym, 0, fdesym);
             }
         }
