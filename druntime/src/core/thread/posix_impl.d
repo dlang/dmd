@@ -1,5 +1,5 @@
 /**
- * The osthread module provides low-level, OS-dependent code
+ * The posix_impl module provides low-level Posix code
  * for thread creation and management.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2012.
