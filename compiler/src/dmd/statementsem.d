@@ -3500,26 +3500,6 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             return;
         }
 
-        /* If the try body never throws, we can eliminate any catches
-         * of recoverable exceptions.
-         */
-        if (!(tcs._body.blockExit(sc.func, null) & BE.throw_) && ClassDeclaration.exception)
-        {
-            foreach_reverse (i; 0 .. tcs.catches.length)
-            {
-                Catch c = (*tcs.catches)[i];
-
-                /* If catch exception type is derived from Exception
-                 */
-                if (c.type.toBasetype().implicitConvTo(ClassDeclaration.exception.type) &&
-                    (!c.handler || !c.handler.comeFrom()) && !sc.debug_)
-                {
-                    // Remove c from the array of catches
-                    tcs.catches.remove(i);
-                }
-            }
-        }
-
         if (tcs.catches.length == 0)
         {
             result = tcs._body.hasCode() ? tcs._body : null;
