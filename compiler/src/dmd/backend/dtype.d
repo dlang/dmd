@@ -268,7 +268,6 @@ uint type_paramsize(type* t)
 type* type_alloc(tym_t ty)
 {
 
-    assert(tybasic(ty) != TYtemplate);
     type* t;
     if (type_list)
     {
@@ -917,8 +916,6 @@ void type_print(const type* t)
     printf(" Tcount=%d",t.Tcount);
     if (!(t.Tflags & TF.sizeunknown) &&
         tybasic(t.Tty) != TYvoid &&
-        tybasic(t.Tty) != TYident &&
-        tybasic(t.Tty) != TYtemplate &&
         tybasic(t.Tty) != TYmfunc &&
         tybasic(t.Tty) != TYarray)
     {
@@ -928,36 +925,12 @@ void type_print(const type* t)
     switch (tybasic(t.Tty))
     {
         case TYstruct:
-        case TYmemptr:
             printf(" Ttag=%p,'%s'",t.Ttag,t.Ttag.Sident.ptr);
             //printf(" Sfldlst=%p",t.Ttag.Sstruct.Sfldlst);
             break;
 
         case TYarray:
             printf(" Tdim=%lld", cast(long)t.Tdim);
-            break;
-
-        case TYident:
-            printf(" Tident='%s'",t.Tident);
-            break;
-        case TYtemplate:
-            printf(" Tsym='%s'",(cast(typetemp_t*)t).Tsym.Sident.ptr);
-            {
-                int i;
-
-                i = 1;
-                for (const(param_t)* p = t.Tparamtypes; p; p = p.Pnext)
-                {   printf("\nTP%d (%p): ",i++,p);
-                    fflush(stdout);
-
-                    printf("Pident=%p,Ptype=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pnext);
-                    param_debug(p);
-                    if (p.Pident)
-                        printf("'%s' ", p.Pident);
-                    if (p.Ptype)
-                        type_print(p.Ptype);
-                }
-            }
             break;
 
         default:
@@ -1152,7 +1125,6 @@ int typematch(type* t1,type* t2,int relax)
 
             (tybasic(t1ty) != TYstruct
                 && tybasic(t1ty) != TYenum
-                && tybasic(t1ty) != TYmemptr
              || t1.Ttag == t2.Ttag)
                  &&
 

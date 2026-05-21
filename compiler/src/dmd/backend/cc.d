@@ -408,7 +408,6 @@ enum
 {
     Fpending    = 1,           // if function has been queued for being written
     Foutput     = 2,           // if function has been written out
-    Foperator   = 4,           // if operator overload
     Fcast       = 8,           // if cast overload
     Finline     = 0x10,        // if SCinline, and function really is inline
     Foverload   = 0x20,        // if function can be overloaded
@@ -418,7 +417,6 @@ enum
     Fvirtual    = 0x100,       // if function is a virtual function
     Fctor       = 0x200,       // if function is a constructor
     Fdtor       = 0x400,       // if function is a destructor
-    Fnotparent  = 0x800,       // if function is down Foversym chain
     Finlinenest = 0x1000,      // used as a marker to prevent nested
                                // inlines from expanding
     Flinkage    = 0x2000,      // linkage is already specified
@@ -473,31 +471,11 @@ struct func_t
     Symbol* F__func__;          // symbol for __func__[] string
     func_flags_t Fflags;
     func_flags3_t Fflags3;
-    ubyte Foper;                // operator number (OPxxxx) if Foperator
 
     Classsym* Fclass;           // if member of a class, this is the class
                                 // (I think this is redundant with Sscope)
-    Funcsym* Foversym;          // overloaded function at same scope
-    symlist_t Fclassfriends;    // Symbol list of classes of which this
-                                // function is a friend
-    block* Fbaseblock;          // block where base initializers get attached
-    block* Fbaseendblock;       // block where member destructors get attached
-    elem* Fbaseinit;            // list of member initializers (meminit_t)
-                                // this field has meaning only for
-                                // functions which are constructors
-    uint Fsequence;             // sequence number at point of definition
     Funcsym* Falias;            // SCfuncalias: function Symbol referenced
                                 // by using-declaration
-    symlist_t Fthunks;          // list of thunks off of this function
-    param_t* Farglist;          // SCfunctempl: the template-parameter-list
-    param_t* Fptal;             // Finstance: this is the template-argument-list
-                                // SCftexpspec: for explicit specialization, this
-                                // is the template-argument-list
-    list_t Ffwdrefinstances;    // SCfunctempl: list of forward referenced instances
-    list_t Fexcspec;            // List of types in the exception-specification
-                                // (NULL if none or empty)
-    Funcsym* Fexplicitspec;     // SCfunctempl, SCftexpspec: threaded list
-                                // of SCftexpspec explicit specializations
 
     char* Fredirect;            // redirect function name to this name in object
 

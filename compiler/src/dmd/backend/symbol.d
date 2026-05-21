@@ -505,50 +505,6 @@ debug
                 freesymtab(f.Flocsym[].ptr,0,f.Flocsym.length);
 
                 f.Flocsym.dtor();
-              if (CPP)
-              {
-                if (f.Fflags & Fnotparent)
-                {   debug if (debugy) printf("not parent, returning\n");
-                    return;
-                }
-
-                /* We could be freeing the symbol before its class is   */
-                /* freed, so remove it from the class's field list      */
-                if (f.Fclass)
-                {   list_t tl;
-
-                    symbol_debug(f.Fclass);
-                    tl = list_inlist(f.Fclass.Sstruct.Sfldlst,s);
-                    if (tl)
-                        list_setsymbol(tl, null);
-                }
-
-                if (f.Foversym && f.Foversym.Sfunc)
-                {   f.Foversym.Sfunc.Fflags &= ~Fnotparent;
-                    f.Foversym.Sfunc.Fclass = null;
-                    symbol_free(f.Foversym);
-                }
-
-                if (f.Fexplicitspec)
-                    symbol_free(f.Fexplicitspec);
-
-                /* If operator function, remove from list of such functions */
-                if (f.Fflags & Foperator)
-                {   assert(f.Foper && f.Foper < OPMAX);
-                    //if (list_inlist(cpp_operfuncs[f.Foper],s))
-                    //  list_subtract(&cpp_operfuncs[f.Foper],s);
-                }
-
-                list_free(&f.Fclassfriends,FPNULL);
-                list_free(&f.Ffwdrefinstances,FPNULL);
-                param_free(&f.Farglist);
-                param_free(&f.Fptal);
-                list_free(&f.Fexcspec,cast(list_free_fp)&type_free);
-
-
-                el_free(f.Fbaseinit);
-                list_free(&f.Fthunks,cast(list_free_fp)&symbol_free);
-              }
                 list_free(&f.Fsymtree,cast(list_free_fp)&symbol_free);
                 f.typesTable.dtor();
                 func_free(f);
@@ -556,21 +512,12 @@ debug
             switch (s.Sclass)
             {
                 case SC.struct_:
-                  if (!CPP)
-                  {
                     debug if (debugy)
                         printf("freeing members %p\n",s.Sstruct.Sfldlst);
 
                     list_free(&s.Sstruct.Sfldlst,FPNULL);
                     symbol_free(s.Sstruct.Sroot);
                     struct_free(s.Sstruct);
-                  }
-static if (0)       /* Don't complain anymore about these, ANSI C says  */
-{
-                    /* it's ok                                          */
-                    if (t && t.Tflags & TFsizeunknown)
-                        synerr(EM_unknown_tag,s.Sident.ptr);
-}
                     break;
                 case SC.enum_:
                     /* The actual member symbols are either in a local  */

@@ -194,7 +194,6 @@ private enum tytab_init =
     foreach (i; TXimaginary)  { tab[i] |= TYFLimaginary; }
     foreach (i; TXcomplex)    { tab[i] |= TYFLcomplex; }
     foreach (i; TXuns)        { tab[i] |= TYFLuns; }
-    foreach (i; TXmptr)       { tab[i] |= TYFLmptr; }
     foreach (i; TXfv)         { tab[i] |= TYFLfv; }
     foreach (i; TXfarfunc)    { tab[i] |= TYFLfarfunc; }
     foreach (i; TXpasfunc)    { tab[i] |= TYFLpascal; }
@@ -283,10 +282,6 @@ __gshared const(char)*[TYMAX] tystring =
         TYfref     : "__far &",
 
         TYifunc    : "interrupt func",
-        TYmemptr   : "memptr",
-        TYident    : "ident",
-        TYtemplate : "template",
-        TYvtshape  : "vtshape",
 
         TYschar     : "byte",
         TYuchar     : "ubyte",
@@ -542,10 +537,6 @@ __gshared ubyte[TYMAX] dttab =
     TYfref     : 0x00,
 
     TYifunc    : 0x64,
-    TYmemptr   : 0x00,
-    TYident    : 0x00,
-    TYtemplate : 0x00,
-    TYvtshape  : 0x00,
 ];
 
 /// Map to Codeview 4 type in debugger record
@@ -653,10 +644,6 @@ __gshared ushort[TYMAX] dttab4 =
     TYfref     : 0x00,
 
     TYifunc    : 0x00,
-    TYmemptr   : 0x00,
-    TYident    : 0x00,
-    TYtemplate : 0x00,
-    TYvtshape  : 0x00,
 ];
 
 /// Size of a type
@@ -765,10 +752,6 @@ __gshared byte[256] _tysize =
     TYfref     : 4,
 
     TYifunc    : -1,
-    TYmemptr   : -1,
-    TYident    : -1,
-    TYtemplate : -1,
-    TYvtshape  : -1,
 ];
 
 // set alignment after we know the target
@@ -880,10 +863,6 @@ __gshared byte[256] _tyalignsize =
     TYfref     : 4,
 
     TYifunc    : -1,
-    TYmemptr   : -1,
-    TYident    : -1,
-    TYtemplate : -1,
-    TYvtshape  : -1,
 ];
 
 
@@ -918,7 +897,6 @@ static immutable TXuns        = [ TYuchar,TYushort,TYuint,TYulong,
                      TYwchar_t,
                      TYuchar16,TYushort8,TYulong4,TYullong2,
                      TYdchar,TYullong,TYucent,TYchar16 ];
-static immutable TXmptr       = [ TYmemptr ];
 static immutable TXnullptr    = [ TYnullptr ];
 static immutable TXfv         = [ TYfptr, TYvptr ];
 static immutable TXfarfunc    = [ TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc ];
