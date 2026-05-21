@@ -450,7 +450,7 @@ Target[] predefinedTargets(string[] targets)
 
             case "arm":
                 newTargets ~= Target("",
-                    ["dmd", "-I" ~ toolsDir, "-run", testPath(buildPath("dshell", "arm_cross.d"))]);
+                    [hostDMD, "-i", "-I" ~ scriptDir, "-run", testPath(buildPath("dshell", "arm_cross.d"))]);
                 break;
 
             case "all":
