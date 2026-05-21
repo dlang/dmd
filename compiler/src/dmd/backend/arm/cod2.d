@@ -2228,7 +2228,7 @@ static if (0)
             goto L4;
 
         case FL.extern_:
-            if (config.exe & EX_posix)
+            if (config.exe & EX_posix && (e.Vsym.ty() & mTYthread))
             {
                 if (log) printf("posix extern threaded\n");
                 regm_t scratch = INSTR.ALLREGS & ~mask(reg);

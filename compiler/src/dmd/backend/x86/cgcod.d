@@ -658,7 +658,7 @@ void prolog(ref CGstate cg, ref CodeBuilder cdb)
         !(config.exe == EX_WIN32) && !(funcsym_p.Sfunc.Fflags3 & Fnothrow) ||
         cg.accessedTLS ||
         sv64 ||
-        (0 && cg.calledafunc && cg.AArch64)
+        (cg.calledafunc && cg.AArch64)
        )
     {
         //printf("0 prolog() needframe %d alwaysframe %d\n", cg.needframe, config.flags & CFGalwaysframe);
