@@ -73,8 +73,6 @@ enum RTLSYM
     ARRAYASSIGN_L,
     ARRAYEQ2,
 
-    EXCEPT_HANDLER3,
-    CPP_HANDLER,
     D_HANDLER,
     D_LOCAL_UNWIND2,
     LOCAL_UNWIND2,
@@ -96,7 +94,6 @@ enum RTLSYM
     SETJMP3,
     LONGJMP,
     ALLOCA,
-    CPP_LONGJMP,
     PTRCHK,
     CHKSTK,
     TRACE_PRO_N,
@@ -206,8 +203,6 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.ARRAYASSIGN_R:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayassign_r", 0, t); break;
         case RTLSYM.ARRAYASSIGN_L:          symbolz(ps,FL.func,FREGSAVED,"_d_arrayassign_l", 0, t); break;
 
-        case RTLSYM.EXCEPT_HANDLER3:        symbolz(ps,FL.func,FREGSAVED,"_except_handler3", 0, tsclib); break;
-        case RTLSYM.CPP_HANDLER:            symbolz(ps,FL.func,FREGSAVED,"_cpp_framehandler", 0, tsclib); break;
         case RTLSYM.D_HANDLER:              symbolz(ps,FL.func,FREGSAVED,"_d_framehandler", 0, tsclib); break;
         case RTLSYM.D_LOCAL_UNWIND2:        symbolz(ps,FL.func,FREGSAVED,"_d_local_unwind2", 0, tsclib); break;
         case RTLSYM.LOCAL_UNWIND2:          symbolz(ps,FL.func,FREGSAVED,"_local_unwind2", 0, tsclib); break;
@@ -229,7 +224,6 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.SETJMP3:                symbolz(ps,FL.func,FREGSAVED,"_setjmp3", 0, tsclib); break;
         case RTLSYM.LONGJMP:                symbolz(ps,FL.func,FREGSAVED,"_seh_longjmp_unwind@4", 0, tsclib); break;
         case RTLSYM.ALLOCA:                 symbolz(ps,FL.func,FREGSAVED,"__alloca", 0, tsclib); break;
-        case RTLSYM.CPP_LONGJMP:            symbolz(ps,FL.func,FREGSAVED,"_cpp_longjmp_unwind@4", 0, tsclib); break;
         case RTLSYM.PTRCHK:                 symbolz(ps,FL.func,FREGSAVED,"_ptrchk", 0, tsclib); break;
         case RTLSYM.CHKSTK:                 symbolz(ps,FL.func,FREGSAVED,"_chkstk", 0, tsclib); break;
         case RTLSYM.TRACE_PRO_N:            symbolz(ps,FL.func,ALLREGS|mBP|mES,"_trace_pro_n",0,tstrace); break;

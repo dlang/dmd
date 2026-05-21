@@ -37,18 +37,6 @@ enum
     EFLAGS_variadic = 1,   // variadic function call
 }
 
-alias pef_flags_t = uint;
-enum
-{
-    PEFnotlvalue    = 1,       // although elem may look like
-                               // an lvalue, it isn't
-    PEFtemplate_id  = 0x10,    // symbol is a template-id
-    PEFparentheses  = 0x20,    // expression was within ()
-    PEFaddrmem      = 0x40,    // address of member
-    PEFdependent    = 0x80,    // value-dependent
-    PEFmember       = 0x100,   // was a class member access
-}
-
 alias nflags_t = ubyte;
 enum
 {
@@ -104,12 +92,7 @@ struct elem
         {
             targ_size_t Voffset;// offset from symbol
             Symbol* Vsym;       // pointer to symbol table
-            union
-            {
-                param_t* Vtal;  // template-argument-list for SCfunctempl,
-                                // used only to transmit it to cpp_overload()
-                LIST* Erd;      // OPvar: reaching definitions
-            }
+            LIST* Erd;          // OPvar: reaching definitions
         }
         struct
         {
@@ -129,12 +112,6 @@ struct elem
 
     union
     {
-        // PARSER
-        struct
-        {
-            pef_flags_t PEFflags;
-        }
-
         // OPTIMIZER
         struct
         {

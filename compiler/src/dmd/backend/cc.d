@@ -475,11 +475,6 @@ struct func_t
     func_flags3_t Fflags3;
     ubyte Foper;                // operator number (OPxxxx) if Foperator
 
-    Symbol* Fparsescope;        // use this scope to parse friend functions
-                                // which are defined within a class, so the
-                                // class is in scope, but are not members
-                                // of the class
-
     Classsym* Fclass;           // if member of a class, this is the class
                                 // (I think this is redundant with Sscope)
     Funcsym* Foversym;          // overloaded function at same scope
@@ -491,7 +486,6 @@ struct func_t
                                 // this field has meaning only for
                                 // functions which are constructors
     uint Fsequence;             // sequence number at point of definition
-    Symbol* Ftempl;         // if Finstance this is the template that generated it
     Funcsym* Falias;            // SCfuncalias: function Symbol referenced
                                 // by using-declaration
     symlist_t Fthunks;          // list of thunks off of this function
@@ -504,7 +498,6 @@ struct func_t
                                 // (NULL if none or empty)
     Funcsym* Fexplicitspec;     // SCfunctempl, SCftexpspec: threaded list
                                 // of SCftexpspec explicit specializations
-    Funcsym* Fsurrogatesym;     // Fsurrogate: surrogate cast function
 
     char* Fredirect;            // redirect function name to this name in object
 
@@ -527,17 +520,8 @@ struct baseclass_t
     Classsym*         BCbase;           // base class Symbol
     baseclass_t*      BCnext;           // next base class
     targ_size_t       BCoffset;         // offset from start of derived class to this
-    ushort            BCvbtbloff;       // for BCFvirtual, offset from start of
-                                        //     vbtbl[] to entry for this virtual base.
-                                        //     Valid in Sbase list
-    symlist_t         BCpublics;        // public members of base class (list is freeable)
-    list_t            BCmptrlist;       // (in Smptrbase only) this is the vtbl
-                                        // (NULL if not different from base class's vtbl
     Symbol*           BCvtbl;           // Symbol for vtbl[] array (in Smptrbase list)
                                         // Symbol for vbtbl[] array (in Svbptrbase list)
-    Classsym*         BCparent;         // immediate parent of this base class
-                                        //     in Smptrbase
-    baseclass_t*      BCpbase;          // parent base, NULL if did not come from a parent
 }
 
 /***********************************
