@@ -2314,34 +2314,6 @@ targ_real el_toreal(elem* e)
 }
 }
 
-/********************************
- * Is elem type-dependent or value-dependent?
- * Returns: true if so
- */
-
-@trusted
-bool el_isdependent(elem* e)
-{
-    if (type_isdependent(e.ET))
-        return true;
-    while (1)
-    {
-        if (e.PEFflags & PEFdependent)
-            return true;
-        if (OTunary(e.Eoper))
-            e = e.E1;
-        else if (OTbinary(e.Eoper))
-        {
-            if (el_isdependent(e.E2))
-                return true;
-            e = e.E1;
-        }
-        else
-            break;
-    }
-    return false;
-}
-
 /****************************************
  * Returns: alignment size of elem e
  */
