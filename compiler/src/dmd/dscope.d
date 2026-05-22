@@ -71,6 +71,16 @@ private extern (D) struct FlagBitFields
     */
     bool knownACompileTimeOnlyContext;
     bool inIsDisabledTrait;  /// inside __traits(isDisabled, ...)
+
+    /**
+    When lowering builtin operations to druntime implementations, some assumptions
+    made by the previous implementations might no longer hold or have to be inferred
+    from the code. With recursive data structures this can easily hit limitations
+    of the semantic analysis. To help with backward compatibility, this flag will
+    cause semantic analysis of function bodies and template instances to be delayed
+    assuming that attribute inference is not necessary.
+    */
+    bool deferSemantic3InCompilerHook;
 }
 
 private extern (D) struct NonFlagBitFields
@@ -185,7 +195,7 @@ extern (C++) struct Scope
     DeprecatedDeclaration depdecl;  /// customized deprecation message
 
     import dmd.common.bitfields : generateBitFields;
-    mixin(generateBitFields!(FlagBitFields, ushort));
+    mixin(generateBitFields!(FlagBitFields, uint));
     private ushort bitFields2;
     mixin(generateBitFields!(NonFlagBitFields, ushort, "bitFields2"));
     Previews previews;
@@ -264,6 +274,7 @@ extern (C++) struct Scope
         s.lastdc = null;
         s.knownACompileTimeOnlyContext = this.knownACompileTimeOnlyContext;
         s.inIsDisabledTrait = this.inIsDisabledTrait;
+        s.deferSemantic3InCompilerHook = this.deferSemantic3InCompilerHook;
         assert(&this != s);
         return s;
     }
