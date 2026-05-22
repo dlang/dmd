@@ -1,30 +1,38 @@
-Finally statements are no longer rewritten to a sequence if no Exception was thrown
+Destructors now run in a nothrow function when an Error unwinds through it
 
-Finally statements have been allowed to rewrite to sequences when no Exception was throwable from within the try body.
-This has been shown to be problematic as cleanup when an Error is thrown does not occur.
+Destructors and scope(exit) blocks internally generate try-finally statements.
+Since 2018, DMD has optimized `finally` blocks in `nothrow` try bodies by rewriting them into a simple sequence,
+avoiding the overhead of exception unwinding. However, this optimization also skipped `finally` blocks when
+an `Error` was thrown, preventing expected cleanup from running.
 
-By default this has been reverted back to the pre-2018 behavior of not doing the rewrite.
+This optimization has been reverted to the pre-2018 behavior: `finally` blocks always run, regardless of whether
+the try body can throw an `Exception`.
 
-To change this use the new switch `-checkactionfinally=off` to reenable the previous behavior.
+To reenable the optimization, use the new `-nothrow-optimizations` switch.
 
-This behavior can be observed by running the following code:
+The following example demonstrates the fix - "exiting!" is now printed even though `callMe` is a `nothrow` function:
 
 ```d
 import core.stdc.stdio;
 
-void main() {
-    try {
-        callMe();
-    } finally {
-        printf("exiting!\n");
+void main()
+{
+    S s2;
+    callMe();
+}
+
+struct S
+{
+    ~this()
+    {
+        printf("exiting\n");
     }
 }
 
-void callMe() {
+void callMe() nothrow
+{
     throw new Error("hi there :)");
 }
 ```
-
-When the switch is set to `on`, "exiting!" will be printed.
 
 The `-betterC` switch is unaffected by this change.

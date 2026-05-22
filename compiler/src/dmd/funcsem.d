@@ -1580,6 +1580,15 @@ bool functionSemantic(FuncDeclaration fd)
             return false;
     }
 
+    if (fd.deferred3) // wait until final round of deferred semantic
+        return !fd.errors;
+    if (fd._scope && fd._scope.deferSemantic3InCompilerHook && !fd.errors)
+    {
+        fd._scope.deferSemantic3InCompilerHook = false;
+        addDeferredSemantic3(fd);
+        return !fd.errors;
+    }
+
     // if inferring return type, sematic3 needs to be run
     // - When the function body contains any errors, we cannot assume
     //   the inferred return type is valid.
@@ -1617,7 +1626,7 @@ bool functionSemantic(FuncDeclaration fd)
 public
 bool functionSemantic3(FuncDeclaration fd)
 {
-    if (fd.semanticRun < PASS.semantic3 && fd._scope)
+    if (!fd.deferred3 && fd.semanticRun < PASS.semantic3 && fd._scope)
     {
         /* Forward reference - we need to run semantic3 on this function.
          * If errors are gagged, and it's not part of a template instance,

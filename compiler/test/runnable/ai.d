@@ -96,7 +96,7 @@ void arithmetic_expression_selftest()
 
     /* 15) multiplication/division reassociation differs for floats */
     {
-        double a = 1e308, b = 1e-308, c = 1e-308;
+        double a = 1e307, b = 1e-307, c = 1e-307;
         double left  = (a * b) * c;
         double right = a * (b * c);
         /* one side likely underflows differently; we just expect "not always equal" */
