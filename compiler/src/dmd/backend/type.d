@@ -55,6 +55,7 @@ enum TF : ushort
     static_     = 0x40,   // TYarray: static dimension
     vla         = 0x80,   // TYarray: variable length array
     emptyexc    = 0x100,  // tyfunc(): empty exception specification
+    denum       = 0x200,  // D enum: base type for ABI but Ttag points to enum Classsym for debug info
 }
 
 public import dmd.backend.symbol : symbol_struct_addField, symbol_struct_addBitField, symbol_struct_hasBitFields, symbol_struct_addBaseClass;

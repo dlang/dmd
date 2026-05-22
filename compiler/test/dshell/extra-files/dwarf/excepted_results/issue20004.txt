@@ -1,0 +1,21 @@
+DW_TAG_enumeration_type
+DW_AT_name        : issue20004.Color
+DW_TAG_enumerator
+DW_AT_name        : red
+DW_AT_const_value : 0
+DW_AT_name        : green
+DW_AT_const_value : 1
+DW_AT_name        : blue
+DW_AT_const_value : 2
+DW_AT_name        : issue20004.Small
+DW_AT_byte_size   : 1
+DW_AT_name        : a
+DW_AT_const_value : 10
+DW_AT_name        : b
+DW_AT_const_value : 20
+DW_AT_name        : issue20004.Big
+DW_AT_byte_size   : 8
+DW_AT_name        : x
+DW_AT_const_value : 1
+DW_AT_name        : y
+DW_AT_const_value : 1000000

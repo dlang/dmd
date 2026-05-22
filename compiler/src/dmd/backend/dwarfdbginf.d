@@ -2257,6 +2257,64 @@ static if (1)
 
     /* ======================= Type Index ============================== */
 
+    /* Emit DW_TAG_enumeration_type with DW_TAG_enumerator children for the given enum symbol.
+     * Params:
+     *  s         = enum Classsym with SEenumlist populated
+     *  base_type = the integral base type determining size and signedness
+     * Returns: DWARF type index of the emitted DW_TAG_enumeration_type
+     */
+    uint dwarf_enum_typidx(Symbol* s, type* base_type)
+    {
+        if (s.Stypidx)
+            return s.Stypidx;
+
+        uint sz = cast(uint)type_size(base_type);
+
+        uint code = DWARFAbbrev.write!([
+            DW_TAG_enumeration_type, DW_CHILDREN_yes,
+            DW_AT_name,              DW_FORM_string,
+            DW_AT_byte_size,         DW_FORM_data1,
+        ]);
+
+        OutBuffer abuf;
+        abuf.writeByte(DW_TAG_enumerator);
+        abuf.writeByte(DW_CHILDREN_no);
+        abuf.writeByte(DW_AT_name);
+        abuf.writeByte(DW_FORM_string);
+        abuf.writeByte(DW_AT_const_value);
+        if (tyuns(base_type.Tty))
+            abuf.writeByte(DW_FORM_udata);
+        else
+            abuf.writeByte(DW_FORM_sdata);
+        abuf.writeByte(0);
+        abuf.writeByte(0);
+        uint membercode = dwarf_abbrev_code(abuf.buf, abuf.length());
+
+        uint idx = cast(uint)debug_info.buf.length();
+        debug_info.buf.writeuLEB128(code);
+        debug_info.buf.writeStringz(getSymName(s)); // DW_AT_name
+        debug_info.buf.writeByte(cast(ubyte)sz);    // DW_AT_byte_size
+
+        foreach (sl2; ListRange(s.Senum.SEenumlist))
+        {
+            Symbol* sf = cast(Symbol*)list_ptr(sl2);
+            const value = cast(uint)el_tolong(sf.Svalue);
+
+            debug_info.buf.writeuLEB128(membercode);
+            debug_info.buf.writeStringz(getSymName(sf)); // DW_AT_name
+            if (tyuns(base_type.Tty))
+                debug_info.buf.writeuLEB128(value);
+            else
+                debug_info.buf.writesLEB128(value);
+        }
+
+        debug_info.buf.writeByte(0); // no more children
+
+        s.Stypidx = idx;
+        resetSyms.push(s);
+        return idx;
+    }
+
     public
     uint dwarf_typidx(type* t, Symbol* sym = null)
     {
@@ -2383,6 +2441,10 @@ static if (1)
                 goto Lret;
             }
         }
+
+        // D enum: stored as base type for ABI, but has enum members attached for debug info
+        if (t.Tflags & TF.denum)
+            return dwarf_enum_typidx(t.Ttag, t);
 
         immutable tym_t ty = tybasic(t.Tty);
         // use cached basic type if it's not TYdarray or TYdelegate
@@ -3032,8 +3094,6 @@ static if (1)
                 Symbol* s = t.Ttag;
                 enum_t* se = s.Senum;
                 type* tbase2 = s.Stype.Tnext;
-                uint sz = cast(uint)type_size(tbase2);
-                symlist_t sl;
 
                 if (s.Stypidx)
                     return s.Stypidx;
@@ -3052,50 +3112,7 @@ static if (1)
                     break;                  // don't set Stypidx
                 }
 
-                code = DWARFAbbrev.write!([
-                    DW_TAG_enumeration_type, DW_CHILDREN_yes, // child (the subrange type)
-                    DW_AT_name,              DW_FORM_string,
-                    DW_AT_byte_size,         DW_FORM_data1,
-                ]);
-
-                uint membercode;
-                OutBuffer abuf;
-                abuf.writeByte(DW_TAG_enumerator);
-                abuf.writeByte(DW_CHILDREN_no);
-                abuf.writeByte(DW_AT_name);
-                abuf.writeByte(DW_FORM_string);
-                abuf.writeByte(DW_AT_const_value);
-                if (tyuns(tbase2.Tty))
-                    abuf.writeByte(DW_FORM_udata);
-                else
-                    abuf.writeByte(DW_FORM_sdata);
-                abuf.writeByte(0);
-                abuf.writeByte(0);
-                membercode = dwarf_abbrev_code(abuf.buf, abuf.length());
-
-                idx = cast(uint)debug_info.buf.length();
-                debug_info.buf.writeuLEB128(code);
-                debug_info.buf.writeStringz(getSymName(s)); // DW_AT_name
-                debug_info.buf.writeByte(cast(ubyte)sz);    // DW_AT_byte_size
-
-                foreach (sl2; ListRange(s.Senum.SEenumlist))
-                {
-                    Symbol* sf = cast(Symbol*)list_ptr(sl2);
-                    const value = cast(uint)el_tolong(sf.Svalue);
-
-                    debug_info.buf.writeuLEB128(membercode);
-                    debug_info.buf.writeStringz(getSymName(sf)); // DW_AT_name
-                    if (tyuns(tbase2.Tty))
-                        debug_info.buf.writeuLEB128(value);
-                    else
-                        debug_info.buf.writesLEB128(value);
-                }
-
-                debug_info.buf.writeByte(0);              // no more children
-
-                s.Stypidx = idx;
-                resetSyms.push(s);
-                return idx;                 // no need to cache it
+                return dwarf_enum_typidx(s, tbase2);
             }
 
             default:
