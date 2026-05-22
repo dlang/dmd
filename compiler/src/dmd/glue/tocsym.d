@@ -451,9 +451,7 @@ Symbol* toSymbol(Dsymbol s)
 
             symbol_func(*s);
             func_t* f = s.Sfunc;
-            if (fd.isVirtual() && fd.vtblIndex != -1)
-                f.Fflags |= Fvirtual;
-            else if (fd.isMember2() && fd.isStatic())
+            if (fd.isMember2() && fd.isStatic())
                 f.Fflags |= Fstatic;
 
             if (fd.isSafe())

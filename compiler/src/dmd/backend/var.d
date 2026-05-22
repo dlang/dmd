@@ -119,7 +119,6 @@ ubyte[SCMAX] sytab =
     /* unde */     SCEXP|SCKEP|SCSCT,      /* undefined                            */
     /* auto */     SCEXP|SCSS|SCRD  ,      /* automatic (stack)                    */
     /* static */   SCEXP|SCKEP|SCSCT|SCDATA, /* statically allocated               */
-    /* thread */   SCEXP|SCKEP      ,      /* thread local                         */
     /* extern */   SCEXP|SCKEP|SCSCT|SCDATA, /* external                           */
     /* register */ SCEXP|SCSS|SCRD  ,      /* registered variable                  */
     /* pseudo */   SCEXP            ,      /* pseudo register variable             */
@@ -130,35 +129,20 @@ ubyte[SCMAX] sytab =
     /* fastpar */  SCEXP|SCSS       ,      /* function parameter passed in register */
     /* shadowreg */SCEXP|SCSS       ,      /* function parameter passed in register, shadowed on stack */
     /* typedef */  0                ,      /* type definition                      */
-    /* explicit */ 0                ,      /* explicit                             */
-    /* mutable */  0                ,      /* mutable                              */
-    /* label */    0                ,      /* goto label                           */
     /* struct */   SCKEP            ,      /* struct/class/union tag name          */
     /* enum */     0                ,      /* enum tag name                        */
     /* field */    SCEXP|SCKEP      ,      /* bit field of struct or union         */
     /* const */    SCEXP|SCSCT      ,      /* constant integer                     */
     /* member */   SCEXP|SCKEP|SCSCT,      /* member of struct or union            */
-    /* anon */     0                ,      /* member of anonymous union            */
     /* inline */   SCEXP|SCKEP      ,      /* for inline functions                 */
     /* sinline */  SCEXP|SCKEP      ,      /* for static inline functions          */
     /* einline */  SCEXP|SCKEP      ,      /* for extern inline functions          */
-    /* overload */ SCEXP            ,      /* for overloaded function names        */
-    /* friend */   0                ,      /* friend of a class                    */
-    /* virtual */  0                ,      /* virtual function                     */
     /* locstat */  SCEXP|SCSCT|SCDATA,     /* static, but local to a function      */
-    /* template */ 0                ,      /* class template                       */
-    /* functempl */0                ,      /* function template                    */
-    /* ftexpspec */0                ,      /* function template explicit specialization */
-    /* linkage */  0                ,      /* function linkage symbol              */
-    /* public */   SCEXP|SCKEP|SCSCT,      /* generate a pubdef for this           */
     /* comdef */   SCEXP|SCKEP|SCSCT|SCDATA, /* uninitialized common block         */
     /* bprel */    SCEXP|SCSS       ,      /* variable at fixed offset from frame pointer */
-    /* namespace */0                ,      /* namespace                            */
     /* alias */    0                ,      /* alias to another symbol              */
     /* funcalias */0                ,      /* alias to another function symbol     */
-    /* memalias */ 0                ,      /* alias to base class member           */
     /* stack */    SCEXP|SCSS       ,      /* offset from stack pointer (not frame pointer) */
-    /* adl */      0                ,      /* list of ADL symbols for overloading  */
 ];
 
 int controlc_saw = 0;              /* a control C was seen         */

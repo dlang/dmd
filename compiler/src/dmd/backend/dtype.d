@@ -525,9 +525,7 @@ void type_free(type* t)
             break;
         tym_t ty = tybasic(t.Tty);
         if (tyfunc(ty))
-        {   param_free(&t.Tparamtypes);
-            list_free(&t.Texcspec, cast(list_free_fp)&type_free);
-        }
+            param_free(&t.Tparamtypes);
         else if (t.Tflags & TF.vla && t.Tel)
             el_free(t.Tel);
         else if (t.Tkey && typtr(ty))

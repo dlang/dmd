@@ -81,13 +81,8 @@ struct type
         elem* Tel;          // TF.vla: gives dimension (NULL if '*')
         param_t* Tparamtypes; // TYfunc: types of function parameters
         Classsym* Ttag;     // TYstruct,TYenum: tag symbol
-        type* Talternate;   // C++: typtr: type of parameter before converting
         type* Tkey;         // typtr: key type for associative arrays
     }
-
-    list_t Texcspec;        // tyfunc(): list of types of exception specification
-    Symbol* Ttypedef;       // if this type came from a typedef, this is
-                            // the typedef symbol
 }
 
 void type_debug(const type* t)
