@@ -513,7 +513,7 @@ void cv_init()
                                 debsym[4] = 7;  break; // made that up
             default:    assert(0);
         }
-        debsym[5] = (CPP != 0);         // 0==C, 1==C++
+        debsym[5] = 0;                  // 0==C, 1==C++
         flags = (config.inline8087) ? (0<<3) : (1<<3);
         if (I32)
             flags |= 0x80;              // 32 bit addresses
@@ -806,16 +806,10 @@ idx_t cv4_struct(Classsym* s,int flags)
                 TOWORD(d.data.ptr + 8,0);          // dList
             else
                 TOLONG(d.data.ptr + 10,0);         // dList
-        if (CPP)
-        {
-        }
-        else
-        {
             if (config.fulltypes == CV4)
                 TOWORD(d.data.ptr + 10,0);         // vshape
             else
                 TOLONG(d.data.ptr + 14,0);         // vshape
-        }
             break;
 
         default:
@@ -866,13 +860,9 @@ idx_t cv4_struct(Classsym* s,int flags)
         {
             case SC.member:
             case SC.field:
-                if (CPP && sf == s.Sstruct.Svptr)
-                    fnamelen += ((config.fulltypes == CV4) ? 4 : 8);
-                else
-                {   offset = sf.Smemoff;
-                    fnamelen += ((config.fulltypes == CV4) ? 6 : 8) +
-                                cv4_numericbytes(cast(uint)offset) + cv_stringbytes(sfid);
-                }
+                offset = sf.Smemoff;
+                fnamelen += ((config.fulltypes == CV4) ? 6 : 8) +
+                            cv4_numericbytes(cast(uint)offset) + cv_stringbytes(sfid);
                 break;
 
             default:
@@ -1421,11 +1411,7 @@ else
         }
 
         case TYenum:
-            if (CPP)
-            {
-            }
-            else
-                typidx = cv4_fwdenum(t);
+            typidx = cv4_fwdenum(t);
             break;
 
         case TYref:

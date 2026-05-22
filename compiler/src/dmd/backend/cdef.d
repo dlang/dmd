@@ -448,7 +448,6 @@ enum
     CFG3autoproto   = 0x40,    // auto prototyping
     CFG3rtti        = 0x80,    // add RTTI support
     CFG3relax       = 0x100,   // relaxed type checking (C only)
-    CFG3cpp         = 0x200,   // C++ compile
     CFG3igninc      = 0x400,   // ignore standard include directory
     CFG3mars        = 0x800,   // use mars libs and headers
     CFG3nofar       = 0x1000,  // ignore __far and __huge keywords

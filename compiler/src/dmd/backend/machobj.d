@@ -296,12 +296,7 @@ private IDXSTR mach_addmangled(Symbol* s)
     namidx = cast(IDXSTR)machobj.symtab_strings.length();
     destr = obj_mangle2(s, dest.ptr);
     name = destr;
-    if (CPP && name[0] == '_' && name[1] == '_')
-    {
-        if (strncmp(name,"__ct__",6) == 0)
-            name += 4;
-    }
-    else if (tyfunc(s.ty()) && s.Sfunc && s.Sfunc.Fredirect)
+    if (tyfunc(s.ty()) && s.Sfunc && s.Sfunc.Fredirect)
         name = s.Sfunc.Fredirect;
     machobj.symtab_strings.writeStringz(name);
     if (destr != dest.ptr)                  // if we resized result

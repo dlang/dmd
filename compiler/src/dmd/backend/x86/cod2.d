@@ -2513,22 +2513,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     else
         codelem(cg,cdb1,e21,retregs,false);
 
-    if (CPP && e2.Eoper == OPcolon2)
-    {
-        code cs;
-
-        // This is necessary so that any cleanup code on one branch
-        // is redone on the other branch.
-        cs.Iop = PSOP.mark2;
-        cs.Iflags = 0;
-        cs.Irex = 0;
-        cdb.gen(&cs);
-        cdb.append(cdb1);
-        cs.Iop = PSOP.release2;
-        cdb.gen(&cs);
-    }
-    else
-        cdb.append(cdb1);
+    cdb.append(cdb1);
 
     const regconsave = cg.regcon;
     cg.regcon = cast()regconold;

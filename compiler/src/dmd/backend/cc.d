@@ -52,9 +52,6 @@ alias enum_TK = ubyte;
 
 __gshared Config config;
 
-@trusted
-uint CPP() { return config.flags3 & CFG3cpp; }
-
 
 /////////// Position in source file
 
