@@ -281,3 +281,54 @@ jobs:
       - name: Backup
         if: ${{ failure() }}
         run: echo 'FreeBSD VM check made optional because of random time outs'
+
+  arm-qemu:
+    name: 'Ubuntu 24.04 x64, DMD (AArch64 cross-compile via QEMU)'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OS_NAME: linux
+      MODEL: 64
+      HOST_DMD: dmd
+      FULL_BUILD: true
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+
+      - name: Set environment variable N (parallelism)
+        run: echo "N=$(nproc)" >> $GITHUB_ENV
+
+      - name: Install prerequisites
+        run: sudo -E ci/cirrusci.sh
+
+      - name: Install host compiler
+        run: ci/run.sh install_host_compiler
+
+      - name: Set up repos
+        run: |
+          set -uexo pipefail
+          ref='${{ github.ref }}'
+          if [[ "$ref" =~ ^refs/pull/ ]]; then
+            REPO_BRANCH="$GITHUB_BASE_REF"
+          elif [[ "$ref" =~ ^refs/(heads|tags)/(.*)$ ]]; then
+            REPO_BRANCH="${BASH_REMATCH[2]}"
+          else
+            echo "Error: unexpected GitHub ref '$ref'" >&2
+            exit 1
+          fi
+          ci/run.sh setup_repos "$REPO_BRANCH"
+
+      - name: Build DMD
+        run: ci/run.sh build
+
+      - name: Install AArch64 cross-compile tools
+        run: sudo apt-get install -y qemu-user clang lld gcc-aarch64-linux-gnu
+
+      - name: Test AArch64 cross-compile and run via QEMU
+        run: |
+          source ~/dlang/*/activate
+          compiler/test/run.d arm

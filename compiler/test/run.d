@@ -448,6 +448,11 @@ Target[] predefinedTargets(string[] targets)
                 newTargets.put(findFiles("dshell").map!createTestTarget);
                 break;
 
+            case "arm":
+                newTargets ~= Target("",
+                    [hostDMD, "-i", "-I" ~ scriptDir, "-run", testPath(buildPath("dshell", "arm_cross.d"))]);
+                break;
+
             case "all":
                 version (FreeBSD) { /* ??? unittest runner fails for no good reason on GHA. */ }
                 else
