@@ -954,7 +954,7 @@ void MachObj_term(const(char)[] objfilename)
                                 case SC.static_:
                                     if (/*s.Sfl == FL.func &&*/ r.rtype == REL.rel26)
                                     {
-                                        //printf("BRANCHY26\n");
+                                        //printf("BRANCHY26 %s\n", s.Sident.ptr);
                                         rel.r_type = ARM64_RELOC_BRANCHY26;
                                         rel.r_pcrel = 1;
                                     }
@@ -3059,8 +3059,11 @@ int MachObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol* s, targ_size_
     OutBuffer* buf = SegData[seg].SDbuf;
     int save = cast(int)buf.length();
     buf.position(cast(size_t)offset, retsize);
-    //printf("offset = x%llx, val = x%llx\n", offset, val);
-    if (retsize == 4)
+    if (flags & CFselfrel26 && val == 0)
+    {
+        //printf("offset = x%llx, val = x%llx\n", offset, val);
+    }
+    else if (retsize == 4)
         buf.write32(cast(int)val);
     else
         buf.write64(val);
