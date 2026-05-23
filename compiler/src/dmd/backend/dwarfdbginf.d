@@ -777,6 +777,10 @@ static if (1)
     {
         if (I64)
         {
+            // Pad to 8 byte boundary
+            for (uint n = (-cfa_buf.length() & 7); n; n--)
+                cfa_buf.writeByte(DW_CFA_nop);
+
             static struct DebugFrameFDE64
             {
               align (1):
@@ -787,22 +791,13 @@ static if (1)
             }
             static assert(DebugFrameFDE64.sizeof == 24);
 
-            __gshared DebugFrameFDE64 debugFrameFDE64 =
+            DebugFrameFDE64 debugFrameFDE64 =
             {
-                20,             // length
-                0,              // CIE_pointer
-                0,              // initial_location
-                0,              // address_range
+                length           : 20 + cast(uint)cfa_buf.length(),
+                CIE_pointer      : cast(int)sfunc.Ssize,
+                initial_location : 0, // sfunc.Soffset ?
+                address_range    : sfunc.Ssize,
             };
-
-            // Pad to 8 byte boundary
-            for (uint n = (-cfa_buf.length() & 7); n; n--)
-                cfa_buf.writeByte(DW_CFA_nop);
-
-            debugFrameFDE64.length = 20 + cast(uint)cfa_buf.length();
-            debugFrameFDE64.address_range = sfunc.Ssize;
-            // Do we need this?
-            //debugFrameFDE64.initial_location = sfunc.Soffset;
 
             OutBuffer* debug_frame_buf = SegData[dfseg].SDbuf;
             uint debug_frame_buf_offset = cast(uint)debug_frame_buf.length();
@@ -818,6 +813,10 @@ static if (1)
         }
         else
         {
+            // Pad to 4 byte boundary
+            for (uint n = (-cfa_buf.length() & 3); n; n--)
+                cfa_buf.writeByte(DW_CFA_nop);
+
             static struct DebugFrameFDE32
             {
               align (1):
@@ -828,22 +827,13 @@ static if (1)
             }
             static assert(DebugFrameFDE32.sizeof == 16);
 
-            __gshared DebugFrameFDE32 debugFrameFDE32 =
+            DebugFrameFDE32 debugFrameFDE32 =
             {
-                12,             // length
-                0,              // CIE_pointer
-                0,              // initial_location
-                0,              // address_range
+                length           : 12 + cast(uint)cfa_buf.length(),
+                CIE_pointer      : 0,
+                initial_location : 0, // sfunc.Soffset?
+                address_range    : cast(uint)sfunc.Ssize,
             };
-
-            // Pad to 4 byte boundary
-            for (uint n = (-cfa_buf.length() & 3); n; n--)
-                cfa_buf.writeByte(DW_CFA_nop);
-
-            debugFrameFDE32.length = 12 + cast(uint)cfa_buf.length();
-            debugFrameFDE32.address_range = cast(uint)sfunc.Ssize;
-            // Do we need this?
-            //debugFrameFDE32.initial_location = sfunc.Soffset;
 
             OutBuffer* debug_frame_buf = SegData[dfseg].SDbuf;
             uint debug_frame_buf_offset = cast(uint)debug_frame_buf.length();
