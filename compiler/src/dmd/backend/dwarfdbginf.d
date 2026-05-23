@@ -229,6 +229,7 @@ static if (1)
             }
             else if (config.objfmt == OBJ_MACH)
             {
+                // Should this be 32 for AArch64?
                 dwarf_addrel64(seg, buf.length(), targseg, 0);
                 buf.write64(val);
             }
@@ -656,10 +657,15 @@ static if (1)
         const uint startsize = cast(uint)buf.length();
 
         // Length of CIE, not including padding
-        const uint cielen = 4 + 4 + 1 +
-            (ehunwind ? 5 : 3) +
-            1 + 1 + 1 +
-            (ehunwind ? 8 : 2) +
+        const uint cielen = 4 + 4 + 1 +  // (length of CIE) + (CIE ID) + (version_)
+            (ehunwind ? 5 : 3) +         // "zPLR"0 : "zR"0
+            1 + 1 + 1 +                  // (code alignment factor) + (data alignment factor) + (return address register)
+            (ehunwind ? 8 : 2) +         // (1:Augmentation Length) +
+                                         // (1:personality pointer encoding) +
+                                         // (4:personality pointer reference) +
+                                         // (1:address encoding for LSDA) +
+                                         // (1:encoding of addresses in FDE)
+                                         //  : (1:Augmentation Length) + (1:encoding of addresses in FDE)
             (AArch64 ? 3 : 5);
 
         const uint pad = -cielen & (AArch64 ? 3 : (I64 ? 7 : 3));  // pad to addressing unit size boundary
