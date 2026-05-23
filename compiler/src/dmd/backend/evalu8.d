@@ -70,7 +70,6 @@ int boolres(elem* e)
                 case TYbool:
                 case TYwchar_t:
                 case TYenum:
-                case TYmemptr:
                 case TYlong:
                 case TYulong:
                 case TYdchar:

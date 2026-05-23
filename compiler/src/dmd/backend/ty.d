@@ -101,12 +101,6 @@ enum
     TYfsysfunc          = 0x36, // far __syscall func
     TYfref              = 0x3B, // far reference
 
-    // Used for C++ compiler
-    TYmemptr            = 0x2F, // pointer to member
-    TYident             = 0x30, // type-argument
-    TYtemplate          = 0x31, // unexpanded class template
-    TYvtshape           = 0x32, // virtual function table
-
     // SIMD 16 byte vector types        // D type
     TYfloat4            = 0x3E, // float[4]
     TYdouble2           = 0x3F, // double[2]
@@ -223,7 +217,6 @@ enum
     TYFLcomplex     = 8,
     TYFLimaginary   = 0x10,
     TYFLuns         = 0x20,
-    TYFLmptr        = 0x40,
     TYFLfv          = 0x80,       // TYfptr || TYvptr
 
     TYFLpascal      = 0x200,      // callee cleans up stack
@@ -257,7 +250,7 @@ uint tyarithmetic(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLreal
 uint tyaggregate(tym_t ty) { return tytab[ty & 0xFF] & TYFLaggregate; }
 
 @trusted
-uint tyscalar(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex | TYFLptr | TYFLmptr | TYFLnullptr | TYFLref); }
+uint tyscalar(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex | TYFLptr | TYFLnullptr | TYFLref); }
 
 @trusted
 uint tyfloating(tym_t ty) { return tytab[ty & 0xFF] & (TYFLreal | TYFLimaginary | TYFLcomplex); }
@@ -297,11 +290,7 @@ uint typtr(tym_t ty) { return tytab[ty & 0xFF] & TYFLptr; }
 @trusted
 uint tyref(tym_t ty) { return tytab[ty & 0xFF] & TYFLref; }
 
-/* Use to detect a pointer type or a member pointer     */
-@trusted
-uint tymptr(tym_t ty) { return tytab[ty & 0xFF] & (TYFLptr | TYFLmptr); }
-
-// Use to detect a nullptr type or a member pointer
+// Use to detect a nullptr type
 @trusted
 uint tynullptr(tym_t ty) { return tytab[ty & 0xFF] & TYFLnullptr; }
 

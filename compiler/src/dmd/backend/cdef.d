@@ -83,9 +83,6 @@ else
 // Generate cleanup code
 enum TERMCODE = 0;
 
-// C++ Language Features
-enum ANGLE_BRACKET_HACK = 0;       // >> means two template arglist closes
-
 // C/C++ Language Features
 enum IMPLIED_PRAGMA_ONCE = 1;       // include guards count as #pragma once
 enum bool HEADER_LIST = true;
@@ -444,20 +441,7 @@ enum
     CFG3strcod      = 4,       // strings are placed in code segment
     CFG3eseqds      = 8,       // ES == DS at all times
     CFG3ptrchk      = 0x10,    // generate pointer validation code
-    CFG3strictproto = 0x20,    // strict prototyping
-    CFG3autoproto   = 0x40,    // auto prototyping
-    CFG3rtti        = 0x80,    // add RTTI support
-    CFG3relax       = 0x100,   // relaxed type checking (C only)
-    CFG3cpp         = 0x200,   // C++ compile
-    CFG3igninc      = 0x400,   // ignore standard include directory
-    CFG3mars        = 0x800,   // use mars libs and headers
-    CFG3nofar       = 0x1000,  // ignore __far and __huge keywords
-    CFG3noline      = 0x2000,  // do not output #line directives
-    CFG3comment     = 0x4000,  // leave comments in preprocessed output
-    CFG3cppcomment  = 0x8000,  // allow C++ style comments
     CFG3wkfloat     = 0x10000, // make floating point references weak externs
-    CFG3digraphs    = 0x20000, // support ANSI C++ digraphs
-    CFG3semirelax   = 0x40000, // moderate relaxed type checking (non-Windows targets)
     CFG3pic         = 0x80000, // position independent code
     CFG3pie         = 0x10_0000, // position independent executable (CFG3pic also set)
     CFG3ibt         = 0x20_0000, // indirect branch tracking
@@ -471,57 +455,13 @@ enum
     CFG4allcomdat        = 4,          // place all functions in COMDATs
     CFG4fastfloat        = 8,          // fast floating point (-ff)
     CFG4fdivcall         = 0x10,       // make function call for FDIV opcodes
-    CFG4tempinst         = 0x20,       // instantiate templates for undefined functions
     CFG4oldstdmangle     = 0x40,       // do stdcall mangling without @
-    CFG4pascal           = 0x80,       // default to pascal linkage
-    CFG4stdcall          = 0x100,      // default to std calling convention
-    CFG4cacheph          = 0x200,      // cache precompiled headers in memory
-    CFG4alternate        = 0x400,      // if alternate digraph tokens
     CFG4bool             = 0x800,      // support 'bool' as basic type
-    CFG4wchar_t          = 0x1000,     // support 'wchar_t' as basic type
-    CFG4notempexp        = 0x2000,     // no instantiation of template functions
-    CFG4anew             = 0x4000,     // allow operator new[] and delete[] overloading
-    CFG4oldtmangle       = 0x8000,     // use old template name mangling
-    CFG4dllrtl           = 0x10000,    // link with DLL RTL
-    CFG4noemptybaseopt   = 0x20000,    // turn off empty base class optimization
-    CFG4nowchar_t        = 0x40000,    // use unsigned short name mangling for wchar_t
-    CFG4forscope         = 0x80000,    // new C++ for scoping rules
-    CFG4warnccast        = 0x100000,   // warn about C style casts
-    CFG4adl              = 0x200000,   // argument dependent lookup
-    CFG4enumoverload     = 0x400000,   // enum overloading
-    CFG4implicitfromvoid = 0x800000,   // allow implicit cast from void* to T*
-    CFG4dependent        = 0x1000000,  // dependent / non-dependent lookup
-    CFG4wchar_is_long    = 0x2000000,  // wchar_t is 4 bytes
     CFG4underscore       = 0x4000000,  // prepend _ for C mangling
 }
 
 enum config_flags4_t CFG4optimized  = CFG4speed | CFG4space;
 enum config_flags4_t CFG4stackalign = CFG4speed;       // align stack to 8 bytes
-
-alias config_flags5_t = uint;
-enum
-{
-    CFG5debug       = 1,      // compile in __debug code
-    CFG5in          = 2,      // compile in __in code
-    CFG5out         = 4,      // compile in __out code
-    CFG5invariant   = 8,      // compile in __invariant code
-}
-
-/* CFGX: flags ignored in precompiled headers
- * CFGY: flags copied from precompiled headers into current config
- */
-enum config_flags_t CFGX   = CFGnowarning;
-enum config_flags2_t CFGX2 = CFG2warniserr | CFG2phuse | CFG2phgen | CFG2phauto |
-                             CFG2once | CFG2hdrdebug | CFG2noobj | CFG2noerrmax |
-                             CFG2expand | CFG2nodeflib | CFG2stomp | CFG2gms;
-enum config_flags3_t CFGX3 = CFG3strcod | CFG3ptrchk;
-enum config_flags4_t CFGX4 = CFG4optimized | CFG4fastfloat | CFG4fdivcall |
-                             CFG4tempinst | CFG4cacheph | CFG4notempexp |
-                             CFG4stackalign | CFG4dependent;
-
-enum config_flags4_t CFGY4 = CFG4nowchar_t | CFG4noemptybaseopt | CFG4adl |
-                             CFG4enumoverload | CFG4implicitfromvoid |
-                             CFG4wchar_is_long | CFG4underscore;
 
 // Configuration flags for HTOD executable
 alias htod_flags_t = uint;
@@ -567,7 +507,6 @@ struct Config
     config_flags2_t flags2;
     config_flags3_t flags3;
     config_flags4_t flags4;
-    config_flags5_t flags5;
 
     htod_flags_t htodFlags;     // configuration for htod
     ubyte ansi_c;               // strict ANSI C
@@ -707,7 +646,6 @@ enum SC : ubyte
     unde,           /// undefined
     auto_,          /// automatic (stack)
     static_,        /// statically allocated
-    thread,         /// thread local
     extern_,        /// external
     register,       /// registered variable
     pseudo,         /// pseudo register variable
@@ -718,35 +656,20 @@ enum SC : ubyte
     fastpar,        /// function parameter passed in register
     shadowreg,      /// function parameter passed in register, shadowed on stack
     typedef_,       /// type definition
-    explicit,       /// explicit
-    mutable,        /// mutable
-    label,          /// goto label
     struct_,        /// struct/class/union tag name
     enum_,          /// enum tag name
     field,          /// bit field of struct or union
     const_,         /// constant integer
     member,         /// member of struct or union
-    anon,           /// member of anonymous union
     inline,         /// for inline functions
     sinline,        /// for static inline functions
     einline,        /// for extern inline functions
-    overload,       /// for overloaded function names
-    friend,         /// friend of a class
-    virtual,        /// virtual function
     locstat,        /// static, but local to a function
-    template_,      /// class template
-    functempl,      /// function template
-    ftexpspec,      /// function template explicit specialization
-    linkage,        /// function linkage symbol
-    public_,        /// generate a pubdef for this
     comdef,         /// uninitialized common block
     bprel,          /// variable at fixed offset from frame pointer
-    namespace,      /// namespace
     alias_,         /// alias to another symbol
     funcalias,      /// alias to another function symbol
-    memalias,       /// alias to base class member
     stack,          /// offset from stack pointer (not frame pointer)
-    adl,            /// list of ADL symbols for overloading
 }
 
 enum SCMAX = SC.max + 1;

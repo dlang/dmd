@@ -238,7 +238,7 @@ void cv8_termfile(const(char)[] objfilename)
     buf.write16(2 + 1 + 1 + 2 + 1 + VERSION.length + 1);
     buf.write16(S_COMPILE);
     buf.writeByte(I64 ? 0xD0 : 6); // target machine AMD64 or x86 (Pentium II)
-    buf.writeByte(config.flags2 & CFG2gms ? (CPP != 0) : 'D'); // language index (C/C++/D)
+    buf.writeByte(config.flags2 & CFG2gms ? 0 : 'D'); // language index (C/C++/D)
     buf.write16(0x800 | (config.inline8087 ? 0 : (1<<3)));   // 32-bit, float package
     buf.writeByte(VERSION.length + 1);
     buf.writeByte('Z');

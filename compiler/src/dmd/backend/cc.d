@@ -52,9 +52,6 @@ alias enum_TK = ubyte;
 
 __gshared Config config;
 
-@trusted
-uint CPP() { return config.flags3 & CFG3cpp; }
-
 
 /////////// Position in source file
 
@@ -408,50 +405,27 @@ enum
 {
     Fpending    = 1,           // if function has been queued for being written
     Foutput     = 2,           // if function has been written out
-    Foperator   = 4,           // if operator overload
-    Fcast       = 8,           // if cast overload
     Finline     = 0x10,        // if SCinline, and function really is inline
-    Foverload   = 0x20,        // if function can be overloaded
-    Ftypesafe   = 0x40,        // if function name needs type appended
-    Fmustoutput = 0x80,        // set for forward ref'd functions that
-                               // must be output
-    Fvirtual    = 0x100,       // if function is a virtual function
     Fctor       = 0x200,       // if function is a constructor
     Fdtor       = 0x400,       // if function is a destructor
-    Fnotparent  = 0x800,       // if function is down Foversym chain
     Finlinenest = 0x1000,      // used as a marker to prevent nested
                                // inlines from expanding
-    Flinkage    = 0x2000,      // linkage is already specified
     Fstatic     = 0x4000,      // static member function (no this)
-    Fbitcopy    = 0x8000,      // it's a simple bitcopy (op=() or X(X&))
     Fpure       = 0x10000,     // pure function
-    Finstance   = 0x20000,     // function is an instance of a template
-    Ffixed      = 0x40000,     // ctor has had cpp_fixconstructor() run on it,
-                               // dtor has had cpp_fixdestructor()
-    Fintro      = 0x80000,     // function doesn't hide a previous virtual function
-//  unused      = 0x100000,    // unused bit
-    Fkeeplink   = 0x200000,    // don't change linkage to default
-    Fnodebug    = 0x400000,    // do not generate debug info for this function
-    Fgen        = 0x800000,    // compiler generated function
     Finvariant  = 0x1000000,   // __invariant function
-    Fexplicit   = 0x2000000,   // explicit constructor
-    Fsurrogate  = 0x4000000,   // surrogate call function
 }
 
 alias func_flags3_t = uint;
 enum
 {
     Fvtblgen         = 1,       // generate vtbl[] when this function is defined
-    Femptyexc        = 2,       // empty exception specification (obsolete, use Tflags & TFemptyexc)
     Fcppeh           = 4,       // uses C++ EH
     Fnteh            = 8,       // uses NT Structured EH
-    Fdeclared        = 0x10,    // already declared function Symbol
     Fmark            = 0x20,    // has unbalanced OPctor's
     Fdoinline        = 0x40,    // do inline walk
     Foverridden      = 0x80,    // ignore for overriding purposes
     Fjmonitor        = 0x100,   // Mars synchronized function
     Fnosideeff       = 0x200,   // function has no side effects
-    F3badoparrow     = 0x400,   // bad operator->()
     Fmain            = 0x800,   // function is D main
     Fnested          = 0x1000,  // D nested function with 'this'
     Fmember          = 0x2000,  // D member function with 'this'
@@ -473,38 +447,11 @@ struct func_t
     Symbol* F__func__;          // symbol for __func__[] string
     func_flags_t Fflags;
     func_flags3_t Fflags3;
-    ubyte Foper;                // operator number (OPxxxx) if Foperator
-
-    Symbol* Fparsescope;        // use this scope to parse friend functions
-                                // which are defined within a class, so the
-                                // class is in scope, but are not members
-                                // of the class
 
     Classsym* Fclass;           // if member of a class, this is the class
                                 // (I think this is redundant with Sscope)
-    Funcsym* Foversym;          // overloaded function at same scope
-    symlist_t Fclassfriends;    // Symbol list of classes of which this
-                                // function is a friend
-    block* Fbaseblock;          // block where base initializers get attached
-    block* Fbaseendblock;       // block where member destructors get attached
-    elem* Fbaseinit;            // list of member initializers (meminit_t)
-                                // this field has meaning only for
-                                // functions which are constructors
-    uint Fsequence;             // sequence number at point of definition
-    Symbol* Ftempl;         // if Finstance this is the template that generated it
     Funcsym* Falias;            // SCfuncalias: function Symbol referenced
                                 // by using-declaration
-    symlist_t Fthunks;          // list of thunks off of this function
-    param_t* Farglist;          // SCfunctempl: the template-parameter-list
-    param_t* Fptal;             // Finstance: this is the template-argument-list
-                                // SCftexpspec: for explicit specialization, this
-                                // is the template-argument-list
-    list_t Ffwdrefinstances;    // SCfunctempl: list of forward referenced instances
-    list_t Fexcspec;            // List of types in the exception-specification
-                                // (NULL if none or empty)
-    Funcsym* Fexplicitspec;     // SCfunctempl, SCftexpspec: threaded list
-                                // of SCftexpspec explicit specializations
-    Funcsym* Fsurrogatesym;     // Fsurrogate: surrogate cast function
 
     char* Fredirect;            // redirect function name to this name in object
 
@@ -527,17 +474,8 @@ struct baseclass_t
     Classsym*         BCbase;           // base class Symbol
     baseclass_t*      BCnext;           // next base class
     targ_size_t       BCoffset;         // offset from start of derived class to this
-    ushort            BCvbtbloff;       // for BCFvirtual, offset from start of
-                                        //     vbtbl[] to entry for this virtual base.
-                                        //     Valid in Sbase list
-    symlist_t         BCpublics;        // public members of base class (list is freeable)
-    list_t            BCmptrlist;       // (in Smptrbase only) this is the vtbl
-                                        // (NULL if not different from base class's vtbl
     Symbol*           BCvtbl;           // Symbol for vtbl[] array (in Smptrbase list)
                                         // Symbol for vbtbl[] array (in Svbptrbase list)
-    Classsym*         BCparent;         // immediate parent of this base class
-                                        //     in Smptrbase
-    baseclass_t*      BCpbase;          // parent base, NULL if did not come from a parent
 }
 
 /***********************************
@@ -572,26 +510,9 @@ enum
     STRnotagname     = 4,          // struct/class with no tag name
     STRoutdef        = 8,          // we've output the debug definition
     STRbitfields     = 0x10,       // set if struct contains bit fields
-    STRabstract      = 0x20,       // abstract class
-    STRbitcopy       = 0x40,       // set if operator=() is merely a bit copy
-    STRanyctor       = 0x80,       // set if any constructors were defined
-                                   // by the user
-    STRnoctor        = 0x100,      // no constructors allowed
-    STRgen           = 0x200,      // if struct is an instantiation of a
-                                   // template class, and was generated by
-                                   // that template
-    STRvtblext       = 0x400,      // generate vtbl[] only when first member function
-                                   // definition is encountered (see Fvtblgen)
-    STRexport        = 0x800,      // all member functions are to be _export
-    STRpredef        = 0x1000,     // a predefined struct
     STRunion         = 0x2000,     // actually, it's a union
     STRclass         = 0x4000,     // it's a class, not a struct
-    STRimport        = 0x8000,     // imported class
-    STRstaticmems    = 0x10000,    // class has static members
     STR0size         = 0x20000,    // zero sized struct
-    STRinstantiating = 0x40000,    // if currently being instantiated
-    STRexplicit      = 0x80000,    // if explicit template instantiation
-    STRgenctor0      = 0x100000,   // need to gen X::X()
     STRnotpod        = 0x200000,   // struct is not POD
 }
 
@@ -603,35 +524,11 @@ struct struct_t
     uint Salignsize;            // size of struct for alignment purposes
     ubyte Sstructalign;         // struct member alignment in effect
     struct_flags_t Sflags;
-    tym_t ptrtype;              // type of pointer to refer to classes by
     baseclass_t* Sbase;         // list of direct base classes
-    Symbol* Svptr;              // Symbol of vptr
-    Symbol* Stempsym;           // if this struct is an instantiation
-                                // of a template class, this is the
-                                // template class Symbol
 
     // For 64 bit Elf function ABI
     type* Sarg1type;
     type* Sarg2type;
-
-    /* For:
-     *  template<class T> struct A { };
-     *  template<class T> struct A<T *> { };
-     *
-     *  A<int> a;               // primary
-     * Gives:
-     *  Sarglist = <int>
-     *  Spr_arglist = NULL;
-     *
-     *  A<int*> a;              // specialization
-     * Gives:
-     *  Sarglist = <int>
-     *  Spr_arglist = <int*>;
-     */
-
-    param_t* Sarglist;          // if this struct is an instantiation
-                                // of a template class, this is the
-                                // actual arg list used
 }
 
 /**********************************

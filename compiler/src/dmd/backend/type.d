@@ -49,7 +49,6 @@ enum TF : ushort
     dependent   = 4,      // CPP: template dependent type
     forward     = 8,      // TYstruct: if forward reference of tag name
     sizeunknown = 0x10,   // TYstruct,TYarray: if size of type is unknown
-                          // TYmptr: the Stag is TYident type
     funcret     = 0x20,   // C++,tyfunc(): overload based on function return value
     funcparam   = 0x20,   // TYarray: top level function parameter
     static_     = 0x40,   // TYarray: static dimension
@@ -73,33 +72,17 @@ struct type
     Mangle Tmangle; // name mangling
 
     uint Tcount; // # pointing to this type
-    char* Tident; // TYident: identifier; TYdarray, TYaarray: pretty name for debug info
+    char* Tident; // TYdarray, TYaarray: pretty name for debug info
     type* Tnext;  // next in list
                                 // TYenum: gives base type
     union
     {
         targ_size_t Tdim;   // TYarray: # of elements in array
         elem* Tel;          // TF.vla: gives dimension (NULL if '*')
-        param_t* Tparamtypes; // TYfunc, TYtemplate: types of function parameters
-        Classsym* Ttag;     // TYstruct,TYmemptr: tag symbol
-                            // TYenum,TYvtshape: tag symbol
-        type* Talternate;   // C++: typtr: type of parameter before converting
+        param_t* Tparamtypes; // TYfunc: types of function parameters
+        Classsym* Ttag;     // TYstruct,TYenum: tag symbol
         type* Tkey;         // typtr: key type for associative arrays
     }
-
-    list_t Texcspec;        // tyfunc(): list of types of exception specification
-    Symbol* Ttypedef;       // if this type came from a typedef, this is
-                            // the typedef symbol
-}
-
-struct typetemp_t
-{
-    type Ttype;
-
-    /* Tsym should really be part of a derived class, as we only
-        allocate room for it if TYtemplate
-     */
-    Symbol* Tsym;               // primary class template symbol
 }
 
 void type_debug(const type* t)

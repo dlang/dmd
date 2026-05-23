@@ -294,43 +294,7 @@ private IDXSTR elf_addmangled(Symbol* s)
     char[] desta = obj_mangle2(*s, buf);
     size_t len = desta.length;
     const(char)* name = desta.ptr;
-    if (CPP && name[0] == '_' && name[1] == '_')
-    {
-        if (strncmp(name,"__ct__",6) == 0)
-        {
-            name += 4;
-            len -= 4;
-        }
-static if (0)
-{
-        switch(name[2])
-        {
-            case 'c':
-                if (strncmp(name,"__ct__",6) == 0)
-                    name += 4;
-                break;
-            case 'd':
-                if (strcmp(name,"__dl__FvP") == 0)
-                    name = "__builtin_delete";
-                break;
-            case 'v':
-                //if (strcmp(name,"__vec_delete__FvPiUIPi") == 0)
-                    //name = "__builtin_vec_del";
-                //else
-                //if (strcmp(name,"__vn__FPUI") == 0)
-                    //name = "__builtin_vec_new";
-                break;
-            case 'n':
-                if (strcmp(name,"__nw__FPUI") == 0)
-                    name = "__builtin_new";
-                break;
-
-            default:
-                break;
-        }
-}
-    }
-    else if (tyfunc(s.ty()) && s.Sfunc && s.Sfunc.Fredirect)
+    if (tyfunc(s.ty()) && s.Sfunc && s.Sfunc.Fredirect)
     {
         name = s.Sfunc.Fredirect;
         len = strlen(name);
