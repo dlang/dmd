@@ -2744,13 +2744,13 @@ size_t ElfObj_writerel(int targseg, size_t offset, reltype_t reltype,
  *      offset =        offset within seg
  *      val =           displacement from address
  *      targetdatum =   DATA, CDATA or UDATA, depending where the address is
- *      flags =         CFoff, CFseg, CFoffset64, CFswitch
+ *      flags =         CF.off, CF.seg, CF.offset64, CF.switch
  * Example:
  *      int* abc = &def[3];
  *      to allocate storage:
  *              ElfObj_reftodatseg(DATA,offset,3 * (int *).sizeof,UDATA);
  * Note:
- *      For I64 && (flags & CFoffset64) && (flags & CFswitch)
+ *      For I64 && (flags & CF.offset64) && (flags & CF.switch)
  *      targetdatum is a symidx rather than a segment.
  */
 
@@ -2768,12 +2768,12 @@ static if (0)
     if (I64)
     {
 
-        if (flags & CFoffset64)
+        if (flags & CF.offset64)
         {
             relinfo = R_X86_64_64;
-            if (flags & CFswitch) targetsymidx = targetdatum;
+            if (flags & CF.switch_) targetsymidx = targetdatum;
         }
-        else if (flags & CFswitch)
+        else if (flags & CF.switch_)
         {
             relinfo = R_X86_64_PC32;
             targetsymidx = MAP_SEG2SYMIDX(targetdatum);
@@ -2854,11 +2854,11 @@ static if (0)
  *      offset =        offset within seg
  *      s =             Symbol table entry for identifier
  *      val =           displacement from identifier
- *      flags =         CFselfrel: self-relative
- *                      CFseg: get segment
- *                      CFoff: get offset
- *                      CFoffset64: 64 bit fixup
- *                      CFpc32: I64: PC relative 32 bit fixup
+ *      flags =         CF.selfrel: self-relative
+ *                      CF.seg: get segment
+ *                      CF.off: get offset
+ *                      CF.offset64: 64 bit fixup
+ *                      CF.pc32: I64: PC relative 32 bit fixup
  * Returns:
  *      number of bytes in reference (4 or 8)
  */
@@ -2874,7 +2874,7 @@ int ElfObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
     int refseg;
     const segtyp = MAP_SEG2TYP(seg);
     //assert(val == 0);
-    int refSize = (flags & CFoffset64) ? 8 : 4;
+    int refSize = (flags & CF.offset64) ? 8 : 4;
 
 static if (0)
 {
@@ -2913,7 +2913,7 @@ static if (0)
                 }
                 else
                 {   relinfo = config.flags3 & CFG3pic ? R_X86_64_PC32 : R_X86_64_32;
-                    if (flags & CFpc32)
+                    if (flags & CF.pc32)
                         relinfo = R_X86_64_PC32;
                 }
             }
@@ -2929,7 +2929,7 @@ static if (0)
                 else
                     relinfo = config.flags3 & CFG3pic ? R_386_GOTOFF : R_386_32;
             }
-            if (flags & CFoffset64 && relinfo == R_X86_64_32)
+            if (flags & CF.offset64 && relinfo == R_X86_64_32)
             {
                 relinfo = R_X86_64_64;
                 refSize = 8;
@@ -2967,7 +2967,7 @@ static if (0)
             {
                 refseg = s.Sxtrnnum;       // default to name symbol table entry
 
-                if (flags & CFselfrel)
+                if (flags & CF.selfrel)
                 {               // only for function references within code segments
                     if (!external &&            // local definition found
                          s.Sseg == seg &&      // within same code segment
@@ -3002,7 +3002,7 @@ static if (0)
                              segtyp == DATA)    // or refs from data from posi indp
                         {
                             if (I64)
-                                relinfo = (flags & CFpc32) ? R_X86_64_PC32 : R_X86_64_32;
+                                relinfo = (flags & CF.pc32) ? R_X86_64_PC32 : R_X86_64_32;
                             else
                                 relinfo = R_386_32;
                         }
@@ -3018,7 +3018,7 @@ static if (0)
                     else if (segtyp == DATA)
                     {                   // relocation from within DATA seg
                         relinfo = I64 ? R_X86_64_32 : R_386_32;
-                        if (I64 && flags & CFpc32)
+                        if (I64 && flags & CF.pc32)
                             relinfo = R_X86_64_PC32;
                     }
                     else
@@ -3030,7 +3030,7 @@ static if (0)
                             else if (config.flags3 & CFG3pic)
                                 relinfo = R_X86_64_GOTPCREL;
                             else
-                                relinfo = (flags & CFpc32) ? R_X86_64_PC32 : R_X86_64_32;
+                                relinfo = (flags & CF.pc32) ? R_X86_64_PC32 : R_X86_64_32;
                         }
                         else
                         {
@@ -3093,7 +3093,7 @@ static if (0)
                             }
                         }
                     }
-                    if (flags & CFoffset64 && relinfo == R_X86_64_32)
+                    if (flags & CF.offset64 && relinfo == R_X86_64_32)
                     {
                         relinfo = R_X86_64_64;
                     }
@@ -3144,7 +3144,7 @@ int ElfObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol* s, targ_size_t
     int refseg;
     const segtyp = MAP_SEG2TYP(seg);
     //assert(val == 0);
-    int refSize = (flags & CFoffset64) ? 8 : 4;
+    int refSize = (flags & CF.offset64) ? 8 : 4;
 
 static if (0)
 {
@@ -3175,13 +3175,13 @@ static if (0)
             }
             else
             {
-                relinfo = flags & CFadd ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
+                relinfo = flags & CF.add ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
                 //relinfo = config.flags3 & CFG3pic ? R_X86_64_PC32 : R_X86_64_32;
-                //if (flags & CFpc32)
+                //if (flags & CF.pc32)
                     //relinfo = R_X86_64_PC32;
             }
 
-            if (flags & CFoffset64 && relinfo == R_X86_64_32)
+            if (flags & CF.offset64 && relinfo == R_X86_64_32)
             {
                 relinfo = R_X86_64_64;
                 refSize = 8;
@@ -3219,7 +3219,7 @@ static if (0)
             {
                 refseg = s.Sxtrnnum;       // default to name symbol table entry
 
-                if (flags & CFselfrel)
+                if (flags & CF.selfrel)
                 {               // only for function references within code segments
                     if (!external &&            // local definition found
                          s.Sseg == seg &&      // within same code segment
@@ -3248,14 +3248,14 @@ static if (0)
                             refseg = MAP_SEG2SYMIDX(s.Sseg);    // use segment symbol table entry
                         //val += s.Soffset;
 
-                        relinfo = flags & CFadd ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
+                        relinfo = flags & CF.add ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
                         if (refSize == 8)
                             relinfo = R_AARCH64_ABS64;
                         static if (0)
                         {
                             if (!(config.flags3 & CFG3pic) ||       // all static refs from normal code
                                  segtyp == DATA)    // or refs from data from posi indp
-                                relinfo = (flags & CFpc32) ? R_X86_64_PC32 : R_X86_64_32;
+                                relinfo = (flags & CF.pc32) ? R_X86_64_PC32 : R_X86_64_32;
                             else
                                 relinfo = R_X86_64_PC32;
                         }
@@ -3266,13 +3266,13 @@ static if (0)
                     }
                     else if (segtyp == DATA)
                     {                   // relocation from within DATA seg
-                        relinfo = flags & CFadd ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
+                        relinfo = flags & CF.add ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
                         if (refSize == 8)
                             relinfo = R_AARCH64_ABS64;
                     }
                     else
                     {                   // relocation from within CODE seg
-                        relinfo = flags & CFadd ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
+                        relinfo = flags & CF.add ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
                         if (refSize == 8)
                             relinfo = R_AARCH64_ABS64;
                         static if (0)
@@ -3282,18 +3282,18 @@ static if (0)
                             else if (config.flags3 & CFG3pic)
                                 relinfo = R_X86_64_GOTPCREL;
                             else
-                                relinfo = (flags & CFpc32) ? R_X86_64_PC32 : R_X86_64_32;
+                                relinfo = (flags & CF.pc32) ? R_X86_64_PC32 : R_X86_64_32;
                         }
                     }
 
                     if (isTLS)
                     {
                         if (s.Sclass == SC.extern_)
-                            relinfo = flags & CFadd ? R_AARCH64_TLSIE_LD64_GOTTPREL_LO12_NC : R_AARCH64_TLSIE_ADR_GOTTPREL_PAGE21;
+                            relinfo = flags & CF.add ? R_AARCH64_TLSIE_LD64_GOTTPREL_LO12_NC : R_AARCH64_TLSIE_ADR_GOTTPREL_PAGE21;
                         else
-                            relinfo = flags & CFadd ? R_AARCH64_TLSLE_ADD_TPREL_LO12_NC : R_AARCH64_TLSLE_ADD_TPREL_HI12;
+                            relinfo = flags & CF.add ? R_AARCH64_TLSLE_ADD_TPREL_LO12_NC : R_AARCH64_TLSLE_ADD_TPREL_HI12;
                     }
-                    if (flags & CFoffset64 && relinfo == R_X86_64_32)
+                    if (flags & CF.offset64 && relinfo == R_X86_64_32)
                     {
                         relinfo = R_X86_64_64;
                     }
@@ -3406,7 +3406,7 @@ private int elf_align(targ_size_t size,int foffset)
 
 void ElfObj_moduleinfo(Symbol* scc)
 {
-    const CFflags = I64 ? (CFoffset64 | CFoff) : CFoff;
+    const CFflags = I64 ? (CF.offset64 | CF.off) : CF.off;
 
     // needs to be writeable for PIC code, see Bugzilla 13117
     const shf_flags = SHF_ALLOC | SHF_WRITE;
@@ -3420,7 +3420,7 @@ void ElfObj_moduleinfo(Symbol* scc)
  */
 void ElfObj_dehinfo(Symbol* scc)
 {
-    const CFflags = I64 ? (CFoffset64 | CFoff) : CFoff;
+    const CFflags = I64 ? (CF.offset64 | CF.off) : CF.off;
 
     // needs to be writeable for PIC code, see Bugzilla 13117
     const shf_flags = SHF_ALLOC | SHF_WRITE;
@@ -4029,7 +4029,7 @@ int elf_dwarf_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val
             const dataDWref_seg = ElfObj_getsegment(".data.DW.ref.", s.Sident.ptr, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, I64 ? 8 : 4);
             OutBuffer* buf = SegData[dataDWref_seg].SDbuf;
             assert(buf.length() == 0);
-            ElfObj_reftoident(dataDWref_seg, 0, s, 0, I64 ? CFoffset64 : CFoff);
+            ElfObj_reftoident(dataDWref_seg, 0, s, 0, I64 ? CF.offset64 : CF.off);
 
             // Add "DW.ref." ~ name to the elfobj.symtab_strings table
             const namidx = cast(IDXSTR)elfobj.symtab_strings.length();
@@ -4043,7 +4043,7 @@ int elf_dwarf_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val
     }
     else
     {
-        ElfObj_reftoident(seg, offset, s, val, CFoff);
+        ElfObj_reftoident(seg, offset, s, val, CF.off);
         //dwarf_addrel(seg, offset, s.Sseg, s.Soffset);
         //et.write32(s.Soffset);
     }

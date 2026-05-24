@@ -1153,7 +1153,7 @@ void MsCoffObj_setModuleCtorDtor(Symbol* sfunc, bool isCtor)
     const int attr = IMAGE_SCN_CNT_INITIALIZED_DATA | align_ | IMAGE_SCN_MEM_READ;
     const int seg = MsCoffObj_getsegment(isCtor ? ".CRT$XCU" : ".CRT$XPU", attr);
 
-    const int relflags = I64 ? CFoff | CFoffset64 : CFoff;
+    const int relflags = I64 ? CF.off | CF.offset64 : CF.off;
     const int sz = MsCoffObj_reftoident(seg, SegData[seg].SDoffset, sfunc, 0, relflags);
     SegData[seg].SDoffset += sz;
 }
@@ -1185,13 +1185,13 @@ void MsCoffObj_ehtables(Symbol* sfunc,uint size,Symbol* ehsym)
 
     OutBuffer* buf = SegData[seg].SDbuf;
     if (I64)
-    {   MsCoffObj_reftoident(seg, buf.length(), sfunc, 0, CFoff | CFoffset64);
-        MsCoffObj_reftoident(seg, buf.length(), ehsym, 0, CFoff | CFoffset64);
+    {   MsCoffObj_reftoident(seg, buf.length(), sfunc, 0, CF.off | CF.offset64);
+        MsCoffObj_reftoident(seg, buf.length(), ehsym, 0, CF.off | CF.offset64);
         buf.write64(sfunc.Ssize);
     }
     else
-    {   MsCoffObj_reftoident(seg, buf.length(), sfunc, 0, CFoff);
-        MsCoffObj_reftoident(seg, buf.length(), ehsym, 0, CFoff);
+    {   MsCoffObj_reftoident(seg, buf.length(), sfunc, 0, CF.off);
+        MsCoffObj_reftoident(seg, buf.length(), ehsym, 0, CF.off);
         buf.write32(cast(uint)sfunc.Ssize);
     }
 }
@@ -2155,7 +2155,7 @@ private int mscoff_rel_fp(scope const(void*) e1, scope const(void*) e2)
  *      seg:offset =    the address being fixed up
  *      val =           displacement from start of target segment
  *      targetdatum =   target segment number (DATA, CDATA or UDATA, etc.)
- *      flags =         CFoff, CFseg
+ *      flags =         CF.off, CF.seg
  * Example:
  *      int* abc = &def[3];
  *      to allocate storage:
@@ -2182,7 +2182,7 @@ static if (0)
     MsCoffObj_addrel(seg, offset, null, targetdatum, REL.address, 0);
     if (I64)
     {
-        if (flags & CFoffset64)
+        if (flags & CF.offset64)
         {
             buf.write64(val);
             if (save > offset + 8)
@@ -2232,11 +2232,11 @@ void MsCoffObj_reftocodeseg(segidx_t seg,targ_size_t offset,targ_size_t val)
  *      offset =        offset within seg
  *      s =             Symbol table entry for identifier
  *      val =           displacement from identifier
- *      flags =         CFselfrel: self-relative
- *                      CFseg: get segment
- *                      CFoff: get offset
- *                      CFpc32: [RIP] addressing, val is 0, -1, -2 or -4
- *                      CFoffset64: 8 byte offset for 64 bit builds
+ *      flags =         CF.selfrel: self-relative
+ *                      CF.seg: get segment
+ *                      CF.off: get offset
+ *                      CF.pc32: [RIP] addressing, val is 0, -1, -2 or -4
+ *                      CF.offset64: 8 byte offset for 64 bit builds
  * Returns:
  *      number of bytes in reference (4 or 8)
  */
@@ -2245,8 +2245,8 @@ void MsCoffObj_reftocodeseg(segidx_t seg,targ_size_t offset,targ_size_t val)
 int MsCoffObj_reftoident(segidx_t seg, targ_size_t offset, Symbol* s, targ_size_t val,
         int flags)
 {
-    int refsize = (flags & CFoffset64) ? 8 : 4;
-    if (flags & CFseg)
+    int refsize = (flags & CF.offset64) ? 8 : 4;
+    if (flags & CF.seg)
         refsize += 2;
 static if (0)
 {
@@ -2273,16 +2273,16 @@ static if (0)
             //if (s.Sclass != SCcomdat)
                 //val += s.Soffset;
             int v = 0;
-            if (flags & CFpc32)
+            if (flags & CF.pc32)
             {
-                v = -((flags & CFREL) >> 24);
+                v = -((flags & CF.REL) >> 24);
                 assert(v >= -5 && v <= 0);
             }
-            if (flags & CFselfrel)
+            if (flags & CF.selfrel)
             {
                 MsCoffObj_addrel(seg, offset, s, 0, REL.rel, v);
             }
-            else if ((flags & (CFseg | CFoff)) == (CFseg | CFoff))
+            else if ((flags & (CF.seg | CF.off)) == (CF.seg | CF.off))
             {
                 MsCoffObj_addrel(seg, offset,     s, 0, REL.address32, v);
                 MsCoffObj_addrel(seg, offset + 4, s, 0, REL.seg, v);
@@ -2295,7 +2295,7 @@ static if (0)
         }
         else
         {
-            if (SegData[seg].isCode() && flags & CFselfrel)
+            if (SegData[seg].isCode() && flags & CF.selfrel)
             {
                 seg_data* pseg = SegData[mscoffobj.jumpTableSeg];
                 val -= offset + 4;
@@ -2429,9 +2429,9 @@ void MsCoffObj_moduleinfo(Symbol* scc)
                                       IMAGE_SCN_MEM_READ);
     //printf("MsCoffObj_moduleinfo(%s) seg = %d:x%x\n", scc.Sident.ptr, seg, Offset(seg));
 
-    int flags = CFoff;
+    int flags = CF.off;
     if (I64)
-        flags |= CFoffset64;
+        flags |= CF.offset64;
     SegData[seg].SDoffset += MsCoffObj_reftoident(seg, Offset(seg), scc, 0, flags);
 }
 

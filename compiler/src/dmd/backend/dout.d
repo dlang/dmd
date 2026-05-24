@@ -374,11 +374,11 @@ void dt_writeToObj(Obj objmod, dt_t* dt, int seg, ref targ_size_t offset)
             {
                 int flags;
                 if (tyreg(dt.Dty))
-                    flags = CFoff;
+                    flags = CF.off;
                 else
-                    flags = CFoff | CFseg;
+                    flags = CF.off | CF.seg;
                 if (I64)
-                    flags |= CFoffset64;
+                    flags |= CF.offset64;
                 if (tybasic(dt.Dty) == TYcptr)
                     objmod.reftocodeseg(seg,offset,dt.DTabytes);
                 else
@@ -427,11 +427,11 @@ else
                 targ_size_t a = dt.DToffset;    // offset from it
                 int flags;
                 if (tyreg(dt.Dty))
-                    flags = CFoff;
+                    flags = CF.off;
                 else
-                    flags = CFoff | CFseg;
+                    flags = CF.off | CF.seg;
                 if (I64 && tysize(dt.Dty) == 8)
-                    flags |= CFoffset64;
+                    flags |= CF.offset64;
                 offset += objmod.reftoident(seg,offset,sb,a,flags);
                 break;
             }

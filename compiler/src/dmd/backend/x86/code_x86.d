@@ -200,9 +200,9 @@ else
 // true today for the current definition of I32, but if the definition
 // of I32 changes, this macro will need to change as well
 //
-// Note: even for linux targets, CFaddrsize can be set by the inline
+// Note: even for linux targets, CF.addrsize can be set by the inline
 // assembler.
-bool is32bitaddr(bool x,code_flags_t Iflags) { return I64 || (x ^ ((Iflags & CFaddrsize) !=0)); }
+bool is32bitaddr(bool x,CF Iflags) { return I64 || (x ^ ((Iflags & CF.addrsize) !=0)); }
 }
 
 
@@ -252,59 +252,60 @@ enum CLIB
     MAX
 }
 
-alias code_flags_t = uint;
-enum
+// code flags
+enum CF : uint
 {
-    CFes        =        1,     // generate an ES: segment override for this instr
-    CFjmp16     =        2,     // need 16 bit jump offset (long branch)
-    CFtarg      =        4,     // this code is the target of a jump
-    CFseg       =        8,     // get segment of immediate value
-    CFoff       =     0x10,     // get offset of immediate value
-    CFss        =     0x20,     // generate an SS: segment override (not with
-                                // CFes at the same time, though!)
-    CFpsw       =     0x40,     // we need the flags result after this instruction
-    CFopsize    =     0x80,     // prefix with operand size
-    CFaddrsize  =    0x100,     // prefix with address size
-    CFds        =    0x200,     // need DS override (not with ES, SS, or CS )
-    CFcs        =    0x400,     // need CS override
-    CFfs        =    0x800,     // need FS override
-    CFgs        =   CFcs | CFfs,   // need GS override
-    CFwait      =   0x1000,     // If I32 it indicates when to output a WAIT
-    CFselfrel   =   0x2000,     // if self-relative
-    CFunambig   =   0x4000,     // indicates cannot be accessed by other addressing
+    zero      =        0,     // nothing
+    es        =        1,     // generate an ES: segment override for this instr
+    jmp16     =        2,     // need 16 bit jump offset (long branch)
+    targ      =        4,     // this code is the target of a jump
+    seg       =        8,     // get segment of immediate value
+    off       =     0x10,     // get offset of immediate value
+    ss        =     0x20,     // generate an SS: segment override (not with
+                                // CF.es at the same time, though!)
+    psw       =     0x40,     // we need the flags result after this instruction
+    opsize    =     0x80,     // prefix with operand size
+    addrsize  =    0x100,     // prefix with address size
+    ds        =    0x200,     // need DS override (not with ES, SS, or CS )
+    cs        =    0x400,     // need CS override
+    fs        =    0x800,     // need FS override
+    gs        =   cs | fs,    // need GS override
+    wait      =   0x1000,     // If I32 it indicates when to output a WAIT
+    selfrel   =   0x2000,     // if self-relative
+    unambig   =   0x4000,     // indicates cannot be accessed by other addressing
                                 // modes
-    CFtarg2     =   0x8000,     // like CFtarg, but we can't optimize this away
-    CFvolatile  =  0x10000,     // volatile reference, do not schedule
-    CFclassinit =  0x20000,     // class init code
-    CFoffset64  =  0x40000,     // offset is 64 bits
-    CFpc32      =  0x80000,     // I64: PC relative 32 bit fixup
+    targ2     =   0x8000,     // like CF.targ, but we can't optimize this away
+    volatile  =  0x10000,     // volatile reference, do not schedule
+    classinit =  0x20000,     // class init code
+    offset64  =  0x40000,     // offset is 64 bits
+    pc32      =  0x80000,     // I64: PC relative 32 bit fixup
 
-    CFvex       =  0x10_0000,    // vex prefix
-    CFvex3      =  0x20_0000,    // 3 byte vex prefix
+    vex       =  0x10_0000,    // vex prefix
+    vex3      =  0x20_0000,    // 3 byte vex prefix
 
-    CFjmp5      =  0x40_0000,    // always a 5 byte jmp
-    CFswitch    =  0x80_0000,    // kludge for switch table fixups
+    jmp5      =  0x40_0000,    // always a 5 byte jmp
+    switch_   =  0x80_0000,    // kludge for switch table fixups
 
-    CFindirect  = 0x100_0000,    // OSX32: indirect fixups
+    indirect  = 0x100_0000,    // OSX32: indirect fixups
 
-    /* These are for CFpc32 fixups, they're the negative of the offset of the fixup
+    /* These are for CF.pc32 fixups, they're the negative of the offset of the fixup
      * from the program counter
      */
-    CFREL       = 0x700_0000,
+    REL       = 0x700_0000,
 
-    CFSEG       = CFes | CFss | CFds | CFcs | CFfs | CFgs,
-    CFPREFIX    = CFSEG | CFopsize | CFaddrsize,
+    SEG       = es | ss | ds | cs | fs | gs,
+    PREFIX    = SEG | opsize | addrsize,
 
     // AArch64
-    CFadd       = 0x1000_0000,
-    CFfixup     = 0x2000_0000,   // needs a fixup
-    CFselfrel26 = 0x4000_0000,   // 26 bit self-relative fixup for BL instruction (BRANCHY26)
+    add       = 0x1000_0000,
+    fixup     = 0x2000_0000,   // needs a fixup
+    selfrel26 = 0x4000_0000,   // 26 bit self-relative fixup for BL instruction (BRANCHY26)
 }
 
 struct code
 {
     code* next;
-    code_flags_t Iflags;
+    CF Iflags;
 
     union
     {

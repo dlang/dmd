@@ -393,7 +393,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         code_newreg(&cs,regop);
         //cs.Iflags |= opsize;
         if (forccs)
-            cs.Iflags |= CFpsw;
+            cs.Iflags |= CF.psw;
         cs.IFL2 = FL.const_;
         cs.IEV2.Vsize_t = (jop == JC) ? 0 : ~cast(targ_size_t)0;
         cdb.gen(&cs);
@@ -456,7 +456,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
         storeToEA(cs,reg1,sz);
         if (forccs)
-            cs.Iflags |= CFpsw;
+            cs.Iflags |= CF.psw;
         cdb.gen(&cs);
         retregs = mask(reg1);
     }
@@ -1195,7 +1195,7 @@ printf("OPconst:\n");
                 {
                     case OPle:
                         cdb.genc2(0x81,grex | modregrmx(3,0,reg),cast(uint)-1);   // ADD reg,-1
-                        code_orflag(cdb.last(), CFpsw);
+                        code_orflag(cdb.last(), CF.psw);
                         cdb.genc2(0x81,grex | modregrmx(3,2,reg),0);          // ADC reg,0
                         goto oplt;
 
@@ -1203,7 +1203,7 @@ printf("OPconst:\n");
                         cdb.gen2(0xF7,grex | modregrmx(3,3,reg));         // NEG reg
                             /* Flips the sign bit unless the value is 0 or int.min.
                             Also sets the carry bit when the value is not 0. */
-                        code_orflag(cdb.last(), CFpsw);
+                        code_orflag(cdb.last(), CF.psw);
                         cdb.genc2(0x81,grex | modregrmx(3,3,reg),0);  // SBB reg,0
                             /* Subtracts the carry bit. This turns int.min into
                             int.max, flipping the sign bit.
@@ -1234,7 +1234,7 @@ printf("OPconst:\n");
                     case OPge:
                         genregs(cdb,0xD1,4,reg);        // SHL reg,1
                         code_orrex(cdb.last(),rex);
-                        code_orflag(cdb.last(), CFpsw);
+                        code_orflag(cdb.last(), CF.psw);
                         genregs(cdb,0x19,reg,reg);      // SBB reg,reg
                         code_orrex(cdb.last(),rex);
                         if (I64)
@@ -2026,7 +2026,7 @@ void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         (op == OPu8_16 || (c.IEV2.Vuns & 0x80) == 0))
     {
         if (pretregs & mPSW)
-            c.Iflags |= CFpsw;
+            c.Iflags |= CF.psw;
         c.Iop |= 1;                    // convert to word operation
         c.IEV2.Vuns &= 0xFF;           // dump any high order bits
         pretregs &= ~mPSW;             // flags already set

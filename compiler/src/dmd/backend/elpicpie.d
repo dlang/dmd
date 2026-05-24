@@ -258,7 +258,7 @@ elem* el_ptr(Symbol* s)
             Symbol* sd = symboldata(Offset(DATA), typtr);
             sd.Sseg = DATA;
             Obj.data_start(sd, _tysize[TYnptr], DATA);
-            Offset(DATA) += Obj.reftoident(DATA, Offset(DATA), s, 0, CFoff);
+            Offset(DATA) += Obj.reftoident(DATA, Offset(DATA), s, 0, CF.off);
             elem* e = el_picvar(sd);
             e.Ety = typtr;
             return e;
