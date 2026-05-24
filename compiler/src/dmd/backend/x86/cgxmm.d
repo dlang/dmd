@@ -493,7 +493,7 @@ void xmmcnvt(ref CGstate cg,ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         getregs(cdb,regs);
         genregs(cdb,0x8B,reg,reg); // MOV reg,reg to zero upper 32-bit
                                    // Don't use x89 because that will get optimized away
-        code_orflag(cdb.last(),CFvolatile);
+        code_orflag(cdb.last(),CF.volatile);
     }
 
     regm_t retregs = pretregs;
@@ -1285,7 +1285,7 @@ static if (0)
             codelem(cg,cdb,op1, rretregs, false);
             const rreg = findreg(rretregs) - XMM0;
             cs.Irm = modregrm(3,0,rreg & 7);
-            cs.Iflags = 0;
+            cs.Iflags = CF.zero;
             cs.Irex = 0;
             if (rreg & 8)
                 cs.Irex |= REX_B;
@@ -1333,7 +1333,7 @@ static if (0)
             scodelem(cg,cdb, op2, rretregs, retregs, true);
             const rreg = findreg(rretregs) - XMM0;
             cs.Irm = modregrm(3,0,rreg & 7);
-            cs.Iflags = 0;
+            cs.Iflags = CF.zero;
             cs.Irex = 0;
             if (rreg & 8)
                 cs.Irex |= REX_B;
@@ -1433,7 +1433,7 @@ static if (0)
         cr = scodelem(cg,op2, rretregs, retregs, true);
         const rreg = findreg(rretregs) - XMM0;
         cs.Irm = modregrm(3,0,rreg & 7);
-        cs.Iflags = 0;
+        cs.Iflags = CF.zero;
         cs.Irex = 0;
         if (rreg & 8)
             cs.Irex |= REX_B;
@@ -1631,7 +1631,7 @@ static if (0)
                 reg_t reg = allocreg(cdb,retregs,ty);
                 cs.Iop = VPBROADCASTW;
                 cs.Irex &= ~REX_W;
-                cs.Iflags &= ~CFopsize;
+                cs.Iflags &= ~CF.opsize;
                 code_newreg(&cs,reg - XMM0);
                 checkSetVex(&cs,ty);
                 cdb.gen(&cs);
@@ -1789,7 +1789,7 @@ bool xmmIsAligned(elem* e)
 
 /**************************************
  * VEX prefixes can be 2 or 3 bytes.
- * If it must be 3 bytes, set the CFvex3 flag.
+ * If it must be 3 bytes, set the CF.vex3 flag.
  */
 
 void checkSetVex3(code* c)
@@ -1799,7 +1799,7 @@ void checkSetVex3(code* c)
         !I64 && (c.Ivex.r || !(c.Ivex.vvvv & 8))
        )
     {
-        c.Iflags |= CFvex3;
+        c.Iflags |= CF.vex3;
     }
 }
 
@@ -1907,7 +1907,7 @@ void checkSetVex(code* c, tym_t ty)
 
         c.Ivex.vvvv = cast(ushort)~vreg;
 
-        c.Iflags |= CFvex;
+        c.Iflags |= CF.vex;
         checkSetVex3(c);
     }
 }

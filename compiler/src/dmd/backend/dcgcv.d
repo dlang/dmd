@@ -1597,7 +1597,7 @@ private void cv4_outsym(Symbol* s)
         objmod.write_bytes(SegData[DEBSYM],debsym[0 .. length]);
 
         // Put out fixup for function start offset
-        objmod.reftoident(DEBSYM,soffset + u,s,0,CFseg | CFoff);
+        objmod.reftoident(DEBSYM,soffset + u,s,0,CF.seg | CF.off);
     }
     else
     {   targ_size_t base;
@@ -1857,7 +1857,7 @@ private void cv4_func(Funcsym* s, ref symtab_t symtab)
             block32_data block32 = { (block32_data).sizeof - 2, S_BLOCK32, 0, 0, length, 0, 0, [ 0, '\0' ] };
             objmod.write_bytes(SegData[DEBSYM], (&block32)[0 .. 1]);
             size_t offOffset = cast(char*)&block32.offset - cast(char*)&block32;
-            objmod.reftoident(DEBSYM, soffset + offOffset, sfunc, offset + sfunc.Soffset, CFseg | CFoff);
+            objmod.reftoident(DEBSYM, soffset + offOffset, sfunc, offset + sfunc.Soffset, CF.seg | CF.off);
         }
         static void endBlock()
         {

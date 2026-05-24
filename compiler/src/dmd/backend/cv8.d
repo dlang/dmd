@@ -268,7 +268,7 @@ void cv8_termfile(const(char)[] objfilename)
 
         uint offset = cast(uint)SegData[f2seg].SDoffset + 8;
         cv8_writesection(f2seg, 0xF2, F2_buf);
-        objmod.reftoident(f2seg, offset, fd.sfunc, 0, CFseg | CFoff);
+        objmod.reftoident(f2seg, offset, fd.sfunc, 0, CF.seg | CF.off);
 
         if (f2seg != seg && fd.f1buf.length())
         {
@@ -282,7 +282,7 @@ void cv8_termfile(const(char)[] objfilename)
             for (uint v = 0; v < fixupLength; v += F1_Fixups.sizeof)
             {   F1_Fixups* f = cast(F1_Fixups*)(pfixup + v);
 
-                objmod.reftoident(f2seg, f1offset + 8 + f.offset, f.s, f.value, CFseg | CFoff);
+                objmod.reftoident(f2seg, f1offset + 8 + f.offset, f.s, f.value, CF.seg | CF.off);
             }
         }
     }
@@ -307,7 +307,7 @@ void cv8_termfile(const(char)[] objfilename)
         for (uint u = 0; u < length; u += F1_Fixups.sizeof)
         {   F1_Fixups* f = cast(F1_Fixups*)(p + u);
 
-            objmod.reftoident(seg, f1offset + 8 + f.offset, f.s, f.value, CFseg | CFoff);
+            objmod.reftoident(seg, f1offset + 8 + f.offset, f.s, f.value, CF.seg | CF.off);
         }
     }
 

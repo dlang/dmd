@@ -1892,7 +1892,7 @@ void MachObj_setModuleCtorDtor(Symbol* sfunc, bool isCtor)
                 ? getsegment2(machobj.seg_mod_init_func, "__mod_init_func", "__DATA", p2align, S_MOD_INIT_FUNC_POINTERS)
                 : getsegment2(machobj.seg_mod_term_func, "__mod_term_func", "__DATA", p2align, S_MOD_TERM_FUNC_POINTERS);
 
-    const int relflags = I64 ? CFoff | CFoffset64 : CFoff;
+    const int relflags = I64 ? CF.off | CF.offset64 : CF.off;
     const int sz = MachObj_reftoident(seg, SegData[seg].SDoffset, sfunc, 0, relflags);
     SegData[seg].SDoffset += sz;
 }
@@ -1920,14 +1920,14 @@ void MachObj_ehtables(Symbol* sfunc,uint size,Symbol* ehsym)
     OutBuffer* buf = SegData[seg].SDbuf;
     if (I64)
     {
-        MachObj_reftoident(seg, buf.length(), sfunc, 0, CFoff | CFoffset64);
-        MachObj_reftoident(seg, buf.length(), ehsym, 0, CFoff | CFoffset64);
+        MachObj_reftoident(seg, buf.length(), sfunc, 0, CF.off | CF.offset64);
+        MachObj_reftoident(seg, buf.length(), ehsym, 0, CF.off | CF.offset64);
         buf.write64(sfunc.Ssize);
     }
     else
     {
-        MachObj_reftoident(seg, buf.length(), sfunc, 0, CFoff);
-        MachObj_reftoident(seg, buf.length(), ehsym, 0, CFoff);
+        MachObj_reftoident(seg, buf.length(), sfunc, 0, CF.off);
+        MachObj_reftoident(seg, buf.length(), ehsym, 0, CF.off);
         buf.write32(cast(int)sfunc.Ssize);
     }
 }
@@ -2261,13 +2261,13 @@ int MachObj_thread_vars(ref Symbol s, out targ_size_t offset, bool bss)
 
     // 1. pointer to __tlv_bootstrap
     Symbol* stlv_bootstrap = MachObj_tlv_bootstrap();
-    MachObj_reftoident(tvseg, tvsegdata.SDbuf.length(), stlv_bootstrap, 0, CFoff | CFoffset64);
+    MachObj_reftoident(tvseg, tvsegdata.SDbuf.length(), stlv_bootstrap, 0, CF.off | CF.offset64);
 
     // 2. null pointer
     MachObj_write_zeros(tvsegdata, 8);
 
     // 3. pointer to _ident$tlv$init in the __thread_data section
-    MachObj_reftoident(tvseg, tvsegdata.SDbuf.length(), si, 0, CFoff | CFoffset64);
+    MachObj_reftoident(tvseg, tvsegdata.SDbuf.length(), si, 0, CF.off | CF.offset64);
 
     assert((tvsegdata.SDbuf.length() % 24) == 0);
     return si.Sseg;
@@ -2759,7 +2759,7 @@ void MachObj_addrel(int seg, targ_size_t offset, Symbol* targsym,
  *      seg:offset =    the address being fixed up
  *      val =           displacement from start of target segment
  *      targetdatum =   target segment number (DATA, CDATA or UDATA, etc.)
- *      flags =         CFoff, CFseg
+ *      flags =         CF.off, CF.seg
  * Example:
  *      int* abc = &def[3];
  *      to allocate storage:
@@ -2783,7 +2783,7 @@ void MachObj_reftodatseg(int seg,targ_size_t offset,targ_size_t val,
     MachObj_addrel(seg, offset, null, targetdatum, REL.address);
     if (I64)
     {
-        if (flags & CFoffset64)
+        if (flags & CF.offset64)
         {
             buf.write64(val);
             if (save > offset + 8)
@@ -2830,12 +2830,12 @@ void MachObj_reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
  *      offset =        offset within seg
  *      s .            Symbol table entry for identifier
  *      val =           displacement from identifier
- *      flags =         CFselfrel: self-relative
- *                      CFseg: get segment
- *                      CFoff: get offset
- *                      CFpc32: [RIP] addressing, val is 0, -1, -2 or -4
- *                      CFoffset64: 8 byte offset for 64 bit builds
- *                      CFselfrel26: 26 bit offset for BL function calls
+ *      flags =         CF.selfrel: self-relative
+ *                      CF.seg: get segment
+ *                      CF.off: get offset
+ *                      CF.pc32: [RIP] addressing, val is 0, -1, -2 or -4
+ *                      CF.offset64: 8 byte offset for 64 bit builds
+ *                      CF.selfrel26: 26 bit offset for BL function calls
  * Returns:
  *      number of bytes in reference (4 or 8)
  */
@@ -2846,7 +2846,7 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
     if (machobj.AArch64)
         return MachObj_reftoidentAArch64(seg, offset, s, val, flags);
 
-    int retsize = (flags & CFoffset64) ? 8 : 4;
+    int retsize = (flags & CF.offset64) ? 8 : 4;
     if (log)
     {
         debug printf("\nMachObj_reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x) ",
@@ -2869,9 +2869,9 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
             //if (s.Sclass != SCcomdat)
                 //val += s.Soffset;
             int v = 0;
-            if (flags & CFpc32)
+            if (flags & CF.pc32)
                 v = cast(int)val;
-            if (flags & CFselfrel)
+            if (flags & CF.selfrel)
             {
                 MachObj_addrel(seg, offset, s, 0, REL.rel, v);
             }
@@ -2882,7 +2882,7 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
         }
         else
         {
-            if (SegData[seg].isCode() && flags & CFselfrel)
+            if (SegData[seg].isCode() && flags & CF.selfrel)
             {
                 if (!machobj.jumpTableSeg)
                 {
@@ -2925,14 +2925,14 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
                 MachObj_addrel(seg, offset, null, machobj.jumpTableSeg, REL.rel);
             }
             else if (SegData[seg].isCode() &&
-                     !(flags & CFindirect) &&
+                     !(flags & CF.indirect) &&
                     ((s.Sclass != SC.extern_ && SegData[s.Sseg].isCode()) || s.Sclass == SC.locstat ||
                      s.Sclass == SC.static_))
             {
                 val += s.Soffset;
                 MachObj_addrel(seg, offset, null, s.Sseg, REL.address);
             }
-            else if ((flags & CFindirect) ||
+            else if ((flags & CF.indirect) ||
                      SegData[seg].isCode() && !tyfunc(s.ty()))
             {
                 if (!machobj.pointersSeg)
@@ -2969,7 +2969,7 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
 
              L2:
                 //printf("MachObj_reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, cast(int)offset, s.Sident.ptr, cast(int)val, machobj.pointersSeg);
-                if (flags & CFindirect)
+                if (flags & CF.indirect)
                 {
                     Relocation rel = void;
                     rel.offset = offset;
@@ -3015,7 +3015,7 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
 int MachObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
         int flags)
 {
-    int retsize = (flags & CFoffset64) ? 8 : 4;
+    int retsize = (flags & CF.offset64) ? 8 : 4;
     if (log)
     {
         debug printf("\nMachObj_reftoidentAArch64('%s' seg %d, offset x%llx, val x%llx, flags x%x) ",
@@ -3036,17 +3036,17 @@ int MachObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol* s, targ_size_
         //if (s.Sclass != SCcomdat)
             //val += s.Soffset;
         int v = 0;
-        if (flags & CFpc32)
+        if (flags & CF.pc32)
             v = cast(int)val;
-        if (flags & CFselfrel26)
+        if (flags & CF.selfrel26)
         {
             MachObj_addrel(seg, offset, s, 0, REL.rel26, v);
         }
-        else if (flags & CFselfrel)
+        else if (flags & CF.selfrel)
         {
             MachObj_addrel(seg, offset, s, 0, REL.rel, v);
         }
-        else if (flags & CFadd)
+        else if (flags & CF.add)
         {
             MachObj_addrel(seg, offset, s, 0, REL.add, v);
         }
@@ -3059,7 +3059,7 @@ int MachObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol* s, targ_size_
     OutBuffer* buf = SegData[seg].SDbuf;
     int save = cast(int)buf.length();
     buf.position(cast(size_t)offset, retsize);
-    if (flags & CFselfrel26 && val == 0)
+    if (flags & CF.selfrel26 && val == 0)
     {
         //printf("offset = x%llx, val = x%llx\n", offset, val);
     }
@@ -3147,9 +3147,9 @@ void MachObj_moduleinfo(Symbol* scc)
     int seg = MachObj_getsegment("__minfodata", "__DATA", p2align, S_REGULAR);
     //printf("MachObj_moduleinfo(%s) seg = %d:x%x\n", scc.Sident.ptr, seg, Offset(seg));
 
-    int flags = CFoff;
+    int flags = CF.off;
     if (I64)
-        flags |= CFoffset64;
+        flags |= CF.offset64;
     SegData[seg].SDoffset += MachObj_reftoident(seg, Offset(seg), scc, 0, flags);
 }
 
@@ -3212,9 +3212,9 @@ int mach_dwarf_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t va
 {
     //printf("dwarf_reftoident(seg=%d offset=x%x s=%s val=x%x\n", seg, cast(int)offset, s.Sident.ptr, cast(int)val);
     if (machobj.AArch64)
-        MachObj_reftoident(seg, offset, s, val + 4, CFselfrel);
+        MachObj_reftoident(seg, offset, s, val + 4, CF.selfrel);
     else
-        MachObj_reftoident(seg, offset, s, val + 4, I64 ? CFoff : CFindirect);
+        MachObj_reftoident(seg, offset, s, val + 4, I64 ? CF.off : CF.indirect);
     return 4;
 }
 

@@ -2042,7 +2042,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
     enum log = false;
     if (log) printf("getoffset(e = %p, reg = %s)\n", e, regm_str(mask(reg)));
     code cs;
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     ubyte rex = 0;
     cs.Irex = rex;
     assert(e.Eoper == OPvar || e.Eoper == OPrelconst);
@@ -2063,7 +2063,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
                 cdb.gencs1(ins,0,fl,e.Vsym);
                 ins = INSTR.ldr_imm_gen(1,reg,reg,0);   // LDR  reg,[reg] RELOC_TLVP_LOAD_PAGEOFF12
                 cdb.gencs1(ins,0,fl,e.Vsym);
-                cdb.last.Iflags |= CFadd;
+                cdb.last.Iflags |= CF.add;
                 return;
             }
             if (config.exe & EX_posix)
@@ -2077,7 +2077,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
 
                 ins = INSTR.addsub_imm(1,0,0,0,0,reg,reg);          // ADD reg,reg,#0
                 cdb.gencs1(ins,0,fl,e.Vsym);
-                cdb.last.Iflags |= CFadd;
+                cdb.last.Iflags |= CF.add;
                 return;
             }
             assert(0);
@@ -2226,7 +2226,7 @@ static if (0)
 
                 ins = INSTR.ldr_imm_gen(1,reg,reg,0);              // LDR  reg,[reg]
                 cdb.gencs1(ins,0,fl,e.Vsym);
-                cdb.last.Iflags |= CFadd;
+                cdb.last.Iflags |= CF.add;
 
                 cdb.gen1(INSTR.addsub_shift(1,0,0,0,reg,0,r,reg)); // ADD reg,r,reg
                 return;
@@ -2263,7 +2263,7 @@ static if (0)
                 cdb.gencs1(ins,0,fl,e.Vsym);
 
                 cs.Iop = INSTR.addsub_imm(1,0,0,0,0,reg,reg); // ADD reg,reg,#0
-                cs.Iflags |= CFadd;
+                cs.Iflags |= CF.add;
                 cs.IFL1 = fl;
                 cdb.gen(&cs);
 

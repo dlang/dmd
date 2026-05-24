@@ -164,7 +164,7 @@ code* genc2(code* c,opcode_t op,uint ea,targ_size_t EV2)
     cs.Iop = op;
     cs.Iea = ea;
     //ccheck(&cs);
-    cs.Iflags = CFoff;
+    cs.Iflags = CF.off;
     cs.IFL2 = FL.const_;
     cs.IEV2.Vsize_t = EV2;
     return gen(c,cs);
@@ -254,7 +254,7 @@ struct Fixup
 {
     Symbol      *sym;       // the referenced Symbol
     int         seg;        // where the fixup is going (CODE or DATA, never UDATA)
-    int         flags;      // CFxxxx
+    int         flags;      // CF.xxxx
     targ_size_t offset;     // addr of reference to Symbol
     targ_size_t val;        // value to add into location
     Symbol      *funcsym;   // function the Symbol goes in
@@ -283,25 +283,25 @@ size_t addtofixlist(Symbol* s,targ_size_t offset,int seg,targ_size_t val,int fla
         size_t numbytes;
 if (TARGET_SEGMENTED)
 {
-        switch (flags & (CFoff | CFseg))
+        switch (flags & (CF.off | CF.seg))
         {
-            case CFoff:         numbytes = tysize(TYnptr);      break;
-            case CFseg:         numbytes = 2;                   break;
-            case CFoff | CFseg: numbytes = tysize(TYfptr);      break;
+            case CF.off:         numbytes = tysize(TYnptr);      break;
+            case CF.seg:         numbytes = 2;                   break;
+            case CF.off | CF.seg: numbytes = tysize(TYfptr);      break;
             default:            assert(0);
         }
 }
 else
 {
         numbytes = tysize(TYnptr);
-        if (I64 && !(flags & CFoffset64))
+        if (I64 && !(flags & CF.offset64))
             numbytes = 4;
 
 if (config.exe & EX_windos)
 {
         /* This can happen when generating CV8 data
          */
-        if (flags & CFseg)
+        if (flags & CF.seg)
             numbytes += 2;
 }
 }
