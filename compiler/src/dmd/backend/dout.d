@@ -39,9 +39,10 @@ import dmd.backend.type;
 
 nothrow:
 @safe:
+private:
 
 // Determine if this Symbol is stored in a COMDAT
-@trusted
+@trusted public
 bool symbol_iscomdat2(Symbol* s)
 {
     return s.Sclass == SC.comdat ||
@@ -52,7 +53,7 @@ bool symbol_iscomdat2(Symbol* s)
 /***********************************
  * Output function thunk.
  */
-@trusted
+@trusted public
 void outthunk(Symbol* sthunk, Symbol* sfunc, uint p, tym_t thisty,
         targ_size_t d, int i, targ_size_t d2)
 {
@@ -65,10 +66,10 @@ void outthunk(Symbol* sthunk, Symbol* sfunc, uint p, tym_t thisty,
 
 /***************************
  * Write out statically allocated data.
- * Input:
- *      s               symbol to be initialized
+ * Params:
+ *      s = symbol's Sdt data to be output
  */
-@trusted
+@trusted public
 void outdata(Symbol* s)
 {
     int seg;
@@ -363,7 +364,7 @@ Lret:
  *      offset = starting offset in segment - will get updated to reflect ending offset
  */
 
-@trusted
+@trusted private
 void dt_writeToObj(Obj objmod, dt_t* dt, int seg, ref targ_size_t offset)
 {
     for (; dt; dt = dt.DTnext)
@@ -518,7 +519,7 @@ void outcommon(Symbol* s,targ_size_t n)
  * Mark a Symbol as going into a read-only segment.
  */
 
-@trusted
+@trusted public
 void out_readonly(Symbol* s)
 {
     if (config.flags2 & CFG2noreadonly)
@@ -550,7 +551,7 @@ void out_readonly(Symbol* s)
  *      sz = size of each character (1, 2 or 4)
  * Returns: a Symbol pointing to it.
  */
-@trusted
+@trusted public
 Symbol* out_string_literal(const(char)* str, uint len, uint sz)
 {
     tym_t ty = TYchar;
@@ -641,8 +642,8 @@ Symbol* out_string_literal(const(char)* str, uint len, uint sz)
  * a code generator tree.
  */
 
-@trusted
-/*private*/ void outelem(elem* e, ref bool addressOfParam)
+@trusted private
+void outelem(elem* e, ref bool addressOfParam)
 {
     Symbol* s;
     tym_t tym;
@@ -754,7 +755,7 @@ debug
  * Determine register candidates.
  */
 
-@trusted
+@trusted public
 void out_regcand(symtab_t* psymtab)
 {
     //printf("out_regcand()\n");
@@ -796,8 +797,8 @@ void out_regcand(symtab_t* psymtab)
 
 }
 
-@trusted
-private void out_regcand_walk(elem* e, ref bool addressOfParam)
+@trusted private
+void out_regcand_walk(elem* e, ref bool addressOfParam)
 {
     while (1)
     {   elem_debug(e);
@@ -882,7 +883,7 @@ private void out_regcand_walk(elem* e, ref bool addressOfParam)
  * and write it out.
  */
 
-@trusted
+@trusted public
 void writefunc(Symbol* sfunc)
 {
     import dmd.backend.var : go, bo;
@@ -891,8 +892,8 @@ void writefunc(Symbol* sfunc)
     cstate.CSpsymtab = null;
 }
 
-@trusted
-private void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
+@trusted private
+void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
 {
     func_t* f = sfunc.Sfunc;
 
@@ -1174,12 +1175,12 @@ Ldone:
 
 /*************************
  * Align segment offset.
- * Input:
- *      seg             segment to be aligned
- *      datasize        size in bytes of object to be aligned
+ * Params:
+ *      seg = segment to be aligned
+ *      datasize = size in bytes of object to be aligned
  */
 
-@trusted
+@trusted public
 void alignOffset(int seg,targ_size_t datasize)
 {
     targ_size_t alignbytes = _align(datasize,Offset(seg)) - Offset(seg);
@@ -1210,14 +1211,14 @@ private __gshared
     size_t readonly_i;
 }
 
-@trusted
+@trusted public
 void out_reset()
 {
     readonly_length = 0;
     readonly_i = 0;
 }
 
-@trusted
+@trusted public
 Symbol* out_readonly_sym(tym_t ty, void* p, int len)
 {
 static if (0)
@@ -1286,7 +1287,7 @@ static if (0)
  *      len = length of that data
  *      nzeros = number of trailing zeros to append
  */
-@trusted
+@trusted public
 void out_readonly_comdat(Symbol* s, const(void)* p, uint len, uint nzeros)
 {
     objmod.readonly_comdat(s);         // create comdat segment
@@ -1294,7 +1295,7 @@ void out_readonly_comdat(Symbol* s, const(void)* p, uint len, uint nzeros)
     objmod.lidata(s.Sseg, len, nzeros);
 }
 
-@trusted
+@trusted public
 void Srcpos_print(ref const Srcpos srcpos, const(char)* func)
 {
     printf("%s(", func);
