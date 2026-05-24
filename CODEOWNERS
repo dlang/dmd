@@ -11,33 +11,34 @@
 # Later matches take precedence.
 
 src/dmd/access.d @MartinNowak
-src/dmd/astbase* @RazvanN7
-src/dmd/astcodegen.d @RazvanN7
-src/dmd/asttypename.d @UplinkCoder
-src/dmd/attrib.d @Geod24
+src/dmd/ast/base* @RazvanN7
+src/dmd/ast/codegen.d @RazvanN7
+src/dmd/ast/typename.d @UplinkCoder
+src/dmd/astattrib.d @Geod24
 src/dmd/builtin.d @klickvebot @WalterBright
-src/dmd/cond.d @Geod24
+src/dmd/ast/cond.d @Geod24
 src/dmd/console.d @CyberShadow
-src/dmd/cppmangle.d @ibuclaw @Geod24
+src/dmd/mangle/cpp.d @ibuclaw @Geod24
 src/dmd/cparse.d @ibuclaw @WalterBright
 src/dmd/ctfeexpr.d @UplinkCoder
 src/dmd/doc.d @andralex @jacob-carlborg
 src/dmd/dscope.d @Geod24
 src/dmd/hdrgen.d @UplinkCoder @WalterBright
-src/dmd/iasm.d @ibuclaw @WalterBright
-src/dmd/iasmdmd.d @WalterBright
-src/dmd/iasmgcc.d @ibuclaw
+src/dmd/iasm/package.d @ibuclaw @WalterBright
+src/dmd/iasm/dmdx86.d @WalterBright
+src/dmd/iasm/dmdaarch64.d @WalterBright
+src/dmd/iasm/gcc.d @ibuclaw
 src/dmd/mars.d @MartinNowak @Geod24 @rainers @UplinkCoder @WalterBright
 src/dmd/objc* @jacob-carlborg
-src/dmd/permissivevisitor.d @RazvanN7
+src/dmd/visitor/permissive.d @RazvanN7
 src/dmd/target.d @ibuclaw @MartinNowak
-src/dmd/transitivevisitor.d @RazvanN7
+src/dmd/visitor/transitive.d @RazvanN7
 src/dmd/vcbuild @rainers
 
 # GitHub's implementation of the CODEOWNERS format is buggy, it doesn't allow src/dmd/*.h
 *.h @ibuclaw @klickverbot
 
 # CI & automation
-posix.mak @MartinNowak @wilzbach
+posix.mak @MartinNowak
 src/posix.mak @MartinNowak @wilzbach
-circle.sh @MartinNowak @wilzbach
+circle.sh @MartinNowak
