@@ -1860,7 +1860,10 @@ void semanticRTInfo(AggregateDeclaration ad)
     auto sc = ad.rtInfoScope;
     Scope* sc3 = ti.tempdecl._scope.startCTFE();
     sc3.tinst = sc.tinst;
-    sc3.minst = sc.minst;
+    // Use the root module so nested RTInfoImpl instances get codegen'd.
+    // rtInfoScope may come from a non-root ImportC module with null minst,
+    // which would otherwise mark RTInfoImpl as speculative. See issue #23166.
+    sc3.minst = sc._module.importedFrom;
     if (ad.isDeprecated())
         sc3.stc |= STC.deprecated_;
 
