@@ -290,7 +290,7 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
 
         if (go.mfoptim & MFdc)
             blockopt(go, bo);           // do block optimization
-        out_regcand(&globsym);          // recompute register candidates
+        out_regcand(globsym[]);         // recompute register candidates
         go.changes = 0;                 // no changes yet
         sliceStructs(globsym, bo.startblock);
         if (go.mfoptim & MFcnp)

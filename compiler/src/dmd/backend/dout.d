@@ -752,17 +752,99 @@ debug
 }
 
 /*************************************
- * Determine register candidates.
+ * Go through symbol table and mark symbols that should
+ * not be register candidates.
+ * Params:
+ *      psymtab = symbol table
  */
 
 @trusted public
-void out_regcand(symtab_t* psymtab)
+void out_regcand(Symbol*[] psymtab)
 {
     //printf("out_regcand()\n");
-    const bool ifunc = (tybasic(funcsym_p.ty()) == TYifunc);
-    for (SYMIDX si = 0; si < psymtab.length; si++)
-    {   Symbol* s = (*psymtab)[si];
+    bool addressOfParam = false;                  // haven't taken addr of param yet
 
+    void walk(elem* e)
+    {
+        while (1)
+        {   elem_debug(e);
+
+            if (OTbinary(e.Eoper))
+            {   if (e.Eoper == OPstreq)
+                {   if (e.E1.Eoper == OPvar)
+                    {
+                        Symbol* s = e.E1.Vsym;
+                        s.Sflags &= ~(SFLunambig | GTregcand);
+                    }
+                    if (e.E2.Eoper == OPvar)
+                    {
+                        Symbol* s = e.E2.Vsym;
+                        s.Sflags &= ~(SFLunambig | GTregcand);
+                    }
+                }
+                walk(e.E1);
+                e = e.E2;
+            }
+            else if (OTunary(e.Eoper))
+            {
+                // Don't put 'this' pointers in registers if we need
+                // them for EH stack cleanup.
+                if (e.Eoper == OPctor)
+                {   elem* e1 = e.E1;
+
+                    if (e1.Eoper == OPadd)
+                        e1 = e1.E1;
+                    if (e1.Eoper == OPvar)
+                        e1.Vsym.Sflags &= ~GTregcand;
+                }
+                e = e.E1;
+            }
+            else
+            {   if (e.Eoper == OPrelconst)
+                {
+                    Symbol* s = e.Vsym;
+                    assert(s);
+                    symbol_debug(s);
+                    switch (s.Sclass)
+                    {
+                        case SC.regpar:
+                        case SC.parameter:
+                        case SC.shadowreg:
+                            if (I16)
+                                addressOfParam = true;       // taking addr of param list
+                            else
+                                s.Sflags &= ~(SFLunambig | GTregcand);
+                            break;
+
+                        case SC.auto_:
+                        case SC.register:
+                        case SC.fastpar:
+                        case SC.bprel:
+                            s.Sflags &= ~(SFLunambig | GTregcand);
+                            break;
+
+                        default:
+                            break;
+                    }
+                }
+                else if (e.Eoper == OPvar)
+                {
+                    if (e.Voffset)
+                    {   if (!(e.Voffset == 1 && tybyte(e.Ety)) &&
+                            !(e.Voffset == REGSIZE && tysize(e.Ety) == REGSIZE))
+                        {
+                            e.Vsym.Sflags &= ~GTregcand;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    const bool ifunc = (tybasic(funcsym_p.ty()) == TYifunc); // if interrupt handler function
+    foreach (SYMIDX si, s; psymtab)
+    {
         symbol_debug(s);
         //assert(sytab[s.Sclass] & SCSS);      // only stack variables
         s.Ssymnum = si;                        // Ssymnum trashed by cpp_inlineexpand
@@ -774,105 +856,24 @@ void out_regcand(symtab_t* psymtab)
             s.Sflags &= ~(GTregcand | SFLunambig);
     }
 
-    bool addressOfParam = false;                  // haven't taken addr of param yet
     for (block* b = bo.startblock; b; b = b.Bnext)
     {
         if (b.Belem)
-            out_regcand_walk(b.Belem, addressOfParam);
+            walk(b.Belem);
 
         // Any assembler blocks make everything ambiguous
         if (b.bc == BC.asm_)
-            for (SYMIDX si = 0; si < psymtab.length; si++)
-                (*psymtab)[si].Sflags &= ~(SFLunambig | GTregcand);
+            foreach (s; psymtab)
+                s.Sflags &= ~(SFLunambig | GTregcand);
     }
 
     // If we took the address of one parameter, assume we took the
     // address of all non-register parameters.
     if (addressOfParam)                      // if took address of a parameter
     {
-        for (SYMIDX si = 0; si < psymtab.length; si++)
-            if ((*psymtab)[si].Sclass == SC.parameter || (*psymtab)[si].Sclass == SC.shadowreg)
-                (*psymtab)[si].Sflags &= ~(SFLunambig | GTregcand);
-    }
-
-}
-
-@trusted private
-void out_regcand_walk(elem* e, ref bool addressOfParam)
-{
-    while (1)
-    {   elem_debug(e);
-
-        if (OTbinary(e.Eoper))
-        {   if (e.Eoper == OPstreq)
-            {   if (e.E1.Eoper == OPvar)
-                {
-                    Symbol* s = e.E1.Vsym;
-                    s.Sflags &= ~(SFLunambig | GTregcand);
-                }
-                if (e.E2.Eoper == OPvar)
-                {
-                    Symbol* s = e.E2.Vsym;
-                    s.Sflags &= ~(SFLunambig | GTregcand);
-                }
-            }
-            out_regcand_walk(e.E1, addressOfParam);
-            e = e.E2;
-        }
-        else if (OTunary(e.Eoper))
-        {
-            // Don't put 'this' pointers in registers if we need
-            // them for EH stack cleanup.
-            if (e.Eoper == OPctor)
-            {   elem* e1 = e.E1;
-
-                if (e1.Eoper == OPadd)
-                    e1 = e1.E1;
-                if (e1.Eoper == OPvar)
-                    e1.Vsym.Sflags &= ~GTregcand;
-            }
-            e = e.E1;
-        }
-        else
-        {   if (e.Eoper == OPrelconst)
-            {
-                Symbol* s = e.Vsym;
-                assert(s);
-                symbol_debug(s);
-                switch (s.Sclass)
-                {
-                    case SC.regpar:
-                    case SC.parameter:
-                    case SC.shadowreg:
-                        if (I16)
-                            addressOfParam = true;       // taking addr of param list
-                        else
-                            s.Sflags &= ~(SFLunambig | GTregcand);
-                        break;
-
-                    case SC.auto_:
-                    case SC.register:
-                    case SC.fastpar:
-                    case SC.bprel:
-                        s.Sflags &= ~(SFLunambig | GTregcand);
-                        break;
-
-                    default:
-                        break;
-                }
-            }
-            else if (e.Eoper == OPvar)
-            {
-                if (e.Voffset)
-                {   if (!(e.Voffset == 1 && tybyte(e.Ety)) &&
-                        !(e.Voffset == REGSIZE && tysize(e.Ety) == REGSIZE))
-                    {
-                        e.Vsym.Sflags &= ~GTregcand;
-                    }
-                }
-            }
-            break;
-        }
+        foreach (s; psymtab)
+            if (s.Sclass == SC.parameter || s.Sclass == SC.shadowreg)
+                s.Sflags &= ~(SFLunambig | GTregcand);
     }
 }
 

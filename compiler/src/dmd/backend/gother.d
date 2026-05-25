@@ -1076,7 +1076,7 @@ private int loopcheck(block* start,block* inc,block* rel)
 @trusted
 public void copyprop(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    out_regcand(&globsym);
+    out_regcand(globsym[]);
     if (debugc) printf("copyprop()\n");
     assert(bo.dfo);
 
