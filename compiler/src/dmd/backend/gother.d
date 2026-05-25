@@ -287,7 +287,7 @@ private void constantPropagation(ref GlobalOptimizer go, block* thisblock, ref E
                         listrds(go, IN,t,null,&rdl);
                         if (!(config.flags & CFGnowarning)) // if warnings are enabled
                             chkrd(t,rdl);
-                        if (auto e = chkprop(go, t, rdl))
+                        if (auto e = chkprop(go.changes, t, rdl))
                         {   // Replace (t op= exp) with (t = e op exp)
 
                             e = el_copytree(e);
@@ -383,7 +383,7 @@ private void constantPropagation(ref GlobalOptimizer go, block* thisblock, ref E
 
             if (!(config.flags & CFGnowarning))     // if warnings are enabled
                 chkrd(n,rdl);
-            elem* e = chkprop(go, n, rdl);
+            elem* e = chkprop(go.changes, n, rdl);
             if (e)
             {   tym_t nty;
 
@@ -494,13 +494,17 @@ private void chkrd(elem* n, Barray!(elem*) rdlist)
  * statics and globals. This could be fixed by adding dummy defs for
  * them before startblock, but we just kludge it and don't propagate
  * stuff for them.
+ * Params:
+ *      changes = increment for each change to the tree
+ *      n = OPvar elem
+ *      rdlist = reaching definitions
  * Returns:
  *      null    do not propagate constant
  *      e       constant elem that we should replace n with
  */
 
 @trusted
-private elem* chkprop(ref GlobalOptimizer go, elem* n, Barray!(elem*) rdlist)
+private elem* chkprop(ref uint changes, elem* n, Barray!(elem*) rdlist)
 {
     elem* foundelem = null;
     int unambig;
@@ -533,7 +537,7 @@ private elem* chkprop(ref GlobalOptimizer go, elem* n, Barray!(elem*) rdlist)
 
         if (OTassign(d.Eoper))      // if assignment elem
         {
-            elem* t = d.E1;
+            const elem* t = d.E1;
 
             if (t.Eoper == OPvar)
             {
@@ -594,7 +598,7 @@ private elem* chkprop(ref GlobalOptimizer go, elem* n, Barray!(elem*) rdlist)
             WReqn(foundelem);
             printf("), %p to %p\n",foundelem,n);
         }
-        go.changes++;
+        ++changes;
         return foundelem;
     }
 noprop:
