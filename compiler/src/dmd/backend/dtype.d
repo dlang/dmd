@@ -132,7 +132,7 @@ targ_size_t type_size(const type* t)
  */
 
 @trusted
-uint type_alignsize(type* t)
+uint type_alignsize(const(type)* t)
 {
     while (1)
     {
@@ -187,7 +187,7 @@ uint type_alignsize(type* t)
  *      true if t is a zero size struct
  */
 @trusted
-bool type_zeroSize(type* t, tym_t tyf)
+bool type_zeroSize(const type* t, tym_t tyf)
 {
     //printf("type_zeroSize(t: %p tyf: %s)\n", t, tym_str(tyf));
     //type_print(t);
@@ -199,7 +199,7 @@ bool type_zeroSize(type* t, tym_t tyf)
          */
         if (t && tybasic(t.Tty) == TYstruct)
         {
-            type* ts = t.Ttag.Stype;     // find main instance
+            const type* ts = t.Ttag.Stype;     // find main instance
                                            // (for const struct X)
             if (ts.Tflags & TF.sizeunknown)
             {
@@ -223,7 +223,7 @@ bool type_zeroSize(type* t, tym_t tyf)
  * Returns:
  *      size in bytes
  */
-uint type_parameterSize(type* t, tym_t tyf)
+uint type_parameterSize(const type* t, tym_t tyf)
 {
     //debug printf("type_parameterSize(t: %p)\n", t);
     if (type_zeroSize(t, tyf))
@@ -242,12 +242,12 @@ uint type_parameterSize(type* t, tym_t tyf)
  */
 
 @trusted
-uint type_paramsize(type* t)
+uint type_paramsize(const type* t)
 {
     targ_size_t sz = 0;
     if (tyfunc(t.Tty))
     {
-        for (param_t* p = t.Tparamtypes; p; p = p.Pnext)
+        for (const(param_t)* p = t.Tparamtypes; p; p = p.Pnext)
         {
             const size_t n = type_parameterSize(p.Ptype, tybasic(t.Tty));
             sz += _align(REGSIZE,n);       // align to REGSIZE boundary
@@ -864,7 +864,7 @@ type* type_setdependent(type* t)
  */
 
 @trusted
-int type_embed(type* t,type* u)
+int type_embed(const(type)* t, const type* u)
 {
     for (; t; t = t.Tnext)
     {
@@ -873,7 +873,7 @@ int type_embed(type* t,type* u)
             return 1;
         if (tyfunc(t.Tty))
         {
-            for (param_t* p = t.Tparamtypes; p; p = p.Pnext)
+            for (const(param_t)* p = t.Tparamtypes; p; p = p.Pnext)
                 if (type_embed(p.Ptype,u))
                     return 1;
         }
