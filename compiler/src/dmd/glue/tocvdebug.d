@@ -49,7 +49,6 @@ import dmd.backend.code;
 import dmd.backend.cv4;
 import dmd.backend.dlist;
 import dmd.backend.dt;
-import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.ty;

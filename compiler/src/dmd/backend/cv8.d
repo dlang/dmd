@@ -30,7 +30,7 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.cv4;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.var : globsym;
 import dmd.backend.mscoffobj;
 import dmd.backend.obj;
 import dmd.backend.oper;

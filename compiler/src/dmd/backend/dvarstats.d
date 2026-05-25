@@ -17,7 +17,6 @@ import core.stdc.stdlib;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.global;
 import dmd.backend.code;
 import dmd.backend.symtab;
 import dmd.backend.ty;

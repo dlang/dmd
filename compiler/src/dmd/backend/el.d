@@ -17,7 +17,7 @@ module dmd.backend.el;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
-import dmd.backend.global;
+import dmd.backend.util2 : binary;
 import dmd.backend.oper;
 import dmd.backend.type;
 
