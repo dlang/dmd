@@ -38,7 +38,7 @@ nothrow:
 @safe:
 
 @trusted
-void ferr(const(char)* p) { printf("%s", p); }
+void ferr(const char* p) { printf("%s", p); }
 
 /*******************************
  * Params:
@@ -109,7 +109,7 @@ const(char)* oper_str(uint oper) pure
 const(char)* tym_str(tym_t ty)
 {
     enum MAX = 100;
-    __gshared char[MAX + 1] buf;
+    __gshared char[MAX + 1] buf;  // globals are not a threading issue with debug code
 
     char* pstart = &buf[0];
     char* p = pstart;
@@ -157,7 +157,7 @@ const(char)* tym_str(tym_t ty)
  *      pointer to string
  */
 @trusted
-const(char)* bc_str(uint bc)
+immutable(char)* bc_str(uint bc)
 {
     return bcs[bc].ptr;
 }
