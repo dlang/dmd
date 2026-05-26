@@ -92,7 +92,7 @@ void comsubs2(block* startblock, ref CGCS cgcs, ref GlobalOptimizer go, ref Bloc
         // Count up n, the number of blocks in this extended basic block (EBB)
         int n = 1;                      // always at least one block in EBB
         auto blc = bl;
-        while (bln && list_nitems(bln.Bpred) == 1 &&
+        while (bln && bln.Bpred.length == 1 &&
                ((blc.bc == BC.iftrue &&
                  blc.nthSucc(1) == bln) ||
                 (blc.bc == BC.goto_ && blc.nthSucc(0) == bln)

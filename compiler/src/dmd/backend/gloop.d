@@ -213,9 +213,9 @@ bool blockinit(ref BlockOpt bo)
     {
         debug                   /* check integrity of Bpred and Bsucc   */
           L1:
-            foreach (blp; ListRange(b.Bpred))
+            foreach (blp; b.Bpred[])
             {
-                foreach (bls; ListRange(list_block(blp).Bsucc))
+                foreach (bls; ListRange(blp.Bsucc))
                     if (list_block(bls) == b)
                         continue L1;
                 assert(0);
@@ -272,12 +272,12 @@ private void compdom(block*[] dfo)
         {
             if (i == 0)
                 continue;                // except startblock
-            if (b.Bpred)                 // if there are predecessors
+            if (b.Bpred.length)          // if there are predecessors
             {
                 vec_set(t1);
-                foreach (bl; ListRange(b.Bpred))
+                foreach (bl; b.Bpred[])
                 {
-                    vec_andass(t1,list_block(bl).Bdom);
+                    vec_andass(t1,bl.Bdom);
                 }
             }
             else
@@ -396,8 +396,8 @@ private void buildloop(ref BlockOpt bo, ref Loops ploops, block* head, block* ta
         {
             vec_setbit(b.Bdfoidx,v);        // add block to loop
             b.Bweight = loop_weight(b.Bweight,1);   // *10 usage count
-            foreach (bl; ListRange(b.Bpred))
-                insert(list_block(bl), v);  // insert all its predecessors
+            foreach (bl; b.Bpred[])
+                insert(bl, v);              // insert all its predecessors
         }
     }
 
@@ -463,10 +463,8 @@ L1:
         All other predecessors of head must be inside the loop.
      */
     l.Lpreheader = null;
-    foreach (bl; ListRange(head.Bpred))
+    foreach (b; head.Bpred[])
     {
-        block* b = list_block(bl);
-
         if (!vec_testbit(b.Bdfoidx,l.Lloop))  /* if not in loop       */
         {
             if (l.Lpreheader)                 /* if already one       */
@@ -586,11 +584,37 @@ private bool looprotate(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
         assert(head2.bc != BC.switch_);
         if (head.Belem)                // copy expression tree
             head2.Belem = el_copytree(head.Belem);
+	// insert head2 after tail
         head2.Bnext = tail.Bnext;
         tail.Bnext = head2;
 
         // pred(head1) = pred(head) outside loop
         // pred(head2) = pred(head) inside loop
+<<>>
+#if 1
+	for (size_t i = 0; i < head.Bpred.length; )
+        {
+            if (vec_testbit(head.Bpred[i].Bdfoidx, l.Lloop)) // if head predecessor [i] is in the loop
+            {
+		// Move predecessor of head to head2
+		block* bs = head.Bpred[i];
+		head2.Bpred.push(bs);
+		head.Bpred.subtract(i);
+
+		// Any successors to predecessors to head blocks get redirected to head2
+                foreach (bl; ListRange(bs.Bsucc))
+                    if (list_block(bl) == head)
+                    {
+                        bl.ptr = cast(void*)head2;
+                        goto L2;
+                    }
+                assert(0);
+        L2:
+            }
+            else
+                ++i;      // next predecessor in head
+        } // for each pred(head)
+#else
         list_t* pbln;
         auto pbl2 = &(head2.Bpred);
         for (list_t* pbl = &(head.Bpred); *pbl; pbl = pbln)
@@ -616,12 +640,13 @@ private bool looprotate(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
             else
                 pbln = &((*pbl).next);      // next predecessor in list
         } // for each pred(head)
-
+#endif
         // succ(head2) = succ(head)
         foreach (bl; ListRange(head.Bsucc))
         {
-            list_append(&(head2.Bsucc),list_block(bl));
-            list_append(&(list_block(bl).Bpred),head2);
+	    block* b = list_block(bl);
+            list_append(&(head2.Bsucc),b);
+	    b.Bpred.push(head2);
         }
         if (debugc) printf("1Rotated loop %p\n", &l);
         go.changes++;
@@ -753,15 +778,15 @@ restart:
             if (debugc) printf("Adding preheader %p to loop %p\n",p,&l);
 
             // Move preds of h that aren't in the loop to preds of p
-            for (list_t bl = h.Bpred; bl;)
+            for (int i = 0; i < h.Bpred[].length; )
             {
-                block* b = list_block(bl);
+                block* b = h.Bpred[i];
 
-                if (!vec_testbit (b.Bdfoidx, l.Lloop))
+                if (!vec_testbit(b.Bdfoidx, l.Lloop)) // b is not in the loop
                 {
-                    list_append(&(p.Bpred), b);
-                    list_subtract(&(h.Bpred), b);
-                    bl = h.Bpred;      /* dunno what subtract did      */
+		    p.Bpred.push(b);		      // add b to pres of p
+                    h.Bpred.subtract(b);	      // remove b from preds of h
+                    i = 0;                            // start over
 
                     /* Fix up successors of predecessors        */
                     foreach (bls; ListRange(b.Bsucc))
@@ -769,9 +794,9 @@ restart:
                                 bls.ptr = cast(void*)p;
                 }
                 else
-                    bl = list_next(bl);
+		    ++i;
             }
-            list_append(&(h.Bpred),p); /* p is a predecessor to h      */
+            h.Bpred.push(p);            /* p is a predecessor to h      */
         }
     } /* for */
     if (addblk)                         /* if any blocks were added      */
@@ -3048,7 +3073,7 @@ private void elimbasivs(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
 
                     /* We have to add a new block if there is */
                     /* more than one predecessor to b.      */
-                    if (list_next(b.Bpred))
+                    if (b.Bpred.length > 1)
                     {
                         block* bn = block_calloc(bo);
                         bn.Btry = b.Btry;
@@ -3056,12 +3081,12 @@ private void elimbasivs(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
                         bn.Bnext = bo.dfo[i].Bnext;
                         bo.dfo[i].Bnext = bn;
                         list_append(&(bn.Bsucc),b);
-                        list_append(&(bn.Bpred),bo.dfo[i]);
+                        bn.Bpred.push(bo.dfo[i]);
                         bl.ptr = cast(void*)bn;
-                        foreach (bl2; ListRange(b.Bpred))
-                            if (list_block(bl2) == bo.dfo[i])
+                        foreach (ref bl2; b.Bpred[])
+                            if (bl2 == bo.dfo[i])
                             {
-                                bl2.ptr = cast(void*)bn;
+                                bl2 = bn;
                                 goto L2;
                             }
                         assert(0);

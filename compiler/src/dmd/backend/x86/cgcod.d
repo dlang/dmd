@@ -300,7 +300,7 @@ void codgenx(ref CGstate cg, Symbol* sfunc)
         objmod.linnum(sfunc.Sfunc.Fstartline,sfunc.Sseg,Offset(sfunc.Sseg));
 
     // Otherwise, jmp's to startblock will execute the prolog again
-    assert(!bo.startblock.Bpred);
+    assert(!bo.startblock.Bpred.length);
 
     CodeBuilder cdbprolog; cdbprolog.ctor();
     prolog(cg, cdbprolog);           // gen function start code
@@ -1367,11 +1367,9 @@ private void blcodgen(ref CGstate cg, block* bl)
     assert(bl.Bregcon.immed.mval == 0);
     cg.regcon.immed.mval = 0;      // assume no previous contents in registers
 //    cg.regcon.cse.mval = 0;
-    foreach (bpl; ListRange(bl.Bpred))
+    foreach (bp; bl.Bpred[])
     {
-        block* bp = list_block(bpl);
-
-        if (bpl == bl.Bpred)
+        if (bp == bl.Bpred[0])
         {   cg.regcon.immed = bp.Bregcon.immed;
             cg.regcon.params = bp.Bregcon.params;
 //          cg.regcon.cse = bp.Bregcon.cse;

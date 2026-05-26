@@ -305,6 +305,19 @@ void WReqn(elem* e)
 }
 
 @trusted
+void WRblockarray(block[] bl)
+{
+    foreach (b; bl)
+    {
+        if (b && b.Bweight)
+            printf("B%d (%p) ",b.Bdfoidx,b);
+        else
+            printf("%p ",b);
+    }
+    ferr("\n");
+}
+
+@trusted
 void WRblocklist(list_t bl)
 {
     foreach (bl2; ListRange(bl))
@@ -399,7 +412,7 @@ void WRblock(block* b)
         if (b.bc == BC.try_)
             printf(" catchvar = %p",b.catchvar);
         printf("\n");
-        printf("\tBpred: "); WRblocklist(b.Bpred);
+        printf("\tBpred: "); WRblockarray(b.Bpred);
         printf("\tBsucc: "); WRblocklist(b.Bsucc);
         if (b.Belem)
         {
@@ -440,11 +453,11 @@ void WRblock(block* b)
                 printf(";\n");
             }
         }
-        if (b.Bpred)
+        if (b.Bpred.length)
         {
             printf("\tBpred:");
-            foreach (bl; ListRange(b.Bpred))
-                printf(" B%d",list_block(bl).Bnumber);
+            foreach (bl; b.Bpred[])
+                printf(" B%d",bl.Bnumber);
             printf("\n");
         }
 

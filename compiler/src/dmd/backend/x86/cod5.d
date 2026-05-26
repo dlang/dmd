@@ -94,10 +94,10 @@ else
 
         // If all predecessors are marked
         mark = 0;
-        assert(b.Bpred);
-        foreach (bl; ListRange(b.Bpred))
+        assert(b.Bpred.length);
+        foreach (bl; b.Bpred[])
         {
-            if (list_block(bl).Bflags & BFL.outsideprolog)
+            if (bl.Bflags & BFL.outsideprolog)
             {
                 if (mark == 2)
                     goto L1;

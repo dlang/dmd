@@ -105,8 +105,8 @@ void flowrd(ref GlobalOptimizer go, ref BlockOpt bo)
                  * i = 0;
                  * try { i = 1; throw; } catch () { x = i; }
                  */
-                foreach (bp; ListRange(b.Bpred))
-                    vec_orass(b.Binrd,list_block(bp).Boutrd);
+                foreach (bp; b.Bpred[])
+                    vec_orass(b.Binrd,bp.Boutrd);
             }
             /* Bout = (Bin - Bkill) | Bgen */
             vec_sub(tmp,b.Binrd,b.Bkill);
@@ -565,9 +565,8 @@ private void flowaecp(ref GlobalOptimizer go, ref BlockOpt bo)
             // Bout = (Bin - Bkill) | Bgen
 
             bool first = true;
-            foreach (bl; ListRange(b.Bpred))
+            foreach (bp; b.Bpred[])
             {
-                block* bp = list_block(bl);
                 if (bp.bc == BC.iftrue && bp.nthSucc(0) != b)
                 {
                     if (first)

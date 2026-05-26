@@ -112,6 +112,23 @@ struct Barray(T)
         setLength(len);
     }
 
+    /**********************
+     * Subtract element i from the array.
+     * Ripple the elements after i to the left 1 place.
+     * Reduce the array length by one.
+     * Params:
+     *  i = index of element to subtract
+     */
+    void subtract(size_t i)
+    {
+	while (i + 1 < array.length)
+	{
+	    array[i] = array[i + 1];
+	    ++i;
+	}
+	setLength(array.length - 1);
+    }
+
     /******************
      * Release all memory used.
      */
@@ -146,6 +163,8 @@ unittest
     a.push(50);
     a.remove(1);
     assert(a[1] == 50);
+    a.subtract(0);
+    assert(a[0] == 50);
     a.dtor();
     assert(a.length == 0);
 }
