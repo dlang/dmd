@@ -873,12 +873,10 @@ void toDebugClosure(Symbol* closstru)
     const idx_t typidx = cv_debtyp(d);
     d.length = length_save;            // restore length
 
-    // Compute the number of fields (nfields), and the length of the fieldlist record (flistlen)
-    uint nfields = 0;
+    // Compute the length of the fieldlist record (flistlen)
     uint flistlen = 2;
-    for (auto sl = closstru.Sstruct.Sfldlst; sl; sl = list_next(sl))
+    foreach (sf; closstru.Sstruct.Sfields)
     {
-        Symbol* sf = list_symbol(sl);
         uint thislen = (config.fulltypes == CV8 ? 8 : 6);
         thislen += cv4_signednumericbytes(cast(uint)sf.Smemoff);
         thislen += cv_stringbytes(sf.Sident.ptr);
@@ -888,7 +886,6 @@ void toDebugClosure(Symbol* closstru)
             break; // Too long, fail gracefully
 
         flistlen += thislen;
-        nfields++;
     }
 
     // Generate fieldlist type record
@@ -898,9 +895,10 @@ void toDebugClosure(Symbol* closstru)
     // And fill it in
     TOWORD(p, config.fulltypes == CV8 ? LF_FIELDLIST_V2 : LF_FIELDLIST);
     uint flistoff = 2;
-    for (auto sl = closstru.Sstruct.Sfldlst; sl && flistoff < flistlen; sl = list_next(sl))
+    foreach (sf; closstru.Sstruct.Sfields)
     {
-        Symbol* sf = list_symbol(sl);
+        if (flistoff >= flistlen)
+            break;
         idx_t vtypidx = cv_typidx(sf.Stype);
         flistoff += writeField(p + flistoff, sf.Sident.ptr, 3 /*public*/, vtypidx, cast(uint)sf.Smemoff);
     }
@@ -910,7 +908,7 @@ void toDebugClosure(Symbol* closstru)
     const idx_t fieldlist = cv_debtyp(dt);
 
     uint property = 0;
-    TOWORD(d.data.ptr + 2, nfields);
+    TOWORD(d.data.ptr + 2, cast(int)closstru.Sstruct.Sfields.length);
     if (config.fulltypes == CV8)
     {
         TOWORD(d.data.ptr + 4,property);

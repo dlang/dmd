@@ -519,7 +519,7 @@ enum
 struct struct_t
 {
     targ_size_t Sstructsize;    // size of struct
-    symlist_t Sfldlst;          // all members of struct (list freeable)
+    Barray!(Symbol*) Sfields;   // all members of struct
     Symbol* Sroot;              // root of binary tree Symbol table
     uint Salignsize;            // size of struct for alignment purposes
     ubyte Sstructalign;         // struct member alignment in effect

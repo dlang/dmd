@@ -850,17 +850,15 @@ idx_t cv4_struct(Classsym* s,int flags)
     nfields = 0;
     fnamelen = 2;
     count = nfields;
-    foreach (sl; ListRange(st.Sfldlst))
-    {   Symbol* sf = list_symbol(sl);
-        targ_size_t offset;
-
+    foreach (sf; st.Sfields[])
+    {
         symbol_debug(sf);
         const(char)* sfid = sf.Sident.ptr;
         switch (sf.Sclass)
         {
             case SC.member:
             case SC.field:
-                offset = sf.Smemoff;
+                const offset = sf.Smemoff;
                 fnamelen += ((config.fulltypes == CV4) ? 6 : 8) +
                             cv4_numericbytes(cast(uint)offset) + cv_stringbytes(sfid);
                 break;
@@ -885,10 +883,8 @@ idx_t cv4_struct(Classsym* s,int flags)
 
     // And fill it in
     p += 2;
-    foreach (sl; ListRange(s.Sstruct.Sfldlst))
-    {   Symbol* sf = list_symbol(sl);
-        targ_size_t offset;
-
+    foreach (sf; s.Sstruct.Sfields[])
+    {
         symbol_debug(sf);
         const(char)* sfid = sf.Sident.ptr;
         switch (sf.Sclass)
@@ -917,7 +913,7 @@ idx_t cv4_struct(Classsym* s,int flags)
             case SC.member:
                 typidx = cv4_symtypidx(sf);
             L3:
-                offset = sf.Smemoff;
+                const offset = sf.Smemoff;
                 TOWORD(p,LF_MEMBER);
                 attribute = 0;
                 if (config.fulltypes == CV4)

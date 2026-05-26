@@ -2024,9 +2024,8 @@ static if (1)
                             /* find member offset in closure */
                             targ_size_t memb_off = 0;
                             struct_t* st = sa.Sscope.Stype.Tnext.Ttag.Sstruct; // Sscope is __closptr
-                            foreach (sl; ListRange(st.Sfldlst))
+                            foreach (sf; st.Sfields[])
                             {
-                                Symbol* sf = list_symbol(sl);
                                 if (sf.Sclass == SC.member)
                                 {
                                     if(strcmp(sa.Sident.ptr, sf.Sident.ptr) == 0)
@@ -2879,9 +2878,8 @@ static if (1)
                 // Count number of fields
                 uint nfields = 0;
                 t.Tflags |= TF.forward;
-                foreach (sl; ListRange(st.Sfldlst))
+                foreach (sf; st.Sfields[])
                 {
-                    Symbol* sf = list_symbol(sl);
                     switch (sf.Sclass)
                     {
                         case SC.member:
@@ -2980,9 +2978,8 @@ static if (1)
 
                     s.Stypidx = idx;
                     n = 0;
-                    foreach (sl; ListRange(st.Sfldlst))
+                    foreach (sf; st.Sfields[])
                     {
-                        Symbol* sf = list_symbol(sl);
                         size_t soffset;
 
                         switch (sf.Sclass)

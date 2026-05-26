@@ -379,7 +379,7 @@ void symbol_struct_addField(ref Symbol s, const(char)* name, type* t, uint offse
 {
     Symbol* s2 = symbol_name(name[0 .. strlen(name)], SC.member, t);
     s2.Smemoff = offset;
-    list_append(&s.Sstruct.Sfldlst, s2);
+    s.Sstruct.Sfields.push(s2);
 }
 
 /***************************************
@@ -401,7 +401,7 @@ void symbol_struct_addBitField(ref Symbol s, const(char)* name, type* t, uint of
     s2.Smemoff = offset;
     s2.Swidth = cast(ubyte)fieldWidth;
     s2.Sbit = cast(ubyte)bitOffset;
-    list_append(&s.Sstruct.Sfldlst, s2);
+    s.Sstruct.Sfields.push(s2);
     symbol_struct_hasBitFields(s);
 }
 
@@ -513,12 +513,13 @@ debug
             {
                 case SC.struct_:
                     debug if (debugy)
-                        printf("freeing members %p\n",s.Sstruct.Sfldlst);
+                        printf("freeing members %p\n",s.Sstruct.Sfields.ptr);
 
-                    list_free(&s.Sstruct.Sfldlst,FPNULL);
+                    s.Sstruct.Sfields.dtor();
                     symbol_free(s.Sstruct.Sroot);
                     struct_free(s.Sstruct);
                     break;
+
                 case SC.enum_:
                     /* The actual member symbols are either in a local  */
                     /* table or on the member list of a class, so we    */
