@@ -924,7 +924,7 @@ void type_print(const type* t)
     {
         case TYstruct:
             printf(" Ttag=%p,'%s'",t.Ttag,t.Ttag.Sident.ptr);
-            //printf(" Sfldlst=%p",t.Ttag.Sstruct.Sfldlst);
+            //printf(" Sfields=%p",t.Ttag.Sstruct.Sfields.ptr);
             break;
 
         case TYarray:
