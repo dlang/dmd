@@ -624,16 +624,14 @@ void cv4_storesignednumeric(ubyte* p, int value)
 
 @trusted
 idx_t cv4_arglist(type* t,uint* pnparam)
-{   uint u;
-    uint nparam;
+{
     idx_t paramidx;
     debtyp_t* d;
-    param_t* p;
 
     // Compute nparam, number of parameters
-    nparam = 0;
-    for (p = t.Tparamtypes; p; p = p.Pnext)
-        nparam++;
+    uint nparam = 0;
+    if (t.Tparamtypes)
+        nparam = cast(uint)(*t.Tparamtypes).length;
     *pnparam = nparam;
 
     // Construct an LF_ARGLIST of those parameters
@@ -659,10 +657,10 @@ idx_t cv4_arglist(type* t,uint* pnparam)
                 TOWORD(d.data.ptr,LF_ARGLIST_V2);
                 TOLONG(d.data.ptr + 2,nparam);
 
-                p = t.Tparamtypes;
-                for (u = 0; u < nparam; u++)
-                {   TOLONG(d.data.ptr + 6 + u * 4,cv4_typidx(p.Ptype));
-                    p = p.Pnext;
+                foreach (u; 0 .. nparam)
+                {
+                    auto p = (*t.Tparamtypes)[u];
+                    TOLONG(d.data.ptr + 6 + u * 4,cv4_typidx(p.Ptype));
                 }
                 break;
 
@@ -671,10 +669,10 @@ idx_t cv4_arglist(type* t,uint* pnparam)
                 TOWORD(d.data.ptr,LF_ARGLIST);
                 TOWORD(d.data.ptr + 2,nparam);
 
-                p = t.Tparamtypes;
-                for (u = 0; u < nparam; u++)
-                {   TOWORD(d.data.ptr + 4 + u * 2,cv4_typidx(p.Ptype));
-                    p = p.Pnext;
+                foreach (u; 0 .. nparam)
+                {
+                    auto p = (*t.Tparamtypes)[u];
+                    TOWORD(d.data.ptr + 4 + u * 2,cv4_typidx(p.Ptype));
                 }
                 break;
 
@@ -683,10 +681,10 @@ idx_t cv4_arglist(type* t,uint* pnparam)
                 TOWORD(d.data.ptr,LF_ARGLIST);
                 TOLONG(d.data.ptr + 2,nparam);
 
-                p = t.Tparamtypes;
-                for (u = 0; u < nparam; u++)
-                {   TOLONG(d.data.ptr + 6 + u * 4,cv4_typidx(p.Ptype));
-                    p = p.Pnext;
+                foreach (u; 0 .. nparam)
+                {
+                    auto p = (*t.Tparamtypes)[u];
+                    TOLONG(d.data.ptr + 6 + u * 4,cv4_typidx(p.Ptype));
                 }
                 break;
         }
