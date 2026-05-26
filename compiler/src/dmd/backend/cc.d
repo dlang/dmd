@@ -495,7 +495,7 @@ struct enum_t
     Symbol* SEalias;            // pointer to identifier E to use if
                                 // enum was defined as:
                                 //      typedef enum { ... } E;
-    symlist_t SEenumlist;       // all members of enum
+    Barray!(Symbol*) SEenums;   // all members of enum
 }
 
 /***********************************

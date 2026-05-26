@@ -3074,9 +3074,8 @@ static if (1)
                 debug_info.buf.writeStringz(getSymName(s)); // DW_AT_name
                 debug_info.buf.writeByte(cast(ubyte)sz);    // DW_AT_byte_size
 
-                foreach (sl2; ListRange(s.Senum.SEenumlist))
+                foreach (sf; s.Senum.SEenums)
                 {
-                    Symbol* sf = cast(Symbol*)list_ptr(sl2);
                     const value = cast(uint)el_tolong(sf.Svalue);
 
                     debug_info.buf.writeuLEB128(membercode);

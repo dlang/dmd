@@ -524,7 +524,7 @@ debug
                     /* table or on the member list of a class, so we    */
                     /* don't free them here.                            */
                     assert(s.Senum);
-                    list_free(&s.Senum.SEenumlist,FPNULL);
+                    s.Senum.SEenums.dtor();
                     mem_free(s.Senum);
                     s.Senum = null;
                     break;
