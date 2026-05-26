@@ -47,6 +47,7 @@ import dmd.backend.arm.instr;
 
 import dmd.backend.x86.code_x86;
 import dmd.backend.x86.disasm86;
+import dmd.backend.x86.nteh;
 import dmd.backend.x86.xmm;
 
 import dmd.backend.barray;
