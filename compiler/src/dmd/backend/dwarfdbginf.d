@@ -2641,10 +2641,10 @@ static if (1)
                 OutBuffer tmpbuf;
                 nextidx = dwarf_typidx(t.Tnext);                   // function return type
                 tmpbuf.write32(nextidx);
-                uint params = 0;
-                for (param_t* p2 = t.Tparamtypes; p2; p2 = p2.Pnext)
+                size_t params = t.Tparamtypes ? (*t.Tparamtypes).length : 0;
+                foreach (i; 0 .. params)
                 {
-                    params = 1;
+                    param_t* p2 = &(*t.Tparamtypes)[i];
                     uint paramidx = dwarf_typidx(p2.Ptype);
                     //printf("1: paramidx = %d\n", paramidx);
 
@@ -2708,7 +2708,7 @@ static if (1)
 
                     uint* pparamidx = cast(uint*)(functypebuf.buf + functypebufidx);
                     //printf("2: functypebufidx = %x, pparamidx = %p, size = %x\n", functypebufidx, pparamidx, functypebuf.length());
-                    for (param_t* p2 = t.Tparamtypes; p2; p2 = p2.Pnext)
+                    foreach (i; 0 .. params)
                     {
                         debug_info.buf.writeuLEB128(paramcode);
                         //uint x = dwarf_typidx(p2.Ptype);

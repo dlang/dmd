@@ -79,7 +79,7 @@ struct type
     {
         targ_size_t Tdim;   // TYarray: # of elements in array
         elem* Tel;          // TF.vla: gives dimension (NULL if '*')
-        param_t* Tparamtypes; // TYfunc: types of function parameters
+        param_t[]* Tparamtypes; // TYfunc: array of function parameters, only used for symbolic debug info
         Classsym* Ttag;     // TYstruct,TYenum: tag symbol
         type* Tkey;         // typtr: key type for associative arrays
     }
@@ -101,8 +101,8 @@ public import dmd.backend.var : chartype;
 public import dmd.backend.dtype : type_print, type_free, type_init, type_term, type_copy,
     type_setdim, type_setdependent, type_size, type_alignsize, type_zeroSize,
     type_parameterSize, type_paramsize, type_alloc, type_allocn, type_fake, type_setty,
-    type_settype, type_setmangle, type_setcv, type_embed, type_isvla, param_calloc,
-    param_append_type, param_free_l, param_free, typematch, type_pointer,
+    type_settype, type_setmangle, type_setcv, type_embed, type_isvla,
+    typematch, type_pointer,
     type_dyn_array, type_static_array, type_assoc_array, type_delegate, type_function,
     type_enum, type_struct_class, tstypes, tsptr2types, tslogical, tsclib, tsdlib,
     tspvoid, tspcvoid, tsptrdiff, tssize, tstrace;

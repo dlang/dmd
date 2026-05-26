@@ -244,14 +244,15 @@ uint type_parameterSize(const type* t, tym_t tyf)
 @trusted
 uint type_paramsize(const type* t)
 {
-    targ_size_t sz = 0;
+    size_t sz = 0;
     if (tyfunc(t.Tty))
     {
-        for (const(param_t)* p = t.Tparamtypes; p; p = p.Pnext)
-        {
-            const size_t n = type_parameterSize(p.Ptype, tybasic(t.Tty));
-            sz += _align(REGSIZE,n);       // align to REGSIZE boundary
-        }
+        if (t.Tparamtypes)
+            foreach (ref p; (*t.Tparamtypes)[])
+            {
+                const size_t n = type_parameterSize(p.Ptype, tybasic(t.Tty));
+                sz += _align(REGSIZE,n);       // align to REGSIZE boundary
+            }
     }
     return cast(uint)sz;
 }
@@ -404,7 +405,7 @@ type* type_delegate(type* tnext)
 }
 
 /***********************************
- * Allocation a function type.
+ * Allocate a function type.
  * Params:
  *      tyf      = function type
  *      ptypes   = types of the function parameters
@@ -416,16 +417,21 @@ type* type_delegate(type* tnext)
 @trusted
 type* type_function(tym_t tyf, type*[] ptypes, bool variadic, type* tret)
 {
-    param_t* paramtypes = null;
-    foreach (p; ptypes)
-    {
-        param_append_type(&paramtypes, p);
-    }
     type* t = type_allocn(tyf, tret);
     t.Tflags |= TF.prototype;
     if (!variadic)
         t.Tflags |= TF.fixed;
-    t.Tparamtypes = paramtypes;
+
+    if (ptypes.length)
+    {
+        param_t* paramtypes = cast(param_t*)mem_calloc(ptypes.length * param_t.sizeof);
+        foreach (i, tx; ptypes)
+        {
+            paramtypes[i].Ptype = tx;
+        }
+        t.Tparamtypes = cast(param_t[]*)mem_malloc(param_t[].sizeof);
+        *t.Tparamtypes = paramtypes[0 .. ptypes.length];
+    }
     t.Tcount++;
     return t;
 }
@@ -525,7 +531,7 @@ void type_free(type* t)
             break;
         tym_t ty = tybasic(t.Tty);
         if (tyfunc(ty))
-            param_free(&t.Tparamtypes);
+            param_free(t.Tparamtypes);
         else if (t.Tflags & TF.vla && t.Tel)
             el_free(t.Tel);
         else if (t.Tkey && typtr(ty))
@@ -706,14 +712,18 @@ void type_term()
 
 /**************************
  * Make copy of a type.
+ * Params:
+ *      tf = type to copy
+ * Returns:
+ *      copy of tf
  */
 
 @trusted
-type* type_copy(type* t)
+type* type_copy(type* tf)
 {
-    type_debug(t);
-    type* tn = type_alloc(t.Tty);
-    *tn = *t;
+    type_debug(tf);
+    type* tn = type_alloc(tf.Tty);
+    *tn = *tf;
     switch (tybasic(tn.Tty))
     {
             case TYarray:
@@ -724,13 +734,23 @@ type* type_copy(type* t)
             default:
                 if (tyfunc(tn.Tty))
                 {
-                    tn.Tparamtypes = null;
-                    for (param_t* p = t.Tparamtypes; p; p = p.Pnext)
+                    // Copy the parameters for the function type
+                    if (tn.Tparamtypes)
                     {
-                        param_t* pn = param_append_type(&tn.Tparamtypes,p.Ptype);
-                        if (p.Pident)
+                        tn.Tparamtypes = cast(param_t[]*)mem_calloc(param_t[].sizeof);
+
+                        // allocate new array for tn
+                        const length = (*tf.Tparamtypes)[].length; // length of source array
+                        *tn.Tparamtypes = (cast(param_t*)mem_calloc(param_t.sizeof * length))[0 .. length];
+
+                        param_t[] pn = *tn.Tparamtypes;
+                        foreach (i, pf; (*tf.Tparamtypes)[])
                         {
-                            pn.Pident = cast(char*)mem_strdup(p.Pident);
+                            pn[i].Pident = cast(char*)mem_strdup(pf.Pident);
+                            auto t = pf.Ptype;
+                            type_debug(t);
+                            t.Tcount++;
+                            pn[i].Ptype = t;
                         }
                     }
                 }
@@ -860,25 +880,31 @@ type* type_setdependent(type* t)
 /*******************************
  * Recursively check if type u is embedded in type t.
  * Returns:
- *      != 0 if embedded
+ *      true if embedded
  */
 
 @trusted
-int type_embed(const(type)* t, const type* u)
+bool type_embed(type* t,type* u)
 {
     for (; t; t = t.Tnext)
     {
         type_debug(t);
         if (t == u)
-            return 1;
+            return true;
         if (tyfunc(t.Tty))
         {
-            for (const(param_t)* p = t.Tparamtypes; p; p = p.Pnext)
-                if (type_embed(p.Ptype,u))
-                    return 1;
+            if (t.Tparamtypes)
+            {
+                const length = (*t.Tparamtypes).length;
+                foreach (i; 0 .. length)
+                {
+                    if (type_embed((*t.Tparamtypes)[i].Ptype,u))
+                        return true;
+                }
+            }
         }
     }
-    return 0;
+    return false;
 }
 
 
@@ -934,16 +960,20 @@ void type_print(const type* t)
         default:
             if (tyfunc(t.Tty))
             {
-                int i = 1;
-                for (const(param_t)* p = t.Tparamtypes; p; p = p.Pnext)
-                {   printf("\nP%d (%p): ",i++,p);
-                    fflush(stdout);
+                if (t.Tparamtypes)
+                {
+                    auto a = *t.Tparamtypes;
+                    foreach (i, ref p; a)
+                    {
+                        printf("\nP%zd: ",i);
+                        fflush(stdout);
 
-                    printf("Pident=%p,Ptype=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pnext);
-                    param_debug(p);
-                    if (p.Pident)
-                        printf("'%s' ", p.Pident);
-                    type_print(p.Ptype);
+                        printf("Pident=%p,Ptype=%p ",p.Pident,p.Ptype);
+                        param_debug(&p);
+                        if (p.Pident)
+                            printf("'%s' ", p.Pident);
+                        type_print(p.Ptype);
+                    }
                 }
             }
             break;
@@ -959,7 +989,7 @@ void type_print(const type* t)
 @trusted
 void param_t_print(const scope param_t* p)
 {
-    printf("Pident=%p,Ptype=%p,Pnext=%p\n",p.Pident,p.Ptype,p.Pnext);
+    printf("Pident=%p,Ptype=%p\n",p.Pident,p.Ptype);
     if (p.Pident)
         printf("\tPident = '%s'\n", p.Pident);
     if (p.Ptype)
@@ -976,61 +1006,6 @@ void param_t_print_list(scope param_t* p)
 }
 
 
-/****************************
- * Allocate a param_t.
- */
-
-@trusted
-param_t* param_calloc()
-{
-    static param_t pzero;
-    param_t* p;
-
-    if (param_list)
-    {
-        p = param_list;
-        param_list = p.Pnext;
-    }
-    else
-    {
-        p = cast(param_t*) mem_fmalloc(param_t.sizeof);
-    }
-    *p = pzero;
-
-    debug p.id = param_t.IDparam;
-
-    return p;
-}
-
-/***************************
- * Allocate a param_t of type t, and append it to parameter list.
- */
-
-param_t* param_append_type(param_t** pp,type* t)
-{
-    param_t* p = param_calloc();
-    while (*pp)
-    {
-        param_debug(*pp);
-        pp = &((*pp).Pnext);   /* find end of list     */
-    }
-    *pp = p;                    /* append p to list     */
-    type_debug(t);
-    p.Ptype = t;
-    t.Tcount++;
-    return p;
-}
-
-/************************
- * Version of param_free() suitable for list_free().
- */
-
-@trusted
-void param_free_l(param_t* p)
-{
-    param_free(&p);
-}
-
 /***********************
  * Free parameter list.
  * Output:
@@ -1038,23 +1013,22 @@ void param_free_l(param_t* p)
  */
 
 @trusted
-void param_free(param_t** pparamlst)
+void param_free(ref param_t[]* pparamlst)
 {
     //debug_assert(PARSER);
-    param_t* pn;
-    for (param_t* p = *pparamlst; p; p = pn)
+    if (pparamlst)
     {
-        param_debug(p);
-        pn = p.Pnext;
-        type_free(p.Ptype);
-        mem_free(p.Pident);
-
-        debug p.id = 0;
-
-        p.Pnext = param_list;
-        param_list = p;
+        param_t[] a = *pparamlst;
+        foreach (ref p; a)
+        {
+            type_free(p.Ptype);
+            mem_free(p.Pident);
+            debug p.id = 0;
+        }
+        mem_free(a.ptr);
+        mem_free(pparamlst);
     }
-    *pparamlst = null;
+    pparamlst = null;
 }
 
 /***********************************
@@ -1085,12 +1059,26 @@ param_t* param_t_search(return scope param_t* p, const(char)* id)
 }
 
 // Return TRUE if type lists match.
-private int paramlstmatch(param_t* p1,param_t* p2)
+private int paramlstmatch(param_t[]* p1,param_t[]* p2)
 {
-    return p1 == p2 ||
-        p1 && p2 && typematch(p1.Ptype,p2.Ptype,0) &&
-        paramlstmatch(p1.Pnext,p2.Pnext)
-        ;
+    if (p1 == p2)
+        return true;
+
+    if (!(p1 && p2))
+        return false;
+
+    param_t[] a1 = *p1,
+              a2 = *p2;
+
+    if (a1.length != a2.length)
+        return false;
+
+    foreach (i; 0 .. a1.length)
+    {
+        if (!typematch(a1[i].Ptype, a2[i].Ptype, 0))
+            return false;
+    }
+    return true;
 }
 
 /*************************************************
