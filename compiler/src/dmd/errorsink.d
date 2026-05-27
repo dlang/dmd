@@ -15,6 +15,16 @@ import core.stdc.stdarg;
 
 import dmd.location;
 
+/// Constants used to discriminate kinds of error messages.
+enum ErrorKind
+{
+    warning,
+    deprecation,
+    error,
+    tip,
+    message,
+}
+
 /***************************************
  * Where error/warning/deprecation messages go.
  */
