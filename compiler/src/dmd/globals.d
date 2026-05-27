@@ -130,7 +130,6 @@ extern(C++) struct Verbose
     bool field;             // identify non-mutable field variables
     bool complex = true;    // identify complex/imaginary type usage
     bool vin;               // identify 'in' parameters
-    bool showGaggedErrors;  // print gagged errors anyway
     bool logo;              // print compiler logo
     bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
@@ -163,12 +162,10 @@ extern (C++) struct Param
     bool trace;             // insert profiling hooks
     bool tracegc;           // instrument calls to 'new'
     bool vcg_ast;           // write-out codegen-ast
-    DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
-    DiagnosticReporting useWarnings = DiagnosticReporting.off;  // how compiler warnings are handled
     bool cov;               // generate code coverage data
     ubyte covPercent;       // 0..100 code coverage percentage required
     bool ctfe_cov = false;  // generate coverage data for ctfe

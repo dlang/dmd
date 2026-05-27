@@ -694,11 +694,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             }
         }
         else if (arg == "-de")               // https://dlang.org/dmd.html#switch-de
-            params.useDeprecated = DiagnosticReporting.error;
+            global.errorSink.useDeprecated = DiagnosticReporting.error;
         else if (arg == "-d")                // https://dlang.org/dmd.html#switch-d
-            params.useDeprecated = DiagnosticReporting.off;
+            global.errorSink.useDeprecated = DiagnosticReporting.off;
         else if (arg == "-dw")               // https://dlang.org/dmd.html#switch-dw
-            params.useDeprecated = DiagnosticReporting.inform;
+            global.errorSink.useDeprecated = DiagnosticReporting.inform;
         else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
             driverParams.link = false;
         else if (startsWith(p + 1, "checkaction")) // https://dlang.org/dmd.html#switch-checkaction
@@ -1081,7 +1081,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             }
             if (startsWith(p + 9, "spec"))
             {
-                params.v.showGaggedErrors = true;
+                global.errorSink.showGaggedErrors = true;
             }
             else if (startsWith(p + 9, "simple"))
             {
@@ -1095,6 +1095,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             {
                 errorInvalidSwitch(p, "Only a number, `spec`, `simple`, or `context` are allowed for `-verrors`");
                 return true;
+            }
+            else
+            {
+                global.errorSink.errorLimit = params.v.errorLimit;
             }
         }
         else if (startsWith(p + 1, "verror-supplements"))
@@ -1331,9 +1335,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             }
         }
         else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
-            params.useWarnings = DiagnosticReporting.error;
+            global.errorSink.useWarnings = DiagnosticReporting.error;
         else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
-            params.useWarnings = DiagnosticReporting.inform;
+            global.errorSink.useWarnings = DiagnosticReporting.inform;
         else if (arg == "-wo")  // https://dlang.org/dmd.html#switch-wo
         {
             // Obsolete features has been obsoleted until a DIP for "editions"

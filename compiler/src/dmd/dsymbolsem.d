@@ -1598,7 +1598,7 @@ const(char)* getMessage(DeprecatedDeclaration dd)
 
 bool checkDeprecated(Dsymbol d, Loc loc, Scope* sc)
 {
-    if (global.params.useDeprecated == DiagnosticReporting.off)
+    if (global.errorSink.useDeprecated == DiagnosticReporting.off)
         return false;
     if (!d.isDeprecated())
         return false;
@@ -1929,7 +1929,7 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool find
  */
 private bool checkDeprecatedAliasThis(AliasThis at, Loc loc, Scope* sc)
 {
-    if (global.params.useDeprecated != DiagnosticReporting.off
+    if (global.errorSink.useDeprecated != DiagnosticReporting.off
         && at.isDeprecated() && !sc.isDeprecated())
     {
         const(char)* message = null;

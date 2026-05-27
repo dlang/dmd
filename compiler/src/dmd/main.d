@@ -192,10 +192,16 @@ private int tryMain(const(char)[][] argv, out Param params)
 
     if (global.params.v.messageStyle == MessageStyle.sarif)
     {
+        // Hand off the settings the CLI wrote into the original sink so the
+        // SARIF sink shares the same gating decisions.
         auto sarif = new ErrorSinkSarif();
+        sarif.useDeprecated = global.errorSink.useDeprecated;
+        sarif.useWarnings = global.errorSink.useWarnings;
+        sarif.showGaggedErrors = global.errorSink.showGaggedErrors;
         global.errorSink = sarif;
         eSink = sarif;
     }
+    global.errorSink.errorLimit = global.params.v.errorLimit;
 
     global.compileEnv.previewIn        = params.previewIn;
     global.compileEnv.transitionIn     = params.v.vin;
@@ -709,7 +715,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     if (global.warnings)
         errorOnWarning();
 
-    if (global.params.useDeprecated == DiagnosticReporting.inform)
+    if (global.errorSink.useDeprecated == DiagnosticReporting.inform)
         mentionOmittedDeprecations();
 
     // Do not attempt to generate output files if errors or warnings occurred

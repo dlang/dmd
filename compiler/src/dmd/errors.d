@@ -38,6 +38,19 @@ nothrow:
  */
 class ErrorSinkCompiler : ErrorSink
 {
+    /// Maximum number of errors/deprecations to display before calling $(D fatal).
+    /// 0 means unlimited.
+    uint errorLimit = 20;
+
+    /// how compiler warnings are handled
+    DiagnosticReporting useWarnings = DiagnosticReporting.off;
+
+    /// how use of deprecated features are handled
+    DiagnosticReporting useDeprecated = DiagnosticReporting.inform;
+
+    /// print gagged errors anyway
+    bool showGaggedErrors;
+
   nothrow:
   extern (C++):
 
@@ -89,15 +102,15 @@ class ErrorSinkCompiler : ErrorSink
         if (!global.gag)
         {
             emit(loc, format, ap, ErrorKind.error, false, false);
-            if (global.params.v.errorLimit && global.errors >= global.params.v.errorLimit)
+            if (errorLimit && global.errors >= errorLimit)
             {
-                fprintf(stderr, "error limit (%d) reached, use `-verrors=0` to show all\n", global.params.v.errorLimit);
+                fprintf(stderr, "error limit (%d) reached, use `-verrors=0` to show all\n", errorLimit);
                 fatal(); // moderate blizzard of cascading messages
             }
         }
         else
         {
-            if (global.params.v.showGaggedErrors)
+            if (showGaggedErrors)
                 emit(loc, format, ap, ErrorKind.error, false, true);
             global.gaggedErrors++;
         }
@@ -105,19 +118,19 @@ class ErrorSinkCompiler : ErrorSink
 
     final void vwarning(const SourceLoc loc, const(char)* format, va_list ap)
     {
-        if (global.params.useWarnings == DiagnosticReporting.off || global.gag)
+        if (useWarnings == DiagnosticReporting.off || global.gag)
             return;
         emit(loc, format, ap, ErrorKind.warning, false, false);
-        if (global.params.useWarnings == DiagnosticReporting.error)
+        if (useWarnings == DiagnosticReporting.error)
             global.warnings++;
     }
 
     final void vdeprecation(const SourceLoc loc, const(char)* format, va_list ap)
     {
-        if (global.params.useDeprecated == DiagnosticReporting.off)
+        if (useDeprecated == DiagnosticReporting.off)
             return;
 
-        if (global.params.useDeprecated == DiagnosticReporting.error)
+        if (useDeprecated == DiagnosticReporting.error)
         {
             // `-de`: gate like an error (count, limit, fatal) but keep the
             // "Deprecation:" header so messages remain distinguishable.
@@ -125,15 +138,15 @@ class ErrorSinkCompiler : ErrorSink
             if (!global.gag)
             {
                 emit(loc, format, ap, ErrorKind.deprecation, false, false);
-                if (global.params.v.errorLimit && global.errors >= global.params.v.errorLimit)
+                if (errorLimit && global.errors >= errorLimit)
                 {
-                    fprintf(stderr, "error limit (%d) reached, use `-verrors=0` to show all\n", global.params.v.errorLimit);
+                    fprintf(stderr, "error limit (%d) reached, use `-verrors=0` to show all\n", errorLimit);
                     fatal();
                 }
             }
             else
             {
-                if (global.params.v.showGaggedErrors)
+                if (showGaggedErrors)
                     emit(loc, format, ap, ErrorKind.deprecation, false, true);
                 global.gaggedErrors++;
             }
@@ -146,7 +159,7 @@ class ErrorSinkCompiler : ErrorSink
             return;
         }
         global.deprecations++;
-        if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
+        if (errorLimit == 0 || global.deprecations <= errorLimit)
             emit(loc, format, ap, ErrorKind.deprecation, false, false);
     }
 
@@ -166,7 +179,7 @@ class ErrorSinkCompiler : ErrorSink
     {
         if (global.gag)
         {
-            if (!global.params.v.showGaggedErrors)
+            if (!showGaggedErrors)
                 return;
             emit(loc, format, ap, ErrorKind.error, true, true);
         }
@@ -176,19 +189,19 @@ class ErrorSinkCompiler : ErrorSink
 
     final void vwarningSupplemental(const SourceLoc loc, const(char)* format, va_list ap)
     {
-        if (global.params.useWarnings != DiagnosticReporting.off && !global.gag)
+        if (useWarnings != DiagnosticReporting.off && !global.gag)
             emit(loc, format, ap, ErrorKind.warning, true, false);
     }
 
     final void vdeprecationSupplemental(const SourceLoc loc, const(char)* format, va_list ap)
     {
-        if (global.params.useDeprecated == DiagnosticReporting.error)
+        if (useDeprecated == DiagnosticReporting.error)
         {
             // Same gating as a primary -de deprecation, but keep the
             // "Deprecation:" header on the supplemental too.
             if (global.gag)
             {
-                if (!global.params.v.showGaggedErrors)
+                if (!showGaggedErrors)
                     return;
                 emit(loc, format, ap, ErrorKind.deprecation, true, true);
             }
@@ -196,9 +209,9 @@ class ErrorSinkCompiler : ErrorSink
                 emit(loc, format, ap, ErrorKind.deprecation, true, false);
             return;
         }
-        if (global.params.useDeprecated == DiagnosticReporting.inform && !global.gag)
+        if (useDeprecated == DiagnosticReporting.inform && !global.gag)
         {
-            if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
+            if (errorLimit == 0 || global.deprecations <= errorLimit)
                 emit(loc, format, ap, ErrorKind.deprecation, true, false);
         }
     }
@@ -627,7 +640,7 @@ private void printDiagnostic(const(char)* format, va_list ap, ref DiagnosticCont
             return;
     }
 
-    if (global.params.v.showGaggedErrors && global.gag)
+    if (global.errorSink.showGaggedErrors && global.gag)
         fprintf(stderr, "(spec:%d) ", global.gag);
     auto con = cast(Console) global.console;
 
