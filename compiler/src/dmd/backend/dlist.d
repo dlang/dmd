@@ -38,6 +38,9 @@ struct LIST
         {       void* ptr;      /* data pointer                         */
                 int data;
         }
+
+    @trusted
+    nothrow size_t length() { return list_nitems(&this); }
 }
 
 alias list_t = LIST*;             /* pointer to a list entry              */

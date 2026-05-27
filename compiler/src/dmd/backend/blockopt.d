@@ -1543,7 +1543,7 @@ private void brmin(ref GlobalOptimizer go, ref BlockOpt bo)
                 moveDistance++;
 
                 if (bss.Btry == bnext.Btry &&
-                    (!bss.Bnext || list_nitems(bss.Bsucc) == 0))
+                    (!bss.Bnext || bss.Bsucc.length == 0))
                 {
                     // A very crude cost model.
                     // Assume each basic block occupies 20 bytes. L1i cache
@@ -1591,7 +1591,7 @@ private void block_check()
 {
     for (block* b = startblock; b; b = b.Bnext)
     {
-        int nsucc = list_nitems(b.Bsucc);
+        int nsucc = b.Bsucc.length;
         int npred = list_nitems(b.Bpred);
         switch (b.bc)
         {
