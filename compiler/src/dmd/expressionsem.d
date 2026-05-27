@@ -9199,7 +9199,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             // current scope is itself deprecated, or deprecations are not errors
             const bool deprecationAllowed = sc.isDeprecated
-                || global.params.useDeprecated != DiagnosticReporting.error;
+                || global.errorSink.useDeprecated != DiagnosticReporting.error;
             const bool preventAliasThis = e.targ.hasDeprecatedAliasThis && !deprecationAllowed;
 
             if (preventAliasThis && e.targ.ty == Tstruct)

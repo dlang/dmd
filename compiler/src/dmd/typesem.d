@@ -2053,7 +2053,7 @@ private extern(D) ptrdiff_t findParameterIndex(TypeFunction tf, Identifier ident
  */
 private extern(C) void getMatchError(ref OutBuffer buf, const(char)* format, ...)
 {
-    if (global.gag && !global.params.v.showGaggedErrors)
+    if (global.gag && !global.errorSink.showGaggedErrors)
         return;
     va_list ap;
     va_start(ap, format);
@@ -2661,7 +2661,7 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
 // arguments get specially formatted
 private const(char)* getParamError(TypeFunction tf, Expression arg, Parameter par)
 {
-    if (global.gag && !global.params.v.showGaggedErrors)
+    if (global.gag && !global.errorSink.showGaggedErrors)
         return null;
     // show qualification when toChars() is the same but types are different
     // https://issues.dlang.org/show_bug.cgi?id=19948

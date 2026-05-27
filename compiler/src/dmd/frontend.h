@@ -328,6 +328,7 @@ class ImportStatement;
 struct Token;
 struct Param;
 class FileManager;
+class ErrorSinkCompiler;
 class Object;
 class TypeInfo_Class;
 class TypeInfo;
@@ -5956,13 +5957,6 @@ enum class ErrorPrintMode : uint8_t
     printErrorContext = 1u,
 };
 
-enum class DiagnosticReporting : uint8_t
-{
-    error = 0u,
-    inform = 1u,
-    off = 2u,
-};
-
 enum class CppStdRevision : uint32_t
 {
     cpp98 = 199711u,
@@ -8058,7 +8052,6 @@ struct Verbose final
     bool field;
     bool complex;
     bool vin;
-    bool showGaggedErrors;
     bool logo;
     bool color;
     bool cov;
@@ -8077,7 +8070,6 @@ struct Verbose final
         field(),
         complex(true),
         vin(),
-        showGaggedErrors(),
         logo(),
         color(),
         cov(),
@@ -8086,7 +8078,7 @@ struct Verbose final
         errorSupplementLimit(6u)
     {
     }
-    Verbose(bool verbose, bool showColumns = false, bool tls = false, bool templates = false, bool templatesListInstances = false, bool gc = false, bool field = false, bool complex = true, bool vin = false, bool showGaggedErrors = false, bool logo = false, bool color = false, bool cov = false, ErrorPrintMode errorPrintMode = (ErrorPrintMode)0u, MessageStyle messageStyle = (MessageStyle)0u, uint32_t errorLimit = 20u, uint32_t errorSupplementLimit = 6u) :
+    Verbose(bool verbose, bool showColumns = false, bool tls = false, bool templates = false, bool templatesListInstances = false, bool gc = false, bool field = false, bool complex = true, bool vin = false, bool logo = false, bool color = false, bool cov = false, ErrorPrintMode errorPrintMode = (ErrorPrintMode)0u, MessageStyle messageStyle = (MessageStyle)0u, uint32_t errorLimit = 20u, uint32_t errorSupplementLimit = 6u) :
         verbose(verbose),
         showColumns(showColumns),
         tls(tls),
@@ -8096,7 +8088,6 @@ struct Verbose final
         field(field),
         complex(complex),
         vin(vin),
-        showGaggedErrors(showGaggedErrors),
         logo(logo),
         color(color),
         cov(cov),
@@ -8130,12 +8121,10 @@ struct Param final
     bool trace;
     bool tracegc;
     bool vcg_ast;
-    DiagnosticReporting useDeprecated;
     bool useUnitTests;
     bool useInline;
     bool release;
     bool preservePaths;
-    DiagnosticReporting useWarnings;
     bool cov;
     uint8_t covPercent;
     bool ctfe_cov;
@@ -8223,12 +8212,10 @@ struct Param final
         trace(),
         tracegc(),
         vcg_ast(),
-        useDeprecated((DiagnosticReporting)1u),
         useUnitTests(),
         useInline(false),
         release(),
         preservePaths(),
-        useWarnings((DiagnosticReporting)2u),
         cov(),
         covPercent(),
         ctfe_cov(false),
@@ -8300,19 +8287,17 @@ struct Param final
         timeTraceFile()
     {
     }
-    Param(bool obj, bool readStdin = false, bool multiobj = false, bool trace = false, bool tracegc = false, bool vcg_ast = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, bool release = false, bool preservePaths = false, DiagnosticReporting useWarnings = (DiagnosticReporting)2u, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = true, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool useGC = true, bool betterC = false, bool addMain = false, bool allInst = false, bool bitfields = true, bool nothrowOptimizations = false, CppStdRevision cplusplus = (CppStdRevision)201103u, Help help = Help(), Verbose v = Verbose(), Edition edition = (Edition)2023u, void* editionFiles = nullptr, FeatureState useDIP25 = (FeatureState)2u, FeatureState useDIP1000 = (FeatureState)0u, bool ehnogc = false, bool useDIP1021 = false, FeatureState fieldwise = (FeatureState)0u, bool fixAliasThis = false, FeatureState rvalueRefParam = (FeatureState)0u, FeatureState safer = (FeatureState)0u, FeatureState noSharedAccess = (FeatureState)0u, bool previewIn = false, bool inclusiveInContracts = false, bool shortenedMethods = true, bool fixImmutableConv = false, bool fix16997 = true, FeatureState dtorFields = (FeatureState)0u, FeatureState systemVariables = (FeatureState)0u, bool useFastDFA = false, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useNullCheck = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, CLIIdentifierTable dIdentifierTable = (CLIIdentifierTable)0u, CLIIdentifierTable cIdentifierTable = (CLIIdentifierTable)0u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<ImportPathInfo > imppath = Array<ImportPathInfo >(), Array<const char* > fileImppath = Array<const char* >(), _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), bool debugEnabled = false, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), const char* cpp = nullptr, Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}, bool fullyQualifiedObjectFiles = false, bool timeTrace = false, uint32_t timeTraceGranularityUs = 500u, const char* timeTraceFile = nullptr) :
+    Param(bool obj, bool readStdin = false, bool multiobj = false, bool trace = false, bool tracegc = false, bool vcg_ast = false, bool useUnitTests = false, bool useInline = false, bool release = false, bool preservePaths = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = true, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool useGC = true, bool betterC = false, bool addMain = false, bool allInst = false, bool bitfields = true, bool nothrowOptimizations = false, CppStdRevision cplusplus = (CppStdRevision)201103u, Help help = Help(), Verbose v = Verbose(), Edition edition = (Edition)2023u, void* editionFiles = nullptr, FeatureState useDIP25 = (FeatureState)2u, FeatureState useDIP1000 = (FeatureState)0u, bool ehnogc = false, bool useDIP1021 = false, FeatureState fieldwise = (FeatureState)0u, bool fixAliasThis = false, FeatureState rvalueRefParam = (FeatureState)0u, FeatureState safer = (FeatureState)0u, FeatureState noSharedAccess = (FeatureState)0u, bool previewIn = false, bool inclusiveInContracts = false, bool shortenedMethods = true, bool fixImmutableConv = false, bool fix16997 = true, FeatureState dtorFields = (FeatureState)0u, FeatureState systemVariables = (FeatureState)0u, bool useFastDFA = false, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useNullCheck = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, CLIIdentifierTable dIdentifierTable = (CLIIdentifierTable)0u, CLIIdentifierTable cIdentifierTable = (CLIIdentifierTable)0u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<ImportPathInfo > imppath = Array<ImportPathInfo >(), Array<const char* > fileImppath = Array<const char* >(), _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), bool debugEnabled = false, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), const char* cpp = nullptr, Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}, bool fullyQualifiedObjectFiles = false, bool timeTrace = false, uint32_t timeTraceGranularityUs = 500u, const char* timeTraceFile = nullptr) :
         obj(obj),
         readStdin(readStdin),
         multiobj(multiobj),
         trace(trace),
         tracegc(tracegc),
         vcg_ast(vcg_ast),
-        useDeprecated(useDeprecated),
         useUnitTests(useUnitTests),
         useInline(useInline),
         release(release),
         preservePaths(preservePaths),
-        useWarnings(useWarnings),
         cov(cov),
         covPercent(covPercent),
         ctfe_cov(ctfe_cov),
@@ -8420,7 +8405,7 @@ struct Global final
     FileManager* fileManager;
     enum : int32_t { recursionLimit = 500 };
 
-    ErrorSink* errorSink;
+    ErrorSinkCompiler* errorSink;
     ErrorSink* errorSinkNull;
     DArray<uint8_t >(*preprocess)(FileName , Loc , OutBuffer& );
     uint32_t startGagging();
@@ -8456,7 +8441,7 @@ struct Global final
         preprocess()
     {
     }
-    Global(_d_dynamicArray< const char > inifilename, _d_dynamicArray< const char > copyright = { 73, "Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved" }, _d_dynamicArray< const char > written = { 24, "written by Walter Bright" }, Array<ImportPathInfo > path = Array<ImportPathInfo >(), Array<const char* > importPaths = Array<const char* >(), Array<const char* > filePath = Array<const char* >(), CompileEnv compileEnv = CompileEnv(), Param params = Param(), uint32_t errors = 0u, uint32_t deprecations = 0u, uint32_t warnings = 0u, uint32_t gag = 0u, uint32_t gaggedErrors = 0u, uint32_t gaggedDeprecations = 0u, void* console = nullptr, Array<Identifier* > versionids = Array<Identifier* >(), Array<Identifier* > debugids = Array<Identifier* >(), bool hasMainFunction = false, uint32_t varSequenceNumber = 1u, FileManager* fileManager = nullptr, ErrorSink* errorSink = nullptr, ErrorSink* errorSinkNull = nullptr, DArray<uint8_t >(*preprocess)(FileName , Loc , OutBuffer& ) = nullptr) :
+    Global(_d_dynamicArray< const char > inifilename, _d_dynamicArray< const char > copyright = { 73, "Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved" }, _d_dynamicArray< const char > written = { 24, "written by Walter Bright" }, Array<ImportPathInfo > path = Array<ImportPathInfo >(), Array<const char* > importPaths = Array<const char* >(), Array<const char* > filePath = Array<const char* >(), CompileEnv compileEnv = CompileEnv(), Param params = Param(), uint32_t errors = 0u, uint32_t deprecations = 0u, uint32_t warnings = 0u, uint32_t gag = 0u, uint32_t gaggedErrors = 0u, uint32_t gaggedDeprecations = 0u, void* console = nullptr, Array<Identifier* > versionids = Array<Identifier* >(), Array<Identifier* > debugids = Array<Identifier* >(), bool hasMainFunction = false, uint32_t varSequenceNumber = 1u, FileManager* fileManager = nullptr, ErrorSinkCompiler* errorSink = nullptr, ErrorSink* errorSinkNull = nullptr, DArray<uint8_t >(*preprocess)(FileName , Loc , OutBuffer& ) = nullptr) :
         inifilename(inifilename),
         copyright(copyright),
         written(written),

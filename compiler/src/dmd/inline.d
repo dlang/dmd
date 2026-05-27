@@ -2165,7 +2165,7 @@ private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, PAS
 
 Lno:
     if (fd.inlining == PINLINE.always && pass == PASS.inlinePragma &&
-        global.params.useWarnings == DiagnosticReporting.inform)
+        global.errorSink.useWarnings == DiagnosticReporting.inform)
     {
         eSink.warning(fd.loc, "cannot inline function `%s`", fd.toPrettyChars());
     }

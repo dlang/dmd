@@ -1487,9 +1487,9 @@ void templateInstanceSemantic3(TemplateInstance tempinst, Scope* sc, Scope* sc2)
          * types. Deprecations are disabled while analysing hooks to avoid
          * spurious error messages.
          */
-        auto saveUseDeprecated = global.params.useDeprecated;
+        auto saveUseDeprecated = global.errorSink.useDeprecated;
         if (sc.isDeprecated() && isDRuntimeHook(tempinst.name))
-            global.params.useDeprecated = DiagnosticReporting.off;
+            global.errorSink.useDeprecated = DiagnosticReporting.off;
 
         {
             timeTraceBeginEvent(TimeTraceEventType.sema1TemplateInstanceSema3);
@@ -1498,7 +1498,7 @@ void templateInstanceSemantic3(TemplateInstance tempinst, Scope* sc, Scope* sc2)
                 () => tempinst.toPrettyChars().toDString());
         }
 
-        global.params.useDeprecated = saveUseDeprecated;
+        global.errorSink.useDeprecated = saveUseDeprecated;
 
         for (size_t i = 0; i < deferred.length; i++)
         {

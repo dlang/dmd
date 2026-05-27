@@ -2059,7 +2059,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
             }
 
 
-            if (!global.gag || global.params.v.showGaggedErrors)
+            if (!global.gag || global.errorSink.showGaggedErrors)
                 printCandidates(loc, td, sc.isDeprecated());
             return null;
         }
@@ -2078,7 +2078,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
             od.ident.toErrMsg(), tiargsBuf.peekChars(), fargsBuf.peekChars());
 
         checkNamedArgErrorAndReportOverload(od, argumentList, loc);
-        if (!global.gag || global.params.v.showGaggedErrors)
+        if (!global.gag || global.errorSink.showGaggedErrors)
             printCandidates(loc, od, sc.isDeprecated());
         return null;
     }
@@ -2119,7 +2119,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                 .error(loc, "none of the overloads of `%s` are callable using a %sobject with argument types `(%s)`",
                     fd.toErrMsg(), thisBuf.peekChars(), buf.peekChars());
 
-            if (!global.gag || global.params.v.showGaggedErrors)
+            if (!global.gag || global.errorSink.showGaggedErrors)
                 printCandidates(loc, fd, sc.isDeprecated());
             return null;
         }
@@ -2157,7 +2157,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     {
         .error(loc, "none of the overloads of `%s` are callable using argument types `%s`",
                fd.toErrMsg(), fargsBuf.peekChars());
-        if (!global.gag || global.params.v.showGaggedErrors)
+        if (!global.gag || global.errorSink.showGaggedErrors)
             printCandidates(loc, fd, sc.isDeprecated());
         return null;
     }
@@ -2166,7 +2166,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
            fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
            tf.modToChars(), fargsBuf.peekChars());
 
-    if (global.gag && !global.params.v.showGaggedErrors)
+    if (global.gag && !global.errorSink.showGaggedErrors)
         return null;
 
     // re-resolve to check for supplemental message
