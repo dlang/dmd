@@ -21,7 +21,6 @@ import core.stdc.limits;
 
 import core.stdc.errno : errno;
 import core.stdc.stdio : fprintf, remove, rename, stderr;
-import core.stdc.stdlib;
 import core.stdc.string : strerror, strlen, memcpy;
 
 import dmd.common.smallbuffer;
