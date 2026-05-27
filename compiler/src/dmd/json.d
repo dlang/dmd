@@ -97,42 +97,7 @@ public:
 
     extern(D) void stringPart(const char[] s)
     {
-        foreach (char c; s)
-        {
-            switch (c)
-            {
-            case '\n':
-                buf.writestring("\\n");
-                break;
-            case '\r':
-                buf.writestring("\\r");
-                break;
-            case '\t':
-                buf.writestring("\\t");
-                break;
-            case '\"':
-                buf.writestring("\\\"");
-                break;
-            case '\\':
-                buf.writestring("\\\\");
-                break;
-            case '\b':
-                buf.writestring("\\b");
-                break;
-            case '\f':
-                buf.writestring("\\f");
-                break;
-            default:
-                if (c < 0x20)
-                    buf.printf("\\u%04x", c);
-                else
-                {
-                    // Note that UTF-8 chars pass through here just fine
-                    buf.writeByte(c);
-                }
-                break;
-            }
-        }
+        (*buf).writeEscapeJSONString(s);
     }
 
     // Json value functions
@@ -1074,6 +1039,53 @@ JsonFieldFlags tryParseJsonField(const(char)* fieldName)
         }
     }
     return JsonFieldFlags.none;
+}
+
+
+/**
+ * Escape special characters (such as quotes and whitespaces) for a JSON string literal
+ * Params:
+ *   buf = buffer to write to
+ *   str = string to escape and write as string literal
+ */
+void writeEscapeJSONString(ref OutBuffer buf, const(char)[] str)
+{
+    foreach (c; str)
+    {
+        switch (c)
+        {
+        case '\n':
+            buf.writestring("\\n");
+            break;
+        case '\r':
+            buf.writestring("\\r");
+            break;
+        case '\t':
+            buf.writestring("\\t");
+            break;
+        case '\"':
+            buf.writestring("\\\"");
+            break;
+        case '\\':
+            buf.writestring("\\\\");
+            break;
+        case '\b':
+            buf.writestring("\\b");
+            break;
+        case '\f':
+            buf.writestring("\\f");
+            break;
+        default:
+            if (c < 0x20)
+                buf.printf("\\u%04x", c);
+            else
+            {
+                // Note that UTF-8 chars pass through here just fine
+                buf.writeByte(c);
+            }
+            break;
+        }
+    }
 }
 
 /**
