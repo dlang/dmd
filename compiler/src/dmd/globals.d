@@ -333,8 +333,8 @@ extern (C++) struct Global
 
     enum recursionLimit = 500; /// number of recursive template expansions before abort
 
-    ErrorSink errorSink;       /// where the error messages go
-    ErrorSink errorSinkNull;   /// where the error messages are ignored
+    ErrorSinkCompiler errorSink;  /// where the error messages go
+    ErrorSink errorSinkNull;      /// where the error messages are ignored
 
     extern (C++) DArray!ubyte function(FileName, Loc, ref OutBuffer) preprocess;
 

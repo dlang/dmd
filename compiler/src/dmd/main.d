@@ -183,17 +183,19 @@ private int tryMain(const(char)[][] argv, out Param params)
         // If we are here then compilation has ended
         // gracefully as opposed to with `fatal`
         global.plugErrorSinks();
-
-        if (global.errors == 0 && global.params.v.messageStyle == MessageStyle.sarif)
-        {
-            generateSarifReport(true);
-        }
     }
 
     target.setTargetBuildDefaults();
 
     if (parseCommandlineAndConfig(argv, params, files, eSink))
         return EXIT_FAILURE;
+
+    if (global.params.v.messageStyle == MessageStyle.sarif)
+    {
+        auto sarif = new ErrorSinkSarif();
+        global.errorSink = sarif;
+        eSink = sarif;
+    }
 
     global.compileEnv.previewIn        = params.previewIn;
     global.compileEnv.transitionIn     = params.v.vin;
