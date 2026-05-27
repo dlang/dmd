@@ -540,6 +540,13 @@ public:
     }
 
     /// Checks whether `t` is a type that can be exported to C++
+    private static bool containsSizeT(AST.Type t)
+    {
+        for (auto tp = t.isTypePointer(); tp; tp = t.isTypePointer())
+            t = tp.next;
+        return t == AST.Type.tsize_t || t == AST.Type.tptrdiff_t;
+    }
+
     private bool isSupportedType(AST.Type t)
     {
         if (!t)
@@ -955,7 +962,7 @@ public:
             return;
         }
 
-        if (vd.originalType && vd.type == AST.Type.tsize_t)
+        if (vd.originalType && containsSizeT(vd.type))
             origType = vd.originalType;
         scope(exit) origType = null;
 
@@ -1135,9 +1142,10 @@ public:
                 return;
             }
 
-            // for function pointers we need to original type
-            if (ad.originalType && ad.type.ty == AST.Tpointer &&
-                (cast(AST.TypePointer)t).nextOf.ty == AST.Tfunction)
+            // for function pointers and size_t/ptrdiff_t we need the original type
+            if (ad.originalType &&
+                ((ad.type.ty == AST.Tpointer && (cast(AST.TypePointer)t).nextOf.ty == AST.Tfunction) ||
+                 containsSizeT(ad.type)))
             {
                 origType = ad.originalType;
             }
@@ -1418,7 +1426,10 @@ public:
                         buf.writestring(", ");
                     assert(vd.type);
                     assert(vd.ident);
+                    if (vd.originalType && containsSizeT(vd.type))
+                        origType = vd.originalType;
                     typeToBuffer(vd.type, vd, true);
+                    origType = null;
                     // Don't print default value for first parameter to not clash
                     // with the default ctor defined above
                     if (!first)
@@ -3016,6 +3027,11 @@ public:
      */
     private void ensureDeclared(AST.Dsymbol sym)
     {
+        // size_t and ptrdiff_t are provided by #include <stddef.h>
+        if (auto ad = sym.isAliasDeclaration())
+            if (ad.ident == Id._size_t || ad.ident == Id._ptrdiff_t)
+                return;
+
         auto par = sym.toParent2();
         auto ed = sym.isEnumDeclaration();
 
