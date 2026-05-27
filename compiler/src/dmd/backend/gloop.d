@@ -584,24 +584,23 @@ private bool looprotate(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
         assert(head2.bc != BC.switch_);
         if (head.Belem)                // copy expression tree
             head2.Belem = el_copytree(head.Belem);
-	// insert head2 after tail
+        // insert head2 after tail
         head2.Bnext = tail.Bnext;
         tail.Bnext = head2;
 
         // pred(head1) = pred(head) outside loop
         // pred(head2) = pred(head) inside loop
-<<>>
-#if 1
-	for (size_t i = 0; i < head.Bpred.length; )
+static if (1)
+        for (size_t i = 0; i < head.Bpred.length; )
         {
             if (vec_testbit(head.Bpred[i].Bdfoidx, l.Lloop)) // if head predecessor [i] is in the loop
             {
-		// Move predecessor of head to head2
-		block* bs = head.Bpred[i];
-		head2.Bpred.push(bs);
-		head.Bpred.subtract(i);
+                // Move predecessor of head to head2
+                block* bs = head.Bpred[i];
+                head2.Bpred.push(bs);
+                head.Bpred.subtracti(i);
 
-		// Any successors to predecessors to head blocks get redirected to head2
+                // Any successors to predecessors to head blocks get redirected to head2
                 foreach (bl; ListRange(bs.Bsucc))
                     if (list_block(bl) == head)
                     {
@@ -614,7 +613,8 @@ private bool looprotate(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
             else
                 ++i;      // next predecessor in head
         } // for each pred(head)
-#else
+else
+{
         list_t* pbln;
         auto pbl2 = &(head2.Bpred);
         for (list_t* pbl = &(head.Bpred); *pbl; pbl = pbln)
@@ -640,13 +640,13 @@ private bool looprotate(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
             else
                 pbln = &((*pbl).next);      // next predecessor in list
         } // for each pred(head)
-#endif
+}
         // succ(head2) = succ(head)
         foreach (bl; ListRange(head.Bsucc))
         {
-	    block* b = list_block(bl);
+            block* b = list_block(bl);
             list_append(&(head2.Bsucc),b);
-	    b.Bpred.push(head2);
+            b.Bpred.push(head2);
         }
         if (debugc) printf("1Rotated loop %p\n", &l);
         go.changes++;
@@ -784,8 +784,8 @@ restart:
 
                 if (!vec_testbit(b.Bdfoidx, l.Lloop)) // b is not in the loop
                 {
-		    p.Bpred.push(b);		      // add b to pres of p
-                    h.Bpred.subtract(b);	      // remove b from preds of h
+                    p.Bpred.push(b);                  // add b to pres of p
+                    h.Bpred.subtract(b);              // remove b from preds of h
                     i = 0;                            // start over
 
                     /* Fix up successors of predecessors        */
@@ -794,7 +794,7 @@ restart:
                                 bls.ptr = cast(void*)p;
                 }
                 else
-		    ++i;
+                    ++i;
             }
             h.Bpred.push(p);            /* p is a predecessor to h      */
         }

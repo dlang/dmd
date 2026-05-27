@@ -113,20 +113,42 @@ struct Barray(T)
     }
 
     /**********************
-     * Subtract element i from the array.
+     * Subtract element at index i from the array.
      * Ripple the elements after i to the left 1 place.
      * Reduce the array length by one.
      * Params:
      *  i = index of element to subtract
      */
-    void subtract(size_t i)
+    void subtracti(size_t i)
     {
-	while (i + 1 < array.length)
-	{
-	    array[i] = array[i + 1];
-	    ++i;
-	}
-	setLength(array.length - 1);
+        while (i + 1 < array.length)
+        {
+            array[i] = array[i + 1];
+            ++i;
+        }
+        setLength(array.length - 1);
+    }
+
+    /**********************
+     * Subtract element from the array.
+     * Ripple the elements after it to the left 1 place.
+     * Reduce the array length by one.
+     * Params:
+     *  t = element to subtract
+     * Returns:
+     *  true if element was found and subtracted
+     */
+    bool subtract(T t)
+    {
+        foreach (i, ref e; array)
+        {
+            if (t == e)
+            {
+                subtracti(i);
+                return true; // t was found at index i
+            }
+        }
+        return false; // t is not in array
     }
 
     /******************
@@ -163,7 +185,7 @@ unittest
     a.push(50);
     a.remove(1);
     assert(a[1] == 50);
-    a.subtract(0);
+    a.subtracti(0);
     assert(a[0] == 50);
     a.dtor();
     assert(a.length == 0);

@@ -568,9 +568,9 @@ void cgreg_spillreg_prolog(block* b,Symbol* s,ref CodeBuilder cdbstore,ref CodeB
         return;
 
     // Look at predecessors to see if we need to load in/out of register
-    foreach (bl; ListRange(b.Bpred))
+    foreach (bl; b.Bpred[])
     {
-        const bpi = list_block(bl).Bdfoidx;
+        const bpi = bl.Bdfoidx;
 
         if (!vec_testbit(bpi,s.Srange))
             continue;

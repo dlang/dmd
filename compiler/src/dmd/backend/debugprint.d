@@ -305,7 +305,7 @@ void WReqn(elem* e)
 }
 
 @trusted
-void WRblockarray(block[] bl)
+void WRblockarray(block*[] bl)
 {
     foreach (b; bl)
     {
@@ -412,7 +412,7 @@ void WRblock(block* b)
         if (b.bc == BC.try_)
             printf(" catchvar = %p",b.catchvar);
         printf("\n");
-        printf("\tBpred: "); WRblockarray(b.Bpred);
+        printf("\tBpred: "); WRblockarray(b.Bpred[]);
         printf("\tBsucc: "); WRblocklist(b.Bsucc);
         if (b.Belem)
         {
