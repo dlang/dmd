@@ -1286,7 +1286,11 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
         if (!scase)
         {
             if (!s.hasDefault)
+            {
                 error(s.loc, "no `default` or `case` for `%s` in `switch` statement", econdition.toErrMsg());
+                result = CTFEExp.cantexp;
+                return;
+            }
             scase = s.sdefault;
         }
 
