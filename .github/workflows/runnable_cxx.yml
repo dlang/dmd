@@ -224,3 +224,9 @@ jobs:
           extraFlags=(HOST_DMD=ldmd2 DFLAGS="-mtriple=x86_64-apple-macos14" CXXFLAGS="-arch x86_64")
         fi
         ./dmd/generated/build cxx-unittest "${extraFlags[@]}"
+
+    - name: 'Posix: Run C++ header layout test'
+      if: runner.os == 'Linux'
+      run: |
+        set -eux
+        ./dmd/generated/build cpp-layout-test

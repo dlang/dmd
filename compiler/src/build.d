@@ -48,6 +48,7 @@ immutable rootRules = [
     &buildFrontendHeaders,
     &runCxxHeadersTest,
     &runCxxUnittest,
+    &runCppLayoutTest,
     &detab,
     &tolf,
     &zip,
@@ -778,6 +779,35 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
     else runCxxBuilder
         .deps([cxxUnittestExe])
         .command([cxxUnittestExe.target]);
+});
+
+/// Generates and compiles a D file with static asserts checking that the C++ header
+/// layout (field offsets, enum values, vtable indices, mangled names) matches the
+/// D extern(C++) declarations.
+alias runCppLayoutTest = makeRule!((builder, rule) {
+    const generatedPath = env["G"].buildPath("cpp_layout_asserts.d");
+
+    builder
+        .name("cpp-layout-test")
+        .description("Check that compiler/include/dmd/*.h matches the D extern(C++) declarations")
+        .msg("(TEST) CPP-LAYOUT")
+        .commandFunction(() {
+            const includeDir = compilerDir.buildPath("include", "dmd");
+            const script = compilerDir.buildPath("tools", "gen_cpp_layout_test.py");
+            const result = tryRun(["python3", script, includeDir, generatedPath], runDir);
+            if (result.status != 0)
+                abortBuild("gen_cpp_layout_test.py failed:\n" ~ result.output);
+
+            const compileResult = tryRun(
+                [env["HOST_DMD_RUN"], "-c", "-o-", "-m64",
+                 "-version=IN_LLVM", // skip MARS-only fields
+                 "-I" ~ env["D"] ~ "/..",
+                 "-J" ~ env["RES"],
+                 "-J" ~ env["G"],
+                 generatedPath], runDir);
+            if (compileResult.status != 0)
+                abortBuild("cpp-layout-test failed:\n" ~ compileResult.output);
+        });
 });
 
 /// BuildRule that removes all generated files
