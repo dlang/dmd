@@ -46,7 +46,6 @@ enum IDOHD = 4+1+int.sizeof*3; // max amount of overhead to ID added by
 
 alias Funcsym = Symbol;
 
-alias symlist_t = list_t;
 alias vec_t = size_t*;
 alias enum_TK = ubyte;
 
@@ -439,7 +438,6 @@ enum
 
 struct func_t
 {
-    symlist_t Fsymtree;         // local Symbol table
     block* Fstartblock;         // list of blocks comprising function
     symtab_t Flocsym;           // local Symbol table
     Srcpos Fstartline;          // starting line # of function
