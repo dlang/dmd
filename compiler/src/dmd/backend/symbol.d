@@ -505,7 +505,6 @@ debug
                 freesymtab(f.Flocsym[].ptr,0,f.Flocsym.length);
 
                 f.Flocsym.dtor();
-                list_free(&f.Fsymtree,cast(list_free_fp)&symbol_free);
                 f.typesTable.dtor();
                 func_free(f);
             }

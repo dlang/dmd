@@ -25,8 +25,6 @@ import dmd.backend.type;
 nothrow:
 @safe:
 
-alias symlist_t = LIST*;
-
 public import dmd.backend.dcgcv : cv_init, cv_typidx, cv_outsym, cv_func, cv_term, cv4_struct,
     cv_stringbytes, cv4_numericbytes, cv4_storenumeric, cv4_signednumericbytes,
     cv4_storesignednumeric, cv_debtyp, cv_namestring, cv4_typidx, cv4_arglist, cv4_callconv,
@@ -51,7 +49,6 @@ struct debtyp_t
 struct Cgcv
 {
     uint signature;
-    symlist_t list;     // deferred list of symbols to output
     idx_t deb_offset;   // offset added to type index
     uint sz_idx;        // size of stored type index
     int LCFDoffset;

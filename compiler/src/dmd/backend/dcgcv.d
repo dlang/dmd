@@ -1767,7 +1767,6 @@ static if (1)
                 length = 2 + 2 + cgcv.sz_idx;
                 length += cv_namestring(debsym + length,id);
                 TOWORD(debsym,length - 2);
-                list_subtract(&cgcv.list,s);
                 break;
 
             case SC.const_:
@@ -1793,16 +1792,6 @@ Lret:
         free(debsym);
 }
 
-/******************************************
- * Write out any deferred symbols.
- */
-
-@trusted
-private void cv_outlist()
-{
-    while (cgcv.list)
-        cv_outsym(cast(Symbol*) list_pop(&cgcv.list));
-}
 
 /******************************************
  * Write out symbol table for current function.
@@ -2038,8 +2027,6 @@ private void cv4_func(Funcsym* s, ref symtab_t symtab)
 
         objmod.write_bytes(SegData[DEBSYM],endproc[]);
     }
-
-    cv_outlist();
 }
 
 //////////////////////////////////////////////////////////
@@ -2059,8 +2046,8 @@ void cv_term()
     {
         case CV4:
         case CVSYM:
-            cv_outlist();
-            goto case;
+            assert(0);  // obsolete
+
         case CV8:
             objmod.write_bytes(SegData[typeseg],(&cgcv.signature)[0 .. 1]);
             if (debtyp.length != 1 || config.fulltypes == CV8)

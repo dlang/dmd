@@ -2228,15 +2228,6 @@ static if (1)
     }
 
 
-    /******************************************
-     * Write out any deferred symbols.
-     */
-    static if (0)
-    void cv_outlist()
-    {
-    }
-
-
     /* =================== Cached Types in debug_info ================= */
 
     ubyte dwarf_classify_struct(uint sflags)
@@ -3026,7 +3017,6 @@ static if (1)
                 enum_t* se = s.Senum;
                 type* tbase2 = s.Stype.Tnext;
                 uint sz = cast(uint)type_size(tbase2);
-                symlist_t sl;
 
                 if (s.Stypidx)
                     return s.Stypidx;
