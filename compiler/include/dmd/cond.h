@@ -22,7 +22,7 @@ class DebugCondition;
 class ForeachStatement;
 class ForeachRangeStatement;
 
-enum Include
+enum Include : uint8_t
 {
     INCLUDEnotComputed, /// not computed yet
     INCLUDEyes,         /// include the conditional code

@@ -113,7 +113,7 @@ namespace dmd
 
 struct Visibility
 {
-    enum Kind
+    enum Kind : uint8_t
     {
         undefined,
         none,           // no access

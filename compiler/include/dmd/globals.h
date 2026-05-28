@@ -151,7 +151,6 @@ struct Verbose
     d_bool field;              // identify non-mutable field variables
     d_bool complex = true;     // identify complex/imaginary type usage
     d_bool vin;                // identify 'in' parameters
-    d_bool showGaggedErrors;   // print gagged errors anyway
     d_bool logo;               // print compiler logo
     d_bool color;              // use ANSI colors in console output
     d_bool cov;                // generate code coverage data
@@ -187,12 +186,10 @@ struct Param
     d_bool trace;         // insert profiling hooks
     d_bool tracegc;       // instrument calls to 'new'
     d_bool vcg_ast;       // write-out codegen-ast
-    Diagnostic useDeprecated;
     d_bool useUnitTests;  // generate unittest code
     d_bool useInline;     // inline expand functions
     d_bool release;       // build release version
     d_bool preservePaths; // true means don't strip path from source file
-    Diagnostic useWarnings;
     d_bool cov;           // generate code coverage data
     unsigned char covPercent;   // 0..100 code coverage percentage required
     d_bool ctfe_cov;      // generate coverage data for ctfe
