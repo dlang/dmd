@@ -151,8 +151,9 @@ private void checkSize(alias T)(size_t expected)
 
 
 lib = cx.conf.lib
-from clang.cindex import _CXString  # noqa: E402
 
+# clang_getOverriddenCursors / clang_disposeOverriddenCursors are not exposed by
+# the Python bindings, so we wire them up manually via ctypes.
 lib.clang_getOverriddenCursors.restype = None
 lib.clang_getOverriddenCursors.argtypes = [
     cx.Cursor,
@@ -161,8 +162,6 @@ lib.clang_getOverriddenCursors.argtypes = [
 ]
 lib.clang_disposeOverriddenCursors.restype = None
 lib.clang_disposeOverriddenCursors.argtypes = [ctypes.POINTER(cx.Cursor)]
-lib.clang_Cursor_getMangling.restype = _CXString
-lib.clang_Cursor_getMangling.argtypes = [cx.Cursor]
 
 
 def get_overridden_manglings(cursor: cx.Cursor) -> list[str]:
@@ -172,8 +171,7 @@ def get_overridden_manglings(cursor: cx.Cursor) -> list[str]:
     lib.clang_getOverriddenCursors(cursor, ctypes.byref(ptr), ctypes.byref(n))
     result = []
     for i in range(n.value):
-        cxstr = lib.clang_Cursor_getMangling(ptr[i])
-        result.append(_CXString.from_result(cxstr))
+        result.append(ptr[i].mangled_name)
     if n.value:
         lib.clang_disposeOverriddenCursors(ptr)
     return result
