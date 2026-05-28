@@ -229,4 +229,5 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         set -eux
+        python3 -m pip install libclang
         ./dmd/generated/build cpp-layout-test
