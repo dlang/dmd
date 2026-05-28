@@ -1898,8 +1898,8 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
         if (vec_testbit(j,bp.Bkill))
             return true;
         vec_setbit(bp.Bdfoidx,blockseen);      /* mark as visited              */
-        foreach (bl; ListRange(bp.Bpred))
-            if (killed(j,list_block(bl),b))
+        foreach (bl; bp.Bpred[])
+            if (killed(j,bl,b))
                 return true;
         return false;
     }
@@ -1931,8 +1931,8 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
 
         /* Not used in bp, see if there is a path through a predecessor */
         /* of bp                                                        */
-        foreach (bl; ListRange(bp.Bpred))
-            if (ispath(go, j, list_block(bl), b))
+        foreach (bl; bp.Bpred[])
+            if (ispath(go, j, bl, b))
                 return true;
 
         return false;           /* j is used along all paths            */
@@ -2008,9 +2008,9 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
         for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             vec_clear(blockseen);
-            foreach (bl; ListRange(go.expblk[j].Bpred))
+            foreach (bl; go.expblk[j].Bpred[])
             {
-                if (killed(cast(uint)j,list_block(bl),b))
+                if (killed(cast(uint)j,bl,b))
                 {
                     vec_clearbit(j,b.Bout);
                     break;
@@ -2031,9 +2031,9 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
         for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             vec_clear(blockseen);
-            foreach (bl; ListRange(go.expblk[j].Bpred))
+            foreach (bl; go.expblk[j].Bpred[])
             {
-                if (ispath(go, cast(uint) j, list_block(bl), b))
+                if (ispath(go, cast(uint) j, bl, b))
                     goto L2;
             }
             vec_clearbit(j,b.Bout);        /* thar ain't no path   */

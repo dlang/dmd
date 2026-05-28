@@ -337,9 +337,8 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
     L2:
         inoutp = 0;
         benefit2 = 0;
-        foreach (bl; ListRange(b.Bpred))
+        foreach (bp; b.Bpred[])
         {
-            block* bp = list_block(bl);
             int bpi = bp.Bdfoidx;
             if (!vec_testbit(bpi,s.Srange))
                 continue;
@@ -456,9 +455,8 @@ int cgreg_gotoepilog(block* b,Symbol* s)
     // Look at predecessors to see if we need to load in/out of register
     int gotoepilog = 0;
     int inoutp = 0;
-    foreach (bl; ListRange(b.Bpred))
+    foreach (bp; b.Bpred[])
     {
-        block* bp = list_block(bl);
         int bpi = bp.Bdfoidx;
         if (!vec_testbit(bpi,s.Srange))
             continue;
@@ -570,9 +568,9 @@ void cgreg_spillreg_prolog(block* b,Symbol* s,ref CodeBuilder cdbstore,ref CodeB
         return;
 
     // Look at predecessors to see if we need to load in/out of register
-    foreach (bl; ListRange(b.Bpred))
+    foreach (bl; b.Bpred[])
     {
-        const bpi = list_block(bl).Bdfoidx;
+        const bpi = bl.Bdfoidx;
 
         if (!vec_testbit(bpi,s.Srange))
             continue;

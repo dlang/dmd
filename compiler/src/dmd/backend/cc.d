@@ -206,7 +206,7 @@ nothrow:
     block* Bnext;               // pointer to next block in list
     list_t Bsucc;               // linked list of pointers to successors
                                 //     of this block
-    list_t Bpred;               // and the predecessor list
+    Barray!(block*) Bpred;      // and the predecessor array
     int Bindex;                 // into created object stack
     int Bendindex;              // index at end of block
     block* Btry;                // BC.try_,BC._try: enclosing try block, if any
