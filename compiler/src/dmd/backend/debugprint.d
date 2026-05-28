@@ -171,28 +171,6 @@ private immutable char[8][BC.max + 1] bcs =
 ];
 
 
-/************************
- * Write arglst
- */
-
-@trusted
-void WRarglst(list_t a)
-{
-    if (a)
-    {
-        int n = 1;
-        do
-        {
-            const(char)* c = cast(const(char)*)list_ptr(a);
-            printf("arg %d: '%s'\n", n, c ? c : "NULL");
-            a = a.next;
-            n++;
-        } while (a);
-    }
-    else
-        printf("0 args\n");
-}
-
 /***************************
  * Write out equation elem.
  * Params:
