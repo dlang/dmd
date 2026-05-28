@@ -481,9 +481,9 @@ public:
 
 enum class ILS : unsigned char
 {
-    ILSuninitialized,   // not computed yet
-    ILSno,              // cannot inline
-    ILSyes              // can inline
+    uninitialized,  // not computed yet
+    no,             // cannot inline
+    yes             // can inline
 };
 
 /**************************************************************/

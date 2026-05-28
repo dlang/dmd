@@ -737,7 +737,7 @@ namespace dmd
     Type *sharedWildOf(Type *type);
     Type *sharedWildConstOf(Type *type);
     Type *unqualify(Type *type, unsigned m);
-    Type *toHeadMutable(Type *type);
+    Type *toHeadMutable(const Type *type);
     Type *aliasthisOf(Type *type);
     Type *castMod(Type *type, MOD mod);
     Type *addMod(Type *type, MOD mod);

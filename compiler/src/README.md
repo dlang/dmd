@@ -73,3 +73,13 @@ target.
 Note that `dtoh` is currently experimental and may emit invalid code for
 certain declarations, so `frontend.h` is not required to be compilable
 until the remaining issues are resolved.
+
+### cpp-layout-test
+
+Verifies that the manually maintained C++ headers in
+[`compiler/include/dmd/`](../include/dmd/) stay in sync with the D
+`extern(C++)` declarations in the compiler source. Checks enum constant
+values, field offsets and sizes, class instance sizes, vtable indices,
+and C++ mangled names.
+
+Note: Linux/64-bit only (Itanium ABI mangling).
