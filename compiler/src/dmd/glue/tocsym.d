@@ -780,6 +780,29 @@ Symbol* toInitializer(EnumDeclaration ed)
 /*                   CTFE stuff                      */
 /*****************************************************/
 
+/* A CTFE-evaluated literal (struct literal or class instance) that is baked into
+ * static data gets a backing LOCAL symbol (named "internal"), cached on the literal's
+ * AST node (`sle.sym` / `cre.value.origin.sym`). The AST is shared across all modules
+ * compiled in a single invocation, so without intervention that cache leaks the symbol
+ * created for the first object module into later ones — which then emit only an
+ * undefined reference to a LOCAL symbol they never define (link error:
+ * `undefined reference to 'internal'`).
+ *
+ * Track every literal that cached a symbol in the current object module and clear those
+ * caches at each object-module boundary (resetCtfeSymbolCache, called from obj_start), so
+ * each object module re-creates and emits its own self-contained local copy. This matches
+ * the array-literal path (DtBuilder.dtoff) and the already-accepted separate-compilation
+ * behavior, while keeping intra-module dedup intact.
+ */
+private __gshared Array!StructLiteralExp ctfeSymbolLiterals;
+
+void resetCtfeSymbolCache()
+{
+    foreach (sle; ctfeSymbolLiterals[])
+        sle.sym = null;
+    ctfeSymbolLiterals.setDim(0);
+}
+
 Symbol* toSymbol(StructLiteralExp sle)
 {
     //printf("toSymbol() %p.sym: %p\n", sle, sle.sym);
@@ -793,6 +816,7 @@ Symbol* toSymbol(StructLiteralExp sle)
     s.Sflags |= SFLnodebug;
     s.Stype = t;
     sle.sym = s;
+    ctfeSymbolLiterals.push(sle);
     auto dtb = DtBuilder(0);
     Expression_toDt(sle, dtb);
     s.Sdt = dtb.finish();
@@ -814,6 +838,7 @@ Symbol* toSymbol(ClassReferenceExp cre)
     s.Stype = t;
     cre.value.sym = s;
     cre.value.origin.sym = s;
+    ctfeSymbolLiterals.push(cre.value.origin);
     auto dtb = DtBuilder(0);
     ClassReferenceExp_toInstanceDt(cre, dtb);
     s.Sdt = dtb.finish();
