@@ -799,7 +799,7 @@ alias runCppLayoutTest = makeRule!((builder, rule) {
                 abortBuild("gen_cpp_layout_test.py failed:\n" ~ result.output);
 
             const compileResult = tryRun(
-                [env["HOST_DMD_RUN"], "-c", "-o-", "-m64",
+                [env["HOST_DMD_RUN"], "-c", "-o-", "-m64", "-unittest",
                  "-version=IN_LLVM", // skip MARS-only fields
                  "-I" ~ env["D"] ~ "/..",
                  "-J" ~ env["RES"],

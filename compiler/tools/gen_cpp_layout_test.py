@@ -108,46 +108,76 @@ import dmd.aggregate, dmd.aliasthis, dmd.arraytypes, dmd.ast_node,
        dmd.common.charactertables, dmd.common.outbuffer;"""
 
 # Helper emitted once
-D_HELPER_CODE = """\
-private enum hasMangled(alias T, string method, string mangled) = () {
+D_HELPER_CODE = r"""private enum hasMangled(alias T, string method, string mangled) = () {
     static foreach (alias f; __traits(getOverloads, T, method))
         static if (f.mangleof == mangled) return true;
     return false;
 }();
 
-private void checkField(alias T, string field)(size_t expectedOffset, size_t expectedSize)
+private enum genericMsg =
+    "Changes to dmd's extern(C++) types/functions must be reflected in compiler/include/*.h\n";
+
+// Eponymous template: dLocString!sym => "file:line" string
+template dLocString(alias sym)
+{
+    private enum _loc = __traits(getLocation, sym);
+    enum dLocString = _loc[0] ~ ":" ~ _loc[1].stringof;
+}
+
+// Value-to-decimal helper for enum messages
+private enum string itoa(int x) = x.stringof;
+
+private void checkField(alias T, string field, int expectedOffset, int expectedSize, string cppLoc)()
 {
     static if (__traits(hasMember, T, field))
     {
-        static if (is(T == class))
-        {
-            static assert(__traits(getMember, (cast(T) null), field).offsetof == expectedOffset);
-            static assert(__traits(getMember, (cast(T) null), field).sizeof == expectedSize);
-        }
-        else
-        {
-            static assert(__traits(getMember, T.init, field).offsetof == expectedOffset);
-            static assert(__traits(getMember, T.init, field).sizeof == expectedSize);
-        }
+        alias _fieldSym = __traits(getMember, T, field);
+        enum int actualOffset = _fieldSym.offsetof;
+        enum int actualSize = _fieldSym.sizeof;
+        enum dLoc = dLocString!_fieldSym;
+        static assert(actualOffset == expectedOffset,
+            "\n\nOffset mismatch for `" ~ T.stringof ~ "." ~ field ~ "`:\n" ~
+            "  D field at offset " ~ actualOffset.stringof ~ " at " ~ dLoc ~ "\n" ~
+            "  C++ field at offset " ~ expectedOffset.stringof ~ " at " ~ cppLoc ~ "\n" ~
+            genericMsg);
+        static assert(actualSize == expectedSize,
+            "\n\nSize mismatch for `" ~ T.stringof ~ "." ~ field ~ "`:\n" ~
+            "  D field has size " ~ actualSize.stringof ~ " at " ~ dLoc ~ "\n" ~
+            "  C++ field has size " ~ expectedSize.stringof ~ " at " ~ cppLoc ~ "\n" ~
+            genericMsg);
     }
 }
 
-private void checkVtable(alias T, string method)(size_t expected)
+private void checkVtable(alias T, string method, size_t expected, string cppLoc)()
 {
-    static assert(__traits(getVirtualIndex, __traits(getMember, T, method)) == expected);
+    alias _methodSym = __traits(getOverloads, T, method)[0];
+    enum dLoc = dLocString!_methodSym;
+    enum actual = __traits(getVirtualIndex, __traits(getMember, T, method));
+    static assert(actual == expected,
+        "\n\nVtable index mismatch for `" ~ T.stringof ~ "." ~ method ~ "`:\n" ~
+        "  D method at index " ~ actual.stringof ~ " at " ~ dLoc ~ "\n" ~
+        "  C++ method at index " ~ expected.stringof ~ " at " ~ cppLoc ~ "\n" ~
+        genericMsg);
 }
 
-private void checkSize(alias T)(size_t expected)
+private void checkSize(alias T, size_t expected, string cppLoc)()
 {
+    enum dLoc = dLocString!T;
+
+    // D classInstanceSize may omit trailing alignment padding; round up to alignof.
     static if (is(T == class))
-    {
-        // D classInstanceSize may omit trailing alignment padding; round up to alignof.
         enum actual = ((__traits(classInstanceSize, T) + T.alignof - 1) / T.alignof) * T.alignof;
-        static assert(actual == expected);
-    }
     else
-        static assert(T.sizeof == expected);
-}"""
+        enum actual = T.sizeof;
+
+    static assert(actual == expected,
+        "\n\nSize mismatch for `" ~ T.stringof ~ "`:\n" ~
+        "  D type has size " ~ actual.stringof ~ " at " ~ dLoc ~ "\n" ~
+        "  C++ type has size " ~ expected.stringof ~ " at " ~ cppLoc ~ "\n" ~
+        genericMsg);
+}
+
+"""
 
 
 lib = cx.conf.lib
@@ -281,7 +311,8 @@ def gen(include_dir: Path, out_path: Path) -> None:
             return  # anonymous
 
         members = [
-            (c.spelling, c.enum_value)
+            (c.spelling, c.enum_value,
+             f"{os.path.relpath(c.location.file.name, include_str)}:{c.location.line}")
             for c in cursor.get_children()
             if c.kind == CK.ENUM_CONSTANT_DECL
         ]
@@ -290,16 +321,17 @@ def gen(include_dir: Path, out_path: Path) -> None:
 
         lines.append("")
         lines.append(f"// enum class {name}")
-        for mname, mval in members:
+        for mname, mval, cloc in members:
             key = (name, mname)
-            if key in _D_KEYWORD_RENAME:
-                d_mname = _D_KEYWORD_RENAME[key]
-                if d_mname is None:
-                    lines.append(f"// skip {name}.{mname} == {mval}")
-                    continue
-                lines.append(f"static assert({name}.{d_mname} == {mval});")
-            else:
-                lines.append(f"static assert({name}.{mname} == {mval});")
+            d_mname = _D_KEYWORD_RENAME.get(key, mname)
+            if key in _D_KEYWORD_RENAME and d_mname is None:
+                lines.append(f"// skip {name}.{mname} == {mval}")
+                continue
+            d_expr = f"{name}.{d_mname}"
+            msg = (f'"\\n\\nEnum value mismatch for `{d_expr}`:\\n'
+                   f'  D value:   " ~ itoa!({d_expr}) ~ " at " ~ dLocString!({d_expr}) ~ "\\n'
+                   f'  C++ value: {mval} at {cloc}\\n" ~ genericMsg')
+            lines.append(f'static assert({d_expr} == {mval}, {msg});')
 
     def uses_dstring(cursor: cx.Cursor) -> bool:
         """Return True if a method/function uses DString (extern(D) mangling)."""
@@ -329,15 +361,11 @@ def gen(include_dir: Path, out_path: Path) -> None:
         kind_str = "class" if is_class else "struct"
         lines.append(f"// {kind_str} {name}")
 
+        cloc = cursor.location
+        record_cpp_loc = f"{os.path.relpath(cloc.file.name, include_str)}:{cloc.line}"
+
         # Size + field offsets/sizes + vtable indices: all collected into a unittest block.
         unit_lines: list[str] = []
-        if is_class:
-            # Only check class size when C++ exposes data fields; otherwise it's an API-only
-            # view and D may add internal fields that legitimately increase the size.
-            if public_fields:
-                unit_lines.append(f"    checkSize!({name})({size});")
-        else:
-            unit_lines.append(f"    checkSize!({name})({size});")
         for child in cursor.get_children():
             if child.kind != CK.FIELD_DECL:
                 continue
@@ -351,7 +379,17 @@ def gen(include_dir: Path, out_path: Path) -> None:
             fsize = child.type.get_size()
             if fsize <= 0:
                 continue
-            unit_lines.append(f'    checkField!({name}, "{fname}")({offset_bytes}, {fsize});')
+            floc = child.location
+            field_cpp_loc = f"{os.path.relpath(floc.file.name, include_str)}:{floc.line}"
+            unit_lines.append(f'    checkField!({name}, "{fname}", {offset_bytes}, {fsize}, "{field_cpp_loc}");')
+
+        if is_class:
+            # Only check class size when C++ exposes data fields; otherwise it's an API-only
+            # view and D may add internal fields that legitimately increase the size.
+            if public_fields:
+                unit_lines.append(f'    checkSize!({name}, {size}, "{record_cpp_loc}");')
+        else:
+            unit_lines.append(f'    checkSize!({name}, {size}, "{record_cpp_loc}");')
 
         if not is_class:
             if unit_lines:
@@ -380,17 +418,24 @@ def gen(include_dir: Path, out_path: Path) -> None:
             mangled = method.mangled_name
             overloaded = name_count[mname] > 1
             d_method = uses_dstring(method)
+            mloc = method.location
+            method_cpp_loc = f"{os.path.relpath(mloc.file.name, include_str)}:{mloc.line}"
 
             idx = get_vtable_index(method, cursor)
             if not overloaded and idx >= 0:
-                unit_lines.append(f'    checkVtable!({name}, "{mname}")({idx});')
+                unit_lines.append(f'    checkVtable!({name}, "{mname}", {idx}, "{method_cpp_loc}");')
 
             if d_method:
                 mangled_lines.append(f"// skip {name}.{mname}.mangleof: extern(D) method, mangling differs")
             elif overloaded:
-                mangled_lines.append(f'static assert(hasMangled!({name}, "{mname}", "{mangled}"));')
+                msg = (f'"\\n\\nNo overload of `{name}.{mname}` has C++ mangling:\\n'
+                       f'  expected: {mangled} at {method_cpp_loc}\\n" ~ genericMsg')
+                mangled_lines.append(f'static assert(hasMangled!({name}, "{mname}", "{mangled}"), {msg});')
             else:
-                mangled_lines.append(f'static assert({name}.{mname}.mangleof == "{mangled}");')
+                msg = (f'"\\n\\nMangled name mismatch for `{name}.{mname}`:\\n'
+                       f'  D:   " ~ {name}.{mname}.mangleof ~ " at " ~ dLocString!({name}.{mname}) ~ "\\n'
+                       f'  C++: {mangled} at {method_cpp_loc}\\n" ~ genericMsg')
+                mangled_lines.append(f'static assert({name}.{mname}.mangleof == "{mangled}", {msg});')
 
         if unit_lines:
             lines.append("unittest {")
@@ -442,14 +487,21 @@ def gen(include_dir: Path, out_path: Path) -> None:
         for func in dmd_free_funcs:
             fname = func.spelling
             mangled = func.mangled_name
+            floc = func.location
+            func_cpp_loc = f"{os.path.relpath(floc.file.name, include_str)}:{floc.line}"
             if fname in _SKIP_FREE_FUNCS:
                 lines.append(f"// skip dmd::{fname}: not in dmd.cxxfrontend on this platform")
             elif uses_dstring(func):
                 lines.append(f"// skip dmd::{fname}: uses DString")
             elif name_count[fname] > 1:
-                lines.append(f'static assert(hasMangled!(dmd.cxxfrontend, "{fname}", "{mangled}"));')
+                msg = (f'"\\n\\nNo overload of `dmd.cxxfrontend.{fname}` has C++ mangling:\\n'
+                       f'  expected: {mangled} at {func_cpp_loc}\\n" ~ genericMsg')
+                lines.append(f'static assert(hasMangled!(dmd.cxxfrontend, "{fname}", "{mangled}"), {msg});')
             else:
-                lines.append(f'static assert(dmd.cxxfrontend.{fname}.mangleof == "{mangled}");')
+                msg = (f'"\\n\\nMangled name mismatch for `dmd.cxxfrontend.{fname}`:\\n'
+                       f'  D:   " ~ dmd.cxxfrontend.{fname}.mangleof ~ " at " ~ dLocString!(dmd.cxxfrontend.{fname}) ~ "\\n'
+                       f'  C++: {mangled} at {func_cpp_loc}\\n" ~ genericMsg')
+                lines.append(f'static assert(dmd.cxxfrontend.{fname}.mangleof == "{mangled}", {msg});')
 
     out_path.write_text("\n".join(lines) + "\n")
     print(f"Generated {out_path} ({len(lines)} lines)")
