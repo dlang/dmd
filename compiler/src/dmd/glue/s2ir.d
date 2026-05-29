@@ -63,7 +63,11 @@ import dmd.backend.cv4;
 import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.blockopt : block_appendexp, block_calloc, block_goto, blockopt;
+import dmd.backend.debugprint : WRblock, numberBlocks;
+import dmd.backend.elem : exp2_copytotemp;
+import dmd.backend.evalu8 : iftrue;
+import dmd.backend.symbol : symbol_add, symbol_genauto, symbol_name;
 import dmd.backend.obj;
 import dmd.backend.var : bo;
 import dmd.backend.oper;
@@ -96,7 +100,7 @@ void Statement_toIR(Statement s, ref IRState irs)
             //printf("  KV: %s = %s\n", keyValue.key.toChars(), keyValue.value.toChars());
             LabelDsymbol label = cast(LabelDsymbol)keyValue.value;
             if (label.statement)
-                label.statement.extra = dmd.backend.global.block_calloc(bo);
+                label.statement.extra = block_calloc(bo);
         }
 
     StmtState stmtstate;
@@ -148,7 +152,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         StmtState mystate = StmtState(stmtstate, s);
 
         // bexit is the block that gets control after this IfStatement is done
-        block* bexit = mystate.breakBlock ? mystate.breakBlock : dmd.backend.global.block_calloc(bo);
+        block* bexit = mystate.breakBlock ? mystate.breakBlock : block_calloc(bo);
 
         incUsage(irs, s.loc);
         e = toElemDtor(s.condition, irs);
@@ -1527,7 +1531,7 @@ void insertFinallyBlockCalls(block* startblock)
                 // Rewrite into a BC.goto_ => BC.ret
                 if (!bcret)
                 {
-                    bcret = dmd.backend.global.block_calloc(bo);
+                    bcret = block_calloc(bo);
                     bcret.bc = BC.ret;
                 }
                 b.bc = BC.goto_;
@@ -1543,7 +1547,7 @@ void insertFinallyBlockCalls(block* startblock)
                     goto case BC.ret;
                 if (!bcretexp)
                 {
-                    bcretexp = dmd.backend.global.block_calloc(bo);
+                    bcretexp = block_calloc(bo);
                     bcretexp.bc = BC.retexp;
                     type* t;
                     if ((ty == TYstruct || ty == TYarray) && e.ET)
@@ -1614,7 +1618,7 @@ void insertFinallyBlockCalls(block* startblock)
                     blast.setNthSucc(0, bf);
 
                     // Create new block, bnew, which will replace retblock
-                    block* bnew = dmd.backend.global.block_calloc(bo);
+                    block* bnew = block_calloc(bo);
 
                     /* Rewrite BC._ret block as:
                      *  if (sflag == flagvalue) goto breakblock; else goto bnew;
@@ -1762,7 +1766,7 @@ private void setScopeIndex(BlockState* blx, block* b, int scope_index)
 
 private block* block_calloc(BlockState* blx) @trusted
 {
-    block* b = dmd.backend.global.block_calloc(bo);
+    block* b = block_calloc(bo);
     b.Btry = blx.tryblock;
     return b;
 }

@@ -27,7 +27,7 @@ import dmd.backend.bcomplex;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.oper;
-import dmd.backend.global;
+import dmd.backend.global : error;
 import dmd.backend.el;
 import dmd.backend.ty;
 import dmd.backend.type;

@@ -30,7 +30,10 @@ import dmd.backend.melf;
 import dmd.backend.mem;
 import dmd.backend.eh;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE, _align, mask;
+import dmd.backend.debugprint : oper_str, tym_str;
+import dmd.backend.symbol : symbol_print;
+import dmd.backend.var : bo, debugc, debugr, debugw, globsym, regstring;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.pdata : win64_pdata;
@@ -44,6 +47,7 @@ import dmd.backend.arm.instr;
 
 import dmd.backend.x86.code_x86;
 import dmd.backend.x86.disasm86;
+import dmd.backend.x86.nteh;
 import dmd.backend.x86.xmm;
 
 import dmd.backend.barray;

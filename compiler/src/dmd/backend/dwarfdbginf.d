@@ -73,6 +73,8 @@ static if (1)
     import dmd.backend.elfobj : addSegmentToComdat;
     import dmd.backend.machobj : getsegment2;
     import dmd.backend.global;
+    import dmd.backend.symbol : symbol_name, symbol_reset;
+    import dmd.backend.var : globsym;
     import dmd.backend.obj;
     import dmd.backend.oper;
     import dmd.backend.symtab;
