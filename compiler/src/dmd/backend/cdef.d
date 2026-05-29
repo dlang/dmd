@@ -44,6 +44,7 @@ enum TARGET_OPENBSD = xversion!`OpenBSD`;
 enum TARGET_SOLARIS = xversion!`Solaris`;
 enum TARGET_WINDOS  = xversion!`Windows`;
 enum TARGET_DRAGONFLYBSD  = xversion!`DragonFlyBSD`;
+enum TARGET_HURD    = xversion!`Hurd`;
 
 //
 //      Attributes
@@ -301,6 +302,8 @@ enum
     EX_OPENBSD      = 0x400000,
     EX_OPENBSD64    = 0x800000,
     EX_DRAGONFLYBSD64 = 0x1000000,
+    EX_HURD         = 0x2000000,
+    EX_HURD64       = 0x4000000,
 }
 
 // All of them
@@ -325,7 +328,9 @@ enum exefmt_t EX_all =
     EX_SOLARIS64 |
     EX_OPENBSD   |
     EX_OPENBSD64 |
-    EX_DRAGONFLYBSD64;
+    EX_DRAGONFLYBSD64 |
+    EX_HURD |
+    EX_HURD64;
 
 // All segmented memory models
 enum exefmt_t EX_segmented = EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP |
@@ -347,6 +352,7 @@ enum exefmt_t EX_posix = EX_LINUX   | EX_LINUX64   |
                          EX_FREEBSD | EX_FREEBSD64 |
                          EX_SOLARIS | EX_SOLARIS64 |
                          EX_OPENBSD | EX_OPENBSD64 |
+                         EX_HURD    | EX_HURD64    |
                          EX_DRAGONFLYBSD64;
 
 // All 16 bit targets
@@ -359,7 +365,8 @@ enum exefmt_t EX_32 = EX_DOSX | EX_OS2 | EX_PHARLAP |
                 EX_OSX     |
                 EX_FREEBSD |
                 EX_SOLARIS |
-                EX_OPENBSD;
+                EX_OPENBSD |
+                EX_HURD;
 
 // All 64 bit targets
 enum exefmt_t EX_64 =
@@ -369,6 +376,7 @@ enum exefmt_t EX_64 =
                 EX_FREEBSD64 |
                 EX_SOLARIS64 |
                 EX_OPENBSD64 |
+                EX_HURD64    |
                 EX_DRAGONFLYBSD64;
 
 // Constraints

@@ -54,7 +54,8 @@ nothrow:
             enum ELFOSABI_SYSV       = 0;       /* UNIX System V ABI */
             enum ELFOSABI_HPUX       = 1;       /* HP-UX */
             enum ELFOSABI_NETBSD     = 2;
-            enum ELFOSABI_LINUX      = 3;
+            enum ELFOSABI_GNU        = 3;
+            enum ELFOSABI_LINUX      = ELFOSABI_GNU;
             enum ELFOSABI_FREEBSD    = 9;
             enum ELFOSABI_OPENBSD    = 12;
             enum ELFOSABI_ARM        = 97;      /* ARM */
