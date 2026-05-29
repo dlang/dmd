@@ -29,7 +29,25 @@ TEST_OUTPUT:
 							"uri": "fail_compilation/sarif_test.d"
 						},
 						"region": {
-							"startLine": 45,
+							"startLine": 63,
+							"startColumn": 5
+						}
+					}
+				}]
+			},
+			{
+				"ruleId": "DMD-error",
+				"message": {
+					"text": "static assert:  \"needs \"escaping\": back\\slash, tab\there, new\nline\""
+				},
+				"level": "error",
+				"locations": [{
+					"physicalLocation": {
+						"artifactLocation": {
+							"uri": "fail_compilation/sarif_test.d"
+						},
+						"region": {
+							"startLine": 65,
 							"startColumn": 5
 						}
 					}
@@ -43,4 +61,6 @@ TEST_OUTPUT:
 
 void main() {
     x = 5; // Undefined variable to trigger the error
+
+    static assert(0, "needs \"escaping\": back\\slash, tab\there, new\nline");
 }
