@@ -255,6 +255,8 @@ extern (C++) struct Param
     Array!(const(char)*) cppswitches;   // C preprocessor switches
     const(char)* cpp;                   // if not null, then this specifies the C preprocessor
 
+    int dummyCausingMismatch;
+
     // Linker stuff
     Array!(const(char)*) objfiles;
     Array!(const(char)*) linkswitches;
