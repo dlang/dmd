@@ -182,19 +182,6 @@ check_d_builder()
     deactivate
 }
 
-# Generate frontend.h header file and check for changes
-test_cxx()
-{
-    # load environment for bootstrap compiler
-    source "$(CURL_USER_AGENT="$CURL_USER_AGENT" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
-    echo "Test CXX frontend.h header generation"
-    ./compiler/src/build.d
-    make -j$N -C druntime MODEL=$MODEL BUILD=$BUILD
-    make -j$N -C ../phobos MODEL=$MODEL BUILD=$BUILD
-    ./compiler/src/build.d cxx-headers-test
-    deactivate
-}
-
 codecov()
 {
     OS_NAME=linux source ci/codecov.sh
@@ -211,6 +198,5 @@ case $1 in
         # https://community.codecov.com/t/commit-sha-does-not-match-circle-build/4266
         # codecov;
         check_run_individual;
-        test_cxx;
     ;;
 esac

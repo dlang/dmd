@@ -209,7 +209,3 @@ The configuration file is found in a separate repository, since it is shared by 
 - ci/circleci: build
 
 CircleCI tests DMD on Ubuntu 18.04.
-
-It also tests that the automatically generated C++ header, frontend.h, is updated.
-This is important because other compilers sharing the front-end (LDC and GDC) rely on DMD's header files to interface with it.
-When a PR modifies an `extern(C++)` function, the corresponding signature in a .h file should be updated as well, see [cxx-headers-test](https://github.com/dlang/dmd/tree/master/src#cxx-headers-test).
