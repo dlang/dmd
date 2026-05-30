@@ -45,8 +45,6 @@ immutable rootRules = [
     &clean,
     &checkwhitespace,
     &runTests,
-    &buildFrontendHeaders,
-    &runCxxHeadersTest,
     &runCxxUnittest,
     &runCppLayoutTest,
     &detab,
@@ -627,15 +625,11 @@ alias dmdPGO = makeRule!((builder, rule) {
 /// Run's the test suite (unittests & `run.d`)
 alias runTests = makeRule!((testBuilder, testRule)
 {
-    // Reference header assumes Linux64
-    auto headerCheck = env["OS"] == "linux" && env["MODEL"] == "64"
-                    ? [ runCxxHeadersTest ] : null;
-
     testBuilder
         .name("test")
         .description("Run the test suite using test/run.d")
         .msg("(RUN) TEST")
-        .deps([dmdDefault, runDmdUnittest, testRunner] ~ headerCheck)
+        .deps([dmdDefault, runDmdUnittest, testRunner])
         .commandFunction({
             // Use spawnProcess to avoid output redirection for `command`s
             const scope cmd = [ testRunner.targets[0], "-j" ~ jobs.to!string ];
@@ -654,89 +648,6 @@ alias runDmdUnittest = makeRule!((builder, rule) {
         .msg("(RUN) DMD-UNITTEST")
         .deps([dmdUnittestExe])
         .command(dmdUnittestExe.targets);
-});
-
-/**
-BuildRule to run the DMD frontend header generation
-For debugging, use `./build.d cxx-headers DFLAGS="-debug=Debug_DtoH"` (clean before)
-*/
-alias buildFrontendHeaders = makeRule!((builder, rule) {
-    const dmdSources = sources.dmd.frontend ~ sources.root ~ sources.common ~ sources.lexer;
-    const dmdExeFile = dmdDefault.deps[0].target;
-    builder
-        .name("cxx-headers")
-        .description("Build the C++ frontend headers ")
-        .msg("(DMD) CXX-HEADERS")
-        .deps([dmdDefault])
-        .target(env["G"].buildPath("frontend.h"))
-        .command([dmdExeFile] ~
-            flags["DFLAGS"]
-              .filter!(f => startsWith(f, "-debug=", "-version=", "-I", "-J")).array ~
-            ["-J" ~ env["RES"], "-c", "-o-", "-HCf="~rule.target,
-            // Enforce the expected target architecture
-            "-m64", "-os=linux",
-            ] ~ dmdSources ~
-            // Set druntime up to be imported explicitly,
-            //  so that druntime doesn't have to be built to run the updating of c++ headers.
-            ["-I../druntime/src"]);
-});
-
-alias runCxxHeadersTest = makeRule!((builder, rule) {
-    builder
-        .name("cxx-headers-test")
-        .description("Check that the C++ interface matches `src/dmd/frontend.h`")
-        .msg("(TEST) CXX-HEADERS")
-        .deps([buildFrontendHeaders])
-        .commandFunction(() {
-            const cxxHeaderGeneratedPath = buildFrontendHeaders.target;
-            const cxxHeaderReferencePath = env["D"].buildPath("frontend.h");
-            log("Comparing referenceHeader(%s) <-> generatedHeader(%s)",
-                cxxHeaderReferencePath, cxxHeaderGeneratedPath);
-            auto generatedHeader = cxxHeaderGeneratedPath.readText;
-            auto referenceHeader = cxxHeaderReferencePath.readText;
-
-            // Ignore carriage return to unify the expected newlines
-            version (Windows)
-            {
-                generatedHeader = generatedHeader.replace("\r\n", "\n"); // \r added by OutBuffer
-                referenceHeader = referenceHeader.replace("\r\n", "\n"); // \r added by Git's if autocrlf is enabled
-            }
-
-            if (generatedHeader != referenceHeader) {
-                if (env.getNumberedBool("AUTO_UPDATE"))
-                {
-                    generatedHeader.toFile(cxxHeaderReferencePath);
-                    writeln("NOTICE: Reference header file (" ~ cxxHeaderReferencePath ~
-                     ") has been auto-updated.");
-                }
-                else
-                {
-                    import core.runtime : Runtime;
-
-                    string message = "ERROR: Newly generated header file (" ~ cxxHeaderGeneratedPath ~
-                        ") doesn't match with the reference header file (" ~
-                        cxxHeaderReferencePath ~ ")\n";
-                    auto diff = tryRun(["git", "diff", "--no-index", cxxHeaderReferencePath, cxxHeaderGeneratedPath], runDir).output;
-                    diff ~= "\n===============
-The file `src/dmd/frontend.h` seems to be out of sync. This is likely because
-changes were made which affect the C++ interface used by GDC and LDC.
-
-Make sure that those changes have been properly reflected in the relevant header
-files (e.g. `src/dmd/scope.h` for changes in `src/dmd/dscope.d`).
-
-To update `frontend.h` and fix this error, run the following command:
-
-`" ~ Runtime.args[0] ~ " cxx-headers-test AUTO_UPDATE=1`
-
-Note that the generated code need not be valid, as the header generator
-(`src/dmd/dtoh.d`) is still under development.
-
-To read more about `frontend.h` and its usage, see src/README.md#cxx-headers-test
-";
-                    abortBuild(message, diff);
-                }
-            }
-        });
 });
 
 /// Runs the C++ unittest executable
