@@ -2161,7 +2161,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
            fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
            tf.modToChars(), fargsBuf.peekChars());
 
-    if (global.gag && !global.errorSink.showGaggedErrors)
+    if (!global.errorSink.emitAdditionalContext())
         return null;
 
     // re-resolve to check for supplemental message
@@ -2271,7 +2271,7 @@ private void checkNamedArgErrorAndReportOverload(Dsymbol od, ArgumentList argume
  */
 private void printCandidates(Decl)(Loc loc, Decl declaration, bool showDeprecated)
 {
-    if (global.gag && !global.errorSink.showGaggedErrors)
+    if (!global.errorSink.emitAdditionalContext())
         return;
     // max num of overloads to print (-v or -verror-supplements overrides this).
     const uint DisplayLimit = global.params.v.errorSupplementCount();

@@ -51,6 +51,13 @@ class ErrorSinkCompiler : ErrorSink
     /// print gagged errors anyway
     bool showGaggedErrors;
 
+    /// Returns true if auxillary error reporting functions like `printCandidates`, `getMatchError` or
+    /// `getParamError` should print additional information.
+    final extern(D) bool emitAdditionalContext()
+    {
+        return !global.gag || showGaggedErrors;
+    }
+
   nothrow:
   extern (C++):
 
