@@ -607,7 +607,7 @@ void cgreg_spillreg_epilog(block* b,Symbol* s,ref CodeBuilder cdbstore, ref Code
     const bi = b.Bdfoidx;
     //printf("cgreg_spillreg_epilog(block %d, s = '%s')\n",bi,s.Sident.ptr);
     //assert(b.bc == BC.goto_);
-    if (!cgreg_gotoepilog(b.Bsuccx(0), s))
+    if (!cgreg_gotoepilog(b.nthSucc(0), s))
         return;
 
     const live = vec_testbit(bi,s.Slvreg) != 0;

@@ -570,7 +570,7 @@ private void flowaecp(ref GlobalOptimizer go, ref BlockOpt bo)
             bool first = true;
             foreach (bp; b.Bpred[])
             {
-                if (bp.bc == BC.iftrue && bp.Bsuccx(0) != b)
+                if (bp.bc == BC.iftrue && bp.nthSucc(0) != b)
                 {
                     if (first)
                         vec_copy(b.Bin,bp.Bout2);

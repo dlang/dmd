@@ -519,8 +519,8 @@ void brcombine(ref GlobalOptimizer go, ref BlockOpt bo)
             const bc = b.bc;
             if (bc == BC.iftrue)
             {
-                block* b2 = b.Bsuccx(0);
-                block* b3 = b.Bsuccx(1);
+                block* b2 = b.nthSucc(0);
+                block* b3 = b.nthSucc(1);
 
                 if (b2.Bpred.length > 1)       // if more than one predecessor
                     continue;
@@ -533,7 +533,7 @@ void brcombine(ref GlobalOptimizer go, ref BlockOpt bo)
 
                 const bc2 = b2.bc;
                 if (bc2 == BC.goto_ &&
-                    b3 == b2.Bsuccx(0))
+                    b3 == b2.nthSucc(0))
                 {
                     b.bc = BC.goto_;
                     if (b2.Belem)
@@ -570,9 +570,9 @@ void brcombine(ref GlobalOptimizer go, ref BlockOpt bo)
                 }
                 else if (bc2 == BC.goto_ &&
                          b3.bc == BC.goto_ &&
-                         b2.Bsuccx(0) == b3.Bsuccx(0))
+                         b2.nthSucc(0) == b3.nthSucc(0))
                 {
-                    block* bsucc = b2.Bsuccx(0);
+                    block* bsucc = b2.nthSucc(0);
                     if (b2.Belem)
                     {
                         elem* e;
@@ -680,13 +680,13 @@ private void bropt(ref GlobalOptimizer go, ref BlockOpt bo)
             if (iftrue(n))          /* if elem is true      */
             {
                 // select first succ
-                db = b.Bsuccx(1);
+                db = b.nthSucc(1);
                 goto L1;
             }
             else if (iffalse(n))
             {
                 // select second succ
-                db = b.Bsuccx(0);
+                db = b.nthSucc(0);
 
               L1:
                 list_subtract(&(b.Bsucc),db);
@@ -699,11 +699,11 @@ private void bropt(ref GlobalOptimizer go, ref BlockOpt bo)
             }
 
             /* Look for both destinations being the same    */
-            else if (b.Bsuccx(0) ==
-                     b.Bsuccx(1))
+            else if (b.nthSucc(0) ==
+                     b.nthSucc(1))
             {
                 b.bc = BC.goto_;
-                db = b.Bsuccx(0);
+                db = b.nthSucc(0);
                 list_subtract(&(b.Bsucc),db);
                 db.Bpred.subtract(b);
                 debug if (debugc) printf("CHANGE: if (e) goto L1; else goto L1;\n");
@@ -727,7 +727,7 @@ private void bropt(ref GlobalOptimizer go, ref BlockOpt bo)
                     break;
                 }
             }
-            block* db = b.Bsuccx(i);
+            block* db = b.nthSucc(i);
 
             /* delete predecessors of successors (!)        */
             foreach (bl; ListRange(b.Bsucc))
@@ -776,7 +776,7 @@ private void brrear(ref BlockOpt bo)
 
             static if (NTEXCEPTIONS)
                 enum additionalAnd = "b.Btry == bt.Btry &&
-                                  bt.Btry == bt.Bsuccx(0).Btry";
+                                  bt.Btry == bt.nthSucc(0).Btry";
             else
                 enum additionalAnd = "true";
 
@@ -814,8 +814,8 @@ private void brrear(ref BlockOpt bo)
 
             if (b.bc == BC.iftrue || b.bc == BC.iffalse)
             {
-                block* bif = b.Bsuccx(0);
-                block* belse = b.Bsuccx(1);
+                block* bif = b.nthSucc(0);
+                block* belse = b.nthSucc(1);
 
                 if (bif == b.Bnext)
                 {
