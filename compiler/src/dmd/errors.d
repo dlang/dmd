@@ -250,7 +250,7 @@ class ErrorSinkCompiler : ErrorSink
         DiagnosticContext info = DiagnosticContext(loc, kind, null, null);
         info.supplemental = supplemental;
         info.headerColor = gagged ? Classification.gagged : classificationFor(kind);
-        printDiagnostic(format, ap, info);
+        printDiagnostic(format, ap, info, gagged);
     }
 }
 
@@ -617,7 +617,7 @@ private struct DiagnosticContext
  *      ap      = printf-style variadic arguments
  *      info    = context of error
  */
-private void printDiagnostic(const(char)* format, va_list ap, ref DiagnosticContext info)
+private void printDiagnostic(const(char)* format, va_list ap, ref DiagnosticContext info, bool gagged)
 {
     const(char)* header;    // title of error message
     if (info.supplemental)
@@ -640,7 +640,7 @@ private void printDiagnostic(const(char)* format, va_list ap, ref DiagnosticCont
             return;
     }
 
-    if (global.errorSink.showGaggedErrors && global.gag)
+    if (gagged)
         fprintf(stderr, "(spec:%d) ", global.gag);
     auto con = cast(Console) global.console;
 
