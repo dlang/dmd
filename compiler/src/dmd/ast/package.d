@@ -32,7 +32,7 @@ public import dmd.ast.expression;
 public import dmd.ast.func;
 public import dmd.ast.init;
 public import dmd.ast.mtype;
-//public import dmd.ast.node;
+public import dmd.ast.node;
 public import dmd.ast.nspace;
 //public import dmd.ast.print;
 public import dmd.ast.statement;
