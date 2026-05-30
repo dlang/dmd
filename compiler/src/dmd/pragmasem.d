@@ -206,6 +206,29 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
             .error(pd.loc, "%s `%s` takes no argument", pd.kind, pd.toPrettyChars);
         return declarations();
     }
+    else if (pd.ident == Id.lint)
+        {
+            if (pd.args)
+            {
+                for (size_t i = 0; i < pd.args.length; i++)
+                {
+                    Expression e = (*pd.args)[i];
+                    if (auto id = e.isIdentifierExp())
+                    {
+                        if (id.ident == Id.constSpecial || id.ident == Id.unusedParams ||
+                            id.ident == Id.none || id.ident == Id.all)
+                        {
+                            continue;
+                        }
+                    }
+
+                    e = e.expressionSemantic(sc);
+                    e = e.ctfeInterpret();
+                    (*pd.args)[i] = e;
+                }
+            }
+            return declarations();
+        }
     else if (!global.params.ignoreUnsupportedPragmas)
     {
         error(pd.loc, "unrecognized `pragma(%s)`", pd.ident.toErrMsg());
@@ -328,6 +351,28 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
         Dsymbols decls = de ? Dsymbols(de.declaration) : Dsymbols();
         if (!pragmaMangleSemantic(ps.loc, sc, ps.args, decls.length ? &decls : null))
             return false;
+    }
+    else if (ps.ident == Id.lint)
+    {
+        if (ps.args)
+        {
+            for (size_t i = 0; i < ps.args.length; i++)
+            {
+                Expression e = (*ps.args)[i];
+                if (auto id = e.isIdentifierExp())
+                {
+                    if (id.ident == Id.constSpecial || id.ident == Id.unusedParams ||
+                        id.ident == Id.none || id.ident == Id.all)
+                    {
+                        continue;
+                    }
+                }
+
+                e = e.expressionSemantic(sc);
+                e = e.ctfeInterpret();
+                (*ps.args)[i] = e;
+            }
+        }
     }
     else if (!global.params.ignoreUnsupportedPragmas)
     {

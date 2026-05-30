@@ -539,6 +539,15 @@ immutable Msgtable[] msgtable =
 
     // for inline assembler
     { "op" },
+    // lint
+    { "lint" },
+    { "constSpecial" },
+    { "unusedParams" },
+    { "LintParams" },
+    { "enabled" },
+    { "none" },
+    { "all" },
+
 ];
 
 
