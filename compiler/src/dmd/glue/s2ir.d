@@ -1351,11 +1351,11 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
                 if (b.bc == BC.goto_ && b.numSucc() == 1)
                 {
-                    block* bdest = b.Bsuccx(0);
+                    block* bdest = b.nthSucc(0);
                     if (btry && bdest.Btry != btry)
                     {
                         //printf("test1 b %p b.Btry %p bdest %p bdest.Btry %p\n", b, btry, bdest, bdest.Btry);
-                        block* bfinally = btry.Bsuccx(1);
+                        block* bfinally = btry.nthSucc(1);
                         if (bfinally == finallyblock)
                         {
                             b.appendSucc(finallyblock);
@@ -1366,7 +1366,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 // If the goto exits a try block, then the finally block is also a successor
                 if (b.bc == BC.goto_ && b.numSucc() == 2) // if goto exited a tryblock
                 {
-                    block* bdest = b.Bsuccx(0);
+                    block* bdest = b.nthSucc(0);
 
                     // If the last finally block executed by the goto
                     if (bdest.Btry == tryblock.Btry)
@@ -1593,14 +1593,14 @@ void insertFinallyBlockCalls(block* startblock)
                  *x BC._ret
                  *  breakblock
                  */
-                block* breakblock = b.Bsuccx(0);
+                block* breakblock = b.nthSucc(0);
                 block* lasttry = breakblock.Btry;
                 block* blast = b;
                 ++flagvalue;
                 for (block* bt = b.Btry; bt != lasttry; bt = bt.Btry)
                 {
                     assert(bt.bc == BC._try);
-                    block* bf = bt.Bsuccx(1);
+                    block* bf = bt.nthSucc(1);
                     if (bf.bc == BC.jcatch)
                         continue;                       // skip try-catch
                     assert(bf.bc == BC._finally);
@@ -1692,13 +1692,13 @@ void insertFinallyBlockGotos(block* startblock)
         {
             case BC._try:
                 b.bc = BC.goto_;
-                list_subtract(&b.Bsucc, b.Bsuccx(1));
+                list_subtract(&b.Bsucc, b.nthSucc(1));
                 break;
 
             case BC._finally:
                 b.bc = BC.goto_;
-                list_subtract(&b.Bsucc, b.Bsuccx(2));
-                list_subtract(&b.Bsucc, b.Bsuccx(0));
+                list_subtract(&b.Bsucc, b.nthSucc(2));
+                list_subtract(&b.Bsucc, b.nthSucc(0));
                 break;
 
             case BC._lpad:

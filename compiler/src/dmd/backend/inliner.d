@@ -112,7 +112,7 @@ bool canInlineFunction(Symbol* sfunc)
         switch (b.bc)
         {
             case BC.goto_:
-                if (b.Bnext != b.Bsuccx(0))
+                if (b.Bnext != b.nthSucc(0))
                     return no(__LINE__);
                 b = b.Bnext;
                 continue;
