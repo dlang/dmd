@@ -1333,6 +1333,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
     glue.ectorgates.setDim(0);
     glue.sdtors.setDim(0);
     glue.ssharedctors.setDim(0);
+    glue.sisharedctors.setDim(0);
     glue.esharedctorgates.setDim(0);
     glue.sshareddtors.setDim(0);
     glue.stests.setDim(0);
