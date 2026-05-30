@@ -119,7 +119,7 @@ static if (0)
             DwEhTableEntry* d = deh.push();
             d.start = cast(uint)b.Boffset;
 
-            block* bf = b.nthSucc(1);
+            block* bf = b.Bsuccx(1);
             if (bf.bc == BC.jcatch)
             {
                 d.lpad = cast(uint)bf.Boffset;
@@ -138,7 +138,7 @@ static if (0)
                 d.action = offset + 1;
             }
             else
-                d.lpad = cast(uint)bf.nthSucc(0).Boffset;
+                d.lpad = cast(uint)bf.Bsuccx(0).Boffset;
             d.prev = index;
             index = i;
             bprev = b.Btry;
