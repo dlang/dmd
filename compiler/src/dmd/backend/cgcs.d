@@ -99,8 +99,8 @@ void comsubs2(block* startblock, ref CGCS cgcs, ref GlobalOptimizer go, ref Bloc
         auto blc = bl;
         while (bln && bln.Bpred.length == 1 &&
                ((blc.bc == BC.iftrue &&
-                 blc.nthSucc(1) == bln) ||
-                (blc.bc == BC.goto_ && blc.nthSucc(0) == bln)
+                 blc.Bsuccx(1) == bln) ||
+                (blc.bc == BC.goto_ && blc.Bsuccx(0) == bln)
                ) &&
                bln.bc != BC.asm_         // no CSE's extending across ASM blocks
               )
