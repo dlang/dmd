@@ -7417,28 +7417,24 @@ bool determineFields(AggregateDeclaration ad)
         if (v.storage_class & STC.ref_)
             return 0;
         auto tv = v.type.baseElemOf();
-        if (auto tvs = tv.isTypeStruct())
-        {
-            if (ad == tvs.sym)
-            {
-                if (ad.type.ty == Terror || ad.errors)
-                    return 1;   // failed already
+        auto tvs = tv.isTypeStruct();
+        if (!tvs || ad != tvs.sym)
+            return 0;
+        if (ad.type.ty == Terror || ad.errors)
+            return 1;   // failed already
 
-                const(char)* psz = (v.type.toBasetype().ty == Tsarray) ? "static array of " : "";
-                if (!v.isAnonymous())
-                    .error(v.loc, "%s `%s` cannot have field `%s` with %ssame struct type", ad.kind, ad.toPrettyChars, v.toErrMsg(), psz);
-                else
-                    .error(v.loc, "%s `%s` cannot have anonymous field with %ssame struct type", ad.kind, ad.toPrettyChars, psz);
-                // Don't cache errors from speculative semantic
-                if (!global.gag)
-                {
-                    ad.type = Type.terror;
-                    ad.errors = true;
-                }
-                return 1;
-            }
+        const(char)* psz = (v.type.toBasetype().ty == Tsarray) ? "static array of " : "";
+        if (!v.isAnonymous())
+            .error(v.loc, "%s `%s` cannot have field `%s` with %ssame struct type", ad.kind, ad.toPrettyChars, v.toErrMsg(), psz);
+        else
+            .error(v.loc, "%s `%s` cannot have anonymous field with %ssame struct type", ad.kind, ad.toPrettyChars, psz);
+        // Don't cache errors from speculative semantic
+        if (!global.gag)
+        {
+            ad.type = Type.terror;
+            ad.errors = true;
         }
-        return 0;
+        return 1;
     }
 
     if (ad.members)
@@ -9528,17 +9524,31 @@ bool determineSize(AggregateDeclaration ad, Loc loc)
     if (ad._scope)
         dsymbolSemantic(ad, null);
 
+    bool Lfail()
+    {
+        // There's unresolvable forward reference.
+        if (ad.type != Type.terror)
+            error(loc, "%s `%s` no size because of forward reference", ad.kind, ad.toPrettyChars);
+        // Don't cache errors from speculative semantic, might be resolvable later.
+        // https://issues.dlang.org/show_bug.cgi?id=16574
+        if (!global.gag)
+        {
+            ad.type = Type.terror;
+            ad.errors = true;
+        }
+        return false;
+    }
     // Determine the instance size of base class first.
     if (auto cd = ad.isClassDeclaration())
     {
         cd = cd.baseClass;
         if (cd && !cd.determineSize(loc))
-            goto Lfail;
+            return Lfail();
     }
 
     // Determine instance fields when sizeok == Sizeok.none
     if (!ad.determineFields())
-        goto Lfail;
+        return Lfail();
     if (ad.sizeok != Sizeok.done)
         ad.finalizeSize();
 
@@ -9547,19 +9557,7 @@ bool determineSize(AggregateDeclaration ad, Loc loc)
         return false;   // marked as invalid during the finalizing.
     if (ad.sizeok == Sizeok.done)
         return true;    // succeeded to calculate instance size.
-
-Lfail:
-    // There's unresolvable forward reference.
-    if (ad.type != Type.terror)
-        error(loc, "%s `%s` no size because of forward reference", ad.kind, ad.toPrettyChars);
-    // Don't cache errors from speculative semantic, might be resolvable later.
-    // https://issues.dlang.org/show_bug.cgi?id=16574
-    if (!global.gag)
-    {
-        ad.type = Type.terror;
-        ad.errors = true;
-    }
-    return false;
+    return Lfail();
 }
 
 void checkCtorConstInit(Dsymbol d)
