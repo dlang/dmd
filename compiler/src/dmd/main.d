@@ -611,7 +611,7 @@ private int tryMain(const(char)[][] argv, out Param params)
         }
     }
     if (global.errors)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(params.dihdr.doOutput, modules);
 
     {
     timeTraceBeginEvent(TimeTraceEventType.semaGeneral);
@@ -625,7 +625,7 @@ private int tryMain(const(char)[][] argv, out Param params)
         m.importAll(null);
     }
     if (global.errors)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(params.dihdr.doOutput, modules);
 
     backend_init(params, driverParams, target);
 
@@ -658,7 +658,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     }
     runDeferredSemantic2();
     if (global.errors)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(params.dihdr.doOutput, modules);
 
     // Do pass 3 semantic analysis
     foreach (m; modules)
@@ -683,7 +683,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     }
     runDeferredSemantic3();
     if (global.errors)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(params.dihdr.doOutput, modules);
 
     {
     timeTraceBeginEvent(TimeTraceEventType.inlineGeneral);
@@ -720,7 +720,7 @@ private int tryMain(const(char)[][] argv, out Param params)
 
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(params.dihdr.doOutput, modules);
 
     // inlineScan incrementally run semantic3 of each expanded functions.
     // So deps file generation should be moved after the inlining stage.
@@ -903,7 +903,7 @@ private int tryMain(const(char)[][] argv, out Param params)
         errorOnWarning();
 
     if (global.errors || global.warnings)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(params.dihdr.doOutput, modules);
 
     return status;
 }
