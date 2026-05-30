@@ -6,26 +6,27 @@
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/denum.d, _denum.d)
- * Documentation:  https://dlang.org/phobos/dmd_denum.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/denum.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/denum.d, _denum.d)
+ * Documentation:  https://dlang.org/phobos/dmd_ast_denum.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/ast/denum.d
  * References:  https://dlang.org/spec/enum.html
  */
 
-module dmd.denum;
+module dmd.ast.denum;
 
 import core.stdc.stdio;
 
-import dmd.astenums;
-import dmd.attrib;
-import dmd.declaration;
-import dmd.dsymbol;
-import dmd.expression;
+import dmd.ast.enums;
+import dmd.ast.attrib;
+import dmd.ast.declaration;
+import dmd.ast.dsymbol;
+import dmd.ast.expression;
+import dmd.ast.init;
+import dmd.ast.mtype;
+
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
 import dmd.location;
-import dmd.mtype;
 import dmd.visitor;
 
 /***********************************************************

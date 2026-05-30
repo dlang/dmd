@@ -15,7 +15,7 @@ import core.stdc.stdio;
 import core.stdc.stdint;
 import core.stdc.string;
 
-import dmd.astenums;
+import dmd.ast.enums;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;

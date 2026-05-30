@@ -13,16 +13,17 @@
 
 module dmd.builtin;
 
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.mtype;
+
 import dmd.arraytypes;
-import dmd.astenums;
 import dmd.errors;
-import dmd.expression;
 import dmd.expressionsem : toInteger, toReal;
 import dmd.typesem : isFloating, toBasetype;
-import dmd.func;
 import dmd.location;
 import dmd.mangle;
-import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.tokens;
 import dmd.id;
@@ -177,7 +178,7 @@ Expression eval_unimp(Loc loc, FuncDeclaration fd, Expression[] arguments)
 Expression eval_ctfeWrite(Loc loc, FuncDeclaration fd, Expression[] arguments)
 {
     import core.stdc.stdio: fprintf, stderr;
-    import dmd.expression: CTFEExp;
+    import dmd.ast.expression: CTFEExp;
     import dmd.ctfeexpr: resolveSlice;
     import dmd.expressionsem : toStringExp;
 

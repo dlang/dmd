@@ -15,22 +15,23 @@ module dmd.importc;
 
 import core.stdc.stdio;
 
-import dmd.astenums;
+import dmd.ast.denum;
+import dmd.ast.enums;
+import dmd.ast.declaration;
+import dmd.ast.dsymbol;
+import dmd.ast.expression;
+import dmd.ast.init;
+import dmd.ast.mtype;
+
 import dmd.dcast;
-import dmd.denum;
-import dmd.declaration;
 import dmd.dscope;
-import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dinterpret : ctfeInterpret;
 import dmd.errors;
-import dmd.expression;
 import dmd.expressionsem;
 import dmd.identifier;
 import dmd.id : Id;
-import dmd.init;
 import dmd.intrange : IntRange;
-import dmd.mtype;
 import dmd.optimize : optimize;
 import dmd.rootobject : DYNCAST;
 import dmd.tokens;

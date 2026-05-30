@@ -13,23 +13,24 @@ module dmd.optimize;
 
 import core.stdc.stdio;
 
-import dmd.astenums;
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.dsymbol;
+import dmd.ast.init;
+import dmd.ast.mtype;
+import dmd.ast.print;
+
 import dmd.constfold;
 import dmd.ctfeexpr;
 import dmd.dcast;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.errors;
-import dmd.expression;
 import dmd.expressionsem;
 import dmd.globals;
 import dmd.hdrgen;
-import dmd.init;
 import dmd.location;
-import dmd.mtype;
-import dmd.printast;
 import dmd.root.ctfloat;
 import dmd.sideeffect;
 import dmd.tokens;
@@ -864,7 +865,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
         }
         if (e.type.ty == Tclass && e.e1.type.ty == Tclass)
         {
-            import dmd.astenums : Sizeok;
+            import dmd.ast.enums : Sizeok;
 
             // See if we can remove an unnecessary cast
             ClassDeclaration cdfrom = e.e1.type.isClassHandle();

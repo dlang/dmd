@@ -92,15 +92,14 @@ _D_KEYWORD_RENAME: dict[tuple[str, str], str | None] = {
 
 # All D imports needed to check all definitions from include/*.h
 D_IMPORTS = """\
-import dmd.aggregate, dmd.aliasthis, dmd.arraytypes, dmd.ast_node,
-       dmd.attrib, dmd.compiler, dmd.cond, dmd.ctfeexpr, dmd.cxxfrontend, dmd.declaration,
-       dmd.denum, dmd.dimport, dmd.dmodule, dmd.dscope, dmd.dstruct,
-       dmd.dsymbol, dmd.dtemplate, dmd.dversion, dmd.errors,
-       dmd.astenums, dmd.ctorflow, dmd.dclass, dmd.dmacro, dmd.dsymbolsem, dmd.errorsink, dmd.expression, dmd.func,
+import dmd.arraytypes, dmd.ast,
+       dmd.compiler, dmd.ctfeexpr, dmd.cxxfrontend, 
+       dmd.dscope, dmd.errors,
+       dmd.ctorflow, dmd.dmacro, dmd.dsymbolsem, dmd.errorsink,
        dmd.globals, dmd.hdrgen, dmd.lexer,
-       dmd.id, dmd.identifier, dmd.init, dmd.json, dmd.location,
-       dmd.mangle, dmd.mtype, dmd.nspace, dmd.objc, dmd.rootobject,
-       dmd.statement, dmd.staticassert, dmd.target, dmd.tokens, dmd.typinf,
+       dmd.id, dmd.identifier, dmd.json, dmd.location,
+       dmd.mangle, dmd.objc, dmd.rootobject,
+       dmd.target, dmd.tokens, dmd.typinf,
        dmd.visitor, dmd.vsoptions,
        dmd.root.array, dmd.root.bitarray, dmd.root.complex,
        dmd.root.ctfloat, dmd.root.filename, dmd.root.longdouble,

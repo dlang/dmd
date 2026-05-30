@@ -15,8 +15,8 @@ import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.ctype;
 
-import dmd.astcodegen;
-import dmd.astenums;
+import dmd.ast.codegen;
+import dmd.ast.enums;
 import dmd.arraytypes;
 import dmd.dsymbolsem;
 import dmd.templatesem : computeOneMember;
@@ -2914,7 +2914,7 @@ public:
      */
     private bool shouldEmit(AST.Dsymbol sym)
     {
-        import dmd.aggregate : ClassKind;
+        import dmd.ast.aggregate : ClassKind;
         debug (Debug_DtoH)
         {
             printf("[shouldEmitAndMarkVisited enter] %s\n", sym.toPrettyChars());
@@ -2989,7 +2989,7 @@ public:
             }
             else if (auto ad = sym.isAggregateDeclaration())
             {
-                import dmd.aggregate : ClassKind;
+                import dmd.ast.aggregate : ClassKind;
                 res = ad.classKind == ClassKind.cpp;
             }
         }

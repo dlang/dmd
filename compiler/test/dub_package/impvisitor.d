@@ -77,7 +77,7 @@ void main()
     import std.path : buildPath, dirName;
 
     import dmd.parse;
-    import dmd.astbase;
+    import dmd.ast.base;
 
     import dmd.id;
     import dmd.globals;

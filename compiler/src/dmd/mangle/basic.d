@@ -9,7 +9,7 @@
  */
 module dmd.mangle.basic;
 
-import dmd.astenums;
+import dmd.ast.enums;
 import dmd.common.outbuffer : OutBuffer;
 
 /// Type mangling mapping for basic, derived and user defined types

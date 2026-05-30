@@ -6,34 +6,35 @@
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/expression.d, _expression.d)
- * Documentation:  https://dlang.org/phobos/dmd_expression.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/expression.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/expression.d, _expression.d)
+ * Documentation:  https://dlang.org/phobos/dmd_ast_expression.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/compiler/src/dmd/ast/expression.d
  */
 
-module dmd.expression;
+module dmd.ast.expression;
 
 import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.ast_node;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.dtemplate;
+import dmd.ast.enums;
+import dmd.ast.node;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.dstruct;
+import dmd.ast.dsymbol;
+import dmd.ast.dtemplate;
+import dmd.ast.func;
+import dmd.ast.init;
+import dmd.ast.mtype;
+
 import dmd.errors;
-import dmd.func;
 import dmd.globals;
 import dmd.hdrgen : toChars;
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
 import dmd.location;
-import dmd.mtype;
 import dmd.root.complex;
 import dmd.root.ctfloat;
 import dmd.root.rmem;

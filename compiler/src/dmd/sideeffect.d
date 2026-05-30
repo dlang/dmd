@@ -11,19 +11,20 @@
 
 module dmd.sideeffect;
 
-import dmd.astenums;
-import dmd.declaration;
+import dmd.ast.enums;
+import dmd.ast.declaration;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.init;
+import dmd.ast.mtype;
+
 import dmd.dscope;
 import dmd.errors;
-import dmd.expression;
 import dmd.expressionsem;
-import dmd.func;
 import dmd.funcsem;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
-import dmd.mtype;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;

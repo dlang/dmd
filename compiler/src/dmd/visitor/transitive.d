@@ -5,7 +5,7 @@
 
 module dmd.visitor.transitive;
 
-import dmd.astenums;
+import dmd.ast.enums;
 import dmd.visitor.permissive;
 import dmd.tokens;
 import dmd.rootobject;

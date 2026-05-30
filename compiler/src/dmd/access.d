@@ -13,16 +13,17 @@
 
 module dmd.access;
 
-import dmd.aggregate;
-import dmd.astenums;
-import dmd.dclass;
-import dmd.dmodule;
+import dmd.ast.aggregate;
+import dmd.ast.enums;
+import dmd.ast.dclass;
+import dmd.ast.dmodule;
+import dmd.ast.dstruct;
+import dmd.ast.dsymbol;
+import dmd.ast.expression;
+
 import dmd.dscope;
-import dmd.dstruct;
-import dmd.dsymbol;
 import dmd.dsymbolsem : toAlias;
 import dmd.errors;
-import dmd.expression;
 import dmd.funcsem : overloadApply;
 import dmd.location;
 import dmd.tokens;

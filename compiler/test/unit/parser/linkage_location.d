@@ -1,7 +1,7 @@
 module parser.linkage_location;
 
 import dmd.frontend : parseModule, initDMD, deinitializeDMD;
-import dmd.attrib : CPPMangleDeclaration, CPPNamespaceDeclaration, LinkDeclaration;
+import dmd.ast.attrib : CPPMangleDeclaration, CPPNamespaceDeclaration, LinkDeclaration;
 import dmd.location;
 import dmd.visitor : SemanticTimeTransitiveVisitor;
 

@@ -11,7 +11,7 @@
 
 module dmd.visitor;
 
-import dmd.astcodegen;
+import dmd.ast.codegen;
 import dmd.tokens;
 import dmd.rootobject;
 import dmd.visitor.parsetime;

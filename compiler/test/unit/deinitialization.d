@@ -34,7 +34,7 @@ unittest
 unittest
 {
     import dmd.target : addDefaultVersionIdentifiers;
-    import dmd.mtype : Type;
+    import dmd.ast.mtype : Type;
     import dmd.globals : global;
     import dmd.typesem : Type_init;
 
@@ -75,7 +75,7 @@ unittest
 @("Module.deinitialize")
 unittest
 {
-    import dmd.dmodule : Module;
+    import dmd.ast.dmodule : Module;
 
     assert(Module.modules is Module.modules.init);
 
@@ -126,7 +126,7 @@ unittest
 @("Expression.deinitialize")
 unittest
 {
-    import dmd.expression : Expression, CTFEExp;
+    import dmd.ast.expression : Expression, CTFEExp;
 
     static void assertInitialState()
     {

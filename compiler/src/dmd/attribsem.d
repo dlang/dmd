@@ -24,11 +24,12 @@
 
 module dmd.attribsem;
 
+import dmd.ast.attrib;
+import dmd.ast.dsymbol;
 import dmd.arraytypes;
-import dmd.attrib;
+import dmd.ast.expression;
+
 import dmd.dscope;
-import dmd.dsymbol;
-import dmd.expression;
 import dmd.expressionsem;
 import dmd.location;
 import dmd.root.array; // for each

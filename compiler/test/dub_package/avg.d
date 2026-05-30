@@ -9,7 +9,7 @@ dependency "dmd" path="../../.."
 
 module examples.avg;
 
-import dmd.astbase;
+import dmd.ast.base;
 import dmd.errorsink;
 import dmd.parse;
 import dmd.target;

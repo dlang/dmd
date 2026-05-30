@@ -10,9 +10,9 @@
  */
 module dmd.frontend;
 
-import dmd.astcodegen : ASTCodegen;
-import dmd.astenums : CHECKENABLE;
-import dmd.dmodule : Module;
+import dmd.ast.codegen : ASTCodegen;
+import dmd.ast.enums : CHECKENABLE;
+import dmd.ast.dmodule : Module;
 import dmd.globals : DiagnosticReporting;
 import dmd.errors;
 import dmd.location;
@@ -114,15 +114,15 @@ void initDMD(
     version (CRuntime_Microsoft)
         import dmd.root.longdouble : initFPU;
 
-    import dmd.astenums : CHECKENABLE;
-    import dmd.cond : VersionCondition;
-    import dmd.dmodule : Module;
+    import dmd.ast.enums : CHECKENABLE;
+    import dmd.ast.cond : VersionCondition;
+    import dmd.ast.dmodule : Module;
+    import dmd.ast.expression : Expression;
+    import dmd.ast.mtype : Type;
     import dmd.escape : EscapeState;
-    import dmd.expression : Expression;
     import dmd.globals : global;
     import dmd.id : Id;
     import dmd.identifier : Identifier;
-    import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.target : target, defaultTargetOS, addDefaultVersionIdentifiers;
     import dmd.typesem : Type_init;
@@ -173,14 +173,14 @@ application.
 */
 void deinitializeDMD()
 {
-    import dmd.dmodule : Module;
-    import dmd.dsymbol : Dsymbol;
+    import dmd.ast.dmodule : Module;
+    import dmd.ast.dsymbol : Dsymbol;
+    import dmd.ast.expression : Expression;
+    import dmd.ast.func : FuncDeclaration;
+    import dmd.ast.mtype : Type;
     import dmd.escape : EscapeState;
-    import dmd.expression : Expression;
-    import dmd.func : FuncDeclaration;
     import dmd.globals : global;
     import dmd.id : Id;
-    import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.target : target;
     import dmd.dfa.fast.structure : DFAAllocator;

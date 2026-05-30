@@ -4,8 +4,8 @@ import std.algorithm;
 import std.typecons;
 
 import dmd.frontend;
-import dmd.dsymbol;
-import dmd.astcodegen;
+import dmd.ast.dsymbol;
+import dmd.ast.codegen;
 import dmd.common.outbuffer;
 
 import support;

@@ -32,9 +32,9 @@ module dmd.deps;
 
 import core.stdc.stdio : printf;
 import core.stdc.string : strcmp;
+import dmd.ast.dimport : Import;
+import dmd.ast.dmodule : Module;
 import dmd.common.outbuffer;
-import dmd.dimport : Import;
-import dmd.dmodule : Module;
 import dmd.globals : Param, Output;
 import dmd.hdrgen : visibilityToBuffer;
 import dmd.id : Id;

@@ -15,25 +15,26 @@ module dmd.safe;
 
 import core.stdc.stdio;
 
-import dmd.aggregate;
-import dmd.astenums;
+import dmd.ast.aggregate;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.dsymbol;
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.mtype;
+
 import dmd.common.outbuffer;
 import dmd.dcast : implicitConvTo;
-import dmd.dclass;
-import dmd.declaration;
 import dmd.dscope;
-import dmd.dsymbol;
 import dmd.dsymbolsem : determineSize;
 import dmd.errors;
 import dmd.errorsink;
-import dmd.expression;
-import dmd.func;
+import dmd.ast.func;
 import dmd.funcsem : isRootTraitsCompilesScope;
 import dmd.globals : FeatureState, global;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.mtype;
 import dmd.rootobject;
 import dmd.root.string : fTuple;
 import dmd.target;
@@ -576,7 +577,7 @@ bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, VarDeclarat
         }
         else if (!sc.func.safetyViolation)
         {
-            import dmd.func : AttributeViolation;
+            import dmd.ast.func : AttributeViolation;
             if (scopeVar)
                 sc.func.safetyViolation = new AttributeViolation(loc, format, scopeVar, args);
             else

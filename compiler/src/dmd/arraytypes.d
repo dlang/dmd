@@ -11,19 +11,20 @@
 
 module dmd.arraytypes;
 
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dmodule;
-import dmd.dsymbol;
-import dmd.dtemplate;
-import dmd.expression;
-import dmd.func;
+import dmd.ast.dclass;
+import dmd.ast.declaration;
+import dmd.ast.dmodule;
+import dmd.ast.dsymbol;
+import dmd.ast.dtemplate;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.init;
+import dmd.ast.mtype;
+import dmd.ast.statement;
+
 import dmd.identifier;
-import dmd.init;
-import dmd.mtype;
 import dmd.root.array;
 import dmd.rootobject;
-import dmd.statement;
 
 alias Strings = Array!(const(char)*);
 alias Identifiers = Array!(Identifier);

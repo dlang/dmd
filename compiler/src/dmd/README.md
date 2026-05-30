@@ -62,40 +62,38 @@ Note that these groups have no strict meaning, the category assignments are a bi
 
 ### Semantic analysis
 
-**Symbols and declarations**
+**AST Nodes, Symbols and declarations**
 
 | File                                                                            | Purpose                                                                                                          |
 |---------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
-| [dsymbol.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dsymbol.d)         | Base class for a D symbol, e.g. a variable, function, module, enum etc.                                          |
+| [dsymbol.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/dsymbol.d)         | Base class for a D symbol, e.g. a variable, function, module, enum etc.                                          |
 | [identifier.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/identifier.d)   | Represents the name of a `Dsymbol`                                                                               |
 | [id.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/id.d)                   | Define strings for pre-defined identifiers (e.g. `sizeof`, `string`)                                             |
-| [dscope.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dscope.d)           | Define a 'scope' on which symbol lookup can be performed                                                         |
-| [dtemplate.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dtemplate.d)     | A template declaration or instance                                                                               |
-| [dmodule.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dmodule.d)         | Define a package and module                                                                                      |
-| [mtype.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mtype.d)             | Define expression types such as `int`, `char[]`, `void function()`                                               |
+| [dscope.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/dscope.d)           | Define a 'scope' on which symbol lookup can be performed                                                         |
+| [dtemplate.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/dtemplate.d)     | A template declaration or instance                                                                               |
+| [dmodule.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/dmodule.d)         | Define a package and module                                                                                      |
+| [mtype.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/mtype.d)             | Define expression types such as `int`, `char[]`, `void function()`                                               |
 | [arraytypes.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/arraytypes.d)   | For certain Declaration nodes of type `T`, provides aliases for `Array!T`                                        |
-| [declaration.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/declaration.d) | Misc. declarations of `alias`, variables, type tuples, `ClassInfo` etc.                                          |
-| [denum.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/denum.d)             | Defines `enum` declarations and enum members                                                                     |
+| [declaration.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/declaration.d) | Misc. declarations of `alias`, variables, type tuples, `ClassInfo` etc.                                          |
+| [denum.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/denum.d)             | Defines `enum` declarations and enum members                                                                     |
 | [attrib.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/nogc.d)             | Declarations of 'attributes' such as `private`, `pragma()`, `immutable`, `@UDA`, `align`, `extern(C++)` and more |
-| [func.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/func.d)               | Define a function declaration (includes function literals, `invariant`, `unittest`)                              |
-| [dversion.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dversion.d)       | Defines a version symbol, e.g. `version = ident`, `debug = ident`                                                |
-
-**AST nodes**
-
-| File                                                                              | Purpose                                                     |
-|-----------------------------------------------------------------------------------|-------------------------------------------------------------|
-| [ast_node.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast_node.d)         | Define an abstract AST node class                           |
-| [astbase.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/astbase.d)           | Namespace of AST nodes that can be produced by the parser   |
-| [astcodegen.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/astcodegen.d)     | Namespace of AST nodes of a AST ready for code generation   |
-| [astenums.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/astenums.d)         | Enums common to DMD and AST                                 |
-| [expression.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/expression.d)     | Define expression AST nodes                                 |
+| [func.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/func.d)               | Define a function declaration (includes function literals, `invariant`, `unittest`)                              |
+| [dversion.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/dversion.d)       | Defines a version symbol, e.g. `version = ident`, `debug = ident`                                                |
+| [node.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/node.d)         | Define an abstract AST node class                           |
+| [base.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/base.d)           | Namespace of AST nodes that can be produced by the parser   |
+| [codegen.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/codegen.d)     | Namespace of AST nodes of a AST ready for code generation   |
+| [enums.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/enums.d)         | Enums common to DMD and AST                                 |
+| [cond.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/cond.d)          | AST nodes for  `static if`, `version` `debug `                |
+| [expression.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/expression.d)     | Define expression AST nodes                                 |
 | [rootobject.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/rootobject.d)     | Define an abstract root class                           |
-| [statement.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/statement.d)       | Define statement AST nodes                                  |
-| [staticassert.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/staticassert.d) | Define a `static assert` AST node                           |
-| [aggregate.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/aggregate.d)       | Define an aggregate (`struct`, `union` or `class`) AST node |
-| [dclass.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dclass.d)             | Define a `class` AST node                                   |
-| [dstruct.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dstruct.d)           | Define a `struct` or `union` AST node                       |
-| [init.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/init.d)                 | Define variable initializers                                |
+| [dimport.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/dimport.d)        | Renamed imports (`import aliasSymbol = pkg1.pkg2.symbol`)                                   |
+| [nspace.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/nspace.d)          | Namespace for `extern (C++, Module)`                                                        |
+| [statement.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/statement.d)       | Define statement AST nodes                                  |
+| [staticassert.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/staticassert.d) | Define a `static assert` AST node                           |
+| [aggregate.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/aggregate.d)       | Define an aggregate (`struct`, `union` or `class`) AST node |
+| [dclass.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/dclass.d)             | Define a `class` AST node                                   |
+| [dstruct.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/dstruct.d)           | Define a `struct` or `union` AST node                       |
+| [init.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/init.d)                 | Define variable initializers                                |
 
 **AST visitors**
 
@@ -184,12 +182,9 @@ Note that these groups have no strict meaning, the category assignments are a bi
 | [aliasthis.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/aliasthis.d)    | Resolve implicit conversions for `alias X this`                                             |
 | [traits.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/traits.d)          | `__traits()`                                                                                |
 | [lambdacomp.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/lambdacomp.d)  | `__traits(isSame, x => y, z => w)`                                                          |
-| [cond.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/cond.d)              | Evaluate `static if`, `version` `debug `                                                    |
 | [staticcond.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/staticcond.d)  | Lazily evaluate static conditions for `static if`, `static assert` and template constraints |
 | [delegatize.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/delegatize.d)  | Converts expression to delegates for `lazy` parameters                                      |
-| [nspace.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/nspace.d)          | Namespace for `extern (C++, Module)`                                                        |
 | [intrange.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/intrange.d)      | [Value range propagation](https://digitalmars.com/articles/b62.html)                        |
-| [dimport.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dimport.d)        | Renamed imports (`import aliasSymbol = pkg1.pkg2.symbol`)                                   |
 | [arrayop.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/arrayop.d)        | Array operations (`a[] = b[] + c[]`)                                                        |
 | [cpreprocess.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/cpreprocess.d)| Run the C preprocessor on C source files                                                   |
 | [typinf.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/typinf.d)          | Generate typeinfo for `typeid()` (as well as internals)                                     |
@@ -273,5 +268,5 @@ Note: many other utilities are in [dmd/root](https://github.com/dlang/dmd/tree/m
 
 | File                                                                            | Purpose                                                       |
 |---------------------------------------------------------------------------------|---------------------------------------------------------------|
-| [asttypename.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/asttypename.d) | Print the internal name of an AST node (for debugging only)   |
+| [asttypename.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ast/typename.d) | Print the internal name of an AST node (for debugging only)   |
 | [printast.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/printast.d)       | Print the AST data structure                                  |

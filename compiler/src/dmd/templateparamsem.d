@@ -11,17 +11,18 @@
 
 module dmd.templateparamsem;
 
+import dmd.ast.dsymbol;
+import dmd.ast.dtemplate;
+import dmd.ast.mtype;
+
 import dmd.arraytypes;
 import dmd.dinterpret;
-import dmd.dsymbol;
+import dmd.ast.expression;
 import dmd.dscope;
-import dmd.dtemplate;
 import dmd.location;
-import dmd.expression;
 import dmd.expressionsem;
 import dmd.templatesem;
 import dmd.rootobject;
-import dmd.mtype;
 import dmd.typesem;
 import dmd.visitor;
 

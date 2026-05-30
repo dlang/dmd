@@ -16,7 +16,7 @@ module dmd.cparse;
 import core.stdc.stdio;
 import core.stdc.string : memcpy;
 
-import dmd.astenums;
+import dmd.ast.enums;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.id;

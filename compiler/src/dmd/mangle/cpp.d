@@ -21,24 +21,25 @@ module dmd.mangle.cpp;
 
 import core.stdc.stdio;
 
+import dmd.ast.attrib;
+import dmd.ast.declaration;
+import dmd.ast.dsymbol;
+import dmd.ast.dtemplate;
+import dmd.ast.enums;
+import dmd.ast.expression;
+import dmd.ast.func;
+import dmd.ast.mtype;
+import dmd.ast.nspace;
+
 import dmd.arraytypes;
-import dmd.astenums;
-import dmd.attrib;
-import dmd.declaration;
-import dmd.dsymbol;
 import dmd.dsymbolsem : isGNUABITag, toAlias, equals;
 import dmd.expressionsem : toStringExp, toInteger, toUInteger;
 import dmd.templatesem : computeOneMember;
-import dmd.dtemplate;
 import dmd.errors;
-import dmd.expression;
-import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.mtype;
-import dmd.nspace;
 import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.rootobject;
