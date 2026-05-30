@@ -114,3 +114,25 @@ void test1(int i)
         default: break;
     }
 }
+
+/**
+Part of https://github.com/dlang/dmd/issues/17906
+
+TEST_OUTPUT:
+---
+fail_compilation/switch_fallthrough.d(133): Error: switch case fallthrough - use 'goto case;' if intended
+---
+**/
+void test17906(int i)
+{
+    try
+    {
+        switch (i)
+        {
+            case 1: { int x = 0; }
+            case 2: break;
+            default: break;
+        }
+    }
+    catch (Exception e) {}
+}

@@ -3508,9 +3508,11 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         }
 
         /* If the try body never throws, we can eliminate any catches
-         * of recoverable exceptions.
+         * of recoverable exceptions. Pass `null` instead of `sc.func`
+         * so that a recursive call to the enclosing function is not assumed to be `nothrow`:
+         * https://github.com/dlang/dmd/issues/17906
          */
-        if (!(tcs._body.blockExit(sc.func, null) & BE.throw_) && ClassDeclaration.exception)
+        if (!(tcs._body.blockExit(null, null) & BE.throw_) && ClassDeclaration.exception)
         {
             foreach_reverse (i; 0 .. tcs.catches.length)
             {
