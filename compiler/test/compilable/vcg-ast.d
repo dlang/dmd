@@ -88,3 +88,5 @@ enum isexp = is(typeof({
     int[] arr;
     arr ~= 1;
 }));
+
+int[3] arr = [1, ...];

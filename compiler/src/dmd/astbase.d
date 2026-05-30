@@ -6544,8 +6544,10 @@ struct ASTBase
     {
         Expressions index;
         Initializers value;
-        uint dim;
         Type type;
+        uint dim;
+        bool isCarray;
+        bool defaultInitialize;
 
         extern (D) this(Loc loc)
         {

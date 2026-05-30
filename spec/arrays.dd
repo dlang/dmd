@@ -1140,11 +1140,11 @@ $(H3 $(LNAME2 array-initializers, Array Initializers))
 
 $(GRAMMAR
 $(GNAME ArrayInitializer):
-    $(D [) $(I ArrayElementInitializers)$(OPT) $(D ])
+    `[` *ArrayElementInitializers* `,`$(OPT) `]`
+    `[` *ArrayElementInitializers* `, ... ]`
 
 $(GNAME ArrayElementInitializers):
     $(I ArrayElementInitializer)
-    $(I ArrayElementInitializer) $(D ,)
     $(I ArrayElementInitializer) $(D ,) $(GSELF ArrayElementInitializers)
 
 $(GNAME ArrayElementInitializer):
@@ -1153,7 +1153,12 @@ $(GNAME ArrayElementInitializer):
 )
 
         $(P An *ArrayInitializer* is a list of element initializers enclosed in `[ ]`.
-        Each element initializer can be optionally preceded by an index expression and a `:`.
+        The $(GRAMMAR_INLINE *ArrayElementInitializers* `, ...`) form
+        $(RELATIVE_LINK2 static-init-static, can only be used) when the declaration
+        is a static array.)
+
+        $(P Each element initializer can be optionally preceded by an index
+        expression and a `:`.
         If an index is not supplied, it is set to the previous index
         plus 1, or 0 if it is the first value.
         Any missing elements will be initialized to the default value
@@ -1206,6 +1211,26 @@ assert(value == [5, 6, 2]);
         )
 
 $(H3 $(LNAME2 static-init-static, Static Initialization of Statically Allocated Arrays))
+
+        $(P When a static array type is expected, an *ArrayInitializer* must either:)
+
+        - Match the expected number of elements in the type
+        - Have at least one element index provided
+        - Use the trailing `...` syntax
+
+        $(P The `...` syntax is used to specify 0 or more missing elements. Any
+        missing elements will be initialized to the default value of the element type:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+int[4] a = [1, 2, 3, 4]; // OK
+
+//int[4] b = [1, 2];  // Error, missing elements
+int[4] b = [1, 2, ...]; // OK
+
+void main() => assert(b == [1, 2, 0, 0]);
+---------
+)
 
         $(P All elements of a static array can be initialized to a specific value
         which implicitly converts to the array element type:)

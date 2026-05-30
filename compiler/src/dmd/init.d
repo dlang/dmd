@@ -175,9 +175,10 @@ extern (C++) final class ArrayInitializer : Initializer
 {
     Expressions index;      // indices
     Initializers value;     // of Initializer *'s
-    uint dim;               // length of array being initialized
     Type type;              // type that array will be used to initialize
+    uint dim;               // length of array being initialized
     bool isCarray;          // C array semantics
+    bool defaultInitialize; // ends with `,...]` meaning "default initialize the rest"
 
     extern (D) this(Loc loc)
     {

@@ -251,11 +251,13 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         }
         i.type = t;
         length = 0;
+        bool hasIndices = false;
         for (size_t j = 0; j < i.index.length; j++) // don't replace with foreach; j is modified
         {
             Expression idx = i.index[j];
             if (idx)
             {
+                hasIndices = true;
                 sc = sc.startCTFE();
                 idx = idx.expressionSemantic(sc);
                 sc = sc.endCTFE();
@@ -320,12 +322,29 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             else
             {
                 ulong edim = tsa.dim.toInteger();
+                if (i.defaultInitialize && hasIndices)
+                {
+                    error(i.loc, "cannot use both indices and `...` in static array initializer");
+                    return err();
+                }
+                if (i.dim < edim && !i.defaultInitialize && !i.isCarray && !hasIndices &&
+                    sc.hasEdition(Edition.v2024))
+                {
+                    deprecation(i.loc, "array initializer has %u elements, but array length is %llu", i.dim, edim);
+                    deprecationSupplemental(i.loc, "use `, ...]` if intentional");
+                    //return err();
+                }
                 if (i.dim > edim)
                 {
                     error(i.loc, "array initializer has %u elements, but array length is %llu", i.dim, edim);
                     return err();
                 }
             }
+        }
+        else if (i.defaultInitialize)
+        {
+            error(i.loc, "can only use `...` in static array initializer");
+            return err();
         }
         if (errors)
             return err();
