@@ -4191,6 +4191,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             printf("\tdo semantic() on template instance members '%s'\n", tm.toChars());
         }
         Scope* sc2 = argscope.push(tm);
+        tm.tinst = sc.tinst;
+        sc2.tinst = tm;
         //size_t deferred_dim = Module.deferred.length;
 
         __gshared int nest;
