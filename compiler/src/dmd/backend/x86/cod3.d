@@ -1060,8 +1060,8 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
         case BC.iftrue:
         {
             bool jcond = true;
-            block* bs1 = bl.nthSucc(0);
-            block* bs2 = bl.nthSucc(1);
+            block* bs1 = bl.Bsuccx(0);
+            block* bs2 = bl.Bsuccx(1);
             if (bs1 == bl.Bnext)
             {   // Swap bs1 and bs2
                 block* btmp;
@@ -1117,7 +1117,7 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
             }
             goto case_goto;
         case BC.goto_:
-            nextb = bl.nthSucc(0);
+            nextb = bl.Bsuccx(0);
             if ((MARS ||
                  funcsym_p.Sfunc.Fflags3 & Fnteh) &&
                 ehmethod(funcsym_p) != EHmethod.EH_DWARF &&
@@ -1132,7 +1132,7 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
                 if (toindex + 1 == fromindex)
                 {   // Simply call __finally
                     if (bl.Btry &&
-                        bl.Btry.nthSucc(1).bc == BC.jcatch)
+                        bl.Btry.Bsuccx(1).bc == BC.jcatch)
                     {
                         goto L5;        // it's a try-catch, not a try-finally
                     }
@@ -1155,7 +1155,7 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
                     {   block* bf;
 
                         //printf("\tbt.Bscope_index = %d, bt.Blast_index = %d\n", bt.Bscope_index, bt.Blast_index);
-                        bf = bt.nthSucc(1);
+                        bf = bt.Bsuccx(1);
                         // Only look at try-finally blocks
                         if (bf.bc == BC.jcatch)
                             continue;
@@ -1165,11 +1165,11 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
                         //printf("\tbf = B%d, nextb = B%d\n", bf.Bdfoidx, nextb.Bdfoidx);
                         if (nextb.bc == BC.goto_ &&
                             !nextb.Belem &&
-                            bf == nextb.nthSucc(0))
+                            bf == nextb.Bsuccx(0))
                             continue;
 
                         // call __finally
-                        cdb.append(callFinallyBlock(cg, bf.nthSucc(0), retregsx));
+                        cdb.append(callFinallyBlock(cg, bf.Bsuccx(0), retregsx));
                     }
                 }
                 }
@@ -1197,7 +1197,7 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
                 cdb.append(cdbstore);
                 cdb.append(cdbload);
             }
-            nextb = bl.nthSucc(0);
+            nextb = bl.Bsuccx(0);
             goto L5;
         }
 
@@ -1231,8 +1231,8 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
                 regm_t retregsx = 0;
                 gencodelem(cdb,bl.Belem,retregsx,true);
 
-                // JMP bl.nthSucc(1)
-                nextb = bl.nthSucc(1);
+                // JMP bl.Bsuccx(1)
+                nextb = bl.Bsuccx(1);
 
                 goto L5;
             }
@@ -1248,10 +1248,10 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
 
                 assert(!e);
                 // Generate CALL to finalizer code
-                cdb.append(callFinallyBlock(cg, bl.nthSucc(0), 0));
+                cdb.append(callFinallyBlock(cg, bl.Bsuccx(0), 0));
 
-                // JMP bl.nthSucc(1)
-                nextb = bl.nthSucc(1);
+                // JMP bl.Bsuccx(1)
+                nextb = bl.Bsuccx(1);
 
                 goto L5;
             }
@@ -1266,8 +1266,8 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
             regm_t retregsx = 0;
             gencodelem(cdb,bl.Belem,retregsx,true);
 
-            // JMP bl.nthSucc(0)
-            nextb = bl.nthSucc(0);
+            // JMP bl.Bsuccx(0)
+            nextb = bl.Bsuccx(0);
             goto L5;
         }
 
@@ -1291,7 +1291,7 @@ static if (NTEXCEPTIONS)
             cg.usednteh |= NTEH_except;
             nteh_setsp(cg, cdb,0x8B);
             getregsNoSave(cg.allregs);
-            nextb = bl.nthSucc(0);
+            nextb = bl.Bsuccx(0);
             goto L5;
         }
         case BC._filter:
@@ -1529,7 +1529,7 @@ static if (NTEXCEPTIONS)
                 block* bt = bl;
                 while ((bt = bt.Btry) != null)
                 {
-                    block* bf = bt.nthSucc(1);
+                    block* bf = bt.Bsuccx(1);
                     // Only look at try-finally blocks
                     if (bf.bc == BC.jcatch)
                     {
@@ -1547,7 +1547,7 @@ static if (NTEXCEPTIONS)
                             nteh_gensindex(cdb,-1);
                             gensaverestore(cg,retregs,cdbs,cdbr);
                             cdb.append(cdbs);
-                            cdb.genc(0xE8,0,FL.unde,0,FL.block,cast(targ_size_t)bf.nthSucc(0));
+                            cdb.genc(0xE8,0,FL.unde,0,FL.block,cast(targ_size_t)bf.Bsuccx(0));
                             cg.regcon.immed.mval = 0;
                             cdb.append(cdbr);
                         }
@@ -1560,7 +1560,7 @@ static if (NTEXCEPTIONS)
                     else
                     {
                         // call __finally
-                        cdb.append(callFinallyBlock(cg, bf.nthSucc(0), retregs));
+                        cdb.append(callFinallyBlock(cg, bf.Bsuccx(0), retregs));
                     }
                 }
             }
@@ -1582,7 +1582,7 @@ static if (NTEXCEPTIONS)
             getregs(cdbx, iasm_regs(bl));         // mark destroyed registers
             code* c = cdbx.finish();
             if (bl.Bsucc)
-            {   nextb = bl.nthSucc(0);
+            {   nextb = bl.Bsuccx(0);
                 if (!bl.Bnext)
                 {
                     cdb.append(bl.Bcode);
@@ -1593,7 +1593,7 @@ static if (NTEXCEPTIONS)
                     bl.Bnext &&
                     !(bl.Bnext.bc == BC.goto_ &&
                      !bl.Bnext.Belem &&
-                     nextb == bl.Bnext.nthSucc(0)))
+                     nextb == bl.Bnext.Bsuccx(0)))
                 {
                     // See if already have JMP at end of block
                     code* cl = code_last(bl.Bcode);
@@ -2068,7 +2068,7 @@ void doswitch(ref CGstate cg, ref CodeBuilder cdb, block* b)
             reg2 = NOREG;
         }
         list_t bl = b.Bsucc;
-        block* bdefault = b.nthSucc(0);
+        block* bdefault = b.Bsuccx(0);
         if (dword && mswsame)
         {
             cdb.genc2(0x81,modregrm(3,7,reg2),msw);   // CMP reg2,MSW
@@ -2149,19 +2149,19 @@ void doswitch(ref CGstate cg, ref CodeBuilder cdb, block* b)
             cdb.genc2(0x81,modregrm(3,5,reg),cast(targ_size_t)vmin); // SUB reg,vmin
             if (dword)
             {   cdb.genc2(0x81,modregrm(3,3,reg2),cast(targ_size_t)MSREG(vmin)); // SBB reg2,vmin
-                genjmp(cdb,JNE,FL.block,b.nthSucc(0)); // JNE default
+                genjmp(cdb,JNE,FL.block,b.Bsuccx(0)); // JNE default
             }
         }
         else if (dword)
         {   gentstreg(cdb,reg2);              // TEST reg2,reg2
-            genjmp(cdb,JNE,FL.block,b.nthSucc(0)); // JNE default
+            genjmp(cdb,JNE,FL.block,b.Bsuccx(0)); // JNE default
         }
         if (vmax - vmin != REGMASK)     // if there is a maximum
         {                               // CMP reg,vmax-vmin
             cdb.genc2(0x81,modregrm(3,7,reg),cast(targ_size_t)(vmax-vmin));
             if (I64 && sz == 8)
                 code_orrex(cdb.last(), REX_W);
-            genjmp(cdb,JA,FL.block,b.nthSucc(0));  // JA default
+            genjmp(cdb,JA,FL.block,b.Bsuccx(0));  // JA default
         }
         if (I64)
         {
@@ -2216,14 +2216,14 @@ static if (JMPJMPTABLE)
                ...
              */
             CodeBuilder ctable; ctable.ctor();
-            block* bdef = b.nthSucc(0);
+            block* bdef = b.Bsuccx(0);
             targ_llong u;
             for (u = vmin; ; u++)
             {   block* targ = bdef;
                 foreach (n, val; b.Bswitch)
                 {
                     if (val == u)
-                    {   targ = b.nthSucc(n + 1);
+                    {   targ = b.Bsuccx(n + 1);
                         break;
                     }
                 }
@@ -2329,7 +2329,7 @@ else
         if (dword && mswsame)
         {   /* CMP DX,MSW       */
             cdb.genc2(0x81,modregrm(3,7,DX),msw);
-            genjmp(cdb,JNE,FL.block,b.nthSucc(0)); // JNE default
+            genjmp(cdb,JNE,FL.block,b.Bsuccx(0)); // JNE default
         }
         getregs(cdb,mCX|mDI);
 
@@ -2403,7 +2403,7 @@ else
             cdb.gen1(0xF2);              // REPNE
             cdb.gen1(0xAF);              // SCASW
         }
-        genjmp(cdb,JNE,FL.block,b.nthSucc(0)); // JNE default
+        genjmp(cdb,JNE,FL.block,b.Bsuccx(0)); // JNE default
         const int mod = (disp > 127) ? 2 : 1;     // 1 or 2 byte displacement
         if (csseg)
             cdb.gen1(SEGCS);            // table is in code segment
@@ -2468,14 +2468,14 @@ void outjmptab(block* b)
     assert(*poffset == b.Btableoffset);        // should match precomputed value
 
     Symbol* gotsym = null;
-    targ_size_t def = b.nthSucc(0).Boffset;  // default address
+    targ_size_t def = b.Bsuccx(0).Boffset;  // default address
     for (targ_llong u = vmin; ; u++)
     {   targ_size_t targ = def;                     // default
         foreach (n; 0 .. ncases)
         {
             if (b.Bswitch[n] == u)
             {
-                targ = b.nthSucc(cast(int)(n + 1)).Boffset;
+                targ = b.Bsuccx(cast(int)(n + 1)).Boffset;
                 break;
             }
         }

@@ -326,11 +326,11 @@ nothrow:
     int numSucc()                    { return list_nitems(this.Bsucc); }
 
     @trusted
-    block* nthSucc(int n)            { return cast(block*)list_ptr(list_nth(Bsucc, n)); }
-
-    @trusted
     void setNthSucc(int n, block* b) { list_nth(Bsucc, n).ptr = b; }
 }
+
+@trusted
+block* Bsuccx(block* b, int n)        { return cast(block*)list_ptr(list_nth(b.Bsucc, n)); }
 
 @trusted
 inout(block)* list_block(inout list_t lst) { return cast(inout(block)*)list_ptr(lst); }
