@@ -299,10 +299,8 @@ void WRblockarray(block*[] bl)
 @trusted
 void WRblocklist(list_t bl)
 {
-    foreach (bl2; ListRange(bl))
+    foreach (b; BsuccArray(bl))
     {
-        block* b = list_block(bl2);
-
         if (b && b.Bweight)
             printf("B%d (%p) ",b.Bdfoidx,b);
         else

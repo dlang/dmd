@@ -118,9 +118,9 @@ else
 
         // See if b is an epilog
         mark = 0;
-        foreach (bl; ListRange(b.Bsucc))
+        foreach (bl; BsuccArray(b.Bsucc))
         {
-            if (list_block(bl).Bflags & BFL.outsideprolog)
+            if (bl.Bflags & BFL.outsideprolog)
             {
                 if (mark == 2)
                     goto L1;
@@ -175,6 +175,7 @@ void cod5_noprol(block* startblock)
  * the function prolog.
  */
 
+@trusted
 private void pe_add(block* b)
 {
     if (b.Bflags & BFL.outsideprolog ||
@@ -182,8 +183,8 @@ private void pe_add(block* b)
         return;
 
     b.Bflags |= BFL.outsideprolog;
-    foreach (bl; ListRange(b.Bsucc))
-        pe_add(list_block(bl));
+    foreach (bl; BsuccArray(b.Bsucc))
+        pe_add(bl);
 }
 
 /**********************************************

@@ -1066,9 +1066,8 @@ private int loopcheck(block* start,block* inc,block* rel)
 {
     if (!(start.Bflags & BFL.visited))
     {   start.Bflags |= BFL.visited;    /* guarantee eventual termination */
-        foreach (list; ListRange(start.Bsucc))
+        foreach (b; BsuccArray(start.Bsucc))
         {
-            block* b = cast(block*) list_ptr(list);
             if (b != rel && (b == inc || loopcheck(b,inc,rel)))
                 return true;
         }

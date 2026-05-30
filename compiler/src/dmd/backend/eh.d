@@ -180,7 +180,7 @@ void except_fillInEHTable(Symbol* s)
             }
             i = b.Bscope_index + 1;
 
-            int nsucc = b.numSucc();
+            int nsucc = b.numSucc;
 
             if (config.ehmethod == EHmethod.EH_DM)
             {

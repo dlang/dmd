@@ -333,7 +333,28 @@ nothrow:
 block* Bsuccx(block* b, int n)        { return cast(block*)list_ptr(list_nth(b.Bsucc, n)); }
 
 @trusted
+int lengthx(LIST* bl) { return list_nitems((cast(block*)list_ptr(bl)).Bsucc); }
+
+@trusted
 inout(block)* list_block(inout list_t lst) { return cast(inout(block)*)list_ptr(lst); }
+
+struct BsuccArray
+{
+  nothrow @nogc @trusted:
+
+    this(list_t li)
+    {
+        this.li = li;
+    }
+
+    block* front() return { return list_block(li); }
+    void popFront() { li = li.next; }
+    bool empty() const { return !li; }
+
+  private:
+    list_t li;
+}
+
 
 /** Basic block control flow operators. **/
 
