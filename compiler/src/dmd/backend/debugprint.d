@@ -392,7 +392,7 @@ void WRblock(block* b)
             printf(" catchvar = %p",b.catchvar);
         printf("\n");
         printf("\tBpred: "); WRblockarray(b.Bpred[]);
-        printf("\tBsucc: "); WRblocklist(b.Bsucc);
+        printf("\tBsucc: "); WRblockarray(b.Bsucc[]);
         if (b.Belem)
         {
             if (debugf)                     /* if full output       */
@@ -444,12 +444,11 @@ void WRblock(block* b)
         {
             case BC.switch_:
                 printf("\tncases = %d\n", cast(int)b.Bswitch.length);
-                list_t bl = b.Bsucc;
-                printf("\tdefault: B%d\n",list_block(bl) ? list_block(bl).Bnumber : 0);
-                foreach (val; b.Bswitch)
+                auto ba = b.Bsucc[];
+                printf("\tdefault: B%d\n",ba.length ? ba[0].Bnumber : 0);
+                foreach (i, val; b.Bswitch)
                 {
-                    bl = list_next(bl);
-                    printf("\tcase %lld: B%d\n", cast(long)val, list_block(bl).Bnumber);
+                    printf("\tcase %lld: B%d\n", cast(long)val, ba[1 + i].Bnumber);
                 }
                 break;
 
@@ -465,11 +464,11 @@ void WRblock(block* b)
             case BC._lpad:
             case BC._ret:
             case BC._except:
-                if (list_t bl = b.Bsucc)
+                if (b.Bsucc.length)
                 {
                     printf("\tBsucc:");
-                    for ( ; bl; bl = list_next(bl))
-                        printf(" B%d",list_block(bl).Bnumber);
+                    foreach (bl; b.Bsucc[])
+                        printf(" B%d", bl.Bnumber);
                     printf("\n");
                 }
                 break;

@@ -182,8 +182,8 @@ private void pe_add(block* b)
         return;
 
     b.Bflags |= BFL.outsideprolog;
-    foreach (bl; ListRange(b.Bsucc))
-        pe_add(list_block(bl));
+    foreach (bl; b.Bsucc[])
+        pe_add(bl);
 }
 
 /**********************************************

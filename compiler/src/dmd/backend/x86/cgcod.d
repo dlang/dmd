@@ -88,7 +88,7 @@ void codgen(Symbol* sfunc)
 /***********************
  * Same as codgen(), but adding in CGstate argument
  * Params:
- *	cg = code generator state
+ *      cg = code generator state
  *      sfunc = function to generate code for
  */
 private @trusted
@@ -2131,7 +2131,7 @@ bool cssave(elem* e, regm_t regm, bool opsflag)
     /*if (e.Ecount && e.Ecount == e.Ecomsub)*/
     if (e.Ecount && e.Ecomsub)
     {
-	CGstate* cg = &cgstate;
+        CGstate* cg = &cgstate;
         if (!opsflag && cg.pass != BackendPass.final_ && (I32 || I64))
             return false;
 
@@ -2579,7 +2579,7 @@ private void loadcse(ref CodeBuilder cdb,elem* e,reg_t reg,regm_t regm)
         //printf("CSE[%d] = %p, regm = %s\n", i, cse.e, regm_str(cse.regm));
         if (cse.regm & regm)
         {
-	    CGstate* cg = &cgstate;
+            CGstate* cg = &cgstate;
             cg.reflocal = true;
             cse.flags |= CSEload;    /* it was loaded        */
             cg.regcon.cse.value[reg] = e;

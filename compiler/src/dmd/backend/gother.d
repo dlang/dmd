@@ -898,7 +898,7 @@ private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemda
                         // Eliminate loop if it is empty
                         if (relatop == OPlt &&
                             rb.bc == BC.iftrue &&
-                            list_block(rb.Bsucc) == rb &&
+                            rb.Bsucc[0] == rb &&
                             rb.Belem.Eoper == OPcomma &&
                             rb.Belem.E1 == rdinc &&
                             rb.Belem.E2 == rel.pelem
@@ -907,8 +907,8 @@ private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemda
                             rel.pelem.Eoper = OPeq;
                             rel.pelem.Ety = rel.pelem.E1.Ety;
                             rb.bc = BC.goto_;
-                            list_subtract(&rb.Bsucc,rb);
-                            list_subtract(&rb.Bpred,rb);
+                            rb.Bsucc.subtract(rb);
+                            rb.Bpred.subtract(rb);
 
                             debug
                                 if (debugc)
@@ -1066,9 +1066,8 @@ private int loopcheck(block* start,block* inc,block* rel)
 {
     if (!(start.Bflags & BFL.visited))
     {   start.Bflags |= BFL.visited;    /* guarantee eventual termination */
-        foreach (list; ListRange(start.Bsucc))
+        foreach (b; start.Bsucc[])
         {
-            block* b = cast(block*) list_ptr(list);
             if (b != rel && (b == inc || loopcheck(b,inc,rel)))
                 return true;
         }

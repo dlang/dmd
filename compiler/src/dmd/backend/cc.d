@@ -203,8 +203,7 @@ nothrow:
     }
 
     block* Bnext;               // pointer to next block in list
-    list_t Bsucc;               // linked list of pointers to successors
-                                //     of this block
+    Barray!(block*) Bsucc;      // linked list of pointers to successors of this block
     Barray!(block*) Bpred;      // and the predecessor array
     int Bindex;                 // into created object stack
     int Bendindex;              // index at end of block
@@ -318,18 +317,9 @@ nothrow:
     }
 
     @trusted
-    void appendSucc(block* b)        { list_append(&this.Bsucc, b); }
+    void prependSucc(block* b)       { this.Bsucc.insert(b, 0); }
 
-    @trusted
-    void prependSucc(block* b)       { list_prepend(&this.Bsucc, b); }
-
-    int numSucc()                    { return list_nitems(this.Bsucc); }
-
-    @trusted
-    block* nthSucc(int n)            { return cast(block*)list_ptr(list_nth(Bsucc, n)); }
-
-    @trusted
-    void setNthSucc(int n, block* b) { list_nth(Bsucc, n).ptr = b; }
+    int numSucc()                    { return cast(int)this.Bsucc.length; }
 }
 
 @trusted
