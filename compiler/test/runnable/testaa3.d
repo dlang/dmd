@@ -498,6 +498,26 @@ void test23065()
     A!B a;
     a == a;
 }
+
+// https://github.com/dlang/dmd/issues/23182
+void test23182()
+{
+    int[][string] aarr;
+    aarr["key"] = [];
+    aarr["key"].length++;
+
+    int calls = 0;
+    int[] a;
+    ref int[] arr()
+    {
+        calls++;
+        return a;
+    }
+    arr().length++;
+    assert(a.length == 1);
+    assert(calls == 1);
+}
+
 /***************************************************/
 
 // https://github.com/dlang/dmd/issues/22567
@@ -567,4 +587,5 @@ void main()
     test22567();
     test22556();
     test19829();
+    test23182();
 }
