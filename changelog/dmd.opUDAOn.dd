@@ -1,0 +1,33 @@
+A new way to trigger reflection via UDA
+
+Two new operator overloads are added, these are ``opUDAOn`` and ``opChildOfUDAOn``.
+These take the form of the following signature: ``void opUDAOn(alias symbol)()``
+
+They will be called using CTFE to execute them, with the symbol being the declaration that it is on.
+For ``opChildOfUDAOn`` instead of the declaration it is on, it works on the children of this declaration.
+It works for enums, classes, interfaces, structs, global variables and free-functions.
+
+The following code will print that it is on ``Parent`` and ``freefunction``, and that it is on child ``Child``.
+
+```d
+struct UDA {
+    void opUDAOn(alias symbol)() {
+        pragma(msg, "On: " ~ __traits(identifier, symbol));
+    }
+
+    void opChildOfUDAOn(alias symbol)() {
+        pragma(msg, "Child: " ~ __traits(identifier, symbol));
+    }
+}
+
+@UDA
+class Parent {
+}
+
+class Child : Parent {
+}
+
+@UDA
+void freefunction() {
+}
+```

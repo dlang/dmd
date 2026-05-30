@@ -8620,6 +8620,8 @@ struct Id final
     static Identifier* opOpAssign;
     static Identifier* opIndexOpAssign;
     static Identifier* opSliceOpAssign;
+    static Identifier* opUDAOn;
+    static Identifier* opChildOfUDAOn;
     static Identifier* classNew;
     static Identifier* classDelete;
     static Identifier* apply;

@@ -3471,6 +3471,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         dsym.semanticRun = PASS.semanticdone;
 
+        symbolForOpUDAOn(dsym, sc);
+
         if (dsym.type.toBasetype().ty == Terror)
             dsym.errors = true;
 
@@ -5056,6 +5058,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
+        symbolForOpUDAOn(sd, sc);
+
         if (global.errors != errors)
         {
             // The type is no good.
@@ -5958,6 +5962,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             .error(cldec.loc, "%s `%s` already exists at %s. Perhaps in another function with the same name?", cldec.kind, cldec.toPrettyChars, cd.loc.toChars());
         }
 
+        symbolForOpUDAOn(cldec, sc);
+        symbolForOpChildOfUDAOn(cldec, sc);
+
         if (global.errors != errors || (cldec.baseClass && cldec.baseClass.errors))
         {
             // The type is no good, but we should keep the
@@ -6281,6 +6288,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("-InterfaceDeclaration.dsymbolSemantic(%s), type = %p\n", toChars(), type);
 
         sc2.pop();
+
+        symbolForOpUDAOn(idec, sc);
+        symbolForOpChildOfUDAOn(idec, sc);
 
         if (global.errors != errors)
         {
@@ -10539,4 +10549,122 @@ extern (D) bool oneMembers(Dsymbols* members, out Dsymbol ps, Identifier ident)
     ps = s; // s is the one symbol, null if none
     //printf("\ttrue\n");
     return true;
+}
+
+// Should be private, but is public due to
+void symbolForOpUDAOn(Dsymbol contextSymbol, Scope* sc, Dsymbol attributeSource=null)
+{
+    import dmd.opover : search_function;
+
+    if (contextSymbol.inNonRoot)
+        return;
+
+    if (attributeSource is null)
+        attributeSource = contextSymbol;
+
+    Identifier usingOp = attributeSource is contextSymbol ? Id.opUDAOn : Id.opChildOfUDAOn;
+
+    void handle(Expression expr)
+    {
+        Objects* tiobjects = new Objects;
+        tiobjects.push(contextSymbol);
+
+        auto dtie = new DotTemplateInstanceExp(contextSymbol.loc, expr, usingOp, tiobjects);
+        expr = dtie.expressionSemantic(sc);
+
+        if (auto dve = expr.isDotVarExp)
+        {
+            if (dve.var.isFuncDeclaration)
+            {
+                expr = new CallExp(contextSymbol.loc, expr);
+                expr = expr.expressionSemantic(sc);
+                expr = ctfeInterpret(expr);
+            }
+        }
+    }
+
+    void handleType(TypeExp te)
+    {
+        if (auto ts = te.type.isTypeStruct)
+        {
+            if (ts.sym is null)
+                return;
+
+            Dsymbol dsym2 = search_function(ts.sym, usingOp);
+            if (dsym2 is null)
+                return;
+
+            handle(new DotIdExp(te.loc, te, Id._init));
+        }
+    }
+
+    void handleStructLiteral(StructLiteralExp sle)
+    {
+        Dsymbol dsym2 = search_function(sle.sd, usingOp);
+        if (dsym2 is null)
+            return;
+
+        handle(sle);
+    }
+
+    void dispatch(Expression expr) {
+        if (auto sle = expr.isStructLiteralExp)
+            handleStructLiteral(sle);
+        else if (auto te = expr.isTypeExp)
+            handleType(te);
+    }
+
+    if (auto vd = attributeSource.isVarDeclaration)
+    {
+        if (vd.needThis)
+            return; // This will trigger dual-context.
+    }
+
+    if (auto attrs = attributeSource.userAttribDecl())
+    {
+        foreach(attr2; *attrs.atts)
+        {
+            if (auto te = attr2.isTupleExp)
+            {
+                // te.e0 should be null here
+
+                if (te.exps is null)
+                    continue;
+
+                foreach(attr3; *te.exps)
+                    dispatch(attr3);
+            }
+            else
+                dispatch(attr2);
+        }
+    }
+}
+
+void symbolForOpChildOfUDAOn(ClassDeclaration cd, Scope* sc, ClassDeclaration contextSymbol = null)
+{
+    if (cd.baseclasses is null)
+        return;
+
+    if (contextSymbol is null)
+        contextSymbol = cd;
+
+    if (contextSymbol.inNonRoot)
+        return;
+
+    // Okay this may not make much sense.
+    // On a class declaration the base classes include both interfaces and classes,
+    //  but they won't be normalized to include all parents.
+    // Instead we first check the base classes list,
+    //  and then for each of the interfaces that they inherit we go ahead and see both it, and its parents.
+
+    foreach(base; *cd.baseclasses)
+    {
+        symbolForOpUDAOn(contextSymbol, sc, base.sym);
+
+        foreach(ref bi; base.baseInterfaces)
+        {
+            symbolForOpUDAOn(contextSymbol, sc, bi.sym);
+            symbolForOpChildOfUDAOn(bi.sym, sc, contextSymbol);
+        }
+    }
 }
