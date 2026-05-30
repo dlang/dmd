@@ -2058,9 +2058,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                 checkNamedArgErrorAndReport(td, argumentList, loc);
             }
 
-
-            if (!global.gag || global.errorSink.showGaggedErrors)
-                printCandidates(loc, td, sc.isDeprecated());
+            printCandidates(loc, td, sc.isDeprecated());
             return null;
         }
         /* This case used to happen when several ctors are mixed in an agregate.
@@ -2078,8 +2076,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
             od.ident.toErrMsg(), tiargsBuf.peekChars(), fargsBuf.peekChars());
 
         checkNamedArgErrorAndReportOverload(od, argumentList, loc);
-        if (!global.gag || global.errorSink.showGaggedErrors)
-            printCandidates(loc, od, sc.isDeprecated());
+        printCandidates(loc, od, sc.isDeprecated());
         return null;
     }
 
@@ -2119,8 +2116,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                 .error(loc, "none of the overloads of `%s` are callable using a %sobject with argument types `(%s)`",
                     fd.toErrMsg(), thisBuf.peekChars(), buf.peekChars());
 
-            if (!global.gag || global.errorSink.showGaggedErrors)
-                printCandidates(loc, fd, sc.isDeprecated());
+            printCandidates(loc, fd, sc.isDeprecated());
             return null;
         }
 
@@ -2157,8 +2153,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     {
         .error(loc, "none of the overloads of `%s` are callable using argument types `%s`",
                fd.toErrMsg(), fargsBuf.peekChars());
-        if (!global.gag || global.errorSink.showGaggedErrors)
-            printCandidates(loc, fd, sc.isDeprecated());
+        printCandidates(loc, fd, sc.isDeprecated());
         return null;
     }
 
@@ -2276,6 +2271,8 @@ private void checkNamedArgErrorAndReportOverload(Dsymbol od, ArgumentList argume
  */
 private void printCandidates(Decl)(Loc loc, Decl declaration, bool showDeprecated)
 {
+    if (global.gag && !global.errorSink.showGaggedErrors)
+        return;
     // max num of overloads to print (-v or -verror-supplements overrides this).
     const uint DisplayLimit = global.params.v.errorSupplementCount();
     const(char)* constraintsTip;
