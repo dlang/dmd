@@ -6077,6 +6077,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression loweredExp = new CallExp(aaExp.loc, hookFunc, arguments);
         loweredExp = loweredExp.expressionSemantic(sc);
         loweredExp = resolveProperties(sc, loweredExp);
+        loweredExp = loweredExp.castTo(sc, aaType); // Impl* might be incompatible with V[K] in the backend
         aaExp.lowering = loweredExp;
 
         semanticTypeInfo(sc, loweredExp.type);
