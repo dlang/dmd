@@ -45,8 +45,8 @@ void main()
             "__unittest_L6_C1",
             "__unittest_L9_C5",
             "__unittest_L11_C1",
-            "__unittest_L14_C5_1",
-            "__unittest_L14_C5_2",
+            "__unittest_L14_C5",
+            "__unittest_L14_C5",
         ];
         foreach (i, test; tests)
         {
