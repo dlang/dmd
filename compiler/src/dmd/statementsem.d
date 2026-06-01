@@ -1142,13 +1142,17 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     {
                         IntRange dimrange = getIntRange(ta.dim);
                         // https://issues.dlang.org/show_bug.cgi?id=12504
-                        dimrange.imax = SignExtendedNumber(dimrange.imax.value-1);
-                        if (!intRangeFromType(fs.key.type).contains(dimrange))
+                        // The largest valid index is `dim - 1`; check the index type can hold it.
+                        auto idxrange = IntRange(dimrange.imin, SignExtendedNumber(dimrange.imax.value-1));
+                        if (!intRangeFromType(fs.key.type).contains(idxrange))
                         {
                             error(fs.loc, "index type `%s` cannot cover index range 0..%llu",
                                      p.type.toErrMsg(), ta.dim.toInteger());
                             return retError();
                         }
+                        // The key ranges over [0, dim]: it reaches `dim` when the loop exits, so the
+                        // upper bound must be `dim` (not `dim - 1`), matching the `lwr .. upr` foreach
+                        // lowering below. Otherwise VRP folds the loop condition `key < dim` to `true`.
                         fs.key.range = new IntRange(SignExtendedNumber(0), dimrange.imax);
                     }
                 }

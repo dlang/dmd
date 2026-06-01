@@ -351,15 +351,17 @@ short bug1977_comment5(byte i) {
   return o;
 }
 
-void testDchar()
+void testDchar(dchar d, uint i)
 {
-    dchar d;
-    uint i;
-    /+
-    static assert(!__traits(compiles, d = i));
-    static assert(!__traits(compiles, d = i & 0x1fffff));
-    +/
-    d = i % 0x110000;
+    static assert(dchar.max == 0x10FFFF);
+    /* The VRP upper limit for dchar should be uint.max, not dchar.max.
+     * Otherwise, attempts to handle out-of-range dchar values are folded
+     * away as provably unreachable code (https://github.com/dlang/dmd/issues/15585).
+     */
+    if (d <= dchar.max)
+        return;
+
+    d = i;
 }
 
 void bug1977_comment11()
@@ -511,4 +513,11 @@ void testShiftRightOnNegative()
     // Shift with negative value returns value in range [0, ulong.max]
     static assert(!__traits(compiles, b = arr.length >> neg));
     static assert(!__traits(compiles, b = arr.length << neg));
+}
+
+// VRP-based constant folding of integer comparisons (https://github.com/dlang/dmd/issues/13010)
+void test13010(ubyte value)
+{
+    immutable int i = value;
+    static assert(i + 1 > 0);
 }

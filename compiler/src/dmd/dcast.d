@@ -56,17 +56,13 @@ IntRange _cast(IntRange _this, Type type)
         return _this;
     if (!type.isUnsigned())
         return _this.castSigned(type.sizemask());
-    if (type.toBasetype().ty == Tdchar)
-        return _this.castDchar();
-        return _this.castUnsigned(type.sizemask());
+    return _this.castUnsigned(type.sizemask());
 }
 
 IntRange castUnsigned(IntRange _this, Type type)
 {
     if (!type.isIntegral() || type.toBasetype().isTypeVector())
         return _this.castUnsigned(ulong.max);
-    if (type.toBasetype().ty == Tdchar)
-        return _this.castDchar();
     return _this.castUnsigned(type.sizemask());
 }
 
@@ -83,9 +79,11 @@ IntRange intRangeFromType(Type type, bool isUnsigned)
     uinteger_t mask = type.sizemask();
     auto lower = SignExtendedNumber(0);
     auto upper = SignExtendedNumber(mask);
-    if (type.toBasetype().ty == Tdchar)
-        upper.value = 0x10FFFFUL;
-    else if (!isUnsigned)
+    /* Although dchar.max is officially 0x10FFFF, do *NOT* cap `upper` at that
+     * value. Doing so makes the front-end treat run-time guards against invalid
+     * out-of-range dchar values as provably dead code (see testVRP.d:testDchar).
+     */
+    if (!isUnsigned)
     {
         lower.value = ~(mask >> 1);
         lower.negative = true;

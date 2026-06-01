@@ -27,6 +27,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.globals;
+import dmd.intrange;
 import dmd.location;
 import dmd.mtype;
 import dmd.root.complex;
@@ -873,40 +874,93 @@ UnionExp Cmp(EXP op, Loc loc, Type type, Expression e1, Expression e2)
             rawCmp = cast(int)(es1.len - es2.len);
         n = specificCmp(op, rawCmp);
     }
-    else if (e1.isConst() != 1 || e2.isConst() != 1)
+    else if (e1.isConst() == 1 && e2.isConst() == 1)
     {
-        cantExp(ue);
-        return ue;
+        if (e1.type.isReal())
+        {
+            r1 = e1.toReal();
+            r2 = e2.toReal();
+            goto L1;
+        }
+        else if (e1.type.isImaginary())
+        {
+            r1 = e1.toImaginary();
+            r2 = e2.toImaginary();
+        L1:
+            n = realCmp(op, r1, r2);
+        }
+        else if (e1.type.isComplex())
+        {
+            assert(0);
+        }
+        else
+        {
+            sinteger_t n1 = e1.toInteger();
+            sinteger_t n2 = e2.toInteger();
+            if (e1.type.isUnsigned() || e2.type.isUnsigned())
+                n = intUnsignedCmp(op, n1, n2);
+            else
+                n = intSignedCmp(op, n1, n2);
+        }
     }
-    else if (e1.type.isReal())
+    else if (e1.type.isIntegral() && e2.type.isIntegral())
     {
-        r1 = e1.toReal();
-        r2 = e2.toReal();
-        goto L1;
-    }
-    else if (e1.type.isImaginary())
-    {
-        r1 = e1.toImaginary();
-        r2 = e2.toImaginary();
-    L1:
-        n = realCmp(op, r1, r2);
-    }
-    else if (e1.type.isComplex())
-    {
-        assert(0);
+        /* Use value range propagation to determine whether the comparison is
+         * provably always true or always false, even when the operands are not
+         * compile-time constants.
+         */
+        const IntRange ir1 = getIntRange(e1);
+        const IntRange ir2 = getIntRange(e2);
+        switch (op)
+        {
+        case EXP.lessThan:
+            if (ir1.imax < ir2.imin)
+                n = 1;
+            else if (ir1.imin >= ir2.imax)
+                n = 0;
+            else
+                goto Lcant;
+            break;
+
+        case EXP.lessOrEqual:
+            if (ir1.imax <= ir2.imin)
+                n = 1;
+            else if (ir1.imin > ir2.imax)
+                n = 0;
+            else
+                goto Lcant;
+            break;
+
+        case EXP.greaterThan:
+            if (ir1.imin > ir2.imax)
+                n = 1;
+            else if (ir1.imax <= ir2.imin)
+                n = 0;
+            else
+                goto Lcant;
+            break;
+
+        case EXP.greaterOrEqual:
+            if (ir1.imin >= ir2.imax)
+                n = 1;
+            else if (ir1.imax < ir2.imin)
+                n = 0;
+            else
+                goto Lcant;
+            break;
+
+        default:
+            goto Lcant;
+        }
     }
     else
-    {
-        sinteger_t n1;
-        sinteger_t n2;
-        n1 = e1.toInteger();
-        n2 = e2.toInteger();
-        if (e1.type.isUnsigned() || e2.type.isUnsigned())
-            n = intUnsignedCmp(op, n1, n2);
-        else
-            n = intSignedCmp(op, n1, n2);
-    }
+        goto Lcant;
+
     emplaceExp!(IntegerExp)(&ue, loc, n, type);
+    return ue;
+
+Lcant:
+    cantExp(ue);
     return ue;
 }
 

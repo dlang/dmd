@@ -13,7 +13,6 @@ module dmd.intrange;
 
 import core.stdc.stdio;
 
-import dmd.astenums : Tdchar;
 import dmd.mtype : Type;
 import dmd.globals : uinteger_t;
 
@@ -402,18 +401,6 @@ struct IntRange
             imax.value = mask;
         }
         imin.negative = imax.negative = false;
-        return this;
-    }
-
-    IntRange castDchar() @safe
-    {
-        // special case for dchar. Casting to dchar means "I'll ignore all
-        //  invalid characters."
-        castUnsigned(0xFFFFFFFFUL);
-        if (imin.value > 0x10FFFFUL) // ??
-            imin.value = 0x10FFFFUL; // ??
-        if (imax.value > 0x10FFFFUL)
-            imax.value = 0x10FFFFUL;
         return this;
     }
 

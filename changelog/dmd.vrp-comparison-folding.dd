@@ -1,0 +1,28 @@
+Integer comparisons are now folded using value range propagation
+
+The compiler now uses value range propagation (VRP) to fold integer
+comparisons (`<`, `<=`, `>`, `>=`) whose result is provably constant, even
+when the operands are not themselves compile-time constants. This lets the
+front-end resolve more such comparisons during constant folding.
+
+---
+void example(ubyte value)
+{
+    immutable int i = value;
+    static assert(i + 1 > 0); // i + 1 is in [1 .. 256], so always > 0
+}
+---
+
+As part of this change, the VRP upper bound used for `dchar` was raised from
+`dchar.max` (`0x10FFFF`) to `uint.max`. Previously the front-end treated a
+`dchar` as never exceeding `0x10FFFF`, so run-time guards against invalid
+out-of-range `dchar` values were folded away as provably unreachable
+(https://github.com/dlang/dmd/issues/15585). A consequence is that a `uint`
+now implicitly converts to `dchar`, since its value range is a subset:
+
+---
+void example(uint i)
+{
+    dchar d = i; // now accepted
+}
+---
