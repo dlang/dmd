@@ -852,12 +852,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     {
                         ReturnStatement rs = (*funcdecl.returns)[i];
                         Expression exp = rs.exp;
+                        Scope* sc3 = rs.scope_;
                         if (exp.op == EXP.error)
                             continue;
                         if (tret.ty == Terror)
                         {
                             // https://issues.dlang.org/show_bug.cgi?id=13702
-                            exp = exp.checkGC(sc2);
+                            exp = exp.checkGC(sc3);
                             continue;
                         }
 
@@ -896,24 +897,24 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                 if (tclass)
                                 {
                                     if ((cast(TypeClass)(exp.type.immutableOf())).implicitConvToWithoutAliasThis(tret))
-                                        exp = exp.castTo(sc2, exp.type.immutableOf());
+                                        exp = exp.castTo(sc3, exp.type.immutableOf());
                                     else if ((cast(TypeClass)(exp.type.wildOf())).implicitConvToWithoutAliasThis(tret))
-                                        exp = exp.castTo(sc2, exp.type.wildOf());
+                                        exp = exp.castTo(sc3, exp.type.wildOf());
                                 }
                                 else
                                 {
                                     if ((cast(TypeStruct)exp.type.immutableOf()).implicitConvToWithoutAliasThis(tret))
-                                        exp = exp.castTo(sc2, exp.type.immutableOf());
+                                        exp = exp.castTo(sc3, exp.type.immutableOf());
                                     else if ((cast(TypeStruct)exp.type.wildOf()).implicitConvToWithoutAliasThis(tret))
-                                        exp = exp.castTo(sc2, exp.type.wildOf());
+                                        exp = exp.castTo(sc3, exp.type.wildOf());
                                 }
                             }
                             else
                             {
                                 if (exp.type.immutableOf().implicitConvTo(tret))
-                                    exp = exp.castTo(sc2, exp.type.immutableOf());
+                                    exp = exp.castTo(sc3, exp.type.immutableOf());
                                 else if (exp.type.wildOf().implicitConvTo(tret))
-                                    exp = exp.castTo(sc2, exp.type.wildOf());
+                                    exp = exp.castTo(sc3, exp.type.wildOf());
                             }
                         }
 
@@ -924,9 +925,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                 error(exp.loc, "expression `%s` of type `%s` is not implicitly convertible to return type `ref %s`",
                                       exp.toErrMsg(), exp.type.toErrMsg(), tret.toErrMsg());
                             else
-                                exp = exp.implicitCastTo(sc2, tret);
+                                exp = exp.implicitCastTo(sc3, tret);
 
-                            exp = exp.toLvalue(sc2, "`ref` return");
+                            exp = exp.toLvalue(sc3, "`ref` return");
                             checkAddressable(exp, sc2, "`ref` return");
                             checkReturnEscapeRef(*sc2, exp, false);
                             exp = exp.optimize(WANTvalue, /*keepLvalue*/ true);
@@ -938,7 +939,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             if (!hasCopyCtor || !exp.isLvalue())
                             {
                                 const errors = global.startGagging();
-                                auto implicitlyCastedExp = exp.implicitCastTo(sc2, tret);
+                                auto implicitlyCastedExp = exp.implicitCastTo(sc3, tret);
                                 global.endGagging(errors);
 
                                 // <https://github.com/dlang/dmd/issues/20888>
@@ -976,17 +977,17 @@ private extern(C++) final class Semantic3Visitor : Visitor
                              * during initialization of __result.
                              */
                             if (!funcdecl.isNRVO && !funcdecl.vresult)
-                                exp = doCopyOrMove(sc2, exp, f.next, true, true);
+                                exp = doCopyOrMove(sc3, exp, f.next, true, true);
 
                             if (tret.hasPointers())
                                 checkReturnEscape(*sc2, exp, false);
                         }
 
-                        exp = exp.checkGC(sc2);
+                        exp = exp.checkGC(sc3);
 
                         if (funcdecl.vresult)
                         {
-                            Scope* scret = sc2;
+                            Scope* scret = sc3;
 
                             if (rs.fesFunc)
                             {
@@ -1011,7 +1012,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         }
                         else if (funcdecl.tintro && !tret.equals(funcdecl.tintro.nextOf()))
                         {
-                            exp = exp.implicitCastTo(sc2, funcdecl.tintro.nextOf());
+                            exp = exp.implicitCastTo(sc3, funcdecl.tintro.nextOf());
                         }
                         rs.exp = exp;
                     }

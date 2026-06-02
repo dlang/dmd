@@ -114,7 +114,7 @@ public:
      */
     private bool setGC(Expression e, const(char)* msg)
     {
-        if (sc.debug_)
+        if (sc.debug_ || sc.ctfe || sc.ctfeBlock)
             return false;
         if (checkOnly)
         {

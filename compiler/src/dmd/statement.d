@@ -21,6 +21,7 @@ import dmd.astenums;
 import dmd.ast_node;
 import dmd.cond;
 import dmd.declaration;
+import dmd.dscope;
 import dmd.dsymbol;
 import dmd.expression;
 import dmd.func;
@@ -1309,6 +1310,7 @@ extern (C++) final class ReturnStatement : Statement
     Expression exp;
     size_t caseDim;
     FuncDeclaration fesFunc; // nested function for foreach it is in
+    Scope* scope_;
 
     extern (D) this(Loc loc, Expression exp) @safe
     {

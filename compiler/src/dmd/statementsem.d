@@ -2570,6 +2570,15 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             fd = fd.fes.func; // fd is now function enclosing foreach
         }
 
+        void addToFunctionReturns()
+        {
+            sc.setNoFree();
+            rs.scope_ = sc;
+            if (!fd.returns)
+                fd.returns = new ReturnStatements();
+            fd.returns.push(rs);
+        }
+
         auto tf = fd.type.isTypeFunction();
 
         if (rs.exp && rs.exp.isVarExp() && rs.exp.isVarExp().var == fd.vresult)
@@ -2590,9 +2599,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 return;
             }
 
-            if (!fd.returns)
-                fd.returns = new ReturnStatements();
-            fd.returns.push(rs);
+            addToFunctionReturns();
             result = rs;
             return;
         }
@@ -2980,9 +2987,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         }
         if (rs.exp)
         {
-            if (!fd.returns)
-                fd.returns = new ReturnStatements();
-            fd.returns.push(rs);
+            addToFunctionReturns();
         }
         if (e0)
         {
