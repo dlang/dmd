@@ -1,4 +1,10 @@
 // REQUIRED_ARGS: -verror-style=sarif
+// DISABLED: win32 win64
+// Disabled on Windows: while the test runner transforms linux paths to Windows paths in test output,
+// it's not aware that inside JSON strings that \ gets escaped as "\\" so it fails with diff:
+// - "uri": "fail_compilation\sarif_test.d"
+// + "uri": "fail_compilation\\sarif_test.d"
+
 /*
 TEST_OUTPUT:
 ---
@@ -29,7 +35,7 @@ TEST_OUTPUT:
 							"uri": "fail_compilation/sarif_test.d"
 						},
 						"region": {
-							"startLine": 63,
+							"startLine": 69,
 							"startColumn": 5
 						}
 					}
@@ -47,7 +53,7 @@ TEST_OUTPUT:
 							"uri": "fail_compilation/sarif_test.d"
 						},
 						"region": {
-							"startLine": 65,
+							"startLine": 71,
 							"startColumn": 5
 						}
 					}
