@@ -711,9 +711,9 @@ extern (C++) final class SymbolDeclaration : Declaration
 /***********************************************************
  * Generate Identifier for TypeInfo corresponding to `t`
  * Params:
- *	t = type to generate TypeInfo identifier for
+ *      t = type to generate TypeInfo identifier for
  * Returns:
- *	the identifier
+ *      the identifier
  */
 private Identifier getTypeInfoIdent(Type t)
 {

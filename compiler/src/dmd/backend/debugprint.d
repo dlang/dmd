@@ -297,21 +297,6 @@ void WRblockarray(block*[] bl)
 }
 
 @trusted
-void WRblocklist(list_t bl)
-{
-    foreach (bl2; ListRange(bl))
-    {
-        block* b = list_block(bl2);
-
-        if (b && b.Bweight)
-            printf("B%d (%p) ",b.Bdfoidx,b);
-        else
-            printf("%p ",b);
-    }
-    ferr("\n");
-}
-
-@trusted
 void WRdefnod(ref GlobalOptimizer go)
 {
     foreach (i; 0 .. go.defnod.length)
@@ -392,7 +377,7 @@ void WRblock(block* b)
             printf(" catchvar = %p",b.catchvar);
         printf("\n");
         printf("\tBpred: "); WRblockarray(b.Bpred[]);
-        printf("\tBsucc: "); WRblocklist(b.Bsucc);
+        printf("\tBsucc: "); WRblockarray(b.Bsucc[]);
         if (b.Belem)
         {
             if (debugf)                     /* if full output       */
@@ -444,12 +429,12 @@ void WRblock(block* b)
         {
             case BC.switch_:
                 printf("\tncases = %d\n", cast(int)b.Bswitch.length);
-                list_t bl = b.Bsucc;
-                printf("\tdefault: B%d\n",list_block(bl) ? list_block(bl).Bnumber : 0);
+                printf("\tdefault: B%d\n",b.Bsucc.length ? b.Bsucc[0].Bnumber : 0);
+                int j = 1;
                 foreach (val; b.Bswitch)
                 {
-                    bl = list_next(bl);
-                    printf("\tcase %lld: B%d\n", cast(long)val, list_block(bl).Bnumber);
+                    printf("\tcase %lld: B%d\n", cast(long)val, b.Bsucc[j].Bnumber);
+                    ++j;
                 }
                 break;
 
@@ -465,11 +450,11 @@ void WRblock(block* b)
             case BC._lpad:
             case BC._ret:
             case BC._except:
-                if (list_t bl = b.Bsucc)
+                if (b.Bsucc.length)
                 {
                     printf("\tBsucc:");
-                    for ( ; bl; bl = list_next(bl))
-                        printf(" B%d",list_block(bl).Bnumber);
+                    foreach (ba; b.Bsucc[])
+                        printf(" B%d", ba.Bnumber);
                     printf("\n");
                 }
                 break;

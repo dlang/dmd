@@ -180,7 +180,7 @@ void except_fillInEHTable(Symbol* s)
             }
             i = b.Bscope_index + 1;
 
-            int nsucc = b.numSucc();
+            int nsucc = cast(int)b.Bsucc.length;
 
             if (config.ehmethod == EHmethod.EH_DM)
             {
@@ -216,10 +216,10 @@ void except_fillInEHTable(Symbol* s)
             {
                 assert(nsucc == 2);
                 dtb.dword(0);           // no catch offset
-                block* bhandler = b.nthSucc(1);
+                block* bhandler = b.Bsucc[1];
                 assert(bhandler.bc == BC._finally);
                 // To successor of BC._finally block
-                bhandler = bhandler.nthSucc(0);
+                bhandler = bhandler.Bsucc[0];
                 // finally handler address
                 if (config.ehmethod == EHmethod.EH_DM)
                 {
@@ -335,13 +335,13 @@ void except_fillInEHTable(Symbol* s)
     {
         if (b.bc == BC._try && b.jcatchvar)         // if try-catch
         {
-            int nsucc = b.numSucc();
+            int nsucc = cast(int)b.Bsucc.length;
             dtb.size(nsucc - 1);           // # of catch blocks
             sz += NPTRSIZE;
 
             for (int j = 1; j < nsucc; ++j)
             {
-                block* bcatch = b.nthSucc(j);
+                block* bcatch = b.Bsucc[j];
 
                 dtb.xoff(bcatch.Bcatchtype,0,TYnptr);
 

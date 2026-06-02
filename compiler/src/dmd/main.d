@@ -1176,7 +1176,7 @@ void reconcileCommands(ref Param params, ref Target target, ErrorSink eSink)
  *               and update in place
  *      numSrcFiles = number of source files
  *      obj_ext = object file extension
- *	eSink = error message sink
+ *      eSink = error message sink
  */
 private
 void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_ext, ErrorSink eSink)

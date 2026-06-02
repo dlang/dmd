@@ -203,8 +203,7 @@ nothrow:
     }
 
     block* Bnext;               // pointer to next block in list
-    list_t Bsucc;               // linked list of pointers to successors
-                                //     of this block
+    Barray!(block*) Bsucc;      // and the successor array copy of Bsucc
     Barray!(block*) Bpred;      // and the predecessor array
     int Bindex;                 // into created object stack
     int Bendindex;              // index at end of block
@@ -316,24 +315,11 @@ nothrow:
             targ_size_t Btryoff;        // BC.try_: offset of try block data
         }
     }
-
-    @trusted
-    void appendSucc(block* b)        { list_append(&this.Bsucc, b); }
-
-    @trusted
-    void prependSucc(block* b)       { list_prepend(&this.Bsucc, b); }
-
-    int numSucc()                    { return list_nitems(this.Bsucc); }
-
-    @trusted
-    block* nthSucc(int n)            { return cast(block*)list_ptr(list_nth(Bsucc, n)); }
-
-    @trusted
-    void setNthSucc(int n, block* b) { list_nth(Bsucc, n).ptr = b; }
 }
 
 @trusted
 inout(block)* list_block(inout list_t lst) { return cast(inout(block)*)list_ptr(lst); }
+
 
 /** Basic block control flow operators. **/
 
