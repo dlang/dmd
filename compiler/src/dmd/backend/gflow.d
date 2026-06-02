@@ -570,7 +570,7 @@ private void flowaecp(ref GlobalOptimizer go, ref BlockOpt bo)
             bool first = true;
             foreach (bp; b.Bpred[])
             {
-                if (bp.bc == BC.iftrue && bp.nthSucc(0) != b)
+                if (bp.bc == BC.iftrue && bp.Bsucc[0] != b)
                 {
                     if (first)
                         vec_copy(b.Bin,bp.Bout2);
@@ -1353,9 +1353,9 @@ void flowlv(ref BlockOpt bo)
         {
             /* Bout = union of Bins of all successors to B. */
             bool first = true;
-            foreach (bl; ListRange(b.Bsucc))
+            foreach (bl; b.Bsucc[])
             {
-                const inlv = list_block(bl).Binlv;
+                const inlv = bl.Binlv;
                 if (first)
                     vec_copy(b.Boutlv, inlv);
                 else
@@ -1656,6 +1656,7 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
 @trusted
 void flowvbe(ref GlobalOptimizer go, ref BlockOpt bo)
 {
+    if (&go) assert(0);
     go.flowxx = VBE;
     aecpgenkill(go, bo);   // compute Bgen and Bkill for VBEs
     if (go.exptop <= 1)     /* if no candidates for VBEs            */
@@ -1702,9 +1703,9 @@ void flowvbe(ref GlobalOptimizer go, ref BlockOpt bo)
 
             /* Bout = & of Bin of all successors */
             bool first = true;
-            foreach (bl; ListRange(b.Bsucc))
+            foreach (bl; b.Bsucc[])
             {
-                const vin = list_block(bl).Bin;
+                const vin = bl.Bin;
                 if (first)
                     vec_copy(b.Bout, vin);
                 else

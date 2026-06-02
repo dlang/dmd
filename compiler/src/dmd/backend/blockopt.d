@@ -141,7 +141,7 @@ block* block_goto(ref BlockOpt bo, BlockState* bx, BC bc, block* bn)
 
     b = bx.curblock;
     block_next(bo, bx,bc,bn);
-    b.appendSucc(bx.curblock);
+    b.Bsucc.push(bx.curblock);
     return bx.curblock;
 }
 
@@ -168,7 +168,7 @@ void block_goto(block* bgoto,block* bnew)
     BC bc;
 
     assert(bgoto);
-    curblock.appendSucc(bgoto);
+    curblock.Bsucc.push(bgoto);
     if (curblock.Bcode)         // If there is already code in the block
                                 // then this is an ASM block
         bc = BC.asm_;
@@ -210,10 +210,10 @@ void block_pred(ref BlockOpt bo)
     for (block* b = bo.startblock; b; b = b.Bnext)       // for each block
     {
         //printf("b = %p, BC = BC.%s\n", b, bc_str(b.bc));
-        foreach (bp; ListRange(b.Bsucc))
+        foreach (bp; b.Bsucc[])
         {                               /* for each successor to b      */
             //printf("\tbs = %p\n",list_block(bp));
-            list_block(bp).Bpred.push(b); // original inserts at the beginning, don't think it matters
+            bp.Bpred.push(b); // original inserts at the beginning, don't think it matters
         }
     }
     assert(bo.startblock.Bpred.length == 0);  /* startblock has no preds      */
@@ -237,9 +237,8 @@ void block_clearvisit(ref BlockOpt bo)
 void block_visit(block* b)
 {
     b.Bflags |= BFL.visited;
-    foreach (l; ListRange(b.Bsucc))
+    foreach (bs; b.Bsucc[])
     {
-        block* bs = list_block(l);
         assert(bs);
         if ((bs.Bflags & BFL.visited) == 0)     // if not visited
             block_visit(bs);
@@ -306,7 +305,7 @@ void block_free(ref BlockOpt bo, block* b)
     assert(b);
     if (b.Belem)
         el_free(b.Belem);
-    list_free(&b.Bsucc,FPNULL);
+    b.Bsucc.dtor();
     b.Bpred.dtor();
     if (OPTIMIZER)
         block_optimizer_free(b);
@@ -519,8 +518,8 @@ void brcombine(ref GlobalOptimizer go, ref BlockOpt bo)
             const bc = b.bc;
             if (bc == BC.iftrue)
             {
-                block* b2 = b.nthSucc(0);
-                block* b3 = b.nthSucc(1);
+                block* b2 = b.Bsucc[0];
+                block* b3 = b.Bsucc[1];
 
                 if (b2.Bpred.length > 1)       // if more than one predecessor
                     continue;
@@ -533,7 +532,7 @@ void brcombine(ref GlobalOptimizer go, ref BlockOpt bo)
 
                 const bc2 = b2.bc;
                 if (bc2 == BC.goto_ &&
-                    b3 == b2.nthSucc(0))
+                    b3 == b2.Bsucc[0])
                 {
                     b.bc = BC.goto_;
                     if (b2.Belem)
@@ -542,7 +541,7 @@ void brcombine(ref GlobalOptimizer go, ref BlockOpt bo)
                         b.Belem = el_bin(op,TYint,b.Belem,b2.Belem);
                         b2.Belem = null;
                     }
-                    list_subtract(&(b.Bsucc),b2);
+                    b2.Bsucc.subtract(b2);
                     b2.Bpred.subtract(b);
                     debug if (debugc) printf("brcombine(): if !e1 then e2 => e1 || e2\n");
                     anychanges++;
@@ -562,7 +561,7 @@ void brcombine(ref GlobalOptimizer go, ref BlockOpt bo)
                     b.Belem.ET = b2.Belem.ET;
                     b2.Belem = null;
                     b3.Belem = null;
-                    list_free(&b.Bsucc,FPNULL);
+                    b.Bsucc.reset();
                     b2.Bpred.subtract(b);
                     b3.Bpred.subtract(b);
                     debug if (debugc) printf("brcombine(): if e1 return e2 else return e3 => ret e1?e2:e3\n");
@@ -570,9 +569,9 @@ void brcombine(ref GlobalOptimizer go, ref BlockOpt bo)
                 }
                 else if (bc2 == BC.goto_ &&
                          b3.bc == BC.goto_ &&
-                         b2.nthSucc(0) == b3.nthSucc(0))
+                         b2.Bsucc[0] == b3.Bsucc[0])
                 {
-                    block* bsucc = b2.nthSucc(0);
+                    block* bsucc = b2.Bsucc[0];
                     if (b2.Belem)
                     {
                         elem* e;
@@ -600,15 +599,15 @@ void brcombine(ref GlobalOptimizer go, ref BlockOpt bo)
                     }
                     b.bc = BC.goto_;
                     b3.Belem = null;
-                    list_free(&b.Bsucc,FPNULL);
+                    b.Bsucc.reset();
 
-                    b.appendSucc(bsucc);
+                    b.Bsucc.push(bsucc);
                     bsucc.Bpred.push(b);
 
                     b2.Bpred.dtor();
-                    list_free(&(b2.Bsucc),FPNULL);
+                    b2.Bsucc.reset();
                     b2.Bpred.dtor();
-                    list_free(&(b3.Bsucc),FPNULL);
+                    b3.Bsucc.reset();
                     b2.bc = BC.ret;
                     b3.bc = BC.ret;
                     bsucc.Bpred.subtract(b2);
@@ -646,11 +645,11 @@ private void bropt(ref GlobalOptimizer go, ref BlockOpt bo)
         {
             b.bc = BC.exit;
             // Exit block has no successors, so remove them
-            foreach (bp; ListRange(b.Bsucc))
+            foreach (bp; b.Bsucc[])
             {
-                list_block(bp).Bpred.subtract(b);
+                bp.Bpred.subtract(b);
             }
-            list_free(&b.Bsucc, FPNULL);
+            b.Bsucc.reset();
             debug if (debugc) printf("CHANGE: noreturn becomes BC.exit\n");
             go.changes++;
             continue;
@@ -670,7 +669,7 @@ private void bropt(ref GlobalOptimizer go, ref BlockOpt bo)
                 (*pn).Ety = tym;
                 for (n = b.Belem; n.Eoper == OPcomma; n = n.E2)
                     n.Ety = tym;
-                b.Bsucc = list_reverse(b.Bsucc);
+                b.Bsucc.reverse();
                 debug if (debugc) printf("CHANGE: if (!e)\n");
                 go.changes++;
             }
@@ -680,16 +679,16 @@ private void bropt(ref GlobalOptimizer go, ref BlockOpt bo)
             if (iftrue(n))          /* if elem is true      */
             {
                 // select first succ
-                db = b.nthSucc(1);
+                db = b.Bsucc[1];
                 goto L1;
             }
             else if (iffalse(n))
             {
                 // select second succ
-                db = b.nthSucc(0);
+                db = b.Bsucc[0];
 
               L1:
-                list_subtract(&(b.Bsucc),db);
+                b.Bsucc.subtract(db);
                 db.Bpred.subtract(b);
                 b.bc = BC.goto_;
                 /* delete elem if it has no side effects */
@@ -699,12 +698,12 @@ private void bropt(ref GlobalOptimizer go, ref BlockOpt bo)
             }
 
             /* Look for both destinations being the same    */
-            else if (b.nthSucc(0) ==
-                     b.nthSucc(1))
+            else if (b.Bsucc[0] ==
+                     b.Bsucc[1])
             {
                 b.bc = BC.goto_;
-                db = b.nthSucc(0);
-                list_subtract(&(b.Bsucc),db);
+                db = b.Bsucc[0];
+                b.Bsucc.subtract(db);
                 db.Bpred.subtract(b);
                 debug if (debugc) printf("CHANGE: if (e) goto L1; else goto L1;\n");
                 go.changes++;
@@ -727,21 +726,22 @@ private void bropt(ref GlobalOptimizer go, ref BlockOpt bo)
                     break;
                 }
             }
-            block* db = b.nthSucc(i);
+            block* db = b.Bsucc[i];
 
             /* delete predecessors of successors (!)        */
-            foreach (bl; ListRange(b.Bsucc))
+            foreach (bl; b.Bsucc[])
             {
                 if (i--)            // but not the db successor
                 {
-                    bool bx = list_block(bl).Bpred.subtract(b);
+                    bool bx = bl.Bpred.subtract(b);
                     assert(bx);
                 }
             }
 
             /* dump old successor list and create a new one */
-            list_free(&b.Bsucc,FPNULL);
-            b.appendSucc(db);
+            b.Bsucc.reset();
+            b.Bsucc.push(db);
+            b.Bsucc.push(db);
             b.bc = BC.goto_;
             b.Belem = doptelem(b.Belem, Goal.none | Goal.again);
             debug if (debugc) printf("CHANGE: switch (const)\n");
@@ -760,11 +760,11 @@ private void brrear(ref BlockOpt bo)
     debug if (debugc) printf("brrear()\n");
     for (block* b = bo.startblock; b; b = b.Bnext)   // for each block
     {
-        foreach (bl; ListRange(b.Bsucc))
+        foreach (i, bl; b.Bsucc[])
         {   /* For each transfer of control block pointer   */
             int iter = 0;
 
-            block* bt = list_block(bl);
+            block* bt = bl;
 
             /* If it is a transfer to a block that consists */
             /* of nothing but an unconditional transfer,    */
@@ -776,7 +776,7 @@ private void brrear(ref BlockOpt bo)
 
             static if (NTEXCEPTIONS)
                 enum additionalAnd = "b.Btry == bt.Btry &&
-                                  bt.Btry == bt.nthSucc(0).Btry";
+                                  bt.Btry == bt.Bsucc[0].Btry";
             else
                 enum additionalAnd = "true";
 
@@ -785,14 +785,16 @@ private void brrear(ref BlockOpt bo)
                    (OPTIMIZER || !(bt.Bsrcpos.Slinnum && config.addlinenumbers)) &&
                    ++iter < 10)
             {
-                bl.ptr = list_ptr(bt.Bsucc);
+                b.Bsucc[i] = bt.Bsucc[0];
                 if (bt.Bsrcpos.Slinnum && !b.Bsrcpos.Slinnum)
                     b.Bsrcpos = bt.Bsrcpos;
                 b.Bflags |= bt.Bflags;
-                list_block(bl).Bpred.push(b);
+                b.Bsucc[i].Bpred.push(b);
+                //list_block(bl).Bpred.push(b);
                 bt.Bpred.subtract(b);
                 debug if (debugc) printf("goto.goto\n");
-                bt = list_block(bl);
+                bt = b.Bsucc[i];
+                //bt = list_block(bl);
             }
 
             // Bsucc after the first are the targets of
@@ -814,14 +816,14 @@ private void brrear(ref BlockOpt bo)
 
             if (b.bc == BC.iftrue || b.bc == BC.iffalse)
             {
-                block* bif = b.nthSucc(0);
-                block* belse = b.nthSucc(1);
+                block* bif = b.Bsucc[0];
+                block* belse = b.Bsucc[1];
 
                 if (bif == b.Bnext)
                 {
                     b.bc ^= BC.iffalse ^ BC.iftrue;  /* toggle */
-                    b.setNthSucc(0, belse);
-                    b.setNthSucc(1, bif);
+                    b.Bsucc[0] = belse;
+                    b.Bsucc[1] = bif;
                     b.Bflags |= bif.Bflags & BFL.visited;
                     debug if (debugc) printf("if (e) L1 else L2\n");
                 }
@@ -853,9 +855,8 @@ void compdfo(ref BlockOpt bo, ref Barray!(block*) dfo, block* startblock)
         assert(b);
         b.Bflags |= BFL.visited;             // executed at least once
 
-        foreach (bl; ListRange(b.Bsucc))   // for each successor
+        foreach (bs; b.Bsucc[])             // for each successor
         {
-            block* bs = list_block(bl);
             assert(bs);
             if ((bs.Bflags & BFL.visited) == 0) // if not visited
                 walkDFO(bs);
@@ -914,11 +915,11 @@ private void elimblks(ref GlobalOptimizer go, ref BlockOpt bo)
             /* for each marked successor S to b                     */
             /*      remove b from S.Bpred.                          */
             /* Presumably all predecessors to b are unmarked also.  */
-            foreach (s; ListRange(b.Bsucc))
+            foreach (s; b.Bsucc[])
             {
-                assert(list_block(s));
-                if (list_block(s).Bflags & BFL.visited) /* if it is marked */
-                    list_block(s).Bpred.subtract(b);
+                assert(s);
+                if (s.Bflags & BFL.visited) /* if it is marked */
+                    s.Bpred.subtract(b);
             }
             if (b.Balign && b.Bnext && b.Balign > b.Bnext.Balign)
                 b.Bnext.Balign = b.Balign;
@@ -965,7 +966,7 @@ private int mergeblks(ref BlockOpt bo)
     foreach (b; bo.dfo[])
     {
         if (b.bc == BC.goto_)
-        {   block* bL2 = list_block(b.Bsucc);
+        {   block* bL2 = b.Bsucc[0];
 
             if (b == bL2)
             {
@@ -996,14 +997,14 @@ private int mergeblks(ref BlockOpt bo)
                 b.Bpred.reset();
 
                 /* Remove bL2 from successors of b      */
-                list_free(&b.Bsucc,FPNULL);
+                b.Bsucc.reset();
 
                 /* fix up successor list of predecessors        */
                 foreach (bl; bL2.Bpred[])
                 {
-                    foreach (bs; ListRange(bl.Bsucc))
-                        if (list_block(bs) == b)
-                            bs.ptr = cast(void*)bL2;
+                    foreach (i, bs; bl.Bsucc[])
+                        if (bs == b)
+                            bl.Bsucc[i] = bL2;
                 }
 
                 merge++;
@@ -1066,9 +1067,8 @@ private void blident(ref GlobalOptimizer go, ref BlockOpt bo)
             else
                 enum additionalAnd = true;
             if (b.bc == bn.bc &&
-                //(!OPTIMIZER || !(go.mfoptim & MFtime) || !b.Bsucc) &&
-                (!OPTIMIZER || !(b.Bflags & BFL.nomerg) || !b.Bsucc) &&
-                list_equal(b.Bsucc,bn.Bsucc) &&
+                (!OPTIMIZER || !(b.Bflags & BFL.nomerg) || !b.Bsucc.length) &&
+                b.Bsucc.equals(bn.Bsucc) &&
                 additionalAnd &&
                 el_match(b.Belem,bn.Belem)
                )
@@ -1137,9 +1137,10 @@ private void blident(ref GlobalOptimizer go, ref BlockOpt bo)
                 /* b instead of bn                                      */
                 foreach (bp; bn.Bpred[])
                 {
-                    foreach (bls; ListRange(bp.Bsucc))
-                        if (list_block(bls) == bn)
-                        {   bls.ptr = cast(void*)b;
+                    foreach (i, bls; bp.Bsucc[])
+                        if (bls == bn)
+                        {
+                            bp.Bsucc[i] = b;
                             b.Bpred.push(bp);
                         }
                 }
@@ -1221,7 +1222,7 @@ private void blreturn(ref GlobalOptimizer go, ref BlockOpt bo)
                 }
                 b.bc = BC.goto_;
                 b.Bnext = bn;
-                list_append(&b.Bsucc,bn);
+                b.Bsucc.push(bn);
                 bn.Bpred.push(b);
 
                 b = bn;
@@ -1339,7 +1340,7 @@ private void bltailmerge(ref GlobalOptimizer go, ref BlockOpt bo)
             {
                 elem* en;
                 if (b.bc == bn.bc &&
-                    list_equal(b.Bsucc,bn.Bsucc) &&
+                    b.Bsucc.equals(bn.Bsucc) &&
                     bn.Blist &&
                     el_match(e,(en = list_elem(bn.Blist))) &&
                     mixin(additionalAnd)
@@ -1389,18 +1390,15 @@ private void bltailmerge(ref GlobalOptimizer go, ref BlockOpt bo)
                     bn.Bnext = bnew;
 
                     /* The successor list to bnew is the same as b's was */
-                    bnew.Bsucc = b.Bsucc;
-                    b.Bsucc = null;
-                    list_free(&bn.Bsucc,FPNULL);
 
                     /* Update the predecessor list of the successor list
                         of bnew, from b to bnew, and removing bn
                      */
-                    foreach (bl; ListRange(bnew.Bsucc))
+                    foreach (bl; bnew.Bsucc[])
                     {
-                        list_block(bl).Bpred.subtract(b);
-                        list_block(bl).Bpred.subtract(bn);
-                        list_block(bl).Bpred.push(bnew);
+                        bl.Bpred.subtract(b);
+                        bl.Bpred.subtract(bn);
+                        bl.Bpred.push(bnew);
                     }
 
                     /* The predecessors to bnew are b and bn    */
@@ -1410,8 +1408,8 @@ private void bltailmerge(ref GlobalOptimizer go, ref BlockOpt bo)
                     /* The successors to b and bn are bnew      */
                     b.bc = BC.goto_;
                     bn.bc = BC.goto_;
-                    list_append(&b.Bsucc,bnew);
-                    list_append(&bn.Bsucc,bnew);
+                    b.Bsucc.push(bnew);
+                    bn.Bsucc.push(bnew);
 
                     go.changes++;
 
@@ -1476,18 +1474,18 @@ private void brmin(ref GlobalOptimizer go, ref BlockOpt bo)
         if (!isExceptionHandler(b.Bnext))
         {
             // Skip the block if one of the successors is already at Bnext.
-            foreach (bl; ListRange(b.Bsucc))
+            foreach (bl; b.Bsucc[])
             {
-                if (list_block(bl) == b.Bnext)
+                if (bl == b.Bnext)
                     continue Lbb;
             }
         }
 
         // Look for a successor of b for which everyone must jmp to.
         Lsucc:
-        foreach (bl; ListRange(b.Bsucc))
+        foreach (bs; b.Bsucc[])
         {
-            block* bs = list_block(bl);
+            //block* bs = list_block(bl);
 
             // BC.exit should have been optimized by blexit().
             // Also ignore exception handlers.
@@ -1547,7 +1545,7 @@ private void brmin(ref GlobalOptimizer go, ref BlockOpt bo)
                 moveDistance++;
 
                 if (bss.Btry == bnext.Btry &&
-                    (!bss.Bnext || list_nitems(bss.Bsucc) == 0))
+                    (!bss.Bnext || bss.Bsucc.length == 0))
                 {
                     // A very crude cost model.
                     // Assume each basic block occupies 20 bytes. L1i cache
@@ -1595,7 +1593,7 @@ private void block_check()
 {
     for (block* b = startblock; b; b = b.Bnext)
     {
-        int nsucc = list_nitems(b.Bsucc);
+        int nsucc = b.Bsucc.length;
         int npred = b.Bpred.length;
         switch (b.bc)
         {
@@ -1608,10 +1606,8 @@ private void block_check()
                 break;
         }
 
-        foreach (bl; ListRange(b.Bsucc))
+        foreach (bs; b.Bsucc[])
         {
-            block* bs = list_block(bl);
-
             foreach (bls; bs.Bpred[])
             {
                 assert(bls);
@@ -1664,7 +1660,7 @@ private void brtailrecursion(ref GlobalOptimizer go, ref BlockOpt bo)
         if (*pe &&
             (b.bc == BC.ret ||
              b.bc == BC.retexp ||
-             (b.bc == BC.goto_ && (bn = list_block(b.Bsucc)).Belem == null &&
+             (b.bc == BC.goto_ && (bn = b.Bsucc[0]).Belem == null &&
               bn.bc == BC.ret)
             )
            )
@@ -1707,17 +1703,17 @@ private void brtailrecursion(ref GlobalOptimizer go, ref BlockOpt bo)
 
                 if (b.bc == BC.goto_)
                 {
-                    list_subtract(&b.Bsucc, bn);
+                    b.Bsucc.subtract(bn);
                     bn.Bpred.subtract(b);
-                    list_append(&b1.Bsucc, bn);
+                    b1.Bsucc.push(bn);
                     bn.Bpred.subtract(b1);
-                    list_append(&b2.Bsucc, bn);
+                    b2.Bsucc.push(bn);
                     bn.Bpred.subtract(b2);
                 }
 
-                list_append(&b.Bsucc, b1);
+                b.Bsucc.push(b1);
                 b1.Bpred.push(b);
-                list_append(&b.Bsucc, b2);
+                b.Bsucc.push(b2);
                 b2.Bpred.push(b);
 
                 b1.bc = b.bc;
@@ -1753,11 +1749,11 @@ private void brtailrecursion(ref GlobalOptimizer go, ref BlockOpt bo)
 
                 if (b.bc == BC.goto_)
                 {
-                    list_subtract(&b.Bsucc,bn);
+                    b.Bsucc.subtract(bn);
                     bn.Bpred.subtract(b);
                 }
                 b.bc = BC.goto_;
-                list_append(&b.Bsucc,bo.startblock);
+                b.Bsucc.push(bo.startblock);
                 bo.startblock.Bpred.push(b);
 
                 // Create a new startblock, bs, because startblock cannot
@@ -1765,7 +1761,7 @@ private void brtailrecursion(ref GlobalOptimizer go, ref BlockOpt bo)
                 block* bs = block_calloc(bo);
                 bs.bc = BC.goto_;
                 bs.Bnext = bo.startblock;
-                list_append(&bs.Bsucc,bo.startblock);
+                bs.Bsucc.push(bo.startblock);
                 bo.startblock.Bpred.push(bs);
                 bo.startblock = bs;
 
@@ -1841,7 +1837,7 @@ private void emptyloops(ref GlobalOptimizer go, ref BlockOpt bo)
     for (block* b = bo.startblock; b; b = b.Bnext)
     {
         if (b.bc == BC.iftrue &&
-            list_block(b.Bsucc) == b &&
+            b.Bsucc[0] == b &&
             b.Bpred.length == 2)
         {
             // Find predecessor to b
@@ -1882,7 +1878,7 @@ private void emptyloops(ref GlobalOptimizer go, ref BlockOpt bo)
                 erel.Ety = erel.E1.Ety;
                 erel.E1 = el_selecte1(erel.E1);
                 b.bc = BC.goto_;
-                list_subtract(&b.Bsucc,b);
+                b.Bsucc.subtract(b);
                 b.Bpred.subtract(b);
 
                 debug if (debugc)
@@ -2091,11 +2087,10 @@ private void blassertsplit(ref GlobalOptimizer go, ref BlockOpt bo)
             /* Transfer successors of b to b2.
              * Fix up predecessors of successors to b2 to point to b2 instead of b
              */
-            b2.Bsucc = b.Bsucc;
-            b.Bsucc = null;
-            foreach (b2sl; ListRange(b2.Bsucc))
+            b2.Bsucc.move(b.Bsucc);
+            foreach (b2s; b2.Bsucc[])
             {
-                block* b2s = list_block(b2sl);
+                //block* b2s = list_block(b2sl);
                 foreach (ref b2spl; b2s.Bpred[])
                 {
                     if (b2spl == b)
@@ -2105,9 +2100,9 @@ private void blassertsplit(ref GlobalOptimizer go, ref BlockOpt bo)
 
             b.bc = BC.iftrue;
             assert(b.Belem);
-            list_append(&b.Bsucc, b2);
+            b.Bsucc.push(b2);
             b2.Bpred.push(b);
-            list_append(&b.Bsucc, bexit);
+            b.Bsucc.push(bexit);
             bexit.Bpred.push(b);
 
             b = b2;
@@ -2159,12 +2154,11 @@ private void blexit(ref GlobalOptimizer go, ref BlockOpt bo)
 
         b.bc = BC.exit;
 
-        foreach (bsl; ListRange(b.Bsucc))
+        foreach (bs; b.Bsucc[])
         {
-            block* bs = list_block(bsl);
             bs.Bpred.subtract(b);
         }
-        list_free(&b.Bsucc, FPNULL);
+        b.Bsucc.dtor();
 
         if (b != bo.startblock && b.Bnext)
             bexits.push(b);

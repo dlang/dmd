@@ -1055,7 +1055,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             block_appendexp(startBlk, exec); //payload
             startBlk.bc = BC.goto_;
             auto next = block_calloc(bo);
-            startBlk.appendSucc(next);
+            startBlk.Bsucc.push(next);
             startBlk.Bnext = next;
             next.bc = BC.ret;
             //Emit in binary

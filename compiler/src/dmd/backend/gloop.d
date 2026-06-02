@@ -217,12 +217,12 @@ bool blockinit(ref BlockOpt bo)
     assert(bo.dfo);
     foreach (b; BlockRange(bo.startblock))
     {
-        debug                   /* check integrity of Bpred and Bsucc   */
+        //debug                   /* check integrity of Bpred and Bsucc   */
           L1:
             foreach (blp; b.Bpred[])
             {
-                foreach (bls; ListRange(blp.Bsucc))
-                    if (list_block(bls) == b)
+                foreach (bls; blp.Bsucc[])
+                    if (bls == b)
                         continue L1;
                 assert(0);
             }
@@ -340,9 +340,8 @@ private void findloops(ref BlockOpt bo, block*[] dfo, ref Loops loops)
                                    // loops are found first)
     {
         assert(b);
-        foreach (bl; ListRange(b.Bsucc))
+        foreach (s; b.Bsucc[])
         {
-            block* s = list_block(bl);      // each successor s to b
             assert(s);
             if (dom(bo, s, b))              // if s dominates b
                 buildloop(bo, loops, s, b); // we found a loop
@@ -455,8 +454,8 @@ L1:
             vec_setbit(i,l.Lexit); /* ret blocks are exit blocks */
         else
         {
-            foreach (bl; ListRange(bo.dfo[i].Bsucc))
-                if (!vec_testbit(list_block(bl).Bdfoidx,l.Lloop))
+            foreach (bl; bo.dfo[i].Bsucc[])
+                if (!vec_testbit(bl.Bdfoidx,l.Lloop))
                 {
                     vec_setbit(i,l.Lexit);
                     break;
@@ -480,7 +479,7 @@ L1:
             }
             else
             {
-                if (list_next(b.Bsucc))       // if more than 1 successor
+                if (b.Bsucc.length > 1)      // if more than 1 successor
                     break;                    // b can't be a preheader
                 l.Lpreheader = b;
             }
@@ -596,7 +595,6 @@ private bool looprotate(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
 
         // pred(head1) = pred(head) outside loop
         // pred(head2) = pred(head) inside loop
-static if (1)
         for (size_t i = 0; i < head.Bpred.length; )
         {
             if (vec_testbit(head.Bpred[i].Bdfoidx, l.Lloop)) // if head predecessor [i] is in the loop
@@ -607,51 +605,27 @@ static if (1)
                 head.Bpred.subtracti(i);
 
                 // Any successors to predecessors to head blocks get redirected to head2
-                foreach (bl; ListRange(bs.Bsucc))
-                    if (list_block(bl) == head)
+                int j;
+                foreach (ref bl; bs.Bsucc[])
+                {
+                    if (bl == head)
                     {
-                        bl.ptr = cast(void*)head2;
+                        bs.Bsucc[j] = head2;
                         goto L2;
                     }
+                    ++j;
+                }
                 assert(0);
         L2:
             }
             else
                 ++i;      // next predecessor in head
         } // for each pred(head)
-else
-{
-        list_t* pbln;
-        auto pbl2 = &(head2.Bpred);
-        for (list_t* pbl = &(head.Bpred); *pbl; pbl = pbln)
-        {
-            if (vec_testbit(list_block(*pbl).Bdfoidx, l.Lloop))
-            {   // if this predecessor is inside the loop
 
-                *pbl2 = *pbl;
-                *pbl = list_next(*pbl);
-                pbln = pbl;                     // don't skip this next one
-                (*pbl2).next = null;
-                auto bsucc = list_block(*pbl2).Bsucc;
-                pbl2 = &((*pbl2).next);
-                foreach (bl; ListRange(bsucc))
-                    if (list_block(bl) == head)
-                    {
-                        bl.ptr = cast(void*)head2;
-                        goto L2;
-                    }
-                assert(0);
-        L2:
-            }
-            else
-                pbln = &((*pbl).next);      // next predecessor in list
-        } // for each pred(head)
-}
         // succ(head2) = succ(head)
-        foreach (bl; ListRange(head.Bsucc))
+        foreach (b; head.Bsucc[])
         {
-            block* b = list_block(bl);
-            list_append(&(head2.Bsucc),b);
+            head2.Bsucc.push(b);
             b.Bpred.push(head2);
         }
         if (debugc) printf("1Rotated loop %p\n", &l);
@@ -777,8 +751,8 @@ restart:
 
             l.Lpreheader = p;
             p.bc = BC.goto_;
-            assert(p.Bsucc == null);
-            list_append(&(p.Bsucc),h); /* only successor is h          */
+            p.Bsucc.push(h);
+            assert(p.Bsucc.length == 1); /* only successor is h          */
             p.Btry = h.Btry;
 
             if (debugc) printf("Adding preheader %p to loop %p\n",p,&l);
@@ -795,9 +769,15 @@ restart:
                     i = 0;                            // start over
 
                     /* Fix up successors of predecessors        */
-                    foreach (bls; ListRange(b.Bsucc))
-                        if (list_block(bls) == h)
-                                bls.ptr = cast(void*)p;
+                    int j = 0;
+                    foreach (bls; b.Bsucc[])
+                    {
+                        if (bls == h)
+                        {
+                            b.Bsucc[j] = p;
+                        }
+                        ++j;
+                    }
                 }
                 else
                     ++i;
@@ -1579,11 +1559,8 @@ Lnextlis:
                     uint i;
                     for (i = 0; (i = cast(uint) vec_index(i, l.Lexit)) < bo.dfo.length; ++i)  // for each exit block
                     {
-                        foreach (bl; ListRange(bo.dfo[i].Bsucc))
+                        foreach (s; bo.dfo[i].Bsucc[])
                         {
-                            block* s;           // successor to exit block
-
-                            s = list_block(bl);
                             if (!vec_testbit(s.Bdfoidx,l.Lloop) &&
                                 (!symbol_isintab(v) ||
                                  vec_testbit(v.Ssymnum,s.Binlv))) // if v is live on exit
@@ -3043,9 +3020,9 @@ private void elimbasivs(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
                 elem* ne;
                 block* b;
 
-                foreach (bl; ListRange(bo.dfo[i].Bsucc))
+                foreach (ref bl; bo.dfo[i].Bsucc[])
                 {   /* for each successor   */
-                    b = list_block(bl);
+                    b = bl;
                     if (vec_testbit(b.Bdfoidx,l.Lloop))
                         continue;       /* inside loop  */
                     if (!vec_testbit(X.Ssymnum,b.Binlv))
@@ -3086,9 +3063,9 @@ private void elimbasivs(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
                         bn.bc = BC.goto_;
                         bn.Bnext = bo.dfo[i].Bnext;
                         bo.dfo[i].Bnext = bn;
-                        list_append(&(bn.Bsucc),b);
+                        bn.Bsucc.push(b);
                         bn.Bpred.push(bo.dfo[i]);
-                        bl.ptr = cast(void*)bn;
+                        bl = bn;
                         foreach (ref bl2; b.Bpred[])
                             if (bl2 == bo.dfo[i])
                             {
@@ -3119,9 +3096,8 @@ private void elimbasivs(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
             /* Eliminate the basic IV if it is not live on any successor */
             for (uint i = 0; (i = cast(uint) vec_index(i, l.Lexit)) < bo.dfo.length; ++i)  // for each exit block
             {
-                foreach (bl; ListRange(bo.dfo[i].Bsucc))
+                foreach (b; bo.dfo[i].Bsucc[])
                 {   /* for each successor   */
-                    block* b = list_block(bl);
                     if (vec_testbit(b.Bdfoidx,l.Lloop))
                         continue;       /* inside loop  */
                     if (vec_testbit(X.Ssymnum,b.Binlv))
@@ -3184,9 +3160,8 @@ private void elimopeqs(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
             uint i;
             for (i = 0; (i = cast(uint) vec_index(i, l.Lexit)) < bo.dfo.length; ++i)  // for each exit block
             {
-                foreach (bl; ListRange(bo.dfo[i].Bsucc))
+                foreach (b; bo.dfo[i].Bsucc[])
                 {   // for each successor
-                    block* b = list_block(bl);
                     if (vec_testbit(b.Bdfoidx,l.Lloop))
                         continue;       // inside loop
                     if (vec_testbit(X.Ssymnum,b.Binlv))

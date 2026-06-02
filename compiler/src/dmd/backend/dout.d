@@ -1002,14 +1002,14 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
         {   outelem(b.Belem, addressOfParam);
             if (b.Belem.Eoper == OPhalt)
             {   b.bc = BC.exit;
-                list_free(&b.Bsucc,FPNULL);
+                b.Bsucc.reset();
             }
         }
         if (b.bc == BC.asm_)
             anyasm = true;
         if (sfunc.Sflags & SFLexit && (b.bc == BC.ret || b.bc == BC.retexp))
         {   b.bc = BC.exit;
-            list_free(&b.Bsucc,FPNULL);
+            b.Bsucc.reset();
         }
         assert(b != b.Bnext);
     }

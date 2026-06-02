@@ -190,8 +190,8 @@ struct Barray(T)
      */
     bool equals(ref const Barray rhs)
     {
-	if (array.length != rhs.length)
-	    return false;
+        if (array.length != rhs.length)
+            return false;
         foreach (i, ref t; array)
         {
             if (t != rhs.array[i])
