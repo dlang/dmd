@@ -1048,7 +1048,7 @@ JsonFieldFlags tryParseJsonField(const(char)* fieldName)
  *   buf = buffer to write to
  *   str = string to escape and write as string literal
  */
-void writeEscapeJSONString(ref OutBuffer buf, const(char)[] str)
+void writeEscapeJSONString(ref OutBuffer buf, const(char)[] str) nothrow
 {
     foreach (c; str)
     {

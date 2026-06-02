@@ -22,6 +22,7 @@ import core.stdc.string : strchr;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.globals;
+import dmd.json : writeEscapeJSONString;
 import dmd.location;
 import dmd.common.outbuffer;
 
@@ -80,13 +81,21 @@ class ErrorSinkSarif : ErrorSinkCompiler
             "\t\t\t{\n" ~
             "\t\t\t\t\"ruleId\": \"DMD-%s\",\n" ~
             "\t\t\t\t\"message\": {\n" ~
-            "\t\t\t\t\t\"text\": \"%s\"\n" ~
+            "\t\t\t\t\t\"text\": \"",
+            kindStr.ptr);
+        writeEscapeJSONString(buf, msg[]);
+        buf.printf(
+            "\"\n" ~
             "\t\t\t\t},\n" ~
             "\t\t\t\t\"level\": \"%s\",\n" ~
             "\t\t\t\t\"locations\": [{\n" ~
             "\t\t\t\t\t\"physicalLocation\": {\n" ~
             "\t\t\t\t\t\t\"artifactLocation\": {\n" ~
-            "\t\t\t\t\t\t\t\"uri\": \"%.*s\"\n" ~
+            "\t\t\t\t\t\t\t\"uri\": \"",
+            kindStr.ptr);
+        writeEscapeJSONString(buf, uri);
+        buf.printf(
+            "\"\n" ~
             "\t\t\t\t\t\t},\n" ~
             "\t\t\t\t\t\t\"region\": {\n" ~
             "\t\t\t\t\t\t\t\"startLine\": %u,\n" ~
@@ -95,10 +104,6 @@ class ErrorSinkSarif : ErrorSinkCompiler
             "\t\t\t\t\t}\n" ~
             "\t\t\t\t}]\n" ~
             "\t\t\t}",
-            kindStr.ptr,
-            msg.peekChars(),
-            kindStr.ptr,
-            cast(int) uri.length, uri.ptr,
             loc.linnum,
             loc.charnum);
     }
@@ -133,25 +138,31 @@ class ErrorSinkSarif : ErrorSinkCompiler
             cleanedVersion = cleanedVersion[0 .. $ - 1];
 
         OutBuffer ob;
-        ob.printf(
+        ob.writestring(
             "{\n" ~
             "\t\"version\": \"2.1.0\",\n" ~
             "\t\"$schema\": \"https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json\",\n" ~
             "\t\"runs\": [{\n" ~
             "\t\t\"tool\": {\n" ~
             "\t\t\t\"driver\": {\n" ~
-            "\t\t\t\t\"name\": \"%s\",\n" ~
-            "\t\t\t\t\"version\": \"%.*s\",\n" ~
+            "\t\t\t\t\"name\": \"");
+        writeEscapeJSONString(ob, global.compileEnv.vendor);
+        ob.writestring(
+            "\",\n" ~
+            "\t\t\t\t\"version\": \"");
+        writeEscapeJSONString(ob, cleanedVersion);
+        ob.writestring(
+            "\",\n" ~
             "\t\t\t\t\"informationUri\": \"https://dlang.org/dmd.html\"\n" ~
             "\t\t\t}\n" ~
             "\t\t},\n" ~
             "\t\t\"invocations\": [{\n" ~
-            "\t\t\t\"executionSuccessful\": %s\n" ~
+            "\t\t\t\"executionSuccessful\": ");
+        ob.writestring(executionSuccessful ? "true" : "false");
+        ob.writestring(
+            "\n" ~
             "\t\t}],\n" ~
-            "\t\t\"results\": [",
-            global.compileEnv.vendor.ptr,
-            cast(int) cleanedVersion.length, cleanedVersion.ptr,
-            executionSuccessful ? "true".ptr : "false".ptr);
+            "\t\t\"results\": [");
 
         if (resultCount > 0)
         {

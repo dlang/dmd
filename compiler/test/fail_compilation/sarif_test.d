@@ -1,4 +1,10 @@
 // REQUIRED_ARGS: -verror-style=sarif
+// DISABLED: win32 win64
+// Disabled on Windows: while the test runner transforms linux paths to Windows paths in test output,
+// it's not aware that inside JSON strings that \ gets escaped as "\\" so it fails with diff:
+// - "uri": "fail_compilation\sarif_test.d"
+// + "uri": "fail_compilation\\sarif_test.d"
+
 /*
 TEST_OUTPUT:
 ---
@@ -29,7 +35,25 @@ TEST_OUTPUT:
 							"uri": "fail_compilation/sarif_test.d"
 						},
 						"region": {
-							"startLine": 45,
+							"startLine": 69,
+							"startColumn": 5
+						}
+					}
+				}]
+			},
+			{
+				"ruleId": "DMD-error",
+				"message": {
+					"text": "static assert:  \"needs \"escaping\": back\\slash, tab\there, new\nline\""
+				},
+				"level": "error",
+				"locations": [{
+					"physicalLocation": {
+						"artifactLocation": {
+							"uri": "fail_compilation/sarif_test.d"
+						},
+						"region": {
+							"startLine": 71,
 							"startColumn": 5
 						}
 					}
@@ -43,4 +67,6 @@ TEST_OUTPUT:
 
 void main() {
     x = 5; // Undefined variable to trigger the error
+
+    static assert(0, "needs \"escaping\": back\\slash, tab\there, new\nline");
 }
