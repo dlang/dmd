@@ -4289,7 +4289,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                     if (mod.edition >= Edition.v2024 && storageClass & STC.TYPECTOR)
                     {
-                        auto stc = storageClass & STC.TYPECTOR;
+                        typeof(AST.Declaration.storage_class) stc = storageClass & STC.TYPECTOR;
                         auto qual = (AST.stcToString(stc) ~ '\0').ptr;
                         deprecation(token.loc, "function declaration `%s` has `%s` type qualifier in prefix position",
                             pident.toChars(), qual);
