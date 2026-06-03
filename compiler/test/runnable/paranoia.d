@@ -1,3 +1,4 @@
+// RUNNABLE_PHOBOS_TEST
 /*
 EXTRA_SOURCES: extra-files/paranoia.d
 PERMUTE_ARGS:

@@ -93,6 +93,7 @@ struct TestArgs
     bool     compileSeparately;     /// `COMPILE_SEPARATELY`: compile each source file separately
     bool     link;                  /// `LINK`: force linking for `fail_compilation` & `compilable` tests
     bool     clearDflags;           /// `DFLAGS`: whether DFLAGS should be cleared before invoking dmd
+    bool     requirePhobos;         /// `RUNNABLE_PHOBOS_TEST`/`COMPILABLE_MATH_TEST`: test genuinely needs Phobos, so use it instead of druntime-only
     string   executeArgs;           /// `EXECUTE_ARGS`: arguments passed to the compiled executable (for `runnable[_cxx]`)
     string   cxxflags;              /// `CXXFLAGS`: arguments passed to $CXX when compiling `EXTRA_CPP_SOURCES`
     string[] sources;               /// `EXTRA_SOURCES`: additional D sources (+ main source file)
@@ -124,6 +125,8 @@ struct EnvData
 {
     string all_args;             /// `ARGS`: arguments to test in permutations
     string dmd;                  /// `DMD`: compiler under test
+    string hostDmd;              /// `HOST_DMD`: host compiler, used to build test-harness code (e.g. dshell scripts)
+    string phobosDflags;         /// `PHOBOS_DFLAGS`: Phobos-based `DFLAGS` for dshell tests and `RUNNABLE_PHOBOS_TEST` opt-in tests
     string results_dir;          /// `RESULTS_DIR`: directory for temporary files
     string sep;                  /// `SEP`: directory separator (`/` or `\`)
     string dsep;                 /// `DSEP`: double directory separator ( `/` or `\\`)
@@ -171,6 +174,8 @@ immutable(EnvData) processEnvironment()
     envData.exe            = envGetRequired ("EXE");
     envData.os             = environment.get("OS");
     envData.dmd            = replace(envGetRequired("DMD"), "/", envData.sep);
+    envData.hostDmd        = replace(environment.get("HOST_DMD", "dmd"), "/", envData.sep);
+    envData.phobosDflags   = environment.get("PHOBOS_DFLAGS", "");
     envData.compiler       = "dmd"; //should be replaced for other compilers
     envData.ccompiler      = environment.get("CC");
     envData.cxxcompiler    = environment.get("CXX");
@@ -657,6 +662,10 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     string dflagsStr;
     testArgs.clearDflags = findTestParameter(envData, file, "DFLAGS", dflagsStr);
     enforce(dflagsStr.empty, "The DFLAGS test argument must be empty: It is '" ~ dflagsStr ~ "'");
+
+    // Tests are compiled/linked against druntime only; the rare test for which
+    // Phobos is essential opts in with one of these markers and gets Phobos.
+    testArgs.requirePhobos = file.canFind("RUNNABLE_PHOBOS_TEST") || file.canFind("COMPILABLE_MATH_TEST");
 
     findTestParameter(envData, file, "REQUIRED_ARGS", testArgs.requiredArgs);
     if (envData.required_args.length)
@@ -1722,6 +1731,8 @@ int tryMain(string[] args)
     // Clear the DFLAGS environment variable if it was specified in the test file
     if (testArgs.clearDflags)
         environment["DFLAGS"] = "";
+    else if (testArgs.requirePhobos)
+        environment["DFLAGS"] = envData.phobosDflags;
 
     writef(" ... %-30s %s%s(%s)",
             input_file,
@@ -2344,11 +2355,15 @@ static this()
     auto outfile = File(output_file, "w");
     enum keepFilesOpen = Config.retainStdout | Config.retainStderr;
 
+    // dshell scripts are test-harness code that should not be driven by the
+    // compiler under test, but by a stable host compiler.
+    environment["DFLAGS"] = envData.phobosDflags;
+
     //
     // compile the test
     //
     {
-        const compile = [envData.dmd, "-conf=", "-m"~envData.model] ~
+        const compile = [envData.hostDmd, "-m"~envData.model] ~
             envData.picFlag ~ [
             "-od" ~ testOutDir,
             "-of" ~ testScriptExe,
@@ -2362,9 +2377,13 @@ static this()
         ];
         outfile.writeln("[COMPILE_TEST] ", escapeShellCommand(compile));
         outfile.flush();
+        // Build with the host compiler's own configuration: clear DFLAGS so the
+        // druntime-only flags (and the Phobos PHOBOS_DFLAGS) don't leak in here.
+        auto compileEnv = environment.toAA();
+        compileEnv.remove("DFLAGS");
         // Note that spawnprocess closes the file, so it will need to be re-opened
         // below when we run the test
-        auto compileProc = std.process.spawnProcess(compile, stdin, outfile, outfile, null, keepFilesOpen);
+        auto compileProc = std.process.spawnProcess(compile, stdin, outfile, outfile, compileEnv, keepFilesOpen);
         const exitCode = wait(compileProc);
         if (exitCode != 0)
         {
