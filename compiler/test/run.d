@@ -128,6 +128,9 @@ Options:
     }
 
     // allow overwrites from the environment
+    // HOST_DMD must be either a command on PATH (e.g. `dmd`, `ldmd2`) or an
+    // absolute path; it is used to build test-harness code (dshell scripts,
+    // tools) which runs from various working directories.
     hostDMD = environment.get("HOST_DMD", "dmd");
     unitTestRunnerCommand = resultsDir.buildPath("unit_test_runner").exeName;
 
@@ -584,7 +587,7 @@ string[string] getEnvironment()
         env["DSEP"] = `\\`;
         env["SEP"] = `\`;
         env["DFLAGS"] = `-I"%s\import" -defaultlib=druntime -debuglib=druntime`.format(druntimePath);
-        env["LIB"] = druntimeLibDir ~ ";" ~ environment.get("LIB");
+        env["LIB"] = druntimeLibDir ~ ";" ~ phobosPath ~ ";" ~ environment.get("LIB");
         env["PHOBOS_DFLAGS"] = `-I"%s\import" -I"%s"`.format(druntimePath, phobosPath);
     }
     else
