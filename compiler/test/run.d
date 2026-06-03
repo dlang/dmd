@@ -232,6 +232,20 @@ void verifyCompilerExists(const string[string] env)
 }
 
 /**
+Maps the test runner's `BUILD` to a runtime library build flavor.
+
+`BUILD` may be a dmd build configuration that only describes the compiler
+binary (e.g. VisualD passes `Debug` or `RelWithAsserts`), whereas the
+druntime/phobos makefiles only accept `debug` or `release`. The runtime
+library flavor is independent from the compiler's configuration, so anything
+that isn't explicitly a debug build maps to `release`.
+*/
+string runtimeBuild(string build)
+{
+    return build.toLower == "debug" ? "debug" : "release";
+}
+
+/**
 Builds (or rebuilds) the druntime library that the tests link against.
 
 Prevent test failures due to forgetting to make druntime manually.
@@ -243,7 +257,7 @@ void ensureDruntime(const string[string] env)
     const buildCommand = [
         make, "-C", druntimeDir,
         "MODEL=" ~ env["MODEL"],
-        "BUILD=" ~ env["BUILD"],
+        "BUILD=" ~ runtimeBuild(env["BUILD"]),
     ];
 
     writefln("Building druntime: %-(%s %)", buildCommand);
@@ -576,7 +590,7 @@ string[string] getEnvironment()
     const generatedSuffix = "generated/%s/%s/%s".format(os, build, model);
 
     const druntimePath = environment.get("DRUNTIME_PATH", projectRootDir.buildPath("druntime"));
-    const druntimeLibDir = generatedDir.buildPath(os, build, model);
+    const druntimeLibDir = generatedDir.buildPath(os, runtimeBuild(build), model);
 
     const phobosPath = environment.get("PHOBOS_PATH", projectRootDir.dirName.buildPath("phobos"));
 
