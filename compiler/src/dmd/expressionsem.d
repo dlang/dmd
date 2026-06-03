@@ -3498,7 +3498,7 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
         return false;
     if (sc.intypeof == 1)
         return false;
-    if (sc.ctfe || sc.debug_)
+    if (sc.ctfe || sc.debug_ || sc.ctfeBlock)
         return false;
     if (sc.inDefaultArg || sc.callLoc.isValid)
         return false;
