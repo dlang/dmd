@@ -18,4 +18,11 @@ struct Foo {
     shared const Foo* bar();
     // inferred return type
     inout g() => 2;
+
+// OK
+const {
+    void h();
+}
+const:
+    void i();
 }
