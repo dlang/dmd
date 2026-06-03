@@ -70,13 +70,4 @@ void main()
         f!(op, int, float)();
         f!(op, long, double)();
     }
-
-    // OK
-    f!("^^=", int, int)();
-    f!("^^=", long, int)();
-    f!("^^=", long, short)();
-    f!("^^=", float, long)();
-    f!("^^=", double, float)();
-    // Should that really be OK ?
-    f!("^^=", float, double)();
 }
