@@ -4106,21 +4106,26 @@ private bool preFunctionParameters(Scope* sc, ArgumentList argumentList, ErrorSi
 }
 
 /********************************************
- * Issue an error if default construction is disabled for type t.
- * Default construction is required for arrays and 'out' parameters.
+ * Issue an error if default construction is disabled for type `t`.
+ * Default construction is required for e.g. arrays, `out` parameters and
+ * `new` expressions without arguments. On error, supplemental messages
+ * explain which field or `@disable this();` is responsible.
  * Returns:
  *      true    an error was issued
  */
 private bool checkDefCtor(Loc loc, Type t)
 {
-    if (auto ts = t.baseElemOf().isTypeStruct())
+    Type tb = t.baseElemOf();
+    AggregateDeclaration ad;
+    if (auto ts = tb.isTypeStruct())
+        ad = ts.sym;
+    else if (auto tc = tb.isTypeClass())
+        ad = tc.sym;
+    if (ad && ad.noDefaultCtor)
     {
-        StructDeclaration sd = ts.sym;
-        if (sd.noDefaultCtor)
-        {
-            .error(loc, "%s `%s` default construction is disabled", sd.kind, sd.toPrettyChars);
-            return true;
-        }
+        .error(loc, "default construction is disabled for type `%s`", tb.toErrMsg());
+        noDefaultCtorSupplemental(ad);
+        return true;
     }
     return false;
 }
@@ -6674,11 +6679,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             if (!cd.ctor)
                 cd.ctor = cd.searchCtor();
-            if (cd.noDefaultCtor && !nargs && !cd.defaultCtor)
-            {
-                error(exp.loc, "default construction is disabled for type `%s`", cd.type.toErrMsg());
+            if (!nargs && !cd.defaultCtor && checkDefCtor(exp.loc, cd.type))
                 return setError();
-            }
 
             if (cd.isInterfaceDeclaration())
             {
@@ -6909,11 +6911,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             if (!sd.ctor)
                 sd.ctor = sd.searchCtor();
-            if (sd.noDefaultCtor && !nargs)
-            {
-                error(exp.loc, "default construction is disabled for type `%s`", sd.type.toErrMsg());
+            if (!nargs && checkDefCtor(exp.loc, sd.type))
                 return setError();
-            }
             // checkDeprecated() is already done in newtype.typeSemantic().
 
             if (sd.disableNew)
@@ -7004,14 +7003,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            Type tn = tb.nextOf().baseElemOf();
-            Dsymbol s = tn.toDsymbol(sc);
-            AggregateDeclaration ad = s ? s.isAggregateDeclaration() : null;
-            if (ad && ad.noDefaultCtor)
-            {
-                error(exp.loc, "default construction is disabled for type `%s`", tb.nextOf().toErrMsg());
+            if (checkDefCtor(exp.loc, tb.nextOf()))
                 return setError();
-            }
             for (size_t i = 0; i < nargs; i++)
             {
                 if (tb.ty != Tarray)

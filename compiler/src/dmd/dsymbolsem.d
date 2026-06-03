@@ -874,6 +874,57 @@ bool isOverlappedWith(VarDeclaration _this, VarDeclaration v)
             vbitoffset <  bitoffset + tbitsize;
 }
 
+/**
+ * If aggregate `ad` disables default construction directly through a
+ * `@disable this();` declaration, return that constructor, else `null`
+ * (e.g. when construction is disabled because of a field instead).
+ */
+private CtorDeclaration disabledDefaultCtor(AggregateDeclaration ad)
+{
+    if (!ad.ctor)
+        return null;
+    CtorDeclaration result;
+    overloadApply(ad.ctor, (Dsymbol s)
+    {
+        auto cd = s.isCtorDeclaration();
+        if (cd && (cd.storage_class & STC.disable))
+            if (auto tf = cd.type ? cd.type.isTypeFunction() : null)
+                if (tf.parameterList.length == 0 && tf.parameterList.varargs == VarArg.none)
+                {
+                    result = cd;
+                    return 1;
+                }
+        return 0;
+    });
+    return result;
+}
+
+/**
+ * Emit supplemental error messages explaining why default construction is
+ * disabled for aggregate `ad`. If `ad` disables it directly via `@disable
+ * this();`, point at that declaration. Otherwise list the fields whose type
+ * has disabled default construction, recursing into those field types so the
+ * full chain of reasoning is shown.
+ */
+void noDefaultCtorSupplemental(AggregateDeclaration ad)
+{
+    if (auto cd = disabledDefaultCtor(ad))
+        errorSupplemental(cd.loc, "because of `@disable this();` here");
+
+    foreach (field; ad.fields)
+    {
+        if (field.isThisDeclaration() || field._init)
+            continue;
+        auto ts = field.type.baseElemOf().isTypeStruct();
+        if (ts && ts.sym.noDefaultCtor)
+        {
+            errorSupplemental(field.loc, "because field `%s` of type `%s` has disabled default construction",
+                field.toChars(), field.type.toErrMsg());
+            noDefaultCtorSupplemental(ts.sym);
+        }
+    }
+}
+
 private Type tupleDeclGetType(TupleDeclaration _this)
 {
     /* If this tuple represents a type, return that type
@@ -2998,7 +3049,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                 }
                 else
+                {
                     .error(dsym.loc, "%s `%s` - default construction is disabled for type `%s`", dsym.kind, dsym.toPrettyChars, dsym.type.toErrMsg());
+                    noDefaultCtorSupplemental(tbn.isTypeStruct().sym);
+                }
             }
         }
 
