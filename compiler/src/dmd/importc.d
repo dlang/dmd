@@ -14,6 +14,7 @@
 module dmd.importc;
 
 import core.stdc.stdio;
+import core.stdc.string : strcmp;
 
 import dmd.astenums;
 import dmd.dcast;
@@ -279,6 +280,43 @@ bool cFuncEquivalence(TypeFunction tf1, TypeFunction tf2)
     //printf("t1: %s\n", tf1.toChars());
     //printf("t2: %s\n", tf2.toChars());
     return true;
+}
+
+/**************************************
+ * If an argument with a zero-parameter prototype is passed to an ImportC
+ * parameter whose empty `()` list means unspecified parameters (K&R),
+ * and the two types print the same, return a diagnostic hint.
+ * Params:
+ *      t1 = argument type
+ *      t2 = parameter type
+ * Returns:
+ *      hint string, or null
+ */
+const(char)* cFunctionParamListMismatchHint(Type t1, Type t2)
+{
+    TypeFunction getTF(Type t)
+    {
+        auto tb = t.toBasetype();
+        if (tb.ty == Tpointer || tb.ty == Tdelegate)
+            tb = tb.nextOf().toBasetype();
+        return tb.isTypeFunction();
+    }
+
+    auto tf1 = getTF(t1);
+    auto tf2 = getTF(t2);
+    if (!tf1 || !tf2)
+        return null;
+    if (tf1.equals(tf2))
+        return null;
+    if (tf1.parameterList.length || tf2.parameterList.length)
+        return null;
+    if (tf2.parameterList.varargs != VarArg.KRvariadic ||
+        tf1.parameterList.varargs != VarArg.none)
+        return null;
+    if (strcmp(t1.mutableOf().toChars(), t2.mutableOf().toChars()) != 0)
+        return null;
+
+    return "ImportC: C `f()` means parameters are unspecified, not none; use `f(void)` for no parameters";
 }
 
 /*******************************
