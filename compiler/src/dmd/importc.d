@@ -14,7 +14,6 @@
 module dmd.importc;
 
 import core.stdc.stdio;
-import core.stdc.string : strcmp;
 
 import dmd.astenums;
 import dmd.dcast;
@@ -313,7 +312,7 @@ const(char)* cFunctionParamListMismatchHint(Type t1, Type t2)
     if (tf2.parameterList.varargs != VarArg.KRvariadic ||
         tf1.parameterList.varargs != VarArg.none)
         return null;
-    if (strcmp(t1.mutableOf().toChars(), t2.mutableOf().toChars()) != 0)
+    if (t1.mutableOf().toString() != t2.mutableOf().toString())
         return null;
 
     return "ImportC: C `f()` means parameters are unspecified, not none; use `f(void)` for no parameters";
