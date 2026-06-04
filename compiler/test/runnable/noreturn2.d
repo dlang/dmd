@@ -145,15 +145,20 @@ void testAccess()
         return a;
     });
 
-    // FIXME: assertion failure in the backend in paramsize() - noreturn.sizeof = 0
     // https://github.com/dlang/dmd/issues/20286
-    version (FIXME)
     testAssertFailure(__LINE__ + 4, msg, function noreturn()
     {
         static void foo(noreturn) {}
         noreturn a;
         foo(a);
         assert(false, "Unreachable!"); // Ditto
+    });
+
+    // https://github.com/dlang/dmd/issues/22956
+    testAssertFailure(__LINE__ + 3, "Assertion failure",
+    {
+        void function(noreturn) fun;
+        fun(assert(0));
     });
 
     testAssertFailure(__LINE__ + 5, msg,
