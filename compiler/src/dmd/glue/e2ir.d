@@ -1670,11 +1670,12 @@ elem* toElem(Expression e, ref IRState irs)
             return e;
         }
 
+        tym_t ororty = ae.type && ae.type.toBasetype().ty == Tnoreturn ? TYnoreturn : TYvoid;
         if (irs.params.checkAction == CHECKACTION.C)
         {
             auto econd = toElem(ae.e1, irs);
             auto ea = callCAssert(irs, ae.loc, ae.e1, ae.msg, null);
-            auto eo = el_bin(OPoror, TYvoid, econd, ea);
+            auto eo = el_bin(OPoror, ororty, econd, ea);
             elem_setLoc(eo, ae.loc);
             return eo;
         }
@@ -1686,7 +1687,7 @@ elem* toElem(Expression e, ref IRState irs)
              */
             auto econd = toElem(ae.e1, irs);
             auto ea = genHalt(ae.loc);
-            auto eo = el_bin(OPoror, TYvoid, econd, ea);
+            auto eo = el_bin(OPoror, ororty, econd, ea);
             elem_setLoc(eo, ae.loc);
             return eo;
         }
@@ -1773,11 +1774,11 @@ elem* toElem(Expression e, ref IRState irs)
         {
             // tmp = e, e || assert, e.inv
             elem* eassign = el_bin(OPeq, e.Ety, el_var(ts), e);
-            e = el_combine(eassign, el_bin(OPoror, TYvoid, el_var(ts), ea));
+            e = el_combine(eassign, el_bin(OPoror, ororty, el_var(ts), ea));
             e = el_combine(e, einv);
         }
         else
-            e = el_bin(OPoror,TYvoid,e,ea);
+            e = el_bin(OPoror,ororty,e,ea);
         elem_setLoc(e,ae.loc);
         return e;
     }
