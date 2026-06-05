@@ -683,14 +683,23 @@ private extern(C++) final class Semantic2Visitor : Visitor
         /// Checks that the given class implements all methods of its interfaces.
         static void checkInterfaceImplementations(ClassDeclaration cd)
         {
-            foreach (base; cd.interfaces)
+            // `direct` is false for those inherited from an abstract base class.
+            // A directly-declared interface requires an implementation that isn't
+            // merely inherited from an unrelated base class, like h coming from G
+            // instead of H here:
+            // ---
+            // class G { int h() { return 1; } }
+            // interface H { int h(); }
+            // class K : G, H {}
+            // ---
+            void checkBase(BaseClass* base, bool direct)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=22729
                 // interfaces that have errors or that
                 // inherit from interfaces that have errors
                 // might have an uninitialized vtable
                 if (!base.sym.vtbl.length)
-                    continue;
+                    return;
 
                 // first entry is ClassInfo reference
                 auto methods = base.sym.vtbl[base.sym.vtblOffset .. $];
@@ -716,7 +725,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         // Check that it is current
                         //printf("newinstance = %d fd.toParent() = %s ifd.toParent() = %s\n",
                             //newinstance, fd.toParent().toChars(), ifd.toParent().toChars());
-                        if (fd.toParent() != cd && ifd.toParent() == base.sym)
+                        if (direct && fd.toParent() != cd && ifd.toParent() == base.sym)
                             .error(cd.loc, "%s `%s` interface function `%s` is not implemented", cd.kind, cd.toPrettyChars, ifd.toFullSignature());
                     }
                     else
@@ -728,6 +737,17 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     }
                 }
             }
+
+            // Check the interfaces directly declared by `cd`, as well as those
+            // inherited from abstract base classes. A concrete base class would
+            // already have had its own interfaces checked.
+            // https://github.com/dlang/dmd/issues/19807
+            foreach (base; cd.interfaces)
+                checkBase(base, true);
+
+            for (auto b = cd.baseClass; b && b.isAbstract(); b = b.baseClass)
+                foreach (base; b.interfaces)
+                    checkBase(base, false);
         }
 
         if (cd.semanticRun >= PASS.semantic2done)
