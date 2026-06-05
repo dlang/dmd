@@ -6108,13 +6108,30 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto valtype = aaType.nextOf().substWildTo(MODFlags.const_);
         auto tiargs = new Objects(keytype, valtype);
         hookFunc = new DotTemplateInstanceExp(aaExp.loc, hookFunc, hookId, tiargs);
-        auto ale1 = new ArrayLiteralExp(aaExp.loc, keytype.arrayOf(), aaExp.keys);
-        auto ale2 = new ArrayLiteralExp(aaExp.loc, valtype.arrayOf(), aaExp.values);
+        Expression ekv;
+        auto keys = aaExp.keys;
+        auto values = aaExp.values;
+        if (keys && values && values.length > 1)
+        {
+            // ensure lexical order
+            keys = new Expressions(aaExp.keys.length);
+            values = new Expressions(aaExp.values.length);
+            for (size_t i = 0; i < aaExp.values.length; i++)
+            {
+                // use STC.nodtor on temporaries, because the rvalues are moved to a stack
+                // allocated array in lowerArrayLiteral() without an additional postblit call
+                (*keys)[i] = extractSideEffect(sc, "__aalitkey", ekv, (*aaExp.keys)[i], false, STC.exptemp | STC.nodtor);
+                (*values)[i] = extractSideEffect(sc, "__aalitval", ekv, (*aaExp.values)[i], false, STC.exptemp | STC.nodtor);
+            }
+        }
+        auto ale1 = new ArrayLiteralExp(aaExp.loc, keytype.arrayOf(), keys);
+        auto ale2 = new ArrayLiteralExp(aaExp.loc, valtype.arrayOf(), values);
         lowerArrayLiteral(ale1, sc);
         lowerArrayLiteral(ale2, sc);
         auto arguments = new Expressions(ale1, ale2);
 
         Expression loweredExp = new CallExp(aaExp.loc, hookFunc, arguments);
+        loweredExp = Expression.combine(ekv, loweredExp);
         loweredExp = loweredExp.expressionSemantic(sc);
         loweredExp = resolveProperties(sc, loweredExp);
         aaExp.lowering = loweredExp;
