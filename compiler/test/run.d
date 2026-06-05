@@ -258,6 +258,10 @@ void ensureDruntime(const string[string] env)
         make, "-C", druntimeDir,
         "MODEL=" ~ env["MODEL"],
         "BUILD=" ~ runtimeBuild(env["BUILD"]),
+        // Pass the existing compiler so the druntime Makefile doesn't try to
+        // (re)build dmd itself, which fails when the compiler lives in a
+        // different generated/ subdirectory (e.g. VisualD's RelWithAsserts).
+        "DMD=" ~ env["DMD"],
     ];
 
     writefln("Building druntime: %-(%s %)", buildCommand);
