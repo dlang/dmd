@@ -1,4 +1,4 @@
-core.sys.linux.timerfd moved to core.sys.linux.sys.timerfd
+`core.sys.linux.timerfd` moved to `core.sys.linux.sys.timerfd`
 
 Usually, a linux header that's included in C like `#include <sys/time.h>` gets its translation in `core/sys/linux/sys/time.d`.
 timerfd.d was an exception, not being put in the `sys` package.
