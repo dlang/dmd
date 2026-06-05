@@ -1,6 +1,6 @@
-Destructors now run in a nothrow function when an Error unwinds through it
+Destructors now run in a `nothrow` function when an `Error` unwinds through it
 
-Destructors and scope(exit) blocks internally generate try-finally statements.
+Destructors and `scope(exit)` blocks internally generate try-finally statements.
 Since 2018, DMD has optimized `finally` blocks in `nothrow` try bodies by rewriting them into a simple sequence,
 avoiding the overhead of exception unwinding. However, this optimization also skipped `finally` blocks when
 an `Error` was thrown, preventing expected cleanup from running.

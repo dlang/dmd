@@ -1,6 +1,6 @@
-Gravedigger approach to Throwables escaping a thread entry point is now available
+Gravedigger approach to `Throwable`s escaping a thread entry point is now available
 
-A new method is added to `ThreadBase` enabling filtering of any `Throwable`'s before it is handled by the thread abstraction.
+A new method is added to `ThreadBase` enabling filtering of any `Throwable`s before it is handled by the thread abstraction.
 This may be used per-thread and globally, to log that an `Error` has occured or to exit the process.
 
 A reasonable error handler that may be of use is:
