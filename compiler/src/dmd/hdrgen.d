@@ -3665,7 +3665,11 @@ private void parametersToBuffer(ParameterList pl, ref OutBuffer buf, ref HdrGenS
     final switch (pl.varargs)
     {
         case VarArg.none:
+            break;
+
         case VarArg.KRvariadic:
+            if (!pl.length)
+                buf.put("<K&R variadics>");
             break;
 
         case VarArg.variadic:

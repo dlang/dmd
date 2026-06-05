@@ -2683,11 +2683,6 @@ private const(char)* getParamError(TypeFunction tf, Expression arg, Parameter pa
             rv ? "rvalue ".ptr : "".ptr, arg.toErrMsg(), at,
             parameterToChars(par, tf, qual));
     }
-    if (auto hint = cFunctionParamListMismatchHint(arg.type, par.type))
-    {
-        buf.writestring("\n");
-        buf.writestring(hint);
-    }
     return buf.extractChars();
 }
 
