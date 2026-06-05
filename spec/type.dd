@@ -741,6 +741,25 @@ $(H2 $(LNAME2 void, $(D void)))
       see $(RELATIVE_LINK2 pointer-conversions, Pointer Conversions).
     * $(DDSUBLINK spec/arrays, void_arrays, Void arrays).
     * $(DDSUBLINK spec/expression, cast_void, Ignoring a value) by casting to `void`.
+    * The type of a symbol resolving to a $(GLINK2 template, TemplateDeclaration).
+    * The type of a non-eponymous $(GLINK2 template, TemplateInstance).
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    --------------------
+    void f();
+    static assert(is(typeof(f()) == void));
+
+    void* ptr;
+    static assert(is(typeof(ptr[0]) == void));
+
+    template t() {}
+    static assert(is(typeof(t) == void));
+    static assert(is(typeof(t!()) == void));
+    --------------------
+    )
+
+    $(RATIONALE To simplify the grammar, an expression can resolve to a template or
+    template instantiation. A valid expression must have a valid type.)
 
     $(P `void.sizeof` is 1 (not 0).)
 
@@ -1018,15 +1037,6 @@ $(H3 $(LNAME2 typeof-special, Special Cases))
             @property int foo() { return 1; }
         }
         typeof(S.foo) n;  // n is declared to be an int
-        --------------------
-
-        $(P If the expression is a $(DDLINK spec/template, Template, Template),
-        $(D typeof) gives the type $(D void).
-        )
-
-        --------------------
-        template t {}
-        static assert(is(typeof(t) == void));
         --------------------
 
 
