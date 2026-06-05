@@ -3685,15 +3685,15 @@ extern (C++) final class InExp : BinExp
 }
 
 /***********************************************************
- * Associative array removal, `aa.remove(arg)`
+ * Associative array removal, `aa.remove(key)`
  *
- * This deletes the key e1 from the associative array e2
+ * This deletes the key ekey from the associative array eaa
  */
 extern (C++) final class RemoveExp : BinExp
 {
-    extern (D) this(Loc loc, Expression e1, Expression e2)
+    extern (D) this(Loc loc, Expression eaa, Expression ekey)
     {
-        super(loc, EXP.remove, e1, e2);
+        super(loc, EXP.remove, eaa, ekey);
     }
 
     override void accept(Visitor v)
