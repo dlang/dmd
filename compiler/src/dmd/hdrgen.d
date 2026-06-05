@@ -3669,7 +3669,7 @@ private void parametersToBuffer(ParameterList pl, ref OutBuffer buf, ref HdrGenS
 
         case VarArg.KRvariadic:
             // Diagnostic-only spelling; header/.di output keeps plain `()`.
-            if (!pl.length && !hgs.hdrgen)
+            if (!hgs.hdrgen)
                 buf.put("<K&R variadics>");
             break;
 

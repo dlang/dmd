@@ -4,9 +4,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag23177.d(22): Error: function `run` is not callable using argument types `(extern (C) int function())`
-fail_compilation/diag23177.d(22):        cannot pass argument `& callback` of type `extern (C) int function()` to parameter `extern (C) int function(<K&R variadics>) fn`
-fail_compilation/imports/imp23177.c(5):        `imp23177.run(extern (C) int function(<K&R variadics>) fn)` declared here
+fail_compilation/diag23177.d(25): Error: function `run1` is not callable using argument types `(extern (C) int function())`
+fail_compilation/diag23177.d(25):        cannot pass argument `& callback` of type `extern (C) int function()` to parameter `extern (C) int function(<K&R variadics>) fn`
+fail_compilation/imports/imp23177.c(4):        `imp23177.run1(extern (C) int function(<K&R variadics>) fn)` declared here
+fail_compilation/diag23177.d(26): Error: function `run2` is not callable using argument types `(extern (C) int function(int a<K&R variadics>))`
+fail_compilation/diag23177.d(26):        cannot pass argument `& f` of type `extern (C) int function(int a<K&R variadics>)` to parameter `extern (C) int function(int a) fn`
+fail_compilation/imports/imp23177.c(14):        `imp23177.run2(extern (C) int function(int a) fn)` declared here
 ---
 */
 
@@ -19,5 +22,6 @@ extern (C) int callback()
 
 void main()
 {
-    run(&callback);
+    run1(&callback);
+    run2(&f);
 }
