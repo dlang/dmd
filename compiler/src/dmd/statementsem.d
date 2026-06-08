@@ -3981,7 +3981,6 @@ private extern(D) Expression applyDelegate(ForeachStatement fs, Expression flde,
 private extern(D) Expression applyArray(ForeachStatement fs, Expression flde,
                                                Type tab, Scope* sc2, Type tn, Type tnv)
 {
-    Expression ec;
     const dim = fs.parameters.length;
     const loc = fs.loc;
     /* Call:
@@ -4018,29 +4017,17 @@ private extern(D) Expression applyArray(ForeachStatement fs, Expression flde,
     int j = snprintf(fdname.ptr, BUFFER_LEN,  "_aApply%s%.*s%llu", r, 2, fntab[flag].ptr, cast(ulong)dim);
     assert(j < BUFFER_LEN);
 
-    FuncDeclaration fdapply;
-    TypeDelegate dgty;
-    auto params = new Parameters(new Parameter(Loc.initial, STC.in_, tn.arrayOf(), null, null, null));
-    auto dgparams = new Parameters(new Parameter(Loc.initial, STC.none, Type.tvoidptr, null, null, null));
-    if (dim == 2)
-        dgparams.push(new Parameter(Loc.initial, STC.none, Type.tvoidptr, null, null, null));
-    dgty = new TypeDelegate(new TypeFunction(ParameterList(dgparams), Type.tint32, LINK.d));
-    params.push(new Parameter(Loc.initial, STC.none, dgty, null, null, null));
-    fdapply = genCfunc(params, Type.tint32, fdname.ptr);
+    // Lower to `.object._aApply(aggr, flde)`
+    Expression ec = new IdentifierExp(loc, Id.empty);
+    ec = new DotIdExp(loc, ec, Id.object);
+    ec = new DotIdExp(loc, ec, Identifier.idPool(fdname.ptr, j));
+    ec = ec.expressionSemantic(sc2);
 
     if (tab.isTypeSArray())
         fs.aggr = fs.aggr.castTo(sc2, tn.arrayOf());
-    // paint delegate argument to the type runtime expects
-    Expression fexp = flde;
-    if (!dgty.equals(flde.type))
-    {
-        fexp = new CastExp(loc, flde, flde.type);
-        fexp.type = dgty;
-    }
-    ec = new VarExp(Loc.initial, fdapply, false);
-    ec = new CallExp(loc, ec, fs.aggr, fexp);
-    ec.type = Type.tint32; // don't run semantic() on ec
-    return ec;
+
+    ec = new CallExp(loc, ec, fs.aggr, flde);
+    return ec.expressionSemantic(sc2);
 }
 
 private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression flde, Type tab)

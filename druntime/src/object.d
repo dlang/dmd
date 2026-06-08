@@ -4756,6 +4756,32 @@ public import core.internal.array.construction : _d_arraysetctor;
 public import core.internal.array.arrayassign : _d_arrayassign_l;
 public import core.internal.array.arrayassign : _d_arrayassign_r;
 public import core.internal.array.arrayassign : _d_arraysetassign;
+
+public import core.internal.array.iteration : _aApplycd1;
+public import core.internal.array.iteration : _aApplywd1;
+public import core.internal.array.iteration : _aApplycw1;
+public import core.internal.array.iteration : _aApplywc1;
+public import core.internal.array.iteration : _aApplydc1;
+public import core.internal.array.iteration : _aApplydw1;
+public import core.internal.array.iteration : _aApplycd2;
+public import core.internal.array.iteration : _aApplywd2;
+public import core.internal.array.iteration : _aApplycw2;
+public import core.internal.array.iteration : _aApplywc2;
+public import core.internal.array.iteration : _aApplydc2;
+public import core.internal.array.iteration : _aApplydw2;
+public import core.internal.array.iteration : _aApplyRcd1;
+public import core.internal.array.iteration : _aApplyRwd1;
+public import core.internal.array.iteration : _aApplyRcw1;
+public import core.internal.array.iteration : _aApplyRwc1;
+public import core.internal.array.iteration : _aApplyRdc1;
+public import core.internal.array.iteration : _aApplyRdw1;
+public import core.internal.array.iteration : _aApplyRcd2;
+public import core.internal.array.iteration : _aApplyRwd2;
+public import core.internal.array.iteration : _aApplyRcw2;
+public import core.internal.array.iteration : _aApplyRwc2;
+public import core.internal.array.iteration : _aApplyRdc2;
+public import core.internal.array.iteration : _aApplyRdw2;
+
 public import core.internal.cast_: _d_cast;
 
 public import core.internal.dassert: _d_assert_fail;
