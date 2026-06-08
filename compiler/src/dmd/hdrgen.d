@@ -3656,6 +3656,13 @@ const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQua
 private void parametersToBuffer(ParameterList pl, ref OutBuffer buf, ref HdrGenState hgs)
 {
     buf.put('(');
+    if (pl.varargs == VarArg.KRvariadic)
+    {
+        if (!hgs.hdrgen)
+            buf.put("<K&R variadic>");
+        buf.put(')');
+        return;
+    }
     foreach (i; 0 .. pl.length)
     {
         if (i)
@@ -3665,12 +3672,7 @@ private void parametersToBuffer(ParameterList pl, ref OutBuffer buf, ref HdrGenS
     final switch (pl.varargs)
     {
         case VarArg.none:
-            break;
-
         case VarArg.KRvariadic:
-            // Diagnostic-only spelling; header/.di output keeps plain `()`.
-            if (!hgs.hdrgen)
-                buf.put("<K&R variadics>");
             break;
 
         case VarArg.variadic:
