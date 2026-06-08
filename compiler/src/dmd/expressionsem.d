@@ -8460,6 +8460,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             t1 = tf;
         }
+        else if (auto dse = exp.e1.isDsymbolExp())
+        {
+            // DsymbolExp from lightweight getMember — resolve through
+            // symbolToExp to trigger functionSemantic for the callee.
+            exp.e1 = symbolToExp(dse.s, dse.loc, sc, dse.hasOverloads);
+            goto Lagain;
+        }
         else if (VarExp ve = exp.e1.isVarExp())
         {
             // Do overload resolution
@@ -10233,6 +10240,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             result = ex;
             return;
+        }
+
+        // DsymbolExp from lightweight getMember — resolve through
+        // symbolToExp so that address-of and other operations work.
+        if (auto dse = exp.e1.isDsymbolExp())
+        {
+            exp.e1 = symbolToExp(dse.s, dse.loc, sc, dse.hasOverloads);
+            if (exp.e1.op == EXP.error)
+            {
+                result = exp.e1;
+                return;
+            }
         }
 
         if (sc.inCfile)
@@ -15849,6 +15868,11 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
             {
                 DotVarExp dve = exp.e1.isDotVarExp();
                 return dotMangleof(exp.loc, sc, dve.var, dve.hasOverloads);
+            }
+            case EXP.dSymbol:
+            {
+                DsymbolExp dse = exp.e1.isDsymbolExp();
+                return dotMangleof(exp.loc, sc, dse.s, dse.hasOverloads);
             }
             case EXP.template_:
             {
