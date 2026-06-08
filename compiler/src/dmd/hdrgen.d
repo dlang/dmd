@@ -3659,7 +3659,7 @@ private void parametersToBuffer(ParameterList pl, ref OutBuffer buf, ref HdrGenS
     if (pl.varargs == VarArg.KRvariadic)
     {
         if (!hgs.hdrgen)
-            buf.put("<K&R variadic>");
+            buf.put("..."); // essentially C23 variadic with no named parameter
         buf.put(')');
         return;
     }
