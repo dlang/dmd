@@ -162,7 +162,7 @@ class ClassWithSharedMember
 {
     void fail(shared(uint)* x);
 
-    void test() shared
+    void test()
     {
         fail(&x);
     }
