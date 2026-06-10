@@ -400,6 +400,21 @@ final class CParser(AST) : Parser!AST
             break;
         }
 
+        case TOK.leftBracket:
+            // C23 6.7.13 attribute-specifier-sequence prefixing a declaration or statement
+            if (!isCAttributeStart())
+                goto default;
+            {
+                Specifier attrspec;
+                attrspec.packalign.setDefault();
+                cparseCAttributes(attrspec);
+                if (startsDeclaration(&token))
+                    goto Ldeclaration;
+                // attributes appertain to the following statement
+                s = cparseStatement(0);
+            }
+            break;
+
         case TOK._Static_assert:        // _Static_assert ( constant-expression, string-literal ) ;
             s = new AST.StaticAssertStatement(cparseStaticAssert());
             break;
@@ -1888,8 +1903,8 @@ final class CParser(AST) : Parser!AST
                      */
                     first = false;
                 }
-                else if (token.value == TOK.__attribute__)
-                    cparseGnuAttributes(specifier);
+                else if (token.value == TOK.__attribute__ || isCAttributeStart())
+                    cparseAttributes(specifier);        // GNU / C23 6.7.13
                 else
                     break;
             }
@@ -2517,6 +2532,14 @@ final class CParser(AST) : Parser!AST
                     break;
                 }
 
+                case TOK.leftBracket:           // C23 6.7.13 attribute-specifier-sequence
+                {
+                    if (!isCAttributeStart())
+                        goto default;
+                    cparseCAttributes(specifier);
+                    break;
+                }
+
                 case TOK.__declspec:
                 {
                     /* Microsoft extension
@@ -2923,8 +2946,7 @@ final class CParser(AST) : Parser!AST
                     const mod = cparseTypeQualifierList();
                     if (mod & MOD.xconst)
                         constTypes.push(t);
-                    if (token.value == TOK.__attribute__)
-                        cparseGnuAttributes(specifier);
+                    cparseAttributes(specifier);        // GNU / C23 6.7.13
                     continue;
 
                 default:
@@ -2954,6 +2976,13 @@ final class CParser(AST) : Parser!AST
                 {
                     case TOK.leftBracket:
                     {
+                        if (isCAttributeStart())
+                        {
+                            // C23 6.7.13 attribute-specifier-sequence appertaining to
+                            // the declarator, e.g. `int x [[maybe_unused]]`
+                            cparseCAttributes(specifier);
+                            continue;
+                        }
                         // post [] syntax, pick up any leading type qualifiers, `static` and `*`
                         AST.Type ta;
                         nextToken();
@@ -3264,8 +3293,7 @@ final class CParser(AST) : Parser!AST
 
             AST.ArgumentLabel id;
             auto t = cparseDeclarator(DTR.xparameter, tspec, id, specifier);
-            if (token.value == TOK.__attribute__)
-                cparseGnuAttributes(specifier);
+            cparseAttributes(specifier);        // GNU / C23 6.7.13
             if (specifier.mod & MOD.xconst)
                 t = toConst(t);
             auto param = new AST.Parameter(id.name ? id.loc : typeLoc,
@@ -3860,6 +3888,169 @@ final class CParser(AST) : Parser!AST
         }
     }
 
+    /*************************
+     * C23 6.7.13 attribute-specifier-sequence parser.
+     *
+     * Grammar (N3220 6.7.13.2):
+     *   attribute-specifier-sequence:
+     *      attribute-specifier-sequence(opt) attribute-specifier
+     *   attribute-specifier:
+     *      [ [ attribute-list ] ]
+     *   attribute-list:
+     *      attribute(opt)
+     *      attribute-list , attribute(opt)
+     *
+     * The lexer emits two `TOK.leftBracket` for `[[` and two `TOK.rightBracket`
+     * for `]]`; there is no combined token.
+     * Params:
+     *  specifier = filled in with the recognized attribute(s)
+     */
+    private void cparseCAttributes(ref Specifier specifier)
+    {
+        while (isCAttributeStart())
+        {
+            nextToken();        // first `[`
+            nextToken();        // second `[`
+            if (token.value != TOK.rightBracket)
+            {
+                while (1)
+                {
+                    cparseCAttribute(specifier);
+                    if (token.value != TOK.comma)
+                        break;
+                    nextToken();
+                }
+            }
+            check(TOK.rightBracket);
+            check(TOK.rightBracket);
+        }
+    }
+
+    /*************************
+     * True if positioned at the start of a C23 `[[` attribute-specifier-sequence.
+     * A lone `[` (e.g. an array subscript) is not one.
+     */
+    private bool isCAttributeStart()
+    {
+        return token.value == TOK.leftBracket && peekNext() == TOK.leftBracket;
+    }
+
+    /*************************
+     * Parse a single C23 attribute (N3220 6.7.13.2):
+     *   attribute:
+     *      attribute-token attribute-argument-clause(opt)
+     *   attribute-token:
+     *      standard-attribute              // identifier
+     *      attribute-prefixed-token        // attribute-prefix :: identifier
+     *   attribute-argument-clause:
+     *      ( balanced-token-sequence(opt) )
+     *
+     * `deprecated` (6.7.13.5) and `noreturn`/`_Noreturn` (6.7.13.7) are mapped onto
+     * the existing Specifier fields; every other standard attribute
+     * (`nodiscard` 6.7.13.3, `maybe_unused` 6.7.13.4, `fallthrough` 6.7.13.6,
+     * `unsequenced`/`reproducible` 6.7.13.8), prefixed attribute, or unknown
+     * attribute is accepted and ignored (6.7.13.1). The argument clause is a
+     * balanced-token-sequence, not an expression, so it is skipped by paren
+     * balancing except for the `deprecated` message string.
+     * Params:
+     *  specifier = filled in with the recognized attribute(s)
+     */
+    private void cparseCAttribute(ref Specifier specifier)
+    {
+        // C23 6.7.13.2: a keyword used as an attribute-token is treated as an
+        // identifier; `_Noreturn` is the only such keyword with a mapping.
+        if (token.value == TOK._Noreturn)
+        {
+            specifier.noreturn = true;      // C23 6.7.13.7
+            nextToken();
+            if (token.value == TOK.leftParenthesis)
+                cparseParens();
+            return;
+        }
+        if (token.value != TOK.identifier)
+        {
+            // empty attribute (e.g. a trailing comma) or some other keyword used as
+            // an attribute-token: accept and ignore
+            if (isGnuAttributeName())
+            {
+                nextToken();
+                if (token.value == TOK.leftParenthesis)
+                    cparseParens();
+            }
+            return;
+        }
+
+        Identifier ident = token.ident;
+        nextToken();
+
+        // attribute-prefixed-token: attribute-prefix :: identifier
+        // implementation-specific (e.g. `gnu::`, `clang::`): accept and ignore
+        if (token.value == TOK.colonColon)
+        {
+            nextToken();
+            if (token.value == TOK.identifier || isGnuAttributeName())
+                nextToken();
+            if (token.value == TOK.leftParenthesis)
+                cparseParens();
+            return;
+        }
+
+        // standard attribute; normalize the `__attr__` spelling (C23 6.7.13.1)
+        const id = normalizeCAttributeName(ident);
+        if (id is Id._deprecated)       // C23 6.7.13.5
+        {
+            specifier._deprecated = true;
+            if (token.value == TOK.leftParenthesis)  // optional message string
+            {
+                nextToken();
+                specifier.depMsg = cparseExpression();
+                check(TOK.rightParenthesis);
+            }
+            return;
+        }
+        if (id is Id.noreturn)          // C23 6.7.13.7
+        {
+            specifier.noreturn = true;
+            if (token.value == TOK.leftParenthesis)
+                cparseParens();
+            return;
+        }
+
+        // C23 6.7.13.3/.4/.6/.8 and any unknown attribute: accept and ignore
+        if (token.value == TOK.leftParenthesis)
+            cparseParens();
+    }
+
+    /*************************
+     * C23 6.7.13.1: a standard attribute spelled `attr` and the form `__attr__`
+     * behave identically. Strip a surrounding `__` pair so the core name can be
+     * compared against the known attribute identifiers.
+     */
+    private Identifier normalizeCAttributeName(Identifier ident)
+    {
+        const s = ident.toString();
+        if (s.length > 4 && s[0] == '_' && s[1] == '_' && s[$ - 1] == '_' && s[$ - 2] == '_')
+            return Identifier.idPool(s[2 .. $ - 2]);
+        return ident;
+    }
+
+    /*************************
+     * Consume any mixture of GNU `__attribute__((...))` and C23 `[[...]]`
+     * attribute-specifier-sequences, in any order, into `specifier`.
+     */
+    private void cparseAttributes(ref Specifier specifier)
+    {
+        while (1)
+        {
+            if (token.value == TOK.__attribute__)
+                cparseGnuAttributes(specifier);
+            else if (isCAttributeStart())
+                cparseCAttributes(specifier);
+            else
+                break;
+        }
+    }
+
     //}
     /******************************************************************************/
     /***************************** Struct & Enum Parser ***************************/
@@ -3901,8 +4092,7 @@ final class CParser(AST) : Parser!AST
          */
         Specifier specifier;
         specifier.packalign.setDefault();
-        if (token.value == TOK.__attribute__)
-            cparseGnuAttributes(specifier);
+        cparseAttributes(specifier);        // GNU / C23 6.7.13
 
         Identifier tag;
         if (token.value == TOK.identifier)
@@ -3943,15 +4133,14 @@ final class CParser(AST) : Parser!AST
                 nextToken();
                 auto mloc = token.loc;
 
-                if (token.value == TOK.__attribute__)
-                {
-                    /* gnu-attributes can appear here, but just scan and ignore them
-                     * https://gcc.gnu.org/onlinedocs/gcc/Enumerator-Attributes.html
-                     */
-                    Specifier specifierx;
-                    specifierx.packalign.setDefault();
-                    cparseGnuAttributes(specifierx);
-                }
+                /* gnu-attributes / C23 6.7.13 attributes can appear before and after the
+                 * (optional) value (https://gcc.gnu.org/onlinedocs/gcc/Enumerator-Attributes.html).
+                 * `deprecated` (C23 6.7.13.5) is applied to the enumerator, since D
+                 * supports deprecated enum members; the rest are accepted and ignored.
+                 */
+                Specifier emspec;
+                emspec.packalign.setDefault();
+                cparseAttributes(emspec);
 
                 AST.Expression value;
                 if (token.value == TOK.assign)
@@ -3961,17 +4150,17 @@ final class CParser(AST) : Parser!AST
                     // TODO C11 6.7.2.2-2 value must fit into an int
                 }
 
-                if (token.value == TOK.__attribute__)
-                {
-                    /* gnu-attributes can appear here, but just scan and ignore them
-                     * https://gcc.gnu.org/onlinedocs/gcc/Enumerator-Attributes.html
-                     */
-                    Specifier specifierx;
-                    specifierx.packalign.setDefault();
-                    cparseGnuAttributes(specifierx);
-                }
+                cparseAttributes(emspec);
 
-                auto em = new AST.EnumMember(mloc, ident, value, null, STC.none, null, null);
+                STC emstc = STC.none;
+                AST.DeprecatedDeclaration dd;
+                if (emspec._deprecated)         // C23 6.7.13.5
+                {
+                    emstc |= STC.deprecated_;
+                    if (emspec.depMsg)
+                        dd = new AST.DeprecatedDeclaration(emspec.depMsg, null);
+                }
+                auto em = new AST.EnumMember(mloc, ident, value, null, emstc, null, dd);
                 members.push(em);
 
                 if (token.value == TOK.comma)
@@ -3983,11 +4172,10 @@ final class CParser(AST) : Parser!AST
             }
             check(TOK.rightCurly);
 
-            /* GNU Extensions
-             * Parse the postfix gnu-attributes (opt)
+            /* GNU Extensions / C23 6.7.13
+             * Parse the postfix attributes (opt)
              */
-            if (token.value == TOK.__attribute__)
-                cparseGnuAttributes(specifier);
+            cparseAttributes(specifier);
         }
         else if (!tag)
             error("missing `identifier` after `enum`");
@@ -4035,6 +4223,8 @@ final class CParser(AST) : Parser!AST
         {
             if (token.value == TOK.__attribute__)
                 cparseGnuAttributes(tagSpecifier);
+            else if (isCAttributeStart())       // C23 6.7.13
+                cparseCAttributes(tagSpecifier);
             else if (token.value == TOK.__declspec)
                 cparseDeclspec(tagSpecifier);
             else if (token.value == TOK.__pragma)
@@ -4072,11 +4262,10 @@ final class CParser(AST) : Parser!AST
                  */
             }
 
-            /* GNU Extensions
-             * Parse the postfix gnu-attributes (opt)
+            /* GNU Extensions / C23 6.7.13
+             * Parse the postfix attributes (opt)
              */
-            if (token.value == TOK.__attribute__)
-                cparseGnuAttributes(tagSpecifier);
+            cparseAttributes(tagSpecifier);
             if (!tagSpecifier.packalign.isUnknown)
             {
                 foreach (ref d; (*members)[])
@@ -4232,13 +4421,12 @@ final class CParser(AST) : Parser!AST
                 width = cparseConstantExp();
             }
 
-            /* GNU Extensions
+            /* GNU Extensions / C23 6.7.13
              * struct-declarator:
-             *    declarator gnu-attributes (opt)
-             *    declarator (opt) : constant-expression gnu-attributes (opt)
+             *    declarator attributes (opt)
+             *    declarator (opt) : constant-expression attributes (opt)
              */
-            if (token.value == TOK.__attribute__)
-                cparseGnuAttributes(specifier);
+            cparseAttributes(specifier);
 
             if (!tspec && !specifier.scw && !specifier.mod)
                 error("specifier-qualifier-list required");
