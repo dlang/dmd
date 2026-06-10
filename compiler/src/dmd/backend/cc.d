@@ -205,8 +205,6 @@ nothrow:
     block* Bnext;               // pointer to next block in list
     Barray!(block*) Bsucc;      // and the successor array copy of Bsucc
     Barray!(block*) Bpred;      // and the predecessor array
-    int Bindex;                 // into created object stack
-    int Bendindex;              // index at end of block
     block* Btry;                // BC.try_,BC._try: enclosing try block, if any
                                 // BC???: if in try-block, points to BC.try_ or BC._try
                                 // note that can't have a BC.try_ and BC._try in
