@@ -156,3 +156,17 @@ struct Argh
         while(!cas(&locked, false, true)) {}
     }
 }
+
+// https://github.com/dlang/dmd/issues/23233
+class ClassWithSharedMember
+{
+    void fail(shared(uint)* x);
+
+    void test() shared
+    {
+        fail(&x);
+    }
+
+private:
+    shared uint x;
+}
