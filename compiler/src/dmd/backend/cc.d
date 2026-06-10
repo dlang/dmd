@@ -515,19 +515,6 @@ struct struct_t
     type* Sarg2type;
 }
 
-/**********************************
- * Symbol Table
- */
-
-@trusted
-inout(Symbol)* list_symbol(inout list_t lst) { return cast(inout(Symbol)*) list_ptr(lst); }
-
-@trusted
-void list_setsymbol(list_t lst, Symbol* s) { lst.ptr = s; }
-
-@trusted
-inout(Classsym)* list_Classsym(inout list_t lst) { return cast(inout(Classsym)*) list_ptr(lst); }
-
 enum
 {
     SFLvalue        = 1,           // Svalue contains const expression
