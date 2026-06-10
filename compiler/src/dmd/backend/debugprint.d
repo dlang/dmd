@@ -372,7 +372,7 @@ void WRblock(block* b)
         }
         printf(" flags=x%x weight=%d",b.Bflags,b.Bweight);
         //printf("\tfile %p, line %d",b.Bfilptr,b.Blinnum);
-        printf(" BC.%s Btry=%p Bindex=%d",bc_str(b.bc),b.Btry,b.Bindex);
+        printf(" BC.%s Btry=%p",bc_str(b.bc),b.Btry);
         if (b.bc == BC.try_)
             printf(" catchvar = %p",b.catchvar);
         printf("\n");
@@ -399,8 +399,6 @@ void WRblock(block* b)
         printf("%2d: BC.%s", b.Bnumber, bc_str(b.bc));
         if (b.Btry)
             printf(" Btry=B%d",b.Btry ? b.Btry.Bnumber : 0);
-        if (b.Bindex)
-            printf(" Bindex=%d",b.Bindex);
         if (b.bc == BC._finally)
             printf(" b_ret=B%d", b.b_ret ? b.b_ret.Bnumber : 0);
         if (b.Bsrcpos.Sfilename)
