@@ -1,3 +1,11 @@
+/*
+REQUIRED_ARGS: -verrors=simple
+TEST_OUTPUT:
+---
+compilable/ctests2.c(34): Deprecation: enum member `ctests2.E.oldval` is deprecated
+compilable/ctests2.c(27):        `oldval` is declared here
+---
+*/
 /*************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22304
 
