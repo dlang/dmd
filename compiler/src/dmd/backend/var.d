@@ -85,7 +85,6 @@ char*   foutdir = null,       // directory to place output files in
         flstname = null;       /* the filename strings                 */
 
 int pathsysi;                   // -isystem= index
-list_t headers;                 /* pre-include files                    */
 
 /* Data from lexical analyzer: */
 
