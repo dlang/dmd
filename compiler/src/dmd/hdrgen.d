@@ -3656,6 +3656,13 @@ const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQua
 private void parametersToBuffer(ParameterList pl, ref OutBuffer buf, ref HdrGenState hgs)
 {
     buf.put('(');
+    if (pl.varargs == VarArg.KRvariadic)
+    {
+        if (!hgs.hdrgen)
+            buf.put("..."); // essentially C23 variadic with no named parameter
+        buf.put(')');
+        return;
+    }
     foreach (i; 0 .. pl.length)
     {
         if (i)
