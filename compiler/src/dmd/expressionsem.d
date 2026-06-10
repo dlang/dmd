@@ -2703,7 +2703,9 @@ Lagain:
     {
         // functions are checked after overloading
         // templates are checked after matching constraints
-        if (!s.isFuncDeclaration() && !s.isTemplateDeclaration())
+        // enum members are checked once in getVarExp() below; skip here to avoid
+        // emitting the deprecation diagnostic twice for an enum member accessed by name
+        if (!s.isFuncDeclaration() && !s.isTemplateDeclaration() && !s.isEnumMember())
         {
             s.checkDeprecated(loc, sc);
             if (d)
@@ -2715,7 +2717,7 @@ Lagain:
         s = s.toAlias();
 
         //printf("s = '%s', s.kind = '%s', s.needThis() = %p\n", s.toChars(), s.kind(), s.needThis());
-        if (s != olds && !s.isFuncDeclaration() && !s.isTemplateDeclaration())
+        if (s != olds && !s.isFuncDeclaration() && !s.isTemplateDeclaration() && !s.isEnumMember())
         {
             s.checkDeprecated(loc, sc);
             if (d)
@@ -16022,14 +16024,18 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
             // if 's' is a tuple variable, the tuple is returned.
             s = s.toAlias();
 
+            if (auto em = s.isEnumMember())
+            {
+                // getVarExp() performs the deprecated/disabled checks itself; doing them
+                // here as well would emit the diagnostic twice for an enum member
+                // accessed by name (e.g. an anonymous enum member, or an ImportC enumerator).
+                return em.getVarExp(exp.loc, sc);
+            }
+
             s.checkDeprecated(exp.loc, sc);
             if (auto d = s.isDeclaration())
                 d.checkDisabled(exp.loc, sc);
 
-            if (auto em = s.isEnumMember())
-            {
-                return em.getVarExp(exp.loc, sc);
-            }
             if (auto v = s.isVarDeclaration())
             {
                 //printf("DotIdExp:: Identifier '%s' is a variable, type '%s'\n", toChars(), v.type.toErrMsg());
