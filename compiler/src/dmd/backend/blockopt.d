@@ -1319,8 +1319,8 @@ private void bltailmerge(ref GlobalOptimizer go, ref BlockOpt bo)
     if (!(go.mfoptim & MFtime))            /* if optimized for space       */
     {
         /* Split each block into a reversed linked list of elems        */
-        for (block* b = bo.startblock; b; b = b.Bnext)
-            b.Blist = bl_enlist(b.Belem);
+        //for (block* b = bo.startblock; b; b = b.Bnext)
+            //b.Blist = bl_enlist(b.Belem);
 
         /* Search for two blocks that have the same successor list.
            If the first expressions both lists are the same, split
@@ -1332,17 +1332,13 @@ private void bltailmerge(ref GlobalOptimizer go, ref BlockOpt bo)
             enum additionalAnd = "true";
         for (block* b = bo.startblock; b; b = b.Bnext)
         {
-            if (!b.Blist)
+            if (!b.Belem)
                 continue;
-            elem* e = list_elem(b.Blist);
-            elem_debug(e);
             for (block* bn = b.Bnext; bn; bn = bn.Bnext)
             {
-                elem* en;
                 if (b.bc == bn.bc &&
                     b.Bsucc.equals(bn.Bsucc) &&
-                    bn.Blist &&
-                    el_match(e,(en = list_elem(bn.Blist))) &&
+                    bn.Belem &&
                     mixin(additionalAnd)
                    )
                 {
@@ -1366,7 +1362,26 @@ private void bltailmerge(ref GlobalOptimizer go, ref BlockOpt bo)
                             break;
                     }
 
-                    /* We've got a match        */
+                    /* Scan elem tree for the last elem
+                     */
+                    static elem** elemLast(elem** pb)
+                    {
+                        while (1)
+                        {
+                            elem* e = *pb;
+                            if (e.Eoper == OPcomma)
+                                pb = &e.E2;
+                            else
+                                break;
+                        }
+                        return pb;
+                    }
+
+                    /* Match last expression in e or en trees   */
+                    elem** pe  = elemLast(&b.Belem);
+                    elem** pne = elemLast(&bn.Belem);
+                    if (!el_match(*pe, *pne))
+                        continue;
 
                     /*  Create a new block, bnew, which will be the
                         merged block. Physically locate it just after bn.
@@ -1411,30 +1426,44 @@ private void bltailmerge(ref GlobalOptimizer go, ref BlockOpt bo)
                     b.Bsucc.push(bnew);
                     bn.Bsucc.push(bnew);
 
-                    go.changes++;
+                    bnew.Belem = *pe;   // bnew gets the merged elem
+                    *pe = null;
 
-                    /* Find all the expressions we can merge    */
-                    do
+                    el_free(*pne);   // don't need the duplicate
+                    *pne = null;
+
+                    /* The elem tree is null or a sequence of OPcomma's that end in null.
+                     * For the OPcomma's, remove the last one
+                     */
+                    static void snipTrailingOPcomma(elem** pe)
                     {
-                        list_append(&bnew.Blist,e);
-                        el_free(en);
-                        list_pop(&b.Blist);
-                        list_pop(&bn.Blist);
-                        if (!b.Blist)
-                            goto nextb;
-                        e = list_elem(b.Blist);
-                        if (!bn.Blist)
+                        if (!*pe)
+                            return;     // already snipped off
+
+                        while (1)
+                        {
+                            elem* e = *pe;
+                            assert(e.Eoper == OPcomma);
+                            if (e.E2)
+                            {
+                                pe = &e.E2;
+                                continue;
+                            }
+                            // e.E2 has been snipped off, so snip off e
+                            *pe = e.E1; // replace the OPcomma elem with E1
+                            e.E1 = null;
+                            el_free(e); // free the OPcomma
                             break;
-                        en = list_elem(bn.Blist);
-                    } while (el_match(e,en));
+                        }
+                    }
+
+                    snipTrailingOPcomma(&b.Belem);
+                    snipTrailingOPcomma(&bn.Belem);
+
+                    go.changes++;
                 }
             }
-    nextb:
         }
-
-        /* Recombine elem lists into expression trees   */
-        for (block* b = bo.startblock; b; b = b.Bnext)
-            b.Belem = bl_delist(b.Blist);
     }
 }
 
