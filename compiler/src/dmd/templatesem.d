@@ -3342,6 +3342,21 @@ bool needsCodegen(TemplateInstance ti)
         return false;
     }
 
+    if (ti.enclosing)
+    {
+        if (auto fd = ti.enclosing.isFuncDeclaration())
+        {
+            if (auto fld = fd.isFuncLiteralDeclaration())
+            {
+                if (fld.tookAddressOf == 0 && fld.tok != TOK.reserved)
+                {
+                    ti.minst = null; // mark as speculative
+                    return false;
+                }
+            }
+        }
+    }
+
     // This should only be called on the primary instantiation.
     assert(ti is ti.inst);
 
