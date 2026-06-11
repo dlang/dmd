@@ -185,7 +185,7 @@ enum BFL : ushort
     outsideprolog = 0x200,  // outside function prolog/epilog
     label         = 0x400,  // block preceded by label
     volatile      = 0x800,  // block is volatile
-    nounroll      = 0x1000, // do not unroll loop
+    keepRolled    = 0x1000, // do not unroll loop
 
     // for Windows NTEXCEPTIONS
     ehcode        = 0x2000, // BC._filter: need to load exception code
