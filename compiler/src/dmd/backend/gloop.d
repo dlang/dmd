@@ -582,8 +582,8 @@ private bool looprotate(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
         auto head2 = block_calloc(bo); // create new head block
         head2.Btry = head.Btry;
         head2.Bflags = head.Bflags;
-        head.Bflags = BFL.nomerg;       // move flags over to head2
-        head2.Bflags |= BFL.nomerg;
+        head.Bflags = BFL.separate;       // move flags over to head2
+        head2.Bflags |= BFL.separate;
         head2.bc = head.bc;
         assert(head2.bc != BC.switch_);
         if (head.Belem)                // copy expression tree
