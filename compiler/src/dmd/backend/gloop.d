@@ -3703,9 +3703,9 @@ bool loopunroll(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
     /* Do not repeatedly unroll the same loop,
      * or waste time attempting to
      */
-    if (l.Lhead.Bflags & BFL.nounroll)
+    if (l.Lhead.Bflags & BFL.keepRolled)
         return false;
-    l.Lhead.Bflags |= BFL.nounroll;
+    l.Lhead.Bflags |= BFL.keepRolled;
     if (log)
         WRfunc("loop", funcsym_p, bo.startblock);
 
