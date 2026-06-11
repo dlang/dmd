@@ -26,7 +26,6 @@ import dmd.backend.cgcv;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.dt;
-import dmd.backend.dlist;
 import dmd.backend.el;
 import dmd.backend.global : REGSIZE, _align, size, symboldata;
 import dmd.backend.blockopt : block_compbcount, block_pred, blocklist_free, blockopt;

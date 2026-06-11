@@ -22,7 +22,6 @@ import dmd.backend.cdef;
 import dmd.backend.cgen : gen1, gen2;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
-import dmd.backend.dlist;
 import dmd.backend.global : REGSIZE, mask;
 import dmd.backend.var : debugs;
 import dmd.backend.mem;

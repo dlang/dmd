@@ -68,7 +68,6 @@ static if (1)
     import dmd.backend.dwarf;
     import dmd.backend.dwarf2;
     import dmd.backend.mem;
-    import dmd.backend.dlist;
     import dmd.backend.el;
     import dmd.backend.elfobj : addSegmentToComdat;
     import dmd.backend.machobj : getsegment2;

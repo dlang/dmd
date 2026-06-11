@@ -24,7 +24,6 @@ import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.cgcse;
 import dmd.backend.codebuilder;
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.melf;
 import dmd.backend.mem;

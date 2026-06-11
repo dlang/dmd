@@ -27,7 +27,6 @@ import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.mem;
 import dmd.backend.aarray;
-import dmd.backend.dlist;
 import dmd.backend.el;
 import dmd.backend.global : _align, err_nomem, error, symboldata;
 import dmd.backend.dout : alignOffset;

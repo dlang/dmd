@@ -24,7 +24,6 @@ import dmd.backend.cgcv;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.cv4;
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.el;
 import dmd.backend.global : err_nomem;

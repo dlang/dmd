@@ -18,7 +18,6 @@ module dmd.backend.type;
 import dmd.backend.cdef;
 import dmd.backend.cc : block, BlockState, Classsym, Symbol, param_t;
 import dmd.backend.code;
-import dmd.backend.dlist;
 import dmd.backend.el : elem;
 import dmd.backend.ty;
 

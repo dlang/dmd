@@ -22,8 +22,6 @@ import dmd.backend.el;
 import dmd.backend.ty : I32;
 import dmd.backend.global : REGSIZE;
 
-import dmd.backend.dlist;
-
 @nogc:
 nothrow:
 @safe:

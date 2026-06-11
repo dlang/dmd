@@ -20,7 +20,6 @@ import core.stdc.stdlib;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.oper;
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.el;
 import dmd.backend.mem;
@@ -1255,33 +1254,6 @@ private void bl_enlist2(ref Barray!(elem*) elems, elem* e)
     }
 }
 
-@trusted
-private list_t bl_enlist(elem* e)
-{
-    list_t el = null;
-
-    if (e)
-    {
-        elem_debug(e);
-        if (e.Eoper == OPcomma)
-        {
-            list_t el2 = bl_enlist(e.E1);
-            el = bl_enlist(e.E2);
-            e.E1 = e.E2 = null;
-            el_free(e);
-
-            /* Append el2 list to el    */
-            assert(el);
-            list_t pl;
-            for (pl = el; list_next(pl); pl = list_next(pl))
-                {}
-            pl.next = el2;
-        }
-        else
-            list_prepend(&el,e);
-    }
-    return el;
-}
 
 /*****************************************
  * Take a list of expressions and convert it back into an expression tree.
@@ -1297,15 +1269,6 @@ private elem* bl_delist2(elem*[] elems)
     return result;
 }
 
-@trusted
-private elem* bl_delist(list_t el)
-{
-    elem* e = null;
-    foreach (els; ListRange(el))
-        e = el_combine(list_elem(els),e);
-    list_free(&el,FPNULL);
-    return e;
-}
 
 /*****************************************
  * Do tail merging.
@@ -1318,10 +1281,6 @@ private void bltailmerge(ref GlobalOptimizer go, ref BlockOpt bo)
     assert(OPTIMIZER);
     if (!(go.mfoptim & MFtime))            /* if optimized for space       */
     {
-        /* Split each block into a reversed linked list of elems        */
-        //for (block* b = bo.startblock; b; b = b.Bnext)
-            //b.Blist = bl_enlist(b.Belem);
-
         /* Search for two blocks that have the same successor list.
            If the first expressions both lists are the same, split
            off a new block with that expression in it.

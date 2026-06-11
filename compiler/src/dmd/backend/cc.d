@@ -18,7 +18,6 @@ module dmd.backend.cc;
 import dmd.backend.barray;
 import dmd.backend.cdef;        // host and target compiler definition
 import dmd.backend.x86.code_x86;
-import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.symtab;
@@ -196,12 +195,7 @@ enum BFL : ushort
 struct block
 {
 nothrow:
-    union
-    {
-        elem* Belem;            // pointer to elem tree
-        list_t  Blist;          // list of expressions
-    }
-
+    elem* Belem;                // pointer to elem tree
     block* Bnext;               // pointer to next block in list
     Barray!(block*) Bsucc;      // and the successor array copy of Bsucc
     Barray!(block*) Bpred;      // and the predecessor array
@@ -314,10 +308,6 @@ nothrow:
         }
     }
 }
-
-@trusted
-inout(block)* list_block(inout list_t lst) { return cast(inout(block)*)list_ptr(lst); }
-
 
 /** Basic block control flow operators. **/
 
@@ -602,14 +592,7 @@ struct Symbol
     union                       // variants for different Symbol types
     {
         enum_t* Senum;          // SCenum
-
-        struct
-        {
-             func_t* Sfunc;     // tyfunc
-             list_t Spath1;     // SCfuncalias member functions: same as Spath
-                                // and in same position
-                                // SCadl: list of associated functions for ADL lookup
-        }
+	func_t* Sfunc;          // tyfunc
 
         struct                  // SClabel
         {
