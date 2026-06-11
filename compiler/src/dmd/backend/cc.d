@@ -177,7 +177,7 @@ enum BFL : ushort
     jmpoptdone    = 4,      // set when no more jump optimizations
                             //  are possible for this block
     nostackopt    = 8,      // set when stack elimination should not be done
-    nomerg        = 0x10,   // do not merge with other blocks
+    separate      = 0x10,   // do not merge with other blocks
     prolog        = 0x20,   // generate function prolog
     epilog        = 0x40,   // generate function epilog
     refparam      = 0x80,   // referenced parameter

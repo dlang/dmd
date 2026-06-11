@@ -85,6 +85,7 @@ block* block_calloc(ref BlockOpt bo)
 }
 
 /*********************************
+ * Convert from BC to Goal.
  */
 
 Goal bc_goal(BC bc)
@@ -100,6 +101,7 @@ Goal bc_goal(BC bc)
 }
 
 /*********************************
+ * Free the memory in block_freelist.
  */
 
 @trusted
@@ -1050,7 +1052,7 @@ private void blident(ref GlobalOptimizer go, ref BlockOpt bo)
     for (block* bn = bo.startblock; bn; bn = bnext)
     {
         bnext = bn.Bnext;
-        if (bn.Bflags & BFL.nomerg)
+        if (bn.Bflags & BFL.separate)
             continue;
 
         for (block* b = bnext; b; b = b.Bnext)
@@ -1066,7 +1068,7 @@ private void blident(ref GlobalOptimizer go, ref BlockOpt bo)
             else
                 enum additionalAnd = true;
             if (b.bc == bn.bc &&
-                (!OPTIMIZER || !(b.Bflags & BFL.nomerg) || !b.Bsucc.length) &&
+                (!OPTIMIZER || !(b.Bflags & BFL.separate) || !b.Bsucc.length) &&
                 b.Bsucc.equals(bn.Bsucc) &&
                 additionalAnd &&
                 el_match(b.Belem,bn.Belem)
