@@ -17,7 +17,6 @@ import core.stdc.string;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
-import dmd.backend.dlist;
 import dmd.backend.el;
 import dmd.backend.global : REGSIZE, _align;
 import dmd.backend.debugprint : tym_str;

@@ -21,7 +21,6 @@ import dmd.backend.barray;
 import dmd.backend.cdef;
 import dmd.backend.cc : Symbol, block, Classsym, BlockState, FL, Srcpos;
 import dmd.backend.code;
-import dmd.backend.dlist;
 import dmd.backend.el : elem;
 import dmd.backend.mem;
 import dmd.backend.symtab;

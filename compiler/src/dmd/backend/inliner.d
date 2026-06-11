@@ -46,7 +46,6 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.barray;
-import dmd.backend.dlist;
 
 nothrow:
 @safe:

@@ -23,8 +23,6 @@ import dmd.backend.type;
 
 import dmd.backend.cc : Symbol;
 
-import dmd.backend.dlist;
-
 @nogc:
 nothrow:
 @safe:
@@ -92,7 +90,6 @@ struct elem
         {
             targ_size_t Voffset;// offset from symbol
             Symbol* Vsym;       // pointer to symbol table
-            LIST* Erd;          // OPvar: reaching definitions
         }
         struct
         {
@@ -158,12 +155,6 @@ FL el_fl(const elem* e) { return e.Vsym.Sfl; }
 
 //#define Eoffset         EV.sp.Voffset
 //#define Esymnum         EV.sp.Vsymnum
-
-@trusted
-inout(elem)* list_elem(inout list_t list) { return cast(inout(elem)*)list_ptr(list); }
-
-@trusted
-void list_setelem(list_t list, void* ptr) { list.ptr = cast(elem*)ptr; }
 
 public import dmd.backend.elem;
 public import dmd.backend.elpicpie : el_var, el_ptr;

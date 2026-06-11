@@ -18,7 +18,6 @@ import core.stdc.stdio;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.dlist;
 import dmd.backend.goh;
 import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.obj;

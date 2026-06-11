@@ -26,7 +26,6 @@ import dmd.backend.code;
 import dmd.backend.type;
 
 import dmd.backend.cdef;
-import dmd.backend.dlist;
 import dmd.backend.ty;
 
 nothrow:

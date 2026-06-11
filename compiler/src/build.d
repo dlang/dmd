@@ -1537,7 +1537,7 @@ auto sourceFiles()
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d dt.d el.d global.d
             obj.d oper.d iasm.d codebuilder.d
-            ty.d type.d dlist.d
+            ty.d type.d
             dwarf.d dwarf2.d cv4.d
             melf.d mscoff.d mach.d
             x86/code_x86.d x86/xmm.d
