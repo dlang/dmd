@@ -1845,6 +1845,12 @@ int tryMain(string[] args)
 
                 compile_output = compile_output.unifyNewLine();
                 compile_output = std.regex.replaceAll(compile_output, regex(`^DMD v2\.[0-9]+.*\n? DEBUG$`, "m"), "");
+                // druntime.lib is built as a single library with `dmd -lib`, so
+                // it contains several object files with the same basename (e.g.
+                // memory.obj from core.memory and rt.memory). The MS linker emits
+                // a benign LNK4255 warning about this when linking with `-g`;
+                // strip it so it doesn't fail tests that expect no output.
+                compile_output = std.regex.replaceAll(compile_output, regex(`^.*warning LNK4255:.*\n?`, "m"), "");
                 compile_output = std.string.strip(compile_output);
                 // replace test_result path with fixed ones
                 compile_output = compile_output.replace(result_path, resultsDirReplacement);
@@ -2355,15 +2361,18 @@ static this()
     auto outfile = File(output_file, "w");
     enum keepFilesOpen = Config.retainStdout | Config.retainStderr;
 
-    // dshell scripts are test-harness code that should not be driven by the
-    // compiler under test, but by a stable host compiler.
+    // dshell scripts import Phobos (std.process etc.) and link against the
+    // prebuilt dshell library, so build them with the compiler under test and
+    // the Phobos DFLAGS: the host compiler may be too old to parse the current
+    // druntime/Phobos sources, and the prebuilt library is built by the
+    // compiler under test too, so both must agree.
     environment["DFLAGS"] = envData.phobosDflags;
 
     //
     // compile the test
     //
     {
-        const compile = [envData.hostDmd, "-m"~envData.model] ~
+        const compile = [envData.dmd, "-conf=", "-m"~envData.model] ~
             envData.picFlag ~ [
             "-od" ~ testOutDir,
             "-of" ~ testScriptExe,
@@ -2377,13 +2386,9 @@ static this()
         ];
         outfile.writeln("[COMPILE_TEST] ", escapeShellCommand(compile));
         outfile.flush();
-        // Build with the host compiler's own configuration: clear DFLAGS so the
-        // druntime-only flags (and the Phobos PHOBOS_DFLAGS) don't leak in here.
-        auto compileEnv = environment.toAA();
-        compileEnv.remove("DFLAGS");
         // Note that spawnprocess closes the file, so it will need to be re-opened
         // below when we run the test
-        auto compileProc = std.process.spawnProcess(compile, stdin, outfile, outfile, compileEnv, keepFilesOpen);
+        auto compileProc = std.process.spawnProcess(compile, stdin, outfile, outfile, null, keepFilesOpen);
         const exitCode = wait(compileProc);
         if (exitCode != 0)
         {

@@ -337,15 +337,23 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
         }
 
         string[] buildCommand;
+        string[string] buildEnv = null;
         if (tool.linksWithTests)
         {
+            // The dshell library imports Phobos and is linked against the tests,
+            // so it must be built by the compiler under test (the host compiler
+            // may be too old to parse the current druntime/Phobos) using the
+            // Phobos DFLAGS rather than the druntime-only default.
             buildCommand = [
-                hostDMD,
+                env["DMD"],
+                "-conf=",
                 "-m"~env["MODEL"],
                 "-of" ~ targetBin,
                 "-c",
                 sourceFile
             ] ~ getPicFlags(env);
+            buildEnv = env.dup;
+            buildEnv["DFLAGS"] = env.get("PHOBOS_DFLAGS", "");
         }
         else
         {
@@ -359,7 +367,7 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
 
         writefln("Executing: %-(%s %)", buildCommand);
         stdout.flush();
-        if (spawnProcess(buildCommand, null).wait)
+        if (spawnProcess(buildCommand, buildEnv).wait)
         {
             stderr.writefln("failed to build '%s'", targetBin);
             atomicOp!"+="(failCount, 1);
