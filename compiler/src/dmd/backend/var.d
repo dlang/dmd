@@ -35,9 +35,7 @@ __gshared:
 /* Global flags:
  */
 
-char OPTIMIZER = 0;                 // indicate we're in the optimizer
-int structalign;                /* alignment for members of structures  */
-char dbcs = 0;                      // current double byte character set
+bool OPTIMIZER = false;             // indicate we're in the optimizer
 
 // These change depending on memory model
 int TYptrdiff = TYint;
@@ -47,63 +45,26 @@ int TYaarray = TYnptr;
 int TYdelegate = TYllong;
 int TYdarray = TYullong;
 
-char debuga = 0; /// cg - watch assignaddr()
-char debugb = 0; /// watch block optimization
-char debugc = 0; /// watch code generated
-char debugd = 0; /// watch debug information generated
-char debuge = 0; /// dump eh info
-char debugf = 0; /// trees after dooptim
-char debugg = 0; /// trees for code generator
-char debugo = 0; /// watch optimizer
-char debugr = 0; /// watch register allocation
-char debugs = 0; /// watch common subexp eliminator
-char debugt = 0; /// do test points
-char debugu = 0;
-char debugw = 0; /// watch progress
-char debugx = 0; /// suppress predefined CPP stuff
-char debugy = 0; /// watch output to il buffer
+bool debuga = 0; /// cg - watch assignaddr()
+bool debugb = 0; /// watch block optimization
+bool debugc = 0; /// watch code generated
+bool debugd = 0; /// watch debug information generated
+bool debuge = 0; /// dump eh info
+bool debugf = 0; /// trees after dooptim
+bool debugg = 0; /// trees for code generator
+bool debugo = 0; /// watch optimizer
+bool debugr = 0; /// watch register allocation
+bool debugs = 0; /// watch common subexp eliminator
+bool debugt = 0; /// do test points
+bool debugu = 0;
+bool debugw = 0; /// watch progress
+bool debugx = 0; /// suppress predefined CPP stuff
+bool debugy = 0; /// watch output to il buffer
 
 /* File variables: */
 
-char* argv0;                    // argv[0] (program name)
-FILE* fdep = null;              // dependency file stream pointer
-FILE* flst = null;              // list file stream pointer
-FILE* fin = null;               // input file
+char* ftdbname = null;
 
-// htod
-char* fdmodulename = null;
-FILE* fdmodule = null;
-
-char*   foutdir = null,       // directory to place output files in
-        finname = null,
-        foutname = null,
-        fsymname = null,
-        fphreadname = null,
-        ftdbname = null,
-        fdepname = null,
-        flstname = null;       /* the filename strings                 */
-
-int pathsysi;                   // -isystem= index
-
-/* Data from lexical analyzer: */
-
-uint idhash = 0;    // hash value of identifier
-int xc = ' ';           // character last read
-
-/* Data for pragma processor:
- */
-
-int colnumber = 0;              /* current column number                */
-
-/* Other variables: */
-
-int level = 0;                  /* declaration level                    */
-                                /* 0: top level                         */
-                                /* 1: function parameter declarations   */
-                                /* 2: function local declarations       */
-                                /* 3+: compound statement decls         */
-
-param_t* paramlst = null;       /* function parameter list              */
 tym_t pointertype = TYnptr;     /* default data pointer type            */
 
 /* From util.c */
@@ -143,12 +104,9 @@ ubyte[SCMAX] sytab =
     /* stack */    SCEXP|SCSS       ,      /* offset from stack pointer (not frame pointer) */
 ];
 
-int controlc_saw = 0;              /* a control C was seen         */
 symtab_t globsym;               /* global symbol table                  */
 Pstate pstate;                  // parser state
 Cstate cstate;                  // compiler state
-
-uint numcse;        // number of common subexpressions
 
 GlobalOptimizer go;
 BlockOpt bo;
