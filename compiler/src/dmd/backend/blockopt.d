@@ -199,16 +199,18 @@ void block_ptr(ref BlockOpt bo)
 
 /*******************************
  * Build predecessor list (Bpred) for each block.
+ * Params:
+ *      bstart = head of linked list of blocks
  */
 
 @trusted
-void block_pred(ref BlockOpt bo)
+void block_pred(block* bstart)
 {
     //printf("block_pred()\n");
-    for (block* b = bo.startblock; b; b = b.Bnext)       // for each block
+    for (block* b = bstart; b; b = b.Bnext)       // for each block
         b.Bpred.reset();
 
-    for (block* b = bo.startblock; b; b = b.Bnext)       // for each block
+    for (block* b = bstart; b; b = b.Bnext)       // for each block
     {
         //printf("b = %p, BC = BC.%s\n", b, bc_str(b.bc));
         foreach (bp; b.Bsucc[])
@@ -217,7 +219,7 @@ void block_pred(ref BlockOpt bo)
             bp.Bpred.push(b); // original inserts at the beginning, don't think it matters
         }
     }
-    assert(bo.startblock.Bpred.length == 0);  /* startblock has no preds      */
+    assert(bstart.Bpred.length == 0);  /* startblock has no preds      */
 }
 
 /********************************************
@@ -420,7 +422,8 @@ void blockopt(ref GlobalOptimizer go, ref BlockOpt bo)
             brrear(bo);                     // branch rearrangement
             blident(go, bo);                // combine identical blocks
             blreturn(go, bo);               // split out return blocks
-            bltailmerge(go, bo);            // do tail merging
+            if (!(go.mfoptim & MFtime))     // if optimized for space instead of time
+                bltailmerge(go.changes, bo.startblock); // do tail merging
             brtailrecursion(go, bo);        // do tail recursion
             brcombine(go, bo);              // convert graph to expressions
             blexit(go, bo);
@@ -1277,11 +1280,11 @@ private elem* bl_delist2(elem*[] elems)
  */
 
 @trusted
-private void bltailmerge(ref GlobalOptimizer go, ref BlockOpt bo)
+private void bltailmerge(ref uint changes, block* bstart)
 {
     debug if (debugc) printf("bltailmerge()\n");
-    assert(OPTIMIZER);
-    if (!(go.mfoptim & MFtime))            /* if optimized for space       */
+    //assert(OPTIMIZER);
+    if (1)
     {
         /* Search for two blocks that have the same successor list.
            If the first expressions both lists are the same, split
@@ -1291,7 +1294,7 @@ private void bltailmerge(ref GlobalOptimizer go, ref BlockOpt bo)
             enum additionalAnd = "b.Btry == bn.Btry";
         else
             enum additionalAnd = "true";
-        for (block* b = bo.startblock; b; b = b.Bnext)
+        for (block* b = bstart; b; b = b.Bnext)
         {
             if (!b.Belem)
                 continue;
@@ -1366,6 +1369,14 @@ private void bltailmerge(ref GlobalOptimizer go, ref BlockOpt bo)
                     bn.Bnext = bnew;
 
                     /* The successor list to bnew is the same as b's was */
+                    bnew.Bsucc.move(b.Bsucc);
+                    bn.Bsucc.reset();
+
+                    /* The successors to b and bn are bnew      */
+                    b.bc = BC.goto_;
+                    bn.bc = BC.goto_;
+                    b.Bsucc.push(bnew);
+                    bn.Bsucc.push(bnew);
 
                     /* Update the predecessor list of the successor list
                         of bnew, from b to bnew, and removing bn
@@ -1380,12 +1391,6 @@ private void bltailmerge(ref GlobalOptimizer go, ref BlockOpt bo)
                     /* The predecessors to bnew are b and bn    */
                     bnew.Bpred.push(b);
                     bnew.Bpred.push(bn);
-
-                    /* The successors to b and bn are bnew      */
-                    b.bc = BC.goto_;
-                    bn.bc = BC.goto_;
-                    b.Bsucc.push(bnew);
-                    bn.Bsucc.push(bnew);
 
                     bnew.Belem = *pe;   // bnew gets the merged elem
                     *pe = null;
@@ -1421,11 +1426,106 @@ private void bltailmerge(ref GlobalOptimizer go, ref BlockOpt bo)
                     snipTrailingOPcomma(&b.Belem);
                     snipTrailingOPcomma(&bn.Belem);
 
-                    go.changes++;
+                    ++changes;
                 }
             }
         }
     }
+}
+
+@trusted
+unittest
+{
+    Barray!(block*) bl;
+    bl.setLength(7);
+    foreach (i, ref b; bl[])
+    {
+        b = cast(block*) mem_calloc(block.sizeof);
+        if (i)
+            bl[i - 1].Bnext = b;
+    }
+    numberBlocks(bl[0]);
+
+    bl[0].bc = BC.iftrue;
+    bl[0].Belem = el_long(TYint,10);
+    bl[0].Bsucc.push(bl[1]);
+    bl[0].Bsucc.push(bl[2]);
+
+    bl[1].bc = BC.goto_;
+    bl[1].Belem = el_long(TYint,11);
+    bl[1].Bsucc.push(bl[3]);
+
+    bl[2].bc = BC.goto_;
+    bl[2].Belem = el_long(TYint,11);
+    bl[2].Bsucc.push(bl[3]);
+
+    bl[3].bc = BC.iftrue;
+    bl[3].Belem = el_long(TYint,13);
+    bl[3].Bsucc.push(bl[4]);
+    bl[3].Bsucc.push(bl[5]);
+
+    bl[4].bc = BC.goto_;
+    bl[4].Belem = el_combine(el_long(TYint,14), el_long(TYint,15));
+    bl[4].Bsucc.push(bl[6]);
+
+    bl[5].bc = BC.goto_;
+    bl[5].Belem = el_long(TYint,15);
+    bl[5].Bsucc.push(bl[6]);
+
+    bl[6].bc = BC.ret;
+
+    block_pred(bl[0]);
+
+    static if (0)
+    {
+        for (block* b = bl[0]; b; b = b.Bnext)
+            WRblock(b);
+    }
+
+    uint changes;
+    bltailmerge(changes, bl[0]);
+    assert(changes == 2);
+
+    static if (0)
+    {
+        printf("----------\n");
+        for (block* b = bl[0]; b; b = b.Bnext)
+            WRblock(b);
+    }
+
+    assert(bl[0].bc == BC.iftrue);
+    assert(bl[0].Bsucc[0] == bl[1]);
+    assert(bl[0].Bsucc[1] == bl[2]);
+
+    block* bnew = bl[2].Bnext;
+
+    assert(bl[1].bc == BC.goto_);
+    assert(bl[1].Belem == null);
+    assert(bl[1].Bsucc[0] == bnew);
+
+    assert(bl[2].bc == BC.goto_);
+    assert(bl[2].Belem == null);
+    assert(bl[2].Bsucc[0] == bnew);
+
+    assert(bnew.bc == BC.goto_);
+    assert(el_tolong(bnew.Belem) == 11);
+    assert(bnew.Bsucc[0] == bl[3]);
+
+    assert(bl[3].bc == BC.iftrue);
+
+    bnew = bl[5].Bnext;
+
+    assert(bl[4].bc == BC.goto_);
+    assert(el_tolong(bl[4].Belem) == 14);
+    assert(bl[4].Bsucc[0] == bnew);
+
+    assert(bl[5].bc == BC.goto_);
+    assert(bl[5].Belem == null);
+    assert(bl[5].Bsucc[0] == bnew);
+
+    assert(bnew.bc == BC.goto_);
+    assert(el_tolong(bnew.Belem) == 15);
+    assert(bnew.Bsucc[0] == bl[6]);
 }
 
 /**********************************

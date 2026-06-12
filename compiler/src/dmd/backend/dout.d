@@ -1031,7 +1031,7 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
                 s.Sflags &= ~(SFLunambig | GTregcand);
     }
 
-    block_pred(bo);                       // compute predecessors to blocks
+    block_pred(bo.startblock);              // compute predecessors to blocks
     block_compbcount(go, bo);               // eliminate unreachable blocks
 
     debug { } else
