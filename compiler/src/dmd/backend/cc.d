@@ -592,7 +592,7 @@ struct Symbol
     union                       // variants for different Symbol types
     {
         enum_t* Senum;          // SCenum
-	func_t* Sfunc;          // tyfunc
+        func_t* Sfunc;          // tyfunc
 
         struct                  // SClabel
         {
