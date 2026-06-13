@@ -32,9 +32,9 @@ import dmd.backend.blockopt : block_compbcount, block_pred, blocklist_free, bloc
 import dmd.backend.cgelem : doptelem;
 import dmd.backend.debugprint : WRfunc;
 import dmd.backend.ee : eecontext_convs;
-import dmd.backend.go : optfunc;
+import dmd.backend.go : OPTIMIZER, optfunc;
 import dmd.backend.symbol : symbol_generate, symbol_print;
-import dmd.backend.var : OPTIMIZER, bo, debugb, debugy, globsym;
+import dmd.backend.var : bo, debugb, debugy, globsym;
 import dmd.backend.x86.cod3 : cod3_thunk;
 import dmd.backend.goh;
 import dmd.backend.inliner;

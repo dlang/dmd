@@ -59,13 +59,13 @@ void TOOFFSET(void* p, targ_size_t value)
     }
 }
 
-import dmd.backend.var : ftdbname;
-
 // Convert from SFL visibilities to CV4 protections
 uint SFLtoATTR(uint sfl) { return 4 - ((sfl & SFLpmask) >> 5); }
 
 __gshared
 {
+private char* ftdbname = null;
+
 
 /* Dynamic array of debtyp_t's  */
 private Barray!(debtyp_t*) debtyp;
@@ -2156,3 +2156,218 @@ uint cv_typidx(type* t)
     }
     return ti;
 }
+
+/// Map to Codeview 1 type in debugger record
+private
+__gshared ubyte[TYMAX] dttab =
+[
+    TYbool    : 0x80,
+    TYchar    : 0x80,
+    TYschar   : 0x80,
+    TYuchar   : 0x84,
+    TYchar8   : 0x84,
+    TYchar16  : 0x85,
+    TYshort   : 0x81,
+    TYwchar_t : 0x85,
+    TYushort  : 0x85,
+
+    TYenum    : 0x81,
+    TYint     : 0x85,
+    TYuint    : 0x85,
+
+    TYlong    : 0x82,
+    TYulong   : 0x86,
+    TYdchar   : 0x86,
+    TYllong   : 0x82,
+    TYullong  : 0x86,
+    TYcent    : 0x82,
+    TYucent   : 0x86,
+    TYfloat   : 0x88,
+    TYdouble  : 0x89,
+    TYdouble_alias : 0x89,
+    TYreal : 0x89,
+
+    TYifloat   : 0x88,
+    TYidouble  : 0x89,
+    TYireal : 0x89,
+
+    TYcfloat   : 0x88,
+    TYcdouble  : 0x89,
+    TYcreal : 0x89,
+
+    TYfloat4  : 0x00,
+    TYdouble2 : 0x00,
+    TYschar16 : 0x00,
+    TYuchar16 : 0x00,
+    TYshort8  : 0x00,
+    TYushort8 : 0x00,
+    TYlong4   : 0x00,
+    TYulong4  : 0x00,
+    TYllong2  : 0x00,
+    TYullong2 : 0x00,
+
+    TYfloat8  : 0x00,
+    TYdouble4 : 0x00,
+    TYschar32 : 0x00,
+    TYuchar32 : 0x00,
+    TYshort16 : 0x00,
+    TYushort16 : 0x00,
+    TYlong8   : 0x00,
+    TYulong8  : 0x00,
+    TYllong4  : 0x00,
+    TYullong4 : 0x00,
+
+    TYfloat16 : 0x00,
+    TYdouble8 : 0x00,
+    TYschar64 : 0x00,
+    TYuchar64 : 0x00,
+    TYshort32 : 0x00,
+    TYushort32 : 0x00,
+    TYlong16  : 0x00,
+    TYulong16 : 0x00,
+    TYllong8  : 0x00,
+    TYullong8 : 0x00,
+
+    TYnullptr : 0x20,
+    TYnptr    : 0x20,
+    TYref     : 0x00,
+    TYvoid    : 0x85,
+    TYnoreturn : 0x85, // same as TYvoid
+    TYstruct  : 0x00,
+    TYarray   : 0x78,
+    TYnfunc   : 0x63,
+    TYnpfunc  : 0x74,
+    TYnsfunc  : 0x63,
+    TYptr     : 0x20,
+    TYmfunc   : 0x64,
+    TYjfunc   : 0x74,
+    TYhfunc   : 0x00,
+    TYnref    : 0x00,
+
+    TYsptr     : 0x20,
+    TYcptr     : 0x20,
+    TYf16ptr   : 0x40,
+    TYfptr     : 0x40,
+    TYhptr     : 0x40,
+    TYvptr     : 0x40,
+    TYimmutPtr : 0x20,
+    TYsharePtr : 0x20,
+    TYrestrictPtr : 0x20,
+    TYfgPtr    : 0x20,
+    TYffunc    : 0x64,
+    TYfpfunc   : 0x73,
+    TYfsfunc   : 0x64,
+    TYf16func  : 0x63,
+    TYnsysfunc : 0x63,
+    TYfsysfunc : 0x64,
+    TYfref     : 0x00,
+
+    TYifunc    : 0x64,
+];
+
+/// Map to Codeview 4 type in debugger record
+__gshared ushort[TYMAX] dttab4 =
+[
+    TYbool    : 0x30,
+    TYchar    : 0x70,
+    TYschar   : 0x10,
+    TYuchar   : 0x20,
+    TYchar8   : 0x20,
+    TYchar16  : 0x21,
+    TYshort   : 0x11,
+    TYwchar_t : 0x71,
+    TYushort  : 0x21,
+
+    TYenum    : 0x72,
+    TYint     : 0x72,
+    TYuint    : 0x73,
+
+    TYlong    : 0x12,
+    TYulong   : 0x22,
+    TYdchar   : 0x7b, // UTF32
+    TYllong   : 0x13,
+    TYullong  : 0x23,
+    TYcent    : 0x603,
+    TYucent   : 0x603,
+    TYfloat   : 0x40,
+    TYdouble  : 0x41,
+    TYdouble_alias : 0x41,
+    TYreal : 0x42,
+
+    TYifloat   : 0x40,
+    TYidouble  : 0x41,
+    TYireal : 0x42,
+
+    TYcfloat   : 0x50,
+    TYcdouble  : 0x51,
+    TYcreal : 0x52,
+
+    TYfloat4  : 0x00,
+    TYdouble2 : 0x00,
+    TYschar16 : 0x00,
+    TYuchar16 : 0x00,
+    TYshort8  : 0x00,
+    TYushort8 : 0x00,
+    TYlong4   : 0x00,
+    TYulong4  : 0x00,
+    TYllong2  : 0x00,
+    TYullong2 : 0x00,
+
+    TYfloat8  : 0x00,
+    TYdouble4 : 0x00,
+    TYschar32 : 0x00,
+    TYuchar32 : 0x00,
+    TYshort16 : 0x00,
+    TYushort16 : 0x00,
+    TYlong8   : 0x00,
+    TYulong8  : 0x00,
+    TYllong4  : 0x00,
+    TYullong4 : 0x00,
+
+    TYfloat16 : 0x00,
+    TYdouble8 : 0x00,
+    TYschar64 : 0x00,
+    TYuchar64 : 0x00,
+    TYshort32 : 0x00,
+    TYushort32 : 0x00,
+    TYlong16  : 0x00,
+    TYulong16 : 0x00,
+    TYllong8  : 0x00,
+    TYullong8 : 0x00,
+
+    TYnullptr : 0x100,
+    TYnptr    : 0x100,
+    TYref     : 0x00,
+    TYvoid    : 0x03,
+    TYnoreturn : 0x03, // same as TYvoid
+    TYstruct  : 0x00,
+    TYarray   : 0x00,
+    TYnfunc   : 0x00,
+    TYnpfunc  : 0x00,
+    TYnsfunc  : 0x00,
+    TYptr     : 0x100,
+    TYmfunc   : 0x00,
+    TYjfunc   : 0x00,
+    TYhfunc   : 0x00,
+    TYnref    : 0x00,
+
+    TYsptr     : 0x100,
+    TYcptr     : 0x100,
+    TYf16ptr   : 0x200,
+    TYfptr     : 0x200,
+    TYhptr     : 0x300,
+    TYvptr     : 0x200,
+    TYimmutPtr : 0x100,
+    TYsharePtr : 0x100,
+    TYrestrictPtr : 0x100,
+    TYfgPtr    : 0x100,
+    TYffunc    : 0x00,
+    TYfpfunc   : 0x00,
+    TYfsfunc   : 0x00,
+    TYf16func  : 0x00,
+    TYnsysfunc : 0x00,
+    TYfsysfunc : 0x00,
+    TYfref     : 0x00,
+
+    TYifunc    : 0x00,
+];

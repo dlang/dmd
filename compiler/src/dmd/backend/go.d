@@ -52,6 +52,8 @@ version (OSX)
 nothrow:
 @safe:
 
+__gshared bool OPTIMIZER = false;             // indicate we're in the optimizer
+
 /***************************************************************************/
 
 

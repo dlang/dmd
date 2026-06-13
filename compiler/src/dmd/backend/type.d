@@ -95,8 +95,6 @@ Mangle type_mangle(const type* t) { return t.Tmangle; }
 // Return true if function type has a variable number of arguments
 bool variadic(const type* t) { return (t.Tflags & (TF.prototype | TF.fixed)) == TF.prototype; }
 
-public import dmd.backend.var : chartype;
-
 public import dmd.backend.dtype : type_print, type_free, type_init, type_term, type_copy,
     type_setdim, type_setdependent, type_size, type_alignsize, type_zeroSize,
     type_parameterSize, type_paramsize, type_alloc, type_allocn, type_fake, type_setty,

@@ -15,9 +15,6 @@ module dmd.backend.ty;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_ty.html
 
-public import dmd.backend.var : tyequiv, dttab, dttab4, tystring, tytouns, _tyrelax, tytab,
-    _tysize, _tyalignsize, TYaarray, TYdelegate, TYdarray, TYptrdiff, TYsize, TYsize_t;
-
 @nogc:
 nothrow:
 @safe:
@@ -345,3 +342,551 @@ bool I16() { return _tysize[TYnptr] == 2; }
 bool I32() { return _tysize[TYnptr] == 4; }
 @trusted
 bool I64() { return _tysize[TYnptr] == 8; }
+
+__gshared:
+
+// These change depending on memory model
+tym_t TYptrdiff = TYint;
+tym_t TYsize = TYuint;
+tym_t TYsize_t = TYuint;
+tym_t TYaarray = TYnptr;
+tym_t TYdelegate = TYllong;
+tym_t TYdarray = TYullong;
+tym_t pointertype = TYnptr;     /* default data pointer type            */
+
+__gshared uint[256] tytab = tytab_init;
+private enum tytab_init =
+() {
+    uint[256] tab;
+    foreach (i; TXptr)        { tab[i] |= TYFLptr; }
+    foreach (i; TXptr_nflat)  { tab[i] |= TYFLptr; }
+    foreach (i; TXreal)       { tab[i] |= TYFLreal; }
+    foreach (i; TXintegral)   { tab[i] |= TYFLintegral; }
+    foreach (i; TXimaginary)  { tab[i] |= TYFLimaginary; }
+    foreach (i; TXcomplex)    { tab[i] |= TYFLcomplex; }
+    foreach (i; TXuns)        { tab[i] |= TYFLuns; }
+    foreach (i; TXfv)         { tab[i] |= TYFLfv; }
+    foreach (i; TXfarfunc)    { tab[i] |= TYFLfarfunc; }
+    foreach (i; TXpasfunc)    { tab[i] |= TYFLpascal; }
+    foreach (i; TXrevfunc)    { tab[i] |= TYFLrevparam; }
+    foreach (i; TXshort)      { tab[i] |= TYFLshort; }
+    foreach (i; TXaggregate)  { tab[i] |= TYFLaggregate; }
+    foreach (i; TXref)        { tab[i] |= TYFLref; }
+    foreach (i; TXfunc)       { tab[i] |= TYFLfunc; }
+    foreach (i; TXnullptr)    { tab[i] |= TYFLnullptr; }
+    foreach (i; TXpasfunc_nf) { tab[i] |= TYFLpascal; }
+    foreach (i; TXrevfunc_nf) { tab[i] |= TYFLrevparam; }
+    foreach (i; TXref_nflat)  { tab[i] |= TYFLref; }
+    foreach (i; TXfunc_nflat) { tab[i] |= TYFLfunc; }
+    foreach (i; TXxmmreg)     { tab[i] |= TYFLxmmreg; }
+    foreach (i; TXsimd)       { tab[i] |= TYFLsimd; }
+    return tab;
+} ();
+
+/// Give an ascii string for a type
+__gshared const(char)*[TYMAX] tystring =
+() {
+    const(char)*[TYMAX] ret = [
+        TYbool    : "bool",
+        TYchar    : "char",
+        TYchar8   : "char8_t",
+        TYchar16  : "char16_t",
+        TYshort   : "short",
+
+        TYenum    : "enum",
+        TYint     : "int",
+
+        TYlong    : "long",
+        TYdchar   : "dchar",
+        TYcent    : "cent",
+        TYucent   : "ucent",
+        TYfloat   : "float",
+        TYdouble  : "double",
+        TYdouble_alias : "double alias",
+
+        TYfloat4  : "float4",
+        TYdouble2 : "double2",
+        TYshort8  : "short8",
+        TYlong4   : "int4",
+
+        TYfloat8  : "float8",
+        TYdouble4 : "double4",
+        TYshort16 : "short16",
+        TYlong8   : "int8",
+
+        TYfloat16 : "float16",
+        TYdouble8 : "double8",
+        TYshort32 : "short32",
+        TYlong16  : "int16",
+
+        TYnptr    : "*",
+        TYref     : "&",
+        TYvoid    : "void",
+        TYnoreturn : "noreturn",
+        TYstruct  : "struct",
+        TYarray   : "array",
+        TYnfunc   : "C func",
+        TYnpfunc  : "Pascal func",
+        TYnsfunc  : "std func",
+        TYptr     : "*",
+        TYmfunc   : "member func",
+        TYjfunc   : "D func",
+        TYhfunc   : "C func",
+        TYnref    : "__near &",
+
+        TYsptr     : "__ss *",
+        TYcptr     : "__cs *",
+        TYf16ptr   : "__far16 *",
+        TYfptr     : "__far *",
+        TYhptr     : "__huge *",
+        TYvptr     : "__handle *",
+        TYimmutPtr : "__immutable *",
+        TYsharePtr : "__shared *",
+        TYrestrictPtr : "__restrict *",
+        TYfgPtr    : "__fg *",
+        TYffunc    : "far C func",
+        TYfpfunc   : "far Pascal func",
+        TYfsfunc   : "far std func",
+        TYf16func  : "_far16 Pascal func",
+        TYnsysfunc : "sys func",
+        TYfsysfunc : "far sys func",
+        TYfref     : "__far &",
+
+        TYifunc    : "interrupt func",
+
+        TYschar     : "byte",
+        TYuchar     : "ubyte",
+        TYwchar_t   : "wchar",
+
+        TYnullptr   : "typeof(null)",
+
+        TYushort    : "ushort",
+        TYuint      : "uint",
+        TYulong     : "ulong",
+
+        TYreal   : "real",
+
+        TYifloat    : "ifloat",
+        TYidouble   : "idouble",
+        TYireal  : "ireal",
+
+        TYcfloat    : "cfloat",
+        TYcdouble   : "cdouble",
+        TYcreal  : "creal",
+
+        TYschar16   : "byte[16]",
+        TYuchar16   : "ubyte[16]",
+        TYushort8   : "ushort[8]",
+        TYulong4    : "ulong[4]", // c_ulong
+        TYllong2    : "long[2]",
+        TYullong2   : "ulong[2]",
+
+        TYschar32   : "byte[32]",
+        TYuchar32   : "ubyte[32]",
+        TYushort16  : "ushort[16]",
+        TYulong8    : "ulong[8]", // c_ulong
+        TYllong4    : "long[4]",
+        TYullong4   : "ulong[4]",
+
+        TYschar64   : "byte[64]",
+        TYuchar64   : "ubyte[64]",
+        TYushort32  : "ushort[32]",
+        TYulong16   : "ulong[16]", // c_ulong
+        TYllong8    : "long[8]",
+        TYullong8   : "ulong[8]",
+    ];
+
+    ret[TYullong] = ret[TYulong]; // c_ulong
+    ret[TYllong]  = ret[TYlong]; // c_long
+
+    return ret;
+} ();
+
+/// Map to unsigned version of type
+__gshared tym_t[256] tytouns = tytouns_init;
+private enum tytouns_init =
+() {
+    tym_t[256] tab;
+    foreach (ty; 0 .. TYMAX)
+    {
+        tym_t tym;
+        switch (ty)
+        {
+            case TYchar:      tym = TYuchar;    break;
+            case TYschar:     tym = TYuchar;    break;
+            case TYshort:     tym = TYushort;   break;
+            case TYushort:    tym = TYushort;   break;
+
+            case TYenum:      tym = TYuint;     break;
+            case TYint:       tym = TYuint;     break;
+
+            case TYlong:      tym = TYulong;    break;
+            case TYllong:     tym = TYullong;   break;
+            case TYcent:      tym = TYucent;    break;
+
+            case TYschar16:   tym = TYuchar16;  break;
+            case TYshort8:    tym = TYushort8;  break;
+            case TYlong4:     tym = TYulong4;   break;
+            case TYllong2:    tym = TYullong2;  break;
+
+            case TYschar32:   tym = TYuchar32;  break;
+            case TYshort16:   tym = TYushort16; break;
+            case TYlong8:     tym = TYulong8;   break;
+            case TYllong4:    tym = TYullong4;  break;
+
+            case TYschar64:   tym = TYuchar64;  break;
+            case TYshort32:   tym = TYushort32; break;
+            case TYlong16:    tym = TYulong16;  break;
+            case TYllong8:    tym = TYullong8;  break;
+
+            default:          tym = ty;         break;
+        }
+        tab[ty] = tym;
+    }
+    return tab;
+} ();
+
+/// Map to relaxed version of type
+__gshared ubyte[TYMAX] _tyrelax = _tyrelax_init;
+private enum _tyrelax_init = (){
+    ubyte[TYMAX] tab;
+    foreach (ty; 0 .. TYMAX)
+    {
+        tym_t tym;
+        switch (ty)
+        {
+            case TYbool:      tym = TYchar;  break;
+            case TYschar:     tym = TYchar;  break;
+            case TYuchar:     tym = TYchar;  break;
+            case TYchar8:     tym = TYchar;  break;
+            case TYchar16:    tym = TYint;   break;
+
+            case TYshort:     tym = TYint;   break;
+            case TYushort:    tym = TYint;   break;
+            case TYwchar_t:   tym = TYint;   break;
+
+            case TYenum:      tym = TYint;   break;
+            case TYuint:      tym = TYint;   break;
+
+            case TYulong:     tym = TYlong;  break;
+            case TYdchar:     tym = TYlong;  break;
+            case TYullong:    tym = TYllong; break;
+            case TYucent:     tym = TYcent;  break;
+
+            case TYnullptr:   tym = TYptr;   break;
+
+            default:          tym = ty;      break;
+        }
+        tab[ty] = cast(ubyte)tym;
+    }
+    return tab;
+} ();
+
+/// Map to equivalent version of type
+__gshared ubyte[TYMAX] tyequiv = tyequiv_init;
+private enum tyequiv_init =
+() {
+    ubyte[TYMAX] tab;
+    foreach (ty; 0 .. TYMAX)
+    {
+        tym_t tym;
+        switch (ty)
+        {
+            case TYchar:      tym = TYschar;  break;    // chars are signed by default
+            case TYint:       tym = TYshort;  break;    // adjusted in util_set32()
+            case TYuint:      tym = TYushort; break;    // adjusted in util_set32()
+
+            default:          tym = ty;       break;
+        }
+        tab[ty] = cast(ubyte)tym;
+    }
+    return tab;
+} ();
+
+/// Size of a type
+/// -1 means error
+
+import dmd.backend.cdef : CHARSIZE,SHORTSIZE,WCHARSIZE,LONGSIZE,LLONGSIZE,CENTSIZE,FLOATSIZE,DOUBLESIZE,TMAXSIZE;
+
+__gshared byte[256] _tysize =
+[
+    TYbool    : 1,
+    TYchar    : 1,
+    TYschar   : 1,
+    TYuchar   : 1,
+    TYchar8   : 1,
+    TYchar16  : 2,
+    TYshort   : SHORTSIZE,
+    TYwchar_t : 2,
+    TYushort  : SHORTSIZE,
+
+    TYenum    : -1,
+    TYint     : 2,
+    TYuint    : 2,
+
+    TYlong    : LONGSIZE,
+    TYulong   : LONGSIZE,
+    TYdchar   : 4,
+    TYllong   : LLONGSIZE,
+    TYullong  : LLONGSIZE,
+    TYcent    : 16,
+    TYucent   : 16,
+    TYfloat   : FLOATSIZE,
+    TYdouble  : DOUBLESIZE,
+    TYdouble_alias : 8,
+    TYreal : -1,
+
+    TYifloat   : FLOATSIZE,
+    TYidouble  : DOUBLESIZE,
+    TYireal : -1,
+
+    TYcfloat   : 2*FLOATSIZE,
+    TYcdouble  : 2*DOUBLESIZE,
+    TYcreal : -1,
+
+    TYfloat4  : 16,
+    TYdouble2 : 16,
+    TYschar16 : 16,
+    TYuchar16 : 16,
+    TYshort8  : 16,
+    TYushort8 : 16,
+    TYlong4   : 16,
+    TYulong4  : 16,
+    TYllong2  : 16,
+    TYullong2 : 16,
+
+    TYfloat8  : 32,
+    TYdouble4 : 32,
+    TYschar32 : 32,
+    TYuchar32 : 32,
+    TYshort16 : 32,
+    TYushort16 : 32,
+    TYlong8   : 32,
+    TYulong8  : 32,
+    TYllong4  : 32,
+    TYullong4 : 32,
+
+    TYfloat16 : 64,
+    TYdouble8 : 64,
+    TYschar64 : 64,
+    TYuchar64 : 64,
+    TYshort32 : 64,
+    TYushort32 : 64,
+    TYlong16  : 64,
+    TYulong16 : 64,
+    TYllong8  : 64,
+    TYullong8 : 64,
+
+    TYnullptr : 2,
+    TYnptr    : 2,
+    TYref     : -1,
+    TYvoid    : -1,
+    TYnoreturn : 0,
+    TYstruct  : -1,
+    TYarray   : -1,
+    TYnfunc   : -1,
+    TYnpfunc  : -1,
+    TYnsfunc  : -1,
+    TYptr     : 2,
+    TYmfunc   : -1,
+    TYjfunc   : -1,
+    TYhfunc   : -1,
+    TYnref    : 2,
+
+    TYsptr     : 2,
+    TYcptr     : 2,
+    TYf16ptr   : 4,
+    TYfptr     : 4,
+    TYhptr     : 4,
+    TYvptr     : 4,
+    TYimmutPtr : 2,
+    TYsharePtr : 2,
+    TYrestrictPtr : 2,
+    TYfgPtr    : 2,
+    TYffunc    : -1,
+    TYfpfunc   : -1,
+    TYfsfunc   : -1,
+    TYf16func  : -1,
+    TYnsysfunc : -1,
+    TYfsysfunc : -1,
+    TYfref     : 4,
+
+    TYifunc    : -1,
+];
+
+/// Size of a type to use for alignment
+/// -1 means error
+// set alignment after we know the target
+enum SET_ALIGN = -1;
+__gshared byte[256] _tyalignsize =
+[
+    TYbool    : 1,
+    TYchar    : 1,
+    TYschar   : 1,
+    TYuchar   : 1,
+    TYchar8   : 1,
+    TYchar16  : 2,
+    TYshort   : SHORTSIZE,
+    TYwchar_t : 2,
+    TYushort  : SHORTSIZE,
+
+    TYenum    : -1,
+    TYint     : 2,
+    TYuint    : 2,
+
+    TYlong    : LONGSIZE,
+    TYulong   : LONGSIZE,
+    TYdchar   : 4,
+    TYllong   : LLONGSIZE,
+    TYullong  : LLONGSIZE,
+    TYcent    : 8,
+    TYucent   : 8,
+    TYfloat   : FLOATSIZE,
+    TYdouble  : DOUBLESIZE,
+    TYdouble_alias : 8,
+    TYreal : SET_ALIGN,
+
+    TYifloat   : FLOATSIZE,
+    TYidouble  : DOUBLESIZE,
+    TYireal : SET_ALIGN,
+
+    TYcfloat   : 2*FLOATSIZE,
+    TYcdouble  : DOUBLESIZE,
+    TYcreal : SET_ALIGN,
+
+    TYfloat4  : 16,
+    TYdouble2 : 16,
+    TYschar16 : 16,
+    TYuchar16 : 16,
+    TYshort8  : 16,
+    TYushort8 : 16,
+    TYlong4   : 16,
+    TYulong4  : 16,
+    TYllong2  : 16,
+    TYullong2 : 16,
+
+    TYfloat8  : 32,
+    TYdouble4 : 32,
+    TYschar32 : 32,
+    TYuchar32 : 32,
+    TYshort16 : 32,
+    TYushort16 : 32,
+    TYlong8   : 32,
+    TYulong8  : 32,
+    TYllong4  : 32,
+    TYullong4 : 32,
+
+    TYfloat16 : 64,
+    TYdouble8 : 64,
+    TYschar64 : 64,
+    TYuchar64 : 64,
+    TYshort32 : 64,
+    TYushort32 : 64,
+    TYlong16  : 64,
+    TYulong16 : 64,
+    TYllong8  : 64,
+    TYullong8 : 64,
+
+    TYnullptr : 2,
+    TYnptr    : 2,
+    TYref     : -1,
+    TYvoid    : -1,
+    TYnoreturn : 0,
+    TYstruct  : -1,
+    TYarray   : -1,
+    TYnfunc   : -1,
+    TYnpfunc  : -1,
+    TYnsfunc  : -1,
+    TYptr     : 2,
+    TYmfunc   : -1,
+    TYjfunc   : -1,
+    TYhfunc   : -1,
+    TYnref    : 2,
+
+    TYsptr     : 2,
+    TYcptr     : 2,
+    TYf16ptr   : 4,
+    TYfptr     : 4,
+    TYhptr     : 4,
+    TYvptr     : 4,
+    TYimmutPtr : 2,
+    TYsharePtr : 2,
+    TYrestrictPtr : 2,
+    TYfgPtr    : 2,
+    TYffunc    : -1,
+    TYfpfunc   : -1,
+    TYfsfunc   : -1,
+    TYf16func  : -1,
+    TYnsysfunc : -1,
+    TYfsysfunc : -1,
+    TYfref     : 4,
+
+    TYifunc    : -1,
+];
+
+
+private:
+extern(D):
+
+static immutable TXptr        = [ TYnptr ];
+static immutable TXptr_nflat  = [ TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr,TYimmutPtr,TYsharePtr,TYrestrictPtr,TYfgPtr ];
+static immutable TXreal       = [ TYfloat,TYdouble,TYdouble_alias,TYreal,
+                     TYfloat4,TYdouble2,
+                     TYfloat8,TYdouble4,
+                     TYfloat16,TYdouble8,
+                   ];
+static immutable TXimaginary  = [ TYifloat,TYidouble,TYireal, ];
+static immutable TXcomplex    = [ TYcfloat,TYcdouble,TYcreal, ];
+static immutable TXintegral   = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
+                     TYwchar_t,TYushort,TYenum,TYint,TYuint,
+                     TYlong,TYulong,TYllong,TYullong,TYdchar,
+                     TYschar16,TYuchar16,TYshort8,TYushort8,
+                     TYlong4,TYulong4,TYllong2,TYullong2,
+                     TYschar32,TYuchar32,TYshort16,TYushort16,
+                     TYlong8,TYulong8,TYllong4,TYullong4,
+                     TYschar64,TYuchar64,TYshort32,TYushort32,
+                     TYlong16,TYulong16,TYllong8,TYullong8,
+                     TYchar16,TYcent,TYucent,
+                   ];
+static immutable TXref        = [ TYnref,TYref ];
+static immutable TXfunc       = [ TYnfunc,TYnpfunc,TYnsfunc,TYifunc,TYmfunc,TYjfunc,TYhfunc ];
+static immutable TXref_nflat  = [ TYfref ];
+static immutable TXfunc_nflat = [ TYffunc,TYfpfunc,TYf16func,TYfsfunc,TYnsysfunc,TYfsysfunc, ];
+static immutable TXuns        = [ TYuchar,TYushort,TYuint,TYulong,
+                     TYwchar_t,
+                     TYuchar16,TYushort8,TYulong4,TYullong2,
+                     TYdchar,TYullong,TYucent,TYchar16 ];
+static immutable TXnullptr    = [ TYnullptr ];
+static immutable TXfv         = [ TYfptr, TYvptr ];
+static immutable TXfarfunc    = [ TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc ];
+static immutable TXpasfunc    = [ TYnpfunc,TYnsfunc,TYmfunc,TYjfunc ];
+static immutable TXpasfunc_nf = [ TYfpfunc,TYf16func,TYfsfunc, ];
+static immutable TXrevfunc    = [ TYnpfunc,TYjfunc ];
+static immutable TXrevfunc_nf = [ TYfpfunc,TYf16func, ];
+static immutable TXshort      = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
+                      TYwchar_t,TYushort,TYchar16 ];
+static immutable TXaggregate  = [ TYstruct,TYarray ];
+static immutable TXxmmreg     = [
+                     TYfloat,TYdouble,TYifloat,TYidouble,
+                     //TYcfloat,TYcdouble,
+                     TYfloat4,TYdouble2,
+                     TYschar16,TYuchar16,TYshort8,TYushort8,
+                     TYlong4,TYulong4,TYllong2,TYullong2,
+                     TYfloat8,TYdouble4,
+                     TYschar32,TYuchar32,TYshort16,TYushort16,
+                     TYlong8,TYulong8,TYllong4,TYullong4,
+                     TYschar64,TYuchar64,TYshort32,TYushort32,
+                     TYlong16,TYulong16,TYllong8,TYullong8,
+                     TYfloat16,TYdouble8,
+                    ];
+static immutable TXsimd       = [
+                     TYfloat4,TYdouble2,
+                     TYschar16,TYuchar16,TYshort8,TYushort8,
+                     TYlong4,TYulong4,TYllong2,TYullong2,
+                     TYfloat8,TYdouble4,
+                     TYschar32,TYuchar32,TYshort16,TYushort16,
+                     TYlong8,TYulong8,TYllong4,TYullong4,
+                     TYschar64,TYuchar64,TYshort32,TYushort32,
+                     TYlong16,TYulong16,TYllong8,TYullong8,
+                     TYfloat16,TYdouble8,
+                    ];
