@@ -108,13 +108,13 @@ struct Pstate
                                 // function Symbol.
 }
 
+__gshared Pstate pstate;        // parser state
+
 @trusted
 void funcsym_p(Funcsym* fp) { pstate.STfuncsym_p = fp; }
 
 @trusted
 Funcsym* funcsym_p() { return pstate.STfuncsym_p; }
-
-public import dmd.backend.var : pstate, cstate;
 
 /****************************
  * Global variables.
@@ -124,6 +124,8 @@ struct Cstate
 {
     symtab_t* CSpsymtab;        // pointer to current Symbol table
 }
+
+__gshared Cstate cstate;        // compiler state
 
 /* Bits for sytab[] that give characteristics of storage classes        */
 enum
