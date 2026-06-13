@@ -352,7 +352,8 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
                 "-c",
                 sourceFile
             ] ~ getPicFlags(env);
-            buildEnv = env.dup;
+            foreach (k, v; env)
+                buildEnv[k] = v;
             buildEnv["DFLAGS"] = env.get("PHOBOS_DFLAGS", "");
         }
         else
