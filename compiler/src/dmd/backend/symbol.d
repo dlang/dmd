@@ -27,7 +27,7 @@ import dmd.backend.el;
 import dmd.backend.global : err_nomem, symbol_keep;
 import dmd.backend.blockopt : blocklist_free;
 import dmd.backend.debugprint : class_str, fl_str;
-import dmd.backend.var : debugy, globsym;
+import dmd.backend.var : debugy;
 import dmd.backend.mem;
 import dmd.backend.oper;
 import dmd.backend.symtab;
@@ -35,11 +35,17 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.var : bo;
 
+import dmd.backend.x86.code_x86;
+
 
 nothrow:
 @safe:
 
-import dmd.backend.x86.code_x86;
+
+__gshared
+{
+    symtab_t globsym;               // global symbol table
+}
 
 void struct_free(struct_t* st) { }
 

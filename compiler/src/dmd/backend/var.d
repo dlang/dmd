@@ -51,9 +51,6 @@ bool debugw = 0; /// watch progress
 bool debugx = 0; /// suppress predefined CPP stuff
 bool debugy = 0; /// watch output to il buffer
 
-/* From util.c */
-
-symtab_t globsym;               /* global symbol table                  */
 Pstate pstate;                  // parser state
 Cstate cstate;                  // compiler state
 
@@ -61,9 +58,5 @@ GlobalOptimizer go;
 BlockOpt bo;
 
 /* From debug.c */
-const(char)*[32] regstring = ["AX","CX","DX","BX","SP","BP","SI","DI",
-                             "R8","R9","R10","R11","R12","R13","R14","R15",
-                             "XMM0","XMM1","XMM2","XMM3","XMM4","XMM5","XMM6","XMM7",
-                             "ES","PSW","STACK","ST0","ST01","NOREG","RMload","RMstore"];
 
 Obj objmod = null;

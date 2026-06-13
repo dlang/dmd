@@ -26,11 +26,12 @@ import dmd.backend.oper;
 import dmd.backend.blockopt : blockopt;
 import dmd.backend.cgelem : doptelem;
 import dmd.backend.debugprint : WReqn;
-import dmd.backend.var : bo, debugc, globsym;
+import dmd.backend.var : bo, debugc;
 import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.symbol : globsym;
 
 import dmd.backend.barray;
 import dmd.backend.dvec;
