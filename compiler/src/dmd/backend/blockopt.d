@@ -17,6 +17,7 @@ import core.stdc.string;
 import core.stdc.time;
 import core.stdc.stdlib;
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.oper;
@@ -35,9 +36,6 @@ import dmd.backend.go : OPTIMIZER;
 import dmd.backend.goh;
 import dmd.backend.code;
 import dmd.backend.ty;
-
-import dmd.backend.barray;
-import dmd.backend.var : bo;
 
 static if (NTEXCEPTIONS)
     enum SCPP_OR_NTEXCEPTIONS = true;
@@ -63,6 +61,8 @@ struct BlockOpt
 
     block blkzero;          // storage allocator
 }
+
+__gshared BlockOpt bo;
 
 @trusted
 pragma(inline, true) block* block_calloc_i(ref BlockOpt bo)

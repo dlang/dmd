@@ -19,7 +19,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.backend.cc;
-import dmd.backend.blockopt : BlockOpt;
+import dmd.backend.blockopt : BlockOpt, bo;
 import dmd.backend.cdef;
 import dmd.backend.evalu8 : el_toreald;
 import dmd.backend.oper;
@@ -29,7 +29,7 @@ import dmd.backend.cgelem : doptelem, elemisone;
 import dmd.backend.debugprint : WReqn, WRfunc, tym_str;
 import dmd.backend.evalu8 : evalu8, iftrue;
 import dmd.backend.go : optfunc;
-import dmd.backend.var : bo, debugc;
+import dmd.backend.var : debugc;
 import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.symbol : sytab, globsym;

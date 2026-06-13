@@ -50,11 +50,3 @@ bool debugu = 0;
 bool debugw = 0; /// watch progress
 bool debugx = 0; /// suppress predefined CPP stuff
 bool debugy = 0; /// watch output to il buffer
-
-
-GlobalOptimizer go;
-BlockOpt bo;
-
-/* From debug.c */
-
-Obj objmod = null;

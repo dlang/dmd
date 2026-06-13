@@ -19,6 +19,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.blockopt : bo;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
@@ -32,7 +33,7 @@ import dmd.backend.el;
 import dmd.backend.global : REGSIZE, _align, mask;
 import dmd.backend.debugprint : oper_str, tym_str;
 import dmd.backend.symbol : symbol_print, globsym;
-import dmd.backend.var : bo, debugc, debugr, debugw;
+import dmd.backend.var : debugc, debugr, debugw;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.pdata : win64_pdata;

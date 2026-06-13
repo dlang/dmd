@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.blockopt : bo;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;
@@ -33,7 +34,6 @@ import dmd.backend.oper;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
-import dmd.backend.var : bo;
 
 import dmd.backend.x86.code_x86;
 

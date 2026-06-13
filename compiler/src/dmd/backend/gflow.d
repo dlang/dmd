@@ -17,14 +17,13 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.backend.cc;
-import dmd.backend.blockopt : BlockOpt;
+import dmd.backend.blockopt : BlockOpt, bo;
 import dmd.backend.cdef;
 import dmd.backend.oper;
 import dmd.backend.global : err_nomem;
 import dmd.backend.blockopt : blockopt;
 import dmd.backend.evalu8 : iftrue;
 import dmd.backend.symbol : sytab, globsym;
-import dmd.backend.var : bo;
 import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.ty;
