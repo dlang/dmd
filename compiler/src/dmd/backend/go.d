@@ -20,7 +20,7 @@ import core.stdc.string;
 import core.stdc.time;
 
 import dmd.backend.cc;
-import dmd.backend.blockopt : BlockOpt;
+import dmd.backend.blockopt : BlockOpt, bo;
 import dmd.backend.cdef;
 import dmd.backend.oper;
 import dmd.backend.blockopt : bc_goal, block_optimizer_free, blockopt;
@@ -29,7 +29,7 @@ import dmd.backend.cgelem : doptelem, postoptelem;
 import dmd.backend.debugprint : WRfunc;
 import dmd.backend.dout : out_regcand;
 import dmd.backend.util2 : binary;
-import dmd.backend.var : bo, debugb, debugc, debuge, debugf;
+import dmd.backend.var : debugb, debugc, debuge, debugf;
 import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.inliner;

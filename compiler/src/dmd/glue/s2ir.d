@@ -53,7 +53,7 @@ import dmd.funcsem : genCfunc;
 import dmd.visitor;
 
 import dmd.backend.barray;
-import dmd.backend.blockopt : BlockOpt, block_next;
+import dmd.backend.blockopt : BlockOpt, block_next, bo;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
@@ -68,7 +68,6 @@ import dmd.backend.elem : exp2_copytotemp;
 import dmd.backend.evalu8 : iftrue;
 import dmd.backend.symbol : symbol_add, symbol_genauto, symbol_name;
 import dmd.backend.obj;
-import dmd.backend.var : bo;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
 import dmd.backend.symtab;

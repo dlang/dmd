@@ -18,6 +18,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.backend.barray;
+import dmd.backend.blockopt : bo;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
@@ -27,7 +28,6 @@ import dmd.backend.el;
 import dmd.backend.global : error, symbol_keep;
 import dmd.backend.dout : outdata;
 import dmd.backend.symbol : symbol_name;
-import dmd.backend.var : bo;
 import dmd.backend.obj;
 import dmd.backend.ty;
 import dmd.backend.type;

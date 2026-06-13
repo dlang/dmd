@@ -20,13 +20,13 @@ import core.stdc.string;
 import core.stdc.time;
 
 import dmd.backend.cc;
-import dmd.backend.blockopt : BlockOpt;
+import dmd.backend.blockopt : BlockOpt, bo;
 import dmd.backend.cdef;
 import dmd.backend.oper;
 import dmd.backend.blockopt : blockopt;
 import dmd.backend.cgelem : doptelem;
 import dmd.backend.debugprint : WReqn;
-import dmd.backend.var : bo, debugc;
+import dmd.backend.var : debugc;
 import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.ty;

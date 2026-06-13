@@ -490,7 +490,7 @@ else
     }
 }
 
-public import dmd.backend.var : objmod;
+__gshared Obj objmod = null;
 
 /*****************************************
  * Use to generate 4 function declarations, one for

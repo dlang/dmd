@@ -18,7 +18,7 @@ import core.stdc.stdlib;
 import core.stdc.time;
 
 import dmd.backend.cc;
-import dmd.backend.blockopt : BlockOpt;
+import dmd.backend.blockopt : BlockOpt, bo;
 import dmd.backend.cdef;
 import dmd.backend.oper;
 import dmd.backend.global : size;
@@ -33,7 +33,7 @@ import dmd.backend.symbol : sytab, globsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
-import dmd.backend.var : bo, debugc;
+import dmd.backend.var : debugc;
 
 import dmd.backend.barray;
 import dmd.backend.dvec;

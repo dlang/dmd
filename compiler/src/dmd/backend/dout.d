@@ -19,7 +19,6 @@ import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.backend.barray;
-import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
@@ -28,13 +27,13 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.global : REGSIZE, _align, size, symboldata;
-import dmd.backend.blockopt : block_compbcount, block_pred, blocklist_free, blockopt;
+import dmd.backend.blockopt : block_compbcount, block_pred, blocklist_free, BlockOpt, blockopt, bo;
 import dmd.backend.cgelem : doptelem;
 import dmd.backend.debugprint : WRfunc;
 import dmd.backend.ee : eecontext_convs;
 import dmd.backend.go : OPTIMIZER, optfunc;
 import dmd.backend.symbol : symbol_generate, symbol_print, globsym;
-import dmd.backend.var : bo, debugb, debugy;
+import dmd.backend.var : debugb, debugy;
 import dmd.backend.x86.cod3 : cod3_thunk;
 import dmd.backend.goh;
 import dmd.backend.inliner;
@@ -894,7 +893,6 @@ void out_regcand(Symbol*[] psymtab)
 @trusted public
 void writefunc(Symbol* sfunc)
 {
-    import dmd.backend.var : go, bo;
     cstate.CSpsymtab = &globsym;
     writefunc2(sfunc, go, bo);
     cstate.CSpsymtab = null;
