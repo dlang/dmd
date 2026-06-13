@@ -27,13 +27,13 @@ import dmd.backend.debugprint : WReqn;
 import dmd.backend.dout : out_regcand;
 import dmd.backend.evalu8 : iftrue;
 import dmd.backend.gloop : dom;
-import dmd.backend.var : bo, debugc, globsym;
 import dmd.backend.goh;
 import dmd.backend.el;
-import dmd.backend.symbol : sytab;
+import dmd.backend.symbol : sytab, globsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.var : bo, debugc;
 
 import dmd.backend.barray;
 import dmd.backend.dvec;

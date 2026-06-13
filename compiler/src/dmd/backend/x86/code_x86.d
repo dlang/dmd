@@ -188,6 +188,12 @@ enum mLSW = mAX|mBX|mSI|mDI;       // least significant regs
 /* Return !=0 if there is a SIB byte   */
 uint issib(uint rm) { return (rm & 7) == 4 && (rm & 0xC0) != 0xC0; }
 
+immutable char*[32] regstring = ["AX","CX","DX","BX","SP","BP","SI","DI",
+                             "R8","R9","R10","R11","R12","R13","R14","R15",
+                             "XMM0","XMM1","XMM2","XMM3","XMM4","XMM5","XMM6","XMM7",
+                             "ES","PSW","STACK","ST0","ST01","NOREG","RMload","RMstore"];
+
+
 static if (0)
 {
 // relocation field size is always 32bits
