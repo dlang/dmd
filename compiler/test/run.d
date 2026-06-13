@@ -128,9 +128,6 @@ Options:
     }
 
     // allow overwrites from the environment
-    // HOST_DMD must be either a command on PATH (e.g. `dmd`, `ldmd2`) or an
-    // absolute path; it is used to build test-harness code (dshell scripts,
-    // tools) which runs from various working directories.
     hostDMD = environment.get("HOST_DMD", "dmd");
     unitTestRunnerCommand = resultsDir.buildPath("unit_test_runner").exeName;
 
@@ -231,25 +228,11 @@ void verifyCompilerExists(const string[string] env)
     }
 }
 
-/**
-Maps the test runner's `BUILD` to a runtime library build flavor.
-
-`BUILD` may be a dmd build configuration that only describes the compiler
-binary (e.g. VisualD passes `Debug` or `RelWithAsserts`), whereas the
-druntime/phobos makefiles only accept `debug` or `release`. The runtime
-library flavor is independent from the compiler's configuration, so anything
-that isn't explicitly a debug build maps to `release`.
-*/
 string runtimeBuild(string build)
 {
     return build.toLower == "debug" ? "debug" : "release";
 }
 
-/**
-Builds (or rebuilds) the druntime library that the tests link against.
-
-Prevent test failures due to forgetting to make druntime manually.
-*/
 void ensureDruntime(const string[string] env)
 {
     const make = environment.get("MAKE", "make");
@@ -258,9 +241,6 @@ void ensureDruntime(const string[string] env)
         make, "-C", druntimeDir,
         "MODEL=" ~ env["MODEL"],
         "BUILD=" ~ runtimeBuild(env["BUILD"]),
-        // Pass the existing compiler so the druntime Makefile doesn't try to
-        // (re)build dmd itself, which fails when the compiler lives in a
-        // different generated/ subdirectory (e.g. VisualD's RelWithAsserts).
         "DMD=" ~ env["DMD"],
     ];
 
@@ -340,10 +320,6 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
         string[string] buildEnv = null;
         if (tool.linksWithTests)
         {
-            // The dshell library imports Phobos and is linked against the tests,
-            // so it must be built by the compiler under test (the host compiler
-            // may be too old to parse the current druntime/Phobos) using the
-            // Phobos DFLAGS rather than the druntime-only default.
             buildCommand = [
                 env["DMD"],
                 "-conf=",
@@ -352,7 +328,8 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
                 "-c",
                 sourceFile
             ] ~ getPicFlags(env);
-            buildEnv = env.dup;
+            foreach (k, v; env)
+                buildEnv[k] = v;
             buildEnv["DFLAGS"] = env.get("PHOBOS_DFLAGS", "");
         }
         else
@@ -596,7 +573,6 @@ string[string] getEnvironment()
     env["BUILD"] = build;
     env["EXE"] = exeExtension;
     env["DMD"] = dmdPath;
-    env["HOST_DMD"] = hostDMD;
     env.setDefault("DMD_TEST_COVERAGE", "0");
 
     const generatedSuffix = "generated/%s/%s/%s".format(os, build, model);

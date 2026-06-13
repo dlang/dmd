@@ -1,7 +1,4 @@
 // PERMUTE_ARGS:
-//
-// CTFE constructor / copy-constructor tests.
-// The `^^` (pow) parts that used to live here are in runnable/pow.d.
 
 int magicVariable()
 {

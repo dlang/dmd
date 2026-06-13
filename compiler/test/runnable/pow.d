@@ -1,12 +1,8 @@
-// Consolidated tests for the `^^` (pow) operator.
-//
-// `^^` lowers to `object._d_pow`, which still imports `std.math` internally
-// (see the TODO in druntime's object.d), so Phobos is needed on the link line
-// until that hook is moved into druntime.
+// Pow operator ^^ implementation has not been fully moved to druntime yet
+// Remove this once it's done:
 // RUNNABLE_PHOBOS_TEST
-// PERMUTE_ARGS:
 
-// runtime `^^` with a runtime exponent
+// PERMUTE_ARGS:
 
 __gshared uint x0 = 0;
 __gshared uint x1 = 1;
@@ -98,7 +94,6 @@ void test11159()
     assert(e_10_pow_20 == pow(10uL, 20));
 }
 
-// CTFE / typing rules for `^^`
 // Test float ^^ int
 static assert( 27.0 ^^ 5 == 27.0 * 27.0 * 27.0 * 27.0 * 27.0);
 static assert( 2.0 ^^ 3 == 8.0);
@@ -268,7 +263,6 @@ void test19075()
 
 /************************************/
 // https://issues.dlang.org/show_bug.cgi?id=3841
-// `^^=` must compile for the type combinations below
 
 void powAssign(LHS, RHS)()
 {
