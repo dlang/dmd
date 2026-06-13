@@ -21,7 +21,6 @@ import dmd.backend.el;
 import dmd.backend.global : REGSIZE, _align;
 import dmd.backend.debugprint : tym_str;
 import dmd.backend.symbol : symbol_calloc;
-import dmd.backend.var : pointertype;
 import dmd.backend.mem;
 import dmd.backend.oper;
 import dmd.backend.ty;
@@ -39,6 +38,8 @@ private __gshared
     param_t* param_list;      // free list of params
 
     int type_num,type_max;   /* gather statistics on # of types      */
+
+    type* chartype;                 /* default 'char' type                  */
 }
 
 type* tsclib;

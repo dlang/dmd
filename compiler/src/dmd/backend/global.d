@@ -24,9 +24,8 @@ import dmd.backend.code;
 import dmd.backend.el : elem;
 import dmd.backend.mem;
 import dmd.backend.symtab;
-import dmd.backend.ty : TYnptr, TYvoid, tybasic, tysize;
+import dmd.backend.ty : TYnptr, TYvoid, tybasic, tysize, _tysize;
 import dmd.backend.type;
-import dmd.backend.var : _tysize;
 
 nothrow:
 @nogc:

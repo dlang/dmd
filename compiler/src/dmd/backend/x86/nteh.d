@@ -35,8 +35,8 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-static if (NTEXCEPTIONS)
-{
+//static if (1) // NTEXCEPTIONS
+//{
 
 
 nothrow:
@@ -714,4 +714,4 @@ void nteh_monitor_epilog(ref CGstate cg,ref CodeBuilder cdb,regm_t retregs)
     cdb.gen(&cs);                       // POP FS:__except_list
 }
 
-}
+//}

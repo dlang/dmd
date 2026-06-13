@@ -46,7 +46,7 @@ import dmd.backend.arm.instr;
 
 import dmd.backend.x86.code_x86;
 import dmd.backend.x86.disasm86;
-import dmd.backend.x86.nteh;
+import dmd.backend.x86.nteh : cdsetjmp;
 import dmd.backend.x86.xmm;
 
 import dmd.backend.barray;
@@ -2666,7 +2666,7 @@ private immutable nothrow void function (ref CGstate, ref CodeBuilder,elem *,ref
     OPstrcat:  &cderr,
     OPstrcmp:  &cdstrcmp,
     OPmemcmp:  &cdmemcmp,
-    OPsetjmp:  &dmd.backend.x86.nteh.cdsetjmp,
+    OPsetjmp:  &cdsetjmp,
     OPnegass:  &cdaddass,
     OPstreq:   &cdstreq,
     OPpostinc: &cdpost,
