@@ -45,7 +45,6 @@ import dmd.visitor;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
-import dmd.backend.dcgcv : dttab4;
 import dmd.backend.code;
 import dmd.backend.cv4;
 import dmd.backend.dt;
