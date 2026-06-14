@@ -39,7 +39,6 @@ import dmd.backend.el;
 import dmd.backend.global : REGSIZE;
 import dmd.backend.debugprint : tym_str;
 import dmd.backend.ee : eecontext_convs;
-import dmd.backend.elem : exp2_copytotemp;
 import dmd.backend.symbol : symbol_add, symbol_copy, symbol_print, globsym, SYMIDX;
 import dmd.backend.oper;
 import dmd.backend.ty;
