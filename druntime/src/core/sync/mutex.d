@@ -327,8 +327,17 @@ unittest
         void useResource() shared @trusted nothrow @nogc
         {
             mtx.lock_nothrow();
-            (cast() cargo) += 1;
+            // Mutex protects cargo, but -preview=nosharedaccess cannot infer
+            // the lock-based invariant from this shared method.
+            (cast(Resource) this).cargo += 1;
             mtx.unlock_nothrow();
+        }
+
+        int getCargo() shared @trusted nothrow @nogc
+        {
+            mtx.lock_nothrow();
+            scope (exit) mtx.unlock_nothrow();
+            return (cast(Resource) this).cargo;
         }
     }
 
@@ -345,7 +354,7 @@ unittest
 
     otherThread.join();
 
-    assert (res.cargo == 20042);
+    assert (res.getCargo() == 20042);
 }
 
 // Test @nogc usage.
@@ -354,8 +363,11 @@ unittest
     import core.lifetime : emplace;
     import core.stdc.stdlib : free, malloc;
 
-    auto mtx = cast(shared Mutex) malloc(__traits(classInstanceSize, Mutex));
-    emplace(mtx);
+    // This test manually constructs raw class storage; keep that storage
+    // unshared until construction is complete, then test the shared methods.
+    auto rawMtx = cast(Mutex) malloc(__traits(classInstanceSize, Mutex));
+    emplace(rawMtx);
+    auto mtx = cast(shared Mutex) rawMtx;
 
     mtx.lock_nothrow();
 
@@ -371,9 +383,9 @@ unittest
     // of Mutex is Object and it doesn't have a dtor
     // we can simply call the non-virtual __dtor() here.
 
-    // Ok to cast away shared because destruction
-    // should happen only from a single thread.
-    (cast(Mutex) mtx).__dtor();
+    // Destruction only happens from this thread. Keep using rawMtx so the
+    // manual teardown does not access the raw storage through shared.
+    rawMtx.__dtor();
 
     // Verify that the underlying implementation has been destroyed by checking
     // that locking is not possible. This assumes that the underlying
@@ -386,7 +398,7 @@ unittest
     version (Solaris) {} else
     assert(!mtx.tryLock_nothrow());
 
-    free(cast(void*) mtx);
+    free(cast(void*) rawMtx);
 }
 
 // Test single-thread (non-shared) use.

@@ -201,9 +201,17 @@ if (is(T == S[], S) && (__traits(isScalar, S) || canBitwiseHash!S)) // excludes 
     static if (!canBitwiseHash!ElementType)
     {
         size_t hash = seed;
-        foreach (ref o; val)
+        static if (is(ElementType == shared U, U))
         {
-            hash = hashOf(hashOf(o), hash); // double hashing to match TypeInfo.getHash
+            // Cast away shared for iteration; caller is responsible for synchronization.
+            auto unshared = (() @trusted => cast(const(U)[]) val)();
+            foreach (ref o; unshared)
+                hash = hashOf(hashOf(o), hash); // double hashing to match TypeInfo.getHash
+        }
+        else
+        {
+            foreach (ref o; val)
+                hash = hashOf(hashOf(o), hash); // double hashing to match TypeInfo.getHash
         }
         return hash;
     }
@@ -225,10 +233,19 @@ if (is(T == S[], S) && (__traits(isScalar, S) || canBitwiseHash!S)) // excludes 
 size_t hashOf(T)(T val, size_t seed = 0)
 if (is(T == S[], S) && !(__traits(isScalar, S) || canBitwiseHash!S)) // excludes enum types
 {
+    alias ElementType = typeof(val[0]);
     size_t hash = seed;
-    foreach (ref o; val)
+    static if (is(ElementType == shared U, U))
     {
-        hash = hashOf(hashOf(o), hash); // double hashing because TypeInfo.getHash doesn't allow to pass seed value
+        // Cast away shared for iteration; caller is responsible for synchronization.
+        auto unshared = (() @trusted => cast(U[]) val)();
+        foreach (ref o; unshared)
+            hash = hashOf(hashOf(o), hash); // double hashing because TypeInfo.getHash doesn't allow to pass seed value
+    }
+    else
+    {
+        foreach (ref o; val)
+            hash = hashOf(hashOf(o), hash); // double hashing because TypeInfo.getHash doesn't allow to pass seed value
     }
     return hash;
 }
