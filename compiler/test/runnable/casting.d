@@ -211,6 +211,27 @@ void test14218()
 }
 
 /***************************************************/
+// https://github.com/dlang/dmd/issues/23262
+
+extern(C++) interface iface23262
+{
+    int funCpp();
+}
+
+class class23262 : Object, iface23262
+{
+    extern(C++)	int funCpp() { return 42; }
+}
+
+void test23262()
+{
+    Object obj = new class23262;
+    auto cpp = cast(iface23262) obj;
+    assert(cpp);
+    assert(cpp.funCpp() == 42);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -223,6 +244,7 @@ int main()
     test10842();
     test11722();
     test14218();
+    test23262();
 
     printf("Success\n");
     return 0;
