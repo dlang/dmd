@@ -18,6 +18,7 @@ module dmd.backend.dout;
 import core.stdc.stdio;
 import core.stdc.string;
 
+import dmd.backend.backconfig : debugb, debugy;
 import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -33,7 +34,6 @@ import dmd.backend.debugprint : WRfunc;
 import dmd.backend.ee : eecontext_convs;
 import dmd.backend.go : OPTIMIZER, optfunc;
 import dmd.backend.symbol : symbol_generate, symbol_print, globsym;
-import dmd.backend.var : debugb, debugy;
 import dmd.backend.x86.cod3 : cod3_thunk;
 import dmd.backend.goh;
 import dmd.backend.inliner;

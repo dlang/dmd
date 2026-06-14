@@ -25,6 +25,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.backconfig : debugc;
 import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -46,7 +47,6 @@ import dmd.backend.debugprint : fl_str, tym_str;
 import dmd.backend.dwarfdbginf : dwarf_CFA_offset, dwarf_CFA_set_loc;
 import dmd.backend.evalu8 : boolres;
 import dmd.backend.symbol : symbol_print;
-import dmd.backend.var : debugc;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;

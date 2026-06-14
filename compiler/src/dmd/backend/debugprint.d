@@ -18,11 +18,11 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.backconfig : debugf;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.el;
 import dmd.backend.evalu8 : iftrue;
-import dmd.backend.var : debugf;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.go : OPTIMIZER;

@@ -22,6 +22,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.backconfig : debugr, debugw;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
@@ -33,7 +34,6 @@ import dmd.backend.global : REGSIZE, _align, mask;
 import dmd.backend.cg : tls_get_addr_sym;
 import dmd.backend.debugprint : fl_str, oper_str, tym_str;
 import dmd.backend.symbol : symbol_calloc, symbol_print, sytab, globsym;
-import dmd.backend.var : debugr, debugw;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;

@@ -17,6 +17,7 @@ import core.stdc.string;
 import core.stdc.time;
 import core.stdc.stdlib;
 
+import dmd.backend.backconfig : debugb, debugc, debugw;
 import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -31,7 +32,6 @@ import dmd.backend.cgelem : doptelem;
 import dmd.backend.debugprint : WRblock, WReqn, WRfunc, numberBlocks;
 import dmd.backend.evalu8 : iffalse, iftrue;
 import dmd.backend.symbol : symbol_genauto, sytab, globsym;
-import dmd.backend.var : debugb, debugc, debugw;
 import dmd.backend.go : OPTIMIZER;
 import dmd.backend.goh;
 import dmd.backend.code;

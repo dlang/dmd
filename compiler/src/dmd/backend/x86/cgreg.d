@@ -17,13 +17,13 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.backconfig : debugr;
 import dmd.backend.blockopt : bo;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.el;
 import dmd.backend.global : REGSIZE, mask;
 import dmd.backend.symbol : symbol_print;
-import dmd.backend.var : debugr;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;

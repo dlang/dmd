@@ -47,13 +47,13 @@ import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.rootobject;
 
+import dmd.backend.backconfig : debuga;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.util2 : binary, ispow2;
-import dmd.backend.var : debuga;
 import dmd.backend.iasm;
 import dmd.backend.ptrntab : asm_opstr, asm_op_lookup;
 import dmd.backend.x86.xmm;
