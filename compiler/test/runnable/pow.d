@@ -1,18 +1,89 @@
+// Consolidated tests for the `^^` (pow) operator.
+//
+// `^^` lowers to `object._d_pow`, which still imports `std.math` internally
+// (see the TODO in druntime's object.d), so Phobos is needed on the link line
+// until that hook is moved into druntime.
 // RUNNABLE_PHOBOS_TEST
 // PERMUTE_ARGS:
 
-int magicVariable()
-{
-    if (__ctfe)
-        return 3;
+// runtime `^^` with a runtime exponent
 
-    shared int var = 2;
-    return var;
+__gshared uint x0 = 0;
+__gshared uint x1 = 1;
+__gshared uint x2 = 2;
+__gshared uint x3 = 3;
+__gshared uint x4 = 4;
+__gshared uint x5 = 5;
+__gshared uint x6 = 6;
+__gshared uint x7 = 7;
+__gshared uint x10 = 10;
+__gshared uint x15 = 15;
+__gshared uint x31 = 31;
+__gshared uint x32 = 32;
+
+void test5943()
+{
+    assert(2 ^^ x0 == 1);
+    assert(2 ^^ x1 == 2);
+    assert(2 ^^ x31 == 0x80000000);
+    assert(4 ^^ x0 == 1);
+    assert(4 ^^ x1 == 4);
+    assert(4 ^^ x15 == 0x40000000);
+    assert(8 ^^ x0 == 1);
+    assert(8 ^^ x1 == 8);
+    assert(8 ^^ x10 == 0x40000000);
+    assert(16 ^^ x0 == 1);
+    assert(16 ^^ x1 == 16);
+    assert(16 ^^ x7 == 0x10000000);
+    assert(32 ^^ x0 == 1);
+    assert(32 ^^ x1 == 32);
+    assert(32 ^^ x6 == 0x40000000);
+    assert(64 ^^ x0 == 1);
+    assert(64 ^^ x1 == 64);
+    assert(64 ^^ x5 == 0x40000000);
+    assert(128 ^^ x0 == 1);
+    assert(128 ^^ x1 == 128);
+    assert(128 ^^ x4 == 0x10000000);
+    assert(256 ^^ x0 == 1);
+    assert(256 ^^ x1 == 256);
+    assert(256 ^^ x3 == 0x1000000);
+    assert(512 ^^ x0 == 1);
+    assert(512 ^^ x1 == 512);
+    assert(512 ^^ x3 == 0x8000000);
+    assert(1024 ^^ x0 == 1);
+    assert(1024 ^^ x1 == 1024);
+    assert(1024 ^^ x3 == 0x40000000);
+    assert(2048 ^^ x0 == 1);
+    assert(2048 ^^ x1 == 2048);
+    assert(2048 ^^ x2 == 0x400000);
+    assert(4096 ^^ x0 == 1);
+    assert(4096 ^^ x1 == 4096);
+    assert(4096 ^^ x2 == 0x1000000);
+    assert(8192 ^^ x0 == 1);
+    assert(8192 ^^ x1 == 8192);
+    assert(8192 ^^ x2 == 0x4000000);
+    assert(16384 ^^ x0 == 1);
+    assert(16384 ^^ x1 == 16384);
+    assert(16384 ^^ x2 == 0x10000000);
+    assert(32768 ^^ x0 == 1);
+    assert(32768 ^^ x1 == 32768);
+    assert(32768 ^^ x2 == 0x40000000);
+    assert(65536 ^^ x0 == 1);
+    assert(65536 ^^ x1 == 65536);
+    assert(131072 ^^ x0 == 1);
+    assert(131072 ^^ x1 == 131072);
+    assert(262144 ^^ x0 == 1);
+    assert(262144 ^^ x1 == 262144);
+    assert(524288 ^^ x0 == 1);
+    assert(524288 ^^ x1 == 524288);
+    assert(1048576 ^^ x0 == 1);
+    assert(1048576 ^^ x1 == 1048576);
+    assert(2097152 ^^ x0 == 1);
+    assert(2097152 ^^ x1 == 2097152);
+    assert(4194304 ^^ x0 == 1);
+    assert(4194304 ^^ x1 == 4194304);
 }
 
-static assert(magicVariable()==3);
-
-/************************************/
 // https://issues.dlang.org/show_bug.cgi?id=11159
 
 void test11159()
@@ -27,13 +98,7 @@ void test11159()
     assert(e_10_pow_20 == pow(10uL, 20));
 }
 
-// https://issues.dlang.org/show_bug.cgi?id=991 -- invalid.
-// https://issues.dlang.org/show_bug.cgi?id=3500 -- is this related to 2127?
-
-// Tests for ^^
-// TODO: These tests should not require import std.math.
-
-import std.math;
+// CTFE / typing rules for `^^`
 // Test float ^^ int
 static assert( 27.0 ^^ 5 == 27.0 * 27.0 * 27.0 * 27.0 * 27.0);
 static assert( 2.0 ^^ 3 == 8.0);
@@ -153,14 +218,6 @@ int containsAsm()
     return 0;
 }
 
-enum A = StructWithCtor(1);
-enum B = StructWithCtor(7, 2.3);
-
-static assert(A.n == 1);
-static assert(A.x == 5.0);
-static assert(B.n == 7);
-static assert(B.x == 2.3);
-
 int bazra(int x)
 {
    StructWithCtor p = StructWithCtor(4);
@@ -177,82 +234,6 @@ void moreCommaTests()
    for (int i=0; i< k^^2; i+=StructWithCtor(1).n) {}
 }
 
-// Test copy constructors
-struct CopyTest {
-   double x;
-   this(double a) { x = a * 10.0;}
-   this(this) {  x+=2.0;}
-}
-
-struct CopyTest2
-{
-   int x; int x1; int x2; int x3;
-   this(int a) { x = a * 2; x1 = 3;}
-   this(this) {  x1+=17;}
-}
-
-
-const CopyTest z = CopyTest(5.3);
-/+
-// TODO: This is not yet supported. But it
-// generates an error message instead of wrong-code.
-const CopyTest w = z;
-static assert(z.x==55.0);
-+/
-
-int copytest1()
-{
-   CopyTest z = CopyTest(3.4);
-   CopyTest w = z;
-   assert(w.x == 36.0);
-   CopyTest2 q = CopyTest2(7);
-   CopyTest2 q2 = q;
-   CopyTest2 q3 = q2;
-   assert(q3.x1 == 37);
-
-  return 123;
-}
-static assert(copytest1()==123);
-
-// This must not cause a segfault
-alias int FILTH;
-struct Filth
-{
-     struct Impl
-    {
-        FILTH * handle = null;
-        this(FILTH* h, uint r, string n)
-        {
-            handle = h;
-        }
-    }
-    Impl * p;
-
-    this(string name, in char[] stdioOpenmode = "rb")
-    {
-    }
-
-    ~this()
-    {
-        if (!p) return;
-    }
-
-    this(this)
-    {
-        if (!p) return;
-    }
-    }
-    struct InputByChar
-    {
-        private Filth _f;
-
-        this(Filth f)
-        {
-            _f = f;
-        }
-}
-
-
 static int nastyForCtfe=4;
 
 // Can't use a global variable
@@ -264,11 +245,8 @@ int anotherPowTest()
    return x^^4 > 2.0 ? 3: 2;
 }
 
-/************************************/
-
 // https://github.com/dlang/dmd/issues/19075
 // ^^= must compile for small integer types
-
 void test19075()
 {
     byte bw = 10;
@@ -289,11 +267,70 @@ void test19075()
 }
 
 /************************************/
+// https://issues.dlang.org/show_bug.cgi?id=3841
+// `^^=` must compile for the type combinations below
+
+void powAssign(LHS, RHS)()
+{
+    LHS a;
+    RHS b;
+    a ^^= b;
+}
+
+void testPowAssign()
+{
+    powAssign!(int, int)();
+    powAssign!(long, int)();
+    powAssign!(long, short)();
+    powAssign!(float, long)();
+    powAssign!(double, float)();
+    powAssign!(float, double)();
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=4465
+void bug4465()
+{
+    const a = 2 ^^ 2;
+    int b = a;
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=6228
+void test6228()
+{
+    int val;
+    const(int)* ptr = &val;
+    const(int)  temp;
+    auto x = (*ptr) ^^ temp;
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=10682
+void text10682()
+{
+    ulong x = 1;
+    ulong y = 2 ^^ x;
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=14166
+struct S14166
+{
+    int x;
+    double y;
+}
+S14166 s14166;
+
+static assert(is(typeof(s14166.x ^^ 2) == int));
+static assert(is(typeof(s14166.y ^^= 2.5) == double));
+
+/************************************/
 
 void main()
 {
-    assert(!__ctfe);
-    assert(magicVariable()==2);
+    test5943();
     test11159();
     test19075();
+    testPowAssign();
+    moreCommaTests();
+    bug4465();
+    test6228();
+    text10682();
 }
