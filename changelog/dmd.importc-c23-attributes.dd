@@ -1,0 +1,28 @@
+ImportC now parses C23 `[[...]]` attribute-specifier-sequences
+
+ImportC understands the C23 attribute syntax (C23 6.7.13) wherever a GNU
+`__attribute__` is accepted: on declarations, pointers, struct/union/enum tags,
+struct members, enumerators, function parameters, and statements.
+
+The standard attributes `[[deprecated]]` / `[[deprecated("msg")]]` (6.7.13.5) and
+`[[noreturn]]` / `[[_Noreturn]]` (6.7.13.7) are mapped to their D equivalents;
+`[[deprecated]]` on an enumerator (6.7.3.3) deprecates the corresponding D enum member.
+The remaining standard attributes — `[[nodiscard]]` (6.7.13.3), `[[maybe_unused]]`
+(6.7.13.4), `[[fallthrough]]` (6.7.13.6), `[[unsequenced]]` and `[[reproducible]]`
+(6.7.13.8) — as well as vendor-prefixed (`[[gnu::...]]`, `[[clang::...]]`) and unknown
+attributes are accepted and ignored. A standard attribute spelled `attr` and the form
+`__attr__` are treated identically (6.7.13.1).
+
+-------
+[[deprecated("use bar instead")]] int foo(void);
+[[nodiscard]] int bar(void);
+
+struct [[deprecated]] S
+{
+    [[maybe_unused]] int a;
+};
+
+enum E { A [[deprecated]], B [[maybe_unused]] = 5 };
+
+int baz(int x [[maybe_unused]]);
+-------
