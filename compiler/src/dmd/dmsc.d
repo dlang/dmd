@@ -25,14 +25,13 @@ import dmd.target;
 
 import dmd.root.filename;
 
+import dmd.backend.backconfig;
 import dmd.backend.goh : go;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.global : ErrorCallbackBackend;
-import dmd.backend.var : debugb, debugc, debugf, debugr, debugx, debugy;
 import dmd.backend.ty;
 import dmd.backend.type;
-import dmd.backend.backconfig;
 
 /**************************************
  * Initialize backend config variables.

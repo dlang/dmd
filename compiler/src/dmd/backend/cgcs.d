@@ -19,8 +19,9 @@ module dmd.backend.cgcs;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 
-import dmd.backend.cc;
+import dmd.backend.backconfig : debugw, debugx;
 import dmd.backend.blockopt : BlockOpt;
+import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.el;
@@ -30,7 +31,6 @@ import dmd.backend.cgelem : elemisone;
 import dmd.backend.debugprint : oper_str;
 import dmd.backend.evalu8 : iftrue;
 import dmd.backend.symbol : symbol_print;
-import dmd.backend.var : debugw, debugx;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
