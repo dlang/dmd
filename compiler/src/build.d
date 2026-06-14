@@ -1580,7 +1580,7 @@ auto sourceFiles()
             gloop.d cgelem.d cgcs.d ee.d blockopt.d mem.d cg.d
             debugprint.d fp.d symbol.d dcode.d cgsched.d
             pdata.d util2.d backconfig.d rtlsym.d ptrntab.d
-            dvarstats.d cgen.d goh.d barray.d cgcse.d elpicpie.d
+            dvarstats.d cgen.d barray.d cgcse.d elpicpie.d
             dwarfeh.d dwarfdbginf.d cv8.d
             machobj.d elfobj.d mscoffobj.d
             x86/nteh.d x86/cgreg.d x86/cg87.d x86/cgxmm.d x86/disasm86.d

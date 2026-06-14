@@ -28,7 +28,7 @@ import dmd.backend.debugprint : WReqn;
 import dmd.backend.dout : out_regcand;
 import dmd.backend.evalu8 : iftrue;
 import dmd.backend.gloop : dom;
-import dmd.backend.goh;
+import dmd.backend.go;
 import dmd.backend.el;
 import dmd.backend.symbol : sytab, globsym;
 import dmd.backend.ty;

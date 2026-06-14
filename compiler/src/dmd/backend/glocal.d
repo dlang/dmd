@@ -27,7 +27,7 @@ import dmd.backend.oper;
 import dmd.backend.blockopt : blockopt;
 import dmd.backend.cgelem : doptelem;
 import dmd.backend.debugprint : WReqn;
-import dmd.backend.goh;
+import dmd.backend.go;
 import dmd.backend.el;
 import dmd.backend.ty;
 import dmd.backend.type;
