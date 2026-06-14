@@ -5657,6 +5657,18 @@ final class CParser(AST) : Parser!AST
             addSym(tempdecl);
         }
 
+        // Set of all identifiers declared at module scope. (Not just translated macros like defineTab)
+        // Used to decide whether `#define ID identifier` can be turned into an alias.
+        // Aliasing an undefined identifier would error eagerly, which system headers trigger by
+        // #define-ing keywords to compiler builtins (e.g. `#define __func__ __FUNCTION__`).
+        bool[const(void)*] declaredIdents;
+        if (symbols)
+        {
+            foreach (sym; (*symbols)[])
+                if (sym && sym.ident)
+                    declaredIdents[cast(const(void)*) sym.ident] = true;
+        }
+
         while (p < endp)
         {
             //printf("|%s|\n", p);
@@ -5788,6 +5800,13 @@ final class CParser(AST) : Parser!AST
                              * (no additional operators that could cause precedence issues).
                              * Rewrite to a template function:
                              *  auto ID()() { return identifier(args); }
+                             * Or:
+                             *  #define ID identifier
+                             * where the macro body is a single identifier declared in this
+                             * translation unit (e.g. a function alias macro).
+                             * https://github.com/dlang/dmd/issues/23143
+                             * Rewrite to an alias:
+                             *  alias ID = identifier;
                              */
                             assert(!params);                    // would be TOK.leftParenthesis
                             eLatch.sawErrors = false;
@@ -5796,6 +5815,22 @@ final class CParser(AST) : Parser!AST
                                 break;                          // abandon this #define
                             if (token.value != TOK.endOfFile)   // did not consume the entire line
                                 break;
+                            if (auto ie = exp.isIdentifierExp())
+                            {
+                                // Skip self-referential macros (e.g. glibc's `#define stdin stdin`)
+                                if (id == ie.ident)
+                                    break;
+                                if ((cast(const(void)*) ie.ident in declaredIdents) ||
+                                    (cast(void*) ie.ident in defineTab))
+                                {
+                                    auto t2 = new AST.TypeIdentifier(ie.loc, ie.ident);
+                                    auto ad = new AST.AliasDeclaration(scanloc, id, t2);
+                                    addSym(ad);
+                                    ++p;
+                                    continue;
+                                }
+                                break;
+                            }
                             // Only allow bare function calls to avoid precedence issues.
                             // E.g., `#define X FUNC(5)` is safe, but `#define X FUNC(5) + 1`
                             // would have different semantics in D vs C when used as `X * 2`.
