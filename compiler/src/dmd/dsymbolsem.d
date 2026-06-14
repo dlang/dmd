@@ -4143,7 +4143,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 tm.symtab = sc.parent.isScopeDsymbol().symtab;
             L1:
                 assert(tm.symtab);
-                tm.ident = Identifier.generateIdWithLoc("__mixin", tm.loc, null, /*mustBeUnique:*/ false);
+                tm.ident = Identifier.generateIdWithLoc("__mixin", tm.loc, sc.idCounter);
                 tm.symtab.insert(tm);
             }
         }
@@ -6380,6 +6380,39 @@ void addMember(Dsymbol dsym, Scope* sc, ScopeDsymbol sds)
     dsym.accept(addMemberVisitor);
 }
 
+/****************************************************
+ * Disambiguate the location-based name of a compiler-generated symbol (static
+ * constructor, unittest) whose source location is shared by a copy:
+ *
+ * - When duplicated by a `static foreach`, the enclosing iteration index
+ *   `Scope.idCounter` is appended
+ * - Otherwise the location can still clash, e.g. when two string mixins on the
+ *   same source line each generate such a symbol (both get the same `-mixin-`
+ *   pseudo location). The lowest free index is then appended.
+ */
+private void disambiguateLocBasedId(Dsymbol fd, Scope* sc, ScopeDsymbol sds)
+{
+    if (!fd.ident)
+        return;
+    if (sc && sc.idCounter != 0)
+    {
+        fd.ident = appendIdCounter(fd.ident, sc.idCounter);
+        return;
+    }
+    // Resolve clashes against the target symbol table (in source order).
+    if (sds && sds.symtab)
+        fd.ident = sds.symtab.uniqueName(fd.ident);
+}
+
+private Identifier appendIdCounter(Identifier ident, int counter)
+{
+    OutBuffer buf;
+    buf.writestring(ident.toString());
+    buf.writestring("_");
+    buf.print(counter);
+    return Identifier.idPool(buf[]);
+}
+
 private void attribAddMember(AttribDeclaration atb, Scope* sc, ScopeDsymbol sds)
 {
     Dsymbols* d = atb.include(sc);
@@ -6473,6 +6506,24 @@ private extern(C++) class AddMemberVisitor : Visitor
     override void visit(StaticAssert _)
     {
         // we didn't add anything
+    }
+
+    override void visit(UnitTestDeclaration d)
+    {
+        disambiguateLocBasedId(d, sc, sds);
+        visit(cast(Dsymbol)d);
+    }
+
+    override void visit(StaticCtorDeclaration d)
+    {
+        disambiguateLocBasedId(d, sc, sds);
+        visit(cast(Dsymbol)d);
+    }
+
+    override void visit(StaticDtorDeclaration d)
+    {
+        disambiguateLocBasedId(d, sc, sds);
+        visit(cast(Dsymbol)d);
     }
 
     /*****************************
@@ -9240,6 +9291,7 @@ private extern(C++) class NewScopeVisitor : Visitor
     override void visit(ForwardingAttribDeclaration  fad)
     {
         sc = sc.push(fad.sym);
+        sc.idCounter = fad.sym.idCounter;
     }
 
     override void visit(UserAttributeDeclaration uac)
