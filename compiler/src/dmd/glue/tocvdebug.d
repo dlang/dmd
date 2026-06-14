@@ -1133,6 +1133,7 @@ private extern (C++) class CVMember : Visitor
             return;
 
         const id = vd.toChars();
+        const staticMember = vd.isStatic() || (vd.isMember() && (vd.storage_class & STC.gshared));
 
         if (!p)
         {
@@ -1143,7 +1144,7 @@ private extern (C++) class CVMember : Visitor
                 result += 6 + cv_stringbytes(id);
                 result += cv4_numericbytes(vd.offset);
             }
-            else if (vd.isStatic())
+            else if (staticMember)
             {
                 if (config.fulltypes == CV8)
                     result += 2;
@@ -1188,7 +1189,7 @@ private extern (C++) class CVMember : Visitor
                         result = 8 + cv4_numericbytes(vd.offset);
                         result += cv_namestring(p + result, id);
                     }
-                    else if (vd.isStatic())
+                    else if (staticMember)
                     {
                         TOWORD(p,LF_STMEMBER_V3);
                         TOWORD(p + 2,attribute);
@@ -1208,7 +1209,7 @@ private extern (C++) class CVMember : Visitor
                         result = 6 + cv4_numericbytes(vd.offset);
                         result += cv_namestring(p + result, id);
                     }
-                    else if (vd.isStatic())
+                    else if (staticMember)
                     {
                         TOWORD(p,LF_STMEMBER);
                         TOWORD(p + 2,typidx);

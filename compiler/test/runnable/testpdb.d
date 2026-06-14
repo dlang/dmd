@@ -60,6 +60,8 @@ void main(string[] args)
 
         test21382(session, globals);
 
+        test19591(session, globals);
+
         test21665(session, globals);
 
         source.Release();
@@ -622,6 +624,30 @@ void test21382(IDiaSession session, IDiaSymbol globals)
     IDiaSymbol virtualSym = searchSymbol(dSym, "virtualFun");
     virtualSym || assert(false, "testpdb.Dsym21382.virtualFun not found");
     virtualSym.get_virtual(&virt) == S_OK && virt || assert(false, "testpdb.Dsym21382.virtualFun is virtual");
+}
+
+// https://github.com/dlang/dmd/issues/19591
+class C19591
+{
+    int field = 3;
+    static int stat = 9;
+    __gshared int gs = 8;
+    static shared(int) shrd = 6;
+}
+
+void test19591(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol classSym = searchSymbol(globals, "testpdb.C19591");
+    classSym || assert(false, "testpdb.C19591 not found");
+
+    IDiaSymbol statSym = searchSymbol(classSym, "stat");
+    statSym || assert(false, "testpdb.C19591.stat not found");
+
+    IDiaSymbol gsSym = searchSymbol(classSym, "gs");
+    gsSym || assert(false, "testpdb.C19591.gs not found");
+
+    IDiaSymbol shrdSym = searchSymbol(classSym, "shrd");
+    shrdSym || assert(false, "testpdb.C19591.shrd not found");
 }
 
 // https://github.com/dlang/dmd/issues/18950
