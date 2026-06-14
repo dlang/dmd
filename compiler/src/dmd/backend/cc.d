@@ -769,8 +769,6 @@ nothrow:
     void print_list() { param_t_print_list(&this); }
 }
 
-import dmd.backend.dtype : param_t_print, param_t_print_list, param_t_length;
-
 void param_debug(const param_t* p)
 {
     debug assert(p.id == p.IDparam);
