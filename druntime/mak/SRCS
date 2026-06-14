@@ -1,6 +1,7 @@
 SRCS=\
 	src\object.d \
 	\
+	src\core\package.d \
 	src\core\atomic.d \
 	src\core\attribute.d \
 	src\core\bitop.d \
@@ -21,6 +22,7 @@ SRCS=\
 	src\core\vararg.d \
 	src\core\volatile.d \
 	\
+	src\core\gc\package.d \
 	src\core\gc\config.d \
 	src\core\gc\gcinterface.d \
 	src\core\gc\registry.d \
@@ -91,6 +93,7 @@ SRCS=\
 	src\core\internal\vararg\sysv_x64.d \
 	src\core\internal\vararg\gnu.d \
 	\
+	src\core\stdc\package.d \
 	src\core\stdc\assert_.d \
 	src\core\stdc\stdatomic.d \
 	src\core\stdc\complex.d \
@@ -115,6 +118,7 @@ SRCS=\
 	src\core\stdc\wchar_.d \
 	src\core\stdc\wctype.d \
 	\
+	src\core\stdcpp\package.d \
 	src\core\stdcpp\allocator.d \
 	src\core\stdcpp\array.d \
 	src\core\stdcpp\exception.d \

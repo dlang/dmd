@@ -1,0 +1,27 @@
+module core;
+
+public import core.atomic;
+public import core.attribute;
+public import core.bitop;
+public import core.builtins;
+public import core.checkedint;
+public import core.cpuid;
+public import core.demangle;
+public import core.exception;
+public import core.factory;
+public import core.gc;
+public import core.int128;
+public import core.interpolation;
+public import core.lifetime;
+public import core.math;
+public import core.memory;
+public import core.runtime;
+public import core.simd;
+public import core.stdc;
+public import core.stdcpp;
+public import core.sync;
+version(none) public import core.sys;
+public import core.thread;
+public import core.time;
+public import core.vararg;
+public import core.volatile;
