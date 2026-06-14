@@ -18,9 +18,8 @@ import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;
 import dmd.backend.global : ErrorCallbackBackend, error, errorCallbackBackend;
-import dmd.backend.go : go_flag;
+import dmd.backend.go : go_flag, GlobalOptimizer;
 import dmd.backend.rtlsym : rtlsym_init;
-import dmd.backend.goh : GlobalOptimizer;
 import dmd.backend.ty;
 import dmd.backend.type;
 
