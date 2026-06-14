@@ -31,7 +31,6 @@ import dmd.backend.gloop : dom;
 import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.symbol : sytab, globsym;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 

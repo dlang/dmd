@@ -27,9 +27,8 @@ import dmd.backend.x86.code_x86 : isXMMreg;
 import dmd.backend.oper;
 import dmd.backend.global : REGSIZE, err_nomem;
 import dmd.backend.debugprint : tym_str;
-import dmd.backend.symbol : symbol_calloc, symbol_insert, symbol_print;
+import dmd.backend.symbol : symbol_calloc, symbol_insert, symbol_print, symtab_t, SYMIDX;
 import dmd.backend.el;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 

@@ -39,7 +39,7 @@ import dmd.backend.goh;
 import dmd.backend.inliner;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 

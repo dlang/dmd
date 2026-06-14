@@ -34,7 +34,6 @@ import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.inliner;
 import dmd.backend.symbol : globsym;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 

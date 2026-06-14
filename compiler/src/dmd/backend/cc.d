@@ -20,7 +20,7 @@ import dmd.backend.cdef;        // host and target compiler definition
 import dmd.backend.x86.code_x86;
 import dmd.backend.dt;
 import dmd.backend.el;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.type;
 
 @nogc:

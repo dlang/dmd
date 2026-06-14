@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.barray;
 import dmd.backend.backconfig : debugy;
 import dmd.backend.blockopt : blocklist_free, bo;
 import dmd.backend.cdef;
@@ -30,7 +31,6 @@ import dmd.backend.global : err_nomem, symbol_keep;
 import dmd.backend.debugprint : class_str, fl_str;
 import dmd.backend.mem;
 import dmd.backend.oper;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -40,6 +40,9 @@ import dmd.backend.x86.code_x86;
 nothrow:
 @safe:
 
+alias SYMIDX = size_t;    // symbol table index
+
+alias symtab_t = Barray!(Symbol*);
 
 __gshared
 {

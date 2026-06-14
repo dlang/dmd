@@ -66,11 +66,10 @@ import dmd.backend.blockopt : block_appendexp, block_calloc, block_goto, blockop
 import dmd.backend.debugprint : WRblock, numberBlocks;
 import dmd.backend.elem : exp2_copytotemp;
 import dmd.backend.evalu8 : iftrue;
-import dmd.backend.symbol : symbol_add, symbol_genauto, symbol_name;
+import dmd.backend.symbol : symbol_add, symbol_genauto, symbol_name, SYMIDX;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 

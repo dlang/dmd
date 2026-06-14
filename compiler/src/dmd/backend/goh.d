@@ -23,7 +23,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.oper;
 import dmd.backend.el;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 

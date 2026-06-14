@@ -30,7 +30,7 @@ import dmd.backend.dout : outdata;
 import dmd.backend.symbol : symbol_add, symbol_generate, symbol_name, globsym;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 

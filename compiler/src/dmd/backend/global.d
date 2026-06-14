@@ -23,7 +23,7 @@ import dmd.backend.cc : Symbol, block, Classsym, BlockState, FL, Srcpos;
 import dmd.backend.code;
 import dmd.backend.el : elem;
 import dmd.backend.mem;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty : TYnptr, TYvoid, tybasic, tysize, _tysize;
 import dmd.backend.type;
 

@@ -23,13 +23,12 @@ import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.el;
 import dmd.backend.global : REGSIZE, mask;
-import dmd.backend.symbol : symbol_print;
+import dmd.backend.symbol : symbol_print, SYMIDX;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.oper;
 import dmd.backend.symbol : globsym;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
