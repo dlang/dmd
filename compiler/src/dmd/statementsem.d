@@ -5006,7 +5006,7 @@ private Statements* flatten(Statement statement, Scope* sc)
             const len = buf.length;
             buf.writeByte(0);
             const str = buf.extractSlice()[0 .. len];
-            const bool doUnittests = global.params.parsingUnittestsRequired();
+            const bool doUnittests = global.params.parsingUnittestsRequired(sc._module.isRoot);
             scope p = new Parser!ASTCodegen(sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
             adjustLocForMixin(str, cs.loc, *p.baseLoc, global.params.mixinOut);
             p.linnum = p.baseLoc.startLine;
