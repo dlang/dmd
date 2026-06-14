@@ -1578,7 +1578,7 @@ auto sourceFiles()
             bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
             dout.d inliner.d eh.d aarray.d
             gloop.d cgelem.d cgcs.d ee.d blockopt.d mem.d cg.d
-            debugprint.d fp.d symbol.d elem.d dcode.d cgsched.d
+            debugprint.d fp.d symbol.d dcode.d cgsched.d
             pdata.d util2.d backconfig.d rtlsym.d ptrntab.d
             dvarstats.d cgen.d goh.d barray.d cgcse.d elpicpie.d
             dwarfeh.d dwarfdbginf.d cv8.d

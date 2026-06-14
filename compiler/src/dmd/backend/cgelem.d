@@ -30,7 +30,7 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.oper;
 import dmd.backend.global : REGSIZE, error;
 import dmd.backend.debugprint : oper_str;
-import dmd.backend.elem : exp2_copytotemp;
+import dmd.backend.el : exp2_copytotemp;
 import dmd.backend.evalu8 : boolres, iffalse, iftrue;
 import dmd.backend.symbol : symbol_calloc, sytab, globsym;
 import dmd.backend.util2 : ispow2;
