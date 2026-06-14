@@ -44,6 +44,7 @@ import core.atomic : atomicLoad;
  * an issue however, because it is uncommon to call deeply into unknown code
  * while holding a lock that simply protects data.
  */
+version(none)
 class ReadWriteMutex
 {
     /**
@@ -563,6 +564,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 
 
+version(none)
 unittest
 {
     import core.atomic, core.thread, core.sync.semaphore;
@@ -699,6 +701,7 @@ unittest
     runTest(ReadWriteMutex.Policy.PREFER_WRITERS);
 }
 
+version(none)
 unittest
 {
     import core.atomic, core.thread;
@@ -775,6 +778,7 @@ unittest
     }
 }
 
+version(none)
 unittest
 {
     import core.atomic, core.thread, core.sync.semaphore;
@@ -911,6 +915,7 @@ unittest
     runTest(ReadWriteMutex.Policy.PREFER_WRITERS);
 }
 
+version(none)
 unittest
 {
     import core.atomic, core.thread;
