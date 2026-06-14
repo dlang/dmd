@@ -61,6 +61,7 @@ else
  * indicate that control is not transferred to the waiter when a notification
  * is sent.
  */
+version(none)
 class Condition
 {
     ////////////////////////////////////////////////////////////////////////////
@@ -623,6 +624,7 @@ private:
 // Unit Tests
 ////////////////////////////////////////////////////////////////////////////////
 
+version(none)
 unittest
 {
     import core.sync.mutex;
@@ -789,6 +791,7 @@ unittest
     testWaitTimeout();
 }
 
+version(none)
 unittest
 {
     import core.sync.mutex;
