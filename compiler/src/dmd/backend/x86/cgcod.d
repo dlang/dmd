@@ -33,12 +33,11 @@ import dmd.backend.eh;
 import dmd.backend.el;
 import dmd.backend.global : REGSIZE, _align, mask;
 import dmd.backend.debugprint : oper_str, tym_str;
-import dmd.backend.symbol : symbol_print, globsym;
+import dmd.backend.symbol : symbol_print, globsym, symtab_t, SYMIDX;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.pdata : win64_pdata;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 

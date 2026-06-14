@@ -31,10 +31,9 @@ import dmd.backend.cc;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.blockopt : block_appendexp;
-import dmd.backend.symbol : symbol_add, symbol_genauto, symbol_name;
+import dmd.backend.symbol : symbol_add, symbol_genauto, symbol_name, SYMIDX;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab : SYMIDX;
 import dmd.backend.ty;
 import dmd.backend.type;
 

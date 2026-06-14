@@ -31,7 +31,7 @@ import dmd.backend.debugprint : tym_str;
 import dmd.backend.symbol : symbol_print, symbol_reset, globsym;
 import dmd.backend.mem;
 import dmd.backend.obj;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 

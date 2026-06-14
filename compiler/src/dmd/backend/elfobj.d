@@ -37,7 +37,7 @@ import dmd.backend.dout : alignOffset;
 import dmd.backend.symbol : symbol_name, symbol_print, symbol_reset;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.arm.instr;

@@ -31,8 +31,7 @@ import dmd.backend.evalu8 : evalu8, iftrue;
 import dmd.backend.go : optfunc;
 import dmd.backend.goh;
 import dmd.backend.el;
-import dmd.backend.symbol : sytab, globsym;
-import dmd.backend.symtab;
+import dmd.backend.symbol : sytab, globsym, SYMIDX;
 import dmd.backend.ty;
 import dmd.backend.type;
 

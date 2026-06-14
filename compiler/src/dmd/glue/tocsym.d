@@ -59,10 +59,9 @@ import dmd.backend.cc;
 import dmd.backend.dt;
 import dmd.backend.type;
 import dmd.backend.dout : outdata, outthunk;
-import dmd.backend.symbol : symbol_calloc, symbol_func, symbol_name;
+import dmd.backend.symbol : symbol_calloc, symbol_func, symbol_name, SYMIDX;
 import dmd.backend.oper;
 import dmd.backend.cgcv;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 
 /*************************************

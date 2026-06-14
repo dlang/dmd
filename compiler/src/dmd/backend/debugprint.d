@@ -28,7 +28,7 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.go : OPTIMIZER;
 import dmd.backend.goh;
 import dmd.backend.oper;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 

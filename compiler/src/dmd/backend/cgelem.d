@@ -38,7 +38,7 @@ import dmd.backend.goh;
 import dmd.backend.go : OPTIMIZER;
 import dmd.backend.el;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
