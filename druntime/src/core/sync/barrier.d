@@ -32,6 +32,7 @@ import core.sync.mutex;
  * This class represents a barrier across which threads may only travel in
  * groups of a specific size.
  */
+version(none)
 class Barrier
 {
     ////////////////////////////////////////////////////////////////////////////
@@ -106,6 +107,7 @@ private:
 // Unit Tests
 ////////////////////////////////////////////////////////////////////////////////
 
+version(none)
 unittest
 {
     import core.thread;
