@@ -64,7 +64,6 @@ import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.blockopt : block_appendexp, block_calloc, block_goto, blockopt;
 import dmd.backend.debugprint : WRblock, numberBlocks;
-import dmd.backend.elem : exp2_copytotemp;
 import dmd.backend.evalu8 : iftrue;
 import dmd.backend.symbol : symbol_add, symbol_genauto, symbol_name, SYMIDX;
 import dmd.backend.obj;
