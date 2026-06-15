@@ -179,6 +179,13 @@ version (Windows)
         assert(test(`"/LIBPATH:dir with spaces"`) == `"/LIBPATH:dir with spaces"`);
         assert(test(`/LIBPATH:"dir with spaces"`) == `/LIBPATH:"dir with spaces"`);
     }
+
+    private const(char)* quotedArgIfNeeded(ref OutBuffer buffer, const(char)* arg)
+    {
+        buffer.reset();
+        buffer.writeQuotedArgIfNeeded(arg);
+        return buffer.peekChars();
+    }
 }
 
 enum STATUS_FAILED = -1;
@@ -809,7 +816,8 @@ version (Windows)
             status = executearg0(cmd, args);
             if (status == -1)
             {
-                status = spawnlp(0, cmd, cmd, args, null);
+                OutBuffer quotedCmd;
+                status = spawnlp(0, cmd, quotedArgIfNeeded(quotedCmd, cmd), args, null);
             }
         }
         if (status)
@@ -844,8 +852,9 @@ version (Windows)
             return -1;
         const file = FileName.replaceName(argv0, cmd.toDString);
         //printf("spawning '%s'\n",file);
+        OutBuffer quotedFile;
         // spawnlp returns intptr_t in some systems, not int
-        return spawnl(0, file.ptr, file.ptr, args, null);
+        return spawnl(0, file.ptr, quotedArgIfNeeded(quotedFile, file.ptr), args, null);
     }
 }
 
