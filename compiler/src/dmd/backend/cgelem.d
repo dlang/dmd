@@ -5574,14 +5574,6 @@ private elem* elinfo(elem* e, Goal goal)
 }
 
 /********************************************
- */
-
-private elem* elclassinit(elem* e, Goal goal)
-{
-    return e;
-}
-
-/********************************************
  * OPva_start
  *     /  \
  *   ap    parmn

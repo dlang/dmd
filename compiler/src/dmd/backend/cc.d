@@ -61,8 +61,6 @@ nothrow:
 
     const(char)* Sfilename;
 
-    const(char*) name() const { return Sfilename; }
-
     static Srcpos create(const(char)* filename, uint linnum, uint charnum)
     {
         // Cannot have constructor because Srcpos is used in a union
@@ -71,20 +69,6 @@ nothrow:
         sp.Slinnum = linnum;
         sp.Scharnum = charnum;
         return sp;
-    }
-
-    /*******
-     * Set fields of Srcpos
-     * Params:
-     *      filename = file name
-     *      linnum = line number
-     *      charnum = character number
-     */
-    void set(const(char)* filename, uint linnum, int charnum) pure
-    {
-        Sfilename = filename;
-        Slinnum = linnum;
-        Scharnum = charnum;
     }
 
     void print(const(char)* func) const { Srcpos_print(this, func); }
@@ -448,8 +432,6 @@ struct baseclass_t
     Classsym*         BCbase;           // base class Symbol
     baseclass_t*      BCnext;           // next base class
     targ_size_t       BCoffset;         // offset from start of derived class to this
-    Symbol*           BCvtbl;           // Symbol for vtbl[] array (in Smptrbase list)
-                                        // Symbol for vbtbl[] array (in Svbptrbase list)
 }
 
 /***********************************
@@ -585,9 +567,6 @@ struct Symbol
     dt_t* Sdt;                  // variables: initializer
     int Salignment;             // variables: alignment, 0 or -1 means default alignment
 
-    int Salignsize()            // variables: return alignment
-    { return Symbol_Salignsize(this); }
-
     type* Stype;                // type of Symbol
     tym_t ty() const { return Stype.Tty; }
 
@@ -595,12 +574,6 @@ struct Symbol
     {
         enum_t* Senum;          // SCenum
         func_t* Sfunc;          // tyfunc
-
-        struct                  // SClabel
-        {
-            int Slabel;         // TRUE if label was defined
-            block* Slabelblk_;  // label block
-        }
 
         struct
         {
@@ -682,11 +655,6 @@ struct Symbol
      */
     char[1] Sident;
 
-    int needThis()              // !=0 if symbol needs a 'this' pointer
-    { return Symbol_needThis(this); }
-
-    bool Sisdead(bool anyiasm)  // if variable is not referenced
-    { return Symbol_Sisdead(this, anyiasm); }
 }
 
 void symbol_debug(const Symbol* s)
@@ -694,9 +662,8 @@ void symbol_debug(const Symbol* s)
     debug assert(s.id == s.IDsymbol);
 }
 
-public import dmd.backend.symbol : Symbol_Salignsize, Symbol_Sisdead, Symbol_needThis, Symbol_isAffected;
+public import dmd.backend.symbol : Symbol_Salignsize, Symbol_Sisdead, Symbol_isAffected;
 
-bool isclassmember(const Symbol* s) { return s.Sscope && s.Sscope.Sclass == SC.struct_; }
 
 // Class, struct or union
 
@@ -837,11 +804,6 @@ enum FL : ubyte
 
 struct EEcontext
 {
-    uint EElinnum;              // line number to insert expression
-    char* EEexpr;               // expression
-    char* EEtypedef;            // typedef identifier
-    byte EEpending;             // !=0 means we haven't compiled it yet
-    byte EEimminent;            // we've installed it in the source text
     byte EEcompile;             // we're compiling for the EE expression
     byte EEin;                  // we are parsing an EE expression
     elem* EEelem;               // compiled version of EEexpr

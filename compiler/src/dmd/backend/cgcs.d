@@ -57,17 +57,6 @@ public void comsubs(ref GlobalOptimizer go, ref BlockOpt bo)
         printf("done with comsubs()\n");
 }
 
-/*******************************
- */
-
-@trusted
-public void cgcs_term()
-{
-    cgcsdata.term();
-    debug debugw && printf("cgcs_term()\n");
-}
-
-
 /***********************************************************************/
 
 private:
@@ -176,16 +165,6 @@ struct CGCS
         vec_clear(csvec);       // don't free it, recycle storage
         hcstab.reset();
         hcsarray = HCSArray.init;
-    }
-
-    /*********************************
-     * All done for this compiler instance.
-     */
-    void term()
-    {
-        vec_free(csvec);
-        csvec = null;
-        //hcstab.dtor();  // cache allocation for next iteration
     }
 
     /****************************

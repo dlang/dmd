@@ -116,9 +116,6 @@ void TOOFFSET(void* p, targ_size_t value)
     }
 }
 
-// Convert from SFL visibilities to CV4 protections
-uint SFLtoATTR(uint sfl) { return 4 - ((sfl & SFLpmask) >> 5); }
-
 __gshared
 {
 private char* ftdbname = null;
@@ -326,25 +323,6 @@ else
 {
     free(d);
 }
-}
-
-static if (0)
-{
-void debtyp_check(debtyp_t* d,int linnum)
-{   int i;
-    __gshared char c;
-
-    //printf("linnum = %d\n",linnum);
-    //printf(" length = %d\n",d.length);
-    for (i = 0; i < d.length; i++)
-        c = d.data.ptr[i];
-}
-
-void debtyp_check(debtyp_t* d) { debtyp_check(d,__LINE__); }
-}
-else
-{
-void debtyp_check(debtyp_t* d) { }
 }
 
 /***********************************

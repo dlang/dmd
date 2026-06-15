@@ -97,34 +97,6 @@ debug
 }
 
 
-/*********************************
- * Terminate use of symbol table.
- */
-
-private __gshared Symbol* keep;
-
-@trusted
-void symbol_term()
-{
-    symbol_free(keep);
-}
-
-/****************************************
- * Keep symbol around until symbol_term().
- */
-
-static if (TERMCODE)
-{
-
-void symbol_keep(Symbol* s)
-{
-    symbol_debug(s);
-    s.Sr = keep;       // use Sr so symbol_free() doesn't nest
-    keep = s;
-}
-
-}
-
 /****************************************
  * Return alignment of symbol.
  */
@@ -176,24 +148,6 @@ bool Symbol_Sisdead(const ref Symbol s, bool anyInlineAsm)
             (config.flags4 & CFG4optimized || !config.fulltypes));
 }
 
-/****************************************
- * Determine if symbol needs a 'this' pointer.
- */
-
-@trusted
-int Symbol_needThis(const ref Symbol s)
-{
-    //printf("needThis() '%s'\n", Sident.ptr);
-
-    debug assert(isclassmember(&s));
-
-    if (s.Sclass == SC.member || s.Sclass == SC.field)
-        return 1;
-    if (tyfunc(s.Stype.Tty) && !(s.Sfunc.Fflags & Fstatic))
-        return 1;
-    return 0;
-}
-
 /************************************
  * Determine if `s` may be affected if an assignment is done through
  * a pointer.
@@ -239,14 +193,6 @@ bool Symbol_isAffected(const ref Symbol s)
 }
 
 
-/***********************************
- * Get user name of symbol.
- */
-const(char)* symbol_ident(return ref const Symbol s)
-{
-    return &s.Sident[0];
-}
-
 /****************************************
  * Create a new symbol.
  */
@@ -286,23 +232,6 @@ Symbol* symbol_name(const(char)[] name, SC sclass, type* t)
 
     if (tyfunc(t.Tty))
         symbol_func(*s);
-    return s;
-}
-
-/****************************************
- * Create a symbol that is an alias to another function symbol.
- */
-
-@trusted
-Funcsym* symbol_funcalias(Funcsym* sf)
-{
-    symbol_debug(sf);
-    assert(tyfunc(sf.Stype.Tty));
-    if (sf.Sclass == SC.funcalias)
-        sf = sf.Sfunc.Falias;
-    auto s = cast(Funcsym*)symbol_name(sf.Sident.ptr[0 .. strlen(sf.Sident.ptr)],SC.funcalias,sf.Stype);
-    s.Sfunc.Falias = sf;
-
     return s;
 }
 
@@ -712,47 +641,6 @@ Symbol* symbol_copy(ref Symbol s)
         type_debug(t);
     }
     return scopy;
-}
-
-/***************************
- * Look down baseclass list to find sbase.
- * Returns:
- *      null    not found
- *      pointer to baseclass
- */
-
-baseclass_t* baseclass_find(baseclass_t* bm,Classsym* sbase)
-{
-    symbol_debug(sbase);
-    for (; bm; bm = bm.BCnext)
-        if (bm.BCbase == sbase)
-            break;
-    return bm;
-}
-
-@trusted
-baseclass_t* baseclass_find_nest(baseclass_t* bm,Classsym* sbase)
-{
-    symbol_debug(sbase);
-    for (; bm; bm = bm.BCnext)
-    {
-        if (bm.BCbase == sbase ||
-            baseclass_find_nest(bm.BCbase.Sstruct.Sbase, sbase))
-            break;
-    }
-    return bm;
-}
-
-/******************************
- * Calculate number of baseclasses in list.
- */
-
-int baseclass_nitems(baseclass_t* b)
-{   int i;
-
-    for (i = 0; b; b = b.BCnext)
-        i++;
-    return i;
 }
 
 /*************************************
