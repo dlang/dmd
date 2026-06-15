@@ -14931,6 +14931,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         //printf("EqualExp::semantic('%s')\n", exp.toErrMsg());
 
+        static Expression floatingNaNConst(Expression e)
+        {
+            auto optimized = e.optimize(WANTvalue);
+            if (!optimized || optimized.isConst() != 1)
+                return null;
+
+            if (optimized.type.isReal())
+                return CTFloat.isNaN(optimized.toReal()) ? optimized : null;
+            if (optimized.type.isImaginary())
+                return CTFloat.isNaN(optimized.toImaginary()) ? optimized : null;
+            return null;
+        }
+
         exp.setNoderefOperands();
 
         if (auto e = binSemanticProp(exp, sc))
@@ -15006,6 +15019,23 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Type t1 = exp.e1.type.toBasetype();
         Type t2 = exp.e2.type.toBasetype();
+
+        if (t1.isFloating() && t2.isFloating())
+        {
+            auto nan1 = floatingNaNConst(exp.e1);
+            auto nan2 = floatingNaNConst(exp.e2);
+            auto nan = nan1 ? nan1 : nan2;
+            if (nan)
+            {
+                const(char)* cmpResult = exp.op == EXP.equal ? "false" : "true";
+                error(exp.loc, "comparison with `%s` is always %s; use `%s` or `%s` instead",
+                    nan.toErrMsg(),
+                    cmpResult,
+                    "!std.math.isNaN".ptr + (exp.op == EXP.equal),
+                    "!is".ptr + (exp.op == EXP.equal));
+                return setError();
+            }
+        }
 
         static bool unifyArrayTypes(Type t1, Type t2, Scope* sc)
         {
