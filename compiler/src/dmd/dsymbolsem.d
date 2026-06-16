@@ -6787,7 +6787,7 @@ private OverloadSet mergeOverloadSet(ScopeDsymbol sds, Identifier ident, Overloa
     for (size_t j = 0; j < os.a.length; j++)
     {
         Dsymbol s2 = os.a[j];
-        if (s.toAlias() == s2.toAlias())
+        if (s.toAlias() == s2.toAlias() || areEquivalentMixinMembers(s, s2))
         {
             if (s2.isDeprecated() || (s2.visible() < s.visible() && s.visible().kind != Visibility.Kind.none))
             {
@@ -6798,6 +6798,63 @@ private OverloadSet mergeOverloadSet(ScopeDsymbol sds, Identifier ident, Overloa
     }
     os.push(s);
     return os;
+}
+
+private bool templateMixinArgsEqual(RootObject o1, RootObject o2)
+{
+    if (const t1 = isType(o1))
+    {
+        const t2 = isType(o2);
+        return t2 && t1.equals(t2);
+    }
+    if (const e1 = isExpression(o1))
+    {
+        const e2 = isExpression(o2);
+        return e2 && dmd.expressionsem.equals(e1, e2);
+    }
+    if (const s1 = isDsymbol(o1))
+    {
+        const s2 = isDsymbol(o2);
+        return s1 == s2;
+    }
+    return o1 is o2;
+}
+
+private bool isAnonymousTemplateMixin(TemplateMixin tm)
+{
+    return tm && tm.ident && strncmp(tm.ident.toChars(), "__mixin", 7) == 0;
+}
+
+private bool areEquivalentMixinMembers(Dsymbol s1, Dsymbol s2)
+{
+    s1 = s1.toAlias();
+    s2 = s2.toAlias();
+
+    auto f1 = s1.isFuncDeclaration();
+    auto f2 = s2.isFuncDeclaration();
+    if (!f1 || !f2 || !f1.ident.equals(f2.ident))
+        return false;
+
+    auto tm1 = f1.parent ? f1.parent.isTemplateMixin() : null;
+    auto tm2 = f2.parent ? f2.parent.isTemplateMixin() : null;
+    if (!tm1 || !tm2 || tm1.tempdecl != tm2.tempdecl)
+        return false;
+
+    if (isAnonymousTemplateMixin(tm1) == isAnonymousTemplateMixin(tm2))
+        return false;
+
+    if (!f1.type || !f2.type || !f1.type.equals(f2.type))
+        return false;
+
+    if (tm1.tiargs.length != tm2.tiargs.length)
+        return false;
+
+    foreach (i; 0 .. tm1.tiargs.length)
+    {
+        if (!templateMixinArgsEqual((*tm1.tiargs)[i], (*tm2.tiargs)[i]))
+            return false;
+    }
+    return true;
 }
 
 /***
@@ -7802,7 +7859,8 @@ private extern(C++) class SearchVisitor : Visitor
             }
             else if (s2 && s != s2)
             {
-                if (s.toAlias() == s2.toAlias() || s.getType() == s2.getType() && s.getType())
+                if (s.toAlias() == s2.toAlias() || areEquivalentMixinMembers(s, s2)
+                    || s.getType() == s2.getType() && s.getType())
                 {
                     /* After following aliases, we found the same
                      * symbol, so it's not an ambiguity.  But if one
@@ -7828,6 +7886,8 @@ private extern(C++) class SearchVisitor : Visitor
                          */
                         s = s.toAlias();
                         s2 = s2.toAlias();
+                        if (areEquivalentMixinMembers(s, s2))
+                            continue;
                         /* If both s2 and s are overloadable (though we only
                          * need to check s once)
                          */
@@ -7868,7 +7928,7 @@ private extern(C++) class SearchVisitor : Visitor
 
                         /* If two imports from C import files, pick first one, as C has global name space
                          */
-                        if (s.isCsymbol() && s2.isCsymbol())
+                        if ((s.isCsymbol() && s2.isCsymbol()) || areEquivalentMixinMembers(s, s2))
                             continue;
 
                         if (!(flags & SearchOpt.ignoreErrors))
