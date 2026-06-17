@@ -64,6 +64,7 @@ struct BlockOpt
 __gshared BlockOpt bo;
 
 @trusted
+private
 pragma(inline, true) block* block_calloc_i(ref BlockOpt bo)
 {
     block* b;
@@ -79,6 +80,7 @@ pragma(inline, true) block* block_calloc_i(ref BlockOpt bo)
     return b;
 }
 
+public
 block* block_calloc(ref BlockOpt bo)
 {
     return block_calloc_i(bo);
@@ -88,6 +90,7 @@ block* block_calloc(ref BlockOpt bo)
  * Convert from BC to Goal.
  */
 
+public
 Goal bc_goal(BC bc)
 {
     switch (bc)
@@ -105,6 +108,7 @@ Goal bc_goal(BC bc)
  */
 
 @trusted
+private
 void block_term(ref BlockOpt bo)
 {
     while (bo.block_freelist)
@@ -120,6 +124,7 @@ void block_term(ref BlockOpt bo)
  */
 
 @trusted
+public
 void block_next(ref BlockOpt bo, BlockState* bctx, BC bc, block* bn)
 {
     bctx.curblock.bc = bc;
@@ -135,7 +140,7 @@ void block_next(ref BlockOpt bo, BlockState* bctx, BC bc, block* bn)
 /**************************
  * Finish up this block and start the next one.
  */
-
+public
 block* block_goto(ref BlockOpt bo, BlockState* bx, BC bc, block* bn)
 {
     block* b;
@@ -154,16 +159,19 @@ block* block_goto(ref BlockOpt bo, BlockState* bx, BC bc, block* bn)
 version (COMPILE)
 {
 
+private
 void block_goto()
 {
     block_goto(block_calloc(bo));
 }
 
+private
 void block_goto(block* bn)
 {
     block_goto(bn,bn);
 }
 
+private
 void block_goto(block* bgoto,block* bnew)
 {
     BC bc;
@@ -185,6 +193,7 @@ void block_goto(block* bgoto,block* bnew)
  */
 
 @trusted
+private
 void block_ptr(ref BlockOpt bo)
 {
     //printf("block_ptr()\n");
@@ -204,6 +213,7 @@ void block_ptr(ref BlockOpt bo)
  */
 
 @trusted
+public
 void block_pred(block* bstart)
 {
     //printf("block_pred()\n");
@@ -227,6 +237,7 @@ void block_pred(block* bstart)
  */
 
 @trusted
+public
 void block_clearvisit(ref BlockOpt bo)
 {
     for (block* b = bo.startblock; b; b = b.Bnext)       // for each block
@@ -237,6 +248,7 @@ void block_clearvisit(ref BlockOpt bo)
  * Visit block and each of its predecessors.
  */
 
+public
 void block_visit(block* b)
 {
     b.Bflags |= BFL.visited;
@@ -252,6 +264,7 @@ void block_visit(block* b)
  * Compute number of parents (Bcount) of each basic block.
  */
 @trusted
+public
 void block_compbcount(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     block_clearvisit(bo);
@@ -262,7 +275,7 @@ void block_compbcount(ref GlobalOptimizer go, ref BlockOpt bo)
 /*******************************
  * Free list of blocks.
  */
-
+public
 void blocklist_free(ref BlockOpt bo, block** pb)
 {
     block* bn;
@@ -279,6 +292,7 @@ void blocklist_free(ref BlockOpt bo, block** pb)
  */
 
 @trusted
+public
 void block_optimizer_free(block* b)
 {
     static void vfree(ref vec_t v) { vec_free(v); v = null; }
@@ -303,6 +317,7 @@ void block_optimizer_free(block* b)
  */
 
 @trusted
+private
 void block_free(ref BlockOpt bo, block* b)
 {
     assert(b);
@@ -349,6 +364,7 @@ void block_free(ref BlockOpt bo, block* b)
  */
 
 @trusted
+public
 void block_appendexp(block* b,elem* e)
 {
     if (e)
@@ -391,6 +407,7 @@ version (COMPILE)
 
 //#undef block_initvar
 
+private
 void block_initvar(Symbol* s)
 {
     symbol_debug(s);
@@ -404,6 +421,7 @@ void block_initvar(Symbol* s)
  */
 
 @trusted
+public
 void blockopt(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     if (OPTIMIZER)
@@ -502,6 +520,7 @@ void blockopt(ref GlobalOptimizer go, ref BlockOpt bo)
  */
 
 @trusted
+private
 void brcombine(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     debug if (debugc) printf("brcombine()\n");
@@ -844,6 +863,7 @@ private void brrear(ref BlockOpt bo)
  *      dfo = array to fill in in DFO
  *      startblock = list of blocks
  */
+public
 void compdfo(ref BlockOpt bo, ref Barray!(block*) dfo, block* startblock)
 {
     debug if (debugc) printf("compdfo()\n");
