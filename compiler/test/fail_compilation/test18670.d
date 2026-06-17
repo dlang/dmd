@@ -7,7 +7,7 @@ TEST_OUTPUT:
 fail_compilation/test18670.d(23): Deprecation: `pure` function `test18670.testPure` calling impure function `test18670.impure` in default argument
 fail_compilation/test18670.d(28): Deprecation: `pure` function `test18670.testPure2` accessing mutable static data `globalVar` in default argument
 fail_compilation/test18670.d(33): Deprecation: `@safe` function `test18670.testSafe` calling `@system` function `test18670.unsafe` in default argument
-fail_compilation/test18670.d(38): Error: indexing pointer `globalPtr` is not allowed in a `@safe` function
+fail_compilation/test18670.d(38): Deprecation: indexing pointer `globalPtr` is not allowed in a `@safe` function in default argument
 fail_compilation/test18670.d(43): Deprecation: `@nogc` function `test18670.testNogc` calling non-@nogc function `test18670.gcAllocate` in default argument
 fail_compilation/test18670.d(47): Error: allocating with `new` causes a GC allocation in `@nogc` function `testNogc2`
 fail_compilation/test18670.d(53): Error: function `test18670.throwing` is not `nothrow`
