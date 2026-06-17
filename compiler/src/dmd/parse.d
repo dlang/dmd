@@ -2023,8 +2023,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             goto LabelX;
 
         case TOK.vector:
-            ta = parseVector();
-            goto LabelX;
+            return parseVector();
 
         case TOK.void_:
             ta = AST.Type.tvoid;
@@ -8157,7 +8156,21 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     // t is on the next of closing parenthesis
                     continue;
                 }
-                goto Lerror;
+                if (t.value == TOK.vector)
+                {
+                    // @__vector(type)
+                    t = peek(t);
+                    if (!skipParens(t, &t))
+                        goto Lerror;
+                    continue;
+                }
+                // @TemplateSingleArgument, e.g. a basic type or a literal such
+                // as `@"str"`, `@123`, `@int`. These span a single token, except
+                // for adjacent string literals which are concatenated.
+                do
+                    t = peek(t);
+                while (t.value == TOK.string_);
+                continue;
 
             default:
                 goto Ldone;
