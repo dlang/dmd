@@ -273,11 +273,26 @@ void testCast()
     assert(0);
 }
 
+// https://github.com/dlang/dmd/issues/20108
+int divide(int dividend, int divisor)
+{
+    return divisor == 0
+        ? assert(0, "You shall not divide by zero")
+        : dividend / divisor;
+}
+
+void testConditional()
+{
+    assert(divide(1, 2) == 0);
+    assert(divide(6, 2) == 3);
+}
+
 int main()
 {
     testDtors();
     testAccess();
     testFuncCall();
     testCast();
+    testConditional();
     return 0;
 }
