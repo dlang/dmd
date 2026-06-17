@@ -1259,6 +1259,7 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
     //printf("obj_start()\n");
 
     bzeroSymbol = null;
+    resetCtfeSymbolCache();
     rtlsym_reset();
     clearStringTab();
     objmod = Obj.initialize(&objbuf, srcfile, null);
