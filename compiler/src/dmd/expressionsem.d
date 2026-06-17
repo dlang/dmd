@@ -9849,6 +9849,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (!exp.type || !exp.type.isTypeNoreturn())
                 exp.type = Type.tnoreturn;
         }
+        else if (exp.e1.type && exp.e1.type.isTypeNoreturn())
+        {
+            // https://github.com/dlang/dmd/issues/20189
+            exp.type = Type.tnoreturn;
+        }
         else
             exp.type = Type.tvoid;
 

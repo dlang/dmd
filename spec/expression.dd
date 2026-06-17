@@ -2928,6 +2928,11 @@ $(H4 $(LNAME2 assert-ct, Compile-time Evaluation))
     Such an $(GLINK AssertExpression) has type $(DDSUBLINK spec/type, noreturn, `noreturn`).
     )
 
+    $(P Likewise, if the first $(I AssignExpression) has type
+    $(DDSUBLINK spec/type, noreturn, `noreturn`), evaluating it never returns,
+    and the  $(GLINK AssertExpression) also has type `noreturn`.
+    )
+
     $(P This allows the compiler to suppress an error when there is a
     missing return statement:)
 
