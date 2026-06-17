@@ -3102,20 +3102,17 @@ private bool checkPurity(FuncDeclaration f, Loc loc, Scope* sc)
         if (violated)
         {
             if (useDeprecation)
-            {
                 .deprecation(loc, "`pure` %s `%s` calling impure %s `%s` in default argument",
                     sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
-                return false;
-            }
-            error(loc, "`pure` %s `%s` cannot call impure %s `%s`",
-                sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
-                f.toPrettyChars());
+            else
+                error(loc, "`pure` %s `%s` cannot call impure %s `%s`",
+                    sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
 
             if (!f.isDtorDeclaration())
-                errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ false, STC.pure_, global.errorSink);
+                errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ useDeprecation, STC.pure_, global.errorSink);
 
             f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().purity != PURE.impure, "impure");
-            return true;
+            return !useDeprecation;
         }
     }
     return false;
@@ -3481,23 +3478,22 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions*
                 loc = sc.func.loc;
 
             const prettyChars = f.toPrettyChars();
+            // Introduced in 2.113
             if (useDeprecation)
-            {
-                // Introduced in 2.113
                 .deprecation(loc, "`@safe` %s `%s` calling `@system` %s `%s` in default argument",
                     sc.func.kind(), sc.func.toPrettyChars(), f.kind(), prettyChars);
-                return false;
-            }
-            error(loc, "`@safe` %s `%s` cannot call `@system` %s `%s`",
-                sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
-                prettyChars);
+            else
+                error(loc, "`@safe` %s `%s` cannot call `@system` %s `%s`",
+                    sc.func.kind(), sc.func.toPrettyChars(), f.kind(), prettyChars);
+
             if (!f.isDtorDeclaration)
-                errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ false, STC.safe, global.errorSink);
-            .errorSupplemental(f.loc, "`%s` is declared here", prettyChars);
+                errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ useDeprecation, STC.safe, global.errorSink);
+            previewSupplementalFunc(false, useDeprecation ? FeatureState.default_ : FeatureState.enabled)
+                (f.loc, "`%s` is declared here", prettyChars);
 
             f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().trust > TRUST.system, "@system");
 
-            return true;
+            return !useDeprecation;
         }
     }
     else if (f.isSafe() && f.safetyViolation)
@@ -3554,14 +3550,6 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
     if (loc == Loc.initial) // e.g. implicitly generated dtor
         loc = sc.func.loc;
 
-    if (useDeprecation)
-    {
-        // Introduced in 2.113
-        .deprecation(loc, "`@nogc` %s `%s` calling non-@nogc %s `%s` in default argument",
-            sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
-        return false;
-    }
-
     // Lowered non-@nogc'd hooks will print their own error message inside of nogc.d (NOGCVisitor.visit(CallExp e)),
     // so don't print anything to avoid double error messages.
     if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT
@@ -3570,16 +3558,21 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
         || f.ident == Id._d_assocarrayliteralTX || f.ident == Id._d_arrayliteralTX
         || f.ident == Id._d_aaGetY))
     {
-        error(loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
-            sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
+        if (useDeprecation)
+            // Introduced in 2.113
+            .deprecation(loc, "`@nogc` %s `%s` calling non-@nogc %s `%s` in default argument",
+                sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
+        else
+            error(loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
+                sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
 
         if (!f.isDtorDeclaration)
-            f.errorSupplementalInferredAttr(/*max depth*/ 10, /*deprecation*/ false, STC.nogc, global.errorSink);
+            f.errorSupplementalInferredAttr(/*max depth*/ 10, /*deprecation*/ useDeprecation, STC.nogc, global.errorSink);
     }
 
     f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().isNogc, "non-@nogc");
 
-    return true;
+    return !useDeprecation;
 }
 
 /********************************************
