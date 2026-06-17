@@ -54,11 +54,8 @@ struct BlockOpt
     Barray!(block*) dfo;    // array of depth first order
 
     block* curblock;        // current block being read in
-    block* block_last;      // last block read in
 
     block* block_freelist;
-
-    block blkzero;          // storage allocator
 }
 
 __gshared BlockOpt bo;
@@ -73,7 +70,7 @@ pragma(inline, true) block* block_calloc_i(ref BlockOpt bo)
     {
         b = bo.block_freelist;
         bo.block_freelist = b.Bnext;
-        *b = bo.blkzero;
+        *b = block();
     }
     else
         b = cast(block*) mem_calloc(block.sizeof);
@@ -128,7 +125,6 @@ public
 void block_next(ref BlockOpt bo, BlockState* bctx, BC bc, block* bn)
 {
     bctx.curblock.bc = bc;
-    bo.block_last = bctx.curblock;
     if (!bn)
         bn = block_calloc_i(bo);
     bctx.curblock.Bnext = bn;                // next block
