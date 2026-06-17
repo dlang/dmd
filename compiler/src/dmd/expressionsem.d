@@ -11907,7 +11907,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             /* If e1 is not trivial, take a reference to it
              */
             Expression de = null;
-            if (exp.e1.op != EXP.variable && exp.e1.op != EXP.arrayLength)
+            if (auto ale = exp.e1.isArrayLengthExp())
+            {
+                // don't evaluate arrExp twice in `arrExp.length++` if non-trivial
+                if (ale.e1.op != EXP.variable)
+                {
+                    // ref v = e1;
+                    auto v = copyToTemp(STC.ref_, "__postref", ale.e1);
+                    de = new DeclarationExp(ale.loc, v);
+                    ale.e1 = new VarExp(ale.e1.loc, v);
+                }
+            }
+            else if (exp.e1.op != EXP.variable)
             {
                 // ref v = e1;
                 auto v = copyToTemp(STC.ref_, "__postref", exp.e1);
