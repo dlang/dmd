@@ -3172,6 +3172,17 @@ void floatToBuffer(Type type, const real_t value, ref OutBuffer buf, const bool 
         of 256 (3 characters). The string will be "-M.MMMMe-4932".
         (ie, 8 chars more than mantissa). Plus one for trailing \0.
         Plus one for rounding. */
+    // NaN and infinity have no valid floating point literal syntax, so emit
+    // a property expression (e.g. `float.nan`, `-real.infinity`)
+    if (CTFloat.isNaN(value) || CTFloat.isInfinity(value))
+    {
+        if (CTFloat.isInfinity(value) && value < CTFloat.zero)
+            buf.put('-');
+        buf.put(type.toBaseTypeNonSemantic().toString());
+        buf.put(CTFloat.isNaN(value) ? ".nan" : ".infinity");
+        return;
+    }
+
     const(size_t) BUFFER_LEN = value.sizeof * 3 + 8 + 1 + 1;
     char[BUFFER_LEN] buffer = void;
     CTFloat.sprint(buffer.ptr, BUFFER_LEN, 'g', value);
