@@ -3312,7 +3312,7 @@ void argtypes(type* t, out type* arg1type, out type* arg2type)
         if (I64 && config.exe != EX_WIN64)
         {
             type* tn = t.Tnext;
-            tym_t tyn = tn.Tty;
+            tym_t tyn = tybasic(tn.Tty);
             while (tyn == TYarray)
             {
                 tn = tn.Tnext;
