@@ -213,7 +213,7 @@ void writeSourceLoc(ref OutBuffer buf,
             if (showColumns && loc.column)
             {
                 buf.writeByte(',');
-                buf.print(loc.column);
+                buf.print(loc.displayColumn());
             }
             buf.writeByte(')');
             break;
@@ -223,7 +223,7 @@ void writeSourceLoc(ref OutBuffer buf,
             if (showColumns && loc.column)
             {
                 buf.writeByte(':');
-                buf.print(loc.column);
+                buf.print(loc.displayColumn());
             }
             break;
         case MessageStyle.sarif: // https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
@@ -277,6 +277,33 @@ struct SourceLoc
         OutBuffer buf;
         writeSourceLoc(buf, this, showColumns, messageStyle);
         return buf.extractChars();
+    }
+
+    private uint displayColumn() const nothrow @nogc @safe
+    {
+        if (fileContent.length == 0 || fileOffset >= fileContent.length)
+            return column;
+
+        size_t lineStart = fileOffset;
+        while (lineStart > 0 && fileContent[lineStart - 1] != '\n')
+            lineStart--;
+
+        const byteCount = cast(uint)(fileOffset - lineStart);
+        if (column <= byteCount)
+            return column;
+
+        uint result = column - byteCount;
+        for (size_t i = lineStart; i < fileOffset; )
+        {
+            dchar c = void;
+            auto j = i;
+            if (auto msg = utf_decodeChar(fileContent, j, c))
+                ++i;
+            else
+                i = j;
+            ++result;
+        }
+        return result;
     }
 
     bool opEquals(SourceLoc other) const nothrow
@@ -427,30 +454,9 @@ struct BaseLoc
     private SourceLoc getSourceLoc(uint offset) @nogc
     {
         const i = getLineIndex(offset);
-        const lineStart = i == 0 ? 0 : lines[i];
-        const col = cast(int)columnFromBytes(fileContents[lineStart .. offset], startColumn);
+        const col = i == 0 ? cast(int)(startColumn + offset) : cast(int)(1 + offset - lines[i]);
         const sl = SourceLoc(filename, cast(int) (i + startLine), col, offset, fileContents);
         return substitute(sl);
-    }
-
-    private static uint columnFromBytes(const(char)[] line, uint startColumn) @nogc
-    {
-        uint column = startColumn;
-        for (size_t i = 0; i < line.length; )
-        {
-            dchar c = void;
-            auto j = i;
-            if (auto msg = utf_decodeChar(line, j, c))
-            {
-                ++i;
-            }
-            else
-            {
-                i = j;
-            }
-            ++column;
-        }
-        return column;
     }
 
     private size_t getSubstitutionIndex(uint offset) @nogc
