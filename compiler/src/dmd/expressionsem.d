@@ -15028,10 +15028,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (nan)
             {
                 const(char)* cmpResult = exp.op == EXP.equal ? "false" : "true";
-                error(exp.loc, "comparison with `%s` is always %s; use `%s` or `%s` instead",
+                error(exp.loc, "comparison with `%s` is always %s; use `%s` instead",
                     nan.toErrMsg(),
                     cmpResult,
-                    "!std.math.isNaN".ptr + (exp.op == EXP.equal),
                     "!is".ptr + (exp.op == EXP.equal));
                 return setError();
             }
