@@ -17,6 +17,7 @@ import dmd.common.outbuffer;
 import dmd.root.array;
 import dmd.root.filename;
 import dmd.root.string: toDString;
+import dmd.root.utf : utf_decodeChar;
 
 /// How code locations are formatted for diagnostic reporting
 enum MessageStyle : ubyte
@@ -426,9 +427,30 @@ struct BaseLoc
     private SourceLoc getSourceLoc(uint offset) @nogc
     {
         const i = getLineIndex(offset);
-        const col = i == 0 ? cast(int)(startColumn + offset) : cast(int)(1 + offset - lines[i]);
+        const lineStart = i == 0 ? 0 : lines[i];
+        const col = cast(int)columnFromBytes(fileContents[lineStart .. offset], startColumn);
         const sl = SourceLoc(filename, cast(int) (i + startLine), col, offset, fileContents);
         return substitute(sl);
+    }
+
+    private static uint columnFromBytes(const(char)[] line, uint startColumn) @nogc
+    {
+        uint column = startColumn;
+        for (size_t i = 0; i < line.length; )
+        {
+            dchar c = void;
+            auto j = i;
+            if (auto msg = utf_decodeChar(line, j, c))
+            {
+                ++i;
+            }
+            else
+            {
+                i = j;
+            }
+            ++column;
+        }
+        return column;
     }
 
     private size_t getSubstitutionIndex(uint offset) @nogc
