@@ -158,7 +158,7 @@ private void rd_compute(ref GlobalOptimizer go, ref BlockOpt bo, ref EqRelInc eq
     if (go.defnod.length == 0)     /* if no reaching defs                  */
         return;
     assert(eqrelinc.rellist.length == 0 && eqrelinc.inclist.length == 0 && eqrelinc.eqeqlist.length == 0);
-    block_clearvisit(bo);
+    block_clearvisit(bo.startblock);
     foreach (b; bo.dfo[])    // for each block
     {
         switch (b.bc)
@@ -843,7 +843,7 @@ private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemda
             // ib:      block of increment
             // rb:      block of relational
             i = loopcheck(ib,ib,rb);
-            block_clearvisit(bo);
+            block_clearvisit(bo.startblock);
             if (i)
                 continue;
         }
@@ -1019,7 +1019,7 @@ public bool findloopparameters(ref GlobalOptimizer go, elem* erel, ref elem* rde
      * rel.pblock = block of relational
      */
     int i = loopcheck(iel.pblock,iel.pblock,rel.pblock);
-    block_clearvisit(bo);
+    block_clearvisit(bo.startblock);
     if (i)
     {
         if (log) printf("\tnot loopcheck()\n");

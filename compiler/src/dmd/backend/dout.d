@@ -1029,7 +1029,7 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
     }
 
     block_pred(bo.startblock);              // compute predecessors to blocks
-    block_compbcount(go, bo);               // eliminate unreachable blocks
+    block_compbcount(go, bo.startblock);    // eliminate unreachable blocks
 
     debug { } else
     {
