@@ -1,10 +1,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail18531.d(16): Error: comparison with `nanF` is always false; use `is` instead
-fail_compilation/fail18531.d(18): Error: comparison with `nanF` is always true; use `!is` instead
-fail_compilation/fail18531.d(20): Error: comparison with `nanF` is always false; use `is` instead
-fail_compilation/fail18531.d(22): Error: comparison with `nan` is always false; use `is` instead
+fail_compilation/fail18531.d(16): Error: comparison with `float.nan` is always false; use `is` instead
+fail_compilation/fail18531.d(18): Error: comparison with `float.nan` is always true; use `!is` instead
+fail_compilation/fail18531.d(20): Error: comparison with `float.nan` is always false; use `is` instead
+fail_compilation/fail18531.d(22): Error: comparison with `double.nan` is always false; use `is` instead
 ---
 */
 
