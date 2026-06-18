@@ -597,7 +597,7 @@ void boolopt(ref GlobalOptimizer go, ref BlockOpt bo)
 
     debug if (debugc) printf("boolopt()\n");
     if (!bo.dfo.length)
-        compdfo(bo, bo.dfo, bo.startblock);
+        compdfo(bo.dfo, bo.startblock);
     flowae(go, bo);                   /* compute available expressions */
     if (go.exptop <= 1)             /* if no AEs                     */
         return;

@@ -82,7 +82,7 @@ alias hash_t = uint;    // for hash values
 void comsubs2(block* startblock, ref CGCS cgcs, ref GlobalOptimizer go, ref BlockOpt bo)
 {
     // No longer just compute Bcount - eliminate unreachable blocks too
-    block_compbcount(go, bo);                 // eliminate unreachable blocks
+    block_compbcount(go, bo.startblock);
 
     cgcs.start();
 

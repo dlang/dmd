@@ -704,7 +704,7 @@ restart:
         {
             if (looprotate(go, bo, l))          // rotate the loop
             {
-                compdfo(bo, bo.dfo, bo.startblock);
+                compdfo(bo.dfo, bo.startblock);
                 blockinit(bo);
                 compdom(bo);
                 findloops(bo, bo.dfo[], startloop);
@@ -784,7 +784,7 @@ restart:
     } /* for */
     if (addblk)                         /* if any blocks were added      */
     {
-        compdfo(bo, bo.dfo, bo.startblock);              /* compute depth-first order    */
+        compdfo(bo.dfo, bo.startblock);              /* compute depth-first order    */
         blockinit(bo);
         compdom(bo);
         findloops(bo, bo.dfo[], startloop);    // recompute block info
@@ -806,7 +806,7 @@ restart:
             {
                 if (loopunroll(go, bo, l))
                 {
-                    compdfo(bo, bo.dfo, bo.startblock);  // compute depth-first order
+                    compdfo(bo.dfo, bo.startblock);  // compute depth-first order
                     blockinit(bo);
                     compdom(bo);
                     findloops(bo, bo.dfo[], startloop);  // recompute block info
@@ -923,7 +923,7 @@ restart:
             loopiv(go, bo, l);      /* induction variables          */
             if (addblk)             /* if we added a block          */
             {
-                compdfo(bo, bo.dfo, bo.startblock);
+                compdfo(bo.dfo, bo.startblock);
                 goto restart;       /* play it safe and start over  */
             }
         }

@@ -186,16 +186,18 @@ void block_goto(block* bgoto,block* bnew)
 
 /**********************************
  * Replace block numbers with block pointers.
+ * Params:
+ *      bstart = head of linked list of blocks
  */
 
 @trusted
 private
-void block_ptr(ref BlockOpt bo)
+void block_ptr(block* bstart)
 {
     //printf("block_ptr()\n");
 
     uint numblks = 0;
-    for (block* b = bo.startblock; b; b = b.Bnext)       /* for each block        */
+    for (block* b = bstart; b; b = b.Bnext)       /* for each block        */
     {
         b.Bblknum = numblks;
         numblks++;
@@ -229,14 +231,16 @@ void block_pred(block* bstart)
 }
 
 /********************************************
- * Clear visit.
+ * Clear visit flag in list of blocks.
+ * Params:
+ *      bstart = first block in list
  */
 
 @trusted
 public
-void block_clearvisit(ref BlockOpt bo)
+void block_clearvisit(block* bstart)
 {
-    for (block* b = bo.startblock; b; b = b.Bnext)       // for each block
+    for (block* b = bstart; b; b = b.Bnext)       // for each block
         b.Bflags = cast(BFL)(b.Bflags & ~cast(uint)BFL.visited); // mark as unvisited
 }
 
@@ -258,14 +262,17 @@ void block_visit(block* b)
 
 /*****************************
  * Compute number of parents (Bcount) of each basic block.
+ * Params:
+ *      go = optimizer globals
+ *      bstart = first block in list
  */
 @trusted
 public
-void block_compbcount(ref GlobalOptimizer go, ref BlockOpt bo)
+void block_compbcount(ref GlobalOptimizer go, block* bstart)
 {
-    block_clearvisit(bo);
-    block_visit(bo.startblock);                    // visit all reachable blocks
-    elimblks(go, bo);                               // eliminate unvisited blocks
+    block_clearvisit(bstart);
+    block_visit(bstart);                    // visit all reachable blocks
+    elimblks(go, bo);                       // eliminate unvisited blocks
 }
 
 /*******************************
@@ -448,7 +455,7 @@ void blockopt(ref GlobalOptimizer go, ref BlockOpt bo)
 
             do
             {
-                compdfo(bo, bo.dfo, bo.startblock); // compute depth first order (DFO)
+                compdfo(bo.dfo, bo.startblock); // compute depth first order (DFO)
                 elimblks(go, bo);           /* remove blocks not in DFO      */
                 assert(count < iterationLimit);
                 count++;
@@ -857,14 +864,14 @@ private void brrear(ref BlockOpt bo)
  * Blocks not in dfo[] are unreachable.
  * Params:
  *      dfo = array to fill in in DFO
- *      startblock = list of blocks
+ *      bstart = list of blocks
  */
 public
-void compdfo(ref BlockOpt bo, ref Barray!(block*) dfo, block* startblock)
+void compdfo(ref Barray!(block*) dfo, block* bstart)
 {
     debug if (debugc) printf("compdfo()\n");
     debug assert(OPTIMIZER);
-    block_clearvisit(bo);
+    block_clearvisit(bstart);
     dfo.setLength(0);
 
     /******************************
@@ -887,7 +894,7 @@ void compdfo(ref BlockOpt bo, ref Barray!(block*) dfo, block* startblock)
 
 
     dfo.setLength(0);
-    walkDFO(startblock);
+    walkDFO(bstart);
 
     // Reverse the array
     if (dfo.length)
