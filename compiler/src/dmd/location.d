@@ -17,7 +17,7 @@ import dmd.common.outbuffer;
 import dmd.root.array;
 import dmd.root.filename;
 import dmd.root.string: toDString;
-import dmd.root.utf : utf_decodeChar;
+import dmd.root.utf : utf_countColumnsUntil;
 
 /// How code locations are formatted for diagnostic reporting
 enum MessageStyle : ubyte
@@ -292,18 +292,7 @@ struct SourceLoc
         if (column <= byteCount)
             return column;
 
-        uint result = column - byteCount;
-        for (size_t i = lineStart; i < fileOffset; )
-        {
-            dchar c = void;
-            auto j = i;
-            if (auto msg = utf_decodeChar(fileContent, j, c))
-                ++i;
-            else
-                i = j;
-            ++result;
-        }
-        return result;
+        return column - byteCount + cast(uint)utf_countColumnsUntil(fileContent[lineStart .. fileOffset], fileOffset - lineStart);
     }
 
     bool opEquals(SourceLoc other) const nothrow

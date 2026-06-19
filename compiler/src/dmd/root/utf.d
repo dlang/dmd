@@ -11,6 +11,8 @@
 
 module dmd.root.utf;
 
+import dmd.common.outbuffer : OutBuffer;
+
 @nogc nothrow pure @safe:
 
 /// The Unicode code space is the range of code points [0x000000,0x10FFFF]
@@ -260,6 +262,67 @@ string utf_decodeChar(const(char)[] s, ref size_t ridx, out dchar rresult)
     ridx = i;
     rresult = c;
     return UTF8_DECODE_OK;
+}
+
+/********************************************
+ * Count display columns from the start of `s` up to `offset`.
+ *
+ * Tabs expand to `tabWidth` columns. Use `tabWidth = 0` to treat tabs as a
+ * single column and count Unicode code points rather than bytes.
+ * If `buf` is non-null, also write the source line into it, expanding tabs
+ * according to `tabWidth`.
+ */
+size_t utf_countColumnsUntil(const(char)[] s, size_t offset, size_t tabWidth = 0, scope OutBuffer* buf = null)
+{
+    size_t columns = 0;
+    size_t caretColumn = 0;
+    for (size_t i = 0; i < s.length; )
+    {
+        dchar c;
+        const start = i;
+        const msg = utf_decodeChar(s, i, c);
+        assert(msg is null, msg);
+
+        if (c == '\r' || c == '\n')
+            break;
+
+        if (c == '\t' && tabWidth)
+        {
+            const equivalentSpaces = tabWidth - (columns % tabWidth);
+            if (buf)
+            {
+                foreach (j; 0 .. equivalentSpaces)
+                    buf.writeByte(' ');
+            }
+            columns += equivalentSpaces;
+        }
+        else
+        {
+            if (buf)
+            {
+                buf.writestring(s[start .. i]);
+            }
+            columns++;
+        }
+
+        if (i <= offset)
+            caretColumn = columns;
+
+        // If `byteOffset` falls inside this code point, do not count it.
+        if (buf is null && i > offset)
+            break;
+    }
+    return caretColumn;
+}
+
+unittest
+{
+    assert(utf_countColumnsUntil("int ɷ = 3;", 9) == 8);
+    assert(utf_countColumnsUntil("ßx", 2) == 1);
+    assert(utf_countColumnsUntil("a\tb", 2, 4) == 4);
+    OutBuffer buf;
+    assert(utf_countColumnsUntil("a\tb", 2, 4, &buf) == 4);
+    assert(buf.peekSlice() == "a   b");
 }
 
 /********************************************
