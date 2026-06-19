@@ -1247,7 +1247,7 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
         {
             const len = cast(size_t)(iupr - ilwr);
             const sz = es1.sz;
-            void* s = mem.xmalloc(len * sz);
+            void* s = mem.xmalloc_noscan(len * sz);
             const data1 = es1.peekData();
             memcpy(s, data1.ptr + ilwr * sz, len * sz);
             emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz, es1.postfix);
@@ -1420,7 +1420,7 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
             const sz = cast(ubyte)t.size();
             dinteger_t v = e.toInteger();
             const len = (t.ty == tn.ty) ? 1 : utf_codeLength(sz, cast(dchar)v);
-            void* s = mem.xmalloc(len * sz);
+            void* s = mem.xmalloc_noscan(len * sz);
             if (t.ty == tn.ty)
                 Port.valcpy(s, v, sz);
             else
@@ -1493,7 +1493,7 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
             assert(ue.exp().type);
             return ue;
         }
-        void* s = mem.xmalloc(len * sz);
+        void* s = mem.xmalloc_noscan(len * sz);
         const data1 = es1.peekData();
         const data2 = es2.peekData();
         memcpy(cast(char*)s, data1.ptr, es1.len * sz);
@@ -1550,7 +1550,7 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
         // (char[] ~ char, wchar[]~wchar, or dchar[]~dchar)
         bool homoConcat = (sz == t2.size());
         const len = es1.len + (homoConcat ? 1 : utf_codeLength(sz, cast(dchar)v));
-        void* s = mem.xmalloc(len * sz);
+        void* s = mem.xmalloc_noscan(len * sz);
         const data1 = es1.peekData();
         memcpy(s, data1.ptr, data1.length);
         if (homoConcat)
@@ -1573,7 +1573,7 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
         const len = 1 + es2.len;
         const sz = es2.sz;
         dinteger_t v = e1.toInteger();
-        void* s = mem.xmalloc(len * sz);
+        void* s = mem.xmalloc_noscan(len * sz);
         Port.valcpy(cast(char*)s, v, sz);
         const data2 = es2.peekData();
         memcpy(cast(char*)s + sz, data2.ptr, data2.length);

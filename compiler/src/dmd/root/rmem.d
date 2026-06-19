@@ -362,7 +362,7 @@ extern (D) T[] arraydup(T)(const scope T[] s) pure nothrow
         return null;
 
     const dim = s.length;
-    auto p = (cast(T*)mem.xmalloc(T.sizeof * dim))[0 .. dim];
+    auto p = (cast(T*)mem.xmalloc_noscan(T.sizeof * dim))[0 .. dim];
     p[] = s;
     return p;
 }

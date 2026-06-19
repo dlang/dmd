@@ -401,7 +401,7 @@ public int runLINK(bool verbose, ErrorSink eSink)
                 }
                 else
                     close(fd);
-                global.params.exefile = name.arraydup;
+                global.params.exefile = name.xarraydup;
                 argv.push(global.params.exefile.xarraydup.ptr);
             }
             else
@@ -573,7 +573,7 @@ public int runLINK(bool verbose, ErrorSink eSink)
             if (!FileName.equalsExt(p, "a"))
             {
                 const plen = strlen(p);
-                char* s = cast(char*)mem.xmalloc(plen + 3);
+                char* s = cast(char*)mem.xmalloc_noscan(plen + 3);
                 s[0] = '-';
                 s[1] = 'l';
                 memcpy(s + 2, p, plen + 1);
@@ -886,7 +886,7 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
             if (strchr(arg, ' '))
             {
                 const blen = 3 + strlen(arg);
-                char* b = cast(char*)mem.xmalloc(blen);
+                char* b = cast(char*)mem.xmalloc_noscan(blen);
                 snprintf(b, blen, "\"%s\"", arg);
                 argv.push(b);
                 continue;
@@ -1101,7 +1101,7 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
 
                 // Get current environment variable and rollback
                 auto oldIncludePathLen = GetEnvironmentVariableW("INCLUDE"w.ptr, null, 0);
-                wchar* oldIncludePaths = cast(wchar*)mem.xmalloc(oldIncludePathLen * wchar.sizeof);
+                wchar* oldIncludePaths = cast(wchar*)mem.xmalloc_noscan(oldIncludePathLen * wchar.sizeof);
                 oldIncludePathLen = GetEnvironmentVariableW("INCLUDE"w.ptr, oldIncludePaths, oldIncludePathLen);
                 scope (exit)
                 {

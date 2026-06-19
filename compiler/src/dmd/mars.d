@@ -2076,7 +2076,7 @@ Module moduleWithEmptyMain()
 {
     auto result = new Module(Loc.initial, "__main.d", Identifier.idPool("__main"), false, false);
     // need 2 trailing nulls for sentinel and 2 for lexer
-    auto data = arraydup("version(D_BetterC)extern(C)int main(){return 0;}else int main(){return 0;}\0\0\0\0");
+    auto data = xarraydup("version(D_BetterC)extern(C)int main(){return 0;}else int main(){return 0;}\0\0\0\0");
     result.src = cast(ubyte[]) data[0 .. $-4];
     result.parse();
     result.importedFrom = result;

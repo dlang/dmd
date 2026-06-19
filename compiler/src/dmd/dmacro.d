@@ -185,7 +185,7 @@ struct MacroTable
                             // marg = name[ ] ~ "," ~ marg[ ];
                             if (marg.length)
                             {
-                                char* q = cast(char*)mem.xmalloc(namelen + 1 + marg.length);
+                                char* q = cast(char*)mem.xmalloc_noscan(namelen + 1 + marg.length);
                                 assert(q);
                                 memcpy(q, name, namelen);
                                 q[namelen] = ',';
@@ -304,7 +304,7 @@ struct Macro
 char[] memdup(const(char)[] p) nothrow pure @trusted
 {
     size_t len = p.length;
-    return (cast(char*)memcpy(mem.xmalloc(len), p.ptr, len))[0 .. len];
+    return (cast(char*)memcpy(mem.xmalloc_noscan(len), p.ptr, len))[0 .. len];
 }
 
 /**********************************************************

@@ -398,7 +398,7 @@ struct DocComment
                 p++;
             }
             size_t len = p - start;
-            char* s = cast(char*)memcpy(mem.xmalloc(len + 1), start, len);
+            char* s = cast(char*)memcpy(mem.xmalloc_noscan(len + 1), start, len);
             s[len] = 0;
             escapetable.strings[c] = s[0 .. len];
             //printf("\t%c = '%s'\n", c, s);
