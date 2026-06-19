@@ -459,6 +459,7 @@ SRCS=\
 	src\core\sys\windows\mshtml.d \
 	src\core\sys\windows\mswsock.d \
 	src\core\sys\windows\nb30.d \
+	src\core\sys\windows\ncrypt.d \
 	src\core\sys\windows\nddeapi.d \
 	src\core\sys\windows\nspapi.d \
 	src\core\sys\windows\ntdef.d \

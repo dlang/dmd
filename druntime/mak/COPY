@@ -476,6 +476,7 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\mshtml.d \
 	$(IMPDIR)\core\sys\windows\mswsock.d \
 	$(IMPDIR)\core\sys\windows\nb30.d \
+	$(IMPDIR)\core\sys\windows\ncrypt.d \
 	$(IMPDIR)\core\sys\windows\nddeapi.d \
 	$(IMPDIR)\core\sys\windows\nspapi.d \
 	$(IMPDIR)\core\sys\windows\ntdef.d \
