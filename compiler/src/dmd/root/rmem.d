@@ -200,101 +200,6 @@ extern (D) void* allocmemory(size_t m_size) nothrow
     return allocmemoryNoFree(m_size);
 }
 
-version (DigitalMars)
-{
-    enum OVERRIDE_MEMALLOC = true;
-}
-else version (LDC)
-{
-    // Memory allocation functions gained weak linkage when the @weak attribute was introduced.
-    import ldc.attributes;
-    enum OVERRIDE_MEMALLOC = is(typeof(ldc.attributes.weak));
-}
-else version (GNU)
-{
-    version (IN_GCC)
-        enum OVERRIDE_MEMALLOC = false;
-    else
-        enum OVERRIDE_MEMALLOC = true;
-}
-else
-{
-    enum OVERRIDE_MEMALLOC = false;
-}
-
-static if (OVERRIDE_MEMALLOC)
-{
-    // Override the host druntime allocation functions in order to use the bump-
-    // pointer allocation scheme (`allocmemoryNoFree()` above) if the GC is disabled.
-    // That scheme is faster and comes with less memory overhead than using a
-    // disabled GC alone.
-
-    extern (C) void* _d_allocmemory(size_t m_size) nothrow
-    {
-        return allocmemory(m_size);
-    }
-
-    private void* allocClass(const ClassInfo ci) nothrow pure
-    {
-        alias BlkAttr = GC.BlkAttr;
-
-        assert(!(ci.m_flags & TypeInfo_Class.ClassFlags.isCOMclass));
-
-        BlkAttr attr = BlkAttr.NONE;
-        if (ci.m_flags & TypeInfo_Class.ClassFlags.hasDtor
-            && !(ci.m_flags & TypeInfo_Class.ClassFlags.isCPPclass))
-            attr |= BlkAttr.FINALIZE;
-        if (ci.m_flags & TypeInfo_Class.ClassFlags.noPointers)
-            attr |= BlkAttr.NO_SCAN;
-        return GC.malloc(ci.initializer.length, attr, ci);
-    }
-
-    extern (C) void* _d_newitemU(const TypeInfo ti) nothrow;
-
-    extern (C) Object _d_newclass(const ClassInfo ci) nothrow
-    {
-        const initializer = ci.initializer;
-
-        auto p = mem.isGCEnabled ? allocClass(ci) : allocmemoryNoFree(initializer.length);
-        memcpy(p, initializer.ptr, initializer.length);
-        return cast(Object) p;
-    }
-
-    version (LDC)
-    {
-        extern (C) Object _d_allocclass(const ClassInfo ci) nothrow
-        {
-            if (mem.isGCEnabled)
-                return cast(Object) allocClass(ci);
-
-            return cast(Object) allocmemoryNoFree(ci.initializer.length);
-        }
-    }
-
-    extern (C) void* _d_newitemT(TypeInfo ti) nothrow
-    {
-        auto p = mem.isGCEnabled ? _d_newitemU(ti) : allocmemoryNoFree(ti.tsize);
-        memset(p, 0, ti.tsize);
-        return p;
-    }
-
-    extern (C) void* _d_newitemiT(TypeInfo ti) nothrow
-    {
-        auto p = mem.isGCEnabled ? _d_newitemU(ti) : allocmemoryNoFree(ti.tsize);
-        const initializer = ti.initializer;
-        memcpy(p, initializer.ptr, initializer.length);
-        return p;
-    }
-
-    // TypeInfo.initializer for compilers older than 2.070
-    static if(!__traits(hasMember, TypeInfo, "initializer"))
-    private const(void[]) initializer(T : TypeInfo)(const T t)
-    nothrow pure @safe @nogc
-    {
-        return t.init;
-    }
-}
-
 extern (C) pure @nogc nothrow
 {
     /**
@@ -389,4 +294,257 @@ pure nothrow unittest
     assert(s2 == [4, 1, 2]);
     string sEmpty;
     assert(sEmpty.arraydup is null);
+}
+
+static if(__VERSION__ >= 2_096):
+// access to conservative GC not available before this version, so we cannot proxy it
+
+/////////////////////////////////////
+// BumpPointerGC is a GC that uses the bump-pointer for most allocations, i.e.
+//  it never frees anything, but uses the conservative GC for arrays
+//
+// Retrictions:
+//  realloc and extend don't work on memory allocated without BlkAttr.APPENDABLE
+//
+import core.gc.gcinterface : GCInterface = GC, Root, Range, RootIterator, RangeIterator;
+import core.internal.gc.impl.conservative.gc;
+
+private extern(C) pragma(crt_constructor) void register_bump_gc()
+{
+    import core.gc.registry;
+    registerGCFactory("bump", &BumpPointerGC.initialize);
+}
+
+class BumpPointerGC : GCInterface
+{
+    GCInterface gc;
+    ulong allocated;
+
+    static GCInterface initialize()
+    {
+        __gshared ubyte[__traits(classInstanceSize, BumpPointerGC)] buf;
+
+        auto init = typeid(BumpPointerGC).initializer();
+        assert(init.length == buf.length);
+        auto instance = cast(BumpPointerGC) memcpy(buf.ptr, init.ptr, init.length);
+        instance.__ctor();
+        return instance;
+    }
+
+    this()
+    {
+        // unfortunately, registry cannot be invoked twice, and
+        // initialize for ConservativeGC is private
+        __gshared ubyte[__traits(classInstanceSize, ConservativeGC)] buf;
+
+        auto init = typeid(ConservativeGC).initializer();
+        assert(init.length == __traits(classInstanceSize, ConservativeGC));
+        auto instance = cast(ConservativeGC) memcpy(buf.ptr, init.ptr, init.length);
+        instance.__ctor();
+
+        gc = instance;
+        gc.disable();
+    }
+
+    ~this()
+    {
+        destroy(gc);
+
+        import core.gc.config;
+        if (config.profile)
+            printf("\tAllocated by BumpGC:  %llu MB\n", allocated >> 20);
+    }
+
+    void enable()
+    {
+        // never enable collection in the conservative GC, memory from the
+        // bump-pointer-allocation is not scanned
+    }
+    void disable()
+    {
+        gc.disable();
+    }
+
+    void collect() nothrow
+    {
+        gc.collect();
+    }
+
+    static if(__VERSION__ < 2_109)
+        void collectNoStack() nothrow
+        {
+            gc.collectNoStack();
+        }
+
+    void minimize() nothrow
+    {
+        gc.minimize();
+    }
+    uint getAttr(void* p) nothrow
+    {
+        return gc.getAttr(p);
+    }
+    uint setAttr(void* p, uint mask) nothrow
+    {
+        return gc.setAttr(p, mask);
+    }
+    uint clrAttr(void* p, uint mask) nothrow
+    {
+        return gc.clrAttr(p, mask);
+    }
+
+    void* malloc(size_t size, uint bits, const TypeInfo ti) nothrow
+    {
+        if (bits & GC.BlkAttr.APPENDABLE)
+            return gc.malloc(size, bits, ti);
+        allocated += size;
+        return allocmemoryNoFree(size);
+    }
+
+    GC.BlkInfo qalloc(size_t size, uint bits, scope const TypeInfo ti) nothrow
+    {
+        if (bits & GC.BlkAttr.APPENDABLE)
+            return gc.qalloc(size, bits, ti);
+        allocated += size;
+        GC.BlkInfo bi;
+        bi.base = allocmemoryNoFree(size);
+        bi.size = size;
+        return bi;
+    }
+
+    void* calloc(size_t size, uint bits, const TypeInfo ti) nothrow
+    {
+        if (bits & GC.BlkAttr.APPENDABLE)
+            return gc.calloc(size, bits, ti);
+        allocated += size;
+        void* p = allocmemoryNoFree(size);
+        memset(p, 0, size);
+        return p;
+    }
+
+    void* realloc(void* p, size_t size, uint bits, const TypeInfo ti) nothrow
+    {
+        if (!p || gc.query(p).base)
+            return gc.realloc(p, size, bits, ti);
+        assert(false, "GC.realloc must not be called on non-GC memory");
+    }
+
+    size_t extend(void* p, size_t minsize, size_t maxsize, const TypeInfo ti) nothrow
+    {
+        if (gc.query(p).base)
+            return gc.extend(p, minsize, maxsize, ti);
+        assert(false, "GC.extend must not be called on non-GC memory");
+    }
+
+    size_t reserve(size_t size) nothrow
+    {
+        return gc.reserve(size);
+    }
+
+    void free(void* p) nothrow
+    {
+        gc.free(p);
+    }
+
+    void* addrOf(void* p) nothrow
+    {
+        return gc.addrOf(p);
+    }
+    size_t sizeOf(void* p) nothrow
+    {
+        return gc.sizeOf(p);
+    }
+
+    GC.BlkInfo query(void* p) nothrow
+    {
+        return gc.query(p);
+    }
+
+    GC.Stats stats() nothrow
+    {
+        return gc.stats();
+    }
+    GC.ProfileStats profileStats() nothrow
+    {
+        return gc.profileStats();
+    }
+
+    void addRoot(void* p) nothrow @nogc
+    {
+        gc.addRoot(p);
+    }
+    void removeRoot(void* p) nothrow @nogc
+    {
+        gc.removeRoot(p);
+    }
+    @property RootIterator rootIter() @nogc
+    {
+        return gc.rootIter();
+    }
+
+    void addRange(void* p, size_t sz, const TypeInfo ti) nothrow @nogc
+    {
+        gc.addRange(p, sz, ti);
+    }
+    void removeRange(void* p) nothrow @nogc
+    {
+        gc.removeRange(p);
+    }
+
+    @property RangeIterator rangeIter() @nogc
+    {
+        return gc.rangeIter();
+    }
+
+    static if (__VERSION__ >= 2087)
+        void runFinalizers(scope const void[] segment) nothrow
+        {
+            gc.runFinalizers(segment);
+        }
+    else
+        void runFinalizers(in void[] segment) nothrow
+        {
+            gc.runFinalizers(segment);
+        }
+
+    bool inFinalizer() nothrow
+    {
+        return gc.inFinalizer();
+    }
+    ulong allocatedInCurrentThread() nothrow
+    {
+        return gc.allocatedInCurrentThread();
+    }
+
+    static if(__VERSION__ >= 2_111)
+    {
+        void[] getArrayUsed(void *ptr, bool atomic = false) nothrow
+        {
+            return gc.getArrayUsed(ptr, atomic);
+        }
+        bool expandArrayUsed(void[] slice, size_t newUsed, bool atomic = false) nothrow @safe
+        {
+            return gc.expandArrayUsed(slice, newUsed, atomic);
+        }
+        size_t reserveArrayCapacity(void[] slice, size_t request, bool atomic = false) nothrow @safe
+        {
+            return gc.reserveArrayCapacity(slice, request, atomic);
+        }
+        bool shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic = false) nothrow
+        {
+            return gc.shrinkArrayUsed(slice, existingUsed, atomic);
+        }
+    }
+    static if(__VERSION__ >= 2_112)
+    {
+        import core.thread.threadbase : ThreadBase;
+        void initThread(ThreadBase thread) nothrow @nogc
+        {
+            gc.initThread(thread);
+        }
+        void cleanupThread(ThreadBase thread) nothrow @nogc
+        {
+            gc.cleanupThread(thread);
+        }
+    }
 }
