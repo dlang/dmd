@@ -2471,7 +2471,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             const fullSize = (se.len + 1) * se.sz; // incl. terminating 0
             if (fullSize > (e.len + 1) * e.sz)
             {
-                void* s = mem.xmalloc(fullSize);
+                void* s = mem.xmalloc_noscan(fullSize);
                 const srcSize = e.len * e.sz;
                 const data = se.peekData();
                 memcpy(s, data.ptr, srcSize);
@@ -2650,7 +2650,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 // Copy when changing the string literal
                 const newsz = se.sz;
                 const d = (dim2 < se.len) ? dim2 : se.len;
-                void* s = mem.xmalloc((dim2 + 1) * newsz);
+                void* s = mem.xmalloc_noscan((dim2 + 1) * newsz);
                 memcpy(s, se.peekData().ptr, d * newsz);
                 // Extend with 0, add terminating 0
                 memset(s + d * newsz, 0, (dim2 + 1 - d) * newsz);

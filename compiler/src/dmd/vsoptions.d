@@ -158,7 +158,7 @@ extern(C++) struct VSOptions
                 const addpathlen = strlen(addpath);
 
                 const length = addpathlen + 1 + pathlen;
-                char* npath = cast(char*)mem.xmalloc(length);
+                char* npath = cast(char*)mem.xmalloc_noscan(length);
                 memcpy(npath, addpath, addpathlen);
                 npath[addpathlen] = ';';
                 memcpy(npath + addpathlen + 1, path, pathlen);
