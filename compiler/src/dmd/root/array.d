@@ -1,4 +1,3 @@
-
 /**
  * Dynamic array implementation.
  *
