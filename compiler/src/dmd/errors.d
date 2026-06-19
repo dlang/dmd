@@ -712,7 +712,7 @@ private void printDiagnostic(const(char)* format, va_list ap, ref DiagnosticCont
 // and a caret pointing to the error into `buf`
 private void printErrorLineContext(ref OutBuffer buf, const(char)[] text, size_t offset) @safe
 {
-    import dmd.root.utf : utf_decodeChar;
+    import dmd.root.utf : utf_countColumnsUntil;
 
     if (offset >= text.length)
         return; // Out of bounds (missing source content in SourceLoc)
@@ -724,37 +724,7 @@ private void printErrorLineContext(ref OutBuffer buf, const(char)[] text, size_t
 
     const line = text[s .. $];
     const byteColumn = offset - s; // column as reported in the error message (byte offset)
-    enum tabWidth = 4;
-
-    // The number of column bytes and the number of display columns
-    // occupied by a character are not the same for non-ASCII charaters.
-    // https://issues.dlang.org/show_bug.cgi?id=21849
-    size_t currentColumn = 0;
-    size_t caretColumn = 0; // actual display column taking into account tabs and unicode characters
-    for (size_t i = 0; i < line.length; )
-    {
-        dchar u;
-        const start = i;
-        const msg = utf_decodeChar(line, i, u);
-        assert(msg is null, msg);
-        if (u == '\t')
-        {
-            // How many spaces until column is the next multiple of tabWidth
-            const equivalentSpaces = tabWidth - (currentColumn % tabWidth);
-            foreach (j; 0 .. equivalentSpaces)
-                buf.writeByte(' ');
-            currentColumn += equivalentSpaces;
-        }
-        else if (u == '\r' || u == '\n')
-            break;
-        else
-        {
-            buf.writestring(line[start .. i]);
-            currentColumn++;
-        }
-        if (i <= byteColumn)
-            caretColumn = currentColumn;
-    }
+    const caretColumn = (() @trusted => utf_countColumnsUntil(line, byteColumn, 4, &buf))();
     buf.writeByte('\n');
 
     foreach (i; 0 .. caretColumn)
