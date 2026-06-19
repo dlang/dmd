@@ -97,6 +97,7 @@ subPackage {
     "CallbackAPI"
 
   excludedSourceFiles "compiler/src/dmd/backend/*"
+  excludedSourceFiles "compiler/src/dmd/glue/*"
   excludedSourceFiles "compiler/src/dmd/root/*"
   excludedSourceFiles "compiler/src/dmd/common/*"
   excludedSourceFiles "compiler/src/dmd/lib/*"
