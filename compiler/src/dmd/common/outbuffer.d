@@ -86,7 +86,7 @@ struct OutBuffer
     /**
     Frees resources associated.
     */
-    extern (C++) void dtor() pure nothrow @trusted
+    extern (C++) void dtor() pure nothrow @nogc @trusted
     {
         if (fileMapping)
         {
@@ -103,7 +103,7 @@ struct OutBuffer
     /**
     Frees resources associated automatically.
     */
-    extern (C++) ~this() pure nothrow @trusted
+    extern (C++) ~this() pure nothrow @nogc @trusted
     {
         dtor();
     }
@@ -141,7 +141,7 @@ struct OutBuffer
     memory buffer. The config variables `notlinehead`, `doindent` etc. are
     not changed.
     */
-    extern (C++) void destroy() pure nothrow
+    extern (C++) void destroy() pure nothrow @nogc
     {
         dtor();
         fileMapping = null;
@@ -710,7 +710,7 @@ struct OutBuffer
      *                   This is useful to call C functions or store
      *                   the result in `Strings`. Defaults to `false`.
      */
-    extern (D) char[] extractSlice(bool nullTerminate = false) pure nothrow
+    extern (D) char[] extractSlice(bool nullTerminate = false) pure nothrow @nogc
     {
         const length = offset;
         if (!nullTerminate)
@@ -722,13 +722,13 @@ struct OutBuffer
         return extractData()[0 .. length];
     }
 
-    extern (D) byte[] extractUbyteSlice(bool nullTerminate = false) pure nothrow
+    extern (D) byte[] extractUbyteSlice(bool nullTerminate = false) pure nothrow @nogc
     {
         return cast(byte[]) extractSlice(nullTerminate);
     }
 
     // Append terminating null if necessary and get view of internal buffer
-    extern (C++) char* peekChars() pure nothrow
+    extern (C++) char* peekChars() pure nothrow @nogc
     {
         if (!offset || data[offset - 1] != '\0')
         {
@@ -739,13 +739,13 @@ struct OutBuffer
     }
 
     // Peek at slice of data without taking ownership
-    extern (D) ubyte[] peekSlice() pure nothrow
+    extern (D) ubyte[] peekSlice() pure nothrow @nogc
     {
         return data[0 .. offset];
     }
 
     // Append terminating null if necessary and take ownership of data
-    extern (C++) char* extractChars() pure nothrow @safe
+    extern (C++) char* extractChars() pure nothrow @nogc @safe
     {
         if (!offset || data[offset - 1] != '\0')
             writeByte(0);

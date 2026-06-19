@@ -320,6 +320,10 @@ unittest
     assert(utf_countColumnsUntil("int ɷ = 3;", 9) == 8);
     assert(utf_countColumnsUntil("ßx", 2) == 1);
     assert(utf_countColumnsUntil("a\tb", 2, 4) == 4);
+}
+
+@system unittest
+{
     OutBuffer buf;
     assert(utf_countColumnsUntil("a\tb", 2, 4, &buf) == 4);
     assert(buf.peekSlice() == "a   b");
