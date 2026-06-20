@@ -891,7 +891,9 @@ $(H3 $(LNAME2 struct-instantiation, Struct Instantiation))
 
 $(H3 $(LNAME2 constructor-attributes, Constructor Attributes))
 
-        $(P A constructor qualifier (`const`, `immutable` or `shared`) constructs the object instance
+        $(P A constructor $(DDSUBLINK spec/attribute, disable, can be disabled).)
+
+        $(P A qualified constructor (`const`, `immutable` or `shared`) constructs the object instance
         with that specific qualifier.
         )
         $(SPEC_RUNNABLE_EXAMPLE_FAIL
@@ -936,7 +938,7 @@ $(H3 $(LNAME2 constructor-attributes, Constructor Attributes))
         ---
         )
 
-        $(P Constructors can be overloaded with different attributes.)
+        $(P Constructors can be overloaded with different qualifiers.)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
@@ -1457,7 +1459,8 @@ $(H3 $(LNAME2 implicit-copy-constructors, Implicit Copy Constructors))
     }
     ---
 
-    $(P If the generated copy constructor fails to type check, it will receive the `@disable` attribute.)
+    $(P If the generated copy constructor fails to type check, it will receive the
+    $(DDSUBLINK spec/attribute, disable, `@disable` attribute).)
 
 $(H2 $(LEGACY_LNAME2 StructMoveConstructor, struct-move-constructor, Struct Move Constructors))
 
