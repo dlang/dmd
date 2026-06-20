@@ -688,7 +688,7 @@ $(H2 $(LNAME2 disable, $(D @disable) Attribute))
 
 $(P The following declarations can be disabled using the `@disable` attribute:)
 
-- A function or $(GLINK2 class, Constructor)
+- A function, $(GLINK2 class, Constructor) or $(GLINK2 struct, NewDeclaration)
 - A variable, manifest constant or $(GLINK2 enum, EnumMember)
 
 $(P Use of a disabled declaration will cause a compile time error.)
