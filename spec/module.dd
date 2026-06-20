@@ -18,6 +18,7 @@ $(GNAME DeclDef):
     $(GLINK2 attribute, AttributeSpecifier)
     $(GLINK2 declaration, Declaration)
     $(GLINK2 class, Constructor)
+    $(GLINK2 struct, NewDeclaration)
     $(GLINK2 class, Destructor)
     $(GLINK2 struct, Postblit)
     $(GLINK2 class, Invariant)

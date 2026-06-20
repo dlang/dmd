@@ -64,7 +64,7 @@ $(H3 $(LNAME2 storage, Storage))
 
     $(P For local variables, a struct/union instance is allocated on the stack
     by default. To allocate on the heap, use $(DDSUBLINK spec/expression, new_expressions,
-    `new`), which gives a pointer.)
+    `new`), which gives a $(DDSUBLINK spec/type, pointers, pointer).)
 
     $(PANEL
     A $(LNAME2 struct-pointer, pointer to a struct) or union is automatically
@@ -85,6 +85,34 @@ $(H3 $(LNAME2 storage, Storage))
     )
 
     $(P **See also:** $(RELATIVE_LINK2 struct_layout, Struct Layout).)
+
+$(H4 $(LNAME2 new-declaration, Disabling `new`))
+
+$(GRAMMAR
+$(GNAME NewDeclaration):
+    `new ( ) ;`
+)
+
+    $(P `new` can be disallowed on an $(GLINK2 declaration, AggregateDeclaration)
+    with `@disable new();`:)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+struct S
+{
+    @disable new();
+}
+
+void main()
+{
+    S s; // OK
+    S* p = new S; // Error, `new` is disabled
+}
+---
+)
+    $(NOTE Such an aggregate instance can still be
+    $(REF_ALTTEXT emplaced, emplace, core,lifetime) into a memory buffer.)
+
 
 $(H3 $(LNAME2 unions, Unions))
 
