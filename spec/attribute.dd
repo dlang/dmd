@@ -686,25 +686,34 @@ $(H3 $(LNAME2 synchronized, $(D synchronized) Attribute))
 
 $(H2 $(LNAME2 disable, $(D @disable) Attribute))
 
-$(P A reference to a declaration marked with the $(CODE @disable) attribute
-causes a compile time error. This can be used to explicitly disallow certain
-operations or overloads at compile time rather than relying on generating a
+$(P The following declarations can be disabled using the `@disable` attribute:)
+
+- A function or $(GLINK2 class, Constructor)
+- A variable, manifest constant or $(GLINK2 enum, EnumMember)
+
+$(P Use of a disabled declaration will cause a compile time error.)
+
+$(BEST_PRACTICE Use `@disable` to explicitly disallow certain
+operations or overloads at compile time, rather than relying on a function generating a
 runtime error.)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 @disable int x;
 @disable void foo();
+void foo(int);
 
 void main()
 {
     x++;   // error, x is disabled
     foo(); // error, foo is disabled
+    foo(5); // OK, not disabled
 }
 ---
+)
+    $(P A user-defined type cannot be disabled, though a constructor can be. In particular:)
 
     $(UL
-        $(LI An $(GLINK2 enum, EnumMember) can have the `@disable` attribute.
-        )
         $(LI $(DDSUBLINK spec/struct, disable_default_construction, `@disable this();`)
         inside a struct disallows default construction.
         )
