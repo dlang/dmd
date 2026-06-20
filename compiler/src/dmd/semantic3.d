@@ -338,6 +338,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
             Scope* sc2 = sc.push(ss);
             sc2.func = funcdecl;
             sc2.parent = funcdecl;
+            // A declaration-level pragma(inline) only applies to this function.
+            sc2.inlining = null;
             sc2.ctorflow.callSuper = CSX.none;
             sc2.sbreak = null;
             sc2.scontinue = null;

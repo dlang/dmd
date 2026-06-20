@@ -257,6 +257,24 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
 {
     import dmd.statementsem;
 
+    void applyPragmaInline(Dsymbol s, PINLINE inlining)
+    {
+        if (auto fd = s.isFuncDeclaration())
+        {
+            fd.inlining = inlining;
+            return;
+        }
+
+        if (auto ad = s.isAttribDeclaration())
+        {
+            if (auto decls = ad.include(null))
+            {
+                foreach (child; *decls)
+                    applyPragmaInline(child, inlining);
+            }
+        }
+    }
+
     /* https://dlang.org/spec/statement.html#pragma-statement
      */
     // Should be merged with PragmaDeclaration
@@ -311,10 +329,15 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
     }
     else if (ps.ident == Id.Pinline)
     {
-        if (auto fd = sc.func)
+        const inlining = evalPragmaInline(ps.loc, sc, ps.args);
+        auto es = ps._body ? ps._body.isExpStatement() : null;
+        auto de = es ? es.exp.isDeclarationExp() : null;
+        if (de)
         {
-            fd.inlining = evalPragmaInline(ps.loc, sc, ps.args);
+            applyPragmaInline(de.declaration, inlining);
         }
+        else if (auto fd = sc.func)
+            fd.inlining = inlining;
         else
         {
             error(ps.loc, "`pragma(inline)` is not inside a function");
