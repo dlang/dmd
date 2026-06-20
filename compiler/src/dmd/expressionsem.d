@@ -7561,7 +7561,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         scope (exit)
         {
-            if (TypeFunction tf = exp.f ? cast(TypeFunction)exp.f.type : null)
+            if (TypeFunction tf = exp.f && exp.f.type ? exp.f.type.isTypeFunction() : null)
             {
                 if (tf.isRvalue)
                 {
