@@ -35,6 +35,7 @@ import dmd.backend.el;
 import dmd.backend.global : REGSIZE, mask;
 import dmd.backend.debugprint : fl_str;
 import dmd.backend.oper;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.x86.xmm;
@@ -2263,10 +2264,9 @@ static if (0)
                 uint ins = INSTR.adr(1,0,reg);                // ADRP reg,0<foo>
                 cdb.gencs1(ins,0,fl,e.Vsym);
 
-                cs.Iop = INSTR.addsub_imm(1,0,0,0,0,reg,reg); // ADD reg,reg,#0
-                cs.Iflags |= CF.add;
-                cs.IFL1 = fl;
-                cdb.gen(&cs);
+                ins = INSTR.addsub_imm(1,0,0,0,0,reg,reg); // ADD reg,reg,#0
+                cdb.gencs1(ins,0,fl,e.Vsym);
+                cdb.last.Iflags |= CF.add;
 
                 if (e.Voffset)
                     cdb.gen1(INSTR.addsub_imm(1,0,0,0,cast(uint)e.Voffset,reg,reg)); // ADD reg,reg,#Voffset
