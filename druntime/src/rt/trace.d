@@ -122,11 +122,48 @@ struct Symbol
 
 enum ubyte SFvisited = 1;      // visited
 
-struct SymbolCacheEntry
+version (D_LP64)
 {
-    const(char)* ptr;
-    size_t length;
-    Symbol* sym;
+    struct SymbolCacheEntry
+    {
+        private:
+            ulong _packed;
+            uint _rest;
+        public:
+            uint length;
+
+        pragma(inline, true):
+            @property const(char)* ptr() const
+            {
+                return cast(const(char)*)(_packed & 0xFFFFFFFFFFFF);
+            }
+
+            @property void ptr(const(char)* p)
+            {
+                _packed = (_packed & 0xFFFF000000000000) | (cast(ulong)p & 0xFFFFFFFFFFFF);
+            }
+
+            @property Symbol* sym() const
+            {
+                return cast(Symbol*)(((_packed >> 48) & 0xFFFF) << 32 | _rest);
+            }
+
+            @property void sym(Symbol* s)
+            {
+                auto v = cast(ulong)s;
+                _packed = (_packed & 0xFFFFFFFFFFFF) | ((v >> 32) & 0xFFFF) << 48;
+                _rest = cast(uint)(v & 0xFFFFFFFF);
+            }
+    }
+}
+else
+{
+    struct SymbolCacheEntry
+    {
+        const(char)* ptr;
+        uint length;
+        Symbol* sym;
+    }
 }
 
 //////////////////////////////////
@@ -643,23 +680,6 @@ private void trace_sympair_add(SymPair** psp, Symbol* s, ulong count)
     sp.count += count;
 }
 
-private Symbol* trace_findsym(const(char)[] id)
-{
-    enum cacheMask = trace_cache.length - 1;
-    static assert((trace_cache.length & cacheMask) == 0);
-
-    const idx = (cast(size_t) id.ptr >> 4) & cacheMask;
-    auto entry = &trace_cache[idx];
-    if (entry.ptr == id.ptr && entry.length == id.length)
-        return entry.sym;
-
-    auto s = trace_addsym(&root, id);
-    entry.ptr = id.ptr;
-    entry.length = id.length;
-    entry.sym = s;
-    return s;
-}
-
 //////////////////////////////////////////////
 // This one is called by DMD
 
@@ -679,7 +699,22 @@ private extern(C) void trace_pro(const(char)[] id)
     if (id.length == 0)
         return;
     auto tos = stack_push();
-    auto s = trace_findsym(id);
+
+    enum cacheMask = trace_cache.length - 1;
+    static assert((trace_cache.length & cacheMask) == 0);
+    const cacheIdx = (cast(size_t) id.ptr >> 4) & cacheMask;
+    auto centry = &trace_cache[cacheIdx];
+    Symbol* s;
+    if (centry.ptr == id.ptr && centry.length == id.length)
+        s = centry.sym;
+    else
+    {
+        s = trace_addsym(&root, id);
+        centry.ptr = id.ptr;
+        centry.length = cast(uint)id.length;
+        centry.sym = s;
+    }
+
     tos.sym = s;
     if (tos.prev)
     {
