@@ -19,7 +19,9 @@ version (Posix)
     public import core.sys.posix.stdc.time;
 else version (Windows)
     public import core.sys.windows.stdc.time;
-else
+else version (WASI) {
+    public import core.sys.wasi.posix.stdc.time;
+} else
     static assert(0, "unsupported system");
 
 import core.stdc.config;
