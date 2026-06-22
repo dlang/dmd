@@ -75,7 +75,7 @@ else version (Windows)
     ///
     enum SIGTERM    = 15; // Termination
 }
-else version (WASI)
+else version (CRuntime_WASI)
 {
     extern(C) void __SIG_ERR(int);
     extern(C) void __SIG_IGN(int);

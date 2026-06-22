@@ -195,7 +195,7 @@ else version (Hurd)
     ///
     // enum PIPE_BUF
 }
-else version (WASI)
+else version (CRuntime_WASI)
 {
     ///
     enum MAX_CANON      = 255;
