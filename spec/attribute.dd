@@ -460,36 +460,26 @@ $(H2 $(LNAME2 future, `@__future` attribute))
 
 $(H2 $(LNAME2 ctfeonly, `@__ctfe` attribute))
 
-    $(P The `@__ctfe` attribute is used to mark a function as only able to be used during CTFE and will not codegen.
-    It will by-pass any restrictions on code generation sourced from command line flags.
-    Usage of this attribute requires the caller to call the callee from a CTFE context,
-    a runtime call will not be upgraded to a CTFE call.
+    $(P The `@__ctfe` attribute ensures a function is only called with CTFE, disabling
+    object code generation.
+    It will bypass any restrictions on code generation sourced from command-line flags.
+    An `@__ctfe` function cannot be called in a runtime context, and
+    taking its address is an error:
     )
 
+    $(COMMENT SPEC_RUNNABLE_EXAMPLE_FAIL)
+    ---
+    int add(int a) @__ctfe => a + 2;
+
+    void main()
+    {
+        static int w = add(1); // OK
+        int x = add(1); // Error: function marked with @__ctfe cannot be called at runtime
+        auto fp = &add; // Error: cannot take address of function marked with @__ctfe
+    }
+    ---
+
     $(NOTE Virtual methods cannot be marked as `@__ctfe` due to interactions with inheritance.)
-
-    ---
-    void entryPoint()
-    {
-        static int[] Data = calculate(1, 2);
-        assert(Data == [1, 2]);
-    }
-
-    int[] calculate(int a, int b) @__ctfe
-    {
-        int[] result;
-
-        inProgressOperation(result, a);
-        inProgressOperation(result, b);
-
-        return result;
-    }
-
-    void inProgressOperation(ref int[] result, int value) @__ctfe
-    {
-        result ~= value;
-    }
-    ---
 
 $(H2 $(LNAME2 visibility_attributes, Visibility Attributes))
 
