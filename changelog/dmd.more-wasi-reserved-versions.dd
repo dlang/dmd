@@ -1,0 +1,5 @@
+`WASIp1`, `WASIp2`, and `WASIp3` are now reserved version identifiers
+
+New version identifiers are reserved for WASI, corresponding to previews 1, 2, and 3 of the WebAssembly System Interface.
+
+The existing `WASI` identifier is retained, meaning ANY version of WASI. i.e. `WASI` is always defined whenever `WASIp{1|2|3}` is.
