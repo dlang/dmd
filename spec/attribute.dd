@@ -464,7 +464,7 @@ $(H2 $(LNAME2 ctfeonly, `@__ctfe` attribute))
     object code generation.
     It will bypass any restrictions on code generation sourced from command-line flags.
     An `@__ctfe` function cannot be called in a runtime context, and
-    taking its address is an error:
+    taking its address at runtime is an error:
     )
 
     $(COMMENT SPEC_RUNNABLE_EXAMPLE_FAIL)
