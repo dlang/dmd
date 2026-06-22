@@ -4,11 +4,12 @@ $(SPEC_S Modules,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LNAME2 grammar, Grammar))
+
 $(GRAMMAR
 $(GNAME Module):
     $(GLINK ModuleDeclaration)
-    $(GLINK ModuleDeclaration) $(GLINK DeclDefs)
-    $(GLINK DeclDefs)
+    $(GLINK ModuleDeclaration)$(OPT) $(GLINK DeclDefs)
 
 $(GNAME DeclDefs):
     $(GLINK DeclDef)
@@ -16,27 +17,42 @@ $(GNAME DeclDefs):
 
 $(GNAME DeclDef):
     $(GLINK2 attribute, AttributeSpecifier)
+    $(GLINK2 declaration, AliasAssign)
     $(GLINK2 declaration, Declaration)
-    $(GLINK2 class, Constructor)
-    $(GLINK2 struct, NewDeclaration)
-    $(GLINK2 class, Destructor)
-    $(GLINK2 struct, Postblit)
-    $(GLINK2 class, Invariant)
+    $(GLINK AggregateMember)
     $(GLINK2 unittest, UnitTest)
-    $(GLINK2 class, AliasThis)
     $(GLINK2 class, StaticConstructor)
     $(GLINK2 class, StaticDestructor)
     $(GLINK2 class, SharedStaticConstructor)
     $(GLINK2 class, SharedStaticDestructor)
-    $(GLINK2 version, ConditionalDeclaration)
     $(GLINK2 version, DebugSpecification)
     $(GLINK2 version, VersionSpecification)
     $(GLINK MixinDeclaration)
     $(GLINK EmptyDeclaration)
 
+$(GNAME AggregateMember):
+    $(GLINK2 class, Constructor)
+    $(GLINK2 struct, NewDeclaration)
+    $(GLINK2 class, Destructor)
+    $(GLINK2 struct, Postblit)
+    $(GLINK2 class, Invariant)
+    $(GLINK2 class, AliasThis)
+
 $(GNAME EmptyDeclaration):
     $(D ;)
 )
+
+$(P A *Module* normally has one or more *DeclDef* declarations.)
+
+- $(GLINK2 declaration, Declaration) is the only *DeclDef* allowed as a
+  $(GLINK2 statement, Statement) in a function body.
+- *DeclDef* is also a member of $(DDSUBLINK spec/declaration, AggregateDeclaration,
+  aggregate type declarations) and templates.
+- *AggregateMember* is only semantically valid as an aggregate type member
+  (though it is syntactically valid outside of one).
+
+
+$(H2 $(LNAME2 overview, Overview))
 
 $(P Modules have a one-to-one correspondence with source files. When not
 explicitly set via a $(GLINK ModuleDeclaration), a module's name defaults
