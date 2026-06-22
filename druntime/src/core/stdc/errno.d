@@ -67,6 +67,14 @@ else version (CRuntime_Musl)
         alias errno = __errno_location;
     }
 }
+else version (CRuntime_WASI)
+{
+    extern (C)
+    {
+        ref int __errno_location();
+        alias errno = __errno_location;
+    }
+}
 else version (CRuntime_Newlib)
 {
     extern (C)
@@ -151,17 +159,6 @@ else version (Haiku)
     {
         ref int _errnop();
         alias errno = _errnop;
-    }
-}
-else version (WASI)
-{
-    extern (C)
-    {
-        pragma(mangle, "errno") int __errno;
-        ref int __errno_location() {
-            return __errno;
-        }
-        alias errno = __errno_location;
     }
 }
 else
