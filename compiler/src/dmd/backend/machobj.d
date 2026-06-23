@@ -889,6 +889,7 @@ void MachObj_term(const(char)[] objfilename)
         foffset = elf_align(I64 ? 8 : 4, foffset);
         uint reloff = foffset;
         uint nreloc = 0;
+
         if (pseg.SDrel)
         {   Relocation* r = cast(Relocation*)pseg.SDrel.buf;
             Relocation* rend = cast(Relocation*)(pseg.SDrel.buf + pseg.SDrel.length());
@@ -906,6 +907,7 @@ void MachObj_term(const(char)[] objfilename)
                     if (s)
                     {
                         //printf("s.Sident: %s\n", s.Sident.ptr);
+                        //{ int32_t* p = patchAddr64(seg, r.offset); printf("seg: %d offset: %llx, contents: %x\n", seg, r.offset, *p); }
                         bool isPersonality = strcmp(s.Sident.ptr,  "_D6object8TypeInfo8opEqualsMxFNbNfxCQBbZb") == 0;
                         if (0)//s.Sclass == SC.locstat)
                         {   symbol_print(*s);
@@ -2715,9 +2717,27 @@ size_t MachObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
     const save = buf.length();
     //dbg_printf("MachObj_bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
+
+    /* Hacky thing: addtofixlist() calls this function, and writes 0,0,0,0 into the buffer at the location
+     * of the fixup. This can overwrite the existing bytes which contain AArch64 instructions, zeroing them out.
+     * The hacky thing is to not overwrite them
+     */
+    if (save >= offset + nbytes && nbytes == 4)  // if overwriting, and instructions for AArch64 are 4 bytes
+    {
+        // Overwriting, so don't overwrite a non-zero existing value
+        ubyte* pb = buf.buf() + offset;
+        if (pb[0] || pb[1] || pb[2] || pb[3])
+        {
+            //printf("not overwriting %zx .. %zx\n", offset, offset + nbytes);
+            return nbytes;
+        }
+    }
+
     buf.position(cast(size_t)offset, nbytes);
     if (p)
+    {
         buf.write(p, nbytes);
+    }
     else // Zero out the bytes
         buf.writezeros(nbytes);
 
