@@ -2024,6 +2024,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (token.value == TOK.typeof_)
             {
                 tqual = parseTypeof();
+                while (token.value == TOK.leftBracket)
+                {
+                    nextToken();
+                    tqual.addIndex(parseAssignExp());
+                    check(TOK.rightBracket);
+                }
                 check(TOK.dot);
             }
             if (token.value != TOK.identifier)
@@ -2059,6 +2065,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     tqual = new AST.TypeIdentifier(loc, id);
                 else
                     tqual.addIdent(id);
+            }
+
+            while (token.value == TOK.leftBracket)
+            {
+                nextToken();
+                tqual.addIndex(parseAssignExp());
+                check(TOK.rightBracket);
             }
 
             if (token.value != TOK.dot)
