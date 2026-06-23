@@ -1,4 +1,4 @@
-module core.sys.wasi.stdc.time;
+module core.sys.wasi.posix.stdc.time;
 
 extern (C):
 @trusted:
