@@ -1,0 +1,7 @@
+`extern(C) main` now mangled correctly on WebAssembly
+
+D now matches the mangling behavior of Clang for C `main` on Wasm targets.
+
+`main` is mangled as either `__main_void` or `__main_argc_argv` as appropriate (unless overriden by `pragma(mangle)`)
+
+This change is useful for both WASI and Emscripten targets, which both expect this.
