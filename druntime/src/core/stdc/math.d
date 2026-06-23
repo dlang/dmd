@@ -767,9 +767,6 @@ else version (CRuntime_WASI)
     // https://github.com/llvm/llvm-project/blob/main/clang/lib/CodeGen/CGBuiltin.cpp
     version(LDC)
     extern (D) pure pragma(inline, true) {
-        pragma(LDC_intrinsic, "llvm.is.fpclass.f#")
-        private bool llvm_is_fpclass(T)(T val, uint fpclass) pure if (__traits(isFloating, T));
-
         // __builtin_fpclassify(FP_NAN, FP_INFINITE, FP_NORMAL, FP_SUBNORMAL, FP_ZERO, val)
         // Codegen only matches at -O1 or greater
         int fpclassify(T)(T val) {
@@ -793,6 +790,7 @@ else version (CRuntime_WASI)
             else return fabsVal >= T.min_normal ? FP_NORMAL : FP_SUBNORMAL;
         }
 
+        import ldc.intrinsics : llvm_is_fpclass;
         bool isinf(T)(T val) pure => llvm_is_fpclass(val, (1 << 2) | (1 << 9)); // __builtin_isinf
         bool isnan(T)(T val) pure => llvm_is_fpclass(val, (1 << 0) | (1 << 1)); // __builtin_isnan
         bool isnormal(T)(T val) pure => llvm_is_fpclass(val, (1 << 3) | (1 << 8)); // __builtin_isnormal
