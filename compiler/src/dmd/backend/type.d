@@ -503,6 +503,7 @@ type* type_function(tym_t tyf, type*[] ptypes, bool variadic, type* tret)
         param_t* paramtypes = cast(param_t*)mem_calloc(ptypes.length * param_t.sizeof);
         foreach (i, tx; ptypes)
         {
+            debug paramtypes[i].id = param_t.IDparam;
             paramtypes[i].Ptype = tx;
         }
         t.Tparamtypes = cast(param_t[]*)mem_malloc(param_t[].sizeof);
