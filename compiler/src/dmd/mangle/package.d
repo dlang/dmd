@@ -727,6 +727,23 @@ public:
             buf.writestring(fd.ident.toString());
             return;
         }
+
+        version (IN_LLVM)
+        {
+            import gen.llvmhelpers : isTargetWasm;
+            bool isWasm = isTargetWasm();
+        }
+        else bool isWasm = false;
+
+        if (fd.isCMain() && isWasm)
+        {
+            if (fd.parameters)
+                buf.writestring("__main_argc_argv");
+            else
+                buf.writestring("__main_void");
+            return;
+        }
+
         visit(cast(Declaration)fd);
     }
 
