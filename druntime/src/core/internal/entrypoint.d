@@ -24,12 +24,6 @@ template _d_cmain()
 
         int _Dmain(char[][] args);
 
-        version (CRuntime_WASI)
-        int __main_argc_argv(int argc, char **argv)
-        {
-            return _d_run_main(argc, argv, &_Dmain);
-        }
-        else
         int main(int argc, char **argv)
         {
             return _d_run_main(argc, argv, &_Dmain);
