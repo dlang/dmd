@@ -24,6 +24,7 @@ import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
+import dmd.backend.arm.instr;
 import dmd.backend.x86.code_x86;
 import dmd.backend.mem;
 import dmd.backend.aarray;
@@ -873,6 +874,14 @@ void MachObj_term(const(char)[] objfilename)
     mach_numbersyms();
     for (int seg = 1; seg < SegData.length; seg++)
     {
+        static if (0)
+        if (seg == 1)
+        {
+            void* p = patchAddr64(seg, 0);
+            size_t nbytes = SecHdrTab64[SegData[seg].SDshtidx].size;   // corresponding section
+            dumpBytes(0, nbytes, p);
+        }
+
         seg_data* pseg = SegData[seg];
         section* psechdr = null;
         section_64* psechdr64 = null;
@@ -907,7 +916,9 @@ void MachObj_term(const(char)[] objfilename)
                     if (s)
                     {
                         //printf("s.Sident: %s\n", s.Sident.ptr);
-                        //{ int32_t* p = patchAddr64(seg, r.offset); printf("seg: %d offset: %llx, contents: %x\n", seg, r.offset, *p); }
+                        //{ printf("seg: %d offset: %llx, contents: %x\n", seg, r.offset, value); }
+                        int* pvalue = patchAddr64(seg, r.offset);       // pointer to 32 bit value at the fixup location
+                        int value = *pvalue;
                         bool isPersonality = strcmp(s.Sident.ptr,  "_D6object8TypeInfo8opEqualsMxFNbNfxCQBbZb") == 0;
                         if (0)//s.Sclass == SC.locstat)
                         {   symbol_print(*s);
@@ -940,8 +951,7 @@ void MachObj_term(const(char)[] objfilename)
                             ++nreloc;
 
                             // patch with fdesym.Soffset - offset
-                            long* p = cast(long*)patchAddr64(seg, r.offset);
-                            *p += r.funcsym.Soffset - r.offset;
+                            *pvalue += r.funcsym.Soffset - r.offset;
                             continue;
                         }
                         else if (pseg.isCode())
@@ -957,7 +967,7 @@ void MachObj_term(const(char)[] objfilename)
                                 case SC.static_:
                                     if (/*s.Sfl == FL.func &&*/ r.rtype == REL.rel26)
                                     {
-                                        //printf("BRANCHY26 %s\n", s.Sident.ptr);
+                                        printf("BRANCHY26 %08x %s\n", value, s.Sident.ptr);
                                         rel.r_type = ARM64_RELOC_BRANCHY26;
                                         rel.r_pcrel = 1;
                                     }
@@ -1020,6 +1030,20 @@ void MachObj_term(const(char)[] objfilename)
                                 default:
                                     symbol_print(*s);
                                     assert(0);
+                            }
+
+                            /* Ensure relocation matches instruction */
+                            switch (rel.r_type)
+                            {
+                                case ARM64_RELOC_PAGEOFF12:
+                                case ARM64_RELOC_GOT_LOAD_PAGEOFF12:
+                                case ARM64_RELOC_TLVP_LOAD_PAGEOFF12: assert(INSTR.isPAGEOFF12(value)); break;
+                                case ARM64_RELOC_PAGE21:
+                                case ARM64_RELOC_GOT_LOAD_PAGE21:
+                                case ARM64_RELOC_TLVP_LOAD_PAGE21:    assert(INSTR.isPAGE21   (value)); break;
+                                case ARM64_RELOC_BRANCHY26:           assert(INSTR.isBRANCHY26(value)); break;
+                                default:
+                                    break;
                             }
                             continue;
                         }
@@ -2698,6 +2722,10 @@ void MachObj_write_bytes(seg_data* pseg, const(void[]) a)
 @trusted
 size_t MachObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
 {
+    //printf("MachObj_bytes(seg: %d offset: %02zx nbytes: %02zx p: %p)\n", seg, offset, nbytes, p);
+    if (0 && seg == 1)
+        dumpBytes(offset, nbytes, p);
+
     if (log)
     {
         if (!(seg >= 0 && seg < SegData.length))
@@ -2726,6 +2754,8 @@ size_t MachObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
     {
         // Overwriting, so don't overwrite a non-zero existing value
         ubyte* pb = buf.buf() + offset;
+        //printf("existing value: %02zx: %08x\n", offset, *cast(int*)pb);
+        //printf("new      value: %02zx: %08x\n", offset, *cast(int*)p);
         if (pb[0] || pb[1] || pb[2] || pb[3])
         {
             //printf("not overwriting %zx .. %zx\n", offset, offset + nbytes);
@@ -2740,6 +2770,12 @@ size_t MachObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
     }
     else // Zero out the bytes
         buf.writezeros(nbytes);
+
+    static if (0) if (seg == 1)
+    {
+        printf("after\n");
+        dumpBytes(offset, nbytes, buf.buf() + offset);
+    }
 
     if (save > offset+nbytes)
         buf.setsize(save);
@@ -3085,7 +3121,17 @@ int MachObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol* s, targ_size_
         //printf("offset = x%llx, val = x%llx\n", offset, val);
     }
     else if (retsize == 4)
-        buf.write32(cast(int)val);
+    {
+        if (offset + retsize <= save)
+        {
+            ubyte[] slice = buf.peekSlice();
+            uint* p = cast(uint*)(slice.ptr + offset);
+            if (!*p)            // don't step on PAGEOFF12, PAGE21, and BRANCHY26 instructions
+                buf.write32(cast(int)val);
+        }
+        else
+            buf.write32(cast(int)val);
+    }
     else
         buf.write64(val);
     if (save > offset + retsize)
@@ -3500,4 +3546,48 @@ unittest
     assert(toVersion(".9.1") == Version(0, 0, 0));
     assert(toVersion("10..9") == Version(0, 0, 0));
     assert(toVersion("10.10.") == Version(0, 0, 0));
+}
+
+/******************************
+ * Handy function to dump sections of buffers in hex.
+ * Params:
+ *      offset = starting address of data
+ *      nbytes = number of bytes to dump
+ *      p = pointer to the bytes to be dumped
+ */
+@trusted
+private
+void dumpBytes(targ_size_t offset, size_t nbytes, const(void)* p)
+{
+    printf("dump: offset: %02llx nbytes: %02zx p: %p\n", offset, nbytes, p);
+
+    auto n = nbytes;
+    auto p1 = p;
+    auto p2 = p1 + n;
+    auto off = offset;
+    while (p1 < p2)
+    {
+        printf("  %02llx: ", off);
+        if (n >= 4)
+        {
+            printf("%08x\n", *cast(int*)p1);
+            p1 += 4;
+            n -= 4;
+            off += 4;
+        }
+        else if (n >= 2)
+        {
+            printf("%04x\n", *cast(ushort*)p1);
+            p1 += 2;
+            n -= 2;
+            off += 2;
+        }
+        else
+        {
+            printf("%02x\n", *cast(ubyte*)p1);
+            p1 += 1;
+            n -= 1;
+            off += 1;
+        }
+    }
 }
