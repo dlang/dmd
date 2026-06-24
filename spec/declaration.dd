@@ -41,6 +41,7 @@ $(GRAMMAR
 $(GNAME VarDeclarations):
     $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK IdentifierInitializers) $(D ;)
     $(GLINK AutoDeclaration)
+    $(GLINK TuplePattern) `=` $(GLINK AssignExpression)
 
 $(GNAME IdentifierInitializers): $(LEGACY_LNAME2 Declarators, DeclaratorIdentifierList)
     $(GLINK IdentifierInitializer)
@@ -67,6 +68,8 @@ $(GNAME Declarator): $(LEGACY_LNAME2 VarDeclarator)
       $(DDSUBLINK spec/struct, bitfields, bit field).
     * When the *Identifier* has *TemplateParameters*, it is a
       $(DDSUBLINK spec/template, variable-template, variable template).
+    * When there's a *TuplePattern*, the *AssignExpression*
+      $(RELATIVE_LINK2 unpacking-declarations, is unpacked) into component declarations.
 
     $(P See also: $(RELATIVE_LINK2 declaration_syntax, Declaration Syntax).)
 
@@ -291,6 +294,7 @@ $(GNAME AutoAssignments):
 
 $(GNAME AutoAssignment):
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK Initializer)
+    $(GLINK TuplePattern) `=` $(GLINK AssignExpression)
 )
 
         $(P If a declaration starts with a $(I StorageClass) and has
@@ -322,6 +326,83 @@ auto c = new C();  // c is a handle to an instance of class C
         ---
         auto v = ["resistance", "is", "useless"]; // type is string[], not string[3]
         ---
+
+$(H3 $(LNAME2 unpacking-declarations, Unpacking Declarations))
+
+        $(P $(GLINK VarDeclarations) and $(GLINK AutoDeclaration) support initializing
+        one or more variables in a *tuple pattern* from an $(GLINK AssignExpression).
+        The *AssignExpression* must implicitly convert to a
+        $(DDSUBLINK spec/template, homogeneous_sequences, value sequence).)
+
+$(GRAMMAR
+$(GNAME TuplePattern):
+    `(` $(GLINK TuplePatternComponents) `)`
+
+$(GNAME TuplePatternComponents):
+    $(GLINK TuplePatternComponent) `,`
+    $(GLINK TuplePatternComponent) `,` $(GLINK TuplePatternComponent)
+    $(GLINK TuplePatternComponent) `,` $(GLINK TuplePatternComponents)
+
+$(GNAME TuplePatternComponent):
+    $(GLINK StorageClasses)$(OPT) $(GLINK Identifier)
+    $(GLINK StorageClasses)$(OPT) $(GLINK BasicType) $(GLINK TypeSuffixes)$(OPT) $(GLINK Identifier)
+    $(GLINK StorageClasses)$(OPT) $(GLINK TuplePattern)
+)
+
+        - Each component of the tuple pattern corresponds to an element of the value sequence.
+        - Components are separated by commas.
+        - For a pattern with a single component, a comma must precede the closing parenthesis.
+
+```d
+import std.typecons : tuple;
+
+(int a, auto b) = tuple(1, "2"); // unpacking declaration
+assert(a == 1);
+assert(b == "2");
+```
+        $(P The unpacking declaration above is lowered to e.g.:)
+```d
+auto temp = tuple(1, "2");
+int a = temp[0];
+auto b = temp[1];
+```
+        $(P **See also:** $(REF Tuple, std,typecons).)
+
+        $(P When the tuple pattern has no storage class, each identifier
+        must have a type or a component storage class:)
+```d
+(int a, b) = tuple(1, "2"); // Error: `b` has no type or storage class
+```
+        $(P When there is a storage class for a pattern, each component of the pattern can
+        be just an identifier. Each variable's type will be inferred from the corresponding
+        sequence element:)
+
+```d
+import std.typecons : tuple;
+
+auto (a, b) = tuple(1, "2");
+static assert(is(typeof(a) == int));
+static assert(is(typeof(b) == string));
+
+auto (a, immutable b, c) = tuple(1, "2", 3.0);
+static assert(is(typeof(a) == int));
+static assert(is(typeof(b) == immutable string));
+static assert(is(typeof(c) == double));
+```
+
+        $(P Patterns can be nested:)
+
+```d
+auto t = tuple(1, tuple("2", 3.0));
+// the following are equivalent:
+auto (a, (b, c)) = t;
+(int a, (string b, double c)) = t;
+(int a, auto (b, c)) = t;
+(int a, (auto b, auto c)) = t;
+```
+
+        $(P `static` or `enum` can be applied to the whole declaration, but not to individual components.)
+
 
 $(H3 $(LNAME2 global_static_init, Global and Static Initializers))
 
