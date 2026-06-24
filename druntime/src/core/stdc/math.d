@@ -736,6 +736,80 @@ else version (CRuntime_Musl)
     pragma(mangle, real.sizeof == double.sizeof ? "__signbit" : "__signbitl")
     pure int signbit(real x);
 }
+else version (CRuntime_WASI)
+{
+    enum
+    {
+        ///
+        FP_NAN,
+        ///
+        FP_INFINITE,
+        ///
+        FP_ZERO,
+        ///
+        FP_SUBNORMAL,
+        ///
+        FP_NORMAL,
+    }
+
+    enum
+    {
+        ///
+        FP_FAST_FMA  = 0,
+        ///
+        FP_FAST_FMAF = 0,
+        ///
+        FP_FAST_FMAL = 0,
+    }
+
+    // In `wasi_libc`, these are defined as macros redirecting to Clang builtins
+    // We approximate the builtins based on their definitions in
+    // https://github.com/llvm/llvm-project/blob/main/clang/lib/CodeGen/CGBuiltin.cpp
+    version(LDC)
+    extern (D) pure pragma(inline, true) {
+        // __builtin_fpclassify(FP_NAN, FP_INFINITE, FP_NORMAL, FP_SUBNORMAL, FP_ZERO, val)
+        // Codegen only matches at -O1 or greater
+        int fpclassify(T)(T val) {
+            import ldc.llvmasm : __ir_pure;
+            import ldc.intrinsics : llvm_fabs;
+
+            if (val == T(0.0)) return FP_ZERO;
+            if (val != val) return FP_NAN;
+
+            auto fabsVal = llvm_fabs(val);
+
+            if (fabsVal == T.infinity) return FP_INFINITE;
+
+            // Work around to deal with https://wiki.dlang.org/Cross-compiling_with_LDC#Limitations
+            // real.min_normal ends up underflowing to zero
+            static if (is(T == real))
+                return __ir_pure!(`
+                    %cmp = fcmp uge fp128 %0, f0x00010000000000000000000000000000
+                    ret i1 %cmp
+                `, bool)(val) ? FP_NORMAL : FP_SUBNORMAL;
+            else return fabsVal >= T.min_normal ? FP_NORMAL : FP_SUBNORMAL;
+        }
+
+        import ldc.intrinsics : llvm_is_fpclass;
+        bool isinf(T)(T val) pure => llvm_is_fpclass(val, (1 << 2) | (1 << 9)); // __builtin_isinf
+        bool isnan(T)(T val) pure => llvm_is_fpclass(val, (1 << 0) | (1 << 1)); // __builtin_isnan
+        bool isnormal(T)(T val) pure => llvm_is_fpclass(val, (1 << 3) | (1 << 8)); // __builtin_isnormal
+        bool isfinite(T)(T val) pure => llvm_is_fpclass(val, (1 << 3) | (1 << 4) | (1 << 5) | (1 << 6) | (1 << 7) | (1 << 8)); // __builtin_isfinite
+
+        bool signbit(float val) pure => cast(int)val < 0; // __builtin_signbit
+        bool signbit(double val) pure => cast(long)val < 0; // __builtin_signbit
+
+        // __builtin_signbit
+        // Uses LLVM IR to access i128 ops directly
+        // approximately: cast(cent)val < 0
+        bool signbit(real val) pure => __ir_pure!(`
+            %cast = bitcast fp128 %0 to i128
+            %cmp = icmp slt i128 %cast, 0
+            ret i1 %cmp
+        `, bool)(val);
+    }
+    else static assert(0, "Unknown D compiler for WASI");
+}
 else version (CRuntime_UClibc)
 {
     enum
