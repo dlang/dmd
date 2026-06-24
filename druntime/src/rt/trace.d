@@ -11,6 +11,10 @@
 
 module rt.trace;
 
+// TODO(?): support this on Wasm at some point
+version (WASI) {}
+else:
+
 import core.demangle;
 import core.stdc.ctype : isalpha, isgraph, isspace;
 import core.stdc.stdio : EOF, fclose, fgetc, FILE, fopen, fprintf, stderr, stdout;
