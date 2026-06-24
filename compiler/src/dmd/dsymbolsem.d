@@ -4861,6 +4861,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             nd.type = new TypeFunction(ParameterList(), Type.tvoid.pointerTo(), LINK.d, nd.storage_class);
 
         funcDeclarationSemantic(sc, nd);
+
+        Dsymbol p = sc.parent.pastMixin();
+        if (!p.isAggregateDeclaration())
+        {
+            error(nd.loc, "`new()` can only be a member of an aggregate, not %s `%s`",
+                p.kind(), p.toErrMsg());
+            return;
+        }
     }
 
     override void visit(StructDeclaration sd)

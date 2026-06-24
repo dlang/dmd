@@ -17839,7 +17839,7 @@ bool checkAddressable(Expression e, Scope* sc, const(char)* action)
 /*******************************
  * Checks the attributes of a function.
  * Purity (`pure`), safety (`@safe`), no GC allocations(`@nogc`)
- * and usage of `deprecated` and `@disabled`-ed symbols are checked.
+ * and usage of `deprecated` and `@disable`-d symbols are checked.
  *
  * Params:
  *  exp = expression to check attributes for (CallExp or NewExp)

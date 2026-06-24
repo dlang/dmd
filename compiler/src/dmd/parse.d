@@ -2871,7 +2871,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         STC stc = getStorageClass!AST(pAttrs);
         if (!(stc & STC.disable))
         {
-            error("`new` allocator must be annotated with `@disabled`");
+            error("`new` allocator must be annotated with `@disable`");
         }
         nextToken();
         check(TOK.leftParenthesis);
