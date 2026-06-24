@@ -1,3 +1,0 @@
-`wasi-libc` (`CRuntime_WASI`) support added to `core.stdc`
-
-All the libc declarations in `core.stdc` have been expanded to include support for $(LINK2 https://github.com/WebAssembly/wasi-libc, wasi-libc)
