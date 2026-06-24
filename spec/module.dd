@@ -59,22 +59,18 @@ explicitly set via a $(GLINK ModuleDeclaration), a module's name defaults
 to the name of the file stripped of its path and extension.)
 
 $(P A module's name automatically acts as a namespace scope for its contents. Modules
-superficially resemble classes, but differ in that:)
+superficially resemble $(DDLINK spec/struct, Structs and Unions, structs), but differ in that:)
 
 $(UL
         $(LI Only one instance of a module exists, and it is
         statically allocated.)
 
-        $(LI Modules do not have virtual tables.)
-
-        $(LI Modules do not inherit, do not have super modules, etc.)
-
         $(LI A source file may contain only one module.)
 
-        $(LI Symbols in a module can be imported.)
+        $(LI Symbols in a module can be $(RELATIVE_LINK2 import-declaration, imported).)
 
         $(LI Modules are always compiled at global scope and are unaffected
-        by surrounding attributes or other modifiers.)
+        by storage classes or other modifiers.)
 )
 
 $(P Modules can be grouped into hierarchies called $(I packages).)
@@ -197,9 +193,7 @@ import foo;  // Deprecated: module foo is deprecated - Please use foo2 instead.
 ---------
 
     $(IMPLEMENTATION_DEFINED
-    $(OL
-    $(LI How the deprecation messages are presented to the user.)
-    ))
+    How the deprecation messages are presented to the user.)
 
 
 $(H2 $(LEGACY_LNAME2 ImportDeclaration, import-declaration, Import Declaration))
@@ -246,10 +240,8 @@ qualified with whatever packages they are in. They are not considered to be
 relative to the module that imports them.)
 
     $(IMPLEMENTATION_DEFINED
-    $(OL
-    $(LI How the compiler resolves the package and module identifiers in an
+    How the compiler resolves the package and module identifiers in an
     import declaration to its corresponding source files.)
-    ))
 
 $(H3 $(LNAME2 name_lookup, Symbol Name Lookup))
 
