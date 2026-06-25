@@ -332,22 +332,22 @@ Symbol* MachObj_sym_cdata(tym_t ty,char* p,int len)
  *
  */
 @trusted
-int MachObj_data_readonly(char* p, int len, int* pseg)
+int MachObj_data_readonly(void[] data, int* pseg)
 {
     int oldoff = cast(int)Offset(CDATA);
-    SegData[CDATA].SDbuf.reserve(len);
-    SegData[CDATA].SDbuf.writen(p,len);
-    Offset(CDATA) += len;
+    SegData[CDATA].SDbuf.reserve(data.length);
+    SegData[CDATA].SDbuf.writen(data.ptr, data.length);
+    Offset(CDATA) += data.length;
     *pseg = CDATA;
     return oldoff;
 }
 
 @trusted
-int MachObj_data_readonly(char* p, int len)
+int MachObj_data_readonly(void[] data)
 {
     int pseg;
 
-    return MachObj_data_readonly(p, len, &pseg);
+    return MachObj_data_readonly(data, &pseg);
 }
 
 /*****************************

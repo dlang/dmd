@@ -513,21 +513,21 @@ static if (0)
  *      offset of that data
  */
 
-int ElfObj_data_readonly(char* p, int len, int* pseg)
+int ElfObj_data_readonly(void[] data, int* pseg)
 {
     int oldoff = cast(int)Offset(CDATA);
-    SegData[CDATA].SDbuf.reserve(len);
-    SegData[CDATA].SDbuf.writen(p,len);
-    Offset(CDATA) += len;
+    SegData[CDATA].SDbuf.reserve(data.length);
+    SegData[CDATA].SDbuf.writen(data.ptr, data.length);
+    Offset(CDATA) += data.length;
     *pseg = CDATA;
     return oldoff;
 }
 
-int ElfObj_data_readonly(char* p, int len)
+int ElfObj_data_readonly(void[] data)
 {
     int pseg;
 
-    return ElfObj_data_readonly(p, len, &pseg);
+    return ElfObj_data_readonly(data, &pseg);
 }
 
 /******************************

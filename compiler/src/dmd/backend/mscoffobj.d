@@ -200,23 +200,23 @@ Symbol* MsCoffObj_sym_cdata(tym_t ty,char* p,int len)
  */
 
 @trusted
-int MsCoffObj_data_readonly(char* p, int len, segidx_t* pseg)
+int MsCoffObj_data_readonly(void[] data, segidx_t* pseg)
 {
     int oldoff;
     oldoff = cast(int)Offset(CDATA);
-    SegData[CDATA].SDbuf.reserve(len);
-    SegData[CDATA].SDbuf.writen(p,len);
-    Offset(CDATA) += len;
+    SegData[CDATA].SDbuf.reserve(data.length);
+    SegData[CDATA].SDbuf.writen(data.ptr,data.length);
+    Offset(CDATA) += data.length;
     *pseg = CDATA;
     return oldoff;
 }
 
 @trusted
-int MsCoffObj_data_readonly(char* p, int len)
+int MsCoffObj_data_readonly(void[] data)
 {
     segidx_t pseg;
 
-    return MsCoffObj_data_readonly(p, len, &pseg);
+    return MsCoffObj_data_readonly(data, &pseg);
 }
 
 /*****************************
