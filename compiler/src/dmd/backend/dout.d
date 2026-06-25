@@ -1217,19 +1217,19 @@ void out_reset()
 }
 
 @trusted public
-Symbol* out_readonly_sym(tym_t ty, void* p, int len)
+Symbol* out_readonly_sym(tym_t ty, void[] data)
 {
     static if (0)
     {
         printf("out_readonly_sym(ty = x%x)\n", ty);
-        foreach (i; 0 .. len)
-            printf(" [%d] = %02x\n", i, (cast(ubyte*)p)[i]);
+        foreach (i; 0 .. data.length)
+            printf(" [%d] = %02x\n", i, (cast(ubyte*)data.ptr)[i]);
     }
 
     // Look for previous symbol we can reuse
     foreach (r; readonly[0 .. readonly_length])
     {
-        if (r.length == len && memcmp(p, r.p.ptr, len) == 0)
+        if (r.length == data.length && memcmp(data.ptr, r.p.ptr, data.length) == 0)
             return r.sym;
     }
 
@@ -1243,7 +1243,7 @@ Symbol* out_readonly_sym(tym_t ty, void* p, int len)
         /* MACHOBJ can't go here, because the const data segment goes into
          * the _TEXT segment, and one cannot have a fixup from _TEXT to _TEXT.
          */
-        s = objmod.sym_cdata(ty, cast(char*)p, len);
+        s = objmod.sym_cdata(ty, cast(char*)data.ptr, cast(int)data.length);
     }
     else
     {
@@ -1252,11 +1252,11 @@ Symbol* out_readonly_sym(tym_t ty, void* p, int len)
         alignOffset(DATA, sz);
         s = symboldata(Offset(DATA),ty | mTYconst);
         s.Sseg = DATA;
-        objmod.write_bytes(SegData[DATA], p[0 .. len]);
+        objmod.write_bytes(SegData[DATA], data);
         //printf("s.Sseg = %d:x%x\n", s.Sseg, s.Soffset);
     }
 
-    if (len <= ROMAX)
+    if (data.length <= ROMAX)
     {   Readonly* r;
 
         if (readonly_length < RMAX)
@@ -1270,9 +1270,9 @@ Symbol* out_readonly_sym(tym_t ty, void* p, int len)
             if (readonly_i >= RMAX)
                 readonly_i = 0;
         }
-        r.length = len;
+        r.length = data.length;
         r.sym = s;
-        memcpy(r.p.ptr, p, len);
+        memcpy(r.p.ptr, data.ptr, data.length);
     }
     return s;
 }
