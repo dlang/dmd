@@ -291,7 +291,7 @@ Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
     si.Sflags |= SFLnodebug | SFLartifical;
     si.Sfl = FL.data;
     si.Salignment = cast(ubyte)sz;
-    out_readonly_comdat(si, str, cast(uint)(len * sz), cast(uint)sz);
+    out_readonly_comdat(si, str[0 .. len * sz], cast(uint)sz);
 
     sv.value = si;
     return sv.value;

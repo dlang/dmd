@@ -456,10 +456,13 @@ else
 
 
 /******************************
- * Output n bytes of a common block, n > 0.
+ * Output n bytes of a zero common block, n > 0.
+ * Params:
+ *      s = Symbol of common block
  */
 
 @trusted
+private
 void outcommon(Symbol* s,targ_size_t n)
 {
     //printf("outcommon('%s',%d)\n",s.Sident.ptr,n);
@@ -521,7 +524,7 @@ void outcommon(Symbol* s,targ_size_t n)
 }
 
 /*************************************
- * Mark a Symbol as going into a read-only segment.
+ * Mark Symbol `s` as going into a read-only segment.
  */
 
 @trusted public
@@ -548,13 +551,13 @@ void out_readonly(Symbol* s)
 }
 
 /*************************************
- * Write out a readonly string literal in an implementation-defined
- * manner.
+ * Write out a readonly string literal to the object file in an implementation-defined
+ * manner. Create a Symbol to refer to it.
  * Params:
  *      str = pointer to string data (need not have terminating 0)
  *      len = number of characters in string
  *      sz = size of each character (1, 2 or 4)
- * Returns: a Symbol pointing to it.
+ * Returns: a Symbol referring to it.
  */
 @trusted public
 Symbol* out_string_literal(const(char)* str, uint len, uint sz)
@@ -645,35 +648,25 @@ Symbol* out_string_literal(const(char)* str, uint len, uint sz)
 /******************************
  * Walk expression tree, converting it from a PARSER tree to
  * a code generator tree.
+ * Params:
+ *      e = expression tree
+ *      addressOfParam = set to true if the address of a parameter is taken (I16 only)
  */
 
 @trusted private
 void outelem(elem* e, ref bool addressOfParam)
 {
-    Symbol* s;
-    tym_t tym;
-    elem* e1;
-
-again:
+again:          // for tail recursion
     assert(e);
     elem_debug(e);
 
-debug
-{
-    if (OTbinary(e.Eoper))
+    debug if (OTbinary(e.Eoper))
         assert(e.E1 && e.E2);
-//    else if (OTunary(e.Eoper))
-//      assert(e.E1 && !e.E2);
-}
 
     switch (e.Eoper)
     {
     default:
-    Lop:
-debug
-{
         //if (!EOP(e)) printf("e.Eoper = x%x\n",e.Eoper);
-}
         if (OTbinary(e.Eoper))
         {   outelem(e.E1, addressOfParam);
             e = e.E2;
@@ -685,22 +678,23 @@ debug
         else
             break;
         goto again;                     /* iterate instead of recurse   */
+
     case OPaddr:
-        e1 = e.E1;
+        elem* e1 = e.E1;
         if (e1.Eoper == OPvar)
         {   // Fold into an OPrelconst
-            tym = e.Ety;
+            const tym = e.Ety;
             el_copy(e,e1);
             e.Ety = tym;
             e.Eoper = OPrelconst;
             el_free(e1);
             goto again;
         }
-        goto Lop;
+        goto default;
 
     case OPrelconst:
     case OPvar:
-        s = e.Vsym;
+        Symbol* s = e.Vsym;
         assert(s);
         symbol_debug(s);
         switch (s.Sclass)
@@ -752,7 +746,6 @@ debug
 
     case OPsizeof:
         assert(0);
-
     }
 }
 
@@ -1052,7 +1045,7 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
     }
 
     assert(funcsym_p == sfunc);
-    const int CSEGSAVE_DEFAULT = -10_000;        // some unlikely number
+    const int CSEGSAVE_DEFAULT = int.max;        // some unlikely number
     int csegsave = CSEGSAVE_DEFAULT;
     if (eecontext.EEcompile != 1)
     {
@@ -1145,19 +1138,19 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
     /* Check if function is a constructor or destructor, by     */
     /* seeing if the function name starts with _STI or _STD     */
     {
-version (LittleEndian)
-{
-        short* p = cast(short*) sfunc.Sident.ptr;
-        if (p[0] == (('S' << 8) | '_') && (p[1] == (('I' << 8) | 'T') || p[1] == (('D' << 8) | 'T')))
-            objmod.setModuleCtorDtor(sfunc, sfunc.Sident.ptr[3] == 'I');
-}
-else
-{
-        char* p = sfunc.Sident.ptr;
-        if (p[0] == '_' && p[1] == 'S' && p[2] == 'T' &&
-            (p[3] == 'I' || p[3] == 'D'))
-            objmod.setModuleCtorDtor(sfunc, sfunc.Sident.ptr[3] == 'I');
-}
+        version (LittleEndian)
+        {
+            short* p = cast(short*) sfunc.Sident.ptr;
+            if (p[0] == (('S' << 8) | '_') && (p[1] == (('I' << 8) | 'T') || p[1] == (('D' << 8) | 'T')))
+                objmod.setModuleCtorDtor(sfunc, sfunc.Sident.ptr[3] == 'I');
+        }
+        else
+        {
+            char* p = sfunc.Sident.ptr;
+            if (p[0] == '_' && p[1] == 'S' && p[2] == 'T' &&
+                (p[3] == 'I' || p[3] == 'D'))
+                objmod.setModuleCtorDtor(sfunc, sfunc.Sident.ptr[3] == 'I');
+        }
     }
 
 Ldone:
@@ -1179,7 +1172,7 @@ Ldone:
 }
 
 /*************************
- * Align segment offset.
+ * Append bytes to segment until it is aligned to `datasize`
  * Params:
  *      seg = segment to be aligned
  *      datasize = size in bytes of object to be aligned
@@ -1226,16 +1219,16 @@ void out_reset()
 @trusted public
 Symbol* out_readonly_sym(tym_t ty, void* p, int len)
 {
-static if (0)
-{
-    printf("out_readonly_sym(ty = x%x)\n", ty);
-    for (int i = 0; i < len; i++)
-        printf(" [%d] = %02x\n", i, (cast(ubyte*)p)[i]);
-}
-    // Look for previous symbol we can reuse
-    for (int i = 0; i < readonly_length; i++)
+    static if (0)
     {
-        Readonly* r = &readonly[i];
+        printf("out_readonly_sym(ty = x%x)\n", ty);
+        foreach (i; 0 .. len)
+            printf(" [%d] = %02x\n", i, (cast(ubyte*)p)[i]);
+    }
+
+    // Look for previous symbol we can reuse
+    foreach (r; readonly[0 .. readonly_length])
+    {
         if (r.length == len && memcmp(p, r.p.ptr, len) == 0)
             return r.sym;
     }
@@ -1285,19 +1278,18 @@ static if (0)
 }
 
 /*************************************
- * Output Symbol as a readonly comdat.
+ * Output Symbol `s` as a readonly comdat.
  * Params:
  *      s = comdat symbol
- *      p = pointer to the data to write
- *      len = length of that data
+ *      data = array of data to write
  *      nzeros = number of trailing zeros to append
  */
 @trusted public
-void out_readonly_comdat(Symbol* s, const(void)* p, uint len, uint nzeros)
+void out_readonly_comdat(Symbol* s, const(void)[] data, uint nzeros)
 {
     objmod.readonly_comdat(s);         // create comdat segment
-    objmod.write_bytes(SegData[s.Sseg], p[0 .. len]);
-    objmod.lidata(s.Sseg, len, nzeros);
+    objmod.write_bytes(SegData[s.Sseg], data);
+    objmod.lidata(s.Sseg, data.length, nzeros);
 }
 
 @trusted public
