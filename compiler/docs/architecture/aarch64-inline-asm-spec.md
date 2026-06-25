@@ -3,7 +3,7 @@
 **Version:** 2.0
 **Date:** 2025-11-07 (Updated)
 **Status:** ✅ **PRODUCTION READY**
-**Author:** DMD Compiler Team
+**Author:** DMD Compiler Team, Peter Williamson, and Claude
 
 ## Implementation Status
 
