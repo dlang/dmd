@@ -1,0 +1,29 @@
+Tuple unpacking is now supported!
+
+D now supports tuple unpacking for variable declarations and `foreach` loops.
+This feature is available as a preview and can be enabled with the `-preview=tuples` compiler switch.
+It allows extracting multiple values from a tuple or compile-time sequence directly into distinct variables.
+
+-------
+// Requires -preview=tuples
+import std.typecons : tuple;
+
+void main()
+{
+    auto (x, y, z) = tuple(1, 2.5, "three");
+    assert(x == 1);
+    assert(y == 2.5);
+    assert(z == "three");
+
+    // Types can be specified explicitly
+    (int a, string b) = tuple(4, "five");
+    
+    // Unpacking works in foreach loops
+    foreach ((i, s); [tuple(1, "one"), tuple(2, "two")])
+    {
+        // ...
+    }
+}
+-------
+
+For more information, see the D blog article: $(LINK2 https://blog.dlang.org/2026/04/12/dip-1053-a-tale-of-tuples/, DIP 1053 - A Tale of Tuples).
