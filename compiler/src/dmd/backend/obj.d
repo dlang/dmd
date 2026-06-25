@@ -299,14 +299,14 @@ else
             mixin(genRetVal("fltused()"));
         }
 
-        int data_readonly(char* p, int len, int* pseg)
+        int data_readonly(void[] data, int* pseg)
         {
-            mixin(genRetVal("data_readonly(p, len, pseg)"));
+            mixin(genRetVal("data_readonly(data, pseg)"));
         }
 
-        int data_readonly(char* p, int len)
+        int data_readonly(void[] data)
         {
-            mixin(genRetVal("data_readonly(p, len)"));
+            mixin(genRetVal("data_readonly(data)"));
         }
 
         int string_literal_segment(uint sz)
