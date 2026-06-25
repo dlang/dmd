@@ -3539,9 +3539,10 @@ private void genSetRoundingMode(ref CodeBuilder cdb, CW cw)
             oldd.round = 1;
 
             auto cwi = CW.roundto0;          // round to 0
-            oldd.roundto0 = out_readonly_sym(TYshort,&cwi,2);
+            void* p = &cwi;
+            oldd.roundto0 = out_readonly_sym(TYshort,p[0 .. 2]);
             cwi = CW.roundtonearest;            // round to nearest
-            oldd.roundtonearest = out_readonly_sym(TYshort,&cwi,2);
+            oldd.roundtonearest = out_readonly_sym(TYshort,p[0 .. 2]);
         }
         Symbol* rnddir = (cw == CW.roundto0) ? oldd.roundto0 : oldd.roundtonearest;
         code cs;

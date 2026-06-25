@@ -1379,7 +1379,7 @@ elem* el_convfloat(ref GlobalOptimizer go, elem* e)
         printf("\n");
     }
 
-    Symbol* s  = out_readonly_sym(ty, p, sz);
+    Symbol* s  = out_readonly_sym(ty, p[0 .. sz]);
     el_free(e);
     e = el_var(s);
     e.Ety = ty;
@@ -1441,7 +1441,7 @@ elem* el_convreal(ref GlobalOptimizer go, elem* e)
         printf("\n");
     }
 
-    Symbol* s  = out_readonly_sym(ty, p, sz);
+    Symbol* s  = out_readonly_sym(ty, p[0 .. sz]);
     el_free(e);
 
     elem* ep = el_ptr(s);
@@ -1477,7 +1477,7 @@ elem* el_convxmm(ref GlobalOptimizer go, elem* e)
         printf("\n");
     }
 
-    Symbol* s  = out_readonly_sym(ty, p, sz);
+    Symbol* s  = out_readonly_sym(ty, p[0 .. sz]);
     el_free(e);
     e = el_var(s);
     e.Ety = ty;
@@ -1508,7 +1508,7 @@ elem* el_convstring(elem* e)
 
     if (eecontext.EEin)                 // if compiling debugger expression
     {
-        s = out_readonly_sym(e.Ety, p, cast(int)len);
+        s = out_readonly_sym(e.Ety, p[0 ..len]);
         mem_free(p);
         goto L1;
     }
@@ -1531,7 +1531,7 @@ elem* el_convstring(elem* e)
         s.Sseg = DATA;
     }
     else
-        s = out_readonly_sym(e.Ety,p,cast(int)len);
+        s = out_readonly_sym(e.Ety,p[0 .. len]);
 
     // Remember the string for possible reuse later
     //printf("Adding %d, '%s'\n",stable_si,p);
