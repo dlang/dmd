@@ -1305,6 +1305,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             {
                 assert(global.params.tuples);
                 s = parseUnpackDeclaration(storageClass, true);
+                if (!storageClass && token.value == TOK.comma)
+                {
+                    // prevent `(T x,) = tup, i = 1;`
+                    error("`;` expected after tuple pattern, not `,`");
+                }
             }
             else
             {
