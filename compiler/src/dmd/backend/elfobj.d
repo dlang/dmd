@@ -498,7 +498,7 @@ static if (0)
     //printf("ElfObj_sym_cdata(ty = %x, p = %x, len = %d, Offset(CDATA) = %x)\n", ty, p, len, Offset(CDATA));
     alignOffset(CDATA, tysize(ty));
     s = symboldata(Offset(CDATA), ty);
-    ElfObj_bytes(CDATA, Offset(CDATA), len, p);
+    ElfObj_bytes(CDATA, Offset(CDATA), p[0 .. len]);
     s.Sseg = CDATA;
 
     s.Sfl = /*(config.flags3 & CFG3pic) ? FL.gotoff :*/ FL.extern_;
@@ -1511,7 +1511,8 @@ private void obj_tlssections()
 
     {
         const sec = ElfObj_getsegment(".tdata", null, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align_);
-        ElfObj_bytes(sec, 0, align_, null);
+        void* p = null;
+        ElfObj_bytes(sec, 0, p[0 .. align_]);
 
         const namidx = ElfObj_addstr(&elfobj.symtab_strings,"_tlsstart");
         elf_addsym(namidx, 0, align_, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
@@ -2119,7 +2120,7 @@ void ElfObj_export_symbol(Symbol* s,uint argsize)
 
 int ElfObj_data_start(Symbol* sdata, targ_size_t datasize, int seg)
 {
-    targ_size_t alignbytes;
+    size_t alignbytes;
     //printf("ElfObj_data_start(%s,size %llx,seg %d)\n",sdata.Sident.ptr,datasize,seg);
     //symbol_print(sdata);
 
@@ -2127,14 +2128,14 @@ int ElfObj_data_start(Symbol* sdata, targ_size_t datasize, int seg)
         sdata.Sseg = seg;      // wasn't any segment override
     else
         seg = sdata.Sseg;
-    targ_size_t offset = Offset(seg);
+    size_t offset = cast(size_t)Offset(seg);
     if (sdata.Salignment > 0)
     {   if (SegData[seg].SDalignment < sdata.Salignment)
             SegData[seg].SDalignment = sdata.Salignment;
         alignbytes = ((offset + sdata.Salignment - 1) & ~(sdata.Salignment - 1)) - offset;
     }
     else
-        alignbytes = _align(datasize, offset) - offset;
+        alignbytes = cast(size_t)(_align(datasize, offset) - offset);
     if (alignbytes)
         ElfObj_lidata(seg, offset, alignbytes);
     sdata.Soffset = offset + alignbytes;
@@ -2389,7 +2390,7 @@ int ElfObj_common_block(Symbol* s, int flag, targ_size_t size, targ_size_t count
 
 void ElfObj_write_zeros(seg_data* pseg, targ_size_t count)
 {
-    ElfObj_lidata(pseg.SDseg, pseg.SDoffset, count);
+    ElfObj_lidata(pseg.SDseg, pseg.SDoffset, cast(size_t)count);
 }
 
 /***************************************
@@ -2398,7 +2399,7 @@ void ElfObj_write_zeros(seg_data* pseg, targ_size_t count)
  *      For boundary alignment and initialization
  */
 
-void ElfObj_lidata(int seg,targ_size_t offset,targ_size_t count)
+void ElfObj_lidata(int seg,targ_size_t offset, size_t count)
 {
     //printf("ElfObj_lidata(%d,%x,%d)\n",seg,offset,count);
     if (seg == UDATA || seg == UNKNOWN)
@@ -2411,7 +2412,8 @@ void ElfObj_lidata(int seg,targ_size_t offset,targ_size_t count)
     }
     else
     {
-        ElfObj_bytes(seg, offset, cast(uint)count, null);
+        void* p = null;
+        ElfObj_bytes(seg, offset, p[0 .. count]);
     }
 }
 
@@ -2446,9 +2448,9 @@ void ElfObj_byte(int seg,targ_size_t offset,uint byte_)
  * Append bytes to segment.
  */
 
-void ElfObj_write_bytes(seg_data* pseg, const(void[]) a)
+void ElfObj_write_bytes(seg_data* pseg, const(void[]) data)
 {
-    ElfObj_bytes(pseg.SDseg, pseg.SDoffset, a.length, a.ptr);
+    ElfObj_bytes(pseg.SDseg, pseg.SDoffset, data);
 }
 
 /************************************
@@ -2457,8 +2459,10 @@ void ElfObj_write_bytes(seg_data* pseg, const(void[]) a)
  *      nbytes
  */
 
-size_t ElfObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
+size_t ElfObj_bytes(int seg, targ_size_t offset, const(void)[] data)
 {
+    const nbytes = data.length;
+    const p = data.ptr;
 static if (0)
 {
     if (!(seg >= 0 && seg < SegData.length))
@@ -3497,7 +3501,8 @@ private void obj_rtinit()
         const seg = ElfObj_getsegment(".data.d_dso_rec", null, SHT_PROGBITS,
                          SHF_ALLOC|SHF_WRITE|SHF_GROUP, _tysize[TYnptr]);
         dso_rec = MAP_SEG2SYMIDX(seg);
-        ElfObj_bytes(seg, 0, _tysize[TYnptr], null);
+        void *p = null;
+        ElfObj_bytes(seg, 0, p[0 .. _tysize[TYnptr]]);
         // add to section group
         SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(seg));
 
@@ -3860,7 +3865,8 @@ private void obj_rtinit_aarch64()
         const seg = ElfObj_getsegment(".data.d_dso_rec", null, SHT_PROGBITS,
                          SHF_ALLOC|SHF_WRITE|SHF_GROUP, _tysize[TYnptr]);
         dso_rec = MAP_SEG2SYMIDX(seg);
-        ElfObj_bytes(seg, 0, _tysize[TYnptr], null);
+        void* p = null;
+        ElfObj_bytes(seg, 0, p[0 .. _tysize[TYnptr]]);
         // add to section group
         SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(seg));
 

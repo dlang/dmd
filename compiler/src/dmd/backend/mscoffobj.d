@@ -180,7 +180,7 @@ IDXSTR MsCoffObj_addstr(OutBuffer* strtab, const char[] str) @system
  * Output read only data and generate a symbol for it.
  *
  */
-
+@trusted
 Symbol* MsCoffObj_sym_cdata(tym_t ty,char* p,int len)
 {
     //printf("MsCoffObj_sym_cdata(ty = %x, p = %x, len = %d, Offset(CDATA) = %x)\n", ty, p, len, Offset(CDATA));
@@ -188,7 +188,7 @@ Symbol* MsCoffObj_sym_cdata(tym_t ty,char* p,int len)
     Symbol* s = symboldata(Offset(CDATA), ty);
     s.Sseg = CDATA;
     MsCoffObj_pubdef(CDATA, s, Offset(CDATA));
-    MsCoffObj_bytes(CDATA, Offset(CDATA), len, p);
+    MsCoffObj_bytes(CDATA, Offset(CDATA), p[0 .. len]);
 
     s.Sfl = FL.data; //FL.extern_;
     return s;
@@ -1220,8 +1220,9 @@ private void emitSectionBrace(const(char)* segname, const(char)* symname, int at
     beg.Sseg = seg_bg;
     beg.Soffset = 0;
     mscoffobj.symbuf.write((&beg)[0 .. 1]);
+    void* p = null;
     if (coffZeroBytes) // unnecessary, but required by current runtime
-        MsCoffObj_bytes(seg_bg, 0, I64 ? 8 : 4, null);
+        MsCoffObj_bytes(seg_bg, 0, p[0 .. I64 ? 8 : 4]);
 
     /* Create symbol sym_end that sits just after the .seg$B section
      */
@@ -1231,7 +1232,7 @@ private void emitSectionBrace(const(char)* segname, const(char)* symname, int at
     end.Soffset = 0;
     mscoffobj.symbuf.write((&end)[0 .. 1]);
     if (coffZeroBytes) // unnecessary, but required by current runtime
-        MsCoffObj_bytes(seg_en, 0, I64 ? 8 : 4, null);
+        MsCoffObj_bytes(seg_en, 0, p[0 .. I64 ? 8 : 4]);
 
     assert(name[name.length - 1] == 0xFF); // overflowed if this changes
 }
@@ -1280,7 +1281,7 @@ static if (0)
     minfo_beg.Sseg = segbg;
     minfo_beg.Soffset = 0;
     mscoffobj.symbuf.write((&minfo_beg)[0 .. 1]);
-    MsCoffObj_bytes(segbg, 0, I64 ? 8 : 4, null);
+    MsCoffObj_bytes(segbg, 0, null[0 .. I64 ? 8 : 4]);
 
     /* Create symbol _minfo_end that sits just after the .tls$AAB section
      */
@@ -1288,7 +1289,7 @@ static if (0)
     minfo_end.Sseg = segen;
     minfo_end.Soffset = 0;
     mscoffobj.symbuf.write((&minfo_end)[0 .. 1]);
-    MsCoffObj_bytes(segen, 0, I64 ? 8 : 4, null);
+    MsCoffObj_bytes(segen, 0, null[0 .. I64 ? 8 : 4]);
   }
 }
 }
@@ -1816,7 +1817,7 @@ segidx_t MsCoffObj_data_start(Symbol* sdata, targ_size_t datasize, segidx_t seg)
     else
         alignbytes = _align(datasize, offset) - offset;
     if (alignbytes)
-        MsCoffObj_lidata(seg, offset, alignbytes);
+        MsCoffObj_lidata(seg, offset, cast(size_t)alignbytes);
     sdata.Soffset = offset + alignbytes;
     return seg;
 }
@@ -1995,7 +1996,7 @@ int MsCoffObj_common_block(Symbol* s, int flag, targ_size_t size, targ_size_t co
 
 void MsCoffObj_write_zeros(seg_data* pseg, targ_size_t count)
 {
-    MsCoffObj_lidata(pseg.SDseg, pseg.SDoffset, count);
+    MsCoffObj_lidata(pseg.SDseg, pseg.SDoffset, cast(size_t)count);
 }
 
 /***************************************
@@ -2005,7 +2006,7 @@ void MsCoffObj_write_zeros(seg_data* pseg, targ_size_t count)
  */
 
 @trusted
-void MsCoffObj_lidata(segidx_t seg,targ_size_t offset,targ_size_t count)
+void MsCoffObj_lidata(segidx_t seg,targ_size_t offset, size_t count)
 {
     //printf("MsCoffObj_lidata(%d,%x,%d)\n",seg,offset,count);
     size_t idx = SegData[seg].SDshtidx;
@@ -2015,7 +2016,8 @@ void MsCoffObj_lidata(segidx_t seg,targ_size_t offset,targ_size_t count)
     }
     else
     {
-        MsCoffObj_bytes(seg, offset, cast(uint)count, null);
+        void* p = null;
+        MsCoffObj_bytes(seg, offset, p[0 .. count]);
     }
 }
 
@@ -2052,9 +2054,9 @@ void MsCoffObj_byte(segidx_t seg,targ_size_t offset,uint byte_)
  */
 
 @trusted
-void MsCoffObj_write_bytes(seg_data* pseg, const(void[]) a)
+void MsCoffObj_write_bytes(seg_data* pseg, const(void[]) data)
 {
-    MsCoffObj_bytes(pseg.SDseg, pseg.SDoffset, a.length, a.ptr);
+    MsCoffObj_bytes(pseg.SDseg, pseg.SDoffset, data);
 }
 
 /************************************
@@ -2064,8 +2066,10 @@ void MsCoffObj_write_bytes(seg_data* pseg, const(void[]) a)
  */
 
 @trusted
-size_t MsCoffObj_bytes(segidx_t seg, targ_size_t offset, size_t nbytes, const(void)* p)
+size_t MsCoffObj_bytes(segidx_t seg, targ_size_t offset, const(void)[] data)
 {
+    const p = data.ptr;
+    const nbytes = data.length;
 static if (0)
 {
     if (!(seg >= 0 && seg < SegData.length))
