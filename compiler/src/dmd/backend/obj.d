@@ -246,7 +246,7 @@ else
 
         void lidata(int seg, targ_size_t offset, targ_size_t count)
         {
-            mixin(genRetVal("lidata(seg, offset, count)"));
+            mixin(genRetVal("lidata(seg, offset, cast(size_t)count)"));
         }
 
         void write_zeros(seg_data* pseg, targ_size_t count)
@@ -271,7 +271,7 @@ else
 
         size_t bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
         {
-            mixin(genRetVal("bytes(seg, offset, nbytes, p)"));
+            mixin(genRetVal("bytes(seg, offset, p[0 .. nbytes])"));
         }
 
         void reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags)

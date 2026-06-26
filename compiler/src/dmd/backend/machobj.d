@@ -311,17 +311,15 @@ private IDXSTR mach_addmangled(Symbol* s)
  * Output read only data and generate a symbol for it.
  *
  */
-
+@trusted
 Symbol* MachObj_sym_cdata(tym_t ty,char* p,int len)
 {
-    Symbol* s;
-
     //printf("MachObj_sym_cdata(ty = %x, p = %x, len = %d, Offset(CDATA) = %x)\n", ty, p, len, Offset(CDATA));
     alignOffset(CDATA, tysize(ty));
-    s = symboldata(Offset(CDATA), ty);
+    Symbol* s = symboldata(Offset(CDATA), ty);
     s.Sseg = CDATA;
     //MachObj_pubdef(CDATA, s, Offset(CDATA));
-    MachObj_bytes(CDATA, Offset(CDATA), len, p);
+    MachObj_bytes(CDATA, Offset(CDATA), p[0 .. len]);
 
     s.Sfl = /*(config.flags3 & CFG3pic) ? FL.gotoff :*/ FL.extern_;
     return s;
@@ -2462,7 +2460,7 @@ void MachObj_export_symbol(Symbol* s,uint argsize)
 @trusted
 int MachObj_data_start(Symbol* sdata, targ_size_t datasize, int seg)
 {
-    targ_size_t alignbytes;
+    size_t alignbytes;
 
     //printf("MachObj_data_start(%s,size %llu,seg %d)\n",sdata.Sident.ptr,datasize,seg);
     //symbol_print(sdata);
@@ -2476,10 +2474,10 @@ int MachObj_data_start(Symbol* sdata, targ_size_t datasize, int seg)
     if (sdata.Salignment > 0)
     {   if (SegData[seg].SDalignment < sdata.Salignment)
             SegData[seg].SDalignment = sdata.Salignment;
-        alignbytes = ((offset + sdata.Salignment - 1) & ~(sdata.Salignment - 1)) - offset;
+        alignbytes = cast(size_t)(((offset + sdata.Salignment - 1) & ~(sdata.Salignment - 1)) - offset);
     }
     else
-        alignbytes = _align(datasize, offset) - offset;
+        alignbytes = cast(size_t)(_align(datasize, offset) - offset);
     if (alignbytes)
         MachObj_lidata(seg, offset, alignbytes);
     sdata.Soffset = offset + alignbytes;
@@ -2653,7 +2651,7 @@ int MachObj_common_block(Symbol* s, int flag, targ_size_t size, targ_size_t coun
 
 void MachObj_write_zeros(seg_data* pseg, targ_size_t count)
 {
-    MachObj_lidata(pseg.SDseg, pseg.SDoffset, count);
+    MachObj_lidata(pseg.SDseg, pseg.SDoffset, cast(size_t)count);
 }
 
 /***************************************
@@ -2662,7 +2660,7 @@ void MachObj_write_zeros(seg_data* pseg, targ_size_t count)
  *      For boundary alignment and initialization
  */
 @trusted
-void MachObj_lidata(int seg,targ_size_t offset,targ_size_t count)
+void MachObj_lidata(int seg,targ_size_t offset, size_t count)
 {
     //printf("MachObj_lidata(%d,%x,%d)\n",seg,offset,count);
     size_t idx = SegData[seg].SDshtidx;
@@ -2674,7 +2672,8 @@ void MachObj_lidata(int seg,targ_size_t offset,targ_size_t count)
     }
     else
     {
-        MachObj_bytes(seg, offset, cast(size_t)count, null);
+        void* p = null;
+        MachObj_bytes(seg, offset, p[0 .. count]);
     }
 }
 
@@ -2709,22 +2708,22 @@ void MachObj_byte(int seg,targ_size_t offset,uint byte_)
  * Append bytes to segment.
  */
 
-void MachObj_write_bytes(seg_data* pseg, const(void[]) a)
+void MachObj_write_bytes(seg_data* pseg, const(void)[] data)
 {
-    MachObj_bytes(pseg.SDseg, pseg.SDoffset, a.length, &a[0]);
+    MachObj_bytes(pseg.SDseg, pseg.SDoffset, data);
 }
 
 /************************************
  * Output bytes to object file.
  * Returns:
- *      nbytes
+ *      data.length
  */
 @trusted
-size_t MachObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
+size_t MachObj_bytes(int seg, targ_size_t offset, const(void)[] data)
 {
-    //printf("MachObj_bytes(seg: %d offset: %02zx nbytes: %02zx p: %p)\n", seg, offset, nbytes, p);
+    //printf("MachObj_bytes(seg: %d offset: %02zx nbytes: %02zx p: %p)\n", seg, offset, data.length, data.ptr);
     if (0 && seg == 1)
-        dumpBytes(offset, nbytes, p);
+        dumpBytes(offset, data);
 
     if (log)
     {
@@ -2734,6 +2733,8 @@ size_t MachObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
             *cast(char*)0=0;
         }
     }
+    const nbytes = data.length;
+    auto p = data.ptr;
     assert(seg >= 0 && seg < SegData.length);
     OutBuffer* buf = SegData[seg].SDbuf;
     if (buf == null)
@@ -3557,12 +3558,12 @@ unittest
  */
 @trusted
 private
-void dumpBytes(targ_size_t offset, size_t nbytes, const(void)* p)
+void dumpBytes(targ_size_t offset, const(void)[] data)
 {
-    printf("dump: offset: %02llx nbytes: %02zx p: %p\n", offset, nbytes, p);
+    auto n = data.length;
+    auto p1 = data.ptr;
+    printf("dump: offset: %02llx nbytes: %02zx p: %p\n", offset, n, p1);
 
-    auto n = nbytes;
-    auto p1 = p;
     auto p2 = p1 + n;
     auto off = offset;
     while (p1 < p2)
