@@ -2044,15 +2044,52 @@ MATCH cimplicitConvTo(Expression e, Type t)
  */
 Type toStaticArrayType(SliceExp e)
 {
+    static Expression stripCasts(Expression e)
+    {
+        for (auto ce = e.isCastExp(); ce; ce = e.isCastExp())
+            e = ce.e1;
+        return e;
+    }
+
+    static bool inferSliceLength(Expression lwr, Expression upr, out size_t len)
+    {
+        lwr = stripCasts(lwr.optimize(WANTvalue));
+        upr = stripCasts(upr.optimize(WANTvalue));
+
+        if (lwr.isConst() && upr.isConst())
+        {
+            len = cast(size_t)(upr.toUInteger() - lwr.toUInteger());
+            return true;
+        }
+
+        if (upr.op == EXP.add)
+        {
+            auto add = cast(BinExp)upr;
+            auto e1 = stripCasts(add.e1);
+            auto e2 = stripCasts(add.e2);
+
+            if (e1.equals(lwr) && e2.isConst())
+            {
+                len = cast(size_t)e2.toUInteger();
+                return true;
+            }
+            if (e2.equals(lwr) && e1.isConst())
+            {
+                len = cast(size_t)e1.toUInteger();
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     if (e.lwr && e.upr)
     {
         // For the following code to work, e should be optimized beforehand.
         // (eg. $ in lwr and upr should be already resolved, if possible)
-        Expression lwr = e.lwr.optimize(WANTvalue);
-        Expression upr = e.upr.optimize(WANTvalue);
-        if (lwr.isConst() && upr.isConst())
+        size_t len = 0;
+        if (inferSliceLength(e.lwr, e.upr, len))
         {
-            size_t len = cast(size_t)(upr.toUInteger() - lwr.toUInteger());
             return e.type.toBasetype().nextOf().sarrayOf(len);
         }
     }
