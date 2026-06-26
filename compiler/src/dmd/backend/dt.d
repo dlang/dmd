@@ -32,6 +32,68 @@ nothrow:
 @safe:
 
 
+/**********************************
+ * Data definitions
+ *      DTibytes        1..7 bytes
+ *      DTabytes        offset of bytes of data
+ *                      a { a data bytes }
+ *      DTnbytes        bytes of data
+ *                      a { a data bytes }
+ *                      a = offset
+ *      DTazeros        # of 0 bytes
+ *                      a
+ *      DTsymsize       same as DTazeros, but the type of the symbol gives
+ *                      the size
+ *      DTcommon        # of 0 bytes (in a common block)
+ *                      a
+ *      DTxoff          offset from symbol
+ *                      w a
+ *                      w = symbol number (pointer for CPP)
+ *                      a = offset
+ *      DTcoff          offset into code segment
+ */
+
+enum DT : ubyte
+{
+    abytes = 0,
+    azeros = 1,
+    xoff   = 2,
+    nbytes = 3,
+    common = 4,
+    coff   = 5,
+    ibytes = 6,
+}
+
+struct dt_t
+{
+    dt_t* DTnext;                       // next in list
+    DT dt;                              // Tagged union tag, see above
+    ubyte Dty;                          // pointer type
+    ubyte DTn;                          // DTibytes: number of bytes
+    ubyte DTalign;                      // DTabytes: alignment (as power of 2) of pointed-to data
+    union
+    {
+        struct                          // DTibytes
+        {
+            enum DTibytesMax = (char*).sizeof + uint.sizeof + int.sizeof + targ_size_t.sizeof;
+            byte[DTibytesMax] DTdata;   // data
+        }
+        targ_size_t DTazeros;           // DTazeros,DTcommon,DTsymsize
+        struct                          // DTabytes
+        {
+            byte* DTpbytes;             // pointer to the bytes
+            size_t DTnbytes;            // # of bytes
+            int DTseg;                  // segment it went into
+            targ_size_t DTabytes;       // offset of abytes for DTabytes
+        }
+        struct                          // DTxoff
+        {
+            Symbol* DTsym;              // symbol pointer
+            targ_size_t DToffset;       // offset from symbol
+        }
+    }
+}
+
 /**********************************************
  * Free a data definition struct.
  */
