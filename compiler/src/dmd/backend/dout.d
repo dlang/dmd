@@ -1243,7 +1243,7 @@ Symbol* out_readonly_sym(tym_t ty, void[] data)
         /* MACHOBJ can't go here, because the const data segment goes into
          * the _TEXT segment, and one cannot have a fixup from _TEXT to _TEXT.
          */
-        s = objmod.sym_cdata(ty, cast(char*)data.ptr, cast(int)data.length);
+        s = objmod.sym_cdata(ty, data);
     }
     else
     {

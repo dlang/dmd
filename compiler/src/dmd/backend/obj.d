@@ -314,9 +314,9 @@ else
             mixin(genRetVal("string_literal_segment(sz)"));
         }
 
-        Symbol* sym_cdata(tym_t ty, char* p, int len)
+        Symbol* sym_cdata(tym_t ty, const(void)[] data)
         {
-            mixin(genRetVal("sym_cdata(ty, p, len)"));
+            mixin(genRetVal("sym_cdata(ty, data)"));
         }
 
         void func_start(Symbol* sfunc)
