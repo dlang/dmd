@@ -353,31 +353,31 @@ $(GNAME TuplePatternComponent):
         - Components are separated by commas.
         - For a pattern with a single component, a comma must precede the closing parenthesis.
 
-```d
+---
 import std.typecons : tuple;
 
 (int a, auto b) = tuple(1, "2"); // unpacking declaration
 assert(a == 1);
 assert(b == "2");
-```
+---
         $(P The unpacking declaration above is lowered to e.g.:)
-```d
+---
 auto temp = tuple(1, "2");
 int a = temp[0];
 auto b = temp[1];
-```
+---
         $(P **See also:** $(REF Tuple, std,typecons).)
 
         $(P When the tuple pattern has no storage class, each identifier
-        must have a type or a component storage class:)
-```d
+        must either have a type or a storage class applying to it:)
+---
 (int a, b) = tuple(1, "2"); // Error: `b` has no type or storage class
-```
+---
         $(P When there is a storage class for a pattern, each component of the pattern can
         be just an identifier. Each variable's type will be inferred from the corresponding
         sequence element:)
 
-```d
+---
 import std.typecons : tuple;
 
 auto (a, b) = tuple(1, "2");
@@ -388,18 +388,18 @@ auto (a, immutable b, c) = tuple(1, "2", 3.0);
 static assert(is(typeof(a) == int));
 static assert(is(typeof(b) == immutable string));
 static assert(is(typeof(c) == double));
-```
+---
 
         $(P Patterns can be nested:)
 
-```d
+---
 auto t = tuple(1, tuple("2", 3.0));
 // the following are equivalent:
 auto (a, (b, c)) = t;
 (int a, (string b, double c)) = t;
 (int a, auto (b, c)) = t;
 (int a, (auto b, auto c)) = t;
-```
+---
 
         $(P `static` or `enum` can be applied to the whole declaration, but not to individual components.)
 
