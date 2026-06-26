@@ -181,14 +181,14 @@ IDXSTR MsCoffObj_addstr(OutBuffer* strtab, const char[] str) @system
  *
  */
 @trusted
-Symbol* MsCoffObj_sym_cdata(tym_t ty,char* p,int len)
+Symbol* MsCoffObj_sym_cdata(tym_t ty, const(void)[] data)
 {
     //printf("MsCoffObj_sym_cdata(ty = %x, p = %x, len = %d, Offset(CDATA) = %x)\n", ty, p, len, Offset(CDATA));
     alignOffset(CDATA, tysize(ty));
     Symbol* s = symboldata(Offset(CDATA), ty);
     s.Sseg = CDATA;
     MsCoffObj_pubdef(CDATA, s, Offset(CDATA));
-    MsCoffObj_bytes(CDATA, Offset(CDATA), p[0 .. len]);
+    MsCoffObj_bytes(CDATA, Offset(CDATA), data);
 
     s.Sfl = FL.data; //FL.extern_;
     return s;

@@ -476,7 +476,7 @@ private IDXSEC elf_newsection(const(char)* name, const(char)* suffix,
  *
  */
 
-Symbol* ElfObj_sym_cdata(tym_t ty,char* p,int len)
+Symbol* ElfObj_sym_cdata(tym_t ty,const(void)[] data)
 {
     Symbol* s;
 
@@ -486,10 +486,10 @@ static if (0)
     {
         alignOffset(DATA, tysize(ty));
         s = symboldata(Offset(DATA), ty);
-        SegData[DATA].SDbuf.write(p[0 .. len]);
+        SegData[DATA].SDbuf.write(data);
         s.Sseg = DATA;
         s.Soffset = Offset(DATA);   // Remember its offset into DATA section
-        Offset(DATA) += len;
+        Offset(DATA) += data.length;
         s.Sfl = /*(config.flags3 & CFG3pic) ? FL.gotoff :*/ FL.extern_;
         return s;
     }
@@ -498,7 +498,7 @@ static if (0)
     //printf("ElfObj_sym_cdata(ty = %x, p = %x, len = %d, Offset(CDATA) = %x)\n", ty, p, len, Offset(CDATA));
     alignOffset(CDATA, tysize(ty));
     s = symboldata(Offset(CDATA), ty);
-    ElfObj_bytes(CDATA, Offset(CDATA), p[0 .. len]);
+    ElfObj_bytes(CDATA, Offset(CDATA), data);
     s.Sseg = CDATA;
 
     s.Sfl = /*(config.flags3 & CFG3pic) ? FL.gotoff :*/ FL.extern_;

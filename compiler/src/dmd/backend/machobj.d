@@ -312,14 +312,14 @@ private IDXSTR mach_addmangled(Symbol* s)
  *
  */
 @trusted
-Symbol* MachObj_sym_cdata(tym_t ty,char* p,int len)
+Symbol* MachObj_sym_cdata(tym_t ty,const(void)[] data)
 {
     //printf("MachObj_sym_cdata(ty = %x, p = %x, len = %d, Offset(CDATA) = %x)\n", ty, p, len, Offset(CDATA));
     alignOffset(CDATA, tysize(ty));
     Symbol* s = symboldata(Offset(CDATA), ty);
     s.Sseg = CDATA;
     //MachObj_pubdef(CDATA, s, Offset(CDATA));
-    MachObj_bytes(CDATA, Offset(CDATA), p[0 .. len]);
+    MachObj_bytes(CDATA, Offset(CDATA), data);
 
     s.Sfl = /*(config.flags3 & CFG3pic) ? FL.gotoff :*/ FL.extern_;
     return s;
