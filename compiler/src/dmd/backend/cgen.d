@@ -308,7 +308,7 @@ if (config.exe & EX_windos)
 }
 }
         debug assert(numbytes <= zeros.sizeof);
-        objmod.bytes(seg,offset,cast(uint)numbytes,cast(ubyte*)zeros.ptr);
+        objmod.bytes(seg,offset,zeros[0 .. numbytes]);
         return numbytes;
 }
 

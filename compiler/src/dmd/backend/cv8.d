@@ -223,7 +223,7 @@ void cv8_termfile(const(char)[] objfilename)
     int seg = MsCoffObj_seg_debugS();
 
     uint value = 4;
-    objmod.bytes(seg,0,4,&value);
+    objmod.bytes(seg,0,(cast(void*)&value)[0 .. 4]);
 
     /* Start with starting symbol in separate "F1" section
      */
@@ -263,7 +263,7 @@ void cv8_termfile(const(char)[] objfilename)
         if (symbol_iscomdat4(fd.sfunc))
         {
             f2seg = MsCoffObj_seg_debugS_comdat(fd.sfunc);
-            objmod.bytes(f2seg, 0, 4, &value);
+            objmod.bytes(f2seg, 0, (cast(void*)&value)[0..4]);
         }
 
         uint offset = cast(uint)SegData[f2seg].SDoffset + 8;
@@ -659,10 +659,10 @@ void cv8_writesection(int seg, uint type, OutBuffer* buf)
      *  pad     pad to 4 byte boundary
      */
     uint off = cast(uint)SegData[seg].SDoffset;
-    objmod.bytes(seg,off,4,&type);
+    objmod.bytes(seg,off,(cast(void*)&type)[0 .. 4]);
     uint length = cast(uint)buf.length();
-    objmod.bytes(seg,off+4,4,&length);
-    objmod.bytes(seg,off+8,length,buf.buf);
+    objmod.bytes(seg,off+4,(cast(void*)&length)[0 .. 4]);
+    objmod.bytes(seg,off+8,buf.buf[0 .. length]);
     // Align to 4
     uint pad = ((length + 3) & ~3) - length;
     objmod.lidata(seg,off+8+length,pad);

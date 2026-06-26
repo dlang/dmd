@@ -269,9 +269,9 @@ else
             mixin(genRetVal("byte(seg, offset, _byte)"));
         }
 
-        size_t bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
+        size_t bytes(int seg, targ_size_t offset, const(void)[] data)
         {
-            mixin(genRetVal("bytes(seg, offset, p[0 .. nbytes])"));
+            mixin(genRetVal("bytes(seg, offset, data)"));
         }
 
         void reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags)

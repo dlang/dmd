@@ -411,12 +411,12 @@ else
             }
 
             case DT.ibytes:
-                objmod.bytes(seg,offset,dt.DTn,dt.DTdata.ptr);
+                objmod.bytes(seg,offset,dt.DTdata[0 .. dt.DTn]);
                 offset += dt.DTn;
                 break;
 
             case DT.nbytes:
-                objmod.bytes(seg,offset,dt.DTnbytes,dt.DTpbytes);
+                objmod.bytes(seg,offset,dt.DTpbytes[0 .. dt.DTnbytes]);
                 offset += dt.DTnbytes;
                 break;
 
