@@ -1106,6 +1106,150 @@ version (MSVCIntrinsics)
         }
     }
 
+    extern(C)
+    pragma(inline, true)
+    byte __iso_volatile_load8(scope const(byte)* Location) @trusted nothrow @nogc
+    {
+        if (__ctfe)
+        {
+            return *Location;
+        }
+        else
+        {
+            import core.volatile : volatileLoad;
+            return volatileLoad(cast(ubyte*)Location);
+        }
+    }
+
+    extern(C)
+    pragma(inline, true)
+    short __iso_volatile_load16(scope const(short)* Location) @trusted nothrow @nogc
+    {
+        if (__ctfe)
+        {
+            return *Location;
+        }
+        else
+        {
+            import core.volatile : volatileLoad;
+            return volatileLoad(cast(ushort*)Location);
+        }
+    }
+
+    extern(C)
+    pragma(inline, true)
+    int __iso_volatile_load32(scope const(int)* Location) @trusted nothrow @nogc
+    {
+        if (__ctfe)
+        {
+            return *Location;
+        }
+        else
+        {
+            import core.volatile : volatileLoad;
+            return volatileLoad(cast(uint*)Location);
+        }
+    }
+
+    extern(C)
+    pragma(inline, true)
+    long __iso_volatile_load64(scope const(long)* Location) @trusted nothrow @nogc
+    {
+        if (__ctfe)
+        {
+            return *Location;
+        }
+        else
+        {
+            import core.volatile : volatileLoad;
+            return volatileLoad(cast(ulong*)Location);
+        }
+    }
+
+    extern(C)
+    pragma(inline, true)
+    void __iso_volatile_store8(scope byte* Location, byte Value) @trusted nothrow @nogc
+    {
+        if (__ctfe)
+        {
+            *Location = Value;
+        }
+        else
+        {
+            import core.volatile : volatileStore;
+            volatileStore(cast(ubyte*)Location, cast(ubyte)Value);
+        }
+    }
+
+    extern(C)
+    pragma(inline, true)
+    void __iso_volatile_store16(scope short* Location, short Value) @trusted nothrow @nogc
+    {
+        if (__ctfe)
+        {
+            *Location = Value;
+        }
+        else
+        {
+            import core.volatile : volatileStore;
+            volatileStore(cast(ushort*)Location, cast(ushort)Value);
+        }
+    }
+
+    extern(C)
+    pragma(inline, true)
+    void __iso_volatile_store32(scope int* Location, int Value) @trusted nothrow @nogc
+    {
+        if (__ctfe)
+        {
+            *Location = Value;
+        }
+        else
+        {
+            import core.volatile : volatileStore;
+            volatileStore(cast(uint*)Location, cast(uint)Value);
+        }
+    }
+
+    extern(C)
+    pragma(inline, true)
+    void __iso_volatile_store64(scope long* Location, long Value) @trusted nothrow @nogc
+    {
+        if (__ctfe)
+        {
+            *Location = Value;
+        }
+        else
+        {
+            import core.volatile : volatileStore;
+            volatileStore(cast(ulong*)Location, cast(ulong)Value);
+        }
+    }
+
+    /* This is trusted so that it's @safe without DIP1000 enabled. */
+    @trusted nothrow @nogc unittest
+    {
+        static bool test()
+        {
+            byte b = 0;
+            short s = 0;
+            int i = 0;
+            long l = 0;
+            __iso_volatile_store8(&b, 42);
+            __iso_volatile_store16(&s, 42);
+            __iso_volatile_store32(&i, 42);
+            __iso_volatile_store64(&l, 42);
+            assert(__iso_volatile_load8(&b) == 42);
+            assert(__iso_volatile_load16(&s) == 42);
+            assert(__iso_volatile_load32(&i) == 42);
+            assert(__iso_volatile_load64(&l) == 42);
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
+
     version (X86_64_Or_X86)
     {
         extern(C)
