@@ -2056,11 +2056,14 @@ final class CParser(AST) : Parser!AST
                         error("no initializer for function declaration");
                     if (specifier.scw & SCW.x_Thread_local)
                         error("functions cannot be `_Thread_local`"); // C11 6.7.1-4
-                    STC stc = specifiersToSTC(level, specifier);
-                    stc &= ~STC.gshared;        // no gshared functions
-                    auto fd = new AST.FuncDeclaration(id.loc, Loc.initial, id.name, stc, dt, specifier.noreturn);
-                    specifiersToFuncDeclaration(fd, specifier);
-                    s = fd;
+                    if (constructConsideration.considering(id.name, ConstructCategory.functionDeclarations))
+                    {
+                        STC stc = specifiersToSTC(level, specifier);
+                        stc &= ~STC.gshared;        // no gshared functions
+                        auto fd = new AST.FuncDeclaration(id.loc, Loc.initial, id.name, stc, dt, specifier.noreturn);
+                        specifiersToFuncDeclaration(fd, specifier);
+                        s = fd;
+                    }
                 }
                 else
                 {
