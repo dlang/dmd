@@ -7304,7 +7304,7 @@ nothrow:
                 disasmBuf.push(c);
         }
 
-        offset += objmod.bytes(seg, offset, index, bytes.ptr);
+        offset += objmod.bytes(seg, offset, bytes[0 .. index]);
         index = 0;
     }
 
@@ -7442,7 +7442,7 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
                 }
                 else
                 {
-                    ggen.offset += objmod.bytes(seg,ggen.offset,cast(uint)c.IEV1.len,c.IEV1.bytes);
+                    ggen.offset += objmod.bytes(seg,ggen.offset,c.IEV1.bytes[0 .. c.IEV1.len]);
                 }
                 debug
                 assert(calccodsize(c) == c.IEV1.len);
