@@ -8981,6 +8981,158 @@ version (MSVCIntrinsics)
         assert(value == cast(T) (mixin(q{oldValue }, op, q{ operandB})));
     }
 
+    version (AArch64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte __ldar8()(scope ubyte* Target) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                return *Target;
+            }
+            else
+            {
+                import core.internal.atomic : atomicLoad;
+                return atomicLoad!(MemoryOrder.acq)(Target);
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ushort __ldar16()(scope ushort* Target) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                return *Target;
+            }
+            else
+            {
+                import core.internal.atomic : atomicLoad;
+                return atomicLoad!(MemoryOrder.acq)(Target);
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        uint __ldar32()(scope uint* Target) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                return *Target;
+            }
+            else
+            {
+                import core.internal.atomic : atomicLoad;
+                return atomicLoad!(MemoryOrder.acq)(Target);
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ulong __ldar64()(scope ulong* Target) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                return *Target;
+            }
+            else
+            {
+                import core.internal.atomic : atomicLoad;
+                return atomicLoad!(MemoryOrder.acq)(Target);
+            }
+        }
+
+        alias __load_acquire8 = __ldar8;
+        alias __load_acquire16 = __ldar16;
+        alias __load_acquire32 = __ldar32;
+        alias __load_acquire64 = __ldar64;
+
+        extern(C)
+        pragma(inline, true)
+        void __stlr8()(scope ubyte* Target, ubyte Value) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                *Target = Value;
+            }
+            else
+            {
+                import core.internal.atomic : atomicStore;
+                atomicStore!(MemoryOrder.rel)(Target, Value);
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __stlr16()(scope ushort* Target, ushort Value) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                *Target = Value;
+            }
+            else
+            {
+                import core.internal.atomic : atomicStore;
+                atomicStore!(MemoryOrder.rel)(Target, Value);
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __stlr32()(scope uint* Target, uint Value) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                *Target = Value;
+            }
+            else
+            {
+                import core.internal.atomic : atomicStore;
+                atomicStore!(MemoryOrder.rel)(Target, Value);
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __stlr64()(scope ulong* Target, ulong Value) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                *Target = Value;
+            }
+            else
+            {
+                import core.internal.atomic : atomicStore;
+                atomicStore!(MemoryOrder.rel)(Target, Value);
+            }
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        @trusted nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                ubyte b = 0;
+                ushort s = 0;
+                uint i = 0;
+                ulong l = 0;
+                __stlr8(&b, 42);
+                __stlr16(&s, 42);
+                __stlr32(&i, 42);
+                __stlr64(&l, 42);
+                assert(__ldar8(&b) == 42);
+                assert(__ldar16(&s) == 42);
+                assert(__ldar32(&i) == 42);
+                assert(__ldar64(&l) == 42);
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+    }
+
     version (X86_64_Or_X86)
     {
         extern(C)
