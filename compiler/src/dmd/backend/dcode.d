@@ -80,7 +80,7 @@ void code_free(code* cstart)
         {
             if (c.Iop == ASM)
             {
-                mem_free(c.IEV1.bytes);
+                mem_free(c.IEV1.data.ptr);
             }
             code* cnext = code_next(c);
             if (!cnext)
