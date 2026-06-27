@@ -368,7 +368,7 @@ auto b = temp[1];
 ---
         $(P **See also:** $(REF Tuple, std,typecons).)
 
-        $(P When the tuple pattern has no storage class, each identifier
+        $(P When the tuple pattern has no storage class, each component that declares a variable
         must either have a type or a storage class applying to it:)
 ---
 (int a, b) = tuple(1, "2"); // Error: `b` has no type or storage class
