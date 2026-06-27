@@ -1155,6 +1155,144 @@ version (MSVCIntrinsics)
         }
     }
 
+    version (X86_64_Or_X86)
+    {
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        void _m_prefetchw()(scope const(void)* address) @trusted pure nothrow @nogc
+        {
+            if (__ctfe)
+            {}
+            else
+            {
+                version (GNU) enum simd = q{gcc.simd}; else enum simd = q{core.simd};
+                mixin("import ", simd, " : prefetch;");
+                prefetch!(true, 3)(address);
+            }
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        @trusted pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                immutable(int) x;
+                _m_prefetchw(&x);
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        void _mm_prefetch()(scope const(ubyte)* address, int level) @trusted pure nothrow @nogc
+        {
+            if (__ctfe)
+            {}
+            else
+            {
+                version (GNU) enum simd = q{gcc.simd}; else enum simd = q{core.simd};
+                mixin("import ", simd, " : prefetch;");
+
+                /* Dear optimiser, please optimise this. */
+                switch (level)
+                {
+                case 0: return prefetch!(false, 0)(address);
+                case 1: return prefetch!(false, 3)(address);
+                case 2: return prefetch!(false, 2)(address);
+                case 3: return prefetch!(false, 1)(address);
+                default: return prefetch!(false, 0)(address);
+                }
+            }
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        @trusted pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                immutable(ubyte) x;
+                _mm_prefetch(&x, 0);
+                _mm_prefetch(&x, 1);
+                _mm_prefetch(&x, 2);
+                _mm_prefetch(&x, 3);
+                _mm_prefetch(&x, 4);
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+    }
+
+    version (AArch64_Or_ARM)
+    {
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        void __prefetch()(scope const(void)* address) @trusted pure nothrow @nogc
+        {
+            if (__ctfe)
+            {}
+            else
+            {
+                version (GNU) enum simd = q{gcc.simd}; else enum simd = q{core.simd};
+                mixin("import ", simd, " : prefetch;");
+                prefetch!(false, 3)(address);
+            }
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                immutable(int) x;
+                __prefetch(&x);
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+    }
+
+    version (ARM)
+    {
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        void __prefetchw()(scope const(void)* address) @trusted pure nothrow @nogc
+        {
+            if (__ctfe)
+            {}
+            else
+            {
+                version (GNU) enum simd = q{gcc.simd}; else enum simd = q{core.simd};
+                mixin("import ", simd, " : prefetch;");
+                prefetch!(true, 3)(address);
+            }
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        @trusted pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                immutable(int) x;
+                __prefetchw(&x);
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+    }
+
     version (AArch64_Or_ARM)
     {
         version (GNU)
