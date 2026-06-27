@@ -87,6 +87,15 @@ version (MSVCIntrinsics)
             pragma(LDC_intrinsic, "llvm.x86.sse2.pause")
             private void __builtin_ia32_pause() @safe pure nothrow @nogc;
 
+            pragma(LDC_intrinsic, "llvm.x86.sse2.lfence")
+            private void __builtin_ia32_lfence() @safe pure nothrow @nogc;
+
+            pragma(LDC_intrinsic, "llvm.x86.sse2.mfence")
+            private void __builtin_ia32_mfence() @safe pure nothrow @nogc;
+
+            pragma(LDC_intrinsic, "llvm.x86.sse.sfence")
+            private void __builtin_ia32_sfence() @safe pure nothrow @nogc;
+
             pragma(LDC_intrinsic, "llvm.x86.sse.stmxcsr")
             private void __builtin_ia32_stmxcsr(scope uint*) @safe nothrow @nogc;
 
@@ -1440,6 +1449,144 @@ version (MSVCIntrinsics)
 
             _mm_setcsr(oldMXCSR);
             assert(_mm_getcsr == oldMXCSR);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void _mm_lfence()() @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {}
+            else
+            {
+                version (LDC)
+                {
+                    __builtin_ia32_lfence;
+                }
+                else version (GNU)
+                {
+                    import gcc.builtins : __builtin_ia32_lfence;
+                    __builtin_ia32_lfence;
+
+                }
+                else version (InlineAsm_X86_64_Or_X86)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        naked;
+                        lfence;
+                        ret;
+                    }
+                }
+                else
+                {
+                    static assert(false);
+                }
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                _mm_lfence;
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void _mm_mfence()() @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {}
+            else
+            {
+                version (LDC)
+                {
+                    __builtin_ia32_mfence;
+                }
+                else version (GNU)
+                {
+                    import gcc.builtins : __builtin_ia32_mfence;
+                    __builtin_ia32_mfence;
+
+                }
+                else version (InlineAsm_X86_64_Or_X86)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        naked;
+                        mfence;
+                        ret;
+                    }
+                }
+                else
+                {
+                    static assert(false);
+                }
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                _mm_mfence;
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void _mm_sfence()() @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {}
+            else
+            {
+                version (LDC)
+                {
+                    __builtin_ia32_sfence;
+                }
+                else version (GNU)
+                {
+                    import gcc.builtins : __builtin_ia32_sfence;
+                    __builtin_ia32_sfence;
+
+                }
+                else version (InlineAsm_X86_64_Or_X86)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        naked;
+                        sfence;
+                        ret;
+                    }
+                }
+                else
+                {
+                    static assert(false);
+                }
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                _mm_sfence;
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
         }
     }
 
