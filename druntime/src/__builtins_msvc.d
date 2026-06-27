@@ -4172,6 +4172,194 @@ version (MSVCIntrinsics)
             }
         }
 
+        version (AArch64)
+        {
+            extern(C)
+            pragma(inline, true)
+            ubyte __readx18byte()(uint Offset) nothrow @nogc
+            {
+                return manipulateMemoryThroughTIBRegister!(ubyte)(Offset);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            ushort __readx18word()(uint Offset) nothrow @nogc
+            {
+                return manipulateMemoryThroughTIBRegister!(ushort)(Offset);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            uint __readx18dword()(uint Offset) nothrow @nogc
+            {
+                return manipulateMemoryThroughTIBRegister!(uint)(Offset);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            ulong __readx18qword()(uint Offset) nothrow @nogc
+            {
+                return manipulateMemoryThroughTIBRegister!(ulong)(Offset);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            void __writex18byte()(uint Offset, ubyte Data) nothrow @nogc
+            {
+                manipulateMemoryThroughTIBRegister!(void, null, ubyte)(Offset, Data);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            void __writex18word()(uint Offset, ushort Data) nothrow @nogc
+            {
+                manipulateMemoryThroughTIBRegister!(void, null, ushort)(Offset, Data);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            void __writex18dword()(uint Offset, uint Data) nothrow @nogc
+            {
+                manipulateMemoryThroughTIBRegister!(void, null, uint)(Offset, Data);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            void __writex18qword()(uint Offset, ulong Data) nothrow @nogc
+            {
+                manipulateMemoryThroughTIBRegister!(void, null, ulong)(Offset, Data);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            void __addx18byte()(uint Offset, ubyte Data) nothrow @nogc
+            {
+                manipulateMemoryThroughTIBRegister!(void, "+", ubyte)(Offset, Data);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            void __addx18word()(uint Offset, ushort Data) nothrow @nogc
+            {
+                manipulateMemoryThroughTIBRegister!(void, "+", ushort)(Offset, Data);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            void __addx18dword()(uint Offset, uint Data) nothrow @nogc
+            {
+                manipulateMemoryThroughTIBRegister!(void, "+", uint)(Offset, Data);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            void __addx18qword()(uint Offset, ulong Data) nothrow @nogc
+            {
+                manipulateMemoryThroughTIBRegister!(void, "+", ulong)(Offset, Data);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            void __incx18byte()(uint Offset) nothrow @nogc
+            {
+                manipulateMemoryThroughTIBRegister!(ubyte, "++")(Offset);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            void __incx18word()(uint Offset) nothrow @nogc
+            {
+                manipulateMemoryThroughTIBRegister!(ushort, "++")(Offset);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            void __incx18dword()(uint Offset) nothrow @nogc
+            {
+                manipulateMemoryThroughTIBRegister!(uint, "++")(Offset);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            void __incx18qword()(uint Offset) nothrow @nogc
+            {
+                manipulateMemoryThroughTIBRegister!(ulong, "++")(Offset);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            private
+            mixin(Args.length == 0 && operator == null ? "Integer" : "void")
+            manipulateMemoryThroughTIBRegister(
+                Integer = void,
+                string operator = null,
+                Args...
+            )(
+                uint offset,
+                Args args
+            ) nothrow @nogc
+            if (
+                  Args.length == 1
+                ? (is(Integer == void) && __traits(isIntegral, Args[0]) && (operator == null || operator == "+"))
+                : (Args.length == 0 && __traits(isIntegral, Integer) && (operator == null || operator == "++"))
+            )
+            {
+                enum bool reading = Args.length == 0 && operator == null;
+                static if (Args.length == 0) alias Int = Integer; else alias Int = Args[0];
+
+                void* x18 = void;
+
+                version (LDC)
+                {
+                    import ldc.llvmasm : __ir;
+
+                    enum string x18IR = `%x18 = call i64 asm "", "={x18}"()
+                                         ret i64 %x18`;
+                    enum string getX18 = q{x18 = cast(void*)__ir!(x18IR, ulong);};
+                }
+                else version (GNU)
+                {
+                    enum string getX18 = q{asm @trusted nothrow @nogc {"" : "={x18}" (x18) : :;}};
+                }
+                else
+                {
+                    static assert(false);
+                }
+
+                mixin(getX18);
+
+                static if (reading)
+                {
+                    return *(cast(const(Int)*) (x18 + offset));
+                }
+                else
+                {
+                    static if (operator == null)
+                    {
+                        *(cast(Int*) (x18 + offset)) = args[0];
+                    }
+                    else static if (operator == "++")
+                    {
+                        Int value = *(cast(const(Int)*) (x18 + offset));
+                        ++value;
+                        mixin(getX18);
+                        *(cast(Int*) (x18 + offset)) = value;
+                    }
+                    else static if (operator == "+")
+                    {
+                        Int value = *(cast(const(Int)*) (x18 + offset));
+                        value += args[0];
+                        mixin(getX18);
+                        *(cast(Int*) (x18 + offset)) = value;
+                    }
+                    else
+                    {
+                        static assert(false);
+                    }
+                }
+            }
+        }
+
         version (Windows)
         {
             @trusted nothrow @nogc unittest
@@ -4192,6 +4380,8 @@ version (MSVCIntrinsics)
                     enum prefix = "gs";
                 else version (X86)
                     enum prefix = "fs";
+                else version (AArch64)
+                    enum prefix = "x18";
 
                 alias addByte = mixin("__add", prefix, "byte");
                 alias addDword = mixin("__add", prefix, "dword");
@@ -4248,15 +4438,18 @@ version (MSVCIntrinsics)
                 addByte(lastErrorOffset + 3, 4);
                 assert(readDword(lastErrorOffset) == 0x8EAFCDFC);
 
-                version (X86_64)
+                version (X86_64_Or_AArch64)
                 {
-                    assert(__readgsqword(lastErrorOffset) == 0x01234567_8EAFCDFC);
+                    alias addQword = mixin("__add", prefix, "qword");
+                    alias incQword = mixin("__inc", prefix, "qword");
 
-                    __incgsqword(lastErrorOffset);
-                    assert(__readgsqword(lastErrorOffset) == 0x01234567_8EAFCDFD);
+                    assert(readQword(lastErrorOffset) == 0x01234567_8EAFCDFC);
 
-                    __addgsqword(lastErrorOffset, ulong(2));
-                    assert(__readgsqword(lastErrorOffset) == 0x01234567_8EAFCDFF);
+                    incQword(lastErrorOffset);
+                    assert(readQword(lastErrorOffset) == 0x01234567_8EAFCDFD);
+
+                    addQword(lastErrorOffset, ulong(2));
+                    assert(readQword(lastErrorOffset) == 0x01234567_8EAFCDFF);
                 }
 
                 writeDword(criticalSectionCountOffset, originalCriticalSectionCount);
