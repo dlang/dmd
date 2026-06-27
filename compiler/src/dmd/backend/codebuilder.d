@@ -208,9 +208,8 @@ assert(op != BADINS);
         code* ce = code_calloc();
         ce.Iop = ASM;
         ce.IFL1 = FL.asm_;
-        ce.IEV1.len = bytes.length;
-        ce.IEV1.bytes = cast(char*) mem_malloc(bytes.length);
-        memcpy(ce.IEV1.bytes,bytes.ptr,bytes.length);
+        ce.IEV1.data = (cast(ubyte*)mem_malloc(bytes.length))[0 .. bytes.length];
+        ce.IEV1.data[] = bytes[];
 
         *pTail = ce;
         pTail = &ce.next;
