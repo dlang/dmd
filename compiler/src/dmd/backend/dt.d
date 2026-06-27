@@ -81,7 +81,7 @@ struct dt_t
         targ_size_t DTazeros;           // DTazeros,DTcommon,DTsymsize
         struct                          // DTabytes
         {
-            byte* DTpbytes;             // pointer to the bytes
+            ubyte[] DTpbytes;           // mem_malloc'd array of data
             size_t DTnbytes;            // # of bytes
             int DTseg;                  // segment it went into
             targ_size_t DTabytes;       // offset of abytes for DTabytes
@@ -110,7 +110,7 @@ void dt_free(dt_t* dt)
             {
                 case DT.abytes:
                 case DT.nbytes:
-                    mem_free(dtn.DTpbytes);
+                    mem_free(dtn.DTpbytes.ptr);
                     break;
 
                 default:
@@ -352,8 +352,7 @@ nothrow:
         {
             dt = dt_calloc(DT.nbytes);
             dt.DTnbytes = data.length;
-            dt.DTpbytes = cast(byte*) mem_malloc(data.length);
-            memcpy(dt.DTpbytes, data.ptr, data.length);
+            dt.DTpbytes = memArrayCopy(data);
         }
 
         assert(!*pTail);
@@ -378,12 +377,12 @@ nothrow:
         const n = data.length + nzeros;
         assert(n >= data.length);      // overflow check
         dt.DTnbytes = n;
-        dt.DTpbytes = cast(byte*) mem_malloc(n);
+        dt.DTpbytes = (cast(ubyte*) mem_malloc(n))[0 .. n];
         dt.Dty = cast(ubyte)ty;
         dt.DTalign = _align;
         dt.DTabytes = offset;
 
-        dt.DTpbytes[0 .. data.length] = cast(const(byte)[]) data[];
+        dt.DTpbytes[0 .. data.length] = cast(const(ubyte)[]) data[];
         if (nzeros)
             dt.DTpbytes[data.length .. data.length + nzeros] = 0;
 
@@ -621,8 +620,7 @@ nothrow:
                     {
                         case DT.abytes:
                         case DT.nbytes:
-                            dtx.DTpbytes = cast(byte*) mem_malloc(dtx.DTnbytes);
-                            memcpy(dtx.DTpbytes, dtn.DTpbytes, dtx.DTnbytes);
+                            dtx.DTpbytes = memArrayCopy(dtn.DTpbytes);
                             break;
 
                         default:
@@ -650,8 +648,8 @@ nothrow:
             switch (dtn.dt)
             {
                 case DT.nbytes:
-                    memcpy(p + offset, dtn.DTpbytes, dtn.DTnbytes);
-                    offset += dtn.DTnbytes;
+                    memcpy(p + offset, dtn.DTpbytes.ptr, dtn.DTpbytes.length);
+                    offset += dtn.DTpbytes.length;
                     break;
                 case DT.ibytes:
                     memcpy(p + offset, dtn.DTdata.ptr, dtn.DTn);
@@ -676,7 +674,7 @@ nothrow:
 
         dt_t* dtx = dt_calloc(DT.nbytes);
         dtx.DTnbytes = cast(uint)(size * count);
-        dtx.DTpbytes = cast(byte*)p;
+        dtx.DTpbytes = (cast(ubyte*)p)[0 .. size * count];
 
 
         assert(!*pTail);
@@ -742,4 +740,16 @@ dt_t* dt_get_nzeros(uint n)
     dt_t* dt = dt_calloc(DT.azeros);
     dt.DTazeros = n;
     return dt;
+}
+
+/****************************************
+ * Make a mem_malloc'd copy of an array.
+ */
+@trusted
+private
+ubyte[] memArrayCopy(const(ubyte)[] array)
+{
+    auto p = cast(ubyte*) mem_malloc(array.length);
+    memcpy(p, array.ptr, array.length);
+    return p[0 .. array.length];
 }

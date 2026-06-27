@@ -116,13 +116,13 @@ void outdata(Symbol* s)
                          dt.DTnbytes > config.threshold)
                 {
                 L1:
-                    objmod.write_bytes(SegData[dt.DTseg],dt.DTpbytes[0 .. dt.DTnbytes]);
+                    objmod.write_bytes(SegData[dt.DTseg],dt.DTpbytes);
                     break;
                 }
                 else
                 {
                     alignOffset(CDATA, 1 << dt.DTalign);
-                    dt.DTabytes += objmod.data_readonly(dt.DTpbytes[0 .. dt.DTnbytes],&dt.DTseg);
+                    dt.DTabytes += objmod.data_readonly(dt.DTpbytes,&dt.DTseg);
                 }
                 break;
             }
@@ -416,7 +416,7 @@ else
                 break;
 
             case DT.nbytes:
-                objmod.bytes(seg,offset,dt.DTpbytes[0 .. dt.DTnbytes]);
+                objmod.bytes(seg,offset,dt.DTpbytes);
                 offset += dt.DTnbytes;
                 break;
 
