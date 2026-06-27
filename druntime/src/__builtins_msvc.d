@@ -1293,6 +1293,60 @@ version (MSVCIntrinsics)
         }
     }
 
+    version (X86_64_Or_X86)
+    {
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        void _mm_clflush()(scope const(void)* address) @trusted nothrow @nogc
+        {
+            if (__ctfe)
+            {}
+            else
+            {
+                version (LDC_Or_GNU)
+                {
+                    mixin(q{import }, gccBuiltins, q{ : __builtin_ia32_clflush;});
+
+                    return __builtin_ia32_clflush(cast(void*) address);
+                }
+                else version (D_InlineAsm_X86_64)
+                {
+                    asm @trusted nothrow @nogc
+                    {
+                        naked;
+                        clflush [RCX];
+                        ret;
+                    }
+                }
+                else version (D_InlineAsm_X86)
+                {
+                    asm @trusted nothrow @nogc
+                    {
+                        naked;
+                        mov EAX, [ESP + 4];
+                        clflush [EAX];
+                        ret;
+                    }
+                }
+            }
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        @trusted nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                immutable(int) x;
+                _mm_clflush(&x);
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+    }
+
     version (AArch64_Or_ARM)
     {
         version (GNU)
