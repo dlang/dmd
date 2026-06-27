@@ -87,6 +87,12 @@ version (MSVCIntrinsics)
             pragma(LDC_intrinsic, "llvm.x86.sse2.pause")
             private void __builtin_ia32_pause() @safe pure nothrow @nogc;
 
+            pragma(LDC_intrinsic, "llvm.x86.sse.stmxcsr")
+            private void __builtin_ia32_stmxcsr(scope uint*) @safe nothrow @nogc;
+
+            pragma(LDC_intrinsic, "llvm.x86.sse.ldmxcsr")
+            private void __builtin_ia32_ldmxcsr(scope const(uint)*) @safe nothrow @nogc;
+
             pragma(LDC_intrinsic, "llvm.x86.rdpmc")
             private long __builtin_ia32_rdpmc(int) @safe nothrow @nogc;
 
@@ -1344,6 +1350,96 @@ version (MSVCIntrinsics)
 
             assert(test());
             static assert(test());
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        uint _mm_getcsr()() @trusted nothrow @nogc
+        {
+            version (LDC)
+            {
+                uint mxcsr = void;
+                __builtin_ia32_stmxcsr(&mxcsr);
+                return mxcsr;
+            }
+            else version (GNU)
+            {
+                import gcc.builtins : __builtin_ia32_stmxcsr;
+                return __builtin_ia32_stmxcsr;
+
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    push RAX;
+                    stmxcsr [RSP];
+                    pop RAX;
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    push EAX;
+                    stmxcsr [ESP];
+                    pop EAX;
+                    ret;
+                }
+            }
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        void _mm_setcsr()(uint MxCsr) @trusted nothrow @nogc
+        {
+            version (LDC)
+            {
+                __builtin_ia32_ldmxcsr(&MxCsr);
+            }
+            else version (GNU)
+            {
+                import gcc.builtins : __builtin_ia32_ldmxcsr;
+                __builtin_ia32_ldmxcsr(MxCsr);
+
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    push RCX;
+                    ldmxcsr [RSP];
+                    pop RCX;
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    ldmxcsr [ESP + 4];
+                    ret;
+                }
+            }
+        }
+
+        @safe nothrow @nogc unittest
+        {
+            uint oldMXCSR = _mm_getcsr;
+            uint alteredMXCSR = (oldMXCSR + 1) & ((1 << 15) - 1);
+
+            _mm_setcsr(alteredMXCSR);
+            assert(_mm_getcsr == alteredMXCSR);
+
+            _mm_setcsr(oldMXCSR);
+            assert(_mm_getcsr == oldMXCSR);
         }
     }
 
