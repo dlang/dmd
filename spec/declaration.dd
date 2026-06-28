@@ -41,7 +41,7 @@ $(GRAMMAR
 $(GNAME VarDeclarations):
     $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK IdentifierInitializers) $(D ;)
     $(GLINK AutoDeclaration)
-    $(GLINK TuplePattern) `=` $(GLINK AssignExpression)
+    $(GLINK TuplePattern) `=` $(GLINK2 expression, AssignExpression)
 
 $(GNAME IdentifierInitializers): $(LEGACY_LNAME2 Declarators, DeclaratorIdentifierList)
     $(GLINK IdentifierInitializer)
@@ -294,7 +294,7 @@ $(GNAME AutoAssignments):
 
 $(GNAME AutoAssignment):
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK Initializer)
-    $(GLINK TuplePattern) `=` $(GLINK AssignExpression)
+    $(GLINK TuplePattern) `=` $(GLINK2 expression, AssignExpression)
 )
 
         $(P If a declaration starts with a $(I StorageClass) and has
@@ -330,7 +330,7 @@ auto c = new C();  // c is a handle to an instance of class C
 $(H3 $(LNAME2 unpacking-declarations, Unpacking Declarations))
 
         $(P $(GLINK VarDeclarations) and $(GLINK AutoDeclaration) support initializing
-        one or more variables in a *tuple pattern* from an $(GLINK AssignExpression).
+        one or more variables in a *tuple pattern* from an $(GLINK2 expression, AssignExpression).
         The *AssignExpression* must implicitly convert to a
         $(DDSUBLINK spec/template, homogeneous_sequences, value sequence).)
 
