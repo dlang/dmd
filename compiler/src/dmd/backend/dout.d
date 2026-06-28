@@ -113,7 +113,7 @@ void outdata(Symbol* s)
                     goto L1;
                 }
                 else if (tybasic(dt.Dty) == TYfptr &&
-                         dt.DTnbytes > config.threshold)
+                         dt.DTpbytes.length > config.threshold)
                 {
                 L1:
                     objmod.write_bytes(SegData[dt.DTseg],dt.DTpbytes);
@@ -132,8 +132,8 @@ void outdata(Symbol* s)
                 break;
 
             case DT.nbytes:
-                //printf("DT.nbytes %d\n", dt.DTnbytes);
-                datasize += dt.DTnbytes;
+                //printf("DT.nbytes %zd\n", dt.DTpbytes.length);
+                datasize += dt.DTpbytes.length;
                 break;
 
             case DT.azeros:
@@ -417,7 +417,7 @@ else
 
             case DT.nbytes:
                 objmod.bytes(seg,offset,dt.DTpbytes);
-                offset += dt.DTnbytes;
+                offset += dt.DTpbytes.length;
                 break;
 
             case DT.azeros:
