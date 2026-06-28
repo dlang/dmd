@@ -82,7 +82,6 @@ struct dt_t
         struct                          // DTabytes
         {
             ubyte[] DTpbytes;           // mem_malloc'd array of data
-            size_t DTnbytes;            // # of bytes
             int DTseg;                  // segment it went into
             targ_size_t DTabytes;       // offset of abytes for DTabytes
         }
@@ -178,6 +177,7 @@ void init_common(Symbol* s)
 /**********************************
  * Compute size of a dt
  */
+@trusted
 uint dt_size(const(dt_t)* dtstart)
 {
     uint datasize = 0;
@@ -192,7 +192,7 @@ uint dt_size(const(dt_t)* dtstart)
                 datasize += dt.DTn;
                 break;
             case DT.nbytes:
-                datasize += dt.DTnbytes;
+                datasize += dt.DTpbytes.length;
                 break;
             case DT.azeros:
                 datasize += dt.DTazeros;
@@ -351,7 +351,6 @@ nothrow:
         else
         {
             dt = dt_calloc(DT.nbytes);
-            dt.DTnbytes = data.length;
             dt.DTpbytes = memArrayCopy(data);
         }
 
@@ -376,7 +375,6 @@ nothrow:
         dt_t* dt = dt_calloc(DT.abytes);
         const n = data.length + nzeros;
         assert(n >= data.length);      // overflow check
-        dt.DTnbytes = n;
         dt.DTpbytes = (cast(ubyte*) mem_malloc(n))[0 .. n];
         dt.Dty = cast(ubyte)ty;
         dt.DTalign = _align;
@@ -673,7 +671,6 @@ nothrow:
         }
 
         dt_t* dtx = dt_calloc(DT.nbytes);
-        dtx.DTnbytes = cast(uint)(size * count);
         dtx.DTpbytes = (cast(ubyte*)p)[0 .. size * count];
 
 
