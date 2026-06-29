@@ -21,6 +21,7 @@ import dmd.backend.cc : Classsym, Symbol;
 import dmd.backend.type;
 
 public import dmd.backend.cv8;
+import dmd.backend.pdb : pdb_outsym;
 public import dmd.backend.dwarfdbginf : dwarf_outsym;
 
 import core.stdc.stdio;
@@ -2179,7 +2180,10 @@ void cv_outsym(Symbol* s)
             break;
 
         case CV8:
-            cv8_outsym(s);
+            if (config.newpdb)
+                pdb_outsym(s);
+            else
+                cv8_outsym(s);
             break;
 
         default:

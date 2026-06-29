@@ -86,6 +86,7 @@ void out_config_init(
         exefmt_t exefmt,
         bool generatedMain,     // a main entrypoint is generated
         bool dataimports,
+        bool newpdb,            // use the modern PDB/CodeView debug info emitter
         ref GlobalOptimizer go,
         ErrorCallbackBackend errorCallback)
 {
@@ -103,6 +104,7 @@ void out_config_init(
     }
     cfg.fulltypes = CVNONE;
     cfg.fpxmmregs = false;
+    cfg.newpdb = newpdb;
     if (!arm)
         cfg.inline8087 = 1;
     cfg.memmodel = 0;

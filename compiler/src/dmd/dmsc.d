@@ -95,6 +95,7 @@ void backend_init(const ref Param params, const ref DMDparams driverParams, cons
         exfmt,
         params.addMain,
         driverParams.symImport != SymImport.none,
+        params.newpdb,
         go,
         // FIXME: casting to @nogc because errors.d is not marked @nogc yet
         cast(ErrorCallbackBackend) &errorBackend,

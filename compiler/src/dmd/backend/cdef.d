@@ -529,6 +529,7 @@ struct Config
     bool useTypeInfo;           // implement TypeInfo
     bool useExceptions;         // implement exception handling
     ubyte dwarf;                // DWARF version
+    bool newpdb;                // use the modern PDB/CodeView debug info emitter
 
     // Configuration that is not saved in precompiled header
 
