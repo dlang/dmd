@@ -1817,6 +1817,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      *      mixin Foo!(args);
      *      mixin a.b.c!(args).Foo!(args);
      *      mixin typeof(expr).identifier!(args);
+     *      mixin typeof(expr)[index];
+     *      mixin mixin(...);
+     *      mixin __traits(...);
      *      mixin Foo!(args) identifier;
      *      mixin identifier = Foo!(args);
      */
@@ -1857,6 +1860,53 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 check(TOK.dot);
             }
+            else if (token.value == TOK.mixin_)
+            {
+                loc = token.loc;
+                nextToken();
+                if (token.value != TOK.leftParenthesis)
+                    error(token.loc, "found `%s` when expecting `%s` following `mixin`", token.toChars(), Token.toChars(TOK.leftParenthesis));
+                auto exps = parseArguments();
+                tqual = new AST.TypeMixin(loc, exps);
+                while (token.value == TOK.leftBracket)
+                {
+                    nextToken();
+                    tqual.addIndex(parseAssignExp());
+                    check(TOK.rightBracket);
+                }
+                if (token.value == TOK.dot)
+                    nextToken();
+                else
+                    goto Lmixin;
+            }
+            else if (token.value == TOK.traits)
+            {
+                if (AST.TraitsExp te = cast(AST.TraitsExp) parsePrimaryExp())
+                {
+                    if (te.ident)
+                    {
+                        tqual = new AST.TypeTraits(token.loc, te);
+                        while (token.value == TOK.leftBracket)
+                        {
+                            nextToken();
+                            tqual.addIndex(parseAssignExp());
+                            check(TOK.rightBracket);
+                        }
+                        if (token.value == TOK.dot)
+                            nextToken();
+                        else
+                            goto Lmixin;
+                    }
+                }
+                if (!tqual)
+                {
+                    error("traits expected");
+                    id = Id.empty;
+                    nextToken();
+                    goto Lmixin;
+                }
+            }
+
             if (token.value != TOK.identifier)
             {
                 error("identifier expected, not `%s`", token.toChars());
@@ -1867,6 +1917,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             nextToken();
         }
 
+    Lmixin:
         while (1)
         {
             tiargs = null;
@@ -1884,7 +1935,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     tqual.addInst(tempinst);
                 tiargs = null;
             }
-            else
+            else if (id)
             {
                 if (!tqual)
                     tqual = new AST.TypeIdentifier(loc, id);
@@ -1895,6 +1946,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             while (token.value == TOK.leftBracket)
             {
                 nextToken();
+                if (!tqual)
+                {
+                    error("identifier expected before `[`");
+                    tqual = new AST.TypeIdentifier(loc, Id.empty);
+                }
                 tqual.addIndex(parseAssignExp());
                 check(TOK.rightBracket);
             }
