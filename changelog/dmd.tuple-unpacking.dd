@@ -1,6 +1,7 @@
 Tuple unpacking is now supported!
 
-D now supports tuple unpacking for variable declarations and `foreach` loops.
+D now supports tuple unpacking for variable declarations, `foreach` loops, and function literal
+template parameters.
 This feature is available as a preview and can be enabled with the `-preview=tuples` compiler switch.
 It allows extracting multiple values from a tuple or compile-time sequence directly into distinct variables.
 
