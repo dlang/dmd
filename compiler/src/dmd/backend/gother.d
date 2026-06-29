@@ -420,7 +420,7 @@ private void chkrd(elem* n, Barray!(elem*) rdlist)
         return;
     if (sv.ty() & (mTYvolatile | mTYshared))
         return;
-    unambig = sv.Sflags & SFLunambig;
+    unambig = sv.Sflags & SFLdistinct;
     foreach (d; rdlist)
     {
         elem_debug(d);
@@ -529,7 +529,7 @@ private elem* chkprop(ref uint changes, elem* n, Barray!(elem*) rdlist)
         goto noprop;
     nsize = cast(uint)size(nty);
     noff = n.Voffset;
-    unambig = sv.Sflags & SFLunambig;
+    unambig = sv.Sflags & SFLdistinct;
     foreach (d; rdlist)
     {
         elem_debug(d);
@@ -638,7 +638,7 @@ void listrds(ref GlobalOptimizer go, vec_t IN, elem* e, vec_t f, Barray!(elem*)*
     if (tyscalar(ty))
         nsize = cast(uint)size(ty);
     noff = e.Voffset;
-    unambig = s.Sflags & SFLunambig;
+    unambig = s.Sflags & SFLdistinct;
     if (f)
         vec_clear(f);
     for (size_t i = 0; (i = vec_index(i, IN)) < go.defnod.length; ++i)
@@ -1698,7 +1698,7 @@ private void accumda(elem* n,vec_t DEAD, vec_t POSS)
                             ti.Voffset == t.Voffset &&
                             tisz == tsz &&
                             !(t.Ety & (mTYvolatile | mTYshared)) &&
-                            //t.Vsym.Sflags & SFLunambig &&
+                            //t.Vsym.Sflags & SFLdistinct &&
                             vec_testbit(i,POSS))
                         {
                             vec_setbit(i,DEAD);
@@ -1715,7 +1715,7 @@ private void accumda(elem* n,vec_t DEAD, vec_t POSS)
                     // if variable could be referenced by a pointer
                     // or a function call, mark the assignment in
                     // ambigref
-                    if (!(t.Vsym.Sflags & SFLunambig))
+                    if (!(t.Vsym.Sflags & SFLdistinct))
                     {
                         vec_setbit(i,ambigref);
 
@@ -1766,7 +1766,7 @@ public void deadvar()
         /* Initialize vectors for live ranges.  */
         foreach (s; globsym[])
         {
-            if (s.Sflags & SFLunambig)
+            if (s.Sflags & SFLdistinct)
             {
                 s.Sflags |= SFLdead;
                 if (s.Sflags & GTregcand)

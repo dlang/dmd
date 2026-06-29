@@ -2331,7 +2331,7 @@ bool anyAddressesOfLocals()
     foreach (si, s; globsym[])
     {
         if ((sytab[s.Sclass] & SCSS) &&     // only check stack variables
-            !(s.Sflags & SFLunambig))       // address was taken
+            !(s.Sflags & SFLdistinct))       // address was taken
             return true;
         // can enhance this with Symbol_isDead()
     }

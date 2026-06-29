@@ -639,7 +639,7 @@ elem* el_alloctmp(tym_t ty)
     s = symbol_generate(SC.auto_,type_fake(ty));
     symbol_add(s);
     s.Sfl = FL.auto_;
-    s.Sflags = SFLfree | SFLunambig | GTregcand;
+    s.Sflags = SFLfree | SFLdistinct | GTregcand;
     return el_var(s);
 }
 

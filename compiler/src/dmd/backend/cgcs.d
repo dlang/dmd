@@ -628,7 +628,7 @@ void touchlvalue(ref CGCS cgcs, const elem* e)
         case SC.fastpar:
         case SC.shadowreg:
         case SC.bprel:
-            if (e.Vsym.Sflags & SFLunambig)
+            if (e.Vsym.Sflags & SFLdistinct)
                 break;
             goto case SC.static_;
 
