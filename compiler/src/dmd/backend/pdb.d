@@ -299,7 +299,7 @@ void pdb_termfile(const(char)[] objfilename)
     {
         const ver = "DMD ";
         size_t vlen = VERSION.length;
-        buf.write16(cast(int)(2 + 4 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + ver.length + vlen + 1));
+        buf.write16(cast(int)(2 + 4 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + ver.length + vlen + 1));
         buf.write16(S_COMPILE3);
         buf.write32(0x00010044);                 // flags: language=D(0x44)<<8? language byte=0x44, rest 0
         buf.write16(I64 ? 0xD0 : 0x07);          // machine: AMD64 / x86
@@ -466,8 +466,8 @@ void pdb_func_term(Symbol* sfunc)
 
     // S_FRAMEPROC
     {
-        buf.write16n(2 + 4 + 4 + 4 + 4 + 4 + 4);
-        buf.write16n(S_FRAMEPROC);
+        buf.write16(2 + 4 + 4 + 4 + 4 + 4 + 4);
+        buf.write16(S_FRAMEPROC);
         buf.write32(cast(uint)cgstate.Auto.size);   // frame bytes
         buf.write32(0);                             // pad
         buf.write32(0);                             // pad offset
