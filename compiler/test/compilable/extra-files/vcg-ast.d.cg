@@ -97,7 +97,7 @@ T[] values(T)()
 }
 void main()
 {
-	values();
+	vcg.values!(__c_wchar_t)();
 	return 0;
 }
 import imports.vcg_ast_import;
@@ -123,7 +123,7 @@ mixin _d_cmain!();
 		extern (C) int _Dmain(char[][] args);
 		extern (C) int main(int argc, char** argv)
 		{
-			return _d_run_main(argc, argv, & _Dmain);
+			return vcg._d_cmain!()._d_run_main(argc, argv, & _Dmain);
 		}
 		version (Solaris)
 		{
