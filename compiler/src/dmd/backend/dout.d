@@ -113,16 +113,16 @@ void outdata(Symbol* s)
                     goto L1;
                 }
                 else if (tybasic(dt.Dty) == TYfptr &&
-                         dt.DTnbytes > config.threshold)
+                         dt.DTpbytes.length > config.threshold)
                 {
                 L1:
-                    objmod.write_bytes(SegData[dt.DTseg],dt.DTpbytes[0 .. dt.DTnbytes]);
+                    objmod.write_bytes(SegData[dt.DTseg],dt.DTpbytes);
                     break;
                 }
                 else
                 {
                     alignOffset(CDATA, 1 << dt.DTalign);
-                    dt.DTabytes += objmod.data_readonly(dt.DTpbytes[0 .. dt.DTnbytes],&dt.DTseg);
+                    dt.DTabytes += objmod.data_readonly(dt.DTpbytes,&dt.DTseg);
                 }
                 break;
             }
@@ -132,8 +132,8 @@ void outdata(Symbol* s)
                 break;
 
             case DT.nbytes:
-                //printf("DT.nbytes %d\n", dt.DTnbytes);
-                datasize += dt.DTnbytes;
+                //printf("DT.nbytes %zd\n", dt.DTpbytes.length);
+                datasize += dt.DTpbytes.length;
                 break;
 
             case DT.azeros:
@@ -361,7 +361,7 @@ Lret:
 
 
 /********************************************
- * Write dt to Object file.
+ * Write dt list to Object file.
  * Params:
  *      objmod = reference to object file
  *      dt = data to write
@@ -374,41 +374,27 @@ void dt_writeToObj(Obj objmod, dt_t* dt, int seg, ref targ_size_t offset)
 {
     for (; dt; dt = dt.DTnext)
     {
+        CF cfFlags = CF.zero;
+        if (tyreg(dt.Dty))
+            cfFlags = CF.off;
+        else
+            cfFlags = CF.off | CF.seg;
+
         switch (dt.dt)
         {
             case DT.abytes:
-            {
-                int flags;
-                if (tyreg(dt.Dty))
-                    flags = CF.off;
-                else
-                    flags = CF.off | CF.seg;
                 if (I64)
-                    flags |= CF.offset64;
+                    cfFlags |= CF.offset64;
                 if (tybasic(dt.Dty) == TYcptr)
                     objmod.reftocodeseg(seg,offset,dt.DTabytes);
                 else
                 {
-if (config.exe & EX_posix)
-{
-                    objmod.reftodatseg(seg,offset,dt.DTabytes,dt.DTseg,flags);
-}
-else
-{
-                    if (dt.DTseg == DATA)
-                        objmod.reftodatseg(seg,offset,dt.DTabytes,DATA,flags);
-                    else
-                    {
-                        if (dt.DTseg == CDATA)
-                            objmod.reftodatseg(seg,offset,dt.DTabytes,CDATA,flags);
-                        else
-                            assert(0);
-                    }
-}
+                    assert((config.exe & EX_posix) ||
+                           (dt.DTseg == DATA || dt.DTseg == CDATA));
+                    objmod.reftodatseg(seg,offset,dt.DTabytes,dt.DTseg,cfFlags);
                 }
                 offset += size(dt.Dty);
                 break;
-            }
 
             case DT.ibytes:
                 objmod.bytes(seg,offset,dt.DTdata[0 .. dt.DTn]);
@@ -416,8 +402,8 @@ else
                 break;
 
             case DT.nbytes:
-                objmod.bytes(seg,offset,dt.DTpbytes[0 .. dt.DTnbytes]);
-                offset += dt.DTnbytes;
+                objmod.bytes(seg,offset,dt.DTpbytes);
+                offset += dt.DTpbytes.length;
                 break;
 
             case DT.azeros:
@@ -428,19 +414,10 @@ else
                 break;
 
             case DT.xoff:
-            {
-                Symbol* sb = dt.DTsym;          // get external symbol pointer
-                targ_size_t a = dt.DToffset;    // offset from it
-                int flags;
-                if (tyreg(dt.Dty))
-                    flags = CF.off;
-                else
-                    flags = CF.off | CF.seg;
                 if (I64 && tysize(dt.Dty) == 8)
-                    flags |= CF.offset64;
-                offset += objmod.reftoident(seg,offset,sb,a,flags);
+                    cfFlags |= CF.offset64;
+                offset += objmod.reftoident(seg,offset,dt.DTsym,dt.DToffset,cfFlags);
                 break;
-            }
 
             case DT.coff:
                 objmod.reftocodeseg(seg,offset,dt.DToffset);

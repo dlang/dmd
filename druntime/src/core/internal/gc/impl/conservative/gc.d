@@ -33,6 +33,18 @@ version = COLLECT_PARALLEL;  // parallel scanning
 version (Posix)
     version = COLLECT_FORK;
 
+version (WASI) {
+    // TODO: get GC working on WASI
+
+    enum PAGESIZE = 65536;
+
+    extern(C) void _d_register_conservative_gc()
+    {
+        // no-op
+    }
+}
+else:
+
 import core.internal.gc.bits;
 import core.internal.gc.os;
 import core.gc.config;

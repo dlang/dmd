@@ -17,6 +17,7 @@ import dmd.common.outbuffer;
 import dmd.root.array;
 import dmd.root.filename;
 import dmd.root.string: toDString;
+import dmd.root.utf : utf_countColumnsUntil;
 
 /// How code locations are formatted for diagnostic reporting
 enum MessageStyle : ubyte
@@ -212,7 +213,7 @@ void writeSourceLoc(ref OutBuffer buf,
             if (showColumns && loc.column)
             {
                 buf.writeByte(',');
-                buf.print(loc.column);
+                buf.print(loc.displayColumn());
             }
             buf.writeByte(')');
             break;
@@ -222,7 +223,7 @@ void writeSourceLoc(ref OutBuffer buf,
             if (showColumns && loc.column)
             {
                 buf.writeByte(':');
-                buf.print(loc.column);
+                buf.print(loc.displayColumn());
             }
             break;
         case MessageStyle.sarif: // https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
@@ -276,6 +277,22 @@ struct SourceLoc
         OutBuffer buf;
         writeSourceLoc(buf, this, showColumns, messageStyle);
         return buf.extractChars();
+    }
+
+    private uint displayColumn() const nothrow @nogc @safe
+    {
+        if (fileContent.length == 0 || fileOffset >= fileContent.length)
+            return column;
+
+        size_t lineStart = fileOffset;
+        while (lineStart > 0 && fileContent[lineStart - 1] != '\n')
+            lineStart--;
+
+        const byteCount = cast(uint)(fileOffset - lineStart);
+        if (column <= byteCount)
+            return column;
+
+        return column - byteCount + cast(uint)utf_countColumnsUntil(fileContent[lineStart .. fileOffset], fileOffset - lineStart);
     }
 
     bool opEquals(SourceLoc other) const nothrow

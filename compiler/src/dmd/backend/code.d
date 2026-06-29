@@ -75,11 +75,7 @@ union evc
         _LabelDsymbol* Vlsym;   /// pointer to D Label
     }
 
-    struct
-    {
-        size_t len;
-        char* bytes;
-    }                           // asm node (FL.asm)
+    ubyte[] data;               /// asm instructions (FL.asm)
 }
 
 /********************** PUBLIC FUNCTIONS *******************/

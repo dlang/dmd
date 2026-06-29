@@ -2294,10 +2294,10 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
                 }
                 else
                 {
-                    ggen.offset += objmod.bytes(seg,ggen.offset,c.IEV1.bytes[0 .. c.IEV1.len]);
+                    ggen.offset += objmod.bytes(seg,ggen.offset,c.IEV1.data);
                 }
                 debug
-                assert(calccodsize(c) == c.IEV1.len);
+                assert(calccodsize(c) == c.IEV1.data.length);
 
                 continue;
 

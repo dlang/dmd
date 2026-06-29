@@ -203,12 +203,35 @@ static if (0)
 }
 }
 
-
+/******************************************
+ * Compute unwind info and return it as a dt_t.
+ * Params:
+ *	localsize = offset to symbols on stack
+ * Returns:
+ *	slice of ui as dt_t anonymous bytes
+ */
 @trusted
 private dt_t* unwind_data(targ_size_t localsize)
 {
     UNWIND_INFO ui;
+    const(ubyte)[] slice = unwind_info_slice(&ui, localsize);
+    auto dtb = DtBuilder(0);
+    dtb.nbytes(slice);
+    return dtb.finish();
+}
 
+/******************************************
+ * Fill in `ui` and return a slice of it.
+ * Params:
+ *	localsize = offset to symbols on stack
+ *	ui = unwind info to be filled in
+ * Returns:
+ *	slice of ui as anonymous bytes
+ */
+@trusted
+private
+const(ubyte)[] unwind_info_slice(UNWIND_INFO* ui, targ_size_t localsize)
+{
     /* 4 allocation size strategy:
      *  0:           no unwind instruction
      *  8..128:      UWOP.ALLOC_SMALL
@@ -270,10 +293,7 @@ static if (0)
 }
 
     ui.UnwindCode[ui.CountOfCodes-2].FrameOffset = setUnwindCode(4, UWOP.SET_FPREG, 0);
-
     ui.UnwindCode[ui.CountOfCodes-1].FrameOffset = setUnwindCode(1, UWOP.PUSH_NONVOL, BP);
 
-    auto dtb = DtBuilder(0);
-    dtb.nbytes((cast(const(ubyte*)) &ui)[0 .. 4 + ((ui.CountOfCodes + 1) & ~1) * 2]);
-    return dtb.finish();
+    return (cast(const(ubyte*))ui)[0 .. 4 + ((ui.CountOfCodes + 1) & ~1) * 2];
 }
