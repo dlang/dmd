@@ -344,8 +344,8 @@ $(GNAME TuplePatternComponents):
     $(GLINK TuplePatternComponent) `,` $(GLINK TuplePatternComponents)
 
 $(GNAME TuplePatternComponent):
-    $(GLINK StorageClasses)$(OPT) $(GLINK Identifier)
-    $(GLINK StorageClasses)$(OPT) $(GLINK BasicType) $(GLINK TypeSuffixes)$(OPT) $(GLINK Identifier)
+    $(GLINK StorageClasses)$(OPT) $(GLINK_LEX Identifier)
+    $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier)
     $(GLINK StorageClasses)$(OPT) $(GLINK TuplePattern)
 )
 
