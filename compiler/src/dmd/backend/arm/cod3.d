@@ -1914,7 +1914,7 @@ if ((ins & 0x9F00_0000) == 0x9000_0000)
                         s.Sident.ptr, cast(int)s.Soffset, cast(int)cg.Para.size, cast(int)cg.BPoff,
                         cast(int)cg.EBPtoESP, cast(int)c.IEV1.Voffset, cast(int)sectionOff);
                 }
-                if (s.Sflags & SFLunambig)
+                if (s.Sflags & SFLdistinct)
                     c.Iflags |= CF.distinct;
                 offset = c.IEV1.Voffset + s.Soffset + sectionOff + cg.BPoff;
                 sz = tysize(s.ty());

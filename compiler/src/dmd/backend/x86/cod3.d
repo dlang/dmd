@@ -5903,7 +5903,7 @@ void assignaddrc(ref CGstate cg, code* c)
                 }
                 else
                 {   c.IEV1.Vpointer += s.Soffset + soff + cg.BPoff;
-                    if (s.Sflags & SFLunambig)
+                    if (s.Sflags & SFLdistinct)
                         c.Iflags |= CF.distinct;
             L2:
                     if (!cg.hasframe || (cg.enforcealign && c.IFL1 != FL.para))

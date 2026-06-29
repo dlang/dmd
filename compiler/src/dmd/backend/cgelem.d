@@ -3390,7 +3390,7 @@ private elem* eladdr(elem* e, Goal goal)
     {
         case OPvar:
             e1.Eoper = OPrelconst;
-            e1.Vsym.Sflags &= ~(SFLunambig | GTregcand);
+            e1.Vsym.Sflags &= ~(SFLdistinct | GTregcand);
             e1.Ety = tym;
             e = optelem(el_selecte1(e), Goal.value);
             break;
@@ -6510,7 +6510,7 @@ private bool canHappenAfter(elem* a, elem* b)
            /* a is a variable that is not aliased
             * and is not assigned to in b
             */
-           (a.Eoper == OPvar && a.Vsym.Sflags & SFLunambig && !el_appears(b, a.Vsym)) ||
+           (a.Eoper == OPvar && a.Vsym.Sflags & SFLdistinct && !el_appears(b, a.Vsym)) ||
 
            !(el_sideeffect(a) || el_sideeffect(b));
 }

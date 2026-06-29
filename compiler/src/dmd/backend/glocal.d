@@ -165,7 +165,7 @@ Loop:
             if (e1.Eoper == OPvar)
             {
                 const s = e1.Vsym;
-                if (s.Sflags & SFLunambig)
+                if (s.Sflags & SFLdistinct)
                 {   local_symdef(lt, s);
                     if (!goal)
                         local_ins(lt, e);
@@ -255,7 +255,7 @@ Loop:
                 {
                     Symbol* s;
                     if (op1 == OPvar &&
-                        ((s = e1.Vsym).Sflags & SFLunambig))
+                        ((s = e1.Vsym).Sflags & SFLdistinct))
                         local_symref(lt, s);
                     else
                         local_ambigref(lt);
@@ -265,7 +265,7 @@ Loop:
 
             Symbol* s;
             if (op1 == OPvar &&
-                ((s = e1.Vsym).Sflags & SFLunambig))
+                ((s = e1.Vsym).Sflags & SFLdistinct))
             {   local_symref(lt, s);
                 local_symdef(lt, s);
                 if (op == OPaddass || op == OPxorass)
@@ -326,7 +326,7 @@ Loop:
                  * as elemxxx() will rearrange it back.
                  */
                 const s = e.E1.Vsym;
-                if (s.Sflags & SFLunambig)
+                if (s.Sflags & SFLdistinct)
                     local_symref(lt, s);
                 else
                     local_ambigref(lt);     // ambiguous reference
@@ -341,7 +341,7 @@ Loop:
             if (lt.length)
             {
                 // If potential candidate for replacement
-                if (s.Sflags & SFLunambig)
+                if (s.Sflags & SFLdistinct)
                 {
                     foreach (const u; 0 .. lt.length)
                     {
@@ -394,7 +394,7 @@ Loop:
             const s = e.E1.Vsym;
             if (lt.length)
             {
-                if (s.Sflags & SFLunambig)
+                if (s.Sflags & SFLdistinct)
                     local_symref(lt, s);
                 else
                     local_ambigref(lt);     // ambiguous reference
@@ -488,7 +488,7 @@ private void local_ins(ref Barray!loc_t lt, elem* e)
     {
         const s = e.E1.Vsym;
         symbol_debug(s);
-        if (s.Sflags & SFLunambig)     // if can only be referenced directly
+        if (s.Sflags & SFLdistinct)     // if can only be referenced directly
         {
             const flags = local_getflags(e.E2,null);
             if (!(flags & (LFvolatile | LFinp | LFoutp)) &&
@@ -532,7 +532,7 @@ private int local_getflags(const(elem)* e, const Symbol* s)
                 if (e.E1.Eoper == OPvar)
                 {
                     const s1 = e.E1.Vsym;
-                    if (s1.Sflags & SFLunambig)
+                    if (s1.Sflags & SFLdistinct)
                         flags |= (s1 == s) ? LFsymdef : LFunambigdef;
                     else
                         flags |= LFambigdef;
@@ -558,7 +558,7 @@ private int local_getflags(const(elem)* e, const Symbol* s)
                 if (e.E1.Eoper == OPvar)
                 {
                     const s1 = e.E1.Vsym;
-                    if (s1.Sflags & SFLunambig)
+                    if (s1.Sflags & SFLdistinct)
                         flags |= (s1 == s) ? LFsymdef | LFsymref
                                            : LFunambigdef | LFunambigref;
                     else
@@ -592,7 +592,7 @@ private int local_getflags(const(elem)* e, const Symbol* s)
             case OPvar:
                 if (e.Vsym == s)
                     flags |= LFsymref;
-                else if (!(e.Vsym.Sflags & SFLunambig))
+                else if (!(e.Vsym.Sflags & SFLdistinct))
                     flags |= LFambigref;
                 break;
 

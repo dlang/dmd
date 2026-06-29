@@ -168,7 +168,7 @@ bool Symbol_Sisdead(const ref Symbol s, bool anyInlineAsm)
             * Code that does write those variables to memory gets NOPed out
             * during address assignment.
             */
-           (!anyInlineAsm && !(s.Sflags & SFLread) && s.Sflags & SFLunambig &&
+           (!anyInlineAsm && !(s.Sflags & SFLread) && s.Sflags & SFLdistinct &&
 
             // mTYvolatile means this variable has been reference by a nested function
             (vol || !(s.Stype.Tty & mTYvolatile)) &&
@@ -205,13 +205,13 @@ int Symbol_needThis(const ref Symbol s)
 
 bool Symbol_isAffected(const ref Symbol s)
 {
-    //printf("s: %s %d\n", s.Sident.ptr, !(s.Sflags & SFLunambig) && !(s.ty() & (mTYconst | mTYimmutable)));
+    //printf("s: %s %d\n", s.Sident.ptr, !(s.Sflags & SFLdistinct) && !(s.ty() & (mTYconst | mTYimmutable)));
     //symbol_print(s);
 
     /* If nobody took its address and it's not statically allocated,
      * then it is not accessible via pointer and so is not affected.
      */
-    if (s.Sflags & SFLunambig)
+    if (s.Sflags & SFLdistinct)
         return false;
 
     /* If it's immutable, it can't be affected.
