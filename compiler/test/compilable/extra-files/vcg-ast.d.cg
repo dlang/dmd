@@ -97,7 +97,7 @@ T[] values(T)()
 }
 void main()
 {
-	values();
+	values!(__c_wchar_t)();
 	return 0;
 }
 import imports.vcg_ast_import;

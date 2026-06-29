@@ -2360,7 +2360,13 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         // This condition is a bit kludge, and can be cleaned up if the
         // mutual dependency `AST.toChars <> hdrgen.d` gets refactored
         if (hgs.vcg_ast && s.ident && !s.isTemplateInstance() && !s.isTemplateDeclaration())
+        {
             buf.put(s.ident.toChars());
+            // after semantic, symbols don't go through a ScopeExp that also shows the template arguments
+            if (auto parent = s.toParent())
+                if (auto ti = parent.isTemplateInstance())
+                    tiargsToBuffer(ti, buf, hgs);
+        }
         else
             buf.put(s.toChars());
     }
@@ -2714,6 +2720,15 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         expToBuffer(e.e1, precedence[e.op], buf, hgs);
     }
 
+    void visitBin(BinExp e)
+    {
+        expToBuffer(e.e1, precedence[e.op], buf, hgs);
+        buf.put(' ');
+        buf.put(EXPtoString(e.op));
+        buf.put(' ');
+        expToBuffer(e.e2, cast(PREC)(precedence[e.op] + 1), buf, hgs);
+    }
+
     void visitLoweredAssignExp(LoweredAssignExp e)
     {
         if (hgs.vcg_ast)
@@ -2722,15 +2737,21 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             return;
         }
 
-        visit(cast(BinExp)e);
+        visitBin(e);
     }
-    void visitBin(BinExp e)
+
+    void visitConstructExp(ConstructExp e)
     {
-        expToBuffer(e.e1, precedence[e.op], buf, hgs);
-        buf.put(' ');
-        buf.put(EXPtoString(e.op));
-        buf.put(' ');
-        expToBuffer(e.e2, cast(PREC)(precedence[e.op] + 1), buf, hgs);
+        if (hgs.vcg_ast && e.lowering)
+            return expressionToBuffer(e.lowering, buf, hgs);
+        visitBin(e);
+    }
+
+    void visitEqualExp(EqualExp e)
+    {
+        if (hgs.vcg_ast && e.lowering)
+            return expressionToBuffer(e.lowering, buf, hgs);
+        visitBin(e);
     }
 
     void visitComma(CommaExp e)
@@ -2914,6 +2935,9 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitCast(CastExp e)
     {
+        if (hgs.vcg_ast && e.lowering)
+            return expressionToBuffer(e.lowering, buf, hgs);
+
         buf.put("cast(");
         if (e.to)
             typeToBuffer(e.to, null, buf, hgs);
@@ -3153,6 +3177,9 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.question:      return visitCond(e.isCondExp());
         case EXP.classReference:        return visitClassReference(e.isClassReferenceExp());
         case EXP.loweredAssignExp:      return visitLoweredAssignExp(e.isLoweredAssignExp());
+        case EXP.construct:     return visitConstructExp(e.isConstructExp());
+        case EXP.equal:
+        case EXP.notEqual:      return visitEqualExp(e.isEqualExp());
     }
 }
 

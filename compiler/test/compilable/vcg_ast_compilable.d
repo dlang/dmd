@@ -17,8 +17,8 @@ void find()(string needle)
 }
 void splitter()
 {
-	find(3);
-	find("");
+	find!int(3);
+	find!()("");
 }
 binaryFun!int
 {
