@@ -58,129 +58,36 @@ import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.dt;
 import dmd.backend.type;
-import dmd.backend.dout : outdata, outthunk;
-import dmd.backend.symbol : symbol_calloc, symbol_func, symbol_name, SYMIDX;
+import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.cgcv;
 import dmd.backend.ty;
 
+package(dmd.glue):
+
 /*************************************
- * Create a backend symbol from a D symbol.
- * Params:
- *      ds = D symbol
- *      prefix = string contributing to backend name
- *      sclass = storage class for symbol
- *      t = type for symbol
- *      suffix = string at end
- * Returns:
- *      generated backend symbol
+ * Helper
  */
-package(dmd.glue)
+
 Symbol* toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type* t, const(char)* suffix)
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
     import dmd.common.outbuffer : OutBuffer;
+    import core.stdc.string : strlen;
+
     OutBuffer buf;
     buf.writestring("_D");
     mangleToBuffer(ds, buf);
-    buf.printf("%zd%s%s", strlen(prefix), prefix, suffix);
+    buf.printf("%d%s%s", cast(int)strlen(prefix), prefix, suffix);
     Symbol* s = symbol_name(buf[], sclass, t);
 
     //printf("-Dsymbol::toSymbolX() %s\n", buf.peekChars());
     return s;
 }
 
-/*****************************************************/
-/*                   CTFE stuff                      */
-/*****************************************************/
-
-/* A CTFE-evaluated literal (struct literal or class instance) that is baked into
- * static data gets a backing LOCAL symbol (named "internal"), cached on the literal's
- * AST node (`sle.sym` / `cre.value.origin.sym`). The AST is shared across all modules
- * compiled in a single invocation, so without intervention that cache leaks the symbol
- * created for the first object module into later ones — which then emit only an
- * undefined reference to a LOCAL symbol they never define (link error:
- * `undefined reference to 'internal'`).
- *
- * Track every literal that cached a symbol in the current object module and clear those
- * caches at each object-module boundary (resetCtfeSymbolCache, called from obj_start), so
- * each object module re-creates and emits its own self-contained local copy. This matches
- * the array-literal path (DtBuilder.dtoff) and the already-accepted separate-compilation
- * behavior, while keeping intra-module dedup intact.
- */
-private __gshared Array!StructLiteralExp ctfeSymbolLiterals;
-
-package(dmd.glue)
-void resetCtfeSymbolCache()
-{
-    foreach (sle; ctfeSymbolLiterals[])
-        sle.sym = null;
-    ctfeSymbolLiterals.setDim(0);
-}
-
-package(dmd.glue)
-Symbol* toSymbol(StructLiteralExp sle)
-{
-    //printf("toSymbol() %p.sym: %p\n", sle, sle.sym);
-    if (sle.sym)
-        return cast(Symbol*)sle.sym;
-    auto t = type_alloc(TYint);
-    t.Tcount++;
-    auto s = symbol_calloc("internal");
-    s.Sclass = SC.static_;
-    s.Sfl = FL.extern_;
-    s.Sflags |= SFLnodebug;
-    s.Stype = t;
-    sle.sym = s;
-    ctfeSymbolLiterals.push(sle);
-    auto dtb = DtBuilder(0);
-    Expression_toDt(sle, dtb);
-    s.Sdt = dtb.finish();
-    outdata(s);
-    return cast(Symbol*)sle.sym;
-}
-
-package(dmd.glue)
-Symbol* toSymbol(ClassReferenceExp cre)
-{
-    //printf("toSymbol() %p.value.sym: %p\n", cre, cre.value.sym);
-    if (cre.value.origin.sym)
-        return cast(Symbol*)cre.value.origin.sym;
-    auto t = type_alloc(TYint);
-    t.Tcount++;
-    auto s = symbol_calloc("internal");
-    s.Sclass = SC.static_;
-    s.Sfl = FL.extern_;
-    s.Sflags |= SFLnodebug;
-    s.Stype = t;
-    cre.value.sym = s;
-    cre.value.origin.sym = s;
-    ctfeSymbolLiterals.push(cre.value.origin);
-    auto dtb = DtBuilder(0);
-    ClassReferenceExp_toInstanceDt(cre, dtb);
-    s.Sdt = dtb.finish();
-    outdata(s);
-    return cast(Symbol*)cre.value.sym;
-}
-
-/**************************************
- * Turn a class type into a C Symbol.
- * Params:
- *      t = class type
- * Returns:
- *      corresponding Symbol
- */
-package(dmd.glue)
-Symbol* toSymbol(Type t)
-{
-    auto tc = t.isTypeClass();
-    assert(tc);
-    return toSymbol(tc.sym);
-}
-
 /*************************************
  */
-package(dmd.glue)
+
 Symbol* toSymbol(Dsymbol s)
 {
     //printf("toSymbol() %s\n", s.toChars());
@@ -417,15 +324,6 @@ Symbol* toSymbol(Dsymbol s)
 
         override void visit(FuncDeclaration fd)
         {
-            /* @__ctfe functions cannot be used at runtime
-             */
-            if (fd.storage_class & STC.ctfeOnly)
-            {
-                error(fd.loc, "function `%s` is `@__ctfe` and cannot be used at runtime", fd.toPrettyChars());
-                result = null;
-                return;
-            }
-
             const(char)* id = mangleExact(fd);
 
             //printf("FuncDeclaration.toSymbol(%s %s)\n", fd.kind(), fd.toChars());
@@ -477,7 +375,9 @@ Symbol* toSymbol(Dsymbol s)
 
             symbol_func(*s);
             func_t* f = s.Sfunc;
-            if (fd.isMember2() && fd.isStatic())
+            if (fd.isVirtual() && fd.vtblIndex != -1)
+                f.Fflags |= Fvirtual;
+            else if (fd.isMember2() && fd.isStatic())
                 f.Fflags |= Fstatic;
 
             if (fd.isSafe())
@@ -634,10 +534,68 @@ Symbol* toSymbol(Dsymbol s)
 }
 
 
+/*************************************
+ * Create Windows import symbol from backend Symbol.
+ * Params:
+ *      sym = backend symbol
+ *      loc = location for error message purposes
+ * Returns:
+ *      import symbol
+ */
+
+private Symbol* createImport(Symbol* sym, Loc loc)
+{
+    //printf("Dsymbol.createImport('%s')\n", sym.Sident.ptr);
+    const char* n = sym.Sident.ptr;
+    import core.stdc.stdlib : alloca;
+    const allocLen = 6 + strlen(n) + 1 + type_paramsize(sym.Stype).sizeof*3 + 1;
+    version (AArch64) // TODO AArch64
+    {
+        char* id = cast(char *) Mem.xmalloc(allocLen);
+        scope (exit) Mem.xfree(id);
+    }
+    else
+        char* id = cast(char *) alloca(allocLen);
+    int idlen;
+    if (target.os & Target.OS.Posix)
+    {
+        error(loc, "cannot generate import symbol `%s` for Posix platform", n);
+        assert(0);
+    }
+    else if (target.os & Target.OS.Windows && sym.Stype.Tty & mTYthread)
+    {
+        error(loc, "cannot generate import symbol for thread local symbol `%s`", n);
+        assert(0);
+    }
+    else if (sym.Stype.Tmangle == Mangle.stdcall && tyfunc(sym.Stype.Tty))
+    {
+        if (target.os == Target.OS.Windows && target.isX86_64)
+            idlen = snprintf(id, allocLen, "__imp_%s",n);
+        else
+            idlen = snprintf(id, allocLen, "_imp__%s@%u",n,cast(uint)type_paramsize(sym.Stype));
+    }
+    else
+    {
+        idlen = snprintf(id, allocLen, (target.os == Target.OS.Windows && target.isX86_64) ? "__imp_%s" : (sym.Stype.Tmangle == Mangle.cpp) ? "_imp_%s" : "_imp__%s",n);
+    }
+    auto t = type_alloc(TYnptr | mTYconst);
+    t.Tnext = sym.Stype;
+    t.Tnext.Tcount++;
+    t.Tmangle = Mangle.c;
+    t.Tcount++;
+    auto s = symbol_calloc(id[0 .. idlen]);
+    s.Stype = t;
+    s.Sclass = SC.extern_;
+    s.Sfl = FL.extern_;
+    s.Sflags |= SFLimported;
+
+    return s;
+}
+
 /*********************************
  * Generate import symbol from symbol.
  */
-package(dmd.glue)
+
 Symbol* toImport(Dsymbol ds)
 {
     if (!ds.csym)
@@ -648,7 +606,7 @@ Symbol* toImport(Dsymbol ds)
 /*************************************
  * Thunks adjust the incoming 'this' pointer by 'offset'.
  */
-package(dmd.glue)
+
 Symbol* toThunkSymbol(FuncDeclaration fd, int offset)
 {
     Symbol* s = toSymbol(fd);
@@ -665,7 +623,6 @@ Symbol* toThunkSymbol(FuncDeclaration fd, int offset)
     char[nameLen] name = void;
 
     const len = snprintf(name.ptr,nameLen,"_THUNK%d",tmpnum++);
-    assert(len != -1 && len < nameLen);
     auto sthunk = symbol_name(name[0 .. len],SC.static_,(cast(Symbol*)(fd.csym)).Stype);
     sthunk.Sflags |= SFLnodebug | SFLartifical;
     sthunk.Sflags |= SFLimplem;
@@ -674,11 +631,28 @@ Symbol* toThunkSymbol(FuncDeclaration fd, int offset)
 }
 
 
+/**************************************
+ * Fake a struct symbol.
+ */
+
+Classsym* fake_classsym(Identifier id)
+{
+    auto t = type_struct_class(id.toChars(),8,0,
+        null,null,
+        false, false, true, false);
+
+    t.Ttag.Sstruct.Sflags = STRglobal;
+    t.Tflags |= TF.sizeunknown | TF.forward;
+    assert(t.Tmangle == 0);
+    t.Tmangle = Mangle.d;
+    return t.Ttag;
+}
+
 /*************************************
  * This is accessible via the ClassData, but since it is frequently
  * needed directly (like for rtti comparisons), make it directly accessible.
  */
-package(dmd.glue)
+
 Symbol* toVtblSymbol(ClassDeclaration cd, bool genCsymbol = true)
 {
     if (!cd.vtblsym || !cd.vtblsym.csym)
@@ -698,29 +672,10 @@ Symbol* toVtblSymbol(ClassDeclaration cd, bool genCsymbol = true)
     return cast(Symbol*)cd.vtblsym.csym;
 }
 
-/******************************
- */
-package(dmd.glue)
-Symbol* toInitializer(EnumDeclaration ed)
-{
-    if (!ed.sinit)
-    {
-        auto stag = fake_classsym(Id.ClassInfo);
-        assert(ed.ident);
-        auto s = toSymbolX(ed, "__init", SC.extern_, stag.Stype, "Z");
-        s.Sfl = FL.extern_;
-        s.Sflags |= SFLnodebug;
-        if (isDllImported(ed))
-            s.Sisym = createImport(s, ed.loc);
-        ed.sinit = s;
-    }
-    return cast(Symbol*)ed.sinit;
-}
-
 /**********************************
  * Create the static initializer for the struct/class.
  */
-package(dmd.glue)
+
 Symbol* toInitializer(AggregateDeclaration ad)
 {
     //printf("toInitializer() %s\n", ad.toChars());
@@ -786,6 +741,68 @@ Symbol* toInitializer(AggregateDeclaration ad)
     return cast(Symbol*)ad.sinit;
 }
 
+Symbol* toInitializer(EnumDeclaration ed)
+{
+    if (!ed.sinit)
+    {
+        auto stag = fake_classsym(Id.ClassInfo);
+        assert(ed.ident);
+        auto s = toSymbolX(ed, "__init", SC.extern_, stag.Stype, "Z");
+        s.Sfl = FL.extern_;
+        s.Sflags |= SFLnodebug;
+        if (isDllImported(ed))
+            s.Sisym = createImport(s, ed.loc);
+        ed.sinit = s;
+    }
+    return cast(Symbol*)ed.sinit;
+}
+
+
+/*****************************************************/
+/*                   CTFE stuff                      */
+/*****************************************************/
+
+Symbol* toSymbol(StructLiteralExp sle)
+{
+    //printf("toSymbol() %p.sym: %p\n", sle, sle.sym);
+    if (sle.sym)
+        return cast(Symbol*)sle.sym;
+    auto t = type_alloc(TYint);
+    t.Tcount++;
+    auto s = symbol_calloc("internal");
+    s.Sclass = SC.static_;
+    s.Sfl = FL.extern_;
+    s.Sflags |= SFLnodebug;
+    s.Stype = t;
+    sle.sym = s;
+    auto dtb = DtBuilder(0);
+    Expression_toDt(sle, dtb);
+    s.Sdt = dtb.finish();
+    outdata(s);
+    return cast(Symbol*)sle.sym;
+}
+
+Symbol* toSymbol(ClassReferenceExp cre)
+{
+    //printf("toSymbol() %p.value.sym: %p\n", cre, cre.value.sym);
+    if (cre.value.origin.sym)
+        return cast(Symbol*)cre.value.origin.sym;
+    auto t = type_alloc(TYint);
+    t.Tcount++;
+    auto s = symbol_calloc("internal");
+    s.Sclass = SC.static_;
+    s.Sfl = FL.extern_;
+    s.Sflags |= SFLnodebug;
+    s.Stype = t;
+    cre.value.sym = s;
+    cre.value.origin.sym = s;
+    auto dtb = DtBuilder(0);
+    ClassReferenceExp_toInstanceDt(cre, dtb);
+    s.Sdt = dtb.finish();
+    outdata(s);
+    return cast(Symbol*)cre.value.sym;
+}
+
 /**************************************
  * For C++ class cd, generate an instance of __cpp_type_info_ptr
  * and populate it with a pointer to the C++ type info.
@@ -794,7 +811,6 @@ Symbol* toInitializer(AggregateDeclaration ad)
  * Returns:
  *      symbol of instance of __cpp_type_info_ptr
  */
-package(dmd.glue)
 Symbol* toSymbolCpp(ClassDeclaration cd)
 {
     assert(cd.isCPPclass());
@@ -829,7 +845,6 @@ Symbol* toSymbolCpp(ClassDeclaration cd)
  * Returns:
  *      Symbol of cd's rtti type info
  */
-package(dmd.glue)
 Symbol* toSymbolCppTypeInfo(ClassDeclaration cd)
 {
     const id = target.cpp.typeInfoMangle(cd);
@@ -843,6 +858,21 @@ Symbol* toSymbolCppTypeInfo(ClassDeclaration cd)
     return s;
 }
 
+/**************************************
+ * Turn a class type into a C Symbol.
+ * Params:
+ *      t = class type
+ * Returns:
+ *      corresponding Symbol
+ */
+
+Symbol* toSymbol(Type t)
+{
+    auto tc = t.isTypeClass();
+    assert(tc);
+    return toSymbol(tc.sym);
+}
+
 /**********************************
  * Converts a Loc to backend Srcpos
  * Params:
@@ -850,7 +880,6 @@ Symbol* toSymbolCppTypeInfo(ClassDeclaration cd)
  * Returns:
  *      Srcpos backend struct corresponding to the given location
  */
-package(dmd.glue)
 Srcpos toSrcpos(Loc loc) nothrow
 {
     SourceLoc sl = SourceLoc(loc);
@@ -858,83 +887,4 @@ Srcpos toSrcpos(Loc loc) nothrow
         return Srcpos.create(sl.filename.ptr, sl.line, sl.column);
     else
         return Srcpos.create(null, 0, 0);
-}
-
-/*********************************************************************************/
-/*                                 private                                       */
-/*********************************************************************************/
-
-/*************************************
- * Create Windows import symbol from backend Symbol.
- * Params:
- *      sym = backend symbol
- *      loc = location for error message purposes
- * Returns:
- *      import symbol
- */
-private Symbol* createImport(Symbol* sym, Loc loc)
-{
-    //printf("Dsymbol.createImport('%s')\n", sym.Sident.ptr);
-    const char* n = sym.Sident.ptr;
-    import core.stdc.stdlib : alloca;
-    const allocLen = 6 + strlen(n) + 1 + type_paramsize(sym.Stype).sizeof*3 + 1;
-    version (AArch64) // TODO AArch64
-    {
-        char* id = cast(char *) Mem.xmalloc(allocLen);
-        scope (exit) Mem.xfree(id);
-    }
-    else
-        char* id = cast(char *) alloca(allocLen);
-    int idlen;
-    if (target.os & Target.OS.Posix)
-    {
-        error(loc, "cannot generate import symbol `%s` for Posix platform", n);
-        assert(0);
-    }
-    else if (target.os & Target.OS.Windows && sym.Stype.Tty & mTYthread)
-    {
-        error(loc, "cannot generate import symbol for thread local symbol `%s`", n);
-        assert(0);
-    }
-    else if (sym.Stype.Tmangle == Mangle.stdcall && tyfunc(sym.Stype.Tty))
-    {
-        if (target.os == Target.OS.Windows && target.isX86_64)
-            idlen = snprintf(id, allocLen, "__imp_%s",n);
-        else
-            idlen = snprintf(id, allocLen, "_imp__%s@%u",n,cast(uint)type_paramsize(sym.Stype));
-    }
-    else
-    {
-        idlen = snprintf(id, allocLen, (target.os == Target.OS.Windows && target.isX86_64) ? "__imp_%s" : (sym.Stype.Tmangle == Mangle.cpp) ? "_imp_%s" : "_imp__%s",n);
-    }
-    assert(idlen != -1 && idlen < allocLen);
-    auto t = type_alloc(TYnptr | mTYconst);
-    t.Tnext = sym.Stype;
-    t.Tnext.Tcount++;
-    t.Tmangle = Mangle.c;
-    t.Tcount++;
-    auto s = symbol_calloc(id[0 .. idlen]);
-    s.Stype = t;
-    s.Sclass = SC.extern_;
-    s.Sfl = FL.extern_;
-    s.Sflags |= SFLimported;
-
-    return s;
-}
-
-/**************************************
- * Fake a struct symbol.
- */
-private
-Classsym* fake_classsym(Identifier id)
-{
-    auto t = type_struct_class(id.toChars(),8,0,
-        null,null,
-        false, false, true, false);
-
-    t.Ttag.Sstruct.Sflags = STRglobal;
-    t.Tflags |= TF.sizeunknown | TF.forward;
-    assert(t.Tmangle == 0);
-    t.Tmangle = Mangle.d;
-    return t.Ttag;
 }
