@@ -2083,7 +2083,7 @@ if (c2.IEV1.Vpointer + sz2 <= c1.IEV1.Vpointer) printf("t5\n");
             }
         }
 
-        if ((c1.Iflags | c2.Iflags) & CF.unambig &&
+        if ((c1.Iflags | c2.Iflags) & CF.distinct &&
             (ifl1 != ifl2 ||
              ci1.sibmodrm != ci2.sibmodrm ||
              (c1.IEV1.Vint != c2.IEV1.Vint &&
