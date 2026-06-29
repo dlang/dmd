@@ -80,12 +80,10 @@ Symbol* toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type* t, const(cha
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
     import dmd.common.outbuffer : OutBuffer;
-    import core.stdc.string : strlen;
-
     OutBuffer buf;
     buf.writestring("_D");
     mangleToBuffer(ds, buf);
-    buf.printf("%d%s%s", cast(int)strlen(prefix), prefix, suffix);
+    buf.printf("%zd%s%s", strlen(prefix), prefix, suffix);
     Symbol* s = symbol_name(buf[], sclass, t);
 
     //printf("-Dsymbol::toSymbolX() %s\n", buf.peekChars());
