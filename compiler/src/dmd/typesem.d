@@ -2301,6 +2301,36 @@ extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, Argu
                 buf.reset();
                 buf.writestring(failMessage);
             }
+            // Try opImplicitCast if direct match failed
+            if (m == MATCH.nomatch && sc && !sc.traitsCompiles && sc.intypeof != 1)
+            {
+                AggregateDeclaration ad = isAggregate(arg.type);
+                if (ad)
+                {
+                    if (Dsymbol castFn = search_function(ad, Id.opImplicitCast))
+                    {
+                        // Rewrite as: arg.opImplicitCast!(p.type)()
+                        auto tiargs = new Objects();
+                        tiargs.push(p.type);
+                        Expression ex = new DotTemplateInstanceExp(arg.loc, arg, castFn.ident, tiargs);
+                        ex = new CallExp(arg.loc, ex);
+
+                        // Sema to avoid error message spam
+                        uint errors = global.startGagging();
+                        ex = ex.expressionSemantic(sc);
+                        if (!global.endGagging(errors) && !ex.isErrorExp())
+                        {
+                            // Retry match with the converted expression
+                            m = argumentMatchParameter(fd, tf, p, ex, wildmatch, flag, sc, pMessage);
+                            if (m != MATCH.nomatch)
+                            {
+                                // Update the argument for the actual call
+                                args[u] = ex;
+                            }
+                        }
+                    }
+                }
+            }
         }
         else if (p.defaultArg)
             continue;
