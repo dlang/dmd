@@ -1,6 +1,6 @@
 Added a new Modern CodeView / PDB symbolic debug info emitter
 
-A new PDB (Program Database) emitter has been added to improve debug information generation on Windows. Creating modern CodeView/PDB symbolic debug info enables more robust and feature-rich debugging experiences with Microsoft development tools. 
+A new PDB (Program Database) emitter has been added to improve debug information generation on Windows. Creating modern CodeView/PDB symbolic debug info enables more robust and feature-rich debugging experiences with Microsoft development tools.
 
 You can activate the new PDB emitter by passing the `-preview=newpdb` flag to the compiler.
 
