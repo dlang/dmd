@@ -119,7 +119,7 @@ enum PDB_MAX_SYMBOL_LENGTH = 0xffd8;
 enum PUB_FUNCTION = 0x00000002;
 
 /* ======================================================================== */
-/* State                                                                     */
+/* State                                                                    */
 /* ======================================================================== */
 
 private __gshared OutBuffer* F1_buf;     // symbols
@@ -164,100 +164,65 @@ private bool symbol_iscomdat_pdb(Symbol* s)
 }
 
 /* ======================================================================== */
-/* Name encoding                                                             */
+/* Name encoding                                                            */
 /* ======================================================================== */
 
 private @trusted
 void pdb_writename(OutBuffer* buf, const(char)* name, size_t len)
 {
-    if (config.flags2 & CFG2gms)
+    if (!(config.flags2 & CFG2gms))
     {
-        const(char)* start = name;
-        const(char)* cur = strchr(start, '.');
-        const(char)* end = start + len;
-        while (cur != null)
-        {
-            if (cur >= end)
-            {
-                buf.writen(start, end - start);
-                return;
-            }
-            buf.writen(start, cur - start);
-            buf.writeByte('@');
-            start = cur + 1;
-            if (start >= end)
-                return;
-            cur = strchr(start, '.');
-        }
-        buf.writen(start, end - start);
-    }
-    else
         buf.writen(name, len);
+        return;
+    }
+
+    const(char)* start = name;
+    const(char)* cur = strchr(start, '.');
+    const(char)* end = start + len;
+    while (cur != null)
+    {
+        if (cur >= end)
+        {
+            buf.writen(start, end - start);
+            return;
+        }
+        buf.writen(start, cur - start);
+        buf.writeByte('@');
+        start = cur + 1;
+        if (start >= end)
+            return;
+        cur = strchr(start, '.');
+    }
+    buf.writen(start, end - start);
 }
 
 /* ======================================================================== */
-/* File lifecycle                                                            */
+/* File lifecycle                                                           */
 /* ======================================================================== */
 
 @trusted
 void pdb_initfile(const(char)* filename)
 {
-    if (!F1_buf)
+    void initBuf(ref OutBuffer* ptr)
     {
-        __gshared OutBuffer f1buf;
-        f1buf.reserve(1024);
-        F1_buf = &f1buf;
+        if (!ptr)
+        {
+            ptr = cast(OutBuffer*)mem_calloc(OutBuffer.sizeof);
+            ptr.reserve(1024);
+        }
+        ptr.reset();
     }
-    F1_buf.reset();
 
-    if (!F1fixup)
-    {
-        __gshared OutBuffer f1fixupbuf;
-        f1fixupbuf.reserve(1024);
-        F1fixup = &f1fixupbuf;
-    }
-    F1fixup.reset();
+    initBuf(F1_buf);
+    initBuf(F1fixup);
+    initBuf(F2_buf);
 
-    if (!F2_buf)
-    {
-        __gshared OutBuffer f2buf;
-        f2buf.reserve(1024);
-        F2_buf = &f2buf;
-    }
-    F2_buf.reset();
-
-    if (!F3_buf)
-    {
-        __gshared OutBuffer f3buf;
-        f3buf.reserve(1024);
-        F3_buf = &f3buf;
-    }
-    F3_buf.reset();
+    initBuf(F3_buf);
     F3_buf.writeByte(0);       // first "filename"
 
-    if (!F4_buf)
-    {
-        __gshared OutBuffer f4buf;
-        f4buf.reserve(1024);
-        F4_buf = &f4buf;
-    }
-    F4_buf.reset();
-
-    if (!funcdata)
-    {
-        __gshared OutBuffer funcdatabuf;
-        funcdatabuf.reserve(1024);
-        funcdata = &funcdatabuf;
-    }
-    funcdata.reset();
-
-    if (!linepair)
-    {
-        __gshared OutBuffer linepairbuf;
-        linepairbuf.reserve(1024);
-        linepair = &linepairbuf;
-    }
-    linepair.reset();
+    initBuf(F4_buf);
+    initBuf(funcdata);
+    initBuf(linepair);
 
     memset(&currentfuncdata, 0, currentfuncdata.sizeof);
     currentfuncdata.f1buf = F1_buf;
@@ -403,7 +368,7 @@ void pdb_termfile(const(char)[] objfilename)
 }
 
 /* ======================================================================== */
-/* Functions                                                                 */
+/* Functions                                                                */
 /* ======================================================================== */
 
 @trusted
@@ -533,7 +498,7 @@ void pdb_func_term(Symbol* sfunc)
 }
 
 /* ======================================================================== */
-/* Line numbers                                                              */
+/* Line numbers                                                             */
 /* ======================================================================== */
 
 @trusted
@@ -575,7 +540,7 @@ void pdb_linnum(Srcpos srcpos, uint offset)
 }
 
 /* ======================================================================== */
-/* Source files (F3 names + F4 checksums via blake3)                         */
+/* Source files (F3 names + F4 checksums via blake3)                        */
 /* ======================================================================== */
 
 @trusted
@@ -658,7 +623,7 @@ void pdb_writesection(int seg, uint type, OutBuffer* buf)
 }
 
 /* ======================================================================== */
-/* Symbols                                                                   */
+/* Symbols                                                                  */
 /* ======================================================================== */
 
 @trusted
@@ -814,7 +779,7 @@ void pdb_udt(const(char)* id, idx_t typidx)
 }
 
 /* ======================================================================== */
-/* ID-stream type records (reuse the shared cgcv type pool, read-only)        */
+/* ID-stream type records (reuse the shared cgcv type pool, read-only)      */
 /* ======================================================================== */
 
 /* LF_STRING_ID: an interned string returning a type index. */
