@@ -21,27 +21,17 @@ import core.time;
 
 version (WASI):
 
-version (all)
-{
-    // No real threading support
-    // Just manipulations of the main "thread"
+// No real threading support
+// Just manipulations of the main "thread"
 
-    import core.stdc.errno : EINTR, errno;
-    import core.stdc.stdlib : free, malloc, realloc;
-    import core.sys.wasi.posix.time : nanosleep, timespec;
-}
-
-version (GNU)
-{
-    import gcc.builtins;
-}
+import core.stdc.errno : EINTR, errno;
+import core.stdc.stdlib : free, malloc, realloc;
+import core.sys.wasi.posix.time : nanosleep, timespec;
 
 version (CoreDdoc) {} else
 class Thread : ThreadBase
 {
     package shared bool     m_isRunning;
-
-    alias TLSKey = pthread_key_t;
 
     this( void function() fn, size_t sz = 0 ) @safe pure nothrow @nogc
     {
@@ -62,10 +52,6 @@ class Thread : ThreadBase
     {
         if (super.destructBeforeDtor())
             return;
-
-        version (all)
-        {
-        }
     }
 
     static Thread getThis() @safe nothrow @nogc
@@ -93,9 +79,7 @@ class Thread : ThreadBase
                 multiThreadedFlag = false;
         }
 
-        version (all) {
-            onThreadError("cannot start new threads on WASI");
-        }
+        onThreadError("cannot start new threads on WASI");
     }
 
     override final Throwable join( bool rethrow = true )
@@ -105,22 +89,19 @@ class Thread : ThreadBase
         return super.join(rethrow);
     }
 
-    version (all)
+    @property static int PRIORITY_MIN() @nogc nothrow pure @safe
     {
-        @property static int PRIORITY_MIN() @nogc nothrow pure @safe
-        {
-            return 0;
-        }
+        return 0;
+    }
 
-        @property static const(int) PRIORITY_MAX() @nogc nothrow pure @safe
-        {
-            return 0;
-        }
+    @property static const(int) PRIORITY_MAX() @nogc nothrow pure @safe
+    {
+        return 0;
+    }
 
-        @property static int PRIORITY_DEFAULT() @nogc nothrow pure @safe
-        {
-            return 0;
-        }
+    @property static int PRIORITY_DEFAULT() @nogc nothrow pure @safe
+    {
+        return 0;
     }
 
     final @property int priority()
@@ -155,27 +136,24 @@ class Thread : ThreadBase
     }
     do
     {
-        version (all)
-        {
-            timespec tin  = void;
-            timespec tout = void;
+        timespec tin  = void;
+        timespec tout = void;
 
-            val.split!("seconds", "nsecs")(tin.tv_sec, tin.tv_nsec);
-            if ( val.total!"seconds" > tin.tv_sec.max )
-                tin.tv_sec  = tin.tv_sec.max;
-            while ( true )
-            {
-                if ( !nanosleep( &tin, &tout ) )
-                    return;
-                if ( errno != EINTR )
-                    assert(0, "Unable to sleep for the specified duration");
-                tin = tout;
-            }
+        val.split!("seconds", "nsecs")(tin.tv_sec, tin.tv_nsec);
+        if ( val.total!"seconds" > tin.tv_sec.max )
+            tin.tv_sec  = tin.tv_sec.max;
+        while ( true )
+        {
+            if ( !nanosleep( &tin, &tout ) )
+                return;
+            if ( errno != EINTR )
+                assert(0, "Unable to sleep for the specified duration");
+            tin = tout;
         }
     }
 
     static void yield() @nogc nothrow
     {
-        sched_yield();
+        // do nothing
     }
 }
