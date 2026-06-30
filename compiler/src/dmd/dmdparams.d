@@ -41,6 +41,7 @@ enum SymImport : ubyte
 struct DMDparams
 {
     bool alwaysframe;       // always emit standard stack frame
+    bool unwindTables;      // emit unwind tables for stack tracing
     ubyte dwarf;            // DWARF version
     bool map;               // generate linker .map file
     bool vasm;              // print generated assembler for each function
