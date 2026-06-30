@@ -2384,7 +2384,8 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
         {
             if (d.front != 'Q')
                 return null;
-
+            else
+            {
             flushPosition(d);
 
             auto refPos = d.pos;
@@ -2396,13 +2397,18 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
                 errStatus = true;
                 return null;
             }
-
+            else
+            {
             size_t npos = positionInResult(refPos - n);
             size_t reslen = result.length;
             encodeBackref(reslen - npos);
 
             lastpos = d.pos;
             return result[reslen .. $]; // anything but null
+            }
+
+            return null;
+            }
         }
 
         void encodeBackref(size_t relpos) scope
