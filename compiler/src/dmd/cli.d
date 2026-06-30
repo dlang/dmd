@@ -1121,7 +1121,7 @@ dmd -cov -unittest myprog.d
         Feature("fastdfa", "useFastDFA",
             "Fast dataflow analysis engine, experimental"),
         Feature("newpdb", "newpdb",
-            "use the modern PDB/CodeView debug info emitter (Windows MSCOFF only)"),
+            "use the modern PDB/CodeView debug info emitter"),
     ];
 }
 
