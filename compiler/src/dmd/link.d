@@ -286,10 +286,13 @@ public int runLINK(bool verbose, ErrorSink eSink)
             }
 
             VSOptions vsopt;
-            // Deprecated: if a MinGW replacement runtime (msvcrtNNN.lib, e.g. msvcrt120)
-            // is selected explicitly, do not detect VS and use lld with the MinGW libraries.
-            if (driverParams.mscrtlib.length <= 6 ||
-                driverParams.mscrtlib[0..6] != "msvcrt" || !isdigit(driverParams.mscrtlib[6]))
+            // If a MinGW-folder runtime is selected — the UCRT-based `ucrtbase`, or a
+            // legacy `msvcrtNNN` such as `msvcrt120` — do not detect Visual Studio; use
+            // lld-link with the MinGW libraries instead.
+            const isMingwRuntime = driverParams.mscrtlib == "ucrtbase" ||
+                (driverParams.mscrtlib.length > 6 &&
+                 driverParams.mscrtlib[0 .. 6] == "msvcrt" && isdigit(driverParams.mscrtlib[6]));
+            if (!isMingwRuntime)
                 vsopt.initialize();
 
             const(char)* linkcmd = getenv(target.isX86_64 ? "LINKCMD64" : "LINKCMD");
@@ -305,6 +308,11 @@ public int runLINK(bool verbose, ErrorSink eSink)
                 // lld-link is used here as a generic linker fallback; keep any detected
                 // VS/UCRT library paths so the Universal CRT can still be linked.
             }
+
+            // The UCRT-based MinGW fallback runtime links ucrtbase.lib via the object file's
+            // /DEFAULTLIB directive; it also needs the VC runtime library.
+            if (driverParams.mscrtlib == "ucrtbase")
+                cmdbuf.writestring(" vcruntime140.lib");
 
             if (const(char)* lflags = vsopt.linkOptions(target.isX86_64))
             {

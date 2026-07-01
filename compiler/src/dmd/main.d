@@ -1195,18 +1195,7 @@ void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_
                 VSOptions vsopt;
                 vsopt.initialize();
                 if (const rtlib = vsopt.defaultRuntimeLibrary(target.isX86_64))
-                {
                     driverParams.mscrtlib = rtlib.toDString;
-
-                    // @@@ Deprecated v2.117
-                    // Deprecated in 2.113
-                    // Remove this when the feature is removed from the language
-                    // The automatic MinGW (msvcrt120) fallback is selected only when no
-                    // UCRT-capable Visual C installation is found. Explicit selection via
-                    // `-mscrtlib=msvcrt120` is intentionally left without a warning.
-                    if (driverParams.mscrtlib == "msvcrt120")
-                        eSink.deprecation(Loc.initial, "no UCRT-capable Visual C installation was found; falling back on the deprecated MinGW runtime `msvcrt120`; install Visual Studio 2015 or later, or specify a runtime with `-mscrtlib`");
-                }
                 else
                 {
                     // No UCRT-capable Visual C installation (VS2015+ or the Windows SDK

@@ -85,7 +85,7 @@ extern(C++) struct VSOptions
      *   x64 = target architecture (x86 if false)
      * Returns:
      *   name of the default C runtime library, or null if no C runtime could be
-     *   detected (neither a UCRT-capable Visual C installation nor the deprecated
+     *   detected (neither a UCRT-capable Visual C installation nor the UCRT-based
      *   MinGW fallback libraries)
      */
     const(char)* defaultRuntimeLibrary(bool x64)
@@ -98,11 +98,11 @@ extern(C++) struct VSOptions
         if (getVCLibDir(x64))
             return "libcmt"; // UCRT-based static C runtime (VS2015+)
 
-        // Deprecated: fall back on the MinGW import libraries (msvcrt120) only when they
-        // are actually available on the LIB search path. This fallback is deprecated in
-        // favour of the Universal CRT and will be removed in a future release.
+        // Fall back on the UCRT-based libraries bundled in the MinGW folder shipped with
+        // DMD (ucrtbase.lib + vcruntime140.lib), but only when they are actually available
+        // on the LIB search path.
         if (getMingwLibPath())
-            return "msvcrt120";
+            return "ucrtbase";
 
         // No usable C runtime detected.
         return null;
@@ -410,11 +410,15 @@ private:
         if (VCToolsInstallDir is null && VCInstallDir)
         {
             const(char)* defverFile = FileName.combine(VCInstallDir, r"Auxiliary\Build\Microsoft.VCToolsVersion.default.txt");
-            if (!FileName.exists(defverFile)) // file renamed with VS2019 Preview 2
-                defverFile = FileName.combine(VCInstallDir, r"Auxiliary\Build\Microsoft.VCToolsVersion.v143.default.txt"); // VS2022
             if (!FileName.exists(defverFile))
-                defverFile = FileName.combine(VCInstallDir, r"Auxiliary\Build\Microsoft.VCToolsVersion.v142.default.txt"); // VS2019
-            if (FileName.exists(defverFile))
+            {
+                // The unversioned file was renamed with VS2019 Preview 2. Newer installs
+                // ship versioned files instead (e.g. Microsoft.VCToolsVersion.v142/v143/v145
+                // .default.txt); scan for them and pick the highest version.
+                const(char)* buildDir = FileName.combine(VCInstallDir, r"Auxiliary\Build");
+                defverFile = findLatestVCToolsDefaultFile(buildDir);
+            }
+            if (defverFile && FileName.exists(defverFile))
             {
                 // VS 2017
                 OutBuffer buf;
@@ -572,11 +576,11 @@ public:
     }
 
     /**
-     * Deprecated: get the path to the bundled MinGW import libraries, if present on
-     * the `LIB` search path. Used only as a last-resort fallback when no Windows SDK
-     * is detected; this fallback is deprecated in favour of the Universal CRT.
+     * Get the path to the UCRT-based libraries bundled in the MinGW folder shipped with
+     * DMD (e.g. ucrtbase.lib, vcruntime140.lib, kernel32.lib), if present on the `LIB`
+     * search path. Used as the fallback runtime when no Visual C installation is detected.
      * Returns:
-     *   folder containing the MinGW import libraries, or null
+     *   folder containing the MinGW libraries, or null
      */
     const(char)* getMingwLibPath() const
     {
@@ -621,7 +625,7 @@ public:
             }
         }
 
-        // Deprecated: try the bundled MinGW import libraries as a last resort.
+        // Fall back on the bundled MinGW libraries as a last resort.
         if (auto p = getMingwLibPath())
             return p;
 
@@ -678,6 +682,69 @@ extern(D):
             if (*a) ++a; // skip separator (typically '.')
             if (*b) ++b;
         }
+    }
+
+    // In the given `Auxiliary\Build` directory, find the
+    // `Microsoft.VCToolsVersion.vNNN.default.txt` file with the highest NNN and return
+    // its full path (allocated), or null if none is found.
+    static const(char)* findLatestVCToolsDefaultFile(const(char)* buildDir)
+    {
+        import dmd.common.smallbuffer : SmallBuffer, toWStringz;
+
+        enum prefix = "Microsoft.VCToolsVersion.v";
+        enum suffix = ".default.txt";
+
+        const(char)* pattern = FileName.combine(buildDir, prefix ~ "*" ~ suffix);
+        wchar[1024] support = void;
+        auto buf = SmallBuffer!wchar(support.length, support);
+        wchar* wpattern = toWStringz(pattern.toDString, buf).ptr;
+        FileName.free(pattern);
+
+        WIN32_FIND_DATAW fileinfo;
+        HANDLE h = FindFirstFileW(wpattern, &fileinfo);
+        if (h == INVALID_HANDLE_VALUE)
+            return null;
+
+        const dBuildDir = buildDir.toDString;
+
+        char* bestName;   // highest-versioned file name found so far
+        uint bestVer;
+        do
+        {
+            char[] name = toNarrowStringz(fileinfo.cFileName.ptr.toDString);
+            // parse the numeric version that follows the `...v` prefix
+            uint ver;
+            bool haveVer;
+            if (name.length > prefix.length && name[0 .. prefix.length] == prefix)
+            {
+                for (size_t i = prefix.length; i < name.length && name[i] >= '0' && name[i] <= '9'; ++i)
+                {
+                    ver = ver * 10 + cast(uint)(name[i] - '0');
+                    haveVer = true;
+                }
+            }
+            if (haveVer && (!bestName || ver > bestVer))
+            {
+                if (bestName)
+                    mem.xfree(bestName);
+                bestName = name.ptr;
+                bestVer = ver;
+            }
+            else
+                mem.xfree(name.ptr);
+        }
+        while (FindNextFileW(h, &fileinfo));
+
+        if (!FindClose(h) || !bestName)
+        {
+            if (bestName)
+                mem.xfree(bestName);
+            return null;
+        }
+
+        auto result = FileName.buildPath(dBuildDir, bestName.toDString);
+        mem.xfree(bestName);
+        return result.ptr;
     }
 
     // iterate through subdirectories named by SDK version in baseDir and return the

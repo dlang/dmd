@@ -728,12 +728,10 @@ dmd -cov -unittest myprog.d
             (release version with static linkage), which uses the Universal CRT (UCRT)
             shipped with Visual Studio 2015 (or later) and the Windows 10 SDK. The other
             usual alternatives are $(TT libcmtd), $(TT msvcrt) and $(TT msvcrtd).
-            $(B Deprecated:) if no Universal CRT capable Visual C installation is detected,
-            a wrapper for the redistributable VC2010 dynamic runtime library and mingw
-            based platform import libraries ($(TT msvcrt120)) is linked instead using the
-            LLD linker provided by the LLVM project. This fallback is deprecated and will
-            be removed in a future release; install Visual Studio 2015 or later, or the
-            Windows SDK with the Universal CRT.
+            If no Universal CRT capable Visual C installation is detected, the UCRT-based
+            libraries bundled with DMD (the mingw $(TT ucrtbase.lib) and
+            $(TT vcruntime140.lib)) are linked instead using the LLD linker provided by the
+            LLVM project.
             If $(I libname) is empty, no C runtime library is automatically linked in.",
             TargetOS.Windows,
         ),
