@@ -1170,6 +1170,14 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
                     // progress.
                     if (!nested || nested.minst || !nested.tempdecl)
                         continue;
+
+                    // Only fix instances with static ctors/dtors: if such an
+                    // instance remains speculative, its static ctor/dtor will
+                    // be skipped during codegen and never get a second chance
+                    // to be emitted (unlike regular functions, which can be
+                    // codegen'd when re-instantiated from a root module).
+                    if (!nested.hasStaticCtorOrDtor())
+                        continue;
                     if (auto enc = nested.tempdecl.isInstantiated())
                     {
                         if (enc.inst is tempinst.inst)
