@@ -826,7 +826,7 @@ $(H3 $(LNAME2 delegating-constructor, Delegating Constructors))
         $(I delegating constructor):
         )
 
-        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         struct S
         {
