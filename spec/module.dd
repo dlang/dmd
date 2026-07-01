@@ -4,11 +4,12 @@ $(SPEC_S Modules,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LNAME2 grammar, Grammar))
+
 $(GRAMMAR
 $(GNAME Module):
     $(GLINK ModuleDeclaration)
-    $(GLINK ModuleDeclaration) $(GLINK DeclDefs)
-    $(GLINK DeclDefs)
+    $(GLINK ModuleDeclaration)$(OPT) $(GLINK DeclDefs)
 
 $(GNAME DeclDefs):
     $(GLINK DeclDef)
@@ -16,49 +17,60 @@ $(GNAME DeclDefs):
 
 $(GNAME DeclDef):
     $(GLINK2 attribute, AttributeSpecifier)
+    $(GLINK2 declaration, AliasAssign)
     $(GLINK2 declaration, Declaration)
-    $(GLINK2 class, Constructor)
-    $(GLINK2 struct, NewDeclaration)
-    $(GLINK2 class, Destructor)
-    $(GLINK2 struct, Postblit)
-    $(GLINK2 class, Invariant)
+    $(GLINK AggregateMember)
     $(GLINK2 unittest, UnitTest)
-    $(GLINK2 class, AliasThis)
     $(GLINK2 class, StaticConstructor)
     $(GLINK2 class, StaticDestructor)
     $(GLINK2 class, SharedStaticConstructor)
     $(GLINK2 class, SharedStaticDestructor)
-    $(GLINK2 version, ConditionalDeclaration)
     $(GLINK2 version, DebugSpecification)
     $(GLINK2 version, VersionSpecification)
     $(GLINK MixinDeclaration)
     $(GLINK EmptyDeclaration)
 
+$(GNAME AggregateMember):
+    $(GLINK2 class, Constructor)
+    $(GLINK2 struct, NewDeclaration)
+    $(GLINK2 class, Destructor)
+    $(GLINK2 struct, Postblit)
+    $(GLINK2 class, Invariant)
+    $(GLINK2 class, AliasThis)
+
 $(GNAME EmptyDeclaration):
     $(D ;)
 )
+
+$(P A *Module* normally has one or more *DeclDef* declarations.)
+
+- $(GLINK2 declaration, Declaration) is the only *DeclDef* allowed as a
+  $(GLINK2 statement, Statement) in a function body.
+- *DeclDef* is also a member of $(DDSUBLINK spec/declaration, AggregateDeclaration,
+  aggregate type declarations) and templates.
+- *AggregateMember* is only semantically valid as an aggregate type member
+  (though it is syntactically valid outside of one).
+
+
+$(H2 $(LNAME2 overview, Overview))
 
 $(P Modules have a one-to-one correspondence with source files. When not
 explicitly set via a $(GLINK ModuleDeclaration), a module's name defaults
 to the name of the file stripped of its path and extension.)
 
 $(P A module's name automatically acts as a namespace scope for its contents. Modules
-superficially resemble classes, but differ in that:)
+superficially resemble $(DDLINK spec/struct, Structs and Unions, structs), but differ in that:)
 
 $(UL
         $(LI Only one instance of a module exists, and it is
         statically allocated.)
 
-        $(LI Modules do not have virtual tables.)
-
-        $(LI Modules do not inherit, do not have super modules, etc.)
-
         $(LI A source file may contain only one module.)
 
-        $(LI Symbols in a module can be imported.)
+        $(LI Symbols in a module can be $(RELATIVE_LINK2 import-declaration, imported).)
 
         $(LI Modules are always compiled at global scope and are unaffected
-        by surrounding attributes or other modifiers.)
+        by storage classes or other modifiers.)
 )
 
 $(P Modules can be grouped into hierarchies called $(I packages).)
@@ -181,9 +193,7 @@ import foo;  // Deprecated: module foo is deprecated - Please use foo2 instead.
 ---------
 
     $(IMPLEMENTATION_DEFINED
-    $(OL
-    $(LI How the deprecation messages are presented to the user.)
-    ))
+    How the deprecation messages are presented to the user.)
 
 
 $(H2 $(LEGACY_LNAME2 ImportDeclaration, import-declaration, Import Declaration))
@@ -230,10 +240,8 @@ qualified with whatever packages they are in. They are not considered to be
 relative to the module that imports them.)
 
     $(IMPLEMENTATION_DEFINED
-    $(OL
-    $(LI How the compiler resolves the package and module identifiers in an
+    How the compiler resolves the package and module identifiers in an
     import declaration to its corresponding source files.)
-    ))
 
 $(H3 $(LNAME2 name_lookup, Symbol Name Lookup))
 

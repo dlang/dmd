@@ -14,7 +14,6 @@ $(GNAME Declaration):
     $(GLINK2 function, FuncDeclaration)
     $(GLINK VarDeclarations)
     $(GLINK AliasDeclaration)
-    $(GLINK AliasAssign)
     $(GLINK AggregateDeclaration)
     $(GLINK2 enum, EnumDeclaration)
     $(GLINK2 module, ImportDeclaration)
@@ -25,7 +24,6 @@ $(GNAME Declaration):
     $(GLINK2 template-mixin, TemplateMixinDeclaration)
     $(GLINK2 template-mixin, TemplateMixin)
 )
-
 
 $(H3 $(LNAME2 aggregates, Aggregates))
 
