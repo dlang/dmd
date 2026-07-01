@@ -1147,6 +1147,25 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
             scope v = new InstMemberWalker(tempinst.inst);
             tempinst.inst.accept(v);
 
+            // If there are speculative nested template instances whose
+            // enclosing chain leads to this now-root instance, update
+            // their minst so they get a chance at codegen.
+            // https://issues.dlang.org/show_bug.cgi?id=23239
+            if (auto rootModule = tempinst.inst.minst)
+            {
+                foreach (i, ref s; *rootModule.members)
+                {
+                    auto nested = s.isTemplateInstance();
+                    if (!nested || nested.minst)
+                        continue;
+                    if (auto enc = nested.tempdecl.isInstantiated())
+                    {
+                        if (enc.inst is tempinst.inst)
+                            nested.minst = rootModule;
+                    }
+                }
+            }
+
             if (!global.params.allInst &&
                 tempinst.minst) // if inst was not speculative...
             {
