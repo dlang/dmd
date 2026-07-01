@@ -69,13 +69,15 @@ if not "%C_RUNTIME%" == "mingw" goto not_mingw
     7z x mingw.zip -o%DMD_DIR%\mingw || exit /B 14
     :mingw_exists
 
-    set DFLAGS=-mscrtlib=msvcrt120
+    rem -d silences the (intentional) deprecation warning for the msvcrt120/MinGW runtime,
+    rem which is kept until the MinGW path is removed
+    set DFLAGS=-d -mscrtlib=msvcrt120
     if "%MODEL%" == "32" (
         set LIB=%DMD_DIR%\mingw\dmd2\windows\lib32mscoff\mingw
     ) else (
         set LIB=%DMD_DIR%\mingw\dmd2\windows\lib%MODEL%\mingw
     )
-    set REQUIRED_ARGS=-mscrtlib=msvcrt120 "-L/LIBPATH:%LIB%"
+    set REQUIRED_ARGS=-d -mscrtlib=msvcrt120 "-L/LIBPATH:%LIB%"
     rem skip runnable_cxx tests (incompatible MSVC runtime versions - 2017 (cl.exe) vs. 2013)
     rem FIXME: unit_tests excluded too, see above
     set DMD_TESTS=runnable compilable fail_compilation dshell

@@ -725,13 +725,15 @@ dmd -cov -unittest myprog.d
             "If building MS-COFF object files when targeting Windows, embed a reference to
             the given C runtime library $(I libname) into the object file containing `main`,
             `DllMain` or `WinMain` for automatic linking. The default is $(TT libcmt)
-            (release version with static linkage), the other usual alternatives are
-            $(TT libcmtd), $(TT msvcrt) and $(TT msvcrtd).
-            If no Visual C installation is detected, a wrapper for the redistributable
-            VC2010 dynamic runtime library and mingw based platform import libraries will
-            be linked instead using the LLD linker provided by the LLVM project.
-            The detection can be skipped explicitly if $(TT msvcrt120) is specified as
-            $(I libname).
+            (release version with static linkage), which uses the Universal CRT (UCRT)
+            shipped with Visual Studio 2015 (or later) and the Windows 10 SDK. The other
+            usual alternatives are $(TT libcmtd), $(TT msvcrt) and $(TT msvcrtd).
+            $(B Deprecated:) if no Universal CRT capable Visual C installation is detected,
+            a wrapper for the redistributable VC2010 dynamic runtime library and mingw
+            based platform import libraries ($(TT msvcrt120)) is linked instead using the
+            LLD linker provided by the LLVM project. This fallback is deprecated and will
+            be removed in a future release; install Visual Studio 2015 or later, or the
+            Windows SDK with the Universal CRT.
             If $(I libname) is empty, no C runtime library is automatically linked in.",
             TargetOS.Windows,
         ),

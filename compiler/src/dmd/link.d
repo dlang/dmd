@@ -286,7 +286,8 @@ public int runLINK(bool verbose, ErrorSink eSink)
             }
 
             VSOptions vsopt;
-            // if a runtime library (msvcrtNNN.lib) from the mingw folder is selected explicitly, do not detect VS and use lld
+            // Deprecated: if a MinGW replacement runtime (msvcrtNNN.lib, e.g. msvcrt120)
+            // is selected explicitly, do not detect VS and use lld with the MinGW libraries.
             if (driverParams.mscrtlib.length <= 6 ||
                 driverParams.mscrtlib[0..6] != "msvcrt" || !isdigit(driverParams.mscrtlib[6]))
                 vsopt.initialize();
@@ -301,9 +302,8 @@ public int runLINK(bool verbose, ErrorSink eSink)
             {
                 // object files not SAFESEH compliant, but LLD is more picky than MS link
                 cmdbuf.writestring(" /SAFESEH:NO");
-                // if we are using LLD as a fallback, don't link to any VS libs even if
-                // we detected a VS installation and they are present
-                vsopt.uninitialize();
+                // lld-link is used here as a generic linker fallback; keep any detected
+                // VS/UCRT library paths so the Universal CRT can still be linked.
             }
 
             if (const(char)* lflags = vsopt.linkOptions(target.isX86_64))

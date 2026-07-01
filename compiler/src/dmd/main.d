@@ -1194,13 +1194,36 @@ void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_
             {
                 VSOptions vsopt;
                 vsopt.initialize();
-                driverParams.mscrtlib = vsopt.defaultRuntimeLibrary(target.isX86_64).toDString;
+                if (const rtlib = vsopt.defaultRuntimeLibrary(target.isX86_64))
+                    driverParams.mscrtlib = rtlib.toDString;
+                else
+                {
+                    // No UCRT-capable Visual C installation (VS2015+ or the Windows SDK
+                    // with the Universal CRT) and no MinGW fallback libraries were found.
+                    if (driverParams.link)
+                        eSink.error(Loc.initial, "no compatible C runtime found; install Visual Studio 2015 or later, or the Windows SDK with the Universal CRT, or specify the runtime with `-mscrtlib`");
+                    // still embed a name in the object file so it can be linked elsewhere
+                    driverParams.mscrtlib = "libcmt";
+                }
+
+                if (vsopt.usedDeprecatedVSVersion)
+                    eSink.deprecation(Loc.initial, "Visual Studio versions prior to 2015 are deprecated because they lack the Universal CRT (UCRT); install Visual Studio 2015 or later");
             }
             else
             {
                 if (driverParams.link)
                     eSink.error(Loc.initial, "must supply `-mscrtlib` manually when cross compiling to windows");
             }
+        }
+
+        // Deprecated: the MinGW replacement runtime (msvcrtNNN, e.g. msvcrt120) is not
+        // UCRT-based and is deprecated in favour of the Universal CRT.
+        if (driverParams.mscrtlib.length > 6 &&
+            driverParams.mscrtlib[0 .. 6] == "msvcrt" &&
+            driverParams.mscrtlib[6] >= '0' && driverParams.mscrtlib[6] <= '9')
+        {
+            eSink.deprecation(Loc.initial, "the `%.*s` C runtime is deprecated; use a UCRT-based runtime (e.g. `libcmt` or `msvcrt`) or install Visual Studio 2015 or later",
+                cast(int) driverParams.mscrtlib.length, driverParams.mscrtlib.ptr);
         }
     }
 
