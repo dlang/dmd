@@ -1206,6 +1206,9 @@ void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_
                     driverParams.mscrtlib = "libcmt";
                 }
 
+                // @@@ Deprecated v2.117
+                // Deprecated in 2.113
+                // Remove this when the feature is removed from the language
                 if (vsopt.usedDeprecatedVSVersion)
                     eSink.deprecation(Loc.initial, "Visual Studio versions prior to 2015 are deprecated because they lack the Universal CRT (UCRT); install Visual Studio 2015 or later");
             }
@@ -1216,6 +1219,9 @@ void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_
             }
         }
 
+        // @@@ Deprecated v2.117
+        // Deprecated in 2.113
+        // Remove this when the feature is removed from the language
         // Deprecated: the MinGW replacement runtime (msvcrtNNN, e.g. msvcrt120) is not
         // UCRT-based and is deprecated in favour of the Universal CRT.
         if (driverParams.mscrtlib.length > 6 &&
