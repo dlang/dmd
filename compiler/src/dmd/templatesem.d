@@ -1150,6 +1150,15 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
             // If there are speculative nested template instances whose
             // enclosing chain leads to this now-root instance, update
             // their minst so they get a chance at codegen.
+            //
+            // We can not use nested.tinst to find the enclosing instance,
+            // because StaticAssert::semantic2() sets sc.tinst = null
+            // before evaluating the condition, which causes nested
+            // instances to lose their tinst relationship.  Instead walk
+            // through nested.tempdecl.parent which reliably points to the
+            // outer TemplateInstance (the tempdecl is a copy placed inside
+            // the outer instance by arraySyntaxCopy).
+            //
             // https://issues.dlang.org/show_bug.cgi?id=23239
             if (auto rootModule = tempinst.inst.minst)
             {
