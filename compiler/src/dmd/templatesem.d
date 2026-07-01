@@ -1165,7 +1165,10 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
                 foreach (i, ref s; *rootModule.members)
                 {
                     auto nested = s.isTemplateInstance();
-                    if (!nested || nested.minst)
+                    // TemplateMixin also passes isTemplateInstance() but may
+                    // not have tempdecl set yet while semantic analysis is in
+                    // progress.
+                    if (!nested || nested.minst || !nested.tempdecl)
                         continue;
                     if (auto enc = nested.tempdecl.isInstantiated())
                     {
