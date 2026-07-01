@@ -1147,45 +1147,6 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
             scope v = new InstMemberWalker(tempinst.inst);
             tempinst.inst.accept(v);
 
-            // If there are speculative nested template instances whose
-            // enclosing chain leads to this now-root instance, update
-            // their minst so they get a chance at codegen.
-            //
-            // We can not use nested.tinst to find the enclosing instance,
-            // because StaticAssert::semantic2() sets sc.tinst = null
-            // before evaluating the condition, which causes nested
-            // instances to lose their tinst relationship.  Instead walk
-            // through nested.tempdecl.parent which reliably points to the
-            // outer TemplateInstance (the tempdecl is a copy placed inside
-            // the outer instance by arraySyntaxCopy).
-            //
-            // https://issues.dlang.org/show_bug.cgi?id=23239
-            if (auto rootModule = tempinst.inst.minst)
-            {
-                foreach (i, ref s; *rootModule.members)
-                {
-                    auto nested = s.isTemplateInstance();
-                    // TemplateMixin also passes isTemplateInstance() but may
-                    // not have tempdecl set yet while semantic analysis is in
-                    // progress.
-                    if (!nested || nested.minst || !nested.tempdecl)
-                        continue;
-
-                    // Only fix instances with static ctors/dtors: if such an
-                    // instance remains speculative, its static ctor/dtor will
-                    // be skipped during codegen and never get a second chance
-                    // to be emitted (unlike regular functions, which can be
-                    // codegen'd when re-instantiated from a root module).
-                    if (!nested.hasStaticCtorOrDtor())
-                        continue;
-                    if (auto enc = nested.tempdecl.isInstantiated())
-                    {
-                        if (enc.inst is tempinst.inst)
-                            nested.minst = rootModule;
-                    }
-                }
-            }
-
             if (!global.params.allInst &&
                 tempinst.minst) // if inst was not speculative...
             {
@@ -3399,6 +3360,21 @@ bool needsCodegen(TemplateInstance ti)
     if (ti.inst && ti.inst.name == Id._d_arrayliteralTX)
     {
         return true;
+    }
+
+    // A speculative instance that contains static ctors/dtors will
+    // lose them if we skip codegen.  Normally tinst propagates minst
+    // from parent to child, but tinst can be null when the instance
+    // was created inside StaticAssert (which clears sc.tinst).
+    // Walk the tempdecl parent chain as a fallback.
+    // https://issues.dlang.org/show_bug.cgi?id=23239
+    if (!ti.minst && ti.hasStaticCtorOrDtor() && ti.tempdecl)
+    {
+        if (auto enc = ti.tempdecl.isInstantiated())
+        {
+            if (enc.inst && enc.inst.needsCodegen())
+                ti.minst = enc.inst.minst;
+        }
     }
 
     if (global.params.allInst)
