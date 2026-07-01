@@ -33,7 +33,6 @@ import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.cv4;
 import dmd.backend.mem;
-import dmd.backend.el;
 import dmd.backend.mscoffobj;
 import dmd.backend.obj;
 import dmd.backend.oper;
@@ -262,16 +261,19 @@ void pdb_termfile(const(char)[] objfilename)
 
     // S_COMPILE3
     {
-        const ver = "DMD ";
-        size_t vlen = VERSION.length;
-        buf.write16(cast(int)(2 + 4 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + 2 + ver.length + vlen + 1));
+        // Honor the configured language/compiler instead of hardcoding it:
+        // emit the D language index unless the debug info was requested for
+        // non-DMD (Microsoft) debuggers (-gc sets CFG2gms), and report the
+        // actual compiler version string (dmd/ldc/gdc) via config._version.
+        const uint flags = config.flags2 & CFG2gms ? 0 : 'D'; // iLanguage in low byte
+        const(char)[] ver = config._version;
+        buf.write16(cast(int)(2 + 4 + 2 + 8 + 8 + ver.length + 1));
         buf.write16(S_COMPILE3);
-        buf.write32(0x00010044);                 // flags: language=D(0x44)<<8? language byte=0x44, rest 0
+        buf.write32(flags);
         buf.write16(I64 ? 0xD0 : 0x07);          // machine: AMD64 / x86
         buf.write16(0); buf.write16(0); buf.write16(0); buf.write16(0); // FE ver
         buf.write16(0); buf.write16(0); buf.write16(0); buf.write16(0); // BE ver
         buf.write(ver.ptr, cast(uint)ver.length);
-        buf.write(VERSION.ptr, cast(uint)vlen);
         buf.writeByte(0);
     }
 
@@ -399,7 +401,35 @@ void pdb_func_term(Symbol* sfunc)
     funcdata.write(&currentfuncdata, currentfuncdata.sizeof);
 
     assert(tyfunc(sfunc.ty()));
-    idx_t typidx = cv_typidx(sfunc.Stype);
+    idx_t typidx;
+    func_t* fn = sfunc.Sfunc;
+    if (fn.Fclass)
+    {
+        // Member functions get a dedicated LF_MFUNCTION_V2 type record that
+        // records the enclosing class and the `this` pointer type. This info
+        // isn't available inside cv4_typidx, so replicate cv8_func_term here.
+        uint nparam;
+        const ubyte call = cv4_callconv(sfunc.Stype);
+        const idx_t paramidx = cv4_arglist(sfunc.Stype, &nparam);
+        const uint next = cv4_typidx(sfunc.Stype.Tnext);
+        type* classtype = cast(type*)fn.Fclass;
+        const uint classidx = cv4_typidx(classtype);
+        type* tp = type_allocn(TYnptr, classtype);
+        const uint thisidx = cv4_typidx(tp);
+        debtyp_t* d = debtyp_alloc(2 + 4 + 4 + 4 + 1 + 1 + 2 + 4 + 4);
+        TOWORD(d.data.ptr, LF_MFUNCTION_V2);
+        TOLONG(d.data.ptr + 2, next);       // return type
+        TOLONG(d.data.ptr + 6, classidx);   // class type
+        TOLONG(d.data.ptr + 10, thisidx);   // this type
+        d.data.ptr[14] = call;
+        d.data.ptr[15] = 0;                 // reserved
+        TOWORD(d.data.ptr + 16, nparam);
+        TOLONG(d.data.ptr + 18, paramidx);
+        TOLONG(d.data.ptr + 22, 0);         // this adjust
+        typidx = cv_debtyp(d);
+    }
+    else
+        typidx = cv_typidx(sfunc.Stype);
 
     const(char)* id = sfunc.prettyIdent ? sfunc.prettyIdent : prettyident(sfunc);
     size_t len = strlen(id);
@@ -429,17 +459,30 @@ void pdb_func_term(Symbol* sfunc)
     buf.writen(id, len);
     buf.writeByte(0);
 
-    // S_FRAMEPROC
+    // S_FRAMEPROC: describe this function's stack frame
     {
-        buf.write16(2 + 4 + 4 + 4 + 4 + 4 + 4);
+        // Locals and parameters are addressed relative to the frame pointer
+        // (RBP/EBP), matching the S_REGREL32 records emitted for them; the
+        // CodeView "FramePtr" register encoding for that is 2.
+        uint frameflags = (2 << 14) | (2 << 16); // encoded local/param base ptr
+        if (cgstate.anyiasm)
+            frameflags |= 1 << 3;                // fHasInlAsm
+        if (cgstate.usednteh)
+            frameflags |= 1 << 4;                // fHasEH
+        if (config.flags2 & CFG2stomp)
+            frameflags |= 1 << 8;                // fSecurityChecks
+        if (config.flags4 & CFG4speed)
+            frameflags |= 1 << 20;               // fOptSpeed
+
+        buf.write16(2 + 4 + 4 + 4 + 4 + 4 + 2 + 4);
         buf.write16(S_FRAMEPROC);
-        buf.write32(cast(uint)cgstate.Auto.size);   // frame bytes
-        buf.write32(0);                             // pad
-        buf.write32(0);                             // pad offset
-        buf.write32(0);                             // SE callee saved
-        buf.write32(0);                             // exception handler off
-        // flags: encode RBP (2) as local & param base pointer for x64
-        buf.write32(I64 ? (2 << 14) | (2 << 16) : 0);
+        buf.write32(cast(uint)localsize);        // cbFrame: total frame size
+        buf.write32(0);                          // cbPad
+        buf.write32(0);                          // offPad
+        buf.write32(0);                          // cbSaveRegs
+        buf.write32(0);                          // offExHdlr
+        buf.write16(0);                          // sectExHdlr
+        buf.write32(frameflags);                 // flags
     }
 
     struct pdbblk
@@ -484,11 +527,9 @@ void pdb_func_term(Symbol* sfunc)
     }
     varStats_writeSymbolTable(sfunc, globsym, &pdb_outsym, &pdbblk.endArgs, &pdbblk.beginBlock, &pdbblk.endBlock);
 
-    // S_RETURN to mark the epilogue for "step out"
-    buf.write16(5);
-    buf.write16(S_RETURN);
-    buf.write16(0);            // CV_GENERIC_FLAG
-    buf.writeByte(0);          // CV_GENERIC_STYLE: void
+    // No S_RETURN record: its register list uses single-byte CodeView register
+    // codes, which cannot encode x64 return registers (e.g. CV_AMD64_RAX = 328).
+    // Both MSVC and cv8.d omit it, so a real record can't be produced here.
 
     buf.write16(2);
     buf.write16(S_END_PDB);
@@ -586,28 +627,64 @@ L1:
     length = cast(uint)F4_buf.length();
     p = F4_buf.buf;
     uint u = 0;
-    while (u + 8 <= length)
+    while (u + 6 <= length)
     {
         if (off == *cast(uint*)(p + u))
             return u;
-        u += 4;
-        ubyte cklen = *(p + u);
-        u += 4;
-        u += cklen;
-        u = (u + 3) & ~3;
+        u += 4;                     // file name offset
+        ubyte cklen = *(p + u);     // checksum size
+        u += 2;                     // skip size + kind bytes
+        u += cklen;                 // skip checksum bytes
+        u = (u + 3) & ~3;           // realign to 4
     }
 
-    // not present; append a full SHA256-slot checksum from blake3 (32 bytes)
+    // Not present; append a checksum computed over the source file's *content*
+    // (not over its name) so debuggers can verify the source matches.
     F4_buf.write32(off);
-    import dmd.common.blake3;
-    const hash = blake3((cast(ubyte*)filename)[0 .. len]);
-    F4_buf.writeByte(32);          // checksum size
-    F4_buf.writeByte(CHKSUM_SHA256);
-    F4_buf.write16(0);
-    F4_buf.write(hash.ptr, 32);
+    ubyte[32] hash = void;
+    if (pdb_filehash(filename, hash))
+    {
+        F4_buf.writeByte(32);              // checksum size
+        F4_buf.writeByte(CHKSUM_SHA256);   // 32-byte checksum slot
+        F4_buf.write(hash.ptr, 32);
+    }
+    else
+    {
+        F4_buf.writeByte(0);               // no checksum available
+        F4_buf.writeByte(CHKSUM_NONE);
+    }
     while (F4_buf.length() & 3)
         F4_buf.writeByte(0);
     return length;
+}
+
+/* Compute a blake3 hash over the *content* of the named source file.
+ * Returns: true on success (hash filled in), false if the file can't be read.
+ */
+private @trusted
+bool pdb_filehash(const(char)* filename, ref ubyte[32] hash)
+{
+    FILE* fp = fopen(filename, "rb");
+    if (!fp)
+        return false;
+    scope(exit) fclose(fp);
+
+    if (fseek(fp, 0, SEEK_END) != 0)
+        return false;
+    const long size = ftell(fp);
+    if (size < 0 || fseek(fp, 0, SEEK_SET) != 0)
+        return false;
+
+    ubyte* data = cast(ubyte*)malloc(size ? cast(size_t)size : 1);
+    if (!data)
+        return false;
+    scope(exit) free(data);
+
+    const size_t nread = fread(data, 1, cast(size_t)size, fp);
+
+    import dmd.common.blake3;
+    hash = blake3(data[0 .. nread]);
+    return true;
 }
 
 private @trusted
@@ -709,28 +786,6 @@ void pdb_outsym(Symbol* s)
         case SC.extern_:
             break;
 
-        case SC.typedef_:
-            // LF_ALIAS: a named typedef of an existing type
-            pdb_alias(id, typidx);
-            break;
-
-        case SC.const_:
-            // enum members and manifest constants
-            {
-                if (!s.Svalue)
-                    break;
-                uint val = cast(uint)el_tolong(s.Svalue);
-                buf.reserve(cast(uint)(2 + 2 + 4 + 2 + 4 + len + 1));
-                buf.write16n(cast(uint)(2 + 4 + 2 + 4 + len + 1));
-                buf.write16n(S_CONSTANT_V3);
-                buf.write32(typidx);
-                buf.write16n(0x8004);   // LF_ULONG numeric leaf
-                buf.write32(val);
-                pdb_writename(buf, id, len);
-                buf.writeByte(0);
-            }
-            break;
-
         case SC.static_:
         case SC.locstat:
             sr = S_LDATA32;
@@ -826,17 +881,6 @@ idx_t pdb_func_id(const(char)* id, idx_t functype)
     TOLONG(d.data.ptr + 2, 0);          // parent scope id
     TOLONG(d.data.ptr + 6, functype);
     cv_namestring(d.data.ptr + 10, id);
-    return cv_debtyp(d);
-}
-
-/* LF_ALIAS: a named typedef of an underlying type. */
-@trusted
-idx_t pdb_alias(const(char)* id, idx_t utype)
-{
-    debtyp_t* d = debtyp_alloc(2 + 4 + cv_stringbytes(id));
-    TOWORD(d.data.ptr, LF_ALIAS);
-    TOLONG(d.data.ptr + 2, utype);
-    cv_namestring(d.data.ptr + 6, id);
     return cv_debtyp(d);
 }
 
