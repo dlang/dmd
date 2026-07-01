@@ -1581,7 +1581,7 @@ auto sourceFiles()
             debugprint.d fp.d symbol.d dcode.d cgsched.d
             pdata.d util2.d backconfig.d rtlsym.d ptrntab.d
             dvarstats.d cgen.d barray.d cgcse.d elpicpie.d
-            dwarfeh.d dwarfdbginf.d cv8.d
+            dwarfeh.d dwarfdbginf.d cv8.d pdb.d
             machobj.d elfobj.d mscoffobj.d
             x86/nteh.d x86/cgreg.d x86/cg87.d x86/cgxmm.d x86/disasm86.d
             x86/cgcod.d x86/cod1.d x86/cod2.d x86/cod3.d x86/cod4.d x86/cod5.d

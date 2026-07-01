@@ -33,6 +33,7 @@ import dmd.backend.el;
 import dmd.backend.mscoffobj;
 import dmd.backend.obj;
 import dmd.backend.oper;
+import dmd.backend.pdb : pdb_udt;
 import dmd.common.outbuffer;
 import dmd.backend.rtlsym;
 import dmd.backend.symbol : globsym;
@@ -821,6 +822,11 @@ else
 void cv8_udt(const(char)* id, idx_t typidx)
 {
     //printf("cv8_udt('%s', %x)\n", id, typidx);
+    if (config.newpdb)
+    {
+        pdb_udt(id, typidx);
+        return;
+    }
     auto buf = currentfuncdata.f1buf;
     size_t len = strlen(id);
 

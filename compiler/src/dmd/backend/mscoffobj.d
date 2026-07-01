@@ -32,6 +32,7 @@ import dmd.backend.symbol : symbol_generate, symbol_name, symbol_print, symbol_r
 import dmd.backend.obj;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.pdb;
 
 import dmd.backend.mscoff;
 
@@ -355,7 +356,7 @@ Obj MsCoffObj_init(OutBuffer* objbuf, const(char)* filename, const(char)* csegna
     assert(SegData[UDATA].SDseg == UDATA);
 
     if (config.fulltypes)
-        cv8_initfile(filename);
+        config.newpdb ? pdb_initfile(filename) : cv8_initfile(filename);
     assert(objbuf.length() == 0);
     return obj;
 }
@@ -374,7 +375,7 @@ void MsCoffObj_initfile(const(char)* filename, const(char)* csegname, const(char
 {
     //dbg_printf("MsCoffObj_initfile(filename = %s, modname = %s)\n",filename,modname);
     if (config.fulltypes)
-        cv8_initmodule(filename, modname);
+        config.newpdb ? pdb_initmodule(filename, modname) : cv8_initmodule(filename, modname);
 }
 
 /************************************
@@ -615,7 +616,7 @@ void MsCoffObj_termfile()
     //dbg_printf("MsCoffObj_termfile\n");
     if (config.addlinenumbers)
     {
-        cv8_termmodule();
+        config.newpdb ? pdb_termmodule() : cv8_termmodule();
     }
 }
 
@@ -635,7 +636,7 @@ void MsCoffObj_term(const(char)[] objfilename)
 
     if (config.addlinenumbers)
     {
-        cv8_termfile(objfilename);
+        config.newpdb ? pdb_termfile(objfilename) : cv8_termfile(objfilename);
     }
 
     // To allow tooling support for most output files
@@ -1007,7 +1008,7 @@ void MsCoffObj_linnum(Srcpos srcpos, int seg, targ_size_t offset)
     if (srcpos.Slinnum == 0 || !srcpos.Sfilename)
         return;
 
-    cv8_linnum(srcpos, cast(uint)offset);
+    config.newpdb ? pdb_linnum(srcpos, cast(uint)offset) : cv8_linnum(srcpos, cast(uint)offset);
 }
 
 
@@ -1845,7 +1846,7 @@ void MsCoffObj_func_start(Symbol* sfunc)
     sfunc.Soffset = Offset(cseg);
 
     if (config.fulltypes)
-        cv8_func_start(sfunc);
+        config.newpdb ? pdb_func_start(sfunc) : cv8_func_start(sfunc);
 }
 
 /*******************************
@@ -1859,7 +1860,7 @@ void MsCoffObj_func_term(Symbol* sfunc)
 //          sfunc.Sident.ptr, sfunc.Soffset,Offset(cseg),sfunc.Sxtrnnum);
 
     if (config.fulltypes)
-        cv8_func_term(sfunc);
+        config.newpdb ? pdb_func_term(sfunc) : cv8_func_term(sfunc);
 }
 
 /********************************
