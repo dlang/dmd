@@ -7,6 +7,8 @@ Code generation,
 Codegen: function add, object.add
 Codegen: function uses, object.uses
 Codegen: module object, object
+DFA: add, object.add
+DFA: uses, object.uses
 Import object.object, object.object
 Inline: add, object.add
 Inline: uses, object.uses

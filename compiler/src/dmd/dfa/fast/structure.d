@@ -61,6 +61,7 @@ struct DFACommon
 
     int sdepth, edepth;
     FuncDeclaration currentFunction;
+    bool isCurrentFunctionClassConstructor;
 
     // Making these enum's instead of fields allows for significant performance gains
     enum debugIt = false;
@@ -94,7 +95,7 @@ struct DFACommon
 
             void prefix(const(char)* pre)
             {
-                printPrefix(ob, pre, sdepth, currentFunction, edepth);
+                printPrefix(ob, pre, sdepth, edepth);
             }
 
             del(ob, &prefix);
@@ -123,10 +124,32 @@ struct DFACommon
 
             void prefix(const(char)* pre)
             {
-                printPrefix(ob, pre, sdepth, currentFunction, edepth);
+                printPrefix(ob, pre, sdepth, edepth);
             }
 
             prefix("");
+            const prefixLength = ob.length;
+
+            del(ob, &prefix);
+
+            if (ob.length > prefixLength)
+                printf(ob.peekChars);
+
+            fflush(stdout);
+        }
+    }
+
+    void printIfState(scope void delegate(ref OutBuffer ob, scope PrintPrefixType prefix) del)
+    {
+        static if (debugIt)
+        {
+            OutBuffer ob;
+
+            void prefix(const(char)* pre)
+            {
+                printPrefix(ob, pre, sdepth, edepth);
+            }
+
             del(ob, &prefix);
 
             if (ob.length > 0)
@@ -152,13 +175,15 @@ struct DFACommon
 
             void prefix(const(char)* pre)
             {
-                printPrefix(ob, pre, sdepth, currentFunction, edepth);
+                printPrefix(ob, pre, sdepth, edepth);
             }
 
             prefix("");
+            const prefixLength = ob.length;
+
             del(ob, &prefix);
 
-            if (ob.length > 0)
+            if (ob.length > prefixLength)
                 printf(ob.peekChars);
 
             fflush(stdout);
@@ -293,6 +318,7 @@ struct DFACommon
             DFAVar* next = *bucket;
             *bucket = allocator.makeVar(null, null);
             (*bucket).haveInfiniteLifetime = a.haveInfiniteLifetime && b.haveInfiniteLifetime;
+            (*bucket).mayBeGlobal = a.mayBeGlobal || b.mayBeGlobal;
             (*bucket).next = next;
         }
 
@@ -309,6 +335,7 @@ struct DFACommon
             childOf.dereferenceVar = allocator.makeVar(null);
             childOf.dereferenceVar.base1 = childOf;
             childOf.dereferenceVar.haveInfiniteLifetime = childOf.haveInfiniteLifetime;
+            childOf.dereferenceVar.mayBeGlobal = childOf.mayBeGlobal;
         }
 
         return childOf.dereferenceVar;
@@ -325,6 +352,7 @@ struct DFACommon
             childOf.indexVar.base1 = childOf;
             childOf.indexVar.isAnIndex = true;
             childOf.indexVar.haveInfiniteLifetime = childOf.haveInfiniteLifetime;
+            childOf.indexVar.mayBeGlobal = childOf.mayBeGlobal;
         }
 
         return childOf.indexVar;
@@ -340,6 +368,7 @@ struct DFACommon
             childOf.asSliceVar = allocator.makeVar(null);
             childOf.asSliceVar.base1 = childOf;
             childOf.asSliceVar.haveInfiniteLifetime = childOf.haveInfiniteLifetime;
+            childOf.asSliceVar.mayBeGlobal = childOf.mayBeGlobal;
         }
 
         return childOf.asSliceVar;
@@ -354,8 +383,10 @@ struct DFACommon
         {
             childOf.lengthVar = allocator.makeVar(null);
             childOf.lengthVar.base1 = childOf;
+            childOf.lengthVar.isTruthy = true;
             childOf.lengthVar.isLength = true;
             childOf.lengthVar.haveInfiniteLifetime = childOf.haveInfiniteLifetime;
+            childOf.lengthVar.mayBeGlobal = childOf.mayBeGlobal;
         }
 
         return childOf.lengthVar;
@@ -380,10 +411,27 @@ struct DFACommon
         ret.base1 = childOf;
         ret.offsetFromBase = offset;
         ret.haveInfiniteLifetime = childOf.haveInfiniteLifetime;
+        ret.mayBeGlobal = childOf.mayBeGlobal;
 
         ret.next = *bucket;
         *bucket = ret;
         return ret;
+    }
+
+    DFAVar* findAddressOfVar(DFAVar* childOf)
+    {
+        if (childOf is null)
+            return null;
+
+        if (childOf.addressOfVar is null)
+        {
+            childOf.addressOfVar = allocator.makeVar(null);
+            childOf.addressOfVar.base1 = childOf;
+            childOf.addressOfVar.haveInfiniteLifetime = childOf.haveInfiniteLifetime;
+            childOf.addressOfVar.mayBeGlobal = childOf.mayBeGlobal;
+        }
+
+        return childOf.addressOfVar;
     }
 
     DFAScope* findScopeForControlStatement(Statement st)
@@ -653,6 +701,12 @@ struct DFACommon
 
         DFAObject* ret = allocator.makeObject;
         ret.storageFor = storageForVar;
+        ret.minimumDeclaredAtDepth = storageForVar.oldestLifeTimeAllowedDepth;
+
+        if (storageForVar.var is null
+                || (storageForVar.var.storage_class & (
+                    STC.static_ | STC.tls | STC.shared_ | STC.gshared)) == 0)
+            ret.onTheStack = storageForVar.oldestLifeTimeAllowedDepth > 0;
 
         storageForVar.storageFor = ret;
         return ret;
@@ -669,6 +723,63 @@ struct DFACommon
         DFAObject* ret = allocator.makeObject;
         ret.base1 = base1;
         ret.base2 = base2;
+
+        ret.onTheStack = (base1 !is null && base1.onTheStack) || (base2 !is null && base2
+                .onTheStack);
+
+        ret.minimumDeclaredAtDepth = -1;
+        if (base1 !is null && base1.minimumDeclaredAtDepth > -1)
+            ret.minimumDeclaredAtDepth = base1.minimumDeclaredAtDepth;
+        if (base2 !is null && base2.minimumDeclaredAtDepth > -1 && (ret.minimumDeclaredAtDepth == -1
+                || ret.minimumDeclaredAtDepth > base2.minimumDeclaredAtDepth))
+            ret.minimumDeclaredAtDepth = base2.minimumDeclaredAtDepth;
+
+        return ret;
+    }
+
+    DFAObject* makeInCellObject(DFAObject* cell)
+    {
+        DFAObject* ret = allocator.makeObject;
+
+        ret.inCell = cell;
+        ret.mayNotBeExactPointer = true;
+        ret.minimumDeclaredAtDepth = -1;
+
+        if (cell !is null)
+        {
+            ret.onTheStack = cell.onTheStack;
+
+            if (cell.minimumDeclaredAtDepth > -1)
+                ret.minimumDeclaredAtDepth = cell.minimumDeclaredAtDepth;
+        }
+        return ret;
+    }
+
+    DFAArgumentListRef makeArgumentListRef(size_t countArgs)
+    {
+        assert(countArgs >= 0);
+
+        const neededLists = (countArgs + 31) / 32;
+        DFAArgumentListRef ret;
+        DFAArgumentList* current;
+
+        foreach (_; 0 .. neededLists)
+        {
+            if (current is null)
+            {
+                current = allocator.makeArgumentList(&this);
+                ret.list = current;
+            }
+            else
+            {
+                current.listnext = allocator.makeArgumentList(&this);
+                current = current.listnext;
+            }
+
+            current.count = countArgs > 32 ? 32 : cast(ubyte) countArgs;
+            countArgs -= 32;
+        }
+
         return ret;
     }
 
@@ -682,7 +793,8 @@ struct DFACommon
 
     DFAScopeVar* swapLattice(DFAVar* contextVar, scope DFALatticeRef delegate(DFALatticeRef) dg)
     {
-        if (contextVar is null || this.currentDFAScope.depth < contextVar.declaredAtDepth)
+        if (contextVar is null || this.currentDFAScope.depth < contextVar
+                .oldestLifeTimeAllowedDepth)
             return null;
 
         DFAScopeVar* scv = this.acquireScopeVar(contextVar);
@@ -771,14 +883,14 @@ struct DFACommon
 
     DFAScopeVar* acquireScopeVar(DFAVar* var)
     {
-        if (var is null || this.currentDFAScope.depth < var.declaredAtDepth)
+        if (var is null || this.currentDFAScope.depth < var.oldestLifeTimeAllowedDepth)
             return null;
 
         DFAScope* sc;
         sc = this.currentDFAScope;
         DFAScopeVar* scv, ret;
 
-        while (sc !is null && sc.depth >= var.declaredAtDepth)
+        while (sc !is null && sc.depth >= var.oldestLifeTimeAllowedDepth)
         {
             if ((scv = sc.findScopeVar(var)) !is null)
                 break;
@@ -956,7 +1068,7 @@ struct DFAAllocator
         // 1mb for regions of memory
         //enum RegionAllocationStep = 1_048_576;
 
-        DFAVar* allocatedlistvar, allocatedlistlastvar;
+        DFAVar* allocatedlistvar, allocatedlistlastvar, allocatedlistStackVar;
         DFAObject* allocatedlistobject;
 
         // We use free lists to reuse memory, during our operation.
@@ -966,6 +1078,7 @@ struct DFAAllocator
         DFAScopeVar* freelistscopevar;
         DFAObject* freelistobject;
         DFAScope* freelistscope;
+        DFAArgumentList* freelistarglist;
         DFALattice* freelistlattice;
         DFAConsequence* freelistconsequence;
 
@@ -1056,7 +1169,15 @@ struct DFAAllocator
         ret.offsetFromBase = -1;
 
         if (vd !is null)
+        {
             applyType(ret, vd);
+
+            if (childOf is null)
+            {
+                ret.stacklistnext = allocatedlistStackVar;
+                allocatedlistStackVar = ret;
+            }
+        }
 
         if (childOf !is null)
         {
@@ -1102,6 +1223,13 @@ struct DFAAllocator
 
         ret.listnext = this.allocatedlistobject;
         this.allocatedlistobject = ret;
+        return ret;
+    }
+
+    DFAArgumentList* makeArgumentList(DFACommon* dfaCommon)
+    {
+        DFAArgumentList* ret = allocInternal!DFAArgumentList(freelistarglist);
+        ret.dfaCommon = dfaCommon;
         return ret;
     }
 
@@ -1202,6 +1330,18 @@ struct DFAAllocator
         freelistscope = s;
     }
 
+    void free(DFAArgumentList* list)
+    {
+        foreach (i; 0 .. list.count)
+        {
+            list.each[i].lr = DFALatticeRef.init;
+            list.each[i].paramInfo = null;
+        }
+
+        list.listnext = freelistarglist;
+        freelistarglist = list;
+    }
+
     void free(DFALattice* l)
     {
 
@@ -1239,6 +1379,17 @@ struct DFAAllocator
         {
             del(current);
             current = current.listnext;
+        }
+    }
+
+    void allStackVariables(scope void delegate(DFAVar* obj) del)
+    {
+        DFAVar* current = allocatedlistStackVar;
+
+        while (current !is null)
+        {
+            del(current);
+            current = current.stacklistnext;
         }
     }
 
@@ -1348,6 +1499,7 @@ struct DFAVar
     private
     {
         DFAVar* listnext;
+        DFAVar* stacklistnext;
         DFAVar* next;
         DFAVar*[16] childVars;
         DFAVar* childOffsetVars;
@@ -1359,6 +1511,8 @@ struct DFAVar
     DFAVar* indexVar;
     DFAVar* lengthVar;
     DFAVar* asSliceVar;
+    DFAVar* addressOfVar;
+    DFAVar* dereferenceVar; // child var
 
     VarDeclaration var;
     dinteger_t offsetFromBase; // -1 if its not an offset
@@ -1372,15 +1526,22 @@ struct DFAVar
     bool isBoolean;
     bool isStaticArray;
     bool isFloatingPoint;
+    bool isAA;
     bool isByRef;
+    bool isScope;
 
     bool haveInfiniteLifetime;
     bool wasDefaultInitialized; // may not be accurate for all variables
+    bool mayBeGlobal; // Var may map to one or more global variable declarations
+    bool isStackVar; // If this is a stack variable or something else
+    bool mayEscapeInitialValue; // The pointer may have escaped, cannot be allocated on stack.
+    bool mayEscapeWithoutIndirection; // Will this object directly escape?
+    bool mayEscapeWithIndirection; // Will a child pointer in this object escape?
 
-    int declaredAtDepth;
+    int oldestLifeTimeAllowedDepth; // Where destructors and storage are inherently limited
+    int youngestLifeTimeAllowedDepth; // Where the variable is actually defined
+
     int writeCount;
-
-    DFAVar* dereferenceVar; // child var
 
     bool unmodellable; // DO NOT REPORT!!!!
     bool doNotInferNonNull; // i.e. was the rhs of >
@@ -1393,6 +1554,20 @@ struct DFAVar
     bool haveBase()
     {
         return this.base1 !is null;
+    }
+
+    void markUnmodellable()
+    {
+        version (none)
+        {
+            if (this.var !is null)
+            {
+                if (this.var.ident.toString == "buf")
+                    assert(0);
+            }
+        }
+
+        this.unmodellable = true;
     }
 
     /// Finds the root variables for this one, where base1 is null
@@ -1452,29 +1627,6 @@ struct DFAVar
             del(this.base2);
     }
 
-    void visitDereferenceBases(scope void delegate(DFAVar* var) del)
-    {
-        void handle(DFAVar* var)
-        {
-            while (var.base2 is null && var.base1 !is null
-                    && (var.base1.dereferenceVar is var
-                        || (var.offsetFromBase != -1 && var.var is null)))
-            {
-                var = var.base1;
-            }
-
-            if (var.base2 !is null)
-            {
-                handle(var.base1);
-                handle(var.base2);
-            }
-            else
-                del(var);
-        }
-
-        handle(&this);
-    }
-
     /// If this variable is a reference to another variable, visit the base variable.
     void visitIfReferenceToAnotherVar(scope void delegate(DFAVar* var) del)
     {
@@ -1501,43 +1653,6 @@ struct DFAVar
             }
             else if (refed != 0)
                 del(var);
-        }
-
-        handle(&this, 0);
-    }
-
-    /// If this variable is a reference to another, takes into account dereferencing.
-    void visitReferenceToAnotherVar(scope void delegate(DFAVar* var) hasIndirection,
-            scope void delegate(DFAVar* var) noIndirection = null)
-    {
-        void handle(DFAVar* var, int refed)
-        {
-            while (var.base2 is null && var.base1 !is null)
-            {
-                if (var.offsetFromBase != -1 && var.var is null)
-                    refed++;
-                else if (var.base1.dereferenceVar is var)
-                    refed--;
-                else if (var.base1.indexVar is var)
-                    refed++;
-                else
-                    break;
-
-                var = var.base1;
-            }
-
-            if (var.base2 !is null)
-            {
-                handle(var.base1, refed);
-                handle(var.base2, refed);
-            }
-            else if (refed > 0)
-            {
-                if (hasIndirection !is null)
-                    hasIndirection(var);
-            }
-            else if (noIndirection !is null)
-                noIndirection(var);
         }
 
         handle(&this, 0);
@@ -1580,6 +1695,193 @@ struct DFAVar
         }
 
         handle(&this, 0);
+    }
+
+    void visitIndirectSources(scope void delegate(DFAVar* var, bool hadAnIndirection, bool hadAnOuterDeref,
+            bool takenAddressOf, bool hadFields, bool isOffsetOfStorage, ref bool unknown) del)
+    {
+        //&( base T
+        //   storage            = storage
+        //&( base T*
+        //   obj1               = storage
+        //&( base T[]
+        //   storage            = storage
+        //&( base T*[]
+        //   obj1               = obj1
+        //&( base T  . field T
+        //   storage   storage  = storage
+        //&( base T  . field T[]
+        //   storage   storage  = storage
+        //&( base T* . field T
+        //   obj1      obj1     = obj1
+        //&( base T* . field T[]
+        //   obj1      obj1     = obj1
+        //&( base T* . field T*
+        //   obj1      obj2     = obj1
+        //&( base T* . field T*[]
+        //   obj1      obj2     = obj2
+        //&( base T* . field T* . field T
+        //   obj1      obj2       obj2       = obj2
+
+        bool unknown;
+
+        void findStorage(DFAVar* var, int derefCount, int indirectCount,
+                bool takenAddressOf, int fieldResolve, int isOffsetOfStorage)
+        {
+            if (unknown)
+                return;
+
+            while (var !is null)
+            {
+                version (none)
+                {
+                    printf("finding storage for %p\n", var);
+                }
+
+                if (var.offsetFromBase != -1)
+                {
+                    if (var.isNullable)
+                    {
+                        indirectCount++;
+                        isOffsetOfStorage = 0;
+                    }
+
+                    if (indirectCount == 0)
+                        fieldResolve++;
+                    else if (indirectCount == 0)
+                        isOffsetOfStorage++;
+                }
+
+                if (var.base1 !is null)
+                {
+                    if (var.base1.indexVar is var && indirectCount == 0)
+                        isOffsetOfStorage++;
+                    else if (var.base1 !is null && (var.base1.addressOfVar is var
+                            || var.base1.asSliceVar is var))
+                    {
+                        // a.b[] is equivalent to &a.b so we want to find storage of a.b aka a
+                        takenAddressOf = true;
+                    }
+                }
+
+                if (var.base2 !is null)
+                {
+                    findStorage(var.base2, derefCount, indirectCount,
+                            takenAddressOf, fieldResolve, isOffsetOfStorage);
+                    findStorage(var.base1, derefCount, indirectCount,
+                            takenAddressOf, fieldResolve, isOffsetOfStorage);
+                    return;
+                }
+
+                if (var.base1 is null)
+                    break;
+                var = var.base1;
+            }
+
+            // If we've reached here, we have skipped over any combiners base1+base2,
+            //  and we've got ourselves a real variable/offset on to one.
+
+            if (var is null)
+                return;
+
+            version (none)
+            {
+                printf("Found a storage var %p\n", var);
+            }
+
+            del(var, indirectCount > 0, derefCount > 0, takenAddressOf,
+                    fieldResolve > 0, isOffsetOfStorage > 0, unknown);
+        }
+
+        void findOffset(DFAVar* var, int derefCount, int fieldResolve, int isOffsetOfStorage)
+        {
+            bool foundTakeAddressOf;
+
+            while (var !is null)
+            {
+                version (none)
+                {
+                    printf("seeing offset var %p offsetFromBase %lld isNullable %d\n",
+                            var, var.offsetFromBase, var.isNullable);
+
+                    if (var.base1 !is null)
+                        printf("    base1 %p, asSliceVar=%p/%d, indexVar=%p/%d\n", var.base1, var.base1.asSliceVar,
+                                var.base1.asSliceVar is var, var.base1.indexVar,
+                                var.base1.indexVar is var);
+                    if (var.var !is null)
+                        printf("    var ident %s\n", var.var.ident !is null
+                                ? var.var.ident.toChars : null);
+                }
+
+                if (var.offsetFromBase != -1)
+                {
+                    fieldResolve++;
+
+                    if (var.isNullable)
+                    {
+                        // found some kind of offset that is an indirection i.e.
+                        //&( base T* . field T*
+                        //   obj1      obj2     = obj1
+                        var = var.base1;
+                        isOffsetOfStorage = 0;
+                        break;
+                    }
+                    else if (var.offsetFromBase > 0)
+                        isOffsetOfStorage++;
+                }
+
+                if (var.base1 !is null)
+                {
+                    if (var.base1.indexVar is var)
+                    {
+                        // var[0] is equivalent to doing *var
+                        isOffsetOfStorage++;
+                        derefCount++;
+                        break;
+                    }
+                    else if (var.base1.dereferenceVar is var)
+                    {
+                        derefCount++;
+                        break;
+                    }
+                    else if (var.base1 !is null && (var.base1.addressOfVar is var
+                            || var.base1.asSliceVar is var))
+                    {
+                        // a.b[] is equivalent to &a.b so we want to find storage of a.b aka a
+                        foundTakeAddressOf = true;
+                        var = var.base1;
+                        break;
+                    }
+                }
+
+                if (var.base2 !is null)
+                {
+                    findOffset(var.base2, derefCount, fieldResolve, isOffsetOfStorage);
+                    findOffset(var.base1, derefCount, fieldResolve, isOffsetOfStorage);
+                    return;
+                }
+
+                if (var.base1 is null)
+                    break;
+                var = var.base1;
+            }
+
+            // If we've reached here, we have skipped over any combiners base1+base2,
+            //  and we've got ourselves a real variable/offset on to one.
+
+            if (var is null)
+                return;
+
+            version (none)
+            {
+                printf("got offset var %p foundTakenAddressOf %d fieldResolve %d\n",
+                        var, foundTakeAddressOf, fieldResolve);
+            }
+
+            findStorage(var, derefCount, 0, foundTakeAddressOf, fieldResolve, isOffsetOfStorage);
+        }
+
+        findOffset(&this, 0, 0, 0);
     }
 
     bool isModellable()
@@ -1654,11 +1956,39 @@ struct DFAObject
 
     DFAVar* storageFor;
 
+    // The scope variable that applied minimumDeclaredAtDepth
+    // onTheStack stores if its the cell lifetime, otherwise its probably for a parameter.
+    DFAVar* constrainedBy;
+
+    // This object is derived from a pointer, specifically foo in: &foo.bar.dar
+    DFAObject* derivedFrom;
+
+    // This is in the following cell i.e. pointer to array member or pointer to variable
+    DFAObject* inCell;
+
+    // Having a base means it could be one of these.
+    // We do not know which one object specifically this will have at runtime.
     DFAObject* base1;
     DFAObject* base2;
 
+    // Helper, stores the minimum derivedAtDepth value between the bases, derivedFrom and storageFor, -1 for not set
+    int minimumDeclaredAtDepth;
+
     // Pointer arithmetic may mean this object isn't 1:1 with the object start.
     bool mayNotBeExactPointer;
+
+    // If we were allocated just to be able to track a variable
+    bool defaultTrackObj;
+
+    // Do we point to one or more stack variables storages
+    bool onTheStack;
+
+    // The user understands the lifetime requirements for this object.
+    // Delay errors in case they actually don't.
+    bool lifeTimeUnderstood;
+
+    // This object has escaped, but we're going to delay any error until it has been read.
+    bool delayOnReadErrorOfEscape;
 
     void walkRoots(scope void delegate(DFAObject* root) del)
     {
@@ -1673,6 +2003,111 @@ struct DFAObject
         }
 
         del(obj);
+    }
+
+    void walk(scope bool delegate(DFAObject* root) del)
+    {
+        DFAObject* obj = &this;
+
+        while (obj.base1 !is null)
+        {
+            if (!del(obj))
+                return;
+
+            if (obj.base2 !is null)
+                obj.base2.walk(del);
+
+            obj = obj.base1;
+        }
+
+        del(obj);
+    }
+
+    void walkIndirection(scope void delegate(DFAObject* root, bool hadAnIndirection, bool haveConstraintOnLifeTime,
+            bool inCell) findRootsDel, scope void delegate(DFAObject* constrained,
+            bool hadAnIndirection, bool haveConstraintOnLifeTime) findConstraintsDel)
+    {
+        void findRoots(DFAObject* current, int indirectCount,
+                int constrainedMinimumLifetime, bool inCell)
+        {
+            while (current.base1 !is null || current.derivedFrom !is null)
+            {
+                if (current.constrainedBy !is null
+                        && current.constrainedBy.oldestLifeTimeAllowedDepth
+                        > constrainedMinimumLifetime)
+                    constrainedMinimumLifetime = current.constrainedBy.oldestLifeTimeAllowedDepth;
+
+                if (current.derivedFrom !is null)
+                {
+                    if (current.base1 !is null)
+                        findRoots(current.derivedFrom, indirectCount + 1,
+                                constrainedMinimumLifetime, inCell);
+                    else
+                    {
+                        current = current.derivedFrom;
+                        indirectCount++;
+                        continue;
+                    }
+                }
+
+                if (current.inCell !is null)
+                    findRoots(current.inCell, 0, constrainedMinimumLifetime, true);
+
+                if (current.base2 !is null)
+                    findRoots(current.base2, indirectCount, constrainedMinimumLifetime, inCell);
+
+                current = current.base1;
+            }
+
+            if (current.inCell !is null)
+                findRoots(current.inCell, 0, constrainedMinimumLifetime, true);
+            else
+                findRootsDel(current, indirectCount > 0,
+                        constrainedMinimumLifetime >= 0, inCell && indirectCount == 0);
+        }
+
+        void findConstraints(DFAObject* current, int indirectCount, int constrainedMinimumLifetime)
+        {
+            while (current.base1 !is null || current.derivedFrom !is null)
+            {
+                if (current.constrainedBy !is null)
+                {
+                    findConstraintsDel(current, indirectCount > 0, constrainedMinimumLifetime >= 0);
+
+                    if (
+                        current.constrainedBy.oldestLifeTimeAllowedDepth
+                            > constrainedMinimumLifetime)
+                        constrainedMinimumLifetime = current.constrainedBy
+                            .oldestLifeTimeAllowedDepth;
+                }
+
+                if (current.derivedFrom !is null)
+                {
+                    if (current.base1 !is null)
+                        findConstraints(current.derivedFrom, indirectCount + 1,
+                                constrainedMinimumLifetime);
+                    else
+                    {
+                        current = current.derivedFrom;
+                        indirectCount++;
+                        continue;
+                    }
+                }
+
+                if (current.inCell !is null)
+                    findConstraints(current.inCell, 0, constrainedMinimumLifetime);
+
+                if (current.base2 !is null)
+                    findConstraints(current.base2, indirectCount, constrainedMinimumLifetime);
+
+                current = current.base1;
+            }
+        }
+
+        if (findRootsDel !is null)
+            findRoots(&this, 0, -1, false);
+        if (findConstraintsDel !is null)
+            findConstraints(&this, 0, -1);
     }
 }
 
@@ -1701,6 +2136,20 @@ struct DFAScopeRef
     bool isNull()
     {
         return sc is null;
+    }
+
+    uint controlFlowJumped()
+    {
+        if (isNull)
+            return 0;
+        return sc.controlFlow & DFAScope.ControlFlow.HaveJumped;
+    }
+
+    uint controlFlowReturned()
+    {
+        if (isNull)
+            return 0;
+        return sc.controlFlow & DFAScope.ControlFlow.HaveReturned;
     }
 
     DFAScopeVar* findScopeVar(DFAVar* contextVar)
@@ -1776,31 +2225,28 @@ struct DFAScopeRef
         return ret;
     }
 
-    void printStructure(const(char)* prefix = "", int sdepth = 0,
-            FuncDeclaration currentFunction = null, int depth = 0)
+    void printStructure(const(char)* prefix = "", int sdepth = 0, int depth = 0)
     {
         if (this.isNull)
             return;
 
-        this.sc.printStructure(prefix, sdepth, currentFunction, depth);
+        this.sc.printStructure(prefix, sdepth, depth);
     }
 
-    void printState(const(char)* prefix = "", int sdepth = 0,
-            FuncDeclaration currentFunction = null, int depth = 0)
+    void printState(const(char)* prefix = "", int sdepth = 0, int depth = 0)
     {
         if (this.isNull)
             return;
 
-        this.sc.printState(prefix, sdepth, currentFunction, depth);
+        this.sc.printState(prefix, sdepth, depth);
     }
 
-    void printActual(const(char)* prefix = "", int sdepth = 0,
-            FuncDeclaration currentFunction = null, int depth = 0)
+    void printActual(const(char)* prefix = "", int sdepth = 0, int depth = 0)
     {
         if (this.isNull)
             return;
 
-        this.sc.printActual(prefix, sdepth, currentFunction, depth);
+        this.sc.printActual(prefix, sdepth, depth);
     }
 
     int opApply(scope int delegate(DFALattice*) dg)
@@ -1866,8 +2312,7 @@ struct DFAScope
     DFAScopeVar*[16] buckets;
     int depth;
 
-    bool haveJumped; // thrown, goto, break, continue, return
-    bool haveReturned;
+    uint controlFlow;
     bool isLoopyLabel; // Is a loop or label
     bool isLoopyLabelKnownToHaveRun; // was the loopy label guaranteed to have at least one iteration?
     bool inConditional;
@@ -1882,6 +2327,32 @@ struct DFAScope
     TryFinallyStatement tryFinallyStatement;
 
     DFAScopeRef beforeScopeState, afterScopeState;
+
+    /// What control flow has occured on this scope
+    enum ControlFlow : uint
+    {
+        Unknown = 0x00,
+        Thrown = 0x01,
+        Goto = 0x02,
+        Break = 0x04,
+        Continue = 0x08,
+        Return = 0x10,
+        EndOfFunction = 0x20,
+        NoReturn = 0x40,
+
+        HaveJumped = Thrown | Goto | Break | Continue | Return | EndOfFunction | NoReturn,
+        HaveReturned = Thrown | Return | EndOfFunction | NoReturn,
+    }
+
+    bool controlFlowReturned()
+    {
+        return (this.controlFlow & ControlFlow.HaveReturned) > 0;
+    }
+
+    bool controlFlowJumped()
+    {
+        return (this.controlFlow & ControlFlow.HaveJumped) > 0;
+    }
 
     DFALattice* findLattice(DFAVar* contextVar)
     {
@@ -1983,9 +2454,6 @@ struct DFAScope
 
     DFAScopeVar* assignLattice(DFAVar* contextVar, DFALatticeRef lr)
     {
-        if (lr.isNull)
-            return null;
-
         DFAScopeVar** bucket = &this.buckets[cast(size_t) contextVar % this.buckets.length];
 
         while (*bucket !is null && (*bucket).var < contextVar)
@@ -2007,30 +2475,44 @@ struct DFAScope
         return scv;
     }
 
-    void printStructure(const(char)* prefix = "", int sdepth = 0,
-            FuncDeclaration currentFunction = null, int depth = 0)
+    void printStructure(const(char)* prefix = "", int sdepth = 0, int depth = 0)
     {
         static if (!this.dfaCommon.debugStructure)
             return;
         else
-            printActual(prefix, sdepth, currentFunction, depth);
+            printActual(prefix, sdepth, depth);
     }
 
-    void printState(const(char)* prefix = "", int sdepth = 0,
-            FuncDeclaration currentFunction = null, int depth = 0)
+    void printState(const(char)* prefix = "", int sdepth = 0, int depth = 0)
     {
         static if (!this.dfaCommon.debugIt)
             return;
         else
-            printActual(prefix, sdepth, currentFunction, depth);
+            printActual(prefix, sdepth, depth);
     }
 
-    void printActual(const(char)* prefix = "", int sdepth = 0,
-            FuncDeclaration currentFunction = null, int depth = 0)
+    void printActual(const(char)* prefix = "", int sdepth = 0, int depth = 0)
     {
-        printPrefix("%s Scope", sdepth, currentFunction, depth, prefix);
-        printf(" %p depth=%d, completed=%d:%d", &this, this.depth,
-                this.haveReturned, this.haveJumped);
+        printPrefix("%s Scope", sdepth, depth, prefix);
+        printf(" %p depth=%d", &this, this.depth);
+
+        {
+            printf(", controlFlow=(");
+
+            uint printedCFI;
+            foreach (cf; __traits(allMembers, ControlFlow))
+            {
+                if ((__traits(getMember, ControlFlow, cf) & this.controlFlow) > 0)
+                {
+                    if (printedCFI++ == 0)
+                        printf("%s", cf.ptr);
+                    else
+                        printf(" %s", cf.ptr);
+                }
+            }
+
+            printf(")");
+        }
 
         if (this.label !is null)
             printf(", label=`%s`\n", this.label.ident.toChars);
@@ -2039,24 +2521,25 @@ struct DFAScope
 
         if (!this.beforeScopeState.isNull)
         {
-            printPrefix("%s before scope state:\n", sdepth, currentFunction, depth, prefix);
-            this.beforeScopeState.sc.printActual(prefix, sdepth, currentFunction, depth + 1);
+            printPrefix("%s before scope state:\n", sdepth, depth, prefix);
+            this.beforeScopeState.sc.printActual(prefix, sdepth, depth + 1);
         }
 
         if (!this.afterScopeState.isNull)
         {
-            printPrefix("%s after scope state:\n", sdepth, currentFunction, depth, prefix);
-            this.afterScopeState.sc.printActual(prefix, sdepth, currentFunction, depth + 1);
+            printPrefix("%s after scope state:\n", sdepth, depth, prefix);
+            this.afterScopeState.sc.printActual(prefix, sdepth, depth + 1);
         }
 
-        printPrefix("%s scv's:\n", sdepth, currentFunction, depth, prefix);
+        printPrefix("%s scv's:\n", sdepth, depth, prefix);
         foreach (contextVar, l, scv; this)
         {
-            printPrefix("%s on %p", sdepth, currentFunction, depth + 1, prefix, contextVar);
+            printPrefix("%s on %p", sdepth, depth + 1, prefix, contextVar);
 
             if (contextVar !is null)
             {
-                printf(";%d", contextVar.declaredAtDepth);
+                printf(";%d<%d", contextVar.oldestLifeTimeAllowedDepth,
+                        contextVar.youngestLifeTimeAllowedDepth);
 
                 if (contextVar.base1 !is null)
                     printf(":%p", contextVar.base1);
@@ -2076,14 +2559,14 @@ struct DFAScope
 
             if (this.isLoopyLabel)
             {
-                printPrefix("%s  predicate:\n", sdepth, currentFunction, depth, prefix);
-                scv.lrGatePredicate.printActual(prefix, sdepth, currentFunction, depth + 1);
-                printPrefix("%s !predicate:\n", sdepth, currentFunction, depth, prefix);
-                scv.lrGateNegatedPredicate.printActual(prefix, sdepth, currentFunction, depth + 1);
+                printPrefix("%s  predicate:\n", sdepth, depth, prefix);
+                scv.lrGatePredicate.printActual(prefix, sdepth, depth + 1);
+                printPrefix("%s !predicate:\n", sdepth, depth, prefix);
+                scv.lrGateNegatedPredicate.printActual(prefix, sdepth, depth + 1);
             }
 
-            printPrefix("%s lattice:\n", sdepth, currentFunction, depth, prefix);
-            l.printActual(prefix, sdepth, currentFunction, depth + 1);
+            printPrefix("%s lattice:\n", sdepth, depth, prefix);
+            l.printActual(prefix, sdepth, depth + 1);
         }
     }
 
@@ -2179,6 +2662,90 @@ struct DFAScope
         }
 
         return ret;
+    }
+}
+
+struct DFAArgumentListRef
+{
+    package DFAArgumentList* list;
+
+    static if (DFACleanup)
+    {
+        this(ref DFAArgumentListRef other)
+        {
+            this.list = other.list;
+            other.list = null;
+        }
+
+        ~this()
+        {
+            DFAArgumentList* current;
+
+            while (this.list !is null)
+            {
+                current = this.list;
+                this.list = current.listnext;
+
+                current.dfaCommon.allocator.free(current);
+            }
+        }
+    }
+
+    bool isNull()
+    {
+        return list is null;
+    }
+
+    DFAArgumentList.Each* opIndex(size_t i)
+    {
+        DFAArgumentList* current = this.list;
+
+        while (current !is null)
+        {
+            if (i < current.count)
+                return &current.each[i];
+
+            i -= current.count;
+            current = current.listnext;
+        }
+
+        return null;
+    }
+
+    int opApply(scope int delegate(ubyte, DFAArgumentList*) del)
+    {
+        DFAArgumentList* current = this.list;
+
+        while (current !is null)
+        {
+            foreach (i; 0 .. current.count)
+            {
+                const got = del(cast(ubyte) i, current);
+                if (got)
+                    return got;
+            }
+
+            current = current.listnext;
+        }
+
+        return 0;
+    }
+}
+
+struct DFAArgumentList
+{
+    DFAArgumentList* listnext;
+    DFACommon* dfaCommon;
+
+    Each[32] each;
+    ParameterDFAInfo[32] infoBuffer;
+
+    ubyte count;
+
+    struct Each
+    {
+        DFALatticeRef lr;
+        ParameterDFAInfo* paramInfo;
     }
 }
 
@@ -2302,6 +2869,14 @@ struct DFALatticeRef
         return this.lattice.context.var;
     }
 
+    DFAObject* getContextObject()
+    {
+        if (isNull)
+            return null;
+        else
+            return lattice.context.obj;
+    }
+
     DFAConsequence* setContext(DFAConsequence* c)
     {
         if (c is null)
@@ -2394,28 +2969,25 @@ struct DFALatticeRef
         return this.lattice.opApply(dg);
     }
 
-    void printStructure(const(char)* prefix = "", int sdepth = 0,
-            FuncDeclaration currentFunction = null, int depth = 0)
+    void printStructure(const(char)* prefix = "", int sdepth = 0, int depth = 0)
     {
         if (this.isNull)
             return;
-        this.lattice.printStructure(prefix, sdepth, currentFunction, depth);
+        this.lattice.printStructure(prefix, sdepth, depth);
     }
 
-    void printState(const(char)* prefix = "", int sdepth = 0,
-            FuncDeclaration currentFunction = null, int depth = 0)
+    void printState(const(char)* prefix = "", int sdepth = 0, int depth = 0)
     {
         if (this.isNull)
             return;
-        this.lattice.printState(prefix, sdepth, currentFunction, depth);
+        this.lattice.printState(prefix, sdepth, depth);
     }
 
-    void printActual(const(char)* prefix = "", int sdepth = 0,
-            FuncDeclaration currentFunction = null, int depth = 0)
+    void printActual(const(char)* prefix = "", int sdepth = 0, int depth = 0)
     {
         if (this.isNull)
             return;
-        this.lattice.printActual(prefix, sdepth, currentFunction, depth);
+        this.lattice.printActual(prefix, sdepth, depth);
     }
 
     DFALatticeRef copy()
@@ -2580,33 +3152,34 @@ struct DFALattice
         }
     }
 
-    void printStructure(const(char)* prefix = "", int sdepth = 0,
-            FuncDeclaration currentFunction = null, int depth = 0)
+    void printStructure(const(char)* prefix = "", int sdepth = 0, int depth = 0)
     {
         static if (!dfaCommon.debugStructure)
             return;
         else
-            printActual(prefix, sdepth, currentFunction, depth);
+            printActual(prefix, sdepth, depth);
     }
 
-    void printState(const(char)* prefix = "", int sdepth = 0,
-            FuncDeclaration currentFunction = null, int depth = 0)
+    void printState(const(char)* prefix = "", int sdepth = 0, int depth = 0)
     {
         static if (!dfaCommon.debugIt)
             return;
         else
-            printActual(prefix, sdepth, currentFunction, depth);
+            printActual(prefix, sdepth, depth);
     }
 
-    private void printActual(const(char)* prefix = "", int sdepth = 0,
-            FuncDeclaration currentFunction = null, int depth = 0)
+    private void printActual(const(char)* prefix = "", int sdepth = 0, int depth = 0)
     {
-        printPrefix("%s Lattice:\n", sdepth, currentFunction, depth, prefix);
+        bool gotOne;
 
         foreach (consequence; this)
         {
-            consequence.print(prefix, sdepth, currentFunction, depth, consequence is this.context);
+            consequence.print(prefix, sdepth, depth, consequence is this.context);
+            gotOne = true;
         }
+
+        if (!gotOne)
+            printPrefix("%s Lattice empty\n", sdepth, depth, prefix);
     }
 
     int opApply(scope int delegate(DFAConsequence* consequence) dg)
@@ -2855,6 +3428,16 @@ struct DFAPAValue
             return this;
         else
             return other;
+    }
+
+    Truthiness truthiness()
+    {
+        if (this.kind == Kind.UnknownUpperPositive)
+            return Truthiness.True;
+        else if (this.kind == Kind.Concrete || this.kind == Kind.Lower)
+            return this.value > 0 ? Truthiness.True : Truthiness.False;
+        else
+            return Truthiness.Unknown;
     }
 
     bool canFitIn(Type type)
@@ -3750,7 +4333,9 @@ struct DFAConsequence
         this.obj = other.obj;
     }
 
-    void meetConsequence(DFAConsequence* c1, DFAConsequence* c2, bool couldScopeNotHaveRan = false)
+    void meetConsequence(DFAConsequence* c1, DFAConsequence* c2,
+            bool couldScopeNotHaveRan = false, bool ignoreWriteCount = false,
+            bool preferUnknown = false)
     {
         void doOne(DFAConsequence* c)
         {
@@ -3791,19 +4376,13 @@ struct DFAConsequence
 
             this.pa = couldScopeNotHaveRan ? DFAPAValue.Unknown : c1.pa.meet(c2.pa);
 
-            if (this.var is null || this.var.isTruthy)
-            {
-                this.truthiness = (couldScopeNotHaveRan && c1.truthiness != c2.truthiness)
-                    ? Truthiness.Unknown : (c1.truthiness < c2.truthiness
-                            ? c1.truthiness : c2.truthiness);
-                if (this.truthiness == Truthiness.Maybe)
-                    this.truthiness = Truthiness.Unknown;
-            }
-
             if (this.var is null || this.var.isNullable)
             {
-                this.nullable = (couldScopeNotHaveRan && c1.nullable != c2.nullable)
-                    ? Nullable.Unknown : (c1.nullable < c2.nullable ? c1.nullable : c2.nullable);
+                if (preferUnknown)
+                    this.nullable = (c1.nullable != c2.nullable) ? Nullable.Unknown : c1.nullable;
+                else
+                    this.nullable = (couldScopeNotHaveRan && c1.nullable != c2.nullable)
+                        ? Nullable.Unknown : (c1.nullable < c2.nullable ? c1.nullable : c2.nullable);
 
                 if (c1.obj !is null || c2.obj !is null)
                 {
@@ -3813,6 +4392,25 @@ struct DFAConsequence
                         this.obj = c1.obj !is null ? c1.obj : c2.obj;
                 }
             }
+
+            if (this.var is null || this.var.isBoolean)
+            {
+                if (preferUnknown)
+                    this.truthiness = (c1.truthiness != c2.truthiness)
+                        ? Truthiness.Unknown : c1.truthiness;
+                else
+                    this.truthiness = (couldScopeNotHaveRan && c1.truthiness != c2.truthiness)
+                        ? Truthiness.Unknown : (c1.truthiness < c2.truthiness
+                                ? c1.truthiness : c2.truthiness);
+
+                if (this.truthiness == Truthiness.Maybe)
+                    this.truthiness = Truthiness.Unknown;
+            }
+            else if (this.var.isNullable)
+                this.truthiness = this.nullable == Nullable.NonNull ? Truthiness.True
+                    : (this.nullable == Nullable.Null ? Truthiness.False : Truthiness.Unknown);
+            else if (this.var.isTruthy)
+                this.truthiness = this.pa.truthiness;
         }
 
         const writeCount = this.var.writeCount;
@@ -3824,11 +4422,12 @@ struct DFAConsequence
                     c2 !is null ? c2.var : null);
             printf("  writeCount=%d/%d:%d\n", writeCount,
                     c1.writeOnVarAtThisPoint, c2 !is null ? c2.writeOnVarAtThisPoint : -1);
-            printf("  couldScopeNotHaveRan=%d\n", couldScopeNotHaveRan);
+            printf("  couldScopeNotHaveRan=%d, ignoreWriteCount=%d, preferUnknown=%d\n",
+                    couldScopeNotHaveRan, ignoreWriteCount, preferUnknown);
             fflush(stdout);
         }
 
-        if (c2 is null || c2.writeOnVarAtThisPoint < writeCount)
+        if (c2 is null || (!ignoreWriteCount && c2.writeOnVarAtThisPoint < writeCount))
             doOne(c1);
         else
             doMulti;
@@ -3952,24 +4551,22 @@ struct DFAConsequence
         }
     }
 
-    void print(const(char)* prefix = "", int sdepth = 0,
-            FuncDeclaration currentFunction = null, int depth = 0, bool context = false)
+    void print(const(char)* prefix = "", int sdepth = 0, int depth = 0, bool context = false)
     {
         static immutable TruthinessStr = [
             "unkno".ptr, "maybe".ptr, "false".ptr, " true".ptr
         ];
         static immutable NullableStr = ["unkno".ptr, " null".ptr, "!null".ptr];
 
-        printPrefix(" %s%s ", sdepth, currentFunction, depth, context ? "+".ptr : " ".ptr, prefix);
-        printf("%p: ", &this);
+        printPrefix(" %s%s ", sdepth, depth, context ? "+".ptr : " ".ptr, prefix);
+        printf("%08p: ", this.var);
         printf("truthiness=%s, nullable=%s, write=%d, ", TruthinessStr[this.truthiness],
                 NullableStr[this.nullable], this.writeOnVarAtThisPoint);
         printf("maybe=%p:%d, protectElseNegate=%d, invertedOnce=%d ", maybe,
                 maybeTopSeen, protectElseNegate, invertedOnce);
-        printf("previous=%p, next=%p, pa=%03d/%lld", this.previous, this.next,
-                this.pa.kind, this.pa.value);
+        printf("previous=%p, next=%p, pa=%03d/%lld, obj=%p ", this.previous,
+                this.next, this.pa.kind, this.pa.value, this.obj);
 
-        printf(", %p", this.var);
         if (this.var !is null)
         {
             printf("=%d:%lld:b/%p/%p", this.var.assertedCount,
@@ -3979,7 +4576,6 @@ struct DFAConsequence
                 printf("@%p=`%s`", this.var.var, this.var.var.toChars);
         }
 
-        printf(", obj=%p", this.obj);
         printf("\n", this.var);
     }
 }
@@ -3994,24 +4590,30 @@ void applyType(DFAVar* var, VarDeclaration vd)
     var.isBoolean = vd.type.ty == Tbool;
     var.isFloatingPoint = vd.type.isTypeBasic !is null
         && (vd.type.isTypeBasic.flags & TFlags.floating) != 0;
+    var.isAA = vd.type.ty == Taarray;
+
+    // don't trust DIP1000's scope infering on variables, we'll do our own equivalent behavior that is more dynamic.
+    var.isScope = (vd.storage_class & STC.scope_) != 0 && (vd.storage_class & STC.scopeinferred) == 0;
+
+    var.isByRef = (vd.storage_class & STC.ref_) == STC.ref_;
 
     // Unfortunately isDataseg can have very undesirable side effects that kill compilation,
     //  even if it shouldn't when this is ran.
     if (vd.parent !is null && vd.parent.isFuncDeclaration)
     {
-        // make sure the parent of this variable is a function, if it isn't then we can't model it.
-        if (!(vd.canTakeAddressOf
-                && (vd.storage_class & (STC.static_ | STC.extern_ | STC.gshared)) == 0))
-            var.unmodellable = true;
+        // Make sure the parent of this variable is a function, if it isn't then we can't model it.
+        var.isStackVar = vd.canTakeAddressOf
+            && (vd.storage_class & (STC.static_ | STC.extern_ | STC.gshared)) == 0;
     }
     else
-        var.unmodellable = true;
+        var.isStackVar = false;
+
+    var.unmodellable = !var.isStackVar;
 }
 
-void printPrefix(Args...)(ref OutBuffer ob, const(char)* prefix, int sdepth,
-        FuncDeclaration currentFunction, int edepth, Args args)
+void printPrefix(Args...)(ref OutBuffer ob, const(char)* prefix, int sdepth, int edepth, Args args)
 {
-    ob.printf("%.*s[%p]", sdepth, PrintPipeText.ptr, currentFunction);
+    ob.printf("%.*s", sdepth, PrintPipeText.ptr);
 
     if (edepth == 0)
         ob.write(">");
@@ -4021,10 +4623,9 @@ void printPrefix(Args...)(ref OutBuffer ob, const(char)* prefix, int sdepth,
     ob.printf(prefix, args);
 }
 
-void printPrefix(Args...)(const(char)* prefix, int sdepth,
-        FuncDeclaration currentFunction, int edepth, Args args)
+void printPrefix(Args...)(const(char)* prefix, int sdepth, int edepth, Args args)
 {
-    printf("%.*s[%p]", sdepth, PrintPipeText.ptr, currentFunction);
+    printf("%.*s", sdepth, PrintPipeText.ptr);
 
     if (edepth == 0)
         printf(">");

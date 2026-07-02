@@ -2183,6 +2183,7 @@ extern (C++) final class TypeTag : Type
 extern (C++) struct ParameterList
 {
     /// The raw (unexpanded) formal parameters, possibly containing tuples.
+    /// If you are wanting to inspect the parameters, do not iterate on parameters field, use opApply.
     Parameters* parameters;
     STC stc;                   // storage class of ...
     VarArg varargs = VarArg.none;

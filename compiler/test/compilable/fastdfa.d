@@ -2,6 +2,32 @@
  * REQUIRED_ARGS: -preview=fastdfa
  */
 
+struct S1
+{
+    S2 s2;
+}
+
+struct S2
+{
+    int field;
+}
+
+struct S3
+{
+    S2* s2;
+}
+
+struct S4
+{
+    int* field;
+}
+
+struct S5
+{
+    S5* next;
+    S5* another;
+}
+
 void typeNextIterate(Type t)
 {
     Type ts;
@@ -69,6 +95,86 @@ void pickPtr(bool condition)
     int* ptr = condition ? &i1 : &i2;
 }
 
+void uninitInitStruct()
+{
+    S1 s = void;
+    s.s2 = S2(); // ok, may init
+}
+
+void uninitFieldWillInit()
+{
+    S2 s = void;
+    s.field = 2; // ok
+}
+
+void uninitTakePointer()
+{
+    int var = void;
+    int* ptr = &var; // ok
+}
+
+void uninitBufferTakePointer1()
+{
+    char[64] buf = void;
+    char* ptr = buf.ptr; // ok
+}
+
+void uninitBufferTakePointer2()
+{
+    char[64] buf = void;
+    char* ptr = &buf[0]; // ok
+}
+
+void pointerToUninitBufferCall()
+{
+    void toCall(ubyte*)
+    {
+    }
+
+    ubyte[64] buf = void;
+    ubyte* ptr = buf.ptr;
+
+    toCall(ptr);
+}
+
+void uninitPointerArithmetic()
+{
+    ubyte[16] result = void;
+    auto p2 = cast(ulong*)((cast(void*)&result) + 8); // ok
+}
+
+void escapeCleanupRequiredNoRead()
+{
+    struct S
+    {
+        ~this()
+        {
+        }
+    }
+
+    S* ptr;
+
+    {
+        S buf;
+        ptr = &buf;
+        buf.__xdtor;
+    } // ok
+}
+
+void escapeToGlobalSystem1()
+{
+    __gshared int* ptr;
+    int var;
+
+    ptr = &var; // ok
+}
+
+void nullPtrVarDerefOuter()
+{
+    int* ptr;
+    *(&ptr) = new int;
+}
+
 @safe:
 
 bool isNull1(int* ptr)
@@ -115,12 +221,12 @@ int* nullable1(int* ptr)
     return ret;
 }
 
-void nullable2a(S2* head, S2* previous)
+void nullable2a(S5* head, S5* previous)
 {
-    S2* start;
+    S5* start;
 
     {
-        S2* current;
+        S5* current;
 
         if (start is null)
         {
@@ -137,10 +243,10 @@ void nullable2a(S2* head, S2* previous)
     }
 }
 
-void nullable2b(S2* start, S2* head, S2* previous)
+void nullable2b(S5* start, S5* head, S5* previous)
 {
     {
-        S2* current;
+        S5* current;
 
         if (start is null)
         {
@@ -157,7 +263,7 @@ void nullable2b(S2* start, S2* head, S2* previous)
     }
 }
 
-void nullable3(S2** nextParent, S2* r)
+void nullable3(S5** nextParent, S5* r)
 {
     if (*nextParent is null)
         *nextParent = r; // should not error
@@ -168,7 +274,7 @@ void nullable4(int* temp) @trusted
     int buffer;
 
     if (temp is null)
-        temp = &buffer;
+        temp = &buffer; // okay, same loopy label lifetime
 
     int v = *temp; // should not error
 }
@@ -182,18 +288,28 @@ void truthiness1()
     bool b = !a, c = a != false, d = a == false;
 }
 
-struct S1
+void theSitchFinally1()
 {
-    int* field;
+    {
+        goto Label;
+    } // have jumped
+
+    {
+        Label: // don't know that we consumed the jump
+    }
+
+    // \/ ignored
+
+    int* ptr;
+
+    scope (exit)
+        int vS = *ptr; // ok
+
+    int vMid = *ptr; // ok
+    truthinessNo;
 }
 
-struct S2
-{
-    S2* next;
-    S2* another;
-}
-
-void trackS1(S1 s)
+void trackS1(S4 s)
 {
     bool b = s.field !is null;
 }
@@ -389,7 +505,7 @@ void rotateForChildren(void** parent)
         return;
 }
 
-void removeValue(S2* valueNode)
+void removeValue(S5* valueNode)
 {
     if (valueNode.another !is null)
         valueNode.next.next = valueNode.next;
@@ -1120,4 +1236,35 @@ void checkFloatInit5() {
     if (float var = thing) {
         float t = var * 2;
     }
+}
+
+ubyte[] copySliceAssign1(ubyte[] input)
+{
+    ubyte[] output = new ubyte[input.length];
+    return output[] = input[];
+} // ok
+
+ubyte[][] copySliceAssign2(ubyte[] input)
+{
+    ubyte[][] output = new ubyte[][input.length];
+    return output[] = input;
+} // ok
+
+void branchMayNull(S2 cond)
+{
+    int* ptr;
+
+    if (cond.field == 2)
+        ptr = new int;
+    else
+        ptr = null;
+
+    if (cond.field == 2)
+        int val = *ptr;
+}
+
+void unsafeThrowOfStack1()
+{
+    scope string myText = "hi";
+    throw new Exception(myText); // ok, constructor for Exception is not annotated
 }

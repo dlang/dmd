@@ -8,6 +8,9 @@ Codegen: function cube, object.cube
 Codegen: function square, object.square
 Codegen: function uses, object.uses
 Codegen: module object, object
+DFA: cube, object.cube
+DFA: square, object.square
+DFA: uses, object.uses
 Import object.object, object.object
 Inline: cube, object.cube
 Inline: uses, object.uses
