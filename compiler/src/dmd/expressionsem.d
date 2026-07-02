@@ -5887,7 +5887,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 arguments.push(makeTemplateItem(Id.InterpolatedExpression, str));
                 const parseErrors = global.errors;
-                const bool doUnittests = global.params.parsingUnittestsRequired();
+                const bool doUnittests = global.params.parsingUnittestsRequired(sc._module.isRoot);
                 auto exprSl = SourceLoc(e.interpolatedSet.locs[idx]);
                 scope p = new Parser!ASTCodegen(sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
                 p.baseLoc.startLine = exprSl.line;
@@ -9406,7 +9406,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         const errors = global.errors;
         const len = buf.length;
         const str = buf.extractChars()[0 .. len];
-        const bool doUnittests = global.params.parsingUnittestsRequired();
+        const bool doUnittests = global.params.parsingUnittestsRequired(sc._module.isRoot);
         scope p = new Parser!ASTCodegen(sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
         adjustLocForMixin(str, exp.loc, *p.baseLoc, global.params.mixinOut);
         p.linnum = p.baseLoc.startLine;
