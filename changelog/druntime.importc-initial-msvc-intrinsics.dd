@@ -1,0 +1,19 @@
+ImportC implements the vast majority of MSVC's intrinsics: 451 of them to be exact.
+
+ImportC now implements the vast majority of MSVC's intrinsics: 451 of them to be exact.
+All but three of the intrinsics [listed here](https://web.archive.org/web/20240412171516/https://learn.microsoft.com/en-ie/cpp/intrinsics/alphabetical-listing-of-intrinsic-functions?view=msvc-170) are implemented, alongside a handful of undocumented intrinsics, accompanied by a smattering of ISA-specific intrinsics.
+
+The presence of these intrinsics greatly improves ImportC's ability to successfully import C headers when targeting Windows.
+Notably, `Windows.h` can now be successfully included by ImportC.
+
+To make use of MSVC intrinsics in ImportC, simply `#include` the `importc_msvc_builtins.h` header before any C code that uses MSVC intrinsics:
+```c
+#include &lt;importc_msvc_builtins.h&gt;
+#include &lt;windows.h&gt;
+```
+MSVC intrinsics are available when targeting the Microsoft C runtime (that is, when the `CRuntime_Microsoft` version identifier is defined).
+
+Every intrinsic implemented has received optimised code for LDC, GDC, and DMD.
+Each intrinsic, where possible, has a CTFE-compatible code path.
+
+(Owing to the newness of DMD's AArch64 backend, MSVC intrinsics have not yet been implemented for DMD AArch64 targets. They have been implemented for LDC and GDC AArch64 targets.)
