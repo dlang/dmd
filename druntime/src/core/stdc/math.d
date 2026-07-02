@@ -802,6 +802,7 @@ else version (CRuntime_WASI)
         // __builtin_signbit
         // Uses LLVM IR to access i128 ops directly
         // approximately: cast(cent)val < 0
+        import ldc.llvmasm : __ir_pure;
         bool signbit(real val) pure => __ir_pure!(`
             %cast = bitcast fp128 %0 to i128
             %cmp = icmp slt i128 %cast, 0
