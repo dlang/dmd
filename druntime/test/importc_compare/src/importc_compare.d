@@ -28,6 +28,10 @@ immutable string[] growingTypes = [
 // List of problems, which are known and should only be treated as
 // warnings for now.
 immutable ErrorFilter[] knownProblems = [
+    // ImportC now translates the C library's `complex` alias macro, which on Windows resolves
+    // to a `{ double; double; }` struct, while druntime's `complex` is an alias of `creal`.
+    // The representations genuinely differ, so this is an expected difference.
+    ErrorFilter("core.stdc.complex.complex", "", "Windows", 0, "https://github.com/dlang/dmd/issues/23143"),
     ErrorFilter("core.stdc.config.c_long_double", "", "Windows", 32, ""),
     ErrorFilter("core.stdc.config.c_complex_real", "", "Windows", 32, ""), // complex real is two long doubles so same for x86 Windows
     ErrorFilter("core.stdc.config.__c_complex_real", "", "Windows", 32, ""),
