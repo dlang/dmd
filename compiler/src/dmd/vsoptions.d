@@ -12,7 +12,6 @@
 module dmd.vsoptions;
 
 version (Windows):
-import core.stdc.ctype;
 import core.stdc.stdlib;
 import core.stdc.string;
 import core.stdc.wchar_;
@@ -21,7 +20,6 @@ import core.sys.windows.windef;
 import core.sys.windows.winreg;
 
 import dmd.root.env;
-import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
@@ -400,7 +398,7 @@ private:
     }
 
     /**
-     * detect VCToolsInstallDir from environment or registry (only used by VC 2017)
+     * detect VCToolsInstallDir from environment or by enumerating VC\Tools\MSVC (VS2017+)
      */
     void detectVCToolsInstallDir()
     {
@@ -409,33 +407,14 @@ private:
 
         if (VCToolsInstallDir is null && VCInstallDir)
         {
-            const(char)* defverFile = FileName.combine(VCInstallDir, r"Auxiliary\Build\Microsoft.VCToolsVersion.default.txt");
-            if (!FileName.exists(defverFile))
+            // VS2017+ install the toolchain under VC\Tools\MSVC\<version> (e.g. 14.44.35207).
+            // Enumerate that folder directly and pick the highest version that ships the
+            // compiler headers, instead of parsing the Microsoft.VCToolsVersion.*.default.txt files.
+            const(char)* msvcDir = FileName.combine(VCInstallDir, r"Tools\MSVC");
+            if (auto ver = findLatestSDKDir(msvcDir, r"include\vcruntime.h"))
             {
-                // The unversioned file was renamed with VS2019 Preview 2. Newer installs
-                // ship versioned files instead (e.g. Microsoft.VCToolsVersion.v142/v143/v145
-                // .default.txt); scan for them and pick the highest version.
-                const(char)* buildDir = FileName.combine(VCInstallDir, r"Auxiliary\Build");
-                defverFile = findLatestVCToolsDefaultFile(buildDir);
-            }
-            if (defverFile && FileName.exists(defverFile))
-            {
-                // VS 2017
-                OutBuffer buf;
-                if (File.read(defverFile.toDString, buf)) // read file into buf
-                    return; // failed to read the file
-
-                auto ver = cast(char*)buf.extractSlice(true).ptr;
-                // trim version number
-                while (*ver && isspace(*ver))
-                    ver++;
-                auto p = ver;
-                while (*p == '.' || (*p >= '0' && *p <= '9'))
-                    p++;
-                *p = 0;
-
-                if (ver && *ver)
-                    VCToolsInstallDir = FileName.buildPath(VCInstallDir.toDString, r"Tools\MSVC", ver.toDString).ptr;
+                VCToolsInstallDir = FileName.buildPath(msvcDir.toDString, ver.toDString).ptr;
+                mem.xfree(cast(void*)ver);
             }
         }
     }
@@ -682,69 +661,6 @@ extern(D):
             if (*a) ++a; // skip separator (typically '.')
             if (*b) ++b;
         }
-    }
-
-    // In the given `Auxiliary\Build` directory, find the
-    // `Microsoft.VCToolsVersion.vNNN.default.txt` file with the highest NNN and return
-    // its full path (allocated), or null if none is found.
-    static const(char)* findLatestVCToolsDefaultFile(const(char)* buildDir)
-    {
-        import dmd.common.smallbuffer : SmallBuffer, toWStringz;
-
-        enum prefix = "Microsoft.VCToolsVersion.v";
-        enum suffix = ".default.txt";
-
-        const(char)* pattern = FileName.combine(buildDir, prefix ~ "*" ~ suffix);
-        wchar[1024] support = void;
-        auto buf = SmallBuffer!wchar(support.length, support);
-        wchar* wpattern = toWStringz(pattern.toDString, buf).ptr;
-        FileName.free(pattern);
-
-        WIN32_FIND_DATAW fileinfo;
-        HANDLE h = FindFirstFileW(wpattern, &fileinfo);
-        if (h == INVALID_HANDLE_VALUE)
-            return null;
-
-        const dBuildDir = buildDir.toDString;
-
-        char* bestName;   // highest-versioned file name found so far
-        uint bestVer;
-        do
-        {
-            char[] name = toNarrowStringz(fileinfo.cFileName.ptr.toDString);
-            // parse the numeric version that follows the `...v` prefix
-            uint ver;
-            bool haveVer;
-            if (name.length > prefix.length && name[0 .. prefix.length] == prefix)
-            {
-                for (size_t i = prefix.length; i < name.length && name[i] >= '0' && name[i] <= '9'; ++i)
-                {
-                    ver = ver * 10 + cast(uint)(name[i] - '0');
-                    haveVer = true;
-                }
-            }
-            if (haveVer && (!bestName || ver > bestVer))
-            {
-                if (bestName)
-                    mem.xfree(bestName);
-                bestName = name.ptr;
-                bestVer = ver;
-            }
-            else
-                mem.xfree(name.ptr);
-        }
-        while (FindNextFileW(h, &fileinfo));
-
-        if (!FindClose(h) || !bestName)
-        {
-            if (bestName)
-                mem.xfree(bestName);
-            return null;
-        }
-
-        auto result = FileName.buildPath(dBuildDir, bestName.toDString);
-        mem.xfree(bestName);
-        return result.ptr;
     }
 
     // iterate through subdirectories named by SDK version in baseDir and return the
