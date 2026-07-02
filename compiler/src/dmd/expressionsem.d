@@ -7349,7 +7349,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             symtab = sds.symtab;
         }
         assert(symtab);
-        Identifier id = Identifier.generateIdWithLoc(s, exp.loc, cast(const void*) sc.parent);
+        // The same source location can be lowered to a function literal more
+        // than once - e.g. an inherited `in`/`out` contract
+        Identifier id = symtab.uniqueName(Identifier.generateIdWithLoc(s, exp.loc, sc.idCounter));
         exp.fd.ident = id;
         if (exp.td)
             exp.td.ident = id;
