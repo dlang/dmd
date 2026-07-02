@@ -145,10 +145,7 @@ else version (WASI)
 {
     // No real threading support
     // Just manipulations of the main "thread"
-
-    import core.stdc.errno : EINTR, errno;
     import core.stdc.stdlib : free, malloc, realloc;
-    import core.sys.wasi.posix.time : nanosleep, timespec;
 }
 else
     static assert(0, "unsupported operating system");

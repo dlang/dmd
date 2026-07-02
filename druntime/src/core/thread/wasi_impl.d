@@ -25,7 +25,6 @@ version (WASI):
 // Just manipulations of the main "thread"
 
 import core.stdc.errno : EINTR, errno;
-import core.stdc.stdlib : free, malloc, realloc;
 import core.sys.wasi.posix.time : nanosleep, timespec;
 
 version (CoreDdoc) {} else
