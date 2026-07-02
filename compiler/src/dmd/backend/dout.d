@@ -1038,6 +1038,10 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
                                         // generate new code segment
         }
         cod3_align(cseg);               // align start of function
+        if (config.patchableFunctionEntryPrefix > 0)
+        {
+            write_nops(cseg, config.patchableFunctionEntryPrefix);
+        }
         objmod.func_start(sfunc);
     }
 
@@ -1146,6 +1150,30 @@ Ldone:
 
     //printf("done with writefunc()\n");
     //dfo.dtor();       // save allocation for next time
+}
+
+@trusted private nothrow
+void write_nops(int seg, size_t numNops)
+{
+    if (config.target_cpu == TARGET_AArch64)
+    {
+        foreach (i; 0 .. numNops)
+        {
+            // https://developer.arm.com/documentation/ddi0602/2026-03/Base-Instructions/NOP--No-operation-?lang=en
+            objmod.write_byte(SegData[seg], 0x1F);
+            objmod.write_byte(SegData[seg], 0x20);
+            objmod.write_byte(SegData[seg], 0x03);
+            objmod.write_byte(SegData[seg], 0xD5);
+        }
+    }
+    else
+    {
+        foreach (i; 0 .. numNops)
+        {
+            // https://www.felixcloutier.com/x86/nop
+            objmod.write_byte(SegData[seg], 0x90);
+        }
+    }
 }
 
 /*************************
