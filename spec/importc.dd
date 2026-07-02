@@ -386,6 +386,68 @@ $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
     This can also disable multiple default storage classes at the same time,
     if they were enabled with a single `#pragma attribute(push, ...)` directive.
 
+    $(H4 $(LNAME2 construct-consideration-pragmas, Construct Consideration `#pragma`s))
+
+    $(P The Construct Consideration pragmas are ImportC-specific pragmas
+    which are used to alter whether ImportC considers or ignores
+    kinds of declarations and definitions with specific identifiers.)
+
+    $(P The Construct Consideration pragmas have one form:
+    $(OL
+    $(LI `#pragma <category>(<operation>, <identifier>,...)`)))
+
+    $(P That is, the name of the pragma is a category of C constructs,
+    followed by an operation, and then a comma-separated list of identifiers.
+    A trailing comma may be used in the list of identifiers.)
+
+    $(P The categories of the Construct Consideration pragmas are as follows:
+    $(UL
+    $(LI `function_decl`: which controls whether ImportC considers or ignores function declarations
+    of a given name, e.g. `void foo(int);`.)
+    $(LI `function_def`: which controls whether ImportC considers or ignores function definitions
+    of a given name, e.g. `void foo(int x) {}`.)))
+
+    $(P The operations recognized by the Construct Consideration pragmas are as follows:
+    $(UL
+    $(LI `consider`: which causes ImportC to consider named constructs as usual. This is the default behavior.)
+    $(LI `ignore`: which causes ImportC to ignore named constructs;
+    they are still parsed, but are rendered inert and thus have no effect.)))
+
+    $(P The operation specified for a Construct Consideration pragma takes effect
+    only for constructs that have the same name as any of the identifiers supplied to the pragma.)
+
+    $(P For example:
+    $(UL
+    $(LI `#pragma function_decl(ignore, foo, bar)`:
+    Ignores C $(I function declarations) named `foo` or `bar`.)
+    $(LI `#pragma function_decl(consider, foo, bar)`:
+    Considers (stops ignoring) C $(I function declarations) named `foo` or `bar`.)
+    $(LI `#pragma function_def(ignore, foo, bar)`:
+    Ignores C $(I function definitions) named `foo` or `bar`.)
+    $(LI `#pragma function_def(consider, foo, bar)`:
+    Considers (stops ignoring) C $(I function definitions) named `foo` or `bar`.)))
+
+$(CCODE
+// We start ignoring function-declarations and function-definitions of `foo` and `bar`.
+#pragma function_decl(ignore, foo, bar)
+#pragma function_def(ignore, foo, bar)
+// This declaration of `foo` is ignored.
+void foo(int);
+// As is this definition of `foo`.
+void foo(int x)
+{}
+
+// We stop ignoring function-definitions of `bar`.
+#pragma function_def(consider, bar)
+// This declaration of `bar` is ignored.
+void bar(int);
+// This definition of `bar` is not ignored.
+float bar(float x, float y)
+{
+    return x * y;
+}
+)
+
 $(H2 $(LNAME2 _builtins, $(TT src/__builtins.di)))
 
     $(P The first thing the compiler does when preprocessing is complete is to import

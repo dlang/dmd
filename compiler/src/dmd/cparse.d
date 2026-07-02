@@ -51,6 +51,8 @@ final class CParser(AST) : Parser!AST
 
         STC defaultStorageClasses;
         Array!STC* defaultStorageClassesStack;
+
+        ConstructConsideration constructConsideration;
     }
 
     /* C cannot be parsed without determining if an identifier is a type or a variable.
@@ -1936,15 +1938,18 @@ final class CParser(AST) : Parser!AST
                 auto s = cparseFunctionDefinition(id, dt.isTypeFunction(), specifier);
                 typedefTab.setDim(typedefTabLengthSave);
                 symbols = symbolsSave;
-                if (specifier.mod & MOD.x__stdcall)
+                if (constructConsideration.considering(id.name, ConstructCategory.functionDefinitions))
                 {
-                    // If this function is __stdcall, wrap it in a LinkDeclaration so that
-                    // it's extern(Windows) when imported in D.
-                    auto decls = new AST.Dsymbols(1);
-                    (*decls)[0] = s;
-                    s = new AST.LinkDeclaration(s.loc, LINK.windows, decls);
+                    if (specifier.mod & MOD.x__stdcall)
+                    {
+                        // If this function is __stdcall, wrap it in a LinkDeclaration so that
+                        // it's extern(Windows) when imported in D.
+                        auto decls = new AST.Dsymbols(1);
+                        (*decls)[0] = s;
+                        s = new AST.LinkDeclaration(s.loc, LINK.windows, decls);
+                    }
+                    symbols.push(s);
                 }
-                symbols.push(s);
                 return;
             }
             AST.Dsymbol s = null;
@@ -2054,11 +2059,14 @@ final class CParser(AST) : Parser!AST
                         error("no initializer for function declaration");
                     if (specifier.scw & SCW.x_Thread_local)
                         error("functions cannot be `_Thread_local`"); // C11 6.7.1-4
-                    STC stc = specifiersToSTC(level, specifier);
-                    stc &= ~STC.gshared;        // no gshared functions
-                    auto fd = new AST.FuncDeclaration(id.loc, Loc.initial, id.name, stc, dt, specifier.noreturn);
-                    specifiersToFuncDeclaration(fd, specifier);
-                    s = fd;
+                    if (constructConsideration.considering(id.name, ConstructCategory.functionDeclarations))
+                    {
+                        STC stc = specifiersToSTC(level, specifier);
+                        stc &= ~STC.gshared;        // no gshared functions
+                        auto fd = new AST.FuncDeclaration(id.loc, Loc.initial, id.name, stc, dt, specifier.noreturn);
+                        specifiersToFuncDeclaration(fd, specifier);
+                        s = fd;
+                    }
                 }
                 else
                 {
@@ -5237,10 +5245,17 @@ final class CParser(AST) : Parser!AST
     {
         Token n;
         scan(&n);
-        if (n.value == TOK.identifier && n.ident == Id.pack)
-            return pragmaPack(loc, true);
-        if (n.value == TOK.identifier && n.ident == Id.attribute)
-            return pragmaAttribute(loc);
+        if (n.value == TOK.identifier)
+        {
+            if (n.ident == Id.pack)
+                return pragmaPack(loc, true);
+            if (n.ident == Id.attribute)
+                return pragmaAttribute(loc);
+            if (n.ident == Id.function_decl)
+                return pragmaConstructConsideration(loc, n.ident, ConstructCategory.functionDeclarations);
+            if (n.ident == Id.function_def)
+                return pragmaConstructConsideration(loc, n.ident, ConstructCategory.functionDefinitions);
+        }
         if (n.value != TOK.endOfLine)
             skipToNextLine();
     }
@@ -5565,6 +5580,148 @@ final class CParser(AST) : Parser!AST
         error(loc, "unrecognized `#pragma attribute(%s)`", n.toChars());
         if (n.value != TOK.endOfLine)
             skipToNextLine();
+    }
+
+    // Categories of C constructs to consider or ignore.
+    private enum ConstructCategory : ubyte
+    {
+        // These must be in the same order as the members
+        // of the anonymous struct in the ConstructConsideration type below.
+        functionDeclarations = 0,
+        functionDefinitions = 1
+    }
+
+    private struct ConstructConsideration
+    {
+        // A hash-table with zero-sized values, and `Identifier`s casted to `const(void)*` for keys.
+        // We need to test for only the presence of an identifier, hence the zero-sized values.
+        // `Identifier` is an `extern(C++)` class, which an associative-array
+        // can't handle as keys, hence the cast to a pointer.
+        alias IdentifierSet = ubyte[0][const(void)*];
+
+        union
+        {
+            IdentifierSet[2] ignoredByCategory;
+            struct
+            {
+                // These must be in the same order as the `ConstructCategory` enum's members.
+                IdentifierSet ignoredFunctionDeclarations;
+                IdentifierSet ignoredFunctionDefinitions;
+            }
+        }
+
+        bool considering(Identifier id, ConstructCategory category) const
+        {
+            return !(cast(const(void)*)id in ignoredByCategory[category]);
+        }
+    }
+
+    /*********
+     * `# pragma function_decl/function_def`
+     * An ImportC-specific pragma for specifying whether declarations and definitions
+     * are to be considered or ignored.
+     * Scanner is on the `function_decl/function_def`
+     * Params:
+     *  startloc = location to use for error messages
+     *  categoryId = the identifier of the pragma's name/category
+     *  category = the category of the pragma
+     */
+    private void pragmaConstructConsideration(Loc startloc, Identifier categoryId, ConstructCategory category)
+    {
+        const loc = startloc;
+        Token n;
+
+        void unknownTokenFailure()
+        {
+            if (n.value != TOK.endOfLine)
+                skipToNextLine();
+        }
+
+        /* # pragma <category> ( ...
+         */
+        Lexer.scan(&n);
+        if (n.value != TOK.leftParenthesis)
+        {
+            error(loc, "left parenthesis expected to follow `#pragma %s` not `%s`", categoryId.toChars(), n.toChars());
+            return unknownTokenFailure();
+        }
+
+        /* # pragma <category> ( <operation> ...
+         */
+        Lexer.scan(&n);
+        if (n.value != TOK.identifier || (n.ident != Id.consider && n.ident != Id.ignore))
+        {
+            error(loc, "`consider` or `ignore` expected to follow `#pragma %s(` not `%s`",
+                  categoryId.toChars(), n.toChars());
+            return unknownTokenFailure();
+        }
+
+        const operationId = n.ident;
+
+        /* # pragma <category> ( <operation>, ...
+         */
+        Lexer.scan(&n);
+        if (n.value != TOK.comma)
+        {
+            error(loc, "comma expected to follow `#pragma %s(%s` not `%s`",
+                  categoryId.toChars(), operationId.toChars(), n.toChars());
+            return unknownTokenFailure();
+        }
+
+        /* # pragma <category> ( <operation>, <identifier>... )
+         */
+        Array!Identifier identifiers;
+        for (;;)
+        {
+            Lexer.scan(&n);
+
+            if (n.value == TOK.identifier)
+            {
+                auto id = n.ident;
+                identifiers.push(id);
+
+                Lexer.scan(&n);
+                if (n.value == TOK.rightParenthesis)
+                    break;
+                else if (n.value != TOK.comma)
+                {
+                    error(loc, "comma or right parenthesis expected following `#pragma %s(%s, %s` not `%s`",
+                          categoryId.toChars(), operationId.toChars(), id.toChars(), n.toChars());
+                    return unknownTokenFailure();
+                }
+            }
+            else if (n.value == TOK.rightParenthesis)
+                break;
+            else
+            {
+                error(loc, "identifier or right parenthesis expected following `#pragma %s(%s,` not `%s`",
+                      categoryId.toChars(), operationId.toChars(), n.toChars());
+                return unknownTokenFailure();
+            }
+        }
+
+        /* # pragma <category> ( <operation>, <identifier>... )
+         */
+        Lexer.scan(&n);
+        if (n.value != TOK.endOfLine && n.value != TOK.endOfFile)
+        {
+            error(loc, "`#pragma %s(%s)` should not be followed by anything on the same line, it has been followed by `%s`",
+                  categoryId.toChars(), operationId.toChars(), n.toChars());
+            return unknownTokenFailure();
+        }
+
+        if (operationId == Id.consider)
+        {
+            foreach (id; identifiers)
+                constructConsideration.ignoredByCategory[category].remove(cast(const(void)*) id);
+        }
+        else
+        {
+            assert(operationId == Id.ignore);
+
+            foreach (id; identifiers)
+                constructConsideration.ignoredByCategory[category][cast(const(void)*) id] = [];
+        }
     }
 
     //}
