@@ -55,7 +55,7 @@ void testGC()
 }
 
 // test Init
-import core.atomic : atomicOp;
+import core.atomic : atomicLoad, atomicOp, atomicStore;
 shared uint shared_static_ctor, shared_static_dtor, static_ctor, static_dtor;
 shared static this() { _assert(atomicOp!"+="(shared_static_ctor, 1) == 1); }
 shared static ~this() { _assert(atomicOp!"+="(shared_static_dtor, 1) == 1); }
@@ -85,18 +85,18 @@ void runTestsImpl()
 
     testGC();
 
-    _assert(shared_static_ctor == 1);
-    _assert(static_ctor == 1);
+    _assert(atomicLoad(shared_static_ctor) == 1);
+    _assert(atomicLoad(static_ctor) == 1);
     static void run()
     {
-        _assert(static_ctor == 2);
-        _assert(shared_static_ctor == 1);
+        _assert(atomicLoad(static_ctor) == 2);
+        _assert(atomicLoad(shared_static_ctor) == 1);
         testGC();
     }
     auto thr = new Thread(&run);
     thr.start();
     thr.join();
-    _assert(static_dtor == 1);
+    _assert(atomicLoad(static_dtor) == 1);
 
     passed = false;
     foreach (m; ModuleInfo)
@@ -123,8 +123,7 @@ class MyFinalizer
 {
     ~this()
     {
-        import core.atomic;
-        atomicOp!"+="(*_finalizeCounter, 1);
+        atomicOp!"+="(*atomicLoad(_finalizeCounter), 1);
     }
 }
 
@@ -135,7 +134,7 @@ class MyFinalizerBig : MyFinalizer
 
 extern(C) void setFinalizeCounter(shared(size_t)* p)
 {
-    _finalizeCounter = p;
+    atomicStore(_finalizeCounter, p);
 }
 
 version (DigitalMars) version (Windows)
