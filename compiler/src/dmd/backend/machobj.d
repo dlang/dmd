@@ -973,6 +973,9 @@ void MachObj_term(const(char)[] objfilename)
                                              s.Sfl == FL.extern_)
                                     {
                                         rel.r_type = r.rtype == REL.add ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
+                                        if (s.Sfl == FL.tlsdata ||
+                                            (s.Sfl == FL.data || s.Sfl == FL.extern_) && (s.ty() & mTYLINK) == mTYthread)
+                                            rel.r_type = r.rtype == REL.add ? ARM64_RELOC_TLVP_LOAD_PAGEOFF12 : ARM64_RELOC_TLVP_LOAD_PAGE21;
                                         rel.r_pcrel = r.rtype == REL.add ? 0 : 1;
                                     }
                                     else
@@ -996,8 +999,8 @@ void MachObj_term(const(char)[] objfilename)
                                 case SC.global:
                                     if (/*s.Sfl == FL.func &&*/ r.rtype == REL.rel26)
                                         goto case SC.extern_;
-                                    //rel.r_type = r.rtype == REL.add ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
-                                    rel.r_type = r.rtype == REL.add ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
+                                    rel.r_type = r.rtype == REL.add ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
+                                    //rel.r_type = r.rtype == REL.add ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                     if (s.Sfl == FL.tlsdata || s.Sfl == FL.data && (s.ty() & mTYLINK) == mTYthread)
                                         rel.r_type = r.rtype == REL.add ? ARM64_RELOC_TLVP_LOAD_PAGEOFF12 : ARM64_RELOC_TLVP_LOAD_PAGE21;
 
@@ -1030,8 +1033,11 @@ void MachObj_term(const(char)[] objfilename)
                                     symbol_print(*s);
                                     assert(0);
                             }
+                            //dumpFixup(*s, rel.r_type);
 
                             /* Ensure relocation matches instruction */
+                            //import dmd.backend.x86.cgcod : disassemble;
+                            //printf("value: x%08x\n", value); disassemble(value);
                             switch (rel.r_type)
                             {
                                 case ARM64_RELOC_PAGEOFF12:
@@ -3592,4 +3598,30 @@ void dumpBytes(targ_size_t offset, const(void)[] data)
             off += 1;
         }
     }
+}
+
+/********************************************
+ * Pretty print `fixup` for Symbol `s`
+ */
+private
+@trusted
+void dumpFixup(ref Symbol s, uint fixup)
+{
+    static immutable char*[12] reloc =
+    [
+        "UNSIGNED",
+        "SUBTRACTOR",
+        "BRANCHY26",
+        "PAGE21",
+        "PAGEOFF12",
+        "GOT_LOAD_PAGE21",
+        "GOT_LOAD_PAGEOFF12",
+        "POINTER_TO_GOT",
+        "TLVP_LOAD_PAGE21",
+        "TLVP_LOAD_PAGEOFF12",
+        "ADDEND",
+        "AUTHENTICATED_POINTER",
+    ];
+    symbol_print(s);
+    printf("fixup %s RELOC_%s\n", s.Sident.ptr, reloc[fixup]);
 }
