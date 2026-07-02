@@ -8373,13 +8373,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 s = (cast(TemplateExp)exp.e1).td;
             L2:
-                exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, null, exp.argumentList,
+                auto fdthis = hasThis(sc);
+                exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, fdthis ? fdthis.vthis.type : null, exp.argumentList,
                     exp.isUfcsRewrite ? FuncResolveFlag.ufcs : FuncResolveFlag.standard);
                 if (!exp.f || exp.f.errors)
                     return setError();
                 if (exp.f.needThis())
                 {
-                    if (hasThis(sc))
+                    if (fdthis)
                     {
                         // Supply an implicit 'this', as in
                         //    this.ident
