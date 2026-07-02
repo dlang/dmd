@@ -3,17 +3,16 @@
 public:
 
 import core.vararg;
-import std.stdio;
-import std.utf;
+import core.stdc.stdio : printf;
 
-dstring formatstring(TypeInfo[] arguments, va_list argptr)
+string formatstring(TypeInfo[] arguments, va_list argptr)
 {
 
-	dstring message = null;
+	string message = null;
 
 	void putc(dchar c)
 	{
-		message ~= c;
+		message ~= cast(char) c;
 	}
 
 
@@ -25,15 +24,14 @@ dstring formatstring(TypeInfo[] arguments, va_list argptr)
 
 string arguments(...) // turns a bunch of arguments into a formatted char[] string
 {
-	return std.utf.toUTF8(formatstring(_arguments, _argptr));
+	return formatstring(_arguments, _argptr);
 }
 
 void useargs(...)
 {
 	string crashage = arguments("why is 8 scared of 7? because", 7,8,9);
 
-	//printf("%.*s\n", crashage);
-	writefln(crashage);
+	printf("%.*s\n", cast(int) crashage.length, crashage.ptr);
 }
 
 enum Mangle : char
