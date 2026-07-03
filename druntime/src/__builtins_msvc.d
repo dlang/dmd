@@ -7,6 +7,14 @@
    Authors: Harry Gillanders
    Source: $(DRUNTIMESRC __builtins_msvc.d) */
 
+/* The code which has been authored by Harry Gillanders, in this file,
+   is alternatively licensed under the
+   $(HTTP https://spdx.org/licenses/0BSD.html, BSD Zero Clause License).
+   That is to say, that code is available for use under
+   either the Boost License 1.0 OR the BSD Zero Clause License.
+
+   The git log/history for this file can be consulted to determine authorship. */
+
 module __builtins_msvc;
 
 version (CRuntime_Microsoft)
@@ -610,7 +618,10 @@ version (MSVCIntrinsics)
         {
             if (__ctfe)
             {
-                /* This is an amalgamation of core.int128.divmod and core.int128.neg. */
+                /* This is an amalgamation of core.int128.divmod and core.int128.neg,
+                 * which were authored by Walter Bright.
+                 * (And thus this block of code (this `if (__ctfe) {...}` block)
+                 * is not alternatively licensed under the BSD Zero Clause License.) */
 
                 /* The reason why those functions are copied instead of called
                  * is for BetterC compatibility: calling those functions
@@ -730,7 +741,10 @@ version (MSVCIntrinsics)
         {
             if (__ctfe)
             {
-                /* This code was copied and adapted from core.int128.udivmod.udivmod128_64. */
+                /* This code was copied and adapted from core.int128.udivmod.udivmod128_64,
+                 * which was authored by Walter Bright
+                 * (And thus this block of code (this `if (__ctfe) {...}` block)
+                 * is not alternatively licensed under the BSD Zero Clause License.) */
 
                 /* The reason why that function is copied instead of called
                  * is for BetterC compatibility: calling that function
