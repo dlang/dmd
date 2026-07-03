@@ -149,8 +149,8 @@ These should be taken seriously, since untested code is likely to introduce bugs
 
 **Checks**:
 - FreeBSD 12.3 x64, DMD (bootstrap)
-- FreeBSD 13.0 x64, DMD (coverage)
-- FreeBSD 13.0 x64, DMD (latest)
+- FreeBSD 14.4 x64, DMD (coverage)
+- FreeBSD 14.4 x64, DMD (latest)
 - Ubuntu 22.04 x64, DMD (bootstrap)
 - Ubuntu 22.04 x64, DMD (latest)
 - Ubuntu 22.04 x64, GDC
