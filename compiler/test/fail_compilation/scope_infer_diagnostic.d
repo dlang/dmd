@@ -2,10 +2,10 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/scope_infer_diagnostic.d(34): Error: `@safe` function `scope_infer_diagnostic.outer` cannot call `@system` function `scope_infer_diagnostic.inner!(void delegate(const(char)[]) pure nothrow @nogc @safe).inner`
+fail_compilation/scope_infer_diagnostic.d(34): Error: `@safe` function `scope_infer_diagnostic.outer` cannot call `@system` function `scope_infer_diagnostic.inner!(void delegate(const(char)[]) pure nothrow @nogc @safe)`
 fail_compilation/scope_infer_diagnostic.d(28):        and assigning scope variable `w` to non-scope parameter `w` calling `callee` makes it fail to infer `@safe`
 fail_compilation/scope_infer_diagnostic.d(21):        `w` is not `scope` because of `globalPtr = & w`
-fail_compilation/scope_infer_diagnostic.d(25):        `scope_infer_diagnostic.inner!(void delegate(const(char)[]) pure nothrow @nogc @safe).inner` is declared here
+fail_compilation/scope_infer_diagnostic.d(25):        `scope_infer_diagnostic.inner!(void delegate(const(char)[]) pure nothrow @nogc @safe)` is declared here
 ---
 */
 

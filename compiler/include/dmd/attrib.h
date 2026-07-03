@@ -88,7 +88,7 @@ public:
 
     VisibilityDeclaration *syntaxCopy(Dsymbol *s) override;
     const char *kind() const override;
-    const char *toPrettyChars(bool unused) override;
+    const char *toPrettyChars(bool unused, bool unused2 = false) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 

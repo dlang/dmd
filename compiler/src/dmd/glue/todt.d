@@ -1323,7 +1323,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.size(0);
 
         // string name;
-        const(char)* name = sd.toPrettyChars();
+        const(char)* name = sd.toPrettyChars(false, true);
         size_t namelen = strlen(name);
         dtb.size(namelen);
         dtb.xoff(cast(Symbol*)d.csym, Type.typeinfoenum.structsize);

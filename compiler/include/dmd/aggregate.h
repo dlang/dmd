@@ -271,7 +271,7 @@ public:
     ObjcClassDeclaration objc;          // Data for a class declaration that is needed for the Objective-C integration
 
     static ClassDeclaration *create(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject);
-    const char *toPrettyChars(bool QualifyTypes = false) override;
+    const char *toPrettyChars(bool QualifyTypes = false, bool keepOneMember = false) override;
     ClassDeclaration *syntaxCopy(Dsymbol *s) override;
 
     #define OFFSET_RUNTIME 0x76543210

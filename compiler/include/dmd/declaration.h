@@ -701,7 +701,7 @@ public:
 
     bool inUnittest();
     LabelDsymbol *searchLabel(Identifier *ident, Loc loc);
-    const char *toPrettyChars(bool QualifyTypes = false) override;
+    const char *toPrettyChars(bool QualifyTypes = false, bool keepOneMember = false) override;
     const char *toFullSignature();  // for diagnostics, e.g. 'int foo(int x, int y) pure'
     bool isMain() const;
     bool isCMain() const;
@@ -753,7 +753,7 @@ public:
     AggregateDeclaration *isThis() override;
 
     const char *kind() const override;
-    const char *toPrettyChars(bool QualifyTypes = false) override;
+    const char *toPrettyChars(bool QualifyTypes = false, bool keepOneMember = false) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
