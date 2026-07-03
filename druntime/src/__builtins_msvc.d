@@ -192,6 +192,14 @@ version (MSVCIntrinsics)
         }
     }
 
+    /* If you are adding an intrinsic which is declared
+     * using `#pragma intrinsic` in the Windows SDK's headers,
+     * please do not forget to add that intrinsic's name
+     * to the appropriate `#pragma function_decl(ignore)` directive
+     * in the `druntime/src/include/importc_msvc_builtins.h` file.
+     * Otherwise, end-users may experience linker errors when that intrinsic is referenced.
+     * Please also ensure that the intrinsic is defined as a template. */
+
     version (X86_64_Or_AArch64)
     {
         extern(C)
@@ -14504,4 +14512,12 @@ version (MSVCIntrinsics)
             static assert(test());
         }
     }
+
+    /* If you are adding an intrinsic which is declared
+     * using `#pragma intrinsic` in the Windows SDK's headers,
+     * please do not forget to add that intrinsic's name
+     * to the appropriate `#pragma function_decl(ignore)` directive
+     * in the `druntime/src/include/importc_msvc_builtins.h` file.
+     * Otherwise, end-users may experience linker errors when that intrinsic is referenced.
+     * Please also ensure that the intrinsic is defined as a template. */
 }
