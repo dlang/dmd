@@ -470,6 +470,16 @@ $(H2 $(LNAME2 _builtins, $(TT src/__importc_builtins.di)))
     It provides support for various builtins provided by other C compilers.
     $(TT __importc_builtins.di) is a D file.)
 
+$(H2 $(LNAME2 _builtins_msvc, $(TT src/__builtins_msvc.d)))
+
+    $(P Support for MSVC's compiler intrinsics is provided via the
+    $(LINK2 https://github.com/dlang/dmd/blob/master/druntime/src/__builtins_msvc.d, $(TT __builtins_msvc)) module,
+    which is implemented in D.)
+
+    $(P Unlike $(TT __importc_builtins.di), $(TT __builtins_msvc) is not imported by default,
+    instead the $(TT __builtins_msvc) module is imported by the
+    $(LINK2 https://github.com/dlang/dmd/blob/master/druntime/src/include/importc_msvc_builtins.h, $(TT importc_msvc_builtins.h) header).)
+
 $(H2 $(LNAME2 implementation, Implementation))
 
     $(P The implementation defined characteristics of ImportC are:)
@@ -904,6 +914,7 @@ size_t x = sizeof(foo());)
 $(H2 $(LNAME2 visualc-extensions, Visual C Extensions))
 
     $(P All the $(RELATIVE_LINK2 digital-mars-extensions, Digital Mars C Extensions).)
+    $(P Many of $(RELATIVE_LINK2 msvc-intrinsics, MSVC's compiler intrinsics).)
 
     $(H3 $(LNAME2 __stdcall, `__stdcall` Function Calling Convention))
 
@@ -956,6 +967,10 @@ $(H2 $(LNAME2 digital-mars-extensions, Digital Mars C Extensions))
     $(LI `__declspec(thread)`)
     )
 
+$(H2 $(LNAME2 msvc-intrinsics, MSVC Intrinsics))
+
+    $(P Many of MSVC's compiler intrinsics are supported by ImportC: too many to list.
+    See $(RELATIVE_LINK2 _builtins_msvc, $(TT src/__builtins_msvc.d)) for more information.)
 
 $(H2 $(LNAME2 d-side, ImportC from D's Point of View))
 
