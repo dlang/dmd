@@ -201,7 +201,7 @@ jobs:
         with:
           fetch-depth: 50
       - name: Run in VM
-        uses: cross-platform-actions/action@v0.23.0
+        uses: cross-platform-actions/action@v1.3.0
         timeout-minutes: 19
         with:
           operating_system: freebsd
