@@ -237,7 +237,6 @@ struct Param
                                  // https://issues.dlang.org/show_bug.cgi?id=14246
     FeatureState systemVariables; // limit access to variables marked @system from @safe code
     d_bool useFastDFA;             // Use fast data flow analysis engine
-    d_bool newpdb;                 // use the modern PDB/CodeView debug info emitter
 
     CHECKENABLE useInvariants;     // generate class invariant checks
     CHECKENABLE useIn;             // generate precondition checks

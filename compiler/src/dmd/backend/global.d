@@ -35,6 +35,13 @@ alias ErrorCallbackBackend = extern(C++) void function(const(char)* filename, ui
 
 package(dmd.backend) __gshared ErrorCallbackBackend errorCallbackBackend;
 
+/// Callback for the backend to fetch cached source-file contents from the
+/// front-end FileManager (populated when the module was read). Returns a
+/// pointer to the bytes and sets `length`; returns null if unavailable.
+alias GetFileContentsCallback = extern(C++) const(ubyte)* function(const(char)* filename, ref size_t length);
+
+package(dmd.backend) __gshared GetFileContentsCallback getFileContentsCallback;
+
 /**
  * Backend error report function
  * Params:

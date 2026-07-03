@@ -29,9 +29,26 @@ import dmd.backend.backconfig;
 import dmd.backend.go;
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.global : ErrorCallbackBackend;
+import dmd.backend.global : ErrorCallbackBackend, GetFileContentsCallback;
 import dmd.backend.ty;
 import dmd.backend.type;
+
+import dmd.file_manager : FileManager;
+
+/// Callback for the backend to fetch cached source-file contents from the
+/// front-end FileManager (populated when the module was read), so that hashing
+/// source files for debug info reuses the cache instead of re-reading disk.
+extern(C++) const(ubyte)* getFileContentsBackend(const(char)* filename, ref size_t length)
+{
+    length = 0;
+    if (!global.fileManager)
+        return null;
+    const(ubyte)[] data = global.fileManager.getFileContents(FileName(filename[0 .. strlen(filename)]));
+    if (!data)
+        return null;
+    length = data.length;
+    return data.ptr;
+}
 
 /**************************************
  * Initialize backend config variables.
@@ -95,10 +112,10 @@ void backend_init(const ref Param params, const ref DMDparams driverParams, cons
         exfmt,
         params.addMain,
         driverParams.symImport != SymImport.none,
-        params.newpdb,
         go,
         // FIXME: casting to @nogc because errors.d is not marked @nogc yet
         cast(ErrorCallbackBackend) &errorBackend,
+        cast(GetFileContentsCallback) &getFileContentsBackend,
     );
 
     out_config_debug(

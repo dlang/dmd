@@ -1,5 +1,4 @@
 // REQUIRED_ARGS: -gf -mixin=${RESULTS_DIR}/runnable/testpdb.mixin -preview=bitfields
-// REQUIRED_ARGS(windows): -preview=newpdb
 // PERMUTE_ARGS:
 
 import core.time;
