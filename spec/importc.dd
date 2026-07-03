@@ -448,12 +448,12 @@ float bar(float x, float y)
 }
 )
 
-$(H2 $(LNAME2 _builtins, $(TT src/__builtins.di)))
+$(H2 $(LNAME2 _builtins, $(TT src/__importc_builtins.di)))
 
     $(P The first thing the compiler does when preprocessing is complete is to import
-    $(LINK2 https://github.com/dlang/dmd/blob/master/druntime/src/__builtins.di, $(TT src/__builtins.di)).
+    $(LINK2 https://github.com/dlang/dmd/blob/master/druntime/src/__importc_builtins.di, $(TT src/__importc_builtins.di)).
     It provides support for various builtins provided by other C compilers.
-    $(TT __builtins.di) is a D file.)
+    $(TT __importc_builtins.di) is a D file.)
 
 $(H2 $(LNAME2 implementation, Implementation))
 
