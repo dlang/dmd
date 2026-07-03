@@ -654,7 +654,7 @@ extern(D):
             uint nb = 0;
             bool hasA = false;
             bool hasB = false;
-            while (*a >= '0' && *a <= '9') { 
+            while (*a >= '0' && *a <= '9') {
                 na = na * 10 + cast(uint)(*a - '0');
                 ++a;
                 hasA = true;
