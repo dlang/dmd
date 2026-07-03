@@ -5206,8 +5206,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (a.fields.length != b.fields.length)
         {
             incompatError();
-            errorSupplemental(a.loc, "`%s` has %zu field(s) while `%s` has %zu field(s)",
-                    a.toPrettyChars(), a.fields.length, b.toPrettyChars(), b.fields.length);
+            errorSupplemental(a.loc, "`%s` has %u field(s) while `%s` has %u field(s)",
+                    a.toPrettyChars(), cast(uint)a.fields.length, b.toPrettyChars(), cast(uint)b.fields.length);
             return false;
         }
         // both are structs or both are unions
@@ -5266,7 +5266,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (a_field.type.isTypeError()) return false;
                 if (b_field.type.isTypeError()) return false;
 
-                errorSupplemental(a_field.loc, "Field %zu differs in type", i);
+                errorSupplemental(a_field.loc, "Field %u differs in type", cast(uint)i);
                 errorSupplemental(a_field.loc, "typeof(%s): %s",
                         a_field.toChars(), typeName(a_field.type));
                 errorSupplemental(b_field.loc, "typeof(%s): %s",
@@ -5281,7 +5281,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (a_field.alignment != b_field.alignment)
             {
                 incompatError();
-                errorSupplemental(a_field.loc, "Field %zu differs in alignment or packing", i);
+                errorSupplemental(a_field.loc, "Field %u differs in alignment or packing", cast(uint)i);
                 if (a_field.alignment.isDefault() && ! b_field.alignment.isDefault())
                 {
                     errorSupplemental(a_field.loc, "`%s.%s` alignment: default",
@@ -5325,7 +5325,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!b_field.ident.isAnonymous())
                 {
                     incompatError();
-                    errorSupplemental(a_field.loc, "Field %zu differs in name", i);
+                    errorSupplemental(a_field.loc, "Field %u differs in name", cast(uint)i);
                     errorSupplemental(a_field.loc, "(anonymous)", a_field.ident.toChars());
                     errorSupplemental(b_field.loc, "%s", b_field.ident.toChars());
                     return false;
@@ -5334,7 +5334,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             else if (b_field.ident.isAnonymous())
             {
                 incompatError();
-                errorSupplemental(a_field.loc, "Field %zu differs in name", i);
+                errorSupplemental(a_field.loc, "Field %u differs in name", cast(uint)i);
                 errorSupplemental(a_field.loc, "%s", a_field.ident.toChars());
                 errorSupplemental(b_field.loc, "(anonymous)");
                 return false;
@@ -5342,7 +5342,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             else if (a_field.ident != b_field.ident)
             {
                 incompatError();
-                errorSupplemental(a_field.loc, "Field %zu differs in name", i);
+                errorSupplemental(a_field.loc, "Field %u differs in name", cast(uint)i);
                 errorSupplemental(a_field.loc, "%s", a_field.ident.toChars());
                 errorSupplemental(b_field.loc, "%s", b_field.ident.toChars());
                 return false;
@@ -5356,7 +5356,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if ((bfa is null) != (bfb is null))
             {
                 incompatError();
-                errorSupplemental(a_field.loc, "Field %zu differs in being a bitfield", i);
+                errorSupplemental(a_field.loc, "Field %u differs in being a bitfield", cast(uint)i);
                 if (bfa is null)
                 {
                     errorSupplemental(a_field.loc, "`%s.%s` is not a bitfield",
@@ -5378,7 +5378,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (bfa.fieldWidth != bfb.fieldWidth)
                 {
                     incompatError();
-                    errorSupplemental(a_field.loc, "Field %zu differs in bitfield width", i);
+                    errorSupplemental(a_field.loc, "Field %u differs in bitfield width", cast(uint)i);
                     errorSupplemental(a_field.loc, "`%s.%s`: %u",
                             a.toPrettyChars(), a_field.toChars(), bfa.fieldWidth);
                     errorSupplemental(b_field.loc, "`%s.%s`: %u",

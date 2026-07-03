@@ -8028,7 +8028,7 @@ private bool resolveTemplateInstantiation(Scope* sc, TemplateParameters* paramet
 {
     for (size_t i = 0; 1; i++)
     {
-        //printf("\ttest: tempinst.tiargs[%zu]\n", i);
+        //printf("\ttest: tempinst.tiargs[%u]\n", cast(uint)i);
         RootObject o1 = null;
         if (i < tiargs.length)
             o1 = (*tiargs)[i];

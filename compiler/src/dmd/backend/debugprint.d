@@ -300,7 +300,7 @@ void WRdefnod(ref GlobalOptimizer go)
 {
     foreach (i; 0 .. go.defnod.length)
     {
-        printf("defnod[%d] in B%zu = (", go.defnod[i].DNblock.Bdfoidx, i);
+        printf("defnod[%d] in B%u = (", go.defnod[i].DNblock.Bdfoidx, cast(uint)i);
         WReqn(go.defnod[i].DNelem);
         printf(");\n");
     }

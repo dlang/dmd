@@ -430,8 +430,8 @@ final:
                     scv = dfaCommon.acquireScopeVar(var);
 
                     dfaCommon.printStructure((ref OutBuffer ob,
-                            scope PrintPrefixType prefix) => ob.printf("param (%zd) is `%s` %p scv %p stc %lld\n",
-                            i, param.ident !is null ? param.ident.toChars : null,
+                            scope PrintPrefixType prefix) => ob.printf("param (%d) is `%s` %p scv %p stc %lld\n",
+                            cast(int)i, param.ident !is null ? param.ident.toChars : null,
                             var, scv, param.storage_class));
                     assert(scv.var is var);
 
@@ -559,7 +559,7 @@ final:
 
                 foreach (i, param; fd.parametersDFAInfo.parameters)
                 {
-                    ob.printf("%zd: %d:%d", i, param.notNullIn, param.notNullOut);
+                    ob.printf("%d: %d:%d", cast(int)i, param.notNullIn, param.notNullOut);
                     ob.writestring("\n");
                 }
             });

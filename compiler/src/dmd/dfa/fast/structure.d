@@ -882,7 +882,7 @@ struct DFACommon
 
             foreach (i; 0 .. sc.buckets.length)
             {
-                printf("    - bucket %zd:\n", i);
+                printf("    - bucket %d:\n", cast(int)i);
 
                 DFAScopeVar* bucket = sc.buckets[i];
                 while (bucket !is null)
