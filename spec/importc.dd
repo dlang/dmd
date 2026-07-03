@@ -184,6 +184,17 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
     will automatically be $(TT #include)d first. $(TT importc.h) provides adjustments to the source code to
     account for various C compiler extensions not supported by ImportC.)
 
+    $(H4 $(LNAME2 importc-include-directory, ImportC $(TT include) Directory))
+
+    $(P In the same directory as the $(TT importc.h) file there exists a directory named $(TT include),
+    the path of that directory is supplied to the C preprocessor as an addition to the preprocessor's include path.)
+
+    $(P The ImportC $(TT include) directory contains C header files provided by ImportC.
+    The headers provided are as follows:)
+    $(UL
+    $(LI $(TT importc_msvc_builtins.h): which provides support for MSVC's compiler intrinsics.)
+    )
+
     $(H4 $(LNAME2 no-builtin-macro-redefined, no-builtin-macro-redefined))
 
     $(P On Posix systems, ImportC will pass the switch $(TT -Wno-builtin-macro-redefined) to the C preprocessor
