@@ -236,7 +236,7 @@ private:
         if (WindowsSdkDir is null)
         {
             WindowsSdkDir = GetRegistryString(r"Microsoft\Windows Kits\Installed Roots", "KitsRoot10"w);
-            if (WindowsSdkDir && !findLatestSDKDir(FileName.combine(WindowsSdkDir, "Include"), r"um\windows.h"))
+            if (WindowsSdkDir && !findLatestVersionDir(FileName.combine(WindowsSdkDir, "Include"), r"um\windows.h"))
                 WindowsSdkDir = null;
         }
         if (WindowsSdkDir is null)
@@ -264,7 +264,7 @@ private:
         if (WindowsSdkVersion is null && WindowsSdkDir !is null)
         {
             const(char)* rootsDir = FileName.combine(WindowsSdkDir, "Include");
-            WindowsSdkVersion = findLatestSDKDir(rootsDir, r"um\windows.h");
+            WindowsSdkVersion = findLatestVersionDir(rootsDir, r"um\windows.h");
         }
     }
 
@@ -285,7 +285,7 @@ private:
         if (UCRTVersion is null && UCRTSdkDir !is null)
         {
             const(char)* rootsDir = FileName.combine(UCRTSdkDir, "Lib");
-            UCRTVersion = findLatestSDKDir(rootsDir, r"ucrt\x86\libucrt.lib");
+            UCRTVersion = findLatestVersionDir(rootsDir, r"ucrt\x86\libucrt.lib");
         }
     }
 
@@ -411,7 +411,7 @@ private:
             // Enumerate that folder directly and pick the highest version that ships the
             // compiler headers, instead of parsing the Microsoft.VCToolsVersion.*.default.txt files.
             const(char)* msvcDir = FileName.combine(VCInstallDir, r"Tools\MSVC");
-            if (auto ver = findLatestSDKDir(msvcDir, r"include\vcruntime.h"))
+            if (auto ver = findLatestVersionDir(msvcDir, r"include\vcruntime.h"))
             {
                 VCToolsInstallDir = FileName.buildPath(msvcDir.toDString, ver.toDString).ptr;
                 mem.xfree(cast(void*)ver);
@@ -650,10 +650,20 @@ extern(D):
     {
         for (;;)
         {
-            uint na = 0, nb = 0;
-            bool hasA, hasB;
-            while (*a >= '0' && *a <= '9') { na = na * 10 + cast(uint)(*a - '0'); ++a; hasA = true; }
-            while (*b >= '0' && *b <= '9') { nb = nb * 10 + cast(uint)(*b - '0'); ++b; hasB = true; }
+            uint na = 0;
+            uint nb = 0;
+            bool hasA = false;
+            bool hasB = false;
+            while (*a >= '0' && *a <= '9') { 
+                na = na * 10 + cast(uint)(*a - '0');
+                ++a;
+                hasA = true;
+            }
+            while (*b >= '0' && *b <= '9') {
+                nb = nb * 10 + cast(uint)(*b - '0');
+                ++b;
+                hasB = true;
+            }
             if (na != nb)
                 return na < nb ? -1 : 1;
             if (!hasA && !hasB)
@@ -665,7 +675,7 @@ extern(D):
 
     // iterate through subdirectories named by SDK version in baseDir and return the
     //  one with the largest version that also contains the test file
-    static const(char)* findLatestSDKDir(const(char)* baseDir, string testfile)
+    static const(char)* findLatestVersionDir(const(char)* baseDir, string testfile)
     {
         import dmd.common.smallbuffer : SmallBuffer, toWStringz;
 
