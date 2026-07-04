@@ -242,3 +242,5 @@ class Thread : ThreadBase
         SwitchToThread();
     }
 }
+
+package alias gettid = imported!"core.sys.windows.winbase".GetCurrentThreadId;
