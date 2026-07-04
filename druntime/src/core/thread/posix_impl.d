@@ -584,3 +584,5 @@ class Thread : ThreadBase
         sched_yield();
     }
 }
+
+package alias gettid = imported!"core.sys.posix.pthread".pthread_self;

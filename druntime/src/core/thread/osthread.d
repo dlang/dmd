@@ -1155,7 +1155,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
 
     version (Windows)
     {
-        if ( t.m_addr != GetCurrentThreadId() && SuspendThread( t.m_hndl ) == 0xFFFFFFFF )
+        if ( t.m_addr != gettid() && SuspendThread( t.m_hndl ) == 0xFFFFFFFF )
         {
             if ( !t.isRunning )
             {
@@ -1476,7 +1476,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
     }
     else version (Posix)
     {
-        if ( t.m_addr != pthread_self() )
+        if ( t.m_addr != gettid() )
         {
             if ( pthread_kill( t.m_addr, suspendSignalNumber ) != 0 )
             {
