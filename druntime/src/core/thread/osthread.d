@@ -1173,18 +1173,31 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
         return false;
     }
 
-    version (Windows)
+    const sameThread = t.m_addr == gettid();
+
+    if (!sameThread)
     {
-        if ( t.m_addr != gettid() && !suspendThreadImpl( t ) )
+        if (!suspendThreadImpl(t))
         {
-            if ( !t.isRunning )
+            if (t.isRunning)
+                onThreadError( "Unable to suspend thread" );
+            else
             {
                 Thread.remove( t );
                 return false;
             }
-            onThreadError( "Unable to suspend thread" );
         }
+    }
 
+    loadStackAndRegInfo(t, sameThread);
+
+    return true;
+}
+
+private void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
+{
+    version (Windows)
+    {
         CONTEXT context = void;
         context.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL;
 
@@ -1234,16 +1247,6 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
     }
     else version (Darwin)
     {
-        if ( t.m_addr != gettid() && !suspendThreadImpl( t ) )
-        {
-            if ( !t.isRunning )
-            {
-                Thread.remove( t );
-                return false;
-            }
-            onThreadError( "Unable to suspend thread" );
-        }
-
         version (X86)
         {
             x86_thread_state32_t    state = void;
@@ -1359,18 +1362,8 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
     }
     else version (Solaris)
     {
-        if (t.m_addr != gettid())
+        if (!sameThread)
         {
-            if (!suspendThreadImpl(t))
-            {
-                if (!t.isRunning)
-                {
-                    Thread.remove(t);
-                    return false;
-                }
-                onThreadError("Unable to suspend thread");
-            }
-
             static int getLwpStatus(ulong lwpid, out lwpstatus_t status)
             {
                 import core.sys.posix.fcntl : open, O_RDONLY;
@@ -1496,19 +1489,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
     }
     else version (Posix)
     {
-        if ( t.m_addr != gettid() )
-        {
-            if ( !suspendThreadImpl( t ) )
-            {
-                if ( !t.isRunning )
-                {
-                    Thread.remove( t );
-                    return false;
-                }
-                onThreadError( "Unable to suspend thread" );
-            }
-        }
-        else if ( !t.m_lock )
+        if (sameThread && !t.m_lock)
         {
             t.m_curr.tstack = getStackTop();
         }
@@ -1519,7 +1500,6 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
     }
     else
         static assert(0, "unsupported os");
-    return true;
 }
 
 /**
