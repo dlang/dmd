@@ -54,10 +54,10 @@ coverage_environment_template: &COVERAGE_ENVIRONMENT_TEMPLATE
 
 # FreeBSD
 freebsd14_task:
-  name: FreeBSD 14.4 x64, DMD ($TASK_NAME_TYPE)
+  name: FreeBSD 14.3 x64, DMD ($TASK_NAME_TYPE)
   allow_failures: true # might be out of credits
   freebsd_instance:
-    image_family: freebsd-14-4
+    image_family: freebsd-14-3
     cpu: 4
     memory: 8G
   timeout_in: 60m
