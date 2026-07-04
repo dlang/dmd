@@ -1622,70 +1622,48 @@ extern (C) void thread_suspendAll() nothrow
 private extern (D) void resume(ThreadBase _t) nothrow @nogc
 {
     Thread t = _t.toThread;
+    const sameThread = t.m_addr == gettid();
 
-    version (Windows)
+    if (!sameThread)
     {
-        if ( t.m_addr != GetCurrentThreadId() && ResumeThread( t.m_hndl ) == 0xFFFFFFFF )
+        if (!resumeThreadImpl(t))
         {
-            if ( !t.isRunning )
+            if (t.isRunning)
+                onThreadError( "Unable to resume thread" );
+            else
             {
                 Thread.remove( t );
                 return;
             }
-            onThreadError( "Unable to resume thread" );
         }
+    }
 
+    storeStackAndRegInfo(t, sameThread);
+}
+
+private void storeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
+{
+    version (Windows)
+    {
         if ( !t.m_lock )
             t.m_curr.tstack = t.m_curr.bstack;
         t.m_reg[0 .. $] = 0;
     }
     else version (Darwin)
     {
-        if ( t.m_addr != pthread_self() && thread_resume( t.m_tmach ) != KERN_SUCCESS )
-        {
-            if ( !t.isRunning )
-            {
-                Thread.remove( t );
-                return;
-            }
-            onThreadError( "Unable to resume thread" );
-        }
-
         if ( !t.m_lock )
             t.m_curr.tstack = t.m_curr.bstack;
         t.m_reg[0 .. $] = 0;
     }
     else version (Solaris)
     {
-        if (t.m_addr != pthread_self() && thr_continue(t.m_addr) != 0)
-        {
-            if (!t.isRunning)
-            {
-                Thread.remove(t);
-                return;
-            }
-            onThreadError("Unable to resume thread");
-        }
-
         if (!t.m_lock)
             t.m_curr.tstack = t.m_curr.bstack;
         t.m_reg[0 .. $] = 0;
     }
     else version (Posix)
     {
-        if ( t.m_addr != pthread_self() )
-        {
-            if ( pthread_kill( t.m_addr, resumeSignalNumber ) != 0 )
-            {
-                if ( !t.isRunning )
-                {
-                    Thread.remove( t );
-                    return;
-                }
-                onThreadError( "Unable to resume thread" );
-            }
-        }
-        else if ( !t.m_lock )
+        if (sameThread && !t.m_lock)
         {
             t.m_curr.tstack = t.m_curr.bstack;
         }
