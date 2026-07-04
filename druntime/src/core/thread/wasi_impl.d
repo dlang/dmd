@@ -169,3 +169,10 @@ package bool suspendThreadImpl(Thread t) @nogc nothrow
     onThreadError( "Unable to suspend thread" );
     assert(0);
 }
+
+// Returns true on success
+package bool resumeThreadImpl(Thread t) @nogc nothrow
+{
+    onThreadError( "Unable to resume thread" );
+    assert(0);
+}

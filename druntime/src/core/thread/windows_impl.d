@@ -250,3 +250,9 @@ package bool suspendThreadImpl(Thread t) @nogc nothrow
 {
     return SuspendThread(t.m_hndl) != 0xFFFFFFFF;
 }
+
+// Returns true on success
+package bool resumeThreadImpl(Thread t) @nogc nothrow
+{
+    return ResumeThread(t.m_hndl) != 0xFFFFFFFF;
+}
