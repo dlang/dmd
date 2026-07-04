@@ -31,13 +31,29 @@ int main()
     else
         immutable slash = "/";
 
+    version (FreeBSD)
+    {
+        // FreeBSD 13 removed GNU's objdump (they were using an old GPLv2
+        // version before and hadn't updated, because GPLv3 code is not allowed
+        // in FreeBSD itself).
+        // In FreeBSD 14, they added LLVM's objdump, whose functionality differs
+        // from the GNU version (so it doesn't work with these tests).
+        // So, for these tests to be run and pass, binutils needs to be installed.
+        assert(executeShell("pkg info binutils").status == 0,
+               "This test requires binutil's objdump. Please install binutils from ports/packages.");
+
+        immutable objdumpEXE = "/usr/local/bin/objdump";
+    }
+    else
+        immutable objdumpEXE = "objdump";
+
     // Some systems are configured for binutils to output localized strings.
     // Specify LANG=C to disable localization as we test for fixed strings in the output.
     // https://www.gnu.org/software/gettext/manual/html_node/The-LANGUAGE-variable.html
     // As an example (assuming binutils is compiled with localization), run
     //     LANG=ja_JP LANGUAGE=ja_JP objdump -H
     // to see translated output in action.
-    auto sysObjdump = executeShell("objdump --version", ["LANG": "C"]);
+    auto sysObjdump = executeShell(objdumpEXE ~ " --version", ["LANG": "C"]);
 
     // If the Unix system doesn't have objdump, disable the tests
     if (sysObjdump.status)
@@ -101,7 +117,7 @@ int main()
 
         auto objdump_file = File(objdump, "w");
         // Also disable localization here.
-        run("objdump -W " ~ exe, objdump_file, stderr, ["LANG": "C"]);
+        run(objdumpEXE ~ " -W " ~ exe, objdump_file, stderr, ["LANG": "C"]);
         objdump_file.close();
 
         auto llvmDwarfdump = executeShell("llvm-dwarfdump --version");

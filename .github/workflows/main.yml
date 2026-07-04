@@ -224,11 +224,12 @@ jobs:
             export FULL_BUILD=true
             export CI_DFLAGS="-version=TARGET_FREEBSD${freebsd_major}"
 
-            #if [[ "$freebsd_major" == 12 ]]; then
-            #  sudo sed -i '' -e 's|pkg.FreeBSD.org|mirrors.xtom.com/freebsd-pkg|' /etc/pkg/FreeBSD.conf
-            #fi
-
             bash --version
+
+            # For complire/test/dshell/dwarf.d
+            # binutils for obdump, and
+            # llvm for llvm-dwarfdump.
+            sudo pkg install -y binutils llvm
 
             echo '::group::Install prerequisites'
             sudo -E ci/cirrusci.sh
