@@ -1135,6 +1135,20 @@ private extern(D) void* getStackBottom() nothrow @nogc
         static assert(false, "Platform not supported.");
 }
 
+
+// Returns true on success
+// TODO: move to posix_impl module
+version (Posix)
+package bool suspendThreadImpl(Thread t) @nogc nothrow
+{
+    version (Darwin)
+        return thread_suspend(t.m_tmach) == KERN_SUCCESS;
+    else version (Solaris)
+        return thr_suspend(t.m_addr) == 0;
+    else
+        return pthread_kill(t.m_addr, suspendSignalNumber) == 0;
+}
+
 /**
  * Suspend the specified thread and load stack and register information for
  * use by thread_scanAll.  If the supplied thread is the calling thread,
@@ -1161,7 +1175,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
 
     version (Windows)
     {
-        if ( t.m_addr != gettid() && SuspendThread( t.m_hndl ) == 0xFFFFFFFF )
+        if ( t.m_addr != gettid() && !suspendThreadImpl( t ) )
         {
             if ( !t.isRunning )
             {
@@ -1220,7 +1234,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
     }
     else version (Darwin)
     {
-        if ( t.m_addr != pthread_self() && thread_suspend( t.m_tmach ) != KERN_SUCCESS )
+        if ( t.m_addr != gettid() && !suspendThreadImpl( t ) )
         {
             if ( !t.isRunning )
             {
@@ -1345,9 +1359,9 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
     }
     else version (Solaris)
     {
-        if (t.m_addr != pthread_self())
+        if (t.m_addr != gettid())
         {
-            if (thr_suspend(t.m_addr) != 0)
+            if (!suspendThreadImpl(t))
             {
                 if (!t.isRunning)
                 {
@@ -1484,7 +1498,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
     {
         if ( t.m_addr != gettid() )
         {
-            if ( pthread_kill( t.m_addr, suspendSignalNumber ) != 0 )
+            if ( !suspendThreadImpl( t ) )
             {
                 if ( !t.isRunning )
                 {

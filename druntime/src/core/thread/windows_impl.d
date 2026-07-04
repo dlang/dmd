@@ -244,3 +244,9 @@ class Thread : ThreadBase
 }
 
 package alias gettid = imported!"core.sys.windows.winbase".GetCurrentThreadId;
+
+// Returns true on success
+package bool suspendThreadImpl(Thread t) @nogc nothrow
+{
+    return SuspendThread(t.m_hndl) != 0xFFFFFFFF;
+}
