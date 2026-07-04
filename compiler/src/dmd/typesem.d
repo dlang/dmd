@@ -3970,7 +3970,8 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                                 stc = stc1 | (stc & ~(STC.ref_ | STC.out_ | STC.lazy_));
                             }
                             (*newparams)[j] = new Parameter(
-                                loc, stc, narg.type, narg.ident, narg.defaultArg, narg.userAttribDecl);
+                                loc, stc, narg.type, narg.ident, narg.defaultArg,
+                                narg.userAttribDecl ? narg.userAttribDecl : fparam.userAttribDecl);
                         }
                         fparam.type = new TypeTuple(newparams);
                         fparam.type = fparam.type.typeSemantic(loc, argsc);
