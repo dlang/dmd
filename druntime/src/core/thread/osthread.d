@@ -1149,6 +1149,19 @@ package bool suspendThreadImpl(Thread t) @nogc nothrow
         return pthread_kill(t.m_addr, suspendSignalNumber) == 0;
 }
 
+// Returns true on success
+// TODO: move to posix_impl module
+version (Posix)
+package bool resumeThreadImpl(Thread t) @nogc nothrow
+{
+    version (Darwin)
+        return thread_resume(t.m_tmach) == KERN_SUCCESS;
+    else version (Solaris)
+        return thr_continue(t.m_addr) == 0;
+    else
+        return pthread_kill(t.m_addr, resumeSignalNumber) == 0;
+}
+
 /**
  * Suspend the specified thread and load stack and register information for
  * use by thread_scanAll.  If the supplied thread is the calling thread,
