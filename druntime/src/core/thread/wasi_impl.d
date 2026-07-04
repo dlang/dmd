@@ -156,3 +156,16 @@ class Thread : ThreadBase
         // do nothing
     }
 }
+
+package ThreadID gettid() @nogc nothrow
+{
+    onThreadError( "Unable to get WASI thread ID" );
+    assert(0);
+}
+
+// Returns true on success
+package bool suspendThreadImpl(Thread t) @nogc nothrow
+{
+    onThreadError( "Unable to suspend thread" );
+    assert(0);
+}
