@@ -603,7 +603,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         VarDeclaration v = (*fd.parameters)[i];
         debug (LOG)
         {
-            printf("arg[%zu] = %s\n", i, earg.toChars());
+            printf("arg[%u] = %s\n", cast(uint)i, earg.toChars());
         }
         ctfeGlobals.stack.push(v);
 
@@ -647,12 +647,12 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         }
         debug (LOG)
         {
-            printf("interpreted arg[%zu] = %s\n", i, earg.toChars());
+            printf("interpreted arg[%u] = %s\n", cast(uint)i, earg.toChars());
             showCtfeExpr(earg);
         }
         debug (LOGASSIGN)
         {
-            printf("interpreted arg[%zu] = %s\n", i, earg.toChars());
+            printf("interpreted arg[%u] = %s\n", cast(uint)i, earg.toChars());
             showCtfeExpr(earg);
         }
     }

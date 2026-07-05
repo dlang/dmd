@@ -124,7 +124,7 @@ struct FileMapping(Datum)
                 auto p = mmap(null, cast(size_t) size, is(Datum == const) ? PROT_READ : (PROT_READ | PROT_WRITE), MAP_SHARED, handle, 0);
                 if (p == MAP_FAILED)
                 {
-                    fprintf(stderr, "mmap(null, %zu) for \"%s\" failed: %s\n", cast(size_t) size, filename, strerror(errno));
+                    fprintf(stderr, "mmap(null, %llu) for \"%s\" failed: %s\n", cast(ulong) size, filename, strerror(errno));
                     exit(1);
                 }
                 // The cast below will always work because it's gated by the `size <= size_t.max` condition.

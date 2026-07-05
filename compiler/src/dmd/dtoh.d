@@ -2522,7 +2522,7 @@ public:
                     }
                 }
 
-                buf.printf("%zu, ", se.len);
+                buf.printf("%u, ", cast(uint)se.len);
                 visit(se);
 
                 if (!isCtor)

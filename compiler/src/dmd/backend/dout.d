@@ -132,7 +132,7 @@ void outdata(Symbol* s)
                 break;
 
             case DT.nbytes:
-                //printf("DT.nbytes %zd\n", dt.DTpbytes.length);
+                //printf("DT.nbytes %d\n", cast(int)dt.DTpbytes.length);
                 datasize += dt.DTpbytes.length;
                 break;
 

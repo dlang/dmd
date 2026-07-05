@@ -725,7 +725,7 @@ private Identifier getTypeInfoIdent(Type t)
 
     OutBuffer buf2;
     buf2.reserve(19 + size_t.sizeof * 3 + buf.length + 1);
-    buf2.printf("_D%zuTypeInfo_%.*s6__initZ", 9+buf.length, cast(int)buf.length, buf[].ptr);
+    buf2.printf("_D%uTypeInfo_%.*s6__initZ", cast(uint)(9+buf.length), cast(int)buf.length, buf[].ptr);
 
     auto id = Identifier.idPool(buf2[]);
     return id;

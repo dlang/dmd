@@ -2715,8 +2715,8 @@ private extern(D) MATCH matchTypeSafeVarArgs(TypeFunction tf, Parameter p,
             if (pMessage)
             {
                 OutBuffer buf;
-                getMatchError(buf, "expected %llu variadic argument(s), not %zu",
-                    sz, trailingArgs.length);
+                getMatchError(buf, "expected %llu variadic argument(s), not %u",
+                    sz, cast(int)trailingArgs.length);
                 *pMessage = buf.extractChars();
             }
             return MATCH.nomatch;

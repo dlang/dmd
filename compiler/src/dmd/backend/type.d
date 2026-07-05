@@ -1049,7 +1049,7 @@ void type_print(const type* t)
                     auto a = *t.Tparamtypes;
                     foreach (i, ref p; a)
                     {
-                        printf("\nP%zd: ",i);
+                        printf("\nP%d: ",cast(int)i);
                         fflush(stdout);
 
                         printf("Pident=%p,Ptype=%p ",p.Pident,p.Ptype);
