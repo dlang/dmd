@@ -187,11 +187,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - job_name: FreeBSD 14.3 x64, DMD (latest)
-            freebsd_version: '14.3'
+          - job_name: FreeBSD 14.4 x64, DMD (latest)
+            freebsd_version: '14.4'
             host_dmd: dmd
-          - job_name: FreeBSD 14.3 x64, DMD (bootstrap)
-            freebsd_version: '14.3'
+          - job_name: FreeBSD 14.4 x64, DMD (bootstrap)
+            freebsd_version: '14.4'
             host_dmd: dmd-2.095.0
     name: ${{ matrix.job_name }}
     runs-on: ubuntu-latest
