@@ -75,6 +75,21 @@ typedef unsigned short __uint16_t;
 typedef unsigned int __uint32_t;
 typedef unsigned long long __uint64_t;
 
+/* wchar_t */
+#if defined(_WIN32)
+#ifndef _WCHAR_T_DEFINED
+// On Windows, wchar_t is defined as an unsigned 16-bit integer: the same as D's wchar.
+typedef __importc_wchar wchar_t;
+#define _WCHAR_T_DEFINED 1
+#define _NATIVE_WCHAR_T_DEFINED 1
+
+#ifdef _MSC_VER
+// Microsoft go a step further and have a proper built-in type.
+typedef __importc_wchar __wchar_t;
+#endif
+#endif
+#endif
+
 /*********************
  * Obsolete detritus
  */

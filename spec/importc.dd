@@ -487,6 +487,12 @@ $(H2 $(LNAME2 implementation, Implementation))
     C compiler) on the target platform.
     )
 
+    $(H3 $(LNAME2 wchar_t, `wchar_t`))
+
+    $(P When targeting Windows, `wchar_t` is a `typedef` for $(RELATIVE_LINK2 d-character-types, `__importc_wchar`).
+    When targeting platforms other than Windows, `wchar_t` receives no special treatment
+    and thus is defined by the `<stddef.h>` header, as usual.)
+
     $(H3 $(LNAME2 implicit-function-declaration, Implicit Function Declarations))
 
     $(P Implicit function declarations:)
