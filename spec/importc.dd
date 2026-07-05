@@ -731,6 +731,11 @@ _Static_assert(sizeof(A) == 1, "A should be size 1");
 )
 
 
+    $(H3 $(LNAME2 d-character-types, D Character Types))
+
+    $(P D's character types are available in ImportC via the
+    `__importc_char`, `__importc_wchar`, and `__importc_dchar` aliases.)
+
     $(H3 $(LNAME2 register, Register Storage Class))
 
     $(P Objects with `register` storage class are treated as `auto` declarations.)

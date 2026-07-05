@@ -49,6 +49,12 @@ version (CRuntime_Microsoft)
     alias __int64 = long;
 }
 
+/* Make D's character types available in ImportC.
+ */
+alias __importc_char = char;
+alias __importc_wchar = wchar;
+alias __importc_dchar = dchar;
+
 /*********** floating point *************/
 
 /* https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html
