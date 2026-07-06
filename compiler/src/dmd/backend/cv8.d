@@ -1360,10 +1360,14 @@ bool cv8_filehash(const(char)* filename, ref ubyte[32] hash)
 idx_t cv8_string_id(const(char)* s)
 {
     if (!s) s = "";
-    debtyp_t* d = debtyp_alloc(2 + 4 + cv_stringbytes(s));
+    int idlen = cast(int)strlen(s);
+    if (idlen > CV8_MAX_SYMBOL_LENGTH)      // CodeView records have a 16-bit length field
+        idlen = CV8_MAX_SYMBOL_LENGTH;
+    debtyp_t* d = debtyp_alloc(2 + 4 + idlen + 1);
     TOWORD(d.data.ptr, LF_STRING_ID);
     TOLONG(d.data.ptr + 2, 0);          // substring list id
-    cv_namestring(d.data.ptr + 6, s);
+    cv_namestring(d.data.ptr + 6, s, idlen);
+    d.data.ptr[6 + idlen] = 0;
     return cv_debtyp(d);
 }
 
@@ -1405,11 +1409,15 @@ idx_t cv8_buildinfo()
 @trusted
 idx_t cv8_func_id(const(char)* id, idx_t functype)
 {
-    debtyp_t* d = debtyp_alloc(2 + 4 + 4 + cv_stringbytes(id));
+    int idlen = cast(int)strlen(id);
+    if (idlen > CV8_MAX_SYMBOL_LENGTH)      // CodeView records have a 16-bit length field
+        idlen = CV8_MAX_SYMBOL_LENGTH;
+    debtyp_t* d = debtyp_alloc(2 + 4 + 4 + idlen + 1);
     TOWORD(d.data.ptr, LF_FUNC_ID);
     TOLONG(d.data.ptr + 2, 0);          // parent scope id
     TOLONG(d.data.ptr + 6, functype);
-    cv_namestring(d.data.ptr + 10, id);
+    cv_namestring(d.data.ptr + 10, id, idlen);
+    d.data.ptr[10 + idlen] = 0;
     return cv_debtyp(d);
 }
 
