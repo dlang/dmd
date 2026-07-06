@@ -982,7 +982,13 @@ in (fn)
     else version (WebAssembly)
     {
         // Wasm is special in that this isn't really possible
-        // Spilling has to be done somehow else...
+        // to dump "registers" (Wasm locals & value stack) onto
+        // the linear-memory "C" stack easily.
+        //
+        // Spilling has to be done somehow else.
+
+        import ldc.intrinsics : llvm_stackaddress;
+        sp = llvm_stackaddress();
     }
     else
     {
