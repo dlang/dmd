@@ -3266,7 +3266,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                             at = parseType(&ai, &loc);
 
-                        LskipType:;
+                        LskipType:{}
                         }
                         ae = null;
                         if (token.value == TOK.assign) // = defaultArg

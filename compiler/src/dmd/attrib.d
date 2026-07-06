@@ -773,7 +773,7 @@ extern (C++) final class UnpackDeclaration : AttribDeclaration
         this.dsym = DSYM.unpackDeclaration;
     }
 
-    final bool propagateStorageClasses()
+    bool propagateStorageClasses()
     {
         static import dmd.errors;
         foreach (d; *decl)
@@ -817,7 +817,7 @@ extern (C++) final class UnpackDeclaration : AttribDeclaration
         return true;
     }
 
-    final void lower(Scope* sc)
+    void lower(Scope* sc)
     {
         if (lowered)
             return;
