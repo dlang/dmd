@@ -965,12 +965,13 @@ void MachObj_term(const(char)[] objfilename)
                                 case SC.static_:
                                     if (/*s.Sfl == FL.func &&*/ r.rtype == REL.rel26)
                                     {
-                                        printf("BRANCHY26 %08x %s\n", value, s.Sident.ptr);
+                                        //printf("BRANCHY26 %08x %s\n", value, s.Sident.ptr);
                                         rel.r_type = ARM64_RELOC_BRANCHY26;
                                         rel.r_pcrel = 1;
                                     }
                                     else if (s.Sfl == FL.unde ||   // special case for __chkstk_darwin, need to research what PAGEOFF12 really means
-                                             s.Sfl == FL.extern_)
+                                             s.Sfl == FL.extern_ ||
+                                             s.Sfl == FL.tlsdata)
                                     {
                                         rel.r_type = r.rtype == REL.add ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
                                         if (s.Sfl == FL.tlsdata ||
