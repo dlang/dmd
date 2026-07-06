@@ -2,45 +2,56 @@
  * REQUIRED_ARGS: -preview=fastdfa
  * TEST_OUTPUT:
 ---
-fail_compilation/fastdfa.d(63): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(78): Error: Argument is expected to be non-null but was null
-fail_compilation/fastdfa.d(71):        For parameter `ptr` in argument 0
-fail_compilation/fastdfa.d(96): Error: Dereference on null variable `ptr`
-fail_compilation/fastdfa.d(94): Error: Dereference on null variable `ptr`
-fail_compilation/fastdfa.d(104): Error: Variable `ptr` was required to be non-null and has become null
-fail_compilation/fastdfa.d(125): Error: Variable `ptr` was required to be non-null and has become null
-fail_compilation/fastdfa.d(140): Error: Dereference on null variable `ptr`
-fail_compilation/fastdfa.d(162): Error: Dereference on null variable `ptr`
-fail_compilation/fastdfa.d(179): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(185): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(194): Error: Dereference on null variable `ptr`
-fail_compilation/fastdfa.d(209): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(217): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(219): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(226): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(233): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(237): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(239): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(249): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(250): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(264): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(273): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(289): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(295): Error: Expression reads from an uninitialized variable, it must be written to at least once before reading
-fail_compilation/fastdfa.d(294):        For variable `val1`
-fail_compilation/fastdfa.d(298): Error: Expression reads from an uninitialized variable, it must be written to at least once before reading
-fail_compilation/fastdfa.d(294):        For variable `val1`
-fail_compilation/fastdfa.d(305): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(312): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(348): Error: Assert can be proven to be false
-fail_compilation/fastdfa.d(355): Error: Expression reads a default initialized variable that is a floating point type
-fail_compilation/fastdfa.d(355):        It will have the value of Not Any Number(nan), it will be propagated with mathematical operations
-fail_compilation/fastdfa.d(354):        For variable `v`
-fail_compilation/fastdfa.d(354):        Initialize to float.nan or 0 explicitly to disable this error
-fail_compilation/fastdfa.d(365): Error: Expression reads from an uninitialized variable, it must be written to at least once before reading
-fail_compilation/fastdfa.d(364):        For variable `v`
+fail_compilation/fastdfa.d(1019): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1034): Error: Argument is expected to be non-null but was null
+fail_compilation/fastdfa.d(1027):        For parameter `ptr` in argument 0
+fail_compilation/fastdfa.d(1044): Error: Dereference on null variable `ptr`
+fail_compilation/fastdfa.d(1042): Error: Dereference on null variable `ptr`
+fail_compilation/fastdfa.d(1051): Error: Variable `ptr` was required to be non-null and has become null
+fail_compilation/fastdfa.d(1072): Error: Variable `ptr` was required to be non-null and has become null
+fail_compilation/fastdfa.d(1087): Error: Dereference on null variable `ptr`
+fail_compilation/fastdfa.d(1109): Error: Dereference on null variable `ptr`
+fail_compilation/fastdfa.d(1126): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1132): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1141): Error: Dereference on null variable `ptr`
+fail_compilation/fastdfa.d(1156): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1164): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1166): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1173): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1180): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1184): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1186): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1196): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1197): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1211): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1220): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1236): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1242): Error: Expression reads from an uninitialized variable, it must be written to at least once before reading
+fail_compilation/fastdfa.d(1241):        For variable `val1`
+fail_compilation/fastdfa.d(1245): Error: Expression reads from an uninitialized variable, it must be written to at least once before reading
+fail_compilation/fastdfa.d(1241):        For variable `val1`
+fail_compilation/fastdfa.d(1252): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1259): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1295): Error: Assert can be proven to be false
+fail_compilation/fastdfa.d(1302): Error: Expression reads a default initialized variable that is a floating point type
+fail_compilation/fastdfa.d(1302):        It will have the value of Not Any Number(nan), it will be propagated with mathematical operations
+fail_compilation/fastdfa.d(1301):        For variable `v`
+fail_compilation/fastdfa.d(1301):        Initialize to float.nan or 0 explicitly to disable this error
+fail_compilation/fastdfa.d(1312): Error: Expression reads from an uninitialized variable, it must be written to at least once before reading
+fail_compilation/fastdfa.d(1311):        For variable `v`
+fail_compilation/fastdfa.d(1320): Error: Stack variable exceeds its lifetime by being returned
+fail_compilation/fastdfa.d(1318):        Pointer stored in variable `b` has potentially escaped
+fail_compilation/fastdfa.d(1339): Error: Stack variable stores a lifetime that exceeds its own
+fail_compilation/fastdfa.d(1331):        For variable `ptr`
+fail_compilation/fastdfa.d(1334):        A pointer to the cell of the variable `buf` has potentially escaped
+fail_compilation/fastdfa.d(1350): Error: Expression reads from an uninitialized variable, it must be written to at least once before reading
+fail_compilation/fastdfa.d(1349):        For variable `foo`
+fail_compilation/fastdfa.d(1361): Error: Dereference on null variable `foo`
+fail_compilation/fastdfa.d(1368): Error: Dereference on null object
 ---
- */
+*/
+
+#line 1000
 
 @safe:
 
@@ -78,23 +89,14 @@ void nonnullCall()
     nonnull1(null); // error
 }
 
-void theSitchFinally()
+void theSitchFinally2()
 {
-    {
-        goto Label;
-    }
-
-    {
-        Label:
-    }
-
     int* ptr;
 
     scope (exit)
         int vS = *ptr; // error
 
     int vMid = *ptr; // error
-    truthinessNo;
 }
 
 void loopy6()
@@ -363,4 +365,60 @@ void checkFloatInit1_2(bool condition)
 float uninitFloat() {
     float v = void;
     return v * 2; // error
+}
+
+int* escapeCondVar(bool cond)
+{
+    int* a = new int;
+    scope int* b = new int;
+    return cond ? a : b;
+} // error, but on b only
+
+void escapeCleanupRequiredRead() @system
+{
+    struct S
+    {
+        ~this()
+        {
+        }
+    }
+
+    S* ptr;
+
+    {
+        S buf;
+        ptr = &buf;
+        buf.__xdtor;
+    } // ok
+
+    S temp = *ptr; // error
+}
+
+void unitClassField() @system
+{
+    class Foo
+    {
+        int a;
+    }
+
+    Foo foo = void;
+    int v = foo.a; // error
+}
+
+void nullClassField()
+{
+    class Foo
+    {
+        int a;
+    }
+
+    Foo foo;
+    int v = foo.a; // error
+}
+
+void checkViaObjNullDeref(bool cond, int** ptrArg) @system
+{
+    int* var;
+    int** ptr = cond ? &var : ptrArg;
+    **ptr = 2; // error
 }
