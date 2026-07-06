@@ -193,7 +193,8 @@ bool needToCopyLiteral(const Expression expr) nothrow
     }
 }
 
-private Expressions* copyLiteralArray(Expressions* oldelems, Expression basis = null)
+// oldelems can have a null element e.g. for `ArrayLiteralExp.elements` when `basis` is set
+private Expressions* copyLiteralArray(Expressions* oldelems)
 {
     if (!oldelems)
         return oldelems;
@@ -201,7 +202,7 @@ private Expressions* copyLiteralArray(Expressions* oldelems, Expression basis = 
     auto newelems = new Expressions(oldelems.length);
     foreach (i, el; *oldelems)
     {
-        (*newelems)[i] = copyLiteral(el ? el : basis).copy();
+        (*newelems)[i] = el ? copyLiteral(el).copy() : null;
     }
     return newelems;
 }
@@ -226,9 +227,10 @@ UnionExp copyLiteral(Expression e)
     }
     if (auto ale = e.isArrayLiteralExp())
     {
-        auto elements = copyLiteralArray(ale.elements, ale.basis);
+        auto elements = copyLiteralArray(ale.elements);
+        auto basis = ale.basis ? copyLiteral(ale.basis).copy() : null;
 
-        emplaceExp!(ArrayLiteralExp)(&ue, e.loc, e.type, elements);
+        emplaceExp!(ArrayLiteralExp)(&ue, e.loc, e.type, basis, elements);
 
         ArrayLiteralExp r = ue.exp().isArrayLiteralExp();
         r.ownedByCtfe = OwnedBy.ctfe;
