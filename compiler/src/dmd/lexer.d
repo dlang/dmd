@@ -1288,7 +1288,7 @@ class Lexer
     }
 
     /*********************************
-     * tk is on an opening (.
+     * tk is on an opening $(LPAREN).
      * Look ahead and determine if there is a comma at paren level 1.
      */
     final bool isTupleNotation(Token* tk)
