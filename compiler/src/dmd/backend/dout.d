@@ -684,7 +684,7 @@ again:          // for tail recursion
                     if (I16)
                         addressOfParam = true;   // taking addr of param list
                     else
-                        s.Sflags &= ~(SFLunambig | GTregcand);
+                        s.Sflags &= ~(SFLdistinct | GTregcand);
                 }
                 break;
 
@@ -706,7 +706,7 @@ again:          // for tail recursion
             case SC.bprel:
                 if (e.Eoper == OPrelconst)
                 {
-                    s.Sflags &= ~(SFLunambig | GTregcand);
+                    s.Sflags &= ~(SFLdistinct | GTregcand);
                 }
                 else if (s.ty() & mTYfar)
                     e.Ety |= mTYfar;
@@ -749,12 +749,12 @@ void out_regcand(Symbol*[] psymtab)
                 {   if (e.E1.Eoper == OPvar)
                     {
                         Symbol* s = e.E1.Vsym;
-                        s.Sflags &= ~(SFLunambig | GTregcand);
+                        s.Sflags &= ~(SFLdistinct | GTregcand);
                     }
                     if (e.E2.Eoper == OPvar)
                     {
                         Symbol* s = e.E2.Vsym;
-                        s.Sflags &= ~(SFLunambig | GTregcand);
+                        s.Sflags &= ~(SFLdistinct | GTregcand);
                     }
                 }
                 walk(e.E1);
@@ -788,14 +788,14 @@ void out_regcand(Symbol*[] psymtab)
                             if (I16)
                                 addressOfParam = true;       // taking addr of param list
                             else
-                                s.Sflags &= ~(SFLunambig | GTregcand);
+                                s.Sflags &= ~(SFLdistinct | GTregcand);
                             break;
 
                         case SC.auto_:
                         case SC.register:
                         case SC.fastpar:
                         case SC.bprel:
-                            s.Sflags &= ~(SFLunambig | GTregcand);
+                            s.Sflags &= ~(SFLdistinct | GTregcand);
                             break;
 
                         default:
@@ -826,9 +826,9 @@ void out_regcand(Symbol*[] psymtab)
         if (!(s.ty() & (mTYvolatile | mTYshared)) &&
             !(ifunc && (s.Sclass == SC.parameter || s.Sclass == SC.regpar)) &&
             s.Sclass != SC.static_)
-            s.Sflags |= (GTregcand | SFLunambig);      // assume register candidate
+            s.Sflags |= (GTregcand | SFLdistinct);      // assume register candidate
         else
-            s.Sflags &= ~(GTregcand | SFLunambig);
+            s.Sflags &= ~(GTregcand | SFLdistinct);
     }
 
     for (block* b = bo.startblock; b; b = b.Bnext)
@@ -839,7 +839,7 @@ void out_regcand(Symbol*[] psymtab)
         // Any assembler blocks make everything ambiguous
         if (b.bc == BC.asm_)
             foreach (s; psymtab)
-                s.Sflags &= ~(SFLunambig | GTregcand);
+                s.Sflags &= ~(SFLdistinct | GTregcand);
     }
 
     // If we took the address of one parameter, assume we took the
@@ -848,7 +848,7 @@ void out_regcand(Symbol*[] psymtab)
     {
         foreach (s; psymtab)
             if (s.Sclass == SC.parameter || s.Sclass == SC.shadowreg)
-                s.Sflags &= ~(SFLunambig | GTregcand);
+                s.Sflags &= ~(SFLdistinct | GTregcand);
     }
 }
 
@@ -913,7 +913,7 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
         type_size(s.Stype);    // do any forward template instantiations
 
         s.Ssymnum = si;        // Ssymnum trashed by cpp_inlineexpand
-        s.Sflags &= ~(SFLunambig | GTregcand);
+        s.Sflags &= ~(SFLdistinct | GTregcand);
         switch (s.Sclass)
         {
             case SC.bprel:
@@ -939,7 +939,7 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
                 }
             L3:
                 if (!(s.ty() & (mTYvolatile | mTYshared)))
-                    s.Sflags |= GTregcand | SFLunambig; // assume register candidate   */
+                    s.Sflags |= GTregcand | SFLdistinct; // assume register candidate   */
                 break;
 
             case SC.pseudo:
@@ -995,7 +995,7 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
     {
         foreach (s; globsym[])
             if (anyasm || s.Sclass == SC.parameter)
-                s.Sflags &= ~(SFLunambig | GTregcand);
+                s.Sflags &= ~(SFLdistinct | GTregcand);
     }
 
     block_pred(bo.startblock);              // compute predecessors to blocks

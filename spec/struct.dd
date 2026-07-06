@@ -826,7 +826,7 @@ $(H3 $(LNAME2 delegating-constructor, Delegating Constructors))
         $(I delegating constructor):
         )
 
-        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         struct S
         {
@@ -839,7 +839,7 @@ $(H3 $(LNAME2 delegating-constructor, Delegating Constructors))
             this(int i)
             {
                 // At this point: j=1, k=2
-                $(CODE_HIGHLIGHT this)(6); // delegating constructor call
+                this(6L); // delegating constructor call
                 // At this point: j=1, k=6
                 j = i;
                 // At this point: j=i, k=6

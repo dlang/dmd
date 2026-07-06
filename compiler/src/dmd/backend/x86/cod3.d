@@ -5903,8 +5903,8 @@ void assignaddrc(ref CGstate cg, code* c)
                 }
                 else
                 {   c.IEV1.Vpointer += s.Soffset + soff + cg.BPoff;
-                    if (s.Sflags & SFLunambig)
-                        c.Iflags |= CF.unambig;
+                    if (s.Sflags & SFLdistinct)
+                        c.Iflags |= CF.distinct;
             L2:
                     if (!cg.hasframe || (cg.enforcealign && c.IFL1 != FL.para))
                     {   /* Convert to ESP relative address instead of EBP */
@@ -5937,7 +5937,7 @@ void assignaddrc(ref CGstate cg, code* c)
 
             case FL.fltreg:
                 c.IEV1.Vpointer += cg.Foff + cg.BPoff;
-                c.Iflags |= CF.unambig;
+                c.Iflags |= CF.distinct;
                 goto L2;
 
             case FL.allocatmp:
@@ -5960,19 +5960,19 @@ void assignaddrc(ref CGstate cg, code* c)
                     continue;
                 }
                 c.IEV1.Vpointer = CSE.offset(sn) + cg.CSoff + cg.BPoff;
-                c.Iflags |= CF.unambig;
+                c.Iflags |= CF.distinct;
                 goto L2;
 
             case FL.regsave:
                 sn = c.IEV1.Vuns;
                 c.IEV1.Vpointer = sn + cg.regsave.off + cg.BPoff;
-                c.Iflags |= CF.unambig;
+                c.Iflags |= CF.distinct;
                 goto L2;
 
             case FL.ndp:
                 assert(c.IEV1.Vuns < global87.save.length);
                 c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYreal) + cg.NDPoff + cg.BPoff;
-                c.Iflags |= CF.unambig;
+                c.Iflags |= CF.distinct;
                 goto L2;
 
             case FL.offset:
@@ -8467,7 +8467,7 @@ void CF_print(uint cf)
     print(CF.classinit, "CF.classinit");
     print(CF.volatile, "CF.volatile");
     print(CF.targ2, "CF.targ2");
-    print(CF.unambig, "CF.unambig");
+    print(CF.distinct, "CF.distinct");
     print(CF.selfrel, "CF.selfrel");
     print(CF.wait, "CF.wait");
     print(CF.fs, "CF.fs");

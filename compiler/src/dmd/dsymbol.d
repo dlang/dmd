@@ -679,7 +679,7 @@ extern (C++) class Dsymbol : ASTNode
         return ident;
     }
 
-    const(char)* toPrettyChars(bool QualifyTypes = false)
+    const(char)* toPrettyChars(bool QualifyTypes = false, bool keepOneMember = false)
     {
         //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
         if (!parent)
@@ -695,6 +695,24 @@ extern (C++) class Dsymbol : ASTNode
             if (p.parent)
             {
                 addQualifiers(p.parent);
+
+                bool isOneMember(T)(T t)
+                {
+                    import dmd.dsymbolsem;
+                    Dsymbol sym;
+                    if (auto ti = p.parent.isTemplateInstance())
+                        if (auto ident = p.getIdent())
+                            if (ident is ti.name)
+                                if (oneMembers(ti.members, sym, ident) && sym is p)
+                                    return true;
+                    return false;
+                }
+
+                if (!keepOneMember)
+                    if (isOneMember(p.parent.isTemplateInstance()) ||
+                        isOneMember(p.parent.isTemplateDeclaration()))
+                        return;
+
                 buf.writeByte('.');
             }
             const s = QualifyTypes ? p.toPrettyCharsHelper() : p.toChars();

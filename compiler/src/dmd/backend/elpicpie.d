@@ -376,7 +376,7 @@ private Symbol* el_alloc_localgot()
         localgot = symbol_name(name[0 .. length], SC.auto_, t);
         symbol_add(localgot);
         localgot.Sfl = FL.auto_;
-        localgot.Sflags = SFLfree | SFLunambig | GTregcand;
+        localgot.Sflags = SFLfree | SFLdistinct | GTregcand;
     }
     return localgot;
 }

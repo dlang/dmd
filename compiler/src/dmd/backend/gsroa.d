@@ -364,9 +364,9 @@ if (enable) // disable while we test the inliner
         if (log) printf("slice1 [%d]: %s\n", cast(int)si, s.Sident.ptr);
 
         //if (strcmp(s.Sident.ptr, "__inlineretval3".ptr) == 0) { printf("can't\n"); sia[si].canSlice = false; continue; }
-        if (!(s.Sflags & SFLunambig))   // if somebody took the address of s
+        if (!(s.Sflags & SFLdistinct))   // if somebody took the address of s
         {
-            if (log) printf(" can't because SFLunambig\n");
+            if (log) printf(" can't because SFLdistinct\n");
             sia[si].canSlice = false;
             continue;
         }

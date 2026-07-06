@@ -28,6 +28,8 @@ version (Posix)
     public import core.thread.posix_impl;
 else version (Windows)
     public import core.thread.windows_impl;
+else version (WASI)
+    public import core.thread.wasi_impl;
 else
     static assert(false, "Unknown threading implementation.");
 
@@ -138,6 +140,12 @@ else version (Posix)
     {
         // Use POSIX threads for suspend/resume
     }
+}
+else version (WASI)
+{
+    // No real threading support
+    // Just manipulations of the main "thread"
+    import core.stdc.stdlib : free, malloc, realloc;
 }
 else
     static assert(0, "unsupported operating system");
@@ -678,6 +686,12 @@ private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
 
         atomicStore!(MemoryOrder.raw)(thisThread.toThread.m_isRunning, true);
     }
+    else version (WASI)
+    {
+        thisThread.m_addr  = 1; // assumes this is done only once
+        thisContext.bstack = getStackBottom();
+        thisContext.tstack = thisContext.bstack;
+    }
     else
         static assert(0, "unsupported os");
     thisThread.m_isDaemon = true;
@@ -965,6 +979,11 @@ in (fn)
         }
         assert(0, "implement AArch64 inline assembler for callWithStackShell()"); // TODO AArch64
     }
+    else version (WebAssembly)
+    {
+        // Wasm is special in that this isn't really possible
+        // Spilling has to be done somehow else...
+    }
     else
     {
         static assert(false, "Architecture not supported.");
@@ -989,6 +1008,10 @@ version (Posix)
 else version (Windows)
 {
     alias getpid = imported!"core.sys.windows.winbase".GetCurrentProcessId;
+}
+else version (WASI)
+{
+    int getpid() @nogc nothrow @safe => 1;
 }
 else
     static assert(0, "unsupported os");
@@ -1470,6 +1493,10 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
             t.m_curr.tstack = getStackTop();
         }
     }
+    else version (WASI)
+    {
+        onThreadError( "Unable to suspend thread" );
+    }
     else
         static assert(0, "unsupported os");
     return true;
@@ -1493,6 +1520,8 @@ extern (C) void thread_preStopTheWorld() nothrow {
  */
 extern (C) void thread_suspendAll() nothrow
 {
+    version (WASI) onThreadError( "Unable to suspend all threads" );
+
     // NOTE: We've got an odd chicken & egg problem here, because while the GC
     //       is required to call thread_init before calling any other thread
     //       routines, thread_init may allocate memory which could in turn
@@ -1559,6 +1588,10 @@ extern (C) void thread_suspendAll() nothrow
         }
         else version (Windows)
         {
+        }
+        else version (WASI)
+        {
+            // bail out handled at start
         }
         else
             static assert(0, "unsupported os");
@@ -1649,6 +1682,10 @@ private extern (D) void resume(ThreadBase _t) nothrow @nogc
         {
             t.m_curr.tstack = t.m_curr.bstack;
         }
+    }
+    else version (WASI)
+    {
+        onThreadError( "Unable to resume thread" );
     }
     else
         static assert(false, "Platform not supported.");
@@ -1776,6 +1813,9 @@ extern (C) void thread_init() @nogc nothrow
 
         status = sem_init( &suspendCount, 0, 0 );
         assert( status == 0 );
+    }
+    else version (WASI)
+    {
     }
     else
         static assert(0, "unsupported os");
@@ -2147,6 +2187,17 @@ else version (Posix)
         }
     }
 }
+else version (WASI)
+{
+    //
+    // Entry point for WASI threads
+    //
+    extern (C) void* thread_entryPoint( void* arg ) nothrow
+    {
+        onThreadError("Cannot enter new WASI threads.");
+        return null;
+    }
+}
 else
 {
     // NOTE: This is the only place threading versions are checked.  If a new
@@ -2489,6 +2540,13 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
 
         ll_pThreads[ll_nThreads - 1].tid = tid;
     }
+    else version (WASI)
+    {
+        // no-op for now.
+
+        // falls through to returning `tid`,
+        // which will already be `ThreadID.init` (error)
+    }
     else
         static assert(0, "unsupported os");
     context = null; // free'd in thread
@@ -2530,6 +2588,10 @@ void joinLowLevelThread(ThreadID tid) nothrow @nogc
     {
         if (pthread_join(tid, null) != 0)
             onThreadError("Unable to join thread");
+    }
+    else version (WASI)
+    {
+        onThreadError("Unable to join thread");
     }
     else
         static assert(0, "unsupported os");

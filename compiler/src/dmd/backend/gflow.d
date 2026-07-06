@@ -1255,7 +1255,7 @@ private void accumaecpx(ref GlobalOptimizer go, elem* n)
         {
             assert(t.Eoper == OPvar);
             Symbol* s = t.Vsym;             // idx of var being def'd
-            if (!(s.Sflags & SFLunambig))
+            if (!(s.Sflags & SFLdistinct))
             {
                 vec_orass(KILL,go.starkill);       /* kill all 'starred' refs */
                 vec_subass(GEN,go.starkill);
@@ -1412,7 +1412,7 @@ private void lvgenkill(ref BlockOpt bo)
     const length = gsym.length;
     vec_t ambigsym = vec_calloc(length);
     foreach (i; 0 .. length)
-        if (!(gsym[i].Sflags & SFLunambig))
+        if (!(gsym[i].Sflags & SFLdistinct))
             vec_setbit(i,ambigsym);
 
     static if (0)
@@ -1902,7 +1902,7 @@ private void accumvbe(ref GlobalOptimizer go, vec_t GEN,vec_t KILL,elem* n)
         {
             assert(t.Eoper == OPvar);
             Symbol* s = t.Vsym;  // ptr to var being def'd
-            if (!(s.Sflags & SFLunambig))
+            if (!(s.Sflags & SFLdistinct))
                 vec_orass(KILL,go.starkill);/* kill all 'starred' refs */
             foreach (uint i; 1 .. go.exptop)        // for each vbe elem
             {

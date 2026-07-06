@@ -1914,15 +1914,15 @@ if ((ins & 0x9F00_0000) == 0x9000_0000)
                         s.Sident.ptr, cast(int)s.Soffset, cast(int)cg.Para.size, cast(int)cg.BPoff,
                         cast(int)cg.EBPtoESP, cast(int)c.IEV1.Voffset, cast(int)sectionOff);
                 }
-                if (s.Sflags & SFLunambig)
-                    c.Iflags |= CF.unambig;
+                if (s.Sflags & SFLdistinct)
+                    c.Iflags |= CF.distinct;
                 offset = c.IEV1.Voffset + s.Soffset + sectionOff + cg.BPoff;
                 sz = tysize(s.ty());
                 goto L2;
 
             case FL.fltreg:
                 offset = c.IEV1.Vpointer + cg.Foff + cg.BPoff;
-                c.Iflags |= CF.unambig;
+                c.Iflags |= CF.distinct;
                 goto L2;
 
             case FL.allocatmp:
@@ -1946,11 +1946,11 @@ if ((ins & 0x9F00_0000) == 0x9000_0000)
                     break;
                 }
                 offset = CSE.offset(sn) + cg.CSoff + cg.BPoff;
-                c.Iflags |= CF.unambig;
+                c.Iflags |= CF.distinct;
                 goto L2;
 
             case FL.regsave:
-                c.Iflags |= CF.unambig;
+                c.Iflags |= CF.distinct;
                 offset = cg.regsave.off + cg.BPoff;
 
             L2:

@@ -278,8 +278,8 @@ enum CF : uint
     gs        =   cs | fs,    // need GS override
     wait      =   0x1000,     // If I32 it indicates when to output a WAIT
     selfrel   =   0x2000,     // if self-relative
-    unambig   =   0x4000,     // indicates cannot be accessed by other addressing
-                                // modes
+    distinct  =   0x4000,     // indicates cannot be accessed by other addressing
+                              // modes
     targ2     =   0x8000,     // like CF.targ, but we can't optimize this away
     volatile  =  0x10000,     // volatile reference, do not schedule
     classinit =  0x20000,     // class init code

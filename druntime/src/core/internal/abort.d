@@ -53,7 +53,8 @@ void abort(scope string msg, scope string filename = __FILE__, size_t line = __L
             __wasi_size_t buf_len;
         }
 
-        extern(C) __wasi_errno_t
+        pragma(mangle, "__wasi_fd_write")
+        extern(C) static __wasi_errno_t
         __wasi_fd_write(__wasi_fd_t fd,
                         const __wasi_ciovec_t *iovs,
                         size_t iovs_len, __wasi_size_t *retptr0) @nogc nothrow;
@@ -96,12 +97,18 @@ void abort(scope string msg, scope string filename = __FILE__, size_t line = __L
             Val val;
         }
 
-        extern(C) void streams_output_stream_drop_own(streams_own_output_stream_t handle) @nogc nothrow;
-        extern(C) streams_borrow_output_stream_t streams_borrow_output_stream(streams_own_output_stream_t handle) @nogc nothrow;
-        extern(C) stderr_own_output_stream_t stderr_get_stderr() @nogc nothrow;
-        extern(C) void io_error_error_drop_own(io_error_own_error_t handle) @nogc nothrow;
-        extern(C) void streams_stream_error_free(streams_stream_error_t *ptr) @nogc nothrow;
-        extern(C) bool streams_method_output_stream_blocking_write_and_flush(streams_borrow_output_stream_t self, wasip2_list_u8_t *contents, streams_stream_error_t *err) @nogc nothrow;
+        pragma(mangle, "streams_output_stream_drop_own")
+        extern(C) static void streams_output_stream_drop_own(streams_own_output_stream_t handle) @nogc nothrow;
+        pragma(mangle, "streams_borrow_output_stream")
+        extern(C) static streams_borrow_output_stream_t streams_borrow_output_stream(streams_own_output_stream_t handle) @nogc nothrow;
+        pragma(mangle, "stderr_get_stderr")
+        extern(C) static stderr_own_output_stream_t stderr_get_stderr() @nogc nothrow;
+        pragma(mangle, "io_error_error_drop_own")
+        extern(C) static void io_error_error_drop_own(io_error_own_error_t handle) @nogc nothrow;
+        pragma(mangle, "streams_stream_error_free")
+        extern(C) static void streams_stream_error_free(streams_stream_error_t *ptr) @nogc nothrow;
+        pragma(mangle, "streams_method_output_stream_blocking_write_and_flush")
+        extern(C) static bool streams_method_output_stream_blocking_write_and_flush(streams_borrow_output_stream_t self, wasip2_list_u8_t *contents, streams_stream_error_t *err) @nogc nothrow;
 
         static void writeStr(scope const(char)[][] m...) @nogc nothrow @trusted
         {

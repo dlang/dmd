@@ -364,7 +364,7 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
         return "visibility attribute";
     }
 
-    override const(char)* toPrettyChars(bool)
+    override const(char)* toPrettyChars(bool, bool keepOneMember = false)
     {
         assert(visibility.kind > Visibility.Kind.undefined);
         OutBuffer buf;

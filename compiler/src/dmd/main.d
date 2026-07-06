@@ -1194,7 +1194,23 @@ void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_
             {
                 VSOptions vsopt;
                 vsopt.initialize();
-                driverParams.mscrtlib = vsopt.defaultRuntimeLibrary(target.isX86_64).toDString;
+                if (const rtlib = vsopt.defaultRuntimeLibrary(target.isX86_64))
+                    driverParams.mscrtlib = rtlib.toDString;
+                else
+                {
+                    // No UCRT-capable Visual C installation (VS2015+ or the Windows SDK
+                    // with the Universal CRT) and no MinGW fallback libraries were found.
+                    if (driverParams.link)
+                        eSink.error(Loc.initial, "no compatible C runtime found; install Visual Studio 2015 or later, or the Windows SDK with the Universal CRT, or specify the runtime with `-mscrtlib`");
+                    // still embed a name in the object file so it can be linked elsewhere
+                    driverParams.mscrtlib = "libcmt";
+                }
+
+                // @@@ Deprecated v2.117
+                // Deprecated in 2.113
+                // Remove this when the feature is removed from the language
+                if (vsopt.usedDeprecatedVSVersion)
+                    eSink.deprecation(Loc.initial, "Visual Studio versions prior to 2015 are deprecated because they lack the Universal CRT (UCRT); install Visual Studio 2015 or later");
             }
             else
             {

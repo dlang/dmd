@@ -216,7 +216,8 @@ struct INSTR
     }
 
     /* If instruction is compatible with PAGEOFF12 fixups */
-    static bool isPAGEOFF12(uint op) { return (op & 0x7F80_0000) == 0x1100_0000; }
+    static bool isPAGEOFF12(uint op) { return (op & 0x7F80_0000) == 0x1100_0000 ||
+                                              (op & 0xBFC0_0000) == 0xB940_0000; } // ldr_imm_gen
 
     /* subtract (immediate)
      * SUB Rd,Rn,#imm,shift

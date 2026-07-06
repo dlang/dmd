@@ -553,7 +553,7 @@ enum
     GTunregister    = 0x8000000,   // 'unregister' a previous register assignment
 
     // OPTIMIZER only
-    SFLunambig      = 0x400,       // only accessible by unambiguous reference,
+    SFLdistinct      = 0x400,       // only accessible by unambiguous reference,
                                    // i.e. cannot be addressed via pointer
                                    // (GTregcand is a subset of this)
                                    // P.S. code generator turns off this

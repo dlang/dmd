@@ -1286,7 +1286,7 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
     size_t namelen = strlen(name);
     if (!(namelen > 9 && memcmp(name, "TypeInfo_".ptr, 9) == 0))
     {
-        name = cd.toPrettyChars(/*QualifyTypes=*/ true);
+        name = cd.toPrettyChars(/*QualifyTypes=*/ true, true);
         namelen = strlen(name);
     }
     dtb.size(namelen);
@@ -1535,7 +1535,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     dtb.size(0);                        // initializer
 
     // name[]
-    const(char) *name = id.toPrettyChars(/*QualifyTypes=*/ true);
+    const(char) *name = id.toPrettyChars(/*QualifyTypes=*/ true, /*keepOneMember=*/ true);
     size_t namelen = strlen(name);
     dtb.size(namelen);
     auto csym = cast(Symbol*)id.csym;

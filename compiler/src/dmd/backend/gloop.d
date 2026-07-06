@@ -182,7 +182,7 @@ void makeLI(elem* n) { n.Nflags |= NFLli; }
  *      Only variables that could only be unambiguously defined
  *      are candidates for loop invariant removal and induction
  *      variables.
- *      This means only variables that have the SFLunambig flag
+ *      This means only variables that have the SFLdistinct flag
  *      set for them.
  *      Doing this will still cover 90% (I hope) of the cases, and
  *      is a lot faster to compute.
@@ -1143,7 +1143,7 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
                 if (isLI(n.E2) && n1.Eoper == OPvar)          /* 1 & 2 */
                 {
                     v = n1.Vsym;
-                    if (v.Sflags & SFLunambig)
+                    if (v.Sflags & SFLdistinct)
                     {
                         tmp = vec_calloc(go.defnod.length);
                         //filterrd(tmp,rd,v);
@@ -1250,7 +1250,7 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
 
             case OPvar:
                 v = n.Vsym;
-                if (v.Sflags & SFLunambig)     // must be unambiguous to be LI
+                if (v.Sflags & SFLdistinct)     // must be unambiguous to be LI
                 {
                     tmp = vec_calloc(go.defnod.length);
                     //filterrd(tmp,rd,v);       // only the RDs pertaining to v
@@ -1535,7 +1535,7 @@ Lnextlis:
             {
                 v = n.E1.Vsym;          // variable index number
 
-                if (!(v.Sflags & SFLunambig)) goto L3;         // case 6
+                if (!(v.Sflags & SFLdistinct)) goto L3;         // case 6
 
                 // If case 4 is not satisfied, return
 
@@ -2089,7 +2089,7 @@ private void findbasivs(ref GlobalOptimizer go, ref Loop l)
             {
                 foreach (j, s; globsym[])
                 {
-                    if (!(s.Sflags & SFLunambig))
+                    if (!(s.Sflags & SFLdistinct))
                         vec_setbit(j,notposs);
                 }
                 ambdone = true;
@@ -2223,7 +2223,7 @@ private void findopeqs(ref GlobalOptimizer go, ref Loop l)
             {
                 foreach (j, s; globsym[])
                 {
-                    if (!(s.Sflags & SFLunambig))
+                    if (!(s.Sflags & SFLdistinct))
                         vec_setbit(j,notposs);
                 }
                 ambdone = true;
@@ -3781,7 +3781,7 @@ bool loopunroll(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
     Symbol* v = e1.Vsym;
 
     // RD info is only reliable for registers and autos
-    if (!(sytab[v.Sclass] & SCRD) || !(v.Sflags & SFLunambig))
+    if (!(sytab[v.Sclass] & SCRD) || !(v.Sflags & SFLdistinct))
     {
         if (log) printf("\tnot SCRD\n");
         return false;
