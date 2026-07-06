@@ -278,6 +278,7 @@ uint cv_align(ubyte* p, uint n)
 /*************************************
  * write a UDT record to the object file
  * Params:
+ *      s = user defined type symbol
  *      id = name of user defined type
  *      typidx = type index
  */
