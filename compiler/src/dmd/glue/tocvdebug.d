@@ -306,6 +306,16 @@ void cv_udt(const char* id, uint typidx)
     objmod.write_bytes(SegData[DEBSYM],debsym[0 .. length]);
 }
 
+/* Record the source file and line where a user-defined type is defined
+ * (emits an LF_UDT_SRC_LINE record). Only the modern CodeView (CV8) path
+ * supports this; the CV4 path has no equivalent record.
+ */
+private void cv_udt_srcline(Dsymbol s, idx_t typidx)
+{
+    if (config.fulltypes == CV8)
+        cast(void)cv8_udt_src_line(typidx, s.loc.filename, s.loc.linnum);
+}
+
 /* ==================================================================== */
 
 /****************************
@@ -327,6 +337,7 @@ void toDebug(EnumDeclaration ed)
         const id = ed.toPrettyChars(true);
         const idx_t typidx = cv4_Denum(ed);
         cv_udt(id, typidx);
+        cv_udt_srcline(ed, typidx);
     }
 }
 
@@ -605,6 +616,7 @@ void toDebug(StructDeclaration sd)
 //    cv4_outsym(s);
 
     cv_udt(id, typidx);
+    cv_udt_srcline(sd, typidx);
 
 //    return typidx;
 }
@@ -806,6 +818,7 @@ void toDebug(ClassDeclaration cd)
 //    cv4_outsym(s);
 
     cv_udt(id, typidx);
+    cv_udt_srcline(cd, typidx);
 
 //    return typidx;
 }

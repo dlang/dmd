@@ -84,6 +84,7 @@ enum
     LF_FUNC_ID   = 0x1601,      // function id: function type + name
     LF_STRING_ID = 0x1605,      // interned string -> type index
     LF_BUILDINFO = 0x1603,      // cwd, tool, source, pdb, args
+    LF_UDT_SRC_LINE = 0x1606,   // source file/line where a UDT is defined
 }
 
 // .debug$S subsection kinds
@@ -1409,6 +1410,45 @@ idx_t cv8_func_id(const(char)* id, idx_t functype)
     TOLONG(d.data.ptr + 2, 0);          // parent scope id
     TOLONG(d.data.ptr + 6, functype);
     cv_namestring(d.data.ptr + 10, id);
+    return cv_debtyp(d);
+}
+
+/* LF_UDT_SRC_LINE: source file and line where a user-defined type is defined. */
+@trusted
+idx_t cv8_udt_src_line(idx_t typidx, const(char)* filename, uint line)
+{
+    /* The source file must be spelled the same way as in the module's source
+     * file list (see cv8_addfile), i.e. as an absolute path, otherwise the
+     * debugger cannot associate this record with a known source file.
+     */
+    char[2 * 260] pathbuf = void;
+    const(char)* srcpath = filename;
+    const bool abs = (*filename == '\\') || (*filename == '/') ||
+                     (*filename && filename[1] == ':');
+    if (!abs)
+    {
+        char[260] cwd = 0;
+        if (getcwd(cwd.ptr, cwd.sizeof))
+        {
+            size_t cwdlen = strlen(cwd.ptr);
+            if (cwdlen && cwd[cwdlen - 1] != '\\' && cwd[cwdlen - 1] != '/')
+                cwd[cwdlen++] = '\\';
+            const flen = strlen(filename);
+            if (cwdlen + flen + 1 <= pathbuf.length)
+            {
+                memcpy(pathbuf.ptr, cwd.ptr, cwdlen);
+                memcpy(pathbuf.ptr + cwdlen, filename, flen + 1);
+                srcpath = pathbuf.ptr;
+            }
+        }
+    }
+
+    idx_t srcId = cv8_string_id(srcpath);
+    debtyp_t* d = debtyp_alloc(2 + 4 + 4 + 4);
+    TOWORD(d.data.ptr, LF_UDT_SRC_LINE);
+    TOLONG(d.data.ptr + 2, typidx);     // the user-defined type
+    TOLONG(d.data.ptr + 6, srcId);      // LF_STRING_ID of the source file
+    TOLONG(d.data.ptr + 10, line);      // line number of the definition
     return cv_debtyp(d);
 }
 

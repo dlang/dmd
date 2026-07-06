@@ -68,6 +68,7 @@ void main(string[] args)
         testCompile3(globals);
         testFrameProc(globals);
         testFuncId(globals);
+        testUdtSrcLine(globals);
 
         source.Release();
         session.Release();
@@ -820,6 +821,47 @@ void testFuncId(IDiaSymbol globals)
         || assert(false, "sum21384: no function type (LF_FUNC_ID chain broken)");
     (funcType.get_symTag(&tag) == S_OK && tag == SymTagEnum.SymTagFunctionType)
         || assert(false, "sum21384: type is not a function type");
+}
+
+// LF_UDT_SRC_LINE records the source file/line where a user-defined type is defined.
+enum lineUdtStruct = __LINE__ + 1;
+struct UdtSrcLineStruct { int x; }
+
+enum lineUdtClass = __LINE__ + 1;
+class UdtSrcLineClass { int y; }
+
+enum lineUdtEnum = __LINE__ + 1;
+enum UdtSrcLineEnum { valueA, valueB }
+
+void testUdtSrcLine(IDiaSymbol globals)
+{
+    // Reference each type so that full debug info is emitted for it.
+    UdtSrcLineStruct s;
+    s.x = 0;
+    scope c = new UdtSrcLineClass;
+    c.y = 0;
+    UdtSrcLineEnum e = UdtSrcLineEnum.valueA;
+    assert(e == UdtSrcLineEnum.valueA);
+
+    checkUdtSrcLine(globals, "testpdb.UdtSrcLineStruct"w, SymTagEnum.SymTagUDT, lineUdtStruct);
+    checkUdtSrcLine(globals, "testpdb.UdtSrcLineClass"w, SymTagEnum.SymTagUDT, lineUdtClass);
+    checkUdtSrcLine(globals, "testpdb.UdtSrcLineEnum"w, SymTagEnum.SymTagEnum, lineUdtEnum);
+}
+
+void checkUdtSrcLine(IDiaSymbol globals, wstring name, SymTagEnum tag, uint expectedLine)
+{
+    IDiaSymbol udt = searchSymbol(globals, name.ptr, tag);
+    udt || assert(false, "testUdtSrcLine: type not found");
+    scope(exit) udt.Release();
+
+    IDiaLineNumber lineNo;
+    (udt.getSrcLineOnTypeDefn(&lineNo) == S_OK && lineNo)
+        || assert(false, "testUdtSrcLine: no source line (LF_UDT_SRC_LINE missing)");
+    scope(exit) lineNo.Release();
+
+    DWORD line;
+    lineNo.get_lineNumber(&line) == S_OK || assert(false, "testUdtSrcLine: no line number");
+    line == expectedLine || assert(false, "testUdtSrcLine: wrong definition line");
 }
 
 ///////////////////////////////////////////////

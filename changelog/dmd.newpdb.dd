@@ -8,6 +8,7 @@ $(LIST
     * `S_OBJNAME` and `S_COMPILE3` compiland records reporting the configured language and the real compiler version string,
     * `S_ENVBLOCK` and `S_BUILDINFO` (`LF_BUILDINFO`) records describing the build environment,
     * `S_FRAMEPROC` records describing each function's stack frame,
+    * `LF_UDT_SRC_LINE` records recording the source file and line where each user-defined type (struct, class, enum) is defined, so debuggers can jump to a type's definition,
     * blake3 source-file checksums in the file-checksums subsection so debuggers can verify the source matches.
 )
 
