@@ -773,7 +773,7 @@ extern (C++) final class UnpackDeclaration : AttribDeclaration
         this.dsym = DSYM.unpackDeclaration;
     }
 
-    bool propagateStorageClasses()
+    final bool propagateStorageClasses()
     {
         static import dmd.errors;
         foreach (d; *decl)

@@ -214,11 +214,7 @@ public:
     bool onStack;
     bool lowered;
 
-    Dsymbols *include(Scope *sc) override;
-    void addComment(const utf8_t *comment) override;
     UnpackDeclaration *syntaxCopy(Dsymbol *) override;
-    const char *toChars() const override;
     const char *kind() const override;
-    UnpackDeclaration *isUnpackDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
