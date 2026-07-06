@@ -18,7 +18,7 @@ void main()
 
     // Types can be specified explicitly
     (int a, string b) = tuple(4, "five");
-    
+
     // Unpacking works in foreach loops
     foreach ((i, s); [tuple(1, "one"), tuple(2, "two")])
     {
