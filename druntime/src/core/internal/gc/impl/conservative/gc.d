@@ -29,21 +29,11 @@ module core.internal.gc.impl.conservative.gc;
 //debug = VALGRIND;             // Valgrind memcheck integration
 
 /***************************************************/
-version = COLLECT_PARALLEL;  // parallel scanning
+version (WASI) {} // WASI is single-threaded
+else version = COLLECT_PARALLEL;  // parallel scanning
+
 version (Posix)
     version = COLLECT_FORK;
-
-version (WASI) {
-    // TODO: get GC working on WASI
-
-    enum PAGESIZE = 65536;
-
-    extern(C) void _d_register_conservative_gc()
-    {
-        // no-op
-    }
-}
-else:
 
 import core.internal.gc.bits;
 import core.internal.gc.os;
@@ -3347,7 +3337,9 @@ Lmark:
                 rangesLock.unlock();
                 rootsLock.unlock();
             }
-            thread_suspendAll();
+
+            version (WASI) {} // WASI is single-threaded
+            else thread_suspendAll();
 
             prepare();
 
