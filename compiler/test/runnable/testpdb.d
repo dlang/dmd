@@ -720,6 +720,9 @@ void test21665(IDiaSession session, IDiaSymbol globals)
 // Each source file now carries a checksum; the legacy emitter wrote none.
 void testSourceChecksums(IDiaSession session, IDiaSymbol globals)
 {
+    // DIA checksum type; the emitter stores a blake3 hash in this 32-byte slot.
+    enum CV_CHKSUM_SHA_256 = 3;
+
     IDiaSymbol funcsym = searchSymbol(globals, "testpdb.test15432");
     funcsym || assert(false, "testpdb.test15432 not found");
 
@@ -743,9 +746,9 @@ void testSourceChecksums(IDiaSession session, IDiaSymbol globals)
         {
             DWORD cktype;
             src.get_checksumType(&cktype) == S_OK || assert(false, "source file has no checksum type");
-            // legacy emitter wrote CV_CHKSUM_NONE (0); modern emitter writes a
-            // 32-byte checksum (CV_CHKSUM_SHA_256 slot)
-            cktype != 0 || assert(false, "source file has no checksum");
+            // The emitter stores a blake3 hash in the 32-byte SHA-256 checksum
+            // slot; the legacy emitter wrote CV_CHKSUM_NONE (0).
+            cktype == CV_CHKSUM_SHA_256 || assert(false, "source file checksum is not the SHA-256 (blake3) slot");
             checkedAny = true;
             src.Release();
         }

@@ -311,7 +311,7 @@ void cv8_termfile(const(char)[] objfilename)
         buf.write16(cast(int)(2 + 4 + 2 + 8 + 8 + ver.length + 1));
         buf.write16(S_COMPILE3);
         buf.write32(flags);
-        buf.write16(I64 ? 0xD0 : 0x07);          // machine: AMD64 / x86
+        buf.write16(I64 ? 0xD0 : 0x06);          // machine: AMD64 / x86
         buf.write16(0); buf.write16(0); buf.write16(0); buf.write16(0); // front end version
         buf.write16(0); buf.write16(0); buf.write16(0); buf.write16(0); // back end version
         buf.write(ver.ptr, cast(uint)ver.length);
@@ -683,6 +683,46 @@ void cv8_linnum(Srcpos srcpos, uint offset)
 }
 
 /**********************************************
+ * Make `filename` absolute by prefixing the current working directory, so the
+ * debugger can find the source without knowing the compilation directory.
+ * Params:
+ *      filename = source file name (relative or absolute)
+ *      buf      = scratch buffer to hold the result
+ * Returns:
+ *      pointer to the absolute path (stored in `buf`), or `filename` unchanged
+ *      if it is already absolute or does not fit in `buf`.
+ * Note:
+ *      cv8_addfile() and cv8_udt_src_line() must spell the path identically so
+ *      the debugger can match an LF_UDT_SRC_LINE record to a source file.
+ */
+@trusted
+private const(char)* cv8_absfilename(const(char)* filename, char[] buf)
+{
+    const bool abs = (*filename == '\\') || (*filename == '/') ||
+                     (*filename && filename[1] == ':');
+    if (abs)
+        return filename;
+
+    __gshared char[260] cwd = 0;
+    __gshared size_t cwdlen = 0;
+    if (cwd[0] == 0)
+    {
+        if (!getcwd(cwd.ptr, cwd.sizeof))
+            return filename;
+        cwdlen = strlen(cwd.ptr);
+        if (cwdlen && cwd[cwdlen - 1] != '\\' && cwd[cwdlen - 1] != '/')
+            cwd[cwdlen++] = '\\';
+    }
+
+    const flen = strlen(filename);
+    if (cwdlen + flen + 1 > buf.length)
+        return filename;
+    memcpy(buf.ptr, cwd.ptr, cwdlen);
+    memcpy(buf.ptr + cwdlen, filename, flen + 1);
+    return buf.ptr;
+}
+
+/**********************************************
  * Add source file, if it isn't already there.
  * Return offset into F4.
  */
@@ -697,48 +737,24 @@ uint cv8_addfile(const(char)* filename)
      * Unlike C, there won't be lots of .h source files to be accounted for.
      */
 
+    // The file names are stored as absolute paths (see cv8_absfilename) so the
+    // debugger can find the source without knowing the compilation directory.
+    char[2 * 260] pathbuf = void;
+    const(char)* absname = cv8_absfilename(filename, pathbuf[]);
+    size_t len = strlen(absname);
+
     uint length = cast(uint)F3_buf.length();
     ubyte* p = F3_buf.buf;
-    size_t len = strlen(filename);
 
-    // ensure the filename is absolute to help the debugger to find the source
-    // without having to know the working directory during compilation
-    __gshared char[260] cwd = 0;
-    __gshared uint cwdlen;
-    bool abs = (*filename == '\\') ||
-               (*filename == '/')  ||
-               (*filename && filename[1] == ':');
-
-    if (!abs && cwd[0] == 0)
-    {
-        if (getcwd(cwd.ptr, cwd.sizeof))
-        {
-            cwdlen = cast(uint)strlen(cwd.ptr);
-            if(cwd[cwdlen - 1] != '\\' && cwd[cwdlen - 1] != '/')
-                cwd[cwdlen++] = '\\';
-        }
-    }
     uint off = 1;
     while (off + len < length)
     {
-        if (!abs)
-        {
-            if (memcmp(p + off, cwd.ptr, cwdlen) == 0 &&
-                memcmp(p + off + cwdlen, filename, len + 1) == 0)
-                goto L1;
-        }
-        else if (memcmp(p + off, filename, len + 1) == 0)
-        {   // Already there
-            //printf("\talready there at %x\n", off);
-            goto L1;
-        }
+        if (memcmp(p + off, absname, len + 1) == 0)
+            goto L1;                // already there
         off += strlen(cast(const(char)* )(p + off)) + 1;
     }
     off = length;
-    // Add it
-    if(!abs)
-        F3_buf.write(cwd.ptr, cwdlen);
-    F3_buf.write(filename, cast(uint)(len + 1));
+    F3_buf.write(absname, cast(uint)(len + 1));     // add it
 
 L1:
     // off is the offset of the filename in F3.
@@ -759,8 +775,8 @@ L1:
         u = (u + 3) & ~3;           // realign to 4
     }
 
-    // Not present; append a checksum computed over the source file's *content*
-    // (not over its name) so debuggers can verify the source matches.
+    // Not present; append a checksum computed over the source file's content
+    // so debuggers can verify the source matches.
     F4_buf.write32(off);
     ubyte[32] hash = void;
     if (cv8_filehash(filename, hash))
@@ -1430,26 +1446,7 @@ idx_t cv8_udt_src_line(idx_t typidx, const(char)* filename, uint line)
      * debugger cannot associate this record with a known source file.
      */
     char[2 * 260] pathbuf = void;
-    const(char)* srcpath = filename;
-    const bool abs = (*filename == '\\') || (*filename == '/') ||
-                     (*filename && filename[1] == ':');
-    if (!abs)
-    {
-        char[260] cwd = 0;
-        if (getcwd(cwd.ptr, cwd.sizeof))
-        {
-            size_t cwdlen = strlen(cwd.ptr);
-            if (cwdlen && cwd[cwdlen - 1] != '\\' && cwd[cwdlen - 1] != '/')
-                cwd[cwdlen++] = '\\';
-            const flen = strlen(filename);
-            if (cwdlen + flen + 1 <= pathbuf.length)
-            {
-                memcpy(pathbuf.ptr, cwd.ptr, cwdlen);
-                memcpy(pathbuf.ptr + cwdlen, filename, flen + 1);
-                srcpath = pathbuf.ptr;
-            }
-        }
-    }
+    const(char)* srcpath = cv8_absfilename(filename, pathbuf[]);
 
     idx_t srcId = cv8_string_id(srcpath);
     debtyp_t* d = debtyp_alloc(2 + 4 + 4 + 4);
