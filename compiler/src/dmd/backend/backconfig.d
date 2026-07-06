@@ -17,8 +17,7 @@ import core.stdc.stdio;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;
-import dmd.backend.global : ErrorCallbackBackend, error, errorCallbackBackend,
-    GetFileContentsCallback, getFileContentsCallback;
+import dmd.backend.global : ErrorCallbackBackend, error, errorCallbackBackend;
 import dmd.backend.go : go_flag, GlobalOptimizer;
 import dmd.backend.rtlsym : rtlsym_init;
 import dmd.backend.ty;
@@ -87,14 +86,13 @@ void out_config_init(
         exefmt_t exefmt,
         bool generatedMain,     // a main entrypoint is generated
         bool dataimports,
+        bool newpdb,            // use the modern PDB/CodeView debug info emitter
         ref GlobalOptimizer go,
-        ErrorCallbackBackend errorCallback,
-        GetFileContentsCallback getFileContents)
+        ErrorCallbackBackend errorCallback)
 {
     //printf("out_config_init()\n");
 
     errorCallbackBackend = errorCallback;
-    getFileContentsCallback = getFileContents;
     auto cfg = &config;
 
     cfg._version = _version;
@@ -106,6 +104,7 @@ void out_config_init(
     }
     cfg.fulltypes = CVNONE;
     cfg.fpxmmregs = false;
+    cfg.newpdb = newpdb;
     if (!arm)
         cfg.inline8087 = 1;
     cfg.memmodel = 0;

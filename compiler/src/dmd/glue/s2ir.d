@@ -59,7 +59,7 @@ import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
-import dmd.backend.codeview;
+import dmd.backend.cv4;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.blockopt : block_appendexp, block_calloc, block_goto, blockopt;

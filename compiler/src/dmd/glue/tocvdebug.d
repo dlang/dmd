@@ -46,7 +46,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
-import dmd.backend.codeview;
+import dmd.backend.cv4;
 import dmd.backend.dt;
 import dmd.backend.obj;
 import dmd.backend.oper;
@@ -284,7 +284,7 @@ uint cv_align(ubyte* p, uint n)
 void cv_udt(const char* id, uint typidx)
 {
     if (config.fulltypes == CV8)
-        return cv_udt_symbol(id, typidx);
+        return cv8_udt(id, typidx);
 
     const len = strlen(id);
     version (AArch64) // TODO AArch64

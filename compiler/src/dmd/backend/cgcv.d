@@ -20,7 +20,8 @@ module dmd.backend.cgcv;
 import dmd.backend.cc : Classsym, Symbol;
 import dmd.backend.type;
 
-public import dmd.backend.codeview;
+public import dmd.backend.cv8;
+import dmd.backend.pdb : pdb_outsym;
 public import dmd.backend.dwarfdbginf : dwarf_outsym;
 
 import core.stdc.stdio;
@@ -32,6 +33,7 @@ import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
+import dmd.backend.cv4;
 import dmd.backend.dvec;
 import dmd.backend.el;
 import dmd.backend.global : err_nomem;
@@ -1229,7 +1231,7 @@ L1:
             {
                 case CV8:
                 {
-                    typidx = cv_darray(t, next);
+                    typidx = cv8_darray(t, next);
                     break;
                 }
                 case CV4:
@@ -1264,7 +1266,7 @@ else
             switch (config.fulltypes)
             {
                 case CV8:
-                    typidx = cv_daarray(t, key, next);
+                    typidx = cv8_daarray(t, key, next);
                     break;
 
                 case CV4:
@@ -1297,7 +1299,7 @@ else
             switch (config.fulltypes)
             {
                 case CV8:
-                    typidx = cv_ddelegate(t, next);
+                    typidx = cv8_ddelegate(t, next);
                     break;
 
                 case CV4:
@@ -1451,7 +1453,7 @@ else
         {
             if (config.fulltypes == CV8)
             {
-                typidx = cv_fwdref(t.Ttag);
+                typidx = cv8_fwdref(t.Ttag);
             }
             else
             {
@@ -2178,7 +2180,10 @@ void cv_outsym(Symbol* s)
             break;
 
         case CV8:
-            cv_symbol(s);
+            if (config.newpdb)
+                pdb_outsym(s);
+            else
+                cv8_outsym(s);
             break;
 
         default:
