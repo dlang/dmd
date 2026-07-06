@@ -40,6 +40,7 @@ import dmd.backend.symbol : globsym;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.dvarstats;
+import dmd.root.filename : FileName;
 
 
 nothrow:
@@ -683,46 +684,6 @@ void cv8_linnum(Srcpos srcpos, uint offset)
 }
 
 /**********************************************
- * Make `filename` absolute by prefixing the current working directory, so the
- * debugger can find the source without knowing the compilation directory.
- * Params:
- *      filename = source file name (relative or absolute)
- *      buf      = scratch buffer to hold the result
- * Returns:
- *      pointer to the absolute path (stored in `buf`), or `filename` unchanged
- *      if it is already absolute or does not fit in `buf`.
- * Note:
- *      cv8_addfile() and cv8_udt_src_line() must spell the path identically so
- *      the debugger can match an LF_UDT_SRC_LINE record to a source file.
- */
-@trusted
-private const(char)* cv8_absfilename(const(char)* filename, char[] buf)
-{
-    const bool abs = (*filename == '\\') || (*filename == '/') ||
-                     (*filename && filename[1] == ':');
-    if (abs)
-        return filename;
-
-    __gshared char[260] cwd = 0;
-    __gshared size_t cwdlen = 0;
-    if (cwd[0] == 0)
-    {
-        if (!getcwd(cwd.ptr, cwd.sizeof))
-            return filename;
-        cwdlen = strlen(cwd.ptr);
-        if (cwdlen && cwd[cwdlen - 1] != '\\' && cwd[cwdlen - 1] != '/')
-            cwd[cwdlen++] = '\\';
-    }
-
-    const flen = strlen(filename);
-    if (cwdlen + flen + 1 > buf.length)
-        return filename;
-    memcpy(buf.ptr, cwd.ptr, cwdlen);
-    memcpy(buf.ptr + cwdlen, filename, flen + 1);
-    return buf.ptr;
-}
-
-/**********************************************
  * Add source file, if it isn't already there.
  * Return offset into F4.
  */
@@ -737,10 +698,9 @@ uint cv8_addfile(const(char)* filename)
      * Unlike C, there won't be lots of .h source files to be accounted for.
      */
 
-    // The file names are stored as absolute paths (see cv8_absfilename) so the
-    // debugger can find the source without knowing the compilation directory.
-    char[2 * 260] pathbuf = void;
-    const(char)* absname = cv8_absfilename(filename, pathbuf[]);
+    // The file names are stored as absolute paths so the debugger can find the
+    // source without knowing the compilation directory.
+    const(char)* absname = FileName.toAbsolute(filename);
     size_t len = strlen(absname);
 
     uint length = cast(uint)F3_buf.length();
@@ -1445,8 +1405,7 @@ idx_t cv8_udt_src_line(idx_t typidx, const(char)* filename, uint line)
      * file list (see cv8_addfile), i.e. as an absolute path, otherwise the
      * debugger cannot associate this record with a known source file.
      */
-    char[2 * 260] pathbuf = void;
-    const(char)* srcpath = cv8_absfilename(filename, pathbuf[]);
+    const(char)* srcpath = FileName.toAbsolute(filename);
 
     idx_t srcId = cv8_string_id(srcpath);
     debtyp_t* d = debtyp_alloc(2 + 4 + 4 + 4);
