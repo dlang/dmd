@@ -33,7 +33,7 @@ import dmd.backend.el;
 import dmd.backend.mscoffobj;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.pdb : pdb_udt;
+import dmd.backend.global : getFileContentsCallback;
 import dmd.common.outbuffer;
 import dmd.backend.rtlsym;
 import dmd.backend.symbol : globsym;
@@ -62,6 +62,69 @@ private bool symbol_iscomdat4(Symbol* s)
 // if symbols get longer than 65500 bytes, the linker reports corrupt debug info or exits with
 // 'fatal error LNK1318: Unexpected PDB error; RPC (23) '(0x000006BA)'
 enum CV8_MAX_SYMBOL_LENGTH = 0xffd8;
+
+// Modern CodeView symbol records not declared in cv4.d
+enum
+{
+    S_OBJNAME_V3 = 0x1101,      // object file name (same value as S_COMPILAND_V3)
+    S_COMPILE3   = 0x113C,      // compile flags, language and compiler version
+    S_ENVBLOCK   = 0x113D,      // build environment block
+    S_BUILDINFO  = 0x114C,      // reference to an LF_BUILDINFO record
+    S_FRAMEPROC  = 0x1012,      // extra frame and procedure information
+    S_REGREL32   = 0x1111,      // register-relative address
+    S_LTHREAD32  = 0x1112,      // thread-local static data (local)
+    S_GTHREAD32  = 0x1113,      // thread-local static data (global)
+    S_LPROC32_ID = 0x1146,      // local procedure (type field is an LF_FUNC_ID)
+    S_GPROC32_ID = 0x1147,      // global procedure (type field is an LF_FUNC_ID)
+}
+
+// Type leaf records used by the ID stream
+enum
+{
+    LF_FUNC_ID   = 0x1601,      // function id: function type + name
+    LF_STRING_ID = 0x1605,      // interned string -> type index
+    LF_BUILDINFO = 0x1603,      // cwd, tool, source, pdb, args
+}
+
+// .debug$S subsection kinds
+enum
+{
+    DEBUG_S_SYMBOLS     = 0xF1,
+    DEBUG_S_LINES       = 0xF2,
+    DEBUG_S_STRINGTABLE = 0xF3,
+    DEBUG_S_FILECHKSMS  = 0xF4,
+}
+
+// Source file checksum kinds
+enum
+{
+    CHKSUM_NONE   = 0,
+    CHKSUM_MD5    = 1,
+    CHKSUM_SHA1   = 2,
+    CHKSUM_SHA256 = 3,
+}
+
+// S_FRAMEPROC flags
+enum
+{
+    CV_FRAME_HASALLOCA   = 1 << 0,      // function uses alloca()
+    CV_FRAME_HASINLASM   = 1 << 3,      // function has inline asm
+    CV_FRAME_HASEH       = 1 << 4,      // function has exception handling
+    CV_FRAME_SECURITY    = 1 << 8,      // function has a stack security cookie
+    CV_FRAME_OPTSPEED    = 1 << 20,     // function was optimized for speed
+    CV_FRAME_LOCALBP_RBP = 2 << 14,     // locals addressed relative to RBP/EBP
+    CV_FRAME_PARAMBP_RBP = 2 << 16,     // parameters addressed relative to RBP/EBP
+}
+
+// Mark a line-number entry as a statement (not an expression)
+enum CV_LINE_STATEMENT = 0x80000000;
+
+// CodeView register encodings for base-pointer-relative records
+enum
+{
+    CV_REG_EBP   = 22,          // x86 EBP
+    CV_AMD64_RBP = 334,         // x64 RBP
+}
 
 // The "F1" section, which is the symbols
 private __gshared OutBuffer* F1_buf;
@@ -226,26 +289,64 @@ void cv8_termfile(const(char)[] objfilename)
     uint value = 4;
     objmod.bytes(seg,0,(cast(void*)&value)[0 .. 4]);
 
-    /* Start with starting symbol in separate "F1" section
+    /* Start with starting symbols in a separate "F1" section
      */
     auto buf = OutBuffer(1024);
-    size_t len = objfilename.length;
-    buf.write16(cast(int)(2 + 4 + len + 1));
-    buf.write16(S_COMPILAND_V3);
-    buf.write32(0);
-    buf.write(objfilename.ptr, cast(uint)(len + 1));
 
-    // write S_COMPILE record
-    buf.write16(2 + 1 + 1 + 2 + 1 + VERSION.length + 1);
-    buf.write16(S_COMPILE);
-    buf.writeByte(I64 ? 0xD0 : 6); // target machine AMD64 or x86 (Pentium II)
-    buf.writeByte(config.flags2 & CFG2gms ? 0 : 'D'); // language index (C/C++/D)
-    buf.write16(0x800 | (config.inline8087 ? 0 : (1<<3)));   // 32-bit, float package
-    buf.writeByte(VERSION.length + 1);
-    buf.writeByte('Z');
-    buf.write(VERSION.ptr, VERSION.length);
+    // S_OBJNAME record
+    {
+        size_t len = objfilename.length;
+        buf.write16(cast(int)(2 + 4 + len + 1));
+        buf.write16(S_OBJNAME_V3);
+        buf.write32(0);                          // signature
+        buf.write(objfilename.ptr, cast(uint)(len + 1));
+    }
 
-    cv8_writesection(seg, 0xF1, &buf);
+    // S_COMPILE3 record: honor the configured language and report the real
+    // compiler version string (works for dmd/ldc/gdc)
+    {
+        const uint flags = config.flags2 & CFG2gms ? 0 : 'D'; // iLanguage in low byte
+        const(char)[] ver = config._version;
+        buf.write16(cast(int)(2 + 4 + 2 + 8 + 8 + ver.length + 1));
+        buf.write16(S_COMPILE3);
+        buf.write32(flags);
+        buf.write16(I64 ? 0xD0 : 0x07);          // machine: AMD64 / x86
+        buf.write16(0); buf.write16(0); buf.write16(0); buf.write16(0); // front end version
+        buf.write16(0); buf.write16(0); buf.write16(0); buf.write16(0); // back end version
+        buf.write(ver.ptr, cast(uint)ver.length);
+        buf.writeByte(0);
+    }
+
+    cv8_writesection(seg, DEBUG_S_SYMBOLS, &buf);
+
+    // S_ENVBLOCK record: build environment (cwd), double-null terminated
+    {
+        auto ebuf = OutBuffer(128);
+        char[260] cwd = 0;
+        if (!getcwd(cwd.ptr, cwd.sizeof))
+            cwd[0] = 0;
+        size_t cwdlen = strlen(cwd.ptr);
+        uint rec = cast(uint)(2 + 1 + 4 + cwdlen + 1 + 4 + 1 + 1);
+        ebuf.write16(cast(int)rec);
+        ebuf.write16(S_ENVBLOCK);
+        ebuf.writeByte(0);                       // flags
+        ebuf.write("cwd\0".ptr, 4);
+        ebuf.write(cwd.ptr, cast(uint)(cwdlen + 1));
+        ebuf.write("cmd\0".ptr, 4);
+        ebuf.writeByte(0);                       // empty cmd value
+        ebuf.writeByte(0);                       // terminating double-null
+        cv8_writesection(seg, DEBUG_S_SYMBOLS, &ebuf);
+    }
+
+    // S_BUILDINFO record referencing an LF_BUILDINFO id record
+    {
+        auto bbuf = OutBuffer(64);
+        idx_t biidx = cv8_buildinfo();
+        bbuf.write16(2 + 4);
+        bbuf.write16(S_BUILDINFO);
+        bbuf.write32(biidx);
+        cv8_writesection(seg, DEBUG_S_SYMBOLS, &bbuf);
+    }
 
     // Write out "F2" sections
     uint length = cast(uint)funcdata.length();
@@ -268,14 +369,14 @@ void cv8_termfile(const(char)[] objfilename)
         }
 
         uint offset = cast(uint)SegData[f2seg].SDoffset + 8;
-        cv8_writesection(f2seg, 0xF2, F2_buf);
+        cv8_writesection(f2seg, DEBUG_S_LINES, F2_buf);
         objmod.reftoident(f2seg, offset, fd.sfunc, 0, CF.seg | CF.off);
 
         if (f2seg != seg && fd.f1buf.length())
         {
             // Write out "F1" section
             const uint f1offset = cast(uint)SegData[f2seg].SDoffset;
-            cv8_writesection(f2seg, 0xF1, fd.f1buf);
+            cv8_writesection(f2seg, DEBUG_S_SYMBOLS, fd.f1buf);
 
             // Fixups for "F1" section
             const uint fixupLength = cast(uint)fd.f1fixup.length();
@@ -290,17 +391,17 @@ void cv8_termfile(const(char)[] objfilename)
 
     // Write out "F3" section
     if (F3_buf.length() > 1)
-        cv8_writesection(seg, 0xF3, F3_buf);
+        cv8_writesection(seg, DEBUG_S_STRINGTABLE, F3_buf);
 
     // Write out "F4" section
     if (F4_buf.length() > 0)
-        cv8_writesection(seg, 0xF4, F4_buf);
+        cv8_writesection(seg, DEBUG_S_FILECHKSMS, F4_buf);
 
     if (F1_buf.length())
     {
         // Write out "F1" section
         uint f1offset = cast(uint)SegData[seg].SDoffset;
-        cv8_writesection(seg, 0xF1, F1_buf);
+        cv8_writesection(seg, DEBUG_S_SYMBOLS, F1_buf);
 
         // Fixups for "F1" section
         length = cast(uint)F1fixup.length();
@@ -403,19 +504,22 @@ void cv8_func_term(Symbol* sfunc)
 
     const(char)* id = sfunc.prettyIdent ? sfunc.prettyIdent : prettyident(sfunc);
 
+    // ID-stream record tying the function's type to its name (S_GPROC32_ID references this)
+    idx_t funcid = cv8_func_id(id, typidx);
+
     size_t len = strlen(id);
     if(len > CV8_MAX_SYMBOL_LENGTH)
         len = CV8_MAX_SYMBOL_LENGTH;
     /*
      *  2       length (not including these 2 bytes)
-     *  2       S_GPROC_V3
+     *  2       S_GPROC32_ID / S_LPROC32_ID
      *  4       parent
      *  4       pend
      *  4       pnext
      *  4       size of function
      *  4       size of function prolog
      *  4       offset to function epilog
-     *  4       type index
+     *  4       LF_FUNC_ID (ID stream)
      *  6       seg:offset of function start
      *  1       flags
      *  n       0 terminated name string
@@ -423,14 +527,14 @@ void cv8_func_term(Symbol* sfunc)
     auto buf = currentfuncdata.f1buf;
     buf.reserve(cast(uint)(2 + 2 + 4 * 7 + 6 + 1 + len + 1));
     buf.write16n(cast(int)(2 + 4 * 7 + 6 + 1 + len + 1));
-    buf.write16n(sfunc.Sclass == SC.static_ ? S_LPROC_V3 : S_GPROC_V3);
+    buf.write16n(sfunc.Sclass == SC.static_ ? S_LPROC32_ID : S_GPROC32_ID);
     buf.write32(0);            // parent
     buf.write32(0);            // pend
     buf.write32(0);            // pnext
     buf.write32(cast(uint)currentfuncdata.section_length); // size of function
     buf.write32(cast(uint)cgstate.startoffset);                    // size of prolog
     buf.write32(cast(uint)cgstate.retoffset);                      // offset to epilog
-    buf.write32(typidx);
+    buf.write32(funcid);           // LF_FUNC_ID (ID stream), resolved to the function type
 
     F1_Fixups f1f;
     f1f.s = sfunc;
@@ -443,6 +547,33 @@ void cv8_func_term(Symbol* sfunc)
     buf.writeByte(0);
     buf.writen(id, len);
     buf.writeByte(0);
+
+    // S_FRAMEPROC: describe this function's stack frame
+    {
+        // Locals and parameters are addressed relative to the frame pointer
+        // (RBP/EBP), matching the S_REGREL32 records emitted for them.
+        uint frameflags = CV_FRAME_LOCALBP_RBP | CV_FRAME_PARAMBP_RBP;
+        if (cgstate.Alloca.size)
+            frameflags |= CV_FRAME_HASALLOCA;
+        if (cgstate.anyiasm)
+            frameflags |= CV_FRAME_HASINLASM;
+        if (cgstate.usednteh)
+            frameflags |= CV_FRAME_HASEH;
+        if (config.flags2 & CFG2stomp)
+            frameflags |= CV_FRAME_SECURITY;
+        if (config.flags4 & CFG4speed)
+            frameflags |= CV_FRAME_OPTSPEED;
+
+        buf.write16(2 + 4 + 4 + 4 + 4 + 4 + 2 + 4);
+        buf.write16(S_FRAMEPROC);
+        buf.write32(cast(uint)localsize);        // cbFrame: total frame size
+        buf.write32(0);                          // cbPad
+        buf.write32(0);                          // offPad
+        buf.write32(0);                          // cbSaveRegs
+        buf.write32(0);                          // offExHdlr
+        buf.write16(0);                          // sectExHdlr
+        buf.write32(frameflags);                 // flags
+    }
 
     struct cv8
     {
@@ -539,7 +670,7 @@ void cv8_linnum(Srcpos srcpos, uint offset)
     lastoffset = offset;
     lastlinnum = srcpos.Slinnum;
     linepair.write32(offset);
-    linepair.write32(srcpos.Slinnum | 0x80000000); // mark as statement, not expression
+    linepair.write32(srcpos.Slinnum | CV_LINE_STATEMENT); // mark as statement, not expression
 
     currentfuncdata.linepairbytes += 8;
 
@@ -616,33 +747,34 @@ L1:
     p = F4_buf.buf;
 
     uint u = 0;
-    while (u + 8 <= length)
+    while (u + 6 <= length)
     {
-        //printf("\t%x\n", *cast(uint*)(p + u));
         if (off == *cast(uint*)(p + u))
-        {
-            //printf("\tfound %x\n", u);
             return u;
-        }
-        u += 4;
-        ushort type = *cast(ushort*)(p + u);
-        u += 2;
-        if (type == 0x0110)
-            u += 16;            // truncated blake3 hash
-        u += 2;
+        u += 4;                     // file name offset
+        ubyte cklen = *(p + u);     // checksum size
+        u += 2;                     // skip size + kind bytes
+        u += cklen;                 // skip checksum bytes
+        u = (u + 3) & ~3;           // realign to 4
     }
 
-    // Not there. Add it.
+    // Not present; append a checksum computed over the source file's *content*
+    // (not over its name) so debuggers can verify the source matches.
     F4_buf.write32(off);
-
-    /* Write 10 01 [blake3 hash]
-     *   or
-     * 00 00
-     */
-    F4_buf.write16(0);
-
-    // 2 bytes of pad
-    F4_buf.write16(0);
+    ubyte[32] hash = void;
+    if (cv8_filehash(filename, hash))
+    {
+        F4_buf.writeByte(32);              // checksum size
+        F4_buf.writeByte(CHKSUM_SHA256);   // 32-byte checksum slot
+        F4_buf.write(hash.ptr, 32);
+    }
+    else
+    {
+        F4_buf.writeByte(0);               // no checksum available
+        F4_buf.writeByte(CHKSUM_NONE);
+    }
+    while (F4_buf.length() & 3)
+        F4_buf.writeByte(0);
 
     //printf("\tadded %x\n", length);
     return length;
@@ -720,10 +852,10 @@ static if (1)
             // Register relative addressing
             buf.reserve(cast(uint)(2 + 2 + 4 + 4 + 2 + len + 1));
             buf.write16n(cast(uint)(2 + 4 + 4 + 2 + len + 1));
-            buf.write16n(0x1111);
+            buf.write16n(S_REGREL32);
             buf.write32(cast(uint)(s.Soffset + base + cgstate.BPoff));
             buf.write32(typidx);
-            buf.write16n(I64 ? 334 : 22);       // relative to RBP/EBP
+            buf.write16n(I64 ? CV_AMD64_RBP : CV_REG_EBP);       // relative to RBP/EBP
             cv8_writename(buf, id, len);
             buf.writeByte(0);
 }
@@ -789,7 +921,7 @@ else
              *  n       0 terminated name string
              */
             if (s.ty() & mTYthread)            // thread local storage
-                sr = (sr == S_GDATA_V3) ? 0x1113 : 0x1112;
+                sr = (sr == S_GDATA_V3) ? S_GTHREAD32 : S_LTHREAD32;
 
             buf.reserve(cast(uint)(2 + 2 + 4 + 6 + len + 1));
             buf.write16n(cast(uint)(2 + 4 + 6 + len + 1));
@@ -798,7 +930,7 @@ else
 
             f1f.s = s;
             f1f.offset = cast(uint)buf.length();
-            F1fixup.write(&f1f, f1f.sizeof);
+            currentfuncdata.f1fixup.write(&f1f, f1f.sizeof);
             buf.write32(0);
             buf.write16n(0);
 
@@ -822,11 +954,6 @@ else
 void cv8_udt(const(char)* id, idx_t typidx)
 {
     //printf("cv8_udt('%s', %x)\n", id, typidx);
-    if (config.newpdb)
-    {
-        pdb_udt(id, typidx);
-        return;
-    }
     auto buf = currentfuncdata.f1buf;
     size_t len = strlen(id);
 
@@ -1201,6 +1328,87 @@ else
     d.data.ptr[20 + idlen] = 0;
 
 }
+    return cv_debtyp(d);
+}
+
+/* Compute a blake3 hash over the *content* of the named source file, so that
+ * debuggers can verify the source matches. The hash goes into the 32-byte
+ * SHA256 checksum slot of the file-checksums (F4) subsection.
+ * The content is fetched from the front-end FileManager cache (Module.src)
+ * rather than re-read from disk, which would add significant I/O to every build.
+ * Returns: true on success (hash filled in), false if the content is unavailable.
+ */
+private @trusted
+bool cv8_filehash(const(char)* filename, ref ubyte[32] hash)
+{
+    if (!getFileContentsCallback)
+        return false;
+
+    size_t length;
+    const(ubyte)* data = getFileContentsCallback(filename, length);
+    if (!data)
+        return false;
+
+    import dmd.common.blake3;
+    hash = blake3(data[0 .. length]);
+    return true;
+}
+
+/* LF_STRING_ID: an interned string returning a type index. */
+@trusted
+idx_t cv8_string_id(const(char)* s)
+{
+    if (!s) s = "";
+    debtyp_t* d = debtyp_alloc(2 + 4 + cv_stringbytes(s));
+    TOWORD(d.data.ptr, LF_STRING_ID);
+    TOLONG(d.data.ptr + 2, 0);          // substring list id
+    cv_namestring(d.data.ptr + 6, s);
+    return cv_debtyp(d);
+}
+
+/* LF_BUILDINFO: cwd, build tool, source, pdb, args. */
+@trusted
+idx_t cv8_buildinfo()
+{
+    char[260] cwd = 0;
+    if (!getcwd(cwd.ptr, cwd.sizeof))
+        cwd[0] = 0;
+
+    // build tool: identify the compiler and its version
+    char[64] tool = 0;
+    strcpy(tool.ptr, "dmd ");
+    const(char)[] ver = config._version;
+    size_t vn = ver.length;
+    if (vn > tool.sizeof - 5)   // leave room for the "dmd " prefix and the null terminator
+        vn = tool.sizeof - 5;
+    memcpy(tool.ptr + 4, ver.ptr, vn);
+    tool[4 + vn] = 0;
+
+    idx_t cwdId  = cv8_string_id(cwd.ptr);
+    idx_t toolId = cv8_string_id(tool.ptr);
+    idx_t srcId  = cv8_string_id("");
+    idx_t pdbId  = cv8_string_id("");
+    idx_t argId  = cv8_string_id("");
+    debtyp_t* d = debtyp_alloc(2 + 2 + 5 * 4);
+    TOWORD(d.data.ptr, LF_BUILDINFO);
+    TOWORD(d.data.ptr + 2, 5);          // count
+    TOLONG(d.data.ptr + 4, cwdId);
+    TOLONG(d.data.ptr + 8, toolId);
+    TOLONG(d.data.ptr + 12, srcId);
+    TOLONG(d.data.ptr + 16, pdbId);
+    TOLONG(d.data.ptr + 20, argId);
+    return cv_debtyp(d);
+}
+
+/* LF_FUNC_ID: ties a function type to its name in the ID stream. */
+@trusted
+idx_t cv8_func_id(const(char)* id, idx_t functype)
+{
+    debtyp_t* d = debtyp_alloc(2 + 4 + 4 + cv_stringbytes(id));
+    TOWORD(d.data.ptr, LF_FUNC_ID);
+    TOLONG(d.data.ptr + 2, 0);          // parent scope id
+    TOLONG(d.data.ptr + 6, functype);
+    cv_namestring(d.data.ptr + 10, id);
     return cv_debtyp(d);
 }
 

@@ -1,9 +1,18 @@
-Added a new Modern CodeView / PDB symbolic debug info emitter
+Improved CodeView / PDB symbolic debug info on Windows
 
-A new PDB (Program Database) emitter has been added to improve debug information generation on Windows. Creating modern CodeView/PDB symbolic debug info enables more robust and feature-rich debugging experiences with Microsoft development tools.
+The Windows CodeView / PDB debug information emitter (used with `-g` when producing MS-COFF object files) now emits additional modern records expected by Microsoft and LLVM debugging tools. These improvements are enabled by default, so debugging with Visual Studio, WinDbg and LLVM-based tools works better out of the box.
 
-You can activate the new PDB emitter by passing the `-preview=newpdb` flag to the compiler.
+The following are now generated:
+
+$(LIST
+    * `S_OBJNAME` and `S_COMPILE3` compiland records reporting the configured language and the real compiler version string,
+    * `S_ENVBLOCK` and `S_BUILDINFO` (`LF_BUILDINFO`) records describing the build environment,
+    * `S_FRAMEPROC` records describing each function's stack frame,
+    * blake3 source-file checksums in the file-checksums subsection so debuggers can verify the source matches.
+)
+
+No action is required; simply compile with `-g` as before:
 
 ```console
-dmd -g -preview=newpdb myapp.d
+dmd -g myapp.d
 ```
