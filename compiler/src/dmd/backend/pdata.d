@@ -206,9 +206,9 @@ static if (0)
 /******************************************
  * Compute unwind info and return it as a dt_t.
  * Params:
- *	localsize = offset to symbols on stack
+ *      localsize = offset to symbols on stack
  * Returns:
- *	slice of ui as dt_t anonymous bytes
+ *      slice of ui as dt_t anonymous bytes
  */
 @trusted
 private dt_t* unwind_data(targ_size_t localsize)
@@ -223,10 +223,10 @@ private dt_t* unwind_data(targ_size_t localsize)
 /******************************************
  * Fill in `ui` and return a slice of it.
  * Params:
- *	localsize = offset to symbols on stack
- *	ui = unwind info to be filled in
+ *      localsize = offset to symbols on stack
+ *      ui = unwind info to be filled in
  * Returns:
- *	slice of ui as anonymous bytes
+ *      slice of ui as anonymous bytes
  */
 @trusted
 private

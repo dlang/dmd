@@ -178,8 +178,8 @@ uint dt_size(const(dt_t)* dt)
             case DT.ibytes: datasize += dt.DTn;             break;
             case DT.nbytes: datasize += dt.DTpbytes.length; break;
             case DT.azeros: datasize += dt.DTazeros;        break;
-            case DT.common: datasize += 0;	            break;
-	    case DT.abytes:
+            case DT.common: datasize += 0;                  break;
+            case DT.abytes:
             case DT.xoff:
             case DT.coff:   datasize += size(dt.Dty);       break;
             default:
@@ -354,7 +354,7 @@ nothrow:
 
         dt.DTpbytes[0 .. data.length] = data[];
         if (nzeros)
-	    memset(dt.DTpbytes.ptr + data.length, 0, nzeros);
+            memset(dt.DTpbytes.ptr + data.length, 0, nzeros);
 
         assert(!*pTail);
         *pTail = dt;
