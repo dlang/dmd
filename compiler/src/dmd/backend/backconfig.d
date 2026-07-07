@@ -17,7 +17,8 @@ import core.stdc.stdio;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;
-import dmd.backend.global : ErrorCallbackBackend, error, errorCallbackBackend;
+import dmd.backend.global : ErrorCallbackBackend, error, errorCallbackBackend,
+    GetFileContentsCallback, getFileContentsCallback;
 import dmd.backend.go : go_flag, GlobalOptimizer;
 import dmd.backend.rtlsym : rtlsym_init;
 import dmd.backend.ty;
@@ -87,11 +88,13 @@ void out_config_init(
         bool generatedMain,     // a main entrypoint is generated
         bool dataimports,
         ref GlobalOptimizer go,
-        ErrorCallbackBackend errorCallback)
+        ErrorCallbackBackend errorCallback,
+        GetFileContentsCallback getFileContents)
 {
     //printf("out_config_init()\n");
 
     errorCallbackBackend = errorCallback;
+    getFileContentsCallback = getFileContents;
     auto cfg = &config;
 
     cfg._version = _version;

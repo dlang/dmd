@@ -278,13 +278,21 @@ uint cv_align(ubyte* p, uint n)
 /*************************************
  * write a UDT record to the object file
  * Params:
+ *      s = user defined type symbol
  *      id = name of user defined type
  *      typidx = type index
  */
-void cv_udt(const char* id, uint typidx)
+void cv_udt(Dsymbol s, const char* id, uint typidx)
 {
     if (config.fulltypes == CV8)
-        return cv8_udt(id, typidx);
+    {
+        cv8_udt(id, typidx);
+        // Record the source file and line where the type is defined
+        // (LF_UDT_SRC_LINE); the CV4 path has no equivalent record.
+        if (s)
+            cast(void)cv8_udt_src_line(typidx, s.loc.filename, s.loc.linnum);
+        return;
+    }
 
     const len = strlen(id);
     version (AArch64) // TODO AArch64
@@ -326,7 +334,7 @@ void toDebug(EnumDeclaration ed)
     {
         const id = ed.toPrettyChars(true);
         const idx_t typidx = cv4_Denum(ed);
-        cv_udt(id, typidx);
+        cv_udt(ed, id, typidx);
     }
 }
 
@@ -604,7 +612,7 @@ void toDebug(StructDeclaration sd)
 
 //    cv4_outsym(s);
 
-    cv_udt(id, typidx);
+    cv_udt(sd, id, typidx);
 
 //    return typidx;
 }
@@ -805,7 +813,7 @@ void toDebug(ClassDeclaration cd)
 
 //    cv4_outsym(s);
 
-    cv_udt(id, typidx);
+    cv_udt(cd, id, typidx);
 
 //    return typidx;
 }
@@ -918,7 +926,7 @@ void toDebugClosure(Symbol* closstru)
         TOWORD(d.data.ptr + 6,property);
     }
 
-    cv_udt(closname, typidx);
+    cv_udt(null, closname, typidx);
 }
 
 /* ===================================================================== */

@@ -64,6 +64,12 @@ void main(string[] args)
 
         test21665(session, globals);
 
+        testSourceChecksums(session, globals);
+        testCompile3(globals);
+        testFrameProc(globals);
+        testFuncId(globals);
+        testUdtSrcLine(globals);
+
         source.Release();
         session.Release();
         globals.Release();
@@ -704,6 +710,161 @@ void test21665(IDiaSession session, IDiaSymbol globals)
     }
     checkBitField!("a", 0, 3);
     checkBitField!("b", 3, 6);
+}
+
+///////////////////////////////////////////////
+// Tests for the modern CodeView records emitted by the CV8 debug info
+// generator: blake3 source-file checksums (DEBUG_S_FILECHKSMS), S_COMPILE3
+// (compiland language/version) and S_FRAMEPROC (per-function frame info).
+
+// Each source file now carries a checksum; the legacy emitter wrote none.
+void testSourceChecksums(IDiaSession session, IDiaSymbol globals)
+{
+    // DIA checksum type; the emitter stores a blake3 hash in this 32-byte slot.
+    enum CV_CHKSUM_SHA_256 = 3;
+
+    IDiaSymbol funcsym = searchSymbol(globals, "testpdb.test15432");
+    funcsym || assert(false, "testpdb.test15432 not found");
+
+    DWORD rva;
+    funcsym.get_relativeVirtualAddress(&rva) == S_OK || assert(false, "test15432: no rva");
+    ULONGLONG length;
+    funcsym.get_length(&length) == S_OK || assert(false, "test15432: no length");
+
+    IDiaEnumLineNumbers dialines;
+    (session.findLinesByRVA(rva, cast(DWORD)length, &dialines) == S_OK && dialines)
+        || assert(false, "test15432: no line numbers");
+    scope(exit) dialines.Release();
+
+    IDiaLineNumber line;
+    ULONG fetched;
+    bool checkedAny = false;
+    while (dialines.Next(1, &line, &fetched) == S_OK && fetched == 1)
+    {
+        IDiaSourceFile src;
+        if (line.get_sourceFile(&src) == S_OK && src)
+        {
+            DWORD cktype;
+            src.get_checksumType(&cktype) == S_OK || assert(false, "source file has no checksum type");
+            // The emitter stores a blake3 hash in the 32-byte SHA-256 checksum
+            // slot; the legacy emitter wrote CV_CHKSUM_NONE (0).
+            cktype == CV_CHKSUM_SHA_256 || assert(false, "source file checksum is not the SHA-256 (blake3) slot");
+            checkedAny = true;
+            src.Release();
+        }
+        line.Release();
+    }
+    checkedAny || assert(false, "no source file checksum found");
+}
+
+// S_COMPILE3 exposes the compiland language and compiler version through
+// SymTagCompilandDetails; the legacy S_COMPILE record did not.
+void testCompile3(IDiaSymbol globals)
+{
+    IDiaEnumSymbols enumComps;
+    (globals.findChildren(SymTagEnum.SymTagCompiland, null, NameSearchOptions.nsNone, &enumComps) == S_OK && enumComps)
+        || assert(false, "no compilands");
+    scope(exit) enumComps.Release();
+
+    IDiaSymbol compiland;
+    ULONG fetched;
+    bool foundD = false;
+    while (!foundD && enumComps.Next(1, &compiland, &fetched) == S_OK && fetched == 1)
+    {
+        IDiaEnumSymbols enumDetails;
+        if (compiland.findChildren(SymTagEnum.SymTagCompilandDetails, null, NameSearchOptions.nsNone, &enumDetails) == S_OK && enumDetails)
+        {
+            IDiaSymbol details;
+            ULONG f2;
+            if (enumDetails.Next(1, &details, &f2) == S_OK && f2 == 1 && details)
+            {
+                DWORD lang;
+                if (details.get_language(&lang) == S_OK && lang == 'D')
+                {
+                    BSTR compilerName;
+                    (details.get_compilerName(&compilerName) == S_OK && compilerName)
+                        || assert(false, "compiland has no compiler name");
+                    wcslen(compilerName) > 0 || assert(false, "empty compiler name");
+                    SysFreeString(compilerName);
+                    foundD = true;
+                }
+                details.Release();
+            }
+            enumDetails.Release();
+        }
+        compiland.Release();
+    }
+    foundD || assert(false, "no D compiland details (S_COMPILE3) found");
+}
+
+// S_FRAMEPROC provides the stack frame size; without it get_frameSize fails.
+void testFrameProc(IDiaSymbol globals)
+{
+    IDiaSymbol funcsym = searchSymbol(globals, "testpdb.sum21384");
+    funcsym || assert(false, "testpdb.sum21384 not found");
+
+    DWORD frameSize;
+    funcsym.get_frameSize(&frameSize) == S_OK
+        || assert(false, "sum21384: no frame size (S_FRAMEPROC missing)");
+}
+
+// Functions are emitted as S_GPROC32_ID referencing an LF_FUNC_ID; DIA resolves
+// the function's type through that id record.
+void testFuncId(IDiaSymbol globals)
+{
+    IDiaSymbol funcsym = searchSymbol(globals, "testpdb.sum21384");
+    funcsym || assert(false, "testpdb.sum21384 not found");
+
+    DWORD tag;
+    (funcsym.get_symTag(&tag) == S_OK && tag == SymTagEnum.SymTagFunction)
+        || assert(false, "sum21384: not a function symbol");
+
+    IDiaSymbol funcType;
+    (funcsym.get_type(&funcType) == S_OK && funcType)
+        || assert(false, "sum21384: no function type (LF_FUNC_ID chain broken)");
+    (funcType.get_symTag(&tag) == S_OK && tag == SymTagEnum.SymTagFunctionType)
+        || assert(false, "sum21384: type is not a function type");
+}
+
+// LF_UDT_SRC_LINE records the source file/line where a user-defined type is defined.
+enum lineUdtStruct = __LINE__ + 1;
+struct UdtSrcLineStruct { int x; }
+
+enum lineUdtClass = __LINE__ + 1;
+class UdtSrcLineClass { int y; }
+
+enum lineUdtEnum = __LINE__ + 1;
+enum UdtSrcLineEnum { valueA, valueB }
+
+void testUdtSrcLine(IDiaSymbol globals)
+{
+    // Reference each type so that full debug info is emitted for it.
+    UdtSrcLineStruct s;
+    s.x = 0;
+    scope c = new UdtSrcLineClass;
+    c.y = 0;
+    UdtSrcLineEnum e = UdtSrcLineEnum.valueA;
+    assert(e == UdtSrcLineEnum.valueA);
+
+    checkUdtSrcLine(globals, "testpdb.UdtSrcLineStruct"w, SymTagEnum.SymTagUDT, lineUdtStruct);
+    checkUdtSrcLine(globals, "testpdb.UdtSrcLineClass"w, SymTagEnum.SymTagUDT, lineUdtClass);
+    checkUdtSrcLine(globals, "testpdb.UdtSrcLineEnum"w, SymTagEnum.SymTagEnum, lineUdtEnum);
+}
+
+void checkUdtSrcLine(IDiaSymbol globals, wstring name, SymTagEnum tag, uint expectedLine)
+{
+    IDiaSymbol udt = searchSymbol(globals, name.ptr, tag);
+    udt || assert(false, "testUdtSrcLine: type not found");
+    scope(exit) udt.Release();
+
+    IDiaLineNumber lineNo;
+    (udt.getSrcLineOnTypeDefn(&lineNo) == S_OK && lineNo)
+        || assert(false, "testUdtSrcLine: no source line (LF_UDT_SRC_LINE missing)");
+    scope(exit) lineNo.Release();
+
+    DWORD line;
+    lineNo.get_lineNumber(&line) == S_OK || assert(false, "testUdtSrcLine: no line number");
+    line == expectedLine || assert(false, "testUdtSrcLine: wrong definition line");
 }
 
 ///////////////////////////////////////////////
