@@ -5826,25 +5826,8 @@ void assignaddrc(ref CGstate cg, code* c)
         switch (c.IFL1)
         {
             case FL.data:
-                if (config.objfmt == OBJ_OMF && s.Sclass != SC.comdat && s.Sclass != SC.extern_)
-                {
-                    c.IEV1.Vseg = s.Sseg;
-                    c.IEV1.Vpointer += s.Soffset;
-                    c.IFL1 = FL.datseg;
-                }
-                else
-                    c.IFL1 = FL.extern_;
-                goto do2;
-
             case FL.udata:
-                if (config.objfmt == OBJ_OMF)
-                {
-                    c.IEV1.Vseg = s.Sseg;
-                    c.IEV1.Vpointer += s.Soffset;
-                    c.IFL1 = FL.datseg;
-                }
-                else
-                    c.IFL1 = FL.extern_;
+                c.IFL1 = FL.extern_;
                 goto do2;
 
             case FL.tlsdata:
