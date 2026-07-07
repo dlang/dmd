@@ -853,7 +853,7 @@ extern (C++) final class UnpackDeclaration : AttribDeclaration
             _init = _init.ctfeInterpret();
         }
 
-        if (_init.type.ty == Terror)
+        if (_init.type.isTypeError())
         {
             return fail();
         }
@@ -861,8 +861,7 @@ extern (C++) final class UnpackDeclaration : AttribDeclaration
         TupleExp tup = null;
         auto tinit = _init.type;
 
-        import dmd.tokens: EXP;
-        if (_init.type.ty == Ttuple && _init.op == EXP.tuple)
+        if (_init.type.isTypeTuple() && _init.isTupleExp())
         {
             tup = cast(TupleExp)_init;
         }
@@ -870,7 +869,7 @@ extern (C++) final class UnpackDeclaration : AttribDeclaration
         {
             import dmd.dsymbolsem : resolveAliasThis;
             _init = resolveAliasThis(sc, _init);
-            if (_init.type.ty == Ttuple && _init.op == EXP.tuple)
+            if (_init.type.isTypeTuple() && _init.isTupleExp())
             {
                 tup = cast(TupleExp)_init;
             }
