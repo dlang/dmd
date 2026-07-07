@@ -178,10 +178,7 @@ void outdata(Symbol* s)
                         {   seg_data* pseg = objmod.tlsseg_bss();
                             s.Sseg = pseg.SDseg;
                             objmod.data_start(s, datasize, pseg.SDseg);
-                            if (config.objfmt == OBJ_OMF)
-                                pseg.SDoffset += datasize;
-                            else
-                                objmod.lidata(pseg.SDseg, pseg.SDoffset, datasize);
+                            objmod.lidata(pseg.SDseg, pseg.SDoffset, datasize);
                             s.Sfl = FL.tlsdata;
                             break;
                         }
@@ -194,7 +191,7 @@ void outdata(Symbol* s)
                             break;
                     }
                     assert(s.Sseg && s.Sseg != UNKNOWN);
-                    if (s.Sclass == SC.global || (s.Sclass == SC.static_ && config.objfmt != OBJ_OMF)) // if a pubdef to be done
+                    if (s.Sclass == SC.global || s.Sclass == SC.static_) // if a pubdef to be done
                         objmod.pubdefsize(s.Sseg,s,s.Soffset,datasize);   // do the definition
                     if (config.fulltypes &&
                         !(s.Sclass == SC.static_ && funcsym_p)) // not local static
@@ -330,12 +327,10 @@ void outdata(Symbol* s)
     }
     if (s.Sseg == UNKNOWN && (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH))
         s.Sseg = seg;
-    else if (config.objfmt == OBJ_OMF)
-        s.Sseg = seg;
     else
         seg = s.Sseg;
 
-    if (s.Sclass == SC.global || (s.Sclass == SC.static_ && config.objfmt != OBJ_OMF))
+    if (s.Sclass == SC.global || s.Sclass == SC.static_)
         objmod.pubdefsize(seg,s,s.Soffset,datasize);    /* do the definition            */
 
     assert(s.Sseg != UNKNOWN);
@@ -478,17 +473,7 @@ void outcommon(Symbol* s,targ_size_t n)
         else
         {
             s.Sclass = SC.comdef;
-            if (config.objfmt == OBJ_OMF)
-            {
-                s.Sxtrnnum = objmod.common_block(s,(s.ty() & mTYfar) == 0,n,1);
-                if (s.ty() & mTYfar)
-                    s.Sfl = FL.fardata;
-                else
-                    s.Sfl = FL.extern_;
-                s.Sseg = UNKNOWN;
-            }
-            else
-                objmod.common_block(s, 0, n, 1);
+            objmod.common_block(s, 0, n, 1);
         }
         if (config.fulltypes)
         {
@@ -555,8 +540,7 @@ Symbol* out_string_literal(const(char)* str, uint len, uint sz)
             s.Sseg = objmod.string_literal_segment(sz);
             break;
 
-        case OBJ_MSCOFF:
-        case OBJ_OMF:   // goes into COMDATs, handled elsewhere
+        case OBJ_MSCOFF: // goes into COMDATs, handled elsewhere
         default:
             assert(0);
     }
@@ -1061,7 +1045,7 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
         goto Ldone;
     if (sfunc.Sclass == SC.global)
     {
-        if ((config.objfmt == OBJ_OMF || config.objfmt == OBJ_MSCOFF) && !(config.flags4 & CFG4allcomdat))
+        if (config.objfmt == OBJ_MSCOFF && !(config.flags4 & CFG4allcomdat))
         {
             assert(sfunc.Sseg == cseg);
             objmod.pubdef(sfunc.Sseg,sfunc,sfunc.Soffset);       // make a public definition
@@ -1079,7 +1063,7 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
 
     if (config.fulltypes && config.fulltypes != CV8)
     {
-        if (config.objfmt == OBJ_OMF || config.objfmt == OBJ_MSCOFF)
+        if (config.objfmt == OBJ_MSCOFF)
             cv_func(sfunc);                 // debug info for function
     }
 
@@ -1213,7 +1197,6 @@ Symbol* out_readonly_sym(tym_t ty, void[] data)
     Symbol* s;
 
     bool cdata = config.objfmt == OBJ_ELF ||
-                 config.objfmt == OBJ_OMF ||
                  config.objfmt == OBJ_MSCOFF;
     if (cdata)
     {

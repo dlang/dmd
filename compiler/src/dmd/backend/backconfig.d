@@ -140,18 +140,15 @@ void out_config_init(
             cfg.avx = avx;
             cfg.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
 
-            cfg.flags |= CFGnoebp;       // test suite fails without this
             //cfg.flags |= CFGalwaysframe;
             cfg.flags |= CFGromable; // put switch tables in code segment
-            cfg.objfmt = OBJ_MSCOFF;
         }
         else
         {
             cfg.ehmethod = useExceptions ? EHmethod.EH_WIN32 : EHmethod.EH_NONE;
-            cfg.flags |= CFGnoebp;       // test suite fails without this
-            cfg.objfmt = OBJ_MSCOFF;
-            cfg.flags |= CFGnoebp;    // test suite fails without this
         }
+        cfg.flags |= CFGnoebp;    // test suite fails without this
+        cfg.objfmt = OBJ_MSCOFF;
 
         if (dataimports)
             cfg.flags2 |= CFG2noreadonly;
@@ -369,18 +366,10 @@ static if (0)
         }
         if (cfg.exe & (EX_windos))
         {
-            if (cfg.objfmt == OBJ_MSCOFF)
-            {
-                cfg.addlinenumbers = 1;
-                cfg.fulltypes = CV8;
-                if(symdebug > 1)
-                    cfg.flags2 |= CFG2gms;
-            }
-            else
-            {
-                cfg.addlinenumbers = 1;
-                cfg.fulltypes = CV4;
-            }
+            cfg.addlinenumbers = 1;
+            cfg.fulltypes = CV8;
+            if(symdebug > 1)
+                cfg.flags2 |= CFG2gms;
         }
         if (!optimize)
             cfg.flags |= CFGalwaysframe;
