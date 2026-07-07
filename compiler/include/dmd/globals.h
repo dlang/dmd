@@ -333,6 +333,7 @@ struct CompileEnv
     DString time;
     DString vendor;
     DString timestamp;
+    d_bool tuples;
     d_bool previewIn;
     d_bool transitionIn;
     d_bool ddocOutput;

@@ -18,7 +18,6 @@ import core.stdc.string;
 
 import dmd.astenums;
 import dmd.errorsink;
-import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.lexer;
@@ -338,7 +337,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         auto next = peek(t);
         if (next.value != TOK.leftParenthesis)
             return false;
-        if (global.params.tuples && isTupleNotation(next))
+        if (compileEnv.tuples && isTupleNotation(next))
             return false;
         return true;
     }
@@ -846,7 +845,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 {
                     auto next = peek(&token);
                     if (next.value != TOK.leftParenthesis ||
-                        global.params.tuples && peekPastParen(next).value == TOK.assign)
+                        compileEnv.tuples && peekPastParen(next).value == TOK.assign)
                     {
                         stc = STC.extern_;
                         goto Lstc;
@@ -1099,7 +1098,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             case TOK.leftParenthesis:
                 // confirm unpacking for better error messages:
-                if (global.params.tuples && peekPastParen(&token).value == TOK.assign)
+                if (compileEnv.tuples && peekPastParen(&token).value == TOK.assign)
                     goto Ldeclaration;
                 goto default;
 
@@ -1303,7 +1302,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             AST.Dsymbol s;
             if (token.value == TOK.leftParenthesis)
             {
-                assert(global.params.tuples);
+                assert(compileEnv.tuples);
                 s = parseUnpackDeclaration(storageClass, true);
                 if (!storageClass && token.value == TOK.comma)
                 {
@@ -3240,7 +3239,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             if (tpl && !*tpl && hasAutoRefParam)
                                 *tpl = new AST.TemplateParameters();
 
-                            if (global.params.tuples && tpl && token.value == TOK.leftParenthesis)
+                            if (compileEnv.tuples && tpl && token.value == TOK.leftParenthesis)
                             {
                                 const tv2 = peekPastParen(&token).value;
                                 if (tv2 == TOK.comma || tv2 == TOK.rightParenthesis || tv2 == TOK.dotDotDot)
@@ -4644,7 +4643,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 {
                     auto next = peek(&token);
                     if (next.value != TOK.leftParenthesis ||
-                        global.params.tuples && peekPastParen(next).value == TOK.assign)
+                        compileEnv.tuples && peekPastParen(next).value == TOK.assign)
                     {
                         stc = STC.extern_;
                         goto L1;
@@ -4805,7 +4804,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
              *  (int x, auto y) = initializer;
              *  storage_class (a, b, ...) = initializer;
              */
-            if (global.params.tuples && token.value == TOK.leftParenthesis &&
+            if (compileEnv.tuples && token.value == TOK.leftParenthesis &&
                 isTupleNotation(&token))
             {
                 // TODO: can we merge this with the branch below?
@@ -5953,7 +5952,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     goto Larg;
                 }
             }
-            else if (global.params.tuples && token.value == TOK.leftParenthesis)
+            else if (compileEnv.tuples && token.value == TOK.leftParenthesis)
             {
                 TOK after = peekPastParen(&token).value;
                 if (after == TOK.comma || after == TOK.semicolon)
@@ -6661,7 +6660,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.scope_:
             auto next = peek(&token);
             if (next.value != TOK.leftParenthesis ||
-                global.params.tuples && peekPastParen(next).value == TOK.assign)
+                compileEnv.tuples && peekPastParen(next).value == TOK.assign)
                 goto Ldeclaration; // scope used as storage class
             nextToken();
             check(TOK.leftParenthesis);

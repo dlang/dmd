@@ -47,6 +47,7 @@ struct CompileEnv
     const(char)[] vendor;    /// __VENDOR__
     const(char)[] timestamp; /// __TIMESTAMP__
 
+    bool tuples;             //// tuple unpacking syntax
     bool previewIn;          /// `in` means `[ref] scope const`, accepts rvalues
     bool transitionIn;       /// `-transition=in` is active, `in` parameters are listed
     bool ddocOutput;         /// collect embedded documentation comments

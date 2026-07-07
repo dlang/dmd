@@ -205,6 +205,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     }
     global.errorSink.errorLimit = global.params.v.errorLimit;
 
+    global.compileEnv.tuples           = params.tuples == FeatureState.enabled;
     global.compileEnv.previewIn        = params.previewIn;
     global.compileEnv.transitionIn     = params.v.vin;
     global.compileEnv.ddocOutput       = params.ddoc.doOutput;
