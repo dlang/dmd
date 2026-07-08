@@ -1048,6 +1048,7 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
         if (config.objfmt == OBJ_MSCOFF && !(config.flags4 & CFG4allcomdat))
         {
             assert(sfunc.Sseg == cseg);
+            //printf("objmod.pubdef %s\n", sfunc.Sident.ptr);
             objmod.pubdef(sfunc.Sseg,sfunc,sfunc.Soffset);       // make a public definition
         }
 

@@ -959,7 +959,7 @@ void epilog(ref CGstate cg, block* b)
         Symbol* s = getRtlsym(farfunc ? RTLSYM.TRACE_EPI_F : RTLSYM.TRACE_EPI_N);
         makeitextern(s);
         cdbx.gencs(I16 ? 0x9A : CALL,0,FL.func,s);      // CALLF _trace
-        code_orflag(cdbx.last(),CF.off | CF.selfrel);
+        code_orflag(cdbx.last(),CF.off | CF.selfrel26);
         useregs((ALLREGS | mBP | mES) & ~s.Sregsaved);
         assert(0);      // TODO AArch64
     }
@@ -1237,7 +1237,7 @@ void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
         }
     }
     cdb.gencs1(INSTR.bl(0),0,FL.func,sfunc); // BL sfunc // http://www.scs.stanford.edu/~zyedidia/arm64/bl.html
-    cdb.last().Iflags |= (CF.selfrel | CF.off);
+    cdb.last().Iflags |= (CF.selfrel26 | CF.off);
 
     thunkoffset = Offset(seg);
     code* c = cdb.finish();
