@@ -1049,7 +1049,14 @@ void MachObj_term(const(char)[] objfilename)
                                 case ARM64_RELOC_PAGE21:
                                 case ARM64_RELOC_GOT_LOAD_PAGE21:
                                 case ARM64_RELOC_TLVP_LOAD_PAGE21:    assert(INSTR.isPAGE21   (value)); break;
-                                case ARM64_RELOC_BRANCHY26:           assert(INSTR.isBRANCHY26(value)); break;
+static if (0)
+{
+                                case ARM64_RELOC_TLVP_LOAD_PAGE21:
+                                    if (!INSTR.isPAGE21(value))
+                                    {   dumpFixup(*s, rel.r_type); printf("rs: REL.%s value: x%08x\n", rs, value); disassemble(value); assert(0); }
+                                    break;
+}
+                               case ARM64_RELOC_BRANCHY26:           assert(INSTR.isBRANCHY26(value)); break;
                                 default:
                                     break;
                             }
@@ -1566,6 +1573,7 @@ void MachObj_term(const(char)[] objfilename)
     machobj.fobjbuf.reserve(cast(uint)(symtab_cmd.nsyms * (I64 ? nlist_64.sizeof : nlist.sizeof)));
     for (int i = 0; i < dysymtab_cmd.nlocalsym; i++)
     {   Symbol* s = (cast(Symbol**)machobj.local_symbuf.buf)[i];
+        //printf("Writing local symbol %d:x%x %s\n", s.Sseg, cast(int)s.Soffset, s.Sident.ptr);
         nlist_64 sym;
         sym.n_strx = mach_addmangled(s);
         sym.n_type = N_SECT;
@@ -1620,6 +1628,7 @@ void MachObj_term(const(char)[] objfilename)
     }
     for (int i = 0; i < nexterns; i++)
     {   Symbol* s = (cast(Symbol**)machobj.extern_symbuf.buf)[i];
+        //printf("Writing extern symbol %d:x%x %s\n", s.Sseg, cast(int)s.Soffset, s.Sident.ptr);
         nlist_64 sym;
         sym.n_strx = mach_addmangled(s);
         sym.n_value = s.Soffset;
@@ -1642,6 +1651,8 @@ void MachObj_term(const(char)[] objfilename)
     }
     for (int i = 0; i < ncomdefs; i++)
     {   Comdef* c = (cast(Comdef*)machobj.comdef_symbuf.buf) + i;
+        Symbol* s = c.sym;
+        //printf("Writing comdef symbol %d:x%x %s\n", s.Sseg, cast(int)s.Soffset, s.Sident.ptr);
         nlist_64 sym;
         sym.n_strx = mach_addmangled(c.sym);
         sym.n_value = c.size * c.count;
