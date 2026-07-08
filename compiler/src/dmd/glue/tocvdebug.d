@@ -108,41 +108,18 @@ uint cv4_memfunctypidx(FuncDeclaration fd)
 
     const ubyte call = cv4_callconv(t);
 
-    switch (config.fulltypes)
-    {
-        case CV4:
-        {
-            debtyp_t* d = debtyp_alloc(18);
-            ubyte* p = &d.data[0];
-            TOWORD(p,LF_MFUNCTION);
-            TOWORD(p + 2,cv4_typidx(t.Tnext));
-            TOWORD(p + 4,cv4_typidx(Type_toCtype(ad.type)));
-            TOWORD(p + 6,thisidx);
-            p[8] = call;
-            p[9] = 0;                               // reserved
-            TOWORD(p + 10,nparam);
-            TOWORD(p + 12,paramidx);
-            TOLONG(p + 14,0);                       // thisadjust
-            return cv_debtyp(d);
-        }
-        case CV8:
-        {
-            debtyp_t* d = debtyp_alloc(26);
-            ubyte* p = &d.data[0];
-            TOWORD(p,0x1009);
-            TOLONG(p + 2,cv4_typidx(t.Tnext));
-            TOLONG(p + 6,cv4_typidx(Type_toCtype(ad.type)));
-            TOLONG(p + 10,thisidx);
-            p[14] = call;
-            p[15] = 0;                               // reserved
-            TOWORD(p + 16,nparam);
-            TOLONG(p + 18,paramidx);
-            TOLONG(p + 22,0);                       // thisadjust
-            return cv_debtyp(d);
-        }
-        default:
-            assert(0);
-    }
+    debtyp_t* d = debtyp_alloc(26);
+    ubyte* p = &d.data[0];
+    TOWORD(p,0x1009);
+    TOLONG(p + 2,cv4_typidx(t.Tnext));
+    TOLONG(p + 6,cv4_typidx(Type_toCtype(ad.type)));
+    TOLONG(p + 10,thisidx);
+    p[14] = call;
+    p[15] = 0;                               // reserved
+    TOWORD(p + 16,nparam);
+    TOLONG(p + 18,paramidx);
+    TOLONG(p + 22,0);                       // thisadjust
+    return cv_debtyp(d);
 }
 
 enum CV4_NAMELENMAX = 0x3b9f;                   // found by trial and error
@@ -179,29 +156,13 @@ uint cv4_Denum(EnumDeclaration e)
     uint len;
     debtyp_t* d;
     const uint memtype = e.memtype ? cv4_typidx(Type_toCtype(e.memtype)) : 0;
-    switch (config.fulltypes)
-    {
-        case CV8:
-            len = 14;
-            d = debtyp_alloc(len + cv_stringbytes(id));
-            TOWORD(d.data.ptr,LF_ENUM_V3);
-            TOLONG(d.data.ptr + 6,memtype);
-            TOWORD(d.data.ptr + 4,property);
-            len += cv_namestring(d.data.ptr + len,id);
-            break;
+    len = 14;
+    d = debtyp_alloc(len + cv_stringbytes(id));
+    TOWORD(d.data.ptr,LF_ENUM_V3);
+    TOLONG(d.data.ptr + 6,memtype);
+    TOWORD(d.data.ptr + 4,property);
+    len += cv_namestring(d.data.ptr + len,id);
 
-        case CV4:
-            len = 10;
-            d = debtyp_alloc(len + cv_stringbytes(id));
-            TOWORD(d.data.ptr,LF_ENUM);
-            TOWORD(d.data.ptr + 4,memtype);
-            TOWORD(d.data.ptr + 8,property);
-            len += cv_namestring(d.data.ptr + len,id);
-            break;
-
-        default:
-            assert(0);
-    }
     const length_save = d.length;
     d.length = 0;                      // so cv_debtyp() will allocate new
     const idx_t typidx = cv_debtyp(d);
@@ -224,7 +185,7 @@ uint cv4_Denum(EnumDeclaration e)
 
             ubyte* p = mc.writePtr();
             dinteger_t value = sf.value().toInteger();
-            TOWORD(p, (config.fulltypes == CV8) ? LF_ENUMERATE_V3 : LF_ENUMERATE);
+            TOWORD(p, LF_ENUMERATE_V3);
             uint attribute = 0;
             TOWORD(p + 2, attribute);
             cv4_storenumeric(p + 4,cast(uint)value);
@@ -233,21 +194,12 @@ uint cv4_Denum(EnumDeclaration e)
             j += cv_namestring(p + j, sf.toChars());
             j = cv_align(p + j, j);
             mc.written(j);
-            // If enum is not a member of a class, output enum members as constants
-    //      if (!isclassmember(s))
-    //      {
-    //          cv4_outsym(sf);
-    //      }
         }
         fieldlist = mc.debtyp();
     }
 
-    if (config.fulltypes == CV8)
-        TOLONG(d.data.ptr + 10,fieldlist);
-    else
-        TOWORD(d.data.ptr + 6,fieldlist);
+    TOLONG(d.data.ptr + 10,fieldlist);
 
-//    cv4_outsym(s);
     return typidx;
 }
 
@@ -258,20 +210,17 @@ uint cv4_Denum(EnumDeclaration e)
  */
 uint cv_align(ubyte* p, uint n)
 {
-    if (config.fulltypes == CV8)
+    if (p)
     {
-        if (p)
+        uint npad = -n & 3;
+        while (npad)
         {
-            uint npad = -n & 3;
-            while (npad)
-            {
-                *p = cast(ubyte)(0xF0 + npad);
-                ++p;
-                --npad;
-            }
+            *p = cast(ubyte)(0xF0 + npad);
+            ++p;
+            --npad;
         }
-        n = (n + 3) & ~3;
     }
+    n = (n + 3) & ~3;
     return n;
 }
 
@@ -284,34 +233,11 @@ uint cv_align(ubyte* p, uint n)
  */
 void cv_udt(Dsymbol s, const char* id, uint typidx)
 {
-    if (config.fulltypes == CV8)
-    {
-        cv8_udt(id, typidx);
-        // Record the source file and line where the type is defined
-        // (LF_UDT_SRC_LINE); the CV4 path has no equivalent record.
-        if (s)
-            cast(void)cv8_udt_src_line(typidx, s.loc.filename, s.loc.linnum);
-        return;
-    }
-
-    const len = strlen(id);
-    version (AArch64) // TODO AArch64
-    {
-        ubyte* debsym = cast(ubyte *) Mem.xmalloc(39 + IDOHD + len);
-        scope (exit) Mem.xfree(debsym);
-    }
-    else
-        ubyte* debsym = cast(ubyte *) alloca(39 + IDOHD + len);
-
-    // Output a 'user-defined type' for the tag name
-    TOWORD(debsym + 2,S_UDT);
-    TOIDX(debsym + 4,typidx);
-    uint length = 2 + 2 + cgcv.sz_idx;
-    length += cv_namestring(debsym + length,id);
-    TOWORD(debsym,length - 2);
-
-    assert(length <= 40 + len);
-    objmod.write_bytes(SegData[DEBSYM],debsym[0 .. length]);
+    cv8_udt(id, typidx);
+    // Record the source file and line where the type is defined
+    // (LF_UDT_SRC_LINE); the CV4 path has no equivalent record.
+    if (s)
+        cast(void)cv8_udt_src_line(typidx, s.loc.filename, s.loc.linnum);
 }
 
 /* ==================================================================== */
@@ -380,9 +306,9 @@ struct CvFieldList
 
     this(uint fields, uint len) scope
     {
-        canSplitList = config.fulltypes == CV8; // optlink bails out with LF_INDEX
-        fieldIndexLen = canSplitList ? (config.fulltypes == CV8 ? 2 + 2 + 4 : 2 + 2) : 0;
-        fieldLenMax = (config.fulltypes == CV8 ? CV8_NAMELENMAX : CV4_NAMELENMAX) - fieldIndexLen;
+        canSplitList = true; // optlink bails out with LF_INDEX
+        fieldIndexLen = 2 + 2 + 4;
+        fieldLenMax = CV8_NAMELENMAX - fieldIndexLen;
 
         assert(len < fieldLenMax);
         nfields = fields;
@@ -407,7 +333,7 @@ struct CvFieldList
         foreach (i, ref fld; fieldLists)
         {
             fld.dt = debtyp_alloc(fld.length + (i < fieldLists.length - 1 ? fieldIndexLen : 0));
-            TOWORD(fld.dt.data.ptr, config.fulltypes == CV8 ? LF_FIELDLIST_V2 : LF_FIELDLIST);
+            TOWORD(fld.dt.data.ptr, LF_FIELDLIST_V2);
             fld.writepos = 2;
         }
     }
@@ -444,17 +370,9 @@ struct CvFieldList
             if (typidx)
             {
                 ubyte* p = fld.dt.data.ptr + fld.writepos;
-                if (config.fulltypes == CV8)
-                {
-                    TOWORD (p, LF_INDEX_V2);
-                    TOWORD (p + 2, 0); // padding
-                    TOLONG (p + 4, typidx);
-                }
-                else
-                {
-                    TOWORD (p, LF_INDEX);
-                    TOWORD (p + 2, typidx);
-                }
+                TOWORD (p, LF_INDEX_V2);
+                TOWORD (p + 2, 0); // padding
+                TOLONG (p + 4, typidx);
             }
             typidx = cv_debtyp(fld.dt);
         }
@@ -521,30 +439,16 @@ void toDebug(StructDeclaration sd)
 
     const char* id = sd.toPrettyChars(true);
 
-    uint leaf = sd.isUnionDeclaration() ? LF_UNION : LF_STRUCTURE;
-    if (config.fulltypes == CV8)
-        leaf = leaf == LF_UNION ? LF_UNION_V3 : LF_STRUCTURE_V3;
+    uint leaf = sd.isUnionDeclaration() ? LF_UNION_V3 : LF_STRUCTURE_V3;
 
-    uint numidx;
-    final switch (leaf)
-    {
-        case LF_UNION:        numidx = 8;       break;
-        case LF_UNION_V3:     numidx = 10;      break;
-        case LF_STRUCTURE:    numidx = 12;      break;
-        case LF_STRUCTURE_V3: numidx = 18;      break;
-    }
+    uint numidx = leaf == LF_UNION_V3 ? 10 : 18;
 
     const len1 = numidx + cv4_numericbytes(cast(uint)size);
     debtyp_t* d = debtyp_alloc(len1 + cv_stringbytes(id));
     cv4_storenumeric(d.data.ptr + numidx, cast(uint)size);
     cv_namestring(d.data.ptr + len1, id);
 
-    if (leaf == LF_STRUCTURE)
-    {
-        TOWORD(d.data.ptr + 8,0);          // dList
-        TOWORD(d.data.ptr + 10,0);         // vshape is 0 (no virtual functions)
-    }
-    else if (leaf == LF_STRUCTURE_V3)
+    if (leaf == LF_STRUCTURE_V3)
     {
         TOLONG(d.data.ptr + 10,0);         // dList
         TOLONG(d.data.ptr + 14,0);         // vshape is 0 (no virtual functions)
@@ -560,18 +464,9 @@ void toDebug(StructDeclaration sd)
 
     if (!sd.members)                       // if reference only
     {
-        if (config.fulltypes == CV8)
-        {
-            TOWORD(d.data.ptr + 2,0);          // count: number of fields is 0
-            TOLONG(d.data.ptr + 6,0);          // field list is 0
-            TOWORD(d.data.ptr + 4,property);
-        }
-        else
-        {
-            TOWORD(d.data.ptr + 2,0);          // count: number of fields is 0
-            TOWORD(d.data.ptr + 4,0);          // field list is 0
-            TOWORD(d.data.ptr + 6,property);
-        }
+        TOWORD(d.data.ptr + 2,0);          // count: number of fields is 0
+        TOLONG(d.data.ptr + 6,0);          // field list is 0
+        TOWORD(d.data.ptr + 4,property);
         return /*typidx*/;
     }
 
@@ -599,18 +494,8 @@ void toDebug(StructDeclaration sd)
     const idx_t fieldlist = mc.debtyp();
 
     TOWORD(d.data.ptr + 2, nfields);
-    if (config.fulltypes == CV8)
-    {
-        TOWORD(d.data.ptr + 4,property);
-        TOLONG(d.data.ptr + 6,fieldlist);
-    }
-    else
-    {
-        TOWORD(d.data.ptr + 4,fieldlist);
-        TOWORD(d.data.ptr + 6,property);
-    }
-
-//    cv4_outsym(s);
+    TOWORD(d.data.ptr + 4,property);
+    TOLONG(d.data.ptr + 6,fieldlist);
 
     cv_udt(sd, id, typidx);
 
@@ -656,9 +541,8 @@ void toDebug(ClassDeclaration cd)
 //      property |= 0x20;               // class has overloaded assignment
 
     const id = cd.isCPPinterface() ? cd.ident.toChars() : cd.toPrettyChars(true);
-    const uint leaf = config.fulltypes == CV8 ? LF_CLASS_V3 : LF_CLASS;
-
-    const uint numidx = (leaf == LF_CLASS_V3) ? 18 : 12;
+    const uint leaf = LF_CLASS_V3;
+    const uint numidx = 18;
     const uint len1 = numidx + cv4_numericbytes(cast(uint)size);
     debtyp_t* d = debtyp_alloc(len1 + cv_stringbytes(id));
     cv4_storenumeric(d.data.ptr + numidx, cast(uint)size);
@@ -687,16 +571,8 @@ void toDebug(ClassDeclaration cd)
             vshapeidx = cv_debtyp(vshape);
         }
     }
-    if (leaf == LF_CLASS)
-    {
-        TOWORD(d.data.ptr + 8,0);          // dList
-        TOWORD(d.data.ptr + 10,vshapeidx);
-    }
-    else if (leaf == LF_CLASS_V3)
-    {
-        TOLONG(d.data.ptr + 10,0);         // dList
-        TOLONG(d.data.ptr + 14,vshapeidx);
-    }
+    TOLONG(d.data.ptr + 10,0);         // dList
+    TOLONG(d.data.ptr + 14,vshapeidx);
     TOWORD(d.data.ptr,leaf);
 
     // Assign a number to prevent infinite recursion if a struct member
@@ -708,18 +584,9 @@ void toDebug(ClassDeclaration cd)
 
     if (!cd.members)                       // if reference only
     {
-        if (leaf == LF_CLASS_V3)
-        {
-            TOWORD(d.data.ptr + 2,0);          // count: number of fields is 0
-            TOLONG(d.data.ptr + 6,0);          // field list is 0
-            TOWORD(d.data.ptr + 4,property);
-        }
-        else
-        {
-            TOWORD(d.data.ptr + 2,0);          // count: number of fields is 0
-            TOWORD(d.data.ptr + 4,0);          // field list is 0
-            TOWORD(d.data.ptr + 6,property);
-        }
+        TOWORD(d.data.ptr + 2,0);          // count: number of fields is 0
+        TOLONG(d.data.ptr + 6,0);          // field list is 0
+        TOWORD(d.data.ptr + 4,property);
         return /*typidx*/;
     }
 
@@ -770,22 +637,10 @@ void toDebug(ClassDeclaration cd)
                 const uint attribute = visibilityToCVAttr(Visibility.Kind.public_);
 
                 uint elementlen;
-                final switch (config.fulltypes)
-                {
-                    case CV8:
-                        TOWORD(p, LF_BCLASS_V2);
-                        TOWORD(p + 2,attribute);
-                        TOLONG(p + 4,typidx2);
-                        elementlen = 8;
-                        break;
-
-                    case CV4:
-                        TOWORD(p, LF_BCLASS);
-                        TOWORD(p + 2,typidx2);
-                        TOWORD(p + 4,attribute);
-                        elementlen = 6;
-                        break;
-                }
+                TOWORD(p, LF_BCLASS_V2);
+                TOWORD(p + 2,attribute);
+                TOLONG(p + 4,typidx2);
+                elementlen = 8;
 
                 cv4_storenumeric(p + elementlen, bc.offset);
                 elementlen += cv4_numericbytes(bc.offset);
@@ -800,18 +655,8 @@ void toDebug(ClassDeclaration cd)
 
     const idx_t fieldlist = mc.debtyp();
 
-    if (config.fulltypes == CV8)
-    {
-        TOWORD(d.data.ptr + 4,property);
-        TOLONG(d.data.ptr + 6,fieldlist);
-    }
-    else
-    {
-        TOWORD(d.data.ptr + 4,fieldlist);
-        TOWORD(d.data.ptr + 6,property);
-    }
-
-//    cv4_outsym(s);
+    TOWORD(d.data.ptr + 4,property);
+    TOLONG(d.data.ptr + 6,fieldlist);
 
     cv_udt(cd, id, typidx);
 
@@ -820,25 +665,13 @@ void toDebug(ClassDeclaration cd)
 
 private uint writeField(ubyte* p, const char* id, uint attr, uint typidx, uint offset)
 {
-    if (config.fulltypes == CV8)
-    {
-        TOWORD(p,LF_MEMBER_V3);
-        TOWORD(p + 2,attr);
-        TOLONG(p + 4,typidx);
-        cv4_storesignednumeric(p + 8, offset);
-        uint len = 8 + cv4_signednumericbytes(offset);
-        len += cv_namestring(p + len, id);
-        return cv_align(p + len, len);
-    }
-    else
-    {
-        TOWORD(p,LF_MEMBER);
-        TOWORD(p + 2,typidx);
-        TOWORD(p + 4,attr);
-        cv4_storesignednumeric(p + 6, offset);
-        uint len = 6 + cv4_signednumericbytes(offset);
-        return len + cv_namestring(p + len, id);
-    }
+    TOWORD(p,LF_MEMBER_V3);
+    TOWORD(p + 2,attr);
+    TOLONG(p + 4,typidx);
+    cv4_storesignednumeric(p + 8, offset);
+    uint len = 8 + cv4_signednumericbytes(offset);
+    len += cv_namestring(p + len, id);
+    return cv_align(p + len, len);
 }
 
 void toDebugClosure(Symbol* closstru)
@@ -850,8 +683,8 @@ void toDebugClosure(Symbol* closstru)
 
     assert(config.fulltypes >= CV4);
 
-    uint leaf = config.fulltypes == CV8 ? LF_STRUCTURE_V3 : LF_STRUCTURE;
-    uint numidx = leaf == LF_STRUCTURE ? 12 : 18;
+    uint leaf = LF_STRUCTURE_V3;
+    uint numidx = 18;
     uint structsize = cast(uint)(closstru.Sstruct.Sstructsize);
     const char* closname = closstru.Sident.ptr;
 
@@ -860,16 +693,8 @@ void toDebugClosure(Symbol* closstru)
     cv4_storenumeric(d.data.ptr + numidx, structsize);
     cv_namestring(d.data.ptr + len1, closname);
 
-    if (leaf == LF_STRUCTURE)
-    {
-        TOWORD(d.data.ptr + 8,0);          // dList
-        TOWORD(d.data.ptr + 10,0);         // vshape is 0 (no virtual functions)
-    }
-    else // LF_STRUCTURE_V3
-    {
-        TOLONG(d.data.ptr + 10,0);         // dList
-        TOLONG(d.data.ptr + 14,0);         // vshape is 0 (no virtual functions)
-    }
+    TOLONG(d.data.ptr + 10,0);         // dList
+    TOLONG(d.data.ptr + 14,0);         // vshape is 0 (no virtual functions)
     TOWORD(d.data.ptr,leaf);
 
     // Assign a number to prevent infinite recursion if a struct member
@@ -883,13 +708,10 @@ void toDebugClosure(Symbol* closstru)
     uint flistlen = 2;
     foreach (sf; closstru.Sstruct.Sfields)
     {
-        uint thislen = (config.fulltypes == CV8 ? 8 : 6);
+        uint thislen = 8;
         thislen += cv4_signednumericbytes(cast(uint)sf.Smemoff);
         thislen += cv_stringbytes(sf.Sident.ptr);
         thislen = cv_align(null, thislen);
-
-        if (config.fulltypes != CV8 && flistlen + thislen > CV4_NAMELENMAX)
-            break; // Too long, fail gracefully
 
         flistlen += thislen;
     }
@@ -899,7 +721,7 @@ void toDebugClosure(Symbol* closstru)
     ubyte* p = dt.data.ptr;
 
     // And fill it in
-    TOWORD(p, config.fulltypes == CV8 ? LF_FIELDLIST_V2 : LF_FIELDLIST);
+    TOWORD(p, LF_FIELDLIST_V2);
     uint flistoff = 2;
     foreach (sf; closstru.Sstruct.Sfields)
     {
@@ -915,16 +737,8 @@ void toDebugClosure(Symbol* closstru)
 
     uint property = 0;
     TOWORD(d.data.ptr + 2, cast(int)closstru.Sstruct.Sfields.length);
-    if (config.fulltypes == CV8)
-    {
-        TOWORD(d.data.ptr + 4,property);
-        TOLONG(d.data.ptr + 6,fieldlist);
-    }
-    else
-    {
-        TOWORD(d.data.ptr + 4,fieldlist);
-        TOWORD(d.data.ptr + 6,property);
-    }
+    TOWORD(d.data.ptr + 4,property);
+    TOLONG(d.data.ptr + 6,fieldlist);
 
     cv_udt(null, closname, typidx);
 }
@@ -965,39 +779,18 @@ private extern (C++) class CVMember : Visitor
         if (!p)
             result = cv_stringbytes(id);
 
-        switch (config.fulltypes)
+        if (!p)
         {
-            case CV8:
-                if (!p)
-                {
-                    result += 8;
-                    result = cv_align(null, result);
-                }
-                else
-                {
-                    TOWORD(p,LF_NESTTYPE_V3);
-                    TOWORD(p + 2,0);
-                    TOLONG(p + 4,typidx);
-                    result = 8 + cv_namestring(p + 8, id);
-                    result = cv_align(p + result, result);
-                }
-                break;
-
-            case CV4:
-                if (!p)
-                {
-                    result += 4;
-                }
-                else
-                {
-                    TOWORD(p,LF_NESTTYPE);
-                    TOWORD(p + 2,typidx);
-                    result = 4 + cv_namestring(p + 4, id);
-                }
-                break;
-
-            default:
-                assert(0);
+            result += 8;
+            result = cv_align(null, result);
+        }
+        else
+        {
+            TOWORD(p,LF_NESTTYPE_V3);
+            TOWORD(p + 2,0);
+            TOLONG(p + 4,typidx);
+            result = 8 + cv_namestring(p + 8, id);
+            result = cv_align(p + result, result);
         }
         debug
         {
@@ -1049,7 +842,7 @@ private extern (C++) class CVMember : Visitor
             // Allocate and fill it in
             debtyp_t* d = debtyp_alloc(mlen);
             ubyte* q = d.data.ptr;
-            TOWORD(q,config.fulltypes == CV8 ? LF_METHODLIST_V2 : LF_METHODLIST);
+            TOWORD(q,LF_METHODLIST_V2);
             q += 2;
     //      for (s = sf; s; s = s.Sfunc.Foversym)
             {
@@ -1102,24 +895,12 @@ private extern (C++) class CVMember : Visitor
             idx_t typidx = cv_debtyp(d);
             if (typidx)
             {
-                switch (config.fulltypes)
-                {
-                    case CV8:
-                        TOWORD(p,LF_METHOD_V3);
-                        goto Lmethod;
-                    case CV4:
-                        TOWORD(p,LF_METHOD);
-                    Lmethod:
-                        TOWORD(p + 2,count);
-                        result = 4;
-                        TOIDX(p + result, typidx);
-                        result += cgcv.sz_idx;
-                        result += cv_namestring(p + result, id);
-                        break;
-
-                    default:
-                        assert(0);
-                }
+                TOWORD(p,LF_METHOD_V3);
+                TOWORD(p + 2,count);
+                result = 4;
+                TOIDX(p + result, typidx);
+                result += cgcv.sz_idx;
+                result += cv_namestring(p + result, id);
             }
             result = cv_align(p + result, result);
             debug
@@ -1147,15 +928,13 @@ private extern (C++) class CVMember : Visitor
         {
             if (vd.isField())
             {
-                if (config.fulltypes == CV8)
-                    result += 2;
+                result += 2;
                 result += 6 + cv_stringbytes(id);
                 result += cv4_numericbytes(vd.offset);
             }
             else if (staticMember)
             {
-                if (config.fulltypes == CV8)
-                    result += 2;
+                result += 2;
                 result += 6 + cv_stringbytes(id);
             }
             result = cv_align(null, result);
@@ -1166,69 +945,32 @@ private extern (C++) class CVMember : Visitor
             if (auto bfd = vd.isBitFieldDeclaration())
             {
                 debtyp_t* db;
-                if (config.fulltypes == CV4)
-                {
-                    db = debtyp_alloc(6);
-                    TOWORD(db.data.ptr, LF_BITFIELD);
-                    db.data.ptr[2] = cast(ubyte) bfd.fieldWidth;
-                    db.data.ptr[3] = cast(ubyte) bfd.bitOffset;
-                    TOWORD(db.data.ptr + 4, typidx);
-                }
-                else
-                {   db = debtyp_alloc(8);
-                    TOWORD(db.data.ptr, LF_BITFIELD_V2);
-                    db.data.ptr[6] = cast(ubyte) bfd.fieldWidth;
-                    db.data.ptr[7] = cast(ubyte) bfd.bitOffset;
-                    TOLONG(db.data.ptr + 2, typidx);
-                }
+                db = debtyp_alloc(8);
+                TOWORD(db.data.ptr, LF_BITFIELD_V2);
+                db.data.ptr[6] = cast(ubyte) bfd.fieldWidth;
+                db.data.ptr[7] = cast(ubyte) bfd.bitOffset;
+                TOLONG(db.data.ptr + 2, typidx);
                 typidx = cv_debtyp(db);
             }
             uint attribute = visibilityToCVAttr(vd.visible().kind);
             assert((attribute & ~3) == 0);
-            switch (config.fulltypes)
+
+            if (vd.isField())
             {
-                case CV8:
-                    if (vd.isField())
-                    {
-                        TOWORD(p,LF_MEMBER_V3);
-                        TOWORD(p + 2,attribute);
-                        TOLONG(p + 4,typidx);
-                        cv4_storenumeric(p + 8, vd.offset);
-                        result = 8 + cv4_numericbytes(vd.offset);
-                        result += cv_namestring(p + result, id);
-                    }
-                    else if (staticMember)
-                    {
-                        TOWORD(p,LF_STMEMBER_V3);
-                        TOWORD(p + 2,attribute);
-                        TOLONG(p + 4,typidx);
-                        result = 8;
-                        result += cv_namestring(p + result, id);
-                    }
-                    break;
-
-                case CV4:
-                    if (vd.isField())
-                    {
-                        TOWORD(p,LF_MEMBER);
-                        TOWORD(p + 2,typidx);
-                        TOWORD(p + 4,attribute);
-                        cv4_storenumeric(p + 6, vd.offset);
-                        result = 6 + cv4_numericbytes(vd.offset);
-                        result += cv_namestring(p + result, id);
-                    }
-                    else if (staticMember)
-                    {
-                        TOWORD(p,LF_STMEMBER);
-                        TOWORD(p + 2,typidx);
-                        TOWORD(p + 4,attribute);
-                        result = 6;
-                        result += cv_namestring(p + result, id);
-                    }
-                    break;
-
-                 default:
-                    assert(0);
+                TOWORD(p,LF_MEMBER_V3);
+                TOWORD(p + 2,attribute);
+                TOLONG(p + 4,typidx);
+                cv4_storenumeric(p + 8, vd.offset);
+                result = 8 + cv4_numericbytes(vd.offset);
+                result += cv_namestring(p + result, id);
+            }
+            else if (staticMember)
+            {
+                TOWORD(p,LF_STMEMBER_V3);
+                TOWORD(p + 2,attribute);
+                TOLONG(p + 4,typidx);
+                result = 8;
+                result += cv_namestring(p + result, id);
             }
 
             result = cv_align(p + result, result);
