@@ -9,6 +9,7 @@
  +/
 module core.sys.posix.sys.statvfs;
 import core.stdc.config;
+import core.stdc.stdint;
 import core.sys.posix.config;
 public import core.sys.posix.sys.types;
 
@@ -283,6 +284,105 @@ else version (FreeBSD)
     {
         pragma(mangle, "fstatvfs@FBSD_1.0") int fstatvfs(int, statvfs_t*);
         pragma(mangle, "statvfs@FBSD_1.0")  int statvfs(const char*, statvfs_t*);
+    }
+}
+else version (Solaris)
+{
+    private enum _FSTYPSZ = 16;
+
+    version (D_LP64)
+    {
+        struct statvfs_t
+        {
+            c_ulong f_bsize;
+            c_ulong f_frsize;
+            fsblkcnt_t f_blocks;
+            fsblkcnt_t f_bfree;
+            fsblkcnt_t f_bavail;
+            fsfilcnt_t f_files;
+            fsfilcnt_t f_ffree;
+            fsfilcnt_t f_favail;
+            c_ulong f_fsid;
+            char[_FSTYPSZ] f_basetype;
+            c_ulong f_flag;
+            c_ulong f_namemax;
+            char[32] f_fstr;
+        }
+
+        static if (__USE_LARGEFILE64) alias statvfs64_t = statvfs_t;
+    }
+    else
+    {
+        struct statvfs_t
+        {
+            c_ulong f_bsize;
+            c_ulong f_frsize;
+            fsblkcnt_t f_blocks;
+            fsblkcnt_t f_bfree;
+            fsblkcnt_t f_bavail;
+            fsfilcnt_t f_files;
+            fsfilcnt_t f_ffree;
+            fsfilcnt_t f_favail;
+            c_ulong f_fsid;
+            char[_FSTYPSZ] f_basetype;
+            c_ulong f_flag;
+            c_ulong f_namemax;
+            char[32] f_fstr;
+            char[16] f_filler;
+        }
+
+        struct statvfs64_t
+        {
+            c_ulong f_bsize;
+            c_ulong f_frsize;
+            fsblkcnt64_t f_blocks;
+            fsblkcnt64_t f_bfree;
+            fsblkcnt64_t f_bavail;
+            fsfilcnt64_t f_files;
+            fsfilcnt64_t f_ffree;
+            fsfilcnt64_t f_favail;
+            c_ulong f_fsid;
+            char[_FSTYPSZ] f_basetype;
+            c_ulong f_flag;
+            c_ulong f_namemax;
+            char[32] f_fstr;
+            uint32_t[16] f_filler;
+        }
+    }
+
+    enum FFlag
+    {
+        ST_RDONLY = 1,           /* read-only file system */
+        ST_NOSUID = 2,           /* does not support setuid/setgid semantics */
+        ST_NOTRUNC = 4           /* does not truncate long file names */
+    }
+
+    version (D_LP64)
+    {
+        int statvfs (const char * file, statvfs_t* buf);
+        int fstatvfs (int fildes, statvfs_t *buf);
+
+        static if (__USE_LARGEFILE64)
+        {
+            alias statvfs64 = statvfs;
+            alias fstatvfs64 = fstatvfs;
+        }
+    }
+    else
+    {
+        static if (__USE_LARGEFILE64)
+        {
+            int statvfs64 (const char * file, statvfs_t* buf);
+            alias statvfs = statvfs64;
+
+            int fstatvfs64 (int fildes, statvfs_t *buf);
+            alias fstatvfs = fstatvfs64;
+        }
+        else
+        {
+            int statvfs (const char * file, statvfs_t* buf);
+            int fstatvfs (int fildes, statvfs_t *buf);
+        }
     }
 }
 else

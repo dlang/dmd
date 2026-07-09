@@ -288,6 +288,9 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
+    alias longlong_t = __c_longlong;
+    alias u_longlong_t = __c_ulonglong;
+
     alias caddr_t = char*;
     alias daddr_t = c_long;
     alias cnt_t = short;
@@ -297,12 +300,16 @@ else version (Solaris)
         alias blkcnt_t = long;
         alias ino_t = ulong;
         alias off_t = long;
+        alias fsblkcnt_t = u_longlong_t;
+        alias fsfilcnt_t = u_longlong_t;
     }
     else
     {
         alias blkcnt_t = c_long;
         alias ino_t = c_ulong;
         alias off_t = c_long;
+        alias fsblkcnt_t = ulong_t;
+        alias fsfilcnt_t = ulong_t;
     }
 
     version (D_LP64)
@@ -310,12 +317,18 @@ else version (Solaris)
         alias blkcnt64_t = blkcnt_t;
         alias ino64_t = ino_t;
         alias off64_t = off_t;
+        alias fsblkcnt64_t = fsblkcnt_t;
+        alias fsfilcnt64_t = fsfilcnt_t;
     }
     else
     {
         alias blkcnt64_t = long;
         alias ino64_t = ulong;
         alias off64_t = long;
+        alias fsblkcnt32_t = uint32_t;
+        alias fsfilcnt32_t = uint32_t;
+        alias fsblkcnt64_t = ulong;
+        alias fsfilcnt64_t = ulong;
     }
 
     alias blksize_t = uint;
@@ -442,17 +455,6 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
-    static if (__USE_FILE_OFFSET64)
-    {
-        alias fsblkcnt_t = ulong;
-        alias fsfilcnt_t = ulong;
-    }
-    else
-    {
-        alias fsblkcnt_t = c_ulong;
-        alias fsfilcnt_t = c_ulong;
-    }
-
     alias clock_t = c_long;
     alias id_t = int;
     alias key_t = int;
