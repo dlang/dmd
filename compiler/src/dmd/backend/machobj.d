@@ -556,9 +556,11 @@ void patch(seg_data* pseg, targ_size_t offset, int seg, targ_size_t value)
 /***************************
  * Number symbols so they are
  * ordered as locals, public and then extern/comdef
+ * Return:
+ *      nsyms (number of symbols)
  */
 @trusted
-void mach_numbersyms()
+int mach_numbersyms()
 {
     //printf("mach_numbersyms()\n");
     int n = 0;
@@ -591,6 +593,8 @@ void mach_numbersyms()
         c.sym.Sxtrnnum = n;
         n++;
     }
+    //printf("n: %d\n", n);
+    return n;
 }
 
 
@@ -869,7 +873,7 @@ void MachObj_term(const(char)[] objfilename)
     // Put out relocation data
     // See mach-o/reloc.h for some examples of what should be generated and when:
     // https://github.com/apple-oss-distributions/xnu/blob/rel/xnu-10002/EXTERNAL_HEADERS/mach-o/x86_64/reloc.h
-    mach_numbersyms();
+    int nsyms = mach_numbersyms();
     for (int seg = 1; seg < SegData.length; seg++)
     {
         static if (0)
@@ -938,6 +942,8 @@ void MachObj_term(const(char)[] objfilename)
                             rel.r_pcrel = 0;
                             rel.r_length = 3;
                             rel.r_extern = r.funcsym.Sclass == SC.locstat ? 0 : 1;
+                            if (rel.r_extern == 1)
+                                assert(s.Sxtrnnum < nsyms);
                             machobj.fobjbuf.write(&rel, rel.sizeof);
                             foffset += (rel).sizeof;
                             ++nreloc;
@@ -992,6 +998,7 @@ void MachObj_term(const(char)[] objfilename)
                                         goto case SC.global;
                                     rel.r_address = cast(int)r.offset;
                                     rel.r_symbolnum = s.Sxtrnnum;
+                                    assert(s.Sxtrnnum < nsyms);
                                     rel.r_length = 2;
                                     rel.r_extern = 1;
                                     machobj.fobjbuf.write(&rel, rel.sizeof);
@@ -1010,6 +1017,7 @@ void MachObj_term(const(char)[] objfilename)
                                     rel.r_pcrel = r.rtype == REL.add ? 0 : 1;
                                     rel.r_address = cast(int)r.offset;
                                     rel.r_symbolnum = s.Sxtrnnum;
+                                    assert(s.Sxtrnnum < nsyms);
                                     rel.r_length = 2;
                                     rel.r_extern = 1;
                                     machobj.fobjbuf.write(&rel, rel.sizeof);
@@ -1025,6 +1033,7 @@ void MachObj_term(const(char)[] objfilename)
                                     rel.r_pcrel = r.rtype == REL.add ? 0 : 1;
                                     rel.r_address = cast(int)r.offset;
                                     rel.r_symbolnum = s.Sxtrnnum;
+                                    assert(s.Sxtrnnum < nsyms);
                                     rel.r_length = 2;
                                     rel.r_extern = 1; // 0?
                                     machobj.fobjbuf.write(&rel, rel.sizeof);
@@ -1037,6 +1046,7 @@ void MachObj_term(const(char)[] objfilename)
                                     assert(0);
                             }
                             //dumpFixup(*s, rel.r_type);
+                            //assert(rel.r_address < section.size);
 
                             /* Ensure relocation matches instruction */
                             //import dmd.backend.x86.cgcod : disassemble;
@@ -1069,6 +1079,7 @@ static if (0)
                             {
                                 rel.r_address = cast(int)r.offset;
                                 rel.r_symbolnum = s.Sxtrnnum;
+                                assert(s.Sxtrnnum < nsyms);
                                 rel.r_pcrel = 0;
                                 rel.r_length = 3;
                                 rel.r_extern = 1;
@@ -1087,6 +1098,7 @@ static if (0)
                             {
                                 rel.r_address = cast(int)r.offset;
                                 rel.r_symbolnum = s.Sxtrnnum;
+                                assert(s.Sxtrnnum < nsyms);
                                 if (r.rtype == REL.rel)
                                 {
                                     rel.r_pcrel = 1;
@@ -2011,8 +2023,8 @@ int MachObj_comdat(Symbol* s)
     int flags;
 
     //printf("MachObj_comdat(Symbol* %s)\n",s.Sident.ptr);
-    //symbol_print(s);
-    symbol_debug(s);
+    //symbol_print(*s);
+    //symbol_debug(s);
 
     if (tyfunc(s.ty()))
     {

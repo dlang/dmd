@@ -444,8 +444,11 @@ struct relocation_info  // https://developer.apple.com/documentation/kernel/relo
     void r_extern   (uint r) { assert(!(r & ~1));           xxx = (xxx & ~0x0800_0000) | (r << (24 + 1 + 2)); }
     void r_type     (uint r) { assert(!(r & ~0xF));         xxx = (xxx & ~0xF000_0000) | (r << (24 + 1 + 2 + 1)); }
 
-    uint r_pcrel() { return (xxx >> 24) &   1; }
-    uint r_type()  { return (xxx >> 28) & 0xF; }
+    uint r_symbolnum() { return (xxx & 0x00FF_FFFF); }
+    uint r_pcrel    () { return (xxx >> 24) &   1; }
+    uint r_length   () { return (xxx >> 25) &   3; }
+    uint r_extern   () { return (xxx >> 27) &   1; }
+    uint r_type     () { return (xxx >> 28) & 0xF; }
 }
 
 struct scattered_relocation_info
