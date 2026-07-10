@@ -3006,19 +3006,21 @@ static if (0)
                         if ((s.ty() & mTYLINK) & mTYthread)
                         { }
                         else
+                        {
                             refseg = MAP_SEG2SYMIDX(s.Sseg);    // use segment symbol table entry
-                        val += s.Soffset;
-                        if (!(config.flags3 & CFG3pic) ||       // all static refs from normal code
-                             segtyp == DATA)    // or refs from data from posi indp
-                        {
-                            if (I64)
-                                relinfo = (flags & CF.pc32) ? R_X86_64_PC32 : R_X86_64_32;
+                            val += s.Soffset;
+                            if (!(config.flags3 & CFG3pic) ||       // all static refs from normal code
+                                 segtyp == DATA)    // or refs from data from posi indp
+                            {
+                                if (I64)
+                                    relinfo = (flags & CF.pc32) ? R_X86_64_PC32 : R_X86_64_32;
+                                else
+                                    relinfo = R_386_32;
+                            }
                             else
-                                relinfo = R_386_32;
-                        }
-                        else
-                        {
-                            relinfo = I64 ? R_X86_64_PC32 : R_386_GOTOFF;
+                            {
+                                relinfo = I64 ? R_X86_64_PC32 : R_386_GOTOFF;
+                            }
                         }
                     }
                     else if (config.flags3 & CFG3pic && s == elfobj.GOTsym)
