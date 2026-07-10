@@ -106,9 +106,6 @@ struct_t* struct_calloc() { return cast(struct_t*) mem_calloc(struct_t.sizeof); 
 private __gshared
 {
     type* type_list;          // free list of types
-    param_t* param_list;      // free list of params
-
-    int type_num,type_max;   /* gather statistics on # of types      */
 
     type* chartype;                 /* default 'char' type                  */
 }
@@ -121,7 +118,7 @@ __gshared
     type*[TYMAX] tsptr2types;
 
     type* tstrace, tsjlib, tsdlib, tslogical,
-          tspvoid, tspcvoid, tsptrdiff, tssize;
+          tspvoid, tsptrdiff, tssize;
 }
 
 /***********************
@@ -360,13 +357,7 @@ type* type_alloc(tym_t ty)
         if (PARSER && config.fulltypes)
             t.Tsrcpos = getlinnum();
     }
-    debug
-    {
-        t.id = type.IDtype;
-        type_num++;
-        if (type_num > type_max)
-            type_max = type_num;
-    }
+    debug t.id = type.IDtype;
     //printf("type_alloc() = %p %s\n", t, tym_str(t.Tty));
     //if (t == (type*)0xB6B744) *(char*)0=0;
     return t;
@@ -620,30 +611,13 @@ void type_free(type* t)
             el_free(t.Tel);
         else if (t.Tkey && typtr(ty))
             type_free(t.Tkey);
-        debug
-        {
-            type_num--;
-            //printf("Free'ing type %p %s\n", t, tym_str(t.Tty));
-            t.id = 0;                      /* no longer a valid type       */
-        }
+        debug t.id = 0;
 
         type* tn = t.Tnext;
         t.Tnext = type_list;
         type_list = t;                  /* link into free list          */
         t = tn;
     }
-}
-
-version (STATS)
-{
-/* count number of free types available on type list */
-void type_count_free()
-{
-    int count = 0;
-    for (type* t = type_list; t; t = t.Tnext)
-        ++count;
-    printf("types on free list %d with max of %d\n",count,type_max);
-}
 }
 
 /**********************************
@@ -739,57 +713,6 @@ void type_init()
     }
 }
 
-/**********************************
- * Free type_list.
- */
-
-void type_term()
-{
-    static if (TERMCODE)
-    {
-        foreach (i; 0 .. tstypes.length)
-        {
-            if (type* t = tsptr2types[i])
-            {
-                assert(!(t.Tty & (mTYconst | mTYvolatile | mTYimmutable | mTYshared)));
-                assert(!(t.Tflags));
-                assert(!(t.Tmangle));
-                type_free(t);
-            }
-            type_free(tstypes[i]);
-        }
-
-        type_free(tsclib);
-        type_free(tspvoid);
-        type_free(tspcvoid);
-        type_free(tsjlib);
-        type_free(tstrace);
-
-        while (type_list)
-        {
-            type* tn = type_list.Tnext;
-            mem_ffree(type_list);
-            type_list = tn;
-        }
-
-        while (param_list)
-        {
-            param_t* pn = param_list.Pnext;
-            mem_ffree(param_list);
-            param_list = pn;
-        }
-
-        debug
-        {
-            printf("Max # of types = %d\n",type_max);
-            if (type_num != 0)
-                printf("type_num = %d\n",type_num);
-            //assert(type_num == 0);
-        }
-
-    }
-}
-
 /*******************************
  * Type type information.
  */
@@ -874,21 +797,6 @@ type* type_setty(type** pt,uint newty)
     return t;
 }
 
-/******************************
- * Set type field of some object to t.
- */
-
-type* type_settype(type** pt, type* t)
-{
-    if (t)
-    {
-        type_debug(t);
-        t.Tcount++;
-    }
-    type_free(*pt);
-    return *pt = t;
-}
-
 /****************************
  * Modify the Tmangle field of a type.
  */
@@ -924,43 +832,6 @@ type* type_setcv(type** pt,tym_t cv)
     return type_setty(pt,ty | (cv & (mTYconst | mTYvolatile | mTYimmutable | mTYshared)));
 }
 
-/*****************************
- * Set dimension of array.
- */
-
-type* type_setdim(type** pt,targ_size_t dim)
-{
-    type* t = *pt;
-    type_debug(t);
-    if (t.Tcount > 1)                  /* if other people pointing at t */
-    {
-        type* tn = type_copy(t);
-        tn.Tcount++;
-        type_free(t);
-        t = tn;
-    }
-    t.Tflags &= ~cast(int)TF.sizeunknown; /* we have determined its size */
-    t.Tdim = dim;              /* index of array               */
-    return* pt = t;
-}
-
-
-/*****************************
- * Create a 'dependent' version of type t.
- */
-
-type* type_setdependent(type* t)
-{
-    type_debug(t);
-    if (t.Tcount > 0 &&                        /* if other people pointing at t */
-        !(t.Tflags & TF.dependent))
-    {
-        t = type_copy(t);
-    }
-    t.Tflags |= TF.dependent;
-    return t;
-}
-
 /*******************************
  * Recursively check if type u is embedded in type t.
  * Returns:
@@ -989,24 +860,6 @@ bool type_embed(type* t,type* u)
         }
     }
     return false;
-}
-
-
-/***********************************
- * Determine if type is a VLA.
- */
-
-int type_isvla(type* t)
-{
-    while (t)
-    {
-        if (tybasic(t.Tty) != TYarray)
-            break;
-        if (t.Tflags & TF.vla)
-            return 1;
-        t = t.Tnext;
-    }
-    return 0;
 }
 
 
@@ -1125,21 +978,6 @@ uint param_t_length(scope param_t* p)
     for (; p; p = p.Pnext)
         nparams++;
     return nparams;
-}
-
-/**********************************
- * Look for Pident matching id
- */
-
-@trusted
-param_t* param_t_search(return scope param_t* p, const(char)* id)
-{
-    for (; p; p = p.Pnext)
-    {
-        if (p.Pident && strcmp(p.Pident, id) == 0)
-            break;
-    }
-    return p;
 }
 
 // Return TRUE if type lists match.

@@ -255,17 +255,6 @@ struct Stab
 private __gshared Stab stable;
 
 
-/************************
- * Initialize el package.
- */
-
-@trusted
-void el_init()
-{
-    if (!config.addlinenumbers)
-        elem_size = elem.sizeof - Srcpos.sizeof;
-}
-
 /*******************************
  * Initialize for another run through.
  */
@@ -274,35 +263,6 @@ void el_init()
 void el_reset()
 {
     stable.reset();
-}
-
-/************************
- * Terminate el package.
- */
-
-@trusted
-void el_term()
-{
-    static if (TERMCODE)
-    {
-        stable.reset();
-
-        debug printf("Max # of elems = %d\n",elmax);
-
-        if (elcount != 0)
-            printf("unfreed elems = %d\n",elcount);
-        while (nextfree)
-        {
-            elem* e;
-            e = nextfree.E1;
-            mem_ffree(nextfree);
-            nextfree = e;
-        }
-    }
-    else
-    {
-        assert(elcount == 0);
-    }
 }
 
 /***********************
@@ -1085,40 +1045,6 @@ elem* el_vectorConst(tym_t ty, ulong val)
             assert(0);
     }
     return e;
-}
-
-/*******************************
- * Set new type for elem.
- */
-
-elem* el_settype(elem* e,type* t)
-{
-    assert(0);
-}
-
-/*******************************
- * Create elem that is the size of a type.
- */
-
-elem* el_typesize(type* t)
-{
-    assert(0);
-}
-
-/************************************
- * Returns: true if function has any side effects.
- */
-
-@trusted
-bool el_funcsideeff(const elem* e)
-{
-    const(Symbol)* s;
-    if (e.Eoper == OPvar &&
-        tyfunc((s = e.Vsym).Stype.Tty) &&
-        ((s.Sfunc && s.Sfunc.Fflags3 & Fnosideeff) || s == funcsym_p)
-       )
-        return false;
-    return true;                   // assume it does have side effects
 }
 
 /****************************
@@ -2167,33 +2093,6 @@ bool el_match(const elem* n1, const elem* n2)
 }
 
 /*********************************
- * Kludge on el_match(). Same, but ignore differences in OPconst.
- */
-
-bool el_match2(const elem* n1, const elem* n2)
-{
-    return el_matchx(n1,n2,1);
-}
-
-/*********************************
- * Kludge on el_match(). Same, but ignore differences in type modifiers.
- */
-
-bool el_match3(const elem* n1, const elem* n2)
-{
-    return el_matchx(n1,n2,2);
-}
-
-/*********************************
- * Kludge on el_match(). Same, but ignore differences in spelling of var's.
- */
-
-bool el_match4(const elem* n1, const elem* n2)
-{
-    return el_matchx(n1,n2,2|4);
-}
-
-/*********************************
  * Kludge on el_match(). Same, but regard signed/unsigned as equivalent.
  */
 
@@ -2371,79 +2270,6 @@ bool el_signx32(const elem* e)
             return false;
     }
     return true;
-}
-
-/******************************
- * Extract long double value from constant elem.
- * Silently ignore types which are not floating point values.
- */
-
-version (CRuntime_Microsoft)
-{
-longdouble_soft el_toreal(elem* e)
-{
-    longdouble_soft result;
-    elem_debug(e);
-    assert(e.Eoper == OPconst);
-    switch (tybasic(typemask(e)))
-    {
-        case TYfloat:
-        case TYifloat:
-            result = longdouble_soft(e.Vfloat);
-            break;
-
-        case TYdouble:
-        case TYidouble:
-        case TYdouble_alias:
-            result = longdouble_soft(e.Vdouble);
-            break;
-
-        case TYreal:
-        case TYireal:
-            static if (is(typeof(e.Vreal) == real))
-                result = longdouble_soft(e.Vreal);
-            else
-                result = longdouble_soft(cast(real)e.Vreal);
-            break;
-
-        default:
-            result = longdouble_soft(0);
-            break;
-    }
-    return result;
-}
-}
-else
-{
-targ_real el_toreal(elem* e)
-{
-    targ_real result;
-    elem_debug(e);
-    assert(e.Eoper == OPconst);
-    switch (tybasic(typemask(e)))
-    {
-        case TYfloat:
-        case TYifloat:
-            result = e.Vfloat;
-            break;
-
-        case TYdouble:
-        case TYidouble:
-        case TYdouble_alias:
-            result = e.Vdouble;
-            break;
-
-        case TYreal:
-        case TYireal:
-            result = e.Vreal;
-            break;
-
-        default:
-            result = 0;
-            break;
-    }
-    return result;
-}
 }
 
 /****************************************

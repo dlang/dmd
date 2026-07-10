@@ -123,9 +123,7 @@ int REGSIZE() @trusted { return _tysize[TYnptr]; }
 regm_t mask(uint m) { return cast(regm_t)1 << m; }
 
 void* util_malloc(uint n,uint size) { return mem_malloc(n * size); }
-void* util_calloc(uint n,uint size) { return mem_calloc(n * size); }
 void util_free(void* p) { mem_free(p); }
-void* util_realloc(void* oldp,size_t n,size_t size) { return mem_realloc(oldp, n * size); }
 
 void err_nomem() @nogc nothrow @trusted
 {

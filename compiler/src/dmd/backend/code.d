@@ -317,10 +317,6 @@ __gshared Rarray!(seg_data*) SegData;
 @trusted
 ref targ_size_t Offset(int seg) { return SegData[seg].SDoffset; }
 
-ref targ_size_t Doffset() { return Offset(DATA); }
-
-ref targ_size_t CDoffset() { return Offset(CDATA); }
-
 /**************************************************/
 
 /* Allocate registers to function parameters
