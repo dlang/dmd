@@ -12,6 +12,9 @@
 #     make -j$(nproc) unittest
 # - Build and run druntime tests in debug mode only:
 #     make -j$(nproc) unittest-debug
+# - Build druntime library using dmd bootstrap compiler by overriding DMD on command line such as:
+#     make DMD=/Users/yourname/dmd2/osx/bin/dmd
+
 
 QUIET:=
 
@@ -36,7 +39,7 @@ ifeq (osx,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.9
 endif
 
-# Default to a release built, override with BUILD=debug
+# Default to a release build, override with BUILD=debug
 ifeq (,$(BUILD))
     BUILD_WAS_SPECIFIED=0
     BUILD=release
