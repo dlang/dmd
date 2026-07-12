@@ -943,13 +943,15 @@ void MachObj_term(const(char)[] objfilename)
                             rel.r_length = 3;
                             rel.r_extern = r.funcsym.Sclass == SC.locstat ? 0 : 1;
                             if (rel.r_extern == 1)
-                                assert(s.Sxtrnnum < nsyms);
+                                assert(r.funcsym.Sxtrnnum < nsyms);
                             machobj.fobjbuf.write(&rel, rel.sizeof);
                             foffset += (rel).sizeof;
                             ++nreloc;
 
                             rel.r_type = ARM64_RELOC_UNSIGNED;
-                            rel.r_symbolnum = s.Sxtrnnum;
+                            if (rel.r_extern == 1)
+                                rel.r_symbolnum = s.Sxtrnnum;
+                            assert(s.Sxtrnnum < nsyms);
                             machobj.fobjbuf.write(&rel, rel.sizeof);
                             foffset += rel.sizeof;
                             ++nreloc;
@@ -1735,6 +1737,7 @@ static if (0)
         dysymtab_cmd.nindirectsyms += machobj.indirectsymbuf1.length() / (Symbol*).sizeof;
         for (int i = 0; i < dysymtab_cmd.nindirectsyms; i++)
         {   Symbol* s = (cast(Symbol**)machobj.indirectsymbuf1.buf)[i];
+            assert(s.Sxtrnnum < symtab_cmd.nsyms);
             machobj.fobjbuf.write32(s.Sxtrnnum);
         }
     }
@@ -1744,6 +1747,7 @@ static if (0)
         dysymtab_cmd.nindirectsyms += n;
         for (int i = 0; i < n; i++)
         {   Symbol* s = (cast(Symbol**)machobj.indirectsymbuf2.buf)[i];
+            assert(s.Sxtrnnum < symtab_cmd.nsyms);
             machobj.fobjbuf.write32(s.Sxtrnnum);
         }
     }
@@ -2017,21 +2021,54 @@ int MachObj_comdatsize(Symbol* s, targ_size_t symsize)
 @trusted
 int MachObj_comdat(Symbol* s)
 {
-    const(char)* sectname;
-    const(char)* segname;
-    int p2align;
-    int flags;
-
     //printf("MachObj_comdat(Symbol* %s)\n",s.Sident.ptr);
     //symbol_print(*s);
     //symbol_debug(s);
 
+    int p2align;
+    if (config.target_cpu == TARGET_AArch64 && config.objfmt == OBJ_MACH)
+    {
+        /* write out the symbol with an n_desc of N_WEAK_DEF.
+         */
+        if (tyfunc(s.ty()))
+        {
+            p2align = 2;              // 4 byte alignment
+            s.Sseg = cseg;            // functions go into cseg
+        }
+        else if ((s.ty() & mTYLINK) == mTYweakLinkage)
+        {
+            s.Sfl = FL.data;
+            p2align = 4;              // 16 byte alignment
+            MachObj_data_start(s, 1 << p2align, s.Sseg);
+        }
+        else if ((s.ty() & mTYLINK) == mTYthread)
+        {
+            s.Sfl = FL.tlsdata;
+            p2align = 4;
+            if (I64)
+                s.Sseg = objmod.tlsseg().SDseg;
+            else
+                s.Sseg = getsegment2(machobj.seg_tlscoal_nt, "__tlscoal_nt", "__DATA", p2align, S_COALESCED);
+            MachObj_data_start(s, 1 << p2align, s.Sseg);
+        }
+        else
+        {
+            s.Sfl = FL.data;
+            const(char)* sectname = "__datacoal_nt";
+            const(char)* segname = "__DATA";
+            p2align = 4;              // 16 byte alignment
+            s.Sseg = getsegment2(machobj.seg_datacoal_nt, sectname, segname, p2align, S_COALESCED);
+            MachObj_data_start(s, 1 << p2align, s.Sseg);
+        }
+    }
+    else
+    {
     if (tyfunc(s.ty()))
     {
-        sectname = "__textcoal_nt";
-        segname = "__TEXT";
+        const(char)* sectname = "__textcoal_nt";
+        const(char)* segname = "__TEXT";
         p2align = 2;              // 4 byte alignment
-        flags = S_COALESCED | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS;
+        int flags = S_COALESCED | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS;
         s.Sseg = getsegment2(machobj.seg_textcoal_nt, sectname, segname, p2align, flags);
     }
     else if ((s.ty() & mTYLINK) == mTYweakLinkage)
@@ -2053,11 +2090,12 @@ int MachObj_comdat(Symbol* s)
     else
     {
         s.Sfl = FL.data;
-        sectname = "__datacoal_nt";
-        segname = "__DATA";
+        const(char)* sectname = "__datacoal_nt";
+        const(char)* segname = "__DATA";
         p2align = 4;              // 16 byte alignment
         s.Sseg = getsegment2(machobj.seg_datacoal_nt, sectname, segname, p2align, S_COALESCED);
         MachObj_data_start(s, 1 << p2align, s.Sseg);
+    }
     }
                                 // find or create new segment
     if (s.Salignment > (1 << p2align))
@@ -2075,6 +2113,37 @@ int MachObj_readonly_comdat(Symbol* s)
 {
     assert(0);
 }
+
+/* Arm64 __LD, __compact_unwind section
+Layout:
+
+struct compact_unwind_entry_64 {
+    uint64_t  function_start;     // address of function (or range start)
+    uint32_t  function_length;    // length of the function/range
+    uint32_t  encoding;           // 32-bit compact unwind encoding
+    uint64_t  personality;        // pointer to personality function (or 0)
+    uint64_t  lsda;               // pointer to LSDA (language-specific data area) or 0
+};
+
+Encoding:
+
+Bits Meaning
+31 IS_NOT_FUNCTION_START
+30 HAS_LSDA
+29-28 Personality index (0-3)
+27-24 Mode
+
+arm64 modes (most relevant today):
+0x02000000 - Frameless (leaf function)
+0x04000000 - Frame-based (standard stp x29,x30 prologue)
+0x03000000 - DWARF fallback (points into __eh_frame)
+
+# See the raw compact unwind section in an object file
+otool -s __LD __compact_unwind myfile.o -v
+
+See the canonical reference for all bitfields in LLVM:
+https://github.com/llvm/llvm-project/blob/main/libunwind/include/mach-o/compact_unwind_encoding.h
+*/
 
 /***********************************
  * Returns:
