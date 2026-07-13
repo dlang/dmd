@@ -4541,7 +4541,8 @@ private bool functionParameters(Loc loc, Scope* sc,
                 {
                     // Look for misaligned pointer, etc., in @safe mode
                     err |= checkUnsafeAccess(sc, arg, false, true);
-                    err |= checkDefCtor(arg.loc, t); // t must be default constructible
+                    if (!t.isClassHandle())
+                        err |= checkDefCtor(arg.loc, t); // t must be default constructible
                 }
                 arg = arg.toLvalue(sc, "create `out` parameter from");
             }
