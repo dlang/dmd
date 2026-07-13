@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/type.d, backend/_type.d)
@@ -15,18 +15,23 @@ module dmd.backend.type;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_type.html
 
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+
 import dmd.backend.cdef;
-import dmd.backend.cc : block, BlockState, Classsym, Symbol, param_t;
+import dmd.backend.cc;
 import dmd.backend.code;
-import dmd.backend.dlist;
-import dmd.backend.el : elem;
+import dmd.backend.el;
+import dmd.backend.global;
+import dmd.backend.debugprint;
+import dmd.backend.symbol;
+import dmd.backend.mem;
+import dmd.backend.oper;
 import dmd.backend.ty;
 
-@nogc:
 nothrow:
 @safe:
-
-// type.h
 
 enum Mangle : ubyte
 {
@@ -41,70 +46,49 @@ enum Mangle : ubyte
 }
 
 /// Values for Tflags:
-alias type_flags_t = ushort;
-enum
+enum TF : ushort
 {
-    TFprototype   = 1,      // if this function is prototyped
-    TFfixed       = 2,      // if prototype has a fixed # of parameters
-    TFgenerated   = 4,      // C: if we generated the prototype ourselves
-    TFdependent   = 4,      // CPP: template dependent type
-    TFforward     = 8,      // TYstruct: if forward reference of tag name
-    TFsizeunknown = 0x10,   // TYstruct,TYarray: if size of type is unknown
-                            // TYmptr: the Stag is TYident type
-    TFfuncret     = 0x20,   // C++,tyfunc(): overload based on function return value
-    TFfuncparam   = 0x20,   // TYarray: top level function parameter
-    TFstatic      = 0x40,   // TYarray: static dimension
-    TFvla         = 0x80,   // TYarray: variable length array
-    TFemptyexc    = 0x100,  // tyfunc(): empty exception specification
+    prototype   = 1,      // if this function is prototyped
+    fixed       = 2,      // if prototype has a fixed # of parameters
+    generated   = 4,      // C: if we generated the prototype ourselves
+    dependent   = 4,      // CPP: template dependent type
+    forward     = 8,      // TYstruct: if forward reference of tag name
+    sizeunknown = 0x10,   // TYstruct,TYarray: if size of type is unknown
+    funcret     = 0x20,   // C++,tyfunc(): overload based on function return value
+    funcparam   = 0x20,   // TYarray: top level function parameter
+    static_     = 0x40,   // TYarray: static dimension
+    vla         = 0x80,   // TYarray: variable length array
+    emptyexc    = 0x100,  // tyfunc(): empty exception specification
 }
-
-alias type = TYPE;
-
-public import dmd.backend.symbol : symbol_struct_addField, symbol_struct_addBitField, symbol_struct_hasBitFields, symbol_struct_addBaseClass;
 
 // Return true if type is a struct, class or union
 bool type_struct(const type* t) { return tybasic(t.Tty) == TYstruct; }
 
-struct TYPE
+struct type
 {
     debug ushort id;
     enum IDtype = 0x1234;
 
     tym_t Tty;     /* mask (TYxxx)                         */
-    type_flags_t Tflags; // TFxxxxx
+    TF Tflags;     // TF.xxxxx
 
     Mangle Tmangle; // name mangling
 
     uint Tcount; // # pointing to this type
-    char* Tident; // TYident: identifier; TYdarray, TYaarray: pretty name for debug info
-    TYPE* Tnext; // next in list
+    char* Tident; // TYdarray, TYaarray: pretty name for debug info
+    type* Tnext;  // next in list
                                 // TYenum: gives base type
     union
     {
         targ_size_t Tdim;   // TYarray: # of elements in array
-        elem* Tel;          // TFvla: gives dimension (NULL if '*')
-        param_t* Tparamtypes; // TYfunc, TYtemplate: types of function parameters
-        Classsym* Ttag;     // TYstruct,TYmemptr: tag symbol
-                            // TYenum,TYvtshape: tag symbol
-        type* Talternate;   // C++: typtr: type of parameter before converting
+        elem* Tel;          // TF.vla: gives dimension (NULL if '*')
+        param_t[]* Tparamtypes; // TYfunc: array of function parameters, only used for symbolic debug info
+        Classsym* Ttag;     // TYstruct,TYenum: tag symbol
         type* Tkey;         // typtr: key type for associative arrays
     }
-
-    list_t Texcspec;        // tyfunc(): list of types of exception specification
-    Symbol* Ttypedef;       // if this type came from a typedef, this is
-                            // the typedef symbol
 }
 
-struct typetemp_t
-{
-    TYPE Ttype;
-
-    /* Tsym should really be part of a derived class, as we only
-        allocate room for it if TYtemplate
-     */
-    Symbol* Tsym;               // primary class template symbol
-}
-
+@nogc
 void type_debug(const type* t)
 {
     debug assert(t.id == t.IDtype);
@@ -114,15 +98,949 @@ void type_debug(const type* t)
 Mangle type_mangle(const type* t) { return t.Tmangle; }
 
 // Return true if function type has a variable number of arguments
-bool variadic(const type* t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
+bool variadic(const type* t) { return (t.Tflags & (TF.prototype | TF.fixed)) == TF.prototype; }
 
-public import dmd.backend.var : chartype;
+@trusted
+struct_t* struct_calloc() { return cast(struct_t*) mem_calloc(struct_t.sizeof); }
 
-public import dmd.backend.dtype : type_print, type_free, type_init, type_term, type_copy,
-    type_setdim, type_setdependent, type_isdependent, type_size, type_alignsize, type_zeroSize,
-    type_parameterSize, type_paramsize, type_alloc, type_allocn, type_fake, type_setty,
-    type_settype, type_setmangle, type_setcv, type_embed, type_isvla, param_calloc,
-    param_append_type, param_free_l, param_free, param_search, typematch, type_pointer,
-    type_dyn_array, type_static_array, type_assoc_array, type_delegate, type_function,
-    type_enum, type_struct_class, tstypes, tsptr2types, tslogical, tsclib, tsdlib,
-    tspvoid, tspcvoid, tsptrdiff, tssize, tstrace;
+private __gshared
+{
+    type* type_list;          // free list of types
+
+    type* chartype;                 /* default 'char' type                  */
+}
+
+type* tsclib;
+
+__gshared
+{
+    type*[TYMAX] tstypes;
+    type*[TYMAX] tsptr2types;
+
+    type* tstrace, tsjlib, tsdlib, tslogical,
+          tspvoid, tsptrdiff, tssize;
+}
+
+/***********************
+ * Compute size of type in bytes.
+ * Params:
+ *      t = type
+ * Returns:
+ *      size
+ */
+@trusted
+@nogc
+targ_size_t type_size(const type* t)
+{
+    type_debug(t);
+    tym_t tyb = tybasic(t.Tty);
+
+    debug if (tyb >= TYMAX)
+        /*type_print(t),*/
+        printf("tyb = x%x\n", tyb);
+    assert(tyb < TYMAX);
+
+    targ_size_t s = _tysize[tyb];
+    if (s == cast(targ_size_t) -1)
+    {
+        switch (tyb)
+        {
+            // in case program plays games with function pointers
+            case TYffunc:
+            case TYfpfunc:
+            case TYfsfunc:
+            case TYf16func:
+            case TYhfunc:
+            case TYnfunc:       /* in case program plays games with function pointers */
+            case TYnpfunc:
+            case TYnsfunc:
+            case TYifunc:
+            case TYjfunc:
+                s = 1;
+                break;
+            case TYarray:
+            {
+                if (t.Tflags & TF.sizeunknown)
+                {
+                }
+                if (t.Tflags & TF.vla)
+                {
+                    s = _tysize[pointertype];
+                    break;
+                }
+                s = type_size(t.Tnext);
+                uint u = cast(uint)t.Tdim * cast(uint) s;
+                if (t.Tdim && ((u / t.Tdim) != s || cast(int)u < 0))
+                    assert(0);          // overflow should have been detected in front end
+                s = u;
+                break;
+            }
+            case TYstruct:
+            {
+                auto ts = t.Ttag.Stype;     // find main instance
+                                            // (for const struct X)
+                assert(ts.Ttag);
+                s = ts.Ttag.Sstruct.Sstructsize;
+                break;
+            }
+            case TYvoid:
+                s = 1;
+                break;
+
+            case TYref:
+                s = tysize(TYnptr);
+                break;
+
+            default:
+                debug printf("%s\n", tym_str(t.Tty));
+                assert(0);
+        }
+    }
+    return s;
+}
+
+/********************************
+ * Return the size of a type for alignment purposes.
+ */
+
+@trusted
+uint type_alignsize(const(type)* t)
+{
+    while (1)
+    {
+        type_debug(t);
+
+        targ_size_t sz = tyalignsize(t.Tty);
+        if (sz == cast(targ_size_t)-1)
+        {
+            switch (tybasic(t.Tty))
+            {
+                case TYarray:
+                    if (t.Tflags & TF.sizeunknown)
+                        goto default;
+                    t = t.Tnext;
+                    continue;
+
+                case TYstruct:
+                    t = t.Ttag.Stype;         // find main instance
+                                                // (for const struct X)
+                    if (t.Tflags & TF.sizeunknown)
+                        goto default;
+                    sz = t.Ttag.Sstruct.Salignsize;
+                    if (sz > t.Ttag.Sstruct.Sstructalign + 1)
+                        sz = t.Ttag.Sstruct.Sstructalign + 1;
+                    break;
+
+                case TYreal:
+                    assert(0);
+
+                case TYcdouble:
+                    sz = 8;         // not 16
+                    break;
+
+                default:
+                    // let type_size() handle error messages
+                    sz = type_size(t);
+                    break;
+            }
+        }
+        //printf("type_alignsize() = %d\n", sz);
+        return cast(uint)sz;
+    }
+    assert(0);
+}
+
+/***********************************
+ * Compute special zero sized struct.
+ * Params:
+ *      t = type of parameter
+ *      tyf = function type
+ * Returns:
+ *      true if t is a zero size struct
+ */
+@trusted
+bool type_zeroSize(const type* t, tym_t tyf)
+{
+    //printf("type_zeroSize(t: %p tyf: %s)\n", t, tym_str(tyf));
+    //type_print(t);
+    if (tyf != TYjfunc &&
+        (config.exe & (EX_FREEBSD | EX_OPENBSD | EX_OSX) ||
+         config.exe & EX_OSX64 && config.target_cpu == TARGET_AArch64)) // the Arm Mac
+    {
+        /* Use clang convention for 0 size structs
+         */
+        if (t && tybasic(t.Tty) == TYstruct)
+        {
+            const type* ts = t.Ttag.Stype;     // find main instance
+                                           // (for const struct X)
+            if (ts.Tflags & TF.sizeunknown)
+            {
+            }
+
+            if (ts.Ttag.Sstruct.Sflags & STR0size)
+            {
+                //printf("0size\n"); type_print(t);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/*********************************
+ * Compute the size of a single parameter.
+ * Params:
+ *      t = type of parameter
+ *      tyf = function type
+ * Returns:
+ *      size in bytes
+ */
+uint type_parameterSize(const type* t, tym_t tyf)
+{
+    //debug printf("type_parameterSize(t: %p)\n", t);
+    if (type_zeroSize(t, tyf))
+        return 0;
+    return cast(uint)type_size(t);
+}
+
+/*****************************
+ * Compute the total size of parameters for function call.
+ * Used for stdcall name mangling.
+ * Note that hidden parameters do not contribute to size.
+ * Params:
+ *   t = function type
+ * Returns:
+ *   total stack usage in bytes
+ */
+
+@trusted
+uint type_paramsize(const type* t)
+{
+    size_t sz = 0;
+    if (tyfunc(t.Tty))
+    {
+        if (t.Tparamtypes)
+            foreach (ref p; (*t.Tparamtypes)[])
+            {
+                const size_t n = type_parameterSize(p.Ptype, tybasic(t.Tty));
+                sz += _align(REGSIZE,n);       // align to REGSIZE boundary
+            }
+    }
+    return cast(uint)sz;
+}
+
+/*****************************
+ * Create a type & initialize it.
+ * Input:
+ *      ty = TYxxxx
+ * Returns:
+ *      pointer to newly created type.
+ */
+
+@trusted
+@nogc
+type* type_alloc(tym_t ty)
+{
+
+    type* t;
+    if (type_list)
+    {
+        t = type_list;
+        type_list = t.Tnext;
+    }
+    else
+        t = cast(type*) mem_fmalloc(type.sizeof);
+    *t = type();
+    t.Tty = ty;
+    version (SRCPOS_4TYPES)
+    {
+        if (PARSER && config.fulltypes)
+            t.Tsrcpos = getlinnum();
+    }
+    debug t.id = type.IDtype;
+    //printf("type_alloc() = %p %s\n", t, tym_str(t.Tty));
+    //if (t == (type*)0xB6B744) *(char*)0=0;
+    return t;
+}
+
+/*****************************
+ * Fake a type & initialize it.
+ * Input:
+ *      ty = TYxxxx
+ * Returns:
+ *      pointer to newly created type.
+ */
+@nogc
+type* type_fake(tym_t ty)
+{
+    assert(ty != TYstruct);
+
+    type* t = type_alloc(ty);
+    if (typtr(ty) || tyfunc(ty))
+    {
+        t.Tnext = type_alloc(TYvoid);  /* fake with pointer to void    */
+        t.Tnext.Tcount = 1;
+    }
+    return t;
+}
+
+/*****************************
+ * Allocate a type of ty with a Tnext of tn.
+ */
+
+type* type_allocn(tym_t ty,type* tn)
+{
+    //printf("type_allocn(ty = x%x, tn = %p)\n", ty, tn);
+    assert(tn);
+    type_debug(tn);
+    type* t = type_alloc(ty);
+    t.Tnext = tn;
+    tn.Tcount++;
+    //printf("\tt = %p\n", t);
+    return t;
+}
+
+/********************************
+ * Allocate a pointer type.
+ * Returns:
+ *      Tcount already incremented
+ */
+
+type* type_pointer(type* tnext)
+{
+    type* t = type_allocn(TYnptr, tnext);
+    t.Tcount++;
+    return t;
+}
+
+/********************************
+ * Allocate a dynamic array type.
+ * Returns:
+ *      Tcount already incremented
+ */
+@trusted
+type* type_dyn_array(type* tnext)
+{
+    type* t = type_allocn(TYdarray, tnext);
+    t.Tcount++;
+    return t;
+}
+
+/********************************
+ * Allocate a static array type.
+ * Returns:
+ *      Tcount already incremented
+ */
+
+type* type_static_array(targ_size_t dim, type* tnext)
+{
+    type* t = type_allocn(TYarray, tnext);
+    t.Tdim = dim;
+    t.Tcount++;
+    return t;
+}
+
+/********************************
+ * Allocate an associative array type,
+ * which are key=value pairs
+ * Returns:
+ *      Tcount already incremented
+ */
+
+@trusted
+type* type_assoc_array(type* tkey, type* tvalue)
+{
+    type* t = type_allocn(TYaarray, tvalue);
+    t.Tkey = tkey;
+    tkey.Tcount++;
+    t.Tcount++;
+    return t;
+}
+
+/********************************
+ * Allocate a delegate type.
+ * Returns:
+ *      Tcount already incremented
+ */
+
+@trusted
+type* type_delegate(type* tnext)
+{
+    type* t = type_allocn(TYdelegate, tnext);
+    t.Tcount++;
+    return t;
+}
+
+/***********************************
+ * Allocate a function type.
+ * Params:
+ *      tyf      = function type
+ *      ptypes   = types of the function parameters
+ *      variadic = if ... function
+ *      tret     = return type
+ * Returns:
+ *      Tcount already incremented
+ */
+@trusted
+type* type_function(tym_t tyf, type*[] ptypes, bool variadic, type* tret)
+{
+    type* t = type_allocn(tyf, tret);
+    t.Tflags |= TF.prototype;
+    if (!variadic)
+        t.Tflags |= TF.fixed;
+
+    if (ptypes.length)
+    {
+        param_t* paramtypes = cast(param_t*)mem_calloc(ptypes.length * param_t.sizeof);
+        foreach (i, tx; ptypes)
+        {
+            debug paramtypes[i].id = param_t.IDparam;
+            paramtypes[i].Ptype = tx;
+        }
+        t.Tparamtypes = cast(param_t[]*)mem_malloc(param_t[].sizeof);
+        *t.Tparamtypes = paramtypes[0 .. ptypes.length];
+    }
+    t.Tcount++;
+    return t;
+}
+
+/***************************************
+ * Create an enum type.
+ * Input:
+ *      name    name of enum
+ *      tbase   "base" type of enum
+ * Returns:
+ *      Tcount already incremented
+ */
+@trusted
+type* type_enum(const(char)* name, type* tbase)
+{
+    Symbol* s = symbol_calloc(name[0 .. strlen(name)]);
+    s.Sclass = SC.enum_;
+    s.Senum = cast(enum_t*) mem_calloc(enum_t.sizeof);
+    s.Senum.SEflags |= SENforward;        // forward reference
+
+    type* t = type_allocn(TYenum, tbase);
+    t.Ttag = cast(Classsym*)s;            // enum tag name
+    t.Tcount++;
+    s.Stype = t;
+    t.Tcount++;
+    return t;
+}
+
+/**************************************
+ * Create a struct/union/class type.
+ * Params:
+ *      name = name of struct (this function makes its own copy of the string)
+ *      alignsize = alignment for fields
+ *      structsize = total size of struct
+ *      arg1type = for Sarg1type field
+ *      arg2type = for Sarg2type field
+ *      isUnion = true if a union
+ *      isClass = true if a class
+ *      isPOD = true if Plain Old Data
+ *      is0size = if struct has no fields (even if Sstructsize is 1)
+ * Returns:
+ *      Tcount already incremented
+ */
+@trusted
+type* type_struct_class(const(char)* name, uint alignsize, uint structsize,
+        type* arg1type, type* arg2type, bool isUnion, bool isClass, bool isPOD, bool is0size)
+{
+    static if (0)
+    {
+        printf("type_struct_class(%s, %p, %p, is0size: %d)\n", name, arg1type, arg2type, is0size);
+        if (arg1type)
+        {
+            printf("arg1type:\n");
+            type_print(arg1type);
+        }
+        if (arg2type)
+        {
+            printf("arg2type:\n");
+            type_print(arg2type);
+        }
+    }
+
+    Symbol* s = symbol_calloc(name[0 .. strlen(name)]);
+    s.Sclass = SC.struct_;
+    s.Sstruct = struct_calloc();
+    s.Sstruct.Salignsize = alignsize;
+    s.Sstruct.Sstructalign = cast(ubyte)alignsize;
+    s.Sstruct.Sstructsize = structsize;
+    s.Sstruct.Sarg1type = arg1type;
+    s.Sstruct.Sarg2type = arg2type;
+
+    if (!isPOD)
+        s.Sstruct.Sflags |= STRnotpod;
+    if (isUnion)
+        s.Sstruct.Sflags |= STRunion;
+    if (isClass)
+    {   s.Sstruct.Sflags |= STRclass;
+        assert(!isUnion && isPOD);
+    }
+    if (is0size)
+        s.Sstruct.Sflags |= STR0size;
+
+    type* t = type_alloc(TYstruct);
+    t.Ttag = cast(Classsym*)s;            // structure tag name
+    t.Tcount++;
+    s.Stype = t;
+    t.Tcount++;
+    return t;
+}
+
+/*****************************
+ * Free up data type.
+ */
+
+@trusted
+void type_free(type* t)
+{
+    while (t)
+    {
+        //printf("type_free(%p, Tcount = %d)\n", t, t.Tcount);
+        type_debug(t);
+        assert(cast(int)t.Tcount != -1);
+        if (--t.Tcount)                /* if usage count doesn't go to 0 */
+            break;
+        tym_t ty = tybasic(t.Tty);
+        if (tyfunc(ty))
+            param_free(t.Tparamtypes);
+        else if (t.Tflags & TF.vla && t.Tel)
+            el_free(t.Tel);
+        else if (t.Tkey && typtr(ty))
+            type_free(t.Tkey);
+        debug t.id = 0;
+
+        type* tn = t.Tnext;
+        t.Tnext = type_list;
+        type_list = t;                  /* link into free list          */
+        t = tn;
+    }
+}
+
+/**********************************
+ * Initialize type package.
+ */
+
+private type * type_allocbasic(tym_t ty)
+{
+    type* t = type_alloc(ty);
+    t.Tmangle = Mangle.c;
+    t.Tcount = 1;              /* so it is not inadvertently free'd    */
+    return t;
+}
+
+@trusted
+void type_init()
+{
+    tstypes[TYbool]    = type_allocbasic(TYbool);
+    tstypes[TYwchar_t] = type_allocbasic(TYwchar_t);
+    tstypes[TYdchar]   = type_allocbasic(TYdchar);
+    tstypes[TYvoid]    = type_allocbasic(TYvoid);
+    tstypes[TYnullptr] = type_allocbasic(TYnullptr);
+    tstypes[TYchar16]  = type_allocbasic(TYchar16);
+    tstypes[TYuchar]   = type_allocbasic(TYuchar);
+    tstypes[TYschar]   = type_allocbasic(TYschar);
+    tstypes[TYchar]    = type_allocbasic(TYchar);
+    tstypes[TYshort]   = type_allocbasic(TYshort);
+    tstypes[TYushort]  = type_allocbasic(TYushort);
+    tstypes[TYint]     = type_allocbasic(TYint);
+    tstypes[TYuint]    = type_allocbasic(TYuint);
+    tstypes[TYlong]    = type_allocbasic(TYlong);
+    tstypes[TYulong]   = type_allocbasic(TYulong);
+    tstypes[TYllong]   = type_allocbasic(TYllong);
+    tstypes[TYullong]  = type_allocbasic(TYullong);
+    tstypes[TYfloat]   = type_allocbasic(TYfloat);
+    tstypes[TYdouble]  = type_allocbasic(TYdouble);
+    tstypes[TYdouble_alias]  = type_allocbasic(TYdouble_alias);
+    tstypes[TYreal] = type_allocbasic(TYreal);
+    tstypes[TYifloat]  = type_allocbasic(TYifloat);
+    tstypes[TYidouble] = type_allocbasic(TYidouble);
+    tstypes[TYireal] = type_allocbasic(TYireal);
+    tstypes[TYcfloat]   = type_allocbasic(TYcfloat);
+    tstypes[TYcdouble]  = type_allocbasic(TYcdouble);
+    tstypes[TYcreal] = type_allocbasic(TYcreal);
+
+    if (I64)
+    {
+        TYptrdiff = TYllong;
+        TYsize = TYullong;
+        tsptrdiff = tstypes[TYllong];
+        tssize = tstypes[TYullong];
+    }
+    else
+    {
+        TYptrdiff = TYint;
+        TYsize = TYuint;
+        tsptrdiff = tstypes[TYint];
+        tssize = tstypes[TYuint];
+    }
+
+    // Type of trace function
+    tstrace = type_fake(I16 ? TYffunc : TYnfunc);
+    tstrace.Tmangle = Mangle.c;
+    tstrace.Tcount++;
+
+    chartype = (config.flags3 & CFG3ju) ? tstypes[TYuchar] : tstypes[TYchar];
+
+    // Type of far library function
+    tsclib = type_fake(LARGECODE ? TYfpfunc : TYnpfunc);
+    tsclib.Tmangle = Mangle.c;
+    tsclib.Tcount++;
+
+    tspvoid = type_allocn(pointertype,tstypes[TYvoid]);
+    tspvoid.Tmangle = Mangle.c;
+    tspvoid.Tcount++;
+
+    // Type of far library function
+    tsjlib =    type_fake(TYjfunc);
+    tsjlib.Tmangle = Mangle.c;
+    tsjlib.Tcount++;
+
+    tsdlib = tsjlib;
+
+    // Type of logical expression
+    tslogical = (config.flags4 & CFG4bool) ? tstypes[TYbool] : tstypes[TYint];
+
+    foreach (i; 0 .. TYMAX)
+    {
+        if (tstypes[i])
+        {   tsptr2types[i] = type_allocn(pointertype,tstypes[i]);
+            tsptr2types[i].Tcount++;
+        }
+    }
+}
+
+/*******************************
+ * Type type information.
+ */
+
+/**************************
+ * Make copy of a type.
+ * Params:
+ *      tf = type to copy
+ * Returns:
+ *      copy of tf
+ */
+
+@trusted
+type* type_copy(type* tf)
+{
+    type_debug(tf);
+    type* tn = type_alloc(tf.Tty);
+    *tn = *tf;
+    switch (tybasic(tn.Tty))
+    {
+            case TYarray:
+                if (tn.Tflags & TF.vla)
+                    tn.Tel = el_copytree(tn.Tel);
+                break;
+
+            default:
+                if (tyfunc(tn.Tty))
+                {
+                    // Copy the parameters for the function type
+                    if (tn.Tparamtypes)
+                    {
+                        tn.Tparamtypes = cast(param_t[]*)mem_calloc(param_t[].sizeof);
+
+                        // allocate new array for tn
+                        const length = (*tf.Tparamtypes)[].length; // length of source array
+                        *tn.Tparamtypes = (cast(param_t*)mem_calloc(param_t.sizeof * length))[0 .. length];
+
+                        param_t[] pn = *tn.Tparamtypes;
+                        foreach (i, pf; (*tf.Tparamtypes)[])
+                        {
+                            pn[i].Pident = cast(char*)mem_strdup(pf.Pident);
+                            auto t = pf.Ptype;
+                            type_debug(t);
+                            t.Tcount++;
+                            pn[i].Ptype = t;
+                        }
+                    }
+                }
+                else if (tn.Tkey && typtr(tn.Tty))
+                    tn.Tkey.Tcount++;
+                break;
+    }
+    if (tn.Tnext)
+    {
+        type_debug(tn.Tnext);
+        tn.Tnext.Tcount++;
+    }
+    tn.Tcount = 0;
+    return tn;
+}
+
+/****************************
+ * Modify the tym_t field of a type.
+ */
+
+type* type_setty(type** pt,uint newty)
+{
+    type* t = *pt;
+    type_debug(t);
+    if (cast(tym_t)newty != t.Tty)
+    {
+        if (t.Tcount > 1)              /* if other people pointing at t */
+        {
+            type* tn = type_copy(t);
+            tn.Tcount++;
+            type_free(t);
+            t = tn;
+            *pt = t;
+        }
+        t.Tty = newty;
+    }
+    return t;
+}
+
+/****************************
+ * Modify the Tmangle field of a type.
+ */
+
+type* type_setmangle(type** pt, Mangle mangle)
+{
+    type* t = *pt;
+    type_debug(t);
+    if (mangle != type_mangle(t))
+    {
+        if (t.Tcount > 1)              // if other people pointing at t
+        {
+            type* tn = type_copy(t);
+            tn.Tcount++;
+            type_free(t);
+            t = tn;
+            *pt = t;
+        }
+        t.Tmangle = mangle;
+    }
+    return t;
+}
+
+/******************************
+ * Set/clear const and volatile bits in* pt according to the settings
+ * in cv.
+ */
+
+type* type_setcv(type** pt,tym_t cv)
+{
+    type_debug(*pt);
+    uint ty = (*pt).Tty & ~(mTYconst | mTYvolatile | mTYimmutable | mTYshared);
+    return type_setty(pt,ty | (cv & (mTYconst | mTYvolatile | mTYimmutable | mTYshared)));
+}
+
+/*******************************
+ * Recursively check if type u is embedded in type t.
+ * Returns:
+ *      true if embedded
+ */
+
+@trusted
+bool type_embed(type* t,type* u)
+{
+    for (; t; t = t.Tnext)
+    {
+        type_debug(t);
+        if (t == u)
+            return true;
+        if (tyfunc(t.Tty))
+        {
+            if (t.Tparamtypes)
+            {
+                const length = (*t.Tparamtypes).length;
+                foreach (i; 0 .. length)
+                {
+                    if (type_embed((*t.Tparamtypes)[i].Ptype,u))
+                        return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+
+/**********************************
+ * Pretty-print a type.
+ */
+
+@trusted
+void type_print(const type* t)
+{
+    type_debug(t);
+    printf("Tty=%s", tym_str(t.Tty));
+    printf(" Tmangle=%d",t.Tmangle);
+    printf(" Tflags=x%x",t.Tflags);
+    printf(" Tcount=%d",t.Tcount);
+    if (!(t.Tflags & TF.sizeunknown) &&
+        tybasic(t.Tty) != TYvoid &&
+        tybasic(t.Tty) != TYmfunc &&
+        tybasic(t.Tty) != TYarray)
+    {
+        printf(" Tsize=%lld", cast(long)type_size(t));
+    }
+    printf(" Tnext=%p",t.Tnext);
+    switch (tybasic(t.Tty))
+    {
+        case TYstruct:
+            printf(" Ttag=%p,'%s'",t.Ttag,t.Ttag.Sident.ptr);
+            //printf(" Sfields=%p",t.Ttag.Sstruct.Sfields.ptr);
+            break;
+
+        case TYarray:
+            printf(" Tdim=%lld", cast(long)t.Tdim);
+            break;
+
+        default:
+            if (tyfunc(t.Tty))
+            {
+                if (t.Tparamtypes)
+                {
+                    auto a = *t.Tparamtypes;
+                    foreach (i, ref p; a)
+                    {
+                        printf("\nP%d: ",cast(int)i);
+                        fflush(stdout);
+
+                        printf("Pident=%p,Ptype=%p ",p.Pident,p.Ptype);
+                        param_debug(&p);
+                        if (p.Pident)
+                            printf("'%s' ", p.Pident);
+                        type_print(p.Ptype);
+                    }
+                }
+            }
+            break;
+  }
+  printf("\n");
+  if (t.Tnext) type_print(t.Tnext);
+}
+
+/*******************************
+ * Pretty-print a param_t
+ */
+
+@trusted
+void param_t_print(const scope param_t* p)
+{
+    printf("Pident=%p,Ptype=%p\n",p.Pident,p.Ptype);
+    if (p.Pident)
+        printf("\tPident = '%s'\n", p.Pident);
+    if (p.Ptype)
+    {
+        printf("\tPtype =\n");
+        type_print(p.Ptype);
+    }
+}
+
+void param_t_print_list(scope param_t* p)
+{
+    for (; p; p = p.Pnext)
+        p.print();
+}
+
+
+/***********************
+ * Free parameter list.
+ * Output:
+ *      paramlst = null
+ */
+
+@trusted
+void param_free(ref param_t[]* pparamlst)
+{
+    //debug_assert(PARSER);
+    if (pparamlst)
+    {
+        param_t[] a = *pparamlst;
+        foreach (ref p; a)
+        {
+            type_free(p.Ptype);
+            mem_free(p.Pident);
+            debug p.id = 0;
+        }
+        mem_free(a.ptr);
+        mem_free(pparamlst);
+    }
+    pparamlst = null;
+}
+
+/***********************************
+ * Compute number of parameters
+ */
+
+uint param_t_length(scope param_t* p)
+{
+    uint nparams = 0;
+    for (; p; p = p.Pnext)
+        nparams++;
+    return nparams;
+}
+
+// Return TRUE if type lists match.
+private int paramlstmatch(param_t[]* p1,param_t[]* p2)
+{
+    if (p1 == p2)
+        return true;
+
+    if (!(p1 && p2))
+        return false;
+
+    param_t[] a1 = *p1,
+              a2 = *p2;
+
+    if (a1.length != a2.length)
+        return false;
+
+    foreach (i; 0 .. a1.length)
+    {
+        if (!typematch(a1[i].Ptype, a2[i].Ptype, 0))
+            return false;
+    }
+    return true;
+}
+
+/*************************************************
+ * A cheap version of exp2.typematch() and exp2.paramlstmatch(),
+ * so that we can get cpp_mangle() to work for MARS.
+ * It's less complex because it doesn't do templates and
+ * can rely on strict typechecking.
+ * Returns:
+ *      !=0 if types match.
+ */
+
+@trusted
+int typematch(type* t1,type* t2,int relax)
+{
+    tym_t t1ty, t2ty;
+    tym_t tym = ~(mTYimport | mTYnaked);
+
+    return t1 == t2 ||
+            t1 && t2 &&
+
+            (
+                /* ignore name mangling */
+                (t1ty = (t1.Tty & tym)) == (t2ty = (t2.Tty & tym))
+            )
+                 &&
+
+            (tybasic(t1ty) != TYarray || t1.Tdim == t2.Tdim ||
+             t1.Tflags & TF.sizeunknown || t2.Tflags & TF.sizeunknown)
+                 &&
+
+            (tybasic(t1ty) != TYstruct
+                && tybasic(t1ty) != TYenum
+             || t1.Ttag == t2.Ttag)
+                 &&
+
+            typematch(t1.Tnext,t2.Tnext, 0)
+                 &&
+
+            (!tyfunc(t1ty) ||
+             ((t1.Tflags & TF.fixed) == (t2.Tflags & TF.fixed) &&
+                 paramlstmatch(t1.Tparamtypes,t2.Tparamtypes) ))
+         ;
+}

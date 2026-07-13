@@ -26,6 +26,10 @@ else version (Posix)
     import core.sys.posix.sys.types : pthread_cond_t, pthread_mutex_t;
     import core.sys.posix.time : timespec;
 }
+else version (WASI)
+{
+    // Dummy no-op
+}
 else
 {
     static assert(false, "Platform not supported");
@@ -133,6 +137,10 @@ nothrow @nogc:
             m_manualReset = manualReset;
             m_initalized = true;
         }
+        else version (WASI)
+        {
+            abort("Error: Cannot initialize Event on WASI.");
+        }
     }
 
     // copying not allowed, can produce resource leaks
@@ -192,6 +200,10 @@ nothrow @nogc:
                 pthread_mutex_unlock(&m_mutex);
             }
         }
+        else version (WASI)
+        {
+            abort("Error: Cannot deinitialize Event on WASI.");
+        }
     }
 
     /// Reset the event manually
@@ -217,7 +229,7 @@ nothrow @nogc:
      * Wait for the event to be signaled without timeout.
      *
      * Returns:
-     *  `true` if the event is in signaled state, `false` if the event is uninitialized or another error occured
+     *  `true` if the event is in signaled state, `false` if the event is uninitialized or another error occurred
      */
     bool wait()
     {
@@ -229,6 +241,11 @@ nothrow @nogc:
         {
             return wait(Duration.max);
         }
+        else version (WASI)
+        {
+            abort("Error: Cannot wait for Event on WASI.");
+            return false;
+        }
     }
 
     /**
@@ -238,7 +255,7 @@ nothrow @nogc:
      *  tmout = the maximum time to wait
      * Returns:
      *  `true` if the event is in signaled state, `false` if the event was nonsignaled for the given time or
-     *  the event is uninitialized or another error occured
+     *  the event is uninitialized or another error occurred
      */
     bool wait(Duration tmout)
     {
@@ -289,6 +306,11 @@ nothrow @nogc:
             pthread_mutex_unlock(&m_mutex);
 
             return result == 0;
+        }
+        else version (WASI)
+        {
+            abort("Error: Cannot wait for Event on WASI.");
+            return false;
         }
     }
 

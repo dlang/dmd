@@ -125,7 +125,7 @@ struct ACTION_HEADER {
     USHORT action_code;
     USHORT reserved;
 }
-alias ACTION_HEADER* PACTION_HEADER;
+alias PACTION_HEADER = ACTION_HEADER*;
 
 struct ADAPTER_STATUS {
     UCHAR[6] adapter_address;
@@ -156,7 +156,7 @@ struct ADAPTER_STATUS {
     WORD     max_sess_pkt_size;
     WORD     name_count;
 }
-alias ADAPTER_STATUS* PADAPTER_STATUS;
+alias PADAPTER_STATUS = ADAPTER_STATUS*;
 
 struct FIND_NAME_BUFFER {
     /*  From Win32 API docs
@@ -175,27 +175,27 @@ struct FIND_NAME_BUFFER {
     UCHAR[6]  source_addr;
     UCHAR[18] routing_info;
 }
-alias FIND_NAME_BUFFER* PFIND_NAME_BUFFER;
+alias PFIND_NAME_BUFFER = FIND_NAME_BUFFER*;
 
 struct FIND_NAME_HEADER {
     WORD  node_count;
     UCHAR reserved;
     UCHAR unique_group;
 }
-alias FIND_NAME_HEADER* PFIND_NAME_HEADER;
+alias PFIND_NAME_HEADER = FIND_NAME_HEADER*;
 
 struct LANA_ENUM {
     UCHAR             length;
     UCHAR[MAX_LANA+1] lana;
 }
-alias LANA_ENUM* PLANA_ENUM;
+alias PLANA_ENUM = LANA_ENUM*;
 
 struct NAME_BUFFER {
     UCHAR[NCBNAMSZ] name;
     UCHAR           name_num;
     UCHAR           name_flags;
 }
-alias NAME_BUFFER* PNAME_BUFFER;
+alias PNAME_BUFFER = NAME_BUFFER*;
 
 struct NCB {
     UCHAR           ncb_command;
@@ -217,7 +217,7 @@ struct NCB {
         UCHAR[10]   ncb_reserve;
     HANDLE          ncb_event;
 }
-alias NCB* PNCB;
+alias PNCB = NCB*;
 
 struct SESSION_BUFFER {
     UCHAR           lsn;
@@ -227,7 +227,7 @@ struct SESSION_BUFFER {
     UCHAR           rcvs_outstanding;
     UCHAR           sends_outstanding;
 }
-alias SESSION_BUFFER* PSESSION_BUFFER;
+alias PSESSION_BUFFER = SESSION_BUFFER*;
 
 struct SESSION_HEADER {
     UCHAR sess_name;
@@ -235,6 +235,6 @@ struct SESSION_HEADER {
     UCHAR rcv_dg_outstanding;
     UCHAR rcv_any_outstanding;
 }
-alias SESSION_HEADER* PSESSION_HEADER;
+alias PSESSION_HEADER = SESSION_HEADER*;
 
 extern (Windows) UCHAR Netbios(PNCB);

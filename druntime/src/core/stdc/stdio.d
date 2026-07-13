@@ -115,6 +115,20 @@ else version (CRuntime_Musl)
         L_tmpnam     = 20
     }
 }
+else version (CRuntime_WASI)
+{
+    enum
+    {
+        ///
+        BUFSIZ       = 1024,
+        ///
+        EOF          = -1,
+        ///
+        FOPEN_MAX    = 1000,
+        ///
+        FILENAME_MAX = 4096,
+    }
+}
 else version (Darwin)
 {
     enum
@@ -211,12 +225,6 @@ else version (OpenBSD)
         TMP_MAX      = 0x7fffffff,
         ///
         L_tmpnam     = 1024
-    }
-
-    struct __sbuf
-    {
-        ubyte *_base;
-        int _size;
     }
 }
 else version (DragonFlyBSD)
@@ -343,24 +351,6 @@ else version (CRuntime_UClibc)
         L_tmpnam     = 20
     }
 }
-else version (WASI)
-{
-    enum
-    {
-        ///
-        BUFSIZ       = 1024,
-        ///
-        EOF          = -1,
-        ///
-        FOPEN_MAX    = 1000,
-        ///
-        FILENAME_MAX = 4096,
-        ///
-        TMP_MAX      = 10000,
-        ///
-        L_tmpnam     = 20
-    }
-}
 else
 {
     static assert( false, "Unsupported platform" );
@@ -379,7 +369,7 @@ enum
 version (CRuntime_Microsoft)
 {
     ///
-    alias long fpos_t;
+    alias fpos_t = long;
 
     ///
     struct _iobuf
@@ -388,7 +378,7 @@ version (CRuntime_Microsoft)
     }
 
     ///
-    alias shared(_iobuf) FILE;
+    alias FILE = shared(_iobuf);
 }
 else version (CRuntime_Glibc)
 {
@@ -438,11 +428,11 @@ else version (CRuntime_Glibc)
     }
 
     ///
-    alias _IO_FILE _iobuf;
+    alias _iobuf = _IO_FILE;
     ///
-    alias shared(_IO_FILE) FILE;
+    alias FILE = shared(_IO_FILE);
 }
-else version (WASI)
+else version (CRuntime_WASI)
 {
     union fpos_t
     {
@@ -452,9 +442,9 @@ else version (WASI)
     struct _IO_FILE;
 
     ///
-    alias _IO_FILE _iobuf; // needed for phobos
+    alias _iobuf = _IO_FILE; // needed for phobos
     ///
-    alias shared(_IO_FILE) FILE;
+    alias FILE = shared(_IO_FILE);
 }
 else version (CRuntime_Musl)
 {
@@ -466,14 +456,14 @@ else version (CRuntime_Musl)
     struct _IO_FILE;
 
     ///
-    alias _IO_FILE _iobuf; // needed for phobos
+    alias _iobuf = _IO_FILE; // needed for phobos
     ///
-    alias shared(_IO_FILE) FILE;
+    alias FILE = shared(_IO_FILE);
 }
 else version (Darwin)
 {
     ///
-    alias long fpos_t;
+    alias fpos_t = long;
 
     ///
     struct __sFILE
@@ -506,9 +496,9 @@ else version (Darwin)
     }
 
     ///
-    alias __sFILE _iobuf;
+    alias _iobuf = __sFILE;
     ///
-    alias shared(__sFILE) FILE;
+    alias FILE = shared(__sFILE);
 }
 else version (FreeBSD)
 {
@@ -516,7 +506,7 @@ else version (FreeBSD)
     import core.stdc.wchar_ : mbstate_t;
 
     ///
-    alias off_t fpos_t;
+    alias fpos_t = off_t;
 
     ///
     struct __sFILE
@@ -555,14 +545,14 @@ else version (FreeBSD)
     }
 
     ///
-    alias __sFILE _iobuf;
+    alias _iobuf = __sFILE;
     ///
-    alias shared(__sFILE) FILE;
+    alias FILE = shared(__sFILE);
 }
 else version (NetBSD)
 {
     ///
-    alias off_t fpos_t;
+    alias fpos_t = off_t;
 
     ///
     struct __sFILE
@@ -599,9 +589,9 @@ else version (NetBSD)
     }
 
     ///
-    alias __sFILE _iobuf;
+    alias _iobuf = __sFILE;
     ///
-    alias shared(__sFILE) FILE;
+    alias FILE = shared(__sFILE);
 }
 else version (OpenBSD)
 {
@@ -611,41 +601,17 @@ else version (OpenBSD)
     ///
     struct __sFILE
     {
-        ubyte*          _p;
-        int             _r;
-        int             _w;
-        short           _flags;
-        short           _file;
-        __sbuf          _bf;
-        int             _lbfsize;
-
-        void*           _cookie;
-        int     function(void*)                         _close;
-        int     function(void*, scope char*, int)       _read;
-        fpos_t  function(void*, fpos_t, int)            _seek;
-        int     function(void*, scope const char*, int) _write;
-
-        __sbuf          _ext;
-        ubyte*          _up;
-        int             _ur;
-
-        ubyte[3]        _ubuf;
-        ubyte[1]        _nbuf;
-
-        __sbuf          _lb;
-
-        int             _blksize;
-        fpos_t          _offset;
+        void* dummy;
     }
 
     ///
-    alias __sFILE _iobuf;
+    alias _iobuf = __sFILE;
     ///
-    alias shared(__sFILE) FILE;
+    alias FILE = shared(__sFILE);
 }
 else version (DragonFlyBSD)
 {
-    alias off_t fpos_t;
+    alias fpos_t = off_t;
 
     /// See /usr/include/stdio.h
     struct __FILE_public
@@ -658,15 +624,15 @@ else version (DragonFlyBSD)
         ssize_t         _lbfsize;       /* 0 or -_bf._size, for inline putc */
     }
 
-    alias __FILE_public _iobuf;
-    alias shared(__FILE_public) FILE;
+    alias _iobuf = __FILE_public;
+    alias FILE = shared(__FILE_public);
 }
 else version (Solaris)
 {
     import core.stdc.wchar_ : mbstate_t;
 
     ///
-    alias c_long fpos_t;
+    alias fpos_t = c_long;
 
     version (D_LP64)
     {
@@ -703,12 +669,12 @@ else version (Solaris)
         }
     }
     ///
-    alias shared(_iobuf) FILE;
+    alias FILE = shared(_iobuf);
 }
 else version (CRuntime_Bionic)
 {
     ///
-    alias c_long fpos_t; // couldn't use off_t because of static if issue
+    alias fpos_t = c_long; // couldn't use off_t because of static if issue
 
     ///
     struct __sFILE
@@ -741,9 +707,9 @@ else version (CRuntime_Bionic)
     }
 
     ///
-    alias __sFILE _iobuf;
+    alias _iobuf = __sFILE;
     ///
-    alias shared(__sFILE) FILE;
+    alias FILE = shared(__sFILE);
 }
 else version (CRuntime_Newlib)
 {
@@ -792,9 +758,9 @@ else version (CRuntime_Newlib)
     }
 
     ///
-    alias __sFILE _iobuf; // needed for phobos
+    alias _iobuf = __sFILE; // needed for phobos
     ///
-    alias shared(__sFILE) FILE;
+    alias FILE = shared(__sFILE);
 }
 else version (CRuntime_UClibc)
 {
@@ -818,7 +784,7 @@ else version (CRuntime_UClibc)
        int function(void* __cookie)                                             close;
     }
 
-    alias _IO_cookie_io_functions_t cookie_io_functions_t;
+    alias cookie_io_functions_t = _IO_cookie_io_functions_t;
 
     ///
     struct __STDIO_FILE_STRUCT
@@ -843,9 +809,9 @@ else version (CRuntime_UClibc)
     }
 
     ///
-    alias __STDIO_FILE_STRUCT _iobuf;
+    alias _iobuf = __STDIO_FILE_STRUCT;
     ///
-    alias shared(__STDIO_FILE_STRUCT) FILE;
+    alias FILE = shared(__STDIO_FILE_STRUCT);
 }
 else
 {
@@ -955,11 +921,11 @@ else version (Darwin)
     private extern shared FILE* __stderrp;
 
     ///
-    alias __stdinp  stdin;
+    alias stdin = __stdinp;
     ///
-    alias __stdoutp stdout;
+    alias stdout = __stdoutp;
     ///
-    alias __stderrp stderr;
+    alias stderr = __stderrp;
 }
 else version (FreeBSD)
 {
@@ -978,11 +944,11 @@ else version (FreeBSD)
     private extern shared FILE* __stderrp;
 
     ///
-    alias __stdinp  stdin;
+    alias stdin = __stdinp;
     ///
-    alias __stdoutp stdout;
+    alias stdout = __stdoutp;
     ///
-    alias __stderrp stderr;
+    alias stderr = __stderrp;
 }
 else version (NetBSD)
 {
@@ -1001,11 +967,11 @@ else version (NetBSD)
     @property auto __stdout()() { return &__sF[1]; }
     @property auto __stderr()() { return &__sF[2]; }
     ///
-    alias __stdin stdin;
+    alias stdin = __stdin;
     ///
-    alias __stdout stdout;
+    alias stdout = __stdout;
     ///
-    alias __stderr stderr;
+    alias stderr = __stderr;
 }
 else version (OpenBSD)
 {
@@ -1019,16 +985,22 @@ else version (OpenBSD)
         _IONBF = 2,
     }
 
-    private extern shared FILE[3] __sF;
-    @property auto __stdin()() { return &__sF[0]; }
-    @property auto __stdout()() { return &__sF[1]; }
-    @property auto __stderr()() { return &__sF[2]; }
+    struct __sFstub { long _stub; }
+
+    private extern shared __sFstub[1] __stdin;
+    private extern shared __sFstub[1] __stdout;
+    private extern shared __sFstub[1] __stderr;
+
+    @property auto __stdin1()() { return cast(FILE*)__stdin; }
+    @property auto __stdout1()() { return cast(FILE*)__stdout; }
+    @property auto __stderr1()() { return cast(FILE*)__stderr; }
+
     ///
-    alias __stdin stdin;
+    alias stdin = __stdin1;
     ///
-    alias __stdout stdout;
+    alias stdout = __stdout1;
     ///
-    alias __stderr stderr;
+    alias stderr = __stderr1;
 }
 else version (DragonFlyBSD)
 {
@@ -1043,9 +1015,9 @@ else version (DragonFlyBSD)
     private extern shared FILE* __stdoutp;
     private extern shared FILE* __stderrp;
 
-    alias __stdinp  stdin;
-    alias __stdoutp stdout;
-    alias __stderrp stderr;
+    alias stdin = __stdinp;
+    alias stdout = __stdoutp;
+    alias stderr = __stderrp;
 }
 else version (Solaris)
 {
@@ -1172,7 +1144,7 @@ else version (CRuntime_UClibc)
     ///
     extern shared FILE* stderr;
 }
-else version (WASI)
+else version (CRuntime_WASI)
 {
     // needs tail const
     extern shared FILE* stdin;
@@ -1233,73 +1205,73 @@ version (MinGW)
     pragma(printf)
     int __mingw_fprintf(FILE* stream, scope const char* format, scope const ...);
     ///
-    alias __mingw_fprintf fprintf;
+    alias fprintf = __mingw_fprintf;
 
     ///
     pragma(scanf)
     int __mingw_fscanf(FILE* stream, scope const char* format, scope ...);
     ///
-    alias __mingw_fscanf fscanf;
+    alias fscanf = __mingw_fscanf;
 
     ///
     pragma(printf)
     int __mingw_sprintf(scope char* s, scope const char* format, scope const ...);
     ///
-    alias __mingw_sprintf sprintf;
+    alias sprintf = __mingw_sprintf;
 
     ///
     pragma(scanf)
     int __mingw_sscanf(scope const char* s, scope const char* format, scope ...);
     ///
-    alias __mingw_sscanf sscanf;
+    alias sscanf = __mingw_sscanf;
 
     ///
     pragma(printf)
     int __mingw_vfprintf(FILE* stream, scope const char* format, va_list arg);
     ///
-    alias __mingw_vfprintf vfprintf;
+    alias vfprintf = __mingw_vfprintf;
 
     ///
     pragma(scanf)
     int __mingw_vfscanf(FILE* stream, scope const char* format, va_list arg);
     ///
-    alias __mingw_vfscanf vfscanf;
+    alias vfscanf = __mingw_vfscanf;
 
     ///
     pragma(printf)
     int __mingw_vsprintf(scope char* s, scope const char* format, va_list arg);
     ///
-    alias __mingw_vsprintf vsprintf;
+    alias vsprintf = __mingw_vsprintf;
 
     ///
     pragma(scanf)
     int __mingw_vsscanf(scope const char* s, scope const char* format, va_list arg);
     ///
-    alias __mingw_vsscanf vsscanf;
+    alias vsscanf = __mingw_vsscanf;
 
     ///
     pragma(printf)
     int __mingw_vprintf(scope const char* format, va_list arg);
     ///
-    alias __mingw_vprintf vprintf;
+    alias vprintf = __mingw_vprintf;
 
     ///
     pragma(scanf)
     int __mingw_vscanf(scope const char* format, va_list arg);
     ///
-    alias __mingw_vscanf vscanf;
+    alias vscanf = __mingw_vscanf;
 
     ///
     pragma(printf)
     int __mingw_printf(scope const char* format, scope const ...);
     ///
-    alias __mingw_printf printf;
+    alias printf = __mingw_printf;
 
     ///
     pragma(scanf)
     int __mingw_scanf(scope const char* format, scope ...);
     ///
-    alias __mingw_scanf scanf;
+    alias scanf = __mingw_scanf;
 }
 else version (CRuntime_Glibc)
 {
@@ -1350,9 +1322,9 @@ else version (CRuntime_Glibc)
         alias vprintf = __vprintfieee128;
         ///
         pragma(scanf)
-        int __isoc99_vfscanfieee128(scope const char* format, va_list arg);
+        int __isoc99_vscanfieee128(scope const char* format, va_list arg);
         ///
-        alias vscanf = __isoc99_vfscanfieee128;
+        alias vscanf = __isoc99_vscanfieee128;
         ///
         pragma(printf)
         int __printfieee128(scope const char* format, scope const ...);
@@ -1499,10 +1471,22 @@ size_t fwrite(scope const void* ptr, size_t size, size_t nmemb, FILE* stream);
 // No unsafe pointer manipulation.
 @trusted
 {
-    ///
-    int fgetpos(FILE* stream, scope fpos_t * pos);
-    ///
-    int fsetpos(FILE* stream, scope const fpos_t* pos);
+    version (NetBSD)
+    {
+        ///
+        pragma(mangle, "__fgetpos50")
+        int fgetpos(FILE* stream, scope fpos_t * pos);
+        ///
+        pragma(mangle, "__fsetpos50")
+        int fsetpos(FILE* stream, scope const fpos_t* pos);
+    }
+    else
+    {
+        ///
+        int fgetpos(FILE* stream, scope fpos_t * pos);
+        ///
+        int fsetpos(FILE* stream, scope const fpos_t* pos);
+    }
 
     ///
     int    fseek(FILE* stream, c_long offset, int whence);
@@ -1532,17 +1516,17 @@ version (CRuntime_Microsoft)
     pragma(printf)
     int   __mingw_snprintf(scope char* s, size_t n, scope const char* fmt, scope const ...);
     ///
-    alias __mingw_snprintf _snprintf;
+    alias _snprintf = __mingw_snprintf;
     ///
-    alias __mingw_snprintf snprintf;
+    alias snprintf = __mingw_snprintf;
 
     ///
     pragma(printf)
     int   __mingw_vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
     ///
-    alias __mingw_vsnprintf _vsnprintf;
+    alias _vsnprintf = __mingw_vsnprintf;
     ///
-    alias __mingw_vsnprintf vsnprintf;
+    alias vsnprintf = __mingw_vsnprintf;
   }
   else
   {
@@ -1727,83 +1711,14 @@ else version (OpenBSD)
     {
         ///
         void rewind(FILE*);
-    }
-    @trusted private
-    {
         ///
-        pragma(mangle, "clearerr")
-        pure void __clearerr(FILE*);
+        pure void clearerr(FILE*);
         ///
-        pragma(mangle, "feof")
-        pure int __feof(FILE*);
+        pure int  feof(FILE*);
         ///
-        pragma(mangle, "ferror")
-        pure int __ferror(FILE*);
+        pure int  ferror(FILE*);
         ///
-        pragma(mangle, "fileno")
-        int __fileno(FILE*);
-    }
-
-    enum __SLBF = 0x0001;
-    enum __SNBF = 0x0002;
-    enum __SRD  = 0x0004;
-    enum __SWR  = 0x0008;
-    enum __SRW  = 0x0010;
-    enum __SEOF = 0x0020;
-    enum __SERR = 0x0040;
-    enum __SMBF = 0x0080;
-    enum __SAPP = 0x0100;
-    enum __SSTR = 0x0200;
-    enum __SOPT = 0x0400;
-    enum __SNPT = 0x0800;
-    enum __SOFF = 0x1000;
-    enum __SMOD = 0x2000;
-    enum __SALC = 0x4000;
-    enum __SIGN = 0x8000;
-
-    extern immutable __gshared int __isthreaded;
-
-    extern (D) @trusted
-    {
-        void __sclearerr()(FILE* p)
-        {
-            p._flags = p._flags & ~(__SERR|__SEOF);
-        }
-
-        int __sfeof()(FILE* p)
-        {
-            return (p._flags & __SEOF) != 0;
-        }
-
-        int __sferror()(FILE* p)
-        {
-            return (p._flags & __SERR) != 0;
-        }
-
-        int __sfileno()(FILE* p)
-        {
-            return p._file;
-        }
-
-        pure void clearerr()(FILE* file)
-        {
-            !__isthreaded ? __sclearerr(file) : __clearerr(file);
-        }
-
-        pure int feof()(FILE* file)
-        {
-            return !__isthreaded ? __sfeof(file) : __feof(file);
-        }
-
-        pure int ferror()(FILE* file)
-        {
-            return !__isthreaded ? __sferror(file) : __ferror(file);
-        }
-
-        int fileno()(FILE* file)
-        {
-            return !__isthreaded ? __sfileno(file) : __fileno(file);
-        }
+        int  fileno(FILE*);
     }
 
     ///

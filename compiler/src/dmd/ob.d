@@ -1,7 +1,7 @@
 /**
  * Flow analysis for Ownership/Borrowing
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ob.d, _ob.d)
@@ -26,13 +26,12 @@ import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
+import dmd.dsymbolsem : toAlias;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.escape;
 import dmd.expression;
-
 import dmd.func;
-import dmd.globals;
 import dmd.hdrgen;
 import dmd.identifier;
 import dmd.init;
@@ -2053,12 +2052,12 @@ void checkObErrors(ref ObState obstate)
 
                     if (pvsr.state == Undefined)
                     {
-                        .error(e.loc, "%s `%s` is reading from `%s` which is Undefined", v.kind, v.toPrettyChars, r.toChars());
+                        .error(e.loc, "%s `%s` is reading from `%s` which is Undefined", v.kind, v.toPrettyChars, r.toErrMsg());
                     }
                     else if (isBorrowedPtr(v))  // v is going to borrow from r
                     {
                         if (pvsr.state == Readonly)
-                            .error(e.loc, "%s `%s` is borrowing from `%s` which is Readonly", v.kind, v.toPrettyChars, r.toChars());
+                            .error(e.loc, "%s `%s` is borrowing from `%s` which is Readonly", v.kind, v.toPrettyChars, r.toErrMsg());
 
                         pvs.state = Borrowed;
                     }

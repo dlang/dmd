@@ -34,6 +34,7 @@ subPackage {
   sourcePaths
 
   sourceFiles \
+    "compiler/src/dmd/astenums.d" \
     "compiler/src/dmd/console.d" \
     "compiler/src/dmd/entity.d" \
     "compiler/src/dmd/errors.d" \
@@ -54,7 +55,7 @@ subPackage {
 
   # generate files `generated/dub/{VERSION,SYSCONFDIR.imp}` for string-imports
   # by building & running the config.d tool
-  preGenerateCommands `"$DUB_EXE" "--compiler=$DC" --single "${DUB_PACKAGE_DIR}config.d" -- "${DUB_PACKAGE_DIR}generated/dub" "${DUB_PACKAGE_DIR}VERSION" /etc`
+  preGenerateCommands `"$DUB_EXE" "--compiler=$DC" --single "${PACKAGE_DIR}/config.d" -- "${PACKAGE_DIR}/generated/dub" "${PACKAGE_DIR}/VERSION" /etc`
 
   stringImportPaths \
     "compiler/src/dmd/res" \
@@ -96,9 +97,13 @@ subPackage {
     "CallbackAPI"
 
   excludedSourceFiles "compiler/src/dmd/backend/*"
+  excludedSourceFiles "compiler/src/dmd/glue/*"
   excludedSourceFiles "compiler/src/dmd/root/*"
   excludedSourceFiles "compiler/src/dmd/common/*"
+  excludedSourceFiles "compiler/src/dmd/lib/*"
+  excludedSourceFiles "compiler/src/dmd/irgen/*"
   excludedSourceFiles "compiler/src/dmd/{\
+    astenums,\
     astbase,\
     console,\
     entity,\
@@ -121,28 +126,9 @@ subPackage {
   }.d"
   excludedSourceFiles "compiler/src/dmd/{\
     dmsc,\
-    e2ir,\
     eh,\
-    glue,\
-    iasmdmd,\
-    iasmgcc,\
-    irstate,\
-    lib/package,\
-    lib/elf,\
-    lib/mach,\
-    lib/mscoff,\
-    lib/scanelf,\
-    lib/scanmach,\
-    lib/scanmscoff,\
     link,\
-    objc_glue,\
-    s2ir,\
-    tocsym,\
-    toctype,\
-    tocvdebug,\
-    toobj,\
-    todt,\
-    toir\
+
   }.d"
 
   dependency "dmd:parser" version="*"

@@ -1,0 +1,13 @@
+Added `__traits(needsDestruction, T)`
+
+True if T is a *value* type needing elaborate destruction. This includes structs with explicit `~this()` destructors and/or compiler-generated destructors (caused by fields needing destruction), static arrays thereof, and enums with such base types.
+
+---
+class C { ~this(); }
+struct S { ~this(); }
+
+static assert(!__traits(needsDestruction, C));
+static assert(__traits(needsDestruction, S));
+static assert(!__traits(needsDestruction, S[0]));
+static assert(__traits(needsDestruction, S[1]));
+---

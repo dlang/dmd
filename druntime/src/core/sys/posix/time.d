@@ -16,6 +16,7 @@
 module core.sys.posix.time;
 
 import core.sys.posix.config;
+import core.sys.posix.endian;
 public import core.stdc.time;
 public import core.sys.posix.sys.types;
 public import core.sys.posix.signal; // for sigevent
@@ -63,6 +64,7 @@ else version (FreeBSD)
 }
 else version (NetBSD)
 {
+    pragma(mangle, "__timegm50")
     time_t timegm(tm*); // non-standard
 }
 else version (OpenBSD)
@@ -155,6 +157,10 @@ else version (Solaris)
 {
     enum CLOCK_MONOTONIC = 4;
 }
+else version (Hurd)
+{
+    enum CLOCK_MONOTONIC = 1;
+}
 else
 {
     static assert(0);
@@ -201,7 +207,11 @@ version (linux)
     struct timespec
     {
         time_t  tv_sec;
+        version (CRuntime_Musl)
+            int : 8 * (time_t.sizeof - c_long.sizeof) * (BYTE_ORDER == BIG_ENDIAN);
         c_long  tv_nsec;
+        version (CRuntime_Musl)
+            int : 8 * (time_t.sizeof - c_long.sizeof) * (BYTE_ORDER != BIG_ENDIAN);
     }
 }
 else version (Darwin)
@@ -252,7 +262,15 @@ else version (Solaris)
         c_long tv_nsec;
     }
 
-    alias timespec timestruc_t;
+    alias timestruc_t = timespec;
+}
+else version (Hurd)
+{
+    struct timespec
+    {
+        time_t  tv_sec;
+        c_long  tv_nsec;
+    }
 }
 else
 {
@@ -281,8 +299,8 @@ version (CRuntime_Glibc)
     enum CLOCK_REALTIME         = 0;
     enum TIMER_ABSTIME          = 0x01;
 
-    alias int clockid_t;
-    alias void* timer_t;
+    alias clockid_t = int;
+    alias timer_t = void*;
 
     int clock_getres(clockid_t, timespec*);
     int clock_gettime(clockid_t, timespec*);
@@ -320,8 +338,8 @@ else version (FreeBSD)
     enum CLOCK_REALTIME      = 0;
     enum TIMER_ABSTIME       = 0x01;
 
-    alias int clockid_t; // <sys/_types.h>
-    alias int timer_t;
+    alias clockid_t = int; // <sys/_types.h>
+    alias timer_t = int;
 
     int clock_getres(clockid_t, timespec*);
     int clock_gettime(clockid_t, timespec*);
@@ -346,8 +364,8 @@ else version (DragonFlyBSD)
     enum CLOCK_REALTIME      = 0;
     enum TIMER_ABSTIME       = 0x01;
 
-    alias int clockid_t; // <sys/_types.h>
-    alias int timer_t;
+    alias clockid_t = int; // <sys/_types.h>
+    alias timer_t = int;
 
     int clock_getres(clockid_t, timespec*);
     int clock_gettime(clockid_t, timespec*);
@@ -370,17 +388,23 @@ else version (NetBSD)
     enum CLOCK_REALTIME      = 0;
     enum TIMER_ABSTIME       = 0x01;
 
-    alias int clockid_t; // <sys/_types.h>
-    alias int timer_t;
+    alias clockid_t = int; // <sys/_types.h>
+    alias timer_t = int;
 
+    pragma(mangle, "__clock_getres50")
     int clock_getres(clockid_t, timespec*);
+    pragma(mangle, "__clock_gettime50")
     int clock_gettime(clockid_t, timespec*);
+    pragma(mangle, "__clock_settime50")
     int clock_settime(clockid_t, const scope timespec*);
+    pragma(mangle, "__nanosleep50")
     int nanosleep(const scope timespec*, timespec*);
     int timer_create(clockid_t, sigevent*, timer_t*);
     int timer_delete(timer_t);
+    pragma(mangle, "__timer_gettime50")
     int timer_gettime(timer_t, itimerspec*);
     int timer_getoverrun(timer_t);
+    pragma(mangle, "__timer_settime50")
     int timer_settime(timer_t, int, const scope itimerspec*, itimerspec*);
 }
 else version (OpenBSD)
@@ -394,8 +418,8 @@ else version (OpenBSD)
     enum CLOCK_REALTIME      = 0;
     enum TIMER_ABSTIME       = 0x1;
 
-    alias int clockid_t; // <sys/_types.h>
-    alias int timer_t;
+    alias clockid_t = int; // <sys/_types.h>
+    alias timer_t = int;
 
     int clock_getres(clockid_t, timespec*);
     int clock_gettime(clockid_t, timespec*);
@@ -416,8 +440,8 @@ else version (Solaris)
     enum CLOCK_REALTIME = 3; // <sys/time_impl.h>
     enum TIMER_ABSOLUTE = 0x1;
 
-    alias int clockid_t;
-    alias int timer_t;
+    alias clockid_t = int;
+    alias timer_t = int;
 
     int clock_getres(clockid_t, timespec*);
     int clock_gettime(clockid_t, timespec*);
@@ -447,8 +471,8 @@ else version (CRuntime_Bionic)
     enum CLOCK_REALTIME_HR = 4;
     enum TIMER_ABSTIME     = 0x01;
 
-    alias int   clockid_t;
-    alias void* timer_t; // Updated since Lollipop
+    alias clockid_t = int;
+    alias timer_t = void*; // Updated since Lollipop
 
     int clock_getres(int, timespec*);
     int clock_gettime(int, timespec*);
@@ -461,8 +485,10 @@ else version (CRuntime_Bionic)
 }
 else version (CRuntime_Musl)
 {
-    alias int clockid_t;
-    alias void* timer_t;
+    static assert(timespec.sizeof == 16);
+
+    alias clockid_t = int;
+    alias timer_t = void*;
 
     struct itimerspec
     {
@@ -482,6 +508,7 @@ else version (CRuntime_Musl)
     enum CLOCK_SGI_CYCLE = 10;
     enum CLOCK_TAI = 11;
 
+    pragma(mangle, muslRedirTime64Mangle!("nanosleep", "__nanosleep_time64"))
     int nanosleep(const scope timespec*, timespec*);
 
     pragma(mangle, muslRedirTime64Mangle!("clock_getres", "__clock_getres_time64"))
@@ -516,8 +543,8 @@ else version (CRuntime_UClibc)
 
     enum TIMER_ABSTIME          = 0x01;
 
-    alias int clockid_t;
-    alias void* timer_t;
+    alias clockid_t = int;
+    alias timer_t = void*;
 
     int clock_getres(clockid_t, timespec*);
     int clock_gettime(clockid_t, timespec*);
@@ -568,8 +595,11 @@ else version (FreeBSD)
 else version (NetBSD)
 {
     char* asctime_r(const scope tm*, char*);
+    pragma(mangle, "__ctime_r50")
     char* ctime_r(const scope time_t*, char*);
+    pragma(mangle, "__gmtime_r50")
     tm*   gmtime_r(const scope time_t*, tm*);
+    pragma(mangle, "__localtime_r50")
     tm*   localtime_r(const scope time_t*, tm*);
 }
 else version (OpenBSD)
@@ -678,7 +708,7 @@ else version (Solaris)
 
     tm* getdate(const scope char*);
     char* __strptime_dontzero(const scope char*, const scope char*, tm*);
-    alias __strptime_dontzero strptime;
+    alias strptime = __strptime_dontzero;
 }
 else version (CRuntime_Bionic)
 {

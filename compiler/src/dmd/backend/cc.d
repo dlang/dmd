@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/cc.d, backend/_cc.d)
@@ -18,10 +18,9 @@ module dmd.backend.cc;
 import dmd.backend.barray;
 import dmd.backend.cdef;        // host and target compiler definition
 import dmd.backend.x86.code_x86;
-import dmd.backend.dlist;
-import dmd.backend.dt;
+import dmd.backend.dt : dt_t;
 import dmd.backend.el;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.type;
 
 @nogc:
@@ -44,18 +43,12 @@ else
 enum IDMAX = 900;              // identifier max (excluding terminating 0)
 enum IDOHD = 4+1+int.sizeof*3; // max amount of overhead to ID added by
 
-struct token_t;
-
 alias Funcsym = Symbol;
 
-alias symlist_t = list_t;
 alias vec_t = size_t*;
 alias enum_TK = ubyte;
 
 __gshared Config config;
-
-@trusted
-uint CPP() { return config.flags3 & CFG3cpp; }
 
 
 /////////// Position in source file
@@ -68,8 +61,6 @@ nothrow:
 
     const(char)* Sfilename;
 
-    const(char*) name() const { return Sfilename; }
-
     static Srcpos create(const(char)* filename, uint linnum, uint charnum)
     {
         // Cannot have constructor because Srcpos is used in a union
@@ -78,20 +69,6 @@ nothrow:
         sp.Slinnum = linnum;
         sp.Scharnum = charnum;
         return sp;
-    }
-
-    /*******
-     * Set fields of Srcpos
-     * Params:
-     *      filename = file name
-     *      linnum = line number
-     *      charnum = character number
-     */
-    void set(const(char)* filename, uint linnum, int charnum) pure
-    {
-        Sfilename = filename;
-        Slinnum = linnum;
-        Scharnum = charnum;
     }
 
     void print(const(char)* func) const { Srcpos_print(this, func); }
@@ -115,13 +92,13 @@ struct Pstate
                                 // function Symbol.
 }
 
+__gshared Pstate pstate;        // parser state
+
 @trusted
 void funcsym_p(Funcsym* fp) { pstate.STfuncsym_p = fp; }
 
 @trusted
 Funcsym* funcsym_p() { return pstate.STfuncsym_p; }
-
-public import dmd.backend.var : pstate, cstate;
 
 /****************************
  * Global variables.
@@ -131,6 +108,8 @@ struct Cstate
 {
     symtab_t* CSpsymtab;        // pointer to current Symbol table
 }
+
+__gshared Cstate cstate;        // compiler state
 
 /* Bits for sytab[] that give characteristics of storage classes        */
 enum
@@ -184,7 +163,7 @@ enum BFL : ushort
     jmpoptdone    = 4,      // set when no more jump optimizations
                             //  are possible for this block
     nostackopt    = 8,      // set when stack elimination should not be done
-    nomerg        = 0x10,   // do not merge with other blocks
+    separate      = 0x10,   // do not merge with other blocks
     prolog        = 0x20,   // generate function prolog
     epilog        = 0x40,   // generate function epilog
     refparam      = 0x80,   // referenced parameter
@@ -192,7 +171,7 @@ enum BFL : ushort
     outsideprolog = 0x200,  // outside function prolog/epilog
     label         = 0x400,  // block preceded by label
     volatile      = 0x800,  // block is volatile
-    nounroll      = 0x1000, // do not unroll loop
+    keepRolled    = 0x1000, // do not unroll loop
 
     // for Windows NTEXCEPTIONS
     ehcode        = 0x2000, // BC._filter: need to load exception code
@@ -202,18 +181,10 @@ enum BFL : ushort
 struct block
 {
 nothrow:
-    union
-    {
-        elem* Belem;            // pointer to elem tree
-        list_t  Blist;          // list of expressions
-    }
-
+    elem* Belem;                // pointer to elem tree
     block* Bnext;               // pointer to next block in list
-    list_t Bsucc;               // linked list of pointers to successors
-                                //     of this block
-    list_t Bpred;               // and the predecessor list
-    int Bindex;                 // into created object stack
-    int Bendindex;              // index at end of block
+    Barray!(block*) Bsucc;      // and the successor array copy of Bsucc
+    Barray!(block*) Bpred;      // and the predecessor array
     block* Btry;                // BC.try_,BC._try: enclosing try block, if any
                                 // BC???: if in try-block, points to BC.try_ or BC._try
                                 // note that can't have a BC.try_ and BC._try in
@@ -322,24 +293,7 @@ nothrow:
             targ_size_t Btryoff;        // BC.try_: offset of try block data
         }
     }
-
-    @trusted
-    void appendSucc(block* b)        { list_append(&this.Bsucc, b); }
-
-    @trusted
-    void prependSucc(block* b)       { list_prepend(&this.Bsucc, b); }
-
-    int numSucc()                    { return list_nitems(this.Bsucc); }
-
-    @trusted
-    block* nthSucc(int n)            { return cast(block*)list_ptr(list_nth(Bsucc, n)); }
-
-    @trusted
-    void setNthSucc(int n, block* b) { list_nth(Bsucc, n).ptr = b; }
 }
-
-@trusted
-inout(block)* list_block(inout list_t lst) { return cast(inout(block)*)list_ptr(lst); }
 
 /** Basic block control flow operators. **/
 
@@ -410,50 +364,27 @@ enum
 {
     Fpending    = 1,           // if function has been queued for being written
     Foutput     = 2,           // if function has been written out
-    Foperator   = 4,           // if operator overload
-    Fcast       = 8,           // if cast overload
     Finline     = 0x10,        // if SCinline, and function really is inline
-    Foverload   = 0x20,        // if function can be overloaded
-    Ftypesafe   = 0x40,        // if function name needs type appended
-    Fmustoutput = 0x80,        // set for forward ref'd functions that
-                               // must be output
-    Fvirtual    = 0x100,       // if function is a virtual function
     Fctor       = 0x200,       // if function is a constructor
     Fdtor       = 0x400,       // if function is a destructor
-    Fnotparent  = 0x800,       // if function is down Foversym chain
     Finlinenest = 0x1000,      // used as a marker to prevent nested
                                // inlines from expanding
-    Flinkage    = 0x2000,      // linkage is already specified
     Fstatic     = 0x4000,      // static member function (no this)
-    Fbitcopy    = 0x8000,      // it's a simple bitcopy (op=() or X(X&))
     Fpure       = 0x10000,     // pure function
-    Finstance   = 0x20000,     // function is an instance of a template
-    Ffixed      = 0x40000,     // ctor has had cpp_fixconstructor() run on it,
-                               // dtor has had cpp_fixdestructor()
-    Fintro      = 0x80000,     // function doesn't hide a previous virtual function
-//  unused      = 0x100000,    // unused bit
-    Fkeeplink   = 0x200000,    // don't change linkage to default
-    Fnodebug    = 0x400000,    // do not generate debug info for this function
-    Fgen        = 0x800000,    // compiler generated function
     Finvariant  = 0x1000000,   // __invariant function
-    Fexplicit   = 0x2000000,   // explicit constructor
-    Fsurrogate  = 0x4000000,   // surrogate call function
 }
 
 alias func_flags3_t = uint;
 enum
 {
     Fvtblgen         = 1,       // generate vtbl[] when this function is defined
-    Femptyexc        = 2,       // empty exception specification (obsolete, use Tflags & TFemptyexc)
     Fcppeh           = 4,       // uses C++ EH
     Fnteh            = 8,       // uses NT Structured EH
-    Fdeclared        = 0x10,    // already declared function Symbol
     Fmark            = 0x20,    // has unbalanced OPctor's
     Fdoinline        = 0x40,    // do inline walk
     Foverridden      = 0x80,    // ignore for overriding purposes
     Fjmonitor        = 0x100,   // Mars synchronized function
     Fnosideeff       = 0x200,   // function has no side effects
-    F3badoparrow     = 0x400,   // bad operator->()
     Fmain            = 0x800,   // function is D main
     Fnested          = 0x1000,  // D nested function with 'this'
     Fmember          = 0x2000,  // D member function with 'this'
@@ -467,7 +398,6 @@ enum
 
 struct func_t
 {
-    symlist_t Fsymtree;         // local Symbol table
     block* Fstartblock;         // list of blocks comprising function
     symtab_t Flocsym;           // local Symbol table
     Srcpos Fstartline;          // starting line # of function
@@ -475,42 +405,11 @@ struct func_t
     Symbol* F__func__;          // symbol for __func__[] string
     func_flags_t Fflags;
     func_flags3_t Fflags3;
-    ubyte Foper;                // operator number (OPxxxx) if Foperator
-
-    Symbol* Fparsescope;        // use this scope to parse friend functions
-                                // which are defined within a class, so the
-                                // class is in scope, but are not members
-                                // of the class
 
     Classsym* Fclass;           // if member of a class, this is the class
                                 // (I think this is redundant with Sscope)
-    Funcsym* Foversym;          // overloaded function at same scope
-    symlist_t Fclassfriends;    // Symbol list of classes of which this
-                                // function is a friend
-    block* Fbaseblock;          // block where base initializers get attached
-    block* Fbaseendblock;       // block where member destructors get attached
-    elem* Fbaseinit;            // list of member initializers (meminit_t)
-                                // this field has meaning only for
-                                // functions which are constructors
-    token_t* Fbody;             // if deferred parse, this is the list
-                                // of tokens that make up the function
-                                // body
-                                // also used if SCfunctempl, SCftexpspec
-    uint Fsequence;             // sequence number at point of definition
-    Symbol* Ftempl;         // if Finstance this is the template that generated it
     Funcsym* Falias;            // SCfuncalias: function Symbol referenced
                                 // by using-declaration
-    symlist_t Fthunks;          // list of thunks off of this function
-    param_t* Farglist;          // SCfunctempl: the template-parameter-list
-    param_t* Fptal;             // Finstance: this is the template-argument-list
-                                // SCftexpspec: for explicit specialization, this
-                                // is the template-argument-list
-    list_t Ffwdrefinstances;    // SCfunctempl: list of forward referenced instances
-    list_t Fexcspec;            // List of types in the exception-specification
-                                // (NULL if none or empty)
-    Funcsym* Fexplicitspec;     // SCfunctempl, SCftexpspec: threaded list
-                                // of SCftexpspec explicit specializations
-    Funcsym* Fsurrogatesym;     // Fsurrogate: surrogate cast function
 
     char* Fredirect;            // redirect function name to this name in object
 
@@ -533,17 +432,6 @@ struct baseclass_t
     Classsym*         BCbase;           // base class Symbol
     baseclass_t*      BCnext;           // next base class
     targ_size_t       BCoffset;         // offset from start of derived class to this
-    ushort            BCvbtbloff;       // for BCFvirtual, offset from start of
-                                        //     vbtbl[] to entry for this virtual base.
-                                        //     Valid in Sbase list
-    symlist_t         BCpublics;        // public members of base class (list is freeable)
-    list_t            BCmptrlist;       // (in Smptrbase only) this is the vtbl
-                                        // (NULL if not different from base class's vtbl
-    Symbol*           BCvtbl;           // Symbol for vtbl[] array (in Smptrbase list)
-                                        // Symbol for vbtbl[] array (in Svbptrbase list)
-    Classsym*         BCparent;         // immediate parent of this base class
-                                        //     in Smptrbase
-    baseclass_t*      BCpbase;          // parent base, NULL if did not come from a parent
 }
 
 /***********************************
@@ -563,7 +451,7 @@ struct enum_t
     Symbol* SEalias;            // pointer to identifier E to use if
                                 // enum was defined as:
                                 //      typedef enum { ... } E;
-    symlist_t SEenumlist;       // all members of enum
+    Barray!(Symbol*) SEenums;   // all members of enum
 }
 
 /***********************************
@@ -578,80 +466,26 @@ enum
     STRnotagname     = 4,          // struct/class with no tag name
     STRoutdef        = 8,          // we've output the debug definition
     STRbitfields     = 0x10,       // set if struct contains bit fields
-    STRabstract      = 0x20,       // abstract class
-    STRbitcopy       = 0x40,       // set if operator=() is merely a bit copy
-    STRanyctor       = 0x80,       // set if any constructors were defined
-                                   // by the user
-    STRnoctor        = 0x100,      // no constructors allowed
-    STRgen           = 0x200,      // if struct is an instantiation of a
-                                   // template class, and was generated by
-                                   // that template
-    STRvtblext       = 0x400,      // generate vtbl[] only when first member function
-                                   // definition is encountered (see Fvtblgen)
-    STRexport        = 0x800,      // all member functions are to be _export
-    STRpredef        = 0x1000,     // a predefined struct
     STRunion         = 0x2000,     // actually, it's a union
     STRclass         = 0x4000,     // it's a class, not a struct
-    STRimport        = 0x8000,     // imported class
-    STRstaticmems    = 0x10000,    // class has static members
     STR0size         = 0x20000,    // zero sized struct
-    STRinstantiating = 0x40000,    // if currently being instantiated
-    STRexplicit      = 0x80000,    // if explicit template instantiation
-    STRgenctor0      = 0x100000,   // need to gen X::X()
     STRnotpod        = 0x200000,   // struct is not POD
 }
 
 struct struct_t
 {
     targ_size_t Sstructsize;    // size of struct
-    symlist_t Sfldlst;          // all members of struct (list freeable)
+    Barray!(Symbol*) Sfields;   // all members of struct
     Symbol* Sroot;              // root of binary tree Symbol table
     uint Salignsize;            // size of struct for alignment purposes
     ubyte Sstructalign;         // struct member alignment in effect
     struct_flags_t Sflags;
-    tym_t ptrtype;              // type of pointer to refer to classes by
     baseclass_t* Sbase;         // list of direct base classes
-    Symbol* Svptr;              // Symbol of vptr
-    Symbol* Stempsym;           // if this struct is an instantiation
-                                // of a template class, this is the
-                                // template class Symbol
 
     // For 64 bit Elf function ABI
     type* Sarg1type;
     type* Sarg2type;
-
-    /* For:
-     *  template<class T> struct A { };
-     *  template<class T> struct A<T *> { };
-     *
-     *  A<int> a;               // primary
-     * Gives:
-     *  Sarglist = <int>
-     *  Spr_arglist = NULL;
-     *
-     *  A<int*> a;              // specialization
-     * Gives:
-     *  Sarglist = <int>
-     *  Spr_arglist = <int*>;
-     */
-
-    param_t* Sarglist;          // if this struct is an instantiation
-                                // of a template class, this is the
-                                // actual arg list used
 }
-
-/**********************************
- * Symbol Table
- */
-
-@trusted
-inout(Symbol)* list_symbol(inout list_t lst) { return cast(inout(Symbol)*) list_ptr(lst); }
-
-@trusted
-void list_setsymbol(list_t lst, Symbol* s) { lst.ptr = s; }
-
-@trusted
-inout(Classsym)* list_Classsym(inout list_t lst) { return cast(inout(Classsym)*) list_ptr(lst); }
 
 enum
 {
@@ -701,7 +535,7 @@ enum
     GTunregister    = 0x8000000,   // 'unregister' a previous register assignment
 
     // OPTIMIZER only
-    SFLunambig      = 0x400,       // only accessible by unambiguous reference,
+    SFLdistinct      = 0x400,       // only accessible by unambiguous reference,
                                    // i.e. cannot be addressed via pointer
                                    // (GTregcand is a subset of this)
                                    // P.S. code generator turns off this
@@ -733,29 +567,13 @@ struct Symbol
     dt_t* Sdt;                  // variables: initializer
     int Salignment;             // variables: alignment, 0 or -1 means default alignment
 
-    int Salignsize()            // variables: return alignment
-    { return Symbol_Salignsize(this); }
-
     type* Stype;                // type of Symbol
     tym_t ty() const { return Stype.Tty; }
 
     union                       // variants for different Symbol types
     {
         enum_t* Senum;          // SCenum
-
-        struct
-        {
-             func_t* Sfunc;     // tyfunc
-             list_t Spath1;     // SCfuncalias member functions: same as Spath
-                                // and in same position
-                                // SCadl: list of associated functions for ADL lookup
-        }
-
-        struct                  // SClabel
-        {
-            int Slabel;         // TRUE if label was defined
-            block* Slabelblk_;  // label block
-        }
+        func_t* Sfunc;          // tyfunc
 
         struct
         {
@@ -818,8 +636,8 @@ struct Symbol
         uint Stypidx;           // SCstruct,SCunion,SCclass,SCenum,SCtypedef: debug info type index
         struct
         {
-            ubyte Sreglsw;
-            ubyte Sregmsw;
+            reg_t Sreglsw;
+            reg_t Sregmsw;
           regm_t Sregm;         // mask of registers
         }                       // SCregister,SCregpar,SCpseudo: register number
     }
@@ -837,11 +655,6 @@ struct Symbol
      */
     char[1] Sident;
 
-    int needThis()              // !=0 if symbol needs a 'this' pointer
-    { return Symbol_needThis(this); }
-
-    bool Sisdead(bool anyiasm)  // if variable is not referenced
-    { return Symbol_Sisdead(this, anyiasm); }
 }
 
 void symbol_debug(const Symbol* s)
@@ -849,9 +662,8 @@ void symbol_debug(const Symbol* s)
     debug assert(s.id == s.IDsymbol);
 }
 
-public import dmd.backend.symbol : Symbol_Salignsize, Symbol_Sisdead, Symbol_needThis, Symbol_isAffected;
+public import dmd.backend.symbol : Symbol_Salignsize, Symbol_Sisdead, Symbol_isAffected;
 
-bool isclassmember(const Symbol* s) { return s.Sscope && s.Sscope.Sclass == SC.struct_; }
 
 // Class, struct or union
 
@@ -885,29 +697,11 @@ const(char)* prettyident(const Symbol* s) { return &s.Sident[0]; }
  * Function parameters:
  *      Pident          identifier of parameter
  *      Ptype           type of argument
- *      Pelem           default value for argument
  *      Psym            symbol corresponding to Pident when using the
  *                      parameter list as a symbol table
- * For template-parameter-list:
- *      Pident          identifier of parameter
- *      Ptype           if NULL, this is a type-parameter
- *                      else the type for a parameter-declaration value argument
- *      Pelem           default value for value argument
- *      Pdeftype        default value for type-parameter
- *      Pptpl           template-parameter-list for template-template-parameter
- *      Psym            default value for template-template-parameter
- * For template-arg-list: (actual arguments)
- *      Pident          NULL
- *      Ptype           type-name
- *      Pelem           expression (either Ptype or Pelem is NULL)
- *      Psym            SCtemplate for template-template-argument
  */
 
 alias pflags_t = uint;
-enum
-{
-    PFexplicit = 1,       // this template argument was explicit, i.e. in < >
-}
 
 /************************
  * Params:
@@ -930,33 +724,17 @@ nothrow:
 
     char* Pident;               // identifier
     type* Ptype;                // type of parameter (NULL if not known yet)
-    elem* Pelem;                // default value
-    token_t* PelemToken;        // tokens making up default elem
-    type* Pdeftype;             // Ptype==NULL: default type for type-argument
-    param_t* Pptpl;             // template-parameter-list for template-template-parameter
-    Symbol* Psym;
     param_t* Pnext;             // next in list
-    pflags_t Pflags;
 
-    param_t* createTal(param_t* p) // create template-argument-list blank from
-                                // template-parameter-list
-    { return param_t_createTal(&this, p); }
+    // number of parameters in list
+    uint length() { return param_t_length(&this); }
 
-    param_t* search(char* id) return // look for Pident matching id
-    { return param_t_search(&this, id); }
+    // print this param_t
+    void print() { param_t_print(&this); }
 
-    uint length()               // number of parameters in list
-    { return param_t_length(&this); }
-
-    void print()                // print this param_t
-    { param_t_print(&this); }
-
-    void print_list()           // print this list of param_t's
-    { param_t_print_list(&this); }
+    // print this list of param_t's
+    void print_list() { param_t_print_list(&this); }
 }
-
-import dmd.backend.dtype : param_t_print, param_t_print_list, param_t_length, param_t_createTal,
-    param_t_search, param_t_searchn;
 
 void param_debug(const param_t* p)
 {
@@ -1026,11 +804,6 @@ enum FL : ubyte
 
 struct EEcontext
 {
-    uint EElinnum;              // line number to insert expression
-    char* EEexpr;               // expression
-    char* EEtypedef;            // typedef identifier
-    byte EEpending;             // !=0 means we haven't compiled it yet
-    byte EEimminent;            // we've installed it in the source text
     byte EEcompile;             // we're compiling for the EE expression
     byte EEin;                  // we are parsing an EE expression
     elem* EEelem;               // compiled version of EEexpr
@@ -1050,66 +823,4 @@ enum Goal : uint
     struct_     = 8,
     handle      = 0x10,    // don't replace handle'd objects
     ignoreExceptions = 0x20, // ignore floating point exceptions
-}
-
-/**********************************
- * Data definitions
- *      DTibytes        1..7 bytes
- *      DTabytes        offset of bytes of data
- *                      a { a data bytes }
- *      DTnbytes        bytes of data
- *                      a { a data bytes }
- *                      a = offset
- *      DTazeros        # of 0 bytes
- *                      a
- *      DTsymsize       same as DTazeros, but the type of the symbol gives
- *                      the size
- *      DTcommon        # of 0 bytes (in a common block)
- *                      a
- *      DTxoff          offset from symbol
- *                      w a
- *                      w = symbol number (pointer for CPP)
- *                      a = offset
- *      DTcoff          offset into code segment
- */
-
-struct dt_t
-{
-    dt_t* DTnext;                       // next in list
-    DT dt;                              // Tagged union tag, see above
-    ubyte Dty;                          // pointer type
-    ubyte DTn;                          // DTibytes: number of bytes
-    ubyte DTalign;                      // DTabytes: alignment (as power of 2) of pointed-to data
-    union
-    {
-        struct                          // DTibytes
-        {
-            enum DTibytesMax = (char*).sizeof + uint.sizeof + int.sizeof + targ_size_t.sizeof;
-            byte[DTibytesMax] DTdata;   // data
-        }
-        targ_size_t DTazeros;           // DTazeros,DTcommon,DTsymsize
-        struct                          // DTabytes
-        {
-            byte* DTpbytes;             // pointer to the bytes
-            size_t DTnbytes;            // # of bytes
-            int DTseg;                  // segment it went into
-            targ_size_t DTabytes;       // offset of abytes for DTabytes
-        }
-        struct                          // DTxoff
-        {
-            Symbol* DTsym;              // symbol pointer
-            targ_size_t DToffset;       // offset from symbol
-        }
-    }
-}
-
-enum DT : ubyte
-{
-    abytes = 0,
-    azeros = 1,
-    xoff   = 2,
-    nbytes = 3,
-    common = 4,
-    coff   = 5,
-    ibytes = 6,
 }

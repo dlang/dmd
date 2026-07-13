@@ -6,7 +6,7 @@ here: https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKch
 
 This file is originally from LDC (the LLVM D compiler).
 
-Copyright: Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
 Authors:   Johan Engelen, Max Haughton, Dennis Korpel
 License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
 Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/timetrace.d, common/_timetrace.d)
@@ -21,6 +21,7 @@ import dmd.expression;
 import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.root.string : toDString;
+import dmd.json : writeEscapeJSONString;
 
 // Thread local profiler instance (multithread currently not supported because compiler is single-threaded)
 TimeTraceProfiler* timeTraceProfiler = null;
@@ -174,8 +175,19 @@ enum TimeTraceEventType
     semaGeneral,
     sema1Import,
     sema1Module,
+    sema1TemplateDecl,
+    sema1TemplateInstance,
+    sema1TemplateArgSemantic,        /// semantic analysis of template arguments (semanticTiargs)
+    sema1TemplateOverloadResolution, /// overload resolution / best-match selection (findBestMatch)
+    sema1TemplateMembers,            /// sema1 pass on template instance members (expandMembers)
+    sema1TemplateInstanceSema2,      /// sema2 pass on template instance members
+    sema1TemplateInstanceSema3,      /// sema3 pass on template instance members
+    sema1Function,
     sema2,
     sema3,
+    inlineGeneral,   /// top-level span for the entire inliner pass
+    inlineFunction,  /// per-function span during inlining
+    dfa,
     ctfe,
     ctfeCall,
     codegenGlobal,
@@ -192,8 +204,19 @@ private immutable string[] eventPrefixes = [
     "Semantic analysis",
     "Import ",
     "Sema1: Module ",
+    "Sema1: Template Declaration ",
+    "Sema1: Template Instance ",
+    "Sema1: Template Arg Semantic: ", /// sema1TemplateArgSemantic
+    "Sema1: Overload Resolution: ",   /// sema1TemplateOverloadResolution
+    "Sema1: Template Members: ",      /// sema1TemplateMembers
+    "Sema2: Template Instance: ",     /// sema1TemplateInstanceSema2
+    "Sema3: Template Instance: ",     /// sema1TemplateInstanceSema3
+    "Sema1: Function ",
     "Sema2: ",
     "Sema3: ",
+    "Inlining",
+    "Inline: ",
+    "DFA: ",
     "Ctfe: ",
     "Ctfe: call ",
     "Code generation",
@@ -419,52 +442,6 @@ private struct TimeTraceProfiler
             buf.write(`"},`);
             buf.write(pidtidString);
             buf.write("},\n");
-        }
-    }
-}
-
-/**
- * Escape special characters (such as quotes and whitespaces) for a JSON string literal
- * Params:
- *   buf = buffer to write to
- *   str = string to escape and write as string literal
- */
-private void writeEscapeJSONString(ref OutBuffer buf, const(char[]) str)
-{
-    foreach (char c; str)
-    {
-        switch (c)
-        {
-        case '\n':
-            buf.writestring("\\n");
-            break;
-        case '\r':
-            buf.writestring("\\r");
-            break;
-        case '\t':
-            buf.writestring("\\t");
-            break;
-        case '\"':
-            buf.writestring("\\\"");
-            break;
-        case '\\':
-            buf.writestring("\\\\");
-            break;
-        case '\b':
-            buf.writestring("\\b");
-            break;
-        case '\f':
-            buf.writestring("\\f");
-            break;
-        default:
-            if (c < 0x20)
-                buf.printf("\\u%04x", c);
-            else
-            {
-                // Note that UTF-8 chars pass through here just fine
-                buf.writeByte(c);
-            }
-            break;
         }
     }
 }

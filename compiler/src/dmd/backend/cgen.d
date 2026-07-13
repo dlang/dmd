@@ -2,7 +2,7 @@
  * Generate code instructions
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/cgen.d, backend/cgen.d)
@@ -24,7 +24,9 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : error;
+import dmd.backend.dout : outdata;
+import dmd.backend.util2 : err_exit;
 import dmd.backend.obj;
 import dmd.backend.ty;
 import dmd.backend.type;
@@ -164,7 +166,7 @@ code* genc2(code* c,opcode_t op,uint ea,targ_size_t EV2)
     cs.Iop = op;
     cs.Iea = ea;
     //ccheck(&cs);
-    cs.Iflags = CFoff;
+    cs.Iflags = CF.off;
     cs.IFL2 = FL.const_;
     cs.IEV2.Vsize_t = EV2;
     return gen(c,cs);
@@ -196,7 +198,7 @@ void gencodelem(ref CodeBuilder cdb,elem* e,ref regm_t pretregs,bool constflag)
         codelem(cgstate,cdb,e,pretregs,constflag);
         assert(cgstate.stackclean == 0);
         cgstate.stackclean = stackcleansave;
-        genstackclean(cdb,cgstate.stackpush - stackpushsave,pretregs);       // do defered cleaning
+        genstackclean(cgstate,cdb,cgstate.stackpush - stackpushsave,pretregs);       // do defered cleaning
     }
 }
 
@@ -241,7 +243,7 @@ reg_t regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value, regm_t fla
     regm_t save = cgstate.regcon.immed.mval;
     const reg = allocreg(cdb,regm,TYint);  // allocate register
     cgstate.regcon.immed.mval = save;
-    movregconst(cdb,reg,value,flags);   // store value into reg
+    movregconst(cgstate,cdb,reg,value,flags);   // store value into reg
     return reg;
 }
 
@@ -254,7 +256,7 @@ struct Fixup
 {
     Symbol      *sym;       // the referenced Symbol
     int         seg;        // where the fixup is going (CODE or DATA, never UDATA)
-    int         flags;      // CFxxxx
+    int         flags;      // CF.xxxx
     targ_size_t offset;     // addr of reference to Symbol
     targ_size_t val;        // value to add into location
     Symbol      *funcsym;   // function the Symbol goes in
@@ -283,30 +285,30 @@ size_t addtofixlist(Symbol* s,targ_size_t offset,int seg,targ_size_t val,int fla
         size_t numbytes;
 if (TARGET_SEGMENTED)
 {
-        switch (flags & (CFoff | CFseg))
+        switch (flags & (CF.off | CF.seg))
         {
-            case CFoff:         numbytes = tysize(TYnptr);      break;
-            case CFseg:         numbytes = 2;                   break;
-            case CFoff | CFseg: numbytes = tysize(TYfptr);      break;
+            case CF.off:         numbytes = tysize(TYnptr);      break;
+            case CF.seg:         numbytes = 2;                   break;
+            case CF.off | CF.seg: numbytes = tysize(TYfptr);      break;
             default:            assert(0);
         }
 }
 else
 {
         numbytes = tysize(TYnptr);
-        if (I64 && !(flags & CFoffset64))
+        if (I64 && !(flags & CF.offset64))
             numbytes = 4;
 
 if (config.exe & EX_windos)
 {
         /* This can happen when generating CV8 data
          */
-        if (flags & CFseg)
+        if (flags & CF.seg)
             numbytes += 2;
 }
 }
         debug assert(numbytes <= zeros.sizeof);
-        objmod.bytes(seg,offset,cast(uint)numbytes,cast(ubyte*)zeros.ptr);
+        objmod.bytes(seg,offset,zeros[0 .. numbytes]);
         return numbytes;
 }
 

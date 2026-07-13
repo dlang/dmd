@@ -88,13 +88,13 @@ int main()
 
     // semantic
     m.dsymbolSemantic(null);
-    Module.runDeferredSemantic();
+    runDeferredSemantic();
 
     m.semantic2(null);
-    Module.runDeferredSemantic2();
+    runDeferredSemantic2();
 
     m.semantic3(null);
-    Module.runDeferredSemantic3();
+    runDeferredSemantic3();
 
 
     Dsymbol[] symbols;

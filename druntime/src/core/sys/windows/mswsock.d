@@ -82,7 +82,7 @@ struct TRANSMIT_FILE_BUFFERS {
     PVOID Tail;
     DWORD TailLength;
 }
-alias TRANSMIT_FILE_BUFFERS* PTRANSMIT_FILE_BUFFERS, LPTRANSMIT_FILE_BUFFERS;
+alias PTRANSMIT_FILE_BUFFERS = TRANSMIT_FILE_BUFFERS*, LPTRANSMIT_FILE_BUFFERS = TRANSMIT_FILE_BUFFERS*;
 
 extern(Windows) {
     /* Win95+, WinNT3.51+
@@ -99,10 +99,10 @@ extern(Windows) {
 
     /* WinNT3.51+
        ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/acceptex_2.htm */
-    alias BOOL function(SOCKET, SOCKET, PVOID, DWORD, DWORD, DWORD, LPDWORD, LPOVERLAPPED) LPFN_ACCEPTEX;
+    alias LPFN_ACCEPTEX = BOOL function(SOCKET, SOCKET, PVOID, DWORD, DWORD, DWORD, LPDWORD, LPOVERLAPPED);
     const GUID WSAID_ACCEPTEX = {0xb5367df1,0xcbac,0x11cf,[0x95,0xca,0x00,0x80,0x5f,0x48,0xa1,0x92]};
 
-    alias BOOL function(SOCKET, SOCKADDR*, int, PVOID, DWORD, LPDWORD, LPOVERLAPPED) LPFN_CONNECTEX;
+    alias LPFN_CONNECTEX = BOOL function(SOCKET, SOCKADDR*, int, PVOID, DWORD, LPDWORD, LPOVERLAPPED);
     const GUID WSAID_CONNECTEX = {0x25a207b9,0xddf3,0x4660,[0x8e,0xe9,0x76,0xe5,0x8c,0x74,0x06,0x3e]};
 }
 
@@ -136,7 +136,7 @@ static if (_WIN32_WINNT >= 0x501) {
         CHAR* buf;
     }
 
-    alias WSABUF* LPWSABUF;
+    alias LPWSABUF = WSABUF*;
 
     /*  WinXP+, Server2003+:
      *  ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/wsamsg_2.htm
@@ -150,7 +150,7 @@ static if (_WIN32_WINNT >= 0x501) {
         DWORD      dwFlags;
     }
 
-    alias WSAMSG* PWSAMSG, LPWSAMSG;
+    alias PWSAMSG = WSAMSG*, LPWSAMSG = WSAMSG*;
 
     /* According to MSDN docs, the WSAMSG.Control buffer starts with a
        cmsghdr header of the following form.  See also RFC 2292. */

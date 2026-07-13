@@ -10,6 +10,8 @@ QUIET:=
 TIMELIMIT:=
 PIC:=
 SHARED:=
+# not empty if musl is detected, empty otherwise
+IS_MUSL:=
 
 # Variables that can be specified by users, with the same meaning as used by GNU make
 # $(CC)      $(CXX)      $(DMD)       # the compiler
@@ -155,7 +157,7 @@ TARGET_ARCH.d = $(model_flag)
 
 ########## Other common code ##########
 
-.PHONY: all cleam
+.PHONY: all clean
 all: $(TESTS:%=$(OBJDIR)/%.done)
 
 $(OBJDIR)/%.done: $(OBJDIR)/%$(DOTEXE)

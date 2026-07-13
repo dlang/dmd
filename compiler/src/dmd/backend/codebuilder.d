@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/codebuilder.d, backend/_codebuilder.d)
@@ -35,7 +35,7 @@ struct CodeBuilder
     code** pTail;
 
     enum BADINS = 0x1234_5678;
-    //enum BADINS = 0x3C24_6843;
+    //enum BADINS = 0x00_00_00_C7;
 
   nothrow:
   public:
@@ -109,10 +109,24 @@ struct CodeBuilder
     {
         if (c)
         {
-            CodeBuilder cdb = void;
+            CodeBuilder cdb;
+assert(c.Iop != BADINS);
             cdb.ctor(c);
             append(cdb);
         }
+    }
+
+    /***
+     * Replace instruction `c` with the code sequence in `this`.
+     */
+    @trusted
+    void patch(code* c)
+    {
+        code* last = this.last();
+        last.next = c.next;
+        code* h = this.finish();
+        *c = *h;                // overwrite head of c with start of cdb
+        c.next = h.next;
     }
 
     void gen(code* cs)
@@ -173,6 +187,7 @@ assert(op != BADINS);
     {
         code* ce = code_calloc();
         ce.Iop = op;
+assert(op != BADINS);
         ce.Irm = cast(ubyte)rm;
         ce.Isib = cast(ubyte)sib;
         ce.Irex = cast(ubyte)((rm | (sib & (REX_B << 16))) >> 16);
@@ -193,9 +208,8 @@ assert(op != BADINS);
         code* ce = code_calloc();
         ce.Iop = ASM;
         ce.IFL1 = FL.asm_;
-        ce.IEV1.len = bytes.length;
-        ce.IEV1.bytes = cast(char*) mem_malloc(bytes.length);
-        memcpy(ce.IEV1.bytes,bytes.ptr,bytes.length);
+        ce.IEV1.data = (cast(ubyte*)mem_malloc(bytes.length))[0 .. bytes.length];
+        ce.IEV1.data[] = bytes[];
 
         *pTail = ce;
         pTail = &ce.next;
@@ -206,7 +220,7 @@ assert(op != BADINS);
     {
         code* ce = code_calloc();
         ce.Iop = ASM;
-        ce.Iflags = CFaddrsize;
+        ce.Iflags = CF.addrsize;
         ce.IFL1 = FL.blockoff;
         ce.IEV1.Vsym = cast(Symbol*)label;
 
@@ -219,7 +233,7 @@ assert(op != BADINS);
     {
         code* ce = code_calloc();
         ce.Iop = ASM;
-        ce.Iflags = CFaddrsize;
+        ce.Iflags = CF.addrsize;
         ce.IFL1 = FL.blockoff;
         ce.IEV1.Vblock = label;
         label.Bflags |= BFL.label;
@@ -234,7 +248,7 @@ assert(op != BADINS);
 assert(op != BADINS);
         code cs;
         cs.Iop = op;
-        cs.Iflags = 0;
+        cs.Iflags = CF.zero;
         cs.Iea = ea;
         ccheck(&cs);
         cs.IFL1 = FL1;
@@ -250,7 +264,7 @@ assert(op != BADINS);
 assert(op != BADINS);
         code cs;
         cs.Iop = op;
-        cs.Iflags = 0;
+        cs.Iflags = CF.zero;
         cs.Iea = ea;
         ccheck(&cs);
         cs.IFL2 = FL2;
@@ -266,10 +280,10 @@ assert(op != BADINS);
 assert(op != BADINS);
         code cs;
         cs.Iop = op;
-        cs.Iflags = 0;
+        cs.Iflags = CF.zero;
         cs.Iea = ea;
         ccheck(&cs);
-        cs.Iflags = CFoff;
+        cs.Iflags = CF.off;
         cs.IFL2 = FL.const_;
         cs.IEV2.Vsize_t = EV2;
 
@@ -283,7 +297,7 @@ assert(op != BADINS);
         code cs;
         assert(FL1 < FL.max + 1);
         cs.Iop = op;
-        cs.Iflags = CFoff;
+        cs.Iflags = CF.off;
         cs.Iea = ea;
         ccheck(&cs);
         cs.IFL1 = FL1;
@@ -301,7 +315,7 @@ assert(op != BADINS);
         cs.Iop = op;
         cs.Iea = ea;
         ccheck(&cs);
-        cs.Iflags = CFoff;
+        cs.Iflags = CF.off;
         cs.IFL1 = FL1;
         cs.IEV1.Vsize_t = EV1;
         assert(FL2 < FL.max + 1);
@@ -320,7 +334,7 @@ assert(op != BADINS);
         code cs;
         //srcpos.print("genlinnum");
         cs.Iop = PSOP.linnum;
-        cs.Iflags = 0;
+        cs.Iflags = CF.zero;
         cs.Iea = 0;
         cs.IEV1.Vsrcpos = srcpos;
         gen(&cs);
@@ -337,7 +351,7 @@ assert(op != BADINS);
         {
             code cs;
             cs.Iop = PSOP.adjesp;
-            cs.Iflags = 0;
+            cs.Iflags = CF.zero;
             cs.Iea = 0;
             cs.IEV1.Vint = offset;
             gen(&cs);
@@ -355,7 +369,7 @@ assert(op != BADINS);
         {
             code cs;
             cs.Iop = PSOP.adjfpu;
-            cs.Iflags = 0;
+            cs.Iflags = CF.zero;
             cs.Iea = 0;
             cs.IEV1.Vint = offset;
             gen(&cs);
@@ -397,10 +411,7 @@ assert(op != BADINS);
     @trusted
     code* last()
     {
-        // g++ and clang++ complain about offsetof() because of the code::code() constructor.
-        // return (code *)((char *)pTail - offsetof(code, next));
-        // So do our own.
-        return cast(code*)(cast(void*)pTail - (cast(void*)&(*pTail).next - cast(void*)*pTail));
+        return cast(code*)(cast(void*)pTail - code.next.offsetof);
     }
 
     /*************************************

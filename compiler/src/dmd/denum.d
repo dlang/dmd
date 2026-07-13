@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/enum.html, Enums)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/denum.d, _denum.d)
@@ -79,11 +79,6 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         auto ed = new EnumDeclaration(loc, ident, memtype ? memtype.syntaxCopy() : null);
         ScopeDsymbol.syntaxCopy(ed);
         return ed;
-    }
-
-    override Type getType()
-    {
-        return type;
     }
 
     override const(char)* kind() const

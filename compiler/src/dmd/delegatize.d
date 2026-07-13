@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/function.html#lazy-params, Lazy Parameters)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/delegatize.d, _delegatize.d)
@@ -18,6 +18,7 @@ import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
+import dmd.dsymbolsem : toParentP;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -179,6 +180,11 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
                 if (Initializer iz = ai.value[i])
                     iz.accept(this);
             }
+        }
+        override void visit(AssocArrayLiteralExp e)
+        {
+            if (e.lowering)
+                walkPostorder(e.lowering, this);
         }
     }
 

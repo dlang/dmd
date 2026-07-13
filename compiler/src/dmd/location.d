@@ -1,7 +1,7 @@
 /**
  * Encapsulates file/line/column locations.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/location.d, _location.d)
@@ -17,6 +17,7 @@ import dmd.common.outbuffer;
 import dmd.root.array;
 import dmd.root.filename;
 import dmd.root.string: toDString;
+import dmd.root.utf : utf_countColumnsUntil;
 
 /// How code locations are formatted for diagnostic reporting
 enum MessageStyle : ubyte
@@ -212,7 +213,7 @@ void writeSourceLoc(ref OutBuffer buf,
             if (showColumns && loc.column)
             {
                 buf.writeByte(',');
-                buf.print(loc.column);
+                buf.print(loc.displayColumn());
             }
             buf.writeByte(')');
             break;
@@ -222,7 +223,7 @@ void writeSourceLoc(ref OutBuffer buf,
             if (showColumns && loc.column)
             {
                 buf.writeByte(':');
-                buf.print(loc.column);
+                buf.print(loc.displayColumn());
             }
             break;
         case MessageStyle.sarif: // https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
@@ -276,6 +277,22 @@ struct SourceLoc
         OutBuffer buf;
         writeSourceLoc(buf, this, showColumns, messageStyle);
         return buf.extractChars();
+    }
+
+    private uint displayColumn() const nothrow @nogc @safe
+    {
+        if (fileContent.length == 0 || fileOffset >= fileContent.length)
+            return column;
+
+        size_t lineStart = fileOffset;
+        while (lineStart > 0 && fileContent[lineStart - 1] != '\n')
+            lineStart--;
+
+        const byteCount = cast(uint)(fileOffset - lineStart);
+        if (column <= byteCount)
+            return column;
+
+        return column - byteCount + cast(uint)utf_countColumnsUntil(fileContent[lineStart .. fileOffset], fileOffset - lineStart);
     }
 
     bool opEquals(SourceLoc other) const nothrow
@@ -369,6 +386,7 @@ struct BaseLoc
     uint startIndex; /// Subtract this from Loc.index to get file offset
     int startLine = 1; /// Line number at index 0
     uint[] lines; /// For each line, the file offset at which it starts. At index 0 there's always a 0 entry.
+    uint startColumn = 1; /// Column number at byte offset 0 of the first line
     BaseLoc[] substitutions; /// Substitutions from #line / #file directives
 
     /// Cache for the last line lookup
@@ -425,7 +443,8 @@ struct BaseLoc
     private SourceLoc getSourceLoc(uint offset) @nogc
     {
         const i = getLineIndex(offset);
-        const sl = SourceLoc(filename, cast(int) (i + startLine), cast(int) (1 + offset - lines[i]), offset, fileContents);
+        const col = i == 0 ? cast(int)(startColumn + offset) : cast(int)(1 + offset - lines[i]);
+        const sl = SourceLoc(filename, cast(int) (i + startLine), col, offset, fileContents);
         return substitute(sl);
     }
 

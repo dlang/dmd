@@ -5,7 +5,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test23968.d(22): Deprecation: alias `test23968.a` is deprecated
+fail_compilation/test23968.d(23): Deprecation: alias `test23968.a` is deprecated
+fail_compilation/test23968.d(18):        `a` is declared here
 ---
 */
 

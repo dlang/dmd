@@ -1,7 +1,7 @@
 /**
  * Perform constant folding.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/optimize.d, _optimize.d)
@@ -459,7 +459,20 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
         {
             if (!ve.var.isReference() && !ve.var.isImportedSymbol())
             {
-                ret = new SymOffExp(e.loc, ve.var, 0, ve.hasOverloads);
+                bool hasOverloads = ve.hasOverloads;
+                if (auto v = ve.var.isVarDeclaration())
+                {
+                    if (v.needThis())
+                    {
+                        auto t = v.isThis();
+                        assert(t);
+                        .error(e.loc, "taking the address of non-static variable `%s` requires an instance of `%s`", v.toErrMsg(), t.toErrMsg());
+                        ret = ErrorExp.get();
+                        return;
+                    }
+                    hasOverloads = false;
+                }
+                ret = new SymOffExp(e.loc, ve.var, 0, hasOverloads);
                 ret.type = e.type;
                 return;
             }
@@ -1072,7 +1085,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
         // All negative integral powers are illegal.
         if (e.e1.type.isIntegral() && (e.e2.op == EXP.int64) && cast(sinteger_t)e.e2.toInteger() < 0)
         {
-            error(e.loc, "cannot raise `%s` to a negative integer power.", e.e1.type.toBasetype().toChars());
+            error(e.loc, "cannot raise `%s` to a negative integer power.", e.e1.type.toBasetype().toErrMsg());
             errorSupplemental(e.loc, "did you mean `(cast(real)%s)^^%s` ?", e.e1.toChars(), e.e2.toChars());
             return errorReturn();
         }

@@ -44,8 +44,12 @@ void testCall()
 /*
 TEST_OUTPUT:
 ---
-compilable/vgc3.d(51): vgc: using closure causes GC allocation
-compilable/vgc3.d(63): vgc: using closure causes GC allocation
+compilable/vgc3.d(55): vgc: using closure causes GC allocation
+compilable/vgc3.d(58): vgc: function `bar` closes over variable `x`
+compilable/vgc3.d(57): vgc: `x` declared here
+compilable/vgc3.d(67): vgc: using closure causes GC allocation
+compilable/vgc3.d(70): vgc: function `bar` closes over variable `x`
+compilable/vgc3.d(69): vgc: `x` declared here
 ---
 */
 auto testClosure1()

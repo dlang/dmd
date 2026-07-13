@@ -1,7 +1,7 @@
 /**
  * Defines an identifier, which is the name of a `Dsymbol`.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/identifier.d, _identifier.d)
@@ -76,6 +76,11 @@ nothrow:
         this.name = name;
         this.value = value;
         isAnonymous_ = isAnonymous;
+    }
+
+    bool equals(const Identifier i) const
+    {
+        return this is i;
     }
 
     static Identifier create(const(char)* name)
@@ -217,11 +222,15 @@ nothrow:
      *      parent      = (optional) extra part to be used in uniqueness check,
      *                    if (prefix1, loc1) == (prefix2, loc2), but
      *                    parent1 != parent2, no new name will be generated.
+     *      mustBeUnique = require unique identifier.
+     *                     append counter to generated name if this prefix +
+     *                     location has been encountered before
      * Returns:
      *      Identifier (inside Identifier.idPool) with deterministic name based
      *      on the source location.
      */
-    extern (D) static Identifier generateIdWithLoc(string prefix, Loc loc, const void* parent = null)
+    extern (D) static Identifier generateIdWithLoc(string prefix, Loc loc,
+        const void* parent = null, bool mustBeUnique = true)
     {
         // generate `<prefix>_L<line>_C<col>`
         auto sl = SourceLoc(loc);
@@ -231,6 +240,9 @@ nothrow:
         idBuf.print(sl.line);
         idBuf.writestring("_C");
         idBuf.print(sl.column);
+
+        if (!mustBeUnique)
+            return idPool(idBuf[]);
 
         /**
          * Make sure the identifiers are unique per filename, i.e., per module/mixin

@@ -182,7 +182,7 @@ unittest
             if (a == 1)
                 assert(false);
 
-            int[] array;
+            int[] array = [1];
             array[0] = 3;
 
             final switch (3)

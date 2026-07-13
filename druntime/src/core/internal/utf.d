@@ -755,7 +755,7 @@ wstring toUTF16(const scope char[] s)
     return cast(wstring)r;
 }
 
-alias const(wchar)* wptr;
+alias wptr = const(wchar)*;
 /** ditto */
 @safe pure
 wptr toUTF16z(const scope char[] s)

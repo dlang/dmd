@@ -1,22 +1,44 @@
 /**
-REQUIRED_ARGS: -ftime-trace -ftime-trace-file=- -ftime-trace-granularity=0
+REQUIRED_ARGS: -ftime-trace -ftime-trace-file=- -ftime-trace-granularity=0 -preview=fastdfa
 TRANSFORM_OUTPUT: sanitize_timetrace
 TEST_OUTPUT:
 ---
 Code generation,
 Codegen: function add, object.add
 Codegen: function fun, object.fun
+Codegen: function id, object.id!int
+Codegen: function uses, object.uses
 Codegen: module object, object
 Ctfe: add(4, 8), add(4, 8)
 Ctfe: call add, object.add(4, 8)
+DFA: add, object.add
+DFA: fun, object.fun
+DFA: id, object.id!int
+DFA: uses, object.uses
 Import object.object, object.object
+Inlining,
 Parse: Module object, object
 Parsing,
+Sema1: Function add, object.add
+Sema1: Function fun, object.fun
+Sema1: Function id, object.id!int
+Sema1: Function uses, object.uses
 Sema1: Module object, object
+Sema1: Overload Resolution: id!int, id!int
+Sema1: Template Arg Semantic: id!int, id!int
+Sema1: Template Declaration id(T)(T t), object.id(T)(T t)
+Sema1: Template Instance id!int, object.id!int
+Sema1: Template Members: id!int, object.id!int
+Sema2: Template Instance: id!int, object.id!int
 Sema2: add, object.add
 Sema2: fun, object.fun
+Sema2: id, object.id!int
+Sema2: uses, object.uses
+Sema3: Template Instance: id!int, object.id!int
 Sema3: add, object.add
 Sema3: fun, object.fun
+Sema3: id, object.id!int
+Sema3: uses, object.uses
 Semantic analysis,
 ---
 */
@@ -31,4 +53,11 @@ void fun()
 int add(int x, int y)
 {
     return x + y;
+}
+
+T id(T)(T t) { return T.init; }
+
+void uses()
+{
+    int a = id!int(42);
 }

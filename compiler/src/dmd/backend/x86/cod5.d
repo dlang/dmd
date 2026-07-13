@@ -7,7 +7,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1995-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/x86/cod5.d, backend/cod5.d)
@@ -23,11 +23,9 @@ import dmd.backend.cc;
 import dmd.backend.el;
 import dmd.backend.oper;
 import dmd.backend.code;
-import dmd.backend.global;
 import dmd.backend.type;
 
 import dmd.backend.cdef;
-import dmd.backend.dlist;
 import dmd.backend.ty;
 
 nothrow:
@@ -94,10 +92,10 @@ else
 
         // If all predecessors are marked
         mark = 0;
-        assert(b.Bpred);
-        foreach (bl; ListRange(b.Bpred))
+        assert(b.Bpred.length);
+        foreach (bl; b.Bpred[])
         {
-            if (list_block(bl).Bflags & BFL.outsideprolog)
+            if (bl.Bflags & BFL.outsideprolog)
             {
                 if (mark == 2)
                     goto L1;
@@ -119,9 +117,9 @@ else
 
         // See if b is an epilog
         mark = 0;
-        foreach (bl; ListRange(b.Bsucc))
+        foreach (bl; b.Bsucc[])
         {
-            if (list_block(bl).Bflags & BFL.outsideprolog)
+            if (bl.Bflags & BFL.outsideprolog)
             {
                 if (mark == 2)
                     goto L1;
@@ -183,8 +181,8 @@ private void pe_add(block* b)
         return;
 
     b.Bflags |= BFL.outsideprolog;
-    foreach (bl; ListRange(b.Bsucc))
-        pe_add(list_block(bl));
+    foreach (bl; b.Bsucc[])
+        pe_add(bl);
 }
 
 /**********************************************
@@ -194,7 +192,7 @@ private void pe_add(block* b)
 @trusted
 private int need_prolog(block* b)
 {
-    if (b.Bregcon.used & fregsaved)
+    if (b.Bregcon.used & cgstate.fregsaved)
         goto Lneed;
 
     // If block referenced a param in 16 bit code

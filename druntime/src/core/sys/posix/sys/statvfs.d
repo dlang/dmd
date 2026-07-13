@@ -9,6 +9,7 @@
  +/
 module core.sys.posix.sys.statvfs;
 import core.stdc.config;
+import core.stdc.stdint;
 import core.sys.posix.config;
 public import core.sys.posix.sys.types;
 
@@ -18,71 +19,117 @@ nothrow:
 @nogc:
 
 version (CRuntime_Glibc) {
-    static if (__WORDSIZE == 32)
+    version (linux)
     {
-        version=_STATVFSBUF_F_UNUSED;
-    }
-    struct statvfs_t
-    {
-        c_ulong f_bsize;
-        c_ulong f_frsize;
-        fsblkcnt_t f_blocks;
-        fsblkcnt_t f_bfree;
-        fsblkcnt_t f_bavail;
-        fsfilcnt_t f_files;
-        fsfilcnt_t f_ffree;
-        fsfilcnt_t f_favail;
-        c_ulong f_fsid;
-        version (_STATVFSBUF_F_UNUSED)
+        static if (__WORDSIZE == 32)
         {
-            int __f_unused;
+            version=_STATVFSBUF_F_UNUSED;
         }
-        c_ulong f_flag;
-        c_ulong f_namemax;
-        int[6] __f_spare;
+        struct statvfs_t
+        {
+            c_ulong f_bsize;
+            c_ulong f_frsize;
+            fsblkcnt_t f_blocks;
+            fsblkcnt_t f_bfree;
+            fsblkcnt_t f_bavail;
+            fsfilcnt_t f_files;
+            fsfilcnt_t f_ffree;
+            fsfilcnt_t f_favail;
+            c_ulong f_fsid;
+            version (_STATVFSBUF_F_UNUSED)
+            {
+                int __f_unused;
+            }
+            c_ulong f_flag;
+            c_ulong f_namemax;
+            int[6] __f_spare;
+        }
+        /* Definitions for the flag in `f_flag'.  These definitions should be
+           kept in sync with the definitions in <sys/mount.h>.  */
+        static if (_GNU_SOURCE)
+        {
+            enum FFlag
+            {
+                ST_RDONLY = 1,        /* Mount read-only.  */
+                ST_NOSUID = 2,
+                ST_NODEV = 4,         /* Disallow access to device special files.  */
+                ST_NOEXEC = 8,        /* Disallow program execution.  */
+                ST_SYNCHRONOUS = 16,      /* Writes are synced at once.  */
+                ST_MANDLOCK = 64,     /* Allow mandatory locks on an FS.  */
+                ST_WRITE = 128,       /* Write on file/directory/symlink.  */
+                ST_APPEND = 256,      /* Append-only file.  */
+                ST_IMMUTABLE = 512,       /* Immutable file.  */
+                ST_NOATIME = 1024,        /* Do not update access times.  */
+                ST_NODIRATIME = 2048,     /* Do not update directory access times.  */
+                ST_RELATIME = 4096        /* Update atime relative to mtime/ctime.  */
+
+            }
+        }  /* Use GNU.  */
+        else
+        { // Posix defined:
+            enum FFlag
+                {
+                    ST_RDONLY = 1,        /* Mount read-only.  */
+                    ST_NOSUID = 2
+                }
+        }
+        static if ( __USE_FILE_OFFSET64 )
+        {
+            int statvfs64 (const char * file, statvfs_t* buf);
+            alias statvfs = statvfs64;
+
+            int fstatvfs64 (int fildes, statvfs_t *buf) @trusted;
+            alias fstatvfs = fstatvfs64;
+        }
+        else
+        {
+            int statvfs (const char * file, statvfs_t* buf);
+            int fstatvfs (int fildes, statvfs_t *buf);
+        }
     }
-    /* Definitions for the flag in `f_flag'.  These definitions should be
-      kept in sync with the definitions in <sys/mount.h>.  */
-    static if (_GNU_SOURCE)
+    else version (Hurd)
     {
+        import core.sys.hurd.sys.types;
+        struct statvfs_t
+        {
+            uint       f_type;
+            c_ulong    f_bsize;
+            fsblkcnt_t f_blocks;
+            fsblkcnt_t f_bfree;
+            fsblkcnt_t f_bavail;
+            fsfilcnt_t f_files;
+            fsfilcnt_t f_ffree;
+            fsid_t     f_fsid;
+            c_ulong    f_namelen;
+            fsfilcnt_t f_favail;
+            c_ulong    f_frsize;
+            c_ulong    f_flag;
+            uint[3]    f_spare;
+        }
+
         enum FFlag
         {
-            ST_RDONLY = 1,        /* Mount read-only.  */
+            ST_RDONLY = 1,
             ST_NOSUID = 2,
-            ST_NODEV = 4,         /* Disallow access to device special files.  */
-            ST_NOEXEC = 8,        /* Disallow program execution.  */
-            ST_SYNCHRONOUS = 16,      /* Writes are synced at once.  */
-            ST_MANDLOCK = 64,     /* Allow mandatory locks on an FS.  */
-            ST_WRITE = 128,       /* Write on file/directory/symlink.  */
-            ST_APPEND = 256,      /* Append-only file.  */
-            ST_IMMUTABLE = 512,       /* Immutable file.  */
-            ST_NOATIME = 1024,        /* Do not update access times.  */
-            ST_NODIRATIME = 2048,     /* Do not update directory access times.  */
-            ST_RELATIME = 4096        /* Update atime relative to mtime/ctime.  */
-
+            ST_NOEXEC = 8,
+            ST_SYNCHRONOUS = 16,
+            ST_NOATIME = 32,
+            ST_RELATIME = 64,
         }
-    }  /* Use GNU.  */
-    else
-    { // Posix defined:
-        enum FFlag
+
+        static if ( __USE_FILE_OFFSET64 )
         {
-            ST_RDONLY = 1,        /* Mount read-only.  */
-            ST_NOSUID = 2
+            int statvfs64 (const char * file, statvfs_t* buf);
+            alias statvfs = statvfs64;
+
+            int fstatvfs64 (int fildes, statvfs_t *buf) @trusted;
+            alias fstatvfs = fstatvfs64;
         }
-    }
-
-    static if ( __USE_FILE_OFFSET64 )
-    {
-        int statvfs64 (const char * file, statvfs_t* buf);
-        alias statvfs64 statvfs;
-
-        int fstatvfs64 (int fildes, statvfs_t *buf) @trusted;
-        alias fstatvfs64 fstatvfs;
-    }
-    else
-    {
-        int statvfs (const char * file, statvfs_t* buf);
-        int fstatvfs (int fildes, statvfs_t *buf);
+        else
+        {
+            int statvfs (const char * file, statvfs_t* buf);
+            int fstatvfs (int fildes, statvfs_t *buf);
+        }
     }
 }
 else version (CRuntime_Musl)
@@ -97,7 +144,7 @@ else version (CRuntime_Musl)
         fsfilcnt_t f_files;
         fsfilcnt_t f_ffree;
         fsfilcnt_t f_favail;
-        static if (true /+__BYTE_ORDER == __LITTLE_ENDIAN+/)
+        version (LittleEndian)
         {
             c_ulong f_fsid;
             byte[2*int.sizeof-c_long.sizeof] __padding;
@@ -133,8 +180,8 @@ else version (CRuntime_Musl)
     int statvfs (const char * file, statvfs_t* buf);
     int fstatvfs (int fildes, statvfs_t *buf);
 
-    alias statvfs statvfs64;
-    alias fstatvfs fstatvfs64;
+    alias statvfs64 = statvfs;
+    alias fstatvfs64 = fstatvfs;
 }
 else version (NetBSD)
 {
@@ -180,7 +227,9 @@ else version (NetBSD)
         ST_NOSUID = 2
     }
 
+    pragma(mangle, "__statvfs90")
     int statvfs (const char * file, statvfs_t* buf);
+    pragma(mangle, "__fstatvfs90")
     int fstatvfs (int fildes, statvfs_t *buf) @trusted;
 }
 else version (OpenBSD)
@@ -235,6 +284,105 @@ else version (FreeBSD)
     {
         pragma(mangle, "fstatvfs@FBSD_1.0") int fstatvfs(int, statvfs_t*);
         pragma(mangle, "statvfs@FBSD_1.0")  int statvfs(const char*, statvfs_t*);
+    }
+}
+else version (Solaris)
+{
+    private enum _FSTYPSZ = 16;
+
+    version (D_LP64)
+    {
+        struct statvfs_t
+        {
+            c_ulong f_bsize;
+            c_ulong f_frsize;
+            fsblkcnt_t f_blocks;
+            fsblkcnt_t f_bfree;
+            fsblkcnt_t f_bavail;
+            fsfilcnt_t f_files;
+            fsfilcnt_t f_ffree;
+            fsfilcnt_t f_favail;
+            c_ulong f_fsid;
+            char[_FSTYPSZ] f_basetype;
+            c_ulong f_flag;
+            c_ulong f_namemax;
+            char[32] f_fstr;
+        }
+
+        static if (__USE_LARGEFILE64) alias statvfs64_t = statvfs_t;
+    }
+    else
+    {
+        struct statvfs_t
+        {
+            c_ulong f_bsize;
+            c_ulong f_frsize;
+            fsblkcnt_t f_blocks;
+            fsblkcnt_t f_bfree;
+            fsblkcnt_t f_bavail;
+            fsfilcnt_t f_files;
+            fsfilcnt_t f_ffree;
+            fsfilcnt_t f_favail;
+            c_ulong f_fsid;
+            char[_FSTYPSZ] f_basetype;
+            c_ulong f_flag;
+            c_ulong f_namemax;
+            char[32] f_fstr;
+            char[16] f_filler;
+        }
+
+        struct statvfs64_t
+        {
+            c_ulong f_bsize;
+            c_ulong f_frsize;
+            fsblkcnt64_t f_blocks;
+            fsblkcnt64_t f_bfree;
+            fsblkcnt64_t f_bavail;
+            fsfilcnt64_t f_files;
+            fsfilcnt64_t f_ffree;
+            fsfilcnt64_t f_favail;
+            c_ulong f_fsid;
+            char[_FSTYPSZ] f_basetype;
+            c_ulong f_flag;
+            c_ulong f_namemax;
+            char[32] f_fstr;
+            uint32_t[16] f_filler;
+        }
+    }
+
+    enum FFlag
+    {
+        ST_RDONLY = 1,           /* read-only file system */
+        ST_NOSUID = 2,           /* does not support setuid/setgid semantics */
+        ST_NOTRUNC = 4           /* does not truncate long file names */
+    }
+
+    version (D_LP64)
+    {
+        int statvfs (const char * file, statvfs_t* buf);
+        int fstatvfs (int fildes, statvfs_t *buf);
+
+        static if (__USE_LARGEFILE64)
+        {
+            alias statvfs64 = statvfs;
+            alias fstatvfs64 = fstatvfs;
+        }
+    }
+    else
+    {
+        static if (__USE_LARGEFILE64)
+        {
+            int statvfs64 (const char * file, statvfs_t* buf);
+            alias statvfs = statvfs64;
+
+            int fstatvfs64 (int fildes, statvfs_t *buf);
+            alias fstatvfs = fstatvfs64;
+        }
+        else
+        {
+            int statvfs (const char * file, statvfs_t* buf);
+            int fstatvfs (int fildes, statvfs_t *buf);
+        }
     }
 }
 else

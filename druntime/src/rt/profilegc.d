@@ -13,6 +13,12 @@
 
 module rt.profilegc;
 
+// On Wasm, it increases codesize noticably.
+// Meanwhile, ldc (ldmd2) does not support `-profile-gc`, so there's no point
+// keeping it around on Wasm targets
+version (WASI) {}
+else:
+
 private:
 
 import core.stdc.errno : errno;
@@ -151,7 +157,7 @@ shared static ~this()
     {
         qsort(counts.ptr, counts.length, Result.sizeof, &Result.qsort_cmp);
 
-        FILE* fp = logfilename == "\0" ? stdout : fopen((logfilename).ptr, "w");
+        FILE* fp = logfilename == "\0" ? cast()stdout : fopen((logfilename).ptr, "w");
         if (fp)
         {
             fprintf(fp, "bytes allocated, allocations, type, function, file:line\n");
@@ -167,7 +173,7 @@ shared static ~this()
         else
         {
             const err = errno;
-            fprintf(stderr, "cannot write profilegc log file '%.*s' (errno=%d)",
+            fprintf(cast()stderr, "cannot write profilegc log file '%.*s' (errno=%d)",
                 cast(int) logfilename.length,
                 logfilename.ptr,
                 cast(int) err);

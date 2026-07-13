@@ -141,8 +141,8 @@ SHUT_WR
 
 version (linux)
 {
-    alias uint   socklen_t;
-    alias ushort sa_family_t;
+    alias socklen_t = uint;
+    alias sa_family_t = ushort;
 
     struct sockaddr
     {
@@ -622,8 +622,8 @@ version (linux)
 }
 else version (Darwin)
 {
-    alias uint   socklen_t;
-    alias ubyte  sa_family_t;
+    alias socklen_t = uint;
+    alias sa_family_t = ubyte;
 
     struct sockaddr
     {
@@ -762,8 +762,8 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    alias uint   socklen_t;
-    alias ubyte  sa_family_t;
+    alias socklen_t = uint;
+    alias sa_family_t = ubyte;
 
     struct sockaddr
     {
@@ -920,8 +920,8 @@ else version (FreeBSD)
 }
 else version (NetBSD)
 {
-    alias uint   socklen_t;
-    alias ubyte  sa_family_t;
+    alias socklen_t = uint;
+    alias sa_family_t = ubyte;
 
     struct sockaddr
     {
@@ -1098,8 +1098,8 @@ else version (NetBSD)
 }
 else version (OpenBSD)
 {
-    alias uint   socklen_t;
-    alias ubyte  sa_family_t;
+    alias socklen_t = uint;
+    alias sa_family_t = ubyte;
 
     struct sockaddr
     {
@@ -1270,8 +1270,8 @@ else version (OpenBSD)
 }
 else version (DragonFlyBSD)
 {
-    alias uint   socklen_t;
-    alias ubyte  sa_family_t;
+    alias socklen_t = uint;
+    alias sa_family_t = ubyte;
 
     enum
     {
@@ -1470,8 +1470,8 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
-    alias uint socklen_t;
-    alias ushort sa_family_t;
+    alias socklen_t = uint;
+    alias sa_family_t = ushort;
 
     struct sockaddr
     {
@@ -1479,7 +1479,7 @@ else version (Solaris)
         char[14] sa_data = 0;
     }
 
-    alias double sockaddr_maxalign_t;
+    alias sockaddr_maxalign_t = double;
 
     private
     {
@@ -1598,6 +1598,153 @@ else version (Solaris)
         SHUT_RDWR
     }
 }
+else version (Hurd)
+{
+    alias socklen_t = uint;
+    alias sa_family_t = ubyte;
+
+    struct sockaddr
+    {
+        ubyte       ss_len;
+        sa_family_t sa_family;
+        byte[14]    sa_data;
+    }
+
+    private enum : size_t
+    {
+        _SS_SIZE    = 128,
+        _SS_PADSIZE = _SS_SIZE - c_ulong.sizeof - sa_family_t.sizeof - ubyte.sizeof,
+    }
+
+    struct sockaddr_storage
+    {
+        ubyte       ss_len;
+        sa_family_t ss_family;
+        byte[_SS_PADSIZE] __ss_padding;
+        c_ulong     __ss_align;
+    }
+    struct msghdr
+    {
+        void*      msg_name;
+        socklen_t  msg_namelen;
+        iovec*     msg_iov;
+        int        msg_iovlen;
+        void*      msg_control;
+        socklen_t  msg_controllen;
+        int        msg_flags;
+    }
+
+    struct cmsghdr
+    {
+        socklen_t cmsg_len;
+        int        cmsg_level;
+        int        cmsg_type;
+    }
+    enum : uint
+    {
+        SCM_RIGHTS = 0x01
+    }
+
+    extern (D) inout(ubyte)*   CMSG_DATA( return scope inout(cmsghdr)* cmsg ) pure nothrow @nogc { return cast(ubyte*)( cmsg + 1 ); }
+    private inout(cmsghdr)* __cmsg_nxthdr(inout(msghdr)*, inout(cmsghdr)*) pure nothrow @nogc;
+    extern (D)  inout(cmsghdr)* CMSG_NXTHDR(inout(msghdr)* msg, inout(cmsghdr)* cmsg) pure nothrow @nogc
+    {
+        return __cmsg_nxthdr(msg, cmsg);
+    }
+
+    extern (D) inout(cmsghdr)* CMSG_FIRSTHDR( inout(msghdr)* mhdr ) pure nothrow @nogc
+    {
+        return ( cast(size_t)mhdr.msg_controllen >= cmsghdr.sizeof
+                 ? cast(inout(cmsghdr)*) mhdr.msg_control
+                 : cast(inout(cmsghdr)*) null );
+    }
+
+    extern (D)
+     {
+         size_t CMSG_ALIGN( size_t len ) pure nothrow @nogc
+         {
+             return (len + size_t.sizeof - 1) & cast(size_t) (~(size_t.sizeof - 1));
+         }
+
+         size_t CMSG_LEN( size_t len ) pure nothrow @nogc
+         {
+             return CMSG_ALIGN(cmsghdr.sizeof) + len;
+         }
+     }
+
+    extern (D) size_t CMSG_SPACE(size_t len) pure nothrow @nogc
+    {
+        return CMSG_ALIGN(len) + CMSG_ALIGN(cmsghdr.sizeof);
+    }
+    struct linger
+    {
+        int l_onoff;
+        int l_linger;
+    }
+
+    enum
+    {
+        SOCK_DGRAM      = 2,
+        SOCK_RDM        = 4,
+        SOCK_SEQPACKET  = 5,
+        SOCK_STREAM     = 1,
+    }
+    enum
+    {
+        SOL_SOCKET      = 0xffff
+    }
+    enum
+    {
+        SO_ACCEPTCONN   = 0x0002,
+        SO_BROADCAST    = 0x0020,
+        SO_DEBUG        = 0x0001,
+        SO_DONTROUTE    = 0x0010,
+        SO_ERROR        = 0x1007,
+        SO_KEEPALIVE    = 0x0008,
+        SO_LINGER       = 0x0080,
+        SO_OOBINLINE    = 0x0100,
+        SO_RCVBUF       = 0x1002,
+        SO_RCVLOWAT     = 0x1004,
+        SO_RCVTIMEO     = 0x1006,
+        SO_REUSEADDR    = 0x0004,
+        SO_REUSEPORT    = 0x0200,
+        SO_SNDBUF       = 0x1002,
+        SO_SNDLOWAT     = 0x1003,
+        SO_SNDTIMEO     = 0x1005,
+        SO_TYPE         = 0x1008
+    }
+    enum
+    {
+        SOMAXCONN       = 128
+    }
+    enum : uint
+    {
+        MSG_CTRUNC      = 0x20,
+        MSG_DONTROUTE   = 0x04,
+        MSG_EOR         = 0x08,
+        MSG_OOB         = 0x01,
+        MSG_PEEK        = 0x02,
+        MSG_TRUNC       = 0x10,
+        MSG_WAITALL     = 0x40,
+        MSG_NOSIGNAL    = 0x0400
+    }
+
+    enum
+    {
+        AF_INET         = 2,
+        AF_LOCAL        = 1,
+        AF_UNIX         = AF_LOCAL,
+        AF_UNSPEC       = 0,
+        AF_APPLETALK    = 16,
+        AF_IPX          = 23
+    }
+    enum
+    {
+        SHUT_RD             = 0,
+        SHUT_WR             = 1,
+        SHUT_RDWR           = 2
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1704,7 +1851,7 @@ else version (NetBSD)
     ssize_t sendto(int, const scope void*, size_t, int, const scope sockaddr*, socklen_t);
     int     setsockopt(int, int, int, const scope void*, socklen_t);
     int     shutdown(int, int) @safe;
-    int     socket(int, int, int) @safe;
+    pragma(mangle, "__socket30") int     socket(int, int, int) @safe;
     int     sockatmark(int) @safe;
     int     socketpair(int, int, int, ref int[2]) @safe;
 }
@@ -1899,6 +2046,13 @@ else version (Solaris)
         AF_INET6 = 26,
     }
 }
+else version (Hurd)
+{
+    enum
+    {
+        AF_INET6 = 26,
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1958,6 +2112,13 @@ else version (Solaris)
     enum
     {
         SOCK_RAW = 4,
+    }
+}
+else version (Hurd)
+{
+    enum
+    {
+        SOCK_RAW = 3,
     }
 }
 else

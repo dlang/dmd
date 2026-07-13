@@ -132,9 +132,9 @@ TCOON
 
 version (linux)
 {
-    alias ubyte cc_t;
-    alias uint  speed_t;
-    alias uint  tcflag_t;
+    alias cc_t = ubyte;
+    alias speed_t = uint;
+    alias tcflag_t = uint;
 
     enum NCCS   = 32;
 
@@ -230,9 +230,9 @@ version (linux)
 }
 else version (Darwin)
 {
-    alias ubyte cc_t;
-    alias c_ulong  speed_t;
-    alias c_ulong  tcflag_t;
+    alias cc_t = ubyte;
+    alias speed_t = c_ulong;
+    alias tcflag_t = c_ulong;
 
     enum NCCS   = 20;
 
@@ -327,9 +327,9 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    alias ubyte cc_t;
-    alias uint  speed_t;
-    alias uint  tcflag_t;
+    alias cc_t = ubyte;
+    alias speed_t = uint;
+    alias tcflag_t = uint;
 
     enum NCCS   = 20;
 
@@ -424,9 +424,9 @@ else version (FreeBSD)
 }
 else version (DragonFlyBSD)
 {
-    alias ubyte cc_t;
-    alias uint  speed_t;
-    alias uint  tcflag_t;
+    alias cc_t = ubyte;
+    alias speed_t = uint;
+    alias tcflag_t = uint;
 
     enum NCCS   = 20;
 
@@ -521,9 +521,9 @@ else version (DragonFlyBSD)
 }
 else version (NetBSD)
 {
-    alias ubyte cc_t;
-    alias uint  speed_t;
-    alias uint  tcflag_t;
+    alias cc_t = ubyte;
+    alias speed_t = uint;
+    alias tcflag_t = uint;
 
     enum NCCS   = 20;
 
@@ -618,9 +618,9 @@ else version (NetBSD)
 }
 else version (OpenBSD)
 {
-    alias uint  tcflag_t;
-    alias ubyte cc_t;
-    alias uint  speed_t;
+    alias tcflag_t = uint;
+    alias cc_t = ubyte;
+    alias speed_t = uint;
 
     enum NCCS   = 20;
 
@@ -831,6 +831,108 @@ else version (Solaris)
     enum B460800 = 22;
     enum B921600 = 23;
 }
+else version (Hurd)
+{
+    alias cc_t = ubyte;
+    alias speed_t = uint;
+    alias tcflag_t = uint;
+
+    enum NCCS   = 20;
+
+    struct termios
+    {
+        tcflag_t   c_iflag;
+        tcflag_t   c_oflag;
+        tcflag_t   c_cflag;
+        tcflag_t   c_lflag;
+        cc_t[NCCS] c_cc;
+        speed_t    c_ispeed;
+        speed_t    c_ospeed;
+    }
+
+    enum VEOF       = 0;
+    enum VEOL       = 1;
+    enum VERASE     = 3;
+    enum VINTR      = 8;
+    enum VKILL      = 5;
+    enum VMIN       = 16;
+    enum VQUIT      = 9;
+    enum VSTART     = 12;
+    enum VSTOP      = 13;
+    enum VSUSP      = 10;
+    enum VTIME      = 17;
+
+    enum BRKINT     = 0x0000002;
+    enum ICRNL      = 0x0000100;
+    enum IGNBRK     = 0x0000001;
+    enum IGNCR      = 0x0000080;
+    enum IGNPAR     = 0x0000004;
+    enum INLCR      = 0x0000040;
+    enum INPCK      = 0x0000010;
+    enum ISTRIP     = 0x0000020;
+    enum IXOFF      = 0x0000400;
+    enum IXON       = 0x0000200;
+    enum PARMRK     = 0x0000008;
+
+    enum OPOST      = 0x0000001;
+
+    enum B0         = 0;
+    enum B50        = 50;
+    enum B75        = 75;
+    enum B110       = 110;
+    enum B134       = 134;
+    enum B150       = 150;
+    enum B200       = 200;
+    enum B300       = 300;
+    enum B600       = 600;
+    enum B1200      = 1200;
+    enum B1800      = 1800;
+    enum B2400      = 2400;
+    enum B4800      = 4800;
+    enum B9600      = 9600;
+    enum B19200     = 19200;
+    enum B38400     = 38400;
+
+    enum CSIZE      = 0x0000300;
+    enum   CS5      = 0x0000000;
+    enum   CS6      = 0x0000100;
+    enum   CS7      = 0x0000200;
+    enum   CS8      = 0x0000300;
+    enum CSTOPB     = 0x0000400;
+    enum CREAD      = 0x0000800;
+    enum PARENB     = 0x0001000;
+    enum PARODD     = 0x0002000;
+    enum HUPCL      = 0x0004000;
+    enum CLOCAL     = 0x0008000;
+
+    enum ECHO       = 0x00000008;
+    enum ECHOE      = 0x00000002;
+    enum ECHOK      = 0x00000004;
+    enum ECHONL     = 0x00000010;
+    enum ICANON     = 0x00000100;
+    enum IEXTEN     = 0x00000400;
+    enum ISIG       = 0x00000080;
+    enum NOFLSH     = 0x80000000;
+    enum TOSTOP     = 0x00400000;
+
+    enum TCSANOW    = 0;
+    enum TCSADRAIN  = 1;
+    enum TCSAFLUSH  = 2;
+
+    enum TCIFLUSH   = 0;
+    enum TCOFLUSH   = 1;
+    enum TCIOFLUSH  = 2;
+
+    enum TCIOFF     = 3;
+    enum TCION      = 4;
+    enum TCOOFF     = 1;
+    enum TCOON      = 2;
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
+
 
 /*
 speed_t cfgetispeed(const scope termios*);

@@ -16,6 +16,7 @@
 #     make -j$(nproc) dmd-test
 #
 # See compiler/src/build.d for variables affecting the compiler build.
+# Use HOST_DFLAGS (not DFLAGS) for extra flags (for the host compiler) to be used for the compiler build.
 
 include compiler/src/osmodel.mak
 
@@ -48,8 +49,15 @@ GENERATED:=generated
 BUILD_EXE:=$(GENERATED)/build$(EXE)
 RUN_EXE:=$(GENERATED)/run$(EXE)
 
+# forward any HOST_DFLAGS as DFLAGS for the build tool
+ifeq (,$(HOST_DFLAGS))
+    BUILD_CMD:=$(BUILD_EXE)
+else
+    BUILD_CMD:=$(BUILD_EXE) DFLAGS='$(HOST_DFLAGS)'
+endif
+
 .PHONY: all clean test html install \
-        dmd dmd-test druntime druntime-test \
+        dmd dmd-unittest dmd-test druntime druntime-test \
         auto-tester-build auto-tester-test buildkite-test \
         toolchain-info check-clean-git style
 
@@ -70,7 +78,7 @@ auto-tester-test:
 buildkite-test: test
 
 toolchain-info: $(BUILD_EXE)
-	$(BUILD_EXE) $@
+	$(BUILD_CMD) $@
 
 clean:
 	rm -rf $(GENERATED)
@@ -79,10 +87,12 @@ clean:
 	$(QUIET)$(MAKE) -C druntime clean
 
 dmd: $(BUILD_EXE)
-	$(BUILD_EXE) $@
+	$(BUILD_CMD) $@
 
-dmd-test: dmd druntime $(BUILD_EXE) $(RUN_EXE)
-	$(BUILD_EXE) unittest
+dmd-unittest: $(BUILD_EXE)
+	$(BUILD_CMD) unittest
+
+dmd-test: dmd-unittest dmd druntime $(RUN_EXE)
 	$(RUN_EXE) --environment
 
 druntime: dmd
@@ -94,7 +104,7 @@ druntime-test: dmd
 test: dmd-test druntime-test
 
 html: $(BUILD_EXE)
-	$(BUILD_EXE) $@
+	$(BUILD_CMD) $@
 
 # Creates Exuberant Ctags tags file
 tags: Makefile $(ECTAGS_FILES)
@@ -106,8 +116,8 @@ install:
 	echo "Darwin_64_32_disabled"
 else
 install: $(BUILD_EXE)
-	$(BUILD_EXE) man
-	$(BUILD_EXE) install INSTALL_DIR='$(if $(findstring $(OS),windows),$(shell cygpath -w '$(INSTALL_DIR)'),$(INSTALL_DIR))'
+	$(BUILD_CMD) man
+	$(BUILD_CMD) install INSTALL_DIR='$(if $(findstring $(OS),windows),$(shell cygpath -w '$(INSTALL_DIR)'),$(INSTALL_DIR))'
 	mkdir -p '$(INSTALL_DIR)'/man
 	cp -r $(GENERATED)/docs/man/* '$(INSTALL_DIR)'/man/
 	$(QUIET)$(MAKE) -C druntime install INSTALL_DIR='$(INSTALL_DIR)'
@@ -124,7 +134,7 @@ check-clean-git:
 	fi
 
 style: $(BUILD_EXE)
-	$(BUILD_EXE) $@
+	$(BUILD_CMD) $@
 
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)
 

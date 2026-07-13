@@ -73,7 +73,7 @@ enum {
     RASADMIN_CURRENT = 40
 }
 
-alias ULONG IPADDR;
+alias IPADDR = ULONG;
 
 enum RAS_PARAMS_FORMAT {
     ParamNumber = 0,
@@ -100,7 +100,7 @@ struct RAS_USER_0 {
     BYTE                                    bfPrivilege;
     WCHAR[RASSAPI_MAX_PHONENUMBER_SIZE + 1] szPhoneNumber = 0;
 }
-alias RAS_USER_0* PRAS_USER_0;
+alias PRAS_USER_0 = RAS_USER_0*;
 
 struct RAS_PORT_0 {
     WCHAR[RASSAPI_MAX_PORT_NAME]       wszPortName = 0;
@@ -115,7 +115,7 @@ struct RAS_PORT_0 {
     WCHAR[DNLEN + 1]                   wszLogonDomain = 0;
     BOOL                               fAdvancedServer;
 }
-alias RAS_PORT_0* PRAS_PORT_0;
+alias PRAS_PORT_0 = RAS_PORT_0*;
 
 struct RAS_PPP_NBFCP_RESULT {
     DWORD dwError;
@@ -156,7 +156,7 @@ struct RAS_PORT_1 {
     DWORD      SizeMediaParms;
     RAS_PPP_PROJECTION_RESULT ProjResult;
 }
-alias RAS_PORT_1* PRAS_PORT_1;
+alias PRAS_PORT_1 = RAS_PORT_1*;
 
 struct RAS_PORT_STATISTICS {
     DWORD dwBytesXmited;
@@ -188,14 +188,14 @@ struct RAS_PORT_STATISTICS {
     DWORD dwPortBytesXmitedCompressed;
     DWORD dwPortBytesRcvedCompressed;
 }
-alias RAS_PORT_STATISTICS* PRAS_PORT_STATISTICS;
+alias PRAS_PORT_STATISTICS = RAS_PORT_STATISTICS*;
 
 struct RAS_SERVER_0 {
     WORD TotalPorts;
     WORD PortsInUse;
     DWORD RasVersion;
 }
-alias RAS_SERVER_0* PRAS_SERVER_0;
+alias PRAS_SERVER_0 = RAS_SERVER_0*;
 
 extern (Windows) {
     DWORD RasAdminServerGetInfo(const(WCHAR)*, PRAS_SERVER_0);

@@ -1,7 +1,7 @@
 /**
  * Semantic analysis for D types.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/typesem.d, _typesem.d)
@@ -17,7 +17,6 @@ import core.stdc.stdio;
 
 import dmd.access;
 import dmd.aggregate;
-import dmd.aliasthis;
 import dmd.arrayop;
 import dmd.arraytypes;
 import dmd.astcodegen;
@@ -26,17 +25,16 @@ import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
-import dmd.dimport;
 import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.templatesem : computeOneMember;
 import dmd.dtemplate;
 import dmd.enumsem;
 import dmd.errors;
-import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -50,7 +48,6 @@ import dmd.importc;
 import dmd.init;
 import dmd.initsem;
 import dmd.location;
-import dmd.visitor;
 import dmd.mtype;
 import dmd.mangle;
 import dmd.nogc;
@@ -64,12 +61,1357 @@ import dmd.root.rmem;
 import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.root.string;
-import dmd.root.stringtable;
 import dmd.safe;
 import dmd.semantic3;
 import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
+
+bool hasDeprecatedAliasThis(Type _this)
+{
+    auto ad = isAggregate(_this);
+    return ad && ad.aliasthis && (ad.aliasthis.isDeprecated || ad.aliasthis.sym.isDeprecated);
+}
+
+/*************************************
+ * Apply STCxxxx bits to existing type.
+ * Use *before* semantic analysis is run.
+ */
+Type addSTC(Type _this, STC stc)
+{
+    Type t = _this;
+    if (t.isImmutable())
+    {
+        return t;
+    }
+    else if (stc & STC.immutable_)
+    {
+        t = t.makeImmutable();
+        return t;
+    }
+
+    if ((stc & STC.shared_) && !t.isShared())
+    {
+        if (t.isWild())
+        {
+            if (t.isConst())
+                t = t.makeSharedWildConst();
+            else
+                t = t.makeSharedWild();
+        }
+        else
+        {
+            if (t.isConst())
+                t = t.makeSharedConst();
+            else
+                t = t.makeShared();
+        }
+    }
+    if ((stc & STC.const_) && !t.isConst())
+    {
+        if (t.isShared())
+        {
+            if (t.isWild())
+                t = t.makeSharedWildConst();
+            else
+                t = t.makeSharedConst();
+        }
+        else
+        {
+            if (t.isWild())
+                t = t.makeWildConst();
+            else
+                t = t.makeConst();
+        }
+    }
+    if ((stc & STC.wild) && !t.isWild())
+    {
+        if (t.isShared())
+        {
+            if (t.isConst())
+                t = t.makeSharedWildConst();
+            else
+                t = t.makeSharedWild();
+        }
+        else
+        {
+            if (t.isConst())
+                t = t.makeWildConst();
+            else
+                t = t.makeWild();
+        }
+    }
+
+    return t;
+}
+
+/***************************************************
+ * Determine if type t can be indexed or sliced given that it is not an
+ * aggregate with operator overloads.
+ * Params:
+ *      t = type to check
+ * Returns:
+ *      true if an expression of type t can be e1 in an array expression
+ */
+bool isIndexableNonAggregate(Type t)
+{
+    t = t.toBasetype();
+    return (t.ty == Tpointer || t.isStaticOrDynamicArray() || t.ty == Taarray ||
+            t.ty == Ttuple || t.ty == Tvector);
+}
+
+/**
+ * If the type is a class or struct, returns the symbol for it,
+ * else null.
+ */
+AggregateDeclaration isAggregate(Type t)
+{
+    t = t.toBasetype();
+    if (auto tc = t.isTypeClass())
+        return tc.sym;
+    if (auto ts = t.isTypeStruct())
+        return ts.sym;
+    return null;
+}
+
+/****************************************************
+ * Determine if parameter is a lazy array of delegates.
+ * If so, return the return type of those delegates.
+ * If not, return NULL.
+ *
+ * Returns T if the type is one of the following forms:
+ *      T delegate()[]
+ *      T delegate()[dim]
+ */
+Type isLazyArray(Parameter _this)
+{
+    Type tb = _this.type.toBasetype();
+    if (tb.isStaticOrDynamicArray())
+    {
+        Type tel = (cast(TypeArray)tb).next.toBasetype();
+        if (auto td = tel.isTypeDelegate())
+        {
+            TypeFunction tf = td.next.toTypeFunction();
+            if (tf.parameterList.varargs == VarArg.none && tf.parameterList.length == 0)
+            {
+                return tf.next; // return type of delegate
+            }
+        }
+    }
+    return null;
+}
+
+/****************************************
+ * Return the mask that an integral type will
+ * fit into.
+ */
+ulong sizemask(Type _this)
+{
+    ulong m;
+    switch (_this.toBasetype().ty)
+    {
+    case Tbool:
+        m = 1;
+        break;
+    case Tchar:
+    case Tint8:
+    case Tuns8:
+        m = 0xFF;
+        break;
+    case Twchar:
+    case Tint16:
+    case Tuns16:
+        m = 0xFFFFU;
+        break;
+    case Tdchar:
+    case Tint32:
+    case Tuns32:
+        m = 0xFFFFFFFFU;
+        break;
+    case Tint64:
+    case Tuns64:
+        m = 0xFFFFFFFFFFFFFFFFUL;
+        break;
+    default:
+        assert(0);
+    }
+    return m;
+}
+
+/*************************************
+ * If _this is a type of static array, return its base element type.
+ */
+Type baseElemOf(Type _this)
+{
+    Type t = _this.toBasetype();
+    TypeSArray tsa;
+    while ((tsa = t.isTypeSArray()) !is null)
+        t = tsa.next.toBasetype();
+    return t;
+}
+
+/*************************************
+ * If this is a type of something, return that something.
+ */
+Type nextOf(Type _this)
+{
+    /*******************************
+     * For TypeFunction, nextOf() can return NULL if the function return
+     * type is meant to be inferred, and semantic() hasn't yet been run
+     * on the function. After semantic(), it must no longer be NULL.
+     */
+    if (auto tn = _this.isTypeNext())
+        return tn.next;
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().nextOf();
+    return null;
+}
+
+/***************************
+ * Look for bugs in constructing types.
+ */
+void check(Type _this)
+{
+    if (_this.mcache)
+    with (_this.mcache)
+    switch (_this.mod)
+    {
+    case 0:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.const_:
+        if (cto)
+            assert(cto.mod == 0);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.wild:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == 0);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.wildconst:
+        assert(!cto || cto.mod == MODFlags.const_);
+        assert(!ito || ito.mod == MODFlags.immutable_);
+        assert(!sto || sto.mod == MODFlags.shared_);
+        assert(!scto || scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        assert(!wto || wto.mod == MODFlags.wild);
+        assert(!wcto || wcto.mod == 0);
+        assert(!swto || swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        assert(!swcto || swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.shared_:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == 0);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.shared_ | MODFlags.const_:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == 0);
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.shared_ | MODFlags.wild:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == MODFlags.immutable_);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == 0);
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    case MODFlags.shared_ | MODFlags.wildconst:
+        assert(!cto || cto.mod == MODFlags.const_);
+        assert(!ito || ito.mod == MODFlags.immutable_);
+        assert(!sto || sto.mod == MODFlags.shared_);
+        assert(!scto || scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        assert(!wto || wto.mod == MODFlags.wild);
+        assert(!wcto || wcto.mod == MODFlags.wildconst);
+        assert(!swto || swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        assert(!swcto || swcto.mod == 0);
+        break;
+
+    case MODFlags.immutable_:
+        if (cto)
+            assert(cto.mod == MODFlags.const_);
+        if (ito)
+            assert(ito.mod == 0);
+        if (sto)
+            assert(sto.mod == MODFlags.shared_);
+        if (scto)
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        if (wto)
+            assert(wto.mod == MODFlags.wild);
+        if (wcto)
+            assert(wcto.mod == MODFlags.wildconst);
+        if (swto)
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        if (swcto)
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        break;
+
+    default:
+        assert(0);
+    }
+
+    Type tn = _this.nextOf();
+    if (tn && _this.ty != Tfunction && tn.ty != Tfunction && _this.ty != Tenum)
+    {
+        // Verify transitivity
+        switch (_this.mod)
+        {
+        case 0:
+        case MODFlags.const_:
+        case MODFlags.wild:
+        case MODFlags.wildconst:
+        case MODFlags.shared_:
+        case MODFlags.shared_ | MODFlags.const_:
+        case MODFlags.shared_ | MODFlags.wild:
+        case MODFlags.shared_ | MODFlags.wildconst:
+        case MODFlags.immutable_:
+            assert(tn.mod == MODFlags.immutable_ || (tn.mod & _this.mod) == _this.mod);
+            break;
+
+        default:
+            assert(0);
+        }
+        tn.check();
+    }
+}
+
+/**********************************
+ * For our new type '_this', which is type-constructed from t,
+ * fill in the cto, ito, sto, scto, wto shortcuts.
+ */
+private void fixTo(Type _this, Type t)
+{
+    Type mto = null;            // the naked type of `t`
+    if (_this.mod || t.mod)
+    {
+        _this.getMcache();
+        t.getMcache();
+    }
+    // If fixing this: immutable(T*) by t: immutable(T)*,
+    // cache t to this.xto won't break transitivity.
+    Type tn = _this.nextOf();
+    if (!tn || _this.ty != Tsarray && tn.mod == t.nextOf().mod)
+    {
+        switch (t.mod)
+        {
+        case 0:
+            mto = t;            // t is naked
+            break;
+
+        case MODFlags.const_:
+            mto = t.mcache.cto; // cto is naked
+            _this.mcache.cto = t;
+            break;
+
+        case MODFlags.wild:
+            mto = t.mcache.wto; // wto is naked
+            _this.mcache.wto = t;
+            break;
+
+        case MODFlags.wildconst:
+            mto = t.mcache.wcto; // wcto is naked
+            _this.mcache.wcto = t;
+            break;
+
+        case MODFlags.shared_:
+            mto = t.mcache.sto;  // sto is naked
+            _this.mcache.sto = t;
+            break;
+
+        case MODFlags.shared_ | MODFlags.const_:
+            mto = t.mcache.scto; // scto is naked
+            _this.mcache.scto = t;
+            break;
+
+        case MODFlags.shared_ | MODFlags.wild:
+            mto = t.mcache.swto; // swto is naked
+            _this.mcache.swto = t;
+            break;
+
+        case MODFlags.shared_ | MODFlags.wildconst:
+            mto = t.mcache.swcto; // swcto is naked
+            _this.mcache.swcto = t;
+            break;
+
+        case MODFlags.immutable_:
+            mto = t.mcache.ito;  // ito is naked
+            _this.mcache.ito = t;
+            break;
+
+        default:
+            break;
+        }
+    }
+    assert(_this.mod != t.mod);
+
+    switch (_this.mod)
+    {
+    case 0:
+        break;
+
+    case MODFlags.const_:
+        _this.mcache.cto = mto;
+        t.mcache.cto = _this;
+        break;
+
+    case MODFlags.wild:
+        _this.mcache.wto = mto;
+        t.mcache.wto = _this;
+        break;
+
+    case MODFlags.wildconst:
+        _this.mcache.wcto = mto;
+        t.mcache.wcto = _this;
+        break;
+
+    case MODFlags.shared_:
+        _this.mcache.sto = mto;
+        t.mcache.sto = _this;
+        break;
+
+    case MODFlags.shared_ | MODFlags.const_:
+        _this.mcache.scto = mto;
+        t.mcache.scto = _this;
+        break;
+
+    case MODFlags.shared_ | MODFlags.wild:
+        _this.mcache.swto = mto;
+        t.mcache.swto = _this;
+        break;
+
+    case MODFlags.shared_ | MODFlags.wildconst:
+        _this.mcache.swcto = mto;
+        t.mcache.swcto = _this;
+        break;
+
+    case MODFlags.immutable_:
+        t.mcache.ito = _this;
+        if (t.mcache.cto)
+            t.mcache.cto.getMcache().ito = _this;
+        if (t.mcache.sto)
+            t.mcache.sto.getMcache().ito = _this;
+        if (t.mcache.scto)
+            t.mcache.scto.getMcache().ito = _this;
+        if (t.mcache.wto)
+            t.mcache.wto.getMcache().ito = _this;
+        if (t.mcache.wcto)
+            t.mcache.wcto.getMcache().ito = _this;
+        if (t.mcache.swto)
+            t.mcache.swto.getMcache().ito = _this;
+        if (t.mcache.swcto)
+            t.mcache.swcto.getMcache().ito = _this;
+        break;
+
+    default:
+        assert(0);
+    }
+    _this.check();
+    t.check();
+    //printf("fixTo: %s, %s\n", toChars(), t.toChars());
+}
+
+void transitive(TypeNext _this)
+{
+    // Invoke transitivity of type attributes
+    _this.next = _this.next.addMod(_this.mod);
+}
+
+private inout(TypeNext) isTypeNext(inout Type _this)
+{
+    switch(_this.ty)
+    {
+        case Tpointer, Treference, Tfunction, Tdelegate, Tslice, Tarray, Taarray, Tsarray:
+            return cast(typeof(return)) _this;
+        default: return null;
+    }
+}
+
+/********************************
+ * true if when type is copied, it needs a copy constructor or postblit
+ * applied. Only applies to value types, not ref types.
+ */
+bool needsCopyOrPostblit(Type _this)
+{
+    if (auto tsa = _this.isTypeSArray())
+        return tsa.next.needsCopyOrPostblit();
+    else if (auto ts = _this.isTypeStruct())
+        return ts.sym.hasCopyCtor || ts.sym.postblit;
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().needsCopyOrPostblit();
+    return false;
+}
+
+/********************************
+ * true if when type goes out of scope, it needs a destructor applied.
+ * Only applies to value types, not ref types.
+ */
+bool needsDestruction(Type _this)
+{
+    if (auto tsa = _this.isTypeSArray())
+        return tsa.next.needsDestruction();
+    else if (auto ts = _this.isTypeStruct())
+        return ts.sym.dtor !is null;
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().needsDestruction();
+    return false;
+}
+
+bool needsNested(Type _this)
+{
+    static bool typeStructNeedsNested(TypeStruct _this)
+    {
+        if (_this.inuse) return false; // circular type, error instead of crashing
+
+        _this.inuse = true;
+        scope(exit) _this.inuse = false;
+
+        if (_this.sym.isNested())
+            return true;
+
+        for (size_t i = 0; i < _this.sym.fields.length; i++)
+        {
+            VarDeclaration v = _this.sym.fields[i];
+            if (!v.isDataseg() && v.type.needsNested())
+                return true;
+        }
+        return false;
+    }
+
+    if (auto tsa = _this.isTypeSArray())
+        return tsa.next.needsNested();
+    else if (auto ts = _this.isTypeStruct())
+        return typeStructNeedsNested(ts);
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().needsNested();
+    return false;
+}
+
+bool isScalar(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & (TFlags.integral | TFlags.floating)) != 0;
+    else if (auto tv = _this.isTypeVector())
+        return tv.basetype.nextOf().isScalar();
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().isScalar();
+    else if (_this.isTypePointer())
+        return true;
+    return false;
+}
+
+bool isUnsigned(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & TFlags.unsigned) != 0;
+    else if (auto tv = _this.isTypeVector())
+        return tv.basetype.nextOf().isUnsigned();
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().isUnsigned();
+    return false;
+}
+
+bool isImaginary(Type _this)
+{
+    if (auto te = _this.isTypeEnum())
+        return te.memType().isImaginary();
+    return _this.isImaginaryNonSemantic();
+}
+
+bool isComplex(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & TFlags.complex) != 0;
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().isComplex();
+    return false;
+}
+
+// Exposed as it is used in `expressionsem`
+MOD typeDeduceWild(Type _this, Type t, bool isRef)
+{
+    //printf("Type::deduceWild this = '%s', tprm = '%s'\n", toChars(), tprm.toChars());
+    if (t.isWild())
+    {
+        if (_this.isImmutable())
+            return MODFlags.immutable_;
+        if (_this.isWildConst())
+        {
+            if (t.isWildConst())
+                return MODFlags.wild;
+            return MODFlags.wildconst;
+        }
+        if (_this.isWild())
+            return MODFlags.wild;
+        if (_this.isConst())
+            return MODFlags.const_;
+        if (_this.isMutable())
+            return MODFlags.mutable;
+        assert(0);
+    }
+    return 0;
+}
+
+/***************************************
+ * Compute MOD bits matching `this` argument type to wild parameter type.
+ * Params:
+ *  _this = base parameter type
+ *  t = corresponding parameter type
+ *  isRef = parameter is `ref` or `out`
+ * Returns:
+ *  MOD bits
+ */
+MOD deduceWild(Type _this, Type t, bool isRef)
+{
+    static MOD typeNextDeduceWild(TypeNext _this, Type t, bool isRef)
+    {
+        if (_this.ty == Tfunction)
+            return 0;
+
+        ubyte wm;
+
+        Type tn = t.nextOf();
+        if (!isRef && (_this.ty == Tarray || _this.ty == Tpointer) && tn)
+        {
+            wm = _this.next.deduceWild(tn, true);
+            if (!wm)
+                wm = typeDeduceWild(cast(Type)_this, t, true);
+        }
+        else
+        {
+            wm = typeDeduceWild(cast(Type)_this, t, isRef);
+            if (!wm && tn)
+                wm = _this.next.deduceWild(tn, true);
+        }
+        return wm;
+    }
+
+    static MOD typeStructDeduceWild(TypeStruct _this, Type t, bool isRef)
+    {
+        if (_this.ty == t.ty && _this.sym == (cast(TypeStruct)t).sym)
+            return typeDeduceWild(cast(Type)_this, t, isRef);
+
+        ubyte wm = 0;
+
+        if (t.hasWild() && _this.sym.aliasthis && !(_this.att & AliasThisRec.tracing))
+        {
+            if (auto ato = aliasthisOf(_this))
+            {
+                _this.att = cast(AliasThisRec)(_this.att | AliasThisRec.tracing);
+                wm = ato.deduceWild(t, isRef);
+                _this.att = cast(AliasThisRec)(_this.att & ~AliasThisRec.tracing);
+            }
+        }
+
+        return wm;
+    }
+
+    static MOD typeClassDeduceWild(TypeClass _this, Type t, bool isRef)
+    {
+        ClassDeclaration cd = t.isClassHandle();
+        if (cd && (_this.sym == cd || cd.isBaseOf(_this.sym, null)))
+            return typeDeduceWild(cast(Type)_this, t, isRef);
+
+        ubyte wm = 0;
+
+        if (t.hasWild() && _this.sym.aliasthis && !(_this.att & AliasThisRec.tracing))
+        {
+            if (auto ato = aliasthisOf(_this))
+            {
+                _this.att = cast(AliasThisRec)(_this.att | AliasThisRec.tracing);
+                wm = ato.deduceWild(t, isRef);
+                _this.att = cast(AliasThisRec)(_this.att & ~AliasThisRec.tracing);
+            }
+        }
+
+        return wm;
+    }
+
+    if (auto tn = _this.isTypeNext())
+        return typeNextDeduceWild(tn, t, isRef);
+    else if (auto ts = _this.isTypeStruct())
+        return typeStructDeduceWild(ts, t, isRef);
+    else if (auto tc = _this.isTypeClass())
+        return typeClassDeduceWild(tc, t, isRef);
+    return typeDeduceWild(_this, t, isRef);
+}
+
+bool isString(Type _this)
+{
+    if (auto tsa = _this.isTypeSArray())
+    {
+        TY nty = tsa.next.toBasetype().ty;
+        return nty.isSomeChar();
+    }
+    else if (auto tda = _this.isTypeDArray())
+    {
+        TY nty = tda.next.toBasetype().ty;
+        return nty.isSomeChar();
+    }
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().isString();
+    return false;
+}
+
+/**************************
+ * Returns true if T can be converted to boolean value.
+ */
+bool isBoolean(Type _this)
+{
+    switch(_this.ty)
+    {
+        case Tvector, Tstruct: return false;
+        case Tarray, Taarray, Tdelegate, Tclass, Tnull: return true;
+        case Tenum: return _this.isTypeEnum().memType().isBoolean();
+        // bottom type can be implicitly converted to any other type
+        case Tnoreturn: return true;
+        default: return _this.isScalar();
+    }
+}
+
+bool isReal(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & TFlags.real_) != 0;
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().isReal();
+    return false;
+}
+
+// real, imaginary, or complex
+bool isFloating(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & TFlags.floating) != 0;
+    else if (auto tv = _this.isTypeVector())
+        return tv.basetype.nextOf().isFloating();
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().isFloating();
+    return false;
+}
+
+bool isIntegral(Type _this)
+{
+    if (auto tb = _this.isTypeBasic())
+        return (tb.flags & TFlags.integral) != 0;
+    else if (auto tv = _this.isTypeVector())
+        return tv.basetype.nextOf().isIntegral();
+    else if (auto te = _this.isTypeEnum())
+        return te.memType().isIntegral();
+    return false;
+}
+
+Type makeSharedWildConst(Type _this)
+{
+    if (_this.mcache && _this.mcache.swcto)
+        return _this.mcache.swcto;
+    Type t = _this.nullAttributes();
+    t.mod = MODFlags.shared_ | MODFlags.wildconst;
+
+    if (auto tn = _this.isTypeNext())
+    {
+        //printf("TypeNext::makeSharedWildConst() %s\n", toChars());
+        TypeNext _t = cast(TypeNext) t;
+        if (tn.ty != Tfunction && tn.next.ty != Tfunction && !tn.next.isImmutable())
+        {
+            _t.next = tn.next.sharedWildConstOf();
+        }
+        //printf("TypeNext::makeSharedWildConst() returns %p, %s\n", t, t.toChars());
+        return _t;
+    }
+    return t;
+}
+
+Type makeSharedWild(Type _this)
+{
+    if (_this.mcache && _this.mcache.swto)
+        return _this.mcache.swto;
+    Type t = _this.nullAttributes();
+    t.mod = MODFlags.shared_ | MODFlags.wild;
+
+    if (auto tn = _this.isTypeNext())
+    {
+        //printf("TypeNext::makeSharedWild() %s\n", toChars());
+        TypeNext _t = cast(TypeNext) t;
+        if (tn.ty != Tfunction && tn.next.ty != Tfunction && !tn.next.isImmutable())
+        {
+            if (tn.next.isConst())
+                _t.next = tn.next.sharedWildConstOf();
+            else
+                _t.next = tn.next.sharedWildOf();
+        }
+        //printf("TypeNext::makeSharedWild() returns %p, %s\n", t, t.toChars());
+        return _t;
+    }
+    return t;
+}
+
+Type makeWildConst(Type _this)
+{
+    if (_this.mcache && _this.mcache.wcto)
+        return _this.mcache.wcto;
+    Type t = _this.nullAttributes();
+    t.mod = MODFlags.wildconst;
+
+    if (auto tn = _this.isTypeNext())
+    {
+        //printf("TypeNext::makeWildConst() %s\n", toChars());
+        TypeNext _t = cast(TypeNext) t;
+        if (tn.ty != Tfunction && tn.next.ty != Tfunction && !tn.next.isImmutable())
+        {
+            if (tn.next.isShared())
+                _t.next = tn.next.sharedWildConstOf();
+            else
+                _t.next = tn.next.wildConstOf();
+        }
+        //printf("TypeNext::makeWildConst() returns %p, %s\n", t, t.toChars());
+        return _t;
+    }
+    return t;
+}
+
+Type makeWild(Type _this)
+{
+    if (_this.mcache && _this.mcache.wto)
+        return _this.mcache.wto;
+    Type t = _this.nullAttributes();
+    t.mod = MODFlags.wild;
+
+    if (auto tn = _this.isTypeNext())
+    {
+        //printf("TypeNext::makeWild() %s\n", toChars());
+        TypeNext _t = cast(TypeNext) t;
+        if (tn.ty != Tfunction && tn.next.ty != Tfunction && !tn.next.isImmutable())
+        {
+            if (tn.next.isShared())
+            {
+                if (tn.next.isConst())
+                    _t.next = tn.next.sharedWildConstOf();
+                else
+                    _t.next = tn.next.sharedWildOf();
+            }
+            else
+            {
+                if (tn.next.isConst())
+                    _t.next = tn.next.wildConstOf();
+                else
+                    _t.next = tn.next.wildOf();
+            }
+        }
+        //printf("TypeNext::makeWild() returns %p, %s\n", t, t.toChars());
+        return _t;
+    }
+    return t;
+}
+
+Type makeSharedConst(Type _this)
+{
+    if (_this.mcache && _this.mcache.scto)
+        return _this.mcache.scto;
+    Type t = _this.nullAttributes();
+    t.mod = MODFlags.shared_ | MODFlags.const_;
+
+    if (auto tn = _this.isTypeNext())
+    {
+        //printf("TypeNext::makeSharedConst() %s\n", toChars());
+        TypeNext _t = cast(TypeNext) t;
+        if (tn.ty != Tfunction && tn.next.ty != Tfunction && !tn.next.isImmutable())
+        {
+            if (tn.next.isWild())
+                _t.next = tn.next.sharedWildConstOf();
+            else
+                _t.next = tn.next.sharedConstOf();
+        }
+        //printf("TypeNext::makeSharedConst() returns %p, %s\n", t, t.toChars());
+        return _t;
+    }
+    return t;
+}
+
+Type makeShared(Type _this)
+{
+    if (_this.mcache && _this.mcache.sto)
+        return _this.mcache.sto;
+    Type t = _this.nullAttributes();
+    t.mod = MODFlags.shared_;
+
+    if (auto tn = _this.isTypeNext())
+    {
+        //printf("TypeNext::makeShared() %s\n", toChars());
+        TypeNext _t = cast(TypeNext) t;
+        if (tn.ty != Tfunction && tn.next.ty != Tfunction && !tn.next.isImmutable())
+        {
+            if (tn.next.isWild())
+            {
+                if (tn.next.isConst())
+                    _t.next = tn.next.sharedWildConstOf();
+                else
+                    _t.next = tn.next.sharedWildOf();
+            }
+            else
+            {
+                if (tn.next.isConst())
+                    _t.next = tn.next.sharedConstOf();
+                else
+                    _t.next = tn.next.sharedOf();
+            }
+        }
+        //printf("TypeNext::makeShared() returns %p, %s\n", t, t.toChars());
+        return _t;
+    }
+    return t;
+}
+
+Type makeImmutable(Type _this)
+{
+    if (_this.mcache && _this.mcache.ito)
+        return _this.mcache.ito;
+    Type t = _this.nullAttributes();
+    t.mod = MODFlags.immutable_;
+
+    if (auto tn = _this.isTypeNext())
+    {
+        //printf("TypeNext::makeImmutable() %s\n", toChars());
+        TypeNext _t = cast(TypeNext) t;
+        if (tn.ty != Tfunction && tn.next.ty != Tfunction && !tn.next.isImmutable())
+        {
+            _t.next = tn.next.immutableOf();
+        }
+        return _t;
+    }
+    return t;
+}
+
+Type makeMutable(Type _this)
+{
+    Type t = _this.nullAttributes();
+    t.mod = _this.mod & MODFlags.shared_;
+
+    if (auto tn = _this.isTypeNext())
+    {
+        //printf("TypeNext::makeMutable() %p, %s\n", this, toChars());
+        TypeNext _t = cast(TypeNext)t;
+        if (tn.ty == Tsarray)
+        {
+            _t.next = tn.next.mutableOf();
+        }
+        //printf("TypeNext::makeMutable() returns %p, %s\n", t, t.toChars());
+        return _t;
+    }
+    return t;
+}
+
+Type makeConst(Type _this)
+{
+    if (_this.mcache && _this.mcache.cto)
+    {
+        assert(_this.mcache.cto.mod == MODFlags.const_);
+        return _this.mcache.cto;
+    }
+
+    static Type defaultMakeConst(Type _this)
+    {
+        //printf("Type::makeConst() %p, %s\n", this, toChars());
+        Type t = _this.nullAttributes();
+        t.mod = MODFlags.const_;
+        //printf("-Type::makeConst() %p, %s\n", t, toChars());
+        return t;
+    }
+
+    static Type typeNextMakeConst(TypeNext _this)
+    {
+        //printf("TypeNext::makeConst() %p, %s\n", this, toChars());
+        TypeNext t = cast(TypeNext)defaultMakeConst(cast(Type)_this);
+        if (_this.ty != Tfunction && _this.next.ty != Tfunction && !_this.next.isImmutable())
+        {
+            if (_this.next.isShared())
+            {
+                if (_this.next.isWild())
+                    t.next = _this.next.sharedWildConstOf();
+                else
+                    t.next = _this.next.sharedConstOf();
+            }
+            else
+            {
+                if (_this.next.isWild())
+                    t.next = _this.next.wildConstOf();
+                else
+                    t.next = _this.next.constOf();
+            }
+        }
+        //printf("TypeNext::makeConst() returns %p, %s\n", t, t.toChars());
+        return t;
+    }
+
+    if (auto tn = _this.isTypeNext())
+        return typeNextMakeConst(tn);
+
+    return defaultMakeConst(_this);
+}
+
+/*******************************
+ * If _this is a shell around another type,
+ * get that other type.
+ */
+Type toBasetype(Type _this)
+{
+    /* This function is used heavily.
+     * De-virtualize it so it can be easily inlined.
+     */
+    if (auto te = _this.isTypeEnum())
+        return te.toBasetype2();
+    return _this;
+}
+
+Type toBasetype2(TypeEnum _this)
+{
+    if (!_this.sym.members && !_this.sym.memtype)
+        return _this;
+    auto tb = _this.sym.getMemtype(Loc.initial).toBasetype();
+    return tb.castMod(_this.mod); // retain modifier bits from '_this'
+}
+
+Type memType(TypeEnum _this)
+{
+    return _this.sym.getMemtype(Loc.initial);
+}
+
+uint alignsize(Type _this)
+{
+    static uint structAlignsize(TypeStruct _this)
+    {
+        import dmd.dsymbolsem : size;
+        _this.sym.size(Loc.initial); // give error for forward references
+        return _this.sym.alignsize;
+    }
+
+    static uint enumAlignsize(TypeEnum _this)
+    {
+        Type t = _this.memType();
+        if (t.ty == Terror)
+            return 4;
+        return t.alignsize();
+    }
+
+    if (auto tb = _this.isTypeBasic())
+        return target.alignsize(tb);
+
+    switch(_this.ty)
+    {
+        case Tvector: return cast(uint)_this.isTypeVector().basetype.size();
+        case Tsarray: return _this.isTypeSArray().next.alignsize();
+        // A DArray consists of two ptr-sized values, so align it on pointer size boundary
+        case Tarray, Tdelegate: return target.ptrsize;
+        case Tstruct: return structAlignsize(_this.isTypeStruct());
+        case Tenum: return enumAlignsize(_this.isTypeEnum());
+        case Tnoreturn: return 0;
+        default: return cast(uint)size(_this, Loc.initial);
+    }
+}
+
+/*************************************
+ * Detect if type has pointer fields that are initialized to void.
+ * Local stack variables with such void fields can remain uninitialized,
+ * leading to pointer bugs.
+ * Returns:
+ *  true if so
+ */
+
+bool hasVoidInitPointers(Type _this)
+{
+    if (auto tsa = _this.isTypeSArray())
+    {
+        return tsa.next.hasVoidInitPointers();
+    }
+    else if (auto ts = _this.isTypeStruct())
+    {
+        import dmd.dsymbolsem : size;
+        ts.sym.size(Loc.initial); // give error for forward references
+        ts.sym.determineTypeProperties();
+        return ts.sym.hasVoidInitPointers;
+    }
+    else if (auto te = _this.isTypeEnum())
+    {
+        return te.memType().hasVoidInitPointers();
+    }
+    return false;
+}
+
+void Type_init()
+{
+    Type.stringtable._init(14_000);
+
+    // Set basic types
+    __gshared TY* basetab =
+    [
+        Tvoid,
+        Tint8,
+        Tuns8,
+        Tint16,
+        Tuns16,
+        Tint32,
+        Tuns32,
+        Tint64,
+        Tuns64,
+        Tint128,
+        Tuns128,
+        Tfloat32,
+        Tfloat64,
+        Tfloat80,
+        Timaginary32,
+        Timaginary64,
+        Timaginary80,
+        Tcomplex32,
+        Tcomplex64,
+        Tcomplex80,
+        Tbool,
+        Tchar,
+        Twchar,
+        Tdchar,
+        Terror
+    ];
+
+    static Type merge(Type t)
+    {
+        import dmd.mangle.basic : tyToDecoBuffer;
+
+        OutBuffer buf;
+        buf.reserve(3);
+
+        if (t.ty == Tnoreturn)
+            buf.writestring("Nn");
+        else
+            tyToDecoBuffer(buf, t.ty);
+
+        auto sv = t.stringtable.update(buf[]);
+        if (sv.value)
+            return sv.value;
+        t.deco = cast(char*)sv.toDchars();
+        sv.value = t;
+        return t;
+    }
+
+    for (size_t i = 0; basetab[i] != Terror; i++)
+    {
+        Type t = new TypeBasic(basetab[i]);
+        .merge(t);
+        t = merge(t);
+        Type.basic[basetab[i]] = t;
+    }
+    Type.basic[Terror] = new TypeError();
+
+    Type.tnoreturn = new TypeNoreturn();
+    Type.tnoreturn.deco = merge(Type.tnoreturn).deco;
+    Type.basic[Tnoreturn] = Type.tnoreturn;
+
+    Type.tvoid = Type.basic[Tvoid];
+    Type.tint8 = Type.basic[Tint8];
+    Type.tuns8 = Type.basic[Tuns8];
+    Type.tint16 = Type.basic[Tint16];
+    Type.tuns16 = Type.basic[Tuns16];
+    Type.tint32 = Type.basic[Tint32];
+    Type.tuns32 = Type.basic[Tuns32];
+    Type.tint64 = Type.basic[Tint64];
+    Type.tuns64 = Type.basic[Tuns64];
+    Type.tint128 = Type.basic[Tint128];
+    Type.tuns128 = Type.basic[Tuns128];
+    Type.tfloat32 = Type.basic[Tfloat32];
+    Type.tfloat64 = Type.basic[Tfloat64];
+    Type.tfloat80 = Type.basic[Tfloat80];
+
+    Type.timaginary32 = Type.basic[Timaginary32];
+    Type.timaginary64 = Type.basic[Timaginary64];
+    Type.timaginary80 = Type.basic[Timaginary80];
+
+    Type.tcomplex32 = Type.basic[Tcomplex32];
+    Type.tcomplex64 = Type.basic[Tcomplex64];
+    Type.tcomplex80 = Type.basic[Tcomplex80];
+
+    Type.tbool = Type.basic[Tbool];
+    Type.tchar = Type.basic[Tchar];
+    Type.twchar = Type.basic[Twchar];
+    Type.tdchar = Type.basic[Tdchar];
+
+    Type.tshiftcnt = Type.tint32;
+    Type.terror = Type.basic[Terror];
+    Type.tnoreturn = Type.basic[Tnoreturn];
+    Type.tnull = new TypeNull();
+    Type.tnull.deco = merge(Type.tnull).deco;
+
+    Type.tvoidptr = Type.tvoid.pointerTo();
+    Type.tstring = Type.tchar.immutableOf().arrayOf();
+    Type.twstring = Type.twchar.immutableOf().arrayOf();
+    Type.tdstring = Type.tdchar.immutableOf().arrayOf();
+
+    const isLP64 = target.isLP64;
+
+    Type.tsize_t    = Type.basic[isLP64 ? Tuns64 : Tuns32];
+    Type.tptrdiff_t = Type.basic[isLP64 ? Tint64 : Tint32];
+    Type.thash_t = Type.tsize_t;
+
+    static if (__VERSION__ == 2081)
+    {
+        // Related issue: https://issues.dlang.org/show_bug.cgi?id=19134
+        // D 2.081.x regressed initializing class objects at compile time.
+        // As a workaround initialize this global at run-time instead.
+        TypeTuple.empty = new TypeTuple();
+    }
+}
+
+/************************************
+ * Return alignment to use for this type.
+ */
+structalign_t alignment(Type _this)
+{
+    if (auto tsa = _this.isTypeSArray())
+    {
+        return tsa.next.alignment();
+    }
+    else if (auto ts = _this.isTypeStruct())
+    {
+        import dmd.dsymbolsem : size;
+        if (ts.sym.alignment.isUnknown())
+            ts.sym.size(ts.sym.loc);
+        return ts.sym.alignment;
+    }
+    structalign_t s;
+    s.setDefault();
+    return s;
+}
+
+/***************************************
+ * Returns: true if type has any invariants
+ */
+bool hasInvariant(Type _this)
+{
+    if (auto tsa = _this.isTypeSArray())
+    {
+        return tsa.next.hasInvariant();
+    }
+    else if (auto ts = _this.isTypeStruct())
+    {
+        import dmd.dsymbolsem : size;
+        ts.sym.size(Loc.initial); // give error for forward references
+        ts.sym.determineTypeProperties();
+        return ts.sym.hasInvariant() || ts.sym.hasFieldWithInvariant;
+    }
+    else if (auto te = _this.isTypeEnum())
+    {
+        return te.memType().hasInvariant();
+    }
+    return false;
+}
+
+/*************************************
+ * Detect if this is an unsafe type because of the presence of `@system` members
+ * Returns:
+ *  true if so
+ */
+bool hasUnsafeBitpatterns(Type _this)
+{
+    static bool tstructImpl(TypeStruct _this)
+    {
+        import dmd.dsymbolsem : size;
+        _this.sym.size(Loc.initial); // give error for forward references
+        _this.sym.determineTypeProperties();
+        return _this.sym.hasUnsafeBitpatterns;
+    }
+
+    if(auto tb = _this.isTypeBasic())
+        return tb.ty == Tbool;
+
+    switch(_this.ty)
+    {
+        case Tenum: return _this.isTypeEnum().memType().hasUnsafeBitpatterns();
+        case Tstruct: return tstructImpl(_this.isTypeStruct());
+        case Tsarray: return _this.isTypeSArray().next.hasUnsafeBitpatterns();
+        default: return false;
+    }
+}
 
 /*************************************
  * Resolve a tuple index, `s[oindex]`, by figuring out what `s[oindex]` represents.
@@ -111,7 +1453,7 @@ private void resolveTupleIndex(Loc loc, Scope* sc, Dsymbol s, out Expression pe,
         eindex = symbolToExp(sindex, loc, sc, false);
     if (!eindex)
     {
-        .error(loc, "index `%s` is not an expression", oindex.toChars());
+        .error(loc, "index `%s` is not an expression", oindex.toErrMsg());
         pt = Type.terror;
         return;
     }
@@ -174,12 +1516,12 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
             if (const n = importHint(id.toString()))
                 error(loc, "`%s` is not defined, perhaps `import %.*s;` ?", p, cast(int)n.length, n.ptr);
             else if (auto s2 = sc.search_correct(id))
-                error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
-            else if (const q = Scope.search_correct_C(id))
-                error(loc, "undefined identifier `%s`, did you mean `%s`?", p, q);
+                error(mt.loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toErrMsg());
+            else if (const q = search_correct_C(id))
+                error(mt.loc, "undefined identifier `%s`, did you mean `%s`?", p, q);
             else if ((id == Id.This   && sc.getStructClassScope()) ||
                      (id == Id._super && sc.getClassScope()))
-                error(loc, "undefined identifier `%s`, did you mean `typeof(%s)`?", p, p);
+                error(mt.loc, "undefined identifier `%s`, did you mean `typeof(%s)`?", p, p);
             else
                 error(mt.loc, "undefined identifier `%s`", p);
         }
@@ -187,9 +1529,9 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
             if (const n = cIncludeHint(id.toString()))
                 error(loc, "`%s` is not defined, perhaps `#include %.*s` ?", p, cast(int)n.length, n.ptr);
             else if (auto s2 = sc.search_correct(id))
-                error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
+                error(mt.loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toErrMsg());
             else
-                error(loc, "undefined identifier `%s`", p);
+                error(mt.loc, "undefined identifier `%s`", p);
         }
 
         pt = Type.terror;
@@ -240,7 +1582,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
             break;
         }
 
-        Type t = s.getType(); // type symbol, type alias, or type tuple?
+        Type t = dmd.dsymbolsem.getType(s); // type symbol, type alias, or type tuple?
         const errorsave = global.errors;
         SearchOptFlags flags = t is null ? SearchOpt.localsOnly : SearchOpt.ignorePrivateImports;
 
@@ -249,7 +1591,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
         {
             if (!sc.ignoresymbolvisibility && !symbolIsVisible(sc, sm))
             {
-                .error(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toChars());
+                .error(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toErrMsg());
                 sm = null;
             }
             // Same check as in dotIdSemanticProp(DotIdExp)
@@ -364,7 +1706,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
     Type t;
     while (1)
     {
-        t = s.getType();
+        t = dmd.dsymbolsem.getType(s);
         if (t)
             break;
         ps = s;
@@ -375,7 +1717,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
         if (ti != mt && !ti.deco)
         {
             if (!ti.tempinst.errors)
-                error(loc, "forward reference to `%s`", ti.toChars());
+                error(loc, "forward reference to `%s`", ti.toErrMsg());
             pt = Type.terror;
             return;
         }
@@ -462,7 +1804,7 @@ bool isCopyable(Type t)
         if (ts.sym.hasCopyCtor)
         {
             // check if there is a matching overload of the copy constructor and whether it is disabled or not
-            // `assert(ctor)` fails on Win32 and Win_32_64. See: https://auto-tester.puremagic.com/pull-history.ghtml?projectid=1&repoid=1&pullid=10575
+            // `assert(ctor)` fails on Win32 and Win32_64. See: https://auto-tester.puremagic.com/pull-history.ghtml?projectid=1&repoid=1&pullid=10575
             Dsymbol ctor = search_function(ts.sym, Id.ctor);
             assert(ctor);
             scope el = new IdentifierExp(Loc.initial, Id.p); // dummy lvalue
@@ -474,6 +1816,60 @@ bool isCopyable(Type t)
         }
     }
     return true;
+}
+
+/**************************
+ * When T is mutable,
+ * Given:
+ *      T a, b;
+ * Can we bitwise assign:
+ *      a = b;
+ * ?
+ */
+bool isAssignable(Type t)
+{
+    if (auto te = t.isTypeEnum())
+        t = te.memType();
+    TypeStruct ts = t.isTypeStruct();
+    if (!ts)
+        return true;
+
+    bool assignable = true;
+    uint offset = ~0; // dead-store initialize to prevent spurious warning
+
+    auto sym = ts.sym;
+    sym.determineSize(sym.loc);
+
+    /* If any of the fields are const or immutable,
+     * then one cannot assign this struct.
+     */
+    for (size_t i = 0; i < sym.fields.length; i++)
+    {
+        VarDeclaration v = sym.fields[i];
+        //printf("%s [%d] v = (%s) %s, v.offset = %d, v.parent = %s\n", sym.toChars(), i, v.kind(), v.toChars(), v.offset, v.parent.kind());
+        if (i == 0)
+        {
+        }
+        else if (v.offset == offset)
+        {
+            /* If any fields of anonymous union are assignable,
+             * then regard union as assignable.
+             * This is to support unsafe things like Rebindable templates.
+             */
+            if (assignable)
+                continue;
+        }
+        else
+        {
+            if (!assignable)
+                return false;
+        }
+        assignable = v.type.isMutable() && v.type.isAssignable();
+        offset = v.offset;
+        //printf(" -> assignable = %d\n", assignable);
+    }
+
+    return assignable;
 }
 
 /************************************
@@ -560,62 +1956,6 @@ void purityLevel(TypeFunction typeFunction)
     tf.purity = typeFunction.purity;
 }
 
-/******************************************
- * We've mistakenly parsed `t` as a type.
- * Redo `t` as an Expression only if there are no type modifiers.
- * Params:
- *      t = mistaken type
- * Returns:
- *      t redone as Expression, null if cannot
- */
-Expression typeToExpression(Type t)
-{
-    static Expression visitSArray(TypeSArray t)
-    {
-        if (auto e = t.next.typeToExpression())
-            return new ArrayExp(t.dim.loc, e, t.dim);
-        return null;
-    }
-
-    static Expression visitAArray(TypeAArray t)
-    {
-        if (auto e = t.next.typeToExpression())
-        {
-            if (auto ei = t.index.typeToExpression())
-                return new ArrayExp(t.loc, e, ei);
-        }
-        return null;
-    }
-
-    static Expression visitIdentifier(TypeIdentifier t)
-    {
-        return typeToExpressionHelper(t, new IdentifierExp(t.loc, t.ident));
-    }
-
-    static Expression visitInstance(TypeInstance t)
-    {
-        return typeToExpressionHelper(t, new ScopeExp(t.loc, t.tempinst));
-    }
-
-    // easy way to enable 'auto v = new int[mixin("exp")];' in 2.088+
-    static Expression visitMixin(TypeMixin t)
-    {
-        return new TypeExp(t.loc, t);
-    }
-
-    if (t.mod)
-        return null;
-    switch (t.ty)
-    {
-        case Tsarray:   return visitSArray(t.isTypeSArray());
-        case Taarray:   return visitAArray(t.isTypeAArray());
-        case Tident:    return visitIdentifier(t.isTypeIdentifier());
-        case Tinstance: return visitInstance(t.isTypeInstance());
-        case Tmixin:    return visitMixin(t.isTypeMixin());
-        default:        return null;
-    }
-}
-
 /*************************************
  * https://issues.dlang.org/show_bug.cgi?id=14488
  * Check if the inner most base type is complex or imaginary.
@@ -674,17 +2014,140 @@ extern (D) bool checkComplexTransition(Type type, Loc loc, Scope* sc)
         if (t.isComplex())
         {
             deprecation(loc, "use of complex type `%s` is deprecated, use `std.complex.Complex!(%s)` instead",
-                type.toChars(), rt.toChars());
+                type.toErrMsg(), rt.toErrMsg());
             return true;
         }
         else
         {
             deprecation(loc, "use of imaginary type `%s` is deprecated, use `%s` instead",
-                type.toChars(), rt.toChars());
+                type.toErrMsg(), rt.toErrMsg());
             return true;
         }
     }
     return false;
+}
+
+/**
+ * Look for the index of parameter `ident` in the parameter list
+ *
+ * Params:
+ *   tf = function type
+ *   ident = identifier of parameter to search for
+ * Returns: index of parameter with name `ident` or -1 if not found
+ */
+private extern(D) ptrdiff_t findParameterIndex(TypeFunction tf, Identifier ident)
+{
+    foreach (i, p; tf.parameterList)
+    {
+        if (p.ident == ident)
+            return i;
+    }
+    return -1;
+}
+
+/*********************************
+ * Append error message to buf.
+ * Input:
+ *  buf = message sink
+ *  format = printf format
+ */
+private extern(C) void getMatchError(ref OutBuffer buf, const(char)* format, ...)
+{
+    if (!global.errorSink.emitAdditionalContext())
+        return;
+    va_list ap;
+    va_start(ap, format);
+    buf.vprintf(format, ap);
+    va_end(ap);
+}
+
+/********************************
+ * Convert an `argumentList`, which may contain named arguments, into
+ * a list of arguments in the order of the parameter list.
+ *
+ * Params:
+ *   tf = function type
+ *      argumentList = array of function arguments
+ *      buf = if not null, append error message to it
+ * Returns: re-ordered argument list, or `null` on error
+ */
+extern(D) Expressions* resolveNamedArgs(TypeFunction tf, ArgumentList argumentList, OutBuffer* buf)
+{
+    Expression[] args = argumentList.arguments ? (*argumentList.arguments)[] : null;
+    ArgumentLabel[] names = argumentList.names ? (*argumentList.names)[] : null;
+    const nParams = tf.parameterList.length(); // cached because O(n)
+    auto newArgs = new Expressions(nParams);
+    newArgs.zero();
+    size_t ci = 0;
+    bool hasNamedArgs = false;
+    const bool isVariadic = tf.parameterList.varargs != VarArg.none;
+    foreach (i, arg; args)
+    {
+        if (!arg)
+        {
+            ci++;
+            continue;
+        }
+        auto name = i < names.length ? names[i].name : null;
+        if (name)
+        {
+            hasNamedArgs = true;
+            const pi = tf.findParameterIndex(name);
+            if (pi == -1)
+            {
+                if (buf)
+                    getMatchError(*buf, "no parameter named `%s`", name.toChars());
+                return null;
+            }
+            ci = pi;
+        }
+        if (ci >= newArgs.length)
+        {
+            if (!isVariadic)
+            {
+                // Without named args, let the caller diagnose argument overflow
+                if (hasNamedArgs && buf)
+                    getMatchError(*buf, "argument `%s` goes past end of parameter list", arg.toChars());
+                return null;
+            }
+            while (ci >= newArgs.length)
+                newArgs.push(null);
+        }
+
+        if ((*newArgs)[ci])
+        {
+            if (buf)
+                getMatchError(*buf, "parameter `%s` assigned twice", tf.parameterList[ci].toChars());
+            return null;
+        }
+        (*newArgs)[ci++] = arg;
+    }
+    foreach (i, arg; (*newArgs)[])
+    {
+        if (arg || tf.parameterList[i].defaultArg)
+            continue;
+
+        if (isVariadic && i + 1 == newArgs.length)
+            continue;
+
+        // dtemplate sets `defaultArg=null` to avoid semantic on default arguments,
+        // don't complain about missing arguments in that case
+        if (tf.incomplete)
+            continue;
+
+        if (buf)
+            getMatchError(*buf, "missing argument for parameter #%d: `%s`",
+                          i + 1, parameterToChars(tf.parameterList[i], tf, false));
+        return null;
+    }
+    // strip trailing nulls from default arguments
+    size_t e = newArgs.length;
+    while (e > 0 && (*newArgs)[e - 1] is null)
+    {
+        --e;
+    }
+    newArgs.setDim(e);
+    return newArgs;
 }
 
 /********************************
@@ -702,7 +2165,7 @@ extern (D) bool checkComplexTransition(Type type, Loc loc, Scope* sc)
  *      MATCHxxxx
  */
 extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, ArgumentList argumentList,
-        int flag = 0, void delegate(const(char)*) scope errorHelper = null, Scope* sc = null)
+        int flag = 0, void delegate(const(char)*, Loc argloc = Loc.initial) scope errorHelper = null, Scope* sc = null)
 {
     //printf("callMatch() fd: %s, tf: %s\n", fd ? fd.ident.toChars() : "null", toChars(tf));
     MATCH match = MATCH.exact; // assume exact match
@@ -867,12 +2330,20 @@ extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, Argu
             if (errorHelper)
             {
                 if (u >= args.length)
-                    TypeFunction.getMatchError(buf, "missing argument for parameter #%d: `%s`",
-                        u + 1, parameterToChars(p, tf, false));
+                {
+                    getMatchError(buf, "missing argument for parameter #%d: `%s`",
+                                  u + 1, parameterToChars(p, tf, false));
+                }
                 // If an error happened previously, `pMessage` was already filled
                 else if (buf.length == 0)
+                {
                     buf.writestring(tf.getParamError(args[u], p));
-
+                    if(args[u].loc !is Loc.initial)
+                    {
+                        errorHelper(buf.peekChars(),args[u].loc);
+                        return MATCH.nomatch;
+                    }
+                }
                 errorHelper(buf.peekChars());
             }
             return MATCH.nomatch;
@@ -885,7 +2356,7 @@ extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, Argu
     {
         // all parameters had a match, but there are surplus args
         OutBuffer buf2;
-        TypeFunction.getMatchError(buf2, "expected %d argument(s), not %d", nparams, args.length);
+        getMatchError(buf2, "expected %d argument(s), not %d", nparams, args.length);
         errorHelper(buf2.extractChars());
         return MATCH.nomatch;
     }
@@ -923,7 +2394,7 @@ private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
     /* https://issues.dlang.org/show_bug.cgi?id=22202
      *
      * If a function was deduced by semantic on the CallExp,
-     * it means that resolveFuncCall completed succesfully.
+     * it means that resolveFuncCall completed successfully.
      * Therefore, there exists a callable copy constructor,
      * however, it cannot be called because scope constraints
      * such as purity, safety or nogc.
@@ -956,7 +2427,7 @@ private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
 
     bool bpure = !f.isPure && sc.func.setImpure(arg.loc, null);
     bool bsafe = !f.isSafe() && !f.isTrusted() && sc.setUnsafe(false, arg.loc, null);
-    bool bnogc = !f.isNogc && sc.func.setGC(arg.loc, null);
+    bool bnogc = !f.isNogc && sc.setGC(sc.func, arg.loc, null);
     if (bpure | bsafe | bnogc)
     {
         const nullptr = "".ptr;
@@ -1069,11 +2540,10 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
         }
 
         // check if the copy constructor may be called to copy the argument
-        if (arg.isLvalue() && !isRef && argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
+        if (arg.isLvalue() && !isRef && argStruct && argStruct == prmStruct && argStruct.hasCopyCtor &&
+            !isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
         {
-            if (!isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
-                return MATCH.nomatch;
-            m = MATCH.exact;
+            return MATCH.nomatch;
         }
         else
         {
@@ -1179,26 +2649,40 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
         return MATCH.nomatch;
     }
 
+    if (arg.isBitField())
+    {
+        if (pMessage) *pMessage = tf.getParamError(arg, p);
+        return MATCH.nomatch;
+    }
+
     return m;
 }
 
 // arguments get specially formatted
 private const(char)* getParamError(TypeFunction tf, Expression arg, Parameter par)
 {
-    if (global.gag && !global.params.v.showGaggedErrors)
+    if (!global.errorSink.emitAdditionalContext())
         return null;
     // show qualification when toChars() is the same but types are different
     // https://issues.dlang.org/show_bug.cgi?id=19948
     // when comparing the type with strcmp, we need to drop the qualifier
     bool qual = !arg.type.mutableOf().equals(par.type.mutableOf()) &&
         strcmp(arg.type.mutableOf().toChars(), par.type.mutableOf().toChars()) == 0;
-    auto at = qual ? arg.type.toPrettyChars(true) : arg.type.toChars();
     OutBuffer buf;
-    // only mention rvalue if it's relevant
-    const rv = !arg.isLvalue() && par.isReference() && !(par.storageClass & STC.constscoperef);
-    buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
-        rv ? "rvalue ".ptr : "".ptr, arg.toErrMsg(), at,
-        parameterToChars(par, tf, qual));
+    // only mention rvalue or bitfield if it's relevant
+    if (arg.isBitField())
+    {
+        buf.printf("cannot pass bitfield argument `%s` to parameter `%s`",
+                   arg.toErrMsg(), parameterToChars(par, tf, qual));
+    }
+    else
+    {
+        auto at = qual ? arg.type.toPrettyChars(true) : arg.type.toChars();
+        const rv = !arg.isLvalue() && par.isReference() && !(par.storageClass & STC.constscoperef);
+        buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
+            rv ? "rvalue ".ptr : "".ptr, arg.toErrMsg(), at,
+            parameterToChars(par, tf, qual));
+    }
     return buf.extractChars();
 }
 
@@ -1231,8 +2715,8 @@ private extern(D) MATCH matchTypeSafeVarArgs(TypeFunction tf, Parameter p,
             if (pMessage)
             {
                 OutBuffer buf;
-                TypeFunction.getMatchError(buf, "expected %llu variadic argument(s), not %zu",
-                    sz, trailingArgs.length);
+                getMatchError(buf, "expected %llu variadic argument(s), not %u",
+                    sz, cast(int)trailingArgs.length);
                 *pMessage = buf.extractChars();
             }
             return MATCH.nomatch;
@@ -1284,9 +2768,48 @@ private extern(D) MATCH matchTypeSafeVarArgs(TypeFunction tf, Parameter p,
     default:
         // We can have things as `foo(int[int] wat...)` but they only match
         // with an associative array proper.
-        if (pMessage && trailingArgs.length) *pMessage = tf.getParamError(trailingArgs[0], p);
+        if (!pMessage) {}
+        else if (!trailingArgs.length)
+        {
+            OutBuffer buf;
+            getMatchError(buf, "expected an argument for parameter `%s`",
+                parameterToChars(p, tf, false));
+            *pMessage = buf.extractChars();
+        }
+        else
+            *pMessage = tf.getParamError(trailingArgs[0], p);
+
         return MATCH.nomatch;
     }
+}
+
+/// Compute cached type properties for `TypeStruct`
+void determineTypeProperties(StructDeclaration sd)
+{
+    import dmd.dsymbolsem : hasPointers;
+    if (sd.computedTypeProperties)
+        return;
+    foreach (vd; sd.fields)
+    {
+        if (vd.storage_class & STC.ref_ || vd.hasPointers())
+        {
+            sd.hasPointerField = true;
+            sd.hasUnsafeBitpatterns = true;
+        }
+
+        if (vd._init && vd._init.isVoidInitializer() && vd.hasPointers())
+            sd.hasVoidInitPointers = true;
+
+        if (vd.storage_class & STC.system || vd.type.hasUnsafeBitpatterns())
+            sd.hasUnsafeBitpatterns = true;
+
+        if (!vd._init && vd.type.hasVoidInitPointers())
+            sd.hasVoidInitPointers = true;
+
+        if (vd.type.hasInvariant())
+            sd.hasFieldWithInvariant = true;
+    }
+    sd.computedTypeProperties = true;
 }
 
 /***************************************
@@ -1380,7 +2903,7 @@ uinteger_t size(Type t, Loc loc)
 
     uinteger_t visitType(Type t)
     {
-        error(loc, "no size for type `%s`", t.toChars());
+        error(loc, "no size for type `%s`", t.toErrMsg());
         return SIZE_INVALID;
     }
 
@@ -1472,7 +2995,7 @@ uinteger_t size(Type t, Loc loc)
         if (overflow || sz >= uint.max)
         {
             if (elemsize != SIZE_INVALID && n != uint.max)
-                error(loc, "static array `%s` size overflowed to %lld", t.toChars(), cast(long)sz);
+                error(loc, "static array `%s` size overflowed to %lld", t.toErrMsg(), cast(long)sz);
             return SIZE_INVALID;
         }
         return sz;
@@ -1488,7 +3011,7 @@ uinteger_t size(Type t, Loc loc)
                 return type.size(loc);
         }
 
-        error(t.loc, "size of type `%s` is not known", t.toChars());
+        error(t.loc, "size of type `%s` is not known", t.toErrMsg());
         return SIZE_INVALID;
     }
 
@@ -1509,7 +3032,11 @@ uinteger_t size(Type t, Loc loc)
         case Tinstance:
         case Ttypeof:
         case Treturn:       return visitTypeQualified(cast(TypeQualified)t);
-        case Tstruct:       return t.isTypeStruct().sym.size(loc);
+        case Tstruct:
+        {
+            import dmd.dsymbolsem: size;
+            return t.isTypeStruct().sym.size(loc);
+        }
         case Tenum:         return t.isTypeEnum().sym.getMemtype(loc).size(loc);
         case Tnull:         return t.tvoidptr.size(loc);
         case Tnoreturn:     return 0;
@@ -1707,13 +3234,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
     Type visitComplex(TypeBasic t)
     {
-        if (!sc.inCfile)
-            return visitType(t);
-
-        auto tc = getComplexLibraryType(loc, sc, t.ty);
-        if (tc.ty == Terror)
-            return tc;
-        return tc.addMod(t.mod).merge();
+        return visitType(t);
     }
 
     Type visitVector(TypeVector mtype)
@@ -1725,7 +3246,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         mtype.basetype = mtype.basetype.toBasetype().mutableOf();
         if (mtype.basetype.ty != Tsarray)
         {
-            .error(loc, "T in __vector(T) must be a static array, not `%s`", mtype.basetype.toChars());
+            .error(loc, "T in __vector(T) must be a static array, not `%s`", mtype.basetype.toErrMsg());
             return error();
         }
         TypeSArray t = mtype.basetype.isTypeSArray();
@@ -1743,12 +3264,12 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
         case 2:
             // invalid base type
-            .error(loc, "vector type `%s` is not supported on this platform", mtype.toChars());
+            .error(loc, "vector type `%s` is not supported on this platform", mtype.toErrMsg());
             return error();
 
         case 3:
             // invalid size
-            .error(loc, "%d byte vector type `%s` is not supported on this platform", sz, mtype.toChars());
+            .error(loc, "%d byte vector type `%s` is not supported on this platform", sz, mtype.toErrMsg());
             return error();
         }
         return merge(mtype);
@@ -1779,7 +3300,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             RootObject o = (*tup.objects)[cast(size_t)d];
             if (auto tt = o.isType())
                 return tt.addMod(mtype.mod);
-            .error(loc, "`%s` is not a type", mtype.toChars());
+            .error(loc, "`%s` is not a type", mtype.toErrMsg());
             return error();
         }
 
@@ -1793,6 +3314,15 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         Type tbn = tn.toBasetype();
         if (mtype.dim)
         {
+            if (auto ide = mtype.dim.isIdentifierExp())
+            {
+                if (ide.ident == Id.dollar)
+                {
+                    mtype.next = tn;
+                    mtype.transitive();
+                    return mtype.addMod(tn.mod).merge();
+                }
+            }
             auto errors = global.errors;
             mtype.dim = semanticLength(sc, tbn, mtype.dim);
             mtype.dim = mtype.dim.implicitCastTo(sc, Type.tsize_t);
@@ -1825,7 +3355,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             Type overflowError()
             {
                 .error(loc, "`%s` size %llu * %llu exceeds 0x%llx size limit for static array",
-                        mtype.toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1, target.maxStaticDataSize);
+                        mtype.toErrMsg(), cast(ulong)tbn.size(loc), cast(ulong)d1, target.maxStaticDataSize);
                 return error();
             }
 
@@ -1875,7 +3405,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
         case Tfunction:
         case Tnone:
-            .error(loc, "cannot have array of `%s`", tbn.toChars());
+            .error(loc, "cannot have array of `%s`", tbn.toErrMsg());
             return error();
 
         default:
@@ -1883,7 +3413,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         }
         if (tbn.isScopeClass())
         {
-            .error(loc, "cannot have array of scope `%s`", tbn.toChars());
+            .error(loc, "cannot have array of scope `%s`", tbn.toErrMsg());
             return error();
         }
 
@@ -1906,7 +3436,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
         case Tfunction:
         case Tnone:
-            .error(loc, "cannot have array of `%s`", tbn.toChars());
+            .error(loc, "cannot have array of `%s`", tbn.toErrMsg());
             return error();
 
         case Terror:
@@ -1917,7 +3447,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         }
         if (tn.isScopeClass())
         {
-            .error(loc, "cannot have array of scope `%s`", tn.toChars());
+            .error(loc, "cannot have array of scope `%s`", tn.toErrMsg());
             return error();
         }
         mtype.next = tn;
@@ -2004,7 +3534,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         case Tvoid:
         case Tnone:
         case Ttuple:
-            .error(loc, "cannot have associative array key of `%s`", mtype.index.toBasetype().toChars());
+            .error(loc, "cannot have associative array key of `%s`", mtype.index.toBasetype().toErrMsg());
             goto case Terror;
         case Terror:
             return error();
@@ -2049,11 +3579,11 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             {
                 if (search_function(sd, Id.opEquals))
                 {
-                    .error(loc, "%sAA key type `%s` does not have `bool opEquals(ref const %s) const`", s, sd.toChars(), sd.toChars());
+                    .error(loc, "%sAA key type `%s` does not have `bool opEquals(ref const %s) const`", s, sd.toErrMsg(), sd.toErrMsg());
                 }
                 else
                 {
-                    .error(loc, "%sAA key type `%s` does not support const equality", s, sd.toChars());
+                    .error(loc, "%sAA key type `%s` does not support const equality", s, sd.toErrMsg());
                 }
                 return error();
             }
@@ -2061,11 +3591,11 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             {
                 if (search_function(sd, Id.opEquals))
                 {
-                    .error(loc, "%sAA key type `%s` should have `extern (D) size_t toHash() const nothrow @safe` if `opEquals` defined", s, sd.toChars());
+                    .error(loc, "%sAA key type `%s` should have `extern (D) size_t toHash() const nothrow @safe` if `opEquals` defined", s, sd.toErrMsg());
                 }
                 else
                 {
-                    .error(loc, "%sAA key type `%s` supports const equality but doesn't support const hashing", s, sd.toChars());
+                    .error(loc, "%sAA key type `%s` supports const equality but doesn't support const hashing", s, sd.toErrMsg());
                 }
                 return error();
             }
@@ -2111,7 +3641,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                     if (fcmp.vtblIndex < cd.vtbl.length && cd.vtbl[fcmp.vtblIndex] != fcmp)
                     {
                         const(char)* s = (mtype.index.toBasetype().ty != Tclass) ? "bottom of " : "";
-                        .error(loc, "%sAA key type `%s` now requires equality rather than comparison", s, cd.toChars());
+                        .error(loc, "%sAA key type `%s` now requires equality rather than comparison", s, cd.toErrMsg());
                         errorSupplemental(loc, "Please override `Object.opEquals` and `Object.toHash`.");
                     }
                 }
@@ -2126,7 +3656,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         case Tvoid:
         case Tnone:
         case Ttuple:
-            .error(loc, "cannot have associative array of `%s`", mtype.next.toChars());
+            .error(loc, "cannot have associative array of `%s`", mtype.next.toErrMsg());
             goto case Terror;
         case Terror:
             return error();
@@ -2135,7 +3665,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         }
         if (mtype.next.isScopeClass())
         {
-            .error(loc, "cannot have array of scope `%s`", mtype.next.toChars());
+            .error(loc, "cannot have array of scope `%s`", mtype.next.toErrMsg());
             return error();
         }
         return merge(mtype);
@@ -2152,7 +3682,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         switch (n.toBasetype().ty)
         {
         case Ttuple:
-            .error(loc, "cannot have pointer to `%s`", n.toChars());
+            .error(loc, "cannot have pointer to `%s`", n.toErrMsg());
             goto case Terror;
         case Terror:
             return error();
@@ -2301,7 +3831,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             errors |= tf.checkRetType(loc);
             if (tf.next.isScopeClass() && !tf.isCtor)
             {
-                .error(loc, "functions cannot return `scope %s`", tf.next.toChars());
+                .error(loc, "functions cannot return `scope %s`", tf.next.toErrMsg());
                 errors = true;
             }
             if (tf.next.hasWild())
@@ -2351,7 +3881,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             {
                 const(char)* errTxt = fparam.storageClass & STC.ref_ ? "ref" : "out";
                 .error(e.loc, "expression `%s` of type `%s` is not implicitly convertible to type `%s %s` of parameter `%s`",
-                      e.toErrMsg(), e.type.toChars(), errTxt, fparam.type.toChars(), fparam.toChars());
+                      e.toErrMsg(), e.type.toErrMsg(), errTxt, fparam.type.toErrMsg(), fparam.toChars());
             }
             e = e.implicitCastTo(sc, fparam.type);
 
@@ -2440,7 +3970,8 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                                 stc = stc1 | (stc & ~(STC.ref_ | STC.out_ | STC.lazy_));
                             }
                             (*newparams)[j] = new Parameter(
-                                loc, stc, narg.type, narg.ident, narg.defaultArg, narg.userAttribDecl);
+                                loc, stc, narg.type, narg.ident, narg.defaultArg,
+                                narg.userAttribDecl ? narg.userAttribDecl : fparam.userAttribDecl);
                         }
                         fparam.type = new TypeTuple(newparams);
                         fparam.type = fparam.type.typeSemantic(loc, argsc);
@@ -2488,7 +4019,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
                 if (t.ty == Tfunction)
                 {
-                    .error(loc, "cannot have parameter of function type `%s`", fparam.type.toChars());
+                    .error(loc, "cannot have parameter of function type `%s`", fparam.type.toErrMsg());
                     errors = true;
                 }
                 else if (!fparam.isReference() &&
@@ -2501,17 +4032,17 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                         if (fparam.storageClass & STC.constscoperef)
                         {
                             .error(loc, "cannot infer `ref` for `in` parameter `%s` of opaque type `%s`",
-                                   fparam.toChars(), fparam.type.toChars());
+                                   fparam.toChars(), fparam.type.toErrMsg());
                         }
                         else
                             .error(loc, "cannot have parameter of opaque type `%s` by value",
-                                   fparam.type.toChars());
+                                   fparam.type.toErrMsg());
                         errors = true;
                     }
                 }
                 else if (!fparam.isLazy() && t.ty == Tvoid)
                 {
-                    .error(loc, "cannot have parameter of type `%s`", fparam.type.toChars());
+                    .error(loc, "cannot have parameter of type `%s`", fparam.type.toErrMsg());
                     errors = true;
                 }
 
@@ -2522,7 +4053,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                 {
                     // Deprecated in 2.111, kept as a legacy feature for compatibility (currently no plan to turn it into an error)
                     .deprecation(loc, "typesafe variadic parameters with a `class` type (`%s %s...`) are deprecated",
-                        t.isTypeClass().sym.ident.toChars(), fparam.toChars());
+                        t.isTypeClass().sym.ident.toErrMsg(), fparam.toChars());
                 }
 
                 if (isStackAllocatedVariadic)
@@ -2553,7 +4084,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                          * https://dlang.org/spec/function.html#typesafe_variadic_functions
                          */
                         .error(loc, "typesafe variadic function parameter `%s` of type `%s` cannot be marked `return`",
-                            fparam.ident ? fparam.ident.toChars() : "", t.toChars());
+                            fparam.ident ? fparam.ident.toErrMsg() : "", t.toErrMsg());
                         errors = true;
                     }
                 }
@@ -2562,7 +4093,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                 {
                     if (ubyte m = fparam.type.mod & (MODFlags.immutable_ | MODFlags.const_ | MODFlags.wild))
                     {
-                        .error(loc, "cannot have `%s out` parameter of type `%s`", MODtoChars(m), t.toChars());
+                        .error(loc, "cannot have `%s out` parameter of type `%s`", MODtoChars(m), t.toErrMsg());
                         errors = true;
                     }
                     else
@@ -2570,7 +4101,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                         Type tv = t.baseElemOf();
                         if (tv.ty == Tstruct && tv.isTypeStruct().sym.noDefaultCtor)
                         {
-                            .error(loc, "cannot have `out` parameter of type `%s` because the default construction is disabled", fparam.type.toChars());
+                            .error(loc, "cannot have `out` parameter of type `%s` because the default construction is disabled", fparam.type.toErrMsg());
                             errors = true;
                         }
                     }
@@ -2657,7 +4188,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
                     if (farg && (eparam.storageClass & STC.ref_))
                     {
-                        if (!farg.isLvalue())
+                        if (!farg.isLvalue() || farg.isBitField())
                             eparam.storageClass &= ~STC.ref_; // value parameter
                         eparam.storageClass &= ~STC.auto_;    // https://issues.dlang.org/show_bug.cgi?id=14656
                         eparam.storageClass |= STC.autoref;
@@ -2690,7 +4221,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
         if (wildreturn && !wildparams)
         {
-            .error(loc, "`inout` on `return` means `inout` must be on a parameter as well for `%s`", mtype.toChars());
+            .error(loc, "`inout` on `return` means `inout` must be on a parameter as well for `%s`", mtype.toErrMsg());
             errors = true;
         }
         tf.isInOutParam = (wildparams & 1) != 0;
@@ -2773,6 +4304,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         if (s)
         {
             auto td = s.isTemplateDeclaration;
+            td.computeOneMember();
             if (td && td.onemember && td.onemember.isAggregateDeclaration)
                 .error(loc, "template %s `%s` is used as a type without instantiation"
                     ~ "; to instantiate it use `%s!(arguments)`",
@@ -2795,7 +4327,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             Dsymbol varDecl = mtype.toDsymbol(sc);
             Module varDeclModule = varDecl.getModule(); //This can be null
 
-            .error(loc, "variable `%s` is used as a type", mtype.toChars());
+            .error(loc, "variable `%s` is used as a type", mtype.toErrMsg());
             //Check for null to avoid https://issues.dlang.org/show_bug.cgi?id=22574
             if ((varDeclModule !is null) && varDeclModule != sc._module) // variable is imported
             {
@@ -2810,7 +4342,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             .errorSupplemental(varDecl.loc, "variable `%s` is declared here", varDecl.toChars);
         }
         else
-            .error(loc, "`%s` is used as a type", mtype.toChars());
+            .error(loc, "`%s` is used as a type", mtype.toErrMsg());
         return error();
     }
 
@@ -2835,10 +4367,10 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             {
                 // if there was an error evaluating the symbol, it might actually
                 // be a type. Avoid misleading error messages.
-                .error(loc, "`%s` had previous errors", mtype.toChars());
+                .error(loc, "`%s` had previous errors", mtype.toErrMsg());
             }
             else
-                .error(loc, "`%s` is used as a type", mtype.toChars());
+                .error(loc, "`%s` is used as a type", mtype.toErrMsg());
             return error();
         }
         return t;
@@ -2851,11 +4383,11 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         Type t;
         Dsymbol s;
         mtype.resolve(loc, sc, e, t, s);
-        if (s && (t = s.getType()) !is null)
+        if (s && (t = dmd.dsymbolsem.getType(s)) !is null)
             t = t.addMod(mtype.mod);
         if (!t)
         {
-            .error(loc, "`%s` is used as a type", mtype.toChars());
+            .error(loc, "`%s` is used as a type", mtype.toErrMsg());
             return error();
         }
         return t;
@@ -2884,11 +4416,11 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         Type t;
         Dsymbol s;
         mtype.resolve(loc, sc, e, t, s);
-        if (s && (t = s.getType()) !is null)
+        if (s && (t = dmd.dsymbolsem.getType(s)) !is null)
             t = t.addMod(mtype.mod);
         if (!t)
         {
-            .error(loc, "`%s` is used as a type", mtype.toChars());
+            .error(loc, "`%s` is used as a type", mtype.toErrMsg());
             return error();
         }
         return t;
@@ -2958,7 +4490,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         Type tbn = tn.toBasetype();
         if (tbn.ty != Ttuple)
         {
-            .error(loc, "can only slice type sequences, not `%s`", tbn.toChars());
+            .error(loc, "can only slice type sequences, not `%s`", tbn.toErrMsg());
             return error();
         }
         TypeTuple tt = cast(TypeTuple)tbn;
@@ -3110,7 +4642,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         {
             // no pre-existing declaration, so declare it
             if (mtype.tok == TOK.enum_ && !mtype.members)
-                .error(mtype.loc, "`enum %s` is incomplete without members", mtype.id.toChars()); // C11 6.7.2.3-3
+                .error(mtype.loc, "`enum %s` is incomplete without members", mtype.id.toErrMsg()); // C11 6.7.2.3-3
             declareTag();
             return returnType(mtype);
         }
@@ -3126,7 +4658,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             {
                 auto ed = s.isEnumDeclaration();
                 if (mtype.members && ed.members)
-                    .error(mtype.loc, "`%s` already has members", mtype.id.toChars());
+                    .error(mtype.loc, "`%s` already has members", mtype.id.toErrMsg());
                 else if (!ed.members)
                 {
                     ed.members = mtype.members;
@@ -3146,7 +4678,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                     /* struct S { int b; };
                      * struct S { int a; } *s;
                      */
-                    .error(mtype.loc, "`%s` already has members", mtype.id.toChars());
+                    .error(mtype.loc, "`%s` already has members", mtype.id.toErrMsg());
                 }
                 else if (!sd.members)
                 {
@@ -3177,7 +4709,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                 /* int S;
                  * struct S { int a; } *s;
                  */
-                .error(mtype.loc, "redeclaration of `%s`", mtype.id.toChars());
+                .error(mtype.loc, "redeclaration of `%s`", mtype.id.toErrMsg());
                 mtype.resolved = error();
             }
         }
@@ -3208,7 +4740,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                  * { struct S* s; }
                  */
                 .error(mtype.loc, "redeclaring `%s %s` as `%s %s`",
-                    s.kind(), s.toChars(), Token.toChars(mtype.tok), mtype.id.toChars());
+                    s.kind(), s.toErrMsg(), Token.toChars(mtype.tok), mtype.id.toErrMsg());
                 declareTag();
             }
         }
@@ -3262,7 +4794,7 @@ Type trySemantic(Type type, Loc loc, Scope* sc)
         // If `typeSemantic` succeeded, there may have been deprecations that
         // were gagged due the `startGagging` above.  Run again to display
         // those deprecations.  https://issues.dlang.org/show_bug.cgi?id=19107
-        if (global.gaggedWarnings > 0)
+        if (global.gaggedDeprecations > 0)
             typeSemantic(tcopy, loc, sc);
     }
     //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
@@ -3381,6 +4913,107 @@ Type merge2(Type type)
     return t;
 }
 
+private enum LOGDEFAULTINIT = 0;
+/***************************************
+ * Use when we prefer the default initializer to be a literal,
+ * rather than a global immutable variable.
+ */
+Expression defaultInitLiteral(Type t, Loc loc)
+{
+
+    if (t.isTypeError())
+        return ErrorExp.get();
+    if (auto ts = t.isTypeStruct())
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("TypeStruct::defaultInitLiteral() '%s'\n", toChars());
+        }
+        {
+            import dmd.dsymbolsem: size;
+            ts.sym.size(loc);
+        }
+        if (ts.sym.sizeok != Sizeok.done)
+            return ErrorExp.get();
+
+        auto structelems = new Expressions(ts.sym.nonHiddenFields());
+        ulong bitoffset = 0;
+        foreach (j; 0 .. structelems.length)
+        {
+            VarDeclaration vd = ts.sym.fields[j];
+            Expression e;
+            if (vd.inuse)
+            {
+                error(loc, "circular reference to `%s`", vd.toPrettyChars());
+                return ErrorExp.get();
+            }
+            ulong vbitoffset = vd.offset * 8;
+            auto vbf = vd.isBitFieldDeclaration();
+            if (vbf)
+                vbitoffset += vbf.bitOffset;
+            if (vbitoffset < bitoffset || vd.type.size() == 0)
+                e = null;
+            else if (vd._init)
+            {
+                if (vd._init.isVoidInitializer())
+                    e = null;
+                else
+                    e = vd.getConstInitializer(false);
+            }
+            else
+                e = vd.type.defaultInitLiteral(loc);
+            if (e && e.op == EXP.error)
+                return e;
+            if (e)
+            {
+                if (vbf)
+                    bitoffset = vbitoffset + vbf.fieldWidth;
+                else
+                    bitoffset = vbitoffset + vd.type.size() * 8;
+            }
+            (*structelems)[j] = e;
+        }
+        auto structinit = new StructLiteralExp(loc, ts.sym, structelems);
+
+        /* Copy from the initializer symbol for larger symbols,
+         * otherwise the literals expressed as code get excessively large.
+         */
+        if (size(ts, loc) > target.ptrsize * 4 && !ts.needsNested())
+            structinit.useStaticInit = true;
+
+        structinit.type = ts;
+        return structinit;
+    }
+    if (auto tv = t.isTypeVector())
+    {
+        //printf("TypeVector::defaultInitLiteral()\n");
+        assert(tv.basetype.ty == Tsarray);
+        Expression e = tv.basetype.defaultInitLiteral(loc);
+        auto ve = new VectorExp(loc, e, tv);
+        ve.type = tv;
+        ve.dim = cast(int)(tv.basetype.size(loc) / tv.elementType().size(loc));
+        return ve;
+    }
+    if (auto tsa = t.isTypeSArray())
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("TypeSArray::defaultInitLiteral() '%s'\n", toChars());
+        }
+        size_t d = cast(size_t)tsa.dim.toInteger();
+        Expression elementinit;
+        if (tsa.next.ty == Tvoid)
+            elementinit = Type.tuns8.defaultInitLiteral(loc);
+        else
+            elementinit = tsa.next.defaultInitLiteral(loc);
+        auto elements = new Expressions(d);
+        foreach (ref e; *elements)
+            e = null;
+        auto ae = new ArrayLiteralExp(loc, tsa, elementinit, elements);
+        return ae;
+    }
+    return defaultInit(t, loc);
+}
 /***************************************
  * Calculate built-in properties which just the type is necessary.
  *
@@ -3432,7 +5065,7 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
         {
             if (!mt.deco)
             {
-                error(loc, "forward reference of type `%s.mangleof`", mt.toChars());
+                error(loc, "forward reference of type `%s.mangleof`", mt.toErrMsg());
                 return ErrorExp.get();
             }
             else
@@ -3478,9 +5111,6 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
         }
         else if (ident == Id.opCall && mt.ty == Tclass)
             error(loc, "no property `%s` for type `%s`, did you mean `new %s`?", ident.toErrMsg(), mt.toErrMsg(), mt.toPrettyChars());
-
-        else if (const n = importHint(ident.toString()))
-                error(loc, "no property `%s` for type `%s`, perhaps `import %.*s;` is needed?", ident.toErrMsg(), mt.toErrMsg(), cast(int)n.length, n.ptr);
         else
         {
             if (src)
@@ -3500,6 +5130,8 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
                         errorSupplemental(s2.loc, "did you mean %s `%s`?",
                             s2.kind(), s2.toErrMsg());
                 }
+                else if (const n = importHint(ident.toString()))
+                    errorSupplemental(loc, "perhaps `import %.*s;` is needed?", cast(int)n.length, n.ptr);
             }
             else
                 error(loc, "no property `%s` for type `%s`", ident.toErrMsg(), mt.toPrettyChars(true));
@@ -3828,7 +5460,7 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
         }
         else
         {
-            error(loc, "no property `%s` for sequence `%s`", ident.toChars(), mt.toChars());
+            error(loc, "no property `%s` for sequence `%s`", ident.toErrMsg(), mt.toErrMsg());
             e = ErrorExp.get();
         }
         return e;
@@ -4202,7 +5834,7 @@ void resolve(Type mt, Loc loc, Scope* sc, out Expression pe, out Type pt, out Ds
             !mt.exp.type.isTypeTuple())
         {
             if (!sc.inCfile && // in (extended) C typeof may be used on types as with sizeof
-                mt.exp.checkType())
+                !mt.exp.hasValidType())
                 goto Lerr;
 
             /* Today, 'typeof(func)' returns void if func is a
@@ -4230,12 +5862,12 @@ void resolve(Type mt, Loc loc, Scope* sc, out Expression pe, out Type pt, out Ds
         Type t = mt.exp.type;
         if (!t)
         {
-            error(loc, "expression `%s` has no type", mt.exp.toChars());
+            error(loc, "expression `%s` has no type", mt.exp.toErrMsg());
             goto Lerr;
         }
         if (t.ty == Ttypeof)
         {
-            error(loc, "forward reference to `%s`", mt.toChars());
+            error(loc, "forward reference to `%s`", mt.toErrMsg());
             goto Lerr;
         }
         if (mt.idents.length == 0)
@@ -4274,7 +5906,7 @@ void resolve(Type mt, Loc loc, Scope* sc, out Expression pe, out Type pt, out Ds
             t = func.type.nextOf();
             if (!t)
             {
-                error(loc, "cannot use `typeof(return)` inside function `%s` with inferred return type", sc.func.toChars());
+                error(loc, "cannot use `typeof(return)` inside function `%s` with inferred return type", sc.func.toErrMsg());
                 return returnError();
             }
         }
@@ -4563,7 +6195,10 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 {
                     auto ad = v.isMember();
                     objc.checkOffsetof(e, ad);
-                    ad.size(e.loc);
+                    {
+                        import dmd.dsymbolsem: size;
+                        ad.size(e.loc);
+                    }
                     if (ad.sizeok != Sizeok.done)
                         return ErrorExp.get();
                     uint value;
@@ -4577,7 +6212,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                             value = ident == Id.bitoffsetof ? bf.bitOffset : bf.fieldWidth;
                         }
                         else
-                            error(v.loc, "`%s` is not a bitfield, cannot apply `%s`", v.toChars(), ident.toChars());
+                            error(v.loc, "`%s` is not a bitfield, cannot apply `%s`", v.toErrMsg(), ident.toErrMsg());
                     }
                     return new IntegerExp(e.loc, value, Type.tsize_t);
                 }
@@ -4891,20 +6526,15 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         }
         if (ident == Id.length)
         {
-            __gshared FuncDeclaration fd_aaLen = null;
-            if (fd_aaLen is null)
-            {
-                auto fparams = new Parameters(new Parameter(Loc.initial, STC.const_ | STC.scope_, mt,
-                                                            null, null, null));
-                fd_aaLen = FuncDeclaration.genCfunc(fparams, Type.tsize_t, Id.aaLen);
-                TypeFunction tf = fd_aaLen.type.toTypeFunction();
-                tf.purity = PURE.const_;
-                tf.isNothrow = true;
-                tf.isNogc = false;
-            }
-            Expression ev = new VarExp(e.loc, fd_aaLen, false);
-            e = new CallExp(e.loc, ev, e);
-            e.type = fd_aaLen.type.toTypeFunction().next;
+            auto loc = e.loc;
+            Expression hookFunc = new IdentifierExp(loc, Id.empty);
+            hookFunc = new DotIdExp(loc, hookFunc, Id.object);
+            auto keytype = mt.index.substWildTo(MODFlags.const_);
+            auto valtype = mt.nextOf().substWildTo(MODFlags.const_);
+            auto tiargs = new Objects(keytype, valtype);
+            hookFunc = new DotTemplateInstanceExp(loc, hookFunc, Id._d_aaLen, tiargs);
+            Expression e = new CallExp(loc, hookFunc, e);
+            e = e.expressionSemantic(sc);
             return e;
         }
         else
@@ -4980,7 +6610,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
 
         if (++nest > global.recursionLimit)
         {
-            .error(e.loc, "cannot resolve identifier `%s`", ident.toChars());
+            .error(e.loc, "cannot resolve identifier `%s`", ident.toErrMsg());
             return returnExp(gagError ? null : ErrorExp.get());
         }
 
@@ -5109,7 +6739,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
 
             if (!mt.sym.determineFields())
             {
-                error(e.loc, "unable to determine fields of `%s` because of forward references", mt.toChars());
+                error(e.loc, "unable to determine fields of `%s` because of forward references", mt.toErrMsg());
             }
 
             Expression e0;
@@ -5229,7 +6859,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             }
         }
 
-        if (auto t = s.getType())
+        if (auto t = dmd.dsymbolsem.getType(s))
         {
             return (new TypeExp(e.loc, t)).expressionSemantic(sc);
         }
@@ -5290,7 +6920,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         Declaration d = s.isDeclaration();
         if (!d)
         {
-            error(e.loc, "`%s.%s` is not a declaration", e.toErrMsg(), ident.toChars());
+            error(e.loc, "`%s.%s` is not a declaration", e.toErrMsg(), ident.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -5302,6 +6932,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             if (TupleDeclaration tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
+                fillTupleExpExps(e.isTupleExp(), tup);
                 return e.expressionSemantic(sc);
             }
             if (d.needThis() && sc.intypeof != 1)
@@ -5379,11 +7010,11 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             if (!(flag & 1) && !res)
             {
                 if (auto ns = mt.sym.search_correct(ident))
-                    error(e.loc, "no property `%s` for type `%s`. Did you mean `%s.%s` ?", ident.toChars(), mt.toChars(), mt.toChars(),
-                        ns.toChars());
+                    error(e.loc, "no property `%s` for type `%s`. Did you mean `%s.%s` ?", ident.toErrMsg(), mt.toErrMsg(), mt.toErrMsg(),
+                        ns.toErrMsg());
                 else
-                    error(e.loc, "no property `%s` for type `%s`", ident.toChars(),
-                        mt.toChars());
+                    error(e.loc, "no property `%s` for type `%s`", ident.toErrMsg(),
+                        mt.toErrMsg());
 
                 errorSupplemental(mt.sym.loc, "%s `%s` defined here",
                     mt.sym.kind, mt.toChars());
@@ -5420,7 +7051,10 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
              */
             e = e.expressionSemantic(sc); // do this before turning on noAccessCheck
 
-            mt.sym.size(e.loc); // do semantic of type
+            {
+                import dmd.dsymbolsem: size;
+                mt.sym.size(e.loc); // do semantic of type
+            }
 
             Expression e0;
             Expression ev = e.op == EXP.type ? null : e;
@@ -5435,6 +7069,11 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 // Don't include hidden 'this' pointer
                 if (v.isThisDeclaration())
                     continue;
+
+                // Don't include __monitor field
+                if (v.ident == Id.__monitor)
+                    continue;
+
                 Expression ex;
                 if (ev)
                     ex = new DotVarExp(e.loc, ev, v);
@@ -5548,17 +7187,6 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 return e;
             }
 
-            if (ident == Id.__monitor && mt.sym.hasMonitor())
-            {
-                /* The handle to the monitor (call it a void*)
-                 * *(cast(void**)e + 1)
-                 */
-                e = e.castTo(sc, mt.tvoidptr.pointerTo());
-                e = new AddExp(e.loc, e, IntegerExp.literal!1);
-                e = new PtrExp(e.loc, e);
-                e = e.expressionSemantic(sc);
-                return e;
-            }
 
             if (ident == Id.outer && mt.sym.vthis)
             {
@@ -5654,7 +7282,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             }
         }
 
-        if (auto t = s.getType())
+        if (auto t = dmd.dsymbolsem.getType(s))
         {
             return (new TypeExp(e.loc, t)).expressionSemantic(sc);
         }
@@ -5723,7 +7351,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         Declaration d = s.isDeclaration();
         if (!d)
         {
-            error(e.loc, "`%s.%s` is not a declaration", e.toErrMsg(), ident.toChars());
+            error(e.loc, "`%s.%s` is not a declaration", e.toErrMsg(), ident.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -5735,6 +7363,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             if (TupleDeclaration tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
+                fillTupleExpExps(e.isTupleExp(), tup);
                 e = e.expressionSemantic(sc);
                 return e;
             }
@@ -5745,7 +7374,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                 && d.isFuncDeclaration().objc.selector)
             {
                 auto classRef = new ObjcClassReferenceExp(e.loc, mt.sym);
-                classRef.type = objc.getRuntimeMetaclass(mt.sym).getType();
+                classRef.type = dmd.dsymbolsem.getType((objc.getRuntimeMetaclass(mt.sym)));
                 return new DotVarExp(e.loc, classRef, d).expressionSemantic(sc);
             }
             else if (d.needThis() && sc.intypeof != 1)
@@ -6372,11 +8001,11 @@ Type getComplexLibraryType(Loc loc, Scope* sc, TY ty)
     Dsymbol s = mConfig.searchX(Loc.initial, sc, id, SearchOpt.ignorePrivateImports);
     if (!s)
     {
-        error(loc, "`%s` not found in core.stdc.config", id.toChars());
+        error(loc, "`%s` not found in core.stdc.config", id.toErrMsg());
         return *pt;
     }
     s = s.toAlias();
-    if (auto t = s.getType())
+    if (auto t = dmd.dsymbolsem.getType(s))
     {
         if (auto ts = t.toBasetype().isTypeStruct())
         {
@@ -6390,7 +8019,7 @@ Type getComplexLibraryType(Loc loc, Scope* sc, TY ty)
         return sd.type;
     }
 
-    error(loc, "`%s` must be an alias for a complex struct", s.toChars());
+    error(loc, "`%s` must be an alias for a complex struct", s.toErrMsg());
     return *pt;
 }
 
@@ -6894,6 +8523,15 @@ Type immutableOf(Type type)
 
 /********************************
  * Make type mutable.
+ *      0            => 0
+ *      const        => 0
+ *      immutable    => 0
+ *      shared       => shared
+ *      shared const => shared
+ *      wild         => 0
+ *      wild const   => 0
+ *      shared wild  => shared
+ *      shared wild const => shared
  */
 Type mutableOf(Type type)
 {
@@ -6910,15 +8548,12 @@ Type mutableOf(Type type)
         type.getMcache();
         if (type.isShared())
         {
-            if (type.isWild())
-                t = type.mcache.swcto; // shared wild const -> shared
-            else
-                t = type.mcache.sto; // shared const => shared
+            t = type.mcache.sto; // shared (wild) const => shared
         }
         else
         {
             if (type.isWild())
-                t = type.mcache.wcto; // wild const -> naked
+                t = type.mcache.wcto; // wild const => naked
             else
                 t = type.mcache.cto; // const => naked
         }
@@ -7021,6 +8656,14 @@ Type unSharedOf(Type type)
         t = type.nullAttributes();
         t.mod = type.mod & ~MODFlags.shared_;
         t.ctype = type.ctype;
+        // Static arrays transitively apply shared to their element type,
+        // also strip from the element. (`makeMutable` does the same)
+        if (type.ty == Tsarray)
+        {
+            auto tn = cast(TypeNext) t;
+            if (tn.next.isShared())
+                tn.next = tn.next.unSharedOf();
+        }
         t = t.merge();
         t.fixTo(type);
     }
@@ -7598,6 +9241,9 @@ MATCH implicitConvToWithoutAliasThis(TypeStruct from, Type to)
     /* Check all the fields. If they can all be converted,
      * allow the conversion.
      */
+    import dmd.dsymbolsem : size;
+    if (from.sym.size(Loc.initial) == SIZE_INVALID)
+        return MATCH.nomatch;
     MATCH m = MATCH.constant;
     uint offset = ~0; // must never match a field offset
     foreach (v; from.sym.fields[])
@@ -7693,7 +9339,7 @@ uint numberOfElems(Type t, Loc loc)
         n = mulu(n, (cast(TypeSArray)tb).dim.toUInteger(), overflow);
         if (overflow || n >= uint.max)
         {
-            error(loc, "static array `%s` size overflowed to %llu", t.toChars(), cast(ulong)n);
+            error(loc, "static array `%s` size overflowed to %llu", t.toErrMsg(), cast(ulong)n);
             return uint.max;
         }
         tb = (cast(TypeSArray)tb).next;
@@ -7720,7 +9366,7 @@ bool checkRetType(TypeFunction tf, Loc loc)
         {
             if (!ts.sym.members)
             {
-                error(loc, "functions cannot return opaque type `%s` by value", tb.toChars());
+                error(loc, "functions cannot return opaque type `%s` by value", tb.toErrMsg());
                 tf.next = Type.terror;
             }
         }
@@ -7746,53 +9392,6 @@ bool isOpaqueType(Type t)
 /******************************* Private *****************************************/
 
 private:
-
-/* Helper function for `typeToExpression`. Contains common code
- * for TypeQualified derived classes.
- */
-Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
-{
-    //printf("toExpressionHelper(e = %s %s)\n", EXPtoString(e.op).ptr, e.toChars());
-    foreach (id; t.idents[i .. t.idents.length])
-    {
-        //printf("\t[%d] e: '%s', id: '%s'\n", i, e.toChars(), id.toChars());
-
-        final switch (id.dyncast())
-        {
-            // ... '. ident'
-            case DYNCAST.identifier:
-                e = new DotIdExp(e.loc, e, cast(Identifier)id);
-                break;
-
-            // ... '. name!(tiargs)'
-            case DYNCAST.dsymbol:
-                auto ti = (cast(Dsymbol)id).isTemplateInstance();
-                assert(ti);
-                e = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
-                break;
-
-            // ... '[type]'
-            case DYNCAST.type:          // https://issues.dlang.org/show_bug.cgi?id=1215
-                e = new ArrayExp(t.loc, e, new TypeExp(t.loc, cast(Type)id));
-                break;
-
-            // ... '[expr]'
-            case DYNCAST.expression:    // https://issues.dlang.org/show_bug.cgi?id=1215
-                e = new ArrayExp(t.loc, e, cast(Expression)id);
-                break;
-
-            case DYNCAST.object:
-            case DYNCAST.tuple:
-            case DYNCAST.parameter:
-            case DYNCAST.statement:
-            case DYNCAST.condition:
-            case DYNCAST.templateparameter:
-            case DYNCAST.initializer:
-                assert(0);
-        }
-    }
-    return e;
-}
 
 /**************************
  * This evaluates exp while setting length to be the number
@@ -7965,7 +9564,7 @@ Expression getMaxMinValue(EnumDeclaration ed, Loc loc, Identifier id)
 
     if (ed.inuse)
     {
-        .error(loc, "%s `%s` recursive definition of `.%s` property", ed.kind, ed.toPrettyChars, id.toChars());
+        .error(loc, "%s `%s` recursive definition of `.%s` property", ed.kind, ed.toPrettyChars, id.toErrMsg());
         return errorReturn();
     }
     if (*pval)
@@ -7977,13 +9576,13 @@ Expression getMaxMinValue(EnumDeclaration ed, Loc loc, Identifier id)
         return errorReturn();
     if (!ed.members)
     {
-        .error(loc, "%s `%s` is opaque and has no `.%s`", ed.kind, ed.toPrettyChars, id.toChars(), id.toChars());
+        .error(loc, "%s `%s` is opaque and has no `.%s`", ed.kind, ed.toPrettyChars, id.toErrMsg(), id.toErrMsg());
         return errorReturn();
     }
     if (!(ed.memtype && ed.memtype.isIntegral()))
     {
-        .error(loc, "%s `%s` has no `.%s` property because base type `%s` is not an integral type", ed.kind, ed.toPrettyChars, id.toChars(),
-              id.toChars(), ed.memtype ? ed.memtype.toChars() : "");
+        .error(loc, "%s `%s` has no `.%s` property because base type `%s` is not an integral type", ed.kind, ed.toPrettyChars, id.toErrMsg(),
+              id.toErrMsg(), ed.memtype ? ed.memtype.toErrMsg() : "");
         return errorReturn();
     }
 
@@ -8001,7 +9600,7 @@ Expression getMaxMinValue(EnumDeclaration ed, Loc loc, Identifier id)
 
         if (em.semanticRun < PASS.semanticdone)
         {
-            .error(em.loc, "%s `%s` is forward referenced looking for `.%s`", em.kind, em.toPrettyChars, id.toChars());
+            .error(em.loc, "%s `%s` is forward referenced looking for `.%s`", em.kind, em.toPrettyChars, id.toErrMsg());
             ed.errors = true;
             continue;
         }
@@ -8078,7 +9677,7 @@ RootObject compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
     if (p.token.value != TOK.endOfFile)
     {
         .error(loc, "unexpected token `%s` after type `%s`",
-            p.token.toChars(), o.toChars());
+            p.token.toChars(), o.toErrMsg());
         .errorSupplemental(loc, "while parsing string mixin type `%s`",
             str.ptr);
         return null;

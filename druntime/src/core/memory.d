@@ -141,7 +141,7 @@ private
     extern (C) GC.ProfileStats gc_profileStats ( ) nothrow @nogc @safe;
 }
 
-version (CoreDoc)
+version (CoreDdoc)
 {
     /**
      * The minimum size of a system page in bytes.
@@ -222,6 +222,10 @@ private extern (C) void _initialize() @system
         SYSTEM_INFO si;
         GetSystemInfo(&si);
         (cast() pageSize) = cast(size_t) si.dwPageSize;
+    }
+    else version (WebAssembly)
+    {
+        (cast() pageSize) = cast(size_t) 65536;
     }
     else
         static assert(false, __FUNCTION__ ~ " is not implemented on this platform");

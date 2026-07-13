@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/function.html#nogc-functions, No-GC Functions)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/nogc.d, _nogc.d)
@@ -18,17 +18,19 @@ import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.attrib;
 import dmd.common.outbuffer;
 import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
-import dmd.dsymbol : PASS;
+import dmd.dsymbol : PASS, Dsymbol;
 import dmd.dtemplate : isDsymbol;
 import dmd.errors;
 import dmd.escape;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
+import dmd.funcsem : isRootTraitsCompilesScope;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
@@ -39,7 +41,7 @@ import dmd.rootobject : RootObject, DYNCAST;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.tokens;
-import dmd.typesem : unqualify;
+import dmd.typesem : unqualify, toBasetype;
 import dmd.visitor;
 import dmd.visitor.postorder;
 
@@ -75,14 +77,32 @@ public:
     override void visit(DeclarationExp e)
     {
         // Note that, walkPostorder does not support DeclarationExp today.
-        VarDeclaration v = e.declaration.isVarDeclaration();
-        if (v && !(v.storage_class & STC.manifest) && !v.isDataseg() && v._init)
+        void visitDecl(Dsymbol d)
         {
-            if (ExpInitializer ei = v._init.isExpInitializer())
+            if (VarDeclaration v = d.isVarDeclaration())
             {
-                doCond(ei.exp);
+                if (!(v.storage_class & STC.manifest) && !v.isDataseg() && v._init && !v.isCsymbol())
+                {
+                    if (ExpInitializer ei = v._init.isExpInitializer())
+                    {
+                        doCond(ei.exp);
+                    }
+                }
+            }
+            else if (AttribDeclaration ad = d.isAttribDeclaration())
+            {
+                // Don't recurse into anonymous declarations (unions/structs)
+                // as their members aren't meant to be processed here
+                if (ad.isAnonDeclaration())
+                    return;
+                if (ad.decl)
+                {
+                    foreach (s; *ad.decl)
+                        visitDecl(s);
+                }
             }
         }
+        visitDecl(e.declaration);
     }
 
     /**
@@ -94,16 +114,16 @@ public:
      */
     private bool setGC(Expression e, const(char)* msg)
     {
-        if (sc.debug_)
+        if (sc.debug_ || sc.ctfe || sc.ctfeBlock)
             return false;
         if (checkOnly)
         {
             err = true;
             return true;
         }
-        if (f.setGC(e.loc, msg))
+        if (sc.setGC(f, e.loc, msg))
         {
-            error(e.loc, "%s causes a GC allocation in `@nogc` %s `%s`", msg, f.kind(), f.toChars());
+            error(e.loc, "%s causes a GC allocation in `@nogc` %s `%s`", msg, f.kind(), f.toErrMsg());
             err = true;
             return true;
         }
@@ -154,25 +174,11 @@ public:
             return;
         }
 
-        Identifier hook = global.params.tracegc ? Id._d_arrayliteralTXTrace : Id._d_arrayliteralTX;
-        if (!verifyHookExist(e.loc, *sc, hook, "creating array literals"))
+        if (!lowerArrayLiteral(e, sc))
         {
             err = true;
             return;
         }
-        Expression lowering = new IdentifierExp(e.loc, Id.empty);
-        lowering = new DotIdExp(e.loc, lowering, Id.object);
-        auto tiargs = new Objects();
-        // Remove `inout`, `const`, `immutable` and `shared` to reduce template instances
-        auto t = e.type.unqualify(MODFlags.wild | MODFlags.const_ | MODFlags.immutable_ | MODFlags.shared_);
-        tiargs.push(t);
-        lowering = new DotTemplateInstanceExp(e.loc, lowering, hook, tiargs);
-
-        auto arguments = new Expressions();
-        arguments.push(new IntegerExp(dim));
-
-        lowering = new CallExp(e.loc, lowering, arguments);
-        e.lowering = lowering.expressionSemantic(sc);
 
         f.printGCUsage(e.loc, "array literal may cause a GC allocation");
     }
@@ -190,7 +196,7 @@ public:
     {
         if (e.placement)
             return;     // placement new doesn't use the GC
-        if (e.member && !e.member.isNogc() && f.setGC(e.loc, null))
+        if (e.member && e.member !is f && !e.member.isNogc() && sc.setGC(f, e.loc, null))
         {
             // @nogc-ness is already checked in NewExp::semantic
             return;
@@ -288,16 +294,20 @@ Expression checkGC(Expression e, Scope* sc)
     return e;
 }
 
-extern (D) void printGCUsage(FuncDeclaration fd, Loc loc, const(char)* warn)
+/// Returns: whether GC usage inside `fd` should be printed for the -vgc flag
+extern (D) bool vgcEnabled(FuncDeclaration fd)
 {
     if (!global.params.v.gc)
-        return;
+        return false;
 
     Module m = fd.getModule();
-    if (m && m.isRoot() && !fd.inUnittest())
-    {
+    return (m && m.isRoot() && !fd.inUnittest());
+}
+
+extern (D) void printGCUsage(FuncDeclaration fd, Loc loc, const(char)* warn)
+{
+    if (vgcEnabled(fd))
         message(loc, "vgc: %s", warn);
-    }
 }
 
 /**
@@ -327,6 +337,7 @@ private FuncDeclaration stripHookTraceImpl(FuncDeclaration fd)
  * so mark it as not nogc (not no-how).
  *
  * Params:
+ *     sc = scope that the GC action is in
  *     fd = function
  *     loc = location of GC action
  *     fmt = format string for error message. Must include "%s `%s`" for the function kind and name.
@@ -335,13 +346,26 @@ private FuncDeclaration stripHookTraceImpl(FuncDeclaration fd)
  * Returns:
  *      true if function is marked as @nogc, meaning a user error occurred
  */
-extern (D) bool setGC(FuncDeclaration fd, Loc loc, const(char)* fmt, RootObject[] args...)
+extern (D) bool setGC(Scope* sc, FuncDeclaration fd, Loc loc, const(char)* fmt, RootObject[] args...)
 {
     //printf("setGC() %s\n", toChars());
     if (fd.nogcInprocess && fd.semanticRun < PASS.semantic3 && fd._scope)
     {
         fd.semantic2(fd._scope);
         fd.semantic3(fd._scope);
+    }
+
+    if (sc && isRootTraitsCompilesScope(sc)) // __traits(compiles, x)
+    {
+        if (sc.func.isNogcBypassingInference())
+        {
+            // Message wil be gagged, but still call error() to update global.errors and for
+            // -verrors=spec
+            string action = AttributeViolation(loc, fmt, args).action;
+            .error(loc, "%.*s is not allowed in a `@nogc` function", action.fTuple.expand);
+            return true;
+        }
+        return false;
     }
 
     if (fd.nogcInprocess)
@@ -362,7 +386,7 @@ extern (D) bool setGC(FuncDeclaration fd, Loc loc, const(char)* fmt, RootObject[
 
         fd.type.toTypeFunction().isNogc = false;
         if (fd.fes)
-            fd.fes.func.setGC(Loc.init, null, null);
+            sc.setGC(fd.fes.func, Loc.init, null, null);
     }
     else if (fd.isNogc())
         return true;
@@ -372,21 +396,22 @@ extern (D) bool setGC(FuncDeclaration fd, Loc loc, const(char)* fmt, RootObject[
 /**************************************
  * The function calls non-`@nogc` function f, mark it as not nogc.
  * Params:
- *     fd = function doin the call
+ *     sc = scope that the GC action is in
+ *     fd = function doing the call
  *     f = function being called
  * Returns:
  *      true if function is marked as @nogc, meaning a user error occurred
  */
-extern (D) bool setGCCall(FuncDeclaration fd, FuncDeclaration f)
+extern (D) bool setGCCall(Scope* sc, FuncDeclaration fd, FuncDeclaration f)
 {
-    return fd.setGC(fd.loc, null, f);
+    return sc.setGC(fd, fd.loc, null, f);
 }
 
- bool isNogc(FuncDeclaration fd)
+bool isNogc(FuncDeclaration fd)
 {
     //printf("isNogc() %s, inprocess: %d\n", toChars(), !!(flags & FUNCFLAG.nogcInprocess));
     if (fd.nogcInprocess)
-        fd.setGC(fd.loc, null);
+        setGC(null, fd, fd.loc, null);
     return fd.type.toTypeFunction().isNogc;
 }
 

@@ -1,0 +1,38 @@
+Destructors now run in a `nothrow` function when an `Error` unwinds through it
+
+Destructors and `scope(exit)` blocks internally generate try-finally statements.
+Since 2018, DMD has optimized `finally` blocks in `nothrow` try bodies by rewriting them into a simple sequence,
+avoiding the overhead of exception unwinding. However, this optimization also skipped `finally` blocks when
+an `Error` was thrown, preventing expected cleanup from running.
+
+This optimization has been reverted to the pre-2018 behavior: `finally` blocks always run, regardless of whether
+the try body can throw an `Exception`.
+
+To reenable the optimization, use the new `-nothrow-optimizations` switch.
+
+The following example demonstrates the fix - "exiting!" is now printed even though `callMe` is a `nothrow` function:
+
+```d
+import core.stdc.stdio;
+
+void main()
+{
+    S s2;
+    callMe();
+}
+
+struct S
+{
+    ~this()
+    {
+        printf("exiting\n");
+    }
+}
+
+void callMe() nothrow
+{
+    throw new Error("hi there :)");
+}
+```
+
+The `-betterC` switch is unaffected by this change.

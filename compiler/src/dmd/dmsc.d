@@ -1,7 +1,7 @@
 /**
  * Configures and initializes the backend.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dmsc.d, _dmsc.d)
@@ -25,13 +25,30 @@ import dmd.target;
 
 import dmd.root.filename;
 
+import dmd.backend.backconfig;
+import dmd.backend.go;
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.global;
+import dmd.backend.global : ErrorCallbackBackend, GetFileContentsCallback;
 import dmd.backend.ty;
 import dmd.backend.type;
-import dmd.backend.backconfig;
-import dmd.backend.var : go;
+
+import dmd.file_manager : FileManager;
+
+/// Callback for the backend to fetch cached source-file contents from the
+/// front-end FileManager (Module.src), so hashing source files for debug info
+/// reuses the in-memory cache instead of re-reading them from disk.
+extern(C++) const(ubyte)* getFileContentsBackend(const(char)* filename, ref size_t length)
+{
+    length = 0;
+    if (!global.fileManager)
+        return null;
+    const(ubyte)[] data = global.fileManager.getFileContents(FileName(filename[0 .. strlen(filename)]));
+    if (!data)
+        return null;
+    length = data.length;
+    return data.ptr;
+}
 
 /**************************************
  * Initialize backend config variables.
@@ -55,6 +72,7 @@ void backend_init(const ref Param params, const ref DMDparams driverParams, cons
         case Target.OS.OpenBSD: exfmt = is64 ? EX_OPENBSD64 : EX_OPENBSD; break;
         case Target.OS.Solaris: exfmt = is64 ? EX_SOLARIS64 : EX_SOLARIS; break;
         case Target.OS.DragonFlyBSD: assert(is64); exfmt = EX_DRAGONFLYBSD64; break;
+        case Target.OS.Hurd:    exfmt = is64 ? EX_HURD64    : EX_HURD; break;
         default: assert(0);
     }
 
@@ -97,6 +115,7 @@ void backend_init(const ref Param params, const ref DMDparams driverParams, cons
         go,
         // FIXME: casting to @nogc because errors.d is not marked @nogc yet
         cast(ErrorCallbackBackend) &errorBackend,
+        cast(GetFileContentsCallback) &getFileContentsBackend,
     );
 
     out_config_debug(

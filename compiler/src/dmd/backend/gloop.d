@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/gloop.d, backend/gloop.d)
@@ -18,19 +18,23 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.backconfig : debugc;
+import dmd.backend.blockopt : BlockOpt, bo, block_calloc, blockopt, compdfo;
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.evalu8 : el_toldoubled;
+import dmd.backend.evalu8 : el_toreald;
 import dmd.backend.oper;
-import dmd.backend.global;
-import dmd.backend.goh;
+import dmd.backend.global : size;
+import dmd.backend.cgelem : doptelem, elemisone;
+import dmd.backend.debugprint : WReqn, WRfunc, tym_str;
+import dmd.backend.evalu8 : evalu8, iftrue;
+import dmd.backend.go;
 import dmd.backend.el;
-import dmd.backend.symtab;
+import dmd.backend.symbol : sytab, globsym, SYMIDX;
 import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.barray;
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.mem;
 
@@ -178,7 +182,7 @@ void makeLI(elem* n) { n.Nflags |= NFLli; }
  *      Only variables that could only be unambiguously defined
  *      are candidates for loop invariant removal and induction
  *      variables.
- *      This means only variables that have the SFLunambig flag
+ *      This means only variables that have the SFLdistinct flag
  *      set for them.
  *      Doing this will still cover 90% (I hope) of the cases, and
  *      is a lot faster to compute.
@@ -203,19 +207,19 @@ private void freeloop(ref Loops loops)
  */
 
 @trusted
-bool blockinit()
+bool blockinit(ref BlockOpt bo)
 {
     bool hasasm = false;
 
     assert(bo.dfo);
     foreach (b; BlockRange(bo.startblock))
     {
-        debug                   /* check integrity of Bpred and Bsucc   */
+        //debug                   /* check integrity of Bpred and Bsucc   */
           L1:
-            foreach (blp; ListRange(b.Bpred))
+            foreach (blp; b.Bpred[])
             {
-                foreach (bls; ListRange(list_block(blp).Bsucc))
-                    if (list_block(bls) == b)
+                foreach (bls; blp.Bsucc[])
+                    if (bls == b)
                         continue L1;
                 assert(0);
             }
@@ -242,13 +246,13 @@ bool blockinit()
  */
 
 @trusted
-void compdom()
+void compdom(ref BlockOpt bo)
 {
     compdom(bo.dfo[]);
 }
 
 @trusted
-private extern (D) void compdom(block*[] dfo)
+private void compdom(block*[] dfo)
 {
     assert(dfo.length);
     block* sb = dfo[0];                  // starting block
@@ -271,12 +275,12 @@ private extern (D) void compdom(block*[] dfo)
         {
             if (i == 0)
                 continue;                // except startblock
-            if (b.Bpred)                 // if there are predecessors
+            if (b.Bpred.length)          // if there are predecessors
             {
                 vec_set(t1);
-                foreach (bl; ListRange(b.Bpred))
+                foreach (bl; b.Bpred[])
                 {
-                    vec_andass(t1,list_block(bl).Bdom);
+                    vec_andass(t1,bl.Bdom);
                 }
             }
             else
@@ -311,7 +315,7 @@ private extern (D) void compdom(block*[] dfo)
  */
 
 @trusted
-bool dom(const block* A, const block* B)
+bool dom(ref BlockOpt bo, const block* A, const block* B)
 {
     assert(A && B && bo.dfo && bo.dfo[A.Bdfoidx] == A);
     return vec_testbit(A.Bdfoidx,B.Bdom) != 0;
@@ -321,7 +325,7 @@ bool dom(const block* A, const block* B)
  * Find all the loops.
  */
 
-private extern (D) void findloops(block*[] dfo, ref Loops loops)
+private void findloops(ref BlockOpt bo, block*[] dfo, ref Loops loops)
 {
     freeloop(loops);
 
@@ -333,12 +337,11 @@ private extern (D) void findloops(block*[] dfo, ref Loops loops)
                                    // loops are found first)
     {
         assert(b);
-        foreach (bl; ListRange(b.Bsucc))
+        foreach (s; b.Bsucc[])
         {
-            block* s = list_block(bl);      // each successor s to b
             assert(s);
-            if (dom(s,b))                   // if s dominates b
-                buildloop(loops, s, b);     // we found a loop
+            if (dom(bo, s, b))              // if s dominates b
+                buildloop(bo, loops, s, b); // we found a loop
         }
     }
 
@@ -382,7 +385,7 @@ private uint loop_weight(uint weight, int factor) pure
  */
 
 @trusted
-private void buildloop(ref Loops ploops,block* head,block* tail)
+private void buildloop(ref BlockOpt bo, ref Loops ploops, block* head, block* tail)
 {
     //printf("buildloop()\n");
 
@@ -395,8 +398,8 @@ private void buildloop(ref Loops ploops,block* head,block* tail)
         {
             vec_setbit(b.Bdfoidx,v);        // add block to loop
             b.Bweight = loop_weight(b.Bweight,1);   // *10 usage count
-            foreach (bl; ListRange(b.Bpred))
-                insert(list_block(bl), v);  // insert all its predecessors
+            foreach (bl; b.Bpred[])
+                insert(bl, v);              // insert all its predecessors
         }
     }
 
@@ -448,8 +451,8 @@ L1:
             vec_setbit(i,l.Lexit); /* ret blocks are exit blocks */
         else
         {
-            foreach (bl; ListRange(bo.dfo[i].Bsucc))
-                if (!vec_testbit(list_block(bl).Bdfoidx,l.Lloop))
+            foreach (bl; bo.dfo[i].Bsucc[])
+                if (!vec_testbit(bl.Bdfoidx,l.Lloop))
                 {
                     vec_setbit(i,l.Lexit);
                     break;
@@ -462,10 +465,8 @@ L1:
         All other predecessors of head must be inside the loop.
      */
     l.Lpreheader = null;
-    foreach (bl; ListRange(head.Bpred))
+    foreach (b; head.Bpred[])
     {
-        block* b = list_block(bl);
-
         if (!vec_testbit(b.Bdfoidx,l.Lloop))  /* if not in loop       */
         {
             if (l.Lpreheader)                 /* if already one       */
@@ -475,7 +476,7 @@ L1:
             }
             else
             {
-                if (list_next(b.Bsucc))       // if more than 1 successor
+                if (b.Bsucc.length > 1)      // if more than 1 successor
                     break;                    // b can't be a preheader
                 l.Lpreheader = b;
             }
@@ -543,7 +544,7 @@ L1:
  */
 
 @trusted
-private bool looprotate(ref GlobalOptimizer go, ref Loop l)
+private bool looprotate(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
 {
     block* tail = l.Ltail;
     block* head = l.Lhead;
@@ -576,51 +577,53 @@ private bool looprotate(ref GlobalOptimizer go, ref Loop l)
         // switches would be too expensive in terms of code
         // generated).
 
-        auto head2 = block_calloc(); // create new head block
+        auto head2 = block_calloc(bo); // create new head block
         head2.Btry = head.Btry;
         head2.Bflags = head.Bflags;
-        head.Bflags = BFL.nomerg;       // move flags over to head2
-        head2.Bflags |= BFL.nomerg;
+        head.Bflags = BFL.separate;       // move flags over to head2
+        head2.Bflags |= BFL.separate;
         head2.bc = head.bc;
         assert(head2.bc != BC.switch_);
         if (head.Belem)                // copy expression tree
             head2.Belem = el_copytree(head.Belem);
+        // insert head2 after tail
         head2.Bnext = tail.Bnext;
         tail.Bnext = head2;
 
         // pred(head1) = pred(head) outside loop
         // pred(head2) = pred(head) inside loop
-        list_t* pbln;
-        auto pbl2 = &(head2.Bpred);
-        for (list_t* pbl = &(head.Bpred); *pbl; pbl = pbln)
+        for (size_t i = 0; i < head.Bpred.length; )
         {
-            if (vec_testbit(list_block(*pbl).Bdfoidx, l.Lloop))
-            {   // if this predecessor is inside the loop
+            if (vec_testbit(head.Bpred[i].Bdfoidx, l.Lloop)) // if head predecessor [i] is in the loop
+            {
+                // Move predecessor of head to head2
+                block* bs = head.Bpred[i];
+                head2.Bpred.push(bs);
+                head.Bpred.subtracti(i);
 
-                *pbl2 = *pbl;
-                *pbl = list_next(*pbl);
-                pbln = pbl;                     // don't skip this next one
-                (*pbl2).next = null;
-                auto bsucc = list_block(*pbl2).Bsucc;
-                pbl2 = &((*pbl2).next);
-                foreach (bl; ListRange(bsucc))
-                    if (list_block(bl) == head)
+                // Any successors to predecessors to head blocks get redirected to head2
+                int j;
+                foreach (ref bl; bs.Bsucc[])
+                {
+                    if (bl == head)
                     {
-                        bl.ptr = cast(void*)head2;
+                        bs.Bsucc[j] = head2;
                         goto L2;
                     }
+                    ++j;
+                }
                 assert(0);
         L2:
             }
             else
-                pbln = &((*pbl).next);      // next predecessor in list
+                ++i;      // next predecessor in head
         } // for each pred(head)
 
         // succ(head2) = succ(head)
-        foreach (bl; ListRange(head.Bsucc))
+        foreach (b; head.Bsucc[])
         {
-            list_append(&(head2.Bsucc),list_block(bl));
-            list_append(&(list_block(bl).Bpred),head2);
+            head2.Bsucc.push(b);
+            b.Bpred.push(head2);
         }
         if (debugc) printf("1Rotated loop %p\n", &l);
         go.changes++;
@@ -676,7 +679,7 @@ private __gshared
  */
 
 @trusted
-void loopopt(ref GlobalOptimizer go)
+void loopopt(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     __gshared Loops startloop_cache;
 
@@ -684,27 +687,27 @@ void loopopt(ref GlobalOptimizer go)
 
     if (debugc) printf("loopopt()\n");
 restart:
-    if (blockinit())                    // init block data
+    if (blockinit(bo))                  // init block data
     {
-        findloops(bo.dfo[], startloop);    // Compute Bweights
+        findloops(bo, bo.dfo[], startloop);    // Compute Bweights
         freeloop(startloop);            // free existing loops
         startloop_cache = startloop;
         return;                         // can't handle ASM blocks
     }
-    compdom();                          // compute dominators
-    findloops(bo.dfo[], startloop);              // find the loops
+    compdom(bo);                        // compute dominators
+    findloops(bo, bo.dfo[], startloop);        // find the loops
 
   L3:
     while (1)
     {
         foreach (ref l; startloop)
         {
-            if (looprotate(go, l))              // rotate the loop
+            if (looprotate(go, bo, l))          // rotate the loop
             {
                 compdfo(bo.dfo, bo.startblock);
-                blockinit();
-                compdom();
-                findloops(bo.dfo[], startloop);
+                blockinit(bo);
+                compdom(bo);
+                findloops(bo, bo.dfo[], startloop);
                 continue L3;
             }
         }
@@ -722,7 +725,7 @@ restart:
         {
             if (debugc) printf("Generating preheader for loop\n");
             addblk = true;              // add one
-            block* p = block_calloc();  // the preheader
+            block* p = block_calloc(bo);  // the preheader
             block* h = l.Lhead;         // loop header
 
             /* Find parent of h */
@@ -745,40 +748,46 @@ restart:
 
             l.Lpreheader = p;
             p.bc = BC.goto_;
-            assert(p.Bsucc == null);
-            list_append(&(p.Bsucc),h); /* only successor is h          */
+            p.Bsucc.push(h);
+            assert(p.Bsucc.length == 1); /* only successor is h          */
             p.Btry = h.Btry;
 
             if (debugc) printf("Adding preheader %p to loop %p\n",p,&l);
 
             // Move preds of h that aren't in the loop to preds of p
-            for (list_t bl = h.Bpred; bl;)
+            for (int i = 0; i < h.Bpred[].length; )
             {
-                block* b = list_block(bl);
+                block* b = h.Bpred[i];
 
-                if (!vec_testbit (b.Bdfoidx, l.Lloop))
+                if (!vec_testbit(b.Bdfoidx, l.Lloop)) // b is not in the loop
                 {
-                    list_append(&(p.Bpred), b);
-                    list_subtract(&(h.Bpred), b);
-                    bl = h.Bpred;      /* dunno what subtract did      */
+                    p.Bpred.push(b);                  // add b to pres of p
+                    h.Bpred.subtract(b);              // remove b from preds of h
+                    i = 0;                            // start over
 
                     /* Fix up successors of predecessors        */
-                    foreach (bls; ListRange(b.Bsucc))
-                        if (list_block(bls) == h)
-                                bls.ptr = cast(void*)p;
+                    int j = 0;
+                    foreach (bls; b.Bsucc[])
+                    {
+                        if (bls == h)
+                        {
+                            b.Bsucc[j] = p;
+                        }
+                        ++j;
+                    }
                 }
                 else
-                    bl = list_next(bl);
+                    ++i;
             }
-            list_append(&(h.Bpred),p); /* p is a predecessor to h      */
+            h.Bpred.push(p);            /* p is a predecessor to h      */
         }
     } /* for */
     if (addblk)                         /* if any blocks were added      */
     {
-        compdfo(bo.dfo, bo.startblock);                      /* compute depth-first order    */
-        blockinit();
-        compdom();
-        findloops(bo.dfo[], startloop);          // recompute block info
+        compdfo(bo.dfo, bo.startblock);              /* compute depth-first order    */
+        blockinit(bo);
+        compdom(bo);
+        findloops(bo, bo.dfo[], startloop);    // recompute block info
         addblk = false;
     }
 
@@ -795,12 +804,12 @@ restart:
         {
             foreach (ref l; startloop)
             {
-                if (loopunroll(go, l))
+                if (loopunroll(go, bo, l))
                 {
-                    compdfo(bo.dfo, bo.startblock);                      // compute depth-first order
-                    blockinit();
-                    compdom();
-                    findloops(bo.dfo[], startloop);    // recompute block info
+                    compdfo(bo.dfo, bo.startblock);  // compute depth-first order
+                    blockinit(bo);
+                    compdom(bo);
+                    findloops(bo, bo.dfo[], startloop);  // recompute block info
                     doflow = true;
                     continue L2;
                 }
@@ -822,9 +831,9 @@ restart:
         assert(l.Lpreheader);
         if (doflow)
         {
-            flowrd(go);             /* compute reaching definitions  */
-            flowlv();               /* compute live variables        */
-            flowae(go);             // compute available expressions
+            flowrd(go, bo);         /* compute reaching definitions  */
+            flowlv(bo);             /* compute live variables        */
+            flowae(go, bo);         // compute available expressions
             doflow = false;         /* no need to redo it           */
             if (go.defnod.length == 0)     /* if no definition elems       */
                 break;              /* no need to optimize          */
@@ -911,7 +920,7 @@ restart:
 
         if (go.mfoptim & MFliv)
         {
-            loopiv(go, l);          /* induction variables          */
+            loopiv(go, bo, l);      /* induction variables          */
             if (addblk)             /* if we added a block          */
             {
                 compdfo(bo.dfo, bo.startblock);
@@ -1134,7 +1143,7 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
                 if (isLI(n.E2) && n1.Eoper == OPvar)          /* 1 & 2 */
                 {
                     v = n1.Vsym;
-                    if (v.Sflags & SFLunambig)
+                    if (v.Sflags & SFLdistinct)
                     {
                         tmp = vec_calloc(go.defnod.length);
                         //filterrd(tmp,rd,v);
@@ -1241,7 +1250,7 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
 
             case OPvar:
                 v = n.Vsym;
-                if (v.Sflags & SFLunambig)     // must be unambiguous to be LI
+                if (v.Sflags & SFLdistinct)     // must be unambiguous to be LI
                 {
                     tmp = vec_calloc(go.defnod.length);
                     //filterrd(tmp,rd,v);       // only the RDs pertaining to v
@@ -1526,7 +1535,7 @@ Lnextlis:
             {
                 v = n.E1.Vsym;          // variable index number
 
-                if (!(v.Sflags & SFLunambig)) goto L3;         // case 6
+                if (!(v.Sflags & SFLdistinct)) goto L3;         // case 6
 
                 // If case 4 is not satisfied, return
 
@@ -1547,11 +1556,8 @@ Lnextlis:
                     uint i;
                     for (i = 0; (i = cast(uint) vec_index(i, l.Lexit)) < bo.dfo.length; ++i)  // for each exit block
                     {
-                        foreach (bl; ListRange(bo.dfo[i].Bsucc))
+                        foreach (s; bo.dfo[i].Bsucc[])
                         {
-                            block* s;           // successor to exit block
-
-                            s = list_block(bl);
                             if (!vec_testbit(s.Bdfoidx,l.Lloop) &&
                                 (!symbol_isintab(v) ||
                                  vec_testbit(v.Ssymnum,s.Binlv))) // if v is live on exit
@@ -1913,8 +1919,8 @@ private void newfamlist(famlist* fl, tym_t ty)
             c.Vdouble = 1;
             break;
 
-        case TYldouble:
-            c.Vldouble = 1;
+        case TYreal:
+            c.Vreal = 1;
             break;
 
         case TYbool:
@@ -1964,7 +1970,7 @@ private void newfamlist(famlist* fl, tym_t ty)
     }
     fl.c1 = el_const(ty, c);               /* c1 = 1               */
 
-    c.Vldouble = 0;
+    c.Vreal = 0;
     if (typtr(ty))
     {
         ty = TYint;
@@ -1982,26 +1988,26 @@ private void newfamlist(famlist* fl, tym_t ty)
  */
 
 @trusted
-private void loopiv(ref GlobalOptimizer go, ref Loop l)
+private void loopiv(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
 {
     if (debugc) printf("loopiv(%p)\n", &l);
     assert(l.Livlist.length == 0 && l.Lopeqlist.length == 0);
     elimspec(go, l, bo.dfo);
     if (doflow)
     {
-        flowrd(go);             /* compute reaching defs                */
-        flowlv();               /* compute live variables               */
-        flowae(go);             // compute available expressions
+        flowrd(go, bo);         /* compute reaching defs                */
+        flowlv(bo);             /* compute live variables               */
+        flowae(go, bo);         // compute available expressions
         doflow = false;
     }
     findbasivs(go, l);          /* find basic induction variables       */
     findopeqs(go, l);           // find op= variables
-    findivfams(l);              /* find IV families                     */
-    elimfrivivs(l);             /* eliminate less useful family IVs     */
+    findivfams(bo, l);          /* find IV families                     */
+    elimfrivivs(bo, l);         /* eliminate less useful family IVs     */
     intronvars(go, l);          /* introduce new variables              */
-    elimbasivs(go, l);          /* eliminate basic IVs                  */
+    elimbasivs(go, bo, l);      /* eliminate basic IVs                  */
     if (!addblk)                // adding a block changes the Binlv
-        elimopeqs(go, l);       // eliminate op= variables
+        elimopeqs(go, bo, l);   // eliminate op= variables
 
     foreach (ref iv; l.Livlist)
         iv.reset();
@@ -2083,7 +2089,7 @@ private void findbasivs(ref GlobalOptimizer go, ref Loop l)
             {
                 foreach (j, s; globsym[])
                 {
-                    if (!(s.Sflags & SFLunambig))
+                    if (!(s.Sflags & SFLdistinct))
                         vec_setbit(j,notposs);
                 }
                 ambdone = true;
@@ -2217,7 +2223,7 @@ private void findopeqs(ref GlobalOptimizer go, ref Loop l)
             {
                 foreach (j, s; globsym[])
                 {
-                    if (!(s.Sflags & SFLunambig))
+                    if (!(s.Sflags & SFLdistinct))
                         vec_setbit(j,notposs);
                 }
                 ambdone = true;
@@ -2301,7 +2307,7 @@ private void findopeqs(ref GlobalOptimizer go, ref Loop l)
  */
 
 @trusted
-private void findivfams(ref Loop l)
+private void findivfams(ref BlockOpt bo, ref Loop l)
 {
     if (debugc) printf("findivfams(%p)\n", &l);
     foreach (ref biv; l.Livlist)
@@ -2511,7 +2517,7 @@ private void ivfamelems(Iv* biv,elem** pn)
  */
 
 @trusted
-private void elimfrivivs(ref Loop l)
+private void elimfrivivs(ref BlockOpt bo, ref Loop l)
 {
     foreach (ref biv; l.Livlist)
     {
@@ -2523,7 +2529,7 @@ private void elimfrivivs(ref Loop l)
         if (debugc) printf("nfams = %d\n", cast(int)nfams);
 
         /* Compute number of references to biv  */
-        if (onlyref(biv.IVbasic,l,*biv.IVincr,nrefs))
+        if (onlyref(bo, biv.IVbasic,l,*biv.IVincr,nrefs))
                 nrefs--;
         if (debugc) printf("nrefs = %d\n",nrefs);
         assert(nrefs + 1 >= nfams);
@@ -2799,7 +2805,7 @@ private bool funcprev(ref GlobalOptimizer go, ref Iv biv, ref famlist fl)
  */
 
 @trusted
-private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
+private void elimbasivs(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
 {
     if (debugc) printf("elimbasivs(%p)\n", &l);
     foreach (ref biv; l.Livlist)
@@ -2815,7 +2821,7 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
         assert(symbol_isintab(X));
         tym_t ty = X.ty();
         int refcount;
-        elem** pref = onlyref(X,l,einc,refcount);
+        elem** pref = onlyref(bo, X,l,einc,refcount);
 
         /* if only ref of X is of the form (X) or (X relop e) or (e relop X) */
         if (pref != null && refcount <= 1)
@@ -2823,7 +2829,7 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
             if (!biv.IVfamily.length)
                 continue;
 
-            if (catchRef(X, l))
+            if (catchRef(bo, X, l))
                 continue;
 
             elem* ref_ = *pref;
@@ -2913,7 +2919,7 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
              */
             if (!tyuns(ty) &&
                 (tyintegral(ty) && el_tolong(fl.c1) < 0 ||
-                 tyfloating(ty) && el_toldoubled(fl.c1) < 0.0))
+                 tyfloating(ty) && el_toreald(fl.c1) < 0.0))
                 refEoper = swaprel(refEoper);
 
             /* Replace (X relop e) with (X relop (short)e)
@@ -3011,9 +3017,9 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
                 elem* ne;
                 block* b;
 
-                foreach (bl; ListRange(bo.dfo[i].Bsucc))
+                foreach (ref bl; bo.dfo[i].Bsucc[])
                 {   /* for each successor   */
-                    b = list_block(bl);
+                    b = bl;
                     if (vec_testbit(b.Bdfoidx,l.Lloop))
                         continue;       /* inside loop  */
                     if (!vec_testbit(X.Ssymnum,b.Binlv))
@@ -3047,20 +3053,20 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
 
                     /* We have to add a new block if there is */
                     /* more than one predecessor to b.      */
-                    if (list_next(b.Bpred))
+                    if (b.Bpred.length > 1)
                     {
-                        block* bn = block_calloc();
+                        block* bn = block_calloc(bo);
                         bn.Btry = b.Btry;
                         bn.bc = BC.goto_;
                         bn.Bnext = bo.dfo[i].Bnext;
                         bo.dfo[i].Bnext = bn;
-                        list_append(&(bn.Bsucc),b);
-                        list_append(&(bn.Bpred),bo.dfo[i]);
-                        bl.ptr = cast(void*)bn;
-                        foreach (bl2; ListRange(b.Bpred))
-                            if (list_block(bl2) == bo.dfo[i])
+                        bn.Bsucc.push(b);
+                        bn.Bpred.push(bo.dfo[i]);
+                        bl = bn;
+                        foreach (ref bl2; b.Bpred[])
+                            if (bl2 == bo.dfo[i])
                             {
-                                bl2.ptr = cast(void*)bn;
+                                bl2 = bn;
                                 goto L2;
                             }
                         assert(0);
@@ -3087,9 +3093,8 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
             /* Eliminate the basic IV if it is not live on any successor */
             for (uint i = 0; (i = cast(uint) vec_index(i, l.Lexit)) < bo.dfo.length; ++i)  // for each exit block
             {
-                foreach (bl; ListRange(bo.dfo[i].Bsucc))
+                foreach (b; bo.dfo[i].Bsucc[])
                 {   /* for each successor   */
-                    block* b = list_block(bl);
                     if (vec_testbit(b.Bdfoidx,l.Lloop))
                         continue;       /* inside loop  */
                     if (vec_testbit(X.Ssymnum,b.Binlv))
@@ -3123,7 +3128,7 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
  */
 
 @trusted
-private void elimopeqs(ref GlobalOptimizer go, ref Loop l)
+private void elimopeqs(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
 {
     elem** pref;
     Symbol* X;
@@ -3142,7 +3147,7 @@ private void elimopeqs(ref GlobalOptimizer go, ref Loop l)
 
         X = biv.IVbasic;
         assert(symbol_isintab(X));
-        pref = onlyref(X,l,*biv.IVincr,refcount);
+        pref = onlyref(bo, X,l,*biv.IVincr,refcount);
 
         // if only ref of X is of the form (X) or (X relop e) or (e relop X)
         if (pref != null && refcount <= 1)
@@ -3152,9 +3157,8 @@ private void elimopeqs(ref GlobalOptimizer go, ref Loop l)
             uint i;
             for (i = 0; (i = cast(uint) vec_index(i, l.Lexit)) < bo.dfo.length; ++i)  // for each exit block
             {
-                foreach (bl; ListRange(bo.dfo[i].Bsucc))
+                foreach (b; bo.dfo[i].Bsucc[])
                 {   // for each successor
-                    block* b = list_block(bl);
                     if (vec_testbit(b.Bdfoidx,l.Lloop))
                         continue;       // inside loop
                     if (vec_testbit(X.Ssymnum,b.Binlv))
@@ -3192,7 +3196,6 @@ private void elimopeqs(ref GlobalOptimizer go, ref Loop l)
  */
 
 @trusted
-extern (D)
 private size_t simfl(famlist[] fams, tym_t tym)
 {
     size_t sofar = fams.length;
@@ -3299,9 +3302,9 @@ private bool flcmp(const ref famlist f1, const ref famlist f2)
                         goto Lf2;
                 break;
 
-            case TYldouble:
-                if (t2.Vldouble == 1.0 ||
-                    t1.Vldouble != 1.0 && f2.c2.Vldouble == 0)
+            case TYreal:
+                if (t2.Vreal == 1.0 ||
+                    t1.Vreal != 1.0 && f2.c2.Vreal == 0)
                         goto Lf2;
                 break;
 
@@ -3335,7 +3338,7 @@ Lf2:
  *      true if x is used outside the try block
  */
 @trusted
-private bool catchRef(Symbol* x, ref Loop l)
+private bool catchRef(ref BlockOpt bo, Symbol* x, ref Loop l)
 {
     block* btry = l.Lhead.Btry;
     if (!btry)
@@ -3377,7 +3380,7 @@ private __gshared
 }
 
 @trusted
-private elem ** onlyref(Symbol* x, ref Loop l,elem* incn, out int refcount)
+private elem ** onlyref(ref BlockOpt bo, Symbol* x, ref Loop l,elem* incn, out int refcount)
 {
     uint i;
 
@@ -3491,7 +3494,7 @@ private int countrefs2(const(elem)* e, const Symbol* s)
 
 @trusted
 private
-extern(D) void elimspec(ref GlobalOptimizer go, const ref Loop loop, block*[] dfo)
+void elimspec(ref GlobalOptimizer go, const ref Loop loop, block*[] dfo)
 {
     // Visit each block in loop
     for (size_t i = 0; (i = vec_index(i, loop.Lloop)) < dfo.length; ++i)
@@ -3690,7 +3693,7 @@ private void unrollWalker(elem* e, uint defnum, Symbol* v, targ_llong increment,
  *      true if loop was unrolled
  */
 @trusted
-bool loopunroll(ref GlobalOptimizer go, ref Loop l)
+bool loopunroll(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
 {
     const bool log = false;
     if (log) printf("loopunroll(%p)\n", &l);
@@ -3698,9 +3701,9 @@ bool loopunroll(ref GlobalOptimizer go, ref Loop l)
     /* Do not repeatedly unroll the same loop,
      * or waste time attempting to
      */
-    if (l.Lhead.Bflags & BFL.nounroll)
+    if (l.Lhead.Bflags & BFL.keepRolled)
         return false;
-    l.Lhead.Bflags |= BFL.nounroll;
+    l.Lhead.Bflags |= BFL.keepRolled;
     if (log)
         WRfunc("loop", funcsym_p, bo.startblock);
 
@@ -3778,7 +3781,7 @@ bool loopunroll(ref GlobalOptimizer go, ref Loop l)
     Symbol* v = e1.Vsym;
 
     // RD info is only reliable for registers and autos
-    if (!(sytab[v.Sclass] & SCRD) || !(v.Sflags & SFLunambig))
+    if (!(sytab[v.Sclass] & SCRD) || !(v.Sflags & SFLdistinct))
     {
         if (log) printf("\tnot SCRD\n");
         return false;

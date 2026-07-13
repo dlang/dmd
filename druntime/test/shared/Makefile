@@ -32,8 +32,9 @@ extra_dflags += -version=SharedRuntime
 PATH := $(dir $(DRUNTIMESO));$(PATH)
 endif
 
-$(ROOT)/dllgc.done: $(ROOT)/dllgc$(DOTDLL)
-$(ROOT)/dllgc$(DOTDLL): extra_dflags += -version=DLL
+$(ROOT)/dllgc$(DOTEXE): $(ROOT)/dllgc$(DOTDLL)
+$(ROOT)/dllgc$(DOTDLL): private extra_dflags += -version=DLL -od=$(ROOT)/dll -L/PDB:$(ROOT)/dllgc_dll.pdb
+$(ROOT)/dynamiccast$(DOTDLL): private extra_dflags += -L/PDB:$(ROOT)/dynamiccast_dll.pdb
 endif # Windows
 
 $(ROOT)/dynamiccast.done: $(ROOT)/%.done: $(ROOT)/%$(DOTEXE) $(ROOT)/%$(DOTDLL)
@@ -44,7 +45,7 @@ $(ROOT)/dynamiccast.done: $(ROOT)/%.done: $(ROOT)/%$(DOTEXE) $(ROOT)/%$(DOTDLL)
 	test -f $(ROOT)/dynamiccast_endmain
 	@touch $@
 $(ROOT)/dynamiccast$(DOTEXE): private extra_ldlibs.d += $(LINKDL)
-$(ROOT)/dynamiccast$(DOTDLL): private extra_dflags += -version=DLL
+$(ROOT)/dynamiccast$(DOTDLL): private extra_dflags += -version=DLL -od=$(ROOT)/dll
 
 # Avoid a race condition that I sometimes hit with make -j8.
 # Maybe temporary file collisions when invoking the linker?

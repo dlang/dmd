@@ -25,7 +25,7 @@ else version (WatchOS)
 version (Darwin):
 extern (C):
 
-alias int kern_return_t;
+alias kern_return_t = int;
 
 enum : kern_return_t
 {

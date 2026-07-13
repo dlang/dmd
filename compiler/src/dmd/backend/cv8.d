@@ -1,13 +1,13 @@
 /**
  * CodeView 8 symbolic debug info generation
  *
- * This module generates the `.debug$S` and ``.debug$T` sections for Win64,
+ * This module generates the `.debug$S` and `.debug$T` sections for Win64,
  * which are the MS-Coff symbolic debug info and type debug info sections.
  *
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:    Copyright (C) 2012-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:    Copyright (C) 2012-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/cv8.d, backend/cv8.d)
@@ -30,15 +30,17 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.cv4;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.global;
 import dmd.backend.mscoffobj;
 import dmd.backend.obj;
 import dmd.backend.oper;
+import dmd.backend.global : getFileContentsCallback;
 import dmd.common.outbuffer;
 import dmd.backend.rtlsym;
+import dmd.backend.symbol : globsym;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.dvarstats;
+import dmd.root.filename : FileName;
 
 
 nothrow:
@@ -71,7 +73,7 @@ private __gshared OutBuffer* F2_buf;
 // The "F3" section, which is global and a string table of source file names.
 private __gshared OutBuffer* F3_buf;
 
-// The "F4" section, which is global and a lists info about source files.
+// The "F4" section, which is global and a list of info about source files.
 private __gshared OutBuffer* F4_buf;
 
 /* Fixups that go into F1 section
@@ -223,28 +225,66 @@ void cv8_termfile(const(char)[] objfilename)
     int seg = MsCoffObj_seg_debugS();
 
     uint value = 4;
-    objmod.bytes(seg,0,4,&value);
+    objmod.bytes(seg,0,(cast(void*)&value)[0 .. 4]);
 
-    /* Start with starting symbol in separate "F1" section
+    /* Start with starting symbols in a separate "F1" section
      */
     auto buf = OutBuffer(1024);
-    size_t len = objfilename.length;
-    buf.write16(cast(int)(2 + 4 + len + 1));
-    buf.write16(S_COMPILAND_V3);
-    buf.write32(0);
-    buf.write(objfilename.ptr, cast(uint)(len + 1));
 
-    // write S_COMPILE record
-    buf.write16(2 + 1 + 1 + 2 + 1 + VERSION.length + 1);
-    buf.write16(S_COMPILE);
-    buf.writeByte(I64 ? 0xD0 : 6); // target machine AMD64 or x86 (Pentium II)
-    buf.writeByte(config.flags2 & CFG2gms ? (CPP != 0) : 'D'); // language index (C/C++/D)
-    buf.write16(0x800 | (config.inline8087 ? 0 : (1<<3)));   // 32-bit, float package
-    buf.writeByte(VERSION.length + 1);
-    buf.writeByte('Z');
-    buf.write(VERSION.ptr, VERSION.length);
+    // S_OBJNAME record
+    {
+        size_t len = objfilename.length;
+        buf.write16(cast(int)(2 + 4 + len + 1));
+        buf.write16(S_OBJNAME_V3);
+        buf.write32(0);                          // signature
+        buf.write(objfilename.ptr, cast(uint)(len + 1));
+    }
 
-    cv8_writesection(seg, 0xF1, &buf);
+    // S_COMPILE3 record: honor the configured language and report the real
+    // compiler version string (works for dmd/ldc/gdc)
+    {
+        const uint flags = config.flags2 & CFG2gms ? 0 : 'D'; // iLanguage in low byte
+        const(char)[] ver = config._version;
+        buf.write16(cast(int)(2 + 4 + 2 + 8 + 8 + ver.length + 1));
+        buf.write16(S_COMPILE3);
+        buf.write32(flags);
+        buf.write16(I64 ? 0xD0 : 0x06);          // machine: AMD64 / x86
+        buf.write16(0); buf.write16(0); buf.write16(0); buf.write16(0); // front end version
+        buf.write16(0); buf.write16(0); buf.write16(0); buf.write16(0); // back end version
+        buf.write(ver.ptr, cast(uint)ver.length);
+        buf.writeByte(0);
+    }
+
+    cv8_writesection(seg, DEBUG_S_SYMBOLS, &buf);
+
+    // S_ENVBLOCK record: build environment (cwd), double-null terminated
+    {
+        auto ebuf = OutBuffer(128);
+        char[260] cwd = 0;
+        if (!getcwd(cwd.ptr, cwd.sizeof))
+            cwd[0] = 0;
+        size_t cwdlen = strlen(cwd.ptr);
+        uint rec = cast(uint)(2 + 1 + 4 + cwdlen + 1 + 4 + 1 + 1);
+        ebuf.write16(cast(int)rec);
+        ebuf.write16(S_ENVBLOCK);
+        ebuf.writeByte(0);                       // flags
+        ebuf.write("cwd\0".ptr, 4);
+        ebuf.write(cwd.ptr, cast(uint)(cwdlen + 1));
+        ebuf.write("cmd\0".ptr, 4);
+        ebuf.writeByte(0);                       // empty cmd value
+        ebuf.writeByte(0);                       // terminating double-null
+        cv8_writesection(seg, DEBUG_S_SYMBOLS, &ebuf);
+    }
+
+    // S_BUILDINFO record referencing an LF_BUILDINFO id record
+    {
+        auto bbuf = OutBuffer(64);
+        idx_t biidx = cv8_buildinfo();
+        bbuf.write16(2 + 4);
+        bbuf.write16(S_BUILDINFO);
+        bbuf.write32(biidx);
+        cv8_writesection(seg, DEBUG_S_SYMBOLS, &bbuf);
+    }
 
     // Write out "F2" sections
     uint length = cast(uint)funcdata.length();
@@ -263,18 +303,18 @@ void cv8_termfile(const(char)[] objfilename)
         if (symbol_iscomdat4(fd.sfunc))
         {
             f2seg = MsCoffObj_seg_debugS_comdat(fd.sfunc);
-            objmod.bytes(f2seg, 0, 4, &value);
+            objmod.bytes(f2seg, 0, (cast(void*)&value)[0..4]);
         }
 
         uint offset = cast(uint)SegData[f2seg].SDoffset + 8;
-        cv8_writesection(f2seg, 0xF2, F2_buf);
-        objmod.reftoident(f2seg, offset, fd.sfunc, 0, CFseg | CFoff);
+        cv8_writesection(f2seg, DEBUG_S_LINES, F2_buf);
+        objmod.reftoident(f2seg, offset, fd.sfunc, 0, CF.seg | CF.off);
 
         if (f2seg != seg && fd.f1buf.length())
         {
             // Write out "F1" section
             const uint f1offset = cast(uint)SegData[f2seg].SDoffset;
-            cv8_writesection(f2seg, 0xF1, fd.f1buf);
+            cv8_writesection(f2seg, DEBUG_S_SYMBOLS, fd.f1buf);
 
             // Fixups for "F1" section
             const uint fixupLength = cast(uint)fd.f1fixup.length();
@@ -282,24 +322,24 @@ void cv8_termfile(const(char)[] objfilename)
             for (uint v = 0; v < fixupLength; v += F1_Fixups.sizeof)
             {   F1_Fixups* f = cast(F1_Fixups*)(pfixup + v);
 
-                objmod.reftoident(f2seg, f1offset + 8 + f.offset, f.s, f.value, CFseg | CFoff);
+                objmod.reftoident(f2seg, f1offset + 8 + f.offset, f.s, f.value, CF.seg | CF.off);
             }
         }
     }
 
     // Write out "F3" section
     if (F3_buf.length() > 1)
-        cv8_writesection(seg, 0xF3, F3_buf);
+        cv8_writesection(seg, DEBUG_S_STRINGTABLE, F3_buf);
 
     // Write out "F4" section
     if (F4_buf.length() > 0)
-        cv8_writesection(seg, 0xF4, F4_buf);
+        cv8_writesection(seg, DEBUG_S_FILECHKSMS, F4_buf);
 
     if (F1_buf.length())
     {
         // Write out "F1" section
         uint f1offset = cast(uint)SegData[seg].SDoffset;
-        cv8_writesection(seg, 0xF1, F1_buf);
+        cv8_writesection(seg, DEBUG_S_SYMBOLS, F1_buf);
 
         // Fixups for "F1" section
         length = cast(uint)F1fixup.length();
@@ -307,7 +347,7 @@ void cv8_termfile(const(char)[] objfilename)
         for (uint u = 0; u < length; u += F1_Fixups.sizeof)
         {   F1_Fixups* f = cast(F1_Fixups*)(p + u);
 
-            objmod.reftoident(seg, f1offset + 8 + f.offset, f.s, f.value, CFseg | CFoff);
+            objmod.reftoident(seg, f1offset + 8 + f.offset, f.s, f.value, CF.seg | CF.off);
         }
     }
 
@@ -402,19 +442,22 @@ void cv8_func_term(Symbol* sfunc)
 
     const(char)* id = sfunc.prettyIdent ? sfunc.prettyIdent : prettyident(sfunc);
 
+    // ID-stream record tying the function's type to its name (S_GPROC32_ID references this)
+    idx_t funcid = cv8_func_id(id, typidx);
+
     size_t len = strlen(id);
     if(len > CV8_MAX_SYMBOL_LENGTH)
         len = CV8_MAX_SYMBOL_LENGTH;
     /*
      *  2       length (not including these 2 bytes)
-     *  2       S_GPROC_V3
+     *  2       S_GPROC32_ID / S_LPROC32_ID
      *  4       parent
      *  4       pend
      *  4       pnext
      *  4       size of function
      *  4       size of function prolog
      *  4       offset to function epilog
-     *  4       type index
+     *  4       LF_FUNC_ID (ID stream)
      *  6       seg:offset of function start
      *  1       flags
      *  n       0 terminated name string
@@ -422,14 +465,14 @@ void cv8_func_term(Symbol* sfunc)
     auto buf = currentfuncdata.f1buf;
     buf.reserve(cast(uint)(2 + 2 + 4 * 7 + 6 + 1 + len + 1));
     buf.write16n(cast(int)(2 + 4 * 7 + 6 + 1 + len + 1));
-    buf.write16n(sfunc.Sclass == SC.static_ ? S_LPROC_V3 : S_GPROC_V3);
+    buf.write16n(sfunc.Sclass == SC.static_ ? S_LPROC32_ID : S_GPROC32_ID);
     buf.write32(0);            // parent
     buf.write32(0);            // pend
     buf.write32(0);            // pnext
     buf.write32(cast(uint)currentfuncdata.section_length); // size of function
     buf.write32(cast(uint)cgstate.startoffset);                    // size of prolog
     buf.write32(cast(uint)cgstate.retoffset);                      // offset to epilog
-    buf.write32(typidx);
+    buf.write32(funcid);           // LF_FUNC_ID (ID stream), resolved to the function type
 
     F1_Fixups f1f;
     f1f.s = sfunc;
@@ -442,6 +485,33 @@ void cv8_func_term(Symbol* sfunc)
     buf.writeByte(0);
     buf.writen(id, len);
     buf.writeByte(0);
+
+    // S_FRAMEPROC: describe this function's stack frame
+    {
+        // Locals and parameters are addressed relative to the frame pointer
+        // (RBP/EBP), matching the S_REGREL32 records emitted for them.
+        uint frameflags = CV_FRAME_LOCALBP_RBP | CV_FRAME_PARAMBP_RBP;
+        if (cgstate.Alloca.size)
+            frameflags |= CV_FRAME_HASALLOCA;
+        if (cgstate.anyiasm)
+            frameflags |= CV_FRAME_HASINLASM;
+        if (cgstate.usednteh)
+            frameflags |= CV_FRAME_HASEH;
+        if (config.flags2 & CFG2stomp)
+            frameflags |= CV_FRAME_SECURITY;
+        if (config.flags4 & CFG4speed)
+            frameflags |= CV_FRAME_OPTSPEED;
+
+        buf.write16(2 + 4 + 4 + 4 + 4 + 4 + 2 + 4);
+        buf.write16(S_FRAMEPROC);
+        buf.write32(cast(uint)localsize);        // cbFrame: total frame size
+        buf.write32(0);                          // cbPad
+        buf.write32(0);                          // offPad
+        buf.write32(0);                          // cbSaveRegs
+        buf.write32(0);                          // offExHdlr
+        buf.write16(0);                          // sectExHdlr
+        buf.write32(frameflags);                 // flags
+    }
 
     struct cv8
     {
@@ -538,7 +608,7 @@ void cv8_linnum(Srcpos srcpos, uint offset)
     lastoffset = offset;
     lastlinnum = srcpos.Slinnum;
     linepair.write32(offset);
-    linepair.write32(srcpos.Slinnum | 0x80000000); // mark as statement, not expression
+    linepair.write32(srcpos.Slinnum | CV_LINE_STATEMENT); // mark as statement, not expression
 
     currentfuncdata.linepairbytes += 8;
 
@@ -564,48 +634,23 @@ uint cv8_addfile(const(char)* filename)
      * Unlike C, there won't be lots of .h source files to be accounted for.
      */
 
+    // The file names are stored as absolute paths so the debugger can find the
+    // source without knowing the compilation directory.
+    const(char)* absname = FileName.toAbsolute(filename);
+    size_t len = strlen(absname);
+
     uint length = cast(uint)F3_buf.length();
     ubyte* p = F3_buf.buf;
-    size_t len = strlen(filename);
 
-    // ensure the filename is absolute to help the debugger to find the source
-    // without having to know the working directory during compilation
-    __gshared char[260] cwd = 0;
-    __gshared uint cwdlen;
-    bool abs = (*filename == '\\') ||
-               (*filename == '/')  ||
-               (*filename && filename[1] == ':');
-
-    if (!abs && cwd[0] == 0)
-    {
-        if (getcwd(cwd.ptr, cwd.sizeof))
-        {
-            cwdlen = cast(uint)strlen(cwd.ptr);
-            if(cwd[cwdlen - 1] != '\\' && cwd[cwdlen - 1] != '/')
-                cwd[cwdlen++] = '\\';
-        }
-    }
     uint off = 1;
     while (off + len < length)
     {
-        if (!abs)
-        {
-            if (memcmp(p + off, cwd.ptr, cwdlen) == 0 &&
-                memcmp(p + off + cwdlen, filename, len + 1) == 0)
-                goto L1;
-        }
-        else if (memcmp(p + off, filename, len + 1) == 0)
-        {   // Already there
-            //printf("\talready there at %x\n", off);
-            goto L1;
-        }
+        if (memcmp(p + off, absname, len + 1) == 0)
+            goto L1;                // already there
         off += strlen(cast(const(char)* )(p + off)) + 1;
     }
     off = length;
-    // Add it
-    if(!abs)
-        F3_buf.write(cwd.ptr, cwdlen);
-    F3_buf.write(filename, cast(uint)(len + 1));
+    F3_buf.write(absname, cast(uint)(len + 1));     // add it
 
 L1:
     // off is the offset of the filename in F3.
@@ -615,33 +660,34 @@ L1:
     p = F4_buf.buf;
 
     uint u = 0;
-    while (u + 8 <= length)
+    while (u + 6 <= length)
     {
-        //printf("\t%x\n", *cast(uint*)(p + u));
         if (off == *cast(uint*)(p + u))
-        {
-            //printf("\tfound %x\n", u);
             return u;
-        }
-        u += 4;
-        ushort type = *cast(ushort*)(p + u);
-        u += 2;
-        if (type == 0x0110)
-            u += 16;            // truncated blake3 hash
-        u += 2;
+        u += 4;                     // file name offset
+        ubyte cklen = *(p + u);     // checksum size
+        u += 2;                     // skip size + kind bytes
+        u += cklen;                 // skip checksum bytes
+        u = (u + 3) & ~3;           // realign to 4
     }
 
-    // Not there. Add it.
+    // Not present; append a checksum computed over the source file's content
+    // so debuggers can verify the source matches.
     F4_buf.write32(off);
-
-    /* Write 10 01 [blake3 hash]
-     *   or
-     * 00 00
-     */
-    F4_buf.write16(0);
-
-    // 2 bytes of pad
-    F4_buf.write16(0);
+    ubyte[32] hash = void;
+    if (cv8_filehash(filename, hash))
+    {
+        F4_buf.writeByte(32);              // checksum size
+        F4_buf.writeByte(CHKSUM_SHA256);   // 32-byte checksum slot
+        F4_buf.write(hash.ptr, 32);
+    }
+    else
+    {
+        F4_buf.writeByte(0);               // no checksum available
+        F4_buf.writeByte(CHKSUM_NONE);
+    }
+    while (F4_buf.length() & 3)
+        F4_buf.writeByte(0);
 
     //printf("\tadded %x\n", length);
     return length;
@@ -659,10 +705,10 @@ void cv8_writesection(int seg, uint type, OutBuffer* buf)
      *  pad     pad to 4 byte boundary
      */
     uint off = cast(uint)SegData[seg].SDoffset;
-    objmod.bytes(seg,off,4,&type);
+    objmod.bytes(seg,off,(cast(void*)&type)[0 .. 4]);
     uint length = cast(uint)buf.length();
-    objmod.bytes(seg,off+4,4,&length);
-    objmod.bytes(seg,off+8,length,buf.buf);
+    objmod.bytes(seg,off+4,(cast(void*)&length)[0 .. 4]);
+    objmod.bytes(seg,off+8,buf.buf[0 .. length]);
     // Align to 4
     uint pad = ((length + 3) & ~3) - length;
     objmod.lidata(seg,off+8+length,pad);
@@ -719,10 +765,10 @@ static if (1)
             // Register relative addressing
             buf.reserve(cast(uint)(2 + 2 + 4 + 4 + 2 + len + 1));
             buf.write16n(cast(uint)(2 + 4 + 4 + 2 + len + 1));
-            buf.write16n(0x1111);
+            buf.write16n(S_REGREL32);
             buf.write32(cast(uint)(s.Soffset + base + cgstate.BPoff));
             buf.write32(typidx);
-            buf.write16n(I64 ? 334 : 22);       // relative to RBP/EBP
+            buf.write16n(I64 ? CV_AMD64_RBP : CV_REG_EBP);       // relative to RBP/EBP
             cv8_writename(buf, id, len);
             buf.writeByte(0);
 }
@@ -788,7 +834,7 @@ else
              *  n       0 terminated name string
              */
             if (s.ty() & mTYthread)            // thread local storage
-                sr = (sr == S_GDATA_V3) ? 0x1113 : 0x1112;
+                sr = (sr == S_GDATA_V3) ? S_GTHREAD32 : S_LTHREAD32;
 
             buf.reserve(cast(uint)(2 + 2 + 4 + 6 + len + 1));
             buf.write16n(cast(uint)(2 + 4 + 6 + len + 1));
@@ -797,7 +843,7 @@ else
 
             f1f.s = s;
             f1f.offset = cast(uint)buf.length();
-            F1fixup.write(&f1f, f1f.sizeof);
+            currentfuncdata.f1fixup.write(&f1f, f1f.sizeof);
             buf.write32(0);
             buf.write16n(0);
 
@@ -949,18 +995,6 @@ idx_t cv8_darray(type* t, idx_t etypidx)
      *    }
      */
 
-static if (0)
-{
-    d = debtyp_alloc(18);
-    TOWORD(d.data.ptr, 0x100F);
-    TOWORD(d.data.ptr + 2, OEM);
-    TOWORD(d.data.ptr + 4, 1);     // 1 = dynamic array
-    TOLONG(d.data.ptr + 6, 2);     // count of type indices to follow
-    TOLONG(d.data.ptr + 10, 0x23); // index type, T_UQUAD
-    TOLONG(d.data.ptr + 14, next); // element type
-    return cv_debtyp(d);
-}
-
     type* tp = type_pointer(t.Tnext);
     idx_t ptridx = cv4_typidx(tp);
     type_free(tp);
@@ -1059,18 +1093,6 @@ idx_t cv8_ddelegate(type* t, idx_t functypidx)
     idx_t ptridx = cv4_typidx(tp);
     type_free(tp);
 
-static if (0)
-{
-    debtyp_t* d = debtyp_alloc(18);
-    TOWORD(d.data.ptr, 0x100F);
-    TOWORD(d.data.ptr + 2, OEM);
-    TOWORD(d.data.ptr + 4, 3);     // 3 = delegate
-    TOLONG(d.data.ptr + 6, 2);     // count of type indices to follow
-    TOLONG(d.data.ptr + 10, key);  // void* type
-    TOLONG(d.data.ptr + 14, functypidx); // function type
-}
-else
-{
     __gshared const ubyte[38] fl =
     [
         0x03, 0x12,             // LF_FIELDLIST_V2
@@ -1110,7 +1132,7 @@ else
     TOWORD(d.data.ptr + 18, 2 * _tysize[TYnptr]);   // size
     memcpy(d.data.ptr + 20, id, idlen);
     d.data.ptr[20 + idlen] = 0;
-}
+
     return cv_debtyp(d);
 }
 
@@ -1133,18 +1155,6 @@ idx_t cv8_daarray(type* t, idx_t keyidx, idx_t validx)
      *    }
      */
 
-static if (0)
-{
-    debtyp_t* d = debtyp_alloc(18);
-    TOWORD(d.data.ptr, 0x100F);
-    TOWORD(d.data.ptr + 2, OEM);
-    TOWORD(d.data.ptr + 4, 2);     // 2 = associative array
-    TOLONG(d.data.ptr + 6, 2);     // count of type indices to follow
-    TOLONG(d.data.ptr + 10, keyidx);  // key type
-    TOLONG(d.data.ptr + 14, validx);  // element type
-}
-else
-{
     type* tv = type_fake(TYnptr);
     tv.Tcount++;
     idx_t pvidx = cv4_typidx(tv);
@@ -1194,7 +1204,114 @@ else
     memcpy(d.data.ptr + 20, id, idlen);
     d.data.ptr[20 + idlen] = 0;
 
+    return cv_debtyp(d);
 }
+
+/* Compute a blake3 hash over the *content* of the named source file, so that
+ * debuggers can verify the source matches. The hash goes into the 32-byte
+ * SHA256 checksum slot of the file-checksums (F4) subsection.
+ * The content is fetched from the front-end FileManager cache (Module.src)
+ * rather than re-read from disk, which would add significant I/O to every build.
+ * Returns: true on success (hash filled in), false if the content is unavailable.
+ */
+private @trusted
+bool cv8_filehash(const(char)* filename, ref ubyte[32] hash)
+{
+    if (!getFileContentsCallback)
+        return false;
+
+    size_t length;
+    const(ubyte)* data = getFileContentsCallback(filename, length);
+    if (!data)
+        return false;
+
+    import dmd.common.blake3;
+    hash = blake3(data[0 .. length]);
+    return true;
+}
+
+/* LF_STRING_ID: an interned string returning a type index. */
+@trusted
+idx_t cv8_string_id(const(char)* s)
+{
+    if (!s) s = "";
+    int idlen = cast(int)strlen(s);
+    if (idlen > CV8_MAX_SYMBOL_LENGTH)      // CodeView records have a 16-bit length field
+        idlen = CV8_MAX_SYMBOL_LENGTH;
+    debtyp_t* d = debtyp_alloc(2 + 4 + idlen + 1);
+    TOWORD(d.data.ptr, LF_STRING_ID);
+    TOLONG(d.data.ptr + 2, 0);          // substring list id
+    cv_namestring(d.data.ptr + 6, s, idlen);
+    d.data.ptr[6 + idlen] = 0;
+    return cv_debtyp(d);
+}
+
+/* LF_BUILDINFO: cwd, build tool, source, pdb, args. */
+@trusted
+idx_t cv8_buildinfo()
+{
+    char[260] cwd = 0;
+    if (!getcwd(cwd.ptr, cwd.sizeof))
+        cwd[0] = 0;
+
+    // build tool: identify the compiler and its version
+    char[64] tool = 0;
+    strcpy(tool.ptr, "dmd ");
+    const(char)[] ver = config._version;
+    size_t vn = ver.length;
+    if (vn > tool.sizeof - 5)   // leave room for the "dmd " prefix and the null terminator
+        vn = tool.sizeof - 5;
+    memcpy(tool.ptr + 4, ver.ptr, vn);
+    tool[4 + vn] = 0;
+
+    idx_t cwdId  = cv8_string_id(cwd.ptr);
+    idx_t toolId = cv8_string_id(tool.ptr);
+    idx_t srcId  = cv8_string_id("");
+    idx_t pdbId  = cv8_string_id("");
+    idx_t argId  = cv8_string_id("");
+    debtyp_t* d = debtyp_alloc(2 + 2 + 5 * 4);
+    TOWORD(d.data.ptr, LF_BUILDINFO);
+    TOWORD(d.data.ptr + 2, 5);          // count
+    TOLONG(d.data.ptr + 4, cwdId);
+    TOLONG(d.data.ptr + 8, toolId);
+    TOLONG(d.data.ptr + 12, srcId);
+    TOLONG(d.data.ptr + 16, pdbId);
+    TOLONG(d.data.ptr + 20, argId);
+    return cv_debtyp(d);
+}
+
+/* LF_FUNC_ID: ties a function type to its name in the ID stream. */
+@trusted
+idx_t cv8_func_id(const(char)* id, idx_t functype)
+{
+    int idlen = cast(int)strlen(id);
+    if (idlen > CV8_MAX_SYMBOL_LENGTH)      // CodeView records have a 16-bit length field
+        idlen = CV8_MAX_SYMBOL_LENGTH;
+    debtyp_t* d = debtyp_alloc(2 + 4 + 4 + idlen + 1);
+    TOWORD(d.data.ptr, LF_FUNC_ID);
+    TOLONG(d.data.ptr + 2, 0);          // parent scope id
+    TOLONG(d.data.ptr + 6, functype);
+    cv_namestring(d.data.ptr + 10, id, idlen);
+    d.data.ptr[10 + idlen] = 0;
+    return cv_debtyp(d);
+}
+
+/* LF_UDT_SRC_LINE: source file and line where a user-defined type is defined. */
+@trusted
+idx_t cv8_udt_src_line(idx_t typidx, const(char)* filename, uint line)
+{
+    /* The source file must be spelled the same way as in the module's source
+     * file list (see cv8_addfile), i.e. as an absolute path, otherwise the
+     * debugger cannot associate this record with a known source file.
+     */
+    const(char)* srcpath = FileName.toAbsolute(filename);
+
+    idx_t srcId = cv8_string_id(srcpath);
+    debtyp_t* d = debtyp_alloc(2 + 4 + 4 + 4);
+    TOWORD(d.data.ptr, LF_UDT_SRC_LINE);
+    TOLONG(d.data.ptr + 2, typidx);     // the user-defined type
+    TOLONG(d.data.ptr + 6, srcId);      // LF_STRING_ID of the source file
+    TOLONG(d.data.ptr + 10, line);      // line number of the definition
     return cv_debtyp(d);
 }
 

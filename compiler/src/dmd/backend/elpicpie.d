@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/elpicpie.d, backend/elpicpie.d)
@@ -23,7 +23,11 @@ import dmd.backend.cc;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE, symbol_keep, symboldata;
+import dmd.backend.cg : localgot, tls_get_addr_sym;
+import dmd.backend.cgelem : doptelem;
+import dmd.backend.debugprint : class_str;
+import dmd.backend.symbol : symbol_add, symbol_name, symbol_pointerType;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
@@ -258,7 +262,7 @@ elem* el_ptr(Symbol* s)
             Symbol* sd = symboldata(Offset(DATA), typtr);
             sd.Sseg = DATA;
             Obj.data_start(sd, _tysize[TYnptr], DATA);
-            Offset(DATA) += Obj.reftoident(DATA, Offset(DATA), s, 0, CFoff);
+            Offset(DATA) += Obj.reftoident(DATA, Offset(DATA), s, 0, CF.off);
             elem* e = el_picvar(sd);
             e.Ety = typtr;
             return e;
@@ -310,7 +314,10 @@ elem* el_ptr(Symbol* s)
         if (config.flags3 & CFG3pic &&
             tyfunc(s.ty()))
         {
-            e = el_picvar(s);
+            if (config.exe & EX_OSX64 && config.target_cpu == TARGET_AArch64)
+                e = el_var(s);
+            else
+                e = el_picvar(s);
         }
         else
             e = el_var(s);
@@ -369,7 +376,7 @@ private Symbol* el_alloc_localgot()
         localgot = symbol_name(name[0 .. length], SC.auto_, t);
         symbol_add(localgot);
         localgot.Sfl = FL.auto_;
-        localgot.Sflags = SFLfree | SFLunambig | GTregcand;
+        localgot.Sflags = SFLfree | SFLdistinct | GTregcand;
     }
     return localgot;
 }
@@ -395,8 +402,8 @@ private elem* el_picvar_OSX(Symbol* s)
     elem* e;
     int x;
 
-    if (log) printf("el_picvar(s = '%s') Sclass = %s\n", s.Sident.ptr, class_str(s.Sclass));
-    //symbol_print(s);
+    if (log) printf("el_picvar(s = '%s') Sclass = SC.%s\n", s.Sident.ptr, class_str(s.Sclass));
+    //symbol_print(*s);
     symbol_debug(s);
     type_debug(s.Stype);
     e = el_calloc();
@@ -434,6 +441,13 @@ private elem* el_picvar_OSX(Symbol* s)
             }
             else
                 x = 1;
+            if (config.target_cpu == TARGET_AArch64)
+            {
+                if (s.Stype.Tty & mTYthread)
+                    x = 1;
+                else
+                    x = 0;
+            }
 
         case_got:
         {
@@ -512,7 +526,8 @@ static if (1)
             {
                 e = el_una(OPaddr, TYnptr, e);
                 e = el_bin(OPadd, TYnptr, e, el_long(TYullong, 0));
-                e = el_una(OPind, TYnptr, e);
+                if (config.target_cpu != TARGET_AArch64)
+                    e = el_una(OPind, TYnptr, e);
                 e = el_una(OPind, TYnfunc, e);
 
                 elem* e2 = el_calloc();
@@ -521,12 +536,14 @@ static if (1)
                 e2.Ety = s.ty();
                 e2.Eoper = OPrelconst;
                 e2.Ety = TYnptr;
-
-                e2 = el_una(OPind, TYnptr, e2);
-                e2 = el_una(OPind, TYnptr, e2);
-                e2 = el_una(OPaddr, TYnptr, e2);
-                e2 = doptelem(e2, Goal.value | Goal.flags);
-                e2 = el_bin(OPadd, TYnptr, e2, el_long(TYullong, 0));
+                if (config.target_cpu != TARGET_AArch64)
+                {
+                    e2 = el_una(OPind, TYnptr, e2);
+                    e2 = el_una(OPind, TYnptr, e2);
+                    e2 = el_una(OPaddr, TYnptr, e2);
+                    e2 = doptelem(e2, Goal.value | Goal.flags);
+                    e2 = el_bin(OPadd, TYnptr, e2, el_long(TYullong, 0));
+                }
                 e2 = el_bin(OPcall, TYnptr, e, e2);
                 e2 = el_una(OPind, TYint, e2);
                 e = e2;

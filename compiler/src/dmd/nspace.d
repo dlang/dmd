@@ -9,7 +9,7 @@
  * ---
  * The first form is an attribute and only affects mangling, and is implemented
  * in `dmd.attrib`.
- * The second form introduces a named scope and allows symbols to be refered
+ * The second form introduces a named scope and allows symbols to be referred
  * to with or without the namespace name, much like a named template mixin,
  * and is implemented in this module.
  * ---
@@ -36,7 +36,7 @@
  * are valid D identifier.
  *
  * See_Also:    https://github.com/dlang/dmd/pull/10031
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/nspace.d, _nspace.d)

@@ -1,7 +1,7 @@
 /**
  * CTFE for expressions involving pointers, slices, array concatenation etc.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/ctfeexpr.d, _ctfeexpr.d)
@@ -25,18 +25,17 @@ import dmd.dstruct;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem;
 import dmd.func;
-import dmd.globals;
+import dmd.globals : dinteger_t, sinteger_t, uinteger_t;
 import dmd.location;
 import dmd.mtype;
 import dmd.root.bitarray;
-import dmd.root.complex;
 import dmd.root.ctfloat;
 import dmd.root.port;
 import dmd.root.rmem;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
 
 /****************************************************************/
 /* A type meant as a union of all the Expression types,
@@ -123,7 +122,7 @@ void generateUncaughtError(ThrownExceptionExp tee)
     UnionExp ue = void;
     Expression e = resolveSlice((*tee.thrown.value.elements)[0], &ue);
     StringExp se = e.toStringExp();
-    error(tee.thrown.loc, "uncaught CTFE exception `%s(%s)`", tee.thrown.type.toChars(), se ? se.toChars() : e.toChars());
+    error(tee.thrown.loc, "uncaught CTFE exception `%s(%s)`", tee.thrown.type.toErrMsg(), se ? se.toErrMsg() : e.toErrMsg());
     /* Also give the line where the throw statement was. We won't have it
      * in the case where the ThrowStatement is generated internally
      * (eg, in ScopeStatement)
@@ -241,6 +240,7 @@ UnionExp copyLiteral(Expression e)
         AssocArrayLiteralExp r = ue.exp().isAssocArrayLiteralExp();
         r.type = aae.type;
         r.lowering = aae.lowering;
+        r.loweringCtfe = aae.loweringCtfe;
         r.ownedByCtfe = OwnedBy.ctfe;
         return ue;
     }
@@ -367,7 +367,7 @@ UnionExp copyLiteral(Expression e)
         emplaceExp!(UnionExp)(&ue, e);
         return ue;
     }
-    error(e.loc, "CTFE internal error: literal `%s`", e.toChars());
+    error(e.loc, "CTFE internal error: literal `%s`", e.toErrMsg());
     assert(0);
 }
 
@@ -438,7 +438,7 @@ private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
         // Can't type paint from struct to struct*; this needs another
         // level of indirection
         if (lit.op == EXP.structLiteral && isPointer(type))
-            error(lit.loc, "CTFE internal error: painting `%s`", type.toChars());
+            error(lit.loc, "CTFE internal error: painting `%s`", type.toErrMsg());
         ue = copyLiteral(lit);
     }
     ue.exp().type = type;
@@ -612,10 +612,10 @@ bool isPointer(Type t)
     return tb.ty == Tpointer && tb.nextOf().ty != Tfunction;
 }
 
-// For CTFE only. Returns true if 'e' is true or a non-null pointer.
+// For CTFE only. Returns true if 'e' is true or a non-null pointer/delegate.
 bool isTrueBool(Expression e)
 {
-    return e.toBool().hasValue(true) || ((e.type.ty == Tpointer || e.type.ty == Tclass) && e.op != EXP.null_);
+    return e.toBool().hasValue(true) || ((e.type.ty == Tpointer || e.type.ty == Tclass || e.type.ty == Tdelegate) && e.op != EXP.null_);
 }
 
 /* Is it safe to convert from srcPointee* to destPointee* ?
@@ -766,7 +766,7 @@ Expression pointerDifference(UnionExp* pue, Loc loc, Type type, Expression e1, E
     }
     else
     {
-        error(loc, "`%s - %s` cannot be interpreted at compile time: cannot subtract pointers to two different memory blocks", e1.toChars(), e2.toChars());
+        error(loc, "`%s - %s` cannot be interpreted at compile time: cannot subtract pointers to two different memory blocks", e1.toErrMsg(), e2.toErrMsg());
         emplaceExp!(CTFEExp)(pue, EXP.cantExpression);
     }
     return pue.exp();
@@ -776,12 +776,15 @@ Expression pointerDifference(UnionExp* pue, Loc loc, Type type, Expression e1, E
 // and op is EXP.add or EXP.min
 Expression pointerArithmetic(UnionExp* pue, Loc loc, EXP op, Type type, Expression eptr, Expression e2)
 {
+    Expression cant()
+    {
+        emplaceExp!(CTFEExp)(pue, EXP.cantExpression);
+        return pue.exp();
+    }
     if (eptr.type.nextOf().ty == Tvoid)
     {
         error(loc, "cannot perform arithmetic on `void*` pointers at compile time");
-    Lcant:
-        emplaceExp!(CTFEExp)(pue, EXP.cantExpression);
-        return pue.exp();
+        return cant();
     }
     if (eptr.op == EXP.address)
         eptr = eptr.isAddrExp().e1;
@@ -792,13 +795,13 @@ Expression pointerArithmetic(UnionExp* pue, Loc loc, EXP op, Type type, Expressi
         if (agg1.isSymOffExp().var.type.ty != Tsarray)
         {
             error(loc, "cannot perform pointer arithmetic on arrays of unknown length at compile time");
-            goto Lcant;
+            return cant();
         }
     }
     else if (agg1.op != EXP.string_ && agg1.op != EXP.arrayLiteral)
     {
         error(loc, "cannot perform pointer arithmetic on non-arrays at compile time");
-        goto Lcant;
+        return cant();
     }
     dinteger_t ofs2 = e2.toInteger();
     Type pointee = agg1.type.toBasetype().nextOf();
@@ -824,12 +827,12 @@ Expression pointerArithmetic(UnionExp* pue, Loc loc, EXP op, Type type, Expressi
     else
     {
         error(loc, "CTFE internal error: bad pointer operation");
-        goto Lcant;
+        return cant();
     }
     if (indx < 0 || len < indx)
     {
         error(loc, "cannot assign pointer to index %lld inside memory block `[0..%lld]`", indx, len);
-        goto Lcant;
+        return cant();
     }
     if (agg1.op == EXP.symbolOffset)
     {
@@ -840,8 +843,8 @@ Expression pointerArithmetic(UnionExp* pue, Loc loc, EXP op, Type type, Expressi
     }
     if (agg1.op != EXP.arrayLiteral && agg1.op != EXP.string_)
     {
-        error(loc, "CTFE internal error: pointer arithmetic `%s`", agg1.toChars());
-        goto Lcant;
+        error(loc, "CTFE internal error: pointer arithmetic `%s`", agg1.toErrMsg());
+        return cant();
     }
     if (auto tsa = eptr.type.toBasetype().isTypeSArray())
     {
@@ -1305,7 +1308,7 @@ private int ctfeRawCmp(Loc loc, Expression e1, Expression e2, bool identity = fa
         return e2.isAssocArrayLiteralExp.keys.length != 0;
     }
 
-    error(loc, "CTFE internal error: bad compare of `%s` and `%s`", e1.toChars(), e2.toChars());
+    error(loc, "CTFE internal error: bad compare of `%s` and `%s`", e1.toErrMsg(), e2.toErrMsg());
     assert(0);
 }
 
@@ -1377,7 +1380,7 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         ArrayLiteralExp es2 = e1.isArrayLiteralExp();
         const len = es1.len + es2.elements.length;
         const sz = es1.sz;
-        void* s = mem.xmalloc((len + 1) * sz);
+        void* s = mem.xmalloc_noscan((len + 1) * sz);
         const data1 = es1.peekData();
         memcpy(cast(char*)s + sz * es2.elements.length, data1.ptr, data1.length);
         foreach (size_t i; 0 .. es2.elements.length)
@@ -1407,7 +1410,7 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         ArrayLiteralExp es2 = e2.isArrayLiteralExp();
         const len = es1.len + es2.elements.length;
         const sz = es1.sz;
-        void* s = mem.xmalloc((len + 1) * sz);
+        void* s = mem.xmalloc_noscan((len + 1) * sz);
         auto slice = es1.peekData();
         memcpy(s, slice.ptr, slice.length);
         foreach (size_t i; 0 .. es2.elements.length)
@@ -1459,7 +1462,7 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
 /*  Given an AA literal 'ae', and a key 'e2':
  *  Return ae[e2] if present, or NULL if not found.
  */
-Expression findKeyInAA(Loc loc, AssocArrayLiteralExp ae, Expression e2)
+Expression findKeyInAA(Loc loc, AssocArrayLiteralExp ae, Expression e2, size_t* pidx = null)
 {
     /* Search the keys backwards, in case there are duplicate keys
      */
@@ -1470,6 +1473,8 @@ Expression findKeyInAA(Loc loc, AssocArrayLiteralExp ae, Expression e2)
         const int eq = ctfeEqual(loc, EXP.equal, ekey, e2);
         if (eq)
         {
+            if (pidx)
+                *pidx = i;
             return (*ae.values)[i];
         }
     }
@@ -1499,7 +1504,7 @@ Expression ctfeIndex(UnionExp* pue, Loc loc, Type type, Expression e1, uinteger_
     {
         if (indx >= ale.elements.length)
         {
-            error(loc, "array index %llu is out of bounds `%s[0 .. %llu]`", indx, e1.toChars(), cast(ulong)ale.elements.length);
+            error(loc, "array index %llu is out of bounds `%s[0 .. %llu]`", indx, e1.toErrMsg(), cast(ulong)ale.elements.length);
             return CTFEExp.cantexp;
         }
         Expression e = (*ale.elements)[cast(size_t)indx];
@@ -1563,7 +1568,7 @@ Expression ctfeCast(UnionExp* pue, Loc loc, Type type, Type to, Expression e, bo
     }
 
     if (CTFEExp.isCantExp(r))
-        error(loc, "cannot cast `%s` to `%s` at compile time", e.toChars(), to.toChars());
+        error(loc, "cannot cast `%s` to `%s` at compile time", e.toErrMsg(), to.toErrMsg());
 
     if (auto ae = e.isArrayLiteralExp())
         ae.ownedByCtfe = OwnedBy.ctfe;
@@ -1583,11 +1588,6 @@ Expression ctfeCast(UnionExp* pue, Loc loc, Type type, Type to, Expression e, bo
  */
 void assignInPlace(Expression dest, Expression src)
 {
-    if (!(dest.op == EXP.structLiteral || dest.op == EXP.arrayLiteral || dest.op == EXP.string_))
-    {
-        printf("invalid op %d %d\n", src.op, dest.op);
-        assert(0);
-    }
     Expressions* oldelems;
     Expressions* newelems;
     if (dest.op == EXP.structLiteral)
@@ -1620,6 +1620,16 @@ void assignInPlace(Expression dest, Expression src)
     else if (src.op == EXP.arrayLiteral && dest.op == EXP.string_)
     {
         sliceAssignStringFromArrayLiteral(dest.isStringExp(), src.isArrayLiteralExp(), 0);
+        return;
+    }
+    else if (dest.op == EXP.int64 && src.op == EXP.int64)
+    {
+        dest.isIntegerExp().setInteger(src.isIntegerExp().getInteger());
+        return;
+    }
+    else if (dest.op == EXP.float64 && src.op == EXP.float64)
+    {
+        dest.isRealExp().value = src.isRealExp().value;
         return;
     }
     else
@@ -1829,6 +1839,9 @@ bool isCtfeValueValid(Expression newval)
             (
                 (e1.op == EXP.structLiteral || e1.op == EXP.arrayLiteral) && isCtfeValueValid(e1) ||
                  e1.op == EXP.variable ||
+                 e1.op == EXP.int64 ||
+                 e1.op == EXP.float64 ||
+                 e1.op == EXP.string_ ||
                  e1.op == EXP.dotVariable && isCtfeReferenceValid(e1) ||
                  e1.op == EXP.index && isCtfeReferenceValid(e1) ||
                  e1.op == EXP.slice && e1.type.toBasetype().ty == Tsarray
@@ -1848,7 +1861,7 @@ bool isCtfeValueValid(Expression newval)
             return true; // uninitialized value
 
         default:
-            error(newval.loc, "CTFE internal error: illegal CTFE value `%s`", newval.toChars());
+            error(newval.loc, "CTFE internal error: illegal CTFE value `%s`", newval.toErrMsg());
             return false;
     }
 }

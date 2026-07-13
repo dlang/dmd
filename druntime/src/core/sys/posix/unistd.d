@@ -4,7 +4,7 @@
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly
- * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
+ * Standards: The Open Group Base Specifications Issue 8, IEEE Std 1003.1, 2024 Edition
  */
 
 /*          Copyright Sean Kelly 2005 - 2009.
@@ -50,18 +50,24 @@ int     close(int) @trusted;
 size_t  confstr(int, char*, size_t);
 int     dup(int) @trusted;
 int     dup2(int, int) @trusted;
+//int     dup3(int, int, int) @trusted;
 int     execl(const scope char*, const scope char*, ...);
 int     execle(const scope char*, const scope char*, ...);
 int     execlp(const scope char*, const scope char*, ...);
 int     execv(const scope char*, const scope char**);
 int     execve(const scope char*, const scope char**, const scope char**);
 int     execvp(const scope char*, const scope char**);
-void    _exit(int) @trusted;
+noreturn _exit(int) @trusted;
+//int     faccessat(int, const scope char*, int, int);
 int     fchown(int, uid_t, gid_t) @trusted;
+//int     fchownat(int, const scope char*, uid_t, gid_t, int);
+//int     fexecve(int, const scope char**, const scope char**);
 pid_t   fork() @trusted;
+//pid_t   _Fork() @trusted;
 c_long  fpathconf(int, int) @trusted;
 //int     ftruncate(int, off_t);
 char*   getcwd(char*, size_t);
+//int     getentropy(void*, size_t);
 gid_t   getegid() @trusted;
 uid_t   geteuid() @trusted;
 gid_t   getgid() @trusted;
@@ -73,31 +79,40 @@ int     getopt(int, const scope char**, const scope char*);
 pid_t   getpgrp() @trusted;
 pid_t   getpid() @trusted;
 pid_t   getppid() @trusted;
+//int     getresgid(gid_t*, gid_t*, gid_t*);
+//int     getresuid(uid_t*, uid_t*, uid_t*);
 uid_t   getuid() @trusted;
 int     isatty(int) @trusted;
 int     link(const scope char*, const scope char*);
+//int     linkat(int, const scope char*, int, const scope char*, int);
 //off_t   lseek(int, off_t, int);
 c_long  pathconf(const scope char*, int);
 int     pause() @trusted;
 int     pipe(ref int[2]) @trusted;
+//int     pipe2(ref int[2], int) @trusted;
 ssize_t read(int, void*, size_t);
 ssize_t readlink(const scope char*, char*, size_t);
+//ssize_t readlinkat(int, const scope char*, char*, size_t);
 int     rmdir(const scope char*);
 int     setegid(gid_t) @trusted;
 int     seteuid(uid_t) @trusted;
 int     setgid(gid_t) @trusted;
 int     setgroups(size_t, const scope gid_t*) @trusted;
 int     setpgid(pid_t, pid_t) @trusted;
+//int     setresgid(gid_t, gid_t, gid_t) @trusted;
+//int     setresuid(uid_t, uid_t, uid_t) @trusted;
 pid_t   setsid() @trusted;
 int     setuid(uid_t) @trusted;
 uint    sleep(uint) @trusted;
 int     symlink(const scope char*, const scope char*);
+//int     symlinkat(const scope char*, int, const scope char*);
 c_long  sysconf(int) @trusted;
 pid_t   tcgetpgrp(int) @trusted;
 int     tcsetpgrp(int, pid_t) @trusted;
 char*   ttyname(int) @trusted;
 int     ttyname_r(int, char*, size_t);
 int     unlink(const scope char*);
+//int     unlinkat(int, const scope char*, int);
 ssize_t write(int, const scope void*, size_t);
 
 version (CRuntime_Glibc)
@@ -105,7 +120,7 @@ version (CRuntime_Glibc)
   static if ( __USE_FILE_OFFSET64 )
   {
     off_t lseek64(int, off_t, int) @trusted;
-    alias lseek64 lseek;
+    alias lseek = lseek64;
   }
   else
   {
@@ -114,52 +129,133 @@ version (CRuntime_Glibc)
   static if ( __USE_LARGEFILE64 )
   {
     int   ftruncate64(int, off_t) @trusted;
-    alias ftruncate64 ftruncate;
+    alias ftruncate = ftruncate64;
   }
   else
   {
     int   ftruncate(int, off_t) @trusted;
   }
+    int   faccessat(int, const scope char*, int, int);
+    int   fchownat(int, const scope char*, uid_t, gid_t, int);
+    int   fexecve(int, const scope char**, const scope char**);
+    pid_t _Fork() @trusted;
+    int   getentropy(void*, size_t);
+    int   getresgid(gid_t*, gid_t*, gid_t*);
+    int   getresuid(uid_t*, uid_t*, uid_t*);
+    int   linkat(int, const scope char*, int, const scope char*, int);
+    int   pipe2(ref int[2], int) @trusted;
+    ssize_t readlinkat(int, const scope char*, char*, size_t);
+    int   setresgid(gid_t, gid_t, gid_t) @trusted;
+    int   setresuid(uid_t, uid_t, uid_t) @trusted;
+    int   symlinkat(const scope char*, int, const scope char*);
+    int   unlinkat(int, const scope char*, int);
 }
 else version (FreeBSD)
 {
     off_t lseek(int, off_t, int) @trusted;
     int   ftruncate(int, off_t) @trusted;
+    int   getresgid(gid_t*, gid_t*, gid_t*);
+    int   getresuid(uid_t*, uid_t*, uid_t*);
+    int   setresgid(gid_t, gid_t, gid_t) @trusted;
+    int   setresuid(uid_t, uid_t, uid_t) @trusted;
+
+    import core.sys.freebsd.config : __FreeBSD_version;
+  static if (__FreeBSD_version >= 800000)
+  {
+    int   faccessat(int, const scope char*, int, int);
+    int   fchownat(int, const scope char*, uid_t, gid_t, int);
+    int   fexecve(int, const scope char**, const scope char**);
+    int   linkat(int, const scope char*, int, const scope char*, int);
+    ssize_t readlinkat(int, const scope char*, char*, size_t);
+    int   symlinkat(const scope char*, int, const scope char*);
+    int   unlinkat(int, const scope char*, int);
+  }
+  static if (__FreeBSD_version >= 1000000)
+  {
+    int   dup3(int, int, int) @trusted;
+    int   pipe2(ref int[2], int) @trusted;
+  }
+  static if (__FreeBSD_version >= 1200000)
+  {
+    int   getentropy(void*, size_t);
+  }
+  static if (__FreeBSD_version >= 1301000)
+  {
+    pid_t _Fork() @trusted;
+  }
 }
 else version (NetBSD)
 {
     off_t lseek(int, off_t, int) @trusted;
     int   ftruncate(int, off_t) @trusted;
+    // NetBSD 10.0
+    pragma(mangle, "__dup3100") int   dup3(int, int, int) @trusted;
+    int   faccessat(int, const scope char*, int, int);
+    int   fchownat(int, const scope char*, uid_t, gid_t, int);
+    int   fexecve(int, const scope char**, const scope char**);
+    int   getentropy(void*, size_t);
+    int   linkat(int, const scope char*, int, const scope char*, int);
+    int   pipe2(ref int[2], int) @trusted;
+    ssize_t readlinkat(int, const scope char*, char*, size_t);
+    int   symlinkat(const scope char*, int, const scope char*);
+    int   unlinkat(int, const scope char*, int);
 }
 else version (OpenBSD)
 {
     off_t lseek(int, off_t, int) @trusted;
     int   ftruncate(int, off_t) @trusted;
+    int   dup3(int, int, int) @trusted;
+    int   faccessat(int, const scope char*, int, int);
+    int   fchownat(int, const scope char*, uid_t, gid_t, int);
+    int   getentropy(void*, size_t);
+    int   getresgid(gid_t*, gid_t*, gid_t*);
+    int   getresuid(uid_t*, uid_t*, uid_t*);
+    int   linkat(int, const scope char*, int, const scope char*, int);
+    int   pipe2(ref int[2], int) @trusted;
+    ssize_t readlinkat(int, const scope char*, char*, size_t);
+    int   setresgid(gid_t, gid_t, gid_t) @trusted;
+    int   setresuid(uid_t, uid_t, uid_t) @trusted;
+    int   symlinkat(const scope char*, int, const scope char*);
+    int   unlinkat(int, const scope char*, int);
 }
 else version (DragonFlyBSD)
 {
     off_t lseek(int, off_t, int) @trusted;
     int   ftruncate(int, off_t) @trusted;
+    int   dup3(int, int, int) @trusted;
+    int   faccessat(int, const scope char*, int, int);
+    int   fchownat(int, const scope char*, uid_t, gid_t, int);
+    int   fexecve(int, const scope char**, const scope char**);
+    int   getentropy(void*, size_t);
+    int   getresgid(gid_t*, gid_t*, gid_t*);
+    int   getresuid(uid_t*, uid_t*, uid_t*);
+    int   linkat(int, const scope char*, int, const scope char*, int);
+    int   pipe2(ref int[2], int) @trusted;
+    ssize_t readlinkat(int, const scope char*, char*, size_t);
+    int   setresgid(gid_t, gid_t, gid_t) @trusted;
+    int   setresuid(uid_t, uid_t, uid_t) @trusted;
+    int   symlinkat(const scope char*, int, const scope char*);
+    int   unlinkat(int, const scope char*, int);
 }
 else version (Solaris)
 {
     version (D_LP64)
     {
         off_t   lseek(int, off_t, int) @trusted;
-        alias   lseek lseek64;
+        alias   lseek64 = lseek;
 
         int     ftruncate(int, off_t) @trusted;
-        alias   ftruncate ftruncate64;
+        alias   ftruncate64 = ftruncate;
     }
     else
     {
         static if ( __USE_LARGEFILE64 )
         {
             off64_t lseek64(int, off64_t, int) @trusted;
-            alias   lseek64 lseek;
+            alias   lseek = lseek64;
 
             int     ftruncate64(int, off64_t) @trusted;
-            alias   ftruncate64 ftruncate;
+            alias   ftruncate = ftruncate64;
         }
         else
         {
@@ -167,30 +263,76 @@ else version (Solaris)
             int     ftruncate(int, off_t) @trusted;
         }
     }
+    int   dup3(int, int, int) @trusted;
+    int   faccessat(int, const scope char*, int, int);
+    int   fchownat(int, const scope char*, uid_t, gid_t, int);
+    int   fexecve(int, const scope char**, const scope char**);
+    int   getentropy(void*, size_t);
+    int   linkat(int, const scope char*, int, const scope char*, int);
+    int   pipe2(ref int[2], int) @trusted;
+    ssize_t readlinkat(int, const scope char*, char*, size_t);
+    int   symlinkat(const scope char*, int, const scope char*);
+    int   unlinkat(int, const scope char*, int);
 }
 else version (Darwin)
 {
     off_t lseek(int, off_t, int) @trusted;
     int   ftruncate(int, off_t) @trusted;
+    int   faccessat(int, const scope char*, int, int);
+    int   fchownat(int, const scope char*, uid_t, gid_t, int);
+    int   linkat(int, const scope char*, int, const scope char*, int);
+    ssize_t readlinkat(int, const scope char*, char*, size_t);
+    int   symlinkat(const scope char*, int, const scope char*);
+    int   unlinkat(int, const scope char*, int);
 }
 else version (CRuntime_Bionic)
 {
     off_t lseek(int, off_t, int) @trusted;
     int   ftruncate(int, off_t) @trusted;
+    int   dup3(int, int, int) @trusted;
+    int   faccessat(int, const scope char*, int, int);
+    int   fchownat(int, const scope char*, uid_t, gid_t, int);
+    int   fexecve(int, const scope char**, const scope char**);
+    pid_t _Fork() @trusted;
+    int   getentropy(void*, size_t);
+    int   getresgid(gid_t*, gid_t*, gid_t*);
+    int   getresuid(uid_t*, uid_t*, uid_t*);
+    int   linkat(int, const scope char*, int, const scope char*, int);
+    int   pipe2(ref int[2], int) @trusted;
+    ssize_t readlinkat(int, const scope char*, char*, size_t);
+    int   setresgid(gid_t, gid_t, gid_t) @trusted;
+    int   setresuid(uid_t, uid_t, uid_t) @trusted;
+    int   symlinkat(const scope char*, int, const scope char*);
+    int   unlinkat(int, const scope char*, int);
 }
 else version (CRuntime_Musl)
 {
     int ftruncate(int, off_t) @trusted;
     off_t lseek(int, off_t, int) @trusted;
-    alias ftruncate ftruncate64;
-    alias lseek lseek64;
+    alias ftruncate64 = ftruncate;
+    alias lseek64 = lseek;
+    int   dup3(int, int, int) @trusted;
+    int   faccessat(int, const scope char*, int, int);
+    int   fchownat(int, const scope char*, uid_t, gid_t, int);
+    int   fexecve(int, const scope char**, const scope char**);
+    pid_t _Fork() @trusted;
+    int   getentropy(void*, size_t);
+    int   getresgid(gid_t*, gid_t*, gid_t*);
+    int   getresuid(uid_t*, uid_t*, uid_t*);
+    int   linkat(int, const scope char*, int, const scope char*, int);
+    int   pipe2(ref int[2], int) @trusted;
+    ssize_t readlinkat(int, const scope char*, char*, size_t);
+    int   setresgid(gid_t, gid_t, gid_t) @trusted;
+    int   setresuid(uid_t, uid_t, uid_t) @trusted;
+    int   symlinkat(const scope char*, int, const scope char*);
+    int   unlinkat(int, const scope char*, int);
 }
 else version (CRuntime_UClibc)
 {
   static if ( __USE_FILE_OFFSET64 )
   {
     off_t lseek64(int, off_t, int) @trusted;
-    alias lseek64 lseek;
+    alias lseek = lseek64;
   }
   else
   {
@@ -199,12 +341,24 @@ else version (CRuntime_UClibc)
   static if ( __USE_LARGEFILE64 )
   {
     int   ftruncate64(int, off_t) @trusted;
-    alias ftruncate64 ftruncate;
+    alias ftruncate = ftruncate64;
   }
   else
   {
     int   ftruncate(int, off_t) @trusted;
   }
+    int   dup3(int, int, int) @trusted;
+    int   faccessat(int, const scope char*, int, int);
+    int   fchownat(int, const scope char*, uid_t, gid_t, int);
+    int   getresgid(gid_t*, gid_t*, gid_t*);
+    int   getresuid(uid_t*, uid_t*, uid_t*);
+    int   linkat(int, const scope char*, int, const scope char*, int);
+    int   pipe2(ref int[2], int) @trusted;
+    ssize_t readlinkat(int, const scope char*, char*, size_t);
+    int   setresgid(gid_t, gid_t, gid_t) @trusted;
+    int   setresuid(uid_t, uid_t, uid_t) @trusted;
+    int   symlinkat(const scope char*, int, const scope char*);
+    int   unlinkat(int, const scope char*, int);
 }
 
 version (CRuntime_Glibc)
@@ -519,7 +673,21 @@ version (CRuntime_Glibc)
         _SC_LEVEL4_CACHE_LINESIZE,
 
         _SC_IPV6 = _SC_LEVEL1_ICACHE_SIZE + 50,
-        _SC_RAW_SOCKETS
+        _SC_RAW_SOCKETS,
+        _SC_V7_ILP32_OFF32,
+        _SC_V7_ILP32_OFFBIG,
+        _SC_V7_LP64_OFF64,
+        _SC_V7_LPBIG_OFFBIG,
+        _SC_SS_REPL_MAX,
+        _SC_TRACE_EVENT_NAME_MAX,
+        _SC_TRACE_NAME_MAX,
+        _SC_TRACE_SYS_MAX,
+        _SC_TRACE_USER_EVENT_MAX,
+        _SC_XOPEN_STREAMS,
+        _SC_THREAD_ROBUST_PRIO_INHERIT,
+        _SC_THREAD_ROBUST_PRIO_PROTECT,
+        _SC_MINSIGSTKSZ,
+        _SC_SIGSTKSZ,
     }
 }
 else version (Darwin)
@@ -2452,16 +2620,16 @@ version (CRuntime_Glibc)
   static if ( __USE_FILE_OFFSET64 )
   {
     int        lockf64(int, int, off_t) @trusted;
-    alias      lockf64 lockf;
+    alias      lockf = lockf64;
 
     ssize_t    pread64(int, void*, size_t, off_t);
-    alias      pread64 pread;
+    alias      pread = pread64;
 
     ssize_t    pwrite64(int, const scope void*, size_t, off_t);
-    alias      pwrite64 pwrite;
+    alias      pwrite = pwrite64;
 
     int        truncate64(const scope char*, off_t);
-    alias      truncate64 truncate;
+    alias      truncate = truncate64;
   }
   else
   {
@@ -2475,7 +2643,7 @@ else version (CRuntime_Musl)
 {
     int fchdir(int) @trusted;
     int lockf(int, int, off_t);
-    alias lockf lockf64;
+    alias lockf64 = lockf;
 }
 else version (Darwin)
 {
@@ -2550,7 +2718,7 @@ else version (NetBSD)
     int        truncate(const scope char*, off_t);
     useconds_t ualarm(useconds_t, useconds_t) @trusted;
     int        usleep(useconds_t) @trusted;
-    pid_t      vfork();
+    pragma(mangle, "__vfork14") pid_t      vfork();
 }
 else version (OpenBSD)
 {
@@ -2642,32 +2810,32 @@ else version (Solaris)
     version (D_LP64)
     {
         int         lockf(int, int, off_t);
-        alias       lockf lockf64;
+        alias       lockf64 = lockf;
 
         ssize_t     pread(int, void*, size_t, off_t);
-        alias       pread pread64;
+        alias       pread64 = pread;
 
         ssize_t     pwrite(int, const scope void*, size_t, off_t);
-        alias       pwrite pwrite64;
+        alias       pwrite64 = pwrite;
 
         int         truncate(const scope char*, off_t);
-        alias       truncate truncate64;
+        alias       truncate64 = truncate;
     }
     else
     {
         static if ( __USE_FILE_OFFSET64 )
         {
             int        lockf64(int, int, off64_t);
-            alias      lockf64 lockf;
+            alias      lockf = lockf64;
 
             ssize_t    pread64(int, void*, size_t, off64_t);
-            alias      pread64 pread;
+            alias      pread = pread64;
 
             ssize_t    pwrite64(int, const scope void*, size_t, off_t);
-            alias      pwrite64 pwrite;
+            alias      pwrite = pwrite64;
 
             int        truncate64(const scope char*, off_t);
-            alias      truncate64 truncate;
+            alias      truncate = truncate64;
         }
         else
         {
@@ -2702,16 +2870,16 @@ else version (CRuntime_UClibc)
   static if ( __USE_FILE_OFFSET64 )
   {
     int        lockf64(int, int, off_t) @trusted;
-    alias      lockf64 lockf;
+    alias      lockf = lockf64;
 
     ssize_t    pread64(int, void*, size_t, off_t);
-    alias      pread64 pread;
+    alias      pread = pread64;
 
     ssize_t    pwrite64(int, const scope void*, size_t, off_t);
-    alias      pwrite64 pwrite;
+    alias      pwrite = pwrite64;
 
     int        truncate64(const scope char*, off_t);
-    alias      truncate64 truncate;
+    alias      truncate = truncate64;
   }
   else
   {

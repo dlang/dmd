@@ -4,7 +4,7 @@
  * This is the POSIX side of the implementation.
  * It exports two functions to C++, `toCppMangleItanium` and `cppTypeInfoMangleItanium`.
  *
- * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mangle/cpp.d, _cppmangle.d)
@@ -26,7 +26,9 @@ import dmd.astenums;
 import dmd.attrib;
 import dmd.declaration;
 import dmd.dsymbol;
-import dmd.dsymbolsem : isGNUABITag;
+import dmd.dsymbolsem : isGNUABITag, toAlias, equals;
+import dmd.expressionsem : toStringExp, toInteger, toUInteger;
+import dmd.templatesem : computeOneMember;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -498,7 +500,7 @@ private final class CppMangleVisitor : Visitor
             }
             else
             {
-                .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported", ti.kind, ti.toPrettyChars, tv.valType.toChars());
+                .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported", ti.kind, ti.toPrettyChars, tv.valType.toErrMsg());
                 errors = true;
                 return;
             }
@@ -509,6 +511,10 @@ private final class CppMangleVisitor : Visitor
             // `&function`
             Dsymbol d = isDsymbol(o);
             Expression e = isExpression(o);
+
+            if (d && d.isTemplateDeclaration())
+                d.isTemplateDeclaration().computeOneMember();
+
             if (d && d.isFuncDeclaration())
             {
                 // X .. E => template parameter is an expression
@@ -534,13 +540,13 @@ private final class CppMangleVisitor : Visitor
             }
             else
             {
-                .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template alias parameter is not supported", ti.kind, ti.toPrettyChars, o.toChars());
+                .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template alias parameter is not supported", ti.kind, ti.toPrettyChars, o.toErrMsg());
                 errors = true;
             }
         }
         else if (tp.isTemplateThisParameter())
         {
-            .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template this parameter is not supported", ti.kind, ti.toPrettyChars, o.toChars());
+            .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template this parameter is not supported", ti.kind, ti.toPrettyChars, o.toErrMsg());
             errors = true;
         }
         else
@@ -589,7 +595,7 @@ private final class CppMangleVisitor : Visitor
                     Type t = isType((*ti.tiargs)[j]);
                     if (t is null)
                     {
-                        .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported", ti.kind, ti.toPrettyChars, (*ti.tiargs)[j].toChars());
+                        .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported", ti.kind, ti.toPrettyChars, (*ti.tiargs)[j].toErrMsg());
                         errors = true;
                         return false;
                     }
@@ -1228,7 +1234,7 @@ private final class CppMangleVisitor : Visitor
         string symName;
 
         // test for special symbols
-        CppOperator whichOp = isCppOperator(ti.name);
+        CppOperator whichOp = isCppOperator(ti.tempdecl.ident);
         final switch (whichOp)
         {
         case CppOperator.Unknown:
@@ -1363,7 +1369,7 @@ private final class CppMangleVisitor : Visitor
             {
                 // Static arrays in D are passed by value; no counterpart in C++
                 .error(loc, "internal compiler error: unable to pass static array `%s` to extern(C++) function, use pointer instead",
-                    t.toChars());
+                    t.toErrMsg());
                 errors = true;
                 return;
             }
@@ -1402,7 +1408,7 @@ private final class CppMangleVisitor : Visitor
             p = "`shared` ";
         else
             p = "";
-        .error(loc, "internal compiler error: %stype `%s` cannot be mapped to C++\n", p, t.toChars());
+        .error(loc, "internal compiler error: %stype `%s` cannot be mapped to C++\n", p, t.toErrMsg());
         errors = true; //Fatal, because this error should be handled in frontend
     }
 

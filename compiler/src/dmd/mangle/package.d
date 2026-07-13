@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/abi.html#name_mangling, Name Mangling)
  *
- * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mangle/package.d, _dmangle.d)
@@ -145,6 +145,8 @@ import dmd.declaration;
 import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dsymbol;
+import dmd.dsymbolsem : toAlias;
+import dmd.expressionsem : toInteger, toReal, toImaginary;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -725,6 +727,23 @@ public:
             buf.writestring(fd.ident.toString());
             return;
         }
+
+        version (IN_LLVM)
+        {
+            import gen.llvmhelpers : isTargetWasm;
+            bool isWasm = isTargetWasm();
+        }
+        else bool isWasm = false;
+
+        if (fd.isCMain() && isWasm)
+        {
+            if (fd.parameters)
+                buf.writestring("__main_argc_argv");
+            else
+                buf.writestring("__main_void");
+            return;
+        }
+
         visit(cast(Declaration)fd);
     }
 
@@ -872,7 +891,7 @@ public:
                     }
                     if (!d.type || !d.type.deco)
                     {
-                        error(ti.loc, "%s `%s` forward reference of %s `%s`", ti.kind, ti.toPrettyChars, d.kind(), d.toChars());
+                        error(ti.loc, "%s `%s` forward reference of %s `%s`", ti.kind, ti.toPrettyChars, d.kind(), d.toErrMsg());
                         continue;
                     }
                 }
@@ -929,7 +948,7 @@ public:
     override void visit(Expression e)
     {
         if (!e.type.isTypeError())
-            error(e.loc, "expression `%s` is not a valid template value argument", e.toChars());
+            error(e.loc, "expression `%s` is not a valid template value argument", e.toErrMsg());
     }
 
     override void visit(IntegerExp e)

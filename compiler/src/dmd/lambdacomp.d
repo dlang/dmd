@@ -1,11 +1,11 @@
 /**
  * Implements the serialization of a lambda function.
  *
- * The serializationis computed by visiting the abstract syntax subtree of the given lambda function.
+ * The serialization is computed by visiting the abstract syntax subtree of the given lambda function.
  * The serialization is a string which contains the type of the parameters and the string
- * represantation of the lambda expression.
+ * representation of the lambda expression.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/lambdacomp.d, _lambdacomp.d)
@@ -25,6 +25,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.expression;
+import dmd.expressionsem : getConstInitializer, toInteger;
 import dmd.func;
 import dmd.hdrgen;
 import dmd.mangle;

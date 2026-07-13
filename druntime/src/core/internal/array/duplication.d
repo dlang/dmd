@@ -29,13 +29,32 @@ U[] _dup(T, U)(scope T[] a) pure nothrow @trusted if (__traits(isPOD, T))
 
 U[] _dupCtfe(T, U)(scope T[] a)
 {
+    import core.internal.traits : Unqual;
+
     static if (is(T : void))
         assert(0, "Cannot dup a void[] array at compile time.");
     else
     {
         U[] res;
-        foreach (ref e; a)
-            res ~= e;
+        static if (is(T == shared SharedPayload, SharedPayload))
+        {
+            // CTFE still needs a low-level element copy path for shared POD
+            // arrays because `.dup` models the runtime bitcopy before any
+            // synchronization policy is applied to the duplicated slice.
+            Unqual!U[] tmp;
+            foreach (i; 0 .. a.length)
+                // This cast is only to make the CTFE path express the same raw
+                // element copy that the runtime POD implementation performs
+                // with memcpy; it is not meant as a synchronized access pattern
+                // for published shared data.
+                tmp ~= (cast(Unqual!T[]) a)[i];
+            res = cast(typeof(res)) tmp;
+        }
+        else
+        {
+            foreach (ref e; a)
+                res ~= e;
+        }
         return res;
     }
 }
@@ -327,9 +346,9 @@ U[] _dup(T, U)(T[] a) if (!__traits(isPOD, T))
         {
             if (l != 0xDEADBEEF)
             {
-                import core.stdc.stdio : fflush, printf, stdout;
+                import core.stdc.stdio : fflush, printf;
                 printf("Unexpected value: %lld\n", l);
-                fflush(stdout);
+                fflush(null);
                 assert(false);
             }
         }

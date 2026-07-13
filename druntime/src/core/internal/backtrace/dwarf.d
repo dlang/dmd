@@ -287,6 +287,7 @@ version (Darwin) {
         import core.stdc.stdlib : exit;
         import core.sys.posix.stdio : fdopen;
         import core.sys.posix.unistd : close, dup2, execlp, fork, getpid, pipe;
+        import core.sys.posix.sys.wait : waitpid;
         // Create in/out pipes to communicate with the forked exec
         int[2] dummy_pipes; // these dummy pipes are there to prevent funny issues when stdin/stdout is closed and pipe returns id 0 or 1
         int[2] pipes_to_atos;
@@ -361,6 +362,7 @@ version (Darwin) {
         fclose(from_atos);
         close(write_to_atos);
         close(read_from_atos);
+        waitpid(child_id, null, 0);
     }
     private Location parseAtosLine(char* buffer) @nogc nothrow
     {

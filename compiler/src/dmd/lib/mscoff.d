@@ -1,7 +1,7 @@
 /**
  * A library in the COFF format, used on 32-bit and 64-bit Windows targets.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/lib/mscoff.d, _libmscoff.d)
@@ -32,7 +32,6 @@ else
     static assert(0, "unsupported operating system");
 
 import dmd.errors : fatal;
-import dmd.globals;
 import dmd.lib;
 import dmd.location;
 import dmd.utils;
@@ -320,6 +319,7 @@ final class LibMSCoff : Library
         om.length = cast(uint)buffer.length;
         om.offset = 0;
         // remove path, but not extension
+        import dmd.globals;
         auto n = global.params.preservePaths ? module_name : FileName.name(module_name);
         om.name = toCString(n)[0 .. n.length];
         om.scan = 1;

@@ -2,8 +2,12 @@
 
 name: Main
 on:
-  - pull_request # without merge conflicts
-  - push # branch or tag
+  pull_request: # without merge conflicts
+    paths-ignore:
+      - 'spec/**'
+  push: # branch or tag
+    paths-ignore:
+      - 'spec/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -54,20 +58,17 @@ jobs:
             container_image: alpine:3.21
             host_dmd: ldmd2
           # macOS
-          - job_name: macOS 13 x64, DMD (latest)
-            os: macos-13
+          - job_name: macOS 14 x64, DMD (latest)
+            os: macos-14
             host_dmd: dmd
           # Disabled because of failure https://issues.dlang.org/show_bug.cgi?id=24518
-          # - job_name: macOS 13 x64, DMD (coverage)
-          #   os: macos-13
-          #   host_dmd: dmd
-          #   coverage: true
-          - job_name: macOS 13 x64, DMD (bootstrap)
-            os: macos-13
-            xcode: '14.3.1' # work around 'ld: multiple errors: symbol count from symbol table and dynamic symbol table differ' with old bootstrap compiler
-            # de-facto bootstrap version on OSX
-            # See: https://github.com/dlang/dmd/pull/13890
-            host_dmd: dmd-2.099.1
+          #- job_name: macOS 14 x64, DMD (coverage)
+          #  os: macos-14
+          #  host_dmd: dmd
+          #  coverage: true
+          - job_name: macOS 14 x64, DMD (bootstrap)
+            os: macos-14
+            host_dmd: dmd-2.107.1
           # Windows
           - job_name: Windows x64, LDC
             os: windows-2022
@@ -79,7 +80,7 @@ jobs:
     name: ${{ matrix.job_name }}
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container_image }}
-    timeout-minutes: 40
+    timeout-minutes: 60 # OSX tests can still be running runnable at 40
     env:
       # for ci/run.sh:
       OS_NAME: ${{ startsWith(matrix.os, 'ubuntu') && 'linux' || (startsWith(matrix.os, 'macos') && 'osx' || (startsWith(matrix.os, 'windows') && 'windows' || '')) }}
@@ -158,6 +159,9 @@ jobs:
           arch: ${{ env.MODEL == '64' && 'x64' || 'x86' }}
       - name: Test dmd
         run: ci/run.sh test_dmd
+      - name: Test frontend subpackage
+        if: '!matrix.coverage && (success() || failure()) && (matrix.host_dmd == ''dmd'' || matrix.host_dmd == ''dmd-latest'')'
+        run: ci/run.sh test_frontend_subpackage
       - name: Test druntime
         if: '!matrix.coverage && (success() || failure())'
         run: ci/run.sh test_druntime
@@ -183,32 +187,33 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - job_name: FreeBSD 13.2 x64, DMD (latest)
-            freebsd_version: '13.2'
+          - job_name: FreeBSD 14.4 x64, DMD (latest)
+            freebsd_version: '14.4'
             host_dmd: dmd
-          - job_name: FreeBSD 13.2 x64, DMD (bootstrap)
-            freebsd_version: '13.2'
+          - job_name: FreeBSD 14.4 x64, DMD (bootstrap)
+            freebsd_version: '14.4'
             host_dmd: dmd-2.095.0
     name: ${{ matrix.job_name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # Should complete in 11 minutes
+    timeout-minutes: 20  # Should complete in 11 minutes
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 50
-      - name: Run in VM
-        uses: cross-platform-actions/action@v0.23.0
-        timeout-minutes: 14
+      - name: Start VM
+        uses: cross-platform-actions/action@v1.3.0
         with:
           operating_system: freebsd
-          hypervisor: qemu
           memory: 12G
           cpu_count: 4
           sync_files: runner-to-vm
           version: ${{ matrix.freebsd_version }}
           shell: bash
-          run: |
-            set -uexo pipefail
+      - name: Run in VM
+        timeout-minutes: 19
+        shell: cpa.sh {0} --sync-files runner-to-vm
+        run: |
+          set -uexo pipefail
 
             freebsd_version='${{ matrix.freebsd_version }}'
             freebsd_major="${freebsd_version:0:2}"
@@ -220,11 +225,12 @@ jobs:
             export FULL_BUILD=true
             export CI_DFLAGS="-version=TARGET_FREEBSD${freebsd_major}"
 
-            #if [[ "$freebsd_major" == 12 ]]; then
-            #  sudo sed -i '' -e 's|pkg.FreeBSD.org|mirrors.xtom.com/freebsd-pkg|' /etc/pkg/FreeBSD.conf
-            #fi
-
             bash --version
+
+            # compiler/test/dshell/dwarf.d needs objdump from binutils.
+            # It will also optionally use llvm-dwarfdump from llvm.
+            # So, this installs both.
+            sudo pkg install -y binutils llvm
 
             echo '::group::Install prerequisites'
             sudo -E ci/cirrusci.sh
@@ -257,6 +263,12 @@ jobs:
             ci/run.sh test_dmd
             echo '::endgroup::'
 
+            if [ "$HOST_DMD" = "dmd" ]; then
+              echo '::group::Test frontend subpackage'
+              ci/run.sh test_frontend_subpackage
+              echo '::endgroup::'
+            fi
+
             echo '::group::Test druntime'
             ci/run.sh test_druntime
             echo '::endgroup::'
@@ -271,3 +283,54 @@ jobs:
       - name: Backup
         if: ${{ failure() }}
         run: echo 'FreeBSD VM check made optional because of random time outs'
+
+  arm-qemu:
+    name: 'Ubuntu 24.04 x64, DMD (AArch64 cross-compile via QEMU)'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OS_NAME: linux
+      MODEL: 64
+      HOST_DMD: dmd
+      FULL_BUILD: true
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+
+      - name: Set environment variable N (parallelism)
+        run: echo "N=$(nproc)" >> $GITHUB_ENV
+
+      - name: Install prerequisites
+        run: sudo -E ci/cirrusci.sh
+
+      - name: Install host compiler
+        run: ci/run.sh install_host_compiler
+
+      - name: Set up repos
+        run: |
+          set -uexo pipefail
+          ref='${{ github.ref }}'
+          if [[ "$ref" =~ ^refs/pull/ ]]; then
+            REPO_BRANCH="$GITHUB_BASE_REF"
+          elif [[ "$ref" =~ ^refs/(heads|tags)/(.*)$ ]]; then
+            REPO_BRANCH="${BASH_REMATCH[2]}"
+          else
+            echo "Error: unexpected GitHub ref '$ref'" >&2
+            exit 1
+          fi
+          ci/run.sh setup_repos "$REPO_BRANCH"
+
+      - name: Build DMD
+        run: ci/run.sh build
+
+      - name: Install AArch64 cross-compile tools
+        run: sudo apt-get install -y qemu-user clang lld gcc-aarch64-linux-gnu
+
+      - name: Test AArch64 cross-compile and run via QEMU
+        run: |
+          source ~/dlang/*/activate
+          compiler/test/run.d arm

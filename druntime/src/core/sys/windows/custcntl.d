@@ -29,7 +29,7 @@ struct CCSTYLEA {
     LANGID          lgid;
     WORD            wReserved1;
 }
-alias CCSTYLEA* LPCCSTYLEA;
+alias LPCCSTYLEA = CCSTYLEA*;
 
 struct CCSTYLEW {
     DWORD            flStyle;
@@ -38,21 +38,21 @@ struct CCSTYLEW {
     LANGID           lgid;
     WORD             wReserved1;
 }
-alias CCSTYLEW* LPCCSTYLEW;
+alias LPCCSTYLEW = CCSTYLEW*;
 
 struct CCSTYLEFLAGA {
     DWORD flStyle;
     DWORD flStyleMask;
     LPSTR pszStyle;
 }
-alias CCSTYLEFLAGA* LPCCSTYLEFLAGA;
+alias LPCCSTYLEFLAGA = CCSTYLEFLAGA*;
 
 struct CCSTYLEFLAGW {
     DWORD  flStyle;
     DWORD  flStyleMask;
     LPWSTR pszStyle;
 }
-alias CCSTYLEFLAGW* LPCCSTYLEFLAGW;
+alias LPCCSTYLEFLAGW = CCSTYLEFLAGW*;
 
 struct CCINFOA {
     CHAR[CCHCCCLASS]  szClass = 0;
@@ -71,7 +71,7 @@ struct CCINFOA {
     DWORD             dwReserved1;
     DWORD             dwReserved2;
 }
-alias CCINFOA* LPCCINFOA;
+alias LPCCINFOA = CCINFOA*;
 
 struct CCINFOW {
     WCHAR[CCHCCCLASS] szClass = 0;
@@ -90,36 +90,36 @@ struct CCINFOW {
     DWORD             dwReserved1;
     DWORD             dwReserved2;
 }
-alias CCINFOW* LPCCINFOW;
+alias LPCCINFOW = CCINFOW*;
 
 extern (Windows) {
-    alias BOOL function(HWND, LPCCSTYLEA) LPFNCCSTYLEA;
-    alias BOOL function(HWND, LPCCSTYLEW) LPFNCCSTYLEW;
-    alias INT function(DWORD, DWORD, HFONT, LPSTR) LPFNCCSIZETOTEXTA;
-    alias INT function(DWORD, DWORD, HFONT, LPWSTR) LPFNCCSIZETOTEXTW;
-    alias UINT function(LPCCINFOA) LPFNCCINFOA;
-    alias UINT function(LPCCINFOW) LPFNCCINFOW;
+    alias LPFNCCSTYLEA = BOOL function(HWND, LPCCSTYLEA);
+    alias LPFNCCSTYLEW = BOOL function(HWND, LPCCSTYLEW);
+    alias LPFNCCSIZETOTEXTA = INT function(DWORD, DWORD, HFONT, LPSTR);
+    alias LPFNCCSIZETOTEXTW = INT function(DWORD, DWORD, HFONT, LPWSTR);
+    alias LPFNCCINFOA = UINT function(LPCCINFOA);
+    alias LPFNCCINFOW = UINT function(LPCCINFOW);
 nothrow @nogc:
     UINT CustomControlInfoA(LPCCINFOA acci);
     UINT CustomControlInfoW(LPCCINFOW acci);
 }
 
 version (Unicode) {
-    alias CCSTYLEW CCSTYLE;
-    alias CCSTYLEFLAGW CCSTYLEFLAG;
-    alias CCINFOW CCINFO;
-    alias LPFNCCSTYLEW LPFNCCSTYLE;
-    alias LPFNCCSIZETOTEXTW LPFNCCSIZETOTEXT;
-    alias LPFNCCINFOW LPFNCCINFO;
+    alias CCSTYLE = CCSTYLEW;
+    alias CCSTYLEFLAG = CCSTYLEFLAGW;
+    alias CCINFO = CCINFOW;
+    alias LPFNCCSTYLE = LPFNCCSTYLEW;
+    alias LPFNCCSIZETOTEXT = LPFNCCSIZETOTEXTW;
+    alias LPFNCCINFO = LPFNCCINFOW;
 } else {
-    alias CCSTYLEA CCSTYLE;
-    alias CCSTYLEFLAGA CCSTYLEFLAG;
-    alias CCINFOA CCINFO;
-    alias LPFNCCSTYLEA LPFNCCSTYLE;
-    alias LPFNCCSIZETOTEXTA LPFNCCSIZETOTEXT;
-    alias LPFNCCINFOA LPFNCCINFO;
+    alias CCSTYLE = CCSTYLEA;
+    alias CCSTYLEFLAG = CCSTYLEFLAGA;
+    alias CCINFO = CCINFOA;
+    alias LPFNCCSTYLE = LPFNCCSTYLEA;
+    alias LPFNCCSIZETOTEXT = LPFNCCSIZETOTEXTA;
+    alias LPFNCCINFO = LPFNCCINFOA;
 }
 
-alias CCSTYLE* LPCCSTYLE;
-alias CCSTYLEFLAG* LPCCSTYLEFLAG;
-alias CCINFO* LPCCINFO;
+alias LPCCSTYLE = CCSTYLE*;
+alias LPCCSTYLEFLAG = CCSTYLEFLAG*;
+alias LPCCINFO = CCINFO*;

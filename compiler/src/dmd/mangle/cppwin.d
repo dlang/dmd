@@ -1,7 +1,7 @@
 /**
  * Do mangling for C++ linkage for Digital Mars C++ and Microsoft Visual C++.
  *
- * Copyright: Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mangle/cppwin.d, _cppmanglewin.d)
@@ -20,6 +20,9 @@ import dmd.declaration;
 import dmd.denum : isSpecialEnumIdent;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem : toAlias;
+import dmd.expressionsem : toStringExp, toInteger, toUInteger;
+import dmd.templatesem : computeOneMember;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
@@ -95,7 +98,7 @@ public:
         if (checkImmutableShared(type, loc))
             return;
 
-        eSink.error(loc, "internal compiler error: type `%s` cannot be mapped to C++\n", type.toChars());
+        eSink.error(loc, "internal compiler error: type `%s` cannot be mapped to C++\n", type.toErrMsg());
         errors = true;
     }
 
@@ -547,7 +550,7 @@ extern(D):
     {
         if (!tv.valType.isIntegral())
         {
-            eSink.error(sym.loc, "%s `%s` internal compiler error: C++ %s template value parameter is not supported", sym.kind, sym.toPrettyChars, tv.valType.toChars());
+            eSink.error(sym.loc, "%s `%s` internal compiler error: C++ %s template value parameter is not supported", sym.kind, sym.toPrettyChars, tv.valType.toErrMsg());
             errors = true;
             return;
         }
@@ -581,6 +584,9 @@ extern(D):
     {
         Dsymbol d = isDsymbol(o);
         Expression e = isExpression(o);
+
+        if (d && d.isTemplateDeclaration())
+            d.isTemplateDeclaration().computeOneMember();
 
         if (d && d.isFuncDeclaration())
         {
@@ -620,7 +626,7 @@ extern(D):
         }
         else
         {
-            eSink.error(sym.loc, "%s `%s` internal compiler error: `%s` is unsupported parameter for C++ template", sym.kind, sym.toPrettyChars, o.toChars());
+            eSink.error(sym.loc, "%s `%s` internal compiler error: `%s` is unsupported parameter for C++ template", sym.kind, sym.toPrettyChars, o.toErrMsg());
             errors = true;
         }
     }
@@ -759,7 +765,7 @@ extern(D):
                 if (t is null)
                 {
                     eSink.error(actualti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported",
-                        actualti.kind, actualti.toPrettyChars, o.toChars());
+                        actualti.kind, actualti.toPrettyChars, o.toErrMsg());
                     errors = true;
                     return;
                 }
@@ -817,7 +823,7 @@ extern(D):
     {
         if (type.isImmutable() || type.isShared())
         {
-            eSink.error(loc, "internal compiler error: `shared` or `immutable` types cannot be mapped to C++ (%s)", type.toChars());
+            eSink.error(loc, "internal compiler error: `shared` or `immutable` types cannot be mapped to C++ (%s)", type.toErrMsg());
             errors = true;
             return true;
         }
@@ -1110,7 +1116,7 @@ string mangleSpecialName(Dsymbol sym)
  */
 bool mangleOperator(ref OutBuffer buf, TemplateInstance ti, ref const(char)[] symName, ref int firstTemplateArg)
 {
-    auto whichOp = isCppOperator(ti.name);
+    auto whichOp = isCppOperator(ti.tempdecl.ident);
     final switch (whichOp)
     {
     case CppOperator.Unknown:

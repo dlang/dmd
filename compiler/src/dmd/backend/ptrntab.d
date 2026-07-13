@@ -1,8 +1,7 @@
-/**
- * Instruction tables for inline assembler.
+/* Instruction tables for inline assembler.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/ptrntab.d, backend/ptrntab.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_ptrntab.html
@@ -20,11 +19,10 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.iasm;
 import dmd.backend.oper;
 import dmd.backend.code;
-import dmd.backend.global;
+import dmd.backend.util2 : binary;
 import dmd.backend.x86.xmm;
 
 import dmd.backend.cdef;
-import dmd.backend.dlist;
 import dmd.backend.ty;
 
 nothrow:

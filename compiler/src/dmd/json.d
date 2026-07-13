@@ -1,7 +1,7 @@
 /**
  * Code for generating .json descriptions of the module when passing the `-X` flag to dmd.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/json.d, _json.d)
@@ -25,6 +25,7 @@ import dmd.dimport;
 import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.dsymbolsem : include;
+import dmd.templatesem : computeOneMember;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -96,42 +97,7 @@ public:
 
     extern(D) void stringPart(const char[] s)
     {
-        foreach (char c; s)
-        {
-            switch (c)
-            {
-            case '\n':
-                buf.writestring("\\n");
-                break;
-            case '\r':
-                buf.writestring("\\r");
-                break;
-            case '\t':
-                buf.writestring("\\t");
-                break;
-            case '\"':
-                buf.writestring("\\\"");
-                break;
-            case '\\':
-                buf.writestring("\\\\");
-                break;
-            case '\b':
-                buf.writestring("\\b");
-                break;
-            case '\f':
-                buf.writestring("\\f");
-                break;
-            default:
-                if (c < 0x20)
-                    buf.printf("\\u%04x", c);
-                else
-                {
-                    // Note that UTF-8 chars pass through here just fine
-                    buf.writeByte(c);
-                }
-                break;
-            }
-        }
+        (*buf).writeEscapeJSONString(s);
     }
 
     // Json value functions
@@ -474,6 +440,7 @@ public:
     void jsonProperties(TemplateDeclaration td)
     {
         jsonProperties(cast(Dsymbol)td);
+        td.computeOneMember();
         if (td.onemember && td.onemember.isCtorDeclaration())
             property("name", "this"); // __ctor -> this
         else
@@ -619,7 +586,7 @@ public:
         {
             if (cd.baseClass && cd.baseClass.ident != Id.Object)
             {
-                property("base", cd.baseClass.toPrettyChars(true).toDString);
+                property("base", cd.baseClass.toPrettyChars(true, true).toDString);
             }
             if (cd.interfaces.length)
             {
@@ -627,7 +594,7 @@ public:
                 arrayStart();
                 foreach (b; cd.interfaces)
                 {
-                    item(b.sym.toPrettyChars(true).toDString);
+                    item(b.sym.toPrettyChars(true, true).toDString);
                 }
                 arrayEnd();
             }
@@ -661,7 +628,7 @@ public:
             for (size_t i = 0; i < d.foverrides.length; i++)
             {
                 FuncDeclaration fd = d.foverrides[i];
-                item(fd.toPrettyChars().toDString);
+                item(fd.toPrettyChars(true, true).toDString);
             }
             arrayEnd();
         }
@@ -804,6 +771,16 @@ public:
     {
         objectStart();
         jsonProperties(d);
+        if (d.members)
+        {
+            propertyStart("members");
+            arrayStart();
+            foreach (member; (*d.members))
+            {
+                member.accept(this);
+            }
+            arrayEnd();
+        }
         objectEnd();
     }
 
@@ -867,6 +844,8 @@ public:
                 item("solaris");
                 item("bsd");
             }
+            else if (target.os == Target.OS.Hurd)
+                item("hurd");
         }
         arrayEnd();
 
@@ -1062,6 +1041,53 @@ JsonFieldFlags tryParseJsonField(const(char)* fieldName)
         }
     }
     return JsonFieldFlags.none;
+}
+
+
+/**
+ * Escape special characters (such as quotes and whitespaces) for a JSON string literal
+ * Params:
+ *   buf = buffer to write to
+ *   str = string to escape and write as string literal
+ */
+void writeEscapeJSONString(ref OutBuffer buf, const(char)[] str) nothrow
+{
+    foreach (c; str)
+    {
+        switch (c)
+        {
+        case '\n':
+            buf.writestring("\\n");
+            break;
+        case '\r':
+            buf.writestring("\\r");
+            break;
+        case '\t':
+            buf.writestring("\\t");
+            break;
+        case '\"':
+            buf.writestring("\\\"");
+            break;
+        case '\\':
+            buf.writestring("\\\\");
+            break;
+        case '\b':
+            buf.writestring("\\b");
+            break;
+        case '\f':
+            buf.writestring("\\f");
+            break;
+        default:
+            if (c < 0x20)
+                buf.printf("\\u%04x", c);
+            else
+            {
+                // Note that UTF-8 chars pass through here just fine
+                buf.writeByte(c);
+            }
+            break;
+        }
+    }
 }
 
 /**

@@ -4,7 +4,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/fail_opover.d(39): Error: no `[]` operator overload for type `object.Object`
-$p:object.d$(110):        perhaps define `auto opIndex() {}` for `object.Object`
+$p:object.d$($n$):        perhaps define `auto opIndex() {}` for `object.Object`
 fail_compilation/fail_opover.d(43): Error: no `[]` operator overload for type `TestS`
 fail_compilation/fail_opover.d(41):        perhaps define `auto opIndex() {}` for `fail_opover.test1.TestS`
 fail_compilation/fail_opover.d(55): Error: no `[]` operator overload for type `S`

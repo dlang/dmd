@@ -3,7 +3,7 @@
  * Generate exception handling tables.
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/eh.d, _eh.d)
@@ -18,13 +18,16 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.backend.barray;
+import dmd.backend.blockopt : bo;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.dt;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : error, symbol_keep;
+import dmd.backend.dout : outdata;
+import dmd.backend.symbol : symbol_name;
 import dmd.backend.obj;
 import dmd.backend.ty;
 import dmd.backend.type;
@@ -177,7 +180,7 @@ void except_fillInEHTable(Symbol* s)
             }
             i = b.Bscope_index + 1;
 
-            int nsucc = b.numSucc();
+            int nsucc = cast(int)b.Bsucc.length;
 
             if (config.ehmethod == EHmethod.EH_DM)
             {
@@ -213,10 +216,10 @@ void except_fillInEHTable(Symbol* s)
             {
                 assert(nsucc == 2);
                 dtb.dword(0);           // no catch offset
-                block* bhandler = b.nthSucc(1);
+                block* bhandler = b.Bsucc[1];
                 assert(bhandler.bc == BC._finally);
                 // To successor of BC._finally block
-                bhandler = bhandler.nthSucc(0);
+                bhandler = bhandler.Bsucc[0];
                 // finally handler address
                 if (config.ehmethod == EHmethod.EH_DM)
                 {
@@ -332,13 +335,13 @@ void except_fillInEHTable(Symbol* s)
     {
         if (b.bc == BC._try && b.jcatchvar)         // if try-catch
         {
-            int nsucc = b.numSucc();
+            int nsucc = cast(int)b.Bsucc.length;
             dtb.size(nsucc - 1);           // # of catch blocks
             sz += NPTRSIZE;
 
             for (int j = 1; j < nsucc; ++j)
             {
-                block* bcatch = b.nthSucc(j);
+                block* bcatch = b.Bsucc[j];
 
                 dtb.xoff(bcatch.Bcatchtype,0,TYnptr);
 

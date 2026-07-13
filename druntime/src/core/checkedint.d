@@ -757,11 +757,10 @@ unittest
  * Returns:
  *      the product
  */
-pragma(inline, true)
+// pragma(inline, true)
 uint mulu()(uint x, uint y, ref bool overflow)
 {
-    version (DigitalMars)             enum useAsm = false; // cannot inline asm
-    else version (D_InlineAsm_X86)    enum useAsm = true;
+    version (D_InlineAsm_X86)         enum useAsm = true;
     else version (D_InlineAsm_X86_64) enum useAsm = true;
     else                              enum useAsm = false;
 
@@ -814,25 +813,21 @@ unittest
 pragma(inline, true)
 ulong mulu()(ulong x, uint y, ref bool overflow)
 {
-    version (DigitalMars) {} else // cannot inline asm
     version (D_InlineAsm_X86_64)
     {
-        if (!__ctfe)
-            return mulu(x, ulong(y), overflow);
+        return __ctfe ? mulu_generic(x, y, overflow)
+            : mulu(x, ulong(y), overflow);
     }
-
-    ulong r = x * y;
-    if (x >> 32 &&
-            r / x != y)
-        overflow = true;
-    return r;
+    else
+    {
+        return mulu_generic(x, y, overflow);
+    }
 }
 
 /// ditto
-pragma(inline, true)
+// pragma(inline, true)
 ulong mulu()(ulong x, ulong y, ref bool overflow)
 {
-    version (DigitalMars) {} else // cannot inline asm
     version (D_InlineAsm_X86_64)
     {
         if (!__ctfe)
@@ -855,6 +850,16 @@ ulong mulu()(ulong x, ulong y, ref bool overflow)
     if ((x | y) >> 32 &&
             x &&
             r / x != y)
+        overflow = true;
+    return r;
+}
+
+private ulong mulu_generic()(ulong x, uint y, ref bool overflow)
+{
+    pragma(inline, true)
+    ulong r = x * y;
+    if (x >> 32 &&
+        r / x != y)
         overflow = true;
     return r;
 }
@@ -934,5 +939,138 @@ unittest
     bool overflow = true;
     assert(mulu(0UL, 0UL, overflow) == 0);
     assert(overflow);                   // sticky
+}
+}
+
+/*******************************
+ * Left shift an unsigned integer, checking for overflow.
+ *
+ * The overflow is sticky, meaning a sequence of operations can
+ * be done and overflow need only be checked at the end.
+ * Params:
+ *      x = left operand
+ *      n = shift count
+ *      overflow = set if an overflow occurs, is not affected otherwise
+ * Returns:
+ *      the shifted value
+ */
+
+pragma(inline, true)
+uint shlu()(uint x, uint n, ref bool overflow)
+{
+    enum bits = uint.sizeof * 8;
+
+    if (n == 0)
+        return x;
+    if (n >= bits)
+    {
+        if (n > bits || x)
+            overflow = true;
+        return 0;
+    }
+    if (x > (uint.max >> n))
+        overflow = true;
+    return x << n;
+}
+
+///
+@betterC
+unittest
+{
+    void test(T)(T x, uint n, uint r, bool overflow) @nogc nothrow
+    {
+        bool o;
+        assert(shlu(x, n, o) == r);
+        assert(o == overflow);
+    }
+    test(3U, 2, 12, false);
+    test(1U, 31, 0x8000_0000U, false);
+    test(0x8000_0000U, 1, 0, true);
+    test(0U, 32, 0, false);
+    test(1U, 32, 0, true);
+    test(1U, 33, 0, true);
+    bool overflow = true;
+    assert(shlu(0U, 0, overflow) == 0);
+    assert(overflow);
+}
+
+/// ditto
+pragma(inline, true)
+ulong shlu()(ulong x, uint n, ref bool overflow)
+{
+    enum bits = ulong.sizeof * 8;
+
+    if (n == 0)
+        return x;
+    if (n >= bits)
+    {
+        if (n > bits || x)
+            overflow = true;
+        return 0;
+    }
+    if (x > (ulong.max >> n))
+        overflow = true;
+    return x << n;
+}
+
+///
+@betterC
+unittest
+{
+    void test(T)(T x, uint n, ulong r, bool overflow) @nogc nothrow
+    {
+        bool o;
+        assert(shlu(x, n, o) == r);
+        assert(o == overflow);
+    }
+    test(3UL, 2, 12, false);
+    test(1UL, 63, 0x8000_0000_0000_0000UL, false);
+    test(0x8000_0000_0000_0000UL, 1, 0, true);
+    test(0UL, 64, 0, false);
+    test(1UL, 64, 0, true);
+    test(1UL, 65, 0, true);
+    bool overflow = true;
+    assert(shlu(0UL, 0, overflow) == 0);
+    assert(overflow);
+}
+
+static if (is(ucent))
+{
+/// ditto
+pragma(inline, true)
+ucent shlu()(ucent x, uint n, ref bool overflow)
+{
+    enum bits = ucent.sizeof * 8;
+
+    if (n == 0)
+        return x;
+    if (n >= bits)
+    {
+        if (n > bits || x)
+            overflow = true;
+        return 0;
+    }
+    if (x > (ucent.max >> n))
+        overflow = true;
+    return x << n;
+}
+
+unittest
+{
+    void test(T)(T x, uint n, ucent r, bool overflow) @nogc nothrow
+    {
+        bool o;
+        assert(shlu(x, n, o) == r);
+        assert(o == overflow);
+    }
+    test(cast(ucent)3U, 2, 12, false);
+    test(cast(ucent)1U, 127, cast(ucent)1U << 127, false);
+    test(cast(ucent)1U << 127, 1, 0, true);
+    test(cast(ucent)0U, 128, 0, false);
+    test(cast(ucent)1U, 128, 0, true);
+    test(cast(ucent)1U, 129, 0, true);
+    bool overflow = true;
+    assert(shlu(cast(ucent)0U, 0, overflow) == 0);
+    assert(overflow);
 }
 }

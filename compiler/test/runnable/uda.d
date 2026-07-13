@@ -697,6 +697,12 @@ static if(is(typeof(foo20831) Params20831 == __parameters))
 
 /************************************************/
 
+// https://github.com/dlang/dmd/issues/19788
+@10 void f(@20 int x)
+{
+    static assert([__traits(getAttributes, x)] == [20]);
+}
+
 /************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=15804
 
@@ -744,6 +750,22 @@ template test15804()
 alias a15804 = test15804!();
 
 /************************************************/
+// https://github.com/dlang/dmd/issues/22282
+
+struct S22282
+{
+    int a,b;
+    this(string a, string b) { }
+    ~this() { }
+}
+
+void issue22282()
+{
+	enum var;
+	@var S22282 file = S22282("tmp", "w");
+}
+
+/************************************************/
 
 int main()
 {
@@ -767,6 +789,7 @@ int main()
     test18();
     test19();
     test20();
+    issue22282();
 
     printf("Success\n");
     return 0;

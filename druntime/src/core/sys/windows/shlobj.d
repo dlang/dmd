@@ -53,13 +53,13 @@ enum BFFM_SETOKTEXT = WM_USER + 105;
 enum BFFM_SETEXPANDED = WM_USER + 106;
 
 version (Unicode) {
-    alias BFFM_SETSTATUSTEXTW BFFM_SETSTATUSTEXT;
-    alias BFFM_SETSELECTIONW BFFM_SETSELECTION;
-    alias BFFM_VALIDATEFAILEDW BFFM_VALIDATEFAILED;
+    alias BFFM_SETSTATUSTEXT = BFFM_SETSTATUSTEXTW;
+    alias BFFM_SETSELECTION = BFFM_SETSELECTIONW;
+    alias BFFM_VALIDATEFAILED = BFFM_VALIDATEFAILEDW;
 } else {
-    alias BFFM_SETSTATUSTEXTA BFFM_SETSTATUSTEXT;
-    alias BFFM_SETSELECTIONA BFFM_SETSELECTION;
-    alias BFFM_VALIDATEFAILEDA BFFM_VALIDATEFAILED;
+    alias BFFM_SETSTATUSTEXT = BFFM_SETSTATUSTEXTA;
+    alias BFFM_SETSELECTION = BFFM_SETSELECTIONA;
+    alias BFFM_VALIDATEFAILED = BFFM_VALIDATEFAILEDA;
 }
 
 enum DVASPECT_SHORTNAME = 2;
@@ -112,11 +112,11 @@ enum SHCNF_FLUSH = 0x1000;
 enum SHCNF_FLUSHNOWAIT = 0x2000;
 
 version (Unicode) {
-    alias SHCNF_PATHW SHCNF_PATH;
-    alias SHCNF_PRINTERW SHCNF_PRINTER;
+    alias SHCNF_PATH = SHCNF_PATHW;
+    alias SHCNF_PRINTER = SHCNF_PRINTERW;
 } else {
-    alias SHCNF_PATHA SHCNF_PATH;
-    alias SHCNF_PRINTERA SHCNF_PRINTER;
+    alias SHCNF_PATH = SHCNF_PATHA;
+    alias SHCNF_PRINTER = SHCNF_PRINTERA;
 }
 
 enum SFGAOF : DWORD {
@@ -256,15 +256,15 @@ const TCHAR[]
     CFSTR_INETURLW          = "UniformResourceLocatorW";
 
 version (Unicode) {
-    alias CFSTR_FILENAMEW CFSTR_FILENAME;
-    alias CFSTR_FILENAMEMAPW CFSTR_FILENAMEMAP;
-    alias CFSTR_FILEDESCRIPTORW CFSTR_FILEDESCRIPTOR;
-    alias CFSTR_INETURLW CFSTR_INETURL;
+    alias CFSTR_FILENAME = CFSTR_FILENAMEW;
+    alias CFSTR_FILENAMEMAP = CFSTR_FILENAMEMAPW;
+    alias CFSTR_FILEDESCRIPTOR = CFSTR_FILEDESCRIPTORW;
+    alias CFSTR_INETURL = CFSTR_INETURLW;
 } else {
-    alias CFSTR_FILENAMEA CFSTR_FILENAME;
-    alias CFSTR_FILENAMEMAPA CFSTR_FILENAMEMAP;
-    alias CFSTR_FILEDESCRIPTORA CFSTR_FILEDESCRIPTOR;
-    alias CFSTR_INETURLA CFSTR_INETURL;
+    alias CFSTR_FILENAME = CFSTR_FILENAMEA;
+    alias CFSTR_FILENAMEMAP = CFSTR_FILENAMEMAPA;
+    alias CFSTR_FILEDESCRIPTOR = CFSTR_FILEDESCRIPTORA;
+    alias CFSTR_INETURL = CFSTR_INETURLA;
 }
 const TCHAR[]
     CFSTR_PRINTERGROUP        = "PrinterFriendlyName",
@@ -291,13 +291,13 @@ enum GCS_VALIDATEW=6;
 enum GCS_UNICODE=4;
 
 version (Unicode) {
-    alias GCS_VERBW GCS_VERB;
-    alias GCS_HELPTEXTW GCS_HELPTEXT;
-    alias GCS_VALIDATEW GCS_VALIDATE;
+    alias GCS_VERB = GCS_VERBW;
+    alias GCS_HELPTEXT = GCS_HELPTEXTW;
+    alias GCS_VALIDATE = GCS_VALIDATEW;
 } else {
-    alias GCS_VERBA GCS_VERB;
-    alias GCS_HELPTEXTA GCS_HELPTEXT;
-    alias GCS_VALIDATEA GCS_VALIDATE;
+    alias GCS_VERB = GCS_VERBA;
+    alias GCS_HELPTEXT = GCS_HELPTEXTA;
+    alias GCS_VALIDATE = GCS_VALIDATEA;
 }
 
 const TCHAR[]
@@ -386,28 +386,28 @@ enum SVGIO_ALLVIEW=2;
 enum UINT SV2GV_CURRENTVIEW=-1;
 enum UINT SV2GV_DEFAULTVIEW=-2;
 
-alias DWORD SHGDNF;
+alias SHGDNF = DWORD;
 
 struct CIDA {
     UINT    cidl;
     UINT[1] aoffset;
 }
-alias CIDA* LPIDA;
+alias LPIDA = CIDA*;
 
 struct SHITEMID {
     USHORT  cb;
     BYTE[1] abID;
 }
-alias SHITEMID*        LPSHITEMID;
-alias const(SHITEMID)* LPCSHITEMID;
+alias LPSHITEMID = SHITEMID*;
+alias LPCSHITEMID = const(SHITEMID)*;
 
 struct ITEMIDLIST {
     SHITEMID mkid;
 }
-alias ITEMIDLIST*        LPITEMIDLIST;
-alias const(ITEMIDLIST)* LPCITEMIDLIST;
+alias LPITEMIDLIST = ITEMIDLIST*;
+alias LPCITEMIDLIST = const(ITEMIDLIST)*;
 
-extern (Windows) alias int function(HWND, UINT, LPARAM, LPARAM) BFFCALLBACK;
+extern (Windows) alias BFFCALLBACK = int function(HWND, UINT, LPARAM, LPARAM);
 
 align (8) {
 struct BROWSEINFOA {
@@ -420,7 +420,7 @@ struct BROWSEINFOA {
     LPARAM        lParam;
     int           iImage;
 }
-alias BROWSEINFOA* PBROWSEINFOA, LPBROWSEINFOA;
+alias PBROWSEINFOA = BROWSEINFOA*, LPBROWSEINFOA = BROWSEINFOA*;
 
 struct BROWSEINFOW {
     HWND          hwndOwner;
@@ -432,7 +432,7 @@ struct BROWSEINFOW {
     LPARAM        lParam;
     int           iImage;
 }
-alias BROWSEINFOW* PBROWSEINFOW, LPBROWSEINFOW;
+alias PBROWSEINFOW = BROWSEINFOW*, LPBROWSEINFOW = BROWSEINFOW*;
 } // align (8)
 
 struct CMINVOKECOMMANDINFO {
@@ -446,7 +446,7 @@ struct CMINVOKECOMMANDINFO {
     DWORD dwHotKey;
     HANDLE hIcon;
 }
-alias CMINVOKECOMMANDINFO* LPCMINVOKECOMMANDINFO;
+alias LPCMINVOKECOMMANDINFO = CMINVOKECOMMANDINFO*;
 
 struct DROPFILES {
     DWORD pFiles;
@@ -454,7 +454,7 @@ struct DROPFILES {
     BOOL fNC;
     BOOL fWide;
 }
-alias DROPFILES* LPDROPFILES;
+alias LPDROPFILES = DROPFILES*;
 
 enum SHGNO {
     SHGDN_NORMAL             = 0,
@@ -483,7 +483,7 @@ align(8) struct STRRET {
         char[MAX_PATH] cStr;
     }
 }
-alias STRRET* LPSTRRET;
+alias LPSTRRET = STRRET*;
 
 enum FD_FLAGS {
     FD_CLSID      = 1,
@@ -509,7 +509,7 @@ struct FILEDESCRIPTORA {
     DWORD nFileSizeLow;
     CHAR[MAX_PATH] cFileName = 0;
 }
-alias FILEDESCRIPTORA* LPFILEDESCRIPTORA;
+alias LPFILEDESCRIPTORA = FILEDESCRIPTORA*;
 
 struct FILEDESCRIPTORW {
     DWORD dwFlags;
@@ -524,19 +524,19 @@ struct FILEDESCRIPTORW {
     DWORD nFileSizeLow;
     WCHAR[MAX_PATH] cFileName = 0;
 }
-alias FILEDESCRIPTORW* LPFILEDESCRIPTORW;
+alias LPFILEDESCRIPTORW = FILEDESCRIPTORW*;
 
 struct FILEGROUPDESCRIPTORA {
     UINT cItems;
     FILEDESCRIPTORA[1] fgd;
 }
-alias FILEGROUPDESCRIPTORA* LPFILEGROUPDESCRIPTORA;
+alias LPFILEGROUPDESCRIPTORA = FILEGROUPDESCRIPTORA*;
 
 struct FILEGROUPDESCRIPTORW {
     UINT cItems;
     FILEDESCRIPTORW[1] fgd;
 }
-alias FILEGROUPDESCRIPTORW* LPFILEGROUPDESCRIPTORW;
+alias LPFILEGROUPDESCRIPTORW = FILEGROUPDESCRIPTORW*;
 
 enum SLR_FLAGS {
     SLR_NO_UI      = 1,
@@ -555,7 +555,7 @@ enum SLGP_FLAGS {
     SLGP_RAWPATH=4
 }
 
-alias PBYTE LPVIEWSETTINGS;
+alias LPVIEWSETTINGS = PBYTE;
 
 enum FOLDERFLAGS {
     FWF_AUTOARRANGE         = 1,
@@ -584,8 +584,8 @@ struct FOLDERSETTINGS {
     UINT ViewMode;
     UINT fFlags;
 }
-alias FOLDERSETTINGS*        LPFOLDERSETTINGS;
-alias const(FOLDERSETTINGS)* LPCFOLDERSETTINGS;
+alias LPFOLDERSETTINGS = FOLDERSETTINGS*;
+alias LPCFOLDERSETTINGS = const(FOLDERSETTINGS)*;
 
 struct FVSHOWINFO {
     DWORD cbSize = this.sizeof;
@@ -596,13 +596,13 @@ struct FVSHOWINFO {
     LPUNKNOWN punkRel;
     OLECHAR[MAX_PATH] strNewFile = 0;
 }
-alias FVSHOWINFO* LPFVSHOWINFO;
+alias LPFVSHOWINFO = FVSHOWINFO*;
 
 struct NRESARRAY {
     UINT cItems;
     NETRESOURCE[1] nr;
 }
-alias NRESARRAY* LPNRESARRAY;
+alias LPNRESARRAY = NRESARRAY*;
 
 enum {
     SBSC_HIDE,
@@ -635,23 +635,23 @@ static if (_WIN32_IE >= 0x500) {
         WCHAR[80] wszFriendlyName = 0;
         WCHAR[2084] wszUrl = 0;
     }
-    alias EXTRASEARCH* LPEXTRASEARCH;
+    alias LPEXTRASEARCH = EXTRASEARCH*;
 
-    alias DWORD SHCOLSTATEF;
+    alias SHCOLSTATEF = DWORD;
 
     struct SHCOLUMNID {
         GUID fmtid;
         DWORD pid;
     }
-    alias SHCOLUMNID*        LPSHCOLUMNID;
-    alias const(SHCOLUMNID)* LPCSHCOLUMNID;
+    alias LPSHCOLUMNID = SHCOLUMNID*;
+    alias LPCSHCOLUMNID = const(SHCOLUMNID)*;
 
     struct SHELLDETAILS {
         int fmt;
         int cxChar;
         STRRET str;
     }
-    alias SHELLDETAILS* LPSHELLDETAILS;
+    alias LPSHELLDETAILS = SHELLDETAILS*;
 
     struct PERSIST_FOLDER_TARGET_INFO
      {
@@ -675,7 +675,7 @@ interface IEnumIDList : IUnknown {
     HRESULT Reset();
     HRESULT Clone(IEnumIDList*);
 }
-alias IEnumIDList LPENUMIDLIST;
+alias LPENUMIDLIST = IEnumIDList;
 
 interface IObjMgr : IUnknown {
     HRESULT Append(IUnknown);
@@ -687,12 +687,12 @@ interface IContextMenu : IUnknown {
     HRESULT InvokeCommand(LPCMINVOKECOMMANDINFO);
     HRESULT GetCommandString(UINT_PTR, UINT, PUINT, LPSTR, UINT);
 }
-alias IContextMenu LPCONTEXTMENU;
+alias LPCONTEXTMENU = IContextMenu;
 
 interface IContextMenu2 : IContextMenu {
     HRESULT HandleMenuMsg(UINT, WPARAM, LPARAM);
 }
-alias IContextMenu2 LPCONTEXTMENU2;
+alias LPCONTEXTMENU2 = IContextMenu2;
 
 static if (_WIN32_IE >= 0x500) {
     align(8) {
@@ -701,8 +701,8 @@ static if (_WIN32_IE >= 0x500) {
             ULONG dwReserved;
             WCHAR[MAX_PATH] wszFolder = 0;
         }
-        alias SHCOLUMNINIT*        LPSHCOLUMNINIT;
-        alias const(SHCOLUMNINIT)* LPCSHCOLUMNINIT;
+        alias LPSHCOLUMNINIT = SHCOLUMNINIT*;
+        alias LPCSHCOLUMNINIT = const(SHCOLUMNINIT)*;
 
         struct SHCOLUMNDATA {
             ULONG dwFlags;
@@ -711,8 +711,8 @@ static if (_WIN32_IE >= 0x500) {
             WCHAR *pwszExt = null;
             WCHAR[MAX_PATH] wszFile = 0;
         }
-        alias SHCOLUMNDATA*        LPSHCOLUMNDATA;
-        alias const(SHCOLUMNDATA)* LPCSHCOLUMNDATA;
+        alias LPSHCOLUMNDATA = SHCOLUMNDATA*;
+        alias LPCSHCOLUMNDATA = const(SHCOLUMNDATA)*;
     }
 
 enum MAX_COLUMN_NAME_LEN = 80;
@@ -728,8 +728,8 @@ enum MAX_COLUMN_DESC_LEN = 128;
         WCHAR[MAX_COLUMN_NAME_LEN] wszTitle = 0;
         WCHAR[MAX_COLUMN_DESC_LEN] wszDescription = 0;
     }
-    alias SHCOLUMNINFO*        LPSHCOLUMNINFO;
-    alias const(SHCOLUMNINFO)* LPCSHCOLUMNINFO;
+    alias LPSHCOLUMNINFO = SHCOLUMNINFO*;
+    alias LPCSHCOLUMNINFO = const(SHCOLUMNINFO)*;
 
     enum SHCOLSTATE {
         SHCOLSTATE_TYPE_STR      = 0x00000001,
@@ -759,32 +759,32 @@ interface IQueryInfo : IUnknown {
 interface IShellExtInit : IUnknown {
     HRESULT Initialize(LPCITEMIDLIST, LPDATAOBJECT, HKEY);
 }
-alias IShellExtInit LPSHELLEXTINIT;
+alias LPSHELLEXTINIT = IShellExtInit;
 
 interface IShellPropSheetExt : IUnknown {
     HRESULT AddPages(LPFNADDPROPSHEETPAGE, LPARAM);
     HRESULT ReplacePage(UINT, LPFNADDPROPSHEETPAGE, LPARAM);
 }
-alias IShellPropSheetExt LPSHELLPROPSHEETEXT;
+alias LPSHELLPROPSHEETEXT = IShellPropSheetExt;
 
 interface IExtractIconA : IUnknown {
     HRESULT GetIconLocation(UINT, LPSTR, UINT, int*, PUINT);
     HRESULT Extract(LPCSTR, UINT, HICON*, HICON*, UINT);
 }
-alias IExtractIconA LPEXTRACTICONA;
+alias LPEXTRACTICONA = IExtractIconA;
 
 interface IExtractIconW : IUnknown {
     HRESULT GetIconLocation(UINT, LPWSTR, UINT, int*, PUINT);
     HRESULT Extract(LPCWSTR, UINT, HICON*, HICON*, UINT);
 }
-alias IExtractIconW LPEXTRACTICONW;
+alias LPEXTRACTICONW = IExtractIconW;
 
 version (Unicode) {
-    alias IExtractIconW IExtractIcon;
-    alias LPEXTRACTICONW LPEXTRACTICON;
+    alias IExtractIcon = IExtractIconW;
+    alias LPEXTRACTICON = LPEXTRACTICONW;
 } else {
-    alias IExtractIconA IExtractIcon;
-    alias LPEXTRACTICONA LPEXTRACTICON;
+    alias IExtractIcon = IExtractIconA;
+    alias LPEXTRACTICON = LPEXTRACTICONA;
 }
 
 interface IShellLinkA : IUnknown {
@@ -842,7 +842,7 @@ interface IShellFolder : IUnknown {
     HRESULT GetDisplayNameOf(LPCITEMIDLIST, DWORD, LPSTRRET);
     HRESULT SetNameOf(HWND, LPCITEMIDLIST, LPCOLESTR, DWORD, LPITEMIDLIST*);
 }
-alias IShellFolder LPSHELLFOLDER;
+alias LPSHELLFOLDER = IShellFolder;
 
 static if (_WIN32_IE >= 0x500) {
 
@@ -852,7 +852,7 @@ interface IEnumExtraSearch: IUnknown {
     HRESULT Reset();
     HRESULT Clone(IEnumExtraSearch*);
 }
-alias IEnumExtraSearch LPENUMEXTRASEARCH;
+alias LPENUMEXTRASEARCH = IEnumExtraSearch;
 
 interface IShellFolder2 : IShellFolder {
     HRESULT GetDefaultSearchGUID(GUID*);
@@ -863,27 +863,27 @@ interface IShellFolder2 : IShellFolder {
     HRESULT GetDetailsOf(LPCITEMIDLIST, UINT, SHELLDETAILS*);
     HRESULT MapColumnToSCID(UINT, SHCOLUMNID*);
 }
-alias IShellFolder2 LPSHELLFOLDER2;
+alias LPSHELLFOLDER2 = IShellFolder2;
 
 } /* _WIN32_IE >= 0x500 */
 
 interface ICopyHook : IUnknown {
     UINT CopyCallback(HWND, UINT, UINT, LPCSTR, DWORD, LPCSTR, DWORD);
 }
-alias ICopyHook LPCOPYHOOK;
+alias LPCOPYHOOK = ICopyHook;
 
 interface IFileViewerSite : IUnknown {
     HRESULT SetPinnedWindow(HWND);
     HRESULT GetPinnedWindow(HWND*);
 }
-alias IFileViewerSite LPFILEVIEWERSITE;
+alias LPFILEVIEWERSITE = IFileViewerSite;
 
 interface IFileViewer : IUnknown {
     HRESULT ShowInitialize(LPFILEVIEWERSITE);
     HRESULT Show(LPFVSHOWINFO);
     HRESULT PrintTo(LPSTR, BOOL);
 }
-alias IFileViewer LPFILEVIEWER;
+alias LPFILEVIEWER = IFileViewer;
 
 interface IFileSystemBindData : IUnknown {
     HRESULT SetFindData(const(WIN32_FIND_DATAW)*);
@@ -894,7 +894,7 @@ interface IPersistFolder : IPersist {
     HRESULT GetClassID(CLSID*);
     HRESULT Initialize(LPCITEMIDLIST);
 }
-alias IPersistFolder LPPERSISTFOLDER;
+alias LPPERSISTFOLDER = IPersistFolder;
 
 static if (_WIN32_IE >= 0x400 || _WIN32_WINNT >= 0x500) {
 
@@ -903,7 +903,7 @@ interface IPersistFolder2 : IPersistFolder {
     HRESULT Initialize(LPCITEMIDLIST);
     HRESULT GetCurFolder(LPITEMIDLIST*);
 }
-alias IPersistFolder2 LPPERSISTFOLDER2;
+alias LPPERSISTFOLDER2 = IPersistFolder2;
 
 }/* _WIN32_IE >= 0x400 || _WIN32_WINNT >= 0x500 */
 
@@ -916,12 +916,12 @@ interface IPersistFolder3 : IPersistFolder2 {
     HRESULT InitializeEx(IBindCtx, LPCITEMIDLIST, const(PERSIST_FOLDER_TARGET_INFO)*);
     HRESULT GetFolderTargetInfo(PERSIST_FOLDER_TARGET_INFO*);
 }
-alias IPersistFolder3 LPPERSISTFOLDER3;
+alias LPPERSISTFOLDER3 = IPersistFolder3;
 
 } /* _WIN32_IE >= 0x500 */
 
-alias IShellBrowser LPSHELLBROWSER;
-alias IShellView LPSHELLVIEW;
+alias LPSHELLBROWSER = IShellBrowser;
+alias LPSHELLVIEW = IShellView;
 
 interface IShellBrowser : IOleWindow {
     HRESULT GetWindow(HWND*);
@@ -966,9 +966,9 @@ interface ICommDlgBrowser : IUnknown {
     HRESULT OnStateChange(IShellView, ULONG);
     HRESULT IncludeObject(IShellView, LPCITEMIDLIST);
 }
-alias ICommDlgBrowser LPCOMMDLGBROWSER;
+alias LPCOMMDLGBROWSER = ICommDlgBrowser;
 
-alias GUID SHELLVIEWID;
+alias SHELLVIEWID = GUID;
 
 struct SV2CVW2_PARAMS {
     DWORD cbSize = this.sizeof;
@@ -979,7 +979,7 @@ struct SV2CVW2_PARAMS {
 const(SHELLVIEWID)* pvid;
     HWND hwndView;
 }
-alias SV2CVW2_PARAMS* LPSV2CVW2_PARAMS;
+alias LPSV2CVW2_PARAMS = SV2CVW2_PARAMS*;
 
 interface IShellView2 : IShellView {
     HRESULT GetWindow(HWND*);
@@ -1014,7 +1014,7 @@ interface IShellExecuteHookW : IUnknown {
 interface IShellIcon : IUnknown {
     HRESULT GetIconOf(LPCITEMIDLIST, UINT, PINT);
 }
-alias IShellIcon LPSHELLICON;
+alias LPSHELLICON = IShellIcon;
 
 struct SHELLFLAGSTATE {
     short _bf;
@@ -1064,7 +1064,7 @@ struct SHELLFLAGSTATE {
     @property bool fHideIcons()(bool f)            { _bf = cast(ushort) ((_bf & ~0xEFFF) | (f << 12)); return f; }
     @property ubyte fRestFlags()(ubyte f)          { _bf = cast(ushort) ((_bf & ~0x1FFF) | (f << 13)); return cast(ubyte) (f & 7); }
 }
-alias SHELLFLAGSTATE* LPSHELLFLAGSTATE;
+alias LPSHELLFLAGSTATE = SHELLFLAGSTATE*;
 
 enum SSF_SHOWALLOBJECTS = 0x1;
 enum SSF_SHOWEXTENSIONS = 0x2;
@@ -1172,7 +1172,7 @@ static if (_WIN32_WINNT >= 0x500) {
             return cast(ushort) (f & 0x1FFF);
         }
     }
-    alias SHELLSTATE* LPSHELLSTATE;
+    alias LPSHELLSTATE = SHELLSTATE*;
 }
 
 static if (_WIN32_IE >= 0x500) {
@@ -1183,7 +1183,7 @@ static if (_WIN32_IE >= 0x500) {
             HBITMAP hbmpDragImage;
             COLORREF crColorKey;
         }
-        alias SHDRAGIMAGE* LPSHDRAGIMAGE;
+        alias LPSHDRAGIMAGE = SHDRAGIMAGE*;
     }
 
     interface IDragSourceHelper : IUnknown {
@@ -1249,7 +1249,7 @@ static if (_WIN32_WINNT >= 0x501) {
         DWORD dwDescriptionId;
         CLSID clsid;
     }
-    alias SHDESCRIPTIONID* LPSHDESCRIPTIONID;
+    alias LPSHDESCRIPTIONID = SHDESCRIPTIONID*;
 
     BOOL PathResolve(LPWSTR, LPCWSTR*, UINT);
     HRESULT SHGetFolderPathAndSubDirA(HWND, int, HANDLE, DWORD, LPCSTR, LPSTR);
@@ -1280,52 +1280,52 @@ static if (_WIN32_WINNT >= 0x500) {
 }
 
 version (Unicode) {
-    alias IShellExecuteHookW IShellExecuteHook;
-    alias IShellLinkW IShellLink;
-    alias BROWSEINFOW BROWSEINFO;
-    alias SHBrowseForFolderW SHBrowseForFolder;
-    alias SHGetDataFromIDListW SHGetDataFromIDList;
-    alias SHGetPathFromIDListW SHGetPathFromIDList;
+    alias IShellExecuteHook = IShellExecuteHookW;
+    alias IShellLink = IShellLinkW;
+    alias BROWSEINFO = BROWSEINFOW;
+    alias SHBrowseForFolder = SHBrowseForFolderW;
+    alias SHGetDataFromIDList = SHGetDataFromIDListW;
+    alias SHGetPathFromIDList = SHGetPathFromIDListW;
     static if (_WIN32_IE >= 0x400) {
-        alias SHGetSpecialFolderPathW SHGetSpecialFolderPath;
+        alias SHGetSpecialFolderPath = SHGetSpecialFolderPathW;
     }
-    alias SHGetFolderPathW SHGetFolderPath;
+    alias SHGetFolderPath = SHGetFolderPathW;
     static if (_WIN32_WINNT >= 0x500) {
-        alias SHGetIconOverlayIndexW SHGetIconOverlayIndex;
-        alias SHCreateDirectoryExW SHCreateDirectoryEx;
+        alias SHGetIconOverlayIndex = SHGetIconOverlayIndexW;
+        alias SHCreateDirectoryEx = SHCreateDirectoryExW;
     }
     static if (_WIN32_WINNT >= 0x501) {
-        alias SHGetFolderPathAndSubDirW SHGetFolderPathAndSubDir;
+        alias SHGetFolderPathAndSubDir = SHGetFolderPathAndSubDirW;
     }
-    alias FILEDESCRIPTORW FILEDESCRIPTOR;
-    alias LPFILEDESCRIPTORW LPFILEDESCRIPTOR;
-    alias FILEGROUPDESCRIPTORW FILEGROUPDESCRIPTOR;
-    alias LPFILEGROUPDESCRIPTORW LPFILEGROUPDESCRIPTOR;
+    alias FILEDESCRIPTOR = FILEDESCRIPTORW;
+    alias LPFILEDESCRIPTOR = LPFILEDESCRIPTORW;
+    alias FILEGROUPDESCRIPTOR = FILEGROUPDESCRIPTORW;
+    alias LPFILEGROUPDESCRIPTOR = LPFILEGROUPDESCRIPTORW;
 
 } else {
-    alias IShellExecuteHookA IShellExecuteHook;
-    alias IShellLinkA IShellLink;
-    alias BROWSEINFOA BROWSEINFO;
-    alias SHBrowseForFolderA SHBrowseForFolder;
-    alias SHGetDataFromIDListA SHGetDataFromIDList;
-    alias SHGetPathFromIDListA SHGetPathFromIDList;
+    alias IShellExecuteHook = IShellExecuteHookA;
+    alias IShellLink = IShellLinkA;
+    alias BROWSEINFO = BROWSEINFOA;
+    alias SHBrowseForFolder = SHBrowseForFolderA;
+    alias SHGetDataFromIDList = SHGetDataFromIDListA;
+    alias SHGetPathFromIDList = SHGetPathFromIDListA;
     static if (_WIN32_IE >= 0x400) {
-        alias SHGetSpecialFolderPathA SHGetSpecialFolderPath;
+        alias SHGetSpecialFolderPath = SHGetSpecialFolderPathA;
     }
-    alias SHGetFolderPathA SHGetFolderPath;
+    alias SHGetFolderPath = SHGetFolderPathA;
     static if (_WIN32_WINNT >= 0x500) {
-        alias SHGetIconOverlayIndexA SHGetIconOverlayIndex;
-        alias SHCreateDirectoryExA SHCreateDirectoryEx;
+        alias SHGetIconOverlayIndex = SHGetIconOverlayIndexA;
+        alias SHCreateDirectoryEx = SHCreateDirectoryExA;
     }
     static if (_WIN32_WINNT >= 0x501) {
-        alias SHGetFolderPathAndSubDirA SHGetFolderPathAndSubDir;
+        alias SHGetFolderPathAndSubDir = SHGetFolderPathAndSubDirA;
     }
-    alias FILEDESCRIPTORA FILEDESCRIPTOR;
-    alias LPFILEDESCRIPTORA LPFILEDESCRIPTOR;
-    alias FILEGROUPDESCRIPTORA FILEGROUPDESCRIPTOR;
-    alias LPFILEGROUPDESCRIPTORA LPFILEGROUPDESCRIPTOR;
+    alias FILEDESCRIPTOR = FILEDESCRIPTORA;
+    alias LPFILEDESCRIPTOR = LPFILEDESCRIPTORA;
+    alias FILEGROUPDESCRIPTOR = FILEGROUPDESCRIPTORA;
+    alias LPFILEGROUPDESCRIPTOR = LPFILEGROUPDESCRIPTORA;
 }
-alias BROWSEINFO* PBROWSEINFO, LPBROWSEINFO;
+alias PBROWSEINFO = BROWSEINFO*, LPBROWSEINFO = BROWSEINFO*;
 
 static if (_WIN32_WINNT >= 0x501) {
     interface IFolderView : IUnknown {
@@ -1344,5 +1344,5 @@ static if (_WIN32_WINNT >= 0x501) {
        HRESULT SelectItem(int, DWORD);
        HRESULT SetCurrentViewMode(UINT);
     }
-    alias IFolderView LPFOLDERVIEW;
+    alias LPFOLDERVIEW = IFolderView;
 }

@@ -8,7 +8,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2016-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2016-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/gsroa.d, backend/gsroa.d)
@@ -25,13 +25,13 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.x86.code_x86 : isXMMreg;
 import dmd.backend.oper;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE, err_nomem;
+import dmd.backend.debugprint : tym_str;
+import dmd.backend.symbol : symbol_calloc, symbol_insert, symbol_print, symtab_t, SYMIDX;
 import dmd.backend.el;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 
@@ -60,7 +60,7 @@ struct SymInfo
  *      sia = where to put gathered information
  */
 @trusted
-extern (D) private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[] sia, const(elem)* e)
+private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[] sia, const(elem)* e)
 {
     while (1)
     {
@@ -75,7 +75,7 @@ extern (D) private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[]
                     const n = nthSlice(e);
                     const sz = getSize(e);
                     if (sz == 2 * SLICESIZE && !tyfv(e.Ety) &&
-                        tybasic(e.Ety) != TYldouble && tybasic(e.Ety) != TYildouble)
+                        tybasic(e.Ety) != TYreal && tybasic(e.Ety) != TYireal)
                     {
                         // Rewritten as OPpair later
                     }
@@ -225,7 +225,7 @@ extern (D) private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[]
  *      e = expression tree to rewrite in place
  */
 @trusted
-extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[] sia, elem* e)
+private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[] sia, elem* e)
 {
     while (1)
     {
@@ -270,7 +270,7 @@ extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[
                             {
                                 case TYcfloat:   tyop = TYfloat;   break;
                                 case TYcdouble:  tyop = TYdouble;  break;
-                                case TYcldouble: tyop = TYldouble; break;
+                                case TYcreal: tyop = TYreal; break;
                                 default:
                                     assert(0);
                             }
@@ -364,9 +364,9 @@ if (enable) // disable while we test the inliner
         if (log) printf("slice1 [%d]: %s\n", cast(int)si, s.Sident.ptr);
 
         //if (strcmp(s.Sident.ptr, "__inlineretval3".ptr) == 0) { printf("can't\n"); sia[si].canSlice = false; continue; }
-        if (!(s.Sflags & SFLunambig))   // if somebody took the address of s
+        if (!(s.Sflags & SFLdistinct))   // if somebody took the address of s
         {
-            if (log) printf(" can't because SFLunambig\n");
+            if (log) printf(" can't because SFLdistinct\n");
             sia[si].canSlice = false;
             continue;
         }

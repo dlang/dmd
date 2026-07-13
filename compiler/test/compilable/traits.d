@@ -20,7 +20,8 @@ static assert(is(typeof(__traits(getTargetInfo, "cppRuntimeLibrary")) == string)
 version (CppRuntime_Microsoft)
 {
     static assert(__traits(getTargetInfo, "cppRuntimeLibrary") == "libcmt" ||
-                  __traits(getTargetInfo, "cppRuntimeLibrary")[0..6] == "msvcrt"); // includes mingw import libs
+                  __traits(getTargetInfo, "cppRuntimeLibrary") == "ucrtbase" ||
+                  __traits(getTargetInfo, "cppRuntimeLibrary")[0..6] == "msvcrt"); // includes the UCRT-based MinGW fallback and import libs
 }
 
 version (D_HardFloat)
@@ -169,6 +170,7 @@ class C1 {}
 static assert( __traits(isCopyable, S1));
 static assert( __traits(isCopyable, S2));
 static assert(!__traits(isCopyable, S3));
+static assert(!__traits(isCopyable, S3[1]));
 static assert(!__traits(isCopyable, S4));
 static assert(__traits(isCopyable, C1));
 static assert(__traits(isCopyable, int));

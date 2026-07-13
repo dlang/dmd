@@ -14,7 +14,7 @@
  * - Protection (`private`, `public`)
  * - Deprecated declarations (`@deprecated`)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/attrib.d, _attrib.d)
@@ -24,31 +24,24 @@
 
 module dmd.attrib;
 
-import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.cond;
-import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.expression;
-import dmd.func;
-import dmd.globals;
 import dmd.hdrgen : visibilityToBuffer;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
-import dmd.mtype;
-import dmd.objc; // for objc.addSymbols
 import dmd.common.outbuffer;
-import dmd.root.array; // for each
 import dmd.visitor;
 
 /***********************************************************
  * Abstract attribute applied to Dsymbol's used as a common
  * ancestor for storage classes (StorageClassDeclaration),
- * linkage (LinkageDeclaration) and others.
+ * linkage (LinkDeclaration) and others.
  */
 extern (C++) abstract class AttribDeclaration : Dsymbol
 {
@@ -79,7 +72,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
      * the scope after it used.
      */
     extern (D) static Scope* createNewScope(Scope* sc, STC stc, LINK linkage,
-        CPPMANGLE cppmangle, Visibility visibility, int explicitVisibility,
+        CPPMANGLE cppmangle, Visibility visibility, bool explicitVisibility,
         AlignDeclaration aligndecl, PragmaDeclaration inlining)
     {
         Scope* sc2 = sc;
@@ -107,13 +100,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
     override const(char)* kind() const
     {
         return "attribute";
-    }
-
-    /****************************************
-     */
-    override final void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
-    {
-        objc.addSymbols(this, classes, categories);
     }
 
     override void accept(Visitor v)
@@ -159,7 +145,7 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
 
 /***********************************************************
  * Deprecation with an additional message applied to Dsymbols,
- * e.g. `deprecated("Superseeded by foo") int bar;`.
+ * e.g. `deprecated("Superseded by foo") int bar;`.
  * (Note that `deprecated int bar;` is currently represented as a
  * StorageClassDeclaration with STC.deprecated_)
  *
@@ -378,7 +364,7 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
         return "visibility attribute";
     }
 
-    override const(char)* toPrettyChars(bool)
+    override const(char)* toPrettyChars(bool, bool keepOneMember = false)
     {
         assert(visibility.kind > Visibility.Kind.undefined);
         OutBuffer buf;

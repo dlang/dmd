@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/x86/cgreg.d, backend/cgreg.d)
@@ -17,20 +17,22 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.backconfig : debugr;
+import dmd.backend.blockopt : bo;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE, mask;
+import dmd.backend.symbol : symbol_print, SYMIDX;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.oper;
-import dmd.backend.symtab;
+import dmd.backend.symbol : globsym;
 import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.barray;
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 
@@ -261,7 +263,7 @@ private void el_weights(int bi,elem* e,uint weight)
  */
 
 @trusted
-private int cgreg_benefit(Symbol* s, reg_t reg, Symbol* retsym)
+private int cgreg_benefit(ref CGstate cg, Symbol* s, reg_t reg, Symbol* retsym)
 {
     int benefit;
     int benefit2;
@@ -294,7 +296,7 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
 
     // Make sure we have enough uses to justify
     // using a register we must save
-    if (fregsaved & (1UL << reg) & cgstate.mfuncreg)
+    if (cg.fregsaved & (1UL << reg) & cg.mfuncreg)
         benefit -= 1 + nretblocks;
 
     for (bi = 0; (bi = cast(uint) vec_index(bi, s.Srange)) < bo.dfo.length; ++bi)
@@ -337,9 +339,8 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
     L2:
         inoutp = 0;
         benefit2 = 0;
-        foreach (bl; ListRange(b.Bpred))
+        foreach (bp; b.Bpred[])
         {
-            block* bp = list_block(bl);
             int bpi = bp.Bdfoidx;
             if (!vec_testbit(bpi,s.Srange))
                 continue;
@@ -456,9 +457,8 @@ int cgreg_gotoepilog(block* b,Symbol* s)
     // Look at predecessors to see if we need to load in/out of register
     int gotoepilog = 0;
     int inoutp = 0;
-    foreach (bl; ListRange(b.Bpred))
+    foreach (bp; b.Bpred[])
     {
-        block* bp = list_block(bl);
         int bpi = bp.Bdfoidx;
         if (!vec_testbit(bpi,s.Srange))
             continue;
@@ -570,9 +570,9 @@ void cgreg_spillreg_prolog(block* b,Symbol* s,ref CodeBuilder cdbstore,ref CodeB
         return;
 
     // Look at predecessors to see if we need to load in/out of register
-    foreach (bl; ListRange(b.Bpred))
+    foreach (bl; b.Bpred[])
     {
-        const bpi = list_block(bl).Bdfoidx;
+        const bpi = bl.Bdfoidx;
 
         if (!vec_testbit(bpi,s.Srange))
             continue;
@@ -607,15 +607,15 @@ void cgreg_spillreg_epilog(block* b,Symbol* s,ref CodeBuilder cdbstore, ref Code
     const bi = b.Bdfoidx;
     //printf("cgreg_spillreg_epilog(block %d, s = '%s')\n",bi,s.Sident.ptr);
     //assert(b.bc == BC.goto_);
-    if (!cgreg_gotoepilog(b.nthSucc(0), s))
+    if (!cgreg_gotoepilog(b.Bsucc[0], s))
         return;
 
     const live = vec_testbit(bi,s.Slvreg) != 0;
 
     // Look at successors to see if we need to load in/out of register
-    foreach (bl; ListRange(b.Bsucc))
+    foreach (bs; b.Bsucc[])
     {
-        const bpi = list_block(bl).Bdfoidx;
+        const bpi = bs.Bdfoidx;
         if (!vec_testbit(bpi,s.Srange))
             continue;
         if (vec_testbit(bpi,s.Slvreg))
@@ -646,7 +646,7 @@ void cgreg_spillreg_epilog(block* b,Symbol* s,ref CodeBuilder cdbstore, ref Code
  */
 
 @trusted
-private void cgreg_map(Symbol* s, reg_t regmsw, reg_t reglsw)
+private void cgreg_map(ref CGstate cg, Symbol* s, reg_t regmsw, reg_t reglsw)
 {
     //assert(I64 || reglsw < 8);
 
@@ -694,9 +694,9 @@ private void cgreg_map(Symbol* s, reg_t regmsw, reg_t reglsw)
             }
         }
     }
-    s.Sreglsw = cast(ubyte)reglsw;
+    s.Sreglsw = reglsw;
     s.Sregm = (1UL << reglsw);
-    cgstate.mfuncreg &= ~(1UL << reglsw);
+    cg.mfuncreg &= ~(1UL << reglsw);
     if (regmsw != NOREG)
         vec_subass(s.Slvreg,regrange[regmsw]);
     vec_orass(regrange[reglsw],s.Slvreg);
@@ -717,10 +717,10 @@ private void cgreg_map(Symbol* s, reg_t regmsw, reg_t reglsw)
     }
     else
     {
-        assert(regmsw < 8);
-        s.Sregmsw = cast(ubyte)regmsw;
+        assert(regmsw < REGMAX);
+        s.Sregmsw = regmsw;
         s.Sregm |= 1UL << regmsw;
-        cgstate.mfuncreg &= ~(1UL << regmsw);
+        cg.mfuncreg &= ~(1UL << regmsw);
         vec_orass(regrange[regmsw],s.Slvreg);
 
         debug
@@ -740,10 +740,10 @@ private void cgreg_map(Symbol* s, reg_t regmsw, reg_t reglsw)
  */
 
 @trusted
-void cgreg_unregister(regm_t conflict)
+void cgreg_unregister(ref CGstate cg, regm_t conflict)
 {
-    if (cgstate.pass == BackendPass.final_)
-        cgstate.pass = BackendPass.reg;                         // have to codegen at least one more time
+    if (cg.pass == BackendPass.final_)
+        cg.pass = BackendPass.reg;                         // have to codegen at least one more time
     foreach (s; globsym[])
     {
         if (s.Sfl == FL.reg && s.Sregm & conflict)
@@ -769,10 +769,10 @@ struct Reg              // data for trial register assignment
 }
 
 @trusted
-int cgreg_assign(Symbol* retsym)
+int cgreg_assign(ref CGstate cg, Symbol* retsym)
 {
     int flag = false;                   // assume no changes
-    const bool AArch64 = cgstate.AArch64;
+    const bool AArch64 = cg.AArch64;
 
     /* First do any 'unregistering' which might have happened in the last
      * code gen pass.
@@ -906,12 +906,12 @@ int cgreg_assign(Symbol* retsym)
         }
 
         // Select sequence of registers to try to map s onto
-        const(reg_t)* pseq;                     // sequence to try for LSW
-        const(reg_t)* pseqmsw = null;           // sequence to try for MSW, null if none
-        cgreg_set_priorities(ty, &pseq, &pseqmsw);
+        const(reg_t)[] pseq;                     // sequence to try for LSW
+        const(reg_t)[] pseqmsw = null;           // sequence to try for MSW, null if none
+        cgreg_set_priorities(ty, pseq, pseqmsw);
 
         u.benefit = 0;
-        for (int i = 0; pseq[i] != NOREG; i++)
+        for (int i = 0; i < pseq.length; i++)
         {
             reg_t reg = pseq[i];
 
@@ -920,13 +920,13 @@ int cgreg_assign(Symbol* retsym)
                 continue;
 
             // If BP isn't available, can't assign to it
-            if (!AArch64 && reg == BP && !(cgstate.allregs & mBP))
+            if (!AArch64 && reg == BP && !(cg.allregs & mBP))
                 continue;
 
 static if (0 && TARGET_LINUX)
 {
             // Need EBX for static pointer
-            if (reg == BX && !(cgstate.allregs & mBX))
+            if (reg == BX && !(cg.allregs & mBX))
                 continue;
 }
             /* Don't enregister any parameters to variadicPrologRegs
@@ -951,7 +951,7 @@ static if (0 && TARGET_LINUX)
                 !((1UL << reg) & BYTEREGS))
                     continue;
 
-            int benefit = cgreg_benefit(s,reg,retsym);
+            int benefit = cgreg_benefit(cg,s,reg,retsym);
 
             debug if (debugr)
             {   printf(" %s",regstring[reg]);
@@ -964,29 +964,28 @@ static if (0 && TARGET_LINUX)
                 reg_t regmsw = NOREG;
 
                 // Now assign MSW
-                if (pseqmsw)
+                foreach (r2; pseqmsw[])
                 {
-                    for (uint regj = 0; 1; regj++)
+                    if (r2 == reg)              // can't assign msw and lsw to same reg
+                        continue;
+                    if ((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) &&
+                        (1UL << r2) & regparams &&
+                        r2 != s.Spreg2)
+                        continue;
+
+                    debug if (debugr)
+                    {   printf(".%s",regstring[r2]);
+                        vec_println(regrange[r2]);
+                    }
+
+                    if (vec_disjoint(s.Slvreg,regrange[r2]))
                     {
-                        regmsw = pseqmsw[regj];
-                        if (regmsw == NOREG)
-                            goto Ltried;                // tried and failed to assign MSW
-                        if (regmsw == reg)              // can't assign msw and lsw to same reg
-                            continue;
-                        if ((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) &&
-                            (1UL << regmsw) & regparams &&
-                            regmsw != s.Spreg2)
-                            continue;
-
-                        debug if (debugr)
-                        {   printf(".%s",regstring[regmsw]);
-                            vec_println(regrange[regmsw]);
-                        }
-
-                        if (vec_disjoint(s.Slvreg,regrange[regmsw]))
-                            break;
+                        regmsw = r2;
+                        break;
                     }
                 }
+                if (regmsw == NOREG && pseqmsw.length)
+                    goto Ltried;                // tried and failed to assign MSW
                 vec_copy(v,s.Slvreg);
                 u.benefit = benefit;
                 u.reglsw = reg;
@@ -1003,7 +1002,7 @@ Ltried:
 
     if (t.sym && t.benefit > 0)
     {
-        cgreg_map(t.sym,t.regmsw,t.reglsw);
+        cgreg_map(cg,t.sym,t.regmsw,t.reglsw);
         flag = true;
     }
 
@@ -1014,17 +1013,17 @@ Ltried:
      */
     if ((I32 || I64) &&                       // not worth the bother for 16 bit code
         !flag &&                              // if haven't already assigned registers in this pass
-        (cgstate.mfuncreg & ~fregsaved) & cgstate.allregs &&  // if unused non-floating scratch registers
+        (cg.mfuncreg & ~cg.fregsaved) & cg.allregs &&  // if unused non-floating scratch registers
         !(funcsym_p.Sflags & SFLexit))       // don't need save/restore if function never returns
     {
         foreach (s; globsym[])
         {
             if (s.Sfl == FL.reg &&                // if assigned to register
-                (1UL << s.Sreglsw) & fregsaved &&   // and that register is not scratch
+                (1UL << s.Sreglsw) & cg.fregsaved &&   // and that register is not scratch
                 type_size(s.Stype) <= REGSIZE && // don't bother with register pairs
                 !tyfloating(s.ty()))             // don't assign floating regs to non-floating regs
             {
-                s.Sreglsw = findreg((cgstate.mfuncreg & ~fregsaved) & cgstate.allregs);
+                s.Sreglsw = findreg((cg.mfuncreg & ~cg.fregsaved) & cg.allregs);
                 s.Sregm = 1UL << s.Sreglsw;
                 flag = true;
 

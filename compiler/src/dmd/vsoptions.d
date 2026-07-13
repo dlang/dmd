@@ -1,7 +1,7 @@
 /**
  * When compiling on Windows with the Microsoft toolchain, try to detect the Visual Studio setup.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/vsoptions.d, _vsoptions.d)
@@ -12,7 +12,6 @@
 module dmd.vsoptions;
 
 version (Windows):
-import core.stdc.ctype;
 import core.stdc.stdlib;
 import core.stdc.string;
 import core.stdc.wchar_;
@@ -21,13 +20,18 @@ import core.sys.windows.windef;
 import core.sys.windows.winreg;
 
 import dmd.root.env;
-import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string : toDString;
 
-private immutable supportedPre2017Versions = ["14.0", "12.0", "11.0", "10.0", "9.0"];
+// VS2015 (14.0) is the oldest version that ships the Universal CRT (UCRT)
+private immutable supportedPre2017Versions = ["14.0"];
+
+// Visual Studio versions older than 2015 predate the UCRT. Detecting them is
+// deprecated and will be removed in a future release; kept temporarily so existing
+// setups keep working (with a deprecation warning).
+private immutable deprecatedPre2015Versions = ["12.0", "11.0", "10.0", "9.0"];
 
 extern(C++) struct VSOptions
 {
@@ -40,6 +44,10 @@ extern(C++) struct VSOptions
     const(char)* VSInstallDir;
     const(char)* VCInstallDir;
     const(char)* VCToolsInstallDir; // used by VS 2017+
+
+    // set to true if detection fell back on a Visual Studio version older than 2015,
+    // which predates the Universal CRT (deprecated)
+    bool usedDeprecatedVSVersion;
 
     /**
      * fill member variables from environment or registry
@@ -66,6 +74,7 @@ extern(C++) struct VSOptions
         VSInstallDir = null;
         VCInstallDir = null;
         VCToolsInstallDir = null;
+        usedDeprecatedVSVersion = false;
     }
 
     /**
@@ -73,7 +82,9 @@ extern(C++) struct VSOptions
      * Params:
      *   x64 = target architecture (x86 if false)
      * Returns:
-     *   name of the default C runtime library
+     *   name of the default C runtime library, or null if no C runtime could be
+     *   detected (neither a UCRT-capable Visual C installation nor the UCRT-based
+     *   MinGW fallback libraries)
      */
     const(char)* defaultRuntimeLibrary(bool x64)
     {
@@ -83,9 +94,16 @@ extern(C++) struct VSOptions
             detectVCToolsInstallDir();
         }
         if (getVCLibDir(x64))
-            return "libcmt";
-        else
-            return "msvcrt120"; // mingw replacement
+            return "libcmt"; // UCRT-based static C runtime (VS2015+)
+
+        // Fall back on the UCRT-based libraries bundled in the MinGW folder shipped with
+        // DMD (ucrtbase.lib + vcruntime140.lib), but only when they are actually available
+        // on the LIB search path.
+        if (getMingwLibPath())
+            return "ucrtbase";
+
+        // No usable C runtime detected.
+        return null;
     }
 
     /**
@@ -152,13 +170,13 @@ extern(C++) struct VSOptions
             if (addpath)
             {
                 // debug info needs DLLs from $(VSInstallDir)\Common7\IDE for most linker versions
-                //  so prepend it too the PATH environment variable
+                //  so prepend it to the PATH environment variable
                 char* path = getenv("PATH"w);
                 const pathlen = strlen(path);
                 const addpathlen = strlen(addpath);
 
                 const length = addpathlen + 1 + pathlen;
-                char* npath = cast(char*)mem.xmalloc(length);
+                char* npath = cast(char*)mem.xmalloc_noscan(length);
                 memcpy(npath, addpath, addpathlen);
                 npath[addpathlen] = ';';
                 memcpy(npath + addpathlen + 1, path, pathlen);
@@ -218,7 +236,7 @@ private:
         if (WindowsSdkDir is null)
         {
             WindowsSdkDir = GetRegistryString(r"Microsoft\Windows Kits\Installed Roots", "KitsRoot10"w);
-            if (WindowsSdkDir && !findLatestSDKDir(FileName.combine(WindowsSdkDir, "Include"), r"um\windows.h"))
+            if (WindowsSdkDir && !findLatestVersionDir(FileName.combine(WindowsSdkDir, "Include"), r"um\windows.h"))
                 WindowsSdkDir = null;
         }
         if (WindowsSdkDir is null)
@@ -246,7 +264,7 @@ private:
         if (WindowsSdkVersion is null && WindowsSdkDir !is null)
         {
             const(char)* rootsDir = FileName.combine(WindowsSdkDir, "Include");
-            WindowsSdkVersion = findLatestSDKDir(rootsDir, r"um\windows.h");
+            WindowsSdkVersion = findLatestVersionDir(rootsDir, r"um\windows.h");
         }
     }
 
@@ -267,7 +285,7 @@ private:
         if (UCRTVersion is null && UCRTSdkDir !is null)
         {
             const(char)* rootsDir = FileName.combine(UCRTSdkDir, "Lib");
-            UCRTVersion = findLatestSDKDir(rootsDir, r"ucrt\x86\libucrt.lib");
+            UCRTVersion = findLatestVersionDir(rootsDir, r"ucrt\x86\libucrt.lib");
         }
     }
 
@@ -283,15 +301,41 @@ private:
             VSInstallDir = detectVSInstallDirViaCOM();
 
         if (VSInstallDir is null)
-            VSInstallDir = GetRegistryString(r"Microsoft\VisualStudio\SxS\VS7", "15.0"w); // VS2017
+        {
+            // VS2017+ register their install dir under SxS\VS7 keyed by major version.
+            // Try newest first: VS2026 (18.0), VS2022 (17.0), VS2019 (16.0), VS2017 (15.0).
+            static immutable wstring[] vs7Versions = ["18.0"w, "17.0"w, "16.0"w, "15.0"w];
+            foreach (ver; vs7Versions)
+            {
+                VSInstallDir = GetRegistryString(r"Microsoft\VisualStudio\SxS\VS7", ver);
+                if (VSInstallDir)
+                    break;
+            }
+        }
 
         if (VSInstallDir is null)
         {
-            wchar[260] buffer = void;
-            // VS Build Tools 2017 (default installation path)
-            const numWritten = ExpandEnvironmentStringsW(r"%ProgramFiles(x86)%\Microsoft Visual Studio\2017\BuildTools"w.ptr, buffer.ptr, buffer.length);
-            if (numWritten <= buffer.length && exists(buffer.ptr))
-                VSInstallDir = toNarrowStringz(buffer[0 .. numWritten - 1]).ptr;
+            // VS Build Tools default installation paths, newest first.
+            // VS2022/VS2026 are 64-bit and install under %ProgramFiles%; older ones under %ProgramFiles(x86)%.
+            static immutable wstring[] buildToolsPaths =
+            [
+                r"%ProgramFiles%\Microsoft Visual Studio\18\BuildTools"w,
+                r"%ProgramFiles(x86)%\Microsoft Visual Studio\18\BuildTools"w,
+                r"%ProgramFiles%\Microsoft Visual Studio\2022\BuildTools"w,
+                r"%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools"w,
+                r"%ProgramFiles(x86)%\Microsoft Visual Studio\2019\BuildTools"w,
+                r"%ProgramFiles(x86)%\Microsoft Visual Studio\2017\BuildTools"w,
+            ];
+            foreach (path; buildToolsPaths)
+            {
+                wchar[260] buffer = void;
+                const numWritten = ExpandEnvironmentStringsW(path.ptr, buffer.ptr, buffer.length);
+                if (numWritten > 0 && numWritten <= buffer.length && exists(buffer.ptr))
+                {
+                    VSInstallDir = toNarrowStringz(buffer[0 .. numWritten - 1]).ptr;
+                    break;
+                }
+            }
         }
 
         if (VSInstallDir is null)
@@ -300,6 +344,18 @@ private:
                 VSInstallDir = GetRegistryString(FileName.combine(r"Microsoft\VisualStudio", ver), "InstallDir"w);
                 if (VSInstallDir)
                     break;
+            }
+
+        // Deprecated: Visual Studio versions older than 2015 predate the Universal CRT.
+        if (VSInstallDir is null)
+            foreach (ver; deprecatedPre2015Versions)
+            {
+                VSInstallDir = GetRegistryString(FileName.combine(r"Microsoft\VisualStudio", ver), "InstallDir"w);
+                if (VSInstallDir)
+                {
+                    usedDeprecatedVSVersion = true;
+                    break;
+                }
             }
     }
 
@@ -325,10 +381,24 @@ private:
                 if (VCInstallDir)
                     break;
             }
+
+        // Deprecated: Visual Studio versions older than 2015 predate the Universal CRT.
+        if (VCInstallDir is null)
+            foreach (ver; deprecatedPre2015Versions)
+            {
+                auto regPath = FileName.buildPath(r"Microsoft\VisualStudio", ver, r"Setup\VC");
+                VCInstallDir = GetRegistryString(regPath, "ProductDir"w);
+                FileName.free(regPath.ptr);
+                if (VCInstallDir)
+                {
+                    usedDeprecatedVSVersion = true;
+                    break;
+                }
+            }
     }
 
     /**
-     * detect VCToolsInstallDir from environment or registry (only used by VC 2017)
+     * detect VCToolsInstallDir from environment or by enumerating VC\Tools\MSVC (VS2017+)
      */
     void detectVCToolsInstallDir()
     {
@@ -337,27 +407,14 @@ private:
 
         if (VCToolsInstallDir is null && VCInstallDir)
         {
-            const(char)* defverFile = FileName.combine(VCInstallDir, r"Auxiliary\Build\Microsoft.VCToolsVersion.default.txt");
-            if (!FileName.exists(defverFile)) // file renamed with VS2019 Preview 2
-                defverFile = FileName.combine(VCInstallDir, r"Auxiliary\Build\Microsoft.VCToolsVersion.v142.default.txt");
-            if (FileName.exists(defverFile))
+            // VS2017+ install the toolchain under VC\Tools\MSVC\<version> (e.g. 14.44.35207).
+            // Enumerate that folder directly and pick the highest version that ships the
+            // compiler headers, instead of parsing the Microsoft.VCToolsVersion.*.default.txt files.
+            const(char)* msvcDir = FileName.combine(VCInstallDir, r"Tools\MSVC");
+            if (auto ver = findLatestVersionDir(msvcDir, r"include\vcruntime.h"))
             {
-                // VS 2017
-                OutBuffer buf;
-                if (File.read(defverFile.toDString, buf)) // read file into buf
-                    return; // failed to read the file
-
-                auto ver = cast(char*)buf.extractSlice(true).ptr;
-                // trim version number
-                while (*ver && isspace(*ver))
-                    ver++;
-                auto p = ver;
-                while (*p == '.' || (*p >= '0' && *p <= '9'))
-                    p++;
-                *p = 0;
-
-                if (ver && *ver)
-                    VCToolsInstallDir = FileName.buildPath(VCInstallDir.toDString, r"Tools\MSVC", ver.toDString).ptr;
+                VCToolsInstallDir = FileName.buildPath(msvcDir.toDString, ver.toDString).ptr;
+                mem.xfree(cast(void*)ver);
             }
         }
     }
@@ -498,6 +555,20 @@ public:
     }
 
     /**
+     * Get the path to the UCRT-based libraries bundled in the MinGW folder shipped with
+     * DMD (e.g. ucrtbase.lib, vcruntime140.lib, kernel32.lib), if present on the `LIB`
+     * search path. Used as the fallback runtime when no Visual C installation is detected.
+     * Returns:
+     *   folder containing the MinGW libraries, or null
+     */
+    const(char)* getMingwLibPath() const
+    {
+        if (auto p = FileName.searchPath(getenv("LIB"w), r"mingw\kernel32.lib"[], false))
+            return FileName.path(p).ptr;
+        return null;
+    }
+
+    /**
      * get the path to the Windows SDK CRT libraries
      * Params:
      *   x64 = target architecture (x86 if false)
@@ -533,9 +604,9 @@ public:
             }
         }
 
-        // try mingw fallback relative to phobos library folder that's part of LIB
-        if (auto p = FileName.searchPath(getenv("LIB"w), r"mingw\kernel32.lib"[], false))
-            return FileName.path(p).ptr;
+        // Fall back on the bundled MinGW libraries as a last resort.
+        if (auto p = getMingwLibPath())
+            return p;
 
         return null;
     }
@@ -567,9 +638,44 @@ public:
 private:
 extern(D):
 
+    /**
+     * Compare two dotted numeric version strings (e.g. `"10.0.22621.0"`).
+     * Missing or non-numeric components are treated as 0, so the comparison is by
+     * numeric value rather than lexicographic order (which breaks when component
+     * widths differ, e.g. `"10.0.9.0"` vs `"10.0.22000.0"`).
+     * Returns: negative if `a < b`, 0 if equal, positive if `a > b`
+     */
+    static int compareVersionStrings(C)(const(C)* a, const(C)* b)
+        if (is(C == char) || is(C == wchar))
+    {
+        for (;;)
+        {
+            uint na = 0;
+            uint nb = 0;
+            bool hasA = false;
+            bool hasB = false;
+            while (*a >= '0' && *a <= '9') {
+                na = na * 10 + cast(uint)(*a - '0');
+                ++a;
+                hasA = true;
+            }
+            while (*b >= '0' && *b <= '9') {
+                nb = nb * 10 + cast(uint)(*b - '0');
+                ++b;
+                hasB = true;
+            }
+            if (na != nb)
+                return na < nb ? -1 : 1;
+            if (!hasA && !hasB)
+                return 0;
+            if (*a) ++a; // skip separator (typically '.')
+            if (*b) ++b;
+        }
+    }
+
     // iterate through subdirectories named by SDK version in baseDir and return the
     //  one with the largest version that also contains the test file
-    static const(char)* findLatestSDKDir(const(char)* baseDir, string testfile)
+    static const(char)* findLatestVersionDir(const(char)* baseDir, string testfile)
     {
         import dmd.common.smallbuffer : SmallBuffer, toWStringz;
 
@@ -592,8 +698,7 @@ extern(D):
             if (fileinfo.cFileName[0] >= '1' && fileinfo.cFileName[0] <= '9')
             {
                 char[] name = toNarrowStringz(fileinfo.cFileName.ptr.toDString);
-                // FIXME: proper version strings comparison
-                if ((!res || strcmp(res, name.ptr) < 0) &&
+                if ((!res || compareVersionStrings(res, name.ptr) < 0) &&
                     FileName.exists(FileName.buildPath(dBaseDir, name, testfile)))
                 {
                     if (res)
@@ -825,18 +930,19 @@ const(char)* detectVSInstallDirViaCOM()
             instance.GetInstallationPath(&thisInstallDir.ptr) != S_OK)
             continue;
 
-        // FIXME: proper version strings comparison
-        //        existing versions are 15.0 to 16.5 (May 2020), problems expected in distant future
-        if (versionString && wcscmp(thisVersionString.ptr, versionString.ptr) <= 0)
+        if (versionString && VSOptions.compareVersionStrings(thisVersionString.ptr, versionString.ptr) <= 0)
             continue; // not a newer version, skip
 
         const installDirLength = thisInstallDir.length;
-        const vcInstallDirLength = installDirLength + 4;
-        auto vcInstallDir = (cast(wchar*) mem.xmalloc_noscan(vcInstallDirLength * wchar.sizeof))[0 .. vcInstallDirLength];
-        scope(exit) mem.xfree(vcInstallDir.ptr);
-        vcInstallDir[0 .. installDirLength] = thisInstallDir.ptr[0 .. installDirLength];
-        vcInstallDir[installDirLength .. $] = "\\VC\0"w;
-        if (!exists(vcInstallDir.ptr))
+        // note: the `VC` subdir alone is not sufficient (can exist without having installed the Visual C++ component)
+        const vcToolsSuffix = `\VC\Tools`w;
+        const vcToolsDirLength = installDirLength + vcToolsSuffix.length + 1; // incl. terminating 0
+        auto vcToolsDir = (cast(wchar*) mem.xmalloc_noscan(vcToolsDirLength * wchar.sizeof))[0 .. vcToolsDirLength];
+        scope(exit) mem.xfree(vcToolsDir.ptr);
+        vcToolsDir[0 .. installDirLength] = thisInstallDir.ptr[0 .. installDirLength];
+        vcToolsDir[installDirLength .. $-1] = vcToolsSuffix;
+        vcToolsDir[$-1] = 0;
+        if (!exists(vcToolsDir.ptr))
             continue; // Visual C++ not included, skip
 
         thisVersionString.moveTo(versionString);

@@ -104,41 +104,83 @@ void pthread_testcancel();
 */
 version (CRuntime_Glibc)
 {
-    enum
+    version (linux)
     {
-        PTHREAD_CANCEL_ENABLE,
-        PTHREAD_CANCEL_DISABLE
+        enum
+        {
+            PTHREAD_CANCEL_ENABLE,
+            PTHREAD_CANCEL_DISABLE
+        }
+
+        enum
+        {
+            PTHREAD_CANCEL_DEFERRED,
+            PTHREAD_CANCEL_ASYNCHRONOUS
+        }
+
+        enum PTHREAD_CANCELED = cast(void*) -1;
+
+        //enum pthread_mutex_t PTHREAD_COND_INITIALIZER = { __LOCK_ALT_INITIALIZER, 0, "", 0 };
+
+        enum
+        {
+            PTHREAD_CREATE_JOINABLE,
+            PTHREAD_CREATE_DETACHED
+        }
+
+        enum
+        {
+            PTHREAD_INHERIT_SCHED,
+            PTHREAD_EXPLICIT_SCHED
+        }
+
+        enum PTHREAD_MUTEX_INITIALIZER  = pthread_mutex_t.init;
+        enum PTHREAD_ONCE_INIT          = pthread_once_t.init;
+
+        enum
+        {
+            PTHREAD_PROCESS_PRIVATE,
+            PTHREAD_PROCESS_SHARED
+        }
     }
-
-    enum
+    else version (Hurd)
     {
-        PTHREAD_CANCEL_DEFERRED,
-        PTHREAD_CANCEL_ASYNCHRONOUS
-    }
+        enum
+        {
+            PTHREAD_CANCEL_DISABLE,
+            PTHREAD_CANCEL_ENABLE,
+        }
 
-    enum PTHREAD_CANCELED = cast(void*) -1;
+        enum
+        {
+            PTHREAD_CANCEL_DEFERRED,
+            PTHREAD_CANCEL_ASYNCHRONOUS
+        }
 
-    //enum pthread_mutex_t PTHREAD_COND_INITIALIZER = { __LOCK_ALT_INITIALIZER, 0, "", 0 };
+        enum PTHREAD_CANCELED = cast(void*) -1;
 
-    enum
-    {
-        PTHREAD_CREATE_JOINABLE,
-        PTHREAD_CREATE_DETACHED
-    }
+        // enum __pthread_cond PTHREAD_COND_INITIALIZER = { __PTHREAD_SPIN_LOCK_INITIALIZER, NULL, NULL, 0, NULL }
 
-    enum
-    {
-        PTHREAD_INHERIT_SCHED,
-        PTHREAD_EXPLICIT_SCHED
-    }
+        enum
+        {
+            PTHREAD_CREATE_JOINABLE = 0,
+            PTHREAD_CREATE_DETACHED,
+        }
 
-    enum PTHREAD_MUTEX_INITIALIZER  = pthread_mutex_t.init;
-    enum PTHREAD_ONCE_INIT          = pthread_once_t.init;
+        enum
+        {
+            PTHREAD_EXPLICIT_SCHED = 0,
+            PTHREAD_INHERIT_SCHED ,
+        }
 
-    enum
-    {
-        PTHREAD_PROCESS_PRIVATE,
-        PTHREAD_PROCESS_SHARED
+        enum PTHREAD_MUTEX_INITIALIZER  = pthread_mutex_t.init;
+        enum PTHREAD_ONCE_INIT          = pthread_once_t.init;
+
+        enum
+        {
+            PTHREAD_PROCESS_PRIVATE = 0,
+            PTHREAD_PROCESS_SHARED,
+        }
     }
 }
 else version (Darwin)
@@ -371,6 +413,12 @@ else version (CRuntime_Bionic)
         PTHREAD_CREATE_DETACHED
     }
 
+    enum
+    {
+        PTHREAD_EXPLICIT_SCHED = 0,
+        PTHREAD_INHERIT_SCHED = 1,
+    }
+
     enum PTHREAD_MUTEX_INITIALIZER = pthread_mutex_t.init;
     enum PTHREAD_ONCE_INIT         = pthread_once_t.init;
 
@@ -384,8 +432,24 @@ else version (CRuntime_Musl)
 {
     enum
     {
+        PTHREAD_CANCEL_ENABLE = 0,
+        PTHREAD_CANCEL_DISABLE = 1,
+        PTHREAD_CANCEL_DEFERRED = 0,
+        PTHREAD_CANCEL_ASYNCHRONOUS = 1,
+    }
+
+    enum PTHREAD_CANCELED = cast(void*) -1;
+
+    enum
+    {
         PTHREAD_CREATE_JOINABLE = 0,
         PTHREAD_CREATE_DETACHED = 1
+    }
+
+    enum
+    {
+        PTHREAD_INHERIT_SCHED = 0,
+        PTHREAD_EXPLICIT_SCHED = 1,
     }
 
     enum PTHREAD_MUTEX_INITIALIZER = pthread_mutex_t.init;
@@ -451,36 +515,74 @@ int pthread_atfork(void function(), void function(), void function());
     int pthread_cancel(pthread_t);
 }
 
-alias void function(void*) _pthread_cleanup_routine;
-alias void function(void*) @nogc _pthread_cleanup_routine_nogc;
+alias _pthread_cleanup_routine = void function(void*);
+alias _pthread_cleanup_routine_nogc = void function(void*) @nogc;
 version (CRuntime_Glibc)
 {
-    struct _pthread_cleanup_buffer
+    version (linux)
     {
-        _pthread_cleanup_routine    __routine;
-        void*                       __arg;
-        int                         __canceltype;
-        _pthread_cleanup_buffer*    __prev;
-    }
-
-    void _pthread_cleanup_push(_pthread_cleanup_buffer*, _pthread_cleanup_routine, void*);
-    void _pthread_cleanup_push(_pthread_cleanup_buffer*, _pthread_cleanup_routine_nogc, void*) @nogc;
-    void _pthread_cleanup_pop(_pthread_cleanup_buffer*, int);
-
-    struct pthread_cleanup
-    {
-        _pthread_cleanup_buffer buffer = void;
-
-        extern (D) void push(F: _pthread_cleanup_routine)(F routine, void* arg )
+        struct _pthread_cleanup_buffer
         {
-            _pthread_cleanup_push( &buffer, routine, arg );
+            _pthread_cleanup_routine    __routine;
+            void*                       __arg;
+            int                         __canceltype;
+            _pthread_cleanup_buffer*    __prev;
         }
 
-        extern (D) void pop()( int execute )
+        void _pthread_cleanup_push(_pthread_cleanup_buffer*, _pthread_cleanup_routine, void*);
+        void _pthread_cleanup_push(_pthread_cleanup_buffer*, _pthread_cleanup_routine_nogc, void*) @nogc;
+        void _pthread_cleanup_pop(_pthread_cleanup_buffer*, int);
+
+        struct pthread_cleanup
         {
-            _pthread_cleanup_pop( &buffer, execute );
+            _pthread_cleanup_buffer buffer = void;
+
+            extern (D) void push(F: _pthread_cleanup_routine)(F routine, void* arg )
+            {
+                _pthread_cleanup_push( &buffer, routine, arg );
+            }
+
+            extern (D) void pop()( int execute )
+            {
+                _pthread_cleanup_pop( &buffer, execute );
+            }
         }
     }
+    else version (Hurd)
+    {
+        struct __pthread_cancelation_handler
+        {
+          _pthread_cleanup_routine       __handler;
+            void*                          __arg;
+            __pthread_cancelation_handler* __next;
+        }
+
+        private __pthread_cancelation_handler** __pthread_get_cleanup_stack();
+
+        struct pthread_cleanup
+        {
+            __pthread_cancelation_handler** handlers = void;
+            __pthread_cancelation_handler handler = void;
+
+            extern (D) void push(F: _pthread_cleanup_routine)(F routine, void* arg)
+            {
+                handlers = __pthread_get_cleanup_stack();
+                handler = __pthread_cancelation_handler(routine, arg, *handlers);
+                *handlers = &handler;
+            }
+            extern (D) void pop()(int execute)
+            {
+                if (execute)
+                    handler.__handler(handler.__arg);
+                *handlers = handler.__next;
+            }
+        }
+    }
+    else
+    {
+        static assert(false, "Unsupported platform");
+    }
+
 }
 else version (Darwin)
 {
@@ -1042,9 +1144,24 @@ int pthread_setconcurrency(int);
 
 version (CRuntime_Glibc)
 {
-    enum PTHREAD_MUTEX_NORMAL       = 0;
-    enum PTHREAD_MUTEX_RECURSIVE    = 1;
-    enum PTHREAD_MUTEX_ERRORCHECK   = 2;
+
+    version(linux)
+    {
+        enum PTHREAD_MUTEX_NORMAL       = 0;
+        enum PTHREAD_MUTEX_RECURSIVE    = 1;
+        enum PTHREAD_MUTEX_ERRORCHECK   = 2;
+    }
+    else version(Hurd)
+    {
+        enum PTHREAD_MUTEX_NORMAL       = 0;
+        enum PTHREAD_MUTEX_ERRORCHECK   = 1;
+        enum PTHREAD_MUTEX_RECURSIVE    = 2;
+
+    }
+    else
+    {
+        static assert(false, "Unsupported platform");
+    }
     enum PTHREAD_MUTEX_DEFAULT      = PTHREAD_MUTEX_NORMAL;
 
     int pthread_attr_getguardsize(const scope pthread_attr_t*, size_t*);
@@ -1378,6 +1495,22 @@ else version (Solaris)
     int pthread_mutexattr_setprioceiling(pthread_mutexattr_t*, int);
     int pthread_mutexattr_setprotocol(pthread_mutexattr_t*, int);
 }
+else version (Hurd)
+{
+  enum
+  {
+      PTHREAD_PRIO_NONE = 0,
+      PTHREAD_PRIO_INHERIT,
+      PTHREAD_PRIO_PROTECT,
+  }
+
+  int pthread_mutex_getprioceiling(const scope pthread_mutex_t*, int*);
+  int pthread_mutex_setprioceiling(pthread_mutex_t*, int, int*);
+  int pthread_mutexattr_getprioceiling(const scope pthread_mutexattr_t*, int*);
+  int pthread_mutexattr_getprotocol(const scope pthread_mutexattr_t*, int*);
+  int pthread_mutexattr_setprioceiling(pthread_mutexattr_t*, int);
+  int pthread_mutexattr_setprotocol(pthread_mutexattr_t*, int);
+}
 
 //
 // Scheduling (TPS)
@@ -1399,10 +1532,21 @@ int pthread_setschedprio(pthread_t, int);
 
 version (CRuntime_Glibc)
 {
-    enum
+    version (linux)
     {
-        PTHREAD_SCOPE_SYSTEM,
-        PTHREAD_SCOPE_PROCESS
+        enum
+        {
+            PTHREAD_SCOPE_SYSTEM,
+            PTHREAD_SCOPE_PROCESS
+        }
+    }
+    else version (Hurd)
+    {
+        enum
+        {
+            PTHREAD_SCOPE_SYSTEM = 0,
+            PTHREAD_SCOPE_PROCESS,
+        }
     }
 
     int pthread_attr_getinheritsched(const scope pthread_attr_t*, int*);

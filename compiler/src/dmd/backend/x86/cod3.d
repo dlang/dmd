@@ -10,7 +10,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/x86/cod3.d, backend/cod3.d)
@@ -25,6 +25,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.backconfig : debugc, debugr;
 import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -34,16 +35,20 @@ import dmd.backend.arm.cod3;
 import dmd.backend.arm.instr;
 import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.melf;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE, _align, mask;
+import dmd.backend.cg : localgot;
+import dmd.backend.debugprint : fl_str, oper_str, tym_str;
+import dmd.backend.dwarfdbginf : dwarf_CFA_offset, dwarf_CFA_set_loc, dwarf_emit_eh_frame;
+import dmd.backend.evalu8 : boolres, iftrue;
+import dmd.backend.symbol : symbol_print, globsym, SYMIDX;
+import dmd.backend.util2 : err_exit;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.x86.xmm;
@@ -227,7 +232,6 @@ void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint 
         if (I64)
             code_orrex(cdb.last(), REX_W);
     }
-    cgstate.reflocal = true;
     if (regsave.idx > regsave.top)
         regsave.top = regsave.idx;              // keep high water mark
 }
@@ -265,9 +269,9 @@ void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, 
 @trusted
 ubyte vex_inssize(code* c)
 {
-    assert(c.Iflags & CFvex && c.Ivex.pfx == 0xC4);
+    assert(c.Iflags & CF.vex && c.Ivex.pfx == 0xC4);
     ubyte ins;
-    if (c.Iflags & CFvex3)
+    if (c.Iflags & CF.vex3)
     {
         switch (c.Ivex.mmmm)
         {
@@ -324,8 +328,15 @@ bool hasModregrm(scope const code* c)
 @trusted
 void cod3_setdefault()
 {
-    cgstate.BP = BP;
-    fregsaved = mBP | mSI | mDI;
+    CGstate* cg = &cgstate;
+
+    cg.BP = BP;
+    cg.fregsaved = mBP | mSI | mDI;
+
+    /* hi and lo register masks
+     */
+    cg.mMSW = mMSW;
+    cg.mLSW = mLSW;
 }
 
 /********************************
@@ -334,25 +345,32 @@ void cod3_setdefault()
 @trusted
 void cod3_set32()
 {
-    cgstate.BP = BP;
+    CGstate* cg = &cgstate;
+
+    cg.BP = BP;
 
     inssize[0xA0] = T|5;
     inssize[0xA1] = T|5;
     inssize[0xA2] = T|5;
     inssize[0xA3] = T|5;
     BPRM = 5;                       /* [EBP] addressing mode        */
-    fregsaved = mBP | mBX | mSI | mDI;      // saved across function calls
+    cg.fregsaved = mBP | mBX | mSI | mDI;      // saved across function calls
     FLOATREGS = FLOATREGS_32;
     FLOATREGS2 = FLOATREGS2_32;
     DOUBLEREGS = DOUBLEREGS_32;
     if (config.flags3 & CFG3eseqds)
-        fregsaved |= mES;
+        cg.fregsaved |= mES;
 
     foreach (ref v; inssize2[0x80 .. 0x90])
         v = W|T|6;
 
     TARGET_STACKALIGN = config.fpxmmregs ? 16 : 4;
-    cgstate.allregs = mAX|mBX|mCX|mDX|mSI|mDI;
+    cg.allregs = mAX|mBX|mCX|mDX|mSI|mDI;
+
+    /* hi and lo register masks
+     */
+    cg.mMSW = mMSW;
+    cg.mLSW = mLSW;
 }
 
 /********************************
@@ -362,7 +380,9 @@ void cod3_set32()
 @trusted
 void cod3_set64()
 {
-    cgstate.BP = BP;
+    CGstate* cg = &cgstate;
+
+    cg.BP = BP;
 
     inssize[0xA0] = T|5;                // MOV AL,mem
     inssize[0xA1] = T|5;                // MOV RAX,mem
@@ -370,7 +390,7 @@ void cod3_set64()
     inssize[0xA3] = T|5;                // MOV mem,RAX
     BPRM = 5;                           // [RBP] addressing mode
 
-    fregsaved = (config.exe & EX_windos)
+    cg.fregsaved = (config.exe & EX_windos)
         ? mBP | mBX | mDI | mSI | mR12 | mR13 | mR14 | mR15 | mES | mXMM6 | mXMM7 // also XMM8..15;
         : mBP | mBX | mR12 | mR13 | mR14 | mR15 | mES;      // saved across function calls
 
@@ -382,7 +402,12 @@ void cod3_set64()
         v = W|T|6;
 
     TARGET_STACKALIGN = config.fpxmmregs ? 16 : 8;
-    cgstate.allregs = mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
+    cg.allregs = mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
+
+    /* hi and lo register masks
+     */
+    cg.mMSW = mMSW;
+    cg.mLSW = mLSW;
 }
 
 /********************************
@@ -392,43 +417,49 @@ void cod3_set64()
 @trusted
 void cod3_setAArch64()
 {
-    cgstate.AArch64 = true;
+    CGstate* cg = &cgstate;
+    cg.AArch64 = true;
 
     /* Register usage per "AArch64 Procedure Call Standard"
      * r31 SP  Stack Pointer
      * r30 LR  Link Register
-     * r29 FP  Frame Pointer (BP)
+     * r29 FP  Frame Pointer (BP) (on OSX r29 must always address a valid frame record)
      * r19-r28 Callee-saved registers (if Callee modifies them)
-     * r18     Platform Register
+     * r18     Platform Register (do not use on OSX)
      * r17 IP1 intra-procedure-call temporary register
      * r16 IP0 intra-procedure-call scratch register
-     * r9-r15  temporary registers
+     * r9-r15  temporary registers (caller saved)
      * r8      Indirect result location register
      * r0-r7   Parameter / result registers
      *
      * v0-v7   Parameter / result registers
      * v8-v15  Callee-saved registers (only bottom 64 bits need to be saved)
-     * v16-31  Temporary registers
+     * v16-31  Temporary registers (caller saved)
      */
-    cgstate.BP = 29;
+    cg.BP = INSTR.BP;
 
     /* Integer registers r0-r7, r9-15, r19-28, r29(?)
      */
-    cgstate.allregs = 0x1FFF_FFFF & ~(1 << 8) & ~(1 << 16) & ~(1 << 17) & ~(1 << 18);
+    cg.allregs = INSTR.ALLREGS;
 
     /* Registers x19-x28, x29, v8-v15
      */
-    fregsaved = (1<<19) | (1<<20) | (1<<21) | (1<<22) | (1<<23) | (1<<24) | (1<<25) | (1<<26) | (1<<27) | (1<<28) |
+    cg.fregsaved = (1<<19) | (1<<20) | (1<<21) | (1<<22) | (1<<23) | (1<<24) | (1<<25) | (1<<26) | (1<<27) | (1<<28) |
                 (1<<29) |
                 (1L<<(32+8)) | (1L<<(32+9)) | (1L<<(32+10)) | (1L<<(32+11)) | (1L<<(32+12)) | (1L<<(32+13)) | (1L<<(32+14)) | (1L<<(32+15));
 
     /* 32 Floating point registers
      */
-    cgstate.fpregs = 0xFFFF_FFFF_0000_0000;
+    cg.fpregs = INSTR.FLOATREGS;
+
+    /* hi and lo register masks
+     */
+    cg.mMSW = INSTR.MSW;
+    cg.mLSW = INSTR.LSW;
 
     /* XMM registers
      */
-    cgstate.xmmregs = 0;  // implement later
+    cg.xmmregs = 0;  // TODO AArch64
 
     TARGET_STACKALIGN = 16;
 }
@@ -436,12 +467,20 @@ void cod3_setAArch64()
 /*********************************
  * Word or dword align start of function.
  * Params:
+ *      AArch64 = target CPU
  *      seg = segment to write alignment bytes to
  *      nbytes = number of alignment bytes to write
  */
 @trusted
-void cod3_align_bytes(int seg, size_t nbytes)
+void cod3_align_bytes(bool AArch64, int seg, size_t nbytes)
 {
+    if (AArch64)
+    {
+        foreach (i; 0 .. nbytes)
+            objmod.write_byte(SegData[seg],0);
+        return;
+    }
+
     /* Table 4-2 from Intel Instruction Set Reference M-Z
      * 1 bytes NOP                                        90
      * 2 bytes 66 NOP                                     66 90
@@ -497,7 +536,12 @@ void cod3_align_bytes(int seg, size_t nbytes)
 @trusted
 void cod3_align(int seg)
 {
-    if (config.exe & EX_windos)
+    if (cgstate.AArch64)
+    {
+        const nbytes = -Offset(seg) & 3;
+        cod3_align_bytes(true, seg, nbytes);
+    }
+    else if (config.exe & EX_windos)
     {
         if (config.flags4 & CFG4speed)      // if optimized for speed
         {
@@ -509,14 +553,14 @@ void cod3_align(int seg)
 
                 const nbytes = -Offset(seg) & 15;
                 if (nbytes < 8)
-                    cod3_align_bytes(seg, nbytes);
+                    cod3_align_bytes(false, seg, nbytes);
             }
         }
     }
     else
     {
         const nbytes = -Offset(seg) & 7;
-        cod3_align_bytes(seg, nbytes);
+        cod3_align_bytes(false, seg, nbytes);
     }
 }
 
@@ -653,13 +697,20 @@ void cod3_buildmodulector(OutBuffer* buf, int codeOffset, int refOffset)
 /*****************************
  * Given a type, return a mask of
  * registers to hold that type.
- * Input:
- *      tyf     function type
+ * Params:
+ *      tym = type
+ *      tyf = function type
+ * Returns:
+ *      mask of registers
  */
 
 @trusted
 regm_t regmask(tym_t tym, tym_t tyf)
 {
+    bool AArch64 = cgstate.AArch64;
+    if (AArch64)
+        return dmd.backend.arm.cod3.regmask(tym, tyf);
+
     switch (tybasic(tym))
     {
         case TYvoid:
@@ -729,8 +780,8 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYullong:
             return I64 ? cast(regm_t) mAX : (I32 ? mDX | mAX : DOUBLEREGS);
 
-        case TYldouble:
-        case TYildouble:
+        case TYreal:
+        case TYireal:
             return mST0;
 
         case TYcfloat:
@@ -741,9 +792,9 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYcdouble:
             if (I64)
                 return mXMM0 | mXMM1;
-            goto case TYcldouble;
+            goto case TYcreal;
 
-        case TYcldouble:
+        case TYcreal:
             return mST01;
 
         // SIMD vector types
@@ -780,6 +831,42 @@ regm_t regmask(tym_t tym, tym_t tyf)
     }
 }
 
+/**********************************
+ * Determine if type is represented by a register pair.
+ * Params:
+ *      AArch64 = true if AArch64 target
+ *      ty = ty to check
+ *      retregs = register mask that ty is for
+ * Returns:
+ *      true if ty needs a register pair
+ */
+@trusted
+bool isRegisterPair(bool AArch64, tym_t tym, regm_t retregs)
+{
+    tym = tybasic(tym);
+    uint size = _tysize[tym];
+    if (AArch64)
+    {
+        if (tycomplex(tym))
+            return true;
+        else if (size <= REGSIZE || tyfloating(tym))
+            return false;
+        else if (size <= 2 * REGSIZE)
+            return true;
+        else
+            return false; // TYvoid
+    }
+    else /* X86_64 */
+    {
+        if (size <= REGSIZE || (retregs & XMMREGS)) // not sure we need XMMREGS check
+            return false;
+        else if (size <= 2 * REGSIZE)
+            return true;
+        else
+            return false; // TYvoid
+    }
+}
+
 /*******************************
  * setup register allocator parameters with platform specific data
  */
@@ -790,61 +877,131 @@ void cgreg_dst_regs(reg_t* dst_integer_reg, reg_t* dst_float_reg)
 }
 
 @trusted
-void cgreg_set_priorities(tym_t ty, const(reg_t)** pseq, const(reg_t)** pseqmsw)
+void cgreg_set_priorities(tym_t ty, out const(reg_t)[] pseq, out const(reg_t)[] pseqmsw)
 {
-    //printf("cgreg_set_priorities %x\n", ty);
+    //printf("cgreg_set_priorities %s\n", regm_str(ty));
     const sz = tysize(ty);
+
+    if (cgstate.AArch64)
+    {
+        if (tyfloating(ty))
+        {
+            tym_t tyb = tybasic(ty);
+            if (tyb == TYcfloat || tyb == TYcdouble || tyb == TYcreal)
+            {
+                static immutable reg_t[12] fltmsw1 = [33,35,37,39,41,43,45,47,49,51,53,55];
+                static immutable reg_t[13] fltlsw1 = [32,34,36,38,40,42,44,46,48,50,52,54,56];
+                pseq = fltlsw1[];
+                pseqmsw = fltmsw1[];
+                debug
+                {
+                    regm_t msw;
+                    foreach (r; fltmsw1[]) msw |= mask(r);
+                    assert(msw == (INSTR.FLOATREGS & INSTR.MSW));
+
+                    regm_t lsw;
+                    foreach (r; fltlsw1[]) lsw |= mask(r);
+                    assert(lsw == (INSTR.FLOATREGS & INSTR.LSW));
+                }
+            }
+            else
+            {
+                static immutable reg_t[25] flt = [32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56];
+                pseq = flt[];
+                debug
+                {
+                    regm_t msk;
+                    foreach (r; flt[]) msk |= mask(r);
+                    assert(msk == INSTR.FLOATREGS);
+                }
+            }
+        }
+        else
+        {
+            if (sz == REGSIZE * 2)
+            {
+                static immutable reg_t[13] intmsw1 = [1,3,5,7,9,11,13,15,19,21,23,25,27];
+                static immutable reg_t[12] intlsw1 = [0,2,4,6,10,12,14,20,22,24,26,28];
+                pseq = intlsw1[];
+                pseqmsw = intmsw1[];
+                debug
+                {
+                    regm_t msw;
+                    foreach (r; intmsw1[]) msw |= mask(r);
+                    assert(msw == (INSTR.ALLREGS & INSTR.MSW));
+
+                    regm_t lsw;
+                    foreach (r; intlsw1[]) lsw |= mask(r);
+                    assert(lsw == (INSTR.ALLREGS & INSTR.LSW));
+                }
+            }
+            else
+            {   // R10 is reserved for the static link
+                static immutable reg_t[25] intx = [0,1,2,3,4,5,6,7,9,10,11,12,13,14,15,19,20,21,22,23,24,25,26,27,28];
+                pseq = intx[];
+                debug
+                {
+                    regm_t msk;
+                    foreach (r; intx[]) msk |= mask(r);
+                    assert(msk == INSTR.ALLREGS);
+                }
+            }
+        }
+        return;
+    }
 
     if (tyxmmreg(ty))
     {
-        static immutable ubyte[9] sequence = [XMM0,XMM1,XMM2,XMM3,XMM4,XMM5,XMM6,XMM7,NOREG];
-        *pseq = sequence.ptr;
+        static immutable reg_t[8] sequence = [XMM0,XMM1,XMM2,XMM3,XMM4,XMM5,XMM6,XMM7];
+        pseq = sequence[];
     }
     else if (I64)
     {
         if (sz == REGSIZE * 2)
         {
-            static immutable ubyte[3] seqmsw1 = [CX,DX,NOREG];
-            static immutable ubyte[5] seqlsw1 = [AX,BX,SI,DI,NOREG];
-            *pseq = seqlsw1.ptr;
-            *pseqmsw = seqmsw1.ptr;
+            static immutable reg_t[2] seqmsw1 = [CX,DX];
+            static immutable reg_t[4] seqlsw1 = [AX,BX,SI,DI];
+            pseq = seqlsw1[];
+            pseqmsw = seqmsw1[];
         }
         else
         {   // R10 is reserved for the static link
-            static immutable ubyte[15] sequence2 = [AX,CX,DX,SI,DI,R8,R9,R11,BX,R12,R13,R14,R15,BP,NOREG];
-            *pseq = cast(ubyte*)sequence2.ptr;
+            static immutable reg_t[14] sequence2 = [AX,CX,DX,SI,DI,R8,R9,R11,BX,R12,R13,R14,R15,BP];
+            pseq = sequence2[];
         }
     }
     else if (I32)
     {
         if (sz == REGSIZE * 2)
         {
-            static immutable ubyte[5] seqlsw3 = [AX,BX,SI,DI,NOREG];
-            static immutable ubyte[3] seqmsw3 = [CX,DX,NOREG];
-            *pseq = seqlsw3.ptr;
-            *pseqmsw = seqmsw3.ptr;
+            static immutable reg_t[4] seqlsw3 = [AX,BX,SI,DI];
+            static immutable reg_t[2] seqmsw3 = [CX,DX];
+            pseq = seqlsw3[];
+            pseqmsw = seqmsw3[];
         }
         else
         {
-            static immutable ubyte[8] sequence4 = [AX,CX,DX,BX,SI,DI,BP,NOREG];
-            *pseq = sequence4.ptr;
+            static immutable reg_t[7] sequence4 = [AX,CX,DX,BX,SI,DI,BP];
+            pseq = sequence4[];
         }
     }
-    else
-    {   assert(I16);
+    else if (I16)
+    {
         if (typtr(ty))
         {
             // For pointer types, try to pick index register first
-            static immutable ubyte[8] seqidx5 = [BX,SI,DI,AX,CX,DX,BP,NOREG];
-            *pseq = seqidx5.ptr;
+            static immutable reg_t[7] seqidx5 = [BX,SI,DI,AX,CX,DX,BP];
+            pseq = seqidx5[];
         }
         else
         {
             // Otherwise, try to pick index registers last
-            static immutable ubyte[8] sequence6 = [AX,CX,DX,BX,SI,DI,BP,NOREG];
-            *pseq = sequence6.ptr;
+            static immutable reg_t[7] sequence6 = [AX,CX,DX,BX,SI,DI,BP];
+            pseq = sequence6[];
         }
     }
+    else
+        assert(0);
 }
 
 /*******************************************
@@ -856,14 +1013,14 @@ void cgreg_set_priorities(tym_t ty, const(reg_t)** pseq, const(reg_t)** pseqmsw)
  *      code generated
  */
 @trusted
-private code* callFinallyBlock(block* bf, regm_t retregs)
+private code* callFinallyBlock(ref CGstate cg, block* bf, regm_t retregs)
 {
     CodeBuilder cdbs; cdbs.ctor();
     CodeBuilder cdbr; cdbr.ctor();
     int nalign = 0;
 
-    cgstate.calledFinally = true;
-    uint npush = gensaverestore(retregs,cdbs,cdbr);
+    cg.calledFinally = true;
+    uint npush = gensaverestore(cg,retregs,cdbs,cdbr);
 
     if (STACKALIGN >= 16)
     {   npush += REGSIZE;
@@ -884,10 +1041,10 @@ private code* callFinallyBlock(block* bf, regm_t retregs)
  * Generate block exit code
  */
 @trusted
-void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)* sflsave, Symbol** retsym, const regm_t mfuncregsave)
+void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)* sflsave, Symbol** retsym, const regm_t mfuncregsave)
 {
     //printf("outblkexitcode()\n");
-    bool AArch64 = cgstate.AArch64;
+    bool AArch64 = cg.AArch64;
     CodeBuilder cdb2; cdb2.ctor();
     elem* e = bl.Belem;
     block* nextb;
@@ -901,8 +1058,8 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
         case BC.iftrue:
         {
             bool jcond = true;
-            block* bs1 = bl.nthSucc(0);
-            block* bs2 = bl.nthSucc(1);
+            block* bs1 = bl.Bsucc[0];
+            block* bs2 = bl.Bsucc[1];
             if (bs1 == bl.Bnext)
             {   // Swap bs1 and bs2
                 block* btmp;
@@ -912,11 +1069,11 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
                 bs1 = bs2;
                 bs2 = btmp;
             }
-            logexp(cdb,e,jcond,FL.block,cast(code*) bs1);
+            logexp(cg,cdb,e,jcond,FL.block,cast(code*) bs1);
             nextb = bs2;
         }
         L5:
-            if (configv.addlinenumbers && bl.Bsrcpos.Slinnum &&
+            if (config.addlinenumbers && bl.Bsrcpos.Slinnum &&
                 !(funcsym_p.ty() & mTYnaked))
             {
                 //printf("BC.iftrue: %s(%u)\n", bl.Bsrcpos.Sfilename ? bl.Bsrcpos.Sfilename : "", bl.Bsrcpos.Slinnum);
@@ -937,7 +1094,7 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
         case BC.switch_:
         {
             assert(!(bl.Bflags & BFL.epilog));
-            doswitch(cgstate,cdb,bl);               // hide messy details
+            doswitch(cg,cdb,bl);               // hide messy details
             break;
         }
         case BC.jcatch:          // D catch clause of try-catch
@@ -958,7 +1115,7 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
             }
             goto case_goto;
         case BC.goto_:
-            nextb = bl.nthSucc(0);
+            nextb = bl.Bsucc[0];
             if ((MARS ||
                  funcsym_p.Sfunc.Fflags3 & Fnteh) &&
                 ehmethod(funcsym_p) != EHmethod.EH_DWARF &&
@@ -973,7 +1130,7 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
                 if (toindex + 1 == fromindex)
                 {   // Simply call __finally
                     if (bl.Btry &&
-                        bl.Btry.nthSucc(1).bc == BC.jcatch)
+                        bl.Btry.Bsucc[1].bc == BC.jcatch)
                     {
                         goto L5;        // it's a try-catch, not a try-finally
                     }
@@ -981,7 +1138,7 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
                 if (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) ||
                     config.ehmethod == EHmethod.EH_SEH)
                 {
-                    nteh_unwind(cdb,0,toindex);
+                    nteh_unwind(cg,cdb,0,toindex);
                 }
                 else
                 {
@@ -996,7 +1153,7 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
                     {   block* bf;
 
                         //printf("\tbt.Bscope_index = %d, bt.Blast_index = %d\n", bt.Bscope_index, bt.Blast_index);
-                        bf = bt.nthSucc(1);
+                        bf = bt.Bsucc[1];
                         // Only look at try-finally blocks
                         if (bf.bc == BC.jcatch)
                             continue;
@@ -1006,11 +1163,11 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
                         //printf("\tbf = B%d, nextb = B%d\n", bf.Bdfoidx, nextb.Bdfoidx);
                         if (nextb.bc == BC.goto_ &&
                             !nextb.Belem &&
-                            bf == nextb.nthSucc(0))
+                            bf == nextb.Bsucc[0])
                             continue;
 
                         // call __finally
-                        cdb.append(callFinallyBlock(bf.nthSucc(0), retregsx));
+                        cdb.append(callFinallyBlock(cg, bf.Bsucc[0], retregsx));
                     }
                 }
                 }
@@ -1029,7 +1186,7 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
                 {   Symbol* s = globsym[i];
 
                     if (s.Sflags & SFLspill &&
-                        vec_testbit(cgstate.dfoidx,s.Srange))
+                        vec_testbit(cg.dfoidx,s.Srange))
                     {
                         s.Sfl = sflsave[i];    // undo block register assignments
                         cgreg_spillreg_epilog(bl,s,cdbstore,cdbload);
@@ -1038,25 +1195,29 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
                 cdb.append(cdbstore);
                 cdb.append(cdbload);
             }
-            nextb = bl.nthSucc(0);
+            nextb = bl.Bsucc[0];
             goto L5;
         }
 
         case BC._try:
-            if (config.ehmethod == EHmethod.EH_NONE || funcsym_p.Sfunc.Fflags3 & Feh_none)
+            if (config.ehmethod == EHmethod.EH_DM || ehmethod(funcsym_p) == EHmethod.EH_NONE)
             {
                 /* Need to use frame pointer to access locals, not the stack pointer,
                  * because we'll be calling the BC._finally blocks and the stack will be off.
                  */
-                cgstate.needframe = 1;
+                cg.needframe = 1;
             }
-            else if (config.ehmethod == EHmethod.EH_SEH || config.ehmethod == EHmethod.EH_WIN32)
+
+            if (config.ehmethod == EHmethod.EH_SEH || config.ehmethod == EHmethod.EH_WIN32)
             {
-                cgstate.usednteh |= NTEH_try;
+                cg.usednteh |= NTEH_try;
                 nteh_usevars();
             }
-            else
-                cgstate.usednteh |= EHtry;
+            else if (ehmethod(funcsym_p) != EHmethod.EH_NONE)
+            {
+                cg.usednteh |= EHtry;
+            }
+
             goto case_goto;
 
         case BC._finally:
@@ -1068,8 +1229,8 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
                 regm_t retregsx = 0;
                 gencodelem(cdb,bl.Belem,retregsx,true);
 
-                // JMP bl.nthSucc(1)
-                nextb = bl.nthSucc(1);
+                // JMP bl.Bsucc[1]
+                nextb = bl.Bsucc[1];
 
                 goto L5;
             }
@@ -1085,10 +1246,10 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
 
                 assert(!e);
                 // Generate CALL to finalizer code
-                cdb.append(callFinallyBlock(bl.nthSucc(0), 0));
+                cdb.append(callFinallyBlock(cg, bl.Bsucc[0], 0));
 
-                // JMP bl.nthSucc(1)
-                nextb = bl.nthSucc(1);
+                // JMP bl.Bsucc[1]
+                nextb = bl.Bsucc[1];
 
                 goto L5;
             }
@@ -1103,8 +1264,8 @@ void outblkexitcode(ref CodeBuilder cdb, block* bl, ref int anyspill, const(FL)*
             regm_t retregsx = 0;
             gencodelem(cdb,bl.Belem,retregsx,true);
 
-            // JMP bl.nthSucc(0)
-            nextb = bl.nthSucc(0);
+            // JMP bl.Bsucc[0]
+            nextb = bl.Bsucc[0];
             goto L5;
         }
 
@@ -1125,18 +1286,18 @@ static if (NTEXCEPTIONS)
         case BC._except:
         {
             assert(!e);
-            cgstate.usednteh |= NTEH_except;
-            nteh_setsp(cdb,0x8B);
-            getregsNoSave(cgstate.allregs);
-            nextb = bl.nthSucc(0);
+            cg.usednteh |= NTEH_except;
+            nteh_setsp(cg, cdb,0x8B);
+            getregsNoSave(cg.allregs);
+            nextb = bl.Bsucc[0];
             goto L5;
         }
         case BC._filter:
         {
-            nteh_filter(cdb, bl);
+            nteh_filter(cg, cdb, bl);
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in filter blocks.
-            getregsNoSave(cgstate.allregs);
+            getregsNoSave(cg.allregs);
             regm_t retregsx = regmask(e.Ety, TYnfunc);
             gencodelem(cdb,e,retregsx,true);
             cdb.gen1(0xC3);   // RET
@@ -1146,124 +1307,212 @@ static if (NTEXCEPTIONS)
 
         case BC.retexp:
             reg_t reg1, reg2;
-            retregs = allocretregs(cgstate, e.Ety, e.ET, funcsym_p.ty(), reg1, reg2);
+            retregs = allocretregs(cg, e.Ety, e.ET, funcsym_p.ty(), reg1, reg2);
             //printf("reg1: %d, reg2: %d\n", reg1, reg2);
-            //printf("allocretregs returns %llx %s\n", retregs, regm_str(retregs));
+            //printf("allocretregs e.Ety: %s returns %llx %s, reg1: %d reg2: %d\n", tym_str(e.Ety), retregs, regm_str(retregs), reg1, reg2);
 
-            reg_t lreg = NOREG;
-            reg_t mreg = NOREG;
-            if (reg1 == NOREG)
-            {}
-            else if (tybasic(e.Ety) == TYcfloat)
-                lreg = ST01;
-            else if (mask(reg1) & (mST0 | mST01))
-                lreg = reg1;
-            else if (reg2 == NOREG)
-                lreg = reg1;
-            else if (mask(reg1) & XMMREGS)
+            if (AArch64)
             {
-                lreg = XMM0;
-                mreg = XMM1;
-            }
-            else
-            {
-                lreg = mask(reg1) & mLSW ? reg1 : AX;
-                mreg = mask(reg2) & mMSW ? reg2 : DX;
-            }
-            if (reg1 != NOREG)
-                retregs = (mask(lreg) | mask(mreg)) & ~mask(NOREG);
-
-            // For the final load into the return regs, don't set cgstate.regcon.used,
-            // so that the optimizer can potentially use retregs for register
-            // variable assignments.
-
-            if (config.flags4 & CFG4optimized)
-            {   regm_t usedsave;
-
-                docommas(cdb,e);
-                usedsave = cgstate.regcon.used;
-                if (!OTleaf(e.Eoper))
-                    gencodelem(cdb,e,retregs,true);
+                reg_t lreg = NOREG;
+                reg_t mreg = NOREG;
+                if (reg1 == NOREG)
+                {   }
+                else if (reg2 == NOREG)
+                    lreg = reg1;
+                else if (mask(reg1) & INSTR.FLOATREGS)
+                {
+                    lreg = 32;
+                    mreg = 33;
+                }
                 else
                 {
-                    if (e.Eoper == OPconst)
-                        cgstate.regcon.mvar = 0;
-                    gencodelem(cdb,e,retregs,true);
-                    cgstate.regcon.used = usedsave;
-                    if (e.Eoper == OPvar)
-                    {   Symbol* s = e.Vsym;
-
-                        if (s.Sfl == FL.reg && s.Sregm != mAX)
-                            *retsym = s;
-                    }
+                    lreg = mask(reg1) & INSTR.LSW ? reg1 : 0;
+                    mreg = mask(reg2) & INSTR.MSW ? reg2 : 1;
                 }
-            }
-            else
-            {
-                gencodelem(cdb,e,retregs,true);
-            }
 
-            if (reg1 == NOREG)
-            {
-            }
-            else if ((mask(reg1) | mask(reg2)) & (mST0 | mST01))
-            {
-                assert(reg1 == lreg && reg2 == NOREG);
-                regm_t pretregs = mask(reg1) | mask(reg2);
-                fixresult87(cdb, e, retregs, pretregs, true);
-            }
-            // fix return registers
-            else if (tybasic(e.Ety) == TYcfloat)
-            {
-                assert(lreg == ST01);
-                if (I64)
+                if (reg1 != NOREG)
+                    retregs = (mask(lreg) | mask(mreg)) & ~mask(NOREG);
+                if (config.flags4 & CFG4optimized)
                 {
-                    assert(reg2 == NOREG);
-                    // spill
-                    pop87();
-                    pop87();
-                    cdb.genfltreg(0xD9, 3, tysize(TYfloat));
-                    genfwait(cdb);
-                    cdb.genfltreg(0xD9, 3, 0);
-                    genfwait(cdb);
-                    // reload
-                    if (config.exe == EX_WIN64)
+                    // For the final load into the return regs, don't set cg.regcon.used,
+                    // so that the optimizer can potentially use retregs for register
+                    // variable assignments.
+                    docommas(cdb,e);
+                    if (OTleaf(e.Eoper))
                     {
-                        assert(reg1 == AX);
-                        cdb.genfltreg(LOD, reg1, 0);
-                        code_orrex(cdb.last(), REX_W);
+                        const usedsave = cg.regcon.used;
+                        if (e.Eoper == OPconst)
+                            cg.regcon.mvar = 0;
+                        gencodelem(cdb,e,retregs,true);
+                        cg.regcon.used = usedsave;
+                        if (e.Eoper == OPvar)
+                        {
+                            Symbol* s = e.Vsym;
+                            if (s.Sfl == FL.reg && s.Sregm != mask(0))
+                                *retsym = s;
+                        }
+                    }
+                    else
+                        gencodelem(cdb,e,retregs,true);
+                }
+                else
+                {
+                    gencodelem(cdb,e,retregs,true);
+                    //printf("retregs3: %s reg1reg2: %s lregmreg: %s\n", regm_str(retregs), regm_str(mask(reg1)|mask(reg2)), regm_str(mask(lreg)|mask(mreg)));
+                }
+
+                if (reg1 == NOREG)
+                {
+                }
+                // fix return registers
+                else if (reg2 == NOREG)
+                    assert(lreg == reg1);
+                else
+                {
+                    // (reg1,reg2) = (lreg,mreg)
+                    if (reg1 == mreg)
+                    {
+                        genmovreg(cdb, reg2, mreg);
+                        genmovreg(cdb, reg1, lreg);
                     }
                     else
                     {
-                        assert(reg1 == XMM0);
-                        cdb.genxmmreg(xmmload(TYdouble), reg1, 0, TYdouble);
+                        genmovreg(cdb, reg1, lreg);
+                        genmovreg(cdb, reg2, mreg);
+                    }
+                }
+                if (reg1 != NOREG)
+                    retregs = (mask(reg1) | mask(reg2)) & ~mask(NOREG);
+                goto L4;
+            }
+            else // X86_64
+            {
+                reg_t lreg = NOREG;
+                reg_t mreg = NOREG;
+                if (reg1 == NOREG)
+                {   }
+                else if (tybasic(e.Ety) == TYcfloat)
+                    lreg = ST01;
+                else if (mask(reg1) & (mST0 | mST01))
+                    lreg = reg1;
+                else if (reg2 == NOREG)
+                    lreg = reg1;
+                else if (mask(reg1) & XMMREGS)
+                {
+                    lreg = XMM0;
+                    mreg = XMM1;
+                }
+                else
+                {
+                    lreg = mask(reg1) & mLSW ? reg1 : AX;
+                    mreg = mask(reg2) & mMSW ? reg2 : DX;
+                }
+
+                if (reg1 != NOREG)
+                    retregs = (mask(lreg) | mask(mreg)) & ~mask(NOREG);
+
+                // For the final load into the return regs, don't set cg.regcon.used,
+                // so that the optimizer can potentially use retregs for register
+                // variable assignments.
+
+                if (config.flags4 & CFG4optimized)
+                {   regm_t usedsave;
+
+                    docommas(cdb,e);
+                    usedsave = cg.regcon.used;
+                    if (!OTleaf(e.Eoper))
+                        gencodelem(cdb,e,retregs,true);
+                    else
+                    {
+                        if (e.Eoper == OPconst)
+                            cg.regcon.mvar = 0;
+                        gencodelem(cdb,e,retregs,true);
+                        cg.regcon.used = usedsave;
+                        if (e.Eoper == OPvar)
+                        {   Symbol* s = e.Vsym;
+
+                            if (s.Sfl == FL.reg && s.Sregm != mAX)
+                                *retsym = s;
+                        }
                     }
                 }
                 else
                 {
-                    assert(reg1 == AX && reg2 == DX);
-                    regm_t pretregs = mask(reg1) | mask(reg2);
-                    fixresult_complex87(cdb, e, retregs, pretregs, true);
+                    gencodelem(cdb,e,retregs,true);
                 }
-            }
-            else if (reg2 == NOREG)
-                assert(lreg == reg1);
-            else for (int v = 0; v < 2; v++)
-            {
-                if (v ^ (reg1 != mreg))
-                    genmovreg(cdb, reg1, lreg);
+
+                if (reg1 == NOREG)
+                {
+                }
+                else if ((mask(reg1) | mask(reg2)) & (mST0 | mST01))
+                {
+                    assert(reg1 == lreg && reg2 == NOREG);
+                    regm_t pretregs = mask(reg1) | mask(reg2);
+                    fixresult87(cg, cdb, e, retregs, pretregs, true);
+                }
+                // fix return registers
+                else if (tybasic(e.Ety) == TYcfloat)
+                {
+                    assert(lreg == ST01);
+                    if (I64)
+                    {
+                        assert(reg2 == NOREG);
+                        // spill
+                        pop87();
+                        pop87();
+                        cdb.genfltreg(0xD9, 3, tysize(TYfloat));
+                        genfwait(cdb);
+                        cdb.genfltreg(0xD9, 3, 0);
+                        genfwait(cdb);
+                        // reload
+                        if (config.exe == EX_WIN64)
+                        {
+                            assert(reg1 == AX);
+                            cdb.genfltreg(LOD, reg1, 0);
+                            code_orrex(cdb.last(), REX_W);
+                        }
+                        else
+                        {
+                            assert(reg1 == XMM0);
+                            cdb.genxmmreg(xmmload(TYdouble), reg1, 0, TYdouble);
+                        }
+                    }
+                    else
+                    {
+                        assert(reg1 == AX && reg2 == DX);
+                        regm_t pretregs = mask(reg1) | mask(reg2);
+                        fixresult_complex87(cg, cdb, e, retregs, pretregs, true);
+                    }
+                }
+                else if (reg2 == NOREG)
+                    assert(lreg == reg1);
                 else
-                    genmovreg(cdb, reg2, mreg);
+                {
+                    // (reg1,reg2) = (lreg,mreg)
+                    if (reg1 == mreg)
+                    {
+                        genmovreg(cdb, reg2, mreg);
+                        genmovreg(cdb, reg1, lreg);
+                    }
+                    else
+                    {
+                        genmovreg(cdb, reg1, lreg);
+                        genmovreg(cdb, reg2, mreg);
+                    }
+                }
+                if (reg1 != NOREG)
+                    retregs = (mask(reg1) | mask(reg2)) & ~mask(NOREG);
             }
-            if (reg1 != NOREG)
-                retregs = (mask(reg1) | mask(reg2)) & ~mask(NOREG);
             goto L4;
 
         case BC.ret:
             retregs = 0;
             gencodelem(cdb,e,retregs,true);
         L4:
-            if (retregs == mST0)
+            if (AArch64)
+            {
+            }
+            else if (retregs == mST0)
             {   assert(global87.stackused == 1);
                 pop87();                // account for return value
             }
@@ -1273,12 +1522,12 @@ static if (NTEXCEPTIONS)
                 pop87();                // account for return value
             }
 
-            if (MARS || cgstate.usednteh & NTEH_try)
+            if (MARS || cg.usednteh & NTEH_try)
             {
                 block* bt = bl;
                 while ((bt = bt.Btry) != null)
                 {
-                    block* bf = bt.nthSucc(1);
+                    block* bf = bt.Bsucc[1];
                     // Only look at try-finally blocks
                     if (bf.bc == BC.jcatch)
                     {
@@ -1294,22 +1543,22 @@ static if (NTEXCEPTIONS)
                             CodeBuilder cdbr; cdbr.ctor();
 
                             nteh_gensindex(cdb,-1);
-                            gensaverestore(retregs,cdbs,cdbr);
+                            gensaverestore(cg,retregs,cdbs,cdbr);
                             cdb.append(cdbs);
-                            cdb.genc(0xE8,0,FL.unde,0,FL.block,cast(targ_size_t)bf.nthSucc(0));
-                            cgstate.regcon.immed.mval = 0;
+                            cdb.genc(0xE8,0,FL.unde,0,FL.block,cast(targ_size_t)bf.Bsucc[0]);
+                            cg.regcon.immed.mval = 0;
                             cdb.append(cdbr);
                         }
                         else
                         {
-                            nteh_unwind(cdb,retregs,~0);
+                            nteh_unwind(cg, cdb,retregs,~0);
                         }
                         break;
                     }
                     else
                     {
                         // call __finally
-                        cdb.append(callFinallyBlock(bf.nthSucc(0), retregs));
+                        cdb.append(callFinallyBlock(cg, bf.Bsucc[0], retregs));
                     }
                 }
             }
@@ -1319,7 +1568,7 @@ static if (NTEXCEPTIONS)
             retregs = 0;
             gencodelem(cdb,e,retregs,true);
             if (config.flags4 & CFG4optimized)
-                cgstate.mfuncreg = mfuncregsave;
+                cg.mfuncreg = mfuncregsave;
             break;
 
         case BC.asm_:
@@ -1327,11 +1576,11 @@ static if (NTEXCEPTIONS)
             assert(!e);
             // Mark destroyed registers
             CodeBuilder cdbx; cdbx.ctor();
-            cgstate.refparam |= bl.bIasmrefparam;
+            cg.refparam |= bl.bIasmrefparam;
             getregs(cdbx, iasm_regs(bl));         // mark destroyed registers
             code* c = cdbx.finish();
-            if (bl.Bsucc)
-            {   nextb = bl.nthSucc(0);
+            if (bl.Bsucc.length)
+            {   nextb = bl.Bsucc[0];
                 if (!bl.Bnext)
                 {
                     cdb.append(bl.Bcode);
@@ -1342,7 +1591,7 @@ static if (NTEXCEPTIONS)
                     bl.Bnext &&
                     !(bl.Bnext.bc == BC.goto_ &&
                      !bl.Bnext.Belem &&
-                     nextb == bl.Bnext.nthSucc(0)))
+                     nextb == bl.Bnext.Bsucc[0]))
                 {
                     // See if already have JMP at end of block
                     code* cl = code_last(bl.Bcode);
@@ -1439,10 +1688,13 @@ regm_t allocretregs(ref CGstate cg, const tym_t ty, type* t, const tym_t tyf, ou
                 break;
             if (I32)
                 goto case TYllong;
-            ty1 = TYdouble;
+            if (AArch64)
+                ty1 = ty2 = TYfloat;
+            else
+                ty1 = TYdouble;
             break;
 
-        case TYcldouble:
+        case TYcreal:
             if (tyfb == TYjfunc && I32)
                 break;
             if (I32)
@@ -1548,17 +1800,17 @@ regm_t allocretregs(ref CGstate cg, const tym_t ty, type* t, const tym_t tyf, ou
             goto case 4;
 
         case 16:
-            if (AArch64 && tym == TYldouble)
+            if (AArch64 && tym == TYreal)
                 return rralloc.fpt();
             goto default;
 
         default:
             assert(!AArch64);
-            if (tybasic(tym) == TYldouble || tybasic(tym) == TYildouble)
+            if (tybasic(tym) == TYreal || tybasic(tym) == TYireal)
             {
                 return ST0;
             }
-            else if (tybasic(tym) == TYcldouble)
+            else if (tybasic(tym) == TYcreal)
             {
                 return ST01;
             }
@@ -1610,7 +1862,7 @@ struct CaseVal
  * Generate comparison of [reg2,reg] with val
  */
 @trusted
-private void cmpval(CGstate cg, ref CodeBuilder cdb, ulong val, uint sz, reg_t reg, reg_t reg2, reg_t sreg)
+private void cmpval(ref CGstate cg, ref CodeBuilder cdb, ulong val, uint sz, reg_t reg, reg_t reg2, reg_t sreg)
 {
     if (cg.AArch64)
     {
@@ -1627,10 +1879,10 @@ private void cmpval(CGstate cg, ref CodeBuilder cdb, ulong val, uint sz, reg_t r
         {
             regm_t retregs = cg.allregs & ~mask(reg);
             sreg = allocreg(cdb,retregs,TYint);
-            movregconst(cdb,sreg,val,sz == 8  ? 64 : 0);
+            movregconst(cg,cdb,sreg,val,sz == 8  ? 64 : 0);
             getregsNoSave(retregs);
             assert(reg2 == NOREG);
-            cdb.gen1(INSTR.cmp_shift(sz == 8, reg, 0, 0, sreg));    // CMP sreg,reg
+            cdb.gen1(INSTR.cmp_subs_addsub_shift(sz == 8, reg, 0, 0, sreg));    // CMP sreg,reg
         }
     }
     else if (I64 && sz == 8)
@@ -1644,7 +1896,7 @@ private void cmpval(CGstate cg, ref CodeBuilder cdb, ulong val, uint sz, reg_t r
         else
         {
             assert(sreg != NOREG);
-            movregconst(cdb,sreg,cast(targ_size_t)val,64);  // MOV sreg,val64
+            movregconst(cg,cdb,sreg,cast(targ_size_t)val,64);  // MOV sreg,val64
             genregs(cdb,0x3B,reg,sreg);    // CMP reg,sreg
             code_orrex(cdb.last(), REX_W);
             getregsNoSave(mask(sreg));                  // don't remember we loaded this constant
@@ -1662,8 +1914,8 @@ private void cmpval(CGstate cg, ref CodeBuilder cdb, ulong val, uint sz, reg_t r
     }
 }
 
-@trusted extern (D)
-private void ifthen(CGstate cg, ref CodeBuilder cdb, scope CaseVal[] casevals,
+@trusted
+private void ifthen(ref CGstate cg, ref CodeBuilder cdb, scope CaseVal[] casevals,
         uint sz, reg_t reg, reg_t reg2, reg_t sreg, block* bdefault, bool last)
 {
     const ncases = casevals.length;
@@ -1802,7 +2054,7 @@ void doswitch(ref CGstate cg, ref CodeBuilder cdb, block* b)
         //printf("ifthen:\n");
         regm_t retregs = cg.allregs;
         b.bc = BC.ifthen;
-        scodelem(cgstate,cdb,e,retregs,0,true);
+        scodelem(cg,cdb,e,retregs,0,true);
         reg_t reg, reg2;
         if (dword)
         {   reg = findreglsw(retregs);
@@ -1813,8 +2065,7 @@ void doswitch(ref CGstate cg, ref CodeBuilder cdb, block* b)
             reg = findreg(retregs);     // reg that result is in
             reg2 = NOREG;
         }
-        list_t bl = b.Bsucc;
-        block* bdefault = b.nthSucc(0);
+        block* bdefault = b.Bsucc[0];
         if (dword && mswsame)
         {
             cdb.genc2(0x81,modregrm(3,7,reg2),msw);   // CMP reg2,MSW
@@ -1834,8 +2085,7 @@ void doswitch(ref CGstate cg, ref CodeBuilder cdb, block* b)
         foreach (n, val; b.Bswitch)
         {
             casevals[n].val = val;
-            bl = list_next(bl);
-            casevals[n].target = list_block(bl);
+            casevals[n].target = b.Bsucc[1 + n];
 
             // See if we need a scratch register
             if (!cg.AArch64 && sreg == NOREG && I64 && sz == 8 && val != cast(int)val)
@@ -1853,7 +2103,7 @@ void doswitch(ref CGstate cg, ref CodeBuilder cdb, block* b)
         // Generate binary tree of comparisons
         ifthen(cg, cdb, casevals, sz, reg, reg2, sreg, bdefault, bdefault != b.Bnext);
 
-        cgstate.stackclean--;
+        cg.stackclean--;
         return;
     }
 
@@ -1880,14 +2130,14 @@ void doswitch(ref CGstate cg, ref CodeBuilder cdb, block* b)
         if (config.exe & EX_posix && I32 && config.flags3 & CFG3pic)
             retregs &= ~mBX;                            // need EBX for GOT
         bool modify = (I16 || I64 || vmin);
-        scodelem(cgstate,cdb,e,retregs,0,!modify);
+        scodelem(cg,cdb,e,retregs,0,!modify);
         reg_t reg = findreg(retregs & IDXREGS); // reg that result is in
         reg_t reg2;
         if (dword)
             reg2 = findregmsw(retregs);
         if (modify)
         {
-            assert(!(retregs & cgstate.regcon.mvar));
+            assert(!(retregs & cg.regcon.mvar));
             getregs(cdb,retregs);
         }
         if (vmin)                       // if there is a minimum
@@ -1895,19 +2145,19 @@ void doswitch(ref CGstate cg, ref CodeBuilder cdb, block* b)
             cdb.genc2(0x81,modregrm(3,5,reg),cast(targ_size_t)vmin); // SUB reg,vmin
             if (dword)
             {   cdb.genc2(0x81,modregrm(3,3,reg2),cast(targ_size_t)MSREG(vmin)); // SBB reg2,vmin
-                genjmp(cdb,JNE,FL.block,b.nthSucc(0)); // JNE default
+                genjmp(cdb,JNE,FL.block,b.Bsucc[0]); // JNE default
             }
         }
         else if (dword)
         {   gentstreg(cdb,reg2);              // TEST reg2,reg2
-            genjmp(cdb,JNE,FL.block,b.nthSucc(0)); // JNE default
+            genjmp(cdb,JNE,FL.block,b.Bsucc[0]); // JNE default
         }
         if (vmax - vmin != REGMASK)     // if there is a maximum
         {                               // CMP reg,vmax-vmin
             cdb.genc2(0x81,modregrm(3,7,reg),cast(targ_size_t)(vmax-vmin));
             if (I64 && sz == 8)
                 code_orrex(cdb.last(), REX_W);
-            genjmp(cdb,JA,FL.block,b.nthSucc(0));  // JA default
+            genjmp(cdb,JA,FL.block,b.Bsucc[0]);  // JA default
         }
         if (I64)
         {
@@ -1962,19 +2212,19 @@ static if (JMPJMPTABLE)
                ...
              */
             CodeBuilder ctable; ctable.ctor();
-            block* bdef = b.nthSucc(0);
+            block* bdef = b.Bsucc[0];
             targ_llong u;
             for (u = vmin; ; u++)
             {   block* targ = bdef;
                 foreach (n, val; b.Bswitch)
                 {
                     if (val == u)
-                    {   targ = b.nthSucc(n + 1);
+                    {   targ = b.Bsucc[n + 1];
                         break;
                     }
                 }
                 genjmp(ctable,JMP,FL.block,targ);
-                ctable.last().Iflags |= CFjmp5;           // don't shrink these
+                ctable.last().Iflags |= CF.jmp5;           // don't shrink these
                 if (u == vmax)
                     break;
             }
@@ -1989,7 +2239,7 @@ static if (JMPJMPTABLE)
             cdb.gen2(0xFF,modregrm(3,4,jreg));      // JMP jreg
             cdb.append(ctable);
             b.Btablesize = 0;
-            cgstate.stackclean--;
+            cg.stackclean--;
             return;
 }
 else
@@ -2022,7 +2272,7 @@ else
                  */
 
                 // Load GOT in EBX
-                load_localgot(cdb);
+                load_localgot(cg,cdb);
 
                 // Allocate scratch register r1
                 regm_t scratchm = ALLREGS & ~(mask(reg) | mBX);
@@ -2049,11 +2299,11 @@ else
             uint rm = getaddrmode(retregs) | modregrm(0,4,0);
             cdb.genc1(0xFF,rm,FL.switch_,0);                  // JMP [CS:]disp[idxreg]
             cdb.last().IEV1.Vswitch = b;
-            cdb.last().Iflags |= csseg ? CFcs : 0;                       // segment override
+            cdb.last().Iflags |= csseg ? CF.cs : 0;                       // segment override
         }
         else
             assert(0);
-        cgstate.stackclean--;
+        cg.stackclean--;
         return;
     }
 
@@ -2071,11 +2321,11 @@ else
             retregs |= mDX;
         else if (ncases <= 6 || config.flags4 & CFG4speed)
             goto Lifthen;
-        scodelem(cgstate,cdb,e,retregs,0,true);
+        scodelem(cg,cdb,e,retregs,0,true);
         if (dword && mswsame)
         {   /* CMP DX,MSW       */
             cdb.genc2(0x81,modregrm(3,7,DX),msw);
-            genjmp(cdb,JNE,FL.block,b.nthSucc(0)); // JNE default
+            genjmp(cdb,JNE,FL.block,b.Bsucc[0]); // JNE default
         }
         getregs(cdb,mCX|mDI);
 
@@ -2088,7 +2338,7 @@ else
                                         //     ADD EDI,_GLOBAL_OFFSET_TABLE_+3
             Symbol* gotsym = Obj.getGOTsym();
             cdb.gencs(0x81,modregrm(3,0,DI),FL.extern_,gotsym);
-            cdb.last().Iflags = CFoff;
+            cdb.last().Iflags = CF.off;
             cdb.last().IEV2.Voffset = 3;
 
             makeitextern(gotsym);
@@ -2105,7 +2355,7 @@ else
             cdb.gencs(0xC7,modregrm(3,0,DI),FL.switch_,null);
             cdb.last().IEV2.Vswitch = b;
         }
-        movregconst(cdb,CX,ncases,0);    // MOV CX,ncases
+        movregconst(cg,cdb,CX,ncases,0);    // MOV CX,ncases
 
         /* The switch table will be accessed through ES:DI.
          * Therefore, load ES with proper segment value.
@@ -2136,11 +2386,11 @@ else
             const int mod = (disp > 127) ? 2 : 1;         // displacement size
             code* cloop = genc2(null,0xE0,0,-7 - mod - csseg);   // LOOPNE scasw
             cdb.gen1(0xAF);                                      // SCASW
-            code_orflag(cdb.last(),CFtarg2);                     // target of jump
+            code_orflag(cdb.last(),CF.targ2);                     // target of jump
             genjmp(cdb,JNE,FL.code,cast(block*) cloop); // JNE loop
                                                                  // CMP DX,[CS:]disp[DI]
             cdb.genc1(0x39,modregrm(mod,DX,5),FL.const_,disp);
-            cdb.last().Iflags |= csseg ? CFcs : 0;              // possible seg override
+            cdb.last().Iflags |= csseg ? CF.cs : 0;              // possible seg override
             cdb.append(cloop);
             disp += ncases * _tysize[TYint];           // skip over msw table
         }
@@ -2149,7 +2399,7 @@ else
             cdb.gen1(0xF2);              // REPNE
             cdb.gen1(0xAF);              // SCASW
         }
-        genjmp(cdb,JNE,FL.block,b.nthSucc(0)); // JNE default
+        genjmp(cdb,JNE,FL.block,b.Bsucc[0]); // JNE default
         const int mod = (disp > 127) ? 2 : 1;     // 1 or 2 byte displacement
         if (csseg)
             cdb.gen1(SEGCS);            // table is in code segment
@@ -2165,11 +2415,11 @@ else
         if (!(config.flags3 & CFG3pic))
         {                               // JMP (ncases-1)*2[DI]
             cdb.genc1(0xFF,modregrm(mod,4,(I32 ? 7 : 5)),FL.const_,disp);
-            cdb.last().Iflags |= csseg ? CFcs : 0;
+            cdb.last().Iflags |= csseg ? CF.cs : 0;
         }
         b.Btablesize = disp + _tysize[TYint] + ncases * tysize(TYnptr);
         //assert(b.Bcode);
-        cgstate.stackclean--;
+        cg.stackclean--;
         return;
     }
 }
@@ -2214,31 +2464,31 @@ void outjmptab(block* b)
     assert(*poffset == b.Btableoffset);        // should match precomputed value
 
     Symbol* gotsym = null;
-    targ_size_t def = b.nthSucc(0).Boffset;  // default address
+    targ_size_t def = b.Bsucc[0].Boffset;  // default address
     for (targ_llong u = vmin; ; u++)
     {   targ_size_t targ = def;                     // default
         foreach (n; 0 .. ncases)
         {
             if (b.Bswitch[n] == u)
             {
-                targ = b.nthSucc(cast(int)(n + 1)).Boffset;
+                targ = b.Bsucc[cast(int)(n + 1)].Boffset;
                 break;
             }
         }
-        if (config.exe & (EX_LINUX64 | EX_FREEBSD64 | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS64))
+        if (config.exe & (EX_LINUX64 | EX_FREEBSD64 | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS64 | EX_HURD64))
         {
             if (config.flags3 & CFG3pic)
             {
-                objmod.reftodatseg(jmpseg,*poffset,cast(targ_size_t)(targ + (u - vmin) * 4),funcsym_p.Sseg,CFswitch);
+                objmod.reftodatseg(jmpseg,*poffset,cast(targ_size_t)(targ + (u - vmin) * 4),funcsym_p.Sseg,CF.switch_);
                 *poffset += 4;
             }
             else
             {
-                objmod.reftodatseg(jmpseg,*poffset,targ,funcsym_p.Sxtrnnum,CFoffset64 | CFswitch);
+                objmod.reftodatseg(jmpseg,*poffset,targ,funcsym_p.Sxtrnnum,CF.offset64 | CF.switch_);
                 *poffset += 8;
             }
         }
-        else if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS))
+        else if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS | EX_HURD))
         {
             if (config.flags3 & CFG3pic)
             {
@@ -2246,7 +2496,7 @@ void outjmptab(block* b)
                 // Want a GOTPC fixup to _GLOBAL_OFFSET_TABLE_
                 if (!gotsym)
                     gotsym = Obj.getGOTsym();
-                objmod.reftoident(jmpseg,*poffset,gotsym,*poffset - targ,CFswitch);
+                objmod.reftoident(jmpseg,*poffset,gotsym,*poffset - targ,CF.switch_);
             }
             else
                 objmod.reftocodeseg(jmpseg,*poffset,targ);
@@ -2310,11 +2560,9 @@ void outswitab(block* b)
         assert(*poffset == offset);
     }
 
-    list_t bl = b.Bsucc;
     foreach (n; 0 .. ncases)          // send out address table
     {
-        bl = list_next(bl);
-        objmod.reftocodeseg(seg,*poffset,list_block(bl).Boffset);
+        objmod.reftocodeseg(seg,*poffset,b.Bsucc[1 + n].Boffset);
         *poffset += tysize(TYnptr);
     }
     assert(*poffset == offset + ncases * tysize(TYnptr));
@@ -2367,7 +2615,7 @@ int jmpopcode(elem* e)
     op = e.Eoper;
     tym_t tymx = tybasic(e.Ety);
     bool needsNanCheck = tyfloating(tymx) && config.inline8087 &&
-        (tymx == TYldouble || tymx == TYildouble || tymx == TYcldouble ||
+        (tymx == TYreal || tymx == TYireal || tymx == TYcreal ||
          tymx == TYcdouble || tymx == TYcfloat ||
          (tyxmmreg(tymx) && config.fpxmmregs && e.Ecount != e.Ecomsub) ||
          op == OPind ||
@@ -2503,14 +2751,14 @@ L1:
  */
 
 @trusted
-void cod3_ptrchk(ref CodeBuilder cdb,ref code pcs,regm_t keepmsk)
+void cod3_ptrchk(ref CGstate cg, ref CodeBuilder cdb,ref code pcs,regm_t keepmsk)
 {
     ubyte sib;
     reg_t reg;
-    uint flagsave;
+    CF flagsave;
 
     assert(!I64);
-    if (!I16 && pcs.Iflags & (CFes | CFss | CFcs | CFds | CFfs | CFgs))
+    if (!I16 && pcs.Iflags & (CF.es | CF.ss | CF.cs | CF.ds | CF.fs | CF.gs))
         return;         // not designed to deal with 48 bit far pointers
 
     ubyte rm = pcs.Irm;
@@ -2537,7 +2785,7 @@ void cod3_ptrchk(ref CodeBuilder cdb,ref code pcs,regm_t keepmsk)
         flagsave = pcs.Iflags;
         pcs.Iop = LEA;
         pcs.Irm |= modregrm(0,reg,0);
-        pcs.Iflags &= ~(CFopsize | CFss | CFes | CFcs);        // no prefix bytes needed
+        pcs.Iflags &= ~(CF.opsize | CF.ss | CF.es | CF.cs);        // no prefix bytes needed
         cdb.gen(&pcs);                 // LEA reg,EA
 
         pcs.Iflags = flagsave;
@@ -2545,7 +2793,7 @@ void cod3_ptrchk(ref CodeBuilder cdb,ref code pcs,regm_t keepmsk)
     }
 
     // registers destroyed by the function call
-    //used = (mBP | ALLREGS | mES) & ~fregsaved;
+    //used = (mBP | ALLREGS | mES) & ~cg.fregsaved;
     regm_t used = 0;                           // much less code generated this way
 
     code* cs2 = null;
@@ -2559,7 +2807,7 @@ void cod3_ptrchk(ref CodeBuilder cdb,ref code pcs,regm_t keepmsk)
         {
             int push,pop;
 
-            cgstate.stackchanged = 1;
+            cg.stackchanged = 1;
             if (i == ES)
             {   push = 0x06;
                 pop = 0x07;
@@ -2579,11 +2827,11 @@ void cod3_ptrchk(ref CodeBuilder cdb,ref code pcs,regm_t keepmsk)
     {
         int segreg;
 
-        switch (pcs.Iflags & (CFes | CFss | CFcs | CFds | CFfs | CFgs))
-        {   case CFes:  segreg = 0x06;  break;
-            case CFss:  segreg = 0x16;  break;
-            case CFcs:  segreg = 0x0E;  break;
-            case 0:     segreg = 0x1E;  break;  // DS
+        switch (pcs.Iflags & (CF.es | CF.ss | CF.cs | CF.ds | CF.fs | CF.gs))
+        {   case CF.es:  segreg = 0x06;  break;
+            case CF.ss:  segreg = 0x16;  break;
+            case CF.cs:  segreg = 0x0E;  break;
+            case CF.zero:segreg = 0x1E;  break;  // DS
             default:
                 assert(0);
         }
@@ -2595,7 +2843,7 @@ void cod3_ptrchk(ref CodeBuilder cdb,ref code pcs,regm_t keepmsk)
         {
             segreg = 0x16;
             if (config.wflags & WFssneds)
-                pcs.Iflags |= CFss;    // because BP won't be there anymore
+                pcs.Iflags |= CF.ss;    // because BP won't be there anymore
         }
         cdb.gen1(segreg);               // PUSH segreg
     }
@@ -2629,7 +2877,7 @@ void cod3_ptrchk(ref CodeBuilder cdb,ref code pcs,regm_t keepmsk)
  */
 
 @trusted
-regm_t cod3_useBP()
+regm_t cod3_useBP(ref CGstate cg)
 {
     tym_t tym;
     tym_t tyf;
@@ -2639,7 +2887,7 @@ regm_t cod3_useBP()
     if (!(config.exe & EX_flat) || config.flags & (CFGalwaysframe | CFGnoebp))
         goto Lcant;
 
-    if (cgstate.anyiasm)
+    if (cg.anyiasm)
         goto Lcant;
 
     tyf = funcsym_p.ty();
@@ -2655,8 +2903,8 @@ regm_t cod3_useBP()
     if (tym == TYifunc)
         goto Lcant;
 
-    stackoffsets(cgstate, globsym, true);  // estimate stack offsets
-    localsize = cgstate.Auto.offset + cgstate.Fast.offset;                // an estimate only
+    stackoffsets(cg, globsym, true);  // estimate stack offsets
+    localsize = cg.Auto.offset + cg.Fast.offset;                // an estimate only
 //    if (localsize)
     {
         if (!(config.flags4 & CFG4speed) ||
@@ -2664,9 +2912,9 @@ regm_t cod3_useBP()
             tyfarfunc(tym) ||
             config.flags & CFGstack ||
             localsize >= 0x100 ||       // arbitrary value < 0x1000
-            (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) ||
-            cgstate.calledFinally ||
-            cgstate.Alloca.size
+            (cg.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) ||
+            cg.calledFinally ||
+            cg.Alloca.size
            )
             goto Lcant;
     }
@@ -2730,7 +2978,7 @@ bool cse_simple(code* c, elem* e)
         c.Iop = (sz == 1) ? 0x8A : 0x8B;       // MOV reg,EA
         buildEA(c,reg,-1,1,0);
         if (sz == 2 && I32)
-            c.Iflags |= CFopsize;
+            c.Iflags |= CF.opsize;
         else if (I64)
         {   if (sz == 8)
                 c.Irex |= REX_W;
@@ -2783,7 +3031,7 @@ void gen_testcse(ref CodeBuilder cdb, tym_t tym, uint sz, size_t slot)
     cdb.genc(sz == 1 ? 0x80 : 0x81,modregrm(2,7,BPRM),
                 FL.cs,cast(targ_uns)slot, FL.const_,cast(targ_uns) 0);
     if ((I64 || I32) && sz == 2)
-        cdb.last().Iflags |= CFopsize;
+        cdb.last().Iflags |= CF.opsize;
     if (I64 && sz == 8)
         code_orrex(cdb.last(), REX_W);
 }
@@ -2821,18 +3069,18 @@ void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 @trusted
 void cdframeptr(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 {
-    regm_t retregs = pretregs & cgstate.allregs;
+    regm_t retregs = pretregs & cg.allregs;
     if  (!retregs)
-        retregs = cgstate.allregs;
+        retregs = cg.allregs;
     const reg = allocreg(cdb,retregs, TYint);
 
     code cs;
     cs.Iop = PSOP.frameptr;
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.Irex = 0;
     cs.Irm = cast(ubyte)reg;
     cdb.gen(&cs);
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cg,cdb,e,retregs,pretregs);
 }
 
 /***************************************
@@ -2845,21 +3093,21 @@ void cdgot(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 {
     if (config.exe & (EX_OSX | EX_OSX64))
     {
-        regm_t retregs = pretregs & cgstate.allregs;
+        regm_t retregs = pretregs & cg.allregs;
         if  (!retregs)
-            retregs = cgstate.allregs;
+            retregs = cg.allregs;
         const reg = allocreg(cdb,retregs, TYnptr);
 
         cdb.genc(CALL,0,FL.unde,0,FL.got,0);     //     CALL L1
         cdb.genpop(reg);                  // L1: POP reg
 
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cg,cdb,e,retregs,pretregs);
     }
     else if (config.exe & EX_posix)
     {
-        regm_t retregs = pretregs & cgstate.allregs;
+        regm_t retregs = pretregs & cg.allregs;
         if  (!retregs)
-            retregs = cgstate.allregs;
+            retregs = cg.allregs;
         const reg = allocreg(cdb,retregs, TYnptr);
 
         cdb.genc2(CALL,0,0);        //     CALL L1
@@ -2871,14 +3119,14 @@ void cdgot(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
         /* Because the 2:3 offset from L1: is hardcoded,
          * this sequence of instructions must not
          * have any instructions in between,
-         * so set CFvolatile to prevent the scheduler from rearranging it.
+         * so set CF.volatile to prevent the scheduler from rearranging it.
          */
         code* cgot = cdb.last();
-        cgot.Iflags = CFoff | CFvolatile;
+        cgot.Iflags = CF.off | CF.volatile;
         cgot.IEV2.Voffset = (reg == AX) ? 2 : 3;
 
         makeitextern(gotsym);
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cg,cdb,e,retregs,pretregs);
     }
     else
         assert(0);
@@ -2889,9 +3137,9 @@ void cdgot(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
  */
 
 @trusted
-void load_localgot(ref CodeBuilder cdb)
+void load_localgot(ref CGstate cg, ref CodeBuilder cdb)
 {
-    if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS)) // note: I32 only
+    if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS | EX_HURD)) // note: I32 only
     {
         if (config.flags3 & CFG3pic)
         {
@@ -2900,7 +3148,7 @@ void load_localgot(ref CodeBuilder cdb)
                 localgot.Sflags &= ~GTregcand;     // because this hack doesn't work with reg allocator
                 elem* e = el_var(localgot);
                 regm_t retregs = mBX;
-                codelem(cgstate,cdb,e,retregs,false);
+                codelem(cg,cdb,e,retregs,false);
                 el_free(e);
             }
             else
@@ -2908,7 +3156,7 @@ void load_localgot(ref CodeBuilder cdb)
                 elem* e = el_long(TYnptr, 0);
                 e.Eoper = OPgot;
                 regm_t retregs = mBX;
-                codelem(cgstate,cdb,e,retregs,false);
+                codelem(cg,cdb,e,retregs,false);
                 el_free(e);
             }
         }
@@ -2952,7 +3200,7 @@ void genregs(ref CodeBuilder cdb,opcode_t op,uint dstreg,uint srcreg)
 void gentstreg(ref CodeBuilder cdb, uint t)
 {
     cdb.gen2(0x85,modregxrmx(3,t,t));   // TEST t,t
-    code_orflag(cdb.last(),CFpsw);
+    code_orflag(cdb.last(),CF.psw);
 }
 
 void genpush(ref CodeBuilder cdb, reg_t reg)
@@ -3064,7 +3312,7 @@ void genmulimm(ref CodeBuilder cdb,reg_t r1,reg_t r2,targ_int imm)
         {
             code cs;
             cs.Iop = LEA;
-            cs.Iflags = 0;
+            cs.Iflags = CF.zero;
             cs.Irex = 0;
             buildEA(&cs,r2,r2,4,0);
             cs.orReg(r1);
@@ -3106,9 +3354,9 @@ void genshift(ref CodeBuilder cdb)
  */
 
 @trusted
-void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
+void movregconst(ref CGstate cg,ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
 {
-    if (cgstate.AArch64)
+    if (cg.AArch64)
         return dmd.backend.arm.cod3.movregconst(cdb, reg, value, flags);
 
     reg_t r;
@@ -3116,8 +3364,8 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
 
     //printf("movregconst(reg=%s, value= %lld (%llx), flags=%x)\n", regm_str(mask(reg)), value, value, flags);
 
-    regm_t regm = cgstate.regcon.immed.mval & mask(reg);
-    targ_size_t regv = cgstate.regcon.immed.value[reg];
+    regm_t regm = cg.regcon.immed.mval & mask(reg);
+    targ_size_t regv = cg.regcon.immed.value[reg];
 
     if (flags & 1)      // 8 bits
     {
@@ -3129,8 +3377,8 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
             goto L2;
 
         if (flags & 16 && reg & 4 &&    // if an H byte register
-            cgstate.regcon.immed.mval & mask(reg & 3) &&
-            (((regv = cgstate.regcon.immed.value[reg & 3]) >> 8) & 0xFF) == value)
+            cg.regcon.immed.mval & mask(reg & 3) &&
+            (((regv = cg.regcon.immed.value[reg & 3]) >> 8) & 0xFF) == value)
             goto L2;
 
         /* Avoid byte register loads to avoid dependency stalls.
@@ -3141,11 +3389,11 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
 
         // See if another register has the right value
         r = 0;
-        for (mreg = (cgstate.regcon.immed.mval & BYTEREGS); mreg; mreg >>= 1)
+        for (mreg = (cg.regcon.immed.mval & BYTEREGS); mreg; mreg >>= 1)
         {
             if (mreg & 1)
             {
-                if ((cgstate.regcon.immed.value[r] & 0xFF) == value)
+                if ((cg.regcon.immed.value[r] & 0xFF) == value)
                 {
                     genregs(cdb,0x8A,reg,r);          // MOV regL,rL
                     if (I64 && reg >= 4 || r >= 4)
@@ -3153,7 +3401,7 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
                     goto L2;
                 }
                 if (!(I64 && reg >= 4) &&
-                    r < 4 && ((cgstate.regcon.immed.value[r] >> 8) & 0xFF) == value)
+                    r < 4 && ((cg.regcon.immed.value[r] >> 8) & 0xFF) == value)
                 {
                     genregs(cdb,0x8A,reg,r | 4);      // MOV regL,rH
                     goto L2;
@@ -3168,7 +3416,7 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
                 !(flags & 16 && reg & 4))       // and reg is not an H register
             {
                 genregs(cdb,0x31,reg,reg);      // XOR reg,reg
-                cgstate.regimmed_set(reg,value);
+                cg.regimmed_set(reg,value);
                 regv = 0;
             }
             else
@@ -3189,10 +3437,10 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
 
         if (regm)
             // Set just the 'L' part of the register value
-            cgstate.regimmed_set(reg,(regv & ~cast(targ_size_t)0xFF) | value);
-        else if (flags & 16 && reg & 4 && cgstate.regcon.immed.mval & mask(reg & 3))
+            cg.regimmed_set(reg,(regv & ~cast(targ_size_t)0xFF) | value);
+        else if (flags & 16 && reg & 4 && cg.regcon.immed.mval & mask(reg & 3))
             // Set just the 'H' part of the register value
-            cgstate.regimmed_set((reg & 3),(regv & ~cast(targ_size_t)0xFF00) | (value << 8));
+            cg.regimmed_set((reg & 3),(regv & ~cast(targ_size_t)0xFF00) | (value << 8));
         return;
     }
 L3:
@@ -3207,7 +3455,7 @@ L3:
         if (value && !(flags & mPSW))
         {
             cdb.genc2(0xC7,modregrmx(3,0,reg),value); // MOV reg,value
-            cgstate.regimmed_set(reg, value);
+            cg.regimmed_set(reg, value);
             return;
         }
     }
@@ -3268,7 +3516,7 @@ L3:
         else
         {
             // Look for single byte conversion
-            if (cgstate.regcon.immed.mval & mAX)
+            if (cg.regcon.immed.mval & mAX)
             {
                 if (I32)
                 {
@@ -3278,7 +3526,7 @@ L3:
                         goto done;
                     }
                     if (reg == DX &&
-                        value == (cgstate.regcon.immed.value[AX] & 0x80000000 ? 0xFFFFFFFF : 0) &&
+                        value == (cg.regcon.immed.value[AX] & 0x80000000 ? 0xFFFFFFFF : 0) &&
                         !(config.flags4 & CFG4speed && config.target_cpu >= TARGET_Pentium)
                        )
                     {
@@ -3296,7 +3544,7 @@ L3:
                     }
 
                     if (reg == DX &&
-                        cast(targ_short) value == (cgstate.regcon.immed.value[AX] & 0x8000 ? cast(targ_short) 0xFFFF : cast(targ_short) 0) &&
+                        cast(targ_short) value == (cg.regcon.immed.value[AX] & 0x8000 ? cast(targ_short) 0xFFFF : cast(targ_short) 0) &&
                         !(config.flags4 & CFG4speed && config.target_cpu >= TARGET_Pentium)
                        )
                     {
@@ -3331,12 +3579,12 @@ L3:
 
             // See if another register has the right value
             r = 0;
-            for (mreg = cgstate.regcon.immed.mval; mreg; mreg >>= 1)
+            for (mreg = cg.regcon.immed.mval; mreg; mreg >>= 1)
             {
                 debug
-                assert(!I16 || cgstate.regcon.immed.value[r] == cast(targ_short)cgstate.regcon.immed.value[r]);
+                assert(!I16 || cg.regcon.immed.value[r] == cast(targ_short)cg.regcon.immed.value[r]);
 
-                if (mreg & 1 && cgstate.regcon.immed.value[r] == value)
+                if (mreg & 1 && cg.regcon.immed.value[r] == value)
                 {
                     genmovreg(cdb,reg,r);
                     goto done;
@@ -3356,14 +3604,14 @@ L3:
                 {
                     if ((regv & ~cast(targ_size_t)0xFF) == (value & ~cast(targ_size_t)0xFF))
                     {
-                        movregconst(cdb,reg,value,(flags & 8) |4|1);  // load regL
+                        movregconst(cg,cdb,reg,value,(flags & 8) |4|1);  // load regL
                         return;
                     }
                     if (regm & (mAX|mBX|mCX|mDX) &&
                         (regv & ~cast(targ_size_t)0xFF00) == (value & ~cast(targ_size_t)0xFF00) &&
                         !I64)
                     {
-                        movregconst(cdb,4|reg,value >> 8,(flags & 8) |4|1|16); // load regH
+                        movregconst(cg,cdb,4|reg,value >> 8,(flags & 8) |4|1|16); // load regH
                         return;
                     }
                 }
@@ -3377,7 +3625,7 @@ L3:
             }
         }
     done:
-        cgstate.regimmed_set(reg,value);
+        cg.regimmed_set(reg,value);
     }
 }
 
@@ -3390,14 +3638,14 @@ void genjmp(ref CodeBuilder cdb, opcode_t op, FL fltarg, block* targ)
 {
     code cs;
     cs.Iop = op & 0xFF;
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.Irex = 0;
     if (op != JMP && op != 0xE8)        // if not already long branch
-          cs.Iflags = CFjmp16;          // assume long branch for op = 0x7x
+          cs.Iflags = CF.jmp16;          // assume long branch for op = 0x7x
     cs.IFL2 = fltarg;                   // FL.block (or FL.code)
     cs.IEV2.Vblock = targ;              // target block (or code)
     if (fltarg == FL.code)
-        (cast(code*)targ).Iflags |= CFtarg;
+        (cast(code*)targ).Iflags |= CF.targ;
 
     if (config.flags4 & CFG4fastfloat)  // if fast floating point
     {
@@ -3471,7 +3719,7 @@ void prolog_ifunc2(ref CodeBuilder cdb, tym_t tyf, tym_t tym, bool pushds)
         cdb.genc(0xC7, modregrm(3,0,AX), FL.unde, 0, FL.datseg, cast(targ_uns) 0); // MOV  AX,DGROUP
         code* c = cdb.last();
         c.IEV2.Vseg = DATA;
-        c.Iflags ^= CFseg | CFoff;            // turn off CFoff, on CFseg
+        c.Iflags ^= CF.seg | CF.off;            // turn off CF.off, on CF.seg
         cdb.gen2(0x8E,modregrm(3,3,AX));       // MOV  DS,AX
         useregs(mAX);
     }
@@ -3501,7 +3749,7 @@ void prolog_16bit_windows_farfunc(ref CodeBuilder cdb, tym_t* tyf, bool* pushds)
             cdb.genc(0xC7, modregrm(3, 0, AX), FL.unde, 0, FL.datseg, cast(targ_uns) 0);
             code* c = cdb.last();
             c.IEV2.Vseg = DATA;
-            c.Iflags ^= CFseg | CFoff;     // turn off CFoff, on CFseg
+            c.Iflags ^= CF.seg | CF.off;     // turn off CF.off, on CF.seg
             break;
         }
 
@@ -3582,7 +3830,7 @@ void prolog_frame(ref CGstate cg, ref CodeBuilder cdb, bool farfunc, ref uint xl
          config.flags4 & CFG4speed)
        )
     {
-        if (cgstate.AArch64)
+        if (cg.AArch64)
         {
             if (log) printf("prolog_frame: stp\n");
             if (16 + xlocalsize <= 512)
@@ -3631,14 +3879,14 @@ void prolog_frame(ref CGstate cg, ref CodeBuilder cdb, bool farfunc, ref uint xl
                 code_orrex(cdb.last(), REX_W);   // MOV RBP,RSP
         }
         if ((config.objfmt & (OBJ_ELF | OBJ_MACH)) && config.fulltypes)
-            // Don't reorder instructions, as dwarf CFA relies on it
-            code_orflag(cdb.last(), CFvolatile);
+            // Do not reorder instructions, as dwarf CFA relies on it
+            code_orflag(cdb.last(), CF.volatile);
 static if (NTEXCEPTIONS == 2)
 {
         if (cg.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) || config.ehmethod == EHmethod.EH_SEH))
         {
-            nteh_prolog(cdb);
-            int sz = nteh_contextsym_size();
+            nteh_prolog(cg, cdb);
+            int sz = nteh_contextsym_size(cg);
             assert(sz != 0);        // should be 5*4, not 0
             xlocalsize -= sz;      // sz is already subtracted from ESP
                                     // by nteh_prolog()
@@ -3647,16 +3895,7 @@ static if (NTEXCEPTIONS == 2)
         if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
             config.ehmethod == EHmethod.EH_DWARF)
         {
-            int off = 2 * REGSIZE;      // 1 for the return address + 1 for the PUSH EBP
-            dwarf_CFA_set_loc(1);           // address after PUSH EBP
-            dwarf_CFA_set_reg_offset(SP, off); // CFA is now 8[ESP]
-            dwarf_CFA_offset(BP, -off);       // EBP is at 0[ESP]
-            dwarf_CFA_set_loc(I64 ? 4 : 3);   // address after MOV EBP,ESP
-            /* Oddly, the CFA is not the same as the frame pointer,
-             * which is why the offset of BP is set to 8
-             */
-            dwarf_CFA_set_reg_offset(BP, off);        // CFA is now 0[EBP]
-            cfa_offset = off;  // remember the difference between the CFA and the frame pointer
+            dwarf_emit_eh_frame(cg.AArch64,xlocalsize,cfa_offset);
         }
         enter = false;              /* do not use ENTER instruction */
     }
@@ -3701,7 +3940,7 @@ void prolog_frameadj(ref CGstate cg, ref CodeBuilder cdb, tym_t tyf, uint xlocal
         if (I16)
         {
             // BUG: Won't work if parameter is passed in AX
-            movregconst(cdb,AX,xlocalsize,false); // MOV AX,localsize
+            movregconst(cg,cdb,AX,xlocalsize,false); // MOV AX,localsize
             makeitextern(getRtlsym(RTLSYM.CHKSTK));
                                                     // CALL _chkstk
             cdb.gencs((LARGECODE) ? 0x9A : CALL,0,FL.func,getRtlsym(RTLSYM.CHKSTK));
@@ -3720,9 +3959,9 @@ void prolog_frameadj(ref CGstate cg, ref CodeBuilder cdb, tym_t tyf, uint xlocal
              *      JNE     L1
              *      SUB     ESP, xlocalsize % 0x1000
              */
-            movregconst(cdb, reg, xlocalsize / 0x1000, false);
+            movregconst(cg,cdb, reg, xlocalsize / 0x1000, false);
             cod3_stackadj(cdb, 0x1000);
-            code_orflag(cdb.last(), CFtarg2);
+            code_orflag(cdb.last(), CF.targ2);
             cdb.gen2sib(0x85, modregrm(0,SP,4),modregrm(0,4,SP));
             if (I64)
             {   cdb.gen2(0xFF, modregrmx(3,1,R11));   // DEC R11D
@@ -3737,7 +3976,7 @@ void prolog_frameadj(ref CGstate cg, ref CodeBuilder cdb, tym_t tyf, uint xlocal
             useregs(mask(reg));
         }
     }
-    else if (cgstate.AArch64)
+    else if (cg.AArch64)
     {
 static if (0)
 {
@@ -3791,7 +4030,7 @@ static if (0)
             cdb.genpush(pushallocreg);    // PUSH AX
             // Do this to prevent an -x[EBP] to be moved in
             // front of the push.
-            code_orflag(cdb.last(),CFvolatile);
+            code_orflag(cdb.last(),CF.volatile);
             *pushalloc = true;
         }
         else
@@ -3828,15 +4067,15 @@ void prolog_frameadj2(ref CGstate cg, ref CodeBuilder cdb, tym_t tyf, uint xloca
 }
 
 @trusted
-void prolog_setupalloca(ref CodeBuilder cdb)
+void prolog_setupalloca(ref CGstate cg, ref CodeBuilder cdb)
 {
     //printf("prolog_setupalloca() offset x%x size x%x alignment x%x\n",
-        //cast(int)cgstate.Alloca.offset, cast(int)cgstate.Alloca.size, cast(int)cgstate.Alloca.alignment);
+        //cast(int)cg.Alloca.offset, cast(int)cg.Alloca.size, cast(int)cg.Alloca.alignment);
     // Set up magic parameter for alloca()
     // MOV -REGSIZE[BP],localsize - BPoff
     cdb.genc(0xC7,modregrm(2,0,BPRM),
-            FL.const_,cgstate.Alloca.offset + cgstate.BPoff,
-            FL.const_,localsize - cgstate.BPoff);
+            FL.const_,cg.Alloca.offset + cg.BPoff,
+            FL.const_,localsize - cg.BPoff);
     if (I64)
         code_orrex(cdb.last(), REX_W);
 }
@@ -3964,7 +4203,7 @@ private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topo
 
     debug
     if (topop & ~(XMMREGS | 0xFFFF))
-        printf("fregsaved = %s, mfuncreg = %s\n",regm_str(fregsaved),regm_str(cg.mfuncreg));
+        printf("fregsaved = %s, mfuncreg = %s\n",regm_str(cg.fregsaved),regm_str(cg.mfuncreg));
 
     assert(!(topop & ~(XMMREGS | 0xFFFF)));
     if (cg.pushoffuse)
@@ -4284,18 +4523,19 @@ void prolog_gen_win64_varargs(ref CodeBuilder cdb)
  * Take the parameters passed in registers, and put them into the function's local
  * symbol table.
  * Params:
+ *      cg = code generator state
  *      cdb = generated code sink
  *      tf = what's the type of the function
  *      pushalloc = use PUSH to allocate on the stack rather than subtracting from SP
  */
 @trusted
-void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
+void prolog_loadparams(ref CGstate cg, ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
 {
     //printf("prolog_loadparams() %s\n", funcsym_p.Sident.ptr);
     debug
+    if (debugr)
     foreach (s; globsym[])
     {
-        if (debugr)
         if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
         {
             printf("symbol '%s' is fastpar in register [l %s, m %s]\n", s.Sident.ptr,
@@ -4306,7 +4546,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
         }
     }
 
-    bool AArch64 = cgstate.AArch64;
+    bool AArch64 = cg.AArch64;
     uint pushallocreg = (tyf == TYmfunc) ? CX : AX;
 
     /* Copy SCfastpar and SCshadowreg (parameters passed in registers) that were not assigned
@@ -4315,8 +4555,6 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
     regm_t shadowregm = 0;
     foreach (s; globsym[])
     {
-        uint sz = cast(uint)type_size(s.Stype);
-
         if (!((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) && s.Sfl != FL.reg))
             continue;
         // Argument is passed in a register
@@ -4336,6 +4574,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
             argtypes(t, targ1, t2);
             if (targ1)
                 t = targ1;
+            //printf("t: %s t2: %s\n", tym_str(t.Tty), tym_str(t2.Tty));
         }
 
         // If struct just wraps another type
@@ -4352,22 +4591,26 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
             }
         }
 
-        if (Symbol_Sisdead(*s, cgstate.anyiasm))
+        if (Symbol_Sisdead(*s, cg.anyiasm))
         {
             // Ignore it, as it is never referenced
             continue;
         }
 
-        targ_size_t offset = cgstate.Fast.size + cgstate.BPoff;
+        targ_size_t offset = cg.Fast.size + cg.BPoff;
         if (s.Sclass == SC.shadowreg)
-            offset = cgstate.Para.size;
+            offset = cg.Para.size;
         offset += s.Soffset;
-        if (!cgstate.hasframe || (cgstate.enforcealign && s.Sclass != SC.shadowreg))
-            offset += cgstate.EBPtoESP;
+        if (!cg.hasframe || (cg.enforcealign && s.Sclass != SC.shadowreg))
+            offset += cg.EBPtoESP;
 
+//        uint sz = cast(uint)type_size(s.Stype);
         reg_t preg = s.Spreg;
+        //printf("Spreg: %d Spreg2: %d\n", preg, s.Spreg2);
         foreach (i; 0 .. 2)     // twice, once for each possible parameter register
         {
+            //printf("i: %d t: %s offset: %d\n", i, tym_str(t.Tty), cast(int)offset);
+            uint sz = cast(uint)type_size(t);
             static type* type_arrayBase(type* ta)
             {
                 while (tybasic(ta.Tty) == TYarray)
@@ -4380,18 +4623,29 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                 : 0x89;    // MOV x[EBP],preg
             if (!(pushalloc && preg == pushallocreg) || s.Sclass == SC.shadowreg)
             {
-                if (cgstate.hasframe && (!cgstate.enforcealign || s.Sclass == SC.shadowreg))
+                if (cg.hasframe && (!cg.enforcealign || s.Sclass == SC.shadowreg))
                 {
                     if (AArch64)
                     {
                         uint imm = cast(uint)(offset + localsize + 16);
                         if (tyfloating(t.Tty))
                         {
+                            if (tycomplex(t.Tty))
+                            {
+                                sz /= 2;
+                            }
                             // STR preg,[bp,#offset]
                             uint size, opc;
-                            INSTR.szToSizeOpc(sz, size, opc);
+                            INSTR.szToSizeOpcStr(sz, size, opc);
                             imm /= sz;
                             cdb.gen1(INSTR.str_imm_fpsimd(size,opc,imm,29,preg)); // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
+                            if (tycomplex(t.Tty))
+                            {
+                                /* want to add sz, not REGSIZE, for Spreg2
+                                 * so account for adding REGSIZE at end of loop
+                                 */
+                                offset += sz - REGSIZE;
+                            }
                         }
                         else
                             // STR preg,bp,#offset
@@ -4408,7 +4662,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                         else
                         {
                             //printf("%s Fast.size = %d, BPoff = %d, Soffset = %d, sz = %d\n",
-                            //         s.Sident, (int)cgstate.Fast.size, (int)cgstate.BPoff, (int)s.Soffset, (int)sz);
+                            //         s.Sident, (int)cg.Fast.size, (int)cg.BPoff, (int)s.Soffset, (int)sz);
                             if (I64 && sz > 4)
                                 code_orrex(cdb.last(), REX_W);
                         }
@@ -4420,12 +4674,12 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                     {
                         // STR preg,[sp,#offset]
 //printf("prolog_loadparams sz=%d preg:%d\n", sz, preg);
-//printf("offset(%d) = Fast.size(%d) + BPoff(%d) + EBPtoESP(%d)\n",cast(int)offset,cast(int)cgstate.Fast.size,cast(int)cgstate.BPoff,cast(int)cgstate.EBPtoESP);
+//printf("offset(%d) = Fast.size(%d) + BPoff(%d) + EBPtoESP(%d)\n",cast(int)offset,cast(int)cg.Fast.size,cast(int)cg.BPoff,cast(int)cg.EBPtoESP);
                         uint imm = cast(uint)offset;
                         if (mask(preg) & INSTR.FLOATREGS)
                         {
                             uint size, opc;
-                            INSTR.szToSizeOpc(sz, size, opc);
+                            INSTR.szToSizeOpcStr(sz, size, opc);
                             imm /= sz;
                             cdb.gen1(INSTR.str_imm_fpsimd(size,opc,imm,31,preg)); // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
                         }
@@ -4474,10 +4728,10 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
         for (int i = 0; i < vregs.length; ++i)
         {
             uint preg = vregs[i];
-            uint offset = cast(uint)(cgstate.Para.size + i * REGSIZE);
+            uint offset = cast(uint)(cg.Para.size + i * REGSIZE);
             if (!(shadowregm & (mask(preg) | mask(XMM0 + i))))
             {
-                if (cgstate.hasframe)
+                if (cg.hasframe)
                 {
                     // MOV x[EBP],preg
                     cdb.genc1(0x89,
@@ -4489,7 +4743,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                     // MOV offset[ESP],preg
                     cdb.genc1(0x89,
                                      (modregrm(0,4,SP) << 8) |
-                                     modregxrm(2,preg,4),FL.const_,offset + cgstate.EBPtoESP);
+                                     modregxrm(2,preg,4),FL.const_,offset + cg.EBPtoESP);
                 }
                 cdb.last().Irex |= REX_W;
             }
@@ -4565,7 +4819,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
 
         if (!((s.Sclass == SC.regpar || s.Sclass == SC.parameter) &&
             s.Sfl == FL.reg &&
-            (cgstate.refparam
+            (cg.refparam
                 // This variable has been reference by a nested function
                 || MARS && s.Stype.Tty & mTYvolatile
                 )))
@@ -4578,46 +4832,46 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
         {
             const op = xmmload(s.Stype.Tty);  // MOVSS/D xreg,mem
             uint xreg = s.Sreglsw - XMM0;
-            cdb.genc1(op,modregxrm(2,xreg,BPRM),FL.const_,cgstate.Para.size + s.Soffset);
-            if (!cgstate.hasframe)
+            cdb.genc1(op,modregxrm(2,xreg,BPRM),FL.const_,cg.Para.size + s.Soffset);
+            if (!cg.hasframe)
             {   // Convert to ESP relative address rather than EBP
                 code* c = cdb.last();
                 c.Irm = cast(ubyte)modregxrm(2,xreg,4);
                 c.Isib = modregrm(0,4,SP);
-                c.IEV1.Vpointer += cgstate.EBPtoESP;
+                c.IEV1.Vpointer += cg.EBPtoESP;
             }
             continue;
         }
 
         cdb.genc1(sz == 1 ? 0x8A : 0x8B,
-            modregxrm(2,s.Sreglsw,BPRM),FL.const_,cgstate.Para.size + s.Soffset);
+            modregxrm(2,s.Sreglsw,BPRM),FL.const_,cg.Para.size + s.Soffset);
         code* c = cdb.last();
         if (!I16 && sz == SHORTSIZE)
-            c.Iflags |= CFopsize; // operand size
+            c.Iflags |= CF.opsize; // operand size
         if (I64 && sz >= REGSIZE)
             c.Irex |= REX_W;
         if (I64 && sz == 1 && s.Sreglsw >= 4)
             c.Irex |= REX;
-        if (!cgstate.hasframe)
+        if (!cg.hasframe)
         {   // Convert to ESP relative address rather than EBP
             assert(!I16);
             c.Irm = cast(ubyte)modregxrm(2,s.Sreglsw,4);
             c.Isib = modregrm(0,4,SP);
-            c.IEV1.Vpointer += cgstate.EBPtoESP;
+            c.IEV1.Vpointer += cg.EBPtoESP;
         }
         if (sz > REGSIZE)
         {
             cdb.genc1(0x8B,
-                modregxrm(2,s.Sregmsw,BPRM),FL.const_,cgstate.Para.size + s.Soffset + REGSIZE);
+                modregxrm(2,s.Sregmsw,BPRM),FL.const_,cg.Para.size + s.Soffset + REGSIZE);
             code* cx = cdb.last();
             if (I64)
                 cx.Irex |= REX_W;
-            if (!cgstate.hasframe)
+            if (!cg.hasframe)
             {   // Convert to ESP relative address rather than EBP
                 assert(!I16);
                 cx.Irm = cast(ubyte)modregxrm(2,s.Sregmsw,4);
                 cx.Isib = modregrm(0,4,SP);
-                cx.IEV1.Vpointer += cgstate.EBPtoESP;
+                cx.IEV1.Vpointer += cg.EBPtoESP;
             }
         }
     }
@@ -4630,10 +4884,10 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
  */
 
 @trusted
-void epilog(block* b)
+void epilog(ref CGstate cg, block* b)
 {
-    if (cgstate.AArch64)
-        return dmd.backend.arm.cod3.epilog(b);
+    if (cg.AArch64)
+        return dmd.backend.arm.cod3.epilog(cg, b);
 
     code* cpopds;
     reg_t reg;
@@ -4649,7 +4903,7 @@ void epilog(block* b)
         goto Lret;                      // just generate RET
     regx = (b.bc == BC.ret) ? AX : CX;
 
-    cgstate.retsize = 0;
+    cg.retsize = 0;
 
     if (tyf & mTYnaked)                 // if no prolog/epilog
         return;
@@ -4681,13 +4935,13 @@ void epilog(block* b)
         makeitextern(s);
         cdbx.gencs(I16 ? 0x9A : CALL,0,FL.func,s);      // CALLF _trace
         if (!I16)
-            code_orflag(cdbx.last(),CFoff | CFselfrel);
+            code_orflag(cdbx.last(),CF.off | CF.selfrel);
         useregs((ALLREGS | mBP | mES) & ~s.Sregsaved);
     }
 
-    if (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.exe == EX_WIN32 || MARS))
+    if (cg.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.exe == EX_WIN32 || MARS))
     {
-        nteh_epilog(cdbx);
+        nteh_epilog(cg, cdbx);
     }
 
     cpopds = null;
@@ -4701,15 +4955,15 @@ void epilog(block* b)
      * by the prolog code. Remember to do them in the reverse
      * order they were pushed.
      */
-    topop = fregsaved & ~cgstate.mfuncreg;
-    epilog_restoreregs(cgstate, cdbx, topop);
+    topop = cg.fregsaved & ~cg.mfuncreg;
+    epilog_restoreregs(cg, cdbx, topop);
 
-    if (cgstate.usednteh & NTEHjmonitor)
+    if (cg.usednteh & NTEHjmonitor)
     {
         regm_t retregs = 0;
         if (b.bc == BC.retexp)
             retregs = regmask(b.Belem.Ety, tym);
-        nteh_monitor_epilog(cdbx,retregs);
+        nteh_monitor_epilog(cg,cdbx,retregs);
         xlocalsize += 8;
     }
 
@@ -4736,15 +4990,15 @@ void epilog(block* b)
         cdbx.genpop(BP);                        // POP BP
         if (config.wflags & WFincbp)
             cdbx.gen1(0x48 + BP);               // DEC BP
-        assert(cgstate.hasframe);
+        assert(cg.hasframe);
     }
     else
     {
-        if (cgstate.needframe || (xlocalsize && cgstate.hasframe))
+        if (cg.needframe || (xlocalsize && cg.hasframe))
         {
         L4:
-            assert(cgstate.hasframe);
-            if (xlocalsize || cgstate.enforcealign)
+            assert(cg.hasframe);
+            if (xlocalsize || cg.enforcealign)
             {
                 if (config.flags2 & CFG2stomp)
                 {   /*   MOV  ECX,0xBEAF
@@ -4764,7 +5018,7 @@ void epilog(block* b)
                     assert(I32 || I64);
                     targ_size_t value = 0x0000BEAF;
                     reg_t regcx = CX;
-                    cgstate.mfuncreg &= ~mask(regcx);
+                    cg.mfuncreg &= ~mask(regcx);
                     uint grex = I64 ? REX_W << 16 : 0;
                     cdbx.genc2(0xC7,grex | modregrmx(3,0,regcx),value);   // MOV regcx,value
                     cdbx.gen2sib(0x89,grex | modregrm(0,regcx,4),modregrm(0,4,SP)); // MOV [ESP],regcx
@@ -4775,7 +5029,7 @@ void epilog(block* b)
                         code_orrex(cdbx.last(),REX_W);
                     genjmp(cdbx,JNE,FL.code,cast(block*)c1);                  // JNE L1
                     // explicitly mark as short jump, needed for correct retsize calculation (Bugzilla 15779)
-                    cdbx.last().Iflags &= ~CFjmp16;
+                    cdbx.last().Iflags &= ~CF.jmp16;
                     cdbx.genpop(BP);                                      // POP BP
                 }
                 else if (config.exe == EX_WIN64)
@@ -4788,9 +5042,9 @@ void epilog(block* b)
                     !(config.target_cpu >= TARGET_80386 && config.flags4 & CFG4speed)
                    )
                     cdbx.gen1(LEAVE);          // LEAVE
-                else if (0 && xlocalsize == REGSIZE && cgstate.Alloca.size == 0 && I32)
+                else if (0 && xlocalsize == REGSIZE && cg.Alloca.size == 0 && I32)
                 {   // This doesn't work - I should figure out why
-                    cgstate.mfuncreg &= ~mask(regx);
+                    cg.mfuncreg &= ~mask(regx);
                     cdbx.genpop(regx);    // POP regx
                     cdbx.genpop(BP);      // POP BP
                 }
@@ -4809,7 +5063,7 @@ void epilog(block* b)
         }
         else if (xlocalsize == REGSIZE && (!I16 || b.bc == BC.ret))
         {
-            cgstate.mfuncreg &= ~mask(regx);
+            cg.mfuncreg &= ~mask(regx);
             cdbx.genpop(regx);                     // POP regx
         }
         else if (xlocalsize)
@@ -4825,15 +5079,15 @@ Lret:
         }
         else if (!typfunc(tym) ||                       // if caller cleans the stack
                  config.exe == EX_WIN64 ||
-                 cgstate.Para.offset == 0)                      // or nothing pushed on the stack anyway
+                 cg.Para.offset == 0)                      // or nothing pushed on the stack anyway
         {
             op++;                                       // to a regular RET
             cdbx.gen1(op);
         }
         else
         {   // Stack is always aligned on register size boundary
-            cgstate.Para.offset = (cgstate.Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
-            if (cgstate.Para.offset >= 0x10000)
+            cg.Para.offset = (cg.Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
+            if (cg.Para.offset >= 0x10000)
             {
                 /*
                     POP REG
@@ -4841,7 +5095,7 @@ Lret:
                     JMP REG
                 */
                 cdbx.genpop(regx);
-                cdbx.genc2(0x81, modregrm(3,0,SP), cgstate.Para.offset);
+                cdbx.genc2(0x81, modregrm(3,0,SP), cg.Para.offset);
                 if (I64)
                     code_orrex(cdbx.last(), REX_W);
                 cdbx.genc2(0xFF, modregrm(3,4,regx), 0);
@@ -4849,7 +5103,7 @@ Lret:
                     code_orrex(cdbx.last(), REX_W);
             }
             else
-                cdbx.genc2(op,0,cgstate.Para.offset);          // RET Para.offset
+                cdbx.genc2(op,0,cg.Para.offset);          // RET Para.offset
         }
     }
 
@@ -4897,7 +5151,7 @@ static if (0)
     }
 
     pinholeopt(c, null);
-    cgstate.retsize += calcblksize(c);          // compute size of function epilog
+    cg.retsize += calcblksize(c);          // compute size of function epilog
     cdb.append(cdbx);
     b.Bcode = cdb.finish();
 }
@@ -4916,6 +5170,13 @@ targ_size_t cod3_spoff()
 @trusted
 void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
 {
+    CGstate* cg = &cgstate;
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod3 : gen_spill_reg;
+        return gen_spill_reg(cdb, s, toreg);
+    }
+
     code cs;
     const regm_t keepmsk = 0;
     const RM rm = toreg ? RM.load : RM.store;
@@ -4928,7 +5189,7 @@ void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
             cs.Iop = xmmload(s.Stype.Tty);        // MOVSS/D xreg,mem
         else
             cs.Iop = xmmstore(s.Stype.Tty);       // MOVSS/D mem,xreg
-        getlvalue(cdb,cs,e,keepmsk,rm);
+        getlvalue(*cg,cdb,cs,e,keepmsk,rm);
         cs.orReg(s.Sreglsw - XMM0);
         cdb.gen(&cs);
     }
@@ -4937,7 +5198,7 @@ void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
         const int sz = cast(int)type_size(s.Stype);
         cs.Iop = toreg ? 0x8B : 0x89; // MOV reg,mem[ESP] : MOV mem[ESP],reg
         cs.Iop ^= (sz == 1);
-        getlvalue(cdb,cs,e,keepmsk,rm);
+        getlvalue(*cg,cdb,cs,e,keepmsk,rm);
         cs.orReg(s.Sreglsw);
         if (I64 && sz == 1 && s.Sreglsw >= 4)
             cs.Irex |= REX;
@@ -5068,7 +5329,7 @@ void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
             // If DS needs reloading from SS,
             // then assume SS != DS on thunk entry
             (LARGEDATA && config.wflags & WFss))
-            cdb.last().Iflags |= CFss;                 // SS:
+            cdb.last().Iflags |= CF.ss;                 // SS:
     }
 
     if ((i & 0xFFFF) != 0xFFFF)                 // if virtual call
@@ -5114,17 +5375,17 @@ void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
                 // If DS needs reloading from SS,
                 // then assume SS != DS on thunk entry
                 (LARGEDATA && config.wflags & WFss))
-                cdb.last().Iflags |= CFss;             // SS:
+                cdb.last().Iflags |= CF.ss;             // SS:
 
             // MOV/LES BX,[ES:]d2[BX]
             cdb.genc1((FARVPTR ? 0xC4 : 0x8B),modregrm(2,BX,7),FL.const_,d2);
             if (FARTHIS)
-                cdb.last().Iflags |= CFes;             // ES:
+                cdb.last().Iflags |= CF.es;             // ES:
 
                                                         // JMP i[BX]
             cdb.genc1(0xFF,modregrm(2,(LARGECODE ? 5 : 4),7),FL.const_,cast(targ_uns) i);
             if (FARVPTR)
-                cdb.last().Iflags |= CFes;             // ES:
+                cdb.last().Iflags |= CF.es;             // ES:
         }
     }
     else
@@ -5133,16 +5394,16 @@ void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
         {
             localgot = null;                // no local variables
             CodeBuilder cdbgot; cdbgot.ctor();
-            load_localgot(cdbgot);          // load GOT in EBX
+            load_localgot(cgstate,cdbgot);          // load GOT in EBX
             code* c1 = cdbgot.finish();
             if (c1)
             {
-                assignaddrc(c1);
+                assignaddrc(cgstate,c1);
                 cdb.append(c1);
             }
         }
         cdb.gencs((LARGECODE ? 0xEA : 0xE9),0,FL.func,sfunc); // JMP sfunc
-        cdb.last().Iflags |= LARGECODE ? (CFseg | CFoff) : (CFselfrel | CFoff);
+        cdb.last().Iflags |= LARGECODE ? (CF.seg | CF.off) : (CF.selfrel | CF.off);
     }
 
     thunkoffset = Offset(seg);
@@ -5218,8 +5479,8 @@ int branch(block* bl,int flag)
         csize = calccodsize(c);
         cn = code_next(c);
         op = cast(ubyte)c.Iop;
-        if ((op & ~0x0F) == 0x70 && c.Iflags & CFjmp16 ||
-            (op == JMP && !(c.Iflags & CFjmp5)))
+        if ((op & ~0x0F) == 0x70 && c.Iflags & CF.jmp16 ||
+            (op == JMP && !(c.Iflags & CF.jmp5)))
         {
           L1:
             switch (c.IFL2)
@@ -5260,7 +5521,7 @@ int branch(block* bl,int flag)
                     disp = 0;
 
                     ct = c.IEV2.Vcode;         /* target of branch     */
-                    assert(ct.Iflags & (CFtarg | CFtarg2));
+                    assert(ct.Iflags & (CF.targ | CF.targ2));
                     for (cr = cn; cr; cr = code_next(cr))
                     {
                         if (cr == ct)
@@ -5297,14 +5558,14 @@ int branch(block* bl,int flag)
                             else
                             {
                                 c.IEV2.Vcode = ct;
-                                ct.Iflags |= CFtarg;
+                                ct.Iflags |= CF.targ;
                                 break;
                             }
                         }
 
                         /* And eliminate jmps to jmps   */
                         if ((op == ct.Iop || ct.Iop == JMP) &&
-                            (op == JMP || c.Iflags & CFjmp16))
+                            (op == JMP || c.Iflags & CF.jmp16))
                         {
                             c.IFL2 = ct.IFL2;
                             c.IEV2.Vcode = ct.IEV2.Vcode;
@@ -5341,42 +5602,8 @@ int branch(block* bl,int flag)
                 }
                 else                            // else Jcond
                 {
-                    c.Iflags &= ~CFjmp16;      // a branch is ok
+                    c.Iflags &= ~CF.jmp16;      // a branch is ok
                     bytesaved += I16 ? 3 : 4;
-
-                    // Replace a cond jump around a call to a function that
-                    // never returns with a cond jump to that function.
-                    if (config.flags4 & CFG4optimized &&
-                        config.target_cpu >= TARGET_80386 &&
-                        disp == (I16 ? 3 : 5) &&
-                        cn &&
-                        cn.Iop == CALL &&
-                        cn.IFL2 == FL.func &&
-                        cn.IEV2.Vsym.Sflags & SFLexit &&
-                        !(cn.Iflags & (CFtarg | CFtarg2))
-                       )
-                    {
-                        cn.Iop = 0x0F00 | ((c.Iop & 0x0F) ^ 0x81);
-                        c.Iop = NOP;
-                        c.IEV2.Vcode = null;
-                        bytesaved++;
-
-                        // If nobody else points to ct, we can remove the CFtarg
-                        if (flag && ct)
-                        {
-                            code* cx;
-                            for (cx = bl.Bcode; 1; cx = code_next(cx))
-                            {
-                                if (!cx)
-                                {
-                                    ct.Iflags &= ~CFtarg;
-                                    break;
-                                }
-                                if (cx.IEV2.Vcode == ct)
-                                    break;
-                            }
-                        }
-                    }
                 }
                 csize = calccodsize(c);
             }
@@ -5403,7 +5630,7 @@ L3:
  */
 
 @trusted
-void cod3_adjSymOffsets()
+void cod3_adjSymOffsets(ref CGstate cg)
 {
     SYMIDX si;
 
@@ -5417,30 +5644,30 @@ void cod3_adjSymOffsets()
             case SC.parameter:
             case SC.regpar:
             case SC.shadowreg:
-//printf("s = '%s', Soffset = x%x, Para.size = x%x, EBPtoESP = x%x\n", s.Sident, s.Soffset, cgstate.Para.size, cgstate.EBPtoESP);
-                s.Soffset += cgstate.Para.size;
+//printf("s = '%s', Soffset = x%x, Para.size = x%x, EBPtoESP = x%x\n", s.Sident, s.Soffset, cg.Para.size, cg.EBPtoESP);
+                s.Soffset += cg.Para.size;
                 if (0 && !(funcsym_p.Sfunc.Fflags3 & Fmember))
                 {
-                    if (!cgstate.hasframe)
-                        s.Soffset += cgstate.EBPtoESP;
+                    if (!cg.hasframe)
+                        s.Soffset += cg.EBPtoESP;
                     if (funcsym_p.Sfunc.Fflags3 & Fnested)
                         s.Soffset += REGSIZE;
                 }
                 break;
 
             case SC.fastpar:
-//printf("\tfastpar %s %p Soffset %x Fast.size %x BPoff %x\n", s.Sident, s, cast(int)s.Soffset, cast(int)cgstate.Fast.size, cast(int)cgstate.BPoff);
-                s.Soffset += cgstate.Fast.size + cgstate.BPoff;
+//printf("\tfastpar %s %p Soffset %x Fast.size %x BPoff %x\n", s.Sident, s, cast(int)s.Soffset, cast(int)cg.Fast.size, cast(int)cg.BPoff);
+                s.Soffset += cg.Fast.size + cg.BPoff;
                 break;
 
             case SC.auto_:
             case SC.register:
                 if (s.Sfl == FL.fast)
-                    s.Soffset += cgstate.Fast.size + cgstate.BPoff;
+                    s.Soffset += cg.Fast.size + cg.BPoff;
                 else
-//printf("s = '%s', Soffset = x%x, Auto.size = x%x, BPoff = x%x EBPtoESP = x%x\n", s.Sident, cast(int)s.Soffset, cast(int)cgstate.Auto.size, cast(int)cgstate.BPoff, cast(int)cgstate.EBPtoESP);
+//printf("s = '%s', Soffset = x%x, Auto.size = x%x, BPoff = x%x EBPtoESP = x%x\n", s.Sident, cast(int)s.Soffset, cast(int)cg.Auto.size, cast(int)cg.BPoff, cast(int)cg.EBPtoESP);
 //              if (!(funcsym_p.Sfunc.Fflags3 & Fnested))
-                    s.Soffset += cgstate.Auto.size + cgstate.BPoff;
+                    s.Soffset += cg.Auto.size + cg.BPoff;
                 break;
 
             case SC.bprel:
@@ -5451,8 +5678,8 @@ void cod3_adjSymOffsets()
         }
         static if (0)
         {
-            if (!cgstate.hasframe)
-                s.Soffset += cgstate.EBPtoESP;
+            if (!cg.hasframe)
+                s.Soffset += cg.EBPtoESP;
         }
     }
 }
@@ -5463,28 +5690,28 @@ void cod3_adjSymOffsets()
  */
 
 @trusted
-void assignaddr(block* bl)
+void assignaddr(ref CGstate cg, block* bl)
 {
-    int EBPtoESPsave = cgstate.EBPtoESP;
-    const hasframesave = cgstate.hasframe;
+    int EBPtoESPsave = cg.EBPtoESP;
+    const hasframesave = cg.hasframe;
 
     if (bl.Bflags & BFL.outsideprolog)
     {
-        cgstate.EBPtoESP = -REGSIZE;
-        cgstate.hasframe = false;
+        cg.EBPtoESP = -REGSIZE;
+        cg.hasframe = false;
     }
-    assignaddrc(bl.Bcode);
-    cgstate.hasframe = hasframesave;
-    cgstate.EBPtoESP = EBPtoESPsave;
+    assignaddrc(cg,bl.Bcode);
+    cg.hasframe = hasframesave;
+    cg.EBPtoESP = EBPtoESPsave;
 }
 
 @trusted
-void assignaddrc(code* c)
+void assignaddrc(ref CGstate cg, code* c)
 {
-    if (cgstate.AArch64)
+    if (cg.AArch64)
     {
         import dmd.backend.arm.cod3 : assignaddrc;
-        return assignaddrc(c);
+        return assignaddrc(cg,c);
     }
 
     int sn;
@@ -5493,7 +5720,7 @@ void assignaddrc(code* c)
     targ_size_t soff;
     targ_size_t base;
 
-    base = cgstate.EBPtoESP;
+    base = cg.EBPtoESP;
     for (; c; c = code_next(c))
     {
         debug
@@ -5506,7 +5733,7 @@ void assignaddrc(code* c)
             assert(0);
         }
 
-        if (c.Iflags & CFvex && c.Ivex.pfx == 0xC4)
+        if (c.Iflags & CF.vex && c.Ivex.pfx == 0xC4)
             ins = vex_inssize(c);
         else if ((c.Iop & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(c.Iop >> 8) & 0xFF];
@@ -5516,30 +5743,30 @@ void assignaddrc(code* c)
         {
             if (c.Iop == PSOP.adjesp)
             {
-                //printf("adjusting EBPtoESP (%d) by %ld\n",cgstate.EBPtoESP,cast(long)c.IEV1.Vint);
-                cgstate.EBPtoESP += c.IEV1.Vint;
+                //printf("adjusting EBPtoESP (%d) by %ld\n",cg.EBPtoESP,cast(long)c.IEV1.Vint);
+                cg.EBPtoESP += c.IEV1.Vint;
                 c.Iop = NOP;
             }
             else if (c.Iop == PSOP.fixesp)
             {
                 //printf("fix ESP\n");
-                if (cgstate.hasframe)
+                if (cg.hasframe)
                 {
                     // LEA ESP,-EBPtoESP[EBP]
                     c.Iop = LEA;
                     if (c.Irm & 8)
                         c.Irex |= REX_R;
                     c.Irm = modregrm(2,SP,BP);
-                    c.Iflags = CFoff;
+                    c.Iflags = CF.off;
                     c.IFL1 = FL.const_;
-                    c.IEV1.Vuns = -cgstate.EBPtoESP;
-                    if (cgstate.enforcealign)
+                    c.IEV1.Vuns = -cg.EBPtoESP;
+                    if (cg.enforcealign)
                     {
                         // AND ESP, -STACKALIGN
                         code* cn = code_calloc();
                         cn.Iop = 0x81;
                         cn.Irm = modregrm(3, 4, SP);
-                        cn.Iflags = CFoff;
+                        cn.Iflags = CF.off;
                         cn.IFL2 = FL.const_;
                         cn.IEV2.Vsize_t = -STACKALIGN;
                         if (I64)
@@ -5552,7 +5779,7 @@ void assignaddrc(code* c)
             else if (c.Iop == PSOP.frameptr)
             {   // Convert to load of frame pointer
                 // c.Irm is the register to use
-                if (cgstate.hasframe && !cgstate.enforcealign)
+                if (cg.hasframe && !cg.enforcealign)
                 {   // MOV reg,EBP
                     c.Iop = 0x89;
                     if (c.Irm & 8)
@@ -5566,9 +5793,9 @@ void assignaddrc(code* c)
                         c.Irex |= REX_R;
                     c.Irm = modregrm(2,c.Irm & 7,4);
                     c.Isib = modregrm(0,4,SP);
-                    c.Iflags = CFoff;
+                    c.Iflags = CF.off;
                     c.IFL1 = FL.const_;
-                    c.IEV1.Vuns = cgstate.EBPtoESP;
+                    c.IEV1.Vuns = cg.EBPtoESP;
                 }
             }
             if (I64)
@@ -5599,25 +5826,8 @@ void assignaddrc(code* c)
         switch (c.IFL1)
         {
             case FL.data:
-                if (config.objfmt == OBJ_OMF && s.Sclass != SC.comdat && s.Sclass != SC.extern_)
-                {
-                    c.IEV1.Vseg = s.Sseg;
-                    c.IEV1.Vpointer += s.Soffset;
-                    c.IFL1 = FL.datseg;
-                }
-                else
-                    c.IFL1 = FL.extern_;
-                goto do2;
-
             case FL.udata:
-                if (config.objfmt == OBJ_OMF)
-                {
-                    c.IEV1.Vseg = s.Sseg;
-                    c.IEV1.Vpointer += s.Soffset;
-                    c.IFL1 = FL.datseg;
-                }
-                else
-                    c.IFL1 = FL.extern_;
+                c.IFL1 = FL.extern_;
                 goto do2;
 
             case FL.tlsdata:
@@ -5636,19 +5846,19 @@ void assignaddrc(code* c)
 
             case FL.stack:
                 //printf("Soffset = %d, EBPtoESP = %d, base = %d, pointer = %d\n",
-                //s.Soffset,cgstate.EBPtoESP,base,c.IEV1.Vpointer);
-                c.IEV1.Vpointer += s.Soffset + cgstate.EBPtoESP - base - cgstate.EEStack.offset;
+                //s.Soffset,cg.EBPtoESP,base,c.IEV1.Vpointer);
+                c.IEV1.Vpointer += s.Soffset + cg.EBPtoESP - base - cg.EEStack.offset;
                 break;
 
             case FL.fast:
-                soff = cgstate.Fast.size;
+                soff = cg.Fast.size;
                 goto L1;
 
             case FL.reg:
             case FL.auto_:
-                soff = cgstate.Auto.size;
+                soff = cg.Auto.size;
             L1:
-                if (Symbol_Sisdead(*s, cgstate.anyiasm))
+                if (Symbol_Sisdead(*s, cg.anyiasm))
                 {
                     c.Iop = NOP;               // remove references to it
                     continue;
@@ -5675,14 +5885,14 @@ void assignaddrc(code* c)
                     goto do2;
                 }
                 else
-                {   c.IEV1.Vpointer += s.Soffset + soff + cgstate.BPoff;
-                    if (s.Sflags & SFLunambig)
-                        c.Iflags |= CFunambig;
+                {   c.IEV1.Vpointer += s.Soffset + soff + cg.BPoff;
+                    if (s.Sflags & SFLdistinct)
+                        c.Iflags |= CF.distinct;
             L2:
-                    if (!cgstate.hasframe || (cgstate.enforcealign && c.IFL1 != FL.para))
+                    if (!cg.hasframe || (cg.enforcealign && c.IFL1 != FL.para))
                     {   /* Convert to ESP relative address instead of EBP */
                         assert(!I16);
-                        c.IEV1.Vpointer += cgstate.EBPtoESP;
+                        c.IEV1.Vpointer += cg.EBPtoESP;
                         ubyte crm = c.Irm;
                         if ((crm & 7) == 4)              // if SIB byte
                         {
@@ -5703,22 +5913,22 @@ void assignaddrc(code* c)
 
             case FL.para:
                 //printf("s = %s, Soffset = %d, Para.size = %d, BPoff = %d, EBPtoESP = %d, Vpointer = %d\n",
-                //s.Sident.ptr, cast(int)s.Soffset, cast(int)Para.size, cast(int)cgstate.BPoff,
-                //cast(int)cgstate.EBPtoESP, cast(int)c.IEV1.Vpointer);
-                soff = cgstate.Para.size - cgstate.BPoff;    // cancel out add of BPoff
+                //s.Sident.ptr, cast(int)s.Soffset, cast(int)Para.size, cast(int)cg.BPoff,
+                //cast(int)cg.EBPtoESP, cast(int)c.IEV1.Vpointer);
+                soff = cg.Para.size - cg.BPoff;    // cancel out add of BPoff
                 goto L1;
 
             case FL.fltreg:
-                c.IEV1.Vpointer += cgstate.Foff + cgstate.BPoff;
-                c.Iflags |= CFunambig;
+                c.IEV1.Vpointer += cg.Foff + cg.BPoff;
+                c.Iflags |= CF.distinct;
                 goto L2;
 
             case FL.allocatmp:
-                c.IEV1.Vpointer += cgstate.Alloca.offset + cgstate.BPoff;
+                c.IEV1.Vpointer += cg.Alloca.offset + cg.BPoff;
                 goto L2;
 
             case FL.funcarg:
-                c.IEV1.Vpointer += cgstate.funcarg.offset + cgstate.BPoff;
+                c.IEV1.Vpointer += cg.funcarg.offset + cg.BPoff;
                 goto L2;
 
             case FL.bprel:
@@ -5732,20 +5942,20 @@ void assignaddrc(code* c)
                     c.Iop = NOP;
                     continue;
                 }
-                c.IEV1.Vpointer = CSE.offset(sn) + cgstate.CSoff + cgstate.BPoff;
-                c.Iflags |= CFunambig;
+                c.IEV1.Vpointer = CSE.offset(sn) + cg.CSoff + cg.BPoff;
+                c.Iflags |= CF.distinct;
                 goto L2;
 
             case FL.regsave:
                 sn = c.IEV1.Vuns;
-                c.IEV1.Vpointer = sn + cgstate.regsave.off + cgstate.BPoff;
-                c.Iflags |= CFunambig;
+                c.IEV1.Vpointer = sn + cg.regsave.off + cg.BPoff;
+                c.Iflags |= CF.distinct;
                 goto L2;
 
             case FL.ndp:
                 assert(c.IEV1.Vuns < global87.save.length);
-                c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYldouble) + cgstate.NDPoff + cgstate.BPoff;
-                c.Iflags |= CFunambig;
+                c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYreal) + cg.NDPoff + cg.BPoff;
+                c.Iflags |= CF.distinct;
                 goto L2;
 
             case FL.offset:
@@ -5820,31 +6030,31 @@ void assignaddrc(code* c)
                 /* NOTREACHED */
 
             case FL.fast:
-                c.IEV2.Vpointer += s.Soffset + cgstate.Fast.size + cgstate.BPoff;
+                c.IEV2.Vpointer += s.Soffset + cg.Fast.size + cg.BPoff;
                 break;
 
             case FL.auto_:
-                c.IEV2.Vpointer += s.Soffset + cgstate.Auto.size + cgstate.BPoff;
+                c.IEV2.Vpointer += s.Soffset + cg.Auto.size + cg.BPoff;
             L3:
-                if (!cgstate.hasframe || (cgstate.enforcealign && c.IFL2 != FL.para))
+                if (!cg.hasframe || (cg.enforcealign && c.IFL2 != FL.para))
                     /* Convert to ESP relative address instead of EBP */
-                    c.IEV2.Vpointer += cgstate.EBPtoESP;
+                    c.IEV2.Vpointer += cg.EBPtoESP;
                 break;
 
             case FL.para:
-                c.IEV2.Vpointer += s.Soffset + cgstate.Para.size;
+                c.IEV2.Vpointer += s.Soffset + cg.Para.size;
                 goto L3;
 
             case FL.fltreg:
-                c.IEV2.Vpointer += cgstate.Foff + cgstate.BPoff;
+                c.IEV2.Vpointer += cg.Foff + cg.BPoff;
                 goto L3;
 
             case FL.allocatmp:
-                c.IEV2.Vpointer += cgstate.Alloca.offset + cgstate.BPoff;
+                c.IEV2.Vpointer += cg.Alloca.offset + cg.BPoff;
                 goto L3;
 
             case FL.funcarg:
-                c.IEV2.Vpointer += cgstate.funcarg.offset + cgstate.BPoff;
+                c.IEV2.Vpointer += cg.funcarg.offset + cg.BPoff;
                 goto L3;
 
             case FL.bprel:
@@ -5852,7 +6062,7 @@ void assignaddrc(code* c)
                 break;
 
             case FL.stack:
-                c.IEV2.Vpointer += s.Soffset + cgstate.EBPtoESP - base;
+                c.IEV2.Vpointer += s.Soffset + cg.EBPtoESP - base;
                 break;
 
             case FL.cs:
@@ -5883,29 +6093,29 @@ void assignaddrc(code* c)
 @trusted
 targ_size_t cod3_bpoffset(Symbol* s)
 {
-    targ_size_t offset;
+    CGstate* cg = &cgstate;
 
     symbol_debug(s);
-    offset = s.Soffset;
+    targ_size_t offset = s.Soffset;
     switch (s.Sfl)
     {
         case FL.para:
-            offset += cgstate.Para.size;
+            offset += cg.Para.size;
             break;
 
         case FL.fast:
-            offset += cgstate.Fast.size + cgstate.BPoff;
+            offset += cg.Fast.size + cg.BPoff;
             break;
 
         case FL.auto_:
-            offset += cgstate.Auto.size + cgstate.BPoff;
+            offset += cg.Auto.size + cg.BPoff;
             break;
 
         default:
             symbol_print(*s);
             assert(0);
     }
-    assert(cgstate.hasframe);
+    assert(cg.hasframe);
     return offset;
 }
 
@@ -5969,7 +6179,7 @@ void pinholeopt(code* c,block* b)
     {
     L1:
         opcode_t op = c.Iop;
-        if (c.Iflags & CFvex && c.Ivex.pfx == 0xC4)
+        if (c.Iflags & CF.vex && c.Ivex.pfx == 0xC4)
             ins = vex_inssize(c);
         else if ((op & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(op >> 8) & 0xFF];
@@ -5979,10 +6189,10 @@ void pinholeopt(code* c,block* b)
             ins = inssize[op & 0xFF];
         if (ins & M)            // if modregrm byte
         {
-            int shortop = (c.Iflags & CFopsize) ? !I16 : I16;
+            int shortop = (c.Iflags & CF.opsize) ? !I16 : I16;
             int local_BPRM = BPRM;
 
-            if (c.Iflags & CFaddrsize)
+            if (c.Iflags & CF.addrsize)
                 local_BPRM ^= 5 ^ 6;    // toggle between 5 and 6
 
             uint rm = c.Irm;
@@ -5996,7 +6206,7 @@ void pinholeopt(code* c,block* b)
                 ) &&
                 c.IFL2 == FL.const_)
             {
-                int flags = c.Iflags & CFpsw;      /* if want result in flags */
+                int flags = c.Iflags & CF.psw;      /* if want result in flags */
                 targ_long u = c.IEV2.Vuns;
                 if (ins & E)
                     u = cast(byte) u;
@@ -6064,14 +6274,14 @@ void pinholeopt(code* c,block* b)
                         {
                             if ((u & 0xFFFF0000) == 0xFFFF0000)
                             {
-                                c.Iflags ^= CFopsize;
+                                c.Iflags ^= CF.opsize;
                                 goto L1;
                             }
                             if ((u & 0xFFFF) == 0xFFFF && rm < modregrm(3,4,AX))
                             {
                                 c.IEV1.Voffset += 2; /* address MSW      */
                                 c.IEV2.Vuns >>= 16;
-                                c.Iflags ^= CFopsize;
+                                c.Iflags ^= CF.opsize;
                                 goto L1;
                             }
                             if (rm >= modregrm(3,4,AX))
@@ -6121,7 +6331,7 @@ void pinholeopt(code* c,block* b)
                         (u & 0xFFFF0000) == 0 &&
                         (reg == modregrm(0,6,0) || reg == modregrm(0,1,0)))
                     {
-                        c.Iflags ^= CFopsize;
+                        c.Iflags ^= CF.opsize;
                         goto L1;
                     }
                 }
@@ -6133,13 +6343,13 @@ void pinholeopt(code* c,block* b)
                     op == 0x81 && reg == modregrm(0,1,0))
                 {
                     // See if we can replace a dword with a word
-                    // (avoid for 32 bit instructions, because CFopsize
+                    // (avoid for 32 bit instructions, because CF.opsize
                     //  is too slow)
                     if (!shortop && useopsize)
                     {
                         if ((u & 0xFFFF0000) == 0)
                         {
-                            c.Iflags ^= CFopsize;
+                            c.Iflags ^= CF.opsize;
                             goto L1;
                         }
                         /* If memory (not register) addressing mode     */
@@ -6147,7 +6357,7 @@ void pinholeopt(code* c,block* b)
                         {
                             c.IEV1.Voffset += 2; /* address MSW  */
                             c.IEV2.Vuns >>= 16;
-                            c.Iflags ^= CFopsize;
+                            c.Iflags ^= CF.opsize;
                             goto L1;
                         }
                     }
@@ -6161,7 +6371,7 @@ void pinholeopt(code* c,block* b)
                         if ((u & 0xFFFFFF00) == 0)
                         {
                         L2: c.Iop--;           /* to byte instruction  */
-                            c.Iflags &= ~CFopsize;
+                            c.Iflags &= ~CF.opsize;
                             goto L1;
                         }
                         if (((u & 0xFFFF00FF) == 0 ||
@@ -6185,7 +6395,7 @@ void pinholeopt(code* c,block* b)
                              rm >= modregrm(3,0,SP) &&
                              (u & 0xFFFF0000) == 0)
 
-                        c.Iflags &= ~CFopsize;
+                        c.Iflags &= ~CF.opsize;
                 }
 
                 // Try to replace TEST reg,-1 with TEST reg,reg
@@ -6198,7 +6408,7 @@ void pinholeopt(code* c,block* b)
                         c.Irm = modregrm(3,ereg,ereg);
                         if (c.Irex & REX_B)
                             c.Irex |= REX_R;
-                        c.Iflags &= ~CFopsize;
+                        c.Iflags &= ~CF.opsize;
                         goto L1;
                     }
                 }
@@ -6259,7 +6469,7 @@ void pinholeopt(code* c,block* b)
                          (rm & 0xC0) == 0xC0 &&
                          (!b || b.bc != BC.asm_)
                         )
-                    c.Iflags &= ~CFopsize;
+                    c.Iflags &= ~CF.opsize;
 
                 // If rm is AX
                 else if ((rm & modregrm(3,0,7)) == modregrm(3,0,AX) && !(c.Irex & (REX_R | REX_B)))
@@ -6341,8 +6551,8 @@ void pinholeopt(code* c,block* b)
                 c.Irm = cast(ubyte)((rm & modregrm(3,0,7)) | (ereg << 3));
                 if (c.Irex & REX_B)
                     c.Irex |= REX_R;
-                if (!(c.Iflags & CFpsw) && !I16)
-                    c.Iflags &= ~CFopsize;
+                if (!(c.Iflags & CF.psw) && !I16)
+                    c.Iflags &= ~CF.opsize;
                 goto L1;
             }
 
@@ -6423,7 +6633,7 @@ void pinholeopt(code* c,block* b)
                 c.IEV1.Vpointer = 0;
             }
         }
-        else if (!(c.Iflags & CFvex))
+        else if (!(c.Iflags & CF.vex))
         {
             switch (op)
             {
@@ -6483,7 +6693,7 @@ void pinholeopt(code* c,block* b)
                     {
                         targ_long u = c.IEV2.Vuns;
                         if (I64 ||
-                            ((c.Iflags & CFopsize) ? I16 : I32))
+                            ((c.Iflags & CF.opsize) ? I16 : I32))
                         {   // PUSH 32/64 bit operand
                             if (u == cast(byte) u)
                                 c.Iop = 0x6A;          // PUSH immed8
@@ -6541,16 +6751,16 @@ private void pinholeopt_unittest()
         [ { 0,0x68,0,0,0 },    { 0,0x6A,0,0,0 }],
         [ { 0,0x68,0,0,0x7F }, { 0,0x6A,0,0,0x7F }],
         [ { 0,0x68,0,0,0x80 }, { 0,0x68,0,0,0x80 }],
-        [ { 16,0x68,0,0,0,CFopsize },    { 0,0x6A,0,0,0,CFopsize }],
-        [ { 16,0x68,0,0,0x7F,CFopsize }, { 0,0x6A,0,0,0x7F,CFopsize }],
-        [ { 16,0x68,0,0,0x80,CFopsize }, { 0,0x68,0,0,0x80,CFopsize }],
+        [ { 16,0x68,0,0,0,CF.opsize },    { 0,0x6A,0,0,0,CF.opsize }],
+        [ { 16,0x68,0,0,0x7F,CF.opsize }, { 0,0x6A,0,0,0x7F,CF.opsize }],
+        [ { 16,0x68,0,0,0x80,CF.opsize }, { 0,0x68,0,0,0x80,CF.opsize }],
         [ { 16,0x68,0,0,0x10000,0 },     { 0,0x6A,0,0,0x10000,0 }],
-        [ { 16,0x68,0,0,0x10000,CFopsize }, { 0,0x68,0,0,0x10000,CFopsize }],
-        [ { 32,0x68,0,0,0,CFopsize },    { 0,0x6A,0,0,0,CFopsize }],
-        [ { 32,0x68,0,0,0x7F,CFopsize }, { 0,0x6A,0,0,0x7F,CFopsize }],
-        [ { 32,0x68,0,0,0x80,CFopsize }, { 0,0x68,0,0,0x80,CFopsize }],
-        [ { 32,0x68,0,0,0x10000,CFopsize },    { 0,0x6A,0,0,0x10000,CFopsize }],
-        [ { 32,0x68,0,0,0x8000,CFopsize }, { 0,0x68,0,0,0x8000,CFopsize }],
+        [ { 16,0x68,0,0,0x10000,CF.opsize }, { 0,0x68,0,0,0x10000,CF.opsize }],
+        [ { 32,0x68,0,0,0,CF.opsize },    { 0,0x6A,0,0,0,CF.opsize }],
+        [ { 32,0x68,0,0,0x7F,CF.opsize }, { 0,0x6A,0,0,0x7F,CF.opsize }],
+        [ { 32,0x68,0,0,0x80,CF.opsize }, { 0,0x68,0,0,0x80,CF.opsize }],
+        [ { 32,0x68,0,0,0x10000,CF.opsize },    { 0,0x6A,0,0,0x10000,CF.opsize }],
+        [ { 32,0x68,0,0,0x8000,CF.opsize }, { 0,0x68,0,0,0x8000,CF.opsize }],
 
         // clear r64, for r64 != R8..R15
         [ { 64,0x31,0x800C0,0,0,0 }, { 0,0x31,0xC0,0,0,0}],
@@ -6586,7 +6796,7 @@ private void pinholeopt_unittest()
         cs.IFL2 = FL.const_;
         cs.IEV1.Vsize_t = pin.ev1;
         cs.IEV2.Vsize_t = pin.ev2;
-        cs.Iflags = pin.flags;
+        cs.Iflags = cast(CF)pin.flags;
         pinholeopt(&cs, null);
         if (cs.Iop != pout.op)
         {   printf("[%d] Iop = x%02x, pout = x%02x\n", i, cs.Iop, pout.op);
@@ -6595,7 +6805,7 @@ private void pinholeopt_unittest()
         assert(cs.Iea == pout.ea);
         assert(cs.IEV1.Vsize_t == pout.ev1);
         assert(cs.IEV2.Vsize_t == pout.ev2);
-        assert(cs.Iflags == pout.flags);
+        assert(cs.Iflags == cast(CF)pout.flags);
     }
 }
 }
@@ -6608,7 +6818,7 @@ void simplify_code(code* c)
         (c.Iop == 0x81 || c.Iop == 0x80) &&
         c.IFL2 == FL.const_ &&
         reghasvalue((c.Iop == 0x80) ? BYTEREGS : ALLREGS,I64 ? c.IEV2.Vsize_t : c.IEV2.Vlong,reg) &&
-        !(I16 && c.Iflags & CFopsize)
+        !(I16 && c.Iflags & CF.opsize)
        )
     {
         // See if we can replace immediate instruction with register instruction
@@ -6666,7 +6876,7 @@ void jmpaddr(code* c)
                 c.IEV2.Vpointer = ad;
             else                    /* else conditional             */
             {
-                if (!(c.Iflags & CFjmp16))     /* if branch    */
+                if (!(c.Iflags & CF.jmp16))     /* if branch    */
                     c.IEV2.Vpointer = ad;
                 else            /* branch around a long jump    */
                 {
@@ -6674,7 +6884,7 @@ void jmpaddr(code* c)
                     c.next = code_calloc();
                     code_next(c).next = cn;
                     c.Iop = op ^ 1;        /* converse jmp */
-                    c.Iflags &= ~CFjmp16;
+                    c.Iflags &= ~CF.jmp16;
                     c.IEV2.Vpointer = I16 ? 3 : 5;
                     cn = code_next(c);
                     cn.Iop = JMP;          /* long jump    */
@@ -6753,7 +6963,7 @@ uint calccodsize(code* c)
     if ((op & PSOP.mask) == PSOP.root)
         return 0;
 
-    if (iflags & CFvex && c.Ivex.pfx == 0xC4)
+    if (iflags & CF.vex && c.Ivex.pfx == 0xC4)
     {
         ins = vex_inssize(c);
         size = ins & 7;
@@ -6791,10 +7001,10 @@ uint calccodsize(code* c)
             goto Lret2;
 
         case ASM:
-            if (c.Iflags == CFaddrsize)        // kludge for DA inline asm
+            if (c.Iflags == CF.addrsize)        // kludge for DA inline asm
                 size = _tysize[TYnptr];
             else
-                size = cast(uint)c.IEV1.len;
+                size = cast(uint)c.IEV1.data.length;
             goto Lret2;
 
         case 0xA1:
@@ -6821,7 +7031,7 @@ uint calccodsize(code* c)
             if (i32)
                 size = inssize32[op];
             if ((c.Irm & (7<<3)) == 0)
-                size += (i32 ^ ((iflags & CFopsize) !=0)) ? 4 : 2;
+                size += (i32 ^ ((iflags & CF.opsize) !=0)) ? 4 : 2;
             break;
 
         case 0xFA:
@@ -6840,11 +7050,11 @@ uint calccodsize(code* c)
                 size = inssize32[op];
     }
 
-    if (iflags & (CFwait | CFopsize | CFaddrsize | CFSEG))
+    if (iflags & (CF.wait | CF.opsize | CF.addrsize | CF.SEG))
     {
-        if (iflags & CFwait)    // if add FWAIT prefix
+        if (iflags & CF.wait)    // if add FWAIT prefix
             size++;
-        if (iflags & CFSEG)     // if segment override
+        if (iflags & CF.SEG)     // if segment override
             size++;
 
         // If the instruction has a second operand that is not an 8 bit,
@@ -6853,32 +7063,32 @@ uint calccodsize(code* c)
         // Walter, I had problems with this bit at the end.  There can still be
         // an ADDRSIZE prefix for these and it does indeed change the operand size.
 
-        if (iflags & (CFopsize | CFaddrsize))
+        if (iflags & (CF.opsize | CF.addrsize))
         {
             if ((ins & (T|E)) == T)
             {
                 if ((op & 0xAC) == 0xA0)
                 {
-                    if (iflags & CFaddrsize && !I64)
+                    if (iflags & CF.addrsize && !I64)
                     {   if (I32)
                             size -= 2;
                         else
                             size += 2;
                     }
                 }
-                else if (iflags & CFopsize)
+                else if (iflags & CF.opsize)
                 {   if (I16)
                         size += 2;
                     else
                         size -= 2;
                 }
             }
-            if (iflags & CFaddrsize)
+            if (iflags & CF.addrsize)
             {   if (!I64)
                     a32 ^= 1;
                 size++;
             }
-            if (iflags & CFopsize)
+            if (iflags & CF.opsize)
                 size++;                         /* +1 for OPSIZE prefix         */
         }
     }
@@ -6886,7 +7096,7 @@ uint calccodsize(code* c)
 Lmodrm:
     if ((op & ~0x0F) == 0x70)
     {
-        if (iflags & CFjmp16)           // if long branch
+        if (iflags & CF.jmp16)           // if long branch
             size += I16 ? 3 : 4;        // + 3(4) bytes for JMP
     }
     else if (ins & M)                   // if modregrm byte
@@ -6932,7 +7142,7 @@ Lmodrm:
     }
 
 Lret:
-    if (!(iflags & CFvex) && c.Irex)
+    if (!(iflags & CF.vex) && c.Irex)
     {
         size++;
         if (c.Irex & REX_W && (op & ~7) == 0xB8)
@@ -7069,7 +7279,7 @@ nothrow:
     void flushx()
     {
         // Emit accumulated bytes to code segment
-        debug assert(index < bytes.length);
+        debug assert(index <= bytes.length);
 
         if (disasmBuf)                     // write to buffer for disassembly
         {
@@ -7077,7 +7287,7 @@ nothrow:
                 disasmBuf.push(c);
         }
 
-        offset += objmod.bytes(seg, offset, index, bytes.ptr);
+        offset += objmod.bytes(seg, offset, bytes[0 .. index]);
         index = 0;
     }
 
@@ -7156,7 +7366,7 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
     ubyte rm,mod;
     ubyte ins;
     code* cn;
-    uint flags;
+    CF flags;
     Symbol* s;
 
     debug
@@ -7209,16 +7419,16 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
                 if (op != ASM)
                     break;
                 ggen.flush();
-                if (c.Iflags == CFaddrsize)    // kludge for DA inline asm
+                if (c.Iflags == CF.addrsize)    // kludge for DA inline asm
                 {
                     do32bit(ggen, FL.blockoff,c.IEV1,0,0);
                 }
                 else
                 {
-                    ggen.offset += objmod.bytes(seg,ggen.offset,cast(uint)c.IEV1.len,c.IEV1.bytes);
+                    ggen.offset += objmod.bytes(seg,ggen.offset,c.IEV1.data);
                 }
                 debug
-                assert(calccodsize(c) == c.IEV1.len);
+                assert(calccodsize(c) == c.IEV1.data.length);
 
                 continue;
 
@@ -7232,34 +7442,34 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
             ggen.flush();
 
         // see if we need to put out prefix bytes
-        if (flags & (CFwait | CFPREFIX | CFjmp16))
+        if (flags & (CF.wait | CF.PREFIX | CF.jmp16))
         {
             int override_;
 
-            if (flags & CFwait)
+            if (flags & CF.wait)
                 ggen.gen(0x9B);                      // FWAIT
                                                 /* ? SEGES : SEGSS      */
-            switch (flags & CFSEG)
-            {   case CFes:      override_ = SEGES;       goto segover;
-                case CFss:      override_ = SEGSS;       goto segover;
-                case CFcs:      override_ = SEGCS;       goto segover;
-                case CFds:      override_ = SEGDS;       goto segover;
-                case CFfs:      override_ = SEGFS;       goto segover;
-                case CFgs:      override_ = SEGGS;       goto segover;
+            switch (flags & CF.SEG)
+            {   case CF.es:      override_ = SEGES;       goto segover;
+                case CF.ss:      override_ = SEGSS;       goto segover;
+                case CF.cs:      override_ = SEGCS;       goto segover;
+                case CF.ds:      override_ = SEGDS;       goto segover;
+                case CF.fs:      override_ = SEGFS;       goto segover;
+                case CF.gs:      override_ = SEGGS;       goto segover;
                 segover:        ggen.gen(cast(ubyte)override_);
                                 break;
 
                 default:        break;
             }
 
-            if (flags & CFaddrsize)
+            if (flags & CF.addrsize)
                 ggen.gen(0x67);
 
             // Do this last because of instructions like ADDPD
-            if (flags & CFopsize)
+            if (flags & CF.opsize)
                 ggen.gen(0x66);                      /* operand size         */
 
-            if ((op & ~0x0F) == 0x70 && flags & CFjmp16) /* long condit jmp */
+            if ((op & ~0x0F) == 0x70 && flags & CF.jmp16) /* long condit jmp */
             {
                 if (!I16)
                 {   // Put out 16 bit conditional jump
@@ -7277,14 +7487,14 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
                     c.Iop = op ^= 1;           // toggle condition
                     c.IFL2 = FL.const_;
                     c.IEV2.Vpointer = I16 ? 3 : 5; // skip over JMP block
-                    c.Iflags &= ~CFjmp16;
+                    c.Iflags &= ~CF.jmp16;
                 }
             }
         }
 
-        if (flags & CFvex)
+        if (flags & CF.vex)
         {
-            if (flags & CFvex3)
+            if (flags & CF.vex3)
             {
                 ggen.gen(0xC4);
                 ggen.gen(cast(ubyte)VEX3_B1(c.Ivex));
@@ -7386,20 +7596,20 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
 
                     case 0x80:
                     {
-                        int cfflags = CFoff;
+                        int cfflags = CF.off;
                         targ_size_t val = 0;
                         if (I64)
                         {
                             if ((rm & modregrm(3,0,7)) == modregrm(0,0,5))      // if disp32[RIP]
                             {
-                                cfflags |= CFpc32;
+                                cfflags |= CF.pc32;
                                 val = -4;
                                 reg_t reg = rm & modregrm(0,7,0);
                                 if (ins & T ||
                                     ((op == 0xF6 || op == 0xF7) && (reg == modregrm(0,0,0) || reg == modregrm(0,1,0))))
                                 {   if (ins & E || op == 0xF6)
                                         val = -5;
-                                    else if (c.Iflags & CFopsize)
+                                    else if (c.Iflags & CF.opsize)
                                         val = -6;
                                     else
                                         val = -8;
@@ -7433,7 +7643,7 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
                         goto case 0x80;
 
                     case 0x80:
-                        do16bit(ggen, cast(FL)c.IFL1,c.IEV1,CFoff);
+                        do16bit(ggen, cast(FL)c.IFL1,c.IEV1,CF.off);
                         break;
 
                     default:
@@ -7446,7 +7656,7 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
             if (op == ENTER)
                 do16bit(ggen, cast(FL)c.IFL1,c.IEV1,0);
         }
-        flags &= CFseg | CFoff | CFselfrel;
+        flags &= CF.seg | CF.off | CF.selfrel;
         if (ins & T)                    /* if second operand            */
         {
             if (ins & E)            /* if data-8                    */
@@ -7473,7 +7683,7 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
 
                     case 0xA0:              /* MOV AL,byte ptr []   */
                     case 0xA2:
-                        if (c.Iflags & CFaddrsize && !I64)
+                        if (c.Iflags & CF.addrsize && !I64)
                             goto do16;
                         else
                     do32:
@@ -7482,7 +7692,7 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
 
                     case 0x9A:
                     case 0xEA:
-                        if (c.Iflags & CFopsize)
+                        if (c.Iflags & CF.opsize)
                             goto ptr1616;
                         else
                             goto ptr1632;
@@ -7498,16 +7708,16 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
 
                     case CALL:              // CALL rel
                     case JMP:               // JMP  rel
-                        flags |= CFselfrel;
+                        flags |= CF.selfrel;
                         goto case_default;
 
                     default:
                         if ((op|0xF) == 0x0F8F) // Jcc rel16 rel32
-                            flags |= CFselfrel;
+                            flags |= CF.selfrel;
                         if (I64 && (op & ~7) == 0xB8 && c.Irex & REX_W)
                             goto do64;
                     case_default:
-                        if (c.Iflags & CFopsize)
+                        if (c.Iflags & CF.opsize)
                             goto do16;
                         else
                             goto do32;
@@ -7525,14 +7735,14 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
                     case 0xA1:
                     case 0xA2:
                     case 0xA3:
-                        if (c.Iflags & CFaddrsize)
+                        if (c.Iflags & CF.addrsize)
                             goto do32;
                         else
                             goto do16;
 
                     case 0x9A:
                     case 0xEA:
-                        if (c.Iflags & CFopsize)
+                        if (c.Iflags & CF.opsize)
                             goto ptr1632;
                         else
                             goto ptr1616;
@@ -7564,12 +7774,12 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
 
                     case CALL:
                     case JMP:
-                        flags |= CFselfrel;
+                        flags |= CF.selfrel;
                         goto default;
 
                     default:
                     case_default16:
-                        if (c.Iflags & CFopsize)
+                        if (c.Iflags & CF.opsize)
                             goto do32;
                         else
                             goto do16;
@@ -7585,7 +7795,7 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
         {
             if ((rm & (7<<3)) == 0)     /* TEST mem16/32,immed16/32     */
             {
-                if ((I32 || I64) ^ ((c.Iflags & CFopsize) != 0))
+                if ((I32 || I64) ^ ((c.Iflags & CF.opsize) != 0))
                     do32bit(ggen, cast(FL)c.IFL2,c.IEV2,flags,0);
                 else
                     do16bit(ggen, cast(FL)c.IFL2,c.IEV2,flags);
@@ -7627,7 +7837,7 @@ private void do64bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
         case FL.datseg:
             pbuf.flush();
             pbuf.write64(uev.Vpointer);
-            objmod.reftodatseg(pbuf.seg,pbuf.offset,uev.Vpointer,uev.Vseg,CFoffset64 | flags);
+            objmod.reftodatseg(pbuf.seg,pbuf.offset,uev.Vpointer,uev.Vseg,CF.offset64 | flags);
             break;
 
         case FL.framehandler:
@@ -7642,7 +7852,7 @@ private void do64bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
             if (config.flags & CFGromable)
                     objmod.reftocodeseg(pbuf.seg,pbuf.offset,ad);
             else
-                    objmod.reftodatseg(pbuf.seg,pbuf.offset,ad,objmod.jmpTableSegment(funcsym_p),CFoff);
+                    objmod.reftodatseg(pbuf.seg,pbuf.offset,ad,objmod.jmpTableSegment(funcsym_p),CF.off);
             break;
 
         case FL.csdata:
@@ -7656,7 +7866,7 @@ private void do64bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
             pbuf.flush();
             s = uev.Vsym;               /* symbol pointer               */
             pbuf.write64(uev.Voffset);
-            objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CFoffset64 | flags);
+            objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CF.offset64 | flags);
             break;
 
         case FL.gotoff:
@@ -7669,7 +7879,7 @@ private void do64bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
                 pbuf.flush();
                 s = uev.Vsym;               /* symbol pointer               */
                 pbuf.write64(uev.Voffset);
-                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CFoffset64 | flags);
+                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CF.offset64 | flags);
                 break;
             }
             else
@@ -7687,7 +7897,7 @@ private void do64bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
                 pbuf.flush();
                 s = uev.Vsym;               /* symbol pointer               */
                 pbuf.write64(uev.Voffset);
-                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CFoffset64 | flags);
+                objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,CF.offset64 | flags);
                 break;
             }
             else
@@ -7698,7 +7908,7 @@ private void do64bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
             assert(TARGET_SEGMENTED || !tyfarfunc(s.ty()));
             pbuf.flush();
             pbuf.write64(0);
-            objmod.reftoident(pbuf.seg,pbuf.offset,s,0,CFoffset64 | flags);
+            objmod.reftoident(pbuf.seg,pbuf.offset,s,0,CF.offset64 | flags);
             break;
 
         case FL.block:                       /* displacement to another block */
@@ -7782,7 +7992,7 @@ private void do32bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags, int val
                 }
             }
             else
-                    objmod.reftodatseg(pbuf.seg,pbuf.offset,ad,objmod.jmpTableSegment(funcsym_p),CFoff);
+                    objmod.reftodatseg(pbuf.seg,pbuf.offset,ad,objmod.jmpTableSegment(funcsym_p),CF.off);
             pbuf.write32(cast(uint)ad);
             break;
 
@@ -7805,14 +8015,14 @@ private void do32bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags, int val
         case FL.tlsdata:
             pbuf.flush();
             s = uev.Vsym;               /* symbol pointer               */
-            if (config.exe & EX_windos && I64 && (flags & CFpc32))
+            if (config.exe & EX_windos && I64 && (flags & CF.pc32))
             {
                 /* This is for those funky fixups where the location to be fixed up
                  * is a 'val' amount back from the current RIP, biased by adding 4.
                  */
                 assert(val >= -5 && val <= 0);
-                flags |= (-val & 7) << 24;          // set CFREL value
-                assert(CFREL == (7 << 24));
+                flags |= (-val & 7) << 24;          // set CF.REL value
+                assert(CF.REL == (7 << 24));
                 objmod.reftoident(pbuf.seg,pbuf.offset,s,uev.Voffset,flags);
                 pbuf.write32(cast(uint)uev.Voffset);
             }
@@ -7867,7 +8077,7 @@ private void do32bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags, int val
             }
             else if (s.Sseg == pbuf.seg &&
                      (s.Sclass == SC.static_ || s.Sclass == SC.global) &&
-                     s.Sxtrnnum == 0 && flags & CFselfrel)
+                     s.Sxtrnnum == 0 && flags & CF.selfrel)
             {   /* if we know it's relative address     */
                 ad = s.Soffset - pbuf.getOffset() - 4;
                 goto L1;
@@ -7927,7 +8137,7 @@ private void do16bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
             if (config.flags & CFGromable)
                 objmod.reftocodeseg(pbuf.seg,pbuf.offset,ad);
             else
-                objmod.reftodatseg(pbuf.seg,pbuf.offset,ad,objmod.jmpTableSegment(funcsym_p),CFoff);
+                objmod.reftodatseg(pbuf.seg,pbuf.offset,ad,objmod.jmpTableSegment(funcsym_p),CF.off);
             pbuf.write16(cast(uint)ad);
             break;
 
@@ -7952,7 +8162,7 @@ private void do16bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
             }
             else if (s.Sseg == pbuf.seg &&
                      (s.Sclass == SC.static_ || s.Sclass == SC.global) &&
-                     s.Sxtrnnum == 0 && flags & CFselfrel)
+                     s.Sxtrnnum == 0 && flags & CF.selfrel)
             {   /* if we know it's relative address     */
                 ad = s.Soffset - pbuf.getOffset() - 2;
                 goto L1;
@@ -8026,7 +8236,7 @@ private void do8bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev)
  * Debug code to dump code structure.
  */
 
-void WRcodlst(code* c)
+void codeListPrint(code* c)
 {
     for (; c; c = code_next(c))
         code_print(c);
@@ -8035,8 +8245,7 @@ void WRcodlst(code* c)
 @trusted
 void code_print(scope code* c)
 {
-    if (cgstate.AArch64)
-        return dmd.backend.arm.cod3.code_print(c);
+    debug assert(!cgstate.AArch64);
 
     ubyte ins;
     ubyte rexb;
@@ -8048,7 +8257,7 @@ void code_print(scope code* c)
     }
 
     const op = c.Iop;
-    if (c.Iflags & CFvex && c.Ivex.pfx == 0xC4)
+    if (c.Iflags & CF.vex && c.Ivex.pfx == 0xC4)
         ins = vex_inssize(c);
     else if ((c.Iop & 0xFFFD00) == 0x0F3800)
         ins = inssize2[(op >> 8) & 0xFF];
@@ -8059,9 +8268,9 @@ void code_print(scope code* c)
 
     printf("code %p: nxt=%p ",c,code_next(c));
 
-    if (c.Iflags & CFvex)
+    if (c.Iflags & CF.vex)
     {
-        if (c.Iflags & CFvex3)
+        if (c.Iflags & CF.vex3)
         {
             printf("vex=0xC4");
             printf(" 0x%02X", VEX3_B1(c.Ivex));
@@ -8213,9 +8422,9 @@ void code_print(scope code* c)
 }
 
 /**************************************
- * Pretty-print a CF mask.
+ * Pretty-print a CF. mask.
  * Params:
- *      cf = CF mask
+ *      cf = CF. mask
  */
 @trusted
 void CF_print(uint cf)
@@ -8231,30 +8440,30 @@ void CF_print(uint cf)
         }
     }
 
-    print(CFindirect, "CFindirect");
-    print(CFswitch, "CFswitch");
-    print(CFjmp5, "CFjmp5");
-    print(CFvex3, "CFvex3");
-    print(CFvex, "CFvex");
-    print(CFpc32, "CFpc32");
-    print(CFoffset64, "CFoffset64");
-    print(CFclassinit, "CFclassinit");
-    print(CFvolatile, "CFvolatile");
-    print(CFtarg2, "CFtarg2");
-    print(CFunambig, "CFunambig");
-    print(CFselfrel, "CFselfrel");
-    print(CFwait, "CFwait");
-    print(CFfs, "CFfs");
-    print(CFcs, "CFcs");
-    print(CFds, "CFds");
-    print(CFss, "CFss");
-    print(CFes, "CFes");
-    print(CFaddrsize, "CFaddrsize");
-    print(CFopsize, "CFopsize");
-    print(CFpsw, "CFpsw");
-    print(CFoff, "CFoff");
-    print(CFseg, "CFseg");
-    print(CFtarg, "CFtarg");
-    print(CFjmp16, "CFjmp16");
+    print(CF.indirect, "CF.indirect");
+    print(CF.switch_, "CF.switch_");
+    print(CF.jmp5, "CF.jmp5");
+    print(CF.vex3, "CF.vex3");
+    print(CF.vex, "CF.vex");
+    print(CF.pc32, "CF.pc32");
+    print(CF.offset64, "CF.offset64");
+    print(CF.classinit, "CF.classinit");
+    print(CF.volatile, "CF.volatile");
+    print(CF.targ2, "CF.targ2");
+    print(CF.distinct, "CF.distinct");
+    print(CF.selfrel, "CF.selfrel");
+    print(CF.wait, "CF.wait");
+    print(CF.fs, "CF.fs");
+    print(CF.cs, "CF.cs");
+    print(CF.ds, "CF.ds");
+    print(CF.ss, "CF.ss");
+    print(CF.es, "CF.es");
+    print(CF.addrsize, "CF.addrsize");
+    print(CF.opsize, "CF.opsize");
+    print(CF.psw, "CF.psw");
+    print(CF.off, "CF.off");
+    print(CF.seg, "CF.seg");
+    print(CF.targ, "CF.targ");
+    print(CF.jmp16, "CF.jmp16");
     printf("\n");
 }

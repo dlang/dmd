@@ -11,6 +11,9 @@
 
 module rt.cover;
 
+version (WASI) {}
+else:
+
 import core.internal.utf;
 import core.internal.util.math : max, min;
 import core.stdc.stdio : EOF, fclose, fgetc, FILE, fileno, fprintf, fread, fseek, ftell, printf, SEEK_END, SEEK_SET,
@@ -313,7 +316,7 @@ shared static ~this()
             fprintf(flst, "%.*s is %d%% covered\n", cast(int)c.filename.length, c.filename.ptr, percent);
             if (percent < c.minPercent)
             {
-                fprintf(stderr, "Error: %.*s is %d%% covered, less than required %d%%\n",
+                fprintf(cast()stderr, "Error: %.*s is %d%% covered, less than required %d%%\n",
                     cast(int)c.filename.length, c.filename.ptr, percent, c.minPercent);
                 exit(EXIT_FAILURE);
             }

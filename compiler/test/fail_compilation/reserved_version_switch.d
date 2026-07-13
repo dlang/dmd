@@ -67,6 +67,9 @@
 // REQUIRED_ARGS: -version=SH
 // REQUIRED_ARGS: -version=WebAssembly
 // REQUIRED_ARGS: -version=WASI
+// REQUIRED_ARGS: -version=WASIp1
+// REQUIRED_ARGS: -version=WASIp2
+// REQUIRED_ARGS: -version=WASIp3
 // REQUIRED_ARGS: -version=Alpha
 // REQUIRED_ARGS: -version=Alpha_SoftFloat
 // REQUIRED_ARGS: -version=Alpha_HardFloat
@@ -110,6 +113,7 @@
 // REQUIRED_ARGS: -version=none
 // REQUIRED_ARGS: -version=D_PreConditions
 // REQUIRED_ARGS: -version=D_PostConditions
+// REQUIRED_ARGS: -version=D_Profile
 // REQUIRED_ARGS: -version=D_ProfileGC
 // REQUIRED_ARGS: -version=D_Invariants
 // REQUIRED_ARGS: -version=D_Optimized
@@ -177,6 +181,9 @@
 // REQUIRED_ARGS: -debug=SH
 // REQUIRED_ARGS: -debug=WebAssembly
 // REQUIRED_ARGS: -debug=WASI
+// REQUIRED_ARGS: -debug=WASIp1
+// REQUIRED_ARGS: -debug=WASIp2
+// REQUIRED_ARGS: -debug=WASIp3
 // REQUIRED_ARGS: -debug=Alpha
 // REQUIRED_ARGS: -debug=Alpha_SoftFloat
 // REQUIRED_ARGS: -debug=Alpha_HardFloat
@@ -293,6 +300,9 @@ Error: version identifier `HPPA64` is reserved and cannot be set
 Error: version identifier `SH` is reserved and cannot be set
 Error: version identifier `WebAssembly` is reserved and cannot be set
 Error: version identifier `WASI` is reserved and cannot be set
+Error: version identifier `WASIp1` is reserved and cannot be set
+Error: version identifier `WASIp2` is reserved and cannot be set
+Error: version identifier `WASIp3` is reserved and cannot be set
 Error: version identifier `Alpha` is reserved and cannot be set
 Error: version identifier `Alpha_SoftFloat` is reserved and cannot be set
 Error: version identifier `Alpha_HardFloat` is reserved and cannot be set
@@ -336,6 +346,7 @@ Error: version identifier `all` is reserved and cannot be set
 Error: version identifier `none` is reserved and cannot be set
 Error: version identifier `D_PreConditions` is reserved and cannot be set
 Error: version identifier `D_PostConditions` is reserved and cannot be set
+Error: version identifier `D_Profile` is reserved and cannot be set
 Error: version identifier `D_ProfileGC` is reserved and cannot be set
 Error: version identifier `D_Invariants` is reserved and cannot be set
 Error: version identifier `D_Optimized` is reserved and cannot be set

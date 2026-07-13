@@ -15,7 +15,7 @@ version (Windows):
 // import.
 alias HANDLE = void*;
 
-alias HANDLE* PHANDLE, LPHANDLE;
+alias PHANDLE = HANDLE*, LPHANDLE = HANDLE*;
 
 // helper for aligned structs
 // alignVal 0 means the default align.
@@ -32,17 +32,17 @@ version (CoreUnittest) {
 }
 
 version (Win64) {
-    alias long __int3264;
+    alias __int3264 = long;
 enum ulong ADDRESS_TAG_BIT = 0x40000000000;
 
-    alias long INT_PTR, LONG_PTR;
-    alias long* PINT_PTR, PLONG_PTR;
-    alias ulong UINT_PTR, ULONG_PTR, HANDLE_PTR;
-    alias ulong* PUINT_PTR, PULONG_PTR;
-    alias int HALF_PTR;
-    alias int* PHALF_PTR;
-    alias uint UHALF_PTR;
-    alias uint* PUHALF_PTR;
+    alias INT_PTR = long, LONG_PTR = long;
+    alias PINT_PTR = long*, PLONG_PTR = long*;
+    alias UINT_PTR = ulong, ULONG_PTR = ulong, HANDLE_PTR = ulong;
+    alias PUINT_PTR = ulong*, PULONG_PTR = ulong*;
+    alias HALF_PTR = int;
+    alias PHALF_PTR = int*;
+    alias UHALF_PTR = uint;
+    alias PUHALF_PTR = uint*;
 
     uint HandleToULong()(void* h) { return(cast(uint) cast(ULONG_PTR) h); }
     int HandleToLong()(void* h)   { return(cast(int) cast(LONG_PTR) h); }
@@ -60,17 +60,17 @@ enum ulong ADDRESS_TAG_BIT = 0x40000000000;
     void* ULongToPtr()(uint ul)   { return(cast(void*) cast(ULONG_PTR) ul); }
 
 } else {
-    alias int __int3264;
+    alias __int3264 = int;
 enum uint ADDRESS_TAG_BIT = 0x80000000;
 
-    alias int INT_PTR, LONG_PTR;
-    alias int* PINT_PTR, PLONG_PTR;
-    alias uint UINT_PTR, ULONG_PTR, HANDLE_PTR;
-    alias uint* PUINT_PTR, PULONG_PTR;
-    alias short HALF_PTR;
-    alias short* PHALF_PTR;
-    alias ushort UHALF_PTR;
-    alias ushort* PUHALF_PTR;
+    alias INT_PTR = int, LONG_PTR = int;
+    alias PINT_PTR = int*, PLONG_PTR = int*;
+    alias UINT_PTR = uint, ULONG_PTR = uint, HANDLE_PTR = uint;
+    alias PUINT_PTR = uint*, PULONG_PTR = uint*;
+    alias HALF_PTR = short;
+    alias PHALF_PTR = short*;
+    alias UHALF_PTR = ushort;
+    alias PUHALF_PTR = ushort*;
 
     uint HandleToUlong()(HANDLE h)      { return cast(uint) h; }
     int HandleToLong()(HANDLE h)        { return cast(int) h; }
@@ -82,11 +82,11 @@ enum uint ADDRESS_TAG_BIT = 0x80000000;
     short PtrToShort(const(void)* p)   { return cast(short) p; }
     void* IntToPtr()(int i)             { return cast(void*) i; }
     void* UIntToPtr()(uint ui)          { return cast(void*) ui; }
-    alias IntToPtr LongToPtr;
-    alias UIntToPtr ULongToPtr;
+    alias LongToPtr = IntToPtr;
+    alias ULongToPtr = UIntToPtr;
 }
 
-alias UIntToPtr UintToPtr, UlongToPtr;
+alias UintToPtr = UIntToPtr, UlongToPtr = UIntToPtr;
 
 enum : UINT_PTR {
     MAXUINT_PTR = UINT_PTR.max
@@ -115,27 +115,27 @@ enum : HALF_PTR {
     MINHALF_PTR = HALF_PTR.min
 }
 
-alias byte INT8;
-alias byte* PINT8;
-alias ubyte UINT8;
-alias ubyte* PUINT8;
+alias INT8 = byte;
+alias PINT8 = byte*;
+alias UINT8 = ubyte;
+alias PUINT8 = ubyte*;
 
-alias short INT16;
-alias short* PINT16;
-alias ushort UINT16;
-alias ushort* PUINT16;
+alias INT16 = short;
+alias PINT16 = short*;
+alias UINT16 = ushort;
+alias PUINT16 = ushort*;
 
-alias int LONG32, INT32;
-alias int* PLONG32, PINT32;
-alias uint ULONG32, DWORD32, UINT32;
-alias uint* PULONG32, PDWORD32, PUINT32;
+alias LONG32 = int, INT32 = int;
+alias PLONG32 = int*, PINT32 = int*;
+alias ULONG32 = uint, DWORD32 = uint, UINT32 = uint;
+alias PULONG32 = uint*, PDWORD32 = uint*, PUINT32 = uint*;
 
-alias ULONG_PTR SIZE_T, DWORD_PTR;
-alias ULONG_PTR* PSIZE_T, PDWORD_PTR;
-alias LONG_PTR SSIZE_T;
-alias LONG_PTR* PSSIZE_T;
+alias SIZE_T = ULONG_PTR, DWORD_PTR = ULONG_PTR;
+alias PSIZE_T = ULONG_PTR*, PDWORD_PTR = ULONG_PTR*;
+alias SSIZE_T = LONG_PTR;
+alias PSSIZE_T = LONG_PTR*;
 
-alias long LONG64, INT64;
-alias long* PLONG64, PINT64;
-alias ulong ULONG64, DWORD64, UINT64;
-alias ulong* PULONG64, PDWORD64, PUINT64;
+alias LONG64 = long, INT64 = long;
+alias PLONG64 = long*, PINT64 = long*;
+alias ULONG64 = ulong, DWORD64 = ulong, UINT64 = ulong;
+alias PULONG64 = ulong*, PDWORD64 = ulong*, PUINT64 = ulong*;

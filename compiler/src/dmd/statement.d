@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/statement.html, Statements)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/statement.d, _statement.d)
@@ -21,6 +21,7 @@ import dmd.astenums;
 import dmd.ast_node;
 import dmd.cond;
 import dmd.declaration;
+import dmd.dscope;
 import dmd.dsymbol;
 import dmd.expression;
 import dmd.func;
@@ -383,6 +384,10 @@ extern (C++) class ExpStatement : Statement
         this.exp = exp;
     }
 
+    /*******************************
+     * Creates a DeclarationExp inside a statement.
+     * Use in place of *DeclarationStatement* from D grammar.
+     */
     final extern (D) this(Loc loc, Dsymbol declaration) @safe
     {
         super(loc, STMT.Exp);
@@ -491,7 +496,7 @@ extern (C++) class CompoundStatement : Statement
      *
      * Params:
      *   loc = Instantiation information
-     *   sts   = A variadic array of `Statement`s, that will copied in this class
+     *   sts   = A variadic array of `Statement`s, that will be copied in this class
      *         The entries themselves will not be copied.
      */
     final extern (D) this(Loc loc, Statement[] sts...)
@@ -1304,6 +1309,8 @@ extern (C++) final class ReturnStatement : Statement
 {
     Expression exp;
     size_t caseDim;
+    FuncDeclaration fesFunc; // nested function for foreach it is in
+    Scope* scope_;
 
     extern (D) this(Loc loc, Expression exp) @safe
     {
@@ -1416,14 +1423,16 @@ extern (C++) final class SynchronizedStatement : Statement
  */
 extern (C++) final class WithStatement : Statement
 {
+    Parameter prm;
     Expression exp;
     Statement _body;
     VarDeclaration wthis;
     Loc endloc;
 
-    extern (D) this(Loc loc, Expression exp, Statement _body, Loc endloc) @safe
+    extern (D) this(Loc loc, Parameter prm, Expression exp, Statement _body, Loc endloc) @safe
     {
         super(loc, STMT.With);
+        this.prm = prm;
         this.exp = exp;
         this._body = _body;
         this.endloc = endloc;
@@ -1431,7 +1440,11 @@ extern (C++) final class WithStatement : Statement
 
     override WithStatement syntaxCopy()
     {
-        return new WithStatement(loc, exp.syntaxCopy(), _body ? _body.syntaxCopy() : null, endloc);
+        return new WithStatement(loc,
+                                 prm ? prm.syntaxCopy() : null,
+                                 exp.syntaxCopy(),
+                                 _body ? _body.syntaxCopy() : null,
+                                 endloc);
     }
 
     override void accept(Visitor v)
@@ -1449,6 +1462,7 @@ extern (C++) final class TryCatchStatement : Statement
     Catches* catches;
 
     Statement tryBody;   /// set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
+    TOK loweredFromScopeGuard;  /// set when this was lowered from a scope guard (onScopeFailure, onScopeSuccess)
 
     extern (D) this(Loc loc, Statement _body, Catches* catches) @safe
     {
@@ -1521,6 +1535,8 @@ extern (C++) final class TryFinallyStatement : Statement
 
     Statement tryBody;   /// set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
     bool bodyFallsThru;  /// true if _body falls through to finally
+    TOK loweredFromScopeGuard;  /// set when this was lowered from a scope guard (onScopeExit, onScopeSuccess)
+    VarDeclaration loweredFrom; /// set when this was lowered from a variable with a destructor
 
     extern (D) this(Loc loc, Statement _body, Statement finalbody) @safe
     {
@@ -1739,8 +1755,15 @@ extern (C++) final class LabelDsymbol : Dsymbol
  */
 extern (C++) class AsmStatement : Statement
 {
-    Token* tokens;
-    bool caseSensitive;  // for register names
+    Token* tokens;       // linked list of tokens for one instruction or pseudo op
+    static struct BitFields
+    {
+    bool caseSensitive;  // for register names, and only turned on when doing MASM style inline asm
+    bool isVolatile;     // ImportC asm "volatile"
+    bool isInline;       // ImportC asm "inline"
+    }
+    import dmd.common.bitfields;
+    mixin(generateBitFields!(BitFields, ubyte));
 
     extern (D) this(Loc loc, Token* tokens) @safe
     {
@@ -1771,10 +1794,10 @@ extern (C++) class AsmStatement : Statement
 extern (C++) final class InlineAsmStatement : AsmStatement
 {
     void* asmcode;
+    ulong regs;     // mask of registers modified (must match regm_t in back end)
     uint asmalign;  // alignment of this statement
-    uint regs;      // mask of registers modified (must match regm_t in back end)
     bool refparam;  // true if function parameter is referenced
-    bool naked;     // true if function is to be naked
+    bool naked;     // true if function is to be naked (no prolog/epilog)
 
     extern (D) this(Loc loc, Token* tokens) @safe
     {

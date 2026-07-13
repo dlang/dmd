@@ -29,7 +29,9 @@ module core.internal.gc.impl.conservative.gc;
 //debug = VALGRIND;             // Valgrind memcheck integration
 
 /***************************************************/
-version = COLLECT_PARALLEL;  // parallel scanning
+version (WASI) {} // WASI is single-threaded
+else version = COLLECT_PARALLEL;  // parallel scanning
+
 version (Posix)
     version = COLLECT_FORK;
 
@@ -97,10 +99,6 @@ private
         // to avoid inlining - see https://issues.dlang.org/show_bug.cgi?id=13725.
         noreturn onInvalidMemoryOperationError(void* pretend_sideffect = null, string file = __FILE__, size_t line = __LINE__) @trusted pure nothrow @nogc;
         noreturn onOutOfMemoryError(void* pretend_sideffect = null, string file = __FILE__, size_t line = __LINE__) @trusted pure nothrow @nogc;
-
-        version (COLLECT_FORK)
-            version (OSX)
-                pid_t __fork() nothrow;
     }
 
     enum
@@ -109,7 +107,7 @@ private
     }
 }
 
-alias GC gc_t;
+alias gc_t = GC;
 
 /* ============================ GC =============================== */
 
@@ -1340,7 +1338,7 @@ class ConservativeGC : GC
         // when collecting.
         static size_t go(Gcx* gcx) nothrow
         {
-            return gcx.fullcollect(false, true); // standard stop the world
+            return gcx.fullcollect(true, false); // standard stop the world
         }
         immutable result = runLocked!go(gcx);
 
@@ -1517,7 +1515,7 @@ class ConservativeGC : GC
         auto existingUsed = slice.length + offset;
 
         size_t typeInfoSize = (info.attr & BlkAttr.STRUCTFINAL) ? size_t.sizeof : 0;
-        if (__setArrayAllocLengthImpl(info, offset + newUsed, atomic, existingUsed, typeInfoSize))
+        if (__setArrayAllocLengthImpl(info, newUsed, atomic, existingUsed, typeInfoSize))
         {
             // could expand without extending
             if (!bic && !atomic)
@@ -1532,7 +1530,7 @@ class ConservativeGC : GC
             return false;
 
         // try extending the block into subsequent pages.
-        immutable requiredExtension = newUsed - info.size - LARGEPAD;
+        immutable requiredExtension = newUsed - (info.size - LARGEPAD);
         auto extendedSize = extend(info.base, requiredExtension, requiredExtension, null);
         if (extendedSize == 0)
             // could not extend, can't satisfy the request
@@ -1804,7 +1802,7 @@ struct Gcx
         }
         debug(INVARIANT) initialized = true;
         version (COLLECT_FORK)
-            shouldFork = config.fork;
+            shouldFork = AllocSupportsShared && config.fork;
 
     }
 
@@ -2117,10 +2115,25 @@ struct Gcx
      */
     void updateCollectThresholds() nothrow
     {
-        static float max(float a, float b) nothrow
-        {
-            return a >= b ? a : b;
-        }
+        import core.internal.util.math : min, max;
+
+        // Reserve half of the remaining heap budget to small and large heaps.
+        immutable maxPageUsed = config.heapSizeLimit / PAGESIZE;
+        immutable usedPages = usedSmallPages + usedLargePages;
+        immutable heapBudget = maxPageUsed > usedPages
+            ? maxPageUsed - usedPages
+            : 0;
+
+        immutable smTargetHeap = usedSmallPages + heapBudget / 2;
+        immutable lgTargetHeap = usedLargePages + heapBudget / 2;
+
+        // Compute the target sizes based on the growth factor.
+        immutable smTargetGrowth = usedSmallPages * config.heapSizeFactor;
+        immutable lgTargetGrowth = usedLargePages * config.heapSizeFactor;
+
+        // Collect when either is reached.
+        immutable smTarget = min(smTargetHeap, smTargetGrowth);
+        immutable lgTarget = min(lgTargetHeap, lgTargetGrowth);
 
         // instantly increases, slowly decreases
         static float smoothDecay(float oldVal, float newVal) nothrow
@@ -2132,9 +2145,7 @@ struct Gcx
             return max(newVal, decay);
         }
 
-        immutable smTarget = usedSmallPages * config.heapSizeFactor;
         smallCollectThreshold = smoothDecay(smallCollectThreshold, smTarget);
-        immutable lgTarget = usedLargePages * config.heapSizeFactor;
         largeCollectThreshold = smoothDecay(largeCollectThreshold, lgTarget);
     }
 
@@ -2199,7 +2210,7 @@ struct Gcx
                 if (!newPool(1, false))
                 {
                     // out of memory => try to free some memory
-                    fullcollect(false, true); // stop the world
+                    fullcollect(true, false); // stop the world
                     if (lowMem)
                         minimize();
                     recoverNextPage(bin);
@@ -2207,7 +2218,7 @@ struct Gcx
             }
             else if (usedSmallPages > 0)
             {
-                fullcollect();
+                fullcollect(false, false);
                 if (lowMem)
                     minimize();
                 recoverNextPage(bin);
@@ -2290,13 +2301,13 @@ struct Gcx
                 {
                     // disabled but out of memory => try to free some memory
                     minimizeAfterNextCollection = true;
-                    fullcollect(false, true);
+                    fullcollect(true, false);
                 }
             }
             else if (usedLargePages > 0)
             {
                 minimizeAfterNextCollection = true;
-                fullcollect();
+                fullcollect(false, false);
             }
             // If alloc didn't yet succeed retry now that we collected/minimized
             if (!pool && !tryAlloc() && !tryAllocNewPool())
@@ -3191,11 +3202,7 @@ struct Gcx
         {
             fflush(null); // avoid duplicated FILE* output
         }
-        version (OSX)
-        {
-            auto pid = __fork(); // avoids calling handlers (from libc source code)
-        }
-        else version (linux)
+        version (linux)
         {
             // clone() fits better as we don't want to do anything but scanning in the child process.
             // no fork-handlers are called, so we can avoid deadlocks due to malloc locks. Probably related:
@@ -3213,11 +3220,13 @@ struct Gcx
             auto stack = stackbuf.ptr + (isStackGrowingDown ? stackbuf.length : 0);
             auto pid = clone(&wrap_delegate, stack, flags, &dg);
         }
+        else static if (__traits(compiles, _Fork))
+        {
+            auto pid = _Fork();
+        }
         else
         {
-            fork_needs_lock = false;
-            auto pid = fork();
-            fork_needs_lock = true;
+            auto pid = -1;  // fork based GC not supported
         }
         switch (pid)
         {
@@ -3258,7 +3267,7 @@ struct Gcx
      * Return number of full pages free'd.
      * The collection is done concurrently only if block and isFinal are false.
      */
-    size_t fullcollect(bool block = false, bool isFinal = false) nothrow
+    size_t fullcollect(bool block, bool isFinal) nothrow
     {
         // It is possible that `fullcollect` will be called from a thread which
         // is not yet registered in runtime (because allocating `new Thread` is
@@ -3328,7 +3337,9 @@ Lmark:
                 rangesLock.unlock();
                 rootsLock.unlock();
             }
-            thread_suspendAll();
+
+            version (WASI) {} // WASI is single-threaded
+            else thread_suspendAll();
 
             prepare();
 
@@ -3493,25 +3504,34 @@ Lmark:
         // before a fork.
         // This must not happen if fork is called from the GC with the lock already held
 
-        __gshared bool fork_needs_lock = true; // racing condition with cocurrent calls of fork?
-
+        __gshared int fork_cancel_state = 0;
 
         extern(C) static void _d_gcx_atfork_prepare()
         {
-            if (instance && fork_needs_lock)
+            static if (__traits(compiles, os_unblock_gc_signals))
+                os_unblock_gc_signals();
+
+            if (instance)
+            {
                 ConservativeGC.lockNR();
+                fork_cancel_state = thread_cancelDisable();
+            }
         }
 
         extern(C) static void _d_gcx_atfork_parent()
         {
-            if (instance && fork_needs_lock)
+            if (instance)
+            {
+                thread_cancelRestore(fork_cancel_state);
                 ConservativeGC.gcLock.unlock();
+            }
         }
 
         extern(C) static void _d_gcx_atfork_child()
         {
-            if (instance && fork_needs_lock)
+            if (instance)
             {
+                thread_cancelRestore(fork_cancel_state);
                 ConservativeGC.gcLock.unlock();
 
                 // make sure the threads and event handles are reinitialized in a fork
@@ -3522,8 +3542,8 @@ Lmark:
                         cstdlib.free(Gcx.instance.scanThreadData);
                         Gcx.instance.numScanThreads = 0;
                         Gcx.instance.scanThreadData = null;
-                        Gcx.instance.busyThreads = 0;
-                        Gcx.instance.stackLock = shared(AlignedSpinLock)(SpinLock.Contention.brief);
+                        atomicStore(Gcx.instance.busyThreads, 0);
+                        (cast() Gcx.instance.stackLock) = AlignedSpinLock(SpinLock.Contention.brief);
 
                         memset(&Gcx.instance.evStackFilled, 0, Gcx.instance.evStackFilled.sizeof);
                         memset(&Gcx.instance.evDone, 0, Gcx.instance.evDone.sizeof);
@@ -3604,6 +3624,8 @@ Lmark:
             pullLoop!(true)();
         else
             pullLoop!(false)();
+
+        evStackFilled.reset(); // symmetric with setIfInitialized() above; avoids livelock when no pop ever happened
 
         debug(PARALLEL_PRINTF) printf("waitForScanDone done\n");
     }
@@ -5280,6 +5302,7 @@ unittest
 // https://issues.dlang.org/show_bug.cgi?id=19281
 debug (SENTINEL) {} else // cannot allow >= 4 GB with SENTINEL
 debug (MEMSTOMP) {} else // might take too long to actually touch the memory
+version (OnlyLowMemUnittests) {} else
 version (D_LP64) unittest
 {
     static if (__traits(compiles, os_physical_mem))
@@ -5391,6 +5414,52 @@ unittest
         // adjacent allocations likely but not guaranteed
         printf("unexpected pointers %p and %p\n", p.ptr, q.ptr);
     }
+}
+
+// https://github.com/dlang/dmd/issues/22004
+@safe unittest
+{
+outer:
+    foreach (i; 1 .. 100)
+    {
+        foreach (j; 0 .. i)
+        {
+            int[] orig;
+            orig.length = i;
+            if (orig.capacity == orig.length)
+                // skip legitimate realloc cases
+                continue outer;
+
+            int[] slice = orig[j .. $];
+            assert(slice.capacity != 0);
+
+            auto ptr = &slice[0];
+            slice.length += 1;
+            // should not have realloc'd
+            assert(&slice[0] is ptr);
+        }
+    }
+}
+
+// https://github.com/dlang/dmd/issues/21615
+debug(SENTINEL) {} else // no additional capacity with SENTINEL
+version (OnlyLowMemUnittests) {} else
+@safe unittest
+{
+    size_t numReallocations = 0;
+    ubyte[] buffer = new ubyte[4096];
+    auto p = &buffer[0];
+    foreach (i; 0 .. 1000) {
+        buffer.length += 4096;
+        if (p !is &buffer[0])
+        {
+            ++numReallocations;
+            p = &buffer[0];
+        }
+    }
+
+    // pick a decently small number, it's unclear where this memory will start out.
+    assert(numReallocations <= 5);
 }
 
 /* ============================ MEMSTOMP =============================== */

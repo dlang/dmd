@@ -41,6 +41,7 @@ COPY=\
 	$(IMPDIR)\core\internal\newaa.d \
 	$(IMPDIR)\core\internal\parseoptions.d \
 	$(IMPDIR)\core\internal\postblit.d \
+	$(IMPDIR)\core\internal\profile_gc.d \
 	$(IMPDIR)\core\internal\qsort.d \
 	$(IMPDIR)\core\internal\spinlock.d \
 	$(IMPDIR)\core\internal\string.d \
@@ -88,8 +89,9 @@ COPY=\
 	$(IMPDIR)\core\internal\util\array.d \
 	$(IMPDIR)\core\internal\util\math.d \
 	\
-	$(IMPDIR)\core\internal\vararg\aarch64.d \
+	$(IMPDIR)\core\internal\vararg\aapcs64.d \
 	$(IMPDIR)\core\internal\vararg\sysv_x64.d \
+	$(IMPDIR)\core\internal\vararg\gnu.d \
 	\
 	$(IMPDIR)\core\stdc\assert_.d \
 	$(IMPDIR)\core\stdc\stdatomic.d \
@@ -134,6 +136,7 @@ COPY=\
 	$(IMPDIR)\core\sync\event.d \
 	$(IMPDIR)\core\sync\exception.d \
 	$(IMPDIR)\core\sync\mutex.d \
+	$(IMPDIR)\core\sync\package.d \
 	$(IMPDIR)\core\sync\rwmutex.d \
 	$(IMPDIR)\core\sync\semaphore.d \
 	\
@@ -267,6 +270,7 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\sys\socket.d \
 	$(IMPDIR)\core\sys\linux\sys\syscall.d \
 	$(IMPDIR)\core\sys\linux\sys\sysinfo.d \
+	$(IMPDIR)\core\sys\linux\sys\timerfd.d \
 	$(IMPDIR)\core\sys\linux\sys\xattr.d \
 	$(IMPDIR)\core\sys\linux\sys\time.d \
 	$(IMPDIR)\core\sys\linux\sys\prctl.d \
@@ -312,6 +316,7 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\config.d \
 	$(IMPDIR)\core\sys\posix\dirent.d \
 	$(IMPDIR)\core\sys\posix\dlfcn.d \
+	$(IMPDIR)\core\sys\posix\endian.d \
 	$(IMPDIR)\core\sys\posix\fcntl.d \
 	$(IMPDIR)\core\sys\posix\grp.d \
 	$(IMPDIR)\core\sys\posix\iconv.d \
@@ -373,6 +378,7 @@ COPY=\
 	$(IMPDIR)\core\sys\solaris\libelf.d \
 	$(IMPDIR)\core\sys\solaris\link.d \
 	$(IMPDIR)\core\sys\solaris\stdlib.d \
+	$(IMPDIR)\core\sys\solaris\thread.d \
 	$(IMPDIR)\core\sys\solaris\time.d \
 	\
 	$(IMPDIR)\core\sys\solaris\sys\elf.d \
@@ -383,8 +389,20 @@ COPY=\
 	$(IMPDIR)\core\sys\solaris\sys\elftypes.d \
 	$(IMPDIR)\core\sys\solaris\sys\link.d \
 	$(IMPDIR)\core\sys\solaris\sys\priocntl.d \
+	$(IMPDIR)\core\sys\solaris\sys\procfs.d \
 	$(IMPDIR)\core\sys\solaris\sys\procset.d \
+	$(IMPDIR)\core\sys\solaris\sys\regset.d \
 	$(IMPDIR)\core\sys\solaris\sys\types.d \
+	\
+	$(IMPDIR)\core\sys\hurd\config.d \
+	$(IMPDIR)\core\sys\hurd\dlfcn.d \
+	$(IMPDIR)\core\sys\hurd\elf.d \
+	$(IMPDIR)\core\sys\hurd\execinfo.d \
+	$(IMPDIR)\core\sys\hurd\errno.d \
+	$(IMPDIR)\core\sys\hurd\link.d \
+	$(IMPDIR)\core\sys\hurd\sys\types.d \
+	$(IMPDIR)\core\sys\hurd\time.d \
+	$(IMPDIR)\core\sys\hurd\unistd.d \
 	\
 	$(IMPDIR)\core\sys\windows\accctrl.d \
 	$(IMPDIR)\core\sys\windows\aclapi.d \
@@ -458,6 +476,7 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\mshtml.d \
 	$(IMPDIR)\core\sys\windows\mswsock.d \
 	$(IMPDIR)\core\sys\windows\nb30.d \
+	$(IMPDIR)\core\sys\windows\ncrypt.d \
 	$(IMPDIR)\core\sys\windows\nddeapi.d \
 	$(IMPDIR)\core\sys\windows\nspapi.d \
 	$(IMPDIR)\core\sys\windows\ntdef.d \
@@ -563,6 +582,8 @@ COPY=\
 	$(IMPDIR)\core\thread\threadgroup.d \
 	$(IMPDIR)\core\thread\threadbase.d \
 	$(IMPDIR)\core\thread\osthread.d \
+	$(IMPDIR)\core\thread\posix_impl.d \
+	$(IMPDIR)\core\thread\windows_impl.d \
 	$(IMPDIR)\core\thread\package.d \
 	\
 	$(IMPDIR)\etc\valgrind\valgrind.d \

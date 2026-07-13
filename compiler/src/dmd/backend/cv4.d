@@ -1,7 +1,10 @@
 /**
- * CodeView 4 symbolic debug info declarations
+ * CodeView symbolic debug info declarations
  *
  * See "Microsoft Symbol and Type OMF" document
+ *
+ * See https://github.com/microsoft/microsoft-pdb/tree/master/include
+ * for a more complete set of publicly available definitions
  *
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
@@ -14,8 +17,6 @@ module dmd.backend.cv4;
 @safe:
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_cv4.html
-
-enum OEM = 0x42;        // Digital Mars OEM number (picked at random)
 
 // Symbol Indices
 enum
@@ -82,7 +83,7 @@ enum
     S_FUNCINFO_V2         = 0x1012,
     S_COMPILAND_V2        = 0x1013,
 
-    S_COMPILAND_V3        = 0x1101,
+    S_OBJNAME_V3          = 0x1101,
     S_THUNK_V3            = 0x1102,
     S_BLOCK_V3            = 0x1103,
     S_LABEL_V3            = 0x1105,
@@ -103,8 +104,16 @@ enum
     S_SUBSECTINFO_V3      = 0x1137,
     S_ENTRYPOINT_V3       = 0x1138,
     S_SECUCOOKIE_V3       = 0x113A,
-    S_MSTOOLINFO_V3       = 0x113C,
-    S_MSTOOLENV_V3        = 0x113D,
+
+    S_COMPILE3            = 0x113C,      // compile flags, language and compiler version
+    S_ENVBLOCK            = 0x113D,      // build environment block
+    S_BUILDINFO           = 0x114C,      // reference to an LF_BUILDINFO record
+    S_FRAMEPROC           = 0x1012,      // extra frame and procedure information
+    S_REGREL32            = 0x1111,      // register-relative address
+    S_LTHREAD32           = 0x1112,      // thread-local static data (local)
+    S_GTHREAD32           = 0x1113,      // thread-local static data (global)
+    S_LPROC32_ID          = 0x1146,      // local procedure (type field is an LF_FUNC_ID)
+    S_GPROC32_ID          = 0x1147,      // global procedure (type field is an LF_FUNC_ID)
 }
 
 // Leaf Indices
@@ -242,4 +251,50 @@ enum
     LF_METHOD_V3          = 0x150F,
     LF_NESTTYPE_V3        = 0x1510,
     LF_ONEMETHOD_V3       = 0x1511,
+
+    // Type leaf records used by the ID stream
+    LF_FUNC_ID            = 0x1601,   // function id: function type + name
+    LF_STRING_ID          = 0x1605,   // interned string -> type index
+    LF_BUILDINFO          = 0x1603,   // cwd, tool, source, pdb, args
+    LF_UDT_SRC_LINE       = 0x1606,   // source file/line where a UDT is defined
+}
+
+// .debug$S subsection kinds
+enum
+{
+    DEBUG_S_SYMBOLS     = 0xF1,
+    DEBUG_S_LINES       = 0xF2,
+    DEBUG_S_STRINGTABLE = 0xF3,
+    DEBUG_S_FILECHKSMS  = 0xF4,
+}
+
+// Source file checksum kinds
+enum
+{
+    CHKSUM_NONE   = 0,
+    CHKSUM_MD5    = 1,
+    CHKSUM_SHA1   = 2,
+    CHKSUM_SHA256 = 3,
+}
+
+// S_FRAMEPROC flags
+enum
+{
+    CV_FRAME_HASALLOCA   = 1 << 0,      // function uses alloca()
+    CV_FRAME_HASINLASM   = 1 << 3,      // function has inline asm
+    CV_FRAME_HASEH       = 1 << 4,      // function has exception handling
+    CV_FRAME_SECURITY    = 1 << 8,      // function has a stack security cookie
+    CV_FRAME_OPTSPEED    = 1 << 20,     // function was optimized for speed
+    CV_FRAME_LOCALBP_RBP = 2 << 14,     // locals addressed relative to RBP/EBP
+    CV_FRAME_PARAMBP_RBP = 2 << 16,     // parameters addressed relative to RBP/EBP
+}
+
+// Mark a line-number entry as a statement (not an expression)
+enum CV_LINE_STATEMENT = 0x80000000;
+
+// CodeView register encodings for base-pointer-relative records
+enum
+{
+    CV_REG_EBP   = 22,          // x86 EBP
+    CV_AMD64_RBP = 334,         // x64 RBP
 }

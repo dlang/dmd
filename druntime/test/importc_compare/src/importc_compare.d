@@ -1,14 +1,5 @@
 import core.stdc.stdio : printf;
 
-version (OSX)
-    version = Apple;
-version (iOS)
-    version = Apple;
-version (TVOS)
-    version = Apple;
-version (WatchOS)
-    version = Apple;
-
 /*
 This test tries to automatically find types with a wrong size in
 druntime C bindings. This is done by also getting type sizes from
@@ -38,16 +29,22 @@ immutable string[] growingTypes = [
 // warnings for now.
 immutable ErrorFilter[] knownProblems = [
     ErrorFilter("core.stdc.config.c_long_double", "", "Windows", 32, ""),
+    ErrorFilter("core.stdc.config.c_complex_real", "", "Windows", 32, ""), // complex real is two long doubles so same for x86 Windows
+    ErrorFilter("core.stdc.config.__c_complex_real", "", "Windows", 32, ""),
     ErrorFilter("core.stdc.fenv.fenv_t", "", "FreeBSD", 0, ""),
     ErrorFilter("core.stdc.locale.lconv", "", "Apple", 0, "https://issues.dlang.org/show_bug.cgi?id=24652"),
     ErrorFilter("core.stdc.locale.lconv", "", "FreeBSD", 0, "https://issues.dlang.org/show_bug.cgi?id=24652"),
     ErrorFilter("core.stdc.locale.lconv", "", "Windows", 0, "https://issues.dlang.org/show_bug.cgi?id=24652"),
     ErrorFilter("core.stdc.math.double_t", "", "linux", 0, ""),
     ErrorFilter("core.stdc.math.float_t", "", "linux", 0, ""),
+    ErrorFilter("core.stdc.math.double_t", "", "Hurd", 0, ""),
+    ErrorFilter("core.stdc.math.float_t", "", "Hurd", 0, ""),
     ErrorFilter("core.stdc.signal.sig_atomic_t", "", "FreeBSD", 0, ""),
     ErrorFilter("core.stdc.stdio.FILE", "", "FreeBSD", 0, ""),
     ErrorFilter("core.stdc.stdio.FILE", "", "linux", 0, ""),
     ErrorFilter("core.stdc.stdio._IO_FILE", "", "linux", 0, ""),
+    ErrorFilter("core.stdc.stdio.FILE", "", "Hurd", 0, ""),
+    ErrorFilter("core.stdc.stdio._IO_FILE", "", "Hurd", 0, ""),
     ErrorFilter("core.stdc.stdio.__sFILE", "", "FreeBSD", 0, ""),
     ErrorFilter("core.stdc.wchar_.mbstate_t", "", "Apple", 0, ""),
     ErrorFilter("core.stdc.wchar_.mbstate_t", "", "Windows", 0, ""),

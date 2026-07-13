@@ -1,7 +1,7 @@
 /**
  * Stores command line options and contains other miscellaneous declarations.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/globals.d, _globals.d)
@@ -26,11 +26,8 @@ import dmd.file_manager;
 import dmd.identifier;
 import dmd.location;
 import dmd.lexer : CompileEnv;
+import dmd.targetcompiler;
 import dmd.utils;
-
-version (IN_GCC) {}
-else version (IN_LLVM) {}
-else version = MARS;
 
 /// Defines a setting for how compiler warnings and deprecations are handled
 enum DiagnosticReporting : ubyte
@@ -133,7 +130,6 @@ extern(C++) struct Verbose
     bool field;             // identify non-mutable field variables
     bool complex = true;    // identify complex/imaginary type usage
     bool vin;               // identify 'in' parameters
-    bool showGaggedErrors;  // print gagged errors anyway
     bool logo;              // print compiler logo
     bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
@@ -166,12 +162,10 @@ extern (C++) struct Param
     bool trace;             // insert profiling hooks
     bool tracegc;           // instrument calls to 'new'
     bool vcg_ast;           // write-out codegen-ast
-    DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
-    DiagnosticReporting useWarnings = DiagnosticReporting.off;  // how compiler warnings are handled
     bool cov;               // generate code coverage data
     ubyte covPercent;       // 0..100 code coverage percentage required
     bool ctfe_cov = false;  // generate coverage data for ctfe
@@ -183,7 +177,9 @@ extern (C++) struct Param
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
-    bool bitfields;         // support C style bit fields
+    bool bitfields = true;  // support C style bit fields
+    bool nothrowOptimizations; // Allow finally statements that do not throw an Exception
+                                  // in try body to rewrite to a sequence.
 
     CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
 
@@ -219,11 +215,13 @@ extern (C++) struct Param
     FeatureState dtorFields;     // destruct fields of partially constructed objects
                                  // https://issues.dlang.org/show_bug.cgi?id=14246
     FeatureState systemVariables; // limit access to variables marked @system from @safe code
+    bool useFastDFA;                 // Use fast data flow analysis engine
 
     CHECKENABLE useInvariants  = CHECKENABLE._default;  // generate class invariant checks
     CHECKENABLE useIn          = CHECKENABLE._default;  // generate precondition checks
     CHECKENABLE useOut         = CHECKENABLE._default;  // generate postcondition checks
     CHECKENABLE useArrayBounds = CHECKENABLE._default;  // when to generate code for array bounds checks
+    CHECKENABLE useNullCheck   = CHECKENABLE._default;  // when to generate code for null dereference checks
     CHECKENABLE useAssert      = CHECKENABLE._default;  // when to generate code for assert()'s
     CHECKENABLE useSwitchError = CHECKENABLE._default;  // check for switches without a default
     CHECKENABLE boundscheck    = CHECKENABLE._default;  // state of -boundscheck switch
@@ -290,6 +288,7 @@ enum hdr_ext  = "di";       // for D 'header' import files
 enum json_ext = "json";     // for JSON files
 enum map_ext  = "map";      // for .map files
 enum c_ext    = "c";        // for C source files
+enum h_ext    = "h";        // for C header source files
 enum i_ext    = "i";        // for preprocessed C source file
 
 /**
@@ -299,7 +298,7 @@ extern (C++) struct Global
 {
     const(char)[] inifilename; /// filename of configuration file as given by `-conf=`, or default value
 
-    string copyright = "Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved";
+    string copyright = "Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved";
     string written = "written by Walter Bright";
 
     Array!(ImportPathInfo) path;       /// Array of path informations which form the import lookup path
@@ -307,7 +306,7 @@ extern (C++) struct Global
     Array!(const(char)*) filePath;     /// Array of char*'s which form the file import lookup path
 
     private enum string _version = import("VERSION");
-    char[26] datetime;      /// string returned by ctime()
+    char[26] datetime;      /// string returned by asctime()
     CompileEnv compileEnv;
 
     Param params;           /// command line parameters
@@ -316,7 +315,7 @@ extern (C++) struct Global
     uint warnings;          /// number of warnings reported so far
     uint gag;               /// !=0 means gag reporting of errors & warnings
     uint gaggedErrors;      /// number of errors reported while gagged
-    uint gaggedWarnings;    /// number of warnings reported while gagged
+    uint gaggedDeprecations; /// number of deprecations reported while gagged
 
     void* console;         /// opaque pointer to console for controlling text attributes
 
@@ -331,8 +330,8 @@ extern (C++) struct Global
 
     enum recursionLimit = 500; /// number of recursive template expansions before abort
 
-    ErrorSink errorSink;       /// where the error messages go
-    ErrorSink errorSinkNull;   /// where the error messages are ignored
+    ErrorSinkCompiler errorSink;  /// where the error messages go
+    ErrorSink errorSinkNull;      /// where the error messages are ignored
 
     extern (C++) DArray!ubyte function(FileName, Loc, ref OutBuffer) preprocess;
 
@@ -352,7 +351,7 @@ extern (C++) struct Global
     extern (C++) uint startGagging() @safe
     {
         ++gag;
-        gaggedWarnings = 0;
+        gaggedDeprecations = 0;
         return gaggedErrors;
     }
 
@@ -392,21 +391,11 @@ extern (C++) struct Global
         errorSinkNull = new ErrorSinkNull;
 
         this.fileManager = new FileManager();
+        compileEnv.vendor = TargetCompiler;
+        compileEnv.switchPrefix = SwitchPrefix;
 
-        version (MARS)
-        {
-            compileEnv.vendor = "Digital Mars D";
-        }
-        else version (IN_GCC)
-        {
-            compileEnv.vendor = "GNU D";
-        }
-        else version (IN_LLVM)
-        {
-            compileEnv.vendor = "LDC";
-        }
-        else
-            static assert(0, "unknown vendor");
+        mixin UseAnsiColors;
+        params.v.color = useAnsiColors();
 
         compileEnv.versionNumber = parseVersionNumber(versionString());
 
@@ -416,15 +405,19 @@ extern (C++) struct Global
         import core.stdc.stdlib : getenv;
 
         time_t ct;
+        const(char)* p;
         // https://issues.dlang.org/show_bug.cgi?id=20444
-        if (auto p = getenv("SOURCE_DATE_EPOCH"))
+        if (auto epoch = getenv("SOURCE_DATE_EPOCH"))
         {
-            if (!ct.parseDigits(p[0 .. strlen(p)]))
-                errorSink.error(Loc.initial, "value of environment variable `SOURCE_DATE_EPOCH` should be a valid UNIX timestamp, not: `%s`", p);
+            if (!ct.parseDigits(epoch[0 .. strlen(epoch)]))
+                errorSink.error(Loc.initial, "value of environment variable `SOURCE_DATE_EPOCH` should be a valid UNIX timestamp, not: `%s`", epoch);
+            p = asctime(gmtime(&ct));
         }
         else
+        {
             core.stdc.time.time(&ct);
-        const p = ctime(&ct);
+            p = ctime(&ct); // asctime(localtime(&ct))
+        }
         assert(p);
         datetime[] = p[0 .. 26];
 

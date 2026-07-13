@@ -2,7 +2,7 @@
  * Builds struct member functions if needed and not defined by the user.
  * Includes `opEquals`, `opAssign`, post blit, copy constructor and destructor.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/clone.d, _clone.d)
@@ -868,6 +868,11 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
         // workaround https://issues.dlang.org/show_bug.cgi?id=17968
         "    static if(is(T* : const(.object.Object)*)) " ~
         "        h = h * 33 + typeid(const(.object.Object)).getHash(cast(const void*)&p.tupleof[i]);" ~
+        // and another workaround for bitfields https://github.com/dlang/dmd/issues/20473
+        "    else static if (!__traits(compiles, &p.tupleof[i])) {" ~
+        "        auto t = p.tupleof[i];" ~
+        "        h = h * 33 + typeid(T).getHash(cast(const void*)&t);" ~
+        "    } " ~
         "    else " ~
         "        h = h * 33 + typeid(T).getHash(cast(const void*)&p.tupleof[i]);" ~
         "return h;";
@@ -1727,7 +1732,7 @@ void needCopyOrMoveCtor(StructDeclaration sd, out bool hasCopyCtor, out bool has
 
     if (0 && fieldWithCpCtor && moveCtor)
     {
-        .error(sd.loc, "`struct %s` may not define a rvalue constructor and have fields with copy constructors", sd.toChars());
+        .error(sd.loc, "`struct %s` may not define a rvalue constructor and have fields with copy constructors", sd.toErrMsg());
         errorSupplemental(moveCtor.loc,"rvalue constructor defined here");
         errorSupplemental(fieldWithCpCtor.loc, "field with copy constructor defined here");
         return;

@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/x86/nteh.d, backend/nteh.d)
@@ -25,15 +25,17 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.dt;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE, symbol_keep;
+import dmd.backend.dout : outdata;
+import dmd.backend.symbol : symbol_add, symbol_generate, symbol_name, globsym;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-static if (NTEXCEPTIONS)
-{
+//static if (1) // NTEXCEPTIONS
+//{
 
 
 nothrow:
@@ -55,10 +57,10 @@ private
 
 // member stable is not used for MARS or C++
 
-int nteh_EBPoffset_sindex()     { return -4; }
-int nteh_EBPoffset_prev()       { return -nteh_contextsym_size() + 8; }
-int nteh_EBPoffset_info()       { return -nteh_contextsym_size() + 4; }
-int nteh_EBPoffset_esp()        { return -nteh_contextsym_size() + 0; }
+int nteh_EBPoffset_sindex()                   { return -4; }
+int nteh_EBPoffset_prev(ref CGstate cg)       { return -nteh_contextsym_size(cg) + 8; }
+int nteh_EBPoffset_info(ref CGstate cg)       { return -nteh_contextsym_size(cg) + 4; }
+int nteh_EBPoffset_esp(ref CGstate cg)        { return -nteh_contextsym_size(cg) + 0; }
 
 int nteh_offset_sindex()        { return 16; }
 int nteh_offset_sindex_seh()    { return 20; }
@@ -186,19 +188,19 @@ Symbol* nteh_contextsym()
  * Returns: size of context symbol on stack.
  */
 @trusted
-uint nteh_contextsym_size()
+uint nteh_contextsym_size(ref CGstate cg)
 {
     int sz;
 
-    if (cgstate.usednteh & NTEH_try)
+    if (cg.usednteh & NTEH_try)
     {
         sz = 5 * 4;
     }
-    else if (cgstate.usednteh & NTEHcpp)
+    else if (cg.usednteh & NTEHcpp)
     {
         sz = 5 * 4;                     // C++ context record
     }
-    else if (cgstate.usednteh & NTEHpassthru)
+    else if (cg.usednteh & NTEHpassthru)
     {
         sz = 1 * 4;
     }
@@ -238,18 +240,18 @@ void nteh_usevars()
  */
 
 @trusted
-void nteh_prolog(ref CodeBuilder cdb)
+void nteh_prolog(ref CGstate cg, ref CodeBuilder cdb)
 {
     code cs;
 
-    if (cgstate.usednteh & NTEHpassthru)
+    if (cg.usednteh & NTEHpassthru)
     {
         /* An sindex value of -2 is a magic value that tells the
          * stack unwinder to skip this frame.
          */
         assert(config.exe & EX_posix);
         cs.Iop = 0x68;
-        cs.Iflags = 0;
+        cs.Iflags = CF.zero;
         cs.Irex = 0;
         cs.IFL2 = FL.const_;
         cs.IEV2.Vint = -2;
@@ -271,7 +273,7 @@ void nteh_prolog(ref CodeBuilder cdb)
 //    useregs(mAX);                     // What is this for?
 
     cs.Iop = 0x68;
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.Irex = 0;
     cs.IFL2 = FL.const_;
     cs.IEV2.Vint = -1;
@@ -293,7 +295,7 @@ void nteh_prolog(ref CodeBuilder cdb)
     {
         cs.Iop = 0xFF;
         cs.Irm = modregrm(0,6,BPRM);
-        cs.Iflags = CFfs;
+        cs.Iflags = CF.fs;
         cs.Irex = 0;
         cs.IFL1 = FL.extern_;
         cs.IEV1.Vsym = getRtlsym(RTLSYM.EXCEPT_LIST);
@@ -305,7 +307,7 @@ void nteh_prolog(ref CodeBuilder cdb)
         useregs(mDX);
         cs.Iop = 0x8B;
         cs.Irm = modregrm(0,DX,BPRM);
-        cs.Iflags = CFfs;
+        cs.Iflags = CF.fs;
         cs.Irex = 0;
         cs.IFL1 = FL.extern_;
         cs.IEV1.Vsym = getRtlsym(RTLSYM.EXCEPT_LIST);
@@ -328,7 +330,7 @@ void nteh_prolog(ref CodeBuilder cdb)
  */
 
 @trusted
-void nteh_epilog(ref CodeBuilder cdb)
+void nteh_epilog(ref CGstate cg, ref CodeBuilder cdb)
 {
     if (config.exe != EX_WIN32)
         return;
@@ -343,16 +345,16 @@ void nteh_epilog(ref CodeBuilder cdb)
     code cs;
     cs.Iop = 0x8B;
     cs.Irm = modregrm(2,reg,BPRM);
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.Irex = 0;
     cs.IFL1 = FL.const_;
     // EBP offset of __context.prev
-    cs.IEV1.Vint = nteh_EBPoffset_prev();
+    cs.IEV1.Vint = nteh_EBPoffset_prev(cg);
     cdb.gen(&cs);
 
     cs.Iop = 0x89;
     cs.Irm = modregrm(0,reg,BPRM);
-    cs.Iflags |= CFfs;
+    cs.Iflags |= CF.fs;
     cs.IFL1 = FL.extern_;
     cs.IEV1.Vsym = getRtlsym(RTLSYM.EXCEPT_LIST);
     cs.IEV1.Voffset = 0;
@@ -364,16 +366,16 @@ void nteh_epilog(ref CodeBuilder cdb)
  */
 
 @trusted
-void nteh_setsp(ref CodeBuilder cdb, opcode_t op)
+void nteh_setsp(ref CGstate cg, ref CodeBuilder cdb, opcode_t op)
 {
     code cs;
     cs.Iop = op;
     cs.Irm = modregrm(2,SP,BPRM);
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.Irex = 0;
     cs.IFL1 = FL.const_;
     // EBP offset of __context.esp
-    cs.IEV1.Vint = nteh_EBPoffset_esp();
+    cs.IEV1.Vint = nteh_EBPoffset_esp(cg);
     cdb.gen(&cs);               // MOV ESP,__context[EBP].esp
 }
 
@@ -382,7 +384,7 @@ void nteh_setsp(ref CodeBuilder cdb, opcode_t op)
  */
 
 @trusted
-void nteh_filter(ref CodeBuilder cdb, block* b)
+void nteh_filter(ref CGstate cg, ref CodeBuilder cdb, block* b)
 {
     assert(b.bc == BC._filter);
     if (b.Bflags & BFL.ehcode)          // if referenced __ecode
@@ -399,11 +401,11 @@ void nteh_filter(ref CodeBuilder cdb, block* b)
         code cs;
         cs.Iop = 0x8B;
         cs.Irm = modregrm(2,AX,BPRM);
-        cs.Iflags = 0;
+        cs.Iflags = CF.zero;
         cs.Irex = 0;
         cs.IFL1 = FL.const_;
         // EBP offset of __context.info
-        cs.IEV1.Vint = nteh_EBPoffset_info();
+        cs.IEV1.Vint = nteh_EBPoffset_info(cg);
         cdb.gen(&cs);                 // MOV EAX,__context[EBP].info
 
         cs.Irm = modregrm(0,AX,0);
@@ -465,7 +467,7 @@ void nteh_gensindex(ref CodeBuilder cdb, int sindex)
     //  MOV     -4[EBP],sindex
 
     cdb.genc(0xC7,modregrm(1,0,BP),FL.const_,cast(targ_uns)nteh_EBPoffset_sindex(),FL.const_,sindex); // 7 bytes long
-    cdb.last().Iflags |= CFvolatile;
+    cdb.last().Iflags |= CF.volatile;
 
     //assert(GENSINDEXSIZE == calccodsize(c));
 }
@@ -481,7 +483,7 @@ void cdsetjmp(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs)
     regm_t retregs;
     uint flag;
 
-    const stackpushsave = cgstate.stackpush;
+    const stackpushsave = cg.stackpush;
     if (funcsym_p.Sfunc.Fflags3 & Fnteh)
     {
         /*  If in NT SEH try block
@@ -499,23 +501,23 @@ void cdsetjmp(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs)
         int sindex_off = 20;                // offset of __context.sindex
         cs.Iop = 0xFF;
         cs.Irm = modregrm(2,6,BPRM);
-        cs.Iflags = 0;
+        cs.Iflags = CF.zero;
         cs.Irex = 0;
         cs.IFL1 = FL.bprel;
         cs.IEV1.Vsym = nteh_contextsym();
         cs.IEV1.Voffset = sindex_off;
         cdb.gen(&cs);                 // PUSH scope_index
-        cgstate.stackpush += 4;
+        cg.stackpush += 4;
         cdb.genadjesp(4);
 
         cs.Iop = 0x68;
-        cs.Iflags = CFoff;
+        cs.Iflags = CF.off;
         cs.Irex = 0;
         cs.IFL2 = FL.extern_;
         cs.IEV2.Vsym = getRtlsym(RTLSYM.LONGJMP);
         cs.IEV2.Voffset = 0;
         cdb.gen(&cs);                 // PUSH &_seh_longjmp_unwind
-        cgstate.stackpush += 4;
+        cg.stackpush += 4;
         cdb.genadjesp(4);
 
         flag = 2;
@@ -529,25 +531,25 @@ void cdsetjmp(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs)
         flag = 0;
     }
     cs.Iop = 0x68;
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.Irex = 0;
     cs.IFL2 = FL.const_;
     cs.IEV2.Vint = flag;
     cdb.gen(&cs);                     // PUSH flag
-    cgstate.stackpush += 4;
+    cg.stackpush += 4;
     cdb.genadjesp(4);
 
-    pushParams(cdb,e.E1,REGSIZE, TYnfunc);
+    pushParams(cg,cdb,e.E1,REGSIZE, TYnfunc);
 
     getregs(cdb,~getRtlsym(RTLSYM.SETJMP3).Sregsaved & (ALLREGS | mES));
     cdb.gencs(0xE8,0,FL.func,getRtlsym(RTLSYM.SETJMP3));      // CALL __setjmp3
 
-    cod3_stackadj(cdb, -(cgstate.stackpush - stackpushsave));
-    cdb.genadjesp(-(cgstate.stackpush - stackpushsave));
+    cod3_stackadj(cdb, -(cg.stackpush - stackpushsave));
+    cdb.genadjesp(-(cg.stackpush - stackpushsave));
 
-    cgstate.stackpush = stackpushsave;
+    cg.stackpush = stackpushsave;
     retregs = regmask(e.Ety, TYnfunc);
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cg,cdb,e,retregs,pretregs);
 }
 
 /****************************************
@@ -560,7 +562,7 @@ void cdsetjmp(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs)
  */
 
 @trusted
-void nteh_unwind(ref CodeBuilder cdb,regm_t saveregs,uint stop_index)
+void nteh_unwind(ref CGstate cg, ref CodeBuilder cdb,regm_t saveregs,uint stop_index)
 {
     // Shouldn't this always be CX?
     const reg_t reg = CX;
@@ -573,7 +575,7 @@ void nteh_unwind(ref CodeBuilder cdb,regm_t saveregs,uint stop_index)
     cdbs.ctor();
     CodeBuilder cdbr;
     cdbr.ctor();
-    gensaverestore(saveregs & desregs,cdbs,cdbr);
+    gensaverestore(cg,saveregs & desregs,cdbs,cdbr);
 
     CodeBuilder cdbx;
     cdbx.ctor();
@@ -582,11 +584,11 @@ void nteh_unwind(ref CodeBuilder cdb,regm_t saveregs,uint stop_index)
     code cs;
     cs.Iop = LEA;
     cs.Irm = modregrm(2,reg,BPRM);
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.Irex = 0;
     cs.IFL1 = FL.const_;
     // EBP offset of __context.prev
-    cs.IEV1.Vint = nteh_EBPoffset_prev();
+    cs.IEV1.Vint = nteh_EBPoffset_prev(cg);
     cdbx.gen(&cs);                             // LEA  ECX,contextsym
 
     int nargs = 0;
@@ -610,7 +612,7 @@ void nteh_unwind(ref CodeBuilder cdb,regm_t saveregs,uint stop_index)
  */
 
 @trusted
-void nteh_monitor_prolog(ref CodeBuilder cdb, Symbol* shandle)
+void nteh_monitor_prolog(ref CGstate cg, ref CodeBuilder cdb, Symbol* shandle)
 {
     /*
      *  PUSH    handle
@@ -633,7 +635,7 @@ void nteh_monitor_prolog(ref CodeBuilder cdb, Symbol* shandle)
     {
         // PUSH shandle
         useregs(mCX);
-        cdbx.genc1(0x8B,modregrm(2,CX,4),FL.const_,4 * (1 + cgstate.needframe) + shandle.Soffset + localsize);
+        cdbx.genc1(0x8B,modregrm(2,CX,4),FL.const_,4 * (1 + cg.needframe) + shandle.Soffset + localsize);
         cdbx.last().Isib = modregrm(0,4,SP);
         cdbx.gen1(0x50 + CX);                      // PUSH ECX
     }
@@ -646,7 +648,7 @@ void nteh_monitor_prolog(ref CodeBuilder cdb, Symbol* shandle)
     useregs(mDX);
     cs.Iop = 0x8B;
     cs.Irm = modregrm(0,DX,BPRM);
-    cs.Iflags = CFfs;
+    cs.Iflags = CF.fs;
     cs.Irex = 0;
     cs.IFL1 = FL.extern_;
     cs.IEV1.Vsym = getRtlsym(RTLSYM.EXCEPT_LIST);
@@ -669,12 +671,14 @@ void nteh_monitor_prolog(ref CodeBuilder cdb, Symbol* shandle)
 
 /*************************************************
  * Release monitor, unhook monitor exception handler.
- * Input:
- *      retregs         registers to not destroy
+ * Params:
+ *      cg = code generator state
+ *      cdb = code sink
+ *      retregs = registers to not destroy
  */
 
 @trusted
-void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs)
+void nteh_monitor_epilog(ref CGstate cg,ref CodeBuilder cdb,regm_t retregs)
 {
     /*
      *  CALL    _d_monitor_epilog
@@ -690,7 +694,7 @@ void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs)
     cdbs.ctor();
     CodeBuilder cdbr;
     cdbr.ctor();
-    gensaverestore(retregs& desregs,cdbs,cdbr);
+    gensaverestore(cg,retregs & desregs,cdbs,cdbr);
     cdb.append(cdbs);
 
     getregs(cdb,desregs);
@@ -701,7 +705,7 @@ void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs)
     code cs;
     cs.Iop = 0x8F;
     cs.Irm = modregrm(0,0,BPRM);
-    cs.Iflags = CFfs;
+    cs.Iflags = CF.fs;
     cs.Irex = 0;
     cs.IFL1 = FL.extern_;
     cs.IEV1.Vsym = getRtlsym(RTLSYM.EXCEPT_LIST);
@@ -709,4 +713,4 @@ void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs)
     cdb.gen(&cs);                       // POP FS:__except_list
 }
 
-}
+//}

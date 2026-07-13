@@ -50,6 +50,11 @@ else version (Solaris)
     import core.sys.solaris.link : ElfW;
     version = LinuxOrBSD;
 }
+else version (Hurd)
+{
+    import core.sys.hurd.link : ElfW;
+    version = LinuxOrBSD;
+}
 
 /**
  * File-based memory-mapped I/O (read-only).
@@ -402,6 +407,10 @@ char* thisExePath()
         import core.stdc.string : strdup;
         import core.sys.openbsd.stdlib : getprogname;
         return strdup(getprogname());
+    }
+    else version (Hurd)
+    {
+        return readLink("/proc/self/exe");
     }
     else
     {

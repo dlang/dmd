@@ -71,34 +71,3 @@ unittest
 
     assert(reporter.supplementalCount == 1);
 }
-
-@("warnings: dangling else")
-unittest
-{
-    static class WarningCountingDiagnosticReporter : NoopDiagnosticReporter
-    {
-        int warningCount;
-
-        override bool warning(const ref SourceLoc, const(char)*, va_list, const(char)*, const(char)*)
-        {
-            warningCount++;
-            return true;
-        }
-    }
-
-    global.params.useWarnings = DiagnosticReporting.inform;
-    scope reporter = new WarningCountingDiagnosticReporter;
-
-    parseModule("test.d", q{
-        void main()
-        {
-        	if (true)
-        		if (false)
-        			assert(3);
-            else
-                assert(4);
-        }
-    });
-
-    assert(reporter.warningCount == 1);
-}

@@ -1,4 +1,4 @@
-TESTS := tlsgc_sections test_import tlsstack
+TESTS := tlsgc_sections test_import tlsstack filterthrownglobal filterthrownmethod
 # join_detach is currently disabled
 #TESTS += join_detach
 

@@ -5,7 +5,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/float.html#fp_const_folding, Floating Point Constant Folding)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/constfold.d, _constfold.d)
@@ -25,6 +25,7 @@ import dmd.declaration;
 import dmd.dstruct;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem;
 import dmd.globals;
 import dmd.location;
 import dmd.mtype;
@@ -36,7 +37,7 @@ import dmd.root.utf;
 import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : toDsymbol, equivalent, sarrayOf, size;
+import dmd.typesem;
 
 private enum LOG = false;
 
@@ -1072,7 +1073,7 @@ UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
         {
             // have to change to internal compiler error
             // all invalid casts should be handled already in Expression::castTo().
-            error(loc, "cannot cast `%s` to `%s`", e1.type.toChars(), type.toChars());
+            error(loc, "cannot cast `%s` to `%s`", e1.type.toErrMsg(), type.toErrMsg());
         }
         emplaceExp!(ErrorExp)(&ue);
     }
@@ -1141,7 +1142,7 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
         if (i >= length && (e1.op == EXP.arrayLiteral || !indexIsInBounds))
         {
             // C code only checks bounds if an ArrayLiteralExp
-            error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toChars(), length);
+            error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toErrMsg(), length);
             emplaceExp!(ErrorExp)(&ue);
         }
         else if (ArrayLiteralExp ale = e1.isArrayLiteralExp())
@@ -1164,7 +1165,7 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
         {
             if (i >= ale.elements.length)
             {
-                error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toChars(), cast(ulong) ale.elements.length);
+                error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toErrMsg(), cast(ulong) ale.elements.length);
                 emplaceExp!(ErrorExp)(&ue);
             }
             else
@@ -1246,7 +1247,7 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
         {
             const len = cast(size_t)(iupr - ilwr);
             const sz = es1.sz;
-            void* s = mem.xmalloc(len * sz);
+            void* s = mem.xmalloc_noscan(len * sz);
             const data1 = es1.peekData();
             memcpy(s, data1.ptr + ilwr * sz, len * sz);
             emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz, es1.postfix);
@@ -1266,7 +1267,7 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
         {
             auto elements = new Expressions(cast(size_t)(iupr - ilwr));
             memcpy(elements.tdata(), es1.elements.tdata() + ilwr, cast(size_t)(iupr - ilwr) * ((*es1.elements)[0]).sizeof);
-            emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, type, elements);
+            emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, type, es1.basis, elements);
         }
     }
     else
@@ -1419,7 +1420,7 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
             const sz = cast(ubyte)t.size();
             dinteger_t v = e.toInteger();
             const len = (t.ty == tn.ty) ? 1 : utf_codeLength(sz, cast(dchar)v);
-            void* s = mem.xmalloc(len * sz);
+            void* s = mem.xmalloc_noscan(len * sz);
             if (t.ty == tn.ty)
                 Port.valcpy(s, v, sz);
             else
@@ -1492,7 +1493,7 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
             assert(ue.exp().type);
             return ue;
         }
-        void* s = mem.xmalloc(len * sz);
+        void* s = mem.xmalloc_noscan(len * sz);
         const data1 = es1.peekData();
         const data2 = es2.peekData();
         memcpy(cast(char*)s, data1.ptr, es1.len * sz);
@@ -1549,7 +1550,7 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
         // (char[] ~ char, wchar[]~wchar, or dchar[]~dchar)
         bool homoConcat = (sz == t2.size());
         const len = es1.len + (homoConcat ? 1 : utf_codeLength(sz, cast(dchar)v));
-        void* s = mem.xmalloc(len * sz);
+        void* s = mem.xmalloc_noscan(len * sz);
         const data1 = es1.peekData();
         memcpy(s, data1.ptr, data1.length);
         if (homoConcat)
@@ -1572,7 +1573,7 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
         const len = 1 + es2.len;
         const sz = es2.sz;
         dinteger_t v = e1.toInteger();
-        void* s = mem.xmalloc(len * sz);
+        void* s = mem.xmalloc_noscan(len * sz);
         Port.valcpy(cast(char*)s, v, sz);
         const data2 = es2.peekData();
         memcpy(cast(char*)s + sz, data2.ptr, data2.length);

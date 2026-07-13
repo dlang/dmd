@@ -3,7 +3,7 @@
  *
  * Currently includes functions from `std.math`, `core.math` and `core.bitop`.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/builtin.d, _builtin.d)
@@ -17,8 +17,9 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem : toInteger, toReal;
+import dmd.typesem : isFloating, toBasetype;
 import dmd.func;
-import dmd.globals;
 import dmd.location;
 import dmd.mangle;
 import dmd.mtype;
@@ -118,7 +119,7 @@ BUILTIN determine_builtin(FuncDeclaration func)
     if (id3 == Id.sin)   return BUILTIN.sin;
     if (id3 == Id.cos)   return BUILTIN.cos;
     if (id3 == Id.tan)   return BUILTIN.tan;
-    if (id3 == Id.atan2) return BUILTIN.unimp; // N.B unimplmeneted
+    if (id3 == Id.atan2) return BUILTIN.unimp; // N.B unimplemented
 
     if (id3 == Id._sqrt) return BUILTIN.sqrt;
     if (id3 == Id.fabs)  return BUILTIN.fabs;
@@ -178,6 +179,7 @@ Expression eval_ctfeWrite(Loc loc, FuncDeclaration fd, Expression[] arguments)
     import core.stdc.stdio: fprintf, stderr;
     import dmd.expression: CTFEExp;
     import dmd.ctfeexpr: resolveSlice;
+    import dmd.expressionsem : toStringExp;
 
     Expression e = arguments[0];
     const se = resolveSlice(e).toStringExp();
@@ -374,7 +376,7 @@ Expression eval_bsf(Loc loc, FuncDeclaration fd, Expression[] arguments)
 {
     Expression arg0 = arguments[0];
     assert(arg0.op == EXP.int64);
-    uinteger_t n = arg0.toInteger();
+    auto n = arg0.toInteger();
     if (n == 0)
         error(loc, "`bsf(0)` is undefined");
     return new IntegerExp(loc, core.bitop.bsf(n), Type.tint32);
@@ -384,7 +386,7 @@ Expression eval_bsr(Loc loc, FuncDeclaration fd, Expression[] arguments)
 {
     Expression arg0 = arguments[0];
     assert(arg0.op == EXP.int64);
-    uinteger_t n = arg0.toInteger();
+    auto n = arg0.toInteger();
     if (n == 0)
         error(loc, "`bsr(0)` is undefined");
     return new IntegerExp(loc, core.bitop.bsr(n), Type.tint32);
@@ -394,7 +396,7 @@ Expression eval_bswap(Loc loc, FuncDeclaration fd, Expression[] arguments)
 {
     Expression arg0 = arguments[0];
     assert(arg0.op == EXP.int64);
-    uinteger_t n = arg0.toInteger();
+    auto n = arg0.toInteger();
     TY ty = arg0.type.toBasetype().ty;
     if (ty == Tint64 || ty == Tuns64)
         return new IntegerExp(loc, core.bitop.bswap(cast(ulong) n), arg0.type);
@@ -406,7 +408,7 @@ Expression eval_popcnt(Loc loc, FuncDeclaration fd, Expression[] arguments)
 {
     Expression arg0 = arguments[0];
     assert(arg0.op == EXP.int64);
-    uinteger_t n = arg0.toInteger();
+    auto n = arg0.toInteger();
     return new IntegerExp(loc, core.bitop.popcnt(n), Type.tint32);
 }
 

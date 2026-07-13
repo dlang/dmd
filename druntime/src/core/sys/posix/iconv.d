@@ -36,7 +36,7 @@ nothrow:
 @nogc:
 
 
-alias void* iconv_t;
+alias iconv_t = void*;
 
 /// Allocate descriptor for code conversion from codeset FROMCODE to
 /// codeset TOCODE.

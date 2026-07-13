@@ -6,6 +6,7 @@
   * Authors: Danny Milosavljevic
   */
 module core.sys.linux.stdio;
+version (linux):
 version (CRuntime_Glibc):
 public import core.sys.posix.stdio;
 import core.sys.posix.sys.types : ssize_t, off64_t = off_t;
@@ -16,10 +17,10 @@ import core.stdc.stddef : wchar_t;
 
 extern(C) nothrow
 {
-    alias ssize_t function(void *cookie, char *buf, size_t size) cookie_read_function_t;
-    alias ssize_t function(void *cookie, const(char) *buf, size_t size) cookie_write_function_t;
-    alias int function(void *cookie, off64_t *offset, int whence) cookie_seek_function_t;
-    alias int function(void *cookie) cookie_close_function_t;
+    alias cookie_read_function_t = ssize_t function(void *cookie, char *buf, size_t size);
+    alias cookie_write_function_t = ssize_t function(void *cookie, const(char) *buf, size_t size);
+    alias cookie_seek_function_t = int function(void *cookie, off64_t *offset, int whence);
+    alias cookie_close_function_t = int function(void *cookie);
 
     struct cookie_io_functions_t
     {

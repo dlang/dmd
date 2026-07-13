@@ -3,7 +3,7 @@
  *
  * Also used to convert AST nodes to D code in general, e.g. for error messages or `printf` debugging.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/hdrgen.d, _hdrgen.d)
@@ -22,7 +22,6 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.attrib;
 import dmd.cond;
-import dmd.ctfeexpr;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
@@ -50,7 +49,6 @@ import dmd.root.string;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.tokens;
-import dmd.typesem;
 import dmd.visitor;
 
 struct HdrGenState
@@ -60,6 +58,7 @@ struct HdrGenState
     bool fullDump;      /// true if generating a full AST dump file
     bool importcHdr;    /// true if generating a .di file from an ImportC file
     bool inCAlias;      /// Set to prevent ImportC translating typedefs as `alias X = X`
+    bool inFuncReturn;  /// Set when printing function return type to avoid typedef name
     bool doFuncBodies;  /// include function bodies in output
     bool vcg_ast;       /// write out codegen-ast
     bool skipConstraints;  // skip constraints when doing templates
@@ -101,8 +100,8 @@ void genhdrfile(Module m, bool doFuncBodies, ref OutBuffer buf)
 /**
  * Convert `o` to a string for error messages.
  * Params:
- *      e = object to convert
- * Returns: string representation of `e`
+ *      o = object to convert
+ * Returns: string representation of `o`
  */
 const(char)* toErrMsg(const RootObject o)
 {
@@ -926,7 +925,7 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
         buf.level++;
         while (t)
         {
-            buf.put(t.toString());
+            t.toString(&buf.put);
             if (t.next &&
                 t.value != TOK.min      &&
                 t.value != TOK.comma    && t.next.value != TOK.comma    &&
@@ -1027,7 +1026,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitImport(Import imp)
     {
-        if (hgs.hdrgen && imp.id == Id.object)
+        if (hgs.hdrgen && imp.id == Id.object && imp.packages.length == 0)
             return; // object is imported by default
         if (imp.isstatic)
             buf.put("static ");
@@ -1310,7 +1309,9 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         buf.put('{');
         buf.writenl();
         buf.level++;
-        visitAttribDeclaration(s);
+        if (s.decl)
+            foreach (de; *s.decl)
+                toCBuffer(de, buf, hgs);
         buf.level--;
         buf.put('}');
         buf.writenl();
@@ -1563,7 +1564,8 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         buf.put('(');
         visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters, buf, hgs);
         buf.put(')');
-        visitTemplateConstraint(d.constraint);
+        if (!hgs.skipConstraints)
+            visitTemplateConstraint(d.constraint);
         if (hgs.hdrgen || hgs.fullDump)
         {
             hgs.tpltMember++;
@@ -1753,17 +1755,16 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
             /*
                 https://issues.dlang.org/show_bug.cgi?id=23223
                 https://issues.dlang.org/show_bug.cgi?id=23222
-                This special case (initially just for modules) avoids some segfaults
-                and nicer -vcg-ast output.
+                https://github.com/dlang/dmd/issues/21707
+                For named symbols (modules, functions, templates, aggregates),
+                print just the name to avoid segfaults, infinite recursion,
+                and for nicer -vcg-ast output. Anonymous symbols (function
+                literals) are printed in full.
             */
-            if (d.aliassym.isModule())
-            {
+            if (!d.aliassym.isFuncLiteralDeclaration() && d.aliassym.ident)
                 buf.put(d.aliassym.ident.toString());
-            }
             else
-            {
                 toCBuffer(d.aliassym, buf, hgs);
-            }
         }
         else if (d.type.ty == Tfunction)
         {
@@ -2209,7 +2210,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitInteger(IntegerExp e)
     {
-        const ulong v = e.toInteger();
+        const ulong v = e.value;
         if (e.type)
         {
             Type t = e.type;
@@ -2224,7 +2225,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
                     {
                         foreach (em; *sym.members)
                         {
-                            if ((cast(EnumMember)em).value.toInteger == v)
+                            if ((cast(EnumMember)em).value.isIntegerExp().value == v)
                             {
                                 const id = em.ident.toString();
                                 buf.printf("%s.%.*s", sym.toChars(), cast(int)id.length, id.ptr);
@@ -2242,7 +2243,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             case Tdchar:
                 {
                     const o = buf.length;
-                    writeSingleCharLiteral(buf, cast(dchar) v);
+                    writeSingleCharLiteral(cast(dchar) v, &buf.put);
                     if (hgs.ddoc)
                         escapeDdocString(buf, o);
                     break;
@@ -2401,7 +2402,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         const o = buf.length;
         foreach (i; 0 .. e.len)
         {
-            writeCharLiteral(buf, e.getCodeUnit(i));
+            writeCharLiteral(e.getCodeUnit(i), &buf.put);
         }
         if (hgs.ddoc)
             escapeDdocString(buf, o);
@@ -2421,7 +2422,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             if (idx % 2 == 0)
             {
                 foreach(ch; str)
-                    writeCharLiteral(buf, ch);
+                    writeCharLiteral(ch, &buf.put);
             }
             else
             {
@@ -2450,6 +2451,11 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitAssocArrayLiteral(AssocArrayLiteralExp e)
     {
+        if (hgs.vcg_ast && e.lowering)
+        {
+            expToBuffer(e.lowering, PREC.assign, buf, hgs);
+            return;
+        }
         buf.put('[');
         foreach (i, key; *e.keys)
         {
@@ -2525,6 +2531,11 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitNew(NewExp e)
     {
+        if (hgs.vcg_ast && e.lowering)
+        {
+            expToBuffer(e.lowering, PREC.primary, buf, hgs);
+            return;
+        }
         if (e.thisexp)
         {
             expToBuffer(e.thisexp, PREC.primary, buf, hgs);
@@ -2765,7 +2776,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
             if (commaExtract)
             {
-                expToBuffer(commaExtract, precedence[exp.op], buf, hgs);
+                expToBuffer(commaExtract, expPrecedence(hgs, exp), buf, hgs);
                 return;
             }
         }
@@ -2791,6 +2802,9 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitAssert(AssertExp e)
     {
+        if (e.loweredFrom)
+            return e.loweredFrom.expressionPrettyPrint(buf, hgs);
+
         buf.put("assert(");
         expToBuffer(e.e1, PREC.assign, buf, hgs);
         if (e.msg)
@@ -2865,10 +2879,25 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             e.e1.expressionPrettyPrint(buf, hgs);
         }
         else
+        {
+            if (!hgs.vcg_ast && e.loweredFrom)
+            {
+                // restore original syntax for expressions lowered to calls
+                expressionToBuffer(e.loweredFrom, buf, hgs);
+                return;
+            }
             expToBuffer(e.e1, precedence[e.op], buf, hgs);
+        }
         buf.put('(');
         argsToBuffer(e.arguments, buf, hgs, null, e.names);
         buf.put(')');
+    }
+
+    void visitNot(NotExp e)
+    {
+        if (!hgs.vcg_ast && e.loweredFrom)
+            return expressionToBuffer(e.loweredFrom, buf, hgs);
+        return visitUna(e);
     }
 
     void visitPtr(PtrExp e)
@@ -2969,8 +2998,29 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         expToBuffer(e.e2, PREC.primary, buf, hgs);
     }
 
+    void visitCat(CatExp e)
+    {
+        if (hgs.vcg_ast && e.lowering)
+            expressionToBuffer(e.lowering, buf, hgs);
+        else
+            visitBin(e);
+    }
+
+    void visitCatAssign(CatAssignExp e)
+    {
+        if (hgs.vcg_ast && e.lowering)
+            expressionToBuffer(e.lowering, buf, hgs);
+        else
+            visitBin(e);
+    }
+
     void visitIndex(IndexExp e)
     {
+        if (!hgs.vcg_ast && e.loweredFrom)
+        {
+            expressionToBuffer(e.loweredFrom, buf, hgs);
+            return;
+        }
         expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.put('[');
         sizeToBuffer(e.e2, buf, hgs);
@@ -3008,7 +3058,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitDefaultInit(DefaultInitExp e)
     {
-        buf.put(EXPtoString(e.op));
+        buf.put(Token.toString(e.tok));
     }
 
     void visitClassReference(ClassReferenceExp e)
@@ -3077,6 +3127,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.delegate_:     return visitDelegate(e.isDelegateExp());
         case EXP.dotType:       return visitDotType(e.isDotTypeExp());
         case EXP.call:          return visitCall(e.isCallExp());
+        case EXP.not:           return visitNot(e.isNotExp());
         case EXP.star:          return visitPtr(e.isPtrExp());
         case EXP.delete_:       return visitDelete(e.isDeleteExp());
         case EXP.cast_:         return visitCast(e.isCastExp());
@@ -3090,6 +3141,10 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.array:         return visitArray(e.isArrayExp());
         case EXP.dot:           return visitDot(e.isDotExp());
         case EXP.index:         return visitIndex(e.isIndexExp());
+        case EXP.concatenate:   return visitCat(e.isCatExp());
+        case EXP.concatenateAssign:     return visitCatAssign(e.isCatAssignExp());
+        case EXP.concatenateElemAssign: return visitCatAssign(e.isCatElemAssignExp());
+        case EXP.concatenateDcharAssign:        return visitCatAssign(e.isCatDcharAssignExp());
         case EXP.minusMinus:
         case EXP.plusPlus:      return visitPost(e.isPostExp());
         case EXP.preMinusMinus:
@@ -3117,6 +3172,17 @@ void floatToBuffer(Type type, const real_t value, ref OutBuffer buf, const bool 
         of 256 (3 characters). The string will be "-M.MMMMe-4932".
         (ie, 8 chars more than mantissa). Plus one for trailing \0.
         Plus one for rounding. */
+    // NaN and infinity have no valid floating point literal syntax, so emit
+    // a property expression (e.g. `float.nan`, `-real.infinity`)
+    if (CTFloat.isNaN(value) || CTFloat.isInfinity(value))
+    {
+        if (CTFloat.isInfinity(value) && value < CTFloat.zero)
+            buf.put('-');
+        buf.put(type.toBaseTypeNonSemantic().toString());
+        buf.put(CTFloat.isNaN(value) ? ".nan" : ".infinity");
+        return;
+    }
+
     const(size_t) BUFFER_LEN = value.sizeof * 3 + 8 + 1 + 1;
     char[BUFFER_LEN] buffer = void;
     CTFloat.sprint(buffer.ptr, BUFFER_LEN, 'g', value);
@@ -3135,7 +3201,8 @@ void floatToBuffer(Type type, const real_t value, ref OutBuffer buf, const bool 
 
     if (type)
     {
-        Type t = type.toBasetype();
+        Type t = type.toBaseTypeNonSemantic();
+
         switch (t.ty)
         {
         case Tfloat32:
@@ -3151,7 +3218,7 @@ void floatToBuffer(Type type, const real_t value, ref OutBuffer buf, const bool 
         default:
             break;
         }
-        if (t.isImaginary())
+        if (t.isImaginaryNonSemantic())
             buf.put('i');
     }
 }
@@ -3298,7 +3365,7 @@ void toCBufferInstance(const TemplateInstance ti, ref OutBuffer buf, bool qualif
     HdrGenState hgs;
     hgs.fullQual = qualifyTypes;
 
-    buf.put(ti.name.toChars());
+    buf.put(ti.name == Id.ctor ? "this" : ti.name.toChars());
     tiargsToBuffer(cast() ti, buf, hgs);
 }
 
@@ -3417,6 +3484,7 @@ string stcToString(ref STC stc) @safe
         SCstring(STC.disable, "@disable"),
         SCstring(STC.future, "@__future"),
         SCstring(STC.local, "__local"),
+        SCstring(STC.ctfeOnly, "@__ctfe"),
     ];
     foreach (ref entry; table)
     {
@@ -3599,6 +3667,13 @@ const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQua
 private void parametersToBuffer(ParameterList pl, ref OutBuffer buf, ref HdrGenState hgs)
 {
     buf.put('(');
+    if (pl.varargs == VarArg.KRvariadic)
+    {
+        if (!hgs.hdrgen)
+            buf.put("..."); // essentially C23 variadic with no named parameter
+        buf.put(')');
+        return;
+    }
     foreach (i; 0 .. pl.length)
     {
         if (i)
@@ -3764,7 +3839,7 @@ private void sizeToBuffer(Expression e, ref OutBuffer buf, ref HdrGenState hgs)
     {
         Expression ex = (e.op == EXP.cast_ ? (cast(CastExp)e).e1 : e);
         ex = ex.optimize(WANTvalue);
-        const ulong uval = ex.op == EXP.int64 ? ex.toInteger() : cast(ulong)-1;
+        const ulong uval = ex.op == EXP.int64 ? ex.isIntegerExp().value : cast(ulong)-1;
         if (cast(long)uval >= 0)
         {
             if (uval <= 0xFFFFU)
@@ -3788,15 +3863,33 @@ private void expressionToBuffer(Expression e, ref OutBuffer buf, ref HdrGenState
     expressionPrettyPrint(e, buf, hgs);
 }
 
+// to be called if e could be loweredFrom another expression instead of acessing precedence[e.op] directly
+private PREC expPrecedence(ref HdrGenState hgs, Expression e)
+{
+    if (!hgs.vcg_ast)
+    {
+        if (auto ce = e.isCallExp())
+        {
+            if (ce.loweredFrom)
+                e = ce.loweredFrom;
+        }
+        else if (auto ne = e.isNotExp())
+            if (ne.loweredFrom)
+                e = ne.loweredFrom;
+    }
+    return precedence[e.op];
+}
+
 /**************************************************
  * Write expression out to buf, but wrap it
  * in ( ) if its precedence is less than pr.
  */
 private void expToBuffer(Expression e, PREC pr, ref OutBuffer buf, ref HdrGenState hgs)
 {
+    auto prec = expPrecedence(hgs, e);
     debug
     {
-        if (precedence[e.op] == PREC.zero)
+        if (prec == PREC.zero)
             printf("precedence not defined for token '%s'\n", EXPtoString(e.op).ptr);
     }
     if (e.op == 0xFF)
@@ -3804,13 +3897,13 @@ private void expToBuffer(Expression e, PREC pr, ref OutBuffer buf, ref HdrGenSta
         buf.put("<FF>");
         return;
     }
-    assert(precedence[e.op] != PREC.zero);
+    assert(prec != PREC.zero);
     assert(pr != PREC.zero);
     /* Despite precedence, we don't allow a<b<c expressions.
      * They must be parenthesized.
      */
-    if (precedence[e.op] < pr || (pr == PREC.rel && precedence[e.op] == pr)
-        || (pr >= PREC.or && pr <= PREC.and && precedence[e.op] == PREC.rel))
+    if (prec < pr || (pr == PREC.rel && prec == pr)
+        || (pr >= PREC.or && pr <= PREC.and && prec == PREC.rel))
     {
         buf.put('(');
         e.expressionToBuffer(buf, hgs);
@@ -4025,7 +4118,9 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, ref O
         buf.write("static ");
     if (t.next)
     {
+        hgs.inFuncReturn = true;
         typeToBuffer(t.next, null, buf, hgs);
+        hgs.inFuncReturn = false;
         if (ident)
             buf.put(' ');
     }
@@ -4094,7 +4189,9 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
     }
     else if (t.next)
     {
+        hgs.inFuncReturn = true;
         typeToBuffer(t.next, null, buf, hgs);
+        hgs.inFuncReturn = false;
         if (ident)
             buf.put(' ');
     }
@@ -4273,14 +4370,14 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitDArray(TypeDArray t)
     {
-        Type ut = t.castMod(0);
+        auto basetype = t.next;
         if (hgs.declstring)
             goto L1;
-        if (ut.equals(Type.tstring))
+        if (basetype.ty == Tchar && basetype.isImmutable())
             buf.put("string");
-        else if (ut.equals(Type.twstring))
+        else if (basetype.ty == Twchar && basetype.isImmutable())
             buf.put("wstring");
-        else if (ut.equals(Type.tdstring))
+        else if (basetype.ty == Tdchar && basetype.isImmutable())
             buf.put("dstring");
         else
         {
@@ -4476,7 +4573,7 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
         buf.put("noreturn");
     }
 
-    if (hgs.importcHdr && !hgs.inCAlias && t.mcache && t.mcache.typedefIdent)
+    if (hgs.importcHdr && !hgs.inCAlias && !hgs.inFuncReturn && t.mcache && t.mcache.typedefIdent)
     {
         buf.put(t.mcache.typedefIdent.toString());
         return;
@@ -4542,12 +4639,7 @@ string EXPtoString(EXP op)
         EXP.arrayLiteral : "arrayliteral",
         EXP.assocArrayLiteral : "assocarrayliteral",
         EXP.classReference : "classreference",
-        EXP.file : "__FILE__",
-        EXP.fileFullPath : "__FILE_FULL_PATH__",
-        EXP.line : "__LINE__",
-        EXP.moduleString : "__MODULE__",
-        EXP.functionString : "__FUNCTION__",
-        EXP.prettyFunction : "__PRETTY_FUNCTION__",
+        EXP.defaultInit : "defaultinit",
         EXP.typeid_ : "typeid",
         EXP.is_ : "is",
         EXP.assert_ : "assert",

@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/class.html, Classes)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dclass.d, _dclass.d)
@@ -19,9 +19,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.gluelayer;
 import dmd.declaration;
-import dmd.dscope;
 import dmd.dsymbol;
 import dmd.errors;
 import dmd.func;
@@ -31,7 +29,6 @@ import dmd.location;
 import dmd.mtype;
 import dmd.objc;
 import dmd.root.rmem;
-import dmd.target;
 import dmd.visitor;
 
 /***********************************************************
@@ -54,48 +51,6 @@ extern (C++) struct BaseClass
     {
         //printf("BaseClass(this = %p, '%s')\n", this, type.toChars());
         this.type = type;
-    }
-
-    /****************************************
-     * Fill in vtbl[] for base class based on member functions of class cd.
-     * Input:
-     *      vtbl            if !=NULL, fill it in
-     *      newinstance     !=0 means all entries must be filled in by members
-     *                      of cd, not members of any base classes of cd.
-     * Returns:
-     *      true if any entries were filled in by members of cd (not exclusively
-     *      by base classes)
-     */
-    extern (C++) bool fillVtbl(ClassDeclaration cd, FuncDeclarations* vtbl, int newinstance)
-    {
-        bool result = false;
-
-        //printf("BaseClass.fillVtbl(this='%s', cd='%s')\n", sym.toChars(), cd.toChars());
-        if (vtbl)
-            vtbl.setDim(sym.vtbl.length);
-
-        // first entry is ClassInfo reference
-        for (size_t j = sym.vtblOffset(); j < sym.vtbl.length; j++)
-        {
-            FuncDeclaration ifd = sym.vtbl[j].isFuncDeclaration();
-
-            //printf("        vtbl[%d] is '%s'\n", j, ifd ? ifd.toChars() : "null");
-            assert(ifd);
-
-            // Find corresponding function in this class
-            auto tf = ifd.type.toTypeFunction();
-            auto fd = cd.findFunc(ifd.ident, tf);
-            if (fd && !fd.isAbstract())
-            {
-                if (fd.toParent() == cd)
-                    result = true;
-            }
-            else
-                fd = null;
-            if (vtbl)
-                (*vtbl)[j] = fd;
-        }
-        return result;
     }
 
     extern (D) void copyBaseInterfaces(BaseClasses* vtblInterfaces)
@@ -194,8 +149,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
      */
     ObjcClassDeclaration objc;
 
-    Symbol* cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
-
     final extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
     {
         objc = ObjcClassDeclaration(this);
@@ -227,144 +180,42 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         if (id == Id.__sizeof || id == Id.__xalignof || id == Id._mangleof)
             classError("%s `%s` illegal class name", null);
 
+        final /* final to work around dscanner bug*/
+        void check(Identifier _id, ref ClassDeclaration cd)
+        {
+            if (id == _id)
+            {
+                if (!inObject)
+                    classError("%s `%s` %s", msg.ptr);
+                cd = this;
+            }
+        }
         // BUG: What if this is the wrong TypeInfo, i.e. it is nested?
         if (id.toChars()[0] == 'T')
         {
-            if (id == Id.TypeInfo)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.dtypeinfo = this;
-            }
-            if (id == Id.TypeInfo_Class)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfoclass = this;
-            }
-            if (id == Id.TypeInfo_Interface)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfointerface = this;
-            }
-            if (id == Id.TypeInfo_Struct)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfostruct = this;
-            }
-            if (id == Id.TypeInfo_Pointer)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfopointer = this;
-            }
-            if (id == Id.TypeInfo_Array)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfoarray = this;
-            }
-            if (id == Id.TypeInfo_StaticArray)
-            {
-                //if (!inObject)
-                //    Type.typeinfostaticarray.classError("%s `%s` %s", msg);
-                Type.typeinfostaticarray = this;
-            }
-            if (id == Id.TypeInfo_AssociativeArray)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfoassociativearray = this;
-            }
-            if (id == Id.TypeInfo_Enum)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfoenum = this;
-            }
-            if (id == Id.TypeInfo_Function)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfofunction = this;
-            }
-            if (id == Id.TypeInfo_Delegate)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfodelegate = this;
-            }
-            if (id == Id.TypeInfo_Tuple)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfotypelist = this;
-            }
-            if (id == Id.TypeInfo_Const)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfoconst = this;
-            }
-            if (id == Id.TypeInfo_Invariant)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfoinvariant = this;
-            }
-            if (id == Id.TypeInfo_Shared)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfoshared = this;
-            }
-            if (id == Id.TypeInfo_Wild)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfowild = this;
-            }
-            if (id == Id.TypeInfo_Vector)
-            {
-                if (!inObject)
-                    classError("%s `%s` %s", msg.ptr);
-                Type.typeinfovector = this;
-            }
+            check(Id.TypeInfo,           Type.dtypeinfo);
+            check(Id.TypeInfo_Class,     Type.typeinfoclass);
+            check(Id.TypeInfo_Interface, Type.typeinfointerface);
+            check(Id.TypeInfo_Struct,    Type.typeinfostruct);
+            check(Id.TypeInfo_Pointer,   Type.typeinfopointer);
+            check(Id.TypeInfo_Array,     Type.typeinfoarray);
+            check(Id.TypeInfo_StaticArray, Type.typeinfostaticarray);
+            check(Id.TypeInfo_AssociativeArray, Type.typeinfoassociativearray);
+            check(Id.TypeInfo_Enum,      Type.typeinfoenum);
+            check(Id.TypeInfo_Function,  Type.typeinfofunction);
+            check(Id.TypeInfo_Delegate,  Type.typeinfodelegate);
+            check(Id.TypeInfo_Tuple,     Type.typeinfotypelist);
+            check(Id.TypeInfo_Const,     Type.typeinfoconst);
+            check(Id.TypeInfo_Invariant, Type.typeinfoinvariant);
+            check(Id.TypeInfo_Shared,    Type.typeinfoshared);
+            check(Id.TypeInfo_Wild,      Type.typeinfowild);
+            check(Id.TypeInfo_Vector,    Type.typeinfovector);
         }
-
-        if (id == Id.Object)
-        {
-            if (!inObject)
-                classError("%s `%s` %s", msg.ptr);
-            object = this;
-        }
-
-        if (id == Id.Throwable)
-        {
-            if (!inObject)
-                classError("%s `%s` %s", msg.ptr);
-            throwable = this;
-        }
-        if (id == Id.Exception)
-        {
-            if (!inObject)
-                classError("%s `%s` %s", msg.ptr);
-            exception = this;
-        }
-        if (id == Id.Error)
-        {
-            if (!inObject)
-                classError("%s `%s` %s", msg.ptr);
-            errorException = this;
-        }
-        if (id == Id.cpp_type_info_ptr)
-        {
-            if (!inObject)
-                classError("%s `%s` %s", msg.ptr);
-            cpp_type_info_ptr = this;
-        }
+        check(Id.Object, object);
+        check(Id.Throwable, throwable);
+        check(Id.Exception, exception);
+        check(Id.Error, errorException);
+        check(Id.cpp_type_info_ptr, cpp_type_info_ptr);
 
         baseok = Baseok.none;
     }
@@ -379,12 +230,12 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return new ClassDeclaration(loc, id, baseclasses, members, inObject);
     }
 
-    override const(char)* toPrettyChars(bool qualifyTypes = false)
+    override const(char)* toPrettyChars(bool qualifyTypes = false, bool keepOneMember = false)
     {
         if (objc.isMeta)
             return .objc.toPrettyChars(this, qualifyTypes);
 
-        return super.toPrettyChars(qualifyTypes);
+        return super.toPrettyChars(qualifyTypes, keepOneMember);
     }
 
     override ClassDeclaration syntaxCopy(Dsymbol s)
@@ -406,19 +257,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         ScopeDsymbol.syntaxCopy(cd);
         return cd;
-    }
-
-    override Scope* newScope(Scope* sc)
-    {
-        auto sc2 = super.newScope(sc);
-        if (isCOMclass())
-        {
-            /* This enables us to use COM objects under Linux and
-             * work with things like XPCOM
-             */
-            sc2.linkage = target.systemLinkage();
-        }
-        return sc2;
     }
 
     /*********************************************
@@ -495,132 +333,17 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     }
 
     /**************
-     * Returns: true if there's a __monitor field
+     * Returns: true if there's a __monitor field, i.e. the druntime `Object` class declares it
      */
     final bool hasMonitor()
     {
-        return classKind == ClassKind.d;
-    }
-
-    /****************
-     * Find virtual function matching identifier and type.
-     * Used to build virtual function tables for interface implementations.
-     * Params:
-     *  ident = function's identifier
-     *  tf = function's type
-     * Returns:
-     *  function symbol if found, null if not
-     * Errors:
-     *  prints error message if more than one match
-     */
-    extern (D) final FuncDeclaration findFunc(Identifier ident, TypeFunction tf)
-    {
-        //printf("ClassDeclaration.findFunc(%s, %s) %s\n", ident.toChars(), tf.toChars(), toChars());
-        FuncDeclaration fdmatch = null;
-        FuncDeclaration fdambig = null;
-
-        void updateBestMatch(FuncDeclaration fd)
-        {
-            fdmatch = fd;
-            fdambig = null;
-            //printf("Lfd fdmatch = %s %s [%s]\n", fdmatch.toChars(), fdmatch.type.toChars(), fdmatch.loc.toChars());
-        }
-
-        void searchVtbl(ref Dsymbols vtbl)
-        {
-            import dmd.typesem : covariant;
-            bool seenInterfaceVirtual;
-            foreach (s; vtbl)
-            {
-                auto fd = s.isFuncDeclaration();
-                if (!fd)
-                    continue;
-
-                // the first entry might be a ClassInfo
-                //printf("\t[%d] = %s\n", i, fd.toChars());
-                if (ident != fd.ident || fd.type.covariant(tf) != Covariant.yes)
-                {
-                    //printf("\t\t%d\n", fd.type.covariant(tf));
-                    continue;
-                }
-
-                //printf("fd.parent.isClassDeclaration() = %p\n", fd.parent.isClassDeclaration());
-                if (!fdmatch)
-                {
-                    updateBestMatch(fd);
-                    continue;
-                }
-                if (fd == fdmatch)
-                    continue;
-
-                /* Functions overriding interface functions for extern(C++) with VC++
-                 * are not in the normal vtbl, but in vtblFinal. If the implementation
-                 * is again overridden in a child class, both would be found here.
-                 * The function in the child class should override the function
-                 * in the base class, which is done here, because searchVtbl is first
-                 * called for the child class. Checking seenInterfaceVirtual makes
-                 * sure, that the compared functions are not in the same vtbl.
-                 */
-                if (fd.interfaceVirtual &&
-                    fd.interfaceVirtual is fdmatch.interfaceVirtual &&
-                    !seenInterfaceVirtual &&
-                    fdmatch.type.covariant(fd.type) == Covariant.yes)
-                {
-                    seenInterfaceVirtual = true;
-                    continue;
-                }
-
-                {
-                // Function type matching: exact > covariant
-                MATCH m1 = tf.equals(fd.type) ? MATCH.exact : MATCH.nomatch;
-                MATCH m2 = tf.equals(fdmatch.type) ? MATCH.exact : MATCH.nomatch;
-                if (m1 > m2)
-                {
-                    updateBestMatch(fd);
-                    continue;
-                }
-                else if (m1 < m2)
-                    continue;
-                }
-                {
-                MATCH m1 = (tf.mod == fd.type.mod) ? MATCH.exact : MATCH.nomatch;
-                MATCH m2 = (tf.mod == fdmatch.type.mod) ? MATCH.exact : MATCH.nomatch;
-                if (m1 > m2)
-                {
-                    updateBestMatch(fd);
-                    continue;
-                }
-                else if (m1 < m2)
-                    continue;
-                }
-                {
-                // The way of definition: non-mixin > mixin
-                MATCH m1 = fd.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
-                MATCH m2 = fdmatch.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
-                if (m1 > m2)
-                {
-                    updateBestMatch(fd);
-                    continue;
-                }
-                else if (m1 < m2)
-                    continue;
-                }
-
-                fdambig = fd;
-                //printf("Lambig fdambig = %s %s [%s]\n", fdambig.toChars(), fdambig.type.toChars(), fdambig.loc.toChars());
-            }
-        }
-
-        searchVtbl(vtbl);
-        for (auto cd = this; cd; cd = cd.baseClass)
-        {
-            searchVtbl(cd.vtblFinal);
-        }
-
-        if (fdambig)
-            classError("%s `%s` ambiguous virtual function `%s`", fdambig.toChars());
-
-        return fdmatch;
+        if (classKind != ClassKind.d)
+            return false;
+        // Check if Object in druntime actually declares a __monitor field.
+        // Custom druntimes can omit it by not declaring it in Object.
+        if (!object || !object.symtab)
+            return true; // conservative: Object not yet loaded, assume monitor present
+        return object.symtab.lookup(Id.__monitor) !is null;
     }
 
     /****************************************
@@ -666,13 +389,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return "class";
     }
 
-    /****************************************
-     */
-    override final void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
-    {
-        .objc.addSymbols(this, classes, categories);
-    }
-
     // Back end
     Dsymbol vtblsym;
 
@@ -709,19 +425,6 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
               : new InterfaceDeclaration(loc, ident, null);
         ClassDeclaration.syntaxCopy(id);
         return id;
-    }
-
-
-    override Scope* newScope(Scope* sc)
-    {
-        auto sc2 = super.newScope(sc);
-        if (com)
-            sc2.linkage = LINK.windows;
-        else if (classKind == ClassKind.cpp)
-            sc2.linkage = LINK.cpp;
-        else if (classKind == ClassKind.objc)
-            sc2.linkage = LINK.objc;
-        return sc2;
     }
 
     /*******************************************

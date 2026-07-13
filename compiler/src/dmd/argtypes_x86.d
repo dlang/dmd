@@ -1,7 +1,7 @@
 /**
  * Break down a D type into basic (register) types for the 32-bit x86 ABI.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/argtypes_x86.d, _argtypes_x86.d)
@@ -16,7 +16,8 @@ import core.checkedint;
 
 import dmd.astenums;
 import dmd.declaration;
-import dmd.globals;
+import dmd.dsymbolsem : isPOD;
+import dmd.expressionsem : toInteger;
 import dmd.location;
 import dmd.mtype;
 import dmd.typesem;
@@ -326,7 +327,7 @@ TypeTuple toArgTypes_x86(Type t)
          *      nfields = number of fields in the aggregate (dimension for static arrays)
          *      getFieldInfo = get information about the nth field in the aggregate
          */
-        extern (D) void aggregate(uinteger_t sz, size_t nfields, Type delegate(size_t, out uint, out uint) getFieldInfo)
+        extern (D) void aggregate(ulong sz, size_t nfields, Type delegate(size_t, out uint, out uint) getFieldInfo)
         {
             if (nfields == 0)
                 return memory();

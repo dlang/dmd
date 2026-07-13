@@ -653,8 +653,8 @@ struct sockaddr
     short sa_family;
     ubyte[14] sa_data;
 }
-alias sockaddr SOCKADDR;
-alias SOCKADDR* PSOCKADDR, LPSOCKADDR;
+alias SOCKADDR = sockaddr;
+alias PSOCKADDR = SOCKADDR*, LPSOCKADDR = SOCKADDR*;
 
 struct sockaddr_storage
 {
@@ -663,8 +663,8 @@ struct sockaddr_storage
     long      __ss_align;
     char[112] __ss_pad2 = void;
 }
-alias sockaddr_storage SOCKADDR_STORAGE;
-alias SOCKADDR_STORAGE* PSOCKADDR_STORAGE;
+alias SOCKADDR_STORAGE = sockaddr_storage;
+alias PSOCKADDR_STORAGE = SOCKADDR_STORAGE*;
 
 struct sockaddr_in
 {
@@ -673,8 +673,8 @@ struct sockaddr_in
     in_addr sin_addr;
     ubyte[8] sin_zero;
 }
-alias sockaddr_in SOCKADDR_IN;
-alias SOCKADDR_IN* PSOCKADDR_IN, LPSOCKADDR_IN;
+alias SOCKADDR_IN = sockaddr_in;
+alias PSOCKADDR_IN = SOCKADDR_IN*, LPSOCKADDR_IN = SOCKADDR_IN*;
 
 
 struct sockaddr_in6

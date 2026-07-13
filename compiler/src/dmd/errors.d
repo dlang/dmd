@@ -1,7 +1,7 @@
 /**
  * Functions for raising errors.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/errors.d, _errors.d)
@@ -13,6 +13,7 @@ module dmd.errors;
 
 public import core.stdc.stdarg;
 public import dmd.root.string: fTuple;
+public import dmd.hdrgen : toErrMsg;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -23,88 +24,253 @@ import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.console;
+import dmd.console : Color;
 import dmd.root.filename;
-import dmd.sarif;
 
 nothrow:
 
-/// Constants used to discriminate kinds of error messages.
-enum ErrorKind
-{
-    warning,
-    deprecation,
-    error,
-    tip,
-    message,
-}
-
-/********************************
- * Represents a diagnostic message generated during compilation, such as errors,
- * warnings, or other messages.
- */
-struct Diagnostic
-{
-    SourceLoc loc; // The location in the source code where the diagnostic was generated (includes file, line, and column).
-    string message; // The text of the diagnostic message, describing the issue.
-    ErrorKind kind; // The type of diagnostic, indicating whether it is an error, warning, deprecation, etc.
-}
-
-__gshared Diagnostic[] diagnostics = [];
-
 /***************************
  * Error message sink for D compiler.
+ *
+ * Owns the gating logic (gag handling, error limit, warning/deprecation modes)
+ * and delegates the actual output to the virtual $(D emit) method, which
+ * subclasses such as $(D dmd.sarif.ErrorSinkSarif) override to change format.
  */
 class ErrorSinkCompiler : ErrorSink
 {
+    /// Maximum number of errors/deprecations to display before calling $(D fatal).
+    /// 0 means unlimited.
+    uint errorLimit = 20;
+
+    /// how compiler warnings are handled
+    DiagnosticReporting useWarnings = DiagnosticReporting.off;
+
+    /// how use of deprecated features are handled
+    DiagnosticReporting useDeprecated = DiagnosticReporting.inform;
+
+    /// print gagged errors anyway
+    bool showGaggedErrors;
+
+    /// Returns true if auxillary error reporting functions like `printCandidates`, `getMatchError` or
+    /// `getParamError` should print additional information.
+    final extern(D) bool emitAdditionalContext()
+    {
+        return !global.gag || showGaggedErrors;
+    }
+
   nothrow:
   extern (C++):
-  override:
 
-    void verror(Loc loc, const(char)* format, va_list ap)
+    // Overrides of the abstract ErrorSink methods convert Loc to SourceLoc
+    // and dispatch to the SourceLoc-taking overload that holds the gating body.
+
+    override void verror(Loc loc, const(char)* format, va_list ap)
     {
-        verrorReport(loc, format, ap, ErrorKind.error);
+        verror(loc.SourceLoc, format, ap);
     }
 
-    void verrorSupplemental(Loc loc, const(char)* format, va_list ap)
+    override void verrorSupplemental(Loc loc, const(char)* format, va_list ap)
     {
-        verrorReportSupplemental(loc, format, ap, ErrorKind.error);
+        verrorSupplemental(loc.SourceLoc, format, ap);
     }
 
-    void vwarning(Loc loc, const(char)* format, va_list ap)
+    override void vwarning(Loc loc, const(char)* format, va_list ap)
     {
-        verrorReport(loc, format, ap, ErrorKind.warning);
+        vwarning(loc.SourceLoc, format, ap);
     }
 
-    void vwarningSupplemental(Loc loc, const(char)* format, va_list ap)
+    override void vwarningSupplemental(Loc loc, const(char)* format, va_list ap)
     {
-        verrorReportSupplemental(loc, format, ap, ErrorKind.warning);
+        vwarningSupplemental(loc.SourceLoc, format, ap);
     }
 
-    void vdeprecation(Loc loc, const(char)* format, va_list ap)
+    override void vdeprecation(Loc loc, const(char)* format, va_list ap)
     {
-        verrorReport(loc, format, ap, ErrorKind.deprecation);
+        vdeprecation(loc.SourceLoc, format, ap);
     }
 
-    void vdeprecationSupplemental(Loc loc, const(char)* format, va_list ap)
+    override void vdeprecationSupplemental(Loc loc, const(char)* format, va_list ap)
     {
-        verrorReportSupplemental(loc, format, ap, ErrorKind.deprecation);
+        vdeprecationSupplemental(loc.SourceLoc, format, ap);
     }
 
-    void vmessage(Loc loc, const(char)* format, va_list ap)
+    override void vmessage(Loc loc, const(char)* format, va_list ap)
     {
-        verrorReport(loc, format, ap, ErrorKind.message);
+        vmessage(loc.SourceLoc, format, ap);
     }
 
-    void plugSink()
+    // SourceLoc-taking entry points used directly by `error(filename,linnum,...)`,
+    // `errorBackend`, `tip()` and supplemental sites; also called by the Loc
+    // overloads above.
+
+    final void verror(const SourceLoc loc, const(char)* format, va_list ap)
     {
-        // Exit if there are no collected diagnostics
-        if (!diagnostics.length) return;
+        global.errors++;
+        if (!global.gag)
+        {
+            emit(loc, format, ap, ErrorKind.error, false, false);
+            if (errorLimit && global.errors >= errorLimit)
+            {
+                fprintf(stderr, "error limit (%d) reached, use `-verrors=0` to show all\n", errorLimit);
+                fatal(); // moderate blizzard of cascading messages
+            }
+        }
+        else
+        {
+            if (showGaggedErrors)
+                emit(loc, format, ap, ErrorKind.error, false, true);
+            global.gaggedErrors++;
+        }
+    }
 
-        // Generate the SARIF report with the current diagnostics
-        generateSarifReport(false);
+    final void vwarning(const SourceLoc loc, const(char)* format, va_list ap)
+    {
+        if (useWarnings == DiagnosticReporting.off || global.gag)
+            return;
+        emit(loc, format, ap, ErrorKind.warning, false, false);
+        if (useWarnings == DiagnosticReporting.error)
+            global.warnings++;
+    }
 
-        // Clear diagnostics after generating the report
-        diagnostics.length = 0;
+    final void vdeprecation(const SourceLoc loc, const(char)* format, va_list ap)
+    {
+        if (useDeprecated == DiagnosticReporting.off)
+            return;
+
+        if (useDeprecated == DiagnosticReporting.error)
+        {
+            // `-de`: gate like an error (count, limit, fatal) but keep the
+            // "Deprecation:" header so messages remain distinguishable.
+            global.errors++;
+            if (!global.gag)
+            {
+                emit(loc, format, ap, ErrorKind.deprecation, false, false);
+                if (errorLimit && global.errors >= errorLimit)
+                {
+                    fprintf(stderr, "error limit (%d) reached, use `-verrors=0` to show all\n", errorLimit);
+                    fatal();
+                }
+            }
+            else
+            {
+                if (showGaggedErrors)
+                    emit(loc, format, ap, ErrorKind.deprecation, false, true);
+                global.gaggedErrors++;
+            }
+            return;
+        }
+
+        if (global.gag)
+        {
+            global.gaggedDeprecations++;
+            return;
+        }
+        global.deprecations++;
+        if (errorLimit == 0 || global.deprecations <= errorLimit)
+            emit(loc, format, ap, ErrorKind.deprecation, false, false);
+    }
+
+    final void vmessage(const SourceLoc loc, const(char)* format, va_list ap)
+    {
+        emit(loc, format, ap, ErrorKind.message, false, false);
+    }
+
+    final void vtip(const(char)* format, va_list ap)
+    {
+        if (global.gag)
+            return;
+        emit(SourceLoc.init, format, ap, ErrorKind.tip, false, false);
+    }
+
+    final void verrorSupplemental(const SourceLoc loc, const(char)* format, va_list ap)
+    {
+        if (global.gag)
+        {
+            if (!showGaggedErrors)
+                return;
+            emit(loc, format, ap, ErrorKind.error, true, true);
+        }
+        else
+            emit(loc, format, ap, ErrorKind.error, true, false);
+    }
+
+    final void vwarningSupplemental(const SourceLoc loc, const(char)* format, va_list ap)
+    {
+        if (useWarnings != DiagnosticReporting.off && !global.gag)
+            emit(loc, format, ap, ErrorKind.warning, true, false);
+    }
+
+    final void vdeprecationSupplemental(const SourceLoc loc, const(char)* format, va_list ap)
+    {
+        if (useDeprecated == DiagnosticReporting.error)
+        {
+            // Same gating as a primary -de deprecation, but keep the
+            // "Deprecation:" header on the supplemental too.
+            if (global.gag)
+            {
+                if (!showGaggedErrors)
+                    return;
+                emit(loc, format, ap, ErrorKind.deprecation, true, true);
+            }
+            else
+                emit(loc, format, ap, ErrorKind.deprecation, true, false);
+            return;
+        }
+        if (useDeprecated == DiagnosticReporting.inform && !global.gag)
+        {
+            if (errorLimit == 0 || global.deprecations <= errorLimit)
+                emit(loc, format, ap, ErrorKind.deprecation, true, false);
+        }
+    }
+
+    /**
+     * Format and write a single diagnostic that has already passed the gating
+     * checks. Default implementation prints coloured text to stderr (or stdout
+     * for plain messages); $(D dmd.sarif.ErrorSinkSarif) overrides this to
+     * write SARIF JSON instead.
+     *
+     * Params:
+     *      loc          = location of the diagnostic
+     *      format       = printf-style format string
+     *      ap           = arguments for `format`
+     *      kind         = error / warning / deprecation / tip / message
+     *      supplemental = follow-on note, not a primary diagnostic
+     *      gagged       = diagnostic occurred under speculative gagging
+     */
+    void emit(const SourceLoc loc, const(char)* format, va_list ap,
+        ErrorKind kind, bool supplemental, bool gagged)
+    {
+        if (kind == ErrorKind.message && !supplemental)
+        {
+            OutBuffer tmp;
+            writeSourceLoc(tmp, loc, Loc.showColumns, Loc.messageStyle);
+            if (tmp.length)
+                fprintf(stdout, "%s: ", tmp.extractChars());
+            tmp.reset();
+            tmp.vprintf(format, ap);
+            fputs(tmp.peekChars(), stdout);
+            fputc('\n', stdout);
+            fflush(stdout); // ensure it gets written out in case of compiler aborts
+            return;
+        }
+
+        DiagnosticContext info = DiagnosticContext(loc, kind, null, null);
+        info.supplemental = supplemental;
+        info.headerColor = gagged ? Classification.gagged : classificationFor(kind);
+        printDiagnostic(format, ap, info, gagged);
+    }
+}
+
+/// Map an `ErrorKind` to the color used for its header in stderr output.
+private Classification classificationFor(ErrorKind kind) @safe @nogc pure nothrow
+{
+    final switch (kind)
+    {
+        case ErrorKind.error:       return Classification.error;
+        case ErrorKind.warning:     return Classification.warning;
+        case ErrorKind.deprecation: return Classification.deprecation;
+        case ErrorKind.tip:         return Classification.tip;
+        case ErrorKind.message:     return Classification.error; // unused (handled above)
     }
 }
 
@@ -171,7 +337,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.error);
+        global.errorSink.verror(loc, format, ap);
         va_end(ap);
     }
 else
@@ -179,7 +345,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.error);
+        global.errorSink.verror(loc, format, ap);
         va_end(ap);
     }
 
@@ -198,7 +364,7 @@ static if (__VERSION__ < 2092)
         const loc = SourceLoc(filename.toDString, linnum, charnum);
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.error);
+        global.errorSink.verror(loc, format, ap);
         va_end(ap);
     }
 else
@@ -207,7 +373,7 @@ else
         const loc = SourceLoc(filename.toDString, linnum, charnum);
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.error);
+        global.errorSink.verror(loc, format, ap);
         va_end(ap);
     }
 
@@ -217,7 +383,7 @@ extern(C++) void errorBackend(const(char)* filename, uint linnum, uint charnum, 
     const loc = SourceLoc(filename.toDString, linnum, charnum);
     va_list ap;
     va_start(ap, format);
-    verrorReport(loc, format, ap, ErrorKind.error);
+    global.errorSink.verror(loc, format, ap);
     va_end(ap);
 }
 
@@ -234,7 +400,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReportSupplemental(loc, format, ap, ErrorKind.error);
+        global.errorSink.verrorSupplemental(loc, format, ap);
         va_end(ap);
     }
 else
@@ -242,7 +408,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReportSupplemental(loc, format, ap, ErrorKind.error);
+        global.errorSink.verrorSupplemental(loc, format, ap);
         va_end(ap);
     }
 
@@ -258,7 +424,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.warning);
+        global.errorSink.vwarning(loc, format, ap);
         va_end(ap);
     }
 else
@@ -266,7 +432,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.warning);
+        global.errorSink.vwarning(loc, format, ap);
         va_end(ap);
     }
 
@@ -283,7 +449,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReportSupplemental(loc, format, ap, ErrorKind.warning);
+        global.errorSink.vwarningSupplemental(loc, format, ap);
         va_end(ap);
     }
 else
@@ -291,7 +457,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReportSupplemental(loc, format, ap, ErrorKind.warning);
+        global.errorSink.vwarningSupplemental(loc, format, ap);
         va_end(ap);
     }
 
@@ -308,7 +474,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.deprecation);
+        global.errorSink.vdeprecation(loc, format, ap);
         va_end(ap);
     }
 else
@@ -316,7 +482,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.deprecation);
+        global.errorSink.vdeprecation(loc, format, ap);
         va_end(ap);
     }
 
@@ -333,7 +499,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReportSupplemental(loc, format, ap, ErrorKind.deprecation);
+        global.errorSink.vdeprecationSupplemental(loc, format, ap);
         va_end(ap);
     }
 else
@@ -341,7 +507,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReportSupplemental(loc, format, ap, ErrorKind.deprecation);
+        global.errorSink.vdeprecationSupplemental(loc, format, ap);
         va_end(ap);
     }
 
@@ -358,7 +524,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.message);
+        global.errorSink.vmessage(loc, format, ap);
         va_end(ap);
     }
 else
@@ -366,7 +532,7 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(loc, format, ap, ErrorKind.message);
+        global.errorSink.vmessage(loc, format, ap);
         va_end(ap);
     }
 
@@ -381,7 +547,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(Loc.initial, format, ap, ErrorKind.message);
+        global.errorSink.vmessage(Loc.initial, format, ap);
         va_end(ap);
     }
 else
@@ -389,13 +555,13 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(Loc.initial, format, ap, ErrorKind.message);
+        global.errorSink.vmessage(Loc.initial, format, ap);
         va_end(ap);
     }
 
 /**
  * The type of the diagnostic handler
- * see verrorReport for arguments
+ * see vreportDiagnostic for arguments
  * Returns: true if error handling is done, false to continue printing to stderr
  */
 alias DiagnosticHandler = bool delegate(const ref SourceLoc location, Color headerColor, const(char)* header, const(char)* messageFormat, va_list args, const(char)* prefix1, const(char)* prefix2);
@@ -418,7 +584,7 @@ static if (__VERSION__ < 2092)
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(Loc.initial, format, ap, ErrorKind.tip);
+        global.errorSink.vtip(format, ap);
         va_end(ap);
     }
 else
@@ -426,13 +592,13 @@ else
     {
         va_list ap;
         va_start(ap, format);
-        verrorReport(Loc.initial, format, ap, ErrorKind.tip);
+        global.errorSink.vtip(format, ap);
         va_end(ap);
     }
 
 
-// Encapsulates an error as described by its location, format message, and kind.
-private struct ErrorInfo
+// Encapsulates a diagnostic as described by its location, format message, and kind.
+private struct DiagnosticContext
 {
     this(const ref SourceLoc loc, const ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null) @safe @nogc pure nothrow
     {
@@ -451,201 +617,6 @@ private struct ErrorInfo
 }
 
 /**
- * Implements $(D error), $(D warning), $(D deprecation), $(D message), and
- * $(D tip). Report a diagnostic error, taking a va_list parameter, and
- * optionally additional message prefixes. Whether the message gets printed
- * depends on runtime values of DiagnosticReporting and global gagging.
- * Params:
- *      loc         = location of error
- *      format      = printf-style format specification
- *      ap          = printf-style variadic arguments
- *      kind        = kind of error being printed
- *      p1          = additional message prefix
- *      p2          = additional message prefix
- */
-private extern(C++) void verrorReport(Loc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
-{
-    return verrorReport(loc.SourceLoc, format, ap, kind, p1, p2);
-}
-
-/// ditto
-private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
-{
-    auto info = ErrorInfo(loc, kind, p1, p2);
-
-    final switch (info.kind)
-    {
-    case ErrorKind.error:
-        global.errors++;
-        if (!global.gag)
-        {
-            info.headerColor = Classification.error;
-            if (global.params.v.messageStyle == MessageStyle.sarif)
-            {
-                addSarifDiagnostic(loc, format, ap, kind);
-                return;
-            }
-            verrorPrint(format, ap, info);
-            if (global.params.v.errorLimit && global.errors >= global.params.v.errorLimit)
-            {
-                fprintf(stderr, "error limit (%d) reached, use `-verrors=0` to show all\n", global.params.v.errorLimit);
-                fatal(); // moderate blizzard of cascading messages
-            }
-        }
-        else
-        {
-            if (global.params.v.showGaggedErrors)
-            {
-                info.headerColor = Classification.gagged;
-                verrorPrint(format, ap, info);
-            }
-            global.gaggedErrors++;
-        }
-        return;
-
-    case ErrorKind.deprecation:
-        if (global.params.useDeprecated == DiagnosticReporting.error)
-            goto case ErrorKind.error;
-        else if (global.params.useDeprecated == DiagnosticReporting.inform)
-        {
-            if (!global.gag)
-            {
-                global.deprecations++;
-                if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
-                {
-                    info.headerColor = Classification.deprecation;
-                    if (global.params.v.messageStyle == MessageStyle.sarif)
-                    {
-                        addSarifDiagnostic(loc, format, ap, kind);
-                        return;
-                    }
-                    verrorPrint(format, ap, info);
-                }
-            }
-            else
-            {
-                global.gaggedWarnings++;
-            }
-        }
-        return;
-
-    case ErrorKind.warning:
-        if (global.params.useWarnings != DiagnosticReporting.off)
-        {
-            if (!global.gag)
-            {
-                info.headerColor = Classification.warning;
-                if (global.params.v.messageStyle == MessageStyle.sarif)
-                {
-                    addSarifDiagnostic(loc, format, ap, kind);
-                    return;
-                }
-                verrorPrint(format, ap, info);
-                if (global.params.useWarnings == DiagnosticReporting.error)
-                    global.warnings++;
-            }
-            else
-            {
-                global.gaggedWarnings++;
-            }
-        }
-        return;
-
-    case ErrorKind.tip:
-        if (!global.gag)
-        {
-            info.headerColor = Classification.tip;
-            if (global.params.v.messageStyle == MessageStyle.sarif)
-            {
-                addSarifDiagnostic(loc, format, ap, kind);
-                return;
-            }
-            verrorPrint(format, ap, info);
-        }
-        return;
-
-    case ErrorKind.message:
-        OutBuffer tmp;
-        writeSourceLoc(tmp, info.loc, Loc.showColumns, Loc.messageStyle);
-        if (tmp.length)
-            fprintf(stdout, "%s: ", tmp.extractChars());
-
-        tmp.reset();
-        tmp.vprintf(format, ap);
-        fputs(tmp.peekChars(), stdout);
-        fputc('\n', stdout);
-        fflush(stdout);     // ensure it gets written out in case of compiler aborts
-        if (global.params.v.messageStyle == MessageStyle.sarif)
-        {
-            addSarifDiagnostic(loc, format, ap, kind);
-            return;
-        }
-        return;
-    }
-}
-
-/**
- * Implements $(D errorSupplemental), $(D warningSupplemental), and
- * $(D deprecationSupplemental). Report an addition diagnostic error, taking a
- * va_list parameter. Whether the message gets printed depends on runtime
- * values of DiagnosticReporting and global gagging.
- * Params:
- *      loc         = location of error
- *      format      = printf-style format specification
- *      ap          = printf-style variadic arguments
- *      kind        = kind of error being printed
- */
-private extern(C++) void verrorReportSupplemental(Loc loc, const(char)* format, va_list ap, ErrorKind kind)
-{
-    return verrorReportSupplemental(loc.SourceLoc, format, ap, kind);
-}
-
-/// ditto
-private extern(C++) void verrorReportSupplemental(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind)
-{
-    auto info = ErrorInfo(loc, kind);
-    info.supplemental = true;
-    switch (info.kind)
-    {
-    case ErrorKind.error:
-        if (global.gag)
-        {
-            if (!global.params.v.showGaggedErrors)
-                return;
-            info.headerColor = Classification.gagged;
-        }
-        else
-            info.headerColor = Classification.error;
-        verrorPrint(format, ap, info);
-        return;
-
-    case ErrorKind.deprecation:
-        if (global.params.useDeprecated == DiagnosticReporting.error)
-            goto case ErrorKind.error;
-        else if (global.params.useDeprecated == DiagnosticReporting.inform && !global.gag)
-        {
-            if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
-            {
-                info.headerColor = Classification.deprecation;
-                verrorPrint(format, ap, info);
-            }
-        }
-        return;
-
-    case ErrorKind.warning:
-        if (global.params.useWarnings != DiagnosticReporting.off && !global.gag)
-        {
-            info.headerColor = Classification.warning;
-            verrorPrint(format, ap, info);
-        }
-        return;
-
-    default:
-        assert(false, "internal error: unhandled kind in error report");
-    }
-}
-
-/**
  * Just print to stderr, doesn't care about gagging.
  * (format,ap) text within backticks gets syntax highlighted.
  * Params:
@@ -653,7 +624,7 @@ private extern(C++) void verrorReportSupplemental(const SourceLoc loc, const(cha
  *      ap      = printf-style variadic arguments
  *      info    = context of error
  */
-private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
+private void printDiagnostic(const(char)* format, va_list ap, ref DiagnosticContext info, bool gagged)
 {
     const(char)* header;    // title of error message
     if (info.supplemental)
@@ -676,7 +647,7 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
             return;
     }
 
-    if (global.params.v.showGaggedErrors && global.gag)
+    if (gagged)
         fprintf(stderr, "(spec:%d) ", global.gag);
     auto con = cast(Console) global.console;
 
@@ -723,8 +694,6 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
     __gshared SourceLoc old_loc;
     auto loc = info.loc;
     if (global.params.v.errorPrintMode != ErrorPrintMode.simpleError &&
-        // ignore supplemental messages with same loc
-        (loc != old_loc || !info.supplemental) &&
         // ignore invalid files
         loc != SourceLoc.init &&
         // ignore mixins for now
@@ -743,7 +712,7 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
 // and a caret pointing to the error into `buf`
 private void printErrorLineContext(ref OutBuffer buf, const(char)[] text, size_t offset) @safe
 {
-    import dmd.root.utf : utf_decodeChar;
+    import dmd.root.utf : utf_countColumnsUntil;
 
     if (offset >= text.length)
         return; // Out of bounds (missing source content in SourceLoc)
@@ -755,37 +724,7 @@ private void printErrorLineContext(ref OutBuffer buf, const(char)[] text, size_t
 
     const line = text[s .. $];
     const byteColumn = offset - s; // column as reported in the error message (byte offset)
-    enum tabWidth = 4;
-
-    // The number of column bytes and the number of display columns
-    // occupied by a character are not the same for non-ASCII charaters.
-    // https://issues.dlang.org/show_bug.cgi?id=21849
-    size_t currentColumn = 0;
-    size_t caretColumn = 0; // actual display column taking into account tabs and unicode characters
-    for (size_t i = 0; i < line.length; )
-    {
-        dchar u;
-        const start = i;
-        const msg = utf_decodeChar(line, i, u);
-        assert(msg is null, msg);
-        if (u == '\t')
-        {
-            // How many spaces until column is the next multiple of tabWidth
-            const equivalentSpaces = tabWidth - (currentColumn % tabWidth);
-            foreach (j; 0 .. equivalentSpaces)
-                buf.writeByte(' ');
-            currentColumn += equivalentSpaces;
-        }
-        else if (u == '\r' || u == '\n')
-            break;
-        else
-        {
-            buf.writestring(line[start .. i]);
-            currentColumn++;
-        }
-        if (i <= byteColumn)
-            caretColumn = currentColumn;
-    }
+    const caretColumn = (() @trusted => utf_countColumnsUntil(line, byteColumn, 4, &buf))();
     buf.writeByte('\n');
 
     foreach (i; 0 .. caretColumn)

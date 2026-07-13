@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2012-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2012-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/pdata.d, backend/pdata.d)
@@ -19,30 +19,24 @@ import core.stdc.string;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.x86.code_x86;
+import dmd.backend.x86.code_x86 : BP;
 import dmd.backend.dt;
-import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : symbol_keep;
+import dmd.backend.dout : outdata;
+import dmd.backend.symbol : symbol_name;
 import dmd.backend.mscoffobj;
 import dmd.backend.obj;
-import dmd.backend.rtlsym;
-import dmd.backend.ty;
+import dmd.backend.ty : TYint;
 import dmd.backend.type;
 
 
 nothrow:
 @safe:
 
-// Determine if this Symbol is stored in a COMDAT
-@trusted
-private bool symbol_iscomdat3(Symbol* s)
-{
-    return s.Sclass == SC.comdat ||
-        config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
-        config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
-}
-
-enum ALLOCA_LIMIT = 0x10000;
+version (AArch64)
+    enum ALLOCA_LIMIT = 0;      // TODO AArch64
+else
+    enum ALLOCA_LIMIT = 0x10000;
 
 /**********************************
  * The .pdata section is used on Win64 by the VS debugger and dbghelp to get information
@@ -63,7 +57,7 @@ public void win64_pdata(Symbol* sf, targ_size_t localsize)
 
     // Generate the pdata name, which is $pdata$funcname
     size_t sflen = strlen(sf.Sident.ptr);
-    char* pdata_name = cast(char*)(sflen < ALLOCA_LIMIT ? alloca(7 + sflen + 1) : malloc(7 + sflen + 1));
+    char* pdata_name = cast(char*)(sflen >= ALLOCA_LIMIT ? malloc(7 + sflen + 1) : alloca(7 + sflen + 1));
     assert(pdata_name);
     memcpy(pdata_name, "$pdata$".ptr, 7);
     memcpy(pdata_name + 7, sf.Sident.ptr, sflen + 1);      // include terminating 0
@@ -95,6 +89,16 @@ public void win64_pdata(Symbol* sf, targ_size_t localsize)
 
 private:
 
+// Determine if this Symbol is stored in a COMDAT
+@trusted
+private bool symbol_iscomdat3(Symbol* s)
+{
+    return s.Sclass == SC.comdat ||
+        config.flags2 & CFG2comdat && s.Sclass == SC.inline ||
+        config.flags4 & CFG4allcomdat && s.Sclass == SC.global;
+}
+
+
 /**************************************************
  * Unwind data symbol goes in the .xdata section.
  * Params:
@@ -108,7 +112,7 @@ private Symbol* win64_unwind(Symbol* sf, targ_size_t localsize)
 {
     // Generate the unwind name, which is $unwind$funcname
     size_t sflen = strlen(sf.Sident.ptr);
-    char* unwind_name = cast(char*)(sflen < ALLOCA_LIMIT ? alloca(8 + sflen + 1) : malloc(8 + sflen + 1));
+    char* unwind_name = cast(char*)(sflen >= ALLOCA_LIMIT ? malloc(8 + sflen + 1) : alloca(8 + sflen + 1));
     assert(unwind_name);
     memcpy(unwind_name, "$unwind$".ptr, 8);
     memcpy(unwind_name + 8, sf.Sident.ptr, sflen + 1);     // include terminating 0
@@ -199,12 +203,35 @@ static if (0)
 }
 }
 
-
+/******************************************
+ * Compute unwind info and return it as a dt_t.
+ * Params:
+ *      localsize = offset to symbols on stack
+ * Returns:
+ *      slice of ui as dt_t anonymous bytes
+ */
 @trusted
 private dt_t* unwind_data(targ_size_t localsize)
 {
     UNWIND_INFO ui;
+    const(ubyte)[] slice = unwind_info_slice(&ui, localsize);
+    auto dtb = DtBuilder(0);
+    dtb.nbytes(slice);
+    return dtb.finish();
+}
 
+/******************************************
+ * Fill in `ui` and return a slice of it.
+ * Params:
+ *      localsize = offset to symbols on stack
+ *      ui = unwind info to be filled in
+ * Returns:
+ *      slice of ui as anonymous bytes
+ */
+@trusted
+private
+const(ubyte)[] unwind_info_slice(UNWIND_INFO* ui, targ_size_t localsize)
+{
     /* 4 allocation size strategy:
      *  0:           no unwind instruction
      *  8..128:      UWOP.ALLOC_SMALL
@@ -265,14 +292,8 @@ static if (0)
     }
 }
 
-static if (1)
-{
     ui.UnwindCode[ui.CountOfCodes-2].FrameOffset = setUnwindCode(4, UWOP.SET_FPREG, 0);
-}
-
     ui.UnwindCode[ui.CountOfCodes-1].FrameOffset = setUnwindCode(1, UWOP.PUSH_NONVOL, BP);
 
-    auto dtb = DtBuilder(0);
-    dtb.nbytes((cast(const(ubyte*)) &ui)[0 .. 4 + ((ui.CountOfCodes + 1) & ~1) * 2]);
-    return dtb.finish();
+    return (cast(const(ubyte*))ui)[0 .. 4 + ((ui.CountOfCodes + 1) & ~1) * 2];
 }

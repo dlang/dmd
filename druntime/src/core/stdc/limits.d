@@ -181,5 +181,32 @@ else version (Windows)
     ///
     enum PIPE_BUF       = 5120;
 }
+else version (Hurd)
+{
+    // no arbitrary fixed limits
+    ///
+    // enum MAX_CANON
+    ///
+    // enum MAX_INPUT
+    ///
+    enum NAME_MAX       = 255;
+    ///
+    // enum PATH_MAX
+    ///
+    // enum PIPE_BUF
+}
+else version (CRuntime_WASI)
+{
+    ///
+    enum MAX_CANON      = 255;
+    ///
+    enum MAX_INPUT      = 255;
+    ///
+    enum NAME_MAX       = 255;
+    ///
+    enum PATH_MAX       = 256;
+    ///
+    enum PIPE_BUF       = 512;
+}
 else
     static assert(0, "unsupported OS");

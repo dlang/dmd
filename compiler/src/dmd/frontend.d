@@ -1,7 +1,7 @@
 /**
  * Contains high-level interfaces for interacting with DMD as a library.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/frontend.d, _id.d)
@@ -97,8 +97,8 @@ This needs to be done $(I before) calling any function.
 Params:
     diagnosticHandler = a delegate to configure what to do with diagnostics (other than printing to console or stderr).
     fatalErrorHandler = a delegate to configure what to do with fatal errors (default is to call exit(EXIT_FAILURE)).
-    contractChecks = indicates which contracts should be enabled or not
     versionIdentifiers = a list of version identifiers that should be enabled
+    contractChecks = indicates which contracts should be enabled or not
 */
 void initDMD(
     DiagnosticHandler diagnosticHandler = null,
@@ -125,6 +125,7 @@ void initDMD(
     import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.target : target, defaultTargetOS, addDefaultVersionIdentifiers;
+    import dmd.typesem : Type_init;
 
     .diagnosticHandler = diagnosticHandler;
     .fatalErrorHandler = fatalErrorHandler;
@@ -147,7 +148,7 @@ void initDMD(
     target.isX86_64 = (size_t.sizeof == 8);
     target.isX86 = !target.isX86_64;
     target._init(global.params);
-    Type._init();
+    Type_init();
     Id.initialize();
     Module._init();
     Expression._init();
@@ -182,7 +183,7 @@ void deinitializeDMD()
     import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.target : target;
-    import dmd.errors : diagnostics;
+    import dmd.dfa.fast.structure : DFAAllocator;
 
     diagnosticHandler = null;
     fatalErrorHandler = null;
@@ -198,8 +199,7 @@ void deinitializeDMD()
     Objc.deinitialize();
     Dsymbol.deinitialize();
     EscapeState.reset();
-
-    diagnostics.length = 0;
+    DFAAllocator.deinitialize();
 }
 
 /**
@@ -428,7 +428,7 @@ Run full semantic analysis on a module.
 */
 void fullSemantic(Module m)
 {
-    import dmd.dsymbolsem : dsymbolSemantic, importAll;
+    import dmd.dsymbolsem : dsymbolSemantic, importAll, runDeferredSemantic, runDeferredSemantic2, runDeferredSemantic3;
     import dmd.semantic2 : semantic2;
     import dmd.semantic3 : semantic3;
 
@@ -436,13 +436,13 @@ void fullSemantic(Module m)
     m.importAll(null);
 
     m.dsymbolSemantic(null);
-    Module.runDeferredSemantic();
+    runDeferredSemantic();
 
     m.semantic2(null);
-    Module.runDeferredSemantic2();
+    runDeferredSemantic2();
 
     m.semantic3(null);
-    Module.runDeferredSemantic3();
+    runDeferredSemantic3();
 }
 
 /**

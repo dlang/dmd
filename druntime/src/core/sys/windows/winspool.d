@@ -251,23 +251,23 @@ struct ADDJOB_INFO_1A {
     LPSTR Path;
     DWORD JobId;
 }
-alias ADDJOB_INFO_1A* PADDJOB_INFO_1A, LPADDJOB_INFO_1A;
+alias PADDJOB_INFO_1A = ADDJOB_INFO_1A*, LPADDJOB_INFO_1A = ADDJOB_INFO_1A*;
 
 struct ADDJOB_INFO_1W {
     LPWSTR Path;
     DWORD JobId;
 }
-alias ADDJOB_INFO_1W* PADDJOB_INFO_1W, LPADDJOB_INFO_1W;
+alias PADDJOB_INFO_1W = ADDJOB_INFO_1W*, LPADDJOB_INFO_1W = ADDJOB_INFO_1W*;
 
 struct DATATYPES_INFO_1A {
     LPSTR pName;
 }
-alias DATATYPES_INFO_1A* PDATATYPES_INFO_1A, LPDATATYPES_INFO_1A;
+alias PDATATYPES_INFO_1A = DATATYPES_INFO_1A*, LPDATATYPES_INFO_1A = DATATYPES_INFO_1A*;
 
 struct DATATYPES_INFO_1W {
     LPWSTR pName;
 }
-alias DATATYPES_INFO_1W* PDATATYPES_INFO_1W, LPDATATYPES_INFO_1W;
+alias PDATATYPES_INFO_1W = DATATYPES_INFO_1W*, LPDATATYPES_INFO_1W = DATATYPES_INFO_1W*;
 
 struct JOB_INFO_1A {
     DWORD JobId;
@@ -284,7 +284,7 @@ struct JOB_INFO_1A {
     DWORD PagesPrinted;
     SYSTEMTIME Submitted;
 }
-alias JOB_INFO_1A* PJOB_INFO_1A, LPJOB_INFO_1A;
+alias PJOB_INFO_1A = JOB_INFO_1A*, LPJOB_INFO_1A = JOB_INFO_1A*;
 
 struct JOB_INFO_1W {
     DWORD JobId;
@@ -301,7 +301,7 @@ struct JOB_INFO_1W {
     DWORD PagesPrinted;
     SYSTEMTIME Submitted;
 }
-alias JOB_INFO_1W* PJOB_INFO_1W, LPJOB_INFO_1W;
+alias PJOB_INFO_1W = JOB_INFO_1W*, LPJOB_INFO_1W = JOB_INFO_1W*;
 
 struct JOB_INFO_2A {
     DWORD JobId;
@@ -328,7 +328,7 @@ struct JOB_INFO_2A {
     DWORD Time;
     DWORD PagesPrinted;
 }
-alias JOB_INFO_2A* PJOB_INFO_2A, LPJOB_INFO_2A;
+alias PJOB_INFO_2A = JOB_INFO_2A*, LPJOB_INFO_2A = JOB_INFO_2A*;
 
 struct JOB_INFO_2W {
     DWORD JobId;
@@ -355,21 +355,21 @@ struct JOB_INFO_2W {
     DWORD Time;
     DWORD PagesPrinted;
 }
-alias JOB_INFO_2W* PJOB_INFO_2W, LPJOB_INFO_2W;
+alias PJOB_INFO_2W = JOB_INFO_2W*, LPJOB_INFO_2W = JOB_INFO_2W*;
 
 struct DOC_INFO_1A {
     LPSTR pDocName;
     LPSTR pOutputFile;
     LPSTR pDatatype;
 }
-alias DOC_INFO_1A* PDOC_INFO_1A, LPDOC_INFO_1A;
+alias PDOC_INFO_1A = DOC_INFO_1A*, LPDOC_INFO_1A = DOC_INFO_1A*;
 
 struct DOC_INFO_1W {
     LPWSTR pDocName;
     LPWSTR pOutputFile;
     LPWSTR pDatatype;
 }
-alias DOC_INFO_1W* PDOC_INFO_1W, LPDOC_INFO_1W;
+alias PDOC_INFO_1W = DOC_INFO_1W*, LPDOC_INFO_1W = DOC_INFO_1W*;
 
 struct DOC_INFO_2A {
     LPSTR pDocName;
@@ -378,7 +378,7 @@ struct DOC_INFO_2A {
     DWORD dwMode;
     DWORD JobId;
 }
-alias DOC_INFO_2A* PDOC_INFO_2A, LPDOC_INFO_2A;
+alias PDOC_INFO_2A = DOC_INFO_2A*, LPDOC_INFO_2A = DOC_INFO_2A*;
 
 struct DOC_INFO_2W {
     LPWSTR pDocName;
@@ -387,17 +387,17 @@ struct DOC_INFO_2W {
     DWORD  dwMode;
     DWORD  JobId;
 }
-alias DOC_INFO_2W* PDOC_INFO_2W, LPDOC_INFO_2W;
+alias PDOC_INFO_2W = DOC_INFO_2W*, LPDOC_INFO_2W = DOC_INFO_2W*;
 
 struct DRIVER_INFO_1A {
     LPSTR pName;
 }
-alias DRIVER_INFO_1A* PDRIVER_INFO_1A, LPDRIVER_INFO_1A;
+alias PDRIVER_INFO_1A = DRIVER_INFO_1A*, LPDRIVER_INFO_1A = DRIVER_INFO_1A*;
 
 struct DRIVER_INFO_1W {
     LPWSTR pName;
 }
-alias DRIVER_INFO_1W* PDRIVER_INFO_1W, LPDRIVER_INFO_1W;
+alias PDRIVER_INFO_1W = DRIVER_INFO_1W*, LPDRIVER_INFO_1W = DRIVER_INFO_1W*;
 
 struct DRIVER_INFO_2A {
     DWORD cVersion;
@@ -407,7 +407,7 @@ struct DRIVER_INFO_2A {
     LPSTR pDataFile;
     LPSTR pConfigFile;
 }
-alias DRIVER_INFO_2A* PDRIVER_INFO_2A, LPDRIVER_INFO_2A;
+alias PDRIVER_INFO_2A = DRIVER_INFO_2A*, LPDRIVER_INFO_2A = DRIVER_INFO_2A*;
 
 struct DRIVER_INFO_2W {
     DWORD  cVersion;
@@ -417,7 +417,7 @@ struct DRIVER_INFO_2W {
     LPWSTR pDataFile;
     LPWSTR pConfigFile;
 }
-alias DRIVER_INFO_2W* PDRIVER_INFO_2W, LPDRIVER_INFO_2W;
+alias PDRIVER_INFO_2W = DRIVER_INFO_2W*, LPDRIVER_INFO_2W = DRIVER_INFO_2W*;
 
 struct DRIVER_INFO_3A {
     DWORD cVersion;
@@ -431,7 +431,7 @@ struct DRIVER_INFO_3A {
     LPSTR pMonitorName;
     LPSTR pDefaultDataType;
 }
-alias DRIVER_INFO_3A* PDRIVER_INFO_3A, LPDRIVER_INFO_3A;
+alias PDRIVER_INFO_3A = DRIVER_INFO_3A*, LPDRIVER_INFO_3A = DRIVER_INFO_3A*;
 
 struct DRIVER_INFO_3W {
     DWORD  cVersion;
@@ -445,41 +445,41 @@ struct DRIVER_INFO_3W {
     LPWSTR pMonitorName;
     LPWSTR pDefaultDataType;
 }
-alias DRIVER_INFO_3W* PDRIVER_INFO_3W, LPDRIVER_INFO_3W;
+alias PDRIVER_INFO_3W = DRIVER_INFO_3W*, LPDRIVER_INFO_3W = DRIVER_INFO_3W*;
 
 struct MONITOR_INFO_1A {
     LPSTR pName;
 }
-alias MONITOR_INFO_1A* PMONITOR_INFO_1A, LPMONITOR_INFO_1A;
+alias PMONITOR_INFO_1A = MONITOR_INFO_1A*, LPMONITOR_INFO_1A = MONITOR_INFO_1A*;
 
 struct MONITOR_INFO_1W {
     LPWSTR pName;
 }
-alias MONITOR_INFO_1W* PMONITOR_INFO_1W, LPMONITOR_INFO_1W;
+alias PMONITOR_INFO_1W = MONITOR_INFO_1W*, LPMONITOR_INFO_1W = MONITOR_INFO_1W*;
 
 struct PORT_INFO_1A {
     LPSTR pName;
 }
-alias PORT_INFO_1A* PPORT_INFO_1A, LPPORT_INFO_1A;
+alias PPORT_INFO_1A = PORT_INFO_1A*, LPPORT_INFO_1A = PORT_INFO_1A*;
 
 struct PORT_INFO_1W {
     LPWSTR pName;
 }
-alias PORT_INFO_1W* PPORT_INFO_1W, LPPORT_INFO_1W;
+alias PPORT_INFO_1W = PORT_INFO_1W*, LPPORT_INFO_1W = PORT_INFO_1W*;
 
 struct MONITOR_INFO_2A {
     LPSTR pName;
     LPSTR pEnvironment;
     LPSTR pDLLName;
 }
-alias MONITOR_INFO_2A* PMONITOR_INFO_2A, LPMONITOR_INFO_2A;
+alias PMONITOR_INFO_2A = MONITOR_INFO_2A*, LPMONITOR_INFO_2A = MONITOR_INFO_2A*;
 
 struct MONITOR_INFO_2W {
     LPWSTR pName;
     LPWSTR pEnvironment;
     LPWSTR pDLLName;
 }
-alias MONITOR_INFO_2W* PMONITOR_INFO_2W, LPMONITOR_INFO_2W;
+alias PMONITOR_INFO_2W = MONITOR_INFO_2W*, LPMONITOR_INFO_2W = MONITOR_INFO_2W*;
 
 struct PORT_INFO_2A {
     LPSTR pPortName;
@@ -488,7 +488,7 @@ struct PORT_INFO_2A {
     DWORD fPortType;
     DWORD Reserved;
 }
-alias PORT_INFO_2A* PPORT_INFO_2A, LPPORT_INFO_2A;
+alias PPORT_INFO_2A = PORT_INFO_2A*, LPPORT_INFO_2A = PORT_INFO_2A*;
 
 struct PORT_INFO_2W {
     LPWSTR pPortName;
@@ -497,21 +497,21 @@ struct PORT_INFO_2W {
     DWORD fPortType;
     DWORD Reserved;
 }
-alias PORT_INFO_2W* PPORT_INFO_2W, LPPORT_INFO_2W;
+alias PPORT_INFO_2W = PORT_INFO_2W*, LPPORT_INFO_2W = PORT_INFO_2W*;
 
 struct PORT_INFO_3A {
     DWORD dwStatus;
     LPSTR pszStatus;
     DWORD dwSeverity;
 }
-alias PORT_INFO_3A* PPORT_INFO_3A, LPPORT_INFO_3A;
+alias PPORT_INFO_3A = PORT_INFO_3A*, LPPORT_INFO_3A = PORT_INFO_3A*;
 
 struct PORT_INFO_3W {
     DWORD dwStatus;
     LPWSTR pszStatus;
     DWORD dwSeverity;
 }
-alias PORT_INFO_3W* PPORT_INFO_3W, LPPORT_INFO_3W;
+alias PPORT_INFO_3W = PORT_INFO_3W*, LPPORT_INFO_3W = PORT_INFO_3W*;
 
 struct PRINTER_INFO_1A {
     DWORD Flags;
@@ -519,7 +519,7 @@ struct PRINTER_INFO_1A {
     LPSTR pName;
     LPSTR pComment;
 }
-alias PRINTER_INFO_1A* PPRINTER_INFO_1A, LPPRINTER_INFO_1A;
+alias PPRINTER_INFO_1A = PRINTER_INFO_1A*, LPPRINTER_INFO_1A = PRINTER_INFO_1A*;
 
 struct PRINTER_INFO_1W {
     DWORD  Flags;
@@ -527,7 +527,7 @@ struct PRINTER_INFO_1W {
     LPWSTR pName;
     LPWSTR pComment;
 }
-alias PRINTER_INFO_1W* PPRINTER_INFO_1W, LPPRINTER_INFO_1W;
+alias PPRINTER_INFO_1W = PRINTER_INFO_1W*, LPPRINTER_INFO_1W = PRINTER_INFO_1W*;
 
 struct PRINTER_INFO_2A {
     LPSTR pServerName;
@@ -552,7 +552,7 @@ struct PRINTER_INFO_2A {
     DWORD cJobs;
     DWORD AveragePPM;
 }
-alias PRINTER_INFO_2A* PPRINTER_INFO_2A, LPPRINTER_INFO_2A;
+alias PPRINTER_INFO_2A = PRINTER_INFO_2A*, LPPRINTER_INFO_2A = PRINTER_INFO_2A*;
 
 struct PRINTER_INFO_2W {
     LPWSTR pServerName;
@@ -577,26 +577,26 @@ struct PRINTER_INFO_2W {
     DWORD cJobs;
     DWORD AveragePPM;
 }
-alias PRINTER_INFO_2W* PPRINTER_INFO_2W, LPPRINTER_INFO_2W;
+alias PPRINTER_INFO_2W = PRINTER_INFO_2W*, LPPRINTER_INFO_2W = PRINTER_INFO_2W*;
 
 struct PRINTER_INFO_3 {
     PSECURITY_DESCRIPTOR pSecurityDescriptor;
 }
-alias PRINTER_INFO_3* PPRINTER_INFO_3, LPPRINTER_INFO_3;
+alias PPRINTER_INFO_3 = PRINTER_INFO_3*, LPPRINTER_INFO_3 = PRINTER_INFO_3*;
 
 struct PRINTER_INFO_4A {
     LPSTR pPrinterName;
     LPSTR pServerName;
     DWORD Attributes;
 }
-alias PRINTER_INFO_4A* PPRINTER_INFO_4A, LPPRINTER_INFO_4A;
+alias PPRINTER_INFO_4A = PRINTER_INFO_4A*, LPPRINTER_INFO_4A = PRINTER_INFO_4A*;
 
 struct PRINTER_INFO_4W {
     LPWSTR pPrinterName;
     LPWSTR pServerName;
     DWORD Attributes;
 }
-alias PRINTER_INFO_4W* PPRINTER_INFO_4W, LPPRINTER_INFO_4W;
+alias PPRINTER_INFO_4W = PRINTER_INFO_4W*, LPPRINTER_INFO_4W = PRINTER_INFO_4W*;
 
 struct PRINTER_INFO_5A {
     LPSTR pPrinterName;
@@ -605,7 +605,7 @@ struct PRINTER_INFO_5A {
     DWORD DeviceNotSelectedTimeout;
     DWORD TransmissionRetryTimeout;
 }
-alias PRINTER_INFO_5A* PPRINTER_INFO_5A, LPPRINTER_INFO_5A;
+alias PPRINTER_INFO_5A = PRINTER_INFO_5A*, LPPRINTER_INFO_5A = PRINTER_INFO_5A*;
 
 struct PRINTER_INFO_5W {
     LPWSTR pPrinterName;
@@ -614,22 +614,22 @@ struct PRINTER_INFO_5W {
     DWORD DeviceNotSelectedTimeout;
     DWORD TransmissionRetryTimeout;
 }
-alias PRINTER_INFO_5W* PPRINTER_INFO_5W, LPPRINTER_INFO_5W;
+alias PPRINTER_INFO_5W = PRINTER_INFO_5W*, LPPRINTER_INFO_5W = PRINTER_INFO_5W*;
 
 struct PRINTER_INFO_6 {
     DWORD dwStatus;
 }
-alias PRINTER_INFO_6* PPRINTER_INFO_6, LPPRINTER_INFO_6;
+alias PPRINTER_INFO_6 = PRINTER_INFO_6*, LPPRINTER_INFO_6 = PRINTER_INFO_6*;
 
 struct PRINTPROCESSOR_INFO_1A {
     LPSTR pName;
 }
-alias PRINTPROCESSOR_INFO_1A* PPRINTPROCESSOR_INFO_1A, LPPRINTPROCESSOR_INFO_1A;
+alias PPRINTPROCESSOR_INFO_1A = PRINTPROCESSOR_INFO_1A*, LPPRINTPROCESSOR_INFO_1A = PRINTPROCESSOR_INFO_1A*;
 
 struct PRINTPROCESSOR_INFO_1W {
     LPWSTR pName;
 }
-alias PRINTPROCESSOR_INFO_1W* PPRINTPROCESSOR_INFO_1W, LPPRINTPROCESSOR_INFO_1W;
+alias PPRINTPROCESSOR_INFO_1W = PRINTPROCESSOR_INFO_1W*, LPPRINTPROCESSOR_INFO_1W = PRINTPROCESSOR_INFO_1W*;
 
 struct PRINTER_NOTIFY_INFO_DATA {
     WORD  Type;
@@ -646,7 +646,7 @@ struct PRINTER_NOTIFY_INFO_DATA {
     }
     _NotifyData NotifyData;
 }
-alias PRINTER_NOTIFY_INFO_DATA* PPRINTER_NOTIFY_INFO_DATA, LPPRINTER_NOTIFY_INFO_DATA;
+alias PPRINTER_NOTIFY_INFO_DATA = PRINTER_NOTIFY_INFO_DATA*, LPPRINTER_NOTIFY_INFO_DATA = PRINTER_NOTIFY_INFO_DATA*;
 
 struct PRINTER_NOTIFY_INFO {
     DWORD Version;
@@ -654,7 +654,7 @@ struct PRINTER_NOTIFY_INFO {
     DWORD Count;
     PRINTER_NOTIFY_INFO_DATA[1] aData;
 }
-alias PRINTER_NOTIFY_INFO* PPRINTER_NOTIFY_INFO, LPPRINTER_NOTIFY_INFO;
+alias PPRINTER_NOTIFY_INFO = PRINTER_NOTIFY_INFO*, LPPRINTER_NOTIFY_INFO = PRINTER_NOTIFY_INFO*;
 
 struct FORM_INFO_1A {
     DWORD Flags;
@@ -662,7 +662,7 @@ struct FORM_INFO_1A {
     SIZEL Size;
     RECTL ImageableArea;
 }
-alias FORM_INFO_1A* PFORM_INFO_1A, LPFORM_INFO_1A;
+alias PFORM_INFO_1A = FORM_INFO_1A*, LPFORM_INFO_1A = FORM_INFO_1A*;
 
 struct FORM_INFO_1W {
     DWORD  Flags;
@@ -670,21 +670,21 @@ struct FORM_INFO_1W {
     SIZEL  Size;
     RECTL  ImageableArea;
 }
-alias FORM_INFO_1W* PFORM_INFO_1W, LPFORM_INFO_1W;
+alias PFORM_INFO_1W = FORM_INFO_1W*, LPFORM_INFO_1W = FORM_INFO_1W*;
 
 struct PRINTER_DEFAULTSA {
     LPSTR       pDatatype;
     LPDEVMODE   pDevMode;
     ACCESS_MASK DesiredAccess;
 }
-alias PRINTER_DEFAULTSA* PPRINTER_DEFAULTSA, LPPRINTER_DEFAULTSA;
+alias PPRINTER_DEFAULTSA = PRINTER_DEFAULTSA*, LPPRINTER_DEFAULTSA = PRINTER_DEFAULTSA*;
 
 struct PRINTER_DEFAULTSW {
     LPWSTR pDatatype;
     LPDEVMODE pDevMode;
     ACCESS_MASK DesiredAccess;
 }
-alias PRINTER_DEFAULTSW* PPRINTER_DEFAULTSW, LPPRINTER_DEFAULTSW;
+alias PPRINTER_DEFAULTSW = PRINTER_DEFAULTSW*, LPPRINTER_DEFAULTSW = PRINTER_DEFAULTSW*;
 
 extern (Windows):
 BOOL AbortPrinter(HANDLE);
@@ -800,165 +800,165 @@ BOOL WritePrinter(HANDLE, PVOID, DWORD, PDWORD);
 
 version (Unicode) {
 
-alias JOB_INFO_1W JOB_INFO_1;
-alias JOB_INFO_2W JOB_INFO_2;
-alias ADDJOB_INFO_1W ADDJOB_INFO_1;
-alias DATATYPES_INFO_1W DATATYPES_INFO_1;
-alias MONITOR_INFO_1W MONITOR_INFO_1;
-alias MONITOR_INFO_2W MONITOR_INFO_2;
-alias DOC_INFO_1W DOC_INFO_1;
-alias DOC_INFO_2W DOC_INFO_2;
-alias PORT_INFO_1W PORT_INFO_1;
-alias PORT_INFO_2W PORT_INFO_2;
-alias PORT_INFO_3W PORT_INFO_3;
-alias DRIVER_INFO_2W DRIVER_INFO_2;
-alias PRINTER_INFO_1W PRINTER_INFO_1;
-alias PRINTER_INFO_2W PRINTER_INFO_2;
-alias PRINTER_INFO_4W PRINTER_INFO_4;
-alias PRINTER_INFO_5W PRINTER_INFO_5;
-alias PRINTPROCESSOR_INFO_1W PRINTPROCESSOR_INFO_1;
-alias FORM_INFO_1W FORM_INFO_1;
-alias PRINTER_DEFAULTSW PRINTER_DEFAULTS;
+alias JOB_INFO_1 = JOB_INFO_1W;
+alias JOB_INFO_2 = JOB_INFO_2W;
+alias ADDJOB_INFO_1 = ADDJOB_INFO_1W;
+alias DATATYPES_INFO_1 = DATATYPES_INFO_1W;
+alias MONITOR_INFO_1 = MONITOR_INFO_1W;
+alias MONITOR_INFO_2 = MONITOR_INFO_2W;
+alias DOC_INFO_1 = DOC_INFO_1W;
+alias DOC_INFO_2 = DOC_INFO_2W;
+alias PORT_INFO_1 = PORT_INFO_1W;
+alias PORT_INFO_2 = PORT_INFO_2W;
+alias PORT_INFO_3 = PORT_INFO_3W;
+alias DRIVER_INFO_2 = DRIVER_INFO_2W;
+alias PRINTER_INFO_1 = PRINTER_INFO_1W;
+alias PRINTER_INFO_2 = PRINTER_INFO_2W;
+alias PRINTER_INFO_4 = PRINTER_INFO_4W;
+alias PRINTER_INFO_5 = PRINTER_INFO_5W;
+alias PRINTPROCESSOR_INFO_1 = PRINTPROCESSOR_INFO_1W;
+alias FORM_INFO_1 = FORM_INFO_1W;
+alias PRINTER_DEFAULTS = PRINTER_DEFAULTSW;
 
-alias AddFormW AddForm;
-alias AddJobW AddJob;
-alias AddMonitorW AddMonitor;
-alias AddPortW AddPort;
-alias AddPrinterW AddPrinter;
-alias AddPrinterConnectionW AddPrinterConnection;
-alias AddPrinterDriverW AddPrinterDriver;
-alias AddPrintProcessorW AddPrintProcessor;
-alias AddPrintProvidorW AddPrintProvidor;
-alias AdvancedDocumentPropertiesW AdvancedDocumentProperties;
-alias ConfigurePortW ConfigurePort;
-alias DeleteFormW DeleteForm;
-alias DeleteMonitorW DeleteMonitor;
-alias DeletePortW DeletePort;
-alias DeletePrinterConnectionW DeletePrinterConnection;
-alias DeletePrinterDataW DeletePrinterData;
-alias DeletePrinterDriverW DeletePrinterDriver;
-alias DeletePrintProcessorW DeletePrintProcessor;
-alias DeletePrintProvidorW DeletePrintProvidor;
-alias DocumentPropertiesW DocumentProperties;
-alias EnumFormsW EnumForms;
-alias EnumJobsW EnumJobs;
-alias EnumMonitorsW EnumMonitors;
-alias EnumPortsW EnumPorts;
-alias EnumPrinterDataW EnumPrinterData;
-alias EnumPrinterDriversW EnumPrinterDrivers;
-alias EnumPrintersW EnumPrinters;
-alias EnumPrintProcessorDatatypesW EnumPrintProcessorDatatypes;
-alias EnumPrintProcessorsW EnumPrintProcessors;
+alias AddForm = AddFormW;
+alias AddJob = AddJobW;
+alias AddMonitor = AddMonitorW;
+alias AddPort = AddPortW;
+alias AddPrinter = AddPrinterW;
+alias AddPrinterConnection = AddPrinterConnectionW;
+alias AddPrinterDriver = AddPrinterDriverW;
+alias AddPrintProcessor = AddPrintProcessorW;
+alias AddPrintProvidor = AddPrintProvidorW;
+alias AdvancedDocumentProperties = AdvancedDocumentPropertiesW;
+alias ConfigurePort = ConfigurePortW;
+alias DeleteForm = DeleteFormW;
+alias DeleteMonitor = DeleteMonitorW;
+alias DeletePort = DeletePortW;
+alias DeletePrinterConnection = DeletePrinterConnectionW;
+alias DeletePrinterData = DeletePrinterDataW;
+alias DeletePrinterDriver = DeletePrinterDriverW;
+alias DeletePrintProcessor = DeletePrintProcessorW;
+alias DeletePrintProvidor = DeletePrintProvidorW;
+alias DocumentProperties = DocumentPropertiesW;
+alias EnumForms = EnumFormsW;
+alias EnumJobs = EnumJobsW;
+alias EnumMonitors = EnumMonitorsW;
+alias EnumPorts = EnumPortsW;
+alias EnumPrinterData = EnumPrinterDataW;
+alias EnumPrinterDrivers = EnumPrinterDriversW;
+alias EnumPrinters = EnumPrintersW;
+alias EnumPrintProcessorDatatypes = EnumPrintProcessorDatatypesW;
+alias EnumPrintProcessors = EnumPrintProcessorsW;
 
 static if (_WIN32_WINNT >= 0x500) {
-alias GetDefaultPrinterW GetDefaultPrinter;
+alias GetDefaultPrinter = GetDefaultPrinterW;
 }
 
-alias GetFormW GetForm;
-alias GetJobW GetJob;
-alias GetPrinterW GetPrinter;
-alias GetPrinterDataW GetPrinterData;
-alias GetPrinterDriverW GetPrinterDriver;
-alias GetPrinterDriverDirectoryW GetPrinterDriverDirectory;
-alias GetPrintProcessorDirectoryW GetPrintProcessorDirectory;
-alias OpenPrinterW OpenPrinter;
-alias PrinterMessageBoxW PrinterMessageBox;
-alias ResetPrinterW ResetPrinter;
-alias SetFormW SetForm;
-alias SetJobW SetJob;
-alias SetPrinterW SetPrinter;
-alias SetPrinterDataW SetPrinterData;
-alias StartDocPrinterW StartDocPrinter;
+alias GetForm = GetFormW;
+alias GetJob = GetJobW;
+alias GetPrinter = GetPrinterW;
+alias GetPrinterData = GetPrinterDataW;
+alias GetPrinterDriver = GetPrinterDriverW;
+alias GetPrinterDriverDirectory = GetPrinterDriverDirectoryW;
+alias GetPrintProcessorDirectory = GetPrintProcessorDirectoryW;
+alias OpenPrinter = OpenPrinterW;
+alias PrinterMessageBox = PrinterMessageBoxW;
+alias ResetPrinter = ResetPrinterW;
+alias SetForm = SetFormW;
+alias SetJob = SetJobW;
+alias SetPrinter = SetPrinterW;
+alias SetPrinterData = SetPrinterDataW;
+alias StartDocPrinter = StartDocPrinterW;
 
 } else {
 
-alias JOB_INFO_1A JOB_INFO_1;
-alias JOB_INFO_2A JOB_INFO_2;
-alias ADDJOB_INFO_1A ADDJOB_INFO_1;
-alias DATATYPES_INFO_1A DATATYPES_INFO_1;
-alias MONITOR_INFO_1A MONITOR_INFO_1;
-alias MONITOR_INFO_2A MONITOR_INFO_2;
-alias DOC_INFO_1A DOC_INFO_1;
-alias DOC_INFO_2A DOC_INFO_2;
-alias PORT_INFO_1A PORT_INFO_1;
-alias PORT_INFO_2A PORT_INFO_2;
-alias PORT_INFO_3A PORT_INFO_3;
-alias DRIVER_INFO_2A DRIVER_INFO_2;
-alias PRINTER_INFO_1A PRINTER_INFO_1;
-alias PRINTER_INFO_2A PRINTER_INFO_2;
-alias PRINTER_INFO_4A PRINTER_INFO_4;
-alias PRINTER_INFO_5A PRINTER_INFO_5;
-alias PRINTPROCESSOR_INFO_1A PRINTPROCESSOR_INFO_1;
-alias FORM_INFO_1A FORM_INFO_1;
-alias PRINTER_DEFAULTSA PRINTER_DEFAULTS;
+alias JOB_INFO_1 = JOB_INFO_1A;
+alias JOB_INFO_2 = JOB_INFO_2A;
+alias ADDJOB_INFO_1 = ADDJOB_INFO_1A;
+alias DATATYPES_INFO_1 = DATATYPES_INFO_1A;
+alias MONITOR_INFO_1 = MONITOR_INFO_1A;
+alias MONITOR_INFO_2 = MONITOR_INFO_2A;
+alias DOC_INFO_1 = DOC_INFO_1A;
+alias DOC_INFO_2 = DOC_INFO_2A;
+alias PORT_INFO_1 = PORT_INFO_1A;
+alias PORT_INFO_2 = PORT_INFO_2A;
+alias PORT_INFO_3 = PORT_INFO_3A;
+alias DRIVER_INFO_2 = DRIVER_INFO_2A;
+alias PRINTER_INFO_1 = PRINTER_INFO_1A;
+alias PRINTER_INFO_2 = PRINTER_INFO_2A;
+alias PRINTER_INFO_4 = PRINTER_INFO_4A;
+alias PRINTER_INFO_5 = PRINTER_INFO_5A;
+alias PRINTPROCESSOR_INFO_1 = PRINTPROCESSOR_INFO_1A;
+alias FORM_INFO_1 = FORM_INFO_1A;
+alias PRINTER_DEFAULTS = PRINTER_DEFAULTSA;
 
-alias AddFormA AddForm;
-alias AddJobA AddJob;
-alias AddMonitorA AddMonitor;
-alias AddPortA AddPort;
-alias AddPrinterA AddPrinter;
-alias AddPrinterConnectionA AddPrinterConnection;
-alias AddPrinterDriverA AddPrinterDriver;
-alias AddPrintProcessorA AddPrintProcessor;
-alias AddPrintProvidorA AddPrintProvidor;
-alias AdvancedDocumentPropertiesA AdvancedDocumentProperties;
-alias ConfigurePortA ConfigurePort;
-alias DeleteFormA DeleteForm;
-alias DeleteMonitorA DeleteMonitor;
-alias DeletePortA DeletePort;
-alias DeletePrinterConnectionA DeletePrinterConnection;
-alias DeletePrinterDataA DeletePrinterData;
-alias DeletePrinterDriverA DeletePrinterDriver;
-alias DeletePrintProcessorA DeletePrintProcessor;
-alias DeletePrintProvidorA DeletePrintProvidor;
-alias DocumentPropertiesA DocumentProperties;
-alias EnumFormsA EnumForms;
-alias EnumJobsA EnumJobs;
-alias EnumMonitorsA EnumMonitors;
-alias EnumPortsA EnumPorts;
-alias EnumPrinterDataA EnumPrinterData;
-alias EnumPrinterDriversA EnumPrinterDrivers;
-alias EnumPrintersA EnumPrinters;
-alias EnumPrintProcessorDatatypesA EnumPrintProcessorDatatypes;
-alias EnumPrintProcessorsA EnumPrintProcessors;
+alias AddForm = AddFormA;
+alias AddJob = AddJobA;
+alias AddMonitor = AddMonitorA;
+alias AddPort = AddPortA;
+alias AddPrinter = AddPrinterA;
+alias AddPrinterConnection = AddPrinterConnectionA;
+alias AddPrinterDriver = AddPrinterDriverA;
+alias AddPrintProcessor = AddPrintProcessorA;
+alias AddPrintProvidor = AddPrintProvidorA;
+alias AdvancedDocumentProperties = AdvancedDocumentPropertiesA;
+alias ConfigurePort = ConfigurePortA;
+alias DeleteForm = DeleteFormA;
+alias DeleteMonitor = DeleteMonitorA;
+alias DeletePort = DeletePortA;
+alias DeletePrinterConnection = DeletePrinterConnectionA;
+alias DeletePrinterData = DeletePrinterDataA;
+alias DeletePrinterDriver = DeletePrinterDriverA;
+alias DeletePrintProcessor = DeletePrintProcessorA;
+alias DeletePrintProvidor = DeletePrintProvidorA;
+alias DocumentProperties = DocumentPropertiesA;
+alias EnumForms = EnumFormsA;
+alias EnumJobs = EnumJobsA;
+alias EnumMonitors = EnumMonitorsA;
+alias EnumPorts = EnumPortsA;
+alias EnumPrinterData = EnumPrinterDataA;
+alias EnumPrinterDrivers = EnumPrinterDriversA;
+alias EnumPrinters = EnumPrintersA;
+alias EnumPrintProcessorDatatypes = EnumPrintProcessorDatatypesA;
+alias EnumPrintProcessors = EnumPrintProcessorsA;
 
 static if (_WIN32_WINNT >= 0x500) {
-alias GetDefaultPrinterA GetDefaultPrinter;
+alias GetDefaultPrinter = GetDefaultPrinterA;
 }
 
-alias GetFormA GetForm;
-alias GetJobA GetJob;
-alias GetPrinterA GetPrinter;
-alias GetPrinterDataA GetPrinterData;
-alias GetPrinterDriverA GetPrinterDriver;
-alias GetPrinterDriverDirectoryA GetPrinterDriverDirectory;
-alias GetPrintProcessorDirectoryA GetPrintProcessorDirectory;
-alias OpenPrinterA OpenPrinter;
-alias PrinterMessageBoxA PrinterMessageBox;
-alias ResetPrinterA ResetPrinter;
-alias SetFormA SetForm;
-alias SetJobA SetJob;
-alias SetPrinterA SetPrinter;
-alias SetPrinterDataA SetPrinterData;
-alias StartDocPrinterA StartDocPrinter;
+alias GetForm = GetFormA;
+alias GetJob = GetJobA;
+alias GetPrinter = GetPrinterA;
+alias GetPrinterData = GetPrinterDataA;
+alias GetPrinterDriver = GetPrinterDriverA;
+alias GetPrinterDriverDirectory = GetPrinterDriverDirectoryA;
+alias GetPrintProcessorDirectory = GetPrintProcessorDirectoryA;
+alias OpenPrinter = OpenPrinterA;
+alias PrinterMessageBox = PrinterMessageBoxA;
+alias ResetPrinter = ResetPrinterA;
+alias SetForm = SetFormA;
+alias SetJob = SetJobA;
+alias SetPrinter = SetPrinterA;
+alias SetPrinterData = SetPrinterDataA;
+alias StartDocPrinter = StartDocPrinterA;
 }
 
-alias JOB_INFO_1* PJOB_INFO_1, LPJOB_INFO_1;
-alias JOB_INFO_2* PJOB_INFO_2, LPJOB_INFO_2;
-alias ADDJOB_INFO_1* PADDJOB_INFO_1, LPADDJOB_INFO_1;
-alias DATATYPES_INFO_1* PDATATYPES_INFO_1, LPDATATYPES_INFO_1;
-alias MONITOR_INFO_1* PMONITOR_INFO_1, LPMONITOR_INFO_1;
-alias MONITOR_INFO_2* PMONITOR_INFO_2, LPMONITOR_INFO_2;
-alias DOC_INFO_1* PDOC_INFO_1, LPDOC_INFO_1;
-alias DOC_INFO_2* PDOC_INFO_2, LPDOC_INFO_2;
-alias PORT_INFO_1* PPORT_INFO_1, LPPORT_INFO_1;
-alias PORT_INFO_2* PPORT_INFO_2, LPPORT_INFO_2;
-alias PORT_INFO_3* PPORT_INFO_3, LPPORT_INFO_3;
-alias DRIVER_INFO_2* PDRIVER_INFO_2, LPDRIVER_INFO_2;
-alias PRINTER_INFO_1* PPRINTER_INFO_1, LPPRINTER_INFO_1;
-alias PRINTER_INFO_2* PPRINTER_INFO_2, LPPRINTER_INFO_2;
-alias PRINTER_INFO_4* PPRINTER_INFO_4, LPPRINTER_INFO_4;
-alias PRINTER_INFO_5* PPRINTER_INFO_5, LPPRINTER_INFO_5;
-alias PRINTPROCESSOR_INFO_1* PPRINTPROCESSOR_INFO_1, LPPRINTPROCESSOR_INFO_1;
-alias FORM_INFO_1* PFORM_INFO_1, LPFORM_INFO_1;
-alias PRINTER_DEFAULTS* PPRINTER_DEFAULTS, LPPRINTER_DEFAULTS;
+alias PJOB_INFO_1 = JOB_INFO_1*, LPJOB_INFO_1 = JOB_INFO_1*;
+alias PJOB_INFO_2 = JOB_INFO_2*, LPJOB_INFO_2 = JOB_INFO_2*;
+alias PADDJOB_INFO_1 = ADDJOB_INFO_1*, LPADDJOB_INFO_1 = ADDJOB_INFO_1*;
+alias PDATATYPES_INFO_1 = DATATYPES_INFO_1*, LPDATATYPES_INFO_1 = DATATYPES_INFO_1*;
+alias PMONITOR_INFO_1 = MONITOR_INFO_1*, LPMONITOR_INFO_1 = MONITOR_INFO_1*;
+alias PMONITOR_INFO_2 = MONITOR_INFO_2*, LPMONITOR_INFO_2 = MONITOR_INFO_2*;
+alias PDOC_INFO_1 = DOC_INFO_1*, LPDOC_INFO_1 = DOC_INFO_1*;
+alias PDOC_INFO_2 = DOC_INFO_2*, LPDOC_INFO_2 = DOC_INFO_2*;
+alias PPORT_INFO_1 = PORT_INFO_1*, LPPORT_INFO_1 = PORT_INFO_1*;
+alias PPORT_INFO_2 = PORT_INFO_2*, LPPORT_INFO_2 = PORT_INFO_2*;
+alias PPORT_INFO_3 = PORT_INFO_3*, LPPORT_INFO_3 = PORT_INFO_3*;
+alias PDRIVER_INFO_2 = DRIVER_INFO_2*, LPDRIVER_INFO_2 = DRIVER_INFO_2*;
+alias PPRINTER_INFO_1 = PRINTER_INFO_1*, LPPRINTER_INFO_1 = PRINTER_INFO_1*;
+alias PPRINTER_INFO_2 = PRINTER_INFO_2*, LPPRINTER_INFO_2 = PRINTER_INFO_2*;
+alias PPRINTER_INFO_4 = PRINTER_INFO_4*, LPPRINTER_INFO_4 = PRINTER_INFO_4*;
+alias PPRINTER_INFO_5 = PRINTER_INFO_5*, LPPRINTER_INFO_5 = PRINTER_INFO_5*;
+alias PPRINTPROCESSOR_INFO_1 = PRINTPROCESSOR_INFO_1*, LPPRINTPROCESSOR_INFO_1 = PRINTPROCESSOR_INFO_1*;
+alias PFORM_INFO_1 = FORM_INFO_1*, LPFORM_INFO_1 = FORM_INFO_1*;
+alias PPRINTER_DEFAULTS = PRINTER_DEFAULTS*, LPPRINTER_DEFAULTS = PRINTER_DEFAULTS*;

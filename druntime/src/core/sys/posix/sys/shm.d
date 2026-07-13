@@ -58,7 +58,7 @@ version (linux)
     enum SHM_RND        = 0x02000; // 020000
     enum SHM_REMAP      = 0x4000; // 040000
 
-    alias c_ulong   shmatt_t;
+    alias shmatt_t = c_ulong;
 
     /* For any changes, please check /usr/include/bits/shm.h */
     struct shmid_ds
@@ -66,11 +66,11 @@ version (linux)
         ipc_perm    shm_perm;
         size_t      shm_segsz;
         time_t      shm_atime;
-        version (X86_64) {} else c_ulong     __unused1;
+        static if (time_t.sizeof == 4) c_ulong     __unused1;
         time_t      shm_dtime;
-        version (X86_64) {} else c_ulong     __unused2;
+        static if (time_t.sizeof == 4) c_ulong     __unused2;
         time_t      shm_ctime;
-        version (X86_64) {} else c_ulong     __unused3;
+        static if (time_t.sizeof == 4) c_ulong     __unused3;
         pid_t       shm_cpid;
         pid_t       shm_lpid;
         shmatt_t    shm_nattch;
@@ -83,7 +83,7 @@ else version (FreeBSD)
     enum SHM_RDONLY     = 0x01000; // 010000
     enum SHM_RND        = 0x02000; // 020000
 
-    alias c_ulong   shmatt_t;
+    alias shmatt_t = c_ulong;
 
     struct shmid_ds_old // <= FreeBSD7
     {
@@ -115,7 +115,7 @@ else version (NetBSD)
     enum SHM_RDONLY     = 0x01000; // 010000
     enum SHM_RND        = 0x02000; // 020000
 
-    alias c_ulong   shmatt_t;
+    alias shmatt_t = c_ulong;
 
     struct shmid_ds
     {
@@ -135,7 +135,7 @@ else version (OpenBSD)
     enum SHM_RDONLY     = 0x01000; // 010000
     enum SHM_RND        = 0x02000; // 020000
 
-    alias short shmatt_t;
+    alias shmatt_t = short;
 
     struct shmid_ds
     {
@@ -158,7 +158,7 @@ else version (DragonFlyBSD)
     enum SHM_RDONLY     = 0x01000; // 010000
     enum SHM_RND        = 0x02000; // 020000
 
-    alias c_ulong   shmatt_t;
+    alias shmatt_t = c_ulong;
 
     struct shmid_ds
     {
@@ -181,6 +181,32 @@ else version (Solaris)
 {
 
 }
+else version (Hurd)
+{
+    import core.sys.hurd.sys.types;
+    enum SHM_RDONLY     = 0x01000; // 010000
+    enum SHM_RND        = 0x02000; // 020000
+    enum SHM_REMAP      = 0x4000; // 040000
+
+    alias shmatt_t = short;
+
+    private struct __vm_area_struct;
+
+    struct shmid_ds
+    {
+        ipc_perm    shm_perm;
+        size_t      shm_segsz;
+        time_t      shm_atime;
+        time_t      shm_dtime;
+        time_t      shm_ctime;
+        ipc_pid_t   shm_cpid;
+        ipc_pid_t   shm_lpid;
+        shmatt_t    shm_nattch;
+        private ushort      __shm_npages;
+        private c_ulong*    __shm_pages;
+        private __vm_area_struct* __attaches;
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -198,7 +224,7 @@ int   shmget(key_t, size_t, int);
 version (CRuntime_Glibc)
 {
     int   __getpagesize();
-    alias __getpagesize SHMLBA;
+    alias SHMLBA = __getpagesize;
 
     void* shmat(int, const scope void*, int);
     int   shmctl(int, int, shmid_ds*);
@@ -219,7 +245,7 @@ else version (NetBSD)
     enum SHMLBA = 1 << 12; // PAGE_SIZE = (1<<PAGE_SHIFT)
 
     void* shmat(int, const scope void*, int);
-    int   shmctl(int, int, shmid_ds*);
+    pragma(mangle, "__shmctl50") int   shmctl(int, int, shmid_ds*);
     int   shmdt(const scope void*);
     int   shmget(key_t, size_t, int);
 }
@@ -273,7 +299,7 @@ else version (CRuntime_Bionic)
 else version (CRuntime_UClibc)
 {
     int   __getpagesize();
-    alias __getpagesize SHMLBA;
+    alias SHMLBA = __getpagesize;
 
     void* shmat(int, const scope void*, int);
     int   shmctl(int, int, shmid_ds*);

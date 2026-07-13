@@ -2,7 +2,7 @@
 /**
  * Dynamic array implementation.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/root/array.d, root/_array.d)
@@ -16,7 +16,7 @@ import core.stdc.stdlib : _compare_fp_t;
 import core.stdc.string;
 
 import dmd.root.rmem;
-import dmd.root.string;
+import dmd.root.string : toDString;
 
 // `qsort` is only `nothrow` since 2.081.0
 private extern(C) void qsort(scope void* base, size_t nmemb, size_t size, _compare_fp_t compar) nothrow @nogc;
@@ -51,7 +51,11 @@ public:
 
     ~this() pure nothrow
     {
-        debug (stomp) memset(data.ptr, 0xFF, data.length);
+        debug (stomp)
+        {
+            if (data.ptr)
+                memset(data.ptr, 0xFF, data.length * T.sizeof);
+        }
         if (data.ptr && data.ptr != &smallarray[0])
             mem.xfree(data.ptr);
     }
@@ -201,22 +205,33 @@ public:
                     memcpy(p, data.ptr, length * T.sizeof);
                     memset(data.ptr, 0xFF, data.length * T.sizeof);
                     mem.xfree(data.ptr);
+                    data = p[0 .. allocdim];
                 }
                 else
+                {
                     auto p = cast(T*)mem.xrealloc(data.ptr, allocdim * T.sizeof);
-                data = p[0 .. allocdim];
+                    data = p[0 .. allocdim];
+                }
             }
 
             debug (stomp)
             {
-                if (length < data.length)
-                    memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
+                if (data.ptr)
+                {
+                    if (length < data.length)
+                        memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
+                }
             }
             else
             {
                 if (mem.isGCEnabled)
-                    if (length < data.length)
-                        memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
+                {
+                    if (data.ptr)
+                    {
+                        if (length < data.length)
+                            memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
+                    }
+                }
             }
         }
 
@@ -908,7 +923,7 @@ bool equal(Range1, Range2)(Range1 range1, Range2 range2)
 
     else
     {
-        static if (hasLength!Range1 && hasLength!Range2 && is(typeof(r1.length == r2.length)))
+        static if (hasLength!Range1 && hasLength!Range2 && is(typeof(range1.length == range2.length)))
         {
             if (range1.length != range2.length)
                 return false;

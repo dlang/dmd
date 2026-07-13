@@ -1,7 +1,7 @@
 /**
  * Generate `TypeInfo` objects, which are needed for run-time introspection of types.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/typinf.d, _typinf.d)
@@ -19,10 +19,11 @@ import dmd.dclass;
 import dmd.dstruct;
 import dmd.errors;
 import dmd.expression;
-import dmd.globals;
 import dmd.location;
 import dmd.mtype;
+import dmd.templatesem;
 import dmd.typesem;
+import dmd.dsymbolsem : addDeferredSemantic3;
 import core.stdc.stdio;
 
 /****************************************************
@@ -45,13 +46,14 @@ bool genTypeInfo(Expression e, Loc loc, Type torig, Scope* sc)
     // https://issues.dlang.org/show_bug.cgi?id=18472
     if (!sc || !sc.ctfe)
     {
+        import dmd.globals;
         if (!global.params.useTypeInfo)
         {
             global.gag = 0;
             if (e)
-                .error(loc, "expression `%s` uses the GC and cannot be used with switch `-betterC`", e.toChars());
+                .error(loc, "expression `%s` uses the GC and cannot be used with switch `-betterC`", e.toErrMsg());
             else
-                .error(loc, "`TypeInfo` cannot be used with -betterC");
+                .error(loc, "`TypeInfo` cannot be used with `-betterC`");
 
             if (sc && sc.tinst)
                 sc.tinst.printInstantiationTrace(Classification.error, uint.max);
@@ -175,26 +177,9 @@ TypeInfoDeclaration getTypeInfoAssocArrayDeclaration(TypeAArray t, Scope* sc)
 
     auto ti = TypeInfoAssociativeArrayDeclaration.create(t);
     t.vtinfo = ti; // assign it early to avoid recursion in expressionSemantic
-    Loc loc = t.loc;
-    auto tiargs = new Objects(t.index, // always called with naked types
-                              t.next);
-
-    Expression id = new IdentifierExp(loc, Id.empty);
-    id = new DotIdExp(loc, id, Id.object);
-    id = new DotIdExp(loc, id, Id.TypeInfo_AssociativeArray);
-    auto tempinst = new DotTemplateInstanceExp(loc, id, Id.Entry, tiargs);
-    auto e = expressionSemantic(tempinst, sc);
-    assert(e.type);
-    ti.entry = e.type;
-    if (auto ts = ti.entry.isTypeStruct())
-    {
-        ts.sym.requestTypeInfo = true;
-        if (auto tmpl = ts.sym.isInstantiated())
-            tmpl.minst = sc._module.importedFrom; // ensure it get's emitted
-    }
-    getTypeInfoType(loc, ti.entry, sc);
-    assert(ti.entry.vtinfo);
-
+    ti._scope = sc;
+    sc.setNoFree();
+    addDeferredSemantic3(ti);
     return ti;
 }
 

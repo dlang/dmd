@@ -129,14 +129,31 @@ else version (CRuntime_UClibc)
         wchar_t __wc = 0;
     }
 }
+else version (Windows)
+{
+    ///
+    struct __mbstate_t
+    {
+        int __count;
+        union ___value
+        {
+            wint_t __wch = 0;
+            char[4] __wchb;
+        }
+        ___value __value;
+    }
+
+    ///
+    alias mbstate_t = __mbstate_t;
+}
 else
 {
     ///
-    alias int mbstate_t;
+    alias mbstate_t = int;
 }
 
 ///
-alias wchar_t wint_t;
+alias wint_t = wchar_t;
 
 ///
 enum wchar_t WEOF = 0xFFFF;

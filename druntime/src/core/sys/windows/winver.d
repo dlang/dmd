@@ -159,21 +159,21 @@ extern (Windows) nothrow @nogc {
 }
 
 version (Unicode) {
-    alias VerFindFileW VerFindFile;
-    alias VerQueryValueW VerQueryValue;
-    alias VerInstallFileW VerInstallFile;
-    alias GetFileVersionInfoSizeW GetFileVersionInfoSize;
-    alias GetFileVersionInfoW GetFileVersionInfo;
-    alias VerLanguageNameW VerLanguageName;
-    alias VerQueryValueW VerQueryValue;
+    alias VerFindFile = VerFindFileW;
+    alias VerQueryValue = VerQueryValueW;
+    alias VerInstallFile = VerInstallFileW;
+    alias GetFileVersionInfoSize = GetFileVersionInfoSizeW;
+    alias GetFileVersionInfo = GetFileVersionInfoW;
+    alias VerLanguageName = VerLanguageNameW;
+    alias VerQueryValue = VerQueryValueW;
 } else {
-    alias VerQueryValueA VerQueryValue;
-    alias VerFindFileA VerFindFile;
-    alias VerInstallFileA VerInstallFile;
-    alias GetFileVersionInfoSizeA GetFileVersionInfoSize;
-    alias GetFileVersionInfoA GetFileVersionInfo;
-    alias VerLanguageNameA VerLanguageName;
-    alias VerQueryValueA VerQueryValue;
+    alias VerQueryValue = VerQueryValueA;
+    alias VerFindFile = VerFindFileA;
+    alias VerInstallFile = VerInstallFileA;
+    alias GetFileVersionInfoSize = GetFileVersionInfoSizeA;
+    alias GetFileVersionInfo = GetFileVersionInfoA;
+    alias VerLanguageName = VerLanguageNameA;
+    alias VerQueryValue = VerQueryValueA;
 }
 
 alias VERSIONHELPERAPI = BOOL;

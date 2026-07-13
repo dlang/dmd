@@ -209,7 +209,7 @@ struct NETRESOURCEA {
     LPSTR lpComment;
     LPSTR lpProvider;
 }
-alias NETRESOURCEA* LPNETRESOURCEA;
+alias LPNETRESOURCEA = NETRESOURCEA*;
 
 struct NETRESOURCEW {
     DWORD  dwScope;
@@ -221,7 +221,7 @@ struct NETRESOURCEW {
     LPWSTR lpComment ;
     LPWSTR lpProvider;
 }
-alias NETRESOURCEW* LPNETRESOURCEW;
+alias LPNETRESOURCEW = NETRESOURCEW*;
 
 struct CONNECTDLGSTRUCTA {
     DWORD          cbStructure;
@@ -230,7 +230,7 @@ struct CONNECTDLGSTRUCTA {
     DWORD          dwFlags;
     DWORD          dwDevNum;
 }
-alias CONNECTDLGSTRUCTA* LPCONNECTDLGSTRUCTA;
+alias LPCONNECTDLGSTRUCTA = CONNECTDLGSTRUCTA*;
 
 struct CONNECTDLGSTRUCTW {
     DWORD          cbStructure;
@@ -239,7 +239,7 @@ struct CONNECTDLGSTRUCTW {
     DWORD          dwFlags;
     DWORD          dwDevNum;
 }
-alias CONNECTDLGSTRUCTW* LPCONNECTDLGSTRUCTW;
+alias LPCONNECTDLGSTRUCTW = CONNECTDLGSTRUCTW*;
 
 struct DISCDLGSTRUCTA {
     DWORD cbStructure;
@@ -248,7 +248,7 @@ struct DISCDLGSTRUCTA {
     LPSTR lpRemoteName;
     DWORD dwFlags;
 }
-alias DISCDLGSTRUCTA* LPDISCDLGSTRUCTA;
+alias LPDISCDLGSTRUCTA = DISCDLGSTRUCTA*;
 
 struct DISCDLGSTRUCTW {
     DWORD  cbStructure;
@@ -257,31 +257,31 @@ struct DISCDLGSTRUCTW {
     LPWSTR lpRemoteName;
     DWORD  dwFlags;
 }
-alias DISCDLGSTRUCTW* LPDISCDLGSTRUCTW;
+alias LPDISCDLGSTRUCTW = DISCDLGSTRUCTW*;
 
 struct UNIVERSAL_NAME_INFOA {
     LPSTR lpUniversalName;
 }
-alias UNIVERSAL_NAME_INFOA* LPUNIVERSAL_NAME_INFOA;
+alias LPUNIVERSAL_NAME_INFOA = UNIVERSAL_NAME_INFOA*;
 
 struct UNIVERSAL_NAME_INFOW {
     LPWSTR lpUniversalName;
 }
-alias UNIVERSAL_NAME_INFOW* LPUNIVERSAL_NAME_INFOW;
+alias LPUNIVERSAL_NAME_INFOW = UNIVERSAL_NAME_INFOW*;
 
 struct REMOTE_NAME_INFOA {
     LPSTR lpUniversalName;
     LPSTR lpConnectionName;
     LPSTR lpRemainingPath;
 }
-alias REMOTE_NAME_INFOA* LPREMOTE_NAME_INFOA;
+alias LPREMOTE_NAME_INFOA = REMOTE_NAME_INFOA*;
 
 struct REMOTE_NAME_INFOW {
     LPWSTR lpUniversalName;
     LPWSTR lpConnectionName;
     LPWSTR lpRemainingPath;
 }
-alias REMOTE_NAME_INFOW* LPREMOTE_NAME_INFOW;
+alias LPREMOTE_NAME_INFOW = REMOTE_NAME_INFOW*;
 
 struct NETINFOSTRUCT {
     DWORD cbStructure;
@@ -293,17 +293,15 @@ struct NETINFOSTRUCT {
     DWORD dwPrinters;
     DWORD dwDrives;
 }
-alias NETINFOSTRUCT* LPNETINFOSTRUCT;
+alias LPNETINFOSTRUCT = NETINFOSTRUCT*;
 
 extern (Windows) {
-    alias UINT function(LPCSTR, LPSTR, UINT) PFNGETPROFILEPATHA;
-    alias UINT function(LPCWSTR, LPWSTR, UINT) PFNGETPROFILEPATHW;
-    alias UINT function(LPCSTR, LPCSTR, DWORD) PFNRECONCILEPROFILEA;
-    alias UINT function(LPCWSTR, LPCWSTR, DWORD) PFNRECONCILEPROFILEW;
-    alias BOOL function(HWND, LPCSTR, LPCSTR, LPCSTR, DWORD)
-      PFNPROCESSPOLICIESA;
-    alias BOOL function(HWND, LPCWSTR, LPCWSTR, LPCWSTR, DWORD)
-      PFNPROCESSPOLICIESW;
+    alias PFNGETPROFILEPATHA = UINT function(LPCSTR, LPSTR, UINT);
+    alias PFNGETPROFILEPATHW = UINT function(LPCWSTR, LPWSTR, UINT);
+    alias PFNRECONCILEPROFILEA = UINT function(LPCSTR, LPCSTR, DWORD);
+    alias PFNRECONCILEPROFILEW = UINT function(LPCWSTR, LPCWSTR, DWORD);
+    alias PFNPROCESSPOLICIESA = BOOL function(HWND, LPCSTR, LPCSTR, LPCSTR, DWORD);
+    alias PFNPROCESSPOLICIESW = BOOL function(HWND, LPCWSTR, LPCWSTR, LPCWSTR, DWORD);
 }
 
 struct NETCONNECTINFOSTRUCT {
@@ -313,7 +311,7 @@ struct NETCONNECTINFOSTRUCT {
     DWORD dwDelay;
     DWORD dwOptDataSize;
 }
-alias NETCONNECTINFOSTRUCT* LPNETCONNECTINFOSTRUCT;
+alias LPNETCONNECTINFOSTRUCT = NETCONNECTINFOSTRUCT*;
 
 extern (Windows) nothrow @nogc {
     DWORD WNetAddConnection2A(LPNETRESOURCEA, LPCSTR, LPCSTR, DWORD);
@@ -370,71 +368,71 @@ extern (Windows) nothrow @nogc {
 }
 
 version (Unicode) {
-    alias PFNGETPROFILEPATHW PFNGETPROFILEPATH;
-    alias PFNRECONCILEPROFILEW PFNRECONCILEPROFILE;
-    alias PFNPROCESSPOLICIESW PFNPROCESSPOLICIES;
-    alias NETRESOURCEW NETRESOURCE;
-    alias CONNECTDLGSTRUCTW CONNECTDLGSTRUCT;
-    alias DISCDLGSTRUCTW DISCDLGSTRUCT;
-    alias REMOTE_NAME_INFOW REMOTE_NAME_INFO;
-    alias UNIVERSAL_NAME_INFOW UNIVERSAL_NAME_INFO;
-    alias WNetAddConnection2W WNetAddConnection2;
-    alias WNetAddConnection3W WNetAddConnection3;
-    alias WNetCancelConnection2W WNetCancelConnection2;
-    alias WNetGetConnectionW WNetGetConnection;
-    alias WNetUseConnectionW WNetUseConnection;
-    alias WNetSetConnectionW WNetSetConnection;
-    alias WNetConnectionDialog1W WNetConnectionDialog1;
-    alias WNetDisconnectDialog1W WNetDisconnectDialog1;
-    alias WNetOpenEnumW WNetOpenEnum;
-    alias WNetEnumResourceW WNetEnumResource;
-    alias WNetGetUniversalNameW WNetGetUniversalName;
-    alias WNetGetUserW WNetGetUser;
-    alias WNetGetProviderNameW WNetGetProviderName;
-    alias WNetGetNetworkInformationW WNetGetNetworkInformation;
-    alias WNetGetResourceInformationW WNetGetResourceInformation;
-    alias WNetGetResourceParentW WNetGetResourceParent;
-    alias WNetGetLastErrorW WNetGetLastError;
-    alias MultinetGetConnectionPerformanceW MultinetGetConnectionPerformance;
+    alias PFNGETPROFILEPATH = PFNGETPROFILEPATHW;
+    alias PFNRECONCILEPROFILE = PFNRECONCILEPROFILEW;
+    alias PFNPROCESSPOLICIES = PFNPROCESSPOLICIESW;
+    alias NETRESOURCE = NETRESOURCEW;
+    alias CONNECTDLGSTRUCT = CONNECTDLGSTRUCTW;
+    alias DISCDLGSTRUCT = DISCDLGSTRUCTW;
+    alias REMOTE_NAME_INFO = REMOTE_NAME_INFOW;
+    alias UNIVERSAL_NAME_INFO = UNIVERSAL_NAME_INFOW;
+    alias WNetAddConnection2 = WNetAddConnection2W;
+    alias WNetAddConnection3 = WNetAddConnection3W;
+    alias WNetCancelConnection2 = WNetCancelConnection2W;
+    alias WNetGetConnection = WNetGetConnectionW;
+    alias WNetUseConnection = WNetUseConnectionW;
+    alias WNetSetConnection = WNetSetConnectionW;
+    alias WNetConnectionDialog1 = WNetConnectionDialog1W;
+    alias WNetDisconnectDialog1 = WNetDisconnectDialog1W;
+    alias WNetOpenEnum = WNetOpenEnumW;
+    alias WNetEnumResource = WNetEnumResourceW;
+    alias WNetGetUniversalName = WNetGetUniversalNameW;
+    alias WNetGetUser = WNetGetUserW;
+    alias WNetGetProviderName = WNetGetProviderNameW;
+    alias WNetGetNetworkInformation = WNetGetNetworkInformationW;
+    alias WNetGetResourceInformation = WNetGetResourceInformationW;
+    alias WNetGetResourceParent = WNetGetResourceParentW;
+    alias WNetGetLastError = WNetGetLastErrorW;
+    alias MultinetGetConnectionPerformance = MultinetGetConnectionPerformanceW;
     deprecated {
-        alias WNetAddConnectionW WNetAddConnection;
-        alias WNetCancelConnectionW WNetCancelConnection;
+        alias WNetAddConnection = WNetAddConnectionW;
+        alias WNetCancelConnection = WNetCancelConnectionW;
     }
 } else {
-    alias PFNGETPROFILEPATHA PFNGETPROFILEPATH;
-    alias PFNRECONCILEPROFILEA PFNRECONCILEPROFILE;
-    alias PFNPROCESSPOLICIESA PFNPROCESSPOLICIES;
-    alias NETRESOURCEA NETRESOURCE;
-    alias CONNECTDLGSTRUCTA CONNECTDLGSTRUCT;
-    alias DISCDLGSTRUCTA DISCDLGSTRUCT;
-    alias REMOTE_NAME_INFOA REMOTE_NAME_INFO;
-    alias UNIVERSAL_NAME_INFOA UNIVERSAL_NAME_INFO;
-    alias WNetAddConnection2A WNetAddConnection2;
-    alias WNetAddConnection3A WNetAddConnection3;
-    alias WNetCancelConnection2A WNetCancelConnection2;
-    alias WNetGetConnectionA WNetGetConnection;
-    alias WNetUseConnectionA WNetUseConnection;
-    alias WNetSetConnectionA WNetSetConnection;
-    alias WNetConnectionDialog1A WNetConnectionDialog1;
-    alias WNetDisconnectDialog1A WNetDisconnectDialog1;
-    alias WNetOpenEnumA WNetOpenEnum;
-    alias WNetEnumResourceA WNetEnumResource;
-    alias WNetGetUniversalNameA WNetGetUniversalName;
-    alias WNetGetUserA WNetGetUser;
-    alias WNetGetProviderNameA WNetGetProviderName;
-    alias WNetGetNetworkInformationA WNetGetNetworkInformation;
-    alias WNetGetResourceInformationA WNetGetResourceInformation;
-    alias WNetGetResourceParentA WNetGetResourceParent;
-    alias WNetGetLastErrorA WNetGetLastError;
-    alias MultinetGetConnectionPerformanceA MultinetGetConnectionPerformance;
+    alias PFNGETPROFILEPATH = PFNGETPROFILEPATHA;
+    alias PFNRECONCILEPROFILE = PFNRECONCILEPROFILEA;
+    alias PFNPROCESSPOLICIES = PFNPROCESSPOLICIESA;
+    alias NETRESOURCE = NETRESOURCEA;
+    alias CONNECTDLGSTRUCT = CONNECTDLGSTRUCTA;
+    alias DISCDLGSTRUCT = DISCDLGSTRUCTA;
+    alias REMOTE_NAME_INFO = REMOTE_NAME_INFOA;
+    alias UNIVERSAL_NAME_INFO = UNIVERSAL_NAME_INFOA;
+    alias WNetAddConnection2 = WNetAddConnection2A;
+    alias WNetAddConnection3 = WNetAddConnection3A;
+    alias WNetCancelConnection2 = WNetCancelConnection2A;
+    alias WNetGetConnection = WNetGetConnectionA;
+    alias WNetUseConnection = WNetUseConnectionA;
+    alias WNetSetConnection = WNetSetConnectionA;
+    alias WNetConnectionDialog1 = WNetConnectionDialog1A;
+    alias WNetDisconnectDialog1 = WNetDisconnectDialog1A;
+    alias WNetOpenEnum = WNetOpenEnumA;
+    alias WNetEnumResource = WNetEnumResourceA;
+    alias WNetGetUniversalName = WNetGetUniversalNameA;
+    alias WNetGetUser = WNetGetUserA;
+    alias WNetGetProviderName = WNetGetProviderNameA;
+    alias WNetGetNetworkInformation = WNetGetNetworkInformationA;
+    alias WNetGetResourceInformation = WNetGetResourceInformationA;
+    alias WNetGetResourceParent = WNetGetResourceParentA;
+    alias WNetGetLastError = WNetGetLastErrorA;
+    alias MultinetGetConnectionPerformance = MultinetGetConnectionPerformanceA;
     deprecated {
-        alias WNetAddConnectionA WNetAddConnection;
-        alias WNetCancelConnectionA WNetCancelConnection;
+        alias WNetAddConnection = WNetAddConnectionA;
+        alias WNetCancelConnection = WNetCancelConnectionA;
     }
 }
 
-alias NETRESOURCE* LPNETRESOURCE;
-alias CONNECTDLGSTRUCT* LPCONNECTDLGSTRUCT;
-alias DISCDLGSTRUCT* LPDISCDLGSTRUCT;
-alias REMOTE_NAME_INFO* LPREMOTE_NAME_INFO;
-alias UNIVERSAL_NAME_INFO* LPUNIVERSAL_NAME_INFO;
+alias LPNETRESOURCE = NETRESOURCE*;
+alias LPCONNECTDLGSTRUCT = CONNECTDLGSTRUCT*;
+alias LPDISCDLGSTRUCT = DISCDLGSTRUCT*;
+alias LPREMOTE_NAME_INFO = REMOTE_NAME_INFO*;
+alias LPUNIVERSAL_NAME_INFO = UNIVERSAL_NAME_INFO*;

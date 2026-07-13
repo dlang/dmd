@@ -11,6 +11,10 @@
 
 module rt.trace;
 
+// TODO(?): support this on Wasm at some point
+version (WASI) {}
+else:
+
 import core.demangle;
 import core.stdc.ctype : isalpha, isgraph, isspace;
 import core.stdc.stdio : EOF, fclose, fgetc, FILE, fopen, fprintf, stderr, stdout;
@@ -93,7 +97,7 @@ void updateFileName(ref char[] filename, string name)
         assert(0, "Memory allocation failed");
 }
 
-alias long timer_t;
+alias timer_t = long;
 
 /////////////////////////////////////
 //
@@ -527,7 +531,7 @@ shared static ~this()
         trace_merge(&groot);
 
         // Report results
-        FILE* fplog = trace_logfilename.length == 0 ? stdout :
+        FILE* fplog = trace_logfilename.length == 0 ? cast()stdout :
             fopen(trace_logfilename.ptr, "w");
         if (fplog)
         {
@@ -545,10 +549,10 @@ shared static ~this()
             psymbols = null;
         }
         else
-            fprintf(stderr, "cannot write '%s'", trace_logfilename.ptr);
+            fprintf(cast()stderr, "cannot write '%s'", trace_logfilename.ptr);
 
         // Output function link order
-        FILE* fpdef = trace_deffilename.length == 0 ? stdout :
+        FILE* fpdef = trace_deffilename.length == 0 ? cast()stdout :
             fopen(trace_deffilename.ptr, "w");
         if (fpdef)
         {
@@ -557,7 +561,7 @@ shared static ~this()
             fclose(fpdef);
         }
         else
-            fprintf(stderr, "cannot write '%s'", trace_deffilename.ptr);
+            fprintf(cast()stderr, "cannot write '%s'", trace_deffilename.ptr);
     }
 }
 

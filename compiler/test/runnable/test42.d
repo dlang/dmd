@@ -8,7 +8,7 @@ myBool bool
 i
 s
 C6test42__T4T219TiZ1C
-C6test427test219FZ8__mixin11C
+C6test427test219FZ16__mixin_L3577_C31C
 ---
 */
 
@@ -1315,7 +1315,16 @@ void test79()
 //        writeln(c.__monitor);
         assert(c.__monitor !is null);
     }
+
+    // __monitor on a shared object is still void*, not shared(void*)
+    shared C79 sc = new shared C79();
+    void* p = cast(void*) 0x1;
+    sc.__monitor = p;
+    assert(sc.__monitor == p);
 }
+
+// https://github.com/dlang/dmd/issues/22815
+__gshared Object o = new Object();
 
 /***************************************************/
 
@@ -3638,10 +3647,10 @@ shared class Bug5504b
 
 void test5504()
 {
-    immutable Bug5504 c;
+    immutable Bug5504 c = new immutable Bug5504;
     c.foo(10);
     c.xx!(int).hoo(10);
-    shared Bug5504b d;
+    shared Bug5504b d = new shared Bug5504b;
     d.foo(10);
     d.xx!(int).hoo(10);
 }
@@ -6043,7 +6052,7 @@ void test7436()
 {
     ubyte a = 10;
     float f = 6;
-    ubyte b = a += f;
+    ubyte b = a += cast(ubyte)f;
     assert(b == 16);
 }
 

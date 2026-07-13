@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/dt.d
@@ -20,7 +20,9 @@ import core.stdc.string;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.global;
+import dmd.backend.global : size;
+import dmd.backend.dout : outdata;
+import dmd.backend.symbol : symbol_calloc;
 import dmd.backend.mem;
 import dmd.backend.ty;
 import dmd.backend.type;
@@ -29,6 +31,67 @@ nothrow:
 @nogc:
 @safe:
 
+
+/**********************************
+ * Data definitions
+ *      DTibytes        1..7 bytes
+ *      DTabytes        offset of bytes of data
+ *                      a { a data bytes }
+ *      DTnbytes        bytes of data
+ *                      a { a data bytes }
+ *                      a = offset
+ *      DTazeros        # of 0 bytes
+ *                      a
+ *      DTsymsize       same as DTazeros, but the type of the symbol gives
+ *                      the size
+ *      DTcommon        # of 0 bytes (in a common block)
+ *                      a
+ *      DTxoff          offset from symbol
+ *                      w a
+ *                      w = symbol number (pointer for CPP)
+ *                      a = offset
+ *      DTcoff          offset into code segment
+ */
+
+enum DT : ubyte
+{
+    abytes = 0,
+    azeros = 1,
+    xoff   = 2,
+    nbytes = 3,
+    common = 4,
+    coff   = 5,
+    ibytes = 6,
+}
+
+struct dt_t
+{
+    dt_t* DTnext;                       // next in list
+    DT dt;                              // Tagged union tag, see above
+    ubyte Dty;                          // pointer type
+    ubyte DTn;                          // DT.ibytes: number of bytes
+    ubyte DTalign;                      // DT.abytes: alignment (as power of 2) of pointed-to data
+    union
+    {
+        struct                          // DT.ibytes
+        {
+            enum DTibytesMax = (char*).sizeof + uint.sizeof + int.sizeof + targ_size_t.sizeof;
+            byte[DTibytesMax] DTdata;   // data
+        }
+        targ_size_t DTazeros;           // DT.azeros,DT.common,DT.symsize
+        struct                          // DT.abytes
+        {
+            void[] DTpbytes;            // mem_malloc'd array of data
+            int DTseg;                  // segment it went into
+            targ_size_t DTabytes;       // offset of abytes for DT.abytes
+        }
+        struct                          // DT.xoff
+        {
+            Symbol* DTsym;              // symbol pointer
+            targ_size_t DToffset;       // offset from symbol
+        }
+    }
+}
 
 /**********************************************
  * Free a data definition struct.
@@ -46,7 +109,7 @@ void dt_free(dt_t* dt)
             {
                 case DT.abytes:
                 case DT.nbytes:
-                    mem_free(dtn.DTpbytes);
+                    mem_free(dtn.DTpbytes.ptr);
                     break;
 
                 default:
@@ -68,25 +131,14 @@ void dt_free(dt_t* dt)
 
 void dt_term()
 {
-static if (0 && TERMCODE)
-{
-    dt_t* dtn;
-
+  static if (0 && TERMCODE)
     while (dt_freelist)
-    {   dtn = dt_freelist.DTnext;
+    {
+        auto dtn = dt_freelist.DTnext;
         mem_ffree(dt_freelist);
         dt_freelist = dtn;
     }
 }
-}
-
-dt_t** dtend(dt_t** pdtend)
-{
-    while (*pdtend)
-        pdtend = &((*pdtend).DTnext);
-    return pdtend;
-}
-
 
 /*********************************
  */
@@ -96,7 +148,7 @@ void dtpatchoffset(dt_t* dt, uint offset)
 }
 
 /**************************
- * Make a common block for s.
+ * Make a common block for Symbol `s`.
  */
 void init_common(Symbol* s)
 {
@@ -114,31 +166,22 @@ void init_common(Symbol* s)
 /**********************************
  * Compute size of a dt
  */
-uint dt_size(const(dt_t)* dtstart)
+@trusted
+private
+uint dt_size(const(dt_t)* dt)
 {
     uint datasize = 0;
-    for (auto dt = dtstart; dt; dt = dt.DTnext)
+    for (; dt; dt = dt.DTnext)
     {
         switch (dt.dt)
         {
+            case DT.ibytes: datasize += dt.DTn;             break;
+            case DT.nbytes: datasize += dt.DTpbytes.length; break;
+            case DT.azeros: datasize += dt.DTazeros;        break;
+            case DT.common: datasize += 0;                  break;
             case DT.abytes:
-                datasize += size(dt.Dty);
-                break;
-            case DT.ibytes:
-                datasize += dt.DTn;
-                break;
-            case DT.nbytes:
-                datasize += dt.DTnbytes;
-                break;
-            case DT.azeros:
-                datasize += dt.DTazeros;
-                break;
-            case DT.common:
-                break;
             case DT.xoff:
-            case DT.coff:
-                datasize += size(dt.Dty);
-                break;
+            case DT.coff:   datasize += size(dt.Dty);       break;
             default:
                 debug printf("dt = %p, dt = %d\n",dt,dt.dt);
                 assert(0);
@@ -150,7 +193,6 @@ uint dt_size(const(dt_t)* dtstart)
 /************************************
  * Return true if dt is all zeros.
  */
-
 bool dtallzeros(const(dt_t)* dt)
 {
     return dt && dt.dt == DT.azeros && !dt.DTnext;
@@ -250,24 +292,18 @@ nothrow:
     }
 
     /***********************
-     * Append data represented by ptr[0..size]
+     * Append data represented by data[]
      */
-    void nbytes(const(char)[] ptr)
-    {
-        return nbytes(cast(const(ubyte)[]) ptr);
-    }
-
-    /// ditto
     @trusted
-    void nbytes(const(ubyte)[] data)
+    void nbytes(const(void)[] data)
     {
         if (!data.length)
             return;
 
         bool allZero = true;
-        foreach (i; 0 .. data.length)
+        foreach (b; cast(const(ubyte)[])data)
         {
-            if (data.ptr[i] != 0)
+            if (b)
             {
                 allZero = false;
                 break;
@@ -287,9 +323,7 @@ nothrow:
         else
         {
             dt = dt_calloc(DT.nbytes);
-            dt.DTnbytes = data.length;
-            dt.DTpbytes = cast(byte*) mem_malloc(data.length);
-            memcpy(dt.DTpbytes, data.ptr, data.length);
+            dt.DTpbytes = memArrayCopy(data);
         }
 
         assert(!*pTail);
@@ -308,20 +342,19 @@ nothrow:
      *  _align = log2() of byte alignment of pointed-to data
      */
     @trusted
-    void abytes(tym_t ty, uint offset, const(char)[] data, uint nzeros, ubyte _align)
+    void abytes(tym_t ty, uint offset, const(void)[] data, uint nzeros, ubyte _align)
     {
         dt_t* dt = dt_calloc(DT.abytes);
         const n = data.length + nzeros;
         assert(n >= data.length);      // overflow check
-        dt.DTnbytes = n;
-        dt.DTpbytes = cast(byte*) mem_malloc(n);
+        dt.DTpbytes = mem_malloc(n)[0 .. n];
         dt.Dty = cast(ubyte)ty;
         dt.DTalign = _align;
         dt.DTabytes = offset;
 
-        dt.DTpbytes[0 .. data.length] = cast(const(byte)[]) data[];
+        dt.DTpbytes[0 .. data.length] = data[];
         if (nzeros)
-            dt.DTpbytes[data.length .. data.length + nzeros] = 0;
+            memset(dt.DTpbytes.ptr + data.length, 0, nzeros);
 
         assert(!*pTail);
         *pTail = dt;
@@ -557,8 +590,7 @@ nothrow:
                     {
                         case DT.abytes:
                         case DT.nbytes:
-                            dtx.DTpbytes = cast(byte*) mem_malloc(dtx.DTnbytes);
-                            memcpy(dtx.DTpbytes, dtn.DTpbytes, dtx.DTnbytes);
+                            dtx.DTpbytes = memArrayCopy(dtn.DTpbytes);
                             break;
 
                         default:
@@ -578,7 +610,7 @@ nothrow:
 
         const n = size * count;
         assert(n >= size);
-        char* p = cast(char*)mem_malloc(n);
+        void* p = mem_malloc(n);
         size_t offset = 0;
 
         for (dt_t* dtn = dt; dtn; dtn = dtn.DTnext)
@@ -586,8 +618,8 @@ nothrow:
             switch (dtn.dt)
             {
                 case DT.nbytes:
-                    memcpy(p + offset, dtn.DTpbytes, dtn.DTnbytes);
-                    offset += dtn.DTnbytes;
+                    memcpy(p + offset, dtn.DTpbytes.ptr, dtn.DTpbytes.length);
+                    offset += dtn.DTpbytes.length;
                     break;
                 case DT.ibytes:
                     memcpy(p + offset, dtn.DTdata.ptr, dtn.DTn);
@@ -611,8 +643,7 @@ nothrow:
         }
 
         dt_t* dtx = dt_calloc(DT.nbytes);
-        dtx.DTnbytes = cast(uint)(size * count);
-        dtx.DTpbytes = cast(byte*)p;
+        dtx.DTpbytes = p[0 .. size * count];
 
 
         assert(!*pTail);
@@ -678,4 +709,16 @@ dt_t* dt_get_nzeros(uint n)
     dt_t* dt = dt_calloc(DT.azeros);
     dt.DTazeros = n;
     return dt;
+}
+
+/****************************************
+ * Make a mem_malloc'd copy of an array.
+ */
+@trusted
+private
+void[] memArrayCopy(const(void)[] array)
+{
+    auto p = mem_malloc(array.length);
+    memcpy(p, array.ptr, array.length);
+    return p[0 .. array.length];
 }

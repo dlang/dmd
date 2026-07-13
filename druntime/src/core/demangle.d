@@ -805,7 +805,7 @@ pure @safe:
             return ret;
         }
 
-        // call parseType() and return error if occured
+        // call parseType() and return error if occurred
         enum parseTypeOrF = "parseType(errStatus); if (errStatus) return dst.bslice_empty;";
 
         switch ( t )
@@ -1286,7 +1286,7 @@ pure @safe:
                     pos--;
             }
 
-            // call parseType() and return error if occured
+            // call parseType() and return error if occurred
             enum parseTypeOrF = "parseType(errStatus); if (errStatus) return;";
 
             switch ( front )
@@ -2996,6 +2996,7 @@ CXX_DEMANGLER getCXXDemangler() nothrow @trusted
         version (OpenBSD) import core.sys.openbsd.dlfcn : RTLD_DEFAULT;
         version (Darwin) import core.sys.darwin.dlfcn : RTLD_DEFAULT;
         version (Solaris) import core.sys.solaris.dlfcn : RTLD_DEFAULT;
+        version (Hurd) import core.sys.hurd.dlfcn : RTLD_DEFAULT;
 
         if (auto found = cast(CXX_DEMANGLER) dlsym(RTLD_DEFAULT, "__cxa_demangle"))
             atomicStore(__cxa_demangle, found);

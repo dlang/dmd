@@ -1,7 +1,7 @@
 /**
  * Describes a back-end compiler and implements compiler-specific actions.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/compiler.d, _compiler.d)
@@ -19,7 +19,7 @@ import dmd.ctfeexpr;
 import dmd.dmodule;
 import dmd.errors;
 import dmd.expression;
-import dmd.globals;
+import dmd.expressionsem : toInteger, toReal;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
@@ -143,6 +143,7 @@ extern (C++) struct Compiler
             if (includeImportedModuleCheck(ModuleComponentRange(
                 m.md ? m.md.packages : [], m.ident, m.isPackageFile)))
             {
+                import dmd.globals;
                 if (global.params.v.verbose)
                     message("compileimport (%s)", m.srcfile.toChars);
                 compiledImports.push(m);

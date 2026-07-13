@@ -880,11 +880,59 @@ REQUIRED_ARGS(linux32): -fPIC
     assert(args.requiredArgs == "-os=windows", args.requiredArgs);
 }
 
+string[] splitQuoted(string text)
+{
+    import std.utf, std.uni;
+    enum quote = '\'';
+
+    string[] args;
+    size_t pos = 0;
+    while (pos < text.length)
+    {
+        size_t startpos = pos;
+        dchar ch = decode(text, pos);
+        if (isWhite(ch))
+            continue;
+
+        size_t quoted = 0;
+        size_t endpos = pos;
+        while (pos < text.length)
+        {
+            if (ch == quote)
+            {
+                while (pos < text.length)
+                {
+                    dchar ch2 = decode(text, pos);
+                    if (ch2 == quote) // no escaping
+                    {
+                        quoted++;
+                        break;
+                    }
+                }
+                ch = 0;
+            }
+            else
+            {
+                ch = decode(text, pos);
+            }
+            if (isWhite(ch))
+                break;
+            endpos = pos;
+        }
+        if (quoted == 1 && text[startpos] == quote && text[endpos-1] == quote)
+            startpos++, endpos--;
+        auto arg = text[startpos .. endpos].strip;
+        if (!arg.empty)
+            args ~= arg;
+    }
+    return args;
+}
+
 /// Generates all permutations of the space-separated word contained in `argstr`
 string[] combinations(string argstr)
 {
     string[] results;
-    string[] args = split(argstr);
+    string[] args = splitQuoted(argstr);
     long combinations = 1 << args.length;
     for (size_t i = 0; i < combinations; i++)
     {
@@ -1944,7 +1992,7 @@ int tryMain(string[] args)
                 {
                     try
                     {
-                        string diffUpdatedText = replaceFromDiff(existingText, ce.diff);
+                        string diffUpdatedText = replaceFromDiff(existingText, ce.diff.unifyDirSep("/"));
                         std.file.write(input_file, diffUpdatedText);
                         writefln("\n==> `%s_OUTPUT` of %s has been updated by applying a diff", type, input_file);
                         return Result.returnRerun;
@@ -2229,9 +2277,25 @@ int runBashTest(string input_dir, string test_name, const ref EnvData envData)
  */
 int runGDBTestWithLock(const ref EnvData envData, int delegate() fun)
 {
+    import core.thread : Thread;
+    import std.datetime : dur;
+    import std.conv: text;
+
     // Tests failed on SemaphoreCI when multiple GDB tests were run at once
-    scope lockfile = File(envData.results_dir.buildPath("gdb.lock"), "w");
-    lockfile.lock();
+    const lockPath = envData.results_dir.buildPath("gdb.lock");
+    scope lockfile = File(lockPath, "w");
+    enum maxWaitSeconds = 30;
+    auto waitTime = StopWatch(AutoStart.yes);
+    while (!lockfile.tryLock())
+    {
+        if (waitTime.peek.total!"seconds" >= maxWaitSeconds)
+        {
+            throw new Exception(
+                text("Time out waiting for ", lockPath, " after ", maxWaitSeconds,
+                     " seconds. A stale stopped test process may still hold the lock."));
+        }
+        Thread.sleep(100.msecs);
+    }
     scope (exit) lockfile.unlock();
 
     return fun();

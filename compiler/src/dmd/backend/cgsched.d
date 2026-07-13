@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1995-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/cgsched.d, backend/cgsched.d)
@@ -17,13 +17,13 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.backconfig : debugs;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgen : gen1, gen2;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
-import dmd.backend.dlist;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE, mask;
 import dmd.backend.mem;
 import dmd.backend.ty;
 import dmd.backend.barray;
@@ -36,9 +36,9 @@ nothrow:
 // true today for the current definition of I32, but if the definition
 // of I32 changes, this macro will need to change as well
 //
-// Note: even for linux targets, CFaddrsize can be set by the inline
+// Note: even for linux targets, CF.addrsize can be set by the inline
 // assembler.
-private bool is32bitaddr(bool x, uint Iflags) { return I64 || (x ^ ((Iflags & CFaddrsize) != 0)); }
+private bool is32bitaddr(bool x, uint Iflags) { return I64 || (x ^ ((Iflags & CF.addrsize) != 0)); }
 
 // If we use Pentium Pro scheduler
 @trusted
@@ -163,7 +163,7 @@ public void cgsched_block(block* b)
         scratch &= ~(b.Bregcon.used | b.Bregcon.params | cgstate.mfuncreg);
         scratch &= ~(b.Bregcon.immed.mval | b.Bregcon.cse.mval);
         cgsched_pentium(&b.Bcode,scratch);
-        //printf("after schedule:\n"); WRcodlst(b.Bcode);
+        //printf("after schedule:\n"); code_print_list(b.Bcode);
     }
 }
 
@@ -178,7 +178,7 @@ enum
     FX    = 0x10,    /// pairable with FXCH instruction
 }
 
-extern (D) private immutable ubyte[256] pentcycl =
+private immutable ubyte[256] pentcycl =
 [
         UV,UV,UV,UV,    UV,UV,NP,NP,    // 0
         UV,UV,UV,UV,    UV,UV,NP,NP,    // 8
@@ -233,7 +233,7 @@ enum
     F     = 0x8000000,      /// flags
 }
 
-extern (D) private immutable uint[2][256] oprw =
+private immutable uint[2][256] oprw =
 [
       // 00
       [ EA|R|B, F|EA|B ],       // ADD
@@ -560,7 +560,7 @@ extern (D) private immutable uint[2][256] oprw =
  * Same thing, but for groups.
  */
 
-extern (D) private immutable uint[2][8][8] grprw =
+private immutable uint[2][8][4] grprw =
 [
     [
         // Grp 1
@@ -622,7 +622,7 @@ extern (D) private immutable uint[2][8][8] grprw =
  *          [1] = write
  */
 
-extern (D) private immutable uint[2][8][8] grpf1 =
+private immutable uint[2][8][8] grpf1 =
 [
     [
         // 0xD8
@@ -719,7 +719,7 @@ extern (D) private immutable uint[2][8][8] grpf1 =
  * Micro-ops for floating point opcodes 0xD8..0xDF, with Irm < 0xC0.
  */
 
-extern (D) private immutable ubyte[8][8] uopsgrpf1 =
+private immutable ubyte[8][8] uopsgrpf1 =
 [
     [
         // 0xD8
@@ -817,7 +817,7 @@ extern (D) private immutable ubyte[8][8] uopsgrpf1 =
  * 5 means 'complex'
  */
 
-extern (D) private immutable ubyte[256] insuops =
+private immutable ubyte[256] insuops =
 [       0,0,0,0,        1,1,4,5,                /* 00 */
         0,0,0,0,        1,1,4,0,                /* 08 */
         0,0,0,0,        2,2,4,5,                /* 10 */
@@ -852,7 +852,7 @@ extern (D) private immutable ubyte[256] insuops =
         1,1,5,5,        4,4,0,0,                /* F8 */
 ];
 
-extern (D) private immutable ubyte[8] uopsx = [ 1,1,2,5,1,1,1,5 ];
+private immutable ubyte[8] uopsx = [ 1,1,2,5,1,1,1,5 ];
 
 /************************************************
  * Determine number of micro-ops for Pentium Pro and Pentium II processors.
@@ -867,8 +867,8 @@ extern (D) private immutable ubyte[8] uopsx = [ 1,1,2,5,1,1,1,5 ];
 private ubyte uops(code* c)
 {
     ubyte n;
-    int op;
-    int op2;
+    opcode_t op;
+    opcode_t op2;
 
     op = c.Iop & 0xFF;
     if ((c.Iop & 0xFF00) == 0x0F00)
@@ -1133,7 +1133,7 @@ private int pair_class(code* c)
         op = 0x0F;
     pc = pentcycl[op];
     a32 = I32;
-    if (c.Iflags & CFaddrsize)
+    if (c.Iflags & CF.addrsize)
         a32 ^= 1;
     irm = c.Irm;
     mod = (irm >> 6) & 3;
@@ -1261,7 +1261,7 @@ private int pair_class(code* c)
         default:
             break;
     }
-    if (c.Iflags & CFPREFIX && pc == UV)       // if prefix byte
+    if (c.Iflags & CF.PREFIX && pc == UV)       // if prefix byte
         pc = PU;
     return pc;
 }
@@ -1307,9 +1307,9 @@ private Cinfo getinfo(code* c)
     //printf("\tgetinfo %x, op %x \n",c,op);
     pc = pentcycl[op];
     a32 = I32;
-    if (c.Iflags & CFaddrsize)
+    if (c.Iflags & CF.addrsize)
         a32 ^= 1;
-    if (c.Iflags & CFopsize)
+    if (c.Iflags & CF.opsize)
         sz ^= 2 | 4;
     irm = c.Irm;
     mod = (irm >> 6) & 3;
@@ -1363,7 +1363,7 @@ private Cinfo getinfo(code* c)
 
         case 0x80:
             if (reg == 7)                       // CMP
-                c.Iflags |= CFpsw;
+                c.Iflags |= CF.psw;
             r = B | grprw[0][reg][0];           // Grp 1 (byte)
             w = B | grprw[0][reg][1];
             break;
@@ -1371,7 +1371,7 @@ private Cinfo getinfo(code* c)
         case 0x81:
         case 0x83:
             if (reg == 7)                       // CMP
-                c.Iflags |= CFpsw;
+                c.Iflags |= CF.psw;
             else if (irm == modregrm(3,0,SP))   // ADD ESP,imm
             {
                 assert(c.IFL2 == FL.const_);
@@ -1411,7 +1411,7 @@ private Cinfo getinfo(code* c)
             break;
 
         case 0xE8:
-            if (c.Iflags & CFclassinit)        // call to __j_classinit
+            if (c.Iflags & CF.classinit)        // call to __j_classinit
             {   r = 0;
                 w = F;
 
@@ -1463,7 +1463,7 @@ else
         case 0x3C:                              // CMP AL,imm8
         case 0x3D:                              // CMP EAX,imm32
             // For CMP opcodes, always test for flags
-            c.Iflags |= CFpsw;
+            c.Iflags |= CF.psw;
             break;
 
         case PSOP.root:
@@ -1478,7 +1478,7 @@ else
         case 0xC0:
         case 0xC1:
             if (reg == 2 || reg == 3)           // if RCL or RCR
-                c.Iflags |= CFpsw;             // always test for flags
+                c.Iflags |= CF.psw;             // always test for flags
             break;
 
         case 0xD8:
@@ -1887,7 +1887,7 @@ private code* cnext(code* c)
         c = code_next(c);
         if (!c)
             break;
-        if (c.Iflags & (CFtarg | CFtarg2))
+        if (c.Iflags & (CF.targ | CF.targ2))
             break;
         if (!(c.Iop == NOP ||
               c.Iop == PSOP.linnum))
@@ -1946,7 +1946,7 @@ private int conflict(Cinfo* ci1,Cinfo* ci2,int fpsched)
     //printf("r1 %lx w1 %lx a1 %lx sz1 %x\n",r1,w1,a1,sz1);
     //printf("r2 %lx w2 %lx a2 %lx sz2 %x\n",r2,w2,a2,sz2);
 
-    if ((c1.Iflags | c2.Iflags) & (CFvolatile | CFvex))
+    if ((c1.Iflags | c2.Iflags) & (CF.volatile | CF.vex))
         goto Lconflict;
 
     // Determine if we should handle FPU register conflicts separately
@@ -1988,12 +1988,12 @@ if (c1.IEV1.Vpointer + sz1 <= c2.IEV1.Vpointer) printf("t4\n");
 if (c2.IEV1.Vpointer + sz2 <= c1.IEV1.Vpointer) printf("t5\n");
 }
 
-        // make sure CFpsw is reliably set
+        // make sure CF.psw is reliably set
         if (w1 & w2 & F &&              // if both instructions write to flags
             w1 != F &&
             w2 != F &&
             !((r1 | r2) & F) &&         // but neither instruction reads them
-            !((c1.Iflags | c2.Iflags) & CFpsw))       // and we don't care about flags
+            !((c1.Iflags | c2.Iflags) & CF.psw))       // and we don't care about flags
         {
             w1 &= ~F;
             w2 &= ~F;                   // remove conflict
@@ -2083,7 +2083,7 @@ if (c2.IEV1.Vpointer + sz2 <= c1.IEV1.Vpointer) printf("t5\n");
             }
         }
 
-        if ((c1.Iflags | c2.Iflags) & CFunambig &&
+        if ((c1.Iflags | c2.Iflags) & CF.distinct &&
             (ifl1 != ifl2 ||
              ci1.sibmodrm != ci2.sibmodrm ||
              (c1.IEV1.Vint != c2.IEV1.Vint &&
@@ -2297,9 +2297,9 @@ code** assemble(code** pc)  // reassemble scheduled instructions
         //printf("stage()1: fpustackused = %d\n", fpustackused);
         c = ci.c;
         if (i == 0)
-            c.Iflags |= CFtarg;        // by definition, first is always a jump target
+            c.Iflags |= CF.targ;        // by definition, first is always a jump target
         else
-            c.Iflags &= ~CFtarg;       // the rest are not
+            c.Iflags &= ~CF.targ;       // the rest are not
 
         // Put in any FXCH prefix
         if (ci.fxch_pre)
@@ -2392,7 +2392,7 @@ int insert(Cinfo* ci)
         i = tblmax;
         goto Linsert;
     }
-    else if (c.Iflags & (CFtarg | CFtarg2))
+    else if (c.Iflags & (CF.targ | CF.targ2))
         // Jump targets can only be first in the scheduler
         goto Lnoinsert;
 
@@ -2681,7 +2681,7 @@ bool stage(code* c)
     auto ci = &cinfo[cinfomax++];
     *ci = getinfo(c);
 
-    if (c.Iflags & (CFtarg | CFtarg2 | CFvolatile | CFvex))
+    if (c.Iflags & (CF.targ | CF.targ2 | CF.volatile | CF.vex))
     {
         // Insert anything in stagelist
         foreach (ref cs;  stagelist[])
@@ -2770,7 +2770,7 @@ private code* csnip(code* c)
 {
     if (c)
     {
-        uint iflags = c.Iflags & CFclassinit;
+        uint iflags = c.Iflags & CF.classinit;
         code** pc;
         while (1)
         {
@@ -2778,7 +2778,7 @@ private code* csnip(code* c)
             c = *pc;
             if (!c)
                 break;
-            if (c.Iflags & (CFtarg | CFtarg2))
+            if (c.Iflags & (CF.targ | CF.targ2))
                 break;
             if (!(c.Iop == NOP ||
                   c.Iop == PSOP.linnum ||
@@ -2807,8 +2807,8 @@ private code* schedule(code* c,regm_t scratch)
     {
         if ((c.Iop == NOP ||
              ((c.Iop & PSOP.mask) == PSOP.root && c.Iop != PSOP.adjfpu) ||
-             c.Iflags & CFclassinit) &&
-            !(c.Iflags & (CFtarg | CFtarg2)))
+             c.Iflags & CF.classinit) &&
+            !(c.Iflags & (CF.targ | CF.targ2)))
         {   code* cn;
 
             // Just append this instruction to pctail and go to the next one
@@ -2934,9 +2934,9 @@ private void code_swap(code* c1,code* c2)
     cs = *c2;
     *c2 = *c1;
     *c1 = cs;
-    // Retain original CFtarg
-    c1.Iflags = (c1.Iflags & ~(CFtarg | CFtarg2)) | (c2.Iflags & (CFtarg | CFtarg2));
-    c2.Iflags = (c2.Iflags & ~(CFtarg | CFtarg2)) | (cs.Iflags & (CFtarg | CFtarg2));
+    // Retain original CF.targ
+    c1.Iflags = (c1.Iflags & ~(CF.targ | CF.targ2)) | (c2.Iflags & (CF.targ | CF.targ2));
+    c2.Iflags = (c2.Iflags & ~(CF.targ | CF.targ2)) | (cs.Iflags & (CF.targ | CF.targ2));
 
     c1.next = c2.next;
     c2.next = cs.next;
@@ -2965,7 +2965,7 @@ private code* peephole(code* cstart,regm_t scratch)
     Ln:
         if (!c1)
             break;
-        if (c1.Iflags & (CFtarg | CFtarg2))
+        if (c1.Iflags & (CF.targ | CF.targ2))
             continue;
 
         // Do:
@@ -3011,7 +3011,7 @@ private code* peephole(code* cstart,regm_t scratch)
         if (I32 && c.Iop == 0x8B && (c.Irm & 0xC7) == modregrm(0,0,4) &&
             c.Isib == modregrm(0,4,SP) &&
             c1.Iop == 0x83 && (c1.Irm & 0xC7) == modregrm(3,0,SP) &&
-            !(c1.Iflags & CFpsw) && c1.IFL2 == FL.const_ && c1.IEV2.Vint == 4)
+            !(c1.Iflags & CF.psw) && c1.IFL2 == FL.const_ && c1.IEV2.Vint == 4)
         {
             uint regx = (c.Irm >> 3) & 7;
             c.Iop = 0x58 + regx;
@@ -3024,7 +3024,7 @@ private code* peephole(code* cstart,regm_t scratch)
             c.Iop == 0x83 &&
             (c.Irm & 0xC0) == 0xC0 &&
             (c.Irm & modregrm(3,0,7)) == (c1.Irm & modregrm(3,0,7)) &&
-            !(c1.Iflags & CFpsw) &&
+            !(c1.Iflags & CF.psw) &&
             c.IFL2 == FL.const_ && c1.IFL2 == FL.const_
            )
         {   int i = cast(byte)c.IEV2.Vint;
@@ -3191,7 +3191,7 @@ code* simpleops(code* c,regm_t scratch)
     code* c2;
 
     // Worry about using registers not saved yet by prolog
-    scratch &= ~fregsaved;
+    scratch &= ~cgstate.fregsaved;
 
     if (!(scratch & (scratch - 1)))     // if 0 or 1 registers
         return c;
@@ -3202,7 +3202,7 @@ code* simpleops(code* c,regm_t scratch)
     for (code** pc = &cstart; *pc; pc = &(*pc).next)
     {
         c = *pc;
-        if (c.Iflags & (CFtarg | CFtarg2 | CFopsize))
+        if (c.Iflags & (CF.targ | CF.targ2 | CF.opsize))
             continue;
         if (c.Iop == 0x83 &&
             (c.Irm & modregrm(0,7,0)) == modregrm(0,7,0) &&
@@ -3231,7 +3231,7 @@ code* simpleops(code* c,regm_t scratch)
             imm = c2.IEV2.Vuns;
             if (!(c2.Iop & 1))
                 imm &= 0xFF;
-            else if (I32 ? c.Iflags & CFopsize : !(c.Iflags & CFopsize))
+            else if (I32 ? c.Iflags & CF.opsize : !(c.Iflags & CF.opsize))
                 imm = cast(short) imm;
             if (imm == 0)
             {

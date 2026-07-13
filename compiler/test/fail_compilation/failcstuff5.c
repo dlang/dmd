@@ -3,7 +3,7 @@
 ---
 fail_compilation/failcstuff5.c(404): Error: undefined identifier `p1`
 fail_compilation/failcstuff5.c(404): Error: undefined identifier `p2`
-fail_compilation/failcstuff5.c(458): Error: cannot take address of bit-field `field`
+fail_compilation/failcstuff5.c(458): Error: cannot take address of bitfield `s.field`
 ---
 */
 

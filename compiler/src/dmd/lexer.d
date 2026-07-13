@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/lex.html, Lexical)
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/lexer.d, _lexer.d)
@@ -51,6 +51,7 @@ struct CompileEnv
     bool transitionIn;       /// `-transition=in` is active, `in` parameters are listed
     bool ddocOutput;         /// collect embedded documentation comments
     bool masm;               /// use MASM inline asm syntax
+    const(char)[] switchPrefix;
 
     // these need a default otherwise tests won't work.
     IdentifierCharLookup cCharLookupTable; /// C identifier table (set to the lexer by the C parser)
@@ -61,7 +62,11 @@ struct CompileEnv
  */
 class Lexer
 {
-    private __gshared OutBuffer stringbuffer;
+    private __gshared
+    {
+        OutBuffer stringbuffer;
+        OutBuffer stringbuffersecondary; // functions that use stringbuffer can call scan that needs this.
+    }
 
     BaseLoc* baseLoc;       // Used to generate `scanloc`, which is just an index into this data structure
     Loc scanloc;            // for error messages
@@ -324,10 +329,9 @@ class Lexer
         t.blockComment = null;
         t.lineComment = null;
 
-        size_t universalCharacterName4, universalCharacterName8;
-
         while (1)
         {
+            bool startsUCN;
             t.ptr = p;
             //printf("p = %p, *p = '%c'\n",p,*p);
             t.loc = loc();
@@ -427,10 +431,7 @@ class Lexer
                         // Universal Character Name (C) 2 byte
                         // \uXXXX
                         // let the main case handling for identifiers process this
-
-                        // case_indent will always increment, so subtract to prevent branching on the fast path
-                        p--;
-
+                        startsUCN = true;
                         goto case_ident;
                     }
                     else if (p[1] == 'U')
@@ -438,10 +439,7 @@ class Lexer
                         // Universal Character Name (C) 4 byte
                         // \UXXXXXXXX
                         // let the main case handling for identifiers process this
-
-                        // case_indent will always increment, so subtract to prevent branching on the fast path
-                        p--;
-
+                        startsUCN = true;
                         goto case_ident;
                     }
                 }
@@ -629,164 +627,8 @@ class Lexer
             case '_':
             case_ident:
                 {
-        IdentLoop: while (1)
-                    {
-                        // If this is changed, change the decrement in C's universal character name code above
-                        // For syntax \uXXXX and \UXXXXXXXX
-                        const c = *++p;
-
-                        // Is this the first character of the identifier
-                        // For the universal character name this will line up,
-                        //  for the main switch it won't since it wasn't the first,
-                        //  for the default it won't either because a decode increments.
-                        const isStartCharacter = t.ptr is p;
-
-                        if (isidchar(c))
-                            continue;
-                        if (c & 0x80)
-                        {
-                            const s = p;
-                            const u = decodeUTF();
-
-                            if (isStartCharacter)
-                            {
-                                if (charLookup.isStart(u))
-                                    continue;
-                                error(t.loc, "character 0x%04x is not allowed as a start character in an identifier", u);
-                            }
-                            else
-                            {
-                                if (charLookup.isContinue(u))
-                                    continue;
-                                error(t.loc, "character 0x%04x is not allowed as a continue character in an identifier", u);
-                            }
-
-                            p = s;
-                        }
-                        else if (Ccompile && c == '\\')
-                        {
-                            uint times;
-                            const s = p;
-                            p++;
-
-                            if (*p == 'u')
-                            {
-                                // Universal Character Name (C) 2 byte
-                                // \uXXXX
-                                p++;
-                                times = 4;
-                            }
-                            else if (*p == 'U')
-                            {
-                                // Universal Character Name (C) 4 byte
-                                // \UXXXXXXXX
-                                p++;
-                                times = 8;
-                            }
-                            else
-                            {
-                                error(t.loc, "char 0x%x is not allowed to follow '\\' expecting a C universal character name in format \\uXXXX or \\UXXXXXXXX with hex digits instead of X with invalid u/U", *p);
-                                p = s;
-                                break;
-                            }
-
-                            foreach(_; 0 .. times)
-                            {
-                                const hc = *p;
-                                p++;
-
-                                if ((hc >= '0' && hc <= '9') || (hc >= 'a' && hc <= 'f') || (hc >= 'A' && hc <= 'F'))
-                                    continue;
-
-                                error(t.loc, "char 0x%x is not allowed to follow '\\' expecting a C universal character name in format \\uXXXX or \\UXXXXXXXX with hex digits instead of X with invalid hex digit", hc);
-                                p = s;
-                                break IdentLoop;
-                            }
-
-                            continue;
-                        }
-                        break;
-                    }
-
-                    Identifier id;
-
-                    if (universalCharacterName4 > 0 || universalCharacterName8 > 0)
-                    {
-                        auto priorValidation = t.ptr[0 .. p - t.ptr];
-                        const(char)* priorVPtr = priorValidation.ptr;
-                        const possibleLength = (
-                            priorValidation.length - (
-                                (universalCharacterName4 * 6) +
-                                (universalCharacterName8 * 10)
-                            )) + (
-                                (universalCharacterName4 * 3) +
-                                (universalCharacterName8 * 4)
-                            );
-
-                        char[64] buffer = void;
-                        SmallBuffer!char sb = SmallBuffer!char(possibleLength, buffer[]);
-
-                        char[] storage = sb.extent;
-                        size_t offset;
-
-                        while(priorVPtr < &priorValidation[$-1] + 1)
-                        {
-                            if (*priorVPtr == '\\')
-                            {
-                                dchar tempDchar = 0;
-                                uint times;
-
-                                // universal character name (C)
-                                if (priorVPtr[1] == 'u')
-                                    times = 4;
-                                else if (priorVPtr[1] == 'U')
-                                    times = 8;
-                                else
-                                    assert(0, "ICE: Universal character name is 2 or 4 bytes only");
-                                priorVPtr += 2;
-
-                                foreach(_; 0 .. times)
-                                {
-                                    char c = *++priorVPtr;
-                                    if (c >= '0' && c <= '9')
-                                        c -= '0';
-                                    else if (c >= 'a' && c <= 'f')
-                                        c -= 'a' - 10;
-                                    else if (c >= 'A' && c <= 'F')
-                                        c -= 'A' - 10;
-
-                                    tempDchar <<= 4;
-                                    tempDchar |= c;
-                                }
-
-                                utf_encodeChar(&storage[offset], tempDchar);
-                                offset += utf_codeLengthChar(tempDchar);
-
-                                // Could be an error instead of a warning,
-                                //  but hey it was written specifically so why worry?
-                                if (priorVPtr is priorValidation.ptr)
-                                {
-                                    if (!charLookup.isStart(tempDchar))
-                                        warning(t.loc, "char 0x%x is not allowed start character for an identifier", tempDchar);
-                                }
-                                else
-                                {
-                                    if (!charLookup.isContinue(tempDchar))
-                                        warning(t.loc, "char 0x%x is not allowed continue character for an identifier", tempDchar);
-                                }
-                            }
-                            else
-                                storage[offset++] = *++priorVPtr;
-                        }
-
-                        id = Identifier.idPool(storage[0 .. offset], false);
-                    }
-                    else
-                        id = Identifier.idPool((cast(char*)t.ptr)[0 .. p - t.ptr], false);
-
-                    t.ident = id;
-                    t.value = cast(TOK)id.getValue();
-
+                    if (!lexIdentifier(t, startsUCN))
+                        goto default;
                     anyToken = 1;
 
                     /* Different keywords for C and D
@@ -811,20 +653,20 @@ class Lexer
                             t.postfix = 0;
                         }
 
-                        if (id == Id.DATE)
+                        if (t.ident == Id.DATE)
                             toToken(compileEnv.date);
-                        else if (id == Id.TIME)
+                        else if (t.ident == Id.TIME)
                             toToken(compileEnv.time);
-                        else if (id == Id.VENDOR)
+                        else if (t.ident == Id.VENDOR)
                             toToken(compileEnv.vendor);
-                        else if (id == Id.TIMESTAMP)
+                        else if (t.ident == Id.TIMESTAMP)
                             toToken(compileEnv.timestamp);
-                        else if (id == Id.VERSIONX)
+                        else if (t.ident == Id.VERSIONX)
                         {
                             t.value = TOK.int64Literal;
                             t.unsvalue = compileEnv.versionNumber;
                         }
-                        else if (id == Id.EOFX)
+                        else if (t.ident == Id.EOFX)
                         {
                             t.value = TOK.endOfFile;
                             // Advance scanner to end of file
@@ -1358,8 +1200,10 @@ class Lexer
 
                         // Check for start of an identifier
                         if (charLookup.isStart(c))
+                        {
+                            p++;
                             goto case_ident;
-
+                        }
                         if (c == PS || c == LS)
                         {
                             endOfLine();
@@ -1591,7 +1435,7 @@ class Lexer
                     p++;
                     break;
                 default:
-                    if (isalpha(*p) || (p != idstart && isdigit(*p)))
+                    if (isAlphaASCII(*p) || (p != idstart && isdigit(*p)))
                         continue;
                     error(loc, "unterminated named entity &%.*s;", cast(int)(p - idstart + 1), idstart);
                     c = '?';
@@ -1628,6 +1472,118 @@ class Lexer
             break;
         }
         return c;
+    }
+
+    /**
+    Lex an identifier
+    Params:
+        t = pointer to the token that starts the identifier, and accepts the result
+        startsUCN = if the identifier s
+    Returns:
+        true if an identifier was set
+     */
+    private bool lexIdentifier(Token* t, bool startsUCN)
+    {
+        Identifier id;
+
+        if (!startsUCN)
+        {
+            while (isidchar(*p))
+                p++;
+        }
+
+        if (!startsUCN && !(*p & 0x80) && (!Ccompile || *p != '\\'))
+        {
+            // Fast path for ascii identifiers
+            id = Identifier.idPool((cast(char*)t.ptr)[0 .. p - t.ptr], false);
+        }
+        else
+        {
+            // Slow path for identifiers with UCNs and UTF8 characters
+            stringbuffer.setsize(0);
+            stringbuffer.writestring(t.ptr[0 .. p - t.ptr]);
+
+        IdentLoop:
+            while (1)
+            {
+                // Is this the first character of the identifier?
+                const isStartCharacter = t.ptr is p;
+                uint u;
+
+                if (isidchar(*p))
+                {
+                    const c = *p++;
+                    stringbuffer.writeByte(c);
+                    continue;
+                }
+                else if (*p & 0x80)
+                {
+                    u = decodeUTF();
+                    p++;
+                }
+                else if (Ccompile && *p == '\\')
+                {
+                    uint times;
+                    if (p[1] == 'u')
+                    {
+                        // Universal Character Name (C) 2 byte
+                        // \uXXXX
+                        times = 4;
+                    }
+                    else if (p[1] == 'U')
+                    {
+                        // Universal Character Name (C) 4 byte
+                        // \UXXXXXXXX
+                        times = 8;
+                    }
+                    else
+                        break;  // end of identifier
+
+                    p += 2;
+
+                    foreach(i; 0 .. times)
+                    {
+                        char c = p[i];
+
+                        if (c >= '0' && c <= '9')
+                            c -= '0';
+                        else if (c >= 'a' && c <= 'f')
+                            c -= 'a' - 10;
+                        else if (c >= 'A' && c <= 'F')
+                            c -= 'A' - 10;
+                        else
+                        {
+                            // Not a valid ucn, if this is the first character, return false now.
+                            // Otherwise break to return the identifier lexed so far.
+                            p -= 2;
+                            if (isStartCharacter)
+                            {
+                                return false;
+                            }
+                            break IdentLoop;
+                        }
+                        u = (u << 4) | c;
+                    }
+                    if (isBidiControl(u))
+                        error(t.loc, "Bidirectional control characters in universal character names are disallowed for security reasons");
+                    p += times;
+                }
+                else
+                    break;  // end of identifier
+
+                if (isStartCharacter && !charLookup.isStart(u))
+                    error(t.loc, "character 0x%04x is not allowed as a start character in an identifier", u);
+                else if (!charLookup.isContinue(u))
+                    error(t.loc, "character 0x%04x is not allowed as a continue character in an identifier", u);
+                stringbuffer.writeUTF8(u);
+            }
+
+            id = Identifier.idPool(stringbuffer[], false);
+        }
+
+        t.ident = id;
+        t.value = cast(TOK)id.getValue();
+        return true;
     }
 
     /**
@@ -1679,7 +1635,7 @@ class Lexer
             case 0:
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
-                result.setString();
+                result.setString(null);
                 // rewind `p` so it points to the EOF character
                 p--;
                 return;
@@ -1687,9 +1643,9 @@ class Lexer
                 if (c == terminator)
                 {
                     if (supportInterpolation)
-                        result.appendInterpolatedPart(stringbuffer);
+                        result.appendInterpolatedPart(stringbuffer[], Loc.init);
                     else
-                        result.setString(stringbuffer);
+                        result.setString(stringbuffer[]);
 
                     stringPostfix(result);
                     return;
@@ -1742,7 +1698,7 @@ class Lexer
             case 0:
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
-                t.setString();
+                t.setString(null);
                 // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOK.endOfFile token).
                 p--;
                 return TOK.hexadecimalString;
@@ -1752,7 +1708,7 @@ class Lexer
                     error("odd number (%d) of hex characters in hex string", n);
                     stringbuffer.writeByte(cast(char)v);
                 }
-                t.setString(stringbuffer);
+                t.setString(stringbuffer[]);
                 stringPostfix(t);
                 return TOK.hexadecimalString;
             default:
@@ -1814,7 +1770,7 @@ class Lexer
         uint blankrol = 0;
         uint startline = 0;
         p++;
-        stringbuffer.setsize(0);
+        stringbuffersecondary.setsize(0);
         while (1)
         {
             const s = p;
@@ -1833,7 +1789,7 @@ class Lexer
                 }
                 if (hereid)
                 {
-                    stringbuffer.writeUTF8(c);
+                    stringbuffersecondary.writeUTF8(c);
                     continue;
                 }
                 break;
@@ -1845,7 +1801,7 @@ class Lexer
             case 0:
             case 0x1A:
                 error("unterminated delimited string constant starting at %s", start.toChars());
-                result.setString();
+                result.setString(null);
                 // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOK.endOfFile token).
                 p--;
                 return;
@@ -1873,7 +1829,7 @@ class Lexer
                     delimright = ']';
                 else if (c == '<')
                     delimright = '>';
-                else if (isalpha(c) || c == '_' || (c >= 0x80 && charLookup.isStart(c)))
+                else if (isAlphaASCII(c) || c == '_' || (c >= 0x80 && charLookup.isStart(c)))
                 {
                     // Start of identifier; must be a heredoc
                     Token tok;
@@ -1923,7 +1879,7 @@ class Lexer
                     goto Ldone;
 
                 // we're looking for a new identifier token
-                if (startline && (isalpha(c) || c == '_' || (c >= 0x80 && charLookup.isStart(c))) && hereid)
+                if (startline && (isAlphaASCII(c) || c == '_' || (c >= 0x80 && charLookup.isStart(c))) && hereid)
                 {
                     Token tok;
                     auto psave = p;
@@ -1938,7 +1894,7 @@ class Lexer
                     }
                     p = psave;
                 }
-                stringbuffer.writeUTF8(c);
+                stringbuffersecondary.writeUTF8(c);
                 startline = 0;
             }
         }
@@ -1951,7 +1907,7 @@ class Lexer
             error("delimited string must end in `\"`");
         else
             error(token.loc, "delimited string must end in `%c\"`", delimright);
-        result.setString(stringbuffer);
+        result.setString(stringbuffersecondary[]);
         stringPostfix(result);
     }
 
@@ -1995,10 +1951,17 @@ class Lexer
             case TOK.rightCurly:
                 if (--nest == 0)
                 {
+                    const length = p - 1 - pstart;
                     if (supportInterpolation)
-                        result.appendInterpolatedPart(pstart, p - 1 - pstart);
+                    {
+                        normalizeCRLF(pstart[0 .. length]);
+                        result.appendInterpolatedPart(stringbuffer[], Loc.init);
+                    }
                     else
-                        result.setString(pstart, p - 1 - pstart);
+                    {
+                        normalizeCRLF(pstart[0 .. length]);
+                        result.setString(stringbuffer[]);
+                    }
 
                     stringPostfix(result);
                     return;
@@ -2008,8 +1971,7 @@ class Lexer
                 if (!supportInterpolation)
                     goto default;
 
-                stringbuffer.setsize(0);
-                stringbuffer.write(pstart, p - 1 - pstart);
+                normalizeCRLF(pstart[0 .. p - 1 - pstart]);
                 if (!handleInterpolatedSegment(result, start))
                     goto default;
 
@@ -2020,11 +1982,28 @@ class Lexer
                 continue;
             case TOK.endOfFile:
                 error("unterminated token string constant starting at %s", start.toChars());
-                result.setString();
+                result.setString(null);
                 return;
             default:
                 continue;
             }
+        }
+    }
+
+    // Normalize CRLF to LF in raw source bytes and write into stringbuffer
+    private void normalizeCRLF(const(char)[] src)
+    {
+        stringbuffer.setsize(0);
+        foreach (i, char c; src)
+        {
+            if (c == '\r')
+            {
+                if (i + 1 < src.length && src[i + 1] == '\n')
+                    continue;
+                stringbuffer.writeByte('\n');
+            }
+            else
+                stringbuffer.writeByte(c);
         }
     }
 
@@ -2038,12 +2017,13 @@ class Lexer
             // expression, at this level we need to scan until the closing ')'
 
             // always put the string part in first
-            token.appendInterpolatedPart(stringbuffer);
+            token.appendInterpolatedPart(stringbuffer[], Loc.init);
             stringbuffer.setsize(0);
 
             int openParenCount = 1;
             p++; // skip the first open paren
             auto pstart = p;
+            auto exprLoc = baseLoc.getLoc(cast(uint)(pstart - base));
             while (openParenCount > 0)
             {
                 // need to scan with the lexer to support embedded strings and other complex cases
@@ -2062,7 +2042,7 @@ class Lexer
             }
 
             // then put the interpolated string segment
-            token.appendInterpolatedPart(pstart[0 .. p - 1 - pstart]);
+            token.appendInterpolatedPart(pstart[0 .. p - 1 - pstart], exprLoc);
 
             stringbuffer.setsize(0); // make sure this is reset from the last token scan
             // otherwise something like i"$(func("thing")) stuff" can still include it
@@ -2163,9 +2143,9 @@ class Lexer
                 if (c != tc)
                     goto default;
                 if (supportInterpolation)
-                    t.appendInterpolatedPart(stringbuffer);
+                    t.appendInterpolatedPart(stringbuffer[], Loc.init);
                 else
-                    t.setString(stringbuffer);
+                    t.setString(stringbuffer[]);
                 if (!Ccompile)
                     stringPostfix(t);
                 return;
@@ -2175,7 +2155,7 @@ class Lexer
                 p--;
             Lunterminated:
                 error("unterminated string constant starting at %s", start.toChars());
-                t.setString();
+                t.setString(null);
                 return;
             default:
                 if (c & 0x80)
@@ -2283,7 +2263,13 @@ class Lexer
 
             if (*p == '\'')
             {
-                error("character constant has multiple characters");
+                const(char)* s = p - 1;
+                while(*s != '\'')
+                {
+                    s--;
+                }
+                s++;
+                error("character constant has multiple characters - did you mean \"%.*s\"?", cast(int) (p - s), s);
                 p++;
             }
             else
@@ -2446,7 +2432,7 @@ class Lexer
             case '.':
                 if (p[1] == '.')
                     goto Ldone; // if ".."
-                if (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80)
+                if (isAlphaASCII(p[1]) || p[1] == '_' || p[1] & 0x80)
                 {
                     if (Ccompile && (p[1] == 'f' || p[1] == 'F' || p[1] == 'l' || p[1] == 'L'))
                         goto Lreal;  // if `0.f` or `0.L`
@@ -2519,7 +2505,7 @@ class Lexer
             case '.':
                 if (p[1] == '.')
                     goto Ldone; // if ".."
-                if (base <= 10 && n > 0 && (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80))
+                if (base <= 10 && n > 0 && (isAlphaASCII(p[1]) || p[1] == '_' || p[1] & 0x80))
                 {
                     if (Ccompile && base == 10 &&
                         (p[1] == 'e' || p[1] == 'E' || p[1] == 'f' || p[1] == 'F' || p[1] == 'l' || p[1] == 'L'))
@@ -3327,9 +3313,9 @@ class Lexer
     /***************************************
      * Scan forward to start of next line.
      * Params:
-     *    defines = send characters to `defines`
+     *    sink = send characters in the line to this delegate
      */
-    final void skipToNextLine(OutBuffer* defines = null)
+    final void skipToNextLine(void delegate(char c) nothrow sink = null)
     {
         while (1)
         {
@@ -3350,8 +3336,8 @@ class Lexer
                 break;
 
             default:
-                if (defines)
-                    defines.writeByte(*p); // don't care about Unicode line endings for C
+                if (sink)
+                    sink(*p); // don't care about Unicode line endings for C
                 else if (*p & 0x80)
                 {
                     const u = decodeUTF();

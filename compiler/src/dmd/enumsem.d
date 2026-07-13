@@ -1,7 +1,7 @@
 /**
  * Does the semantic passes on enums.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/enumsem.d, _enumsem.d)
@@ -92,7 +92,7 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
     if (ed.semanticRun == PASS.semantic)
     {
         assert(ed.memtype);
-        error(ed.loc, "circular reference to enum base type `%s`", ed.memtype.toChars());
+        error(ed.loc, "circular reference to enum base type `%s`", ed.memtype.toErrMsg());
         ed.errors = true;
         ed.semanticRun = PASS.semanticdone;
         return;
@@ -188,7 +188,7 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
 
     if (ed.members.length == 0)
     {
-        .error(ed.loc, "%s `%s` enum `%s` must have at least one member", ed.kind, ed.toPrettyChars, ed.toChars());
+        .error(ed.loc, "%s `%s` enum `%s` must have at least one member", ed.kind, ed.toPrettyChars, ed.toErrMsg());
         ed.errors = true;
         ed.semanticRun = PASS.semanticdone;
         return;
@@ -240,7 +240,9 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
             em.dsymbolSemantic(em._scope);
     });
 
-    if (!ed.errors && global.params.useTypeInfo && Type.dtypeinfo && !ed.inNonRoot())
+    if (ed.errors)
+        ed.memtype = Type.terror; // avoid infinite recursion in toBaseType
+    else if (global.params.useTypeInfo && Type.dtypeinfo && !ed.inNonRoot())
         semanticTypeInfo(sc, ed.memtype);
     //printf("ed.defaultval = %lld\n", ed.defaultval);
 
@@ -293,7 +295,7 @@ Expression getDefaultValue(EnumDeclaration ed, Loc loc)
         {
             if (em.semanticRun < PASS.semanticdone)
             {
-                error(loc, "%s `%s` forward reference of `%s.init`", ed.kind, ed.toPrettyChars, ed.toChars());
+                error(loc, "%s `%s` forward reference of `%s.init`", ed.kind, ed.toPrettyChars, ed.toErrMsg());
                 return handleErrors();
             }
 
@@ -486,21 +488,30 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
     else if (first)
     {
         Type t;
+        bool terror;
         if (em.ed.memtype)
+        {
             t = em.ed.memtype;
+            if (!t.isScalar())
+            {
+                t = Type.terror; // print more relevant error message later
+                terror = true;
+            }
+        }
         else
         {
             t = Type.tint32;
             if (!em.ed.isAnonymous())
                 em.ed.memtype = t;
         }
+
         const errors = global.startGagging();
         Expression e = new IntegerExp(em.loc, 0, t);
         e = e.ctfeInterpret();
-        if (global.endGagging(errors))
+        if (global.endGagging(errors) || terror)
         {
             error(em.loc, "cannot generate 0 value of type `%s` for `%s`",
-                t.toChars(), em.toChars());
+                em.ed.memtype.toErrMsg(), em.toErrMsg());
         }
         // save origValue for better json output
         em.origValue = e;
@@ -539,7 +550,7 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
             {
                 error(em.loc,
                       "cannot automatically assign value to enum member `%s` because base type `%s` is an enum; provide an explicit value",
-                      em.toPrettyChars(), em.ed.memtype.toChars());
+                      em.toPrettyChars(), em.ed.memtype.toErrMsg());
                 return errorReturn();
             }
         }
@@ -589,7 +600,7 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
             if (!mt)
                 mt = eprev.type;
             .error(em.loc, "%s `%s` initialization with `%s.%s+1` causes overflow for type `%s`", em.kind, em.toPrettyChars,
-                emprev.ed.toChars(), emprev.toChars(), mt.toChars());
+                emprev.ed.toErrMsg(), emprev.toErrMsg(), mt.toErrMsg());
             return errorReturn();
         }
         errors = global.startGagging();

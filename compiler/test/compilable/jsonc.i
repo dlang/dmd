@@ -25,7 +25,7 @@ TEST_OUTPUT:
                 "protection": "public"
             },
             {
-                "char": 22,
+                "char": 21,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "alias",
                 "line": 68,
@@ -50,7 +50,7 @@ TEST_OUTPUT:
                 "protection": "public"
             },
             {
-                "char": 38,
+                "char": 36,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "alias",
                 "line": 70,

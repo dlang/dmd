@@ -314,6 +314,29 @@ int[int] testRetx()
 
 void aafunc(int[int] aa) {}
 
+void testTypeinfo()
+{
+    int[int] a = [ 1:1, 2:4, 3:9, 4:16 ];
+    int[int] b = [ 1:1, 2:4, 3:9, 4:16 ];
+    assert(a == b);
+
+    hash_t ahash1 = hashOf(a);
+    hash_t ahash2 = typeid(a).getHash(&a);
+    assert(ahash1 == ahash2);
+    hash_t bhash1 = hashOf(a);
+    hash_t bhash2 = typeid(a).getHash(&a);
+    assert(bhash1 == bhash2);
+    assert(ahash1 == bhash1);
+    assert(typeid(a).equals(&a, &b));
+
+    string[string] c = [ "1":"one", "2":"two", "3":"three" ];
+    hash_t chash1 = hashOf(c);
+    hash_t chash2 = typeid(c).getHash(&c);
+    assert(chash1 == chash2);
+    assert(chash1 != ahash2);
+    assert(typeid(c).equals(&c, &c));
+}
+
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=12214
 
@@ -348,6 +371,191 @@ void test12403()
 }
 
 /***************************************************/
+// regressions after converting AA to template
+void test21066()
+{
+    const(int) getValue() { return 0; }
+    int[] arr;
+    arr = [getValue()]; // works
+    int[][string] aa;
+    aa["a"] = [getValue()]; // fails: cannot implicitly convert expression `__aaval` of type `const(int)[]` to `int[]`
+
+    string[int[]] aa2;
+    aa2[[getValue()]] = "a"; // no problem because key type is automatically const(int)[]
+}
+
+void test22354()
+{
+    int[][][string] aa;  // AA with nested array value type
+    int[] elem;
+    aa["x"] = null;
+    aa["x"] ~= null;     // This append is silently lost!
+    assert(aa["x"].length == 1);  // FAILS: length is still 0
+}
+
+// https://github.com/dlang/dmd/issues/22406
+void testShared()
+{
+    shared int[int] processes = [1: 1, 2:4, 3:9];
+
+    cast(void)processes.sizeof;
+    cast(void)processes.length;
+    cast(void)processes.dup;
+    cast(void)processes.rehash;
+    //cast(void)processes.clear;
+    //cast(void)processes.keys;
+    //cast(void)processes.values;
+    //cast(void)processes.byKey;
+    //cast(void)processes.byValue;
+    //cast(void)processes.byKeyValue;
+    processes.remove(3);
+    assert(2 in processes);
+
+    immutable int[int] iprocesses = [1: 1, 2:4, 3:9];
+
+    cast(void)iprocesses.sizeof;
+    cast(void)iprocesses.length;
+    cast(void)iprocesses.dup;
+    //cast(void)iprocesses.rehash;
+    //cast(void)iprocesses.clear;
+    cast(void)iprocesses.keys;
+    cast(void)iprocesses.values;
+    cast(void)iprocesses.byKey;
+    cast(void)iprocesses.byValue;
+    cast(void)iprocesses.byKeyValue;
+    //iprocesses.remove(3);
+    assert(2 in iprocesses);
+
+    const shared int[int] cprocesses = [1: 1, 2:4, 3:9];
+
+    cast(void)cprocesses.sizeof;
+    cast(void)cprocesses.length;
+    cast(void)cprocesses.dup;          // fails in 2.111
+    //cast(void)cprocesses.rehash;
+    //cast(void)cprocesses.clear;
+    //cast(void)cprocesses.keys;       // fails in 2.111
+    //cast(void)cprocesses.values;     // fails in 2.111
+    //cast(void)cprocesses.byKey;      // fails in 2.111
+    //cast(void)cprocesses.byValue;    // fails in 2.111
+    //cast(void)cprocesses.byKeyValue; // fails in 2.111
+    //cprocesses.remove(3);
+    assert(2 in cprocesses);
+}
+
+// https://github.com/dlang/dmd/issues/22556
+void test22556()
+{
+    static struct RefCounted(T)
+    {
+        this(this) {}
+    }
+    struct S {}
+    alias R = RefCounted!S;
+    shared R[string] foo;
+
+    (cast (R[string]) foo).clear; // WORKS
+    (cast() foo).clear; // FAILS with 2.112.0, WORKS with 2.111.0
+    static assert(!__traits(compiles, foo.clear));
+}
+
+// https://github.com/dlang/dmd/issues/23064
+void test23064()
+{
+    static struct A(T)
+    {
+        static assert(is(typeof((T[string]).init == (T[string]).init)),
+                      "is(typeof(...)) is false for " ~ (T[string]).stringof);
+    }
+
+    static struct B { A!B x; }
+}
+
+// https://github.com/dlang/dmd/issues/23065
+void test23065()
+{
+    static struct C(T)
+    {
+        bool opEquals(R)(R rhs)
+            if (is(typeof(T.init == T.init)))
+            {
+                return false;
+            }
+    }
+
+    static struct A(T)
+    {
+        alias _ = C!(T[string]);
+
+        bool opEquals()(A rhs)
+        {
+            T[string] v;
+            return v == v;
+        }
+    }
+
+    static struct B { A!B x; }
+
+    A!B a;
+    cast(void) (a == a);
+}
+
+// https://github.com/dlang/dmd/issues/23182
+void test23182()
+{
+    int[][string] aarr;
+    aarr["key"] = [];
+    aarr["key"].length++;
+
+    int calls = 0;
+    int[] a;
+    ref int[] arr()
+    {
+        calls++;
+        return a;
+    }
+    arr().length++;
+    assert(a.length == 1);
+    assert(calls == 1);
+}
+
+/***************************************************/
+
+// https://github.com/dlang/dmd/issues/22567
+void test22567()
+{
+    struct S
+    {
+        string[string] data;
+        alias this = data;
+    }
+
+    S[string] foo;
+    foo["bar"] = S();
+    foo["bar"]["baz"] = "boom";
+    assert(foo["bar"]["baz"] == "boom");
+}
+
+// https://github.com/dlang/dmd/issues/19829
+void test19829()
+{
+    auto foo() {
+        bool[string] p;
+        return p.keys ~ "bar";
+    }
+    enum a = foo;
+    static assert(a == ["bar"]);
+    assert(foo == ["bar"]);
+
+    auto bar() {
+        bool[string] p;
+        return p.values ~ true;
+    }
+    enum b = bar;
+    static assert(b == [true]);
+    assert(bar == [true]);
+}
+
+/***************************************************/
 
 void main()
 {
@@ -370,6 +578,14 @@ void main()
     assert(testRet());
     static assert(testRet());
 
+    testTypeinfo();
     test12220();
     test12403();
+    test21066();
+    test22354();
+    testShared();
+    test22567();
+    test22556();
+    test19829();
+    test23182();
 }

@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/code.d, backend/_code.d)
@@ -75,11 +75,7 @@ union evc
         _LabelDsymbol* Vlsym;   /// pointer to D Label
     }
 
-    struct
-    {
-        size_t len;
-        char* bytes;
-    }                           // asm node (FL.asm)
+    ubyte[] data;               /// asm instructions (FL.asm)
 }
 
 /********************** PUBLIC FUNCTIONS *******************/
@@ -112,8 +108,6 @@ struct REGSAVE
   nothrow:
     @trusted
     void reset() { off = 0; top = 0; idx = 0; alignment = _tysize[TYnptr]/*REGSIZE*/; }
-    void save(ref CodeBuilder cdb, reg_t reg, out uint pidx) { REGSAVE_save (this, cdb, reg, pidx); }
-    void restore(ref CodeBuilder cdb, reg_t reg, uint idx) { REGSAVE_restore(this, cdb, reg, idx); }
 }
 
 /************************************
@@ -160,6 +154,7 @@ struct CGstate
     bool hasframe;              // true if this function has a stack frame
     bool enforcealign;          // enforced stack alignment
     bool anyiasm;               // !=0 if any inline assembler
+    bool setSPtoFPonEpilog;     // set SP to FP in function epilog
     char calledafunc;           // !=0 if we called a function
 
     int stackclean;             // if != 0, then clean the stack after function call
@@ -221,10 +216,12 @@ struct CGstate
     int dfoidx;                 // which block we are in
     regm_t allregs;             // ALLREGS optionally including mBP
     regm_t fpregs;              // all floating point registers
+    regm_t mMSW,mLSW;           // hi and lo register masks
     regm_t xmmregs;             // all XMM registers
     regm_t mfuncreg;            // mask of registers preserved by function
     regm_t msavereg;            // Mask of registers that we would like to save.
                                 // they are temporaries (set by scodelem())
+    regm_t  fregsaved;          // mask of registers saved across function calls
 
     uint usednteh;              // if !=0, then used NT exception handling
     con_t regcon;               // register contents
@@ -320,10 +317,6 @@ __gshared Rarray!(seg_data*) SegData;
 @trusted
 ref targ_size_t Offset(int seg) { return SegData[seg].SDoffset; }
 
-ref targ_size_t Doffset() { return Offset(DATA); }
-
-ref targ_size_t CDoffset() { return Offset(CDATA); }
-
 /**************************************************/
 
 /* Allocate registers to function parameters
@@ -334,8 +327,9 @@ struct FuncParamRegs
     //this(tym_t tyf);
     static FuncParamRegs create(tym_t tyf) { return FuncParamRegs_create(tyf); }
 
+    @trusted
     bool alloc(type* t, tym_t ty, out reg_t reg1, out reg_t reg2)
-    { return FuncParamRegs_alloc(this, t, ty, reg1, reg2); }
+    { return FuncParamRegs_alloc(cgstate, this, t, ty, reg1, reg2); }
 
   private:
   public: // for the moment

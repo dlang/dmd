@@ -65,7 +65,7 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from, char* ma
 
     enforceRawArraysConformable("initialization", T.sizeof, vFrom, vTo);
 
-    static if (hasElaborateCopyConstructor!T)
+    static if (__traits(hasCopyConstructor, T))
     {
         size_t i;
         try
@@ -88,8 +88,30 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from, char* ma
     }
     else
     {
-        // blit all elements at once
-        memcpy(cast(void*) to.ptr, from.ptr, to.length * T.sizeof);
+        if (to.length)
+        {
+            // blit all elements at once
+            memcpy(cast(void*) to.ptr, from.ptr, to.length * T.sizeof);
+
+            // call postblits if they exist
+            static if (__traits(hasPostblit, T))
+            {
+                import core.internal.lifetime : __doPostblit;
+                size_t i = 0;
+                try __doPostblit(to, i);
+                catch (Exception o)
+                {
+                    // Destroy, in reverse order, what we've constructed so far
+                    while (i--)
+                    {
+                        auto elem = cast(Unqual!T*) &to[i];
+                        destroy(*elem);
+                    }
+
+                    throw o;
+                }
+            }
+        }
     }
 
     return to;
@@ -438,24 +460,6 @@ unittest
     assert(pblits == 0);
 }
 
-version (D_ProfileGC)
-{
-    /**
-    * TraceGC wrapper around $(REF _d_newitemT, core,lifetime).
-    */
-    T[] _d_newarrayTTrace(T)(size_t length, bool isShared, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
-    {
-        version (D_TypeInfo)
-        {
-            import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!(T.stringof, "_d_newarrayT"));
-
-            return _d_newarrayT!T(length, isShared);
-        }
-        else
-            assert(0, "Cannot create new array if compiling without support for runtime type information!");
-    }
-}
 
 /**
  * Create a new multi-dimensional array. Also initalize elements if their type has an initializer.
@@ -570,42 +574,53 @@ unittest
     assert(!(GC.getAttr(a.ptr) & GC.BlkAttr.NO_SCAN));
 }
 
-version (D_ProfileGC)
+/**
+Allocate an array literal
+
+Rely on the caller to do the initialization of the array.
+
+---
+int[] getArr()
 {
-    /**
-    * TraceGC wrapper around $(REF _d_newarraymT, core,internal,array,construction).
-    */
-    Tarr _d_newarraymTXTrace(Tarr : U[], T, U)(scope size_t[] dims, bool isShared=false, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
-    {
-        version (D_TypeInfo)
-        {
-            import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!(T.stringof, "_d_newarraymTX"));
-
-            return _d_newarraymTX!(Tarr, T)(dims, isShared);
-        }
-        else
-            assert(0, "Cannot create new multi-dimensional array if compiling without support for runtime type information!");
-    }
+    return [10, 20];
+    // auto res = cast(int*) _d_arrayliteralTX(typeid(int[]), 2);
+    // res[0] = 10;
+    // res[1] = 20;
+    // return res[0..2];
 }
+---
 
-extern (C) void* _d_arrayliteralTX(const TypeInfo ti, size_t length) @trusted pure nothrow;
+Params:
+    T = unqualified type of array elements
+    length = `.length` of array literal
 
+Returns: pointer to allocated array
+*/
 void* _d_arrayliteralTX(T)(size_t length) @trusted pure nothrow
 {
-    return _d_arrayliteralTX(typeid(T), length);
-}
+    const allocsize = length * T.sizeof;
 
-version (D_ProfileGC)
-void* _d_arrayliteralTXTrace(T)(size_t length, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted pure nothrow
-{
-    version (D_TypeInfo)
-    {
-        import core.internal.array.utils : TraceHook, gcStatsPure, accumulatePure;
-        mixin(TraceHook!(T.stringof, "_d_arrayliteralTX"));
-
-        return _d_arrayliteralTX!T(length);
-    }
+    if (allocsize == 0)
+        return null;
     else
-        assert(0);
+    {
+        import core.memory : GC;
+        import core.internal.traits : hasIndirections;
+        alias BlkAttr = GC.BlkAttr;
+
+        /* Same as in core.internal.array.utils.__typeAttrs!T,
+        *  but don't use a nested template function call here to avoid
+        *  possible linking errors.
+        */
+        uint attrs = BlkAttr.APPENDABLE;
+        static if (!hasIndirections!T)
+            attrs |= BlkAttr.NO_SCAN;
+        static if (is(T == struct) && __traits(needsDestruction, T))
+            attrs |= BlkAttr.FINALIZE;
+
+        version (D_TypeInfo)
+            return GC.malloc(allocsize, attrs, typeid(T));
+        else
+            return GC.malloc(allocsize, attrs, null);
+    }
 }

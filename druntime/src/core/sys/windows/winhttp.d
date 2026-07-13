@@ -373,7 +373,7 @@ enum : DWORD {
                                                  WINHTTP_FLAG_SECURE_PROTOCOL_TLS1)
 }
 
-alias extern(Windows) int fnWINHTTP_STATUS_CALLBACK(HINTERNET hInternet, DWORD_PTR dwContext,
+alias fnWINHTTP_STATUS_CALLBACK = extern(Windows) int(HINTERNET hInternet, DWORD_PTR dwContext,
                           DWORD dwInternetStatus, LPVOID lpvStatusInformation,DWORD dwStatusInformationLength);
 alias WINHTTP_STATUS_CALLBACK = fnWINHTTP_STATUS_CALLBACK*;
 alias LPWINHTTP_STATUS_CALLBACK = WINHTTP_STATUS_CALLBACK*;

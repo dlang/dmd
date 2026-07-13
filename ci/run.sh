@@ -35,7 +35,8 @@ else
     NM=nm
 
   if [ "$OS_NAME" == "osx" ]; then
-    export PATH="/usr/local/opt/llvm/bin:$PATH"
+    # As of macos-14 gmake won't be used purely based upon the symlink, must force override via PATH.
+    export PATH="/opt/homebrew/opt/make/libexec/gnubin:/usr/local/opt/llvm/bin:$PATH"
   fi
 fi
 
@@ -62,12 +63,10 @@ build() {
     if [ "$OS_NAME" != "windows" ]; then
         source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
     fi
-    $DMD compiler/src/build.d -ofgenerated/build
     if [ $unittest -eq 1 ]; then
-        generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug unittest
+        make -j$N MODEL=$MODEL HOST_DMD=$DMD HOST_DFLAGS="$CI_DFLAGS" BUILD=debug dmd-unittest
     fi
-    generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
-    make -j$N -C druntime MODEL=$MODEL
+    make -j$N MODEL=$MODEL HOST_DMD=$DMD HOST_DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1}
     make -j$N -C ../phobos MODEL=$MODEL
     if [ "$OS_NAME" != "windows" ]; then
         deactivate # deactivate host compiler
@@ -92,7 +91,7 @@ rebuild() {
     cp $build_path/dmd$dotexe _${build_path}/host_dmd$dotexe
     cp $build_path/$conf _${build_path}/
     rm -rf $build_path
-    generated/build -j$N MODEL=$MODEL HOST_DMD=_${build_path}/host_dmd$dotexe DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
+    make -j$N MODEL=$MODEL HOST_DMD=_${build_path}/host_dmd$dotexe HOST_DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
 
     # compare binaries to test reproducible build
     if [ $compare -eq 1 ]; then
@@ -120,7 +119,7 @@ test_dmd() {
     if [ "$FULL_BUILD" == "true" ] && [ "$OS_NAME" == "linux" ]; then
         local args=() # use all default ARGS
     else
-        local args=(ARGS="-O -inline -release")
+        local args=(ARGS="-inline '-O -release'")
     fi
 
     if type -P apk &>/dev/null; then
@@ -173,7 +172,7 @@ test_dub_package() {
         echo "Skipping DUB examples on GDC."
     else
         local abs_build_path="$PWD/$build_path"
-        pushd test/dub_package
+        pushd compiler/test/dub_package
         for file in *.d ; do
             dubcmd=""
             # running impvisitor is failing right now
@@ -187,8 +186,21 @@ test_dub_package() {
         done
         popd
         # Test rdmd build
-        "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jsrc/dmd/res -Isrc -i -run test/dub_package/frontend.d
+        "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jcompiler/src/dmd/res -Icompiler/src -i -run compiler/test/dub_package/frontend.d
     fi
+    if [ "$OS_NAME" != "windows" ]; then
+        deactivate
+    fi
+}
+
+# test that the dmd:frontend subpackage links correctly (no backend symbols pulled in)
+test_frontend_subpackage() {
+    if [ "$OS_NAME" != "windows" ]; then
+        source ~/dlang/*/activate # activate host compiler
+    fi
+    local abs_build_path="$PWD/$build_path"
+    dub --single compiler/test/dub_package/frontend_subpackage.d
+    DFLAGS="-m${MODEL:-64} -de" dub --single --compiler="${abs_build_path}/dmd" compiler/test/dub_package/frontend_subpackage.d
     if [ "$OS_NAME" != "windows" ]; then
         deactivate
     fi
@@ -298,6 +310,7 @@ if [ "$#" -gt 0 ]; then
     test_druntime) test_druntime ;;
     test_phobos) test_phobos ;;
     test_dub_package) test_dub_package ;;
+    test_frontend_subpackage) test_frontend_subpackage ;;
     testsuite) testsuite ;;
     codecov) codecov ;;
     *) echo "Unknown command: $1" >&2; exit 1 ;;

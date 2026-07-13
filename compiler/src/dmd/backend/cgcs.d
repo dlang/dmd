@@ -7,7 +7,7 @@
  * Compute common subexpressions for non-optimized builds.
  *
  * Copyright:   Copyright (C) 1985-1995 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcs.d
@@ -19,18 +19,23 @@ module dmd.backend.cgcs;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 
+import dmd.backend.backconfig : debugw, debugx;
+import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.el;
-import dmd.backend.goh : GlobalOptimizer;
-import dmd.backend.global;
+import dmd.backend.blockopt : block_compbcount, blockopt, bo;
+import dmd.backend.cgelem : elemisone;
+import dmd.backend.debugprint : oper_str;
+import dmd.backend.evalu8 : iftrue;
+import dmd.backend.go;
+import dmd.backend.symbol : symbol_print;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.barray;
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 
@@ -42,26 +47,15 @@ nothrow:
  */
 
 @trusted
-public void comsubs(ref GlobalOptimizer go)
+public void comsubs(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     debug if (debugx) printf("comsubs(%p)\n",bo.startblock);
 
-    comsubs2(bo.startblock, cgcsdata, go);
+    comsubs2(bo.startblock, cgcsdata, go, bo);
 
     debug if (debugx)
         printf("done with comsubs()\n");
 }
-
-/*******************************
- */
-
-@trusted
-public void cgcs_term()
-{
-    cgcsdata.term();
-    debug debugw && printf("cgcs_term()\n");
-}
-
 
 /***********************************************************************/
 
@@ -74,10 +68,10 @@ alias hash_t = uint;    // for hash values
  * String together as many blocks as we can.
  */
 @trusted
-void comsubs2(block* startblock, ref CGCS cgcs, ref GlobalOptimizer go)
+void comsubs2(block* startblock, ref CGCS cgcs, ref GlobalOptimizer go, ref BlockOpt bo)
 {
     // No longer just compute Bcount - eliminate unreachable blocks too
-    block_compbcount(go);                 // eliminate unreachable blocks
+    block_compbcount(go, bo.startblock);
 
     cgcs.start();
 
@@ -91,10 +85,10 @@ void comsubs2(block* startblock, ref CGCS cgcs, ref GlobalOptimizer go)
         // Count up n, the number of blocks in this extended basic block (EBB)
         int n = 1;                      // always at least one block in EBB
         auto blc = bl;
-        while (bln && list_nitems(bln.Bpred) == 1 &&
+        while (bln && bln.Bpred.length == 1 &&
                ((blc.bc == BC.iftrue &&
-                 blc.nthSucc(1) == bln) ||
-                (blc.bc == BC.goto_ && blc.nthSucc(0) == bln)
+                 blc.Bsucc[1] == bln) ||
+                (blc.bc == BC.goto_ && blc.Bsucc[0] == bln)
                ) &&
                bln.bc != BC.asm_         // no CSE's extending across ASM blocks
               )
@@ -171,16 +165,6 @@ struct CGCS
         vec_clear(csvec);       // don't free it, recycle storage
         hcstab.reset();
         hcsarray = HCSArray.init;
-    }
-
-    /*********************************
-     * All done for this compiler instance.
-     */
-    void term()
-    {
-        vec_free(csvec);
-        csvec = null;
-        //hcstab.dtor();  // cache allocation for next iteration
     }
 
     /****************************
@@ -433,7 +417,6 @@ void ecom(ref CGCS cgcs, ref elem* pe)
         // Explicitly list all the unary ops for speed
         case OPnot: case OPcom: case OPneg: case OPuadd:
         case OPabs: case OPrndtol: case OPrint:
-        case OPpreinc: case OPpredec:
         case OPbool: case OPstrlen: case OPs16_32: case OPu16_32:
         case OPs32_d: case OPu32_d: case OPd_s16: case OPs16_d: case OP32_16:
         case OPf_d:
@@ -444,7 +427,6 @@ void ecom(ref CGCS cgcs, ref elem* pe)
         case OPu64_128: case OPs64_128: case OP128_64:
         case OPs64_d: case OPd_u64: case OPu64_d:
         case OPstrctor: case OPu16_d: case OPd_u16:
-        case OParrow:
         case OPvoid:
         case OPbsf: case OPbsr: case OPbswap: case OPpopcnt: case OPvector:
         case OPld_u64:
@@ -513,31 +495,40 @@ void ecom(ref CGCS cgcs, ref elem* pe)
                 printf("i: %2d Hhash: %6d Helem: %p\n",
                        cast(int) i,hcs.Hhash,hcs.Helem);
 
-            elem* ehash;
-            if (hash == hcs.Hhash && (ehash = hcs.Helem) != null)
+            if (hash == hcs.Hhash && hcs.Helem != null)
             {
-                /* if elems are the same and we still have room for more    */
-                if (el_match(e,ehash) && ehash.Ecount < 0xFF)
+                elem* ehash = hcs.Helem;
+
+                /* Make sure leaves are already merged as common subexpressions
+                 * before trying to merge the current node with a candidate.
+                 * Otherwise, hash collisions can result in invalid CSE
+                 * (i.e. if a leaf has been clobbered by assignment).
+                 */
+                if (!OTleaf(op))
                 {
-                    /* Make sure leaves are also common subexpressions
-                     * to avoid false matches.
-                     */
-                    if (!OTleaf(op))
-                    {
-                        if (!e.E1.Ecount)
-                            continue;
-                        if (OTbinary(op) && !e.E2.Ecount)
-                            continue;
-                    }
-                    ehash.Ecount++;
-                    pe = ehash;
-
-                    debug if (debugx)
-                        printf("**MATCH** %p with %p\n",e,pe);
-
-                    el_free(e);
-                    return;
+                    if (e.E1 != ehash.E1 || !e.E1.Ecount)
+                        continue;
+                    if (OTbinary(op) && (e.E2 != ehash.E2 || !e.E2.Ecount))
+                        continue;
                 }
+
+                /* Compare parents (the entire subtrees in fact) only when
+                 * the children are eligible, which significantly speeds up
+                 * common subexpression matching. Also, check for overflow.
+                 */
+                if (!el_match(e, ehash) || ehash.Ecount == 0xFF)
+                {
+                    continue;
+                }
+
+                ehash.Ecount++;
+                pe = ehash;
+
+                debug if (debugx)
+                    printf("**MATCH** %p with %p\n",e,pe);
+
+                el_free(e);
+                return;
             }
         }
     }
@@ -616,7 +607,7 @@ void touchlvalue(ref CGCS cgcs, const elem* e)
         case SC.fastpar:
         case SC.shadowreg:
         case SC.bprel:
-            if (e.Vsym.Sflags & SFLunambig)
+            if (e.Vsym.Sflags & SFLdistinct)
                 break;
             goto case SC.static_;
 

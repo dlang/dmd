@@ -30,7 +30,7 @@ fail_compilation/failcstuff2.c(362): Error: cannot index through register variab
 fail_compilation/failcstuff2.c(373): Error: cannot take address of register variable `reg4`
 fail_compilation/failcstuff2.c(374): Error: cannot take address of register variable `reg4`
 fail_compilation/failcstuff2.c(375): Error: cannot take address of register variable `reg4`
-fail_compilation/failcstuff2.c(376): Error: cannot take address of bit-field `b`
+fail_compilation/failcstuff2.c(376): Error: cannot take address of bitfield `reg4.inner.b`
 fail_compilation/failcstuff2.c(377): Error: cannot index through register variable `reg4`
 fail_compilation/failcstuff2.c(378): Error: cannot index through register variable `reg4`
 fail_compilation/failcstuff2.c(381): Error: cannot take address of register variable `reg5`

@@ -24,12 +24,20 @@ version (Posix)
 
     alias ThreadID = pthread_t;
 }
+else
+version (WASI)
+{
+    alias ThreadID = ubyte; // dummy; always 1
+}
 
 struct ll_ThreadData
 {
     ThreadID tid;
     version (Windows)
+    {
         void delegate() nothrow cbDllUnload;
+        void* hMod; // HMODULE containing the unload callback
+    }
 }
 
 version (GNU)
@@ -39,12 +47,21 @@ version (GNU)
     else
         enum isStackGrowingDown = false;
 }
-else
+else version (LDC)
 {
-    version (X86) enum isStackGrowingDown = true;
-    else version (X86_64) enum isStackGrowingDown = true;
-    else static assert(0, "It is undefined how the stack grows on this architecture.");
+    // The only LLVM targets as of LLVM 16 with stack growing *upwards* are
+    // apparently NVPTX and AMDGPU, both without druntime support.
+    // Note that there's an analogous `version = StackGrowsDown` in
+    // core.thread.fiber.
+    enum isStackGrowingDown = true;
 }
+else version (DigitalMars)
+{
+    // All dmd targets grow down
+    enum isStackGrowingDown = true;
+}
+else
+    static assert(0, "It is undefined how the stack grows on this architecture.");
 
 package
 {

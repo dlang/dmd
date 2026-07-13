@@ -36,7 +36,7 @@ extern(C) {
 
 private
 {
-    alias bool function(Object) CollectHandler;
+    alias CollectHandler = bool function(Object);
     __gshared CollectHandler collectHandler = null;
 
     extern (C) void _d_monitordelete(Object h, bool det);
@@ -153,7 +153,7 @@ extern (C) void _d_delinterface(void** p)
 
 
 // used for deletion
-private extern (D) alias void function (Object) fp_t;
+private extern (D) alias fp_t = void function (Object);
 
 
 /**
@@ -693,45 +693,6 @@ extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c) @weak
     object._d_arrayappendT(xx, cast(shared(wchar)[])appendthis);
     x = (cast(byte*)xx.ptr)[0 .. xx.length];
     return x;
-}
-
-/**
-Allocate an array literal
-
-Rely on the caller to do the initialization of the array.
-
----
-int[] getArr()
-{
-    return [10, 20];
-    // auto res = cast(int*) _d_arrayliteralTX(typeid(int[]), 2);
-    // res[0] = 10;
-    // res[1] = 20;
-    // return res[0..2];
-}
----
-
-Params:
-    ti = `TypeInfo` of resulting array type
-    length = `.length` of array literal
-
-Returns: pointer to allocated array
-*/
-extern (C)
-void* _d_arrayliteralTX(const TypeInfo ti, size_t length) @weak
-{
-    auto tinext = unqualify(ti.next);
-    auto sizeelem = tinext.tsize;              // array element size
-    void* result;
-
-    debug(PRINTF) printf("_d_arrayliteralTX(sizeelem = %zd, length = %zd)\n", sizeelem, length);
-    if (length == 0 || sizeelem == 0)
-        return null;
-    else
-    {
-        auto allocsize = length * sizeelem;
-        return GC.malloc(allocsize, __typeAttrs(tinext) | BlkAttr.APPENDABLE, tinext);
-    }
 }
 
 

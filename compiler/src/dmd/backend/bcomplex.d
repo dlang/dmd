@@ -11,7 +11,7 @@
 
 module dmd.backend.bcomplex;
 
-public import dmd.root.longdouble : targ_ldouble = longdouble;
+public import dmd.root.longdouble : targ_real = longdouble;
 import core.stdc.math : fabs, fabsl, sqrt;
 version(CRuntime_Microsoft)
     private import dmd.root.longdouble : fabsl, sqrt; // needed if longdouble is longdouble_soft
@@ -52,20 +52,20 @@ nothrow:
                          x.im * y.re + x.re * y.im);
     }
 
-    static targ_ldouble abs(ref Complex_f z)
+    static targ_real abs(ref Complex_f z)
     {
-        const targ_ldouble x = fabs(z.re);
-        const targ_ldouble y = fabs(z.im);
+        const targ_real x = fabs(z.re);
+        const targ_real y = fabs(z.im);
         if (x == 0)
             return y;
         if (y == 0)
             return x;
         if (x > y)
         {
-            const targ_ldouble temp = y / x;
+            const targ_real temp = y / x;
             return x * sqrt(1 + temp * temp);
         }
-        const targ_ldouble temp = x / y;
+        const targ_real temp = x / y;
         return y * sqrt(1 + temp * temp);
     }
 
@@ -75,9 +75,9 @@ nothrow:
         {
             return Complex_f(0, 0);
         }
-        const targ_ldouble x = fabs(z.re);
-        const targ_ldouble y = fabs(z.im);
-        targ_ldouble r, w;
+        const targ_real x = fabs(z.re);
+        const targ_real y = fabs(z.im);
+        targ_real r, w;
         if (x >= y)
         {
             r = y / x;
@@ -110,15 +110,15 @@ nothrow:
     {
         if (fabs(y.re) < fabs(y.im))
         {
-            const targ_ldouble r = y.re / y.im;
-            const targ_ldouble den = y.im + r * y.re;
+            const targ_real r = y.re / y.im;
+            const targ_real den = y.im + r * y.re;
             return Complex_d(cast(double)((x.re * r + x.im) / den),
                              cast(double)((x.im * r - x.re) / den));
         }
         else
         {
-            const targ_ldouble r = y.im / y.re;
-            const targ_ldouble den = y.re + r * y.im;
+            const targ_real r = y.im / y.re;
+            const targ_real den = y.re + r * y.im;
             return Complex_d(cast(double)((x.re + r * x.im) / den),
                              cast(double)((x.im - r * x.re) / den));
         }
@@ -130,22 +130,22 @@ nothrow:
                          x.im * y.re + x.re * y.im);
     }
 
-    static targ_ldouble abs(ref Complex_d z)
+    static targ_real abs(ref Complex_d z)
     {
-        const targ_ldouble x = fabs(z.re);
-        const targ_ldouble y = fabs(z.im);
+        const targ_real x = fabs(z.re);
+        const targ_real y = fabs(z.im);
         if (x == 0)
             return y;
         if (y == 0)
             return x;
         if (x > y)
         {
-            const targ_ldouble temp = y / x;
+            const targ_real temp = y / x;
             return x * sqrt(1 + temp * temp);
         }
         else
         {
-            const targ_ldouble temp = x / y;
+            const targ_real temp = x / y;
             return y * sqrt(1 + temp * temp);
         }
     }
@@ -158,9 +158,9 @@ nothrow:
         }
         else
         {
-            const targ_ldouble x = fabs(z.re);
-            const targ_ldouble y = fabs(z.im);
-            targ_ldouble r, w;
+            const targ_real x = fabs(z.re);
+            const targ_real y = fabs(z.im);
+            targ_real r, w;
             if (x >= y)
             {
                 r = y / x;
@@ -189,21 +189,21 @@ nothrow:
 struct Complex_ld
 {
 nothrow:
-    targ_ldouble re, im;
+    targ_real re, im;
 
     static Complex_ld div(ref Complex_ld x, ref Complex_ld y)
     {
         if (fabsl(y.re) < fabsl(y.im))
         {
-            const targ_ldouble r = y.re / y.im;
-            const targ_ldouble den = y.im + r * y.re;
+            const targ_real r = y.re / y.im;
+            const targ_real den = y.im + r * y.re;
             return Complex_ld((x.re * r + x.im) / den,
                               (x.im * r - x.re) / den);
         }
         else
         {
-            const targ_ldouble r = y.im / y.re;
-            const targ_ldouble den = y.re + r * y.im;
+            const targ_real r = y.im / y.re;
+            const targ_real den = y.re + r * y.im;
             return Complex_ld((x.re + r * x.im) / den,
                               (x.im - r * x.re) / den);
         }
@@ -215,20 +215,20 @@ nothrow:
                           x.im * y.re + x.re * y.im);
     }
 
-    static targ_ldouble abs(ref Complex_ld z)
+    static targ_real abs(ref Complex_ld z)
     {
-        const targ_ldouble x = fabsl(z.re);
-        const targ_ldouble y = fabsl(z.im);
+        const targ_real x = fabsl(z.re);
+        const targ_real y = fabsl(z.im);
         if (x == 0)
             return y;
         if (y == 0)
             return x;
         if (x > y)
         {
-            const targ_ldouble temp = y / x;
+            const targ_real temp = y / x;
             return x * sqrt(1 + temp * temp);
         }
-        const targ_ldouble temp = x / y;
+        const targ_real temp = x / y;
         return y * sqrt(1 + temp * temp);
     }
 
@@ -236,13 +236,13 @@ nothrow:
     {
         if (z.re == 0 && z.im == 0)
         {
-            return Complex_ld(targ_ldouble(0), targ_ldouble(0));
+            return Complex_ld(targ_real(0), targ_real(0));
         }
         else
         {
-            const targ_ldouble x = fabsl(z.re);
-            const targ_ldouble y = fabsl(z.im);
-            targ_ldouble r, w;
+            const targ_real x = fabsl(z.re);
+            const targ_real y = fabsl(z.im);
+            targ_real r, w;
             if (x >= y)
             {
                 r = y / x;

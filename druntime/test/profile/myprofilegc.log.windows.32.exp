@@ -1,5 +1,4 @@
 bytes allocated, allocations, type, function, file:line
-            160	              1	immutable(char)[][int] profilegc.main src\profilegc.d:23
             128	              1	float profilegc.main src\profilegc.d:18
             128	              1	int profilegc.main src\profilegc.d:15
              64	              1	double[] profilegc.main src\profilegc.d:56

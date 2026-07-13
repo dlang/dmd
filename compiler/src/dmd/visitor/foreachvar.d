@@ -1,7 +1,7 @@
 /**
  * Utility to visit every variable in an expression.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/visitor/foreachvar.d, _foreachvar.d)
@@ -45,7 +45,7 @@ import dmd.visitor.postorder;
  *      e = expression tree to visit
  *      dgVar = call when a variable is declared
  */
-void foreachVar(Expression e, void delegate(VarDeclaration) dgVar)
+void foreachVar(Expression e, scope void delegate(VarDeclaration) dgVar)
 {
     if (!e)
         return;
@@ -110,8 +110,8 @@ void foreachVar(Expression e, void delegate(VarDeclaration) dgVar)
  *      dgVar = delegate to pass found VarDeclarations to
  */
 void foreachExpAndVar(Statement s,
-        void delegate(Expression) dgExp,
-        void delegate(VarDeclaration) dgVar)
+        scope void delegate(Expression) dgExp,
+        scope void delegate(VarDeclaration) dgVar)
 {
     void visit(Statement s)
     {

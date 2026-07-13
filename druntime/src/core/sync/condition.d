@@ -41,6 +41,10 @@ else version (Posix)
         pthread_cond_signal, pthread_cond_t, pthread_cond_timedwait, pthread_cond_wait;
     import core.sys.posix.time : timespec;
 }
+else version (WASI)
+{
+    // Dummy no-ops
+}
 else
 {
     static assert(false, "Platform not supported");
@@ -246,9 +250,13 @@ class Condition
         }
         else version (Posix)
         {
-            int rc = pthread_cond_wait( cast(pthread_cond_t*) &m_hndl, (cast(Mutex) m_assocMutex).handleAddr() );
+            int rc = pthread_cond_wait( cast(pthread_cond_t*) &m_hndl, (cast(Mutex) mutex()).handleAddr() );
             if ( rc )
                 throw staticError!AssertError("Unable to wait for condition", __FILE__, __LINE__);
+        }
+        else version (WASI)
+        {
+            throw staticError!AssertError("Unable to wait for condition", __FILE__, __LINE__);
         }
     }
 
@@ -307,12 +315,16 @@ class Condition
             mktspec( t, val );
 
             int rc = pthread_cond_timedwait( cast(pthread_cond_t*) &m_hndl,
-                                             (cast(Mutex) m_assocMutex).handleAddr(),
+                                             (cast(Mutex) mutex()).handleAddr(),
                                              &t );
             if ( !rc )
                 return true;
             if ( rc == ETIMEDOUT )
                 return false;
+            throw staticError!AssertError("Unable to wait for condition", __FILE__, __LINE__);
+        }
+        else version (WASI)
+        {
             throw staticError!AssertError("Unable to wait for condition", __FILE__, __LINE__);
         }
     }
@@ -363,6 +375,10 @@ class Condition
             if ( rc )
                 throw staticError!AssertError("Unable to notify condition", __FILE__, __LINE__);
         }
+        else version (WASI)
+        {
+            throw staticError!AssertError("Unable to notify condition", __FILE__, __LINE__);
+        }
     }
 
     /**
@@ -410,6 +426,10 @@ class Condition
             } while ( rc == EAGAIN );
             if ( rc )
                 throw staticError!AssertError("Unable to notify condition", __FILE__, __LINE__);
+        }
+        else version (WASI)
+        {
+            throw staticError!AssertError("Unable to notify condition", __FILE__, __LINE__);
         }
     }
 
@@ -615,6 +635,10 @@ private:
     {
         Mutex               m_assocMutex;
         pthread_cond_t      m_hndl;
+    }
+    else version (WASI)
+    {
+        Mutex               m_assocMutex;
     }
 }
 

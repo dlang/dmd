@@ -1,0 +1,24 @@
+Shared static constructors/destructors in templates now lower to `object._d_atomicOp`
+
+When a shared static constructor or destructor appears inside a template, it may
+be instantiated in multiple modules, causing it to run multiple times. A shared
+gate variable is used to count and guard executions, ensuring the body runs
+exactly once across all modules. The atomic operation on that gate is necessary
+because multiple threads may initialize modules concurrently.
+
+This gate operation previously called `core.atomic.atomicOp` directly.
+
+---
+shared static this()
+{
+    if (atomicOp!"+="(gate, 1) != 1) return;
+    // inside a template instantiation
+}
+---
+
+It now lowers to `object._d_atomicOp`, consistent with how other compiler-generated
+runtime hooks are handled.
+
+---
+if (.object._d_atomicOp!"+="(gate, 1) != 1) return;
+---

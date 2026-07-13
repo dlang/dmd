@@ -1,7 +1,7 @@
 /**
  * Performs the semantic2 stage, which deals with initializer expressions.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/semantic2.d, _semantic2.d)
@@ -320,6 +320,48 @@ private extern(C++) final class Semantic2Visitor : Visitor
         vd.semanticRun = PASS.semantic2done;
     }
 
+    override void visit(BitFieldDeclaration bfd)
+    {
+        visit(cast(VarDeclaration)bfd);
+        if (bfd.semanticRun != PASS.semantic2done)
+            return;
+
+        if (bfd.fieldWidth == 0)
+            return;
+
+        if (!bfd._init)
+            return;
+
+        auto ei = bfd._init.isExpInitializer();
+        if (!ei)
+            return;
+
+        if (!ei.exp.isIntegerExp())
+            return;
+
+        import dmd.intrange;
+        auto value = getIntRange(ei.exp);
+
+        const bool isUnsigned = bfd.type.isUnsigned();
+        auto bounds = IntRange(
+            SignExtendedNumber(bfd.getMinMax(Id.min), !isUnsigned),
+            SignExtendedNumber(bfd.getMinMax(Id.max), false)
+        );
+
+        if (!bounds.contains(value))
+        {
+            const uwidth = bfd.fieldWidth;
+            error(ei.loc, "default initializer `%s` is not representable as bitfield type `%s:%lld`",
+                  ei.exp.toErrMsg(), bfd.type.toBasetype().toErrMsg(), cast(long)uwidth);
+            if (isUnsigned)
+                errorSupplemental(bfd.loc, "bitfield `%s` default initializer must be a value between `%llu..%llu`",
+                                  bfd.toChars(), bounds.imin.value, bounds.imax.value);
+            else
+                errorSupplemental(bfd.loc, "bitfield `%s` default initializer must be a value between `%lld..%lld`",
+                                  bfd.toChars(), bounds.imin.value, bounds.imax.value);
+        }
+    }
+
     override void visit(Module mod)
     {
         //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
@@ -329,7 +371,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         // Note that modules get their own scope, from scratch.
         // This is so regardless of where in the syntax a module
         // gets imported, it is unaffected by context.
-        Scope* sc = Scope.createGlobal(mod, global.errorSink); // create root scope
+        Scope* sc = scopeCreateGlobal(mod, global.errorSink); // create root scope
         //printf("Module = %p\n", sc.scopesym);
         if (mod.members)
         {
@@ -641,14 +683,23 @@ private extern(C++) final class Semantic2Visitor : Visitor
         /// Checks that the given class implements all methods of its interfaces.
         static void checkInterfaceImplementations(ClassDeclaration cd)
         {
-            foreach (base; cd.interfaces)
+            // `direct` is false for those inherited from an abstract base class.
+            // A directly-declared interface requires an implementation that isn't
+            // merely inherited from an unrelated base class, like h coming from G
+            // instead of H here:
+            // ---
+            // class G { int h() { return 1; } }
+            // interface H { int h(); }
+            // class K : G, H {}
+            // ---
+            void checkBase(BaseClass* base, bool direct)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=22729
                 // interfaces that have errors or that
                 // inherit from interfaces that have errors
                 // might have an uninitialized vtable
                 if (!base.sym.vtbl.length)
-                    continue;
+                    return;
 
                 // first entry is ClassInfo reference
                 auto methods = base.sym.vtbl[base.sym.vtblOffset .. $];
@@ -674,7 +725,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         // Check that it is current
                         //printf("newinstance = %d fd.toParent() = %s ifd.toParent() = %s\n",
                             //newinstance, fd.toParent().toChars(), ifd.toParent().toChars());
-                        if (fd.toParent() != cd && ifd.toParent() == base.sym)
+                        if (direct && fd.toParent() != cd && ifd.toParent() == base.sym)
                             .error(cd.loc, "%s `%s` interface function `%s` is not implemented", cd.kind, cd.toPrettyChars, ifd.toFullSignature());
                     }
                     else
@@ -686,6 +737,17 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     }
                 }
             }
+
+            // Check the interfaces directly declared by `cd`, as well as those
+            // inherited from abstract base classes. A concrete base class would
+            // already have had its own interfaces checked.
+            // https://github.com/dlang/dmd/issues/19807
+            foreach (base; cd.interfaces)
+                checkBase(base, true);
+
+            for (auto b = cd.baseClass; b && b.isAbstract(); b = b.baseClass)
+                foreach (base; b.interfaces)
+                    checkBase(base, false);
         }
 
         if (cd.semanticRun >= PASS.semantic2done)
@@ -731,7 +793,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     // When `@gnuAbiTag` is used, the type will be the UDA, not the struct literal
     if (e.op == EXP.type)
     {
-        error(e.loc, "`@%s` at least one argument expected", Id.udaGNUAbiTag.toChars());
+        error(e.loc, "`@%s` at least one argument expected", Id.udaGNUAbiTag.toErrMsg());
         return;
     }
 
@@ -749,7 +811,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     auto ale = (*sle.elements)[0].isArrayLiteralExp();
     if (ale is null)
     {
-        error(e.loc, "`@%s` at least one argument expected", Id.udaGNUAbiTag.toChars());
+        error(e.loc, "`@%s` at least one argument expected", Id.udaGNUAbiTag.toErrMsg());
         return;
     }
 
@@ -758,7 +820,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     {
         const str1 = (*lastTag.isStructLiteralExp().elements)[0].toString();
         const str2 = ale.toString();
-        error(e.loc, "only one `@%s` allowed per symbol", Id.udaGNUAbiTag.toChars());
+        error(e.loc, "only one `@%s` allowed per symbol", Id.udaGNUAbiTag.toErrMsg());
         errorSupplemental(e.loc, "instead of `@%s @%s`, use `@%s(%.*s, %.*s)`",
             lastTag.toChars(), e.toChars(), Id.udaGNUAbiTag.toChars(),
             // Avoid [ ... ]
@@ -776,7 +838,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
         if (!str.length)
         {
             error(e.loc, "argument `%d` to `@%s` cannot be %s", cast(int)(idx + 1),
-                    Id.udaGNUAbiTag.toChars(),
+                    Id.udaGNUAbiTag.toErrMsg(),
                     elem.isNullExp() ? "`null`".ptr : "empty".ptr);
             continue;
         }
@@ -786,7 +848,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
             if (!c.isValidMangling())
             {
                 error(e.loc, "`@%s` char `0x%02x` not allowed in mangling",
-                        Id.udaGNUAbiTag.toChars(), c);
+                        Id.udaGNUAbiTag.toErrMsg(), c);
                 break;
             }
         }
@@ -799,10 +861,134 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     // `const` (and nor is `StringExp`, by extension).
     static int predicate(const scope Expression* e1, const scope Expression* e2)
     {
-        return (cast(Expression*)e1).toStringExp().compare((cast(Expression*)e2).toStringExp());
+        Expression e11 = cast(Expression) *e1;
+        Expression e22 = cast(Expression) *e2;
+        return e11.toStringExp().compare(e22.toStringExp());
     }
     ale.elements.sort!predicate;
 }
+
+/****************
+ * Find virtual function matching identifier and type.
+ * Used to build virtual function tables for interface implementations.
+ * Params:
+ *  _this = ClassDeclaration's vtbl to search
+ *  ident = function's identifier
+ *  tf = function's type
+ * Returns:
+ *  function symbol if found, null if not
+ * Errors:
+ *  prints error message if more than one match
+ */
+FuncDeclaration findFunc(ClassDeclaration _this, Identifier ident, TypeFunction tf)
+{
+    //printf("ClassDeclaration.findFunc(%s, %s) %s\n", ident.toChars(), tf.toChars(), toChars());
+    FuncDeclaration fdmatch = null;
+    FuncDeclaration fdambig = null;
+
+    void updateBestMatch(FuncDeclaration fd)
+    {
+        fdmatch = fd;
+        fdambig = null;
+        //printf("Lfd fdmatch = %s %s [%s]\n", fdmatch.toChars(), fdmatch.type.toChars(), fdmatch.loc.toChars());
+    }
+
+    void searchVtbl(ref Dsymbols vtbl)
+    {
+        bool seenInterfaceVirtual;
+        foreach (s; vtbl)
+        {
+            auto fd = s.isFuncDeclaration();
+            if (!fd)
+                continue;
+
+            // the first entry might be a ClassInfo
+            //printf("\t[%d] = %s\n", i, fd.toChars());
+            if (ident != fd.ident || fd.type.covariant(tf) != Covariant.yes)
+            {
+                //printf("\t\t%d\n", fd.type.covariant(tf));
+                continue;
+            }
+
+            //printf("fd.parent.isClassDeclaration() = %p\n", fd.parent.isClassDeclaration());
+            if (!fdmatch)
+            {
+                updateBestMatch(fd);
+                continue;
+            }
+            if (fd == fdmatch)
+                continue;
+
+            /* Functions overriding interface functions for extern(C++) with VC++
+             * are not in the normal vtbl, but in vtblFinal. If the implementation
+             * is again overridden in a child class, both would be found here.
+             * The function in the child class should override the function
+             * in the base class, which is done here, because searchVtbl is first
+             * called for the child class. Checking seenInterfaceVirtual makes
+             * sure, that the compared functions are not in the same vtbl.
+             */
+            if (fd.interfaceVirtual &&
+                fd.interfaceVirtual is fdmatch.interfaceVirtual &&
+                !seenInterfaceVirtual &&
+                fdmatch.type.covariant(fd.type) == Covariant.yes)
+            {
+                seenInterfaceVirtual = true;
+                continue;
+            }
+
+            {
+            // Function type matching: exact > covariant
+            MATCH m1 = tf.equals(fd.type) ? MATCH.exact : MATCH.nomatch;
+            MATCH m2 = tf.equals(fdmatch.type) ? MATCH.exact : MATCH.nomatch;
+            if (m1 > m2)
+            {
+                updateBestMatch(fd);
+                continue;
+            }
+            else if (m1 < m2)
+                continue;
+            }
+            {
+            MATCH m1 = (tf.mod == fd.type.mod) ? MATCH.exact : MATCH.nomatch;
+            MATCH m2 = (tf.mod == fdmatch.type.mod) ? MATCH.exact : MATCH.nomatch;
+            if (m1 > m2)
+            {
+                updateBestMatch(fd);
+                continue;
+            }
+            else if (m1 < m2)
+                continue;
+            }
+            {
+            // The way of definition: non-mixin > mixin
+            MATCH m1 = fd.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
+            MATCH m2 = fdmatch.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
+            if (m1 > m2)
+            {
+                updateBestMatch(fd);
+                continue;
+            }
+            else if (m1 < m2)
+                continue;
+            }
+
+            fdambig = fd;
+            //printf("Lambig fdambig = %s %s [%s]\n", fdambig.toChars(), fdambig.type.toChars(), fdambig.loc.toChars());
+        }
+    }
+
+    searchVtbl(_this.vtbl);
+    for (auto cd = _this; cd; cd = cd.baseClass)
+    {
+        searchVtbl(cd.vtblFinal);
+    }
+
+    if (fdambig)
+        _this.classError("%s `%s` ambiguous virtual function `%s`", fdambig.toChars());
+
+    return fdmatch;
+}
+
 
 /**
  * Try lower a variable's Associative Array initializer to a newaa struct
@@ -813,10 +999,11 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
  */
 void lowerStaticAAs(VarDeclaration vd, Scope* sc)
 {
-    if (vd.storage_class & STC.manifest)
-        return;
     if (auto ei = vd._init.isExpInitializer())
-        lowerStaticAAs(ei.exp, sc);
+    {
+        scope v = new StaticAAVisitor(sc, vd.storage_class);
+        ei.exp.accept(v);
+    }
 }
 
 /**
@@ -828,7 +1015,7 @@ void lowerStaticAAs(VarDeclaration vd, Scope* sc)
  */
 void lowerStaticAAs(Expression e, Scope* sc)
 {
-    scope v = new StaticAAVisitor(sc);
+    scope v = new StaticAAVisitor(sc, STC.none);
     e.accept(v);
 }
 
@@ -837,32 +1024,26 @@ private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
 {
     alias visit = SemanticTimeTransitiveVisitor.visit;
     Scope* sc;
+    STC storage_class;
 
-    this(Scope* sc) scope @safe
+    this(Scope* sc, STC storage_class) scope @safe
     {
         this.sc = sc;
+        this.storage_class = storage_class;
     }
 
     override void visit(AssocArrayLiteralExp aaExp)
     {
-        if (!verifyHookExist(aaExp.loc, *sc, Id._aaAsStruct, "initializing static associative arrays", Id.object))
-            return;
-
-        Expression hookFunc = new IdentifierExp(aaExp.loc, Id.empty);
-        hookFunc = new DotIdExp(aaExp.loc, hookFunc, Id.object);
-        hookFunc = new DotIdExp(aaExp.loc, hookFunc, Id._aaAsStruct);
-        auto arguments = new Expressions(aaExp);
-        Expression loweredExp = new CallExp(aaExp.loc, hookFunc, arguments);
-
-        sc = sc.startCTFE();
-        loweredExp = loweredExp.expressionSemantic(sc);
-        loweredExp = resolveProperties(sc, loweredExp);
-        sc = sc.endCTFE();
-        loweredExp = loweredExp.ctfeInterpret();
-
-        aaExp.lowering = loweredExp;
-
-        semanticTypeInfo(sc, loweredExp.type);
+        if (!aaExp.lowering)
+            expressionSemantic(aaExp, sc);
+        assert(aaExp.lowering);
+        if (!(storage_class & STC.manifest)) // manifest constants create runtime copies
+            if (!aaExp.loweringCtfe)
+            {
+                aaExp.loweringCtfe = aaExp.lowering.ctfeInterpret();
+                aaExp.loweringCtfe.accept(this); // lower AAs in keys and values
+            }
+        semanticTypeInfo(sc, aaExp.lowering.type);
     }
 
     // https://issues.dlang.org/show_bug.cgi?id=24602
@@ -914,7 +1095,7 @@ void staticAssertFail(StaticAssert sa, Scope* sc)
         error(sa.loc, "static assert:  %s", msgbuf.extractChars());
     }
     else
-        error(sa.loc, "static assert:  `%s` is false", sa.exp.toChars());
+        error(sa.loc, "static assert:  `%s` is false", sa.exp.toErrMsg());
     if (sc.tinst)
         sc.tinst.printInstantiationTrace();
     if (!global.gag)

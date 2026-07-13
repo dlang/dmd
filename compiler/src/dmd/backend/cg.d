@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1995 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/cg.d, backend/cg.d)
@@ -15,7 +15,6 @@ module dmd.backend.cg;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
-import dmd.backend.global;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.type;
@@ -38,7 +37,6 @@ targ_size_t localsize;          /* amt subtracted from SP for local vars */
  * will change them as appropriate.
  */
 int     BPRM = 6;               /* R/M value for [BP] or [EBP]          */
-regm_t  fregsaved;              // mask of registers saved across function calls
 
 regm_t  FLOATREGS = FLOATREGS_16;
 regm_t  FLOATREGS2 = FLOATREGS2_16;
@@ -53,7 +51,7 @@ int STACKALIGN = 2;             // varies for each function
 
 /// Is fl data?
 bool[FL.max + 1] datafl = datafl_init;
-extern (D) private enum datafl_init =
+private enum datafl_init =
 () {
     bool[FL.max + 1] datafl;
     foreach (fl; [ FL.data, FL.udata, FL.reg, FL.pseudo, FL.auto_, FL.fast, FL.para, FL.extern_,
@@ -70,7 +68,7 @@ extern (D) private enum datafl_init =
 
 /// Is fl on the stack?
 bool[FL.max + 1] stackfl = stackfl_init;
-extern (D) private enum stackfl_init =
+private enum stackfl_init =
 () {
     bool[FL.max + 1] stackfl;
     foreach (fl; [ FL.auto_, FL.fast, FL.para, FL.cs, FL.fltreg, FL.allocatmp, FL.bprel, FL.stack, FL.regsave,
@@ -85,7 +83,7 @@ extern (D) private enum stackfl_init =
 
 /// What segment register is associated with it?
 ubyte[FL.max + 1] segfl = segfl_init;
-extern (D) private enum segfl_init =
+private enum segfl_init =
 () {
     ubyte[FL.max + 1] segfl;
 
@@ -148,7 +146,7 @@ extern (D) private enum segfl_init =
 
 /// Is fl in the symbol table?
 bool[FL.max + 1] flinsymtab = flinsymtab_init;
-extern (D) private enum flinsymtab_init =
+private enum flinsymtab_init =
 () {
     bool[FL.max + 1] flinsymtab;
     foreach (fl; [ FL.data, FL.udata, FL.reg, FL.pseudo, FL.auto_, FL.fast, FL.para, FL.extern_, FL.func,

@@ -39,6 +39,7 @@
 #define __volatile__ volatile
 #define __attribute __attribute__
 #define __alignof _Alignof
+#define __alignof__ _Alignof
 #define __vector_size__ vector_size
 #define __typeof typeof
 #define __typeof__ typeof
@@ -73,6 +74,21 @@
 typedef unsigned short __uint16_t;
 typedef unsigned int __uint32_t;
 typedef unsigned long long __uint64_t;
+
+/* wchar_t */
+#if defined(_WIN32)
+#ifndef _WCHAR_T_DEFINED
+// On Windows, wchar_t is defined as an unsigned 16-bit integer: the same as D's wchar.
+typedef __importc_wchar wchar_t;
+#define _WCHAR_T_DEFINED 1
+#define _NATIVE_WCHAR_T_DEFINED 1
+
+#ifdef _MSC_VER
+// Microsoft go a step further and have a proper built-in type.
+typedef __importc_wchar __wchar_t;
+#endif
+#endif
+#endif
 
 /*********************
  * Obsolete detritus
@@ -138,6 +154,13 @@ typedef unsigned long long __uint64_t;
 #define __volatile volatile
 #define __sync_synchronize()
 #define __sync_swap(A, B) 1
+
+// For whatever reason, sys/cdefs.h has to be included first even though
+// it doesn't undef __sym_compat. But without #including sys/cdefs.h first and
+// then undefing __sym_compat, the normal __sym_compat gets used.
+#include "sys/cdefs.h"
+#undef __sym_compat
+#define __sym_compat(sym, impl, verid)
 #endif
 
 #if _MSC_VER
@@ -149,11 +172,11 @@ typedef unsigned long long __uint64_t;
 #define __unaligned
 #define _NO_CRT_STDIO_INLINE 1
 #define _stdcall __stdcall
+#define _declspec __declspec
 
-// This header disables the Windows API Annotations macros
-// Need to include sal.h to get the pragma once to prevent macro redefinition.
-#include "sal.h"
-#include "no_sal2.h"
+// disable the Microsoft Source Code Annotation macros in "sal.h"
+#define _USE_DECLSPECS_FOR_SAL 0
+#define _USE_ATTRIBUTES_FOR_SAL 0
 #endif
 
 /****************************
@@ -171,7 +194,7 @@ typedef unsigned long long __uint64_t;
 #endif
 
 #define _Float16 float
-#ifdef __linux__  // Microsoft won't allow the following macro
+#if defined(__linux__) || defined(__GNU__)  // Microsoft won't allow the following macro
 // Ubuntu's assert.h uses this
 #define __PRETTY_FUNCTION__ __func__
 
@@ -186,8 +209,30 @@ typedef unsigned long long __uint64_t;
 #define _Float128 long double
 #define __float128 long double
 #endif
+
+#ifdef __aarch64__
+// glibc's math.h needs these types to be defined
+typedef struct {} __SVBool_t;
+typedef struct {} __SVFloat32_t;
+typedef struct {} __SVFloat64_t;
 #endif
+
+#endif // __linux__ || __GNU__
 
 #if __APPLE__
 #undef __SIZEOF_INT128__
+#endif
+
+#if __ANDROID__
+#undef __SIZEOF_INT128__
+#define __GNUC_VA_LIST
+#define _VA_LIST
+#define __builtin_va_list va_list
+#define __gnuc_va_list va_list
+
+// This macro resolves the ambiguity between Bionic and library ioctl.
+// https://android.googlesource.com/platform/bionic/+/master/libc/include/bits/ioctl.h
+#define BIONIC_IOCTL_NO_SIGNEDNESS_OVERLOAD
+
+#define __sync_synchronize()
 #endif

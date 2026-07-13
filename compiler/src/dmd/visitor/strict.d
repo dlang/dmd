@@ -7,7 +7,7 @@ module dmd.visitor.strict;
 
 import dmd.visitor.parsetime;
 
-/** The StrictVisitor asserts 0 an all visiting functions in order to
+/** The StrictVisitor asserts 0 in all visiting functions in order to
   * make sure that all the nodes are visited.
   */
 extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
@@ -175,11 +175,7 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.ImportExp) { assert(0); }
     override void visit(AST.DotTemplateInstanceExp) { assert(0); }
     override void visit(AST.ArrayExp) { assert(0); }
-    override void visit(AST.FuncInitExp) { assert(0); }
-    override void visit(AST.PrettyFuncInitExp) { assert(0); }
-    override void visit(AST.FileInitExp) { assert(0); }
-    override void visit(AST.LineInitExp) { assert(0); }
-    override void visit(AST.ModuleInitExp) { assert(0); }
+    override void visit(AST.DefaultInitExp) { assert(0); }
     override void visit(AST.CommaExp) { assert(0); }
     override void visit(AST.PostExp) { assert(0); }
     override void visit(AST.PowExp) { assert(0); }

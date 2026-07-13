@@ -18,10 +18,10 @@ interface IAutoComplete : IUnknown {
     HRESULT Init(HWND, IUnknown, LPCOLESTR, LPCOLESTR);
     HRESULT Enable(BOOL);
 }
-alias IAutoComplete LPAUTOCOMPLETE;
+alias LPAUTOCOMPLETE = IAutoComplete;
 
 interface IAutoComplete2 : IAutoComplete {
     HRESULT SetOptions(DWORD);
     HRESULT GetOptions(DWORD*);
 }
-alias IAutoComplete2 LPAUTOCOMPLETE2;
+alias LPAUTOCOMPLETE2 = IAutoComplete2;

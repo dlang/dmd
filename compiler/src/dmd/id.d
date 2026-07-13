@@ -1,7 +1,7 @@
 /**
  * Contains the `Id` struct with a list of predefined symbols the compiler knows about.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/id.d, _id.d)
@@ -206,6 +206,7 @@ immutable Msgtable[] msgtable =
     { "keys" },
     { "values" },
     { "rehash" },
+    { "dup" },
 
     { "future", "__future" },
     { "property" },
@@ -259,11 +260,17 @@ immutable Msgtable[] msgtable =
     { "FpopBack", "popBack" },
 
     // For internal functions
-    { "aaLen", "_aaLen" },
-    { "aaKeys", "_aaKeys" },
-    { "aaValues", "_aaValues" },
-    { "aaRehash", "_aaRehash" },
-    { "_aaAsStruct" },
+    { "_d_aaGetY" },
+    { "_d_aaGetRvalueX" },
+    { "_d_aaDel" },
+    { "_d_aaEqual" },
+    { "_d_aaIn" },
+    { "_d_aaNew" },
+    { "_d_aaLen" },
+    { "_d_aaApply" },
+    { "_d_aaApply2" },
+    { "_d_pow" },
+    { "_d_sqrt" },
     { "monitorenter", "_d_monitorenter" },
     { "monitorexit", "_d_monitorexit" },
     { "criticalenter", "_d_criticalenter2" },
@@ -273,25 +280,19 @@ immutable Msgtable[] msgtable =
     { "_d_delThrowable" },
     { "_d_newThrowable" },
     { "_d_newclassT" },
-    { "_d_newclassTTrace" },
     { "_d_newitemT" },
-    { "_d_newitemTTrace" },
     { "_d_newarrayT" },
-    { "_d_newarrayTTrace" },
+    { "_d_newarrayU" },
     { "_d_newarraymTX" },
-    { "_d_newarraymTXTrace" },
     { "_d_arrayliteralTX" },
-    { "_d_arrayliteralTXTrace" },
     { "_d_assert_fail" },
-    { "dup" },
-    { "_aaApply" },
-    { "_aaApply2" },
     { "_d_arrayctor" },
     { "_d_arraysetctor" },
     { "_d_arraysetassign" },
     { "_d_arrayassign_l" },
     { "_d_arrayassign_r" },
     { "_d_cast" },
+    { "_d_atomicOp" },
 
     { "imported" },
     { "InterpolationHeader" },
@@ -328,13 +329,10 @@ immutable Msgtable[] msgtable =
     { "__ArrayCast"},
     { "_d_HookTraceImpl" },
     { "_d_arraysetlengthT"},
-    { "_d_arraysetlengthTTrace"},
     { "_d_arrayappendT" },
-    { "_d_arrayappendTTrace" },
     { "_d_arrayappendcTX" },
-    { "_d_arrayappendcTXTrace" },
     { "_d_arraycatnTX" },
-    { "_d_arraycatnTXTrace" },
+    { "_d_assocarrayliteralTX" },
 
     // varargs implementation
     { "stdc" },
@@ -413,6 +411,7 @@ immutable Msgtable[] msgtable =
     { "isAbstractClass" },
     { "isArithmetic" },
     { "isAssociativeArray" },
+    { "isOverlapped" },
     { "isBitfield" },
     { "isFinalClass" },
     { "isTemplate" },
@@ -478,6 +477,7 @@ immutable Msgtable[] msgtable =
     { "isCopyable" },
     { "toType" },
     { "parameters" },
+    { "needsDestruction" },
 
     // For C++ mangling
     { "allocator" },
@@ -493,6 +493,7 @@ immutable Msgtable[] msgtable =
     { "udaOptional", "optional"},
     { "udaMustUse", "mustuse" },
     { "udaStandalone", "standalone" },
+    { "udaSection", "section" },
 
     // Editions
     { "__edition_latest_do_not_use", },
@@ -530,11 +531,18 @@ immutable Msgtable[] msgtable =
     { "show" },
     { "push" },
     { "pop" },
+    { "ignore" },
+    { "consider" },
+    { "function_decl" },
+    { "function_def" },
     { "_pure", "pure" },
     { "define" },
     { "undef" },
     { "ident" },
     { "packed" },
+
+    // for inline assembler
+    { "op" },
 ];
 
 

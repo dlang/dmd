@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/symbol.d
@@ -17,25 +17,37 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.barray;
+import dmd.backend.backconfig : debugy;
+import dmd.backend.blockopt : blocklist_free, bo;
 import dmd.backend.cdef;
 import dmd.backend.cc;
+import dmd.backend.code;
 import dmd.backend.cgcv;
-import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.dvec;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : err_nomem, symbol_keep;
+import dmd.backend.debugprint : class_str, fl_str;
 import dmd.backend.mem;
 import dmd.backend.oper;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
+
+import dmd.backend.x86.code_x86;
 
 
 nothrow:
 @safe:
 
-import dmd.backend.x86.code_x86;
+alias SYMIDX = size_t;    // symbol table index
+
+alias symtab_t = Barray!(Symbol*);
+
+__gshared
+{
+    symtab_t globsym;               // global symbol table
+}
 
 void struct_free(struct_t* st) { }
 
@@ -59,7 +71,7 @@ void symbol_print(const ref Symbol s)
 debug
 {
     printf("symbol '%s'\n ", s.Sident.ptr);
-    printf(" Sclass = %s ", class_str(s.Sclass));
+    printf(" Sclass = SC.%s ", class_str(s.Sclass));
     printf(" Ssymnum = %d",cast(int)s.Ssymnum);
     printf(" Sfl = %s", fl_str(cast(FL) s.Sfl));
     printf(" Sseg = %d\n",s.Sseg);
@@ -84,34 +96,6 @@ debug
 }
 }
 
-
-/*********************************
- * Terminate use of symbol table.
- */
-
-private __gshared Symbol* keep;
-
-@trusted
-void symbol_term()
-{
-    symbol_free(keep);
-}
-
-/****************************************
- * Keep symbol around until symbol_term().
- */
-
-static if (TERMCODE)
-{
-
-void symbol_keep(Symbol* s)
-{
-    symbol_debug(s);
-    s.Sr = keep;       // use Sr so symbol_free() doesn't nest
-    keep = s;
-}
-
-}
 
 /****************************************
  * Return alignment of symbol.
@@ -156,30 +140,12 @@ bool Symbol_Sisdead(const ref Symbol s, bool anyInlineAsm)
             * Code that does write those variables to memory gets NOPed out
             * during address assignment.
             */
-           (!anyInlineAsm && !(s.Sflags & SFLread) && s.Sflags & SFLunambig &&
+           (!anyInlineAsm && !(s.Sflags & SFLread) && s.Sflags & SFLdistinct &&
 
             // mTYvolatile means this variable has been reference by a nested function
             (vol || !(s.Stype.Tty & mTYvolatile)) &&
 
             (config.flags4 & CFG4optimized || !config.fulltypes));
-}
-
-/****************************************
- * Determine if symbol needs a 'this' pointer.
- */
-
-@trusted
-int Symbol_needThis(const ref Symbol s)
-{
-    //printf("needThis() '%s'\n", Sident.ptr);
-
-    debug assert(isclassmember(&s));
-
-    if (s.Sclass == SC.member || s.Sclass == SC.field)
-        return 1;
-    if (tyfunc(s.Stype.Tty) && !(s.Sfunc.Fflags & Fstatic))
-        return 1;
-    return 0;
 }
 
 /************************************
@@ -193,13 +159,13 @@ int Symbol_needThis(const ref Symbol s)
 
 bool Symbol_isAffected(const ref Symbol s)
 {
-    //printf("s: %s %d\n", s.Sident.ptr, !(s.Sflags & SFLunambig) && !(s.ty() & (mTYconst | mTYimmutable)));
+    //printf("s: %s %d\n", s.Sident.ptr, !(s.Sflags & SFLdistinct) && !(s.ty() & (mTYconst | mTYimmutable)));
     //symbol_print(s);
 
     /* If nobody took its address and it's not statically allocated,
      * then it is not accessible via pointer and so is not affected.
      */
-    if (s.Sflags & SFLunambig)
+    if (s.Sflags & SFLdistinct)
         return false;
 
     /* If it's immutable, it can't be affected.
@@ -226,14 +192,6 @@ bool Symbol_isAffected(const ref Symbol s)
     return true;
 }
 
-
-/***********************************
- * Get user name of symbol.
- */
-const(char)* symbol_ident(return ref const Symbol s)
-{
-    return &s.Sident[0];
-}
 
 /****************************************
  * Create a new symbol.
@@ -274,23 +232,6 @@ Symbol* symbol_name(const(char)[] name, SC sclass, type* t)
 
     if (tyfunc(t.Tty))
         symbol_func(*s);
-    return s;
-}
-
-/****************************************
- * Create a symbol that is an alias to another function symbol.
- */
-
-@trusted
-Funcsym* symbol_funcalias(Funcsym* sf)
-{
-    symbol_debug(sf);
-    assert(tyfunc(sf.Stype.Tty));
-    if (sf.Sclass == SC.funcalias)
-        sf = sf.Sfunc.Falias;
-    auto s = cast(Funcsym*)symbol_name(sf.Sident.ptr[0 .. strlen(sf.Sident.ptr)],SC.funcalias,sf.Stype);
-    s.Sfunc.Falias = sf;
-
     return s;
 }
 
@@ -351,13 +292,13 @@ Symbol* symbol_genauto(tym_t ty)
 @trusted @nogc
 void symbol_func(ref Symbol s)
 {
-    //printf("symbol_func(%s, x%x)\n", s.Sident.ptr, fregsaved);
+    //printf("symbol_func(%s, x%x)\n", s.Sident.ptr, cgstate.fregsaved);
     symbol_debug(&s);
     s.Sfl = FL.func;
     // Interrupt functions modify all registers
     // BUG: do interrupt functions really save BP?
-    // Note that fregsaved may not be set yet
-    s.Sregsaved = s.Stype && tybasic(s.Stype.Tty) == TYifunc ? cast(regm_t) mBP : fregsaved;
+    // Note that cgstate.fregsaved may not be set yet
+    s.Sregsaved = s.Stype && tybasic(s.Stype.Tty) == TYifunc ? cast(regm_t) mBP : cgstate.fregsaved;
     s.Sseg = UNKNOWN;          // don't know what segment it is in
     if (!s.Sfunc)
         s.Sfunc = func_calloc();
@@ -377,7 +318,7 @@ void symbol_struct_addField(ref Symbol s, const(char)* name, type* t, uint offse
 {
     Symbol* s2 = symbol_name(name[0 .. strlen(name)], SC.member, t);
     s2.Smemoff = offset;
-    list_append(&s.Sstruct.Sfldlst, s2);
+    s.Sstruct.Sfields.push(s2);
 }
 
 /***************************************
@@ -399,7 +340,7 @@ void symbol_struct_addBitField(ref Symbol s, const(char)* name, type* t, uint of
     s2.Smemoff = offset;
     s2.Swidth = cast(ubyte)fieldWidth;
     s2.Sbit = cast(ubyte)bitOffset;
-    list_append(&s.Sstruct.Sfldlst, s2);
+    s.Sstruct.Sfields.push(s2);
     symbol_struct_hasBitFields(s);
 }
 
@@ -499,83 +440,30 @@ debug
                 func_t* f = s.Sfunc;
 
                 debug assert(f);
-                blocklist_free(&f.Fstartblock);
+                blocklist_free(bo, &f.Fstartblock);
                 freesymtab(f.Flocsym[].ptr,0,f.Flocsym.length);
 
                 f.Flocsym.dtor();
-              if (CPP)
-              {
-                if (f.Fflags & Fnotparent)
-                {   debug if (debugy) printf("not parent, returning\n");
-                    return;
-                }
-
-                /* We could be freeing the symbol before its class is   */
-                /* freed, so remove it from the class's field list      */
-                if (f.Fclass)
-                {   list_t tl;
-
-                    symbol_debug(f.Fclass);
-                    tl = list_inlist(f.Fclass.Sstruct.Sfldlst,s);
-                    if (tl)
-                        list_setsymbol(tl, null);
-                }
-
-                if (f.Foversym && f.Foversym.Sfunc)
-                {   f.Foversym.Sfunc.Fflags &= ~Fnotparent;
-                    f.Foversym.Sfunc.Fclass = null;
-                    symbol_free(f.Foversym);
-                }
-
-                if (f.Fexplicitspec)
-                    symbol_free(f.Fexplicitspec);
-
-                /* If operator function, remove from list of such functions */
-                if (f.Fflags & Foperator)
-                {   assert(f.Foper && f.Foper < OPMAX);
-                    //if (list_inlist(cpp_operfuncs[f.Foper],s))
-                    //  list_subtract(&cpp_operfuncs[f.Foper],s);
-                }
-
-                list_free(&f.Fclassfriends,FPNULL);
-                list_free(&f.Ffwdrefinstances,FPNULL);
-                param_free(&f.Farglist);
-                param_free(&f.Fptal);
-                list_free(&f.Fexcspec,cast(list_free_fp)&type_free);
-
-
-                el_free(f.Fbaseinit);
-                list_free(&f.Fthunks,cast(list_free_fp)&symbol_free);
-              }
-                list_free(&f.Fsymtree,cast(list_free_fp)&symbol_free);
                 f.typesTable.dtor();
                 func_free(f);
             }
             switch (s.Sclass)
             {
                 case SC.struct_:
-                  if (!CPP)
-                  {
                     debug if (debugy)
-                        printf("freeing members %p\n",s.Sstruct.Sfldlst);
+                        printf("freeing members %p\n",s.Sstruct.Sfields.ptr);
 
-                    list_free(&s.Sstruct.Sfldlst,FPNULL);
+                    s.Sstruct.Sfields.dtor();
                     symbol_free(s.Sstruct.Sroot);
                     struct_free(s.Sstruct);
-                  }
-static if (0)       /* Don't complain anymore about these, ANSI C says  */
-{
-                    /* it's ok                                          */
-                    if (t && t.Tflags & TFsizeunknown)
-                        synerr(EM_unknown_tag,s.Sident.ptr);
-}
                     break;
+
                 case SC.enum_:
                     /* The actual member symbols are either in a local  */
                     /* table or on the member list of a class, so we    */
                     /* don't free them here.                            */
                     assert(s.Senum);
-                    list_free(&s.Senum.SEenumlist,FPNULL);
+                    s.Senum.SEenums.dtor();
                     mem_free(s.Senum);
                     s.Senum = null;
                     break;
@@ -755,47 +643,6 @@ Symbol* symbol_copy(ref Symbol s)
     return scopy;
 }
 
-/***************************
- * Look down baseclass list to find sbase.
- * Returns:
- *      null    not found
- *      pointer to baseclass
- */
-
-baseclass_t* baseclass_find(baseclass_t* bm,Classsym* sbase)
-{
-    symbol_debug(sbase);
-    for (; bm; bm = bm.BCnext)
-        if (bm.BCbase == sbase)
-            break;
-    return bm;
-}
-
-@trusted
-baseclass_t* baseclass_find_nest(baseclass_t* bm,Classsym* sbase)
-{
-    symbol_debug(sbase);
-    for (; bm; bm = bm.BCnext)
-    {
-        if (bm.BCbase == sbase ||
-            baseclass_find_nest(bm.BCbase.Sstruct.Sbase, sbase))
-            break;
-    }
-    return bm;
-}
-
-/******************************
- * Calculate number of baseclasses in list.
- */
-
-int baseclass_nitems(baseclass_t* b)
-{   int i;
-
-    for (i = 0; b; b = b.BCnext)
-        i++;
-    return i;
-}
-
 /*************************************
  * Reset Symbol so that it's now an "extern" to the next obj file being created.
  */
@@ -826,3 +673,38 @@ tym_t symbol_pointerType(ref const Symbol s)
 {
     return s.Stype.Tty & mTYimmutable ? TYimmutPtr : TYnptr;
 }
+
+/*****************************
+ * SCxxxx types.
+ */
+
+immutable ubyte[SCMAX] sytab =
+[
+    /* unde */     SCEXP|SCKEP|SCSCT,      /* undefined                            */
+    /* auto */     SCEXP|SCSS|SCRD  ,      /* automatic (stack)                    */
+    /* static */   SCEXP|SCKEP|SCSCT|SCDATA, /* statically allocated               */
+    /* extern */   SCEXP|SCKEP|SCSCT|SCDATA, /* external                           */
+    /* register */ SCEXP|SCSS|SCRD  ,      /* registered variable                  */
+    /* pseudo */   SCEXP            ,      /* pseudo register variable             */
+    /* global */   SCEXP|SCKEP|SCSCT|SCDATA, /* top level global definition        */
+    /* comdat */   SCEXP|SCKEP|SCSCT|SCDATA, /* initialized common block           */
+    /* parameter */SCEXP|SCSS       ,      /* function parameter                   */
+    /* regpar */   SCEXP|SCSS       ,      /* function register parameter          */
+    /* fastpar */  SCEXP|SCSS       ,      /* function parameter passed in register */
+    /* shadowreg */SCEXP|SCSS       ,      /* function parameter passed in register, shadowed on stack */
+    /* typedef */  0                ,      /* type definition                      */
+    /* struct */   SCKEP            ,      /* struct/class/union tag name          */
+    /* enum */     0                ,      /* enum tag name                        */
+    /* field */    SCEXP|SCKEP      ,      /* bit field of struct or union         */
+    /* const */    SCEXP|SCSCT      ,      /* constant integer                     */
+    /* member */   SCEXP|SCKEP|SCSCT,      /* member of struct or union            */
+    /* inline */   SCEXP|SCKEP      ,      /* for inline functions                 */
+    /* sinline */  SCEXP|SCKEP      ,      /* for static inline functions          */
+    /* einline */  SCEXP|SCKEP      ,      /* for extern inline functions          */
+    /* locstat */  SCEXP|SCSCT|SCDATA,     /* static, but local to a function      */
+    /* comdef */   SCEXP|SCKEP|SCSCT|SCDATA, /* uninitialized common block         */
+    /* bprel */    SCEXP|SCSS       ,      /* variable at fixed offset from frame pointer */
+    /* alias */    0                ,      /* alias to another symbol              */
+    /* funcalias */0                ,      /* alias to another function symbol     */
+    /* stack */    SCEXP|SCSS       ,      /* offset from stack pointer (not frame pointer) */
+];

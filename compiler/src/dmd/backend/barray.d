@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2018-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2018-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/barray.d, backend/barray.d)
@@ -96,6 +96,23 @@ struct Barray(T)
         return p;
     }
 
+    /********************************
+     * Insert element at index i, rippling every element
+     * after it to the right.
+     * Params:
+     *  i = indext to insert element at
+     *  e = element to insert
+     */
+    void insert(T e, size_t i)
+    {
+        setLength(array.length + 1);
+        for (size_t j = array.length - 1; i < j; --j)
+        {
+            array[j] = array[j - 1];
+        }
+        array[i] = e;
+    }
+
     /**********************
      * Move the last element from the array into [i].
      * Reduce the array length by one.
@@ -110,6 +127,90 @@ struct Barray(T)
             array[i] = array[len];
         }
         setLength(len);
+    }
+
+    /**********************
+     * Subtract element at index i from the array.
+     * Ripple the elements after i to the left 1 place.
+     * Reduce the array length by one.
+     * Params:
+     *  i = index of element to subtract
+     */
+    void subtracti(size_t i)
+    {
+        while (i + 1 < array.length)
+        {
+            array[i] = array[i + 1];
+            ++i;
+        }
+        setLength(array.length - 1);
+    }
+
+    /**********************
+     * Subtract element from the array.
+     * Ripple the elements after it to the left 1 place.
+     * Reduce the array length by one.
+     * Params:
+     *  t = element to subtract
+     * Returns:
+     *  true if element was found and subtracted
+     */
+    bool subtract(T t)
+    {
+        foreach (i, ref e; array)
+        {
+            if (t == e)
+            {
+                subtracti(i);
+                return true; // t was found at index i
+            }
+        }
+        return false; // t is not in array
+    }
+
+    /******************************
+     * Reverse contents of array.
+     */
+    void reverse()
+    {
+        size_t i = 0;
+        size_t j = array.length;
+        if (j)
+            while (i < --j)
+            {
+                auto t = array[i];
+                array[i] = array[j];
+                array[j] = t;
+                ++i;
+            }
+    }
+
+    /******************************
+     * Returns: true if arrays have equal contents
+     */
+    bool equals(ref const Barray rhs)
+    {
+        if (array.length != rhs.length)
+            return false;
+        foreach (i, ref t; array)
+        {
+            if (t != rhs.array[i])
+                return false;
+        }
+        return true;
+    }
+
+    /***********************
+     * Move contents of `rhs` to `this`.
+     */
+    void move(ref Barray rhs)
+    {
+        dtor();
+        array = rhs.array;
+        capacity = rhs.capacity;
+
+        rhs.array = null;
+        rhs.capacity = 0;
     }
 
     /******************
@@ -146,8 +247,54 @@ unittest
     a.push(50);
     a.remove(1);
     assert(a[1] == 50);
+    a.subtracti(0);
+    assert(a[0] == 50);
     a.dtor();
     assert(a.length == 0);
+
+    a.reverse();
+    a.push(1);
+    a.push(2);
+    a.reverse();
+    assert(a[0] == 2);
+    assert(a[1] == 1);
+    a.push(3);
+    a.reverse();
+    assert(a[0] == 3);
+    assert(a[1] == 1);
+    assert(a[2] == 2);  // 3,1,2
+
+    assert(a.equals(a));
+    a.subtract(3);      // 1,2
+    assert(a.length == 2);
+    assert(a[0] == 1);
+    assert(a[1] == 2);
+
+    Barray!(int) b;
+    b.move(a);
+    assert(b.length == 2);
+    assert(a.length == 0);
+    assert(b[1] == 2);
+    a.move(b);
+
+    a[0] = 3;
+    a[1] = 1;
+    a.insert(5,0);   // 5,3,1
+    a.insert(4,1);   // 5,4,3,1
+    a.insert(6,4);   // 5,4,3,1,6
+    assert(a.length == 5);
+    assert(a[0] == 5);
+    assert(a[1] == 4);
+    assert(a[2] == 3);
+    assert(a[3] == 1);
+    assert(a[4] == 6);
+
+    a.remove(3);     // 5,4,3,6
+    assert(a.length == 4);
+    assert(a[0] == 5);
+    assert(a[1] == 4);
+    assert(a[2] == 3);
+    assert(a[3] == 6);
 }
 
 /**************************************
@@ -181,12 +328,12 @@ struct Rarray(T)
         return barray[i];
     }
 
-    extern (D) inout(T)[] opSlice() inout nothrow pure @nogc
+    inout(T)[] opSlice() inout nothrow pure @nogc
     {
         return barray[0 .. length];
     }
 
-    extern (D) inout(T)[] opSlice(size_t a, size_t b) inout nothrow pure @nogc
+    inout(T)[] opSlice(size_t a, size_t b) inout nothrow pure @nogc
     {
         assert(a <= b && b <= length);
         return barray[a .. b];

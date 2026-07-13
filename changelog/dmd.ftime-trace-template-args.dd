@@ -1,0 +1,6 @@
+Improve `-ftime-trace` template instance detail
+
+The `-ftime-trace` profiling output now includes template argument types
+in the event name for template instance events, allowing users to
+distinguish between different instantiations of the same template
+(e.g. `isArray!(int)` instead of just `isArray`).

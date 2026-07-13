@@ -2,7 +2,7 @@
  * Code to do the Data Flow Analysis (doesn't act on the data).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/gflow.d, backend/gflow.d)
@@ -17,16 +17,19 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.backend.cc;
+import dmd.backend.blockopt : BlockOpt, bo;
 import dmd.backend.cdef;
 import dmd.backend.oper;
-import dmd.backend.global;
-import dmd.backend.goh;
+import dmd.backend.global : err_nomem;
+import dmd.backend.blockopt : blockopt;
+import dmd.backend.evalu8 : iftrue;
+import dmd.backend.symbol : sytab, globsym;
+import dmd.backend.go;
 import dmd.backend.el;
 import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.barray;
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 nothrow:
@@ -61,25 +64,6 @@ void* util_realloc(void* p, size_t n, size_t size)
     return q;
 }
 
-
-
-/* Since many routines are nearly identical, we can combine them with   */
-/* this flag:                                                           */
-
-private enum
-{
-    AE = 1,
-    CP,
-    VBE
-}
-
-
-private __gshared
-{
-    int flowxx;              // one of the above values
-}
-
-
 /***************** REACHING DEFINITIONS *********************/
 
 /************************************
@@ -94,9 +78,9 @@ private __gshared
  */
 
 @trusted
-void flowrd(ref GlobalOptimizer go)
+void flowrd(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    rdgenkill(go);            /* Compute Bgen and Bkill for RDs       */
+    rdgenkill(go, bo);        /* Compute Bgen and Bkill for RDs       */
     if (go.defnod.length == 0)     /* if no definition elems               */
         return;             /* no analysis to be done               */
 
@@ -123,8 +107,8 @@ void flowrd(ref GlobalOptimizer go)
                  * i = 0;
                  * try { i = 1; throw; } catch () { x = i; }
                  */
-                foreach (bp; ListRange(b.Bpred))
-                    vec_orass(b.Binrd,list_block(bp).Boutrd);
+                foreach (bp; b.Bpred[])
+                    vec_orass(b.Binrd,bp.Boutrd);
             }
             /* Bout = (Bin - Bkill) | Bgen */
             vec_sub(tmp,b.Binrd,b.Bkill);
@@ -155,7 +139,7 @@ void flowrd(ref GlobalOptimizer go)
  */
 
 @trusted
-private void rdgenkill(ref GlobalOptimizer go)
+private void rdgenkill(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     /* Compute number of definition elems. */
     uint num_unambig_def = 0;
@@ -509,10 +493,10 @@ private void accumrd(ref GlobalOptimizer go, vec_t GEN,vec_t KILL,elem* n,uint d
  */
 
 @trusted
-void flowae(ref GlobalOptimizer go)
+void flowae(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    flowxx = AE;
-    flowaecp(go, AE);
+    go.flowxx = AE;
+    flowaecp(go, bo);
 }
 
 /**************************** COPY PROPAGATION ************************/
@@ -527,23 +511,21 @@ void flowae(ref GlobalOptimizer go)
  */
 
 @trusted
-void flowcp(ref GlobalOptimizer go)
+void flowcp(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    flowxx = CP;
-    flowaecp(go, CP);
+    go.flowxx = CP;
+    flowaecp(go, bo);
 }
 
 /*****************************************
  * Common flow analysis routines for Available Expressions and
  * Copy Propagation.
- * Input:
- *      flowxx
  */
 
 @trusted
-private void flowaecp(ref GlobalOptimizer go, int flowxx)
+private void flowaecp(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    aecpgenkill(go, flowxx);   // Compute Bgen and Bkill for AEs or CPs
+    aecpgenkill(go, bo);   // Compute Bgen and Bkill for AEs or CPs
     if (go.exptop <= 1)        /* if no expressions                    */
         return;
 
@@ -585,10 +567,9 @@ private void flowaecp(ref GlobalOptimizer go, int flowxx)
             // Bout = (Bin - Bkill) | Bgen
 
             bool first = true;
-            foreach (bl; ListRange(b.Bpred))
+            foreach (bp; b.Bpred[])
             {
-                block* bp = list_block(bl);
-                if (bp.bc == BC.iftrue && bp.nthSucc(0) != b)
+                if (bp.bc == BC.iftrue && bp.Bsucc[0] != b)
                 {
                     if (first)
                         vec_copy(b.Bin,bp.Bout2);
@@ -671,7 +652,7 @@ private void flowaecp(ref GlobalOptimizer go, int flowxx)
  */
 
 @trusted
-private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
+private void aecpgenkill(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     block* this_block;
 
@@ -742,7 +723,7 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
             ae = asgaeelems(n.E1);
             // Disallow starred references to avoid problems with VBE's
             // being hoisted before tests of an invalid pointer.
-            if (flowxx == VBE && op == OPind)
+            if (go.flowxx == VBE && op == OPind)
             {
                 n.Eexp = 0;
                 return false;
@@ -765,7 +746,7 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
         {
             n.Eexp = cast(uint)go.expnod.length;       // remember index into go.expnod[]
             go.expnod.push(n);
-            if (flowxx == VBE)
+            if (go.flowxx == VBE)
                 go.expblk.push(this_block);
             return true;
         }
@@ -786,7 +767,7 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
     {
         if (b.Belem)
         {
-            if (flowxx == CP)
+            if (go.flowxx == CP)
                 asgcpelems(b.Belem);
             else
             {
@@ -923,7 +904,7 @@ private void defstarkill(ref GlobalOptimizer go)
 {
     const exptop = go.exptop;
     vec_recycle(go.defkill, exptop);
-    if (flowxx == CP)
+    if (go.flowxx == CP)
     {
         vec_recycle(go.starkill, 0);
         vec_recycle(go.vptrkill, 0);
@@ -939,7 +920,7 @@ private void defstarkill(ref GlobalOptimizer go)
 
     auto defkill = go.defkill;
 
-    if (flowxx == CP)
+    if (go.flowxx == CP)
     {
         foreach (i, n; go.expnod[1 .. exptop])
         {
@@ -1022,9 +1003,9 @@ private void defstarkill(ref GlobalOptimizer go)
  */
 
 @trusted
-void genkillae(ref GlobalOptimizer go)
+void genkillae(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    flowxx = AE;
+    go.flowxx = AE;
     assert(go.exptop > 1);
     foreach (b; bo.dfo[])
     {
@@ -1057,7 +1038,7 @@ private void aecpelem(ref GlobalOptimizer go, out vec_t gen, out vec_t kill, ele
     kill = vec_calloc(exptop);
     if (n)
     {
-        if (flowxx == VBE)
+        if (go.flowxx == VBE)
             accumvbe(go, gen,kill,n);
         else
             accumaecp(go, gen,kill,n);
@@ -1102,7 +1083,7 @@ private void accumaecpx(ref GlobalOptimizer go, elem* n)
         case OPvar:
         case OPconst:
         case OPrelconst:
-            if ((flowxx == AE) && n.Eexp)
+            if ((go.flowxx == AE) && n.Eexp)
             {   uint b;
                 debug assert(go.expnod[n.Eexp] == n);
                 b = n.Eexp;
@@ -1179,7 +1160,7 @@ private void accumaecpx(ref GlobalOptimizer go, elem* n)
 
         case OPvp_fp:
         case OPcvp_fp:                          // if vptr access
-            if ((flowxx == AE) && n.Eexp)
+            if ((go.flowxx == AE) && n.Eexp)
                 vec_orass(KILL,go.vptrkill);       // kill all other vptr accesses
             break;
 
@@ -1215,7 +1196,7 @@ private void accumaecpx(ref GlobalOptimizer go, elem* n)
 
     /* Do copy propagation stuff first  */
 
-    if (flowxx == CP)
+    if (go.flowxx == CP)
     {
         if (!OTdef(op))                         /* if not def elem      */
             return;
@@ -1274,7 +1255,7 @@ private void accumaecpx(ref GlobalOptimizer go, elem* n)
         {
             assert(t.Eoper == OPvar);
             Symbol* s = t.Vsym;             // idx of var being def'd
-            if (!(s.Sflags & SFLunambig))
+            if (!(s.Sflags & SFLdistinct))
             {
                 vec_orass(KILL,go.starkill);       /* kill all 'starred' refs */
                 vec_subass(GEN,go.starkill);
@@ -1334,9 +1315,9 @@ private void accumaecpx(ref GlobalOptimizer go, elem* n)
  */
 
 @trusted
-void flowlv()
+void flowlv(ref BlockOpt bo)
 {
-    lvgenkill();            /* compute Bgen and Bkill for LVs.      */
+    lvgenkill(bo);            /* compute Bgen and Bkill for LVs.      */
     //assert(globsym.length);  /* should be at least some symbols      */
 
     /* Create a vector of all the variables that are live on exit   */
@@ -1371,9 +1352,9 @@ void flowlv()
         {
             /* Bout = union of Bins of all successors to B. */
             bool first = true;
-            foreach (bl; ListRange(b.Bsucc))
+            foreach (bl; b.Bsucc[])
             {
-                const inlv = list_block(bl).Binlv;
+                const inlv = bl.Binlv;
                 if (first)
                     vec_copy(b.Boutlv, inlv);
                 else
@@ -1423,7 +1404,7 @@ void flowlv()
  */
 
 @trusted
-private void lvgenkill()
+private void lvgenkill(ref BlockOpt bo)
 {
     /* Compute ambigsym, a vector of all variables that could be    */
     /* referenced by a* e or a call.                                */
@@ -1431,7 +1412,7 @@ private void lvgenkill()
     const length = gsym.length;
     vec_t ambigsym = vec_calloc(length);
     foreach (i; 0 .. length)
-        if (!(gsym[i].Sflags & SFLunambig))
+        if (!(gsym[i].Sflags & SFLdistinct))
             vec_setbit(i,ambigsym);
 
     static if (0)
@@ -1672,10 +1653,11 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
  */
 
 @trusted
-void flowvbe(ref GlobalOptimizer go)
+void flowvbe(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    flowxx = VBE;
-    aecpgenkill(go, VBE);   // compute Bgen and Bkill for VBEs
+    if (&go) assert(0);
+    go.flowxx = VBE;
+    aecpgenkill(go, bo);   // compute Bgen and Bkill for VBEs
     if (go.exptop <= 1)     /* if no candidates for VBEs            */
         return;
 
@@ -1720,9 +1702,9 @@ void flowvbe(ref GlobalOptimizer go)
 
             /* Bout = & of Bin of all successors */
             bool first = true;
-            foreach (bl; ListRange(b.Bsucc))
+            foreach (bl; b.Bsucc[])
             {
-                const vin = list_block(bl).Bin;
+                const vin = bl.Bin;
                 if (first)
                     vec_copy(b.Bout, vin);
                 else
@@ -1920,7 +1902,7 @@ private void accumvbe(ref GlobalOptimizer go, vec_t GEN,vec_t KILL,elem* n)
         {
             assert(t.Eoper == OPvar);
             Symbol* s = t.Vsym;  // ptr to var being def'd
-            if (!(s.Sflags & SFLunambig))
+            if (!(s.Sflags & SFLdistinct))
                 vec_orass(KILL,go.starkill);/* kill all 'starred' refs */
             foreach (uint i; 1 .. go.exptop)        // for each vbe elem
             {

@@ -2,7 +2,7 @@
  * Implements LSDA (Language Specific Data Area) table generation
  * for Dwarf Exception Handling.
  *
- * Copyright: Copyright (C) 2015-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 2015-2026 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/dwarfeh.d, backend/dwarfeh.d)
@@ -119,7 +119,7 @@ static if (0)
             DwEhTableEntry* d = deh.push();
             d.start = cast(uint)b.Boffset;
 
-            block* bf = b.nthSucc(1);
+            block* bf = b.Bsucc[1];
             if (bf.bc == BC.jcatch)
             {
                 d.lpad = cast(uint)bf.Boffset;
@@ -138,7 +138,7 @@ static if (0)
                 d.action = offset + 1;
             }
             else
-                d.lpad = cast(uint)bf.nthSucc(0).Boffset;
+                d.lpad = cast(uint)bf.Bsucc[0].Boffset;
             d.prev = index;
             index = i;
             bprev = b.Btry;
@@ -419,7 +419,7 @@ int actionTableInsert(OutBuffer* atbuf, int ttindex, int nextoffset)
  * See_Also:
  *      https://en.wikipedia.org/wiki/LEB128
  */
-private extern(D) uint uLEB128(ref const(ubyte)[] data)
+private uint uLEB128(ref const(ubyte)[] data)
 {
     const(ubyte)* q = data.ptr;
     uint result = 0;
@@ -449,7 +449,7 @@ private extern(D) uint uLEB128(ref const(ubyte)[] data)
  * See_Also:
  *      https://en.wikipedia.org/wiki/LEB128
  */
-private extern(D) int sLEB128(ref const(ubyte)[] data)
+private int sLEB128(ref const(ubyte)[] data)
 {
     const(ubyte)* q = data.ptr;
     ubyte byte_;

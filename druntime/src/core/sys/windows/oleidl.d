@@ -56,9 +56,9 @@ enum DROPEFFECT {
 struct OLEMENUGROUPWIDTHS {
     LONG[6] width;
 }
-alias OLEMENUGROUPWIDTHS* LPOLEMENUGROUPWIDTHS;
+alias LPOLEMENUGROUPWIDTHS = OLEMENUGROUPWIDTHS*;
 
-alias HGLOBAL HOLEMENU;
+alias HOLEMENU = HGLOBAL;
 
 enum OLECLOSE {
     OLECLOSE_SAVEIFDIRTY,
@@ -72,11 +72,11 @@ struct OLEVERB {
     DWORD fuFlags;
     DWORD grfAttribs;
 }
-alias OLEVERB* LPOLEVERB;
+alias LPOLEVERB = OLEVERB*;
 
-alias RECT BORDERWIDTHS;
-alias LPRECT LPBORDERWIDTHS;
-alias LPCRECT LPCBORDERWIDTHS;
+alias BORDERWIDTHS = RECT;
+alias LPBORDERWIDTHS = LPRECT;
+alias LPCBORDERWIDTHS = LPCRECT;
 
 struct OLEINPLACEFRAMEINFO {
     UINT cb;
@@ -85,7 +85,7 @@ struct OLEINPLACEFRAMEINFO {
     HACCEL haccel;
     UINT cAccelEntries;
 }
-alias OLEINPLACEFRAMEINFO* LPOLEINPLACEFRAMEINFO;
+alias LPOLEINPLACEFRAMEINFO = OLEINPLACEFRAMEINFO*;
 
 interface IEnumOLEVERB : IUnknown
 {
@@ -95,19 +95,19 @@ interface IEnumOLEVERB : IUnknown
       HRESULT Clone(IEnumOLEVERB*);
 }
 //alias IEnumOLEVERB IEnumOleVerb;
-alias IEnumOLEVERB LPENUMOLEVERB;
+alias LPENUMOLEVERB = IEnumOLEVERB;
 
 
 interface IParseDisplayName : IUnknown {
     HRESULT ParseDisplayName(IBindCtx,LPOLESTR,ULONG*,IMoniker*);
 }
-alias IParseDisplayName LPPARSEDISPLAYNAME;
+alias LPPARSEDISPLAYNAME = IParseDisplayName;
 
 interface IOleContainer : IParseDisplayName {
     HRESULT EnumObjects(DWORD,IEnumUnknown*);
     HRESULT LockContainer(BOOL);
 }
-alias IOleContainer LPOLECONTAINER;
+alias LPOLECONTAINER = IOleContainer;
 
 interface IOleItemContainer : IOleContainer {
     HRESULT GetObject(LPOLESTR,DWORD,IBindCtx,REFIID,void**);
@@ -124,7 +124,7 @@ interface IOleClientSite : IUnknown {
     HRESULT OnShowWindow(BOOL);
     HRESULT RequestNewObjectLayout();
 }
-alias IOleClientSite LPOLECLIENTSITE;
+alias LPOLECLIENTSITE = IOleClientSite;
 
 interface IOleObject : IUnknown {
     HRESULT SetClientSite(LPOLECLIENTSITE);
@@ -149,13 +149,13 @@ interface IOleObject : IUnknown {
     HRESULT GetMiscStatus(DWORD,PDWORD);
     HRESULT SetColorScheme(LPLOGPALETTE);
 }
-alias IOleObject LPOLEOBJECT;
+alias LPOLEOBJECT = IOleObject;
 
 interface IOleWindow : IUnknown {
     HRESULT GetWindow(HWND*);
     HRESULT ContextSensitiveHelp(BOOL);
 }
-alias IOleWindow LPOLEWINDOW;
+alias LPOLEWINDOW = IOleWindow;
 
 interface IOleInPlaceUIWindow : IOleWindow {
     HRESULT GetBorder(LPRECT);
@@ -163,7 +163,7 @@ interface IOleInPlaceUIWindow : IOleWindow {
     HRESULT SetBorderSpace(LPCBORDERWIDTHS);
     HRESULT SetActiveObject(LPOLEINPLACEACTIVEOBJECT,LPCOLESTR);
 }
-alias IOleInPlaceUIWindow LPOLEINPLACEUIWINDOW;
+alias LPOLEINPLACEUIWINDOW = IOleInPlaceUIWindow;
 
 interface IOleInPlaceObject : IOleWindow {
     HRESULT InPlaceDeactivate();
@@ -180,7 +180,7 @@ interface IOleInPlaceActiveObject : IOleWindow {
     HRESULT ResizeBorder(LPCRECT,LPOLEINPLACEUIWINDOW,BOOL);
     HRESULT EnableModeless(BOOL);
 }
-alias IOleInPlaceActiveObject LPOLEINPLACEACTIVEOBJECT;
+alias LPOLEINPLACEACTIVEOBJECT = IOleInPlaceActiveObject;
 
 interface IOleInPlaceFrame : IOleInPlaceUIWindow {
     HRESULT InsertMenus(HMENU,LPOLEMENUGROUPWIDTHS);
@@ -190,7 +190,7 @@ interface IOleInPlaceFrame : IOleInPlaceUIWindow {
     HRESULT EnableModeless(BOOL);
     HRESULT TranslateAccelerator(LPMSG,WORD);
 }
-alias IOleInPlaceFrame LPOLEINPLACEFRAME;
+alias LPOLEINPLACEFRAME = IOleInPlaceFrame;
 
 interface IOleInPlaceSite  : IOleWindow {
     HRESULT CanInPlaceActivate();
@@ -213,13 +213,13 @@ interface IOleAdviseHolder : IUnknown {
     HRESULT SendOnSave();
     HRESULT SendOnClose();
 }
-alias IOleAdviseHolder LPOLEADVISEHOLDER;
+alias LPOLEADVISEHOLDER = IOleAdviseHolder;
 
 interface IDropSource : IUnknown {
     HRESULT QueryContinueDrag(BOOL,DWORD);
     HRESULT GiveFeedback(DWORD);
 }
-alias IDropSource LPDROPSOURCE;
+alias LPDROPSOURCE = IDropSource;
 
 interface IDropTarget : IUnknown {
     HRESULT DragEnter(LPDATAOBJECT,DWORD,POINTL,PDWORD);
@@ -227,10 +227,10 @@ interface IDropTarget : IUnknown {
     HRESULT DragLeave();
     HRESULT Drop(LPDATAOBJECT,DWORD,POINTL,PDWORD);
 }
-alias IDropTarget LPDROPTARGET;
+alias LPDROPTARGET = IDropTarget;
 
 extern (Windows) {
-    alias BOOL function(ULONG_PTR) __IView_pfncont;
+    alias __IView_pfncont = BOOL function(ULONG_PTR);
 }
 
 interface IViewObject : IUnknown {
@@ -241,12 +241,12 @@ interface IViewObject : IUnknown {
     HRESULT SetAdvise(DWORD,DWORD,IAdviseSink);
     HRESULT GetAdvise(PDWORD,PDWORD,IAdviseSink*);
 }
-alias IViewObject LPVIEWOBJECT;
+alias LPVIEWOBJECT = IViewObject;
 
 interface IViewObject2 : IViewObject {
     HRESULT GetExtent(DWORD,LONG,DVTARGETDEVICE*,LPSIZEL);
 }
-alias IViewObject2 LPVIEWOBJECT2;
+alias LPVIEWOBJECT2 = IViewObject2;
 
 interface IOleCache : IUnknown {
     HRESULT Cache(FORMATETC*,DWORD,DWORD*);
@@ -255,16 +255,16 @@ interface IOleCache : IUnknown {
     HRESULT InitCache(LPDATAOBJECT);
     HRESULT SetData(FORMATETC*,STGMEDIUM*,BOOL);
 }
-alias IOleCache LPOLECACHE;
+alias LPOLECACHE = IOleCache;
 
 interface IOleCache2 : IOleCache {
     HRESULT UpdateCache(LPDATAOBJECT,DWORD,LPVOID);
     HRESULT DiscardCache(DWORD);
 }
-alias IOleCache2 LPOLECACHE2;
+alias LPOLECACHE2 = IOleCache2;
 
 interface IOleCacheControl : IUnknown {
     HRESULT OnRun(LPDATAOBJECT);
     HRESULT OnStop();
 }
-alias IOleCacheControl LPOLECACHECONTROL;
+alias LPOLECACHECONTROL = IOleCacheControl;

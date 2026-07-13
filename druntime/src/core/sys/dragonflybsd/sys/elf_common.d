@@ -60,7 +60,7 @@ enum DT_USED =         0x7ffffffe;
 
 enum DF_1_BIND_NOW =   0x00000001;
 
-alias VER_NDX VER_DEF_IDX;
+alias VER_DEF_IDX = VER_NDX;
 
 enum VER_FLG_INFO =    0x4;
 
@@ -74,7 +74,7 @@ extern (D) pure @safe
 
 enum VER_NEED_WEAK =    32768;
 enum VER_NEED_HIDDEN = VER_NDX_HIDDEN;
-alias VER_NDX VER_NEED_IDX;
+alias VER_NEED_IDX = VER_NDX;
 
 enum VERSYM_HIDDEN =   0x8000;
 enum VERSYM_VERSION =  0x7fff;
