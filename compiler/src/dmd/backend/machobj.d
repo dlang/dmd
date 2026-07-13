@@ -2028,12 +2028,45 @@ int MachObj_comdat(Symbol* s)
     int p2align;
     if (config.target_cpu == TARGET_AArch64 && config.objfmt == OBJ_MACH)
     {
-        /* write out the symbol with an n_desc of N_WEAK_DEF.
+        /* write out the symbol with an n_desc of N_WEAK_DEF
+         * instead of writing into special segments
          */
         if (tyfunc(s.ty()))
         {
             p2align = 2;              // 4 byte alignment
             s.Sseg = cseg;            // functions go into cseg
+        }
+        else if ((s.ty() & mTYLINK) == mTYweakLinkage) // used by Objc
+        {
+            s.Sfl = FL.data;
+            p2align = 4;              // 16 byte alignment
+            MachObj_data_start(s, 1 << p2align, s.Sseg);
+        }
+        else if ((s.ty() & mTYLINK) == mTYthread)
+        {
+            s.Sfl = FL.tlsdata;
+            p2align = 4;
+            MachObj_tlsseg();
+            s.Sseg = machobj.seg_tlsseg;
+            MachObj_data_start(s, 1 << p2align, s.Sseg);
+        }
+        else
+        {
+            s.Sfl = FL.data;
+            p2align = 4;              // 16 byte alignment
+            s.Sseg = DATA;
+            MachObj_data_start(s, 1 << p2align, s.Sseg);
+        }
+    }
+    else
+    {
+        if (tyfunc(s.ty()))
+        {
+            const(char)* sectname = "__textcoal_nt";
+            const(char)* segname = "__TEXT";
+            p2align = 2;              // 4 byte alignment
+            int flags = S_COALESCED | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS;
+            s.Sseg = getsegment2(machobj.seg_textcoal_nt, sectname, segname, p2align, flags);
         }
         else if ((s.ty() & mTYLINK) == mTYweakLinkage)
         {
@@ -2060,42 +2093,6 @@ int MachObj_comdat(Symbol* s)
             s.Sseg = getsegment2(machobj.seg_datacoal_nt, sectname, segname, p2align, S_COALESCED);
             MachObj_data_start(s, 1 << p2align, s.Sseg);
         }
-    }
-    else
-    {
-    if (tyfunc(s.ty()))
-    {
-        const(char)* sectname = "__textcoal_nt";
-        const(char)* segname = "__TEXT";
-        p2align = 2;              // 4 byte alignment
-        int flags = S_COALESCED | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS;
-        s.Sseg = getsegment2(machobj.seg_textcoal_nt, sectname, segname, p2align, flags);
-    }
-    else if ((s.ty() & mTYLINK) == mTYweakLinkage)
-    {
-        s.Sfl = FL.data;
-        p2align = 4;              // 16 byte alignment
-        MachObj_data_start(s, 1 << p2align, s.Sseg);
-    }
-    else if ((s.ty() & mTYLINK) == mTYthread)
-    {
-        s.Sfl = FL.tlsdata;
-        p2align = 4;
-        if (I64)
-            s.Sseg = objmod.tlsseg().SDseg;
-        else
-            s.Sseg = getsegment2(machobj.seg_tlscoal_nt, "__tlscoal_nt", "__DATA", p2align, S_COALESCED);
-        MachObj_data_start(s, 1 << p2align, s.Sseg);
-    }
-    else
-    {
-        s.Sfl = FL.data;
-        const(char)* sectname = "__datacoal_nt";
-        const(char)* segname = "__DATA";
-        p2align = 4;              // 16 byte alignment
-        s.Sseg = getsegment2(machobj.seg_datacoal_nt, sectname, segname, p2align, S_COALESCED);
-        MachObj_data_start(s, 1 << p2align, s.Sseg);
-    }
     }
                                 // find or create new segment
     if (s.Salignment > (1 << p2align))
