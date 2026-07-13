@@ -193,18 +193,16 @@ int cv_namestring(ubyte* p, const(char)* name, int length = -1)
 @trusted
 debtyp_t* debtyp_alloc(uint length)
 {
-    debtyp_t* d;
-    uint pad = 0;
-
     //printf("len = %u, x%x\n", length, length);
     // length+2 must lie on 4 byte boundary
-    pad = ((length + 2 + 3) & ~3) - (length + 2);
+    uint pad = ((length + 2 + 3) & ~3) - (length + 2);
     length += pad;
 
     if (length > ushort.max)
         err_nomem();
 
-    const len = debtyp_t.sizeof - (d.data).sizeof + length;
+    const len = debtyp_t.sizeof - debtyp_t.data.sizeof + length;
+    debtyp_t* d;
 debug
 {
     d = cast(debtyp_t*) mem_malloc(len /*+ 1*/);
@@ -324,8 +322,7 @@ idx_t cv_numdebtypes()
 
 @trusted
 void cv_init()
-{   debtyp_t* d;
-
+{
     //printf("cv_init()\n");
 
     // Initialize statics
@@ -404,12 +401,7 @@ void cv_init()
             cgcv.FD_code = 0x10;
     }
 
-    int flags;
-    __gshared ushort[5] memmodel = [0,0x100,0x20,0x120,0x120];
-    char[1 + (VERSION).sizeof] version_;
-    ubyte[8 + (version_).sizeof] debsym;
-
-    // Put out signature indicating CV4 format
+    // Put out signature indicating CV8 format
     cgcv.signature = 4;
     cgcv.deb_offset = 0x1000;
     cgcv.sz_idx = 4;
@@ -604,29 +596,23 @@ private uint cv4_symtypidx(Symbol* s)
 uint cv4_typidx(type* t)
 {   uint typidx;
     uint u;
-    uint next;
     uint key;
     debtyp_t* d;
     targ_size_t size;
-    tym_t tym;
-    tym_t tycv;
     tym_t tymnext;
     type* tv;
-    uint dt;
-    uint attribute;
-    ubyte call;
 
     //printf("cv4_typidx(%p)\n",t);
     if (!t)
         return dttab4[TYint];           // assume int
     type_debug(t);
-    next = cv4_typidx(t.Tnext);
-    tycv = t.Tty;
-    tym = tybasic(tycv);
+    uint next = cv4_typidx(t.Tnext);
+    tym_t tycv = t.Tty;
+    tym_t tym = tybasic(tycv);
     tycv &= mTYconst | mTYvolatile | mTYimmutable;
-    attribute = 0;
+    uint attribute = 0;
 L1:
-    dt = dttab4[tym];
+    uint dt = dttab4[tym];
     switch (tym)
     {
         case TYllong:
@@ -700,7 +686,7 @@ L1:
                     attribute |= 0x200;
                 tycv = 0;
                 d = debtyp_alloc(10);
-                TOWORD(d.data.ptr,0x1002);
+                TOWORD(d.data.ptr,LF_POINTER_V2);
                 TOLONG(d.data.ptr + 2,next);
                 // see https://github.com/Microsoft/microsoft-pdb/blob/master/include/cvinfo.h#L1514
                 // add size and pointer type (PTR_64 or PTR_NEAR32)
@@ -754,7 +740,7 @@ L1:
                 next = dttab4[TYuchar];   // use ubyte instead
 
             d = debtyp_alloc(10 + u + 1);
-            TOWORD(d.data.ptr,0x1503);
+            TOWORD(d.data.ptr,LF_ARRAY_V3);
             TOLONG(d.data.ptr + 2,next);
             TOLONG(d.data.ptr + 6,idxtype);
             d.data.ptr[10 + u] = 0;             // no name
@@ -776,12 +762,9 @@ L1:
         case TYjfunc:
         case TYifunc:
         {
-            param_t* p;
             uint nparam;
-            idx_t paramidx;
-
-            call = cv4_callconv(t);
-            paramidx = cv4_arglist(t,&nparam);
+            ubyte call = cv4_callconv(t);
+            idx_t paramidx = cv4_arglist(t,&nparam);
 
             // Construct an LF_PROCEDURE
             d = debtyp_alloc(2 + 4 + 1 + 1 + 2 + 4);
@@ -866,7 +849,7 @@ L1:
         modifier = (tycv & (mTYconst | mTYimmutable)) ? 1 : 0;
         modifier |= (tycv & mTYvolatile) ? 2 : 0;
         d = debtyp_alloc(8);
-        TOWORD(d.data.ptr,0x1001);
+        TOWORD(d.data.ptr,LF_MODIFIER_V2);
         TOLONG(d.data.ptr + 2,typidx);
         TOWORD(d.data.ptr + 6,modifier);
         typidx = cv_debtyp(d);

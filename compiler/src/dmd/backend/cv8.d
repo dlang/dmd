@@ -64,70 +64,6 @@ private bool symbol_iscomdat4(Symbol* s)
 // 'fatal error LNK1318: Unexpected PDB error; RPC (23) '(0x000006BA)'
 enum CV8_MAX_SYMBOL_LENGTH = 0xffd8;
 
-// Modern CodeView symbol records not declared in cv4.d
-enum
-{
-    S_OBJNAME_V3 = 0x1101,      // object file name (same value as S_COMPILAND_V3)
-    S_COMPILE3   = 0x113C,      // compile flags, language and compiler version
-    S_ENVBLOCK   = 0x113D,      // build environment block
-    S_BUILDINFO  = 0x114C,      // reference to an LF_BUILDINFO record
-    S_FRAMEPROC  = 0x1012,      // extra frame and procedure information
-    S_REGREL32   = 0x1111,      // register-relative address
-    S_LTHREAD32  = 0x1112,      // thread-local static data (local)
-    S_GTHREAD32  = 0x1113,      // thread-local static data (global)
-    S_LPROC32_ID = 0x1146,      // local procedure (type field is an LF_FUNC_ID)
-    S_GPROC32_ID = 0x1147,      // global procedure (type field is an LF_FUNC_ID)
-}
-
-// Type leaf records used by the ID stream
-enum
-{
-    LF_FUNC_ID   = 0x1601,      // function id: function type + name
-    LF_STRING_ID = 0x1605,      // interned string -> type index
-    LF_BUILDINFO = 0x1603,      // cwd, tool, source, pdb, args
-    LF_UDT_SRC_LINE = 0x1606,   // source file/line where a UDT is defined
-}
-
-// .debug$S subsection kinds
-enum
-{
-    DEBUG_S_SYMBOLS     = 0xF1,
-    DEBUG_S_LINES       = 0xF2,
-    DEBUG_S_STRINGTABLE = 0xF3,
-    DEBUG_S_FILECHKSMS  = 0xF4,
-}
-
-// Source file checksum kinds
-enum
-{
-    CHKSUM_NONE   = 0,
-    CHKSUM_MD5    = 1,
-    CHKSUM_SHA1   = 2,
-    CHKSUM_SHA256 = 3,
-}
-
-// S_FRAMEPROC flags
-enum
-{
-    CV_FRAME_HASALLOCA   = 1 << 0,      // function uses alloca()
-    CV_FRAME_HASINLASM   = 1 << 3,      // function has inline asm
-    CV_FRAME_HASEH       = 1 << 4,      // function has exception handling
-    CV_FRAME_SECURITY    = 1 << 8,      // function has a stack security cookie
-    CV_FRAME_OPTSPEED    = 1 << 20,     // function was optimized for speed
-    CV_FRAME_LOCALBP_RBP = 2 << 14,     // locals addressed relative to RBP/EBP
-    CV_FRAME_PARAMBP_RBP = 2 << 16,     // parameters addressed relative to RBP/EBP
-}
-
-// Mark a line-number entry as a statement (not an expression)
-enum CV_LINE_STATEMENT = 0x80000000;
-
-// CodeView register encodings for base-pointer-relative records
-enum
-{
-    CV_REG_EBP   = 22,          // x86 EBP
-    CV_AMD64_RBP = 334,         // x64 RBP
-}
-
 // The "F1" section, which is the symbols
 private __gshared OutBuffer* F1_buf;
 
@@ -1059,18 +995,6 @@ idx_t cv8_darray(type* t, idx_t etypidx)
      *    }
      */
 
-static if (0)
-{
-    d = debtyp_alloc(18);
-    TOWORD(d.data.ptr, 0x100F);
-    TOWORD(d.data.ptr + 2, OEM);
-    TOWORD(d.data.ptr + 4, 1);     // 1 = dynamic array
-    TOLONG(d.data.ptr + 6, 2);     // count of type indices to follow
-    TOLONG(d.data.ptr + 10, 0x23); // index type, T_UQUAD
-    TOLONG(d.data.ptr + 14, next); // element type
-    return cv_debtyp(d);
-}
-
     type* tp = type_pointer(t.Tnext);
     idx_t ptridx = cv4_typidx(tp);
     type_free(tp);
@@ -1169,18 +1093,6 @@ idx_t cv8_ddelegate(type* t, idx_t functypidx)
     idx_t ptridx = cv4_typidx(tp);
     type_free(tp);
 
-static if (0)
-{
-    debtyp_t* d = debtyp_alloc(18);
-    TOWORD(d.data.ptr, 0x100F);
-    TOWORD(d.data.ptr + 2, OEM);
-    TOWORD(d.data.ptr + 4, 3);     // 3 = delegate
-    TOLONG(d.data.ptr + 6, 2);     // count of type indices to follow
-    TOLONG(d.data.ptr + 10, key);  // void* type
-    TOLONG(d.data.ptr + 14, functypidx); // function type
-}
-else
-{
     __gshared const ubyte[38] fl =
     [
         0x03, 0x12,             // LF_FIELDLIST_V2
@@ -1220,7 +1132,7 @@ else
     TOWORD(d.data.ptr + 18, 2 * _tysize[TYnptr]);   // size
     memcpy(d.data.ptr + 20, id, idlen);
     d.data.ptr[20 + idlen] = 0;
-}
+
     return cv_debtyp(d);
 }
 
@@ -1243,18 +1155,6 @@ idx_t cv8_daarray(type* t, idx_t keyidx, idx_t validx)
      *    }
      */
 
-static if (0)
-{
-    debtyp_t* d = debtyp_alloc(18);
-    TOWORD(d.data.ptr, 0x100F);
-    TOWORD(d.data.ptr + 2, OEM);
-    TOWORD(d.data.ptr + 4, 2);     // 2 = associative array
-    TOLONG(d.data.ptr + 6, 2);     // count of type indices to follow
-    TOLONG(d.data.ptr + 10, keyidx);  // key type
-    TOLONG(d.data.ptr + 14, validx);  // element type
-}
-else
-{
     type* tv = type_fake(TYnptr);
     tv.Tcount++;
     idx_t pvidx = cv4_typidx(tv);
@@ -1304,7 +1204,6 @@ else
     memcpy(d.data.ptr + 20, id, idlen);
     d.data.ptr[20 + idlen] = 0;
 
-}
     return cv_debtyp(d);
 }
 

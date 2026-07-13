@@ -110,7 +110,7 @@ uint cv4_memfunctypidx(FuncDeclaration fd)
 
     debtyp_t* d = debtyp_alloc(26);
     ubyte* p = &d.data[0];
-    TOWORD(p,0x1009);
+    TOWORD(p,LF_MFUNCTION_V2);
     TOLONG(p + 2,cv4_typidx(t.Tnext));
     TOLONG(p + 6,cv4_typidx(Type_toCtype(ad.type)));
     TOLONG(p + 10,thisidx);
@@ -302,11 +302,8 @@ struct CvFieldList
     const uint fieldLenMax;
     const uint fieldIndexLen;
 
-    const bool canSplitList;
-
     this(uint fields, uint len) scope
     {
-        canSplitList = true; // optlink bails out with LF_INDEX
         fieldIndexLen = 2 + 2 + 4;
         fieldLenMax = CV8_NAMELENMAX - fieldIndexLen;
 
@@ -363,8 +360,7 @@ struct CvFieldList
     idx_t debtyp()
     {
         idx_t typidx;
-        auto numCreate = canSplitList ? fieldLists.length : 1;
-        for(auto i = numCreate; i > 0; --i)
+        for(auto i = fieldLists.length; i > 0; --i)
         {
             auto fld = &fieldLists[i - 1];
             if (typidx)
