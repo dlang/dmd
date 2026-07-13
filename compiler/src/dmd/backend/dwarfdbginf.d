@@ -84,7 +84,6 @@ static if (1)
 
     import dmd.common.outbuffer;
 
-
     nothrow:
     private:
 
@@ -654,19 +653,26 @@ static if (1)
          */
 
         const bool AArch64 = AArch64();
+        const bool AppleAArch64 = AArch64 && config.objfmt == OBJ_MACH;
+
         const uint startsize = cast(uint)buf.length();
 
         // Length of CIE, not including padding
-        const uint cielen = 4 + 4 + 1 +  // (length of CIE) + (CIE ID) + (version_)
+        uint cielen = 4 + 4 + 1 +        // (length of CIE) + (CIE ID) + (version_)
             (ehunwind ? 5 : 3) +         // "zPLR"0 : "zR"0
             1 + 1 + 1 +                  // (code alignment factor) + (data alignment factor) + (return address register)
-            (ehunwind ? 8 : 2) +         // (1:Augmentation Length) +
-                                         // (1:personality pointer encoding) +
-                                         // (4:personality pointer reference) +
-                                         // (1:address encoding for LSDA) +
-                                         // (1:encoding of addresses in FDE)
-                                         //  : (1:Augmentation Length) + (1:encoding of addresses in FDE)
-            (AArch64 ? 3 : 5);
+            (ehunwind ? 8 : 2) +         //   (1:Augmentation Length) +
+                                         // P (1:personality pointer encoding) +
+                                         // L (4:LSDA pointer reference) +
+                                         // L (1:address encoding for LSDA) +
+                                         // R (1:encoding of addresses in FDE)
+                                         // : (1:Augmentation Length) +
+                                         //   (1:encoding of addresses in FDE)
+            (AArch64 ? 3 : 5);           // CFA beginning state
+        if (AppleAArch64 && ehunwind)
+        {
+            cielen -= /* L */ 1 + /* L */ (4 + 1);
+        }
 
         const uint pad = -cielen & (AArch64 ? 3 : (I64 ? 7 : 3));  // pad to addressing unit size boundary
         const uint length = cielen + pad - 4;
@@ -676,7 +682,12 @@ static if (1)
         buf.write32(0);            // CIE ID
         buf.writeByten(1);         // version_
         if (ehunwind)
-            buf.write("zPLR".ptr, 5);  // Augmentation String
+        {
+            if (AppleAArch64)
+                buf.write("zPR".ptr, 4);   // Augmentation String
+            else
+                buf.write("zPLR".ptr, 5);  // Augmentation String
+        }
         else
             buf.writen("zR".ptr, 3);
         // not present: EH Data: 4 bytes for I32, 8 bytes for I64
@@ -714,18 +725,27 @@ static if (1)
                     address_pointer_encoding = DW_EH_PE_pcrel | DW_EH_PE_ptr;
                 }
             }
-            buf.writeByten(7);                                  // Augmentation Length
-            buf.writeByten(personality_pointer_encoding);       // P: personality routine address encoding
-            /* MACHOBJ 64: pcrel 1 length 2 extern 1 RELOC_GOT
-             *         32: [4] address x0013 pcrel 0 length 2 value xfc type 4 RELOC_LOCAL_SECTDIFF
-             *             [5] address x0000 pcrel 0 length 2 value xc7 type 1 RELOC_PAIR
-             */
-            if (config.objfmt == OBJ_ELF)
-                elf_dwarf_reftoident(dfseg, buf.length(), personality, 0);
+            if (AppleAArch64)
+            {
+                buf.writeByten(2);                                  // Augmentation Length
+                buf.writeByten(personality_pointer_encoding);       // P: personality routine address encoding
+                buf.writeByten(address_pointer_encoding);           // R: encoding of addresses in FDE
+            }
             else
-                mach_dwarf_reftoident(dfseg, buf.length(), personality, 0);
-            buf.writeByten(LSDA_pointer_encoding);              // L: address encoding for LSDA in FDE
-            buf.writeByten(address_pointer_encoding);           // R: encoding of addresses in FDE
+            {
+                buf.writeByten(7);                                  // Augmentation Length
+                buf.writeByten(personality_pointer_encoding);       // P: personality routine address encoding
+                /* MACHOBJ 64: pcrel 1 length 2 extern 1 RELOC_GOT
+                 *         32: [4] address x0013 pcrel 0 length 2 value xfc type 4 RELOC_LOCAL_SECTDIFF
+                 *             [5] address x0000 pcrel 0 length 2 value xc7 type 1 RELOC_PAIR
+                 */
+                if (config.objfmt == OBJ_ELF)
+                    elf_dwarf_reftoident(dfseg, buf.length(), personality, 0);
+                else
+                    mach_dwarf_reftoident(dfseg, buf.length(), personality, 0);
+                buf.writeByten(LSDA_pointer_encoding);              // L: address encoding for LSDA in FDE
+                buf.writeByten(address_pointer_encoding);           // R: encoding of addresses in FDE
+            }
         }
         else
         {
