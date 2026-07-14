@@ -987,8 +987,10 @@ in (fn)
         //
         // Spilling has to be done somehow else.
 
-        import ldc.intrinsics : llvm_stackaddress;
-        sp = llvm_stackaddress();
+        import ldc.intrinsics;
+
+        static if (LLVM_major >= 22) sp = llvm_stackaddress();
+        else sp = llvm_stacksave();
     }
     else
     {
