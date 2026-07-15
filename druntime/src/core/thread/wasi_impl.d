@@ -24,8 +24,12 @@ version (WASI):
 // No real threading support
 // Just manipulations of the main "thread"
 
-import core.stdc.errno : EINTR, errno;
-import core.sys.wasi.posix.time : nanosleep, timespec;
+version (WASIp1) {
+    import core.sys.wasi.p1 : ClockID, schedYield, Subscription, SubscriptionClock, pollOneOff, Event;
+} else {
+    import core.stdc.errno : EINTR, errno;
+    import core.sys.wasi.posix.time : nanosleep, timespec;
+}
 
 version (CoreDdoc) {} else
 class Thread : ThreadBase
@@ -135,24 +139,40 @@ class Thread : ThreadBase
     }
     do
     {
-        timespec tin  = void;
-        timespec tout = void;
+        version (WASIp1) {
+            Subscription sub;
+            sub.u.tag = Subscription.u.Tag.clock;
+            sub.u.clock.id = ClockID.monotonic;
+            sub.u.clock.timeout = val.total!"nsecs";
 
-        val.split!("seconds", "nsecs")(tin.tv_sec, tin.tv_nsec);
-        if ( val.total!"seconds" > tin.tv_sec.max )
-            tin.tv_sec  = tin.tv_sec.max;
-        while ( true )
-        {
-            if ( !nanosleep( &tin, &tout ) )
-                return;
-            if ( errno != EINTR )
-                assert(0, "Unable to sleep for the specified duration");
-            tin = tout;
+            size_t numEvents;
+            Event event;
+            auto err = pollOneOff((&sub)[0..1], (&event)[0..1], numEvents);
+            if (err || event.error) assert(0, "Unable to sleep for the specified duration");
+
+            return;
+        } else {
+            // fall back to emulated POSIX
+            timespec tin  = void;
+            timespec tout = void;
+
+            val.split!("seconds", "nsecs")(tin.tv_sec, tin.tv_nsec);
+            if ( val.total!"seconds" > tin.tv_sec.max )
+                tin.tv_sec  = tin.tv_sec.max;
+            while ( true )
+            {
+                if ( !nanosleep( &tin, &tout ) )
+                    return;
+                if ( errno != EINTR )
+                    assert(0, "Unable to sleep for the specified duration");
+                tin = tout;
+            }
         }
     }
 
     static void yield() @nogc nothrow
     {
-        // do nothing
+        version (WASIp1) schedYield();
+        // else do nothing
     }
 }

@@ -42,31 +42,16 @@ void abort(scope string msg, scope string filename = __FILE__, size_t line = __L
         }
     }
     else version (WASIp1) {
-        // currently depends on wasi-libc being linked in to provide these "syscalls"
-        // TODO: detach this from wasi-libc
-        alias ushort __wasi_errno_t;
-        alias int __wasi_fd_t;
-        alias size_t __wasi_size_t;
-
-        extern(C) struct __wasi_ciovec_t {
-            const(ubyte)* buf;
-            __wasi_size_t buf_len;
-        }
-
-        pragma(mangle, "__wasi_fd_write")
-        extern(C) static __wasi_errno_t
-        __wasi_fd_write(__wasi_fd_t fd,
-                        const __wasi_ciovec_t *iovs,
-                        size_t iovs_len, __wasi_size_t *retptr0) @nogc nothrow;
+        import core.sys.wasi.p1 : CIOVec, fdWrite;
 
         static void writeStr(scope const(char)[][] m...) @nogc nothrow @trusted
         {
             foreach (s; m) {
-                __wasi_ciovec_t iovec;
-                __wasi_size_t ret;
-                iovec.buf = cast(const(ubyte)*)s.ptr;
-                iovec.buf_len = s.length;
-                cast(void)__wasi_fd_write(2, &iovec, 1, &ret);
+                CIOVec[1] iovecs;
+                size_t bytesWritten;
+                iovecs[0].buf = cast(const(ubyte)*)s.ptr;
+                iovecs[0].bufLen = s.length;
+                cast(void)fdWrite(2, iovecs[], bytesWritten);
             }
         }
     } else version (WASIp2) {

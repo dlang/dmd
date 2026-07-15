@@ -92,7 +92,11 @@ else version (Posix)
     import core.sys.posix.sys.time : gettimeofday, timeval;
     import core.sys.posix.time : clock_getres, clock_gettime, CLOCK_MONOTONIC, timespec;
 }
-else version (WASI)
+else version (WASIp1)
+{
+    import core.sys.wasi.p1 : Errno, Timestamp, clockResGet, clockTimeGet, ClockID;
+}
+else version (WASIp2)
 {
     import core.sys.wasi.posix.time : clock_getres, clock_gettime, CLOCK_MONOTONIC, timespec;
 }
@@ -352,7 +356,16 @@ else version (Hurd) enum ClockType
     // threadCPUTime = 7,
 
 }
-else version (WASI) enum ClockType
+else version (WASIp1) enum ClockType
+{
+    normal = 0,
+    coarse = 2,
+    precise = 3,
+    processCPUTime = 4,
+    second = 6,
+    threadCPUTime = 7,
+}
+else version (WASIp2) enum ClockType
 {
     normal = 0,
     coarse = 2,
@@ -482,7 +495,7 @@ version (Posix)
     }
 }
 else
-version (WASI)
+version (WASIp2)
 {
     private auto _posixClock(ClockType clockType)
     {
@@ -493,6 +506,22 @@ version (WASI)
             case normal: return CLOCK_MONOTONIC;
             case precise: return CLOCK_MONOTONIC;
             case second: assert(0);
+        }
+    }
+}
+
+version (WASIp1)
+{
+    private auto _wasiClock(ClockType clockType)
+    {
+        with(ClockType) final switch (clockType)
+        {
+            case coarse: return ClockID.monotonic;
+            case normal: return ClockID.monotonic;
+            case precise: return ClockID.monotonic;
+            case processCPUTime: return ClockID.processCPUTimeID;
+            case second: assert(0);
+            case threadCPUTime: return ClockID.threadCPUTimeID;
         }
     }
 }
@@ -2183,7 +2212,11 @@ struct MonoTimeImpl(ClockType clockType)
     {
         enum clockArg = _posixClock(clockType);
     }
-    else version (WASI)
+    else version (WASIp1)
+    {
+        enum clockArg = _wasiClock(clockType);
+    }
+    else version (WASIp2)
     {
         enum clockArg = _posixClock(clockType);
     }
@@ -2252,7 +2285,18 @@ struct MonoTimeImpl(ClockType clockType)
                                               1_000_000_000L,
                                               ticksPerSecond));
         }
-        else version (WASI)
+        else version (WASIp1)
+        {
+            Timestamp ts = void;
+            immutable error = clockTimeGet(clockArg, 1, ts);
+            if (error)
+            {
+                import core.internal.abort : abort;
+                abort("Call to clockTimeGet failed.");
+            }
+            return MonoTimeImpl(convClockFreq(ts, 1_000_000_000L, ticksPerSecond));
+        }
+        else version (WASIp2)
         {
             timespec ts = void;
             immutable error = clock_gettime(clockArg, &ts);
@@ -2665,7 +2709,27 @@ extern(C) void _d_initMonoTime() @nogc nothrow
             }
         }
     }
-    else version (WASI)
+    else version (WASIp1)
+    {
+        Timestamp ts;
+        foreach (i, typeStr; __traits(allMembers, ClockType))
+        {
+            static if (typeStr != "second")
+            {
+                enum clockArg = _wasiClock(__traits(getMember, ClockType, typeStr));
+                if (clockResGet(clockArg, ts) == Errno.success)
+                {
+                    // ensure we are only writing immutable data once
+                    if (tps[i] != 0)
+                        // should only be called once
+                        assert(0);
+
+                    tps[i] = 1_000_000_000L / ts;
+                }
+            }
+        }
+    }
+    else version (WASIp2)
     {
         timespec ts;
         foreach (i, typeStr; __traits(allMembers, ClockType))
@@ -2994,7 +3058,18 @@ deprecated:
             else
                 ticksPerSec = 1_000_000;
         }
-        else version (WASI)
+        else version (WASIp1)
+        {
+            Timestamp ts;
+
+            if (clockResGet(ClockID.monotonic, ts) != Errno.success)
+                ticksPerSec = 0;
+            else
+            {
+                ticksPerSec = 1_000_000_000 / ts;
+            }
+        }
+        else version (WASIp2)
         {
             timespec ts;
 
@@ -3580,7 +3655,19 @@ deprecated:
                                     tv.tv_usec * TickDuration.ticksPerSec / 1000 / 1000);
             }
         }
-        else version (WASI)
+        else version (WASIp1)
+        {
+            Timestamp ts = void;
+            immutable error = clockTimeGet(ClockID.monotonic, 1, ts);
+
+            if (error)
+            {
+                import core.internal.abort : abort;
+                abort("Call to clockTimeGet failed.");
+            }
+            return TickDuration(ts * TickDuration.ticksPerSec / 1_000_000_000);
+        }
+        else version (WASIp2)
         {
             timespec ts = void;
             immutable error = clock_gettime(CLOCK_MONOTONIC, &ts);
