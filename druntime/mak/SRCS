@@ -57,6 +57,7 @@ SRCS=\
 	src\core\internal\array\capacity.d \
 	src\core\internal\array\concatenation.d \
 	src\core\internal\array\duplication.d \
+	src\core\internal\array\iteration.d \
 	src\core\internal\array\operations.d \
 	src\core\internal\array\utils.d \
 	\
@@ -569,8 +570,6 @@ SRCS=\
 	src\core\thread\context.d \
 	src\core\thread\package.d \
 	\
-	src\rt\aApply.d \
-	src\rt\aApplyR.d \
 	src\rt\alloca.d \
 	src\rt\arraycat.d \
 	src\rt\cmath2.d \
