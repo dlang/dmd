@@ -3644,7 +3644,9 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         //printf("ThrowStatement::semantic()\n");
         if (throwSemantic(ts.loc, ts.exp, sc))
         {
-            sc.ctorflow.orCSX(CSX.halt);
+            // internal rethrows shouldn't halt ctor flow
+            if (!ts.internalThrow)
+                sc.ctorflow.orCSX(CSX.halt);
             result = ts;
         }
         else
