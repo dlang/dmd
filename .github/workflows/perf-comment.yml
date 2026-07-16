@@ -1,0 +1,40 @@
+name: perf-comment
+
+# perf.yml only gets a read-only token on fork PRs, so it can't comment there.
+# This runs after it with write access and just posts the results it uploaded.
+on:
+  workflow_run:
+    workflows: [perf]
+    types: [completed]
+
+concurrency:
+  group: perf-comment-${{ github.event.workflow_run.id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  comment:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+
+      - name: Download results
+        uses: actions/download-artifact@v4
+        with:
+          name: perf-results
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Post sticky PR comment
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: python3 .github/scripts/perf_comment.py results.json

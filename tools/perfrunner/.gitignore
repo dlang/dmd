@@ -1,0 +1,7 @@
+.dub/
+perfrunner
+perfrunner.exe
+*-test-*
+*.o
+*.obj
+results.json

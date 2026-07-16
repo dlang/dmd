@@ -1,0 +1,122 @@
+name: perf
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'spec/**'
+      - 'changelog/**'
+      - '**/*.md'
+  push:
+    branches: [master]
+
+concurrency:
+  group: perf-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      OS_NAME: linux
+      MODEL: 64
+      FULL_BUILD: false
+      HOST_DMD: ldc-1.42.0
+      ENABLE_LTO: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set parallelism
+        run: echo "N=$(nproc)" >> "$GITHUB_ENV"
+
+      - name: Compute base/head SHAs
+        id: refs
+        run: |
+          set -uexo pipefail
+          HEAD_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          git fetch --no-tags origin master
+          BASE_SHA="$(git merge-base "$HEAD_SHA" origin/master)"
+          echo "head=$HEAD_SHA"     >> "$GITHUB_OUTPUT"
+          echo "base=$BASE_SHA"     >> "$GITHUB_OUTPUT"
+          echo "branch=${GITHUB_BASE_REF:-master}" >> "$GITHUB_OUTPUT"
+
+      - name: Install prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y valgrind time
+          valgrind --version
+
+      - name: Install host compiler
+        run: |
+          ci/run.sh install_host_compiler
+          source ~/dlang/*/activate
+          which ldc-profdata
+          deactivate
+
+      - name: Build dmd at base and head
+        run: |
+          set -uexo pipefail
+          source ~/dlang/*/activate
+          built=generated/$OS_NAME/release/$MODEL
+          profile="$RUNNER_TEMP/pgo/merged.data"
+          mkdir -p "$RUNNER_TEMP/pgo"
+
+          # Check out a ref and build a plain dmd + phobos
+          setup_ref() {
+            local dir="$RUNNER_TEMP/$2/dmd"
+            mkdir -p "$RUNNER_TEMP/$2"
+            git worktree add --force "$dir" "$1"
+            ( cd "$dir" && ci/run.sh setup_repos "${{ steps.refs.outputs.branch }}" )
+            ( cd "$dir" && $DMD -of=generated/build -g compiler/src/build.d )
+            ( cd "$dir" && generated/build HOST_DMD=$DMD MODEL=$MODEL -j$N )
+            ( cd "$dir/../phobos" && make -j$N MODEL=$MODEL )
+          }
+
+          # Rebuild dmd against the shared profile so that base and head got identical PGO guidance.
+          build_with_profile() {
+            local dir="$RUNNER_TEMP/$1/dmd"
+            ( cd "$dir" && generated/build HOST_DMD=$DMD MODEL=$MODEL \
+                ENABLE_RELEASE=1 ENABLE_LTO=1 \
+                DFLAGS="-fprofile-instr-use=$profile -wi" -j$N --force )
+          }
+
+          setup_ref "${{ steps.refs.outputs.base }}" base
+          setup_ref "${{ steps.refs.outputs.head }}" head
+
+          # Train PGO once, then reuse the profile for both refs.
+          ( cd "$RUNNER_TEMP/base/dmd" && generated/build HOST_DMD=$DMD MODEL=$MODEL dmd-pgo -j$N --force )
+          cp "$RUNNER_TEMP/base/dmd/$built/dmd_profdata/merged.data" "$profile"
+          build_with_profile base
+          build_with_profile head
+          deactivate
+
+      - name: Measure
+        run: |
+          set -uexo pipefail
+          source ~/dlang/*/activate
+          built=generated/$OS_NAME/release/$MODEL/dmd
+          cd tools/perfrunner
+          dub run -- \
+            --base-dmd "$RUNNER_TEMP/base/dmd/$built" \
+            --head-dmd "$RUNNER_TEMP/head/dmd/$built" \
+            --base-sha "${{ steps.refs.outputs.base }}" \
+            --head-sha "${{ steps.refs.outputs.head }}" \
+            --pr "${{ github.event.pull_request.number || 0 }}" \
+            --host-dmd "$HOST_DMD" \
+            --out "$GITHUB_WORKSPACE/results.json"
+
+      # perf-comment.yml picks this up and posts the comment.
+      - name: Upload results
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-results
+          path: results.json
