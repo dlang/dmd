@@ -24,11 +24,13 @@ version (WASI):
 // No real threading support
 // Just manipulations of the main "thread"
 
-version (WASIp1) {
+version (WASIp1)
+{
     import core.sys.wasi.p1 : ClockID, schedYield, Subscription, SubscriptionClock, pollOneOff, Event;
-} else {
-    import core.stdc.errno : EINTR, errno;
-    import core.sys.wasi.posix.time : nanosleep, timespec;
+}
+else version (WASIp2)
+{
+    import core.sys.wasi.p2.clocks.monotonic_clock.imports : subscribeDuration;
 }
 
 version (CoreDdoc) {} else
@@ -151,22 +153,13 @@ class Thread : ThreadBase
             if (err || event.error) assert(0, "Unable to sleep for the specified duration");
 
             return;
-        } else {
-            // fall back to emulated POSIX
-            timespec tin  = void;
-            timespec tout = void;
+        }
+        else version (WASIp2)
+        {
+            auto pollable = subscribeDuration(val.total!"nsecs");
+            scope(exit) pollable.drop();
 
-            val.split!("seconds", "nsecs")(tin.tv_sec, tin.tv_nsec);
-            if ( val.total!"seconds" > tin.tv_sec.max )
-                tin.tv_sec  = tin.tv_sec.max;
-            while ( true )
-            {
-                if ( !nanosleep( &tin, &tout ) )
-                    return;
-                if ( errno != EINTR )
-                    assert(0, "Unable to sleep for the specified duration");
-                tin = tout;
-            }
+            pollable.block();
         }
     }
 
