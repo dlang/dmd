@@ -979,19 +979,6 @@ in (fn)
         }
         assert(0, "implement AArch64 inline assembler for callWithStackShell()"); // TODO AArch64
     }
-    else version (WebAssembly)
-    {
-        // Wasm is special in that this isn't really possible
-        // to dump "registers" (Wasm locals & value stack) onto
-        // the linear-memory "C" stack easily.
-        //
-        // Spilling has to be done somehow else.
-
-        import ldc.intrinsics;
-
-        static if (LLVM_major >= 22) sp = llvm_stackaddress();
-        else sp = llvm_stacksave();
-    }
     else
     {
         static assert(false, "Architecture not supported.");
