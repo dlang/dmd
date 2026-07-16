@@ -1556,6 +1556,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
              */
             Identifier id = Identifier.generateId("__o");
             auto ts = new ThrowStatement(ctor.loc, new IdentifierExp(ctor.loc, id));
+            ts.internalThrow = true; // just rethrows the caught exception
             auto handler = new CompoundStatement(ctor.loc, ss, ts);
 
             auto ctch = new Catch(ctor.loc, getException(), id, handler);
