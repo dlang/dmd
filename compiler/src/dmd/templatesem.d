@@ -6688,9 +6688,9 @@ private MATCH deduceParentInstance(Scope* sc, Dsymbol sym, TypeInstance tpi,
     if (!tparent)
         return MATCH.nomatch;
 
-    tpi.idents.length--;
+    tpi.idents.pop();
     auto m = deduceType(tparent, sc, tpi, parameters, dedtypes, wm);
-    tpi.idents.length++;
+    tpi.idents.push(id);
     return m;
 }
 
