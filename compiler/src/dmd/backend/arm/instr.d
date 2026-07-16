@@ -218,6 +218,8 @@ struct INSTR
     /* If instruction is compatible with PAGEOFF12 fixups */
     static bool isPAGEOFF12(uint op) { return (op & 0x7F80_0000) == 0x1100_0000 ||
                                               (op & 0xBFC0_0000) == 0xB940_0000; } // ldr_imm_gen
+    //static bool isPAGEOFF12(uint op) { return (op & 0x3B00_0000) == 0x3900_0000 ||
+    //                                          (op & 0x11C0_0000) == 0x1100_0000; }
 
     /* subtract (immediate)
      * SUB Rd,Rn,#imm,shift
@@ -490,7 +492,8 @@ struct INSTR
     static uint bl(uint imm26) { return branch_imm(1, imm26); }
 
     /* return true if instruction is a BL suitable for BRANCHY26 fixup */
-    static bool isBRANCHY26(uint op) { return (op & 0x7C00_0000) == 0x1400_0000; }
+    static bool isBRANCHY26(uint op) { return (op & 0xFC00_0000) == 0x1400_0000 ||
+                                              (op & 0xFC00_0000) == 0x9400_0000; }
 
     /* RET Xn
      * https://www.scs.stanford.edu/~zyedidia/arm64/ret.html

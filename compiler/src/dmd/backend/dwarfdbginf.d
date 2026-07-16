@@ -172,14 +172,21 @@ static if (1)
             assert(0);
     }
 
-    int dwarf_eh_frame_alloc()
+    /*****************
+     * Returns the eh_frame segment number, create segment if necessary.
+     * Returns:
+     *	segment index of eh_frame
+     */
+    IDXSEC dwarf_eh_frame_alloc()
     {
         if (config.objfmt == OBJ_ELF)
             return dwarf_getsegment_alloc(".eh_frame", null, I64 ? 2 : 1);
         if (config.objfmt == OBJ_MACH)
         {
-            int seg = getsegment2(eh_frame_seg, "__eh_frame", "__TEXT", I64 ? 3 : 2,
-                S_COALESCED | S_ATTR_NO_TOC | S_ATTR_STRIP_STATIC_SYMS | S_ATTR_LIVE_SUPPORT);
+            int flags = S_COALESCED | S_ATTR_NO_TOC | S_ATTR_STRIP_STATIC_SYMS | S_ATTR_LIVE_SUPPORT;
+            if (AArch64())
+                flags = S_REGULAR | S_ATTR_NO_DEAD_STRIP;
+            int seg = getsegment2(eh_frame_seg, "__eh_frame", "__TEXT", I64 ? 3 : 2, flags);
             /* Generate symbol for it to use for fixups
              */
             if (!eh_frame_sym)
