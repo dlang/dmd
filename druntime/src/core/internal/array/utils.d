@@ -24,7 +24,7 @@ auto gcStatsPure() nothrow pure
 version (D_ProfileGC)
 {
     import core.internal.traits : externDFunc;
-    alias accumulatePure = externDFunc!("rt.profilegc.accumulatePure", void function(string file, uint line, string funcname, string name, ulong size) @nogc nothrow pure);
+    alias accumulatePure = externDFunc!("rt.profilegc.accumulatePure", ulong function(string file, uint line, string funcname, string name, ulong size) @nogc nothrow pure);
 
     /**
      * TraceGC wrapper generator around the runtime hook `Hook`.
