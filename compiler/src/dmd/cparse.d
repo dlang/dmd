@@ -3289,8 +3289,13 @@ final class CParser(AST) : Parser!AST
     }
 
     /***********************************
-     * C11 6.7.10
+     * C11 6.7.10 / C23 6.7.12
      * _Static_assert ( constant-expression , string-literal ) ;
+     * _Static_assert ( constant-expression ) ;
+     *
+     * C23 makes the message operand optional. Accepting the single-argument
+     * form cannot change the meaning of any valid C11 program, so it is
+     * enabled unconditionally.
      */
     private AST.StaticAssert cparseStaticAssert()
     {
@@ -3300,13 +3305,22 @@ final class CParser(AST) : Parser!AST
         nextToken();
         check(TOK.leftParenthesis);
         auto exp = cparseConstantExp();
-        check(TOK.comma);
-        if (token.value != TOK.string_)
-            error("string literal expected");
-        auto msg = cparsePrimaryExp();
+        if (token.value == TOK.comma) // C23 6.7.12
+        {
+            nextToken();
+            if (token.value != TOK.string_)
+                error("string literal expected");
+            auto msg = cparsePrimaryExp();
+            check(TOK.rightParenthesis);
+            check(TOK.semicolon);
+            return new AST.StaticAssert(loc, exp, msg);
+        }
         check(TOK.rightParenthesis);
         check(TOK.semicolon);
-        return new AST.StaticAssert(loc, exp, msg);
+        // Use the Expressions* overload so a missing message stays null
+        // rather than a one-element array of null (matches D's parseStaticAssert).
+        AST.Expressions* msgs = null;
+        return new AST.StaticAssert(loc, exp, msgs);
     }
 
     /*************************
