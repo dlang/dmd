@@ -21,23 +21,11 @@ auto gcStatsPure() nothrow pure
     return impureBypass();
 }
 
-ulong accumulatePure(string file, int line, string funcname, string name, ulong size) nothrow pure
-{
-    static ulong impureBypass(string file, int line, string funcname, string name, ulong size) @nogc nothrow
-    {
-        import core.internal.traits : externDFunc;
-
-        alias accumulate = externDFunc!("rt.profilegc.accumulate", void function(string file, uint line, string funcname, string type, ulong sz) @nogc nothrow);
-        accumulate(file, line, funcname, name, size);
-        return size;
-    }
-
-    auto func = cast(ulong function(string file, int line, string funcname, string name, ulong size) @nogc nothrow pure)&impureBypass;
-    return func(file, line, funcname, name, size);
-}
-
 version (D_ProfileGC)
 {
+    import core.internal.traits : externDFunc;
+    alias accumulatePure = externDFunc!("rt.profilegc.accumulatePure", void function(string file, uint line, string funcname, string name, ulong size) @nogc nothrow pure);
+
     /**
      * TraceGC wrapper generator around the runtime hook `Hook`.
      * Params:

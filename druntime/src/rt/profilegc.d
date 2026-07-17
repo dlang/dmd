@@ -89,6 +89,18 @@ public void accumulate(string file, uint line, string funcname, string type, ulo
     }
 }
 
+public ulong accumulatePure(string file, int line, string funcname, string name, ulong size) nothrow pure
+{
+    static ulong impureBypass(string file, int line, string funcname, string name, ulong size) @nogc nothrow
+    {
+        accumulate(file, line, funcname, name, size);
+        return size;
+    }
+
+    auto func = cast(ulong function(string file, int line, string funcname, string name, ulong size) @nogc nothrow pure)&impureBypass;
+    return func(file, line, funcname, name, size);
+}
+
 // Merge thread local newCounts into globalNewCounts
 static ~this()
 {
