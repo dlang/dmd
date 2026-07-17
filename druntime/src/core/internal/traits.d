@@ -147,24 +147,17 @@ template externDFunc(string fqn, T:FT*, FT) if (is(FT == function))
     static if (is(FT RT == return) && is(FT Args == function))
     {
         import core.demangle : mangleFunc;
-
-        // We can't do this with a CTFE lambda because we need
-        // to avoid triggering runtime hooks (specifically -profile-gc)
-        // allocation hooks; due to the array appending
-        enum initial = "extern(D) RT externDFunc(Args)";
-        alias decl = initial;
-        static foreach (attr; __traits(getFunctionAttributes, FT))
-            decl = strConcat!(decl, " " ~ attr);
-        decl = strConcat!(decl, ";");
-
+        enum decl = {
+            string s = "extern(D) RT externDFunc(Args)";
+            foreach (attr; __traits(getFunctionAttributes, FT))
+                s ~= " " ~ attr;
+            return s ~ ";";
+        }();
         pragma(mangle, mangleFunc!T(fqn)) mixin(decl);
     }
     else
         static assert(0);
 }
-// private helper for externDFunc
-private enum strConcat(string a, string b) = a ~ b;
-
 
 template staticIota(int beg, int end)
 {
