@@ -2943,20 +2943,18 @@ void unpackFunctionParameters(FuncDeclaration thisfd)
     if (!thisfd.fbody || !thisfd.type || thisfd.type.ty != Tfunction)
         return;
     TypeFunction f = cast(TypeFunction)thisfd.type;
-    Statements* ups = null;
+    Statements ups;
     foreach (i, Parameter p; f.parameterList)
     {
         if (!p.unpack)
             continue;
-        if (ups is null)
-            ups = new Statements();
         p.unpack._init = new IdentifierExp(p.loc, p.ident);
         ups.push(new ExpStatement(p.unpack.loc, p.unpack));
     }
-    if (ups !is null)
+    if (ups.length)
     {
         ups.push(thisfd.fbody);
-        thisfd.fbody = new CompoundStatement(thisfd.fbody.loc, ups);
+        thisfd.fbody = new CompoundStatement(thisfd.fbody.loc, ups.move());
     }
 }
 
@@ -2975,7 +2973,7 @@ void buildEnsureRequire(FuncDeclaration thisfd)
          */
         assert(thisfd.frequires.length);
         auto loc = (*thisfd.frequires)[0].loc;
-        auto s = new Statements;
+        auto s = Statements();
         foreach (r; *thisfd.frequires)
         {
             s.push(new ScopeStatement(r.loc, r, r.loc));
@@ -2993,7 +2991,7 @@ void buildEnsureRequire(FuncDeclaration thisfd)
          */
         assert(thisfd.fensures.length);
         auto loc = (*thisfd.fensures)[0].ensure.loc;
-        auto s = new Statements;
+        auto s = Statements();
         foreach (r; *thisfd.fensures)
         {
             if (r.id && thisfd.canBuildResultVar())

@@ -6414,7 +6414,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 AST.Dsymbols* a = parseDeclarations(false, null, null);
                 if (a.length > 1)
                 {
-                    auto as = new AST.Statements();
+                    auto as = AST.Statements();
                     as.reserve(a.length);
                     foreach (i; 0 .. a.length)
                     {
@@ -6503,7 +6503,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 nextToken();
                 //if (token.value == TOK.semicolon)
                 //    error("use `{ }` for an empty statement, not `;`");
-                auto statements = new AST.Statements();
+                auto statements = AST.Statements();
                 while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
                 {
                     statements.push(parseStatement(ParseStatementFlags.curlyScope | ParseStatementFlags.semiOk));
@@ -6808,7 +6808,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 if (flags & ParseStatementFlags.curlyScope)
                 {
-                    auto statements = new AST.Statements();
+                    auto statements = AST.Statements();
                     while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                     {
                         auto cur = parseStatement(ParseStatementFlags.curlyScope);
@@ -6852,7 +6852,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 if (flags & ParseStatementFlags.curlyScope)
                 {
-                    auto statements = new AST.Statements();
+                    auto statements = AST.Statements();
                     while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                     {
                         statements.push(parseStatement(ParseStatementFlags.curlyScope));
@@ -7424,7 +7424,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         Token* toklist = null;
         Token** ptoklist = &toklist;
         Identifier label = null;
-        auto statements = new AST.Statements();
+        auto statements = AST.Statements();
         size_t nestlevel = 0;
         while (1)
         {

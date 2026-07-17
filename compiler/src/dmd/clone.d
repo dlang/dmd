@@ -1120,7 +1120,7 @@ private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclara
 
     // Always generate the function with body, because it is not exported from DLLs.
     const loc = dtor.loc;
-    auto stmts = new Statements;
+    auto stmts = Statements();
     auto call = new CallExp(loc, dtor, null);
     call.directcall = true;
     stmts.push(new ExpStatement(loc, call));
@@ -1289,7 +1289,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         stc |= postblit.storage_class & STC.disable;
 
     VarDeclaration[] fieldsToDestroy;
-    auto postblitCalls = new Statements();
+    auto postblitCalls = Statements();
     // iterate through all the struct fields that are not disabled
     for (size_t i = 0; i < sd.fields.length && !(stc & STC.disable); i++)
     {
@@ -1368,7 +1368,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
             fieldsToDestroy = [];
 
             // aggregate the destructor calls
-            auto dtors = new Statements();
+            auto dtors = Statements();
             foreach_reverse(dc; dtorCalls)
             {
                 dtors.push(new ExpStatement(loc, dc));

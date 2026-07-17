@@ -366,7 +366,7 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
 
     void visitCompound(CompoundStatement s)
     {
-        foreach (sx; *s.statements)
+        foreach (sx; s.statements)
         {
             if (sx)
                 sx.statementToBuffer(buf, hgs);
@@ -381,7 +381,7 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
     void visitCompoundDeclaration(CompoundDeclarationStatement s)
     {
         bool anywritten = false;
-        foreach (sx; *s.statements)
+        foreach (sx; s.statements)
         {
             auto ds = sx ? sx.isExpStatement() : null;
             if (ds && ds.exp.isDeclarationExp())
@@ -406,7 +406,7 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
         buf.put("/*unrolled*/ {");
         buf.writenl();
         buf.level++;
-        foreach (sx; *s.statements)
+        foreach (sx; s.statements)
         {
             if (sx)
                 sx.statementToBuffer(buf, hgs);
@@ -3873,7 +3873,7 @@ private Expression arrowFuncLiteralResult(FuncLiteralDeclaration f)
     CompoundStatement cs = f.fbody.isCompoundStatement();
     Statement s1;
     if (f.semanticRun >= PASS.semantic3done && cs)
-        s1 = (*cs.statements)[cs.statements.length - 1];
+        s1 = cs.statements[cs.statements.length - 1];
     else
         s1 = !cs ? f.fbody : null;
 

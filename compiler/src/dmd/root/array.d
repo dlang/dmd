@@ -333,6 +333,23 @@ public:
         return a;
     }
 
+    void moveFrom(ref Array!T a) pure nothrow
+    {
+        if (a.allocated <= SMALLARRAYCAP)
+        {
+            for (size_t i = 0; i < a.length; i++)
+                smallarray[i] = a.smallarray[i];
+        }
+        else
+        {
+            _ptr = a._ptr;
+        }
+        length = a.length;
+        allocated = a.allocated;
+        a.length = 0;
+        a.allocated = SMALLARRAYCAP;
+    }
+
     void shift(T ptr) pure nothrow
     {
         reserve(1);

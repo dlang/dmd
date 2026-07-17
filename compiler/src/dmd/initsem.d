@@ -192,7 +192,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
              */
             Type tf = new TypeFunction(ParameterList(), null, LINK.d);
             auto fd = new FuncLiteralDeclaration(i.loc, Loc.initial, tf, tok, null);
-            fd.fbody = new CompoundStatement(i.loc, new Statements());
+            fd.fbody = new CompoundStatement(i.loc);
             fd.endloc = i.loc;
             Expression e = new FuncExp(i.loc, fd);
             auto ie = new ExpInitializer(i.loc, e);

@@ -861,10 +861,10 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
         if (istate.start == s)
             istate.start = null;
 
-        const dim = s.statements ? s.statements.length : 0;
+        const dim = s.statements.length;
         foreach (i; 0 .. dim)
         {
-            Statement sx = (*s.statements)[i];
+            Statement sx = s.statements[i];
             result = interpretStatement(pue, sx, istate);
             if (result)
                 break;
@@ -889,10 +889,10 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
         if (istate.start == s)
             istate.start = null;
 
-        const dim = s.statements ? s.statements.length : 0;
+        const dim = s.statements.length;
         foreach (i; 0 .. dim)
         {
-            Statement sx = (*s.statements)[i];
+            Statement sx = s.statements[i];
             Expression e = interpretStatement(pue, sx, istate);
             if (!e) // succeeds to interpret, or goto target was not found
                 continue;

@@ -48,7 +48,7 @@ extern (C++) abstract class Statement : ASTNode
         return DYNCAST.statement;
     }
 
-    final extern (D) this(Loc loc, STMT stmt) @safe
+    final extern (D) this(Loc loc, STMT stmt) @safe nothrow
     {
         this.loc = loc;
         this.stmt = stmt;
@@ -64,17 +64,13 @@ extern (C++) abstract class Statement : ASTNode
     /*************************************
      * Do syntax copy of an array of Statement's.
      */
-    static Statements* arraySyntaxCopy(Statements* a)
+    static Statements* arraySyntaxCopy(Statements* a, Statements* b)
     {
-        Statements* b = null;
-        if (a)
-        {
-            b = a.copy();
-            foreach (i, s; *a)
-            {
-                (*b)[i] = s ? s.syntaxCopy() : null;
-            }
-        }
+        if (!b)
+            b = new Statements;
+        b.reserve(a.length);
+        foreach (s; *a)
+            b.push(s ? s.syntaxCopy() : null);
         return b;
     }
 
@@ -468,7 +464,7 @@ extern (C++) final class MixinStatement : Statement
  */
 extern (C++) class CompoundStatement : Statement
 {
-    Statements* statements;
+    Statements statements;
 
     /**
      * Construct a `CompoundStatement` using an already existing
@@ -478,17 +474,22 @@ extern (C++) class CompoundStatement : Statement
      *   loc = Instantiation information
      *   statements   = An array of `Statement`s, that will referenced by this class
      */
-    final extern (D) this(Loc loc, Statements* statements) @safe
+    final extern (D) this(Loc loc, ref Statements statements) @safe nothrow
     {
         super(loc, STMT.Compound);
-        this.statements = statements;
+        this.statements.moveFrom(statements);
     }
 
-    final extern (D) this(Loc loc, Statements* statements, STMT stmt) @safe
+    final extern (D) this(Loc loc, ref Statements statements, STMT stmt) @safe nothrow
     {
         super(loc, stmt);
-        this.statements = statements;
+        this.statements.moveFrom(statements);
     }
+    final extern (D) this(Loc loc) @safe nothrow
+    {
+        super(loc, STMT.Compound);
+    }
+
 
     /**
      * Construct a `CompoundStatement` from an array of `Statement`s
@@ -501,7 +502,6 @@ extern (C++) class CompoundStatement : Statement
     final extern (D) this(Loc loc, Statement[] sts...)
     {
         super(loc, STMT.Compound);
-        statements = new Statements();
         statements.reserve(sts.length);
         foreach (s; sts)
             statements.push(s);
@@ -514,12 +514,14 @@ extern (C++) class CompoundStatement : Statement
 
     override CompoundStatement syntaxCopy()
     {
-        return new CompoundStatement(loc, Statement.arraySyntaxCopy(statements));
+        auto cs = new CompoundStatement(loc);
+        Statement.arraySyntaxCopy(&statements, &cs.statements);
+        return cs;
     }
 
     override final inout(ReturnStatement) endsWithReturnStatement() inout nothrow pure
     {
-        foreach (s; *statements)
+        foreach (s; statements)
         {
             if (s)
             {
@@ -535,7 +537,7 @@ extern (C++) class CompoundStatement : Statement
         Statement s = null;
         for (size_t i = statements.length; i; --i)
         {
-            s = cast(Statement)(*statements)[i - 1];
+            s = cast(Statement)statements[i - 1];
             if (s)
             {
                 s = cast(Statement)s.last();
@@ -556,14 +558,16 @@ extern (C++) class CompoundStatement : Statement
  */
 extern (C++) final class CompoundDeclarationStatement : CompoundStatement
 {
-    extern (D) this(Loc loc, Statements* statements) @safe
+    extern (D) this(Loc loc, ref Statements statements) @safe
     {
         super(loc, statements, STMT.CompoundDeclaration);
     }
 
     override CompoundDeclarationStatement syntaxCopy()
     {
-        return new CompoundDeclarationStatement(loc, Statement.arraySyntaxCopy(statements));
+        Statements nstmts;
+        Statement.arraySyntaxCopy(&statements, &nstmts);
+        return new CompoundDeclarationStatement(loc, nstmts);
     }
 
     override void accept(Visitor v)
@@ -578,17 +582,19 @@ extern (C++) final class CompoundDeclarationStatement : CompoundStatement
  */
 extern (C++) final class UnrolledLoopStatement : Statement
 {
-    Statements* statements;
+    Statements statements;
 
-    extern (D) this(Loc loc, Statements* statements) @safe
+    extern (D) this(Loc loc, ref Statements statements) @safe nothrow
     {
         super(loc, STMT.UnrolledLoop);
-        this.statements = statements;
+        this.statements.moveFrom(statements);
     }
 
     override UnrolledLoopStatement syntaxCopy()
     {
-        return new UnrolledLoopStatement(loc, Statement.arraySyntaxCopy(statements));
+        Statements nstmts;
+        Statement.arraySyntaxCopy(&statements, &nstmts);
+        return new UnrolledLoopStatement(loc, nstmts);
     }
 
     override bool hasBreak() const pure nothrow
@@ -1853,7 +1859,7 @@ extern (C++) final class CompoundAsmStatement : CompoundStatement
 {
     STC stc; // postfix attributes like nothrow/pure/@trusted
 
-    extern (D) this(Loc loc, Statements* statements, STC stc) @safe
+    extern (D) this(Loc loc, ref Statements statements, STC stc) @safe
     {
         super(loc, statements, STMT.CompoundAsm);
         this.stc = stc;
@@ -1861,7 +1867,9 @@ extern (C++) final class CompoundAsmStatement : CompoundStatement
 
     override CompoundAsmStatement syntaxCopy()
     {
-        return new CompoundAsmStatement(loc, Statement.arraySyntaxCopy(statements), stc);
+        Statements nstmts;
+        Statement.arraySyntaxCopy(&statements, &nstmts);
+        return new CompoundAsmStatement(loc, nstmts, stc);
     }
 
     override void accept(Visitor v)

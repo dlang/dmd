@@ -124,7 +124,7 @@ int blockExit(Statement s, FuncDeclaration func, ErrorSink eSink)
             // it sees through compound blocks and skips intermediate non-case statements (e.g.
             // static foreach loop variable declarations). https://github.com/dlang/dmd/issues/20242
             Statement slastCase = null;
-            foreach (s; *cs.statements)
+            foreach (s; cs.statements)
             {
                 if (!s)
                     continue;
@@ -163,7 +163,7 @@ int blockExit(Statement s, FuncDeclaration func, ErrorSink eSink)
         void visitUnrolledLoop(UnrolledLoopStatement uls)
         {
             result = BE.fallthru;
-            foreach (s; *uls.statements)
+            foreach (s; uls.statements)
             {
                 if (!s)
                     continue;

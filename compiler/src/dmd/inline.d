@@ -181,11 +181,11 @@ public:
         //printf("CompoundStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.length);
         static if (asStatements)
         {
-            auto as = new Statements();
+            auto as = Statements();
             as.reserve(s.statements.length);
         }
 
-        foreach (i, sx; *s.statements)
+        foreach (i, sx; s.statements)
         {
             if (!sx)
                 continue;
@@ -207,7 +207,7 @@ public:
                     ifs.ifbody.endsWithReturnStatement() &&
                     !ifs.elsebody &&
                     i + 1 < s.statements.length &&
-                    (s3 = (*s.statements)[i + 1]) !is null &&
+                    (s3 = s.statements[i + 1]) !is null &&
                     s3.endsWithReturnStatement()
                    )
                 {
@@ -250,11 +250,11 @@ public:
         //printf("UnrolledLoopStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.length);
         static if (asStatements)
         {
-            auto as = new Statements();
+            auto as = Statements();
             as.reserve(s.statements.length);
         }
 
-        foreach (sx; *s.statements)
+        foreach (sx; s.statements)
         {
             if (!sx)
                 continue;
@@ -1168,8 +1168,8 @@ public:
                 auto s2 = inlineScanExpAsStatement(e.e2);
                 if (!s1 && !s2)
                     return null;
-                auto a = new Statements(!s1 ? new ExpStatement(e.e1.loc, e.e1) : s1,
-                                        !s2 ? new ExpStatement(e.e2.loc, e.e2) : s2);
+                auto a = Statements(!s1 ? new ExpStatement(e.e1.loc, e.e1) : s1,
+                                    !s2 ? new ExpStatement(e.e2.loc, e.e2) : s2);
                 return new CompoundStatement(exp.loc, a);
             }
 
@@ -1185,7 +1185,7 @@ public:
     {
         foreach (i; 0 .. s.statements.length)
         {
-            inlineScan((*s.statements)[i]);
+            inlineScan(s.statements[i]);
         }
     }
 
@@ -1193,7 +1193,7 @@ public:
     {
         foreach (i; 0 .. s.statements.length)
         {
-            inlineScan((*s.statements)[i]);
+            inlineScan(s.statements[i]);
         }
     }
 
@@ -2394,19 +2394,20 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
          *  { eret; ethis; try { eparams; fd.fbody; } finally { vthis.edtor; } }
          */
 
-        auto as = new Statements();
+        auto as = Statements();
+        auto asDtor = Statements();
         if (eret)
             as.push(new ExpStatement(callLoc, eret));
         if (ethis)
             as.push(new ExpStatement(callLoc, ethis));
 
-        auto as2 = as;
+        auto as2 = &as;
         if (vthis && !vthis.isDataseg())
         {
             if (vthis.needsScopeDtor())
             {
                 // same with ExpStatement.scopeCode()
-                as2 = new Statements();
+                as2 = &asDtor;
                 vthis.storage_class |= STC.nodtor;
             }
         }
@@ -2419,10 +2420,10 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
         fd.inlineNest--;
         as2.push(s);
 
-        if (as2 != as)
+        if (as2 != &as)
         {
             as.push(new TryFinallyStatement(callLoc,
-                        new CompoundStatement(callLoc, as2),
+                        new CompoundStatement(callLoc, *as2),
                         new DtorExpStatement(callLoc, vthis.edtor, vthis)));
         }
 

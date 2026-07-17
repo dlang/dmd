@@ -379,7 +379,7 @@ final class CParser(AST) : Parser!AST
             cparseDeclaration(LVL.local);
             if (symbols.length > 1)
             {
-                auto as = new AST.Statements();
+                auto as = AST.Statements();
                 as.reserve(symbols.length);
                 foreach (d; (*symbols)[])
                 {
@@ -421,7 +421,7 @@ final class CParser(AST) : Parser!AST
              *    statement
              */
             nextToken();
-            auto statements = new AST.Statements();
+            auto statements = AST.Statements();
             while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
             {
                 statements.push(cparseStatement(ParseStatementFlags.curlyScope));
@@ -570,7 +570,7 @@ final class CParser(AST) : Parser!AST
 
             if (flags & ParseStatementFlags.curlyScope)
             {
-                auto statements = new AST.Statements();
+                auto statements = AST.Statements();
                 while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                 {
                     auto cur = cparseStatement(ParseStatementFlags.curlyScope);
@@ -605,7 +605,7 @@ final class CParser(AST) : Parser!AST
 
             if (flags & ParseStatementFlags.curlyScope)
             {
-                auto statements = new AST.Statements();
+                auto statements = AST.Statements();
                 while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                 {
                     statements.push(cparseStatement(ParseStatementFlags.curlyScope));
@@ -1680,13 +1680,13 @@ final class CParser(AST) : Parser!AST
         auto ss = fbody.isScopeStatement();
         auto cs = ss.statement.isCompoundStatement();
         assert(cs);
-        if (const len = (*cs.statements).length)
+        if (const len = cs.statements.length)
         {
-            auto s = (*cs.statements)[len - 1];
+            auto s = cs.statements[len - 1];
             if (s)   // error recovery should be with ErrorStatement, not null
             {
                 if (auto es = s.isExpStatement())
-                    (*cs.statements)[len - 1] = new AST.ReturnStatement(es.loc, es.exp);
+                    cs.statements[len - 1] = new AST.ReturnStatement(es.loc, es.exp);
             }
         }
 
@@ -2257,7 +2257,7 @@ final class CParser(AST) : Parser!AST
         auto fd = new AST.FuncDeclaration(id.loc, prevloc, id.name, stc, ft, specifier.noreturn);
         specifiersToFuncDeclaration(fd, specifier);
 
-        auto stmts = new AST.Statements();
+        auto stmts = AST.Statements();
 
         if (addFuncName)
             stmts.push(createFuncName(locFunc, id.name, Id.__func__));
@@ -3570,7 +3570,7 @@ final class CParser(AST) : Parser!AST
             error("string literal expected for Assembler Template, not `%s`", token.toChars());
         Token* toklist = null;
         Token** ptoklist = &toklist;
-        auto statements = new AST.Statements();
+        auto statements = AST.Statements();
 
         int parens;
         while (1)
