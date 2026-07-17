@@ -24,10 +24,10 @@ auto gcStatsPure() nothrow pure
 version (D_ProfileGC)
 {
     // Needs to be templated to emit only as needed.
-    ulong accumulatePure()(string file, uint line, string funcname, string name, ulong size) @nogc nothrow pure
+    ulong accumulatePure()(string file, int line, string funcname, string name, ulong size) @nogc nothrow pure
     {
         import core.internal.traits : externDFunc;
-        alias impl = externDFunc!("rt.profilegc.accumulatePure", ulong function(string file, uint line, string funcname, string name, ulong size) @nogc nothrow pure);
+        alias impl = externDFunc!("rt.profilegc.accumulatePure", ulong function(string file, int line, string funcname, string name, ulong size) @nogc nothrow pure);
         return impl(file, line, funcname, name, size);
     }
 
