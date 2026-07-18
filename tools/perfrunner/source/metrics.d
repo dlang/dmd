@@ -21,21 +21,27 @@ struct MetricDef
 immutable MetricDef[] initials = [
     MetricDef("compile_hello_debug_instr",   "compile hello.d (instr)",    "count", "cachegrind"),
     MetricDef("compile_hello_release_instr", "compile hello.d -O (instr)", "count", "cachegrind"),
+    MetricDef("compile_phobos_instr",        "compile Phobos (instr)",     "count", "cachegrind"),
     MetricDef("dmd_binary_size",             "dmd binary size (stripped)", "bytes", "stat"),
     MetricDef("hello_binary_size",           "hello binary size",          "bytes", "stat"),
     MetricDef("hello_max_rss",               "peak RSS (compile hello.d)", "kb",    "time -v"),
+    MetricDef("phobos_max_rss",              "peak RSS (compile Phobos)",  "kb",    "time -v"),
 ];
 
 // Measure every metric for one dmd binary. `tag` ("base"/"head")
 // keeps the two runs' temp files apart
-long[string] measure(string dmd, string workload, string tmp, string tag)
+long[string] measure(string dmd, string workload, string phobos, string tmp, string tag)
 {
+    auto stdPackage = buildPath(phobos, "std", "package.d");
+    auto phobosFlags = ["-i=std", "-preview=dip1000"];
     return [
         "compile_hello_debug_instr":   instructions(dmd, [], workload, tmp, tag ~ "-dbg"),
         "compile_hello_release_instr": instructions(dmd, ["-O", "-release"], workload, tmp, tag ~ "-rel"),
+        "compile_phobos_instr":        instructions(dmd, phobosFlags, stdPackage, tmp, tag ~ "-phobos"),
         "dmd_binary_size":             strippedSize(dmd, buildPath(tmp, tag ~ "-dmd")),
         "hello_binary_size":           helloSize(dmd, workload, tmp, tag),
-        "hello_max_rss":               maxRss(dmd, workload, tmp, tag),
+        "hello_max_rss":               maxRss(dmd, [], workload, tmp, tag),
+        "phobos_max_rss":              maxRss(dmd, phobosFlags, stdPackage, tmp, tag ~ "-phobos"),
     ];
 }
 
@@ -68,10 +74,11 @@ private void strip(string path)
 }
 
 // Peak RSS (KiB) of compiling the workload (/usr/bin/time)
-private long maxRss(string dmd, string workload, string tmp, string tag)
+private long maxRss(string dmd, string[] dflags, string workload, string tmp, string tag)
 {
     auto obj = buildPath(tmp, tag ~ "-rss.o");
-    auto r = execute(["/usr/bin/time", "-v", dmd, "-c", workload, "-of=" ~ obj]);
+    auto cmd = ["/usr/bin/time", "-v", dmd, "-c"] ~ dflags ~ [workload, "-of=" ~ obj];
+    auto r = execute(cmd);
     if (r.status != 0)
         throw new Exception("/usr/bin/time failed:\n" ~ r.output);
     return parseMaxRss(r.output);

@@ -14,7 +14,7 @@ enum workload = buildPath(__FILE_FULL_PATH__.dirName.dirName, "workloads", "hell
 version (unittest) {} else
 int main(string[] args)
 {
-    string baseDmd, headDmd, baseSha, headSha, hostDmd;
+    string baseDmd, headDmd, basePhobos, headPhobos, baseSha, headSha, hostDmd;
     string os = "ubuntu-latest";
     string outPath = "results.json";
     long pr;
@@ -22,6 +22,8 @@ int main(string[] args)
     auto help = getopt(args,
         "base-dmd", "path to the base (merge-base) dmd binary", &baseDmd,
         "head-dmd", "path to the head (PR) dmd binary", &headDmd,
+        "base-phobos", "path to the base phobos checkout", &basePhobos,
+        "head-phobos", "path to the head phobos checkout", &headPhobos,
         "base-sha", "base commit sha (metadata)", &baseSha,
         "head-sha", "head commit sha (metadata)", &headSha,
         "pr",       "pull request number (metadata)", &pr,
@@ -33,21 +35,23 @@ int main(string[] args)
     if (help.helpWanted)
     {
         writeln("usage: perfrunner --base-dmd <path> --head-dmd <path> "
+            ~ "--base-phobos <dir> --head-phobos <dir> "
             ~ "[--base-sha <sha> --head-sha <sha> --pr <n>] --out results.json");
         return 0;
     }
 
-    if (baseDmd.length == 0 || headDmd.length == 0)
+    if (baseDmd.length == 0 || headDmd.length == 0
+        || basePhobos.length == 0 || headPhobos.length == 0)
     {
-        stderr.writeln("error: --base-dmd and --head-dmd are required");
+        stderr.writeln("error: --base-dmd, --head-dmd, --base-phobos and --head-phobos are required");
         return 2;
     }
 
     auto tmp = buildPath(tempDir, "perfrunner");
     mkdirRecurse(tmp);
 
-    auto base = measure(baseDmd, workload, tmp, "base");
-    auto head = measure(headDmd, workload, tmp, "head");
+    auto base = measure(baseDmd, workload, basePhobos, tmp, "base");
+    auto head = measure(headDmd, workload, headPhobos, tmp, "head");
 
     MetricResult[] metrics;
     foreach (def; initials)
