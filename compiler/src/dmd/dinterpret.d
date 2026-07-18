@@ -6903,7 +6903,7 @@ private Expression interpret_aaDel(UnionExp* pue, InterState* istate, Expression
     AssocArrayLiteralExp aae = agg.isAssocArrayLiteralExp();
     Expressions* keysx = aae.keys;
     Expressions* valuesx = aae.values;
-    size_t removed = 0;
+    uint removed = 0;
     foreach (j, evalue; *valuesx)
     {
         Expression ekey = (*keysx)[j];
