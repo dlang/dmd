@@ -89,8 +89,8 @@ struct MachObj
      */
     Barray!(Symbol*)  local_symbuf;
     Barray!(Symbol*) public_symbuf;
-    OutBuffer*       extern_symbuf,
-                    comdef_symbuf;
+    Barray!(Symbol*) extern_symbuf;
+    OutBuffer*       comdef_symbuf;
 
     Barray!(Symbol*) indirectsymbuf1; // indirect symbol table of Symbol*'s
     int jumpTableSeg;                 // segment index for __jump_table
@@ -397,18 +397,9 @@ Obj MachObj_init(OutBuffer* objbuf, const(char)* filename, const(char)* csegname
     machobj.public_symbuf.setLength(SYM_TAB_INIT);       // reserve some space
     machobj.public_symbuf.reset();
 
-    if (machobj.extern_symbuf)
-    {
-        reset_symbols(machobj.extern_symbuf);
-        machobj.extern_symbuf.reset();
-    }
-    else
-    {
-        machobj.extern_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        if (!machobj.extern_symbuf)
-            err_nomem();
-        machobj.extern_symbuf.reserve((Symbol*).sizeof * SYM_TAB_INIT);
-    }
+    reset_symbols(machobj.extern_symbuf[]);
+    machobj.extern_symbuf.setLength(SYM_TAB_INIT);       // reserve some space
+    machobj.extern_symbuf.reset();
 
     if (!machobj.comdef_symbuf)
     {
@@ -547,14 +538,13 @@ int mach_numbersyms()
         n++;
     }
 
-    int dim = cast(int)(machobj.extern_symbuf.length() / (Symbol*).sizeof);
-    for (int i = 0; i < dim; i++)
-    {   Symbol* s = (cast(Symbol**)machobj.extern_symbuf.buf)[i];
+    foreach (s; machobj.extern_symbuf[])
+    {
         s.Sxtrnnum = n;
         n++;
     }
 
-    dim = cast(int)(machobj.comdef_symbuf.length() / Comdef.sizeof);
+    int dim = cast(int)(machobj.comdef_symbuf.length() / Comdef.sizeof);
     for (int i = 0; i < dim; i++)
     {   Comdef* c = (cast(Comdef*)machobj.comdef_symbuf.buf) + i;
         c.sym.Sxtrnnum = n;
@@ -1548,7 +1538,7 @@ static if (1)
     dysymtab_cmd.iextdefsym = dysymtab_cmd.nlocalsym;
     dysymtab_cmd.nextdefsym = cast(uint)machobj.public_symbuf.length;
     dysymtab_cmd.iundefsym = dysymtab_cmd.iextdefsym + dysymtab_cmd.nextdefsym;
-    int nexterns = cast(int)(machobj.extern_symbuf.length() / (Symbol*).sizeof);
+    int nexterns = cast(int)machobj.extern_symbuf.length;
     int ncomdefs = cast(int)(machobj.comdef_symbuf.length() / Comdef.sizeof);
     dysymtab_cmd.nundefsym  = nexterns + ncomdefs;
     symtab_cmd.nsyms =  dysymtab_cmd.nlocalsym +
@@ -1609,8 +1599,8 @@ static if (1)
             machobj.fobjbuf.write(&sym32, sym32.sizeof);
         }
     }
-    for (int i = 0; i < nexterns; i++)
-    {   Symbol* s = (cast(Symbol**)machobj.extern_symbuf.buf)[i];
+    foreach (s; machobj.extern_symbuf[])
+    {
         //printf("Writing extern symbol %d:x%x %s\n", s.Sseg, cast(int)s.Soffset, s.Sident.ptr);
         nlist_64 sym;
         sym.n_strx = mach_addmangled(s);
@@ -2672,7 +2662,7 @@ int MachObj_external(Symbol* s)
 {
     //printf("MachObj_external('%s') %p\n",s.Sident.ptr,s.Svalue);
     symbol_debug(s);
-    machobj.extern_symbuf.write((&s)[0 .. 1]);
+    machobj.extern_symbuf.push(s);
     s.Sxtrnnum = 1;
     return 0;
 }
