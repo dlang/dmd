@@ -90,7 +90,8 @@ struct MachObj
     Barray!(Symbol*)  local_symbuf;
     Barray!(Symbol*) public_symbuf;
     Barray!(Symbol*) extern_symbuf;
-    OutBuffer*       comdef_symbuf;
+
+    Barray!(Comdef) comdefs;
 
     Barray!(Symbol*) indirectsymbuf1; // indirect symbol table of Symbol*'s
     int jumpTableSeg;                 // segment index for __jump_table
@@ -401,14 +402,8 @@ Obj MachObj_init(OutBuffer* objbuf, const(char)* filename, const(char)* csegname
     machobj.extern_symbuf.setLength(SYM_TAB_INIT);       // reserve some space
     machobj.extern_symbuf.reset();
 
-    if (!machobj.comdef_symbuf)
-    {
-        machobj.comdef_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        if (!machobj.comdef_symbuf)
-            err_nomem();
-        machobj.comdef_symbuf.reserve((Symbol*).sizeof * SYM_TAB_INIT);
-    }
-    machobj.comdef_symbuf.reset();
+    machobj.comdefs.setLength(SYM_TAB_INIT);       // reserve some space
+    machobj.comdefs.reset();
 
     machobj.extdef = 0;
 
@@ -544,12 +539,12 @@ int mach_numbersyms()
         n++;
     }
 
-    int dim = cast(int)(machobj.comdef_symbuf.length() / Comdef.sizeof);
-    for (int i = 0; i < dim; i++)
-    {   Comdef* c = (cast(Comdef*)machobj.comdef_symbuf.buf) + i;
+    foreach (ref c; machobj.comdefs[])
+    {
         c.sym.Sxtrnnum = n;
         n++;
     }
+
     //printf("n: %d\n", n);
     return n;
 }
@@ -1539,7 +1534,7 @@ static if (1)
     dysymtab_cmd.nextdefsym = cast(uint)machobj.public_symbuf.length;
     dysymtab_cmd.iundefsym = dysymtab_cmd.iextdefsym + dysymtab_cmd.nextdefsym;
     int nexterns = cast(int)machobj.extern_symbuf.length;
-    int ncomdefs = cast(int)(machobj.comdef_symbuf.length() / Comdef.sizeof);
+    int ncomdefs = cast(int)machobj.comdefs.length;
     dysymtab_cmd.nundefsym  = nexterns + ncomdefs;
     symtab_cmd.nsyms =  dysymtab_cmd.nlocalsym +
                         dysymtab_cmd.nextdefsym +
@@ -1622,8 +1617,8 @@ static if (1)
             machobj.fobjbuf.write(&sym32, sym32.sizeof);
         }
     }
-    for (int i = 0; i < ncomdefs; i++)
-    {   Comdef* c = (cast(Comdef*)machobj.comdef_symbuf.buf) + i;
+    foreach (ref c; machobj.comdefs)
+    {
         Symbol* s = c.sym;
         //printf("Writing comdef symbol %d:x%x %s\n", s.Sseg, cast(int)s.Soffset, s.Sident.ptr);
         nlist_64 sym;
@@ -2691,7 +2686,7 @@ int MachObj_common_block(Symbol* s,targ_size_t size,targ_size_t count)
     comdef.sym = s;
     comdef.size = size;
     comdef.count = cast(int)count;
-    machobj.comdef_symbuf.write(&comdef, (comdef).sizeof);
+    machobj.comdefs.push(comdef);
     s.Sxtrnnum = 1;
     if (!s.Sseg)
         s.Sseg = UDATA;
