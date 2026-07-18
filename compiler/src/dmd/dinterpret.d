@@ -6718,8 +6718,17 @@ private Expression copyRegionExp(Expression e)
                  */
                 return sle.origin;
             }
+            // Track whether copySE triggers a recursive copy of this
+            // same SLE via a self-reference. If so, sle.origin will
+            // have been updated to a GC copy, and we must use that
+            // instead of creating a duplicate.
+            auto savedOrigin = sle.origin;
             copySE(sle);
+
             sle.isOriginal = sle is sle.origin;
+
+            if (sle.origin != savedOrigin)
+                return sle.origin;
 
             auto slec = ctfeGlobals.region.contains(cast(void*)e)
                 ? e.copy().isStructLiteralExp()         // move sle out of region to slec
