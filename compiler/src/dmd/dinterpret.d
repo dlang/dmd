@@ -6718,14 +6718,16 @@ private Expression copyRegionExp(Expression e)
                  */
                 return sle.origin;
             }
+            // Track whether copySE triggers a recursive copy of this
+            // same SLE via a self-reference. If so, sle.origin will
+            // have been updated to a GC copy, and we must use that
+            // instead of creating a duplicate.
+            auto savedOrigin = sle.origin;
             copySE(sle);
+
             sle.isOriginal = sle is sle.origin;
 
-            /* copySE may have followed a self-reference back to this
-             * same SLE, in which case the recursive copyRegionExp
-             * already created a GC copy and stored it in sle.origin.
-             */
-            if (!ctfeGlobals.region.contains(cast(void*)sle.origin) && sle.origin != sle)
+            if (sle.origin != savedOrigin)
                 return sle.origin;
 
             auto slec = ctfeGlobals.region.contains(cast(void*)e)
