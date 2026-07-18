@@ -89,7 +89,7 @@ public void accumulate(string file, uint line, string funcname, string type, ulo
     }
 }
 
-public ulong accumulatePure(string file, int line, string funcname, string name, ulong size) nothrow pure
+public ulong accumulatePure(string file, int line, string funcname, string name, ulong size) @nogc nothrow pure
 {
     static ulong impureBypass(string file, int line, string funcname, string name, ulong size) @nogc nothrow
     {
