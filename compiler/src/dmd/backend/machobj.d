@@ -1,4 +1,4 @@
-/**
+ /**
  * Generate Mach-O object files.
  * Does 64 bit X86_64 and 64 bit AArch64.
  * 32 bit X86_64 is more or less abandoned.
