@@ -85,7 +85,7 @@ UnionExp Neg(Type type, Expression e1)
     }
     else
     {
-        emplaceExp!(IntegerExp)(&ue, loc, -e1.toInteger(), type);
+        emplaceExp!(Integer64Exp)(&ue, loc, -e1.toInteger(), type);
     }
     return ue;
 }
@@ -94,7 +94,7 @@ UnionExp Com(Type type, Expression e1)
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
-    emplaceExp!(IntegerExp)(&ue, loc, ~e1.toInteger(), type);
+    emplaceExp!(Integer64Exp)(&ue, loc, ~e1.toInteger(), type);
     return ue;
 }
 
@@ -105,7 +105,7 @@ UnionExp Not(Type type, Expression e1)
     // BUG: Should be replaced with e1.toBool().get(), but this is apparently
     //      executed for some expressions that cannot be const-folded
     //      To be fixed in another PR
-    emplaceExp!(IntegerExp)(&ue, loc, e1.toBool().hasValue(false) ? 1 : 0, type);
+    emplaceExp!(Integer64Exp)(&ue, loc, e1.toBool().hasValue(false) ? 1 : 0, type);
     return ue;
 }
 
@@ -210,7 +210,7 @@ UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
         ue.exp().type = type;
     }
     else
-        emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() + e2.toInteger(), type);
+        emplaceExp!(Integer64Exp)(&ue, loc, e1.toInteger() + e2.toInteger(), type);
     return ue;
 }
 
@@ -266,7 +266,7 @@ UnionExp Mul(Loc loc, Type type, Expression e1, Expression e2)
     }
     else
     {
-        emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() * e2.toInteger(), type);
+        emplaceExp!(Integer64Exp)(&ue, loc, e1.toInteger() * e2.toInteger(), type);
     }
     return ue;
 }
@@ -342,7 +342,7 @@ UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
             n = (cast(dinteger_t)n1) / (cast(dinteger_t)n2);
         else
             n = n1 / n2;
-        emplaceExp!(IntegerExp)(&ue, loc, n, type);
+        emplaceExp!(Integer64Exp)(&ue, loc, n, type);
     }
     return ue;
 }
@@ -408,7 +408,7 @@ UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
             n = (cast(dinteger_t)n1) % (cast(dinteger_t)n2);
         else
             n = n1 % n2;
-        emplaceExp!(IntegerExp)(&ue, loc, n, type);
+        emplaceExp!(Integer64Exp)(&ue, loc, n, type);
     }
     return ue;
 }
@@ -448,8 +448,8 @@ UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
         }
         else
         {
-            emplaceExp!(IntegerExp)(&ur, loc, e1.toInteger(), e1.type);
-            emplaceExp!(IntegerExp)(&uv, loc, 1, e1.type);
+            emplaceExp!(Integer64Exp)(&ur, loc, e1.toInteger(), e1.type);
+            emplaceExp!(Integer64Exp)(&uv, loc, 1, e1.type);
         }
         Expression r = ur.exp();
         Expression v = uv.exp();
@@ -474,7 +474,7 @@ UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
         if (type.isComplex())
             emplaceExp!(ComplexExp)(&ue, loc, v.toComplex(), type);
         else if (type.isIntegral())
-            emplaceExp!(IntegerExp)(&ue, loc, v.toInteger(), type);
+            emplaceExp!(Integer64Exp)(&ue, loc, v.toInteger(), type);
         else
             emplaceExp!(RealExp)(&ue, loc, v.toReal(), type);
     }
@@ -496,7 +496,7 @@ UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
 UnionExp Shl(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
-    emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() << e2.toInteger(), type);
+    emplaceExp!(Integer64Exp)(&ue, loc, e1.toInteger() << e2.toInteger(), type);
     return ue;
 }
 
@@ -542,7 +542,7 @@ UnionExp Shr(Loc loc, Type type, Expression e1, Expression e2)
     default:
         assert(0);
     }
-    emplaceExp!(IntegerExp)(&ue, loc, value, type);
+    emplaceExp!(Integer64Exp)(&ue, loc, value, type);
     return ue;
 }
 
@@ -582,21 +582,21 @@ UnionExp Ushr(Loc loc, Type type, Expression e1, Expression e2)
     default:
         assert(0);
     }
-    emplaceExp!(IntegerExp)(&ue, loc, value, type);
+    emplaceExp!(Integer64Exp)(&ue, loc, value, type);
     return ue;
 }
 
 UnionExp And(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
-    emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() & e2.toInteger(), type);
+    emplaceExp!(Integer64Exp)(&ue, loc, e1.toInteger() & e2.toInteger(), type);
     return ue;
 }
 
 UnionExp Or(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
-    emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() | e2.toInteger(), type);
+    emplaceExp!(Integer64Exp)(&ue, loc, e1.toInteger() | e2.toInteger(), type);
     return ue;
 }
 
@@ -604,7 +604,7 @@ UnionExp Xor(Loc loc, Type type, Expression e1, Expression e2)
 {
     //printf("Xor(linnum = %d, e1 = %s, e2 = %s)\n", loc.linnum, e1.toChars(), e2.toChars());
     UnionExp ue = void;
-    emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() ^ e2.toInteger(), type);
+    emplaceExp!(Integer64Exp)(&ue, loc, e1.toInteger() ^ e2.toInteger(), type);
     return ue;
 }
 
@@ -799,7 +799,7 @@ UnionExp Equal(EXP op, Loc loc, Type type, Expression e1, Expression e2)
     }
     if (op == EXP.notEqual)
         cmp ^= 1;
-    emplaceExp!(IntegerExp)(&ue, loc, cmp, type);
+    emplaceExp!(Integer64Exp)(&ue, loc, cmp, type);
     return ue;
 }
 
@@ -844,7 +844,7 @@ UnionExp Identity(EXP op, Loc loc, Type type, Expression e1, Expression e2)
     }
     if (op == EXP.notIdentity)
         cmp ^= 1;
-    emplaceExp!(IntegerExp)(&ue, loc, cmp, type);
+    emplaceExp!(Integer64Exp)(&ue, loc, cmp, type);
     return ue;
 }
 
@@ -904,7 +904,7 @@ UnionExp Cmp(EXP op, Loc loc, Type type, Expression e1, Expression e2)
         else
             n = intSignedCmp(op, n1, n2);
     }
-    emplaceExp!(IntegerExp)(&ue, loc, n, type);
+    emplaceExp!(Integer64Exp)(&ue, loc, n, type);
     return ue;
 }
 
@@ -976,7 +976,7 @@ UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
             return ue;
         }
 
-        emplaceExp!(IntegerExp)(&ue, loc, opt.get(), type);
+        emplaceExp!(Integer64Exp)(&ue, loc, opt.get(), type);
     }
     else if (type.isIntegral())
     {
@@ -1016,12 +1016,12 @@ UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
             default:
                 assert(0);
             }
-            emplaceExp!(IntegerExp)(&ue, loc, result, type);
+            emplaceExp!(Integer64Exp)(&ue, loc, result, type);
         }
         else if (type.isUnsigned())
-            emplaceExp!(IntegerExp)(&ue, loc, e1.toUInteger(), type);
+            emplaceExp!(Integer64Exp)(&ue, loc, e1.toUInteger(), type);
         else
-            emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger(), type);
+            emplaceExp!(Integer64Exp)(&ue, loc, e1.toInteger(), type);
     }
     else if (tb.isReal())
     {
@@ -1040,7 +1040,7 @@ UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
     }
     else if (tb.isScalar())
     {
-        emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger(), type);
+        emplaceExp!(Integer64Exp)(&ue, loc, e1.toInteger(), type);
     }
     else if (tb.ty == Tvoid)
     {
@@ -1072,7 +1072,7 @@ UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
         {
             VarDeclaration v = sd.fields[i];
             UnionExp zero;
-            emplaceExp!(IntegerExp)(&zero, 0);
+            emplaceExp!(Integer64Exp)(&zero, 0);
             ue = Cast(loc, v.type, v.type, zero.exp());
             if (ue.exp().op == EXP.cantExpression)
                 return ue;
@@ -1101,17 +1101,17 @@ UnionExp ArrayLength(Type type, Expression e1)
     Loc loc = e1.loc;
     if (StringExp es1 = e1.isStringExp())
     {
-        emplaceExp!(IntegerExp)(&ue, loc, es1.len, type);
+        emplaceExp!(Integer64Exp)(&ue, loc, es1.len, type);
     }
     else if (ArrayLiteralExp ale = e1.isArrayLiteralExp())
     {
         size_t dim = ale.length;
-        emplaceExp!(IntegerExp)(&ue, loc, dim, type);
+        emplaceExp!(Integer64Exp)(&ue, loc, dim, type);
     }
     else if (AssocArrayLiteralExp ale = e1.isAssocArrayLiteralExp)
     {
         size_t dim = ale.keys.length;
-        emplaceExp!(IntegerExp)(&ue, loc, dim, type);
+        emplaceExp!(Integer64Exp)(&ue, loc, dim, type);
     }
     else if (e1.type.toBasetype().ty == Tsarray)
     {
@@ -1120,7 +1120,7 @@ UnionExp ArrayLength(Type type, Expression e1)
     }
     else if (e1.isNullExp())
     {
-        emplaceExp!(IntegerExp)(&ue, loc, 0, type);
+        emplaceExp!(Integer64Exp)(&ue, loc, 0, type);
     }
     else
         cantExp(ue);
@@ -1147,7 +1147,7 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
         }
         else
         {
-            emplaceExp!(IntegerExp)(&ue, loc, es1.getIndex(cast(size_t) i), type);
+            emplaceExp!(Integer64Exp)(&ue, loc, es1.getIndex(cast(size_t) i), type);
         }
     }
     else if (e1.type.toBasetype().ty == Tsarray && e2.op == EXP.int64)
@@ -1311,7 +1311,7 @@ void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, const StringE
     foreach (j; 0 .. len)
     {
         const val = newval.getIndex(j);
-        (*existingAE.elements)[j + firstIndex] = new IntegerExp(newval.loc, val, elemType);
+        (*existingAE.elements)[j + firstIndex] = Integer64Exp.create(newval.loc, val, elemType);
     }
 }
 

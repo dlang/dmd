@@ -660,7 +660,7 @@ void cEnumSemantic(Scope* sc, EnumDeclaration ed)
             /* To merge the type of e with commonType, add 0 of type commonType
                 */
             if (!ed.memtype)
-                e = new AddExp(em.loc, e, new IntegerExp(em.loc, 0, commonType));
+                e = new AddExp(em.loc, e, IntegerExp.create(em.loc, 0, commonType));
 
             e = e.expressionSemantic(sc);
             e = resolveProperties(sc, e);
@@ -684,7 +684,7 @@ void cEnumSemantic(Scope* sc, EnumDeclaration ed)
             nextValue = ie.toInteger();
             if (!ed.memtype)
                 commonType = e.type;
-            em.value = new IntegerExp(em.loc, nextValue, commonType);
+            em.value = IntegerExp.create(em.loc, nextValue, commonType);
         }
         else
         {
@@ -700,7 +700,7 @@ void cEnumSemantic(Scope* sc, EnumDeclaration ed)
                 }
                 nextValue += 1;
             }
-            em.value = new IntegerExp(em.loc, nextValue, commonType);
+            em.value = IntegerExp.create(em.loc, nextValue, commonType);
         }
         em.type = commonType;
         em.semanticRun = PASS.semanticdone;

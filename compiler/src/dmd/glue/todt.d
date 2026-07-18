@@ -1371,7 +1371,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         TypeInfo_toObjFile(null, d.loc, tc.next);
         classFieldsToDt(Type.typeinfostaticarray, new Expressions(
             new SymOffExp(d.loc, tc.next.vtinfo, 0),
-            new IntegerExp(d.loc, tc.dim.toInteger(), Type.tsize_t)), *dtb);
+            IntegerExp.create(d.loc, tc.dim.toInteger(), Type.tsize_t)), *dtb);
     }
 
     override void visit(TypeInfoVectorDeclaration d)

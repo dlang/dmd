@@ -4724,6 +4724,11 @@ struct ASTBase
             setInteger(value);
         }
 
+        static IntegerExp create(Loc loc, dinteger_t value, Type type)
+        {
+            return new IntegerExp(loc, value, type);
+        }
+
         void setInteger(dinteger_t value)
         {
             this.value = value;
@@ -5762,7 +5767,7 @@ struct ASTBase
     {
         extern (D) this(EXP op, Loc loc, Expression e)
         {
-            super(loc, op, __traits(classInstanceSize, PostExp), e, new IntegerExp(loc, 1, Type.tint32));
+            super(loc, op, __traits(classInstanceSize, PostExp), e, IntegerExp.create(loc, 1, Type.tint32));
         }
 
         override void accept(Visitor v)
