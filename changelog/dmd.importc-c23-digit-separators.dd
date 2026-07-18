@@ -1,0 +1,16 @@
+ImportC supports C23 digit separators (`'`) in numeric literals
+
+C23 allows a single quote as a digit separator inside integer and floating
+constants (for example `1'000'000`, `0x1'2'3'4`, `0b1010'0001`, `3.141'592`).
+The separators are ignored when computing the value.
+
+ImportC now accepts them unconditionally. A digit immediately followed by `'`
+was never valid in C11, so enabling this cannot change the meaning of any
+valid C11 program.
+
+-------
+_Static_assert(1'000'000 == 1000000);
+_Static_assert(0xFF'FF == 0xFFFF);
+_Static_assert(0b1010'0001 == 0xA1);
+_Static_assert(3.141'592 == 3.141592);
+-------

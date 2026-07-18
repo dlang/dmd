@@ -446,7 +446,8 @@ class Lexer
                 goto default;
 
             case '0':
-                if (!isZeroSecond(p[1]))        // if numeric literal does not continue
+                // C23 6.4.4.2: `'` may continue a numeric literal as a digit separator
+                if (!isZeroSecond(p[1]) && !(Ccompile && p[1] == '\''))
                 {
                     ++p;
                     t.unsvalue = 0;
@@ -456,7 +457,8 @@ class Lexer
                 goto Lnumber;
 
             case '1': .. case '9':
-                if (!isDigitSecond(p[1]))       // if numeric literal does not continue
+                // C23 6.4.4.2: `'` may continue a numeric literal as a digit separator
+                if (!isDigitSecond(p[1]) && !(Ccompile && p[1] == '\''))
                 {
                     t.unsvalue = *p - '0';
                     ++p;
@@ -2449,6 +2451,13 @@ class Lexer
                 ++p;
                 base = 8;
                 break;
+            case '\'':
+                /* C23 6.4.4.2: `0'123` is an octal-constant.
+                 * Digits after the separator are consumed in the main loop.
+                 */
+                if (Ccompile)
+                    base = 8;
+                break;
             case 'L':
                 if (p[1] == 'i')
                     goto Lreal;
@@ -2533,6 +2542,30 @@ class Lexer
                     goto default;
                 ++p;
                 continue;
+            case '\'':
+                /* C23 6.4.4.2 digit separators: skip `'` when it sits between
+                 * digits of the current base. Not after `0x`/`0b` before the
+                 * first digit (grammar: separator is inside *-digit-sequence).
+                 */
+                if (Ccompile)
+                {
+                    const char next = p[1];
+                    bool ok;
+                    if (base == 16)
+                        ok = anyHexDigitsNoSingleUS && ishex(next);
+                    else if (base == 2)
+                        ok = anyBinaryDigitsNoSingleUS && (next == '0' || next == '1');
+                    else if (base == 8)
+                        ok = next >= '0' && next <= '7';
+                    else
+                        ok = next >= '0' && next <= '9';
+                    if (ok)
+                    {
+                        ++p;
+                        continue;
+                    }
+                }
+                goto Ldone;
             default:
                 goto Ldone;
             }
@@ -2976,6 +3009,9 @@ class Lexer
             }
         }
         // Digits to left of '.'
+        // C23 6.4.4.3: `'` digit separators are allowed between digits of a
+        // digit-sequence, but not at the start or end of one.
+        bool anyDigits = false;
         while (1)
         {
             if (c == '.')
@@ -2985,15 +3021,30 @@ class Lexer
             }
             if (isdigit(c) || (hex && isxdigit(c)) || c == '_')
             {
+                if (c != '_')
+                    anyDigits = true;
+                c = *p++;
+                continue;
+            }
+            if (Ccompile && c == '\'' && anyDigits && (isdigit(*p) || (hex && isxdigit(*p))))
+            {
                 c = *p++;
                 continue;
             }
             break;
         }
         // Digits to right of '.'
+        anyDigits = false;
         while (1)
         {
             if (isdigit(c) || (hex && isxdigit(c)) || c == '_')
+            {
+                if (c != '_')
+                    anyDigits = true;
+                c = *p++;
+                continue;
+            }
+            if (Ccompile && c == '\'' && anyDigits && (isdigit(*p) || (hex && isxdigit(*p))))
             {
                 c = *p++;
                 continue;
@@ -3023,6 +3074,12 @@ class Lexer
                     c = *p++;
                     continue;
                 }
+                // C23 6.4.4.3: separators in the exponent digit-sequence
+                if (Ccompile && c == '\'' && anyexp && isdigit(*p))
+                {
+                    c = *p++;
+                    continue;
+                }
                 if (!anyexp)
                 {
                     error("missing exponent");
@@ -3039,7 +3096,8 @@ class Lexer
         --p;
         while (pstart < p)
         {
-            if (*pstart != '_')
+            // Strip D `_` and C23 `'` digit separators before parsing
+            if (*pstart != '_' && *pstart != '\'')
                 stringbuffer.writeByte(*pstart);
             ++pstart;
         }
