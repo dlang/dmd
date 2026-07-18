@@ -23,13 +23,12 @@ auto gcStatsPure() nothrow pure
 
 version (D_ProfileGC)
 {
-    // Needs to be templated to emit only as needed.
-    ulong accumulatePure()(string file, int line, string funcname, string name, ulong size) @nogc nothrow pure
-    {
-        import core.internal.traits : externDFunc;
-        alias impl = externDFunc!("rt.profilegc.accumulatePure", ulong function(string file, int line, string funcname, string name, ulong size) @nogc nothrow pure);
-        return impl(file, line, funcname, name, size);
-    }
+    // Cannot use `externD` template, because then it will cause
+    // cyclic dependencies (and error out) as CTFE string appending
+    // expands runtime hooks, which on -profilegc call this.
+    pragma(mangle, "_D2rt9profilegc14accumulatePureFNaNbNiAyaiQeQgmZm")
+    ulong accumulatePure(string file, int line, string funcname, string name, ulong size) @nogc nothrow pure;
+
 
     /**
      * TraceGC wrapper generator around the runtime hook `Hook`.
