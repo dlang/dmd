@@ -80,7 +80,11 @@ struct MachObj
 
     OutBuffer* symtab_strings;    // String Table  - String table for all other names
 
-    OutBuffer* SECbuf;            // Buffer to build section table in
+    union
+    {
+        Barray!section_64 SECbuf64; // section table for 64 bit targets
+        Barray!section    SECbuf;   // section table
+    }
     bool AArch64;                 // true for AArch64, false for X86_64
     int section_cnt;              // Number of sections in table
 
@@ -182,9 +186,9 @@ Symbol* MachObj_getChkstkSym()
 
 // Section Headers
 @trusted
-section* SecHdrTab() { return cast(section*)machobj.SECbuf.buf; }
+section[] SecHdrTab() { return machobj.SECbuf[]; }
 @trusted
-section_64* SecHdrTab64() { return cast(section_64*)machobj.SECbuf.buf; }
+section_64[] SecHdrTab64() { return machobj.SECbuf64[]; }
 
 // The relocation for text and data seems to get lost.
 // Try matching the order gcc output them
@@ -233,16 +237,16 @@ int mach_seg_data_isCode(const ref seg_data sd)
     if (machobj.AArch64)
     {
         //printf("SDshtidx = %d, x%x\n", SDshtidx, SecHdrTab64[sd.SDshtidx].flags);
-        return SecHdrTab64[sd.SDshtidx].flags & (S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
+        return machobj.SECbuf64[sd.SDshtidx].flags & (S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
     }
     else if (I64)
     {
-        return strcmp(SecHdrTab64[sd.SDshtidx].segname.ptr, "__TEXT") == 0;
+        return strcmp(machobj.SECbuf64[sd.SDshtidx].segname.ptr, "__TEXT") == 0;
     }
     else
     {
         //printf("SDshtidx = %d, x%x\n", SDshtidx, SecHdrTab[sd.SDshtidx].flags);
-        return strcmp(SecHdrTab[sd.SDshtidx].segname.ptr, "__TEXT") == 0;
+        return strcmp(machobj.SECbuf[sd.SDshtidx].segname.ptr, "__TEXT") == 0;
     }
 }
 
@@ -414,20 +418,29 @@ Obj MachObj_init(OutBuffer* objbuf, const(char)* filename, const(char)* csegname
     machobj.pointersSeg = 0;
 
     // Initialize segments for CODE, DATA, UDATA and CDATA
-    size_t struct_section_size = I64 ? section_64.sizeof : section.sizeof;
-    if (machobj.SECbuf)
+    if (I64)
     {
-        machobj.SECbuf.setsize(cast(uint)struct_section_size);
+        if (machobj.SECbuf64.length)
+            machobj.SECbuf64.setLength(1);
+        else
+        {
+            machobj.SECbuf64.setLength(SEC_TAB_INIT);
+            machobj.SECbuf64.setLength(0);
+            machobj.SECbuf64.push();    // first entry is 0
+        }
     }
     else
     {
-        machobj.SECbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        if (!machobj.SECbuf)
-            err_nomem();
-        machobj.SECbuf.reserve(cast(uint)(SEC_TAB_INIT * struct_section_size));
-        // Ignore the first section - section numbers start at 1
-        machobj.SECbuf.writezeros(cast(uint)struct_section_size);
+        if (machobj.SECbuf.length)
+            machobj.SECbuf.setLength(1);
+        else
+        {
+            machobj.SECbuf.setLength(SEC_TAB_INIT);
+            machobj.SECbuf.setLength(0);
+            machobj.SECbuf.push();      // first entry is 0
+        }
     }
+
     machobj.section_cnt = 1;
 
     SegData.reset();   // recycle memory
@@ -1715,12 +1728,14 @@ static if (1)
     if (I64)
     {
         machobj.fobjbuf.write(&segment_cmd64, segment_cmd64.sizeof);
-        machobj.fobjbuf.write(machobj.SECbuf.buf + section_64.sizeof, cast(uint)((machobj.section_cnt - 1) * section_64.sizeof));
+        machobj.fobjbuf.write(&machobj.SECbuf64[1], (machobj.section_cnt - 1) * section_64.sizeof);
+        //machobj.fobjbuf.write(machobj.SECbuf64[1 .. machobj.section_cnt - 1]);
     }
     else
     {
         machobj.fobjbuf.write(&segment_cmd, segment_cmd.sizeof);
-        machobj.fobjbuf.write(machobj.SECbuf.buf + section.sizeof, cast(uint)((machobj.section_cnt - 1) * section.sizeof));
+        machobj.fobjbuf.write(&machobj.SECbuf[1], (machobj.section_cnt - 1) * section.sizeof);
+        //machobj.fobjbuf.write(machobj.SECbuf[1 .. machobj.section_cnt - 1]);
     }
     machobj.fobjbuf.write(version_command.data, version_command.size);
     machobj.fobjbuf.write(&symtab_cmd, symtab_cmd.sizeof);
@@ -2187,8 +2202,7 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
 
     if (I64)
     {
-        section_64* sec = cast(section_64*)
-            machobj.SECbuf.writezeros(section_64.sizeof);
+        section_64* sec = machobj.SECbuf64.push();
         strncpy(sec.sectname.ptr, sectname, 16);
         strncpy(sec.segname.ptr, segname, 16);
         sec._align = p2align;
@@ -2196,8 +2210,7 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
     }
     else
     {
-        section* sec = cast(section*)
-            machobj.SECbuf.writezeros(section.sizeof);
+        section* sec = machobj.SECbuf.push();
         strncpy(sec.sectname.ptr, sectname, 16);
         strncpy(sec.segname.ptr, segname, 16);
         sec._align = p2align;
