@@ -46,6 +46,7 @@ void main()
     testNew();
     testAliasThis();
     testAliasThis2();
+    testStringKey();
     test17641();
 }
 
@@ -1048,6 +1049,21 @@ void testAliasThis2()
     aa[B(5)] = true;
     assert(B(5) in aa);
     assert(A(false, 5) in aa);
+}
+
+void testStringKey()
+{
+    // allow conversion of key of type const(char)[] to string for backward compatibility
+    int[string] properties;
+
+    properties["0"] = 0;
+
+    const(char)[] keyName = "1";
+    properties[keyName] = 1;
+
+    // https://github.com/dlang/dmd/issues/23320
+    const keyName2 = keyName;
+    properties[keyName2] = 2;
 }
 
 void test22510()
