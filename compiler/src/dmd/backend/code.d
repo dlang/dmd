@@ -276,7 +276,13 @@ struct seg_data
     //ELFOBJ || MACHOBJ
     IDXSEC           SDshtidx;          // section header table index
     OutBuffer       *SDbuf;             // buffer to hold data
-    OutBuffer       *SDrel;             // buffer to hold relocation info
+    union
+    {
+        // ELFOBJ MSCOFFOBJ
+        OutBuffer        *SDrel;        // buffer to hold segment relocation info
+        // MACHOBJ
+        Barray!Relocation relocations;  // hold relocations for this segment
+    }
 
     //ELFOBJ
     IDXSYM           SDsymidx;          // each section is in the symbol table
@@ -294,6 +300,27 @@ struct seg_data
     @trusted
     int isCode() { return config.objfmt == OBJ_MACH ? mach_seg_data_isCode(this) : mscoff_seg_data_isCode(this); }
 }
+
+/*******************************************************
+ * For Machobj
+ * Because the relocations cannot be computed until after
+ * all the segments are written out, and we need more information
+ * than the relocations provide, make our own relocation
+ * type. Later, translate to Mach-O relocation structures `relocation_info` and `scattered_relocation_info`.
+ */
+struct Relocation
+{   // Relocations are attached to the struct seg_data they refer to
+    targ_size_t offset; // location in segment to be fixed up
+    Symbol* funcsym;    // function in which offset lies, if any
+    Symbol* targsym;    // if !=null, then location is to be fixed up
+                        // to address of this symbol
+    uint targseg;       // if !=0, then location is to be fixed up
+                        // to address of start of this segment
+    REL rtype;          // REL.address or REL.rel or REL.add
+    bool subtractor;    // true: emit SUBTRACTOR/UNSIGNED pair
+    short val;          // 0, -1, -2, -4
+}
+
 
 public import dmd.backend.machobj : mach_seg_data_isCode;
 public import dmd.backend.mscoffobj : mscoff_seg_data_isCode;

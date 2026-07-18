@@ -151,9 +151,9 @@ struct Relocation
     Symbol* funcsym;    // function in which offset lies, if any
     Symbol* targsym;    // if !=null, then location is to be fixed up
                         // to address of this symbol
-    uint targseg;   // if !=0, then location is to be fixed up
+    uint targseg;       // if !=0, then location is to be fixed up
                         // to address of start of this segment
-    ubyte rtype;   // RELxxxx
+    REL rtype;          // RELxxxx
     short val;          // 0, -1, -2, -3, -4, -5
 }
 
@@ -2128,7 +2128,7 @@ void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, Symbol* targsym,
     rel.offset = offset;
     rel.targsym = targsym;
     rel.targseg = targseg;
-    rel.rtype = cast(ubyte)rtype;
+    rel.rtype = rtype;
     rel.funcsym = funcsym_p;
     rel.val = cast(short)val;
     seg_data* pseg = SegData[seg];

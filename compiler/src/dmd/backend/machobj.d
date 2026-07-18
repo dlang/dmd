@@ -241,25 +241,6 @@ int mach_seg_data_isCode(const ref seg_data sd)
 
 import dmd.backend.code: SegData;
 
-/*******************************************************
- * Because the relocations cannot be computed until after
- * all the segments are written out, and we need more information
- * than the relocations provide, make our own relocation
- * type. Later, translate to Mach-O relocation structure.
- */
-struct Relocation
-{   // Relocations are attached to the struct seg_data they refer to
-    targ_size_t offset; // location in segment to be fixed up
-    Symbol* funcsym;    // function in which offset lies, if any
-    Symbol* targsym;    // if !=null, then location is to be fixed up
-                        // to address of this symbol
-    uint targseg;       // if !=0, then location is to be fixed up
-                        // to address of start of this segment
-    REL rtype;          // REL.address or REL.rel or REL.add
-    bool subtractor;    // true: emit SUBTRACTOR/UNSIGNED pair
-    short val;          // 0, -1, -2, -4
-}
-
 
 /*******************************
  * Output a string into a string table
@@ -901,11 +882,10 @@ void MachObj_term(const(char)[] objfilename)
         uint reloff = foffset;
         uint nreloc = 0;
 
-        if (pseg.SDrel)
-        {   Relocation* r = cast(Relocation*)pseg.SDrel.buf;
-            Relocation* rend = cast(Relocation*)(pseg.SDrel.buf + pseg.SDrel.length());
-            for (; r != rend; r++)
-            {   Symbol* s = r.targsym;
+        {
+            foreach (ref r; pseg.relocations[])
+            {
+                Symbol* s = r.targsym;
                 const(char)* rs = r.rtype == REL.address ? "address" :  // 32 bit address
                                   r.rtype == REL.add     ? "add"  :
                                   r.rtype == REL.rel26   ? "rel26"  :
@@ -2208,15 +2188,15 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
 
     if (pseg)
     {
-        OutBuffer* b1 = pseg.SDbuf;
-        OutBuffer* b2 = pseg.SDrel;
-        memset(pseg, 0, seg_data.sizeof);
-        if (b1)
-            b1.reset();
-        if (b2)
-            b2.reset();
-        pseg.SDbuf = b1;
-        pseg.SDrel = b2;
+         // recycle memory used
+         pseg.relocations.reset();
+         auto save = pseg.relocations;
+         OutBuffer* b1 = pseg.SDbuf;
+         memset(pseg, 0, seg_data.sizeof);
+         if (b1)
+             b1.reset();
+         pseg.relocations = save;
+         pseg.SDbuf = b1;
     }
     else
     {
@@ -2910,14 +2890,9 @@ void MachObj_addrel(int seg, targ_size_t offset, Symbol* targsym,
     rel.subtractor = false;
     rel.funcsym = funcsym_p;
     rel.val = cast(short)val;
+
     seg_data* pseg = SegData[seg];
-    if (!pseg.SDrel)
-    {
-        pseg.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        if (!pseg.SDrel)
-            err_nomem();
-    }
-    pseg.SDrel.write(&rel, rel.sizeof);
+    pseg.relocations.push(rel);
 }
 
 /*******************************
@@ -3146,14 +3121,9 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
                     rel.subtractor = false;
                     rel.funcsym = null;
                     rel.val = 0;
+
                     seg_data* pseg2 = SegData[seg];
-                    if (!pseg2.SDrel)
-                    {
-                        pseg2.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-                        if (!pseg2.SDrel)
-                            err_nomem();
-                    }
-                    pseg2.SDrel.write(&rel, rel.sizeof);
+                    pseg2.relocations.push(rel);
                 }
                 else
                     MachObj_addrel(seg, offset, null, machobj.pointersSeg, REL.address);
@@ -3444,14 +3414,9 @@ int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol* s, targ_size_t v
     rel.subtractor = !machobj.AArch64;
     rel.funcsym = fdesym;
     rel.val = 0;
+
     seg_data* pseg = SegData[dfseg];
-    if (!pseg.SDrel)
-    {
-        pseg.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        if (!pseg.SDrel)
-            err_nomem();
-    }
-    pseg.SDrel.write(&rel, rel.sizeof);
+    pseg.relocations.push(rel);
 
     return I64 ? 8 : 4;
 }
