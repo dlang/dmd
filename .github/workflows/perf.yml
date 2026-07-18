@@ -107,6 +107,8 @@ jobs:
           dub run -- \
             --base-dmd "$RUNNER_TEMP/base/dmd/$built" \
             --head-dmd "$RUNNER_TEMP/head/dmd/$built" \
+            --base-phobos "$RUNNER_TEMP/base/phobos" \
+            --head-phobos "$RUNNER_TEMP/head/phobos" \
             --base-sha "${{ steps.refs.outputs.base }}" \
             --head-sha "${{ steps.refs.outputs.head }}" \
             --pr "${{ github.event.pull_request.number || 0 }}" \
