@@ -11,6 +11,7 @@ import sys
 import urllib.request
 
 MARKER = "<!-- dmd-perf-bot -->"
+THRESHOLDS = {"cachegrind": 0.1, "stat": 0.1, "time -v": 2.0}
 
 
 def fmt_value(value, unit):
@@ -24,7 +25,11 @@ def fmt_value(value, unit):
 
 
 def fmt_delta(pct):
-    return f"+{pct:.2f}%" if pct > 0 else f"{pct:.2f}%"
+    value = f"{abs(pct):.2f}"
+    if value == "0.00":
+        return "0.00%"
+    sign = "+" if pct > 0 else "-"
+    return f"{sign}{value}%"
 
 
 def render(results):
@@ -80,9 +85,19 @@ def main():
     repo = os.environ.get("REPO")
     # workflow_run has no PR context, so fall back to the number in results.json.
     pr = os.environ.get("PR_NUMBER") or results["head"].get("pr")
-    if token and repo and pr:
-        upsert(body, repo, pr, token)
-        print(f"upserted comment on {repo}#{pr}")
+    if not token or not repo or not pr:
+        return
+
+    significant = any(
+        abs(m["delta_pct"]) >= THRESHOLDS.get(m["method"], 0.1)
+        for m in results["metrics"]
+    )
+    if not significant:
+        print("all deltas within noise threshold, skipping comment")
+        return
+
+    upsert(body, repo, pr, token)
+    print(f"upserted comment on {repo}#{pr}")
 
 
 if __name__ == "__main__":
