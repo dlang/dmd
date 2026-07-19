@@ -393,6 +393,8 @@ protected:
 // Unit Tests
 ////////////////////////////////////////////////////////////////////////////////
 
+version (WASI) {} // WASI is single-threaded
+else
 unittest
 {
     import core.atomic;
