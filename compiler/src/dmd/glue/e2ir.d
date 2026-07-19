@@ -5790,6 +5790,13 @@ elem* callfunc(Loc loc,
                 ethis = el_copytotmp(ex);
                 eside = el_combine(ex, eside);
             }
+
+            // Non-virtual (e.g. final) methods are dispatched statically and
+            // don't dereference 'this' at the call site, so the null check that
+            // the virtual path gets from its vtable lookup would otherwise be
+            // skipped. Insert it here so null 'this' is caught before the call.
+            if (tybasic(ethis.Ety) == TYnptr && irs.nullDerefCheck())
+                applyNullDerefErrorCheck(ethis, TYnptr, irs, loc);
         }
         else
         {
@@ -5819,9 +5826,6 @@ elem* callfunc(Loc loc,
             // make virtual call
             assert(ethis);
             elem* ev = el_same(ethis);
-
-            if (irs.nullDerefCheck())
-                applyNullDerefErrorCheck(ev, TYnptr, irs, loc);
 
             ev = el_una(OPind, TYnptr, ev);
             uint vindex = fd.vtblIndex;
