@@ -379,7 +379,7 @@ final class CParser(AST) : Parser!AST
             cparseDeclaration(LVL.local);
             if (symbols.length > 1)
             {
-                auto as = AST.Statements();
+                AST.Statements as;
                 as.reserve(symbols.length);
                 foreach (d; (*symbols)[])
                 {
@@ -421,7 +421,7 @@ final class CParser(AST) : Parser!AST
              *    statement
              */
             nextToken();
-            auto statements = AST.Statements();
+            AST.Statements statements;
             while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
             {
                 statements.push(cparseStatement(ParseStatementFlags.curlyScope));
@@ -570,7 +570,7 @@ final class CParser(AST) : Parser!AST
 
             if (flags & ParseStatementFlags.curlyScope)
             {
-                auto statements = AST.Statements();
+                AST.Statements statements;
                 while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                 {
                     auto cur = cparseStatement(ParseStatementFlags.curlyScope);
@@ -605,7 +605,7 @@ final class CParser(AST) : Parser!AST
 
             if (flags & ParseStatementFlags.curlyScope)
             {
-                auto statements = AST.Statements();
+                AST.Statements statements;
                 while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                 {
                     statements.push(cparseStatement(ParseStatementFlags.curlyScope));
@@ -2257,7 +2257,7 @@ final class CParser(AST) : Parser!AST
         auto fd = new AST.FuncDeclaration(id.loc, prevloc, id.name, stc, ft, specifier.noreturn);
         specifiersToFuncDeclaration(fd, specifier);
 
-        auto stmts = AST.Statements();
+        AST.Statements stmts;
 
         if (addFuncName)
             stmts.push(createFuncName(locFunc, id.name, Id.__func__));
@@ -3570,7 +3570,7 @@ final class CParser(AST) : Parser!AST
             error("string literal expected for Assembler Template, not `%s`", token.toChars());
         Token* toklist = null;
         Token** ptoklist = &toklist;
-        auto statements = AST.Statements();
+        AST.Statements statements;
 
         int parens;
         while (1)

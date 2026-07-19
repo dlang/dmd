@@ -558,7 +558,7 @@ extern (C++) class CompoundStatement : Statement
  */
 extern (C++) final class CompoundDeclarationStatement : CompoundStatement
 {
-    extern (D) this(Loc loc, Statements statements) @safe
+    extern (D) this(Loc loc, Statements statements) @safe nothrow
     {
         super(loc, statements.move(), STMT.CompoundDeclaration);
     }
@@ -1859,7 +1859,7 @@ extern (C++) final class CompoundAsmStatement : CompoundStatement
 {
     STC stc; // postfix attributes like nothrow/pure/@trusted
 
-    extern (D) this(Loc loc, Statements statements, STC stc) @safe
+    extern (D) this(Loc loc, Statements statements, STC stc) @safe nothrow
     {
         super(loc, statements.move(), STMT.CompoundAsm);
         this.stc = stc;
