@@ -519,6 +519,7 @@ $(GNAME ForeachType):
     $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
     $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK_LEX Identifier)
     $(GLINK ForeachTypeAttributes)$(OPT) $(D alias) $(GLINK_LEX Identifier)
+    $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK ForeachTuplePattern)
 
 $(GNAME ForeachTypeAttributes):
     $(GLINK ForeachTypeAttribute)
@@ -1311,6 +1312,117 @@ aa = null; // OK
         $(NOTE Resizing or reassigning a dynamic or associative array during
         `foreach` is still `@safe`.
         )
+
+$(H3 $(LNAME2 foreach-unpacking, Unpacking Foreach Variables))
+
+        $(P Similarly to $(DDSUBLINK spec/declaration, unpacking-declarations,
+        unpacking variable declarations), $(GLINK AggregateForeach) supports unpacking
+        *ForeachType* declarations. The `auto` storage class is implied for a tuple pattern unless overridden.)
+
+$(GRAMMAR
+$(GNAME ForeachTuplePattern):
+    `(` $(GLINK ForeachTupleComponents) `)`
+
+$(GNAME ForeachTupleComponents):
+    $(GLINK ForeachTupleComponent) `,`
+    $(GLINK ForeachTupleComponent) `,` $(GLINK ForeachTupleComponent)
+    $(GLINK ForeachTupleComponent) `,` $(GLINK ForeachTupleComponents)
+
+$(GNAME ForeachTupleComponent):
+    $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK_LEX Identifier)
+    $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier)
+    $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK ForeachTuplePattern)
+)
+        $(P The following `foreach` statements are equivalent:)
+
+---
+import std.typecons : tuple;
+
+auto arr = [tuple(1, "2"), tuple(3, "4"), tuple(5, "6")];
+
+foreach ((x, y); arr)
+{
+    writeln(x, " ", y); // "1 2\n3 4\n5 6\n"
+}
+
+foreach ((int x, string y); arr)
+{
+    writeln(x, " ", y);// "1 2\n3 4\n5 6\n"
+}
+---
+        $(P An index variable can be declared alongside
+        an unpacked element variable (when the $(GLINK ForeachAggregate) supports it):)
+
+---
+import std.typecons : tuple;
+
+auto arr = [tuple(1, 2), tuple(3, 4)];
+// declare index for array & unpack tuple elements
+foreach (i, (x, y); arr)
+{
+    assert(x == 2 * i + 1);
+    assert(y == 2 * i + 2);
+}
+---
+        $(P Nested tuples can be unpacked. Below, $(REF_SHORT enumerate, std,range) returns a
+        range of element type `Tuple!(size_t, Tuple!(int, int))`. The outer
+        tuple is $(RELATIVE_LINK2 front-seq, implicitly unwrapped):)
+---
+import std.range : enumerate;
+import std.typecons : tuple;
+
+auto arr = [tuple(1, 2), tuple(3, 4)];
+// unpack a range of nested tuples
+foreach (i, (j, k); enumerate(arr))
+{
+    writeln(i," ",j," ",k); // "0 1 2\n1 3 4\n"
+}
+---
+        $(P The index variable can also be unpacked:)
+
+---
+import std.typecons : tuple;
+
+auto aa = [tuple(1, 2): "hi", tuple(3, 4): "bye"];
+// unpack AA tuple keys
+foreach ((a, b), s; aa)
+{
+    writeln(a, b, s); // "12hi\n34bye\n"
+}
+---
+        $(P Normal $(GLINK ForeachTypeAttribute) storage classes are supported,
+        and they can apply to tuple component variables:)
+
+---
+import std.typecons : tuple;
+
+auto arr = [tuple(1, 2), tuple(3, 4)];
+foreach ((ref x, y); arr)
+{
+    x = 2 * y;
+}
+assert(arr == [tuple(4, 2), tuple(8, 4)]);
+
+foreach (const (x, y); arr)
+{
+    static assert(is(typeof(x) == const(int)));
+    static assert(is(typeof(y) == const(int)));
+    assert(x == 2 * y);
+}
+---
+        $(P Unpacking can be used with $(GLINK2 version, StaticForeach):)
+
+---
+import std.typecons : tuple;
+
+static foreach ((a, b); [tuple(1, 2), tuple(3, 4)])
+{
+    pragma(msg, a, b); // "12\n34\n"
+}
+---
+
+        $(P Unpacking can also be used with $(RELATIVE_LINK2 op-apply, `opApply`).)
+
 
 $(H3 $(LEGACY_LNAME2 ForeachRangeStatement, foreach-range-statement, Foreach Range Statement))
 

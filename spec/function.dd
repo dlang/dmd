@@ -47,6 +47,8 @@ $(GNAME Parameter):
     $(GLINK ParameterDeclaration) $(D ...)
     $(GLINK ParameterDeclaration) $(D =) $(ASSIGNEXPRESSION)
     $(GLINK ParameterDeclaration) $(D =) $(ASSIGNEXPRESSION) $(D ...)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK ParameterTuplePattern)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK ParameterTuplePattern) = $(GLINK2 expression, AssignExpression)
 
 $(GNAME ParameterDeclaration):
     $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
@@ -2281,6 +2283,48 @@ int* test(scope int* ptr)
 $(H3 $(LNAME2 udas-parameters, User-Defined Attributes for Parameters))
 
 See also: $(GLINK2_ALTTEXT attribute, UserDefinedAttribute, User-Defined Attributes)
+
+$(H3 $(LNAME2 unpacking-parameters, Unpacking Parameters))
+
+$(GRAMMAR
+$(GNAME ParameterTuplePattern):
+    `(` $(GLINK ParameterTupleComponents) `)`
+
+$(GNAME ParameterTupleComponents):
+    $(GLINK ParameterTupleComponent) `,`
+    $(GLINK ParameterTupleComponent) `,` $(GLINK ParameterTupleComponent)
+    $(GLINK ParameterTupleComponent) `,` $(GLINK ParameterTupleComponents)
+
+$(GNAME ParameterTupleComponent):
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK_LEX Identifier)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK ParameterTuplePattern)
+)
+
+        $(P A $(DDSUBLINK spec/expression, function-literal-alias, function literal template)
+        with untyped *ParameterTupleComponents* is supported. The corresponding function
+        argument will be unpacked into component variables:)
+
+---
+import std.typecons : tuple;
+
+alias dg = ((x, y), z) => writeln(x, " ", y, " ", z);
+dg(tuple(1, 2), 3); // "1 2 3\n"
+---
+        $(NOTE A typed *ParameterTupleComponent* is parsed, but cannot be supported without
+        compiler-recognised tuple types.)
+
+        $(P `((x, y), z) { ... }` is lowered to `(__arg0, z) { auto (x, y) = __arg0; ... }`.
+        In general, lowering preserves and copies storage classes from
+        the parameter to an $(DDSUBLINK spec/declaration, unpacking-declarations,
+        unpacking declaration) in the function body.)
+
+        - The `ref` storage class is copied outwards, e.g., `((ref a, b), c) { ... }` gets lowered to
+          `(ref __arg0, c) { (ref a, auto b) = __arg0; ... }`.
+        - `out` can be applied to the whole parameter, but not to individual components.
+        - `auto ref` and `lazy` cannot be applied to an unpacking parameter.
+
+        $(NOTE `out` unpacking parameters are not supported by the current implementation, but may be added at a future date.)
 
 $(H3 $(LNAME2 variadic, Variadic Functions))
 

@@ -2702,6 +2702,9 @@ $(H4 $(LNAME2 function-literal-alias, Function Literal Templates))
         ---
         )
 
+    $(P A function literal template parameter $(DDSUBLINK spec/function, unpacking-parameters,
+    can use unpacking).)
+
 $(H4 $(LNAME2 lambda-return-type, Return Type Inference))
 
     $(P The return type of the $(GLINK FunctionLiteral) can be

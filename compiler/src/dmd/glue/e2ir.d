@@ -1015,7 +1015,10 @@ elem* toElem(Expression e, ref IRState irs)
     elem* visitDeclaration(DeclarationExp de)
     {
         //printf("DeclarationExp.toElem() %s\n", de.toChars());
-        return Dsymbol_toElem(de.declaration, irs);
+        elem* e = Dsymbol_toElem(de.declaration, irs);
+        if (e && de.type && de.type.toBasetype().ty == Tvoid)
+            e.Ety = TYvoid;
+        return e;
     }
 
     /***************************************

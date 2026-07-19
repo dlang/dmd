@@ -262,6 +262,20 @@ struct ASTBase
         {
             v.visit(this);
         }
+
+        extern (D) static Dsymbols* arraySyntaxCopy(Dsymbols* a)
+        {
+            Dsymbols* b = null;
+            if (a)
+            {
+                b = a.copy();
+                for (size_t i = 0; i < b.length; i++)
+                {
+                    (*b)[i] = (*b)[i].syntaxCopy(null);
+                }
+            }
+            return b;
+        }
     }
 
     extern (C++) class AliasThis : Dsymbol
@@ -1346,6 +1360,33 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class UnpackDeclaration : AttribDeclaration
+    {
+        Dsymbols* vars;
+        Expression _init;
+        StorageClass storage_class;
+
+        extern (D) this(Loc loc, Dsymbols* vars, Expression _init, StorageClass storage_class)
+        {
+            super(null);
+            this.loc = loc;
+            this.vars = vars;
+            this._init = _init;
+            this.storage_class = storage_class;
+        }
+
+        override UnpackDeclaration syntaxCopy(Dsymbol s)
+        {
+            return new UnpackDeclaration(loc, Dsymbol.arraySyntaxCopy(vars), _init ? _init.syntaxCopy() : null, storage_class);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+
     extern (C++) final class EnumMember : VarDeclaration
     {
         Expression origValue;
@@ -1703,16 +1744,18 @@ struct ASTBase
         Identifier ident;
         Expression defaultArg;
         UserAttributeDeclaration userAttribDecl; // user defined attributes
+        UnpackDeclaration unpack;
 
         extern (D) alias ForeachDg = int delegate(size_t idx, Parameter param);
 
-        final extern (D) this(Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
+        final extern (D) this(Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl, UnpackDeclaration unpack)
         {
             this.storageClass = storageClass;
             this.type = type;
             this.ident = ident;
             this.defaultArg = defaultArg;
             this.userAttribDecl = userAttribDecl;
+            this.unpack = unpack;
         }
 
         static size_t dim(Parameters* parameters)
@@ -1779,7 +1822,7 @@ struct ASTBase
 
         Parameter syntaxCopy()
         {
-            return new Parameter(loc, storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null);
+            return new Parameter(loc, storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null, unpack ? unpack.syntaxCopy(null) : null);
         }
 
         override void accept(Visitor v)
@@ -3638,7 +3681,7 @@ struct ASTBase
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
                         error(e.loc, "cannot form sequence of sequences");
-                    auto arg = new Parameter(e.loc, STC.none, e.type, null, null, null);
+                    auto arg = new Parameter(e.loc, STC.none, e.type, null, null, null, null);
                     (*arguments)[i] = arg;
                 }
             }

@@ -151,6 +151,7 @@ extern (C++) private class AddCommentVisitor: Visitor
         }
     }
     override void visit(StaticForeachDeclaration sfd) {}
+    override void visit(UnpackDeclaration upd) {}
 }
 
 
@@ -319,6 +320,7 @@ enum DSYM : ubyte
     bitFieldDeclaration,
     typeInfoDeclaration,
     tupleDeclaration,
+    unpackDeclaration,
     aliasDeclaration,
     aggregateDeclaration,
     funcDeclaration,
@@ -966,6 +968,7 @@ extern (C++) class Dsymbol : ASTNode
     inout(BitFieldDeclaration)         isBitFieldDeclaration()         inout { return dsym == DSYM.bitFieldDeclaration ? cast(inout(BitFieldDeclaration)) cast(void*) this : null; }
     inout(TypeInfoDeclaration)         isTypeInfoDeclaration()         inout { return dsym == DSYM.typeInfoDeclaration ? cast(inout(TypeInfoDeclaration)) cast(void*) this : null; }
     inout(TupleDeclaration)            isTupleDeclaration()            inout { return dsym == DSYM.tupleDeclaration ? cast(inout(TupleDeclaration)) cast(void*) this : null; }
+    inout(UnpackDeclaration)           isUnpackDeclaration()           inout { return dsym == DSYM.unpackDeclaration ? cast(inout(UnpackDeclaration)) cast(void*) this : null; }
     inout(AliasDeclaration)            isAliasDeclaration()            inout { return dsym == DSYM.aliasDeclaration ? cast(inout(AliasDeclaration)) cast(void*) this : null; }
     inout(AggregateDeclaration)        isAggregateDeclaration()        inout {
         switch (dsym)

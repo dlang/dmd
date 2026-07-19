@@ -495,7 +495,6 @@ extern (C++) class VarDeclaration : Declaration
             }
         }
 
-        assert(type || _init);
         this.type = type;
         this._init = _init;
         ctfeAdrOnStack = AdrOnStackNone;

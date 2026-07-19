@@ -37,6 +37,7 @@ import dmd.identifier;
 import dmd.location;
 import dmd.common.outbuffer;
 import dmd.visitor;
+import dmd.init; // TODO: maybe remove this?
 
 /***********************************************************
  * Abstract attribute applied to Dsymbol's used as a common
@@ -748,6 +749,224 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         v.visit(this);
     }
 }
+
+/***********************************************************
+ * Unpack declarations look like, e.g.:
+ * auto (a, b) = init;
+ * (int a, string b) = init;
+ */
+extern (C++) final class UnpackDeclaration : AttribDeclaration
+{
+    Expression _init;
+    ScopeDsymbol scopesym;
+    STC declared_storage_class;
+    STC storage_class;
+    bool onStack = false;
+    bool lowered = false;
+
+    final extern (D) this(const ref Loc loc, Dsymbols* vars, Expression _init, STC storage_class)
+    {
+        super(loc, null, vars);
+        this._init = _init;
+        this.declared_storage_class = storage_class;
+        this.storage_class = storage_class;
+        this.dsym = DSYM.unpackDeclaration;
+    }
+
+    bool propagateStorageClasses()
+    {
+        static import dmd.errors;
+        foreach (d; *decl)
+        {
+            STC d_storage_class;
+            if (auto vd = d.isVarDeclaration())
+            {
+                vd.storage_class |= declared_storage_class;
+                d_storage_class = vd.storage_class;
+                // allow `auto (a, int b) =`
+                if (vd.type)
+                    vd.storage_class &= ~STC.auto_;
+            }
+            else if (auto up = d.isUnpackDeclaration())
+            {
+                if (!up.propagateStorageClasses())
+                    return false;
+                d_storage_class = up.storage_class;
+            }
+            else
+            {
+                assert(0);
+            }
+            import dmd.errors;
+            if (d_storage_class & STC.static_ && !(storage_class & STC.static_))
+            {
+                dmd.errors.error(loc, "cannot specify `static` for individual components of an unpack declaration");
+                return false;
+            }
+            if (d_storage_class & STC.manifest && !(storage_class & STC.manifest))
+            {
+                dmd.errors.error(loc, "cannot specify `enum` for individual components of an unpack declaration");
+                return false;
+            }
+            if (d_storage_class & (STC.ref_ | STC.out_))
+            {
+                storage_class |= d_storage_class & (STC.ref_ | STC.out_);
+            }
+        }
+
+        return true;
+    }
+
+    void lower(Scope* sc)
+    {
+        if (lowered)
+            return;
+        if (!sc)
+            return;
+
+        void fail()
+        {
+            decl = null;
+            lowered = true;
+        }
+        static import dmd.errors;
+        if (auto uda = userAttribDecl)
+        {
+            dmd.errors.error(loc, "user defined attributes are not supported yet on unpack declarations");
+            return fail();
+        }
+
+        import dmd.expressionsem;
+        bool needctfe = (storage_class & (STC.manifest | STC.static_)) != 0;
+        if (needctfe)
+        {
+            sc.condition = true;
+            sc = sc.startCTFE();
+        }
+        // _init = _init.inferType(sc); // TODO?
+        _init = _init.expressionSemantic(sc);
+        _init = resolveProperties(sc, _init);
+        if (needctfe)
+        {
+            sc = sc.endCTFE();
+            import dmd.dinterpret;
+            _init = _init.ctfeInterpret();
+        }
+
+        if (_init.type.isTypeError())
+        {
+            return fail();
+        }
+
+        TupleExp tup = null;
+        auto tinit = _init.type;
+
+        if (_init.type.isTypeTuple() && _init.isTupleExp())
+        {
+            tup = cast(TupleExp)_init;
+        }
+        else
+        {
+            import dmd.dsymbolsem : resolveAliasThis;
+            _init = resolveAliasThis(sc, _init);
+            if (_init.type.isTypeTuple() && _init.isTupleExp())
+            {
+                tup = cast(TupleExp)_init;
+            }
+        }
+
+        if (!tup)
+        {
+            dmd.errors.error(loc, "right hand side of unpack declaration must resolve to a tuple or expression sequence, not `%s`",
+                tinit.toChars());
+            return fail();
+        }
+        if (decl.length != tup.exps.length)
+        {
+            dmd.errors.error(loc, "incompatible number of components for unpack declaration (`%d` vs. `%d`)", cast(int)decl.length, cast(int)tup.exps.length);
+            return fail();
+        }
+
+        if (!propagateStorageClasses())
+            return fail();
+
+        Expressions* exps = null;
+        if (tup.isAliasThisTuple())
+        {
+            assert(decl.length != 0);
+            import dmd.sideeffect: copyToTemp;
+            auto v = copyToTemp(storage_class, "__tup", tup);
+            import dmd.dsymbolsem : dsymbolSemantic;
+            v.dsymbolSemantic(sc);
+            auto ve = new VarExp(loc, v);
+            ve.type = tup.type;
+
+            exps = new Expressions();
+            exps.setDim(1);
+            (*exps)[0] = ve;
+            expandAliasThisTuples(exps, 0);
+        }
+        else
+        {
+            exps = tup.exps;
+            expandTuples(exps);
+        }
+        assert(exps.length == decl.length);
+
+        foreach (i, d; *decl)
+        {
+            auto exp = (*exps)[i];
+            if (i == 0)
+            {
+                exp = Expression.combine(tup.e0, exp);
+            }
+            if (auto var = d.isVarDeclaration())
+            {
+                assert (!var._init);
+                var._init = new ExpInitializer(exp.loc, exp);
+            }
+            else if (auto unp = d.isUnpackDeclaration())
+            {
+                assert (!unp._init);
+                unp._init = exp;
+            }
+            else
+            {
+                assert(0);
+            }
+            if (_scope)
+            {
+                import dmd.dsymbolsem : addMember;
+                d.addMember(_scope, scopesym);
+            }
+        }
+        if (_scope)
+        {
+            foreach (d; *decl)
+            {
+                import dmd.dsymbolsem : setScope;
+                d.setScope(_scope);
+            }
+        }
+        lowered = true;
+    }
+
+    override UnpackDeclaration syntaxCopy(Dsymbol s)
+    {
+        return new UnpackDeclaration(loc, Dsymbol.arraySyntaxCopy(decl), _init ? _init.syntaxCopy() : null, storage_class);
+    }
+
+    override const(char)* kind() const
+    {
+        return "unpack declaration";
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
 
 /**
  * Returns `true` if the given symbol is a symbol declared in
