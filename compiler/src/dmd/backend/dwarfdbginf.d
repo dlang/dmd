@@ -175,7 +175,7 @@ static if (1)
     /*****************
      * Returns the eh_frame segment number, create segment if necessary.
      * Returns:
-     *	segment index of eh_frame
+     *  segment index of eh_frame
      */
     IDXSEC dwarf_eh_frame_alloc()
     {
