@@ -330,6 +330,8 @@ private:
 }
 
 // Test single-thread (non-shared) use.
+version (WASI) {} // WASI is single-threaded
+else
 @nogc nothrow unittest
 {
     // auto-reset, initial state false
@@ -347,6 +349,8 @@ private:
     assert(!ev2.wait(1.dur!"msecs"));
 }
 
+version (WASI) {} // WASI is single-threaded
+else
 unittest
 {
     import core.atomic;

@@ -647,6 +647,8 @@ private:
 // Unit Tests
 ////////////////////////////////////////////////////////////////////////////////
 
+version (WASI) {} // WASI is single-threaded
+else
 unittest
 {
     import core.sync.mutex;
@@ -813,6 +815,8 @@ unittest
     testWaitTimeout();
 }
 
+version (WASI) {} // WASI is single-threaded
+else
 unittest
 {
     import core.sync.mutex;
