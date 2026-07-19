@@ -139,25 +139,6 @@ private @trusted
 IMAGE_SECTION_HEADER* ScnhdrTab() { return cast(IMAGE_SECTION_HEADER*)mscoffobj.ScnhdrBuf.buf - 1; }
 
 
-/*******************************************************
- * Because the mscoff relocations cannot be computed until after
- * all the segments are written out, and we need more information
- * than the mscoff relocations provide, make our own relocation
- * type. Later, translate to mscoff relocation structure.
- */
-struct Relocation
-{   // Relocations are attached to the struct seg_data they refer to
-    targ_size_t offset; // location in segment to be fixed up
-    Symbol* funcsym;    // function in which offset lies, if any
-    Symbol* targsym;    // if !=null, then location is to be fixed up
-                        // to address of this symbol
-    uint targseg;       // if !=0, then location is to be fixed up
-                        // to address of start of this segment
-    REL rtype;          // RELxxxx
-    short val;          // 0, -1, -2, -3, -4, -5
-}
-
-
 /*******************************
  * Output a string into a string table
  * Input:
@@ -523,8 +504,7 @@ void build_syment_table(bool bigobj)
         else
             aux.x_section.length = cast(uint)pseg.SDoffset;
 
-        if (pseg.SDrel)
-            aux.x_section.NumberOfRelocations = cast(ushort)(pseg.SDrel.length() / (Relocation).sizeof);
+	aux.x_section.NumberOfRelocations = cast(ushort)pseg.relocations.length;
 
         if (psechdr.Characteristics & IMAGE_SCN_LNK_COMDAT)
         {
@@ -749,11 +729,11 @@ void MsCoffObj_term(const(char)[] objfilename)
     {
         seg_data* pseg = SegData[seg];
         IMAGE_SECTION_HEADER* psechdr = &ScnhdrTab[pseg.SDshtidx];   // corresponding section
-        if (pseg.SDrel)
+        if (1)
         {
             foffset = (foffset + 3) & ~3;
             assert(psechdr.PointerToRelocations == 0);
-            auto nreloc = pseg.SDrel.length() / Relocation.sizeof;
+	    auto nreloc = pseg.relocations.length;
             if (nreloc > 0xffff)
             {
                 // https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#coff-relocations-object-only
@@ -770,6 +750,8 @@ void MsCoffObj_term(const(char)[] objfilename)
             }
             foffset += nreloc * reloc.sizeof;
         }
+	else
+	    assert(pseg.relocations.length == 0);
     }
 
     assert(mscoffobj.fobjbuf.length() == 0);
@@ -823,12 +805,10 @@ void MsCoffObj_term(const(char)[] objfilename)
     {
         seg_data* pseg = SegData[seg];
         IMAGE_SECTION_HEADER* psechdr = &ScnhdrTab[pseg.SDshtidx];   // corresponding section
-        if (pseg.SDrel)
+        if (1)
         {
-            Relocation* r = cast(Relocation*)pseg.SDrel.buf;
-            size_t sz = pseg.SDrel.length();
+            size_t sz = pseg.relocations.length;
             bool pdata = (strcmp(cast(const(char)* )psechdr.Name, ".pdata") == 0);
-            Relocation* rend = cast(Relocation*)(pseg.SDrel.buf + sz);
             foffset = elf_align(4, foffset);
 
             debug
@@ -838,12 +818,12 @@ void MsCoffObj_term(const(char)[] objfilename)
 
             if (psechdr.Characteristics & IMAGE_SCN_LNK_NRELOC_OVFL)
             {
-                auto rel = reloc(cast(uint)(sz / Relocation.sizeof) + 1);
+                auto rel = reloc(cast(uint)pseg.relocations.length + 1);
                 mscoffobj.fobjbuf.write((&rel)[0 .. 1]);
                 foffset += rel.sizeof;
             }
-            for (; r != rend; r++)
-            {   reloc rel;
+	    foreach (ref r; pseg.relocations[])
+	    {   reloc rel;
                 rel.r_vaddr = 0;
                 rel.r_symndx = 0;
                 rel.r_type = 0;
@@ -1447,9 +1427,13 @@ segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
     seg_data* pseg = *ppseg;
     if (pseg)
     {
+static if (1)
+{
         OutBuffer* b1 = pseg.SDbuf;
-        OutBuffer* b2 = pseg.SDrel;
+	auto b3 = pseg.relocations;
+
         memset(pseg, 0, (seg_data).sizeof);
+
         if (b1)
             b1.reset();
         else
@@ -1459,10 +1443,11 @@ segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
                 err_nomem();
             b1.reserve(4096);
         }
-        if (b2)
-            b2.reset();
         pseg.SDbuf = b1;
-        pseg.SDrel = b2;
+
+	b3.reset();
+	pseg.relocations = b3;
+}
     }
     else
     {
@@ -2125,20 +2110,16 @@ void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, Symbol* targsym,
     }
 
     Relocation rel = void;
-    rel.offset = offset;
-    rel.targsym = targsym;
-    rel.targseg = targseg;
-    rel.rtype = rtype;
-    rel.funcsym = funcsym_p;
-    rel.val = cast(short)val;
+    rel.offset     = offset;
+    rel.funcsym    = funcsym_p;
+    rel.targsym    = targsym;
+    rel.targseg    = targseg;
+    rel.rtype      = rtype;
+    rel.subtractor = false;
+    rel.val        = cast(short)val;
+
     seg_data* pseg = SegData[seg];
-    if (!pseg.SDrel)
-    {
-        pseg.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        if (!pseg.SDrel)
-            err_nomem();
-    }
-    pseg.SDrel.write((&rel)[0 .. 1]);
+    pseg.relocations.push(rel);
 }
 
 /****************************************
