@@ -54,6 +54,7 @@ public:
 
     @disable this(this);
 
+@trusted:
     ~this() pure nothrow
     {
         debug (stomp)
@@ -65,7 +66,6 @@ public:
             mem.xfree(_ptr);
     }
 
-@trusted:
     // this is using a template constraint because of ambiguity with this(size_t) when T is
     // int, and c++ header generation doesn't accept wrapping this in static if
     extern(D) this()(T[] elems ...) pure nothrow if (is(T == struct) || is(T == class))
@@ -333,21 +333,24 @@ public:
         return a;
     }
 
-    void moveFrom(ref Array!T a) pure nothrow
+    // convert to an rvalue leaving this empty
+    Array!T move() pure nothrow
     {
-        if (a.allocated <= SMALLARRAYCAP)
+        Array!T a;
+        if (allocated <= SMALLARRAYCAP)
         {
-            for (size_t i = 0; i < a.length; i++)
-                smallarray[i] = a.smallarray[i];
+            for (size_t i = 0; i < length; i++)
+                a.smallarray[i] = smallarray[i];
         }
         else
         {
-            _ptr = a._ptr;
+            a._ptr = _ptr;
         }
-        length = a.length;
-        allocated = a.allocated;
-        a.length = 0;
-        a.allocated = SMALLARRAYCAP;
+        a.length = length;
+        a.allocated = allocated;
+        length = 0;
+        allocated = SMALLARRAYCAP;
+        return a;
     }
 
     void shift(T ptr) pure nothrow

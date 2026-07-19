@@ -474,16 +474,16 @@ extern (C++) class CompoundStatement : Statement
      *   loc = Instantiation information
      *   statements   = An array of `Statement`s, that will referenced by this class
      */
-    final extern (D) this(Loc loc, ref Statements statements) @safe nothrow
+    final extern (D) this(Loc loc, Statements statements) @safe nothrow
     {
         super(loc, STMT.Compound);
-        this.statements.moveFrom(statements);
+        this.statements = statements.move();
     }
 
-    final extern (D) this(Loc loc, ref Statements statements, STMT stmt) @safe nothrow
+    final extern (D) this(Loc loc, Statements statements, STMT stmt) @safe nothrow
     {
         super(loc, stmt);
-        this.statements.moveFrom(statements);
+        this.statements = statements.move();
     }
     final extern (D) this(Loc loc) @safe nothrow
     {
@@ -558,16 +558,16 @@ extern (C++) class CompoundStatement : Statement
  */
 extern (C++) final class CompoundDeclarationStatement : CompoundStatement
 {
-    extern (D) this(Loc loc, ref Statements statements) @safe
+    extern (D) this(Loc loc, Statements statements) @safe
     {
-        super(loc, statements, STMT.CompoundDeclaration);
+        super(loc, statements.move(), STMT.CompoundDeclaration);
     }
 
     override CompoundDeclarationStatement syntaxCopy()
     {
         Statements nstmts;
         Statement.arraySyntaxCopy(&statements, &nstmts);
-        return new CompoundDeclarationStatement(loc, nstmts);
+        return new CompoundDeclarationStatement(loc, nstmts.move());
     }
 
     override void accept(Visitor v)
@@ -587,7 +587,7 @@ extern (C++) final class UnrolledLoopStatement : Statement
     extern (D) this(Loc loc, ref Statements statements) @safe nothrow
     {
         super(loc, STMT.UnrolledLoop);
-        this.statements.moveFrom(statements);
+        this.statements = statements.move();
     }
 
     override UnrolledLoopStatement syntaxCopy()
@@ -1859,9 +1859,9 @@ extern (C++) final class CompoundAsmStatement : CompoundStatement
 {
     STC stc; // postfix attributes like nothrow/pure/@trusted
 
-    extern (D) this(Loc loc, ref Statements statements, STC stc) @safe
+    extern (D) this(Loc loc, Statements statements, STC stc) @safe
     {
-        super(loc, statements, STMT.CompoundAsm);
+        super(loc, statements.move(), STMT.CompoundAsm);
         this.stc = stc;
     }
 
@@ -1869,7 +1869,7 @@ extern (C++) final class CompoundAsmStatement : CompoundStatement
     {
         Statements nstmts;
         Statement.arraySyntaxCopy(&statements, &nstmts);
-        return new CompoundAsmStatement(loc, nstmts, stc);
+        return new CompoundAsmStatement(loc, nstmts.move(), stc);
     }
 
     override void accept(Visitor v)

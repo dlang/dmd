@@ -6422,7 +6422,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         s = new AST.ExpStatement(loc, d);
                         as.push(s);
                     }
-                    s = new AST.CompoundDeclarationStatement(loc, as);
+                    s = new AST.CompoundDeclarationStatement(loc, as.move());
                 }
                 else if (a.length == 1)
                 {
@@ -6516,7 +6516,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     *pEndloc = token.loc;
                     pEndloc = null; // don't set it again
                 }
-                s = new AST.CompoundStatement(loc, statements);
+                s = new AST.CompoundStatement(loc, statements.move());
                 if (flags & (ParseStatementFlags.scope_ | ParseStatementFlags.curlyScope))
                     s = new AST.ScopeStatement(loc, s, token.loc);
                 if (token.value != TOK.rightCurly)
@@ -6822,7 +6822,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         if (cur && cur.isBreakStatement())
                             break;
                     }
-                    s = new AST.CompoundStatement(loc, statements);
+                    s = new AST.CompoundStatement(loc, statements.move());
                 }
                 else
                 {
@@ -6857,7 +6857,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     {
                         statements.push(parseStatement(ParseStatementFlags.curlyScope));
                     }
-                    s = new AST.CompoundStatement(loc, statements);
+                    s = new AST.CompoundStatement(loc, statements.move());
                 }
                 else
                     s = parseStatement(0);
@@ -7508,7 +7508,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         nextToken();
         if (token.value == TOK.endOfLine)
             nextToken();
-        auto s = new AST.CompoundAsmStatement(loc, statements, stc);
+        auto s = new AST.CompoundAsmStatement(loc, statements.move(), stc);
         return s;
     }
 

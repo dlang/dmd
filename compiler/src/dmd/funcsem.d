@@ -2978,7 +2978,7 @@ void buildEnsureRequire(FuncDeclaration thisfd)
         {
             s.push(new ScopeStatement(r.loc, r, r.loc));
         }
-        thisfd.frequire = new CompoundStatement(loc, s);
+        thisfd.frequire = new CompoundStatement(loc, s.move());
     }
     if (thisfd.fensures)
     {
@@ -3009,7 +3009,7 @@ void buildEnsureRequire(FuncDeclaration thisfd)
                 s.push(r.ensure);
             }
         }
-        thisfd.fensure = new CompoundStatement(loc, s);
+        thisfd.fensure = new CompoundStatement(loc, s.move());
     }
     if (!thisfd.isVirtual())
         return;

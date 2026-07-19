@@ -386,7 +386,7 @@ final class CParser(AST) : Parser!AST
                     s = new AST.ExpStatement(loc, d);
                     as.push(s);
                 }
-                s = new AST.CompoundDeclarationStatement(loc, as);
+                s = new AST.CompoundDeclarationStatement(loc, as.move());
                 symbols.setDim(0);
             }
             else if (symbols.length == 1)
@@ -434,7 +434,7 @@ final class CParser(AST) : Parser!AST
                 *pEndloc = token.loc;
                 pEndloc = null; // don't set it again
             }
-            s = new AST.CompoundStatement(loc, statements);
+            s = new AST.CompoundStatement(loc, statements.move());
             if (flags & (ParseStatementFlags.scope_ | ParseStatementFlags.curlyScope))
                 s = new AST.ScopeStatement(loc, s, token.loc);
             check(TOK.rightCurly, "compound statement");
@@ -584,7 +584,7 @@ final class CParser(AST) : Parser!AST
                     if (cur && cur.isBreakStatement())
                         break;
                 }
-                s = new AST.CompoundStatement(loc, statements);
+                s = new AST.CompoundStatement(loc, statements.move());
             }
             else
             {
@@ -610,7 +610,7 @@ final class CParser(AST) : Parser!AST
                 {
                     statements.push(cparseStatement(ParseStatementFlags.curlyScope));
                 }
-                s = new AST.CompoundStatement(loc, statements);
+                s = new AST.CompoundStatement(loc, statements.move());
             }
             else
                 s = cparseStatement(0);
@@ -2270,7 +2270,7 @@ final class CParser(AST) : Parser!AST
 
         stmts.push(body);
 
-        body = new AST.CompoundStatement(locFunc, stmts);
+        body = new AST.CompoundStatement(locFunc, stmts.move());
         fd.fbody = body;
 
         // TODO add `symbols` to the function's local symbol table `sc2` in FuncDeclaration::semantic3()
@@ -3617,7 +3617,7 @@ final class CParser(AST) : Parser!AST
             break;
         }
         nextToken();
-        auto s = new AST.CompoundAsmStatement(loc, statements, STC.none);
+        auto s = new AST.CompoundAsmStatement(loc, statements.move(), STC.none);
         return s;
     }
 

@@ -242,7 +242,7 @@ public:
         }
 
         static if (asStatements)
-            result = new CompoundStatement(s.loc, as);
+            result = new CompoundStatement(s.loc, as.move());
     }
 
     override void visit(UnrolledLoopStatement s)
@@ -1170,7 +1170,7 @@ public:
                     return null;
                 auto a = Statements(!s1 ? new ExpStatement(e.e1.loc, e.e1) : s1,
                                     !s2 ? new ExpStatement(e.e2.loc, e.e2) : s2);
-                return new CompoundStatement(exp.loc, a);
+                return new CompoundStatement(exp.loc, a.move());
             }
 
             // inline as an expression
@@ -2423,11 +2423,11 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
         if (as2 != &as)
         {
             as.push(new TryFinallyStatement(callLoc,
-                        new CompoundStatement(callLoc, *as2),
+                        new CompoundStatement(callLoc, as2.move()),
                         new DtorExpStatement(callLoc, vthis.edtor, vthis)));
         }
 
-        sresult = new ScopeStatement(callLoc, new CompoundStatement(callLoc, as), callLoc);
+        sresult = new ScopeStatement(callLoc, new CompoundStatement(callLoc, as.move()), callLoc);
 
         static if (EXPANDINLINE_LOG)
             printf("\n[%s] %s expandInline sresult =\n%s\n",

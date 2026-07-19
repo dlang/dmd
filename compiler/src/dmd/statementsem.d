@@ -283,7 +283,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         Statements* a = cs.flatten(sc);
         if (!a)
             return;
-        Statement s = new CompoundStatement(cs.loc, *a);
+        Statement s = new CompoundStatement(cs.loc, a.move());
         result = s.statementSemantic(sc);
     }
 
@@ -411,7 +411,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     a.pushSlice(cs.statements[i + 1 .. cs.statements.length]);
                     cs.statements.setDim(i + 1);
 
-                    Statement _body = new CompoundStatement(Loc.initial, a);
+                    Statement _body = new CompoundStatement(Loc.initial, a.move());
                     _body = new ScopeStatement(Loc.initial, _body, Loc.initial);
 
                     Identifier id = Identifier.generateId("__o");
@@ -462,7 +462,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     a.pushSlice(cs.statements[i + 1 .. cs.statements.length]);
                     cs.statements.setDim(i + 1);
 
-                    auto _body = new CompoundStatement(Loc.initial, a);
+                    auto _body = new CompoundStatement(Loc.initial, a.move());
                     auto stf = new TryFinallyStatement(Loc.initial, _body, sfinally);
                     if (auto des = sfinally.isDtorExpStatement())
                         stf.loweredFrom = des.var;
@@ -561,7 +561,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         Statements* a = ss.statement.flatten(sc);
         if (a)
         {
-            ss.statement = new CompoundStatement(ss.loc, *a);
+            ss.statement = new CompoundStatement(ss.loc, a.move());
         }
 
         ss.statement = ss.statement.statementSemantic(sc);
@@ -694,7 +694,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             auto ainit = Statements(fs._init);
             fs._init = null;
             ainit.push(fs);
-            Statement s = new CompoundStatement(fs.loc, ainit);
+            Statement s = new CompoundStatement(fs.loc, ainit.move());
             s = new ScopeStatement(fs.loc, s, fs.endloc);
             s = s.statementSemantic(sc);
             if (!s.isErrorStatement())
@@ -1260,7 +1260,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     cs.push(new ExpStatement(loc, vinit));
                 cs.push(new ExpStatement(loc, tmp));
                 cs.push(new ExpStatement(loc, fs.key));
-                Statement forinit = new CompoundDeclarationStatement(loc, cs);
+                Statement forinit = new CompoundDeclarationStatement(loc, cs.move());
 
                 Expression cond;
                 if (fs.op == TOK.foreach_reverse_)
@@ -1658,7 +1658,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             cs.push(new ExpStatement(loc, tmp));
             cs.push(new ExpStatement(loc, fs.key));
         }
-        Statement forinit = new CompoundDeclarationStatement(loc, cs);
+        Statement forinit = new CompoundDeclarationStatement(loc, cs.move());
 
         Expression cond;
         if (fs.op == TOK.foreach_reverse_)
@@ -1942,7 +1942,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
             statements.push(ss);
 
-            Statement s = new CompoundStatement(ss.loc, statements);
+            Statement s = new CompoundStatement(ss.loc, statements.move());
             s = new ScopeStatement(ss.loc, s, ss.endloc);
             s = s.statementSemantic(sc);
             result = s;
@@ -2175,7 +2175,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             if (ss._body.blockExit(sc.func, null) & BE.fallthru)
                 a.push(new BreakStatement(Loc.initial, null));
             a.push(sc.switchStatement.sdefault);
-            cs = new CompoundStatement(ss.loc, a);
+            cs = new CompoundStatement(ss.loc, a.move());
             ss._body = cs;
         }
 
@@ -2499,7 +2499,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             Statement cs = new CaseStatement(crs.loc, e, s);
             statements.push(cs);
         }
-        Statement s = new CompoundStatement(crs.loc, statements);
+        Statement s = new CompoundStatement(crs.loc, statements.move());
         sc.ctorflow.orCSX(CSX.label);
         s = s.statementSemantic(sc);
         result = s;
@@ -3285,7 +3285,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 s = new TryFinallyStatement(ss.loc, ss._body, s);
                 cs.push(s);
 
-                s = new CompoundStatement(ss.loc, cs);
+                s = new CompoundStatement(ss.loc, cs.move());
                 result = s.statementSemantic(sc);
             }
         }
@@ -3329,7 +3329,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             s = new TryFinallyStatement(ss.loc, ss._body, s);
             cs.push(s);
 
-            s = new CompoundStatement(ss.loc, cs);
+            s = new CompoundStatement(ss.loc, cs.move());
             result = s.statementSemantic(sc);
         }
     }
@@ -4155,7 +4155,7 @@ private extern(D) Statement loopReturn(Expression e, Statements* cases, Loc loc)
         a.push(s);
     }
 
-    s = new CompoundStatement(loc, a);
+    s = new CompoundStatement(loc, a.move());
     return new SwitchStatement(loc, null, e, s, false, loc);
 }
 
@@ -4849,7 +4849,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
         else
         {
             stmts.push(fs._body.syntaxCopy());
-            s = new CompoundStatement(loc, stmts);
+            s = new CompoundStatement(loc, stmts.move());
         }
 
         if (!isStatic)
@@ -4884,7 +4884,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
     else if (isDecl)
         result.decl = declarations;
     else
-        result.statement = new CompoundStatement(loc, statements);
+        result.statement = new CompoundStatement(loc, statements.move());
 
     return result;
 }
@@ -5104,7 +5104,7 @@ private Statement toStatement(Dsymbol s)
             if (Statement sx = toStatement(m))
                 a.push(sx);
         }
-        result = new CompoundStatement(tm.loc, a);
+        result = new CompoundStatement(tm.loc, a.move());
     }
     else if (s.isVarDeclaration()       ||
              s.isAggregateDeclaration() ||
@@ -5135,7 +5135,7 @@ private Statement toStatement(Dsymbol s)
             {
                 statements.push(toStatement(sx));
             }
-            result = new CompoundStatement(d.loc, statements);
+            result = new CompoundStatement(d.loc, statements.move());
         }
     }
     else if (s.isStaticAssert() ||

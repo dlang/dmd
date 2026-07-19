@@ -4714,7 +4714,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (sd.fbody)
                 sa.push(sd.fbody);
 
-            sd.fbody = new CompoundStatement(Loc.initial, sa);
+            sd.fbody = new CompoundStatement(Loc.initial, sa.move());
             if (isDestructor)
                 (cast(StaticDtorDeclaration)sd).vgate = v;
         }

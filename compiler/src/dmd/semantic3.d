@@ -1224,7 +1224,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     a.push(s);
                 }
 
-                Statement sbody = new CompoundStatement(Loc.initial, a);
+                Statement sbody = new CompoundStatement(Loc.initial, a.move());
 
                 /* Append destructor calls for parameters as finally blocks.
                  */

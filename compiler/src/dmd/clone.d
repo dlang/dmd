@@ -1125,7 +1125,7 @@ private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclara
     call.directcall = true;
     stmts.push(new ExpStatement(loc, call));
     stmts.push(new ReturnStatement(loc, new CastExp(loc, new ThisExp(loc), Type.tvoidptr)));
-    func.fbody = new CompoundStatement(loc, stmts);
+    func.fbody = new CompoundStatement(loc, stmts.move());
     func.isGenerated = true;
 
     auto sc2 = sc.push();
@@ -1375,7 +1375,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
             }
 
             // put destructor calls in a `scope(failure)` block
-            postblitCalls.push(new ScopeGuardStatement(loc, TOK.onScopeFailure, new CompoundStatement(loc, dtors)));
+            postblitCalls.push(new ScopeGuardStatement(loc, TOK.onScopeFailure, new CompoundStatement(loc, dtors.move())));
         }
 
         // perform semantic on the member postblit in order to
@@ -1470,7 +1470,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         auto dd = new PostBlitDeclaration(declLoc, Loc.initial, stc, Id.__fieldPostblit);
         dd.isGenerated = true;
         dd.storage_class |= STC.inference | STC.scope_;
-        dd.fbody = (stc & STC.disable) ? null : new CompoundStatement(loc, postblitCalls);
+        dd.fbody = (stc & STC.disable) ? null : new CompoundStatement(loc, postblitCalls.move());
         sd.postblits.shift(dd);
         sd.members.push(dd);
         dd.dsymbolSemantic(sc);

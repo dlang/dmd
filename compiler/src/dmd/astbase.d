@@ -2509,16 +2509,16 @@ struct ASTBase
     {
         Statements statements;
 
-        final extern (D) this(Loc loc, ref Statements statements)
+        final extern (D) this(Loc loc, Statements statements)
         {
             super(loc, STMT.Compound);
-            this.statements.moveFrom(statements);
+            this.statements = statements.move();
         }
 
-        final extern (D) this(Loc loc, ref Statements statements, STMT stmt)
+        final extern (D) this(Loc loc, Statements statements, STMT stmt)
         {
             super(loc, stmt);
-            this.statements.moveFrom(statements);
+            this.statements = statements.move();
         }
 
         final extern (D) this(Loc loc, Statement[] sts...)
@@ -2551,9 +2551,9 @@ struct ASTBase
 
     extern (C++) final class CompoundDeclarationStatement : CompoundStatement
     {
-        final extern (D) this(Loc loc, ref Statements statements)
+        final extern (D) this(Loc loc, Statements statements)
         {
-            super(loc, statements, STMT.CompoundDeclaration);
+            super(loc, statements.move(), STMT.CompoundDeclaration);
         }
 
         override void accept(Visitor v)
@@ -2566,9 +2566,9 @@ struct ASTBase
     {
         StorageClass stc;
 
-        final extern (D) this(Loc loc, ref Statements s, StorageClass stc)
+        final extern (D) this(Loc loc, Statements s, StorageClass stc)
         {
-            super(loc, s, STMT.CompoundAsm);
+            super(loc, s.move(), STMT.CompoundAsm);
             this.stc = stc;
         }
 
