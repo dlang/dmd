@@ -1888,7 +1888,7 @@ T to(string units, T, D)(D td) @safe pure nothrow @nogc
     {
         enum unitsPerSec = convert!("seconds", units)(1);
 
-        return cast(T) (td.length / (TickDuration.ticksPerSec / cast(real) unitsPerSec));
+        return cast(T) convClockFreq(td.length, TickDuration.ticksPerSec, unitsPerSec);
     }
     else static if (__traits(isFloating, T))
     {
@@ -3173,7 +3173,7 @@ deprecated:
     {
         enum unitsPerSec = convert!("seconds", units)(1);
 
-        return TickDuration(cast(long)(length * (ticksPerSec / cast(real)unitsPerSec)));
+        return TickDuration(convClockFreq(length, unitsPerSec, ticksPerSec));
     }
 
     version (CoreUnittest) unittest
