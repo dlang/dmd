@@ -274,15 +274,16 @@ struct seg_data
     }
 
     //ELFOBJ || MACHOBJ
-    IDXSEC           SDshtidx;          // section header table index
+    IDXSEC           SDshtidx;          // section header table index into SECbuf[]
     OutBuffer       *SDbuf;             // buffer to hold data
-    union
-    {
-        // ELFOBJ MSCOFFOBJ
+//    union
+//    struct
+//    {
+        // ELFOBJ
         OutBuffer        *SDrel;        // buffer to hold segment relocation info
-        // MACHOBJ
+        // MACHOBJ MSCOFFOBJ
         Barray!Relocation relocations;  // hold relocations for this segment
-    }
+//    }
 
     //ELFOBJ
     IDXSYM           SDsymidx;          // each section is in the symbol table
@@ -299,6 +300,30 @@ struct seg_data
   nothrow:
     @trusted
     int isCode() { return config.objfmt == OBJ_MACH ? mach_seg_data_isCode(this) : mscoff_seg_data_isCode(this); }
+
+    void reset()
+    {
+	SDseg = 0;
+        SDoffset = 0;
+        isfarseg = false;
+        segidx = 0;
+        lnameidx = 0;
+        classidx = 0;
+        attr = 0;
+        origsize = 0;
+        seek = 0;
+        ledata = null;
+        SDshtidx = 0;
+        if (SDbuf) SDbuf.reset();
+        relocations.reset();
+        SDsymidx = 0;
+        SDrelidx = 0;
+        SDrelcnt = 0;
+        SDshtidxout = 0;
+        SDsym = null;
+        SDaranges_offset = 0;
+        SDlinnum_data.reset();
+    }
 }
 
 /*******************************************************
@@ -317,7 +342,7 @@ struct Relocation
     uint targseg;       // if !=0, then location is to be fixed up
                         // to address of start of this segment
     REL rtype;          // REL.address or REL.rel or REL.add
-    bool subtractor;    // true: emit SUBTRACTOR/UNSIGNED pair
+    bool subtractor;    // true: emit SUBTRACTOR/UNSIGNED pair (MACHOBJ)
     short val;          // 0, -1, -2, -4
 }
 
