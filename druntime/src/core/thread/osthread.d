@@ -441,8 +441,7 @@ private extern(D) static void thread_yield() @nogc nothrow
 }
 
 ///
-version (WASI) {} // WASI is single-threaded
-else
+static if (!isSingleThreaded)
 unittest
 {
     class DerivedThread : Thread
@@ -472,8 +471,7 @@ unittest
     }).start();
 }
 
-version (WASI) {} // WASI is single-threaded
-else
+static if (!isSingleThreaded)
 unittest
 {
     int x = 0;
@@ -485,8 +483,7 @@ unittest
     assert( x == 1 );
 }
 
-version (WASI) {} // WASI is single-threaded
-else
+static if (!isSingleThreaded)
 unittest
 {
     enum MSG = "Test message.";
@@ -507,8 +504,7 @@ unittest
     }
 }
 
-version (WASI) {} // WASI is single-threaded
-else
+static if (!isSingleThreaded)
 unittest
 {
     // use >pageSize to avoid stack overflow (e.g. in an syscall)
@@ -516,8 +512,7 @@ unittest
     thr.join();
 }
 
-version (WASI) {} // WASI is single-threaded
-else
+static if (!isSingleThreaded)
 unittest
 {
     import core.memory : GC;
@@ -534,8 +529,7 @@ unittest
     t2.join();
 }
 
-version (WASI) {} // WASI is single-threaded
-else
+static if (!isSingleThreaded)
 unittest
 {
     import core.sync.semaphore;
@@ -589,8 +583,7 @@ unittest
     }
 }
 
-version (WASI) {} // WASI is single-threaded
-else
+static if (!isSingleThreaded)
 unittest // Bugzilla 8960
 {
     import core.sync.semaphore;
@@ -2588,8 +2581,7 @@ void joinLowLevelThread(ThreadID tid) nothrow @nogc
         static assert(0, "unsupported os");
 }
 
-version (WASI) {} // WASI is single-threaded
-else
+static if (!isSingleThreaded)
 nothrow @nogc unittest
 {
     struct TaskWithContect

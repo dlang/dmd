@@ -31,6 +31,8 @@ version (WASIp1) {
     import core.sys.wasi.posix.time : nanosleep, timespec;
 }
 
+package enum isSingleThreaded = true;
+
 version (CoreDdoc) {} else
 class Thread : ThreadBase
 {

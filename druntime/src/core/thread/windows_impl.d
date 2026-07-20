@@ -44,6 +44,8 @@ version (GNU)
     import gcc.builtins;
 }
 
+package enum isSingleThreaded = false;
+
 version (CoreDdoc) {} else
 class Thread : ThreadBase
 {
