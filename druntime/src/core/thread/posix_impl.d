@@ -587,4 +587,44 @@ class Thread : ThreadBase
     }
 }
 
+version (CoreDdoc) {} else
+extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo) nothrow @nogc
+in
+{
+    assert(suspendSignalNo != 0);
+    assert(resumeSignalNo  != 0);
+}
+out
+{
+    assert(suspendSignalNumber != 0);
+    assert(resumeSignalNumber  != 0);
+}
+do
+{
+    suspendSignalNumber = suspendSignalNo;
+    resumeSignalNumber  = resumeSignalNo;
+}
+
+version (CoreDdoc) {} else
+extern (C) void thread_getGCSignals(out int suspendSignalNo, out int resumeSignalNo) nothrow @nogc
+in
+{
+    assert(suspendSignalNumber != 0);
+    assert(resumeSignalNumber  != 0);
+}
+out
+{
+    assert(suspendSignalNo != 0);
+    assert(resumeSignalNo  != 0);
+}
+do
+{
+    suspendSignalNo = suspendSignalNumber;
+    resumeSignalNo  = resumeSignalNumber;
+}
+
+//TODO: private
+package __gshared int suspendSignalNumber;
+package __gshared int resumeSignalNumber;
+
 package alias gettid = imported!"core.sys.posix.pthread".pthread_self;
