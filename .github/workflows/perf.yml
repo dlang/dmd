@@ -115,6 +115,9 @@ jobs:
             --host-dmd "$HOST_DMD" \
             --out "$GITHUB_WORKSPACE/results.json"
 
+      - name: Show results
+        run: cat "$GITHUB_WORKSPACE/results.json"
+
       # perf-comment.yml picks this up and posts the comment.
       - name: Upload results
         if: github.event_name == 'pull_request'
