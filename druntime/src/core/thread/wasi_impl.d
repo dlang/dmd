@@ -185,6 +185,11 @@ package ThreadID gettid() @nogc nothrow
     assert(0);
 }
 
+package void afterThreadDeploy() @nogc nothrow
+{
+    // Does nothing
+}
+
 // Returns true on success
 package bool suspendThreadImpl(Thread t) @nogc nothrow
 {
