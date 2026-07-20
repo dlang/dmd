@@ -624,48 +624,6 @@ version (CoreDdoc)
     {
     }
 }
-else version (Posix)
-{
-    extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo) nothrow @nogc
-    in
-    {
-        assert(suspendSignalNo != 0);
-        assert(resumeSignalNo  != 0);
-    }
-    out
-    {
-        assert(suspendSignalNumber != 0);
-        assert(resumeSignalNumber  != 0);
-    }
-    do
-    {
-        suspendSignalNumber = suspendSignalNo;
-        resumeSignalNumber  = resumeSignalNo;
-    }
-
-    extern (C) void thread_getGCSignals(out int suspendSignalNo, out int resumeSignalNo) nothrow @nogc
-    in
-    {
-        assert(suspendSignalNumber != 0);
-        assert(resumeSignalNumber  != 0);
-    }
-    out
-    {
-        assert(suspendSignalNo != 0);
-        assert(resumeSignalNo  != 0);
-    }
-    do
-    {
-        suspendSignalNo = suspendSignalNumber;
-        resumeSignalNo  = resumeSignalNumber;
-    }
-}
-
-version (Posix)
-{
-    private __gshared int suspendSignalNumber;
-    private __gshared int resumeSignalNumber;
-}
 
 version (CoreDdoc) {} else
 private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
