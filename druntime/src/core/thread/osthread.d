@@ -1644,35 +1644,30 @@ private extern (D) void resume(ThreadBase _t) nothrow @nogc
         }
     }
 
-    storeStackAndRegInfo(t, sameThread);
+    purgeStackAndRegInfo(t, sameThread);
 }
 
-private void storeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
+private void purgeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
 {
     version (Windows)
     {
-        if ( !t.m_lock )
-            t.m_curr.tstack = t.m_curr.bstack;
+        t.unloadStackInfo();
         t.m_reg[0 .. $] = 0;
     }
     else version (Darwin)
     {
-        if ( !t.m_lock )
-            t.m_curr.tstack = t.m_curr.bstack;
+        t.unloadStackInfo();
         t.m_reg[0 .. $] = 0;
     }
     else version (Solaris)
     {
-        if (!t.m_lock)
-            t.m_curr.tstack = t.m_curr.bstack;
+        t.unloadStackInfo();
         t.m_reg[0 .. $] = 0;
     }
     else version (Posix)
     {
-        if (sameThread && !t.m_lock)
-        {
-            t.m_curr.tstack = t.m_curr.bstack;
-        }
+        if (sameThread)
+            t.unloadStackInfo();
     }
     else version (WASI)
     {
