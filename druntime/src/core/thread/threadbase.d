@@ -806,6 +806,11 @@ package(core.thread):
         add(t, rmAboutToStart);
     }
 
+    package final void unloadStackInfo() nothrow @nogc
+    {
+        if (!m_lock)
+            m_curr.tstack = m_curr.bstack;
+    }
 }
 
 
