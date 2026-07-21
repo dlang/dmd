@@ -1666,10 +1666,6 @@ private void purgeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
     }
     else
         static assert(false, "Platform not supported.");
-
-    // zeroing registers info if available
-    static if (__traits(compiles, t.m_reg))
-        t.m_reg[0 .. $] = 0;
 }
 
 
