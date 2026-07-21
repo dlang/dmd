@@ -203,3 +203,8 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
     onThreadError( "Unable to resume thread" );
     assert(0);
 }
+
+package void purgeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
+{
+    onThreadError( "Unable to resume thread" );
+}

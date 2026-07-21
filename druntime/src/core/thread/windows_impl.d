@@ -263,3 +263,9 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
 {
     return ResumeThread(t.m_hndl) != 0xFFFFFFFF;
 }
+
+package void purgeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
+{
+    t.unloadStackInfo();
+    t.m_reg[0 .. $] = 0;
+}
