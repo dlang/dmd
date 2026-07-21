@@ -808,8 +808,6 @@ package(core.thread):
 
     package final void dropStackInfo() nothrow @nogc
     {
-        if (!m_lock)
-            m_curr.tstack = m_curr.bstack;
     }
 }
 
