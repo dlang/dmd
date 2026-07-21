@@ -82,8 +82,8 @@ struct MachObj
 
     union
     {
-        Barray!section_64 SECbuf64; // section table for 64 bit targets
-        Barray!section    SECbuf;   // section table
+        Barray!section_64 section_64s; // section table for 64 bit targets
+        Barray!section    sections;   // section table
     }
     bool AArch64;                 // true for AArch64, false for X86_64
     int section_cnt;              // Number of sections in table
@@ -184,12 +184,6 @@ Symbol* MachObj_getChkstkSym()
 
 // The object file is built is several separate pieces
 
-// Section Headers
-@trusted
-section[] SecHdrTab() { return machobj.SECbuf[]; }
-@trusted
-section_64[] SecHdrTab64() { return machobj.SECbuf64[]; }
-
 // The relocation for text and data seems to get lost.
 // Try matching the order gcc output them
 // This means defining the sections and then removing them if they are
@@ -236,17 +230,17 @@ int mach_seg_data_isCode(const ref seg_data sd)
 
     if (machobj.AArch64)
     {
-        //printf("SDshtidx = %d, x%x\n", SDshtidx, SecHdrTab64[sd.SDshtidx].flags);
-        return machobj.SECbuf64[sd.SDshtidx].flags & (S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
+        //printf("SDshtidx = %d, x%x\n", SDshtidx, machobj.section_64s[sd.SDshtidx].flags);
+        return machobj.section_64s[sd.SDshtidx].flags & (S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
     }
     else if (I64)
     {
-        return strcmp(machobj.SECbuf64[sd.SDshtidx].segname.ptr, "__TEXT") == 0;
+        return strcmp(machobj.section_64s[sd.SDshtidx].segname.ptr, "__TEXT") == 0;
     }
     else
     {
-        //printf("SDshtidx = %d, x%x\n", SDshtidx, SecHdrTab[sd.SDshtidx].flags);
-        return strcmp(machobj.SECbuf[sd.SDshtidx].segname.ptr, "__TEXT") == 0;
+        //printf("SDshtidx = %d, x%x\n", SDshtidx, machobj.sections[sd.SDshtidx].flags);
+        return strcmp(machobj.sections[sd.SDshtidx].segname.ptr, "__TEXT") == 0;
     }
 }
 
@@ -420,24 +414,24 @@ Obj MachObj_init(OutBuffer* objbuf, const(char)* filename, const(char)* csegname
     // Initialize segments for CODE, DATA, UDATA and CDATA
     if (I64)
     {
-        if (machobj.SECbuf64.length)
-            machobj.SECbuf64.setLength(1);
+        if (machobj.section_64s.length)
+            machobj.section_64s.setLength(1);
         else
         {
-            machobj.SECbuf64.setLength(SEC_TAB_INIT);
-            machobj.SECbuf64.setLength(0);
-            machobj.SECbuf64.push();    // first entry is 0
+            machobj.section_64s.setLength(SEC_TAB_INIT);
+            machobj.section_64s.setLength(0);
+            machobj.section_64s.push();    // first entry is 0
         }
     }
     else
     {
-        if (machobj.SECbuf.length)
-            machobj.SECbuf.setLength(1);
+        if (machobj.sections.length)
+            machobj.sections.setLength(1);
         else
         {
-            machobj.SECbuf.setLength(SEC_TAB_INIT);
-            machobj.SECbuf.setLength(0);
-            machobj.SECbuf.push();      // first entry is 0
+            machobj.sections.setLength(SEC_TAB_INIT);
+            machobj.sections.setLength(0);
+            machobj.sections.push();      // first entry is 0
         }
     }
 
@@ -480,14 +474,14 @@ void MachObj_initfile(const(char)* filename, const(char)* csegname, const(char)*
 @trusted
 int32_t* patchAddr(int seg, targ_size_t offset)
 {
-    return cast(int32_t*)(machobj.fobjbuf.buf + SecHdrTab[SegData[seg].SDshtidx].offset + offset);
+    return cast(int32_t*)(machobj.fobjbuf.buf + machobj.sections[SegData[seg].SDshtidx].offset + offset);
 }
 
 @trusted
 int32_t* patchAddr64(int seg, targ_size_t offset)
 {
     //printf("patchAddr64(seg = %d, offset = x%llx)\n", seg, offset);
-    return cast(int32_t*)(machobj.fobjbuf.buf + SecHdrTab64[SegData[seg].SDshtidx].offset + offset);
+    return cast(int32_t*)(machobj.fobjbuf.buf + machobj.section_64s[SegData[seg].SDshtidx].offset + offset);
 }
 
 @trusted
@@ -496,29 +490,29 @@ void patch(seg_data* pseg, targ_size_t offset, int seg, targ_size_t value)
     //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", cast(uint)offset, seg, value);
     if (I64)
     {
-        int32_t* p = cast(int32_t*)(machobj.fobjbuf.buf + SecHdrTab64[pseg.SDshtidx].offset + offset);
+        int32_t* p = cast(int32_t*)(machobj.fobjbuf.buf + machobj.section_64s[pseg.SDshtidx].offset + offset);
         if (log)
             debug printf("\taddr1 = x%llx\n\taddr2 = x%llx\n\t*p = x%x\n\tdelta = x%llx\n",
-                         SecHdrTab64[pseg.SDshtidx].addr,
-                         SecHdrTab64[SegData[seg].SDshtidx].addr,
+                         machobj.section_64s[pseg.SDshtidx].addr,
+                         machobj.section_64s[SegData[seg].SDshtidx].addr,
                          *p,
-                         SecHdrTab64[SegData[seg].SDshtidx].addr -
-                         (SecHdrTab64[pseg.SDshtidx].addr + offset));
-        *p += SecHdrTab64[SegData[seg].SDshtidx].addr -
-              (SecHdrTab64[pseg.SDshtidx].addr - value);
+                         machobj.section_64s[SegData[seg].SDshtidx].addr -
+                         (machobj.section_64s[pseg.SDshtidx].addr + offset));
+        *p += machobj.section_64s[SegData[seg].SDshtidx].addr -
+              (machobj.section_64s[pseg.SDshtidx].addr - value);
     }
     else
     {
-        int32_t* p = cast(int32_t*)(machobj.fobjbuf.buf + SecHdrTab[pseg.SDshtidx].offset + offset);
+        int32_t* p = cast(int32_t*)(machobj.fobjbuf.buf + machobj.sections[pseg.SDshtidx].offset + offset);
         if (log)
             debug printf("\taddr1 = x%x\n\taddr2 = x%x\n\t*p = x%x\n\tdelta = x%llx\n",
-                         SecHdrTab[pseg.SDshtidx].addr,
-                         SecHdrTab[SegData[seg].SDshtidx].addr,
+                         machobj.sections[pseg.SDshtidx].addr,
+                         machobj.sections[SegData[seg].SDshtidx].addr,
                          *p,
-                         SecHdrTab[SegData[seg].SDshtidx].addr -
-                         (SecHdrTab[pseg.SDshtidx].addr + offset));
-        *p += SecHdrTab[SegData[seg].SDshtidx].addr -
-              (SecHdrTab[pseg.SDshtidx].addr - value);
+                         machobj.sections[SegData[seg].SDshtidx].addr -
+                         (machobj.sections[pseg.SDshtidx].addr + offset));
+        *p += machobj.sections[SegData[seg].SDshtidx].addr -
+              (machobj.sections[pseg.SDshtidx].addr - value);
     }
 }
 
@@ -701,12 +695,12 @@ void MachObj_term(const(char)[] objfilename)
         seg_data* pseg = SegData[machobj.pointersSeg];
         if (I64)
         {
-            section_64* psechdr = &SecHdrTab64[pseg.SDshtidx]; // corresponding section
+            section_64* psechdr = &machobj.section_64s[pseg.SDshtidx]; // corresponding section
             psechdr.reserved1 = cast(uint)machobj.indirectSymbols1.length;
         }
         else
         {
-            section* psechdr = &SecHdrTab[pseg.SDshtidx]; // corresponding section
+            section* psechdr = &machobj.sections[pseg.SDshtidx]; // corresponding section
             psechdr.reserved1 = cast(uint)machobj.indirectSymbols1.length;
         }
     }
@@ -733,7 +727,7 @@ void MachObj_term(const(char)[] objfilename)
             seg_data* pseg = SegData[seg];
             if (I64)
             {
-                section_64* psechdr = &SecHdrTab64[pseg.SDshtidx]; // corresponding section
+                section_64* psechdr = &machobj.section_64s[pseg.SDshtidx]; // corresponding section
 
                 // Do zero-fill the second time through this loop
                 if (i ^ (psechdr.flags == S_ZEROFILL || psechdr.flags == S_THREAD_LOCAL_ZEROFILL))
@@ -771,7 +765,7 @@ void MachObj_term(const(char)[] objfilename)
             }
             else
             {
-                section* psechdr = &SecHdrTab[pseg.SDshtidx]; // corresponding section
+                section* psechdr = &machobj.sections[pseg.SDshtidx]; // corresponding section
 
                 // Do zero-fill the second time through this loop
                 if (i ^ (psechdr.flags == S_ZEROFILL || psechdr.flags == S_THREAD_LOCAL_ZEROFILL))
@@ -841,7 +835,7 @@ void MachObj_term(const(char)[] objfilename)
         if (seg == 1)
         {
             void* p = patchAddr64(seg, 0);
-            size_t nbytes = SecHdrTab64[SegData[seg].SDshtidx].size;   // corresponding section
+            size_t nbytes = machobj.section_64s[SegData[seg].SDshtidx].size;   // corresponding section
             dumpBytes(0, nbytes, p);
         }
 
@@ -850,12 +844,12 @@ void MachObj_term(const(char)[] objfilename)
         section_64* psechdr64 = null;
         if (I64)
         {
-            psechdr64 = &SecHdrTab64[pseg.SDshtidx];   // corresponding section
+            psechdr64 = &machobj.section_64s[pseg.SDshtidx];   // corresponding section
             //printf("psechdr.addr = x%llx\n", psechdr64.addr);
         }
         else
         {
-            psechdr = &SecHdrTab[pseg.SDshtidx];   // corresponding section
+            psechdr = &machobj.sections[pseg.SDshtidx];   // corresponding section
             //printf("psechdr.addr = x%x\n", psechdr.addr);
         }
         foffset = elf_align(I64 ? 8 : 4, foffset);
@@ -1055,7 +1049,7 @@ static if (0)
                                 nreloc++;
                                 //int32_t* p = patchAddr64(seg, r.offset);
                                 // Absolute address; add in addr of start of targ seg
-                                //  *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
+                                //  *p += machobj.section_64s[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
                                 //patch(pseg, r.offset, s.Sseg, s.Soffset);
                             }
                             else if (s.Sclass == SC.extern_ ||
@@ -1108,7 +1102,7 @@ static if (0)
                                 {
                                     int32_t* p = patchAddr64(seg, r.offset);
                                     // Absolute address; add in addr of start of targ seg
-                                    *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
+                                    *p += machobj.section_64s[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
                                 }
                                 continue;
                             }
@@ -1125,15 +1119,15 @@ static if (0)
                         {
                             int32_t* p64 = patchAddr64(seg, r.offset);
                             srel.r_type = X86_64_RELOC_GOT;
-                            srel.r_value = cast(int)(SecHdrTab64[SegData[r.targseg].SDshtidx].addr + *p64);
-                            //printf("SECTDIFF: x%llx + x%llx = x%x\n", SecHdrTab[SegData[r.targseg].SDshtidx].addr, *p, srel.r_value);
+                            srel.r_value = cast(int)(machobj.section_64s[SegData[r.targseg].SDshtidx].addr + *p64);
+                            //printf("SECTDIFF: x%llx + x%llx = x%x\n", machobj.sections[SegData[r.targseg].SDshtidx].addr, *p, srel.r_value);
                         }
                         else
                         {
                             int32_t* p = patchAddr(seg, r.offset);
                             srel.r_type = GENERIC_RELOC_LOCAL_SECTDIFF;
-                            srel.r_value = SecHdrTab[SegData[r.targseg].SDshtidx].addr + *p;
-                            //printf("SECTDIFF: x%x + x%x = x%x\n", SecHdrTab[SegData[r.targseg].SDshtidx].addr, *p, srel.r_value);
+                            srel.r_value = machobj.sections[SegData[r.targseg].SDshtidx].addr + *p;
+                            //printf("SECTDIFF: x%x + x%x = x%x\n", machobj.sections[SegData[r.targseg].SDshtidx].addr, *p, srel.r_value);
                         }
                         srel.r_pcrel = 0;
                         machobj.fobjbuf.write(&srel, srel.sizeof);
@@ -1145,14 +1139,14 @@ static if (0)
                         if (I64)
                         {
                             srel.r_type = X86_64_RELOC_SIGNED;
-                            srel.r_value = cast(int)(SecHdrTab64[pseg.SDshtidx].addr +
+                            srel.r_value = cast(int)(machobj.section_64s[pseg.SDshtidx].addr +
                                     r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
                         }
                         else
                         {
                             srel.r_type = GENERIC_RELOC_PAIR;
                             if (r.funcsym)
-                                srel.r_value = cast(int)(SecHdrTab[pseg.SDshtidx].addr +
+                                srel.r_value = cast(int)(machobj.sections[pseg.SDshtidx].addr +
                                         r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
                             else
                                 srel.r_value = cast(int)(psechdr.addr + r.offset);
@@ -1169,19 +1163,19 @@ static if (0)
                         {
                             int32_t* p64 = patchAddr64(seg, r.offset);
                             //printf("address = x%x, p64 = %p* p64 = x%llx\n", r.offset, p64, *p64);
-                            *p64 += SecHdrTab64[SegData[r.targseg].SDshtidx].addr -
-                                  (SecHdrTab64[pseg.SDshtidx].addr + r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
+                            *p64 += machobj.section_64s[SegData[r.targseg].SDshtidx].addr -
+                                  (machobj.section_64s[pseg.SDshtidx].addr + r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
                         }
                         else
                         {
                             int32_t* p = patchAddr(seg, r.offset);
                             //printf("address = x%x, p = %p* p = x%x\n", r.offset, p, *p);
                             if (r.funcsym)
-                                *p += SecHdrTab[SegData[r.targseg].SDshtidx].addr -
-                                      (SecHdrTab[pseg.SDshtidx].addr + r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
+                                *p += machobj.sections[SegData[r.targseg].SDshtidx].addr -
+                                      (machobj.sections[pseg.SDshtidx].addr + r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
                             else
                                 // targ_address - fixup_address
-                                *p += SecHdrTab[SegData[r.targseg].SDshtidx].addr -
+                                *p += machobj.sections[SegData[r.targseg].SDshtidx].addr -
                                       (psechdr.addr + r.offset);
                         }
                         continue;
@@ -1209,10 +1203,10 @@ static if (1)
                             patch(pseg, r.offset, r.targseg, 0);
                         else
                         {   // Absolute address; add in addr of start of targ seg
-//printf("*p = x%x, targ.addr = x%x\n", *p64, cast(int)SecHdrTab64[SegData[r.targseg].SDshtidx].addr);
-//printf("pseg = x%x, r.offset = x%x\n", cast(int)SecHdrTab64[pseg.SDshtidx].addr, cast(int)r.offset);
-                            *p64 += SecHdrTab64[SegData[r.targseg].SDshtidx].addr;
-                            //*p64 -= SecHdrTab64[pseg.SDshtidx].addr;
+//printf("*p = x%x, targ.addr = x%x\n", *p64, cast(int)machobj.section_64s[SegData[r.targseg].SDshtidx].addr);
+//printf("pseg = x%x, r.offset = x%x\n", cast(int)machobj.section_64s[pseg.SDshtidx].addr, cast(int)r.offset);
+                            *p64 += machobj.section_64s[SegData[r.targseg].SDshtidx].addr;
+                            //*p64 -= machobj.section_64s[pseg.SDshtidx].addr;
                         }
 }
                         //printf("%d:x%04x before = x%04llx, after = x%04llx pcrel = %d\n", seg, r.offset, before, *p64, rel.r_pcrel);
@@ -1253,7 +1247,7 @@ static if (1)
                             else
                             {
                                 // address = segment + offset
-                                int targ_address = cast(int)(SecHdrTab[SegData[s.Sseg].SDshtidx].addr + s.Soffset);
+                                int targ_address = cast(int)(machobj.sections[SegData[s.Sseg].SDshtidx].addr + s.Soffset);
                                 int fixup_address = cast(int)(psechdr.addr + r.offset);
 
                                 srel.r_scattered = 1;
@@ -1331,11 +1325,11 @@ static if (1)
 
                                     int32_t* p = patchAddr64(seg, r.offset);
                                     // Absolute address; add in addr of start of targ seg
-    //printf("*p = x%x, .addr = x%x, Soffset = x%x\n", *p, cast(int)SecHdrTab64[SegData[s.Sseg].SDshtidx].addr, cast(int)s.Soffset);
-    //printf("pseg = x%x, r.offset = x%x\n", cast(int)SecHdrTab64[pseg.SDshtidx].addr, cast(int)r.offset);
-                                    *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr;
+    //printf("*p = x%x, .addr = x%x, Soffset = x%x\n", *p, cast(int)machobj.section_64s[SegData[s.Sseg].SDshtidx].addr, cast(int)s.Soffset);
+    //printf("pseg = x%x, r.offset = x%x\n", cast(int)machobj.section_64s[pseg.SDshtidx].addr, cast(int)r.offset);
+                                    *p += machobj.section_64s[SegData[s.Sseg].SDshtidx].addr;
                                     *p += s.Soffset;
-                                    *p -= SecHdrTab64[pseg.SDshtidx].addr + r.offset + 4;
+                                    *p -= machobj.section_64s[pseg.SDshtidx].addr + r.offset + 4;
                                     //patch(pseg, r.offset, s.Sseg, s.Soffset);
                                     continue;
                                 }
@@ -1386,14 +1380,14 @@ static if (1)
                                     rel.r_length = 3;
                                     int32_t* p = patchAddr64(seg, r.offset);
                                     // Absolute address; add in addr of start of targ seg
-                                    *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
+                                    *p += machobj.section_64s[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
                                     //patch(pseg, r.offset, s.Sseg, s.Soffset);
                                 }
                                 else
                                 {
                                     int32_t* p = patchAddr(seg, r.offset);
                                     // Absolute address; add in addr of start of targ seg
-                                    *p += SecHdrTab[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
+                                    *p += machobj.sections[SegData[s.Sseg].SDshtidx].addr + s.Soffset;
                                     //patch(pseg, r.offset, s.Sseg, s.Soffset);
                                 }
                                 continue;
@@ -1410,15 +1404,15 @@ static if (1)
                         {
                             int32_t* p64 = patchAddr64(seg, r.offset);
                             srel.r_type = X86_64_RELOC_GOT;
-                            srel.r_value = cast(int)(SecHdrTab64[SegData[r.targseg].SDshtidx].addr + *p64);
-                            //printf("SECTDIFF: x%llx + x%llx = x%x\n", SecHdrTab[SegData[r.targseg].SDshtidx].addr, *p, srel.r_value);
+                            srel.r_value = cast(int)(machobj.section_64s[SegData[r.targseg].SDshtidx].addr + *p64);
+                            //printf("SECTDIFF: x%llx + x%llx = x%x\n", machobj.sections[SegData[r.targseg].SDshtidx].addr, *p, srel.r_value);
                         }
                         else
                         {
                             int32_t* p = patchAddr(seg, r.offset);
                             srel.r_type = GENERIC_RELOC_LOCAL_SECTDIFF;
-                            srel.r_value = SecHdrTab[SegData[r.targseg].SDshtidx].addr + *p;
-                            //printf("SECTDIFF: x%x + x%x = x%x\n", SecHdrTab[SegData[r.targseg].SDshtidx].addr, *p, srel.r_value);
+                            srel.r_value = machobj.sections[SegData[r.targseg].SDshtidx].addr + *p;
+                            //printf("SECTDIFF: x%x + x%x = x%x\n", machobj.sections[SegData[r.targseg].SDshtidx].addr, *p, srel.r_value);
                         }
                         srel.r_pcrel = 0;
                         machobj.fobjbuf.write(&srel, srel.sizeof);
@@ -1430,14 +1424,14 @@ static if (1)
                         if (I64)
                         {
                             srel.r_type = X86_64_RELOC_SIGNED;
-                            srel.r_value = cast(int)(SecHdrTab64[pseg.SDshtidx].addr +
+                            srel.r_value = cast(int)(machobj.section_64s[pseg.SDshtidx].addr +
                                     r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
                         }
                         else
                         {
                             srel.r_type = GENERIC_RELOC_PAIR;
                             if (r.funcsym)
-                                srel.r_value = cast(int)(SecHdrTab[pseg.SDshtidx].addr +
+                                srel.r_value = cast(int)(machobj.sections[pseg.SDshtidx].addr +
                                         r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
                             else
                                 srel.r_value = cast(int)(psechdr.addr + r.offset);
@@ -1454,19 +1448,19 @@ static if (1)
                         {
                             int32_t* p64 = patchAddr64(seg, r.offset);
                             //printf("address = x%x, p64 = %p* p64 = x%llx\n", r.offset, p64, *p64);
-                            *p64 += SecHdrTab64[SegData[r.targseg].SDshtidx].addr -
-                                  (SecHdrTab64[pseg.SDshtidx].addr + r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
+                            *p64 += machobj.section_64s[SegData[r.targseg].SDshtidx].addr -
+                                  (machobj.section_64s[pseg.SDshtidx].addr + r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
                         }
                         else
                         {
                             int32_t* p = patchAddr(seg, r.offset);
                             //printf("address = x%x, p = %p* p = x%x\n", r.offset, p, *p);
                             if (r.funcsym)
-                                *p += SecHdrTab[SegData[r.targseg].SDshtidx].addr -
-                                      (SecHdrTab[pseg.SDshtidx].addr + r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
+                                *p += machobj.sections[SegData[r.targseg].SDshtidx].addr -
+                                      (machobj.sections[pseg.SDshtidx].addr + r.funcsym.Slocalgotoffset + _tysize[TYnptr]);
                             else
                                 // targ_address - fixup_address
-                                *p += SecHdrTab[SegData[r.targseg].SDshtidx].addr -
+                                *p += machobj.sections[SegData[r.targseg].SDshtidx].addr -
                                       (psechdr.addr + r.offset);
                         }
                         continue;
@@ -1499,10 +1493,10 @@ static if (1)
                                 patch(pseg, r.offset, r.targseg, 0);
                             else
                             {   // Absolute address; add in addr of start of targ seg
-    //printf("*p = x%x, targ.addr = x%x\n", *p64, cast(int)SecHdrTab64[SegData[r.targseg].SDshtidx].addr);
-    //printf("pseg = x%x, r.offset = x%x\n", cast(int)SecHdrTab64[pseg.SDshtidx].addr, cast(int)r.offset);
-                                *p64 += SecHdrTab64[SegData[r.targseg].SDshtidx].addr;
-                                //*p64 -= SecHdrTab64[pseg.SDshtidx].addr;
+    //printf("*p = x%x, targ.addr = x%x\n", *p64, cast(int)machobj.section_64s[SegData[r.targseg].SDshtidx].addr);
+    //printf("pseg = x%x, r.offset = x%x\n", cast(int)machobj.section_64s[pseg.SDshtidx].addr, cast(int)r.offset);
+                                *p64 += machobj.section_64s[SegData[r.targseg].SDshtidx].addr;
+                                //*p64 -= machobj.section_64s[pseg.SDshtidx].addr;
                             }
                             //printf("%d:x%04x before = x%04llx, after = x%04llx pcrel = %d\n", seg, r.offset, before, *p64, rel.r_pcrel);
                         }
@@ -1515,7 +1509,7 @@ static if (1)
                                 patch(pseg, r.offset, r.targseg, 0);
                             else
                                 // Absolute address; add in addr of start of targ seg
-                                *p += SecHdrTab[SegData[r.targseg].SDshtidx].addr;
+                                *p += machobj.sections[SegData[r.targseg].SDshtidx].addr;
                             //printf("%d:x%04x before = x%04x, after = x%04x pcrel = %d\n", seg, r.offset, before, *p, rel.r_pcrel);
                         }
                         continue;
@@ -1565,14 +1559,14 @@ static if (1)
         sym.n_sect = cast(ubyte)s.Sseg;
         if (I64)
         {
-            sym.n_value = s.Soffset + SecHdrTab64[SegData[s.Sseg].SDshtidx].addr;
+            sym.n_value = s.Soffset + machobj.section_64s[SegData[s.Sseg].SDshtidx].addr;
             machobj.fobjbuf.write(&sym, sym.sizeof);
         }
         else
         {
             nlist sym32;
             sym32.n_strx = sym.n_strx;
-            sym32.n_value = cast(uint)(s.Soffset + SecHdrTab[SegData[s.Sseg].SDshtidx].addr);
+            sym32.n_value = cast(uint)(s.Soffset + machobj.sections[SegData[s.Sseg].SDshtidx].addr);
             sym32.n_type = sym.n_type;
             sym32.n_desc = sym.n_desc;
             sym32.n_sect = sym.n_sect;
@@ -1593,14 +1587,14 @@ static if (1)
         sym.n_sect = cast(ubyte)s.Sseg;
         if (I64)
         {
-            sym.n_value = s.Soffset + SecHdrTab64[SegData[s.Sseg].SDshtidx].addr;
+            sym.n_value = s.Soffset + machobj.section_64s[SegData[s.Sseg].SDshtidx].addr;
             machobj.fobjbuf.write(&sym, sym.sizeof);
         }
         else
         {
             nlist sym32;
             sym32.n_strx = sym.n_strx;
-            sym32.n_value = cast(uint)(s.Soffset + SecHdrTab[SegData[s.Sseg].SDshtidx].addr);
+            sym32.n_value = cast(uint)(s.Soffset + machobj.sections[SegData[s.Sseg].SDshtidx].addr);
             sym32.n_type = sym.n_type;
             sym32.n_desc = sym.n_desc;
             sym32.n_sect = sym.n_sect;
@@ -1728,14 +1722,14 @@ static if (1)
     if (I64)
     {
         machobj.fobjbuf.write(&segment_cmd64, segment_cmd64.sizeof);
-        machobj.fobjbuf.write(&machobj.SECbuf64[1], (machobj.section_cnt - 1) * section_64.sizeof);
-        //machobj.fobjbuf.write(machobj.SECbuf64[1 .. machobj.section_cnt - 1]);
+        machobj.fobjbuf.write(&machobj.section_64s[1], (machobj.section_cnt - 1) * section_64.sizeof);
+        //machobj.fobjbuf.write(machobj.section_64s[1 .. machobj.section_cnt - 1]);
     }
     else
     {
         machobj.fobjbuf.write(&segment_cmd, segment_cmd.sizeof);
-        machobj.fobjbuf.write(&machobj.SECbuf[1], (machobj.section_cnt - 1) * section.sizeof);
-        //machobj.fobjbuf.write(machobj.SECbuf[1 .. machobj.section_cnt - 1]);
+        machobj.fobjbuf.write(&machobj.sections[1], (machobj.section_cnt - 1) * section.sizeof);
+        //machobj.fobjbuf.write(machobj.sections[1 .. machobj.section_cnt - 1]);
     }
     machobj.fobjbuf.write(version_command.data, version_command.size);
     machobj.fobjbuf.write(&symtab_cmd, symtab_cmd.sizeof);
@@ -2149,14 +2143,14 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
     {   seg_data* pseg = SegData[seg];
         if (I64)
         {
-            if (strncmp(SecHdrTab64[pseg.SDshtidx].sectname.ptr, sectname, 16) == 0 &&
-                strncmp(SecHdrTab64[pseg.SDshtidx].segname.ptr, segname, 16) == 0)
+            if (strncmp(machobj.section_64s[pseg.SDshtidx].sectname.ptr, sectname, 16) == 0 &&
+                strncmp(machobj.section_64s[pseg.SDshtidx].segname.ptr, segname, 16) == 0)
                 return seg;         // return existing segment
         }
         else
         {
-            if (strncmp(SecHdrTab[pseg.SDshtidx].sectname.ptr, sectname, 16) == 0 &&
-                strncmp(SecHdrTab[pseg.SDshtidx].segname.ptr, segname, 16) == 0)
+            if (strncmp(machobj.sections[pseg.SDshtidx].sectname.ptr, sectname, 16) == 0 &&
+                strncmp(machobj.sections[pseg.SDshtidx].segname.ptr, segname, 16) == 0)
                 return seg;         // return existing segment
         }
     }
@@ -2202,7 +2196,7 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
 
     if (I64)
     {
-        section_64* sec = machobj.SECbuf64.push();
+        section_64* sec = machobj.section_64s.push();
         strncpy(sec.sectname.ptr, sectname, 16);
         strncpy(sec.segname.ptr, segname, 16);
         sec._align = p2align;
@@ -2210,7 +2204,7 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
     }
     else
     {
-        section* sec = machobj.SECbuf.push();
+        section* sec = machobj.sections.push();
         strncpy(sec.sectname.ptr, sectname, 16);
         strncpy(sec.segname.ptr, segname, 16);
         sec._align = p2align;
@@ -2732,7 +2726,7 @@ void MachObj_lidata(int seg,targ_size_t offset, size_t count)
     //printf("MachObj_lidata(%d,%x,%d)\n",seg,offset,count);
     size_t idx = SegData[seg].SDshtidx;
 
-    const flags = (I64 ? SecHdrTab64[idx].flags : SecHdrTab[idx].flags);
+    const flags = (I64 ? machobj.section_64s[idx].flags : machobj.sections[idx].flags);
     if (flags == S_ZEROFILL || flags == S_THREAD_LOCAL_ZEROFILL)
     {   // Use SDoffset to record size of bss section
         SegData[seg].SDoffset += count;
@@ -3011,9 +3005,9 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
                 }
                 seg_data* pseg = SegData[machobj.jumpTableSeg];
                 if (I64)
-                    SecHdrTab64[pseg.SDshtidx].reserved2 = 5;
+                    machobj.section_64s[pseg.SDshtidx].reserved2 = 5;
                 else
-                    SecHdrTab[pseg.SDshtidx].reserved2 = 5;
+                    machobj.sections[pseg.SDshtidx].reserved2 = 5;
 
                 // Look through indirectsym to see if it is already there
                 foreach (i, psym; machobj.indirectSymbols1[])
