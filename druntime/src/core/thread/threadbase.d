@@ -806,10 +806,10 @@ package(core.thread):
         add(t, rmAboutToStart);
     }
 
-    package final void dropStackInfo() nothrow @nogc
+    debug package final void invalidateStackInfo() nothrow @nogc
     {
         if (!m_lock)
-            m_curr.tstack = m_curr.bstack;
+            m_curr.tstack = cast(void*) 0xabadbabe;
     }
 }
 

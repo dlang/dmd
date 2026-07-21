@@ -1644,21 +1644,21 @@ private extern (D) void resume(ThreadBase _t) nothrow @nogc
         }
     }
 
-    purgeStackAndRegInfo(t, sameThread);
+    debug invalidateStackAndRegInfo(t, sameThread);
 }
 
-private void purgeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
+debug private void invalidateStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
 {
     version (Windows)
-        t.dropStackInfo();
+        t.invalidateStackInfo();
     else version (Darwin)
-        t.dropStackInfo();
+        t.invalidateStackInfo();
     else version (Solaris)
-        t.dropStackInfo();
+        t.invalidateStackInfo();
     else version (Posix)
     {
         if (sameThread)
-            t.dropStackInfo();
+            t.invalidateStackInfo();
     }
     else version (WASI)
     {
@@ -1667,9 +1667,9 @@ private void purgeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
     else
         static assert(false, "Platform not supported.");
 
-    // zeroing registers info if available
+    // invalidate registers info if available
     static if (__traits(compiles, t.m_reg))
-        t.m_reg[0 .. $] = 0;
+        t.m_reg[0 .. $] = 0x00defec7;
 }
 
 
