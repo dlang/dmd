@@ -5,3 +5,8 @@ Added support for using `$` to automatically infer the length of a static array 
 ```d
 int[$] arr = [1, 2, 3]; // Length is inferred as 3
 ```
+This also works with type inference:
+```d
+auto[$] arr = [1, 2, 3];
+static assert(is(typeof(arr) == int[3]));
+```
