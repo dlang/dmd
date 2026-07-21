@@ -438,7 +438,7 @@ ifeq ($(HAS_ADDITIONAL_TESTS),1)
         test/aa test/cpuid test/gc test/hash test/lifetime test/shared \
         test/thread test/unittest test/imports test/betterc test/stdcpp test/config test/traits test/importc_compare
     ifeq (windows,$(OS))
-        ADDITIONAL_TESTS+=test/uuid
+        ADDITIONAL_TESTS+=test/uuid test/link
     else
         ADDITIONAL_TESTS+=test/valgrind
     endif
