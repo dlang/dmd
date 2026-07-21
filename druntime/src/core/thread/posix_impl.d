@@ -587,4 +587,189 @@ class Thread : ThreadBase
     }
 }
 
+version (CoreDdoc) {} else
+extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo) nothrow @nogc
+in
+{
+    assert(suspendSignalNo != 0);
+    assert(resumeSignalNo  != 0);
+}
+out
+{
+    assert(suspendSignalNumber != 0);
+    assert(resumeSignalNumber  != 0);
+}
+do
+{
+    suspendSignalNumber = suspendSignalNo;
+    resumeSignalNumber  = resumeSignalNo;
+}
+
+version (CoreDdoc) {} else
+extern (C) void thread_getGCSignals(out int suspendSignalNo, out int resumeSignalNo) nothrow @nogc
+in
+{
+    assert(suspendSignalNumber != 0);
+    assert(resumeSignalNumber  != 0);
+}
+out
+{
+    assert(suspendSignalNo != 0);
+    assert(resumeSignalNo  != 0);
+}
+do
+{
+    suspendSignalNo = suspendSignalNumber;
+    resumeSignalNo  = resumeSignalNumber;
+}
+
+//TODO: private
+package __gshared int suspendSignalNumber;
+package __gshared int resumeSignalNumber;
+
+package void afterThreadDeploy() @nogc nothrow
+{
+    version (Darwin)
+    {
+        // thread id different in forked child process
+        static extern(C) void initChildAfterFork()
+        {
+            auto thisThread = Thread.getThis();
+            if (!thisThread)
+            {
+                // It is possible that runtime was not properly initialized in the current process or thread -
+                // it may happen after `fork` call when using a dynamically loaded shared library written in D from a multithreaded non-D program.
+                // In such case getThis will return null.
+                return;
+            }
+            thisThread.m_addr = pthread_self();
+            assert( thisThread.m_addr != thisThread.m_addr.init );
+            thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_addr );
+            assert( thisThread.m_tmach != thisThread.m_tmach.init );
+       }
+        pthread_atfork(null, null, &initChildAfterFork);
+    }
+    else version (Solaris)
+    {
+    }
+    else // Posix
+    {
+        version (OpenBSD)
+        {
+            // OpenBSD does not support SIGRTMIN or SIGRTMAX
+            // Use SIGUSR1 for SIGRTMIN, SIGUSR2 for SIGRTMIN + 1
+            // And use 32 for SIGRTMAX (32 is the max signal number on OpenBSD)
+            enum SIGRTMIN = SIGUSR1;
+            enum SIGRTMAX = 32;
+        }
+        else version (Hurd)
+        {
+            // Hurd does not support SIGRTMIN or SIGRTMAX
+            // Use SIGUSR1 for SIGRTMIN, SIGUSR2 for SIGRTMIN + 1
+            // And use 32 for SIGRTMAX (32 is the max signal number on Hurd)
+            enum SIGRTMIN = SIGUSR1;
+            enum SIGRTMAX = 32;
+        }
+        else
+        {
+            import core.sys.posix.signal : SIGRTMAX, SIGRTMIN;
+        }
+
+        if ( suspendSignalNumber == 0 )
+        {
+            suspendSignalNumber = SIGRTMIN;
+        }
+
+        if ( resumeSignalNumber == 0 )
+        {
+            resumeSignalNumber = SIGRTMIN + 1;
+            assert(resumeSignalNumber <= SIGRTMAX);
+        }
+        int         status;
+        sigaction_t suspend = void;
+        sigaction_t resume = void;
+
+        // This is a quick way to zero-initialize the structs without using
+        // memset or creating a link dependency on their static initializer.
+        (cast(byte*) &suspend)[0 .. sigaction_t.sizeof] = 0;
+        (cast(byte*)  &resume)[0 .. sigaction_t.sizeof] = 0;
+
+        // NOTE: SA_RESTART indicates that system calls should restart if they
+        //       are interrupted by a signal, but this is not available on all
+        //       Posix systems, even those that support multithreading.
+        static if (__traits(compiles, core.sys.posix.signal.SA_RESTART))
+        {
+            import core.sys.posix.signal : SA_RESTART;
+
+            suspend.sa_flags = SA_RESTART;
+        }
+
+        suspend.sa_handler = &thread_suspendHandler;
+        // NOTE: We want to ignore all signals while in this handler, so fill
+        //       sa_mask to indicate this.
+        status = sigfillset( &suspend.sa_mask );
+        assert( status == 0 );
+
+        // NOTE: Since resumeSignalNumber should only be issued for threads within the
+        //       suspend handler, we don't want this signal to trigger a
+        //       restart.
+        resume.sa_flags   = 0;
+        resume.sa_handler = &thread_resumeHandler;
+        // NOTE: We want to ignore all signals while in this handler, so fill
+        //       sa_mask to indicate this.
+        status = sigfillset( &resume.sa_mask );
+        assert( status == 0 );
+
+        status = sigaction( suspendSignalNumber, &suspend, null );
+        assert( status == 0 );
+
+        status = sigaction( resumeSignalNumber, &resume, null );
+        assert( status == 0 );
+
+        status = sem_init( &suspendCount, 0, 0 );
+        assert( status == 0 );
+    }
+}
+
+// Returns true on success
+package bool suspendThreadImpl(Thread t) @nogc nothrow
+{
+    version (Darwin)
+        return thread_suspend(t.m_tmach) == KERN_SUCCESS;
+    else version (Solaris)
+        return thr_suspend(t.m_addr) == 0;
+    else
+        return pthread_kill(t.m_addr, suspendSignalNumber) == 0;
+}
+
+// Returns true on success
+package bool resumeThreadImpl(Thread t) @nogc nothrow
+{
+    version (Darwin)
+        return thread_resume(t.m_tmach) == KERN_SUCCESS;
+    else version (Solaris)
+        return thr_continue(t.m_addr) == 0;
+    else
+        return pthread_kill(t.m_addr, resumeSignalNumber) == 0;
+}
+
 package alias gettid = imported!"core.sys.posix.pthread".pthread_self;
+
+package void purgeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
+{
+    version (Darwin)
+    {
+        t.unloadStackInfo();
+        t.m_reg[0 .. $] = 0;
+    }
+    else version (Solaris)
+    {
+        t.unloadStackInfo();
+        t.m_reg[0 .. $] = 0;
+    }
+    else
+    {
+        if (sameThread)
+            t.unloadStackInfo();
+    }
+}

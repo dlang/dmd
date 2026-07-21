@@ -185,6 +185,11 @@ package ThreadID gettid() @nogc nothrow
     assert(0);
 }
 
+package void afterThreadDeploy() @nogc nothrow
+{
+    // Does nothing
+}
+
 // Returns true on success
 package bool suspendThreadImpl(Thread t) @nogc nothrow
 {
@@ -197,4 +202,9 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
 {
     onThreadError( "Unable to resume thread" );
     assert(0);
+}
+
+package void purgeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
+{
+    onThreadError( "Unable to resume thread" );
 }

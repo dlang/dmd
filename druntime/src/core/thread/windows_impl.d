@@ -247,6 +247,11 @@ class Thread : ThreadBase
 
 package alias gettid = imported!"core.sys.windows.winbase".GetCurrentThreadId;
 
+package void afterThreadDeploy() @nogc nothrow
+{
+    // Does nothing
+}
+
 // Returns true on success
 package bool suspendThreadImpl(Thread t) @nogc nothrow
 {
@@ -257,4 +262,10 @@ package bool suspendThreadImpl(Thread t) @nogc nothrow
 package bool resumeThreadImpl(Thread t) @nogc nothrow
 {
     return ResumeThread(t.m_hndl) != 0xFFFFFFFF;
+}
+
+package void purgeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
+{
+    t.unloadStackInfo();
+    t.m_reg[0 .. $] = 0;
 }
