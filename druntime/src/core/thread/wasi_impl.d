@@ -17,6 +17,7 @@ import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
 import core.thread.osthread;
 import core.thread.threadbase;
+import core.thread.types : ThreadDescr;
 import core.time;
 
 version (WASI):
@@ -176,6 +177,13 @@ class Thread : ThreadBase
     {
         version (WASIp1) schedYield();
         // else do nothing
+    }
+
+    package static ThreadDescr getCurrentThreadDescr() nothrow @nogc
+    {
+        return ThreadDescr(
+            tid: 1 // assumes this is done only once
+        );
     }
 }
 

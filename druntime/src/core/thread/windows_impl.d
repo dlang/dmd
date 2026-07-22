@@ -17,6 +17,7 @@ import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
 import core.thread.osthread;
 import core.thread.threadbase;
+import core.thread.types : ThreadDescr;
 import core.time;
 
 version (Windows):
@@ -49,7 +50,8 @@ package enum isSingleThreaded = false;
 version (CoreDdoc) {} else
 class Thread : ThreadBase
 {
-    package HANDLE m_hndl;
+    //TODO: remove
+    final package ref HANDLE m_hndl() nothrow @nogc @safe => m_tdescr.m_hndl;
     alias TLSKey = uint;
 
     this( void function() fn, size_t sz = 0 ) @safe pure nothrow @nogc
@@ -131,7 +133,7 @@ class Thread : ThreadBase
             // Solution: Create the thread in suspended state and then
             //       add and resume it with slock acquired
             assert(m_sz <= uint.max, "m_sz must be less than or equal to uint.max");
-            m_hndl = cast(HANDLE) _beginthreadex( null, cast(uint) m_sz, &thread_entryPoint, cast(void*) this, CREATE_SUSPENDED, &m_addr );
+            m_hndl = cast(HANDLE) _beginthreadex( null, cast(uint) m_sz, &thread_entryPoint, cast(void*) this, CREATE_SUSPENDED, &m_tdescr.tid );
             if ( cast(size_t) m_hndl == 0 )
                 onThreadError( "Error creating thread" );
         }
@@ -155,7 +157,7 @@ class Thread : ThreadBase
         // NOTE: m_addr must be cleared before m_hndl is closed to avoid
         //       a race condition with isRunning. The operation is done
         //       with atomicStore to prevent compiler reordering.
-        atomicStore!(MemoryOrder.raw)(*cast(shared)&m_addr, m_addr.init);
+        atomicStore!(MemoryOrder.raw)(*cast(shared)&m_tdescr.tid, m_addr.init);
         CloseHandle( m_hndl );
         m_hndl = m_hndl.init;
 
@@ -242,6 +244,14 @@ class Thread : ThreadBase
     static void yield() @nogc nothrow
     {
         SwitchToThread();
+    }
+
+    package static ThreadDescr getCurrentThreadDescr() nothrow @nogc
+    {
+        return ThreadDescr(
+            tid: gettid,
+            m_hndl: GetCurrentThreadHandle()
+        );
     }
 }
 
