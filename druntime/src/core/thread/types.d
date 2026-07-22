@@ -38,7 +38,7 @@ package struct ThreadDescr
     {
         import core.sys.windows.basetsd;
 
-        HANDLE m_hndl;
+        HANDLE hndl;
     }
 }
 
