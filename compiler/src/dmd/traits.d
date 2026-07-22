@@ -1167,6 +1167,22 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                         return ErrorExp.get();
                 }
             }
+            // getMember with wantsym returns the member VarDeclaration
+            // without a ThisExp use, so nested functions that only access
+            // a field through getMember(this, ...) never register a nested
+            // reference to the enclosing `this`.  Force that here.
+            if (ex && !ex.isErrorExp())
+            {
+                if (auto e0 = isExpression(o))
+                {
+                    e0 = e0.expressionSemantic(sc);
+                    if (auto te = e0.isThisExp())
+                    {
+                        if (te.var && te.var.checkNestedReference(sc, e.loc))
+                            return ErrorExp.get();
+                    }
+                }
+            }
             return ex;
         }
         else if (e.ident == Id.getVirtualFunctions ||
