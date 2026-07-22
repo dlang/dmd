@@ -50,7 +50,6 @@ version (all)
     {
         // Use macOS threads for suspend/resume
         import core.sys.darwin.mach.kern_return : KERN_SUCCESS;
-        import core.sys.darwin.mach.port : mach_port_t;
         import core.sys.darwin.mach.thread_act : mach_msg_type_number_t,
             thread_get_state, thread_resume, thread_suspend;
         import core.sys.darwin.pthread : pthread_mach_thread_np;
@@ -107,11 +106,6 @@ class Thread : ThreadBase
 {
     package shared bool     m_isRunning;
 
-    version (Darwin)
-    {
-        package mach_port_t     m_tmach;
-    }
-
     version (Solaris)
     {
         private __gshared bool m_isRTClass;
@@ -146,7 +140,7 @@ class Thread : ThreadBase
             m_tdescr.tid = m_tdescr.tid.init;
             version (Darwin)
             {
-                m_tmach = m_tmach.init;
+                m_tdescr.tmach = m_tdescr.tmach.init;
             }
         }
     }
@@ -299,8 +293,8 @@ class Thread : ThreadBase
 
                 version (Darwin)
                 {
-                    m_tmach = pthread_mach_thread_np( m_tdescr.tid );
-                    if ( m_tmach == m_tmach.init )
+                    m_tdescr.tmach = pthread_mach_thread_np( m_tdescr.tid );
+                    if ( m_tdescr.tmach == m_tdescr.tmach.init )
                         onThreadError( "Error creating thread" );
                 }
             }
@@ -589,7 +583,16 @@ class Thread : ThreadBase
 
     package static ThreadDescr getCurrentThreadDescr() nothrow @nogc
     {
-        return ThreadDescr(tid: gettid);
+        version (Darwin)
+        {
+            auto tid = gettid();
+            auto tmach = pthread_mach_thread_np(tid);
+            assert(tmach != tmach.init);
+
+            return ThreadDescr(tid: tid, tmach: tmach);
+        }
+        else
+            return ThreadDescr(tid: gettid);
     }
 }
 
