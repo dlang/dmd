@@ -50,8 +50,6 @@ package enum isSingleThreaded = false;
 version (CoreDdoc) {} else
 class Thread : ThreadBase
 {
-    //TODO: remove
-    final package ref HANDLE m_hndl() nothrow @nogc @safe => m_tdescr.m_hndl;
     alias TLSKey = uint;
 
     this( void function() fn, size_t sz = 0 ) @safe pure nothrow @nogc
@@ -75,8 +73,8 @@ class Thread : ThreadBase
             return;
 
         m_tdescr.tid = m_tdescr.tid.init;
-        CloseHandle( m_hndl );
-        m_hndl = m_hndl.init;
+        CloseHandle( m_tdescr.hndl );
+        m_tdescr.hndl = m_tdescr.hndl.init;
     }
 
     static Thread getThis() @safe nothrow @nogc
@@ -133,8 +131,8 @@ class Thread : ThreadBase
             // Solution: Create the thread in suspended state and then
             //       add and resume it with slock acquired
             assert(m_sz <= uint.max, "m_sz must be less than or equal to uint.max");
-            m_hndl = cast(HANDLE) _beginthreadex( null, cast(uint) m_sz, &thread_entryPoint, cast(void*) this, CREATE_SUSPENDED, &m_tdescr.tid );
-            if ( cast(size_t) m_hndl == 0 )
+            m_tdescr.hndl = cast(HANDLE) _beginthreadex( null, cast(uint) m_sz, &thread_entryPoint, cast(void*) this, CREATE_SUSPENDED, &m_tdescr.tid );
+            if ( cast(size_t) m_tdescr.hndl == 0 )
                 onThreadError( "Error creating thread" );
         }
 
@@ -143,7 +141,7 @@ class Thread : ThreadBase
         {
             incrementAboutToStart(this);
 
-            if ( ResumeThread( m_hndl ) == -1 )
+            if ( ResumeThread( m_tdescr.hndl ) == -1 )
                 onThreadError( "Error resuming thread" );
 
             return this;
@@ -152,14 +150,14 @@ class Thread : ThreadBase
 
     override final Throwable join( bool rethrow = true )
     {
-        if ( m_tdescr.tid != m_tdescr.tid.init && WaitForSingleObject( m_hndl, INFINITE ) != WAIT_OBJECT_0 )
+        if ( m_tdescr.tid != m_tdescr.tid.init && WaitForSingleObject( m_tdescr.hndl, INFINITE ) != WAIT_OBJECT_0 )
             throw new ThreadException( "Unable to join thread" );
-        // NOTE: tid must be cleared before m_hndl is closed to avoid
+        // NOTE: tid must be cleared before hndl is closed to avoid
         //       a race condition with isRunning. The operation is done
         //       with atomicStore to prevent compiler reordering.
         atomicStore!(MemoryOrder.raw)(*cast(shared)&m_tdescr.tid, m_tdescr.tid.init);
-        CloseHandle( m_hndl );
-        m_hndl = m_hndl.init;
+        CloseHandle( m_tdescr.hndl );
+        m_tdescr.hndl = m_tdescr.hndl.init;
 
         return super.join(rethrow);
     }
@@ -184,7 +182,7 @@ class Thread : ThreadBase
 
     final @property int priority()
     {
-        return GetThreadPriority( m_hndl );
+        return GetThreadPriority( m_tdescr.hndl );
     }
 
     final @property void priority( int val )
@@ -195,7 +193,7 @@ class Thread : ThreadBase
     }
     do
     {
-        if ( !SetThreadPriority( m_hndl, val ) )
+        if ( !SetThreadPriority( m_tdescr.hndl, val ) )
             throw new ThreadException( "Unable to set thread priority" );
     }
 
@@ -205,7 +203,7 @@ class Thread : ThreadBase
             return false;
 
         uint ecode = 0;
-        GetExitCodeThread( m_hndl, &ecode );
+        GetExitCodeThread( m_tdescr.hndl, &ecode );
         return ecode == STILL_ACTIVE;
     }
 
@@ -250,7 +248,7 @@ class Thread : ThreadBase
     {
         return ThreadDescr(
             tid: gettid,
-            m_hndl: GetCurrentThreadHandle()
+            hndl: GetCurrentThreadHandle()
         );
     }
 }
@@ -260,11 +258,11 @@ package alias gettid = imported!"core.sys.windows.winbase".GetCurrentThreadId;
 // Returns true on success
 package bool suspendThreadImpl(Thread t) @nogc nothrow
 {
-    return SuspendThread(t.m_hndl) != 0xFFFFFFFF;
+    return SuspendThread(t.m_tdescr.hndl) != 0xFFFFFFFF;
 }
 
 // Returns true on success
 package bool resumeThreadImpl(Thread t) @nogc nothrow
 {
-    return ResumeThread(t.m_hndl) != 0xFFFFFFFF;
+    return ResumeThread(t.m_tdescr.hndl) != 0xFFFFFFFF;
 }

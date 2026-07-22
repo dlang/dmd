@@ -757,13 +757,13 @@ version (Windows)
 
         if ( addr == GetCurrentThreadId() )
         {
-            thisThread.m_hndl = GetCurrentThreadHandle();
+            thisThread.m_tdescr.hndl = GetCurrentThreadHandle();
             thisThread.tlsRTdataInit();
             Thread.setThis( thisThread );
         }
         else
         {
-            thisThread.m_hndl = OpenThreadHandle( addr );
+            thisThread.m_tdescr.hndl = OpenThreadHandle( addr );
             impersonate_thread(addr,
             {
                 thisThread.tlsRTdataInit();
@@ -1191,7 +1191,7 @@ private void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
         CONTEXT context = void;
         context.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL;
 
-        if ( !GetThreadContext( t.m_hndl, &context ) )
+        if ( !GetThreadContext( t.m_tdescr.hndl, &context ) )
             onThreadError( "Unable to load thread context" );
         version (X86)
         {
