@@ -141,9 +141,9 @@ class Thread : ThreadBase
 
         version (all)
         {
-            if (m_addr != m_addr.init)
-                pthread_detach( m_addr );
-            m_addr = m_addr.init;
+            if (m_tdescr.tid != m_tdescr.tid.init)
+                pthread_detach( m_tdescr.tid );
+            m_tdescr.tid = m_tdescr.tid.init;
             version (Darwin)
             {
                 m_tmach = m_tmach.init;
@@ -299,7 +299,7 @@ class Thread : ThreadBase
 
                 version (Darwin)
                 {
-                    m_tmach = pthread_mach_thread_np( m_addr );
+                    m_tmach = pthread_mach_thread_np( m_tdescr.tid );
                     if ( m_tmach == m_tmach.init )
                         onThreadError( "Error creating thread" );
                 }
@@ -311,13 +311,13 @@ class Thread : ThreadBase
 
     override final Throwable join( bool rethrow = true )
     {
-        if ( m_addr != m_addr.init && pthread_join( m_addr, null ) != 0 )
+        if ( m_tdescr.tid != m_tdescr.tid.init && pthread_join( m_tdescr.tid, null ) != 0 )
             throw new ThreadException( "Unable to join thread" );
         // NOTE: pthread_join acts as a substitute for pthread_detach,
-        //       which is normally called by the dtor.  Setting m_addr
+        //       which is normally called by the dtor.  Setting tid
         //       to zero ensures that pthread_detach will not be called
         //       on object destruction.
-        m_addr = m_addr.init;
+        m_tdescr.tid = m_tdescr.tid.init;
 
         return super.join(rethrow);
     }
@@ -463,7 +463,7 @@ class Thread : ThreadBase
             int         policy;
             sched_param param;
 
-            if (auto err = pthread_getschedparam(m_addr, &policy, &param))
+            if (auto err = pthread_getschedparam(m_tdescr.tid, &policy, &param))
             {
                 // ignore error if thread is not running => Bugzilla 8960
                 if (!atomicLoad(m_isRunning)) return PRIORITY_DEFAULT;
@@ -517,7 +517,7 @@ class Thread : ThreadBase
             {
                 import core.sys.posix.pthread : pthread_setschedprio;
 
-                if (auto err = pthread_setschedprio(m_addr, val))
+                if (auto err = pthread_setschedprio(m_tdescr.tid, val))
                 {
                     // ignore error if thread is not running => Bugzilla 8960
                     if (!atomicLoad(m_isRunning)) return;
@@ -531,14 +531,14 @@ class Thread : ThreadBase
                 int         policy;
                 sched_param param;
 
-                if (auto err = pthread_getschedparam(m_addr, &policy, &param))
+                if (auto err = pthread_getschedparam(m_tdescr.tid, &policy, &param))
                 {
                     // ignore error if thread is not running => Bugzilla 8960
                     if (!atomicLoad(m_isRunning)) return;
                     throw new ThreadException("Unable to set thread priority");
                 }
                 param.sched_priority = val;
-                if (auto err = pthread_setschedparam(m_addr, policy, &param))
+                if (auto err = pthread_setschedparam(m_tdescr.tid, policy, &param))
                 {
                     // ignore error if thread is not running => Bugzilla 8960
                     if (!atomicLoad(m_isRunning)) return;

@@ -74,7 +74,7 @@ class Thread : ThreadBase
         if (super.destructBeforeDtor())
             return;
 
-        m_addr = m_addr.init;
+        m_tdescr.tid = m_tdescr.tid.init;
         CloseHandle( m_hndl );
         m_hndl = m_hndl.init;
     }
@@ -152,12 +152,12 @@ class Thread : ThreadBase
 
     override final Throwable join( bool rethrow = true )
     {
-        if ( m_addr != m_addr.init && WaitForSingleObject( m_hndl, INFINITE ) != WAIT_OBJECT_0 )
+        if ( m_tdescr.tid != m_tdescr.tid.init && WaitForSingleObject( m_hndl, INFINITE ) != WAIT_OBJECT_0 )
             throw new ThreadException( "Unable to join thread" );
-        // NOTE: m_addr must be cleared before m_hndl is closed to avoid
+        // NOTE: tid must be cleared before m_hndl is closed to avoid
         //       a race condition with isRunning. The operation is done
         //       with atomicStore to prevent compiler reordering.
-        atomicStore!(MemoryOrder.raw)(*cast(shared)&m_tdescr.tid, m_addr.init);
+        atomicStore!(MemoryOrder.raw)(*cast(shared)&m_tdescr.tid, m_tdescr.tid.init);
         CloseHandle( m_hndl );
         m_hndl = m_hndl.init;
 
