@@ -483,12 +483,15 @@ package:
     //
     // Standard thread data
     //
-    ThreadID            m_addr;
+    ThreadDescr         m_tdescr;
     Callable            m_call;
     string              m_name;
     size_t              m_sz;
     bool                m_isDaemon;
     Throwable           m_unhandled;
+
+    //TODO: remove
+    final ref ThreadID m_addr() nothrow @nogc @safe => m_tdescr.tid;
 
     ///////////////////////////////////////////////////////////////////////////
     // Storage of Active Thread

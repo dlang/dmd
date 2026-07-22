@@ -17,6 +17,7 @@ import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
 import core.thread.osthread;
 import core.thread.threadbase;
+import core.thread.types : ThreadDescr;
 import core.time;
 
 version (Posix):
@@ -280,7 +281,7 @@ class Thread : ThreadBase
                     if (ps is null) onOutOfMemoryError();
                     ps[0] = cast(void*)this;
                     ps[1] = cast(void*)libs;
-                    if ( pthread_create( &m_addr, &attr, &thread_entryPoint, ps ) != 0 )
+                    if ( pthread_create( &m_tdescr.tid, &attr, &thread_entryPoint, ps ) != 0 )
                     {
                         externDFunc!("rt.sections_elf_shared.unpinLoadedLibraries",
                                      void function(void*) @nogc nothrow)(libs);
@@ -290,7 +291,7 @@ class Thread : ThreadBase
                 }
                 else
                 {
-                    if ( pthread_create( &m_addr, &attr, &thread_entryPoint, cast(void*) this ) != 0 )
+                    if ( pthread_create( &m_tdescr.tid, &attr, &thread_entryPoint, cast(void*) this ) != 0 )
                         onThreadError( "Error creating thread" );
                 }
                 if ( pthread_attr_destroy( &attr ) != 0 )
@@ -584,6 +585,11 @@ class Thread : ThreadBase
     static void yield() @nogc nothrow
     {
         sched_yield();
+    }
+
+    package static ThreadDescr getCurrentThreadDescr() nothrow @nogc
+    {
+        return ThreadDescr(tid: gettid);
     }
 }
 

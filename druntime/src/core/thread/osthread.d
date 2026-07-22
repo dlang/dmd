@@ -635,14 +635,13 @@ private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
 
     version (Windows)
     {
-        thisThread.m_addr  = GetCurrentThreadId();
-        thisThread.m_hndl  = GetCurrentThreadHandle();
+        thisThread.m_tdescr = Thread.getCurrentThreadDescr();
         thisContext.bstack = getStackBottom();
         thisContext.tstack = thisContext.bstack;
     }
     else version (Posix)
     {
-        thisThread.m_addr  = pthread_self();
+        thisThread.m_tdescr = Thread.getCurrentThreadDescr();
         thisContext.bstack = getStackBottom();
         thisContext.tstack = thisContext.bstack;
 
@@ -650,7 +649,7 @@ private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
     }
     else version (WASI)
     {
-        thisThread.m_addr  = 1; // assumes this is done only once
+        thisThread.m_tdescr = Thread.getCurrentThreadDescr();
         thisContext.bstack = getStackBottom();
         thisContext.tstack = thisContext.bstack;
     }

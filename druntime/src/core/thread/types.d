@@ -30,6 +30,18 @@ version (WASI)
     alias ThreadID = ubyte; // dummy; always 1
 }
 
+package struct ThreadDescr
+{
+    ThreadID tid;
+
+    version (Windows)
+    {
+        import core.sys.windows.basetsd;
+
+        HANDLE m_hndl;
+    }
+}
+
 struct ll_ThreadData
 {
     ThreadID tid;
