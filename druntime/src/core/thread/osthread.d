@@ -646,7 +646,7 @@ private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
 
     version (Darwin)
     {
-        thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_addr );
+        thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_tdescr.tid );
         assert( thisThread.m_tmach != thisThread.m_tmach.init );
     }
 
@@ -707,7 +707,7 @@ version (Windows)
         StackContext* thisContext = &thisThread.m_main;
         assert( thisContext == thisThread.m_curr );
 
-        thisThread.m_addr  = addr;
+        thisThread.m_tdescr.tid  = addr;
         thisContext.bstack = bstack;
         thisContext.tstack = thisContext.bstack;
 
@@ -1095,7 +1095,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
         return false;
     }
 
-    const sameThread = t.m_addr == gettid();
+    const sameThread = t.m_tdescr.tid == gettid();
 
     if (!sameThread)
     {
@@ -1327,7 +1327,7 @@ private void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
             }
 
             lwpstatus_t status = void;
-            if (getLwpStatus(t.m_addr, status) != 0)
+            if (getLwpStatus(t.m_tdescr.tid, status) != 0)
                 onThreadError("Unable to load thread state");
 
             version (X86)
@@ -1538,7 +1538,7 @@ extern (C) void thread_suspendAll() nothrow
 private extern (D) void resume(ThreadBase _t) nothrow @nogc
 {
     Thread t = _t.toThread;
-    const sameThread = t.m_addr == gettid();
+    const sameThread = t.m_tdescr.tid == gettid();
 
     if (!sameThread)
     {
@@ -1624,9 +1624,9 @@ extern (C) void thread_init() @nogc nothrow
                 // In such case getThis will return null.
                 return;
             }
-            thisThread.m_addr = pthread_self();
-            assert( thisThread.m_addr != thisThread.m_addr.init );
-            thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_addr );
+            thisThread.m_tdescr.tid = pthread_self();
+            assert( thisThread.m_tdescr.tid != thisThread.m_tdescr.tid.init );
+            thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_tdescr.tid );
             assert( thisThread.m_tmach != thisThread.m_tmach.init );
        }
         pthread_atfork(null, null, &initChildAfterFork);
