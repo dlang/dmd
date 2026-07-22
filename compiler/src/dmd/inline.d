@@ -269,7 +269,7 @@ public:
         }
 
         static if (asStatements)
-            result = new UnrolledLoopStatement(s.loc, as);
+            result = new UnrolledLoopStatement(s.loc, as.move());
     }
 
     override void visit(ScopeStatement s)

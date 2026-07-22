@@ -558,10 +558,14 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         sym.endlinnum = ss.endloc.linnum;
         sc = sc.push(sym);
 
-        Statements* a = ss.statement.flatten(sc);
-        if (a)
+        // for CompoundStatement flatten just returns its statements, so no need
+        //  to wrap it in another CompoundStatement
+        if (ss.statement.stmt != STMT.Compound && ss.statement.stmt != STMT.CompoundDeclaration)
         {
-            ss.statement = new CompoundStatement(ss.loc, a.move());
+            if (Statements* a = ss.statement.flatten(sc))
+            {
+                ss.statement = new CompoundStatement(ss.loc, a.move());
+            }
         }
 
         ss.statement = ss.statement.statementSemantic(sc);
@@ -4874,7 +4878,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
 
     if (!isStatic)
     {
-        Statement res = new UnrolledLoopStatement(loc, statements);
+        Statement res = new UnrolledLoopStatement(loc, statements.move());
         if (LabelStatement ls = checkLabeledLoop(sc, fs))
             ls.gotoTarget = res;
         if (te && te.e0)

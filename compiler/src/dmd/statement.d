@@ -584,7 +584,7 @@ extern (C++) final class UnrolledLoopStatement : Statement
 {
     Statements statements;
 
-    extern (D) this(Loc loc, ref Statements statements) @safe nothrow
+    extern (D) this(Loc loc, Statements statements) @safe nothrow
     {
         super(loc, STMT.UnrolledLoop);
         this.statements = statements.move();
@@ -594,7 +594,7 @@ extern (C++) final class UnrolledLoopStatement : Statement
     {
         Statements nstmts;
         Statement.arraySyntaxCopy(&statements, &nstmts);
-        return new UnrolledLoopStatement(loc, nstmts);
+        return new UnrolledLoopStatement(loc, nstmts.move());
     }
 
     override bool hasBreak() const pure nothrow
