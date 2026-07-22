@@ -181,8 +181,7 @@ class Thread : ThreadBase
 
 package ThreadID gettid() @nogc nothrow
 {
-    onThreadError( "Unable to get WASI thread ID" );
-    assert(0);
+    return 1; // dummy main thread
 }
 
 // Returns true on success
