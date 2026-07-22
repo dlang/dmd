@@ -17,6 +17,7 @@ import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
 import core.thread.osthread;
 import core.thread.threadbase;
+import core.thread.types : ThreadDescr;
 import core.time;
 
 version (Posix):
@@ -49,7 +50,6 @@ version (all)
     {
         // Use macOS threads for suspend/resume
         import core.sys.darwin.mach.kern_return : KERN_SUCCESS;
-        import core.sys.darwin.mach.port : mach_port_t;
         import core.sys.darwin.mach.thread_act : mach_msg_type_number_t,
             thread_get_state, thread_resume, thread_suspend;
         import core.sys.darwin.pthread : pthread_mach_thread_np;
@@ -106,11 +106,6 @@ class Thread : ThreadBase
 {
     package shared bool     m_isRunning;
 
-    version (Darwin)
-    {
-        package mach_port_t     m_tmach;
-    }
-
     version (Solaris)
     {
         private __gshared bool m_isRTClass;
@@ -140,12 +135,12 @@ class Thread : ThreadBase
 
         version (all)
         {
-            if (m_addr != m_addr.init)
-                pthread_detach( m_addr );
-            m_addr = m_addr.init;
+            if (m_tdescr.tid != m_tdescr.tid.init)
+                pthread_detach( m_tdescr.tid );
+            m_tdescr.tid = m_tdescr.tid.init;
             version (Darwin)
             {
-                m_tmach = m_tmach.init;
+                m_tdescr.tmach = m_tdescr.tmach.init;
             }
         }
     }
@@ -280,7 +275,7 @@ class Thread : ThreadBase
                     if (ps is null) onOutOfMemoryError();
                     ps[0] = cast(void*)this;
                     ps[1] = cast(void*)libs;
-                    if ( pthread_create( &m_addr, &attr, &thread_entryPoint, ps ) != 0 )
+                    if ( pthread_create( &m_tdescr.tid, &attr, &thread_entryPoint, ps ) != 0 )
                     {
                         externDFunc!("rt.sections_elf_shared.unpinLoadedLibraries",
                                      void function(void*) @nogc nothrow)(libs);
@@ -290,7 +285,7 @@ class Thread : ThreadBase
                 }
                 else
                 {
-                    if ( pthread_create( &m_addr, &attr, &thread_entryPoint, cast(void*) this ) != 0 )
+                    if ( pthread_create( &m_tdescr.tid, &attr, &thread_entryPoint, cast(void*) this ) != 0 )
                         onThreadError( "Error creating thread" );
                 }
                 if ( pthread_attr_destroy( &attr ) != 0 )
@@ -298,8 +293,8 @@ class Thread : ThreadBase
 
                 version (Darwin)
                 {
-                    m_tmach = pthread_mach_thread_np( m_addr );
-                    if ( m_tmach == m_tmach.init )
+                    m_tdescr.tmach = pthread_mach_thread_np( m_tdescr.tid );
+                    if ( m_tdescr.tmach == m_tdescr.tmach.init )
                         onThreadError( "Error creating thread" );
                 }
             }
@@ -310,13 +305,13 @@ class Thread : ThreadBase
 
     override final Throwable join( bool rethrow = true )
     {
-        if ( m_addr != m_addr.init && pthread_join( m_addr, null ) != 0 )
+        if ( m_tdescr.tid != m_tdescr.tid.init && pthread_join( m_tdescr.tid, null ) != 0 )
             throw new ThreadException( "Unable to join thread" );
         // NOTE: pthread_join acts as a substitute for pthread_detach,
-        //       which is normally called by the dtor.  Setting m_addr
+        //       which is normally called by the dtor.  Setting tid
         //       to zero ensures that pthread_detach will not be called
         //       on object destruction.
-        m_addr = m_addr.init;
+        m_tdescr.tid = m_tdescr.tid.init;
 
         return super.join(rethrow);
     }
@@ -462,7 +457,7 @@ class Thread : ThreadBase
             int         policy;
             sched_param param;
 
-            if (auto err = pthread_getschedparam(m_addr, &policy, &param))
+            if (auto err = pthread_getschedparam(m_tdescr.tid, &policy, &param))
             {
                 // ignore error if thread is not running => Bugzilla 8960
                 if (!atomicLoad(m_isRunning)) return PRIORITY_DEFAULT;
@@ -516,7 +511,7 @@ class Thread : ThreadBase
             {
                 import core.sys.posix.pthread : pthread_setschedprio;
 
-                if (auto err = pthread_setschedprio(m_addr, val))
+                if (auto err = pthread_setschedprio(m_tdescr.tid, val))
                 {
                     // ignore error if thread is not running => Bugzilla 8960
                     if (!atomicLoad(m_isRunning)) return;
@@ -530,14 +525,14 @@ class Thread : ThreadBase
                 int         policy;
                 sched_param param;
 
-                if (auto err = pthread_getschedparam(m_addr, &policy, &param))
+                if (auto err = pthread_getschedparam(m_tdescr.tid, &policy, &param))
                 {
                     // ignore error if thread is not running => Bugzilla 8960
                     if (!atomicLoad(m_isRunning)) return;
                     throw new ThreadException("Unable to set thread priority");
                 }
                 param.sched_priority = val;
-                if (auto err = pthread_setschedparam(m_addr, policy, &param))
+                if (auto err = pthread_setschedparam(m_tdescr.tid, policy, &param))
                 {
                     // ignore error if thread is not running => Bugzilla 8960
                     if (!atomicLoad(m_isRunning)) return;
@@ -584,6 +579,20 @@ class Thread : ThreadBase
     static void yield() @nogc nothrow
     {
         sched_yield();
+    }
+
+    package static ThreadDescr getCurrentThreadDescr() nothrow @nogc
+    {
+        version (Darwin)
+        {
+            auto tid = gettid();
+            auto tmach = pthread_mach_thread_np(tid);
+            assert(tmach != tmach.init);
+
+            return ThreadDescr(tid: tid, tmach: tmach);
+        }
+        else
+            return ThreadDescr(tid: gettid);
     }
 }
 
