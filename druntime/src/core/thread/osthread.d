@@ -675,28 +675,13 @@ private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
     StackContext* thisContext = &thisThread.m_main;
     assert( thisContext == thisThread.m_curr );
 
-    version (Windows)
-    {
-        thisThread.m_tdescr = Thread.getCurrentThreadDescr();
-        thisContext.bstack = getStackBottom();
-        thisContext.tstack = thisContext.bstack;
-    }
-    else version (Posix)
-    {
-        thisThread.m_tdescr = Thread.getCurrentThreadDescr();
-        thisContext.bstack = getStackBottom();
-        thisContext.tstack = thisContext.bstack;
+    thisThread.m_tdescr = Thread.getCurrentThreadDescr();
+    thisContext.bstack = getStackBottom();
+    thisContext.tstack = thisContext.bstack;
 
+    version (Posix)
         atomicStore!(MemoryOrder.raw)(thisThread.toThread.m_isRunning, true);
-    }
-    else version (WASI)
-    {
-        thisThread.m_tdescr = Thread.getCurrentThreadDescr();
-        thisContext.bstack = getStackBottom();
-        thisContext.tstack = thisContext.bstack;
-    }
-    else
-        static assert(0, "unsupported os");
+
     thisThread.m_isDaemon = true;
     thisThread.tlsRTdataInit();
     Thread.setThis( thisThread );
