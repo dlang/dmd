@@ -1196,7 +1196,7 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
         // need to redefine some macros in importc.h
         argv.push("-Wno-builtin-macro-redefined");
 
-        if (target.os == Target.OS.OSX)
+        version (OSX)
         {
             argv.push("-fno-blocks");       // disable clang blocks extension
             argv.push("-E");                // run preprocessor only for clang
