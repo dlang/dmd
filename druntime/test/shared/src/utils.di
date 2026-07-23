@@ -29,11 +29,18 @@ void loadSym(T)(void* handle, ref T val, const char* mangle)
     version (Windows)
     {
         import core.sys.windows.winbase : GetProcAddress;
-        val = cast(T) GetProcAddress(handle, mangle);
+        auto sym = GetProcAddress(handle, mangle);
     }
     else
     {
         import core.sys.posix.dlfcn : dlsym;
-        val = cast(T) dlsym(handle, mangle);
+        auto sym = dlsym(handle, mangle);
     }
+    static if (is(T == shared U, U))
+    {
+        import core.atomic : atomicStore;
+        atomicStore(val, cast(T) sym);
+    }
+    else
+        val = cast(T) sym;
 }

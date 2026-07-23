@@ -372,12 +372,12 @@ unittest
         group.create(&testFn);
 
     auto start = MonoTime.currTime;
-    assert(numRunning == 0);
+    assert(atomicLoad(numRunning) == 0);
 
     event.setIfInitialized();
     group.joinAll();
 
-    assert(numRunning == numThreads);
+    assert(atomicLoad(numRunning) == numThreads);
 
     assert(MonoTime.currTime - start < 5.dur!"seconds");
 }
