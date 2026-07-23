@@ -57,18 +57,11 @@ import dmd.backend.dt;
 
 package(dmd.glue):
 
-/* A dt_t is a simple structure representing data to be added
- * to the data segment of the output object file. As such,
- * it is a list of initialized bytes, 0 data, and offsets from
- * other symbols.
- * Each D symbol and type can be converted into a dt_t so it can
- * be written to the data segment.
- */
-
-alias Dts = Array!(dt_t*);
+private:
 
 /* ================================================================ */
 
+public
 void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isCfile)
 {
     void visitError(ErrorInitializer)
@@ -231,6 +224,7 @@ void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isCfile)
 
 /* ================================================================ */
 
+public
 void Expression_toDt(Expression e, ref DtBuilder dtb)
 {
     dtb.checkInitialized();
@@ -679,6 +673,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
 
 // Generate the data for the static initializer.
 
+public
 void ClassDeclaration_toDt(ClassDeclaration cd, ref DtBuilder dtb)
 {
     //printf("ClassDeclaration.toDt(this = '%s')\n", cd.toChars());
@@ -688,6 +683,7 @@ void ClassDeclaration_toDt(ClassDeclaration cd, ref DtBuilder dtb)
     //printf("-ClassDeclaration.toDt(this = '%s')\n", cd.toChars());
 }
 
+public
 void StructDeclaration_toDt(StructDeclaration sd, ref DtBuilder dtb)
 {
     //printf("+StructDeclaration.toDt(), this='%s'\n", sd.toChars());
@@ -703,6 +699,7 @@ void StructDeclaration_toDt(StructDeclaration sd, ref DtBuilder dtb)
  *      cd = C++ class
  *      dtb = data table builder
  */
+public
 void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb)
 {
     //printf("cpp_type_info_ptr_toDt(this = '%s')\n", cd.toChars());
@@ -721,6 +718,71 @@ void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb)
 
     //printf("-cpp_type_info_ptr_toDt(this = '%s')\n", cd.toChars());
 }
+
+
+/* ================================================================= */
+
+public
+void Type_toDt(Type t, ref DtBuilder dtb, bool isCtype = false)
+{
+    switch (t.ty)
+    {
+        case Tvector:
+            toDtElem(t.isTypeVector().basetype.isTypeSArray(), dtb, null, isCtype);
+            break;
+
+        case Tsarray:
+            toDtElem(t.isTypeSArray(), dtb, null, isCtype);
+            break;
+
+        case Tstruct:
+            StructDeclaration_toDt(t.isTypeStruct().sym, dtb);
+            break;
+
+        default:
+            Expression_toDt(t.defaultInit(Loc.initial, isCtype), dtb);
+            break;
+    }
+}
+
+public
+void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, ref DtBuilder dtb)
+{
+    //printf("ClassReferenceExp.toInstanceDt() %d\n", ce.op);
+    ClassDeclaration cd = ce.originalClass();
+
+    // Put in the rest
+    size_t firstFieldIndex = 0;
+    for (ClassDeclaration c = cd.baseClass; c; c = c.baseClass)
+        firstFieldIndex += c.fields.length;
+    // CTFE elements exclude __monitor (it is emitted separately by membersToDt),
+    // so adjust the index to match the elements array layout.
+    firstFieldIndex -= cd.hasMonitor();
+    membersToDt(cd, dtb, ce.value.elements, firstFieldIndex, cd, null);
+}
+
+public
+void TypeInfo_toDt(ref DtBuilder dtb, TypeInfoDeclaration d)
+{
+    scope v = new TypeInfoDtVisitor(dtb);
+    d.accept(v);
+}
+
+/**********************************************************************/
+/*                             private                                */
+/**********************************************************************/
+
+
+/* A dt_t is a simple structure representing data to be added
+ * to the data segment of the output object file. As such,
+ * it is a list of initialized bytes, 0 data, and offsets from
+ * other symbols.
+ * Each D symbol and type can be converted into a dt_t so it can
+ * be written to the data segment.
+ */
+
+private
+alias Dts = Array!(dt_t*);
 
 /****************************************************
  * Put out initializers of ad.fields[].
@@ -1102,31 +1164,6 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
     //printf("-dtb.length: %d\n", dtb.length);
 }
 
-
-/* ================================================================= */
-
-void Type_toDt(Type t, ref DtBuilder dtb, bool isCtype = false)
-{
-    switch (t.ty)
-    {
-        case Tvector:
-            toDtElem(t.isTypeVector().basetype.isTypeSArray(), dtb, null, isCtype);
-            break;
-
-        case Tsarray:
-            toDtElem(t.isTypeSArray(), dtb, null, isCtype);
-            break;
-
-        case Tstruct:
-            StructDeclaration_toDt(t.isTypeStruct().sym, dtb);
-            break;
-
-        default:
-            Expression_toDt(t.defaultInit(Loc.initial, isCtype), dtb);
-            break;
-    }
-}
-
 private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e, bool isCtype)
 {
     //printf("TypeSArray.toDtElem() tsa = %s\n", tsa.toChars());
@@ -1186,22 +1223,7 @@ private void ClassReferenceExp_toDt(ClassReferenceExp e, ref DtBuilder dtb, int 
         write_instance_pointers(e.type, s, 0);
 }
 
-void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, ref DtBuilder dtb)
-{
-    //printf("ClassReferenceExp.toInstanceDt() %d\n", ce.op);
-    ClassDeclaration cd = ce.originalClass();
-
-    // Put in the rest
-    size_t firstFieldIndex = 0;
-    for (ClassDeclaration c = cd.baseClass; c; c = c.baseClass)
-        firstFieldIndex += c.fields.length;
-    // CTFE elements exclude __monitor (it is emitted separately by membersToDt),
-    // so adjust the index to match the elements array layout.
-    firstFieldIndex -= cd.hasMonitor();
-    membersToDt(cd, dtb, ce.value.elements, firstFieldIndex, cd, null);
-}
-
-/*
+/***
  * Lay out a (TypeInfo) subclass instance using the same logic as a `new Object()` from CTFE.
  *
  * Params:
@@ -1618,10 +1640,4 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         classFieldsToDt(Type.typeinfotypelist,
             new Expressions(new ArrayLiteralExp(d.loc, elementsFieldType, args)), *dtb);
     }
-}
-
-void TypeInfo_toDt(ref DtBuilder dtb, TypeInfoDeclaration d)
-{
-    scope v = new TypeInfoDtVisitor(dtb);
-    d.accept(v);
 }
