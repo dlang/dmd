@@ -202,7 +202,7 @@ private Expressions* copyLiteralArray(Expressions* oldelems, Expression basis = 
 
     // For leaf literal types (int, float, complex, null) that have no mutable
     // internal state, create one shared copy of basis instead of N copies
-    if (auto canShare = basis && (
+    if (basis && (
         basis.op == EXP.int64 || basis.op == EXP.float64 ||
         basis.op == EXP.complex80 || basis.op == EXP.null_))
     {
