@@ -717,9 +717,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
     void visitCompound(CompoundStatement s)
     {
-        if (!s.statements)
-            return;
-        foreach (s2; *s.statements)
+        foreach (s2; s.statements)
         {
             if (s2)
                 Statement_toIR(s2, irs, stmtstate);
@@ -752,7 +750,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
         block* bdox;
 
-        foreach (s2; *s.statements)
+        foreach (s2; s.statements)
         {
             if (s2)
             {

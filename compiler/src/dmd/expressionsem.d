@@ -19302,16 +19302,16 @@ void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
         sfe.rangefe.upr = sfe.rangefe.upr.ctfeInterpret();
     }
 
-    auto stmts = new Statements();
+    auto stmts = Statements();
     if (tplty) stmts.push(new ExpStatement(sfe.loc, tplty.sym));
     stmts.push(new ReturnStatement(aloc, res[0]));
-    auto s1 = new Statements(sfe.createForeach(aloc, pparams[0], new CompoundStatement(aloc, stmts)),
-                             new ExpStatement(aloc, new AssertExp(aloc, IntegerExp.literal!0)));
-    Type ety = new TypeTypeof(aloc, sfe.wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
+    auto s1 = Statements(sfe.createForeach(aloc, pparams[0], new CompoundStatement(aloc, stmts.move())),
+                         new ExpStatement(aloc, new AssertExp(aloc, IntegerExp.literal!0)));
+    Type ety = new TypeTypeof(aloc, sfe.wrapAndCall(aloc, new CompoundStatement(aloc, s1.move())));
     auto aty = ety.arrayOf();
     auto idres = Identifier.generateId("__res");
     auto vard = new VarDeclaration(aloc, aty, idres, null, STC.temp);
-    auto s2 = new Statements();
+    auto s2 = Statements();
 
     // Run 'typeof' gagged to avoid duplicate errors and if it fails just create
     // an empty foreach to expose them.
@@ -19361,7 +19361,7 @@ void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
     }
     else
     {
-        aggr = sfe.wrapAndCall(aloc, new CompoundStatement(aloc, s2));
+        aggr = sfe.wrapAndCall(aloc, new CompoundStatement(aloc, s2.move()));
         sc = sc.startCTFE();
         aggr = aggr.expressionSemantic(sc);
         aggr = resolveProperties(sc, aggr);
