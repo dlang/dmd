@@ -528,12 +528,18 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         scd.sbreak = uls;
         scd.scontinue = uls;
 
+        // Keep identifiers generated within each unrolled body (e.g. lambdas)
+        // unique and stable, the same way `static foreach` does.
+        const baseCounter = sc.idCounter;
+        const n = uls.statements.length;
+
         Statement serror = null;
         foreach (i, ref s; *uls.statements)
         {
             if (s)
             {
                 //printf("[%d]: %s\n", i, s.toChars());
+                scd.idCounter = cast(int) (baseCounter * n + i);
                 s = s.statementSemantic(scd);
                 if (s && !serror)
                     serror = s.isErrorStatement();
@@ -600,6 +606,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             ss.sym.parent = csc.scopesym;
         }
         sc = sc.push(ss.sym);
+        sc.idCounter = ss.sym.idCounter;
         sc.sbreak = ss;
         sc.scontinue = ss;
         ss.statement = ss.statement.statementSemantic(sc);
@@ -4860,6 +4867,11 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
             s = new CompoundStatement(loc, stmts);
         }
 
+        // Disambiguator for identifiers generated within this iteration's body
+        // (e.g. unittests / lambdas). Combined with the enclosing scope's counter
+        // as a mixed-radix number so it stays unique under nested `static foreach`,
+        // and stable across compilations (it only depends on the unrolling indices).
+        const iterCounter = cast(int) (sc.idCounter * n + j);
         if (!isStatic)
         {
             s = new ScopeStatement(loc, s, fs.endloc);
@@ -4867,11 +4879,15 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
         else if (isDecl)
         {
             import dmd.attrib: ForwardingAttribDeclaration;
-            d = new ForwardingAttribDeclaration(decls);
+            auto fad = new ForwardingAttribDeclaration(decls);
+            fad.sym.idCounter = iterCounter;
+            d = fad;
         }
         else
         {
-            s = new ForwardingStatement(loc, s);
+            auto fwd = new ForwardingStatement(loc, s);
+            fwd.sym.idCounter = iterCounter;
+            s = fwd;
         }
 
         if (isDecl)

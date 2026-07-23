@@ -1397,6 +1397,11 @@ extern (C++) final class OverloadSet : Dsymbol
  */
 extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
 {
+    /// Disambiguator for `Identifier.generateIdWithLoc`, carrying the
+    /// `static foreach` iteration index into the forwarded scope.
+    /// See `Scope.idCounter`.
+    int idCounter;
+
     extern (D) this() nothrow @safe
     {
         super();
@@ -1597,6 +1602,33 @@ extern (C++) final class DsymbolTable : RootObject
     size_t length() const pure
     {
         return tab.length;
+    }
+
+    /**************************
+     * Pick a name derived from `ident` that is not yet taken in this table.
+     *
+     * Params:
+     *   ident = base identifier
+     * Returns:
+     *   `ident` if free, otherwise `ident_<n>` for the lowest free `n`
+     */
+    Identifier uniqueName(Identifier ident)
+    {
+        if (!lookup(ident))
+            return ident;
+        const base = ident.toString();
+        Identifier id;
+        int n = 1;
+        do
+        {
+            OutBuffer buf;
+            buf.writestring(base);
+            buf.writestring("_");
+            buf.print(n++);
+            id = Identifier.idPool(buf[]);
+        }
+        while (lookup(id));
+        return id;
     }
 }
 
