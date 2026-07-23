@@ -504,7 +504,7 @@ void build_syment_table(bool bigobj)
         else
             aux.x_section.length = cast(uint)pseg.SDoffset;
 
-	aux.x_section.NumberOfRelocations = cast(ushort)pseg.relocations.length;
+        aux.x_section.NumberOfRelocations = cast(ushort)pseg.relocations.length;
 
         if (psechdr.Characteristics & IMAGE_SCN_LNK_COMDAT)
         {
@@ -733,7 +733,7 @@ void MsCoffObj_term(const(char)[] objfilename)
         {
             foffset = (foffset + 3) & ~3;
             assert(psechdr.PointerToRelocations == 0);
-	    auto nreloc = pseg.relocations.length;
+            auto nreloc = pseg.relocations.length;
             if (nreloc > 0xffff)
             {
                 // https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#coff-relocations-object-only
@@ -750,8 +750,8 @@ void MsCoffObj_term(const(char)[] objfilename)
             }
             foffset += nreloc * reloc.sizeof;
         }
-	else
-	    assert(pseg.relocations.length == 0);
+        else
+            assert(pseg.relocations.length == 0);
     }
 
     assert(mscoffobj.fobjbuf.length() == 0);
@@ -822,8 +822,8 @@ void MsCoffObj_term(const(char)[] objfilename)
                 mscoffobj.fobjbuf.write((&rel)[0 .. 1]);
                 foffset += rel.sizeof;
             }
-	    foreach (ref r; pseg.relocations[])
-	    {   reloc rel;
+            foreach (ref r; pseg.relocations[])
+            {   reloc rel;
                 rel.r_vaddr = 0;
                 rel.r_symndx = 0;
                 rel.r_type = 0;
@@ -1430,7 +1430,7 @@ segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
 static if (1)
 {
         OutBuffer* b1 = pseg.SDbuf;
-	auto b3 = pseg.relocations;
+        auto b3 = pseg.relocations;
 
         memset(pseg, 0, (seg_data).sizeof);
 
@@ -1445,8 +1445,8 @@ static if (1)
         }
         pseg.SDbuf = b1;
 
-	b3.reset();
-	pseg.relocations = b3;
+        b3.reset();
+        pseg.relocations = b3;
 }
     }
     else

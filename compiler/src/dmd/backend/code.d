@@ -303,7 +303,7 @@ struct seg_data
 
     void reset()
     {
-	SDseg = 0;
+        SDseg = 0;
         SDoffset = 0;
         isfarseg = false;
         segidx = 0;
