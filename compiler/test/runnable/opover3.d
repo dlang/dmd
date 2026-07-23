@@ -195,6 +195,31 @@ void test20927()
 }
 
 /**************************************/
+// opSlice template argument for dimension 0 is optional
+// https://github.com/dlang/dmd/issues/19447
+struct Foo
+{
+    int payload;
+    int opSlice(int start, int end)
+    {
+        return start * end;
+    }
+    auto opIndexAssign(T)(T elem, int slice)
+    {
+        this.payload = slice;
+        return this;
+    }
+}
+
+void test19447()
+{
+    Foo foo;
+    foo[3 .. 5] = 15;
+    assert(foo.payload == 15);
+}
+
+/**************************************/
+
 
 void main()
 {
@@ -207,4 +232,5 @@ void main()
     test4();
     test12070();
     test20927();
+    test19447();
 }

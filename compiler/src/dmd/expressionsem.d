@@ -1797,7 +1797,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, out Expression pe0)
         if (i == 0)
             pe0 = extractOpDollarSideEffect(sc, ae);
 
-        if (e.op == EXP.interval && !(slice && slice.isTemplateDeclaration()))
+        if (e.op == EXP.interval && !slice)
         {
             return fallback();
         }
@@ -1824,21 +1824,27 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, out Expression pe0)
 
         if (auto ie = e.isIntervalExp())
         {
-            Expression edim = new IntegerExp(ae.loc, i, Type.tsize_t);
-            edim = edim.expressionSemantic(sc);
-            auto tiargs = new Objects(edim);
-
             auto fargs = new Expressions(ie.lwr, ie.upr);
+            if (slice.isTemplateDeclaration())
+            {
+                Expression edim = new IntegerExp(ae.loc, i, Type.tsize_t);
+                edim = edim.expressionSemantic(sc);
+                auto tiargs = new Objects(edim);
 
-            const xerrors = global.startGagging();
-            sc = sc.push();
-            FuncDeclaration fslice = resolveFuncCall(ae.loc, sc, slice, tiargs, ae.e1.type, ArgumentList(fargs), FuncResolveFlag.quiet);
-            sc = sc.pop();
-            global.endGagging(xerrors);
-            if (!fslice)
-                return fallback();
+                const xerrors = global.startGagging();
+                sc = sc.push();
+                FuncDeclaration fslice = resolveFuncCall(ae.loc, sc, slice, tiargs, ae.e1.type, ArgumentList(fargs), FuncResolveFlag.quiet);
+                sc = sc.pop();
+                global.endGagging(xerrors);
+                if (!fslice)
+                    return fallback();
 
-            e = new DotTemplateInstanceExp(ae.loc, ae.e1, Id.opSlice, tiargs);
+                e = new DotTemplateInstanceExp(ae.loc, ae.e1, Id.opSlice, tiargs);
+            }
+            else
+            {
+                e = new DotIdExp(ae.loc, ae.e1, Id.opSlice);
+            }
             e = new CallExp(ae.loc, e, fargs);
             e = e.expressionSemantic(sc);
         }
