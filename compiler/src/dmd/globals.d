@@ -274,6 +274,9 @@ extern (C++) struct Param
     uint timeTraceGranularityUs = 500; /// In microseconds, minimum event size to report
     const(char)* timeTraceFile; /// File path of output file
 
+    uint patchableFunctionEntryTotal = 0;   /// Number of NOPs to pad function entries with
+    uint patchableFunctionEntryPrefix = 0;  /// Number of NOPs before function entry label
+
     ///
     bool parsingUnittestsRequired() @safe
     {

@@ -540,6 +540,8 @@ struct Config
     char* csegname;             // code segment name
     char* deflibname;           // default library name
     int errmax;                 // max error count
+    uint patchableFunctionEntryTotal;
+    uint patchableFunctionEntryPrefix;
 }
 
 enum THRESHMAX = 0xFFFF;

@@ -292,6 +292,8 @@ struct Param
     bool timeTrace;
     uint32_t timeTraceGranularityUs;
     const char* timeTraceFile;
+    uint32_t patchableFunctionEntryTotal;
+    uint32_t patchableFunctionEntryPrefix;
 };
 
 struct structalign_t

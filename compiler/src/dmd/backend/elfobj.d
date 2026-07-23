@@ -2193,9 +2193,15 @@ void ElfObj_func_term(Symbol* sfunc)
 
     // fill in the function size
     if (I64)
+    {
+        elfobj.SymbolTable64[sfunc.Sxtrnnum].st_value = sfunc.Soffset;
         elfobj.SymbolTable64[sfunc.Sxtrnnum].st_size = Offset(cseg) - sfunc.Soffset;
+    }
     else
+    {
+        elfobj.SymbolTable[sfunc.Sxtrnnum].st_value = cast(uint)sfunc.Soffset;
         elfobj.SymbolTable[sfunc.Sxtrnnum].st_size = cast(uint)(Offset(cseg) - sfunc.Soffset);
+    }
     dwarf_func_term(sfunc);
 }
 

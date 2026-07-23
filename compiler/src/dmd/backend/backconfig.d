@@ -87,6 +87,8 @@ void out_config_init(
         exefmt_t exefmt,
         bool generatedMain,     // a main entrypoint is generated
         bool dataimports,
+        uint patchableFunctionEntryTotal,
+        uint patchableFunctionEntryPrefix,
         ref GlobalOptimizer go,
         ErrorCallbackBackend errorCallback,
         GetFileContentsCallback getFileContents)
@@ -98,6 +100,8 @@ void out_config_init(
     auto cfg = &config;
 
     cfg._version = _version;
+    cfg.patchableFunctionEntryTotal = patchableFunctionEntryTotal;
+    cfg.patchableFunctionEntryPrefix = patchableFunctionEntryPrefix;
     if (arm)
         cfg.target_cpu = TARGET_AArch64;
     if (!cfg.target_cpu)
