@@ -4494,11 +4494,11 @@ auto classtest1(int n)
     d = new TheBase;
     SomeInterface fc = c;
     SomeOtherInterface ot = c;
-    assert(fc.bar('x') == 2.6);
+    assert(fc.bar('x') == 2.6f);
     assert(ot.xxx() == 762);
     fc = d;
     ot = d;
-    assert(fc.bar('x') == 3.6);
+    assert(fc.bar('x') == 3.6f);
     assert(ot.xxx() == 762);
 
     Unrelated u2 = new Unrelated(7);
