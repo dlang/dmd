@@ -187,6 +187,7 @@ struct Param
     d_bool tracegc;       // instrument calls to 'new'
     d_bool vcg_ast;       // write-out codegen-ast
     d_bool useUnitTests;  // generate unittest code
+    d_bool useUnitTestsRootOnly; // generate unittest code for root modules only
     d_bool useInline;     // inline expand functions
     d_bool release;       // build release version
     d_bool preservePaths; // true means don't strip path from source file
