@@ -3362,6 +3362,21 @@ bool needsCodegen(TemplateInstance ti)
         return true;
     }
 
+    // A speculative instance that contains static ctors/dtors will
+    // lose them if we skip codegen.  Normally tinst propagates minst
+    // from parent to child, but tinst can be null when the instance
+    // was created inside StaticAssert (which clears sc.tinst).
+    // Walk the tempdecl parent chain as a fallback.
+    // https://issues.dlang.org/show_bug.cgi?id=23239
+    if (!ti.minst && ti.hasStaticCtorOrDtor() && ti.tempdecl)
+    {
+        if (auto enc = ti.tempdecl.isInstantiated())
+        {
+            if (enc.inst && enc.inst.needsCodegen())
+                ti.minst = enc.inst.minst;
+        }
+    }
+
     if (global.params.allInst)
     {
         // Do codegen if there is an instantiation from a root module, to maximize link-ability.
