@@ -23,7 +23,7 @@ nothrow @nogc:
  *      code = machine code as array of bytes
  *      c = address of instruction (as index into code[])
  *      pc = set to address of instruction after prefix
- *      model = memory model, 16/32/64
+ *      model = memory model, 16/32/64 
  */
 
 public
