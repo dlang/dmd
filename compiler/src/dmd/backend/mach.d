@@ -257,11 +257,12 @@ struct section_64
 {
     char[16] sectname;
     char[16] segname;
-    ulong addr;
+    ulong addr;  // logical location of section
     ulong size;
-    uint offset;
+    uint offset; // offset from start of object file to section contents
+                 // for ZERO_FILL this must be 0
     uint _align;
-    uint reloff;
+    uint reloff; // file offset of relocation entries
     uint nreloc;
     uint flags;
     uint reserved1;
@@ -357,7 +358,11 @@ struct nlist_64
     ubyte n_type;
     ubyte n_sect;
     ushort n_desc;
-    ulong n_value;
+    ulong n_value; // N_SECT: address within its section, not the offset from the section start
+                   // N_UNDF: 0
+                   //       : number of bytes for a common symbol
+                   // N_ABS : the value of the symbol; no relocation
+                   // N_STAB: !=0 meaning depends on STABS record
 }
 
 struct dysymtab_command
