@@ -184,6 +184,17 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
     will automatically be $(TT #include)d first. $(TT importc.h) provides adjustments to the source code to
     account for various C compiler extensions not supported by ImportC.)
 
+    $(H4 $(LNAME2 importc-include-directory, ImportC $(TT include) Directory))
+
+    $(P In the same directory as the $(TT importc.h) file there exists a directory named $(TT include),
+    the path of that directory is supplied to the C preprocessor as an addition to the preprocessor's include path.)
+
+    $(P The ImportC $(TT include) directory contains C header files provided by ImportC.
+    The headers provided are as follows:)
+    $(UL
+    $(LI $(TT importc_msvc_builtins.h): which provides support for MSVC's compiler intrinsics.)
+    )
+
     $(H4 $(LNAME2 no-builtin-macro-redefined, no-builtin-macro-redefined))
 
     $(P On Posix systems, ImportC will pass the switch $(TT -Wno-builtin-macro-redefined) to the C preprocessor
@@ -458,6 +469,16 @@ $(H2 $(LNAME2 _builtins, $(TT src/__importc_builtins.di)))
     $(LINK2 https://github.com/dlang/dmd/blob/master/druntime/src/__importc_builtins.di, $(TT src/__importc_builtins.di)).
     It provides support for various builtins provided by other C compilers.
     $(TT __importc_builtins.di) is a D file.)
+
+$(H2 $(LNAME2 _builtins_msvc, $(TT src/__builtins_msvc.d)))
+
+    $(P Support for MSVC's compiler intrinsics is provided via the
+    $(LINK2 https://github.com/dlang/dmd/blob/master/druntime/src/__builtins_msvc.d, $(TT __builtins_msvc)) module,
+    which is implemented in D.)
+
+    $(P Unlike $(TT __importc_builtins.di), $(TT __builtins_msvc) is not imported by default,
+    instead the $(TT __builtins_msvc) module is imported by the
+    $(LINK2 https://github.com/dlang/dmd/blob/master/druntime/src/include/importc_msvc_builtins.h, $(TT importc_msvc_builtins.h) header).)
 
 $(H2 $(LNAME2 implementation, Implementation))
 
@@ -904,6 +925,7 @@ size_t x = sizeof(foo());)
 $(H2 $(LNAME2 visualc-extensions, Visual C Extensions))
 
     $(P All the $(RELATIVE_LINK2 digital-mars-extensions, Digital Mars C Extensions).)
+    $(P Many of $(RELATIVE_LINK2 msvc-intrinsics, MSVC's compiler intrinsics).)
 
     $(H3 $(LNAME2 __stdcall, `__stdcall` Function Calling Convention))
 
@@ -956,6 +978,10 @@ $(H2 $(LNAME2 digital-mars-extensions, Digital Mars C Extensions))
     $(LI `__declspec(thread)`)
     )
 
+$(H2 $(LNAME2 msvc-intrinsics, MSVC Intrinsics))
+
+    $(P Many of MSVC's compiler intrinsics are supported by ImportC: too many to list.
+    See $(RELATIVE_LINK2 _builtins_msvc, $(TT src/__builtins_msvc.d)) for more information.)
 
 $(H2 $(LNAME2 d-side, ImportC from D's Point of View))
 
