@@ -4367,15 +4367,13 @@ struct ASTBase
         }
     }
 
-    extern (C++) class TypeTraits : Type
+    extern (C++) class TypeTraits : TypeQualified
     {
         TraitsExp exp;
-        Loc loc;
 
         extern (D) this(Loc loc, TraitsExp exp)
         {
-            super(Tident);
-            this.loc = loc;
+            super(Ttraits, loc);
             this.exp = exp;
         }
 
@@ -4388,21 +4386,20 @@ struct ASTBase
         {
             TraitsExp te = exp.syntaxCopy();
             TypeTraits tt = new TypeTraits(loc, te);
+            tt.syntaxCopyHelper(this);
             tt.mod = mod;
             return tt;
         }
     }
 
-    extern (C++) final class TypeMixin : Type
+    extern (C++) final class TypeMixin : TypeQualified
     {
-        Loc loc;
         Expressions* exps;
         RootObject obj;
 
         extern (D) this(Loc loc, Expressions* exps)
         {
-            super(Tmixin);
-            this.loc = loc;
+            super(Tmixin, loc);
             this.exps = exps;
         }
 
@@ -4422,7 +4419,10 @@ struct ASTBase
                 return a;
             }
 
-            return new TypeMixin(loc, arraySyntaxCopy(exps));
+            auto tm = new TypeMixin(loc, arraySyntaxCopy(exps));
+            tm.syntaxCopyHelper(this);
+            tm.mod = mod;
+            return tm;
         }
 
         override void accept(Visitor v)

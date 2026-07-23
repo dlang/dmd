@@ -1536,18 +1536,16 @@ extern (C++) final class TypeDelegate : TypeNext
  *
  * The point is to allow AliasDeclarationY to use `__traits()`, see $(LINK https://issues.dlang.org/show_bug.cgi?id=7804).
  */
-extern (C++) final class TypeTraits : Type
+extern (C++) final class TypeTraits : TypeQualified
 {
-    Loc loc;
     /// The expression to resolve as type or symbol.
     TraitsExp exp;
     /// Cached type/symbol after semantic analysis.
     RootObject obj;
 
-    final extern (D) this(Loc loc, TraitsExp exp) @safe
+    final extern (D) this(Loc loc, TraitsExp exp) nothrow @safe
     {
-        super(Ttraits);
-        this.loc = loc;
+        super(Ttraits, loc);
         this.exp = exp;
     }
 
@@ -1560,6 +1558,7 @@ extern (C++) final class TypeTraits : Type
     {
         TraitsExp te = exp.syntaxCopy();
         TypeTraits tt = new TypeTraits(loc, te);
+        tt.syntaxCopyHelper(this);
         tt.mod = mod;
         return tt;
     }
@@ -1575,16 +1574,14 @@ extern (C++) final class TypeTraits : Type
  *
  * Semantic analysis will convert it to a real type.
  */
-extern (C++) final class TypeMixin : Type
+extern (C++) final class TypeMixin : TypeQualified
 {
-    Loc loc;
     Expressions* exps;
     RootObject obj; // cached result of semantic analysis.
 
-    extern (D) this(Loc loc, Expressions* exps) @safe
+    extern (D) this(Loc loc, Expressions* exps) nothrow @safe
     {
-        super(Tmixin);
-        this.loc = loc;
+        super(Tmixin, loc);
         this.exps = exps;
     }
 
@@ -1595,7 +1592,10 @@ extern (C++) final class TypeMixin : Type
 
     override TypeMixin syntaxCopy()
     {
-        return new TypeMixin(loc, Expression.arraySyntaxCopy(exps));
+        auto tm = new TypeMixin(loc, Expression.arraySyntaxCopy(exps));
+        tm.syntaxCopyHelper(this);
+        tm.mod = mod;
+        return tm;
     }
 
     override void accept(Visitor v)
@@ -1614,7 +1614,7 @@ extern (C++) abstract class TypeQualified : Type
     // representing ident.ident!tiargs.ident. ... etc.
     Objects idents;
 
-    final extern (D) this(TY ty, Loc loc)
+    final extern (D) this(TY ty, Loc loc) @safe nothrow
     {
         super(ty);
         this.loc = loc;
