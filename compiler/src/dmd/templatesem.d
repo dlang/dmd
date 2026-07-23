@@ -3713,8 +3713,16 @@ bool findBestMatch(TemplateInstance ti, Scope* sc, ArgumentList argumentList)
         TemplateDeclaration td_best;
         TemplateDeclaration td_ambig;
         MATCH m_best = MATCH.nomatch;
+        uint candidateCount = 0;
 
         Dsymbol dstart = tovers ? tovers.a[oi] : ti.tempdecl;
+        overloadApply(dstart, (Dsymbol s)
+        {
+            if (s.isTemplateDeclaration())
+                ++candidateCount;
+            return 0;
+        });
+        const gagCandidates = candidateCount > 1;
         overloadApply(dstart, (Dsymbol s)
         {
             auto td = s.isTemplateDeclaration();
@@ -3736,9 +3744,11 @@ bool findBestMatch(TemplateInstance ti, Scope* sc, ArgumentList argumentList)
             dedtypes.zero();
             assert(td.semanticRun != PASS.initial);
 
+            const olderrors = gagCandidates ? global.startGagging() : 0u;
             MATCH m = matchWithInstance(sc, td, ti, dedtypes, argumentList, 0);
+            const errors = gagCandidates && global.endGagging(olderrors);
             //printf("matchWithInstance = %d\n", m);
-            if (m == MATCH.nomatch) // no match at all
+            if (errors || m == MATCH.nomatch) // no match at all
                 return 0;
             if (m < m_best) goto Ltd_best;
             if (m > m_best) goto Ltd;
@@ -5511,9 +5521,17 @@ bool TemplateInstance_semanticTiargs(Loc loc, Scope* sc, Objects* tiargs, int fl
             }
             else
             {
-                sc = sc.startCTFE();
-                ea = ea.expressionSemantic(sc);
-                sc = sc.endCTFE();
+                const mightBeAlias = ea.op == EXP.variable || !definitelyValueParameter(ea);
+                if (mightBeAlias)
+                {
+                    ea = ea.expressionSemantic(sc);
+                }
+                else
+                {
+                    sc = sc.startCTFE();
+                    ea = ea.expressionSemantic(sc);
+                    sc = sc.endCTFE();
+                }
 
                 if (auto varExp = ea.isVarExp())
                 {
