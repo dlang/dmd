@@ -1909,6 +1909,34 @@ extern (D) bool checkClosure(FuncDeclaration fd)
     if (!fd.needsClosure())
         return false;
 
+    // A GC-allocated closure cannot correctly manage variables
+    // that require scoped destruction.
+    foreach (v; fd.closureVars)
+    {
+        if (!v.type)
+            continue;
+
+        if (auto ts = v.type.isTypeStruct())
+        {
+            if (ts.sym && ts.sym.dtor)
+            {
+                .error(v.loc, "variable `%s` has scoped destruction, cannot build closure", v.toPrettyChars());
+                fd.errors = true;
+                return true;
+            }
+        }
+        else if (auto tc = v.type.isTypeClass())
+        {
+            if (tc.sym && tc.sym.dtor && (v.storage_class & STC.scope_))
+            {
+                .error(v.loc, "scoped class variable `%s` has destructor, cannot build closure", v.toPrettyChars());
+                fd.errors = true;
+                return true;
+            }
+        }
+    }
+
+    // Checking compilation restrictions
     if (setGC(null, fd, fd.loc, "allocating a closure for `%s()`", fd))
     {
         .error(fd.loc, "%s `%s` is `@nogc` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toErrMsg());
