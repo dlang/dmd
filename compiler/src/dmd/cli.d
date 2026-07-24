@@ -447,6 +447,13 @@ dmd -cov -unittest myprog.d
         Option("gs",
             "always emit stack frame"
         ),
+        Option("gu",
+            "generate unwind tables",
+            "Generate unwind tables for all functions.
+             This enables the emission of metadata required for stack walking,
+             allowing backtrace() and debuggers to function even when
+             exception handling is disabled or in `-betterC` code.",
+        ),
         Option("gx",
             "add stack stomp code",
             `Adds stack stomp code, which overwrites the stack frame memory upon function exit.`,

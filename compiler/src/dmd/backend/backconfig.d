@@ -82,6 +82,7 @@ void out_config_init(
         bool useModuleInfo,
         bool useTypeInfo,
         bool useExceptions,
+        bool unwindTables,
         ubyte dwarf,
         string _version,
         exefmt_t exefmt,
@@ -162,15 +163,16 @@ void out_config_init(
         cfg.avx = avx;
         if (model == 64)
         {
-            cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            cfg.ehmethod = (useExceptions || unwindTables) ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
         }
         else
         {
-            cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            cfg.ehmethod = (useExceptions || unwindTables) ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
             if (!exe)
                 cfg.flags |= CFGromable; // put switch tables in code segment
         }
-        cfg.flags |= CFGnoebp;
+        if (!unwindTables)
+            cfg.flags |= CFGnoebp;
         switch (pic)
         {
             case 0:         // PIC.fixed
@@ -196,7 +198,7 @@ void out_config_init(
     {
         cfg.fpxmmregs = true;
         cfg.avx = avx;
-        cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+        cfg.ehmethod = (useExceptions || unwindTables) ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
         cfg.flags |= CFGnoebp;
         if (!exe)
         {
@@ -214,13 +216,13 @@ void out_config_init(
     {
         if (model == 64)
         {
-            cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            cfg.ehmethod = (useExceptions || unwindTables) ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
             cfg.fpxmmregs = true;
             cfg.avx = avx;
         }
         else
         {
-            cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            cfg.ehmethod = (useExceptions || unwindTables) ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
             if (!exe)
                 cfg.flags |= CFGromable; // put switch tables in code segment
         }
@@ -250,13 +252,13 @@ void out_config_init(
         if (!exe)
             cfg.flags3 |= CFG3pic;
         cfg.objfmt = OBJ_ELF;
-        cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+        cfg.ehmethod = (useExceptions || unwindTables) ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
     }
     if (cfg.exe == EX_DRAGONFLYBSD64)
     {
         if (model == 64)
         {
-            cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            cfg.ehmethod = (useExceptions || unwindTables) ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
             cfg.fpxmmregs = true;
             cfg.avx = avx;
         }
@@ -289,7 +291,7 @@ void out_config_init(
         if (!exe)
             cfg.flags3 |= CFG3pic;
         cfg.objfmt = OBJ_ELF;
-        cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+        cfg.ehmethod = (useExceptions || unwindTables) ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
     }
     else if (cfg.exe & (EX_HURD | EX_HURD64))
     {
@@ -388,7 +390,8 @@ static if (0)
 
     cfg.useModuleInfo = useModuleInfo;
     cfg.useTypeInfo = useTypeInfo;
-    cfg.useExceptions = useExceptions;
+    cfg.useExceptions = useExceptions || unwindTables;
+    cfg.unwindTables = unwindTables;
 
     cod3_setdefault();
     if (arm)
