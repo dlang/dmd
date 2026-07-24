@@ -98,7 +98,7 @@ else version (WASIp1)
 }
 else version (WASIp2)
 {
-    import core.sys.wasi.posix.time : clock_getres, clock_gettime, CLOCK_MONOTONIC, timespec;
+    import monotonic_clock = core.sys.wasi.p2.clocks.monotonic_clock.imports;
 }
 
 version (unittest) import core.stdc.stdio : printf;
@@ -483,21 +483,6 @@ version (Posix)
             // mention it if a new platform uses anything that's not supported
             // on all platforms..
             assert(0, "What are the monotonic clock types supported by this system?");
-    }
-}
-else
-version (WASIp2)
-{
-    private auto _posixClock(ClockType clockType)
-    {
-        import core.sys.wasi.posix.time;
-        with(ClockType) final switch (clockType)
-        {
-            case coarse: return CLOCK_MONOTONIC;
-            case normal: return CLOCK_MONOTONIC;
-            case precise: return CLOCK_MONOTONIC;
-            case second: assert(0);
-        }
     }
 }
 
@@ -2207,7 +2192,13 @@ struct MonoTimeImpl(ClockType clockType)
     }
     else version (WASIp2)
     {
-        enum clockArg = _posixClock(clockType);
+        static if (clockType != ClockType.coarse &&
+                clockType != ClockType.normal &&
+                clockType != ClockType.precise)
+        {
+            static assert(0, "ClockType." ~ _clockName ~
+                            " is not supported by MonoTimeImpl on this system.");
+        }
     }
     else
         static assert(0, "Unsupported platform");
@@ -2287,19 +2278,7 @@ struct MonoTimeImpl(ClockType clockType)
         }
         else version (WASIp2)
         {
-            timespec ts = void;
-            immutable error = clock_gettime(clockArg, &ts);
-            // clockArg is supported and if tv_sec is long or larger
-            // overflow won't happen before 292 billion years A.D.
-            static if (ts.tv_sec.max < long.max)
-            {
-                if (error)
-                {
-                    import core.internal.abort : abort;
-                    abort("Call to clock_gettime failed.");
-                }
-            }
-            return MonoTimeImpl(convClockFreq(ts.tv_sec * 1_000_000_000L + ts.tv_nsec,
+            return MonoTimeImpl(convClockFreq(monotonic_clock.now,
                                               1_000_000_000L,
                                               ticksPerSecond));
         }
@@ -2720,30 +2699,14 @@ extern(C) void _d_initMonoTime() @nogc nothrow
     }
     else version (WASIp2)
     {
-        timespec ts;
+        immutable long ticksPerSecond = 1_000_000_000 / monotonic_clock.resolution;
         foreach (i, typeStr; __traits(allMembers, ClockType))
         {
-            static if (typeStr != "second")
-            {
-                enum clockArg = _posixClock(__traits(getMember, ClockType, typeStr));
-                if (clock_getres(clockArg, &ts) == 0)
-                {
-                    // ensure we are only writing immutable data once
-                    if (tps[i] != 0)
-                        // should only be called once
-                        assert(0);
-
-                    // For some reason, on some systems, clock_getres returns
-                    // a resolution which is clearly wrong:
-                    //  - it's a millisecond or worse, but the time is updated
-                    //    much more frequently than that.
-                    //  - it's negative
-                    //  - it's zero
-                    // In such cases, we'll just use nanosecond resolution.
-                    tps[i] = ts.tv_sec != 0 || ts.tv_nsec <= 0 || ts.tv_nsec >= 1000
-                        ? 1_000_000_000L : 1_000_000_000L / ts.tv_nsec;
-                }
-            }
+            // ensure we are only writing immutable data once
+            if (tps[i] != 0)
+                // should only be called once
+                assert(0);
+            tps[i] = ticksPerSecond;
         }
     }
     else
@@ -3060,20 +3023,7 @@ deprecated:
         }
         else version (WASIp2)
         {
-            timespec ts;
-
-            if (clock_getres(CLOCK_MONOTONIC, &ts) != 0)
-                ticksPerSec = 0;
-            else
-            {
-                //For some reason, on some systems, clock_getres returns
-                //a resolution which is clearly wrong (it's a millisecond
-                //or worse, but the time is updated much more frequently
-                //than that). In such cases, we'll just use nanosecond
-                //resolution.
-                ticksPerSec = ts.tv_nsec >= 1000 ? 1_000_000_000
-                                                    : 1_000_000_000 / ts.tv_nsec;
-            }
+            ticksPerSec = 1_000_000_000 / monotonic_clock.resolution;
         }
         else
             static assert(0, "Unsupported platform");
@@ -3658,20 +3608,7 @@ deprecated:
         }
         else version (WASIp2)
         {
-            timespec ts = void;
-            immutable error = clock_gettime(CLOCK_MONOTONIC, &ts);
-            // CLOCK_MONOTONIC is supported and if tv_sec is long or larger
-            // overflow won't happen before 292 billion years A.D.
-            static if (ts.tv_sec.max < long.max)
-            {
-                if (error)
-                {
-                    import core.internal.abort : abort;
-                    abort("Call to clock_gettime failed.");
-                }
-            }
-            return TickDuration(ts.tv_sec * TickDuration.ticksPerSec +
-                                ts.tv_nsec * TickDuration.ticksPerSec / 1000 / 1000 / 1000);
+            return TickDuration(monotonic_clock.now / 1_000_000_000);
         }
     }
 
