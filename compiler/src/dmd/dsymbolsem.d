@@ -5976,6 +5976,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         buildDtors(cldec, sc2);
 
+        // If this class has no explicit cpp destructor, but the base class
+        // has, then set cppDtorVtblIndex, so destructors for fields can be called.
+        if (cldec.cppDtorVtblIndex == -1 && cldec.baseClass && cldec.dtor)
+            cldec.cppDtorVtblIndex = cldec.baseClass.cppDtorVtblIndex;
+
         if (cldec.classKind == ClassKind.cpp && cldec.cppDtorVtblIndex != -1)
         {
             // now we've built the aggregate destructor, we'll make it virtual and assign it to the reserved vtable slot
