@@ -136,6 +136,7 @@ import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;
 
+import dmd.dsymbolsem : resolvedLinkage;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
@@ -1362,7 +1363,7 @@ extern (D) const(char)[] externallyMangledIdentifier(Declaration d)
 {
     assert(!d.mangleOverride, "mangle overrides should have been handled earlier");
 
-    const linkage = d.resolvedLinkage();
+    const linkage = resolvedLinkage(d);
     const par = d.toParent(); //toParent() skips over mixin templates
     if (!par || par.isModule() || linkage == LINK.cpp ||
         (linkage == LINK.c && d.isCsymbol() &&

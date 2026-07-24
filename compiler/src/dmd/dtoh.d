@@ -15,6 +15,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.ctype;
 
+import dmd.dsymbolsem;
 import dmd.astcodegen;
 import dmd.astenums;
 import dmd.arraytypes;
@@ -1050,7 +1051,7 @@ public:
         if (vd.storage_class & (AST.STC.static_ | AST.STC.extern_ | AST.STC.gshared) ||
         vd.parent && vd.parent.isModule())
         {
-            const vdLinkage = vd.resolvedLinkage();
+            const vdLinkage = dmd.dsymbolsem.resolvedLinkage(vd);
             if (vdLinkage != LINK.c && vdLinkage != LINK.cpp && !(tdparent && (this.linkage == LINK.c || this.linkage == LINK.cpp)))
             {
                 ignored("variable %s because of linkage", vd.toPrettyChars());
@@ -2932,7 +2933,7 @@ public:
         // Check against the internal information which might be missing, e.g. inside of template declarations
         if (auto dec = sym.isDeclaration())
         {
-            const l = dec.resolvedLinkage();
+            const l = dmd.dsymbolsem.resolvedLinkage(dec);
             return l == LINK.cpp || l == LINK.c;
         }
 
