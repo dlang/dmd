@@ -1487,9 +1487,9 @@ foo0123456789
 )
 
 
-$(H2 $(LEGACY_LNAME2 SwitchStatement, switch-statement, Switch Statement))
+$(H2 $(LNAME2 switch-statement, Switch Statement))
 
-        A switch statement goes to one of a collection of case
+        A switch statement transfers execution to one of a collection of case
         statements depending on the value of the switch
         expression.
 
@@ -1516,20 +1516,20 @@ $(GNAME StatementNoCaseNoDefault):
     $(GLINK ScopeBlockStatement)
 )
 
-        $(P The *Expression* from the $(I IfCondition) is evaluated.
-        If the type of the *Expression* is an `enum`, it is
-        (recursively) converted to its $(GLINK2 enum, EnumBaseType).
-        Then, if the type is an integral, the *Expression* undergoes
-        $(DDSUBLINK spec/type, integer-promotions, Integer Promotions).
-        Then, the type of the *Expression* must be either an integral or
-        a static or dynamic array of $(CODE char), $(CODE wchar), or $(CODE dchar).
-        )
+        $(P The *Expression* from the $(I IfCondition) is evaluated.)
 
-        $(P If an $(I Identifier) `=` prefix is provided, a variable is declared with that
+        - If the type of the *Expression* is an `enum`, it is
+          (recursively) converted to its $(GLINK2 enum, EnumBaseType).
+        - Then, if the type is an integral, the *Expression* undergoes
+          $(DDSUBLINK spec/type, integer-promotions, Integer Promotions).
+        - Then, the type of the *Expression* must be either an integral
+          $(RELATIVE_LINK2 string-switch, or a string).
+
+        $(PANEL If an $(GRAMMAR_INLINE $(I Identifier) `=`) prefix is provided, a variable is declared with that
         name, initialized to the value and type of the *Expression*. Its scope
-        extends from when it is initialized to the end of the *ScopeStatement*.)
+        extends from when it is initialized to the end of the *ScopeStatement*.
 
-        $(P If $(I TypeCtors) and/or a specific type is provided for *Identifier*, those
+        If $(I TypeCtors) and/or a specific type is provided for *Identifier*, those
         are used for the variable declaration which is initialized by an implicit
         conversion from the value of the *Expression*.)
 
@@ -1538,23 +1538,6 @@ $(GNAME StatementNoCaseNoDefault):
         a match, the corresponding case statement is transferred to.
         )
 
-        $(P The case expressions in $(I ArgumentList)
-        are a comma separated list of expressions.
-        Each expression must evaluate to a compile-time value or array,
-        or a runtime initialized const or immutable variable of integral type.
-        Each expression must be implicitly convertible to the type of the switch
-        *Expression*.)
-
-        $(P Compile-time case values must all be distinct. Const or
-        immutable runtime variables must all have different names.
-        If two case expressions share a
-        value, the first case statement with that value gets control.)
-
-        $(P The $(GLINK ScopeStatementList) introduces a new scope.
-        )
-
-        $(P A matching `break` statement will exit the switch $(I BlockStatement).)
-
         $(P A switch statement must have exactly one *DefaultStatement*.
         If none of the case expressions match, control is transferred
         to the default statement.
@@ -1562,6 +1545,26 @@ $(GNAME StatementNoCaseNoDefault):
 
         $(RATIONALE This makes it clear that all possible cases are intentionally handled.
         See also: $(RELATIVE_LINK2 final-switch-statement, `final switch`).)
+
+$(H3 $(LNAME2 case-default, Case and Default Statements))
+
+        $(P A $(GLINK CaseStatement)'s $(I ArgumentList)
+        is a comma separated list of expressions.
+        Each expression must evaluate to a compile-time value or array,
+        or a runtime initialized const or immutable variable of integral type.
+        Each expression must be implicitly convertible to the type of the switch
+        *Expression*.)
+
+        $(P Compile-time case values must all be distinct.)
+
+        $(P Const or immutable runtime case variables must all have different names.
+        If two case expressions share a
+        value, the first case statement with that value gets control.)
+
+        $(P The $(GLINK ScopeStatementList) introduces a new scope.
+        )
+
+        $(P A matching `break` statement will exit the switch's $(I ScopeStatement).)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
@@ -1703,32 +1706,35 @@ writeln(message);
 
 $(H3 $(LNAME2 string-switch, String Switch))
 
-        $(P Strings can be used in switch expressions.
+        $(P Strings can be used in a switch expression. Static or dynamic arrays
+        of `char`, `wchar` or `dchar` are supported.
         For example:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
-string name;
-...
+string name = "fred";
+
 switch (name)
 {
-    case "fred":
-    case "sally":
-        ...
+    case "fred", "sally":
+        writeln("Hi ", name);
+        break;
+    default:
+        writeln("Not recognized");
 }
 --------------
-
-        $(P For applications like command line switch processing, this
+)
+        $(RATIONALE For applications like command-line switch processing, this
         can lead to much more straightforward code, being clearer and
-        less error prone. `char`, `wchar` and `dchar` strings are allowed.
-        )
+        less error prone.)
 
 
 $(H2 $(LEGACY_LNAME2 FinalSwitchStatement, final-switch-statement, Final Switch Statement))
 
 $(GRAMMAR
 $(GNAME FinalSwitchStatement):
-    $(D final switch $(LPAREN)) $(GLINK IfCondition) $(D $(RPAREN)) $(PSSCOPE)
+    $(D final) $(GLINK SwitchStatement)
 )
 
         $(P A final switch statement is just like a switch statement,
@@ -1737,12 +1743,27 @@ $(GNAME FinalSwitchStatement):
         $(UL
         $(LI No $(GLINK DefaultStatement) is allowed.)
         $(LI No $(GLINK CaseRangeStatement)s are allowed.)
-        $(LI If the switch *Expression* is of enum type, all
+        $(LI If the $(GLINK IfCondition)'s *Expression* is of enum type, all
         the enum members must appear in the $(GLINK CaseStatement)s.)
         $(LI The case expressions cannot evaluate to a run time
         initialized value.)
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+--------------
+enum E { unknown, yes, no }
+E e;
+
+with (E) final switch (e)
+{
+    case unknown:
+        writeln("need answer");
+        break;
+    case yes, no:
+        writeln("got answer");
+}
+--------------
+)
         $(IMPLEMENTATION_DEFINED If the *Expression* value does not match any
         of the $(I CaseRangeStatements), whether that is diagnosed at compile
         time or at runtime.)
