@@ -823,6 +823,8 @@ MATCH implicitConvTo(Expression e, Type t)
                     break;
                 }
             }
+            else if (t.ty == Tpointer && e.type.isStaticOrDynamicArray() && e.type.nextOf().isImmutable() && tn.ty == tyn)
+                return m; // e.g. "foo"w -> const(wchar)*
             break;
 
         default:
