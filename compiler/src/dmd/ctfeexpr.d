@@ -199,9 +199,28 @@ private Expressions* copyLiteralArray(Expressions* oldelems, Expression basis = 
         return oldelems;
     incArrayAllocs();
     auto newelems = new Expressions(oldelems.length);
-    foreach (i, el; *oldelems)
+
+    // For leaf literal types (int, float, complex, null) that have no mutable
+    // internal state, create one shared copy of basis instead of N copies
+    if (basis && (
+        basis.op == EXP.int64 || basis.op == EXP.float64 ||
+        basis.op == EXP.complex80 || basis.op == EXP.null_))
     {
-        (*newelems)[i] = copyLiteral(el ? el : basis).copy();
+        auto sharedBasisCopy = copyLiteral(basis).copy();
+        foreach (i, el; *oldelems)
+        {
+            if (el is null || el is basis)
+                (*newelems)[i] = sharedBasisCopy;
+            else
+                (*newelems)[i] = copyLiteral(el).copy();
+        }
+    }
+    else
+    {
+        foreach (i, el; *oldelems)
+        {
+            (*newelems)[i] = copyLiteral(el ? el : basis).copy();
+        }
     }
     return newelems;
 }
