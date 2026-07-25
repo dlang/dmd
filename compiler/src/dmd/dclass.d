@@ -142,6 +142,12 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         /// set the progress of base classes resolving
         Baseok baseok;
+
+        /// free memory in deleting destructor
+        bool cppUseDelDtor;
+
+        /// cppUseDelDtor was set explicitly by pragma(cpp_use_deleting_destructor, ...)
+        bool cppUseDelDtorSet;
     }
 
     import dmd.common.bitfields : generateBitFields;

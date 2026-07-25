@@ -1063,6 +1063,67 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
         break;
     }
 
+    ClassDeclaration cldec = ad.isClassDeclaration();
+    if (cldec && !cldec.cppUseDelDtorSet && cldec.baseClass)
+        cldec.cppUseDelDtor = cldec.baseClass.cppUseDelDtor;
+    if (ad.aggrDtor && cldec && cldec.classKind == ClassKind.cpp && target.cpp.twoDtorInVtable)
+    {
+        if (!cldec.cppUseDelDtor)
+        {
+            // Use normal destructor for backward compatibility
+            ad.delDtor = ad.aggrDtor;
+        }
+        else
+        {
+            Expression e = null;
+            stc = STC.nogc;
+            {
+                stc = mergeFuncAttrs(stc, ad.aggrDtor);
+                if (stc & STC.disable)
+                {
+                    e = null;
+                }
+                else
+                {
+                    Expression ex = new ThisExp(loc);
+                    ex = new DotVarExp(loc, ex, ad.aggrDtor, false);
+                    CallExp ce = new CallExp(loc, ex);
+                    ce.directcall = true;
+                    e = Expression.combine(e, ce);
+                }
+            }
+            auto mCppNew = loadCoreStdcppNew();
+            if (!mCppNew)
+            {
+                error(declLoc, "`core.stdcpp.new_` is required for C++ deleting destructors");
+            }
+            else if (!mCppNew.search(Loc.initial, Id.__cpp_delete))
+            {
+                error(declLoc, "`__cpp_delete` not found in `core.stdcpp.new_`, but is required for C++ deleting destructors");
+            }
+            else
+            {
+                Expression id = new ScopeExp(loc, mCppNew);
+                id = new DotIdExp(loc, id, Id.__cpp_delete);
+                auto arguments = new Expressions(new CastExp(loc, new ThisExp(loc), Type.tvoidptr));
+                CallExp ce = new CallExp(loc, id, arguments);
+                e = Expression.combine(e, ce);
+            }
+            auto dd = new DtorDeclaration(declLoc, Loc.initial, stc, Id.__delDtor);
+            dd.isGenerated = true;
+            dd.storage_class |= STC.inference;
+            dd.fbody = new ExpStatement(loc, e);
+            ad.members.push(dd);
+            dd.dsymbolSemantic(sc);
+            ad.delDtor = dd;
+        }
+    }
+
+    // If this class has no explicit cpp destructor, but the base class
+    // has, then set cppDtorVtblIndex, so destructors for fields can be called.
+    if (cldec && cldec.cppDtorVtblIndex == -1 && cldec.baseClass && cldec.aggrDtor)
+        cldec.cppDtorVtblIndex = cldec.baseClass.cppDtorVtblIndex;
+
     // Set/build `ad.dtor`.
     // On Windows, the dtor in the vtable is a shim with different signature.
     ad.dtor = (ad.aggrDtor && ad.aggrDtor._linkage == LINK.cpp && !target.cpp.twoDtorInVtable)
@@ -1107,7 +1168,7 @@ private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclara
     // void* C::~C(int del)
     // {
     //   this->~C();
-    //   // TODO: if (del) delete (char*)this;
+    //   if (del) delete (char*)this;
     //   return (void*) this;
     // }
     Parameter delparam = new Parameter(Loc.initial, STC.none, Type.tuns32, Identifier.idPool("del"), new IntegerExp(dtor.loc, 0, Type.tuns32), null, null);
@@ -1118,12 +1179,38 @@ private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclara
     auto func = new DtorDeclaration(dtor.loc, dtor.loc, stc, Id.cppdtor);
     func.type = ftype;
 
+    Statement ifDeleteStatement;
+    if (cldec.cppUseDelDtor)
+    {
+        Expression e = null;
+        auto mCppNew = loadCoreStdcppNew();
+        if (!mCppNew)
+        {
+            error(dtor.loc, "`core.stdcpp.new_` is required for C++ deleting destructors");
+        }
+        else if (!mCppNew.search(Loc.initial, Id.__cpp_delete))
+        {
+            error(dtor.loc, "`__cpp_delete` not found in `core.stdcpp.new_`, but is required for C++ deleting destructors");
+        }
+        else
+        {
+            Expression id = new ScopeExp(dtor.loc, mCppNew);
+            id = new DotIdExp(dtor.loc, id, Id.__cpp_delete);
+            auto arguments = new Expressions(new CastExp(dtor.loc, new ThisExp(dtor.loc), Type.tvoidptr));
+            CallExp ce = new CallExp(dtor.loc, id, arguments);
+            e = Expression.combine(e, ce);
+        }
+        ifDeleteStatement = new IfStatement(dtor.loc, null, new IdentifierExp(dtor.loc, Identifier.idPool("del")), new ExpStatement(dtor.loc, e), null, dtor.loc);
+    }
+
     // Always generate the function with body, because it is not exported from DLLs.
     const loc = dtor.loc;
     auto stmts = Statements();
     auto call = new CallExp(loc, dtor, null);
     call.directcall = true;
     stmts.push(new ExpStatement(loc, call));
+    if (ifDeleteStatement)
+        stmts.push(ifDeleteStatement);
     stmts.push(new ReturnStatement(loc, new CastExp(loc, new ThisExp(loc), Type.tvoidptr)));
     func.fbody = new CompoundStatement(loc, stmts.move());
     func.isGenerated = true;

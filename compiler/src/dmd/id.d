@@ -75,6 +75,7 @@ immutable Msgtable[] msgtable =
     { "__xdtor", "__xdtor" },
     { "__fieldDtor", "__fieldDtor" },
     { "__aggrDtor", "__aggrDtor" },
+    { "__delDtor", "__delDtor" },
     { "cppdtor", "__cppdtor" },
     { "ticppdtor", "__ticppdtor" },
     { "postblit", "__postblit" },
@@ -139,6 +140,8 @@ immutable Msgtable[] msgtable =
     { "_body", "body" },
     { "printf" },
     { "scanf" },
+    { "stdcpp" },
+    { "new_" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },
@@ -309,6 +312,7 @@ immutable Msgtable[] msgtable =
     { "startaddress" },
     { "crt_constructor" },
     { "crt_destructor" },
+    { "cpp_use_deleting_destructor" },
 
     // For special functions
     { "tohash", "toHash" },
@@ -333,6 +337,7 @@ immutable Msgtable[] msgtable =
     { "_d_arrayappendcTX" },
     { "_d_arraycatnTX" },
     { "_d_assocarrayliteralTX" },
+    { "__cpp_delete" },
 
     // varargs implementation
     { "stdc" },
