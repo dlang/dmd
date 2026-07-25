@@ -1931,7 +1931,7 @@ extern(D) bool arrayExpressionSemantic(
  *
  * Params:
  *   sc = the scope where the expression is encountered
- *   e = the expression the needs to be moved or copied (source)
+ *   e = the expression that needs to be moved or copied (source)
  *   t = if the struct defines a copy constructor, the type of the destination (can be NULL)
  *   nrvo = true if the generated copy can be treated as NRVO
  *   move = true to allow a move constructor to be used, false to prevent infinite recursion
@@ -4336,6 +4336,7 @@ private bool functionParameters(Loc loc, Scope* sc,
                         else
                             a = a.implicitCastTo(sc, tbn);
                         a = a.addDtorHook(sc);
+                        a = doCopyOrMove(sc, a, null, false);
                         (*elements)[u] = a;
                     }
                     // https://issues.dlang.org/show_bug.cgi?id=14395
