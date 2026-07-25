@@ -2215,6 +2215,19 @@ $(H3 $(LEGACY_LNAME2 StringLiteral, string_literals, String Literals))
         $(TROW $(D immutable(dchar)[]))
     )
 
+    $(P A string literal with a $(DDSUBLINK spec/lex, string_postfix, StringPostfix)
+        has a fixed character type and can implicitly convert to a
+        $(D const) or $(D immutable) pointer of that character type:
+    )
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    -------------
+    const(char)*  p1 = "hello"c;
+    const(wchar)* p2 = "hello"w;
+    const(dchar)* p3 = "hello"d;
+    -------------
+    )
+
     $(UNDEFINED_BEHAVIOR writing to a string literal. This is not allowed in `@safe` code.)
 
     $(P By default, a string literal is typed as a dynamic array, but the element
