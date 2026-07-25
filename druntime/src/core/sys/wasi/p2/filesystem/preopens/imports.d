@@ -3,6 +3,8 @@
 +/
 module core.sys.wasi.p2.filesystem.preopens.imports;
 
+version(WASIp2):
+
 import core.sys.wasi.wit_common;
 
 public import core.sys.wasi.p2.filesystem.preopens.common;
@@ -35,6 +37,7 @@ WitList!(Tuple!(Descriptor, WitString)) getDirectories() @nogc nothrow {
     );
     _elem0 = _tuple2;
   }
+  core.sys.wasi.wit_common.free(_listSrcPtr3);
   auto _flush4 = WitList!(Tuple!(Descriptor, WitString))(_list3);
   return _flush4;
 }

@@ -1,14 +1,23 @@
 module core.sys.wasi.wit_common;
 
+version (WASI) {}
+else:
+
+// WASIp1 does not use the component model, but WASIp2 onward does
+version (WASIp1) {}
+else:
+
 import core.attribute : mustuse;
 import ldc.attributes : llvmAttr;
 
-alias wasmImport(string mod, string name) = AliasSeq!(
-    llvmAttr("wasm-import-module", mod),
-    llvmAttr("wasm-import-name", name)
-);
+version (LDC) {
+    alias wasmImport(string mod, string name) = AliasSeq!(
+        llvmAttr("wasm-import-module", mod),
+        llvmAttr("wasm-import-name", name)
+    );
 
-enum wasmExport(string name) = llvmAttr("wasm-export-name", name);
+    enum wasmExport(string name) = llvmAttr("wasm-export-name", name);
+} else static assert (0, "Unknown compiler for WASI.");
 
 struct witExport { string mod; string name; }
 
@@ -334,9 +343,12 @@ T witClone(T : U[L], U, size_t L)(in T val) @nogc nothrow {
     return clone;
 }
 
-package:
+// can't be `package` as other packages/modules produced by `wit_bindgen`
+// make use of this
 
-package import core.stdc.stdlib : malloc, free;
+//package:
+
+public import core.stdc.stdlib : malloc, free;
 
 // from https://github.com/Inochi2D/numem/blob/main/source/numem/casting.d
 // Copyright © 2023-2025, Kitsunebi Games
@@ -349,9 +361,10 @@ auto ref T reinterpretCast(T, U)(auto ref U from) @trusted if (T.sizeof == U.siz
     return tmp(from).to;
 }
 
-auto mallocSlice(T)(size_t count) @nogc nothrow {
+T[] mallocSlice(T)(size_t count) @nogc nothrow {
+    if (count == 0) return [];
     auto ptr = malloc(count*T.sizeof);
-    if (ptr is null) return null;
+    if (ptr is null) return [];
 
     return (cast(T*)ptr)[0..count];
 }
@@ -438,6 +451,60 @@ template witExportsIn(T) {
                 }
             }
         }
+    }
+}
+
+struct DeallocateBuffer {
+    @nogc nothrow:
+    struct Page {
+        void*[32] slots;
+        static assert(slots.length < 256);
+
+        ubyte cursor;
+        Page* next;
+    }
+
+    Page first;
+    Page* head;
+
+    @disable this(this);
+
+    private void allocNewPage() {
+        Page* page = cast(Page*)malloc(Page.sizeof);
+        if (page is null) abort();
+
+        *page = Page.init;
+        page.next = head;
+        head = page;
+    }
+
+    void opOpAssign(string op: "~")(void* ptr) {
+        import core.builtins : unlikely;
+
+        if (unlikely(ptr is null)) return;
+        if (/*unlikely?*/(head is null)) head = &first;
+
+        if (head.cursor >= head.slots.length) allocNewPage();
+
+        head.slots[head.cursor++] = ptr;
+    }
+
+    void purge() {
+        auto page = head;
+        while (page) {
+            foreach (ptr; page.slots[0..page.cursor]) free(ptr);
+
+            auto next = page.next;
+            if (page != &first) free(page);
+            page = next;
+        }
+
+        first = Page.init;
+        head = null;
+    }
+
+    ~this() {
+        purge();
     }
 }
 

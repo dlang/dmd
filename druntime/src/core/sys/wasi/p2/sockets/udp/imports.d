@@ -3,6 +3,8 @@
 +/
 module core.sys.wasi.p2.sockets.udp.imports;
 
+version(WASIp2):
+
 import core.sys.wasi.wit_common;
 
 public import core.sys.wasi.p2.sockets.udp.common;
@@ -674,6 +676,7 @@ struct IncomingDatagramStream {
           };
           _elem1 = _record12;
         }
+        core.sys.wasi.wit_common.free(_listSrcPtr13);
 
         _result15 = Result!(WitList!(IncomingDatagram), ErrorCode).ok(WitList!(IncomingDatagram)(_list13));
       }
@@ -769,9 +772,10 @@ struct OutgoingDatagramStream {
     +/
     Result!(ulong, ErrorCode) send(in WitList!(OutgoingDatagram) datagrams) @nogc nothrow {
       align(8) void[16] _retArea = void;
+      core.sys.wasi.wit_common.DeallocateBuffer deallocate;
       auto _listSrc10 = datagrams;
       auto _list10 = core.sys.wasi.wit_common.malloc(_listSrc10.length * ((32+3*size_t.sizeof)));
-      scope(exit) { core.sys.wasi.wit_common.free(_list10); }
+      deallocate ~= _list10;
       foreach (_elem0_idx, const ref _elem0; _listSrc10) {
         auto _base0 = _list10 + _elem0_idx * ((32+3*size_t.sizeof));
         *cast(size_t*)(_base0 + size_t.sizeof) = cast(size_t)(_elem0.data.length);
@@ -814,6 +818,7 @@ struct OutgoingDatagramStream {
 
       }
       __import_send(this.__handle, _list10, datagrams.length, _retArea.ptr);
+      deallocate.purge();
       Result!(ulong, ErrorCode) _result13 = void;
       bool _isErr13 = (cast(uint)(*(cast(ubyte*)(_retArea.ptr + 0)))) != 0;
       if (_isErr13) {

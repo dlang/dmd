@@ -3,6 +3,8 @@
 +/
 module core.sys.wasi.p2.io.streams.imports;
 
+version(WASIp2):
+
 import core.sys.wasi.wit_common;
 
 public import core.sys.wasi.p2.io.streams.common;

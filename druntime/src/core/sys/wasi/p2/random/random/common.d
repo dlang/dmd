@@ -3,6 +3,8 @@
 +/
 module core.sys.wasi.p2.random.random.common;
 
+version(WASIp2):
+
 import core.sys.wasi.wit_common;
 
 

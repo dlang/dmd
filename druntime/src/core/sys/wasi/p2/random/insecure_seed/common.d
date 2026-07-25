@@ -3,6 +3,8 @@
 +/
 module core.sys.wasi.p2.random.insecure_seed.common;
 
+version(WASIp2):
+
 import core.sys.wasi.wit_common;
 
 

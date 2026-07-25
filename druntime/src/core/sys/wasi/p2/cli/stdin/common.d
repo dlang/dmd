@@ -3,6 +3,8 @@
 +/
 module core.sys.wasi.p2.cli.stdin.common;
 
+version(WASIp2):
+
 import core.sys.wasi.wit_common;
 
 static import core.sys.wasi.p2.io.streams.common;

@@ -3,6 +3,8 @@
 +/
 module core.sys.wasi.p2.cli.environment.imports;
 
+version(WASIp2):
+
 import core.sys.wasi.wit_common;
 
 public import core.sys.wasi.p2.cli.environment.common;
@@ -38,6 +40,7 @@ WitList!(Tuple!(WitString, WitString)) getEnvironment() @nogc nothrow {
     );
     _elem0 = _tuple3;
   }
+  core.sys.wasi.wit_common.free(_listSrcPtr4);
   auto _flush5 = WitList!(Tuple!(WitString, WitString))(_list4);
   return _flush5;
 }
@@ -61,6 +64,7 @@ WitList!(WitString) getArguments() @nogc nothrow {
     auto _len1 = *(cast(size_t*)(_base0 + size_t.sizeof));
     _elem0 = WitString(_ptr1[0.._len1]);
   }
+  core.sys.wasi.wit_common.free(_listSrcPtr2);
   auto _flush3 = WitList!(WitString)(_list2);
   return _flush3;
 }

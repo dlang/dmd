@@ -4,6 +4,8 @@ link-time authority.
 +/
 module core.sys.wasi.p2.cli.terminal_stdin.imports;
 
+version(WASIp2):
+
 import core.sys.wasi.wit_common;
 
 public import core.sys.wasi.p2.cli.terminal_stdin.common;

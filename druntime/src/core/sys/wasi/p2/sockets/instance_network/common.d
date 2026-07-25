@@ -3,6 +3,8 @@
 +/
 module core.sys.wasi.p2.sockets.instance_network.common;
 
+version(WASIp2):
+
 import core.sys.wasi.wit_common;
 
 static import core.sys.wasi.p2.sockets.network.common;
