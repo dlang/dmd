@@ -627,4 +627,26 @@ do
 package __gshared int suspendSignalNumber;
 package __gshared int resumeSignalNumber;
 
+// Returns true on success
+package bool suspendThreadImpl(Thread t) @nogc nothrow
+{
+    version (Darwin)
+        return thread_suspend(t.m_tmach) == KERN_SUCCESS;
+    else version (Solaris)
+        return thr_suspend(t.m_addr) == 0;
+    else
+        return pthread_kill(t.m_addr, suspendSignalNumber) == 0;
+}
+
+// Returns true on success
+package bool resumeThreadImpl(Thread t) @nogc nothrow
+{
+    version (Darwin)
+        return thread_resume(t.m_tmach) == KERN_SUCCESS;
+    else version (Solaris)
+        return thr_continue(t.m_addr) == 0;
+    else
+        return pthread_kill(t.m_addr, resumeSignalNumber) == 0;
+}
+
 package alias gettid = imported!"core.sys.posix.pthread".pthread_self;
