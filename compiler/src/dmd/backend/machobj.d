@@ -972,7 +972,7 @@ void MachObj_term(const(char)[] objfilename)
                                     else if (s.Sfl == FL.unde ||   // special case for __chkstk_darwin, need to research what PAGEOFF12 really means
                                              s.Sfl == FL.extern_ ||
                                              (s.Sclass == SC.extern_ && s.Sfl == FL.func) ||
-                                             (s.Sclass == SC.static_ && s.Sfl == FL.data) ||
+                                             //(s.Sclass == SC.static_ && s.Sfl == FL.data) ||
                                              s.Sfl == FL.tlsdata)
                                     {
                                         rel.r_type = r.rtype == REL.add ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
@@ -1584,6 +1584,8 @@ static if (1)
 
     ubyte remap(uint seg)
     {
+        if (!machobj.AArch64)
+            return cast(ubyte)seg;
         foreach (i; 0 .. table.length)
         {
             if (table[i] == seg)
