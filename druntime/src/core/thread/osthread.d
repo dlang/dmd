@@ -633,38 +633,16 @@ private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
     StackContext* thisContext = &thisThread.m_main;
     assert( thisContext == thisThread.m_curr );
 
-    version (Windows)
-    {
-        thisThread.m_addr  = GetCurrentThreadId();
-        thisThread.m_hndl  = GetCurrentThreadHandle();
-        thisContext.bstack = getStackBottom();
-        thisContext.tstack = thisContext.bstack;
-    }
-    else version (Posix)
-    {
-        thisThread.m_addr  = pthread_self();
-        thisContext.bstack = getStackBottom();
-        thisContext.tstack = thisContext.bstack;
+    thisThread.m_tdescr = Thread.getCurrentThreadDescr();
+    thisContext.bstack = getStackBottom();
+    thisContext.tstack = thisContext.bstack;
 
+    version (Posix)
         atomicStore!(MemoryOrder.raw)(thisThread.toThread.m_isRunning, true);
-    }
-    else version (WASI)
-    {
-        thisThread.m_addr  = 1; // assumes this is done only once
-        thisContext.bstack = getStackBottom();
-        thisContext.tstack = thisContext.bstack;
-    }
-    else
-        static assert(0, "unsupported os");
+
     thisThread.m_isDaemon = true;
     thisThread.tlsRTdataInit();
     Thread.setThis( thisThread );
-
-    version (Darwin)
-    {
-        thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_addr );
-        assert( thisThread.m_tmach != thisThread.m_tmach.init );
-    }
 
     Thread.add( thisThread, false );
     Thread.add( thisContext );
@@ -723,7 +701,7 @@ version (Windows)
         StackContext* thisContext = &thisThread.m_main;
         assert( thisContext == thisThread.m_curr );
 
-        thisThread.m_addr  = addr;
+        thisThread.m_tdescr.tid  = addr;
         thisContext.bstack = bstack;
         thisContext.tstack = thisContext.bstack;
 
@@ -731,13 +709,13 @@ version (Windows)
 
         if ( addr == GetCurrentThreadId() )
         {
-            thisThread.m_hndl = GetCurrentThreadHandle();
+            thisThread.m_tdescr.hndl = GetCurrentThreadHandle();
             thisThread.tlsRTdataInit();
             Thread.setThis( thisThread );
         }
         else
         {
-            thisThread.m_hndl = OpenThreadHandle( addr );
+            thisThread.m_tdescr.hndl = OpenThreadHandle( addr );
             impersonate_thread(addr,
             {
                 thisThread.tlsRTdataInit();
@@ -1111,7 +1089,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
         return false;
     }
 
-    const sameThread = t.m_addr == gettid();
+    const sameThread = t.m_tdescr.tid == gettid();
 
     if (!sameThread)
     {
@@ -1139,7 +1117,7 @@ private void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
         CONTEXT context = void;
         context.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL;
 
-        if ( !GetThreadContext( t.m_hndl, &context ) )
+        if ( !GetThreadContext( t.m_tdescr.hndl, &context ) )
             onThreadError( "Unable to load thread context" );
         version (X86)
         {
@@ -1190,7 +1168,7 @@ private void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
             x86_thread_state32_t    state = void;
             mach_msg_type_number_t  count = x86_THREAD_STATE32_COUNT;
 
-            if ( thread_get_state( t.m_tmach, x86_THREAD_STATE32, &state, &count ) != KERN_SUCCESS )
+            if ( thread_get_state( t.m_tdescr.tmach, x86_THREAD_STATE32, &state, &count ) != KERN_SUCCESS )
                 onThreadError( "Unable to load thread state" );
             if ( !t.m_lock )
                 t.m_curr.tstack = cast(void*) state.esp;
@@ -1209,7 +1187,7 @@ private void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
             x86_thread_state64_t    state = void;
             mach_msg_type_number_t  count = x86_THREAD_STATE64_COUNT;
 
-            if ( thread_get_state( t.m_tmach, x86_THREAD_STATE64, &state, &count ) != KERN_SUCCESS )
+            if ( thread_get_state( t.m_tdescr.tmach, x86_THREAD_STATE64, &state, &count ) != KERN_SUCCESS )
                 onThreadError( "Unable to load thread state" );
             if ( !t.m_lock )
                 t.m_curr.tstack = cast(void*) state.rsp;
@@ -1237,7 +1215,7 @@ private void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
             arm_thread_state64_t state = void;
             mach_msg_type_number_t count = ARM_THREAD_STATE64_COUNT;
 
-            if (thread_get_state(t.m_tmach, ARM_THREAD_STATE64, &state, &count) != KERN_SUCCESS)
+            if (thread_get_state(t.m_tdescr.tmach, ARM_THREAD_STATE64, &state, &count) != KERN_SUCCESS)
                 onThreadError("Unable to load thread state");
             // TODO: ThreadException here recurses forever!  Does it
             //still using onThreadError?
@@ -1258,7 +1236,7 @@ private void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
 
             // Thought this would be ARM_THREAD_STATE32, but that fails.
             // Mystery
-            if (thread_get_state(t.m_tmach, ARM_THREAD_STATE, &state, &count) != KERN_SUCCESS)
+            if (thread_get_state(t.m_tdescr.tmach, ARM_THREAD_STATE, &state, &count) != KERN_SUCCESS)
                 onThreadError("Unable to load thread state");
             // TODO: in past, ThreadException here recurses forever!  Does it
             //still using onThreadError?
@@ -1276,7 +1254,7 @@ private void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
             ppc_thread_state_t state = void;
             mach_msg_type_number_t count = PPC_THREAD_STATE_COUNT;
 
-            if (thread_get_state(t.m_tmach, PPC_THREAD_STATE, &state, &count) != KERN_SUCCESS)
+            if (thread_get_state(t.m_tdescr.tmach, PPC_THREAD_STATE, &state, &count) != KERN_SUCCESS)
                 onThreadError("Unable to load thread state");
             if (!t.m_lock)
                 t.m_curr.tstack = cast(void*) state.r[1];
@@ -1287,7 +1265,7 @@ private void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
             ppc_thread_state64_t state = void;
             mach_msg_type_number_t count = PPC_THREAD_STATE64_COUNT;
 
-            if (thread_get_state(t.m_tmach, PPC_THREAD_STATE64, &state, &count) != KERN_SUCCESS)
+            if (thread_get_state(t.m_tdescr.tmach, PPC_THREAD_STATE64, &state, &count) != KERN_SUCCESS)
                 onThreadError("Unable to load thread state");
             if (!t.m_lock)
                 t.m_curr.tstack = cast(void*) state.r[1];
@@ -1343,7 +1321,7 @@ private void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
             }
 
             lwpstatus_t status = void;
-            if (getLwpStatus(t.m_addr, status) != 0)
+            if (getLwpStatus(t.m_tdescr.tid, status) != 0)
                 onThreadError("Unable to load thread state");
 
             version (X86)
@@ -1554,7 +1532,7 @@ extern (C) void thread_suspendAll() nothrow
 private extern (D) void resume(ThreadBase _t) nothrow @nogc
 {
     Thread t = _t.toThread;
-    const sameThread = t.m_addr == gettid();
+    const sameThread = t.m_tdescr.tid == gettid();
 
     if (!sameThread)
     {
@@ -1640,10 +1618,10 @@ extern (C) void thread_init() @nogc nothrow
                 // In such case getThis will return null.
                 return;
             }
-            thisThread.m_addr = pthread_self();
-            assert( thisThread.m_addr != thisThread.m_addr.init );
-            thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_addr );
-            assert( thisThread.m_tmach != thisThread.m_tmach.init );
+            thisThread.m_tdescr.tid = pthread_self();
+            assert( thisThread.m_tdescr.tid != thisThread.m_tdescr.tid.init );
+            thisThread.m_tdescr.tmach = pthread_mach_thread_np( thisThread.m_tdescr.tid );
+            assert( thisThread.m_tdescr.tmach != thisThread.m_tdescr.tmach.init );
        }
         pthread_atfork(null, null, &initChildAfterFork);
     }
