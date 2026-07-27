@@ -1160,6 +1160,12 @@ private void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
         {
             static assert(false, "Architecture not supported." );
         }
+        // a thread might change the stack, e.g. using non-D fibers, so we must not
+        // rely on the stack bottom saved when attaching/starting. Multiple fiber stacks cannot be
+        // captured, but make sure scanning does not crash accessing invalid memory ranges
+        // between stacks
+        if ( !t.m_lock )
+            t.m_curr.bstack = getThreadStackBottom( t.m_tdescr.hndl );
     }
     else version (Darwin)
     {
