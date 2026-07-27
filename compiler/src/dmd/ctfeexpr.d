@@ -193,7 +193,10 @@ bool needToCopyLiteral(const Expression expr) nothrow
     }
 }
 
-private Expressions* copyLiteralArray(Expressions* oldelems, Expression basis = null)
+// oldelems can have null elements when the ArrayLiteralExp uses 'basis'.
+// This preserves the sparse encoding; callers that need dense arrays
+// should use copyLiteralArrayExpand.
+private Expressions* copyLiteralArray(Expressions* oldelems)
 {
     if (!oldelems)
         return oldelems;
@@ -201,7 +204,22 @@ private Expressions* copyLiteralArray(Expressions* oldelems, Expression basis = 
     auto newelems = new Expressions(oldelems.length);
     foreach (i, el; *oldelems)
     {
-        (*newelems)[i] = copyLiteral(el ? el : basis).copy();
+        (*newelems)[i] = el ? copyLiteral(el).copy() : null;
+    }
+    return newelems;
+}
+
+// Expand null elements using the given basis, for callers that need
+// a dense array (e.g. concatenation, AA operations).
+private Expressions* copyLiteralArrayExpand(Expressions* oldelems, Expression basis)
+{
+    auto newelems = copyLiteralArray(oldelems);
+    if (basis && newelems)
+    {
+        foreach (ref e; *newelems)
+        {
+            if (!e) e = copyLiteral(basis).copy();
+        }
     }
     return newelems;
 }
@@ -226,9 +244,10 @@ UnionExp copyLiteral(Expression e)
     }
     if (auto ale = e.isArrayLiteralExp())
     {
-        auto elements = copyLiteralArray(ale.elements, ale.basis);
+        auto elements = copyLiteralArray(ale.elements);
+        auto basis = ale.basis ? copyLiteral(ale.basis).copy() : null;
 
-        emplaceExp!(ArrayLiteralExp)(&ue, e.loc, e.type, elements);
+        emplaceExp!(ArrayLiteralExp)(&ue, e.loc, e.type, basis, elements);
 
         ArrayLiteralExp r = ue.exp().isArrayLiteralExp();
         r.ownedByCtfe = OwnedBy.ctfe;
@@ -1094,7 +1113,9 @@ private int ctfeCmpArrays(Loc loc, Expression e1, Expression e2, uinteger_t len)
     foreach (size_t i; 0 .. cast(size_t)len)
     {
         Expression ee1 = (*ae1.elements)[cast(size_t)(lo1 + i)];
+        if (!ee1) ee1 = ae1.basis;
         Expression ee2 = (*ae2.elements)[cast(size_t)(lo2 + i)];
+        if (!ee2) ee2 = ae2.basis;
         if (needCmp)
         {
             const sinteger_t c = ee1.toInteger() - ee2.toInteger();
@@ -1386,7 +1407,8 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         foreach (size_t i; 0 .. es2.elements.length)
         {
             Expression es2e = (*es2.elements)[i];
-            if (es2e.op != EXP.int64)
+            if (!es2e) es2e = es2.basis;
+            if (!es2e || es2e.op != EXP.int64)
             {
                 emplaceExp!(CTFEExp)(&ue, EXP.cantExpression);
                 return ue;
@@ -1416,7 +1438,8 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         foreach (size_t i; 0 .. es2.elements.length)
         {
             Expression es2e = (*es2.elements)[i];
-            if (es2e.op != EXP.int64)
+            if (!es2e) es2e = es2.basis;
+            if (!es2e || es2e.op != EXP.int64)
             {
                 emplaceExp!(CTFEExp)(&ue, EXP.cantExpression);
                 return ue;
@@ -1438,9 +1461,9 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         //  [ e1 ] ~ [ e2 ] ---> [ e1, e2 ]
         ArrayLiteralExp es1 = e1.isArrayLiteralExp();
         ArrayLiteralExp es2 = e2.isArrayLiteralExp();
-        emplaceExp!(ArrayLiteralExp)(&ue, es1.loc, type, copyLiteralArray(es1.elements));
+        emplaceExp!(ArrayLiteralExp)(&ue, es1.loc, type, copyLiteralArrayExpand(es1.elements, es1.basis));
         es1 = ue.exp().isArrayLiteralExp();
-        es1.elements.insert(es1.elements.length, copyLiteralArray(es2.elements));
+        es1.elements.insert(es1.elements.length, copyLiteralArrayExpand(es2.elements, es2.basis));
         return ue;
     }
     if (e1.op == EXP.arrayLiteral && e2.op == EXP.null_ && t1.nextOf().equals(t2.nextOf()))
@@ -1508,6 +1531,7 @@ Expression ctfeIndex(UnionExp* pue, Loc loc, Type type, Expression e1, uinteger_
             return CTFEExp.cantexp;
         }
         Expression e = (*ale.elements)[cast(size_t)indx];
+        if (!e) e = ale.basis;
         return paintTypeOntoLiteral(pue, type, e);
     }
 
@@ -1744,7 +1768,11 @@ Expression changeArrayLiteralLength(UnionExp* pue, Loc loc, TypeArray arrayType,
             assert(oldval.op == EXP.arrayLiteral);
             ArrayLiteralExp ae = oldval.isArrayLiteralExp();
             foreach (size_t i; 0 .. copylen)
-                (*elements)[i] = (*ae.elements)[indxlo + i];
+            {
+                Expression e = (*ae.elements)[indxlo + i];
+                if (!e) e = ae.basis;
+                (*elements)[i] = e;
+            }
         }
         if (elemType.ty == Tstruct || elemType.ty == Tsarray)
         {
