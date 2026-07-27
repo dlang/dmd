@@ -379,6 +379,10 @@ $(IMPDIR)/%.h : src/%.h
 	@mkdir -p $(dir $@)
 	@cp $< $@
 
+################### Feature tests for druntime bindings #########################
+
+include features/GNUmakefile
+
 ######################## Build DMD if non-existent ##############################
 
 ../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE):
