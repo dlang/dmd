@@ -41,7 +41,7 @@ $(GRAMMAR
 $(GNAME VarDeclarations):
     $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK IdentifierInitializers) $(D ;)
     $(GLINK AutoDeclaration)
-    $(GLINK TuplePattern) `=` $(GLINK2 expression, AssignExpression)
+    $(GLINK TuplePattern) `=` $(GLINK2 expression, AssignExpression) $(D ;)
 
 $(GNAME IdentifierInitializers): $(LEGACY_LNAME2 Declarators, DeclaratorIdentifierList)
     $(GLINK IdentifierInitializer)
