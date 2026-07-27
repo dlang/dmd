@@ -734,6 +734,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
             assert(ne);
             auto ale = thisarg.isAddrExp().e1.isArrayLiteralExp();
             e = (*ale.elements)[cast(size_t)ne.getInteger()];
+            if (!e) e = ale.basis;
             if (auto ae = e.isAddrExp())
             {
                 e = ae.e1;
@@ -1771,7 +1772,9 @@ public:
                 assert(result.op == EXP.address);
                 result = result.isAddrExp().e1;
                 assert(result.op == EXP.arrayLiteral);
-                result = (*result.isArrayLiteralExp().elements)[0];
+                auto rale = result.isArrayLiteralExp();
+                result = (*rale.elements)[0];
+                if (!result) result = rale.basis;
                 if (e.type.ty == Tstruct)
                 {
                     result = result.isAddrExp().e1;
@@ -5541,6 +5544,7 @@ public:
             // https://issues.dlang.org/show_bug.cgi?id=14686
             foreach (elem; *ale.elements)
             {
+                if (!elem) continue;
                 Expression ex = evaluatePostblit(istate, elem);
                 if (exceptionOrCant(ex))
                     return;
@@ -5709,7 +5713,9 @@ public:
                         const indx = cast(size_t)ie.e2.toInteger();
                         if (indx < ale.elements.length)
                         {
-                            if (Expression xx = (*ale.elements)[indx])
+                            Expression xx = (*ale.elements)[indx];
+                            if (!xx) xx = ale.basis;
+                            if (xx)
                             {
                                 if (auto iex = xx.isIndexExp())
                                     origType = iex.e1.type.nextOf();
@@ -5998,6 +6004,7 @@ public:
             if (ae.elements.length == 1)
             {
                 result = (*ae.elements)[0];
+                if (!result) result = ae.basis;
                 return;
             }
         }
@@ -7161,7 +7168,11 @@ StringExp arrayLiteralToString(ArrayLiteralExp ale)
     {
         T[] result = new T[len];
         foreach (i; 0 .. len)
-            result[i] = cast(T) (*ale.elements)[i].isIntegerExp().getInteger();
+        {
+            auto el = (*ale.elements)[i];
+            if (!el) el = ale.basis;
+            result[i] = cast(T) el.isIntegerExp().getInteger();
+        }
         return new StringExp(ale.loc, result[], len, cast(ubyte) size);
     }
 
@@ -7499,6 +7510,7 @@ private Expression evaluatePostblit(InterState* istate, Expression e)
     {
         foreach (elem; *ale.elements)
         {
+            if (!elem) continue;
             if (auto ex = evaluatePostblit(istate, elem))
                 return ex;
         }
@@ -7531,7 +7543,10 @@ private Expression evaluateDtor(InterState* istate, Expression e)
     if (auto ale = e.isArrayLiteralExp())
     {
         foreach_reverse (elem; *ale.elements)
+        {
+            if (!elem) continue;
             e = evaluateDtor(istate, elem);
+        }
     }
     else if (e.op == EXP.structLiteral)
     {
