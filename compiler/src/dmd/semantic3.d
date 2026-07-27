@@ -632,7 +632,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (!f.next)
                         f.next = Type.tvoid;
                     if (f.checkRetType(funcdecl.loc))
-                        funcdecl.fbody = new ErrorStatement();
+                        funcdecl.fbody = ErrorStatement.get();
                     else
                         funcdecl.checkMain(); // Check main() parameters and return type
                 }
