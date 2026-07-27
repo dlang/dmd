@@ -309,6 +309,7 @@ immutable Msgtable[] msgtable =
     { "startaddress" },
     { "crt_constructor" },
     { "crt_destructor" },
+    { "breakpoint" },
 
     // For special functions
     { "tohash", "toHash" },
