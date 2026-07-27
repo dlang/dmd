@@ -27,7 +27,7 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.func;
-import dmd.globals;
+import dmd.globals : dinteger_t;
 import dmd.hdrgen : toChars;
 import dmd.id;
 import dmd.identifier;
@@ -652,6 +652,7 @@ extern (C++) final class ErrorExp : Expression
         if (errorexp is null)
             errorexp = new ErrorExp();
 
+        import dmd.globals : global;
         if (global.errors == 0 && global.gaggedErrors == 0)
         {
             /* Unfortunately, errors can still leak out of gagged errors,
