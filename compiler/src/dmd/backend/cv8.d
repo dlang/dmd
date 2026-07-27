@@ -674,12 +674,12 @@ L1:
     // Not present; append a checksum computed over the source file's content
     // so debuggers can verify the source matches.
     F4_buf.write32(off);
-    ubyte[32] hash = void;
+    ubyte[16] hash = void;
     if (cv8_filehash(filename, hash))
     {
-        F4_buf.writeByte(32);              // checksum size
-        F4_buf.writeByte(CHKSUM_SHA256);   // 32-byte checksum slot
-        F4_buf.write(hash.ptr, 32);
+        F4_buf.writeByte(16);              // checksum size
+        F4_buf.writeByte(CHKSUM_MD5);      // 16-byte checksum slot
+        F4_buf.write(hash.ptr, 16);
     }
     else
     {
@@ -1208,14 +1208,14 @@ idx_t cv8_daarray(type* t, idx_t keyidx, idx_t validx)
 }
 
 /* Compute a blake3 hash over the *content* of the named source file, so that
- * debuggers can verify the source matches. The hash goes into the 32-byte
- * SHA256 checksum slot of the file-checksums (F4) subsection.
+ * debuggers can verify the source matches. The hash goes into the 16-byte
+ * MD5 checksum slot of the file-checksums (F4) subsection.
  * The content is fetched from the front-end FileManager cache (Module.src)
  * rather than re-read from disk, which would add significant I/O to every build.
  * Returns: true on success (hash filled in), false if the content is unavailable.
  */
 private @trusted
-bool cv8_filehash(const(char)* filename, ref ubyte[32] hash)
+bool cv8_filehash(const(char)* filename, ref ubyte[16] hash)
 {
     if (!getFileContentsCallback)
         return false;
@@ -1225,8 +1225,11 @@ bool cv8_filehash(const(char)* filename, ref ubyte[32] hash)
     if (!data)
         return false;
 
-    import dmd.common.blake3;
-    hash = blake3(data[0 .. length]);
+    import dmd.common.md5;
+    MD5 md;
+    md.start();
+    md.put(data[0 .. length]);
+    hash = md.finish();
     return true;
 }
 
