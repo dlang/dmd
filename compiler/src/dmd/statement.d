@@ -329,10 +329,18 @@ extern (C++) final class ErrorStatement : Statement
 {
     extern (D) this()
     {
-        super(Loc.initial, STMT.Error);
+        // Don't use `Loc.initial` as this is initialised at compile time.
+        Loc loc;
+        super(loc, STMT.Error);
+    }
 
+    // unused default arg is for DMD as a library to hook this function to save
+    // the original statement to provide diagnostics for
+    static ErrorStatement get(Statement orig = null)
+    {
         import dmd.globals;
         assert(global.gaggedErrors || global.errors);
+        return errorstmt;
     }
 
     override ErrorStatement syntaxCopy()
@@ -344,6 +352,8 @@ extern (C++) final class ErrorStatement : Statement
     {
         v.visit(this);
     }
+
+    extern (C++) __gshared ErrorStatement errorstmt = new ErrorStatement;
 }
 
 /***********************************************************

@@ -147,7 +147,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             if (ispow2(_align) == -1)
             {
                 error(asmstate.loc, "`align %d` must be a power of 2", _align);
-                return new ErrorStatement();
+                return ErrorStatement.get();
             }
             else
                 s.asmalign = _align;
@@ -199,7 +199,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
                 {
                     asm_cond_exp(opnds[i]);
                     if (asmstate.errors)
-                        return new ErrorStatement();
+                        return ErrorStatement.get();
                     nOps = i + 1;
                     if (asmstate.tokValue != TOK.comma)
                         break;
@@ -212,7 +212,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
 
             ptb = asm_classify(o, opnds[0 .. nOps], usNumops);
             if (asmstate.errors)
-                return new ErrorStatement();
+                return ErrorStatement.get();
 
             assert(ptb.pptb0);
 
@@ -263,7 +263,7 @@ AFTER_EMIT:
     {
         error(asmstate.loc, "end of instruction expected, not `%s`", asmstate.tok.toChars());  // end of line expected
     }
-    return asmstate.errors ? new ErrorStatement() : s;
+    return asmstate.errors ? ErrorStatement.get() : s;
 }
 
 private:

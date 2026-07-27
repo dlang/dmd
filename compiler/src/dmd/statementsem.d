@@ -209,7 +209,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
     void setError()
     {
-        result = new ErrorStatement();
+        result = ErrorStatement.get();
     }
 
     void visitDefaultCase(Statement s)
@@ -942,7 +942,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         void retError()
         {
             sc2.pop();
-            result = new ErrorStatement();
+            result = ErrorStatement.get();
         }
 
         void rangeError()
@@ -4491,7 +4491,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
         if (isDecl)
             result.decl = null;
         else
-            result.statement = new ErrorStatement();
+            result.statement = ErrorStatement.get();
         return result;
     }
 
@@ -4846,7 +4846,7 @@ private Statements* flatten(Statement statement, Scope* sc)
 {
     static auto errorStatements()
     {
-        auto a = new Statements(new ErrorStatement());
+        auto a = new Statements(ErrorStatement.get());
         return a;
     }
 
@@ -5091,7 +5091,7 @@ private Statement toStatement(Dsymbol s)
     else
     {
         .error(Loc.initial, "internal compiler error: cannot mixin %s `%s`\n", s.kind(), s.toErrMsg());
-        result = new ErrorStatement();
+        result = ErrorStatement.get();
     }
 
     return result;
