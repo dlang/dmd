@@ -1,4 +1,4 @@
-// https://issues.dlang.org/show_bug.cgi?id=23367
+// https://github.com/dlang/dmd/issues/23367
 // Tests for sparse array literal optimization: copyLiteral now preserves
 // CONSTANT encoding (null elements + basis) instead of expanding to dense.
 // Most sparse-array code paths are already covered by existing CTFE tests;
