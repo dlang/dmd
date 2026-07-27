@@ -137,10 +137,14 @@ struct thread_aux
     // get the thread environment block (TEB) of the thread with the given handle
     static void** getTEB( HANDLE hnd ) nothrow @nogc
     {
-        HANDLE nthnd = GetModuleHandleA( "NTDLL" );
-        assert( nthnd, "cannot get module handle for ntdll" );
-        fnNtQueryInformationThread fn = cast(fnNtQueryInformationThread) GetProcAddress( nthnd, "NtQueryInformationThread" );
-        assert( fn, "cannot find NtQueryInformationThread in ntdll" );
+        __gshared fnNtQueryInformationThread fn;
+        if( !fn )
+        {
+            HANDLE nthnd = GetModuleHandleA( "NTDLL" );
+            assert( nthnd, "cannot get module handle for ntdll" );
+            fn = cast(fnNtQueryInformationThread) GetProcAddress( nthnd, "NtQueryInformationThread" );
+            assert( fn, "cannot find NtQueryInformationThread in ntdll" );
+        }
 
         THREAD_BASIC_INFORMATION tbi;
         int Status = (*fn)(hnd, ThreadBasicInformation, &tbi, tbi.sizeof, null);
