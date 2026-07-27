@@ -5087,7 +5087,9 @@ private Statements* flatten(Statement statement, Scope* sc)
                 if (!s || global.errors != errors)
                 {
                     auto eSink = global.errorSink;
-                    eSink.errorSupplemental(s.loc, "while parsing string mixin statement");
+                    // Prefer a real source location; ErrorStatement uses Loc.initial.
+                    const loc = (s !is null && s.loc.isValid()) ? s.loc : cs.loc;
+                    eSink.errorSupplemental(loc, "while parsing string mixin statement");
                     return errorStatements();
                 }
                 a.push(s);

@@ -6658,7 +6658,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (condition && ifbody)
                     s = new AST.IfStatement(loc, param, condition, ifbody, elsebody, token.loc);
                 else
-                    s = null; // don't propagate parsing errors
+                    s = new AST.ErrorStatement; // don't propagate parsing errors as null
                 break;
             }
 
@@ -6704,6 +6704,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (auto ds = parseDebugSpecification())
                     eSink.error(ds.loc, "%s `%s` declaration must be at module level", ds.kind, ds.toPrettyChars);
 
+                // Not valid as a statement; return ErrorStatement instead of null so
+                // callers (string mixin semantic) do not null-deref.
+                s = new AST.ErrorStatement;
                 break;
             }
             cond = parseDebugCondition();
@@ -6716,6 +6719,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (auto vs = parseVersionSpecification())
                     eSink.error(vs.loc, "%s `%s` declaration must be at module level", vs.kind, vs.toPrettyChars);
 
+                // Not valid as a statement; return ErrorStatement instead of null so
+                // callers (string mixin semantic) do not null-deref.
+                s = new AST.ErrorStatement;
                 break;
             }
             cond = parseVersionCondition();
