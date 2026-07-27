@@ -1726,6 +1726,7 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
     {
         /* Reference the C main() to pull it in to the executable
          */
+        static if (0) // superceded by object's import of core.internal.entrypoint : _d_cmain
         final switch (target.objectFormat())
         {
             case Target.ObjectFormat.elf:
