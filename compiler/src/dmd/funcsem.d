@@ -830,6 +830,9 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
             .error(funcdecl.loc, "%s `%s` constructors, destructors, postblits, invariants, new and delete functions are not allowed in interface `%s`", funcdecl.kind, funcdecl.toPrettyChars, id.toErrMsg());
         if (funcdecl.fbody && funcdecl.isVirtual())
             .error(funcdecl.loc, "%s `%s` function body only allowed in `final` functions in interface `%s`", funcdecl.kind, funcdecl.toPrettyChars, id.toErrMsg());
+
+        if (!funcdecl.fbody && (id.storage_class & STC.final_))
+            .error(funcdecl.loc, "%s `%s` cannot be `abstract` in `final` interface `%s`", funcdecl.kind, funcdecl.toPrettyChars, id.toErrMsg());
     }
 
     if (UnionDeclaration ud = parent.isUnionDeclaration())
