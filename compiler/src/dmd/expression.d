@@ -27,7 +27,7 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.func;
-import dmd.globals;
+import dmd.globals : dinteger_t;
 import dmd.hdrgen : toChars;
 import dmd.id;
 import dmd.identifier;
@@ -652,6 +652,7 @@ extern (C++) final class ErrorExp : Expression
         if (errorexp is null)
             errorexp = new ErrorExp();
 
+        import dmd.globals : global;
         if (global.errors == 0 && global.gaggedErrors == 0)
         {
             /* Unfortunately, errors can still leak out of gagged errors,
@@ -1172,8 +1173,9 @@ extern (C++) final class StringExp : Expression
      */
     extern (D) const(char)[] toStringz() const
     {
+        assert(sz == 1);
         auto nbytes = len * sz;
-        char* s = cast(char*)mem.xmalloc(nbytes + sz);
+        char* s = cast(char*)mem.xmalloc_noscan(nbytes + sz);
         writeTo(s, true);
         return s[0 .. nbytes];
     }
@@ -3685,15 +3687,15 @@ extern (C++) final class InExp : BinExp
 }
 
 /***********************************************************
- * Associative array removal, `aa.remove(arg)`
+ * Associative array removal, `aa.remove(key)`
  *
- * This deletes the key e1 from the associative array e2
+ * This deletes the key ekey from the associative array eaa
  */
 extern (C++) final class RemoveExp : BinExp
 {
-    extern (D) this(Loc loc, Expression e1, Expression e2)
+    extern (D) this(Loc loc, Expression eaa, Expression ekey)
     {
-        super(loc, EXP.remove, e1, e2);
+        super(loc, EXP.remove, eaa, ekey);
     }
 
     override void accept(Visitor v)

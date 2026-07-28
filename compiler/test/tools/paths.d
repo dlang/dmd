@@ -27,6 +27,8 @@ else version (Solaris)
     enum os = "solaris";
 else version (SunOS)
     enum os = "solaris";
+else version (Hurd)
+    enum os = "hurd";
 else
     static assert(0, "Unrecognized or unsupported OS.");
 
@@ -40,47 +42,36 @@ alias testPath = path => compilerRootDir.buildPath("test", path);
 
 string build()
 {
-    static string build;
-    return build = build ? build : environment.get("BUILD", "release");
+    return environment.get("BUILD", "release");
 }
 
 string buildOutputPath()
 {
-    static string buildOutputPath;
-    return buildOutputPath ? buildOutputPath : (buildOutputPath = generatedDir.buildPath(os, build, dmdModel));
+    return generatedDir.buildPath(os, build, dmdModel);
 }
 
 // auto-tester might run the test suite with a different $(MODEL) than DMD
 // has been compiled with. Hence we manually check which binary exists.
 string dmdModel()
 {
-    static string dmdModel;
-
-    if (dmdModel)
-        return dmdModel;
-
     const prefix = generatedDir.buildPath(os, build);
-    return dmdModel = environment.get("DMD_MODEL",
+    return environment.get("DMD_MODEL",
         prefix.buildPath("64", dmdFilename).exists ? "64" : "32");
 }
 
 string model()
 {
-    static string model;
-    return model ? model : (model = environment.get("MODEL", dmdModel));
+    return environment.get("MODEL", dmdModel);
 }
 
 string dmdPath()
 {
-    static string dmdPath;
-    return  dmdPath ? dmdPath : (dmdPath = buildOutputPath.buildPath(dmdFilename));
+    return buildOutputPath.buildPath(dmdFilename);
 }
 
 string resultsDir()
 {
-    static string resultsDir;
-    enum def = testPath("test_results");
-    return resultsDir ? resultsDir : (resultsDir = environment.get("RESULTS_DIR", def));
+    return environment.get("RESULTS_DIR", testPath("test_results"));
 }
 
 /// Returns: a path to 'target' relative to `base` using POSIX file separators

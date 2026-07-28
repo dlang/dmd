@@ -130,7 +130,6 @@ extern(C++) struct Verbose
     bool field;             // identify non-mutable field variables
     bool complex = true;    // identify complex/imaginary type usage
     bool vin;               // identify 'in' parameters
-    bool showGaggedErrors;  // print gagged errors anyway
     bool logo;              // print compiler logo
     bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
@@ -163,12 +162,10 @@ extern (C++) struct Param
     bool trace;             // insert profiling hooks
     bool tracegc;           // instrument calls to 'new'
     bool vcg_ast;           // write-out codegen-ast
-    DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
-    DiagnosticReporting useWarnings = DiagnosticReporting.off;  // how compiler warnings are handled
     bool cov;               // generate code coverage data
     ubyte covPercent;       // 0..100 code coverage percentage required
     bool ctfe_cov = false;  // generate coverage data for ctfe
@@ -181,7 +178,7 @@ extern (C++) struct Param
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
     bool bitfields = true;  // support C style bit fields
-    bool rewriteNoExceptionToSeq; // Allow finally statements that do not throw an Exception
+    bool nothrowOptimizations; // Allow finally statements that do not throw an Exception
                                   // in try body to rewrite to a sequence.
 
     CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
@@ -208,6 +205,7 @@ extern (C++) struct Param
                                  // Implementation: https://github.com/dlang/dmd/pull/9817
     FeatureState safer;          // safer by default (more @safe checks in unattributed code)
                                  // https://github.com/WalterBright/documents/blob/38f0a846726b571f8108f6e63e5e217b91421c86/safer.md
+    FeatureState tuples;         // Tuple unpacking
     FeatureState noSharedAccess; // read/write access to shared memory objects
     bool previewIn;              // `in` means `[ref] scope const`, accepts rvalues
     bool inclusiveInContracts;   // 'in' contracts of overridden methods must be a superset of parent contract
@@ -333,8 +331,8 @@ extern (C++) struct Global
 
     enum recursionLimit = 500; /// number of recursive template expansions before abort
 
-    ErrorSink errorSink;       /// where the error messages go
-    ErrorSink errorSinkNull;   /// where the error messages are ignored
+    ErrorSinkCompiler errorSink;  /// where the error messages go
+    ErrorSink errorSinkNull;      /// where the error messages are ignored
 
     extern (C++) DArray!ubyte function(FileName, Loc, ref OutBuffer) preprocess;
 

@@ -160,6 +160,11 @@ need to be started.
     quick:              run all tests with no default permuted args
                         (individual test specified options still honored)
 
+    arm:                cross-compile AArch64 runnable tests (arm.d, ai.d) and run
+                        them under qemu-aarch64; requires clang, ld.lld, qemu-aarch64,
+                        and an AArch64 sysroot for clang (e.g. gcc-aarch64-linux-gnu);
+                        skipped automatically if any prerequisite is missing
+
     clean:              remove all temporary or result files from previous runs
 
     test_results/compilable/json.d.out      runs an individual test

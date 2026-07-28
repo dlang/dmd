@@ -8,6 +8,7 @@ version (linux) import core.sys.linux.dlfcn : RTLD_NOLOAD;
 version (NetBSD) import core.sys.netbsd.dlfcn : RTLD_NOLOAD;
 version (OSX) import core.sys.darwin.dlfcn : RTLD_NOLOAD;
 version (Solaris) import core.sys.solaris.dlfcn : RTLD_NOLOAD;
+version (Hurd) import core.sys.hurd.dlfcn : RTLD_NOLOAD;
 
 void* openLib(string s)
 {

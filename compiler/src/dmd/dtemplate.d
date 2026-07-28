@@ -952,8 +952,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             // Set error here as we don't want it to depend on the number of
             // entries that are being printed.
             if (cl == Classification.error ||
-                (cl == Classification.warning && global.params.useWarnings == DiagnosticReporting.error) ||
-                (cl == Classification.deprecation && global.params.useDeprecated == DiagnosticReporting.error))
+                (cl == Classification.warning && global.errorSink.useWarnings == DiagnosticReporting.error) ||
+                (cl == Classification.deprecation && global.errorSink.useDeprecated == DiagnosticReporting.error))
                 cur.errors = true;
 
             // If two instantiations use the same declaration, they are recursive.

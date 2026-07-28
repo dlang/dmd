@@ -11,6 +11,10 @@
 
 module core.thread.fiber;
 
+// No Fiber support on WebAssembly (arch issue)
+// TODO: Investigate Wasm `stack-switching` proposal as solution
+version(WebAssembly) {} else:
+
 import core.thread.context;
 import core.thread.fiber.base : fiber_entryPoint, FiberBase;
 import core.thread.threadbase;

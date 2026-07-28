@@ -338,6 +338,22 @@ else version (Solaris)
         POLLNVAL    = 0x0020,
     }
 }
+else version (Hurd)
+{
+    enum
+    {
+        POLLIN      = 0x001,
+        POLLRDNORM  = POLLIN,
+        POLLRDBAND  = POLLPRI,
+        POLLPRI     = 0x002,
+        POLLOUT     = 0x004,
+        POLLWRNORM  = POLLOUT,
+        POLLWRBAND  = POLLOUT,
+        POLLERR     = 0x008,  /* ocatal 010 */
+        POLLHUP     = 0x010,  /* ocatal 020 */
+        POLLNVAL    = 0x020,  /* ocatal 040 */
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");

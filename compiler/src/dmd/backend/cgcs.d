@@ -19,19 +19,23 @@ module dmd.backend.cgcs;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 
-import dmd.backend.cc;
+import dmd.backend.backconfig : debugw, debugx;
 import dmd.backend.blockopt : BlockOpt;
+import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.el;
-import dmd.backend.goh : GlobalOptimizer;
-import dmd.backend.global;
+import dmd.backend.blockopt : block_compbcount, blockopt, bo;
+import dmd.backend.cgelem : elemisone;
+import dmd.backend.debugprint : oper_str;
+import dmd.backend.evalu8 : iftrue;
+import dmd.backend.go;
+import dmd.backend.symbol : symbol_print;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.barray;
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 
@@ -53,17 +57,6 @@ public void comsubs(ref GlobalOptimizer go, ref BlockOpt bo)
         printf("done with comsubs()\n");
 }
 
-/*******************************
- */
-
-@trusted
-public void cgcs_term()
-{
-    cgcsdata.term();
-    debug debugw && printf("cgcs_term()\n");
-}
-
-
 /***********************************************************************/
 
 private:
@@ -78,7 +71,7 @@ alias hash_t = uint;    // for hash values
 void comsubs2(block* startblock, ref CGCS cgcs, ref GlobalOptimizer go, ref BlockOpt bo)
 {
     // No longer just compute Bcount - eliminate unreachable blocks too
-    block_compbcount(go, bo);                 // eliminate unreachable blocks
+    block_compbcount(go, bo.startblock);
 
     cgcs.start();
 
@@ -92,10 +85,10 @@ void comsubs2(block* startblock, ref CGCS cgcs, ref GlobalOptimizer go, ref Bloc
         // Count up n, the number of blocks in this extended basic block (EBB)
         int n = 1;                      // always at least one block in EBB
         auto blc = bl;
-        while (bln && list_nitems(bln.Bpred) == 1 &&
+        while (bln && bln.Bpred.length == 1 &&
                ((blc.bc == BC.iftrue &&
-                 blc.nthSucc(1) == bln) ||
-                (blc.bc == BC.goto_ && blc.nthSucc(0) == bln)
+                 blc.Bsucc[1] == bln) ||
+                (blc.bc == BC.goto_ && blc.Bsucc[0] == bln)
                ) &&
                bln.bc != BC.asm_         // no CSE's extending across ASM blocks
               )
@@ -172,16 +165,6 @@ struct CGCS
         vec_clear(csvec);       // don't free it, recycle storage
         hcstab.reset();
         hcsarray = HCSArray.init;
-    }
-
-    /*********************************
-     * All done for this compiler instance.
-     */
-    void term()
-    {
-        vec_free(csvec);
-        csvec = null;
-        //hcstab.dtor();  // cache allocation for next iteration
     }
 
     /****************************
@@ -434,7 +417,6 @@ void ecom(ref CGCS cgcs, ref elem* pe)
         // Explicitly list all the unary ops for speed
         case OPnot: case OPcom: case OPneg: case OPuadd:
         case OPabs: case OPrndtol: case OPrint:
-        case OPpreinc: case OPpredec:
         case OPbool: case OPstrlen: case OPs16_32: case OPu16_32:
         case OPs32_d: case OPu32_d: case OPd_s16: case OPs16_d: case OP32_16:
         case OPf_d:
@@ -445,7 +427,6 @@ void ecom(ref CGCS cgcs, ref elem* pe)
         case OPu64_128: case OPs64_128: case OP128_64:
         case OPs64_d: case OPd_u64: case OPu64_d:
         case OPstrctor: case OPu16_d: case OPd_u16:
-        case OParrow:
         case OPvoid:
         case OPbsf: case OPbsr: case OPbswap: case OPpopcnt: case OPvector:
         case OPld_u64:
@@ -626,7 +607,7 @@ void touchlvalue(ref CGCS cgcs, const elem* e)
         case SC.fastpar:
         case SC.shadowreg:
         case SC.bprel:
-            if (e.Vsym.Sflags & SFLunambig)
+            if (e.Vsym.Sflags & SFLdistinct)
                 break;
             goto case SC.static_;
 

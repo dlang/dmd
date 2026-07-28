@@ -31,6 +31,10 @@ else version (Posix)
         pthread_mutexattr_init, pthread_mutexattr_settype;
     import core.sys.posix.sys.types : pthread_mutex_t, pthread_mutexattr_t;
 }
+else version (WASI)
+{
+    // Dummy no-op
+}
 else
 {
     static assert(false, "Platform not supported");
@@ -275,6 +279,10 @@ class Mutex :
         {
             return pthread_mutex_trylock(&self.m_hndl) == 0;
         }
+        else version (WASI)
+        {
+            return true;
+        }
     }
 
 
@@ -309,6 +317,8 @@ package:
 ///
 /* @safe nothrow -> see druntime PR 1726 */
 // Test regular usage.
+version (WASI) {} // WASI is single-threaded
+else
 unittest
 {
     import core.thread : Thread;
@@ -384,6 +394,7 @@ unittest
     version (CRuntime_Musl) {} else
     version (DragonFlyBSD) {} else
     version (Solaris) {} else
+    version (WASI) {} else
     assert(!mtx.tryLock_nothrow());
 
     free(cast(void*) mtx);
@@ -402,6 +413,8 @@ unittest
     m.unlock();
 }
 
+version (WASI) {} // WASI is single-threaded
+else
 unittest
 {
     import core.thread;

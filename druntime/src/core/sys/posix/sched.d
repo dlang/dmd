@@ -169,6 +169,17 @@ else version (Solaris)
     enum SCHED_FX = 6;
     enum _SCHED_NEXT = 7;
 }
+else version (Hurd)
+{
+    struct sched_param
+    {
+        int sched_priority;
+    }
+
+    enum SCHED_FIFO     = 1;
+    enum SCHED_OTHER    = 0;
+    enum SCHED_RR       = 2;
+}
 else
 {
     static assert(false, "Unsupported platform");

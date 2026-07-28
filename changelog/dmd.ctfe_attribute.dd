@@ -33,18 +33,3 @@ void main() {
     auto fp = &add; // Error: cannot take address of function marked with @__ctfe
 }
 ```
-
-The `@__ctfe` attribute can be combined with other function attributes like `@nogc`,
-`@safe`, and `@trusted`. It also supports block syntax for applying the attribute to
-multiple declarations:
-
-```d
-void main() {
-    enum s = square(3); // OK - CTFE
-    enum c = cube(3);   // OK - CTFE
-}
-
-@__ctfe:
-int square(int x) => x * x;
-int cube(int x) => x * x * x;
-```

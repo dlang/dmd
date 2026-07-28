@@ -58,9 +58,9 @@ else
 /**
  * Remove generated .di files on error and exit
  */
-void removeHdrFilesAndFail(ref Param params, ref Modules modules) nothrow
+void removeHdrFilesAndFail(bool removeHeaders, ref Modules modules) nothrow
 {
-    if (params.dihdr.doOutput)
+    if (removeHeaders)
     {
         foreach (m; modules)
         {
@@ -587,7 +587,7 @@ extern (C++) final class Module : Package
      * Params:
      *  loc = The location at which the file read originated (e.g. import)
      */
-    private void onFileReadError(Loc loc)
+    private void onFileReadError(Loc loc, bool removeHeaders)
     {
         const name = srcfile.toString();
         if (FileName.equals(name, "object.d"))
@@ -629,7 +629,7 @@ extern (C++) final class Module : Package
                 fprintf(stderr, "Specify path to file '%.*s' with -I switch\n", cast(int)name.length, name.ptr);
             }
 
-            removeHdrFilesAndFail(global.params, Module.amodules);
+            removeHdrFilesAndFail(removeHeaders, Module.amodules);
         }
     }
 
@@ -677,7 +677,7 @@ extern (C++) final class Module : Package
             return true;
         }
 
-        this.onFileReadError(loc);
+        this.onFileReadError(loc, global.params.dihdr.doOutput);
         return false;
     }
 

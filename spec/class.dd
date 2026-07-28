@@ -803,7 +803,8 @@ $(H3 $(LNAME2 field-init, Field initialization inside a constructor))
         }
         ------
 
-        $(P If a field's type has disabled default construction, then it must be initialized
+        $(P If a field's type has $(DDSUBLINK spec/struct, disable_default_construction,
+        disabled default construction), then it must be initialized
         in the constructor.)
         ---
         struct S { int y; @disable this(); }

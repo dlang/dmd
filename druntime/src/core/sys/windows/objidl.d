@@ -780,11 +780,11 @@ interface IRpcProxyBuffer : IUnknown {
 interface IRpcStubBuffer : IUnknown {
     HRESULT Connect(LPUNKNOWN);
     void Disconnect();
-    HRESULT Invoke(RPCOLEMESSAGE*, LPRPCSTUBBUFFER);
+    HRESULT Invoke(RPCOLEMESSAGE*, LPRPCCHANNELBUFFER);
     LPRPCSTUBBUFFER IsIIDSupported(REFIID);
     ULONG CountRefs();
     HRESULT DebugServerQueryInterface(PVOID*);
-    HRESULT DebugServerRelease(PVOID);
+    void DebugServerRelease(PVOID);
 }
 
 interface IPSFactoryBuffer : IUnknown {

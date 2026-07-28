@@ -19,23 +19,25 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.backconfig : debugc, debugr, debugw;
+import dmd.backend.blockopt : bo;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.cgcse;
 import dmd.backend.codebuilder;
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.melf;
 import dmd.backend.mem;
 import dmd.backend.eh;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE, _align, mask;
+import dmd.backend.debugprint : oper_str, tym_str;
+import dmd.backend.symbol : symbol_print, globsym, symtab_t, SYMIDX;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.pdata : win64_pdata;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -44,6 +46,7 @@ import dmd.backend.arm.instr;
 
 import dmd.backend.x86.code_x86;
 import dmd.backend.x86.disasm86;
+import dmd.backend.x86.nteh : cdsetjmp;
 import dmd.backend.x86.xmm;
 
 import dmd.backend.barray;
@@ -84,7 +87,7 @@ void codgen(Symbol* sfunc)
 /***********************
  * Same as codgen(), but adding in CGstate argument
  * Params:
- *	cg = code generator state
+ *      cg = code generator state
  *      sfunc = function to generate code for
  */
 private @trusted
@@ -300,7 +303,7 @@ void codgenx(ref CGstate cg, Symbol* sfunc)
         objmod.linnum(sfunc.Sfunc.Fstartline,sfunc.Sseg,Offset(sfunc.Sseg));
 
     // Otherwise, jmp's to startblock will execute the prolog again
-    assert(!bo.startblock.Bpred);
+    assert(!bo.startblock.Bpred.length);
 
     CodeBuilder cdbprolog; cdbprolog.ctor();
     prolog(cg, cdbprolog);           // gen function start code
@@ -658,7 +661,7 @@ void prolog(ref CGstate cg, ref CodeBuilder cdb)
         !(config.exe == EX_WIN32) && !(funcsym_p.Sfunc.Fflags3 & Fnothrow) ||
         cg.accessedTLS ||
         sv64 ||
-        (0 && cg.calledafunc && cg.AArch64)
+        (cg.calledafunc && cg.AArch64)
        )
     {
         //printf("0 prolog() needframe %d alwaysframe %d\n", cg.needframe, config.flags & CFGalwaysframe);
@@ -1367,11 +1370,9 @@ private void blcodgen(ref CGstate cg, block* bl)
     assert(bl.Bregcon.immed.mval == 0);
     cg.regcon.immed.mval = 0;      // assume no previous contents in registers
 //    cg.regcon.cse.mval = 0;
-    foreach (bpl; ListRange(bl.Bpred))
+    foreach (bp; bl.Bpred[])
     {
-        block* bp = list_block(bpl);
-
-        if (bpl == bl.Bpred)
+        if (bp == bl.Bpred[0])
         {   cg.regcon.immed = bp.Bregcon.immed;
             cg.regcon.params = bp.Bregcon.params;
 //          cg.regcon.cse = bp.Bregcon.cse;
@@ -2129,7 +2130,7 @@ bool cssave(elem* e, regm_t regm, bool opsflag)
     /*if (e.Ecount && e.Ecount == e.Ecomsub)*/
     if (e.Ecount && e.Ecomsub)
     {
-	CGstate* cg = &cgstate;
+        CGstate* cg = &cgstate;
         if (!opsflag && cg.pass != BackendPass.final_ && (I32 || I64))
             return false;
 
@@ -2577,7 +2578,7 @@ private void loadcse(ref CodeBuilder cdb,elem* e,reg_t reg,regm_t regm)
         //printf("CSE[%d] = %p, regm = %s\n", i, cse.e, regm_str(cse.regm));
         if (cse.regm & regm)
         {
-	    CGstate* cg = &cgstate;
+            CGstate* cg = &cgstate;
             cg.reflocal = true;
             cse.flags |= CSEload;    /* it was loaded        */
             cg.regcon.cse.value[reg] = e;
@@ -2665,10 +2666,8 @@ private immutable nothrow void function (ref CGstate, ref CodeBuilder,elem *,ref
     OPstrcat:  &cderr,
     OPstrcmp:  &cdstrcmp,
     OPmemcmp:  &cdmemcmp,
-    OPsetjmp:  &dmd.backend.x86.nteh.cdsetjmp,
+    OPsetjmp:  &cdsetjmp,
     OPnegass:  &cdaddass,
-    OPpreinc:  &cderr,
-    OPpredec:  &cderr,
     OPstreq:   &cdstreq,
     OPpostinc: &cdpost,
     OPpostdec: &cdpost,
@@ -2756,8 +2755,6 @@ private immutable nothrow void function (ref CGstate, ref CodeBuilder,elem *,ref
     OPld_u64:  &cdcnvt,
     OPparam:   &cderr,
     OPsizeof:  &cderr,
-    OParrow:   &cderr,
-    OParrowstar: &cderr,
     OPcolon:   &cderr,
     OPcolon2:  &cderr,
     OPbool:    &cdnot,
@@ -2770,11 +2767,6 @@ private immutable nothrow void function (ref CGstate, ref CodeBuilder,elem *,ref
     OPstrthis: &cdstrthis,
     OPconst:   &cderr,
     OPvar:     &cderr,
-    OPnew:     &cderr,
-    OPanew:    &cderr,
-    OPdelete:  &cderr,
-    OPadelete: &cderr,
-    OPbrack:   &cderr,
     OPframeptr: &cdframeptr,
     OPgot:     &cdgot,
 

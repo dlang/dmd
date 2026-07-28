@@ -97,42 +97,7 @@ public:
 
     extern(D) void stringPart(const char[] s)
     {
-        foreach (char c; s)
-        {
-            switch (c)
-            {
-            case '\n':
-                buf.writestring("\\n");
-                break;
-            case '\r':
-                buf.writestring("\\r");
-                break;
-            case '\t':
-                buf.writestring("\\t");
-                break;
-            case '\"':
-                buf.writestring("\\\"");
-                break;
-            case '\\':
-                buf.writestring("\\\\");
-                break;
-            case '\b':
-                buf.writestring("\\b");
-                break;
-            case '\f':
-                buf.writestring("\\f");
-                break;
-            default:
-                if (c < 0x20)
-                    buf.printf("\\u%04x", c);
-                else
-                {
-                    // Note that UTF-8 chars pass through here just fine
-                    buf.writeByte(c);
-                }
-                break;
-            }
-        }
+        (*buf).writeEscapeJSONString(s);
     }
 
     // Json value functions
@@ -621,7 +586,7 @@ public:
         {
             if (cd.baseClass && cd.baseClass.ident != Id.Object)
             {
-                property("base", cd.baseClass.toPrettyChars(true).toDString);
+                property("base", cd.baseClass.toPrettyChars(true, true).toDString);
             }
             if (cd.interfaces.length)
             {
@@ -629,7 +594,7 @@ public:
                 arrayStart();
                 foreach (b; cd.interfaces)
                 {
-                    item(b.sym.toPrettyChars(true).toDString);
+                    item(b.sym.toPrettyChars(true, true).toDString);
                 }
                 arrayEnd();
             }
@@ -663,7 +628,7 @@ public:
             for (size_t i = 0; i < d.foverrides.length; i++)
             {
                 FuncDeclaration fd = d.foverrides[i];
-                item(fd.toPrettyChars().toDString);
+                item(fd.toPrettyChars(true, true).toDString);
             }
             arrayEnd();
         }
@@ -879,6 +844,8 @@ public:
                 item("solaris");
                 item("bsd");
             }
+            else if (target.os == Target.OS.Hurd)
+                item("hurd");
         }
         arrayEnd();
 
@@ -1074,6 +1041,53 @@ JsonFieldFlags tryParseJsonField(const(char)* fieldName)
         }
     }
     return JsonFieldFlags.none;
+}
+
+
+/**
+ * Escape special characters (such as quotes and whitespaces) for a JSON string literal
+ * Params:
+ *   buf = buffer to write to
+ *   str = string to escape and write as string literal
+ */
+void writeEscapeJSONString(ref OutBuffer buf, const(char)[] str) nothrow
+{
+    foreach (c; str)
+    {
+        switch (c)
+        {
+        case '\n':
+            buf.writestring("\\n");
+            break;
+        case '\r':
+            buf.writestring("\\r");
+            break;
+        case '\t':
+            buf.writestring("\\t");
+            break;
+        case '\"':
+            buf.writestring("\\\"");
+            break;
+        case '\\':
+            buf.writestring("\\\\");
+            break;
+        case '\b':
+            buf.writestring("\\b");
+            break;
+        case '\f':
+            buf.writestring("\\f");
+            break;
+        default:
+            if (c < 0x20)
+                buf.printf("\\u%04x", c);
+            else
+            {
+                // Note that UTF-8 chars pass through here just fine
+                buf.writeByte(c);
+            }
+            break;
+        }
+    }
 }
 
 /**

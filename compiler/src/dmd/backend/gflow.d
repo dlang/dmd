@@ -17,17 +17,19 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.backend.cc;
-import dmd.backend.blockopt : BlockOpt;
+import dmd.backend.blockopt : BlockOpt, bo;
 import dmd.backend.cdef;
 import dmd.backend.oper;
-import dmd.backend.global;
-import dmd.backend.goh;
+import dmd.backend.global : err_nomem;
+import dmd.backend.blockopt : blockopt;
+import dmd.backend.evalu8 : iftrue;
+import dmd.backend.symbol : sytab, globsym;
+import dmd.backend.go;
 import dmd.backend.el;
 import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.barray;
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 nothrow:
@@ -105,8 +107,8 @@ void flowrd(ref GlobalOptimizer go, ref BlockOpt bo)
                  * i = 0;
                  * try { i = 1; throw; } catch () { x = i; }
                  */
-                foreach (bp; ListRange(b.Bpred))
-                    vec_orass(b.Binrd,list_block(bp).Boutrd);
+                foreach (bp; b.Bpred[])
+                    vec_orass(b.Binrd,bp.Boutrd);
             }
             /* Bout = (Bin - Bkill) | Bgen */
             vec_sub(tmp,b.Binrd,b.Bkill);
@@ -565,10 +567,9 @@ private void flowaecp(ref GlobalOptimizer go, ref BlockOpt bo)
             // Bout = (Bin - Bkill) | Bgen
 
             bool first = true;
-            foreach (bl; ListRange(b.Bpred))
+            foreach (bp; b.Bpred[])
             {
-                block* bp = list_block(bl);
-                if (bp.bc == BC.iftrue && bp.nthSucc(0) != b)
+                if (bp.bc == BC.iftrue && bp.Bsucc[0] != b)
                 {
                     if (first)
                         vec_copy(b.Bin,bp.Bout2);
@@ -1254,7 +1255,7 @@ private void accumaecpx(ref GlobalOptimizer go, elem* n)
         {
             assert(t.Eoper == OPvar);
             Symbol* s = t.Vsym;             // idx of var being def'd
-            if (!(s.Sflags & SFLunambig))
+            if (!(s.Sflags & SFLdistinct))
             {
                 vec_orass(KILL,go.starkill);       /* kill all 'starred' refs */
                 vec_subass(GEN,go.starkill);
@@ -1351,9 +1352,9 @@ void flowlv(ref BlockOpt bo)
         {
             /* Bout = union of Bins of all successors to B. */
             bool first = true;
-            foreach (bl; ListRange(b.Bsucc))
+            foreach (bl; b.Bsucc[])
             {
-                const inlv = list_block(bl).Binlv;
+                const inlv = bl.Binlv;
                 if (first)
                     vec_copy(b.Boutlv, inlv);
                 else
@@ -1411,7 +1412,7 @@ private void lvgenkill(ref BlockOpt bo)
     const length = gsym.length;
     vec_t ambigsym = vec_calloc(length);
     foreach (i; 0 .. length)
-        if (!(gsym[i].Sflags & SFLunambig))
+        if (!(gsym[i].Sflags & SFLdistinct))
             vec_setbit(i,ambigsym);
 
     static if (0)
@@ -1654,6 +1655,7 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
 @trusted
 void flowvbe(ref GlobalOptimizer go, ref BlockOpt bo)
 {
+    if (&go) assert(0);
     go.flowxx = VBE;
     aecpgenkill(go, bo);   // compute Bgen and Bkill for VBEs
     if (go.exptop <= 1)     /* if no candidates for VBEs            */
@@ -1700,9 +1702,9 @@ void flowvbe(ref GlobalOptimizer go, ref BlockOpt bo)
 
             /* Bout = & of Bin of all successors */
             bool first = true;
-            foreach (bl; ListRange(b.Bsucc))
+            foreach (bl; b.Bsucc[])
             {
-                const vin = list_block(bl).Bin;
+                const vin = bl.Bin;
                 if (first)
                     vec_copy(b.Bout, vin);
                 else
@@ -1900,7 +1902,7 @@ private void accumvbe(ref GlobalOptimizer go, vec_t GEN,vec_t KILL,elem* n)
         {
             assert(t.Eoper == OPvar);
             Symbol* s = t.Vsym;  // ptr to var being def'd
-            if (!(s.Sflags & SFLunambig))
+            if (!(s.Sflags & SFLdistinct))
                 vec_orass(KILL,go.starkill);/* kill all 'starred' refs */
             foreach (uint i; 1 .. go.exptop)        // for each vbe elem
             {

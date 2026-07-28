@@ -45,7 +45,7 @@ namespace dmd
     bool equals(const Dsymbol * const ds, const Dsymbol * const s);
     bool hasNestedFrameRefs(FuncDeclaration *fd);
     bool isVirtualMethod(FuncDeclaration *fd);
-    bool isVirtual(const FuncDeclaration *fd);
+    bool isVirtual(const FuncDeclaration * const fd);
 }
 
 //enum STC : ulong from astenums.d:
@@ -481,9 +481,9 @@ public:
 
 enum class ILS : unsigned char
 {
-    ILSuninitialized,   // not computed yet
-    ILSno,              // cannot inline
-    ILSyes              // can inline
+    uninitialized,  // not computed yet
+    no,             // cannot inline
+    yes             // can inline
 };
 
 /**************************************************************/
@@ -701,7 +701,7 @@ public:
 
     bool inUnittest();
     LabelDsymbol *searchLabel(Identifier *ident, Loc loc);
-    const char *toPrettyChars(bool QualifyTypes = false) override;
+    const char *toPrettyChars(bool QualifyTypes = false, bool keepOneMember = false) override;
     const char *toFullSignature();  // for diagnostics, e.g. 'int foo(int x, int y) pure'
     bool isMain() const;
     bool isCMain() const;
@@ -753,7 +753,7 @@ public:
     AggregateDeclaration *isThis() override;
 
     const char *kind() const override;
-    const char *toPrettyChars(bool QualifyTypes = false) override;
+    const char *toPrettyChars(bool QualifyTypes = false, bool keepOneMember = false) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 

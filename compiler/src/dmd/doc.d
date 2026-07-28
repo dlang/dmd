@@ -398,7 +398,7 @@ struct DocComment
                 p++;
             }
             size_t len = p - start;
-            char* s = cast(char*)memcpy(mem.xmalloc(len + 1), start, len);
+            char* s = cast(char*)memcpy(mem.xmalloc_noscan(len + 1), start, len);
             s[len] = 0;
             escapetable.strings[c] = s[0 .. len];
             //printf("\t%c = '%s'\n", c, s);
@@ -964,6 +964,7 @@ immutable ddoc_decl_dd_e = ")\n";
  *  respectBackslashEscapes = if true, always replace parentheses that are
  *    directly preceeded by a backslash with $(LPAREN) or $(RPAREN) instead of
  *    counting them as stray parentheses
+ *  eSink = send error messages to eSink
  */
 private void escapeStrayParenthesis(Loc loc, ref OutBuffer buf, size_t start, bool respectBackslashEscapes, ErrorSink eSink)
 {
@@ -5082,7 +5083,7 @@ void highlightCode(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t offset)
 
                 // build the template parameters
                 Array!(size_t) paramLens;
-                paramLens.reserve(td.parameters.length);
+                paramLens.setDim(td.parameters.length);
 
                 OutBuffer parametersBuf;
                 HdrGenState hgs;

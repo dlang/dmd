@@ -64,3 +64,6 @@ untracked_files/
 .DS_Store
 /compiler/src/vcbuild/*.filters
 /compiler/src/vcbuild/*.sources
+
+/compiler/backend/old/*
+/compiler/backend/new/*

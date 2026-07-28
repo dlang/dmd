@@ -58,10 +58,10 @@ import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.dt;
 import dmd.backend.type;
-import dmd.backend.global;
+import dmd.backend.dout : outdata, outthunk;
+import dmd.backend.symbol : symbol_calloc, symbol_func, symbol_name, SYMIDX;
 import dmd.backend.oper;
 import dmd.backend.cgcv;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 
 /*************************************
@@ -83,7 +83,7 @@ Symbol* toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type* t, const(cha
     OutBuffer buf;
     buf.writestring("_D");
     mangleToBuffer(ds, buf);
-    buf.printf("%zd%s%s", strlen(prefix), prefix, suffix);
+    buf.printf("%d%s%s", cast(int)strlen(prefix), prefix, suffix);
     Symbol* s = symbol_name(buf[], sclass, t);
 
     //printf("-Dsymbol::toSymbolX() %s\n", buf.peekChars());
@@ -93,6 +93,30 @@ Symbol* toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type* t, const(cha
 /*****************************************************/
 /*                   CTFE stuff                      */
 /*****************************************************/
+
+/* A CTFE-evaluated literal (struct literal or class instance) that is baked into
+ * static data gets a backing LOCAL symbol (named "internal"), cached on the literal's
+ * AST node (`sle.sym` / `cre.value.origin.sym`). The AST is shared across all modules
+ * compiled in a single invocation, so without intervention that cache leaks the symbol
+ * created for the first object module into later ones — which then emit only an
+ * undefined reference to a LOCAL symbol they never define (link error:
+ * `undefined reference to 'internal'`).
+ *
+ * Track every literal that cached a symbol in the current object module and clear those
+ * caches at each object-module boundary (resetCtfeSymbolCache, called from obj_start), so
+ * each object module re-creates and emits its own self-contained local copy. This matches
+ * the array-literal path (DtBuilder.dtoff) and the already-accepted separate-compilation
+ * behavior, while keeping intra-module dedup intact.
+ */
+private __gshared Array!StructLiteralExp ctfeSymbolLiterals;
+
+package(dmd.glue)
+void resetCtfeSymbolCache()
+{
+    foreach (sle; ctfeSymbolLiterals[])
+        sle.sym = null;
+    ctfeSymbolLiterals.setDim(0);
+}
 
 package(dmd.glue)
 Symbol* toSymbol(StructLiteralExp sle)
@@ -108,6 +132,7 @@ Symbol* toSymbol(StructLiteralExp sle)
     s.Sflags |= SFLnodebug;
     s.Stype = t;
     sle.sym = s;
+    ctfeSymbolLiterals.push(sle);
     auto dtb = DtBuilder(0);
     Expression_toDt(sle, dtb);
     s.Sdt = dtb.finish();
@@ -130,6 +155,7 @@ Symbol* toSymbol(ClassReferenceExp cre)
     s.Stype = t;
     cre.value.sym = s;
     cre.value.origin.sym = s;
+    ctfeSymbolLiterals.push(cre.value.origin);
     auto dtb = DtBuilder(0);
     ClassReferenceExp_toInstanceDt(cre, dtb);
     s.Sdt = dtb.finish();
@@ -451,9 +477,7 @@ Symbol* toSymbol(Dsymbol s)
 
             symbol_func(*s);
             func_t* f = s.Sfunc;
-            if (fd.isVirtual() && fd.vtblIndex != -1)
-                f.Fflags |= Fvirtual;
-            else if (fd.isMember2() && fd.isStatic())
+            if (fd.isMember2() && fd.isStatic())
                 f.Fflags |= Fstatic;
 
             if (fd.isSafe())

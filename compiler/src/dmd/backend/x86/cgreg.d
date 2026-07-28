@@ -17,20 +17,22 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.backconfig : debugr;
+import dmd.backend.blockopt : bo;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE, mask;
+import dmd.backend.symbol : symbol_print, SYMIDX;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.oper;
-import dmd.backend.symtab;
+import dmd.backend.symbol : globsym;
 import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.barray;
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 
@@ -337,9 +339,8 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
     L2:
         inoutp = 0;
         benefit2 = 0;
-        foreach (bl; ListRange(b.Bpred))
+        foreach (bp; b.Bpred[])
         {
-            block* bp = list_block(bl);
             int bpi = bp.Bdfoidx;
             if (!vec_testbit(bpi,s.Srange))
                 continue;
@@ -456,9 +457,8 @@ int cgreg_gotoepilog(block* b,Symbol* s)
     // Look at predecessors to see if we need to load in/out of register
     int gotoepilog = 0;
     int inoutp = 0;
-    foreach (bl; ListRange(b.Bpred))
+    foreach (bp; b.Bpred[])
     {
-        block* bp = list_block(bl);
         int bpi = bp.Bdfoidx;
         if (!vec_testbit(bpi,s.Srange))
             continue;
@@ -570,9 +570,9 @@ void cgreg_spillreg_prolog(block* b,Symbol* s,ref CodeBuilder cdbstore,ref CodeB
         return;
 
     // Look at predecessors to see if we need to load in/out of register
-    foreach (bl; ListRange(b.Bpred))
+    foreach (bl; b.Bpred[])
     {
-        const bpi = list_block(bl).Bdfoidx;
+        const bpi = bl.Bdfoidx;
 
         if (!vec_testbit(bpi,s.Srange))
             continue;
@@ -607,15 +607,15 @@ void cgreg_spillreg_epilog(block* b,Symbol* s,ref CodeBuilder cdbstore, ref Code
     const bi = b.Bdfoidx;
     //printf("cgreg_spillreg_epilog(block %d, s = '%s')\n",bi,s.Sident.ptr);
     //assert(b.bc == BC.goto_);
-    if (!cgreg_gotoepilog(b.nthSucc(0), s))
+    if (!cgreg_gotoepilog(b.Bsucc[0], s))
         return;
 
     const live = vec_testbit(bi,s.Slvreg) != 0;
 
     // Look at successors to see if we need to load in/out of register
-    foreach (bl; ListRange(b.Bsucc))
+    foreach (bs; b.Bsucc[])
     {
-        const bpi = list_block(bl).Bdfoidx;
+        const bpi = bs.Bdfoidx;
         if (!vec_testbit(bpi,s.Srange))
             continue;
         if (vec_testbit(bpi,s.Slvreg))

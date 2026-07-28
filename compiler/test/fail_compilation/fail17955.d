@@ -14,8 +14,8 @@ fail_compilation/fail17955.d(33):        instantiated from here: `indicesOf!(isR
 fail_compilation/fail17955.d(68):        instantiated from here: `RedisStripped!(User, true)`
 fail_compilation/fail17955.d(94): Error: calling non-static function `fromISOExtString` requires an instance of type `SimpleTimeZone`
 fail_compilation/fail17955.d(96): Error: undefined identifier `DateTimeException`
-fail_compilation/fail17955.d(26): Error: variable `fail17955.isISOExtStringSerializable!(SysTime).isISOExtStringSerializable` - type `void` is inferred from initializer `fromISOExtString("")`, and variables cannot be of type `void`
-fail_compilation/fail17955.d(55): Error: function `fail17955.toRedis!(SysTime).toRedis` has no `return` statement, but is expected to return a value of type `string`
+fail_compilation/fail17955.d(26): Error: variable `fail17955.isISOExtStringSerializable!(SysTime)` - type `void` is inferred from initializer `fromISOExtString("")`, and variables cannot be of type `void`
+fail_compilation/fail17955.d(55): Error: function `fail17955.toRedis!(SysTime)` has no `return` statement, but is expected to return a value of type `string`
 ---
 */
 

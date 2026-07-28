@@ -31,17 +31,20 @@ import core.stdc.ctype;
 import core.stdc.string;
 import core.stdc.stdlib;
 
-import dmd.backend.cdef;
+import dmd.backend.backconfig : debugc;
+import dmd.backend.blockopt : bo;
 import dmd.backend.cc;
+import dmd.backend.cdef;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE;
+import dmd.backend.debugprint : tym_str;
+import dmd.backend.ee : eecontext_convs;
+import dmd.backend.symbol : symbol_add, symbol_copy, symbol_print, globsym, SYMIDX;
 import dmd.backend.oper;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.barray;
-import dmd.backend.dlist;
 
 nothrow:
 @safe:
@@ -107,7 +110,7 @@ bool canInlineFunction(Symbol* sfunc)
         switch (b.bc)
         {
             case BC.goto_:
-                if (b.Bnext != b.nthSucc(0))
+                if (b.Bnext != b.Bsucc[0])
                     return no(__LINE__);
                 b = b.Bnext;
                 continue;

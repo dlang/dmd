@@ -1380,7 +1380,7 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         ArrayLiteralExp es2 = e1.isArrayLiteralExp();
         const len = es1.len + es2.elements.length;
         const sz = es1.sz;
-        void* s = mem.xmalloc((len + 1) * sz);
+        void* s = mem.xmalloc_noscan((len + 1) * sz);
         const data1 = es1.peekData();
         memcpy(cast(char*)s + sz * es2.elements.length, data1.ptr, data1.length);
         foreach (size_t i; 0 .. es2.elements.length)
@@ -1410,7 +1410,7 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         ArrayLiteralExp es2 = e2.isArrayLiteralExp();
         const len = es1.len + es2.elements.length;
         const sz = es1.sz;
-        void* s = mem.xmalloc((len + 1) * sz);
+        void* s = mem.xmalloc_noscan((len + 1) * sz);
         auto slice = es1.peekData();
         memcpy(s, slice.ptr, slice.length);
         foreach (size_t i; 0 .. es2.elements.length)

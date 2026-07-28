@@ -30,10 +30,10 @@ import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.dt;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.blockopt : block_appendexp;
+import dmd.backend.symbol;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab : SYMIDX;
 import dmd.backend.ty;
 import dmd.backend.type;
 

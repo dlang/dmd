@@ -519,6 +519,7 @@ public:
     Expression *exp;
     size_t caseDim;
     FuncDeclaration *fesFunc;   // nested function for foreach it is in
+    Scope* scope_;
 
     ReturnStatement *syntaxCopy() override;
 

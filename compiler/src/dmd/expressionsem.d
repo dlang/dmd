@@ -1994,6 +1994,7 @@ extern (D) Expression doCopyOrMove(Scope* sc, Expression e, Type t, bool nrvo, b
  *    (tmp = e),tmp
  * Params:
  *      sc = just used to specify the scope of created temporary variable
+ *      e = the expression to copy-construct
  *      destinationType = the type of the object on which the copy constructor is called;
  *                        may be null if the struct defines a postblit
  *      nrvo = true if the generated copy can be treated as NRVO
@@ -2702,7 +2703,9 @@ Lagain:
     {
         // functions are checked after overloading
         // templates are checked after matching constraints
-        if (!s.isFuncDeclaration() && !s.isTemplateDeclaration())
+        // enum members are checked once in getVarExp() below; skip here to avoid
+        // emitting the deprecation diagnostic twice for an enum member accessed by name
+        if (!s.isFuncDeclaration() && !s.isTemplateDeclaration() && !s.isEnumMember())
         {
             s.checkDeprecated(loc, sc);
             if (d)
@@ -2714,7 +2717,7 @@ Lagain:
         s = s.toAlias();
 
         //printf("s = '%s', s.kind = '%s', s.needThis() = %p\n", s.toChars(), s.kind(), s.needThis());
-        if (s != olds && !s.isFuncDeclaration() && !s.isTemplateDeclaration())
+        if (s != olds && !s.isFuncDeclaration() && !s.isTemplateDeclaration() && !s.isEnumMember())
         {
             s.checkDeprecated(loc, sc);
             if (d)
@@ -3497,7 +3500,7 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
         return false;
     if (sc.intypeof == 1)
         return false;
-    if (sc.ctfe || sc.debug_)
+    if (sc.ctfe || sc.debug_ || sc.ctfeBlock)
         return false;
     if (sc.inDefaultArg || sc.callLoc.isValid)
         return false;
@@ -4105,21 +4108,26 @@ private bool preFunctionParameters(Scope* sc, ArgumentList argumentList, ErrorSi
 }
 
 /********************************************
- * Issue an error if default construction is disabled for type t.
- * Default construction is required for arrays and 'out' parameters.
+ * Issue an error if default construction is disabled for type `t`.
+ * Default construction is required for e.g. arrays, `out` parameters and
+ * `new` expressions without arguments. On error, supplemental messages
+ * explain which field or `@disable this();` is responsible.
  * Returns:
  *      true    an error was issued
  */
 private bool checkDefCtor(Loc loc, Type t)
 {
-    if (auto ts = t.baseElemOf().isTypeStruct())
+    Type tb = t.baseElemOf();
+    AggregateDeclaration ad;
+    if (auto ts = tb.isTypeStruct())
+        ad = ts.sym;
+    else if (auto tc = tb.isTypeClass())
+        ad = tc.sym;
+    if (ad && ad.noDefaultCtor)
     {
-        StructDeclaration sd = ts.sym;
-        if (sd.noDefaultCtor)
-        {
-            .error(loc, "%s `%s` default construction is disabled", sd.kind, sd.toPrettyChars);
-            return true;
-        }
+        .error(loc, "default construction is disabled for type `%s`", tb.toErrMsg());
+        noDefaultCtorSupplemental(ad);
+        return true;
     }
     return false;
 }
@@ -4533,7 +4541,8 @@ private bool functionParameters(Loc loc, Scope* sc,
                 {
                     // Look for misaligned pointer, etc., in @safe mode
                     err |= checkUnsafeAccess(sc, arg, false, true);
-                    err |= checkDefCtor(arg.loc, t); // t must be default constructible
+                    if (!t.baseElemOf().isTypeClass())
+                        err |= checkDefCtor(arg.loc, t); // t must be default constructible
                 }
                 arg = arg.toLvalue(sc, "create `out` parameter from");
             }
@@ -4919,7 +4928,7 @@ private bool functionParameters(Loc loc, Scope* sc,
         for (size_t i = 0; i < arguments.length - nparams; i++)
         {
             Expression earg = (*arguments)[nparams + i];
-            auto arg = new Parameter(earg.loc, STC.in_, earg.type, null, null, null);
+            auto arg = new Parameter(earg.loc, STC.in_, earg.type, null, null, null, null);
             (*args)[i] = arg;
         }
         auto tup = new TypeTuple(args);
@@ -6107,13 +6116,30 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto valtype = aaType.nextOf().substWildTo(MODFlags.const_);
         auto tiargs = new Objects(keytype, valtype);
         hookFunc = new DotTemplateInstanceExp(aaExp.loc, hookFunc, hookId, tiargs);
-        auto ale1 = new ArrayLiteralExp(aaExp.loc, keytype.arrayOf(), aaExp.keys);
-        auto ale2 = new ArrayLiteralExp(aaExp.loc, valtype.arrayOf(), aaExp.values);
+        Expression ekv;
+        auto keys = aaExp.keys;
+        auto values = aaExp.values;
+        if (keys && values && values.length > 1)
+        {
+            // ensure lexical order
+            keys = new Expressions(aaExp.keys.length);
+            values = new Expressions(aaExp.values.length);
+            for (size_t i = 0; i < aaExp.values.length; i++)
+            {
+                // use STC.nodtor on temporaries, because the rvalues are moved to a stack
+                // allocated array in lowerArrayLiteral() without an additional postblit call
+                (*keys)[i] = extractSideEffect(sc, "__aalitkey", ekv, (*aaExp.keys)[i], false, STC.exptemp | STC.nodtor);
+                (*values)[i] = extractSideEffect(sc, "__aalitval", ekv, (*aaExp.values)[i], false, STC.exptemp | STC.nodtor);
+            }
+        }
+        auto ale1 = new ArrayLiteralExp(aaExp.loc, keytype.arrayOf(), keys);
+        auto ale2 = new ArrayLiteralExp(aaExp.loc, valtype.arrayOf(), values);
         lowerArrayLiteral(ale1, sc);
         lowerArrayLiteral(ale2, sc);
         auto arguments = new Expressions(ale1, ale2);
 
         Expression loweredExp = new CallExp(aaExp.loc, hookFunc, arguments);
+        loweredExp = Expression.combine(ekv, loweredExp);
         loweredExp = loweredExp.expressionSemantic(sc);
         loweredExp = resolveProperties(sc, loweredExp);
         aaExp.lowering = loweredExp;
@@ -6673,11 +6699,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             if (!cd.ctor)
                 cd.ctor = cd.searchCtor();
-            if (cd.noDefaultCtor && !nargs && !cd.defaultCtor)
-            {
-                error(exp.loc, "default construction is disabled for type `%s`", cd.type.toErrMsg());
+            if (!nargs && !cd.defaultCtor && checkDefCtor(exp.loc, cd.type))
                 return setError();
-            }
 
             if (cd.isInterfaceDeclaration())
             {
@@ -6908,11 +6931,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             if (!sd.ctor)
                 sd.ctor = sd.searchCtor();
-            if (sd.noDefaultCtor && !nargs)
-            {
-                error(exp.loc, "default construction is disabled for type `%s`", sd.type.toErrMsg());
+            if (!nargs && checkDefCtor(exp.loc, sd.type))
                 return setError();
-            }
             // checkDeprecated() is already done in newtype.typeSemantic().
 
             if (sd.disableNew)
@@ -7003,14 +7023,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            Type tn = tb.nextOf().baseElemOf();
-            Dsymbol s = tn.toDsymbol(sc);
-            AggregateDeclaration ad = s ? s.isAggregateDeclaration() : null;
-            if (ad && ad.noDefaultCtor)
-            {
-                error(exp.loc, "default construction is disabled for type `%s`", tb.nextOf().toErrMsg());
+            if (checkDefCtor(exp.loc, tb.nextOf()))
                 return setError();
-            }
             for (size_t i = 0; i < nargs; i++)
             {
                 if (tb.ty != Tarray)
@@ -7548,7 +7562,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         scope (exit)
         {
-            if (TypeFunction tf = exp.f ? cast(TypeFunction)exp.f.type : null)
+            if (TypeFunction tf = exp.f && exp.f.type ? exp.f.type.isTypeFunction() : null)
             {
                 if (tf.isRvalue)
                 {
@@ -8545,6 +8559,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         assert(t1.ty == Tfunction);
 
+        // semantic on arguments and return type should not be delayed to infer attributes
+        Scope* sc2 = sc;
+        if (sc.deferSemantic3InCompilerHook)
+        {
+            sc = sc.push();
+            sc.deferSemantic3InCompilerHook = false;
+        }
+        scope(exit)
+        {
+            if (sc2 != sc)
+                sc.pop();
+        }
         Expression argprefix;
         if (!exp.arguments)
             exp.arguments = new Expressions();
@@ -8664,6 +8690,32 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         const olderrors = global.errors;
+
+        UnpackDeclaration u = e.declaration.isUnpackDeclaration();
+
+        if (u)
+        {
+            Expression c = null;
+            import dmd.dsymbolsem : include;
+            auto d = u.include(sc);
+            if (d)
+            {
+                foreach (var; *d)
+                {
+                    auto de = new DeclarationExp(var.loc, var);
+                    c = c ? new CommaExp(e.loc, c, de) : de;
+                }
+                if (c)
+                {
+                    result = c.expressionSemantic(sc);
+                }
+            }
+            else
+            {
+                result = ErrorExp.get();
+            }
+            return;
+        }
 
         /* This is here to support extern(linkage) declaration,
          * where the extern(linkage) winds up being an AttribDeclaration
@@ -9078,7 +9130,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     for (size_t i = 0; i < cd.baseclasses.length; i++)
                     {
                         BaseClass* b = (*cd.baseclasses)[i];
-                        args.push(new Parameter(Loc.initial, STC.in_, b.type, null, null, null));
+                        args.push(new Parameter(Loc.initial, STC.in_, b.type, null, null, null, null));
                     }
                     tded = new TypeTuple(args);
                 }
@@ -9124,7 +9176,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                          */
                         if (e.tok2 == TOK.parameters && arg.defaultArg && arg.defaultArg.op == EXP.error)
                             return setError();
-                        args.push(new Parameter(arg.loc, arg.storageClass, arg.type, (e.tok2 == TOK.parameters) ? arg.ident : null, (e.tok2 == TOK.parameters) ? arg.defaultArg : null, arg.userAttribDecl));
+                        args.push(new Parameter(arg.loc, arg.storageClass, arg.type, (e.tok2 == TOK.parameters) ? arg.ident : null, (e.tok2 == TOK.parameters) ? arg.defaultArg : null, arg.userAttribDecl, (e.tok2 == TOK.parameters) ? arg.unpack : null));
                     }
                     tded = new TypeTuple(args);
                     break;
@@ -9186,7 +9238,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             // current scope is itself deprecated, or deprecations are not errors
             const bool deprecationAllowed = sc.isDeprecated
-                || global.params.useDeprecated != DiagnosticReporting.error;
+                || global.errorSink.useDeprecated != DiagnosticReporting.error;
             const bool preventAliasThis = e.targ.hasDeprecatedAliasThis && !deprecationAllowed;
 
             if (preventAliasThis && e.targ.ty == Tstruct)
@@ -9825,6 +9877,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // e.g. when this assert was generated by defaultInitLiteral
             if (!exp.type || !exp.type.isTypeNoreturn())
                 exp.type = Type.tnoreturn;
+        }
+        else if (exp.e1.type && exp.e1.type.isTypeNoreturn())
+        {
+            // https://github.com/dlang/dmd/issues/20189
+            exp.type = Type.tnoreturn;
         }
         else
             exp.type = Type.tvoid;
@@ -11884,7 +11941,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             /* If e1 is not trivial, take a reference to it
              */
             Expression de = null;
-            if (exp.e1.op != EXP.variable && exp.e1.op != EXP.arrayLength)
+            if (auto ale = exp.e1.isArrayLengthExp())
+            {
+                // don't evaluate arrExp twice in `arrExp.length++` if non-trivial
+                if (ale.e1.op != EXP.variable)
+                {
+                    // ref v = e1;
+                    auto v = copyToTemp(STC.ref_, "__postref", ale.e1);
+                    de = new DeclarationExp(ale.loc, v);
+                    ale.e1 = new VarExp(ale.e1.loc, v);
+                }
+            }
+            else if (exp.e1.op != EXP.variable)
             {
                 // ref v = e1;
                 auto v = copyToTemp(STC.ref_, "__postref", exp.e1);
@@ -14888,14 +14956,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         auto arguments = new Expressions(ee.e1, ee.e2);
         auto ce = new CallExp(ee.loc, id, arguments);
+        Expression e = ce;
         if (ee.op == EXP.notEqual)
         {
             auto ne = new NotExp(ee.loc, ce);
             ne.loweredFrom = ee;
-            return ne.expressionSemantic(sc);
+            e = ne;
         }
-        ce.loweredFrom = ee;
-        return ce.expressionSemantic(sc);
+        else
+            ce.loweredFrom = ee;
+        auto sc2 = sc.push();
+        sc2.deferSemantic3InCompilerHook = true;
+        e = e.expressionSemantic(sc2);
+        sc2.pop();
+        return e;
     }
 
     override void visit(EqualExp exp)
@@ -15977,14 +16051,18 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
             // if 's' is a tuple variable, the tuple is returned.
             s = s.toAlias();
 
+            if (auto em = s.isEnumMember())
+            {
+                // getVarExp() performs the deprecated/disabled checks itself; doing them
+                // here as well would emit the diagnostic twice for an enum member
+                // accessed by name (e.g. an anonymous enum member, or an ImportC enumerator).
+                return em.getVarExp(exp.loc, sc);
+            }
+
             s.checkDeprecated(exp.loc, sc);
             if (auto d = s.isDeclaration())
                 d.checkDisabled(exp.loc, sc);
 
-            if (auto em = s.isEnumMember())
-            {
-                return em.getVarExp(exp.loc, sc);
-            }
             if (auto v = s.isVarDeclaration())
             {
                 //printf("DotIdExp:: Identifier '%s' is a variable, type '%s'\n", toChars(), v.type.toErrMsg());
@@ -16922,7 +17000,8 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
                         return false;
 
                     // https://issues.dlang.org/show_bug.cgi?id=23790
-                    if (e.e1.type.isTypeStruct())
+                    // https://github.com/dlang/dmd/issues/23233
+                    if (e.e1.type.isTypeStruct() || e.e1.type.isTypeClass())
                         return false;
                 }
 
@@ -17787,7 +17866,7 @@ bool checkAddressable(Expression e, Scope* sc, const(char)* action)
 /*******************************
  * Checks the attributes of a function.
  * Purity (`pure`), safety (`@safe`), no GC allocations(`@nogc`)
- * and usage of `deprecated` and `@disabled`-ed symbols are checked.
+ * and usage of `deprecated` and `@disable`-d symbols are checked.
  *
  * Params:
  *  exp = expression to check attributes for (CallExp or NewExp)
@@ -19177,7 +19256,7 @@ void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
         {
             auto p = sfe.aggrfe ? (*sfe.aggrfe.parameters)[i] : sfe.rangefe.param;
             auto storageClass = j == 2 ? p.storageClass : p.storageClass & ~(STC.manifest | STC.alias_);
-            params.push(new Parameter(aloc, storageClass, p.type, p.ident, null, null));
+            params.push(new Parameter(aloc, storageClass, p.type, p.ident, null, null, p.unpack ? p.unpack.syntaxCopy(null) : null));
         }
     }
     Expression[2] res;

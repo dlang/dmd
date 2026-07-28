@@ -14,6 +14,7 @@ Upcoming language changes listed by -preview=name:
   =fixAliasThis     when a symbol is resolved, check alias this scope before going to upper scopes (https://github.com/dlang/dmd/pull/8885)
   =rvaluerefparam   enable rvalue arguments to ref parameters (https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a)
   =safer            more safety checks by default (https://github.com/WalterBright/documents/blob/38f0a846726b571f8108f6e63e5e217b91421c86/safer.md)
+  =tuples           enable tuple unpacking (https://github.com/tgehr/DIPs/blob/tuple-syntax/DIPs/DIP1xxx-tg.md)
   =nosharedaccess   disable access to shared memory objects (https://dlang.org/spec/const3.html#shared)
   =in               `in` on parameters means `scope const [ref]` and accepts rvalues (https://dlang.org/spec/function.html#in-params)
   =inclusiveincontracts 'in' contracts of overridden methods must be a superset of parent contract (https://dlang.org/changelog/2.095.0.html#inclusive-incontracts)

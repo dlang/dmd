@@ -179,6 +179,13 @@ version (Windows)
         assert(test(`"/LIBPATH:dir with spaces"`) == `"/LIBPATH:dir with spaces"`);
         assert(test(`/LIBPATH:"dir with spaces"`) == `/LIBPATH:"dir with spaces"`);
     }
+
+    private const(char)* quotedArgIfNeeded(ref OutBuffer buffer, const(char)* arg)
+    {
+        buffer.reset();
+        buffer.writeQuotedArgIfNeeded(arg);
+        return buffer.peekChars();
+    }
 }
 
 enum STATUS_FAILED = -1;
@@ -286,9 +293,13 @@ public int runLINK(bool verbose, ErrorSink eSink)
             }
 
             VSOptions vsopt;
-            // if a runtime library (msvcrtNNN.lib) from the mingw folder is selected explicitly, do not detect VS and use lld
-            if (driverParams.mscrtlib.length <= 6 ||
-                driverParams.mscrtlib[0..6] != "msvcrt" || !isdigit(driverParams.mscrtlib[6]))
+            // If a MinGW-folder runtime is selected — the UCRT-based `ucrtbase`, or a
+            // legacy `msvcrtNNN` such as `msvcrt120` — do not detect Visual Studio; use
+            // lld-link with the MinGW libraries instead.
+            const isMingwRuntime = driverParams.mscrtlib == "ucrtbase" ||
+                (driverParams.mscrtlib.length > 6 &&
+                 driverParams.mscrtlib[0 .. 6] == "msvcrt" && isdigit(driverParams.mscrtlib[6]));
+            if (!isMingwRuntime)
                 vsopt.initialize();
 
             const(char)* linkcmd = getenv(target.isX86_64 ? "LINKCMD64" : "LINKCMD");
@@ -301,10 +312,14 @@ public int runLINK(bool verbose, ErrorSink eSink)
             {
                 // object files not SAFESEH compliant, but LLD is more picky than MS link
                 cmdbuf.writestring(" /SAFESEH:NO");
-                // if we are using LLD as a fallback, don't link to any VS libs even if
-                // we detected a VS installation and they are present
-                vsopt.uninitialize();
+                // lld-link is used here as a generic linker fallback; keep any detected
+                // VS/UCRT library paths so the Universal CRT can still be linked.
             }
+
+            // The UCRT-based MinGW fallback runtime links ucrtbase.lib via the object file's
+            // /DEFAULTLIB directive; it also needs the VC runtime library.
+            if (driverParams.mscrtlib == "ucrtbase")
+                cmdbuf.writestring(" vcruntime140.lib");
 
             if (const(char)* lflags = vsopt.linkOptions(target.isX86_64))
             {
@@ -401,7 +416,7 @@ public int runLINK(bool verbose, ErrorSink eSink)
                 }
                 else
                     close(fd);
-                global.params.exefile = name.arraydup;
+                global.params.exefile = name.xarraydup;
                 argv.push(global.params.exefile.xarraydup.ptr);
             }
             else
@@ -573,7 +588,7 @@ public int runLINK(bool verbose, ErrorSink eSink)
             if (!FileName.equalsExt(p, "a"))
             {
                 const plen = strlen(p);
-                char* s = cast(char*)mem.xmalloc(plen + 3);
+                char* s = cast(char*)mem.xmalloc_noscan(plen + 3);
                 s[0] = '-';
                 s[1] = 'l';
                 memcpy(s + 2, p, plen + 1);
@@ -809,7 +824,8 @@ version (Windows)
             status = executearg0(cmd, args);
             if (status == -1)
             {
-                status = spawnlp(0, cmd, cmd, args, null);
+                OutBuffer quotedCmd;
+                status = spawnlp(0, cmd, quotedArgIfNeeded(quotedCmd, cmd), args, null);
             }
         }
         if (status)
@@ -844,8 +860,9 @@ version (Windows)
             return -1;
         const file = FileName.replaceName(argv0, cmd.toDString);
         //printf("spawning '%s'\n",file);
+        OutBuffer quotedFile;
         // spawnlp returns intptr_t in some systems, not int
-        return spawnl(0, file.ptr, file.ptr, args, null);
+        return spawnl(0, file.ptr, quotedArgIfNeeded(quotedFile, file.ptr), args, null);
     }
 }
 
@@ -886,7 +903,7 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
             if (strchr(arg, ' '))
             {
                 const blen = 3 + strlen(arg);
-                char* b = cast(char*)mem.xmalloc(blen);
+                char* b = cast(char*)mem.xmalloc_noscan(blen);
                 snprintf(b, blen, "\"%s\"", arg);
                 argv.push(b);
                 continue;
@@ -1101,7 +1118,7 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
 
                 // Get current environment variable and rollback
                 auto oldIncludePathLen = GetEnvironmentVariableW("INCLUDE"w.ptr, null, 0);
-                wchar* oldIncludePaths = cast(wchar*)mem.xmalloc(oldIncludePathLen * wchar.sizeof);
+                wchar* oldIncludePaths = cast(wchar*)mem.xmalloc_noscan(oldIncludePathLen * wchar.sizeof);
                 oldIncludePathLen = GetEnvironmentVariableW("INCLUDE"w.ptr, oldIncludePaths, oldIncludePathLen);
                 scope (exit)
                 {

@@ -874,6 +874,57 @@ bool isOverlappedWith(VarDeclaration _this, VarDeclaration v)
             vbitoffset <  bitoffset + tbitsize;
 }
 
+/**
+ * If aggregate `ad` disables default construction directly through a
+ * `@disable this();` declaration, return that constructor, else `null`
+ * (e.g. when construction is disabled because of a field instead).
+ */
+private CtorDeclaration disabledDefaultCtor(AggregateDeclaration ad)
+{
+    if (!ad.ctor)
+        return null;
+    CtorDeclaration result;
+    overloadApply(ad.ctor, (Dsymbol s)
+    {
+        auto cd = s.isCtorDeclaration();
+        if (cd && (cd.storage_class & STC.disable))
+            if (auto tf = cd.type ? cd.type.isTypeFunction() : null)
+                if (tf.parameterList.length == 0 && tf.parameterList.varargs == VarArg.none)
+                {
+                    result = cd;
+                    return 1;
+                }
+        return 0;
+    });
+    return result;
+}
+
+/**
+ * Emit supplemental error messages explaining why default construction is
+ * disabled for aggregate `ad`. If `ad` disables it directly via `@disable
+ * this();`, point at that declaration. Otherwise list the fields whose type
+ * has disabled default construction, recursing into those field types so the
+ * full chain of reasoning is shown.
+ */
+void noDefaultCtorSupplemental(AggregateDeclaration ad)
+{
+    if (auto cd = disabledDefaultCtor(ad))
+        errorSupplemental(cd.loc, "because of `@disable this();` here");
+
+    foreach (field; ad.fields)
+    {
+        if (field.isThisDeclaration() || field._init)
+            continue;
+        auto ts = field.type.baseElemOf().isTypeStruct();
+        if (ts && ts.sym.noDefaultCtor)
+        {
+            errorSupplemental(field.loc, "because field `%s` of type `%s` has disabled default construction",
+                field.toChars(), field.type.toErrMsg());
+            noDefaultCtorSupplemental(ts.sym);
+        }
+    }
+}
+
 private Type tupleDeclGetType(TupleDeclaration _this)
 {
     /* If this tuple represents a type, return that type
@@ -915,7 +966,7 @@ private Type tupleDeclGetType(TupleDeclaration _this)
         }
         else
         {
-            auto arg = new Parameter(Loc.initial, STC.none, t, null, null, null);
+            auto arg = new Parameter(Loc.initial, STC.none, t, null, null, null, null);
         }
         (*args)[i] = arg;
         if (!t.deco)
@@ -1598,7 +1649,7 @@ const(char)* getMessage(DeprecatedDeclaration dd)
 
 bool checkDeprecated(Dsymbol d, Loc loc, Scope* sc)
 {
-    if (global.params.useDeprecated == DiagnosticReporting.off)
+    if (global.errorSink.useDeprecated == DiagnosticReporting.off)
         return false;
     if (!d.isDeprecated())
         return false;
@@ -1929,7 +1980,7 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool find
  */
 private bool checkDeprecatedAliasThis(AliasThis at, Loc loc, Scope* sc)
 {
-    if (global.params.useDeprecated != DiagnosticReporting.off
+    if (global.errorSink.useDeprecated != DiagnosticReporting.off
         && at.isDeprecated() && !sc.isDeprecated())
     {
         const(char)* message = null;
@@ -2158,6 +2209,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //if (semanticRun > PASS.initial)
         //    return;
         //semanticRun = PSSsemantic;
+
+        assert(dsym.type || dsym._init);
 
         if (dsym.semanticRun >= PASS.semanticdone)
             return;
@@ -2512,6 +2565,24 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return true;
         }
 
+        static bool shouldTryDeepSArrayDimInference(Expression ie, Scope* sc)
+        {
+            if (!ie)
+                return false;
+
+            // `new` expressions cannot provide a compile-time static extent
+            // for inferring `$`, and may recurse through incomplete aggregates.
+            if (ie.isNewExp())
+                return false;
+
+            // Field initializers are especially prone to recursive semantic
+            // evaluation against incompletely defined aggregates.
+            if (sc && sc.parent && sc.parent.isAggregateDeclaration())
+                return false;
+
+            return true;
+        }
+
         auto tsa = dsym.type.isTypeSArray();
 
         if (tsa && hasDollarDimension(tsa))
@@ -2520,19 +2591,37 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
                 tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
+                dsym._init = new ErrorInitializer();
+                dsym.type = Type.terror;
+                dsym.errors = true;
+                dsym.semanticRun = PASS.semanticdone;
+                return;
             }
             else
             {
                 Expression ie = dsym._init.initializerToExpression(null, sc.inCfile);
                 if (ie && ie.op != EXP.error)
                 {
-                    ie = ie.expressionSemantic(sc);
-                    ie = ie.optimize(WANTvalue);
+                    // Infer from literal syntax first to avoid prematurely
+                    // semantic-analyzing expressions that may depend on
+                    // incomplete types (e.g. recursive initializers).
+                    // https://github.com/dlang/dmd/issues/22887
                     bool dimInferred = inferSArrayDim(tsa, ie, dsym.loc, sc);
+                    if (!dimInferred && shouldTryDeepSArrayDimInference(ie, sc))
+                    {
+                        ie = ie.expressionSemantic(sc);
+                        ie = ie.optimize(WANTvalue);
+                        dimInferred = inferSArrayDim(tsa, ie, dsym.loc, sc);
+                    }
                     if (!dimInferred)
                     {
                         .error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
                         tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
+                        dsym._init = new ErrorInitializer();
+                        dsym.type = Type.terror;
+                        dsym.errors = true;
+                        dsym.semanticRun = PASS.semanticdone;
+                        return;
                     }
                     if (auto ale = ie.isArrayLiteralExp())
                         dsym._init = new ExpInitializer(dsym.loc, ale);
@@ -2962,7 +3051,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                 }
                 else
+                {
                     .error(dsym.loc, "%s `%s` - default construction is disabled for type `%s`", dsym.kind, dsym.toPrettyChars, dsym.type.toErrMsg());
+                    noDefaultCtorSupplemental(tbn.isTypeStruct().sym);
+                }
             }
         }
 
@@ -3157,7 +3249,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         ArrayInitializer ai = dsym._init.isArrayInitializer();
                         Expression e;
                         if (ai && tb.ty == Taarray)
-                            e = ai.toAssocArrayLiteral();
+                            e = ai.toAssocArrayLiteral(tb);
                         else
                             e = dsym._init.initializerToExpression(dsym.type, sc.inCfile);
                         if (!e)
@@ -3455,8 +3547,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         if (dsym.semanticRun >= PASS.semanticdone)
             return;
-        import dmd.iasm : asmSemantic;
-        asmSemantic(dsym, sc);
+        version (NoBackend) {}
+        else
+        {
+            import dmd.iasm : asmSemantic;
+            asmSemantic(dsym, sc);
+        }
         dsym.semanticRun = PASS.semanticdone;
     }
 
@@ -3751,6 +3847,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     override void visit(StaticForeachDeclaration sfd)
     {
         attribSemantic(sfd);
+    }
+
+    override void visit(UnpackDeclaration upd)
+    {
+        attribSemantic(upd);
     }
 
     private Dsymbols* compileIt(MixinDeclaration cd)
@@ -4151,6 +4252,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             printf("\tdo semantic() on template instance members '%s'\n", tm.toChars());
         }
         Scope* sc2 = argscope.push(tm);
+        tm.tinst = sc.tinst;
+        sc2.tinst = tm;
         //size_t deferred_dim = Module.deferred.length;
 
         __gshared int nest;
@@ -4502,10 +4605,20 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (auto cldec = ad.isClassDeclaration())
                 {
                     assert (cldec.cppDtorVtblIndex == -1); // double-call check already by dd.type
-                    if (cldec.baseClass && cldec.baseClass.cppDtorVtblIndex != -1)
+                    // Walk up the base chain: an intermediate class may have no explicit
+                    // dtor (cppDtorVtblIndex == -1) yet still inherit a dtor vtbl slot.
+                    // https://github.com/dlang/dmd/issues/22709
+                    int inheritedDtorVtblIndex = -1;
+                    for (auto base = cldec.baseClass; base; base = base.baseClass)
+                        if (base.cppDtorVtblIndex != -1)
+                        {
+                            inheritedDtorVtblIndex = base.cppDtorVtblIndex;
+                            break;
+                        }
+                    if (inheritedDtorVtblIndex != -1)
                     {
                         // override the base virtual
-                        cldec.cppDtorVtblIndex = cldec.baseClass.cppDtorVtblIndex;
+                        cldec.cppDtorVtblIndex = inheritedDtorVtblIndex;
                     }
                     else if (!dd.isFinal())
                     {
@@ -4755,6 +4868,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             nd.type = new TypeFunction(ParameterList(), Type.tvoid.pointerTo(), LINK.d, nd.storage_class);
 
         funcDeclarationSemantic(sc, nd);
+
+        Dsymbol p = sc.parent.pastMixin();
+        if (!p.isAggregateDeclaration())
+        {
+            error(nd.loc, "`new()` can only be a member of an aggregate, not %s `%s`",
+                p.kind(), p.toErrMsg());
+            return;
+        }
     }
 
     override void visit(StructDeclaration sd)
@@ -5073,11 +5194,27 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return isCCompatible(ats.sym, bts.sym);
         }
 
+        // Treat arrays of anonymous structs/unions as compatible when element types match.
+        static bool isCCompatibleType(Type a, Type b)
+        {
+            if (a.equals(b))
+                return true;
+
+            if (TypeSArray asa = a.isTypeSArray())
+            {
+                TypeSArray bsa = b.isTypeSArray();
+                if (bsa && asa.dim && bsa.dim && asa.dim.toInteger() == bsa.dim.toInteger())
+                    return isCCompatibleType(asa.nextOf(), bsa.nextOf());
+            }
+
+            return isCCompatibleUnnamedStruct(a, b);
+        }
+
         if (a.fields.length != b.fields.length)
         {
             incompatError();
-            errorSupplemental(a.loc, "`%s` has %zu field(s) while `%s` has %zu field(s)",
-                    a.toPrettyChars(), a.fields.length, b.toPrettyChars(), b.fields.length);
+            errorSupplemental(a.loc, "`%s` has %u field(s) while `%s` has %u field(s)",
+                    a.toPrettyChars(), cast(uint)a.fields.length, b.toPrettyChars(), cast(uint)b.fields.length);
             return false;
         }
         // both are structs or both are unions
@@ -5129,14 +5266,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             //   their members such that each pair of corresponding
             //   members are declared with compatible types;
             //
-            if (!a_field.type.equals(b_field.type) && !isCCompatibleUnnamedStruct(a_field.type, b_field.type))
+            if (!isCCompatibleType(a_field.type, b_field.type))
             {
                 // Already errored, just bail
                 incompatError();
                 if (a_field.type.isTypeError()) return false;
                 if (b_field.type.isTypeError()) return false;
 
-                errorSupplemental(a_field.loc, "Field %zu differs in type", i);
+                errorSupplemental(a_field.loc, "Field %u differs in type", cast(uint)i);
                 errorSupplemental(a_field.loc, "typeof(%s): %s",
                         a_field.toChars(), typeName(a_field.type));
                 errorSupplemental(b_field.loc, "typeof(%s): %s",
@@ -5151,7 +5288,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (a_field.alignment != b_field.alignment)
             {
                 incompatError();
-                errorSupplemental(a_field.loc, "Field %zu differs in alignment or packing", i);
+                errorSupplemental(a_field.loc, "Field %u differs in alignment or packing", cast(uint)i);
                 if (a_field.alignment.isDefault() && ! b_field.alignment.isDefault())
                 {
                     errorSupplemental(a_field.loc, "`%s.%s` alignment: default",
@@ -5195,7 +5332,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!b_field.ident.isAnonymous())
                 {
                     incompatError();
-                    errorSupplemental(a_field.loc, "Field %zu differs in name", i);
+                    errorSupplemental(a_field.loc, "Field %u differs in name", cast(uint)i);
                     errorSupplemental(a_field.loc, "(anonymous)", a_field.ident.toChars());
                     errorSupplemental(b_field.loc, "%s", b_field.ident.toChars());
                     return false;
@@ -5204,7 +5341,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             else if (b_field.ident.isAnonymous())
             {
                 incompatError();
-                errorSupplemental(a_field.loc, "Field %zu differs in name", i);
+                errorSupplemental(a_field.loc, "Field %u differs in name", cast(uint)i);
                 errorSupplemental(a_field.loc, "%s", a_field.ident.toChars());
                 errorSupplemental(b_field.loc, "(anonymous)");
                 return false;
@@ -5212,7 +5349,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             else if (a_field.ident != b_field.ident)
             {
                 incompatError();
-                errorSupplemental(a_field.loc, "Field %zu differs in name", i);
+                errorSupplemental(a_field.loc, "Field %u differs in name", cast(uint)i);
                 errorSupplemental(a_field.loc, "%s", a_field.ident.toChars());
                 errorSupplemental(b_field.loc, "%s", b_field.ident.toChars());
                 return false;
@@ -5226,7 +5363,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if ((bfa is null) != (bfb is null))
             {
                 incompatError();
-                errorSupplemental(a_field.loc, "Field %zu differs in being a bitfield", i);
+                errorSupplemental(a_field.loc, "Field %u differs in being a bitfield", cast(uint)i);
                 if (bfa is null)
                 {
                     errorSupplemental(a_field.loc, "`%s.%s` is not a bitfield",
@@ -5248,7 +5385,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (bfa.fieldWidth != bfb.fieldWidth)
                 {
                     incompatError();
-                    errorSupplemental(a_field.loc, "Field %zu differs in bitfield width", i);
+                    errorSupplemental(a_field.loc, "Field %u differs in bitfield width", cast(uint)i);
                     errorSupplemental(a_field.loc, "`%s.%s`: %u",
                             a.toPrettyChars(), a_field.toChars(), bfa.fieldWidth);
                     errorSupplemental(b_field.loc, "`%s.%s`: %u",
@@ -5838,6 +5975,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         buildDtors(cldec, sc2);
+
+        // If this class has no explicit cpp destructor, but the base class
+        // has, then set cppDtorVtblIndex, so destructors for fields can be called.
+        if (cldec.cppDtorVtblIndex == -1 && cldec.baseClass && cldec.dtor)
+            cldec.cppDtorVtblIndex = cldec.baseClass.cppDtorVtblIndex;
 
         if (cldec.classKind == ClassKind.cpp && cldec.cppDtorVtblIndex != -1)
         {
@@ -6442,6 +6584,12 @@ private extern(C++) class AddMemberVisitor : Visitor
             }
         }
         attribAddMember(visd, sc, sds);
+    }
+
+    override void visit(UnpackDeclaration upd)
+    {
+        // used only for caching the enclosing symbol
+        upd.scopesym = sds;
     }
 
     override void visit(StaticIfDeclaration sid)
@@ -7349,28 +7497,24 @@ bool determineFields(AggregateDeclaration ad)
         if (v.storage_class & STC.ref_)
             return 0;
         auto tv = v.type.baseElemOf();
-        if (auto tvs = tv.isTypeStruct())
-        {
-            if (ad == tvs.sym)
-            {
-                if (ad.type.ty == Terror || ad.errors)
-                    return 1;   // failed already
+        auto tvs = tv.isTypeStruct();
+        if (!tvs || ad != tvs.sym)
+            return 0;
+        if (ad.type.ty == Terror || ad.errors)
+            return 1;   // failed already
 
-                const(char)* psz = (v.type.toBasetype().ty == Tsarray) ? "static array of " : "";
-                if (!v.isAnonymous())
-                    .error(v.loc, "%s `%s` cannot have field `%s` with %ssame struct type", ad.kind, ad.toPrettyChars, v.toErrMsg(), psz);
-                else
-                    .error(v.loc, "%s `%s` cannot have anonymous field with %ssame struct type", ad.kind, ad.toPrettyChars, psz);
-                // Don't cache errors from speculative semantic
-                if (!global.gag)
-                {
-                    ad.type = Type.terror;
-                    ad.errors = true;
-                }
-                return 1;
-            }
+        const(char)* psz = (v.type.toBasetype().ty == Tsarray) ? "static array of " : "";
+        if (!v.isAnonymous())
+            .error(v.loc, "%s `%s` cannot have field `%s` with %ssame struct type", ad.kind, ad.toPrettyChars, v.toErrMsg(), psz);
+        else
+            .error(v.loc, "%s `%s` cannot have anonymous field with %ssame struct type", ad.kind, ad.toPrettyChars, psz);
+        // Don't cache errors from speculative semantic
+        if (!global.gag)
+        {
+            ad.type = Type.terror;
+            ad.errors = true;
         }
-        return 0;
+        return 1;
     }
 
     if (ad.members)
@@ -8335,6 +8479,11 @@ private extern(C++) class SetScopeVisitor : Visitor
             visit(cast(Dsymbol)uad);
         visit(cast(AttribDeclaration)uad);
     }
+
+    override void visit(UnpackDeclaration upd)
+    {
+        visit(cast(Dsymbol)upd);
+    }
 }
 
 void importAll(Dsymbol d, Scope* sc)
@@ -8473,6 +8622,9 @@ extern(C++) class ImportAllVisitor : Visitor
                 sc2.pop();
         }
     }
+
+    // do not evaluate variable declarations before semantic pass
+    override void visit(UnpackDeclaration _) {}
 
     // do not evaluate condition before semantic pass
     override void visit(StaticIfDeclaration _) {}
@@ -9262,6 +9414,30 @@ extern(C++) class ConditionIncludeVisitor : Visitor
         sfd.cache = d;
         symbols = d;
     }
+
+    override void visit(UnpackDeclaration upd)
+    {
+        if (upd.errors)
+        {
+            symbols = null;
+            return;
+        }
+        if (upd.onStack)
+        {
+            symbols = null;
+            return;
+        }
+        upd.onStack = true;
+        scope(exit) upd.onStack = false;
+        upd.lower(upd._scope ? upd._scope : sc);
+        if (!upd.lowered)
+        {
+            symbols = null;
+            return;
+        }
+        // TODO: call include recursively?
+        symbols = upd.decl;
+    }
 }
 
 /**
@@ -9460,17 +9636,31 @@ bool determineSize(AggregateDeclaration ad, Loc loc)
     if (ad._scope)
         dsymbolSemantic(ad, null);
 
+    bool Lfail()
+    {
+        // There's unresolvable forward reference.
+        if (ad.type != Type.terror)
+            error(loc, "%s `%s` no size because of forward reference", ad.kind, ad.toPrettyChars);
+        // Don't cache errors from speculative semantic, might be resolvable later.
+        // https://issues.dlang.org/show_bug.cgi?id=16574
+        if (!global.gag)
+        {
+            ad.type = Type.terror;
+            ad.errors = true;
+        }
+        return false;
+    }
     // Determine the instance size of base class first.
     if (auto cd = ad.isClassDeclaration())
     {
         cd = cd.baseClass;
         if (cd && !cd.determineSize(loc))
-            goto Lfail;
+            return Lfail();
     }
 
     // Determine instance fields when sizeok == Sizeok.none
     if (!ad.determineFields())
-        goto Lfail;
+        return Lfail();
     if (ad.sizeok != Sizeok.done)
         ad.finalizeSize();
 
@@ -9479,19 +9669,7 @@ bool determineSize(AggregateDeclaration ad, Loc loc)
         return false;   // marked as invalid during the finalizing.
     if (ad.sizeok == Sizeok.done)
         return true;    // succeeded to calculate instance size.
-
-Lfail:
-    // There's unresolvable forward reference.
-    if (ad.type != Type.terror)
-        error(loc, "%s `%s` no size because of forward reference", ad.kind, ad.toPrettyChars);
-    // Don't cache errors from speculative semantic, might be resolvable later.
-    // https://issues.dlang.org/show_bug.cgi?id=16574
-    if (!global.gag)
-    {
-        ad.type = Type.terror;
-        ad.errors = true;
-    }
-    return false;
+    return Lfail();
 }
 
 void checkCtorConstInit(Dsymbol d)

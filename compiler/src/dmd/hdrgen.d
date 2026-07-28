@@ -100,8 +100,8 @@ void genhdrfile(Module m, bool doFuncBodies, ref OutBuffer buf)
 /**
  * Convert `o` to a string for error messages.
  * Params:
- *      e = object to convert
- * Returns: string representation of `e`
+ *      o = object to convert
+ * Returns: string representation of `o`
  */
 const(char)* toErrMsg(const RootObject o)
 {
@@ -253,6 +253,11 @@ public const(char)* toChars(const Dsymbol d)
         buf.put(tid.tinfo.toChars());
         buf.put(')');
         return buf.extractChars();
+    }
+
+    if (auto upd = d.isUnpackDeclaration())
+    {
+        return "unpack declaration";
     }
 
     return d.ident ? d.ident.toHChars2() : "__anonymous";
@@ -1879,19 +1884,10 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         if (!hgs.errorMsg)
             tf.attributesApply(&printAttribute);
 
-        CompoundStatement cs = f.fbody.isCompoundStatement();
-        Statement s1;
-        if (f.semanticRun >= PASS.semantic3done && cs)
-        {
-            s1 = (*cs.statements)[cs.statements.length - 1];
-        }
-        else
-            s1 = !cs ? f.fbody : null;
-        ReturnStatement rs = s1 ? s1.endsWithReturnStatement() : null;
-        if (rs && rs.exp)
+        if (auto result = arrowFuncLiteralResult(f))
         {
             buf.put(" => ");
-            rs.exp.expressionToBuffer(buf, hgs);
+            result.expressionToBuffer(buf, hgs);
         }
         else
         {
@@ -3172,6 +3168,17 @@ void floatToBuffer(Type type, const real_t value, ref OutBuffer buf, const bool 
         of 256 (3 characters). The string will be "-M.MMMMe-4932".
         (ie, 8 chars more than mantissa). Plus one for trailing \0.
         Plus one for rounding. */
+    // NaN and infinity have no valid floating point literal syntax, so emit
+    // a property expression (e.g. `float.nan`, `-real.infinity`)
+    if (CTFloat.isNaN(value) || CTFloat.isInfinity(value))
+    {
+        if (CTFloat.isInfinity(value) && value < CTFloat.zero)
+            buf.put('-');
+        buf.put(type.toBaseTypeNonSemantic().toString());
+        buf.put(CTFloat.isNaN(value) ? ".nan" : ".infinity");
+        return;
+    }
+
     const(size_t) BUFFER_LEN = value.sizeof * 3 + 8 + 1 + 1;
     char[BUFFER_LEN] buffer = void;
     CTFloat.sprint(buffer.ptr, BUFFER_LEN, 'g', value);
@@ -3656,6 +3663,13 @@ const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQua
 private void parametersToBuffer(ParameterList pl, ref OutBuffer buf, ref HdrGenState hgs)
 {
     buf.put('(');
+    if (pl.varargs == VarArg.KRvariadic)
+    {
+        if (!hgs.hdrgen)
+            buf.put("..."); // essentially C23 variadic with no named parameter
+        buf.put(')');
+        return;
+    }
     foreach (i; 0 .. pl.length)
     {
         if (i)
@@ -3845,6 +3859,28 @@ private void expressionToBuffer(Expression e, ref OutBuffer buf, ref HdrGenState
     expressionPrettyPrint(e, buf, hgs);
 }
 
+/**************************************************
+ * Returns the expression result if `f` is printed with `=>` syntax, otherwise `null`.
+ *
+ * Arrow function literals have an AssignExpression body, so they bind less tightly
+ * than postfix operators and must be parenthesized when used as a call callee etc.
+ */
+private Expression arrowFuncLiteralResult(FuncLiteralDeclaration f)
+{
+    if (!f.fbody)
+        return null;
+
+    CompoundStatement cs = f.fbody.isCompoundStatement();
+    Statement s1;
+    if (f.semanticRun >= PASS.semantic3done && cs)
+        s1 = (*cs.statements)[cs.statements.length - 1];
+    else
+        s1 = !cs ? f.fbody : null;
+
+    ReturnStatement rs = s1 ? s1.endsWithReturnStatement() : null;
+    return rs && rs.exp ? rs.exp : null;
+}
+
 // to be called if e could be loweredFrom another expression instead of acessing precedence[e.op] directly
 private PREC expPrecedence(ref HdrGenState hgs, Expression e)
 {
@@ -3858,6 +3894,13 @@ private PREC expPrecedence(ref HdrGenState hgs, Expression e)
         else if (auto ne = e.isNotExp())
             if (ne.loweredFrom)
                 e = ne.loweredFrom;
+    }
+    // https://github.com/dlang/dmd/issues/23326
+    // Arrow lambdas are not true primaries; treat like assign-level expressions for paren insertion.
+    if (auto fe = e.isFuncExp())
+    {
+        if (fe.fd && arrowFuncLiteralResult(fe.fd))
+            return PREC.assign;
     }
     return precedence[e.op];
 }

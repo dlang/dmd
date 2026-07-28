@@ -22,6 +22,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.backconfig : debugr, debugw;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
@@ -29,7 +30,11 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE, _align, mask, size;
+import dmd.backend.cg : tls_get_addr_sym;
+import dmd.backend.debugprint : fl_str, oper_str, tym_str;
+import dmd.backend.evalu8 : boolres;
+import dmd.backend.symbol : symbol_calloc, symbol_print, sytab, globsym;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
@@ -661,7 +666,7 @@ void loadea(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_
         printf("loadea: e=%p cs=%p op=x%x reg=%s offset=%lld keepmsk=%s desmsk=%s\n",
                e, &cs, op, regstring[reg], cast(ulong)offset, regm_str(keepmsk), regm_str(desmsk));
     assert(e);
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.Irex = 0;
     cs.Iop = op;
     tym_t tym = e.Ety;
@@ -754,13 +759,13 @@ void loadea(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref code cs,uint op,reg_
             (op & 0xFFF8) == 0xD8 ||              /* 8087 instructions    */
             op == LEA)                            /* LEA                  */
         {
-            cs.Iflags &= ~CFopsize;
+            cs.Iflags &= ~CF.opsize;
             if (reg == 6 && op == 0xFF)         // if PUSH
                 cs.Irex &= ~REX_W;             // REX is ignored for PUSH anyway
         }
     }
     else if ((op & 0xFFF8) == 0xD8 && ADDFWAIT())
-        cs.Iflags |= CFwait;
+        cs.Iflags |= CF.wait;
 L2:
     getregs(cdb, desmsk);                  // save any regs we destroy
 
@@ -920,7 +925,7 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
     else
         fl = FL.oper;
     pcs.IFL1 = fl;
-    pcs.Iflags = CFoff;                  /* only want offsets            */
+    pcs.Iflags = CF.off;                  /* only want offsets            */
     pcs.Irex = 0;
     pcs.IEV1.Voffset = 0;
 
@@ -931,9 +936,9 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
     if (I64 && (sz == 8 || sz == 16) && !tyvector(ty))
         pcs.Irex |= REX_W;
     if (!I16 && sz == SHORTSIZE)
-        pcs.Iflags |= CFopsize;
+        pcs.Iflags |= CF.opsize;
     if (ty & mTYvolatile)
-        pcs.Iflags |= CFvolatile;
+        pcs.Iflags |= CF.volatile;
 
     void Lptr(){
         if (config.flags3 & CFG3ptrchk)
@@ -1167,7 +1172,7 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
                 else if (f == FL.auto_ || f == FL.bprel || f == FL.fltreg || f == FL.fast)
                     cg.reflocal = true;
                 else if (f == FL.csdata || tybasic(e12.Ety) == TYcptr)
-                    pcs.Iflags |= CFcs;
+                    pcs.Iflags |= CF.cs;
                 else
                     assert(f != FL.reg);
                 pcs.IFL1 = f;
@@ -1179,7 +1184,7 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
                 /* but also leave EA in registers so others can use it      */
                 if (e1.Ecount)
                 {
-                    uint flagsave;
+                    CF flagsave;
 
                     regm_t idxregs = IDXREGS & ~keepmsk;
                     reg = allocreg(cdb, idxregs, TYoffset);
@@ -1200,7 +1205,7 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
                     pcs.Iop = LEA;
                     code_newreg(&pcs, reg);
                     if (!I16)
-                        pcs.Iflags &= ~CFopsize;
+                        pcs.Iflags &= ~CF.opsize;
                     if (I64)
                         pcs.Irex |= REX_W;
                     cdb.gen(&pcs);                 // LEA idxreg,EA
@@ -1211,7 +1216,7 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
                         pcs.Irex = rexsave;
                     }
                     if (stackfl[f] && (config.wflags & WFssneds))   // if pointer into stack
-                        pcs.Iflags |= CFss;        // add SS: override
+                        pcs.Iflags |= CF.ss;        // add SS: override
                     pcs.Iop = opsave;
                     pcs.IFL1 = FL.offset;
                     pcs.IEV1.Vuns = 0;
@@ -1241,25 +1246,25 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
                 case TYhptr:
                     idxregs = (mES | IDXREGS) & ~keepmsk;   // need segment too
                     assert(idxregs & mES);
-                    pcs.Iflags |= CFes;            /* ES segment override  */
+                    pcs.Iflags |= CF.es;            /* ES segment override  */
                     break;
 
                 case TYsptr:                        /* if pointer to stack  */
                     if (config.wflags & WFssneds)   // if SS != DS
-                        pcs.Iflags |= CFss;        /* then need SS: override */
+                        pcs.Iflags |= CF.ss;        /* then need SS: override */
                     break;
 
                 case TYfgPtr:
                     if (I32)
-                        pcs.Iflags |= CFgs;
+                        pcs.Iflags |= CF.gs;
                     else if (I64)
-                        pcs.Iflags |= CFfs;
+                        pcs.Iflags |= CF.fs;
                     else
                         assert(0);
                     break;
 
                 case TYcptr:                        /* if pointer to code   */
-                    pcs.Iflags |= CFcs;            /* then need CS: override */
+                    pcs.Iflags |= CF.cs;            /* then need CS: override */
                     break;
 
                 default:
@@ -1495,13 +1500,13 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
                         pcs.Isib = modregrm(0, 4, 5);  // don't use [RIP] addressing
                         pcs.IFL1 = FL.const_;
                         pcs.IEV1.Vuns = 88;
-                        pcs.Iflags = CFgs;
+                        pcs.Iflags = CF.gs;
                         pcs.Irex |= REX_W;
                         break;
                     }
                     else
                     {
-                        pcs.Iflags |= CFfs;    // add FS: override
+                        pcs.Iflags |= CF.fs;    // add FS: override
                     }
                 }
                 else if (config.exe & (EX_OSX | EX_OSX64))
@@ -1576,7 +1581,7 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
             }
             else if (s.ty() & mTYcs && !(fl == FL.extern_ && LARGECODE))
             {
-                pcs.Iflags |= CFcs | CFoff;
+                pcs.Iflags |= CF.cs | CF.off;
             }
             if (config.flags3 & CFG3pic &&
                 (fl == FL.tlsdata || s.ty() & mTYthread))
@@ -1585,7 +1590,7 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
                 {
                     if (config.flags3 & CFG3pie)
                     {
-                        pcs.Iflags |= CFgs;
+                        pcs.Iflags |= CF.gs;
                     }
                 }
                 else if (I64)
@@ -1593,13 +1598,13 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
                     if (config.flags3 & CFG3pie &&
                         (s.Sclass == SC.global || s.Sclass == SC.static_ || s.Sclass == SC.locstat))
                     {
-                        pcs.Iflags |= CFfs;
+                        pcs.Iflags |= CF.fs;
                         pcs.Irm = modregrm(0, 0, 4);
                         pcs.Isib = modregrm(0, 4, 5);  // don't use [RIP] addressing
                     }
                     else
                     {
-                        //pcs.Iflags |= CFopsize; //I don't know what this was for
+                        //pcs.Iflags |= CF.opsize; //I don't know what this was for
                         pcs.Irex = 0x48;
                     }
                 }
@@ -1677,9 +1682,9 @@ void getlvalue(ref CGstate cg,ref CodeBuilder cdb,ref code pcs,elem* e,regm_t ke
             getregs(cdb,mES);
             // MOV mreg,seg of symbol
             cdb.gencs(0xB8 + reg, 0, FL.extern_, s);
-            cdb.last().Iflags = CFseg;
+            cdb.last().Iflags = CF.seg;
             cdb.gen2(0x8E, modregrmx(3, 0, reg));     // MOV ES,reg
-            pcs.Iflags |= CFes | CFoff;            /* ES segment override  */
+            pcs.Iflags |= CF.es | CF.off;            /* ES segment override  */
             goto L3;
         }
 
@@ -1821,7 +1826,7 @@ void tstresult(ref CGstate cg, ref CodeBuilder cdb, regm_t regm, tym_t tym, bool
             }
             gentstreg(cdb,reg);                 // TEST reg,reg
             if (sz == SHORTSIZE)
-                cdb.last().Iflags |= CFopsize;             // 16 bit operands
+                cdb.last().Iflags |= CF.opsize;             // 16 bit operands
             else if (sz == 8)
                 code_orrex(cdb.last(), REX_W);
         }
@@ -1902,7 +1907,7 @@ void tstresult(ref CGstate cg, ref CodeBuilder cdb, regm_t regm, tym_t tym, bool
         else
             assert(0);
     }
-    code_orflag(cdb.last(),CFpsw);
+    code_orflag(cdb.last(),CF.psw);
 }
 
 /******************************
@@ -2156,7 +2161,8 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
                           EX_FREEBSD | EX_FREEBSD64 |
                           EX_OPENBSD | EX_OPENBSD64 |
                           EX_DRAGONFLYBSD64 |
-                          EX_SOLARIS | EX_SOLARIS64);
+                          EX_SOLARIS | EX_SOLARIS64 |
+                          EX_HURD    | EX_HURD64);
 
     switch (clib)
     {
@@ -2178,7 +2184,7 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
 
         case CLIB.ldiv:
             cinfo.retregs16 = mDX|mAX;
-            if (exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
+            if (exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_HURD))
             {
                 s = symboly("__divdi3", mAX|mBX|mCX|mDX);
                 cinfo.flags = INFpushebx;
@@ -2206,7 +2212,7 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
 
         case CLIB.lmod:
             cinfo.retregs16 = mCX|mBX;
-            if (exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
+            if (exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_HURD))
             {
                 s = symboly("__moddi3", mAX|mBX|mCX|mDX);
                 cinfo.flags = INFpushebx;
@@ -2234,7 +2240,7 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
 
         case CLIB.uldiv:
             cinfo.retregs16 = mDX|mAX;
-            if (exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
+            if (exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_HURD))
             {
                 s = symboly("__udivdi3", mAX|mBX|mCX|mDX);
                 cinfo.flags = INFpushebx;
@@ -2262,7 +2268,7 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
 
         case CLIB.ulmod:
             cinfo.retregs16 = mCX|mBX;
-            if (exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
+            if (exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_HURD))
             {
                 s = symboly("__umoddi3", mAX|mBX|mCX|mDX);
                 cinfo.flags = INFpushebx;
@@ -2903,7 +2909,7 @@ void callclib(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint clib, ref regm_
         }
         if (pushebx)
         {
-            if (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64))
+            if (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_HURD | EX_HURD64))
             {
                 cdb.gen1(0x50 + CX);                             // PUSH ECX
                 cdb.gen1(0x50 + BX);                             // PUSH EBX
@@ -2924,7 +2930,7 @@ void callclib(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint clib, ref regm_
             cdb.gen1(0x50 + DX);                                 // PUSH EDX
             cdb.gen1(0x50 + AX);                                 // PUSH EAX
         }
-        if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS))
+        if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS | EX_HURD))
         {
             // Note: not for OSX
             /* Pass EBX on the stack instead, this is because EBX is used
@@ -3306,7 +3312,7 @@ void argtypes(type* t, out type* arg1type, out type* arg2type)
         if (I64 && config.exe != EX_WIN64)
         {
             type* tn = t.Tnext;
-            tym_t tyn = tn.Tty;
+            tym_t tyn = tybasic(tn.Tty);
             while (tyn == TYarray)
             {
                 tn = tn.Tnext;
@@ -3413,7 +3419,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 
     /* Assume called function access statics
      */
-    if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64) &&
+    if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_HURD | EX_HURD64) &&
         config.flags3 & CFG3pic)
         cg.accessedTLS = true;
 
@@ -3460,7 +3466,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
         parameters[i].numalign = 0;
         if (alignsize > stackalign &&
             (I64 || (alignsize >= 16 &&
-                (config.exe & (EX_OSX | EX_LINUX) && (tyaggregate(ep.Ety) || tyvector(ep.Ety))))))
+                     (config.exe & (EX_OSX | EX_LINUX | EX_HURD) && (tyaggregate(ep.Ety) || tyvector(ep.Ety))))))
         {
             if (alignsize > STACKALIGN)
             {
@@ -4014,7 +4020,7 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
                 else
                     cdbe.gencs(0xE8, 0, fl, s);    // CALL extern
             }
-            code_orflag(cdbe.last(), farfunc ? (CFseg | CFoff) : (CFselfrel | CFoff));
+            code_orflag(cdbe.last(), farfunc ? (CF.seg | CF.off) : (CF.selfrel | CF.off));
         }
     }
     else
@@ -4030,7 +4036,7 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
         tym_t e11ty = tybasic(e11.Ety);
         assert(!I16 || (e11ty == (farfunc ? TYfptr : TYnptr)));
         load_localgot(cg,cdb);
-        if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS)) // 32 bit only
+        if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS | EX_HURD)) // 32 bit only
         {
             if (config.flags3 & CFG3pic)
                 keepmsk |= mBX;
@@ -4078,7 +4084,7 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
             if (tym1 == TYifunc)
                 cdb.gen1(0x9C);                 // PUSHF
                                                 // CALL [function]
-            cs.Iflags = 0;
+            cs.Iflags = CF.zero;
             cg.stackclean++;
             loadea(cg, cdbe, e11, cs, 0xFF, farfunc ? 3 : 2, 0, keepmsk, desmsk);
             cg.stackclean--;
@@ -4324,7 +4330,7 @@ private void movParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stacka
     //printf("szb = %d sz = %d\n", cast(int)szb, cast(int)sz);
 
     code cs;
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.Irex = 0;
     switch (e.Eoper)
     {
@@ -4352,7 +4358,7 @@ private void movParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stacka
                 cs.IEV2.Voffset = e.Voffset;
                 cs.IFL2 = fl;
                 cs.IEV2.Vsym = e.Vsym;
-                cs.Iflags |= CFoff;
+                cs.Iflags |= CF.off;
                 cdb.gen(&cs);
                 return;
             }
@@ -4562,7 +4568,7 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
                 goto L1;
             }
             docommas(cdb, e1);             // skip over any commas
-            code_flags_t seg = 0;          // assume no seg override
+            CF seg = CF.zero;              // assume no seg override
             regm_t retregs = sz ? IDXREGS : 0;
             bool doneoff = false;
             uint pushsize = REGSIZE;
@@ -4587,26 +4593,26 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
                         {
                             case TYfptr:
                             case TYhptr:
-                                seg = CFes;
+                                seg = CF.es;
                                 retregs |= mES;
                                 break;
 
                             case TYsptr:
                                 if (config.wflags & WFssneds)
-                                    seg = CFss;
+                                    seg = CF.ss;
                                 break;
 
                             case TYfgPtr:
                                 if (I32)
-                                     seg = CFgs;
+                                     seg = CF.gs;
                                 else if (I64)
-                                     seg = CFfs;
+                                     seg = CF.fs;
                                 else
                                      assert(0);
                                 break;
 
                             case TYcptr:
-                                seg = CFcs;
+                                seg = CF.cs;
                                 break;
 
                             default:
@@ -4630,26 +4636,26 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
                     }
                     //if (LARGEDATA) /* if default isn't DS */
                     {
-                        static immutable uint[4] segtocf = [ CFes,CFcs,CFss,0 ];
+                        static immutable uint[4] segtocf = [ CF.es,CF.cs,CF.ss,0 ];
 
                         int fl = el_fl(e1);
                         if (fl == FL.fardata)
                         {
-                            seg = CFes;
+                            seg = CF.es;
                             retregs |= mES;
                         }
                         else
                         {
                             uint s = segfl[fl];
                             assert(s < 4);
-                            seg = segtocf[s];
-                            if (seg == CFss && !(config.wflags & WFssneds))
-                                seg = 0;
+                            seg = cast(CF)segtocf[s];
+                            if (seg == CF.ss && !(config.wflags & WFssneds))
+                                seg = CF.zero;
                         }
                     }
                     if (e1.Ety & mTYfar)
                     {
-                        seg = CFes;
+                        seg = CF.es;
                         retregs |= mES;
                     }
                     cdrelconst(cg, cdb, e1, retregs);
@@ -4663,7 +4669,7 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
                 //case OPcond:
                     if (config.exe & EX_segmented)
                     {
-                        seg = CFes;
+                        seg = CF.es;
                         retregs |= mES;
                     }
                     codelem(cg,cdb, e1, retregs, false);
@@ -4682,7 +4688,7 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
             reg_t reg = findreglsw(retregs);
             rm = I16 ? regtorm[reg] : regtorm32[reg];
             if (op16)
-                seg |= CFopsize;            // operand size
+                seg |= CF.opsize;            // operand size
             if (npushes <= 4)
             {
                 assert(!doneoff);
@@ -4709,7 +4715,7 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
                 }
                 getregs(cdb,mCX);                       // the LOOP decrements it
                 cdb.gen2(0xFF, buildModregrm(0, 6, rm));   // PUSH [reg]
-                cdb.last().Iflags |= seg | CFtarg2;
+                cdb.last().Iflags |= seg | CF.targ2;
                 code* c3 = cdb.last();
                 cdb.genc2(0x81,grex | buildModregrm(3, 5,reg), pushsize);  // SUB reg,pushsize
                 if (I16 || config.flags4 & CFG4space)
@@ -4755,7 +4761,7 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
                     break;
 
                 code cs;
-                cs.Iflags = 0;
+                cs.Iflags = CF.zero;
                 cs.Irex = 0;
                 if (I32)
                 {
@@ -4820,7 +4826,7 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
                     cdb.gen1(0x66);                 // push a word
                 cdb.gen1(0x06 + segreg);            // PUSH SEGREG
                 if (I32 && stackalign == 2)
-                    code_orflag(cdb.last(), CFopsize);        // push a word
+                    code_orflag(cdb.last(), CF.opsize);        // push a word
                 cdb.genadjesp(stackalign);
                 cg.stackpush += stackalign;
                 pushParams(cg, cdb, e1, stackalign, tyf);
@@ -4876,7 +4882,7 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
                     {
                         // PUSH SEG e
                         cdb.gencs(0x68,0,FL.extern_,s);
-                        cdb.last().Iflags = CFseg;
+                        cdb.last().Iflags = CF.seg;
                         cdb.genadjesp(REGSIZE);
                     }
                     getoffset(cg, cdb, e, STACK);
@@ -4906,10 +4912,10 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
                     !e.Ecount)
                 {
                     regsize = 4;
-                    flag |= CFopsize;
+                    flag |= CF.opsize;
                 }
                 code cs;
-                cs.Iflags = 0;
+                cs.Iflags = CF.zero;
                 cs.Irex = 0;
                 loadea(cg, cdb, e, cs, 0xFF, 6, sz - regsize, 0, 0, RM.load);    // PUSH EA+sz-2
                 code_orflag(cdb.last(), flag);
@@ -4960,7 +4966,7 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
             assert(I64 || sz <= tysize(TYreal));
             int i = cast(int)sz;
             if (!I16 && i == 2)
-                flag = CFopsize;
+                flag = CF.opsize;
 
             if (config.target_cpu >= TARGET_80286)
     //       && (e.Ecount == 0 || e.Ecount != e.Ecomsub))
@@ -4969,7 +4975,7 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
                 if (I16 && config.target_cpu >= TARGET_80386 && i >= 4)
                 {
                     regsize = 4;
-                    flag = CFopsize;
+                    flag = CF.opsize;
                 }
             }
             else if (i == REGSIZE)
@@ -5175,7 +5181,7 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
                 cdb.gen2(op, modregrm(0, r, regtorm[reg]));       // FSTP [reg]
             }
             if (LARGEDATA)
-                cdb.last().Iflags |= CFss;     // want to store into stack
+                cdb.last().Iflags |= CF.ss;     // want to store into stack
             genfwait(cdb);         // FWAIT
             return;
         }
@@ -5298,7 +5304,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
         }
     }
     int sz = _tysize[tym];
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.Irex = 0;
     if (outretregs == mPSW)
     {
@@ -5392,7 +5398,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
                 loadea(cg, cdb, e, cs, 0x0B, reg, i, regm, 0); // OR reg,data+i
                 code* c = cdb.last();
                 if (i == 0)
-                    c.Iflags |= CFpsw;                      // need the flags on last OR
+                    c.Iflags |= CF.psw;                      // need the flags on last OR
             }
         }
         else if (sz == tysize(TYreal))               // TYreal
@@ -5657,7 +5663,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
             reg = findregmsw(forregs);
             loadea(cg, cdb, e, cs, 0x8B, reg, REGSIZE, forregs, 0); // MOV reg,data+2
             if (I32 && sz == REGSIZE + 2)
-                cdb.last().Iflags |= CFopsize;                   // seg is 16 bits
+                cdb.last().Iflags |= CF.opsize;                   // seg is 16 bits
             reg = findreglsw(forregs);
             loadea(cg, cdb, e, cs, 0x8B, reg, 0, forregs, 0);       // MOV reg,data
         }

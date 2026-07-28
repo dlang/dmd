@@ -29,7 +29,9 @@ module core.internal.gc.impl.conservative.gc;
 //debug = VALGRIND;             // Valgrind memcheck integration
 
 /***************************************************/
-version = COLLECT_PARALLEL;  // parallel scanning
+version (WASI) {} // WASI is single-threaded
+else version = COLLECT_PARALLEL;  // parallel scanning
+
 version (Posix)
     version = COLLECT_FORK;
 
@@ -1336,7 +1338,7 @@ class ConservativeGC : GC
         // when collecting.
         static size_t go(Gcx* gcx) nothrow
         {
-            return gcx.fullcollect(false, true); // standard stop the world
+            return gcx.fullcollect(true, false); // standard stop the world
         }
         immutable result = runLocked!go(gcx);
 
@@ -2208,7 +2210,7 @@ struct Gcx
                 if (!newPool(1, false))
                 {
                     // out of memory => try to free some memory
-                    fullcollect(false, true); // stop the world
+                    fullcollect(true, false); // stop the world
                     if (lowMem)
                         minimize();
                     recoverNextPage(bin);
@@ -2216,7 +2218,7 @@ struct Gcx
             }
             else if (usedSmallPages > 0)
             {
-                fullcollect();
+                fullcollect(false, false);
                 if (lowMem)
                     minimize();
                 recoverNextPage(bin);
@@ -2299,13 +2301,13 @@ struct Gcx
                 {
                     // disabled but out of memory => try to free some memory
                     minimizeAfterNextCollection = true;
-                    fullcollect(false, true);
+                    fullcollect(true, false);
                 }
             }
             else if (usedLargePages > 0)
             {
                 minimizeAfterNextCollection = true;
-                fullcollect();
+                fullcollect(false, false);
             }
             // If alloc didn't yet succeed retry now that we collected/minimized
             if (!pool && !tryAlloc() && !tryAllocNewPool())
@@ -3265,7 +3267,7 @@ struct Gcx
      * Return number of full pages free'd.
      * The collection is done concurrently only if block and isFinal are false.
      */
-    size_t fullcollect(bool block = false, bool isFinal = false) nothrow
+    size_t fullcollect(bool block, bool isFinal) nothrow
     {
         // It is possible that `fullcollect` will be called from a thread which
         // is not yet registered in runtime (because allocating `new Thread` is
@@ -3620,6 +3622,8 @@ Lmark:
             pullLoop!(true)();
         else
             pullLoop!(false)();
+
+        evStackFilled.reset(); // symmetric with setIfInitialized() above; avoids livelock when no pop ever happened
 
         debug(PARALLEL_PRINTF) printf("waitForScanDone done\n");
     }

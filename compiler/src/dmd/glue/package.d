@@ -29,7 +29,6 @@ import dmd.root.string;
 public import dmd.glue.objc;
 
 import dmd.glue.e2ir;
-import dmd.glue.s2ir;
 import dmd.glue.tocsym;
 import dmd.glue.toctype;
 import dmd.glue.toir;
@@ -40,14 +39,17 @@ import dmd.backend.cc;
 import dmd.backend.code;
 import dmd.backend.dt;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.blockopt;
+import dmd.backend.cg : localgot;
+import dmd.backend.dout : out_readonly, out_reset, outdata, writefunc;
+import dmd.backend.symbol : symbol_add, symbol_calloc, symbol_func, symbol_generate, symbol_name, symtab_t;
+import dmd.backend.x86.cg87 : cg87_reset;
 import dmd.backend.obj;
-import dmd.backend.var : bo;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.glue.s2ir;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
@@ -1051,7 +1053,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             block_appendexp(startBlk, exec); //payload
             startBlk.bc = BC.goto_;
             auto next = block_calloc(bo);
-            startBlk.appendSucc(next);
+            startBlk.Bsucc.push(next);
             startBlk.Bnext = next;
             next.bc = BC.ret;
             //Emit in binary
@@ -1257,18 +1259,10 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
     //printf("obj_start()\n");
 
     bzeroSymbol = null;
+    resetCtfeSymbolCache();
     rtlsym_reset();
     clearStringTab();
-
-    version (Windows)
-    {
-        import dmd.backend.mscoffobj;
-        objmod = MsCoffObj_init(&objbuf, srcfile, null);
-    }
-    else
-    {
-        objmod = Obj.initialize(&objbuf, srcfile, null);
-    }
+    objmod = Obj.initialize(&objbuf, srcfile, null);
 
     OutBuffer buf;
     buf.write("DMD ");
@@ -1338,6 +1332,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
     glue.ectorgates.setDim(0);
     glue.sdtors.setDim(0);
     glue.ssharedctors.setDim(0);
+    glue.sisharedctors.setDim(0);
     glue.esharedctorgates.setDim(0);
     glue.sshareddtors.setDim(0);
     glue.stests.setDim(0);
@@ -1731,6 +1726,7 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
     {
         /* Reference the C main() to pull it in to the executable
          */
+        static if (0) // superceded by object's import of core.internal.entrypoint : _d_cmain
         final switch (target.objectFormat())
         {
             case Target.ObjectFormat.elf:

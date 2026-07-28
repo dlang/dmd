@@ -230,12 +230,12 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return new ClassDeclaration(loc, id, baseclasses, members, inObject);
     }
 
-    override const(char)* toPrettyChars(bool qualifyTypes = false)
+    override const(char)* toPrettyChars(bool qualifyTypes = false, bool keepOneMember = false)
     {
         if (objc.isMeta)
             return .objc.toPrettyChars(this, qualifyTypes);
 
-        return super.toPrettyChars(qualifyTypes);
+        return super.toPrettyChars(qualifyTypes, keepOneMember);
     }
 
     override ClassDeclaration syntaxCopy(Dsymbol s)

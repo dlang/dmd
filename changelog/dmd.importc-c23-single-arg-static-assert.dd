@@ -1,0 +1,13 @@
+ImportC supports single-argument `_Static_assert(expr)`
+
+C23 makes the message operand of a static assertion optional.
+ImportC now accepts both forms:
+
+-------
+_Static_assert(sizeof(int) == 4);
+_Static_assert(sizeof(int) == 4, "unexpected int size");
+-------
+
+The two-argument form continues to work as before. When the assertion
+fails and no message was supplied, the diagnostic reports that the
+condition is false.

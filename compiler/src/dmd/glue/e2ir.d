@@ -73,11 +73,11 @@ import dmd.backend.code;
 import dmd.backend.cv4;
 import dmd.backend.dt;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.dout : out_readonly_comdat, out_string_literal;
+import dmd.backend.symbol : symbol_add, symbol_calloc, symbol_genauto, sytab, SYMIDX;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.util2 : mem_malloc2;
@@ -291,7 +291,7 @@ Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
     si.Sflags |= SFLnodebug | SFLartifical;
     si.Sfl = FL.data;
     si.Salignment = cast(ubyte)sz;
-    out_readonly_comdat(si, str, cast(uint)(len * sz), cast(uint)sz);
+    out_readonly_comdat(si, str[0 .. len * sz], cast(uint)sz);
 
     sv.value = si;
     return sv.value;
@@ -1015,7 +1015,10 @@ elem* toElem(Expression e, ref IRState irs)
     elem* visitDeclaration(DeclarationExp de)
     {
         //printf("DeclarationExp.toElem() %s\n", de.toChars());
-        return Dsymbol_toElem(de.declaration, irs);
+        elem* e = Dsymbol_toElem(de.declaration, irs);
+        if (e && de.type && de.type.toBasetype().ty == Tvoid)
+            e.Ety = TYvoid;
+        return e;
     }
 
     /***************************************
@@ -1668,11 +1671,12 @@ elem* toElem(Expression e, ref IRState irs)
             return e;
         }
 
+        tym_t ororty = ae.type && ae.type.toBasetype().ty == Tnoreturn ? TYnoreturn : TYvoid;
         if (irs.params.checkAction == CHECKACTION.C)
         {
             auto econd = toElem(ae.e1, irs);
             auto ea = callCAssert(irs, ae.loc, ae.e1, ae.msg, null);
-            auto eo = el_bin(OPoror, TYvoid, econd, ea);
+            auto eo = el_bin(OPoror, ororty, econd, ea);
             elem_setLoc(eo, ae.loc);
             return eo;
         }
@@ -1684,7 +1688,7 @@ elem* toElem(Expression e, ref IRState irs)
              */
             auto econd = toElem(ae.e1, irs);
             auto ea = genHalt(ae.loc);
-            auto eo = el_bin(OPoror, TYvoid, econd, ea);
+            auto eo = el_bin(OPoror, ororty, econd, ea);
             elem_setLoc(eo, ae.loc);
             return eo;
         }
@@ -1771,11 +1775,11 @@ elem* toElem(Expression e, ref IRState irs)
         {
             // tmp = e, e || assert, e.inv
             elem* eassign = el_bin(OPeq, e.Ety, el_var(ts), e);
-            e = el_combine(eassign, el_bin(OPoror, TYvoid, el_var(ts), ea));
+            e = el_combine(eassign, el_bin(OPoror, ororty, el_var(ts), ea));
             e = el_combine(e, einv);
         }
         else
-            e = el_bin(OPoror,TYvoid,e,ea);
+            e = el_bin(OPoror,ororty,e,ea);
         elem_setLoc(e,ae.loc);
         return e;
     }
@@ -5789,6 +5793,13 @@ elem* callfunc(Loc loc,
                 ethis = el_copytotmp(ex);
                 eside = el_combine(ex, eside);
             }
+
+            // Non-virtual (e.g. final) methods are dispatched statically and
+            // don't dereference 'this' at the call site, so the null check that
+            // the virtual path gets from its vtable lookup would otherwise be
+            // skipped. Insert it here so null 'this' is caught before the call.
+            if (tybasic(ethis.Ety) == TYnptr && irs.nullDerefCheck())
+                applyNullDerefErrorCheck(ethis, TYnptr, irs, loc);
         }
         else
         {
@@ -5818,9 +5829,6 @@ elem* callfunc(Loc loc,
             // make virtual call
             assert(ethis);
             elem* ev = el_same(ethis);
-
-            if (irs.nullDerefCheck())
-                applyNullDerefErrorCheck(ev, TYnptr, irs, loc);
 
             ev = el_una(OPind, TYnptr, ev);
             uint vindex = fd.vtblIndex;

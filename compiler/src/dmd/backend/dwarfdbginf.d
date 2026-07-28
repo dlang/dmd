@@ -68,14 +68,14 @@ static if (1)
     import dmd.backend.dwarf;
     import dmd.backend.dwarf2;
     import dmd.backend.mem;
-    import dmd.backend.dlist;
     import dmd.backend.el;
     import dmd.backend.elfobj : addSegmentToComdat;
     import dmd.backend.machobj : getsegment2;
     import dmd.backend.global;
+    import dmd.backend.symbol : symbol_name, symbol_reset, globsym;
     import dmd.backend.obj;
     import dmd.backend.oper;
-    import dmd.backend.symtab;
+    import dmd.backend.symbol;
     import dmd.backend.ty;
     import dmd.backend.type;
 
@@ -83,7 +83,6 @@ static if (1)
     import dmd.backend.mach;
 
     import dmd.common.outbuffer;
-
 
     nothrow:
     private:
@@ -173,14 +172,21 @@ static if (1)
             assert(0);
     }
 
-    int dwarf_eh_frame_alloc()
+    /*****************
+     * Returns the eh_frame segment number, create segment if necessary.
+     * Returns:
+     *  segment index of eh_frame
+     */
+    IDXSEC dwarf_eh_frame_alloc()
     {
         if (config.objfmt == OBJ_ELF)
             return dwarf_getsegment_alloc(".eh_frame", null, I64 ? 2 : 1);
         if (config.objfmt == OBJ_MACH)
         {
-            int seg = getsegment2(eh_frame_seg, "__eh_frame", "__TEXT", I64 ? 3 : 2,
-                S_COALESCED | S_ATTR_NO_TOC | S_ATTR_STRIP_STATIC_SYMS | S_ATTR_LIVE_SUPPORT);
+            int flags = S_COALESCED | S_ATTR_NO_TOC | S_ATTR_STRIP_STATIC_SYMS | S_ATTR_LIVE_SUPPORT;
+            if (AArch64())
+                flags = S_REGULAR | S_ATTR_NO_DEAD_STRIP;
+            int seg = getsegment2(eh_frame_seg, "__eh_frame", "__TEXT", I64 ? 3 : 2, flags);
             /* Generate symbol for it to use for fixups
              */
             if (!eh_frame_sym)
@@ -229,6 +235,7 @@ static if (1)
             }
             else if (config.objfmt == OBJ_MACH)
             {
+                // Should this be 32 for AArch64?
                 dwarf_addrel64(seg, buf.length(), targseg, 0);
                 buf.write64(val);
             }
@@ -296,7 +303,7 @@ static if (1)
             }
             return reg;
         }
-        else if (config.target_cpu == TARGET_AArch64)
+        else if (AArch64)
         {   // https://github.com/ARM-software/abi-aa/blob/main/aadwarf64/aadwarf64.rst#dwarf-register-names
             return (reg < 32) ? reg : reg - 32 + 64;
         }
@@ -652,15 +659,27 @@ static if (1)
          * EH code: "zPLR"
          */
 
-        const bool AArch64 = config.target_cpu == TARGET_AArch64;
+        const bool AArch64 = AArch64();
+        const bool AppleAArch64 = AArch64 && config.objfmt == OBJ_MACH;
+
         const uint startsize = cast(uint)buf.length();
 
         // Length of CIE, not including padding
-        const uint cielen = 4 + 4 + 1 +
-            (ehunwind ? 5 : 3) +
-            1 + 1 + 1 +
-            (ehunwind ? 8 : 2) +
-            (AArch64 ? 3 : 5);
+        uint cielen = 4 + 4 + 1 +        // (length of CIE) + (CIE ID) + (version_)
+            (ehunwind ? 5 : 3) +         // "zPLR"0 : "zR"0
+            1 + 1 + 1 +                  // (code alignment factor) + (data alignment factor) + (return address register)
+            (ehunwind ? 8 : 2) +         //   (1:Augmentation Length) +
+                                         // P (1:personality pointer encoding) +
+                                         // L (4:LSDA pointer reference) +
+                                         // L (1:address encoding for LSDA) +
+                                         // R (1:encoding of addresses in FDE)
+                                         // : (1:Augmentation Length) +
+                                         //   (1:encoding of addresses in FDE)
+            (AArch64 ? 3 : 5);           // CFA beginning state
+        if (AppleAArch64 && ehunwind)
+        {
+            cielen -= /* L */ 1 + /* L */ (4 + 1);
+        }
 
         const uint pad = -cielen & (AArch64 ? 3 : (I64 ? 7 : 3));  // pad to addressing unit size boundary
         const uint length = cielen + pad - 4;
@@ -670,7 +689,12 @@ static if (1)
         buf.write32(0);            // CIE ID
         buf.writeByten(1);         // version_
         if (ehunwind)
-            buf.write("zPLR".ptr, 5);  // Augmentation String
+        {
+            if (AppleAArch64)
+                buf.write("zPR".ptr, 4);   // Augmentation String
+            else
+                buf.write("zPLR".ptr, 5);  // Augmentation String
+        }
         else
             buf.writen("zR".ptr, 3);
         // not present: EH Data: 4 bytes for I32, 8 bytes for I64
@@ -696,24 +720,39 @@ static if (1)
             else if (config.objfmt == OBJ_MACH)
             {
                 personality_pointer_encoding =
-                            DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata4;
-                LSDA_pointer_encoding =
-                            DW_EH_PE_pcrel | DW_EH_PE_ptr;
-                address_pointer_encoding =
-                            DW_EH_PE_pcrel | DW_EH_PE_ptr;
+                           DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata4;
+                if (AArch64)
+                {
+                    LSDA_pointer_encoding    = DW_EH_PE_pcrel | DW_EH_PE_sdata4;
+                    address_pointer_encoding = DW_EH_PE_pcrel | DW_EH_PE_sdata4;
+                }
+                else
+                {
+                    LSDA_pointer_encoding    = DW_EH_PE_pcrel | DW_EH_PE_ptr;
+                    address_pointer_encoding = DW_EH_PE_pcrel | DW_EH_PE_ptr;
+                }
             }
-            buf.writeByten(7);                                  // Augmentation Length
-            buf.writeByten(personality_pointer_encoding);       // P: personality routine address encoding
-            /* MACHOBJ 64: pcrel 1 length 2 extern 1 RELOC_GOT
-             *         32: [4] address x0013 pcrel 0 length 2 value xfc type 4 RELOC_LOCAL_SECTDIFF
-             *             [5] address x0000 pcrel 0 length 2 value xc7 type 1 RELOC_PAIR
-             */
-            if (config.objfmt == OBJ_ELF)
-                elf_dwarf_reftoident(dfseg, buf.length(), personality, 0);
+            if (AppleAArch64)
+            {
+                buf.writeByten(2);                                  // Augmentation Length
+                buf.writeByten(personality_pointer_encoding);       // P: personality routine address encoding
+                buf.writeByten(address_pointer_encoding);           // R: encoding of addresses in FDE
+            }
             else
-                mach_dwarf_reftoident(dfseg, buf.length(), personality, 0);
-            buf.writeByten(LSDA_pointer_encoding);              // L: address encoding for LSDA in FDE
-            buf.writeByten(address_pointer_encoding);           // R: encoding of addresses in FDE
+            {
+                buf.writeByten(7);                                  // Augmentation Length
+                buf.writeByten(personality_pointer_encoding);       // P: personality routine address encoding
+                /* MACHOBJ 64: pcrel 1 length 2 extern 1 RELOC_GOT
+                 *         32: [4] address x0013 pcrel 0 length 2 value xfc type 4 RELOC_LOCAL_SECTDIFF
+                 *             [5] address x0000 pcrel 0 length 2 value xc7 type 1 RELOC_PAIR
+                 */
+                if (config.objfmt == OBJ_ELF)
+                    elf_dwarf_reftoident(dfseg, buf.length(), personality, 0);
+                else
+                    mach_dwarf_reftoident(dfseg, buf.length(), personality, 0);
+                buf.writeByten(LSDA_pointer_encoding);              // L: address encoding for LSDA in FDE
+                buf.writeByten(address_pointer_encoding);           // R: encoding of addresses in FDE
+            }
         }
         else
         {
@@ -771,6 +810,10 @@ static if (1)
     {
         if (I64)
         {
+            // Pad to 8 byte boundary
+            for (uint n = (-cfa_buf.length() & 7); n; n--)
+                cfa_buf.writeByte(DW_CFA_nop);
+
             static struct DebugFrameFDE64
             {
               align (1):
@@ -781,22 +824,13 @@ static if (1)
             }
             static assert(DebugFrameFDE64.sizeof == 24);
 
-            __gshared DebugFrameFDE64 debugFrameFDE64 =
+            DebugFrameFDE64 debugFrameFDE64 =
             {
-                20,             // length
-                0,              // CIE_pointer
-                0,              // initial_location
-                0,              // address_range
+                length           : 20 + cast(uint)cfa_buf.length(),
+                CIE_pointer      : cast(int)sfunc.Ssize,
+                initial_location : 0, // sfunc.Soffset ?
+                address_range    : sfunc.Ssize,
             };
-
-            // Pad to 8 byte boundary
-            for (uint n = (-cfa_buf.length() & 7); n; n--)
-                cfa_buf.writeByte(DW_CFA_nop);
-
-            debugFrameFDE64.length = 20 + cast(uint)cfa_buf.length();
-            debugFrameFDE64.address_range = sfunc.Ssize;
-            // Do we need this?
-            //debugFrameFDE64.initial_location = sfunc.Soffset;
 
             OutBuffer* debug_frame_buf = SegData[dfseg].SDbuf;
             uint debug_frame_buf_offset = cast(uint)debug_frame_buf.length();
@@ -812,6 +846,10 @@ static if (1)
         }
         else
         {
+            // Pad to 4 byte boundary
+            for (uint n = (-cfa_buf.length() & 3); n; n--)
+                cfa_buf.writeByte(DW_CFA_nop);
+
             static struct DebugFrameFDE32
             {
               align (1):
@@ -822,22 +860,13 @@ static if (1)
             }
             static assert(DebugFrameFDE32.sizeof == 16);
 
-            __gshared DebugFrameFDE32 debugFrameFDE32 =
+            DebugFrameFDE32 debugFrameFDE32 =
             {
-                12,             // length
-                0,              // CIE_pointer
-                0,              // initial_location
-                0,              // address_range
+                length           : 12 + cast(uint)cfa_buf.length(),
+                CIE_pointer      : 0,
+                initial_location : 0, // sfunc.Soffset?
+                address_range    : cast(uint)sfunc.Ssize,
             };
-
-            // Pad to 4 byte boundary
-            for (uint n = (-cfa_buf.length() & 3); n; n--)
-                cfa_buf.writeByte(DW_CFA_nop);
-
-            debugFrameFDE32.length = 12 + cast(uint)cfa_buf.length();
-            debugFrameFDE32.address_range = cast(uint)sfunc.Ssize;
-            // Do we need this?
-            //debugFrameFDE32.initial_location = sfunc.Soffset;
 
             OutBuffer* debug_frame_buf = SegData[dfseg].SDbuf;
             uint debug_frame_buf_offset = cast(uint)debug_frame_buf.length();
@@ -925,7 +954,8 @@ static if (1)
                 err_nomem();
             memcpy(name, getSymName(sfunc), len);
             memcpy(name + len, ".eh".ptr, 3 + 1);
-            fdesym = symbol_name(name[0 .. len + 3], SC.global, tspvoid);
+            SC sclass = AArch64 ? SC.locstat : SC.global;
+            fdesym = symbol_name(name[0 .. len + 3], sclass, tspvoid);
             Obj.pubdef(dfseg, fdesym, startsize);
             symbol_keep(fdesym);
             free(name);
@@ -936,7 +966,7 @@ static if (1)
             /* Do not have info on naked functions. Assume they set up standard stack frame.
              */
             int cfa_offset;
-            dwarf_emit_eh_frame(config.target_cpu == TARGET_AArch64, 0, cfa_offset);
+            dwarf_emit_eh_frame(AArch64, 0, cfa_offset);
         }
 
         // Length of FDE, not including padding
@@ -964,7 +994,7 @@ static if (1)
         if (config.objfmt == OBJ_ELF)
         {
             fixup = I64 ? R_X86_64_PC32 : R_386_PC32;
-            if (config.target_cpu == TARGET_AArch64)
+            if (AArch64)
                 fixup = R_AARCH64_PREL32;
             buf.write32(cast(uint)(I64 ? 0 : sfunc.Soffset));             // address of function
             Obj.addrel(dfseg, startsize + 8, fixup, cast(int)MAP_SEG2SYMIDX(sfunc.Sseg), sfunc.Soffset);
@@ -973,7 +1003,10 @@ static if (1)
         }
         if (config.objfmt == OBJ_MACH)
         {
-            dwarf_eh_frame_fixup(dfseg, buf.length(), sfunc, 0, fdesym);
+//printf("======= PC Begin sfunc %s fdesym %s\n", sfunc.Sident.ptr, fdesym.Sident.ptr);
+//symbol_print(*sfunc);
+//symbol_print(*fdesym);
+            dwarf_eh_frame_fixup(dfseg, buf.length(), sfunc, 0, fdesym); // PC Begin
 
             if (I64)
                 buf.write64(sfunc.Ssize);                     // PC Range
@@ -997,7 +1030,10 @@ static if (1)
             }
             if (config.objfmt == OBJ_MACH)
             {
-                buf.writeByten(I64 ? 8 : 4);                   // Augmentation Data Length
+                ubyte len = config.target_cpu == TARGET_AArch64 ? 4 :
+                              I64 ? 8 : 4;
+                buf.writeByten(len);                   // Augmentation Data Length goes here
+//printf("1buf.length: x%zx %s %s\n", buf.length(), sfunc.Sfunc.LSDAsym.Sident.ptr, fdesym.Sident.ptr);
                 dwarf_eh_frame_fixup(dfseg, buf.length(), sfunc.Sfunc.LSDAsym, 0, fdesym);
             }
         }
@@ -1741,7 +1777,7 @@ static if (1)
         //printf("dwarf_func_start(%s)\n", sfunc.Sident.ptr);
         CFA_state* cfa_state = &CFA_state_current;
         memset(cfa_state,0,CFA_state.sizeof);
-        if (config.target_cpu == TARGET_AArch64)
+        if (AArch64)
         {
             cfa_state.reg      = INSTR.SP;
             cfa_state.offset   = OFFSET_FAC;
@@ -2015,9 +2051,8 @@ static if (1)
                             /* find member offset in closure */
                             targ_size_t memb_off = 0;
                             struct_t* st = sa.Sscope.Stype.Tnext.Ttag.Sstruct; // Sscope is __closptr
-                            foreach (sl; ListRange(st.Sfldlst))
+                            foreach (sf; st.Sfields[])
                             {
-                                Symbol* sf = list_symbol(sl);
                                 if (sf.Sclass == SC.member)
                                 {
                                     if(strcmp(sa.Sident.ptr, sf.Sident.ptr) == 0)
@@ -2217,15 +2252,6 @@ static if (1)
             default:
                 break;
         }
-    }
-
-
-    /******************************************
-     * Write out any deferred symbols.
-     */
-    static if (0)
-    void cv_outlist()
-    {
     }
 
 
@@ -2632,10 +2658,10 @@ static if (1)
                 OutBuffer tmpbuf;
                 nextidx = dwarf_typidx(t.Tnext);                   // function return type
                 tmpbuf.write32(nextidx);
-                uint params = 0;
-                for (param_t* p2 = t.Tparamtypes; p2; p2 = p2.Pnext)
+                size_t params = t.Tparamtypes ? (*t.Tparamtypes).length : 0;
+                foreach (i; 0 .. params)
                 {
-                    params = 1;
+                    param_t* p2 = &(*t.Tparamtypes)[i];
                     uint paramidx = dwarf_typidx(p2.Ptype);
                     //printf("1: paramidx = %d\n", paramidx);
 
@@ -2699,7 +2725,7 @@ static if (1)
 
                     uint* pparamidx = cast(uint*)(functypebuf.buf + functypebufidx);
                     //printf("2: functypebufidx = %x, pparamidx = %p, size = %x\n", functypebufidx, pparamidx, functypebuf.length());
-                    for (param_t* p2 = t.Tparamtypes; p2; p2 = p2.Pnext)
+                    foreach (i; 0 .. params)
                     {
                         debug_info.buf.writeuLEB128(paramcode);
                         //uint x = dwarf_typidx(p2.Ptype);
@@ -2870,9 +2896,8 @@ static if (1)
                 // Count number of fields
                 uint nfields = 0;
                 t.Tflags |= TF.forward;
-                foreach (sl; ListRange(st.Sfldlst))
+                foreach (sf; st.Sfields[])
                 {
-                    Symbol* sf = list_symbol(sl);
                     switch (sf.Sclass)
                     {
                         case SC.member:
@@ -2971,9 +2996,8 @@ static if (1)
 
                     s.Stypidx = idx;
                     n = 0;
-                    foreach (sl; ListRange(st.Sfldlst))
+                    foreach (sf; st.Sfields[])
                     {
-                        Symbol* sf = list_symbol(sl);
                         size_t soffset;
 
                         switch (sf.Sclass)
@@ -3020,7 +3044,6 @@ static if (1)
                 enum_t* se = s.Senum;
                 type* tbase2 = s.Stype.Tnext;
                 uint sz = cast(uint)type_size(tbase2);
-                symlist_t sl;
 
                 if (s.Stypidx)
                     return s.Stypidx;
@@ -3065,9 +3088,8 @@ static if (1)
                 debug_info.buf.writeStringz(getSymName(s)); // DW_AT_name
                 debug_info.buf.writeByte(cast(ubyte)sz);    // DW_AT_byte_size
 
-                foreach (sl2; ListRange(s.Senum.SEenumlist))
+                foreach (sf; s.Senum.SEenums)
                 {
-                    Symbol* sf = cast(Symbol*)list_ptr(sl2);
                     const value = cast(uint)el_tolong(sf.Svalue);
 
                     debug_info.buf.writeuLEB128(membercode);
@@ -3323,3 +3345,6 @@ private char* filespecname(const(char)* filespec) nothrow
     { }
     return cast(char*)p;
 }
+
+private nothrow
+bool AArch64() { return config.target_cpu == TARGET_AArch64; }

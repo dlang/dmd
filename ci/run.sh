@@ -172,7 +172,7 @@ test_dub_package() {
         echo "Skipping DUB examples on GDC."
     else
         local abs_build_path="$PWD/$build_path"
-        pushd test/dub_package
+        pushd compiler/test/dub_package
         for file in *.d ; do
             dubcmd=""
             # running impvisitor is failing right now
@@ -186,8 +186,21 @@ test_dub_package() {
         done
         popd
         # Test rdmd build
-        "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jsrc/dmd/res -Isrc -i -run test/dub_package/frontend.d
+        "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jcompiler/src/dmd/res -Icompiler/src -i -run compiler/test/dub_package/frontend.d
     fi
+    if [ "$OS_NAME" != "windows" ]; then
+        deactivate
+    fi
+}
+
+# test that the dmd:frontend subpackage links correctly (no backend symbols pulled in)
+test_frontend_subpackage() {
+    if [ "$OS_NAME" != "windows" ]; then
+        source ~/dlang/*/activate # activate host compiler
+    fi
+    local abs_build_path="$PWD/$build_path"
+    dub --single compiler/test/dub_package/frontend_subpackage.d
+    DFLAGS="-m${MODEL:-64} -de" dub --single --compiler="${abs_build_path}/dmd" compiler/test/dub_package/frontend_subpackage.d
     if [ "$OS_NAME" != "windows" ]; then
         deactivate
     fi
@@ -297,6 +310,7 @@ if [ "$#" -gt 0 ]; then
     test_druntime) test_druntime ;;
     test_phobos) test_phobos ;;
     test_dub_package) test_dub_package ;;
+    test_frontend_subpackage) test_frontend_subpackage ;;
     testsuite) testsuite ;;
     codecov) codecov ;;
     *) echo "Unknown command: $1" >&2; exit 1 ;;

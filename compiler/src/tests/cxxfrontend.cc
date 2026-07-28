@@ -354,8 +354,8 @@ void test_target()
 void test_parameters()
 {
     Parameters *args = new Parameters;
-    args->push(Parameter::create(Loc(), STCundefined, Type::tint32, NULL, NULL, NULL));
-    args->push(Parameter::create(Loc(), STCundefined, Type::tint64, NULL, NULL, NULL));
+    args->push(Parameter::create(Loc(), STCundefined, Type::tint32, NULL, NULL, NULL, NULL));
+    args->push(Parameter::create(Loc(), STCundefined, Type::tint64, NULL, NULL, NULL, NULL));
 
     TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINK::c);
 

@@ -99,8 +99,10 @@ extern (C) int main(int argc, char** argv)
     {
         static if(__VERSION__ < 2085)
             __gshared string[] disable_options = [ "gcopt=disable:1" ];
-        else
+        else static if(__VERSION__ < 2096)
             __gshared string[] disable_options = [ "gcopt=disable:1 cleanup:none" ];
+        else
+            __gshared string[] disable_options = [ "gcopt=disable:1 gc:bump cleanup:none" ];
         rt_options = disable_options;
         mem.disableGC();
     }
@@ -183,11 +185,6 @@ private int tryMain(const(char)[][] argv, out Param params)
         // If we are here then compilation has ended
         // gracefully as opposed to with `fatal`
         global.plugErrorSinks();
-
-        if (global.errors == 0 && global.params.v.messageStyle == MessageStyle.sarif)
-        {
-            generateSarifReport(true);
-        }
     }
 
     target.setTargetBuildDefaults();
@@ -195,6 +192,20 @@ private int tryMain(const(char)[][] argv, out Param params)
     if (parseCommandlineAndConfig(argv, params, files, eSink))
         return EXIT_FAILURE;
 
+    if (global.params.v.messageStyle == MessageStyle.sarif)
+    {
+        // Hand off the settings the CLI wrote into the original sink so the
+        // SARIF sink shares the same gating decisions.
+        auto sarif = new ErrorSinkSarif();
+        sarif.useDeprecated = global.errorSink.useDeprecated;
+        sarif.useWarnings = global.errorSink.useWarnings;
+        sarif.showGaggedErrors = global.errorSink.showGaggedErrors;
+        global.errorSink = sarif;
+        eSink = sarif;
+    }
+    global.errorSink.errorLimit = global.params.v.errorLimit;
+
+    global.compileEnv.tuples           = params.tuples == FeatureState.enabled;
     global.compileEnv.previewIn        = params.previewIn;
     global.compileEnv.transitionIn     = params.v.vin;
     global.compileEnv.ddocOutput       = params.ddoc.doOutput;
@@ -603,7 +614,7 @@ private int tryMain(const(char)[][] argv, out Param params)
         }
     }
     if (global.errors)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(params.dihdr.doOutput, modules);
 
     {
     timeTraceBeginEvent(TimeTraceEventType.semaGeneral);
@@ -617,7 +628,7 @@ private int tryMain(const(char)[][] argv, out Param params)
         m.importAll(null);
     }
     if (global.errors)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(params.dihdr.doOutput, modules);
 
     backend_init(params, driverParams, target);
 
@@ -650,7 +661,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     }
     runDeferredSemantic2();
     if (global.errors)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(params.dihdr.doOutput, modules);
 
     // Do pass 3 semantic analysis
     foreach (m; modules)
@@ -675,7 +686,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     }
     runDeferredSemantic3();
     if (global.errors)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(params.dihdr.doOutput, modules);
 
     {
     timeTraceBeginEvent(TimeTraceEventType.inlineGeneral);
@@ -707,12 +718,12 @@ private int tryMain(const(char)[][] argv, out Param params)
     if (global.warnings)
         errorOnWarning();
 
-    if (global.params.useDeprecated == DiagnosticReporting.inform)
+    if (global.errorSink.useDeprecated == DiagnosticReporting.inform)
         mentionOmittedDeprecations();
 
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(params.dihdr.doOutput, modules);
 
     // inlineScan incrementally run semantic3 of each expanded functions.
     // So deps file generation should be moved after the inlining stage.
@@ -895,7 +906,7 @@ private int tryMain(const(char)[][] argv, out Param params)
         errorOnWarning();
 
     if (global.errors || global.warnings)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(params.dihdr.doOutput, modules);
 
     return status;
 }
@@ -1067,7 +1078,7 @@ void reconcileCommands(ref Param params, ref Target target, ErrorSink eSink)
             eSink.error(Loc.initial, "`-m32` is not supported on DragonFlyBSD, it is 64-bit only");
     }
 
-    if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
+    if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD | Target.OS.Hurd))
     {
         if (driverParams.lib && driverParams.dll)
             eSink.error(Loc.initial, "cannot mix `-lib` and `-shared`");
@@ -1168,7 +1179,7 @@ void reconcileCommands(ref Param params, ref Target target, ErrorSink eSink)
  *               and update in place
  *      numSrcFiles = number of source files
  *      obj_ext = object file extension
- *	eSink = error message sink
+ *      eSink = error message sink
  */
 private
 void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_ext, ErrorSink eSink)
@@ -1184,7 +1195,23 @@ void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_
             {
                 VSOptions vsopt;
                 vsopt.initialize();
-                driverParams.mscrtlib = vsopt.defaultRuntimeLibrary(target.isX86_64).toDString;
+                if (const rtlib = vsopt.defaultRuntimeLibrary(target.isX86_64))
+                    driverParams.mscrtlib = rtlib.toDString;
+                else
+                {
+                    // No UCRT-capable Visual C installation (VS2015+ or the Windows SDK
+                    // with the Universal CRT) and no MinGW fallback libraries were found.
+                    if (driverParams.link)
+                        eSink.error(Loc.initial, "no compatible C runtime found; install Visual Studio 2015 or later, or the Windows SDK with the Universal CRT, or specify the runtime with `-mscrtlib`");
+                    // still embed a name in the object file so it can be linked elsewhere
+                    driverParams.mscrtlib = "libcmt";
+                }
+
+                // @@@ Deprecated v2.117
+                // Deprecated in 2.113
+                // Remove this when the feature is removed from the language
+                if (vsopt.usedDeprecatedVSVersion)
+                    eSink.deprecation(Loc.initial, "Visual Studio versions prior to 2015 are deprecated because they lack the Universal CRT (UCRT); install Visual Studio 2015 or later");
             }
             else
             {

@@ -25,6 +25,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.backconfig : debugc;
 import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -36,16 +37,19 @@ import dmd.backend.x86.cgcod : disassemble;
 import dmd.backend.x86.code_x86;
 import dmd.backend.x86.cod3;
 import dmd.backend.codebuilder;
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.melf;
 import dmd.backend.mem;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE, mask;
+import dmd.backend.cg : localgot;
+import dmd.backend.debugprint : fl_str, tym_str;
+import dmd.backend.dwarfdbginf : dwarf_CFA_offset, dwarf_CFA_set_loc;
+import dmd.backend.evalu8 : boolres;
+import dmd.backend.symbol : symbol_print;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.x86.xmm;
@@ -363,7 +367,7 @@ void gen_storecse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
     }
     code cs;
     cs.IFL1 = FL.cs;
-    cs.Iflags = CFoff;
+    cs.Iflags = CF.off;
     cs.reg = NOREG;
     cs.index = NOREG;
     cs.base = 29;   // SP? BPRM? TODO AArch64
@@ -390,7 +394,7 @@ void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
     }
     code cs;
     cs.IFL1 = FL.cs;
-    cs.Iflags = CFoff;
+    cs.Iflags = CF.off;
     cs.reg = NOREG;
     cs.index = NOREG;
     cs.base = 29;   // SP? BPRM? TODO AArch64
@@ -422,7 +426,7 @@ void gentstreg(ref CodeBuilder cdb, reg_t reg, uint sf)
 {
     // CMP reg,#0
     cdb.gen1(INSTR.cmp_imm(sf, 0, 0, reg));
-    code_orflag(cdb.last(),CFpsw);
+    code_orflag(cdb.last(),CF.psw);
 }
 
 // genpush
@@ -442,11 +446,11 @@ void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
     //printf("genBranch(cond: %d)\n", cond);
     code cs;
     cs.Iop = INSTR.b_cond(0, cond);     // offset is 0 for now, fix in codout()
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.IFL1 = fltarg;                   // FL.block (or FL.code)
     cs.IEV1.Vblock = targ;              // target block (or code)
     if (fltarg == FL.code)
-        (cast(code*)targ).Iflags |= CFtarg;
+        (cast(code*)targ).Iflags |= CF.targ;
     cdb.gen(&cs);
 }
 
@@ -469,11 +473,11 @@ void genCompBranch(ref CodeBuilder cdb, uint sf, reg_t R, bool op, FL fltarg, bl
     code cs;
     uint imm19 = 0;                     // offset is 0 for now, fix in codout()
     cs.Iop = INSTR.compbranch(sf, op, imm19, R);
-    cs.Iflags = 0;
+    cs.Iflags = CF.zero;
     cs.IFL1 = fltarg;                   // FL.block (or FL.code)
     cs.IEV1.Vblock = targ;              // target block (or code)
     if (fltarg == FL.code)
-        (cast(code*)targ).Iflags |= CFtarg;
+        (cast(code*)targ).Iflags |= CF.targ;
     cdb.gen(&cs);
 }
 
@@ -656,7 +660,7 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 
     cs.IEV1.Vsym = sv;
     cs.IFL1 = sv.Sfl;
-    cs.Iflags = CFoff;
+    cs.Iflags = CF.off;
     cg.reflocal = true;
 
     regm_t namedargs = prolog_namedArgs();
@@ -955,7 +959,7 @@ void epilog(ref CGstate cg, block* b)
         Symbol* s = getRtlsym(farfunc ? RTLSYM.TRACE_EPI_F : RTLSYM.TRACE_EPI_N);
         makeitextern(s);
         cdbx.gencs(I16 ? 0x9A : CALL,0,FL.func,s);      // CALLF _trace
-        code_orflag(cdbx.last(),CFoff | CFselfrel);
+        code_orflag(cdbx.last(),CF.off | CF.selfrel26);
         useregs((ALLREGS | mBP | mES) & ~s.Sregsaved);
         assert(0);      // TODO AArch64
     }
@@ -1018,7 +1022,7 @@ void epilog(ref CGstate cg, block* b)
                     code_orrex(cdbx.last(),REX_W);
                 genjmp(cdbx,JNE,FL.code,cast(block*)c1);                  // JNE L1
                 // explicitly mark as short jump, needed for correct retsize calculation (Bugzilla 15779)
-                cdbx.last().Iflags &= ~CFjmp16;
+                cdbx.last().Iflags &= ~CF.jmp16;
                 cdbx.gen1(0x58 + BP);                                 // POP BP
             }
             else if (config.exe == EX_WIN64)
@@ -1233,7 +1237,7 @@ void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
         }
     }
     cdb.gencs1(INSTR.bl(0),0,FL.func,sfunc); // BL sfunc // http://www.scs.stanford.edu/~zyedidia/arm64/bl.html
-    cdb.last().Iflags |= (CFselfrel | CFoff);
+    cdb.last().Iflags |= (CF.selfrel26 | CF.off);
 
     thunkoffset = Offset(seg);
     code* c = cdb.finish();
@@ -1329,7 +1333,7 @@ int branch(block* bl,int flag)
                     disp = 0;
 
                     ct = c.IEV1.Vcode;         /* target of branch     */
-                    assert(ct.Iflags & (CFtarg | CFtarg2));
+                    assert(ct.Iflags & (CF.targ | CF.targ2));
                     for (cr = cn; cr; cr = code_next(cr))
                     {
                         if (cr == ct)
@@ -1366,7 +1370,7 @@ int branch(block* bl,int flag)
                             else
                             {
                                 c.IEV1.Vcode = ct;
-                                ct.Iflags |= CFtarg;
+                                ct.Iflags |= CF.targ;
                                 break;
                             }
                         }
@@ -1410,7 +1414,7 @@ int branch(block* bl,int flag)
                 }
                 else                            // else Jcond
                 {
-                    c.Iflags &= ~CFjmp16;      // a branch is ok
+                    c.Iflags &= ~CF.jmp16;      // a branch is ok
                     bytesaved += I16 ? 3 : 4;
                 }
                 csize = calccodsize(c);
@@ -1826,25 +1830,8 @@ if ((ins & 0x9F00_0000) == 0x9000_0000)
         switch (c.IFL1)
         {
             case FL.data:
-                if (config.objfmt == OBJ_OMF && s.Sclass != SC.comdat && s.Sclass != SC.extern_)
-                {
-                    c.IEV1.Vseg = s.Sseg;
-                    c.IEV1.Vpointer += s.Soffset;
-                    c.IFL1 = FL.datseg;
-                }
-                else
-                    c.IFL1 = FL.extern_;
-                break;
-
             case FL.udata:
-                if (config.objfmt == OBJ_OMF)
-                {
-                    c.IEV1.Vseg = s.Sseg;
-                    c.IEV1.Vpointer += s.Soffset;
-                    c.IFL1 = FL.datseg;
-                }
-                else
-                    c.IFL1 = FL.extern_;
+                c.IFL1 = FL.extern_;
                 break;
 
             case FL.tlsdata:
@@ -1910,15 +1897,15 @@ if ((ins & 0x9F00_0000) == 0x9000_0000)
                         s.Sident.ptr, cast(int)s.Soffset, cast(int)cg.Para.size, cast(int)cg.BPoff,
                         cast(int)cg.EBPtoESP, cast(int)c.IEV1.Voffset, cast(int)sectionOff);
                 }
-                if (s.Sflags & SFLunambig)
-                    c.Iflags |= CFunambig;
+                if (s.Sflags & SFLdistinct)
+                    c.Iflags |= CF.distinct;
                 offset = c.IEV1.Voffset + s.Soffset + sectionOff + cg.BPoff;
                 sz = tysize(s.ty());
                 goto L2;
 
             case FL.fltreg:
                 offset = c.IEV1.Vpointer + cg.Foff + cg.BPoff;
-                c.Iflags |= CFunambig;
+                c.Iflags |= CF.distinct;
                 goto L2;
 
             case FL.allocatmp:
@@ -1942,11 +1929,11 @@ if ((ins & 0x9F00_0000) == 0x9000_0000)
                     break;
                 }
                 offset = CSE.offset(sn) + cg.CSoff + cg.BPoff;
-                c.Iflags |= CFunambig;
+                c.Iflags |= CF.distinct;
                 goto L2;
 
             case FL.regsave:
-                c.Iflags |= CFunambig;
+                c.Iflags |= CF.distinct;
                 offset = cg.regsave.off + cg.BPoff;
 
             L2:
@@ -2283,17 +2270,17 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
                 if (op != ASM)
                     break;
                 ggen.flush();
-                if (c.Iflags == CFaddrsize)    // kludge for DA inline asm
+                if (c.Iflags == CF.addrsize)    // kludge for DA inline asm
                 {
                     //do32bit(ggen, FL.blockoff,c.IEV1,0,0);
                     assert(0);
                 }
                 else
                 {
-                    ggen.offset += objmod.bytes(seg,ggen.offset,cast(uint)c.IEV1.len,c.IEV1.bytes);
+                    ggen.offset += objmod.bytes(seg,ggen.offset,c.IEV1.data);
                 }
                 debug
-                assert(calccodsize(c) == c.IEV1.len);
+                assert(calccodsize(c) == c.IEV1.data.length);
 
                 continue;
 
@@ -2329,7 +2316,7 @@ uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
                 case SC.inline:
                     ggen.flush();
                     ggen.gen32(op);
-                    objmod.reftoident(ggen.seg,ggen.offset,s,op,flags);
+                    objmod.reftoident(ggen.seg,ggen.offset,s,c.IEV1.Voffset,flags);
                     break;
 
                 default:

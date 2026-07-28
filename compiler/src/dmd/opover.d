@@ -1559,12 +1559,19 @@ private bool matchParamsToOpApply(TypeFunction tf, Parameters* parameters, bool 
 {
     enum nomatch = false;
 
-    /* opApply/delegate has exactly one parameter, and that parameter
+    /* opApply/delegate has one required parameter, and any extra parameters
+     * must have default arguments.
      * is a delegate that looks like:
      *     int opApply(int delegate(ref Type [, ...]) dg);
      */
-    if (tf.parameterList.length != 1)
+    if (tf.parameterList.length < 1)
         return nomatch;
+
+    foreach (i; 1 .. tf.parameterList.length)
+    {
+        if (!tf.parameterList[i].defaultArg)
+            return nomatch;
+    }
 
     /* Get the type of opApply's dg parameter
      */

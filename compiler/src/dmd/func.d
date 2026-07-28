@@ -452,11 +452,11 @@ extern (C++) class FuncDeclaration : Declaration
         return cast(LabelDsymbol)s;
     }
 
-    override const(char)* toPrettyChars(bool QualifyTypes = false)
+    override const(char)* toPrettyChars(bool QualifyTypes = false, bool keepOneMember = false)
     {
         if (isMain())
             return "D main";
-        return Dsymbol.toPrettyChars(QualifyTypes);
+        return Dsymbol.toPrettyChars(QualifyTypes, keepOneMember);
     }
 
     /** for diagnostics, e.g. 'int foo(int x, int y) pure' */
@@ -860,14 +860,14 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
         return (tok != TOK.function_) ? "delegate" : "function";
     }
 
-    override const(char)* toPrettyChars(bool QualifyTypes = false)
+    override const(char)* toPrettyChars(bool QualifyTypes = false, bool keepOneMember = false)
     {
         if (parent)
         {
             if (TemplateInstance ti = parent.isTemplateInstance())
-                return ti.tempdecl.toPrettyChars(QualifyTypes);
+                return ti.tempdecl.toPrettyChars(QualifyTypes, keepOneMember);
         }
-        return Dsymbol.toPrettyChars(QualifyTypes);
+        return Dsymbol.toPrettyChars(QualifyTypes, keepOneMember);
     }
 
     override void accept(Visitor v)

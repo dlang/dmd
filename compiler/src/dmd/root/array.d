@@ -29,12 +29,17 @@ debug
 
 extern (C++) struct Array(T)
 {
-    size_t length;
+    uint length;
 
 private:
-    T[] data;
     enum SMALLARRAYCAP = 1;
-    T[SMALLARRAYCAP] smallarray; // inline storage for small arrays
+    uint allocated = SMALLARRAYCAP;
+    union
+    {
+        T[SMALLARRAYCAP] smallarray; // inline storage for small arrays
+        T* _ptr;
+    }
+    extern(D) inout(T)* data() inout pure nothrow { return allocated <= SMALLARRAYCAP ? smallarray.ptr : _ptr; }
 
 public:
     /*******************
@@ -44,7 +49,7 @@ public:
     this(size_t dim) pure nothrow scope
     {
         reserve(dim);
-        this.length = dim;
+        this.length = cast(uint)dim;
     }
 
     @disable this(this);
@@ -53,13 +58,14 @@ public:
     {
         debug (stomp)
         {
-            if (data.ptr)
-                memset(data.ptr, 0xFF, data.length * T.sizeof);
+            if (allocated > SMALLARRAYCAP)
+                memset(_ptr, 0xFF, allocated * T.sizeof);
         }
-        if (data.ptr && data.ptr != &smallarray[0])
-            mem.xfree(data.ptr);
+        if (allocated > SMALLARRAYCAP)
+            mem.xfree(_ptr);
     }
 
+@trusted:
     // this is using a template constraint because of ambiguity with this(size_t) when T is
     // int, and c++ header generation doesn't accept wrapping this in static if
     extern(D) this()(T[] elems ...) pure nothrow if (is(T == struct) || is(T == class))
@@ -152,7 +158,7 @@ public:
     {
         const oldLength = length;
         setDim(oldLength + a.length);
-        memcpy(data.ptr + oldLength, a.ptr, a.length * T.sizeof);
+        memcpy(data + oldLength, a.ptr, a.length * T.sizeof);
         return this;
     }
 
@@ -164,31 +170,32 @@ public:
 
     void reserve(size_t nentries) pure nothrow
     {
-        //printf("Array::reserve: length = %d, data.length = %d, nentries = %d\n", cast(int)length, cast(int)data.length, cast(int)nentries);
+        //printf("Array::reserve: length = %u, allocated = %u, nentries = %d\n", length, allocated, cast(int)nentries);
 
         // Cold path
         void enlarge(size_t nentries)
         {
+            static if (uint.max < size_t.max)
+                assert(length + nentries <= uint.max);
+
             pragma(inline, false);      // never inline cold path
-            if (data.length == 0)
+            if (allocated == 0)
             {
                 // Not properly initialized, someone memset it to zero
-                if (nentries <= SMALLARRAYCAP)
-                {
-                    data = SMALLARRAYCAP ? smallarray[] : null;
-                }
-                else
+                if (nentries > SMALLARRAYCAP)
                 {
                     auto p = cast(T*)mem.xmalloc(nentries * T.sizeof);
-                    data = p[0 .. nentries];
+                    _ptr = p;
                 }
+                allocated = cast(uint)nentries;
             }
-            else if (data.length == SMALLARRAYCAP)
+            else if (allocated <= SMALLARRAYCAP)
             {
                 const allocdim = length + nentries;
                 auto p = cast(T*)mem.xmalloc(allocdim * T.sizeof);
                 memcpy(p, smallarray.ptr, length * T.sizeof);
-                data = p[0 .. allocdim];
+                _ptr = p;
+                allocated = cast(uint)allocdim;
             }
             else
             {
@@ -196,55 +203,49 @@ public:
                  */
                 auto increment = length / 2;
                 if (nentries > increment)       // if 1.5 is not enough
-                    increment = nentries;
+                    increment = cast(uint)nentries;
                 const allocdim = length + increment;
                 debug (stomp)
                 {
                     // always move using allocate-copy-stomp-free
                     auto p = cast(T*)mem.xmalloc(allocdim * T.sizeof);
-                    memcpy(p, data.ptr, length * T.sizeof);
-                    memset(data.ptr, 0xFF, data.length * T.sizeof);
-                    mem.xfree(data.ptr);
-                    data = p[0 .. allocdim];
+                    memcpy(p, _ptr, length * T.sizeof);
+                    memset(_ptr, 0xFF, allocated * T.sizeof);
+                    mem.xfree(_ptr);
                 }
                 else
                 {
-                    auto p = cast(T*)mem.xrealloc(data.ptr, allocdim * T.sizeof);
-                    data = p[0 .. allocdim];
+                    auto p = cast(T*)mem.xrealloc(_ptr, allocdim * T.sizeof);
                 }
+                _ptr = p;
+                allocated = cast(uint)allocdim;
             }
 
             debug (stomp)
             {
-                if (data.ptr)
-                {
-                    if (length < data.length)
-                        memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
-                }
+                if (length < allocated)
+                    memset(data + length, 0xFF, (allocated - length) * T.sizeof);
             }
             else
             {
                 if (mem.isGCEnabled)
                 {
-                    if (data.ptr)
-                    {
-                        if (length < data.length)
-                            memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
-                    }
+                    if (length < allocated)
+                        memset(data + length, 0xFF, (allocated - length) * T.sizeof);
                 }
             }
         }
 
-        if (data.length - length < nentries)  // false means hot path
+        if (allocated - length < nentries)  // false means hot path
             enlarge(nentries);
     }
 
     void remove(size_t i) pure nothrow @nogc
     {
         if (length - i - 1)
-            memmove(data.ptr + i, data.ptr + i + 1, (length - i - 1) * T.sizeof);
+            memmove(data + i, data + i + 1, (length - i - 1) * T.sizeof);
         length--;
-        debug (stomp) memset(data.ptr + length, 0xFF, T.sizeof);
+        debug (stomp) memset(data + length, 0xFF, T.sizeof);
     }
 
     void insert(size_t index, typeof(this)* a) pure nothrow
@@ -254,8 +255,8 @@ public:
             size_t d = a.length;
             reserve(d);
             if (length != index)
-                memmove(data.ptr + index + d, data.ptr + index, (length - index) * T.sizeof);
-            memcpy(data.ptr + index, a.data.ptr, d * T.sizeof);
+                memmove(data + index + d, data + index, (length - index) * T.sizeof);
+            memcpy(data + index, a.data, d * T.sizeof);
             length += d;
         }
     }
@@ -265,15 +266,15 @@ public:
         size_t d = a.length;
         reserve(d);
         if (length != index)
-            memmove(data.ptr + index + d, data.ptr + index, (length - index) * T.sizeof);
-        memcpy(data.ptr + index, a.ptr, d * T.sizeof);
+            memmove(data + index + d, data + index, (length - index) * T.sizeof);
+        memcpy(data + index, a.ptr, d * T.sizeof);
         length += d;
     }
 
     void insert(size_t index, T ptr) pure nothrow
     {
         reserve(1);
-        memmove(data.ptr + index + 1, data.ptr + index, (length - index) * T.sizeof);
+        memmove(data + index + 1, data + index, (length - index) * T.sizeof);
         data[index] = ptr;
         length++;
     }
@@ -285,7 +286,7 @@ public:
             return;
         reserve(count);
         if (length != index)
-            memmove(data.ptr + index + count, data.ptr + index, (length - index) * T.sizeof);
+            memmove(data + index + count, data + index, (length - index) * T.sizeof);
         data[index .. index + count] = value;
         length += count;
     }
@@ -296,13 +297,13 @@ public:
         {
             reserve(newdim - length);
         }
-        length = newdim;
+        length = cast(uint)newdim;
     }
 
     size_t find(T ptr) const nothrow pure
     {
         foreach (i; 0 .. length)
-            if (data[i] is ptr)
+            if (this[i] is ptr)
                 return i;
         return size_t.max;
     }
@@ -314,30 +315,28 @@ public:
 
     ref inout(T) opIndex(size_t i) inout nothrow pure
     {
-        debug
-            // This is called so often the array bounds become expensive
-            return data[i];
-        else
-            return data.ptr[i];
+        // This is called so often the array bounds become expensive
+        debug assert(i < length);
+        return allocated <= SMALLARRAYCAP ? smallarray.ptr[i] : _ptr[i];
     }
 
     inout(T)* tdata() inout pure nothrow @nogc @trusted
     {
-        return data.ptr;
+        return data;
     }
 
     Array!T* copy() const pure nothrow
     {
         auto a = new Array!T();
         a.setDim(length);
-        memcpy(a.data.ptr, data.ptr, length * T.sizeof);
+        memcpy(a.data, data, length * T.sizeof);
         return a;
     }
 
     void shift(T ptr) pure nothrow
     {
         reserve(1);
-        memmove(data.ptr + 1, data.ptr, length * T.sizeof);
+        memmove(data + 1, data, length * T.sizeof);
         data[0] = ptr;
         length++;
     }
@@ -390,7 +389,7 @@ public:
     {
         if (this.length < 2)
             return this;
-        qsort(this.data.ptr, this.length, T.sizeof, &arraySortWrapper!(T, pred));
+        qsort(this.data, this.length, T.sizeof, &arraySortWrapper!(T, pred));
         return this;
     }
 

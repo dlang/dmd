@@ -258,7 +258,7 @@ nothrow:
         if (e.length)
         {
             const len = (str.length - e.length) - 1; // -1 for the dot
-            char* n = cast(char*)mem.xmalloc(len + 1);
+            char* n = cast(char*)mem.xmalloc_noscan(len + 1);
             memcpy(n, str.ptr, len);
             n[len] = 0;
             return n[0 .. len];
@@ -360,7 +360,7 @@ nothrow:
                 hasTrailingSlash = true;
         }
         const pathlen = str.length - n.length - (hasTrailingSlash ? 1 : 0);
-        char* path = cast(char*)mem.xmalloc(pathlen + 1);
+        char* path = cast(char*)mem.xmalloc_noscan(pathlen + 1);
         memcpy(path, str.ptr, pathlen);
         path[pathlen] = 0;
         return path[0 .. pathlen];
@@ -594,7 +594,7 @@ nothrow:
     extern(D) static char[] addExt(const char[] name, const char[] ext) pure
     {
         const len = name.length + ext.length + 2;
-        auto s = cast(char*)mem.xmalloc(len);
+        auto s = cast(char*)mem.xmalloc_noscan(len);
         s[0 .. name.length] = name[];
         s[name.length] = '.';
         s[name.length + 1 .. len - 1] = ext[];
@@ -1045,7 +1045,7 @@ nothrow:
                 auto path_max = pathconf("/", _PC_PATH_MAX);
                 if (path_max > 0)
                 {
-                    char *buf = cast(char*)mem.xmalloc(path_max);
+                    char *buf = cast(char*)mem.xmalloc_noscan(path_max);
                     scope(exit) mem.xfree(buf);
                     auto path = name.toCStringThen!((n) => realpath(n.ptr, buf));
                     if (path !is null)

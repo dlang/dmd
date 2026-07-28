@@ -148,9 +148,9 @@ These should be taken seriously, since untested code is likely to introduce bugs
 **Config**: [.cirrus.yml](https://github.com/dlang/dmd/blob/master/.cirrus.yml)
 
 **Checks**:
-- FreeBSD 12.3 x64, DMD (bootstrap)
-- FreeBSD 13.0 x64, DMD (coverage)
-- FreeBSD 13.0 x64, DMD (latest)
+- FreeBSD 14.3 x64, DMD (bootstrap)
+- FreeBSD 14.3 x64, DMD (coverage)
+- FreeBSD 14.3 x64, DMD (latest)
 - Ubuntu 22.04 x64, DMD (bootstrap)
 - Ubuntu 22.04 x64, DMD (latest)
 - Ubuntu 22.04 x64, GDC
@@ -209,7 +209,3 @@ The configuration file is found in a separate repository, since it is shared by 
 - ci/circleci: build
 
 CircleCI tests DMD on Ubuntu 18.04.
-
-It also tests that the automatically generated C++ header, frontend.h, is updated.
-This is important because other compilers sharing the front-end (LDC and GDC) rely on DMD's header files to interface with it.
-When a PR modifies an `extern(C++)` function, the corresponding signature in a .h file should be updated as well, see [cxx-headers-test](https://github.com/dlang/dmd/tree/master/src#cxx-headers-test).

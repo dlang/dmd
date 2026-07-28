@@ -51,19 +51,31 @@ int sem_wait(sem_t*);
 
 version (CRuntime_Glibc)
 {
-    private alias __atomic_lock_t = int;
-
-    private struct _pthread_fastlock
+    version(linux)
     {
-      c_long            __status;
-      __atomic_lock_t   __spinlock;
+        private alias __atomic_lock_t = int;
+
+        private struct _pthread_fastlock
+        {
+            c_long            __status;
+            __atomic_lock_t   __spinlock;
+        }
+
+        struct sem_t
+        {
+            _pthread_fastlock __sem_lock;
+            int               __sem_value;
+            void*             __sem_waiting;
+        }
     }
-
-    struct sem_t
+    else version (Hurd)
     {
-      _pthread_fastlock __sem_lock;
-      int               __sem_value;
-      void*             __sem_waiting;
+        private enum __SIZEOF_SEM_T = 20;
+        union sem_t
+        {
+            byte[__SIZEOF_SEM_T] __size;
+            c_long __align;
+        }
     }
 
     enum SEM_FAILED = cast(sem_t*) null;

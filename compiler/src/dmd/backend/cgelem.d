@@ -28,15 +28,19 @@ import dmd.backend.code;
 import dmd.backend.cdef;
 import dmd.backend.x86.code_x86;
 import dmd.backend.oper;
-import dmd.backend.global;
-import dmd.backend.goh;
+import dmd.backend.global : REGSIZE, error;
+import dmd.backend.debugprint : oper_str;
+import dmd.backend.el : exp2_copytotemp;
+import dmd.backend.evalu8 : boolres, iffalse, iftrue;
+import dmd.backend.symbol : symbol_calloc, sytab, globsym;
+import dmd.backend.util2 : ispow2;
+import dmd.backend.go;
 import dmd.backend.el;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 
@@ -3386,7 +3390,7 @@ private elem* eladdr(elem* e, Goal goal)
     {
         case OPvar:
             e1.Eoper = OPrelconst;
-            e1.Vsym.Sflags &= ~(SFLunambig | GTregcand);
+            e1.Vsym.Sflags &= ~(SFLdistinct | GTregcand);
             e1.Ety = tym;
             e = optelem(el_selecte1(e), Goal.value);
             break;
@@ -5570,14 +5574,6 @@ private elem* elinfo(elem* e, Goal goal)
 }
 
 /********************************************
- */
-
-private elem* elclassinit(elem* e, Goal goal)
-{
-    return e;
-}
-
-/********************************************
  * OPva_start
  *     /  \
  *   ap    parmn
@@ -6506,7 +6502,7 @@ private bool canHappenAfter(elem* a, elem* b)
            /* a is a variable that is not aliased
             * and is not assigned to in b
             */
-           (a.Eoper == OPvar && a.Vsym.Sflags & SFLunambig && !el_appears(b, a.Vsym)) ||
+           (a.Eoper == OPvar && a.Vsym.Sflags & SFLdistinct && !el_appears(b, a.Vsym)) ||
 
            !(el_sideeffect(a) || el_sideeffect(b));
 }
@@ -6597,8 +6593,6 @@ private immutable elfp_t[OPMAX] elxxx =
     OPmemcmp:  &elmemcmp,
     OPsetjmp:  &elzot,
     OPnegass:  &elnegass,
-    OPpreinc:  &elzot,
-    OPpredec:  &elzot,
     OPstreq:   &elstruct,
     OPpostinc: &elpost,
     OPpostdec: &elpost,
@@ -6686,8 +6680,6 @@ private immutable elfp_t[OPMAX] elxxx =
     OPld_u64:  &evalu8,
     OPparam:   &elparam,
     OPsizeof:  &elzot,
-    OParrow:   &elzot,
-    OParrowstar: &elzot,
     OPcolon:   &elzot,
     OPcolon2:  &elzot,
     OPbool:    &elbool,
@@ -6701,11 +6693,6 @@ private immutable elfp_t[OPMAX] elxxx =
     OPconst:   &elerr,
     OPvar:     &elerr,
     OPreg:     &elerr,
-    OPnew:     &elerr,
-    OPanew:    &elerr,
-    OPdelete:  &elerr,
-    OPadelete: &elerr,
-    OPbrack:   &elerr,
     OPframeptr: &elzot,
     OPgot:     &elzot,
 

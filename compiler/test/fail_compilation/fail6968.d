@@ -4,7 +4,7 @@ TEST_OUTPUT:
 ---
 fail_compilation/fail6968.d(26): Error: cannot pass type `int` as a function argument
 fail_compilation/fail6968.d(26): Error: cannot pass type `long` as a function argument
-fail_compilation/fail6968.d(26): Error: circular initialization of variable `fail6968.PredAny!(int, long, float).PredAny`
+fail_compilation/fail6968.d(26): Error: circular initialization of variable `fail6968.PredAny!(int, long, float)`
 fail_compilation/fail6968.d(31): Error: template instance `fail6968.PredAny!(int, long, float)` error instantiating
 fail_compilation/fail6968.d(31):        while evaluating `pragma(msg, PredAny!(int, long, float))`
 ---

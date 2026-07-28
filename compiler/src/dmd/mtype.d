@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.attrib;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
@@ -404,6 +405,10 @@ extern (C++) abstract class Type : ASTNode
          * we bank on the idea that usually only one of variants exist.
          * It will also speed up code because these are rarely referenced and
          * so need not be in the cache.
+         *
+         * NOTE: The cache stores the naked type at the "identity" position.
+         * For example, a "shared const T" type will have its naked "T" type
+         * in the field "scto". See also: dmd.typesem.nakedOf(Type).
          */
         Type cto;       // MODFlags.const_
         Type ito;       // MODFlags.immutable_
@@ -1960,7 +1965,7 @@ extern (C++) final class TypeTuple : Type
         {
             Expression e = (*exps)[i];
             assert(e.type.ty != Ttuple);
-            auto arg = new Parameter(e.loc, STC.none, e.type, null, null, null);
+            auto arg = new Parameter(e.loc, STC.none, e.type, null, null, null, null);
             (*arguments)[i] = arg;
         }
         this.arguments = arguments;
@@ -1984,14 +1989,14 @@ extern (C++) final class TypeTuple : Type
     extern (D) this(Type t1)
     {
         super(Ttuple);
-        arguments = new Parameters(new Parameter(Loc.initial, STC.none, t1, null, null, null));
+        arguments = new Parameters(new Parameter(Loc.initial, STC.none, t1, null, null, null, null));
     }
 
     extern (D) this(Type t1, Type t2)
     {
         super(Ttuple);
-        arguments = new Parameters(new Parameter(Loc.initial, STC.none, t1, null, null, null),
-                                   new Parameter(Loc.initial, STC.none, t2, null, null, null));
+        arguments = new Parameters(new Parameter(Loc.initial, STC.none, t1, null, null, null, null),
+                                   new Parameter(Loc.initial, STC.none, t2, null, null, null, null));
     }
 
     static TypeTuple create() @safe
@@ -2288,8 +2293,9 @@ extern (C++) final class Parameter : ASTNode
     Identifier ident;
     Expression defaultArg;
     UserAttributeDeclaration userAttribDecl; // user defined attributes
+    UnpackDeclaration unpack;
 
-    extern (D) this(Loc loc, STC storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl) @safe
+    extern (D) this(Loc loc, STC storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl, UnpackDeclaration unpack) @safe
     {
         this.loc = loc;
         this.type = type;
@@ -2297,16 +2303,17 @@ extern (C++) final class Parameter : ASTNode
         this.storageClass = storageClass;
         this.defaultArg = defaultArg;
         this.userAttribDecl = userAttribDecl;
+        this.unpack = unpack;
     }
 
-    static Parameter create(Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl) @safe
+    static Parameter create(Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl, UnpackDeclaration unpack) @safe
     {
-        return new Parameter(loc, cast(STC) storageClass, type, ident, defaultArg, userAttribDecl);
+        return new Parameter(loc, cast(STC) storageClass, type, ident, defaultArg, userAttribDecl, unpack);
     }
 
     Parameter syntaxCopy()
     {
-        return new Parameter(loc, storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null);
+        return new Parameter(loc, storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null, unpack ? unpack.syntaxCopy(null) : null);
     }
 
     /// Returns: Whether the function parameter is lazy

@@ -603,7 +603,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         VarDeclaration v = (*fd.parameters)[i];
         debug (LOG)
         {
-            printf("arg[%zu] = %s\n", i, earg.toChars());
+            printf("arg[%u] = %s\n", cast(uint)i, earg.toChars());
         }
         ctfeGlobals.stack.push(v);
 
@@ -647,12 +647,12 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         }
         debug (LOG)
         {
-            printf("interpreted arg[%zu] = %s\n", i, earg.toChars());
+            printf("interpreted arg[%u] = %s\n", cast(uint)i, earg.toChars());
             showCtfeExpr(earg);
         }
         debug (LOGASSIGN)
         {
-            printf("interpreted arg[%zu] = %s\n", i, earg.toChars());
+            printf("interpreted arg[%u] = %s\n", cast(uint)i, earg.toChars());
             showCtfeExpr(earg);
         }
     }
@@ -1286,7 +1286,11 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
         if (!scase)
         {
             if (!s.hasDefault)
+            {
                 error(s.loc, "no `default` or `case` for `%s` in `switch` statement", econdition.toErrMsg());
+                result = CTFEExp.cantexp;
+                return;
+            }
             scase = s.sdefault;
         }
 
@@ -2049,6 +2053,33 @@ public:
         }
     }
 
+    static Expression interpretInitializerExpression(VarDeclaration v)
+    {
+        // It is a bit strange that the interpreter has to deal with initializers
+        // at all as they should have been converted to ConstructExp or similar
+        // during semantic analysis.
+        // Static array initialization from an element expression is a special
+        // case that used to be dealt with in initializerToExpression(), but
+        // is duplicated in ExpressionSemanticVisitor.visit(AssignExp exp). Until
+        // initializer semantics are removed from the interpreter, it has been
+        // moved here.
+        Expression iexp = v._init.initializerToExpression(v.type);
+
+        Type tb = v.type.toBasetype();
+        Expression e = (iexp.op == EXP.construct || iexp.op == EXP.blit) ? (cast(AssignExp)iexp).e2 : iexp;
+        if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))
+        {
+            TypeSArray tsa = cast(TypeSArray)tb;
+            size_t d = cast(size_t)tsa.dim.toInteger();
+            auto elements = new Expressions(d);
+            for (size_t j = 0; j < d; j++)
+                (*elements)[j] = e;
+            auto ae = new ArrayLiteralExp(e.loc, v.type, elements);
+            return ae;
+        }
+        return iexp;
+    }
+
     static Expression getVarExp(Loc loc, InterState* istate, Declaration d, CTFEGoal goal)
     {
         Expression e = CTFEExp.cantexp;
@@ -2079,7 +2110,7 @@ public:
                     v._init = v._init.initializerSemantic(v._scope, v.type, INITinterpret); // might not be run on aggregate members
                     v.inuse--;
                 }
-                e = v._init.initializerToExpression(v.type);
+                e = interpretInitializerExpression(v);
                 if (!e)
                     return CTFEExp.cantexp;
                 assert(e.type);
@@ -2364,7 +2395,7 @@ public:
                 }
                 else if (v._init.isArrayInitializer())
                 {
-                    result = v._init.initializerToExpression(v.type);
+                    result = interpretInitializerExpression(v);
                     if (result !is null)
                     {
                         if (v.ctfeAdrOnStack != VarDeclaration.AdrOnStackNone)
@@ -6714,8 +6745,17 @@ private Expression copyRegionExp(Expression e)
                  */
                 return sle.origin;
             }
+            // Track whether copySE triggers a recursive copy of this
+            // same SLE via a self-reference. If so, sle.origin will
+            // have been updated to a GC copy, and we must use that
+            // instead of creating a duplicate.
+            auto savedOrigin = sle.origin;
             copySE(sle);
+
             sle.isOriginal = sle is sle.origin;
+
+            if (sle.origin != savedOrigin)
+                return sle.origin;
 
             auto slec = ctfeGlobals.region.contains(cast(void*)e)
                 ? e.copy().isStructLiteralExp()         // move sle out of region to slec
@@ -6839,7 +6879,7 @@ private Expression interpret_keys(UnionExp* pue, InterState* istate, Expression 
         return earg;
     if (earg.op == EXP.null_)
     {
-        emplaceExp!(NullExp)(pue, earg.loc, earg.type);
+        emplaceExp!(NullExp)(pue, earg.loc, returnType);
         return pue.exp();
     }
     if (earg.op != EXP.assocArrayLiteral && earg.type.toBasetype().ty != Taarray)
@@ -6862,7 +6902,7 @@ private Expression interpret_values(UnionExp* pue, InterState* istate, Expressio
         return earg;
     if (earg.op == EXP.null_)
     {
-        emplaceExp!(NullExp)(pue, earg.loc, earg.type);
+        emplaceExp!(NullExp)(pue, earg.loc, returnType);
         return pue.exp();
     }
     if (earg.op != EXP.assocArrayLiteral && earg.type.toBasetype().ty != Taarray)
@@ -6890,7 +6930,7 @@ private Expression interpret_aaDel(UnionExp* pue, InterState* istate, Expression
     AssocArrayLiteralExp aae = agg.isAssocArrayLiteralExp();
     Expressions* keysx = aae.keys;
     Expressions* valuesx = aae.values;
-    size_t removed = 0;
+    uint removed = 0;
     foreach (j, evalue; *valuesx)
     {
         Expression ekey = (*keysx)[j];

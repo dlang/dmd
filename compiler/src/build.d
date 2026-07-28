@@ -45,9 +45,8 @@ immutable rootRules = [
     &clean,
     &checkwhitespace,
     &runTests,
-    &buildFrontendHeaders,
-    &runCxxHeadersTest,
     &runCxxUnittest,
+    &runCppLayoutTest,
     &detab,
     &tolf,
     &zip,
@@ -626,15 +625,11 @@ alias dmdPGO = makeRule!((builder, rule) {
 /// Run's the test suite (unittests & `run.d`)
 alias runTests = makeRule!((testBuilder, testRule)
 {
-    // Reference header assumes Linux64
-    auto headerCheck = env["OS"] == "linux" && env["MODEL"] == "64"
-                    ? [ runCxxHeadersTest ] : null;
-
     testBuilder
         .name("test")
         .description("Run the test suite using test/run.d")
         .msg("(RUN) TEST")
-        .deps([dmdDefault, runDmdUnittest, testRunner] ~ headerCheck)
+        .deps([dmdDefault, runDmdUnittest, testRunner])
         .commandFunction({
             // Use spawnProcess to avoid output redirection for `command`s
             const scope cmd = [ testRunner.targets[0], "-j" ~ jobs.to!string ];
@@ -653,89 +648,6 @@ alias runDmdUnittest = makeRule!((builder, rule) {
         .msg("(RUN) DMD-UNITTEST")
         .deps([dmdUnittestExe])
         .command(dmdUnittestExe.targets);
-});
-
-/**
-BuildRule to run the DMD frontend header generation
-For debugging, use `./build.d cxx-headers DFLAGS="-debug=Debug_DtoH"` (clean before)
-*/
-alias buildFrontendHeaders = makeRule!((builder, rule) {
-    const dmdSources = sources.dmd.frontend ~ sources.root ~ sources.common ~ sources.lexer;
-    const dmdExeFile = dmdDefault.deps[0].target;
-    builder
-        .name("cxx-headers")
-        .description("Build the C++ frontend headers ")
-        .msg("(DMD) CXX-HEADERS")
-        .deps([dmdDefault])
-        .target(env["G"].buildPath("frontend.h"))
-        .command([dmdExeFile] ~
-            flags["DFLAGS"]
-              .filter!(f => startsWith(f, "-debug=", "-version=", "-I", "-J")).array ~
-            ["-J" ~ env["RES"], "-c", "-o-", "-HCf="~rule.target,
-            // Enforce the expected target architecture
-            "-m64", "-os=linux",
-            ] ~ dmdSources ~
-            // Set druntime up to be imported explicitly,
-            //  so that druntime doesn't have to be built to run the updating of c++ headers.
-            ["-I../druntime/src"]);
-});
-
-alias runCxxHeadersTest = makeRule!((builder, rule) {
-    builder
-        .name("cxx-headers-test")
-        .description("Check that the C++ interface matches `src/dmd/frontend.h`")
-        .msg("(TEST) CXX-HEADERS")
-        .deps([buildFrontendHeaders])
-        .commandFunction(() {
-            const cxxHeaderGeneratedPath = buildFrontendHeaders.target;
-            const cxxHeaderReferencePath = env["D"].buildPath("frontend.h");
-            log("Comparing referenceHeader(%s) <-> generatedHeader(%s)",
-                cxxHeaderReferencePath, cxxHeaderGeneratedPath);
-            auto generatedHeader = cxxHeaderGeneratedPath.readText;
-            auto referenceHeader = cxxHeaderReferencePath.readText;
-
-            // Ignore carriage return to unify the expected newlines
-            version (Windows)
-            {
-                generatedHeader = generatedHeader.replace("\r\n", "\n"); // \r added by OutBuffer
-                referenceHeader = referenceHeader.replace("\r\n", "\n"); // \r added by Git's if autocrlf is enabled
-            }
-
-            if (generatedHeader != referenceHeader) {
-                if (env.getNumberedBool("AUTO_UPDATE"))
-                {
-                    generatedHeader.toFile(cxxHeaderReferencePath);
-                    writeln("NOTICE: Reference header file (" ~ cxxHeaderReferencePath ~
-                     ") has been auto-updated.");
-                }
-                else
-                {
-                    import core.runtime : Runtime;
-
-                    string message = "ERROR: Newly generated header file (" ~ cxxHeaderGeneratedPath ~
-                        ") doesn't match with the reference header file (" ~
-                        cxxHeaderReferencePath ~ ")\n";
-                    auto diff = tryRun(["git", "diff", "--no-index", cxxHeaderReferencePath, cxxHeaderGeneratedPath], runDir).output;
-                    diff ~= "\n===============
-The file `src/dmd/frontend.h` seems to be out of sync. This is likely because
-changes were made which affect the C++ interface used by GDC and LDC.
-
-Make sure that those changes have been properly reflected in the relevant header
-files (e.g. `src/dmd/scope.h` for changes in `src/dmd/dscope.d`).
-
-To update `frontend.h` and fix this error, run the following command:
-
-`" ~ Runtime.args[0] ~ " cxx-headers-test AUTO_UPDATE=1`
-
-Note that the generated code need not be valid, as the header generator
-(`src/dmd/dtoh.d`) is still under development.
-
-To read more about `frontend.h` and its usage, see src/README.md#cxx-headers-test
-";
-                    abortBuild(message, diff);
-                }
-            }
-        });
 });
 
 /// Runs the C++ unittest executable
@@ -778,6 +690,35 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
     else runCxxBuilder
         .deps([cxxUnittestExe])
         .command([cxxUnittestExe.target]);
+});
+
+/// Generates and compiles a D file with static asserts checking that the C++ header
+/// layout (field offsets, enum values, vtable indices, mangled names) matches the
+/// D extern(C++) declarations.
+alias runCppLayoutTest = makeRule!((builder, rule) {
+    const generatedPath = env["G"].buildPath("cpp_layout_asserts.d");
+
+    builder
+        .name("cpp-layout-test")
+        .description("Check that compiler/include/dmd/*.h matches the D extern(C++) declarations")
+        .msg("(TEST) CPP-LAYOUT")
+        .commandFunction(() {
+            const includeDir = compilerDir.buildPath("include", "dmd");
+            const script = compilerDir.buildPath("tools", "gen_cpp_layout_test.py");
+            const result = tryRun(["python3", script, includeDir, generatedPath], runDir);
+            if (result.status != 0)
+                abortBuild("gen_cpp_layout_test.py failed:\n" ~ result.output);
+
+            const compileResult = tryRun(
+                [env["HOST_DMD_RUN"], "-c", "-o-", "-m64", "-unittest",
+                 "-version=IN_LLVM", // skip MARS-only fields
+                 "-I" ~ env["D"] ~ "/..",
+                 "-J" ~ env["RES"],
+                 "-J" ~ env["G"],
+                 generatedPath], runDir);
+            if (compileResult.status != 0)
+                abortBuild("cpp-layout-test failed:\n" ~ compileResult.output);
+        });
 });
 
 /// BuildRule that removes all generated files
@@ -1596,7 +1537,7 @@ auto sourceFiles()
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d dt.d el.d global.d
             obj.d oper.d iasm.d codebuilder.d
-            ty.d type.d dlist.d
+            ty.d type.d
             dwarf.d dwarf2.d cv4.d
             melf.d mscoff.d mach.d
             x86/code_x86.d x86/xmm.d
@@ -1621,7 +1562,7 @@ auto sourceFiles()
             stringtable.d utf.d
         "),
         common: fileArray(env["COMMON"], "
-            bitfields.d file.d int128.d blake3.d outbuffer.d smallbuffer.d charactertables.d identifiertables.d
+            bitfields.d file.d int128.d blake3.d md5.d outbuffer.d smallbuffer.d charactertables.d identifiertables.d
         "),
         commonHeaders: fileArray(env["COMMON"], "
             outbuffer.h
@@ -1637,10 +1578,10 @@ auto sourceFiles()
             bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
             dout.d inliner.d eh.d aarray.d
             gloop.d cgelem.d cgcs.d ee.d blockopt.d mem.d cg.d
-            dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d
-            pdata.d util2.d var.d backconfig.d rtlsym.d ptrntab.d
-            dvarstats.d cgen.d goh.d barray.d cgcse.d elpicpie.d
-            dwarfeh.d dwarfdbginf.d cv8.d dcgcv.d
+            debugprint.d fp.d symbol.d dcode.d cgsched.d
+            pdata.d util2.d backconfig.d rtlsym.d ptrntab.d
+            dvarstats.d cgen.d barray.d cgcse.d elpicpie.d
+            dwarfeh.d dwarfdbginf.d cv8.d
             machobj.d elfobj.d mscoffobj.d
             x86/nteh.d x86/cgreg.d x86/cg87.d x86/cgxmm.d x86/disasm86.d
             x86/cgcod.d x86/cod1.d x86/cod2.d x86/cod3.d x86/cod4.d x86/cod5.d
@@ -1689,7 +1630,7 @@ bool download(string to, string from, uint tries = 3)
 /**
 Detects the host OS.
 
-Returns: a string from `{windows, osx,linux,freebsd,openbsd,netbsd,dragonflybsd,solaris}`
+Returns: a string from `{windows, osx,linux,freebsd,openbsd,netbsd,dragonflybsd,solaris,hurd}`
 */
 string detectOS()
 {
@@ -1709,6 +1650,8 @@ string detectOS()
         return "dragonflybsd";
     else version(Solaris)
         return "solaris";
+    else version(Hurd)
+        return "hurd";
     else
         static assert(0, "Unrecognized or unsupported OS.");
 }

@@ -75,11 +75,7 @@ union evc
         _LabelDsymbol* Vlsym;   /// pointer to D Label
     }
 
-    struct
-    {
-        size_t len;
-        char* bytes;
-    }                           // asm node (FL.asm)
+    ubyte[] data;               /// asm instructions (FL.asm)
 }
 
 /********************** PUBLIC FUNCTIONS *******************/
@@ -278,9 +274,16 @@ struct seg_data
     }
 
     //ELFOBJ || MACHOBJ
-    IDXSEC           SDshtidx;          // section header table index
+    IDXSEC           SDshtidx;          // section header table index into SECbuf[]
     OutBuffer       *SDbuf;             // buffer to hold data
-    OutBuffer       *SDrel;             // buffer to hold relocation info
+//    union
+//    struct
+//    {
+        // ELFOBJ
+        OutBuffer        *SDrel;        // buffer to hold segment relocation info
+        // MACHOBJ MSCOFFOBJ
+        Barray!Relocation relocations;  // hold relocations for this segment
+//    }
 
     //ELFOBJ
     IDXSYM           SDsymidx;          // each section is in the symbol table
@@ -297,7 +300,52 @@ struct seg_data
   nothrow:
     @trusted
     int isCode() { return config.objfmt == OBJ_MACH ? mach_seg_data_isCode(this) : mscoff_seg_data_isCode(this); }
+
+    void reset()
+    {
+        SDseg = 0;
+        SDoffset = 0;
+        isfarseg = false;
+        segidx = 0;
+        lnameidx = 0;
+        classidx = 0;
+        attr = 0;
+        origsize = 0;
+        seek = 0;
+        ledata = null;
+        SDshtidx = 0;
+        if (SDbuf) SDbuf.reset();
+        relocations.reset();
+        SDsymidx = 0;
+        SDrelidx = 0;
+        SDrelcnt = 0;
+        SDshtidxout = 0;
+        SDsym = null;
+        SDaranges_offset = 0;
+        SDlinnum_data.reset();
+    }
 }
+
+/*******************************************************
+ * For Machobj
+ * Because the relocations cannot be computed until after
+ * all the segments are written out, and we need more information
+ * than the relocations provide, make our own relocation
+ * type. Later, translate to Mach-O relocation structures `relocation_info` and `scattered_relocation_info`.
+ */
+struct Relocation
+{   // Relocations are attached to the struct seg_data they refer to
+    targ_size_t offset; // location in segment to be fixed up
+    Symbol* funcsym;    // function in which offset lies, if any
+    Symbol* targsym;    // if !=null, then location is to be fixed up
+                        // to address of this symbol
+    uint targseg;       // if !=0, then location is to be fixed up
+                        // to address of start of this segment
+    REL rtype;          // REL.address or REL.rel or REL.add
+    bool subtractor;    // true: emit SUBTRACTOR/UNSIGNED pair (MACHOBJ)
+    short val;          // 0, -1, -2, -4
+}
+
 
 public import dmd.backend.machobj : mach_seg_data_isCode;
 public import dmd.backend.mscoffobj : mscoff_seg_data_isCode;
@@ -320,10 +368,6 @@ __gshared Rarray!(seg_data*) SegData;
 
 @trusted
 ref targ_size_t Offset(int seg) { return SegData[seg].SDoffset; }
-
-ref targ_size_t Doffset() { return Offset(DATA); }
-
-ref targ_size_t CDoffset() { return Offset(CDATA); }
 
 /**************************************************/
 

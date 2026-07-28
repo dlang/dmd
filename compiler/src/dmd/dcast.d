@@ -2044,15 +2044,52 @@ MATCH cimplicitConvTo(Expression e, Type t)
  */
 Type toStaticArrayType(SliceExp e)
 {
+    static Expression stripCasts(Expression e)
+    {
+        for (auto ce = e.isCastExp(); ce; ce = e.isCastExp())
+            e = ce.e1;
+        return e;
+    }
+
+    static bool inferSliceLength(Expression lwr, Expression upr, out size_t len)
+    {
+        lwr = stripCasts(lwr.optimize(WANTvalue));
+        upr = stripCasts(upr.optimize(WANTvalue));
+
+        if (lwr.isConst() && upr.isConst())
+        {
+            len = cast(size_t)(upr.toUInteger() - lwr.toUInteger());
+            return true;
+        }
+
+        if (upr.op == EXP.add)
+        {
+            auto add = cast(BinExp)upr;
+            auto e1 = stripCasts(add.e1);
+            auto e2 = stripCasts(add.e2);
+
+            if (e1.equals(lwr) && e2.isConst())
+            {
+                len = cast(size_t)e2.toUInteger();
+                return true;
+            }
+            if (e2.equals(lwr) && e1.isConst())
+            {
+                len = cast(size_t)e1.toUInteger();
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     if (e.lwr && e.upr)
     {
         // For the following code to work, e should be optimized beforehand.
         // (eg. $ in lwr and upr should be already resolved, if possible)
-        Expression lwr = e.lwr.optimize(WANTvalue);
-        Expression upr = e.upr.optimize(WANTvalue);
-        if (lwr.isConst() && upr.isConst())
+        size_t len = 0;
+        if (inferSliceLength(e.lwr, e.upr, len))
         {
-            size_t len = cast(size_t)(upr.toUInteger() - lwr.toUInteger());
             return e.type.toBasetype().nextOf().sarrayOf(len);
         }
     }
@@ -2471,7 +2508,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             const fullSize = (se.len + 1) * se.sz; // incl. terminating 0
             if (fullSize > (e.len + 1) * e.sz)
             {
-                void* s = mem.xmalloc(fullSize);
+                void* s = mem.xmalloc_noscan(fullSize);
                 const srcSize = e.len * e.sz;
                 const data = se.peekData();
                 memcpy(s, data.ptr, srcSize);
@@ -2650,7 +2687,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 // Copy when changing the string literal
                 const newsz = se.sz;
                 const d = (dim2 < se.len) ? dim2 : se.len;
-                void* s = mem.xmalloc((dim2 + 1) * newsz);
+                void* s = mem.xmalloc_noscan((dim2 + 1) * newsz);
                 memcpy(s, se.peekData().ptr, d * newsz);
                 // Extend with 0, add terminating 0
                 memset(s + d * newsz, 0, (dim2 + 1 - d) * newsz);

@@ -1,10 +1,13 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail10102.d(48): Error: variable `fail10102.main.m` - default construction is disabled for type `NotNull!(int*)`
-fail_compilation/fail10102.d(49): Error: variable `fail10102.main.a` - default construction is disabled for type `NotNull!(int*)[3]`
-fail_compilation/fail10102.d(50): Error: default construction is disabled for type `NotNull!(int*)`
-fail_compilation/fail10102.d(51): Error: field `S.m` must be initialized because it has no default constructor
+fail_compilation/fail10102.d(51): Error: variable `fail10102.main.m` - default construction is disabled for type `NotNull!(int*)`
+fail_compilation/fail10102.d(26):        because of `@disable this();` here
+fail_compilation/fail10102.d(52): Error: variable `fail10102.main.a` - default construction is disabled for type `NotNull!(int*)[3]`
+fail_compilation/fail10102.d(26):        because of `@disable this();` here
+fail_compilation/fail10102.d(53): Error: default construction is disabled for type `NotNull!(int*)`
+fail_compilation/fail10102.d(26):        because of `@disable this();` here
+fail_compilation/fail10102.d(54): Error: field `S.m` must be initialized because it has no default constructor
 ---
 */
 

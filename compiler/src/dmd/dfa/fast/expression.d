@@ -2533,12 +2533,12 @@ struct ExpressionWalker
                     ob.writestring("Calling function parameter info\n");
 
                     prefix("    ");
-                    ob.printf("count=%zd, calledFunctionInfo=%p:%zd\n", arguments.length, calledFunctionInfo,
-                        calledFunctionInfo !is null ? calledFunctionInfo.parameters.length : 0);
+                    ob.printf("count=%d, calledFunctionInfo=%p:%d\n", cast(int)arguments.length, calledFunctionInfo,
+                        calledFunctionInfo !is null ? cast(int)calledFunctionInfo.parameters.length : 0);
 
                     prefix("    ");
-                    ob.printf("allParameters=%zd, allParameterVars=%zd\n",
-                        allParameters.length, allParameterVars.length);
+                    ob.printf("allParameters=%d, allParameterVars=%d\n",
+                        cast(int)allParameters.length, cast(int)allParameterVars.length);
                 });
 
                 foreach (i, arg; *arguments)
@@ -2551,7 +2551,7 @@ struct ExpressionWalker
                     ParameterDFAInfo* info = i < allInfos.length ? &allInfos.ptr[i] : null;
 
                     dfaCommon.printState((ref OutBuffer ob, scope PrintPrefixType prefix) {
-                        ob.printf("Argument %zd, stc=%lld", i, storageClass);
+                        ob.printf("Argument %d, stc=%lld", cast(int)i, storageClass);
                         ob.writestring("\n");
 
                         if (info !is null)

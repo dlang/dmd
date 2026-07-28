@@ -24,11 +24,37 @@ jobs:
     with:
       release_branch: master
 
+  # Resolve the revisions that will be built up-front. The reusable workflow
+  # also exposes these, but its outputs come back empty when any platform in
+  # its build matrix fails, which would leave the release notes blank. Capturing
+  # them here provides a reliable fallback (see `generate_release` below).
+  revisions:
+    name: Capture built revisions
+    if: github.repository == 'dlang/dmd'
+    runs-on: ubuntu-latest
+    outputs:
+      dmd: ${{ steps.resolve.outputs.dmd }}
+      phobos: ${{ steps.resolve.outputs.phobos }}
+    steps:
+      - name: Resolve master revisions
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "dmd=$(git ls-remote https://github.com/dlang/dmd.git refs/heads/master | cut -f1)" >> "$GITHUB_OUTPUT"
+          echo "phobos=$(git ls-remote https://github.com/dlang/phobos.git refs/heads/master | cut -f1)" >> "$GITHUB_OUTPUT"
+
   # Bundles and publishes the entire release
   generate_release:
     name: "Publish artifacts on the release page"
     needs:
       - build-all-releases
+      - revisions
+    # Publish whichever platform builds succeeded, even if another platform
+    # (e.g. FreeBSD) failed. `!cancelled()` still runs on upstream failure but
+    # skips when the workflow run was manually cancelled. The repository guard
+    # keeps forks from attempting to publish (their build jobs are skipped).
+    if: ${{ !cancelled() && github.repository == 'dlang/dmd' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -70,8 +96,8 @@ jobs:
 
             | Component | Revision                                                         |
             | --------- | ---------------------------------------------------------------- |
-            | DMD       | dlang/dmd@${{ needs.build-all-releases.outputs.dmd-revision }}           |
-            | Phobos    | dlang/phobos@${{ needs.build-all-releases.outputs.phobos-revision }}     |
+            | DMD       | dlang/dmd@${{ needs.build-all-releases.outputs.dmd-revision || needs.revisions.outputs.dmd }}           |
+            | Phobos    | dlang/phobos@${{ needs.build-all-releases.outputs.phobos-revision || needs.revisions.outputs.phobos }}     |
 
           artifacts:  ${{ steps.list-artifacts.outputs.artifacts_directory }}/*
           artifactErrorsFailBuild: true
@@ -80,3 +106,8 @@ jobs:
           tag: nightly
           commit: f01bc99e87ad9d04b47a5323f6ccb1fd728eae8c
           allowUpdates: true
+          # Overwrite the assets this run rebuilt, but keep assets from previous
+          # nightlies that were not rebuilt (e.g. the last successful FreeBSD
+          # build) rather than deleting them.
+          replacesArtifacts: true
+          removeArtifacts: false

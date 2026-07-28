@@ -400,6 +400,43 @@ else version (DragonFlyBSD)
 else version (Solaris)
 {
 }
+else version (Hurd)
+{
+    struct tchars
+    {
+        char t_intrc;
+        char t_quitc;
+        char t_startc;
+        char t_stopc;
+        char t_eofc;
+        char t_brkc;
+    }
+    struct ltchars
+    {
+        char t_suspc;
+        char t_dsuspc;
+        char t_rprntc;
+        char t_flushc;
+        char t_werasc;
+        char t_lnextc;
+    }
+    struct sgttyb
+    {
+        char sg_ispeed;
+        char sg_ospeed;
+        char sg_erase;
+        char sg_kill;
+        short sg_flags;
+    }
+
+    struct winsize
+    {
+        ushort ws_row;
+        ushort ws_col;
+        ushort ws_xpixel;
+        ushort ws_ypixel;
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");

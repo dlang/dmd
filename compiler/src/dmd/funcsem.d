@@ -1580,6 +1580,15 @@ bool functionSemantic(FuncDeclaration fd)
             return false;
     }
 
+    if (fd.deferred3) // wait until final round of deferred semantic
+        return !fd.errors;
+    if (fd._scope && fd._scope.deferSemantic3InCompilerHook && !fd.errors)
+    {
+        fd._scope.deferSemantic3InCompilerHook = false;
+        addDeferredSemantic3(fd);
+        return !fd.errors;
+    }
+
     // if inferring return type, sematic3 needs to be run
     // - When the function body contains any errors, we cannot assume
     //   the inferred return type is valid.
@@ -1617,7 +1626,7 @@ bool functionSemantic(FuncDeclaration fd)
 public
 bool functionSemantic3(FuncDeclaration fd)
 {
-    if (fd.semanticRun < PASS.semantic3 && fd._scope)
+    if (!fd.deferred3 && fd.semanticRun < PASS.semantic3 && fd._scope)
     {
         /* Forward reference - we need to run semantic3 on this function.
          * If errors are gagged, and it's not part of a template instance,
@@ -2049,9 +2058,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                 checkNamedArgErrorAndReport(td, argumentList, loc);
             }
 
-
-            if (!global.gag || global.params.v.showGaggedErrors)
-                printCandidates(loc, td, sc.isDeprecated());
+            printCandidates(loc, td, sc.isDeprecated());
             return null;
         }
         /* This case used to happen when several ctors are mixed in an agregate.
@@ -2069,8 +2076,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
             od.ident.toErrMsg(), tiargsBuf.peekChars(), fargsBuf.peekChars());
 
         checkNamedArgErrorAndReportOverload(od, argumentList, loc);
-        if (!global.gag || global.params.v.showGaggedErrors)
-            printCandidates(loc, od, sc.isDeprecated());
+        printCandidates(loc, od, sc.isDeprecated());
         return null;
     }
 
@@ -2110,8 +2116,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                 .error(loc, "none of the overloads of `%s` are callable using a %sobject with argument types `(%s)`",
                     fd.toErrMsg(), thisBuf.peekChars(), buf.peekChars());
 
-            if (!global.gag || global.params.v.showGaggedErrors)
-                printCandidates(loc, fd, sc.isDeprecated());
+            printCandidates(loc, fd, sc.isDeprecated());
             return null;
         }
 
@@ -2148,8 +2153,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     {
         .error(loc, "none of the overloads of `%s` are callable using argument types `%s`",
                fd.toErrMsg(), fargsBuf.peekChars());
-        if (!global.gag || global.params.v.showGaggedErrors)
-            printCandidates(loc, fd, sc.isDeprecated());
+        printCandidates(loc, fd, sc.isDeprecated());
         return null;
     }
 
@@ -2157,7 +2161,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
            fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
            tf.modToChars(), fargsBuf.peekChars());
 
-    if (global.gag && !global.params.v.showGaggedErrors)
+    if (!global.errorSink.emitAdditionalContext())
         return null;
 
     // re-resolve to check for supplemental message
@@ -2267,6 +2271,8 @@ private void checkNamedArgErrorAndReportOverload(Dsymbol od, ArgumentList argume
  */
 private void printCandidates(Decl)(Loc loc, Decl declaration, bool showDeprecated)
 {
+    if (!global.errorSink.emitAdditionalContext())
+        return;
     // max num of overloads to print (-v or -verror-supplements overrides this).
     const uint DisplayLimit = global.params.v.errorSupplementCount();
     const(char)* constraintsTip;
@@ -2930,6 +2936,31 @@ Statement mergeFrequireInclusivePreview(FuncDeclaration fd, Statement sf, Expres
 }
 
 /****************************************************
+ * Unpack parameters of function literal.
+ */
+void unpackFunctionParameters(FuncDeclaration thisfd)
+{
+    if (!thisfd.fbody || !thisfd.type || thisfd.type.ty != Tfunction)
+        return;
+    TypeFunction f = cast(TypeFunction)thisfd.type;
+    Statements* ups = null;
+    foreach (i, Parameter p; f.parameterList)
+    {
+        if (!p.unpack)
+            continue;
+        if (ups is null)
+            ups = new Statements();
+        p.unpack._init = new IdentifierExp(p.loc, p.ident);
+        ups.push(new ExpStatement(p.unpack.loc, p.unpack));
+    }
+    if (ups !is null)
+    {
+        ups.push(thisfd.fbody);
+        thisfd.fbody = new CompoundStatement(thisfd.fbody.loc, ups);
+    }
+}
+
+/****************************************************
  * Rewrite contracts as statements.
  */
 void buildEnsureRequire(FuncDeclaration thisfd)
@@ -3054,7 +3085,7 @@ void buildEnsureRequire(FuncDeclaration thisfd)
         auto fparams = new Parameters();
         if (thisfd.canBuildResultVar())
         {
-            Parameter p = new Parameter(loc, STC.ref_ | STC.const_, f.nextOf(), Id.result, null, null);
+            Parameter p = new Parameter(loc, STC.ref_ | STC.const_, f.nextOf(), Id.result, null, null, null);
             fparams.push(p);
         }
         auto fo = cast(TypeFunction)(thisfd.originalType ? thisfd.originalType : f);

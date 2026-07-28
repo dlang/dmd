@@ -64,6 +64,12 @@ else version (DragonFlyBSD)
     import core.sys.dragonflybsd.sys.elf : DT_AUXILIARY, DT_FILTER, DT_NEEDED, DT_STRTAB, PF_W, PF_X, PT_DYNAMIC, PT_LOAD, PT_TLS;
     import core.sys.dragonflybsd.sys.link_elf : ElfW, link_map;
 }
+else version (Hurd)
+{
+    import core.sys.hurd.dlfcn : Dl_info, dladdr, dlclose, dlinfo, dlopen, RTLD_DI_LINKMAP, RTLD_LAZY, RTLD_NOLOAD;
+    import core.sys.hurd.elf : DT_AUXILIARY, DT_FILTER, DT_NEEDED, DT_STRTAB, PF_W, PF_X, PT_DYNAMIC, PT_LOAD, PT_TLS;
+    import core.sys.hurd.link : ElfW, link_map;
+}
 else
 {
     static assert(0, "unimplemented");
@@ -744,6 +750,8 @@ version (Shared)
                     enum relocate = true;
                 else version (DragonFlyBSD)
                     enum relocate = true;
+                else version (Hurd)
+                    enum relocate = false;
                 else
                     static assert(0, "unimplemented");
 

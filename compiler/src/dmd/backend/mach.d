@@ -257,11 +257,12 @@ struct section_64
 {
     char[16] sectname;
     char[16] segname;
-    ulong addr;
+    ulong addr;  // logical location of section
     ulong size;
-    uint offset;
+    uint offset; // offset from start of object file to section contents
+                 // for ZERO_FILL this must be 0
     uint _align;
-    uint reloff;
+    uint reloff; // file offset of relocation entries
     uint nreloc;
     uint flags;
     uint reserved1;
@@ -357,7 +358,11 @@ struct nlist_64
     ubyte n_type;
     ubyte n_sect;
     ushort n_desc;
-    ulong n_value;
+    ulong n_value; // N_SECT: address within its section, not the offset from the section start
+                   // N_UNDF: 0
+                   //       : number of bytes for a common symbol
+                   // N_ABS : the value of the symbol; no relocation
+                   // N_STAB: !=0 meaning depends on STABS record
 }
 
 struct dysymtab_command
@@ -444,8 +449,11 @@ struct relocation_info  // https://developer.apple.com/documentation/kernel/relo
     void r_extern   (uint r) { assert(!(r & ~1));           xxx = (xxx & ~0x0800_0000) | (r << (24 + 1 + 2)); }
     void r_type     (uint r) { assert(!(r & ~0xF));         xxx = (xxx & ~0xF000_0000) | (r << (24 + 1 + 2 + 1)); }
 
-    uint r_pcrel() { return (xxx >> 24) &   1; }
-    uint r_type()  { return (xxx >> 28) & 0xF; }
+    uint r_symbolnum() { return (xxx & 0x00FF_FFFF); }
+    uint r_pcrel    () { return (xxx >> 24) &   1; }
+    uint r_length   () { return (xxx >> 25) &   3; }
+    uint r_extern   () { return (xxx >> 27) &   1; }
+    uint r_type     () { return (xxx >> 28) & 0xF; }
 }
 
 struct scattered_relocation_info

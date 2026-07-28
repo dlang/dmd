@@ -75,6 +75,18 @@ void _d_arrayshrinkfit(Tarr: T[], T)(Tarr arr, bool isshared) @trusted
     gc_shrinkArrayUsed(arr[0 .. reqlen], curlen * T.sizeof, isshared);
 }
 
+size_t _d_arraygetcapacity(size_t size, void[]* p, bool isshared) pure nothrow @trusted
+in
+{
+    assert(!(*p).length || (*p).ptr);
+}
+do
+{
+    auto datasize = (*p).length * size;
+    auto curCapacity = gc_reserveArrayCapacity((*p).ptr[0 .. datasize], 0, isshared);
+    return curCapacity / size;
+}
+
 /**
 Set the array capacity.
 
@@ -287,7 +299,10 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
     if (!arr.ptr)
     {
         assert(arr.length == 0);
-        void* ptr = GC.malloc(newsize, gcAttrs);
+        version (D_TypeInfo)
+            void* ptr = GC.malloc(newsize, gcAttrs, typeid(T));
+        else
+            void* ptr = GC.malloc(newsize, gcAttrs, null);
         if (!ptr)
         {
             onOutOfMemoryError();
@@ -323,7 +338,10 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
 
     if (!gc_expandArrayUsed(newdata[0 .. oldsize], newsize, isShared))
     {
-        newdata = GC.malloc(newsize, gcAttrs);
+        version (D_TypeInfo)
+            newdata = GC.malloc(newsize, gcAttrs, typeid(T));
+        else
+            newdata = GC.malloc(newsize, gcAttrs, null);
         if (!newdata)
         {
             onOutOfMemoryError();

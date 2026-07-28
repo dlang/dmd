@@ -495,7 +495,6 @@ extern (C++) class VarDeclaration : Declaration
             }
         }
 
-        assert(type || _init);
         this.type = type;
         this._init = _init;
         ctfeAdrOnStack = AdrOnStackNone;
@@ -711,9 +710,9 @@ extern (C++) final class SymbolDeclaration : Declaration
 /***********************************************************
  * Generate Identifier for TypeInfo corresponding to `t`
  * Params:
- *	t = type to generate TypeInfo identifier for
+ *      t = type to generate TypeInfo identifier for
  * Returns:
- *	the identifier
+ *      the identifier
  */
 private Identifier getTypeInfoIdent(Type t)
 {
@@ -725,7 +724,7 @@ private Identifier getTypeInfoIdent(Type t)
 
     OutBuffer buf2;
     buf2.reserve(19 + size_t.sizeof * 3 + buf.length + 1);
-    buf2.printf("_D%zuTypeInfo_%.*s6__initZ", 9+buf.length, cast(int)buf.length, buf[].ptr);
+    buf2.printf("_D%uTypeInfo_%.*s6__initZ", cast(uint)(9+buf.length), cast(int)buf.length, buf[].ptr);
 
     auto id = Identifier.idPool(buf2[]);
     return id;

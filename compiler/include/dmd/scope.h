@@ -99,7 +99,8 @@ struct Scope final
 
     DeprecatedDeclaration *depdecl; // customized deprecation message
 
-    uint16_t flags, flags2;
+    uint32_t flags;
+    uint16_t flags2;
     uint16_t previews; // state of preview switches
 
     bool ctor() const;
@@ -132,6 +133,8 @@ struct Scope final
     bool knownACompileTimeOnlyContext(bool v);
     bool inIsDisabledTrait() const;
     bool inIsDisabledTrait(bool v);
+    bool deferSemantic3InCompilerHook() const;
+    bool deferSemantic3InCompilerHook(bool v);
 
     UserAttributeDeclaration *userAttribDecl;   // user defined attributes
 
@@ -142,6 +145,4 @@ struct Scope final
     AliasDeclaration *aliasAsg; // if set, then aliasAsg is being assigned a new value,
                                 // do not set wasRead for it
     StructDeclaration *argStruct; // elimiate recursion when looking for rvalue construction
-
-    Dsymbol *search(Loc loc, Identifier *ident, Dsymbol *&pscopesym, SearchOptFlags flags = (SearchOptFlags)SearchOpt::all);
 };

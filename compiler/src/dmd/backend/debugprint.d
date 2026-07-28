@@ -18,19 +18,19 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.backconfig : debugf;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.evalu8 : iftrue;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
-import dmd.backend.goh;
+import dmd.backend.go;
 import dmd.backend.oper;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 
@@ -38,7 +38,7 @@ nothrow:
 @safe:
 
 @trusted
-void ferr(const(char)* p) { printf("%s", p); }
+void ferr(const char* p) { printf("%s", p); }
 
 /*******************************
  * Params:
@@ -58,7 +58,6 @@ private immutable char[10][SCMAX] sc =
     "unde",
     "auto",
     "static",
-    "thread",
     "extern",
     "register",
     "pseudo",
@@ -69,35 +68,20 @@ private immutable char[10][SCMAX] sc =
     "fastpar",
     "shadowreg",
     "typedef",
-    "explicit",
-    "mutable",
-    "label",
     "struct",
     "enum",
     "field",
     "const",
     "member",
-    "anon",
     "inline",
     "sinline",
     "einline",
-    "overload",
-    "friend",
-    "virtual",
     "locstat",
-    "template",
-    "functempl",
-    "ftexpspec",
-    "linkage",
-    "public",
     "comdef",
     "bprel",
-    "namespace",
     "alias",
     "funcalias",
-    "memalias",
     "stack",
-    "adl",
 ];
 
 /***************************
@@ -125,7 +109,7 @@ const(char)* oper_str(uint oper) pure
 const(char)* tym_str(tym_t ty)
 {
     enum MAX = 100;
-    __gshared char[MAX + 1] buf;
+    __gshared char[MAX + 1] buf;  // globals are not a threading issue with debug code
 
     char* pstart = &buf[0];
     char* p = pstart;
@@ -173,7 +157,7 @@ const(char)* tym_str(tym_t ty)
  *      pointer to string
  */
 @trusted
-const(char)* bc_str(uint bc)
+immutable(char)* bc_str(uint bc)
 {
     return bcs[bc].ptr;
 }
@@ -186,28 +170,6 @@ private immutable char[8][BC.max + 1] bcs =
     "_final ", "_ret   ", "_excep ", "jcatch", "_lpad  ",
 ];
 
-
-/************************
- * Write arglst
- */
-
-@trusted
-void WRarglst(list_t a)
-{
-    if (a)
-    {
-        int n = 1;
-        do
-        {
-            const(char)* c = cast(const(char)*)list_ptr(a);
-            printf("arg %d: '%s'\n", n, c ? c : "NULL");
-            a = a.next;
-            n++;
-        } while (a);
-    }
-    else
-        printf("0 args\n");
-}
 
 /***************************
  * Write out equation elem.
@@ -321,12 +283,10 @@ void WReqn(elem* e)
 }
 
 @trusted
-void WRblocklist(list_t bl)
+void WRblockarray(block*[] bl)
 {
-    foreach (bl2; ListRange(bl))
+    foreach (b; bl)
     {
-        block* b = list_block(bl2);
-
         if (b && b.Bweight)
             printf("B%d (%p) ",b.Bdfoidx,b);
         else
@@ -340,7 +300,7 @@ void WRdefnod(ref GlobalOptimizer go)
 {
     foreach (i; 0 .. go.defnod.length)
     {
-        printf("defnod[%d] in B%zu = (", go.defnod[i].DNblock.Bdfoidx, i);
+        printf("defnod[%d] in B%u = (", go.defnod[i].DNblock.Bdfoidx, cast(uint)i);
         WReqn(go.defnod[i].DNelem);
         printf(");\n");
     }
@@ -411,12 +371,12 @@ void WRblock(block* b)
         }
         printf(" flags=x%x weight=%d",b.Bflags,b.Bweight);
         //printf("\tfile %p, line %d",b.Bfilptr,b.Blinnum);
-        printf(" BC.%s Btry=%p Bindex=%d",bc_str(b.bc),b.Btry,b.Bindex);
+        printf(" BC.%s Btry=%p",bc_str(b.bc),b.Btry);
         if (b.bc == BC.try_)
             printf(" catchvar = %p",b.catchvar);
         printf("\n");
-        printf("\tBpred: "); WRblocklist(b.Bpred);
-        printf("\tBsucc: "); WRblocklist(b.Bsucc);
+        printf("\tBpred: "); WRblockarray(b.Bpred[]);
+        printf("\tBsucc: "); WRblockarray(b.Bsucc[]);
         if (b.Belem)
         {
             if (debugf)                     /* if full output       */
@@ -438,8 +398,6 @@ void WRblock(block* b)
         printf("%2d: BC.%s", b.Bnumber, bc_str(b.bc));
         if (b.Btry)
             printf(" Btry=B%d",b.Btry ? b.Btry.Bnumber : 0);
-        if (b.Bindex)
-            printf(" Bindex=%d",b.Bindex);
         if (b.bc == BC._finally)
             printf(" b_ret=B%d", b.b_ret ? b.b_ret.Bnumber : 0);
         if (b.Bsrcpos.Sfilename)
@@ -456,11 +414,11 @@ void WRblock(block* b)
                 printf(";\n");
             }
         }
-        if (b.Bpred)
+        if (b.Bpred.length)
         {
             printf("\tBpred:");
-            foreach (bl; ListRange(b.Bpred))
-                printf(" B%d",list_block(bl).Bnumber);
+            foreach (bl; b.Bpred[])
+                printf(" B%d",bl.Bnumber);
             printf("\n");
         }
 
@@ -468,12 +426,12 @@ void WRblock(block* b)
         {
             case BC.switch_:
                 printf("\tncases = %d\n", cast(int)b.Bswitch.length);
-                list_t bl = b.Bsucc;
-                printf("\tdefault: B%d\n",list_block(bl) ? list_block(bl).Bnumber : 0);
+                printf("\tdefault: B%d\n",b.Bsucc.length ? b.Bsucc[0].Bnumber : 0);
+                int j = 1;
                 foreach (val; b.Bswitch)
                 {
-                    bl = list_next(bl);
-                    printf("\tcase %lld: B%d\n", cast(long)val, list_block(bl).Bnumber);
+                    printf("\tcase %lld: B%d\n", cast(long)val, b.Bsucc[j].Bnumber);
+                    ++j;
                 }
                 break;
 
@@ -489,11 +447,11 @@ void WRblock(block* b)
             case BC._lpad:
             case BC._ret:
             case BC._except:
-                if (list_t bl = b.Bsucc)
+                if (b.Bsucc.length)
                 {
                     printf("\tBsucc:");
-                    for ( ; bl; bl = list_next(bl))
-                        printf(" B%d",list_block(bl).Bnumber);
+                    foreach (ba; b.Bsucc[])
+                        printf(" B%d", ba.Bnumber);
                     printf("\n");
                 }
                 break;

@@ -51,7 +51,6 @@ import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder : CodeBuilder;
-import dmd.backend.global;
 import dmd.backend.iasm;
 
 /************************
@@ -108,7 +107,7 @@ public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
                 if (!(size(t) == 4 && isIntegral(t)))
                     error(s.loc, "size of opcode must be 4 of integral type\n");
                 code* pc = code_calloc();
-                pc.Iflags |= CFpsw;            // assume we want to keep the flags
+                pc.Iflags |= CF.psw;            // assume we want to keep the flags
                 pc.Iop = cast(int)exp.toInteger();
                 s.asmcode = pc;
             }

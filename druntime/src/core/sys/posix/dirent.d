@@ -158,6 +158,17 @@ else version (Solaris)
         char[1] d_name = 0;
     }
 }
+else version (Hurd)
+{
+    struct dirent
+    {
+        ino_t       d_ino;
+        ushort      d_reclen;
+        ubyte       d_type;
+        ubyte       d_namlen;
+        char[1]     d_name = 0;
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");

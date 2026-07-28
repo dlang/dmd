@@ -71,7 +71,11 @@ else
 /**********************************
  * Extra Fields for FuncDeclaration
  */
-version (IN_GCC)
+version (NoBackend)
+{
+    mixin template FuncDeclarationExtra() { }
+}
+else version (IN_GCC)
 {
     mixin template FuncDeclarationExtra() { }
 }
@@ -94,7 +98,11 @@ else
 /**********************************
  * Extra Fields for FuncDeclaration
  */
-version (IN_GCC)
+version (NoBackend)
+{
+    mixin template alignSectionVarsExtra() { void doAlign() { } }
+}
+else version (IN_GCC)
 {
     mixin template alignSectionVarsExtra() { void doAlign() { } }
 }
@@ -131,7 +139,11 @@ else
  */
 mixin template alignSectionVarsContains()
 {
-    version (IN_GCC)
+    version (NoBackend)
+    {
+        bool isAlignSectionVar(VarDeclaration v) { return false; }
+    }
+    else version (IN_GCC)
     {
         bool isAlignSectionVar(VarDeclaration v) { return false; }
     }

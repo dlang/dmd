@@ -6,14 +6,14 @@ TEST_OUTPUT:
 Code generation,
 Codegen: function add, object.add
 Codegen: function fun, object.fun
-Codegen: function id, object.id!int.id
+Codegen: function id, object.id!int
 Codegen: function uses, object.uses
 Codegen: module object, object
 Ctfe: add(4, 8), add(4, 8)
 Ctfe: call add, object.add(4, 8)
 DFA: add, object.add
 DFA: fun, object.fun
-DFA: id, object.id!int.id
+DFA: id, object.id!int
 DFA: uses, object.uses
 Import object.object, object.object
 Inlining,
@@ -21,7 +21,7 @@ Parse: Module object, object
 Parsing,
 Sema1: Function add, object.add
 Sema1: Function fun, object.fun
-Sema1: Function id, object.id!int.id
+Sema1: Function id, object.id!int
 Sema1: Function uses, object.uses
 Sema1: Module object, object
 Sema1: Overload Resolution: id!int, id!int
@@ -32,12 +32,12 @@ Sema1: Template Members: id!int, object.id!int
 Sema2: Template Instance: id!int, object.id!int
 Sema2: add, object.add
 Sema2: fun, object.fun
-Sema2: id, object.id!int.id
+Sema2: id, object.id!int
 Sema2: uses, object.uses
 Sema3: Template Instance: id!int, object.id!int
 Sema3: add, object.add
 Sema3: fun, object.fun
-Sema3: id, object.id!int.id
+Sema3: id, object.id!int
 Sema3: uses, object.uses
 Semantic analysis,
 ---

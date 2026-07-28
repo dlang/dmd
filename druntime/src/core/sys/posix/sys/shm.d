@@ -181,6 +181,32 @@ else version (Solaris)
 {
 
 }
+else version (Hurd)
+{
+    import core.sys.hurd.sys.types;
+    enum SHM_RDONLY     = 0x01000; // 010000
+    enum SHM_RND        = 0x02000; // 020000
+    enum SHM_REMAP      = 0x4000; // 040000
+
+    alias shmatt_t = short;
+
+    private struct __vm_area_struct;
+
+    struct shmid_ds
+    {
+        ipc_perm    shm_perm;
+        size_t      shm_segsz;
+        time_t      shm_atime;
+        time_t      shm_dtime;
+        time_t      shm_ctime;
+        ipc_pid_t   shm_cpid;
+        ipc_pid_t   shm_lpid;
+        shmatt_t    shm_nattch;
+        private ushort      __shm_npages;
+        private c_ulong*    __shm_pages;
+        private __vm_area_struct* __attaches;
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
