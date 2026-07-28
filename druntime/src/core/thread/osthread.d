@@ -2320,6 +2320,12 @@ package struct LLTaskProperties_dflt
     void delegate() nothrow dg;
 }
 
+package ThreadID initLLTaskProperties_dflt(ref LLTaskProperties context, void delegate() nothrow dg) nothrow @nogc
+{
+    context.dg = dg;
+    return ThreadID.init;
+}
+
 /**
  * Create a thread not under control of the runtime, i.e. TLS module constructors are
  * not run and the GC does not suspend it during a collection.
@@ -2340,9 +2346,8 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
 {
     auto context = cast(LLTaskProperties*) malloc(LLTaskProperties.sizeof);
     scope(exit) free(context);
-    context.dg = dg;
 
-    ThreadID tid;
+    ThreadID tid = initLLTaskProperties(*context, dg);
     version (Windows)
     {
         // the thread won't start until after the DLL is unloaded
