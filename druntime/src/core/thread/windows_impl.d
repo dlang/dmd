@@ -313,6 +313,6 @@ package ThreadID initLLThreadProperties(
     // see Thread.start() for why thread is created in suspended state
     context.hThread = cast(HANDLE) _beginthreadex(null, stacksize, &thread_lowlevelEntry,
                                                  context, CREATE_SUSPENDED, &tid);
-    if (!hThread)
+    if (!context.hThread)
         return ThreadID.init;
 }
