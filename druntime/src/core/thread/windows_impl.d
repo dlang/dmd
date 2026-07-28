@@ -462,7 +462,7 @@ package ThreadID initLLThreadProperties(
 
     static extern (Windows) uint thread_lowlevelEntry(void* ctx) nothrow
     {
-        auto context = *cast(Context*)ctx;
+        auto context = *cast(LLThreadProperties*)ctx;
         free(ctx);
 
         context.dg();
