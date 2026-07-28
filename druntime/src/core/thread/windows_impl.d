@@ -251,6 +251,8 @@ class Thread : ThreadBase
             hndl: GetCurrentThreadHandle()
         );
     }
+
+    package static void afterDeploy() nothrow @nogc { /* do nothing */ }
 }
 
 package alias gettid = imported!"core.sys.windows.winbase".GetCurrentThreadId;

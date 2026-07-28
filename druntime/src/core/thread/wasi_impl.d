@@ -165,6 +165,8 @@ class Thread : ThreadBase
             tid: 1 // assumes this is done only once
         );
     }
+
+    package static void afterDeploy() nothrow @nogc { /* do nothing */ }
 }
 
 package ThreadID gettid() @nogc nothrow
