@@ -2372,9 +2372,9 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
                 ll_getModuleHandle(context.cbMod, true); // increment ref count
         }
 
-        if (ResumeThread(hThread) == -1)
+        if (ResumeThread(context.hThread) == -1)
             onThreadError("Error resuming thread");
-        CloseHandle(hThread);
+        CloseHandle(context.hThread);
 
         if (cbDllUnload)
             ll_startDLLUnloadThread();

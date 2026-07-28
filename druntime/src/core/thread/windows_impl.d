@@ -271,6 +271,7 @@ package struct LLTaskProperties
 {
     void delegate() nothrow dg;
     HMODULE cbMod;
+    HANDLE hThread;
 }
 
 package ThreadID initLLTaskProperties(
@@ -310,7 +311,7 @@ package ThreadID initLLTaskProperties(
     }
 
     // see Thread.start() for why thread is created in suspended state
-    HANDLE hThread = cast(HANDLE) _beginthreadex(null, stacksize, &thread_lowlevelEntry,
+    hThread = cast(HANDLE) _beginthreadex(null, stacksize, &thread_lowlevelEntry,
                                                  context, CREATE_SUSPENDED, &tid);
     if (!hThread)
         return ThreadID.init;
