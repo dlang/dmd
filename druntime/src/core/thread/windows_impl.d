@@ -278,7 +278,8 @@ package ThreadID initLLThreadProperties(
     ref LLThreadProperties context,
     ThreadID tid,
     void delegate() nothrow dg,
-    void delegate() nothrow cbDllUnload = null
+    uint stacksize,
+    void delegate() nothrow cbDllUnload
 ) nothrow @nogc
 {
     // the thread won't start until after the DLL is unloaded
