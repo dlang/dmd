@@ -266,3 +266,9 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
 {
     return ResumeThread(t.m_tdescr.hndl) != 0xFFFFFFFF;
 }
+
+package struct LLTaskProperties
+{
+    void delegate() nothrow dg;
+    HMODULE cbMod;
+}

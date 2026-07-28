@@ -185,3 +185,5 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
     onThreadError( "Unable to resume thread" );
     assert(0);
 }
+
+package alias LLTaskProperties = LLTaskProperties_dflt;

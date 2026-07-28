@@ -659,3 +659,5 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
 }
 
 package alias gettid = imported!"core.sys.posix.pthread".pthread_self;
+
+package alias LLTaskProperties = LLTaskProperties_dflt;

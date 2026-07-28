@@ -2315,6 +2315,11 @@ private
     }
 }
 
+package struct LLTaskProperties_dflt
+{
+    void delegate() nothrow dg;
+}
+
 /**
  * Create a thread not under control of the runtime, i.e. TLS module constructors are
  * not run and the GC does not suspend it during a collection.
@@ -2333,13 +2338,7 @@ private
 ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
                               void delegate() nothrow cbDllUnload = null) nothrow @nogc
 {
-    static struct Context
-    {
-        void delegate() nothrow dg;
-        version (Windows)
-            HMODULE cbMod;
-    }
-    auto context = cast(Context*)malloc(Context.sizeof);
+    auto context = cast(LLTaskProperties*) malloc(LLTaskProperties.sizeof);
     scope(exit) free(context);
     context.dg = dg;
 
@@ -2413,7 +2412,7 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
     {
         static extern (C) void* thread_lowlevelEntry(void* ctx) nothrow
         {
-            auto context = *cast(Context*)ctx;
+            auto context = *cast(LLTaskProperties*)ctx;
             free(ctx);
 
             context.dg();
