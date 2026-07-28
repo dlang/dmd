@@ -311,7 +311,7 @@ package ThreadID initLLThreadProperties(
     }
 
     // see Thread.start() for why thread is created in suspended state
-    hThread = cast(HANDLE) _beginthreadex(null, stacksize, &thread_lowlevelEntry,
+    context.hThread = cast(HANDLE) _beginthreadex(null, stacksize, &thread_lowlevelEntry,
                                                  context, CREATE_SUSPENDED, &tid);
     if (!hThread)
         return ThreadID.init;
