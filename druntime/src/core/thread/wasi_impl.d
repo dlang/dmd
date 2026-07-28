@@ -187,3 +187,4 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
 }
 
 package alias LLTaskProperties = LLTaskProperties_dflt;
+package alias initLLThreadProperties = initLLThreadProperties_dflt!();
