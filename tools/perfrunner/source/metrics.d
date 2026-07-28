@@ -23,10 +23,12 @@ immutable MetricDef[] initials = [
     MetricDef("compile_hello_debug_instr",   "compile hello.d (instr)",    "count", "cachegrind"),
     MetricDef("compile_hello_release_instr", "compile hello.d -O (instr)", "count", "cachegrind"),
     MetricDef("compile_phobos_instr",        "compile Phobos (instr)",     "count", "cachegrind"),
+    MetricDef("compile_vibed_instr",         "compile vibe.d (instr)",     "count", "cachegrind"),
     MetricDef("dmd_binary_size",             "dmd binary size (stripped)", "bytes", "stat"),
     MetricDef("hello_binary_size",           "hello binary size",          "bytes", "stat"),
     MetricDef("hello_max_rss",               "peak RSS (compile hello.d)", "kb",    "time -v"),
     MetricDef("phobos_max_rss",              "peak RSS (compile Phobos)",  "kb",    "time -v"),
+    MetricDef("vibed_max_rss",               "peak RSS (compile vibe.d)",  "kb",    "time -v"),
 ];
 
 struct Measurement
@@ -38,19 +40,25 @@ struct Measurement
 
 // Measure every metric for one dmd binary. `tag` ("base"/"head")
 // keeps the two runs' temp files apart
-Measurement measure(string dmd, string workload, string phobos, string tmp, string tag)
+Measurement measure(string dmd, string workload, string phobos,
+    string vibed, string[] vibedFlags, string tmp, string tag)
 {
     auto stdPackage = buildPath(phobos, "std", "package.d");
     auto phobosFlags = ["-i=std", "-preview=dip1000"];
+    // Unlike a dub build, which compiles one package per invocation, this pulls
+    // the whole vibe.d tree into a single compile.
+    auto vibeFlags = "-i" ~ vibedFlags;
     Measurement m;
     m.metrics = [
         "compile_hello_debug_instr":   instructions(dmd, [], workload, tmp, tag ~ "-dbg"),
         "compile_hello_release_instr": instructions(dmd, ["-O", "-release"], workload, tmp, tag ~ "-rel"),
         "compile_phobos_instr":        instructions(dmd, phobosFlags, stdPackage, tmp, tag ~ "-phobos"),
+        "compile_vibed_instr":         instructions(dmd, vibeFlags, vibed, tmp, tag ~ "-vibed"),
         "dmd_binary_size":             strippedSize(dmd, buildPath(tmp, tag ~ "-dmd")),
         "hello_binary_size":           helloSize(dmd, workload, tmp, tag),
         "hello_max_rss":               maxRss(dmd, [], workload, tmp, tag),
         "phobos_max_rss":              maxRss(dmd, phobosFlags, stdPackage, tmp, tag ~ "-phobos"),
+        "vibed_max_rss":               maxRss(dmd, vibeFlags, vibed, tmp, tag ~ "-vibed"),
     ];
     m.helloTrace = collectTrace(dmd, [], workload, tmp, tag ~ "-hello");
     m.phobosTrace = collectTrace(dmd, phobosFlags, stdPackage, tmp, tag ~ "-phobos");

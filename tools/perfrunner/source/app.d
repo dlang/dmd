@@ -7,9 +7,15 @@ import std.stdio : stderr, writeln;
 
 import metrics : measure, initials;
 import report : MetricResult, render, Report;
+import vibed : describeFlags;
+
+enum workloads = buildPath(__FILE_FULL_PATH__.dirName.dirName, "workloads");
 
 // Initial workload: the one source file compile to measure DMD.
-enum workload = buildPath(__FILE_FULL_PATH__.dirName.dirName, "workloads", "hello.d");
+enum workload = buildPath(workloads, "hello.d");
+
+enum vibedDir = buildPath(workloads, "vibed");
+enum vibedRoot = buildPath(vibedDir, "source", "app.d");
 
 version (unittest) {} else
 int main(string[] args)
@@ -50,8 +56,11 @@ int main(string[] args)
     auto tmp = buildPath(tempDir, "perfrunner");
     mkdirRecurse(tmp);
 
-    auto base = measure(baseDmd, workload, basePhobos, tmp, "base");
-    auto head = measure(headDmd, workload, headPhobos, tmp, "head");
+    // Resolved once so both refs compile vibe.d with the same flags.
+    auto vibedFlags = describeFlags(vibedDir, baseDmd);
+
+    auto base = measure(baseDmd, workload, basePhobos, vibedRoot, vibedFlags, tmp, "base");
+    auto head = measure(headDmd, workload, headPhobos, vibedRoot, vibedFlags, tmp, "head");
 
     MetricResult[] metrics;
     foreach (def; initials)
