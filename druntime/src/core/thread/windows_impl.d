@@ -436,7 +436,7 @@ package struct LLThreadProperties
 }
 
 package bool initLLThreadProperties(
-    ref LLThreadProperties context,
+    LLThreadProperties* context,
     ref ThreadID tid,
     void delegate() nothrow dg,
     uint stacksize,
@@ -475,6 +475,6 @@ package bool initLLThreadProperties(
 
     // see Thread.start() for why thread is created in suspended state
     context.hThread = cast(HANDLE) _beginthreadex(null, stacksize, &thread_lowlevelEntry,
-                                                 &context, CREATE_SUSPENDED, &tid);
+                                                 context, CREATE_SUSPENDED, &tid);
     return context.hThread !is null;
 }

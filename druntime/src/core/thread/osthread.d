@@ -2166,7 +2166,7 @@ package struct LLThreadProperties_dflt
 }
 
 package bool initLLThreadProperties_dflt()(
-    ref LLThreadProperties context,
+    LLThreadProperties* context,
     ref ThreadID tid,
     void delegate() nothrow dg,
     uint stacksize,
@@ -2201,7 +2201,7 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
 
     ThreadID tid;
 
-    if(initLLThreadProperties(*context, tid, dg, stacksize, cbDllUnload) == false)
+    if(initLLThreadProperties(context, tid, dg, stacksize, cbDllUnload) == false)
         return ThreadID.init;
 
     lowlevelLock.lock_nothrow();
