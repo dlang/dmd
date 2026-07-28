@@ -2318,16 +2318,20 @@ private
 package struct LLThreadProperties_dflt
 {
     void delegate() nothrow dg;
+    uint stacksize;
 }
 
-package ThreadID initLLThreadProperties_dflt()(
+package bool initLLThreadProperties_dflt()(
     ref LLThreadProperties context,
+    ThreadID tid,
     void delegate() nothrow dg,
+    uint stacksize,
     void delegate() nothrow cbDllUnload
 ) nothrow @nogc
 {
     context.dg = dg;
-    return ThreadID.init;
+    context.stacksize = stacksize;
+    return true;
 }
 
 /**
@@ -2351,7 +2355,10 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
     auto context = cast(LLThreadProperties*) malloc(LLThreadProperties.sizeof);
     scope(exit) free(context);
 
-    ThreadID tid = initLLThreadProperties(*context, dg, cbDllUnload);
+    ThreadID tid;
+
+    if(initLLThreadProperties(*context, tid, dg, stacksize, cbDllUnload) == false)
+        return ThreadID.init;
 
     lowlevelLock.lock_nothrow();
     scope(exit) lowlevelLock.unlock_nothrow();

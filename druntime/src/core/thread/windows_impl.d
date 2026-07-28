@@ -276,6 +276,7 @@ package struct LLThreadProperties
 
 package ThreadID initLLThreadProperties(
     ref LLThreadProperties context,
+    ThreadID tid,
     void delegate() nothrow dg,
     void delegate() nothrow cbDllUnload = null
 ) nothrow @nogc
