@@ -90,13 +90,13 @@ void builddags(ref GlobalOptimizer go, ref BlockOpt bo)
                     printf("dfo[%d] = %p\n",i,b);
                     printf("b.Bin   "); vec_println(b.Bin,go.exptop);
                     printf("b.Bout  "); vec_println(b.Bout,go.exptop);
-                    aewalk(go, &(b.Belem),b.Bin);
+                    aewalk(go, b.Belem, b.Bin);
                     printf("b.Bin   "); vec_println(b.Bin,go.exptop);
                     printf("b.Bout  "); vec_println(b.Bout,go.exptop);
                 }
                 else
                 {
-                    aewalk(go, &(b.Belem),b.Bin);
+                    aewalk(go, b.Belem, b.Bin);
                 }
                 /* Bin and Bout would be equal at this point  */
                 /* except that we deleted some elems from     */
@@ -128,7 +128,7 @@ void builddags(ref GlobalOptimizer go, ref BlockOpt bo)
                )
                 vec_clear(aevec);
             if (b.Belem)           /* if there is an expression    */
-                aewalk(go, &(b.Belem),aevec);
+                aewalk(go, b.Belem, aevec);
         }
         vec_free(aevec);
     }
@@ -154,11 +154,11 @@ void builddags(ref GlobalOptimizer go, ref BlockOpt bo)
  *      ae = vector of available expressions
  */
 @trusted
-private void aewalk(ref GlobalOptimizer go, elem** pn, vec_t ae)
+private void aewalk(ref GlobalOptimizer go, ref elem* pn, vec_t ae)
 {
-    elem* n = *pn;
+    elem* n = pn;
     assert(n && ae);
-    //printf("visiting  %d: (",n.Eexp); WReqn(*pn); printf(")\n");
+    //printf("visiting  %d: (",n.Eexp); WReqn(pn); printf(")\n");
     //chkvecdim(go.exptop);
     const op = n.Eoper;
     if (n.Eexp)                            // if an AE
@@ -178,8 +178,8 @@ private void aewalk(ref GlobalOptimizer go, elem** pn, vec_t ae)
                     cse_float(n)
                     )
                 {
-                    *pn = e;                // replace n with e
-                    //printf("cse: %p (",n); WReqn(*pn); printf(")\n");
+                    pn = e;                // replace n with e
+                    //printf("cse: %p (",n); WReqn(pn); printf(")\n");
                     e.Ecount++;
                     debug assert(e.Ecount != 0);
 
@@ -226,8 +226,8 @@ private void aewalk(ref GlobalOptimizer go, elem** pn, vec_t ae)
             // ae = ae & ael & aer
             // AEs gened by ael and aer are mutually exclusive
             vec_t aer = vec_clone(ae);
-            aewalk(go, &(n.E1),ae);
-            aewalk(go, &(n.E2),aer);
+            aewalk(go, n.E1, ae);
+            aewalk(go, n.E2, aer);
             vec_andass(ae,aer);
             vec_free(aer);
             break;
@@ -236,10 +236,10 @@ private void aewalk(ref GlobalOptimizer go, elem** pn, vec_t ae)
         case OPandand:
         case OPoror:
         {
-            aewalk(go, &(n.E1),ae);
+            aewalk(go, n.E1, ae);
             /* ae &= aer    */
             vec_t aer = vec_clone(ae);
-            aewalk(go, &(n.E2),aer);
+            aewalk(go, n.E2, aer);
             if (el_returns(n.E2))
                 vec_andass(ae,aer);
             vec_free(aer);
@@ -249,7 +249,7 @@ private void aewalk(ref GlobalOptimizer go, elem** pn, vec_t ae)
         case OPnegass:
             t = n.E1;
             if (t.Eoper == OPind)
-                aewalk(go, &(t.E1),ae);
+                aewalk(go, t.E1, ae);
             break;
 
         case OPctor:
@@ -276,23 +276,23 @@ private void aewalk(ref GlobalOptimizer go, elem** pn, vec_t ae)
                        )
                     {   }
                     else
-                        aewalk(go, &(n.E2),ae);
+                        aewalk(go, n.E2, ae);
                 }
                 if (OTassign(op))
                 {
                     t = n.E1;
                     if (t.Eoper == OPind)
-                        aewalk(go, &(t.E1),ae);
+                        aewalk(go, t.E1, ae);
                 }
                 else
-                    aewalk(go, &(n.E1),ae);
+                    aewalk(go, n.E1, ae);
                 if (!ERTOL(n))
-                    aewalk(go, &(n.E2),ae);
+                    aewalk(go, n.E2, ae);
             }
             else if (OTunary(op))
             {
                 assert(op != OPnegass);
-                aewalk(go, &(n.E1),ae);
+                aewalk(go, n.E1, ae);
             }
     }
 
