@@ -34,19 +34,40 @@ nothrow:
 @nogc:
 
 ///
-struct tm
+version (CRuntime_WASI)
 {
-    int     tm_sec;     /// seconds after the minute [0-60]
-    int     tm_min;     /// minutes after the hour [0-59]
-    int     tm_hour;    /// hours since midnight [0-23]
-    int     tm_mday;    /// day of the month [1-31]
-    int     tm_mon;     /// months since January [0-11]
-    int     tm_year;    /// years since 1900
-    int     tm_wday;    /// days since Sunday [0-6]
-    int     tm_yday;    /// days since January 1 [0-365]
-    int     tm_isdst;   /// Daylight Savings Time flag
-    c_long  tm_gmtoff;  /// offset from CUT in seconds
-    char*   tm_zone;    /// timezone abbreviation
+    struct tm
+    {
+        int     tm_sec;     /// seconds after the minute [0-60]
+        int     tm_min;     /// minutes after the hour [0-59]
+        int     tm_hour;    /// hours since midnight [0-23]
+        int     tm_mday;    /// day of the month [1-31]
+        int     tm_mon;     /// months since January [0-11]
+        int     tm_year;    /// years since 1900
+        int     tm_wday;    /// days since Sunday [0-6]
+        int     tm_yday;    /// days since January 1 [0-365]
+        int     tm_isdst;   /// Daylight Savings Time flag
+        int     tm_gmtoff;  /// offset from CUT in seconds
+        char*   tm_zone;    /// timezone abbreviation
+        int     tm_nsec;    /// never filled? nsec after the second [0-1000000000]?
+    }
+}
+else
+{
+    struct tm
+    {
+        int     tm_sec;     /// seconds after the minute [0-60]
+        int     tm_min;     /// minutes after the hour [0-59]
+        int     tm_hour;    /// hours since midnight [0-23]
+        int     tm_mday;    /// day of the month [1-31]
+        int     tm_mon;     /// months since January [0-11]
+        int     tm_year;    /// years since 1900
+        int     tm_wday;    /// days since Sunday [0-6]
+        int     tm_yday;    /// days since January 1 [0-365]
+        int     tm_isdst;   /// Daylight Savings Time flag
+        c_long  tm_gmtoff;  /// offset from CUT in seconds
+        char*   tm_zone;    /// timezone abbreviation
+    }
 }
 
 public import core.sys.posix.sys.types : time_t, clock_t;
@@ -67,6 +88,22 @@ version (CRuntime_Glibc)
 else version (CRuntime_Musl)
 {
     enum clock_t CLOCKS_PER_SEC = 1_000_000;
+    clock_t clock();
+}
+else version (CRuntime_WASI)
+{
+    enum clock_t CLOCKS_PER_SEC = 1_000_000_000;
+
+    version (WASI_EMULATED_PROCESS_CLOCKS)
+        clock_t clock();
+    else
+        deprecated(
+            "WASI lacks process-associated clocks; to enable emulation of the"~
+            " `clock` function using the wall clock, which isn't sensitive to"~
+            " whether the program is running or suspended, compile with"~
+            " --d-version=WASI_EMULATED_PROCESS_CLOCKS and link with"~
+            " -lwasi-emulated-process-clocks"
+        )
     clock_t clock();
 }
 else version (CRuntime_Bionic)
@@ -185,6 +222,9 @@ else version (CRuntime_Musl)
     void tzset();                            // non-standard
     ///
     extern __gshared const(char)*[2] tzname; // non-standard
+}
+else version (CRuntime_WASI)
+{
 }
 else version (CRuntime_UClibc)
 {

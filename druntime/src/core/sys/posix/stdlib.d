@@ -129,6 +129,10 @@ else version (CRuntime_Musl)
 {
     int posix_memalign(scope void**, size_t, size_t) pure;
 }
+else version (CRuntime_WASI)
+{
+    int posix_memalign(scope void**, size_t, size_t) pure;
+}
 else version (CRuntime_UClibc)
 {
     int posix_memalign(scope void**, size_t, size_t) pure;
@@ -203,6 +207,11 @@ else version (CRuntime_Musl)
     int setenv(const scope char*, const scope char*, int);
     int unsetenv(const scope char*);
 }
+else version (CRuntime_WASI)
+{
+    int setenv(const scope char*, const scope char*, int);
+    int unsetenv(const scope char*);
+}
 else version (CRuntime_UClibc)
 {
     int setenv(const scope char*, const scope char*, int);
@@ -246,6 +255,10 @@ else version (Solaris)
     int rand_r(uint*);
 }
 else version (CRuntime_UClibc)
+{
+    int rand_r(uint*);
+}
+else version (CRuntime_WASI)
 {
     int rand_r(uint*);
 }
@@ -609,6 +622,35 @@ else version (CRuntime_Musl)
     {
         alias mkstemp64 = mkstemp;
     }
+}
+else version (CRuntime_WASI)
+{
+    c_long a64l(const scope char*);
+    double drand48();
+    char*  ecvt(double, int, int *, int *); // LEGACY
+    double erand48(ref ushort[3]);
+    char*  fcvt(double, int, int *, int *); // LEGACY
+    char*  gcvt(double, int, char*); // LEGACY
+    int    getsubopt(char**, const scope char**, char**);
+    c_long jrand48(ref ushort[3]);
+    char*  l64a(c_long);
+    void   lcong48(ref ushort[7]);
+    c_long lrand48();
+    c_long mrand48();
+    c_long nrand48(ref ushort[3]);
+    int    putenv(char*);
+    c_long random();
+    char*  realpath(const scope char*, char*);
+    ushort *seed48(ref ushort[3]);
+    void   setkey(const scope char*);
+    char*  setstate(const scope char*);
+    void   srand48(c_long);
+    void   srandom(uint);
+
+    import core.stdc.stdint;
+    uint32_t arc4random();
+    void arc4random_buf(void*, size_t);
+    uint32_t arc4random_uniform(uint32_t);
 }
 else version (Solaris)
 {

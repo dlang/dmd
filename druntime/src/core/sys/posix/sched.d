@@ -180,15 +180,34 @@ else version (Hurd)
     enum SCHED_OTHER    = 0;
     enum SCHED_RR       = 2;
 }
+else version (CRuntime_WASI)
+{
+    struct sched_param
+    {
+        int sched_priority;
+        int __reserved1;
+        struct __timespec32
+        {
+            time_t __reserved_1;
+            c_long __reserved_2;
+        }
+        __timespec32[2] __reserved2;
+        int __reserved3;
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
 }
 
-int sched_getparam(pid_t, sched_param*);
-int sched_getscheduler(pid_t);
-int sched_setparam(pid_t, const scope sched_param*);
-int sched_setscheduler(pid_t, int, const scope sched_param*);
+version (CRuntime_WASI) {}
+else
+{
+    int sched_getparam(pid_t, sched_param*);
+    int sched_getscheduler(pid_t);
+    int sched_setparam(pid_t, const scope sched_param*);
+    int sched_setscheduler(pid_t, int, const scope sched_param*);
+}
 
 //
 // Thread (THR)
@@ -230,6 +249,10 @@ else version (CRuntime_Bionic)
     int sched_yield();
 }
 else version (CRuntime_Musl)
+{
+    int sched_yield();
+}
+else version (CRuntime_WASI)
 {
     int sched_yield();
 }
@@ -306,6 +329,9 @@ else version (CRuntime_Musl)
     int sched_get_priority_min(int);
     pragma(mangle, muslRedirTime64Mangle!("sched_rr_get_interval", "__sched_rr_get_interval_time64"))
     int sched_rr_get_interval(pid_t, timespec*);
+}
+else version (CRuntime_WASI)
+{
 }
 else version (CRuntime_UClibc)
 {
