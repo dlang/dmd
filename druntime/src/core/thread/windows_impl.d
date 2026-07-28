@@ -435,7 +435,7 @@ package struct LLThreadProperties
     HANDLE hThread;
 }
 
-package ThreadID initLLThreadProperties(
+package bool initLLThreadProperties(
     ref LLThreadProperties context,
     ThreadID tid,
     void delegate() nothrow dg,
@@ -445,7 +445,7 @@ package ThreadID initLLThreadProperties(
 {
     // the thread won't start until after the DLL is unloaded
     if (thread_DLLProcessDetaching)
-        return ThreadID.init;
+        return false;
     context.cbMod = cbDllUnload ? ll_getModuleHandle(cbDllUnload.funcptr) : null;
     if (context.cbMod)
     {
@@ -457,7 +457,7 @@ package ThreadID initLLThreadProperties(
             context.cbMod = null;
         }
         if (refcnt == 0)
-            return ThreadID.init; // createLowLevelThread called while DLL is unloading
+            return false; // createLowLevelThread called while DLL is unloading
     }
 
     static extern (Windows) uint thread_lowlevelEntry(void* ctx) nothrow
