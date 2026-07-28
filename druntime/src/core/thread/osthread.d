@@ -2320,7 +2320,11 @@ package struct LLTaskProperties_dflt
     void delegate() nothrow dg;
 }
 
-package ThreadID initLLTaskProperties_dflt()(ref LLTaskProperties context, void delegate() nothrow dg) nothrow @nogc
+package ThreadID initLLTaskProperties_dflt()(
+    ref LLTaskProperties context,
+    void delegate() nothrow dg,
+    void delegate() nothrow cbDllUnload = null
+) nothrow @nogc
 {
     context.dg = dg;
     return ThreadID.init;
@@ -2348,44 +2352,6 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
     scope(exit) free(context);
 
     ThreadID tid = initLLTaskProperties(*context, dg);
-    version (Windows)
-    {
-        // the thread won't start until after the DLL is unloaded
-        if (thread_DLLProcessDetaching)
-            return ThreadID.init;
-        context.cbMod = cbDllUnload ? ll_getModuleHandle(cbDllUnload.funcptr) : null;
-        if (context.cbMod)
-        {
-            int refcnt = dll_getRefCount(context.cbMod);
-            if (refcnt < 0)
-            {
-                // not a dynamically loaded DLL, so never unloaded
-                cbDllUnload = null;
-                context.cbMod = null;
-            }
-            if (refcnt == 0)
-                return ThreadID.init; // createLowLevelThread called while DLL is unloading
-        }
-
-        static extern (Windows) uint thread_lowlevelEntry(void* ctx) nothrow
-        {
-            auto context = *cast(Context*)ctx;
-            free(ctx);
-
-            context.dg();
-
-            ll_removeThread(GetCurrentThreadId());
-            if (context.cbMod && context.cbMod != runtimeModule)
-                FreeLibrary(context.cbMod);
-            return 0;
-        }
-
-        // see Thread.start() for why thread is created in suspended state
-        HANDLE hThread = cast(HANDLE) _beginthreadex(null, stacksize, &thread_lowlevelEntry,
-                                                     context, CREATE_SUSPENDED, &tid);
-        if (!hThread)
-            return ThreadID.init;
-    }
 
     lowlevelLock.lock_nothrow();
     scope(exit) lowlevelLock.unlock_nothrow();
