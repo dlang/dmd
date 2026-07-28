@@ -267,14 +267,14 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
     return ResumeThread(t.m_tdescr.hndl) != 0xFFFFFFFF;
 }
 
-package struct LLTaskProperties
+package struct LLThreadProperties
 {
     void delegate() nothrow dg;
     HMODULE cbMod;
     HANDLE hThread;
 }
 
-package ThreadID initLLTaskProperties(
+package ThreadID initLLThreadProperties(
     ref LLTaskProperties context,
     void delegate() nothrow dg,
     void delegate() nothrow cbDllUnload = null
