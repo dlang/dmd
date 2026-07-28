@@ -437,7 +437,7 @@ package struct LLThreadProperties
 
 package bool initLLThreadProperties(
     ref LLThreadProperties context,
-    ThreadID tid,
+    ref ThreadID tid,
     void delegate() nothrow dg,
     uint stacksize,
     void delegate() nothrow cbDllUnload

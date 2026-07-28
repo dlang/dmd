@@ -2167,7 +2167,7 @@ package struct LLThreadProperties_dflt
 
 package bool initLLThreadProperties_dflt()(
     ref LLThreadProperties context,
-    ThreadID tid,
+    ref ThreadID tid,
     void delegate() nothrow dg,
     uint stacksize,
     void delegate() nothrow cbDllUnload
