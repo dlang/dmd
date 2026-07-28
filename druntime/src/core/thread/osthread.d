@@ -2323,7 +2323,7 @@ package struct LLTaskProperties_dflt
 package ThreadID initLLTaskProperties_dflt()(
     ref LLTaskProperties context,
     void delegate() nothrow dg,
-    void delegate() nothrow cbDllUnload = null
+    void delegate() nothrow cbDllUnload
 ) nothrow @nogc
 {
     context.dg = dg;
@@ -2351,7 +2351,7 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
     auto context = cast(LLTaskProperties*) malloc(LLTaskProperties.sizeof);
     scope(exit) free(context);
 
-    ThreadID tid = initLLTaskProperties(*context, dg);
+    ThreadID tid = initLLTaskProperties(*context, dg, cbDllUnload);
 
     lowlevelLock.lock_nothrow();
     scope(exit) lowlevelLock.unlock_nothrow();
