@@ -56,9 +56,10 @@ int main(string[] args)
     MetricResult[] metrics;
     foreach (def; initials)
         metrics ~= MetricResult(def.id, def.label, def.unit, def.method,
-            base[def.id], head[def.id]);
+            base.metrics[def.id], head.metrics[def.id]);
 
-    auto rep = Report(baseSha, "merge-base", headSha, pr, os, hostDmd, metrics);
+    auto rep = Report(baseSha, "merge-base", headSha, pr, os, hostDmd, metrics,
+        base.helloTrace, head.helloTrace, base.phobosTrace, head.phobosTrace);
     write(outPath, render(rep));
     writeln("wrote ", outPath);
     return 0;

@@ -8,6 +8,7 @@ import std.regex : ctRegex, matchFirst;
 import std.process : execute;
 
 import cachegrind : instructions;
+import timetrace : Trace, collectTrace;
 
 struct MetricDef
 {
@@ -28,13 +29,21 @@ immutable MetricDef[] initials = [
     MetricDef("phobos_max_rss",              "peak RSS (compile Phobos)",  "kb",    "time -v"),
 ];
 
+struct Measurement
+{
+    long[string] metrics;
+    Trace helloTrace;
+    Trace phobosTrace;
+}
+
 // Measure every metric for one dmd binary. `tag` ("base"/"head")
 // keeps the two runs' temp files apart
-long[string] measure(string dmd, string workload, string phobos, string tmp, string tag)
+Measurement measure(string dmd, string workload, string phobos, string tmp, string tag)
 {
     auto stdPackage = buildPath(phobos, "std", "package.d");
     auto phobosFlags = ["-i=std", "-preview=dip1000"];
-    return [
+    Measurement m;
+    m.metrics = [
         "compile_hello_debug_instr":   instructions(dmd, [], workload, tmp, tag ~ "-dbg"),
         "compile_hello_release_instr": instructions(dmd, ["-O", "-release"], workload, tmp, tag ~ "-rel"),
         "compile_phobos_instr":        instructions(dmd, phobosFlags, stdPackage, tmp, tag ~ "-phobos"),
@@ -43,6 +52,9 @@ long[string] measure(string dmd, string workload, string phobos, string tmp, str
         "hello_max_rss":               maxRss(dmd, [], workload, tmp, tag),
         "phobos_max_rss":              maxRss(dmd, phobosFlags, stdPackage, tmp, tag ~ "-phobos"),
     ];
+    m.helloTrace = collectTrace(dmd, [], workload, tmp, tag ~ "-hello");
+    m.phobosTrace = collectTrace(dmd, phobosFlags, stdPackage, tmp, tag ~ "-phobos");
+    return m;
 }
 
 // Byte size of `binary`
