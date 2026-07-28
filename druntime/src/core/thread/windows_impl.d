@@ -425,3 +425,23 @@ package
         return ll_dllMonitorThread != ThreadID.init;
     }
 }
+
+package struct LLThreadProperties
+{
+    void delegate() nothrow dg;
+    HMODULE cbMod;
+}
+
+package struct LLThreadContext
+{
+    ThreadID tid;
+    uint stacksize;
+    void delegate() nothrow cbDllUnload;
+    HANDLE hThread;
+
+    this(uint stacksize, void delegate() nothrow cbDllUnload) nothrow @nogc
+    {
+        this.stacksize = stacksize;
+        this.cbDllUnload = cbDllUnload;
+    }
+}

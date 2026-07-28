@@ -2140,6 +2140,23 @@ version (DragonFlyBSD) unittest
 // lowlovel threading support
 ///////////////////////////////////////////////////////////////////////////////
 
+package struct LLThreadProperties_dflt
+{
+    void delegate() nothrow dg;
+}
+
+package struct LLThreadContext_dflt
+{
+    ThreadID tid;
+    uint stacksize;
+
+    this(uint stacksize, void delegate() nothrow cbDllUnload) nothrow @nogc
+    {
+        this.stacksize = stacksize;
+        // cbDllUnload ignored, TODO: remove it from args list
+    }
+}
+
 /**
  * Create a thread not under control of the runtime, i.e. TLS module constructors are
  * not run and the GC does not suspend it during a collection.
@@ -2158,31 +2175,26 @@ version (DragonFlyBSD) unittest
 ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
                               void delegate() nothrow cbDllUnload = null) nothrow @nogc
 {
-    static struct Context
-    {
-        void delegate() nothrow dg;
-        version (Windows)
-            HMODULE cbMod;
-    }
-    auto context = cast(Context*)malloc(Context.sizeof);
-    scope(exit) free(context);
-    context.dg = dg;
+    auto tprop = cast(LLThreadProperties*) malloc(LLThreadProperties.sizeof);
+    scope(exit) free(tprop);
+    tprop.dg = dg;
 
-    ThreadID tid;
+    auto context = LLThreadContext(stacksize, cbDllUnload);
+
     version (Windows)
     {
         // the thread won't start until after the DLL is unloaded
         if (thread_DLLProcessDetaching)
             return ThreadID.init;
-        context.cbMod = cbDllUnload ? ll_getModuleHandle(cbDllUnload.funcptr) : null;
-        if (context.cbMod)
+        tprop.cbMod = context.cbDllUnload ? ll_getModuleHandle(context.cbDllUnload.funcptr) : null;
+        if (tprop.cbMod)
         {
-            int refcnt = dll_getRefCount(context.cbMod);
+            int refcnt = dll_getRefCount(tprop.cbMod);
             if (refcnt < 0)
             {
                 // not a dynamically loaded DLL, so never unloaded
-                cbDllUnload = null;
-                context.cbMod = null;
+                context.cbDllUnload = null;
+                tprop.cbMod = null;
             }
             if (refcnt == 0)
                 return ThreadID.init; // createLowLevelThread called while DLL is unloading
@@ -2190,21 +2202,21 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
 
         static extern (Windows) uint thread_lowlevelEntry(void* ctx) nothrow
         {
-            auto context = *cast(Context*)ctx;
+            auto tprop = *cast(LLThreadProperties*)ctx;
             free(ctx);
 
-            context.dg();
+            tprop.dg();
 
             ll_removeThread(GetCurrentThreadId());
-            if (context.cbMod && context.cbMod != runtimeModule)
-                FreeLibrary(context.cbMod);
+            if (tprop.cbMod && tprop.cbMod != runtimeModule)
+                FreeLibrary(tprop.cbMod);
             return 0;
         }
 
         // see Thread.start() for why thread is created in suspended state
-        HANDLE hThread = cast(HANDLE) _beginthreadex(null, stacksize, &thread_lowlevelEntry,
-                                                     context, CREATE_SUSPENDED, &tid);
-        if (!hThread)
+        context.hThread = cast(HANDLE) _beginthreadex(null, context.stacksize, &thread_lowlevelEntry,
+                                                     tprop, CREATE_SUSPENDED, &context.tid);
+        if (!context.hThread)
             return ThreadID.init;
     }
 
@@ -2217,36 +2229,36 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
 
     version (Windows)
     {
-        ll_pThreads[ll_nThreads - 1].tid = tid;
+        ll_pThreads[ll_nThreads - 1].tid = context.tid;
         // ignore callback if not a dynamically loaded DLL
-        if (cbDllUnload)
+        if (context.cbDllUnload)
         {
-            ll_pThreads[ll_nThreads - 1].cbDllUnload = cbDllUnload;
-            ll_pThreads[ll_nThreads - 1].hMod = context.cbMod;
-            if (context.cbMod != runtimeModule)
-                ll_getModuleHandle(context.cbMod, true); // increment ref count
+            ll_pThreads[ll_nThreads - 1].cbDllUnload = context.cbDllUnload;
+            ll_pThreads[ll_nThreads - 1].hMod = tprop.cbMod;
+            if (tprop.cbMod != runtimeModule)
+                ll_getModuleHandle(tprop.cbMod, true); // increment ref count
         }
 
-        if (ResumeThread(hThread) == -1)
+        if (ResumeThread(context.hThread) == -1)
             onThreadError("Error resuming thread");
-        CloseHandle(hThread);
+        CloseHandle(context.hThread);
 
-        if (cbDllUnload)
+        if (context.cbDllUnload)
             ll_startDLLUnloadThread();
     }
     else version (Posix)
     {
         static extern (C) void* thread_lowlevelEntry(void* ctx) nothrow
         {
-            auto context = *cast(Context*)ctx;
+            auto tprop = *cast(LLThreadProperties*) ctx;
             free(ctx);
 
-            context.dg();
+            tprop.dg();
             ll_removeThread(pthread_self());
             return null;
         }
 
-        size_t stksz = adjustStackSize(stacksize);
+        size_t stksz = adjustStackSize(context.stacksize);
 
         pthread_attr_t  attr;
 
@@ -2255,17 +2267,17 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
             return ThreadID.init;
         if (stksz && (rc = pthread_attr_setstacksize(&attr, stksz)) != 0)
             return ThreadID.init;
-        if ((rc = pthread_create(&tid, &attr, &thread_lowlevelEntry, context)) != 0)
+        if ((rc = pthread_create(&context.tid, &attr, &thread_lowlevelEntry, tprop)) != 0)
             return ThreadID.init;
         rc = pthread_attr_destroy(&attr);
         assert(rc == 0);
 
-        ll_pThreads[ll_nThreads - 1].tid = tid;
+        ll_pThreads[ll_nThreads - 1].tid = context.tid;
     }
     else
         static assert(0, "unsupported os");
-    context = null; // free'd in thread
-    return tid;
+    tprop = null; // free'd in thread
+    return context.tid;
 }
 
 /**
