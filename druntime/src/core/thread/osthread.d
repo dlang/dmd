@@ -2320,7 +2320,7 @@ package struct LLTaskProperties_dflt
     void delegate() nothrow dg;
 }
 
-package ThreadID initLLTaskProperties_dflt(ref LLTaskProperties context, void delegate() nothrow dg) nothrow @nogc
+package ThreadID initLLTaskProperties_dflt()(ref LLTaskProperties context, void delegate() nothrow dg) nothrow @nogc
 {
     context.dg = dg;
     return ThreadID.init;
