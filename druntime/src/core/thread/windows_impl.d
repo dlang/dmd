@@ -269,10 +269,8 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
     return ResumeThread(t.m_tdescr.hndl) != 0xFFFFFFFF;
 }
 
-//TODO: private
-package
+private
 {
-    version (Windows):
     // If the runtime is dynamically loaded as a DLL, there is a problem with
     // threads still running when the DLL is supposed to be unloaded:
     //
