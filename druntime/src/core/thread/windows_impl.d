@@ -489,3 +489,27 @@ package struct LLThreadContext
         this.cbDllUnload = cbDllUnload;
     }
 }
+
+// Returns: false if error occurred
+//TODO: make ll_pThreads not so global
+package bool launchLLThread(LLThreadProperties* tprop, ref LLThreadContext context) nothrow @nogc
+{
+    ll_pThreads[ll_nThreads - 1].tid = context.tid;
+    // ignore callback if not a dynamically loaded DLL
+    if (context.cbDllUnload)
+    {
+        ll_pThreads[ll_nThreads - 1].cbDllUnload = context.cbDllUnload;
+        ll_pThreads[ll_nThreads - 1].hMod = tprop.cbMod;
+        if (tprop.cbMod != runtimeModule)
+            ll_getModuleHandle(tprop.cbMod, true); // increment ref count
+    }
+
+    if (ResumeThread(context.hThread) == -1)
+        onThreadError("Error resuming thread");
+    CloseHandle(context.hThread);
+
+    if (context.cbDllUnload)
+        ll_startDLLUnloadThread();
+
+    return true;
+}

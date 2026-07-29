@@ -2197,55 +2197,9 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
     ll_pThreads = cast(ll_ThreadData*)realloc(ll_pThreads, ll_ThreadData.sizeof * ll_nThreads);
     ll_pThreads[ll_nThreads - 1] = ll_ThreadData.init;
 
-    version (Windows)
-    {
-        ll_pThreads[ll_nThreads - 1].tid = context.tid;
-        // ignore callback if not a dynamically loaded DLL
-        if (context.cbDllUnload)
-        {
-            ll_pThreads[ll_nThreads - 1].cbDllUnload = context.cbDllUnload;
-            ll_pThreads[ll_nThreads - 1].hMod = tprop.cbMod;
-            if (tprop.cbMod != runtimeModule)
-                ll_getModuleHandle(tprop.cbMod, true); // increment ref count
-        }
+    if(launchLLThread(tprop, context) == false)
+        return ThreadID.init;
 
-        if (ResumeThread(context.hThread) == -1)
-            onThreadError("Error resuming thread");
-        CloseHandle(context.hThread);
-
-        if (context.cbDllUnload)
-            ll_startDLLUnloadThread();
-    }
-    else version (Posix)
-    {
-        static extern (C) void* thread_lowlevelEntry(void* ctx) nothrow
-        {
-            auto tprop = *cast(LLThreadProperties*) ctx;
-            free(ctx);
-
-            tprop.dg();
-            ll_removeThread(pthread_self());
-            return null;
-        }
-
-        size_t stksz = adjustStackSize(context.stacksize);
-
-        pthread_attr_t  attr;
-
-        int rc;
-        if ((rc = pthread_attr_init(&attr)) != 0)
-            return ThreadID.init;
-        if (stksz && (rc = pthread_attr_setstacksize(&attr, stksz)) != 0)
-            return ThreadID.init;
-        if ((rc = pthread_create(&context.tid, &attr, &thread_lowlevelEntry, tprop)) != 0)
-            return ThreadID.init;
-        rc = pthread_attr_destroy(&attr);
-        assert(rc == 0);
-
-        ll_pThreads[ll_nThreads - 1].tid = context.tid;
-    }
-    else
-        static assert(0, "unsupported os");
     tprop = null; // free'd in thread
     return context.tid;
 }

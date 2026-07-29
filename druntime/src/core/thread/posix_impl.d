@@ -818,3 +818,35 @@ package alias gettid = imported!"core.sys.posix.pthread".pthread_self;
 
 package alias LLThreadProperties = LLThreadProperties_dflt;
 package alias LLThreadContext = LLThreadContext_dflt;
+
+// Returns: false if error occurred
+package bool launchLLThread(LLThreadProperties* tprop, ref LLThreadContext context) nothrow @nogc
+{
+    static extern (C) void* thread_lowlevelEntry(void* ctx) nothrow
+    {
+        auto tprop = *cast(LLThreadProperties*) ctx;
+        free(ctx);
+
+        tprop.dg();
+        ll_removeThread(pthread_self());
+        return null;
+    }
+
+    size_t stksz = adjustStackSize(context.stacksize);
+
+    pthread_attr_t  attr;
+
+    int rc;
+    if ((rc = pthread_attr_init(&attr)) != 0)
+        return false;
+    if (stksz && (rc = pthread_attr_setstacksize(&attr, stksz)) != 0)
+        return false;
+    if ((rc = pthread_create(&context.tid, &attr, &thread_lowlevelEntry, tprop)) != 0)
+        return false;
+    rc = pthread_attr_destroy(&attr);
+    assert(rc == 0);
+
+    ll_pThreads[ll_nThreads - 1].tid = context.tid;
+
+    return true;
+}
