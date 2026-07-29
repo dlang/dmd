@@ -1055,23 +1055,19 @@ public:
     }
     void visit(CompoundStatement *s) override
     {
-        if (s->statements == NULL)
-            return;
-        for (size_t i = 0; i < s->statements->length; i++)
+        for (size_t i = 0; i < s->statements.length; i++)
         {
-            Statement *statement = (*s->statements)[i];
+            Statement *statement = s->statements[i];
             if (statement)
                 statement->accept(this);
         }
     }
     void visit(UnrolledLoopStatement *s) override
     {
-        if (s->statements == NULL)
-            return;
         s->getRelatedLabeled()->accept(this);
-        for (size_t i = 0; i < s->statements->length; i++)
+        for (size_t i = 0; i < s->statements.length; i++)
         {
-            Statement *statement = (*s->statements)[i];
+            Statement *statement = s->statements[i];
             if (statement != NULL)
                 statement->accept(this);
         }

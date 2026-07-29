@@ -191,7 +191,7 @@ public:
         scope InlineCostVisitor icv = new InlineCostVisitor(this);
         foreach (i; 0 .. s.statements.length)
         {
-            if (Statement s2 = (*s.statements)[i])
+            if (Statement s2 = s.statements[i])
             {
                 /* Specifically allow:
                  *  if (condition)
@@ -205,7 +205,7 @@ public:
                     ifs.ifbody.endsWithReturnStatement() &&
                     !ifs.elsebody &&
                     i + 1 < s.statements.length &&
-                    (s3 = (*s.statements)[i + 1]) !is null &&
+                    (s3 = s.statements[i + 1]) !is null &&
                     s3.endsWithReturnStatement()
                    )
                 {
@@ -230,7 +230,7 @@ public:
     override void visit(UnrolledLoopStatement s)
     {
         scope InlineCostVisitor icv = new InlineCostVisitor(this);
-        foreach (s2; *s.statements)
+        foreach (s2; s.statements)
         {
             if (s2)
             {

@@ -6414,7 +6414,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 AST.Dsymbols* a = parseDeclarations(false, null, null);
                 if (a.length > 1)
                 {
-                    auto as = new AST.Statements();
+                    AST.Statements as;
                     as.reserve(a.length);
                     foreach (i; 0 .. a.length)
                     {
@@ -6422,7 +6422,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         s = new AST.ExpStatement(loc, d);
                         as.push(s);
                     }
-                    s = new AST.CompoundDeclarationStatement(loc, as);
+                    s = new AST.CompoundDeclarationStatement(loc, as.move());
                 }
                 else if (a.length == 1)
                 {
@@ -6503,7 +6503,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 nextToken();
                 //if (token.value == TOK.semicolon)
                 //    error("use `{ }` for an empty statement, not `;`");
-                auto statements = new AST.Statements();
+                AST.Statements statements;
                 while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
                 {
                     statements.push(parseStatement(ParseStatementFlags.curlyScope | ParseStatementFlags.semiOk));
@@ -6516,7 +6516,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     *pEndloc = token.loc;
                     pEndloc = null; // don't set it again
                 }
-                s = new AST.CompoundStatement(loc, statements);
+                s = new AST.CompoundStatement(loc, statements.move());
                 if (flags & (ParseStatementFlags.scope_ | ParseStatementFlags.curlyScope))
                     s = new AST.ScopeStatement(loc, s, token.loc);
                 if (token.value != TOK.rightCurly)
@@ -6808,7 +6808,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 if (flags & ParseStatementFlags.curlyScope)
                 {
-                    auto statements = new AST.Statements();
+                    AST.Statements statements;
                     while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                     {
                         auto cur = parseStatement(ParseStatementFlags.curlyScope);
@@ -6822,7 +6822,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         if (cur && cur.isBreakStatement())
                             break;
                     }
-                    s = new AST.CompoundStatement(loc, statements);
+                    s = new AST.CompoundStatement(loc, statements.move());
                 }
                 else
                 {
@@ -6852,12 +6852,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 if (flags & ParseStatementFlags.curlyScope)
                 {
-                    auto statements = new AST.Statements();
+                    AST.Statements statements;
                     while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                     {
                         statements.push(parseStatement(ParseStatementFlags.curlyScope));
                     }
-                    s = new AST.CompoundStatement(loc, statements);
+                    s = new AST.CompoundStatement(loc, statements.move());
                 }
                 else
                     s = parseStatement(0);
@@ -7424,7 +7424,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         Token* toklist = null;
         Token** ptoklist = &toklist;
         Identifier label = null;
-        auto statements = new AST.Statements();
+        AST.Statements statements;
         size_t nestlevel = 0;
         while (1)
         {
@@ -7508,7 +7508,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         nextToken();
         if (token.value == TOK.endOfLine)
             nextToken();
-        auto s = new AST.CompoundAsmStatement(loc, statements, stc);
+        auto s = new AST.CompoundAsmStatement(loc, statements.move(), stc);
         return s;
     }
 

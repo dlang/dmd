@@ -175,12 +175,9 @@ void foreachExpAndVar(Statement s,
 
         void visitCompound(CompoundStatement s)
         {
-            if (s.statements)
+            foreach (s2; s.statements)
             {
-                foreach (s2; *s.statements)
-                {
-                    visit(s2);
-                }
+                visit(s2);
             }
         }
 
@@ -191,7 +188,7 @@ void foreachExpAndVar(Statement s,
 
         void visitUnrolledLoop(UnrolledLoopStatement s)
         {
-            foreach (s2; *s.statements)
+            foreach (s2; s.statements)
             {
                 visit(s2);
             }

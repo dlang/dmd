@@ -4691,7 +4691,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             v.storage_class = STC.temp | STC.static_ | (isShared ? STC.shared_ : STC.none);
 
             Statement s = new ExpStatement(Loc.initial, v);
-            auto sa = new Statements(s);
+            auto sa = Statements(s);
 
             Expression e;
             if (isShared)
@@ -4714,7 +4714,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (sd.fbody)
                 sa.push(sd.fbody);
 
-            sd.fbody = new CompoundStatement(Loc.initial, sa);
+            sd.fbody = new CompoundStatement(Loc.initial, sa.move());
             if (isDestructor)
                 (cast(StaticDtorDeclaration)sd).vgate = v;
         }
@@ -5958,7 +5958,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 auto ctor = new CtorDeclaration(cldec.loc, Loc.initial, STC.none, tf);
                 ctor.storage_class |= STC.inference | (fd.storage_class & STC.scope_);
                 ctor.isGenerated = true;
-                ctor.fbody = new CompoundStatement(Loc.initial, new Statements());
+                ctor.fbody = new CompoundStatement(Loc.initial);
 
                 cldec.members.push(ctor);
                 ctor.addMember(sc, cldec);

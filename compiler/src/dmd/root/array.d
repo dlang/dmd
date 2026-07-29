@@ -54,6 +54,7 @@ public:
 
     @disable this(this);
 
+@trusted:
     ~this() pure nothrow
     {
         debug (stomp)
@@ -65,7 +66,6 @@ public:
             mem.xfree(_ptr);
     }
 
-@trusted:
     // this is using a template constraint because of ambiguity with this(size_t) when T is
     // int, and c++ header generation doesn't accept wrapping this in static if
     extern(D) this()(T[] elems ...) pure nothrow if (is(T == struct) || is(T == class))
@@ -331,6 +331,57 @@ public:
         a.setDim(length);
         memcpy(a.data, data, length * T.sizeof);
         return a;
+    }
+
+    static if (__VERSION__ < 2095)
+    {
+        // a custom ctor is necessary to keep the bootstrap compiler 2.079
+        //  from trying to use the disabled postblit ctor in move()
+        private this(uint len, uint alloc, T* ptr)
+        {
+            if (alloc <= SMALLARRAYCAP)
+            {
+                for (size_t i = 0; i < len; i++)
+                    smallarray[i] = ptr[i];
+            }
+            else
+            {
+                _ptr = ptr;
+            }
+            length = len;
+            allocated = alloc;
+        }
+
+        // convert to an rvalue leaving this empty
+        Array!T move() pure nothrow
+        {
+            uint len = length;
+            uint alloc = allocated;
+            T* ptr = data;
+            length = 0;
+            allocated = SMALLARRAYCAP;
+            return Array!T(len, alloc, ptr);
+        }
+    }
+    else
+    {
+        // convert to an rvalue leaving this empty
+        Array!T move() pure nothrow
+        {
+            Array!T a;
+            if (allocated <= SMALLARRAYCAP)
+            {
+                for (size_t i = 0; i < length; i++)
+                    a.smallarray[i] = smallarray[i];
+            }
+            else
+                a._ptr = _ptr;
+            a.allocated = allocated;
+            a.length = length;
+            length = 0;
+            allocated = SMALLARRAYCAP;
+            return a;
+        }
     }
 
     void shift(T ptr) pure nothrow

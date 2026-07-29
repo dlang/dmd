@@ -53,7 +53,7 @@ package(dmd.visitor) mixin template ParseVisitMethods(AST)
     override void visit(AST.CompoundStatement s)
     {
         //printf("Visiting CompoundStatement\n");
-        foreach (sx; *s.statements)
+        foreach (sx; s.statements)
         {
             if (sx)
                 sx.accept(this);
@@ -84,7 +84,7 @@ package(dmd.visitor) mixin template ParseVisitMethods(AST)
     override void visit(AST.CompoundDeclarationStatement s)
     {
         //printf("Visiting CompoundDeclarationStatement\n");
-        foreach (sx; *s.statements)
+        foreach (sx; s.statements)
         {
             if (!sx)
                 continue;
