@@ -2385,6 +2385,48 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym._init = dsym._init.inferType(sc);
             dsym.type = dsym._init.initializerToExpression(null, sc.inCfile).type;
 
+            // When auto[$] is used with an all-indexed initializer like [3:42],
+            // inferType produces an AA type but the user wants a static array.
+            // Convert the AA literal to a sparse static array.
+            if (autoDollarDims.length && dsym.type.ty == Taarray)
+            {
+                auto initExp = dsym._init.isExpInitializer();
+                if (initExp)
+                {
+                    if (auto aale = initExp.exp.isAssocArrayLiteralExp())
+                    {
+                        if (aale.keys && aale.values)
+                        {
+                            // Compute array length from max key + 1
+                            dinteger_t maxKey = 0;
+                            foreach (k; *aale.keys)
+                            {
+                                dinteger_t val = k.ctfeInterpret().toInteger();
+                                if (val > maxKey)
+                                    maxKey = val;
+                            }
+                            if (maxKey > 0 || aale.keys.length > 0)
+                            {
+                                Type elemType = dsym.type.nextOf();
+                                size_t len = cast(size_t)(maxKey + 1);
+                                auto elements = new Expressions(len);
+                                Expression defElem = elemType.defaultInit(dsym.loc);
+                                for (size_t i = 0; i < len; i++)
+                                    (*elements)[i] = defElem;
+                                foreach (j; 0 .. aale.keys.length)
+                                {
+                                    auto idx = cast(size_t)(*aale.keys)[j].ctfeInterpret().toInteger();
+                                    (*elements)[idx] = (*aale.values)[j];
+                                }
+                                dsym._init = new ExpInitializer(dsym.loc,
+                                    ArrayLiteralExp.create(dsym.loc, elements));
+                                dsym.type = elemType.arrayOf();
+                            }
+                        }
+                    }
+                }
+            }
+
             if (autoDollarDims.length)
             {
                 // dysm.type here is dynamic array type with `auto` element type,
