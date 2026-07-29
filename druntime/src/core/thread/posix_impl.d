@@ -871,3 +871,10 @@ package bool launchLLThread(LLThreadProperties* tprop, ref LLThreadContext conte
 
     return true;
 }
+
+version (CoreDdoc) {} else
+void joinLowLevelThread(ThreadID tid) nothrow @nogc
+{
+    if (pthread_join(tid, null) != 0)
+        onThreadError("Unable to join thread");
+}

@@ -17,7 +17,7 @@ import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
 import core.thread.osthread;
 import core.thread.threadbase;
-import core.thread.types : ThreadDescr, ll_ThreadData;
+import core.thread.types : ThreadID, ThreadDescr, ll_ThreadData;
 import core.time;
 
 version (Windows):
@@ -511,4 +511,26 @@ package bool launchLLThread(LLThreadProperties* tprop, ref LLThreadContext conte
         ll_startDLLUnloadThread();
 
     return true;
+}
+
+version (CoreDdoc) {} else
+void joinLowLevelThread(ThreadID tid) nothrow @nogc
+{
+    HANDLE handle = OpenThreadHandle(tid);
+    if (!handle)
+        return;
+
+    if (thread_DLLProcessDetaching)
+    {
+        // When being called from DllMain/DLL_DETACH_PROCESS, threads cannot stop
+        //  due to the loader lock being held by the current thread.
+        // On the other hand, the thread must not continue to run as it will crash
+        //  if the DLL is unloaded. The best guess is to terminate it immediately.
+        TerminateThread(handle, 1);
+        WaitForSingleObject(handle, 10); // give it some time to terminate, but don't wait indefinitely
+    }
+    else
+        WaitForSingleObject(handle, INFINITE);
+
+    CloseHandle(handle);
 }
