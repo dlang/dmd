@@ -17,7 +17,7 @@ import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
 import core.thread.osthread;
 import core.thread.threadbase;
-import core.thread.types : ThreadDescr;
+import core.thread.types : ThreadDescr, ll_ThreadData;
 import core.time;
 
 version (Posix):
@@ -820,7 +820,7 @@ package alias LLThreadProperties = LLThreadProperties_dflt;
 package alias LLThreadContext = LLThreadContext_dflt;
 
 // Returns: false if error occurred
-package bool launchLLThread(LLThreadProperties* tprop, ref LLThreadContext context) nothrow @nogc
+package bool launchLLThread(LLThreadProperties* tprop, ref LLThreadContext context, ref ll_ThreadData curr_llt) nothrow @nogc
 {
     static extern (C) void* thread_lowlevelEntry(void* ctx) nothrow
     {
@@ -846,7 +846,7 @@ package bool launchLLThread(LLThreadProperties* tprop, ref LLThreadContext conte
     rc = pthread_attr_destroy(&attr);
     assert(rc == 0);
 
-    ll_pThreads[ll_nThreads - 1].tid = context.tid;
+    curr_llt.tid = context.tid;
 
     return true;
 }

@@ -17,7 +17,7 @@ import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
 import core.thread.osthread;
 import core.thread.threadbase;
-import core.thread.types : ThreadDescr;
+import core.thread.types : ThreadDescr, ll_ThreadData;
 import core.time;
 
 version (Windows):
@@ -491,15 +491,14 @@ package struct LLThreadContext
 }
 
 // Returns: false if error occurred
-//TODO: make ll_pThreads not so global
-package bool launchLLThread(LLThreadProperties* tprop, ref LLThreadContext context) nothrow @nogc
+package bool launchLLThread(LLThreadProperties* tprop, ref LLThreadContext context, ref ll_ThreadData curr_llt) nothrow @nogc
 {
-    ll_pThreads[ll_nThreads - 1].tid = context.tid;
+    curr_llt.tid = context.tid;
     // ignore callback if not a dynamically loaded DLL
     if (context.cbDllUnload)
     {
-        ll_pThreads[ll_nThreads - 1].cbDllUnload = context.cbDllUnload;
-        ll_pThreads[ll_nThreads - 1].hMod = tprop.cbMod;
+        curr_llt.cbDllUnload = context.cbDllUnload;
+        curr_llt.hMod = tprop.cbMod;
         if (tprop.cbMod != runtimeModule)
             ll_getModuleHandle(tprop.cbMod, true); // increment ref count
     }

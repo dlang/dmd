@@ -2193,11 +2193,13 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
     lowlevelLock.lock_nothrow();
     scope(exit) lowlevelLock.unlock_nothrow();
 
+    const next_idx = ll_nThreads;
     ll_nThreads++;
     ll_pThreads = cast(ll_ThreadData*)realloc(ll_pThreads, ll_ThreadData.sizeof * ll_nThreads);
-    ll_pThreads[ll_nThreads - 1] = ll_ThreadData.init;
+    ref ll_next = ll_pThreads[next_idx];
+    ll_next = ll_ThreadData.init;
 
-    if(launchLLThread(tprop, context) == false)
+    if(launchLLThread(tprop, context, ll_next) == false)
         return ThreadID.init;
 
     tprop = null; // free'd in thread
