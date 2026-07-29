@@ -34,14 +34,27 @@ else version (WatchOS)
 version (all)
 {
     static import core.sys.posix.pthread;
-    static import core.sys.posix.signal;
     import core.stdc.errno : EINTR, errno;
-    import core.sys.posix.pthread : pthread_atfork, pthread_attr_destroy, pthread_attr_getstack, pthread_attr_init,
-        pthread_attr_setstacksize, pthread_create, pthread_detach, pthread_getschedparam, pthread_join, pthread_self,
-        pthread_setschedparam, sched_get_priority_max, sched_get_priority_min, sched_param, sched_yield;
-    import core.sys.posix.semaphore : sem_init, sem_post, sem_t, sem_wait;
-    import core.sys.posix.signal : pthread_kill, sigaction, sigaction_t, sigdelset, sigfillset, sigset_t, sigsuspend,
-        SIGUSR1, stack_t;
+
+    version (CRuntime_WASI)
+        import core.sys.posix.pthread : pthread_attr_destroy, pthread_attr_getstack,
+            pthread_attr_init, pthread_attr_setstacksize, pthread_create, pthread_detach,
+            pthread_join, pthread_self, sched_yield;
+    else
+    {
+        static import core.sys.posix.signal;
+
+        import core.sys.posix.pthread : pthread_atfork, pthread_attr_destroy, pthread_attr_getstack,
+            pthread_attr_init, pthread_attr_setstacksize, pthread_create, pthread_detach, pthread_getschedparam,
+            pthread_join, pthread_self, pthread_setschedparam, sched_get_priority_max, sched_get_priority_min,
+            sched_param, sched_yield;
+
+        import core.sys.posix.semaphore : sem_init, sem_post, sem_t, sem_wait;
+
+        import core.sys.posix.signal : pthread_kill, sigaction, sigaction_t, sigdelset, sigfillset, sigset_t, sigsuspend,
+            SIGUSR1, stack_t;
+    }
+
     import core.sys.posix.stdlib : free, malloc, realloc;
     import core.sys.posix.sys.types : pthread_attr_t, pthread_key_t, pthread_t;
     import core.sys.posix.time : nanosleep, timespec;
@@ -316,7 +329,24 @@ class Thread : ThreadBase
         return super.join(rethrow);
     }
 
-    version (all)
+    version (CRuntime_WASI)
+    {
+        @property static int PRIORITY_MIN() @nogc nothrow pure @safe
+        {
+            return 0;
+        }
+
+        @property static const(int) PRIORITY_MAX() @nogc nothrow pure @safe
+        {
+            return 0;
+        }
+
+        @property static int PRIORITY_DEFAULT() @nogc nothrow pure @safe
+        {
+            return 0;
+        }
+    }
+    else version (all)
     {
         package struct Priority
         {
@@ -452,6 +482,10 @@ class Thread : ThreadBase
         {
            return fakePriority==int.max? PRIORITY_DEFAULT : fakePriority;
         }
+        else version (CRuntime_WASI)
+        {
+            return PRIORITY_DEFAULT;
+        }
         else
         {
             int         policy;
@@ -504,6 +538,10 @@ class Thread : ThreadBase
         else version (NetBSD)
         {
            fakePriority = val;
+        }
+        else version (CRuntime_WASI)
+        {
+            // do nothing
         }
         else
         {
@@ -620,6 +658,9 @@ class Thread : ThreadBase
         else version (Solaris)
         {
         }
+        else version (CRuntime_WASI)
+        {
+        }
         else
         {
             version (OpenBSD)
@@ -701,6 +742,7 @@ class Thread : ThreadBase
 }
 
 version (CoreDdoc) {} else
+version (CRuntime_WASI) {} else
 extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo) nothrow @nogc
 in
 {
@@ -719,6 +761,7 @@ do
 }
 
 version (CoreDdoc) {} else
+version (CRuntime_WASI) {} else
 extern (C) void thread_getGCSignals(out int suspendSignalNo, out int resumeSignalNo) nothrow @nogc
 in
 {
@@ -737,8 +780,13 @@ do
 }
 
 //TODO: private
-package __gshared int suspendSignalNumber;
-package __gshared int resumeSignalNumber;
+
+version (CRuntime_WASI) {}
+else
+{
+    package __gshared int suspendSignalNumber;
+    package __gshared int resumeSignalNumber;
+}
 
 // Returns true on success
 package bool suspendThreadImpl(Thread t) @nogc nothrow
@@ -747,6 +795,8 @@ package bool suspendThreadImpl(Thread t) @nogc nothrow
         return thread_suspend(t.m_tdescr.tmach) == KERN_SUCCESS;
     else version (Solaris)
         return thr_suspend(t.m_tdescr.tid) == 0;
+    else version (CRuntime_WASI)
+        return false;
     else
         return pthread_kill(t.m_tdescr.tid, suspendSignalNumber) == 0;
 }
@@ -758,6 +808,8 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
         return thread_resume(t.m_tdescr.tmach) == KERN_SUCCESS;
     else version (Solaris)
         return thr_continue(t.m_tdescr.tid) == 0;
+    else version (CRuntime_WASI)
+        return false;
     else
         return pthread_kill(t.m_tdescr.tid, resumeSignalNumber) == 0;
 }

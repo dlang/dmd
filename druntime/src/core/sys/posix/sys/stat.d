@@ -1598,6 +1598,40 @@ else version (Hurd)
     enum S_ISGID    = 0x400; // octal 0002000
     enum S_ISVTX    = 0x200; // octal 0001000
 }
+else version (CRuntime_WASI)
+{
+    struct stat_t
+    {
+        dev_t     st_dev;               /* inode's device */
+        ino_t     st_ino;               /* inode's number */
+        nlink_t   st_nlink;             /* number of hard links */
+
+        mode_t    st_mode;              /* inode protection mode */
+        uid_t     st_uid;               /* user ID of the file's owner */
+        gid_t     st_gid;               /* group ID of the file's group */
+        uint      __pad0;
+        dev_t     st_rdev;              /* device type */
+        off_t     st_size;              /* file size, in bytes */
+        blksize_t st_blksize;           /* optimal blocksize for I/O */
+        blkcnt_t  st_blocks;            /* blocks allocated for file */
+
+        timespec  st_atim;             /* time of last access */
+        timespec  st_mtim;             /* time of last data modification */
+        timespec  st_ctim;             /* time of last file status change */
+        ulong[3]  __reserved;
+
+        extern(D) @safe @property inout pure nothrow
+        {
+            ref inout(time_t) st_atime() return { return st_atim.tv_sec; }
+            ref inout(time_t) st_mtime() return { return st_mtim.tv_sec; }
+            ref inout(time_t) st_ctime() return { return st_ctim.tv_sec; }
+        }
+    }
+
+    enum S_ISUID    = 0x800; // octal 04000
+    enum S_ISGID    = 0x400; // octal 02000
+    enum S_ISVTX    = 0x200; // octal 01000
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1919,6 +1953,41 @@ else version (CRuntime_Musl)
     extern (D) bool S_ISLNK()( mode_t mode )  { return S_ISTYPE( mode, S_IFLNK );  }
     extern (D) bool S_ISSOCK()( mode_t mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
 }
+else version (CRuntime_WASI)
+{
+    enum {
+        S_IRUSR    = 0x100,
+        S_IWUSR    = 0x080,
+        S_IXUSR    = 0x040,
+        S_IRWXU    = S_IRUSR | S_IWUSR | S_IXUSR,
+
+        S_IRGRP    = S_IRUSR >> 3,
+        S_IWGRP    = S_IWUSR >> 3,
+        S_IXGRP    = S_IXUSR >> 3,
+        S_IRWXG    = S_IRWXU >> 3,
+
+        S_IROTH    = S_IRGRP >> 3,
+        S_IWOTH    = S_IWGRP >> 3,
+        S_IXOTH    = S_IXGRP >> 3,
+        S_IRWXO    = S_IRWXG >> 3,
+    }
+
+    private
+    {
+        extern (D) bool S_ISTYPE()( mode_t mode, uint mask )
+        {
+            return ( mode & S_IFMT ) == mask;
+        }
+    }
+
+    extern (D) bool S_ISBLK()( mode_t mode )  { return S_ISTYPE( mode, S_IFBLK );  }
+    extern (D) bool S_ISCHR()( mode_t mode )  { return S_ISTYPE( mode, S_IFCHR );  }
+    extern (D) bool S_ISDIR()( mode_t mode )  { return S_ISTYPE( mode, S_IFDIR );  }
+    extern (D) bool S_ISFIFO()( mode_t mode ) { return S_ISTYPE( mode, S_IFIFO );  }
+    extern (D) bool S_ISREG()( mode_t mode )  { return S_ISTYPE( mode, S_IFREG );  }
+    extern (D) bool S_ISLNK()( mode_t mode )  { return S_ISTYPE( mode, S_IFLNK );  }
+    extern (D) bool S_ISSOCK()( mode_t mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
+}
 else version (CRuntime_UClibc)
 {
     enum S_IRUSR    = 0x100; // octal 0400
@@ -1979,9 +2048,14 @@ int    fchmod(int, mode_t);
 //int    fstat(int, stat_t*);
 //int    lstat(const scope char*, stat_t*);
 int    mkdir(const scope char*, mode_t);
-int    mkfifo(const scope char*, mode_t);
+
+version (CRuntime_WASI) {}
+else
+{
+    int    mkfifo(const scope char*, mode_t);
+    mode_t umask(mode_t);
+}
 //int    stat(const scope char*, stat_t*);
-mode_t umask(mode_t);
 
 version (CRuntime_Glibc)
 {
@@ -2202,6 +2276,21 @@ else version (CRuntime_Musl)
     int   mkfifoat(int, const scope char*, mode_t);
     int   utimensat(int, const scope char*, ref const(timespec)[2], int);
 }
+else version (CRuntime_WASI)
+{
+    int stat(const scope char*, stat_t*);
+    int fstat(int, stat_t*);
+    int lstat(const scope char*, stat_t*);
+    int fstatat(int, const scope char*, stat_t*, int);
+
+    alias fstat64 = fstat;
+    alias lstat64 = lstat;
+    alias stat64 = stat;
+    int   fchmodat(int, const scope char*, mode_t, int);
+    int   futimens(int, ref const(timespec)[2]);
+    int   mkdirat(int, const scope char*, mode_t);
+    int   utimensat(int, const scope char*, ref const(timespec)[2], int);
+}
 else version (CRuntime_UClibc)
 {
   static if ( __USE_LARGEFILE64 )
@@ -2272,6 +2361,11 @@ else version (Solaris)
     enum UTIME_OMIT = -2;
 }
 else version (Hurd)
+{
+    enum UTIME_NOW = -1;
+    enum UTIME_OMIT = -2;
+}
+else version (CRuntime_WASI)
 {
     enum UTIME_NOW = -1;
     enum UTIME_OMIT = -2;
@@ -2393,6 +2487,18 @@ else version (Hurd)
     enum S_IFLNK    = 0xA000; // octal 0120000
     enum S_IFSOCK   = 0xC000; // octal 0140000
 }
+else version (CRuntime_WASI)
+{
+    enum S_IFMT     = S_IFBLK | S_IFCHR | S_IFDIR | S_IFIFO | S_IFLNK |
+                      S_IFREG | S_IFSOCK;
+    enum S_IFBLK    = 0x6000;
+    enum S_IFCHR    = 0x2000;
+    enum S_IFDIR    = 0x4000;
+    enum S_IFLNK    = 0xA000;
+    enum S_IFREG    = 0x8000;
+    enum S_IFSOCK   = 0xC000;
+    enum S_IFIFO    = 0x1000;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -2457,6 +2563,9 @@ else version (CRuntime_Musl)
 {
     int mknod(const scope char*, mode_t, dev_t);
     int mknodat(int, const scope char*, mode_t, dev_t);
+}
+else version (CRuntime_WASI)
+{
 }
 else version (CRuntime_UClibc)
 {

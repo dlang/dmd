@@ -146,6 +146,18 @@ else version (Windows)
     ///
     alias mbstate_t = __mbstate_t;
 }
+else version (CRuntime_WASI)
+{
+    ///
+    struct __mbstate_t
+    {
+        uint __opaque1;
+        uint __opaque2;
+    }
+
+    ///
+    alias mbstate_t = __mbstate_t;
+}
 else
 {
     ///

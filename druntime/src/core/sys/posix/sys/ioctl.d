@@ -437,6 +437,11 @@ else version (Hurd)
         ushort ws_ypixel;
     }
 }
+else version (CRuntime_WASI)
+{
+    enum FIONREAD = 1;
+    enum FIONBIO = 2;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -476,6 +481,10 @@ else version (CRuntime_Bionic)
     int ioctl(int, int, ...);
 }
 else version (CRuntime_Musl)
+{
+    int ioctl(int, int, ...);
+}
+else version (CRuntime_WASI)
 {
     int ioctl(int, int, ...);
 }

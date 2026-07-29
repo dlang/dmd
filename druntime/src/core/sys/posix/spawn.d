@@ -9,6 +9,9 @@
  */
 module core.sys.posix.spawn;
 
+version (CRuntime_WASI) {}
+else:
+
 /*
 Based on the following system headers:
 

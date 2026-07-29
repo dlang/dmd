@@ -68,6 +68,15 @@ immutable ErrorFilter[] knownProblems = [
     ErrorFilter("core.sys.posix.time.timer_t", "", "FreeBSD", 0, ""),
     ErrorFilter("core.sys.posix.ucontext.ucontext_t", "", "Apple", 0, ""),
     ErrorFilter("core.sys.posix.ucontext.ucontext_t", "", "FreeBSD", 0, ""),
+
+    // Ignore complaint about `union` vs `struct`. Defined in C headers
+    // As a single union __u wrapped in a struct. In D, we just define it
+    // as a union directly.
+    ErrorFilter("core.sys.posix.sys.types.pthread_attr_t", "", "CRuntime_WASI", 0, ""),
+    ErrorFilter("core.sys.posix.sys.types.pthread_cond_t", "", "CRuntime_WASI", 0, ""),
+    ErrorFilter("core.sys.posix.sys.types.pthread_mutex_t", "", "CRuntime_WASI", 0, ""),
+    ErrorFilter("core.sys.posix.sys.types.pthread_rwlock_t", "", "CRuntime_WASI", 0, ""),
+    ErrorFilter("core.sys.posix.sys.types.pthread_barrier_t", "", "CRuntime_WASI", 0, ""),
 ];
 
 struct ErrorFilter
