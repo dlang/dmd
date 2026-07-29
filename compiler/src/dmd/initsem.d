@@ -1259,10 +1259,95 @@ Initializer inferType(Initializer init, Scope* sc)
             return new ErrorInitializer();
         }
         const bool isAssoc = init.isAssociativeArray();
+
+        // Check for sparse static array: some indices non-null, some null
+        bool isSparse = false;
         if (isAssoc)
-            keys = new Expressions(init.value.length);
+        {
+            bool hasNull = false;
+            foreach (idx; init.index)
+            {
+                if (!idx)
+                {
+                    hasNull = true;
+                    break;
+                }
+            }
+            if (hasNull)
+                isSparse = true;
+            else
+                keys = new Expressions(init.value.length);
+        }
         else
             values.zero();
+
+        if (isSparse)
+        {
+            // Sparse static array initializer, e.g. [0, 2:2, 3]
+            // Infer element type from values, then fill gaps with default init.
+            for (size_t i = 0; i < init.value.length; i++)
+            {
+                if (auto idx = init.index[i])
+                {
+                    idx = idx.expressionSemantic(sc);
+                    idx = idx.ctfeInterpret();
+                    init.index[i] = idx;
+                    if (idx.op == EXP.error)
+                        return new ErrorInitializer();
+                }
+                Initializer iz = init.value[i];
+                if (!iz)
+                    return no();
+                iz = iz.inferType(sc);
+                if (iz.isErrorInitializer())
+                    return iz;
+                (*values)[i] = iz.isExpInitializer().exp;
+                assert(!(*values)[i].isErrorExp());
+            }
+
+            // Compute total array length from max index + trailing sequential elements
+            uint edim = 0;
+            size_t pos = 0;
+            foreach (i; 0 .. init.value.length)
+            {
+                if (auto idx = init.index[i])
+                    pos = cast(size_t)idx.toInteger();
+                ++pos;
+                if (pos > edim)
+                    edim = cast(uint)pos;
+            }
+
+            // Determine element type by running semantic on a temporary
+            // dense ArrayLiteralExp containing only the provided values.
+            auto tempElems = new Expressions();
+            foreach (i; 0 .. init.value.length)
+                tempElems.push((*values)[i]);
+            auto tempAle = ArrayLiteralExp.create(init.loc, tempElems);
+            auto tempExp = tempAle.expressionSemantic(sc);
+            if (tempExp.op == EXP.error)
+                return new ErrorInitializer();
+
+            Type elemType = tempExp.type.nextOf();
+            Expression defaultElem = elemType.defaultInit(Loc.initial);
+
+            // Fill positions with values, using default init for gaps
+            auto elements = new Expressions(edim);
+            for (size_t i = 0; i < edim; i++)
+                (*elements)[i] = defaultElem;
+
+            pos = 0;
+            foreach (i; 0 .. init.value.length)
+            {
+                if (auto idx = init.index[i])
+                    pos = cast(size_t)idx.toInteger();
+                (*elements)[pos] = (*values)[i];
+                ++pos;
+            }
+
+            auto ale = ArrayLiteralExp.create(init.loc, elements);
+            auto ei = new ExpInitializer(init.loc, ale);
+            return ei.inferType(sc);
+        }
 
         for (size_t i = 0; i < init.value.length; i++)
         {

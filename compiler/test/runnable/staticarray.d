@@ -132,4 +132,33 @@ void main()
 	assert(arr12[0] == 'a');
 	assert(arr12[1] == 'b');
 	assert(arr12[2] == 'c');
+
+	// sparse static array initializer: mixed null and non-null indices
+	auto[$] sparse1 = [ 0, 2:2, 3];
+	assert(sparse1.length == 4);
+	assert(sparse1[0] == 0);
+	assert(sparse1[1] == 0);
+	assert(sparse1[2] == 2);
+	assert(sparse1[3] == 3);
+	static assert(sparse1.length == 4);
+
+	// all-indexed (like [3:42]) with auto[$]
+	auto[$] sparse2 = [ 3:42 ];
+	assert(sparse2.length == 4);
+	assert(sparse2[0] == 0);
+	assert(sparse2[3] == 42);
+	static assert(sparse2.length == 4);
+
+	// float sparse: gaps filled with float.init (NaN)
+	auto[$] sparse3 = [ 1.5, 3:3.5 ];
+	assert(sparse3.length == 4);
+	assert(sparse3[0] == 1.5);
+	assert(sparse3[1] != sparse3[1]); // NaN
+	assert(sparse3[3] == 3.5);
+
+	// regression: auto without $ still produces AA
+	auto aa = [3:42];
+	assert(aa.length == 1);
+	assert(aa[3] == 42);
+	static assert(is(typeof(aa) == int[int]));
 }
