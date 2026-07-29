@@ -1207,7 +1207,7 @@ idx_t cv8_daarray(type* t, idx_t keyidx, idx_t validx)
     return cv_debtyp(d);
 }
 
-/* Compute a blake3 hash over the *content* of the named source file, so that
+/* Compute a md5 hash over the *content* of the named source file, so that
  * debuggers can verify the source matches. The hash goes into the 16-byte
  * MD5 checksum slot of the file-checksums (F4) subsection.
  * The content is fetched from the front-end FileManager cache (Module.src)
