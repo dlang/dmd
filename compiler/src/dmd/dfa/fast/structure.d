@@ -493,13 +493,10 @@ struct DFACommon
                     return false;
                 case UnrolledLoop:
                     auto s2 = s.isUnrolledLoopStatement;
-                    if (s2.statements !is null)
+                    foreach (s3; s2.statements)
                     {
-                        foreach (s3; *s2.statements)
-                        {
-                            if (walkStatement(s3))
-                                return true;
-                        }
+                        if (walkStatement(s3))
+                            return true;
                     }
                     return false;
                 case Scope:
@@ -508,13 +505,10 @@ struct DFACommon
                 case Compound:
                 case CompoundDeclaration:
                     auto s2 = s.isCompoundStatement;
-                    if (s2.statements !is null)
+                    foreach (s3; s2.statements)
                     {
-                        foreach (s3; *s2.statements)
-                        {
-                            if (walkStatement(s3))
-                                return true;
-                        }
+                        if (walkStatement(s3))
+                            return true;
                     }
                     return false;
 
@@ -558,7 +552,7 @@ struct DFACommon
         {
             if (current.compoundStatement !is null)
             {
-                foreach (s; (*current.compoundStatement.statements)[current.inProgressCompoundStatement
+                foreach (s; current.compoundStatement.statements[current.inProgressCompoundStatement
                         .. $])
                 {
                     if (walkStatement(s))

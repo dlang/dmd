@@ -654,7 +654,7 @@ final:
 
         case STMT.Compound:
             auto cs = st.isCompoundStatement;
-            if (cs.statements is null)
+            if (cs.statements.length == 0)
                 break;
 
             // We need to know which statement we are in and what the next ones are
@@ -664,7 +664,7 @@ final:
             this.startScope;
             dfaCommon.currentDFAScope.compoundStatement = cs;
 
-            foreach (i, st2; *cs.statements)
+            foreach (i, st2; cs.statements)
             {
                 dfaCommon.printStructureln("Compound statement:");
                 dfaCommon.currentDFAScope.inProgressCompoundStatement = i;
@@ -1043,14 +1043,14 @@ final:
             scope (exit)
                 inLoopyLabel--;
 
-            if (uls.statements !is null && uls.statements.length > 0)
+            if (uls.statements.length > 0)
             {
                 this.startScope;
 
                 dfaCommon.currentDFAScope.controlStatement = st;
                 dfaCommon.setScopeAsLoopyLabel;
 
-                foreach (stmt; *uls.statements)
+                foreach (stmt; uls.statements)
                 {
                     this.startScope;
                     this.visit(stmt);
@@ -1566,12 +1566,9 @@ final:
             case STMT.Compound:
                 auto cs = stmt.isCompoundStatement;
 
-                if (cs.statements !is null)
+                foreach (s; cs.statements)
                 {
-                    foreach (s; *cs.statements)
-                    {
-                        attempt(s);
-                    }
+                    attempt(s);
                 }
 
                 return ret;
@@ -1579,12 +1576,9 @@ final:
             case STMT.UnrolledLoop:
                 auto uls = stmt.isUnrolledLoopStatement;
 
-                if (uls.statements !is null)
+                foreach (s; uls.statements)
                 {
-                    foreach (s; *uls.statements)
-                    {
-                        attempt(s);
-                    }
+                    attempt(s);
                 }
 
                 return ret;

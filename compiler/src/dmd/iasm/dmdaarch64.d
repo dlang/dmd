@@ -100,7 +100,7 @@ public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
                 exp = resolveProperties(sc, exp);
                 exp = exp.ctfeInterpret();
                 if (exp.op == EXP.error)
-                    return new ErrorStatement();
+                    return ErrorStatement.get();
 
                 //printf("expression: %s\n", exp.toChars());
                 Type t = exp.type;
@@ -115,7 +115,7 @@ public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
             if (p.token.value != TOK.endOfFile && !errors)
             {
                 error(s.loc, "end of instruction expected, not `%s`", p.token.toChars());
-                return new ErrorStatement();
+                return ErrorStatement.get();
             }
             else
                 return s;
@@ -139,5 +139,5 @@ public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
      */
 
     error(s.loc, "AArch64 inline assembler not implemented (yet!)");
-    return new ErrorStatement();
+    return ErrorStatement.get();
 }

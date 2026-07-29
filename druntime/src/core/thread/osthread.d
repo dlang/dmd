@@ -1594,6 +1594,7 @@ extern (C) void thread_init() @nogc nothrow
 
     initLowlevelThreads();
     Thread.initLocks();
+    Thread.afterDeploy();
 
     version (Windows)
     {

@@ -615,7 +615,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 funcdecl.fbody = funcdecl.fbody.statementSemantic(sc2);
                 if (!funcdecl.fbody)
-                    funcdecl.fbody = new CompoundStatement(Loc.initial, new Statements());
+                    funcdecl.fbody = new CompoundStatement(Loc.initial);
 
                 if (funcdecl.isNaked)
                 {
@@ -632,7 +632,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (!f.next)
                         f.next = Type.tvoid;
                     if (f.checkRetType(funcdecl.loc))
-                        funcdecl.fbody = new ErrorStatement();
+                        funcdecl.fbody = ErrorStatement.get();
                     else
                         funcdecl.checkMain(); // Check main() parameters and return type
                 }
@@ -1131,10 +1131,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
             }
             else
             {
-                auto a = new Statements();
+                auto a = Statements();
 
                 size_t expectedSize = (funcdecl.parameters ? funcdecl.parameters.length : 0) + 7;
-                    a.reserve(expectedSize);
+                a.reserve(expectedSize);
 
                 // Merge in initialization of 'out' parameters
                 if (funcdecl.parameters)
@@ -1224,7 +1224,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     a.push(s);
                 }
 
-                Statement sbody = new CompoundStatement(Loc.initial, a);
+                Statement sbody = new CompoundStatement(Loc.initial, a.move());
 
                 /* Append destructor calls for parameters as finally blocks.
                  */

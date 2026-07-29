@@ -388,7 +388,7 @@ extern (C++) class FuncDeclaration : Declaration
         //printf("FuncDeclaration::syntaxCopy('%s')\n", toChars());
         FuncDeclaration f = s ? cast(FuncDeclaration)s
                               : new FuncDeclaration(loc, endloc, ident, storage_class, type.syntaxCopy(), this.noreturn != 0);
-        f.frequires = frequires ? Statement.arraySyntaxCopy(frequires) : null;
+        f.frequires = frequires ? Statement.arraySyntaxCopy(frequires, null) : null;
         f.fensures = fensures ? Ensure.arraySyntaxCopy(fensures) : null;
         f.fbody = fbody ? fbody.syntaxCopy() : null;
         return f;
