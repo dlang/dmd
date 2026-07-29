@@ -2652,6 +2652,7 @@ void MachObj_pubdefsize(int seg, Symbol* s, targ_size_t offset, targ_size_t syms
 @trusted
 void MachObj_pubdef(int seg, Symbol* s, targ_size_t offset)
 {
+    //printf("MachObj_pubdef('%s') %p\n",s.Sident.ptr,s.Svalue);
     //printf("MachObj_pubdef(%d:x%llx s=%p, %s)\n", seg, offset, s, s.Sident.ptr);
     //symbol_print(*s);
     symbol_debug(s);

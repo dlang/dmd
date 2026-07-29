@@ -388,6 +388,7 @@ public:
  */
 extern (C++) bool onlyOneMain(FuncDeclaration fd)
 {
+    //printf("onlyOneMain() %s\n", fd.toPrettyChars());
     if (auto lastMain = FuncDeclaration.lastMain)
     {
         const format = (target.os == Target.OS.Windows)
@@ -950,9 +951,11 @@ Ldone:
         // Only mixin `_d_cmain` if it is defined
         if (cmainTemplateExists())
         {
-            // add `mixin _d_cmain!();` to the declaring module
+            // add `mixin _d_cmain!(funcdecl);` to the declaring module
             auto tqual = new TypeIdentifier(funcdecl.loc, Id.CMain);
-            auto tm = new TemplateMixin(funcdecl.loc, null, tqual, null);
+            auto tiargs = new Objects();
+            tiargs.push(funcdecl);
+            auto tm = new TemplateMixin(funcdecl.loc, null, tqual, tiargs);
             sc._module.members.push(tm);
         }
     }

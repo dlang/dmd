@@ -115,15 +115,14 @@ R!int
 		int elem;
 	}
 }
-mixin _d_cmain!();
+mixin _d_cmain!(main);
 {
 	extern (C)
 	{
 		extern (C) int _d_run_main(int argc, char** argv, void* mainFunc);
-		extern (C) int _Dmain(char[][] args);
 		extern (C) int main(int argc, char** argv)
 		{
-			return _d_run_main(argc, argv, & _Dmain);
+			return _d_run_main(argc, argv, & main);
 		}
 		version (Solaris)
 		{

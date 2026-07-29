@@ -5,4 +5,4 @@ DW_AT_decl_column : 10
 DW_AT_decl_line   : 2000
 DW_AT_decl_column : 20
 D main
-issue22423._d_cmain!().main
+issue22423._d_cmain!(main).main

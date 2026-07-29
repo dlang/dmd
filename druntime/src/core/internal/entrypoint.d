@@ -16,13 +16,11 @@ call D main.  Any module containing a D main function declaration will
 cause the compiler to generate a `mixin _d_cmain();` statement to inject
 this code into the module.
 */
-template _d_cmain()
+template _d_cmain(alias _Dmain)
 {
     extern(C)
     {
         int _d_run_main(int argc, char **argv, void* mainFunc);
-
-        int _Dmain(char[][] args);
 
         int main(int argc, char **argv)
         {

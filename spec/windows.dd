@@ -15,13 +15,11 @@ $(H2 All Console Programs)
     to be added. The `_d_cmain` template looks like:
     )
     ---
-    template _d_cmain()
+    template _d_cmain(alias _Dmain)
     {
         extern(C)
         {
             int _d_run_main(int argc, char **argv, void* mainFunc);
-
-            int _Dmain(char[][] args);
 
             int main(int argc, char **argv)
             {
