@@ -1264,18 +1264,15 @@ Initializer inferType(Initializer init, Scope* sc)
         bool isSparse = false;
         if (isAssoc)
         {
-            bool hasNull = false;
             foreach (idx; init.index)
             {
                 if (!idx)
                 {
-                    hasNull = true;
+                    isSparse = true;
                     break;
                 }
             }
-            if (hasNull)
-                isSparse = true;
-            else
+            if (!isSparse)
                 keys = new Expressions(init.value.length);
         }
         else
@@ -1284,7 +1281,8 @@ Initializer inferType(Initializer init, Scope* sc)
         if (isSparse)
         {
             // Sparse static array initializer, e.g. [0, 2:2, 3]
-            // Infer element type from values, then fill gaps with default init.
+
+            // Run semantic on each index and value to get typed expressions
             for (size_t i = 0; i < init.value.length; i++)
             {
                 if (auto idx = init.index[i])
@@ -1319,6 +1317,9 @@ Initializer inferType(Initializer init, Scope* sc)
 
             // Determine element type by running semantic on a temporary
             // dense ArrayLiteralExp containing only the provided values.
+            // This uses arrayExpressionToCommonType to find the common type
+            // across all values (e.g. int and double → double), rather than
+            // relying on any single value's type.
             auto tempElems = new Expressions();
             foreach (i; 0 .. init.value.length)
                 tempElems.push((*values)[i]);

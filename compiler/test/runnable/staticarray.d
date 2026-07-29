@@ -156,6 +156,14 @@ void main()
 	assert(sparse3[1] != sparse3[1]); // NaN
 	assert(sparse3[3] == 3.5);
 
+	// mixed types: element type is the common type (int + double → double)
+	auto[$] sparse4 = [ 1, 3:3.5 ];
+	assert(sparse4.length == 4);
+	static assert(is(typeof(sparse4[0]) == double));
+	assert(sparse4[0] == 1);
+	assert(sparse4[1] != sparse4[1]); // double.init = NaN
+	assert(sparse4[3] == 3.5);
+
 	// regression: auto without $ still produces AA
 	auto aa = [3:42];
 	assert(aa.length == 1);
