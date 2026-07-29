@@ -164,6 +164,16 @@ void main()
 	assert(sparse4[1] != sparse4[1]); // double.init = NaN
 	assert(sparse4[3] == 3.5);
 
+	// nested sparse: outer gap filled with inner array default init
+	auto[$][$] sparse5 = [[0, 1], 2:[1, 1]];
+	assert(sparse5.length == 3);
+	assert(sparse5[0] == [0, 1]);
+	assert(sparse5[1] == [0, 0]);
+	assert(sparse5[2] == [1, 1]);
+	static assert(sparse5.length == 3);
+	static assert(sparse5[0].length == 2);
+	static assert(is(typeof(sparse5) == int[2][3]));
+
 	// regression: auto without $ still produces AA
 	auto aa = [3:42];
 	assert(aa.length == 1);

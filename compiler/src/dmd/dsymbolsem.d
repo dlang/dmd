@@ -2658,7 +2658,19 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         return;
                     }
                     if (auto ale = ie.isArrayLiteralExp())
+                    {
+                        // Fill null gaps left by sparse auto[$] inference,
+                        // now that dimensions are fully resolved.
+                        if (ale.elements)
+                        {
+                            foreach (ref e; (*ale.elements)[])
+                            {
+                                if (!e)
+                                    e = tsa.next.toBasetype().defaultInitLiteral(dsym.loc);
+                            }
+                        }
                         dsym._init = new ExpInitializer(dsym.loc, ale);
+                    }
                 }
             }
         }
