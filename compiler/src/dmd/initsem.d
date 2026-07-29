@@ -1315,27 +1315,11 @@ Initializer inferType(Initializer init, Scope* sc)
                     edim = cast(uint)pos;
             }
 
-            // Determine element type by running semantic on a temporary
-            // dense ArrayLiteralExp containing only the provided values.
-            // This uses arrayExpressionToCommonType to find the common type
-            // across all values (e.g. int and double → double), rather than
-            // relying on any single value's type.
-            auto tempElems = new Expressions();
-            foreach (i; 0 .. init.value.length)
-                tempElems.push((*values)[i]);
-            auto tempAle = ArrayLiteralExp.create(init.loc, tempElems);
-            auto tempExp = tempAle.expressionSemantic(sc);
-            if (tempExp.op == EXP.error)
-                return new ErrorInitializer();
-
-            Type elemType = tempExp.type.nextOf();
-            Expression defaultElem = elemType.defaultInit(Loc.initial);
-
-            // Fill positions with values, using default init for gaps
+            // Create sparse elements with null gaps. Gaps will be filled
+            // with the correct default init after $ resolution (in dsymbolsem.d),
+            // when the element type is fully known.
             auto elements = new Expressions(edim);
-            for (size_t i = 0; i < edim; i++)
-                (*elements)[i] = defaultElem;
-
+            elements.zero();
             pos = 0;
             foreach (i; 0 .. init.value.length)
             {
