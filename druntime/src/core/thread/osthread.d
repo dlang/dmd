@@ -2143,6 +2143,13 @@ version (DragonFlyBSD) unittest
 package struct LLThreadProperties_dflt
 {
     void delegate() nothrow dg;
+
+    // Returns: false if error occurred
+    bool initialize(void delegate() nothrow dg, ref LLThreadContext context) nothrow @nogc
+    {
+        this.dg = dg;
+        return true;
+    }
 }
 
 package struct LLThreadContext_dflt
@@ -2177,48 +2184,11 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
 {
     auto tprop = cast(LLThreadProperties*) malloc(LLThreadProperties.sizeof);
     scope(exit) free(tprop);
-    tprop.dg = dg;
 
     auto context = LLThreadContext(stacksize, cbDllUnload);
 
-    version (Windows)
-    {
-        // the thread won't start until after the DLL is unloaded
-        if (thread_DLLProcessDetaching)
-            return ThreadID.init;
-        tprop.cbMod = context.cbDllUnload ? ll_getModuleHandle(context.cbDllUnload.funcptr) : null;
-        if (tprop.cbMod)
-        {
-            int refcnt = dll_getRefCount(tprop.cbMod);
-            if (refcnt < 0)
-            {
-                // not a dynamically loaded DLL, so never unloaded
-                context.cbDllUnload = null;
-                tprop.cbMod = null;
-            }
-            if (refcnt == 0)
-                return ThreadID.init; // createLowLevelThread called while DLL is unloading
-        }
-
-        static extern (Windows) uint thread_lowlevelEntry(void* ctx) nothrow
-        {
-            auto tprop = *cast(LLThreadProperties*)ctx;
-            free(ctx);
-
-            tprop.dg();
-
-            ll_removeThread(GetCurrentThreadId());
-            if (tprop.cbMod && tprop.cbMod != runtimeModule)
-                FreeLibrary(tprop.cbMod);
-            return 0;
-        }
-
-        // see Thread.start() for why thread is created in suspended state
-        context.hThread = cast(HANDLE) _beginthreadex(null, context.stacksize, &thread_lowlevelEntry,
-                                                     tprop, CREATE_SUSPENDED, &context.tid);
-        if (!context.hThread)
-            return ThreadID.init;
-    }
+    if(tprop.initialize(dg, context) == false)
+        return ThreadID.init;
 
     lowlevelLock.lock_nothrow();
     scope(exit) lowlevelLock.unlock_nothrow();

@@ -430,6 +430,50 @@ package struct LLThreadProperties
 {
     void delegate() nothrow dg;
     HMODULE cbMod;
+
+    bool initialize(void delegate() nothrow _dg, ref LLThreadContext context) nothrow @nogc
+    {
+        dg = _dg;
+
+        // the thread won't start until after the DLL is unloaded
+        if (thread_DLLProcessDetaching)
+            return false;
+
+        cbMod = context.cbDllUnload ? ll_getModuleHandle(context.cbDllUnload.funcptr) : null;
+        if (cbMod)
+        {
+            int refcnt = dll_getRefCount(cbMod);
+            if (refcnt < 0)
+            {
+                // not a dynamically loaded DLL, so never unloaded
+                context.cbDllUnload = null;
+                cbMod = null;
+            }
+            if (refcnt == 0)
+                return false; // createLowLevelThread called while DLL is unloading
+        }
+
+        static extern (Windows) uint thread_lowlevelEntry(void* ctx) nothrow
+        {
+            auto tprop = *cast(LLThreadProperties*)ctx;
+            free(ctx);
+
+            tprop.dg();
+
+            ll_removeThread(GetCurrentThreadId());
+            if (tprop.cbMod && tprop.cbMod != runtimeModule)
+                FreeLibrary(tprop.cbMod);
+            return 0;
+        }
+
+        // see Thread.start() for why thread is created in suspended state
+        context.hThread = cast(HANDLE) _beginthreadex(null, context.stacksize, &thread_lowlevelEntry,
+                                                     &this, CREATE_SUSPENDED, &context.tid);
+        if (!context.hThread)
+            return false;
+
+        return true;
+    }
 }
 
 package struct LLThreadContext
