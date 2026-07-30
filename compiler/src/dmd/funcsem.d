@@ -944,7 +944,7 @@ Ldone:
             Dsymbol pscopesym;
             auto rootSymbol = sc.search(funcdecl.loc, Id.empty, pscopesym);
             if (auto moduleSymbol = rootSymbol.search(funcdecl.loc, Id.object))
-                if (moduleSymbol.search(funcdecl.loc, Id.CMain))
+                if (moduleSymbol.search(funcdecl.loc, Id._d_cmain))
                     return true;
 
             return false;
@@ -954,7 +954,7 @@ Ldone:
         if (cmainTemplateExists())
         {
             // add `mixin _d_cmain!();` to the declaring module
-            auto tqual = new TypeIdentifier(funcdecl.loc, Id.CMain);
+            auto tqual = new TypeIdentifier(funcdecl.loc, Id._d_cmain);
             auto tm = new TemplateMixin(funcdecl.loc, null, tqual, null);
             sc._module.members.push(tm);
         }
