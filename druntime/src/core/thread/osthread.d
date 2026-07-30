@@ -2140,30 +2140,6 @@ version (DragonFlyBSD) unittest
 // lowlovel threading support
 ///////////////////////////////////////////////////////////////////////////////
 
-package struct LLThreadProperties_dflt()
-{
-    void delegate() nothrow dg;
-
-    // Returns: false if error occurred
-    bool initialize(void delegate() nothrow dg, ref LLThreadContext context) nothrow @nogc
-    {
-        this.dg = dg;
-        return true;
-    }
-}
-
-package struct LLThreadContext_dflt()
-{
-    ThreadID tid;
-    uint stacksize;
-
-    this(uint stacksize, void delegate() nothrow cbDllUnload) nothrow @nogc
-    {
-        this.stacksize = stacksize;
-        // cbDllUnload ignored, TODO: remove it from args list
-    }
-}
-
 /**
  * Create a thread not under control of the runtime, i.e. TLS module constructors are
  * not run and the GC does not suspend it during a collection.

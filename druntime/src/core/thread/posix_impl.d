@@ -17,7 +17,7 @@ import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
 import core.thread.osthread;
 import core.thread.threadbase;
-import core.thread.types : ThreadDescr, ll_ThreadData;
+import core.thread.types : ThreadID, ThreadDescr, ll_ThreadData;
 import core.time;
 
 version (Posix):
@@ -816,8 +816,29 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
 
 package alias gettid = imported!"core.sys.posix.pthread".pthread_self;
 
-package alias LLThreadProperties = LLThreadProperties_dflt!();
-package alias LLThreadContext = LLThreadContext_dflt!();
+package struct LLThreadProperties
+{
+    void delegate() nothrow dg;
+
+    // Returns: false if error occurred
+    bool initialize(void delegate() nothrow dg, ref LLThreadContext context) nothrow @nogc
+    {
+        this.dg = dg;
+        return true;
+    }
+}
+
+package struct LLThreadContext
+{
+    ThreadID tid;
+    uint stacksize;
+
+    this(uint stacksize, void delegate() nothrow cbDllUnload) nothrow @nogc
+    {
+        this.stacksize = stacksize;
+        // cbDllUnload ignored, TODO: remove it from args list
+    }
+}
 
 // Returns: false if error occurred
 package bool launchLLThread(LLThreadProperties* tprop, ref LLThreadContext context, ref ll_ThreadData curr_llt) nothrow @nogc
