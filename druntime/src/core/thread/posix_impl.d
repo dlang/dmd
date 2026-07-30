@@ -816,8 +816,8 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
 
 package alias gettid = imported!"core.sys.posix.pthread".pthread_self;
 
-package alias LLThreadProperties = LLThreadProperties_dflt;
-package alias LLThreadContext = LLThreadContext_dflt;
+package alias LLThreadProperties = LLThreadProperties_dflt!();
+package alias LLThreadContext = LLThreadContext_dflt!();
 
 // Returns: false if error occurred
 package bool launchLLThread(LLThreadProperties* tprop, ref LLThreadContext context, ref ll_ThreadData curr_llt) nothrow @nogc

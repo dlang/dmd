@@ -2140,7 +2140,7 @@ version (DragonFlyBSD) unittest
 // lowlovel threading support
 ///////////////////////////////////////////////////////////////////////////////
 
-package struct LLThreadProperties_dflt
+package struct LLThreadProperties_dflt()
 {
     void delegate() nothrow dg;
 
@@ -2152,7 +2152,7 @@ package struct LLThreadProperties_dflt
     }
 }
 
-package struct LLThreadContext_dflt
+package struct LLThreadContext_dflt()
 {
     ThreadID tid;
     uint stacksize;
