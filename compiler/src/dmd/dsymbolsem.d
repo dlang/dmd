@@ -2306,10 +2306,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             auto tid = t ? t.isTypeIdentifier() : null;
             auto autoIdent = Identifier.idPool(Token.toString(TOK.auto_));
-            if (autoDollarDims.length && tid && tid.ident == autoIdent)
-                // Intentionally set type to null to trigger type inference,
-                dsym.type = null;
-            else
+            if (!tid || tid.ident != autoIdent)
                 autoDollarDims = null;
         }
         static bool hasDollarDimension(TypeSArray tsa)
@@ -2361,7 +2358,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     resolveDollarToZero(next, loc);
             }
         }
-        if (!dsym.type)
+        if (!dsym.type || autoDollarDims.length)
         {
             dsym.inuse++;
 
@@ -2382,42 +2379,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 return;
             }
             //printf("inferring type for %s with init %s\n", dsym.toChars(), dsym._init.toChars());
-            dsym._init = dsym._init.inferType(sc);
+            dsym._init = dsym._init.inferType(sc, dsym.type);
             dsym.type = dsym._init.initializerToExpression(null, sc.inCfile).type;
-
-            // When auto[$] is used with an all-indexed initializer like [3:42],
-            // inferType produces an AA type but the user wants a static array.
-            // Convert the AA literal to a sparse static array.
-            if (autoDollarDims.length && dsym.type.ty == Taarray)
-            {
-                auto initExp = dsym._init.isExpInitializer();
-                auto aale = initExp ? initExp.exp.isAssocArrayLiteralExp() : null;
-                if (aale && aale.keys && aale.values)
-                {
-                    // Compute array length from max key + 1
-                    dinteger_t maxKey = 0;
-                    foreach (k; *aale.keys)
-                    {
-                        dinteger_t val = k.ctfeInterpret().toInteger();
-                        if (val > maxKey)
-                            maxKey = val;
-                    }
-                    Type elemType = dsym.type.nextOf();
-                    size_t len = cast(size_t)(maxKey + 1);
-                    auto elements = new Expressions(len);
-                    Expression defElem = elemType.defaultInit(dsym.loc);
-                    for (size_t i = 0; i < len; i++)
-                        (*elements)[i] = defElem;
-                    foreach (j; 0 .. aale.keys.length)
-                    {
-                        auto idx = cast(size_t)(*aale.keys)[j].ctfeInterpret().toInteger();
-                        (*elements)[idx] = (*aale.values)[j];
-                    }
-                    dsym._init = new ExpInitializer(dsym.loc,
-                        ArrayLiteralExp.create(dsym.loc, elements));
-                    dsym.type = elemType.arrayOf();
-                }
-            }
 
             if (autoDollarDims.length)
             {
@@ -2633,7 +2596,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             else
             {
-                Expression ie = dsym._init.initializerToExpression(null, sc.inCfile);
+                Expression ie = dsym._init.initializerToExpression(tsa, sc.inCfile);
                 if (ie && ie.op != EXP.error)
                 {
                     // Infer from literal syntax first to avoid prematurely
@@ -2663,11 +2626,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         // now that dimensions are fully resolved.
                         if (ale.elements)
                         {
-                            foreach (ref e; (*ale.elements)[])
-                            {
+                            foreach (e; (*ale.elements)[])
                                 if (!e)
-                                    e = tsa.next.toBasetype().defaultInitLiteral(dsym.loc);
-                            }
+                                {
+                                    ale.basis = tsa.next.toBasetype().defaultInitLiteral(dsym.loc);
+                                    break;
+                                }
                         }
                         dsym._init = new ExpInitializer(dsym.loc, ale);
                     }
