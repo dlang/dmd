@@ -454,7 +454,7 @@ extern (C++) class FuncDeclaration : Declaration
 
     override const(char)* toPrettyChars(bool QualifyTypes = false, bool keepOneMember = false)
     {
-        if (isMain())
+        if (isDMain())
             return "D main";
         return Dsymbol.toPrettyChars(QualifyTypes, keepOneMember);
     }
@@ -467,7 +467,7 @@ extern (C++) class FuncDeclaration : Declaration
         return buf.extractChars();
     }
 
-    final bool isMain() const
+    final bool isDMain() const
     {
         return ident == Id.main && resolvedLinkage() != LINK.c && !isMember() && !isNested();
     }

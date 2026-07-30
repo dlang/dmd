@@ -2955,7 +2955,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 }
                 errors = true;
             }
-            else if (fd.isMain())
+            else if (fd.isDMain())
             {
                 // main() returns 0, even if it returns void
                 rs.exp = IntegerExp.literal!0;

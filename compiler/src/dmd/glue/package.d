@@ -1722,7 +1722,7 @@ private UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
 private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
 {
     // D main()
-    if (fd.isMain() && onlyOneMain(fd))
+    if (fd.isDMain() && onlyOneMain(fd))
     {
         /* Reference the C main() to pull it in to the executable
          */
