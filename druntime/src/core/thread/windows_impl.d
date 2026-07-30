@@ -17,7 +17,7 @@ import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
 import core.thread.osthread;
 import core.thread.threadbase;
-import core.thread.types : ThreadDescr;
+import core.thread.types : ThreadDescr, ll_ThreadData;
 import core.time;
 
 version (Windows):
@@ -267,4 +267,248 @@ package bool suspendThreadImpl(Thread t) @nogc nothrow
 package bool resumeThreadImpl(Thread t) @nogc nothrow
 {
     return ResumeThread(t.m_tdescr.hndl) != 0xFFFFFFFF;
+}
+
+//TODO: private
+package
+{
+    version (Windows):
+    // If the runtime is dynamically loaded as a DLL, there is a problem with
+    // threads still running when the DLL is supposed to be unloaded:
+    //
+    // - with the VC runtime starting with VS2015 (i.e. using the Universal CRT)
+    //   a thread created with _beginthreadex increments the DLL reference count
+    //   and decrements it when done, so that the DLL is no longer unloaded unless
+    //   all the threads have terminated. With the DLL reference count held up
+    //   by a thread that is only stopped by a signal from a static destructor or
+    //   the termination of the runtime will cause the DLL to never be unloaded.
+    //
+    // - with the DigitalMars runtime and VC runtime up to VS2013, the thread
+    //   continues to run, but crashes once the DLL is unloaded from memory as
+    //   the code memory is no longer accessible. Stopping the threads is not possible
+    //   from within the runtime termination as it is invoked from
+    //   DllMain(DLL_PROCESS_DETACH) holding a lock that prevents threads from
+    //   terminating.
+    //
+    // Solution: start a watchdog thread that keeps the DLL reference count above 0 and
+    // checks it periodically. If it is equal to 1 (plus the number of started threads), no
+    // external references to the DLL exist anymore, threads can be stopped
+    // and runtime termination and DLL unload can be invoked via FreeLibraryAndExitThread.
+    // Note: runtime termination is then performed by a different thread than at startup.
+    //
+    // Note: if the DLL is never unloaded, process termination kills all threads
+    // and signals their handles before unconditionally calling DllMain(DLL_PROCESS_DETACH).
+
+    import core.sys.windows.dll : dll_getRefCount;
+    import core.sys.windows.winbase : FreeLibraryAndExitThread, GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, GetModuleHandleExW;
+    import core.sys.windows.windef : HMODULE;
+
+    version (CRuntime_Microsoft)
+        extern(C) extern __gshared ubyte msvcUsesUCRT; // from rt/msvc.d
+    extern(C) extern __gshared void* __ImageBase; // symbol at the beginning of module, added by linker
+    enum HMODULE runtimeModule = &__ImageBase;
+
+    /// set during termination of a DLL on Windows, i.e. while executing DllMain(DLL_PROCESS_DETACH)
+    public __gshared bool thread_DLLProcessDetaching;
+
+    __gshared ThreadID ll_dllMonitorThread;
+
+    int ll_countLowLevelThreadsWithDLLUnloadCallback(HMODULE hMod) nothrow
+    {
+        lowlevelLock.lock_nothrow();
+        scope(exit) lowlevelLock.unlock_nothrow();
+
+        int cnt = 0;
+        foreach (i; 0 .. ll_nThreads)
+            if (ll_pThreads[i].cbDllUnload && ll_pThreads[i].hMod == hMod)
+                cnt++;
+        return cnt;
+    }
+
+    bool ll_dllHasExternalReferences(HMODULE hMod) nothrow
+    {
+        int unloadCallbacks = ll_countLowLevelThreadsWithDLLUnloadCallback(hMod);
+        int internalReferences = hMod != runtimeModule ? unloadCallbacks
+            : (ll_dllMonitorThread ? 1 : 0) + (msvcUsesUCRT ? unloadCallbacks : 0);
+        int refcnt = dll_getRefCount(hMod);
+        return refcnt > internalReferences;
+    }
+
+    void notifyUnloadLowLevelThreads(HMODULE hMod) nothrow
+    {
+        HMODULE toFree;
+        for (;;)
+        {
+            ThreadID tid;
+            void delegate() nothrow cbDllUnload;
+            {
+                lowlevelLock.lock_nothrow();
+                scope(exit) lowlevelLock.unlock_nothrow();
+
+                foreach (i; 0 .. ll_nThreads)
+                    if (ll_pThreads[i].cbDllUnload && ll_pThreads[i].hMod == hMod)
+                    {
+                        if (!toFree)
+                            toFree = ll_getModuleHandle(hMod, true); // keep the module alive until the callback returns
+                        cbDllUnload = ll_pThreads[i].cbDllUnload;
+                        tid = ll_pThreads[i].tid;
+                        break;
+                    }
+            }
+            if (!cbDllUnload)
+                break;
+            cbDllUnload(); // must wait for thread termination
+            assert(!findLowLevelThread(tid));
+        }
+        if (toFree)
+            FreeLibrary(toFree);
+    }
+
+    private void monitorDLLRefCnt() nothrow
+    {
+        // this thread keeps the DLL alive until all external references are gone
+        // (including those from DLLs using druntime in a shared DLL)
+        while (ll_dllHasExternalReferences(runtimeModule))
+        {
+            // find and unload module that only has internal references left
+            HMODULE hMod;
+            {
+                lowlevelLock.lock_nothrow();
+                scope(exit) lowlevelLock.unlock_nothrow();
+
+                foreach (i; 0 .. ll_nThreads)
+                    if (ll_pThreads[i].cbDllUnload && ll_pThreads[i].hMod != runtimeModule)
+                        if (!ll_dllHasExternalReferences(ll_pThreads[i].hMod))
+                        {
+                            hMod = ll_pThreads[i].hMod;
+                            break;
+                        }
+            }
+            if (hMod)
+                notifyUnloadLowLevelThreads(hMod);
+            else
+                Thread.sleep(100.msecs);
+        }
+
+        notifyUnloadLowLevelThreads(runtimeModule);
+
+        // the current thread will be terminated without cleanup within the thread
+        ll_removeThread(GetCurrentThreadId());
+
+        FreeLibraryAndExitThread(runtimeModule, 0);
+    }
+
+    HMODULE ll_getModuleHandle(void* funcptr, bool addref = false) nothrow @nogc
+    {
+        HMODULE hmod;
+        DWORD refflag = addref ? 0 : GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
+        if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | refflag,
+                                cast(const(wchar)*) funcptr, &hmod))
+            return null;
+        return hmod;
+    }
+
+    bool ll_startDLLUnloadThread() nothrow @nogc
+    {
+        if (ll_dllMonitorThread !is ThreadID.init)
+            return true;
+
+        // if a thread is created from a DLL, the MS runtime (starting with VC2015) increments the DLL reference count
+        // to avoid the DLL being unloaded while the thread is still running. Mimick this behavior here for all
+        // runtimes not doing this
+        bool needRef = !msvcUsesUCRT;
+        if (needRef)
+            ll_getModuleHandle(runtimeModule, true);
+
+        // the monitor thread must be a low-level thread so the runtime does not attach to it
+        ll_dllMonitorThread = createLowLevelThread(() { monitorDLLRefCnt(); });
+        return ll_dllMonitorThread != ThreadID.init;
+    }
+}
+
+package struct LLThreadProperties
+{
+    void delegate() nothrow dg;
+    HMODULE cbMod;
+
+    bool initialize(void delegate() nothrow _dg, ref LLThreadContext context) nothrow @nogc
+    {
+        dg = _dg;
+
+        // the thread won't start until after the DLL is unloaded
+        if (thread_DLLProcessDetaching)
+            return false;
+
+        cbMod = context.cbDllUnload ? ll_getModuleHandle(context.cbDllUnload.funcptr) : null;
+        if (cbMod)
+        {
+            int refcnt = dll_getRefCount(cbMod);
+            if (refcnt < 0)
+            {
+                // not a dynamically loaded DLL, so never unloaded
+                context.cbDllUnload = null;
+                cbMod = null;
+            }
+            if (refcnt == 0)
+                return false; // createLowLevelThread called while DLL is unloading
+        }
+
+        static extern (Windows) uint thread_lowlevelEntry(void* ctx) nothrow
+        {
+            auto tprop = *cast(LLThreadProperties*)ctx;
+            free(ctx);
+
+            tprop.dg();
+
+            ll_removeThread(GetCurrentThreadId());
+            if (tprop.cbMod && tprop.cbMod != runtimeModule)
+                FreeLibrary(tprop.cbMod);
+            return 0;
+        }
+
+        // see Thread.start() for why thread is created in suspended state
+        context.hThread = cast(HANDLE) _beginthreadex(null, context.stacksize, &thread_lowlevelEntry,
+                                                     &this, CREATE_SUSPENDED, &context.tid);
+        if (!context.hThread)
+            return false;
+
+        return true;
+    }
+}
+
+package struct LLThreadContext
+{
+    ThreadID tid;
+    uint stacksize;
+    void delegate() nothrow cbDllUnload;
+    HANDLE hThread;
+
+    this(uint stacksize, void delegate() nothrow cbDllUnload) nothrow @nogc
+    {
+        this.stacksize = stacksize;
+        this.cbDllUnload = cbDllUnload;
+    }
+}
+
+// Returns: false if error occurred
+package bool launchLLThread(LLThreadProperties* tprop, ref LLThreadContext context, ref ll_ThreadData curr_llt) nothrow @nogc
+{
+    curr_llt.tid = context.tid;
+    // ignore callback if not a dynamically loaded DLL
+    if (context.cbDllUnload)
+    {
+        curr_llt.cbDllUnload = context.cbDllUnload;
+        curr_llt.hMod = tprop.cbMod;
+        if (tprop.cbMod != runtimeModule)
+            ll_getModuleHandle(tprop.cbMod, true); // increment ref count
+    }
+
+    if (ResumeThread(context.hThread) == -1)
+        onThreadError("Error resuming thread");
+    CloseHandle(context.hThread);
+
+    if (context.cbDllUnload)
+        ll_startDLLUnloadThread();
+
+    return true;
 }

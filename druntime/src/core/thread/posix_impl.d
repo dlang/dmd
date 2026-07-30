@@ -17,7 +17,7 @@ import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
 import core.thread.osthread;
 import core.thread.threadbase;
-import core.thread.types : ThreadDescr;
+import core.thread.types : ThreadID, ThreadDescr, ll_ThreadData;
 import core.time;
 
 version (Posix):
@@ -815,3 +815,59 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
 }
 
 package alias gettid = imported!"core.sys.posix.pthread".pthread_self;
+
+package struct LLThreadProperties
+{
+    void delegate() nothrow dg;
+
+    // Returns: false if error occurred
+    bool initialize(void delegate() nothrow dg, ref LLThreadContext context) nothrow @nogc
+    {
+        this.dg = dg;
+        return true;
+    }
+}
+
+package struct LLThreadContext
+{
+    ThreadID tid;
+    uint stacksize;
+
+    this(uint stacksize, void delegate() nothrow cbDllUnload) nothrow @nogc
+    {
+        this.stacksize = stacksize;
+        // cbDllUnload ignored, TODO: remove it from args list
+    }
+}
+
+// Returns: false if error occurred
+package bool launchLLThread(LLThreadProperties* tprop, ref LLThreadContext context, ref ll_ThreadData curr_llt) nothrow @nogc
+{
+    static extern (C) void* thread_lowlevelEntry(void* ctx) nothrow
+    {
+        auto tprop = *cast(LLThreadProperties*) ctx;
+        free(ctx);
+
+        tprop.dg();
+        ll_removeThread(pthread_self());
+        return null;
+    }
+
+    size_t stksz = adjustStackSize(context.stacksize);
+
+    pthread_attr_t  attr;
+
+    int rc;
+    if ((rc = pthread_attr_init(&attr)) != 0)
+        return false;
+    if (stksz && (rc = pthread_attr_setstacksize(&attr, stksz)) != 0)
+        return false;
+    if ((rc = pthread_create(&context.tid, &attr, &thread_lowlevelEntry, tprop)) != 0)
+        return false;
+    rc = pthread_attr_destroy(&attr);
+    assert(rc == 0);
+
+    curr_llt.tid = context.tid;
+
+    return true;
+}
