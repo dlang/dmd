@@ -920,7 +920,7 @@ Ldone:
     __gshared bool printedMain = false; // semantic might run more than once
     if (global.params.v.verbose && !printedMain)
     {
-        const(char)* type = funcdecl.isMain() ? "main" : funcdecl.isWinMain() ? "winmain" : funcdecl.isDllMain() ? "dllmain" : cast(const(char)*)null;
+        const(char)* type = funcdecl.isDMain() ? "main" : funcdecl.isWinMain() ? "winmain" : funcdecl.isDllMain() ? "dllmain" : cast(const(char)*)null;
         Module mod = sc._module;
 
         if (type && mod)
@@ -933,10 +933,10 @@ Ldone:
     }
 
     if (funcdecl.fbody && sc._module.isRoot() &&
-        (funcdecl.isMain() || funcdecl.isWinMain() || funcdecl.isDllMain() || funcdecl.isCMain()))
+        (funcdecl.isDMain() || funcdecl.isWinMain() || funcdecl.isDllMain() || funcdecl.isCMain()))
         global.hasMainFunction = true;
 
-    if (funcdecl.fbody && funcdecl.isMain() && sc._module.isRoot())
+    if (funcdecl.fbody && funcdecl.isDMain() && sc._module.isRoot())
     {
         // check if `_d_cmain` is defined
         bool cmainTemplateExists()

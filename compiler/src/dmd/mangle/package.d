@@ -717,7 +717,7 @@ public:
             buf.writestring(fd.mangleOverride);
             return;
         }
-        if (fd.isMain())
+        if (fd.isDMain())
         {
             buf.writestring("_Dmain");
             return;

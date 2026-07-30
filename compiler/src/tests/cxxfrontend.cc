@@ -1007,7 +1007,7 @@ public:
             return;
         TypeFunction *tf = func->type->toTypeFunction();
         Type *type = func->tintro != NULL ? func->tintro->nextOf() : tf->nextOf();
-        if ((func->isMain() || func->isCMain()) && type->toBasetype()->ty == TY::Tvoid)
+        if ((func->isDMain() || func->isCMain()) && type->toBasetype()->ty == TY::Tvoid)
             type = Type::tint32;
         if (func->shidden)
         {
