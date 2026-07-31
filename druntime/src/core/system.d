@@ -22,4 +22,6 @@ struct Mem
         return cast(void*) p;
     }
     +/
+
+    alias allocateOnStack = alloca;
 }

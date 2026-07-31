@@ -15,11 +15,12 @@ import core.atomic;
 import core.internal.parseoptions : rt_parseOption;
 import core.stdc.errno : errno;
 import core.stdc.stdio : fflush, fprintf, fwrite, stderr, stdout;
-import core.stdc.stdlib : alloca, EXIT_FAILURE, EXIT_SUCCESS, free, malloc, realloc;
+import core.stdc.stdlib : EXIT_FAILURE, EXIT_SUCCESS, free, malloc, realloc;
 import core.stdc.string : strerror;
 import rt.config : rt_cmdline_enabled, rt_configOption;
 import rt.memory;
 import rt.sections;
+import core.system : Mem;
 
 version (Windows)
 {
@@ -49,7 +50,7 @@ else version (WASI)
 }
 
 version (DigitalMars) version (AArch64)
-    version = UseMalloc;   // cuz alloca() is not implemented yet
+    version = UseMalloc;   // cuz Mem.allocateOnStack is not implemented yet
 
 // not sure why we can't define this in one place, but this is to keep this
 // module from importing core.runtime.
@@ -294,7 +295,7 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
             scope (exit) free(args.ptr);
         }
         else
-            char[][] args = (cast(char[]*) alloca(wargc * (char[]).sizeof))[0 .. wargc];
+            char[][] args = (cast(char[]*) Mem.allocateOnStack(wargc * (char[]).sizeof))[0 .. wargc];
 
         // This is required because WideCharToMultiByte requires int as input.
         assert(wCommandLineLength <= cast(size_t) int.max, "Wide char command line length must not exceed int.max");
@@ -309,7 +310,7 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
                 scope (exit) free(totalArgsBuff);
             }
             else
-                char* totalArgsBuff = cast(char*) alloca(totalArgsLength);
+                char* totalArgsBuff = cast(char*) Mem.allocateOnStack(totalArgsLength);
             size_t j = 0;
             foreach (i; 0 .. wargc)
             {
@@ -339,7 +340,7 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
             scope (exit) free(args.ptr);
         }
         else
-            char[][] args = (cast(char[]*) alloca(argc * (char[]).sizeof))[0 .. argc];
+            char[][] args = (cast(char[]*) Mem.allocateOnStack(argc * (char[]).sizeof))[0 .. argc];
 
         size_t totalArgsLength = 0;
         foreach (i, ref arg; args)
@@ -351,7 +352,7 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
     else version (WASI)
     {
         // Allocate args[] on the stack
-        char[][] args = (cast(char[]*) alloca(argc * (char[]).sizeof))[0 .. argc];
+        char[][] args = (cast(char[]*) Mem.allocateOnStack(argc * (char[]).sizeof))[0 .. argc];
 
         size_t totalArgsLength = 0;
         foreach (i, ref arg; args)
@@ -376,7 +377,7 @@ version (Windows)
 extern (C) int _d_wrun_main(int argc, wchar** wargv, MainFunc mainFunc)
 {
      // Allocate args[] on the stack
-    char[][] args = (cast(char[]*) alloca(argc * (char[]).sizeof))[0 .. argc];
+    char[][] args = (cast(char[]*) Mem.allocateOnStack(argc * (char[]).sizeof))[0 .. argc];
 
     // 1st pass: compute each argument's length as UTF-16 and UTF-8
     size_t totalArgsLength = 0;
@@ -391,7 +392,7 @@ extern (C) int _d_wrun_main(int argc, wchar** wargv, MainFunc mainFunc)
     }
 
     // Allocate a single buffer for all (null-terminated) argument strings in UTF-8 on the stack
-    char* utf8Buffer = cast(char*) alloca(totalArgsLength);
+    char* utf8Buffer = cast(char*) Mem.allocateOnStack(totalArgsLength);
 
     // 2nd pass: convert to UTF-8 and finalize `args`
     char* utf8 = utf8Buffer;
@@ -405,7 +406,7 @@ extern (C) int _d_wrun_main(int argc, wchar** wargv, MainFunc mainFunc)
     }
 
     // Set C argc/argv; argv is a new stack-allocated array of UTF-8 C strings
-    char*[] argv = (cast(char**) alloca(argc * (char*).sizeof))[0 .. argc];
+    char*[] argv = (cast(char**) Mem.allocateOnStack(argc * (char*).sizeof))[0 .. argc];
     foreach (i, ref arg; argv)
         arg = args[i].ptr;
     _cArgs.argc = argc;
@@ -487,7 +488,7 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
             //scope (exit) buff;
         }
         else
-            auto buff = cast(char[]*) alloca(length);
+            auto buff = cast(char[]*) Mem.allocateOnStack(length);
 
         char[][] argsCopy = buff[0 .. args.length];
         auto argBuff = cast(char*) (buff + args.length);
