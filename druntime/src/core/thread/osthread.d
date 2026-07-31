@@ -2192,39 +2192,8 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
  * Params:
  *  tid = the thread ID returned by `createLowLevelThread`.
  */
-void joinLowLevelThread(ThreadID tid) nothrow @nogc
-{
-    version (Windows)
-    {
-        HANDLE handle = OpenThreadHandle(tid);
-        if (!handle)
-            return;
-
-        if (thread_DLLProcessDetaching)
-        {
-            // When being called from DllMain/DLL_DETACH_PROCESS, threads cannot stop
-            //  due to the loader lock being held by the current thread.
-            // On the other hand, the thread must not continue to run as it will crash
-            //  if the DLL is unloaded. The best guess is to terminate it immediately.
-            TerminateThread(handle, 1);
-            WaitForSingleObject(handle, 10); // give it some time to terminate, but don't wait indefinitely
-        }
-        else
-            WaitForSingleObject(handle, INFINITE);
-        CloseHandle(handle);
-    }
-    else version (Posix)
-    {
-        if (pthread_join(tid, null) != 0)
-            onThreadError("Unable to join thread");
-    }
-    else version (WASI)
-    {
-        onThreadError("Unable to join thread");
-    }
-    else
-        static assert(0, "unsupported os");
-}
+version (CoreDdoc)
+void joinLowLevelThread(ThreadID tid) nothrow @nogc {}
 
 static if (!isSingleThreaded)
 nothrow @nogc unittest
