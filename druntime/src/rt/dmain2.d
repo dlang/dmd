@@ -15,8 +15,9 @@ import core.atomic;
 import core.internal.parseoptions : rt_parseOption;
 import core.stdc.errno : errno;
 import core.stdc.stdio : fflush, fprintf, fwrite, stderr, stdout;
-import core.stdc.stdlib : alloca, EXIT_FAILURE, EXIT_SUCCESS, free, malloc, realloc;
+import core.stdc.stdlib : EXIT_FAILURE, EXIT_SUCCESS, free, malloc, realloc;
 import core.stdc.string : strerror;
+import rt.alloca : alloca = __alloca;
 import rt.config : rt_cmdline_enabled, rt_configOption;
 import rt.memory;
 import rt.sections;
@@ -286,15 +287,16 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
         // assert(wargc == argc); /* argc can be broken by Unicode arguments */
 
         // Allocate args[] on the stack - use wargc
+        const len = wargc * (char[]).sizeof;
         version (UseMalloc)
         {
-            char[][] args = (cast(char[]*) malloc(wargc * (char[]).sizeof))[0 .. wargc];
+            char[][] args = (cast(char[]*) malloc(len))[0 .. wargc];
             if (wargc)
                 assert(args.ptr);
             scope (exit) free(args.ptr);
         }
         else
-            char[][] args = (cast(char[]*) alloca(wargc * (char[]).sizeof))[0 .. wargc];
+            char[][] args = (cast(char[]*) alloca(len.toIntForAlloca))[0 .. wargc];
 
         // This is required because WideCharToMultiByte requires int as input.
         assert(wCommandLineLength <= cast(size_t) int.max, "Wide char command line length must not exceed int.max");
@@ -309,7 +311,7 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
                 scope (exit) free(totalArgsBuff);
             }
             else
-                char* totalArgsBuff = cast(char*) alloca(totalArgsLength);
+                char* totalArgsBuff = cast(char*) alloca(totalArgsLength.toIntForAlloca);
             size_t j = 0;
             foreach (i; 0 .. wargc)
             {
@@ -331,15 +333,16 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
     else version (Posix)
     {
         // Allocate args[] on the stack
+        const len = argc * (char[]).sizeof;
         version (UseMalloc)
         {
-            char[][] args = (cast(char[]*) malloc(argc * (char[]).sizeof))[0 .. argc];
+            char[][] args = (cast(char[]*) malloc(len))[0 .. argc];
             if (argc)
                 assert(args.ptr);
             scope (exit) free(args.ptr);
         }
         else
-            char[][] args = (cast(char[]*) alloca(argc * (char[]).sizeof))[0 .. argc];
+            char[][] args = (cast(char[]*) alloca(len.toIntForAlloca))[0 .. argc];
 
         size_t totalArgsLength = 0;
         foreach (i, ref arg; args)
@@ -487,7 +490,7 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
             //scope (exit) buff;
         }
         else
-            auto buff = cast(char[]*) alloca(length);
+            auto buff = cast(char[]*) alloca(length.toIntForAlloca);
 
         char[][] argsCopy = buff[0 .. args.length];
         auto argBuff = cast(char*) (buff + args.length);
@@ -738,4 +741,16 @@ extern (C) void _d_print_throwable(Throwable t)
         fwrite(buf.ptr, char.sizeof, buf.length, cast()stderr);
     }
     formatThrowable(t, &sink);
+}
+
+// Additional check and conversion for the rt.alloca._alloca() argument
+version (UseMalloc) {} else
+private int toIntForAlloca(size_t len, string filename = __FILE__, size_t line = __LINE__) nothrow @nogc
+{
+    import core.internal.abort;
+
+    if(len > int.max)
+        abort("Command line arguments string is too long.\n", filename, line);
+
+    return cast(int) len;
 }
