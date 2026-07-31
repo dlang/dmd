@@ -209,7 +209,7 @@ struct Runtime
      */
     static void* loadLibrary()(const scope char[] name)
     {
-        import core.stdc.stdlib : free, malloc;
+        import core.system : Mem;
         version (Windows)
         {
             import core.sys.windows.winnls : CP_UTF8, MultiByteToWideChar;
@@ -222,9 +222,9 @@ struct Runtime
             if (len == 0)
                 return null;
 
-            auto buf = cast(WCHAR*)malloc((len+1) * WCHAR.sizeof);
+            auto buf = cast(WCHAR*) Mem.allocate((len+1) * WCHAR.sizeof);
             if (buf is null) return null;
-            scope (exit) free(buf);
+            scope (exit) Mem.free(buf);
 
             len = MultiByteToWideChar(
                 CP_UTF8, 0, name.ptr, cast(int)name.length, buf, len);
@@ -240,9 +240,9 @@ struct Runtime
             /* Need a 0-terminated C string for the dll name
              */
             immutable len = name.length;
-            auto buf = cast(char*)malloc(len + 1);
+            auto buf = cast(char*) Mem.allocate(len + 1);
             if (!buf) return null;
-            scope (exit) free(buf);
+            scope (exit) Mem.free(buf);
 
             buf[0 .. len] = name[];
             buf[len] = 0;
