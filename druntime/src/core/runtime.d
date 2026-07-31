@@ -10,6 +10,8 @@
 
 module core.runtime;
 
+import core.system : Mem;
+
 version (OSX)
     version = Darwin;
 else version (iOS)
@@ -743,8 +745,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null ) // @nogc
     static T allocate(T, Args...)(auto ref Args args) @nogc
     {
         import core.lifetime : emplace;
-        import core.stdc.stdlib : malloc;
-        auto result = cast(T)malloc(__traits(classInstanceSize, T));
+        auto result = cast(T) Mem.allocate(__traits(classInstanceSize, T));
         return emplace(result, args);
     }
     version (Windows)
@@ -803,8 +804,7 @@ void defaultTraceDeallocator(Throwable.TraceInfo info) nothrow
         return;
     auto obj = cast(Object)info;
     destroy(obj);
-    import core.stdc.stdlib : free;
-    free(cast(void *)obj);
+    Mem.free(cast(void *)obj);
 }
 
 /// Default implementation for most POSIX systems
@@ -812,7 +812,6 @@ version (WASI) {}
 else version (Posix) private class DefaultTraceInfo : Throwable.TraceInfo
 {
     import core.demangle;
-    import core.stdc.stdlib : free;
     import core.stdc.string : strlen, memchr, memmove;
 
     this() @nogc
@@ -879,7 +878,7 @@ else version (Posix) private class DefaultTraceInfo : Throwable.TraceInfo
         static if (hasExecinfo)
         {
             const framelist = backtrace_symbols( callstack.ptr, numframes );
-            scope(exit) free(cast(void*) framelist);
+            scope(exit) Mem.free(cast(void*) framelist);
 
             static if (enableDwarf)
             {
