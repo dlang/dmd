@@ -15,7 +15,7 @@ import core.atomic;
 import core.internal.parseoptions : rt_parseOption;
 import core.stdc.errno : errno;
 import core.stdc.stdio : fflush, fprintf, fwrite, stderr, stdout;
-import core.stdc.stdlib : EXIT_FAILURE, EXIT_SUCCESS, free, malloc, realloc;
+import core.stdc.stdlib : EXIT_FAILURE, EXIT_SUCCESS;
 import core.stdc.string : strerror;
 import rt.config : rt_cmdline_enabled, rt_configOption;
 import rt.memory;
@@ -289,7 +289,7 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
         // Allocate args[] on the stack - use wargc
         version (UseMalloc)
         {
-            char[][] args = (cast(char[]*) malloc(wargc * (char[]).sizeof))[0 .. wargc];
+            char[][] args = (cast(char[]*) Mem.allocate(wargc * (char[]).sizeof))[0 .. wargc];
             if (wargc)
                 assert(args.ptr);
             scope (exit) free(args.ptr);
@@ -304,7 +304,7 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
         {
             version (UseMalloc)
             {
-                char* totalArgsBuff = cast(char*) malloc(totalArgsLength);
+                char* totalArgsBuff = cast(char*) Mem.allocate(totalArgsLength);
                 if (totalArgsLength)
                     assert(totalArgsBuff);
                 scope (exit) free(totalArgsBuff);
@@ -334,7 +334,7 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
         // Allocate args[] on the stack
         version (UseMalloc)
         {
-            char[][] args = (cast(char[]*) malloc(argc * (char[]).sizeof))[0 .. argc];
+            char[][] args = (cast(char[]*) Mem.allocate(argc * (char[]).sizeof))[0 .. argc];
             if (argc)
                 assert(args.ptr);
             scope (exit) free(args.ptr);
@@ -482,7 +482,7 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
         auto length = args.length * (char[]).sizeof + totalArgsLength;
         version (UseMalloc)
         {
-            auto buff = cast(char[]*) malloc(length);
+            auto buff = cast(char[]*) Mem.allocate(length);
             if (length)
                 assert(buff);
             //scope (exit) buff;
@@ -661,7 +661,7 @@ extern (C) void _d_print_throwable(Throwable t)
                         CP_UTF8, 0, s.ptr, cast(int)s.length, null, 0);
                 if (!swlen) return;
 
-                auto newPtr = cast(WCHAR*)realloc(ptr,
+                auto newPtr = cast(WCHAR*) Mem.reallocate(ptr,
                         (this.len + swlen + 1) * WCHAR.sizeof);
                 if (!newPtr) return;
                 ptr = newPtr;
@@ -672,7 +672,7 @@ extern (C) void _d_print_throwable(Throwable t)
 
             typeof(ptr) get() { if (ptr) ptr[len] = 0; return ptr; }
 
-            void free() { .free(ptr); }
+            void free() { Mem.free(ptr); }
         }
 
         HANDLE windowsHandle(int fd)
@@ -721,12 +721,12 @@ extern (C) void _d_print_throwable(Throwable t)
                 uint codepage = GetConsoleOutputCP();
                 const slen = WideCharToMultiByte(codepage, 0,
                         buf.ptr, cast(int)buf.len, null, 0, null, null);
-                if (auto sptr = cast(char*)malloc(slen * char.sizeof))
+                if (auto sptr = cast(char*) Mem.allocate(slen * char.sizeof))
                 {
                     WideCharToMultiByte(codepage, 0,
                         buf.ptr, cast(int)buf.len, sptr, slen, null, null);
                     WriteFile(hStdErr, sptr, slen, null, null);
-                    free(sptr);
+                    Mem.free(sptr);
                 }
                 buf.free();
             }
