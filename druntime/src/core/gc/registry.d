@@ -77,7 +77,7 @@ void registerGCFactory(string name, GCFactory factory,
  */
 GC createGCInstance(string name)
 {
-    import core.stdc.stdlib : free;
+    import core.system : Mem;
 
     foreach (entry; entries)
     {
@@ -85,7 +85,7 @@ GC createGCInstance(string name)
             continue;
         auto instance = entry.factory();
         // only one GC at a time for now, so free the registry to not leak
-        free(entries.ptr);
+        Mem.free(entries.ptr);
         entries = null;
         return instance;
     }
