@@ -520,6 +520,7 @@ extern (C++) abstract class Type : ASTNode
             sizeTy[Tmixin] = __traits(classInstanceSize, TypeMixin);
             sizeTy[Tnoreturn] = __traits(classInstanceSize, TypeNoreturn);
             sizeTy[Ttag] = __traits(classInstanceSize, TypeTag);
+            sizeTy[Tsumtype] = __traits(classInstanceSize, TypeSumType);
             return sizeTy;
         }();
 
@@ -801,6 +802,7 @@ extern (C++) abstract class Type : ASTNode
         inout(TypeTraits)     isTypeTraits()     { return ty == Ttraits    ? cast(typeof(return))this : null; }
         inout(TypeNoreturn)   isTypeNoreturn()   { return ty == Tnoreturn  ? cast(typeof(return))this : null; }
         inout(TypeTag)        isTypeTag()        { return ty == Ttag       ? cast(typeof(return))this : null; }
+        inout(TypeSumType)    isTypeSumType()    { return ty == Tsumtype   ? cast(typeof(return))this : null; }
 
         extern (D) bool isStaticOrDynamicArray() const { return ty == Tarray || ty == Tsarray; }
     }
@@ -2177,6 +2179,47 @@ extern (C++) final class TypeTag : Type
 }
 
 /***********************************************************
+ */
+
+struct SumTypeVariantInfo
+{
+    Type type;
+    Identifier name;
+    Expressions* udas;
+    const(char)* comment;
+}
+
+extern (C++) final class TypeSumType : Type
+{
+    SumTypeVariantInfos* variantInfos;
+    StructDeclaration loweredStruct; /// lowered struct representation
+    size_t defaultVariantIdx; /// index of the default variant for .init
+
+    extern (D) this(SumTypeVariantInfos* variantInfos) @safe
+    {
+        super(Tsumtype);
+        this.variantInfos = variantInfos;
+    }
+
+
+    override const(char)* kind() const
+    {
+        return "sumtype";
+    }
+
+    override TypeSumType syntaxCopy()
+    {
+        // No semantic analysis done, no need to copy
+        return this;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
  * Represents a function's formal parameters + variadics info.
  * Length, indexing and iteration are based on a depth-first tuple expansion.
  * https://dlang.org/spec/function.html#ParameterList
@@ -2869,6 +2912,7 @@ mixin template VisitType(Result)
             case TY.Tmixin:     mixin(visitTYCase("Mixin"));
             case TY.Tnoreturn:  mixin(visitTYCase("Noreturn"));
             case TY.Ttag:       mixin(visitTYCase("Tag"));
+            case TY.Tsumtype:   mixin(visitTYCase("SumType"));
             case TY.Tnone:      assert(0);
         }
     }
