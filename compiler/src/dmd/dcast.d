@@ -445,7 +445,31 @@ MATCH implicitConvTo(Expression e, Type t)
                 printf("[%d] earg: %s, targm: %s\n", cast(int)i, earg.toChars(), targ.addMod(mod).toChars());
             }
             if (implicitMod(earg, targ, mod) == MATCH.nomatch)
-                return false;
+            {
+                bool fallback = false;
+                Type origType;
+                if (auto ve = earg.isVarExp())
+                    origType = ve.var.type;
+                else if (auto se = earg.isSliceExp())
+                {
+                    if (Type t1 = se.e1.type)
+                    {
+                        if (t1.ty == Tarray || t1.ty == Tsarray)
+                            origType = t1.nextOf().arrayOf();
+                    }
+                }
+                else if (auto ce = earg.isCastExp())
+                    origType = ce.to;
+
+                if (origType)
+                {
+                    if (implicitMod(earg, origType.toBasetype(), mod) != MATCH.nomatch)
+                        fallback = true;
+                }
+
+                if (!fallback)
+                    return false;
+            }
         }
         return true;
     }
