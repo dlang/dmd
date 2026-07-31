@@ -11,7 +11,7 @@ import core.internal.gc.os;
 
 import core.bitop;
 import core.exception : onOutOfMemoryError;
-import core.stdc.stdlib : calloc, free;
+import core.system : Mem;
 import core.stdc.string : memcpy, memset;
 
 // use version gcbitsSingleBitOperation to disable optimizations that use
@@ -38,7 +38,7 @@ struct GCBits
         if (data)
         {
             if (!AllocSupportsShared || !share)
-                free(data);
+                Mem.free(data);
             else static if (AllocSupportsShared)
                 os_mem_unmap_shared(data, nwords * data[0].sizeof);
             else
@@ -51,7 +51,7 @@ struct GCBits
     {
         this.nbits = nbits;
         if (!AllocSupportsShared || !share)
-            data = cast(typeof(data[0])*)calloc(nwords, data[0].sizeof);
+            data = cast(typeof(data[0])*) Mem.allocateBlank(nwords * data[0].sizeof);
         else static if (AllocSupportsShared)
             data = cast(typeof(data[0])*)os_mem_map_shared(nwords * data[0].sizeof); // Allocate as MAP_SHARED
         else
