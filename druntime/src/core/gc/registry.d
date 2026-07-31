@@ -60,9 +60,9 @@ alias GCThreadInitFunction = void function(ThreadBase base) nothrow @nogc;
 void registerGCFactory(string name, GCFactory factory,
         GCThreadInitFunction threadInit = null) nothrow @nogc
 {
-    import core.stdc.stdlib : realloc;
+    import core.system : Mem;
 
-    auto ptr = cast(Entry*)realloc(entries.ptr, (entries.length + 1) * Entry.sizeof);
+    auto ptr = cast(Entry*) Mem.reallocate(entries.ptr, (entries.length + 1) * Entry.sizeof);
     entries = ptr[0 .. entries.length + 1];
     entries[$ - 1] = Entry(name, factory, threadInit);
 }
