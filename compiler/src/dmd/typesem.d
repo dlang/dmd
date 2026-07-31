@@ -19,12 +19,14 @@ import dmd.access;
 import dmd.aggregate;
 import dmd.arrayop;
 import dmd.arraytypes;
+import dmd.attrib;
 import dmd.astcodegen;
 import dmd.astenums;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
+import dmd.dimport;
 import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
@@ -61,9 +63,12 @@ import dmd.root.rmem;
 import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.root.string;
+import dmd.clone : mergeFuncAttrs;
 import dmd.safe;
+import dmd.semantic2;
 import dmd.semantic3;
 import dmd.sideeffect;
+import dmd.statement;
 import dmd.target;
 import dmd.tokens;
 
@@ -4760,6 +4765,363 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         return returnType(mtype);
     }
 
+    Type visitSumType(TypeSumType mtype)
+    {
+        // Already resolved
+        if (mtype.deco)
+            return mtype.merge();
+
+        // Resolve each variant type into a LOCAL list. A TypeSumType that lives
+        // in a template body (e.g. `__sumtype S(Types...) = Types | bool;`) is
+        // shared between every instantiation of that template, so writing the
+        // resolved types back into `mtype.variantInfos` would leak state from
+        // one instantiation to the next. Per-instantiation state is kept on a
+        // fresh TypeSumType created below.
+        auto variants = new SumTypeVariantInfos();
+        variants.reserve(mtype.variantInfos.length);
+        foreach (vi; (*mtype.variantInfos))
+        {
+            SumTypeVariantInfo info = vi;
+            info.type = vi.type.typeSemantic(loc, sc);
+            if (info.type.ty == Terror)
+                return error();
+            variants.push(info);
+        }
+
+        // Auto-expand alias sequences. When a sumtype is built from a template
+        // alias sequence, e.g. `__sumtype S(Types...) = Types | bool;` with
+        // S!(int, string), the `Types` parameter substitutes to the tuple type
+        // `(int, string)`. That tuple must be expanded into its component types
+        // so the resulting sumtype has the variants `int | string | bool`.
+        {
+            bool needExpand = false;
+            foreach (vi; (*variants))
+            {
+                if (vi.type.toBasetype().isTypeTuple() !is null)
+                {
+                    needExpand = true;
+                    break;
+                }
+            }
+            if (needExpand)
+            {
+                auto flat = new SumTypeVariantInfos();
+                flat.reserve(variants.length + 4);
+                foreach (vi; (*variants))
+                {
+                    auto tt = vi.type.toBasetype().isTypeTuple();
+                    if (tt)
+                    {
+                        // Preserve UDAs and ddoc comments on the expanded elements.
+                        // An empty alias sequence (e.g. S!()) contributes no variants.
+                        if (tt.arguments)
+                        {
+                            foreach (arg; (*tt.arguments))
+                            {
+                                SumTypeVariantInfo info;
+                                info.type = arg.type;
+                                info.name = null;
+                                info.udas = vi.udas;
+                                info.comment = vi.comment;
+                                flat.push(info);
+                            }
+                        }
+                    }
+                    else
+                        flat.push(vi);
+                }
+                variants.length = 0;
+                variants.pushSlice((*flat)[]);
+            }
+        }
+
+        Type intVariant;
+
+        // Check that variants contain at most one integer type.
+        // A bool may additionally be present, and character types (char,
+        // wchar, dchar) do not count towards this limit. This keeps
+        // constructor type inference unambiguous: without it, a value like
+        // `1` (or `true`, which is implicitly convertible to any integer)
+        // could match multiple integer variants.
+        foreach (vi; (*variants))
+        {
+            if (auto tbasic = vi.type.toBasetype().isTypeBasic())
+            {
+                switch (tbasic.ty)
+                {
+                    case Tint8, Tuns8, Tint16, Tuns16, Tint32, Tuns32,
+                    Tint64, Tuns64, Tint128, Tuns128:
+                        if (intVariant !is null)
+                        {
+                            .error(loc, "sumtype cannot have more than one integer variant — found `%s` and `%s`",
+                            intVariant.toErrMsg(), vi.type.toErrMsg());
+                            return error();
+                        }
+
+                        intVariant = vi.type;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        // Check for duplicate types (unnamed) or duplicate names (named)
+        foreach (i; 0 .. (*variants).length - 1)
+        {
+            auto n1 = (*variants)[i].name;
+
+            // Disallow variant named "tag" — it conflicts with the built-in tag field
+            if (n1 !is null && n1 is Id.tag)
+            {
+                .error(loc, "sumtype variant cannot be named `tag` — it conflicts with the built-in `.tag` field");
+                return error();
+            }
+
+            foreach (j; i + 1 .. (*variants).length)
+            {
+                auto n2 = (*variants)[j].name;
+
+                if (n1 !is null || n2 !is null)
+                {
+                    if (n1 is n2)
+                    {
+                        .error(loc, "duplicate variant name `%s` in `__sumtype`", n1.toChars());
+                        return error();
+                    }
+                }
+                else if ((*variants)[i].type.equals((*variants)[j].type))
+                {
+                    .error(loc, "duplicate type `%s` in `__sumtype` — use named variants to disambiguate", (*variants)[i].type.toErrMsg());
+                    return error();
+                }
+            }
+        }
+
+        // Validate element types for copy/move/postblit constraints
+        foreach (i, vi; (*variants))
+        {
+            auto ts = vi.type.baseElemOf().isTypeStruct();
+            if (!ts)
+                continue;
+
+            auto sdv = ts.sym;
+
+            // Disabled copy constructor
+            if (sdv.hasCopyCtor)
+            {
+                Dsymbol ctorSym = sdv.search(sdv.loc, Id.ctor);
+                if (ctorSym)
+                {
+                    bool foundDisabled = false;
+                    overloadApply(ctorSym, (Dsymbol s)
+                    {
+                        auto ctorDecl = s.isCtorDeclaration();
+                        if (ctorDecl && ctorDecl.isCpCtor && (ctorDecl.storage_class & STC.disable))
+                        {
+                            foundDisabled = true;
+                            return 1;
+                        }
+                        return 0;
+                    });
+
+                    if (foundDisabled)
+                    {
+                        .error(loc, "cannot create sumtype with element type `%s` that has a disabled copy constructor",
+                        vi.type.toErrMsg());
+                        return new TypeError();
+                    }
+                }
+            }
+
+            // Disabled postblit
+            if (sdv.postblit && (sdv.postblit.storage_class & STC.disable))
+            {
+                .error(loc, "cannot create sumtype with element type `%s` that has a disabled postblit",
+                vi.type.toErrMsg());
+                return new TypeError();
+            }
+
+            // Move ctor without copy ctor or postblit
+            if (sdv.hasMoveCtor && !sdv.hasCopyCtor && !sdv.postblit)
+            {
+                .error(loc, "cannot create sumtype with element type `%s` that has a move constructor but no copy constructor",
+                vi.type.toErrMsg());
+                return new TypeError();
+            }
+        }
+
+        // 1-element sumtype degenerates to alias
+        if ((*variants).length == 1)
+        {
+            return (*variants)[0].type;
+        }
+
+        // Lower to a struct with tag + union of variant fields.
+        // If all variants fit in ≤2 bytes, emit align(1) so tag + value fit in a register.
+        auto sd = new StructDeclaration(loc, Identifier.generateId("__SumType"), false);
+
+        // Flat list: [tag, [field0, field1, ...]] — used by copy ctor/dtor generators
+        auto members = new Dsymbols();
+        auto variantFields = new Dsymbols();
+
+        // tag, [fields], copy constructor, destructor
+        members.reserve(4);
+        // [fields]
+        variantFields.reserve((*variants).length);
+
+        // Determine the default variant.
+        // If an unnamed variant's type has identifier "None", that's the default.
+        // Error if more than one unnamed None variant exists.
+        // If no unnamed None variant, default is the first variant (index 0).
+        size_t defaultVariantIdx = 0;
+        {
+            int noneCount = 0;
+            foreach (i, vi; (*variants))
+            {
+                bool isNamed = vi.name !is null;
+                if (isNamed)
+                    continue;
+
+                // Check if this variant type's identifier is "None"
+                bool isNone = false;
+                auto ts = vi.type.baseElemOf().isTypeStruct();
+                if (ts && ts.sym && ts.sym.ident && ts.sym.ident.toString() == "None")
+                    isNone = true;
+                if (!isNone)
+                {
+                    auto te = vi.type.baseElemOf().isTypeEnum();
+                    if (te && te.sym && te.sym.ident && te.sym.ident.toString() == "None")
+                        isNone = true;
+                }
+
+                if (isNone)
+                {
+                    noneCount++;
+                    if (noneCount > 1)
+                    {
+                        .error(loc, "more than one unnamed `None` variant in `__sumtype` — only one is allowed as the default");
+                        return error();
+                    }
+                    defaultVariantIdx = i;
+                }
+            }
+        }
+
+        // Store the struct in the sumtype for later reference by MatchExp.
+        // A fresh TypeSumType is created for each semantic pass so that a
+        // template-declared sumtype has per-instantiation state instead of
+        // sharing the (unresolved) template body's TypeSumType.
+        auto resolved = new TypeSumType(variants);
+        resolved.loweredStruct = sd;
+        resolved.defaultVariantIdx = defaultVariantIdx;
+        // Store sumtype reference on the struct so it can be found later
+        sd.sumtype = resolved;
+
+        // Determine tag type: smallest power-of-2 unsigned type that fits all variant indices
+        Type tagType;
+        if ((*variants).length <= ubyte.max + 1)
+            tagType = Type.tuns8;
+        else if ((*variants).length <= ushort.max + 1)
+            tagType = Type.tuns16;
+        else if ((*variants).length <= uint.max + 1UL)
+            tagType = Type.tuns32;
+        else
+            tagType = Type.tuns64;
+
+        // Add tag field - initialized to the default variant index
+        auto tagVar = new VarDeclaration(loc, tagType, Id.tag, new ExpInitializer(loc, new IntegerExp(loc, cast(int)defaultVariantIdx, tagType)), STC.field);
+        members.push(tagVar);
+
+        // Add variant fields
+        foreach (i, vi; (*variants))
+        {
+            Identifier fieldId;
+
+            if (vi.name is null)
+            {
+                char[8] buf;
+                buf[0] = '_';
+                buf[1] = '_';
+                buf[2] = 'v';
+                buf[3] = cast(char)(cast(int)'0' + i);
+                buf[4] = 0;
+                fieldId = Identifier.idPool(buf.ptr[0 .. 4]);
+            }
+            else
+                fieldId = vi.name;
+
+            auto fieldVar = new VarDeclaration(loc, vi.type, fieldId, null);
+            variantFields.push(fieldVar);
+        }
+
+        // Wrap variant fields with their UDAs for the AnonDeclaration.
+        // This ensures dsymbolSemantic picks up the UDAs via sc.userAttribDecl.
+        auto anonMembers = new Dsymbols();
+        anonMembers.reserve(variantFields.length);
+        foreach (i, sym; (*variantFields)[])
+        {
+            if ((*variants)[i].udas !is null)
+            {
+                auto wrapped = new Dsymbols();
+                wrapped.push(sym);
+                anonMembers.push(new UserAttributeDeclaration((*variants)[i].udas, wrapped));
+            }
+            else
+                anonMembers.push(sym);
+        }
+
+        members.push(new AnonDeclaration(loc, true, anonMembers));
+        sd.members = members;
+
+        // Set parent so dsymbolSemantic doesn't assert
+        sd.parent = sc.parent ? sc.parent : sc.scopesym;
+
+        // Generate sumtype copy constructor BEFORE dsymbolSemantic.
+        // This must be done before dsymbolSemantic so the struct semantic
+        // processes it naturally (no separate semantic pass needed).
+        // The standard struct machinery skips overlapped fields, so we generate
+        // the copy ctor manually for element types that need it.
+        generateSumtypeCopyCtor(sd, sc, resolved, variantFields);
+
+        // Generate sumtype destructor AFTER dsymbolSemantic.
+        // buildDtors skips all overlapped fields, so we generate it manually.
+        generateSumtypeDtor(sd, sc, resolved, variantFields);
+
+        // Generate sumtype opCmp/toHash BEFORE dsymbolSemantic.
+        // The default structural comparison/hashing would not handle the union of
+        // variant fields, so these are generated manually. Generation is skipped
+        // when a variant is an aggregate with a @disable`d respective function.
+        generateSumtypeToHash(sd, sc, resolved, variantFields);
+        generateSumtypeOpCmp(sd, sc, resolved, variantFields);
+
+        // Run semantic on the struct to populate fields and process all members
+        dsymbolSemantic(sd, sc);
+
+        // Add the lowered struct to the module so the codegen
+        //  processes its members (including generated copy constructors)
+        // Also ensures that it goes into the right root module.
+        if (sc.tinst)
+        {
+            sd.parent = sc.tinst;
+            sc.tinst.members.push(sd);
+            sd.addMember(sc, sc.tinst);
+        }
+        else if (sc._module)
+        {
+            sd.parent = sc._module;
+            sc._module.members.push(sd);
+            sd.addMember(sc, sc._module);
+        }
+
+        Type ret = visitStruct(sd.type.isTypeStruct);
+
+        // Make sure to run semantic analysis on our loweered struct declaration
+        // It can be missed depending on state of compiler
+        sd.semantic2(sc);
+        return ret;
+    }
+
     switch (type.ty)
     {
         default:         return visitType(type);
@@ -4786,7 +5148,405 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         case Tslice:     return visitSlice(type.isTypeSlice());
         case Tmixin:     return visitMixin(type.isTypeMixin());
         case Ttag:       return visitTag(type.isTypeTag());
+        case Tsumtype:   return visitSumType(type.isTypeSumType());
     }
+}
+
+/**
+ * Generate sumtype-specific copy constructor for element types that need it.
+ *
+ * The standard struct machinery skips overlapped fields, so sumtypes don't get
+ * automatic copy constructors for their variant fields. This function generates
+ * one before dsymbolSemantic runs, so the struct semantic processes it naturally.
+ *
+ * - Detects disabled copy constructors/postblits on variants and errors
+ * - Merges attributes (pure/nothrow/@safe/@nogc) from element copy ctors/postblits
+ * - For struct elements with copy ctors/postblits: assigns individually (triggers them)
+ * - For non-struct elements: blits via the largest sized element
+ * - No move constructor is generated for sumtypes
+ *
+ * Params:
+ *  sd = the lowered sumtype struct declaration
+ *  sc = the current scope
+ *  mtype = the original sumtype type
+ */
+private void generateSumtypeCopyCtor(StructDeclaration sd, Scope* sc, TypeSumType mtype, Dsymbols* members)
+{
+    if (global.errors)
+        return;
+
+    Loc loc = sd.loc;
+
+    // Check variants for copy ctor/postblit needs and attribute merging
+    bool needsCopyCtor = false;
+    STC mergedAttrs = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+    size_t largestNonStructIdx = 0; // index into (*mtype.variantInfos)
+    uint largestNonStructSize = 0;
+
+    foreach (i, vi; (*mtype.variantInfos))
+    {
+        auto ts = vi.type.baseElemOf().isTypeStruct();
+        if (!ts)
+        {
+            // Non-struct: track largest for blitting
+            auto sz = vi.type.size(loc);
+            if (sz > largestNonStructSize)
+            {
+                largestNonStructSize = cast(uint) sz;
+                largestNonStructIdx = cast(uint)i;
+            }
+            continue;
+        }
+
+        auto sdv = ts.sym;
+
+        if (sdv.hasCopyCtor || sdv.postblit !is null)
+        {
+            needsCopyCtor = true;
+
+            // Merge attributes from this element's copy ctor or postblit (LCD)
+            if (sdv.hasCopyCtor)
+            {
+                Dsymbol ctorSym = sdv.search(sdv.loc, Id.ctor);
+                if (ctorSym)
+                {
+                    overloadApply(ctorSym, (Dsymbol s) {
+                        auto ctorDecl = s.isCtorDeclaration();
+                        if (ctorDecl && ctorDecl.isCpCtor)
+                        {
+                            mergedAttrs = mergeFuncAttrs(mergedAttrs, ctorDecl);
+                            return 1; // stop
+                        }
+                        return 0;
+                    });
+                }
+            }
+            if (sdv.postblit)
+            {
+                mergedAttrs = mergeFuncAttrs(mergedAttrs, sdv.postblit);
+                mergedAttrs = mergeFuncAttrs(mergedAttrs, sdv.dtor);
+            }
+        }
+    }
+
+    if (!needsCopyCtor)
+        return;
+
+    // Generate copy constructor: this(ref return scope S rhs)
+    auto structType = sd.type;
+    auto funcStc = STC.inference;
+    auto fparams = new Parameters(new Parameter(Loc.initial, STC.ref_, structType, Id.p, null, null, null));
+    ParameterList pList = ParameterList(fparams);
+    auto tf = new TypeFunction(pList, structType, LINK.d, STC.ref_);
+    auto ccd = new CtorDeclaration(sd.loc, Loc.initial, funcStc, tf);
+    ccd.isGenerated = true;
+
+    // Build the copy constructor body
+    Expression e = null;
+
+    // Copy the tag first: this.tag = rhs.tag
+    auto tagDecl = (*sd.members)[0].isDeclaration();
+    e = new AssignExp(loc,
+        new DotVarExp(loc, new ThisExp(loc), tagDecl),
+        new DotVarExp(loc, new IdentifierExp(loc, Id.p), tagDecl));
+
+    // For variant fields, assign from rhs.
+    // Struct elements with copy ctors/postblits: assignment triggers them.
+    // Non-struct elements: covered by the largest element blit.
+    foreach (i; 0 .. (*members).length)
+    {
+        auto field = (*members)[i].isVarDeclaration();
+        if (field is null)
+            continue;
+
+        auto variantType = (*mtype.variantInfos)[i].type;
+        auto ts = variantType.baseElemOf().isTypeStruct();
+
+        if (ts && (ts.sym.hasCopyCtor || ts.sym.postblit !is null))
+        {
+            DotVarExp dstField = new DotVarExp(loc, new ThisExp(loc), field),
+            srcField = new DotVarExp(loc, new IdentifierExp(loc, Id.p), field);
+            dstField.compilerOverlappedAccess = true;
+            srcField.compilerOverlappedAccess = true;
+
+            AssignExp copy = new AssignExp(loc, dstField, srcField);
+            e = Expression.combine(e, copy);
+        }
+        else if (!ts)
+        {
+            if (i - 1 == largestNonStructIdx)
+            {
+                DotVarExp dstField = new DotVarExp(loc, new ThisExp(loc), field),
+                    srcField = new DotVarExp(loc, new IdentifierExp(loc, Id.p), field);
+                dstField.compilerOverlappedAccess = true;
+                srcField.compilerOverlappedAccess = true;
+
+                AssignExp copy = new AssignExp(loc, dstField, srcField);
+                e = Expression.combine(e, copy);
+            }
+        }
+    }
+
+    ccd.fbody = new CompoundStatement(loc, new ExpStatement(loc, e));
+    sd.members.push(ccd);
+}
+
+/**
+ * Generate sumtype destructor for variant fields that have destructors.
+ * buildDtors skips all overlapped fields, so we generate it manually.
+ * Runs after dsymbolSemantic so sd.members is fully populated.
+ */
+private void generateSumtypeDtor(StructDeclaration sd, Scope* sc, TypeSumType mtype, Dsymbols* members)
+{
+    if (global.errors)
+        return;
+
+    Loc loc = sd.loc;
+
+    // Collect variants that need destruction, in reverse order for if-else chain
+    Statement chain = null;
+
+    foreach_reverse (i; 0 .. (*mtype.variantInfos).length)
+    {
+        auto variantType = (*mtype.variantInfos)[i].type;
+        auto ts = variantType.baseElemOf().isTypeStruct();
+        if (!ts)
+            continue;
+        auto sdv = ts.sym;
+        if (!sdv.dtor)
+            continue;
+        if (sdv.dtor.storage_class & STC.disable)
+            continue;
+
+        functionSemantic(sdv.dtor);
+
+        auto tagVar = (*sd.members)[0].isVarDeclaration();
+        auto field = (*members)[i].isVarDeclaration();
+
+        // Build condition: this.tag == i
+        auto cond = new EqualExp(EXP.equal, loc,
+            new DotVarExp(loc, new ThisExp(loc), tagVar),
+            new IntegerExp(loc, i, tagVar.type));
+
+        // Build destructor call: (cast()this.field).__xdtor()
+        DotVarExp dstField = new DotVarExp(loc, new ThisExp(loc), field);
+        dstField.compilerOverlappedAccess = true;
+
+        Expression dtorExp = dstField;
+        dtorExp = new CastExp(loc, dtorExp, MODFlags.none);
+        dtorExp = new DotVarExp(loc, dtorExp, sdv.dtor, false);
+        dtorExp = new CallExp(loc, dtorExp);
+
+        auto ifBody = new ExpStatement(loc, dtorExp);
+
+        // Build: if (tag == i) { dtorCall; } else prev
+        chain = new IfStatement(loc, null, cond, ifBody, chain, loc);
+    }
+
+    if (chain is null)
+        return;
+
+    STC stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+    foreach (vi; (*mtype.variantInfos))
+    {
+        auto ts = vi.type.baseElemOf().isTypeStruct();
+        if (!ts)
+            continue;
+        auto sdv = ts.sym;
+        if (!sdv.dtor)
+            continue;
+        stc = mergeFuncAttrs(stc, sdv.dtor);
+        if (stc & STC.disable)
+            return;
+    }
+
+    auto dd = new DtorDeclaration(sd.loc, Loc.initial, stc, Id.__fieldDtor);
+    dd.isGenerated = true;
+    dd.storage_class |= STC.inference;
+    dd.fbody = new CompoundStatement(loc, chain);
+    sd.members.push(dd);
+
+    sd.fieldDtor = dd;
+    sd.aggrDtor = dd;
+    sd.dtor = dd;
+    sd.tidtor = dd;
+
+    auto _alias = new AliasDeclaration(Loc.initial, Id.__xdtor, dd);
+    sd.members.push(_alias);
+}
+
+/**
+ * Generate sumtype `toHash` member.
+ *
+ * The regular struct machinery would hash the raw bytes of the union of variant
+ * fields (which is not deterministic), so a custom toHash is generated that
+ * hashes the tag plus whichever variant is currently active via `hashOf`.
+ *
+ * If any variant is an aggregate whose `toHash` is `@disable`d, then hashOf on
+ * that variant would not compile, so no toHash is generated at all.
+ */
+private void generateSumtypeToHash(StructDeclaration sd, Scope* sc, TypeSumType mtype, Dsymbols* members)
+{
+    if (global.errors)
+        return;
+
+    Loc loc = sd.loc;
+
+    // Skip if any aggregate (struct/union/class) variant has an @disable`d toHash.
+    foreach (vi; (*mtype.variantInfos))
+    {
+        if (auto ad = isAggregate(vi.type))
+        {
+            Dsymbol s = ad.search(ad.loc, Id.tohash);
+            if (FuncDeclaration fd = s ? s.isFuncDeclaration() : null)
+            {
+                if (fd.storage_class & STC.disable)
+                    return;
+            }
+        }
+    }
+
+    auto tagVar = (*sd.members)[0].isVarDeclaration();
+
+    // import core.internal.hash : hashOf;
+    auto hashOfId = Identifier.idPool("hashOf");
+    auto imp = new Import(loc,
+        [Identifier.idPool("core"), Identifier.idPool("internal")],
+        Identifier.idPool("hash"), null, 0);
+    imp.names.push(hashOfId);
+    imp.aliases.push(null);
+    auto imports = new Dsymbols(1);
+    (*imports)[0] = imp;
+    auto importStmt = new ImportStatement(loc, imports);
+
+    Expression hashOfCall(Expression arg)
+    {
+        auto a = new Expressions(1);
+        (*a)[0] = arg;
+        return new CallExp(loc, new IdentifierExp(loc, hashOfId), a);
+    }
+    Expression seedHash(Expression val, Expression seed)
+    {
+        auto a = new Expressions(2);
+        (*a)[0] = val;
+        (*a)[1] = seed;
+        return new CallExp(loc, new IdentifierExp(loc, hashOfId), a);
+    }
+
+    DotVarExp thisTag = new DotVarExp(loc, new ThisExp(loc), tagVar);
+
+    // Unreachable fallback: return hashOf(hashOf(this.tag));
+    Statement chain = new ReturnStatement(loc, hashOfCall(hashOfCall(thisTag)));
+
+    foreach_reverse (i, vi; (*mtype.variantInfos))
+    {
+        auto field = (*members)[i].isVarDeclaration();
+
+        DotVarExp f = new DotVarExp(loc, new ThisExp(loc), field);
+        f.compilerOverlappedAccess = true;
+
+        auto cond = new EqualExp(EXP.equal, loc,
+            new DotVarExp(loc, new ThisExp(loc), tagVar),
+            new IntegerExp(loc, cast(int)i, tagVar.type));
+
+        // return hashOf(hashOf(this.field), hashOf(this.tag));
+        auto ret = new ReturnStatement(loc, seedHash(hashOfCall(f), hashOfCall(thisTag)));
+
+        chain = new IfStatement(loc, null, cond, ret, chain, loc);
+    }
+
+    auto body = new CompoundStatement(loc, importStmt, chain);
+
+    auto tf = new TypeFunction(ParameterList(), Type.thash_t, LINK.d);
+    tf.mod = MODFlags.const_;
+    auto fop = new FuncDeclaration(loc, Loc.initial, Id.tohash, STC.const_ | STC.inference, tf);
+    fop.isGenerated = true;
+    fop.parent = sd;
+    fop.fbody = body;
+    sd.members.push(fop);
+}
+
+/**
+ * Generate sumtype `opCmp` member.
+ *
+ * Variants are ordered first by tag, then by the active variant's value. The
+ * generated method is only produced when every variant supports ordering.
+ * Generation is skipped if a variant is an aggregate with an @disable`d opCmp,
+ * or otherwise lacks a usable `opCmp`. Note that `bool` variants are orderable
+ * (`false < true`), so they do not prevent generation.
+ */
+private void generateSumtypeOpCmp(StructDeclaration sd, Scope* sc, TypeSumType mtype, Dsymbols* members)
+{
+    if (global.errors)
+        return;
+
+    Loc loc = sd.loc;
+
+    // Only generate when every variant supports ordering.
+    foreach (vi; (*mtype.variantInfos))
+    {
+        if (auto ad = isAggregate(vi.type))
+        {
+            Dsymbol s = ad.search(ad.loc, Id.opCmp);
+            FuncDeclaration fd = s ? s.isFuncDeclaration() : null;
+            if (!fd || (fd.storage_class & STC.disable))
+                return;
+        }
+    }
+
+    auto tagVar = (*sd.members)[0].isVarDeclaration();
+    DotVarExp thisTag = new DotVarExp(loc, new ThisExp(loc), tagVar);
+    DotVarExp pTag = new DotVarExp(loc, new IdentifierExp(loc, Id.p), tagVar);
+
+    // if (this.tag != p.tag) return this.tag < p.tag ? -1 : 1;
+    auto notEqCond = new EqualExp(EXP.notEqual, loc, thisTag, pTag);
+    auto cmpCond = new CmpExp(EXP.lessThan, loc, thisTag, pTag);
+    Expression ternary = new CondExp(loc, cmpCond,
+        new IntegerExp(loc, -1, Type.tint32),
+        new IntegerExp(loc, 1, Type.tint32));
+    auto retTagDiff = new ReturnStatement(loc, ternary);
+    auto ifTagDiff = new IfStatement(loc, null, notEqCond, retTagDiff, null, loc);
+
+    // per-variant comparison chain; trailing return 0 is unreachable
+    Statement chain = new ReturnStatement(loc, new IntegerExp(loc, 0, Type.tint32));
+    foreach_reverse (i, vi; (*mtype.variantInfos))
+    {
+        auto field = (*members)[i].isVarDeclaration();
+
+        DotVarExp thisF = new DotVarExp(loc, new ThisExp(loc), field);
+        thisF.compilerOverlappedAccess = true;
+        DotVarExp pF = new DotVarExp(loc, new IdentifierExp(loc, Id.p), field);
+        pF.compilerOverlappedAccess = true;
+
+        auto cond = new EqualExp(EXP.equal, loc,
+            new DotVarExp(loc, new ThisExp(loc), tagVar),
+            new IntegerExp(loc, cast(int)i, tagVar.type));
+
+        auto retLt = new ReturnStatement(loc, new IntegerExp(loc, -1, Type.tint32));
+        auto ifLt = new IfStatement(loc, null,
+            new CmpExp(EXP.lessThan, loc, thisF, pF), retLt, null, loc);
+
+        auto retGt = new ReturnStatement(loc, new IntegerExp(loc, 1, Type.tint32));
+        auto ifGt = new IfStatement(loc, null,
+            new CmpExp(EXP.lessThan, loc, pF, thisF), retGt, null, loc);
+
+        auto ret0 = new ReturnStatement(loc, new IntegerExp(loc, 0, Type.tint32));
+
+        auto innerBody = new CompoundStatement(loc, ifLt, ifGt, ret0);
+
+        chain = new IfStatement(loc, null, cond, innerBody, chain, loc);
+    }
+
+    auto body = new CompoundStatement(loc, ifTagDiff, chain);
+
+    auto parameters = new Parameters(new Parameter(Loc.initial, STC.const_, sd.type, Id.p, null, null, null));
+    auto tf = new TypeFunction(ParameterList(parameters), Type.tint32, LINK.d);
+    tf.mod = MODFlags.const_;
+    auto fop = new FuncDeclaration(loc, Loc.initial, Id.opCmp, STC.const_ | STC.inference, tf);
+    fop.isGenerated = true;
+    fop.parent = sd;
+    fop.fbody = body;
+    sd.members.push(fop);
 }
 
 Type trySemantic(Type type, Loc loc, Scope* sc)
@@ -4948,6 +5708,19 @@ Expression defaultInitLiteral(Type t, Loc loc)
         }
         if (ts.sym.sizeok != Sizeok.done)
             return ErrorExp.get();
+
+        if (ts.sym.sumtype)
+        {
+            auto mtype = ts.sym.sumtype;
+            auto defIdx = mtype.defaultVariantIdx;
+            auto structelems = new Expressions(ts.sym.nonHiddenFields());
+            structelems.zero;
+            (*structelems)[0] = new IntegerExp(loc, cast(int)defIdx, ts.sym.fields[0].type);
+            (*structelems)[defIdx + 1] = (*mtype.variantInfos)[defIdx].type.defaultInitLiteral(loc);
+            auto structinit = new StructLiteralExp(loc, ts.sym, structelems);
+            structinit.type = ts;
+            return structinit;
+        }
 
         auto structelems = new Expressions(ts.sym.nonHiddenFields());
         ulong bitoffset = 0;

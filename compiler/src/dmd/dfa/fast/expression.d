@@ -1559,6 +1559,7 @@ struct ExpressionWalker
         case EXP._Generic:
         case EXP.interval:
 
+        case EXP.matchExp:
         case EXP.rvalue:
             if (dfaCommon.debugUnknownAST)
             {

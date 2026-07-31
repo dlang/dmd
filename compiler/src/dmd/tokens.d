@@ -253,6 +253,8 @@ enum TOK : ubyte
     whitespace,
     rvalue,
 
+    sumtype_,
+
     // C only keywords
     inline,
     register,
@@ -425,6 +427,7 @@ enum EXP : ubyte
 
     loweredAssignExp,
     rvalue,
+    matchExp,
 }
 
 enum FirstCKeyword = TOK.inline;
@@ -557,6 +560,7 @@ private immutable TOK[] keywords =
     TOK.prettyFunction,
     TOK.shared_,
     TOK.immutable_,
+    TOK.sumtype_,
     TOK.rvalue,
 
     // C only keywords
@@ -781,6 +785,7 @@ extern (C++) struct Token
         TOK.prettyFunction: "__PRETTY_FUNCTION__",
         TOK.shared_: "shared",
         TOK.immutable_: "immutable",
+        TOK.sumtype_: "__sumtype",
 
         TOK.endOfFile: "End of File",
         TOK.leftCurly: "{",

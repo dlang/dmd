@@ -50,6 +50,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     // ABI-specific type(s) if the struct can be passed in registers
     TypeTuple argTypes;
 
+    TypeSumType sumtype;        // if non-null, this struct is the lowered form of a __sumtype
+
     structalign_t alignment;    // alignment applied outside of the struct
     ThreeState ispod;           // if struct is POD
 

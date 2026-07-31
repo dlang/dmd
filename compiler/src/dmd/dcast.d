@@ -1550,6 +1550,72 @@ MATCH implicitConvTo(Expression e, Type t)
 }
 
 /********************************
+ * If `from` is a sumtype and `to` is a (wider) sumtype that contains
+ * every variant of `from`, then `from` can be implicitly converted to `to`.
+ *
+ * Params:
+ *  from = candidate source type
+ *  to   = candidate destination type
+ * Returns:
+ *  MATCH.convert if `from` widens into `to`, MATCH.nomatch otherwise.
+ */
+private MATCH sumtypeWidenMatch(Type from, Type to)
+{
+    TypeSumType fromSum;
+    if (auto ts = from.isTypeSumType())
+        fromSum = ts;
+    else if (auto tsa = from.isTypeStruct())
+        if (tsa.sym && tsa.sym.sumtype)
+            fromSum = tsa.sym.sumtype;
+    if (!fromSum)
+        return MATCH.nomatch;
+
+    TypeSumType toSum;
+    if (auto ts = to.isTypeSumType())
+        toSum = ts;
+    else if (auto tsa = to.isTypeStruct())
+        if (tsa.sym && tsa.sym.sumtype)
+            toSum = tsa.sym.sumtype;
+    if (!toSum || fromSum == toSum)
+        return MATCH.nomatch;
+
+    // Every source variant must be a variant of the target.
+    //
+    // This is two-pass: first look for an exact type match, then fall back to
+    // an implicit conversion. This is deliberate — with a single
+    // "equals || implicitConvTo" check, a bool source variant would match an
+    // int target variant (because bool implicitly converts to int), corrupting
+    // the active variant during widening. Preferring the exact match preserves
+    // which variant is active.
+    foreach (vi; *fromSum.variantInfos)
+    {
+        bool found = false;
+        foreach (vj; *toSum.variantInfos)
+        {
+            if (vi.type.equals(vj.type))
+            {
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+        {
+            foreach (vj; *toSum.variantInfos)
+            {
+                if (vi.type.implicitConvTo(vj.type) != MATCH.nomatch)
+                {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found)
+            return MATCH.nomatch;
+    }
+    return MATCH.convert;
+}
+
+/********************************
  * Determine if 'from' can be implicitly converted
  * to type 'to'.
  * Returns:
@@ -1903,6 +1969,21 @@ MATCH implicitConvTo(Type from, Type to)
     MATCH visitStruct(TypeStruct from)
     {
         //printf("TypeStruct::implicitConvTo(%s => %s)\n", from.toChars(), to.toChars());
+
+        // For sumtypes, the normal struct conversion handles the same-struct
+        // case (e.g. adding const); widening only applies to a *different*
+        // (wider) sumtype struct.
+        if (from.sym.sumtype !is null)
+        {
+            auto tos = to.isTypeStruct();
+            if (tos && from.sym == tos.sym)
+            {
+                MATCH m = from.implicitConvToWithoutAliasThis(to);
+                return m == MATCH.nomatch ? from.implicitConvToThroughAliasThis(to) : m;
+            }
+            return sumtypeWidenMatch(from.sym.sumtype, to);
+        }
+
         MATCH m = from.implicitConvToWithoutAliasThis(to);
         return m == MATCH.nomatch ? from.implicitConvToThroughAliasThis(to) : m;
     }
@@ -2003,6 +2084,7 @@ MATCH implicitConvTo(Type from, Type to)
         case Ttuple:         return visitTuple(from.isTypeTuple());
         case Tnull:          return visitNull(from.isTypeNull());
         case Tnoreturn:      return visitNoreturn(from.isTypeNoreturn());
+        case Tsumtype:       { const m = sumtypeWidenMatch(from, to); return m == MATCH.nomatch ? visitType(from) : m; }
     }
 }
 
@@ -2150,6 +2232,13 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             auto result = e.copy(); // because of COW for assignment to e.type
             result.type = t;
             return result;
+        }
+
+        // Sumtype widening: a narrower sumtype is implicitly convertible to a wider one
+        if (sumtypeWidenMatch(e.type, tob) != MATCH.nomatch)
+        {
+            if (auto widened = sumtypeWidenExpression(e, sc, tob))
+                return widened;
         }
 
         /* Make semantic error against invalid cast between concrete types.
