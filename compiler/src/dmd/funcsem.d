@@ -920,7 +920,7 @@ Ldone:
     __gshared bool printedMain = false; // semantic might run more than once
     if (global.params.v.verbose && !printedMain)
     {
-        const(char)* type = funcdecl.isMain() ? "main" : funcdecl.isWinMain() ? "winmain" : funcdecl.isDllMain() ? "dllmain" : cast(const(char)*)null;
+        const(char)* type = funcdecl.isDMain() ? "main" : funcdecl.isWinMain() ? "winmain" : funcdecl.isDllMain() ? "dllmain" : cast(const(char)*)null;
         Module mod = sc._module;
 
         if (type && mod)
@@ -933,10 +933,10 @@ Ldone:
     }
 
     if (funcdecl.fbody && sc._module.isRoot() &&
-        (funcdecl.isMain() || funcdecl.isWinMain() || funcdecl.isDllMain() || funcdecl.isCMain()))
+        (funcdecl.isDMain() || funcdecl.isWinMain() || funcdecl.isDllMain() || funcdecl.isCMain()))
         global.hasMainFunction = true;
 
-    if (funcdecl.fbody && funcdecl.isMain() && sc._module.isRoot())
+    if (funcdecl.fbody && funcdecl.isDMain() && sc._module.isRoot())
     {
         // check if `_d_cmain` is defined
         bool cmainTemplateExists()
@@ -944,7 +944,7 @@ Ldone:
             Dsymbol pscopesym;
             auto rootSymbol = sc.search(funcdecl.loc, Id.empty, pscopesym);
             if (auto moduleSymbol = rootSymbol.search(funcdecl.loc, Id.object))
-                if (moduleSymbol.search(funcdecl.loc, Id.CMain))
+                if (moduleSymbol.search(funcdecl.loc, Id._d_cmain))
                     return true;
 
             return false;
@@ -954,7 +954,7 @@ Ldone:
         if (cmainTemplateExists())
         {
             // add `mixin _d_cmain!();` to the declaring module
-            auto tqual = new TypeIdentifier(funcdecl.loc, Id.CMain);
+            auto tqual = new TypeIdentifier(funcdecl.loc, Id._d_cmain);
             auto tm = new TemplateMixin(funcdecl.loc, null, tqual, null);
             sc._module.members.push(tm);
         }

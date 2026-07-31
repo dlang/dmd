@@ -1767,7 +1767,7 @@ private struct FuncDeclSem3
         if (sc.inCfile && funcdecl.isCMain() && f.next.ty == Tint32)
             return true;
 
-        return f.next.ty == Tvoid && (funcdecl.isMain() || funcdecl.isCMain());
+        return f.next.ty == Tvoid && (funcdecl.isDMain() || funcdecl.isCMain());
     }
 }
 

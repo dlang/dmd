@@ -30,10 +30,13 @@ module core.internal.gc.impl.conservative.gc;
 
 /***************************************************/
 version (WASI) {} // WASI is single-threaded
-else version = COLLECT_PARALLEL;  // parallel scanning
+else
+{
+    version = COLLECT_PARALLEL;  // parallel scanning
 
-version (Posix)
-    version = COLLECT_FORK;
+    version (Posix)
+        version = COLLECT_FORK;
+}
 
 import core.internal.gc.bits;
 import core.internal.gc.os;
@@ -1786,7 +1789,8 @@ struct Gcx
         usedSmallPages = usedLargePages = 0;
         mappedPages = 0;
         //printf("gcx = %p, self = %x\n", &this, self);
-        version (Posix)
+        version (WASI) {}
+        else version (Posix)
         {
             import core.sys.posix.pthread : pthread_atfork;
             instance = &this;

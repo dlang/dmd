@@ -1217,10 +1217,11 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
  * Params:
  *      init = `Initializer` AST node
  *      sc = context
+ *      itype = the type of the parsed declaration, null for `auto`
  * Returns:
  *      an equivalent `ExpInitializer` if successful, or `ErrorInitializer` if it cannot be translated
  */
-Initializer inferType(Initializer init, Scope* sc)
+Initializer inferType(Initializer init, Scope* sc, Type itype)
 {
     Initializer visitVoid(VoidInitializer i)
     {
@@ -1258,33 +1259,57 @@ Initializer inferType(Initializer init, Scope* sc)
                 error(init.loc, "cannot infer type from array initializer");
             return new ErrorInitializer();
         }
-        const bool isAssoc = init.isAssociativeArray();
+        const bool isAssoc = itype && itype.ty == Taarray ||
+            !itype && init.isAssociativeArray();
         if (isAssoc)
             keys = new Expressions(init.value.length);
         else
             values.zero();
 
-        for (size_t i = 0; i < init.value.length; i++)
+        size_t idx = 0;
+        for (size_t i = 0; i < init.value.length; i++, idx++)
         {
             if (isAssoc)
             {
                 Expression e = init.index[i];
-                if (!e)
-                    return no();
+                assert(e); // already asserted by isAssociativeArray()
                 (*keys)[i] = e;
             }
             else
-                assert(!init.index[i]); // already asserted by isAssociativeArray()
+            {
+                if (Expression e = init.index[i])
+                {
+                    dinteger_t nidx = e.toInteger();
+                    // sanity check: some arbitrary limit that allows a 32-bit process to continue
+                    if (nidx > uint.max / 32)
+                    {
+                        error(init.loc, "array index %lld not supported", nidx);
+                        return new ErrorInitializer();
+                    }
+                    idx = cast(uint)nidx;
+                }
+                if (idx >= values.length)
+                {
+                    size_t olddim = values.length;
+                    values.setDim(idx + 1);
+                    (*values)[olddim .. idx + 1][] = null;
+                }
+                else if ((*values)[idx])
+                {
+                    error(init.loc, "array index %d initialized twice", cast(int)idx);
+                    return new ErrorInitializer();
+                }
+            }
             Initializer iz = init.value[i];
             if (!iz)
                 return no();
-            iz = iz.inferType(sc);
+            iz = iz.inferType(sc, itype ? itype.nextOf() : null);
             if (iz.isErrorInitializer())
             {
                 return iz;
             }
-            (*values)[i] = iz.isExpInitializer().exp;
-            assert(!(*values)[i].isErrorExp());
+            (*values)[idx] = iz.isExpInitializer().exp;
+            assert(!(*values)[idx].isErrorExp());
         }
 
         Expression e;
@@ -1292,7 +1317,7 @@ Initializer inferType(Initializer init, Scope* sc)
             ? new AssocArrayLiteralExp(init.loc, keys, values)
             : new ArrayLiteralExp(init.loc, null, values);
         auto ei = new ExpInitializer(init.loc, e);
-        return ei.inferType(sc);
+        return ei.inferType(sc, itype);
     }
 
     Initializer visitExp(ExpInitializer init)
@@ -1429,10 +1454,15 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
                 goto case Tsarray;
 
             case Tsarray:
-                uinteger_t adim = t.isTypeSArray().dim.toInteger();
-                if (adim >= amax)
-                    return null;
-                edim = cast(uint)adim;
+                auto dim = t.isTypeSArray().dim;
+                auto ide = dim.isIdentifierExp();
+                if (!ide || ide.ident != Id.dollar)
+                {
+                    uinteger_t adim = dim.toInteger();
+                    if (adim >= amax)
+                        return null;
+                    edim = cast(uint)adim;
+                }
                 break;
 
             case Tpointer:
@@ -1474,9 +1504,13 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
             {
                 if (auto tsa = itype.isTypeSArray())
                 {
-                    uinteger_t adim = tsa.dim.toInteger();
-                    if (adim > edim && adim < amax)
-                        edim = cast(uint)adim;
+                    auto ide = tsa.dim.isIdentifierExp();
+                    if (!ide || ide.ident != Id.dollar)
+                    {
+                        uinteger_t adim = tsa.dim.toInteger();
+                        if (adim > edim && adim < amax)
+                            edim = cast(uint)adim;
+                    }
                 }
             }
         }

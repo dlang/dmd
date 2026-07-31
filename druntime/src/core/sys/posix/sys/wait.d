@@ -14,6 +14,9 @@
  */
 module core.sys.posix.sys.wait;
 
+version (CRuntime_WASI) {}
+else:
+
 import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for id_t, pid_t
 public import core.sys.posix.signal;    // for siginfo_t (XSI)

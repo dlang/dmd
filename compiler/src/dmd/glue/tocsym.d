@@ -513,7 +513,7 @@ Symbol* toSymbol(Dsymbol s)
                 type_setty(&t, t.Tty | mTYnaked);
 
             const msave = t.Tmangle;
-            if (fd.isMain())
+            if (fd.isDMain())
             {
                 t.Tty = TYnfunc;
                 t.Tmangle = Mangle.c;

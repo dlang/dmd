@@ -1745,6 +1745,128 @@ else version (Hurd)
         SHUT_RDWR           = 2
     }
 }
+else version (CRuntime_WASI)
+{
+    alias socklen_t = uint;
+    alias sa_family_t = ushort;
+
+    struct sockaddr
+    {
+        align(16) // __BIGGEST_ALIGNMENT__ on Wasm
+        sa_family_t sa_family;
+
+        byte[0]    sa_data;
+    }
+
+    struct sockaddr_storage
+    {
+        align(16) // __BIGGEST_ALIGNMENT__ on Wasm
+        sa_family_t ss_family;
+        byte[32] __ss_data;
+    }
+
+    struct msghdr
+    {
+        void*     msg_name;
+        socklen_t msg_namelen;
+        iovec*    msg_iov;
+        int       msg_iovlen;
+        void*     msg_control;
+        socklen_t msg_controllen;
+        int       msg_flags;
+    }
+
+    struct linger
+    {
+        int l_onoff;
+        int l_linger;
+    }
+
+    enum
+    {
+        SOCK_DGRAM      = 5,
+        SOCK_STREAM     = 6,
+    }
+
+    enum
+    {
+        SOL_SOCKET      = 0x7fffffff
+    }
+
+    version (WASIp1)
+    {
+        enum : ushort
+        {
+            MSG_PEEK    = (1 << 0), // __WASI_RIFLAGS_RECV_PEEK
+            MSG_WAITALL = (1 << 1), // __WASI_RIFLAGS_RECV_WAITALL
+            MSG_TRUNC   = (1 << 0), // __WASI_ROFLAGS_RECV_DATA_TRUNCATED
+        }
+    }
+    else
+    {
+        enum
+        {
+            SO_REUSEADDR = 2,
+            SO_ERROR = 4,
+            SO_SNDBUF = 7,
+            SO_RCVBUF = 8,
+            SO_KEEPALIVE = 9,
+            SO_ACCEPTCONN = 30,
+            SO_PROTOCOL = 38,
+            SO_DOMAIN = 39,
+
+            SO_TYPE = 3
+        }
+
+        version (D_LP64)
+        {
+            enum
+            {
+                SO_RCVTIMEO = 66,
+                SO_SNDTIMEO = 67,
+            }
+        }
+        else
+        {
+            enum
+            {
+                SO_RCVTIMEO = 20,
+                SO_SNDTIMEO = 21,
+            }
+        }
+
+        enum
+        {
+            SOMAXCONN   = 128
+        }
+
+        enum : uint
+        {
+            MSG_DONTWAIT  = 0x0040,
+            MSG_NOSIGNAL  = 0x4000,
+            MSG_PEEK      = 0x0002,
+            MSG_WAITALL   = 0x0100,
+            MSG_TRUNC     = 0x0020
+        }
+    }
+
+    enum
+    {
+        PF_UNSPEC = 0,
+        PF_INET = 1,
+
+        AF_UNSPEC  = PF_UNSPEC,
+        AF_INET    = PF_INET,
+        AF_UNIX    = 3
+    }
+
+    enum
+    {
+        SHUT_RD,
+        SHUT_WR,
+        SHUT_RDWR
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1964,6 +2086,27 @@ else version (CRuntime_Musl)
     int     sockatmark(int);
     int     socketpair(int, int, int, ref int[2]);
 }
+else version (CRuntime_WASI)
+{
+    int     accept(int, sockaddr*, socklen_t*);
+    int     getsockopt(int, int, int, void*, socklen_t*);
+    ssize_t recv(int, void*, size_t, int);
+    ssize_t send(int, const scope void*, size_t, int);
+    int     shutdown(int, int);
+    version (WASIp1) {}
+    else
+    {
+        int     bind(int, const scope sockaddr*, socklen_t);
+        int     connect(int, const scope sockaddr*, socklen_t);
+        int     listen(int, int);
+        int     getpeername(int, sockaddr*, socklen_t*);
+        int     getsockname(int, sockaddr*, socklen_t*);
+        ssize_t recvfrom(int, void*, size_t, int, sockaddr*, socklen_t*);
+        ssize_t sendto(int, const scope void*, size_t, int, const scope sockaddr*, socklen_t);
+        int     socket(int, int, int);
+        int     setsockopt(int, int, int, const scope void*, socklen_t);
+    }
+}
 else version (CRuntime_UClibc)
 {
     int     accept(int, sockaddr*, socklen_t*);
@@ -2053,6 +2196,14 @@ else version (Hurd)
         AF_INET6 = 26,
     }
 }
+else version (CRuntime_WASI)
+{
+    enum
+    {
+        PF_INET6 = 2,
+        AF_INET6 = PF_INET6,
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -2120,6 +2271,9 @@ else version (Hurd)
     {
         SOCK_RAW = 3,
     }
+}
+else version (CRuntime_WASI)
+{
 }
 else
 {

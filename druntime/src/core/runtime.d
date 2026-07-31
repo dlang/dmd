@@ -808,7 +808,8 @@ void defaultTraceDeallocator(Throwable.TraceInfo info) nothrow
 }
 
 /// Default implementation for most POSIX systems
-version (Posix) private class DefaultTraceInfo : Throwable.TraceInfo
+version (WASI) {}
+else version (Posix) private class DefaultTraceInfo : Throwable.TraceInfo
 {
     import core.demangle;
     import core.stdc.stdlib : free;

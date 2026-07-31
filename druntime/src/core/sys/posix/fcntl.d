@@ -977,6 +977,65 @@ else version (Hurd)
     enum AT_SYMLINK_FOLLOW   = 0x400;
     enum AT_REMOVEDIR        = 0x200;
 }
+else version (CRuntime_WASI)
+{
+    enum F_GETFD         = 1;
+    enum F_SETFD         = 2;
+    enum F_GETFL         = 3;
+    enum F_SETFL         = 4;
+    enum F_DUPFD         = 5;
+    enum F_DUPFD_CLOEXEC = 6;
+    enum F_GETLK         = 7;
+    enum F_SETLK         = 8;
+    enum F_SETLKW        = 9;
+
+    enum F_RDLCK         = 0;
+    enum F_WRLCK         = 1;
+    enum F_UNLCK         = 2;
+
+    enum FD_CLOEXEC      = 1;
+
+    enum O_APPEND    = 0x0001;
+    enum O_DSYNC     = 0x0002;
+    enum O_NONBLOCK  = 0x0004;
+    enum O_RSYNC     = 0x0008;
+    enum O_SYNC      = 0x0010;
+    enum O_CREAT     = 0x0001 << 12;
+    enum O_DIRECTORY = 0x0002 << 12;
+    enum O_EXCL      = 0x0004 << 12;
+    enum O_TRUNC     = 0x0008 << 12;
+
+    enum O_NOFOLLOW = 0x01000000;
+    enum O_EXEC     = 0x02000000;
+    enum O_RDONLY   = 0x04000000;
+    enum O_SEARCH   = 0x08000000;
+    enum O_WRONLY   = 0x10000000;
+
+    enum O_CLOEXEC = 0;
+
+    enum O_TTY_INIT = 0;
+
+    enum O_NOCTTY = 0;
+
+    enum O_RDWR = O_RDONLY | O_WRONLY;
+    enum O_ACCMODE = O_EXEC | O_RDWR | O_SEARCH;
+
+    struct flock
+    {
+        short   l_type;
+        short   l_whence;
+        off_t   l_start;
+        off_t   l_len;
+        pid_t   l_pid;
+    }
+
+    enum AT_EACCESS          = 0x0;
+    enum AT_SYMLINK_NOFOLLOW = 0x1;
+    enum AT_SYMLINK_FOLLOW   = 0x2;
+    enum AT_REMOVEDIR        = 0x4;
+
+    enum AT_FDCWD            = -2;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1081,6 +1140,12 @@ else version (CRuntime_Bionic)
     int   openat(int, const scope char*, int, ...);
 }
 else version (CRuntime_Musl)
+{
+    int creat(const scope char*, mode_t);
+    int open(const scope char*, int, ...);
+    int openat(int, const scope char*, int, ...);
+}
+else version (CRuntime_WASI)
 {
     int creat(const scope char*, mode_t);
     int open(const scope char*, int, ...);

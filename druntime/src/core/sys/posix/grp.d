@@ -14,6 +14,9 @@
  */
 module core.sys.posix.grp;
 
+version (CRuntime_WASI) {}
+else:
+
 import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for gid_t, uid_t
 

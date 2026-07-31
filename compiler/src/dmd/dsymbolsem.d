@@ -2306,10 +2306,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             auto tid = t ? t.isTypeIdentifier() : null;
             auto autoIdent = Identifier.idPool(Token.toString(TOK.auto_));
-            if (autoDollarDims.length && tid && tid.ident == autoIdent)
-                // Intentionally set type to null to trigger type inference,
-                dsym.type = null;
-            else
+            if (!tid || tid.ident != autoIdent)
                 autoDollarDims = null;
         }
         static bool hasDollarDimension(TypeSArray tsa)
@@ -2361,7 +2358,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     resolveDollarToZero(next, loc);
             }
         }
-        if (!dsym.type)
+        if (!dsym.type || autoDollarDims.length)
         {
             dsym.inuse++;
 
@@ -2382,7 +2379,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 return;
             }
             //printf("inferring type for %s with init %s\n", dsym.toChars(), dsym._init.toChars());
-            dsym._init = dsym._init.inferType(sc);
+            dsym._init = dsym._init.inferType(sc, dsym.type);
             dsym.type = dsym._init.initializerToExpression(null, sc.inCfile).type;
 
             if (autoDollarDims.length)
@@ -2599,7 +2596,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             else
             {
-                Expression ie = dsym._init.initializerToExpression(null, sc.inCfile);
+                Expression ie = dsym._init.initializerToExpression(tsa, sc.inCfile);
                 if (ie && ie.op != EXP.error)
                 {
                     // Infer from literal syntax first to avoid prematurely
@@ -2624,7 +2621,20 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         return;
                     }
                     if (auto ale = ie.isArrayLiteralExp())
+                    {
+                        // Fill null gaps left by sparse auto[$] inference,
+                        // now that dimensions are fully resolved.
+                        if (ale.elements)
+                        {
+                            foreach (e; (*ale.elements)[])
+                                if (!e)
+                                {
+                                    ale.basis = tsa.next.toBasetype().defaultInitLiteral(dsym.loc);
+                                    break;
+                                }
+                        }
                         dsym._init = new ExpInitializer(dsym.loc, ale);
+                    }
                 }
             }
         }

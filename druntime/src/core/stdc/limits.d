@@ -206,7 +206,7 @@ else version (CRuntime_WASI)
     ///
     enum PATH_MAX       = 256;
     ///
-    enum PIPE_BUF       = 512;
+    enum PIPE_BUF       = 4096;
 }
 else
     static assert(0, "unsupported OS");

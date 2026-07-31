@@ -31,10 +31,6 @@ else version (Posix)
         pthread_mutexattr_init, pthread_mutexattr_settype;
     import core.sys.posix.sys.types : pthread_mutex_t, pthread_mutexattr_t;
 }
-else version (WASI)
-{
-    // Dummy no-op
-}
 else
 {
     static assert(false, "Platform not supported");
@@ -279,10 +275,6 @@ class Mutex :
         {
             return pthread_mutex_trylock(&self.m_hndl) == 0;
         }
-        else version (WASI)
-        {
-            return true;
-        }
     }
 
 
@@ -388,13 +380,13 @@ unittest
     // Verify that the underlying implementation has been destroyed by checking
     // that locking is not possible. This assumes that the underlying
     // implementation is well behaved and makes the object non-lockable upon
-    // destruction. The Bionic, DragonFly, Musl, and Solaris C runtimes don't
-    // appear to do so, so skip this test.
+    // destruction. The Bionic, DragonFly, Musl, Solaris, and WASI C runtimes
+    // don't appear to do so, so skip this test.
     version (CRuntime_Bionic) {} else
     version (CRuntime_Musl) {} else
     version (DragonFlyBSD) {} else
     version (Solaris) {} else
-    version (WASI) {} else
+    version (CRuntime_WASI) {} else
     assert(!mtx.tryLock_nothrow());
 
     free(cast(void*) mtx);
