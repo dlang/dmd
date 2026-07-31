@@ -25,7 +25,7 @@ import core.internal.container.array;
 
 import core.thread.threadbase : ThreadBase;
 
-import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
+import core.system: Mem;
 static import core.memory;
 
 extern (C) noreturn onOutOfMemoryError(void* pretend_sideffect = null, string file = __FILE__, size_t line = __LINE__) @trusted pure nothrow @nogc; /* dmd @@@BUG11461@@@ */
@@ -46,7 +46,7 @@ private GC initialize()
 {
     import core.lifetime : emplace;
 
-    auto gc = cast(ManualGC) cstdlib.malloc(__traits(classInstanceSize, ManualGC));
+    auto gc = cast(ManualGC) Mem.allocate(__traits(classInstanceSize, ManualGC));
     if (!gc)
         onOutOfMemoryError();
 
@@ -102,7 +102,7 @@ class ManualGC : GC
 
     void* malloc(size_t size, uint bits, const TypeInfo ti) nothrow
     {
-        void* p = cstdlib.malloc(size);
+        void* p = Mem.allocate(size);
 
         if (size && p is null)
             onOutOfMemoryError();
@@ -120,7 +120,7 @@ class ManualGC : GC
 
     void* calloc(size_t size, uint bits, const TypeInfo ti) nothrow
     {
-        void* p = cstdlib.calloc(1, size);
+        void* p = Mem.allocateBlank(size);
 
         if (size && p is null)
             onOutOfMemoryError();
@@ -129,7 +129,7 @@ class ManualGC : GC
 
     void* realloc(void* p, size_t size, uint bits, const TypeInfo ti) nothrow
     {
-        p = cstdlib.realloc(p, size);
+        p = Mem.reallocate(p, size);
 
         if (size && p is null)
             onOutOfMemoryError();
@@ -148,7 +148,7 @@ class ManualGC : GC
 
     void free(void* p) nothrow @nogc
     {
-        cstdlib.free(p);
+        Mem.free(p);
     }
 
     /**
