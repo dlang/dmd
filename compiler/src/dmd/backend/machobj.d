@@ -540,15 +540,15 @@ int mach_numbersyms()
         n++;
     }
 
-    foreach (s; machobj.externSymbols[])
-    {
-        s.Sxtrnnum = n;
-        n++;
-    }
-
     foreach (ref c; machobj.comdefs[])
     {
         c.sym.Sxtrnnum = n;
+        n++;
+    }
+
+    foreach (s; machobj.externSymbols[])
+    {
+        s.Sxtrnnum = n;
         n++;
     }
 
