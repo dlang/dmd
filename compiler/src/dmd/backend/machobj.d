@@ -44,33 +44,10 @@ nothrow:
 
 private enum log = false;
 
-alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
-extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
-
 import dmd.backend.dwarf;
 import dmd.backend.mach;
 
 alias nlist = dmd.backend.mach.nlist;   // avoid conflict with dmd.backend.dlist.nlist
-
-/****************************************
- * Sort the relocation entry buffer.
- * put before nothrow because qsort was not marked nothrow until version 2.086
- */
-
-extern (C)
-@trusted
-private int mach_rel_fp(scope const(void*) e1, scope const(void*) e2)
-{   Relocation* r1 = cast(Relocation*)e1;
-    Relocation* r2 = cast(Relocation*)e2;
-
-    return cast(int)(r1.offset - r2.offset);
-}
-
-@trusted
-void mach_relsort(OutBuffer* buf)
-{
-    qsort(buf.buf, buf.length() / Relocation.sizeof, Relocation.sizeof, &mach_rel_fp);
-}
 
 struct MachObj
 {
@@ -3701,3 +3678,29 @@ void dumpFixup(ref Symbol s, uint fixup)
     symbol_print(s);
     printf("fixup %s RELOC_%s\n", s.Sident.ptr, reloc[fixup]);
 }
+
+/****************************************
+ * Sort the array of Symbol pointers by their identifiers.
+ * Params:
+ *	symbols = array to be in-place sorted
+ */
+
+@trusted
+private void sortSymbols(Symbol*[] symbols)
+{
+    qsort(symbols.ptr, symbols.length, symbols.ptr.sizeof, &symbolQsortFp);
+}
+
+/** qsort() comparison function
+  */
+extern (C)
+@trusted
+private int symbolQsortFp(scope const(void*) e1, scope const(void*) e2)
+{   Symbol* s1 = *cast(Symbol**)e1;
+    Symbol* s2 = *cast(Symbol**)e2;
+
+    return strcmp(s1.Sident.ptr, s2.Sident.ptr);
+}
+
+alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
+extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
