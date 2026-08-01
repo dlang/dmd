@@ -140,6 +140,7 @@ class Thread : ThreadBase
         scope(exit) slock.unlock_nothrow();
         {
             incrementAboutToStart(this);
+            scope(failure) decrementAboutToStart(this);
 
             if ( ResumeThread( m_tdescr.hndl ) == -1 )
                 onThreadError( "Error resuming thread" );
