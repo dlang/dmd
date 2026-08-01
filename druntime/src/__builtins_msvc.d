@@ -5857,7 +5857,8 @@ version (MSVCIntrinsics)
             }
         }
 
-        @safe pure nothrow @nogc unittest
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        @trusted pure nothrow @nogc unittest
         {
             static bool test()
             {
