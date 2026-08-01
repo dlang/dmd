@@ -23,7 +23,10 @@ import dmd.declaration;
 import dmd.astenums;
 import core.stdc.stdio;
 
+///
 alias Fact = ParameterDFAInfo.Fact;
+///
+alias EscapedRelationship = ParameterDFAInfo.EscapedRelationship;
 
 /***********************************************************
  * The interface for reporting DFA errors and warnings.
@@ -58,17 +61,35 @@ struct DFAReporter
         int fail;
         assert(on.nullable != Nullable.NonNull);
 
-        if (on.var is null || on.var.var is null)
+        if (on.var is null  /+|| on.var.var is null+/ )
             fail = __LINE__;
         else if (!on.var.isModellable)
             fail = __LINE__;
         else
         {
-            if (on.var.declaredAtDepth >= dfaCommon.lastLoopyLabel.depth)
-                errorSink.error(loc, "Dereference on null variable `%s`",
-                        on.var.var.ident.toChars);
+            if (on.var.oldestLifeTimeAllowedDepth >= dfaCommon.lastLoopyLabel.depth
+                    || (on.obj !is null
+                        && on.obj.minimumDeclaredAtDepth >= dfaCommon.lastLoopyLabel.depth))
+            {
+                if (on.var.var !is null)
+                {
+                    errorSink.error(loc, "Dereference on null variable `%s`",
+                            on.var.var.ident.toChars);
+                }
+                else
+                {
+                    errorSink.error(loc, "Dereference on null object");
+                }
+            }
             else
                 fail = __LINE__;
+        }
+
+        version (none)
+        {
+            printf("onDeref fail %d last loopy label depth %d\n", fail,
+                    dfaCommon.lastLoopyLabel.depth);
+            on.print("");
         }
     }
 
@@ -93,7 +114,75 @@ struct DFAReporter
     {
         // this is where we validate escapes, for a specific location
 
-        if (!dfaCommon.currentDFAScope.haveReturned)
+        // Step 1. for escape analysis reporting, see deltas
+        // If we've jumped via continue, throw, or goto, disable delta's check.
+        // Step 2. for escape analysis inferrence promote to stack
+
+        DFAVar* returnVar = dfaCommon.getReturnVariable();
+
+        {
+            // 1.
+
+            foreach (DFAVar* intoVar, DFALattice* intoLR; *dfaCommon.currentDFAScope)
+            {
+                version (none)
+                {
+                    printf("intoVar %p\n", intoVar);
+                    intoLR.printStructure("lr");
+                }
+
+                // We skip the return variable specifically as it may have junk values in it
+                if (!dfaCommon.currentDFAScope.controlFlowReturned && intoVar is returnVar)
+                    continue;
+                else if (!intoVar.isNullable)
+                    continue;
+
+                // intoVar is a known location, so it won't be a global.
+                // If we have returned, then we also consider the return value.
+
+                if (intoVar is returnVar || (intoVar.var !is null
+                        && intoVar.oldestLifeTimeAllowedDepth > 0))
+                {
+                    // We're going into a stack variable, lets make sure any object we're putting into it as <= for other stack variables.
+
+                    DFAConsequence* cctx = intoLR.context;
+
+                    if (cctx.obj !is null)
+                    {
+                        bool silenceFutureErrors = true;
+
+                        checkForEscapes(intoVar, returnVar, cctx.obj, silenceFutureErrors, loc);
+
+                        if (silenceFutureErrors)
+                            cctx.obj = null; // silence future errors
+                    }
+                }
+            }
+        }
+
+        {
+            // 2.
+
+            dfaCommon.allocator.allStackVariables((DFAVar* var) {
+                if (var.unmodellable || var.param !is null)
+                    return;
+                else if (var.var is null || !var.var.type.isTypeClass)
+                    return; // only applies to classes on stack
+
+                if (!var.mayEscapeWithoutIndirection)
+                {
+                    version (none)
+                    {
+                        printf("infer as on stack %s at %s\n",
+                            var.var.ident.toChars, var.var.loc.toChars);
+                    }
+
+                    var.var.onstack = true;
+                }
+            });
+        }
+
+        if (!dfaCommon.currentDFAScope.controlFlowReturned)
             return;
 
         // validate/infer on to function
@@ -115,8 +204,7 @@ struct DFAReporter
             else if (suggestedNotNullOut == Fact.Unspecified && cctx.nullable == Nullable.NonNull)
                 suggestedNotNullOut = Fact.Guaranteed;
 
-            assert(!param.specifiedByUser);
-            param.notNullOut = suggestedNotNullOut;
+            param.inferred.notNullOut = suggestedNotNullOut;
         });
     }
 
@@ -127,9 +215,13 @@ struct DFAReporter
             printf("End of function attributes for `%s` at %s\n", fd.ident.toChars, loc.toChars);
         }
 
+        auto tf = fd.type.isTypeFunction;
+
         // validate/infer on to function
-        foreachFunctionVariable(dfaCommon, fd, (scv) {
-            ParameterDFAInfo* param = scv.var.param;
+        foreachFunctionVariable(dfaCommon, fd, (DFAScopeVar* scv) {
+            DFAVar* var = scv.var;
+            ParameterDFAInfo* param = var.param;
+
             if (param is null)
                 return;
 
@@ -140,53 +232,75 @@ struct DFAReporter
                 else
                     printf("Variable %p ", scv.var);
 
-                printf("%d %d:%d %d:%d %d\n", scv.var.unmodellable, scv.var.isTruthy,
-                    scv.var.isNullable, scv.var.isByRef, scv.var.writeCount,
-                    param.specifiedByUser);
-                printf("    notNullIn=%d, notNullOut=%d\n", param.notNullIn, param.notNullOut);
+                printf("unmodellable=%d, isTruthy=%d, isNullable=%d, isByRef=%d, writeCount=%d\n",
+                    scv.var.unmodellable,
+                    scv.var.isTruthy, scv.var.isNullable, scv.var.isByRef, scv.var.writeCount);
+                printf("    notNullIn=%d/%d, notNullOut=%d/%d\n", param.userSupplied.notNullIn,
+                    param.inferred.notNullIn, param.userSupplied.notNullOut,
+                    param.inferred.notNullOut);
             }
 
-            if (scv.var.unmodellable)
+            if (var.isNullable)
             {
-                if (!param.specifiedByUser)
+                if (var.unmodellable)
                 {
-                    param.specifiedByUser = false;
-
-                    if (scv.var.isNullable)
-                    {
-                        param.notNullIn = Fact.Unspecified;
-                        param.notNullOut = Fact.Unspecified;
-                    }
+                    param.inferred.notNullIn = Fact.Unspecified;
+                    param.inferred.notNullOut = Fact.Unspecified;
                 }
-            }
-            else if (!param.specifiedByUser)
-            {
-                if (scv.var.isNullable)
+                else
                 {
-                    if (param.notNullIn == Fact.Unspecified)
-                        param.notNullIn = Fact.NotGuaranteed;
+                    if (param.inferred.notNullIn == Fact.Unspecified)
+                        param.inferred.notNullIn = Fact.NotGuaranteed;
 
-                    if (scv.var.isByRef)
+                    if (var.isByRef)
                     {
-                        if (scv.var.writeCount > 1)
+                        if (var.writeCount > 1)
                         {
-                            if (param.notNullOut == Fact.Unspecified)
-                                param.notNullOut = Fact.NotGuaranteed;
+                            if (param.inferred.notNullOut == Fact.Unspecified)
+                                param.inferred.notNullOut = Fact.NotGuaranteed;
                         }
                         else
-                            param.notNullOut = param.notNullIn;
+                            param.inferred.notNullOut = param.inferred.notNullIn;
                     }
                     else
-                    {
-                        param.notNullOut = Fact.Unspecified;
-                    }
+                        param.inferred.notNullOut = Fact.Unspecified;
+                }
+            }
+
+            if (!var.unmodellable)
+            {
+                // Remove self referential escapes
+                ParameterDFAInfo.Inferrable temp = param.inferred;
+                temp.willEscape(param.parameterId, ParameterDFAInfo.EscapedRelationship.Unknown);
+
+                if (temp.willEscape(-1) != ParameterDFAInfo.EscapedRelationship.Unknown)
+                {
+                    // escapes into an unknown location, don't infer
+                }
+                else
+                {
+                    if (!var.mayEscapeWithoutIndirection)
+                        param.inferred.escapeIntoNothing = true;
+                }
+
+                if (tf.trust == TRUST.safe && param.userSupplied.escapeIntoNothing
+                    && !param.inferred.escapeIntoNothing && temp.escapesInto != 0)
+                {
+                    errorSink.error(var.var.loc, "Parameter is required to be scope but escapes");
+
+                    if (temp.willEscape(-1) != ParameterDFAInfo.EscapedRelationship.Unknown)
+                        errorSink.errorSupplemental(var.var.loc,
+                            "Escapes into an unknown location");
+                    else if (var.mayEscapeWithoutIndirection)
+                        errorSink.errorSupplemental(var.var.loc, "Escapes directly");
                 }
             }
 
             version (none)
             {
-                printf("    notNullIn=%d, notNullOut=%d\n",
-                    cast(int) param.notNullIn, param.notNullOut);
+                printf("    notNullIn=%d/%d, notNullOut=%d/%d\n", param.userSupplied.notNullIn,
+                    param.inferred.notNullIn, param.userSupplied.notNullOut,
+                    param.inferred.notNullOut);
             }
         });
     }
@@ -232,12 +346,12 @@ struct DFAReporter
 
     void onReadOfUninitialized(DFAVar* var, ref DFALatticeRef lr, ref Loc loc, bool forMathOp)
     {
-        if (!var.isModellable || var.declaredAtDepth == 0 || (!forMathOp
-                && var.isFloatingPoint) || var.var is null)
+        if (!var.isModellable || var.oldestLifeTimeAllowedDepth == 0
+                || (!forMathOp && var.isFloatingPoint) || var.var is null)
             return;
         else if ((var.var.storage_class & STC.temp) != 0)
             return; // Compiler generated, likely to be "fine"
-        else if (var.declaredAtDepth < dfaCommon.lastLoopyLabel.depth)
+        else if (var.oldestLifeTimeAllowedDepth < dfaCommon.lastLoopyLabel.depth)
             return; // Can we really know what state the variable is in? I don't think so.
 
         // The reason floating point is special cased here, is to allow catching of mathematical operations,
@@ -279,6 +393,422 @@ struct DFAReporter
                 }
 
                 printf("\n");
+            });
+        }
+    }
+
+    void onThrowEscape(DFAObject* obj, ref const Loc loc)
+    {
+        if (obj is null)
+            return;
+        checkForUnknownEscape("throw", obj, loc, true);
+    }
+
+    void onGlobalEscape(DFAVar* intoVar, DFAObject* obj, ref const Loc loc)
+    {
+        if (obj is null)
+            return;
+        checkForUnknownEscape("global", obj, loc, false);
+    }
+
+    void onDelayEscapeOfObject(DFAVar* intoVar, DFAObject* obj, ref Loc loc)
+    {
+        version (none)
+        {
+            printf("On delay of obj %p for var %p at %s\n", obj, intoVar, loc.toChars);
+        }
+
+        DFAVar* returnVar = dfaCommon.getReturnVariable;
+        bool silenceFutureErrors;
+
+        obj.walk((DFAObject* root) {
+            version (none)
+            {
+                printf("    root %p\n", root);
+            }
+
+            if (root.delayOnReadErrorOfEscape)
+            {
+                checkForEscapes(intoVar, returnVar, root, silenceFutureErrors, loc, true);
+                return false;
+            }
+
+            return true;
+        });
+    }
+
+private:
+
+    void checkForEscapes(DFAVar* intoVar, DFAVar* returnVar, DFAObject* parentObject,
+            ref bool silenceFutureErrors, ref const Loc loc, bool noDelay = false)
+    {
+        version (none)
+        {
+            printf("checkForEscapes intoVar=%p, returnVar=%p, parentObject=%p\n",
+                    intoVar, returnVar, parentObject);
+        }
+
+        if (intoVar !is returnVar)
+        {
+            if (intoVar.param is null
+                    || parentObject.minimumDeclaredAtDepth >= intoVar.oldestLifeTimeAllowedDepth)
+            {
+                silenceFutureErrors = false;
+
+                if (parentObject.minimumDeclaredAtDepth == intoVar.oldestLifeTimeAllowedDepth)
+                    return;
+            }
+        }
+
+        bool emittedEscapeError, lookAtConstraintOnly;
+
+        void onDemandEscapeError()
+        {
+            if (emittedEscapeError)
+                return;
+
+            emittedEscapeError = true;
+
+            // ugh oh! the memory has too long of a lifetime!
+            if (intoVar.var !is null)
+            {
+                errorSink.error(loc, "Stack variable stores a lifetime that exceeds its own");
+                errorSink.errorSupplemental(intoVar.var.loc,
+                        "For variable `%s`", intoVar.var.ident.toChars);
+            }
+            else
+                errorSink.error(loc, "Stack variable exceeds its lifetime by being returned");
+        }
+
+        void inferParameter(DFAVar* from, bool hadAnIndirection,
+                bool haveConstraintOnLifeTime, bool inCell)
+        {
+            EscapedRelationship currentRel = from.param.inferred.willEscape(
+                    intoVar.param.parameterId);
+
+            EscapedRelationship toInferRel;
+
+            // T var = rhs;
+            // T* var = rhs;
+            // This can be by-value based upon rhs;
+
+            // ref T var = x;
+            // This can be by-value only if it has had an indirection that isn't constrained.
+
+            if (from.isByRef && (inCell || (!hadAnIndirection && intoVar.isByRef)))
+                toInferRel = EscapedRelationship.PointerTo;
+            else if (from.isByRef && !inCell)
+                toInferRel = EscapedRelationship.ByValue;
+            else if (hadAnIndirection && !haveConstraintOnLifeTime)
+                toInferRel = EscapedRelationship.ByValue;
+            else
+                toInferRel = EscapedRelationship.PointerTo;
+
+            if (currentRel < toInferRel)
+                from.param.inferred.willEscape(intoVar.param.parameterId, toInferRel);
+
+            if (hadAnIndirection && toInferRel == EscapedRelationship.ByValue)
+                from.mayEscapeWithIndirection = true;
+            else
+            {
+                from.mayEscapeWithoutIndirection = true;
+            }
+        }
+
+        parentObject.walkIndirection((DFAObject* obj, bool hadAnIndirection,
+                bool haveConstraintOnLifeTime, bool inCell) {
+            if (obj.constrainedBy is intoVar)
+                return;
+
+            version (none)
+            {
+                printf("potential escape 1 obj %p, hadAnIndirection=%d, haveConstraintOnLifeTime=%d, inCell=%d\n",
+                    obj, hadAnIndirection, haveConstraintOnLifeTime, inCell);
+            }
+
+            if (obj.lifeTimeUnderstood && !noDelay)
+            {
+                // S* ptr;
+                // {
+                //   S buf;
+                //   ptr = &buf;
+                //   buf.__dtor;
+                // }
+                // S temp = *ptr; // error: ptr contains an escaped object that has had cleanup run on it
+
+                parentObject.delayOnReadErrorOfEscape = true;
+                silenceFutureErrors = false;
+                return;
+            }
+
+            // Cannot outlive this variable.
+            DFAVar* constrainedTo = (obj.constrainedBy !is null && obj.constrainedBy.var !is null) ? obj.constrainedBy
+                : null;
+            // The cell of a variable.
+            DFAVar* cellOf = (obj.storageFor !is null && obj.storageFor.var !is null) ? obj.storageFor
+                : null;
+
+            version (none)
+            {
+                printf("derivedFrom=%p, constrainedTo %p, cellOf %p\n",
+                    obj.derivedFrom, constrainedTo, cellOf);
+            }
+
+            // Both constrainedTo and cellOf cannot be escape from.
+            // The benefit of differentiating them allows us to tell the user that it was the cell that was escaped,
+            //  versus an object that was stored in it, that was later escaped.
+
+            // Have multiple layers of pointers, which we can't model.
+            if (obj.derivedFrom !is null)
+                cellOf = null;
+
+            DFAVar* either = constrainedTo !is null ? constrainedTo : cellOf;
+
+            if (either is null && haveConstraintOnLifeTime)
+                lookAtConstraintOnly = true;
+
+            if (intoVar.param !is null && either !is null && either.param !is null)
+            {
+                either.mayEscapeInitialValue = true;
+                inferParameter(either, hadAnIndirection, haveConstraintOnLifeTime, inCell);
+                return;
+            }
+
+            if (hadAnIndirection)
+            {
+            }
+            else if (cellOf !is null && !cellOf.unmodellable
+                && intoVar.youngestLifeTimeAllowedDepth < cellOf.oldestLifeTimeAllowedDepth)
+            {
+                cellOf.mayEscapeInitialValue = true;
+
+                onDemandEscapeError();
+                errorSink.errorSupplemental(cellOf.var.loc,
+                    "A pointer to the cell of the variable `%s` has potentially escaped",
+                    cellOf.var.ident.toChars);
+            }
+            else if (constrainedTo !is null && !constrainedTo.unmodellable && obj.onTheStack
+                && intoVar.youngestLifeTimeAllowedDepth < constrainedTo.oldestLifeTimeAllowedDepth)
+            {
+                constrainedTo.mayEscapeInitialValue = true;
+
+                onDemandEscapeError();
+                errorSink.errorSupplemental(constrainedTo.var.loc,
+                    "Pointer stored in variable `%s` has potentially escaped",
+                    constrainedTo.var.ident.toChars);
+            }
+        }, null);
+
+        if (lookAtConstraintOnly)
+        {
+            parentObject.walkIndirection(null, (DFAObject* constrained,
+                    bool hadAnIndirection, bool haveConstraintOnLifeTime) {
+                if (constrained.constrainedBy is intoVar)
+                    return;
+
+                version (none)
+                {
+                    printf("potential escape 2 obj %p, hadAnIndirection=%d, haveConstraintOnLifeTime=%d\n",
+                        constrained, hadAnIndirection, haveConstraintOnLifeTime);
+                }
+
+                DFAVar* constrainedTo = constrained.constrainedBy;
+
+                if (intoVar.param !is null && constrainedTo.param !is null)
+                {
+                    constrainedTo.mayEscapeInitialValue = true;
+                    inferParameter(constrainedTo, hadAnIndirection,
+                        haveConstraintOnLifeTime, false);
+                    return;
+                }
+
+                if (hadAnIndirection)
+                {
+                }
+                else if (!constrainedTo.unmodellable && constrained.onTheStack
+                    && (intoVar.youngestLifeTimeAllowedDepth < constrainedTo.oldestLifeTimeAllowedDepth
+                    || intoVar is returnVar))
+                {
+                    constrainedTo.mayEscapeInitialValue = true;
+
+                    onDemandEscapeError();
+                    errorSink.errorSupplemental(constrainedTo.var.loc,
+                        "Pointer stored in variable `%s` has potentially escaped",
+                        constrainedTo.var.ident.toChars);
+                }
+            });
+        }
+    }
+
+    void checkForUnknownEscape(const(char)* escapeMethod,
+            DFAObject* parentObject, ref const Loc loc, bool errorOnStackEscape)
+    {
+        version (none)
+        {
+            printf("checkForUnknownEscape %s, parentObject=%p\n", escapeMethod, parentObject);
+        }
+
+        bool emittedEscapeError, lookAtConstraintOnly;
+
+        void onDemandEscapeError()
+        {
+            if (emittedEscapeError)
+                return;
+
+            emittedEscapeError = true;
+
+            errorSink.error(loc, "Escape of unknown lifetime via %s", escapeMethod);
+        }
+
+        void inferParameter(DFAVar* from, bool hadAnIndirection,
+                bool haveConstraintOnLifeTime, bool inCell)
+        {
+            EscapedRelationship currentRel = from.param.inferred.willEscape(-1);
+
+            EscapedRelationship toInferRel;
+
+            // T var = rhs;
+            // T* var = rhs;
+            // This can be by-value based upon rhs;
+
+            // ref T var = x;
+            // This can be by-value only if it has had an indirection that isn't constrained.
+
+            if (from.isByRef && inCell)
+                toInferRel = EscapedRelationship.PointerTo;
+            else if (from.isByRef && !inCell)
+                toInferRel = EscapedRelationship.ByValue;
+            else if (hadAnIndirection && !haveConstraintOnLifeTime)
+                toInferRel = EscapedRelationship.ByValue;
+            else
+                toInferRel = EscapedRelationship.PointerTo;
+
+            if (currentRel < toInferRel)
+                from.param.inferred.willEscape(-1, toInferRel);
+
+            if (hadAnIndirection)
+                from.mayEscapeWithIndirection = true;
+            else
+            {
+                from.mayEscapeWithoutIndirection = true;
+            }
+        }
+
+        parentObject.walkIndirection((DFAObject* obj, bool hadAnIndirection,
+                bool haveConstraintOnLifeTime, bool inCell) {
+
+            version (none)
+            {
+                printf("potential escape 1 obj %p, hadAnIndirection=%d, haveConstraintOnLifeTime=%d\n",
+                    obj, hadAnIndirection, haveConstraintOnLifeTime);
+            }
+
+            if (obj.lifeTimeUnderstood)
+            {
+                // S* ptr;
+                // {
+                //   S buf;
+                //   ptr = &buf;
+                //   buf.__dtor;
+                // }
+                // S temp = *ptr; // error: ptr contains an escaped object that has had cleanup run on it
+
+                parentObject.delayOnReadErrorOfEscape = true;
+                return;
+            }
+
+            // Cannot outlive this variable.
+            DFAVar* constrainedTo = (obj.constrainedBy !is null && obj.constrainedBy.var !is null) ? obj.constrainedBy
+                : null;
+            // The cell of a variable.
+            DFAVar* cellOf = (obj.storageFor !is null && obj.storageFor.var !is null) ? obj.storageFor
+                : null;
+
+            version (none)
+            {
+                printf("derivedFrom=%p, constrainedTo %p, cellOf %p\n",
+                    obj.derivedFrom, constrainedTo, cellOf);
+            }
+
+            // Both constrainedTo and cellOf cannot be escape from.
+            // The benefit of differentiating them allows us to tell the user that it was the cell that was escaped,
+            //  versus an object that was stored in it, that was later escaped.
+
+            // Have multiple layers of pointers, which we can't model.
+            if (obj.derivedFrom !is null)
+                cellOf = null;
+
+            DFAVar* either = constrainedTo !is null ? constrainedTo : cellOf;
+
+            if (either is null && haveConstraintOnLifeTime)
+                lookAtConstraintOnly = true;
+
+            if (!errorOnStackEscape && either !is null && either.param !is null)
+            {
+                either.mayEscapeInitialValue = true;
+                inferParameter(either, hadAnIndirection, haveConstraintOnLifeTime, inCell);
+                return;
+            }
+
+            if (hadAnIndirection || !errorOnStackEscape)
+            {
+            }
+            else if (cellOf !is null && !cellOf.unmodellable
+                && cellOf.oldestLifeTimeAllowedDepth >= 0)
+            {
+                cellOf.mayEscapeInitialValue = true;
+
+                onDemandEscapeError();
+                errorSink.errorSupplemental(cellOf.var.loc,
+                    "A pointer to the cell of the variable `%s` has potentially escaped",
+                    cellOf.var.ident.toChars);
+            }
+            else if (constrainedTo !is null && !constrainedTo.unmodellable
+                && obj.onTheStack && constrainedTo.oldestLifeTimeAllowedDepth >= 0)
+            {
+                constrainedTo.mayEscapeInitialValue = true;
+
+                onDemandEscapeError();
+                errorSink.errorSupplemental(constrainedTo.var.loc,
+                    "Pointer stored in variable `%s` has potentially escaped",
+                    constrainedTo.var.ident.toChars);
+            }
+        }, null);
+
+        if (lookAtConstraintOnly)
+        {
+            parentObject.walkIndirection(null, (DFAObject* constrained,
+                    bool hadAnIndirection, bool haveConstraintOnLifeTime) {
+
+                version (none)
+                {
+                    printf("potential escape 2 obj %p, hadAnIndirection=%d, haveConstraintOnLifeTime=%d\n",
+                        constrained, hadAnIndirection, haveConstraintOnLifeTime);
+                }
+
+                DFAVar* constrainedTo = constrained.constrainedBy;
+
+                if (!errorOnStackEscape && constrainedTo.param !is null)
+                {
+                    constrainedTo.mayEscapeInitialValue = true;
+                    inferParameter(constrainedTo, hadAnIndirection,
+                        haveConstraintOnLifeTime, false);
+                    return;
+                }
+
+                if (hadAnIndirection || !errorOnStackEscape)
+                {
+                }
+                else if (!constrainedTo.unmodellable && constrained.onTheStack
+                    && constrainedTo.oldestLifeTimeAllowedDepth >= 0)
+                {
+                    constrainedTo.mayEscapeInitialValue = true;
+
+                    onDemandEscapeError();
+                    errorSink.errorSupplemental(constrainedTo.var.loc,
+                        "Pointer stored in variable `%s` has potentially escaped",
+                        constrainedTo.var.ident.toChars);
+                }
             });
         }
     }

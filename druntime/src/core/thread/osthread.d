@@ -14,7 +14,7 @@ module core.thread.osthread;
 
 import core.atomic;
 import core.internal.traits : externDFunc;
-import core.memory : GC, pageSize;
+import core.memory : GC;
 import core.thread.context;
 import core.thread.threadbase;
 import core.thread.types;
@@ -2219,27 +2219,4 @@ nothrow @nogc unittest
         joinLowLevelThread(tids[i]);
 
     assert(task.n == tids.length);
-}
-
-version (Posix)
-package size_t adjustStackSize(size_t sz) nothrow @nogc
-{
-    if (sz == 0)
-        return 0;
-
-    // stack size must be at least PTHREAD_STACK_MIN for most platforms.
-    if (PTHREAD_STACK_MIN > sz)
-        sz = PTHREAD_STACK_MIN;
-
-    version (CRuntime_Glibc)
-    {
-        // On glibc, TLS uses the top of the stack, so add its size to the requested size
-        sz += externDFunc!("rt.sections_elf_shared.sizeOfTLS",
-                           size_t function() @nogc nothrow)();
-    }
-
-    // stack size must be a multiple of pageSize
-    sz = ((sz + pageSize - 1) & ~(pageSize - 1));
-
-    return sz;
 }

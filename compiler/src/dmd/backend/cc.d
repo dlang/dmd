@@ -562,7 +562,7 @@ struct Symbol
     nothrow:
 
     Symbol* Sl, Sr;             // left, right child
-    Symbol* Snext;              // next in threaded list
+    Symbol* Sforward;           // forward to another Symbol
     Symbol* Sisym;              // import version of this symbol
     dt_t* Sdt;                  // variables: initializer
     int Salignment;             // variables: alignment, 0 or -1 means default alignment
