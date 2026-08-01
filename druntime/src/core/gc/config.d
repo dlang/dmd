@@ -9,6 +9,9 @@ module core.gc.config;
 
 import core.internal.parseoptions;
 import core.stdc.stdio : printf;
+import core.system : Opt;
+
+alias Config = Opt.Config;
 
 __gshared Config config;
 
@@ -22,7 +25,7 @@ package(core) bool initialize(ref Config cfg) nothrow @nogc
     return _initialized;
 }
 
-struct Config
+struct ConfigT()
 {
     bool disable;            // start disabled
     bool fork = false;       // optional concurrent behaviour
