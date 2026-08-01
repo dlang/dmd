@@ -11,7 +11,7 @@ import core.internal.parseoptions;
 import core.stdc.stdio : printf;
 import core.system : Opt;
 
-alias Config = Opt.Config;
+alias Config = Opt.GcConfig;
 
 __gshared Config config;
 

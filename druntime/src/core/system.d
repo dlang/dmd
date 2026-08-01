@@ -22,5 +22,5 @@ struct Opt
 {
     import core.gc.config: ConfigT;
 
-    alias Config = ConfigT!();
+    alias GcConfig = ConfigT!();
 }
