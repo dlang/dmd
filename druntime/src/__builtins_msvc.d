@@ -198,6 +198,15 @@ version (MSVCIntrinsics)
                 enum llvmIRPtr = postfix is null ? type ~ "*" : type ~ " " ~ postfix ~ "*";
             }
         }
+
+        import ldc.attributes : llvm_target = target;
+    }
+    else
+    {
+        struct llvm_target
+        {
+            string specifier;
+        }
     }
 
     /* If you are adding an intrinsic which is declared
@@ -1347,6 +1356,102 @@ version (MSVCIntrinsics)
         }
     }
 
+    /* This is trusted so that it's @safe without DIP1000 enabled. */
+    /* prfchw forces prefetchw to be emitted on x86 (which is how MSVC behaves). */
+    @llvm_target("prfchw")
+    extern(C)
+    pragma(inline, true)
+    private void prefetchData(bool write, ubyte level)(scope const(void)* address) @trusted pure nothrow @nogc
+    if (level <= 3)
+    {
+        if (__ctfe)
+        {
+            /* Do nothing. */
+        }
+        else
+        {
+            version (LDC)
+            {
+                import ldc.intrinsics : llvm_prefetch;
+                enum ubyte locality = write ? 3 : level;
+                llvm_prefetch(address, write, locality, 1);
+            }
+            else version (GNU)
+            {
+                import gcc.builtins : __builtin_prefetch;
+                enum ubyte locality = write ? 3 : level;
+                __builtin_prefetch(address, write, locality);
+            }
+            else version (D_SIMD)
+            {
+                import core.simd : prefetch;
+                prefetch!(write, level)(address);
+            }
+            else version (InlineAsm_X86_64_Or_X86)
+            {
+                version (D_InlineAsm_X86_64)
+                {
+                    enum string addressOperand = "[RCX]";
+                    enum string loadAddressIntoRegister = "";
+                }
+                else
+                {
+                    enum string addressOperand = "[ECX]";
+                    enum string loadAddressIntoRegister = "mov ECX, [ESP + 4];";
+                }
+
+                static if (write)
+                {
+                    enum string hint = "w";
+                }
+                else
+                {
+                    enum string hint = (
+                          level == 0 ? "nta"
+                        : level == 1 ? "t2"
+                        : level == 2 ? "t1"
+                        : "t0"
+                    );
+                }
+
+                mixin(
+                    "asm @trusted pure nothrow @nogc
+                     {
+                         naked;
+                         " ~ loadAddressIntoRegister ~ "
+                         prefetch" ~ hint ~ " " ~ addressOperand ~ ";
+                         ret;
+                     }"
+                );
+            }
+            else
+            {
+                /* Do nothing. */
+            }
+        }
+    }
+
+    /* This is trusted so that it's @safe without DIP1000 enabled. */
+    @trusted pure nothrow @nogc unittest
+    {
+        static bool test()
+        {
+            immutable(ubyte) x;
+            prefetchData!(false, 0)(&x);
+            prefetchData!(false, 1)(&x);
+            prefetchData!(false, 2)(&x);
+            prefetchData!(false, 3)(&x);
+            prefetchData!(true, 0)(&x);
+            prefetchData!(true, 1)(&x);
+            prefetchData!(true, 2)(&x);
+            prefetchData!(true, 3)(&x);
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
+
     version (X86_64_Or_X86)
     {
         /* This is trusted so that it's @safe without DIP1000 enabled. */
@@ -1354,14 +1459,7 @@ version (MSVCIntrinsics)
         pragma(inline, true)
         void _m_prefetchw()(scope const(void)* address) @trusted pure nothrow @nogc
         {
-            if (__ctfe)
-            {}
-            else
-            {
-                version (GNU) enum simd = q{gcc.simd}; else enum simd = q{core.simd};
-                mixin("import ", simd, " : prefetch;");
-                prefetch!(true, 3)(address);
-            }
+            prefetchData!(true, 3)(address);
         }
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
@@ -1387,17 +1485,14 @@ version (MSVCIntrinsics)
             {}
             else
             {
-                version (GNU) enum simd = q{gcc.simd}; else enum simd = q{core.simd};
-                mixin("import ", simd, " : prefetch;");
-
                 /* Dear optimiser, please optimise this. */
                 switch (level)
                 {
-                case 0: return prefetch!(false, 0)(address);
-                case 1: return prefetch!(false, 3)(address);
-                case 2: return prefetch!(false, 2)(address);
-                case 3: return prefetch!(false, 1)(address);
-                default: return prefetch!(false, 0)(address);
+                case 0: return prefetchData!(false, 0)(address);
+                case 1: return prefetchData!(false, 3)(address);
+                case 2: return prefetchData!(false, 2)(address);
+                case 3: return prefetchData!(false, 1)(address);
+                default: return prefetchData!(false, 0)(address);
                 }
             }
         }
@@ -1428,14 +1523,7 @@ version (MSVCIntrinsics)
         pragma(inline, true)
         void __prefetch()(scope const(void)* address) @trusted pure nothrow @nogc
         {
-            if (__ctfe)
-            {}
-            else
-            {
-                version (GNU) enum simd = q{gcc.simd}; else enum simd = q{core.simd};
-                mixin("import ", simd, " : prefetch;");
-                prefetch!(false, 3)(address);
-            }
+            prefetchData!(false, 3)(address);
         }
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
@@ -1460,14 +1548,7 @@ version (MSVCIntrinsics)
         pragma(inline, true)
         void __prefetchw()(scope const(void)* address) @trusted pure nothrow @nogc
         {
-            if (__ctfe)
-            {}
-            else
-            {
-                version (GNU) enum simd = q{gcc.simd}; else enum simd = q{core.simd};
-                mixin("import ", simd, " : prefetch;");
-                prefetch!(true, 3)(address);
-            }
+            prefetchData!(true, 3)(address);
         }
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
@@ -8565,15 +8646,14 @@ version (MSVCIntrinsics)
             {
                 version (X86_64)
                 {
+                    /* This prefetch is handled by the inline assembly for other compilers. */
                     version (LDC)
                     {
-                        import core.simd : prefetch;
-                        prefetch!(true, 3)(((a) @trusted => cast(const(void)*) a)(address));
+                        prefetchData!(true, 3)(((a) @trusted => cast(const(void)*) a)(address));
                     }
                     else version (GNU)
                     {
-                        import gcc.builtins : __builtin_prefetch;
-                        __builtin_prefetch(((a) @trusted => cast(const(void)*) a)(address), 1, 3);
+                        prefetchData!(true, 3)(((a) @trusted => cast(const(void)*) a)(address));
                     }
                 }
 
@@ -9224,16 +9304,7 @@ version (MSVCIntrinsics)
             {
                 static if (!noPrefetch)
                 {
-                    version (GNU)
-                    {
-                        import gcc.builtins : __builtin_prefetch;
-                        __builtin_prefetch(((a) @trusted => cast(const(void)*) a)(address), 1, 3);
-                    }
-                    else
-                    {
-                        import core.simd : prefetch;
-                        prefetch!(true, 3)(((a) @trusted => cast(const(void)*) a)(address));
-                    }
+                    prefetchData!(true, 3)(((a) @trusted => cast(const(void)*) a)(address));
                 }
             }
 
