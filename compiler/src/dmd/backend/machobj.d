@@ -502,6 +502,13 @@ void patch(seg_data* pseg, targ_size_t offset, int seg, targ_size_t value)
 @trusted
 int mach_numbersyms()
 {
+    // Sort Symbols for faster searching
+    sortSymbols(machobj.localSymbols[]);
+    sortSymbols(machobj.publicSymbols[]);
+    //sortSymbols(machobj.externSymbols[]); // no need to sort these
+    //sortComdefs(machobj.comdefs[]);       // not implemented yet
+
+
     //printf("mach_numbersyms()\n");
     int n = 0;
 
@@ -3682,7 +3689,7 @@ void dumpFixup(ref Symbol s, uint fixup)
 /****************************************
  * Sort the array of Symbol pointers by their identifiers.
  * Params:
- *	symbols = array to be in-place sorted
+ *      symbols = array to be in-place sorted
  */
 
 @trusted

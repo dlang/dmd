@@ -625,7 +625,7 @@ Symbol* symbol_copy(ref Symbol s)
     /*printf("symbol_copy(%s)\n",s.Sident.ptr);*/
     scopy = symbol_calloc(s.Sident.ptr[0 .. strlen(s.Sident.ptr)]);
     memcpy(scopy, &s, Symbol.sizeof - s.Sident.sizeof);
-    scopy.Sl = scopy.Sr = scopy.Snext = null;
+    scopy.Sl = scopy.Sr = scopy.Sforward = null;
     scopy.Ssymnum = SYMIDX.max;
     if (scopy.Sdt)
     {
