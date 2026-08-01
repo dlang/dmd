@@ -9,7 +9,7 @@ module core.gc.config;
 
 import core.internal.parseoptions;
 import core.stdc.stdio : printf;
-import core.system : Opt;
+import core.system.opt : Opt;
 
 alias Config = Opt.GcConfig;
 

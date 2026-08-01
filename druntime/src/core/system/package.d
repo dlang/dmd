@@ -17,10 +17,3 @@ struct Mem
 
     alias allocateOnStack = alloca;
 }
-
-struct Opt
-{
-    import core.gc.config: ConfigT;
-
-    alias GcConfig = ConfigT!();
-}
