@@ -3083,8 +3083,6 @@ version (MSVCIntrinsics)
                 }
                 else version (X86)
                 {
-                    import std.math : nextUp;
-
                     /* If the hardware can handle it, let it handle it. */
                     if (value < twoExp31Float && value >= -twoExp31Float)
                     {
