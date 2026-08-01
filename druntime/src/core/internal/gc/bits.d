@@ -51,7 +51,7 @@ struct GCBits
     {
         this.nbits = nbits;
         if (!AllocSupportsShared || !share)
-            data = cast(typeof(data[0])*) Mem.allocateBlank(nwords * data[0].sizeof);
+            data = cast(typeof(data[0])*) Mem.allocateOneBlank(nwords * data[0].sizeof);
         else static if (AllocSupportsShared)
             data = cast(typeof(data[0])*)os_mem_map_shared(nwords * data[0].sizeof); // Allocate as MAP_SHARED
         else

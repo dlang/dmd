@@ -11,7 +11,7 @@ struct Mem
     alias allocateOne = malloc;
     alias reallocate = realloc;
     alias free = core.stdc.stdlib.free;
-    static void* allocateBlank(size_t size) nothrow @nogc => calloc(1, size);
+    static void* allocateOneBlank(size_t size) nothrow @nogc => calloc(1, size);
 
     alias allocateOnStack = alloca;
 }

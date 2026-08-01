@@ -120,7 +120,7 @@ class ManualGC : GC
 
     void* calloc(size_t size, uint bits, const TypeInfo ti) nothrow
     {
-        void* p = Mem.allocateBlank(size);
+        void* p = Mem.allocateOneBlank(size);
 
         if (size && p is null)
             onOutOfMemoryError();
