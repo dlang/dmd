@@ -208,6 +208,7 @@ extern (C) void* __alloca(int nbytes)
         static assert(0);
 }
 else
+extern (C) void* __alloca(int nbytes)
 {
     static assert(false, "Not implemented for this compiler");
 }
