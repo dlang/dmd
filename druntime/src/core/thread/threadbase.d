@@ -699,6 +699,25 @@ package(core.thread):
         pAboutToStart[nAboutToStart - 1] = t;
     }
 
+    package static void decrementAboutToStart(ThreadBase t) nothrow @nogc
+    {
+        size_t idx = -1;
+        foreach (i, thr; pAboutToStart[0 .. nAboutToStart])
+        {
+            if (thr is t)
+            {
+                idx = i;
+                break;
+            }
+        }
+        assert(idx != -1);
+        import core.stdc.string : memmove;
+        memmove(pAboutToStart + idx, pAboutToStart + idx + 1, size_t.sizeof * (nAboutToStart - idx - 1));
+        pAboutToStart =
+            cast(ThreadBase*)realloc(pAboutToStart, size_t.sizeof * --nAboutToStart);
+    }
+
+
     //
     // Add a thread to the global thread list.
     //
@@ -715,23 +734,7 @@ package(core.thread):
         assert(t.isRunning); // check this with slock to ensure pthread_create already returned
         assert(!suspendDepth); // must be 0 b/c it's only set with slock held
 
-        if (rmAboutToStart)
-        {
-            size_t idx = -1;
-            foreach (i, thr; pAboutToStart[0 .. nAboutToStart])
-            {
-                if (thr is t)
-                {
-                    idx = i;
-                    break;
-                }
-            }
-            assert(idx != -1);
-            import core.stdc.string : memmove;
-            memmove(pAboutToStart + idx, pAboutToStart + idx + 1, size_t.sizeof * (nAboutToStart - idx - 1));
-            pAboutToStart =
-                cast(ThreadBase*)realloc(pAboutToStart, size_t.sizeof * --nAboutToStart);
-        }
+        if (rmAboutToStart) decrementAboutToStart(t);
 
         if (sm_tbeg)
         {
