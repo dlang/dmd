@@ -224,7 +224,7 @@ struct Runtime
             if (len == 0)
                 return null;
 
-            auto buf = cast(WCHAR*) Mem.allocate((len+1) * WCHAR.sizeof);
+            auto buf = cast(WCHAR*) Mem.allocateOne((len+1) * WCHAR.sizeof);
             if (buf is null) return null;
             scope (exit) Mem.free(buf);
 
@@ -242,7 +242,7 @@ struct Runtime
             /* Need a 0-terminated C string for the dll name
              */
             immutable len = name.length;
-            auto buf = cast(char*) Mem.allocate(len + 1);
+            auto buf = cast(char*) Mem.allocateOne(len + 1);
             if (!buf) return null;
             scope (exit) Mem.free(buf);
 
@@ -745,7 +745,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null ) // @nogc
     static T allocate(T, Args...)(auto ref Args args) @nogc
     {
         import core.lifetime : emplace;
-        auto result = cast(T) Mem.allocate(__traits(classInstanceSize, T));
+        auto result = cast(T) Mem.allocateOne(__traits(classInstanceSize, T));
         return emplace(result, args);
     }
     version (Windows)

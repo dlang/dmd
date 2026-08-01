@@ -289,7 +289,7 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
         // Allocate args[] on the stack - use wargc
         version (UseMalloc)
         {
-            char[][] args = (cast(char[]*) Mem.allocate(wargc * (char[]).sizeof))[0 .. wargc];
+            char[][] args = (cast(char[]*) Mem.allocateOne(wargc * (char[]).sizeof))[0 .. wargc];
             if (wargc)
                 assert(args.ptr);
             scope (exit) free(args.ptr);
@@ -304,7 +304,7 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
         {
             version (UseMalloc)
             {
-                char* totalArgsBuff = cast(char*) Mem.allocate(totalArgsLength);
+                char* totalArgsBuff = cast(char*) Mem.allocateOne(totalArgsLength);
                 if (totalArgsLength)
                     assert(totalArgsBuff);
                 scope (exit) free(totalArgsBuff);
@@ -334,7 +334,7 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
         // Allocate args[] on the stack
         version (UseMalloc)
         {
-            char[][] args = (cast(char[]*) Mem.allocate(argc * (char[]).sizeof))[0 .. argc];
+            char[][] args = (cast(char[]*) Mem.allocateOne(argc * (char[]).sizeof))[0 .. argc];
             if (argc)
                 assert(args.ptr);
             scope (exit) free(args.ptr);
@@ -482,7 +482,7 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
         auto length = args.length * (char[]).sizeof + totalArgsLength;
         version (UseMalloc)
         {
-            auto buff = cast(char[]*) Mem.allocate(length);
+            auto buff = cast(char[]*) Mem.allocateOne(length);
             if (length)
                 assert(buff);
             //scope (exit) buff;
@@ -721,7 +721,7 @@ extern (C) void _d_print_throwable(Throwable t)
                 uint codepage = GetConsoleOutputCP();
                 const slen = WideCharToMultiByte(codepage, 0,
                         buf.ptr, cast(int)buf.len, null, 0, null, null);
-                if (auto sptr = cast(char*) Mem.allocate(slen * char.sizeof))
+                if (auto sptr = cast(char*) Mem.allocateOne(slen * char.sizeof))
                 {
                     WideCharToMultiByte(codepage, 0,
                         buf.ptr, cast(int)buf.len, sptr, slen, null, null);

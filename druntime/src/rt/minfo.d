@@ -66,9 +66,9 @@ struct ModuleGroup
         import core.bitop : bt, btc, bts;
 
         // set up all the arrays.
-        size_t[] cyclePath = (cast(size_t*) Mem.allocate(size_t.sizeof * _modules.length * 2))[0 .. _modules.length * 2];
+        size_t[] cyclePath = (cast(size_t*) Mem.allocateOne(size_t.sizeof * _modules.length * 2))[0 .. _modules.length * 2];
         size_t totalMods;
-        int[] distance = (cast(int*) Mem.allocate(int.sizeof * _modules.length))[0 .. _modules.length];
+        int[] distance = (cast(int*) Mem.allocateOne(int.sizeof * _modules.length))[0 .. _modules.length];
         scope(exit)
             Mem.free(distance.ptr);
 
@@ -221,9 +221,9 @@ struct ModuleGroup
         // allocate some stack arrays that will be used throughout the process.
         immutable nwords = (len + 8 * size_t.sizeof - 1) / (8 * size_t.sizeof);
         immutable flagbytes = nwords * size_t.sizeof;
-        auto ctorstart = cast(size_t*) Mem.allocate(flagbytes); // ctor/dtor seen
-        auto ctordone = cast(size_t*) Mem.allocate(flagbytes); // ctor/dtor processed
-        auto relevant = cast(size_t*) Mem.allocate(flagbytes); // has ctors/dtors
+        auto ctorstart = cast(size_t*) Mem.allocateOne(flagbytes); // ctor/dtor seen
+        auto ctordone = cast(size_t*) Mem.allocateOne(flagbytes); // ctor/dtor processed
+        auto relevant = cast(size_t*) Mem.allocateOne(flagbytes); // has ctors/dtors
         scope (exit)
         {
             Mem.free(ctorstart);
@@ -239,13 +239,13 @@ struct ModuleGroup
 
         // build the edges between each module. We may need this for printing,
         // and also allows avoiding keeping a hash around for module lookups.
-        int[][] edges = (cast(int[]*) Mem.allocate((int[]).sizeof * _modules.length))[0 .. _modules.length];
+        int[][] edges = (cast(int[]*) Mem.allocateOne((int[]).sizeof * _modules.length))[0 .. _modules.length];
         {
             HashTab!(immutable(ModuleInfo)*, int) modIndexes;
             foreach (i, m; _modules)
                 modIndexes[m] = cast(int) i;
 
-            auto reachable = cast(size_t*) Mem.allocate(flagbytes);
+            auto reachable = cast(size_t*) Mem.allocateOne(flagbytes);
             scope(exit)
                 Mem.free(reachable);
 
@@ -255,7 +255,7 @@ struct ModuleGroup
                 // https://issues.dlang.org/show_bug.cgi?id=16208
                 clearFlags(reachable);
                 // preallocate enough space to store all the indexes
-                int *edge = cast(int*) Mem.allocate(int.sizeof * _modules.length);
+                int *edge = cast(int*) Mem.allocateOne(int.sizeof * _modules.length);
                 size_t nEdges = 0;
                 foreach (imp; m.importedModules)
                 {
@@ -330,7 +330,7 @@ struct ModuleGroup
             }
 
             // initialize "stack"
-            auto stack = cast(stackFrame*) Mem.allocate(stackFrame.sizeof * len);
+            auto stack = cast(stackFrame*) Mem.allocateOne(stackFrame.sizeof * len);
             scope (exit)
                 Mem.free(stack);
             auto stacktop = stack + len;
@@ -423,7 +423,7 @@ struct ModuleGroup
             immutable ModuleInfo* current = _modules[curidx];
 
             // First, determine what modules are reachable.
-            auto reachable = cast(size_t*) Mem.allocate(flagbytes);
+            auto reachable = cast(size_t*) Mem.allocateOne(flagbytes);
             scope (exit)
                 Mem.free(reachable);
             if (!findDeps(curidx, reachable))
@@ -468,7 +468,7 @@ struct ModuleGroup
             clearFlags(ctordone);
 
             // pre-allocate enough space to hold all modules.
-            ctors = cast(immutable(ModuleInfo)**) Mem.allocate(len * (void*).sizeof);
+            ctors = cast(immutable(ModuleInfo)**) Mem.allocateOne(len * (void*).sizeof);
             ctoridx = 0;
             foreach (idx, m; _modules)
             {

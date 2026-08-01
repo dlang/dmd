@@ -46,7 +46,7 @@ private GC initialize()
 {
     import core.lifetime : emplace;
 
-    auto gc = cast(ManualGC) Mem.allocate(__traits(classInstanceSize, ManualGC));
+    auto gc = cast(ManualGC) Mem.allocateOne(__traits(classInstanceSize, ManualGC));
     if (!gc)
         onOutOfMemoryError();
 
@@ -102,7 +102,7 @@ class ManualGC : GC
 
     void* malloc(size_t size, uint bits, const TypeInfo ti) nothrow
     {
-        void* p = Mem.allocate(size);
+        void* p = Mem.allocateOne(size);
 
         if (size && p is null)
             onOutOfMemoryError();
