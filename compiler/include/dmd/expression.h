@@ -319,6 +319,9 @@ public:
     void *string;       // char, wchar, dchar, or long data
     size_t len;         // number of chars, wchars, or dchars
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
+    uint8_t sparseFillValue; // fill byte for positions dataLen .. len when isSparse
+    d_bool isSparse;    // if string uses sparse encoding
+    d_size_t dataLen;   // actual data length when isSparse is true
     d_bool committed;   // if type is committed
     d_bool hexString;   // if string is parsed from a hex string literal
     d_bool cMacro;      // If the string is from a collected C macro

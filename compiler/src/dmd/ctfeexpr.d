@@ -211,14 +211,21 @@ private Expressions* copyLiteralArray(Expressions* oldelems)
 
 // Expand null elements using the given basis, for callers that need
 // a dense array (e.g. concatenation, AA operations).
+// Shares a single copy of basis across all null slots to avoid O(N) blowup.
 private Expressions* copyLiteralArrayExpand(Expressions* oldelems, Expression basis)
 {
     auto newelems = copyLiteralArray(oldelems);
     if (basis && newelems)
     {
+        Expression sharedBasis = null;
         foreach (ref e; *newelems)
         {
-            if (!e) e = copyLiteral(basis).copy();
+            if (!e)
+            {
+                if (!sharedBasis)
+                    sharedBasis = copyLiteral(basis).copy();
+                e = sharedBasis;
+            }
         }
     }
     return newelems;
@@ -231,11 +238,30 @@ UnionExp copyLiteral(Expression e)
     UnionExp ue = void;
     if (auto se = e.isStringExp()) // syntaxCopy doesn't make a copy for StringExp!
     {
-        char* s = cast(char*)mem.xcalloc(se.len + 1, se.sz);
-        const slice = se.peekData();
-        memcpy(s, slice.ptr, slice.length);
-        emplaceExp!(StringExp)(&ue, se.loc, s[0 .. se.len * se.sz], se.len, se.sz);
-        StringExp se2 = ue.exp().isStringExp();
+        StringExp se2;
+        if (se.isSparse)
+        {
+            // Copy sparse string: preserve the sparse encoding.
+            // Copy only the actual data (dataLen), not the full logical length.
+            const copyLen = se.dataLen ? se.dataLen : se.len;
+            char* s = cast(char*)mem.xmalloc_noscan((copyLen + 1) * se.sz);
+            const data = se.peekRawData();
+            memcpy(s, data.ptr, data.length);
+            memset(s + data.length, 0, se.sz); // terminating 0
+            emplaceExp!(StringExp)(&ue, se.loc, s[0 .. copyLen * se.sz], se.len, se.sz);
+            se2 = ue.exp().isStringExp();
+            se2.isSparse = true;
+            se2.sparseFillValue = se.sparseFillValue;
+            se2.dataLen = copyLen;
+        }
+        else
+        {
+            char* s = cast(char*)mem.xcalloc(se.len + 1, se.sz);
+            const slice = se.peekData();
+            memcpy(s, slice.ptr, slice.length);
+            emplaceExp!(StringExp)(&ue, se.loc, s[0 .. se.len * se.sz], se.len, se.sz);
+            se2 = ue.exp().isStringExp();
+        }
         se2.committed = se.committed;
         se2.postfix = se.postfix;
         se2.type = se.type;

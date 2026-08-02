@@ -905,6 +905,17 @@ extern (C++) final class StringExp : Expression
     size_t len;         // number of code units
     ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
 
+    /** When isSparse is true, the byte value used to fill positions
+     *  dataLen .. len in the string buffer.
+     */
+    ubyte sparseFillValue;
+    /// Whether this string uses sparse encoding
+    bool isSparse;
+
+    /// When isSparse is true, the number of code units actually stored
+    /// in the string buffer. Positions dataLen .. len use sparseFillValue.
+    size_t dataLen;
+
     /**
      *  Whether the string literal's type is fixed
      *  Example:
@@ -1034,7 +1045,15 @@ extern (C++) final class StringExp : Expression
         }
         if (sz == encSize)
         {
-            memcpy(dest, string, len * sz);
+            if (isSparse && dataLen <= len)
+            {
+                const srcSize = dataLen * sz;
+                memcpy(dest, string, srcSize);
+                const fillByte = sparseFillValue;
+                memset(dest + srcSize, fillByte, (len - dataLen) * sz);
+            }
+            else
+                memcpy(dest, string, len * sz);
             if (zero)
                 memset(dest + len * sz, 0, sz);
         }
@@ -1059,6 +1078,8 @@ extern (C++) final class StringExp : Expression
     dinteger_t getIndex(size_t i) const pure
     {
         assert(i < len);
+        if (isSparse && i >= dataLen)
+            return sparseFillValue;
         final switch (sz)
         {
         case 1:
@@ -1070,6 +1091,28 @@ extern (C++) final class StringExp : Expression
         case 8:
             return lstring[i];
         }
+    }
+
+    /*******************************************
+     * If this is a sparse string (isSparse is true),
+     * expand it to a full dense string. No-op otherwise.
+     */
+    void materialize() const
+    {
+        if (!isSparse)
+            return;
+        auto self = cast(StringExp) this;
+        const fullLen = self.len;
+        void* s = mem.xmalloc_noscan((fullLen + 1) * self.sz);
+        const srcSize = self.dataLen * self.sz;
+        memcpy(s, self.string, srcSize);
+        const fillByte = self.sparseFillValue;
+        memset(s + srcSize, fillByte, (fullLen - self.dataLen) * self.sz);
+        memset(s + fullLen * self.sz, 0, self.sz); // terminating 0
+        self.isSparse = false;
+        self.sparseFillValue = 0;
+        self.dataLen = 0;
+        self.string = cast(char*)s;
     }
 
     /*********************************************
@@ -1086,6 +1129,7 @@ extern (C++) final class StringExp : Expression
     extern (D) void setIndex(size_t i, long c)
     {
         assert(i < len);
+        materialize();
         final switch (sz)
         {
         case 1:
@@ -1134,35 +1178,77 @@ extern (C++) final class StringExp : Expression
         //printf("sz = %d, len1 = %d, len2 = %d\n", sz, cast(int)len1, cast(int)len2);
         if (len1 != len2)
             return cast(int)(len1 - len2);
-        switch (sz)
-        {
-        case 1:
-            return memcmp(string, se2.string, len1);
 
-        case 2:
+        // Fast path: both non-sparse
+        if (!isSparse && !se2.isSparse)
+        {
+            switch (sz)
             {
-                wchar* s1 = cast(wchar*)string;
-                wchar* s2 = cast(wchar*)se2.string;
-                foreach (u; 0 .. len)
+            case 1:
+                return memcmp(string, se2.string, len1);
+
+            case 2:
                 {
-                    if (s1[u] != s2[u])
-                        return s1[u] - s2[u];
+                    wchar* s1 = cast(wchar*)string;
+                    wchar* s2 = cast(wchar*)se2.string;
+                    foreach (u; 0 .. len)
+                    {
+                        if (s1[u] != s2[u])
+                            return s1[u] - s2[u];
+                    }
+                }
+                break;
+            case 4:
+                {
+                    dchar* s1 = cast(dchar*)string;
+                    dchar* s2 = cast(dchar*)se2.string;
+                    foreach (u; 0 .. len)
+                    {
+                        if (s1[u] != s2[u])
+                            return s1[u] - s2[u];
+                    }
+                }
+                break;
+            default:
+                assert(0);
+            }
+            return 0;
+        }
+
+        // Slow path: at least one sparse - element-by-element comparison
+        foreach (u; 0 .. len)
+        {
+            dinteger_t a, b;
+            // Compute a
+            if (isSparse && u >= dataLen)
+                a = sparseFillValue;
+            else
+            {
+                switch (sz)
+                {
+                case 1: a = string[u]; break;
+                case 2: a = wstring[u]; break;
+                case 4: a = dstring[u]; break;
+                case 8: a = lstring[u]; break;
+                default: assert(0);
                 }
             }
-            break;
-        case 4:
+            // Compute b
+            if (se2.isSparse && u >= se2.dataLen)
+                b = se2.sparseFillValue;
+            else
             {
-                dchar* s1 = cast(dchar*)string;
-                dchar* s2 = cast(dchar*)se2.string;
-                foreach (u; 0 .. len)
+                switch (sz)
                 {
-                    if (s1[u] != s2[u])
-                        return s1[u] - s2[u];
+                case 1: b = se2.string[u]; break;
+                case 2: b = se2.wstring[u]; break;
+                case 4: b = se2.dstring[u]; break;
+                case 8: b = se2.lstring[u]; break;
+                default: assert(0);
                 }
             }
-            break;
-        default:
-            assert(0);
+            if (a != b)
+                return a < b ? -1 : 1;
         }
         return 0;
     }
@@ -1183,18 +1269,21 @@ extern (C++) final class StringExp : Expression
     extern (D) const(char)[] peekString() const
     {
         assert(sz == 1);
+        materialize();
         return this.string[0 .. len];
     }
 
     extern (D) const(wchar)[] peekWstring() const
     {
         assert(sz == 2);
+        materialize();
         return this.wstring[0 .. len];
     }
 
     extern (D) const(dchar)[] peekDstring() const
     {
         assert(sz == 4);
+        materialize();
         return this.dstring[0 .. len];
     }
 
@@ -1203,7 +1292,20 @@ extern (C++) final class StringExp : Expression
      */
     extern (D) const(ubyte)[] peekData() const
     {
+        materialize();
         return cast(const(ubyte)[])this.string[0 .. len * sz];
+    }
+
+    /*******************
+     * Get a slice of the raw backing buffer without materializing.
+     * For sparse strings, this returns only dataLen * sz bytes
+     * (not the full logical length). Use peekData() if you need
+     * the full expanded data.
+     */
+    extern (D) const(ubyte)[] peekRawData() const
+    {
+        const rawLen = isSparse ? dataLen : len;
+        return cast(const(ubyte)[])this.string[0 .. rawLen * sz];
     }
 
     /*******************
@@ -1212,6 +1314,7 @@ extern (C++) final class StringExp : Expression
      */
     extern (D) ubyte[] borrowData()
     {
+        materialize();
         return cast(ubyte[])this.string[0 .. len * sz];
     }
 
@@ -1224,6 +1327,9 @@ extern (C++) final class StringExp : Expression
         this.string = cast(char*)s;
         this.len = len;
         this.sz = sz;
+        this.isSparse = false;
+        this.sparseFillValue = 0;
+        this.dataLen = 0;
     }
 
     override void accept(Visitor v)

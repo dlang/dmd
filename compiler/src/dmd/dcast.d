@@ -2503,17 +2503,21 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             se.committed = true;
             se.type = t;
 
-            /* If larger than source, pad with zeros.
+            /* If larger than source, use sparse representation
+             * to avoid O(N) memory allocation for large padded strings.
              */
             const fullSize = (se.len + 1) * se.sz; // incl. terminating 0
             if (fullSize > (e.len + 1) * e.sz)
             {
-                void* s = mem.xmalloc_noscan(fullSize);
-                const srcSize = e.len * e.sz;
-                const data = se.peekData();
-                memcpy(s, data.ptr, srcSize);
-                memset(s + srcSize, 0, fullSize - srcSize);
-                se.setData(s, se.len, se.sz);
+                // Use sparse encoding: keep original data, fill rest with zeros
+                se.isSparse = true;
+                se.sparseFillValue = 0;
+                se.dataLen = e.len;
+            }
+            else
+            {
+                se.isSparse = false;
+                se.dataLen = 0;
             }
             return se;
         }
@@ -2684,14 +2688,29 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             // Changing dimensions
             if (dim2 != se.len)
             {
-                // Copy when changing the string literal
-                const newsz = se.sz;
-                const d = (dim2 < se.len) ? dim2 : se.len;
-                void* s = mem.xmalloc_noscan((dim2 + 1) * newsz);
-                memcpy(s, se.peekData().ptr, d * newsz);
-                // Extend with 0, add terminating 0
-                memset(s + d * newsz, 0, (dim2 + 1 - d) * newsz);
-                se.setData(s, dim2, newsz);
+                // If extending, use sparse representation to avoid O(N) allocation
+                if (dim2 > se.len)
+                {
+                    se.dataLen = se.isSparse ? se.dataLen : se.len;
+                    se.isSparse = true;
+                    se.sparseFillValue = 0;
+                    se.len = dim2;
+                }
+                else
+                {
+                    // Truncating: must copy with shorter data
+                    const newsz = se.sz;
+                    void* s = mem.xmalloc_noscan((dim2 + 1) * newsz);
+                    memcpy(s, se.peekData().ptr, dim2 * newsz);
+                    memset(s + dim2 * newsz, 0, newsz); // terminating 0
+                    se.setData(s, dim2, newsz);
+                }
+            }
+            else
+            {
+                // Same dimension: clear any stale sparse state from copy
+                se.isSparse = false;
+                se.dataLen = 0;
             }
         }
         se.type = t;

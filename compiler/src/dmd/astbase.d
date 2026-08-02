@@ -4949,6 +4949,17 @@ struct ASTBase
         /// If the string is from a collected C macro
         bool cMacro = false;
 
+        /** When isSparse is true, the byte value used to fill positions
+         *  dataLen .. len in the string buffer.
+         */
+        ubyte sparseFillValue;
+        /// Whether this string uses sparse encoding
+        bool isSparse;
+
+        /// When isSparse is true, the number of code units actually stored
+        /// in the string buffer.
+        size_t dataLen;
+
         extern (D) this(Loc loc, const(void)[] string)
         {
             super(loc, EXP.string_, __traits(classInstanceSize, StringExp));
@@ -4989,7 +5000,14 @@ struct ASTBase
             }
             if (sz == encSize)
             {
-                memcpy(dest, string, len * sz);
+                if (isSparse)
+                {
+                    const srcSize = dataLen * sz;
+                    memcpy(dest, string, srcSize);
+                    memset(dest + srcSize, sparseFillValue, (len - dataLen) * sz);
+                }
+                else
+                    memcpy(dest, string, len * sz);
                 if (zero)
                     memset(dest + len * sz, 0, sz);
             }
