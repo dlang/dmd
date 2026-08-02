@@ -34,7 +34,7 @@ TimeTraceProfiler* timeTraceProfiler = null;
  *   timeGranularityUs = minimum event size in microseconds
  *   processName = name of this executable
  */
-extern (C++)
+extern (C++, "dmd")
 void initializeTimeTrace(uint timeGranularityUs, const(char)* processName)
 {
     assert(timeTraceProfiler is null, "Double initialization of timeTraceProfiler");
@@ -46,7 +46,7 @@ void initializeTimeTrace(uint timeGranularityUs, const(char)* processName)
  *
  * After this, no more calls to timeTrace functions can be made.
  */
-extern (C++)
+extern (C++, "dmd")
 void deinitializeTimeTrace()
 {
     if (timeTraceProfilerEnabled())
@@ -60,7 +60,7 @@ void deinitializeTimeTrace()
  * Returns: Whether time tracing is enabled.
  */
 pragma(inline, true)
-extern (C++)
+extern (C++, "dmd")
 bool timeTraceProfilerEnabled()
 {
     version (LDC)
@@ -80,7 +80,7 @@ bool timeTraceProfilerEnabled()
  * Params:
  *   buf = output buffer to write JSON into
  */
-extern (C++)
+extern (C++, "dmd")
 void writeTimeTraceProfile(OutBuffer* buf)
 {
     timeTraceProfiler.writeToBuffer(*buf);
@@ -94,7 +94,7 @@ void writeTimeTraceProfile(OutBuffer* buf)
  *   detail_ptr = further details, visible when this event is selected
  *   loc = source location corresponding to this event
  */
-extern (C++)
+extern (C++, "dmd")
 void timeTraceBeginEvent(scope const(char)* name_ptr, scope const(char)* detail_ptr, Loc loc)
 {
     import dmd.root.rmem : xarraydup;
@@ -117,7 +117,7 @@ void timeTraceBeginEvent(scope const(char)* name_ptr, scope const(char)* detail_
  *   eventType = what compilation stage the event belongs to
  *      (redundant with the eventType of `timeTraceEndEvent` but used by GDC)
  */
-extern (C++)
+extern (C++, "dmd")
 void timeTraceBeginEvent(TimeTraceEventType eventType)
 {
     if (timeTraceProfilerEnabled)
@@ -135,7 +135,7 @@ void timeTraceBeginEvent(TimeTraceEventType eventType)
  *   e = Expression which was analyzed, used to generate 'name' and 'detail'
  *   detail = custom lazy string for 'detail' of event
  */
-extern (C++)
+extern (C++, "dmd")
 void timeTraceEndEvent(TimeTraceEventType eventType)
 {
     if (timeTraceProfilerEnabled)
@@ -157,7 +157,7 @@ void timeTraceEndEvent(TimeTraceEventType eventType, Dsymbol sym, scope const(ch
 }
 
 /// ditto
-extern (C++)
+extern (C++, "dmd")
 void timeTraceEndEvent(TimeTraceEventType eventType, Expression e)
 {
     if (timeTraceProfilerEnabled)
