@@ -1,0 +1,17 @@
+Opt-in thread-local GC (`tgc`)
+
+A new garbage collector implementation can be selected with
+`--DRT-gcopt=gc:tgc`.
+
+Each attached thread owns a private heap arena. Collection scans and sweeps only
+that thread's stack, TLS, and blocks — it does not issue a process-wide
+stop-the-world pause. Threads detached via `thread_detachThis()` are never
+paused by `tgc` collections.
+
+Cross-thread sharing of GC pointers is unsupported in this first version except
+through ownership transfer that returns memory via a remote free list. Prefer
+copy or `immutable` message passing (`std.concurrency`). Partitioned shared
+regions are planned as a later phase.
+
+Informally this collector is sometimes called a "realtime GC" because it avoids
+global pauses; the registered name is `tgc` (thread garbage collection).

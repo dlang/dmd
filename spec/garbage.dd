@@ -405,7 +405,10 @@ $(H2 $(LNAME2 gc_config, Configuring the Collector))
         $(UL
         $(LI disable:0|1    - start disabled)
         $(LI profile:0|1    - enable profiling with summary when terminating program)
-        $(LI gc:conservative|precise|manual - select collector implementation (default = conservative))
+        $(LI gc:conservative|precise|manual|tgc - select collector implementation (default = conservative).
+          $(TT tgc) is an opt-in thread-local collector: each thread has a private heap and
+          collection does not globally stop-the-world. Prefer copy or $(TT immutable) message
+          passing across threads; unrestricted shared GC pointers across heaps are unsupported in v1.)
         $(LI initReserve:N  - initial memory to reserve in MB)
         $(LI minPoolSize:N  - initial and minimum pool size in MB)
         $(LI maxPoolSize:N  - maximum pool size in MB)
