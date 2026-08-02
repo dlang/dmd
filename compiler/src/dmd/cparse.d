@@ -775,6 +775,7 @@ final class CParser(AST) : Parser!AST
                 else
                     importBuiltins = true;  // probably one of those compiler extensions
             }
+            token.checkKeyword();
             e = new AST.IdentifierExp(loc, token.ident);
             nextToken();
             break;
@@ -943,6 +944,7 @@ final class CParser(AST) : Parser!AST
                 nextToken();
                 if (token.value == TOK.identifier)
                 {
+                    token.checkKeyword();
                     Identifier id = token.ident;
                     e = new AST.DotIdExp(loc, e, id);
                     break;
@@ -954,6 +956,7 @@ final class CParser(AST) : Parser!AST
                 nextToken();
                 if (token.value == TOK.identifier)
                 {
+                    token.checkKeyword();
                     Identifier id = token.ident;
                     auto die = new AST.DotIdExp(loc, e, id);
                     die.arrow = true;
@@ -2890,6 +2893,7 @@ final class CParser(AST) : Parser!AST
                 switch (token.value)
                 {
                 case TOK.identifier:        // identifier
+                    token.checkKeyword();
                     //printf("identifier %s\n", token.ident.toChars());
                     if (declarator == DTR.xabstract)
                         error("identifier not allowed in abstract-declarator");
@@ -3237,6 +3241,9 @@ final class CParser(AST) : Parser!AST
          */
         while (1)
         {
+            if (token.value == TOK.identifier)
+                token.checkKeyword();
+
             if (token.value == TOK.rightParenthesis)
                 break;
             if (token.value == TOK.dotDotDot)
@@ -3335,6 +3342,9 @@ final class CParser(AST) : Parser!AST
         auto arguments = new AST.Expressions();
         while (token.value != TOK.rightParenthesis && token.value != TOK.endOfFile)
         {
+            if (token.value == TOK.identifier)
+                token.checkKeyword();
+
             auto arg = cparseAssignExp();
             arguments.push(arg);
             if (token.value != TOK.comma)
@@ -3929,6 +3939,7 @@ final class CParser(AST) : Parser!AST
         Identifier tag;
         if (token.value == TOK.identifier)
         {
+            token.checkKeyword();
             tag = token.ident;
             nextToken();
         }
@@ -4068,6 +4079,7 @@ final class CParser(AST) : Parser!AST
 
         if (token.value == TOK.identifier)
         {
+            token.checkKeyword();
             tag = token.ident;
             nextToken();
         }
