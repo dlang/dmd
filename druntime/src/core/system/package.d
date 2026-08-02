@@ -33,30 +33,12 @@ struct Sys
             Sys.abort();
     }
 
-    //~ void print(T)(scope const char[] str, T vals) nothrow @nogc
-    //~ {
-        //~ // Assume str is null-terminated string
-        //~ auto r = fputs(str.ptr, stdout);
-        //~ if(r < 0)
-            //~ Sys.abort();
-    //~ }
-
-    //~ alias format = snprintf
-}
-
-// Special case: we don't have resources to implement mature formatting
-// functionality for now just for the sake of using it at debugging
-debug
-{
-    static import core.stdc.stdio;
-
-    alias sprintf = core.stdc.stdio.sprintf;
-    alias snprintf = core.stdc.stdio.snprintf;
-
-    void printf(T...)(scope const(char*) fmt, T vals) nothrow @nogc
+    /// C-formatted print
+    static void printf(T...)(scope const char[] fmt, T vals) nothrow @nogc
     {
-        int r = core.stdc.stdio.printf(fmt, vals);
+        static assert(T.length > 0);
 
+        int r = core.stdc.stdio.printf(fmt.ptr, vals);
         if(r < fmt.length)
             Sys.abort();
     }
