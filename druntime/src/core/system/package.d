@@ -21,12 +21,31 @@ struct Mem
 struct Sys
 {
     static import core.stdc.stdlib;
+    import core.stdc.stdio;
 
     alias abort = core.stdc.stdlib.abort;
+
+    // Assumes str is null-terminated string
+    static void print(scope const char[] str) nothrow @nogc
+    {
+        auto r = fputs(str.ptr, stdout);
+        if(r < 0)
+            Sys.abort();
+    }
+
+    //~ void print(T)(scope const char[] str, T vals) nothrow @nogc
+    //~ {
+        //~ // Assume str is null-terminated string
+        //~ auto r = fputs(str.ptr, stdout);
+        //~ if(r < 0)
+            //~ Sys.abort();
+    //~ }
+
+    //~ alias format = snprintf
 }
 
-// Special case: we don't have resources to implement formatting functionality
-// for now just for the sake of using it at debugging
+// Special case: we don't have resources to implement mature formatting
+// functionality for now just for the sake of using it at debugging
 debug
 {
     static import core.stdc.stdio;
