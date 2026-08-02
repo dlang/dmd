@@ -17,3 +17,23 @@ struct Mem
 
     alias allocateOnStack = alloca;
 }
+
+struct Sys
+{
+    static import core.stdc.stdlib;
+
+    alias abort = core.stdc.stdlib.abort;
+}
+
+debug(PRINTF)
+{
+    static import core.stdc.stdio;
+
+    void printf(T...)(scope const(char*) fmt, T vals) nothrow @nogc
+    {
+        int r = core.stdc.stdio.printf(fmt, vals);
+
+        if(r < 0)
+            Sys.abort();
+    }
+}
