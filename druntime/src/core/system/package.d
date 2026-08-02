@@ -38,7 +38,7 @@ debug
     {
         int r = core.stdc.stdio.printf(fmt, vals);
 
-        if(r < 0)
+        if(r < fmt.length)
             Sys.abort();
     }
 }
