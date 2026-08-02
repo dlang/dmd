@@ -79,6 +79,7 @@ COPY=\
 	$(IMPDIR)\core\internal\gc\proxy.d \
 	$(IMPDIR)\core\internal\gc\impl\conservative\gc.d \
 	$(IMPDIR)\core\internal\gc\impl\manual\gc.d \
+	$(IMPDIR)\core\internal\gc\impl\tgc\gc.d \
 	$(IMPDIR)\core\internal\gc\impl\proto\gc.d \
 	\
 	$(IMPDIR)\core\internal\container\array.d \
