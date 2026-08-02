@@ -25,12 +25,16 @@ struct Sys
 
     alias abort = core.stdc.stdlib.abort;
 
-    // Assumes str is null-terminated string
     static void print(scope const char[] str) nothrow @nogc
     {
-        auto r = fputs(str.ptr, stdout);
-        if(r < 0)
-            Sys.abort();
+        // This is a silly approach, but it's a simple way to print non-null-terminated strings
+        // TODO: implement using write() or so
+        foreach(c; str)
+        {
+            auto r = fputc(c, stdout);
+            if(r == EOF)
+                Sys.abort();
+        }
     }
 
     /// C-formatted print
