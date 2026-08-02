@@ -25,9 +25,14 @@ struct Sys
     alias abort = core.stdc.stdlib.abort;
 }
 
-debug(PRINTF)
+// Special case: we don't have resources to implement formatting functionality
+// for now just for the sake of using it at debugging
+debug
 {
     static import core.stdc.stdio;
+
+    alias sprintf = core.stdc.stdio.sprintf;
+    alias snprintf = core.stdc.stdio.snprintf;
 
     void printf(T...)(scope const(char*) fmt, T vals) nothrow @nogc
     {
