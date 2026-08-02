@@ -24,7 +24,7 @@ import dmd.root.string : toDString;
 import dmd.json : writeEscapeJSONString;
 
 // Thread local profiler instance (multithread currently not supported because compiler is single-threaded)
-TimeTraceProfiler* timeTraceProfiler = null;
+__gshared TimeTraceProfiler* timeTraceProfiler = null;
 
 /**
  * Initialize time tracing functionality.
