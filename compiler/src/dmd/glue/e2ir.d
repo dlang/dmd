@@ -4784,6 +4784,18 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
     if (ftym == ttym)
         return Lret(ce, e);
 
+    // Allow same-size cast between basic types and aggregate types (structs, static arrays)
+    if ((tty == Tstruct || tty == Tsarray) && tfrom.size() == t.size())
+    {
+        e.Ety = ttym;
+        return Lret(ce, e);
+    }
+    else if ((fty == Tstruct || fty == Tsarray) && tfrom.size() == t.size())
+    {
+        e.Ety = ttym;
+        return Lret(ce, e);
+    }
+
     // OSX AArch64 long doubles are 64 bits
     bool RealIsDouble = target.os == Target.os.OSX && target.isAArch64;
 
