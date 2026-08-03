@@ -10,7 +10,7 @@
 
 module core.runtime;
 
-import core.system : Mem;
+import core.system.memory : allocateOne, freeMem;
 
 version (OSX)
     version = Darwin;
@@ -211,7 +211,6 @@ struct Runtime
      */
     static void* loadLibrary()(const scope char[] name)
     {
-        import core.system : Mem;
         version (Windows)
         {
             import core.sys.windows.winnls : CP_UTF8, MultiByteToWideChar;
@@ -224,9 +223,9 @@ struct Runtime
             if (len == 0)
                 return null;
 
-            auto buf = cast(WCHAR*) Mem.allocateOne((len+1) * WCHAR.sizeof);
+            auto buf = cast(WCHAR*) allocateOne((len+1) * WCHAR.sizeof);
             if (buf is null) return null;
-            scope (exit) Mem.freeMem(buf);
+            scope (exit) freeMem(buf);
 
             len = MultiByteToWideChar(
                 CP_UTF8, 0, name.ptr, cast(int)name.length, buf, len);
@@ -242,9 +241,9 @@ struct Runtime
             /* Need a 0-terminated C string for the dll name
              */
             immutable len = name.length;
-            auto buf = cast(char*) Mem.allocateOne(len + 1);
+            auto buf = cast(char*) allocateOne(len + 1);
             if (!buf) return null;
-            scope (exit) Mem.freeMem(buf);
+            scope (exit) freeMem(buf);
 
             buf[0 .. len] = name[];
             buf[len] = 0;
@@ -745,7 +744,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null ) // @nogc
     static T allocate(T, Args...)(auto ref Args args) @nogc
     {
         import core.lifetime : emplace;
-        auto result = cast(T) Mem.allocateOne(__traits(classInstanceSize, T));
+        auto result = cast(T) allocateOne(__traits(classInstanceSize, T));
         return emplace(result, args);
     }
     version (Windows)
@@ -804,7 +803,7 @@ void defaultTraceDeallocator(Throwable.TraceInfo info) nothrow
         return;
     auto obj = cast(Object)info;
     destroy(obj);
-    Mem.freeMem(cast(void *)obj);
+    freeMem(cast(void *)obj);
 }
 
 /// Default implementation for most POSIX systems
@@ -878,7 +877,7 @@ else version (Posix) private class DefaultTraceInfo : Throwable.TraceInfo
         static if (hasExecinfo)
         {
             const framelist = backtrace_symbols( callstack.ptr, numframes );
-            scope(exit) Mem.freeMem(cast(void*) framelist);
+            scope(exit) freeMem(cast(void*) framelist);
 
             static if (enableDwarf)
             {

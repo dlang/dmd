@@ -13,7 +13,7 @@
 module rt.minfo;
 
 import core.stdc.stdio : fprintf, stderr;
-import core.system : Mem;
+import core.system.memory : freeMem, allocateOne, reallocate;
 import core.stdc.string : memcpy, memset;
 import rt.sections;
 
@@ -66,11 +66,11 @@ struct ModuleGroup
         import core.bitop : bt, btc, bts;
 
         // set up all the arrays.
-        size_t[] cyclePath = (cast(size_t*) Mem.allocateOne(size_t.sizeof * _modules.length * 2))[0 .. _modules.length * 2];
+        size_t[] cyclePath = (cast(size_t*) allocateOne(size_t.sizeof * _modules.length * 2))[0 .. _modules.length * 2];
         size_t totalMods;
-        int[] distance = (cast(int*) Mem.allocateOne(int.sizeof * _modules.length))[0 .. _modules.length];
+        int[] distance = (cast(int*) allocateOne(int.sizeof * _modules.length))[0 .. _modules.length];
         scope(exit)
-            Mem.freeMem(distance.ptr);
+            freeMem(distance.ptr);
 
         // determine the shortest path between two modules. Uses dijkstra
         // without a priority queue. (we can be a bit slow here, in order to
@@ -221,14 +221,14 @@ struct ModuleGroup
         // allocate some stack arrays that will be used throughout the process.
         immutable nwords = (len + 8 * size_t.sizeof - 1) / (8 * size_t.sizeof);
         immutable flagbytes = nwords * size_t.sizeof;
-        auto ctorstart = cast(size_t*) Mem.allocateOne(flagbytes); // ctor/dtor seen
-        auto ctordone = cast(size_t*) Mem.allocateOne(flagbytes); // ctor/dtor processed
-        auto relevant = cast(size_t*) Mem.allocateOne(flagbytes); // has ctors/dtors
+        auto ctorstart = cast(size_t*) allocateOne(flagbytes); // ctor/dtor seen
+        auto ctordone = cast(size_t*) allocateOne(flagbytes); // ctor/dtor processed
+        auto relevant = cast(size_t*) allocateOne(flagbytes); // has ctors/dtors
         scope (exit)
         {
-            Mem.freeMem(ctorstart);
-            Mem.freeMem(ctordone);
-            Mem.freeMem(relevant);
+            freeMem(ctorstart);
+            freeMem(ctordone);
+            freeMem(relevant);
         }
 
         void clearFlags(size_t* flags)
@@ -239,15 +239,15 @@ struct ModuleGroup
 
         // build the edges between each module. We may need this for printing,
         // and also allows avoiding keeping a hash around for module lookups.
-        int[][] edges = (cast(int[]*) Mem.allocateOne((int[]).sizeof * _modules.length))[0 .. _modules.length];
+        int[][] edges = (cast(int[]*) allocateOne((int[]).sizeof * _modules.length))[0 .. _modules.length];
         {
             HashTab!(immutable(ModuleInfo)*, int) modIndexes;
             foreach (i, m; _modules)
                 modIndexes[m] = cast(int) i;
 
-            auto reachable = cast(size_t*) Mem.allocateOne(flagbytes);
+            auto reachable = cast(size_t*) allocateOne(flagbytes);
             scope(exit)
-                Mem.freeMem(reachable);
+                freeMem(reachable);
 
             foreach (i, m; _modules)
             {
@@ -255,7 +255,7 @@ struct ModuleGroup
                 // https://issues.dlang.org/show_bug.cgi?id=16208
                 clearFlags(reachable);
                 // preallocate enough space to store all the indexes
-                int *edge = cast(int*) Mem.allocateOne(int.sizeof * _modules.length);
+                int *edge = cast(int*) allocateOne(int.sizeof * _modules.length);
                 size_t nEdges = 0;
                 foreach (imp; m.importedModules)
                 {
@@ -270,12 +270,12 @@ struct ModuleGroup
                 if (nEdges > 0)
                 {
                     // trim space to what is needed
-                    edges[i] = (cast(int*) Mem.reallocate(edge, int.sizeof * nEdges))[0 .. nEdges];
+                    edges[i] = (cast(int*) reallocate(edge, int.sizeof * nEdges))[0 .. nEdges];
                 }
                 else
                 {
                     edges[i] = null;
-                    Mem.freeMem(edge);
+                    freeMem(edge);
                 }
             }
         }
@@ -285,8 +285,8 @@ struct ModuleGroup
         {
             foreach (e; edges)
                 if (e.ptr)
-                    Mem.freeMem(e.ptr);
-            Mem.freeMem(edges.ptr);
+                    freeMem(e.ptr);
+            freeMem(edges.ptr);
         }
 
         void buildCycleMessage(size_t sourceIdx, size_t cycleIdx, scope void delegate(string) nothrow sink)
@@ -302,7 +302,7 @@ struct ModuleGroup
             sink(_modules[cycleIdx].name);
             sink(EOL);
             auto cyclePath = genCyclePath(sourceIdx, cycleIdx, edges);
-            scope(exit) Mem.freeMem(cyclePath.ptr);
+            scope(exit) freeMem(cyclePath.ptr);
 
             sink(_modules[sourceIdx].name);
             sink("* ->" ~ EOL);
@@ -330,9 +330,9 @@ struct ModuleGroup
             }
 
             // initialize "stack"
-            auto stack = cast(stackFrame*) Mem.allocateOne(stackFrame.sizeof * len);
+            auto stack = cast(stackFrame*) allocateOne(stackFrame.sizeof * len);
             scope (exit)
-                Mem.freeMem(stack);
+                freeMem(stack);
             auto stacktop = stack + len;
             auto sp = stack;
             sp.curMod = cast(int) idx;
@@ -423,9 +423,9 @@ struct ModuleGroup
             immutable ModuleInfo* current = _modules[curidx];
 
             // First, determine what modules are reachable.
-            auto reachable = cast(size_t*) Mem.allocateOne(flagbytes);
+            auto reachable = cast(size_t*) allocateOne(flagbytes);
             scope (exit)
-                Mem.freeMem(reachable);
+                freeMem(reachable);
             if (!findDeps(curidx, reachable))
                 return false;   // deprecated cycle error
 
@@ -468,7 +468,7 @@ struct ModuleGroup
             clearFlags(ctordone);
 
             // pre-allocate enough space to hold all modules.
-            ctors = cast(immutable(ModuleInfo)**) Mem.allocateOne(len * (void*).sizeof);
+            ctors = cast(immutable(ModuleInfo)**) allocateOne(len * (void*).sizeof);
             ctoridx = 0;
             foreach (idx, m; _modules)
             {
@@ -493,7 +493,7 @@ struct ModuleGroup
                 {
                     if (!processMod(idx))
                     {
-                        Mem.freeMem(ctors);
+                        freeMem(ctors);
                         return false;
                     }
                 }
@@ -502,11 +502,11 @@ struct ModuleGroup
             if (ctoridx == 0)
             {
                 // no ctors in the list.
-                Mem.freeMem(ctors);
+                freeMem(ctors);
             }
             else
             {
-                ctors = cast(immutable(ModuleInfo)**) Mem.reallocate(ctors, ctoridx * (void*).sizeof);
+                ctors = cast(immutable(ModuleInfo)**) reallocate(ctors, ctoridx * (void*).sizeof);
                 if (ctors is null)
                     assert(0);
                 result = ctors[0 .. ctoridx];
@@ -561,10 +561,10 @@ struct ModuleGroup
     void free()
     {
         if (_ctors.ptr)
-            Mem.freeMem(_ctors.ptr);
+            freeMem(_ctors.ptr);
         _ctors = null;
         if (_tlsctors.ptr)
-            Mem.freeMem(_tlsctors.ptr);
+            freeMem(_tlsctors.ptr);
         _tlsctors = null;
         // _modules = null; // let the owner free it
     }

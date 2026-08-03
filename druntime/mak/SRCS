@@ -17,6 +17,7 @@ SRCS=\
 	src\core\memory.d \
 	src\core\runtime.d \
 	src\core\simd.d \
+	src\core\system\memory.d \
 	src\core\system\opt.d \
 	src\core\system\package.d \
 	src\core\time.d \

@@ -20,7 +20,7 @@ import core.stdc.string : strerror;
 import rt.config : rt_cmdline_enabled, rt_configOption;
 import rt.memory;
 import rt.sections;
-import core.system : Mem;
+import core.system.memory;
 
 version (Windows)
 {
@@ -50,7 +50,7 @@ else version (WASI)
 }
 
 version (DigitalMars) version (AArch64)
-    version = UseMalloc;   // cuz Mem.allocateOnStack is not implemented yet
+    version = UseMalloc;   // cuz allocateOnStack is not implemented yet
 
 // not sure why we can't define this in one place, but this is to keep this
 // module from importing core.runtime.
@@ -289,13 +289,13 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
         // Allocate args[] on the stack - use wargc
         version (UseMalloc)
         {
-            char[][] args = (cast(char[]*) Mem.allocateOne(wargc * (char[]).sizeof))[0 .. wargc];
+            char[][] args = (cast(char[]*) allocateOne(wargc * (char[]).sizeof))[0 .. wargc];
             if (wargc)
                 assert(args.ptr);
             scope (exit) free(args.ptr);
         }
         else
-            char[][] args = (cast(char[]*) Mem.allocateOnStack(wargc * (char[]).sizeof))[0 .. wargc];
+            char[][] args = (cast(char[]*) allocateOnStack(wargc * (char[]).sizeof))[0 .. wargc];
 
         // This is required because WideCharToMultiByte requires int as input.
         assert(wCommandLineLength <= cast(size_t) int.max, "Wide char command line length must not exceed int.max");
@@ -304,13 +304,13 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
         {
             version (UseMalloc)
             {
-                char* totalArgsBuff = cast(char*) Mem.allocateOne(totalArgsLength);
+                char* totalArgsBuff = cast(char*) allocateOne(totalArgsLength);
                 if (totalArgsLength)
                     assert(totalArgsBuff);
                 scope (exit) free(totalArgsBuff);
             }
             else
-                char* totalArgsBuff = cast(char*) Mem.allocateOnStack(totalArgsLength);
+                char* totalArgsBuff = cast(char*) allocateOnStack(totalArgsLength);
             size_t j = 0;
             foreach (i; 0 .. wargc)
             {
@@ -334,13 +334,13 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
         // Allocate args[] on the stack
         version (UseMalloc)
         {
-            char[][] args = (cast(char[]*) Mem.allocateOne(argc * (char[]).sizeof))[0 .. argc];
+            char[][] args = (cast(char[]*) allocateOne(argc * (char[]).sizeof))[0 .. argc];
             if (argc)
                 assert(args.ptr);
             scope (exit) free(args.ptr);
         }
         else
-            char[][] args = (cast(char[]*) Mem.allocateOnStack(argc * (char[]).sizeof))[0 .. argc];
+            char[][] args = (cast(char[]*) allocateOnStack(argc * (char[]).sizeof))[0 .. argc];
 
         size_t totalArgsLength = 0;
         foreach (i, ref arg; args)
@@ -352,7 +352,7 @@ extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
     else version (WASI)
     {
         // Allocate args[] on the stack
-        char[][] args = (cast(char[]*) Mem.allocateOnStack(argc * (char[]).sizeof))[0 .. argc];
+        char[][] args = (cast(char[]*) allocateOnStack(argc * (char[]).sizeof))[0 .. argc];
 
         size_t totalArgsLength = 0;
         foreach (i, ref arg; args)
@@ -377,7 +377,7 @@ version (Windows)
 extern (C) int _d_wrun_main(int argc, wchar** wargv, MainFunc mainFunc)
 {
      // Allocate args[] on the stack
-    char[][] args = (cast(char[]*) Mem.allocateOnStack(argc * (char[]).sizeof))[0 .. argc];
+    char[][] args = (cast(char[]*) allocateOnStack(argc * (char[]).sizeof))[0 .. argc];
 
     // 1st pass: compute each argument's length as UTF-16 and UTF-8
     size_t totalArgsLength = 0;
@@ -392,7 +392,7 @@ extern (C) int _d_wrun_main(int argc, wchar** wargv, MainFunc mainFunc)
     }
 
     // Allocate a single buffer for all (null-terminated) argument strings in UTF-8 on the stack
-    char* utf8Buffer = cast(char*) Mem.allocateOnStack(totalArgsLength);
+    char* utf8Buffer = cast(char*) allocateOnStack(totalArgsLength);
 
     // 2nd pass: convert to UTF-8 and finalize `args`
     char* utf8 = utf8Buffer;
@@ -406,7 +406,7 @@ extern (C) int _d_wrun_main(int argc, wchar** wargv, MainFunc mainFunc)
     }
 
     // Set C argc/argv; argv is a new stack-allocated array of UTF-8 C strings
-    char*[] argv = (cast(char**) Mem.allocateOnStack(argc * (char*).sizeof))[0 .. argc];
+    char*[] argv = (cast(char**) allocateOnStack(argc * (char*).sizeof))[0 .. argc];
     foreach (i, ref arg; argv)
         arg = args[i].ptr;
     _cArgs.argc = argc;
@@ -482,13 +482,13 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
         auto length = args.length * (char[]).sizeof + totalArgsLength;
         version (UseMalloc)
         {
-            auto buff = cast(char[]*) Mem.allocateOne(length);
+            auto buff = cast(char[]*) allocateOne(length);
             if (length)
                 assert(buff);
             //scope (exit) buff;
         }
         else
-            auto buff = cast(char[]*) Mem.allocateOnStack(length);
+            auto buff = cast(char[]*) allocateOnStack(length);
 
         char[][] argsCopy = buff[0 .. args.length];
         auto argBuff = cast(char*) (buff + args.length);
@@ -661,7 +661,7 @@ extern (C) void _d_print_throwable(Throwable t)
                         CP_UTF8, 0, s.ptr, cast(int)s.length, null, 0);
                 if (!swlen) return;
 
-                auto newPtr = cast(WCHAR*) Mem.reallocate(ptr,
+                auto newPtr = cast(WCHAR*) reallocate(ptr,
                         (this.len + swlen + 1) * WCHAR.sizeof);
                 if (!newPtr) return;
                 ptr = newPtr;
@@ -672,7 +672,7 @@ extern (C) void _d_print_throwable(Throwable t)
 
             typeof(ptr) get() { if (ptr) ptr[len] = 0; return ptr; }
 
-            void free() { Mem.freeMem(ptr); }
+            void free() { freeMem(ptr); }
         }
 
         HANDLE windowsHandle(int fd)
@@ -721,12 +721,12 @@ extern (C) void _d_print_throwable(Throwable t)
                 uint codepage = GetConsoleOutputCP();
                 const slen = WideCharToMultiByte(codepage, 0,
                         buf.ptr, cast(int)buf.len, null, 0, null, null);
-                if (auto sptr = cast(char*) Mem.allocateOne(slen * char.sizeof))
+                if (auto sptr = cast(char*) allocateOne(slen * char.sizeof))
                 {
                     WideCharToMultiByte(codepage, 0,
                         buf.ptr, cast(int)buf.len, sptr, slen, null, null);
                     WriteFile(hStdErr, sptr, slen, null, null);
-                    Mem.freeMem(sptr);
+                    freeMem(sptr);
                 }
                 buf.free();
             }
