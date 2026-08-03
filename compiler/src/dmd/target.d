@@ -497,6 +497,18 @@ extern (C++) struct Target
             realsize = 8;
             realpad = 0;
             realalignsize = 8;
+
+            RealProperties.max = double.max;
+            RealProperties.min_normal = double.min_normal;
+            RealProperties.nan = double.nan;
+            RealProperties.infinity = double.infinity;
+            RealProperties.epsilon = double.epsilon;
+            RealProperties.dig = double.dig;
+            RealProperties.mant_dig = double.mant_dig;
+            RealProperties.max_exp = double.max_exp;
+            RealProperties.min_exp = double.min_exp;
+            RealProperties.max_10_exp = double.max_10_exp;
+            RealProperties.min_10_exp = double.min_10_exp;
         }
 
         c.initialize(params, this);
