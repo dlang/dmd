@@ -241,7 +241,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         reg_t mswreg = findreg(retregs & INSTR.MSW);
         assert(cs.index == NOREG);  // BUG AArch64 cannot add the '8' offset
         //assert(cs.base != NOREG);
-        cs.IEV1.Voffset = sz / 2;
+        cs.IEV1.Voffset += sz / 2;
         storeToEA(cs, mswreg, sz / 2);
         cdb.gen(&cs);
     }
