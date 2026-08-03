@@ -126,22 +126,29 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     // the ClassInfo object for this ClassDeclaration
     TypeInfoClassDeclaration vclassinfo;
 
-    // true if this is a COM class
-    bool com;
+    /// Bit fields for small fields
+    private extern (D) struct ClassBitFields
+    {
+        // true if this is a COM class
+        bool com;
 
-    /// true if this is a scope class
-    bool stack;
+        /// true if this is a scope class
+        bool stack;
+
+        /// to prevent recursive attempts
+        bool inuse;
+
+        ThreeState isabstract;
+
+        /// set the progress of base classes resolving
+        Baseok baseok;
+    }
+
+    import dmd.common.bitfields : generateBitFields;
+    mixin(generateBitFields!(ClassBitFields, uint));
 
     /// if this is a C++ class, this is the slot reserved for the virtual destructor
     int cppDtorVtblIndex = -1;
-
-    /// to prevent recursive attempts
-    bool inuse;
-
-    ThreeState isabstract;
-
-    /// set the progress of base classes resolving
-    Baseok baseok;
 
     /**
      * Data for a class declaration that is needed for the Objective-C

@@ -402,7 +402,9 @@ else version (CRuntime_Musl)
 }
 else version (CRuntime_WASI)
 {
+    int ftruncate(int, off_t) @trusted;
     off_t lseek(int, off_t, int) @trusted;
+    alias ftruncate64 = ftruncate;
     alias lseek64 = lseek;
     int   dup3(int, int, int) @trusted;
     int   faccessat(int, const scope char*, int, int);
@@ -2983,6 +2985,7 @@ else version (CRuntime_Musl)
 }
 else version (CRuntime_WASI)
 {
+    int truncate(const scope char*, off_t);
 }
 else version (Darwin)
 {

@@ -1822,16 +1822,16 @@ else version (CRuntime_WASI)
         {
             enum
             {
-                SO_RCVTIMEO = 66,
-                SO_SNDTIMEO = 67,
+                SO_RCVTIMEO = 20,
+                SO_SNDTIMEO = 21,
             }
         }
         else
         {
             enum
             {
-                SO_RCVTIMEO = 20,
-                SO_SNDTIMEO = 21,
+                SO_RCVTIMEO = 66,
+                SO_SNDTIMEO = 67,
             }
         }
 

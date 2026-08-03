@@ -261,13 +261,30 @@ public:
                                         // their own vtbl[]
 
     TypeInfoClassDeclaration *vclassinfo;       // the ClassInfo object for this ClassDeclaration
-    d_bool com;                           // true if this is a COM class (meaning it derives from IUnknown)
-    d_bool stack;                         // true if this is a scope class
-    int cppDtorVtblIndex;               // slot reserved for the virtual destructor [extern(C++)]
-    d_bool inuse;                         // to prevent recursive attempts
 
-    ThreeState isabstract;              // if abstract class
-    Baseok baseok;                      // set the progress of base classes resolving
+    uint32_t bitFields;
+
+    // true if this is a COM class (meaning it derives from IUnknown)
+    d_bool com() const;
+    d_bool com(d_bool v);
+
+    // true if this is a scope class
+    d_bool stack() const;
+    d_bool stack(d_bool v);
+
+    // to prevent recursive attempts
+    d_bool inuse() const;
+    d_bool inuse(d_bool v);
+
+    // if abstract class
+    ThreeState isabstract() const;
+    ThreeState isabstract(ThreeState v);
+
+    // set the progress of base classes resolving
+    Baseok baseok() const;
+    Baseok baseok(Baseok v);
+
+    int cppDtorVtblIndex;               // slot reserved for the virtual destructor [extern(C++)]
     ObjcClassDeclaration objc;          // Data for a class declaration that is needed for the Objective-C integration
 
     static ClassDeclaration *create(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject);
