@@ -1943,6 +1943,7 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             storeToEA(cdst,Rv,1);                       // strb  Rv,[Rd,Ri]
             cdb.genc1(cdst.Iop,0,FL.unde,offset);
         }
+        cg.regcon.immed.mval &= ~mask(Ri);              // Ri was advanced by the loop
     }
     assert(!(pretregs & mPSW));
     if (pretregs)

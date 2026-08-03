@@ -3354,7 +3354,7 @@ void argtypes(type* t, out type* arg1type, out type* arg2type)
                 }
             }
 
-            if (sz <= 16)
+            if (sz <= 16 && config.target_cpu != TARGET_AArch64)
             {
                 if (tyfloating(tyn))
                 {

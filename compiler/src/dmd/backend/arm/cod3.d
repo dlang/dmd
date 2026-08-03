@@ -1465,6 +1465,7 @@ void genmovreg(ref CodeBuilder cdb, reg_t to, reg_t from, tym_t ty = TYMAX)
         else // one or both are floating point registers
         {
             const uint ftype = INSTR.szToFtype(ty == TYMAX ? 8 : _tysize[ty]);
+            const uint sf = ftype == 1;
             if (to & from & 32) // both are fp registers
             {
                 // floating point
@@ -1472,11 +1473,11 @@ void genmovreg(ref CodeBuilder cdb, reg_t to, reg_t from, tym_t ty = TYMAX)
             }
             else if ((to & 32) && !(from & 32))
             {
-                cdb.gen1(INSTR.fmov_float_gen(1,ftype,0,7,from,to)); // FMOV fp,gp https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_gen.html
+                cdb.gen1(INSTR.fmov_float_gen(sf,ftype,0,7,from,to)); // FMOV fp,gp https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_gen.html
             }
             else if (!(to & 32) && (from & 32))
             {
-                cdb.gen1(INSTR.fmov_float_gen(1,ftype,0,6,from,to)); // FMOV gp,fp https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_gen.html
+                cdb.gen1(INSTR.fmov_float_gen(sf,ftype,0,6,from,to)); // FMOV gp,fp https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_gen.html
             }
             else
                 assert(0);
