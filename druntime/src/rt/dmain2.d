@@ -672,7 +672,7 @@ extern (C) void _d_print_throwable(Throwable t)
 
             typeof(ptr) get() { if (ptr) ptr[len] = 0; return ptr; }
 
-            void free() { Mem.free(ptr); }
+            void free() { Mem.freeMem(ptr); }
         }
 
         HANDLE windowsHandle(int fd)
@@ -726,7 +726,7 @@ extern (C) void _d_print_throwable(Throwable t)
                     WideCharToMultiByte(codepage, 0,
                         buf.ptr, cast(int)buf.len, sptr, slen, null, null);
                     WriteFile(hStdErr, sptr, slen, null, null);
-                    Mem.free(sptr);
+                    Mem.freeMem(sptr);
                 }
                 buf.free();
             }

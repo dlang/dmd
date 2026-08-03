@@ -13,7 +13,7 @@ struct Mem
     static void* allocateOneBlank(size_t size) nothrow @nogc => allocateFewBlank(1, size);
     alias allocateFewBlank = calloc;
     alias reallocate = realloc;
-    alias free = core.stdc.stdlib.free;
+    alias freeMem = core.stdc.stdlib.free;
 
     alias allocateOnStack = alloca;
 }

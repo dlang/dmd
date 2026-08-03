@@ -85,7 +85,7 @@ GC createGCInstance(string name)
             continue;
         auto instance = entry.factory();
         // only one GC at a time for now, so free the registry to not leak
-        Mem.free(entries.ptr);
+        Mem.freeMem(entries.ptr);
         entries = null;
         return instance;
     }

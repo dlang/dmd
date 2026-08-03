@@ -148,7 +148,7 @@ class ManualGC : GC
 
     void free(void* p) nothrow @nogc
     {
-        Mem.free(p);
+        Mem.freeMem(p);
     }
 
     /**

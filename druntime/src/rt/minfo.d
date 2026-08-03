@@ -70,7 +70,7 @@ struct ModuleGroup
         size_t totalMods;
         int[] distance = (cast(int*) Mem.allocateOne(int.sizeof * _modules.length))[0 .. _modules.length];
         scope(exit)
-            Mem.free(distance.ptr);
+            Mem.freeMem(distance.ptr);
 
         // determine the shortest path between two modules. Uses dijkstra
         // without a priority queue. (we can be a bit slow here, in order to
@@ -226,9 +226,9 @@ struct ModuleGroup
         auto relevant = cast(size_t*) Mem.allocateOne(flagbytes); // has ctors/dtors
         scope (exit)
         {
-            Mem.free(ctorstart);
-            Mem.free(ctordone);
-            Mem.free(relevant);
+            Mem.freeMem(ctorstart);
+            Mem.freeMem(ctordone);
+            Mem.freeMem(relevant);
         }
 
         void clearFlags(size_t* flags)
@@ -247,7 +247,7 @@ struct ModuleGroup
 
             auto reachable = cast(size_t*) Mem.allocateOne(flagbytes);
             scope(exit)
-                Mem.free(reachable);
+                Mem.freeMem(reachable);
 
             foreach (i, m; _modules)
             {
@@ -275,7 +275,7 @@ struct ModuleGroup
                 else
                 {
                     edges[i] = null;
-                    Mem.free(edge);
+                    Mem.freeMem(edge);
                 }
             }
         }
@@ -285,8 +285,8 @@ struct ModuleGroup
         {
             foreach (e; edges)
                 if (e.ptr)
-                    Mem.free(e.ptr);
-            Mem.free(edges.ptr);
+                    Mem.freeMem(e.ptr);
+            Mem.freeMem(edges.ptr);
         }
 
         void buildCycleMessage(size_t sourceIdx, size_t cycleIdx, scope void delegate(string) nothrow sink)
@@ -302,7 +302,7 @@ struct ModuleGroup
             sink(_modules[cycleIdx].name);
             sink(EOL);
             auto cyclePath = genCyclePath(sourceIdx, cycleIdx, edges);
-            scope(exit) Mem.free(cyclePath.ptr);
+            scope(exit) Mem.freeMem(cyclePath.ptr);
 
             sink(_modules[sourceIdx].name);
             sink("* ->" ~ EOL);
@@ -332,7 +332,7 @@ struct ModuleGroup
             // initialize "stack"
             auto stack = cast(stackFrame*) Mem.allocateOne(stackFrame.sizeof * len);
             scope (exit)
-                Mem.free(stack);
+                Mem.freeMem(stack);
             auto stacktop = stack + len;
             auto sp = stack;
             sp.curMod = cast(int) idx;
@@ -425,7 +425,7 @@ struct ModuleGroup
             // First, determine what modules are reachable.
             auto reachable = cast(size_t*) Mem.allocateOne(flagbytes);
             scope (exit)
-                Mem.free(reachable);
+                Mem.freeMem(reachable);
             if (!findDeps(curidx, reachable))
                 return false;   // deprecated cycle error
 
@@ -493,7 +493,7 @@ struct ModuleGroup
                 {
                     if (!processMod(idx))
                     {
-                        Mem.free(ctors);
+                        Mem.freeMem(ctors);
                         return false;
                     }
                 }
@@ -502,7 +502,7 @@ struct ModuleGroup
             if (ctoridx == 0)
             {
                 // no ctors in the list.
-                Mem.free(ctors);
+                Mem.freeMem(ctors);
             }
             else
             {
@@ -561,10 +561,10 @@ struct ModuleGroup
     void free()
     {
         if (_ctors.ptr)
-            Mem.free(_ctors.ptr);
+            Mem.freeMem(_ctors.ptr);
         _ctors = null;
         if (_tlsctors.ptr)
-            Mem.free(_tlsctors.ptr);
+            Mem.freeMem(_tlsctors.ptr);
         _tlsctors = null;
         // _modules = null; // let the owner free it
     }

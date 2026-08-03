@@ -38,7 +38,7 @@ struct GCBits
         if (data)
         {
             if (!AllocSupportsShared || !share)
-                Mem.free(data);
+                Mem.freeMem(data);
             else static if (AllocSupportsShared)
                 os_mem_unmap_shared(data, nwords * data[0].sizeof);
             else

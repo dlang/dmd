@@ -226,7 +226,7 @@ struct Runtime
 
             auto buf = cast(WCHAR*) Mem.allocateOne((len+1) * WCHAR.sizeof);
             if (buf is null) return null;
-            scope (exit) Mem.free(buf);
+            scope (exit) Mem.freeMem(buf);
 
             len = MultiByteToWideChar(
                 CP_UTF8, 0, name.ptr, cast(int)name.length, buf, len);
@@ -244,7 +244,7 @@ struct Runtime
             immutable len = name.length;
             auto buf = cast(char*) Mem.allocateOne(len + 1);
             if (!buf) return null;
-            scope (exit) Mem.free(buf);
+            scope (exit) Mem.freeMem(buf);
 
             buf[0 .. len] = name[];
             buf[len] = 0;
@@ -804,7 +804,7 @@ void defaultTraceDeallocator(Throwable.TraceInfo info) nothrow
         return;
     auto obj = cast(Object)info;
     destroy(obj);
-    Mem.free(cast(void *)obj);
+    Mem.freeMem(cast(void *)obj);
 }
 
 /// Default implementation for most POSIX systems
@@ -878,7 +878,7 @@ else version (Posix) private class DefaultTraceInfo : Throwable.TraceInfo
         static if (hasExecinfo)
         {
             const framelist = backtrace_symbols( callstack.ptr, numframes );
-            scope(exit) Mem.free(cast(void*) framelist);
+            scope(exit) Mem.freeMem(cast(void*) framelist);
 
             static if (enableDwarf)
             {
