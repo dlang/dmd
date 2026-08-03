@@ -942,7 +942,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             tlvInit.Sdt = tlvInitDtb.finish();
             outdata(tlvInit);
 
-            if (target.isX86_64)
+//            if (target.isX86_64)
                 tlvInit.Sclass = SC.extern_;
 
             Symbol* tlvBootstrap = objmod.tlv_bootstrap();
