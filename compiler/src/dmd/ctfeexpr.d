@@ -237,7 +237,7 @@ UnionExp copyLiteral(Expression e)
         emplaceExp!(StringExp)(&ue, se.loc, s[0 .. se.len * se.sz], se.len, se.sz);
         StringExp se2 = ue.exp().isStringExp();
         se2.committed = se.committed;
-        se2.postfix = se.postfix;
+        se2.postfix_ = se.postfix_;
         se2.type = se.type;
         se2.ownedByCtfe = OwnedBy.ctfe;
         return ue;

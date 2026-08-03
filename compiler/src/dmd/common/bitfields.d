@@ -72,6 +72,8 @@ if (__traits(isUnsigned, T))
         string bitfieldsRead = T.stringof~" "~bitfieldsName~"() const pure { return 0";
         string bitfieldsWrite = "void "~bitfieldsName~"("~T.stringof~" v) {\n";
     }
+    else
+        result ~= "enum " ~ fieldName ~ "_usedbits = " ~ toString!(bitInfo.totalSize) ~ ";\n";
 
     foreach (size_t i, mem; __traits(allMembers, S))
     {
@@ -119,6 +121,19 @@ if (__traits(isUnsigned, T))
             result ~= " private "~T.stringof~" "~fieldName~" = " ~ toString!(initVal) ~ ";\n";
         return result;
     }
+}
+
+extern (D) string appendBitFields(S, string field = "", int ID = __LINE__)()
+{
+    import core.bitop: bsr;
+    // if _fieldName provided, assume it declared and initialized elsewhere
+    enum fieldName = field.length == 0 ? "bitFields" : field;
+    version(Debugger_friendly)
+        return "mixin(generateBitFields!(" ~ S.stringof ~ ", uint, \""
+            ~ fieldName ~ "_" ~ S.stringof ~ "\"));";
+    else
+        return "mixin(generateBitFields!(" ~ S.stringof ~ ", typeof(super." ~ fieldName
+            ~ "), \"" ~ fieldName ~ "\", super." ~ fieldName ~ "_usedbits));";
 }
 
 ///
