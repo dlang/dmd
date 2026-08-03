@@ -3304,7 +3304,10 @@ static if (0)
 
                     if (isTLS)
                     {
-                        if (s.Sclass == SC.extern_)
+                        const uint tlsIns = *cast(uint*)(SegData[seg].SDbuf.buf + offset);
+                        const bool ieModel = (tlsIns & 0x9F00_0000) == 0x9000_0000 ||   // ADRP
+                                             (tlsIns & 0xFFC0_0000) == 0xF940_0000;     // LDR Xt,[Xn,#imm]
+                        if (ieModel)
                             relinfo = flags & CF.add ? R_AARCH64_TLSIE_LD64_GOTTPREL_LO12_NC : R_AARCH64_TLSIE_ADR_GOTTPREL_PAGE21;
                         else
                             relinfo = flags & CF.add ? R_AARCH64_TLSLE_ADD_TPREL_LO12_NC : R_AARCH64_TLSLE_ADD_TPREL_HI12;
