@@ -815,6 +815,9 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
         return pthread_kill(t.m_tdescr.tid, resumeSignalNumber) == 0;
 }
 
+version (CoreDdoc) {} else
+public  alias getpid = imported!"core.sys.posix.unistd".getpid;
+
 package alias gettid = imported!"core.sys.posix.pthread".pthread_self;
 
 package struct LLThreadProperties
