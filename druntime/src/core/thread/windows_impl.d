@@ -256,6 +256,9 @@ class Thread : ThreadBase
     package static void afterDeploy() nothrow @nogc { /* do nothing */ }
 }
 
+version (CoreDdoc) {} else
+public  alias getpid = imported!"core.sys.windows.winbase".GetCurrentProcessId;
+
 package alias gettid = imported!"core.sys.windows.winbase".GetCurrentThreadId;
 
 // Returns true on success

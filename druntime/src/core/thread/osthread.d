@@ -941,16 +941,10 @@ in (fn)
  * writefln("Current process id: %s", getpid());
  * ---
  */
-version (Posix)
+version (CoreDdoc)
 {
-    alias getpid = imported!"core.sys.posix.unistd".getpid;
+    size_t getpid() nothrow @nogc { return 0; }
 }
-else version (Windows)
-{
-    alias getpid = imported!"core.sys.windows.winbase".GetCurrentProcessId;
-}
-else
-    static assert(0, "unsupported os");
 
 extern (C) @nogc nothrow
 {
