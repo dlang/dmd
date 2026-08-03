@@ -71,12 +71,18 @@ int main()
         "opcolon",
         "powinline",
         "test18472",
+        "test19639",
+        "test19825",
+        "test20809",
+        "test21301",
         "test21416",
+        "test21822",
         "test22175",
         "test22384",
         "test23010",
         "test23278",
         "test24884",
+        "traits_child",
         "tuple_default_parameters",
     ])
         result |= runTest(outDir, testDir, drImport, testName);
