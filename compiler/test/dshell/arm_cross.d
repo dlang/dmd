@@ -57,20 +57,45 @@ int main()
     if (!outDir.exists)
         outDir.mkdirRecurse;
 
+    if (buildShim(outDir, drImport) != 0)
+        return 1;
+
     int result = 0;
     foreach (testName; [
         "ai",
+        "aliasassign",
         "arm",
         "bcraii",
         "bcraii2",
+        "dbitfields",
         "opcolon",
         "powinline",
         "test18472",
         "test21416",
+        "test22175",
+        "test22384",
+        "test23010",
+        "test23278",
         "test24884",
+        "tuple_default_parameters",
     ])
         result |= runTest(outDir, testDir, drImport, testName);
     return result;
+}
+
+int buildShim(string outDir, string drImport)
+{
+    immutable shimSrc = buildPath(outDir, "drunmain.d");
+    fileWrite(shimSrc, q{
+        extern(C) int _d_run_main(int argc, char** argv, int function(char[][]) mainFunc)
+        {
+            return mainFunc(null);
+        }
+    });
+    return run([
+        dmd, "-marm64", "-betterC", "-c", shimSrc, "-I" ~ drImport,
+        "-of=" ~ buildPath(outDir, "drunmain.o")
+    ]);
 }
 
 int runTest(string outDir, string testDir, string drImport, string testName)
@@ -89,7 +114,7 @@ int runTest(string outDir, string testDir, string drImport, string testName)
 
     if (run([
         "clang", "--target=aarch64-linux-gnu", "-fuse-ld=lld", "-static",
-        armO, "-o", armExe
+        armO, buildPath(outDir, "drunmain.o"), "-o", armExe
     ]) != 0)
         return 1;
 
