@@ -300,7 +300,13 @@ COND conditionCode(elem* e)
     int i;
     if (tyfloating(tym))
     {
-        i = 0;
+        with (COND)
+        {
+            immutable COND[6] fjops =
+                /* <=   >   <   >=  ==  !=  */
+                [  ls, gt, mi, ge, eq, ne ];
+            return fjops[op - OPle];
+        }
     }
     else if (tyuns(tym) || tyuns(e.E2.Ety))
         i = 1;
