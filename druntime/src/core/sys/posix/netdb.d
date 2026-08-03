@@ -14,6 +14,13 @@
  */
 module core.sys.posix.netdb;
 
+version (CRuntime_WASI) {
+    version (WASIp1) {}
+    else version = Supported;
+} else version = Supported;
+
+version (Supported):
+
 import core.sys.posix.config;
 public import core.stdc.inttypes;         // for uint32_t
 public import core.sys.posix.netinet.in_; // for in_port_t, in_addr_t
