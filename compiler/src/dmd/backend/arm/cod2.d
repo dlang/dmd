@@ -1800,9 +1800,9 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
 
     // load pointer to lvalue (destination) in DI
-    regm_t dstregs = cg.allregs & ~pretregs;
+    regm_t dstregs = cg.allregs & ~pretregs & ~srcregs;
     if (!dstregs)
-        dstregs = cg.allregs;
+        dstregs = cg.allregs & ~srcregs;
     if (e1.Eoper == OPind)               // if (*p = ..)
     {
         scodelem(cg,cdb,e1.E1,dstregs,srcregs,false);

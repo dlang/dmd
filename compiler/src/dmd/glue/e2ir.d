@@ -122,8 +122,9 @@ bool ISX64REF(Declaration var)
         }
         else if (target.os & Target.OS.Posix)
         {
-            return !(var.storage_class & STC.lazy_) && var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD() ||
-                passTypeByRef(target, var.type);
+            return !(var.storage_class & STC.lazy_) &&
+                (var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD() ||
+                 passTypeByRef(target, var.type));
         }
     }
 
