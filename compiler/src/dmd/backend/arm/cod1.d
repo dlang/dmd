@@ -1836,6 +1836,12 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
         uint alignsize = el_alignsize(ep);
         if (alignsize > STACKALIGN)
             alignsize = STACKALIGN;         // no point if the stack is less aligned
+        if (!osx_aapcs64)
+        {
+            if (alignsize < REGSIZE)
+                alignsize = REGSIZE;
+            sz = cast(uint)_align(REGSIZE, sz);
+        }
 
         /* Alignment on OSX64 AArch64 is the same as for struct fields.
          * If it is a variadic function, the last parameter (lastPar) is aligned on 8 bytes.
