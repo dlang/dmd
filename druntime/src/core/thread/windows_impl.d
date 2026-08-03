@@ -273,6 +273,62 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
     return ResumeThread(t.m_tdescr.hndl) != 0xFFFFFFFF;
 }
 
+package void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
+{
+    CONTEXT context = void;
+    context.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL;
+
+    if ( !GetThreadContext( t.m_tdescr.hndl, &context ) )
+        onThreadError( "Unable to load thread context" );
+    version (X86)
+    {
+        if ( !t.m_lock )
+            t.m_curr.tstack = cast(void*) context.Esp;
+        // eax,ebx,ecx,edx,edi,esi,ebp,esp
+        t.m_reg[0] = context.Eax;
+        t.m_reg[1] = context.Ebx;
+        t.m_reg[2] = context.Ecx;
+        t.m_reg[3] = context.Edx;
+        t.m_reg[4] = context.Edi;
+        t.m_reg[5] = context.Esi;
+        t.m_reg[6] = context.Ebp;
+        t.m_reg[7] = context.Esp;
+    }
+    else version (X86_64)
+    {
+        if ( !t.m_lock )
+            t.m_curr.tstack = cast(void*) context.Rsp;
+        // rax,rbx,rcx,rdx,rdi,rsi,rbp,rsp
+        t.m_reg[0] = context.Rax;
+        t.m_reg[1] = context.Rbx;
+        t.m_reg[2] = context.Rcx;
+        t.m_reg[3] = context.Rdx;
+        t.m_reg[4] = context.Rdi;
+        t.m_reg[5] = context.Rsi;
+        t.m_reg[6] = context.Rbp;
+        t.m_reg[7] = context.Rsp;
+        // r8,r9,r10,r11,r12,r13,r14,r15
+        t.m_reg[8]  = context.R8;
+        t.m_reg[9]  = context.R9;
+        t.m_reg[10] = context.R10;
+        t.m_reg[11] = context.R11;
+        t.m_reg[12] = context.R12;
+        t.m_reg[13] = context.R13;
+        t.m_reg[14] = context.R14;
+        t.m_reg[15] = context.R15;
+    }
+    else
+    {
+        static assert(false, "Architecture not supported." );
+    }
+    // a thread might change the stack, e.g. using non-D fibers, so we must not
+    // rely on the stack bottom saved when attaching/starting. Multiple fiber stacks cannot be
+    // captured, but make sure scanning does not crash accessing invalid memory ranges
+    // between stacks
+    if ( !t.m_lock )
+        t.m_curr.bstack = getThreadStackBottom( t.m_tdescr.hndl );
+}
+
 private
 {
     // If the runtime is dynamically loaded as a DLL, there is a problem with
