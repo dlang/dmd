@@ -1230,7 +1230,10 @@ elem* toElem(Expression e, ref IRState irs)
         else if (tb.ty == Tsarray)
         {
             Symbol* si = toStringSymbol(se);
-            e = el_var(si);
+            if (target.isAArch64)
+                e = el_una(OPind, TYstruct, el_ptr(si));
+            else
+                e = el_var(si);
             e.Ejty = e.Ety = TYstruct;
             e.ET = si.Stype;
             e.ET.Tcount++;
