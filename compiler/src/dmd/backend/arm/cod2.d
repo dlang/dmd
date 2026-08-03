@@ -2291,9 +2291,11 @@ static if (0)
         case FL.bprel:
         case FL.fltreg:
             cg.reflocal = true;
+            e.Vsym.Sflags |= SFLread;
             goto L2;
         case FL.para:
             cg.refparam = true;
+            e.Vsym.Sflags |= SFLread;
         L2:
             if (reg == STACK)
             {   regm_t retregs = ALLREGS;
