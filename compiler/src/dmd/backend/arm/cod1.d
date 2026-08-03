@@ -1489,6 +1489,8 @@ enum CLIB_A
     muldc3,
     divsc3,
     divdc3,
+    sin,
+    cos,
 }
 
 private
@@ -1607,6 +1609,9 @@ void getClibFunction(uint clib, ref Symbol* s, ref ClibInfo* cinfo, objfmt_t obj
             break;
         }
 
+        case CLIB_A.sin: declare("sin"); break;
+        case CLIB_A.cos: declare("cos"); break;
+
         case CLIB_A.mulsc3: declare2("__mulsc3"); break;
         case CLIB_A.muldc3: declare2("__muldc3"); break;
         case CLIB_A.divsc3: declare2("__divsc3"); break;
@@ -1681,7 +1686,7 @@ void callclib(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint clib, ref regm_
     }
 
     cdb.gencs1(INSTR.branch_imm(1,0),0,FL.func,s);  // CALL s
-    code_orflag(cdb.last(), CF.selfrel26);
+    code_orflag(cdb.last(), CF.selfrel | CF.off | CF.selfrel26);
 
 
     if (nalign)

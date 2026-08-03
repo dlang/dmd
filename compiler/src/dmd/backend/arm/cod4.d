@@ -1694,6 +1694,15 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
 
         case OPd_ld:    // call __extenddftf2
         case OPld_d:    // call __trunctfdf2
+            if (_tysize[TYreal] == 8)
+            {
+                regm_t retregs = pretregs & INSTR.FLOATREGS;
+                if (retregs == 0)
+                    retregs = INSTR.FLOATREGS;
+                codelem(cg,cdb,e.E1,retregs,false);
+                fixresult(cg,cdb,e,retregs,pretregs);
+                break;
+            }
             regm_t retregs1 = mask(32);
             codelem(cg,cdb,e.E1,retregs1,false);
             import dmd.backend.arm.cod1 : CLIB_A, callclib;

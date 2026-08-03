@@ -610,7 +610,7 @@ int intrinsic_op(FuncDeclaration fd)
     {
         if (op == OPbsf || op == OPbsr || op == OPbtc || op == OPbtr || op == OPbts)
             return NotIntrinsic;        // TODO AArch64
-        if (op == OPcos || op == OPsin || op == OPrint || op == OPsqrt || op == OPscale ||
+        if (op == OPscale ||
             op == OPrndtol || op == OPyl2xp1 || op == OPtoPrec)
             return NotIntrinsic;        // x87 only
     }

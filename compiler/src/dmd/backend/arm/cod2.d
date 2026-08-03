@@ -2352,7 +2352,7 @@ static if (0)
 }
 
 /******************
- * OPneg, not OPsqrt OPsin OPcos OPrint
+ * OPneg, OPsqrt, OPsin, OPcos, OPrint
  */
 
 @trusted
@@ -2368,6 +2368,14 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     const tyml = tybasic(e.E1.Ety);
     const sz = _tysize[tyml];
     bool isPair = isRegisterPair(true, tyml, 0);
+
+    if (e.Eoper == OPsin || e.Eoper == OPcos)
+    {
+        regm_t retregs = mask(32);
+        codelem(cg,cdb,e.E1,retregs,false);
+        callclib(cg, cdb, e, e.Eoper == OPsin ? CLIB_A.sin : CLIB_A.cos, pretregs, 0);
+        return;
+    }
 
     if (tyfloating(tyml))
     {
@@ -2411,7 +2419,12 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         {
             const Vn = findreg(retregs);
             const ftype = INSTR.szToFtype(sz);
-            cdb.gen1(INSTR.fneg_float(ftype, Vn, Vn));
+            if (e.Eoper == OPsqrt)
+                cdb.gen1(INSTR.fsqrt_float(ftype, Vn, Vn));
+            else if (e.Eoper == OPrint)
+                cdb.gen1(INSTR.frintx_float(ftype, Vn, Vn));
+            else
+                cdb.gen1(INSTR.fneg_float(ftype, Vn, Vn));
         }
         fixresult(cg,cdb,e,retregs,pretregs);
         return;
