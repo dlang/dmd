@@ -1271,7 +1271,13 @@ elem* el_convfloat(ref GlobalOptimizer go, elem* e)
              */
             p = buffer.ptr;
             memset(buffer.ptr, 0, sz);                      // ensure padding is 0
-            memcpy(buffer.ptr, &e.Vreal, 10);
+            if (tysize(TYreal) == 8)
+            {
+                const double d = cast(double)e.Vreal;
+                memcpy(buffer.ptr, &d, 8);
+            }
+            else
+                memcpy(buffer.ptr, &e.Vreal, 10);
             break;
 
         case TYcfloat:
@@ -1341,16 +1347,31 @@ elem* el_convreal(ref GlobalOptimizer go, elem* e)
              * from host to target
              */
             p = buffer.ptr;
-            // TODO AArch64 these are supposed to be 128 bit floats, not 80 bit
             memset(buffer.ptr, 0, sz);                      // ensure padding is 0
-            memcpy(buffer.ptr, &e.Vreal, 10);
+            if (tysize(TYreal) == 8)
+            {
+                const double d = cast(double)e.Vreal;
+                memcpy(buffer.ptr, &d, 8);
+            }
+            else
+                memcpy(buffer.ptr, &e.Vreal, 10);
             break;
 
         case TYcreal:
             p = buffer.ptr;
             memset(buffer.ptr, 0, sz);
-            memcpy(buffer.ptr, &e.Vcreal.re, 10);
-            memcpy(buffer.ptr + tysize(TYreal), &e.Vcreal.im, 10);
+            if (tysize(TYreal) == 8)
+            {
+                const double re = cast(double)e.Vcreal.re;
+                const double im = cast(double)e.Vcreal.im;
+                memcpy(buffer.ptr, &re, 8);
+                memcpy(buffer.ptr + 8, &im, 8);
+            }
+            else
+            {
+                memcpy(buffer.ptr, &e.Vcreal.re, 10);
+                memcpy(buffer.ptr + tysize(TYreal), &e.Vcreal.im, 10);
+            }
             break;
 
         default:
