@@ -1848,7 +1848,7 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             loadFromEA(csrc,Rv,4,4);
             cdb.genc1(csrc.Iop,0,FL.offset,offset);
             storeToEA(cdst,Rv,4);
-            cdb.genc1(csrc.Iop,0,FL.offset,offset);
+            cdb.genc1(cdst.Iop,0,FL.offset,offset);
             offset += 4;
             numbytes -= 4;
         }
@@ -1858,7 +1858,7 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             loadFromEA(csrc,Rv,4,2);
             cdb.genc1(csrc.Iop,0,FL.offset,offset);
             storeToEA(cdst,Rv,2);
-            cdb.genc1(csrc.Iop,0,FL.offset,offset);
+            cdb.genc1(cdst.Iop,0,FL.offset,offset);
             offset += 2;
             numbytes -= 2;
         }
@@ -1868,7 +1868,7 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             loadFromEA(csrc,Rv,4,1);
             cdb.genc1(csrc.Iop,0,FL.offset,offset);
             storeToEA(cdst,Rv,1);
-            cdb.genc1(csrc.Iop,0,FL.offset,offset);
+            cdb.genc1(cdst.Iop,0,FL.offset,offset);
         }
     }
     else
@@ -2076,9 +2076,11 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
 
                 ins = INSTR.addsub_imm(1,0,0,1,0,reg,reg);          // ADD reg,reg,#0,lsl #12
                 cdb.gencs1(ins,0,fl,e.Vsym);
+                cdb.last.IEV1.Voffset = e.Voffset;
 
                 ins = INSTR.addsub_imm(1,0,0,0,0,reg,reg);          // ADD reg,reg,#0
                 cdb.gencs1(ins,0,fl,e.Vsym);
+                cdb.last.IEV1.Voffset = e.Voffset;
                 cdb.last.Iflags |= CF.add;
                 return;
             }
@@ -2231,6 +2233,13 @@ static if (0)
                 cdb.last.Iflags |= CF.add;
 
                 cdb.gen1(INSTR.addsub_shift(1,0,0,0,reg,0,r,reg)); // ADD reg,r,reg
+
+                uint voff = cast(uint)e.Voffset;
+                assert(voff < 0x100_0000);
+                if (voff >= 0x1000)
+                    cdb.gen1(INSTR.addsub_imm(1,0,0,1,voff >> 12,reg,reg));
+                if (voff & 0xFFF)
+                    cdb.gen1(INSTR.addsub_imm(1,0,0,0,voff & 0xFFF,reg,reg));
                 return;
             }
 //            if (config.exe & EX_WIN64 && e.Vsym.ty() & mTYthread)
