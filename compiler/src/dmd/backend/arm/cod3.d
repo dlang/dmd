@@ -374,7 +374,10 @@ void gen_storecse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
     cs.Sextend = 0;
     cs.IEV1.Vsym = null;
     cs.IEV1.Voffset = slot;
-    storeToEA(cs, reg, tysize(tym));
+    uint sz = tysize(tym);
+    if (sz > REGSIZE)
+        sz = REGSIZE;
+    storeToEA(cs, reg, sz);
     assert(cs.Iop);
     cdb.gen(&cs);
 }
