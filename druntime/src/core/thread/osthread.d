@@ -1233,33 +1233,6 @@ private extern (D) void resume(ThreadBase _t) nothrow @nogc
     purgeStackAndRegInfo(t, sameThread);
 }
 
-private void purgeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
-{
-    version (Windows)
-    {
-        t.unloadStackInfo();
-        t.m_reg[0 .. $] = 0;
-    }
-    else version (Darwin)
-    {
-        t.unloadStackInfo();
-        t.m_reg[0 .. $] = 0;
-    }
-    else version (Solaris)
-    {
-        t.unloadStackInfo();
-        t.m_reg[0 .. $] = 0;
-    }
-    else version (Posix)
-    {
-        if (sameThread)
-            t.unloadStackInfo();
-    }
-    else
-        static assert(false, "Platform not supported.");
-}
-
-
 /**
  * Initializes the thread module.  This function must be called by the
  * garbage collector on startup and before any other thread routines
