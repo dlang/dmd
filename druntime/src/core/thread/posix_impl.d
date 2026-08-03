@@ -1068,6 +1068,25 @@ package void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
     }
 }
 
+package void purgeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
+{
+    version (Darwin)
+    {
+        t.unloadStackInfo();
+        t.m_reg[0 .. $] = 0;
+    }
+    else version (Solaris)
+    {
+        t.unloadStackInfo();
+        t.m_reg[0 .. $] = 0;
+    }
+    else
+    {
+        if (sameThread)
+            t.unloadStackInfo();
+    }
+}
+
 version (CoreDdoc) {} else
 public  alias getpid = imported!"core.sys.posix.unistd".getpid;
 

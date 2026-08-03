@@ -329,6 +329,12 @@ package void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
         t.m_curr.bstack = getThreadStackBottom( t.m_tdescr.hndl );
 }
 
+package void purgeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
+{
+    t.unloadStackInfo();
+    t.m_reg[0 .. $] = 0;
+}
+
 private
 {
     // If the runtime is dynamically loaded as a DLL, there is a problem with
