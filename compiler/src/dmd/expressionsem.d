@@ -4993,23 +4993,22 @@ private void lowerCastExp(CastExp cex, Scope* sc)
     ClassDeclaration cdto   = tob.isClassHandle();
 
     int offset;
-    if (cdto.isBaseOf(cdfrom, &offset) && offset != ClassDeclaration.OFFSET_RUNTIME)
+    if (cdto.isBaseOf(cdfrom, &offset))
         return; // codegen has to deal with pointer adjustment
 
     if (cdfrom.classKind != ClassKind.d ||
-        (cdto.classKind != ClassKind.d &&
-         !(cdto.classKind == ClassKind.cpp && cdto.isInterfaceDeclaration())))
+        (cdto.classKind != ClassKind.d && !cdto.isInterfaceDeclaration()))
     {
         if (cdfrom.classKind == cdto.classKind)
-            return; // for non-D classes, generate a reinterpreting cast
+            return; // for non-D classes, let the backend take care
 
-        // conversion other than D -> C++ interface result in null
+        // conversions across different linkage result in null
         Expression lowerNull = new NullExp(cex.loc, cex.to);
         cex.lowering = lowerNull .expressionSemantic(sc);
         return;
     }
 
-    // cast D -> D / C++ interface calls _d_cast
+    // cast D -> unrelated D class / any interface calls _d_cast
     Identifier hook = Id._d_cast;
     if (!verifyHookExist(cex.loc, *sc, hook, "d_cast", Id.object))
         return;

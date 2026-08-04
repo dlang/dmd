@@ -213,19 +213,19 @@ void test14218()
 /***************************************************/
 // https://github.com/dlang/dmd/issues/23262
 
-extern(C++) interface iface23262
+extern (C++) interface iface23262
 {
     int funCpp();
 }
 
-extern(C++) class cpp23262
+extern (C++) class cpp23262
 {
     int funCpp() { return 1; }
 }
 
 class class23262 : Object, iface23262
 {
-    extern(C++)	int funCpp() { return 42; }
+    extern (C++) int funCpp() { return 42; }
 }
 
 void test23262()
@@ -240,6 +240,9 @@ void test23262()
 
     auto d = cast(class23262) cpp;
     assert(d is null); // no way back
+
+    auto i = cast(iface23262) cpp2;
+    assert(cast(void*)i is cast(void*)cpp2); // reinterpret cast
 
     auto cppobj = new cpp23262;
     auto d2 = cast(class23262) cppobj;
