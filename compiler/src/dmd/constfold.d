@@ -1048,6 +1048,22 @@ UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
     {
         cantExp(ue);
     }
+    else if (tb.ty == Tsarray && e1.op == EXP.int64)
+    {
+        TypeSArray tsa = cast(TypeSArray)tb;
+        Type telem = tsa.nextOf();
+        dinteger_t dim = tsa.dim.toInteger();
+        if (dim == 1 && e1.type.size() == telem.size())
+        {
+            auto elements = new Expressions();
+            elements.push(Cast(loc, telem, telem, e1).exp().copy());
+            emplaceExp!(ArrayLiteralExp)(&ue, loc, type, elements);
+        }
+        else
+        {
+            cantExp(ue);
+        }
+    }
     else if (tb.ty == Tstruct && e1.op == EXP.int64)
     {
         // Struct = 0;
