@@ -1525,6 +1525,29 @@ $(H4 $(LNAME2 cast_static_array, Static Arrays))
             ---
         )
 
+    $(P A basic type can be cast to a single-element static array type when their
+        sizes match. Conversely, a single-element static array can be cast to a basic
+        type of the same size. The cast is done as a type paint (aka a reinterpret cast).)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            ---
+            int foo = 42;
+            (cast(int[1]) foo)[] = 1;
+            assert(foo == 1); // foo's bytes reinterpreted as int[1]
+
+            int bar = 42;
+            auto sa = cast(int[1]) bar;
+            bar = 0;
+            bar = cast(int) sa;
+            assert(bar == 42); // int[1]'s bytes reinterpreted as int
+
+            // float and int are both 4 bytes
+            float f = 3.14f;
+            int[1] fi = cast(int[1]) f;
+            assert(fi[0] != 0); // value was reinterpreted
+            ---
+        )
+
 $(H4 $(LNAME2 cast_integers, Integers))
 
     $(P Casting an integer to a smaller integral will truncate the
