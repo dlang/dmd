@@ -11,6 +11,8 @@
 
 module rt.alloca;
 
+version (DigitalMars):
+
 /*******************************************
  * Allocate data from the caller's stack frame.
  * This is a 'magic' function that needs help from the compiler to
@@ -24,7 +26,6 @@ module rt.alloca;
  *      EAX     allocated data, null if stack overflows
  */
 
-version (DigitalMars)
 extern (C) void* __alloca(int nbytes)
 {
   version (D_InlineAsm_X86)
@@ -206,8 +207,4 @@ extern (C) void* __alloca(int nbytes)
   }
   else
         static assert(0);
-}
-else
-{
-    static assert(false, "Not implemented for this compiler");
 }
