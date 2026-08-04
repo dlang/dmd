@@ -29,6 +29,7 @@ import dmd.expressionsem;
 import dmd.globals;
 import dmd.location;
 import dmd.mtype;
+import dmd.printast;
 import dmd.root.complex;
 import dmd.root.ctfloat;
 import dmd.root.port;
@@ -223,6 +224,9 @@ UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
 
 UnionExp Mul(Loc loc, Type type, Expression e1, Expression e2)
 {
+    //printf("Mul() type: %s\n", type.toChars());
+    //printAST(e1);
+    //printAST(e2);
     UnionExp ue = void;
     if (type.isFloating())
     {
