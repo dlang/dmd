@@ -203,7 +203,8 @@ version (MSVCIntrinsics)
     }
     else
     {
-        struct llvm_target
+        /* An inert placeholder for compilers that aren't LDC. */
+        private struct llvm_target
         {
             string specifier;
         }
