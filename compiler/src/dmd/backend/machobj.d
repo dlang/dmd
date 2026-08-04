@@ -37,6 +37,8 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.debugprint : class_str, fl_str;
+
 import dmd.common.outbuffer;
 
 nothrow:
@@ -508,6 +510,24 @@ int mach_numbersyms()
     //sortSymbols(machobj.externSymbols[]); // no need to sort these
     //sortComdefs(machobj.comdefs[]);       // not implemented yet
 
+    /* Print symbol table contents
+     */
+    static if (0)
+    {
+        printf("localSymbols\n");
+        foreach (i, s; machobj.localSymbols[])
+            printf("[%zd] %p SC.%s %s\n", i, s, class_str(s.Sclass), s.Sident.ptr);
+        printf("publicSymbols\n");
+        foreach (i, s; machobj.publicSymbols[])
+            printf("[%zd] %p SC.%s %s\n", i, s, class_str(s.Sclass), s.Sident.ptr);
+        printf("externSymbols\n");
+        foreach (i, s; machobj.externSymbols[])
+            printf("[%zd] %p SC.%s %s\n", i, s, class_str(s.Sclass), s.Sident.ptr);
+        printf("comdefs\n");
+        foreach (i, c; machobj.comdefs[])
+            printf("[%zd] %p SC.%s %s\n", i, c.sym, class_str(c.sym.Sclass), c.sym.Sident.ptr);
+        printf("\n");
+    }
 
     //printf("mach_numbersyms()\n");
     int n = 0;
@@ -560,7 +580,7 @@ void MachObj_termfile()
 @trusted
 void MachObj_term(const(char)[] objfilename)
 {
-    //printf("MachObj_term()\n");
+    //printf("MachObj_term() ======================================== \n");
     outfixlist();           // backpatches
 
     if (config.addlinenumbers)
@@ -878,6 +898,24 @@ void MachObj_term(const(char)[] objfilename)
             foreach (ref r; pseg.relocations[])
             {
                 Symbol* s = r.targsym;
+                if (s && s.Sforward && !s.Sxtrnnum)
+                {
+                    static if (0)
+                    if (s.Sforward.Sxtrnnum == 0)
+                    {
+                        printf("symbol %p '%s'\n ", s, s.Sident.ptr);
+                            printf(" Sclass = SC.%s ", class_str(s.Sclass));
+                            printf(" Ssymnum = %d",cast(int)s.Ssymnum);
+                            printf(" Sxtrnnum = %d",cast(int)s.Sxtrnnum);
+                            printf(" Sfl = %s\n", fl_str(cast(FL) s.Sfl));
+                        printf("forward %p '%s'\n ", s.Sforward, s.Sforward.Sident.ptr);
+                            printf(" Sclass = SC.%s ", class_str(s.Sforward.Sclass));
+                            printf(" Sxtrnnum = %d",cast(int)s.Sforward.Sxtrnnum);
+                            printf(" Sfl = %s\n\n", fl_str(cast(FL) s.Sforward.Sfl));
+                    }
+                    s = s.Sforward;
+                }
+
                 const(char)* rs = r.rtype == REL.address ? "address" :  // 32 bit address
                                   r.rtype == REL.add     ? "add"  :
                                   r.rtype == REL.rel26   ? "rel26"  :
@@ -2255,7 +2293,8 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
     pseg.SDaranges_offset = 0;
     pseg.SDlinnum_data.reset();
 
-    //printf("SegData.length = %d\n", SegData.length);
+    //printf("SegData.length = %zd, seg: %d relocations: %zd\n", SegData.length, seg, pseg.relocations.length);
+
     return seg;
 }
 
@@ -2659,6 +2698,11 @@ void MachObj_pubdef(int seg, Symbol* s, targ_size_t offset)
                 break;
             }
             goto default;
+        case SC.extern_:
+            // should probably fix whoever is sending an SC.extern_ here
+            MachObj_external(s);
+            break;
+
         default:
             //printf("Writing to local symbols: %s\n", s.Sident.ptr);
             machobj.localSymbols.push(s);
@@ -3711,3 +3755,45 @@ private int symbolQsortFp(scope const(void*) e1, scope const(void*) e2)
 
 alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
 extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
+
+/*******************************************
+ * Search symbols[] for a Symbol that matches identifier.
+ * Params:
+ *      symbols = array of Symbols to search
+ *      identifier = which Symbol to search for
+ * Returns:
+ *      pointer to Symbol that matches identifier, or null if identifier is not found
+ */
+@trusted
+private Symbol* searchSymbols(Symbol*[] symbols, const(char)* identifier)
+{
+    /* binary search */
+    ptrdiff_t low = 0;
+    ptrdiff_t high = symbols.length - 1;  // high can be -1
+
+    char cp = *identifier++;
+
+    while (low <= high)
+    {
+        ptrdiff_t mid = low + ((high - low) >> 1);
+        const(char)* p = symbols[mid].Sident.ptr;
+
+        int cond = *p - cp;
+        if (cond == 0)
+            cond = strcmp(p + 1, identifier);
+
+        if (cond > 0)
+            high = mid - 1;
+        else if (cond < 0)
+            low = mid + 1;
+        else
+            return symbols[mid];  // match
+    }
+    return null;        // not found
+}
+
+unittest
+{
+    Symbol*[] s1;
+    assert(searchSymbols(s1, "x") == null);
+}
