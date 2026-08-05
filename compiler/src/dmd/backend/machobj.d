@@ -540,8 +540,30 @@ int mach_numbersyms()
 
     foreach (s; machobj.publicSymbols[])
     {
+        assert(s.Sclass != SC.extern_);
         s.Sxtrnnum = n;
         n++;
+    }
+
+    /* Search externSymbols[] for duplicates of symbols in publicSymbols([].
+     * Forward extern symbol to the public symbol, and delete the extern symbol
+     * from the mach symbol table.
+     * Not sure localSymbols or comdefs can contain duplicates.
+     */
+    if (machobj.AArch64)
+    for (int i = 0; i < machobj.externSymbols.length; )
+    {
+        Symbol* s = machobj.externSymbols[i];
+        Symbol* sfwd = searchSymbols(machobj.publicSymbols[], s.Sident.ptr);
+        if (sfwd)
+        {
+            assert(sfwd.Sclass != SC.extern_);
+            s.Sforward = sfwd;
+            machobj.externSymbols.remove(i);    // remove s
+            //printf("extern %p %s forwarded to %p %s\n", s, s.Sident.ptr, sfwd, sfwd.Sident.ptr);
+            continue;
+        }
+        ++i;
     }
 
     foreach (s; machobj.externSymbols[])
@@ -838,7 +860,7 @@ void MachObj_term(const(char)[] objfilename)
         }
     }
 
-    if (!machobj.AArch64)
+//    if (!machobj.AArch64)
         foreach (i; 0 .. table.length)
             table[i] = cast(int)i;
 
@@ -1282,6 +1304,7 @@ static if (1)
                                 rel.r_type = X86_64_RELOC_SUBTRACTOR;
                                 rel.r_address = cast(int)r.offset;
                                 rel.r_symbolnum = r.funcsym.Sxtrnnum;
+assert(rel.r_symbolnum);
                                 rel.r_pcrel = 0;
                                 rel.r_length = 3;
                                 rel.r_extern = 1;
@@ -1291,6 +1314,7 @@ static if (1)
 
                                 rel.r_type = X86_64_RELOC_UNSIGNED;
                                 rel.r_symbolnum = s.Sxtrnnum;
+assert(rel.r_symbolnum);
                                 machobj.fobjbuf.write(&rel, rel.sizeof);
                                 foffset += rel.sizeof;
                                 ++nreloc;
@@ -1360,6 +1384,14 @@ static if (1)
 
                                     rel.r_address = cast(int)r.offset;
                                     rel.r_symbolnum = s.Sxtrnnum;
+if (machobj.AArch64 && !rel.r_symbolnum)
+{
+    printf("symbol %p '%s'\n ", s, s.Sident.ptr);
+    printf(" Sclass = SC.%s ", class_str(s.Sclass));
+    printf(" Sxtrnnum = %d",cast(int)s.Sxtrnnum);
+    printf(" Sfl = %s\n", fl_str(cast(FL) s.Sfl));
+}
+assert(rel.r_symbolnum);
                                     rel.r_pcrel = 1;
                                     rel.r_length = 2;
                                     rel.r_extern = 1;
@@ -1372,6 +1404,7 @@ static if (1)
                                 {
                                     rel.r_address = cast(int)r.offset;
                                     rel.r_symbolnum = table[s.Sseg];
+assert(rel.r_symbolnum);
                                     rel.r_pcrel = 1;
                                     rel.r_length = 2;
                                     rel.r_extern = 0;
@@ -1399,6 +1432,7 @@ static if (1)
                             {
                                 rel.r_address = cast(int)r.offset;
                                 rel.r_symbolnum = s.Sxtrnnum;
+assert(rel.r_symbolnum);
                                 rel.r_pcrel = 0;
                                 rel.r_length = 2;
                                 rel.r_extern = 1;
@@ -1417,6 +1451,7 @@ static if (1)
                             {
                                 rel.r_address = cast(int)r.offset;
                                 rel.r_symbolnum = table[s.Sseg];
+assert(rel.r_symbolnum);
                                 rel.r_pcrel = 0;
                                 rel.r_length = 2;
                                 rel.r_extern = 0;
@@ -1526,6 +1561,7 @@ static if (1)
                         //printf("r.rtype: %d r.targseg: %d r.offset: x%llx\n", r.rtype, r.targseg, cast(long)r.offset);
                         rel.r_address = cast(int)r.offset;
                         rel.r_symbolnum = table[r.targseg];
+assert(rel.r_symbolnum);
                         rel.r_pcrel = (r.rtype == REL.address) ? 0 : 1;
                         rel.r_length = 2;
                         rel.r_extern = 0;
@@ -1812,6 +1848,13 @@ static if (1)
     machobj.fobjbuf.position(foffset, 0);
 
     mem_free(table.ptr);
+
+    /* Set Sxtrnnum to zero for symbols so we know they are not in the
+     * object file's symbol table.
+     */
+    if (machobj.AArch64)
+    foreach (s; machobj.externSymbols[])
+        s.Sxtrnnum = 0;
 }
 
 /*****************************
@@ -2294,7 +2337,6 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
     pseg.SDlinnum_data.reset();
 
     //printf("SegData.length = %zd, seg: %d relocations: %zd\n", SegData.length, seg, pseg.relocations.length);
-
     return seg;
 }
 
@@ -2376,6 +2418,7 @@ int MachObj_thread_vars(ref Symbol s, out targ_size_t offset, bool bss)
 {
     //printf("MachObj_thread_vars(s)\n");
     //symbol_print(s);
+
     /* create _ident$tlv$init Symbol si
      */
     Symbol* si;
@@ -2681,6 +2724,15 @@ void MachObj_pubdef(int seg, Symbol* s, targ_size_t offset)
 
     s.Soffset = offset;
     s.Sseg = seg;
+    static if (0)
+    if (strcmp(s.Sident.ptr, "_D3std11parallelism8TaskPool7__ClassZ") == 0)
+    {
+        fprintf(stdout, "pubdef symbol %p '%s'\n ", s, s.Sident.ptr);
+        fprintf(stdout, " Sclass = SC.%s ", class_str(s.Sclass));
+        fprintf(stdout, " Ssymnum = %d",cast(int)s.Ssymnum);
+        fprintf(stdout, " Sxtrnnum = %d",cast(int)s.Sxtrnnum);
+        fprintf(stdout, " Sfl = %s\n\n", fl_str(cast(FL) s.Sfl));
+    }
     switch (s.Sclass)
     {
         case SC.global:
@@ -2949,6 +3001,9 @@ void MachObj_addrel(int seg, targ_size_t offset, Symbol* targsym,
     rel.val = cast(short)val;
 
     seg_data* pseg = SegData[seg];
+    if (targsym && targsym.Sxtrnnum == 0)
+        MachObj_external(targsym);
+
     pseg.relocations.push(rel);
 }
 
