@@ -1,0 +1,33 @@
+name: backport
+
+# Cherry-picks a merged PR onto every release branch it is labeled for,
+# e.g. label `Backport:v2.113` opens a PR against branch `v2.113`.
+on:
+  pull_request_target:
+    types: [closed, labeled]
+
+concurrency:
+  group: backport-${{ github.event.pull_request.number }}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  backport:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cherry-pick onto release branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          PR_COMMITS: ${{ github.event.pull_request.commits }}
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: .github/scripts/backport.sh

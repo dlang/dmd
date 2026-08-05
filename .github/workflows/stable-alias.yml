@@ -1,0 +1,32 @@
+name: stable-alias
+
+# Keeps `stable` pointing at the newest release branch, so that downstreams
+# tracking `stable` (LDC, GDC, package maintainers) follow the current freeze.
+on:
+  push:
+    branches: ['v[0-9]+.[0-9]+']
+
+concurrency:
+  group: stable-alias
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Point stable at the newest release branch
+        run: |
+          set -ueo pipefail
+          newest=$(git for-each-ref --format='%(refname:lstrip=3)' 'refs/remotes/origin/v*' |
+              grep -E '^v[0-9]+\.[0-9]+$' | sort -V | tail -1)
+          if [ "$newest" != "$GITHUB_REF_NAME" ]; then
+              echo "$GITHUB_REF_NAME is not the newest release branch ($newest), nothing to do"
+              exit 0
+          fi
+          git push --force origin "$GITHUB_SHA:refs/heads/stable"
