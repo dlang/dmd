@@ -114,15 +114,9 @@ else
 
 version (CRuntime_WASI)
 {
-    version (WASI_EMULATED_GETPID)
-        pid_t   getpid() @trusted;
-    else
-        deprecated("WASI lacks process identifiers; to enable emulation of"~
-                   " the `getpid` function using a placeholder value, which"~
-                   " doesn't reflect the host PID of the program, compile"~
-                   " with --d-version=WASI_EMULATED_GETPID and link with"~
-                   " -lwasi-emulated-getpid")
-        pid_t   getpid() @trusted;
+    // WASI has no processes, and wasi-libc requires you to jump through hoops
+    // to link this in. We just let D code use it silently.
+    extern(D) pid_t getpid()() @trusted => 42;
 } else
     pid_t   getpid() @trusted;
 
