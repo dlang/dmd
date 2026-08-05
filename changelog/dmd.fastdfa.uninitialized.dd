@@ -1,6 +1,6 @@
 Fast DFA reports on uninitialized variable reads
 
-The fast DFA engine has gained the ability to error when a variable can be proven to being in an uninitialized state, and is read.
+The fast DFA engine has gained the ability to error when a variable can be proven to be in an uninitialized state, and is read.
 
 ```d
 void readFromUninit() @system
@@ -33,4 +33,4 @@ void checkFloatInit(bool condition)
 It will not activate for other expressions, or statements.
 Only in a mathematical expression.
 
-This was not originally part of the fast DFA engines scope, its continued existence depends upon community feedback as part of usage.
+This was not originally part of the fast DFA engine's scope; its continued existence depends upon community feedback as part of usage.
