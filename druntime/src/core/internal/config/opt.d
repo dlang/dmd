@@ -1,7 +1,5 @@
 ///
-module core.system.opt;
-
-package(core):
+module core.internal.config.opt;
 
 struct Opt
 {

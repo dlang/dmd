@@ -1,5 +1,5 @@
 ///
-module core.system;
+module core.internal.config;
 
 struct Sys
 {

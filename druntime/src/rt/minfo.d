@@ -13,7 +13,7 @@
 module rt.minfo;
 
 import core.stdc.stdio : fprintf, stderr;
-import core.system.memory : freeMem, allocateOne, reallocate;
+import core.internal.config.memory : freeMem, allocateOne, reallocate;
 import core.stdc.string : memcpy, memset;
 import rt.sections;
 

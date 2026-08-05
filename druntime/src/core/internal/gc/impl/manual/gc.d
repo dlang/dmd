@@ -25,7 +25,7 @@ import core.internal.container.array;
 
 import core.thread.threadbase : ThreadBase;
 
-import core.system.memory;
+import core.internal.config.memory;
 static import core.memory;
 
 extern (C) noreturn onOutOfMemoryError(void* pretend_sideffect = null, string file = __FILE__, size_t line = __LINE__) @trusted pure nothrow @nogc; /* dmd @@@BUG11461@@@ */

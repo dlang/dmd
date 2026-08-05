@@ -9,8 +9,8 @@ module core.gc.config;
 
 import core.internal.parseoptions;
 import core.stdc.stdio : printf;
-import core.system : Sys;
-import core.system.opt : Opt;
+import core.internal.config : Sys;
+import core.internal.config.opt : Opt;
 
 alias Config = Opt.GcConfig;
 

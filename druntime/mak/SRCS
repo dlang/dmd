@@ -18,9 +18,6 @@ SRCS=\
 	src\core\memory.d \
 	src\core\runtime.d \
 	src\core\simd.d \
-	src\core\system\memory.d \
-	src\core\system\opt.d \
-	src\core\system\package.d \
 	src\core\time.d \
 	src\core\vararg.d \
 	src\core\volatile.d \
@@ -33,6 +30,9 @@ SRCS=\
 	src\core\internal\atomic.d \
 	src\core\internal\attributes.d \
 	src\core\internal\cast_.d \
+	src\core\internal\config\memory.d \
+	src\core\internal\config\opt.d \
+	src\core\internal\config\package.d \
 	src\core\internal\convert.d \
 	src\core\internal\dassert.d \
 	src\core\internal\destruction.d \

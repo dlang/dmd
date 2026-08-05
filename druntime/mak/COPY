@@ -25,9 +25,6 @@ COPY=\
 	$(IMPDIR)\core\memory.d \
 	$(IMPDIR)\core\runtime.d \
 	$(IMPDIR)\core\simd.d \
-	$(IMPDIR)\core\system\memory.d \
-	$(IMPDIR)\core\system\opt.d \
-	$(IMPDIR)\core\system\package.d \
 	$(IMPDIR)\core\time.d \
 	$(IMPDIR)\core\vararg.d \
 	$(IMPDIR)\core\volatile.d \
@@ -36,6 +33,9 @@ COPY=\
 	$(IMPDIR)\core\internal\atomic.d \
 	$(IMPDIR)\core\internal\attributes.d \
 	$(IMPDIR)\core\internal\cast_.d \
+	$(IMPDIR)\core\internal\config\memory.d \
+	$(IMPDIR)\core\internal\config\opt.d \
+	$(IMPDIR)\core\internal\config\package.d \
 	$(IMPDIR)\core\internal\convert.d \
 	$(IMPDIR)\core\internal\dassert.d \
 	$(IMPDIR)\core\internal\destruction.d \

@@ -20,7 +20,7 @@ import core.stdc.string : strerror;
 import rt.config : rt_cmdline_enabled, rt_configOption;
 import rt.memory;
 import rt.sections;
-import core.system.memory;
+import core.internal.config.memory;
 
 version (Windows)
 {

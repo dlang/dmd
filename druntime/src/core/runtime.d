@@ -10,7 +10,7 @@
 
 module core.runtime;
 
-import core.system.memory : allocateOne, freeMem;
+import core.internal.config.memory : allocateOne, freeMem;
 
 version (OSX)
     version = Darwin;

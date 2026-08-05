@@ -1,5 +1,5 @@
 ///
-module core.system.memory;
+module core.internal.config.memory;
 
 // libc version
 version (all)

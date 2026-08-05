@@ -11,7 +11,7 @@ import core.internal.gc.os;
 
 import core.bitop;
 import core.exception : onOutOfMemoryError;
-import core.system.memory : allocateOneBlank, freeMem;
+import core.internal.config.memory : allocateOneBlank, freeMem;
 import core.stdc.string : memcpy, memset;
 
 // use version gcbitsSingleBitOperation to disable optimizations that use
