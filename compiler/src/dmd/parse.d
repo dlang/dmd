@@ -2001,7 +2001,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     private AST.Dsymbol parseMixin()
     {
         AST.TemplateMixin tm;
-        Identifier id, name;
+        Identifier name;
         AST.Objects* tiargs;
 
         //printf("parseMixin()\n");
@@ -2016,132 +2016,61 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             nextToken();
         }
 
-        auto loc = token.loc;
-        AST.TypeQualified tqual = null;
-        if (token.value == TOK.dot)
+        /*
+         * Parse the MixinTemplateName using the generic type parser.
+         * This handles: identifiers, qualified names (a.b.c), template
+         * instances (Foo!(args)), typeof, mixin(), __traits(), and
+         * indexing ([expr]).
+         */
+        AST.Type tbase;
+        if (token.value != TOK.identifier && token.value != TOK.typeof_ &&
+            token.value != TOK.mixin_ && token.value != TOK.traits &&
+            token.value != TOK.dot)
         {
-            id = Id.empty;
+            error("identifier expected, not `%s`", token.toChars());
+            tbase = new AST.TypeIdentifier(locMixin, Id.empty);
         }
         else
         {
-            if (token.value == TOK.typeof_)
-            {
-                tqual = parseTypeof();
-                while (token.value == TOK.leftBracket)
-                {
-                    nextToken();
-                    tqual.addIndex(parseAssignExp());
-                    check(TOK.rightBracket);
-                }
-                check(TOK.dot);
-            }
-            else if (token.value == TOK.mixin_)
-            {
-                loc = token.loc;
-                nextToken();
-                if (token.value != TOK.leftParenthesis)
-                    error(token.loc, "found `%s` when expecting `%s` following `mixin`", token.toChars(), Token.toChars(TOK.leftParenthesis));
-                auto exps = parseArguments();
-                tqual = new AST.TypeMixin(loc, exps);
-                while (token.value == TOK.leftBracket)
-                {
-                    nextToken();
-                    tqual.addIndex(parseAssignExp());
-                    check(TOK.rightBracket);
-                }
-                if (token.value == TOK.dot)
-                    nextToken();
-                else
-                    goto Lmixin;
-            }
-            else if (token.value == TOK.traits)
-            {
-                if (AST.TraitsExp te = cast(AST.TraitsExp) parsePrimaryExp())
-                {
-                    if (te.ident)
-                    {
-                        tqual = new AST.TypeTraits(token.loc, te);
-                        while (token.value == TOK.leftBracket)
-                        {
-                            nextToken();
-                            tqual.addIndex(parseAssignExp());
-                            check(TOK.rightBracket);
-                        }
-                        if (token.value == TOK.dot)
-                            nextToken();
-                        else
-                            goto Lmixin;
-                    }
-                }
-                if (!tqual)
-                {
-                    error("traits expected");
-                    id = Id.empty;
-                    nextToken();
-                    goto Lmixin;
-                }
-            }
-
-            if (token.value != TOK.identifier)
+            tbase = parseBasicType();
+            if (tbase.ty != TY.Tident && tbase.ty != TY.Tinstance &&
+                tbase.ty != TY.Ttypeof && tbase.ty != TY.Treturn &&
+                tbase.ty != TY.Tmixin && tbase.ty != TY.Ttraits)
             {
                 error("identifier expected, not `%s`", token.toChars());
-                id = Id.empty;
+                tbase = new AST.TypeIdentifier(locMixin, Id.empty);
+            }
+        }
+        AST.TypeQualified tqual = cast(AST.TypeQualified)tbase;
+        if (auto ti = tqual.isTypeInstance())
+        {
+            if (ti.idents.length)
+            {
+                auto lastId = ti.idents[$ - 1];
+                if (lastId.dyncast() == DYNCAST.dsymbol)
+                {
+                    auto tinst = cast(AST.TemplateInstance)lastId;
+                    ti.idents[$ - 1] = tinst.name;
+                    tiargs = tinst.tiargs;
+                }
             }
             else
-                id = token.ident;
-            nextToken();
+            {
+                // mixin Foo!();
+                auto tinst = ti.tempinst;
+                tqual = new AST.TypeIdentifier(tqual.loc, tinst.name);
+                tiargs = tinst.tiargs;
+            }
         }
-
-    Lmixin:
-        while (1)
+        else if (tqual.idents.length)
         {
-            tiargs = null;
-            if (token.value == TOK.not)
+            auto lastId = tqual.idents[$ - 1];
+            if (lastId.dyncast() == DYNCAST.dsymbol)
             {
-                tiargs = parseTemplateArguments();
+                auto tinst = cast(AST.TemplateInstance)lastId;
+                tqual.idents[$ - 1] = tinst.name;
+                tiargs = tinst.tiargs;
             }
-
-            if (tiargs && token.value == TOK.dot)
-            {
-                auto tempinst = new AST.TemplateInstance(loc, id, tiargs);
-                if (!tqual)
-                    tqual = new AST.TypeInstance(loc, tempinst);
-                else
-                    tqual.addInst(tempinst);
-                tiargs = null;
-            }
-            else if (id)
-            {
-                if (!tqual)
-                    tqual = new AST.TypeIdentifier(loc, id);
-                else
-                    tqual.addIdent(id);
-            }
-
-            while (token.value == TOK.leftBracket)
-            {
-                nextToken();
-                if (!tqual)
-                {
-                    error("identifier expected before `[`");
-                    tqual = new AST.TypeIdentifier(loc, Id.empty);
-                }
-                tqual.addIndex(parseAssignExp());
-                check(TOK.rightBracket);
-            }
-
-            if (token.value != TOK.dot)
-                break;
-
-            nextToken();
-            if (token.value != TOK.identifier)
-            {
-                error("identifier expected following `.` instead of `%s`", token.toChars());
-                break;
-            }
-            loc = token.loc;
-            id = token.ident;
-            nextToken();
         }
 
         // mixin MixinTemplateName TemplateArguments Identifier;
@@ -4103,7 +4032,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (token.value != TOK.leftParenthesis)
                 error(token.loc, "found `%s` when expecting `%s` following `mixin`", token.toChars(), Token.toChars(TOK.leftParenthesis));
             auto exps = parseArguments();
-            t = new AST.TypeMixin(loc, exps);
+            t = parseBasicTypeStartingAt(new AST.TypeMixin(loc, exps), dontLookDotIdents);
             break;
 
         case TOK.dot:
@@ -4124,7 +4053,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (AST.TraitsExp te = cast(AST.TraitsExp) parsePrimaryExp())
                 if (te.ident)
                 {
-                    t = new AST.TypeTraits(token.loc, te);
+                    t = parseBasicTypeStartingAt(new AST.TypeTraits(token.loc, te), dontLookDotIdents);
                     break;
                 }
             t = new AST.TypeError;
