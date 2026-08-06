@@ -362,16 +362,16 @@ struct BlockRange
 alias func_flags_t = uint;
 enum
 {
-    Fpending    = 1,           // if function has been queued for being written
-    Foutput     = 2,           // if function has been written out
-    Finline     = 0x10,        // if SCinline, and function really is inline
-    Fctor       = 0x200,       // if function is a constructor
-    Fdtor       = 0x400,       // if function is a destructor
-    Finlinenest = 0x1000,      // used as a marker to prevent nested
-                               // inlines from expanding
-    Fstatic     = 0x4000,      // static member function (no this)
-    Fpure       = 0x10000,     // pure function
-    Finvariant  = 0x1000000,   // __invariant function
+    Fpending         =          1, // if function has been queued for being written
+    Foutput          =          2, // if function has been written out
+    Finline          =          4, // if SCinline, and function really is inline
+    Fctor            =          8, // if function is a constructor
+    Fdtor            =       0x10, // if function is a destructor
+    Finlinenest      =       0x20, // used as a marker to prevent nested
+                                   // inlines from expanding
+    Fstatic          =       0x40, // static member function (no this)
+    Fpure            =       0x80, // pure function
+    Finvariant       =      0x100, // __invariant function
 }
 
 alias func_flags3_t = uint;
