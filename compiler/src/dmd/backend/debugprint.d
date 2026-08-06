@@ -165,9 +165,9 @@ immutable(char)* bc_str(uint bc)
 private immutable char[8][BC.max + 1] bcs =
 [
     "unde   ", "goto_  ", "true   ", "ret   ", "retexp ",
-    "exit   ", "asm_   ", "switch_", "ifthen", "jmptab ",
-    "cpptry ", "catch_ ", "jump   ", "_try  ", "filter ",
-    "_final ", "_ret   ", "_excep ", "jcatch", "lpad   ",
+    "exit   ", "asm_   ", "switch ", "ifthen", "jmptab ",
+    "cpptry ", "catch_ ", "jump   ", "try   ", "filter ",
+    "final  ", "finRet ", "except ", "jcatch", "lpad   ",
 ];
 
 
@@ -441,12 +441,12 @@ void WRblock(block* b)
             case BC.cpptry:
             case BC.catch_:
             case BC.jcatch:
-            case BC._try:
+            case BC.try_:
             case BC.filter:
             case BC.finally_:
             case BC.lpad:
-            case BC._ret:
-            case BC._except:
+            case BC.finRet:
+            case BC.except:
                 if (b.Bsucc.length)
                 {
                     printf("\tBsucc:");

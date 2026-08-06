@@ -1199,7 +1199,7 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
             goto L5;
         }
 
-        case BC._try:
+        case BC.try_:
             if (config.ehmethod == EHmethod.EH_DM || ehmethod(funcsym_p) == EHmethod.EH_NONE)
             {
                 /* Need to use frame pointer to access locals, not the stack pointer,
@@ -1269,7 +1269,7 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
             goto L5;
         }
 
-        case BC._ret:
+        case BC.finRet:
         {
             regm_t retregsx = 0;
             gencodelem(cdb,e,retregsx,true);
@@ -1283,7 +1283,7 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
 
 static if (NTEXCEPTIONS)
 {
-        case BC._except:
+        case BC.except:
         {
             assert(!e);
             cg.usednteh |= NTEH_except;

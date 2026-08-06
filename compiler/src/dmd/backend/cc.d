@@ -185,9 +185,9 @@ nothrow:
     block* Bnext;               // pointer to next block in list
     Barray!(block*) Bsucc;      // and the successor array copy of Bsucc
     Barray!(block*) Bpred;      // and the predecessor array
-    block* Btry;                // BC.cpptry,BC._try: enclosing try block, if any
-                                // BC???: if in try-block, points to BC.try_ or BC._try
-                                // note that can't have a BC.cpptry and BC._try in
+    block* Btry;                // BC.cpptry,BC.try_: enclosing try block, if any
+                                // BC???: if in try-block, points to BC.try_ or BC.try_
+                                // note that can't have a BC.cpptry and BC.try_ in
                                 // the same function.
     union
     {
@@ -215,12 +215,12 @@ nothrow:
             Symbol* jcatchvar;      // __d_throw() fills in this
             int Bscope_index;           // index into scope table
             int Blast_index;            // enclosing index into scope table
-        }                               // BC._try
+        }                               // BC.try_
 
         struct
         {
             Symbol* flag;               // EH_DWARF: set to 'flag' symbol that encloses finally
-            block* b_ret;               // EH_DWARF: associated BC._ret block
+            block* b_ret;               // EH_DWARF: associated BC.finRet block
         }                               // finally
 
         // add member mimicking the largest of the other elements of this union, so it can be copied
@@ -324,13 +324,13 @@ enum BC : ubyte
                       // blocks are the catch blocks
     catch_    = 11,   // C++ catch block
     jump      = 12,   // Belem specifies (near) address to jump to
-    _try      = 13,   // SEH: first block of try-except or try-finally
+    try_      = 13,   // SEH: first block of try-except or try-finally
                       // D: try-catch or try-finally
     filter    = 14,   // SEH exception-filter (always exactly one block)
     finally_  = 15,   // first block of SEH termination-handler,
                       // or D finally block
-    _ret      = 16,   // last block of SEH termination-handler or D finally_ block
-    _except   = 17,   // first block of SEH exception-handler
+    finRet    = 16,   // last block of SEH termination-handler or D finally_ block
+    except    = 17,   // first block of SEH exception-handler
     jcatch    = 18,   // D catch block
     lpad      = 19,   // EH_DWARF: landing pad for BC._except
 }

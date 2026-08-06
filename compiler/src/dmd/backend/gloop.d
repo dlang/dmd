@@ -567,7 +567,7 @@ private bool looprotate(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
 
     if (head.bc == BC.cpptry)
          goto Lret;
-    if (head.bc == BC._try)
+    if (head.bc == BC.try_)
          goto Lret;
 
     //if (debugc) { printf("looprotate: "); l.print(); }

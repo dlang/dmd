@@ -144,7 +144,7 @@ void except_fillInEHTable(Symbol* s)
     int ndctors = 0;                                // number of PSOP.dctor's
     foreach (b; BlockRange(bo.startblock))
     {
-        if (b.bc == BC._try && b.Bscope_index >= guarddim)
+        if (b.bc == BC.try_ && b.Bscope_index >= guarddim)
             guarddim = b.Bscope_index + 1;
 //      printf("b.bc = %2d, Bscope_index = %2d, last_index = %2d, offset = x%x\n",
 //              b.bc, b.Bscope_index, b.Blast_index, b.Boffset);
@@ -170,7 +170,7 @@ void except_fillInEHTable(Symbol* s)
     foreach (b; BlockRange(bo.startblock))
     {
         //printf("b = %p, b.Btry = %p, b.offset = %x\n", b, b.Btry, b.Boffset);
-        if (b.bc == BC._try)
+        if (b.bc == BC.try_)
         {
             assert(b.Bscope_index >= i);
             if (i < b.Bscope_index)
@@ -333,7 +333,7 @@ void except_fillInEHTable(Symbol* s)
     // Generate catch[]
     foreach (b; BlockRange(bo.startblock))
     {
-        if (b.bc == BC._try && b.jcatchvar)         // if try-catch
+        if (b.bc == BC.try_ && b.jcatchvar)         // if try-catch
         {
             int nsucc = cast(int)b.Bsucc.length;
             dtb.size(nsucc - 1);           // # of catch blocks
