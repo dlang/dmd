@@ -23,9 +23,9 @@ import dmd.backend.x86.code_x86 : BP;
 import dmd.backend.dt;
 import dmd.backend.global : symbol_keep;
 import dmd.backend.dout : outdata;
-import dmd.backend.symbol : symbol_name;
 import dmd.backend.mscoffobj;
 import dmd.backend.obj;
+import dmd.backend.symbol;
 import dmd.backend.ty : TYint;
 import dmd.backend.type;
 

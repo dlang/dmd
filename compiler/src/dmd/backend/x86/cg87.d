@@ -33,6 +33,7 @@ import dmd.backend.debugprint : tym_str;
 import dmd.backend.dout : out_readonly_sym;
 import dmd.backend.evalu8 : boolres, evalu8;
 import dmd.backend.oper;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.evalu8 : el_toreald;
 

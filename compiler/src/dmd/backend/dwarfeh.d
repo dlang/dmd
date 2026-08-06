@@ -22,6 +22,7 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.barray : Barray;
 import dmd.backend.dwarf;
 import dmd.backend.dwarf2;
+import dmd.backend.symbol;
 
 import dmd.common.outbuffer;
 

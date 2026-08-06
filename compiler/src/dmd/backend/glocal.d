@@ -29,9 +29,9 @@ import dmd.backend.cgelem : doptelem;
 import dmd.backend.debugprint : WReqn;
 import dmd.backend.go;
 import dmd.backend.el;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
-import dmd.backend.symbol : globsym;
 
 import dmd.backend.barray;
 import dmd.backend.dvec;

@@ -31,9 +31,9 @@ import dmd.backend.cgcs : comsubs;
 import dmd.backend.cgelem : doptelem;
 import dmd.backend.debugprint : WRblock, WReqn, WRfunc, numberBlocks;
 import dmd.backend.evalu8 : iffalse, iftrue;
-import dmd.backend.symbol : symbol_genauto, sytab, globsym;
 import dmd.backend.go;
 import dmd.backend.code;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 
 static if (NTEXCEPTIONS)

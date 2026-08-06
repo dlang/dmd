@@ -30,7 +30,7 @@ import dmd.backend.debugprint : WReqn, WRfunc, tym_str;
 import dmd.backend.evalu8 : evalu8, iftrue;
 import dmd.backend.go;
 import dmd.backend.el;
-import dmd.backend.symbol : sytab, globsym, SYMIDX;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 

@@ -36,7 +36,7 @@ import dmd.backend.oper;
 import dmd.backend.global : getFileContentsCallback;
 import dmd.common.outbuffer;
 import dmd.backend.rtlsym;
-import dmd.backend.symbol : globsym;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.dvarstats;

@@ -22,7 +22,6 @@ import core.stdc.string;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
-import dmd.backend.cc : Symbol;
 import dmd.backend.oper;
 import dmd.backend.type;
 
@@ -39,13 +38,13 @@ import dmd.backend.global : symboldata;
 import dmd.backend.debugprint : oper_str, tym_str;
 import dmd.backend.dout : out_readonly_sym;
 import dmd.backend.evalu8 : evalu8;
-import dmd.backend.symbol : symbol_add, symbol_genauto, symbol_generate, symbol_name;
 import dmd.backend.util2 : binary;
 import dmd.backend.x86.cg87 : loadconst;
 import dmd.backend.go;
 import dmd.backend.mem;
 import dmd.backend.obj;
 import dmd.backend.rtlsym;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 
 version (CRuntime_Microsoft)

@@ -17,8 +17,9 @@ module dmd.backend.cdef;
 
 import dmd.common.int128;
 
-import dmd.backend.cc: Classsym, Symbol, param_t, config;
+import dmd.backend.cc: Classsym, param_t, config;
 import dmd.backend.el;
+import dmd.backend.symbol;
 import dmd.backend.ty : I32;
 import dmd.backend.global : REGSIZE;
 
