@@ -1006,7 +1006,7 @@ private int mergeblks(ref BlockOpt bo)
                     continue;
 
                 if (bL2.bc == BC.cpptry ||
-                    bL2.bc == BC._try ||
+                    bL2.bc == BC.try_ ||
                     b.Btry != bL2.Btry)
                     continue;
 
@@ -1110,7 +1110,7 @@ private void blident(ref GlobalOptimizer go, ref BlockOpt bo)
                     case BC.cpptry:
                     case BC.catch_:
                     case BC.jcatch:
-                    case BC._try:
+                    case BC.try_:
                     case BC.finally_:
                     case BC.lpad:
                     case BC.asm_:
@@ -1339,7 +1339,7 @@ private void bltailmerge(ref uint changes, block* bstart)
                         case BC.cpptry:
                         case BC.catch_:
                         case BC.jcatch:
-                        case BC._try:
+                        case BC.try_:
                         case BC.finally_:
                         case BC.lpad:
                         case BC.asm_:
@@ -1572,7 +1572,7 @@ private void brmin(ref GlobalOptimizer go, ref BlockOpt bo)
         switch (b.bc)
         {
             case BC.cpptry:
-            case BC._try:
+            case BC.try_:
             case BC.asm_:
                 // Try blocks must be followed by try body.
                 continue Lbb;
@@ -1634,7 +1634,7 @@ private void brmin(ref GlobalOptimizer go, ref BlockOpt bo)
                 // Do not reorder try/finally blocks on Windows, because Bscope_index must match.
                 // Reordering catch handlers are fine, however.
                 static if (SCPP_OR_NTEXCEPTIONS)
-                    if (bn.bc == BC.cpptry || bn.bc == BC._try || bn.bc == BC.finally_)
+                    if (bn.bc == BC.cpptry || bn.bc == BC.try_ || bn.bc == BC.finally_)
                         continue Lsucc;
 
                 interloperLength++;
@@ -1766,7 +1766,7 @@ private void brtailrecursion(ref GlobalOptimizer go, ref BlockOpt bo)
 
     for (block* b = bo.startblock; b; b = b.Bnext)
     {
-        if (b.bc == BC._try)
+        if (b.bc == BC.try_)
             return;
         elem** pe = &b.Belem;
         block* bn = null;
