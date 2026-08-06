@@ -112,7 +112,7 @@ static if (1)
      */
     bool doUnwindEhFrame()
     {
-        if (funcsym_p.Sfunc.Fflags3 & Feh_none)
+        if (funcsym_p.Sfunc.Fflags & Feh_none)
         {
             return (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64)) != 0;
         }
@@ -1929,7 +1929,7 @@ static if (1)
         if (sfunc.Sclass == SC.global)
             dwarfabbrev.append(DW_AT_external, DW_FORM_flag);
 
-        if (sfunc.Sfunc.Fflags3 & Fmain)
+        if (sfunc.Sfunc.Fflags & Fmain)
         {
             if (config.dwarf >= 4)
             {
@@ -1944,7 +1944,7 @@ static if (1)
         if (config.dwarf >= 5 && sfunc.Sflags & SFLexit)
             dwarfabbrev.append(DW_AT_noreturn, DW_FORM_flag_present);
 
-        if (sfunc.Sfunc.Fflags3 & Fpure)
+        if (sfunc.Sfunc.Fflags & Fpure)
             dwarfabbrev.append(
                 DW_AT_pure,
                 config.dwarf >= 4
@@ -1983,10 +1983,10 @@ static if (1)
             debug_info.buf.writeByte(1);                              // DW_AT_external
 
         if (config.dwarf < 4
-            && sfunc.Sfunc.Fflags3 & Fmain
+            && sfunc.Sfunc.Fflags & Fmain
             && config.flags2 & CFG2genmain)
             debug_info.buf.writeByte(true);                           // DW_AT_artificial
-        if (config.dwarf < 4 && sfunc.Sfunc.Fflags3 & Fpure)
+        if (config.dwarf < 4 && sfunc.Sfunc.Fflags & Fpure)
             debug_info.buf.writeByte(true);                           // DW_AT_pure
 
         debug_info.buf.writeStringz(name);                            // DW_AT_name

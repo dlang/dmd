@@ -292,7 +292,7 @@ bool Symbol_isAffected(const ref Symbol s)
         /* Disabled for the moment because even @safe functions
          * may have inlined unsafe code from other functions
          */
-        if (funcsym_p.Sfunc.Fflags3 & F3safe &&
+        if (funcsym_p.Sfunc.Fflags & F3safe &&
             s.ty() & mTYimmutable)
         {
             return false;

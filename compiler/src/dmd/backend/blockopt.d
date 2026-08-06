@@ -529,7 +529,7 @@ void brcombine(ref GlobalOptimizer go, ref BlockOpt bo)
     debug if (debugc) printf("brcombine()\n");
     //WRfunc("brcombine()", funcsym_p, startblock);
 
-    if (funcsym_p.Sfunc.Fflags3 & (Fcppeh | Fnteh))
+    if (funcsym_p.Sfunc.Fflags & (Fcppeh | Fnteh))
     {   // Don't mess up extra EH info by eliminating blocks
         return;
     }
@@ -1740,7 +1740,7 @@ private void block_check()
 @trusted
 private void brtailrecursion(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    if (funcsym_p.Sfunc.Fflags3 & Fnotailrecursion)
+    if (funcsym_p.Sfunc.Fflags & Fnotailrecursion)
         return;
     if (localgot)
     {   /* On OSX, tail recursion will result in two OPgot's:
@@ -1755,12 +1755,12 @@ private void brtailrecursion(ref GlobalOptimizer go, ref BlockOpt bo)
             }
         */
 
-        funcsym_p.Sfunc.Fflags3 |= Fnotailrecursion;
+        funcsym_p.Sfunc.Fflags |= Fnotailrecursion;
         return;
     }
     if (anyAddressesOfLocals())
     {
-        funcsym_p.Sfunc.Fflags3 |= Fnotailrecursion; // https://github.com/dlang/dmd/issues/22069
+        funcsym_p.Sfunc.Fflags |= Fnotailrecursion; // https://github.com/dlang/dmd/issues/22069
         return;
     }
 
@@ -2026,7 +2026,7 @@ private void funcsideeffects(ref BlockOpt bo)
             return;
         }
     }
-    funcsym_p.Sfunc.Fflags3 |= Fnosideeff;
+    funcsym_p.Sfunc.Fflags |= Fnosideeff;
     //printf("  function '%s' has no side effects\n",funcsym_p.Sident);
 }
 
@@ -2045,7 +2045,7 @@ private int funcsideeffect_walk(elem* e)
             Symbol* s;
             if (e.E1.Eoper == OPvar &&
                 tyfunc((s = e.E1.Vsym).Stype.Tty) &&
-                ((s.Sfunc && s.Sfunc.Fflags3 & Fnosideeff) || s == funcsym_p)
+                ((s.Sfunc && s.Sfunc.Fflags & Fnosideeff) || s == funcsym_p)
                )
                 break;
             goto Lside;
