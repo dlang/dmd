@@ -45,7 +45,7 @@ package(dmd) @property @nogc nothrow auto @trusted NPTRSIZE() { return _tysize[T
 Symbol* except_gentables()
 {
     //printf("except_gentables()\n");
-    if (config.ehmethod == EHmethod.EH_DM && !(funcsym_p.Sfunc.Fflags3 & Feh_none))
+    if (config.ehmethod == EHmethod.EH_DM && !(funcsym_p.Sfunc.Fflags & Feh_none))
     {
         // BUG: alloca() changes the stack size, which is not reflected
         // in the fixed eh tables.

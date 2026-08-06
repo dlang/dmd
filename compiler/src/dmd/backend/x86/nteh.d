@@ -144,8 +144,8 @@ void nteh_gentables(Symbol* sfunc)
 void nteh_declarvars(BlockState* bx)
 {
     //printf("nteh_declarvars()\n");
-    if (!(bx.funcsym.Sfunc.Fflags3 & Fnteh)) // if haven't already done it
-    {   bx.funcsym.Sfunc.Fflags3 |= Fnteh;
+    if (!(bx.funcsym.Sfunc.Fflags & Fnteh)) // if haven't already done it
+    {   bx.funcsym.Sfunc.Fflags |= Fnteh;
         Symbol* s = symbol_name(s_name_context,SC.bprel,tstypes[TYint]);
         s.Soffset = -5 * 4;            // -6 * 4 for C __try, __except, __finally
         s.Sflags |= SFLfree | SFLnodebug;
@@ -461,7 +461,7 @@ code* nteh_patchindex(code* c, int sindex)
 @trusted
 void nteh_gensindex(ref CodeBuilder cdb, int sindex)
 {
-    if (!(config.ehmethod == EHmethod.EH_WIN32 || config.ehmethod == EHmethod.EH_SEH) || funcsym_p.Sfunc.Fflags3 & Feh_none)
+    if (!(config.ehmethod == EHmethod.EH_WIN32 || config.ehmethod == EHmethod.EH_SEH) || funcsym_p.Sfunc.Fflags & Feh_none)
         return;
     // Generate:
     //  MOV     -4[EBP],sindex
@@ -484,7 +484,7 @@ void cdsetjmp(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs)
     uint flag;
 
     const stackpushsave = cg.stackpush;
-    if (funcsym_p.Sfunc.Fflags3 & Fnteh)
+    if (funcsym_p.Sfunc.Fflags & Fnteh)
     {
         /*  If in NT SEH try block
             If the frame that is calling setjmp has a try, except block

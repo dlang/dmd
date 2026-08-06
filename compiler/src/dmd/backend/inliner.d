@@ -91,7 +91,7 @@ bool canInlineFunction(Symbol* sfunc)
        )
         return no(__LINE__);
 
-    if (config.ehmethod == EHmethod.EH_WIN32 && !(f.Fflags3 & Feh_none))
+    if (config.ehmethod == EHmethod.EH_WIN32 && !(f.Fflags & Feh_none))
         return no(__LINE__);       // not working properly, so don't inline it
 
     foreach (s; f.Flocsym[])
@@ -162,7 +162,7 @@ void scanForInlines(Symbol* sfunc)
     func_t* f = sfunc.Sfunc;
     assert(f && tyfunc(sfunc.Stype.Tty));
     // BUG: flag not set right in dmd
-    if (1 || f.Fflags3 & Fdoinline)  // if any inline functions called
+    if (1 || f.Fflags & Fdoinline)  // if any inline functions called
     {
         f.Fflags |= Finlinenest;
         foreach (b; BlockRange(bo.startblock))
@@ -405,7 +405,7 @@ private elem* inlineCall(elem* e,Symbol* sfunc)
         adjustExpression(ec);
         if (config.flags3 & CFG3eh &&
             (eecontext.EEin ||
-             f.Fflags3 & Fmark ||      // if mark/release around function expansion
+             f.Fflags & Fmark ||      // if mark/release around function expansion
              f.Fflags & Fctor))
         {
             elem* em = el_calloc();

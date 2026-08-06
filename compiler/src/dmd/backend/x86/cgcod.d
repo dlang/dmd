@@ -150,12 +150,12 @@ void codgenx(ref CGstate cg, Symbol* sfunc)
         cg.calledFinally = false;
         cg.usednteh = 0;
 
-        if (sfunc.Sfunc.Fflags3 & Fjmonitor &&
+        if (sfunc.Sfunc.Fflags & Fjmonitor &&
             config.exe & EX_windos)
             cg.usednteh |= NTEHjmonitor;
 
         // Set on a trial basis, turning it off if anything might throw
-        sfunc.Sfunc.Fflags3 |= Fnothrow;
+        sfunc.Sfunc.Fflags |= Fnothrow;
 
         cg.floatreg = false;
         assert(global87.stackused == 0);             /* nobody in 8087 stack         */
@@ -654,11 +654,11 @@ void prolog(ref CGstate cg, ref CodeBuilder cdb)
     }
 
     if (config.flags & CFGalwaysframe ||
-        funcsym_p.Sfunc.Fflags3 & Ffakeeh ||
+        funcsym_p.Sfunc.Fflags & Ffakeeh ||
         /* The exception stack unwinding mechanism relies on the EBP chain being intact,
          * so need frame if function can possibly throw
          */
-        !(config.exe == EX_WIN32) && !(funcsym_p.Sfunc.Fflags3 & Fnothrow) ||
+        !(config.exe == EX_WIN32) && !(funcsym_p.Sfunc.Fflags & Fnothrow) ||
         cg.accessedTLS ||
         sv64 ||
         (cg.calledafunc && cg.AArch64)
@@ -731,7 +731,7 @@ Lagain:
         cg.Fast.size -= nteh_contextsym_size(cg);
         if (config.exe & EX_windos)
         {
-            if (funcsym_p.Sfunc.Fflags3 & Ffakeeh && nteh_contextsym_size(cg) == 0)
+            if (funcsym_p.Sfunc.Fflags & Ffakeeh && nteh_contextsym_size(cg) == 0)
                 cg.Fast.size -= 5 * 4;
         }
     }
@@ -1155,7 +1155,7 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
         switch (s.Sclass)
         {
             case SC.fastpar:
-                if (!(funcsym_p.Sfunc.Fflags3 & Ffakeeh))
+                if (!(funcsym_p.Sfunc.Fflags & Ffakeeh))
                     goto default;   // don't need consistent stack frame
                 break;
 

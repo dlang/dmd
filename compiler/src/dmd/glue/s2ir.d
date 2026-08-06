@@ -851,8 +851,8 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
     {
         BlockState* blx = irs.blx;
 
-        if (blx.funcsym.Sfunc.Fflags3 & Feh_none) printf("visit %s\n", blx.funcsym.Sident.ptr);
-        if (blx.funcsym.Sfunc.Fflags3 & Feh_none) assert(0);
+        if (blx.funcsym.Sfunc.Fflags & Feh_none) printf("visit %s\n", blx.funcsym.Sident.ptr);
+        if (blx.funcsym.Sfunc.Fflags & Feh_none) assert(0);
 
         if (config.ehmethod == EHmethod.EH_WIN32)
             nteh_declarvars(blx);
@@ -1147,7 +1147,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
         BlockState* blx = irs.blx;
 
-        if (config.ehmethod == EHmethod.EH_WIN32 && !(blx.funcsym.Sfunc.Fflags3 & Feh_none))
+        if (config.ehmethod == EHmethod.EH_WIN32 && !(blx.funcsym.Sfunc.Fflags & Feh_none))
             nteh_declarvars(blx);
 
         /* Successors to BC.try_ block:
@@ -1185,7 +1185,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         block* breakblock = block_calloc(blx);
         block* retblock = block_calloc(blx);
 
-        if (config.ehmethod == EHmethod.EH_DWARF && !(blx.funcsym.Sfunc.Fflags3 & Feh_none))
+        if (config.ehmethod == EHmethod.EH_DWARF && !(blx.funcsym.Sfunc.Fflags & Feh_none))
         {
             /* Build this:
              *  BC.goto_     [BC.try_]
@@ -1246,7 +1246,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
             block_next(blx, BC.finRet, breakblock);
         }
-        else if (config.ehmethod == EHmethod.EH_NONE || blx.funcsym.Sfunc.Fflags3 & Feh_none)
+        else if (config.ehmethod == EHmethod.EH_NONE || blx.funcsym.Sfunc.Fflags & Feh_none)
         {
             /* Build this:
              *  BC.goto_     [BC.try_]
@@ -1752,7 +1752,7 @@ private bool isAssertFalse(const Statement s) nothrow
 
 private void setScopeIndex(BlockState* blx, block* b, int scope_index)
 {
-    if (config.ehmethod == EHmethod.EH_WIN32 && !(blx.funcsym.Sfunc.Fflags3 & Feh_none))
+    if (config.ehmethod == EHmethod.EH_WIN32 && !(blx.funcsym.Sfunc.Fflags & Feh_none))
         block_appendexp(b, nteh_setScopeTableIndex(blx, scope_index));
 }
 

@@ -532,11 +532,11 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
      * and the stack offsets are the same.
      */
     if (fd.isVirtual() && (fd.fensure || fd.frequire))
-        f.Fflags3 |= Ffakeeh;
+        f.Fflags |= Ffakeeh;
 
     if (fd.hasNoEH)
         // Same as config.ehmethod==EH_NONE, but only for this function
-        f.Fflags3 |= Feh_none;
+        f.Fflags |= Feh_none;
 
     s.Sclass = target.os == Target.OS.OSX ? SC.comdat : SC.global;
 
@@ -588,7 +588,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         //if (!(config.flags3 & CFG3pic))
         //    s.Sclass = SCstatic;
-        f.Fflags3 |= Fnested;
+        f.Fflags |= Fnested;
 
         /* The enclosing function must have its code generated first,
          * in order to calculate correct frame pointer offset.
@@ -671,8 +671,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         sthis = toSymbol(fd.vthis);
         sthis.Stype = getParentClosureType(sthis, fd);
         irs.sthis = sthis;
-        if (!(f.Fflags3 & Fnested))
-            f.Fflags3 |= Fmember;
+        if (!(f.Fflags & Fnested))
+            f.Fflags |= Fmember;
     }
 
     // Estimate number of parameters, pi
@@ -892,7 +892,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         /* The "jmonitor" hack uses an optimized exception handling frame
          * which is a little shorter than the more general EH frame.
          */
-        s.Sfunc.Fflags3 |= Fjmonitor;
+        s.Sfunc.Fflags |= Fjmonitor;
     }
 
     Statement_toIR(sbody, irs);
@@ -923,7 +923,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             }
         }
     }
-    if (config.ehmethod == EHmethod.EH_NONE || f.Fflags3 & Feh_none)
+    if (config.ehmethod == EHmethod.EH_NONE || f.Fflags & Feh_none)
         insertFinallyBlockGotos(f.Fstartblock);
     else if (config.ehmethod == EHmethod.EH_DWARF)
         insertFinallyBlockCalls(f.Fstartblock);

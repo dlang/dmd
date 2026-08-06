@@ -362,38 +362,33 @@ struct BlockRange
 alias func_flags_t = uint;
 enum
 {
-    Fpending    = 1,           // if function has been queued for being written
-    Foutput     = 2,           // if function has been written out
-    Finline     = 0x10,        // if SCinline, and function really is inline
-    Fctor       = 0x200,       // if function is a constructor
-    Fdtor       = 0x400,       // if function is a destructor
-    Finlinenest = 0x1000,      // used as a marker to prevent nested
-                               // inlines from expanding
-    Fstatic     = 0x4000,      // static member function (no this)
-    Fpure       = 0x10000,     // pure function
-    Finvariant  = 0x1000000,   // __invariant function
-}
-
-alias func_flags3_t = uint;
-enum
-{
-    Fvtblgen         = 1,       // generate vtbl[] when this function is defined
-    Fcppeh           = 4,       // uses C++ EH
-    Fnteh            = 8,       // uses NT Structured EH
-    Fmark            = 0x20,    // has unbalanced OPctor's
-    Fdoinline        = 0x40,    // do inline walk
-    Foverridden      = 0x80,    // ignore for overriding purposes
-    Fjmonitor        = 0x100,   // Mars synchronized function
-    Fnosideeff       = 0x200,   // function has no side effects
-    Fmain            = 0x800,   // function is D main
-    Fnested          = 0x1000,  // D nested function with 'this'
-    Fmember          = 0x2000,  // D member function with 'this'
-    Fnotailrecursion = 0x4000,  // no tail recursion optimizations
-    Ffakeeh          = 0x8000,  // allocate space for NT EH context sym anyway
-    Fnothrow         = 0x10000, // function does not throw (even if not marked 'nothrow')
-    Feh_none         = 0x20000, // ehmethod==EH_NONE for this function only
-    F3hiddenPtr      = 0x40000, // function has hidden pointer to return value
-    F3safe           = 0x80000, // function is @safe
+    Fpending         =          1, // if function has been queued for being written
+    Foutput          =          2, // if function has been written out
+    Finline          =          4, // if SCinline, and function really is inline
+    Fctor            =          8, // if function is a constructor
+    Fdtor            =       0x10, // if function is a destructor
+    Finlinenest      =       0x20, // used as a marker to prevent nested
+                                   // inlines from expanding
+    Fstatic          =       0x40, // static member function (no this)
+    Fpure            =       0x80, // pure function
+    Finvariant       =      0x100, // __invariant function
+    Fvtblgen         =      0x200, // generate vtbl[] when this function is defined
+    Fcppeh           =      0x400, // uses C++ EH
+    Fnteh            =      0x800, // uses NT Structured EH
+    Fmark            =     0x1000, // has unbalanced OPctor's
+    Fdoinline        =     0x2000, // do inline walk
+    Foverridden      =     0x4000, // ignore for overriding purposes
+    Fjmonitor        =     0x8000, // Mars synchronized function
+    Fnosideeff       =   0x1_0000, // function has no side effects
+    Fmain            =   0x2_0000, // function is D main
+    Fnested          =   0x4_0000, // D nested function with 'this'
+    Fmember          =   0x8_0000, // D member function with 'this'
+    Fnotailrecursion =  0x10_0000, // no tail recursion optimizations
+    Ffakeeh          =  0x20_0000, // allocate space for NT EH context sym anyway
+    Fnothrow         =  0x40_0000, // function does not throw (even if not marked 'nothrow')
+    Feh_none         =  0x80_0000, // ehmethod==EH_NONE for this function only
+    F3hiddenPtr      = 0x100_0000, // function has hidden pointer to return value
+    F3safe           = 0x200_0000, // function is @safe
 }
 
 struct func_t
@@ -404,7 +399,6 @@ struct func_t
     Srcpos Fendline;            // line # of closing brace of function
     Symbol* F__func__;          // symbol for __func__[] string
     func_flags_t Fflags;
-    func_flags3_t Fflags3;
 
     Classsym* Fclass;           // if member of a class, this is the class
                                 // (I think this is redundant with Sscope)
@@ -604,7 +598,7 @@ alias pflags_t = uint;
 @trusted
 EHmethod ehmethod(Symbol* f)
 {
-    return f.Sfunc.Fflags3 & Feh_none ? EHmethod.EH_NONE : config.ehmethod;
+    return f.Sfunc.Fflags & Feh_none ? EHmethod.EH_NONE : config.ehmethod;
 }
 
 

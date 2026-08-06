@@ -1117,7 +1117,7 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
         case BC.goto_:
             nextb = bl.Bsucc[0];
             if ((MARS ||
-                 funcsym_p.Sfunc.Fflags3 & Fnteh) &&
+                 funcsym_p.Sfunc.Fflags & Fnteh) &&
                 ehmethod(funcsym_p) != EHmethod.EH_DWARF &&
                 bl.Btry != nextb.Btry &&
                 nextb.bc != BC.finally_)
@@ -1135,7 +1135,7 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
                         goto L5;        // it's a try-catch, not a try-finally
                     }
                 }
-                if (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) ||
+                if (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags & Feh_none) ||
                     config.ehmethod == EHmethod.EH_SEH)
                 {
                     nteh_unwind(cg,cdb,0,toindex);
@@ -1237,7 +1237,7 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
             else
             {
                 if (config.ehmethod == EHmethod.EH_SEH ||
-                    config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none))
+                    config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags & Feh_none))
                 {
                     // Mark all registers as destroyed. This will prevent
                     // register assignments to variables used in finally blocks.
@@ -1533,7 +1533,7 @@ static if (NTEXCEPTIONS)
                     {
                         continue;
                     }
-                    if (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) ||
+                    if (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags & Feh_none) ||
                         config.ehmethod == EHmethod.EH_SEH)
                     {
                         if (bt.Bscope_index == 0)
@@ -2894,7 +2894,7 @@ regm_t cod3_useBP(ref CGstate cg)
     if (tyf & mTYnaked)                 // if no prolog/epilog for function
         goto Lcant;
 
-    if (funcsym_p.Sfunc.Fflags3 & Ffakeeh)
+    if (funcsym_p.Sfunc.Fflags & Ffakeeh)
     {
         goto Lcant;                     // need consistent stack frame
     }
@@ -3825,7 +3825,7 @@ void prolog_frame(ref CGstate cg, ref CodeBuilder cdb, bool farfunc, ref uint xl
         (xlocalsize >= 0x1000 && config.exe & EX_flat) ||
         localsize >= 0x10000 ||
         (NTEXCEPTIONS == 2 &&
-         (cg.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) || config.ehmethod == EHmethod.EH_SEH))) ||
+         (cg.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags & Feh_none) || config.ehmethod == EHmethod.EH_SEH))) ||
         (config.target_cpu >= TARGET_80386 &&
          config.flags4 & CFG4speed)
        )
@@ -3883,7 +3883,7 @@ void prolog_frame(ref CGstate cg, ref CodeBuilder cdb, bool farfunc, ref uint xl
             code_orflag(cdb.last(), CF.volatile);
 static if (NTEXCEPTIONS == 2)
 {
-        if (cg.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) || config.ehmethod == EHmethod.EH_SEH))
+        if (cg.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags & Feh_none) || config.ehmethod == EHmethod.EH_SEH))
         {
             nteh_prolog(cg, cdb);
             int sz = nteh_contextsym_size(cg);
@@ -5293,7 +5293,7 @@ void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
             if (config.exe == EX_WIN64)
                 rm = CX;
             else if (I64)
-                rm = (thunkty == TYnfunc && (sfunc.Sfunc.Fflags3 & F3hiddenPtr)) ? SI : DI;
+                rm = (thunkty == TYnfunc && (sfunc.Sfunc.Fflags & F3hiddenPtr)) ? SI : DI;
             if (d)
                 cdb.genc2(0x81,modregrm(3,reg,rm),d);
         }
@@ -5646,11 +5646,11 @@ void cod3_adjSymOffsets(ref CGstate cg)
             case SC.shadowreg:
 //printf("s = '%s', Soffset = x%x, Para.size = x%x, EBPtoESP = x%x\n", s.Sident, s.Soffset, cg.Para.size, cg.EBPtoESP);
                 s.Soffset += cg.Para.size;
-                if (0 && !(funcsym_p.Sfunc.Fflags3 & Fmember))
+                if (0 && !(funcsym_p.Sfunc.Fflags & Fmember))
                 {
                     if (!cg.hasframe)
                         s.Soffset += cg.EBPtoESP;
-                    if (funcsym_p.Sfunc.Fflags3 & Fnested)
+                    if (funcsym_p.Sfunc.Fflags & Fnested)
                         s.Soffset += REGSIZE;
                 }
                 break;
@@ -5666,7 +5666,7 @@ void cod3_adjSymOffsets(ref CGstate cg)
                     s.Soffset += cg.Fast.size + cg.BPoff;
                 else
 //printf("s = '%s', Soffset = x%x, Auto.size = x%x, BPoff = x%x EBPtoESP = x%x\n", s.Sident, cast(int)s.Soffset, cast(int)cg.Auto.size, cast(int)cg.BPoff, cast(int)cg.EBPtoESP);
-//              if (!(funcsym_p.Sfunc.Fflags3 & Fnested))
+//              if (!(funcsym_p.Sfunc.Fflags & Fnested))
                     s.Soffset += cg.Auto.size + cg.BPoff;
                 break;
 
