@@ -570,7 +570,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 !irs.isNothrow() &&
                 (finallyBlock = stmtstate.getFinallyBlock()) != null)
             {
-                assert(finallyBlock.bc == BC._finally);
+                assert(finallyBlock.bc == BC.finally_);
                 blx.curblock.Bsucc.push(finallyBlock);
             }
 
@@ -1136,7 +1136,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
      * Builds the following:
      *      _try
      *      block
-     *      _finally
+     *      finally_
      *      finalbody
      *      _ret
      */
@@ -1152,7 +1152,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
         /* Successors to BC._try block:
          *      [0] start of try block code
-         *      [1] BC._finally
+         *      [1] BC.finally_
          */
         block* tryblock = block_goto(blx, BC.goto_, null);
 
@@ -1172,7 +1172,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         block* finallyblock = block_calloc(blx);
 
         tryblock.Bsucc.push(finallyblock);
-        finallyblock.bc = BC._finally;
+        finallyblock.bc = BC.finally_;
         bodyirs.finallyBlock = finallyblock;
 
         if (s._body)
@@ -1189,11 +1189,11 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         {
             /* Build this:
              *  BC.goto_     [BC._try]
-             *  BC._try     [body] [BC._finally]
+             *  BC._try     [body] [BC.finally_]
              *  body
              *  BC.goto_     [breakblock]
-             *  BC._finally [BC._lpad] [finalbody] [breakblock]
-             *  BC._lpad    [finalbody]
+             *  BC.finally_ [BC.lpad] [finalbody] [breakblock]
+             *  BC.lpad    [finalbody]
              *  finalbody
              *  BC.goto_     [BC._ret]
              *  BC._ret
@@ -1202,8 +1202,8 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
             blx.curblock.Bsucc.push(breakblock);
             block_next(blx,BC.goto_,finallyblock);
 
-            block* landingPad = block_goto(blx,BC._finally,null);
-            block_goto(blx,BC._lpad,null);               // lpad is [0]
+            block* landingPad = block_goto(blx,BC.finally_,null);
+            block_goto(blx,BC.lpad,null);               // lpad is [0]
             finallyblock.Bsucc.push(blx.curblock);    // start of finalybody is [1]
             finallyblock.Bsucc.push(breakblock);       // breakblock is [2]
 
@@ -1250,11 +1250,11 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         {
             /* Build this:
              *  BC.goto_     [BC._try]
-             *  BC._try     [body] [BC._finally]
+             *  BC._try     [body] [BC.finally_]
              *  body
              *  BC.goto_     [breakblock]
-             *  BC._finally [BC._lpad] [finalbody] [breakblock]
-             *  BC._lpad    [finalbody]
+             *  BC.finally_ [BC.lpad] [finalbody] [breakblock]
+             *  BC.lpad    [finalbody]
              *  finalbody
              *  BC.goto_     [BC._ret]
              *  BC._ret
@@ -1286,8 +1286,8 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 block_next(blx,BC.exit,finallyblock);
             }
 
-            block* landingPad = block_goto(blx,BC._finally,null);
-            block_goto(blx,BC._lpad,null);               // lpad is [0]
+            block* landingPad = block_goto(blx,BC.finally_,null);
+            block_goto(blx,BC.lpad,null);               // lpad is [0]
             finallyblock.Bsucc.push(blx.curblock);    // start of finalybody is [1]
             finallyblock.Bsucc.push(breakblock);       // breakblock is [2]
 
@@ -1315,11 +1315,11 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
             block_goto(blx,BC.goto_, breakblock);
             block_goto(blx,BC.goto_,finallyblock);
 
-            /* Successors to BC._finally block:
+            /* Successors to BC.finally_ block:
              *  [0] landing pad, same as start of finally code
              *  [1] block that comes after BC._ret
              */
-            block_goto(blx,BC._finally,null);
+            block_goto(blx,BC.finally_,null);
 
             StmtState finallyState = StmtState(stmtstate, s);
 
@@ -1566,11 +1566,11 @@ void insertFinallyBlockCalls(block* startblock)
             {
                 /* From this:
                  *  BC.goto_     [breakblock]
-                 *  BC._try     [body] [BC._finally]
+                 *  BC._try     [body] [BC.finally_]
                  *  body
                  *  BC.goto_     [breakblock]
-                 *  BC._finally [BC._lpad] [finalbody] [breakblock]
-                 *  BC._lpad    [finalbody]
+                 *  BC.finally_ [BC.lpad] [finalbody] [breakblock]
+                 *  BC.lpad    [finalbody]
                  *  finalbody
                  *  BC.goto_     [BC._ret]
                  *  BC._ret
@@ -1578,11 +1578,11 @@ void insertFinallyBlockCalls(block* startblock)
                  *
                  * Build this:
                  *  BC.goto_     [BC._try]
-                 *  BC._try     [body] [BC._finally]
+                 *  BC._try     [body] [BC.finally_]
                  *  body
-                 *x BC.goto_     sflag=n; [BC._finally]
-                 *  BC._finally [BC._lpad] [finalbody] [breakblock]
-                 *  BC._lpad    [finalbody]
+                 *x BC.goto_     sflag=n; [BC.finally_]
+                 *  BC.finally_ [BC.lpad] [finalbody] [breakblock]
+                 *  BC.lpad    [finalbody]
                  *  finalbody
                  *  BC.goto_     [BC.iftrue]
                  *x BC.iftrue   (sflag==n) [breakblock]
@@ -1599,7 +1599,7 @@ void insertFinallyBlockCalls(block* startblock)
                     block* bf = bt.Bsucc[1];
                     if (bf.bc == BC.jcatch)
                         continue;                       // skip try-catch
-                    assert(bf.bc == BC._finally);
+                    assert(bf.bc == BC.finally_);
 
                     block* retblock = bf.b_ret;
                     assert(retblock.bc == BC._ret);
@@ -1676,7 +1676,7 @@ void insertFinallyBlockGotos(block* startblock)
     // Insert all the goto's
     insertFinallyBlockCalls(startblock);
 
-    /* Remove all the BC._try, BC._finally, BC._lpad and BC._ret
+    /* Remove all the BC._try, BC.finally_, BC.lpad and BC._ret
      * blocks.
      * Actually, just make them into no-ops and let the optimizer
      * delete them.
@@ -1691,13 +1691,13 @@ void insertFinallyBlockGotos(block* startblock)
                 b.Bsucc.subtracti(1);
                 break;
 
-            case BC._finally:
+            case BC.finally_:
                 b.bc = BC.goto_;
                 b.Bsucc.subtracti(2);
                 b.Bsucc.subtracti(0);
                 break;
 
-            case BC._lpad:
+            case BC.lpad:
                 b.bc = BC.goto_;
                 break;
 

@@ -174,7 +174,7 @@ enum BFL : ushort
     keepRolled    = 0x1000, // do not unroll loop
 
     // for Windows NTEXCEPTIONS
-    ehcode        = 0x2000, // BC._filter: need to load exception code
+    ehcode        = 0x2000, // BC.filter: need to load exception code
     unwind        = 0x4000, // do local_unwind following block (unused)
 }
 
@@ -185,9 +185,9 @@ nothrow:
     block* Bnext;               // pointer to next block in list
     Barray!(block*) Bsucc;      // and the successor array copy of Bsucc
     Barray!(block*) Bpred;      // and the predecessor array
-    block* Btry;                // BC.try_,BC._try: enclosing try block, if any
+    block* Btry;                // BC.cpptry,BC._try: enclosing try block, if any
                                 // BC???: if in try-block, points to BC.try_ or BC._try
-                                // note that can't have a BC.try_ and BC._try in
+                                // note that can't have a BC.cpptry and BC._try in
                                 // the same function.
     union
     {
@@ -202,7 +202,7 @@ nothrow:
         struct
         {
             Symbol* catchvar;           // __throw() fills in this
-        }                               // BC.try_
+        }                               // BC.cpptry
 
         struct
         {
@@ -254,7 +254,7 @@ nothrow:
             uint        Bblknum;        // position of block from startblock
             Symbol*     Binitvar;       // !=NULL points to an auto variable with
                                         // an explicit or implicit initializer
-            block*      Bgotolist;      // BC.try_, BC.catch_: backward list of try scopes
+            block*      Bgotolist;      // BC.cpptry, BC.catch_: backward list of try scopes
             block*      Bgotothread;    // BC.goto_: threaded list of goto's to
                                         // unknown labels
         }
@@ -290,7 +290,7 @@ nothrow:
             targ_size_t Boffset;        // code offset of start of this block
             targ_size_t Bsize;          // code size of this block
             con_t       Bregcon;        // register state at block exit
-            targ_size_t Btryoff;        // BC.try_: offset of try block data
+            targ_size_t Btryoff;        // BC.cpptry: offset of try block data
         }
     }
 }
@@ -310,29 +310,29 @@ enum BC : ubyte
                       // These blocks have one or more successors in Bsucc,
                       // never 0
     switch_   = 7,    // switch statement
-                        // Bswitch points to switch data
-                        // Default is Bsucc
-                        // Cases follow in linked list
+                      // Bswitch points to switch data
+                      // Default is Bsucc
+                      // Cases follow in linked list
     ifthen    = 8,    // a BC.switch_ is converted to if-then
-                        // statements
+                      // statements
     jmptab    = 9,    // a BC.switch_ is converted to a jump
-                        // table (switch value is index into
-                        // the table)
-    try_      = 10,   // C++ try block
-                        // first block in a try-block. The first block in
-                        // Bsucc is the next one to go to, subsequent
-                        // blocks are the catch blocks
+                      // table (switch value is index into
+                      // the table)
+    cpptry    = 10,   // C++ try block
+                      // first block in a try-block. The first block in
+                      // Bsucc is the next one to go to, subsequent
+                      // blocks are the catch blocks
     catch_    = 11,   // C++ catch block
     jump      = 12,   // Belem specifies (near) address to jump to
     _try      = 13,   // SEH: first block of try-except or try-finally
-                        // D: try-catch or try-finally
-    _filter   = 14,   // SEH exception-filter (always exactly one block)
-    _finally  = 15,   // first block of SEH termination-handler,
-                        // or D finally block
-    _ret      = 16,   // last block of SEH termination-handler or D _finally block
+                      // D: try-catch or try-finally
+    filter    = 14,   // SEH exception-filter (always exactly one block)
+    finally_  = 15,   // first block of SEH termination-handler,
+                      // or D finally block
+    _ret      = 16,   // last block of SEH termination-handler or D finally_ block
     _except   = 17,   // first block of SEH exception-handler
     jcatch    = 18,   // D catch block
-    _lpad     = 19,   // EH_DWARF: landing pad for BC._except
+    lpad      = 19,   // EH_DWARF: landing pad for BC._except
 }
 
 /********************************

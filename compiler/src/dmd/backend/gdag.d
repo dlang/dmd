@@ -122,8 +122,8 @@ void builddags(ref GlobalOptimizer go, ref BlockOpt bo)
                  (b.Bpred[0] != bo.dfo[i - 1] ||
                   b.Bpred.length > 1))
                 || b.bc == BC.asm_
-                || b.bc == BC._finally
-                || b.bc == BC._lpad
+                || b.bc == BC.finally_
+                || b.bc == BC.lpad
                 || b.bc == BC.catch_
                 || b.bc == BC.jcatch
                )
@@ -622,8 +622,8 @@ void boolopt(ref GlobalOptimizer go, ref BlockOpt bo)
              (b.Bpred[0] != bo.dfo[i - 1] ||
               b.Bpred.length > 1))
             || b.bc == BC.asm_
-            || b.bc == BC._finally
-            || b.bc == BC._lpad
+            || b.bc == BC.finally_
+            || b.bc == BC.lpad
             || b.bc == BC.catch_
             || b.bc == BC.jcatch
            )

@@ -380,13 +380,13 @@ void nteh_setsp(ref CGstate cg, ref CodeBuilder cdb, opcode_t op)
 }
 
 /****************************
- * Put out prolog for BC._filter block.
+ * Put out prolog for BC.filter block.
  */
 
 @trusted
 void nteh_filter(ref CGstate cg, ref CodeBuilder cdb, block* b)
 {
-    assert(b.bc == BC._filter);
+    assert(b.bc == BC.filter);
     if (b.Bflags & BFL.ehcode)          // if referenced __ecode
     {
         /* Generate:

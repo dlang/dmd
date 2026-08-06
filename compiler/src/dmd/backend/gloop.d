@@ -565,7 +565,7 @@ private bool looprotate(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
         if (b == head)                  // if loop already rotated
             goto Lret;
 
-    if (head.bc == BC.try_)
+    if (head.bc == BC.cpptry)
          goto Lret;
     if (head.bc == BC._try)
          goto Lret;
