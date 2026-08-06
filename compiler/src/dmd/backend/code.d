@@ -22,6 +22,7 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
 import dmd.backend.oper : OPMAX;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 

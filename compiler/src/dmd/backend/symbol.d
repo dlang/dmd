@@ -40,6 +40,118 @@ import dmd.backend.x86.code_x86;
 nothrow:
 @safe:
 
+/**************************************
+ * Symbol declaration for backend.
+ */
+struct Symbol
+{
+    debug ushort      id;
+    enum IDsymbol = 0x5678;
+
+    nothrow:
+
+    Symbol* Sl, Sr;             // left, right child
+    Symbol* Sforward;           // forward to another Symbol
+    Symbol* Sisym;              // import version of this symbol
+    dt_t* Sdt;                  // variables: initializer
+    int Salignment;             // variables: alignment, 0 or -1 means default alignment
+
+    type* Stype;                // type of Symbol
+    tym_t ty() const { return Stype.Tty; }
+
+    union                       // variants for different Symbol types
+    {
+        enum_t* Senum;          // SCenum
+        func_t* Sfunc;          // tyfunc
+
+        struct
+        {
+            ubyte Sbit;         // SCfield: bit position of start of bit field
+            ubyte Swidth;       // SCfield: width in bits of bit field
+            targ_size_t Smemoff; // SCmember,SCfield: offset from start of struct
+        }
+
+        elem* Svalue;           /* SFLvalue: value of const
+                                   SFLdtorexp: for objects with destructor,
+                                   conditional expression to precede dtor call
+                                 */
+
+        struct_t* Sstruct;      // SCstruct
+
+        struct                  // SCfastpar, SCshadowreg
+        {
+            reg_t Spreg;        // register parameter is passed in
+            reg_t Spreg2;       // if 2 registers, this is the most significant, else NOREG
+        }
+    }
+
+    regm_t Spregm()             // return mask of Spreg and Spreg2
+    {
+        return (1 << Spreg) | (Spreg2 == NOREG ? 0 : (1 << Spreg2));
+    }
+
+    Symbol* Sscope;             // enclosing scope (could be struct tag,
+                                // enclosing inline function for statics,
+                                // or namespace)
+
+    const(char)* prettyIdent;   // the symbol identifier as the user sees it
+
+//#if TARGET_OSX
+    targ_size_t Slocalgotoffset;
+//#endif
+
+    SC Sclass;                  // storage class (SCxxxx)
+    FL Sfl;                     // flavor (FL.xxxx)
+    SYMFLGS Sflags;             // flag bits (SFLxxxx)
+
+    vec_t       Srange;         // live range, if any
+    vec_t       Slvreg;         // when symbol is in register
+    targ_size_t Ssize;          // tyfunc: size of function
+    targ_size_t Soffset;        // variables: offset of Symbol in its storage class
+
+    // CPP || OPTIMIZER
+    SYMIDX Ssymnum;             // Symbol number (index into globsym[])
+                                // SCauto,SCparameter,SCtmp,SCregpar,SCregister
+    // CODGEN
+    int Sseg;                   // segment index
+    int Sweight;                // usage count, the higher the number,
+                                // the more worthwhile it is to put in
+                                // a register
+    int Sdw_ref_idx;            // !=0 means index of DW.ref.name symbol (Dwarf EH)
+
+    union
+    {
+        uint Sxtrnnum;          // SCcomdef,SCextern,SCcomdat: external symbol # (starting from 1)
+        uint Stypidx;           // SCstruct,SCunion,SCclass,SCenum,SCtypedef: debug info type index
+        struct
+        {
+            reg_t Sreglsw;
+            reg_t Sregmsw;
+          regm_t Sregm;         // mask of registers
+        }                       // SCregister,SCregpar,SCpseudo: register number
+    }
+    regm_t      Sregsaved;      // mask of registers not affected by this func
+
+    Srcpos lposscopestart;        // life time of var
+    uint lnoscopeend;           // the line after the scope
+
+    /**
+     * Identifier for this symbol
+     *
+     * Note that this is used as a flexible array member.
+     * When allocating a Symbol, the allocation is for
+     * `sizeof(Symbol - 1 + strlen(identifier) + "\0".length)`.
+     */
+    char[1] Sident;
+
+}
+
+@nogc
+void symbol_debug(const Symbol* s)
+{
+    debug assert(s.id == s.IDsymbol);
+}
+
 alias SYMIDX = size_t;    // symbol table index
 
 alias symtab_t = Barray!(Symbol*);

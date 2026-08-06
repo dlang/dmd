@@ -54,6 +54,7 @@ import dmd.visitor;
 
 import dmd.backend.cc;
 import dmd.backend.dt;
+import dmd.backend.symbol;
 
 package(dmd.glue):
 

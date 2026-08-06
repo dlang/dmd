@@ -36,6 +36,7 @@ import dmd.backend.global : REGSIZE, mask;
 import dmd.backend.debugprint : fl_str, oper_str, tym_str;
 import dmd.backend.util2 : ispow2;
 import dmd.backend.oper;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.arm.cod2;

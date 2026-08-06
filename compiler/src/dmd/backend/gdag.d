@@ -26,6 +26,7 @@ import dmd.backend.blockopt : blockopt, compdfo;
 import dmd.backend.debugprint : WReqn;
 import dmd.backend.go;
 import dmd.backend.el;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 

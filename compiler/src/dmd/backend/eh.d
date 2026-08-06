@@ -27,8 +27,8 @@ import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.global : error, symbol_keep;
 import dmd.backend.dout : outdata;
-import dmd.backend.symbol : symbol_name;
 import dmd.backend.obj;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
