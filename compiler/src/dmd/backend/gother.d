@@ -164,8 +164,8 @@ private void rd_compute(ref GlobalOptimizer go, ref BlockOpt bo, ref EqRelInc eq
         switch (b.bc)
         {
             case BC.jcatch:
-            case BC._finally:
-            case BC._lpad:
+            case BC.finally_:
+            case BC.lpad:
             case BC.asm_:
             case BC.catch_:
                 block_visit(b);

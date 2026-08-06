@@ -1120,7 +1120,7 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
                  funcsym_p.Sfunc.Fflags3 & Fnteh) &&
                 ehmethod(funcsym_p) != EHmethod.EH_DWARF &&
                 bl.Btry != nextb.Btry &&
-                nextb.bc != BC._finally)
+                nextb.bc != BC.finally_)
             {
                 regm_t retregsx = 0;
                 gencodelem(cdb,e,retregsx,true);
@@ -1203,7 +1203,7 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
             if (config.ehmethod == EHmethod.EH_DM || ehmethod(funcsym_p) == EHmethod.EH_NONE)
             {
                 /* Need to use frame pointer to access locals, not the stack pointer,
-                 * because we'll be calling the BC._finally blocks and the stack will be off.
+                 * because we'll be calling the BC.finally_ blocks and the stack will be off.
                  */
                 cg.needframe = 1;
             }
@@ -1220,7 +1220,7 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
 
             goto case_goto;
 
-        case BC._finally:
+        case BC.finally_:
             if (ehmethod(funcsym_p) == EHmethod.EH_DWARF)
             {
                 // Mark scratch registers as destroyed.
@@ -1254,7 +1254,7 @@ void outblkexitcode(ref CGstate cg, ref CodeBuilder cdb, block* bl, ref int anys
                 goto L5;
             }
 
-        case BC._lpad:
+        case BC.lpad:
         {
             assert(ehmethod(funcsym_p) == EHmethod.EH_DWARF);
             // Mark all registers as destroyed. This will prevent
@@ -1292,7 +1292,7 @@ static if (NTEXCEPTIONS)
             nextb = bl.Bsucc[0];
             goto L5;
         }
-        case BC._filter:
+        case BC.filter:
         {
             nteh_filter(cg, cdb, bl);
             // Mark all registers as destroyed. This will prevent

@@ -166,8 +166,8 @@ private immutable char[8][BC.max + 1] bcs =
 [
     "unde   ", "goto_  ", "true   ", "ret   ", "retexp ",
     "exit   ", "asm_   ", "switch_", "ifthen", "jmptab ",
-    "try_   ", "catch_ ", "jump   ", "_try  ", "_filter",
-    "_final ", "_ret   ", "_excep ", "jcatch", "_lpad  ",
+    "cpptry ", "catch_ ", "jump   ", "_try  ", "filter ",
+    "_final ", "_ret   ", "_excep ", "jcatch", "lpad   ",
 ];
 
 
@@ -372,7 +372,7 @@ void WRblock(block* b)
         printf(" flags=x%x weight=%d",b.Bflags,b.Bweight);
         //printf("\tfile %p, line %d",b.Bfilptr,b.Blinnum);
         printf(" BC.%s Btry=%p",bc_str(b.bc),b.Btry);
-        if (b.bc == BC.try_)
+        if (b.bc == BC.cpptry)
             printf(" catchvar = %p",b.catchvar);
         printf("\n");
         printf("\tBpred: "); WRblockarray(b.Bpred[]);
@@ -398,7 +398,7 @@ void WRblock(block* b)
         printf("%2d: BC.%s", b.Bnumber, bc_str(b.bc));
         if (b.Btry)
             printf(" Btry=B%d",b.Btry ? b.Btry.Bnumber : 0);
-        if (b.bc == BC._finally)
+        if (b.bc == BC.finally_)
             printf(" b_ret=B%d", b.b_ret ? b.b_ret.Bnumber : 0);
         if (b.Bsrcpos.Sfilename)
             printf(" %s(%u)", b.Bsrcpos.Sfilename, b.Bsrcpos.Slinnum);
@@ -438,13 +438,13 @@ void WRblock(block* b)
             case BC.iftrue:
             case BC.goto_:
             case BC.asm_:
-            case BC.try_:
+            case BC.cpptry:
             case BC.catch_:
             case BC.jcatch:
             case BC._try:
-            case BC._filter:
-            case BC._finally:
-            case BC._lpad:
+            case BC.filter:
+            case BC.finally_:
+            case BC.lpad:
             case BC._ret:
             case BC._except:
                 if (b.Bsucc.length)

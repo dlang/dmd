@@ -217,8 +217,8 @@ void except_fillInEHTable(Symbol* s)
                 assert(nsucc == 2);
                 dtb.dword(0);           // no catch offset
                 block* bhandler = b.Bsucc[1];
-                assert(bhandler.bc == BC._finally);
-                // To successor of BC._finally block
+                assert(bhandler.bc == BC.finally_);
+                // To successor of BC.finally_ block
                 bhandler = bhandler.Bsucc[0];
                 // finally handler address
                 if (config.ehmethod == EHmethod.EH_DM)

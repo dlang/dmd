@@ -309,8 +309,8 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
             case BC.jcatch:
             case BC.catch_:
             case BC._except:
-            case BC._finally:
-            case BC._lpad:
+            case BC.finally_:
+            case BC.lpad:
             case BC._ret:
                 s.Sflags &= ~GTregcand;
                 goto Lcant;             // can't assign to register
