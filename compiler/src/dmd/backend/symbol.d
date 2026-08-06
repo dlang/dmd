@@ -498,7 +498,7 @@ void symbol_check(ref const Symbol s) @trusted
     //printf("symbol_check('%s',%p)\n",s.Sident.ptr,s);
     debug symbol_debug(&s);
     if (s.Stype) type_debug(s.Stype);
-    assert(cast(uint)s.Sclass < cast(uint)SCMAX);
+    assert(cast(uint)s.Sclass < cast(uint)SC.max + 1);
 }
 
 void symbol_tree_check(const(Symbol)* s)
@@ -541,7 +541,7 @@ debug
         if (debugy)
             printf("symbol_free('%s',%p)\n",s.Sident.ptr,s);
         symbol_debug(s);
-        assert(/*s.Sclass != SC.unde &&*/ cast(int) s.Sclass < cast(int) SCMAX);
+        assert(/*s.Sclass != SC.unde &&*/ cast(int) s.Sclass < cast(int) SC.max + 1);
 }
         {   type* t = s.Stype;
 
@@ -790,33 +790,33 @@ tym_t symbol_pointerType(ref const Symbol s)
  * SCxxxx types.
  */
 
-immutable ubyte[SCMAX] sytab =
+immutable ubyte[SC.max + 1] sytab =
 [
-    /* unde */     SCEXP|SCKEP|SCSCT,      /* undefined                            */
-    /* auto */     SCEXP|SCSS|SCRD  ,      /* automatic (stack)                    */
-    /* static */   SCEXP|SCKEP|SCSCT|SCDATA, /* statically allocated               */
-    /* extern */   SCEXP|SCKEP|SCSCT|SCDATA, /* external                           */
-    /* register */ SCEXP|SCSS|SCRD  ,      /* registered variable                  */
-    /* pseudo */   SCEXP            ,      /* pseudo register variable             */
-    /* global */   SCEXP|SCKEP|SCSCT|SCDATA, /* top level global definition        */
-    /* comdat */   SCEXP|SCKEP|SCSCT|SCDATA, /* initialized common block           */
-    /* parameter */SCEXP|SCSS       ,      /* function parameter                   */
-    /* regpar */   SCEXP|SCSS       ,      /* function register parameter          */
-    /* fastpar */  SCEXP|SCSS       ,      /* function parameter passed in register */
-    /* shadowreg */SCEXP|SCSS       ,      /* function parameter passed in register, shadowed on stack */
-    /* typedef */  0                ,      /* type definition                      */
-    /* struct */   SCKEP            ,      /* struct/class/union tag name          */
-    /* enum */     0                ,      /* enum tag name                        */
-    /* field */    SCEXP|SCKEP      ,      /* bit field of struct or union         */
-    /* const */    SCEXP|SCSCT      ,      /* constant integer                     */
-    /* member */   SCEXP|SCKEP|SCSCT,      /* member of struct or union            */
-    /* inline */   SCEXP|SCKEP      ,      /* for inline functions                 */
-    /* sinline */  SCEXP|SCKEP      ,      /* for static inline functions          */
-    /* einline */  SCEXP|SCKEP      ,      /* for extern inline functions          */
-    /* locstat */  SCEXP|SCSCT|SCDATA,     /* static, but local to a function      */
-    /* comdef */   SCEXP|SCKEP|SCSCT|SCDATA, /* uninitialized common block         */
-    /* bprel */    SCEXP|SCSS       ,      /* variable at fixed offset from frame pointer */
-    /* alias */    0                ,      /* alias to another symbol              */
-    /* funcalias */0                ,      /* alias to another function symbol     */
-    /* stack */    SCEXP|SCSS       ,      /* offset from stack pointer (not frame pointer) */
+    SC.unde      : SCEXP|SCKEP|SCSCT,        // undefined
+    SC.auto_     : SCEXP|SCSS|SCRD  ,        // automatic (stack)
+    SC.static_   : SCEXP|SCKEP|SCSCT|SCDATA, // statically allocated
+    SC.extern_   : SCEXP|SCKEP|SCSCT|SCDATA, // external
+    SC.register  : SCEXP|SCSS|SCRD  ,        // registered variable
+    SC.pseudo    : SCEXP            ,        // pseudo register variable
+    SC.global    : SCEXP|SCKEP|SCSCT|SCDATA, // top level global definition
+    SC.comdat    : SCEXP|SCKEP|SCSCT|SCDATA, // initialized common block
+    SC.parameter : SCEXP|SCSS       ,        // function parameter
+    SC.regpar    : SCEXP|SCSS       ,        // function register parameter
+    SC.fastpar   : SCEXP|SCSS       ,        // function parameter passed in register
+    SC.shadowreg : SCEXP|SCSS       ,        // function parameter passed in register, shadowed on stack
+    SC.typedef_  : 0                ,        // type definition
+    SC.struct_   : SCKEP            ,        // struct/class/union tag name
+    SC.enum_     : 0                ,        // enum tag name
+    SC.field     : SCEXP|SCKEP      ,        // bit field of struct or union
+    SC.const_    : SCEXP|SCSCT      ,        // constant integer
+    SC.member    : SCEXP|SCKEP|SCSCT,        // member of struct or union
+    SC.inline    : SCEXP|SCKEP      ,        // for inline functions
+    SC.sinline   : SCEXP|SCKEP      ,        // for static inline functions
+    SC.einline   : SCEXP|SCKEP      ,        // for extern inline functions
+    SC.locstat   : SCEXP|SCSCT|SCDATA,       // static, but local to a function
+    SC.comdef    : SCEXP|SCKEP|SCSCT|SCDATA, // uninitialized common block
+    SC.bprel     : SCEXP|SCSS       ,        // variable at fixed offset from frame pointer
+    SC.alias_    : 0                ,        // alias to another symbol
+    SC.funcalias : 0                ,        // alias to another function symbol
+    SC.stack     : SCEXP|SCSS       ,        // offset from stack pointer (not frame pointer)
 ];
