@@ -50,7 +50,6 @@ struct Symbol
 
     nothrow:
 
-    Symbol* Sl, Sr;             // left, right child
     Symbol* Sforward;           // forward to another Symbol
     Symbol* Sisym;              // import version of this symbol
     dt_t* Sdt;                  // variables: initializer
@@ -193,8 +192,6 @@ debug
     printf(" Sflags = x%04x",cast(uint)s.Sflags);
     printf(" Sxtrnnum = %d\n",s.Sxtrnnum);
     printf("  Stype   = %p",s.Stype);
-    printf(" Sl      = %p",s.Sl);
-    printf(" Sr      = %p\n",s.Sr);
     if (s.Sscope)
         printf(" Sscope = '%s'\n",s.Sscope.Sident.ptr);
     if (s.Stype)
@@ -503,11 +500,7 @@ void symbol_check(ref const Symbol s) @trusted
 
 void symbol_tree_check(const(Symbol)* s)
 {
-    while (s)
-    {   symbol_check(*s);
-        symbol_tree_check(s.Sl);
-        s = s.Sr;
-    }
+    symbol_check(*s);
 }
 
 }
@@ -533,7 +526,6 @@ Symbol* lookupsym(const(char)* p)
 @trusted
 void symbol_free(Symbol* s)
 {
-    while (s)                           /* if symbol exists             */
     {   Symbol* sr;
 
 debug
@@ -603,15 +595,12 @@ static if (0)
             if (s.Sdt)
                 dt_free(s.Sdt);
             type_free(t);
-            symbol_free(s.Sl);
-            sr = s.Sr;
 debug
 {
             s.id = 0;
 }
             mem_ffree(s);
         }
-        s = sr;
     }
 }
 
@@ -716,7 +705,6 @@ void freesymtab(Symbol** stab,SYMIDX n1,SYMIDX n2)
                     printf("Freeing %p '%s'\n",s,s.Sident.ptr);
                 symbol_debug(s);
             }
-            s.Sl = s.Sr = null;
             s.Ssymnum = SYMIDX.max;
             symbol_free(s);
             s = null;
@@ -737,7 +725,7 @@ Symbol* symbol_copy(ref Symbol s)
     /*printf("symbol_copy(%s)\n",s.Sident.ptr);*/
     scopy = symbol_calloc(s.Sident.ptr[0 .. strlen(s.Sident.ptr)]);
     memcpy(scopy, &s, Symbol.sizeof - s.Sident.sizeof);
-    scopy.Sl = scopy.Sr = scopy.Sforward = null;
+    scopy.Sforward = null;
     scopy.Ssymnum = SYMIDX.max;
     if (scopy.Sdt)
     {
