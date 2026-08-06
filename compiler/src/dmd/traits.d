@@ -90,6 +90,67 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
     return getDsymbol(oarg);
 }
 
+private const(Dsymbol) recursiveCompilesKey(TraitsExp e, Scope* sc)
+{
+    if (!e.args || e.args.length != 1)
+        return null;
+
+    const(Dsymbol) resolveKey(RootObject o)
+    {
+        if (auto ex = isExpression(o))
+        {
+            if (const ve = ex.isVarExp())
+                return ve.var;
+
+            if (auto ie = ex.isIdentifierExp())
+            {
+                Dsymbol scopesym;
+                return sc.search(ie.loc, ie.ident, scopesym);
+            }
+
+            if (auto me = ex.isMixinExp())
+            {
+                if (!me.exps || me.exps.length != 1)
+                    return null;
+
+                return resolveKey((*me.exps)[0]);
+            }
+
+            return getDsymbolWithoutExpCtx(o);
+        }
+
+        if (auto tm = isType(o))
+        {
+            if (auto tmixin = tm.isTypeMixin())
+            {
+                if (!tmixin.exps || tmixin.exps.length != 1)
+                    return null;
+
+                return resolveKey((*tmixin.exps)[0]);
+            }
+
+            /* Only extract symbols from types that are already fully resolved.
+             * Resolving an unresolved type here (e.g. `typeof`, `TypeInstance`,
+             * `TypeIdentifier`) requires a full semantic analysis with a scope,
+             * which can instantiate templates or emit spurious errors and is
+             * unnecessary for detecting recursive `__traits(compiles)`.
+             */
+            if (auto ts = tm.isTypeStruct())
+                return ts.sym;
+            if (auto te = tm.isTypeEnum())
+                return te.sym;
+            if (auto tc = tm.isTypeClass())
+                return tc.sym;
+
+            return null;
+        }
+
+        return isDsymbol(o);
+    }
+
+    return resolveKey((*e.args)[0]);
+}
+
 /**
  * Fill an array of target size_t values that indicate possible pointer words in memory
  *  if interpreted as the type given as argument.
@@ -1879,6 +1940,24 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         /* Determine if all the objects - types, expressions, or symbols -
          * compile without error
          */
+        __gshared const(Dsymbol)[] compilesStack;
+        bool popCompilesStack;
+        if (const key = recursiveCompilesKey(e, sc))
+        {
+            foreach (prev; compilesStack)
+            {
+                if (prev is key)
+                {
+                    error(e.loc, "recursive `__traits(compiles)` expression");
+                    return False();
+                }
+            }
+            compilesStack ~= key;
+            popCompilesStack = true;
+        }
+        scope (exit) if (popCompilesStack)
+            compilesStack = compilesStack[0 .. $ - 1];
+
         if (!dim)
             return False();
 
