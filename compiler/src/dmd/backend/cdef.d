@@ -679,7 +679,5 @@ enum SC : ubyte
     stack,          /// offset from stack pointer (not frame pointer)
 }
 
-enum SCMAX = SC.max + 1;
-
 int ClassInline(int c) { return c == SC.inline || c == SC.sinline || c == SC.einline; }
 int SymInline(Symbol* s) { return ClassInline(s.Sclass); }
