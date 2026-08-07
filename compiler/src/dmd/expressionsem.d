@@ -438,7 +438,7 @@ StringExp toStringExp(Expression _this)
     static StringExp arrayLiteralToStringExp(ArrayLiteralExp _this)
     {
         TY telem = _this.type.nextOf().toBasetype().ty;
-        if (!(telem.isSomeChar || (telem == Tvoid && _this.length)))
+        if (!(telem.isSomeChar || (telem == Tvoid && !_this.length)))
             return null;
 
         ubyte sz = 1;
@@ -1909,15 +1909,36 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, ref Expressio
 extern(D) bool arrayExpressionSemantic(
     Expression[] exps, Scope* sc, bool preserveErrors = false)
 {
+    Expression basis = null;
+    return arrayExpressionSemantic(exps, basis, sc, preserveErrors);
+}
+
+extern(D) bool arrayExpressionSemantic(
+    Expression[] exps, ref Expression basis, Scope* sc, bool preserveErrors = false)
+{
     bool err = false;
-    foreach (ref e; exps)
+
+    Expression check(Expression e)
     {
-        if (e is null) continue;
         auto e2 = e.expressionSemantic(sc);
         if (e2.op == EXP.error)
+        {
             err = true;
-        if (preserveErrors || e2.op != EXP.error)
+            if (preserveErrors)
+                e = e2;
+        }
+        else
             e = e2;
+        return e;
+    }
+
+    if (basis)
+      basis = check(basis);
+
+    foreach (ref e; exps)
+    {
+        if (e)
+            e = check(e);
     }
     return err;
 }
@@ -6066,9 +6087,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* Perhaps an empty array literal [ ] should be rewritten as null?
          */
 
-        if (e.basis)
-            e.basis = e.basis.expressionSemantic(sc);
-        if (arrayExpressionSemantic(e.elements.peekSlice(), sc) || (e.basis && e.basis.op == EXP.error))
+        if (arrayExpressionSemantic(e.elements.peekSlice(), e.basis, sc))
             return setError();
 
         expandTuples(e.elements);
