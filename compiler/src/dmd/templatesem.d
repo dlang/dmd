@@ -622,10 +622,10 @@ private size_t expressionHash(Expression e)
 
     case EXP.arrayLiteral:
     {
-        auto ae = e.isArrayLiteralExp();
+        auto ale = e.isArrayLiteralExp();
         size_t hash;
-        foreach (i; 0 .. ae.elements.length)
-            hash = mixHash(hash, expressionHash(ae[i]));
+        foreach (i; 0 .. ale.length)
+            hash = mixHash(hash, expressionHash(ale[i]));
         return hash;
     }
 
@@ -4776,9 +4776,9 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
                         {
                             argtype = se.type.nextOf().sarrayOf(se.len);
                         }
-                        else if (ArrayLiteralExp ae = farg.isArrayLiteralExp())
+                        else if (ArrayLiteralExp ale = farg.isArrayLiteralExp())
                         {
-                            argtype = ae.type.nextOf().sarrayOf(ae.elements.length);
+                            argtype = ale.type.nextOf().sarrayOf(ale.length);
                         }
                         else if (SliceExp se = farg.isSliceExp())
                         {
@@ -7655,7 +7655,7 @@ MATCH deduceType(scope RootObject o, scope Scope* sc, scope Type tparam,
                 return;
             }
 
-            if (tparam.ty == Tarray && e.elements && e.elements.length)
+            if (tparam.ty == Tarray && e.elements && e.length)
             {
                 Type tn = (cast(TypeDArray)tparam).next;
                 result = MATCH.exact;
@@ -7682,7 +7682,7 @@ MATCH deduceType(scope RootObject o, scope Scope* sc, scope Type tparam,
             if (e.type.ty == Tarray && (tparam.ty == Tsarray || tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident && (cast(TypeIdentifier)taai).idents.length == 0))
             {
                 // Consider compile-time known boundaries
-                e.type.nextOf().sarrayOf(e.elements.length).accept(this);
+                e.type.nextOf().sarrayOf(e.length).accept(this);
                 return;
             }
             visit(cast(Expression)e);

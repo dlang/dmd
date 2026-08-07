@@ -2458,7 +2458,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (auto ale = e.isArrayLiteralExp())
             {
-                len = ale.elements.length;
+                len = ale.length;
                 return true;
             }
 
@@ -2519,13 +2519,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (auto ale = ie.isArrayLiteralExp())
             {
-                dinteger_t len = ale.elements.length;
+                dinteger_t len = ale.length;
                 tsa.dim = new IntegerExp(loc, len, Type.tsize_t);
                 if (auto innerTsa = tsa.next.isTypeSArray())
                 {
-                    if (ale.elements.length > 0)
+                    if (len)
                     {
-                        auto firstElem = (*ale.elements)[0];
+                        auto firstElem = ale[0];
                         inferSArrayDim(innerTsa, firstElem, loc, sc);
                     }
                 }
@@ -10095,7 +10095,7 @@ bool _isZeroInit(Expression exp)
         {
             auto ale = cast(ArrayLiteralExp)exp;
 
-            const dim = ale.elements ? ale.elements.length : 0;
+            const dim = ale.length;
 
             if (ale.type.toBasetype().ty == Tarray) // if initializing a dynamic array
                 return dim == 0;

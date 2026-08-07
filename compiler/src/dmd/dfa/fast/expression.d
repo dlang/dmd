@@ -1906,7 +1906,7 @@ struct ExpressionWalker
                     // [foo = new int]
                     DFALatticeRef ret = this.callFunction(null, null, null, ale.elements, ale.loc);
 
-                    if (ale.elements !is null && ale.elements.length > 0)
+                    if (ale.elements !is null && ale.length > 0)
                     {
                         DFAObject* obj = ret.getContextObject();
 
@@ -1919,7 +1919,7 @@ struct ExpressionWalker
 
                         cctx.truthiness = Truthiness.True;
                         cctx.nullable = Nullable.NonNull;
-                        cctx.pa = DFAPAValue(ale.elements.length);
+                        cctx.pa = DFAPAValue(ale.length);
                         cctx.obj = obj;
                     }
                     else

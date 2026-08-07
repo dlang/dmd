@@ -625,7 +625,7 @@ UnionExp Equal(EXP op, Loc loc, Type type, Expression e1, Expression e2)
         }
         else if (ArrayLiteralExp es2 = e2.isArrayLiteralExp())
         {
-            cmp = !es2.elements || (0 == es2.elements.length);
+            cmp = (0 == es2.length);
         }
         else
         {
@@ -641,7 +641,7 @@ UnionExp Equal(EXP op, Loc loc, Type type, Expression e1, Expression e2)
         }
         else if (ArrayLiteralExp es1 = e1.isArrayLiteralExp())
         {
-            cmp = !es1.elements || (0 == es1.elements.length);
+            cmp = (0 == es1.length);
         }
         else
         {
@@ -670,15 +670,10 @@ UnionExp Equal(EXP op, Loc loc, Type type, Expression e1, Expression e2)
     {
         ArrayLiteralExp es1 = e1.isArrayLiteralExp();
         ArrayLiteralExp es2 = e2.isArrayLiteralExp();
-        if ((!es1.elements || !es1.elements.length) && (!es2.elements || !es2.elements.length))
-            cmp = 1; // both arrays are empty
-        else if (!es1.elements || !es2.elements)
-            cmp = 0;
-        else if (es1.elements.length != es2.elements.length)
-            cmp = 0;
-        else
+        if (es1.length == es2.length)
         {
-            for (size_t i = 0; i < es1.elements.length; i++)
+            cmp = 1;
+            foreach (size_t i; 0 .. es1.length)
             {
                 auto ee1 = es1[i];
                 auto ee2 = es2[i];
@@ -705,7 +700,7 @@ UnionExp Equal(EXP op, Loc loc, Type type, Expression e1, Expression e2)
         StringExp es1 = e1.isStringExp();
         ArrayLiteralExp es2 = e2.isArrayLiteralExp();
         size_t dim1 = es1.len;
-        size_t dim2 = es2.elements ? es2.elements.length : 0;
+        size_t dim2 = es2.length;
         if (dim1 != dim2)
             cmp = 0;
         else
@@ -1106,7 +1101,7 @@ UnionExp ArrayLength(Type type, Expression e1)
     }
     else if (ArrayLiteralExp ale = e1.isArrayLiteralExp())
     {
-        size_t dim = ale.elements ? ale.elements.length : 0;
+        size_t dim = ale.length;
         emplaceExp!(IntegerExp)(&ue, loc, dim, type);
     }
     else if (AssocArrayLiteralExp ale = e1.isAssocArrayLiteralExp)
@@ -1179,9 +1174,9 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
         uinteger_t i = e2.toInteger();
         if (ArrayLiteralExp ale = e1.isArrayLiteralExp())
         {
-            if (i >= ale.elements.length)
+            if (i >= ale.length)
             {
-                error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toErrMsg(), cast(ulong) ale.elements.length);
+                error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toErrMsg(), cast(ulong) ale.length);
                 emplaceExp!(ErrorExp)(&ue);
             }
             else
@@ -1277,7 +1272,7 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
         ArrayLiteralExp es1 = e1.isArrayLiteralExp();
         const uinteger_t ilwr = lwr.toInteger();
         const uinteger_t iupr = upr.toInteger();
-        if (sliceBoundsCheck(0, es1.elements.length, ilwr, iupr))
+        if (sliceBoundsCheck(0, es1.length, ilwr, iupr))
             cantExp(ue);
         else
         {
@@ -1321,7 +1316,7 @@ void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, const StringE
 void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayLiteralExp newae, size_t firstIndex)
 {
     assert(existingSE.ownedByCtfe != OwnedBy.code);
-    foreach (j; 0 .. newae.elements.length)
+    foreach (j; 0 .. newae.length)
     {
         existingSE.setCodeUnit(firstIndex + j, cast(dchar)newae[j].toInteger());
     }
@@ -1526,15 +1521,15 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
         // [chars] ~ string --> [chars]
         StringExp es = e2.isStringExp();
         ArrayLiteralExp ea = e1.isArrayLiteralExp();
-        size_t len = es.len + ea.elements.length;
+        size_t len = es.len + ea.length;
         auto elems = new Expressions(len);
-        for (size_t i = 0; i < ea.elements.length; ++i)
+        for (size_t i = 0; i < ea.length; ++i)
         {
             (*elems)[i] = ea[i];
         }
         emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, type, elems);
         ArrayLiteralExp dest = ue.exp().isArrayLiteralExp();
-        sliceAssignArrayLiteralFromString(dest, es, ea.elements.length);
+        sliceAssignArrayLiteralFromString(dest, es, ea.length);
         assert(ue.exp().type);
         return ue;
     }
@@ -1543,9 +1538,9 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
         // string ~ [chars] --> [chars]
         StringExp es = e1.isStringExp();
         ArrayLiteralExp ea = e2.isArrayLiteralExp();
-        size_t len = es.len + ea.elements.length;
+        size_t len = es.len + ea.length;
         auto elems = new Expressions(len);
-        for (size_t i = 0; i < ea.elements.length; ++i)
+        for (size_t i = 0; i < ea.length; ++i)
         {
             (*elems)[es.len + i] = ea[i];
         }

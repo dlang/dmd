@@ -276,7 +276,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
             {
                 Type tb = t.toBasetype();
                 Type tx = (tb.ty == Tsarray)
-                    ? tb.nextOf().sarrayOf(ale.elements ? ale.elements.length : 0)
+                    ? tb.nextOf().sarrayOf(ale.length)
                     : tb.nextOf().arrayOf();
                 se.e1 = ale.implicitCastTo(sc, tx);
             }
@@ -849,12 +849,12 @@ MATCH implicitConvTo(Expression e, Type t)
 
             if (auto tsa = tb.isTypeSArray())
             {
-                if (e.elements.length != tsa.dim.toInteger())
+                if (e.length != tsa.dim.toInteger())
                     result = MATCH.nomatch;
             }
 
             Type telement = tb.nextOf();
-            if (!e.elements.length)
+            if (!e.length)
             {
                 if (typen.ty != Tvoid)
                     result = typen.implicitConvTo(telement);
@@ -867,9 +867,9 @@ MATCH implicitConvTo(Expression e, Type t)
                     if (m < result)
                         result = m;
                 }
-                for (size_t i = 0; i < e.elements.length; i++)
+                foreach (i; 0 .. e.length)
                 {
-                    Expression el = (*e.elements)[i];
+                    Expression el = e[i];
                     if (result == MATCH.nomatch)
                         break;
                     if (!el)
@@ -892,7 +892,7 @@ MATCH implicitConvTo(Expression e, Type t)
             TypeVector tv = tb.isTypeVector();
             TypeSArray tbase = tv.basetype.isTypeSArray();
             assert(tbase);
-            const edim = e.elements.length;
+            const edim = e.length;
             const tbasedim = tbase.dim.toInteger();
             if (edim > tbasedim)
             {
@@ -2852,7 +2852,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             {
                 if (auto tsa = tb.isTypeSArray())
                 {
-                    if (e.elements.length != tsa.dim.toInteger())
+                    if (e.length != tsa.dim.toInteger())
                         return visit(ae);
                 }
 
@@ -2860,9 +2860,9 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 if (e.basis)
                     ae.basis = e.basis.castTo(sc, tb.nextOf());
                 ae.elements = e.elements.copy();
-                for (size_t i = 0; i < e.elements.length; i++)
+                foreach (i; 0 .. e.length)
                 {
-                    Expression ex = (*e.elements)[i];
+                    Expression ex = e[i];
                     if (!ex)
                         continue;
                     ex = ex.castTo(sc, tb.nextOf());
@@ -2888,7 +2888,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             TypeVector tv = tb.isTypeVector();
             TypeSArray tbase = tv.basetype.isTypeSArray();
             assert(tbase.ty == Tsarray);
-            const edim = e.elements.length;
+            const edim = e.length;
             const tbasedim = tbase.dim.toInteger();
             if (edim > tbasedim)
                 return visit(ae);
@@ -3261,12 +3261,12 @@ Expression inferType(Expression e, Type t, int flag = 0)
         Type tn = tb.nextOf();
         if (ale.basis)
             ale.basis = inferType(ale.basis, tn, flag);
-        for (size_t i = 0; i < ale.elements.length; i++)
+        foreach (i; 0 .. ale.length)
         {
-            if (Expression e = (*ale.elements)[i])
+            if (Expression e = ale[i])
             {
                 e = inferType(e, tn, flag);
-                (*ale.elements)[i] = e;
+                ale[i] = e;
             }
         }
 
@@ -3398,7 +3398,7 @@ Expression scaleFactor(BinExp be, Scope* sc)
  */
 private bool isVoidArrayLiteral(Expression e, Type other)
 {
-    while (e.op == EXP.arrayLiteral && e.type.ty == Tarray && (e.isArrayLiteralExp().elements.length == 1))
+    while (e.op == EXP.arrayLiteral && e.type.ty == Tarray && (e.isArrayLiteralExp().length == 1))
     {
         auto ale = e.isArrayLiteralExp();
         e = ale[0];
@@ -3410,7 +3410,7 @@ private bool isVoidArrayLiteral(Expression e, Type other)
     if (other.ty != Tsarray && other.ty != Tarray)
         return false;
     Type t = e.type;
-    return (e.op == EXP.arrayLiteral && t.ty == Tarray && t.nextOf().ty == Tvoid && e.isArrayLiteralExp().elements.length == 0);
+    return (e.op == EXP.arrayLiteral && t.ty == Tarray && t.nextOf().ty == Tvoid && e.isArrayLiteralExp().length == 0);
 }
 
 /**
