@@ -126,6 +126,49 @@ struct Symbol
 
 enum ubyte SFvisited = 1;      // visited
 
+version (D_LP64)
+{
+    struct SymbolCacheEntry
+    {
+        private:
+            ulong _packed;
+            uint _rest;
+        public:
+            uint length;
+
+        pragma(inline, true):
+            @property const(char)* ptr() const
+            {
+                return cast(const(char)*)(_packed & 0xFFFFFFFFFFFF);
+            }
+
+            @property void ptr(const(char)* p)
+            {
+                _packed = (_packed & 0xFFFF000000000000) | (cast(ulong)p & 0xFFFFFFFFFFFF);
+            }
+
+            @property Symbol* sym() const
+            {
+                return cast(Symbol*)(((_packed >> 48) & 0xFFFF) << 32 | _rest);
+            }
+
+            @property void sym(Symbol* s)
+            {
+                auto v = cast(ulong)s;
+                _packed = (_packed & 0xFFFFFFFFFFFF) | ((v >> 32) & 0xFFFF) << 48;
+                _rest = cast(uint)(v & 0xFFFFFFFF);
+            }
+    }
+}
+else
+{
+    struct SymbolCacheEntry
+    {
+        const(char)* ptr;
+        uint length;
+        Symbol* sym;
+    }
+}
 
 //////////////////////////////////
 // Build a linked list of these.
@@ -144,6 +187,7 @@ bool trace_inited;
 
 Stack* stack_freelist;
 Stack* trace_tos;           // top of stack
+SymbolCacheEntry[2048] trace_cache;
 
 __gshared
 {
@@ -643,7 +687,7 @@ private void trace_sympair_add(SymPair** psp, Symbol* s, ulong count)
 //////////////////////////////////////////////
 // This one is called by DMD
 
-private extern(C) void trace_pro(char[] id)
+private extern(C) void trace_pro(const(char)[] id)
 {
     //printf("trace_pro(ptr = %p, length = %lld)\n", id.ptr, id.length);
     //printf("trace_pro(id = '%.*s')\n", id.length, id.ptr);
@@ -659,7 +703,22 @@ private extern(C) void trace_pro(char[] id)
     if (id.length == 0)
         return;
     auto tos = stack_push();
-    auto s = trace_addsym(&root, id);
+
+    enum cacheMask = trace_cache.length - 1;
+    static assert((trace_cache.length & cacheMask) == 0);
+    const cacheIdx = (cast(size_t) id.ptr >> 4) & cacheMask;
+    auto centry = &trace_cache[cacheIdx];
+    Symbol* s;
+    if (centry.ptr == id.ptr && centry.length == id.length)
+        s = centry.sym;
+    else
+    {
+        s = trace_addsym(&root, id);
+        centry.ptr = id.ptr;
+        centry.length = cast(uint)id.length;
+        centry.sym = s;
+    }
+
     tos.sym = s;
     if (tos.prev)
     {
@@ -681,8 +740,7 @@ private extern(C) void trace_pro(char[] id)
 // Called by some old versions of DMD
 extern(C) void _c_trace_pro(size_t idlen, char* idptr)
 {
-    char[] id = idptr[0 .. idlen];
-    trace_pro(id);
+    trace_pro(idptr[0 .. idlen]);
 }
 
 /////////////////////////////////////////
