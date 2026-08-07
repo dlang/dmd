@@ -438,7 +438,7 @@ StringExp toStringExp(Expression _this)
     static StringExp arrayLiteralToStringExp(ArrayLiteralExp _this)
     {
         TY telem = _this.type.nextOf().toBasetype().ty;
-        if (!(telem.isSomeChar || (telem == Tvoid && (!_this.elements || _this.elements.length == 0))))
+        if (!(telem.isSomeChar || (telem == Tvoid && _this.length)))
             return null;
 
         ubyte sz = 1;
@@ -448,20 +448,17 @@ StringExp toStringExp(Expression _this)
             sz = 4;
 
         OutBuffer buf;
-        if (_this.elements)
+        foreach (i; 0 .. _this.length)
         {
-            foreach (i; 0 .. _this.elements.length)
-            {
-                auto ch = _this[i];
-                if (ch.op != EXP.int64)
-                    return null;
-                if (sz == 1)
-                    buf.writeByte(cast(ubyte)ch.toInteger());
-                else if (sz == 2)
-                    buf.writeword(cast(uint)ch.toInteger());
-                else
-                    buf.write4(cast(uint)ch.toInteger());
-            }
+            auto ch = _this[i];
+            if (ch.op != EXP.int64)
+                return null;
+            if (sz == 1)
+                buf.writeByte(cast(ubyte)ch.toInteger());
+            else if (sz == 2)
+                buf.writeword(cast(uint)ch.toInteger());
+            else
+                buf.write4(cast(uint)ch.toInteger());
         }
         char prefix;
         if (sz == 1)
@@ -506,7 +503,7 @@ Optional!bool toBool(Expression _this)
 
     static Optional!bool arrayLiteralToBool(ArrayLiteralExp _this)
     {
-        size_t dim = _this.elements ? _this.elements.length : 0;
+        size_t dim = _this.length;
         return typeof(return)(dim != 0);
     }
 
@@ -951,20 +948,19 @@ bool equals(const Expression _this, const Expression e)
         return true;
     }
 
-    static bool arrayLiteralExpEquals(const ArrayLiteralExp _this, const ArrayLiteralExp e)
+    static bool arrayLiteralExpEquals(const ArrayLiteralExp _this, const ArrayLiteralExp ale)
     {
-        if (_this.elements.length != e.elements.length)
+        if (_this.length != ale.length)
             return false;
-        if (_this.elements.length == 0 && !_this.type.equals(e.type))
+        if (_this.length == 0 && !_this.type.equals(ale.type))
         {
             return false;
         }
 
-        foreach (i, e1; *_this.elements)
+        foreach (i; 0 .. _this.length)
         {
-            auto e2 = (*e.elements)[i];
-            auto e1x = e1 ? e1 : _this.basis;
-            auto e2x = e2 ? e2 : e.basis;
+            auto e1x = _this[i];
+            auto e2x = ale[i];
 
             if (e1x != e2x && (!e1x || !e2x || !e1x.equals(e2x)))
                 return false;
