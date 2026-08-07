@@ -603,6 +603,9 @@ void MachObj_termfile()
 void MachObj_term(const(char)[] objfilename)
 {
     //printf("MachObj_term() ======================================== \n");
+
+    auto machobj = &machobj; // make global a local for faster access
+
     outfixlist();           // backpatches
 
     if (config.addlinenumbers)
