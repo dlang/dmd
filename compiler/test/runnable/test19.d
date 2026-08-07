@@ -1,7 +1,5 @@
 // REQUIRED_ARGS: -unittest
 
-import std.algorithm: cmp;
-
 extern(C) int printf(const char*, ...);
 
 /* ================================ */
@@ -269,7 +267,7 @@ void test13()
 
     s1 = s1.dup;
     s2 = tolower13(s1);
-    assert(cmp(s2, "fol") == 0);
+    assert(s2 == "fol");
     assert(s2 == s1);
 }
 
