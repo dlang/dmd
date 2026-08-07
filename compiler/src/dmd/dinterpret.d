@@ -3173,7 +3173,7 @@ public:
                     emplaceExp!ArrayLiteralExp(&ue, loc, type, cast(Expressions*) null);
                     return ue;
                 }
-                const length = aex.elements.length;
+                const length = aex.length;
                 Expressions* elements = new Expressions(length);
 
                 emplaceExp!ArrayLiteralExp(&ue, loc, type, elements);
@@ -3975,7 +3975,7 @@ public:
             if (auto ale = e1.isArrayLiteralExp())
             {
                 lowerbound = 0;
-                upperbound = ale.elements.length;
+                upperbound = ale.length;
             }
             else if (auto se = e1.isStringExp())
             {
@@ -4211,9 +4211,9 @@ public:
                 bool needsPostblit;
                 bool needsDtor;
 
-                Expression assignTo(ArrayLiteralExp ae)
+                Expression assignTo(ArrayLiteralExp ale)
                 {
-                    return assignTo(ae, 0, ae.elements.length);
+                    return assignTo(ale, 0, ale.length);
                 }
 
                 Expression assignTo(ArrayLiteralExp ae, size_t lwr, size_t upr)
@@ -5738,7 +5738,7 @@ public:
                     {
                         ArrayLiteralExp ale = ie.e1.isArrayLiteralExp();
                         const indx = cast(size_t)ie.e2.toInteger();
-                        if (indx < ale.elements.length)
+                        if (indx < ale.length) // xyzzy
                         {
                             Expression xx = (*ale.elements)[indx];
                             if (!xx) xx = ale.basis;
@@ -6028,10 +6028,9 @@ public:
              * Dereference it only if result should be an rvalue
              */
             auto ae = result.isArrayLiteralExp();
-            if (ae.elements.length == 1)
+            if (ae.length == 1)
             {
-                result = (*ae.elements)[0];
-                if (!result) result = ae.basis;
+                result = ae[0];
                 return;
             }
         }
@@ -7188,7 +7187,7 @@ private Expression interpret_aaApply(UnionExp* pue, InterState* istate, Expressi
 /// Returns: equivalent `StringExp` from `ArrayLiteralExp ale` containing only `IntegerExp` elements
 StringExp arrayLiteralToString(ArrayLiteralExp ale)
 {
-    const len = ale.elements ? ale.elements.length : 0;
+    const len = ale.elements ? ale.length : 0;
     const size = ale.type.nextOf().size();
 
     StringExp impl(T)()

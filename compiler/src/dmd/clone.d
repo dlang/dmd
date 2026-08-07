@@ -1564,7 +1564,7 @@ private CtorDeclaration generateCtorDeclaration(StructDeclaration sd, const STC 
 {
     auto structType = sd.type;
     STC stc = move ? STC.none : STC.ref_;     // the only difference between copy or move
-	auto fparams = new Parameters(new Parameter(Loc.initial, paramStc | stc, structType, Id.p, null, null, null));
+    auto fparams = new Parameters(new Parameter(Loc.initial, paramStc | stc, structType, Id.p, null, null, null));
     ParameterList pList = ParameterList(fparams);
     auto tf = new TypeFunction(pList, structType, LINK.d, STC.ref_);
     auto ccd = new CtorDeclaration(sd.loc, Loc.initial, STC.ref_, tf);

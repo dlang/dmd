@@ -928,8 +928,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
         static void tlsToDt(VarDeclaration vd, Symbol* s, uint sz, ref DtBuilder dtb, bool isCfile)
         {
             assert(config.objfmt == OBJ_MACH &&
-		(target.isX86_64 || target.isAArch64) &&
-		(s.Stype.Tty & mTYLINK) == mTYthread);
+                (target.isX86_64 || target.isAArch64) &&
+                (s.Stype.Tty & mTYLINK) == mTYthread);
 
             Symbol* tlvInit = createTLVDataSymbol(vd, s);
             auto tlvInitDtb = DtBuilder(0);

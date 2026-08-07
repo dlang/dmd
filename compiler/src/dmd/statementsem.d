@@ -1112,7 +1112,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                             // check if overflow is possible
                             const maxLen = intRangeFromType(tindex).imax.value + 1;
                             if (auto ale = fs.aggr.isArrayLiteralExp())
-                                err = ale.elements.length > maxLen;
+                                err = ale.length > maxLen;
                             else if (auto se = fs.aggr.isSliceExp())
                                 err = !(se.upr && se.upr.isConst() && se.upr.toInteger() <= maxLen);
                         }
@@ -1221,7 +1221,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 if (fs.aggr.isArrayLiteralExp() && !valueIsRef)
                 {
                     auto ale = fs.aggr.isArrayLiteralExp();
-                    size_t edim = ale.elements ? ale.elements.length : 0;
+                    size_t edim = ale.length;
                     auto telem = (*fs.parameters)[dim - 1].type;
 
                     // https://issues.dlang.org/show_bug.cgi?id=12936

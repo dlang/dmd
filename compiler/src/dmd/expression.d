@@ -1383,6 +1383,14 @@ extern (C++) final class ArrayLiteralExp : Expression
         return el ? el : basis;
     }
 
+    extern (D) Expression opIndexAssign(Expression value, size_t i)
+    {
+        (*elements)[i] = value;
+        return value;
+    }
+
+    extern (D) size_t length() { return elements ? elements.length : 0; }
+
     override void accept(Visitor v)
     {
         v.visit(this);

@@ -2909,7 +2909,7 @@ elem* toElem(Expression e, ref IRState irs)
             {
                 ArrayLiteralExp ale = cast(ArrayLiteralExp)ae.e2;
                 elem* e;
-                if (ale.elements.length == 0)
+                if (ale.length == 0)
                 {
                     e = e1;
                 }
@@ -4089,7 +4089,7 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitArrayLiteral(ArrayLiteralExp ale)
     {
-        size_t dim = ale.elements ? ale.elements.length : 0;
+        size_t dim = ale.length;
 
         //printf("ArrayLiteralExp.toElem() %s, type = %s\n", ale.toChars(), ale.type.toChars());
         Type tb = ale.type.toBasetype();
@@ -4526,7 +4526,7 @@ elem* ExpressionsToStaticArray(ref IRState irs, Loc loc, Expressions* exps, Symb
             el.type.toBasetype().ty == Tsarray)
         {
             ArrayLiteralExp ale = cast(ArrayLiteralExp)el;
-            if (ale.elements && ale.elements.length)
+            if (ale.length)
             {
                 elem* ex = ExpressionsToStaticArray(irs,
                     ale.loc, ale.elements, &stmp, cast(uint)(offset + i * szelem), ale.basis);

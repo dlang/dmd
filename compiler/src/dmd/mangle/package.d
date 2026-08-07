@@ -1041,7 +1041,7 @@ public:
 
     override void visit(ArrayLiteralExp e)
     {
-        const dim = e.elements ? e.elements.length : 0;
+        const dim = e.elements.length;
         buf.writeByte('A');
         buf.print(dim);
         foreach (i; 0 .. dim)

@@ -604,7 +604,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 uinteger_t dim2 = dim1;
                 if (auto ale = i.exp.isArrayLiteralExp())
                 {
-                    dim2 = ale.elements ? ale.elements.length : 0;
+                    dim2 = ale.length;
                 }
                 else if (auto se = i.exp.isSliceExp())
                 {
