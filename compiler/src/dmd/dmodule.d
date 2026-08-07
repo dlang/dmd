@@ -767,7 +767,7 @@ extern (C++) final class Module : Package
         }
         else
         {
-            const bool doUnittests = global.params.parsingUnittestsRequired();
+            const bool doUnittests = global.params.parsingUnittestsRequired(this.isRoot);
             scope p = new Parser!AST(this, buf, cast(bool) docfile, global.errorSink, &global.compileEnv, doUnittests);
             p.nextToken();
             p.parseModuleDeclaration();
