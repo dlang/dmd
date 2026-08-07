@@ -8017,6 +8017,57 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         FuncDeclaration resolveOverloadSet(Loc loc, Scope* sc,
             OverloadSet os, Objects* tiargs, Type tthis, ArgumentList argumentList)
         {
+            static bool templateMixinArgsEqual(RootObject o1, RootObject o2)
+            {
+                if (const t1 = isType(o1))
+                {
+                    const t2 = isType(o2);
+                    return t2 && t1.equals(t2);
+                }
+                if (const e1 = isExpression(o1))
+                {
+                    const e2 = isExpression(o2);
+                    return e2 && equals(e1, e2);
+                }
+                if (const s1 = isDsymbol(o1))
+                {
+                    const s2 = isDsymbol(o2);
+                    return s1 == s2;
+                }
+                return o1 is o2;
+            }
+
+            static bool areEquivalentMixinFunctions(FuncDeclaration f1, FuncDeclaration f2)
+            {
+                static bool isAnonymousTemplateMixin(TemplateMixin tm)
+                {
+                    import core.stdc.string;
+
+                    return tm && tm.ident && strncmp(tm.ident.toChars(), "__mixin", 7) == 0;
+                }
+
+                if (!f1 || !f2 || !f1.ident.equals(f2.ident) || !f1.type || !f2.type || !f1.type.equals(f2.type))
+                    return false;
+
+                auto tm1 = f1.parent ? f1.parent.isTemplateMixin() : null;
+                auto tm2 = f2.parent ? f2.parent.isTemplateMixin() : null;
+                if (!tm1 || !tm2 || tm1.tempdecl != tm2.tempdecl)
+                    return false;
+
+                if (isAnonymousTemplateMixin(tm1) == isAnonymousTemplateMixin(tm2))
+                    return false;
+
+                if (tm1.tiargs.length != tm2.tiargs.length)
+                    return false;
+
+                foreach (i; 0 .. tm1.tiargs.length)
+                {
+                    if (!templateMixinArgsEqual((*tm1.tiargs)[i], (*tm2.tiargs)[i]))
+                        return false;
+                }
+                return true;
+            }
+
             FuncDeclaration f = null;
             foreach (s; os.a)
             {
@@ -8040,6 +8091,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // https://github.com/dlang/dmd/issues/21899
                     // Same function found via two different paths (e.g. direct import and
                     // selective import alias), not an actual conflict.
+                }
+                else if (areEquivalentMixinFunctions(f, f2))
+                {
+                    // Same mixin member found via named and unnamed instances of
+                    // the same template mixin in the same scope.
                 }
                 else if (f.isCsymbol() && f2.isCsymbol())
                 {
