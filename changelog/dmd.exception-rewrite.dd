@@ -10,7 +10,7 @@ the try body can throw an `Exception`.
 
 To reenable the optimization, use the new `-nothrow-optimizations` switch.
 
-The following example demonstrates the fix - "exiting!" is now printed even though `callMe` is a `nothrow` function:
+The following example demonstrates the fix - "exiting" is now printed even though `callMe` is a `nothrow` function:
 
 ```d
 import core.stdc.stdio;

@@ -1,10 +1,10 @@
 New experimental Data Flow Analysis Engine for nullability and truthiness
 
 A new experimental Data Flow Analysis (DFA) has been implemented under the preview flag ``-preview=fastdfa``.
-The intent of the engine is to be both fast and free from false positives, if successful it may in the future be turned on by default.
+The intent of the engine is to be both fast and free from false positives; if successful, it may in the future be turned on by default.
 
-No attributes have been implemented to date, before they are considered the engine itself must be both usable with the right tradeoffs and have desirable features.
-This has some side effects, it prevent separate compilation, function pointers, and cyclic functions from being analysable.
+No attributes have been implemented to date; before they are considered, the engine itself must be both usable with the right tradeoffs and have desirable features.
+This has some side effects: it prevents separate compilation, function pointers, and cyclic functions from being analysable.
 These limitations are not supposed to prevent a successful compilation when in use.
 
 The engine itself is variable centric with a strong focus on giving up on analysing a variable if things get too complex for it.
@@ -25,7 +25,7 @@ void loopy()
 ```
 
 If the engine is successful, the reporting mechanism would be replaced with a tracing state pass.
-This would offer for a function line by line explanation of how and why the engine thought something was true.
+This would offer a line by line explanation of how and why the engine thought something was true for a function.
 
 The engine has been tested on a 100k LOC defensively written codebase without any false positives.
 The performance is similar to DIP1000 and is not supposed to be noticeable.
