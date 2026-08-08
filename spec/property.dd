@@ -49,6 +49,12 @@ $(TROW $(D .max), maximum value)
 $(TROW $(D .min), minimum value)
 )
 
+$(TABLE2 Examples,
+$(THEAD Expression,     Value)
+$(TROW $(D byte.min),   yields `-128`)
+$(TROW $(D ubyte.max),  yields `255`)
+)
+
 $(BR)
 
 $(TABLE_2COLS Properties for Floating Point Types,
@@ -64,16 +70,21 @@ $(TROW $(D .max_exp), maximum int value such that 2$(SUPERSCRIPT $(D max_exp-1))
 $(TROW $(D .min_10_exp), minimum int value such that 10$(SUPERSCRIPT $(D min_10_exp)) is representable as a normalized value)
 $(TROW $(D .min_exp), minimum int value such that 2$(SUPERSCRIPT $(D min_exp-1)) is representable as a normalized value)
 $(TROW $(D .max), largest representable value that's not infinity)
-
 $(TROW $(D .min_normal), smallest representable normalized value that's not 0)
-$(TROW $(D .re), real part)
-$(TROW $(D .im), imaginary part)
 )
 
-$(TABLE2 Floating Point Examples,
+$(TABLE2 Examples,
 $(THEAD Expression,     Value)
 $(TROW $(D float.nan),  yields the floating point NaN value)
 $(TROW $(D (2.5F).nan),        yields the floating point NaN value)
+)
+
+$(BR)
+
+$(TABLE_2COLS Additional Properties for Complex Floating Point Types,
+$(THEAD Property, Description)
+$(TROW $(D .re), real part)
+$(TROW $(D .im), imaginary part)
 )
 
 $(H2 $(LNAME2 derived-type, Derived Type Properties))

@@ -17,8 +17,9 @@ module dmd.backend.cdef;
 
 import dmd.common.int128;
 
-import dmd.backend.cc: Classsym, Symbol, param_t, config;
+import dmd.backend.cc: Classsym, param_t, config;
 import dmd.backend.el;
+import dmd.backend.symbol;
 import dmd.backend.ty : I32;
 import dmd.backend.global : REGSIZE;
 
@@ -677,8 +678,6 @@ enum SC : ubyte
     funcalias,      /// alias to another function symbol
     stack,          /// offset from stack pointer (not frame pointer)
 }
-
-enum SCMAX = SC.max + 1;
 
 int ClassInline(int c) { return c == SC.inline || c == SC.sinline || c == SC.einline; }
 int SymInline(Symbol* s) { return ClassInline(s.Sclass); }

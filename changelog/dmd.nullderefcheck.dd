@@ -1,10 +1,27 @@
-An optional check for null dereference is added
+Checks for null dereferences
 
 A new check has been implemented that injects code to check a pointer for null before it is dereferenced.
 
-It will be typically be used if you need a backtrace generated (when one is not automatically done), or if you want to catch and handle the `Error` as part of a scheduler.
+It will be typically be used if you need a backtrace generated or you want to catch and handle the `Error` as part of a scheduler.
 
-This can be enabled by using ``-check=nullderef=on`` by default it is off.
-What happens may be customized by the ``-checkaction`` switch and by setting a new handler in ``core.exception``.
+This can be enabled for all functions by using `-check=nullderef=on` or exclusively for `@safe` functions with `-check=nullderef=safeonly`
+By default it is off.
+What happens may be customized by the `-checkaction` switch and by setting a new handler in `core.exception`.
+
+---
+@safe void foo()
+{
+    int* p;
+    // if -check=nullderef=on or -check=nullderef=safeonly is set:
+    int x = *p; // null dereference error thrown at runtime
+}
+
+@system void bar()
+{
+    int* p;
+    // if -check=nullderef=on is set:
+    int x = *p; // no explicit check; relies on OS signal/exception
+}
+---
 
 Due to issues in dmd's backend, not all pointer dereferences are guaranteed to get a check.

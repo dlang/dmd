@@ -14,7 +14,7 @@ module core.thread.osthread;
 
 import core.atomic;
 import core.internal.traits : externDFunc;
-import core.memory : GC, pageSize;
+import core.memory : GC;
 import core.thread.context;
 import core.thread.threadbase;
 import core.thread.types;
@@ -28,8 +28,6 @@ version (Posix)
     public import core.thread.posix_impl;
 else version (Windows)
     public import core.thread.windows_impl;
-else version (WASI)
-    public import core.thread.wasi_impl;
 else
     static assert(false, "Unknown threading implementation.");
 
@@ -81,14 +79,27 @@ version (Windows)
 else version (Posix)
 {
     static import core.sys.posix.pthread;
-    static import core.sys.posix.signal;
     import core.stdc.errno : EINTR, errno;
-    import core.sys.posix.pthread : pthread_atfork, pthread_attr_destroy, pthread_attr_getstack, pthread_attr_init,
-        pthread_attr_setstacksize, pthread_create, pthread_detach, pthread_getschedparam, pthread_join, pthread_self,
-        pthread_setschedparam, sched_get_priority_max, sched_get_priority_min, sched_param, sched_yield;
-    import core.sys.posix.semaphore : sem_init, sem_post, sem_t, sem_wait;
-    import core.sys.posix.signal : pthread_kill, sigaction, sigaction_t, sigdelset, sigfillset, sigset_t, sigsuspend,
-        SIGUSR1, stack_t;
+
+    version (CRuntime_WASI)
+        import core.sys.posix.pthread : pthread_attr_destroy, pthread_attr_getstack,
+            pthread_attr_init, pthread_attr_setstacksize, pthread_create, pthread_detach,
+            pthread_join, pthread_self, sched_yield;
+    else
+    {
+        static import core.sys.posix.signal;
+
+        import core.sys.posix.pthread : pthread_atfork, pthread_attr_destroy, pthread_attr_getstack,
+            pthread_attr_init, pthread_attr_setstacksize, pthread_create, pthread_detach, pthread_getschedparam,
+            pthread_join, pthread_self, pthread_setschedparam, sched_get_priority_max, sched_get_priority_min,
+            sched_param, sched_yield;
+
+        import core.sys.posix.semaphore : sem_init, sem_post, sem_t, sem_wait;
+
+        import core.sys.posix.signal : pthread_kill, sigaction, sigaction_t, sigdelset, sigfillset, sigset_t, sigsuspend,
+            SIGUSR1, stack_t;
+    }
+
     import core.sys.posix.stdlib : free, malloc, realloc;
     import core.sys.posix.sys.types : pthread_attr_t, pthread_key_t, pthread_t;
     import core.sys.posix.time : nanosleep, timespec;
@@ -140,12 +151,6 @@ else version (Posix)
     {
         // Use POSIX threads for suspend/resume
     }
-}
-else version (WASI)
-{
-    // No real threading support
-    // Just manipulations of the main "thread"
-    import core.stdc.stdlib : free, malloc, realloc;
 }
 else
     static assert(0, "unsupported operating system");
@@ -441,6 +446,7 @@ private extern(D) static void thread_yield() @nogc nothrow
 }
 
 ///
+static if (!isSingleThreaded)
 unittest
 {
     class DerivedThread : Thread
@@ -470,6 +476,7 @@ unittest
     }).start();
 }
 
+static if (!isSingleThreaded)
 unittest
 {
     int x = 0;
@@ -481,7 +488,7 @@ unittest
     assert( x == 1 );
 }
 
-
+static if (!isSingleThreaded)
 unittest
 {
     enum MSG = "Test message.";
@@ -502,7 +509,7 @@ unittest
     }
 }
 
-
+static if (!isSingleThreaded)
 unittest
 {
     // use >pageSize to avoid stack overflow (e.g. in an syscall)
@@ -510,7 +517,7 @@ unittest
     thr.join();
 }
 
-
+static if (!isSingleThreaded)
 unittest
 {
     import core.memory : GC;
@@ -527,6 +534,7 @@ unittest
     t2.join();
 }
 
+static if (!isSingleThreaded)
 unittest
 {
     import core.sync.semaphore;
@@ -580,6 +588,7 @@ unittest
     }
 }
 
+static if (!isSingleThreaded)
 unittest // Bugzilla 8960
 {
     import core.sync.semaphore;
@@ -620,48 +629,6 @@ version (CoreDdoc)
     {
     }
 }
-else version (Posix)
-{
-    extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo) nothrow @nogc
-    in
-    {
-        assert(suspendSignalNo != 0);
-        assert(resumeSignalNo  != 0);
-    }
-    out
-    {
-        assert(suspendSignalNumber != 0);
-        assert(resumeSignalNumber  != 0);
-    }
-    do
-    {
-        suspendSignalNumber = suspendSignalNo;
-        resumeSignalNumber  = resumeSignalNo;
-    }
-
-    extern (C) void thread_getGCSignals(out int suspendSignalNo, out int resumeSignalNo) nothrow @nogc
-    in
-    {
-        assert(suspendSignalNumber != 0);
-        assert(resumeSignalNumber  != 0);
-    }
-    out
-    {
-        assert(suspendSignalNo != 0);
-        assert(resumeSignalNo  != 0);
-    }
-    do
-    {
-        suspendSignalNo = suspendSignalNumber;
-        resumeSignalNo  = resumeSignalNumber;
-    }
-}
-
-version (Posix)
-{
-    private __gshared int suspendSignalNumber;
-    private __gshared int resumeSignalNumber;
-}
 
 version (CoreDdoc) {} else
 private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
@@ -671,38 +638,16 @@ private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
     StackContext* thisContext = &thisThread.m_main;
     assert( thisContext == thisThread.m_curr );
 
-    version (Windows)
-    {
-        thisThread.m_addr  = GetCurrentThreadId();
-        thisThread.m_hndl  = GetCurrentThreadHandle();
-        thisContext.bstack = getStackBottom();
-        thisContext.tstack = thisContext.bstack;
-    }
-    else version (Posix)
-    {
-        thisThread.m_addr  = pthread_self();
-        thisContext.bstack = getStackBottom();
-        thisContext.tstack = thisContext.bstack;
+    thisThread.m_tdescr = Thread.getCurrentThreadDescr();
+    thisContext.bstack = getStackBottom();
+    thisContext.tstack = thisContext.bstack;
 
+    version (Posix)
         atomicStore!(MemoryOrder.raw)(thisThread.toThread.m_isRunning, true);
-    }
-    else version (WASI)
-    {
-        thisThread.m_addr  = 1; // assumes this is done only once
-        thisContext.bstack = getStackBottom();
-        thisContext.tstack = thisContext.bstack;
-    }
-    else
-        static assert(0, "unsupported os");
+
     thisThread.m_isDaemon = true;
     thisThread.tlsRTdataInit();
     Thread.setThis( thisThread );
-
-    version (Darwin)
-    {
-        thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_addr );
-        assert( thisThread.m_tmach != thisThread.m_tmach.init );
-    }
 
     Thread.add( thisThread, false );
     Thread.add( thisContext );
@@ -761,7 +706,7 @@ version (Windows)
         StackContext* thisContext = &thisThread.m_main;
         assert( thisContext == thisThread.m_curr );
 
-        thisThread.m_addr  = addr;
+        thisThread.m_tdescr.tid  = addr;
         thisContext.bstack = bstack;
         thisContext.tstack = thisContext.bstack;
 
@@ -769,13 +714,13 @@ version (Windows)
 
         if ( addr == GetCurrentThreadId() )
         {
-            thisThread.m_hndl = GetCurrentThreadHandle();
+            thisThread.m_tdescr.hndl = GetCurrentThreadHandle();
             thisThread.tlsRTdataInit();
             Thread.setThis( thisThread );
         }
         else
         {
-            thisThread.m_hndl = OpenThreadHandle( addr );
+            thisThread.m_tdescr.hndl = OpenThreadHandle( addr );
             impersonate_thread(addr,
             {
                 thisThread.tlsRTdataInit();
@@ -979,11 +924,6 @@ in (fn)
         }
         assert(0, "implement AArch64 inline assembler for callWithStackShell()"); // TODO AArch64
     }
-    else version (WebAssembly)
-    {
-        // Wasm is special in that this isn't really possible
-        // Spilling has to be done somehow else...
-    }
     else
     {
         static assert(false, "Architecture not supported.");
@@ -1008,10 +948,6 @@ version (Posix)
 else version (Windows)
 {
     alias getpid = imported!"core.sys.windows.winbase".GetCurrentProcessId;
-}
-else version (WASI)
-{
-    int getpid() @nogc nothrow @safe => 1;
 }
 else
     static assert(0, "unsupported os");
@@ -1129,6 +1065,7 @@ private extern(D) void* getStackBottom() nothrow @nogc
         static assert(false, "Platform not supported.");
 }
 
+
 /**
  * Suspend the specified thread and load stack and register information for
  * use by thread_scanAll.  If the supplied thread is the calling thread,
@@ -1153,22 +1090,35 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
         return false;
     }
 
-    version (Windows)
+    const sameThread = t.m_tdescr.tid == gettid();
+
+    if (!sameThread)
     {
-        if ( t.m_addr != GetCurrentThreadId() && SuspendThread( t.m_hndl ) == 0xFFFFFFFF )
+        if (!suspendThreadImpl(t))
         {
-            if ( !t.isRunning )
+            if (t.isRunning)
+                onThreadError( "Unable to suspend thread" );
+            else
             {
                 Thread.remove( t );
                 return false;
             }
-            onThreadError( "Unable to suspend thread" );
         }
+    }
 
+    loadStackAndRegInfo(t, sameThread);
+
+    return true;
+}
+
+private void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
+{
+    version (Windows)
+    {
         CONTEXT context = void;
         context.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL;
 
-        if ( !GetThreadContext( t.m_hndl, &context ) )
+        if ( !GetThreadContext( t.m_tdescr.hndl, &context ) )
             onThreadError( "Unable to load thread context" );
         version (X86)
         {
@@ -1211,25 +1161,21 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
         {
             static assert(false, "Architecture not supported." );
         }
+        // a thread might change the stack, e.g. using non-D fibers, so we must not
+        // rely on the stack bottom saved when attaching/starting. Multiple fiber stacks cannot be
+        // captured, but make sure scanning does not crash accessing invalid memory ranges
+        // between stacks
+        if ( !t.m_lock )
+            t.m_curr.bstack = getThreadStackBottom( t.m_tdescr.hndl );
     }
     else version (Darwin)
     {
-        if ( t.m_addr != pthread_self() && thread_suspend( t.m_tmach ) != KERN_SUCCESS )
-        {
-            if ( !t.isRunning )
-            {
-                Thread.remove( t );
-                return false;
-            }
-            onThreadError( "Unable to suspend thread" );
-        }
-
         version (X86)
         {
             x86_thread_state32_t    state = void;
             mach_msg_type_number_t  count = x86_THREAD_STATE32_COUNT;
 
-            if ( thread_get_state( t.m_tmach, x86_THREAD_STATE32, &state, &count ) != KERN_SUCCESS )
+            if ( thread_get_state( t.m_tdescr.tmach, x86_THREAD_STATE32, &state, &count ) != KERN_SUCCESS )
                 onThreadError( "Unable to load thread state" );
             if ( !t.m_lock )
                 t.m_curr.tstack = cast(void*) state.esp;
@@ -1248,7 +1194,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
             x86_thread_state64_t    state = void;
             mach_msg_type_number_t  count = x86_THREAD_STATE64_COUNT;
 
-            if ( thread_get_state( t.m_tmach, x86_THREAD_STATE64, &state, &count ) != KERN_SUCCESS )
+            if ( thread_get_state( t.m_tdescr.tmach, x86_THREAD_STATE64, &state, &count ) != KERN_SUCCESS )
                 onThreadError( "Unable to load thread state" );
             if ( !t.m_lock )
                 t.m_curr.tstack = cast(void*) state.rsp;
@@ -1276,7 +1222,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
             arm_thread_state64_t state = void;
             mach_msg_type_number_t count = ARM_THREAD_STATE64_COUNT;
 
-            if (thread_get_state(t.m_tmach, ARM_THREAD_STATE64, &state, &count) != KERN_SUCCESS)
+            if (thread_get_state(t.m_tdescr.tmach, ARM_THREAD_STATE64, &state, &count) != KERN_SUCCESS)
                 onThreadError("Unable to load thread state");
             // TODO: ThreadException here recurses forever!  Does it
             //still using onThreadError?
@@ -1297,7 +1243,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
 
             // Thought this would be ARM_THREAD_STATE32, but that fails.
             // Mystery
-            if (thread_get_state(t.m_tmach, ARM_THREAD_STATE, &state, &count) != KERN_SUCCESS)
+            if (thread_get_state(t.m_tdescr.tmach, ARM_THREAD_STATE, &state, &count) != KERN_SUCCESS)
                 onThreadError("Unable to load thread state");
             // TODO: in past, ThreadException here recurses forever!  Does it
             //still using onThreadError?
@@ -1315,7 +1261,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
             ppc_thread_state_t state = void;
             mach_msg_type_number_t count = PPC_THREAD_STATE_COUNT;
 
-            if (thread_get_state(t.m_tmach, PPC_THREAD_STATE, &state, &count) != KERN_SUCCESS)
+            if (thread_get_state(t.m_tdescr.tmach, PPC_THREAD_STATE, &state, &count) != KERN_SUCCESS)
                 onThreadError("Unable to load thread state");
             if (!t.m_lock)
                 t.m_curr.tstack = cast(void*) state.r[1];
@@ -1326,7 +1272,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
             ppc_thread_state64_t state = void;
             mach_msg_type_number_t count = PPC_THREAD_STATE64_COUNT;
 
-            if (thread_get_state(t.m_tmach, PPC_THREAD_STATE64, &state, &count) != KERN_SUCCESS)
+            if (thread_get_state(t.m_tdescr.tmach, PPC_THREAD_STATE64, &state, &count) != KERN_SUCCESS)
                 onThreadError("Unable to load thread state");
             if (!t.m_lock)
                 t.m_curr.tstack = cast(void*) state.r[1];
@@ -1339,18 +1285,8 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
     }
     else version (Solaris)
     {
-        if (t.m_addr != pthread_self())
+        if (!sameThread)
         {
-            if (thr_suspend(t.m_addr) != 0)
-            {
-                if (!t.isRunning)
-                {
-                    Thread.remove(t);
-                    return false;
-                }
-                onThreadError("Unable to suspend thread");
-            }
-
             static int getLwpStatus(ulong lwpid, out lwpstatus_t status)
             {
                 import core.sys.posix.fcntl : open, O_RDONLY;
@@ -1392,7 +1328,7 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
             }
 
             lwpstatus_t status = void;
-            if (getLwpStatus(t.m_addr, status) != 0)
+            if (getLwpStatus(t.m_tdescr.tid, status) != 0)
                 onThreadError("Unable to load thread state");
 
             version (X86)
@@ -1476,30 +1412,13 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
     }
     else version (Posix)
     {
-        if ( t.m_addr != pthread_self() )
-        {
-            if ( pthread_kill( t.m_addr, suspendSignalNumber ) != 0 )
-            {
-                if ( !t.isRunning )
-                {
-                    Thread.remove( t );
-                    return false;
-                }
-                onThreadError( "Unable to suspend thread" );
-            }
-        }
-        else if ( !t.m_lock )
+        if (sameThread && !t.m_lock)
         {
             t.m_curr.tstack = getStackTop();
         }
     }
-    else version (WASI)
-    {
-        onThreadError( "Unable to suspend thread" );
-    }
     else
         static assert(0, "unsupported os");
-    return true;
 }
 
 /**
@@ -1520,8 +1439,6 @@ extern (C) void thread_preStopTheWorld() nothrow {
  */
 extern (C) void thread_suspendAll() nothrow
 {
-    version (WASI) onThreadError( "Unable to suspend all threads" );
-
     // NOTE: We've got an odd chicken & egg problem here, because while the GC
     //       is required to call thread_init before calling any other thread
     //       routines, thread_init may allocate memory which could in turn
@@ -1567,6 +1484,8 @@ extern (C) void thread_suspendAll() nothrow
         {}
         else version (Solaris)
         {}
+        else version (WASI)
+        {}
         else version (Posix)
         {
             // Subtract own thread if we called suspend() on ourselves.
@@ -1588,10 +1507,6 @@ extern (C) void thread_suspendAll() nothrow
         }
         else version (Windows)
         {
-        }
-        else version (WASI)
-        {
-            // bail out handled at start
         }
         else
             static assert(0, "unsupported os");
@@ -1615,77 +1530,46 @@ extern (C) void thread_suspendAll() nothrow
 private extern (D) void resume(ThreadBase _t) nothrow @nogc
 {
     Thread t = _t.toThread;
+    const sameThread = t.m_tdescr.tid == gettid();
 
-    version (Windows)
+    if (!sameThread)
     {
-        if ( t.m_addr != GetCurrentThreadId() && ResumeThread( t.m_hndl ) == 0xFFFFFFFF )
+        if (!resumeThreadImpl(t))
         {
-            if ( !t.isRunning )
+            if (t.isRunning)
+                onThreadError( "Unable to resume thread" );
+            else
             {
                 Thread.remove( t );
                 return;
             }
-            onThreadError( "Unable to resume thread" );
         }
+    }
 
-        if ( !t.m_lock )
-            t.m_curr.tstack = t.m_curr.bstack;
+    purgeStackAndRegInfo(t, sameThread);
+}
+
+private void purgeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
+{
+    version (Windows)
+    {
+        t.unloadStackInfo();
         t.m_reg[0 .. $] = 0;
     }
     else version (Darwin)
     {
-        if ( t.m_addr != pthread_self() && thread_resume( t.m_tmach ) != KERN_SUCCESS )
-        {
-            if ( !t.isRunning )
-            {
-                Thread.remove( t );
-                return;
-            }
-            onThreadError( "Unable to resume thread" );
-        }
-
-        if ( !t.m_lock )
-            t.m_curr.tstack = t.m_curr.bstack;
+        t.unloadStackInfo();
         t.m_reg[0 .. $] = 0;
     }
     else version (Solaris)
     {
-        if (t.m_addr != pthread_self() && thr_continue(t.m_addr) != 0)
-        {
-            if (!t.isRunning)
-            {
-                Thread.remove(t);
-                return;
-            }
-            onThreadError("Unable to resume thread");
-        }
-
-        if (!t.m_lock)
-            t.m_curr.tstack = t.m_curr.bstack;
+        t.unloadStackInfo();
         t.m_reg[0 .. $] = 0;
     }
     else version (Posix)
     {
-        if ( t.m_addr != pthread_self() )
-        {
-            if ( pthread_kill( t.m_addr, resumeSignalNumber ) != 0 )
-            {
-                if ( !t.isRunning )
-                {
-                    Thread.remove( t );
-                    return;
-                }
-                onThreadError( "Unable to resume thread" );
-            }
-        }
-        else if ( !t.m_lock )
-        {
-            t.m_curr.tstack = t.m_curr.bstack;
-        }
-    }
-    else version (WASI)
-    {
-        onThreadError( "Unable to resume thread" );
+        if (sameThread)
+            t.unloadStackInfo();
     }
     else
         static assert(false, "Platform not supported.");
@@ -1710,6 +1594,7 @@ extern (C) void thread_init() @nogc nothrow
 
     initLowlevelThreads();
     Thread.initLocks();
+    Thread.afterDeploy();
 
     version (Windows)
     {
@@ -1727,14 +1612,17 @@ extern (C) void thread_init() @nogc nothrow
                 // In such case getThis will return null.
                 return;
             }
-            thisThread.m_addr = pthread_self();
-            assert( thisThread.m_addr != thisThread.m_addr.init );
-            thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_addr );
-            assert( thisThread.m_tmach != thisThread.m_tmach.init );
+            thisThread.m_tdescr.tid = pthread_self();
+            assert( thisThread.m_tdescr.tid != thisThread.m_tdescr.tid.init );
+            thisThread.m_tdescr.tmach = pthread_mach_thread_np( thisThread.m_tdescr.tid );
+            assert( thisThread.m_tdescr.tmach != thisThread.m_tdescr.tmach.init );
        }
         pthread_atfork(null, null, &initChildAfterFork);
     }
     else version (Solaris)
+    {
+    }
+    else version (WASI)
     {
     }
     else version (Posix)
@@ -1813,9 +1701,6 @@ extern (C) void thread_init() @nogc nothrow
 
         status = sem_init( &suspendCount, 0, 0 );
         assert( status == 0 );
-    }
-    else version (WASI)
-    {
     }
     else
         static assert(0, "unsupported os");
@@ -2098,104 +1983,97 @@ else version (Posix)
         }
 
 
-        //
-        // Used to track the number of suspended threads
-        //
-        __gshared sem_t suspendCount;
-
-
-        extern (C) bool thread_preSuspend( void* sp ) nothrow {
-            // NOTE: Since registers are being pushed and popped from the
-            //       stack, any other stack data used by this function should
-            //       be gone before the stack cleanup code is called below.
-            Thread obj = Thread.getThis();
-            if (obj is null)
-            {
-                return false;
-            }
-
-            if ( !obj.m_lock )
-            {
-                obj.m_curr.tstack = sp;
-            }
-
-            return true;
-        }
-
-        extern (C) bool thread_postSuspend() nothrow {
-            Thread obj = Thread.getThis();
-            if (obj is null)
-            {
-                return false;
-            }
-
-            if ( !obj.m_lock )
-            {
-                obj.m_curr.tstack = obj.m_curr.bstack;
-            }
-
-            return true;
-        }
-
-        extern (C) void thread_suspendHandler( int sig ) nothrow
-        in
+        version (WASI) {}
+        else
         {
-            assert( sig == suspendSignalNumber );
-        }
-        do
-        {
-            void op(void* sp) nothrow
-            {
-                int cancel_state = thread_cancelDisable();
-                scope(exit) thread_cancelRestore(cancel_state);
+            //
+            // Used to track the number of suspended threads
+            //
+            __gshared sem_t suspendCount;
 
-                bool supported = thread_preSuspend(getStackTop());
-                assert(supported, "Tried to suspend a detached thread!");
 
-                scope(exit)
+            extern (C) bool thread_preSuspend( void* sp ) nothrow {
+                // NOTE: Since registers are being pushed and popped from the
+                //       stack, any other stack data used by this function should
+                //       be gone before the stack cleanup code is called below.
+                Thread obj = Thread.getThis();
+                if (obj is null)
                 {
-                    supported = thread_postSuspend();
-                    assert(supported, "Tried to suspend a detached thread!");
+                    return false;
                 }
 
-                sigset_t    sigres = void;
-                int         status;
+                if ( !obj.m_lock )
+                {
+                    obj.m_curr.tstack = sp;
+                }
 
-                status = sigfillset( &sigres );
-                assert( status == 0 );
-
-                status = sigdelset( &sigres, resumeSignalNumber );
-                assert( status == 0 );
-
-                status = sem_post( &suspendCount );
-                assert( status == 0 );
-
-                sigsuspend( &sigres );
+                return true;
             }
-            callWithStackShell(&op);
-        }
+
+            extern (C) bool thread_postSuspend() nothrow {
+                Thread obj = Thread.getThis();
+                if (obj is null)
+                {
+                    return false;
+                }
+
+                if ( !obj.m_lock )
+                {
+                    obj.m_curr.tstack = obj.m_curr.bstack;
+                }
+
+                return true;
+            }
+
+            extern (C) void thread_suspendHandler( int sig ) nothrow
+            in
+            {
+                assert( sig == suspendSignalNumber );
+            }
+            do
+            {
+                void op(void* sp) nothrow
+                {
+                    int cancel_state = thread_cancelDisable();
+                    scope(exit) thread_cancelRestore(cancel_state);
+
+                    bool supported = thread_preSuspend(getStackTop());
+                    assert(supported, "Tried to suspend a detached thread!");
+
+                    scope(exit)
+                    {
+                        supported = thread_postSuspend();
+                        assert(supported, "Tried to suspend a detached thread!");
+                    }
+
+                    sigset_t    sigres = void;
+                    int         status;
+
+                    status = sigfillset( &sigres );
+                    assert( status == 0 );
+
+                    status = sigdelset( &sigres, resumeSignalNumber );
+                    assert( status == 0 );
+
+                    status = sem_post( &suspendCount );
+                    assert( status == 0 );
+
+                    sigsuspend( &sigres );
+                }
+                callWithStackShell(&op);
+            }
 
 
-        extern (C) void thread_resumeHandler( int sig ) nothrow
-        in
-        {
-            assert( sig == resumeSignalNumber );
-        }
-        do
-        {
+            extern (C) void thread_resumeHandler( int sig ) nothrow
+            in
+            {
+                assert( sig == resumeSignalNumber );
+            }
+            do
+            {
 
+            }
         }
-    }
-}
-else version (WASI)
-{
-    //
-    // Entry point for WASI threads
-    //
-    extern (C) void* thread_entryPoint( void* arg ) nothrow
-    {
-        onThreadError("Cannot enter new WASI threads.");
-        return null;
     }
 }
 else
@@ -2262,162 +2140,6 @@ version (DragonFlyBSD) unittest
 // lowlovel threading support
 ///////////////////////////////////////////////////////////////////////////////
 
-private
-{
-    version (Windows):
-    // If the runtime is dynamically loaded as a DLL, there is a problem with
-    // threads still running when the DLL is supposed to be unloaded:
-    //
-    // - with the VC runtime starting with VS2015 (i.e. using the Universal CRT)
-    //   a thread created with _beginthreadex increments the DLL reference count
-    //   and decrements it when done, so that the DLL is no longer unloaded unless
-    //   all the threads have terminated. With the DLL reference count held up
-    //   by a thread that is only stopped by a signal from a static destructor or
-    //   the termination of the runtime will cause the DLL to never be unloaded.
-    //
-    // - with the DigitalMars runtime and VC runtime up to VS2013, the thread
-    //   continues to run, but crashes once the DLL is unloaded from memory as
-    //   the code memory is no longer accessible. Stopping the threads is not possible
-    //   from within the runtime termination as it is invoked from
-    //   DllMain(DLL_PROCESS_DETACH) holding a lock that prevents threads from
-    //   terminating.
-    //
-    // Solution: start a watchdog thread that keeps the DLL reference count above 0 and
-    // checks it periodically. If it is equal to 1 (plus the number of started threads), no
-    // external references to the DLL exist anymore, threads can be stopped
-    // and runtime termination and DLL unload can be invoked via FreeLibraryAndExitThread.
-    // Note: runtime termination is then performed by a different thread than at startup.
-    //
-    // Note: if the DLL is never unloaded, process termination kills all threads
-    // and signals their handles before unconditionally calling DllMain(DLL_PROCESS_DETACH).
-
-    import core.sys.windows.dll : dll_getRefCount;
-    import core.sys.windows.winbase : FreeLibraryAndExitThread, GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, GetModuleHandleExW;
-    import core.sys.windows.windef : HMODULE;
-
-    version (CRuntime_Microsoft)
-        extern(C) extern __gshared ubyte msvcUsesUCRT; // from rt/msvc.d
-    extern(C) extern __gshared void* __ImageBase; // symbol at the beginning of module, added by linker
-    enum HMODULE runtimeModule = &__ImageBase;
-
-    /// set during termination of a DLL on Windows, i.e. while executing DllMain(DLL_PROCESS_DETACH)
-    public __gshared bool thread_DLLProcessDetaching;
-
-    __gshared ThreadID ll_dllMonitorThread;
-
-    int ll_countLowLevelThreadsWithDLLUnloadCallback(HMODULE hMod) nothrow
-    {
-        lowlevelLock.lock_nothrow();
-        scope(exit) lowlevelLock.unlock_nothrow();
-
-        int cnt = 0;
-        foreach (i; 0 .. ll_nThreads)
-            if (ll_pThreads[i].cbDllUnload && ll_pThreads[i].hMod == hMod)
-                cnt++;
-        return cnt;
-    }
-
-    bool ll_dllHasExternalReferences(HMODULE hMod) nothrow
-    {
-        int unloadCallbacks = ll_countLowLevelThreadsWithDLLUnloadCallback(hMod);
-        int internalReferences = hMod != runtimeModule ? unloadCallbacks
-            : (ll_dllMonitorThread ? 1 : 0) + (msvcUsesUCRT ? unloadCallbacks : 0);
-        int refcnt = dll_getRefCount(hMod);
-        return refcnt > internalReferences;
-    }
-
-    void notifyUnloadLowLevelThreads(HMODULE hMod) nothrow
-    {
-        HMODULE toFree;
-        for (;;)
-        {
-            ThreadID tid;
-            void delegate() nothrow cbDllUnload;
-            {
-                lowlevelLock.lock_nothrow();
-                scope(exit) lowlevelLock.unlock_nothrow();
-
-                foreach (i; 0 .. ll_nThreads)
-                    if (ll_pThreads[i].cbDllUnload && ll_pThreads[i].hMod == hMod)
-                    {
-                        if (!toFree)
-                            toFree = ll_getModuleHandle(hMod, true); // keep the module alive until the callback returns
-                        cbDllUnload = ll_pThreads[i].cbDllUnload;
-                        tid = ll_pThreads[i].tid;
-                        break;
-                    }
-            }
-            if (!cbDllUnload)
-                break;
-            cbDllUnload(); // must wait for thread termination
-            assert(!findLowLevelThread(tid));
-        }
-        if (toFree)
-            FreeLibrary(toFree);
-    }
-
-    private void monitorDLLRefCnt() nothrow
-    {
-        // this thread keeps the DLL alive until all external references are gone
-        // (including those from DLLs using druntime in a shared DLL)
-        while (ll_dllHasExternalReferences(runtimeModule))
-        {
-            // find and unload module that only has internal references left
-            HMODULE hMod;
-            {
-                lowlevelLock.lock_nothrow();
-                scope(exit) lowlevelLock.unlock_nothrow();
-
-                foreach (i; 0 .. ll_nThreads)
-                    if (ll_pThreads[i].cbDllUnload && ll_pThreads[i].hMod != runtimeModule)
-                        if (!ll_dllHasExternalReferences(ll_pThreads[i].hMod))
-                        {
-                            hMod = ll_pThreads[i].hMod;
-                            break;
-                        }
-            }
-            if (hMod)
-                notifyUnloadLowLevelThreads(hMod);
-            else
-                Thread.sleep(100.msecs);
-        }
-
-        notifyUnloadLowLevelThreads(runtimeModule);
-
-        // the current thread will be terminated without cleanup within the thread
-        ll_removeThread(GetCurrentThreadId());
-
-        FreeLibraryAndExitThread(runtimeModule, 0);
-    }
-
-    HMODULE ll_getModuleHandle(void* funcptr, bool addref = false) nothrow @nogc
-    {
-        HMODULE hmod;
-        DWORD refflag = addref ? 0 : GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
-        if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | refflag,
-                                cast(const(wchar)*) funcptr, &hmod))
-            return null;
-        return hmod;
-    }
-
-    bool ll_startDLLUnloadThread() nothrow @nogc
-    {
-        if (ll_dllMonitorThread !is ThreadID.init)
-            return true;
-
-        // if a thread is created from a DLL, the MS runtime (starting with VC2015) increments the DLL reference count
-        // to avoid the DLL being unloaded while the thread is still running. Mimick this behavior here for all
-        // runtimes not doing this
-        bool needRef = !msvcUsesUCRT;
-        if (needRef)
-            ll_getModuleHandle(runtimeModule, true);
-
-        // the monitor thread must be a low-level thread so the runtime does not attach to it
-        ll_dllMonitorThread = createLowLevelThread(() { monitorDLLRefCnt(); });
-        return ll_dllMonitorThread != ThreadID.init;
-    }
-}
-
 /**
  * Create a thread not under control of the runtime, i.e. TLS module constructors are
  * not run and the GC does not suspend it during a collection.
@@ -2436,121 +2158,28 @@ private
 ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
                               void delegate() nothrow cbDllUnload = null) nothrow @nogc
 {
-    static struct Context
-    {
-        void delegate() nothrow dg;
-        version (Windows)
-            HMODULE cbMod;
-    }
-    auto context = cast(Context*)malloc(Context.sizeof);
-    scope(exit) free(context);
-    context.dg = dg;
+    auto tprop = cast(LLThreadProperties*) malloc(LLThreadProperties.sizeof);
+    scope(exit) free(tprop);
 
-    ThreadID tid;
-    version (Windows)
-    {
-        // the thread won't start until after the DLL is unloaded
-        if (thread_DLLProcessDetaching)
-            return ThreadID.init;
-        context.cbMod = cbDllUnload ? ll_getModuleHandle(cbDllUnload.funcptr) : null;
-        if (context.cbMod)
-        {
-            int refcnt = dll_getRefCount(context.cbMod);
-            if (refcnt < 0)
-            {
-                // not a dynamically loaded DLL, so never unloaded
-                cbDllUnload = null;
-                context.cbMod = null;
-            }
-            if (refcnt == 0)
-                return ThreadID.init; // createLowLevelThread called while DLL is unloading
-        }
+    auto context = LLThreadContext(stacksize, cbDllUnload);
 
-        static extern (Windows) uint thread_lowlevelEntry(void* ctx) nothrow
-        {
-            auto context = *cast(Context*)ctx;
-            free(ctx);
-
-            context.dg();
-
-            ll_removeThread(GetCurrentThreadId());
-            if (context.cbMod && context.cbMod != runtimeModule)
-                FreeLibrary(context.cbMod);
-            return 0;
-        }
-
-        // see Thread.start() for why thread is created in suspended state
-        HANDLE hThread = cast(HANDLE) _beginthreadex(null, stacksize, &thread_lowlevelEntry,
-                                                     context, CREATE_SUSPENDED, &tid);
-        if (!hThread)
-            return ThreadID.init;
-    }
+    if(tprop.initialize(dg, context) == false)
+        return ThreadID.init;
 
     lowlevelLock.lock_nothrow();
     scope(exit) lowlevelLock.unlock_nothrow();
 
+    const next_idx = ll_nThreads;
     ll_nThreads++;
     ll_pThreads = cast(ll_ThreadData*)realloc(ll_pThreads, ll_ThreadData.sizeof * ll_nThreads);
-    ll_pThreads[ll_nThreads - 1] = ll_ThreadData.init;
+    ref ll_next = ll_pThreads[next_idx];
+    ll_next = ll_ThreadData.init;
 
-    version (Windows)
-    {
-        ll_pThreads[ll_nThreads - 1].tid = tid;
-        // ignore callback if not a dynamically loaded DLL
-        if (cbDllUnload)
-        {
-            ll_pThreads[ll_nThreads - 1].cbDllUnload = cbDllUnload;
-            ll_pThreads[ll_nThreads - 1].hMod = context.cbMod;
-            if (context.cbMod != runtimeModule)
-                ll_getModuleHandle(context.cbMod, true); // increment ref count
-        }
+    if(launchLLThread(tprop, context, ll_next) == false)
+        return ThreadID.init;
 
-        if (ResumeThread(hThread) == -1)
-            onThreadError("Error resuming thread");
-        CloseHandle(hThread);
-
-        if (cbDllUnload)
-            ll_startDLLUnloadThread();
-    }
-    else version (Posix)
-    {
-        static extern (C) void* thread_lowlevelEntry(void* ctx) nothrow
-        {
-            auto context = *cast(Context*)ctx;
-            free(ctx);
-
-            context.dg();
-            ll_removeThread(pthread_self());
-            return null;
-        }
-
-        size_t stksz = adjustStackSize(stacksize);
-
-        pthread_attr_t  attr;
-
-        int rc;
-        if ((rc = pthread_attr_init(&attr)) != 0)
-            return ThreadID.init;
-        if (stksz && (rc = pthread_attr_setstacksize(&attr, stksz)) != 0)
-            return ThreadID.init;
-        if ((rc = pthread_create(&tid, &attr, &thread_lowlevelEntry, context)) != 0)
-            return ThreadID.init;
-        rc = pthread_attr_destroy(&attr);
-        assert(rc == 0);
-
-        ll_pThreads[ll_nThreads - 1].tid = tid;
-    }
-    else version (WASI)
-    {
-        // no-op for now.
-
-        // falls through to returning `tid`,
-        // which will already be `ThreadID.init` (error)
-    }
-    else
-        static assert(0, "unsupported os");
-    context = null; // free'd in thread
-    return tid;
+    tprop = null; // free'd in thread
+    return context.tid;
 }
 
 /**
@@ -2563,40 +2192,10 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
  * Params:
  *  tid = the thread ID returned by `createLowLevelThread`.
  */
-void joinLowLevelThread(ThreadID tid) nothrow @nogc
-{
-    version (Windows)
-    {
-        HANDLE handle = OpenThreadHandle(tid);
-        if (!handle)
-            return;
+version (CoreDdoc)
+void joinLowLevelThread(ThreadID tid) nothrow @nogc {}
 
-        if (thread_DLLProcessDetaching)
-        {
-            // When being called from DllMain/DLL_DETACH_PROCESS, threads cannot stop
-            //  due to the loader lock being held by the current thread.
-            // On the other hand, the thread must not continue to run as it will crash
-            //  if the DLL is unloaded. The best guess is to terminate it immediately.
-            TerminateThread(handle, 1);
-            WaitForSingleObject(handle, 10); // give it some time to terminate, but don't wait indefinitely
-        }
-        else
-            WaitForSingleObject(handle, INFINITE);
-        CloseHandle(handle);
-    }
-    else version (Posix)
-    {
-        if (pthread_join(tid, null) != 0)
-            onThreadError("Unable to join thread");
-    }
-    else version (WASI)
-    {
-        onThreadError("Unable to join thread");
-    }
-    else
-        static assert(0, "unsupported os");
-}
-
+static if (!isSingleThreaded)
 nothrow @nogc unittest
 {
     struct TaskWithContect
@@ -2620,27 +2219,4 @@ nothrow @nogc unittest
         joinLowLevelThread(tids[i]);
 
     assert(task.n == tids.length);
-}
-
-version (Posix)
-package size_t adjustStackSize(size_t sz) nothrow @nogc
-{
-    if (sz == 0)
-        return 0;
-
-    // stack size must be at least PTHREAD_STACK_MIN for most platforms.
-    if (PTHREAD_STACK_MIN > sz)
-        sz = PTHREAD_STACK_MIN;
-
-    version (CRuntime_Glibc)
-    {
-        // On glibc, TLS uses the top of the stack, so add its size to the requested size
-        sz += externDFunc!("rt.sections_elf_shared.sizeOfTLS",
-                           size_t function() @nogc nothrow)();
-    }
-
-    // stack size must be a multiple of pageSize
-    sz = ((sz + pageSize - 1) & ~(pageSize - 1));
-
-    return sz;
 }

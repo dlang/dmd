@@ -148,9 +148,9 @@ These should be taken seriously, since untested code is likely to introduce bugs
 **Config**: [.cirrus.yml](https://github.com/dlang/dmd/blob/master/.cirrus.yml)
 
 **Checks**:
-- FreeBSD 12.3 x64, DMD (bootstrap)
-- FreeBSD 13.0 x64, DMD (coverage)
-- FreeBSD 13.0 x64, DMD (latest)
+- FreeBSD 14.3 x64, DMD (bootstrap)
+- FreeBSD 14.3 x64, DMD (coverage)
+- FreeBSD 14.3 x64, DMD (latest)
 - Ubuntu 22.04 x64, DMD (bootstrap)
 - Ubuntu 22.04 x64, DMD (latest)
 - Ubuntu 22.04 x64, GDC

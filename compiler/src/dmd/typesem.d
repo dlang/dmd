@@ -1943,6 +1943,12 @@ void purityLevel(TypeFunction typeFunction)
         if (!t)
             continue;
 
+        if (fparam.unpack)
+        {
+            fparam.unpack.propagateStorageClasses();
+            fparam.storageClass |= fparam.unpack.storage_class;
+        }
+
         if (fparam.storageClass & (STC.lazy_ | STC.out_))
         {
             typeFunction.purity = PURE.weak;
@@ -2715,8 +2721,8 @@ private extern(D) MATCH matchTypeSafeVarArgs(TypeFunction tf, Parameter p,
             if (pMessage)
             {
                 OutBuffer buf;
-                getMatchError(buf, "expected %llu variadic argument(s), not %zu",
-                    sz, trailingArgs.length);
+                getMatchError(buf, "expected %llu variadic argument(s), not %u",
+                    sz, cast(int)trailingArgs.length);
                 *pMessage = buf.extractChars();
             }
             return MATCH.nomatch;
@@ -3908,6 +3914,11 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             for (size_t i = 0; i < dim; i++)
             {
                 Parameter fparam = tf.parameterList[i];
+                if (fparam.unpack)
+                {
+                    fparam.unpack.propagateStorageClasses();
+                    fparam.storageClass |= fparam.unpack.storage_class;
+                }
                 fparam.storageClass |= STC.parameter;
                 mtype.inuse++;
                 fparam.type = fparam.type.typeSemantic(loc, argsc);
@@ -3970,7 +3981,10 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                                 stc = stc1 | (stc & ~(STC.ref_ | STC.out_ | STC.lazy_));
                             }
                             (*newparams)[j] = new Parameter(
-                                loc, stc, narg.type, narg.ident, narg.defaultArg, narg.userAttribDecl);
+                                loc, stc, narg.type, narg.ident, narg.defaultArg,
+                                narg.userAttribDecl ? narg.userAttribDecl : fparam.userAttribDecl,
+                                narg.unpack,
+                            );
                         }
                         fparam.type = new TypeTuple(newparams);
                         fparam.type = fparam.type.typeSemantic(loc, argsc);
@@ -9029,7 +9043,7 @@ Type substWildTo(Type type, uint mod)
             continue;
         if (params == tf.parameterList.parameters)
             params = tf.parameterList.parameters.copy();
-        (*params)[i] = new Parameter(p.loc, p.storageClass, t, null, null, null);
+        (*params)[i] = new Parameter(p.loc, p.storageClass, t, null, null, null, null);
     }
     if (tf.next == tret && params == tf.parameterList.parameters)
         return tf;
@@ -9454,7 +9468,7 @@ Type stripDefaultArgs(Type t)
         {
             Type t = stripDefaultArgs(p.type);
             return (t != p.type || p.defaultArg || p.ident || p.userAttribDecl)
-                ? new Parameter(p.loc, p.storageClass, t, null, null, null)
+                ? new Parameter(p.loc, p.storageClass, t, null, null, null, null)
                 : null;
         }
 

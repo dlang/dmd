@@ -151,6 +151,7 @@ extern (C++) private class AddCommentVisitor: Visitor
         }
     }
     override void visit(StaticForeachDeclaration sfd) {}
+    override void visit(UnpackDeclaration upd) {}
 }
 
 
@@ -319,6 +320,7 @@ enum DSYM : ubyte
     bitFieldDeclaration,
     typeInfoDeclaration,
     tupleDeclaration,
+    unpackDeclaration,
     aliasDeclaration,
     aggregateDeclaration,
     funcDeclaration,
@@ -679,7 +681,7 @@ extern (C++) class Dsymbol : ASTNode
         return ident;
     }
 
-    const(char)* toPrettyChars(bool QualifyTypes = false)
+    const(char)* toPrettyChars(bool QualifyTypes = false, bool keepOneMember = false)
     {
         //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
         if (!parent)
@@ -695,6 +697,24 @@ extern (C++) class Dsymbol : ASTNode
             if (p.parent)
             {
                 addQualifiers(p.parent);
+
+                bool isOneMember(T)(T t)
+                {
+                    import dmd.dsymbolsem;
+                    Dsymbol sym;
+                    if (auto ti = p.parent.isTemplateInstance())
+                        if (auto ident = p.getIdent())
+                            if (ident is ti.name)
+                                if (oneMembers(ti.members, sym, ident) && sym is p)
+                                    return true;
+                    return false;
+                }
+
+                if (!keepOneMember)
+                    if (isOneMember(p.parent.isTemplateInstance()) ||
+                        isOneMember(p.parent.isTemplateDeclaration()))
+                        return;
+
                 buf.writeByte('.');
             }
             const s = QualifyTypes ? p.toPrettyCharsHelper() : p.toChars();
@@ -948,6 +968,7 @@ extern (C++) class Dsymbol : ASTNode
     inout(BitFieldDeclaration)         isBitFieldDeclaration()         inout { return dsym == DSYM.bitFieldDeclaration ? cast(inout(BitFieldDeclaration)) cast(void*) this : null; }
     inout(TypeInfoDeclaration)         isTypeInfoDeclaration()         inout { return dsym == DSYM.typeInfoDeclaration ? cast(inout(TypeInfoDeclaration)) cast(void*) this : null; }
     inout(TupleDeclaration)            isTupleDeclaration()            inout { return dsym == DSYM.tupleDeclaration ? cast(inout(TupleDeclaration)) cast(void*) this : null; }
+    inout(UnpackDeclaration)           isUnpackDeclaration()           inout { return dsym == DSYM.unpackDeclaration ? cast(inout(UnpackDeclaration)) cast(void*) this : null; }
     inout(AliasDeclaration)            isAliasDeclaration()            inout { return dsym == DSYM.aliasDeclaration ? cast(inout(AliasDeclaration)) cast(void*) this : null; }
     inout(AggregateDeclaration)        isAggregateDeclaration()        inout {
         switch (dsym)

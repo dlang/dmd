@@ -30,7 +30,7 @@ import dmd.backend.debugprint : WReqn, WRfunc, tym_str;
 import dmd.backend.evalu8 : evalu8, iftrue;
 import dmd.backend.go;
 import dmd.backend.el;
-import dmd.backend.symbol : sytab, globsym, SYMIDX;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -565,9 +565,9 @@ private bool looprotate(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
         if (b == head)                  // if loop already rotated
             goto Lret;
 
-    if (head.bc == BC.try_)
+    if (head.bc == BC.cpptry)
          goto Lret;
-    if (head.bc == BC._try)
+    if (head.bc == BC.try_)
          goto Lret;
 
     //if (debugc) { printf("looprotate: "); l.print(); }

@@ -830,6 +830,9 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
             .error(funcdecl.loc, "%s `%s` constructors, destructors, postblits, invariants, new and delete functions are not allowed in interface `%s`", funcdecl.kind, funcdecl.toPrettyChars, id.toErrMsg());
         if (funcdecl.fbody && funcdecl.isVirtual())
             .error(funcdecl.loc, "%s `%s` function body only allowed in `final` functions in interface `%s`", funcdecl.kind, funcdecl.toPrettyChars, id.toErrMsg());
+
+        if (!funcdecl.fbody && (id.storage_class & STC.final_))
+            .error(funcdecl.loc, "%s `%s` cannot be `abstract` in `final` interface `%s`", funcdecl.kind, funcdecl.toPrettyChars, id.toErrMsg());
     }
 
     if (UnionDeclaration ud = parent.isUnionDeclaration())
@@ -917,7 +920,7 @@ Ldone:
     __gshared bool printedMain = false; // semantic might run more than once
     if (global.params.v.verbose && !printedMain)
     {
-        const(char)* type = funcdecl.isMain() ? "main" : funcdecl.isWinMain() ? "winmain" : funcdecl.isDllMain() ? "dllmain" : cast(const(char)*)null;
+        const(char)* type = funcdecl.isDMain() ? "main" : funcdecl.isWinMain() ? "winmain" : funcdecl.isDllMain() ? "dllmain" : cast(const(char)*)null;
         Module mod = sc._module;
 
         if (type && mod)
@@ -930,10 +933,10 @@ Ldone:
     }
 
     if (funcdecl.fbody && sc._module.isRoot() &&
-        (funcdecl.isMain() || funcdecl.isWinMain() || funcdecl.isDllMain() || funcdecl.isCMain()))
+        (funcdecl.isDMain() || funcdecl.isWinMain() || funcdecl.isDllMain() || funcdecl.isCMain()))
         global.hasMainFunction = true;
 
-    if (funcdecl.fbody && funcdecl.isMain() && sc._module.isRoot())
+    if (funcdecl.fbody && funcdecl.isDMain() && sc._module.isRoot())
     {
         // check if `_d_cmain` is defined
         bool cmainTemplateExists()
@@ -941,7 +944,7 @@ Ldone:
             Dsymbol pscopesym;
             auto rootSymbol = sc.search(funcdecl.loc, Id.empty, pscopesym);
             if (auto moduleSymbol = rootSymbol.search(funcdecl.loc, Id.object))
-                if (moduleSymbol.search(funcdecl.loc, Id.CMain))
+                if (moduleSymbol.search(funcdecl.loc, Id._d_cmain))
                     return true;
 
             return false;
@@ -951,7 +954,7 @@ Ldone:
         if (cmainTemplateExists())
         {
             // add `mixin _d_cmain!();` to the declaring module
-            auto tqual = new TypeIdentifier(funcdecl.loc, Id.CMain);
+            auto tqual = new TypeIdentifier(funcdecl.loc, Id._d_cmain);
             auto tm = new TemplateMixin(funcdecl.loc, null, tqual, null);
             sc._module.members.push(tm);
         }
@@ -2936,6 +2939,29 @@ Statement mergeFrequireInclusivePreview(FuncDeclaration fd, Statement sf, Expres
 }
 
 /****************************************************
+ * Unpack parameters of function literal.
+ */
+void unpackFunctionParameters(FuncDeclaration thisfd)
+{
+    if (!thisfd.fbody || !thisfd.type || thisfd.type.ty != Tfunction)
+        return;
+    TypeFunction f = cast(TypeFunction)thisfd.type;
+    Statements ups;
+    foreach (i, Parameter p; f.parameterList)
+    {
+        if (!p.unpack)
+            continue;
+        p.unpack._init = new IdentifierExp(p.loc, p.ident);
+        ups.push(new ExpStatement(p.unpack.loc, p.unpack));
+    }
+    if (ups.length)
+    {
+        ups.push(thisfd.fbody);
+        thisfd.fbody = new CompoundStatement(thisfd.fbody.loc, ups.move());
+    }
+}
+
+/****************************************************
  * Rewrite contracts as statements.
  */
 void buildEnsureRequire(FuncDeclaration thisfd)
@@ -2950,12 +2976,12 @@ void buildEnsureRequire(FuncDeclaration thisfd)
          */
         assert(thisfd.frequires.length);
         auto loc = (*thisfd.frequires)[0].loc;
-        auto s = new Statements;
+        auto s = Statements();
         foreach (r; *thisfd.frequires)
         {
             s.push(new ScopeStatement(r.loc, r, r.loc));
         }
-        thisfd.frequire = new CompoundStatement(loc, s);
+        thisfd.frequire = new CompoundStatement(loc, s.move());
     }
     if (thisfd.fensures)
     {
@@ -2968,7 +2994,7 @@ void buildEnsureRequire(FuncDeclaration thisfd)
          */
         assert(thisfd.fensures.length);
         auto loc = (*thisfd.fensures)[0].ensure.loc;
-        auto s = new Statements;
+        auto s = Statements();
         foreach (r; *thisfd.fensures)
         {
             if (r.id && thisfd.canBuildResultVar())
@@ -2986,7 +3012,7 @@ void buildEnsureRequire(FuncDeclaration thisfd)
                 s.push(r.ensure);
             }
         }
-        thisfd.fensure = new CompoundStatement(loc, s);
+        thisfd.fensure = new CompoundStatement(loc, s.move());
     }
     if (!thisfd.isVirtual())
         return;
@@ -3060,7 +3086,7 @@ void buildEnsureRequire(FuncDeclaration thisfd)
         auto fparams = new Parameters();
         if (thisfd.canBuildResultVar())
         {
-            Parameter p = new Parameter(loc, STC.ref_ | STC.const_, f.nextOf(), Id.result, null, null);
+            Parameter p = new Parameter(loc, STC.ref_ | STC.const_, f.nextOf(), Id.result, null, null, null);
             fparams.push(p);
         }
         auto fo = cast(TypeFunction)(thisfd.originalType ? thisfd.originalType : f);

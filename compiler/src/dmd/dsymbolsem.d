@@ -966,7 +966,7 @@ private Type tupleDeclGetType(TupleDeclaration _this)
         }
         else
         {
-            auto arg = new Parameter(Loc.initial, STC.none, t, null, null, null);
+            auto arg = new Parameter(Loc.initial, STC.none, t, null, null, null, null);
         }
         (*args)[i] = arg;
         if (!t.deco)
@@ -2210,6 +2210,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //    return;
         //semanticRun = PSSsemantic;
 
+        assert(dsym.type || dsym._init);
+
         if (dsym.semanticRun >= PASS.semanticdone)
             return;
 
@@ -2304,10 +2306,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             auto tid = t ? t.isTypeIdentifier() : null;
             auto autoIdent = Identifier.idPool(Token.toString(TOK.auto_));
-            if (autoDollarDims.length && tid && tid.ident == autoIdent)
-                // Intentionally set type to null to trigger type inference,
-                dsym.type = null;
-            else
+            if (!tid || tid.ident != autoIdent)
                 autoDollarDims = null;
         }
         static bool hasDollarDimension(TypeSArray tsa)
@@ -2359,7 +2358,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     resolveDollarToZero(next, loc);
             }
         }
-        if (!dsym.type)
+        if (!dsym.type || autoDollarDims.length)
         {
             dsym.inuse++;
 
@@ -2380,7 +2379,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 return;
             }
             //printf("inferring type for %s with init %s\n", dsym.toChars(), dsym._init.toChars());
-            dsym._init = dsym._init.inferType(sc);
+            dsym._init = dsym._init.inferType(sc, dsym.type);
             dsym.type = dsym._init.initializerToExpression(null, sc.inCfile).type;
 
             if (autoDollarDims.length)
@@ -2459,7 +2458,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (auto ale = e.isArrayLiteralExp())
             {
-                len = ale.elements.length;
+                len = ale.length;
                 return true;
             }
 
@@ -2520,13 +2519,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (auto ale = ie.isArrayLiteralExp())
             {
-                dinteger_t len = ale.elements.length;
+                dinteger_t len = ale.length;
                 tsa.dim = new IntegerExp(loc, len, Type.tsize_t);
                 if (auto innerTsa = tsa.next.isTypeSArray())
                 {
-                    if (ale.elements.length > 0)
+                    if (len)
                     {
-                        auto firstElem = (*ale.elements)[0];
+                        auto firstElem = ale[0];
                         inferSArrayDim(innerTsa, firstElem, loc, sc);
                     }
                 }
@@ -2597,7 +2596,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             else
             {
-                Expression ie = dsym._init.initializerToExpression(null, sc.inCfile);
+                Expression ie = dsym._init.initializerToExpression(tsa, sc.inCfile);
                 if (ie && ie.op != EXP.error)
                 {
                     // Infer from literal syntax first to avoid prematurely
@@ -2622,7 +2621,20 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         return;
                     }
                     if (auto ale = ie.isArrayLiteralExp())
+                    {
+                        // Fill null gaps left by sparse auto[$] inference,
+                        // now that dimensions are fully resolved.
+                        if (ale.elements)
+                        {
+                            foreach (e; (*ale.elements)[])
+                                if (!e)
+                                {
+                                    ale.basis = tsa.next.toBasetype().defaultInitLiteral(dsym.loc);
+                                    break;
+                                }
+                        }
                         dsym._init = new ExpInitializer(dsym.loc, ale);
+                    }
                 }
             }
         }
@@ -3247,7 +3259,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         ArrayInitializer ai = dsym._init.isArrayInitializer();
                         Expression e;
                         if (ai && tb.ty == Taarray)
-                            e = ai.toAssocArrayLiteral();
+                            e = ai.toAssocArrayLiteral(tb);
                         else
                             e = dsym._init.initializerToExpression(dsym.type, sc.inCfile);
                         if (!e)
@@ -3845,6 +3857,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     override void visit(StaticForeachDeclaration sfd)
     {
         attribSemantic(sfd);
+    }
+
+    override void visit(UnpackDeclaration upd)
+    {
+        attribSemantic(upd);
     }
 
     private Dsymbols* compileIt(MixinDeclaration cd)
@@ -4684,7 +4701,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             v.storage_class = STC.temp | STC.static_ | (isShared ? STC.shared_ : STC.none);
 
             Statement s = new ExpStatement(Loc.initial, v);
-            auto sa = new Statements(s);
+            auto sa = Statements(s);
 
             Expression e;
             if (isShared)
@@ -4707,7 +4724,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (sd.fbody)
                 sa.push(sd.fbody);
 
-            sd.fbody = new CompoundStatement(Loc.initial, sa);
+            sd.fbody = new CompoundStatement(Loc.initial, sa.move());
             if (isDestructor)
                 (cast(StaticDtorDeclaration)sd).vgate = v;
         }
@@ -5206,8 +5223,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (a.fields.length != b.fields.length)
         {
             incompatError();
-            errorSupplemental(a.loc, "`%s` has %zu field(s) while `%s` has %zu field(s)",
-                    a.toPrettyChars(), a.fields.length, b.toPrettyChars(), b.fields.length);
+            errorSupplemental(a.loc, "`%s` has %u field(s) while `%s` has %u field(s)",
+                    a.toPrettyChars(), cast(uint)a.fields.length, b.toPrettyChars(), cast(uint)b.fields.length);
             return false;
         }
         // both are structs or both are unions
@@ -5266,7 +5283,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (a_field.type.isTypeError()) return false;
                 if (b_field.type.isTypeError()) return false;
 
-                errorSupplemental(a_field.loc, "Field %zu differs in type", i);
+                errorSupplemental(a_field.loc, "Field %u differs in type", cast(uint)i);
                 errorSupplemental(a_field.loc, "typeof(%s): %s",
                         a_field.toChars(), typeName(a_field.type));
                 errorSupplemental(b_field.loc, "typeof(%s): %s",
@@ -5281,7 +5298,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (a_field.alignment != b_field.alignment)
             {
                 incompatError();
-                errorSupplemental(a_field.loc, "Field %zu differs in alignment or packing", i);
+                errorSupplemental(a_field.loc, "Field %u differs in alignment or packing", cast(uint)i);
                 if (a_field.alignment.isDefault() && ! b_field.alignment.isDefault())
                 {
                     errorSupplemental(a_field.loc, "`%s.%s` alignment: default",
@@ -5325,7 +5342,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!b_field.ident.isAnonymous())
                 {
                     incompatError();
-                    errorSupplemental(a_field.loc, "Field %zu differs in name", i);
+                    errorSupplemental(a_field.loc, "Field %u differs in name", cast(uint)i);
                     errorSupplemental(a_field.loc, "(anonymous)", a_field.ident.toChars());
                     errorSupplemental(b_field.loc, "%s", b_field.ident.toChars());
                     return false;
@@ -5334,7 +5351,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             else if (b_field.ident.isAnonymous())
             {
                 incompatError();
-                errorSupplemental(a_field.loc, "Field %zu differs in name", i);
+                errorSupplemental(a_field.loc, "Field %u differs in name", cast(uint)i);
                 errorSupplemental(a_field.loc, "%s", a_field.ident.toChars());
                 errorSupplemental(b_field.loc, "(anonymous)");
                 return false;
@@ -5342,7 +5359,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             else if (a_field.ident != b_field.ident)
             {
                 incompatError();
-                errorSupplemental(a_field.loc, "Field %zu differs in name", i);
+                errorSupplemental(a_field.loc, "Field %u differs in name", cast(uint)i);
                 errorSupplemental(a_field.loc, "%s", a_field.ident.toChars());
                 errorSupplemental(b_field.loc, "%s", b_field.ident.toChars());
                 return false;
@@ -5356,7 +5373,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if ((bfa is null) != (bfb is null))
             {
                 incompatError();
-                errorSupplemental(a_field.loc, "Field %zu differs in being a bitfield", i);
+                errorSupplemental(a_field.loc, "Field %u differs in being a bitfield", cast(uint)i);
                 if (bfa is null)
                 {
                     errorSupplemental(a_field.loc, "`%s.%s` is not a bitfield",
@@ -5378,7 +5395,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (bfa.fieldWidth != bfb.fieldWidth)
                 {
                     incompatError();
-                    errorSupplemental(a_field.loc, "Field %zu differs in bitfield width", i);
+                    errorSupplemental(a_field.loc, "Field %u differs in bitfield width", cast(uint)i);
                     errorSupplemental(a_field.loc, "`%s.%s`: %u",
                             a.toPrettyChars(), a_field.toChars(), bfa.fieldWidth);
                     errorSupplemental(b_field.loc, "`%s.%s`: %u",
@@ -5951,7 +5968,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 auto ctor = new CtorDeclaration(cldec.loc, Loc.initial, STC.none, tf);
                 ctor.storage_class |= STC.inference | (fd.storage_class & STC.scope_);
                 ctor.isGenerated = true;
-                ctor.fbody = new CompoundStatement(Loc.initial, new Statements());
+                ctor.fbody = new CompoundStatement(Loc.initial);
 
                 cldec.members.push(ctor);
                 ctor.addMember(sc, cldec);
@@ -5968,6 +5985,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         buildDtors(cldec, sc2);
+
+        // If this class has no explicit cpp destructor, but the base class
+        // has, then set cppDtorVtblIndex, so destructors for fields can be called.
+        if (cldec.cppDtorVtblIndex == -1 && cldec.baseClass && cldec.dtor)
+            cldec.cppDtorVtblIndex = cldec.baseClass.cppDtorVtblIndex;
 
         if (cldec.classKind == ClassKind.cpp && cldec.cppDtorVtblIndex != -1)
         {
@@ -6572,6 +6594,12 @@ private extern(C++) class AddMemberVisitor : Visitor
             }
         }
         attribAddMember(visd, sc, sds);
+    }
+
+    override void visit(UnpackDeclaration upd)
+    {
+        // used only for caching the enclosing symbol
+        upd.scopesym = sds;
     }
 
     override void visit(StaticIfDeclaration sid)
@@ -8461,6 +8489,11 @@ private extern(C++) class SetScopeVisitor : Visitor
             visit(cast(Dsymbol)uad);
         visit(cast(AttribDeclaration)uad);
     }
+
+    override void visit(UnpackDeclaration upd)
+    {
+        visit(cast(Dsymbol)upd);
+    }
 }
 
 void importAll(Dsymbol d, Scope* sc)
@@ -8599,6 +8632,9 @@ extern(C++) class ImportAllVisitor : Visitor
                 sc2.pop();
         }
     }
+
+    // do not evaluate variable declarations before semantic pass
+    override void visit(UnpackDeclaration _) {}
 
     // do not evaluate condition before semantic pass
     override void visit(StaticIfDeclaration _) {}
@@ -9388,6 +9424,30 @@ extern(C++) class ConditionIncludeVisitor : Visitor
         sfd.cache = d;
         symbols = d;
     }
+
+    override void visit(UnpackDeclaration upd)
+    {
+        if (upd.errors)
+        {
+            symbols = null;
+            return;
+        }
+        if (upd.onStack)
+        {
+            symbols = null;
+            return;
+        }
+        upd.onStack = true;
+        scope(exit) upd.onStack = false;
+        upd.lower(upd._scope ? upd._scope : sc);
+        if (!upd.lowered)
+        {
+            symbols = null;
+            return;
+        }
+        // TODO: call include recursively?
+        symbols = upd.decl;
+    }
 }
 
 /**
@@ -10035,7 +10095,7 @@ bool _isZeroInit(Expression exp)
         {
             auto ale = cast(ArrayLiteralExp)exp;
 
-            const dim = ale.elements ? ale.elements.length : 0;
+            const dim = ale.length;
 
             if (ale.type.toBasetype().ty == Tarray) // if initializing a dynamic array
                 return dim == 0;

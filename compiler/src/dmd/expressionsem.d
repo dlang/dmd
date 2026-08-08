@@ -438,7 +438,7 @@ StringExp toStringExp(Expression _this)
     static StringExp arrayLiteralToStringExp(ArrayLiteralExp _this)
     {
         TY telem = _this.type.nextOf().toBasetype().ty;
-        if (!(telem.isSomeChar || (telem == Tvoid && (!_this.elements || _this.elements.length == 0))))
+        if (!(telem.isSomeChar || (telem == Tvoid && !_this.length)))
             return null;
 
         ubyte sz = 1;
@@ -448,20 +448,17 @@ StringExp toStringExp(Expression _this)
             sz = 4;
 
         OutBuffer buf;
-        if (_this.elements)
+        foreach (i; 0 .. _this.length)
         {
-            foreach (i; 0 .. _this.elements.length)
-            {
-                auto ch = _this[i];
-                if (ch.op != EXP.int64)
-                    return null;
-                if (sz == 1)
-                    buf.writeByte(cast(ubyte)ch.toInteger());
-                else if (sz == 2)
-                    buf.writeword(cast(uint)ch.toInteger());
-                else
-                    buf.write4(cast(uint)ch.toInteger());
-            }
+            auto ch = _this[i];
+            if (ch.op != EXP.int64)
+                return null;
+            if (sz == 1)
+                buf.writeByte(cast(ubyte)ch.toInteger());
+            else if (sz == 2)
+                buf.writeword(cast(uint)ch.toInteger());
+            else
+                buf.write4(cast(uint)ch.toInteger());
         }
         char prefix;
         if (sz == 1)
@@ -506,7 +503,7 @@ Optional!bool toBool(Expression _this)
 
     static Optional!bool arrayLiteralToBool(ArrayLiteralExp _this)
     {
-        size_t dim = _this.elements ? _this.elements.length : 0;
+        size_t dim = _this.length;
         return typeof(return)(dim != 0);
     }
 
@@ -854,11 +851,11 @@ bool canElideCopy(Expression e, Type to, bool checkMod = false)
 }
 
 // Return index of the field, or -1 if not found
-int getFieldIndex(ClassReferenceExp _this, Type fieldtype, uint fieldoffset)
+int getFieldIndex(ClassReferenceExp cre, Type fieldtype, uint fieldoffset)
 {
-    ClassDeclaration cd = _this.originalClass();
+    ClassDeclaration cd = cre.originalClass();
     uint fieldsSoFar = 0;
-    for (size_t j = 0; j <  _this.value.elements.length; j++)
+    for (size_t j = 0; j <  cre.value.elements.length; j++)
     {
         while (j - fieldsSoFar >= cd.fields.length)
         {
@@ -868,7 +865,7 @@ int getFieldIndex(ClassReferenceExp _this, Type fieldtype, uint fieldoffset)
         VarDeclaration v2 = cd.fields[j - fieldsSoFar];
         if (fieldoffset == v2.offset && fieldtype.size() == v2.type.size())
         {
-            return cast(int)( _this.value.elements.length - fieldsSoFar - cd.fields.length + (j - fieldsSoFar));
+            return cast(int)( cre.value.elements.length - fieldsSoFar - cd.fields.length + (j - fieldsSoFar));
         }
     }
     return -1;
@@ -876,28 +873,28 @@ int getFieldIndex(ClassReferenceExp _this, Type fieldtype, uint fieldoffset)
 
 /************************************
  * Get index of field.
- * Returns -1 if not found.
+ * Returns: -1 if not found.
  */
-int getFieldIndex(StructLiteralExp _this, Type type, uint offset)
+int getFieldIndex(StructLiteralExp sle, Type type, uint offset)
 {
     /* Find which field offset is by looking at the field offsets
      */
-    if (!_this.elements.length)
+    if (!sle.elements.length)
         return -1;
 
     const sz = type.size();
     if (sz == SIZE_INVALID)
         return -1;
-    foreach (i, v; _this.sd.fields)
+    foreach (i, v; sle.sd.fields)
     {
         if (offset != v.offset)
             continue;
         if (sz != v.type.size())
             continue;
         /* context fields might not be filled. */
-        if (i >= _this.sd.nonHiddenFields())
+        if (i >= sle.sd.nonHiddenFields())
             return cast(int)i;
-        if (auto e = (*_this.elements)[i])
+        if (auto e = (*sle.elements)[i])
         {
             return cast(int)i;
         }
@@ -951,20 +948,19 @@ bool equals(const Expression _this, const Expression e)
         return true;
     }
 
-    static bool arrayLiteralExpEquals(const ArrayLiteralExp _this, const ArrayLiteralExp e)
+    static bool arrayLiteralExpEquals(const ArrayLiteralExp ale1, const ArrayLiteralExp ale2)
     {
-        if (_this.elements.length != e.elements.length)
+        if (ale1.length != ale2.length)
             return false;
-        if (_this.elements.length == 0 && !_this.type.equals(e.type))
+        if (ale1.length == 0 && !ale1.type.equals(ale2.type))
         {
             return false;
         }
 
-        foreach (i, e1; *_this.elements)
+        foreach (i; 0 .. ale1.length)
         {
-            auto e2 = (*e.elements)[i];
-            auto e1x = e1 ? e1 : _this.basis;
-            auto e2x = e2 ? e2 : e.basis;
+            auto e1x = ale1[i];
+            auto e2x = ale2[i];
 
             if (e1x != e2x && (!e1x || !e2x || !e1x.equals(e2x)))
                 return false;
@@ -1913,15 +1909,36 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, ref Expressio
 extern(D) bool arrayExpressionSemantic(
     Expression[] exps, Scope* sc, bool preserveErrors = false)
 {
+    Expression basis = null;
+    return arrayExpressionSemantic(exps, basis, sc, preserveErrors);
+}
+
+extern(D) bool arrayExpressionSemantic(
+    Expression[] exps, ref Expression basis, Scope* sc, bool preserveErrors = false)
+{
     bool err = false;
-    foreach (ref e; exps)
+
+    Expression check(Expression e)
     {
-        if (e is null) continue;
         auto e2 = e.expressionSemantic(sc);
         if (e2.op == EXP.error)
+        {
             err = true;
-        if (preserveErrors || e2.op != EXP.error)
+            if (preserveErrors)
+                e = e2;
+        }
+        else
             e = e2;
+        return e;
+    }
+
+    if (basis)
+      basis = check(basis);
+
+    foreach (ref e; exps)
+    {
+        if (e)
+            e = check(e);
     }
     return err;
 }
@@ -4541,7 +4558,8 @@ private bool functionParameters(Loc loc, Scope* sc,
                 {
                     // Look for misaligned pointer, etc., in @safe mode
                     err |= checkUnsafeAccess(sc, arg, false, true);
-                    err |= checkDefCtor(arg.loc, t); // t must be default constructible
+                    if (!t.baseElemOf().isTypeClass())
+                        err |= checkDefCtor(arg.loc, t); // t must be default constructible
                 }
                 arg = arg.toLvalue(sc, "create `out` parameter from");
             }
@@ -4597,10 +4615,10 @@ private bool functionParameters(Loc loc, Scope* sc,
 
                 ArrayLiteralExp ale;
                 if (p.type.toBasetype().ty == Tarray &&
-                    (ale = a.isArrayLiteralExp()) !is null && ale.elements && ale.elements.length > 0)
+                    (ale = a.isArrayLiteralExp()) !is null && ale.length)
                 {
                     // allocate the array literal as temporary static array on the stack
-                    ale.type = ale.type.nextOf().sarrayOf(ale.elements.length);
+                    ale.type = ale.type.nextOf().sarrayOf(ale.length);
                     auto tmp = copyToTemp(STC.none, "__arrayliteral_on_stack", ale);
                     tmp.storage_class |= STC.exptemp;
                     auto declareTmp = new DeclarationExp(ale.loc, tmp);
@@ -4927,7 +4945,7 @@ private bool functionParameters(Loc loc, Scope* sc,
         for (size_t i = 0; i < arguments.length - nparams; i++)
         {
             Expression earg = (*arguments)[nparams + i];
-            auto arg = new Parameter(earg.loc, STC.in_, earg.type, null, null, null);
+            auto arg = new Parameter(earg.loc, STC.in_, earg.type, null, null, null, null);
             (*args)[i] = arg;
         }
         auto tup = new TypeTuple(args);
@@ -5235,7 +5253,7 @@ private bool checkNestedFuncReference(FuncDeclaration fd, Scope* sc, Loc loc)
 
 Expression lowerArrayLiteral(ArrayLiteralExp ale, Scope* sc)
 {
-    const dim = ale.elements ? ale.elements.length : 0;
+    const dim = ale.length;
 
     Identifier hook = Id._d_arrayliteralTX;
     if (!verifyHookExist(ale.loc, *sc, hook, "creating array literals"))
@@ -6069,9 +6087,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* Perhaps an empty array literal [ ] should be rewritten as null?
          */
 
-        if (e.basis)
-            e.basis = e.basis.expressionSemantic(sc);
-        if (arrayExpressionSemantic(e.elements.peekSlice(), sc) || (e.basis && e.basis.op == EXP.error))
+        if (arrayExpressionSemantic(e.elements.peekSlice(), e.basis, sc))
             return setError();
 
         expandTuples(e.elements);
@@ -6089,7 +6105,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         /* Disallow array literals of type void being used.
          */
-        if (e.elements.length > 0 && t0.ty == Tvoid)
+        if (e.length > 0 && t0.ty == Tvoid)
         {
             error(e.loc, "`%s` of type `%s` has no value", e.toErrMsg(), e.type.toErrMsg());
             return setError();
@@ -8690,6 +8706,32 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         const olderrors = global.errors;
 
+        UnpackDeclaration u = e.declaration.isUnpackDeclaration();
+
+        if (u)
+        {
+            Expression c = null;
+            import dmd.dsymbolsem : include;
+            auto d = u.include(sc);
+            if (d)
+            {
+                foreach (var; *d)
+                {
+                    auto de = new DeclarationExp(var.loc, var);
+                    c = c ? new CommaExp(e.loc, c, de) : de;
+                }
+                if (c)
+                {
+                    result = c.expressionSemantic(sc);
+                }
+            }
+            else
+            {
+                result = ErrorExp.get();
+            }
+            return;
+        }
+
         /* This is here to support extern(linkage) declaration,
          * where the extern(linkage) winds up being an AttribDeclaration
          * wrapper.
@@ -9103,7 +9145,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     for (size_t i = 0; i < cd.baseclasses.length; i++)
                     {
                         BaseClass* b = (*cd.baseclasses)[i];
-                        args.push(new Parameter(Loc.initial, STC.in_, b.type, null, null, null));
+                        args.push(new Parameter(Loc.initial, STC.in_, b.type, null, null, null, null));
                     }
                     tded = new TypeTuple(args);
                 }
@@ -9149,7 +9191,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                          */
                         if (e.tok2 == TOK.parameters && arg.defaultArg && arg.defaultArg.op == EXP.error)
                             return setError();
-                        args.push(new Parameter(arg.loc, arg.storageClass, arg.type, (e.tok2 == TOK.parameters) ? arg.ident : null, (e.tok2 == TOK.parameters) ? arg.defaultArg : null, arg.userAttribDecl));
+                        args.push(new Parameter(arg.loc, arg.storageClass, arg.type, (e.tok2 == TOK.parameters) ? arg.ident : null, (e.tok2 == TOK.parameters) ? arg.defaultArg : null, arg.userAttribDecl, (e.tok2 == TOK.parameters) ? arg.unpack : null));
                     }
                     tded = new TypeTuple(args);
                     break;
@@ -12795,7 +12837,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     uinteger_t dim2 = dim1;
                     if (auto ale = e2x.isArrayLiteralExp())
                     {
-                        dim2 = ale.elements ? ale.elements.length : 0;
+                        dim2 = ale.length;
                     }
                     else if (auto se = e2x.isSliceExp())
                     {
@@ -13025,7 +13067,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             TypeSArray tsa1 = cast(TypeSArray)toStaticArrayType(se1);
             TypeSArray tsa2 = null;
             if (auto ale = e2x.isArrayLiteralExp())
-                tsa2 = cast(TypeSArray)t2.nextOf().sarrayOf(ale.elements.length);
+                tsa2 = cast(TypeSArray)t2.nextOf().sarrayOf(ale.length);
             else if (auto se = e2x.isSliceExp())
                 tsa2 = cast(TypeSArray)toStaticArrayType(se);
             else
@@ -15178,13 +15220,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (eNext && !eNext.toBasetype().isTypeStruct())
                     e.type = e.type.unqualify(MODFlags.const_);
 
-                if (!e.isArrayLiteralExp())
+		auto ale = e.isArrayLiteralExp();
+                if (!ale)
                     return;
 
-                if (auto elems = e.isArrayLiteralExp().elements)
-                    foreach(elem; *elems)
-                        if (elem)
-                            unqualifyExp(elem);
+		foreach (i; 0 .. ale.length)
+		{
+		    Expression ex = ale[i];
+		    if (ex)
+			unqualifyExp(ex);
+		}
             }
             unqualifyExp(e1c);
             unqualifyExp(e2c);
@@ -19229,7 +19274,7 @@ void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
         {
             auto p = sfe.aggrfe ? (*sfe.aggrfe.parameters)[i] : sfe.rangefe.param;
             auto storageClass = j == 2 ? p.storageClass : p.storageClass & ~(STC.manifest | STC.alias_);
-            params.push(new Parameter(aloc, storageClass, p.type, p.ident, null, null));
+            params.push(new Parameter(aloc, storageClass, p.type, p.ident, null, null, p.unpack ? p.unpack.syntaxCopy(null) : null));
         }
     }
     Expression[2] res;
@@ -19275,16 +19320,16 @@ void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
         sfe.rangefe.upr = sfe.rangefe.upr.ctfeInterpret();
     }
 
-    auto stmts = new Statements();
+    auto stmts = Statements();
     if (tplty) stmts.push(new ExpStatement(sfe.loc, tplty.sym));
     stmts.push(new ReturnStatement(aloc, res[0]));
-    auto s1 = new Statements(sfe.createForeach(aloc, pparams[0], new CompoundStatement(aloc, stmts)),
-                             new ExpStatement(aloc, new AssertExp(aloc, IntegerExp.literal!0)));
-    Type ety = new TypeTypeof(aloc, sfe.wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
+    auto s1 = Statements(sfe.createForeach(aloc, pparams[0], new CompoundStatement(aloc, stmts.move())),
+                         new ExpStatement(aloc, new AssertExp(aloc, IntegerExp.literal!0)));
+    Type ety = new TypeTypeof(aloc, sfe.wrapAndCall(aloc, new CompoundStatement(aloc, s1.move())));
     auto aty = ety.arrayOf();
     auto idres = Identifier.generateId("__res");
     auto vard = new VarDeclaration(aloc, aty, idres, null, STC.temp);
-    auto s2 = new Statements();
+    auto s2 = Statements();
 
     // Run 'typeof' gagged to avoid duplicate errors and if it fails just create
     // an empty foreach to expose them.
@@ -19334,7 +19379,7 @@ void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
     }
     else
     {
-        aggr = sfe.wrapAndCall(aloc, new CompoundStatement(aloc, s2));
+        aggr = sfe.wrapAndCall(aloc, new CompoundStatement(aloc, s2.move()));
         sc = sc.startCTFE();
         aggr = aggr.expressionSemantic(sc);
         aggr = resolveProperties(sc, aggr);

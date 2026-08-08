@@ -23,9 +23,9 @@ import dmd.backend.oper;
 import dmd.backend.global : err_nomem;
 import dmd.backend.blockopt : blockopt;
 import dmd.backend.evalu8 : iftrue;
-import dmd.backend.symbol : sytab, globsym;
 import dmd.backend.go;
 import dmd.backend.el;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 

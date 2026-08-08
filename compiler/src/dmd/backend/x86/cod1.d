@@ -34,10 +34,10 @@ import dmd.backend.global : REGSIZE, _align, mask, size;
 import dmd.backend.cg : tls_get_addr_sym;
 import dmd.backend.debugprint : fl_str, oper_str, tym_str;
 import dmd.backend.evalu8 : boolres;
-import dmd.backend.symbol : symbol_calloc, symbol_print, sytab, globsym;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.x86.xmm;
@@ -3932,8 +3932,8 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
             save87(cdb);               // assume 8087 regs are all trashed
 
         // Function calls may throw Errors, unless marked that they don't
-        if (s == funcsym_p || !s.Sfunc || !(s.Sfunc.Fflags3 & Fnothrow))
-            funcsym_p.Sfunc.Fflags3 &= ~Fnothrow;
+        if (s == funcsym_p || !s.Sfunc || !(s.Sfunc.Fflags & Fnothrow))
+            funcsym_p.Sfunc.Fflags &= ~Fnothrow;
 
         if (s.Sflags & SFLexit)
         {
@@ -4027,7 +4027,7 @@ private void funccall(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint numpara
     {   // Call function via pointer
 
         // Function calls may throw Errors
-        funcsym_p.Sfunc.Fflags3 &= ~Fnothrow;
+        funcsym_p.Sfunc.Fflags &= ~Fnothrow;
 
         if (e1.Eoper != OPind) { printf("e1.fl: %s, e1.Eoper: %s\n", fl_str(el_fl(e1)), oper_str(e1.Eoper)); }
         save87(cdb);                   // assume 8087 regs are all trashed

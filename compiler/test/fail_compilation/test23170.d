@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test23170.d(10): Error: this array literal causes a GC allocation in `@nogc` delegate `() => (*(int[] array) => id(array))([1, 2, 3])`
+fail_compilation/test23170.d(10): Error: this array literal causes a GC allocation in `@nogc` delegate `() => (*((int[] array) => id(array)))([1, 2, 3])`
 ---
 */
 // https://issues.dlang.org/show_bug.cgi?id=23170

@@ -30,7 +30,7 @@ import dmd.backend.evalu8 : iftrue;
 import dmd.backend.gloop : dom;
 import dmd.backend.go;
 import dmd.backend.el;
-import dmd.backend.symbol : sytab, globsym;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -164,8 +164,8 @@ private void rd_compute(ref GlobalOptimizer go, ref BlockOpt bo, ref EqRelInc eq
         switch (b.bc)
         {
             case BC.jcatch:
-            case BC._finally:
-            case BC._lpad:
+            case BC.finally_:
+            case BC.lpad:
             case BC.asm_:
             case BC.catch_:
                 block_visit(b);

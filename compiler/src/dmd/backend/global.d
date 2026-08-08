@@ -19,7 +19,7 @@ import core.stdc.stdint;
 
 import dmd.backend.barray;
 import dmd.backend.cdef;
-import dmd.backend.cc : Symbol, block, Classsym, BlockState, FL, Srcpos;
+import dmd.backend.cc : block, Classsym, BlockState, FL, Srcpos;
 import dmd.backend.code;
 import dmd.backend.el : elem;
 import dmd.backend.mem;
@@ -34,6 +34,13 @@ nothrow:
 alias ErrorCallbackBackend = extern(C++) void function(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
 
 package(dmd.backend) __gshared ErrorCallbackBackend errorCallbackBackend;
+
+/// Callback to fetch cached source-file contents from the front-end FileManager
+/// (Module.src), avoiding a re-read from disk. Returns a pointer to the bytes
+/// and sets `length`; returns null if the content is unavailable.
+alias GetFileContentsCallback = extern(C++) const(ubyte)* function(const(char)* filename, ref size_t length);
+
+package(dmd.backend) __gshared GetFileContentsCallback getFileContentsCallback;
 
 /**
  * Backend error report function
@@ -116,9 +123,7 @@ int REGSIZE() @trusted { return _tysize[TYnptr]; }
 regm_t mask(uint m) { return cast(regm_t)1 << m; }
 
 void* util_malloc(uint n,uint size) { return mem_malloc(n * size); }
-void* util_calloc(uint n,uint size) { return mem_calloc(n * size); }
 void util_free(void* p) { mem_free(p); }
-void* util_realloc(void* oldp,size_t n,size_t size) { return mem_realloc(oldp, n * size); }
 
 void err_nomem() @nogc nothrow @trusted
 {

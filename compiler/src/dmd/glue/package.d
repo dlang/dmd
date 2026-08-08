@@ -42,11 +42,11 @@ import dmd.backend.el;
 import dmd.backend.blockopt;
 import dmd.backend.cg : localgot;
 import dmd.backend.dout : out_readonly, out_reset, outdata, writefunc;
-import dmd.backend.symbol : symbol_add, symbol_calloc, symbol_func, symbol_generate, symbol_name, symtab_t;
 import dmd.backend.x86.cg87 : cg87_reset;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.glue.s2ir;
@@ -532,11 +532,11 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
      * and the stack offsets are the same.
      */
     if (fd.isVirtual() && (fd.fensure || fd.frequire))
-        f.Fflags3 |= Ffakeeh;
+        f.Fflags |= Ffakeeh;
 
     if (fd.hasNoEH)
         // Same as config.ehmethod==EH_NONE, but only for this function
-        f.Fflags3 |= Feh_none;
+        f.Fflags |= Feh_none;
 
     s.Sclass = target.os == Target.OS.OSX ? SC.comdat : SC.global;
 
@@ -588,7 +588,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         //if (!(config.flags3 & CFG3pic))
         //    s.Sclass = SCstatic;
-        f.Fflags3 |= Fnested;
+        f.Fflags |= Fnested;
 
         /* The enclosing function must have its code generated first,
          * in order to calculate correct frame pointer offset.
@@ -671,8 +671,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         sthis = toSymbol(fd.vthis);
         sthis.Stype = getParentClosureType(sthis, fd);
         irs.sthis = sthis;
-        if (!(f.Fflags3 & Fnested))
-            f.Fflags3 |= Fmember;
+        if (!(f.Fflags & Fnested))
+            f.Fflags |= Fmember;
     }
 
     // Estimate number of parameters, pi
@@ -892,7 +892,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         /* The "jmonitor" hack uses an optimized exception handling frame
          * which is a little shorter than the more general EH frame.
          */
-        s.Sfunc.Fflags3 |= Fjmonitor;
+        s.Sfunc.Fflags |= Fjmonitor;
     }
 
     Statement_toIR(sbody, irs);
@@ -923,7 +923,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             }
         }
     }
-    if (config.ehmethod == EHmethod.EH_NONE || f.Fflags3 & Feh_none)
+    if (config.ehmethod == EHmethod.EH_NONE || f.Fflags & Feh_none)
         insertFinallyBlockGotos(f.Fstartblock);
     else if (config.ehmethod == EHmethod.EH_DWARF)
         insertFinallyBlockCalls(f.Fstartblock);
@@ -1722,10 +1722,11 @@ private UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
 private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
 {
     // D main()
-    if (fd.isMain() && onlyOneMain(fd))
+    if (fd.isDMain() && onlyOneMain(fd))
     {
         /* Reference the C main() to pull it in to the executable
          */
+        static if (0) // superceded by object's import of core.internal.entrypoint : _d_cmain
         final switch (target.objectFormat())
         {
             case Target.ObjectFormat.elf:

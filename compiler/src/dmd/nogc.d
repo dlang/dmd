@@ -149,7 +149,7 @@ public:
 
     override void visit(ArrayLiteralExp e)
     {
-        const dim = e.elements ? e.elements.length : 0;
+        const dim = e.length;
         if (e.type.toBasetype().isTypeSArray() || dim == 0 || e.onstack)
             return;
         if (setGC(e, "this array literal"))

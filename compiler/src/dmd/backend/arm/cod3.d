@@ -46,10 +46,10 @@ import dmd.backend.cg : localgot;
 import dmd.backend.debugprint : fl_str, tym_str;
 import dmd.backend.dwarfdbginf : dwarf_CFA_offset, dwarf_CFA_set_loc;
 import dmd.backend.evalu8 : boolres;
-import dmd.backend.symbol : symbol_print;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.x86.xmm;
@@ -959,7 +959,7 @@ void epilog(ref CGstate cg, block* b)
         Symbol* s = getRtlsym(farfunc ? RTLSYM.TRACE_EPI_F : RTLSYM.TRACE_EPI_N);
         makeitextern(s);
         cdbx.gencs(I16 ? 0x9A : CALL,0,FL.func,s);      // CALLF _trace
-        code_orflag(cdbx.last(),CF.off | CF.selfrel);
+        code_orflag(cdbx.last(),CF.off | CF.selfrel26);
         useregs((ALLREGS | mBP | mES) & ~s.Sregsaved);
         assert(0);      // TODO AArch64
     }
@@ -1237,7 +1237,7 @@ void cod3_thunk(Symbol* sthunk,Symbol* sfunc,uint p,tym_t thisty,
         }
     }
     cdb.gencs1(INSTR.bl(0),0,FL.func,sfunc); // BL sfunc // http://www.scs.stanford.edu/~zyedidia/arm64/bl.html
-    cdb.last().Iflags |= (CF.selfrel | CF.off);
+    cdb.last().Iflags |= (CF.selfrel26 | CF.off);
 
     thunkoffset = Offset(seg);
     code* c = cdb.finish();
@@ -1830,25 +1830,8 @@ if ((ins & 0x9F00_0000) == 0x9000_0000)
         switch (c.IFL1)
         {
             case FL.data:
-                if (config.objfmt == OBJ_OMF && s.Sclass != SC.comdat && s.Sclass != SC.extern_)
-                {
-                    c.IEV1.Vseg = s.Sseg;
-                    c.IEV1.Vpointer += s.Soffset;
-                    c.IFL1 = FL.datseg;
-                }
-                else
-                    c.IFL1 = FL.extern_;
-                break;
-
             case FL.udata:
-                if (config.objfmt == OBJ_OMF)
-                {
-                    c.IEV1.Vseg = s.Sseg;
-                    c.IEV1.Vpointer += s.Soffset;
-                    c.IFL1 = FL.datseg;
-                }
-                else
-                    c.IFL1 = FL.extern_;
+                c.IFL1 = FL.extern_;
                 break;
 
             case FL.tlsdata:

@@ -29,9 +29,9 @@ struct timeval
     suseconds_t tv_usec;
 }
 
-pragma(mangle, muslRedirTime64Mangle!("clock_getres", "__clock_getres_time64"))
+// No need for muslRedirTime64Mangle (even though WASI-libc is a musl fork)
+// since _REDIR_TIME64 will never be set for Wasm (even wasm32)
 int clock_getres(clockid_t, timespec*);
-pragma(mangle, muslRedirTime64Mangle!("clock_gettime", "__clock_gettime64"))
 int clock_gettime(clockid_t, timespec*);
 
 int nanosleep(const scope timespec*, timespec*);

@@ -1604,7 +1604,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             params.ehnogc = true;
         }
         else if (arg == "-lib")         // https://dlang.org/dmd.html#switch-lib
-            driverParams.lib = true;
+            driverParams.lib = params.fullyQualifiedObjectFiles = true;
         else if (arg == "-nofloat")
             driverParams.nofloat = true;
         else if (arg == "-quiet")

@@ -167,16 +167,16 @@ void testEnumInit()
 
 // https://issues.dlang.org/show_bug.cgi?id=24370
 immutable uint[3][string] test = [
-	"oneTwoThree": [1,2,3],
-	"fourFiveSix": [4,5,6],
-	"sevenEightNine": [7,8,9],
+    "oneTwoThree": [1,2,3],
+    "fourFiveSix": [4,5,6],
+    "sevenEightNine": [7,8,9],
 ];
 
 void testStaticArray()
 {
-	assert(test["oneTwoThree"] == [1, 2, 3]);
-	assert(test["fourFiveSix"] == [4, 5, 6]);
-	assert(test["sevenEightNine"] == [7, 8, 9]);
+    assert(test["oneTwoThree"] == [1, 2, 3]);
+    assert(test["fourFiveSix"] == [4, 5, 6]);
+    assert(test["sevenEightNine"] == [7, 8, 9]);
 }
 
 /////////////////////////////////////////////
@@ -216,6 +216,54 @@ void testMultiDim()
     assert(aa1 == aa2);
     assert(aa2 == aa3);
     assert(aa3 == aa4);
+}
+
+// from https://github.com/dlang/dmd/issues/20542
+void testRegression21773()
+{
+    static struct S
+    {
+        int[string] aa;
+        this(int[string] _aa) { aa = _aa; }
+    }
+
+    S[] aa = [
+        ["x": 1, "y": 2],
+        ["x": 3, "y": 4],
+        ["x": 5, "y": 6],
+    ];
+
+    // test we did not break initialization of static array from lower dimension
+    static int[3][4] a2 = [ 1, 2, 3, 4 ]; // only works with static initializer !?
+    int[3][4] a3 = [ [1, 1, 1], [2, 2, 2], [3, 3, 3], [4, 4, 4] ];
+    assert(a2 == a3);
+}
+
+// https://github.com/dlang/dmd/issues/19209
+void test19209()
+{
+    int[int][] a = [[1 : 2]]; // ok
+    int[int][] b = [[0 : 2]]; // expression ([[1]]) of type int[][]
+    int[int][int] c = [1 : [0 : 2]]; // expression ([1:[2]]) of type int[][int]
+    int[int][int] d = [1 : [3 : 2]]; // Error: not an associative array initializer
+
+    enum int[][] x = [[2 : 0]]; // fails
+    static assert(x[0].length == 3);
+    enum int[][int] y = [1 : [2 : 1]]; // fails
+    static assert(y[1][2] == 1);
+
+    static assert(!__traits(compiles, { immutable int[7] z = [ 2 : 1, 4 : 2, 8 : 3 ]; })); // Error: mismatched array lengths, 7 and 9
+}
+
+// https://github.com/dlang/dmd/issues/18360
+void test18360()
+{
+    alias string[string][string] sss;
+    sss stat =
+    [
+        "one" : ["a":"A", "b":"B"],
+        "two" : ["d":"D", "e":"E"],
+    ];
 }
 
 /////////////////////////////////////////////

@@ -701,8 +701,9 @@ void fun()
 ---
 )
 
-        $(P `static foreach` supports sequence expansion
-        $(DDSUBLINK spec/statement, foreach_over_tuples, like `foreach`).)
+        $(P `static` *AggregateForeach* supports sequence expansion
+        $(DDSUBLINK spec/statement, foreach_over_tuples, like `foreach`),
+        as well as unpacking $(GLINK2 statement, ForeachTuplePattern)s.)
 
 $(H3 $(LNAME2 break-continue, `break` and `continue`))
 

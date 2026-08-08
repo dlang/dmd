@@ -5083,7 +5083,7 @@ void highlightCode(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t offset)
 
                 // build the template parameters
                 Array!(size_t) paramLens;
-                paramLens.reserve(td.parameters.length);
+                paramLens.setDim(td.parameters.length);
 
                 OutBuffer parametersBuf;
                 HdrGenState hgs;

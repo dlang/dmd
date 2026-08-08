@@ -31,9 +31,9 @@ import dmd.backend.cgcs : comsubs;
 import dmd.backend.cgelem : doptelem;
 import dmd.backend.debugprint : WRblock, WReqn, WRfunc, numberBlocks;
 import dmd.backend.evalu8 : iffalse, iftrue;
-import dmd.backend.symbol : symbol_genauto, sytab, globsym;
 import dmd.backend.go;
 import dmd.backend.code;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 
 static if (NTEXCEPTIONS)
@@ -529,7 +529,7 @@ void brcombine(ref GlobalOptimizer go, ref BlockOpt bo)
     debug if (debugc) printf("brcombine()\n");
     //WRfunc("brcombine()", funcsym_p, startblock);
 
-    if (funcsym_p.Sfunc.Fflags3 & (Fcppeh | Fnteh))
+    if (funcsym_p.Sfunc.Fflags & (Fcppeh | Fnteh))
     {   // Don't mess up extra EH info by eliminating blocks
         return;
     }
@@ -1005,8 +1005,8 @@ private int mergeblks(ref BlockOpt bo)
                 if (b == bL2 || bL2.bc == BC.asm_)
                     continue;
 
-                if (bL2.bc == BC.try_ ||
-                    bL2.bc == BC._try ||
+                if (bL2.bc == BC.cpptry ||
+                    bL2.bc == BC.try_ ||
                     b.Btry != bL2.Btry)
                     continue;
 
@@ -1107,12 +1107,12 @@ private void blident(ref GlobalOptimizer go, ref BlockOpt bo)
                             continue;
                         break;
 
-                    case BC.try_:
+                    case BC.cpptry:
                     case BC.catch_:
                     case BC.jcatch:
-                    case BC._try:
-                    case BC._finally:
-                    case BC._lpad:
+                    case BC.try_:
+                    case BC.finally_:
+                    case BC.lpad:
                     case BC.asm_:
                     Lcontinue:
                         continue;
@@ -1136,7 +1136,7 @@ private void blident(ref GlobalOptimizer go, ref BlockOpt bo)
                     {
                         block* bp = bn.Bpred[0];
                         btry = bp.Btry;
-                        if (bp.bc == BC.try_)
+                        if (bp.bc == BC.cpptry)
                             btry = bp;
                     }
                     else
@@ -1144,7 +1144,7 @@ private void blident(ref GlobalOptimizer go, ref BlockOpt bo)
 
                     foreach (bp; b.Bpred[])
                     {
-                        if (bp.bc != BC.try_)
+                        if (bp.bc != BC.cpptry)
                             bp = bp.Btry;
                         if (btry != bp)
                             goto Lcontinue;
@@ -1336,12 +1336,12 @@ private void bltailmerge(ref uint changes, block* bstart)
                                 continue;
                             break;
 
-                        case BC.try_:
+                        case BC.cpptry:
                         case BC.catch_:
                         case BC.jcatch:
-                        case BC._try:
-                        case BC._finally:
-                        case BC._lpad:
+                        case BC.try_:
+                        case BC.finally_:
+                        case BC.lpad:
                         case BC.asm_:
                             continue;
 
@@ -1563,7 +1563,7 @@ private void brmin(ref GlobalOptimizer go, ref BlockOpt bo)
 
     static bool isExceptionHandler(block* b)
     {
-        return b.bc == BC.catch_ || b.bc == BC.jcatch || b.bc == BC._lpad;
+        return b.bc == BC.catch_ || b.bc == BC.jcatch || b.bc == BC.lpad;
     }
 
     Lbb:
@@ -1571,8 +1571,8 @@ private void brmin(ref GlobalOptimizer go, ref BlockOpt bo)
     {
         switch (b.bc)
         {
+            case BC.cpptry:
             case BC.try_:
-            case BC._try:
             case BC.asm_:
                 // Try blocks must be followed by try body.
                 continue Lbb;
@@ -1634,7 +1634,7 @@ private void brmin(ref GlobalOptimizer go, ref BlockOpt bo)
                 // Do not reorder try/finally blocks on Windows, because Bscope_index must match.
                 // Reordering catch handlers are fine, however.
                 static if (SCPP_OR_NTEXCEPTIONS)
-                    if (bn.bc == BC.try_ || bn.bc == BC._try || bn.bc == BC._finally)
+                    if (bn.bc == BC.cpptry || bn.bc == BC.try_ || bn.bc == BC.finally_)
                         continue Lsucc;
 
                 interloperLength++;
@@ -1740,7 +1740,7 @@ private void block_check()
 @trusted
 private void brtailrecursion(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    if (funcsym_p.Sfunc.Fflags3 & Fnotailrecursion)
+    if (funcsym_p.Sfunc.Fflags & Fnotailrecursion)
         return;
     if (localgot)
     {   /* On OSX, tail recursion will result in two OPgot's:
@@ -1755,18 +1755,18 @@ private void brtailrecursion(ref GlobalOptimizer go, ref BlockOpt bo)
             }
         */
 
-        funcsym_p.Sfunc.Fflags3 |= Fnotailrecursion;
+        funcsym_p.Sfunc.Fflags |= Fnotailrecursion;
         return;
     }
     if (anyAddressesOfLocals())
     {
-        funcsym_p.Sfunc.Fflags3 |= Fnotailrecursion; // https://github.com/dlang/dmd/issues/22069
+        funcsym_p.Sfunc.Fflags |= Fnotailrecursion; // https://github.com/dlang/dmd/issues/22069
         return;
     }
 
     for (block* b = bo.startblock; b; b = b.Bnext)
     {
-        if (b.bc == BC._try)
+        if (b.bc == BC.try_)
             return;
         elem** pe = &b.Belem;
         block* bn = null;
@@ -2026,7 +2026,7 @@ private void funcsideeffects(ref BlockOpt bo)
             return;
         }
     }
-    funcsym_p.Sfunc.Fflags3 |= Fnosideeff;
+    funcsym_p.Sfunc.Fflags |= Fnosideeff;
     //printf("  function '%s' has no side effects\n",funcsym_p.Sident);
 }
 
@@ -2045,7 +2045,7 @@ private int funcsideeffect_walk(elem* e)
             Symbol* s;
             if (e.E1.Eoper == OPvar &&
                 tyfunc((s = e.E1.Vsym).Stype.Tty) &&
-                ((s.Sfunc && s.Sfunc.Fflags3 & Fnosideeff) || s == funcsym_p)
+                ((s.Sfunc && s.Sfunc.Fflags & Fnosideeff) || s == funcsym_p)
                )
                 break;
             goto Lside;

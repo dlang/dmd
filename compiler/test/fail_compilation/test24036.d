@@ -5,7 +5,7 @@ Issue 24036 - assert message in CTFE becomes `['m', 'e', 's', 's', 'a', 'g', 'e'
 TEST_OUTPUT:
 ---
 fail_compilation/test24036.d(19): Error: message
-fail_compilation/test24036.d(21):        called from here: `(*function () pure nothrow @safe => 42)()`
+fail_compilation/test24036.d(21):        called from here: `(*(function () pure nothrow @safe => 42))()`
 ---
 */
 

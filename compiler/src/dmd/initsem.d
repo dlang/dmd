@@ -50,12 +50,13 @@ import dmd.typesem;
  *
  *  Params:
  *     ai = array initializer to be converted
+ *     itype = if not `null`, the AA type to coerce the initializer to
  *
  *  Returns:
  *     The converted associative array initializer or ErrorExp if `ai`
  *     is not an associative array initializer.
  */
-Expression toAssocArrayLiteral(ArrayInitializer ai)
+Expression toAssocArrayLiteral(ArrayInitializer ai, Type itype)
 {
     //printf("ArrayInitializer::toAssocArrayInitializer(%s)\n", ai.toChars());
     //static int i; if (++i == 2) assert(0);
@@ -70,12 +71,13 @@ Expression toAssocArrayLiteral(ArrayInitializer ai)
     if (!dim)
         return no("invalid associative array initializer `%s`, use `null` instead", ai);
 
+    auto vtype  = itype ? itype.nextOf() : null;
     auto keys   = new Expressions(dim);
     auto values = new Expressions(dim);
     foreach (i, iz; ai.value[])
     {
         assert(iz);
-        auto ev = iz.initializerToExpression();
+        auto ev = iz.initializerToExpression(vtype);
         if (!ev)
             return no("invalid value `%s` in initializer", iz);
         (*values)[i] = ev;
@@ -192,7 +194,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
              */
             Type tf = new TypeFunction(ParameterList(), null, LINK.d);
             auto fd = new FuncLiteralDeclaration(i.loc, Loc.initial, tf, tok, null);
-            fd.fbody = new CompoundStatement(i.loc, new Statements());
+            fd.fbody = new CompoundStatement(i.loc);
             fd.endloc = i.loc;
             Expression e = new FuncExp(i.loc, fd);
             auto ie = new ExpInitializer(i.loc, e);
@@ -224,7 +226,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 Expression e;
                 // note: MyStruct foo = [1:2, 3:4] is correct code if MyStruct has a this(int[int])
                 if (t.ty == Taarray || i.isAssociativeArray())
-                    e = i.toAssocArrayLiteral();
+                    e = i.toAssocArrayLiteral(t);
                 else
                     e = i.initializerToExpression();
                 // Bugzilla 13987
@@ -602,7 +604,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 uinteger_t dim2 = dim1;
                 if (auto ale = i.exp.isArrayLiteralExp())
                 {
-                    dim2 = ale.elements ? ale.elements.length : 0;
+                    dim2 = ale.length;
                 }
                 else if (auto se = i.exp.isSliceExp())
                 {
@@ -1215,10 +1217,11 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
  * Params:
  *      init = `Initializer` AST node
  *      sc = context
+ *      itype = the type of the parsed declaration, null for `auto`
  * Returns:
  *      an equivalent `ExpInitializer` if successful, or `ErrorInitializer` if it cannot be translated
  */
-Initializer inferType(Initializer init, Scope* sc)
+Initializer inferType(Initializer init, Scope* sc, Type itype)
 {
     Initializer visitVoid(VoidInitializer i)
     {
@@ -1256,33 +1259,57 @@ Initializer inferType(Initializer init, Scope* sc)
                 error(init.loc, "cannot infer type from array initializer");
             return new ErrorInitializer();
         }
-        const bool isAssoc = init.isAssociativeArray();
+        const bool isAssoc = itype && itype.ty == Taarray ||
+            !itype && init.isAssociativeArray();
         if (isAssoc)
             keys = new Expressions(init.value.length);
         else
             values.zero();
 
-        for (size_t i = 0; i < init.value.length; i++)
+        size_t idx = 0;
+        for (size_t i = 0; i < init.value.length; i++, idx++)
         {
             if (isAssoc)
             {
                 Expression e = init.index[i];
-                if (!e)
-                    return no();
+                assert(e); // already asserted by isAssociativeArray()
                 (*keys)[i] = e;
             }
             else
-                assert(!init.index[i]); // already asserted by isAssociativeArray()
+            {
+                if (Expression e = init.index[i])
+                {
+                    dinteger_t nidx = e.toInteger();
+                    // sanity check: some arbitrary limit that allows a 32-bit process to continue
+                    if (nidx > uint.max / 32)
+                    {
+                        error(init.loc, "array index %lld not supported", nidx);
+                        return new ErrorInitializer();
+                    }
+                    idx = cast(uint)nidx;
+                }
+                if (idx >= values.length)
+                {
+                    size_t olddim = values.length;
+                    values.setDim(idx + 1);
+                    (*values)[olddim .. idx + 1][] = null;
+                }
+                else if ((*values)[idx])
+                {
+                    error(init.loc, "array index %d initialized twice", cast(int)idx);
+                    return new ErrorInitializer();
+                }
+            }
             Initializer iz = init.value[i];
             if (!iz)
                 return no();
-            iz = iz.inferType(sc);
+            iz = iz.inferType(sc, itype ? itype.nextOf() : null);
             if (iz.isErrorInitializer())
             {
                 return iz;
             }
-            (*values)[i] = iz.isExpInitializer().exp;
-            assert(!(*values)[i].isErrorExp());
+            (*values)[idx] = iz.isExpInitializer().exp;
+            assert(!(*values)[idx].isErrorExp());
         }
 
         Expression e;
@@ -1290,7 +1317,7 @@ Initializer inferType(Initializer init, Scope* sc)
             ? new AssocArrayLiteralExp(init.loc, keys, values)
             : new ArrayLiteralExp(init.loc, null, values);
         auto ei = new ExpInitializer(init.loc, e);
-        return ei.inferType(sc);
+        return ei.inferType(sc, itype);
     }
 
     Initializer visitExp(ExpInitializer init)
@@ -1408,7 +1435,7 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
         if (!itype || itype.toBasetype().isTypeAArray())
             if (!init.type || init.type.isTypeAArray())
                 if (init.isAssociativeArray())
-                    return init.toAssocArrayLiteral();
+                    return init.toAssocArrayLiteral(itype);
 
         uint edim;      // the length of the resulting array literal
         const(uint) amax = 0x80000000;
@@ -1427,10 +1454,15 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
                 goto case Tsarray;
 
             case Tsarray:
-                uinteger_t adim = t.isTypeSArray().dim.toInteger();
-                if (adim >= amax)
-                    return null;
-                edim = cast(uint)adim;
+                auto dim = t.isTypeSArray().dim;
+                auto ide = dim.isIdentifierExp();
+                if (!ide || ide.ident != Id.dollar)
+                {
+                    uinteger_t adim = dim.toInteger();
+                    if (adim >= amax)
+                        return null;
+                    edim = cast(uint)adim;
+                }
                 break;
 
             case Tpointer:
@@ -1448,10 +1480,12 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
              */
             edim = cast(uint)init.value.length;
             size_t j = 0;
+            bool hasIndex = false;
             foreach (i; 0 .. init.value.length)
             {
                 if (auto e = init.index[i])
                 {
+                    hasIndex = true;
                     if (e.op == EXP.int64)
                     {
                         const uinteger_t idxval = e.toInteger();
@@ -1466,23 +1500,22 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
                 if (j > edim)
                     edim = cast(uint)j;
             }
+            if (hasIndex && itype)
+            {
+                if (auto tsa = itype.isTypeSArray())
+                {
+                    auto ide = tsa.dim.isIdentifierExp();
+                    if (!ide || ide.ident != Id.dollar)
+                    {
+                        uinteger_t adim = tsa.dim.toInteger();
+                        if (adim > edim && adim < amax)
+                            edim = cast(uint)adim;
+                    }
+                }
+            }
         }
 
-        // enforce the element type only if the dimensions match, otherwise the value
-        // might be used as an initializer for the whole array at another dimension
-        Type isTypeArray(Type tn)
-        {
-            auto ty = tn ? tn.ty : Tnone;
-            return ty == Tarray || ty == Tsarray || ty == Taarray || ty == Tvector ? tn : null;
-        }
-        Type tnext = isTypeArray(itype);
-        auto initn = init;
-        while (tnext && initn)
-        {
-            tnext = isTypeArray(tnext.nextOf());
-            initn = initn.value.length ? initn.value[0].isArrayInitializer() : null;
-        }
-        Type telem = itype && !tnext && !initn ? itype.nextOf() : null;
+        Type telem = itype ? itype.nextOf() : null;
 
         auto elements = new Expressions(edim);
         elements.zero();
@@ -1508,15 +1541,17 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
 
         /* Fill in any missing elements with the default initializer
          */
+        if (!telem && t)
+            telem = t.nextOf();
         Expression defaultInit = null;  // lazily create it
         foreach (ref element; (*elements)[0 .. edim])
         {
             if (!element)
             {
-                if (!init.type) // don't know what type to use
+                if (!telem) // don't know what type to use
                     return null;
                 if (!defaultInit)
-                    defaultInit = (cast(TypeNext)t).next.defaultInit(Loc.initial, isCfile);
+                    defaultInit = telem.defaultInit(Loc.initial, isCfile);
                 element = defaultInit;
             }
         }
@@ -1561,22 +1596,6 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
 
     Expression visitExp(ExpInitializer i)
     {
-        if (itype)
-        {
-            //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", itype.toChars(), i.exp.toChars());
-            Type tb = itype.toBasetype();
-            Expression e = (i.exp.op == EXP.construct || i.exp.op == EXP.blit) ? (cast(AssignExp)i.exp).e2 : i.exp;
-            if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))
-            {
-                TypeSArray tsa = cast(TypeSArray)tb;
-                size_t d = cast(size_t)tsa.dim.toInteger();
-                auto elements = new Expressions(d);
-                for (size_t j = 0; j < d; j++)
-                    (*elements)[j] = e;
-                auto ae = new ArrayLiteralExp(e.loc, itype, elements);
-                return ae;
-            }
-        }
         return i.exp;
     }
 

@@ -611,9 +611,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 bool inferRef = (f.isRef && (funcdecl.storage_class & STC.auto_));
 
+                unpackFunctionParameters(funcdecl);
+
                 funcdecl.fbody = funcdecl.fbody.statementSemantic(sc2);
                 if (!funcdecl.fbody)
-                    funcdecl.fbody = new CompoundStatement(Loc.initial, new Statements());
+                    funcdecl.fbody = new CompoundStatement(Loc.initial);
 
                 if (funcdecl.isNaked)
                 {
@@ -630,7 +632,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (!f.next)
                         f.next = Type.tvoid;
                     if (f.checkRetType(funcdecl.loc))
-                        funcdecl.fbody = new ErrorStatement();
+                        funcdecl.fbody = ErrorStatement.get();
                     else
                         funcdecl.checkMain(); // Check main() parameters and return type
                 }
@@ -1129,10 +1131,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
             }
             else
             {
-                auto a = new Statements();
+                auto a = Statements();
 
                 size_t expectedSize = (funcdecl.parameters ? funcdecl.parameters.length : 0) + 7;
-                    a.reserve(expectedSize);
+                a.reserve(expectedSize);
 
                 // Merge in initialization of 'out' parameters
                 if (funcdecl.parameters)
@@ -1222,7 +1224,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     a.push(s);
                 }
 
-                Statement sbody = new CompoundStatement(Loc.initial, a);
+                Statement sbody = new CompoundStatement(Loc.initial, a.move());
 
                 /* Append destructor calls for parameters as finally blocks.
                  */
@@ -1556,6 +1558,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
              */
             Identifier id = Identifier.generateId("__o");
             auto ts = new ThrowStatement(ctor.loc, new IdentifierExp(ctor.loc, id));
+            ts.internalThrow = true; // just rethrows the caught exception
             auto handler = new CompoundStatement(ctor.loc, ss, ts);
 
             auto ctch = new Catch(ctor.loc, getException(), id, handler);
@@ -1764,7 +1767,7 @@ private struct FuncDeclSem3
         if (sc.inCfile && funcdecl.isCMain() && f.next.ty == Tint32)
             return true;
 
-        return f.next.ty == Tvoid && (funcdecl.isMain() || funcdecl.isCMain());
+        return f.next.ty == Tvoid && (funcdecl.isDMain() || funcdecl.isCMain());
     }
 }
 

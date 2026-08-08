@@ -603,7 +603,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         VarDeclaration v = (*fd.parameters)[i];
         debug (LOG)
         {
-            printf("arg[%zu] = %s\n", i, earg.toChars());
+            printf("arg[%u] = %s\n", cast(uint)i, earg.toChars());
         }
         ctfeGlobals.stack.push(v);
 
@@ -647,12 +647,12 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         }
         debug (LOG)
         {
-            printf("interpreted arg[%zu] = %s\n", i, earg.toChars());
+            printf("interpreted arg[%u] = %s\n", cast(uint)i, earg.toChars());
             showCtfeExpr(earg);
         }
         debug (LOGASSIGN)
         {
-            printf("interpreted arg[%zu] = %s\n", i, earg.toChars());
+            printf("interpreted arg[%u] = %s\n", cast(uint)i, earg.toChars());
             showCtfeExpr(earg);
         }
     }
@@ -734,6 +734,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
             assert(ne);
             auto ale = thisarg.isAddrExp().e1.isArrayLiteralExp();
             e = (*ale.elements)[cast(size_t)ne.getInteger()];
+            if (!e) e = ale.basis;
             if (auto ae = e.isAddrExp())
             {
                 e = ae.e1;
@@ -861,10 +862,10 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
         if (istate.start == s)
             istate.start = null;
 
-        const dim = s.statements ? s.statements.length : 0;
+        const dim = s.statements.length;
         foreach (i; 0 .. dim)
         {
-            Statement sx = (*s.statements)[i];
+            Statement sx = s.statements[i];
             result = interpretStatement(pue, sx, istate);
             if (result)
                 break;
@@ -889,10 +890,10 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
         if (istate.start == s)
             istate.start = null;
 
-        const dim = s.statements ? s.statements.length : 0;
+        const dim = s.statements.length;
         foreach (i; 0 .. dim)
         {
-            Statement sx = (*s.statements)[i];
+            Statement sx = s.statements[i];
             Expression e = interpretStatement(pue, sx, istate);
             if (!e) // succeeds to interpret, or goto target was not found
                 continue;
@@ -1771,7 +1772,9 @@ public:
                 assert(result.op == EXP.address);
                 result = result.isAddrExp().e1;
                 assert(result.op == EXP.arrayLiteral);
-                result = (*result.isArrayLiteralExp().elements)[0];
+                auto rale = result.isArrayLiteralExp();
+                result = (*rale.elements)[0];
+                if (!result) result = rale.basis;
                 if (e.type.ty == Tstruct)
                 {
                     result = result.isAddrExp().e1;
@@ -2053,6 +2056,33 @@ public:
         }
     }
 
+    static Expression interpretInitializerExpression(VarDeclaration v)
+    {
+        // It is a bit strange that the interpreter has to deal with initializers
+        // at all as they should have been converted to ConstructExp or similar
+        // during semantic analysis.
+        // Static array initialization from an element expression is a special
+        // case that used to be dealt with in initializerToExpression(), but
+        // is duplicated in ExpressionSemanticVisitor.visit(AssignExp exp). Until
+        // initializer semantics are removed from the interpreter, it has been
+        // moved here.
+        Expression iexp = v._init.initializerToExpression(v.type);
+
+        Type tb = v.type.toBasetype();
+        Expression e = (iexp.op == EXP.construct || iexp.op == EXP.blit) ? (cast(AssignExp)iexp).e2 : iexp;
+        if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))
+        {
+            TypeSArray tsa = cast(TypeSArray)tb;
+            size_t d = cast(size_t)tsa.dim.toInteger();
+            auto elements = new Expressions(d);
+            for (size_t j = 0; j < d; j++)
+                (*elements)[j] = e;
+            auto ae = new ArrayLiteralExp(e.loc, v.type, elements);
+            return ae;
+        }
+        return iexp;
+    }
+
     static Expression getVarExp(Loc loc, InterState* istate, Declaration d, CTFEGoal goal)
     {
         Expression e = CTFEExp.cantexp;
@@ -2083,7 +2113,7 @@ public:
                     v._init = v._init.initializerSemantic(v._scope, v.type, INITinterpret); // might not be run on aggregate members
                     v.inuse--;
                 }
-                e = v._init.initializerToExpression(v.type);
+                e = interpretInitializerExpression(v);
                 if (!e)
                     return CTFEExp.cantexp;
                 assert(e.type);
@@ -2368,7 +2398,7 @@ public:
                 }
                 else if (v._init.isArrayInitializer())
                 {
-                    result = v._init.initializerToExpression(v.type);
+                    result = interpretInitializerExpression(v);
                     if (result !is null)
                     {
                         if (v.ctfeAdrOnStack != VarDeclaration.AdrOnStackNone)
@@ -3143,7 +3173,7 @@ public:
                     emplaceExp!ArrayLiteralExp(&ue, loc, type, cast(Expressions*) null);
                     return ue;
                 }
-                const length = aex.elements.length;
+                const length = aex.length;
                 Expressions* elements = new Expressions(length);
 
                 emplaceExp!ArrayLiteralExp(&ue, loc, type, elements);
@@ -3945,7 +3975,7 @@ public:
             if (auto ale = e1.isArrayLiteralExp())
             {
                 lowerbound = 0;
-                upperbound = ale.elements.length;
+                upperbound = ale.length;
             }
             else if (auto se = e1.isStringExp())
             {
@@ -4181,9 +4211,9 @@ public:
                 bool needsPostblit;
                 bool needsDtor;
 
-                Expression assignTo(ArrayLiteralExp ae)
+                Expression assignTo(ArrayLiteralExp ale)
                 {
-                    return assignTo(ae, 0, ae.elements.length);
+                    return assignTo(ale, 0, ale.length);
                 }
 
                 Expression assignTo(ArrayLiteralExp ae, size_t lwr, size_t upr)
@@ -5541,6 +5571,7 @@ public:
             // https://issues.dlang.org/show_bug.cgi?id=14686
             foreach (elem; *ale.elements)
             {
+                if (!elem) continue;
                 Expression ex = evaluatePostblit(istate, elem);
                 if (exceptionOrCant(ex))
                     return;
@@ -5707,9 +5738,11 @@ public:
                     {
                         ArrayLiteralExp ale = ie.e1.isArrayLiteralExp();
                         const indx = cast(size_t)ie.e2.toInteger();
-                        if (indx < ale.elements.length)
+                        if (indx < ale.length) // xyzzy
                         {
-                            if (Expression xx = (*ale.elements)[indx])
+                            Expression xx = (*ale.elements)[indx];
+                            if (!xx) xx = ale.basis;
+                            if (xx)
                             {
                                 if (auto iex = xx.isIndexExp())
                                     origType = iex.e1.type.nextOf();
@@ -5995,9 +6028,9 @@ public:
              * Dereference it only if result should be an rvalue
              */
             auto ae = result.isArrayLiteralExp();
-            if (ae.elements.length == 1)
+            if (ae.length == 1)
             {
-                result = (*ae.elements)[0];
+                result = ae[0];
                 return;
             }
         }
@@ -6718,8 +6751,17 @@ private Expression copyRegionExp(Expression e)
                  */
                 return sle.origin;
             }
+            // Track whether copySE triggers a recursive copy of this
+            // same SLE via a self-reference. If so, sle.origin will
+            // have been updated to a GC copy, and we must use that
+            // instead of creating a duplicate.
+            auto savedOrigin = sle.origin;
             copySE(sle);
+
             sle.isOriginal = sle is sle.origin;
+
+            if (sle.origin != savedOrigin)
+                return sle.origin;
 
             auto slec = ctfeGlobals.region.contains(cast(void*)e)
                 ? e.copy().isStructLiteralExp()         // move sle out of region to slec
@@ -6894,7 +6936,7 @@ private Expression interpret_aaDel(UnionExp* pue, InterState* istate, Expression
     AssocArrayLiteralExp aae = agg.isAssocArrayLiteralExp();
     Expressions* keysx = aae.keys;
     Expressions* valuesx = aae.values;
-    size_t removed = 0;
+    uint removed = 0;
     foreach (j, evalue; *valuesx)
     {
         Expression ekey = (*keysx)[j];
@@ -7145,14 +7187,18 @@ private Expression interpret_aaApply(UnionExp* pue, InterState* istate, Expressi
 /// Returns: equivalent `StringExp` from `ArrayLiteralExp ale` containing only `IntegerExp` elements
 StringExp arrayLiteralToString(ArrayLiteralExp ale)
 {
-    const len = ale.elements ? ale.elements.length : 0;
+    const len = ale.elements ? ale.length : 0;
     const size = ale.type.nextOf().size();
 
     StringExp impl(T)()
     {
         T[] result = new T[len];
         foreach (i; 0 .. len)
-            result[i] = cast(T) (*ale.elements)[i].isIntegerExp().getInteger();
+        {
+            auto el = (*ale.elements)[i];
+            if (!el) el = ale.basis;
+            result[i] = cast(T) el.isIntegerExp().getInteger();
+        }
         return new StringExp(ale.loc, result[], len, cast(ubyte) size);
     }
 
@@ -7490,6 +7536,7 @@ private Expression evaluatePostblit(InterState* istate, Expression e)
     {
         foreach (elem; *ale.elements)
         {
+            if (!elem) continue;
             if (auto ex = evaluatePostblit(istate, elem))
                 return ex;
         }
@@ -7522,7 +7569,10 @@ private Expression evaluateDtor(InterState* istate, Expression e)
     if (auto ale = e.isArrayLiteralExp())
     {
         foreach_reverse (elem; *ale.elements)
+        {
+            if (!elem) continue;
             e = evaluateDtor(istate, elem);
+        }
     }
     else if (e.op == EXP.structLiteral)
     {

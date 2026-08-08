@@ -88,7 +88,7 @@ else version (MARS)
     mixin template FuncDeclarationExtra()
     {
         VarDeclarations* alignSectionVars;  /// local variables with alignment needs larger than stackAlign
-        import dmd.backend.cc : Symbol;
+        import dmd.backend.symbol : Symbol;
         Symbol* salignSection;              /// pointer to aligned section, if any
     }
 }

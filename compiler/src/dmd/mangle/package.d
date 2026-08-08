@@ -717,7 +717,7 @@ public:
             buf.writestring(fd.mangleOverride);
             return;
         }
-        if (fd.isMain())
+        if (fd.isDMain())
         {
             buf.writestring("_Dmain");
             return;
@@ -1041,7 +1041,7 @@ public:
 
     override void visit(ArrayLiteralExp e)
     {
-        const dim = e.elements ? e.elements.length : 0;
+        const dim = e.length;
         buf.writeByte('A');
         buf.print(dim);
         foreach (i; 0 .. dim)

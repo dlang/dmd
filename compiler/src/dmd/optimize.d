@@ -227,7 +227,7 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Expression arr)
     if (auto se = arr.isStringExp())
         len = se.len;
     else if (auto ale = arr.isArrayLiteralExp())
-        len = ale.elements.length;
+        len = ale.length;
     else
     {
         auto tsa = arr.type.toBasetype().isTypeSArray();

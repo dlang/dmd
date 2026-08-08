@@ -22,6 +22,7 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.barray : Barray;
 import dmd.backend.dwarf;
 import dmd.backend.dwarf2;
+import dmd.backend.symbol;
 
 import dmd.common.outbuffer;
 
@@ -113,7 +114,7 @@ static if (0)
             if (bprev)
                 bprev = bprev.Btry;
         }
-        if (b.bc == BC._try)
+        if (b.bc == BC.try_)
         {
             uint i = cast(uint) deh.length;
             DwEhTableEntry* d = deh.push();

@@ -288,6 +288,9 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
+    alias longlong_t = __c_longlong;
+    alias u_longlong_t = __c_ulonglong;
+
     alias caddr_t = char*;
     alias daddr_t = c_long;
     alias cnt_t = short;
@@ -297,12 +300,16 @@ else version (Solaris)
         alias blkcnt_t = long;
         alias ino_t = ulong;
         alias off_t = long;
+        alias fsblkcnt_t = u_longlong_t;
+        alias fsfilcnt_t = u_longlong_t;
     }
     else
     {
         alias blkcnt_t = c_long;
         alias ino_t = c_ulong;
         alias off_t = c_long;
+        alias fsblkcnt_t = ulong_t;
+        alias fsfilcnt_t = ulong_t;
     }
 
     version (D_LP64)
@@ -310,12 +317,18 @@ else version (Solaris)
         alias blkcnt64_t = blkcnt_t;
         alias ino64_t = ino_t;
         alias off64_t = off_t;
+        alias fsblkcnt64_t = fsblkcnt_t;
+        alias fsfilcnt64_t = fsfilcnt_t;
     }
     else
     {
         alias blkcnt64_t = long;
         alias ino64_t = ulong;
         alias off64_t = long;
+        alias fsblkcnt32_t = uint32_t;
+        alias fsfilcnt32_t = uint32_t;
+        alias fsblkcnt64_t = ulong;
+        alias fsfilcnt64_t = ulong;
     }
 
     alias blksize_t = uint;
@@ -353,6 +366,27 @@ else version (Hurd)
     alias uid_t = uint;
 
     alias time_t = slong_t;
+}
+else version (CRuntime_WASI)
+{
+    alias blkcnt_t = long;
+    alias ino_t = ulong;
+    alias off_t = long;
+
+    alias blksize_t = c_long;
+
+    alias dev_t = ulong;
+    alias gid_t = uint;
+    alias mode_t = uint;
+
+    alias nlink_t = ulong;
+
+    alias pid_t = int;
+    //size_t (defined in core.stdc.stddef)
+    alias ssize_t = c_long;
+    alias uid_t = uint;
+
+    alias time_t = long;
 }
 else
 {
@@ -442,17 +476,6 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
-    static if (__USE_FILE_OFFSET64)
-    {
-        alias fsblkcnt_t = ulong;
-        alias fsfilcnt_t = ulong;
-    }
-    else
-    {
-        alias fsblkcnt_t = c_ulong;
-        alias fsfilcnt_t = c_ulong;
-    }
-
     alias clock_t = c_long;
     alias id_t = int;
     alias key_t = int;
@@ -481,6 +504,17 @@ else version (Hurd)
     alias id_t = uint;
     alias key_t = int;
     alias suseconds_t = slong_t;
+    alias useconds_t = uint;
+}
+else version (CRuntime_WASI)
+{
+    alias fsblkcnt_t = ulong;
+    alias fsfilcnt_t = ulong;
+
+    alias clock_t = long;
+    alias id_t = uint;
+    alias key_t = int;
+    alias suseconds_t = long;
     alias useconds_t = uint;
 }
 else
@@ -880,6 +914,82 @@ version (CRuntime_Glibc)
     }
 }
 else version (CRuntime_Musl)
+{
+    version (D_LP64)
+    {
+        union pthread_attr_t
+        {
+            int[14] __i;
+            ulong[7] __s;
+        }
+
+        union pthread_cond_t
+        {
+            int[12] __i;
+            void*[6] __p;
+        }
+
+        union pthread_mutex_t
+        {
+            int[10] __i;
+            void*[5] __p;
+        }
+
+        union pthread_rwlock_t
+        {
+            int[14] __i;
+            void*[7] __p;
+        }
+    }
+    else
+    {
+        union pthread_attr_t
+        {
+            int[9] __i;
+            uint[9] __s;
+        }
+
+        union pthread_cond_t
+        {
+            int[12] __i;
+            void*[12] __p;
+        }
+
+        union pthread_mutex_t
+        {
+            int[6] __i;
+            void*[6] __p;
+        }
+
+        union pthread_rwlock_t
+        {
+            int[8] __i;
+            void*[8] __p;
+        }
+    }
+
+    struct pthread_rwlockattr_t
+    {
+        uint[2] __attr;
+    }
+
+    alias pthread_key_t = uint;
+
+    struct pthread_condattr_t
+    {
+        uint __attr;
+    }
+
+    struct pthread_mutexattr_t
+    {
+        uint __attr;
+    }
+
+    alias pthread_once_t = int;
+
+    alias pthread_t = c_ulong;
+}
+else version (CRuntime_WASI)
 {
     version (D_LP64)
     {
@@ -1584,6 +1694,30 @@ else version (CRuntime_Musl)
         uint __attr;
     }
 }
+else version (CRuntime_WASI)
+{
+    version (D_LP64)
+    {
+        union pthread_barrier_t
+        {
+            int[8] __i;
+            void*[4] __p;
+        }
+    }
+    else
+    {
+        union pthread_barrier_t
+        {
+            int[5] __i;
+            void*[5] __p;
+        }
+    }
+
+    struct pthread_barrierattr_t
+    {
+        uint __attr;
+    }
+}
 else version (CRuntime_UClibc)
 {
     struct pthread_barrier_t
@@ -1639,6 +1773,10 @@ else version (CRuntime_UClibc)
     alias pthread_spinlock_t = int; // volatile
 }
 else version (CRuntime_Musl)
+{
+    alias pthread_spinlock_t = int;
+}
+else version (CRuntime_WASI)
 {
     alias pthread_spinlock_t = int;
 }

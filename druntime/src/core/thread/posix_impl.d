@@ -17,6 +17,7 @@ import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
 import core.thread.osthread;
 import core.thread.threadbase;
+import core.thread.types : ThreadID, ThreadDescr, ll_ThreadData;
 import core.time;
 
 version (Posix):
@@ -33,14 +34,27 @@ else version (WatchOS)
 version (all)
 {
     static import core.sys.posix.pthread;
-    static import core.sys.posix.signal;
     import core.stdc.errno : EINTR, errno;
-    import core.sys.posix.pthread : pthread_atfork, pthread_attr_destroy, pthread_attr_getstack, pthread_attr_init,
-        pthread_attr_setstacksize, pthread_create, pthread_detach, pthread_getschedparam, pthread_join, pthread_self,
-        pthread_setschedparam, sched_get_priority_max, sched_get_priority_min, sched_param, sched_yield;
-    import core.sys.posix.semaphore : sem_init, sem_post, sem_t, sem_wait;
-    import core.sys.posix.signal : pthread_kill, sigaction, sigaction_t, sigdelset, sigfillset, sigset_t, sigsuspend,
-        SIGUSR1, stack_t;
+
+    version (CRuntime_WASI)
+        import core.sys.posix.pthread : pthread_attr_destroy, pthread_attr_getstack,
+            pthread_attr_init, pthread_attr_setstacksize, pthread_create, pthread_detach,
+            pthread_join, pthread_self, sched_yield;
+    else
+    {
+        static import core.sys.posix.signal;
+
+        import core.sys.posix.pthread : pthread_atfork, pthread_attr_destroy, pthread_attr_getstack,
+            pthread_attr_init, pthread_attr_setstacksize, pthread_create, pthread_detach, pthread_getschedparam,
+            pthread_join, pthread_self, pthread_setschedparam, sched_get_priority_max, sched_get_priority_min,
+            sched_param, sched_yield;
+
+        import core.sys.posix.semaphore : sem_init, sem_post, sem_t, sem_wait;
+
+        import core.sys.posix.signal : pthread_kill, sigaction, sigaction_t, sigdelset, sigfillset, sigset_t, sigsuspend,
+            SIGUSR1, stack_t;
+    }
+
     import core.sys.posix.stdlib : free, malloc, realloc;
     import core.sys.posix.sys.types : pthread_attr_t, pthread_key_t, pthread_t;
     import core.sys.posix.time : nanosleep, timespec;
@@ -49,7 +63,6 @@ version (all)
     {
         // Use macOS threads for suspend/resume
         import core.sys.darwin.mach.kern_return : KERN_SUCCESS;
-        import core.sys.darwin.mach.port : mach_port_t;
         import core.sys.darwin.mach.thread_act : mach_msg_type_number_t,
             thread_get_state, thread_resume, thread_suspend;
         import core.sys.darwin.pthread : pthread_mach_thread_np;
@@ -99,15 +112,12 @@ version (GNU)
     import gcc.builtins;
 }
 
+package enum isSingleThreaded = false;
+
 version (CoreDdoc) {} else
 class Thread : ThreadBase
 {
     package shared bool     m_isRunning;
-
-    version (Darwin)
-    {
-        package mach_port_t     m_tmach;
-    }
 
     version (Solaris)
     {
@@ -138,12 +148,12 @@ class Thread : ThreadBase
 
         version (all)
         {
-            if (m_addr != m_addr.init)
-                pthread_detach( m_addr );
-            m_addr = m_addr.init;
+            if (m_tdescr.tid != m_tdescr.tid.init)
+                pthread_detach( m_tdescr.tid );
+            m_tdescr.tid = m_tdescr.tid.init;
             version (Darwin)
             {
-                m_tmach = m_tmach.init;
+                m_tdescr.tmach = m_tdescr.tmach.init;
             }
         }
     }
@@ -260,6 +270,7 @@ class Thread : ThreadBase
         scope(exit) slock.unlock_nothrow();
         {
             incrementAboutToStart(this);
+            scope(failure) decrementAboutToStart(this);
 
             version (all)
             {
@@ -278,7 +289,7 @@ class Thread : ThreadBase
                     if (ps is null) onOutOfMemoryError();
                     ps[0] = cast(void*)this;
                     ps[1] = cast(void*)libs;
-                    if ( pthread_create( &m_addr, &attr, &thread_entryPoint, ps ) != 0 )
+                    if ( pthread_create( &m_tdescr.tid, &attr, &thread_entryPoint, ps ) != 0 )
                     {
                         externDFunc!("rt.sections_elf_shared.unpinLoadedLibraries",
                                      void function(void*) @nogc nothrow)(libs);
@@ -288,7 +299,7 @@ class Thread : ThreadBase
                 }
                 else
                 {
-                    if ( pthread_create( &m_addr, &attr, &thread_entryPoint, cast(void*) this ) != 0 )
+                    if ( pthread_create( &m_tdescr.tid, &attr, &thread_entryPoint, cast(void*) this ) != 0 )
                         onThreadError( "Error creating thread" );
                 }
                 if ( pthread_attr_destroy( &attr ) != 0 )
@@ -296,8 +307,8 @@ class Thread : ThreadBase
 
                 version (Darwin)
                 {
-                    m_tmach = pthread_mach_thread_np( m_addr );
-                    if ( m_tmach == m_tmach.init )
+                    m_tdescr.tmach = pthread_mach_thread_np( m_tdescr.tid );
+                    if ( m_tdescr.tmach == m_tdescr.tmach.init )
                         onThreadError( "Error creating thread" );
                 }
             }
@@ -308,18 +319,35 @@ class Thread : ThreadBase
 
     override final Throwable join( bool rethrow = true )
     {
-        if ( m_addr != m_addr.init && pthread_join( m_addr, null ) != 0 )
+        if ( m_tdescr.tid != m_tdescr.tid.init && pthread_join( m_tdescr.tid, null ) != 0 )
             throw new ThreadException( "Unable to join thread" );
         // NOTE: pthread_join acts as a substitute for pthread_detach,
-        //       which is normally called by the dtor.  Setting m_addr
+        //       which is normally called by the dtor.  Setting tid
         //       to zero ensures that pthread_detach will not be called
         //       on object destruction.
-        m_addr = m_addr.init;
+        m_tdescr.tid = m_tdescr.tid.init;
 
         return super.join(rethrow);
     }
 
-    version (all)
+    version (CRuntime_WASI)
+    {
+        @property static int PRIORITY_MIN() @nogc nothrow pure @safe
+        {
+            return 0;
+        }
+
+        @property static const(int) PRIORITY_MAX() @nogc nothrow pure @safe
+        {
+            return 0;
+        }
+
+        @property static int PRIORITY_DEFAULT() @nogc nothrow pure @safe
+        {
+            return 0;
+        }
+    }
+    else version (all)
     {
         package struct Priority
         {
@@ -455,12 +483,16 @@ class Thread : ThreadBase
         {
            return fakePriority==int.max? PRIORITY_DEFAULT : fakePriority;
         }
+        else version (CRuntime_WASI)
+        {
+            return PRIORITY_DEFAULT;
+        }
         else
         {
             int         policy;
             sched_param param;
 
-            if (auto err = pthread_getschedparam(m_addr, &policy, &param))
+            if (auto err = pthread_getschedparam(m_tdescr.tid, &policy, &param))
             {
                 // ignore error if thread is not running => Bugzilla 8960
                 if (!atomicLoad(m_isRunning)) return PRIORITY_DEFAULT;
@@ -508,13 +540,17 @@ class Thread : ThreadBase
         {
            fakePriority = val;
         }
+        else version (CRuntime_WASI)
+        {
+            // do nothing
+        }
         else
         {
             static if (__traits(compiles, core.sys.posix.pthread.pthread_setschedprio))
             {
                 import core.sys.posix.pthread : pthread_setschedprio;
 
-                if (auto err = pthread_setschedprio(m_addr, val))
+                if (auto err = pthread_setschedprio(m_tdescr.tid, val))
                 {
                     // ignore error if thread is not running => Bugzilla 8960
                     if (!atomicLoad(m_isRunning)) return;
@@ -528,14 +564,14 @@ class Thread : ThreadBase
                 int         policy;
                 sched_param param;
 
-                if (auto err = pthread_getschedparam(m_addr, &policy, &param))
+                if (auto err = pthread_getschedparam(m_tdescr.tid, &policy, &param))
                 {
                     // ignore error if thread is not running => Bugzilla 8960
                     if (!atomicLoad(m_isRunning)) return;
                     throw new ThreadException("Unable to set thread priority");
                 }
                 param.sched_priority = val;
-                if (auto err = pthread_setschedparam(m_addr, policy, &param))
+                if (auto err = pthread_setschedparam(m_tdescr.tid, policy, &param))
                 {
                     // ignore error if thread is not running => Bugzilla 8960
                     if (!atomicLoad(m_isRunning)) return;
@@ -583,4 +619,288 @@ class Thread : ThreadBase
     {
         sched_yield();
     }
+
+    package static ThreadDescr getCurrentThreadDescr() nothrow @nogc
+    {
+        version (Darwin)
+        {
+            auto tid = gettid();
+            auto tmach = pthread_mach_thread_np(tid);
+            assert(tmach != tmach.init);
+
+            return ThreadDescr(tid: tid, tmach: tmach);
+        }
+        else
+            return ThreadDescr(tid: gettid);
+    }
+
+    package static void afterDeploy() nothrow @nogc
+    {
+        version (Darwin)
+        {
+            // thread id different in forked child process
+            static extern(C) void initChildAfterFork()
+            {
+                auto thisThread = Thread.getThis();
+                if (!thisThread)
+                {
+                    // It is possible that runtime was not properly initialized in the current process or thread -
+                    // it may happen after `fork` call when using a dynamically loaded shared library written in D from a multithreaded non-D program.
+                    // In such case getThis will return null.
+                    return;
+                }
+                thisThread.m_tdescr.tid = pthread_self();
+                assert( thisThread.m_tdescr.tid != thisThread.m_tdescr.tid.init );
+                thisThread.m_tdescr.tmach = pthread_mach_thread_np( thisThread.m_tdescr.tid );
+                assert( thisThread.m_tdescr.tmach != thisThread.m_tdescr.tmach.init );
+           }
+            pthread_atfork(null, null, &initChildAfterFork);
+        }
+        else version (Solaris)
+        {
+        }
+        else version (CRuntime_WASI)
+        {
+        }
+        else
+        {
+            version (OpenBSD)
+            {
+                // OpenBSD does not support SIGRTMIN or SIGRTMAX
+                // Use SIGUSR1 for SIGRTMIN, SIGUSR2 for SIGRTMIN + 1
+                // And use 32 for SIGRTMAX (32 is the max signal number on OpenBSD)
+                enum SIGRTMIN = SIGUSR1;
+                enum SIGRTMAX = 32;
+            }
+            else version (Hurd)
+            {
+                // Hurd does not support SIGRTMIN or SIGRTMAX
+                // Use SIGUSR1 for SIGRTMIN, SIGUSR2 for SIGRTMIN + 1
+                // And use 32 for SIGRTMAX (32 is the max signal number on Hurd)
+                enum SIGRTMIN = SIGUSR1;
+                enum SIGRTMAX = 32;
+            }
+            else
+            {
+                import core.sys.posix.signal : SIGRTMAX, SIGRTMIN;
+            }
+
+            if ( suspendSignalNumber == 0 )
+            {
+                suspendSignalNumber = SIGRTMIN;
+            }
+
+            if ( resumeSignalNumber == 0 )
+            {
+                resumeSignalNumber = SIGRTMIN + 1;
+                assert(resumeSignalNumber <= SIGRTMAX);
+            }
+            int         status;
+            sigaction_t suspend = void;
+            sigaction_t resume = void;
+
+            // This is a quick way to zero-initialize the structs without using
+            // memset or creating a link dependency on their static initializer.
+            (cast(byte*) &suspend)[0 .. sigaction_t.sizeof] = 0;
+            (cast(byte*)  &resume)[0 .. sigaction_t.sizeof] = 0;
+
+            // NOTE: SA_RESTART indicates that system calls should restart if they
+            //       are interrupted by a signal, but this is not available on all
+            //       Posix systems, even those that support multithreading.
+            static if (__traits(compiles, core.sys.posix.signal.SA_RESTART))
+            {
+                import core.sys.posix.signal : SA_RESTART;
+
+                suspend.sa_flags = SA_RESTART;
+            }
+
+            suspend.sa_handler = &thread_suspendHandler;
+            // NOTE: We want to ignore all signals while in this handler, so fill
+            //       sa_mask to indicate this.
+            status = sigfillset( &suspend.sa_mask );
+            assert( status == 0 );
+
+            // NOTE: Since resumeSignalNumber should only be issued for threads within the
+            //       suspend handler, we don't want this signal to trigger a
+            //       restart.
+            resume.sa_flags   = 0;
+            resume.sa_handler = &thread_resumeHandler;
+            // NOTE: We want to ignore all signals while in this handler, so fill
+            //       sa_mask to indicate this.
+            status = sigfillset( &resume.sa_mask );
+            assert( status == 0 );
+
+            status = sigaction( suspendSignalNumber, &suspend, null );
+            assert( status == 0 );
+
+            status = sigaction( resumeSignalNumber, &resume, null );
+            assert( status == 0 );
+
+            status = sem_init( &suspendCount, 0, 0 );
+            assert( status == 0 );
+        }
+    }
+}
+
+version (CoreDdoc) {} else
+version (CRuntime_WASI) {} else
+extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo) nothrow @nogc
+in
+{
+    assert(suspendSignalNo != 0);
+    assert(resumeSignalNo  != 0);
+}
+out
+{
+    assert(suspendSignalNumber != 0);
+    assert(resumeSignalNumber  != 0);
+}
+do
+{
+    suspendSignalNumber = suspendSignalNo;
+    resumeSignalNumber  = resumeSignalNo;
+}
+
+version (CoreDdoc) {} else
+version (CRuntime_WASI) {} else
+extern (C) void thread_getGCSignals(out int suspendSignalNo, out int resumeSignalNo) nothrow @nogc
+in
+{
+    assert(suspendSignalNumber != 0);
+    assert(resumeSignalNumber  != 0);
+}
+out
+{
+    assert(suspendSignalNo != 0);
+    assert(resumeSignalNo  != 0);
+}
+do
+{
+    suspendSignalNo = suspendSignalNumber;
+    resumeSignalNo  = resumeSignalNumber;
+}
+
+//TODO: private
+
+version (CRuntime_WASI) {}
+else
+{
+    package __gshared int suspendSignalNumber;
+    package __gshared int resumeSignalNumber;
+}
+
+// Returns true on success
+package bool suspendThreadImpl(Thread t) @nogc nothrow
+{
+    version (Darwin)
+        return thread_suspend(t.m_tdescr.tmach) == KERN_SUCCESS;
+    else version (Solaris)
+        return thr_suspend(t.m_tdescr.tid) == 0;
+    else version (CRuntime_WASI)
+        return false;
+    else
+        return pthread_kill(t.m_tdescr.tid, suspendSignalNumber) == 0;
+}
+
+// Returns true on success
+package bool resumeThreadImpl(Thread t) @nogc nothrow
+{
+    version (Darwin)
+        return thread_resume(t.m_tdescr.tmach) == KERN_SUCCESS;
+    else version (Solaris)
+        return thr_continue(t.m_tdescr.tid) == 0;
+    else version (CRuntime_WASI)
+        return false;
+    else
+        return pthread_kill(t.m_tdescr.tid, resumeSignalNumber) == 0;
+}
+
+package alias gettid = imported!"core.sys.posix.pthread".pthread_self;
+
+package struct LLThreadProperties
+{
+    void delegate() nothrow dg;
+
+    // Returns: false if error occurred
+    bool initialize(void delegate() nothrow dg, ref LLThreadContext context) nothrow @nogc
+    {
+        this.dg = dg;
+        return true;
+    }
+}
+
+package struct LLThreadContext
+{
+    ThreadID tid;
+    uint stacksize;
+
+    this(uint stacksize, void delegate() nothrow cbDllUnload) nothrow @nogc
+    {
+        this.stacksize = stacksize;
+        // cbDllUnload ignored, TODO: remove it from args list
+    }
+}
+
+// Returns: false if error occurred
+package bool launchLLThread(LLThreadProperties* tprop, ref LLThreadContext context, ref ll_ThreadData curr_llt) nothrow @nogc
+{
+    static extern (C) void* thread_lowlevelEntry(void* ctx) nothrow
+    {
+        auto tprop = *cast(LLThreadProperties*) ctx;
+        free(ctx);
+
+        tprop.dg();
+        ll_removeThread(pthread_self());
+        return null;
+    }
+
+    size_t stksz = adjustStackSize(context.stacksize);
+
+    pthread_attr_t  attr;
+
+    int rc;
+    if ((rc = pthread_attr_init(&attr)) != 0)
+        return false;
+    if (stksz && (rc = pthread_attr_setstacksize(&attr, stksz)) != 0)
+        return false;
+    if ((rc = pthread_create(&context.tid, &attr, &thread_lowlevelEntry, tprop)) != 0)
+        return false;
+    rc = pthread_attr_destroy(&attr);
+    assert(rc == 0);
+
+    curr_llt.tid = context.tid;
+
+    return true;
+}
+
+private size_t adjustStackSize(size_t sz) nothrow @nogc
+{
+    import core.memory: pageSize;
+    import core.thread.types: PTHREAD_STACK_MIN;
+
+    if (sz == 0)
+        return 0;
+
+    // stack size must be at least PTHREAD_STACK_MIN for most platforms.
+    if (PTHREAD_STACK_MIN > sz)
+        sz = PTHREAD_STACK_MIN;
+
+    version (CRuntime_Glibc)
+    {
+        // On glibc, TLS uses the top of the stack, so add its size to the requested size
+        sz += externDFunc!("rt.sections_elf_shared.sizeOfTLS",
+                           size_t function() @nogc nothrow)();
+    }
+
+    // stack size must be a multiple of pageSize
+    sz = ((sz + pageSize - 1) & ~(pageSize - 1));
+
+    return sz;
+}
+
+version (CoreDdoc) {} else
+void joinLowLevelThread(ThreadID tid) nothrow @nogc
+{
+    if (pthread_join(tid, null) != 0)
+        onThreadError("Unable to join thread");
 }

@@ -17,7 +17,8 @@ import core.stdc.stdio;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;
-import dmd.backend.global : ErrorCallbackBackend, error, errorCallbackBackend;
+import dmd.backend.global : ErrorCallbackBackend, error, errorCallbackBackend,
+    GetFileContentsCallback, getFileContentsCallback;
 import dmd.backend.go : go_flag, GlobalOptimizer;
 import dmd.backend.rtlsym : rtlsym_init;
 import dmd.backend.ty;
@@ -87,11 +88,13 @@ void out_config_init(
         bool generatedMain,     // a main entrypoint is generated
         bool dataimports,
         ref GlobalOptimizer go,
-        ErrorCallbackBackend errorCallback)
+        ErrorCallbackBackend errorCallback,
+        GetFileContentsCallback getFileContents)
 {
     //printf("out_config_init()\n");
 
     errorCallbackBackend = errorCallback;
+    getFileContentsCallback = getFileContents;
     auto cfg = &config;
 
     cfg._version = _version;
@@ -137,18 +140,15 @@ void out_config_init(
             cfg.avx = avx;
             cfg.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
 
-            cfg.flags |= CFGnoebp;       // test suite fails without this
             //cfg.flags |= CFGalwaysframe;
             cfg.flags |= CFGromable; // put switch tables in code segment
-            cfg.objfmt = OBJ_MSCOFF;
         }
         else
         {
             cfg.ehmethod = useExceptions ? EHmethod.EH_WIN32 : EHmethod.EH_NONE;
-            cfg.flags |= CFGnoebp;       // test suite fails without this
-            cfg.objfmt = OBJ_MSCOFF;
-            cfg.flags |= CFGnoebp;    // test suite fails without this
         }
+        cfg.flags |= CFGnoebp;    // test suite fails without this
+        cfg.objfmt = OBJ_MSCOFF;
 
         if (dataimports)
             cfg.flags2 |= CFG2noreadonly;
@@ -366,18 +366,10 @@ static if (0)
         }
         if (cfg.exe & (EX_windos))
         {
-            if (cfg.objfmt == OBJ_MSCOFF)
-            {
-                cfg.addlinenumbers = 1;
-                cfg.fulltypes = CV8;
-                if(symdebug > 1)
-                    cfg.flags2 |= CFG2gms;
-            }
-            else
-            {
-                cfg.addlinenumbers = 1;
-                cfg.fulltypes = CV4;
-            }
+            cfg.addlinenumbers = 1;
+            cfg.fulltypes = CV8;
+            if(symdebug > 1)
+                cfg.flags2 |= CFG2gms;
         }
         if (!optimize)
             cfg.flags |= CFGalwaysframe;
@@ -457,15 +449,10 @@ __gshared:
 bool debuga = 0; /// cg - watch assignaddr()
 bool debugb = 0; /// watch block optimization
 bool debugc = 0; /// watch code generated
-bool debugd = 0; /// watch debug information generated
 bool debuge = 0; /// dump eh info
 bool debugf = 0; /// trees after dooptim
-bool debugg = 0; /// trees for code generator
-bool debugo = 0; /// watch optimizer
 bool debugr = 0; /// watch register allocation
 bool debugs = 0; /// watch common subexp eliminator
-bool debugt = 0; /// do test points
-bool debugu = 0;
 bool debugw = 0; /// watch progress
 bool debugx = 0; /// suppress predefined CPP stuff
 bool debugy = 0; /// watch output to il buffer

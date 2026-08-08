@@ -568,10 +568,10 @@ extern(C++) private final class Supported : Objc
             if (!e.isStructLiteralExp())
                 return 0;
 
-            auto literal = e.isStructLiteralExp();
-            assert(literal.sd);
+            auto sle = e.isStructLiteralExp();
+            assert(sle.sd);
 
-            if (!isCoreUda(literal.sd, Id.udaSelector))
+            if (!isCoreUda(sle.sd, Id.udaSelector))
                 return 0;
 
             if (fd.objc.selector)
@@ -580,8 +580,8 @@ extern(C++) private final class Supported : Objc
                 return 1;
             }
 
-            assert(literal.elements.length == 1);
-            auto se = (*literal.elements)[0].toStringExp();
+            assert(sle.elements.length == 1);
+            auto se = (*sle.elements)[0].toStringExp();
             assert(se);
 
             fd.objc.selector = ObjcSelector.lookup(se.toUTF8(sc).peekString().ptr);

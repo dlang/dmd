@@ -586,7 +586,7 @@ public:
         {
             if (cd.baseClass && cd.baseClass.ident != Id.Object)
             {
-                property("base", cd.baseClass.toPrettyChars(true).toDString);
+                property("base", cd.baseClass.toPrettyChars(true, true).toDString);
             }
             if (cd.interfaces.length)
             {
@@ -594,7 +594,7 @@ public:
                 arrayStart();
                 foreach (b; cd.interfaces)
                 {
-                    item(b.sym.toPrettyChars(true).toDString);
+                    item(b.sym.toPrettyChars(true, true).toDString);
                 }
                 arrayEnd();
             }
@@ -628,7 +628,7 @@ public:
             for (size_t i = 0; i < d.foverrides.length; i++)
             {
                 FuncDeclaration fd = d.foverrides[i];
-                item(fd.toPrettyChars().toDString);
+                item(fd.toPrettyChars(true, true).toDString);
             }
             arrayEnd();
         }

@@ -19,12 +19,7 @@ struct Config
     bool disable;            // start disabled
     bool fork = false;       // optional concurrent behaviour
     ubyte profile;           // enable profiling with summary when terminating program
-
-    // TODO: support full `conservative` GC on Wasm
-    version (WebAssembly)
-        string gc = "manual"; // select gc implementation conservative|precise|manual
-    else
-        string gc = "conservative"; // select gc implementation conservative|precise|manual
+    string gc = "conservative"; // select gc implementation conservative|precise|manual
 
     @MemVal size_t initReserve;      // initial reserve (bytes)
     @MemVal size_t minPoolSize = 1  << 20;  // initial and minimum pool size (bytes)

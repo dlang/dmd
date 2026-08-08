@@ -54,6 +54,7 @@ import dmd.visitor;
 
 import dmd.backend.cc;
 import dmd.backend.dt;
+import dmd.backend.symbol;
 
 package(dmd.glue):
 
@@ -258,7 +259,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
         if (auto strExp = e.e1.isStringExp())
             len = strExp.len;
         else if (auto arrExp = e.e1.isArrayLiteralExp())
-            len = arrExp.elements.length;
+            len = arrExp.length;
         else
             return nonConstExpError(e);
 
@@ -488,7 +489,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
         //printf("ArrayLiteralExp.toDt() '%s', type = %s\n", e.toChars(), e.type.toChars());
 
         auto dtbarray = DtBuilder(0);
-        foreach (i; 0 .. e.elements.length)
+        foreach (i; 0 .. e.length)
         {
             Expression_toDt(e[i], dtbarray);
         }
@@ -501,7 +502,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
                 break;
 
             case Tarray:
-                dtb.size(e.elements.length);
+                dtb.size(e.length);
                 goto case Tpointer;
 
             case Tpointer:
@@ -1162,7 +1163,7 @@ private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e, bool isCt
                 len /= se.numberOfCodeUnits(0, s);
             }
             else if (auto ae = e.isArrayLiteralExp())
-                len /= ae.elements.length;
+                len /= ae.length;
         }
 
         auto dtb2 = DtBuilder(0);
@@ -1323,7 +1324,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.size(0);
 
         // string name;
-        const(char)* name = sd.toPrettyChars();
+        const(char)* name = sd.toPrettyChars(false, true);
         size_t namelen = strlen(name);
         dtb.size(namelen);
         dtb.xoff(cast(Symbol*)d.csym, Type.typeinfoenum.structsize);

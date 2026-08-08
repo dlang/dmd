@@ -3,14 +3,14 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/failob2.d(105): Error: variable `failob2.foo1!int.foo1.p` has undefined state and cannot be read
-fail_compilation/failob2.d(105): Error: variable `failob2.foo1!int.foo1.p` is returned but is Undefined
+fail_compilation/failob2.d(105): Error: variable `failob2.foo1!int.p` has undefined state and cannot be read
+fail_compilation/failob2.d(105): Error: variable `failob2.foo1!int.p` is returned but is Undefined
 fail_compilation/failob2.d(124): Error: template instance `failob2.foo1!int` error instantiating
-fail_compilation/failob2.d(111): Error: variable `failob2.foo2!int.foo2.p` has undefined state and cannot be read
-fail_compilation/failob2.d(111): Error: variable `failob2.foo2!int.foo2.p` is returned but is Undefined
+fail_compilation/failob2.d(111): Error: variable `failob2.foo2!int.p` has undefined state and cannot be read
+fail_compilation/failob2.d(111): Error: variable `failob2.foo2!int.p` is returned but is Undefined
 fail_compilation/failob2.d(125): Error: template instance `failob2.foo2!int` error instantiating
-fail_compilation/failob2.d(119): Error: variable `failob2.foo3!int.foo3.p` has undefined state and cannot be read
-fail_compilation/failob2.d(119): Error: variable `failob2.foo3!int.foo3.p` is returned but is Undefined
+fail_compilation/failob2.d(119): Error: variable `failob2.foo3!int.p` has undefined state and cannot be read
+fail_compilation/failob2.d(119): Error: variable `failob2.foo3!int.p` is returned but is Undefined
 fail_compilation/failob2.d(126): Error: template instance `failob2.foo3!int` error instantiating
 ---
 */
@@ -48,7 +48,7 @@ void test1() {
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/failob2.d(205): Error: variable `failob2.foo4!int.foo4.p` is not disposed of before return
+fail_compilation/failob2.d(205): Error: variable `failob2.foo4!int.p` is not disposed of before return
 fail_compilation/failob2.d(209): Error: template instance `failob2.foo4!int` error instantiating
 ---
 */

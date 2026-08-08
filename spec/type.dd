@@ -296,10 +296,16 @@ $(H3 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversio
 $(H3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conversions))
 
     $(P Implicit conversions are used to automatically convert
-    types as required. The rules for integers are detailed in the next sections.
+    types as required.
     )
 
     $(UL
+    $(LI $(RELATIVE_LINK2 bool, `bool`) implicitly converts to an integer.)
+    $(LI An integer implicitly converts to another integer type whose
+        $(DDSUBLINK spec/property, sizeof, `.sizeof`) is the same or larger
+        than the source type.)
+    $(LI Integers implicitly convert to `float`/`double`/`real`.)
+    $(LI `float`/`double`/`real` implicitly convert to each other.)
     $(LI An enum can be $(DDSUBLINK spec/enum, named_enums, implicitly converted) to its base
     type (but going the other way requires an explicit conversion).)
     $(LI $(RELATIVE_LINK2 noreturn, `noreturn`) implicitly converts to any type.)
@@ -318,10 +324,14 @@ $(H3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conver
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-void main()
+void test(bool b)
 {
-    noreturn n;
-    int i = n;
+    short s = b;
+    int i = s;
+    float f = i;
+
+    noreturn n();
+    i = n();
     void* p = &i;
 
     const int[] a;
@@ -333,8 +343,11 @@ void f(int x) pure;
 void function(int) fp = &f; // pure is covariant with non-pure
 ---
 )
-    $(P See also $(DDSUBLINK spec/const3, implicit_qualifier_conversions,
-    Implicit Qualifier Conversions).)
+    $(P See also:)
+
+    - $(DDSUBLINK spec/const3, implicit_qualifier_conversions,
+      Implicit Qualifier Conversions)
+    - $(DDSUBLINK spec/expression, cast_integers, Casting Integers)
 
 $(H4 $(LNAME2 class-conversions, Class Conversions))
 

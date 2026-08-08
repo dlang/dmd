@@ -28,7 +28,7 @@ import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.oper;
-import dmd.backend.symbol : globsym;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -308,10 +308,10 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
         {
             case BC.jcatch:
             case BC.catch_:
-            case BC._except:
-            case BC._finally:
-            case BC._lpad:
-            case BC._ret:
+            case BC.except:
+            case BC.finally_:
+            case BC.lpad:
+            case BC.finRet:
                 s.Sflags &= ~GTregcand;
                 goto Lcant;             // can't assign to register
 

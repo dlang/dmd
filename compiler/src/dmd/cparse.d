@@ -379,14 +379,14 @@ final class CParser(AST) : Parser!AST
             cparseDeclaration(LVL.local);
             if (symbols.length > 1)
             {
-                auto as = new AST.Statements();
+                AST.Statements as;
                 as.reserve(symbols.length);
                 foreach (d; (*symbols)[])
                 {
                     s = new AST.ExpStatement(loc, d);
                     as.push(s);
                 }
-                s = new AST.CompoundDeclarationStatement(loc, as);
+                s = new AST.CompoundDeclarationStatement(loc, as.move());
                 symbols.setDim(0);
             }
             else if (symbols.length == 1)
@@ -421,7 +421,7 @@ final class CParser(AST) : Parser!AST
              *    statement
              */
             nextToken();
-            auto statements = new AST.Statements();
+            AST.Statements statements;
             while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
             {
                 statements.push(cparseStatement(ParseStatementFlags.curlyScope));
@@ -434,7 +434,7 @@ final class CParser(AST) : Parser!AST
                 *pEndloc = token.loc;
                 pEndloc = null; // don't set it again
             }
-            s = new AST.CompoundStatement(loc, statements);
+            s = new AST.CompoundStatement(loc, statements.move());
             if (flags & (ParseStatementFlags.scope_ | ParseStatementFlags.curlyScope))
                 s = new AST.ScopeStatement(loc, s, token.loc);
             check(TOK.rightCurly, "compound statement");
@@ -570,7 +570,7 @@ final class CParser(AST) : Parser!AST
 
             if (flags & ParseStatementFlags.curlyScope)
             {
-                auto statements = new AST.Statements();
+                AST.Statements statements;
                 while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                 {
                     auto cur = cparseStatement(ParseStatementFlags.curlyScope);
@@ -584,7 +584,7 @@ final class CParser(AST) : Parser!AST
                     if (cur && cur.isBreakStatement())
                         break;
                 }
-                s = new AST.CompoundStatement(loc, statements);
+                s = new AST.CompoundStatement(loc, statements.move());
             }
             else
             {
@@ -605,12 +605,12 @@ final class CParser(AST) : Parser!AST
 
             if (flags & ParseStatementFlags.curlyScope)
             {
-                auto statements = new AST.Statements();
+                AST.Statements statements;
                 while (token.value != TOK.case_ && token.value != TOK.default_ && token.value != TOK.endOfFile && token.value != TOK.rightCurly)
                 {
                     statements.push(cparseStatement(ParseStatementFlags.curlyScope));
                 }
-                s = new AST.CompoundStatement(loc, statements);
+                s = new AST.CompoundStatement(loc, statements.move());
             }
             else
                 s = cparseStatement(0);
@@ -1680,13 +1680,13 @@ final class CParser(AST) : Parser!AST
         auto ss = fbody.isScopeStatement();
         auto cs = ss.statement.isCompoundStatement();
         assert(cs);
-        if (const len = (*cs.statements).length)
+        if (const len = cs.statements.length)
         {
-            auto s = (*cs.statements)[len - 1];
+            auto s = cs.statements[len - 1];
             if (s)   // error recovery should be with ErrorStatement, not null
             {
                 if (auto es = s.isExpStatement())
-                    (*cs.statements)[len - 1] = new AST.ReturnStatement(es.loc, es.exp);
+                    cs.statements[len - 1] = new AST.ReturnStatement(es.loc, es.exp);
             }
         }
 
@@ -2257,7 +2257,7 @@ final class CParser(AST) : Parser!AST
         auto fd = new AST.FuncDeclaration(id.loc, prevloc, id.name, stc, ft, specifier.noreturn);
         specifiersToFuncDeclaration(fd, specifier);
 
-        auto stmts = new AST.Statements();
+        AST.Statements stmts;
 
         if (addFuncName)
             stmts.push(createFuncName(locFunc, id.name, Id.__func__));
@@ -2270,7 +2270,7 @@ final class CParser(AST) : Parser!AST
 
         stmts.push(body);
 
-        body = new AST.CompoundStatement(locFunc, stmts);
+        body = new AST.CompoundStatement(locFunc, stmts.move());
         fd.fbody = body;
 
         // TODO add `symbols` to the function's local symbol table `sc2` in FuncDeclaration::semantic3()
@@ -3278,7 +3278,7 @@ final class CParser(AST) : Parser!AST
                 t = toConst(t);
             auto param = new AST.Parameter(id.name ? id.loc : typeLoc,
                                            specifiersToSTC(LVL.parameter, specifier),
-                                           t, id.name, null, null);
+                                           t, id.name, null, null, null);
             parameters.push(param);
             if (token.value == TOK.rightParenthesis || token.value == TOK.endOfFile)
                 break;
@@ -3289,8 +3289,13 @@ final class CParser(AST) : Parser!AST
     }
 
     /***********************************
-     * C11 6.7.10
+     * C11 6.7.10 / C23 6.7.12
      * _Static_assert ( constant-expression , string-literal ) ;
+     * _Static_assert ( constant-expression ) ;
+     *
+     * C23 makes the message operand optional. Accepting the single-argument
+     * form cannot change the meaning of any valid C11 program, so it is
+     * enabled unconditionally.
      */
     private AST.StaticAssert cparseStaticAssert()
     {
@@ -3300,13 +3305,22 @@ final class CParser(AST) : Parser!AST
         nextToken();
         check(TOK.leftParenthesis);
         auto exp = cparseConstantExp();
-        check(TOK.comma);
-        if (token.value != TOK.string_)
-            error("string literal expected");
-        auto msg = cparsePrimaryExp();
+        if (token.value == TOK.comma) // C23 6.7.12
+        {
+            nextToken();
+            if (token.value != TOK.string_)
+                error("string literal expected");
+            auto msg = cparsePrimaryExp();
+            check(TOK.rightParenthesis);
+            check(TOK.semicolon);
+            return new AST.StaticAssert(loc, exp, msg);
+        }
         check(TOK.rightParenthesis);
         check(TOK.semicolon);
-        return new AST.StaticAssert(loc, exp, msg);
+        // Use the Expressions* overload so a missing message stays null
+        // rather than a one-element array of null (matches D's parseStaticAssert).
+        AST.Expressions* msgs = null;
+        return new AST.StaticAssert(loc, exp, msgs);
     }
 
     /*************************
@@ -3556,7 +3570,7 @@ final class CParser(AST) : Parser!AST
             error("string literal expected for Assembler Template, not `%s`", token.toChars());
         Token* toklist = null;
         Token** ptoklist = &toklist;
-        auto statements = new AST.Statements();
+        AST.Statements statements;
 
         int parens;
         while (1)
@@ -3603,7 +3617,7 @@ final class CParser(AST) : Parser!AST
             break;
         }
         nextToken();
-        auto s = new AST.CompoundAsmStatement(loc, statements, STC.none);
+        auto s = new AST.CompoundAsmStatement(loc, statements.move(), STC.none);
         return s;
     }
 
@@ -6018,7 +6032,7 @@ final class CParser(AST) : Parser!AST
 
                                 if (token.value != TOK.identifier)
                                     break Lswitch;
-                                auto param = new AST.Parameter(token.loc, STC.none, null, token.ident, null, null);
+                                auto param = new AST.Parameter(token.loc, STC.none, null, token.ident, null, null, null);
                                 parameters.push(param);
                                 nextToken();
                                 if (token.value == TOK.comma)

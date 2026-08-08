@@ -73,13 +73,7 @@ extern (C++) struct Mem
     static void* xrealloc(void* p, size_t size) pure nothrow
     {
         if (isGCEnabled)
-        {
-            auto q = GC.realloc(p, size);
-            // used with C semantics, so can be free'd
-            if (p && q && p != q)
-                GC.free(p);
-            return q;
-        }
+            return GC.realloc(p, size);
 
         if (!size)
         {
@@ -93,13 +87,7 @@ extern (C++) struct Mem
     static void* xrealloc_noscan(void* p, size_t size) pure nothrow
     {
         if (isGCEnabled)
-        {
-            auto q = GC.realloc(p, size, GC.BlkAttr.NO_SCAN);
-            // used with C semantics, so can be free'd
-            if (p && q && p != q)
-                GC.free(p);
-            return q;
-        }
+            return GC.realloc(p, size, GC.BlkAttr.NO_SCAN);
 
         if (!size)
         {

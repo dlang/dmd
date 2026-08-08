@@ -48,13 +48,10 @@ public:
 
     override void visit(CompoundStatement s)
     {
-        if (s.statements && s.statements.length)
+        for (size_t i = 0; i < s.statements.length; i++)
         {
-            for (size_t i = 0; i < s.statements.length; i++)
-            {
-                if ((*s.statements)[i])
-                    visitStmt((*s.statements)[i]);
-            }
+            if (s.statements[i])
+                visitStmt(s.statements[i]);
         }
     }
 
@@ -65,13 +62,10 @@ public:
 
     override void visit(UnrolledLoopStatement s)
     {
-        if (s.statements && s.statements.length)
+        for (size_t i = 0; i < s.statements.length; i++)
         {
-            for (size_t i = 0; i < s.statements.length; i++)
-            {
-                if ((*s.statements)[i])
-                    visitStmt((*s.statements)[i]);
-            }
+            if (s.statements[i])
+                visitStmt(s.statements[i]);
         }
     }
 

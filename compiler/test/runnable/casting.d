@@ -212,6 +212,28 @@ void test14218()
 
 /***************************************************/
 
+void test22269()
+{
+    // cast(T[1]) from basic type to static array of same size
+    int foo = 42;
+    (cast(int[1])foo)[] = 1;
+    assert(foo == 1);
+
+    // cast(T) from static array to basic type of same size
+    int bar = 42;
+    auto sa = cast(int[1])bar;
+    bar = 0;
+    bar = cast(int)sa;
+    assert(bar == 42);
+
+    // float <-> int same size (both 4 bytes)
+    float f = 3.14f;
+    int[1] fi = cast(int[1])f;
+    assert(fi[0] != 0); // value was reinterpreted, not zeroed
+}
+
+/***************************************************/
+
 int main()
 {
     test3133();
@@ -223,6 +245,7 @@ int main()
     test10842();
     test11722();
     test14218();
+    test22269();
 
     printf("Success\n");
     return 0;

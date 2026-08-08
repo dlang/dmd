@@ -74,10 +74,10 @@ import dmd.backend.cv4;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.dout : out_readonly_comdat, out_string_literal;
-import dmd.backend.symbol : symbol_add, symbol_calloc, symbol_genauto, sytab, SYMIDX;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.util2 : mem_malloc2;
@@ -1015,7 +1015,10 @@ elem* toElem(Expression e, ref IRState irs)
     elem* visitDeclaration(DeclarationExp de)
     {
         //printf("DeclarationExp.toElem() %s\n", de.toChars());
-        return Dsymbol_toElem(de.declaration, irs);
+        elem* e = Dsymbol_toElem(de.declaration, irs);
+        if (e && de.type && de.type.toBasetype().ty == Tvoid)
+            e.Ety = TYvoid;
+        return e;
     }
 
     /***************************************
@@ -2906,7 +2909,7 @@ elem* toElem(Expression e, ref IRState irs)
             {
                 ArrayLiteralExp ale = cast(ArrayLiteralExp)ae.e2;
                 elem* e;
-                if (ale.elements.length == 0)
+                if (ale.length == 0)
                 {
                     e = e1;
                 }
@@ -4086,7 +4089,7 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitArrayLiteral(ArrayLiteralExp ale)
     {
-        size_t dim = ale.elements ? ale.elements.length : 0;
+        size_t dim = ale.length;
 
         //printf("ArrayLiteralExp.toElem() %s, type = %s\n", ale.toChars(), ale.type.toChars());
         Type tb = ale.type.toBasetype();
@@ -4523,7 +4526,7 @@ elem* ExpressionsToStaticArray(ref IRState irs, Loc loc, Expressions* exps, Symb
             el.type.toBasetype().ty == Tsarray)
         {
             ArrayLiteralExp ale = cast(ArrayLiteralExp)el;
-            if (ale.elements && ale.elements.length)
+            if (ale.length)
             {
                 elem* ex = ExpressionsToStaticArray(irs,
                     ale.loc, ale.elements, &stmp, cast(uint)(offset + i * szelem), ale.basis);
@@ -4780,6 +4783,18 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
     ttym = tybasic(totym(t));
     if (ftym == ttym)
         return Lret(ce, e);
+
+    // Allow same-size cast between basic types and aggregate types (structs, static arrays)
+    if ((tty == Tstruct || tty == Tsarray) && tfrom.size() == t.size())
+    {
+        e.Ety = ttym;
+        return Lret(ce, e);
+    }
+    else if ((fty == Tstruct || fty == Tsarray) && tfrom.size() == t.size())
+    {
+        e.Ety = ttym;
+        return Lret(ce, e);
+    }
 
     // OSX AArch64 long doubles are 64 bits
     bool RealIsDouble = target.os == Target.os.OSX && target.isAArch64;
@@ -5790,6 +5805,13 @@ elem* callfunc(Loc loc,
                 ethis = el_copytotmp(ex);
                 eside = el_combine(ex, eside);
             }
+
+            // Non-virtual (e.g. final) methods are dispatched statically and
+            // don't dereference 'this' at the call site, so the null check that
+            // the virtual path gets from its vtable lookup would otherwise be
+            // skipped. Insert it here so null 'this' is caught before the call.
+            if (tybasic(ethis.Ety) == TYnptr && irs.nullDerefCheck())
+                applyNullDerefErrorCheck(ethis, TYnptr, irs, loc);
         }
         else
         {
@@ -5819,9 +5841,6 @@ elem* callfunc(Loc loc,
             // make virtual call
             assert(ethis);
             elem* ev = el_same(ethis);
-
-            if (irs.nullDerefCheck())
-                applyNullDerefErrorCheck(ev, TYnptr, irs, loc);
 
             ev = el_una(OPind, TYnptr, ev);
             uint vindex = fd.vtblIndex;

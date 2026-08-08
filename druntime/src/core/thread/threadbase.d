@@ -119,7 +119,7 @@ class ThreadBase
     {
         destroyDataStorageIfAvail();
 
-        bool no_context = m_addr == m_addr.init;
+        bool no_context = m_tdescr.tid == m_tdescr.tid.init;
         bool not_registered = !next && !prev && (sm_tbeg !is this);
 
         return (no_context || not_registered);
@@ -234,7 +234,7 @@ class ThreadBase
     {
         synchronized(this)
         {
-            return m_addr;
+            return m_tdescr.tid;
         }
     }
 
@@ -326,7 +326,7 @@ class ThreadBase
      */
     @property bool isRunning() nothrow @nogc
     {
-        if (m_addr == m_addr.init)
+        if (m_tdescr.tid == m_tdescr.tid.init)
             return false;
 
         return true;
@@ -483,7 +483,7 @@ package:
     //
     // Standard thread data
     //
-    ThreadID            m_addr;
+    ThreadDescr         m_tdescr;
     Callable            m_call;
     string              m_name;
     size_t              m_sz;
@@ -699,6 +699,25 @@ package(core.thread):
         pAboutToStart[nAboutToStart - 1] = t;
     }
 
+    package static void decrementAboutToStart(ThreadBase t) nothrow @nogc
+    {
+        size_t idx = -1;
+        foreach (i, thr; pAboutToStart[0 .. nAboutToStart])
+        {
+            if (thr is t)
+            {
+                idx = i;
+                break;
+            }
+        }
+        assert(idx != -1);
+        import core.stdc.string : memmove;
+        memmove(pAboutToStart + idx, pAboutToStart + idx + 1, size_t.sizeof * (nAboutToStart - idx - 1));
+        pAboutToStart =
+            cast(ThreadBase*)realloc(pAboutToStart, size_t.sizeof * --nAboutToStart);
+    }
+
+
     //
     // Add a thread to the global thread list.
     //
@@ -715,23 +734,7 @@ package(core.thread):
         assert(t.isRunning); // check this with slock to ensure pthread_create already returned
         assert(!suspendDepth); // must be 0 b/c it's only set with slock held
 
-        if (rmAboutToStart)
-        {
-            size_t idx = -1;
-            foreach (i, thr; pAboutToStart[0 .. nAboutToStart])
-            {
-                if (thr is t)
-                {
-                    idx = i;
-                    break;
-                }
-            }
-            assert(idx != -1);
-            import core.stdc.string : memmove;
-            memmove(pAboutToStart + idx, pAboutToStart + idx + 1, size_t.sizeof * (nAboutToStart - idx - 1));
-            pAboutToStart =
-                cast(ThreadBase*)realloc(pAboutToStart, size_t.sizeof * --nAboutToStart);
-        }
+        if (rmAboutToStart) decrementAboutToStart(t);
 
         if (sm_tbeg)
         {
@@ -806,6 +809,11 @@ package(core.thread):
         add(t, rmAboutToStart);
     }
 
+    package final void unloadStackInfo() nothrow @nogc
+    {
+        if (!m_lock)
+            m_curr.tstack = m_curr.bstack;
+    }
 }
 
 
@@ -952,11 +960,11 @@ static ThreadBase thread_findByAddr(ThreadID addr)
     // also return just spawned thread so that
     // DLL_THREAD_ATTACH knows it's a D thread
     foreach (t; ThreadBase.pAboutToStart[0 .. ThreadBase.nAboutToStart])
-        if (t.m_addr == addr)
+        if (t.m_tdescr.tid == addr)
             return t;
 
     foreach (t; ThreadBase)
-        if (t.m_addr == addr)
+        if (t.m_tdescr.tid == addr)
             return t;
 
     return null;

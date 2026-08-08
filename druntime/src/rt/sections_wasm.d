@@ -28,11 +28,11 @@ struct SectionGroup
 
     @property inout(void[])[] gcRanges() inout return nothrow @nogc
     {
-        return null;
+        return _gcRanges[];
     }
-
 private:
     ModuleGroup _moduleGroup;
+    void[][1] _gcRanges;
 }
 
 void initSections() nothrow @nogc
@@ -40,6 +40,11 @@ void initSections() nothrow @nogc
     auto mbeg = cast(immutable ModuleInfo**)&__start___minfo;
     auto mend = cast(immutable ModuleInfo**)&__stop___minfo;
     _sections.moduleGroup = ModuleGroup(mbeg[0 .. mend - mbeg]);
+
+    // TODO: PIC support
+    auto pbeg = cast(void*)&__global_base;
+    auto pend = cast(void*)&__data_end;
+    _sections._gcRanges[0] = pbeg[0 .. pend - pbeg];
 }
 
 void finiSections() nothrow @nogc
@@ -70,5 +75,8 @@ extern(C)
     {
         void* __start___minfo;
         void* __stop___minfo;
+
+        void* __global_base;
+        void* __data_end;
     }
 }

@@ -409,12 +409,9 @@ void toObNodes(ref ObNodes obnodes, Statement s)
 
         void visitCompound(CompoundStatement s)
         {
-            if (s.statements)
+            foreach (s2; s.statements)
             {
-                foreach (s2; *s.statements)
-                {
-                    visit(s2, stmtstate);
-                }
+                visit(s2, stmtstate);
             }
         }
 
@@ -430,7 +427,7 @@ void toObNodes(ref ObNodes obnodes, Statement s)
 
             gotoNextNode();
 
-            foreach (s2; *s.statements)
+            foreach (s2; s.statements)
             {
                 if (s2)
                 {

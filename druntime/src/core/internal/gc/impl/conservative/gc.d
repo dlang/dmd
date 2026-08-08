@@ -29,21 +29,14 @@ module core.internal.gc.impl.conservative.gc;
 //debug = VALGRIND;             // Valgrind memcheck integration
 
 /***************************************************/
-version = COLLECT_PARALLEL;  // parallel scanning
-version (Posix)
-    version = COLLECT_FORK;
+version (WASI) {} // WASI is single-threaded
+else
+{
+    version = COLLECT_PARALLEL;  // parallel scanning
 
-version (WASI) {
-    // TODO: get GC working on WASI
-
-    enum PAGESIZE = 65536;
-
-    extern(C) void _d_register_conservative_gc()
-    {
-        // no-op
-    }
+    version (Posix)
+        version = COLLECT_FORK;
 }
-else:
 
 import core.internal.gc.bits;
 import core.internal.gc.os;
@@ -1796,7 +1789,8 @@ struct Gcx
         usedSmallPages = usedLargePages = 0;
         mappedPages = 0;
         //printf("gcx = %p, self = %x\n", &this, self);
-        version (Posix)
+        version (WASI) {}
+        else version (Posix)
         {
             import core.sys.posix.pthread : pthread_atfork;
             instance = &this;
