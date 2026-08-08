@@ -438,7 +438,7 @@ StringExp toStringExp(Expression _this)
     static StringExp arrayLiteralToStringExp(ArrayLiteralExp _this)
     {
         TY telem = _this.type.nextOf().toBasetype().ty;
-        if (!(telem.isSomeChar || (telem == Tvoid && (!_this.elements || _this.elements.length == 0))))
+        if (!(telem.isSomeChar || (telem == Tvoid && !_this.length)))
             return null;
 
         ubyte sz = 1;
@@ -448,20 +448,17 @@ StringExp toStringExp(Expression _this)
             sz = 4;
 
         OutBuffer buf;
-        if (_this.elements)
+        foreach (i; 0 .. _this.length)
         {
-            foreach (i; 0 .. _this.elements.length)
-            {
-                auto ch = _this[i];
-                if (ch.op != EXP.int64)
-                    return null;
-                if (sz == 1)
-                    buf.writeByte(cast(ubyte)ch.toInteger());
-                else if (sz == 2)
-                    buf.writeword(cast(uint)ch.toInteger());
-                else
-                    buf.write4(cast(uint)ch.toInteger());
-            }
+            auto ch = _this[i];
+            if (ch.op != EXP.int64)
+                return null;
+            if (sz == 1)
+                buf.writeByte(cast(ubyte)ch.toInteger());
+            else if (sz == 2)
+                buf.writeword(cast(uint)ch.toInteger());
+            else
+                buf.write4(cast(uint)ch.toInteger());
         }
         char prefix;
         if (sz == 1)
@@ -506,7 +503,7 @@ Optional!bool toBool(Expression _this)
 
     static Optional!bool arrayLiteralToBool(ArrayLiteralExp _this)
     {
-        size_t dim = _this.elements ? _this.elements.length : 0;
+        size_t dim = _this.length;
         return typeof(return)(dim != 0);
     }
 
@@ -951,20 +948,19 @@ bool equals(const Expression _this, const Expression e)
         return true;
     }
 
-    static bool arrayLiteralExpEquals(const ArrayLiteralExp _this, const ArrayLiteralExp e)
+    static bool arrayLiteralExpEquals(const ArrayLiteralExp _this, const ArrayLiteralExp ale)
     {
-        if (_this.elements.length != e.elements.length)
+        if (_this.length != ale.length)
             return false;
-        if (_this.elements.length == 0 && !_this.type.equals(e.type))
+        if (_this.length == 0 && !_this.type.equals(ale.type))
         {
             return false;
         }
 
-        foreach (i, e1; *_this.elements)
+        foreach (i; 0 .. _this.length)
         {
-            auto e2 = (*e.elements)[i];
-            auto e1x = e1 ? e1 : _this.basis;
-            auto e2x = e2 ? e2 : e.basis;
+            auto e1x = _this[i];
+            auto e2x = ale[i];
 
             if (e1x != e2x && (!e1x || !e2x || !e1x.equals(e2x)))
                 return false;
@@ -1913,15 +1909,36 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, ref Expressio
 extern(D) bool arrayExpressionSemantic(
     Expression[] exps, Scope* sc, bool preserveErrors = false)
 {
+    Expression basis = null;
+    return arrayExpressionSemantic(exps, basis, sc, preserveErrors);
+}
+
+extern(D) bool arrayExpressionSemantic(
+    Expression[] exps, ref Expression basis, Scope* sc, bool preserveErrors = false)
+{
     bool err = false;
-    foreach (ref e; exps)
+
+    Expression check(Expression e)
     {
-        if (e is null) continue;
         auto e2 = e.expressionSemantic(sc);
         if (e2.op == EXP.error)
+        {
             err = true;
-        if (preserveErrors || e2.op != EXP.error)
+            if (preserveErrors)
+                e = e2;
+        }
+        else
             e = e2;
+        return e;
+    }
+
+    if (basis)
+      basis = check(basis);
+
+    foreach (ref e; exps)
+    {
+        if (e)
+            e = check(e);
     }
     return err;
 }
@@ -6070,9 +6087,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* Perhaps an empty array literal [ ] should be rewritten as null?
          */
 
-        if (e.basis)
-            e.basis = e.basis.expressionSemantic(sc);
-        if (arrayExpressionSemantic(e.elements.peekSlice(), sc) || (e.basis && e.basis.op == EXP.error))
+        if (arrayExpressionSemantic(e.elements.peekSlice(), e.basis, sc))
             return setError();
 
         expandTuples(e.elements);
