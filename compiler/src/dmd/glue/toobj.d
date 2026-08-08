@@ -507,10 +507,10 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     if (!e.isStructLiteralExp())
                         return 0;
 
-                    auto literal = e.isStructLiteralExp();
-                    assert(literal.sd);
+                    auto sle = e.isStructLiteralExp();
+                    assert(sle.sd);
 
-                    if (!isCoreUda(literal.sd, Id.udaSection))
+                    if (!isCoreUda(sle.sd, Id.udaSection))
                         return 0;
 
                     if (userDefinedSection)
@@ -519,8 +519,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                         return 1;
                     }
 
-                    assert(literal.elements.length == 1);
-                    auto se = (*literal.elements)[0].isStringExp();
+                    assert(sle.elements.length == 1);
+                    auto se = (*sle.elements)[0].isStringExp();
                     assert(se);
 
                     userDefinedSection = cast(string)se.toUTF8(vd._scope).toStringz();

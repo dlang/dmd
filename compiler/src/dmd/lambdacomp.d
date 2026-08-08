@@ -446,12 +446,12 @@ public:
             visitType(p.type);
     }
 
-    override void visit(StructLiteralExp e)
+    override void visit(StructLiteralExp sle)
     {
         static if (LOG)
-            printf("StructLiteralExp: %s\n", e.toChars);
+            printf("StructLiteralExp: %s\n", sle.toChars);
 
-        auto ty = cast(TypeStruct)e.stype;
+        auto ty = cast(TypeStruct)sle.stype;
         if (!ty)
         {
             buf.setsize(0);
@@ -459,10 +459,10 @@ public:
         }
 
         writeMangledName(ty.sym);
-        auto dim = e.elements.length;
+        auto dim = sle.elements.length;
         foreach (i; 0..dim)
         {
-            auto elem = (*e.elements)[i];
+            auto elem = (*sle.elements)[i];
             if (elem)
                 elem.accept(this);
             else
