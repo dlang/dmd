@@ -342,50 +342,54 @@ void function(int) fp = &f; // pure is covariant with non-pure
       Implicit Qualifier Conversions)
     - $(DDSUBLINK spec/expression, cast_integers, Casting Integers)
 
-$(H4 $(LNAME2 class-conversions, Class Conversions))
+$(H3 $(LNAME2 class-conversions, Class Element Conversion))
 
-    $(P A derived class can be implicitly converted to its base class, but going
-    the other way requires an $(DDSUBLINK spec/expression, cast_class, explicit cast).
-    For example:)
+    $(P Given class types `T` and `U`, and `U` inherits from `T`, the following
+    rules apply.)
 
-$(SPEC_RUNNABLE_EXAMPLE_RUN
--------------------
-class Base {}
-class Derived : Base {}
-Base bd = new Derived();              // implicit conversion
-Derived db = cast(Derived)new Base(); // explicit conversion
--------------------
+    $(P A pointer $(D T*) can be implicitly converted to `U*` if both:)
+
+    - `U` is not mutable
+    - `U` has $(DDSUBLINK spec/const3, implicit_qualifier_conversions, compatible type qualifiers)
+      with `T`
+
+    $(P Likewise, a dynamic array `T[]` can be implicitly converted to `U[]` if both:)
+
+    - `U` is not mutable
+    - `U` has $(DDSUBLINK spec/const3, implicit_qualifier_conversions, compatible type qualifiers)
+      with `T`
+
+    $(P A static array `T[dim]` can be implicitly converted to `U[dim]` if either:)
+
+    - `U` and `T` are both mutable
+    - `U` has $(DDSUBLINK spec/const3, implicit_qualifier_conversions, compatible type qualifiers)
+      with `T`
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+class C; // inherits from Object
+
+void test()
+{
+    C* pc;
+    //Object* po = pc; // error
+    const(Object)* po = pc; // OK, `*po` is const
+    immutable C* pic;
+    po = pic;
+
+    C[1] sc;
+    Object[1] so = sc; // OK, `so` can be mutable
+
+    C[] ac = sc;
+    //Object[] ao = ac; // error
+    const Object[] ao = ac;
+}
+---
 )
+    $(RATIONALE These rules prevent a derived class element from being
+    overwritten by a base class instance.)
 
-    $(P A dynamic array, say `x`, of a derived class can be implicitly converted
-    to a dynamic array, say `y`, of a base class iff elements of `x` and `y` are
-    qualified as being either both `const` or both `immutable`.)
-
-$(SPEC_RUNNABLE_EXAMPLE_RUN
--------------------
-class Base {}
-class Derived : Base {}
-const(Base)[] ca = (const(Derived)[]).init; // `const` elements
-immutable(Base)[] ia = (immutable(Derived)[]).init; // `immutable` elements
--------------------
-)
-
-    $(P A static array, say `x`, of a derived class can be implicitly converted
-    to a static array, say `y`, of a base class iff elements of `x` and `y` are
-    qualified as being either both `const` or both `immutable` or both mutable
-    (neither `const` nor `immutable`).)
-
-$(SPEC_RUNNABLE_EXAMPLE_RUN
--------------------
-class Base {}
-class Derived : Base {}
-Base[3] ma = (Derived[3]).init; // mutable elements
-const(Base)[3] ca = (const(Derived)[3]).init; // `const` elements
-immutable(Base)[3] ia = (immutable(Derived)[3]).init; // `immutable` elements
--------------------
-)
-
-$(H4 $(LNAME2 covariance, Function Pointer Conversions))
+$(H3 $(LNAME2 covariance, Function Pointer Conversions))
 
     $(P A function pointer type `Source` implicitly converts to another type `Target` if:)
 
