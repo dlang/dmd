@@ -19,6 +19,7 @@ import dmd.access;
 import dmd.aggregate;
 import dmd.arrayop;
 import dmd.arraytypes;
+import dmd.attrib;
 import dmd.astcodegen;
 import dmd.astenums;
 import dmd.dcast;
@@ -61,9 +62,12 @@ import dmd.root.rmem;
 import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.root.string;
+import dmd.clone : mergeFuncAttrs;
 import dmd.safe;
+import dmd.semantic2;
 import dmd.semantic3;
 import dmd.sideeffect;
+import dmd.statement;
 import dmd.target;
 import dmd.tokens;
 
@@ -4760,6 +4764,266 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         return returnType(mtype);
     }
 
+    Type visitSumType(TypeSumType mtype)
+    {
+        // Already resolved
+        if (mtype.deco)
+            return mtype.merge();
+
+        // Resolve each variant type
+        foreach (ref vi; (*mtype.variantInfos))
+        {
+            vi.type = vi.type.typeSemantic(loc, sc);
+            if (vi.type.ty == Terror)
+                return error();
+        }
+
+        // Check for duplicate types (unnamed) or duplicate names (named)
+        foreach (i; 0 .. (*mtype.variantInfos).length - 1)
+        {
+            auto n1 = (*mtype.variantInfos)[i].name;
+
+            // Disallow variant named "tag" — it conflicts with the built-in tag field
+            if (n1 !is null && n1 is Id.tag)
+            {
+                .error(loc, "sumtype variant cannot be named `tag` — it conflicts with the built-in `.tag` field");
+                return error();
+            }
+
+            foreach (j; i + 1 .. (*mtype.variantInfos).length)
+            {
+                auto n2 = (*mtype.variantInfos)[j].name;
+
+                if (n1 !is null || n2 !is null)
+                {
+                    if (n1 is n2)
+                    {
+                        .error(loc, "duplicate variant name `%s` in `__sumtype`", n1.toChars());
+                        return error();
+                    }
+                }
+                else if ((*mtype.variantInfos)[i].type.equals((*mtype.variantInfos)[j].type))
+                {
+                    .error(loc, "duplicate type `%s` in `__sumtype` — use named variants to disambiguate", (*mtype.variantInfos)[i].type.toErrMsg());
+                    return error();
+                }
+            }
+        }
+
+        // Validate element types for copy/move/postblit constraints
+        foreach (i, vi; (*mtype.variantInfos))
+        {
+            auto ts = vi.type.baseElemOf().isTypeStruct();
+            if (!ts)
+                continue;
+
+            auto sdv = ts.sym;
+
+            // Disabled copy constructor
+            if (sdv.hasCopyCtor)
+            {
+                Dsymbol ctorSym = sdv.search(sdv.loc, Id.ctor);
+                if (ctorSym)
+                {
+                    bool foundDisabled = false;
+                    overloadApply(ctorSym, (Dsymbol s)
+                    {
+                        auto ctorDecl = s.isCtorDeclaration();
+                        if (ctorDecl && ctorDecl.isCpCtor && (ctorDecl.storage_class & STC.disable))
+                        {
+                            foundDisabled = true;
+                            return 1;
+                        }
+                        return 0;
+                    });
+
+                    if (foundDisabled)
+                    {
+                        .error(loc, "cannot create sumtype with element type `%s` that has a disabled copy constructor",
+                        vi.type.toErrMsg());
+                        return new TypeError();
+                    }
+                }
+            }
+
+            // Disabled postblit
+            if (sdv.postblit && (sdv.postblit.storage_class & STC.disable))
+            {
+                .error(loc, "cannot create sumtype with element type `%s` that has a disabled postblit",
+                vi.type.toErrMsg());
+                return new TypeError();
+            }
+
+            // Move ctor without copy ctor or postblit
+            if (sdv.hasMoveCtor && !sdv.hasCopyCtor && !sdv.postblit)
+            {
+                .error(loc, "cannot create sumtype with element type `%s` that has a move constructor but no copy constructor",
+                vi.type.toErrMsg());
+                return new TypeError();
+            }
+        }
+
+        // 1-element sumtype degenerates to alias
+        if ((*mtype.variantInfos).length == 1)
+        {
+            return (*mtype.variantInfos)[0].type;
+        }
+
+        // Lower to a struct with tag + union of variant fields.
+        // If all variants fit in ≤2 bytes, emit align(1) so tag + value fit in a register.
+        auto sd = new StructDeclaration(loc, Identifier.generateId("__SumType"), false);
+
+        // Store the struct in the sumtype for later reference by MatchExp
+        mtype.loweredStruct = sd;
+        // Store sumtype reference on the struct so it can be found later
+        sd.sumtype = mtype;
+
+        // Flat list: [tag, [field0, field1, ...]] — used by copy ctor/dtor generators
+        auto members = new Dsymbols();
+        auto variantFields = new Dsymbols();
+
+        // tag, [fields], copy constructor, destructor
+        members.reserve(4);
+        // [fields]
+        variantFields.reserve((*mtype.variantInfos).length);
+
+        // Determine the default variant.
+        // If an unnamed variant's type has identifier "None", that's the default.
+        // Error if more than one unnamed None variant exists.
+        // If no unnamed None variant, default is the first variant (index 0).
+        size_t defaultVariantIdx = 0;
+        {
+            int noneCount = 0;
+            foreach (i, vi; (*mtype.variantInfos))
+            {
+                bool isNamed = vi.name !is null;
+                if (isNamed)
+                    continue;
+
+                // Check if this variant type's identifier is "None"
+                bool isNone = false;
+                auto ts = vi.type.baseElemOf().isTypeStruct();
+                if (ts && ts.sym && ts.sym.ident && ts.sym.ident.toString() == "None")
+                    isNone = true;
+                if (!isNone)
+                {
+                    auto te = vi.type.baseElemOf().isTypeEnum();
+                    if (te && te.sym && te.sym.ident && te.sym.ident.toString() == "None")
+                        isNone = true;
+                }
+
+                if (isNone)
+                {
+                    noneCount++;
+                    if (noneCount > 1)
+                    {
+                        .error(loc, "more than one unnamed `None` variant in `__sumtype` — only one is allowed as the default");
+                        return error();
+                    }
+                    defaultVariantIdx = i;
+                }
+            }
+        }
+
+        mtype.defaultVariantIdx = defaultVariantIdx;
+
+        // Determine tag type: smallest power-of-2 unsigned type that fits all variant indices
+        Type tagType;
+        if ((*mtype.variantInfos).length <= ubyte.max + 1)
+            tagType = Type.tuns8;
+        else if ((*mtype.variantInfos).length <= ushort.max + 1)
+            tagType = Type.tuns16;
+        else if ((*mtype.variantInfos).length <= uint.max + 1UL)
+            tagType = Type.tuns32;
+        else
+            tagType = Type.tuns64;
+
+        // Add tag field - initialized to the default variant index
+        auto tagVar = new VarDeclaration(loc, tagType, Id.tag, new ExpInitializer(loc, new IntegerExp(loc, cast(int)defaultVariantIdx, tagType)), STC.field);
+        members.push(tagVar);
+
+        // Add variant fields
+        foreach (i, vi; (*mtype.variantInfos))
+        {
+            Identifier fieldId;
+
+            if (vi.name is null)
+            {
+                char[8] buf;
+                buf[0] = '_';
+                buf[1] = '_';
+                buf[2] = 'v';
+                buf[3] = cast(char)(cast(int)'0' + i);
+                buf[4] = 0;
+                fieldId = Identifier.idPool(buf.ptr[0 .. 4]);
+            }
+            else
+                fieldId = vi.name;
+
+            auto fieldVar = new VarDeclaration(loc, vi.type, fieldId, null);
+            variantFields.push(fieldVar);
+        }
+
+        // Wrap variant fields with their UDAs for the AnonDeclaration.
+        // This ensures dsymbolSemantic picks up the UDAs via sc.userAttribDecl.
+        auto anonMembers = new Dsymbols();
+        anonMembers.reserve(variantFields.length);
+        foreach (i, sym; (*variantFields)[])
+        {
+            if ((*mtype.variantInfos)[i].udas !is null)
+            {
+                auto wrapped = new Dsymbols();
+                wrapped.push(sym);
+                anonMembers.push(new UserAttributeDeclaration((*mtype.variantInfos)[i].udas, wrapped));
+            }
+            else
+                anonMembers.push(sym);
+        }
+
+        members.push(new AnonDeclaration(loc, true, anonMembers));
+        sd.members = members;
+
+        // Set parent so dsymbolSemantic doesn't assert
+        sd.parent = sc.parent ? sc.parent : sc.scopesym;
+
+        // Generate sumtype copy constructor BEFORE dsymbolSemantic.
+        // This must be done before dsymbolSemantic so the struct semantic
+        // processes it naturally (no separate semantic pass needed).
+        // The standard struct machinery skips overlapped fields, so we generate
+        // the copy ctor manually for element types that need it.
+        generateSumtypeCopyCtor(sd, sc, mtype, variantFields);
+
+        // Generate sumtype destructor AFTER dsymbolSemantic.
+        // buildDtors skips all overlapped fields, so we generate it manually.
+        generateSumtypeDtor(sd, sc, mtype, variantFields);
+
+        // Run semantic on the struct to populate fields and process all members
+        dsymbolSemantic(sd, sc);
+
+        // Add the lowered struct to the module so the codegen
+        //  processes its members (including generated copy constructors)
+        // Also ensures that it goes into the right root module.
+        if (sc.tinst)
+        {
+            sd.parent = sc.tinst;
+            sc.tinst.members.push(sd);
+            sd.addMember(sc, sc.tinst);
+        }
+        else if (sc._module)
+        {
+            sd.parent = sc._module;
+            sc._module.members.push(sd);
+            sd.addMember(sc, sc._module);
+        }
+
+        Type ret = visitStruct(sd.type.isTypeStruct);
+
+        // Make sure to run semantic analysis on our loweered struct declaration
+        // It can be missed depending on state of compiler
+        sd.semantic2(sc);
+        return ret;
+    }
+
     switch (type.ty)
     {
         default:         return visitType(type);
@@ -4786,7 +5050,231 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         case Tslice:     return visitSlice(type.isTypeSlice());
         case Tmixin:     return visitMixin(type.isTypeMixin());
         case Ttag:       return visitTag(type.isTypeTag());
+        case Tsumtype:   return visitSumType(type.isTypeSumType());
     }
+}
+
+/**
+ * Generate sumtype-specific copy constructor for element types that need it.
+ *
+ * The standard struct machinery skips overlapped fields, so sumtypes don't get
+ * automatic copy constructors for their variant fields. This function generates
+ * one before dsymbolSemantic runs, so the struct semantic processes it naturally.
+ *
+ * - Detects disabled copy constructors/postblits on variants and errors
+ * - Merges attributes (pure/nothrow/@safe/@nogc) from element copy ctors/postblits
+ * - For struct elements with copy ctors/postblits: assigns individually (triggers them)
+ * - For non-struct elements: blits via the largest sized element
+ * - No move constructor is generated for sumtypes
+ *
+ * Params:
+ *  sd = the lowered sumtype struct declaration
+ *  sc = the current scope
+ *  mtype = the original sumtype type
+ */
+private void generateSumtypeCopyCtor(StructDeclaration sd, Scope* sc, TypeSumType mtype, Dsymbols* members)
+{
+    if (global.errors)
+        return;
+
+    Loc loc = sd.loc;
+
+    // Check variants for copy ctor/postblit needs and attribute merging
+    bool needsCopyCtor = false;
+    STC mergedAttrs = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+    size_t largestNonStructIdx = 0; // index into (*mtype.variantInfos)
+    uint largestNonStructSize = 0;
+
+    foreach (i, vi; (*mtype.variantInfos))
+    {
+        auto ts = vi.type.baseElemOf().isTypeStruct();
+        if (!ts)
+        {
+            // Non-struct: track largest for blitting
+            auto sz = vi.type.size(loc);
+            if (sz > largestNonStructSize)
+            {
+                largestNonStructSize = cast(uint) sz;
+                largestNonStructIdx = cast(uint)i;
+            }
+            continue;
+        }
+
+        auto sdv = ts.sym;
+
+        if (sdv.hasCopyCtor || sdv.postblit !is null)
+        {
+            needsCopyCtor = true;
+
+            // Merge attributes from this element's copy ctor or postblit (LCD)
+            if (sdv.hasCopyCtor)
+            {
+                Dsymbol ctorSym = sdv.search(sdv.loc, Id.ctor);
+                if (ctorSym)
+                {
+                    overloadApply(ctorSym, (Dsymbol s) {
+                        auto ctorDecl = s.isCtorDeclaration();
+                        if (ctorDecl && ctorDecl.isCpCtor)
+                        {
+                            mergedAttrs = mergeFuncAttrs(mergedAttrs, ctorDecl);
+                            return 1; // stop
+                        }
+                        return 0;
+                    });
+                }
+            }
+            if (sdv.postblit)
+            {
+                mergedAttrs = mergeFuncAttrs(mergedAttrs, sdv.postblit);
+                mergedAttrs = mergeFuncAttrs(mergedAttrs, sdv.dtor);
+            }
+        }
+    }
+
+    if (!needsCopyCtor)
+        return;
+
+    // Generate copy constructor: this(ref return scope S rhs)
+    auto structType = sd.type;
+    auto funcStc = STC.inference;
+    auto fparams = new Parameters(new Parameter(Loc.initial, STC.ref_, structType, Id.p, null, null, null));
+    ParameterList pList = ParameterList(fparams);
+    auto tf = new TypeFunction(pList, structType, LINK.d, STC.ref_);
+    auto ccd = new CtorDeclaration(sd.loc, Loc.initial, funcStc, tf);
+    ccd.isGenerated = true;
+
+    // Build the copy constructor body
+    Expression e = null;
+
+    // Copy the tag first: this.tag = rhs.tag
+    auto tagDecl = (*sd.members)[0].isDeclaration();
+    e = new AssignExp(loc,
+        new DotVarExp(loc, new ThisExp(loc), tagDecl),
+        new DotVarExp(loc, new IdentifierExp(loc, Id.p), tagDecl));
+
+    // For variant fields, assign from rhs.
+    // Struct elements with copy ctors/postblits: assignment triggers them.
+    // Non-struct elements: covered by the largest element blit.
+    foreach (i; 0 .. (*members).length)
+    {
+        auto field = (*members)[i].isVarDeclaration();
+        if (field is null)
+            continue;
+
+        auto variantType = (*mtype.variantInfos)[i].type;
+        auto ts = variantType.baseElemOf().isTypeStruct();
+
+        if (ts && (ts.sym.hasCopyCtor || ts.sym.postblit !is null))
+        {
+            DotVarExp dstField = new DotVarExp(loc, new ThisExp(loc), field),
+            srcField = new DotVarExp(loc, new IdentifierExp(loc, Id.p), field);
+            dstField.compilerOverlappedAccess = true;
+            srcField.compilerOverlappedAccess = true;
+
+            AssignExp copy = new AssignExp(loc, dstField, srcField);
+            e = Expression.combine(e, copy);
+        }
+        else if (!ts)
+        {
+            if (i - 1 == largestNonStructIdx)
+            {
+                DotVarExp dstField = new DotVarExp(loc, new ThisExp(loc), field),
+                    srcField = new DotVarExp(loc, new IdentifierExp(loc, Id.p), field);
+                dstField.compilerOverlappedAccess = true;
+                srcField.compilerOverlappedAccess = true;
+
+                AssignExp copy = new AssignExp(loc, dstField, srcField);
+                e = Expression.combine(e, copy);
+            }
+        }
+    }
+
+    ccd.fbody = new CompoundStatement(loc, new ExpStatement(loc, e));
+    sd.members.push(ccd);
+}
+
+/**
+ * Generate sumtype destructor for variant fields that have destructors.
+ * buildDtors skips all overlapped fields, so we generate it manually.
+ * Runs after dsymbolSemantic so sd.members is fully populated.
+ */
+private void generateSumtypeDtor(StructDeclaration sd, Scope* sc, TypeSumType mtype, Dsymbols* members)
+{
+    if (global.errors)
+        return;
+
+    Loc loc = sd.loc;
+
+    // Collect variants that need destruction, in reverse order for if-else chain
+    Statement chain = null;
+
+    foreach_reverse (i; 0 .. (*mtype.variantInfos).length)
+    {
+        auto variantType = (*mtype.variantInfos)[i].type;
+        auto ts = variantType.baseElemOf().isTypeStruct();
+        if (!ts)
+            continue;
+        auto sdv = ts.sym;
+        if (!sdv.dtor)
+            continue;
+        if (sdv.dtor.storage_class & STC.disable)
+            continue;
+
+        functionSemantic(sdv.dtor);
+
+        auto tagVar = (*sd.members)[0].isVarDeclaration();
+        auto field = (*members)[i].isVarDeclaration();
+
+        // Build condition: this.tag == i
+        auto cond = new EqualExp(EXP.equal, loc,
+            new DotVarExp(loc, new ThisExp(loc), tagVar),
+            new IntegerExp(loc, i, tagVar.type));
+
+        // Build destructor call: (cast()this.field).__xdtor()
+        DotVarExp dstField = new DotVarExp(loc, new ThisExp(loc), field);
+        dstField.compilerOverlappedAccess = true;
+
+        Expression dtorExp = dstField;
+        dtorExp = new CastExp(loc, dtorExp, MODFlags.none);
+        dtorExp = new DotVarExp(loc, dtorExp, sdv.dtor, false);
+        dtorExp = new CallExp(loc, dtorExp);
+
+        auto ifBody = new ExpStatement(loc, dtorExp);
+
+        // Build: if (tag == i) { dtorCall; } else prev
+        chain = new IfStatement(loc, null, cond, ifBody, chain, loc);
+    }
+
+    if (chain is null)
+        return;
+
+    STC stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+    foreach (vi; (*mtype.variantInfos))
+    {
+        auto ts = vi.type.baseElemOf().isTypeStruct();
+        if (!ts)
+            continue;
+        auto sdv = ts.sym;
+        if (!sdv.dtor)
+            continue;
+        stc = mergeFuncAttrs(stc, sdv.dtor);
+        if (stc & STC.disable)
+            return;
+    }
+
+    auto dd = new DtorDeclaration(sd.loc, Loc.initial, stc, Id.__fieldDtor);
+    dd.isGenerated = true;
+    dd.storage_class |= STC.inference;
+    dd.fbody = new CompoundStatement(loc, chain);
+    sd.members.push(dd);
+
+    sd.fieldDtor = dd;
+    sd.aggrDtor = dd;
+    sd.dtor = dd;
+    sd.tidtor = dd;
+
+    auto _alias = new AliasDeclaration(Loc.initial, Id.__xdtor, dd);
+    sd.members.push(_alias);
 }
 
 Type trySemantic(Type type, Loc loc, Scope* sc)
@@ -4948,6 +5436,19 @@ Expression defaultInitLiteral(Type t, Loc loc)
         }
         if (ts.sym.sizeok != Sizeok.done)
             return ErrorExp.get();
+
+        if (ts.sym.sumtype)
+        {
+            auto mtype = ts.sym.sumtype;
+            auto defIdx = mtype.defaultVariantIdx;
+            auto structelems = new Expressions(ts.sym.nonHiddenFields());
+            structelems.zero;
+            (*structelems)[0] = new IntegerExp(loc, cast(int)defIdx, ts.sym.fields[0].type);
+            (*structelems)[defIdx + 1] = (*mtype.variantInfos)[defIdx].type.defaultInitLiteral(loc);
+            auto structinit = new StructLiteralExp(loc, ts.sym, structelems);
+            structinit.type = ts;
+            return structinit;
+        }
 
         auto structelems = new Expressions(ts.sym.nonHiddenFields());
         ulong bitoffset = 0;

@@ -481,6 +481,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             case TOK.class_:
             case TOK.interface_:
             case TOK.traits:
+            case TOK.sumtype_:
             Ldeclaration:
                 a = parseDeclarations(false, pAttrs, pAttrs.comment);
                 if (a && a.length)
@@ -4093,6 +4094,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             check(TOK.rightParenthesis);
             break;
 
+        case TOK.sumtype_:
+            t = parseSumType();
+            break;
+
         default:
             error("basic type expected, not `%s`", token.toChars());
             if (token.value == TOK.else_)
@@ -4101,6 +4106,214 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             break;
         }
         return t;
+    }
+
+    /********************************
+     * Parse __sumtype(Type | Type | ...) as a type
+     * Parser is sitting on the `__sumtype` token.
+     */
+    private AST.Type parseSumType()
+    {
+        nextToken();
+        check(TOK.leftParenthesis, "`__sumtype`");
+
+        auto variants = new AST.Types();
+
+        // Parse first type
+        if (token.value == TOK.rightParenthesis)
+        {
+            error("at least one type expected in `__sumtype(...)`");
+            nextToken();
+            return AST.Type.terror;
+        }
+
+        AST.SumTypeVariantInfos variantInfos;
+
+        AST.Expressions* firstUdas;
+        while (token.value == TOK.at)
+        {
+            AST.Expressions* udaList;
+            parseAttribute(udaList);
+            if (firstUdas is null)
+                firstUdas = udaList;
+            else if (udaList !is null)
+                firstUdas = AST.UserAttributeDeclaration.concat(firstUdas, udaList);
+        }
+
+        // Capture ddoc comment before first variant
+        const(char)* firstComment = token.blockComment.ptr;
+        Identifier firstName = parseSumTypeVariant(variants);
+
+        AST.SumTypeVariantInfo firstInfo;
+        firstInfo.type = (*variants)[variants.length - 1];
+        firstInfo.name = firstName;
+        firstInfo.udas = firstUdas;
+        firstInfo.comment = firstComment;
+        variantInfos.push(firstInfo);
+
+        // Parse remaining types separated by `|`
+        while (token.value == TOK.or)
+        {
+            nextToken();
+            AST.Expressions* udas;
+            while (token.value == TOK.at)
+            {
+                AST.Expressions* udaList;
+                parseAttribute(udaList);
+                if (udas is null)
+                    udas = udaList;
+                else if (udaList !is null)
+                    udas = AST.UserAttributeDeclaration.concat(udas, udaList);
+            }
+
+            // Capture ddoc comment before this variant
+            const(char)* vcomment = token.blockComment.ptr;
+            auto name = parseSumTypeVariant(variants);
+
+            AST.SumTypeVariantInfo info;
+            info.type = (*variants)[variants.length - 1];
+            info.name = name;
+            info.udas = udas;
+            info.comment = vcomment;
+            variantInfos.push(info);
+        }
+
+        check(TOK.rightParenthesis, "`__sumtype`");
+
+        auto ts = new AST.TypeSumType(new AST.SumTypeVariantInfos(variantInfos[]));
+        return ts;
+    }
+
+    /********************************
+     * Parse a single variant: Type [name] or (Type name)
+     */
+    private Identifier parseSumTypeVariant(AST.Types* variants)
+    {
+        Identifier name;
+
+        // Support bracketed form: (Type name)
+        if (token.value == TOK.leftParenthesis)
+        {
+            nextToken();
+            auto t = parseBasicType();
+            t = parseTypeSuffixes(t);
+            variants.push(t);
+
+            if (token.value == TOK.identifier)
+            {
+                name = token.ident;
+                nextToken();
+            }
+            check(TOK.rightParenthesis, "named variant");
+            return name;
+        }
+
+        // Bracketless form: Type [name]
+        auto t = parseBasicType();
+        t = parseTypeSuffixes(t);
+        variants.push(t);
+
+        // Optional name: if next token is identifier, treat as variant name
+        if (token.value == TOK.identifier)
+        {
+            name = token.ident;
+            nextToken();
+        }
+        return name;
+    }
+
+    /********************************
+     * Parse sumtype block form: __sumtype S { Type name, Type name, ... }
+     */
+    private AST.Dsymbols* parseSumTypeDeclarations(const(char)* comment, STC storage_class)
+    {
+        const loc = token.loc;
+        nextToken(); // consume `__sumtype`
+
+        if (token.value != TOK.identifier)
+        {
+            error("identifier expected following `__sumtype`");
+            return new AST.Dsymbols();
+        }
+
+        Identifier id = token.ident;
+        nextToken();
+
+        // Form 2: direct form __sumtype S = Type | Type;
+        // or: __sumtype S = Type name | Type;
+        // or: __sumtype S = (Type name) | (Type name);
+        if (token.value == TOK.assign)
+        {
+            nextToken();
+            auto variants = new AST.Types();
+
+            AST.SumTypeVariantInfos variantInfos;
+
+            AST.Expressions* firstUdas;
+            while (token.value == TOK.at)
+            {
+                AST.Expressions* udaList;
+                parseAttribute(udaList);
+                if (firstUdas is null)
+                    firstUdas = udaList;
+                else if (udaList !is null)
+                    firstUdas = AST.UserAttributeDeclaration.concat(firstUdas, udaList);
+            }
+
+            // Capture ddoc comment before first variant
+            const(char)* firstComment = token.blockComment.ptr;
+            Identifier firstName = parseSumTypeVariant(variants);
+
+            AST.SumTypeVariantInfo firstInfo;
+            firstInfo.type = (*variants)[variants.length - 1];
+            firstInfo.name = firstName;
+            firstInfo.udas = firstUdas;
+            firstInfo.comment = firstComment;
+            variantInfos.push(firstInfo);
+
+            while (token.value == TOK.or)
+            {
+                nextToken();
+                AST.Expressions* udas;
+                while (token.value == TOK.at)
+                {
+                    AST.Expressions* udaList;
+                    parseAttribute(udaList);
+                    if (udas is null)
+                        udas = udaList;
+                    else if (udaList !is null)
+                        udas = AST.UserAttributeDeclaration.concat(udas, udaList);
+                }
+
+                // Capture ddoc comment before this variant
+                const(char)* vcomment = token.blockComment.ptr;
+                auto name = parseSumTypeVariant(variants);
+
+                AST.SumTypeVariantInfo info;
+                info.type = (*variants)[variants.length - 1];
+                info.name = name;
+                info.udas = udas;
+                info.comment = vcomment;
+                variantInfos.push(info);
+            }
+
+            auto ts = new AST.TypeSumType(new AST.SumTypeVariantInfos(variantInfos[]));
+            auto ad = new AST.AliasDeclaration(loc, id, ts);
+            auto a = new AST.Dsymbols();
+            a.push(ad);
+            if (storage_class)
+            {
+                auto scd = new AST.StorageClassDeclaration(storage_class, a);
+                a = new AST.Dsymbols();
+                a.push(scd);
+            }
+            check(TOK.semicolon, "`__sumtype` declaration");
+            addComment(ad, comment);
+            return a;
+        }
+
+        error("expected `=` following `__sumtype %s`", id.toChars());
+        return new AST.Dsymbols();
     }
 
     private AST.Type parseBasicTypeStartingAt(AST.TypeQualified tid, bool dontLookDotIdents)
@@ -4761,6 +4974,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 addComment(d, comment);
                 return a;
+            }
+            if (token.value == TOK.sumtype_)
+            {
+                return parseSumTypeDeclarations(comment, storage_class);
             }
             if (token.value == TOK.struct_ ||
                      token.value == TOK.union_ ||
@@ -6409,6 +6626,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.union_:
         case TOK.class_:
         case TOK.interface_:
+        case TOK.sumtype_:
         Ldeclaration:
             {
                 AST.Dsymbols* a = parseDeclarations(false, null, null);
@@ -9283,10 +9501,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         case TOK.complex80:
                         case TOK.void_:
                             {
-                                // (type) una_exp
+                                 // (type) una_exp
                                 nextToken();
                                 // Note: `t` may be an expression that looks like a type
                                 auto t = parseType();
+                                t = parseTypeSuffixes(t);
                                 check(TOK.rightParenthesis);
 
                                 // if .identifier
@@ -9368,6 +9587,99 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             {
             case TOK.dot:
                 nextToken();
+                if (token.value == TOK.identifier && token.ident is Id.match && peekNext() == TOK.leftCurly)
+                {
+                    nextToken();  // consume 'match'
+                    check(TOK.leftCurly, "`match`");
+
+                    AST.SumTypeMatchArmInfos armInfos;
+
+                    while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
+                    {
+                        // Parse (Type id) [if (guard)] => expr  or  (id) [if (guard)] => expr (catch-all)
+                        // or (ref Type id) [if (guard)] => expr  or  (ref id) [if (guard)] => expr
+                        if (token.value == TOK.leftParenthesis)
+                        {
+                            nextToken();
+
+                            STC storageClass = STC.none;
+
+                            // Check for ref storage class
+                            if (token.value == TOK.ref_)
+                            {
+                                storageClass |= STC.ref_;
+                                nextToken();
+                            }
+
+                            AST.Type paramType;
+                            Identifier paramName;
+
+                            // Determine if typeless (catch-all) or typed:
+                            // identifier followed by ')' is typeless (catch-all)
+                            if (token.value == TOK.identifier && peekNext() == TOK.rightParenthesis)
+                            {
+                                paramType = null;
+                                paramName = token.ident;
+                                nextToken();
+                            }
+                            else
+                            {
+                                paramType = parseBasicType();
+                                paramType = parseTypeSuffixes(paramType);
+                                paramName = null;
+                                if (token.value == TOK.identifier)
+                                {
+                                    paramName = token.ident;
+                                    nextToken();
+                                }
+                            }
+
+                            check(TOK.rightParenthesis, "match arm parameter");
+
+                            // Parse optional guard: if (expr)
+                            AST.Expression guardExpr = null;
+                            if (token.value == TOK.if_)
+                            {
+                                nextToken();
+                                check(TOK.leftParenthesis, "`if` condition in match arm");
+                                guardExpr = parseAssignExp();
+                                check(TOK.rightParenthesis, "`if` condition in match arm");
+                            }
+
+                            if (token.value != TOK.goesTo)
+                            {
+                                error("expected `=>` in match arm");
+                                break;
+                            }
+                            nextToken();
+
+                            AST.Expression bodyExpr = parseAssignExp();
+
+                            auto vd = new AST.VarDeclaration(loc, paramType, paramName,
+                                new AST.ExpInitializer(loc, bodyExpr), storageClass);
+                            AST.SumTypeMatchArmInfo ai;
+                            ai.vd = vd;
+                            ai.guard = guardExpr;
+                            ai.variantIndex = -1;
+                            ai.originalIndex = cast(int)armInfos.length;
+                            armInfos.push(ai);
+                        }
+                        else
+                        {
+                            error("expected `(Type id)` in match arm");
+                            break;
+                        }
+
+                        if (token.value == TOK.comma)
+                            nextToken();
+                        else
+                            break;
+                    }
+
+                    check(TOK.rightCurly, "`match`");
+                    e = new AST.MatchExp(loc, e, new AST.SumTypeMatchArmInfos(armInfos[]));
+                    continue;
+                }
                 if (token.value == TOK.identifier)
                 {
                     Identifier id = token.ident;
@@ -10187,6 +10499,8 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.declaration : PREC.expr,
 
     EXP.interval : PREC.assign,
+
+    EXP.matchExp : PREC.primary,
 ];
 
 enum ParseStatementFlags : int

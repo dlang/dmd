@@ -259,6 +259,8 @@ enum class TOK : unsigned char
     whitespace,
     rvalue,
 
+    sumtype_,
+
     // C only keywords
     inline_,
     register_,
@@ -429,6 +431,10 @@ enum class EXP : unsigned char
     compoundLiteral, // ( type-name ) { initializer-list }
     _Generic_,
     interval,
+
+    loweredAssignExp,
+    rvalue,
+    matchExp,
 
     MAX
 };

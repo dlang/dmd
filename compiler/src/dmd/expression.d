@@ -451,6 +451,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(IdentityExp) isIdentityExp() { return (op == EXP.identity || op == EXP.notIdentity) ? cast(typeof(return))this : null; }
         inout(CondExp)     isCondExp() { return op == EXP.question ? cast(typeof(return))this : null; }
         inout(GenericExp)  isGenericExp() { return op == EXP._Generic ? cast(typeof(return))this : null; }
+        inout(MatchExp)    isMatchExp() { return op == EXP.matchExp ? cast(typeof(return))this : null; }
         inout(DefaultInitExp)    isDefaultInitExp() { return op == EXP.defaultInit ? cast(typeof(return))this : null; }
         inout(ObjcClassReferenceExp) isObjcClassReferenceExp() { return op == EXP.objcClassReference ? cast(typeof(return))this : null; }
         inout(ClassReferenceExp) isClassReferenceExp() { return op == EXP.classReference ? cast(typeof(return))this : null; }
@@ -2233,6 +2234,7 @@ extern (C++) final class DotVarExp : UnaExp
 {
     Declaration var;
     bool hasOverloads;
+    bool compilerOverlappedAccess; // compiler-generated access to overlapped field (e.g. match internals)
 
     extern (D) this(Loc loc, Expression e, Declaration var, bool hasOverloads = true) @safe
     {
@@ -3961,6 +3963,58 @@ extern (C++) final class GenericExp : Expression
     override GenericExp syntaxCopy()
     {
         return new GenericExp(loc, cntlExp.syntaxCopy(), Type.arraySyntaxCopy(types), Expression.arraySyntaxCopy(exps));
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * Match expression: val.match { (Type id) if (guard) => expr, ... }
+ */
+
+struct SumTypeMatchArmInfo
+{
+    VarDeclaration vd;      /// arm declaration (type = param type, ident = param name, _init = body expr)
+    Expression guard;       /// guard expression, null if none
+    int variantIndex;       /// which variant this arm matches (-2 = catch-all, filled during semantic)
+    int originalIndex;      /// source order position (for stable sort)
+}
+
+extern (C++) final class MatchExp : Expression
+{
+    Expression arg;              /// scrutinee expression
+    SumTypeMatchArmInfos* armInfos;     /// match arms with optional guards, sorted by variantIndex after semantic
+    Type resultType;             /// computed result type
+    StructDeclaration loweredStruct; /// lowered sumtype struct
+    TypeSumType sumtypeType;     /// the sumtype declaration this matches on
+
+    extern (D) this(Loc loc, Expression arg, SumTypeMatchArmInfos* armInfos) @safe
+    {
+        super(loc, EXP.matchExp);
+        this.arg = arg;
+        this.armInfos = armInfos;
+    }
+
+    override MatchExp syntaxCopy()
+    {
+        auto copyInfos = new SumTypeMatchArmInfos();
+        foreach (i, ref ai; *armInfos)
+        {
+            SumTypeMatchArmInfo cai;
+            cai.vd = cast(VarDeclaration) ai.vd.syntaxCopy(null);
+            cai.guard = ai.guard ? ai.guard.syntaxCopy() : null;
+            cai.variantIndex = ai.variantIndex;
+            cai.originalIndex = ai.originalIndex;
+            copyInfos.push(cai);
+        }
+        auto copy = new MatchExp(loc, arg.syntaxCopy(), copyInfos);
+        copy.resultType = resultType;
+        copy.loweredStruct = loweredStruct;
+        copy.sumtypeType = sumtypeType;
+        return copy;
     }
 
     override void accept(Visitor v)
