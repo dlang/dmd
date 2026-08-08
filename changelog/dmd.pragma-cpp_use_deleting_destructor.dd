@@ -1,0 +1,19 @@
+Add pragma for enabling deleting destructors for C++ classes
+
+Currently deleting destructors for C++ are implemented in D by only
+running the normal destructors and not freeing memory.
+This can result in memory leaks if instances are deleted from C++.
+
+The new pragma `cpp_use_deleting_destructor` allows to enable freeing
+memory in deleting destructors for classes. The pragma is inherited by
+subclasses, so it normally only needs to be used on root classes.
+
+```d
+pragma(cpp_use_deleting_destructor, true)
+extern(C++) class Class
+{
+    ~this()
+    {
+    }
+}
+```

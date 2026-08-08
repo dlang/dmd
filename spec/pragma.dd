@@ -76,6 +76,7 @@ $(UL
     $(LI $(LINK2 #printf, pragma printf))
     $(LI $(LINK2 #scanf, pragma scanf))
     $(LI $(LINK2 #startaddress, pragma startaddress))
+    $(LI $(LINK2 #cpp_use_deleting_destructor, pragma cpp_use_deleting_destructor))
 )
 
     $(IMPLEMENTATION_DEFINED An implementation may ignore these pragmas.)
@@ -463,6 +464,35 @@ pragma(startaddress, foo);
 -----------------
 
     )
+
+
+$(H3 $(LNAME2 cpp_use_deleting_destructor, $(D pragma cpp_use_deleting_destructor)))
+
+    $(P There must be one argument and it must be a literal `true` or `false`.)
+
+    $(IMPLEMENTATION_DEFINED Enables or disables deleting destructors for
+    `extern(C++)` classes.
+    By default deleting destructor for `extern(C++)` classes defined in
+    D run the destructors, but don't free the memory. This can result in
+    memory leaks if instances are deleted from C++. This pragma enables
+    creating deleting destructors, which free the memory.
+    This requires linking to the C++ standard library.
+    The pragma is inherited by subclasses, so it normally only needs to be
+    used on root classes.
+    For classes, which are not `extern(C++)`, or other declarations
+    the pragma is ignored.
+
+-----------------
+pragma(cpp_use_deleting_destructor, true)
+extern(C++) class Class
+{
+    ~this()
+    {
+    }
+}
+-----------------
+    )
+
 
 $(H2 $(LNAME2 vendor_specific_pragmas, Vendor Specific Pragmas))
 
