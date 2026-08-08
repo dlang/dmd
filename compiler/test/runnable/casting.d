@@ -241,10 +241,10 @@ void test23262()
     auto d = cast(class23262) cpp;
     assert(d is null); // no way back
 
-    auto i = cast(iface23262) cpp2;
-    assert(cast(void*)i is cast(void*)cpp2); // reinterpret cast
-
     auto cppobj = new cpp23262;
+    auto i = cast(iface23262) cppobj;
+    assert(cast(void*)i is cast(void*)cppobj); // reinterpret cast
+
     auto d2 = cast(class23262) cppobj;
     assert(d2 is null); // classes of different linkage never mix
 }
