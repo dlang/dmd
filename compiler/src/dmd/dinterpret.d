@@ -5872,7 +5872,7 @@ public:
             }
             error(e.loc, "array cast from `%s` to `%s` is not supported at compile time", e1.type.toErrMsg(), e.to.toErrMsg());
             if (se && se.hexString && se.postfix != StringExp.NoPostfix)
-                errorSupplemental(e.loc, "perhaps remove postfix `%.*s` from hex string", 1, &se.postfix);
+                errorSupplemental(e.loc, "perhaps remove postfix `%c` from hex string", se.postfix);
 
             result = CTFEExp.cantexp;
             return;
