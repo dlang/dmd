@@ -494,33 +494,59 @@ extern (C++) abstract class Type : ASTNode
     extern (C++) __gshared Type[TMAX] basic;
 
     extern (D) __gshared StringTable!Type stringtable;
+
+    alias AliasSeq(T...) = T;
+    template TyType(TY t, T)
+    {
+        enum ty = t;
+        alias type = T;
+    }
+    alias TyTypePairs = AliasSeq!
+    (
+        TyType!(Tsarray, TypeSArray),
+        TyType!(Tarray, TypeDArray),
+        TyType!(Taarray, TypeAArray),
+        TyType!(Tpointer, TypePointer),
+        TyType!(Treference, TypeReference),
+        TyType!(Tfunction, TypeFunction),
+        TyType!(Tdelegate, TypeDelegate),
+        TyType!(Tident, TypeIdentifier),
+        TyType!(Tinstance, TypeInstance),
+        TyType!(Ttypeof, TypeTypeof),
+        TyType!(Tenum, TypeEnum),
+        TyType!(Tstruct, TypeStruct),
+        TyType!(Tclass, TypeClass),
+        TyType!(Ttuple, TypeTuple),
+        TyType!(Tslice, TypeSlice),
+        TyType!(Treturn, TypeReturn),
+        TyType!(Terror, TypeError),
+        TyType!(Tnull, TypeNull),
+        TyType!(Tvector, TypeVector),
+        TyType!(Ttraits, TypeTraits),
+        TyType!(Tmixin, TypeMixin),
+        TyType!(Tnoreturn, TypeNoreturn),
+        TyType!(Ttag, TypeTag),
+    );
+
     extern (D) private static immutable ubyte[TMAX] sizeTy = ()
         {
             ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);
-            sizeTy[Tsarray] = __traits(classInstanceSize, TypeSArray);
-            sizeTy[Tarray] = __traits(classInstanceSize, TypeDArray);
-            sizeTy[Taarray] = __traits(classInstanceSize, TypeAArray);
-            sizeTy[Tpointer] = __traits(classInstanceSize, TypePointer);
-            sizeTy[Treference] = __traits(classInstanceSize, TypeReference);
-            sizeTy[Tfunction] = __traits(classInstanceSize, TypeFunction);
-            sizeTy[Tdelegate] = __traits(classInstanceSize, TypeDelegate);
-            sizeTy[Tident] = __traits(classInstanceSize, TypeIdentifier);
-            sizeTy[Tinstance] = __traits(classInstanceSize, TypeInstance);
-            sizeTy[Ttypeof] = __traits(classInstanceSize, TypeTypeof);
-            sizeTy[Tenum] = __traits(classInstanceSize, TypeEnum);
-            sizeTy[Tstruct] = __traits(classInstanceSize, TypeStruct);
-            sizeTy[Tclass] = __traits(classInstanceSize, TypeClass);
-            sizeTy[Ttuple] = __traits(classInstanceSize, TypeTuple);
-            sizeTy[Tslice] = __traits(classInstanceSize, TypeSlice);
-            sizeTy[Treturn] = __traits(classInstanceSize, TypeReturn);
-            sizeTy[Terror] = __traits(classInstanceSize, TypeError);
-            sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
-            sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
-            sizeTy[Ttraits] = __traits(classInstanceSize, TypeTraits);
-            sizeTy[Tmixin] = __traits(classInstanceSize, TypeMixin);
-            sizeTy[Tnoreturn] = __traits(classInstanceSize, TypeNoreturn);
-            sizeTy[Ttag] = __traits(classInstanceSize, TypeTag);
+            foreach(tytype; TyTypePairs)
+                sizeTy[tytype.ty] = __traits(classInstanceSize, tytype.type);
             return sizeTy;
+        }();
+
+    extern (D) private static immutable ubyte[TMAX] alignTy = ()
+        {
+            static if (__VERSION__ >= 2101) // support for classInstanceAlignment ?
+            {
+                ubyte[TMAX] alignTy = __traits(classInstanceAlignment, TypeBasic);
+                foreach(tytype; TyTypePairs)
+                    alignTy[tytype.ty] = __traits(classInstanceAlignment, tytype.type);
+            }
+            else
+                ubyte[TMAX] alignTy = 16; // worst case, GC doesn't guarantee more anyway
+            return alignTy;
         }();
 
     final extern (D) this(TY ty) scope @safe nothrow
@@ -535,7 +561,7 @@ extern (C++) abstract class Type : ASTNode
 
     final Type copy() nothrow const
     {
-        Type t = cast(Type)mem.xmalloc(sizeTy[ty]);
+        Type t = cast(Type)allocmemoryNoFree(sizeTy[ty], alignTy[ty]);
         memcpy(cast(void*)t, cast(void*)this, sizeTy[ty]);
         return t;
     }
@@ -711,7 +737,7 @@ extern (C++) abstract class Type : ASTNode
     final Type nullAttributes() nothrow const
     {
         uint sz = sizeTy[ty];
-        Type t = cast(Type)mem.xmalloc(sz);
+        Type t = cast(Type)allocmemoryNoFree(sz, alignTy[ty]);
         memcpy(cast(void*)t, cast(void*)this, sz);
         // t.mod = NULL;  // leave mod unchanged
         t.deco = null;
