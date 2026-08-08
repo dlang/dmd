@@ -516,7 +516,7 @@ uinteger_t resolveArrayLength(Expression e)
         case EXP.arrayLiteral:
         {
             const ale = e.isArrayLiteralExp();
-            return ale.elements ? ale.elements.length : 0;
+            return ale.length;
         }
 
         case EXP.assocArrayLiteral:
@@ -1399,12 +1399,12 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         // [chars] ~ string => string (only valid for CTFE)
         StringExp es1 = e2.isStringExp();
         ArrayLiteralExp es2 = e1.isArrayLiteralExp();
-        const len = es1.len + es2.elements.length;
+        const len = es1.len + es2.length;
         const sz = es1.sz;
         void* s = mem.xmalloc_noscan((len + 1) * sz);
         const data1 = es1.peekData();
-        memcpy(cast(char*)s + sz * es2.elements.length, data1.ptr, data1.length);
-        foreach (size_t i; 0 .. es2.elements.length)
+        memcpy(cast(char*)s + sz * es2.length, data1.ptr, data1.length);
+        foreach (size_t i; 0 .. es2.length)
         {
             Expression es2e = (*es2.elements)[i];
             if (!es2e) es2e = es2.basis;
@@ -1430,12 +1430,12 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         // Concatenate the strings
         StringExp es1 = e1.isStringExp();
         ArrayLiteralExp es2 = e2.isArrayLiteralExp();
-        const len = es1.len + es2.elements.length;
+        const len = es1.len + es2.length;
         const sz = es1.sz;
         void* s = mem.xmalloc_noscan((len + 1) * sz);
         auto slice = es1.peekData();
         memcpy(s, slice.ptr, slice.length);
-        foreach (size_t i; 0 .. es2.elements.length)
+        foreach (size_t i; 0 .. es2.length)
         {
             Expression es2e = (*es2.elements)[i];
             if (!es2e) es2e = es2.basis;
@@ -1463,7 +1463,7 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         ArrayLiteralExp es2 = e2.isArrayLiteralExp();
         emplaceExp!(ArrayLiteralExp)(&ue, es1.loc, type, copyLiteralArrayExpand(es1.elements, es1.basis));
         es1 = ue.exp().isArrayLiteralExp();
-        es1.elements.insert(es1.elements.length, copyLiteralArrayExpand(es2.elements, es2.basis));
+        es1.elements.insert(es1.length, copyLiteralArrayExpand(es2.elements, es2.basis));
         return ue;
     }
     if (e1.op == EXP.arrayLiteral && e2.op == EXP.null_ && t1.nextOf().equals(t2.nextOf()))
@@ -1525,13 +1525,12 @@ Expression ctfeIndex(UnionExp* pue, Loc loc, Type type, Expression e1, uinteger_
 
     if (auto ale = e1.isArrayLiteralExp())
     {
-        if (indx >= ale.elements.length)
+        if (indx >= ale.length)
         {
-            error(loc, "array index %llu is out of bounds `%s[0 .. %llu]`", indx, e1.toErrMsg(), cast(ulong)ale.elements.length);
+            error(loc, "array index %llu is out of bounds `%s[0 .. %llu]`", indx, e1.toErrMsg(), cast(ulong)ale.length);
             return CTFEExp.cantexp;
         }
-        Expression e = (*ale.elements)[cast(size_t)indx];
-        if (!e) e = ale.basis;
+        Expression e = ale[cast(size_t)indx];
         return paintTypeOntoLiteral(pue, type, e);
     }
 
@@ -1951,7 +1950,7 @@ void showCtfeExpr(Expression e, int level = 0)
     }
     else if (e.op == EXP.arrayLiteral)
     {
-        elements = e.isArrayLiteralExp().elements;
+        elements = e.isArrayLiteralExp().elements;	// what about basis?
         printf("ARRAY LITERAL type=%s %p:\n", e.type.toChars(), e);
     }
     else if (e.op == EXP.assocArrayLiteral)
