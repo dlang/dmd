@@ -1566,6 +1566,14 @@ $(H2 $(LNAME2 implicit-conversions, Implicit Conversions))
         $(P An array/pointer with a class element type may have
         $(DDSUBLINK spec/type, class-conversions, implicit conversions).)
 
+        $(P Array literals can be implicitly converted to static array
+        types. See $(DDSUBLINK spec/expression, array_literals, Array Literals)
+        for details.)
+
+        $(P String literals can be implicitly converted to static array
+        types and character pointer types. See $(DDSUBLINK spec/expression, string_literals,
+        String Literals) for details.)
+
 $(H3 $(LNAME2 void-element-conversion, Void Element Conversion))
 
         $(P A pointer $(D T*) can be implicitly converted to a
@@ -1597,16 +1605,6 @@ void test()
 }
 ---
 )
-
-$(H3 $(LNAME2 literal-conversion, Literal Conversion))
-
-        $(P Array literals can also be implicitly converted to static array
-        types. See $(DDSUBLINK spec/expression, array_literals, Array Literals)
-        for details.)
-
-        $(P String literals can also be implicitly converted to static array
-        types and character pointer types. See $(DDSUBLINK spec/expression, string_literals,
-        String Literals) for details.)
 
 
 $(SPEC_SUBNAV_PREV_NEXT statement, Statements, hash-map, Associative Arrays)
