@@ -8649,20 +8649,55 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // if super is defined in C++, it sets the vtable pointer to the base class
                 // so we have to restore it, but still return 'this' from super() call:
                 // (auto __vptrTmp = this.__vptr, auto __superTmp = super()), (this.__vptr = __vptrTmp, __superTmp)
+                // the same is done for every interface vptr
                 Loc loc = exp.loc;
 
-                auto vptr = new DotIdExp(loc, new ThisExp(loc), Id.__vptr);
-                auto vptrTmpDecl = copyToTemp(STC.none, "__vptrTmp", vptr);
-                auto declareVptrTmp = new DeclarationExp(loc, vptrTmpDecl);
+                // Build expressions for accessing the vptrs.
+                Expressions *vptrs = new Expressions();
+
+                // Add expression for normal vptr
+                vptrs.push(new DotIdExp(loc, new ThisExp(loc), Id.__vptr));
+
+                // Add expressions for interface vptrs
+                for (ClassDeclaration pc = cd.baseClass; pc; pc = pc.baseClass)
+                {
+                    foreach (i; 0 .. pc.vtblInterfaces.length)
+                    {
+                        BaseClass* b = (*pc.vtblInterfaces)[i];
+
+                        // Add expression `*cast(void**)(cast(void*)this) + offset)` for accessing the interface vptr
+                        Expression vptr = new CastExp(loc, new ThisExp(loc), Type.tvoidptr);
+                        vptr = new AddExp(loc, vptr, new IntegerExp(loc, b.offset, Type.tsize_t));
+                        vptr = new PtrExp(loc, new CastExp(loc, vptr, Type.tvoidptr.pointerTo()));
+                        vptrs.push(vptr);
+                    }
+                }
 
                 auto superTmpDecl = copyToTemp(STC.none, "__superTmp", result);
                 auto declareSuperTmp = new DeclarationExp(loc, superTmpDecl);
 
-                auto declareTmps = new CommaExp(loc, declareVptrTmp, declareSuperTmp);
+                // Build expressions for declaring the temporary variables and restoring them
+                Expression declareTmps = null;
+                Expression restoreVptrs = null;
+                foreach (vptr; *vptrs)
+                {
+                    auto vptrTmpDecl = copyToTemp(STC.none, "__vptrTmp", vptr);
+                    auto declareTmp = new DeclarationExp(loc, vptrTmpDecl);
+                    if (declareTmps !is null)
+                        declareTmps = new CommaExp(loc, declareTmps, declareTmp);
+                    else
+                        declareTmps = declareTmp;
 
-                auto restoreVptr = new AssignExp(loc, vptr.syntaxCopy(), new VarExp(loc, vptrTmpDecl));
+                    auto restoreVptr = new AssignExp(loc, vptr.syntaxCopy(), new VarExp(loc, vptrTmpDecl));
+                    if (restoreVptrs !is null)
+                        restoreVptrs = new CommaExp(loc, restoreVptrs, restoreVptr);
+                    else
+                        restoreVptrs = restoreVptr;
+                }
 
-                Expression e = new CommaExp(loc, declareTmps, new CommaExp(loc, restoreVptr, new VarExp(loc, superTmpDecl)));
+                declareTmps = new CommaExp(loc, declareTmps, declareSuperTmp);
+
+                Expression e = new CommaExp(loc, declareTmps, new CommaExp(loc, restoreVptrs, new VarExp(loc, superTmpDecl)));
                 result = e.expressionSemantic(sc);
             }
         }
