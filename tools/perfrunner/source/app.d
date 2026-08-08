@@ -6,7 +6,7 @@ import std.path : buildPath, dirName;
 import std.stdio : stderr, writeln;
 
 import metrics : measure, initials;
-import report : MetricResult, render, Report;
+import report : CommitRecord, MetricResult, render, renderCommit, Report;
 import vibed : describeFlags;
 
 enum workloads = buildPath(__FILE_FULL_PATH__.dirName.dirName, "workloads");
@@ -21,9 +21,10 @@ version (unittest) {} else
 int main(string[] args)
 {
     string baseDmd, headDmd, basePhobos, headPhobos, baseSha, headSha, hostDmd;
+    string before, committedAt;
     string os = "ubuntu-latest";
     string outPath = "results.json";
-    long pr;
+    long pr, commits = 1;
 
     auto help = getopt(args,
         "base-dmd", "path to the base (merge-base) dmd binary", &baseDmd,
@@ -33,6 +34,9 @@ int main(string[] args)
         "base-sha", "base commit sha (metadata)", &baseSha,
         "head-sha", "head commit sha (metadata)", &headSha,
         "pr",       "pull request number (metadata)", &pr,
+        "before",   "sha master pointed at before the push (metadata)", &before,
+        "commits",  "commits contained in the push (metadata)", &commits,
+        "committed-at", "commit timestamp (metadata)", &committedAt,
         "os",       "runner OS label (metadata)", &os,
         "host-dmd", "bootstrap dmd version (metadata)", &hostDmd,
         "out",      "where to write results.json", &outPath,
@@ -40,16 +44,23 @@ int main(string[] args)
 
     if (help.helpWanted)
     {
-        writeln("usage: perfrunner --base-dmd <path> --head-dmd <path> "
-            ~ "--base-phobos <dir> --head-phobos <dir> "
+        writeln("usage: perfrunner --head-dmd <path> --head-phobos <dir> "
+            ~ "[--base-dmd <path> --base-phobos <dir>] "
             ~ "[--base-sha <sha> --head-sha <sha> --pr <n>] --out results.json");
+        writeln("without a base the single commit is measured for the history repo");
         return 0;
     }
 
-    if (baseDmd.length == 0 || headDmd.length == 0
-        || basePhobos.length == 0 || headPhobos.length == 0)
+    if (headDmd.length == 0 || headPhobos.length == 0)
     {
-        stderr.writeln("error: --base-dmd, --head-dmd, --base-phobos and --head-phobos are required");
+        stderr.writeln("error: --head-dmd and --head-phobos are required");
+        return 2;
+    }
+
+    immutable diff = baseDmd.length != 0;
+    if (diff && basePhobos.length == 0)
+    {
+        stderr.writeln("error: --base-dmd needs --base-phobos");
         return 2;
     }
 
@@ -57,7 +68,16 @@ int main(string[] args)
     mkdirRecurse(tmp);
 
     // Resolved once so both refs compile vibe.d with the same flags.
-    auto vibedFlags = describeFlags(vibedDir, baseDmd);
+    auto vibedFlags = describeFlags(vibedDir, diff ? baseDmd : headDmd);
+
+    if (!diff)
+    {
+        auto m = measure(headDmd, workload, headPhobos, vibedRoot, vibedFlags, tmp, "head");
+        write(outPath, renderCommit(CommitRecord(headSha, committedAt, before, commits,
+            os, hostDmd, m.metrics, m.helloTrace, m.phobosTrace)));
+        writeln("wrote ", outPath);
+        return 0;
+    }
 
     auto base = measure(baseDmd, workload, basePhobos, vibedRoot, vibedFlags, tmp, "base");
     auto head = measure(headDmd, workload, headPhobos, vibedRoot, vibedFlags, tmp, "head");
