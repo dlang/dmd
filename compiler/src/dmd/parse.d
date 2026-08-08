@@ -4493,6 +4493,19 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         }
                     }
 
+                    if (mod.edition >= Edition.v2024 && storageClass & STC.TYPECTOR)
+                    {
+                        typeof(AST.Declaration.storage_class) stc = storageClass & STC.TYPECTOR;
+                        auto qual = (AST.stcToString(stc) ~ '\0').ptr;
+                        deprecation(token.loc, "function declaration `%s` has `%s` type qualifier in prefix position",
+                            pident.toChars(), qual);
+                        if (t)
+                            deprecationSupplemental("either use return type `%s(%s)` instead or move qualifier after parameter list",
+                                qual, t.toChars());
+                        else
+                            deprecationSupplemental("add `auto` if necessary and move `%s` after parameter list",
+                                qual);
+                    }
                     auto parameterList = parseParameterList(null);
 
                     /* Parse const/immutable/shared/inout/nothrow/pure/return postfix
