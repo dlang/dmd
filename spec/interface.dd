@@ -70,7 +70,9 @@ interface I
 I iface = new I();  // error, cannot create instance of interface
 ------
 
-    $(P An interface instance can be cast to $(REF1 Object, object).)
+    $(P An interface instance can be cast to $(REF1 Object, object),
+    or $(DDSUBLINK spec/expression, cast_class, dynamically cast) to
+    another class type.)
 
 $(H3 $(LNAME2 method-bodies, Interface Method Bodies))
 
