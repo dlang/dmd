@@ -514,6 +514,17 @@ bool setUnsafe(Scope* sc, bool gag, Loc loc, VarDeclaration scopeVar,
         return false;
     }
 
+    // https://github.com/dlang/dmd/issues/18670
+    if (sc.inDefaultArg || sc.callLoc.isValid)
+    {
+        if (sc.func.isSafeBypassingInference() && !gag && !sc.isDeprecated())
+        {
+            string action = AttributeViolation(loc, format, args).action;
+            deprecation(loc, "%.*s is not allowed in a `@safe` function in default argument", action.fTuple.expand);
+        }
+        return false;
+    }
+
     if (setFunctionToUnsafe(sc.func))
     {
         if (format || args.length > 0)
