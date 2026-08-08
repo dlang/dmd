@@ -29,6 +29,7 @@ package
 {
     import core.atomic : atomicStore, cas, MemoryOrder;
     import core.exception : onOutOfMemoryError;
+    import core.internal.traits : Unshared;
     import core.stdc.stdlib : abort;
 
     extern (C) void fiber_entryPoint() nothrow
@@ -792,14 +793,23 @@ unittest
             cont = false;
             foreach (idx; 0 .. 10)
             {
-                if (cas(&locks[idx], false, true))
+                alias UnsharedLocks = Unshared!(typeof(locks));
+                auto lock = (() @trusted
+                {
+                    // `-preview=nosharedaccess` rejects `&locks[idx]` because
+                    // indexing the shared static array counts as a shared read.
+                    // Cast only to form the indexed element address; the actual
+                    // lock access below still goes through atomic operations.
+                    return cast(shared(bool)*) &((*cast(UnsharedLocks*) &locks)[idx]);
+                })();
+                if (cas(lock, false, true))
                 {
                     if (fibs[idx].state == Fiber.State.HOLD)
                     {
                         fibs[idx].call();
                         cont |= fibs[idx].state != Fiber.State.TERM;
                     }
-                    locks[idx] = false;
+                    atomicStore(*lock, false);
                 }
                 else
                 {
