@@ -176,15 +176,24 @@ private void* _allocmemoryNoFree(size_t m_size, size_t alignment) nothrow @nogc
 }
 
 __gshared size_t allocatedNoFree = 0; // Total amount of memory allocated using allocmemoryNoFree
+immutable ubyte[16] defaultAlign = [ 1, 1, 2, 2,  4, 4, 4, 4,  8, 8, 8, 8,  8, 8, 8, 8];
+
+import dmd.root.longdouble;
+enum ALIGNMENT = longdouble.alignof > 8 ? longdouble.alignof : 8;
+
+pragma(inline, true) size_t defaultAlignment(size_t size)
+{
+    return size < ALIGNMENT ? defaultAlign.ptr[size] : ALIGNMENT;
+}
 
 // callback for closures, or if the compiler does not yet use templated lowerings
-extern (D) void* allocmemory(size_t m_size) nothrow
+extern (C) void* _d_allocmemory(size_t m_size) nothrow
 {
     if (mem.isGCEnabled)
         return GC.malloc(m_size);
 
     allocatedNoFree += m_size;
-    return _allocmemoryNoFree(m_size, 16);
+    return _allocmemoryNoFree(m_size, defaultAlignment(m_size));
 }
 
 extern (D) void* allocmemoryNoFree(size_t m_size, size_t alignment) nothrow
@@ -396,8 +405,7 @@ class BumpPointerGC : GCInterface
         version (none)
             assert(ti, "unexpected malloc, this usually happens for closure allocations");
         allocated += size;
-        size_t alignment = ti ? ti.talign : 16;
-        return _allocmemoryNoFree(size, alignment);
+        return _allocmemoryNoFree(size, defaultAlignment(size));
     }
 
     GC.BlkInfo qalloc(size_t size, uint bits, scope const TypeInfo ti) nothrow
@@ -406,8 +414,7 @@ class BumpPointerGC : GCInterface
             return gc.qalloc(size, bits, ti);
         allocated += size;
         GC.BlkInfo bi;
-        size_t alignment = ti ? ti.talign : 16;
-        bi.base = _allocmemoryNoFree(size, alignment);
+        bi.base = _allocmemoryNoFree(size, defaultAlignment(size));
         bi.size = size;
         return bi;
     }
@@ -417,8 +424,7 @@ class BumpPointerGC : GCInterface
         if (bits & GC.BlkAttr.APPENDABLE)
             return gc.calloc(size, bits, ti);
         allocated += size;
-        size_t alignment = ti ? ti.talign : 16;
-        void* p = _allocmemoryNoFree(size, alignment);
+        void* p = _allocmemoryNoFree(size, defaultAlignment(size));
         memset(p, 0, size);
         return p;
     }
