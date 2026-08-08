@@ -149,43 +149,51 @@ extern (C++) const __gshared Mem mem;
 
 enum CHUNK_SIZE = (256 * 4096 - 64);
 
-__gshared size_t heapleft = 0;
+__gshared size_t heappos = CHUNK_SIZE;
 __gshared void* heapp;
 __gshared size_t heapTotal = 0; // Total amount of memory allocated using malloc
 
-extern (D) void* allocmemoryNoFree(size_t m_size) nothrow @nogc
+private void* _allocmemoryNoFree(size_t m_size, size_t alignment) nothrow @nogc
 {
-    // 16 byte alignment is better (and sometimes needed) for doubles
-    m_size = (m_size + 15) & ~15;
-
+    size_t pos = (heappos + alignment - 1) & -alignment;
     // The layout of the code is selected so the most common case is straight through
-    if (m_size <= heapleft)
+    if (pos + m_size <= CHUNK_SIZE)
     {
-    L1:
-        heapleft -= m_size;
-        auto p = heapp;
-        heapp = cast(void*)(cast(char*)heapp + m_size);
-        return p;
+        heappos = pos + m_size;
+        return heapp + pos;
     }
 
-    if (m_size > CHUNK_SIZE)
+    if (m_size >= CHUNK_SIZE)
     {
         heapTotal += m_size;
         return Mem.check(malloc(m_size));
     }
 
-    heapleft = CHUNK_SIZE;
     heapp = Mem.check(malloc(CHUNK_SIZE));
     heapTotal += CHUNK_SIZE;
-    goto L1;
+    heappos = m_size;
+    return heapp;
 }
 
+__gshared size_t allocatedNoFree = 0; // Total amount of memory allocated using allocmemoryNoFree
+
+// callback for closures, or if the compiler does not yet use templated lowerings
 extern (D) void* allocmemory(size_t m_size) nothrow
 {
     if (mem.isGCEnabled)
         return GC.malloc(m_size);
 
-    return allocmemoryNoFree(m_size);
+    allocatedNoFree += m_size;
+    return _allocmemoryNoFree(m_size, 16);
+}
+
+extern (D) void* allocmemoryNoFree(size_t m_size, size_t alignment) nothrow
+{
+    if (mem.isGCEnabled)
+        return GC.malloc(m_size);
+
+    allocatedNoFree += m_size;
+    return _allocmemoryNoFree(m_size, alignment);
 }
 
 extern (C) pure @nogc nothrow
@@ -340,7 +348,7 @@ class BumpPointerGC : GCInterface
 
         import core.gc.config;
         if (config.profile)
-            printf("\tAllocated by BumpGC:  %llu MB\n", allocated >> 20);
+            printf("\tAllocated by BumpGC:  %llu MB + %zd MB of %zd\n", allocated >> 20, allocatedNoFree >> 20, heapTotal >> 20);
     }
 
     void enable()
@@ -386,7 +394,8 @@ class BumpPointerGC : GCInterface
         if (bits & GC.BlkAttr.APPENDABLE)
             return gc.malloc(size, bits, ti);
         allocated += size;
-        return allocmemoryNoFree(size);
+        size_t alignment = ti ? ti.talign : 16;
+        return _allocmemoryNoFree(size, alignment);
     }
 
     GC.BlkInfo qalloc(size_t size, uint bits, scope const TypeInfo ti) nothrow
@@ -395,7 +404,8 @@ class BumpPointerGC : GCInterface
             return gc.qalloc(size, bits, ti);
         allocated += size;
         GC.BlkInfo bi;
-        bi.base = allocmemoryNoFree(size);
+        size_t alignment = ti ? ti.talign : 16;
+        bi.base = _allocmemoryNoFree(size, alignment);
         bi.size = size;
         return bi;
     }
@@ -405,7 +415,8 @@ class BumpPointerGC : GCInterface
         if (bits & GC.BlkAttr.APPENDABLE)
             return gc.calloc(size, bits, ti);
         allocated += size;
-        void* p = allocmemoryNoFree(size);
+        size_t alignment = ti ? ti.talign : 16;
+        void* p = _allocmemoryNoFree(size, alignment);
         memset(p, 0, size);
         return p;
     }
