@@ -3864,7 +3864,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             }
             else
             {
-                e = inferType(e, fparam.type);
+                e = inferExpType(e, fparam.type);
                 Scope* sc2 = sc.push();
                 sc2.inDefaultArg = true;
                 Initializer iz = new ExpInitializer(e.loc, e);

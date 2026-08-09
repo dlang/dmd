@@ -1221,7 +1221,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
  * Returns:
  *      an equivalent `ExpInitializer` if successful, or `ErrorInitializer` if it cannot be translated
  */
-Initializer inferType(Initializer init, Scope* sc, Type itype)
+Initializer inferInitializerType(Initializer init, Scope* sc, Type itype)
 {
     Initializer visitVoid(VoidInitializer i)
     {
@@ -1248,7 +1248,7 @@ Initializer inferType(Initializer init, Scope* sc, Type itype)
 
     Initializer visitArray(ArrayInitializer init)
     {
-        //printf("ArrayInitializer::inferType() %s\n", toChars());
+        //printf("ArrayInitializer::inferInitializerType() %s\n", toChars());
         Expressions* keys = null;
         Expressions* values = new Expressions(init.value.length);
         Initializer no()
@@ -1303,7 +1303,7 @@ Initializer inferType(Initializer init, Scope* sc, Type itype)
             Initializer iz = init.value[i];
             if (!iz)
                 return no();
-            iz = iz.inferType(sc, itype ? itype.nextOf() : null);
+            iz = iz.inferInitializerType(sc, itype ? itype.nextOf() : null);
             if (iz.isErrorInitializer())
             {
                 return iz;
@@ -1317,12 +1317,12 @@ Initializer inferType(Initializer init, Scope* sc, Type itype)
             ? new AssocArrayLiteralExp(init.loc, keys, values)
             : new ArrayLiteralExp(init.loc, null, values);
         auto ei = new ExpInitializer(init.loc, e);
-        return ei.inferType(sc, itype);
+        return ei.inferInitializerType(sc, itype);
     }
 
     Initializer visitExp(ExpInitializer init)
     {
-        //printf("ExpInitializer::inferType() %s\n", init.toChars());
+        //printf("ExpInitializer::inferInitializerType() %s\n", init.toChars());
         init.exp = init.exp.expressionSemantic(sc);
 
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
@@ -1375,8 +1375,8 @@ Initializer inferType(Initializer init, Scope* sc, Type itype)
 
     Initializer visitC(CInitializer i)
     {
-        //printf("CInitializer.inferType()\n");
-        error(i.loc, "TODO C inferType initializers not supported yet");
+        //printf("CInitializer.inferInitializerType()\n");
+        error(i.loc, "TODO C inferInitializerType initializers not supported yet");
         return new ErrorInitializer();
     }
 

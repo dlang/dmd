@@ -3246,11 +3246,12 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
 }
 
 /****************************************
- * Set type inference target
- *      t       Target type
- *      flag    1: don't put an error when inference fails
+ * If t, set type of e to t skipping past array, function type or conditional type.
+ * Params:
+ *	e = expression to set type to
+ *      t = type to infer from
  */
-Expression inferType(Expression e, Type t, int flag = 0)
+Expression inferExpType(Expression e, Type t)
 {
     Expression visitAle(ArrayLiteralExp ale)
     {
@@ -3260,12 +3261,12 @@ Expression inferType(Expression e, Type t, int flag = 0)
 
         Type tn = tb.nextOf();
         if (ale.basis)
-            ale.basis = inferType(ale.basis, tn, flag);
+            ale.basis = inferExpType(ale.basis, tn);
         foreach (i; 0 .. ale.length)
         {
             if (Expression e = ale[i])
             {
-                e = inferType(e, tn, flag);
+                e = inferExpType(e, tn);
                 ale[i] = e;
             }
         }
@@ -3286,7 +3287,7 @@ Expression inferType(Expression e, Type t, int flag = 0)
         {
             if (Expression e = (*aale.keys)[i])
             {
-                e = inferType(e, ti, flag);
+                e = inferExpType(e, ti);
                 (*aale.keys)[i] = e;
             }
         }
@@ -3294,7 +3295,7 @@ Expression inferType(Expression e, Type t, int flag = 0)
         {
             if (Expression e = (*aale.values)[i])
             {
-                e = inferType(e, tv, flag);
+                e = inferExpType(e, tv);
                 (*aale.values)[i] = e;
             }
         }
@@ -3304,7 +3305,7 @@ Expression inferType(Expression e, Type t, int flag = 0)
 
     Expression visitFun(FuncExp fe)
     {
-        //printf("FuncExp::inferType('%s'), to=%s\n", fe.type ? fe.type.toChars() : "null", t.toChars());
+        //printf("FuncExp::inferExpType('%s'), to=%s\n", fe.type ? fe.type.toChars() : "null", t.toChars());
         if (t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction)
         {
             fe.fd.treq = t;
@@ -3315,8 +3316,8 @@ Expression inferType(Expression e, Type t, int flag = 0)
     Expression visitTer(CondExp ce)
     {
         Type tb = t.toBasetype();
-        ce.e1 = inferType(ce.e1, tb, flag);
-        ce.e2 = inferType(ce.e2, tb, flag);
+        ce.e1 = inferExpType(ce.e1, tb);
+        ce.e2 = inferExpType(ce.e2, tb);
         return ce;
     }
 

@@ -2379,7 +2379,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 return;
             }
             //printf("inferring type for %s with init %s\n", dsym.toChars(), dsym._init.toChars());
-            dsym._init = dsym._init.inferType(sc, dsym.type);
+            dsym._init = dsym._init.inferInitializerType(sc, dsym.type);
             dsym.type = dsym._init.initializerToExpression(null, sc.inCfile).type;
 
             if (autoDollarDims.length)
@@ -3235,7 +3235,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (ei) // https://issues.dlang.org/show_bug.cgi?id=13424
                     // Preset the required type to fail in FuncLiteralDeclaration::semantic3
-                ei.exp = inferType(ei.exp, dsym.type);
+                ei.exp = inferExpType(ei.exp, dsym.type);
 
             /*
              * https://issues.dlang.org/show_bug.cgi?id=24474
