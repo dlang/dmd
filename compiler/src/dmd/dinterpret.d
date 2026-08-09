@@ -733,8 +733,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
             auto ne = ie.e2.isIntegerExp();
             assert(ne);
             auto ale = thisarg.isAddrExp().e1.isArrayLiteralExp();
-            e = (*ale.elements)[cast(size_t)ne.getInteger()];
-            if (!e) e = ale.basis;
+            e = ale[cast(size_t)ne.getInteger()];
             if (auto ae = e.isAddrExp())
             {
                 e = ae.e1;
@@ -1772,9 +1771,8 @@ public:
                 assert(result.op == EXP.address);
                 result = result.isAddrExp().e1;
                 assert(result.op == EXP.arrayLiteral);
-                auto rale = result.isArrayLiteralExp();
-                result = (*rale.elements)[0];
-                if (!result) result = rale.basis;
+                auto ale = result.isArrayLiteralExp();
+                result = ale[0];
                 if (e.type.ty == Tstruct)
                 {
                     result = result.isAddrExp().e1;
@@ -2545,7 +2543,7 @@ public:
             return;
 
         auto expsx = e.elements;
-        size_t dim = expsx ? expsx.length : 0;
+        size_t dim = e.length;
 
         for (size_t i = 0; i < dim; i++)
         {
@@ -4087,33 +4085,30 @@ public:
             if (newval.op == EXP.slice && !isBlockAssignment)
             {
                 auto se = newval.isSliceExp();
-                auto aggr2 = se.e1;
+                auto ale2 = se.e1.isArrayLiteralExp();
                 const srclower = se.lwr.toInteger();
                 const srcupper = se.upr.toInteger();
                 const wantCopy = (newval.type.toBasetype().nextOf().baseElemOf().ty == Tstruct);
 
                 //printf("oldval = %p %s[%d..%u]\nnewval = %p %s[%llu..%llu] wantCopy = %d\n",
                 //    aggregate, aggregate.toChars(), lowerbound, upperbound,
-                //    aggr2, aggr2.toChars(), srclower, srcupper, wantCopy);
+                //    ale2, ale2.toChars(), srclower, srcupper, wantCopy);
                 if (wantCopy)
                 {
                     // Currently overlapping for struct array is allowed.
                     // The order of elements processing depends on the overlapping.
                     // https://issues.dlang.org/show_bug.cgi?id=14024
-                    assert(aggr2.op == EXP.arrayLiteral);
-                    Expressions* oldelems = existingAE.elements;
-                    Expressions* newelems = aggr2.isArrayLiteralExp().elements;
 
                     Type elemtype = aggregate.type.nextOf();
                     bool needsPostblit = e.e2.isLvalue();
 
-                    if (aggregate == aggr2 && srclower < lowerbound && lowerbound < srcupper)
+                    if (aggregate == ale2 && srclower < lowerbound && lowerbound < srcupper)
                     {
                         // reverse order
                         for (auto i = upperbound - lowerbound; 0 < i--;)
                         {
-                            Expression oldelem = (*oldelems)[cast(size_t)(i + firstIndex)];
-                            Expression newelem = (*newelems)[cast(size_t)(i + srclower)];
+                            Expression oldelem = existingAE[cast(size_t)(i + firstIndex)];
+                            Expression newelem = ale2[cast(size_t)(i + srclower)];
                             newelem = copyLiteral(newelem).copy();
                             newelem.type = elemtype;
                             if (needsPostblit)
@@ -4123,7 +4118,7 @@ public:
                             }
                             if (Expression x = evaluateDtor(istate, oldelem))
                                 return x;
-                            (*oldelems)[cast(size_t)(lowerbound + i)] = newelem;
+                            existingAE[cast(size_t)(lowerbound + i)] = newelem;
                         }
                     }
                     else
@@ -4131,8 +4126,8 @@ public:
                         // normal order
                         for (auto i = 0; i < upperbound - lowerbound; i++)
                         {
-                            Expression oldelem = (*oldelems)[cast(size_t)(i + firstIndex)];
-                            Expression newelem = (*newelems)[cast(size_t)(i + srclower)];
+                            Expression oldelem = existingAE[cast(size_t)(i + firstIndex)];
+                            Expression newelem = ale2[cast(size_t)(i + srclower)];
                             newelem = copyLiteral(newelem).copy();
                             newelem.type = elemtype;
                             if (needsPostblit)
@@ -4142,14 +4137,14 @@ public:
                             }
                             if (Expression x = evaluateDtor(istate, oldelem))
                                 return x;
-                            (*oldelems)[cast(size_t)(lowerbound + i)] = newelem;
+                            existingAE[cast(size_t)(lowerbound + i)] = newelem;
                         }
                     }
 
                     //assert(0);
                     return newval; // oldval?
                 }
-                if (aggregate == aggr2 &&
+                if (aggregate == ale2 &&
                     lowerbound < srcupper && srclower < upperbound)
                 {
                     error(e.loc, "overlapping slice assignment `[%llu..%llu] = [%llu..%llu]`",
@@ -5738,11 +5733,9 @@ public:
                     {
                         ArrayLiteralExp ale = ie.e1.isArrayLiteralExp();
                         const indx = cast(size_t)ie.e2.toInteger();
-                        if (indx < ale.length) // xyzzy
+                        if (indx < ale.length)
                         {
-                            Expression xx = (*ale.elements)[indx];
-                            if (!xx) xx = ale.basis;
-                            if (xx)
+                            if (Expression xx = ale[indx])
                             {
                                 if (auto iex = xx.isIndexExp())
                                     origType = iex.e1.type.nextOf();
@@ -7187,7 +7180,7 @@ private Expression interpret_aaApply(UnionExp* pue, InterState* istate, Expressi
 /// Returns: equivalent `StringExp` from `ArrayLiteralExp ale` containing only `IntegerExp` elements
 StringExp arrayLiteralToString(ArrayLiteralExp ale)
 {
-    const len = ale.elements ? ale.length : 0;
+    const len = ale.length;
     const size = ale.type.nextOf().size();
 
     StringExp impl(T)()
@@ -7195,8 +7188,7 @@ StringExp arrayLiteralToString(ArrayLiteralExp ale)
         T[] result = new T[len];
         foreach (i; 0 .. len)
         {
-            auto el = (*ale.elements)[i];
-            if (!el) el = ale.basis;
+            auto el = ale[i];
             result[i] = cast(T) el.isIntegerExp().getInteger();
         }
         return new StringExp(ale.loc, result[], len, cast(ubyte) size);
