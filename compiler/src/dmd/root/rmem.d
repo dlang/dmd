@@ -149,6 +149,8 @@ extern (C++) const __gshared Mem mem;
 
 enum CHUNK_SIZE = (256 * 4096 - 64);
 
+enum DEFAULT_ALIGNMENT = 8;
+
 __gshared size_t heappos = CHUNK_SIZE;
 __gshared void* heapp;
 __gshared size_t heapTotal = 0; // Total amount of memory allocated using malloc
@@ -175,17 +177,13 @@ private void* _allocmemoryNoFree(size_t m_size, size_t alignment) nothrow @nogc
     return heapp;
 }
 
-__gshared size_t allocatedNoFree = 0; // Total amount of memory allocated using allocmemoryNoFree
-
-enum ALIGNMENT = 8;
-
 struct TypeInfoAlignmentPair
 {
     TypeInfo ti;
     size_t alignment;
 }
 // expected to be RealExp and ComplexExp, only
-__gshared TypeInfoAlignmentPair[2] tiAlignments = TypeInfoAlignmentPair(null, ALIGNMENT);
+__gshared TypeInfoAlignmentPair[2] tiAlignments = TypeInfoAlignmentPair(null, DEFAULT_ALIGNMENT);
 __gshared size_t numTiAlignments;
 
 void registerAlignment(TypeInfo ti, size_t alignment)
@@ -196,11 +194,14 @@ void registerAlignment(TypeInfo ti, size_t alignment)
 
 size_t defaultAlignment(size_t size, const TypeInfo ti)
 {
-    pragma(inline, true)
+    pragma(inline, true);
     return ti is tiAlignments[0].ti ? tiAlignments[0].alignment
          : ti is tiAlignments[1].ti ? tiAlignments[1].alignment
-         : ALIGNMENT;
+         : DEFAULT_ALIGNMENT;
 }
+
+// Total amount of memory allocated using _d_allocmemory/allocmemoryNoFree
+__gshared size_t allocatedNoFree = 0;
 
 // callback for closures, or if the compiler does not yet use templated lowerings
 extern (C) void* _d_allocmemory(size_t m_size) nothrow
@@ -421,7 +422,9 @@ class BumpPointerGC : GCInterface
         version (none)
             assert(ti, "unexpected malloc, this usually happens for closure allocations");
         allocated += size;
-        return _allocmemoryNoFree(size, defaultAlignment(size, ti));
+        auto alignment = defaultAlignment(size, ti);
+        debug assert(!ti || ti.talign <= alignment);
+        return _allocmemoryNoFree(size, alignment);
     }
 
     GC.BlkInfo qalloc(size_t size, uint bits, scope const TypeInfo ti) nothrow

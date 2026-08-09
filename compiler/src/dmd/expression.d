@@ -4192,6 +4192,6 @@ shared static this()
     import dmd.root.rmem;
     foreach(optype; ExpOpTypePairs)
         static if (__VERSION__ >= 2101) // support for classInstanceAlignment ?
-            if (__traits(classInstanceAlignment, optype.type) > ALIGNMENT)
+            if (__traits(classInstanceAlignment, optype.type) > DEFAULT_ALIGNMENT)
                 registerAlignment(typeid(optype.type), __traits(classInstanceAlignment, optype.type));
 }
