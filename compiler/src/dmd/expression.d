@@ -4186,3 +4186,12 @@ immutable ubyte[EXP.max+1] expAlign = (){
             expAlign[optype.op] = 16; // worst case, GC doesn't guarantee more anyway
     return expAlign;
 }();
+
+shared static this()
+{
+    import dmd.root.rmem;
+    foreach(optype; ExpOpTypePairs)
+        static if (__VERSION__ >= 2101) // support for classInstanceAlignment ?
+            if (__traits(classInstanceAlignment, optype.type) > ALIGNMENT)
+                registerAlignment(typeid(optype.type), __traits(classInstanceAlignment, optype.type));
+}
