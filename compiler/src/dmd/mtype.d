@@ -2615,7 +2615,7 @@ const(char*)[2] toAutoQualChars(Type t1, Type t2)
  * For each active modifier (MODFlags.const_, MODFlags.immutable_, etc) call `fp` with a
  * void* for the work param and a string representation of the attribute.
  */
-void modifiersApply(const TypeFunction tf, void delegate(string) dg)
+void modifiersApply(const TypeFunction tf, scope void delegate(string) dg)
 {
     immutable ubyte[4] modsArr = [MODFlags.const_, MODFlags.immutable_, MODFlags.wild, MODFlags.shared_];
 
@@ -2632,7 +2632,7 @@ void modifiersApply(const TypeFunction tf, void delegate(string) dg)
  * For each active attribute (ref/const/nogc/etc) call `fp` with a void* for the
  * work param and a string representation of the attribute.
  */
-void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTformat trustFormat = TRUSTformatDefault)
+void attributesApply(const TypeFunction tf, scope void delegate(string) dg, TRUSTformat trustFormat = TRUSTformatDefault)
 {
     if (tf.purity)
         dg("pure");

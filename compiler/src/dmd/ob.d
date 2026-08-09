@@ -1353,8 +1353,8 @@ void genKill(ref ObState obstate, ObNode* ob)
             ObNode* ob;
             ObState* obstate;
 
-            extern (D) this(void delegate(ObNode*, VarDeclaration, Expression, bool) dgWriteVar,
-                            void delegate(Loc loc, ObNode* ob, VarDeclaration v, bool mutable) dgReadVar,
+            extern (D) this(scope void delegate(ObNode*, VarDeclaration, Expression, bool) dgWriteVar,
+                            scope void delegate(Loc loc, ObNode* ob, VarDeclaration v, bool mutable) dgReadVar,
                             ObNode* ob, ref ObState obstate) scope
             {
                 this.dgWriteVar = dgWriteVar;
@@ -2108,8 +2108,8 @@ void checkObErrors(ref ObState obstate)
             ObNode* ob;
             ObState* obstate;
 
-            extern (D) this(void delegate(Loc loc, ObNode* ob, VarDeclaration v, bool mutable, PtrVarState[]) dgReadVar,
-                            void delegate(ObNode*, PtrVarState[], VarDeclaration, Expression) dgWriteVar,
+            extern (D) this(scope void delegate(Loc loc, ObNode* ob, VarDeclaration v, bool mutable, PtrVarState[]) dgReadVar,
+                            scope void delegate(ObNode*, PtrVarState[], VarDeclaration, Expression) dgWriteVar,
                             PtrVarState[] cpvs, ObNode* ob, ref ObState obstate) scope
             {
                 this.dgReadVar  = dgReadVar;

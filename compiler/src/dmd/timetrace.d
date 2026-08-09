@@ -151,7 +151,7 @@ void timeTraceEndEvent(TimeTraceEventType eventType, Dsymbol sym, scope const(ch
         timeTraceProfiler.endScope(
             eventType,
             () => sym.isImport() ? sym.toPrettyChars().toDString() : sym.toChars().toDString(),
-            detail ? detail : () => sym.toPrettyChars().toDString(),
+            () => detail ? detail() : sym.toPrettyChars().toDString(),
             sym.loc
         );
     }

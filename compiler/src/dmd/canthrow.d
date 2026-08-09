@@ -62,10 +62,14 @@ CT canThrow(Expression e, FuncDeclaration func, ErrorSink eSink)
     {
         alias visit = typeof(super).visit;
         CT result;
+        FuncDeclaration func;
+        ErrorSink eSink;
 
     public:
-        extern (D) this() scope @safe
+        extern (D) this(FuncDeclaration func, ErrorSink eSink) scope @safe
         {
+            this.func = func;
+            this.eSink = eSink;
         }
 
         void checkFuncThrows(Expression e, FuncDeclaration f)
@@ -213,7 +217,7 @@ CT canThrow(Expression e, FuncDeclaration func, ErrorSink eSink)
         }
     }
 
-    scope CanThrow ct = new CanThrow();
+    scope CanThrow ct = new CanThrow(func, eSink);
     walkPostorder(e, ct);
     return ct.result;
 }

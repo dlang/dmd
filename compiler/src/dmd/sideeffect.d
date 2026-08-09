@@ -78,6 +78,8 @@ bool hasSideEffect(Expression e, bool assumeImpureCalls = false)
     extern (C++) final class LambdaHasSideEffect : StoppableVisitor
     {
         alias visit = typeof(super).visit;
+        Expression e;
+        bool assumeImpureCalls;
     public:
         extern (D) this() scope @safe
         {
@@ -91,6 +93,8 @@ bool hasSideEffect(Expression e, bool assumeImpureCalls = false)
     }
 
     scope LambdaHasSideEffect v = new LambdaHasSideEffect();
+    v.e = e;
+    v.assumeImpureCalls = assumeImpureCalls;
     return walkPostorder(e, v);
 }
 

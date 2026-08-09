@@ -8030,7 +8030,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         FuncDeclaration resolveOverloadSet(Loc loc, Scope* sc,
-            OverloadSet os, Objects* tiargs, Type tthis, ArgumentList argumentList)
+            OverloadSet os, Objects* tiargs, Type tthis, ArgumentList argumentList) scope
         {
             FuncDeclaration f = null;
             foreach (s; os.a)

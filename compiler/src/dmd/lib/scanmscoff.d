@@ -35,7 +35,7 @@ private enum LOG = false;
  *      eSink =       where the error messages go
  */
 package(dmd.lib)
-void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
+void scanMSCoffObjModule(scope void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
         scope const ubyte[] base, const char* module_name, const(char)[] filename, ErrorSink eSink)
 {
     static if (LOG)
