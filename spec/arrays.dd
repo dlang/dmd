@@ -1488,7 +1488,7 @@ $(H3 $(LNAME2 void_arrays, Void Arrays))
     This is because the void array may hold pointers.
     A void array cannot be $(RELATIVE_LINK2 array-setting, filled).)
 
-    $(P Arrays of any type can be $(DDSUBLINK spec/type, implicit-conversions,
+    $(P Arrays of any type can be $(RELATIVE_LINK2 void-element-conversion,
     implicitly converted) to a (tail qualified) void array - the
     compiler inserts the appropriate calculations so that the $(D .length) of
     the resulting array's size is in bytes rather than number of elements. Void
@@ -1559,42 +1559,59 @@ void main()
 
 $(H2 $(LNAME2 implicit-conversions, Implicit Conversions))
 
-        $(P A pointer $(D T*) can be implicitly converted to
-        one of the following:)
+        $(P A static array $(D T[dim]) can be implicitly converted to a dynamic
+        array `T[]`. The dynamic array's elements must not be used outside the
+        lifetime of the static array. This can be enforced with `-preview=dip1000`.)
 
-        $(UL
-        $(LI $(D void*))
-        )
+        $(P An array/pointer with a class element type may have
+        $(DDSUBLINK spec/type, class-conversions, implicit conversions).)
 
-        $(P A static array $(D T[dim]) can be implicitly
-        converted to
-        one of the following ($(D U) is a base class of $(D T)):
-        )
-
-        $(UL
-        $(LI $(D T[]))
-
-        $(LI $(D const(U)[]))
-        $(LI $(D const(U[])))
-        $(LI $(D void[]))
-        )
-
-        $(P A dynamic array $(D T[]) can be implicitly converted to one of the
-        following ($(D U) is a base class of $(D T)):)
-
-        $(UL
-        $(LI $(D const(U)[]))
-        $(LI $(D const(U[])))
-        $(LI $(D void[]))
-        )
-
-        $(P Array literals can also be implicitly converted to static array
+        $(P Array literals can be implicitly converted to static array
         types. See $(DDSUBLINK spec/expression, array_literals, Array Literals)
         for details.)
 
-        $(P String literals can also be implicitly converted to static array
+        $(P String literals can be implicitly converted to static array
         types and character pointer types. See $(DDSUBLINK spec/expression, string_literals,
         String Literals) for details.)
+
+$(H3 $(LNAME2 void-element-conversion, Void Element Conversion))
+
+        $(P A pointer $(D T*) can be implicitly converted to a
+        $(DDSUBLINK spec/type, void, void) pointer as:)
+
+        $(UL
+        $(LI `void*` if `T` has no type qualifier)
+        $(LI A pointer to a type-qualified `void` if `T` has
+            $(DDSUBLINK spec/const3, implicit_qualifier_conversions, compatible type qualifiers))
+        )
+
+        $(P A dynamic array $(D T[]) can be implicitly
+        $(RELATIVE_LINK2 void_arrays, converted to a void array) as:)
+
+        $(UL
+        $(LI $(D void[]) if `T` has no type qualifier)
+        $(LI A dynamic array of a type-qualified `void` if `T` has
+            $(DDSUBLINK spec/const3, implicit_qualifier_conversions, compatible type qualifiers))
+        )
+
+        $(P Similarly, a static array $(D T[dim]) can be implicitly
+        converted to a static array with a (compatibly qualified) `void` element type.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void test()
+{
+    const int* ip;
+    //void* vp = ip; // error
+    const(void)* vp = ip;
+
+    immutable int[] a;
+    //void[] va = a; // error
+    const(void)[] va = a;
+}
+---
+)
+
 
 $(SPEC_SUBNAV_PREV_NEXT statement, Statements, hash-map, Associative Arrays)
 )
