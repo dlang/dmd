@@ -1611,7 +1611,10 @@ void test()
 }
 ---
 )
-
+        $(RATIONALE A `void[]` can copy bytes into its elements. Copying into a
+        void array which aliases immutable array elements would violate immutable
+        data without a `cast`. A `void*` cannot be dereferenced directly,
+        however it can be sliced to obtain a `void[]`.)
 
 $(SPEC_SUBNAV_PREV_NEXT statement, Statements, hash-map, Associative Arrays)
 )
