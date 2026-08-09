@@ -1581,7 +1581,8 @@ $(H3 $(LNAME2 void-element-conversion, Void Element Conversion))
 
         $(UL
         $(LI `void*` if `T` has no type qualifier)
-        $(LI $(D *qualifier*(void)*) if `T` has *qualifier*)
+        $(LI A pointer to a type-qualified `void` if `T` has
+            $(DDSUBLINK spec/const3, implicit_qualifier_conversions, compatible type qualifiers))
         )
 
         $(P A dynamic array $(D T[]) can be implicitly
@@ -1589,17 +1590,22 @@ $(H3 $(LNAME2 void-element-conversion, Void Element Conversion))
 
         $(UL
         $(LI $(D void[]) if `T` has no type qualifier)
-        $(LI $(D *qualifier*(void)[]) if `T` has *qualifier*)
+        $(LI A dynamic array of a type-qualified `void` if `T` has
+            $(DDSUBLINK spec/const3, implicit_qualifier_conversions, compatible type qualifiers))
         )
 
         $(P Similarly, a static array $(D T[dim]) can be implicitly
-        converted to a static array with a (qualified) `void` element type.)
+        converted to a static array with a (compatibly qualified) `void` element type.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 void test()
 {
-    const int[] a;
+    const int* ip;
+    //void* vp = ip; // error
+    const(void)* vp = ip;
+
+    immutable int[] a;
     //void[] va = a; // error
     const(void)[] va = a;
 }
