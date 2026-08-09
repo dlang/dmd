@@ -1488,7 +1488,7 @@ $(H3 $(LNAME2 void_arrays, Void Arrays))
     This is because the void array may hold pointers.
     A void array cannot be $(RELATIVE_LINK2 array-setting, filled).)
 
-    $(P Arrays of any type can be $(DDSUBLINK spec/type, implicit-conversions,
+    $(P Arrays of any type can be $(RELATIVE_LINK2 void-element-conversion,
     implicitly converted) to a (tail qualified) void array - the
     compiler inserts the appropriate calculations so that the $(D .length) of
     the resulting array's size is in bytes rather than number of elements. Void
