@@ -10864,7 +10864,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             // When e1 is a template lambda, this cast may instantiate it with
             // the type 'to'.
-            exp.e1 = inferType(exp.e1, exp.to);
+            exp.e1 = inferExpType(exp.e1, exp.to);
         }
 
         if (auto e = unaSemantic(exp, sc))
@@ -12295,7 +12295,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          * depends on the result of e1 in assignments.
          */
         {
-            Expression e2x = inferType(exp.e2, t1.baseElemOf());
+            Expression e2x = inferExpType(exp.e2, t1.baseElemOf());
             e2x = e2x.expressionSemantic(sc);
             if (!t1.isTypeSArray())
                 e2x = e2x.arrayFuncConv(sc);

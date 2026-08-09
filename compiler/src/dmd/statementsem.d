@@ -2726,9 +2726,9 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
             FuncLiteralDeclaration fld = fd.isFuncLiteralDeclaration();
             if (tret)
-                rs.exp = inferType(rs.exp, tret);
+                rs.exp = inferExpType(rs.exp, tret);
             else if (fld && fld.treq)
-                rs.exp = inferType(rs.exp, fld.treq.nextOf().nextOf());
+                rs.exp = inferExpType(rs.exp, fld.treq.nextOf().nextOf());
 
             rs.exp = rs.exp.expressionSemantic(sc);
             rs.exp = rs.exp.arrayFuncConv(sc);
