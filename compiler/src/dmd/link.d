@@ -1335,7 +1335,7 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
  *      https://github.com/dlang/visuald/blob/master/tools/pipedmd.d#L252
  */
 version (Windows)
-int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delegate(ubyte[]) sink)
+int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, scope void delegate(ubyte[]) sink)
 {
     //printf("runProcess() command: %ls\n", szCommand);
     // Set the bInheritHandle flag so pipe handles are inherited.

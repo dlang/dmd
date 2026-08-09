@@ -410,7 +410,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         return null;
     }
 
-    IntegerExp isX(T)(bool delegate(T) fp)
+    IntegerExp isX(T)(scope bool delegate(T) fp)
     {
         if (!dim)
             return False();
@@ -443,7 +443,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     alias isDeclX = isX!Declaration;
     alias isFuncX = isX!FuncDeclaration;
 
-    Expression isPkgX(bool function(Package) fp)
+    Expression isPkgX(scope bool function(Package) fp)
     {
         return isDsymX((Dsymbol sym) {
             Package p = resolveIsPackage(sym);

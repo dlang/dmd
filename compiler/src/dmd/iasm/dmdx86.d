@@ -2407,7 +2407,7 @@ L2:
  */
 
 void asm_make_modrm_byte(
-        void delegate(ubyte) emit,
+        scope void delegate(ubyte) emit,
         code* pc,
         opflag_t usFlags,
         scope OPND[] opnds)

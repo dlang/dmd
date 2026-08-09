@@ -385,6 +385,8 @@ class BumpPointerGC : GCInterface
     {
         if (bits & GC.BlkAttr.APPENDABLE)
             return gc.malloc(size, bits, ti);
+        version (none)
+            assert(ti, "unexpected malloc, this usually happens for closure allocations");
         allocated += size;
         return allocmemoryNoFree(size);
     }

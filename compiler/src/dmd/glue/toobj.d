@@ -170,17 +170,17 @@ void toObjFile(Dsymbol ds, bool multiobj)
 {
     //printf("toObjFile(%s %s)\n", ds.kind(), ds.toChars());
 
-    bool isCfile = ds.isCsymbol();
-
     extern (C++) final class ToObjFile : Visitor
     {
         alias visit = Visitor.visit;
     public:
         bool multiobj;
+        bool isCfile;
 
-        this(bool multiobj) scope @safe
+        this(bool multiobj, bool isCfile) scope @safe
         {
             this.multiobj = multiobj;
+            this.isCfile = isCfile;
         }
 
         void visitNoMultiObj(Dsymbol ds)
@@ -1020,7 +1020,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
         }
     }
 
-    scope v = new ToObjFile(multiobj);
+    scope v = new ToObjFile(multiobj, ds.isCsymbol());
     ds.accept(v);
 }
 

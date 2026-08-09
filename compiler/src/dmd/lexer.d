@@ -3363,7 +3363,7 @@ class Lexer
      * Params:
      *    sink = send characters in the line to this delegate
      */
-    final void skipToNextLine(void delegate(char c) nothrow sink = null)
+    final void skipToNextLine(scope void delegate(char c) nothrow sink = null)
     {
         while (1)
         {

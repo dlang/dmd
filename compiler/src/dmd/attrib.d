@@ -1003,7 +1003,7 @@ bool isCoreUda(Dsymbol sym, Identifier ident)
  *  If `dg` returns `!= 0`, stops the iteration and returns that value.
  *  Otherwise, returns 0.
  */
-int foreachUdaNoSemantic(Dsymbol sym, int delegate(Expression) dg)
+int foreachUdaNoSemantic(Dsymbol sym, scope int delegate(Expression) dg)
 {
     if (sym.userAttribDecl is null || sym.userAttribDecl.atts is null)
         return 0;
