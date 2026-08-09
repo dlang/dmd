@@ -14089,6 +14089,27 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type tb1next = tb1.nextOf();
         Type tb2next = tb2.nextOf();
 
+        if (tb1.ty == Tarray && tb1next && tb1next.toBasetype().ty == Tsarray && exp.e2.op == EXP.arrayLiteral)
+        {
+            auto e2 = exp.e2.castTo(sc, tb1);
+            if (!e2.isErrorExp())
+            {
+                exp.e2 = e2;
+                tb2 = exp.e2.type.toBasetype();
+                tb2next = tb2.nextOf();
+            }
+        }
+        if (tb2.ty == Tarray && tb2next && tb2next.toBasetype().ty == Tsarray && exp.e1.op == EXP.arrayLiteral)
+        {
+            auto e1 = exp.e1.castTo(sc, tb2);
+            if (!e1.isErrorExp())
+            {
+                exp.e1 = e1;
+                tb1 = exp.e1.type.toBasetype();
+                tb1next = tb1.nextOf();
+            }
+        }
+
         // Check for: array ~ array
         if (tb1next && tb2next && (tb1next.implicitConvTo(tb2next) >= MATCH.constant || tb2next.implicitConvTo(tb1next) >= MATCH.constant || exp.e1.op == EXP.arrayLiteral && exp.e1.implicitConvTo(tb2) || exp.e2.op == EXP.arrayLiteral && exp.e2.implicitConvTo(tb1)))
         {
