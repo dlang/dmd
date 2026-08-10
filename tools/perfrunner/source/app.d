@@ -2,6 +2,7 @@ module app;
 
 import std.file : mkdirRecurse, tempDir, write;
 import std.getopt : getopt;
+import std.parallelism : task;
 import std.path : buildPath, dirName;
 import std.stdio : stderr, writeln;
 
@@ -59,8 +60,11 @@ int main(string[] args)
     // Resolved once so both refs compile vibe.d with the same flags.
     auto vibedFlags = describeFlags(vibedDir, baseDmd);
 
-    auto base = measure(baseDmd, workload, basePhobos, vibedRoot, vibedFlags, tmp, "base");
+    // measure base in a second thread while this one does head
+    auto baseTask = task!measure(baseDmd, workload, basePhobos, vibedRoot, vibedFlags, tmp, "base");
+    baseTask.executeInNewThread();
     auto head = measure(headDmd, workload, headPhobos, vibedRoot, vibedFlags, tmp, "head");
+    auto base = baseTask.yieldForce;
 
     MetricResult[] metrics;
     foreach (def; initials)
