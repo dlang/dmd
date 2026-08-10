@@ -397,6 +397,89 @@ struct DFAReporter
         }
     }
 
+    /***********************************************************
+     * Reports an error when the owner of an active borrow is mutated.
+     *
+     * Params:
+     *      owner = The variable being mutated (the owner of the borrow).
+     *      entry = The borrow that protects the owner.
+     *      loc   = location mutation
+     */
+    void onBorrowOwnerMutation(DFAVar* owner, DFABorrowEntry* entry, ref const Loc loc)
+    {
+        errorSink.error(loc, "Cannot mutate the owner of an active borrow");
+
+        if (owner !is null && owner.var !is null)
+            errorSink.errorSupplemental(owner.var.loc, "For variable `%s`", owner.var.ident.toChars);
+
+        if (entry !is null)
+            errorSink.errorSupplemental(entry.loc, "Borrowed here");
+    }
+
+    /***********************************************************
+     * Reports an error when a borrow would outlive the variable it
+     * borrows from (the direct source, one level deep).
+     */
+    void onBorrowOutlivesOwner(DFAVar* borrower, DFAVar* owner, ref const Loc loc)
+    {
+        errorSink.error(loc, "A borrow cannot outlive the variable it borrows from");
+
+        if (owner !is null && owner.var !is null)
+            errorSink.errorSupplemental(owner.var.loc, "For variable `%s`", owner.var.ident.toChars);
+
+        if (borrower !is null && borrower.var !is null)
+            errorSink.errorSupplemental(borrower.var.loc,
+                    "The borrow is stored in variable `%s`", borrower.var.ident.toChars);
+    }
+
+    /***********************************************************
+     * Reports an error when a borrow variable is changed outside of a
+     * loop, or is declared outside the loop it is changed in.
+     */
+    void onBorrowVariableReassignment(DFAVar* borrower, ref const Loc loc)
+    {
+        errorSink.error(loc, "Cannot change a borrow variable declared outside of a loop");
+
+        if (borrower !is null && borrower.var !is null)
+            errorSink.errorSupplemental(borrower.var.loc,
+                    "For variable `%s`", borrower.var.ident.toChars);
+    }
+
+    /***********************************************************
+     * Reports an error when a borrow is stored through a dereference.
+     *
+     * This is allowed in @system code (no borrow checker protections
+     * apply there), but not in @safe code.
+     */
+    void onBorrowStoredThroughDereference(ref const Loc loc)
+    {
+        auto tf = dfaCommon.currentFunction !is null
+            ? dfaCommon.currentFunction.type.isTypeFunction : null;
+        if (tf is null || tf.trust != TRUST.safe)
+            return;
+
+        errorSink.error(loc, "Cannot store a borrow through a dereference in @safe code");
+    }
+
+    /***********************************************************
+     * Reports an error when the owner of an active borrow is passed
+     * to a function whose parameter may mutate it.
+     */
+    void onBorrowOwnerPassedToMutatingFunction(DFABorrowEntry* entry,
+            const(char)* paramName, ref const Loc loc)
+    {
+        errorSink.error(loc,
+                "Cannot pass the owner of an active borrow to a function that may mutate it");
+
+        if (paramName !is null)
+            errorSink.errorSupplemental(loc, "Parameter `%s` must be const or immutable", paramName);
+        else
+            errorSink.errorSupplemental(loc, "The parameter must be const or immutable");
+
+        if (entry !is null)
+            errorSink.errorSupplemental(entry.loc, "Borrowed here");
+    }
+
     void onThrowEscape(DFAObject* obj, ref const Loc loc)
     {
         if (obj is null)
