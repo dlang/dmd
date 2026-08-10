@@ -1112,10 +1112,8 @@ private int ctfeCmpArrays(Loc loc, Expression e1, Expression e2, uinteger_t len)
     const bool needCmp = ae1.type.nextOf().isIntegral();
     foreach (size_t i; 0 .. cast(size_t)len)
     {
-        Expression ee1 = (*ae1.elements)[cast(size_t)(lo1 + i)];
-        if (!ee1) ee1 = ae1.basis;
-        Expression ee2 = (*ae2.elements)[cast(size_t)(lo2 + i)];
-        if (!ee2) ee2 = ae2.basis;
+        Expression ee1 = ae1[cast(size_t)(lo1 + i)];
+        Expression ee2 = ae2[cast(size_t)(lo2 + i)];
         if (needCmp)
         {
             const sinteger_t c = ee1.toInteger() - ee2.toInteger();
@@ -1398,16 +1396,15 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
     {
         // [chars] ~ string => string (only valid for CTFE)
         StringExp es1 = e2.isStringExp();
-        ArrayLiteralExp es2 = e1.isArrayLiteralExp();
-        const len = es1.len + es2.length;
+        ArrayLiteralExp ale2 = e1.isArrayLiteralExp();
+        const len = es1.len + ale2.length;
         const sz = es1.sz;
         void* s = mem.xmalloc_noscan((len + 1) * sz);
         const data1 = es1.peekData();
-        memcpy(cast(char*)s + sz * es2.length, data1.ptr, data1.length);
-        foreach (size_t i; 0 .. es2.length)
+        memcpy(cast(char*)s + sz * ale2.length, data1.ptr, data1.length);
+        foreach (size_t i; 0 .. ale2.length)
         {
-            Expression es2e = (*es2.elements)[i];
-            if (!es2e) es2e = es2.basis;
+            Expression es2e = ale2[i];
             if (!es2e || es2e.op != EXP.int64)
             {
                 emplaceExp!(CTFEExp)(&ue, EXP.cantExpression);
@@ -1429,16 +1426,15 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         // string ~ [chars] => string (only valid for CTFE)
         // Concatenate the strings
         StringExp es1 = e1.isStringExp();
-        ArrayLiteralExp es2 = e2.isArrayLiteralExp();
-        const len = es1.len + es2.length;
+        ArrayLiteralExp ale2 = e2.isArrayLiteralExp();
+        const len = es1.len + ale2.length;
         const sz = es1.sz;
         void* s = mem.xmalloc_noscan((len + 1) * sz);
         auto slice = es1.peekData();
         memcpy(s, slice.ptr, slice.length);
-        foreach (size_t i; 0 .. es2.length)
+        foreach (size_t i; 0 .. ale2.length)
         {
-            Expression es2e = (*es2.elements)[i];
-            if (!es2e) es2e = es2.basis;
+            Expression es2e = ale2[i];
             if (!es2e || es2e.op != EXP.int64)
             {
                 emplaceExp!(CTFEExp)(&ue, EXP.cantExpression);
@@ -1459,11 +1455,11 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
     if (e1.op == EXP.arrayLiteral && e2.op == EXP.arrayLiteral && t1.nextOf().equals(t2.nextOf()))
     {
         //  [ e1 ] ~ [ e2 ] ---> [ e1, e2 ]
-        ArrayLiteralExp es1 = e1.isArrayLiteralExp();
-        ArrayLiteralExp es2 = e2.isArrayLiteralExp();
-        emplaceExp!(ArrayLiteralExp)(&ue, es1.loc, type, copyLiteralArrayExpand(es1.elements, es1.basis));
-        es1 = ue.exp().isArrayLiteralExp();
-        es1.elements.insert(es1.length, copyLiteralArrayExpand(es2.elements, es2.basis));
+        ArrayLiteralExp ale1 = e1.isArrayLiteralExp();
+        ArrayLiteralExp ale2 = e2.isArrayLiteralExp();
+        emplaceExp!(ArrayLiteralExp)(&ue, ale1.loc, type, copyLiteralArrayExpand(ale1.elements, ale1.basis));
+        ale1 = ue.exp().isArrayLiteralExp();
+        ale1.elements.insert(ale1.length, copyLiteralArrayExpand(ale2.elements, ale2.basis));
         return ue;
     }
     if (e1.op == EXP.arrayLiteral && e2.op == EXP.null_ && t1.nextOf().equals(t2.nextOf()))
@@ -1627,8 +1623,24 @@ void assignInPlace(Expression dest, Expression src)
     }
     else if (dest.op == EXP.arrayLiteral && src.op == EXP.arrayLiteral)
     {
-        oldelems = dest.isArrayLiteralExp().elements;
-        newelems = src.isArrayLiteralExp().elements;
+        auto aledest = dest.isArrayLiteralExp();
+        auto alesrc = src.isArrayLiteralExp();
+        assert(aledest.length == alesrc.length);
+        foreach (size_t i; 0 .. aledest.length)
+        {
+            Expression e = alesrc[i];
+            Expression o = aledest[i];
+            if (e.op == EXP.structLiteral)
+            {
+                assert(o.op == e.op);
+                assignInPlace(o, e);
+            }
+            else if (e.type.ty == Tsarray && e.op != EXP.void_ && o.type.ty == Tsarray)
+                assignInPlace(o, e);
+            else
+                aledest[i] = alesrc[i];
+        }
+        return;
     }
     else if (dest.op == EXP.string_ && src.op == EXP.string_)
     {
@@ -1762,15 +1774,14 @@ Expression changeArrayLiteralLength(UnionExp* pue, Loc loc, TypeArray arrayType,
     }
     else
     {
+        // could be improved by using basis
         if (oldlen != 0)
         {
             assert(oldval.op == EXP.arrayLiteral);
             ArrayLiteralExp ae = oldval.isArrayLiteralExp();
             foreach (size_t i; 0 .. copylen)
             {
-                Expression e = (*ae.elements)[indxlo + i];
-                if (!e) e = ae.basis;
-                (*elements)[i] = e;
+                (*elements)[i] = ae[indxlo + i];
             }
         }
         if (elemType.ty == Tstruct || elemType.ty == Tsarray)
@@ -1950,7 +1961,7 @@ void showCtfeExpr(Expression e, int level = 0)
     }
     else if (e.op == EXP.arrayLiteral)
     {
-        elements = e.isArrayLiteralExp().elements;	// what about basis?
+        elements = e.isArrayLiteralExp().elements;      // what about basis?
         printf("ARRAY LITERAL type=%s %p:\n", e.type.toChars(), e);
     }
     else if (e.op == EXP.assocArrayLiteral)
