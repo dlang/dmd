@@ -177,26 +177,24 @@ private void* _allocmemoryNoFree(size_t m_size, size_t alignment) nothrow @nogc
     return heapp;
 }
 
-struct TypeInfoAlignmentPair
-{
-    TypeInfo ti;
-    size_t alignment;
-}
 // expected to be RealExp and ComplexExp, only
-__gshared TypeInfoAlignmentPair[2] tiAlignments = TypeInfoAlignmentPair(null, DEFAULT_ALIGNMENT);
+__gshared TypeInfo[2] tiAlignments;
+__gshared size_t[2] szAlignments = DEFAULT_ALIGNMENT;
 __gshared size_t numTiAlignments;
 
 void registerAlignment(TypeInfo ti, size_t alignment)
 {
     assert(numTiAlignments < tiAlignments.length);
-    tiAlignments[numTiAlignments++] = TypeInfoAlignmentPair(ti, alignment);
+    tiAlignments[numTiAlignments] = ti;
+    szAlignments[numTiAlignments++] = alignment;
 }
 
-size_t defaultAlignment(size_t size, const TypeInfo ti)
+size_t determineAlignment(size_t size, const TypeInfo ti)
 {
     pragma(inline, true);
-    return ti is tiAlignments[0].ti ? tiAlignments[0].alignment
-         : ti is tiAlignments[1].ti ? tiAlignments[1].alignment
+    return ti is tiAlignments[0] ? szAlignments[0]
+         : ti is tiAlignments[1] ? szAlignments[1]
+         : ti && typeid(ti) is typeid(TypeInfo_Struct) ? (cast(TypeInfo_Struct)cast(void*)ti).m_align // bypass virtual call
          : DEFAULT_ALIGNMENT;
 }
 
@@ -210,7 +208,7 @@ extern (C) void* _d_allocmemory(size_t m_size) nothrow
         return GC.malloc(m_size);
 
     allocatedNoFree += m_size;
-    return _allocmemoryNoFree(m_size, defaultAlignment(m_size, null));
+    return _allocmemoryNoFree(m_size, DEFAULT_ALIGNMENT);
 }
 
 extern (D) void* allocmemoryNoFree(size_t m_size, size_t alignment) nothrow
@@ -422,7 +420,7 @@ class BumpPointerGC : GCInterface
         version (none)
             assert(ti, "unexpected malloc, this usually happens for closure allocations");
         allocated += size;
-        auto alignment = defaultAlignment(size, ti);
+        auto alignment = determineAlignment(size, ti);
         debug assert(!ti || ti.talign <= alignment);
         return _allocmemoryNoFree(size, alignment);
     }
@@ -433,7 +431,7 @@ class BumpPointerGC : GCInterface
             return gc.qalloc(size, bits, ti);
         allocated += size;
         GC.BlkInfo bi;
-        bi.base = _allocmemoryNoFree(size, defaultAlignment(size, ti));
+        bi.base = _allocmemoryNoFree(size, determineAlignment(size, ti));
         bi.size = size;
         return bi;
     }
@@ -443,7 +441,7 @@ class BumpPointerGC : GCInterface
         if (bits & GC.BlkAttr.APPENDABLE)
             return gc.calloc(size, bits, ti);
         allocated += size;
-        void* p = _allocmemoryNoFree(size, defaultAlignment(size, ti));
+        void* p = _allocmemoryNoFree(size, determineAlignment(size, ti));
         memset(p, 0, size);
         return p;
     }
