@@ -1527,13 +1527,13 @@ version (MSVCIntrinsics)
             prefetchData!(false, 3)(address);
         }
 
-        /* This is trusted so that it's @safe without DIP1000 enabled. */
         @safe pure nothrow @nogc unittest
         {
             static bool test()
             {
                 immutable(int) x;
-                __prefetch(&x);
+                /* This is trusted so that it's @safe without DIP1000 enabled. */
+                __prefetch((() @trusted => &x)());
                 return true;
             }
 
