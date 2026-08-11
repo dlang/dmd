@@ -327,6 +327,14 @@ void out_config_init(
 
         cfg.objfmt = OBJ_ELF;
     }
+    if (cfg.exe & EX_WASM)
+    {
+        cfg.target_cpu = TARGET_WASM;
+        cfg.objfmt = OBJ_WASM;
+        cfg.ehmethod = useExceptions ? EHmethod.EH_WASM : EHmethod.EH_NONE;
+        cfg.fpxmmregs = false;
+        cfg.inline8087 = false;
+    }
 
     cfg.flags2 |= CFG2nodeflib;      // no default library
     cfg.flags3 |= CFG3eseqds;
@@ -511,6 +519,14 @@ if (exe & EX_windos)
     _tysize[TYireal] = 10;
     _tysize[TYcreal] = 20;
 }
+if (exe & EX_WASM)
+{
+    // 64-bit real. wasi-libc uses 128-bit float for 'long double' in e.g.
+    // cosl, printf, but does so using software emulation
+    _tysize[TYreal] = 8;
+    _tysize[TYireal] = 8;
+    _tysize[TYcreal] = 16;
+}
 
     _tysize[TYsptr] = LONGSIZE;
     _tysize[TYcptr] = LONGSIZE;
@@ -541,6 +557,12 @@ if (exe & EX_windos)
     _tyalignsize[TYreal] = 2;
     _tyalignsize[TYireal] = 2;
     _tyalignsize[TYcreal] = 2;
+}
+if (exe & EX_WASM)
+{
+    _tyalignsize[TYreal] = 8;
+    _tyalignsize[TYireal] = 8;
+    _tyalignsize[TYcreal] = 8;
 }
 
     _tyalignsize[TYsptr] = LONGSIZE;
