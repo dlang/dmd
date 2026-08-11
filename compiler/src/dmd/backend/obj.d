@@ -40,6 +40,7 @@ else
 import dmd.backend.mscoffobj;
 import dmd.backend.elfobj;
 import dmd.backend.machobj;
+import dmd.backend.wasm.obj;
 
 /******************************************************************/
 
@@ -351,6 +352,7 @@ else
             {
                 case OBJ_ELF:     ElfObj_gotref(s); break;
                 case OBJ_MACH:   MachObj_gotref(s); break;
+                case OBJ_WASM:   WasmObj_gotref(s); break;
                 default:         assert(0);
             }
         }
@@ -361,6 +363,7 @@ else
             {
                 case OBJ_ELF:    return  ElfObj_getGOTsym();
                 case OBJ_MACH:   return MachObj_getGOTsym();
+                case OBJ_WASM:   return WasmObj_getGOTsym();
                 default:         assert(0);
             }
         }
@@ -371,6 +374,7 @@ else
             {
                 case OBJ_ELF:     ElfObj_refGOTsym(); break;
                 case OBJ_MACH:   MachObj_refGOTsym(); break;
+                case OBJ_WASM:   WasmObj_refGOTsym(); break;
                 default:         assert(0);
             }
         }
@@ -529,6 +533,7 @@ string genRetVal(string arg)
             case OBJ_ELF:    return    ElfObj_"~arg~";
             case OBJ_MSCOFF: return MsCoffObj_"~arg~";
             case OBJ_MACH:   return   MachObj_"~arg~";
+            case OBJ_WASM:   return   WasmObj_"~arg~";
             default:     assert(0);
         }
     ";

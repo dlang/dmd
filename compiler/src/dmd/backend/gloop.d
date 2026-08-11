@@ -1027,6 +1027,8 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
             case OPddtor:
             case OPinp:
             case OPprefetch:                // don't mark E2
+            case OPmemgrow:
+            case OPthrow:
                 markinvar(n.E1,rd);
                 break;
 
@@ -1280,6 +1282,8 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
                 break;
 
             case OPstrthis:
+            case OPmemsize:
+            case OPrethrow:
             case OPmark:
             case OPctor:
             case OPdtor:
