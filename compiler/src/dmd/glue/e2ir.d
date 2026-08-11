@@ -120,7 +120,7 @@ bool ISX64REF(Declaration var)
             auto ts = var.type.isTypeStruct();
             return !(var.storage_class & STC.lazy_) && ts && ts.sym.hasMoveCtor && ts.sym.hasCopyCtor;
         }
-        else if (target.os & Target.OS.Posix)
+        else if ((target.os & Target.OS.Posix) || target.isWasm)
         {
             return !(var.storage_class & STC.lazy_) && var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD() ||
                 passTypeByRef(target, var.type);
@@ -145,7 +145,7 @@ bool ISX64REF(ref IRState irs, Expression exp)
         auto ts = exp.type.isTypeStruct();
         return ts && ts.sym.hasMoveCtor && ts.sym.hasCopyCtor;
     }
-    else if (irs.target.os & Target.OS.Posix)
+    else if ((irs.target.os & Target.OS.Posix) || irs.target.isWasm)
     {
         return exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD() || passTypeByRef(*irs.target, exp.type);
     }
@@ -4294,7 +4294,12 @@ elem* toElem(Expression e, ref IRState irs)
  */
 elem* toElemRVO(Expression e, elem* ehidden, ref IRState irs)
 {
-    assert(e.type.toBasetype().ty == Tstruct || e.type.toBasetype().ty == Tsarray);
+    // int[] f(); void g() { int[] a = f(); } // wasm returns slices by hidden pointer
+    import dmd.target : target;
+    const wasmNonAgg = target.isWasm &&
+        e.type.toBasetype().ty != Tstruct && e.type.toBasetype().ty != Tsarray;
+    if (wasmNonAgg && !ehidden)
+        return toElem(e, irs);
 
     elem* doCommaRVO(CommaExp ce)
     {
@@ -4367,7 +4372,18 @@ elem* toElemRVO(Expression e, elem* ehidden, ref IRState irs)
         case EXP.question:      return doCondRVO(e.isCondExp());
         case EXP.call:          return doCallRVO(e.isCallExp());
         case EXP.structLiteral: return doStructLiteralRVO(e.isStructLiteralExp());
-        default:                assert(0);
+        default:
+            assert(wasmNonAgg);
+            elem* ev = toElem(e, irs);
+            elem* ed = el_copytree(ehidden);
+            if (tybasic(ed.Ety) == TYnptr)
+            {
+                ed = el_una(OPind, ev.Ety, ed);
+                ed.ET = ev.ET;
+            }
+            elem* ea = el_bin(OPeq, ev.Ety, ed, ev);
+            elem_setLoc(ea, e.loc);
+            return ea;
     }
 }
 
@@ -4796,8 +4812,8 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
         return Lret(ce, e);
     }
 
-    // OSX AArch64 long doubles are 64 bits
-    bool RealIsDouble = target.os == Target.os.OSX && target.isAArch64;
+    // OSX AArch64 and wasm32 long doubles are 64 bits
+    bool RealIsDouble = target.realsize == 8;
 
     /* Reduce combinatorial explosion by rewriting the 'to' and 'from' types to a
      * generic equivalent (as far as casting goes)
@@ -5884,7 +5900,7 @@ elem* callfunc(Loc loc,
                  */
                 e.E1 = el_una(OPind, e.E2.Ety | mTYvolatile, e.E1);
             }
-            if (op == OPscale)
+            if (op == OPscale && !target.isWasm)
             {
                 elem* et = e.E1;
                 e.E1 = el_una(OPs32_d, TYdouble, e.E2);
@@ -5928,6 +5944,12 @@ elem* callfunc(Loc loc,
             e = el_una(op,mTYvolatile | tyret,ep);
         else if (op == OPva_start)
             e = constructVa_start(ep);
+        else if (op == OPmemsize)
+        {
+            assert(!ep);
+            e = el_long(tyret, 0);
+            e.Eoper = OPmemsize;
+        }
         else if (op == OPtoPrec)
         {
             const bool RealIsDouble = _tysize[TYreal] == 8;
@@ -5978,6 +6000,11 @@ elem* callfunc(Loc loc,
     }
     else
     {
+        // Ensure the variable carries the function type when there's no Symbol, e.g.:
+        // void f(void function(int) fp) { fp(1); }
+        if (ec && ec.Eoper != OPvar)
+            ec.ET = Type_toCtype(tf);
+
         // `OPcallns` used to be passed here for certain pure functions,
         // but optimizations based on pure have to be retought, see:
         // https://issues.dlang.org/show_bug.cgi?id=22277
@@ -5996,6 +6023,11 @@ elem* callfunc(Loc loc,
                 assert(length < ubyte.max); // 254 should be enough for anybody
                 e.numParams = cast(ubyte)(tf.parameterList.length + 1); // +1 means variadic
             }
+
+            // The wasm backend needs to know the exact number of hidden parameters for e.g.:
+            // void foo2(void delegate(int, ...) dg) { dg(20, 3.14); }
+            if (target.isWasm)
+                e.numParams = cast(ubyte)(1 + ((ethis2 !is null || ethis !is null) ? 1 : 0));
         }
     }
 
@@ -6009,7 +6041,7 @@ elem* callfunc(Loc loc,
     }
     else if (retmethod == RET.stack)
     {
-        if (irs.target.os == Target.OS.OSX && eresult)
+        if ((irs.target.os == Target.OS.OSX || irs.target.isWasm) && eresult)
         {
             /* ABI quirk: hidden pointer is not returned in registers
              */
@@ -6402,10 +6434,11 @@ Lagain:
     {
         case Tfloat80:
         case Timaginary80:
-            r = RTLSYM.MEMSET80;
+            // OSX AArch64 and wasm32 long doubles are 64 bits
+            r = target.realsize == 8 ? RTLSYM.MEMSETDOUBLE : RTLSYM.MEMSET80;
             break;
         case Tcomplex80:
-            r = RTLSYM.MEMSET160;
+            r = target.realsize == 8 ? RTLSYM.MEMSET128 : RTLSYM.MEMSET160;
             break;
         case Tcomplex64:
             r = RTLSYM.MEMSET128;
@@ -6425,7 +6458,8 @@ Lagain:
 
         case Tstruct:
         {
-            if (target.isX86)
+            // struct S { int a, b, c, d; } // argtypes turns this into Tcomplex64
+            if (target.isX86 || target.isWasm)
                 goto default;
 
             TypeStruct tc = cast(TypeStruct)tb2;
@@ -6449,7 +6483,12 @@ Lagain:
                 case 2:      r = RTLSYM.MEMSET16;   break;
                 case 4:      r = RTLSYM.MEMSET32;   break;
                 case 8:      r = RTLSYM.MEMSET64;   break;
-                case 16:     r = (target.isX86_64 || target.isAArch64) ? RTLSYM.MEMSET128ii : RTLSYM.MEMSET128; break;
+                case 16:
+                    if (target.isWasm)
+                        r = RTLSYM.MEMSETN;
+                    else
+                        r = (target.isX86_64 || target.isAArch64) ? RTLSYM.MEMSET128ii : RTLSYM.MEMSET128;
+                    break;
                 default:     r = RTLSYM.MEMSETN;    break;
             }
 
@@ -6868,7 +6907,7 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
         if (TypeEnum te = sle.stype.isTypeEnum())
         {
             // Reinterpret the struct literal as a complex type.
-            if (te.sym.isSpecial() &&
+            if (te.sym.isSpecial() && !target.isWasm &&
                 (te.sym.ident == Id.__c_complex_float ||
                  te.sym.ident == Id.__c_complex_double ||
                  te.sym.ident == Id.__c_complex_real))
@@ -7472,6 +7511,7 @@ elem* callCAssert(ref IRState irs, Loc loc, Expression exp, Expression emsg, con
     {
         case Musl:
         case Glibc:
+        case WASI: // wasi-libc is musl-based
             // __assert_fail(exp, file, line, func);
             assertSym = getRtlsym(RTLSYM.C__ASSERT_FAIL);
             elem* efunc = getFuncName();
@@ -7551,7 +7591,7 @@ elem* constructVa_start(elem* e)
 
     e.Eoper = OPva_start;
     e.Ety = TYvoid;
-    if (target.isX86_64 || target.isAArch64)
+    if (target.isX86_64 || target.isAArch64 || target.isWasm)
     {
         // (OPparam &va &arg)
         // call as (OPva_start &va)

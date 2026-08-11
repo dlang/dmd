@@ -238,13 +238,43 @@ Symbol* getBzeroSymbol()
     return s;
 }
 
+void checkWasmComplex(Loc loc, Type t)
+{
+    if (!target.isWasm || !t)
+        return;
+
+    Type tb = t.toBasetype();
+    switch (tb.ty)
+    {
+        case Tcomplex32:
+        case Tcomplex64:
+        case Tcomplex80:
+            error(loc, "complex type `%s` is not supported for the WebAssembly target", t.toChars());
+            break;
+
+        case Tfunction:
+            auto tf = tb.isTypeFunction();
+            checkWasmComplex(loc, tf.next);
+            foreach (i; 0 .. tf.parameterList.length)
+                checkWasmComplex(loc, tf.parameterList[i].type);
+            break;
+
+        case Tsarray:
+            checkWasmComplex(loc, tb.nextOf());
+            break;
+
+        default:
+            break;
+    }
+}
+
 /*****************************
  * Return back end type corresponding to D front end type.
  */
 tym_t totym(Type tx)
 {
-    // OSX AArch64 long doubles are 64 bits
-    bool RealIsDouble = target.os == Target.os.OSX && target.isAArch64;
+    // OSX AArch64 and wasm32 long doubles are 64 bits
+    bool RealIsDouble = target.realsize == 8;
 
     tym_t t;
     switch (tx.ty)
@@ -297,11 +327,11 @@ tym_t totym(Type tx)
                 t = tb.ty == Tuns32 ? TYulong : TYullong;
             else if (id == Id.__c_long_double)
                 t = tb.size() == 8 ? TYdouble : TYreal;
-            else if (id == Id.__c_complex_float)
+            else if (!target.isWasm && id == Id.__c_complex_float)
                 t = TYcfloat;
-            else if (id == Id.__c_complex_double)
+            else if (!target.isWasm && id == Id.__c_complex_double)
                 t = TYcdouble;
-            else if (id == Id.__c_complex_real)
+            else if (!target.isWasm && id == Id.__c_complex_real)
                 t = tb.size() == 16 ? TYcdouble : TYcreal;
             else
                 t = totym(tb);
@@ -369,6 +399,10 @@ tym_t totym(Type tx)
 
                 case LINK.d:
                     t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYjfunc;
+                    if (target.os == Target.OS.WASM)
+                    {
+                        t = TYnfunc; // No need for wasm to inherit the reversed param nonsense
+                    }
                     break;
 
                 case LINK.default_:
@@ -853,7 +887,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         se.type = Type.tstring;
         se.type = se.type.typeSemantic(Loc.initial, null);
         Expressions* exps = new Expressions(se);
-        FuncDeclaration fdpro = genCfunc(null, Type.tvoid, "trace_pro");
+        auto proParams = new Parameters();
+        proParams.push(new Parameter(Loc.initial, STC.none, se.type, null, null, null, null));
+        FuncDeclaration fdpro = genCfunc(proParams, Type.tvoid, "trace_pro");
         Expression ec = VarExp.create(Loc.initial, fdpro);
         Expression e = CallExp.create(Loc.initial, ec, exps);
         e.type = Type.tvoid;
@@ -925,7 +961,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
     if (config.ehmethod == EHmethod.EH_NONE || f.Fflags & Feh_none)
         insertFinallyBlockGotos(f.Fstartblock);
-    else if (config.ehmethod == EHmethod.EH_DWARF)
+    else if (config.ehmethod == EHmethod.EH_DWARF || config.ehmethod == EHmethod.EH_WASM)
         insertFinallyBlockCalls(f.Fstartblock);
 
     // If static constructor
@@ -1735,6 +1771,8 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
                 break;
             case Target.ObjectFormat.coff:
                 objmod.external_def("main");
+                break;
+            case Target.ObjectFormat.wasm:
                 break;
         }
         if (const libname = finalDefaultlibname())
