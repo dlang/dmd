@@ -21,6 +21,7 @@ import dmd.arrayop;
 import dmd.arraytypes;
 import dmd.astcodegen;
 import dmd.astenums;
+import dmd.common.int128 : Cent;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
@@ -230,6 +231,8 @@ ulong sizemask(Type _this)
         break;
     case Tint64:
     case Tuns64:
+    case Tint128:
+    case Tuns128:
         m = 0xFFFFFFFFFFFFFFFFUL;
         break;
     default:
@@ -3225,16 +3228,6 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
 
     Type visitType(Type t)
     {
-        // @@@DEPRECATED_2.110@@@
-        // Use of `cent` and `ucent` has always been an error.
-        // Starting from 2.100, recommend core.int128 as a replace for the
-        // lack of compiler support.
-        if (t.ty == Tint128 || t.ty == Tuns128)
-        {
-            .error(loc, "`cent` and `ucent` types are obsolete, use `core.int128.Cent` instead");
-            return error();
-        }
-
         return t.merge();
     }
 
@@ -5193,6 +5186,14 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
             return new IntegerExp(loc, i, mt);
         }
 
+        Expression bigIntegerValue(ulong hi, ulong lo)
+        {
+            Cent c;
+            c.hi = hi;
+            c.lo = lo;
+            return new BigIntegerExp(loc, c, mt);
+        }
+
         Expression intValue(dinteger_t i)
         {
             return new IntegerExp(loc, i, Type.tint32);
@@ -5221,6 +5222,8 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
             case Tuns32:       return integerValue(uint.max);
             case Tint64:       return integerValue(long.max);
             case Tuns64:       return integerValue(ulong.max);
+            case Tint128:      return bigIntegerValue(0x7FFFFFFFFFFFFFFFUL, 0xFFFFFFFFFFFFFFFFUL);
+            case Tuns128:      return bigIntegerValue(0xFFFFFFFFFFFFFFFFUL, 0xFFFFFFFFFFFFFFFFUL);
             case Tbool:        return integerValue(bool.max);
             case Tchar:        return integerValue(char.max);
             case Twchar:       return integerValue(wchar.max);
@@ -5253,6 +5256,8 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
             case Tint16:       return integerValue(short.min);
             case Tint32:       return integerValue(int.min);
             case Tint64:       return integerValue(long.min);
+            case Tint128:      return bigIntegerValue(0x8000000000000000UL, 0);
+            case Tuns128:      return integerValue(0);
             default:           break;
             }
         }

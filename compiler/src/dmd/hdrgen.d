@@ -32,6 +32,7 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.dversion;
+import dmd.common.int128 : Cent;
 import dmd.expression;
 import dmd.func;
 import dmd.id;
@@ -49,6 +50,7 @@ import dmd.root.string;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.tokens;
+import dmd.typesem : isUnsigned, toBasetype;
 import dmd.visitor;
 
 struct HdrGenState
@@ -2315,6 +2317,14 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             buf.print(v);
     }
 
+    void visitBigInteger(BigIntegerExp e)
+    {
+        const Cent v = e.value;
+        const isUnsigned = e.type.toBasetype().isUnsigned();
+        buf.put(isUnsigned ? "cast(ucent)((cast(ucent)0x" : "cast(cent)((cast(cent)0x");
+        buf.printf("%llxULL << 64) | 0x%llxULL)", cast(ulong)v.hi, cast(ulong)v.lo);
+    }
+
     void visitError(ErrorExp e)
     {
         buf.put("__error");
@@ -3086,6 +3096,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             return visit(e);
 
         case EXP.int64:         return visitInteger(e.isIntegerExp());
+        case EXP.bigInteger:    return visitBigInteger(e.isBigIntegerExp());
         case EXP.error:         return visitError(e.isErrorExp());
         case EXP.void_:         return visitVoidInit(e.isVoidInitExp());
         case EXP.float64:       return visitReal(e.isRealExp());
@@ -4662,6 +4673,7 @@ string EXPtoString(EXP op)
         EXP.this_ : "this",
         EXP.super_ : "super",
         EXP.int64 : "long",
+        EXP.bigInteger : "cent",
         EXP.float64 : "double",
         EXP.complex80 : "creal",
         EXP.null_ : "null",

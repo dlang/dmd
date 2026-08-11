@@ -470,6 +470,11 @@ void ecom(ref CGCS cgcs, ref elem* pe)
         tym == TYvoid ||
         e.Ety & mTYvolatile)
         return;
+    /* Don't CSE 128-bit values on 32-bit x86: they cannot be held in
+     * registers, so the register-based CSE reload has no target registers.
+     */
+    if (I32 && (tym == TYcent || tym == TYucent))
+        return;
     if (tyfloating(tym) && config.inline8087)
     {
         /* can CSE XMM code, but not x87

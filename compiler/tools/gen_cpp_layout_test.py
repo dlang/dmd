@@ -105,7 +105,8 @@ import dmd.aggregate, dmd.aliasthis, dmd.arraytypes, dmd.ast_node,
        dmd.root.array, dmd.root.bitarray, dmd.root.complex,
        dmd.root.ctfloat, dmd.root.filename, dmd.root.longdouble,
        dmd.root.optional, dmd.root.port, dmd.root.rmem,
-       dmd.common.charactertables, dmd.common.outbuffer;"""
+       dmd.common.charactertables, dmd.common.outbuffer,
+       dmd.common.int128;"""
 
 # Helper emitted once
 D_HELPER_CODE = r"""private enum hasMangled(alias T, string method, string mangled) = () {

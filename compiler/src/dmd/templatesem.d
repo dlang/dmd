@@ -594,6 +594,9 @@ private size_t expressionHash(Expression e)
     case EXP.int64:
         return cast(size_t) e.isIntegerExp().getInteger();
 
+    case EXP.bigInteger:
+        return mixHash(cast(size_t)e.isBigIntegerExp().value.lo, cast(size_t)e.isBigIntegerExp().value.hi);
+
     case EXP.float64:
         return CTFloat.hash(e.isRealExp().value);
 

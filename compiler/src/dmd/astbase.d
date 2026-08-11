@@ -14,6 +14,7 @@ import dmd.astenums;
 import dmd.visitor.parsetime;
 import dmd.tokens : EXP;
 import dmd.expression;
+import dmd.common.int128;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with
   * no semantic information. It defines all the AST nodes that the parser needs
@@ -4573,6 +4574,7 @@ struct ASTBase
         final pure inout nothrow @nogc @trusted
         {
             inout(IntegerExp)   isIntegerExp() { return op == EXP.int64 ? cast(typeof(return))this : null; }
+            inout(BigIntegerExp) isBigIntegerExp() { return op == EXP.bigInteger ? cast(typeof(return))this : null; }
             inout(ErrorExp)     isErrorExp() { return op == EXP.error ? cast(typeof(return))this : null; }
             inout(RealExp)      isRealExp() { return op == EXP.float64 ? cast(typeof(return))this : null; }
             inout(IdentifierExp) isIdentifierExp() { return op == EXP.identifier ? cast(typeof(return))this : null; }
@@ -4787,6 +4789,30 @@ struct ASTBase
             default:
                 break;
             }
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class BigIntegerExp : Expression
+    {
+        Cent value;
+
+        extern (D) this(Loc loc, Cent value, Type type)
+        {
+            super(loc, EXP.bigInteger, __traits(classInstanceSize, BigIntegerExp));
+            assert(type);
+            if (!type.isScalar())
+            {
+                if (type.ty != Terror)
+                    error(loc, "integral constant must be scalar type, not %s", type.toChars());
+                type = Type.terror;
+            }
+            this.type = type;
+            this.value = value;
         }
 
         override void accept(Visitor v)

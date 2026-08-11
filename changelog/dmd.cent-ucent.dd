@@ -1,0 +1,27 @@
+Implement the 128-bit integer types `cent` and `ucent`
+
+The previously reserved 128-bit integer types `cent` and `ucent` are now
+implemented and usable. They behave like the other integer types:
+
+- 16-byte values with 8-byte alignment, supporting all integer operators:
+  arithmetic, bitwise, shifts, comparisons, and compound assignment.
+- Integer literals that do not fit in 64 bits now have type `cent` (or
+  `ucent` with a `u` suffix) instead of being an error.
+- Constant folding and compile-time evaluation (CTFE) work with 128-bit
+  values, including `enum` constants, `static assert`, and compile-time
+  functions.
+- On x86-64, arithmetic is lowered to inline hardware instructions,
+  including a single `DIV`/`IDIV` for division by a 64-bit divisor;
+  128/128-bit division and modulo fall back to the existing `core.int128`
+  runtime functions.
+- On 32-bit x86, all arithmetic, division and comparisons are lowered to the
+  existing `core.int128` runtime functions (the platform has no 128-bit
+  registers). This also covers returning 128-bit values from functions,
+  conditional expressions, boolean tests, and casts to smaller integer types.
+- The `.min` and `.max` properties and importC's `__int128`/`unsigned __int128`
+  are supported.
+- `typeid(cent)` and `typeid(ucent)` are supported; the runtime types
+  `TypeInfo_zi`/`TypeInfo_zk` are provided by a rebuilt druntime.
+
+Conversions between 128-bit integers and floating point types are not yet
+implemented and produce a compile-time error.

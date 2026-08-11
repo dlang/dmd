@@ -93,6 +93,7 @@ void cgreg_init()
             (sz = cast(uint)type_size(s.Stype)) == 0 ||
             (tysize(s.ty()) == -1) ||
             (I16 && sz > REGSIZE) ||
+            (I32 && sz > 2 * REGSIZE) ||       // no 128-bit registers on 32-bit x86
             (tyfloating(s.ty()) && !(config.fpxmmregs && tyxmmreg(s.ty())))
            )
         {

@@ -22,6 +22,7 @@ import dmd.dfa.fast.statement;
 import dmd.dfa.fast.structure;
 import dmd.dfa.utils;
 import dmd.common.outbuffer;
+import dmd.globals : sinteger_t;
 import dmd.location;
 import dmd.expression;
 import dmd.expressionsem;
@@ -502,6 +503,7 @@ struct ExpressionWalker
         case EXP.assocArrayLiteral:
         case EXP.arrayLength:
         case EXP.int64:
+        case EXP.bigInteger:
         case EXP.null_:
         case EXP.cast_:
         case EXP.variable:
@@ -1709,6 +1711,7 @@ struct ExpressionWalker
                 return false;
 
             case EXP.int64:
+            case EXP.bigInteger:
             case EXP.string_:
                 return true;
 
@@ -2069,6 +2072,34 @@ struct ExpressionWalker
                     return ret;
                 }
 
+            case EXP.bigInteger:
+                {
+                    auto bie = expr.isBigIntegerExp;
+
+                    DFALatticeRef ret = dfaCommon.makeLatticeRef;
+                    DFAConsequence* c = ret.addConsequence(null);
+                    ret.setContext(c);
+
+                    if ((bie.value.hi & 0x8000000000000000) == 0
+                            && ((bie.value.hi & 0x7FFFFFFFFFFFFFFF) != 0 || bie.value.lo > long.max))
+                    {
+                        c.pa = DFAPAValue(DFAPAValue.Kind.UnknownUpperPositive);
+                        c.truthiness = Truthiness.True;
+                    }
+                    else if ((bie.value.hi & 0x8000000000000000) != 0
+                            && ((bie.value.hi & 0x7FFFFFFFFFFFFFFF) != 0 || bie.value.lo < long.min))
+                        c.pa = DFAPAValue(DFAPAValue.Kind.Unknown);
+                    else
+                    {
+                        // DFA models 128-bit values as their low 64 bits
+                        c.pa = DFAPAValue(cast(sinteger_t) bie.value.lo);
+                        c.truthiness = (bie.value.lo | bie.value.hi) != 0
+                            ? Truthiness.True : Truthiness.False;
+                    }
+
+                    return ret;
+                }
+
             case EXP.cast_:
                 {
                     auto ce = expr.isCastExp;
@@ -2292,6 +2323,7 @@ struct ExpressionWalker
         case EXP.cast_:
         case EXP.null_:
         case EXP.int64:
+        case EXP.bigInteger:
         case EXP.arrayLength:
         case EXP.string_:
         case EXP.typeid_:

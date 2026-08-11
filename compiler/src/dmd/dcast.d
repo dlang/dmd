@@ -345,7 +345,8 @@ MATCH implicitConvTo(Expression e, Type t)
 
         /* See if we can do integral narrowing conversions
          */
-        if (e.type.isIntegral() && t.isIntegral() && e.type.isTypeBasic() && t.isTypeBasic())
+        if (e.type.isIntegral() && t.isIntegral() && e.type.isTypeBasic() && t.isTypeBasic() &&
+            e.type.size() <= uinteger_t.sizeof)
         {
             IntRange src = getIntRange(e);
             IntRange target = intRangeFromType(t);
@@ -2265,6 +2266,13 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         // arithmetic values vs. T*
         if (tob_isA && (t1b_isA || t1b.ty == Tpointer) || t1b_isA && (tob_isA || tob.ty == Tpointer))
         {
+            // 128-bit integer <-> floating point conversions are not supported yet
+            if ((t1b.ty == Tint128 || t1b.ty == Tuns128 || tob.ty == Tint128 || tob.ty == Tuns128) &&
+                (t1b.isFloating() || tob.isFloating() || t1b.isImaginary() || tob.isImaginary() || t1b.isComplex() || tob.isComplex()))
+            {
+                error(e.loc, "conversion between `%s` and `%s` is not supported yet", e.type.toErrMsg(), t.toErrMsg());
+                return ErrorExp.get();
+            }
             return ok();
         }
 

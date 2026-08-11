@@ -20,6 +20,7 @@ import core.stdc.string;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
+import dmd.common.int128 : Cent;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dstruct;
@@ -315,6 +316,7 @@ extern (C++) abstract class Expression : ASTNode
         switch (op)
         {
         case EXP.int64:
+        case EXP.bigInteger:
         case EXP.float64:
         case EXP.complex80:
             return 1;
@@ -336,6 +338,7 @@ extern (C++) abstract class Expression : ASTNode
     final pure inout nothrow @nogc @trusted
     {
         inout(IntegerExp)   isIntegerExp() { return op == EXP.int64 ? cast(typeof(return))this : null; }
+        inout(BigIntegerExp) isBigIntegerExp() { return op == EXP.bigInteger ? cast(typeof(return))this : null; }
         inout(ErrorExp)     isErrorExp() { return op == EXP.error ? cast(typeof(return))this : null; }
         inout(VoidInitExp)  isVoidInitExp() { return op == EXP.void_ ? cast(typeof(return))this : null; }
         inout(RealExp)      isRealExp() { return op == EXP.float64 ? cast(typeof(return))this : null; }
@@ -631,6 +634,38 @@ extern (C++) final class IntegerExp : Expression
             falseExp = new IntegerExp(Loc.initial, 0, Type.tbool);
         }
         return b ? trueExp : falseExp;
+    }
+}
+
+/***********************************************************
+ * A compile-time known 128-bit integer value (cent/ucent)
+ */
+extern (C++) final class BigIntegerExp : Expression
+{
+    Cent value;
+
+    extern (D) this(Loc loc, Cent value, Type type)
+    {
+        super(loc, EXP.bigInteger);
+        assert(type);
+        assert(_isRoughlyScalar(type) || type.ty == Terror);
+        this.type = type;
+        this.value = value;
+    }
+
+    static BigIntegerExp create(Loc loc, Cent value, Type type)
+    {
+        return new BigIntegerExp(loc, value, type);
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+
+    override BigIntegerExp syntaxCopy()
+    {
+        return this;
     }
 }
 
@@ -4136,6 +4171,7 @@ private immutable ubyte[EXP.max+1] expSize = [
     EXP.error: __traits(classInstanceSize, ErrorExp),
     EXP.void_: __traits(classInstanceSize, VoidInitExp),
     EXP.int64: __traits(classInstanceSize, IntegerExp),
+    EXP.bigInteger: __traits(classInstanceSize, BigIntegerExp),
     EXP.float64: __traits(classInstanceSize, RealExp),
     EXP.complex80: __traits(classInstanceSize, ComplexExp),
     EXP.import_: __traits(classInstanceSize, ImportExp),
