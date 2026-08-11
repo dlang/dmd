@@ -143,6 +143,7 @@ struct Symbol
      */
     char[1] Sident;
 
+    const(char)[] identifier() @trusted const { return Sident.ptr[0 .. strlen(Sident.ptr)]; }
 }
 
 @nogc

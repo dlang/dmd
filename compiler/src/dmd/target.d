@@ -181,6 +181,8 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
         if (tgt.cpu >= CPU.avx2)
             predef("D_AVX2");
     }
+    else if (tgt.isWasm)
+        predef("D_SIMD");
 
     with (Target)
     {
@@ -224,6 +226,15 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
                 }
                 break;
             }
+            case OS.WASM:
+            {
+                predef("WebAssembly");
+                predef("WASI");
+                predef("WASIp1");
+                predef("Posix");
+                predef("WASI_EMULATED_PROCESS_CLOCKS");
+                break;
+            }
             default: assert(0);
         }
     }
@@ -239,6 +250,10 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
     {
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition.addPredefinedGlobalIdent("X86_64");
+    }
+    else if (tgt.isWasm)
+    {
+        VersionCondition.addPredefinedGlobalIdent("WASM32");
     }
     else
     {
@@ -325,7 +340,7 @@ extern (C++) struct Target
     import dmd.tokens : EXP;
 
     /// Bit decoding of the Target.OS
-    enum OS : ubyte
+    enum OS : ushort
     {
         /* These are mutually exclusive; one and only one is set.
          * Match spelling and casing of corresponding version identifiers
@@ -339,9 +354,10 @@ extern (C++) struct Target
         Solaris      = 0x20,
         DragonFlyBSD = 0x40,
         Hurd         = 0x80,
+        WASM         = 0x100,
 
         // Combination masks
-        all = linux | Windows | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD | Hurd,
+        all = linux | Windows | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD | Hurd | WASM,
         Posix = linux | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD | Hurd,
     }
 
@@ -350,6 +366,7 @@ extern (C++) struct Target
         elf,
         macho,
         coff,
+        wasm,
     }
 
     OS os;
@@ -377,7 +394,19 @@ extern (C++) struct Target
     bool isAArch64;         // generate 64 bit Arm code
     bool isX86_64;          // generate 64 bit code for x86_64; true by default for 64 bit dmd
     bool isX86;             // generate 32 bit Intel x86 code
+    bool isWasm;            // generate WebAssembly code
     bool isLP64;            // pointers are 64 bits
+
+    /// Set the target architecture, clearing the other arch flags.
+    /// Pass exactly one `true` argument.
+    extern (D) void setArch(bool aarch64 = false, bool x86 = false,
+                            bool x86_64 = false, bool wasm = false) @safe
+    {
+        isAArch64 = aarch64;
+        isX86     = x86;
+        isX86_64  = x86_64;
+        isWasm    = wasm;
+    }
 
     // Environmental
     const(char)[] obj_ext;    /// extension for object files
@@ -422,6 +451,14 @@ extern (C++) struct Target
     FPTypeProperties!double DoubleProperties;   ///
     FPTypeProperties!real_t RealProperties;     ///
 
+    // Copy `real` properties from a narrower type, for targets where the host's
+    // real_t is wider than the target's `real`.
+    extern (D) private static void copyFPProperties(Dst, Src)(ref Dst dst, ref const Src src)
+    {
+        foreach (i, ref field; dst.tupleof)
+            field = src.tupleof[i];
+    }
+
     private Type tvalist; // cached lazy result of va_listType()
 
     private const(Param)* params;  // cached reference to global.params
@@ -431,10 +468,10 @@ extern (C++) struct Target
      */
     extern (C++) void _init(ref const Param params)
     {
-        // isX86_64 and cpu are initialized in parseCommandLine
-        //printf("isX86_64 %d isAArch64 %d\n", isX86_64, isAArch64);
-        isX86 = !isX86_64 && !isAArch64;
-        assert(isX86 + isX86_64 + isAArch64 == 1); // there can be only one
+        // isX86_64, isAArch64, and isWasm are initialized in parseCommandLine
+        //printf("isX86_64 %d isAArch64 %d isWasm %d\n", isX86_64, isAArch64, isWasm);
+        isX86 = !isX86_64 && !isAArch64 && !isWasm;
+        assert(isX86 + isX86_64 + isAArch64 + isWasm == 1); // there can be only one
 
         this.params = &params;
 
@@ -479,6 +516,12 @@ extern (C++) struct Target
             realpad = 0;
             realalignsize = 2;
         }
+        else if (os == Target.OS.WASM)
+        {
+            realsize = 8;
+            realpad = 0;
+            realalignsize = 8;
+        }
         else
             assert(0);
 
@@ -499,6 +542,11 @@ extern (C++) struct Target
             realalignsize = 8;
         }
 
+        if (realsize - realpad <= 4)
+            copyFPProperties(RealProperties, FloatProperties);
+        else if (realsize - realpad <= 8)
+            copyFPProperties(RealProperties, DoubleProperties);
+
         c.initialize(params, this);
         cpp.initialize(params, this);
         objc.initialize(params, this);
@@ -509,6 +557,8 @@ extern (C++) struct Target
             architectureName = "X86";
         else if (isAArch64)
             architectureName = "AArch64";
+        else if (isWasm)
+            architectureName = "WASM32";
         else
             assert(0);
 
@@ -529,6 +579,15 @@ extern (C++) struct Target
                 dll_ext = "so";
             run_noext = true;
         }
+        else if (os == Target.OS.WASM)
+        {
+            // Could be all .wasm, but distinct extensions avoid name clashes
+            // under separate compilation (cland/wasm-ld convention)
+            obj_ext = "o";
+            lib_ext = "a";
+            dll_ext = "wasm";
+            run_noext = true;
+        }
         else
             assert(0, "unknown environment");
     }
@@ -544,6 +603,8 @@ extern (C++) struct Target
             return Target.ObjectFormat.elf;
         if (os == Target.OS.Windows)
             return Target.ObjectFormat.coff;
+        if (os == Target.OS.WASM)
+            return Target.ObjectFormat.wasm;
         assert(0, "unkown object format");
     }
 
@@ -675,6 +736,10 @@ extern (C++) struct Target
                 tvalist = Type.tchar.pointerTo();
             }
         }
+        else if (isWasm)
+        {
+            tvalist = Type.tchar.pointerTo();
+        }
         else
         {
             assert(0);
@@ -696,6 +761,21 @@ extern (C++) struct Target
      */
     extern (C++) int isVectorTypeSupported(int sz, Type type) @safe
     {
+        if (isWasm)
+        {
+            switch (type.ty)
+            {
+                case TY.Tvoid, TY.Tint8, TY.Tuns8, TY.Tint16, TY.Tuns16:
+                case TY.Tint32, TY.Tuns32, TY.Tint64, TY.Tuns64:
+                case TY.Tfloat32, TY.Tfloat64:
+                    break;
+                default:
+                    return 2; // wrong base type
+            }
+            // wasm SIMD is 128-bit only
+            return sz == 16 ? 0 : 3;
+        }
+
         if (!isXmmSupported())
             return 1; // not supported
 
@@ -778,6 +858,52 @@ extern (C++) struct Target
         // Only operations on these sizes are supported (see isVectorTypeSupported)
         if (vecsize != 16 && vecsize != 32)
             return false;
+
+        if (isWasm)
+        {
+            const isByte = elemty == TY.Tint8 || elemty == TY.Tuns8;
+            switch (op)
+            {
+            case EXP.uadd:
+                return tvec.isScalar();
+
+            case EXP.identity, EXP.notIdentity:
+            case EXP.not:
+            case EXP.mod, EXP.modAssign:
+            case EXP.pow, EXP.powAssign:
+                return false;
+
+            // wasm SIMD shifts are vector-by-scalar, but the frontend casts the
+            // shift count to the vector type (vector-by-vector); unsupported.
+            case EXP.leftShift, EXP.leftShiftAssign,
+                 EXP.rightShift, EXP.rightShiftAssign,
+                 EXP.unsignedRightShift, EXP.unsignedRightShiftAssign:
+                return false;
+
+            case EXP.negate:
+            case EXP.add, EXP.addAssign, EXP.min, EXP.minAssign:
+                return tvec.isScalar();
+
+            case EXP.equal, EXP.notEqual:
+            case EXP.lessThan, EXP.greaterThan, EXP.lessOrEqual, EXP.greaterOrEqual:
+                return tvec.isScalar();
+
+            case EXP.mul, EXP.mulAssign:
+                // no i8x16.mul in SIMD128
+                return tvec.isScalar() && !isByte;
+
+            case EXP.div, EXP.divAssign:
+                // only floating-point lane division exists
+                return tvec.isFloating();
+
+            case EXP.and, EXP.andAssign, EXP.or, EXP.orAssign, EXP.xor, EXP.xorAssign:
+            case EXP.tilde:
+                return tvec.isIntegral();
+
+            default:
+                return false;
+            }
+        }
 
         switch (op)
         {
@@ -1014,6 +1140,11 @@ extern (C++) struct Target
             }
             return toArgTypes_aarch64(t);
         }
+        else if (isWasm)
+        {
+            import dmd.argtypes_wasm : toArgTypes_wasm;
+            return toArgTypes_wasm(t);
+        }
         else
             assert(0);
     }
@@ -1043,7 +1174,7 @@ extern (C++) struct Target
         Type tn = tf.next;
         if (auto te = tn.isTypeEnum())
         {
-            if (te.sym.isSpecial())
+            if (te.sym.isSpecial() && !isWasm)
             {
                 // Special enums with target-specific return style
                 if (te.sym.ident == Id.__c_complex_float)
@@ -1106,6 +1237,16 @@ extern (C++) struct Target
             import dmd.argtypes_aarch64 : toArgTypes_aarch64;
 
             TypeTuple tt = toArgTypes_aarch64(tn);
+            if (!tt)
+                return false; // void
+
+            return !tt.arguments.length;
+        }
+        else if (isWasm)
+        {
+            import dmd.argtypes_wasm : toArgTypes_wasm;
+
+            TypeTuple tt = toArgTypes_wasm(tn);
             if (!tt)
                 return false; // void
 
@@ -1398,7 +1539,7 @@ extern (C++) struct Target
      *  true if generating code for POSIX
      */
     extern (D) @property bool isPOSIX() scope const nothrow @nogc @safe
-    out(result) { assert(result || os == Target.OS.Windows); }
+    out(result) { assert(result || os == Target.OS.Windows || os == Target.OS.WASM); }
     do
     {
         return (os & Target.OS.Posix) != 0;
@@ -1413,7 +1554,8 @@ extern (C++) struct Target
         uint sz = isXmmSupported() ? 16 :
                   isX86_64         ?  8 :
                   isAArch64        ?  8 :
-                  isX86            ?  4 : 0;
+                  isX86            ?  4 :
+                  isWasm           ?  8 : 0;
         assert(sz);
         return sz;
     }
@@ -1471,6 +1613,8 @@ struct TargetC
             longsize = 4;
         else if (os == Target.OS.Windows)
             longsize = 4;
+        else if (os == Target.OS.WASM)
+            longsize = 4;
         else
             assert(0);
         if (target.isX86_64 || target.isAArch64)
@@ -1504,12 +1648,16 @@ struct TargetC
         {
             runtime = Runtime.Glibc;
         }
+        else if (os == Target.OS.WASM)
+            runtime = Runtime.WASI;
 
         if (os == Target.OS.Windows)
             bitFieldStyle = BitFieldStyle.MS;
         else if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OSX |
                        Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris |
                        Target.OS.Hurd))
+            bitFieldStyle = BitFieldStyle.Gcc_Clang;
+        else if (os == Target.OS.WASM)
             bitFieldStyle = BitFieldStyle.Gcc_Clang;
         else
             assert(0);
@@ -1579,6 +1727,10 @@ struct TargetCPP
             reverseOverloads = true;
             splitVBasetable = true;
         }
+        else if (os == Target.OS.WASM)
+        {
+            twoDtorInVtable = true;
+        }
         else
             assert(0);
         exceptions = (os & Target.OS.Posix) != 0;
@@ -1590,6 +1742,8 @@ struct TargetCPP
             runtime = Runtime.LLVM;
         else if (os == Target.OS.Solaris)
             runtime = Runtime.GNU;
+        else if (os == Target.OS.WASM)
+            runtime = Runtime.LLVM;
         else
             assert(0);
         // C++ and D ABI incompatible on all (?) x86 32-bit platforms
@@ -1608,7 +1762,7 @@ struct TargetCPP
         import dmd.mangle.cpp : toCppMangleItanium;
         import dmd.mangle.cppwin : toCppMangleMSVC;
 
-        if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD | Target.OS.Hurd))
+        if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD | Target.OS.Hurd | Target.OS.WASM))
             return toCppMangleItanium(s);
         if (target.os == Target.OS.Windows)
             return toCppMangleMSVC(s);
