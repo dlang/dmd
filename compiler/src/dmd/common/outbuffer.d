@@ -752,7 +752,7 @@ struct OutBuffer
         return extractData();
     }
 
-    void writesLEB128(int value) pure nothrow @safe
+    void writesLEB128(long value) pure nothrow @safe
     {
         while (1)
         {
