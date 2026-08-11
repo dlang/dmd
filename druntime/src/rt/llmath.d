@@ -190,6 +190,8 @@ quo1:       // Quotient is 1
         assert(0);
     else version (AArch64)
         assert(0);
+    else version (WebAssembly)
+        assert(0);
     else
         static assert(0);
 }
@@ -360,6 +362,8 @@ quo1:       // Quotient is 1
         assert(0);
     else version (AArch64)
         assert(0);
+    else version (WebAssembly)
+        assert(0);
     else
         static assert(0);
 }
@@ -439,6 +443,8 @@ L12:        jmp     __ULDIV2__      ;
         assert(0);
     else version (AArch64)
         assert(0);
+    else version (WebAssembly)
+        assert(0);
     else
         static assert(0);
 }
@@ -499,6 +505,8 @@ L12:        jmp     __ULDIV__       ;
     else version (D_InlineAsm_X86_64)
         assert(0);
     else version (AArch64)
+        assert(0);
+    else version (WebAssembly)
         assert(0);
     else
         static assert(0);

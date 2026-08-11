@@ -11,10 +11,6 @@
 
 module rt.trace;
 
-// TODO(?): support this on Wasm at some point
-version (WASI) {}
-else:
-
 import core.demangle;
 import core.stdc.ctype : isalpha, isgraph, isspace;
 import core.stdc.stdio : EOF, fclose, fgetc, FILE, fopen, fprintf, stderr, stdout;
@@ -894,6 +890,25 @@ else version (AArch64)
     extern (D) void QueryPerformanceFrequency(timer_t* freq)
     {
         asm { "mrs %0, cntfrq_el0" : "=r" (*freq); }
+    }
+}
+else version (WASI)
+{
+    import core.attribute : wasmImportModule;
+
+    @wasmImportModule("wasi_snapshot_preview1")
+    private extern (C) int clock_time_get(uint clockId, ulong precision, ulong* timestamp) @nogc nothrow;
+
+    // clockid 1 is the monotonic clock, in nanoseconds
+    extern (D) void QueryPerformanceCounter(timer_t* ctr)
+    {
+        ulong t;
+        clock_time_get(1, 1, &t);
+        *ctr = cast(timer_t) t;
+    }
+    extern (D) void QueryPerformanceFrequency(timer_t* freq)
+    {
+        *freq = 1_000_000_000;
     }
 }
 else version (LDC)

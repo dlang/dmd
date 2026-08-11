@@ -205,6 +205,10 @@ extern (C) void* __alloca(int nbytes)
         import core.stdc.stdlib : malloc;
 	return malloc(nbytes);   // TODO AArch64
   }
+  else version (WebAssembly)
+  {
+        assert(0, "__alloca is not used on WebAssembly");
+  }
   else
         static assert(0);
 }

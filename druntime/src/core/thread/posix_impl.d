@@ -1457,8 +1457,18 @@ package void* getStackBottomImpl() nothrow @nogc
         thr_stksegment(&stk);
         return stk.ss_sp;
     }
+    else version (WebAssembly)
+    {
+        // the shadow stack is [.., __stack_high) and grows down
+        return &__stack_high;
+    }
     else
         static assert(false, "Platform not supported.");
+}
+
+version (WebAssembly)
+{
+    private extern(C) extern __gshared ubyte __stack_high;
 }
 
 

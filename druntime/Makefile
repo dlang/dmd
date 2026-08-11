@@ -430,6 +430,95 @@ $(DRUNTIME): $(OBJS) $(SRCS) $(DMD)
 
 lib: $(DRUNTIME)
 
+################### WASM cross-target #########################
+# Cross-compile the druntime archive for wasm32-wasip1, independent of the
+# host build (OS/MODEL/BUILD).
+
+WASM_DMD    ?= $(DMD)
+WASM_ROOT   := $(ROOT_OF_THEM_ALL)/wasm/release/wasm32
+WASM_LIB    := $(WASM_ROOT)/libdruntime-wasm.a
+WASM_RT_DIR := src/rt/wasm
+WASM_MODULES := start
+WASM_OBJS   := $(addprefix $(WASM_ROOT)/rt_,$(addsuffix .o,$(WASM_MODULES)))
+WASM_FLAGS  := -c -mwasm32 -os=wasm -betterC -conf= -Isrc -Iimport -w -de
+
+# Built from the shared $(SRCS): OS-specific modules self-gate to empty on
+# wasm through their existing `version` guards.  Filtered out here are the
+# modules for other targets' complex types and exception handling.
+WASM_DRT_EXCLUDE := \
+	src/core/stdc/complex.d \
+	src/rt/dwarfeh.d \
+	src/rt/deh_win64_posix.d
+WASM_DRT_SRCS := $(filter-out $(WASM_DRT_EXCLUDE),$(SRCS)) \
+	src/rt/sections_wasm.d \
+	src/rt/wasm/extra.d \
+	src/rt/wasm/eh.d
+WASM_DRT_FLAGS := -c -mwasm32 -os=wasm -conf= -Isrc -Iimport -w -de
+# Map a source path to a unique object name: several sources share a basename,
+# e.g. impl/{proto,manual,conservative}/gc.d and thread/package.d
+wasm_obj = $(WASM_ROOT)/drt_$(subst /,_,$(basename $(patsubst src/%,%,$(1)))).o
+WASM_DRT_OBJS := $(foreach s,$(WASM_DRT_SRCS),$(call wasm_obj,$(s)))
+
+# wasi-libc's `_start` for betterC programs, added by dmd.link in betterC mode.
+# An archive rather than an object, so a program defining its own `_start`
+# leaves the member unpulled instead of colliding with it.
+WASM_BETTERC_CRT := $(WASM_ROOT)/libcrt1_betterc.a
+WASM_BETTERC_OBJ := $(WASM_ROOT)/crt1-command.o
+
+# wasi-libc, fetched as a pinned and checksummed prebuilt libc.a from a
+# wasi-sdk sysroot release (github.com/WebAssembly/wasi-sdk).  Keep
+# WASI_SDK_VERSION in sync with the actions/cache key in
+# .github/workflows/main.yml.  Set WASI_LIBC_LOCAL to a path to use a
+# locally built libc.a instead.
+WASM_LIBC            := $(WASM_ROOT)/libc.a
+WASI_SDK_VERSION     ?= 33
+WASI_SYSROOT_SHA256  ?= 063bc1b56582b9923e08ac9b89e58789618d851763f01530b3ff20b9e5df0ca3
+# GitHub percent-encodes the '+' in the asset name as %2B in the download URL.
+WASI_SYSROOT_URL     ?= https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-$(WASI_SDK_VERSION)/wasi-sysroot-$(WASI_SDK_VERSION).0%2Bm.tar.gz
+WASI_SYSROOT_TARBALL := $(ROOT_OF_THEM_ALL)/wasm/wasi-sysroot-$(WASI_SDK_VERSION).tar.gz
+WASI_LIBC_LOCAL      ?=
+SHA256SUM            ?= sha256sum
+
+$(WASM_ROOT)/rt_%.o : $(WASM_RT_DIR)/%.d $(DMD)
+	@mkdir -p $(dir $@)
+	$(WASM_DMD) $(WASM_FLAGS) -of$@ $<
+
+$(WASM_BETTERC_CRT) : $(WASM_BETTERC_OBJ)
+	rm -f $@
+	$(WASM_DMD) -lib -mwasm32 -os=wasm -conf= -of$@ $<
+
+# One pattern-free rule per real druntime source (sources live in different
+# directories, so a static pattern rule can't map them).
+define WASM_DRT_RULE
+$(call wasm_obj,$(1)) : $(1) $(DMD)
+	@mkdir -p $$(dir $$@)
+	$(WASM_DMD) $(WASM_DRT_FLAGS) -of$$@ $(1)
+endef
+$(foreach s,$(WASM_DRT_SRCS),$(eval $(call WASM_DRT_RULE,$(s))))
+
+# Coarse dependencies: these modules cross-import each other and the core.stdc
+# bindings, so rebuild all of them when any druntime source changes.
+$(WASM_DRT_OBJS) $(WASM_OBJS): $(WASM_DRT_SRCS) $(wildcard src/core/stdc/*.d) $(wildcard src/core/internal/*.d) $(wildcard src/rt/wasm/*.d)
+
+$(WASM_LIB): $(WASM_OBJS) $(WASM_DRT_OBJS)
+	rm -f $@
+	$(WASM_DMD) -lib -mwasm32 -os=wasm -conf= -of$@ $(WASM_OBJS) $(WASM_DRT_OBJS)
+
+$(WASM_LIBC) $(WASM_BETTERC_OBJ): $(WASM_ROOT)/% :
+	@mkdir -p $(WASM_ROOT)
+ifneq ($(WASI_LIBC_LOCAL),)
+	cp $(dir $(WASI_LIBC_LOCAL))$* $@
+else
+	@mkdir -p $(dir $(WASI_SYSROOT_TARBALL))
+	test -f $(WASI_SYSROOT_TARBALL) || curl -fSL -o $(WASI_SYSROOT_TARBALL) '$(WASI_SYSROOT_URL)'
+	echo '$(WASI_SYSROOT_SHA256)  $(WASI_SYSROOT_TARBALL)' | $(SHA256SUM) -c -
+	tar -xzOf $(WASI_SYSROOT_TARBALL) --wildcards --no-anchored '*/wasm32-wasip1/$*' > $@
+	test -s $@ || { echo "wasm32-wasip1/$* not found in $(WASI_SYSROOT_TARBALL)"; rm -f $@; exit 1; }
+endif
+
+.PHONY: wasm
+wasm: copy $(WASM_LIB) $(WASM_BETTERC_CRT) $(WASM_LIBC)
+
 UT_SRCS:=$(SRCS)
 UT_MODULES:=$(patsubst src/%.d,$(ROOT)/unittest/%,$(UT_SRCS))
 HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)

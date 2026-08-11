@@ -250,6 +250,8 @@ else version (DigitalMars)
         else version (Hurd)
             alias c_long_double = real;
     }
+    else version (WASM32)
+        alias c_long_double = real;
 }
 
 static assert(is(c_long_double), "c_long_double needs to be declared for this platform/architecture.");
