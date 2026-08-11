@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   perf:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
       OS_NAME: linux
@@ -80,22 +80,15 @@ jobs:
             ( cd "$dir/../phobos" && make -j$N MODEL=$MODEL )
           }
 
-          # Rebuild dmd against the shared profile so that base and head got identical PGO guidance.
-          build_with_profile() {
-            local dir="$RUNNER_TEMP/$1/dmd"
-            ( cd "$dir" && generated/build HOST_DMD=$DMD MODEL=$MODEL \
-                ENABLE_RELEASE=1 ENABLE_LTO=1 \
-                DFLAGS="-fprofile-instr-use=$profile -wi" -j$N --force )
-          }
-
           setup_ref "${{ steps.refs.outputs.base }}" base
           setup_ref "${{ steps.refs.outputs.head }}" head
 
-          # Train PGO once, then reuse the profile for both refs.
+          # dmd-pgo trains and rebuilds base with the merged profile, head just reuses it
           ( cd "$RUNNER_TEMP/base/dmd" && generated/build HOST_DMD=$DMD MODEL=$MODEL dmd-pgo -j$N --force )
           cp "$RUNNER_TEMP/base/dmd/$built/dmd_profdata/merged.data" "$profile"
-          build_with_profile base
-          build_with_profile head
+          ( cd "$RUNNER_TEMP/head/dmd" && generated/build HOST_DMD=$DMD MODEL=$MODEL \
+              ENABLE_RELEASE=1 ENABLE_LTO=1 \
+              DFLAGS="-fprofile-instr-use=$profile -wi" -j$N --force )
           deactivate
 
       - name: Measure
@@ -112,6 +105,7 @@ jobs:
             --base-sha "${{ steps.refs.outputs.base }}" \
             --head-sha "${{ steps.refs.outputs.head }}" \
             --pr "${{ github.event.pull_request.number || 0 }}" \
+            --os ubuntu-24.04 \
             --host-dmd "$HOST_DMD" \
             --out "$GITHUB_WORKSPACE/results.json"
 

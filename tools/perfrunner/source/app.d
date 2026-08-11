@@ -21,8 +21,7 @@ enum vibedRoot = buildPath(vibedDir, "source", "app.d");
 version (unittest) {} else
 int main(string[] args)
 {
-    string baseDmd, headDmd, basePhobos, headPhobos, baseSha, headSha, hostDmd;
-    string os = "ubuntu-latest";
+    string baseDmd, headDmd, basePhobos, headPhobos, baseSha, headSha, hostDmd, os;
     string outPath = "results.json";
     long pr;
 
