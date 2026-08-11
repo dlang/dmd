@@ -351,6 +351,24 @@ else version (CRuntime_UClibc)
         L_tmpnam     = 20
     }
 }
+else version (WASI)
+{
+    enum
+    {
+        ///
+        BUFSIZ       = 1024,
+        ///
+        EOF          = -1,
+        ///
+        FOPEN_MAX    = 1000,
+        ///
+        FILENAME_MAX = 4096,
+        ///
+        TMP_MAX      = 10000,
+        ///
+        L_tmpnam     = 20
+    }
+}
 else
 {
     static assert( false, "Unsupported platform" );

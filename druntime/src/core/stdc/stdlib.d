@@ -145,6 +145,14 @@ version (CRuntime_Microsoft)
         }
     }
 }
+else version (CRuntime_WASI)
+{
+    // wasi-libc's strtold has a 128 bit long double ABI, incompatible with a 64 bit `real`
+    extern (D) real strtold(scope inout(char)* nptr, inout(char)** endptr)
+    {
+        return strtod(nptr, endptr);
+    }
+}
 else
 {
     static if (PPCUseIEEE128)
