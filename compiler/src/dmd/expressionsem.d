@@ -15226,9 +15226,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (exp.e1.type != exp.e2.type && exp.e1.type.isFloating() && exp.e2.type.isFloating())
             {
-                // Cast both to complex
-                exp.e1 = exp.e1.castTo(sc, Type.tcomplex80);
-                exp.e2 = exp.e2.castTo(sc, Type.tcomplex80);
+                Type tc = commonFloatingType(exp.e1.type, exp.e2.type);
+                exp.e1 = exp.e1.castTo(sc, tc);
+                exp.e2 = exp.e2.castTo(sc, tc);
             }
         }
 
@@ -15392,9 +15392,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (exp.e1.type != exp.e2.type && exp.e1.type.isFloating() && exp.e2.type.isFloating())
         {
-            // Cast both to complex
-            exp.e1 = exp.e1.castTo(sc, Type.tcomplex80);
-            exp.e2 = exp.e2.castTo(sc, Type.tcomplex80);
+            Type tc = commonFloatingType(exp.e1.type, exp.e2.type);
+            exp.e1 = exp.e1.castTo(sc, tc);
+            exp.e2 = exp.e2.castTo(sc, tc);
         }
 
         auto tb1 = exp.e1.type.toBasetype();
@@ -20072,4 +20072,11 @@ BitFieldDeclaration isBitField(Expression e)
         return dve.var.isBitFieldDeclaration();
 
     return null;
+}
+
+private Type commonFloatingType(Type t1, Type t2)
+{
+    if (t1.isComplex() || t2.isComplex() || t1.isImaginary() != t2.isImaginary())
+        return Type.tcomplex80;
+    return t1.isImaginary() ? Type.timaginary80 : Type.tfloat80;
 }
