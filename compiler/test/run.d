@@ -107,6 +107,9 @@ Examples:
     ./run.d all                                                  # runs all tests
     ./run.d clean                                                # remove all test results
     ./run.d -u -- unit/deinitialization.d -f Module              # runs the unit tests in the file "unit/deinitialization.d" with a UDA containing "Module"
+    OS=wasm ./run.d runnable/hello.d                             # run a single test as WASM
+    OS=wasm ./run.d compilable                                   # compile all compilable tests as WASM
+    OS=wasm ./run.d runnable                                     # compile+run all runnable tests as WASM
 
 Options:
 `, res.options);
@@ -125,6 +128,14 @@ Options:
     {
         args = null;
         environment["ARGS"] = "";
+    }
+
+    // ./run.d wasm  # compile+run the compilable and runnable tests as WebAssembly
+    if (args == ["wasm"])
+    {
+        environment["OS"] = "wasm";
+        environment["ARGS"] = "";
+        args = ["compilable", "runnable"];
     }
 
     // allow overwrites from the environment
@@ -295,34 +306,34 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
         }
 
         string[] buildCommand;
-        bool overrideEnv;
+        string[string] overrideEnv;
         if (tool.linksWithTests)
         {
             // This will compile the dshell library thus needs the actual
-            // DMD compiler under test
+            // DMD compiler under test, built for the host model
             buildCommand = [
                 env["DMD"],
                 "-conf=",
-                "-m"~env["MODEL"],
+                "-m"~dmdModel,
                 "-of" ~ targetBin,
                 "-c",
                 sourceFile
-            ] ~ getPicFlags(env);
-            overrideEnv = true;
+            ] ~ getHostPicFlags();
+            overrideEnv = env.dup;
         }
         else
         {
             buildCommand = [
                 hostDMD,
-                "-m"~env["MODEL"],
+                "-m"~dmdModel,
                 "-of"~targetBin,
                 sourceFile
-            ] ~ getPicFlags(env) ~ tool.extraArgs;
+            ] ~ getHostPicFlags() ~ tool.extraArgs;
         }
 
         writefln("Executing: %-(%s %)", buildCommand);
         stdout.flush();
-        if (spawnProcess(buildCommand, overrideEnv ? env : null).wait)
+        if (spawnProcess(buildCommand, overrideEnv.length ? overrideEnv : null).wait)
         {
             stderr.writefln("failed to build '%s'", targetBin);
             atomicOp!"+="(failCount, 1);
@@ -394,7 +405,9 @@ Target[] predefinedTargets(string[] targets)
 {
     static findFiles(string dir)
     {
-        return testPath(dir).dirEntries("*{.d,.c,.i,.sh}", SpanMode.shallow).map!(e => e.name);
+        // `.sh` tests drive the native toolchain, they can't run cross-compiled
+        const pattern = os == "wasm" ? "*{.d,.c,.i}" : "*{.d,.c,.i,.sh}";
+        return testPath(dir).dirEntries(pattern, SpanMode.shallow).map!(e => e.name);
     }
 
     static Target createUnitTestTarget()
@@ -555,6 +568,32 @@ string[string] getEnvironment()
 
     const generatedSuffix = "generated/%s/%s/%s".format(os, build, model);
 
+    if (os == "wasm")
+    {
+        env["OBJ"]  = ".o";
+        env["DSEP"] = "/";
+        env["SEP"]  = "/";
+        env["EXE"]  = ".wasm";
+        env["PIC_FLAG"] = "";
+        env.setDefault("ARGS", "");
+        // The archive search dirs go in REQUIRED_ARGS rather than DFLAGS because
+        // a test may override DFLAGS (e.g. runnable/minimal.d)
+        auto wasmLibPath = testPath(`../../generated/wasm/release/wasm32`);
+        auto phobosPath = environment.get("PHOBOS_PATH", testPath(`../../../phobos`));
+        auto phobosLibPath = "%s/generated/wasm/release/wasm32".format(phobosPath);
+        const extra = environment.get("REQUIRED_ARGS", "");
+        env["REQUIRED_ARGS"] = "-mwasm32 -os=wasm -L-L%s -L-L%s".format(wasmLibPath, phobosLibPath)
+            ~ (extra.length ? " " ~ extra : "");
+        // --dir=/ preopens the host filesystem so absolute paths resolve,
+        // $PWD gives the guest a working directory
+        env.setDefault("EXEC_BINARY_WRAPPER",
+            "wasmtime run -W exceptions=y --dir=/ --env PWD=" ~ std.file.getcwd());
+        // tests run with -conf=, so supply the import paths dmd.conf would
+        auto druntimePath = environment.get("DRUNTIME_PATH", testPath(`../../druntime`));
+        env["DFLAGS"] = "-I%s/import -I%s".format(druntimePath, phobosPath);
+        return env;
+    }
+
     version(Windows)
     {
         env.setDefault("ARGS", "-inline -release -g -O");
@@ -620,6 +659,16 @@ string objName(string name)
         return name ~ ".obj";
     else
         return name ~ ".o";
+}
+
+/// Return the pic flags for building host tools, which are native even when
+/// the tests target another OS
+string[] getHostPicFlags()
+{
+    version (Windows)
+        return null;
+    else
+        return environment.get("PIC", "") == "0" ? null : ["-fPIC"];
 }
 
 /// Return the correct pic flags as an array of strings

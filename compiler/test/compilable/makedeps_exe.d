@@ -32,3 +32,5 @@ void main()
 {
     a_func();
 }
+
+// DISABLED: wasm

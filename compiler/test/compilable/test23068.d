@@ -1,5 +1,5 @@
 /*
-DISABLED: osx
+DISABLED: osx wasm
 REQUIRED_ARGS: -vasm -betterC -checkaction=halt
 TEST_OUTPUT:
 ---

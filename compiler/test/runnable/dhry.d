@@ -884,7 +884,10 @@ version (Windows)
     }
 }
 
-version (linux)
+version (linux)       version = DtimeFromCTime;
+version (WebAssembly) version = DtimeFromCTime;
+
+version (DtimeFromCTime)
 {
     import core.stdc.time;
 

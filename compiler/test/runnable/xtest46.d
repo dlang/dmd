@@ -8382,3 +8382,5 @@ int main()
     printf("Success\n");
     return 0;
 }
+
+// DISABLED: wasm

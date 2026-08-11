@@ -9,3 +9,4 @@ import path[2] = $p:phobos$
 ---
 */
 import this_module_does_not_exist;
+// DISABLED: wasm

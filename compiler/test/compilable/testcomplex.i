@@ -33,3 +33,5 @@ _Complex float testcast()
 }
 
 _Static_assert((float _Complex)1.0i == 1.0i, "1");
+
+// DISABLED: wasm

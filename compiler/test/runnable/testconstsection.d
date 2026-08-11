@@ -50,9 +50,14 @@ void testStrings()
     cdata.addPtr(data_var.ptr);
     cdata.addPtr(local_data_var.ptr);
 
-    assert(!cdata.intersect(tls),  "overlap with tls");
-    assert(!cdata.intersect(data), "overlap with data");
-    assert(!cdata.intersect(bss),  "overlap with bss");
+    // wasm lays every symbol out as its own data segment in one linear memory,
+    // so string-literal data is not separated from tls/data/bss variables.
+    version (WebAssembly) {} else
+    {
+        assert(!cdata.intersect(tls),  "overlap with tls");
+        assert(!cdata.intersect(data), "overlap with data");
+        assert(!cdata.intersect(bss),  "overlap with bss");
+    }
 }
 
 void main()

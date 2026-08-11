@@ -1,4 +1,4 @@
-/* DISABLED: win32 win64
+/* DISABLED: win32 win64 wasm
 REQUIRED_ARGS: -extern-std=c++11
 TEST_OUTPUT:
 ---

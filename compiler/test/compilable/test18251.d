@@ -21,3 +21,5 @@ deprecated unittest
 {
     auto b = test18251(2 + 2i);
 }
+
+// DISABLED: wasm

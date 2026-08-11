@@ -8,8 +8,8 @@ module hello;
 extern(C)
 {
     int printf(const char*, ...);
-    int trace_setlogfilename(string name);
-    int trace_setdeffilename(string name);
+    void trace_setlogfilename(string name);
+    void trace_setdeffilename(string name);
 }
 
 void showargs(string[] args)

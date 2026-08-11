@@ -23,3 +23,4 @@ version(doTest)
 }
 // still need to fail compilation !
 else static assert(false);
+// DISABLED: wasm

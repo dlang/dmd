@@ -20,3 +20,5 @@ void main()
     ++x; ++y;
     // BP
 }
+
+// DISABLED: wasm

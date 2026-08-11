@@ -8,7 +8,7 @@ myBool bool
 i
 s
 C6test42__T4T219TiZ1C
-C6test427test219FZ16__mixin_L3578_C31C
+C6test427test219FZ16__mixin_L3577_C31C
 ---
 */
 
@@ -1665,10 +1665,9 @@ void test100()
 {
     static void check(ulong value)
     {
-        import core.stdc.config;
         real r = value;
         ulong d = cast(ulong)r;
-        printf("ulong: %llu => real: %Lg => ulong: %llu\n", value, cast(c_long_double)r, d);
+        printf("ulong: %llu => real: %g => ulong: %llu\n", value, cast(double) r, d);
         assert(d == value);
     }
 
@@ -3996,7 +3995,6 @@ static immutable real[13] postab =
 
 float parse(ref string p)
 {
-    import core.stdc.config;
     printf("test1\n");
 
     real ldval = 0.0;
@@ -4007,7 +4005,7 @@ float parse(ref string p)
     exp = 2;
 
     ldval = msdec;
-    printf("ldval = %Lg\n", cast(c_long_double)ldval);
+    printf("ldval = %g\n", cast(double) ldval);
     if (ldval)
     {
         uint u = 0;

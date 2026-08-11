@@ -10,27 +10,34 @@ else version (Windows)
     enum exeExtension = ".exe";
 
 version (Windows)
-    enum os = "windows";
+    enum hostOs = "windows";
 else version (OSX)
-    enum os = "osx";
+    enum hostOs = "osx";
 else version (linux)
-    enum os = "linux";
+    enum hostOs = "linux";
 else version (FreeBSD)
-    enum os = "freebsd";
+    enum hostOs = "freebsd";
 else version (OpenBSD)
-    enum os = "openbsd";
+    enum hostOs = "openbsd";
 else version (NetBSD)
-    enum os = "netbsd";
+    enum hostOs = "netbsd";
 else version (DragonFlyBSD)
-    enum os = "dragonflybsd";
+    enum hostOs = "dragonflybsd";
 else version (Solaris)
-    enum os = "solaris";
+    enum hostOs = "solaris";
 else version (SunOS)
-    enum os = "solaris";
+    enum hostOs = "solaris";
 else version (Hurd)
-    enum os = "hurd";
+    enum hostOs = "hurd";
 else
     static assert(0, "Unrecognized or unsupported OS.");
+
+/// Target OS, e.g. `OS=wasm ./run.d runnable`
+string os()
+{
+    static string cached;
+    return cached ? cached : (cached = environment.get("OS", hostOs));
+}
 
 enum projectRootDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath("..", "..", "..");
 enum generatedDir = projectRootDir.buildPath("generated");
@@ -45,23 +52,30 @@ string build()
     return environment.get("BUILD", "release");
 }
 
+/// The DMD binary is always built for the host OS, even when cross compiling
+string dmdOs()
+{
+    return os == "wasm" ? hostOs : os;
+}
+
 string buildOutputPath()
 {
-    return generatedDir.buildPath(os, build, dmdModel);
+    return generatedDir.buildPath(dmdOs, build, dmdModel);
 }
 
 // auto-tester might run the test suite with a different $(MODEL) than DMD
 // has been compiled with. Hence we manually check which binary exists.
 string dmdModel()
 {
-    const prefix = generatedDir.buildPath(os, build);
+    const prefix = generatedDir.buildPath(dmdOs, build);
     return environment.get("DMD_MODEL",
         prefix.buildPath("64", dmdFilename).exists ? "64" : "32");
 }
 
 string model()
 {
-    return environment.get("MODEL", dmdModel);
+    const defaultModel = os == "wasm" ? "32" : dmdModel;
+    return environment.get("MODEL", defaultModel);
 }
 
 string dmdPath()

@@ -1,4 +1,5 @@
 // REQUIRED_ARGS: -lib
+// DISABLED: wasm
 
 // https://github.com/dlang/dmd/issues/22153
 
