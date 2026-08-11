@@ -1,5 +1,5 @@
 /*
-DISABLED: osx
+DISABLED: osx wasm
 REQUIRED_ARGS: -vasm
 TEST_OUTPUT:
 ---

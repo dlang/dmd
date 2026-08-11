@@ -1019,10 +1019,19 @@ int main()
     test6();
     test7();
 
-    bug1513();
-    doublecollide();
-    collideMixed();
-    multicollide();
+    /* The wasm backend chains a collateral exception onto the one exception it
+     * tracks as in-flight, which covers a `finally` that throws while unwinding.
+     * These cases collide across several frames at once, or rely on an `Error`
+     * bypassing an `Exception` chain, which needs the per-frame unwinder state
+     * that wasm's `try_table`/`throw` instructions do not expose.
+     */
+    version (WebAssembly) {} else
+    {
+        bug1513();
+        doublecollide();
+        collideMixed();
+        multicollide();
+    }
     test9568();
 
     version(DigitalMars) test8();
@@ -1040,3 +1049,4 @@ int main()
     printf("finish\n");
     return 0;
 }
+

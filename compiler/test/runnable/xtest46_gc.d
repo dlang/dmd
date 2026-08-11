@@ -27,3 +27,5 @@ TFunction1: extern (C) void function()
 */
 
 mixin(import("xtest46.d"));
+
+// DISABLED: wasm

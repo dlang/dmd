@@ -285,7 +285,7 @@ jobs:
         run: echo 'FreeBSD VM check made optional because of random time outs'
 
   arm-qemu:
-    name: 'Ubuntu 24.04 x64, DMD (AArch64 cross-compile via QEMU)'
+    name: 'AArch64 cross-compile via QEMU, WASM via wasmtime'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -334,3 +334,33 @@ jobs:
         run: |
           source ~/dlang/*/activate
           compiler/test/run.d arm
+
+      - name: Install wasmtime
+        run: |
+          curl https://wasmtime.dev/install.sh -sSf | bash -s -- --version v46.0.1
+          echo "$HOME/.wasmtime/bin" >> $GITHUB_PATH
+
+      # The test suite validates every generated module with wasm-validate, and
+      # errors out when it is missing. Distro packages predate `try_table`, so
+      # install an upstream release.
+      - name: Install wabt
+        run: |
+          curl -fsSL https://github.com/WebAssembly/wabt/releases/download/1.0.41/wabt-1.0.41-linux-x64.tar.gz | tar -xz -C "$HOME"
+          echo "$HOME/wabt-1.0.41/bin" >> $GITHUB_PATH
+
+      # Cache the pinned wasi-sdk sysroot tarball the `wasm` target downloads for
+      # libc.a. Keep the key's version in sync with WASI_SDK_VERSION in
+      # druntime/Makefile.
+      - name: Cache wasi-sysroot
+        uses: actions/cache@v4
+        with:
+          path: generated/wasm/wasi-sysroot-33.tar.gz
+          key: wasi-sysroot-33.0+m
+
+      - name: Build WASM druntime and phobos
+        run: make -j$N -C ../phobos wasm
+
+      - name: Test WASM cross-compile and run via wasmtime
+        run: |
+          source ~/dlang/*/activate
+          compiler/test/run.d wasm

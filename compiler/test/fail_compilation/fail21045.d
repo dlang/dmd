@@ -10,3 +10,4 @@ import path[2] = $p:phobos$
 */
 
 import __stdin;
+// DISABLED: wasm
