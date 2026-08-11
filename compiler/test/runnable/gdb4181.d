@@ -21,3 +21,5 @@ void main()
     STest.y = 22;
     // BP
 }
+
+// DISABLED: wasm

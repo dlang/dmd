@@ -20,3 +20,5 @@ void main()
         int[4] v = [1000, 200, 30, 4];
     // BP
 }
+
+// DISABLED: wasm

@@ -128,3 +128,4 @@ pragma(msg, "fma()");
 enum fmaf = fma(-3.2f, 5.2f, 3.8f); //pragma(msg, fmaf);
 enum fmad = fma(-3.2 , 5.2 , 3.8 ); //pragma(msg, fmad);
 enum fmar = fma(-3.2L, 5.2L, 3.8L); pragma(msg, fmar);
+

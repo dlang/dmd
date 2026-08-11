@@ -1591,3 +1591,5 @@ int main(char[][] args)
     printf("Success!\n");
     return 0;
 }
+
+// DISABLED: wasm

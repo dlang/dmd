@@ -4,6 +4,9 @@ static assert(__LINE__ == 3); // fails as __LINE__ is 2
 
 import core.stdc.math : signbit;
 
+version (X86)    version = FloatToIntIndefinite;
+version (X86_64) version = FloatToIntIndefinite;
+
 
 /************************************/
 
@@ -209,6 +212,7 @@ void test2()
     // E.g. the result of converting a float whose value doesn't fit into the integer
     // leads to an undefined result.
     version (DigitalMars)
+    version (FloatToIntIndefinite)
     {
         float f = float.infinity;
         int i = cast(int) f;

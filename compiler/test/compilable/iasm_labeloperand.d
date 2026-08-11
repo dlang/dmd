@@ -1,10 +1,7 @@
-
 version (D_InlineAsm_X86)
     version = TestInlineAsm;
 else version (D_InlineAsm_X86_64)
     version = TestInlineAsm;
-else
-    pragma(msg, "Inline asm not supported, not testing.");
 
 version (TestInlineAsm)
 {

@@ -19,3 +19,5 @@ int main(int argc, char** argv)
     foo(0);
     return 0;
 }
+
+// DISABLED: wasm

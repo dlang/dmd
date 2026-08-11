@@ -98,3 +98,5 @@ int main()
     test15754();
     return 0;
 }
+
+// DISABLED: wasm

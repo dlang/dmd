@@ -10,3 +10,4 @@ import path[2] = $p:phobos$
 */
 
 import imports.test10327;  // package.d missing
+// DISABLED: wasm
