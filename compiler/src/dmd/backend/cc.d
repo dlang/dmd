@@ -504,6 +504,8 @@ enum
                                    // SC.parameter: hidden return value parameter
     SFLartifical    = 0x4000000,   // compiler generated symbol
     SFLnounderscore = 0x8000_0000, // don't prepend an _ to identifiers in object file
+    SFLwasmshadow   = 0x1000_0000, // WASM: symbol lives in the shadow stack frame
+    SFLwasmexnref   = 0x2000_0000, // WASM: reference to exception (untyped)
 
     // CPP
     SFLnodtor       = 0x10,        // set if destructor for Symbol is already called

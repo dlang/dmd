@@ -1,0 +1,85 @@
+WebAssembly target support added to DMD
+
+DMD now recognizes WebAssembly as a compilation target via the `-mwasm32` and `-os=wasm` flags.
+This can be used to run D code in web browsers, or in local sandbox environments such as `wasmtime`.
+See also: https://github.com/jcbhmr/awesome-webassembly-runtimes
+
+With wasm-ld and wasmtime installed, and added to PATH (or set in the `WASMTIME` environment variable), try:
+
+```D
+import core.stdc.stdio;
+
+void main()
+{
+    printf("Hello WebAssembly!");
+}
+```
+
+$(CONSOLE
+$ dmd -mwasm32 -os=wasm hello.d
+$ wasmtime run hello.wasm
+)
+
+Or:
+
+$(CONSOLE
+$ dmd -mwasm32 -os=wasm -run hello.d
+)
+
+Version identifiers defined when targeting WebAssembly:
+$(UL
+    $(LI `WebAssembly`)
+    $(LI `WASM32`)
+    $(LI `CRuntime_WASI`)
+    $(LI `WASI`)
+    $(LI `CppRuntime_LLVM`)
+    $(LI `LittleEndian`)
+)
+
+The .wasm should be binary compatible with ldc2.
+
+To specify the module of exported symbols, use the `wasmImportModule` attribute:
+
+```D
+import core.attribute : wasmImportModule;
+@wasmImportModule("wasi_snapshot_preview1") extern (C) void proc_exit(int code);
+
+// LDC way:
+import ldc.attributes;
+@llvmAttr("wasm-import-module", "wasi_snapshot_preview1")
+extern (C) void proc_exit(int code);
+```
+
+To export a function to the host under a chosen name, use the `wasmExportName`
+attribute. The function is kept by the linker and exported without
+`--export-dynamic`, and the export name may differ from the symbol name:
+
+```D
+import core.attribute : wasmExportName;
+@wasmExportName("windowStep") extern (C) void internalStep() { }
+
+// LDC way:
+import ldc.attributes;
+@llvmAttr("wasm-export-name", "windowStep")
+extern (C) void internalStep() { }
+```
+
+Phobos is linked by default, just like on the native targets. Building it
+mirrors the native library: `make -C phobos wasm` produces `libphobos2-wasm.a`
+(which, like `libphobos2.a`, also contains druntime) in
+`phobos/generated/wasm/release/wasm32`, and `dmd.conf` points `-mwasm32` at it.
+As usual, `-defaultlib=` selects a different library, and an empty
+`-defaultlib=` opts out of the runtime entirely.
+
+```D
+import std.stdio;
+
+void main()
+{
+    writeln("hello from ", "wasm");
+}
+```
+
+Limitations:
+- No deprecated complex number types like `cfloat` and `ifloat`
+- `real` is 64-bit, not 128-bit

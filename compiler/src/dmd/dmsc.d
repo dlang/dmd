@@ -73,6 +73,7 @@ void backend_init(const ref Param params, const ref DMDparams driverParams, cons
         case Target.OS.Solaris: exfmt = is64 ? EX_SOLARIS64 : EX_SOLARIS; break;
         case Target.OS.DragonFlyBSD: assert(is64); exfmt = EX_DRAGONFLYBSD64; break;
         case Target.OS.Hurd:    exfmt = is64 ? EX_HURD64    : EX_HURD; break;
+        case Target.OS.WASM: exfmt = EX_WASM; break;
         default: assert(0);
     }
 

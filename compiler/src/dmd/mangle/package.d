@@ -163,6 +163,7 @@ import dmd.root.aav;
 import dmd.root.string;
 import dmd.root.stringtable;
 import dmd.root.utf;
+import dmd.target : target;
 import dmd.target;
 import dmd.tokens;
 import dmd.visitor;
@@ -728,19 +729,12 @@ public:
             return;
         }
 
-        version (IN_LLVM)
+        if (fd.isCMain() && target.isWasm)
         {
-            import gen.llvmhelpers : isTargetWasm;
-            bool isWasm = isTargetWasm();
-        }
-        else bool isWasm = false;
-
-        if (fd.isCMain() && isWasm)
-        {
-            if (fd.parameters)
-                buf.writestring("__main_argc_argv");
-            else
-                buf.writestring("__main_void");
+            // x86 is loose so the runtime calling a function `void main()` as `main(argc, argv)`
+            // is allowed (the arguments are ignored). wasm has strict type validation of every,
+            // call instruction, so different signatures need to be distinguished
+            buf.writestring(fd.parameters && fd.parameters.length ? "__main_argc_argv" : "__main_void");
             return;
         }
 
