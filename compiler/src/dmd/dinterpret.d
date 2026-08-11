@@ -69,6 +69,7 @@ public Expression ctfeInterpret(Expression e)
     switch (e.op)
     {
         case EXP.int64:
+        case EXP.bigInteger:
         case EXP.float64:
         case EXP.complex80:
         case EXP.null_:
@@ -1796,6 +1797,15 @@ public:
         debug (LOG)
         {
             printf("%s IntegerExp::interpret() %s\n", e.loc.toChars(), e.toChars());
+        }
+        result = e;
+    }
+
+    override void visit(BigIntegerExp e)
+    {
+        debug (LOG)
+        {
+            printf("%s BigIntegerExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
         result = e;
     }
@@ -5194,7 +5204,7 @@ public:
             ctfeGlobals.stack.pop(e.lengthVar); // $ is defined only inside []
         if (exceptionOrCantInterpret(e2))
             return false;
-        if (e2.op != EXP.int64)
+        if (e2.op != EXP.int64 && e2.op != EXP.bigInteger)
         {
             error(e.loc, "CTFE internal error: non-integral index `[%s]`", e.e2.toErrMsg());
             return false;
@@ -6825,6 +6835,7 @@ private Expression copyRegionExp(Expression e)
         case EXP.typeid_:
         case EXP.string_:
         case EXP.int64:
+        case EXP.bigInteger:
         case EXP.error:
         case EXP.float64:
         case EXP.complex80:

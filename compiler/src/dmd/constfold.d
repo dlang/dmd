@@ -19,6 +19,7 @@ import core.stdc.string;
 import core.stdc.stdio;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.common.int128 : Cent, add, sub, mul, div, udiv, divmod, udivmod, and, or, xor, com, neg, shl, shr, sar, lt, le, ult, ule, tst, MinusOne;
 import dmd.ctfeexpr;
 import dmd.dcast;
 import dmd.declaration;
@@ -61,6 +62,47 @@ void cantExp(out UnionExp ue)
     emplaceExp!(CTFEExp)(&ue, EXP.cantExpression);
 }
 
+/* =============================== 128-bit support =========================== */
+
+/// Returns true if type is a 128-bit integer type (cent/ucent)
+bool isCentType(Type type)
+{
+    const ty = type.toBasetype().ty;
+    return ty == Tint128 || ty == Tuns128;
+}
+
+/// Get the 128-bit value of an integral constant expression
+Cent getCent(Expression e)
+{
+    if (auto bie = e.isBigIntegerExp())
+        return bie.value;
+    Cent c;
+    c.lo = e.toInteger();
+    c.hi = e.type.toBasetype().isUnsigned() ? 0 : ((c.lo >> 63) ? -1L : 0);
+    return c;
+}
+
+private enum ShiftKind { left, signedRight, unsignedRight }
+
+/// Shift a 128-bit value, following D shift semantics for counts >= 128
+Cent centShift(ShiftKind kind, Cent c1, uint count)
+{
+    if (count >= 128)
+    {
+        // D: shifting by >= the width yields 0, or -1 for signed >>
+        if (kind == ShiftKind.signedRight && lt(c1, Cent()))
+            return MinusOne;
+        return Cent();
+    }
+    switch (kind)
+    {
+        case ShiftKind.left:          return shl(c1, count);
+        case ShiftKind.signedRight:   return sar(c1, count);
+        case ShiftKind.unsignedRight: return shr(c1, count);
+        default:                      assert(0);
+    }
+}
+
 /* =============================== constFold() ============================== */
 /* The constFold() functions were redundant with the optimize() ones,
  * and so have been folded in with them.
@@ -82,6 +124,10 @@ UnionExp Neg(Type type, Expression e1)
     {
         emplaceExp!(ComplexExp)(&ue, loc, -e1.toComplex(), type);
     }
+    else if (isCentType(type))
+    {
+        emplaceExp!(BigIntegerExp)(&ue, loc, neg(getCent(e1)), type);
+    }
     else
     {
         emplaceExp!(IntegerExp)(&ue, loc, -e1.toInteger(), type);
@@ -93,7 +139,10 @@ UnionExp Com(Type type, Expression e1)
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
-    emplaceExp!(IntegerExp)(&ue, loc, ~e1.toInteger(), type);
+    if (isCentType(type))
+        emplaceExp!(BigIntegerExp)(&ue, loc, com(getCent(e1)), type);
+    else
+        emplaceExp!(IntegerExp)(&ue, loc, ~e1.toInteger(), type);
     return ue;
 }
 
@@ -198,6 +247,10 @@ UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
         }
         emplaceExp!(ComplexExp)(&ue, loc, v, type);
     }
+    else if (isCentType(type))
+    {
+        emplaceExp!(BigIntegerExp)(&ue, loc, add(getCent(e1), getCent(e2)), type);
+    }
     else if (SymOffExp soe = e1.isSymOffExp())
     {
         emplaceExp!(SymOffExp)(&ue, loc, soe.var, soe.offset + e2.toInteger());
@@ -263,6 +316,10 @@ UnionExp Mul(Loc loc, Type type, Expression e1, Expression e2)
         else
             assert(0);
     }
+    else if (isCentType(type))
+    {
+        emplaceExp!(BigIntegerExp)(&ue, loc, mul(getCent(e1), getCent(e2)), type);
+    }
     else
     {
         emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() * e2.toInteger(), type);
@@ -306,6 +363,30 @@ UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
             emplaceExp!(ComplexExp)(&ue, loc, c, type);
         else
             assert(0);
+    }
+    else if (isCentType(type))
+    {
+        Cent n1 = getCent(e1);
+        Cent n2 = getCent(e2);
+        if (n2.lo == 0 && n2.hi == 0)
+        {
+            error(e2.loc, "divide by 0");
+            emplaceExp!(ErrorExp)(&ue);
+            return ue;
+        }
+        if (n2 == MinusOne && !type.isUnsigned() &&
+            n1.lo == 0 && n1.hi == 0x8000000000000000UL)
+        {
+            error(e2.loc, "integer overflow: `cent.min / -1`");
+            emplaceExp!(ErrorExp)(&ue);
+            return ue;
+        }
+        Cent n;
+        if (type.isUnsigned())
+            n = udiv(n1, n2);
+        else
+            n = div(n1, n2);
+        emplaceExp!(BigIntegerExp)(&ue, loc, n, type);
     }
     else
     {
@@ -371,6 +452,30 @@ UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
             emplaceExp!(ComplexExp)(&ue, loc, c, type);
         else
             assert(0);
+    }
+    else if (isCentType(type))
+    {
+        Cent n1 = getCent(e1);
+        Cent n2 = getCent(e2);
+        if (n2.lo == 0 && n2.hi == 0)
+        {
+            error(e2.loc, "divide by 0");
+            emplaceExp!(ErrorExp)(&ue);
+            return ue;
+        }
+        if (n2 == MinusOne && !type.isUnsigned() &&
+            n1.lo == 0 && n1.hi == 0x8000000000000000UL)
+        {
+            error(e2.loc, "integer overflow: `cent.min %% -1`");
+            emplaceExp!(ErrorExp)(&ue);
+            return ue;
+        }
+        Cent r;
+        if (type.isUnsigned())
+            udivmod(n1, n2, r);
+        else
+            divmod(n1, n2, r);
+        emplaceExp!(BigIntegerExp)(&ue, loc, r, type);
     }
     else
     {
@@ -445,8 +550,16 @@ UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
         }
         else
         {
-            emplaceExp!(IntegerExp)(&ur, loc, e1.toInteger(), e1.type);
-            emplaceExp!(IntegerExp)(&uv, loc, 1, e1.type);
+            if (isCentType(e1.type))
+            {
+                emplaceExp!(BigIntegerExp)(&ur, loc, getCent(e1), e1.type);
+                emplaceExp!(BigIntegerExp)(&uv, loc, Cent(1), e1.type);
+            }
+            else
+            {
+                emplaceExp!(IntegerExp)(&ur, loc, e1.toInteger(), e1.type);
+                emplaceExp!(IntegerExp)(&uv, loc, 1, e1.type);
+            }
         }
         Expression r = ur.exp();
         Expression v = uv.exp();
@@ -470,6 +583,8 @@ UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
         }
         if (type.isComplex())
             emplaceExp!(ComplexExp)(&ue, loc, v.toComplex(), type);
+        else if (isCentType(type))
+            emplaceExp!(BigIntegerExp)(&ue, loc, getCent(v), type);
         else if (type.isIntegral())
             emplaceExp!(IntegerExp)(&ue, loc, v.toInteger(), type);
         else
@@ -493,13 +608,21 @@ UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
 UnionExp Shl(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
-    emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() << e2.toInteger(), type);
+    if (isCentType(type))
+        emplaceExp!(BigIntegerExp)(&ue, loc, centShift(ShiftKind.left, getCent(e1), cast(uint)e2.toInteger()), type);
+    else
+        emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() << e2.toInteger(), type);
     return ue;
 }
 
 UnionExp Shr(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
+    if (isCentType(type))
+    {
+        emplaceExp!(BigIntegerExp)(&ue, loc, centShift(ShiftKind.signedRight, getCent(e1), cast(uint)e2.toInteger()), type);
+        return ue;
+    }
     dinteger_t value = e1.toInteger();
     dinteger_t dcount = e2.toInteger();
     assert(dcount <= 0xFFFFFFFF);
@@ -546,6 +669,11 @@ UnionExp Shr(Loc loc, Type type, Expression e1, Expression e2)
 UnionExp Ushr(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
+    if (isCentType(type))
+    {
+        emplaceExp!(BigIntegerExp)(&ue, loc, centShift(ShiftKind.unsignedRight, getCent(e1), cast(uint)e2.toInteger()), type);
+        return ue;
+    }
     dinteger_t value = e1.toInteger();
     dinteger_t dcount = e2.toInteger();
     assert(dcount <= 0xFFFFFFFF);
@@ -586,14 +714,20 @@ UnionExp Ushr(Loc loc, Type type, Expression e1, Expression e2)
 UnionExp And(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
-    emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() & e2.toInteger(), type);
+    if (isCentType(type))
+        emplaceExp!(BigIntegerExp)(&ue, loc, and(getCent(e1), getCent(e2)), type);
+    else
+        emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() & e2.toInteger(), type);
     return ue;
 }
 
 UnionExp Or(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
-    emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() | e2.toInteger(), type);
+    if (isCentType(type))
+        emplaceExp!(BigIntegerExp)(&ue, loc, or(getCent(e1), getCent(e2)), type);
+    else
+        emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() | e2.toInteger(), type);
     return ue;
 }
 
@@ -601,7 +735,10 @@ UnionExp Xor(Loc loc, Type type, Expression e1, Expression e2)
 {
     //printf("Xor(linnum = %d, e1 = %s, e2 = %s)\n", loc.linnum, e1.toChars(), e2.toChars());
     UnionExp ue = void;
-    emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() ^ e2.toInteger(), type);
+    if (isCentType(type))
+        emplaceExp!(BigIntegerExp)(&ue, loc, xor(getCent(e1), getCent(e2)), type);
+    else
+        emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() ^ e2.toInteger(), type);
     return ue;
 }
 
@@ -787,7 +924,10 @@ UnionExp Equal(EXP op, Loc loc, Type type, Expression e1, Expression e2)
     }
     else if (e1.type.isIntegral() || e1.type.toBasetype().ty == Tpointer)
     {
-        cmp = (e1.toInteger() == e2.toInteger());
+        if (isCentType(e1.type))
+            cmp = getCent(e1) == getCent(e2);
+        else
+            cmp = (e1.toInteger() == e2.toInteger());
     }
     else
     {
@@ -892,14 +1032,36 @@ UnionExp Cmp(EXP op, Loc loc, Type type, Expression e1, Expression e2)
     }
     else
     {
-        sinteger_t n1;
-        sinteger_t n2;
-        n1 = e1.toInteger();
-        n2 = e2.toInteger();
-        if (e1.type.isUnsigned() || e2.type.isUnsigned())
-            n = intUnsignedCmp(op, n1, n2);
+        if (isCentType(e1.type))
+        {
+            Cent c1 = getCent(e1);
+            Cent c2 = getCent(e2);
+            int rawCmp;
+            if (e1.type.isUnsigned() || e2.type.isUnsigned())
+            {
+                if (ult(c1, c2))       rawCmp = -1;
+                else if (c1 == c2)     rawCmp = 0;
+                else                   rawCmp = 1;
+            }
+            else
+            {
+                if (lt(c1, c2))        rawCmp = -1;
+                else if (c1 == c2)     rawCmp = 0;
+                else                   rawCmp = 1;
+            }
+            n = specificCmp(op, rawCmp);
+        }
         else
-            n = intSignedCmp(op, n1, n2);
+        {
+            sinteger_t n1;
+            sinteger_t n2;
+            n1 = e1.toInteger();
+            n2 = e2.toInteger();
+            if (e1.type.isUnsigned() || e2.type.isUnsigned())
+                n = intUnsignedCmp(op, n1, n2);
+            else
+                n = intSignedCmp(op, n1, n2);
+        }
     }
     emplaceExp!(IntegerExp)(&ue, loc, n, type);
     return ue;
@@ -977,6 +1139,52 @@ UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
     }
     else if (type.isIntegral())
     {
+        if (auto bie = e1.isBigIntegerExp())
+        {
+            // 128-bit value cast to another integer type: truncate mod 2^n
+            const uinteger_t v = bie.value.lo;
+            switch (typeb.ty)
+            {
+            case Tbool:
+                emplaceExp!(IntegerExp)(&ue, loc, v != 0, type);
+                break;
+            case Tint8:
+            case Tchar:
+            case Tuns8:
+                emplaceExp!(IntegerExp)(&ue, loc, cast(ubyte)v, type);
+                break;
+            case Tint16:
+            case Twchar:
+            case Tuns16:
+                emplaceExp!(IntegerExp)(&ue, loc, cast(ushort)v, type);
+                break;
+            case Tint32:
+            case Tdchar:
+            case Tuns32:
+                emplaceExp!(IntegerExp)(&ue, loc, cast(uint)v, type);
+                break;
+            case Tint64:
+                emplaceExp!(IntegerExp)(&ue, loc, cast(long)v, type);
+                break;
+            case Tuns64:
+                emplaceExp!(IntegerExp)(&ue, loc, v, type);
+                break;
+            case Tint128:
+            case Tuns128:
+                emplaceExp!(BigIntegerExp)(&ue, loc, bie.value, type);
+                break;
+            default:
+                assert(0);
+            }
+            return ue;
+        }
+        if (isCentType(type))
+        {
+            // 64-bit (or smaller) integer -> 128-bit: sign or zero extend
+            Cent c = getCent(e1);
+            emplaceExp!(BigIntegerExp)(&ue, loc, c, type);
+            return ue;
+        }
         if (e1.type.isFloating())
         {
             dinteger_t result;

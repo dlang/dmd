@@ -1031,7 +1031,7 @@ $(MULTICOLS 4,
     $(LINK2 expression.html#CastExpression, $(D cast))
     $(LINK2 statement.html#TryStatement, $(D catch))
     $(GDEPRECATED $(LINK2 type.html, $(D cdouble)))
-    $(GDEPRECATED $(LINK2 type.html, $(D cent)))
+    $(LINK2 type.html, $(D cent))
     $(GDEPRECATED $(LINK2 type.html, $(D cfloat)))
     $(LINK2 type.html, $(D char))
     $(LINK2 class.html, $(D class))
@@ -1120,7 +1120,7 @@ $(MULTICOLS 4,
     $(LINK2 type.html#Typeof, $(D typeof))
 
     $(LINK2 type.html, $(D ubyte))
-    $(GDEPRECATED $(LINK2 type.html, $(D ucent)))
+    $(LINK2 type.html, $(D ucent))
     $(LINK2 type.html, $(D uint))
     $(LINK2 type.html, $(D ulong))
     $(LINK2 struct.html, $(D union))

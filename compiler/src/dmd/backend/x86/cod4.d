@@ -37,6 +37,7 @@ import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
 import dmd.backend.mem;
 import dmd.backend.el;
 import dmd.backend.global : REGSIZE, mask;
+import dmd.backend.type : type_fake;
 import dmd.backend.debugprint : oper_str;
 import dmd.backend.evalu8 : boolres, evalu8, iffalse;
 import dmd.backend.util2 : ispow2;
@@ -407,6 +408,49 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     uint sz = _tysize[tyml];           // # of bytes to transfer
     assert(cast(int)sz > 0);
+
+    // On 32-bit x86, 128-bit values are memory-only (no registers can hold
+    // them), so do the assignment as a memory-to-memory copy; a constant is
+    // stored with four 32-bit immediate stores. The value of the assignment
+    // is the lvalue, which stays in memory.
+    if (I32 && sz == 16 && (tyml == TYcent || tyml == TYucent))
+    {
+        if (e2oper == OPconst)
+        {
+            getlvalue(cg, cdb, cs, e1, 0, RM.store);
+            cs.Iop = 0xC7;                          // MOV EA,imm
+            targ_size_t* p = cast(targ_size_t*) &(e2.EV);
+            int off = sz;
+            do
+            {
+                cs.IFL2 = FL.const_;
+                cs.IEV2.Vint = cast(int)*p;
+                cdb.gen(&cs);                       // MOV EA+off,const
+                p = cast(targ_size_t*)(cast(char*) p + REGSIZE);
+                cs.Iop = (cs.Iop & 1) | 0xC6;
+                cs.Irm &= cast(ubyte)~cast(int)modregrm(0,7,0);
+                cs.Irex &= ~REX_R;
+                cs.IEV1.Voffset += REGSIZE;
+                off -= REGSIZE;
+            } while (off > 0);
+            freenode(e2);
+        }
+        else
+        {
+            // Memory-to-memory copy via the struct copy code path.
+            e.Eoper = OPstreq;
+            e.ET = type_fake(TYcent);
+            cdstreq(cg, cdb, e, pretregs);
+            return;
+        }
+        if (pretregs)
+        {
+            // The result is the lvalue, left in memory (DI, as cdstreq does).
+            regm_t rregs = mDI;
+            fixresult(cg, cdb, e, rregs, pretregs);
+        }
+        return;
+    }
 
     if (retregs == 0)                     // if no return value
     {
@@ -985,6 +1029,23 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 cdb.gen(&cs);
                 break;
 
+            case 16:
+                // 128-bit NEG: NEG EA+8; NEG EA; SBB EA+8,0
+                getlvalue_msw(cs);
+                cdb.gen(&cs);              // NEG EA+8
+                code_orrex(cdb.last(), REX_W);
+                getlvalue_lsw(cs);
+                cdb.gen(&cs);              // NEG EA
+                code_orrex(cdb.last(), REX_W);
+                code_orflag(cdb.last(),CF.psw);
+                cs.Iop = 0x81;
+                getlvalue_msw(cs);
+                cs.IFL2 = FL.const_;
+                cs.IEV2.Vuns = 0;
+                cdb.gen(&cs);              // SBB EA+8,0
+                code_orrex(cdb.last(), REX_W);
+                break;
+
             default:
                 assert(0);
         }
@@ -992,6 +1053,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         pretregs &= ~mPSW;
     }
     else if ((e2 = e.E2).Eoper == OPconst &&    // if rvalue is a const
+             !(I64 && sz == 16) &&              // 128-bit constants can't be imm32
              el_signx32(e2) &&
              // Don't evaluate e2 in register if we can use an INC or DEC
              (((sz <= REGSIZE || tyfv(tyml)) &&
@@ -1279,6 +1341,8 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         {
             cs.Irm |= modregrm(0,findreglsw(retregs),0);
             cdb.gen(&cs);                               // OP1 EA,reg+1
+            if (I64 && sz == 16)
+                code_orrex(cdb.last(), REX_W);
             code_orflag(cdb.last(),cflags);
             cs.Iop = op2;
             NEWREG(cs.Irm,findregmsw(retregs)); // OP2 EA+1,reg
@@ -1287,6 +1351,8 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         else
             assert(0);
         cdb.gen(&cs);
+        if (I64 && sz == 16)
+            code_orrex(cdb.last(), REX_W);
         retregs = 0;            // to trigger a bug if we attempt to use it
     }
 
@@ -2576,7 +2642,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     uint sz = _tysize[tym];
     uint isbyte = sz == 1;
 
-    uint rex = (I64 && sz == 8) ? REX_W : 0;
+    uint rex = (I64 && (sz == 8 || sz == 16)) ? REX_W : 0;
     uint grex = rex << 16;          // 64 bit operands
 
     code cs;
@@ -2896,7 +2962,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 cs.IEV2.Vsize_t = cast(targ_size_t)e2.Vllong;
 
             // The cmp immediate relies on sign extension of the 32 bit immediate value
-            if (I64 && sz >= REGSIZE && cs.IEV2.Vsize_t != cast(int)cs.IEV2.Vint)
+            if (I64 && sz >= REGSIZE && (sz == 16 || cs.IEV2.Vsize_t != cast(int)cs.IEV2.Vint))
                 goto L2;
           L4:
             cs.Iop = 0x81 ^ isbyte;
@@ -3874,6 +3940,8 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         genmovreg(cdb,msreg,lsreg);                // MOV msreg,lsreg
         assert(config.target_cpu >= TARGET_80286);              // 8088 can't handle SAR reg,imm8
         cdb.genc2(0xC1,modregrm(3,7,msreg),REGSIZE * 8 - 1);    // SAR msreg,31
+        if (I64 && e.Eoper == OPs64_128)
+            code_orrex(cdb.last(), REX_W);
         fixresult(cg,cdb,e,retregs,pretregs);
         return;
     }
@@ -4101,7 +4169,6 @@ void cdlngsht(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
  * or top 64 bits of 128 bit value (I64).
  * OPmsw
  */
-
 @trusted
 void cdmsw(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {

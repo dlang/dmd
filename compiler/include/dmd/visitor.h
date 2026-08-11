@@ -187,6 +187,7 @@ class CInitializer;
 
 class Expression;
 class IntegerExp;
+class BigIntegerExp;
 class ErrorExp;
 class RealExp;
 class ComplexExp;
@@ -473,6 +474,7 @@ public:
     // Expressions
     virtual void visit(DeclarationExp *e) { visit((Expression *)e); }
     virtual void visit(IntegerExp *e) { visit((Expression *)e); }
+    virtual void visit(BigIntegerExp *e) { visit((Expression *)e); }
     virtual void visit(NewAnonClassExp *e) { visit((Expression *)e); }
     virtual void visit(IsExp *e) { visit((Expression *)e); }
     virtual void visit(RealExp *e) { visit((Expression *)e); }
@@ -632,6 +634,7 @@ public:
     virtual void visit(FuncAliasDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(ErrorInitializer *i) { visit((Initializer *)i); }
     virtual void visit(ErrorExp *e) { visit((Expression *)e); }
+    virtual void visit(BigIntegerExp *e) { visit((Expression *)e); }
     virtual void visit(ComplexExp *e) { visit((Expression *)e); }
     virtual void visit(StructLiteralExp *e) { visit((Expression *)e); }
     virtual void visit(CompoundLiteralExp *e) { visit((Expression *)e); }

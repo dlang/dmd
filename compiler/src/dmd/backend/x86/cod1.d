@@ -4963,7 +4963,7 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
                 return;
             }
 
-            assert(I64 || sz <= tysize(TYreal));
+            assert(I64 || sz <= tysize(TYreal) || (I32 && sz == 16));
             int i = cast(int)sz;
             if (!I16 && i == 2)
                 flag = CF.opsize;
@@ -5191,6 +5191,17 @@ void pushParams(ref CGstate cg, ref CodeBuilder cdb, elem* e, uint stackalign, t
     else if (I16 && sz == 8)             // if long long
         retregs = mSTACK;
 
+    // On 32-bit x86 a 16-byte argument may arrive as a (tmp = value, tmp)
+    // chain (from CSE/argument-order fixing). Evaluate the side effects and
+    // push the final memory-backed value by value.
+    if (I32 && sz == 16 && e.Eoper == OPcomma)
+    {
+        docommas(cdb, e);
+        pushParams(cg, cdb, e, stackalign, tyf);
+        freenode(e);
+        return;
+    }
+
     scodelem(cg,cdb,e,retregs,0,true);
     if (retregs != mSTACK)                // if cg.stackpush not already inc'd
         cg.stackpush += sz;
@@ -5390,12 +5401,16 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
             reg = allocreg(cdb, regm, TYoffset);       // get a register
             int i = sz - REGSIZE;
             loadea(cg, cdb, e, cs, 0x8B, reg, i, 0, 0);        // MOV reg,data+6
+            if (I64 && sz == 2 * REGSIZE)
+                code_orrex(cdb.last(), REX_W);
             if (tyfloating(tym))                             // TYdouble or TYdouble_alias
                 cdb.gen2(0xD1, modregrm(3, 4, reg));            // SHL reg,1
 
             while ((i -= REGSIZE) >= 0)
             {
                 loadea(cg, cdb, e, cs, 0x0B, reg, i, regm, 0); // OR reg,data+i
+                if (I64 && sz == 2 * REGSIZE)
+                    code_orrex(cdb.last(), REX_W);
                 code* c = cdb.last();
                 if (i == 0)
                     c.Iflags |= CF.psw;                      // need the flags on last OR

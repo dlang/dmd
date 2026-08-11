@@ -77,10 +77,11 @@ extern (D) struct UnionExp
 
 private:
     // Ensure that the union is suitably aligned.
-    align(8) union _AnonStruct_u
+    align(16) union _AnonStruct_u
     {
         char[__traits(classInstanceSize, Expression)] exp;
         char[__traits(classInstanceSize, IntegerExp)] integerexp;
+        char[__traits(classInstanceSize, BigIntegerExp)] bigintegerexp;
         char[__traits(classInstanceSize, ErrorExp)] errorexp;
         char[__traits(classInstanceSize, RealExp)] realexp;
         char[__traits(classInstanceSize, ComplexExp)] complexexp;
@@ -319,6 +320,7 @@ UnionExp copyLiteral(Expression e)
     case EXP.variable:
     case EXP.dotVariable:
     case EXP.int64:
+    case EXP.bigInteger:
     case EXP.float64:
     case EXP.complex80:
     case EXP.void_:
@@ -1236,6 +1238,8 @@ private int ctfeRawCmp(Loc loc, Expression e1, Expression e2, bool identity = fa
     }
     if (e1.type.isIntegral())
     {
+        if (e1.type.toBasetype().ty == Tint128 || e1.type.toBasetype().ty == Tuns128)
+            return !(getCent(e1) == getCent(e2));
         return e1.toInteger() != e2.toInteger();
     }
     if (identity && e1.type.isFloating())
@@ -1381,6 +1385,27 @@ bool ctfeCmp(Loc loc, EXP op, Expression e1, Expression e2)
         return realCmp(op, e1.toReal(), e2.toReal());
     if (t1.isImaginary())
         return realCmp(op, e1.toImaginary(), e2.toImaginary());
+    if (t1.ty == Tint128 || t1.ty == Tuns128)
+    {
+        // 128-bit integer comparison
+        import dmd.common.int128 : Cent, lt, ult;
+        Cent c1 = getCent(e1);
+        Cent c2 = getCent(e2);
+        int rawCmp;
+        if (t1.isUnsigned() || t2.isUnsigned())
+        {
+            if (ult(c1, c2))     rawCmp = -1;
+            else if (c1 == c2)   rawCmp = 0;
+            else                 rawCmp = 1;
+        }
+        else
+        {
+            if (lt(c1, c2))      rawCmp = -1;
+            else if (c1 == c2)   rawCmp = 0;
+            else                 rawCmp = 1;
+        }
+        return specificCmp(op, rawCmp);
+    }
     if (t1.isUnsigned() || t2.isUnsigned())
         return intUnsignedCmp(op, e1.toInteger(), e2.toInteger());
     else
@@ -1662,6 +1687,11 @@ void assignInPlace(Expression dest, Expression src)
         dest.isIntegerExp().setInteger(src.isIntegerExp().getInteger());
         return;
     }
+    else if (dest.op == EXP.bigInteger && src.op == EXP.bigInteger)
+    {
+        dest.isBigIntegerExp().value = src.isBigIntegerExp().value;
+        return;
+    }
     else if (dest.op == EXP.float64 && src.op == EXP.float64)
     {
         dest.isRealExp().value = src.isRealExp().value;
@@ -1812,6 +1842,7 @@ bool isCtfeValueValid(Expression newval)
     switch (newval.op)
     {
         case EXP.int64:
+        case EXP.bigInteger:
         case EXP.float64:
         case EXP.complex80:
             return tb.isScalar();

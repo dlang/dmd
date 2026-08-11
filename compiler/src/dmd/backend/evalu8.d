@@ -1175,7 +1175,24 @@ static if (0)
     {
         targ_llong rem, quo;
 
-        assert(!(tym == TYcent || tym == TYucent));     // not yet
+        if (tym == TYcent || tym == TYucent)
+        {
+            // 128-bit dividend / 64-bit divisor; the result packs
+            // {lo = quotient, hi = remainder} (see toElemCentDivMod).
+            Cent divisor;
+            divisor.lo = e2.Vcent.lo;
+            divisor.hi = (uns || !(divisor.lo >> 63)) ? 0 : -1L;
+            Cent modulus;
+            Cent q;
+            if (uns)
+                q = dmd.common.int128.udivmod(e1.Vcent, divisor, modulus);
+            else
+                q = dmd.common.int128.divmod(e1.Vcent, divisor, modulus);
+            e.Vcent.lo = q.lo;
+            e.Vcent.hi = modulus.lo;
+            break;
+        }
+
         assert(!tyfloating(tym));
         if (!boolres(e2))
             goto div0;
@@ -1742,7 +1759,7 @@ else
         break;
 
     case OPmsw:
-        switch (tysize(tym))
+        switch (tysize(tybasic(e1.Ety)))
         {
             case 4:
                 e.Vllong = (l1 >> 16) & 0xFFFF;

@@ -77,11 +77,13 @@ private struct CaseExpressionBox
 
     this(Expression exp)
     {
-        assert(exp.op == EXP.int64 || exp.op == EXP.string_);
+        assert(exp.op == EXP.int64 || exp.op == EXP.bigInteger || exp.op == EXP.string_);
         this.exp = exp;
 
         if (exp.isIntegerExp())
             hash = hashOf(exp.toInteger());
+        else if (exp.isBigIntegerExp())
+            hash = hashOf(exp.isBigIntegerExp().value.lo ^ exp.isBigIntegerExp().value.hi);
         else
             hash = hashOf(exp.toStringExp().peekData());
     }

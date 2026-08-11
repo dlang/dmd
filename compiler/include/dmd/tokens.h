@@ -13,6 +13,7 @@
 #include "root/dcompat.h"
 #include "root/port.h"
 #include "globals.h"
+#include "common/int128.h"
 
 class Identifier;
 
@@ -402,6 +403,7 @@ enum class EXP : unsigned char
     // Basic types
     void_,
     int64,
+    bigInteger,
     float64,
     complex80,
     import_,
@@ -454,6 +456,7 @@ struct Token
         // Integers
         sinteger_t intvalue;
         uinteger_t unsvalue;
+        Cent centvalue;
 
         // Floats
         real_t floatvalue;

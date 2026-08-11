@@ -20,6 +20,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.common.int128 : Cent;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.oper;
@@ -973,6 +974,23 @@ elem* el_long(tym_t t,targ_llong val)
             e.Vllong = val;
             break;
     }
+    return e;
+}
+
+/***************************
+ * Make a constant element.
+ * Params:
+ *      t = type of constant
+ *      val = 128-bit value
+ * Returns:
+ *      constant element
+ */
+elem* el_cent(tym_t t, Cent val)
+{
+    elem* e = el_calloc();
+    e.Eoper = OPconst;
+    e.Ety = t;
+    e.Vcent = val;
     return e;
 }
 
@@ -2245,6 +2263,15 @@ bool el_allbits(const elem* e,int bit)
 
         case 8: break;
 
+        case 16:
+            // 128-bit constant: 0, 1, or -1
+            if (bit == -1)
+                return e.Vcent.lo == cast(ulong)-1L && e.Vcent.hi == cast(ulong)-1L;
+            else if (bit == 0)
+                return e.Vcent.lo == 0 && e.Vcent.hi == 0;
+            else // bit == 1
+                return e.Vcent.lo == 1 && e.Vcent.hi == 0;
+
         default:
                 assert(0);
     }
@@ -2267,6 +2294,16 @@ bool el_signx32(const elem* e)
     {
         if (e.Vullong != cast(int)e.Vullong)
             return false;
+    }
+    else if (tysize(e.Ety) == 16)
+    {
+        const ulong lo = e.Vcent.lo;
+        const ulong hi = e.Vcent.hi;
+        if (hi == 0 && lo <= int.max)
+            return true;
+        if (hi == cast(ulong)-1L && lo >= cast(ulong)int.min)
+            return true;
+        return false;
     }
     return true;
 }

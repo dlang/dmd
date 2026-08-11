@@ -761,7 +761,8 @@ regm_t regmask(tym_t tym, tym_t tyf)
 
         case TYcent:
         case TYucent:
-            assert(I64);
+            if (I32)
+                return 0;               // 128-bit values are memory-only on 32-bit
             return mDX | mAX;
 
         case TYvptr:
