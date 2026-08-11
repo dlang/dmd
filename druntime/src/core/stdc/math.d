@@ -809,6 +809,49 @@ else version (CRuntime_WASI)
             ret i1 %cmp
         `, bool)(val);
     }
+    else version (DigitalMars)
+    extern (D) pure pragma(inline, true) {
+        private uint __FLOAT_BITS(float __f)
+        {
+            union __u_t { float __f; uint __i; }
+            __u_t __u;
+            __u.__f = __f;
+            return __u.__i;
+        }
+        private ulong __DOUBLE_BITS(double __f)
+        {
+            union __u_t { double __f; ulong __i; }
+            __u_t __u;
+            __u.__f = __f;
+            return __u.__i;
+        }
+
+        int fpclassify(float val)
+        {
+            const bits = __FLOAT_BITS(val) & 0x7fff_ffff;
+            if (bits == 0) return FP_ZERO;
+            if (bits >= 0x7f80_0000) return bits == 0x7f80_0000 ? FP_INFINITE : FP_NAN;
+            return bits < 0x0080_0000 ? FP_SUBNORMAL : FP_NORMAL;
+        }
+        int fpclassify(double val)
+        {
+            const bits = __DOUBLE_BITS(val) & (ulong.max >> 1);
+            if (bits == 0) return FP_ZERO;
+            if (bits >= 0x7ffUL << 52) return bits == 0x7ffUL << 52 ? FP_INFINITE : FP_NAN;
+            return bits < 1UL << 52 ? FP_SUBNORMAL : FP_NORMAL;
+        }
+        // real has the same 8-byte layout as double on WASM (Target.realsize == 8)
+        int fpclassify(real val) => fpclassify(cast(double) val);
+
+        bool isinf(T)(T val) => fpclassify(val) == FP_INFINITE;
+        bool isnan(T)(T val) => fpclassify(val) == FP_NAN;
+        bool isnormal(T)(T val) => fpclassify(val) == FP_NORMAL;
+        bool isfinite(T)(T val) => fpclassify(val) > FP_INFINITE;
+
+        bool signbit(float val) => (__FLOAT_BITS(val) & 0x8000_0000) != 0;
+        bool signbit(double val) => (__DOUBLE_BITS(val) & (1UL << 63)) != 0;
+        bool signbit(real val) => signbit(cast(double) val);
+    }
     else static assert(0, "Unknown D compiler for WASI");
 }
 else version (CRuntime_UClibc)
@@ -4876,6 +4919,77 @@ else
         pure real    __fmaieee128(real x, real y, real z);
         ///
         alias fmal = __fmaieee128;
+    }
+    else version (CRuntime_WASI)
+    {
+        // wasi-libc's `*l` symbols have a 128 bit long double ABI, incompatible
+        // with a 64 bit `real`, so forward to the `double` versions instead
+        extern(D) real acosl()(real x)   { return acos(cast(double) x); }
+        extern(D) real asinl()(real x)   { return asin(cast(double) x); }
+        extern(D) pure real atanl()(real x)   { return atan(cast(double) x); }
+        extern(D) real atan2l()(real y, real x) { return atan2(cast(double) y, cast(double) x); }
+        extern(D) pure real cosl()(real x)    { return cos(cast(double) x); }
+        extern(D) pure real sinl()(real x)    { return sin(cast(double) x); }
+        extern(D) pure real tanl()(real x)    { return tan(cast(double) x); }
+        extern(D) real acoshl()(real x)  { return acosh(cast(double) x); }
+        extern(D) pure real asinhl()(real x)  { return asinh(cast(double) x); }
+        extern(D) real atanhl()(real x)  { return atanh(cast(double) x); }
+        extern(D) real coshl()(real x)   { return cosh(cast(double) x); }
+        extern(D) real sinhl()(real x)   { return sinh(cast(double) x); }
+        extern(D) pure real tanhl()(real x)   { return tanh(cast(double) x); }
+        extern(D) real expl()(real x)    { return exp(cast(double) x); }
+        extern(D) real exp2l()(real x)   { return exp2(cast(double) x); }
+        extern(D) real expm1l()(real x)  { return expm1(cast(double) x); }
+        extern(D) pure real frexpl()(real value, int* exp) { return frexp(cast(double) value, exp); }
+        extern(D) int ilogbl()(real x)   { return ilogb(cast(double) x); }
+        extern(D) real ldexpl()(real x, int exp) { return ldexp(cast(double) x, exp); }
+        extern(D) real logl()(real x)    { return log(cast(double) x); }
+        extern(D) real log10l()(real x)  { return log10(cast(double) x); }
+        extern(D) real log1pl()(real x)  { return log1p(cast(double) x); }
+        extern(D) real log2l()(real x)   { return log2(cast(double) x); }
+        extern(D) real logbl()(real x)   { return logb(cast(double) x); }
+        extern(D) pure real modfl()(real value, real* iptr)
+        {
+            double i = void;
+            const r = modf(cast(double) value, &i);
+            *iptr = i;
+            return r;
+        }
+        extern(D) real scalbnl()(real x, int n)  { return scalbn(cast(double) x, n); }
+        extern(D) real scalblnl()(real x, c_long n) { return scalbln(cast(double) x, n); }
+        extern(D) pure real cbrtl()(real x)   { return cbrt(cast(double) x); }
+        pure float   fabsf(float x);
+        extern(D) pure real fabsl()(real x)   { return fabs(cast(double) x); }
+        extern(D) real hypotl()(real x, real y) { return hypot(cast(double) x, cast(double) y); }
+        extern(D) real powl()(real x, real y) { return pow(cast(double) x, cast(double) y); }
+        extern(D) real sqrtl()(real x)   { return sqrt(cast(double) x); }
+        extern(D) pure real erfl()(real x)    { return erf(cast(double) x); }
+        extern(D) real erfcl()(real x)   { return erfc(cast(double) x); }
+        extern(D) real lgammal()(real x) { return lgamma(cast(double) x); }
+        extern(D) real tgammal()(real x) { return tgamma(cast(double) x); }
+        extern(D) pure real ceill()(real x)   { return ceil(cast(double) x); }
+        extern(D) pure real floorl()(real x)  { return floor(cast(double) x); }
+        extern(D) pure real nearbyintl()(real x) { return nearbyint(cast(double) x); }
+        extern(D) pure real rintl()(real x)   { return rint(cast(double) x); }
+        extern(D) c_long lrintl()(real x)     { return lrint(cast(double) x); }
+        extern(D) long llrintl()(real x)      { return llrint(cast(double) x); }
+        extern(D) pure real roundl()(real x)  { return round(cast(double) x); }
+        extern(D) c_long lroundl()(real x)    { return lround(cast(double) x); }
+        extern(D) long llroundl()(real x)     { return llround(cast(double) x); }
+        extern(D) pure real truncl()(real x)  { return trunc(cast(double) x); }
+        extern(D) real fmodl()(real x, real y) { return fmod(cast(double) x, cast(double) y); }
+        extern(D) real remainderl()(real x, real y) { return remainder(cast(double) x, cast(double) y); }
+        extern(D) real remquol()(real x, real y, int* quo) { return remquo(cast(double) x, cast(double) y, quo); }
+        extern(D) pure real copysignl()(real x, real y) { return copysign(cast(double) x, cast(double) y); }
+        extern(D) pure real nanl()(char* tagp) { return nan(tagp); }
+        extern(D) real nextafterl()(real x, real y) { return nextafter(cast(double) x, cast(double) y); }
+        extern(D) double nexttoward()(double x, real y) { return nextafter(x, cast(double) y); }
+        extern(D) float nexttowardf()(float x, real y) { return nextafterf(x, cast(float) cast(double) y); }
+        extern(D) real nexttowardl()(real x, real y) { return nextafter(cast(double) x, cast(double) y); }
+        extern(D) real fdiml()(real x, real y) { return fdim(cast(double) x, cast(double) y); }
+        extern(D) pure real fmaxl()(real x, real y) { return fmax(cast(double) x, cast(double) y); }
+        extern(D) pure real fminl()(real x, real y) { return fmin(cast(double) x, cast(double) y); }
+        extern(D) pure real fmal()(real x, real y, real z) { return fma(cast(double) x, cast(double) y, cast(double) z); }
     }
     else
     {

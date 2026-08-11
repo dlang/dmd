@@ -924,6 +924,13 @@ in (fn)
         }
         assert(0, "implement AArch64 inline assembler for callWithStackShell()"); // TODO AArch64
     }
+    else version (WebAssembly)
+    {
+        // an address taken local is spilled to the shadow stack, and every
+        // value live across a call sits above it
+        ubyte local = void;
+        sp = &local;
+    }
     else
     {
         static assert(false, "Architecture not supported.");
@@ -982,6 +989,12 @@ private extern(D) void* getStackTop() nothrow @nogc
     }
     else version (GNU)
         return __builtin_frame_address(0);
+    else version (WebAssembly)
+    {
+        ubyte local = void;
+        void* sp = &local;
+        return sp;
+    }
     else
         static assert(false, "Architecture not supported.");
 }
@@ -1061,10 +1074,19 @@ private extern(D) void* getStackBottom() nothrow @nogc
         thr_stksegment(&stk);
         return stk.ss_sp;
     }
+    else version (WebAssembly)
+    {
+        // the shadow stack is [.., __stack_high) and grows down
+        return &__stack_high;
+    }
     else
         static assert(false, "Platform not supported.");
 }
 
+version (WebAssembly)
+{
+    private extern(C) extern __gshared ubyte __stack_high;
+}
 
 /**
  * Suspend the specified thread and load stack and register information for

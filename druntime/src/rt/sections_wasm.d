@@ -37,8 +37,8 @@ private:
 
 void initSections() nothrow @nogc
 {
-    auto mbeg = cast(immutable ModuleInfo**)&__start___minfo;
-    auto mend = cast(immutable ModuleInfo**)&__stop___minfo;
+    auto mbeg = cast(immutable ModuleInfo**)&__start_minfo;
+    auto mend = cast(immutable ModuleInfo**)&__stop_minfo;
     _sections.moduleGroup = ModuleGroup(mbeg[0 .. mend - mbeg]);
 
     // TODO: PIC support
@@ -73,8 +73,8 @@ extern(C)
 {
     extern __gshared
     {
-        void* __start___minfo;
-        void* __stop___minfo;
+        void* __start_minfo;
+        void* __stop_minfo;
 
         void* __global_base;
         void* __data_end;

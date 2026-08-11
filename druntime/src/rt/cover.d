@@ -11,7 +11,9 @@
 
 module rt.cover;
 
-version (WASI) {}
+version (LDC) version (WASI) version = NoCoverage; // LDC has no WASI coverage support
+
+version (NoCoverage) {}
 else:
 
 import core.internal.utf;
@@ -488,6 +490,10 @@ void lockFile(int fd)
         import core.sys.bionic.fcntl : LOCK_EX;
         import core.sys.bionic.unistd : flock;
         flock(fd, LOCK_EX); // exclusive lock
+    }
+    else version (WASI)
+    {
+        // wasi-libc has no lockf
     }
     else version (Posix)
     {

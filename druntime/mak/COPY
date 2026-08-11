@@ -28,6 +28,7 @@ COPY=\
 	$(IMPDIR)\core\time.d \
 	$(IMPDIR)\core\vararg.d \
 	$(IMPDIR)\core\volatile.d \
+	$(IMPDIR)\core\wasm.d \
 	\
 	$(IMPDIR)\core\internal\abort.d \
 	$(IMPDIR)\core\internal\atomic.d \
@@ -405,6 +406,10 @@ COPY=\
 	$(IMPDIR)\core\sys\hurd\sys\types.d \
 	$(IMPDIR)\core\sys\hurd\time.d \
 	$(IMPDIR)\core\sys\hurd\unistd.d \
+	\
+	$(IMPDIR)\core\sys\wasi\posix\time.d \
+	\
+	$(IMPDIR)\core\sys\wasi\posix\stdc\time.d \
 	\
 	$(IMPDIR)\core\sys\windows\accctrl.d \
 	$(IMPDIR)\core\sys\windows\aclapi.d \
