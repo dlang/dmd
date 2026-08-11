@@ -8434,14 +8434,28 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 s = (cast(TemplateExp)exp.e1).td;
             L2:
-                auto fdthis = hasThis(sc);
-                exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, fdthis ? fdthis.vthis.type : null, exp.argumentList,
+                Type thisType;
+                if (auto td = s.isTemplateDeclaration())
+                {
+                    if (auto fdthis = hasThis(sc))
+                    {
+                        foreach (param; *td.parameters)
+                        {
+                            if (param.isTemplateThisParameter())
+                            {
+                                thisType = fdthis.vthis.type;
+                                break;
+                            }
+                        }
+                    }
+                }
+                exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, thisType, exp.argumentList,
                     exp.isUfcsRewrite ? FuncResolveFlag.ufcs : FuncResolveFlag.standard);
                 if (!exp.f || exp.f.errors)
                     return setError();
                 if (exp.f.needThis())
                 {
-                    if (fdthis)
+                    if (hasThis(sc))
                     {
                         // Supply an implicit 'this', as in
                         //    this.ident
