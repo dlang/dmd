@@ -309,7 +309,9 @@ $(H3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conver
     $(LI A struct may implicitly convert to the target of its
         $(GLINK2 struct, AliasThis).)
     $(LI A class instance implicitly converts to its
-        $(DDSUBLINK spec/class, super_class, base class) or interfaces.)
+        $(DDSUBLINK spec/class, super_class, inherited types).)
+    $(LI An interface instance $(DDSUBLINK spec/interface, declarations,
+        implicitly converts) to any inherited interfaces.)
     $(LI A static array $(DDSUBLINK spec/arrays, implicit-conversions, implicitly
         converts) to a dynamic array.)
     $(LI Static arrays, dynamic arrays and pointers implicitly
