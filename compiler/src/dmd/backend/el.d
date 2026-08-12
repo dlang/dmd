@@ -1124,6 +1124,8 @@ Lnodep:
 bool ERTOL(const elem* e)
 {
     elem_debug(e);
+    if (e.Eoper == OPparam)
+        return (config.exe & EX_WASM) != 0;
     return OTrtol(e.Eoper) &&
         (!OTopeq(e.Eoper) || config.inline8087 || !tyfloating(e.Ety));
 }

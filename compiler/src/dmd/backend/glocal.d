@@ -434,9 +434,19 @@ Loop:
             }
         case_bin:
             if (OTbinary(e.Eoper))
-            {   local_exp(go, lt,e.E1,1);
-                goal = 1;
-                e = e.E2;
+            {
+                if (ERTOL(e))
+                {
+                    local_exp(go, lt,e.E2,1);
+                    goal = 1;
+                    e = e.E1;
+                }
+                else
+                {
+                    local_exp(go, lt,e.E1,1);
+                    goal = 1;
+                    e = e.E2;
+                }
                 goto Loop;
             }
             break;

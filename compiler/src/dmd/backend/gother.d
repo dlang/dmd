@@ -1730,7 +1730,7 @@ private void accumda(elem* n,vec_t DEAD, vec_t POSS)
                     assnod.push(n);
                 }
             }
-            else if (OTrtol(op))
+            else if (ERTOL(n))
             {
                 accumda(n.E2,DEAD,POSS);
                 n = n.E1;
