@@ -467,7 +467,7 @@ private void accumrd(ref GlobalOptimizer go, vec_t GEN,vec_t KILL,elem* n,uint d
             vec_free(Gr);
             vec_free(Kr);
         }
-        else if (OTrtol(op) && ERTOL(n))
+        else if (ERTOL(n))
         {
             accumrd(go, GEN, KILL, n.E2, deftop);
             accumrd(go, GEN, KILL, n.E1, deftop);
@@ -1177,7 +1177,7 @@ private void accumaecpx(ref GlobalOptimizer go, elem* n)
             }
             else if (OTbinary(op))
             {
-                if (OTrtol(op) && ERTOL(n))
+                if (ERTOL(n))
                 {
                     accumaecpx(go, n.E2);
                     accumaecpx(go, n.E1);
@@ -1616,7 +1616,7 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
                     n = n.E1;
                     continue;
                 }
-                else if (OTrtol(op) && ERTOL(n))
+                else if (ERTOL(n))
                 {
                     accumlv(GEN,KILL,n.E2,ambigsym);
 
