@@ -25,6 +25,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -1218,20 +1219,21 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
  *      init = `Initializer` AST node
  *      sc = context
  *      itype = the type of the parsed declaration, null for `auto`
+ *      eSink = error message sink
  * Returns:
  *      an equivalent `ExpInitializer` if successful, or `ErrorInitializer` if it cannot be translated
  */
-Initializer inferInitializerType(Initializer init, Scope* sc, Type itype)
+Initializer inferInitializerType(Initializer init, Scope* sc, Type itype, ErrorSink eSink)
 {
     Initializer visitVoid(VoidInitializer i)
     {
-        error(i.loc, "cannot infer type from void initializer");
+        eSink.error(i.loc, "cannot infer type from void initializer");
         return new ErrorInitializer();
     }
 
     Initializer visitDefault(DefaultInitializer i)
     {
-        error(i.loc, "cannot infer type from default initializer");
+        eSink.error(i.loc, "cannot infer type from default initializer");
         return new ErrorInitializer();
     }
 
@@ -1242,7 +1244,7 @@ Initializer inferInitializerType(Initializer init, Scope* sc, Type itype)
 
     Initializer visitStruct(StructInitializer i)
     {
-        error(i.loc, "cannot infer type from struct initializer");
+        eSink.error(i.loc, "cannot infer type from struct initializer");
         return new ErrorInitializer();
     }
 
@@ -1254,9 +1256,9 @@ Initializer inferInitializerType(Initializer init, Scope* sc, Type itype)
         Initializer no()
         {
             if (keys)
-                error(init.loc, "not an associative array initializer");
+                eSink.error(init.loc, "not an associative array initializer");
             else
-                error(init.loc, "cannot infer type from array initializer");
+                eSink.error(init.loc, "cannot infer type from array initializer");
             return new ErrorInitializer();
         }
         const bool isAssoc = itype && itype.ty == Taarray ||
@@ -1283,7 +1285,7 @@ Initializer inferInitializerType(Initializer init, Scope* sc, Type itype)
                     // sanity check: some arbitrary limit that allows a 32-bit process to continue
                     if (nidx > uint.max / 32)
                     {
-                        error(init.loc, "array index %lld not supported", nidx);
+                        eSink.error(init.loc, "array index %lld not supported", nidx);
                         return new ErrorInitializer();
                     }
                     idx = cast(uint)nidx;
@@ -1296,14 +1298,14 @@ Initializer inferInitializerType(Initializer init, Scope* sc, Type itype)
                 }
                 else if ((*values)[idx])
                 {
-                    error(init.loc, "array index %d initialized twice", cast(int)idx);
+                    eSink.error(init.loc, "array index %d initialized twice", cast(int)idx);
                     return new ErrorInitializer();
                 }
             }
             Initializer iz = init.value[i];
             if (!iz)
                 return no();
-            iz = iz.inferInitializerType(sc, itype ? itype.nextOf() : null);
+            iz = iz.inferInitializerType(sc, itype ? itype.nextOf() : null, eSink);
             if (iz.isErrorInitializer())
             {
                 return iz;
@@ -1317,7 +1319,7 @@ Initializer inferInitializerType(Initializer init, Scope* sc, Type itype)
             ? new AssocArrayLiteralExp(init.loc, keys, values)
             : new ArrayLiteralExp(init.loc, null, values);
         auto ei = new ExpInitializer(init.loc, e);
-        return ei.inferInitializerType(sc, itype);
+        return ei.inferInitializerType(sc, itype, eSink);
     }
 
     Initializer visitExp(ExpInitializer init)
@@ -1334,9 +1336,9 @@ Initializer inferInitializerType(Initializer init, Scope* sc, Type itype)
         {
             TemplateInstance ti = se.sds.isTemplateInstance();
             if (ti && ti.semanticRun == PASS.semantic && !ti.aliasdecl)
-                error(se.loc, "cannot infer type from %s `%s`, possible circular dependency", se.sds.kind(), se.toErrMsg());
+                eSink.error(se.loc, "cannot infer type from %s `%s`, possible circular dependency", se.sds.kind(), se.toErrMsg());
             else
-                error(se.loc, "cannot infer type from %s `%s`", se.sds.kind(), se.toErrMsg());
+                eSink.error(se.loc, "cannot infer type from %s `%s`", se.sds.kind(), se.toErrMsg());
             return new ErrorInitializer();
         }
 
@@ -1350,7 +1352,7 @@ Initializer inferInitializerType(Initializer init, Scope* sc, Type itype)
             }
             if (hasOverloads && !f.isUnique())
             {
-                error(init.exp.loc, "cannot infer type from overloaded function symbol `%s`", init.exp.toErrMsg());
+                eSink.error(init.exp.loc, "cannot infer type from overloaded function symbol `%s`", init.exp.toErrMsg());
                 return new ErrorInitializer();
             }
         }
@@ -1358,7 +1360,7 @@ Initializer inferInitializerType(Initializer init, Scope* sc, Type itype)
         {
             if (ae.e1.op == EXP.overloadSet)
             {
-                error(init.exp.loc, "cannot infer type from overloaded function symbol `%s`", init.exp.toErrMsg());
+                eSink.error(init.exp.loc, "cannot infer type from overloaded function symbol `%s`", init.exp.toErrMsg());
                 return new ErrorInitializer();
             }
         }
@@ -1376,7 +1378,7 @@ Initializer inferInitializerType(Initializer init, Scope* sc, Type itype)
     Initializer visitC(CInitializer i)
     {
         //printf("CInitializer.inferInitializerType()\n");
-        error(i.loc, "TODO C inferInitializerType initializers not supported yet");
+        eSink.error(i.loc, "TODO C inferInitializerType initializers not supported yet");
         return new ErrorInitializer();
     }
 
