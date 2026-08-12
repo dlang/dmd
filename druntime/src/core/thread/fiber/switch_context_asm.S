@@ -325,6 +325,23 @@ fiber_switchContext:
  * For LoongArch registers and ABI information, you can refer to the following
  * documentation:
  * https://loongson.github.io/LoongArch-Documentation/LoongArch-ELF-ABI-EN.html
+ *
+ * Layout of the allocated stack area, relative to the saved sp
+ * (each entry is one 8-byte word):
+ *   18: $fp ($r22)
+ *   17: $s8 ($r31)
+ *   ...
+ *    9: $s0 ($r23)
+ *    8: $ra           [&fiber_entryPoint for a new fiber]
+ *    7: $fs7
+ *   ...
+ *    0: $fs0          <-- sp / oldp / *newp save stack top
+ *
+ * The whole save area must be visible to the GC: fs0-fs7 are callee
+ * saved, so the compiler may keep a live GC pointer in one of them
+ * across the suspension.  Hiding them (reporting sp + 9*8 as the
+ * stack top) lets the GC collect memory that is still reachable from
+ * a suspended fiber.
  */
  .text
 .globl fiber_switchContext
@@ -358,12 +375,10 @@ fiber_switchContext:
     st.d  $s8, $sp, 136
     st.d  $fp, $sp, 144
 
-    # adjust sp so that GC won't scan sp and fp registers in the stack frame
-    addi.d $sp, $sp, 9 * 8
-    # save current sp to oldp
+    # report the true sp so the saved ra and fs0-fs7 are GC-scanned
     st.d   $sp, $a0, 0
-    # use new sp from newp (with sp re-adjusted)
-    addi.d $sp, $a1, -9 * 8
+    # use new sp from newp
+    move   $sp, $a1
 
     # load fs0 - fs7
     fld.d  $fs0, $sp, 0
@@ -507,11 +522,17 @@ CSYM(fiber_switchContext):
  *   18: x20
  *   ...
  *   10: x28
- *    9: x29 (fp)  <-- oldp / *newp save stack top
+ *    9: x29 (fp)
  *    8: x30 (lr)
  *    7: d8
  *   ...
- *    0: d15       <-- sp
+ *    0: d15       <-- sp / oldp / *newp save stack top
+ *
+ * The whole save area must be visible to the GC: d8-d15 are callee
+ * saved, so the compiler may keep a live GC pointer in one of them
+ * (e.g. fmov d8, x0) across the suspension.  Hiding them (reporting
+ * sp + 9*8 as the stack top) lets the GC collect memory that is still
+ * reachable from a suspended fiber.
  */
         .text
         .global CSYM(fiber_switchContext)
@@ -531,11 +552,11 @@ CSYM(fiber_switchContext):
         stp     x22, x21, [sp, #16*8]
         stp     x20, x19, [sp, #18*8]
 
-        // oldp is set above saved lr (x30) to hide it and float regs
-        // from GC
-        add     x19, sp, #9*8
+        // report the true sp so the saved lr and d8-d15 are GC-scanned
+        // (sp itself can't be the transfer register of str)
+        mov     x19, sp
         str     x19, [x0]       // *oldp tstack
-        sub     sp, x1, #9*8    // switch to newp sp
+        mov     sp, x1          // switch to newp sp
 
         ldp     x20, x19, [sp, #18*8]
         ldp     x22, x21, [sp, #16*8]
