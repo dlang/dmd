@@ -1357,9 +1357,18 @@ version (MSVCIntrinsics)
         }
     }
 
+    version (X86_64_Or_X86)
+    {
+        /* prfchw forces prefetchw to be emitted on x86 (which is how MSVC behaves). */
+        private enum prefetchWriteTarget = "prfchw";
+    }
+    else
+    {
+        private enum prefetchWriteTarget = "";
+    }
+
     /* This is trusted so that it's @safe without DIP1000 enabled. */
-    /* prfchw forces prefetchw to be emitted on x86 (which is how MSVC behaves). */
-    @llvm_target("prfchw")
+    @llvm_target(prefetchWriteTarget)
     extern(C)
     pragma(inline, true)
     private void prefetchData(bool write, ubyte level)(scope const(void)* address) @trusted pure nothrow @nogc
@@ -1527,13 +1536,13 @@ version (MSVCIntrinsics)
             prefetchData!(false, 3)(address);
         }
 
-        /* This is trusted so that it's @safe without DIP1000 enabled. */
         @safe pure nothrow @nogc unittest
         {
             static bool test()
             {
                 immutable(int) x;
-                __prefetch(&x);
+                /* This is trusted so that it's @safe without DIP1000 enabled. */
+                __prefetch((() @trusted => &x)());
                 return true;
             }
 
