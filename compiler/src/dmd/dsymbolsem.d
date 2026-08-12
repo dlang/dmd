@@ -3277,7 +3277,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         if (!e)
                         {
                             // Run semantic, but don't need to interpret
-                            dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITnointerpret);
+                            dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITnointerpret, global.errorSink);
                             e = dsym._init.initializerToExpression(null, sc.inCfile);
                             if (!e)
                             {
@@ -3293,7 +3293,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     {
                         // C11 6.7.9-22 determine the size of the incomplete array,
                         // or issue an error that the initializer is invalid.
-                        dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITinterpret);
+                        dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITinterpret, global.errorSink);
                     }
 
                     if (ei && dsym.isScope())
@@ -3421,7 +3421,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=14166
                     // Don't run CTFE for the temporary variables inside typeof
-                    dsym._init = dsym._init.initializerSemantic(sc, dsym.type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
+                    dsym._init = dsym._init.initializerSemantic(sc, dsym.type, sc.intypeof == 1 ? INITnointerpret : INITinterpret, global.errorSink);
                     import dmd.semantic2 : lowerStaticAAs;
                     lowerStaticAAs(dsym, sc);
                     auto init_err = dsym._init.isExpInitializer();
@@ -3511,7 +3511,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         }
                     }
 
-                    dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITinterpret);
+                    dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITinterpret, global.errorSink);
                     dsym.inuse--;
                     if (global.errors > errors)
                     {
