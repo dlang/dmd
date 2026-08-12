@@ -6991,7 +6991,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         i => (*exp.names)[i].name,
                         (size_t i, Type t) => (*exp.arguments)[i],
                         i => (*exp.arguments)[i].loc,
-                        i => (*exp.names)[i].loc
+                        i => (*exp.names)[i].loc,
+                        global.errorSink
                     );
                     if (!exp.arguments)
                         return setError();
@@ -7967,7 +7968,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         i => (*exp.names)[i].name,
                         (size_t i, Type t) => (*exp.arguments)[i],
                         i => (*exp.arguments)[i].loc,
-                        i => (*exp.names)[i].loc
+                        i => (*exp.names)[i].loc,
+                        global.errorSink
                     );
                     if (!resolvedArgs)
                     {

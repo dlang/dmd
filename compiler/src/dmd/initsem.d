@@ -25,6 +25,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -174,7 +175,8 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 return ex;
             }
 
-            auto elements = resolveStructLiteralNamedArgs(sd, t, sc, i.loc, i.field.length, (size_t j) => i.field[j], &getExp, (size_t j) => i.value[j].loc, (size_t j) => i.value[j].loc);
+            auto elements = resolveStructLiteralNamedArgs(sd, t, sc, i.loc, i.field.length, (size_t j) => i.field[j], &getExp, (size_t j) => i.value[j].loc, (size_t j) => i.value[j].loc,
+                                 global.errorSink);
             //Keeping both the getArgLoc and getNameLoc same as i.field doesn't have a .loc value here.
             if (!elements)
                 return err();
@@ -1702,13 +1704,15 @@ Params:
     getArgName = function that, given an index into `argNames`, returns the name of argument for error messages
     getArgLoc = function that, given an index into `argNames`, returns a location of argument for error messages
     getNameLoc = function that, given an index into `argNames`, returns a location of that `name` for error messages
+    eSink = where error messages go
 
 Returns: list of expressions ordered to the struct's fields, or `null` on error
 */
 Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* sc,
     Loc iloc, size_t argCount, scope Identifier delegate(size_t i) getArgName, scope Expression delegate(size_t i, Type fieldType) getExp,
     scope Loc delegate(size_t i) getArgLoc,
-    scope Loc delegate(size_t i) getNameLoc
+    scope Loc delegate(size_t i) getNameLoc,
+    ErrorSink eSink
 )
 {
     //expandTuples for non-identity arguments?
@@ -1735,9 +1739,9 @@ Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* 
             {
                 s = sd.search_correct(id);
                 if (s)
-                    error(nameLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toErrMsg(), sd.toErrMsg(), s.kind(), s.toErrMsg());
+                    eSink.error(nameLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toErrMsg(), sd.toErrMsg(), s.kind(), s.toErrMsg());
                 else
-                    error(nameLoc, "`%s` is not a member of `%s`", id.toErrMsg(), sd.toErrMsg());
+                    eSink.error(nameLoc, "`%s` is not a member of `%s`", id.toErrMsg(), sd.toErrMsg());
                 return null;
             }
             s.checkDeprecated(iloc, sc);
@@ -1748,7 +1752,7 @@ Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* 
             {
                 if (fieldi >= nfields)
                 {
-                    error(iloc, "`%s.%s` is not a per-instance initializable field", sd.toErrMsg(), s.toErrMsg());
+                    eSink.error(iloc, "`%s.%s` is not a per-instance initializable field", sd.toErrMsg(), s.toErrMsg());
                     return null;
                 }
                 if (s == sd.fields[fieldi])
@@ -1757,25 +1761,25 @@ Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* 
         }
         if (nfields == 0)
         {
-            error(argLoc, "initializer provided for struct `%s` with no fields", sd.toErrMsg());
+            eSink.error(argLoc, "initializer provided for struct `%s` with no fields", sd.toErrMsg());
             return null;
         }
         if (j >= nfields)
         {
-            error(argLoc, "too many initializers for `%s` with %d field%s", sd.toErrMsg(),
+            eSink.error(argLoc, "too many initializers for `%s` with %d field%s", sd.toErrMsg(),
                 cast(int) nfields, nfields != 1 ? "s".ptr : "".ptr);
             return null;
         }
         if (fieldi >= nfields)
         {
-            error(argLoc, "trying to initialize past the last field `%s` of `%s`", sd.fields[nfields - 1].toErrMsg(), sd.toErrMsg());
+            eSink.error(argLoc, "trying to initialize past the last field `%s` of `%s`", sd.fields[nfields - 1].toErrMsg(), sd.toErrMsg());
             return null;
         }
 
         VarDeclaration vd = sd.fields[fieldi];
         if (elems[fieldi])
         {
-            error(argLoc, "duplicate initializer for field `%s`", vd.toErrMsg());
+            eSink.error(argLoc, "duplicate initializer for field `%s`", vd.toErrMsg());
             errors = true;
             elems[fieldi] = ErrorExp.get(); // for better diagnostics on multiple errors
             ++fieldi;
@@ -1804,12 +1808,12 @@ Expressions* resolveStructLiteralNamedArgs(StructDeclaration sd, Type t, Scope* 
         {
             if (vd.isOverlappedWith(v2) && elems[k])
             {
-                error(elems[k].loc, "overlapping initialization for field `%s` and `%s`", v2.toErrMsg(), vd.toErrMsg());
+                eSink.error(elems[k].loc, "overlapping initialization for field `%s` and `%s`", v2.toErrMsg(), vd.toErrMsg());
                 enum errorMsg = "`struct` initializers that contain anonymous unions" ~
                     " must initialize only the first member of a `union`. All subsequent" ~
                     " non-overlapping fields are default initialized";
                 if (!sd.isUnionDeclaration())
-                    .errorSupplemental(elems[k].loc, errorMsg);
+                    eSink.errorSupplemental(elems[k].loc, errorMsg);
                 errors = true;
                 continue;
             }
