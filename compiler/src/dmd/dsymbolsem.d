@@ -8649,6 +8649,8 @@ extern(C++) class ImportAllVisitor : Visitor
     */
 extern (D) bool load(Import imp, Scope* sc)
 {
+    auto eSink = global.errorSink;
+
     // See if existing module
     const errors = global.errors;
     DsymbolTable dst = Package.resolve(imp.packages, null, &imp.pkg);
@@ -8656,7 +8658,7 @@ extern (D) bool load(Import imp, Scope* sc)
     {
         if (pkg && pkg.isModule())
         {
-            .error(loc, "can only import from a module, not from a member of module `%s`. Did you mean `import %s : %s`?", pkg.toErrMsg(), pkg.toPrettyChars(), id.toErrMsg());
+            eSink.error(loc, "can only import from a module, not from a member of module `%s`. Did you mean `import %s : %s`?", pkg.toErrMsg(), pkg.toPrettyChars(), id.toErrMsg());
             mod = pkg.isModule(); // Error recovery - treat as import of that module
             return true;
         }
@@ -8670,7 +8672,7 @@ extern (D) bool load(Import imp, Scope* sc)
         {
             if (s.isAliasDeclaration())
             {
-                .error(imp.loc, "%s `%s` conflicts with `%s`", s.kind(), s.toPrettyChars(), imp.id.toErrMsg());
+                eSink.error(imp.loc, "%s `%s` conflicts with `%s`", s.kind(), s.toPrettyChars(), imp.id.toErrMsg());
             }
             else if (Package p = s.isPackage())
             {
@@ -8689,7 +8691,7 @@ extern (D) bool load(Import imp, Scope* sc)
                         {
                             // show error if Module.load does not
                             if (preverrors == global.errors)
-                                .error(imp.loc, "%s `%s` from file %s conflicts with %s `%s`", imp.mod.kind(), imp.mod.toPrettyChars(), imp.mod.srcfile.toChars, p.kind(), p.toPrettyChars());
+                                eSink.error(imp.loc, "%s `%s` from file %s conflicts with %s `%s`", imp.mod.kind(), imp.mod.toPrettyChars(), imp.mod.srcfile.toChars, p.kind(), p.toPrettyChars());
                             return true;
                         }
                     }
@@ -8700,16 +8702,16 @@ extern (D) bool load(Import imp, Scope* sc)
                 }
                 if (!imp.mod)
                 {
-                    .error(imp.loc, "can only import from a module, not from package `%s.%s`", p.toPrettyChars(), imp.id.toErrMsg());
+                    eSink.error(imp.loc, "can only import from a module, not from package `%s.%s`", p.toPrettyChars(), imp.id.toErrMsg());
                 }
             }
             else if (imp.pkg)
             {
-                .error(imp.loc, "can only import from a module, not from package `%s.%s`", imp.pkg.toPrettyChars(), imp.id.toErrMsg());
+                eSink.error(imp.loc, "can only import from a module, not from package `%s.%s`", imp.pkg.toPrettyChars(), imp.id.toErrMsg());
             }
             else
             {
-                .error(imp.loc, "can only import from a module, not from package `%s`", imp.id.toErrMsg());
+                eSink.error(imp.loc, "can only import from a module, not from package `%s`", imp.id.toErrMsg());
             }
         }
     }
