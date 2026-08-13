@@ -89,7 +89,6 @@ void scanWasmObjModule(void delegate(const(char)[] name, int pickAny) nothrow pA
             continue;
         }
 
-        size_t nameStart = pos;
         const(char)[] sectionName = readName(pos);
         if (sectionName != "linking")
         {

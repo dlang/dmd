@@ -307,28 +307,30 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
 
         string[] buildCommand;
         string[string] overrideEnv;
+        const toolModel = os == "wasm" ? dmdModel : env["MODEL"];
         if (tool.linksWithTests)
         {
             // This will compile the dshell library thus needs the actual
-            // DMD compiler under test, built for the host model
+            // DMD compiler under test
             buildCommand = [
                 env["DMD"],
                 "-conf=",
-                "-m"~dmdModel,
+                "-m"~toolModel,
                 "-of" ~ targetBin,
                 "-c",
                 sourceFile
-            ] ~ getHostPicFlags();
-            overrideEnv = env.dup;
+            ] ~ getPicFlags(env);
+            foreach (key, value; env)
+                overrideEnv[key] = value;
         }
         else
         {
             buildCommand = [
                 hostDMD,
-                "-m"~dmdModel,
+                "-m"~toolModel,
                 "-of"~targetBin,
                 sourceFile
-            ] ~ getHostPicFlags() ~ tool.extraArgs;
+            ] ~ getPicFlags(env) ~ tool.extraArgs;
         }
 
         writefln("Executing: %-(%s %)", buildCommand);
@@ -659,16 +661,6 @@ string objName(string name)
         return name ~ ".obj";
     else
         return name ~ ".o";
-}
-
-/// Return the pic flags for building host tools, which are native even when
-/// the tests target another OS
-string[] getHostPicFlags()
-{
-    version (Windows)
-        return null;
-    else
-        return environment.get("PIC", "") == "0" ? null : ["-fPIC"];
 }
 
 /// Return the correct pic flags as an array of strings

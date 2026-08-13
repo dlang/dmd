@@ -309,13 +309,13 @@ private type* wasmRtlsymType(RTLSYM i)
     type* tfloat = tstypes[TYfloat];
     type* tdouble = tstypes[TYdouble];
 
-    static type* ptrTo(type* tn) => type_pointer(tn);
-    type* voidPtr()  => ptrTo(tvoid);
-    type* charPtr()  => ptrTo(tstypes[TYchar]);
-    type* str()      => type_dyn_array(tstypes[TYchar]); // immutable(char)[]
-    type* voidArr()  => type_dyn_array(tvoid);           // void[]
+    static type* ptrTo(type* tn) { return type_pointer(tn); }
+    type* voidPtr()  { return ptrTo(tvoid); }
+    type* charPtr()  { return ptrTo(tstypes[TYchar]); }
+    type* str()      { return type_dyn_array(tstypes[TYchar]); } // immutable(char)[]
+    type* voidArr()  { return type_dyn_array(tvoid); }           // void[]
 
-    type* fn(scope type*[] params, type* ret) => type_function(TYnfunc, params, false, ret);
+    type* fn(scope type*[] params, type* ret) { return type_function(TYnfunc, params, false, ret); }
 
     final switch (i)
     {

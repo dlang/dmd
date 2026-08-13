@@ -357,10 +357,21 @@ jobs:
           path: generated/wasm/wasi-sysroot-33.tar.gz
           key: wasi-sysroot-33.0+m
 
+      - name: Check for the Phobos wasm target
+        id: phobos_wasm
+        run: |
+          if make -C ../phobos -n wasm > /dev/null 2>&1; then
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "available=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build WASM druntime and phobos
+        if: steps.phobos_wasm.outputs.available == 'true'
         run: make -j$N -C ../phobos wasm
 
       - name: Test WASM cross-compile and run via wasmtime
+        if: steps.phobos_wasm.outputs.available == 'true'
         run: |
           source ~/dlang/*/activate
           compiler/test/run.d wasm

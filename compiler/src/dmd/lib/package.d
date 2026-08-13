@@ -36,7 +36,7 @@ enum AR_FILE_SIZE_SIZE   = 10;
 enum AR_TRAILER_SIZE     =  2;
 
 /// Standard ar member header, 60 bytes (GNU/SVR4 format).
-package(dmd.lib) struct ArHeader
+package struct ArHeader
 {
     char[AR_OBJECT_NAME_SIZE] object_name;
     char[AR_FILE_TIME_SIZE]   file_time;
@@ -62,7 +62,7 @@ static assert(ArHeader.sizeof == 60);
  *  file_mode   = Unix mode bits (octal format in header)
  *  file_size   = payload size in bytes
  */
-package(dmd.lib)
+package
 void arFillHeader(ref ArHeader h, const(char)* name, int name_offset,
     long file_time, uint user_id, uint group_id, uint file_mode, uint file_size) nothrow
 {
@@ -94,7 +94,7 @@ void arFillHeader(ref ArHeader h, const(char)* name, int name_offset,
 }
 
 /// One object member of an ar archive, shared by the ELF and WASM libraries.
-package(dmd.lib) struct ArObjModule
+package struct ArObjModule
 {
     ubyte* base;        // module bytes held in memory
     uint length;        // byte length of the module
@@ -109,7 +109,7 @@ package(dmd.lib) struct ArObjModule
 }
 
 /// One dictionary symbol pointing back at the module that defines it.
-package(dmd.lib) struct ArObjSymbol
+package struct ArObjSymbol
 {
     const(char)[] name;
     ArObjModule* om;
@@ -129,7 +129,7 @@ package(dmd.lib) struct ArObjSymbol
  *  eSink      = sink for the multiple-definition error
  *  pickAny    = if nonzero, silently keep the first definition of a duplicate
  */
-package(dmd.lib)
+package
 void arAddSymbol(ref StringTable!(ArObjSymbol*) tab, ref Array!(ArObjSymbol*) objsymbols,
     ArObjModule* om, const(char)[] name, ErrorSink eSink, int pickAny = 0) nothrow
 {
@@ -167,7 +167,7 @@ void arAddSymbol(ref StringTable!(ArObjSymbol*) tab, ref Array!(ArObjSymbol*) ob
  *  objmodules  = members to write; `offset`/`name_offset` are assigned here
  *  objsymbols  = dictionary entries already collected from the members
  */
-package(dmd.lib)
+package
 void writeArLibToBuffer(ref OutBuffer libbuf,
     ref Array!(ArObjModule*) objmodules, ref Array!(ArObjSymbol*) objsymbols) nothrow
 {
@@ -273,7 +273,7 @@ void writeArLibToBuffer(ref OutBuffer libbuf,
  *  eSink      = sink for multiple-definition errors
  *  filename   = archive filename for error messages
  */
-package(dmd.lib)
+package
 void scanAndWriteArLib(alias scan)(ref OutBuffer libbuf,
     ref Array!(ArObjModule*) objmodules, ref Array!(ArObjSymbol*) objsymbols,
     ref StringTable!(ArObjSymbol*) tab, ErrorSink eSink, const(char)[] filename) nothrow

@@ -674,6 +674,12 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     }
     replaceResultsDir(testArgs.requiredArgs, envData);
 
+    if (envData.required_args.canFind("-mscrtlib=") && testArgs.requiredArgs.canFind("-os=") && !testArgs.requiredArgs.canFind("-os=windows"))
+        testArgs.requiredArgs = testArgs.requiredArgs
+            .split(" ")
+            .filter!(a => !a.startsWith("-mscrtlib="))
+            .join(" ");
+
     if (! findTestParameter(envData, file, "PERMUTE_ARGS", testArgs.permuteArgs))
     {
         if (testArgs.mode == TestMode.RUN)
