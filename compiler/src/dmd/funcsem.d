@@ -33,6 +33,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.escape;
 import dmd.expression;
 import dmd.func;
@@ -2261,7 +2262,7 @@ private void checkNamedArgErrorAndReportOverload(Dsymbol od, ArgumentList argume
         OutBuffer buf;
         auto resolvedArgs = tf.type.isTypeFunction().resolveNamedArgs(argumentList, &buf);
         if (!resolvedArgs && buf.length)
-            .errorSupplemental(loc, "%s", buf.peekChars());
+            global.errorSink.errorSupplemental(loc, "%s", buf.peekChars());
     }
 }
 
@@ -2689,7 +2690,7 @@ FuncDeclaration overloadModMatch(FuncDeclaration thisfd, Loc loc, Type tthis, re
             OutBuffer thisBuf, funcBuf;
             MODMatchToBuffer(&thisBuf, tthis.mod, tf.mod);
             MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
-            .error(loc, "%smethod %s is not callable using a %sobject", thisfd.kind, thisfd.toPrettyChars,
+            global.errorSink.error(loc, "%smethod %s is not callable using a %sobject", thisfd.kind, thisfd.toPrettyChars,
                 funcBuf.peekChars(), thisfd.toPrettyChars(), thisBuf.peekChars());
         }
     }
@@ -4124,6 +4125,7 @@ private void checkPrintfScanfSignature(FuncDeclaration funcdecl, TypeFunction f,
 extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Scope* sc = null)
 {
     Dsymbols visited;
+    ErrorSink eSink = global.errorSink;
 
     int overloadApplyRecurse(Dsymbol fstart, scope int delegate(Dsymbol) dg, Scope* sc)
     {
@@ -4170,7 +4172,7 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Sco
                 }
                 else
                 {
-                    .error(d.loc, "%s `%s` is aliased to a function", d.kind, d.toPrettyChars);
+                    eSink.error(d.loc, "%s `%s` is aliased to a function", d.kind, d.toPrettyChars);
                     break;
                 }
                 next = fa.overnext;
@@ -4216,7 +4218,7 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Sco
             }
             else
             {
-                .error(d.loc, "%s `%s` is aliased to a function", d.kind, d.toPrettyChars);
+                eSink.error(d.loc, "%s `%s` is aliased to a function", d.kind, d.toPrettyChars);
                 break;
                 // BUG: should print error message?
             }
