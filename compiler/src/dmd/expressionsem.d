@@ -15278,16 +15278,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (eNext && !eNext.toBasetype().isTypeStruct())
                     e.type = e.type.unqualify(MODFlags.const_);
 
-		auto ale = e.isArrayLiteralExp();
+                auto ale = e.isArrayLiteralExp();
                 if (!ale)
                     return;
 
-		foreach (i; 0 .. ale.length)
-		{
-		    Expression ex = ale[i];
-		    if (ex)
-			unqualifyExp(ex);
-		}
+                foreach (i; 0 .. ale.length)
+                {
+                    Expression ex = ale[i];
+                    if (ex)
+                        unqualifyExp(ex);
+                }
             }
             unqualifyExp(e1c);
             unqualifyExp(e2c);

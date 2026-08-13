@@ -52,25 +52,23 @@ import dmd.typesem;
  *  Params:
  *     ai = array initializer to be converted
  *     itype = if not `null`, the AA type to coerce the initializer to
+ *     eSink = error message sink
  *
  *  Returns:
  *     The converted associative array initializer or ErrorExp if `ai`
  *     is not an associative array initializer.
  */
-Expression toAssocArrayLiteral(ArrayInitializer ai, Type itype)
+Expression toAssocArrayLiteral(ArrayInitializer ai, Type itype, ErrorSink eSink)
 {
     //printf("ArrayInitializer::toAssocArrayInitializer(%s)\n", ai.toChars());
     //static int i; if (++i == 2) assert(0);
 
-    auto no(const char* format, Initializer i)
-    {
-        error(i.loc, format, toChars(i));
-        return ErrorExp.get();
-    }
-
     const dim = ai.value.length;
     if (!dim)
-        return no("invalid associative array initializer `%s`, use `null` instead", ai);
+    {
+        eSink.error(ai.loc, "invalid associative array initializer `%s`, use `null` instead", toChars(ai));
+        return ErrorExp.get();
+    }
 
     auto vtype  = itype ? itype.nextOf() : null;
     auto keys   = new Expressions(dim);
@@ -80,12 +78,18 @@ Expression toAssocArrayLiteral(ArrayInitializer ai, Type itype)
         assert(iz);
         auto ev = iz.initializerToExpression(vtype);
         if (!ev)
-            return no("invalid value `%s` in initializer", iz);
+        {
+            eSink.error(iz.loc, "invalid value `%s` in initializer", toChars(iz));
+            return ErrorExp.get();
+        }
         (*values)[i] = ev;
 
         auto ei = ai.index[i];
         if (!ei)
-            return no("missing key for value `%s` in initializer", iz);
+        {
+            eSink.error(iz.loc, "missing key for value `%s` in initializer", toChars(iz));
+            return ErrorExp.get();
+        }
         (*keys)[i] = ei;
     }
     return new AssocArrayLiteralExp(ai.loc, keys, values);
@@ -228,7 +232,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 Expression e;
                 // note: MyStruct foo = [1:2, 3:4] is correct code if MyStruct has a this(int[int])
                 if (t.ty == Taarray || i.isAssociativeArray())
-                    e = i.toAssocArrayLiteral(t);
+                    e = i.toAssocArrayLiteral(t, global.errorSink);
                 else
                     e = i.initializerToExpression();
                 // Bugzilla 13987
@@ -1437,7 +1441,7 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
         if (!itype || itype.toBasetype().isTypeAArray())
             if (!init.type || init.type.isTypeAArray())
                 if (init.isAssociativeArray())
-                    return init.toAssocArrayLiteral(itype);
+                    return init.toAssocArrayLiteral(itype, global.errorSink);
 
         uint edim;      // the length of the resulting array literal
         const(uint) amax = 0x80000000;

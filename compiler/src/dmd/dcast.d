@@ -3248,7 +3248,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
 /****************************************
  * If t, set type of e to t skipping past array, function type or conditional type.
  * Params:
- *	e = expression to set type to
+ *      e = expression to set type to
  *      t = type to infer from
  */
 Expression inferExpType(Expression e, Type t)
