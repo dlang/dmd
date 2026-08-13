@@ -434,8 +434,6 @@ public WasmFuncType buildFuncType(type* t, Symbol* sfunc, uint hiddenLeadingPtrs
     if (dstyleVariadic(t))
         ft.params ~= WASM_I32;
 
-    const tym_t fty = tybasic(t.Tty);
-
     foreach (param_t p; t.Tparamtypes ? *t.Tparamtypes : null)
     {
         if (!p.Ptype || !typeHasValue(p.Ptype.Tty))
@@ -825,7 +823,7 @@ private bool emitLinkingSection(ref OutBuffer out_, ref WasmModule wmod)
         initFuncs.writeuLEB128(cast(uint) initFuncSyms.length);
         foreach (symIdx; initFuncSyms)
         {
-            initFuncs.writeuLEB128(65535); // priority, as clang emits for a plain constructor
+            initFuncs.writeuLEB128(65_535); // priority, as clang emits for a plain constructor
             initFuncs.writeuLEB128(symIdx);
         }
 

@@ -15,6 +15,8 @@
  */
 module rt.wasm.eh;
 
+version (WebAssembly):
+
 import core.wasm : throwException;
 import core.internal.cast_ : areClassInfosEqual;
 

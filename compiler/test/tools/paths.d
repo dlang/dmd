@@ -35,8 +35,8 @@ else
 /// Target OS, e.g. `OS=wasm ./run.d runnable`
 string os()
 {
-    static string cached;
-    return cached ? cached : (cached = environment.get("OS", hostOs));
+    const env = environment.get("OS", hostOs);
+    return env == "wasm" ? env : hostOs;
 }
 
 enum projectRootDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath("..", "..", "..");
