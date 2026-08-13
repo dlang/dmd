@@ -4308,7 +4308,7 @@ extern (D) bool checkNestedReference(VarDeclaration vd, Scope* sc, Loc loc)
     // https://issues.dlang.org/show_bug.cgi?id=3326
     if (vd.ident == Id.dollar)
     {
-        .error(loc, "cannnot use `$` inside a function literal");
+        sc.eSink.error(loc, "cannnot use `$` inside a function literal");
         return true;
     }
     if (vd.ident == Id.withSym) // https://issues.dlang.org/show_bug.cgi?id=1759
