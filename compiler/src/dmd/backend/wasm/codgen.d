@@ -223,9 +223,9 @@ struct RelocOp
     }
 }
 
-RelocOp callReloc(uint fidx, Symbol* sym) => RelocOp(R_WASM.FUNCTION_INDEX_LEB, fidx, sym);
-RelocOp tableIndexReloc(uint fidx, Symbol* sym) => RelocOp(R_WASM.TABLE_INDEX_SLEB, fidx, sym);
-RelocOp dataAddrReloc(uint addr, uint addend, Symbol* sym) => RelocOp(R_WASM.MEMORY_ADDR_LEB, addr, sym, addend);
+RelocOp callReloc(uint fidx, Symbol* sym) { return RelocOp(R_WASM.FUNCTION_INDEX_LEB, fidx, sym); }
+RelocOp tableIndexReloc(uint fidx, Symbol* sym) { return RelocOp(R_WASM.TABLE_INDEX_SLEB, fidx, sym); }
+RelocOp dataAddrReloc(uint addr, uint addend, Symbol* sym) { return RelocOp(R_WASM.MEMORY_ADDR_LEB, addr, sym, addend); }
 
 /// Per-function code-generation state
 struct WasmCG
@@ -291,11 +291,11 @@ nothrow:
 
     /// Returns: function type index for `x`
     /// (Routes module-level state through WasmCG so the global can eventually go away.)
-    auto internType(WasmFuncType x) => wmod_internType(x);
+    auto internType(WasmFuncType x) { return wmod_internType(x); }
 
     /// Record that this module references the exception tag (forwards to obj so
     /// the tag section/import is emitted). Routed through WasmCG for the seam.
-    void noteTagUse() => wmod_noteTagUse();
+    void noteTagUse() { wmod_noteTagUse(); }
 
     /// Allocate an anonymous temp local of the given WASM type
     ///

@@ -44,12 +44,12 @@ private string enumToWat(string m)
 private string[256] buildSubNames(E)()
 {
     string[256] names;
-    static foreach (m; __traits(allMembers, E))
-    {{
+    foreach (m; __traits(allMembers, E))
+    {
         enum uint v = __traits(getMember, E, m);
         static if (v < 256)
             names[v] = enumToWat(m);
-    }}
+    }
     return names;
 }
 
@@ -85,16 +85,16 @@ private struct Reader
 
 nothrow:
 
-    bool empty() const => pos >= code.length;
+    bool empty() const { return pos >= code.length; }
 
     ubyte pop()
     {
         return pos < code.length ? code[pos++] : 0;
     }
 
-    ulong uleb() => readuLEB128(code, pos);
+    ulong uleb() { return readuLEB128(code, pos); }
 
-    long sleb() => readsLEB128(code, pos);
+    long sleb() { return readsLEB128(code, pos); }
 
     const(WasmReloc)* relocHere()
     {

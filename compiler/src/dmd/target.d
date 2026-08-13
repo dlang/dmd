@@ -397,15 +397,15 @@ extern (C++) struct Target
     bool isWasm;            // generate WebAssembly code
     bool isLP64;            // pointers are 64 bits
 
+    enum Arch : ubyte { aarch64, x86, x86_64, wasm32, wasm64 }
+
     /// Set the target architecture, clearing the other arch flags.
-    /// Pass exactly one `true` argument.
-    extern (D) void setArch(bool aarch64 = false, bool x86 = false,
-                            bool x86_64 = false, bool wasm = false) @safe
+    extern (D) void setArch(Arch arch) @safe
     {
-        isAArch64 = aarch64;
-        isX86     = x86;
-        isX86_64  = x86_64;
-        isWasm    = wasm;
+        isAArch64 = arch == Arch.aarch64;
+        isX86     = arch == Arch.x86;
+        isX86_64  = arch == Arch.x86_64 || arch == Arch.wasm64;
+        isWasm    = arch == Arch.wasm32 || arch == Arch.wasm64;
     }
 
     // Environmental

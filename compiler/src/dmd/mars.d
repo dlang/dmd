@@ -1003,21 +1003,21 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             continue; // skip druntime options, e.g. used to configure the GC
         }
         else if (arg == "-marm64") // https://dlang.org/dmd.html#switch-marm64
-            target.setArch(aarch64: true);
+            target.setArch(Target.Arch.aarch64);
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
-            target.setArch(x86: true);
+            target.setArch(Target.Arch.x86);
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
-            target.setArch(x86_64: true);
+            target.setArch(Target.Arch.x86_64);
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
-            target.setArch(x86: true);
+            target.setArch(Target.Arch.x86);
         else if (arg == "-mwasm32")
         {
-            target.setArch(wasm: true);
+            target.setArch(Target.Arch.wasm32);
             target.os = Target.OS.WASM;
         }
         else if (arg == "-mwasm64")
         {
-            target.setArch(wasm: true, x86_64: true);
+            target.setArch(Target.Arch.wasm64);
             target.os = Target.OS.WASM;
         }
         else if (startsWith(p + 1, "mscrtlib="))
