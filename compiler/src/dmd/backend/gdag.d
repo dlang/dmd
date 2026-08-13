@@ -176,7 +176,8 @@ private void aewalk(ref GlobalOptimizer go, ref elem* pn, vec_t ae)
                 else if (n != e &&
                     el_match(n,e) &&
                     e.Ecount < 0xFF-1 &&   // must fit in unsigned char
-                    cse_float(n)
+                    cse_float(n) &&
+                    cse_cent(n)
                     )
                 {
                     pn = e;                // replace n with e
@@ -953,4 +954,20 @@ private bool cse_float(const elem* e)
     return !(tyfloating(e.Ety) && config.inline8087 &&
              e.Eoper != OPvar && e.Eoper != OPconst) ||
            (tyxmmreg(e.Ety) && config.fpxmmregs);
+}
+
+/*************************************
+ * Determine if 128-bit integers should be cse'd.
+ * Params:
+ *      e = elem to be tested
+ * Returns:
+ *      true if should be cse'd
+ */
+
+@trusted
+private bool cse_cent(const elem* e)
+{
+    // Don't CSE 128-bit values on 32-bit x86: they cannot be held in
+    // registers, so the register-based CSE reload has no target registers.
+    return !(I32 && (tybasic(e.Ety) == TYcent || tybasic(e.Ety) == TYucent));
 }

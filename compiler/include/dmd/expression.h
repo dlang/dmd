@@ -19,6 +19,7 @@
 #include "root/complex_t.h"
 #include "root/dcompat.h"
 #include "root/optional.h"
+#include "common/int128.h"
 
 class Type;
 class TypeVector;
@@ -117,6 +118,7 @@ public:
     }
 
     IntegerExp* isIntegerExp();
+    BigIntegerExp* isBigIntegerExp();
     ErrorExp* isErrorExp();
     VoidInitExp* isVoidInitExp();
     RealExp* isRealExp();
@@ -237,6 +239,16 @@ public:
     dinteger_t getInteger() { return value; }
     template<int v>
     static IntegerExp literal();
+};
+
+class BigIntegerExp final : public Expression
+{
+public:
+    Cent value;
+
+    static BigIntegerExp *create(Loc loc, Cent value, Type *type);
+    void accept(Visitor *v) override { v->visit(this); }
+    BigIntegerExp *syntaxCopy() override { return this; }
 };
 
 class ErrorExp final : public Expression

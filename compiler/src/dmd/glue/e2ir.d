@@ -67,6 +67,7 @@ import dmd.typesem;
 import dmd.visitor;
 
 import dmd.backend.cc;
+import dmd.common.int128 : Cent;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
@@ -1097,7 +1098,28 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitInteger(IntegerExp ie)
     {
-        elem* e = el_long(totym(ie.type), ie.getInteger());
+        elem* e;
+        const ty = ie.type.toBasetype().ty;
+        if (ty == Tint128 || ty == Tuns128)
+        {
+            // 64-bit value widened to 128 bits (e.g. cent.init, cent = 0)
+            Cent c;
+            c.lo = ie.value;
+            c.hi = (ie.type.toBasetype().isUnsigned() || !(ie.value >> 63)) ? 0 : -1L;
+            e = el_cent(totym(ie.type), c);
+        }
+        else
+            e = el_long(totym(ie.type), ie.getInteger());
+        elem_setLoc(e,ie.loc);
+        return e;
+    }
+
+    /***************************************
+     */
+
+    elem* visitBigInteger(BigIntegerExp ie)
+    {
+        elem* e = el_cent(totym(ie.type), ie.value);
         elem_setLoc(e,ie.loc);
         return e;
     }
@@ -1562,6 +1584,56 @@ elem* toElem(Expression e, ref IRState irs)
         return e;
     }
 
+    /***************************************
+     * Emit a call to a core.int128 function with one or two Cent arguments.
+     * On SysV x86-64 the 16-byte values go in register pairs; on Win64
+     * they are passed by pointer and the result is returned via a
+     * hidden sret pointer (as druntime's `Cent` struct requires).
+     * On 32-bit x86 the arguments are pushed by value on the stack and the
+     * result is returned through a hidden pointer passed in EAX (the D ABI);
+     * the call is lowered like a struct-returning call there.
+     */
+    elem* el_callCentLib(RTLSYM rtlsym, tym_t tym, elem* el, elem* er)
+    {
+        if (target.os & Target.OS.Windows && target.isX86_64)
+        {
+            Symbol* sret = symbol_genauto(type_fake(tybasic(tym)));
+            Symbol* sa = symbol_genauto(type_fake(tybasic(el.Ety)));
+            Symbol* sb = symbol_genauto(type_fake(tybasic(er.Ety)));
+            // &(tmp = value, tmp)
+            elem* addrOfTmp(Symbol* stmp, elem* value)
+            {
+                elem* eeq = el_bin(OPeq, value.Ety, el_var(stmp), value);
+                return el_una(OPaddr, TYnptr, el_bin(OPcomma, value.Ety, eeq, el_var(stmp)));
+            }
+            // On Win64 arguments are evaluated/assigned right-to-left, so the
+            // first argument (the sret pointer) goes rightmost in the chain.
+            elem* eargs = el_param(
+                el_param(
+                    addrOfTmp(sa, el),
+                    addrOfTmp(sb, er)),
+                el_una(OPaddr, TYnptr, el_var(sret)));
+            elem* ecall = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtlsym)), eargs);
+            // *(comma(call, &sret))
+            return el_una(OPind, tym, el_combine(ecall, el_una(OPaddr, TYnptr, el_var(sret))));
+        }
+        if (!target.isX86_64 && (tybasic(tym) == TYcent || tybasic(tym) == TYucent))
+        {
+            /* 32-bit x86 has no 128-bit registers. Mirror the lowering used
+             * for struct-returning calls: the hidden return pointer goes last
+             * (so the backend hands it EAX), the call is typed TYnptr and the
+             * returned pointer is dereferenced to yield the 16-byte value.
+             */
+            Symbol* stmp = symbol_genauto(type_fake(tybasic(tym)));
+            elem* eargs = er ? el_param(el, er) : el;
+            eargs = el_param(eargs, el_una(OPaddr, TYnptr, el_var(stmp)));
+            elem* ecall = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtlsym)), eargs);
+            elem* e = el_combine(ecall, el_una(OPaddr, TYnptr, el_var(stmp)));
+            return el_una(OPind, tym, e);
+        }
+        return el_bin(OPcall, tym, el_var(getRtlsym(rtlsym)), er ? el_param(el, er) : el_param(el, el_long(TYbool, 0)));
+    }
+
     //////////////////////////// Unary ///////////////////////////////
 
     /***************************************
@@ -1589,6 +1661,14 @@ elem* toElem(Expression e, ref IRState irs)
             }
 
             default:
+                if (!target.isX86_64 &&
+                    (tb1.ty == Tint128 || tb1.ty == Tuns128))
+                {
+                    // 32-bit x86: use core.int128.neg
+                    elem* e2 = el_callCentLib(RTLSYM.CENTNEG, totym(ne.type), e, null);
+                    elem_setLoc(e2, ne.loc);
+                    return e2;
+                }
                 e = el_una(OPneg, totym(ne.type), e);
                 break;
         }
@@ -1628,6 +1708,14 @@ elem* toElem(Expression e, ref IRState irs)
             }
 
             default:
+                if (!target.isX86_64 &&
+                    (tb1.ty == Tint128 || tb1.ty == Tuns128))
+                {
+                    // 32-bit x86: use core.int128.com
+                    elem* e2 = el_callCentLib(RTLSYM.CENTCOM, ty, e1, null);
+                    elem_setLoc(e2, ce.loc);
+                    return e2;
+                }
                 e = el_una(OPcom,ty,e1);
                 break;
         }
@@ -1794,9 +1882,94 @@ elem* toElem(Expression e, ref IRState irs)
         return el_bin(OPcall, TYnoreturn, sym, e);
     }
 
+    /***************************************
+     * Lower a 128-bit binary operation on 32-bit x86 to a core.int128 call.
+     * Returns null if `op` has no core.int128 equivalent.
+     */
+    elem* toElemCentLib(BinExp be, int op, elem* el, elem* er)
+    {
+        const isUns = be.e1.type.toBasetype().isUnsigned() || be.e2.type.toBasetype().isUnsigned();
+        tym_t tym = totym(be.type);
+
+        RTLSYM rtlsym;
+        switch (op)
+        {
+            case OPadd:   rtlsym = RTLSYM.CENTADD;   break;
+            case OPmin:   rtlsym = RTLSYM.CENTSUB;   break;
+            case OPmul:   rtlsym = RTLSYM.CENTMUL;   break;
+            case OPand:   rtlsym = RTLSYM.CENTAND;   break;
+            case OPor:    rtlsym = RTLSYM.CENTOR;    break;
+            case OPxor:   rtlsym = RTLSYM.CENTXOR;   break;
+            case OPshl:   rtlsym = RTLSYM.CENTSHL;   break;
+            case OPshr:   rtlsym = RTLSYM.CENTUSHR;  break;
+            case OPashr:  rtlsym = RTLSYM.CENTSAR;   break;
+            case OPlt:    rtlsym = isUns ? RTLSYM.CENTULT : RTLSYM.CENTLT; break;
+            case OPle:    rtlsym = isUns ? RTLSYM.CENTULE : RTLSYM.CENTLE; break;
+            case OPgt:    rtlsym = isUns ? RTLSYM.CENTUGT : RTLSYM.CENTGT; break;
+            case OPge:    rtlsym = isUns ? RTLSYM.CENTUGE : RTLSYM.CENTGE; break;
+            case OPeqeq:
+            case OPne:
+            {
+                // a == b  <=>  !(a < b) && !(b < a)
+                // a != b  <=>  (a < b) || (b < a)
+                RTLSYM lt1 = isUns ? RTLSYM.CENTULT : RTLSYM.CENTLT;
+                if (!target.isX86_64)
+                {
+                    // On 32-bit x86 each operand is used twice, so materialize
+                    // them once into 16-byte temps to avoid shared-elem CSEs.
+                    Symbol* sa = symbol_genauto(type_fake(tybasic(el.Ety)));
+                    Symbol* sb = symbol_genauto(type_fake(tybasic(er.Ety)));
+                    elem* eel = el_bin(OPeq, el.Ety, el_var(sa), el);
+                    elem* eer = el_bin(OPeq, er.Ety, el_var(sb), er);
+                    elem* eva = el_una(OPind, el.Ety, el_una(OPaddr, TYnptr, el_var(sa)));
+                    elem* evb = el_una(OPind, er.Ety, el_una(OPaddr, TYnptr, el_var(sb)));
+                    elem* c1 = el_callCentLib(lt1, TYbool, el_copytree(eva), el_copytree(evb));
+                    elem* c2 = el_callCentLib(lt1, TYbool, el_copytree(evb), el_copytree(eva));
+                    elem* econd = (op == OPeqeq)
+                        ? el_una(OPnot, TYbool, el_bin(OPor, TYbool, c1, c2))
+                        : el_bin(OPor, TYbool, c1, c2);
+                    return el_combine(eel, el_combine(eer, econd));
+                }
+                elem* c1 = el_callCentLib(lt1, TYbool, el_same(el), el_same(er));
+                elem* c2 = el_callCentLib(lt1, TYbool, el_same(er), el_same(el));
+                if (op == OPeqeq)
+                    return el_una(OPnot, TYbool, el_bin(OPor, TYbool, c1, c2));
+                else
+                    return el_bin(OPor, TYbool, c1, c2);
+            }
+            default:      return null;
+        }
+        return el_callCentLib(rtlsym, tym, el, er);
+    }
+
     elem* visitPost(PostExp pe)
     {
-        //printf("PostExp.toElem() '%s'\n", pe.toChars());
+        const t128 = pe.e1.type.toBasetype().ty == Tint128 || pe.e1.type.toBasetype().ty == Tuns128;
+        if (!target.isX86_64 && t128)
+        {
+            // 32-bit x86: lower x++ to (tmp = x, x = x OP 1, tmp), with all
+            // 128-bit values kept in memory.
+            elem* e = toElem(pe.e1, irs);
+            elem* einc = toElem(pe.e2, irs);
+            const tym = totym(pe.type);
+            elem* eaddr = addressElem(e, pe.e1.type.pointerTo());
+            Symbol* stmp = symbol_genauto(type_fake(TYcent));
+            elem* pa = el_una(OPaddr, TYnptr, el_var(stmp));
+            // tmp = x
+            elem* ecopy = el_bin(OPeq, tym,
+                el_una(OPind, tym, el_copytree(pa)),
+                el_una(OPind, tym, el_copytree(eaddr)));
+            // x = x OP 1
+            elem* eload = el_una(OPind, tym, el_copytree(eaddr));
+            elem* ecall = toElemCentLib(pe, pe.op == EXP.plusPlus ? OPadd : OPmin, eload, einc);
+            elem* estore = el_bin(OPeq, tym,
+                el_una(OPind, tym, el_copytree(eaddr)), ecall);
+            // tmp (the pre-increment value)
+            elem* eres = el_una(OPind, tym, el_copytree(pa));
+            elem* e2 = el_combine(ecopy, el_combine(estore, eres));
+            elem_setLoc(e2, pe.loc);
+            return e2;
+        }
         elem* e = toElem(pe.e1, irs);
         elem* einc = toElem(pe.e2, irs);
         e = el_bin((pe.op == EXP.plusPlus) ? OPpostinc : OPpostdec,
@@ -1805,10 +1978,67 @@ elem* toElem(Expression e, ref IRState irs)
         return e;
     }
 
-    //////////////////////////// Binary ///////////////////////////////
-
-    /********************************************
+    /***************************************
+     * 128-bit integer division/modulo.
+     * Prefer the hardware 128/64 DIV instruction when the divisor fits
+     * in 64 bits; otherwise call core.int128 (div/udiv/rem/urem).
      */
+    elem* toElemCentDivMod(BinExp be, int op, elem* el, elem* er)
+    {
+        assert(op == OPdiv || op == OPmod);
+        assert(el && er);
+
+        const isUns = be.type.toBasetype().isUnsigned();
+        tym_t tym = totym(be.type);
+
+        // Hardware path: 128-bit dividend / 64-bit divisor on x86-64.
+        // The hardware 128/64 DIV faults when the quotient does not fit in
+        // 64 bits (dividend.hi >= divisor), so use it only when the
+        // dividend's high word is provably zero, i.e. when the dividend is
+        // a widened 64-bit value.
+        if (target.isX86_64 &&
+            (el.Eoper == OPu64_128 || el.Eoper == OPs64_128))
+        {
+            elem* div64 = null;
+            if (er.Eoper == OPconst &&
+                (tybasic(er.Ety) == TYcent || tybasic(er.Ety) == TYucent) &&
+                (er.Vcent.hi == 0 || (er.Vcent.hi == -1L && (er.Vcent.lo >> 63))))
+            {
+                div64 = el_long(isUns ? TYullong : TYllong, cast(targ_llong)er.Vcent.lo);
+            }
+            else if (er.Eoper == OPs64_128 || er.Eoper == OPu64_128)
+            {
+                div64 = er.E1;
+                er.E1 = null;
+            }
+            if (div64)
+            {
+                // Hardware 128/64 division: OPremquo yields the quotient in RAX
+                // and the remainder in RDX. Extract and widen to 128 bits.
+                elem* erq = el_bin(OPremquo, tym, el, div64);
+                elem* e64;
+                if (op == OPmod)
+                    e64 = el_una(OPmsw, isUns ? TYullong : TYllong, erq);   // remainder
+                else
+                    e64 = el_una(OP128_64, isUns ? TYullong : TYllong, erq); // quotient
+                elem* e = el_una(isUns ? OPu64_128 : OPs64_128, tym, e64);
+                elem_setLoc(e, be.loc);
+                el_free(er);
+                return e;
+            }
+        }
+
+        // Software path: call core.int128.{div,udiv,rem,urem}
+        RTLSYM rtlsym;
+        switch (op)
+        {
+            case OPdiv: rtlsym = isUns ? RTLSYM.CENTUDIV : RTLSYM.CENTDIV; break;
+            case OPmod: rtlsym = isUns ? RTLSYM.CENTUREM : RTLSYM.CENTREM; break;
+            default: assert(0);
+        }
+        return el_callCentLib(rtlsym, tym, el, er);
+    }
+
     elem* toElemBin(BinExp be, int op)
     {
         //printf("toElemBin() '%s'\n", be.toChars());
@@ -1824,6 +2054,21 @@ elem* toElem(Expression e, ref IRState irs)
 
         elem* el = toElem(be.e1, irs);
         elem* er = toElem(be.e2, irs);
+
+        // On 32-bit x86 there is no 128-bit hardware; use core.int128
+        if (op != OPeq && !target.isX86_64 &&
+            (tb1.ty == Tint128 || tb1.ty == Tuns128 ||
+             tb2.ty == Tint128 || tb2.ty == Tuns128 ||
+             be.type.toBasetype().ty == Tint128 || be.type.toBasetype().ty == Tuns128))
+        {
+            if (op == OPdiv || op == OPmod)
+                return toElemCentDivMod(be, op, el, er);
+            if (elem* ecall = toElemCentLib(be, op, el, er))
+            {
+                elem_setLoc(ecall, be.loc);
+                return ecall;
+            }
+        }
 
         elem* e = el_bin(op,tym,el,er);
 
@@ -1896,7 +2141,25 @@ elem* toElem(Expression e, ref IRState irs)
         elem* er = toElem(be.e2, irs);
 
         elem* e;
-        if (op == OPmodass &&
+        if ((op == OPdivass || op == OPmodass) &&
+            (be.type.toBasetype().ty == Tint128 || be.type.toBasetype().ty == Tuns128))
+        {
+            /* The backend can't do 128-bit in-place div/mod; lower to
+             *   *(addr) = *(addr) / er , *(addr)
+             * using fresh copies of the lvalue address (the shared el/ev
+             * would trip the optimizer's Ecount == 0 assertion).
+             */
+            elem* eaddr = addressElem(toElem(be.e1, irs), be.e1.type.pointerTo());
+            elem* eload = el_una(OPind, tym, el_copytree(eaddr));
+            elem* estore = el_una(OPind, tym, el_copytree(eaddr));
+            elem* eres = el_una(OPind, tym, el_copytree(eaddr));
+            int nop = (op == OPdivass) ? OPdiv : OPmod;
+            elem* ediv = toElemCentDivMod(be, nop, eload, er);
+            e = el_bin(OPeq, tym, estore, ediv);
+            e = el_combine(e, eres);
+            // el/ev are intentionally leaked (they may alias the fresh elems)
+        }
+        else if (op == OPmodass &&
             target.isAArch64 &&                 // x87 has FPREM instruction, others use fmod()
             isFloating(be.type))
         {
@@ -1912,6 +2175,42 @@ elem* toElem(Expression e, ref IRState irs)
             }
 
             e = el_bin(OPcall,tym,el_var(getRtlsym(rtlsym)),el_param(el, er));
+        }
+        else if (!target.isX86_64 &&
+            (be.type.toBasetype().ty == Tint128 || be.type.toBasetype().ty == Tuns128))
+        {
+            /* 32-bit x86 has no 128-bit registers: 16-byte values must stay
+             * in memory. Use fresh copies of the lvalue address (the shared
+             * el/ev would create a 16-byte CSE the backend cannot handle).
+             * Compound assignment becomes a load-call-store via core.int128.
+             */
+            elem* eaddr = addressElem(toElem(be.e1, irs), be.e1.type.pointerTo());
+            elem* eload = el_una(OPind, tym, el_copytree(eaddr));
+            elem* estore = el_una(OPind, tym, el_copytree(eaddr));
+            elem* eres = el_una(OPind, tym, el_copytree(eaddr));
+            if (op == OPeq)
+                e = el_bin(OPeq, tym, estore, er);
+            else
+            {
+                int nop;
+                final switch (op)
+                {
+                    case OPaddass:  nop = OPadd;   break;
+                    case OPminass:  nop = OPmin;   break;
+                    case OPmulass:  nop = OPmul;   break;
+                    case OPandass:  nop = OPand;   break;
+                    case OPorass:   nop = OPor;    break;
+                    case OPxorass:  nop = OPxor;   break;
+                    case OPshlass:  nop = OPshl;   break;
+                    case OPshrass:  nop = OPshr;   break;
+                    case OPashrass: nop = OPashr;  break;
+                }
+                elem* ecall = toElemCentLib(be, nop, eload, er);
+                assert(ecall);
+                e = el_bin(OPeq, tym, estore, ecall);
+            }
+            e = el_combine(e, eres);
+            // el/ev are intentionally leaked (they may alias the fresh elems)
         }
         else
         {
@@ -1997,11 +2296,17 @@ elem* toElem(Expression e, ref IRState irs)
         return toElemBin(e, OPmul);
     }
 
-    /************************************
+    /***************************************
      */
 
     elem* visitDiv(DivExp e)
     {
+        if (e.type.toBasetype().ty == Tint128 || e.type.toBasetype().ty == Tuns128)
+        {
+            elem* el = toElem(e.e1, irs);
+            elem* er = toElem(e.e2, irs);
+            return toElemCentDivMod(e, OPdiv, el, er);
+        }
         return toElemBin(e, OPdiv);
     }
 
@@ -2030,6 +2335,12 @@ elem* toElem(Expression e, ref IRState irs)
             elem* eresult = el_bin(OPcall,tym,el_var(getRtlsym(rtlsym)),el_param(el, er));
             elem_setLoc(eresult, e.loc);
             return eresult;
+        }
+        if (e.type.toBasetype().ty == Tint128 || e.type.toBasetype().ty == Tuns128)
+        {
+            elem* el = toElem(e.e1, irs);
+            elem* er = toElem(e.e2, irs);
+            return toElemCentDivMod(e, OPmod, el, er);
         }
         return toElemBin(e, OPmod);
     }
@@ -3282,6 +3593,9 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitUshr(UshrExp se)
     {
+        if (!target.isX86_64 &&
+            (se.e1.type.toBasetype().ty == Tint128 || se.e1.type.toBasetype().ty == Tuns128))
+            return toElemBin(se, OPshr);   // 32-bit x86: core.int128.ushr
         elem* eleft  = toElem(se.e1, irs);
         eleft.Ety = touns(eleft.Ety);
         elem* eright = toElem(se.e2, irs);
@@ -3374,6 +3688,28 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else
         {
+            if (!target.isX86_64 &&
+                (tybasic(ty) == TYcent || tybasic(ty) == TYucent))
+            {
+                /* 32-bit x86 has no 128-bit registers: the backend cannot
+                 * select between two 16-byte values with OPcond, so
+                 * materialize each branch in memory and select between the
+                 * two pointers instead.
+                 */
+                Symbol* stmp1 = symbol_genauto(type_fake(tybasic(ty)));
+                Symbol* stmp2 = symbol_genauto(type_fake(tybasic(ty)));
+                elem* es1 = el_bin(OPeq, ty, el_var(stmp1), eleft);
+                elem* es2 = el_bin(OPeq, ty, el_var(stmp2), eright);
+                elem* esel = el_bin(OPcond, TYnptr, ec,
+                    el_bin(OPcolon, TYnptr,
+                        el_una(OPaddr, TYnptr, el_var(stmp1)),
+                        el_una(OPaddr, TYnptr, el_var(stmp2))));
+                e = el_bin(OPcomma, TYnptr, es1, es2);
+                e = el_bin(OPcomma, TYnptr, e, esel);
+                e = el_una(OPind, ty, e);
+                elem_setLoc(e, ce.loc);
+                return e;
+            }
             e = el_bin(OPcond, ty, ec, el_bin(OPcolon, ty, eleft, eright));
             if (tybasic(ty) == TYstruct)
                 e.ET = Type_toCtype(ce.e1.type);
@@ -3830,6 +4166,31 @@ elem* toElem(Expression e, ref IRState irs)
         // When there is a lowering availabe, use that
         elem* e = ce.lowering is null ? toElem(ce.e1, irs) : toElem(ce.lowering, irs);
 
+        if (!target.isX86_64 &&
+            ce.to.toBasetype().ty == Tbool &&
+            (tybasic(e.Ety) == TYcent || tybasic(e.Ety) == TYucent))
+        {
+            /* 32-bit x86 has no 128-bit registers: the backend cannot
+             * booleanize a 16-byte value (OPbool), so test against zero
+             * with a core.int128 comparison instead:
+             *      v != 0  <=>  (v < 0) || (0 < v)
+             */
+            const isUns = tybasic(e.Ety) == TYucent;
+            RTLSYM lt = isUns ? RTLSYM.CENTULT : RTLSYM.CENTLT;
+            elem* ez = el_cent(tybasic(e.Ety), Cent());
+            // Materialize the operands once (each is used twice).
+            Symbol* sv = symbol_genauto(type_fake(tybasic(e.Ety)));
+            Symbol* sz = symbol_genauto(type_fake(tybasic(e.Ety)));
+            elem* eev = el_bin(OPeq, e.Ety, el_var(sv), e);
+            elem* eez = el_bin(OPeq, ez.Ety, el_var(sz), ez);
+            elem* evv = el_una(OPind, e.Ety, el_una(OPaddr, TYnptr, el_var(sv)));
+            elem* evz = el_una(OPind, ez.Ety, el_una(OPaddr, TYnptr, el_var(sz)));
+            elem* c1 = el_callCentLib(lt, TYbool, el_copytree(evv), el_copytree(evz));
+            elem* c2 = el_callCentLib(lt, TYbool, el_copytree(evz), el_copytree(evv));
+            e = el_bin(OPor, TYbool, c1, c2);
+            return el_combine(eev, el_combine(eez, e));
+        }
+
         return toElemCast(ce, e, false, irs);
     }
 
@@ -4238,6 +4599,7 @@ elem* toElem(Expression e, ref IRState irs)
         case EXP.variable:      return visitSymbol(e.isVarExp());
         case EXP.symbolOffset:  return visitSymbol(e.isSymOffExp());
         case EXP.int64:         return visitInteger(e.isIntegerExp());
+        case EXP.bigInteger:    return visitBigInteger(e.isBigIntegerExp());
         case EXP.float64:       return visitReal(e.isRealExp());
         case EXP.complex80:     return visitComplex(e.isComplexExp());
         case EXP.this_:         return visitThis(e.isThisExp());
@@ -4294,7 +4656,10 @@ elem* toElem(Expression e, ref IRState irs)
  */
 elem* toElemRVO(Expression e, elem* ehidden, ref IRState irs)
 {
-    assert(e.type.toBasetype().ty == Tstruct || e.type.toBasetype().ty == Tsarray);
+    const ety = e.type.toBasetype().ty;
+    assert(ety == Tstruct || ety == Tsarray ||
+           // 32-bit x86 returns cent/ucent via a hidden pointer (RET.stack)
+           (!target.isX86_64 && (ety == Tint128 || ety == Tuns128)));
 
     elem* doCommaRVO(CommaExp ce)
     {
@@ -4572,6 +4937,101 @@ elem* ExpressionsToStaticArray(ref IRState irs, Loc loc, Expressions* exps, Symb
         i = j;
     }
     return e;
+}
+
+/***************************************
+ * On 32-bit x86, 128-bit values are kept in memory. Return an elem
+ * holding the low 64 bits of the (memory-backed or constant) 128-bit
+ * value `e`.
+ */
+elem* m32CentLow64(elem* e)
+{
+    if (e.Eoper == OPconst)
+    {
+        const targ_llong lo = cast(targ_llong) e.Vcent.lo;
+        el_free(e);
+        return el_long(TYulong, lo);
+    }
+    if (e.Eoper == OPvar)
+        return el_una(OPind, TYulong, el_una(OPaddr, TYnptr, e));
+    assert(e.Eoper == OPind);
+    elem* e1 = e.E1;
+    e.E1 = null;
+    el_free(e);
+    return el_una(OPind, TYulong, e1);
+}
+
+/***************************************
+ * On 32-bit x86, load the low `t.size()` bytes of the 128-bit value `e`
+ * (little-endian) directly as a value of type `t`, without routing it
+ * through a 64-bit intermediate (which would require a register pair the
+ * backend cannot always provide).
+ */
+elem* m32CentLow(elem* e, Type t)
+{
+    if (e.Eoper == OPconst)
+    {
+        const targ_ullong lo = e.Vcent.lo;
+        el_free(e);
+        return el_long(totym(t), lo);
+    }
+    if (e.Eoper == OPvar)
+        return el_una(OPind, totym(t), el_una(OPaddr, TYnptr, e));
+    assert(e.Eoper == OPind);
+    elem* e1 = e.E1;
+    e.E1 = null;
+    el_free(e);
+    return el_una(OPind, totym(t), e1);
+}
+
+/***************************************
+ * On 32-bit x86, build the 128-bit value of widening the 64-bit value
+ * `e` in a temp:
+ *   tmp.lo = e; tmp.hi = signExtend ? e >> 63 : 0
+ * and return `*(cent)&tmp` (a memory-backed value).
+ */
+elem* m32CentWiden(CastExp ce, elem* e, bool signExtend)
+{
+    Symbol* st64 = symbol_genauto(type_fake(TYllong));
+    Symbol* sthi = symbol_genauto(type_fake(TYllong));
+    Symbol* stmp = symbol_genauto(type_fake(TYcent));
+    Symbol* sp = symbol_genauto(type_fake(TYnptr));
+    Symbol* sp64 = symbol_genauto(type_fake(TYnptr));
+    Symbol* sphi = symbol_genauto(type_fake(TYnptr));
+    elem* eassign = el_bin(OPeq, TYllong, el_var(st64), e);         // st64 = e
+    elem* ehi = signExtend
+        ? el_bin(OPashr, TYllong, el_var(st64), el_long(TYint, 63))
+        : el_long(TYllong, 0);
+    elem* eassign2 = el_bin(OPeq, TYllong, el_var(sthi), ehi);      // sthi = e >> 63
+    elem* ep = el_bin(OPeq, TYnptr, el_var(sp),
+        el_una(OPaddr, TYnptr, el_var(stmp)));                       // sp = &stmp
+    elem* ep64 = el_bin(OPeq, TYnptr, el_var(sp64),
+        el_una(OPaddr, TYnptr, el_var(st64)));                       // sp64 = &st64
+    elem* ephi = el_bin(OPeq, TYnptr, el_var(sphi),
+        el_una(OPaddr, TYnptr, el_var(sthi)));                       // sphi = &sthi
+    // tmp.lo = st64, tmp.hi = sthi, via 32-bit copies
+    elem* ecopy(elem* dptr, elem* sptr)
+    {
+        elem* c0 = el_bin(OPeq, TYuint,
+            el_una(OPind, TYuint, el_copytree(dptr)),
+            el_una(OPind, TYuint, el_copytree(sptr)));
+        elem* c1 = el_bin(OPeq, TYuint,
+            el_una(OPind, TYuint, el_bin(OPadd, TYnptr, el_copytree(dptr), el_long(TYsize_t, 4))),
+            el_una(OPind, TYuint, el_bin(OPadd, TYnptr, el_copytree(sptr), el_long(TYsize_t, 4))));
+        return el_combine(c0, c1);
+    }
+    elem* elo = ecopy(el_var(sp), el_var(sp64));
+    elem* e1 = ecopy(el_bin(OPadd, TYnptr, el_var(sp), el_long(TYsize_t, 8)), el_var(sphi));
+    elem* eres = el_una(OPind, TYcent,
+        el_combine(eassign,
+            el_combine(eassign2,
+                el_combine(ep,
+                    el_combine(ep64,
+                        el_combine(ephi,
+                            el_combine(elo,
+                                el_combine(e1, el_una(OPaddr, TYnptr, el_var(stmp))))))))));
+    elem_setLoc(eres, ce.loc);
+    return eres;
 }
 
 /***************************************************
@@ -5069,7 +5529,10 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
             case X(Tint64,Tuns32):  eop = OP64_32; return Leop(ce, e, eop, ttym);
             case X(Tint64,Tuns64):  return Lpaint(ce, e, ttym);
             case X(Tint64,Tint128):
-            case X(Tint64,Tuns128):  eop = OPs64_128; return Leop(ce, e, eop, ttym);
+            case X(Tint64,Tuns128):
+                if (!target.isX86_64)
+                    return m32CentWiden(ce, e, true);
+                eop = OPs64_128; return Leop(ce, e, eop, ttym);
             case X(Tint64,Tfloat32):
             case X(Tint64,Tfloat64):
             case X(Tint64,Tfloat80):
@@ -5095,7 +5558,10 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
             case X(Tuns64,Tuns32):  eop = OP64_32;  return Leop(ce, e, eop, ttym);
             case X(Tuns64,Tint64):  return Lpaint(ce, e, ttym);
             case X(Tuns64,Tint128):
-            case X(Tuns64,Tuns128):  eop = OPu64_128; return Leop(ce, e, eop, ttym);
+            case X(Tuns64,Tuns128):
+                if (!target.isX86_64)
+                    return m32CentWiden(ce, e, false);
+                eop = OPu64_128; return Leop(ce, e, eop, ttym);
             case X(Tuns64,Tfloat32):
             case X(Tuns64,Tfloat64):
             case X(Tuns64,Tfloat80):
@@ -5117,11 +5583,20 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
             case X(Tint128,Tuns16):
             case X(Tint128,Tint32):
             case X(Tint128,Tuns32):
+                if (!target.isX86_64)
+                    return Lret(ce, m32CentLow(e, t));
                 e = el_una(OP128_64, TYllong, e);
                 fty = Tint64;
                 continue;
             case X(Tint128,Tint64):
-            case X(Tint128,Tuns64):  eop = OP128_64; return Leop(ce, e, eop, ttym);
+            case X(Tint128,Tuns64):
+                if (!target.isX86_64)
+                {
+                    elem* e64 = m32CentLow64(e);
+                    e64.Ety = ttym;
+                    return Lret(ce, e64);
+                }
+                eop = OP128_64; return Leop(ce, e, eop, ttym);
             case X(Tint128,Tuns128): return Lpaint(ce, e, ttym);
         static if (0)       // cent <=> floating point not supported yet
         {
@@ -5147,11 +5622,20 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
             case X(Tuns128,Tuns16):
             case X(Tuns128,Tint32):
             case X(Tuns128,Tuns32):
+                if (!target.isX86_64)
+                    return Lret(ce, m32CentLow(e, t));
                 e = el_una(OP128_64, TYllong, e);
                 fty = Tint64;
                 continue;
             case X(Tuns128,Tint64):
-            case X(Tuns128,Tuns64):  eop = OP128_64;  return Leop(ce, e, eop, ttym);
+            case X(Tuns128,Tuns64):
+                if (!target.isX86_64)
+                {
+                    elem* e64 = m32CentLow64(e);
+                    e64.Ety = ttym;
+                    return Lret(ce, e64);
+                }
+                eop = OP128_64;  return Leop(ce, e, eop, ttym);
             case X(Tuns128,Tint128):  return Lpaint(ce, e, ttym);
         static if (0)       // cent <=> floating point not supported yet
         {

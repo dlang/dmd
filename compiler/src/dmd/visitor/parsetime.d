@@ -178,6 +178,7 @@ public:
     // Expressions
     void visit(AST.DeclarationExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.IntegerExp e) { visit(cast(AST.Expression)e); }
+    void visit(AST.BigIntegerExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.NewAnonClassExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.IsExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.RealExp e) { visit(cast(AST.Expression)e); }

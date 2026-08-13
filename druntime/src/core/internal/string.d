@@ -81,6 +81,32 @@ if (radix >= 2 && radix <= 36 &&
     return buf[i .. $];
 }
 
+static if (is(ucent))
+T[] unsignedToTempString(uint radix = 10, bool upperCase = false, T)(ucent value, return scope T[] buf)
+if (radix >= 2 && radix <= 36 &&
+    (is(T == char) || is(T == wchar) || is(T == dchar)))
+{
+    import core.int128 : Cent = Cent, udivmod;
+
+    enum baseChar = upperCase ? 'A' : 'a';
+    size_t i = buf.length;
+
+    // Fast path: the value fits in 64 bits.
+    if (cast(ulong)(value >> 64) == 0)
+        return unsignedToTempString!(radix, upperCase)(cast(ulong)value, buf);
+
+    Cent v = Cent(lo: cast(ulong)value, hi: cast(ulong)(value >> 64));
+    Cent divisor = Cent(lo: radix);
+    do
+    {
+        Cent mod;
+        v = udivmod(v, divisor, mod);
+        uint x = cast(uint)mod.lo;
+        buf[--i] = cast(char)((radix <= 10 || x < 10) ? x + '0' : x - 10 + baseChar);
+    } while (v.lo || v.hi);
+    return buf[i .. $];
+}
+
 private struct TempStringNoAlloc(ubyte N)
 {
     private char[N] _buf = void;
@@ -109,6 +135,16 @@ auto unsignedToTempString(uint radix = 10)(ulong value)
     // Need a buffer of 65 bytes for radix of 2 with room for
     // signedToTempString to possibly add a negative sign.
     enum bufferSize = radix >= 10 ? 20 : 65;
+    TempStringNoAlloc!bufferSize result = void;
+    result._len = unsignedToTempString!radix(value, result._buf).length & 0xff;
+    return result;
+}
+
+static if (is(ucent))
+auto unsignedToTempString(uint radix = 10)(ucent value)
+{
+    // 39 decimal digits for 2^128-1, or 128 binary digits plus a sign.
+    enum bufferSize = radix >= 10 ? 40 : 129;
     TempStringNoAlloc!bufferSize result = void;
     result._len = unsignedToTempString!radix(value, result._buf).length & 0xff;
     return result;
@@ -159,12 +195,44 @@ T[] signedToTempString(uint radix = 10, bool upperCase = false, T)(long value, r
     return r;
 }
 
+static if (is(cent))
+T[] signedToTempString(uint radix = 10, bool upperCase = false, T)(cent value, return scope T[] buf)
+{
+    bool neg = value < 0;
+    if (neg)
+        value = -value;
+    auto r = unsignedToTempString!(radix, upperCase)(cast(ucent)value, buf);
+    if (neg)
+    {
+        // about to do a slice without a bounds check
+        auto trustedSlice(return scope T[] r) @trusted { assert(r.ptr > buf.ptr); return (r.ptr-1)[0..r.length+1]; }
+        r = trustedSlice(r);
+        r[0] = '-';
+    }
+    return r;
+}
+
 auto signedToTempString(uint radix = 10)(long value)
 {
     bool neg = value < 0;
     if (neg)
         value = cast(ulong)-value;
     auto r = unsignedToTempString!radix(value);
+    if (neg)
+    {
+        r._len++;
+        r.get()[0] = '-';
+    }
+    return r;
+}
+
+static if (is(cent))
+auto signedToTempString(uint radix = 10)(cent value)
+{
+    bool neg = value < 0;
+    if (neg)
+        value = -value;
+    auto r = unsignedToTempString!radix(cast(ucent)value);
     if (neg)
     {
         r._len++;

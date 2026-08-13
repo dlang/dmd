@@ -1119,7 +1119,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
         expOptimize(e.e2, result, keepLvalue);
         if (ret.op == EXP.error)
             return;
-        if (!e.e1 || e.e1.op == EXP.int64 || e.e1.op == EXP.float64 || !hasSideEffect(e.e1))
+        if (!e.e1 || e.e1.op == EXP.int64 || e.e1.op == EXP.bigInteger || e.e1.op == EXP.float64 || !hasSideEffect(e.e1))
         {
             ret = e.e2;
             if (ret)

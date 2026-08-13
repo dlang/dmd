@@ -10070,6 +10070,9 @@ bool _isZeroInit(Expression exp)
         case EXP.int64:
             return exp.toInteger() == 0;
 
+        case EXP.bigInteger:
+            return exp.isBigIntegerExp().value.lo == 0 && exp.isBigIntegerExp().value.hi == 0;
+
         case EXP.null_:
             return true;
 

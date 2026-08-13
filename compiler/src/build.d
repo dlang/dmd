@@ -1565,7 +1565,7 @@ auto sourceFiles()
             bitfields.d file.d int128.d blake3.d sha.d outbuffer.d smallbuffer.d charactertables.d identifiertables.d
         "),
         commonHeaders: fileArray(env["COMMON"], "
-            outbuffer.h
+            outbuffer.h int128.h
         "),
         root: fileArray(env["ROOT"], "
             aav.d complex.d env.d longdouble.d man.d optional.d response.d speller.d string.d strtold.d

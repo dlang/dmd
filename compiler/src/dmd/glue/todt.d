@@ -324,6 +324,12 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
         dtb.nbytes((cast(ubyte*) &value)[0 .. cast(size_t) e.type.size()]);
     }
 
+    void visitBigInteger(BigIntegerExp e)
+    {
+        auto value = e.value;
+        dtb.nbytes((cast(ubyte*) &value)[0 .. cast(size_t) e.type.size()]);
+    }
+
     void visitReal(RealExp e)
     {
         //printf("RealExp.toDt(%Lg)\n", e.value);
@@ -658,6 +664,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
         case EXP.cast_:          return visitCast          (e.isCastExp());
         case EXP.address:        return visitAddr          (e.isAddrExp());
         case EXP.int64:          return visitInteger       (e.isIntegerExp());
+        case EXP.bigInteger:     return visitBigInteger    (e.isBigIntegerExp());
         case EXP.float64:        return visitReal          (e.isRealExp());
         case EXP.complex80:      return visitComplex       (e.isComplexExp());
         case EXP.null_:          return visitNull          (e.isNullExp());

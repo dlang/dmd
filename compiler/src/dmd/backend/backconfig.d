@@ -529,6 +529,9 @@ if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_O
     _tyalignsize[TYreal] = 4;
     _tyalignsize[TYireal] = 4;
     _tyalignsize[TYcreal] = 4;
+    // _Alignof(_BitInt(128)) == 4 on i386 System V
+    _tyalignsize[TYcent] = 4;
+    _tyalignsize[TYucent] = 4;
 }
 else if (exe & (EX_OSX | EX_OSX64))
 {
@@ -649,6 +652,13 @@ void util_set64(exefmt_t exe)
 void util_setAArch64(exefmt_t exe)
 {
     util_set64(exe);
+
+    // _Alignof(_BitInt(128)) == 16 on AArch64 (AAPCS).
+    // Note: on 64-bit TYdelegate == TYcent and TYdarray == TYucent, so
+    // delegates/darrays inherit the 16-byte alignment; that is only an
+    // over-alignment of their storage and is harmless.
+    _tyalignsize[TYcent] = 16;
+    _tyalignsize[TYucent] = 16;
 
     if (exe & EX_windos)
     {

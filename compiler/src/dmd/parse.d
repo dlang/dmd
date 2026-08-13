@@ -8532,6 +8532,16 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             nextToken();
             break;
 
+        case TOK.int128Literal:
+            e = new AST.BigIntegerExp(loc, token.centvalue, AST.Type.tint128);
+            nextToken();
+            break;
+
+        case TOK.uns128Literal:
+            e = new AST.BigIntegerExp(loc, token.centvalue, AST.Type.tuns128);
+            nextToken();
+            break;
+
         case TOK.float32Literal:
             e = new AST.RealExp(loc, token.floatvalue, AST.Type.tfloat32);
             nextToken();
@@ -10067,6 +10077,7 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.this_ : PREC.primary,
     EXP.super_ : PREC.primary,
     EXP.int64 : PREC.primary,
+    EXP.bigInteger : PREC.primary,
     EXP.float64 : PREC.primary,
     EXP.complex80 : PREC.primary,
     EXP.null_ : PREC.primary,

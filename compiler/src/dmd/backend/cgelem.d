@@ -4646,7 +4646,7 @@ private elem* elcmp(elem* e, Goal goal)
                             // Only need to examine MSW
                             tym_t ty = sz == 4 ? TYint :
                                        sz == 8 ? TYint :
-                                                 TYlong;        // for TYcent's
+                                                 TYllong;       // for TYcent's
                             e.E1 = el_una(OPmsw, ty, e1);
                             e2.Ety = ty;
                             return optelem(e, Goal.value);

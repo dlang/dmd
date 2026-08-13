@@ -196,6 +196,19 @@ dinteger_t toInteger(Expression _this)
         // normalize() is necessary until we fix all the paints of 'type'
         return iexp.value = IntegerExp.normalize(iexp.type.toBasetype().ty, iexp.value);
     }
+    else if (auto biexp = _this.isBigIntegerExp())
+    {
+        const isUnsigned = biexp.type.toBasetype().isUnsigned();
+        const bool fits = isUnsigned
+            ? biexp.value.hi == 0
+            : biexp.value.hi == -1L || (biexp.value.hi == 0 && !(biexp.value.lo >> 63));
+        if (fits)
+        {
+            return cast(sinteger_t)biexp.value.lo;
+        }
+        error(_this.loc, "integer constant expression does not fit in 64 bits: `%s`", _this.toErrMsg());
+        return 0;
+    }
     else if (auto rexp = _this.isRealExp())
     {
         return cast(sinteger_t)rexp.toReal();
@@ -501,6 +514,12 @@ Optional!bool toBool(Expression _this)
         return typeof(return)(r);
     }
 
+    static Optional!bool bigIntegerToBool(BigIntegerExp _this)
+    {
+        bool r = _this.value.lo != 0 || _this.value.hi != 0;
+        return typeof(return)(r);
+    }
+
     static Optional!bool arrayLiteralToBool(ArrayLiteralExp _this)
     {
         size_t dim = _this.length;
@@ -523,6 +542,7 @@ Optional!bool toBool(Expression _this)
     switch(_this.op)
     {
         case EXP.int64: return integerToBool(_this.isIntegerExp());
+        case EXP.bigInteger: return bigIntegerToBool(_this.isBigIntegerExp());
         case EXP.float64: return typeof(return)(!!_this.isRealExp().value);
         case EXP.complex80: return typeof(return)(!!_this.isComplexExp().value);
         // `this` is never null (what about structs?)
@@ -915,6 +935,11 @@ bool equals(const Expression _this, const Expression e)
         return _this.type.toHeadMutable().equals(e.type.toHeadMutable()) && RealIdentical(_this.value, e.value);
     }
 
+    static bool bigIntegerExpEquals(const BigIntegerExp _this, const BigIntegerExp e)
+    {
+        return _this.type.toHeadMutable().equals(e.type.toHeadMutable()) && _this.value == e.value;
+    }
+
     static bool complexExpEquals(const ComplexExp _this, const ComplexExp e)
     {
         return _this.type.toHeadMutable().equals(e.type.toHeadMutable()) &&
@@ -1035,6 +1060,7 @@ bool equals(const Expression _this, const Expression e)
     switch(_this.op)
     {
         case EXP.int64: return intExpEquals(_this.isIntegerExp(), e.isIntegerExp());
+        case EXP.bigInteger: return bigIntegerExpEquals(_this.isBigIntegerExp(), e.isBigIntegerExp());
         case EXP.float64: return realExpEquals(_this.isRealExp(), e.isRealExp());
         case EXP.complex80: return complexExpEquals(_this.isComplexExp(), e.isComplexExp());
         case EXP.null_: return nullExpEquals(_this.isNullExp(), e.isNullExp());
@@ -5433,6 +5459,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         assert(e.type.deco);
         e.setInteger(e.getInteger());
+        result = e;
+    }
+
+    override void visit(BigIntegerExp e)
+    {
+        assert(e.type);
+        if (e.type.ty == Terror)
+            return setError();
+
+        assert(e.type.deco);
         result = e;
     }
 
@@ -17130,6 +17166,7 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
             case EXP.error:
             case EXP.complex80:
             case EXP.int64:
+            case EXP.bigInteger:
             case EXP.null_:       return false;
 
             case EXP.variable:    return visitVar(e.isVarExp());
@@ -18340,6 +18377,15 @@ Expression toBoolean(Expression exp, Scope* sc)
             }
 
             e = checkNoreturnVarAccess(e);
+            // 128-bit integers are boolean-testable, but the codegen cannot
+            // test a 16-byte value directly on 32-bit x86; convert explicitly
+            // so that e2ir can lower `cast(bool)` via core.int128.
+            if (tb.ty == Tint128 || tb.ty == Tuns128)
+            {
+                e = new CastExp(exp.loc, e, Type.tbool);
+                e = e.expressionSemantic(sc);
+                return e;
+            }
             if (!t.isBoolean())
             {
                 if (tb != Type.terror)

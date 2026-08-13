@@ -16,6 +16,7 @@ module dmd.tokens;
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;
+import dmd.common.int128 : Cent;
 import dmd.identifier;
 import dmd.location;
 import dmd.root.ctfloat;
@@ -395,6 +396,7 @@ enum EXP : ubyte
     // Basic types
     void_,
     int64,
+    bigInteger,
     float64,
     complex80,
     import_,
@@ -651,6 +653,7 @@ extern (C++) struct Token
         // Integers
         long intvalue;
         ulong unsvalue;
+        Cent centvalue;
         // Floats
         real_t floatvalue;
 

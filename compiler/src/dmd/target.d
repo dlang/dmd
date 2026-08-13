@@ -615,6 +615,16 @@ extern (C++) struct Target
             if (os & Target.OS.Posix)
                 return isX86 ? 4 : 8;
             break;
+        case TY.Tint128:
+        case TY.Tuns128:
+            // Must match _Alignof(_BitInt(128)) on each target:
+            //   16 on AArch64, 4 on i386 System V, 8 everywhere else
+            //   (x86-64 SysV/Windows, riscv64, ppc64le, i686 Windows, armv7)
+            if (isAArch64)
+                return 16;
+            if (os & Target.OS.Posix && isX86 && !isX86_64)
+                return 4;
+            return 8;
         default:
             break;
         }
@@ -1208,6 +1218,12 @@ extern (C++) struct Target
             /* See DMC++ function exp2_retmethod()
              * https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/dexp2.d#L149
              */
+            return true;
+        }
+        else if (isX86 && !isX86_64 &&
+                 (tns.ty == TY.Tint128 || tns.ty == TY.Tuns128))
+        {
+            // 32-bit x86 has no 128-bit registers: return via hidden pointer
             return true;
         }
         else

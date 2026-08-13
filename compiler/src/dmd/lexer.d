@@ -22,6 +22,7 @@ import dmd.errorsink;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
+import dmd.common.int128 : Cent, add, mul;
 import dmd.common.smallbuffer;
 import dmd.common.outbuffer;
 import dmd.common.charactertables;
@@ -2438,6 +2439,8 @@ class Lexer
         int base = 10;
         const start = p;
         ulong n = 0; // unsigned >=64 bit integer type
+        Cent c128 = Cent(); // 128-bit accumulator (used when n overflows)
+        bool use128 = false;
         int d;
         bool err = false;
         bool overflow = false;
@@ -2592,14 +2595,26 @@ class Lexer
                 errorDigit = cast(char) c;
             }
             // Avoid expensive overflow check if we aren't at risk of overflow
-            if (n <= 0x0FFF_FFFF_FFFF_FFFFUL)
+            if (use128)
+            {
+                // Keep accumulating in 128 bits
+                c128 = add(mul(c128, Cent(base)), Cent(d));
+            }
+            else if (n <= 0x0FFF_FFFF_FFFF_FFFFUL)
                 n = n * base + d;
             else
             {
                 import core.checkedint : mulu, addu;
 
+                const prev = n;
                 n = mulu(n, base, overflow);
                 n = addu(n, d, overflow);
+                if (overflow)
+                {
+                    // Restart the accumulation at 128 bits
+                    use128 = true;
+                    c128 = add(mul(Cent(prev), Cent(base)), Cent(d));
+                }
             }
         }
     Ldone:
@@ -2610,7 +2625,7 @@ class Lexer
                                                  "decimal".ptr, errorDigit);
             err = true;
         }
-        if (overflow && !err)
+        if (overflow && !err && !use128)
         {
             error(scanloc, "integer overflow");
             err = true;
@@ -2663,6 +2678,13 @@ class Lexer
                 break;
             }
             break;
+        }
+        if (use128)
+        {
+            // 128-bit integer literal (does not fit in 64 bits)
+            t.centvalue = c128;
+            const uflag = (flags & FLAGS.unsigned) != 0;
+            return uflag ? TOK.uns128Literal : TOK.int128Literal;
         }
         if (base == 8 && n >= 8)
         {

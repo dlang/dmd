@@ -116,6 +116,33 @@ enum RTLSYM
     FMOD,
     FMODL,
 
+    // core.int128 division helpers (128-bit cent/ucent div/mod)
+    CENTDIV,
+    CENTUDIV,
+    CENTREM,
+    CENTUREM,
+
+    // core.int128 arithmetic helpers (128-bit, used on 32-bit x86)
+    CENTADD,
+    CENTSUB,
+    CENTMUL,
+    CENTAND,
+    CENTOR,
+    CENTXOR,
+    CENTCOM,
+    CENTNEG,
+    CENTSHL,
+    CENTUSHR,
+    CENTSAR,
+    CENTLT,
+    CENTLE,
+    CENTGT,
+    CENTGE,
+    CENTULT,
+    CENTULE,
+    CENTUGT,
+    CENTUGE,
+
     CXA_ATEXIT
 }
 
@@ -144,6 +171,7 @@ Symbol* getRtlsym(RTLSYM i) @trusted
 
     __gshared type* t;
     __gshared type* tv;
+    __gshared type* tc;   // extern(D) function type (core.int128 helpers)
 
     if (!t)
     {
@@ -155,6 +183,12 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         tv = type_fake(TYnfunc);
         tv.Tmangle = Mangle.c;
         tv.Tcount++;
+
+        // extern(D) function: on 32-bit x86 the hidden return pointer is
+        // passed in EAX (the D ABI), which requires the TYjfunc function type.
+        tc = type_fake(TYjfunc);
+        tc.Tmangle = Mangle.d;
+        tc.Tcount++;
     }
 
     auto FREGSAVED = cgstate.fregsaved; // varies depending on C ABI
@@ -244,6 +278,33 @@ Symbol* getRtlsym(RTLSYM i) @trusted
         case RTLSYM.FMODF:                  symbolz(ps,FL.func,FREGSAVED,"fmodf", 0, t); break;  // C library function fmodf()
         case RTLSYM.FMOD:                   symbolz(ps,FL.func,FREGSAVED,"fmod",  0, t); break;  // C library function fmod()
         case RTLSYM.FMODL:                  symbolz(ps,FL.func,FREGSAVED,"fmodl", 0, t); break;  // C library function fmodl()
+
+        // core.int128 div/udiv/rem/urem, D-mangled names (see druntime/src/core/int128.d)
+        case RTLSYM.CENTDIV:                symbolz(ps,FL.func,FREGSAVED,"_D4core6int1283divFNaNbNiNfSQBaQy4CentQlZQo", 0, tc); break;
+        case RTLSYM.CENTUDIV:               symbolz(ps,FL.func,FREGSAVED,"_D4core6int1284udivFNaNbNiNfSQBbQz4CentQlZQo", 0, tc); break;
+        case RTLSYM.CENTREM:                symbolz(ps,FL.func,FREGSAVED,"_D4core6int1283remFNaNbNiNfSQBaQy4CentQlZQo", 0, tc); break;
+        case RTLSYM.CENTUREM:               symbolz(ps,FL.func,FREGSAVED,"_D4core6int1284uremFNaNbNiNfSQBbQz4CentQlZQo", 0, tc); break;
+
+        // core.int128 arithmetic helpers, D-mangled names (see druntime/src/core/int128.d)
+        case RTLSYM.CENTADD:                symbolz(ps,FL.func,FREGSAVED,"_D4core6int1283addFNaNbNiNfSQBaQy4CentQlZQo", 0, tc); break;
+        case RTLSYM.CENTSUB:                symbolz(ps,FL.func,FREGSAVED,"_D4core6int1283subFNaNbNiNfSQBaQy4CentQlZQo", 0, tc); break;
+        case RTLSYM.CENTMUL:                symbolz(ps,FL.func,FREGSAVED,"_D4core6int1283mulFNaNbNiNfSQBaQy4CentQlZQo", 0, tc); break;
+        case RTLSYM.CENTAND:                symbolz(ps,FL.func,FREGSAVED,"_D4core6int1283andFNaNbNiNfSQBaQy4CentQlZQo", 0, tc); break;
+        case RTLSYM.CENTOR:                 symbolz(ps,FL.func,FREGSAVED,"_D4core6int1282orFNaNbNiNfSQzQw4CentQkZQn", 0, tc); break;
+        case RTLSYM.CENTXOR:                symbolz(ps,FL.func,FREGSAVED,"_D4core6int1283xorFNaNbNiNfSQBaQy4CentQlZQo", 0, tc); break;
+        case RTLSYM.CENTCOM:                symbolz(ps,FL.func,FREGSAVED,"_D4core6int1283comFNaNbNiNfSQBaQy4CentZQm", 0, tc); break;
+        case RTLSYM.CENTNEG:                symbolz(ps,FL.func,FREGSAVED,"_D4core6int1283negFNaNbNiNfSQBaQy4CentZQm", 0, tc); break;
+        case RTLSYM.CENTSHL:                symbolz(ps,FL.func,FREGSAVED,"_D4core6int1283shlFNaNbNiNfSQBaQy4CentkZQn", 0, tc); break;
+        case RTLSYM.CENTUSHR:               symbolz(ps,FL.func,FREGSAVED,"_D4core6int1283shrFNaNbNiNfSQBaQy4CentkZQn", 0, tc); break;
+        case RTLSYM.CENTSAR:                symbolz(ps,FL.func,FREGSAVED,"_D4core6int1283sarFNaNbNiNfSQBaQy4CentkZQn", 0, tc); break;
+        case RTLSYM.CENTLT:                 symbolz(ps,FL.func,FREGSAVED,"_D4core6int1282ltFNaNbNiNfSQzQw4CentQkZb", 0, tc); break;
+        case RTLSYM.CENTLE:                 symbolz(ps,FL.func,FREGSAVED,"_D4core6int1282leFNaNbNiNfSQzQw4CentQkZb", 0, tc); break;
+        case RTLSYM.CENTGT:                 symbolz(ps,FL.func,FREGSAVED,"_D4core6int1282gtFNaNbNiNfSQzQw4CentQkZb", 0, tc); break;
+        case RTLSYM.CENTGE:                 symbolz(ps,FL.func,FREGSAVED,"_D4core6int1282geFNaNbNiNfSQzQw4CentQkZb", 0, tc); break;
+        case RTLSYM.CENTULT:                symbolz(ps,FL.func,FREGSAVED,"_D4core6int1283ultFNaNbNiNfSQBaQy4CentQlZb", 0, tc); break;
+        case RTLSYM.CENTULE:                symbolz(ps,FL.func,FREGSAVED,"_D4core6int1283uleFNaNbNiNfSQBaQy4CentQlZb", 0, tc); break;
+        case RTLSYM.CENTUGT:                symbolz(ps,FL.func,FREGSAVED,"_D4core6int1283ugtFNaNbNiNfSQBaQy4CentQlZb", 0, tc); break;
+        case RTLSYM.CENTUGE:                symbolz(ps,FL.func,FREGSAVED,"_D4core6int1283ugeFNaNbNiNfSQBaQy4CentQlZb", 0, tc); break;
 
         case RTLSYM.CXA_ATEXIT:             symbolz(ps,FL.func,FREGSAVED,"__cxa_atexit", 0, t); break;
         default:
