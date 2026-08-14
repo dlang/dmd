@@ -56,7 +56,7 @@ void[] __arrayAlloc(T)(size_t arrSize) @trusted
     import core.internal.traits : hasIndirections;
 
     enum typeInfoSize = TypeInfoSize!T;
-    enum uint attr = BlkAttr.APPENDABLE | GC.BlkAttrAlignment(T.alignof)
+    enum uint attr = BlkAttr.APPENDABLE | GC.convertAlignmentToBlkAttr(T.alignof)
         | (typeInfoSize ? BlkAttr.FINALIZE : 0)
         | (!hasIndirections!T ? BlkAttr.NO_SCAN : 0);
 
@@ -154,10 +154,10 @@ uint __typeAttrs(T)(void *copyAttrsFrom = null)
         // try to copy attrs from the given block
         auto info = GC.query(copyAttrsFrom);
         if (info.base)
-            return info.attr | GC.BlkAttrAlignment(T.alignof);
+            return info.attr | GC.convertAlignmentToBlkAttr(T.alignof);
     }
 
-    enum uint attrs = GC.BlkAttrAlignment(T.alignof)
+    enum uint attrs = GC.convertAlignmentToBlkAttr(T.alignof)
         | (!hasIndirections!T ? BlkAttr.NO_SCAN : 0)
         | (is(T == struct) && __traits(needsDestruction, T) ? BlkAttr.FINALIZE : 0);
 
