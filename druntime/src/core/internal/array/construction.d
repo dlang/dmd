@@ -612,7 +612,7 @@ void* _d_arrayliteralTX(T)(size_t length) @trusted pure nothrow
         *  but don't use a nested template function call here to avoid
         *  possible linking errors.
         */
-        enum uint attrs = BlkAttr.APPENDABLE | GC.BlkAttrAlignment(T.alignof)
+        enum uint attrs = BlkAttr.APPENDABLE | GC.convertAlignmentToBlkAttr(T.alignof)
             | (!hasIndirections!T ? BlkAttr.NO_SCAN : 0)
             | (is(T == struct) && __traits(needsDestruction, T) ? BlkAttr.FINALIZE : 0);
 

@@ -485,11 +485,11 @@ class ConservativeGC : GC
 
         adjustAttrs(bits, ti);
 
-        uint alignAttr = bits & BlkAttr.ALIGNMENT_MASK;
+        auto alignAttr = cast(BlkAttr)(bits & BlkAttr.ALIGNMENT_MASK);
         size_t alignment = alignAttr <= BlkAttr.ALIGNMENT_16 ? 16
-            : 1 << (alignAttr / BlkAttr.ALIGNMENT_BYTE);
-        immutable padding = __allocPad(size, alignment, bits);
+            : core.memory.GC.convertBlkAttrToAlignment(alignAttr);
 
+        immutable padding = __allocPad(size, alignment, bits);
         bool overflow;
         import core.checkedint : addu;
         immutable needed = addu(size, padding, overflow);
@@ -595,9 +595,9 @@ class ConservativeGC : GC
 
         adjustAttrs(bits, ti);
 
-        uint alignAttr = bits & BlkAttr.ALIGNMENT_MASK;
+        auto alignAttr = cast(BlkAttr)(bits & BlkAttr.ALIGNMENT_MASK);
         size_t alignment = alignAttr <= BlkAttr.ALIGNMENT_16 ? 16
-            : 1 << (alignAttr / BlkAttr.ALIGNMENT_BYTE);
+            : core.memory.GC.convertBlkAttrToAlignment(alignAttr);
 
         immutable padding = __allocPad(size, alignment, bits);
         bool overflow;
@@ -1694,8 +1694,7 @@ struct List
 }
 
 // non power of two sizes optimized for small remainder within page (<= 64 bytes)
-immutable short[Bins.B_NUMSMALL + 1] binsize  = [ 16, 32, 48, 64, 96, 128, 176, 256, 368, 512, 816, 1024, 1360, 2048, 4096 ];
-immutable short[Bins.B_NUMSMALL + 1] binalign = [ 16, 32, 16, 64, 32, 128,  16, 256,  16, 512,  16, 1024,   16, 2048, 4096 ];
+immutable short[Bins.B_NUMSMALL + 1] binsize = [ 16, 32, 48, 64, 96, 128, 176, 256, 368, 512, 816, 1024, 1360, 2048, 4096 ];
 immutable short[PAGESIZE / 16][Bins.B_NUMSMALL + 1] binbase = calcBinBase();
 
 short[PAGESIZE / 16][Bins.B_NUMSMALL + 1] calcBinBase()
@@ -1721,7 +1720,7 @@ immutable binAlignAttr = ()
 {
     uint[Bins.B_NUMSMALL + 1] attr;
     for (int i = 0; i <= Bins.B_NUMSMALL; i++)
-        attr[i] = core.memory.GC.BlkAttrAlignment(binalign[i]);
+        attr[i] = core.memory.GC.convertAlignmentToBlkAttr(binsize[i] & -binsize[i]); // extract lowest bit
     return attr;
 }();
 

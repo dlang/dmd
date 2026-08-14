@@ -2662,15 +2662,12 @@ if (is(T == class))
     }
     else
     {
-        BlkAttr attr = GC.BlkAttrAlignment(__traits(classInstanceAlignment, T));
-
+        enum attr = GC.convertAlignmentToBlkAttr(__traits(classInstanceAlignment, T))
         /* `extern(C++)`` classes don't have a classinfo pointer in their vtable,
          * so the GC can't finalize them.
          */
-        static if (__traits(hasMember, T, "__dtor") && __traits(getLinkage, T) != "C++")
-            attr |= BlkAttr.FINALIZE;
-        static if (!hasIndirections!T)
-            attr |= BlkAttr.NO_SCAN;
+            | (__traits(hasMember, T, "__dtor") && __traits(getLinkage, T) != "C++" ? BlkAttr.FINALIZE : 0)
+            | (!hasIndirections!T ? BlkAttr.NO_SCAN : 0);
 
         version(D_TypeInfo)
             p = GC.malloc(init.length, attr, typeid(T));
@@ -2728,8 +2725,8 @@ T* _d_newitemT(T)() @trusted
 
     immutable itemSize = T.sizeof;
     enum flags = (!hasIndirections!T ? GC.BlkAttr.NO_SCAN : GC.BlkAttr.NONE)
-               | (TypeInfoSize!T ?GC.BlkAttr.FINALIZE : 0)
-               | GC.BlkAttrAlignment(T.alignof);
+               | (TypeInfoSize!T ? GC.BlkAttr.FINALIZE : 0)
+               | GC.convertAlignmentToBlkAttr(T.alignof);
 
     version(D_TypeInfo)
         auto p = GC.malloc(itemSize, flags, typeid(T));

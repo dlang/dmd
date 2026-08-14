@@ -290,7 +290,7 @@ private size_t _d_arraysetlengthT_(Tarr : T[], T)(return ref scope Tarr arr, siz
 
     debug(PRINTF) printf("newsize = %zx\n", newsize);
 
-    enum uint gcAttrs = BlkAttr.APPENDABLE | GC.BlkAttrAlignment(T.alignof)
+    enum uint gcAttrs = BlkAttr.APPENDABLE | GC.convertAlignmentToBlkAttr(T.alignof)
         | (__traits(hasMember, T, "xdtor") ? BlkAttr.FINALIZE : 0);
 
     if (!arr.ptr)

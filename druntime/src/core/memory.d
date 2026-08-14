@@ -376,11 +376,33 @@ extern(D):
         ALIGNMENT_RSVD1 = 0xe00,
         ALIGNMENT_RSVD2 = 0xf00,
     }
-    static BlkAttr BlkAttrAlignment(size_t sz) @safe @nogc nothrow pure
+
+    /**
+     * Returns the ALIGNMENT_* attribute corresponding to the given alignment
+     *
+     * Params:
+     *  alignment = must be a power of 2 between 1 and 4096
+     * Returns:
+     *  one of ALIGNMENT_BYTE to ALIGNMENT_4096
+     */
+    static BlkAttr convertAlignmentToBlkAttr(size_t alignment) @safe @nogc nothrow pure
     {
-        pragma(inline, true);
         import core.bitop;
-        return cast(BlkAttr)(BlkAttr.ALIGNMENT_BYTE * (bsf(sz) + 1));
+        debug assert((alignment & (alignment - 1)) == 0 && alignment > 0 && alignment <= 4096);
+        return cast(BlkAttr)(BlkAttr.ALIGNMENT_BYTE * (bsf(alignment) + 1));
+    }
+    /**
+     * Returns the alignment corresponding to the given ALIGNMENT_* attribute
+     *
+     * Params:
+     *  attr = one of ALIGNMENT_BYTE to ALIGNMENT_4096
+     * Returns:
+     *  alignment corresponding to the given attribute
+     */
+    static size_t convertBlkAttrToAlignment(BlkAttr attr) @safe @nogc nothrow pure
+    {
+        debug assert(attr >= BlkAttr.ALIGNMENT_BYTE && attr <= BlkAttr.ALIGNMENT_4096);
+        return 1 << (attr / BlkAttr.ALIGNMENT_BYTE - 1);
     }
 
     /**
