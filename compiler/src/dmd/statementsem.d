@@ -2660,18 +2660,9 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         }
         if (sc.scopeGuard)
         {
-            // @@@DEPRECATED_2.112@@@
-            // Deprecated in 2.100, transform into an error in 2.112
-            if (sc.scopeGuard.tok == TOK.onScopeFailure)
-            {
-                eSink.deprecation(rs.loc, "`return` statements cannot be in `scope(failure)` bodies.");
-                eSink.deprecationSupplemental(rs.loc, "Use try-catch blocks for this purpose");
-            }
-            else
-            {
-                eSink.error(rs.loc, "`return` statements cannot be in `%s` bodies", Token.toChars(sc.scopeGuard.tok));
-                errors = true;
-            }
+            eSink.error(rs.loc, "`return` statements cannot be in `%s` bodies",
+                        Token.toChars(sc.scopeGuard.tok));
+            errors = true;
         }
         if (sc.tryFinally)
         {
