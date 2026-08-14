@@ -23,11 +23,12 @@ import dmd.declaration;
 import dmd.dinterpret;
 import dmd.dstruct;
 import dmd.dtemplate;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
-import dmd.globals : dinteger_t, sinteger_t, uinteger_t;
+import dmd.globals : dinteger_t, sinteger_t, uinteger_t, global;
+import dmd.hdrgen : toErrMsg;
 import dmd.location;
 import dmd.mtype;
 import dmd.root.bitarray;
@@ -122,13 +123,14 @@ void generateUncaughtError(ThrownExceptionExp tee)
     UnionExp ue = void;
     Expression e = resolveSlice((*tee.thrown.value.elements)[0], &ue);
     StringExp se = e.toStringExp();
-    error(tee.thrown.loc, "uncaught CTFE exception `%s(%s)`", tee.thrown.type.toErrMsg(), se ? se.toErrMsg() : e.toErrMsg());
+    auto eSink = global.errorSink;
+    eSink.error(tee.thrown.loc, "uncaught CTFE exception `%s(%s)`", tee.thrown.type.toErrMsg(), se ? se.toErrMsg() : e.toErrMsg());
     /* Also give the line where the throw statement was. We won't have it
      * in the case where the ThrowStatement is generated internally
      * (eg, in ScopeStatement)
      */
     if (tee.loc.isValid() && !tee.loc.equals(tee.thrown.loc))
-        .errorSupplemental(tee.loc, "thrown from here");
+        eSink.errorSupplemental(tee.loc, "thrown from here");
 }
 
 /*************************
@@ -386,7 +388,8 @@ UnionExp copyLiteral(Expression e)
         emplaceExp!(UnionExp)(&ue, e);
         return ue;
     }
-    error(e.loc, "CTFE internal error: literal `%s`", e.toErrMsg());
+    auto eSink = global.errorSink;
+    eSink.error(e.loc, "CTFE internal error: literal `%s`", e.toErrMsg());
     assert(0);
 }
 
@@ -457,7 +460,10 @@ private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
         // Can't type paint from struct to struct*; this needs another
         // level of indirection
         if (lit.op == EXP.structLiteral && isPointer(type))
-            error(lit.loc, "CTFE internal error: painting `%s`", type.toErrMsg());
+        {
+            auto eSink = global.errorSink;
+            eSink.error(lit.loc, "CTFE internal error: painting `%s`", type.toErrMsg());
+        }
         ue = copyLiteral(lit);
     }
     ue.exp().type = type;
@@ -785,7 +791,8 @@ Expression pointerDifference(UnionExp* pue, Loc loc, Type type, Expression e1, E
     }
     else
     {
-        error(loc, "`%s - %s` cannot be interpreted at compile time: cannot subtract pointers to two different memory blocks", e1.toErrMsg(), e2.toErrMsg());
+        auto eSink = global.errorSink;
+        eSink.error(loc, "`%s - %s` cannot be interpreted at compile time: cannot subtract pointers to two different memory blocks", e1.toErrMsg(), e2.toErrMsg());
         emplaceExp!(CTFEExp)(pue, EXP.cantExpression);
     }
     return pue.exp();
@@ -795,6 +802,8 @@ Expression pointerDifference(UnionExp* pue, Loc loc, Type type, Expression e1, E
 // and op is EXP.add or EXP.min
 Expression pointerArithmetic(UnionExp* pue, Loc loc, EXP op, Type type, Expression eptr, Expression e2)
 {
+    auto eSink = global.errorSink;
+
     Expression cant()
     {
         emplaceExp!(CTFEExp)(pue, EXP.cantExpression);
@@ -802,7 +811,7 @@ Expression pointerArithmetic(UnionExp* pue, Loc loc, EXP op, Type type, Expressi
     }
     if (eptr.type.nextOf().ty == Tvoid)
     {
-        error(loc, "cannot perform arithmetic on `void*` pointers at compile time");
+        eSink.error(loc, "cannot perform arithmetic on `void*` pointers at compile time");
         return cant();
     }
     if (eptr.op == EXP.address)
@@ -813,13 +822,13 @@ Expression pointerArithmetic(UnionExp* pue, Loc loc, EXP op, Type type, Expressi
     {
         if (agg1.isSymOffExp().var.type.ty != Tsarray)
         {
-            error(loc, "cannot perform pointer arithmetic on arrays of unknown length at compile time");
+            eSink.error(loc, "cannot perform pointer arithmetic on arrays of unknown length at compile time");
             return cant();
         }
     }
     else if (agg1.op != EXP.string_ && agg1.op != EXP.arrayLiteral)
     {
-        error(loc, "cannot perform pointer arithmetic on non-arrays at compile time");
+        eSink.error(loc, "cannot perform pointer arithmetic on non-arrays at compile time");
         return cant();
     }
     dinteger_t ofs2 = e2.toInteger();
@@ -845,12 +854,12 @@ Expression pointerArithmetic(UnionExp* pue, Loc loc, EXP op, Type type, Expressi
         indx -= ofs2 / sz;
     else
     {
-        error(loc, "CTFE internal error: bad pointer operation");
+        eSink.error(loc, "CTFE internal error: bad pointer operation");
         return cant();
     }
     if (indx < 0 || len < indx)
     {
-        error(loc, "cannot assign pointer to index %lld inside memory block `[0..%lld]`", indx, len);
+        eSink.error(loc, "cannot assign pointer to index %lld inside memory block `[0..%lld]`", indx, len);
         return cant();
     }
     if (agg1.op == EXP.symbolOffset)
@@ -862,7 +871,7 @@ Expression pointerArithmetic(UnionExp* pue, Loc loc, EXP op, Type type, Expressi
     }
     if (agg1.op != EXP.arrayLiteral && agg1.op != EXP.string_)
     {
-        error(loc, "CTFE internal error: pointer arithmetic `%s`", agg1.toErrMsg());
+        eSink.error(loc, "CTFE internal error: pointer arithmetic `%s`", agg1.toErrMsg());
         return cant();
     }
     if (auto tsa = eptr.type.toBasetype().isTypeSArray())
@@ -1327,7 +1336,8 @@ private int ctfeRawCmp(Loc loc, Expression e1, Expression e2, bool identity = fa
         return e2.isAssocArrayLiteralExp.keys.length != 0;
     }
 
-    error(loc, "CTFE internal error: bad compare of `%s` and `%s`", e1.toErrMsg(), e2.toErrMsg());
+    auto eSink = global.errorSink;
+    eSink.error(loc, "CTFE internal error: bad compare of `%s` and `%s`", e1.toErrMsg(), e2.toErrMsg());
     assert(0);
 }
 
@@ -1512,7 +1522,8 @@ Expression ctfeIndex(UnionExp* pue, Loc loc, Type type, Expression e1, uinteger_
     {
         if (indx >= es1.len)
         {
-            error(loc, "string index %llu is out of bounds `[0 .. %llu]`", indx, cast(ulong)es1.len);
+            auto eSink = global.errorSink;
+            eSink.error(loc, "string index %llu is out of bounds `[0 .. %llu]`", indx, cast(ulong)es1.len);
             return CTFEExp.cantexp;
         }
         emplaceExp!IntegerExp(pue, loc, es1.getIndex(cast(size_t) indx), type);
@@ -1523,7 +1534,8 @@ Expression ctfeIndex(UnionExp* pue, Loc loc, Type type, Expression e1, uinteger_
     {
         if (indx >= ale.length)
         {
-            error(loc, "array index %llu is out of bounds `%s[0 .. %llu]`", indx, e1.toErrMsg(), cast(ulong)ale.length);
+            auto eSink = global.errorSink;
+            eSink.error(loc, "array index %llu is out of bounds `%s[0 .. %llu]`", indx, e1.toErrMsg(), cast(ulong)ale.length);
             return CTFEExp.cantexp;
         }
         Expression e = ale[cast(size_t)indx];
@@ -1587,7 +1599,10 @@ Expression ctfeCast(UnionExp* pue, Loc loc, Type type, Type to, Expression e, bo
     }
 
     if (CTFEExp.isCantExp(r))
-        error(loc, "cannot cast `%s` to `%s` at compile time", e.toErrMsg(), to.toErrMsg());
+    {
+        auto eSink = global.errorSink;
+        eSink.error(loc, "cannot cast `%s` to `%s` at compile time", e.toErrMsg(), to.toErrMsg());
+    }
 
     if (auto ae = e.isArrayLiteralExp())
         ae.ownedByCtfe = OwnedBy.ctfe;
@@ -1899,7 +1914,8 @@ bool isCtfeValueValid(Expression newval)
             return true; // uninitialized value
 
         default:
-            error(newval.loc, "CTFE internal error: illegal CTFE value `%s`", newval.toErrMsg());
+            auto eSink = global.errorSink;
+            eSink.error(newval.loc, "CTFE internal error: illegal CTFE value `%s`", newval.toErrMsg());
             return false;
     }
 }
