@@ -380,6 +380,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (sd.type.ty == Terror)
             {
                 .error(sd.loc, "%s `%s` had semantic errors when compiling", sd.kind, sd.toPrettyChars);
+                foreach (field; sd.fields)
+                {
+                    if (field.errors)
+                        errorSupplemental(field.loc, "field `%s` failed semantic analysis", field.toChars());
+                }
                 return;
             }
 
