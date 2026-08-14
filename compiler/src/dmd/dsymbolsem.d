@@ -2379,7 +2379,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 return;
             }
             //printf("inferring type for %s with init %s\n", dsym.toChars(), dsym._init.toChars());
-            dsym._init = dsym._init.inferInitializerType(sc, dsym.type);
+            dsym._init = dsym._init.inferInitializerType(sc, dsym.type, global.errorSink);
             dsym.type = dsym._init.initializerToExpression(null, sc.inCfile).type;
 
             if (autoDollarDims.length)
