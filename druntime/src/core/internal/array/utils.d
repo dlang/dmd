@@ -56,15 +56,9 @@ void[] __arrayAlloc(T)(size_t arrSize) @trusted
     import core.internal.traits : hasIndirections;
 
     enum typeInfoSize = TypeInfoSize!T;
-    BlkAttr attr = BlkAttr.APPENDABLE;
-
-    /* `extern(C++)` classes don't have a classinfo pointer in their vtable,
-     * so the GC can't finalize them.
-     */
-    static if (typeInfoSize)
-        attr |= BlkAttr.FINALIZE;
-    static if (!hasIndirections!T)
-        attr |= BlkAttr.NO_SCAN;
+    enum uint attr = BlkAttr.APPENDABLE | GC.BlkAttrAlignment(T.alignof)
+        | (typeInfoSize ? BlkAttr.FINALIZE : 0)
+        | (!hasIndirections!T ? BlkAttr.NO_SCAN : 0);
 
     version(D_TypeInfo)
         auto ptr = GC.malloc(arrSize, attr, typeid(T));
@@ -160,15 +154,12 @@ uint __typeAttrs(T)(void *copyAttrsFrom = null)
         // try to copy attrs from the given block
         auto info = GC.query(copyAttrsFrom);
         if (info.base)
-            return info.attr;
+            return info.attr | GC.BlkAttrAlignment(T.alignof);
     }
 
-    uint attrs = 0;
-    static if (!hasIndirections!T)
-        attrs |= BlkAttr.NO_SCAN;
-
-    static if (is(T == struct) && __traits(needsDestruction, T))
-        attrs |= BlkAttr.FINALIZE;
+    enum uint attrs = GC.BlkAttrAlignment(T.alignof)
+        | (!hasIndirections!T ? BlkAttr.NO_SCAN : 0)
+        | (is(T == struct) && __traits(needsDestruction, T) ? BlkAttr.FINALIZE : 0);
 
     return attrs;
 }

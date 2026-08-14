@@ -2662,7 +2662,7 @@ if (is(T == class))
     }
     else
     {
-        BlkAttr attr = BlkAttr.NONE;
+        BlkAttr attr = GC.BlkAttrAlignment(__traits(classInstanceAlignment, T));
 
         /* `extern(C++)`` classes don't have a classinfo pointer in their vtable,
          * so the GC can't finalize them.
@@ -2726,10 +2726,10 @@ T* _d_newitemT(T)() @trusted
     import core.internal.traits : hasIndirections;
     import core.memory : GC;
 
-    auto flags = !hasIndirections!T ? GC.BlkAttr.NO_SCAN : GC.BlkAttr.NONE;
     immutable itemSize = T.sizeof;
-    if (TypeInfoSize!T)
-        flags |= GC.BlkAttr.FINALIZE;
+    enum flags = (!hasIndirections!T ? GC.BlkAttr.NO_SCAN : GC.BlkAttr.NONE)
+               | (TypeInfoSize!T ?GC.BlkAttr.FINALIZE : 0)
+               | GC.BlkAttrAlignment(T.alignof);
 
     version(D_TypeInfo)
         auto p = GC.malloc(itemSize, flags, typeid(T));

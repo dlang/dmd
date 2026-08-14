@@ -1058,8 +1058,8 @@ unittest
     GC.free(larr1);
 
     auto larr2 = new S[255];
-    import core.internal.gc.blockmeta : LARGEPREFIX;
-    if (cast(void*)larr1 is cast(void*)larr2.ptr - LARGEPREFIX) // reusage not guaranteed
+    import core.internal.gc.blockmeta : LARGEPREFIX_MIN;
+    if (cast(void*)larr1 is cast(void*)larr2.ptr - LARGEPREFIX_MIN) // reusage not guaranteed
     {
         auto ptr = cast(S**)larr1;
         assert(ptr[0] != p1); // 16 bytes array header
@@ -1121,4 +1121,39 @@ unittest
     {
         s.thisptr = &s;
     }
+}
+
+// test alignment
+debug(SENTINEL) {} else
+unittest
+{
+    void testAlign(int algn)()
+    {
+        struct S
+        {
+            align(algn) int x;
+        }
+        auto s = new S;
+        assert((cast(size_t)(&s.x) & (algn - 1)) == 0);
+
+        S[] a;
+        a ~= S(0);
+        assert((cast(size_t)(a.ptr) & (algn - 1)) == 0);
+
+        // reallocate array until deep inside large array handling
+        for (int i = 1; i < 2048; i++)
+        {
+            a ~= S(i);
+            assert((cast(size_t)(a.ptr) & (algn - 1)) == 0);
+        }
+
+        class C
+        {
+            align(algn) int x;
+        }
+        auto c = new C;
+        assert((cast(size_t)(&c.x) & (algn - 1)) == 0);
+    }
+    static foreach (algn; [4, 8, 16, 32, 64, 128, 256, 512, 1024])
+        testAlign!algn();
 }
