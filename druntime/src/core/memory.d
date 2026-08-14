@@ -356,8 +356,32 @@ extern(D):
         NO_INTERIOR = 0b0001_0000,
 
         STRUCTFINAL = 0b0010_0000, // the block has a finalizer for (an array of) structs
-    }
 
+        // specify alignment requirements for block (might not be supported by all GC)
+        ALIGNMENT_MASK  = 0xf00,
+        ALIGNMENT_NONE  = 0x000, // default is 16
+        ALIGNMENT_BYTE  = 0x100,
+        ALIGNMENT_WORD  = 0x200,
+        ALIGNMENT_DWORD = 0x300,
+        ALIGNMENT_QWORD = 0x400,
+        ALIGNMENT_16    = 0x500,
+        ALIGNMENT_32    = 0x600,
+        ALIGNMENT_64    = 0x700,
+        ALIGNMENT_128   = 0x800,
+        ALIGNMENT_256   = 0x900,
+        ALIGNMENT_512   = 0xa00,
+        ALIGNMENT_1024  = 0xb00,
+        ALIGNMENT_2048  = 0xc00,
+        ALIGNMENT_4096  = 0xd00,
+        ALIGNMENT_RSVD1 = 0xe00,
+        ALIGNMENT_RSVD2 = 0xf00,
+    }
+    static BlkAttr BlkAttrAlignment(size_t sz) @safe @nogc nothrow pure
+    {
+        pragma(inline, true);
+        import core.bitop;
+        return cast(BlkAttr)(BlkAttr.ALIGNMENT_BYTE * (bsf(sz) + 1));
+    }
 
     /**
      * Contains aggregate information about a block of managed memory.  The

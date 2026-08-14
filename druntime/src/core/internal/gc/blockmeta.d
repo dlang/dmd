@@ -16,11 +16,56 @@ enum : size_t
     BIGLENGTHMASK = ~(PAGESIZE - 1),
     SMALLPAD = 1,
     MEDPAD = ushort.sizeof,
-    LARGEPREFIX = 16, // 16 bytes padding at the front of the array
-    LARGEPAD = LARGEPREFIX + 1,
+    LARGEPREFIX_MIN = 16,
     MAXSMALLSIZE = 256-SMALLPAD,
     MAXMEDSIZE = (PAGESIZE / 2) - MEDPAD
 }
+
+struct LargeArrayHeader
+{
+    size_t size;
+    size_t ti_alignvalid;   // TypeInfo + alignment-valid-bit, assuming typeinfo always word aligned
+    size_t align_;          // only valid if lowest bit in ti_alignvalid
+    size_t pad32;           // padding on 32-bit
+
+    size_t alignment() pure nothrow @nogc
+    {
+        return ti_alignvalid & 1 ? align_ : LARGEPREFIX_MIN;
+    }
+    void alignment(size_t a) pure nothrow @nogc
+    {
+        if (a > LARGEPREFIX_MIN)
+        {
+            ti_alignvalid |= 1;
+            align_ = a;
+        }
+        else
+            ti_alignvalid &= ~cast(size_t)1;
+    }
+    const(TypeInfo) typeInfo() pure nothrow @nogc
+    {
+        return cast(const(TypeInfo))cast(void*)(ti_alignvalid & ~cast(size_t)1);
+    }
+    void typeInfo(const(TypeInfo) ti) pure nothrow @nogc
+    {
+        assert((cast(size_t)cast(void*)ti & 1) == 0);
+        ti_alignvalid = (ti_alignvalid & 1) | (cast(size_t)cast(void*)ti);
+    }
+}
+
+size_t LARGEPREFIX(size_t alignment) pure nothrow @nogc
+{
+    return alignment > LARGEPREFIX_MIN ? alignment : LARGEPREFIX_MIN;
+}
+
+size_t LARGEPREFIX(scope void* base) pure nothrow @nogc
+{
+    // padding at the front of the array
+    return (cast(LargeArrayHeader*)base).alignment;
+}
+size_t LARGEPAD(size_t alignment) pure nothrow @nogc { return LARGEPREFIX(alignment) + 1; }
+
+size_t LARGEPAD(scope void* base) pure nothrow @nogc { return LARGEPREFIX(base) + 1; }
 
 // size used to store the TypeInfo at the end of an allocation for structs that have a destructor
 size_t structTypeInfoSize(const TypeInfo ti) pure nothrow @nogc
@@ -56,7 +101,7 @@ size_t structTypeInfoSize(const TypeInfo ti) pure nothrow @nogc
   future that the block is unshared, we may be able to change this, but I'm not
   sure it's important.
 
-  In order to do put the length at the front, we have to provide 16 bytes
+  In order to do put the length at the front, we have to provide at least 16 bytes
   buffer space in case the block has to be aligned properly.  In x86, certain
   SSE instructions will only work if the data is 16-byte aligned.  In addition,
   we need the sentinel byte to prevent accidental pointers to the next block.
@@ -69,16 +114,7 @@ size_t structTypeInfoSize(const TypeInfo ti) pure nothrow @nogc
 
   where elem0 starts 16 bytes after the first byte.
   */
-bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, const TypeInfo tinext, size_t oldlength = size_t.max) pure nothrow
-{
-    __setBlockFinalizerInfo(info, tinext);
-
-    size_t typeInfoSize = (info.attr & BlkAttr.STRUCTFINAL) ? size_t.sizeof : 0;
-    return __setArrayAllocLengthImpl(info, newlength, isshared, oldlength, typeInfoSize);
-}
-
-// the impl function, used both above and in core.internal.array.utils
-bool __setArrayAllocLengthImpl(ref BlkInfo info, size_t newlength, bool isshared, size_t oldlength, size_t typeInfoSize) pure nothrow
+bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, size_t oldlength, size_t typeInfoSize) pure nothrow
 {
     import core.atomic;
 
@@ -144,7 +180,7 @@ bool __setArrayAllocLengthImpl(ref BlkInfo info, size_t newlength, bool isshared
     }
     else
     {
-        if (newlength + LARGEPAD > info.size)
+        if (newlength + LARGEPAD(info.base) > info.size)
             // new size does not fit inside block
             return false;
         auto length = cast(size_t *)(info.base);
@@ -172,30 +208,29 @@ bool __setArrayAllocLengthImpl(ref BlkInfo info, size_t newlength, bool isshared
 }
 
 /**
-  The block finalizer info is set separately from the array length, as that is
+  The block finalizer and the alignment info is set separately from the array length, as that is
   only needed on the initial setup of the block. No shared is needed, since
   this should only happen when the block is new.
   If the STRUCTFINAL bit is not set, no finalizer is stored (but if needed the
   slot is zeroed)
   */
-void __setBlockFinalizerInfo(ref BlkInfo info, const TypeInfo ti) pure nothrow
+void __setBlockMetaInfo(ref BlkInfo info, const TypeInfo ti, size_t alignment) pure nothrow
 {
     if ((info.attr & BlkAttr.APPENDABLE) && info.size > PAGESIZE / 2)
     {
         // if the structfinal bit is not set, we don't have a finalizer. But we
         // should still zero out the finalizer slot.
-        auto context = (info.attr & BlkAttr.STRUCTFINAL) ? cast(void*)ti : null;
+        auto context = (info.attr & BlkAttr.STRUCTFINAL) ? ti : null;
 
-        // array used size goes at the beginning. We can stuff the typeinfo
-        // right after it, as we need to use 16 bytes anyway.
-        //
-        auto typeInfo = cast(void**)info.base + 1;
-        *typeInfo = context;
+        auto hdr = cast(LargeArrayHeader*)info.base;
         version (D_LP64) {} else
         {
             // zero out the extra padding
-            (cast(size_t*)info.base)[2 .. 4] = 0;
+            hdr.align_ = 0;
+            hdr.pad32 = 0;
         }
+        hdr.typeInfo = context;
+        hdr.alignment = alignment;
     }
     else if(info.attr & BlkAttr.STRUCTFINAL)
     {
@@ -222,10 +257,10 @@ const(TypeInfo) __getBlockFinalizerInfo(void* base, size_t size, uint attr) pure
 
     bool isLargeArray = (attr & BlkAttr.APPENDABLE) && size > PAGESIZE / 2;
     auto typeInfo = isLargeArray ?
-        base + size_t.sizeof :
-        base + size - size_t.sizeof;
-    assert(*cast(size_t*)typeInfo != 0);
-    return *cast(TypeInfo*)typeInfo;
+        (cast(LargeArrayHeader*)base).typeInfo :
+        *cast(TypeInfo*)(base + size - size_t.sizeof);
+    assert(typeInfo !is null);
+    return typeInfo;
 }
 
 /**
@@ -241,7 +276,7 @@ size_t __arrayAllocLength(ref BlkInfo info) pure nothrow
     if (info.size <= PAGESIZE / 2)
         return *cast(ushort *)(info.base + info.size - typeInfoSize - MEDPAD);
 
-    return *cast(size_t *)(info.base);
+    return (cast(LargeArrayHeader*)(info.base)).size;
 }
 
 /**
@@ -258,7 +293,7 @@ size_t __arrayAllocLengthAtomic(ref BlkInfo info) pure nothrow
     if (info.size <= PAGESIZE / 2)
         return atomicLoad(*cast(shared(ushort)*)(info.base + info.size - typeInfoSize - MEDPAD));
 
-    return atomicLoad(*cast(shared(size_t)*)(info.base));
+    return atomicLoad((cast(LargeArrayHeader*)(info.base)).size);
 }
 
 /**
@@ -269,7 +304,7 @@ size_t __arrayAllocCapacity(ref BlkInfo info) pure nothrow
 {
     // Capacity is a calculation based solely on the block info.
     if (info.size > PAGESIZE / 2)
-        return info.size - LARGEPAD;
+        return info.size - LARGEPAD(info.base);
 
     auto typeInfoSize = (info.attr & BlkAttr.STRUCTFINAL) ? size_t.sizeof : 0;
     auto padsize = info.size <= 256 ? SMALLPAD : MEDPAD;
@@ -281,22 +316,22 @@ size_t __arrayAllocCapacity(ref BlkInfo info) pure nothrow
   NOT included in the passed in size.  Therefore, do NOT call this function
   with the size of an allocated block.
   */
-size_t __arrayPad(size_t size, const TypeInfo tinext) nothrow pure @trusted
+size_t __arrayPad(size_t size, size_t alignment, const TypeInfo tinext) nothrow pure @trusted
 {
-    return size > MAXMEDSIZE ? LARGEPAD : ((size > MAXSMALLSIZE ? MEDPAD : SMALLPAD) + structTypeInfoSize(tinext));
+    return size > MAXMEDSIZE ? LARGEPAD(alignment) : ((size > MAXSMALLSIZE ? MEDPAD : SMALLPAD) + structTypeInfoSize(tinext));
 }
 
 /**
   get the padding required to allocate size bytes, use the bits to determine
   which metadata must be stored.
   */
-size_t __allocPad(size_t size, uint bits) nothrow pure @trusted
+size_t __allocPad(size_t size, size_t alignment, uint bits) nothrow pure @trusted
 {
     auto finalizerSize = (bits & BlkAttr.STRUCTFINAL) ? (void*).sizeof : 0;
     if (bits & BlkAttr.APPENDABLE)
     {
         if (size > MAXMEDSIZE - finalizerSize)
-            return LARGEPAD;
+            return LARGEPAD(alignment);
         auto pad = (size > MAXSMALLSIZE - finalizerSize) ? MEDPAD : SMALLPAD;
         return pad + finalizerSize;
     }
@@ -321,7 +356,7 @@ void *__arrayStart()(return scope BlkInfo info) nothrow pure
 /// Ditto
 void *__arrayStart()(return scope void* base, size_t size) nothrow pure
 {
-    return base + ((size & BIGLENGTHMASK) ? LARGEPREFIX : 0);
+    return base + ((size & BIGLENGTHMASK) ? LARGEPREFIX(base) : 0);
 }
 
 /**
@@ -334,9 +369,10 @@ void __trimExtents(ref scope void* base, ref size_t blockSize, uint attr) nothro
     {
         if (blockSize > PAGESIZE / 2)
         {
-            // large block, it's always LARGEPREFIX bytes at the front.
-            blockSize = *(cast(size_t*)base);
-            base += LARGEPREFIX;
+            // large block, metadata in header at the front.
+            auto hdr = cast(LargeArrayHeader*)base;
+            blockSize = hdr.size;
+            base += hdr.alignment;
             return;
         }
 
