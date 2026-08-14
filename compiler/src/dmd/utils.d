@@ -12,7 +12,7 @@
 module dmd.utils;
 
 import core.stdc.string;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.location;
 import dmd.root.file;
 import dmd.root.filename;
@@ -60,7 +60,9 @@ bool readFile(Loc loc, const(char)[] filename, ref OutBuffer buf)
 {
     if (File.read(filename, buf))
     {
-        error(loc, "error reading file `%.*s`", cast(int)filename.length, filename.ptr);
+        import dmd.globals;
+        auto eSink = global.errorSink;
+        eSink.error(loc, "error reading file `%.*s`", cast(int)filename.length, filename.ptr);
         return true;
     }
     return false;
@@ -83,7 +85,9 @@ extern (D) bool writeFile(Loc loc, const(char)[] filename, const void[] data)
         return false;
     if (!File.update(filename, data))
     {
-        error(loc, "error writing file '%.*s'", cast(int) filename.length, filename.ptr);
+        import dmd.globals;
+        auto eSink = global.errorSink;
+        eSink.error(loc, "error writing file '%.*s'", cast(int) filename.length, filename.ptr);
         return false;
     }
     return true;
@@ -107,7 +111,9 @@ bool ensurePathToNameExists(Loc loc, const(char)[] name)
     {
         if (!FileName.ensurePathExists(pt))
         {
-            error(loc, "cannot create directory %*.s", cast(int) pt.length, pt.ptr);
+            import dmd.globals;
+            auto eSink = global.errorSink;
+            eSink.error(loc, "cannot create directory %*.s", cast(int) pt.length, pt.ptr);
             FileName.free(pt.ptr);
             return false;
         }
