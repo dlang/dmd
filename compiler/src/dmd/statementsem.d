@@ -2776,16 +2776,13 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 // https://issues.dlang.org/show_bug.cgi?id=23063
                 rs.exp = checkNoreturnVarAccess(rs.exp);
 
-                // @@@DEPRECATED_2.111@@@
                 const olderrors = global.startGagging();
-                // uncomment to turn deprecation into an error when
-                // deprecation cycle is over
                 if (discardValue(rs.exp))
                 {
-                    //errors = true;
+                    errors = true;
                 }
                 if (global.endGagging(olderrors))
-                    eSink.deprecation(rs.exp.loc, "`%s` has no effect", rs.exp.toErrMsg());
+                    eSink.error(rs.exp.loc, "`%s` has no effect", rs.exp.toErrMsg());
 
                 /* Replace:
                  *      return exp;
