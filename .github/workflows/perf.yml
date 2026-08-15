@@ -111,6 +111,12 @@ jobs:
           fi
           deactivate
 
+      - name: Cache dub packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.dub/packages
+          key: dub-packages-${{ hashFiles('tools/perfrunner/workloads/vibed/dub.selections.json') }}
+
       - name: Measure
         run: |
           set -uexo pipefail
