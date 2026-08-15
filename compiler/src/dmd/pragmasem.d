@@ -23,10 +23,11 @@ import dmd.dinterpret;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem : include;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.location;
 import dmd.id;
 import dmd.statement;
@@ -47,6 +48,8 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
     import dmd.root.rmem;
     import dmd.target;
     import dmd.utils;
+
+    auto eSink = global.errorSink;
 
     void declarations()
     {
@@ -75,7 +78,7 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
     {
         if (pd.decl)
         {
-            .error(pd.loc, "%s `%s` is missing a terminating `;`", pd.kind, pd.toPrettyChars);
+            eSink.error(pd.loc, "%s `%s` is missing a terminating `;`", pd.kind, pd.toPrettyChars);
             declarations();
             // do them anyway, to avoid segfaults.
         }
@@ -88,7 +91,7 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
         if (pd.ident == Id.linkerDirective)
         {
             if (!pd.args || pd.args.length != 1)
-                .error(pd.loc, "%s `%s` one string argument expected for pragma(linkerDirective)", pd.kind, pd.toPrettyChars);
+                eSink.error(pd.loc, "%s `%s` one string argument expected for pragma(linkerDirective)", pd.kind, pd.toPrettyChars);
             else
             {
                 auto se = semanticString(sc, (*pd.args)[0], "linker directive");
@@ -96,7 +99,7 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
                     return noDeclarations();
                 (*pd.args)[0] = se;
                 if (global.params.v.verbose)
-                    message("linkopt   %.*s", cast(int)se.len, se.peekString().ptr);
+                    eSink.message(Loc.init, "linkopt   %.*s", cast(int)se.len, se.peekString().ptr);
             }
             return noDeclarations();
         }
@@ -114,7 +117,7 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
     else if (pd.ident == Id.lib)
     {
         if (!pd.args || pd.args.length != 1)
-            .error(pd.loc, "%s `%s` string expected for library name", pd.kind, pd.toPrettyChars);
+            eSink.error(pd.loc, "%s `%s` string expected for library name", pd.kind, pd.toPrettyChars);
         else
         {
             auto se = semanticString(sc, (*pd.args)[0], "library name");
@@ -124,7 +127,7 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
 
             auto name = se.peekString().xarraydup;
             if (global.params.v.verbose)
-                message("library   %s", name.ptr);
+                eSink.message(Loc.init, "library   %s", name.ptr);
             if (global.params.moduleDeps.buffer && !global.params.moduleDeps.name)
             {
                 OutBuffer* ob = global.params.moduleDeps.buffer;
@@ -163,7 +166,7 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
     else if (pd.ident == Id.crt_constructor || pd.ident == Id.crt_destructor)
     {
         if (pd.args && pd.args.length != 0)
-            .error(pd.loc, "%s `%s` takes no argument", pd.kind, pd.toPrettyChars);
+            eSink.error(pd.loc, "%s `%s` takes no argument", pd.kind, pd.toPrettyChars);
         else
         {
             immutable isCtor = pd.ident == Id.crt_constructor;
@@ -196,19 +199,19 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
             }
 
             if (recurse(pd, isCtor) > 1)
-                .error(pd.loc, "%s `%s` can only apply to a single declaration", pd.kind, pd.toPrettyChars);
+                eSink.error(pd.loc, "%s `%s` can only apply to a single declaration", pd.kind, pd.toPrettyChars);
         }
         return declarations();
     }
     else if (pd.ident == Id.printf || pd.ident == Id.scanf)
     {
         if (pd.args && pd.args.length != 0)
-            .error(pd.loc, "%s `%s` takes no argument", pd.kind, pd.toPrettyChars);
+            eSink.error(pd.loc, "%s `%s` takes no argument", pd.kind, pd.toPrettyChars);
         return declarations();
     }
     else if (!global.params.ignoreUnsupportedPragmas)
     {
-        error(pd.loc, "unrecognized `pragma(%s)`", pd.ident.toErrMsg());
+        eSink.error(pd.loc, "unrecognized `pragma(%s)`", pd.ident.toErrMsg());
         return declarations();
     }
 
@@ -240,7 +243,7 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
             buf.writeByte(')');
         global.endGagging(errors_save);
     }
-    message("pragma    %s", buf.peekChars());
+    eSink.message(Loc.init, "pragma    %s", buf.peekChars());
     return declarations();
 }
 
@@ -256,6 +259,8 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
 bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
 {
     import dmd.statementsem;
+
+    auto eSink = global.errorSink;
 
     void applyPragmaInline(Dsymbol s, PINLINE inlining)
     {
@@ -292,14 +297,14 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
         {
             /* Should this be allowed?
              */
-            error(ps.loc, "`pragma(lib)` not allowed as statement");
+            eSink.error(ps.loc, "`pragma(lib)` not allowed as statement");
             return false;
         }
         else
         {
             if (!ps.args || ps.args.length != 1)
             {
-                error(ps.loc, "`string` expected for library name");
+                eSink.error(ps.loc, "`string` expected for library name");
                 return false;
             }
             else
@@ -310,7 +315,7 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
 
                 if (global.params.v.verbose)
                 {
-                    message("library   %.*s", cast(int)se.len, se.string);
+                    eSink.message("library   %.*s", cast(int)se.len, se.string);
                 }
             }
         }
@@ -319,7 +324,7 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
     {
         /* Should this be allowed?
          */
-        error(ps.loc, "`pragma(linkerDirective)` not allowed as statement");
+        eSink.error(ps.loc, "`pragma(linkerDirective)` not allowed as statement");
         return false;
     }
     else if (ps.ident == Id.startaddress)
@@ -340,7 +345,7 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
             fd.inlining = inlining;
         else
         {
-            error(ps.loc, "`pragma(inline)` is not inside a function");
+            eSink.error(ps.loc, "`pragma(inline)` is not inside a function");
             return false;
         }
     }
@@ -354,7 +359,7 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
     }
     else if (!global.params.ignoreUnsupportedPragmas)
     {
-        error(ps.loc, "unrecognized `pragma(%s)`", ps.ident.toErrMsg());
+        eSink.error(ps.loc, "unrecognized `pragma(%s)`", ps.ident.toErrMsg());
         return false;
     }
 
@@ -362,7 +367,7 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
     {
         if (ps.ident == Id.msg || ps.ident == Id.startaddress)
         {
-            error(ps.loc, "`pragma(%s)` is missing a terminating `;`", ps.ident.toErrMsg());
+            eSink.error(ps.loc, "`pragma(%s)` is missing a terminating `;`", ps.ident.toErrMsg());
             return false;
         }
         ps._body = ps._body.statementSemantic(sc);
@@ -384,9 +389,11 @@ package PINLINE evalPragmaInline(Loc loc, Scope* sc, Expressions* args)
     if (!args || args.length == 0)
         return PINLINE.default_;
 
+    auto eSink = global.errorSink;
+
     if (args && args.length > 1)
     {
-        .error(loc, "one boolean expression expected for `pragma(inline)`, not %llu", cast(ulong) args.length);
+        eSink.error(loc, "one boolean expression expected for `pragma(inline)`, not %llu", cast(ulong) args.length);
         args.setDim(1);
         (*args)[0] = ErrorExp.get();
     }
@@ -401,7 +408,7 @@ package PINLINE evalPragmaInline(Loc loc, Scope* sc, Expressions* args)
         e = e.ctfeInterpret();
         e = e.toBoolean(sc);
         if (e.isErrorExp())
-            .error(loc, "pragma(`inline`, `true` or `false`) expected, not `%s`", (*args)[0].toErrMsg());
+            eSink.error(loc, "pragma(`inline`, `true` or `false`) expected, not `%s`", (*args)[0].toErrMsg());
         (*args)[0] = e;
     }
 
@@ -477,9 +484,11 @@ private bool pragmaStartAddressSemantic(Loc loc, Scope* sc, Expressions* args)
 {
     import dmd.dtemplate;
 
+    auto eSink = global.errorSink;
+
     if (!args || args.length != 1)
     {
-        .error(loc, "function name expected for start address");
+        eSink.error(loc, "function name expected for start address");
         return false;
     }
     else
@@ -498,7 +507,7 @@ private bool pragmaStartAddressSemantic(Loc loc, Scope* sc, Expressions* args)
         Dsymbol sa = getDsymbol(e);
         if (!sa || !sa.isFuncDeclaration())
         {
-            .error(loc, "function name expected for start address, not `%s`", e.toErrMsg());
+            eSink.error(loc, "function name expected for start address, not `%s`", e.toErrMsg());
             return false;
         }
     }
@@ -528,6 +537,8 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
 {
     import dmd.root.rmem;
 
+    auto eSink = global.errorSink;
+
     StringExp verifyMangleString(ref Expression e)
     {
         import dmd.mangle : isValidMangling;
@@ -538,17 +549,17 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
         e = se;
         if (!se.len)
         {
-            error(loc, "`pragma(mangle)` zero-length string not allowed for mangled name");
+            eSink.error(loc, "`pragma(mangle)` zero-length string not allowed for mangled name");
             return null;
         }
         if (se.sz != 1)
         {
-            error(loc, "`pragma(mangle)` mangled name characters can only be of type `char`");
+            eSink.error(loc, "`pragma(mangle)` mangled name characters can only be of type `char`");
             return null;
         }
         auto slice = se.toStringz();
         if (strlen(slice.ptr) != se.len)
-            .error(loc, "pragma `mangle` null character not allowed in mangled name");
+            eSink.error(loc, "pragma `mangle` null character not allowed in mangled name");
         mem.xfree(cast(void*)slice.ptr);
         return se;
     }
@@ -593,14 +604,14 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
 
                     bool expectedString()
                     {
-                        error(e.loc, "`string` expected for pragma mangle argument, not `%s` of type `%s`",
+                        eSink.error(e.loc, "`string` expected for pragma mangle argument, not `%s` of type `%s`",
                               e.toErrMsg(), e.type.toErrMsg());
                         return false;
                     }
 
                     bool expectedType()
                     {
-                        error(e.loc, "`class` or `struct` type expected for pragma mangle argument, not `%s` of type `%s`",
+                        eSink.error(e.loc, "`class` or `struct` type expected for pragma mangle argument, not `%s` of type `%s`",
                               e.toErrMsg(), e.type.toErrMsg());
                         return false;
                     }
@@ -662,10 +673,10 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
                 /* pragma(mangle) TemplateDeclaration
                    Give an informative error message to avoid pragma(mangle)
                    silently ignoring the template symbol. */
-                error(loc, "`pragma(mangle)` cannot apply to a template declaration");
+                eSink.error(loc, "`pragma(mangle)` cannot apply to a template declaration");
                 OutBuffer buf;
                 buf.arrayObjectsToBuffer(cast(Objects*)args);
-                errorSupplemental(loc, "use `template %s(Args...) { pragma(mangle, %s) ... }`", td.ident.toChars(), buf.peekChars());
+                eSink.errorSupplemental(loc, "use `template %s(Args...) { pragma(mangle, %s) ... }`", td.ident.toChars(), buf.peekChars());
                 return false;
             }
             else if (auto ad = s.isAttribDeclaration())
@@ -682,7 +693,7 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
                    must evaluate at compile time to a string literal. */
                 if (args.length != 1)
                 {
-                    error(loc, "`pragma(mangle)` takes a single argument that must be a string literal");
+                    eSink.error(loc, "`pragma(mangle)` takes a single argument that must be a string literal");
                     return false;
                 }
                 auto se = verifyMangleString((*args)[0]);
@@ -705,12 +716,12 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
 
     if (args is null)
     {
-        error(loc, "`pragma(mangle)` expects string literal argument for mangled name");
+        eSink.error(loc, "`pragma(mangle)` expects string literal argument for mangled name");
         return false;
     }
     if (args.length > 2)
     {
-        error(loc, "`pragma(mangle)` expects 1 or 2 arguments");
+        eSink.error(loc, "`pragma(mangle)` expects 1 or 2 arguments");
         return false;
     }
 
@@ -721,12 +732,12 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
 
     if (count == 0 && !ignored)
     {
-        error(loc, "`pragma(mangle)` must be attached to a declaration");
+        eSink.error(loc, "`pragma(mangle)` must be attached to a declaration");
         return false;
     }
     if (count > 1)
     {
-        error(loc, "`pragma(mangle)` can only apply to a single declaration");
+        eSink.error(loc, "`pragma(mangle)` can only apply to a single declaration");
         return false;
     }
     return true;
