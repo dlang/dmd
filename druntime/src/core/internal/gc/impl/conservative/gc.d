@@ -2203,8 +2203,9 @@ struct Gcx
         auto alignAttr = bits & BlkAttr.ALIGNMENT_MASK;
         if (alignAttr > BlkAttr.ALIGNMENT_16)
         {
-            while (bin < Bins.B_NUMSMALL && binAlignAttr[bin] < alignAttr)
-                bin++;
+            while (binAlignAttr[bin] < alignAttr)
+                if (++bin >= Bins.B_NUMSMALL)
+                    return bigAlloc(size, alloc_size, bits, ti); // large alignment needs big alloc
         }
         alloc_size = binsize[bin];
 
@@ -2287,6 +2288,10 @@ struct Gcx
     {
         debug(PRINTF) printf("In bigAlloc.  Size:  %zd\n", size);
 
+        auto alignAttr = cast(BlkAttr)(bits & BlkAttr.ALIGNMENT_MASK);
+        size_t pageAlign = alignAttr <= BlkAttr.ALIGNMENT_4K ? 1
+            : core.memory.GC.convertBlkAttrToAlignment(alignAttr) / PAGESIZE;
+
         LargeObjectPool* pool;
         size_t pn;
         immutable npages = LargeObjectPool.numPages(size);
@@ -2300,7 +2305,7 @@ struct Gcx
                 if (!p.isLargeObject || p.freepages < npages)
                     continue;
                 auto lpool = cast(LargeObjectPool*) p;
-                if ((pn = lpool.allocPages(npages)) == OPFAIL)
+                if ((pn = lpool.allocPages(npages, pageAlign)) == OPFAIL)
                     continue;
                 pool = lpool;
                 return true;
@@ -2310,9 +2315,9 @@ struct Gcx
 
         bool tryAllocNewPool() nothrow
         {
-            pool = cast(LargeObjectPool*) newPool(npages, true);
+            pool = cast(LargeObjectPool*) newPool(npages + pageAlign - 1, true);
             if (!pool) return false;
-            pn = pool.allocPages(npages);
+            pn = pool.allocPages(npages, pageAlign);
             assert(pn != OPFAIL);
             return true;
         }
@@ -4433,9 +4438,14 @@ struct LargeObjectPool
 
     /**
      * Allocate n pages from Pool.
-     * Returns OPFAIL on failure.
+     *
+     * Params:
+     *  n = number of pages to allocate
+     *  pageAlign = required alignment of resulting page (including base address)
+     * Returns:
+     *  OPFAIL on failure.
      */
-    size_t allocPages(size_t n) nothrow
+    size_t allocPages(size_t n, size_t pageAlign) nothrow
     {
         if (largestFree < n || searchStart + n > npages)
             return OPFAIL;
@@ -4450,11 +4460,26 @@ struct LargeObjectPool
         while (searchStart < npages && pagetable[searchStart] == Bins.B_PAGE)
             searchStart += bPageOffsets[searchStart];
 
+        size_t basePage = (cast(size_t)baseAddr / PAGESIZE);
         for (size_t i = searchStart; i < npages; )
         {
             assert(pagetable[i] == Bins.B_FREE);
 
             auto p = bPageOffsets[i];
+            if (pageAlign > 1)
+            {
+                size_t ialigned = ((basePage + i + pageAlign - 1) & -pageAlign) - basePage;
+                if (ialigned + n > i + p)
+                    goto L_next;
+                if (ialigned + n < i + p)
+                    setFreePageOffsets(ialigned + n, i + p - (ialigned + n));
+                if (ialigned > i)
+                {
+                    setFreePageOffsets(i, ialigned - i);
+                    i = ialigned;
+                }
+                goto L_found;
+            }
             if (p > n)
             {
                 setFreePageOffsets(i + n, p - n);
@@ -4474,6 +4499,7 @@ struct LargeObjectPool
                 freepages -= n;
                 return i;
             }
+            L_next:
             if (p > largest)
                 largest = p;
 

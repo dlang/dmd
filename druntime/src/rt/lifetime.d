@@ -1127,7 +1127,7 @@ unittest
 debug(SENTINEL) {} else
 unittest
 {
-    void testAlign(int algn)()
+    static void testAlign(int algn)()
     {
         struct S
         {
@@ -1154,6 +1154,15 @@ unittest
         auto c = new C;
         assert((cast(size_t)(&c.x) & (algn - 1)) == 0);
     }
-    static foreach (algn; [4, 8, 16, 32, 64, 128, 256, 512, 1024])
-        testAlign!algn();
+    static foreach (algn; 0..16) // compiler does not support alignment > 32768
+        testAlign!(1 << algn)();
+
+    static void testAlignMalloc(int algn)()
+    {
+        // alignment larger than size
+        void* p = GC.malloc(4, GC.convertAlignmentToBlkAttr(algn));
+        assert((cast(size_t)(p) & (algn - 1)) == 0);
+    }
+    static foreach (algn; 0..23)
+        testAlignMalloc!(1 << algn)();
 }
