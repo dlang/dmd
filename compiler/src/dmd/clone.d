@@ -1021,6 +1021,11 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
             dtors.push(cldec.baseClass.aggrDtor);
     }
 
+    bool landsInCppVtbl;
+    if (auto cldec = ad.isClassDeclaration())
+        if (cldec.classKind == ClassKind.cpp)
+            landsInCppVtbl = true;
+
     // Set/build `ad.aggrDtor`
     switch (dtors.length)
     {
@@ -1028,6 +1033,9 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
         break;
 
     case 1:
+        // Always build the aggregate destructor if the linkage needs to match the vtbl.
+        if (landsInCppVtbl && dtors[0]._linkage != LINK.cpp)
+            goto default;
         // Use the single existing dtor directly as aggregate dtor.
         // Note that this might be `cldec.baseClass.aggrDtor`.
         ad.aggrDtor = dtors[0];
@@ -1053,13 +1061,21 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
             ce.directcall = true;
             e = Expression.combine(e, ce);
         }
+
+        auto sc2 = sc.push();
+        sc2.stc &= ~STC.static_; // not a static destructor
+        if (landsInCppVtbl)
+            sc2.linkage = LINK.cpp;
+
         auto dd = new DtorDeclaration(declLoc, Loc.initial, stc, Id.__aggrDtor);
         dd.isGenerated = true;
         dd.storage_class |= STC.inference;
         dd.fbody = new ExpStatement(loc, e);
         ad.members.push(dd);
-        dd.dsymbolSemantic(sc);
+        dd.dsymbolSemantic(sc2);
         ad.aggrDtor = dd;
+
+        sc2.pop();
         break;
     }
 
