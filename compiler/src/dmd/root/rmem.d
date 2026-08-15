@@ -396,7 +396,7 @@ class BumpPointerGC : GCInterface
     {
         static if (is(typeof(GC.BlkAttr.ALIGNMENT_MASK)))
         {
-            uint alignAttr = bits & GC.BlkAttr.ALIGNMENT_MASK;
+            auto alignAttr = cast(GC.BlkAttr)(bits & GC.BlkAttr.ALIGNMENT_MASK);
             return alignAttr ? GC.convertBlkAttrToAlignment(alignAttr) : DEFAULT_ALIGNMENT;
         }
         else
