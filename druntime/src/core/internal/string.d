@@ -32,46 +32,43 @@ Returns:
     The unsigned integer value as a string of characters
 */
 T[] unsignedToTempString(uint radix = 10, bool upperCase = false, T)(ulong value, return scope T[] buf)
-if (radix >= 2 && radix <= 36 &&
-    (is(T == char) || is(T == wchar) || is(T == dchar)))
 {
-    enum baseChar = upperCase ? 'A' : 'a';
-
-    static size_t loopOverDigitsOf(V)(V val, ref scope T[] buf)
-    {
-        size_t i = buf.length;
-
-        do
-        {
-            uint x = void;
-            if (val < radix)
-            {
-                x = cast(uint)val;
-                val = 0;
-            }
-            else
-            {
-                x = cast(uint)(val % radix);
-                val /= radix;
-            }
-            buf[--i] = cast(char)((radix <= 10 || x < 10) ? x + '0' : x - 10 + baseChar);
-        } while (val);
-
-        return i;
-    }
-
     static if (size_t.sizeof == 4) // 32 bit CPU
     {
         if (value <= uint.max)
         {
             // use faster 32 bit arithmetic
             uint val = cast(uint) value;
-            auto i = loopOverDigitsOf(val, buf);
-            return buf[i .. $];
+            return toTempStringImpl!(radix, upperCase)(val, buf);
         }
     }
 
-    auto i = loopOverDigitsOf(value, buf);
+    return toTempStringImpl!(radix, upperCase)(value, buf);
+}
+
+private T[] toTempStringImpl(uint radix, bool upperCase, V, T)(V value, ref scope T[] buf)
+if (radix >= 2 && radix <= 36 &&
+    __traits(isUnsigned, V) &&
+    (is(T == char) || is(T == wchar) || is(T == dchar)))
+{
+    enum baseChar = upperCase ? 'A' : 'a';
+    size_t i = buf.length;
+
+    do
+    {
+        uint x = void;
+        if (value < radix)
+        {
+            x = cast(uint)value;
+            value = 0;
+        }
+        else
+        {
+            x = cast(uint)(value % radix);
+            value /= radix;
+        }
+        buf[--i] = cast(char)((radix <= 10 || x < 10) ? x + '0' : x - 10 + baseChar);
+    } while (value);
     return buf[i .. $];
 }
 
