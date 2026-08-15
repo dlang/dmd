@@ -179,8 +179,7 @@ public:
     {
         if (e.stageflags & StructLiteralExp.StageFlags.apply)
             return;
-        const old = e.stageflags;
-        e.stageflags |= StructLiteralExp.StageFlags.apply;
+        const old = e.setStageFlag(StructLiteralExp.StageFlags.apply);
         doCond(e.elements.peekSlice()) || applyTo(e);
         e.stageflags = old;
     }

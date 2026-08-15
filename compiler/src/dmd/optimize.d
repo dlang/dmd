@@ -372,8 +372,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
     {
         if (e.stageflags & StructLiteralExp.StageFlags.optimize)
             return;
-        const old = e.stageflags;
-        e.stageflags |= StructLiteralExp.StageFlags.optimize;
+        const old = e.setStageFlag(StructLiteralExp.StageFlags.optimize);
         if (e.elements)
         {
             foreach (ref ex; (*e.elements)[])
