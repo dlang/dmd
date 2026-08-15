@@ -5,6 +5,7 @@ template parameters.
 It allows extracting multiple values from a tuple or compile-time sequence directly into distinct variables.
 
 -------
+import std.stdio : writeln;
 import std.typecons : tuple;
 
 void main()
@@ -22,6 +23,9 @@ void main()
     {
         // ...
     }
+    // Unpacking works in a function literal parameter list
+    alias dg = ((x, y), z) => writeln(x, " ", y, " ", z);
+    dg(tuple(1, 2), 3); // "1 2 3\n"
 }
 -------
 
