@@ -13,7 +13,7 @@ void readFromUninit() @system
 }
 ```
 
-As part of this it is now capable of looking through pointers and seeing properties of variables that are on the stack.
+As part of this, it is now capable of looking through pointers and seeing properties of variables that are on the stack.
 
 An application of this feature is the prevention of mathematical operators from accessing default initialized floating point types.
 
@@ -30,7 +30,7 @@ void checkFloatInit(bool condition)
 }
 ```
 
-It will not activate for other expressions, or statements.
-Only in a mathematical expression.
+It will not activate for other expressions, or statements -
+only in a mathematical expression.
 
-This was not originally part of the fast DFA engines scope, its continued existence depends upon community feedback as part of usage.
+This was not originally part of the fast DFA engines scope. Its continued existence depends upon community feedback as part of usage.

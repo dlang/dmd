@@ -11,4 +11,4 @@ inlined, so the function's lines correctly reflect how many times they
 were executed.
 
 Fixes $(LINK2 https://issues.dlang.org/show_bug.cgi?id=5848, Issue 5848) /
-$(LINK2 https://github.com/dlang/dmd/issues/18337, #18337)
+$(LINK2 https://github.com/dlang/dmd/issues/18337, #18337).
