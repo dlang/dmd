@@ -48,6 +48,14 @@ if(__traits(isUnsigned, U))
     return toTempStringImpl!(radix, upperCase)(cast()value, buf);
 }
 
+///ditto
+//TODO: remove after Phobos will acquire necessary changes
+T[] unsignedToTempString(uint radix = 10, bool upperCase = false, T, V)(in V value, return scope T[] buf)
+if(!__traits(isUnsigned, V))
+{
+    return unsignedToTempString!(radix, upperCase)(cast(ulong)value, buf);
+}
+
 private T[] toTempStringImpl(uint radix, bool upperCase, V, T)(V value, ref scope T[] buf)
 if (radix >= 2 && radix <= 36 &&
     __traits(isUnsigned, V) &&
