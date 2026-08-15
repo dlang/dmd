@@ -6,7 +6,7 @@ import std.parallelism : task;
 import std.path : buildPath, dirName;
 import std.stdio : stderr, writeln;
 
-import metrics : measure, initials;
+import metrics : collectTraces, initials, measure;
 import report : CommitRecord, MetricResult, render, renderCommit, Report;
 import vibed : describeFlags;
 
@@ -73,8 +73,9 @@ int main(string[] args)
     if (!diff)
     {
         auto m = measure(headDmd, workload, headPhobos, vibedRoot, vibedFlags, tmp, "head");
+        auto t = collectTraces(headDmd, workload, headPhobos, tmp, "head");
         write(outPath, renderCommit(CommitRecord(headSha, committedAt, before, commits,
-            os, hostDmd, m.metrics, m.helloTrace, m.phobosTrace)));
+            os, hostDmd, m, t.hello, t.phobos)));
         writeln("wrote ", outPath);
         return 0;
     }
@@ -85,13 +86,16 @@ int main(string[] args)
     auto head = measure(headDmd, workload, headPhobos, vibedRoot, vibedFlags, tmp, "head");
     auto base = baseTask.yieldForce;
 
+    auto baseTraces = collectTraces(baseDmd, workload, basePhobos, tmp, "base");
+    auto headTraces = collectTraces(headDmd, workload, headPhobos, tmp, "head");
+
     MetricResult[] metrics;
     foreach (def; initials)
         metrics ~= MetricResult(def.id, def.label, def.unit, def.method,
-            base.metrics[def.id], head.metrics[def.id]);
+            base[def.id], head[def.id]);
 
     auto rep = Report(baseSha, "merge-base", headSha, pr, os, hostDmd, metrics,
-        base.helloTrace, head.helloTrace, base.phobosTrace, head.phobosTrace);
+        baseTraces.hello, headTraces.hello, baseTraces.phobos, headTraces.phobos);
     write(outPath, render(rep));
     writeln("wrote ", outPath);
     return 0;

@@ -32,27 +32,26 @@ immutable MetricDef[] initials = [
     MetricDef("vibed_max_rss",                "peak RSS (compile vibe.d)",      "kb",    "time -v"),
 ];
 
-struct Measurement
+enum phobosFlags = ["-i=std", "-preview=dip1000"];
+
+struct Traces
 {
-    long[string] metrics;
-    Trace helloTrace;
-    Trace phobosTrace;
+    Trace hello;
+    Trace phobos;
 }
 
 // Measure every metric for one dmd binary. `tag` ("base"/"head")
 // keeps the two runs' temp files apart
-Measurement measure(string dmd, string workload, string phobos,
+long[string] measure(string dmd, string workload, string phobos,
     string vibed, string[] vibedFlags, string tmp, string tag)
 {
     auto stdPackage = buildPath(phobos, "std", "package.d");
-    auto phobosFlags = ["-i=std", "-preview=dip1000"];
     // Unlike a dub build, which compiles one package per invocation, this pulls
     // the whole vibe.d tree into a single compile.
     auto vibeFlags = "-i" ~ vibedFlags;
     auto phobosInstr = instructions(dmd, phobosFlags, stdPackage, tmp, tag ~ "-phobos");
     auto phobosFrontend = instructions(dmd, "-o-" ~ phobosFlags, stdPackage, tmp, tag ~ "-phobos-fe");
-    Measurement m;
-    m.metrics = [
+    return [
         "compile_hello_debug_instr":    instructions(dmd, [], workload, tmp, tag ~ "-dbg"),
         "compile_hello_release_instr":  instructions(dmd, ["-O", "-release"], workload, tmp, tag ~ "-rel"),
         "compile_phobos_instr":         phobosInstr,
@@ -64,9 +63,15 @@ Measurement measure(string dmd, string workload, string phobos,
         "phobos_max_rss":               maxRss(dmd, phobosFlags, stdPackage, tmp, tag ~ "-phobos"),
         "vibed_max_rss":                maxRss(dmd, vibeFlags, vibed, tmp, tag ~ "-vibed"),
     ];
-    m.helloTrace = collectTrace(dmd, [], workload, tmp, tag ~ "-hello");
-    m.phobosTrace = collectTrace(dmd, phobosFlags, stdPackage, tmp, tag ~ "-phobos");
-    return m;
+}
+
+// -ftime-trace phase times for hello and phobos
+Traces collectTraces(string dmd, string workload, string phobos, string tmp, string tag)
+{
+    auto stdPackage = buildPath(phobos, "std", "package.d");
+    return Traces(
+        collectTrace(dmd, [], workload, tmp, tag ~ "-hello"),
+        collectTrace(dmd, phobosFlags, stdPackage, tmp, tag ~ "-phobos"));
 }
 
 // Byte size of `binary`
