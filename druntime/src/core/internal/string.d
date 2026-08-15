@@ -36,7 +36,29 @@ if (radix >= 2 && radix <= 36 &&
     (is(T == char) || is(T == wchar) || is(T == dchar)))
 {
     enum baseChar = upperCase ? 'A' : 'a';
-    size_t i = buf.length;
+
+    static size_t loopOverDigitsOf(V)(V val, ref scope T[] buf)
+    {
+        size_t i = buf.length;
+
+        do
+        {
+            uint x = void;
+            if (val < radix)
+            {
+                x = cast(uint)val;
+                val = 0;
+            }
+            else
+            {
+                x = cast(uint)(val % radix);
+                val /= radix;
+            }
+            buf[--i] = cast(char)((radix <= 10 || x < 10) ? x + '0' : x - 10 + baseChar);
+        } while (val);
+
+        return i;
+    }
 
     static if (size_t.sizeof == 4) // 32 bit CPU
     {
@@ -44,40 +66,12 @@ if (radix >= 2 && radix <= 36 &&
         {
             // use faster 32 bit arithmetic
             uint val = cast(uint) value;
-            do
-            {
-                uint x = void;
-                if (val < radix)
-                {
-                    x = cast(uint)val;
-                    val = 0;
-                }
-                else
-                {
-                    x = cast(uint)(val % radix);
-                    val /= radix;
-                }
-                buf[--i] = cast(char)((radix <= 10 || x < 10) ? x + '0' : x - 10 + baseChar);
-            } while (val);
+            auto i = loopOverDigitsOf(val, buf);
             return buf[i .. $];
         }
     }
 
-    do
-    {
-        uint x = void;
-        if (value < radix)
-        {
-            x = cast(uint)value;
-            value = 0;
-        }
-        else
-        {
-            x = cast(uint)(value % radix);
-            value /= radix;
-        }
-        buf[--i] = cast(char)((radix <= 10 || x < 10) ? x + '0' : x - 10 + baseChar);
-    } while (value);
+    auto i = loopOverDigitsOf(value, buf);
     return buf[i .. $];
 }
 
