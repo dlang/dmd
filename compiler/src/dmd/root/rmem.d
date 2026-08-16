@@ -410,9 +410,7 @@ class BumpPointerGC : GCInterface
         version (none)
             assert(ti, "unexpected malloc, this usually happens for closure allocations");
         allocated += size;
-        auto alignment = determineAlignment(bits);
-        debug assert(!ti || ti.talign <= alignment);
-        return _allocmemoryNoFree(size, alignment);
+        return _allocmemoryNoFree(size, determineAlignment(bits));
     }
 
     GC.BlkInfo qalloc(size_t size, uint bits, scope const TypeInfo ti) nothrow
