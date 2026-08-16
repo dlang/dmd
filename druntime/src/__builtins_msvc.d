@@ -2149,7 +2149,6 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         int _cvt_ftoi_fast()(float value) @safe pure nothrow @nogc
         {
             if (__ctfe)
@@ -2229,7 +2228,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         long _cvt_ftoll_fast()(float value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -2372,7 +2370,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         uint _cvt_ftoui_fast()(float value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -2456,7 +2453,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         ulong _cvt_ftoull_fast()(float value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -2571,7 +2567,6 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         int _cvt_dtoi_fast()(double value) @safe pure nothrow @nogc
         {
             if (__ctfe)
@@ -2651,7 +2646,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         long _cvt_dtoll_fast()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -2788,7 +2782,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         uint _cvt_dtoui_fast()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -2870,7 +2863,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         ulong _cvt_dtoull_fast()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -2986,7 +2978,6 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         int _cvt_ftoi_sat()(float value) @safe pure nothrow @nogc
         {
             if (__ctfe)
@@ -3106,7 +3097,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         long _cvt_ftoll_sat()(float value) @trusted pure nothrow @nogc
         {
             if (__ctfe)
@@ -3271,7 +3261,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         uint _cvt_ftoui_sat()(float value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -3356,7 +3345,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         ulong _cvt_ftoull_sat()(float value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -3467,7 +3455,6 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         int _cvt_dtoi_sat()(double value) @safe pure nothrow @nogc
         {
             if (__ctfe)
@@ -3587,7 +3574,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         long _cvt_dtoll_sat()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -3752,7 +3738,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         uint _cvt_dtoui_sat()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -3835,7 +3820,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         ulong _cvt_dtoull_sat()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -3946,7 +3930,6 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         int _cvt_ftoi_sent()(float value) @safe pure nothrow @nogc
         {
             return _cvt_ftoi_fast(value);
@@ -3991,7 +3974,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         long _cvt_ftoll_sent()(float value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -4086,7 +4068,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         uint _cvt_ftoui_sent()(float value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -4160,7 +4141,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         ulong _cvt_ftoull_sent()(float value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -4271,7 +4251,6 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         int _cvt_dtoi_sent()(double value) @safe pure nothrow @nogc
         {
             return _cvt_dtoi_fast(value);
@@ -4316,7 +4295,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         uint _cvt_dtoui_sent()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -4391,7 +4369,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         long _cvt_dtoll_sent()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -4486,7 +4463,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         ulong _cvt_dtoull_sent()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
