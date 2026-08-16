@@ -61,14 +61,18 @@ def api(method, url, token, payload=None):
         return json.loads(resp.read() or "null")
 
 
-def upsert(body, repo, pr, token):
+def upsert(body, repo, pr, token, create):
     base = f"https://api.github.com/repos/{repo}"
     comments = api("GET", f"{base}/issues/{pr}/comments?per_page=100", token)
     existing = next((c for c in comments if MARKER in (c.get("body") or "")), None)
     if existing:
         api("PATCH", f"{base}/issues/comments/{existing['id']}", token, {"body": body})
-    else:
+    elif create:
         api("POST", f"{base}/issues/{pr}/comments", token, {"body": body})
+    else:
+        print("all deltas within noise threshold, skipping comment")
+        return
+    print(f"upserted comment on {repo}#{pr}")
 
 
 def main():
@@ -92,12 +96,7 @@ def main():
         abs(m["delta_pct"]) >= THRESHOLDS.get(m["method"], 0.1)
         for m in results["metrics"]
     )
-    if not significant:
-        print("all deltas within noise threshold, skipping comment")
-        return
-
-    upsert(body, repo, pr, token)
-    print(f"upserted comment on {repo}#{pr}")
+    upsert(body, repo, pr, token, significant)
 
 
 if __name__ == "__main__":
