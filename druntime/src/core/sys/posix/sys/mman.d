@@ -882,6 +882,7 @@ else
 //
 /*
 int shm_open(const scope char*, int, mode_t);
+int shm_open(const scope char*, int, ...); (Darwin)
 int shm_unlink(const scope char*);
 */
 
