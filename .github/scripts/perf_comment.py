@@ -20,7 +20,9 @@ def fmt_value(value, unit):
     if unit == "bytes":
         return f"{value / (1024 * 1024):.2f} MB"
     if unit == "kb":
-        return f"{value / 1024:.0f} MB"
+        mb = value / 1024
+        decimals = 2 if mb < 100 else 1 if mb < 1000 else 0
+        return f"{mb:.{decimals}f} MB"
     return str(value)
 
 
