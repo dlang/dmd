@@ -106,6 +106,8 @@ enum class TY : uint8_t
     Ttraits,
     Tmixin,
     Tnoreturn,
+    Ttag,
+    Tsumtype,
     TMAX
 };
 
@@ -284,6 +286,7 @@ public:
     TypeTraits *isTypeTraits();
     TypeNoreturn *isTypeNoreturn();
     TypeTag *isTypeTag();
+    TypeSumType *isTypeSumType();
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -707,6 +710,30 @@ class TypeTag final : public Type
 {
 public:
     TypeTag *syntaxCopy() override;
+
+    void accept(Visitor *v) override { v->visit(this); }
+};
+
+/**************************************************************/
+
+struct SumTypeVariantInfo
+{
+    Type *type;
+    Identifier *name;
+    Expressions *udas;
+    const char *comment;
+};
+
+typedef Array<SumTypeVariantInfo> SumTypeVariantInfos;
+
+class TypeSumType final : public Type
+{
+public:
+    SumTypeVariantInfos *variantInfos;
+    StructDeclaration *loweredStruct;
+    size_t defaultVariantIdx;
+
+    TypeSumType *syntaxCopy() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
