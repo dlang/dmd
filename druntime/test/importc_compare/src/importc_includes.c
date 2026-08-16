@@ -110,6 +110,7 @@
 #include <linux/io_uring.h>
 #include <linux/eventpoll.h>
 #endif
+#include <limits.h>
 #include <math.h>
 #include <fenv.h>
 #include <inttypes.h>
