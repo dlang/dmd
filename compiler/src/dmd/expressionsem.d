@@ -109,8 +109,10 @@ enum LOGSEMANTIC = false;
  */
 void merge(Scope* _this, Loc loc, const ref CtorFlow ctorflow)
 {
+    auto eSink = global.errorSink;
+
     if (!mergeCallSuper(_this.ctorflow.callSuper, ctorflow.callSuper))
-        error(loc, "one path skips constructor");
+        eSink.error(loc, "one path skips constructor");
 
     const fies = ctorflow.fieldinit;
     if (!_this.ctorflow.fieldinit.length || !fies.length)
@@ -129,7 +131,7 @@ void merge(Scope* _this, Loc loc, const ref CtorFlow ctorflow)
             fieldInit.loc = fiesCurrent.loc;
         if (!mergeFieldInit(_this.ctorflow.fieldinit[i].csx, fiesCurrent.csx) && mustInit)
         {
-            error(loc, "one path skips field `%s`", v.toErrMsg());
+            eSink.error(loc, "one path skips field `%s`", v.toErrMsg());
         }
     }
 }
@@ -143,7 +145,8 @@ real_t toImaginary(Expression _this)
     else if (auto ce = _this.isComplexExp())
         return cimagl(ce.value);
 
-    error(_this.loc, "floating point constant expression expected instead of `%s`", _this.toErrMsg());
+    auto eSink = global.errorSink;
+    eSink.error(_this.loc, "floating point constant expression expected instead of `%s`", _this.toErrMsg());
     return CTFloat.zero;
 }
 
@@ -167,7 +170,9 @@ real_t toReal(Expression _this)
     {
         return creall(cexp.value);
     }
-    error(_this.loc, "floating point constant expression expected instead of `%s`", _this.toErrMsg());
+
+    auto eSink = global.errorSink;
+    eSink.error(_this.loc, "floating point constant expression expected instead of `%s`", _this.toErrMsg());
     return CTFloat.zero;
 }
 
@@ -185,7 +190,9 @@ complex_t toComplex(Expression _this)
     {
         return cexp.value;
     }
-    error(_this.loc, "floating point constant expression expected instead of `%s`", _this.toErrMsg());
+
+    auto eSink = global.errorSink;
+    eSink.error(_this.loc, "floating point constant expression expected instead of `%s`", _this.toErrMsg());
     return complex_t(CTFloat.zero);
 }
 
@@ -215,7 +222,8 @@ dinteger_t toInteger(Expression _this)
             if (ide.ident == Id.dollar)
                 return 0;
         }
-        error(_this.loc, "integer constant expression expected instead of `%s`", _this.toErrMsg());
+        auto eSink = global.errorSink;
+        eSink.error(_this.loc, "integer constant expression expected instead of `%s`", _this.toErrMsg());
     }
     return 0;
 }
@@ -559,17 +567,19 @@ Optional!bool toBool(Expression _this)
  */
 bool hasValidType(Expression e)
 {
-    static bool visitTypeExp(TypeExp e)
+    auto eSink = global.errorSink;
+
+    bool visitTypeExp(TypeExp e)
     {
-        error(e.loc, "type `%s` is not an expression", e.toErrMsg());
+        eSink.error(e.loc, "type `%s` is not an expression", e.toErrMsg());
         return false;
     }
 
-    static bool visitScopeExp(ScopeExp e)
+    bool visitScopeExp(ScopeExp e)
     {
         if (e.sds.isPackage())
         {
-            error(e.loc, "%s `%s` has no type", e.sds.kind(), e.sds.toErrMsg());
+            eSink.error(e.loc, "%s `%s` has no type", e.sds.kind(), e.sds.toErrMsg());
             return false;
         }
         auto ti = e.sds.isTemplateInstance();
@@ -580,42 +590,42 @@ bool hasValidType(Expression e)
             ti.semantictiargsdone &&
             ti.semanticRun == PASS.initial)
         {
-            error(e.loc, "partial %s `%s` has no type", e.sds.kind(), e.toErrMsg());
+            eSink.error(e.loc, "partial %s `%s` has no type", e.sds.kind(), e.toErrMsg());
             return false;
         }
         return true;
     }
 
-    static bool visitTemplateExp(TemplateExp e)
+    bool visitTemplateExp(TemplateExp e)
     {
-        error(e.loc, "%s `%s` has no type", e.td.kind(), e.toErrMsg());
+        eSink.error(e.loc, "%s `%s` has no type", e.td.kind(), e.toErrMsg());
         return false;
     }
 
-    static bool visitFuncExp(FuncExp e)
+    bool visitFuncExp(FuncExp e)
     {
         if (e.td)
         {
-            error(e.loc, "template lambda has no type");
+            eSink.error(e.loc, "template lambda has no type");
             return false;
         }
         return true;
     }
 
-    static bool visitDotTemplateExp(DotTemplateExp e)
+    bool visitDotTemplateExp(DotTemplateExp e)
     {
-        error(e.loc, "%s `%s` has no type", e.td.kind(), e.toErrMsg());
+        eSink.error(e.loc, "%s `%s` has no type", e.td.kind(), e.toErrMsg());
         return false;
     }
 
-    static bool visitDotTemplateInstanceExp(DotTemplateInstanceExp e)
+    bool visitDotTemplateInstanceExp(DotTemplateInstanceExp e)
     {
         // Same logic as ScopeExp.hasValidType()
         if (e.ti.tempdecl &&
             e.ti.semantictiargsdone &&
             e.ti.semanticRun == PASS.initial)
         {
-            error(e.loc, "partial %s `%s` has no type", e.ti.kind(), e.toErrMsg());
+            eSink.error(e.loc, "partial %s `%s` has no type", e.ti.kind(), e.toErrMsg());
             return false;
         }
         return true;
@@ -660,7 +670,8 @@ void fillTupleExpExps(TupleExp _this, TupleDeclaration tup)
         }
         else
         {
-            error(_this.loc, "`%s` is not an expression", o.toErrMsg());
+            auto eSink = global.errorSink;
+            eSink.error(_this.loc, "`%s` is not an expression", o.toErrMsg());
         }
     }
 }
@@ -1160,7 +1171,10 @@ bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps,
         bool error()
         {
             if (loc != Loc.initial && fmt)
-                errorSupplemental(loc, fmt, ex.toChars());
+            {
+                auto eSink = global.errorSink;
+                eSink.errorSupplemental(loc, fmt, ex.toChars());
+            }
             return true;
         }
         if (!ex)
@@ -1417,7 +1431,9 @@ StringExp semanticString(Scope* sc, Expression exp, const char* s)
 
     if (auto se = e.toStringExp())
         return se;
-    error(exp.loc, "`string` expected for %s, not `(%s)` of type `%s`",
+
+    auto eSink = global.errorSink;
+    eSink.error(exp.loc, "`string` expected for %s, not `(%s)` of type `%s`",
           s, exp.toErrMsg(), exp.type.toErrMsg());
     return null;
 }
@@ -1449,13 +1465,14 @@ private Expression incompatibleTypes(UnaExp e)
     if (e.e1.type.toBasetype() == Type.terror)
         return e.e1;
 
+    auto eSink = global.errorSink;
     if (e.e1.op == EXP.type)
     {
-        error(e.loc, "incompatible type for `%s(%s)`: cannot use `%s` with types", EXPtoString(e.op).ptr, e.e1.toErrMsg(), EXPtoString(e.op).ptr);
+        eSink.error(e.loc, "incompatible type for `%s(%s)`: cannot use `%s` with types", EXPtoString(e.op).ptr, e.e1.toErrMsg(), EXPtoString(e.op).ptr);
     }
     else
     {
-        error(e.loc, "incompatible type for `%s(%s)`: `%s`", EXPtoString(e.op).ptr, e.e1.toErrMsg(), e.e1.type.toErrMsg());
+        eSink.error(e.loc, "incompatible type for `%s(%s)`: `%s`", EXPtoString(e.op).ptr, e.e1.toErrMsg(), e.e1.type.toErrMsg());
     }
     return ErrorExp.get();
 }
@@ -1479,20 +1496,21 @@ extern (D) Expression incompatibleTypes(BinExp e, Scope* sc = null)
     if (sc && suggestBinaryOverloads(e, sc))
         return ErrorExp.get();
 
+    auto eSink = global.errorSink;
     if (e.e1.op == EXP.type || e.e2.op == EXP.type)
     {
-        error(e.loc, "incompatible types for `(%s) %s (%s)`: cannot use `%s` with types",
+        eSink.error(e.loc, "incompatible types for `(%s) %s (%s)`: cannot use `%s` with types",
             e.e1.toErrMsg(), thisOp, e.e2.toErrMsg(), EXPtoString(e.op).ptr);
     }
     else if (e.e1.type.equals(e.e2.type))
     {
-        error(e.loc, "incompatible types for `(%s) %s (%s)`: both operands are of type `%s`",
+        eSink.error(e.loc, "incompatible types for `(%s) %s (%s)`: both operands are of type `%s`",
             e.e1.toErrMsg(), thisOp, e.e2.toErrMsg(), e.e1.type.toErrMsg());
     }
     else
     {
         auto ts = toAutoQualChars(e.e1.type, e.e2.type);
-        error(e.loc, "incompatible types for `(%s) %s (%s)`: `%s` and `%s`",
+        eSink.error(e.loc, "incompatible types for `(%s) %s (%s)`: `%s` and `%s`",
             e.e1.toErrMsg(), thisOp, e.e2.toErrMsg(), ts[0], ts[1]);
     }
 
@@ -1517,13 +1535,13 @@ extern (D) Expression incompatibleTypes(BinExp e, Scope* sc = null)
 
         if (isCharType(e1Next) && isCharType(e2Next))
         {
-            errorSupplemental(e.loc,
+            eSink.errorSupplemental(e.loc,
                 "`~` concatenates arrays, not pointers; " ~
                 "convert the pointer to an array first, e.g. with `std.string.fromStringz`");
         }
         else
         {
-            errorSupplemental(e.loc, "`~` concatenates arrays, not pointers");
+            eSink.errorSupplemental(e.loc, "`~` concatenates arrays, not pointers");
         }
     }
 
@@ -1545,6 +1563,8 @@ private Expression checkOpAssignTypes(BinExp binExp, Scope* sc)
     Type t1 = e1.type;
     Type t2 = e2.type;
 
+    auto eSink = global.errorSink;
+
     // @@@DEPRECATED_2.122@@@
     // Deprecated in 2.112, make it an error in 2.122
     // T opAssign floating yields a floating. Prevent truncating conversions (float to int).
@@ -1557,7 +1577,7 @@ private Expression checkOpAssignTypes(BinExp binExp, Scope* sc)
     {
         if ((type.isIntegral() && t2.isFloating()))
         {
-            deprecation(loc, "`%s %s %s` is performing truncating conversion", type.toErrMsg(), EXPtoString(op).ptr, t2.toErrMsg());
+            eSink.deprecation(loc, "`%s %s %s` is performing truncating conversion", type.toErrMsg(), EXPtoString(op).ptr, t2.toErrMsg());
         }
     }
 
@@ -1569,17 +1589,17 @@ private Expression checkOpAssignTypes(BinExp binExp, Scope* sc)
         const(char)* opstr = EXPtoString(op).ptr;
         if (t1.isReal() && t2.isComplex())
         {
-            error(loc, "`%s %s %s` is undefined. Did you mean `%s %s %s.re`?", t1.toErrMsg(), opstr, t2.toErrMsg(), t1.toErrMsg(), opstr, t2.toErrMsg());
+            eSink.error(loc, "`%s %s %s` is undefined. Did you mean `%s %s %s.re`?", t1.toErrMsg(), opstr, t2.toErrMsg(), t1.toErrMsg(), opstr, t2.toErrMsg());
             return ErrorExp.get();
         }
         else if (t1.isImaginary() && t2.isComplex())
         {
-            error(loc, "`%s %s %s` is undefined. Did you mean `%s %s %s.im`?", t1.toErrMsg(), opstr, t2.toErrMsg(), t1.toErrMsg(), opstr, t2.toErrMsg());
+            eSink.error(loc, "`%s %s %s` is undefined. Did you mean `%s %s %s.im`?", t1.toErrMsg(), opstr, t2.toErrMsg(), t1.toErrMsg(), opstr, t2.toErrMsg());
             return ErrorExp.get();
         }
         else if ((t1.isReal() || t1.isImaginary()) && t2.isImaginary())
         {
-            error(loc, "`%s %s %s` is an undefined operation", t1.toErrMsg(), opstr, t2.toErrMsg());
+            eSink.error(loc, "`%s %s %s` is an undefined operation", t1.toErrMsg(), opstr, t2.toErrMsg());
             return ErrorExp.get();
         }
     }
@@ -1591,7 +1611,7 @@ private Expression checkOpAssignTypes(BinExp binExp, Scope* sc)
         // Thus, r+=i, r+=c, i+=r, i+=c are all forbidden operations.
         if ((t1.isReal() && (t2.isImaginary() || t2.isComplex())) || (t1.isImaginary() && (t2.isReal() || t2.isComplex())))
         {
-            error(loc, "`%s %s %s` is undefined (result is complex)", t1.toErrMsg(), EXPtoString(op).ptr, t2.toErrMsg());
+            eSink.error(loc, "`%s %s %s` is undefined (result is complex)", t1.toErrMsg(), EXPtoString(op).ptr, t2.toErrMsg());
             return ErrorExp.get();
         }
         if (type.isReal() || type.isImaginary())
@@ -1676,7 +1696,7 @@ private Expression checkOpAssignTypes(BinExp binExp, Scope* sc)
     {
         if (t2.isComplex())
         {
-            error(loc, "cannot perform modulo complex arithmetic");
+            eSink.error(loc, "cannot perform modulo complex arithmetic");
             return ErrorExp.get();
         }
     }
@@ -1808,6 +1828,7 @@ Expression getField(StructLiteralExp sle, Type type, uint offset)
  */
 Expression resolveOpDollar(Scope* sc, ArrayExp ae, out Expression pe0)
 {
+    auto eSink = global.errorSink;
     assert(!ae.lengthVar);
     AggregateDeclaration ad = isAggregate(ae.e1.type);
     Dsymbol slice = search_function(ad, Id.opSlice);
@@ -1816,7 +1837,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, out Expression pe0)
     {
         if (ae.arguments.length == 1)
             return null;
-        error(ae.loc, "multi-dimensional slicing requires template `opSlice`");
+        eSink.error(ae.loc, "multi-dimensional slicing requires template `opSlice`");
         return ErrorExp.get();
     }
     foreach (i, e; *ae.arguments)
@@ -1872,7 +1893,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, out Expression pe0)
 
         if (!e.type)
         {
-            error(ae.loc, "`%s` has no value", e.toErrMsg());
+            eSink.error(ae.loc, "`%s` has no value", e.toErrMsg());
             e = ErrorExp.get();
         }
         if (e.op == EXP.error)
@@ -1909,7 +1930,8 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, ref Expressio
         e = resolveProperties(sc, e);
         if (!e.type)
         {
-            error(ae.loc, "`%s` has no value", e.toErrMsg());
+            auto eSink = global.errorSink;
+            eSink.error(ae.loc, "`%s` has no value", e.toErrMsg());
             errors = true;
         }
         return e;
@@ -2401,14 +2423,15 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
                 /* Transform:
                  *  aa.remove(arg) into delete aa[arg]
                  */
+                auto eSink = global.errorSink;
                 if (!ce.arguments || ce.arguments.length != 1)
                 {
-                    error(ce.loc, "expected key as argument to `aa.remove()`");
+                    eSink.error(ce.loc, "expected key as argument to `aa.remove()`");
                     return ErrorExp.get();
                 }
                 if (!eleft.type.isMutable())
                 {
-                    error(ce.loc, "cannot remove key from `%s` associative array `%s`", MODtoChars(t.mod), eleft.toErrMsg());
+                    eSink.error(ce.loc, "cannot remove key from `%s` associative array `%s`", MODtoChars(t.mod), eleft.toErrMsg());
                     return ErrorExp.get();
                 }
                 Expression key = (*ce.arguments)[0];
@@ -2736,6 +2759,8 @@ Expression symbolToExp(Dsymbol s, Loc loc, Scope* sc, bool hasOverloads)
         printf("DsymbolExp::resolve(%s %s)\n", s.kind(), s.toChars());
     }
 
+    auto eSink = global.errorSink;
+
 Lagain:
     Expression e;
 
@@ -2782,9 +2807,9 @@ Lagain:
                     if (auto v = sd.isVarDeclaration())
                     {
                         if (v.systemInferred)
-                            errorSupplemental(v.loc, "`%s` is inferred to be `@system` from its initializer here", v.toChars());
+                            eSink.errorSupplemental(v.loc, "`%s` is inferred to be `@system` from its initializer here", v.toChars());
                         else
-                            errorSupplemental(v.loc, "`%s` is declared here", v.toChars());
+                            eSink.errorSupplemental(v.loc, "`%s` is declared here", v.toChars());
                     }
                     return ErrorExp.get();
                 }
@@ -2805,9 +2830,9 @@ Lagain:
             !v.type.deco && v.inuse)    // during variable type semantic
         {
             if (v.inuse)    // variable type depends on the variable itself
-                error(loc, "circular reference to %s `%s`", v.kind(), v.toPrettyChars());
+                eSink.error(loc, "circular reference to %s `%s`", v.kind(), v.toPrettyChars());
             else            // variable type cannot be determined
-                error(loc, "forward reference to %s `%s`", v.kind(), v.toPrettyChars());
+                eSink.error(loc, "forward reference to %s `%s`", v.kind(), v.toPrettyChars());
             return ErrorExp.get();
         }
         if (v.type.ty == Terror)
@@ -2817,7 +2842,7 @@ Lagain:
         {
             if (v.inuse)
             {
-                error(loc, "circular initialization of %s `%s`", v.kind(), v.toPrettyChars());
+                eSink.error(loc, "circular initialization of %s `%s`", v.kind(), v.toPrettyChars());
                 return ErrorExp.get();
             }
             e = v.expandInitializer(loc);
@@ -2878,7 +2903,7 @@ Lagain:
     {
         if (!imp.pkg)
         {
-            .error(loc, "forward reference of import `%s`", imp.toErrMsg());
+            eSink.error(loc, "forward reference of import `%s`", imp.toErrMsg());
             return ErrorExp.get();
         }
         auto ie = new ScopeExp(loc, imp.pkg);
@@ -2945,7 +2970,7 @@ Lagain:
         return e;
     }
 
-    .error(loc, "%s `%s` is not a variable", s.kind(), s.toErrMsg());
+    eSink.error(loc, "%s `%s` is not a variable", s.kind(), s.toErrMsg());
     return ErrorExp.get();
 }
 
@@ -3047,7 +3072,8 @@ L1:
              */
             if (flag)
                 return null;
-            error(e1.loc, "`this` for `%s` needs to be type `%s` not type `%s`", var.toErrMsg(), ad.toErrMsg(), t.toErrMsg());
+            auto eSink = global.errorSink;
+            eSink.error(e1.loc, "`this` for `%s` needs to be type `%s` not type `%s`", var.toErrMsg(), ad.toErrMsg(), t.toErrMsg());
             return ErrorExp.get();
         }
     }
@@ -3146,7 +3172,8 @@ private bool checkPurity(FuncDeclaration f, Loc loc, Scope* sc)
     // If the call has a pure parent, then the called func must be pure.
     if (!f.isPure() && checkImpure(sc, loc, null, f))
     {
-        error(loc, "`pure` %s `%s` cannot call impure %s `%s`",
+        auto eSink = global.errorSink;
+        eSink.error(loc, "`pure` %s `%s` cannot call impure %s `%s`",
             sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
             f.toPrettyChars());
 
@@ -3180,6 +3207,8 @@ void checkOverriddenDtor(FuncDeclaration f, Scope* sc, Loc loc,
     if (!dd || !dd.isGenerated)
         return;
 
+    auto eSink = global.errorSink;
+
     // DtorDeclaration without parents should fail at an earlier stage
     auto ad = cast(AggregateDeclaration) f.toParent2();
     assert(ad);
@@ -3193,7 +3222,7 @@ void checkOverriddenDtor(FuncDeclaration f, Scope* sc, Loc loc,
         assert(!check(ad.fieldDtor));
     }
 
-    dd.loc.errorSupplemental("%s`%s.~this` is %.*s because of the following field's destructors:",
+    eSink.errorSupplemental(dd.loc, "%s`%s.~this` is %.*s because of the following field's destructors:",
                         dd.isGenerated ? "generated " : "".ptr,
                         ad.toChars,
                         cast(int) checkName.length, checkName.ptr);
@@ -3223,12 +3252,12 @@ void checkOverriddenDtor(FuncDeclaration f, Scope* sc, Loc loc,
 
         if (fieldSd.dtor && !check(fieldSd.dtor))
         {
-            field.loc.errorSupplemental(" - %s %s", field.type.toChars(), field.toChars());
+            eSink.errorSupplemental(field.loc, " - %s %s", field.type.toChars(), field.toChars());
 
             if (fieldSd.dtor.isGenerated)
                 fieldSd.dtor.checkOverriddenDtor(sc, loc, check, checkName);
             else
-                fieldSd.dtor.loc.errorSupplemental("   %.*s `%s.~this` is declared here",
+                eSink.errorSupplemental(fieldSd.dtor.loc, "   %.*s `%s.~this` is declared here",
                                         cast(int) checkName.length, checkName.ptr, fieldSd.toChars());
         }
     }
@@ -3337,6 +3366,8 @@ private bool checkPurity(VarDeclaration v, Loc loc, Scope* sc)
         }
     }
 
+    auto eSink = global.errorSink;
+
     bool err = false;
     if (v.isDataseg())
     {
@@ -3347,7 +3378,7 @@ private bool checkPurity(VarDeclaration v, Loc loc, Scope* sc)
 
         if (checkImpure(sc, loc, "accessing mutable static data `%s`", v))
         {
-            error(loc, "`pure` %s `%s` cannot access mutable static data `%s`",
+            eSink.error(loc, "`pure` %s `%s` cannot access mutable static data `%s`",
                 sc.func.kind(), sc.func.toPrettyChars(), v.toErrMsg());
             err = true;
         }
@@ -3392,7 +3423,7 @@ private bool checkPurity(VarDeclaration v, Loc loc, Scope* sc)
                 OutBuffer vbuf;
                 MODMatchToBuffer(&ffbuf, ff.type.mod, v.type.mod);
                 MODMatchToBuffer(&vbuf, v.type.mod, ff.type.mod);
-                error(loc, "%s%s `%s` cannot access %sdata `%s`",
+                eSink.error(loc, "%s%s `%s` cannot access %sdata `%s`",
                     ffbuf.peekChars(), ff.kind(), ff.toPrettyChars(), vbuf.peekChars(), v.toErrMsg());
                 err = true;
                 break;
@@ -3450,13 +3481,15 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions*
     if (sc.inDefaultArg || sc.callLoc.isValid)
         return false;
 
+    auto eSink = global.errorSink;
+
     if (!sc.func)
     {
         if (sc.varDecl && !f.safetyInprocess && !f.isSafe() && !f.isTrusted())
         {
             if (sc.varDecl.storage_class & STC.safe)
             {
-                error(loc, "`@safe` variable `%s` cannot be initialized by calling `@system` function `%s`",
+                eSink.error(loc, "`@safe` variable `%s` cannot be initialized by calling `@system` function `%s`",
                     sc.varDecl.toErrMsg(), f.toErrMsg());
                 return true;
             }
@@ -3484,7 +3517,7 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions*
             {
                 if (sc.setUnsafe(false, loc,
                     "calling `pragma(printf)` function `%s` with format string `%s`", f, se))
-                    .errorSupplemental(f.loc, "`%s` is declared here", f.toPrettyChars());
+                    eSink.errorSupplemental(f.loc, "`%s` is declared here", f.toPrettyChars());
                 return true;
             }
         }
@@ -3492,7 +3525,7 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions*
         {
             if (sc.setUnsafe(false, loc,
                 "calling `pragma(printf)` function `%s` with non-literal format string", f))
-                .errorSupplemental(f.loc, "`%s` is declared here", f.toPrettyChars());
+                eSink.errorSupplemental(f.loc, "`%s` is declared here", f.toPrettyChars());
             return true;
         }
     }
@@ -3505,12 +3538,12 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions*
                 loc = sc.func.loc;
 
             const prettyChars = f.toPrettyChars();
-            error(loc, "`@safe` %s `%s` cannot call `@system` %s `%s`",
+            eSink.error(loc, "`@safe` %s `%s` cannot call `@system` %s `%s`",
                 sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
                 prettyChars);
             if (!f.isDtorDeclaration)
                 errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ false, STC.safe, global.errorSink);
-            .errorSupplemental(f.loc, "`%s` is declared here", prettyChars);
+            eSink.errorSupplemental(f.loc, "`%s` is declared here", prettyChars);
 
             f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().trust > TRUST.system, "@system");
 
@@ -3522,7 +3555,7 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc, Expressions*
         // for dip1000 by default transition, print deprecations for calling functions that will become `@system`
         if (sc.func.isSafeBypassingInference())
         {
-            .deprecation(loc, "`@safe` function `%s` calling `%s`", sc.func.toErrMsg(), f.toErrMsg());
+            eSink.deprecation(loc, "`@safe` function `%s` calling `%s`", sc.func.toErrMsg(), f.toErrMsg());
             errorSupplementalInferredAttr(f, 10, true, STC.safe, global.errorSink);
         }
         else if (!sc.func.safetyViolation)
@@ -3577,7 +3610,8 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
         || f.ident == Id._d_assocarrayliteralTX || f.ident == Id._d_arrayliteralTX
         || f.ident == Id._d_aaGetY))
     {
-        error(loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
+        auto eSink = global.errorSink;
+        eSink.error(loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
             sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
 
         if (!f.isDtorDeclaration)
@@ -3635,6 +3669,8 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
 {
     //printf("resolvePropertiesX, e1 = %s %s, e2 = %s\n", EXPtoString(e1.op).ptr, e1.toChars(), e2 ? e2.toChars() : null);
     Loc loc = e1.loc;
+
+    auto eSink = global.errorSink;
 
     OverloadSet os;
     Dsymbol s;
@@ -3695,7 +3731,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
             auto tf = fd.type.isTypeFunction();
             if (!tf.isRef && e2)
             {
-                error(loc, "%s is not an lvalue", e1.toErrMsg());
+                eSink.error(loc, "%s is not an lvalue", e1.toErrMsg());
                 return ErrorExp.get();
             }
         }
@@ -3862,13 +3898,13 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
 
     if (!e1.type)
     {
-        error(loc, "cannot resolve type for %s", e1.toErrMsg());
+        eSink.error(loc, "cannot resolve type for %s", e1.toErrMsg());
         e1 = ErrorExp.get();
     }
     return e1;
 
 Leprop:
-    error(loc, "not a property %s", e1.toErrMsg());
+    eSink.error(loc, "not a property %s", e1.toErrMsg());
     return ErrorExp.get();
 }
 
@@ -3887,7 +3923,8 @@ private bool checkRightThis(Expression e, Scope* sc)
     //        sc.intypeof, sc.getStructClassScope(), func, fdthis);
     auto t = ve.var.isThis();
     assert(t);
-    error(e.loc, "accessing non-static variable `%s` requires an instance of `%s`", ve.var.toErrMsg(), t.toErrMsg());
+    auto eSink = global.errorSink;
+    eSink.error(e.loc, "accessing non-static variable `%s` requires an instance of `%s`", ve.var.toErrMsg(), t.toErrMsg());
     return true;
 }
 
@@ -3916,6 +3953,7 @@ private Type arrayExpressionToCommonType(Scope* sc, ref Expressions exps)
      */
 
     //printf("arrayExpressionToCommonType()\n");
+    auto eSink = global.errorSink;
     scope IntegerExp integerexp = IntegerExp.literal!0;
     scope CondExp condexp = new CondExp(Loc.initial, integerexp, null, null);
 
@@ -3932,7 +3970,7 @@ private Type arrayExpressionToCommonType(Scope* sc, ref Expressions exps)
         e = resolveProperties(sc, e);
         if (!e.type)
         {
-            error(e.loc, "`%s` has no value", e.toErrMsg());
+            eSink.error(e.loc, "`%s` has no value", e.toErrMsg());
             t0 = Type.terror;
             continue;
         }
@@ -4173,7 +4211,8 @@ private bool checkDefCtor(Loc loc, Type t)
         ad = tc.sym;
     if (ad && ad.noDefaultCtor)
     {
-        .error(loc, "default construction is disabled for type `%s`", tb.toErrMsg());
+        auto eSink = global.errorSink;
+        eSink.error(loc, "default construction is disabled for type `%s`", tb.toErrMsg());
         noDefaultCtorSupplemental(ad);
         return true;
     }
@@ -4214,6 +4253,8 @@ private bool functionParameters(Loc loc, Scope* sc,
     bool err = false;
     Expression eprefix = null;
 
+    auto eSink = global.errorSink;
+
     if (argumentList.names)
     {
         OutBuffer buf;
@@ -4223,7 +4264,7 @@ private bool functionParameters(Loc loc, Scope* sc,
             // while errors are usually already caught by `tf.callMatch`,
             // this can happen when calling `typeof(freefunc)`
             if (buf.length)
-                error(loc, "%s", buf.peekChars());
+                eSink.error(loc, "%s", buf.peekChars());
             else
             {
                 // resolveNamedArgs returns null without an error message when there are
@@ -4231,7 +4272,7 @@ private bool functionParameters(Loc loc, Scope* sc,
                 // https://github.com/dlang/dmd/issues/20875
                 const nArgs = argumentList.arguments ? argumentList.arguments.length : 0;
                 if (nArgs > nparams && tf.parameterList.varargs == VarArg.none)
-                    error(loc, "expected %llu arguments, not %llu for non-variadic function type `%s`",
+                    eSink.error(loc, "expected %llu arguments, not %llu for non-variadic function type `%s`",
                           cast(ulong)nparams, cast(ulong)nArgs, tf.toErrMsg());
             }
             return true;
@@ -4245,7 +4286,7 @@ private bool functionParameters(Loc loc, Scope* sc,
 
     if (nargs > nparams && tf.parameterList.varargs == VarArg.none)
     {
-        error(loc, "expected %llu arguments, not %llu for non-variadic function type `%s`", cast(ulong)nparams, cast(ulong)nargs, tf.toErrMsg());
+        eSink.error(loc, "expected %llu arguments, not %llu for non-variadic function type `%s`", cast(ulong)nparams, cast(ulong)nargs, tf.toErrMsg());
         return true;
     }
 
@@ -4297,7 +4338,7 @@ private bool functionParameters(Loc loc, Scope* sc,
 
         bool errorArgs()
         {
-            error(loc, "expected %llu function arguments, not %llu", cast(ulong)nparams, cast(ulong)nargs);
+            eSink.error(loc, "expected %llu function arguments, not %llu", cast(ulong)nparams, cast(ulong)nargs);
             return true;
         }
 
@@ -4410,7 +4451,7 @@ private bool functionParameters(Loc loc, Scope* sc,
             default:
                 if (!arg)
                 {
-                    error(loc, "not enough arguments");
+                    eSink.error(loc, "not enough arguments");
                     return true;
                 }
                 break;
@@ -4443,7 +4484,7 @@ private bool functionParameters(Loc loc, Scope* sc,
         bool errorInout(MOD wildmatch)
         {
             const(char)* s = wildmatch == MODFlags.mutable ? "mutable" : MODtoChars(wildmatch);
-            error(loc, "modify `inout` to `%s` is not allowed inside `inout` function", s);
+            eSink.error(loc, "modify `inout` to `%s` is not allowed inside `inout` function", s);
             return true;
         }
 
@@ -4582,7 +4623,7 @@ private bool functionParameters(Loc loc, Scope* sc,
                 Type t = arg.type;
                 if (!t.isMutable() || !t.isAssignable()) // check blit assignable
                 {
-                    error(arg.loc, "cannot modify struct `%s` with immutable members", arg.toErrMsg());
+                    eSink.error(arg.loc, "cannot modify struct `%s` with immutable members", arg.toErrMsg());
                     err = true;
                 }
                 else
@@ -4716,12 +4757,12 @@ private bool functionParameters(Loc loc, Scope* sc,
                     const(char)* p = tf.linkage == LINK.c ? "extern(C)" : "extern(C++)";
                     if (arg.type.ty == Tarray)
                     {
-                        error(arg.loc, "cannot pass dynamic arrays to `%s` vararg functions", p);
+                        eSink.error(arg.loc, "cannot pass dynamic arrays to `%s` vararg functions", p);
                         err = true;
                     }
                     if (arg.type.ty == Tsarray)
                     {
-                        error(arg.loc, "cannot pass static arrays to `%s` vararg functions", p);
+                        eSink.error(arg.loc, "cannot pass static arrays to `%s` vararg functions", p);
                         err = true;
                     }
                 }
@@ -4730,12 +4771,12 @@ private bool functionParameters(Loc loc, Scope* sc,
             // Do not allow types that need destructors or copy constructors.
             if (arg.type.needsDestruction())
             {
-                error(arg.loc, "cannot pass types that need destruction as variadic arguments");
+                eSink.error(arg.loc, "cannot pass types that need destruction as variadic arguments");
                 err = true;
             }
             if (arg.type.needsCopyOrPostblit())
             {
-                error(arg.loc, "cannot pass types with postblits or copy constructors as variadic arguments");
+                eSink.error(arg.loc, "cannot pass types with postblits or copy constructors as variadic arguments");
                 err = true;
             }
 
@@ -4759,7 +4800,7 @@ private bool functionParameters(Loc loc, Scope* sc,
             {
                 if (se.hasOverloads && !se.var.isFuncDeclaration().isUnique())
                 {
-                    error(arg.loc, "function `%s` is overloaded", arg.toErrMsg());
+                    eSink.error(arg.loc, "function `%s` is overloaded", arg.toErrMsg());
                     err = true;
                 }
             }
@@ -5005,7 +5046,7 @@ private bool functionParameters(Loc loc, Scope* sc,
             {
                 const(char)* s1 = tret.isNaked ? " mutable" : tret.modToChars();
                 const(char)* s2 = tthis.isNaked ? " mutable" : tthis.modToChars();
-                .error(loc, "`inout` constructor `%s` creates%s object, not%s", fd.toPrettyChars(), s1, s2);
+                eSink.error(loc, "`inout` constructor `%s` creates%s object, not%s", fd.toPrettyChars(), s1, s2);
                 err = true;
             }
         }
@@ -5041,7 +5082,8 @@ Package resolveIsPackage(Dsymbol sym)
     {
         if (imp.pkg is null)
         {
-            .error(sym.loc, "internal compiler error: unable to process forward-referenced import `%s`",
+            auto eSink = global.errorSink;
+            eSink.error(sym.loc, "internal compiler error: unable to process forward-referenced import `%s`",
                     imp.toErrMsg());
             assert(0);
         }
@@ -15964,12 +16006,14 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
     if (Expression ex = unaSemantic(exp, sc))
         return ex;
 
+    auto eSink = global.errorSink;
+
     if (!sc.inCfile && exp.ident == Id._mangleof)
     {
         // symbol.mangleof
 
         // return mangleof as an Expression
-        static Expression dotMangleof(Loc loc, Scope* sc, Dsymbol ds, bool hasOverloads)
+        Expression dotMangleof(Loc loc, Scope* sc, Dsymbol ds, bool hasOverloads)
         {
             Expression e;
 
@@ -15981,7 +16025,7 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
 
                 if (f.purityInprocess || f.safetyInprocess || f.nothrowInprocess || f.nogcInprocess)
                 {
-                    error(loc, "%s `%s` cannot retrieve its `.mangleof` while inferring attributes", f.kind, f.toPrettyChars);
+                    eSink.error(loc, "%s `%s` cannot retrieve its `.mangleof` while inferring attributes", f.kind, f.toPrettyChars);
                     return ErrorExp.get();
                 }
 
@@ -16065,12 +16109,12 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
     // Template has no built-in properties except for 'stringof'.
     if ((exp.e1.isDotTemplateExp() || exp.e1.isTemplateExp()) && exp.ident != Id.stringof)
     {
-        error(exp.loc, "template `%s` does not have property `%s`", exp.e1.toErrMsg(), exp.ident.toErrMsg());
+        eSink.error(exp.loc, "template `%s` does not have property `%s`", exp.e1.toErrMsg(), exp.ident.toErrMsg());
         return ErrorExp.get();
     }
     if (!exp.e1.type)
     {
-        error(exp.loc, "expression `%s` does not have property `%s`", exp.e1.toErrMsg(), exp.ident.toErrMsg());
+        eSink.error(exp.loc, "expression `%s` does not have property `%s`", exp.e1.toErrMsg(), exp.ident.toErrMsg());
         return ErrorExp.get();
     }
 
@@ -16093,6 +16137,7 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
     //{ static int z; fflush(stdout); if (++z == 10) *(char*)0=0; }
 
     const cfile = sc.inCfile;
+    auto eSink = global.errorSink;
 
     /* Special case: rewrite this.id and super.id
      * to be classtype.id and baseclasstype.id
@@ -16189,9 +16234,9 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
                     !v.type.deco && v.inuse)
                 {
                     if (v.inuse)
-                        error(exp.loc, "circular reference to %s `%s`", v.kind(), v.toPrettyChars());
+                        eSink.error(exp.loc, "circular reference to %s `%s`", v.kind(), v.toPrettyChars());
                     else
-                        error(exp.loc, "forward reference to %s `%s`", v.kind(), v.toPrettyChars());
+                        eSink.error(exp.loc, "forward reference to %s `%s`", v.kind(), v.toPrettyChars());
                     return ErrorExp.get();
                 }
                 if (v.type.isTypeError())
@@ -16205,7 +16250,7 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
                      */
                     if (v.inuse)
                     {
-                        error(exp.loc, "circular initialization of %s `%s`", v.kind(), v.toPrettyChars());
+                        eSink.error(exp.loc, "circular initialization of %s `%s`", v.kind(), v.toPrettyChars());
                         return ErrorExp.get();
                     }
                     auto e = v.expandInitializer(exp.loc);
@@ -16353,15 +16398,15 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
         if (s && symbolIsVisible(sc, s))
         {
             if (s.isPackage())
-                error(exp.loc, "undefined identifier `%s` in %s `%s`, perhaps add `static import %s;`", exp.ident.toErrMsg(), ie.sds.kind(), ie.sds.toPrettyChars(), s.toPrettyChars());
+                eSink.error(exp.loc, "undefined identifier `%s` in %s `%s`, perhaps add `static import %s;`", exp.ident.toErrMsg(), ie.sds.kind(), ie.sds.toPrettyChars(), s.toPrettyChars());
             else
             {
-                error(exp.loc, "undefined identifier `%s` in %s `%s`, did you mean %s `%s`?", exp.ident.toErrMsg(), ie.sds.kind(), ie.sds.toPrettyChars(), s.kind(), s.toErrMsg());
-                errorSupplemental(s.loc, "`%s` located here", s.toPrettyChars(true));
+                eSink.error(exp.loc, "undefined identifier `%s` in %s `%s`, did you mean %s `%s`?", exp.ident.toErrMsg(), ie.sds.kind(), ie.sds.toPrettyChars(), s.kind(), s.toErrMsg());
+                eSink.errorSupplemental(s.loc, "`%s` located here", s.toPrettyChars(true));
             }
         }
         else
-            error(exp.loc, "undefined identifier `%s` in %s `%s`", exp.ident.toErrMsg(), ie.sds.kind(), ie.sds.toPrettyChars());
+            eSink.error(exp.loc, "undefined identifier `%s` in %s `%s`", exp.ident.toErrMsg(), ie.sds.kind(), ie.sds.toPrettyChars());
         return ErrorExp.get();
     }
     else if (t1b.ty == Tpointer && exp.e1.type.ty != Tenum &&
@@ -16449,6 +16494,8 @@ Expression dotTemplateSemanticProp(DotTemplateInstanceExp exp, Scope* sc, bool g
         printf("DotTemplateInstanceExpY::semantic('%s')\n", exp.toErrMsg());
     }
 
+    auto eSink = global.errorSink;
+
     static Expression errorExp()
     {
         return ErrorExp.get();
@@ -16470,7 +16517,7 @@ Expression dotTemplateSemanticProp(DotTemplateInstanceExp exp, Scope* sc, bool g
 
     Expression notTemplate()
     {
-        error(exp.loc, "`%s` isn't a template", e.toErrMsg());
+        eSink.error(exp.loc, "`%s` isn't a template", e.toErrMsg());
         return errorExp();
     }
 
@@ -16800,7 +16847,8 @@ private bool checkScalar(Expression e)
         return true;
     if (!e.type.isScalar())
     {
-        error(e.loc, "`%s` is not a scalar, it is a `%s`", e.toErrMsg(), e.type.toErrMsg());
+        auto eSink = global.errorSink;
+        eSink.error(e.loc, "`%s` is not a scalar, it is a `%s`", e.toErrMsg(), e.type.toErrMsg());
         return true;
     }
     return e.checkValue();
@@ -16814,7 +16862,8 @@ private bool checkNoBool(Expression e)
         return true;
     if (e.type.toBasetype().ty == Tbool)
     {
-        error(e.loc, "operation not allowed on `bool` `%s`", e.toErrMsg());
+        auto eSink = global.errorSink;
+        eSink.error(e.loc, "operation not allowed on `bool` `%s`", e.toErrMsg());
         return true;
     }
     return false;
@@ -16828,7 +16877,8 @@ private bool checkIntegral(Expression e)
         return true;
     if (!e.type.isIntegral())
     {
-        error(e.loc, "`%s` is not of integral type, it is a `%s`", e.toErrMsg(), e.type.toErrMsg());
+        auto eSink = global.errorSink;
+        eSink.error(e.loc, "`%s` is not of integral type, it is a `%s`", e.toErrMsg(), e.type.toErrMsg());
         return true;
     }
     return e.checkValue();
@@ -16840,13 +16890,14 @@ private bool checkArithmetic(Expression e, EXP op)
         return true;
     if (e.type.toBasetype().ty == Terror)
         return true;
+    auto eSink = global.errorSink;
     if (!e.type.isIntegral() && !e.type.isFloating())
     {
         // unary aggregate ops error here
         const char* msg = e.type.isAggregate() ?
             "operator `%s` is not defined for `%s` of type `%s`" :
             "illegal operator `%s` for `%s` of type `%s`";
-        error(e.loc, msg, EXPtoString(op).ptr, e.toErrMsg(), e.type.toErrMsg());
+        eSink.error(e.loc, msg, EXPtoString(op).ptr, e.toErrMsg(), e.type.toErrMsg());
         return true;
     }
 
@@ -16855,9 +16906,9 @@ private bool checkArithmetic(Expression e, EXP op)
         // @@@DEPRECATED_2.121@@@
         // Deprecated in 2.111
         // In 2.121, remove this branch to let `checkValue` raise the error
-        deprecation(e.loc, "type `%s` has no value", e.toChars);
+        eSink.deprecation(e.loc, "type `%s` has no value", e.toChars);
         if (!e.type.isOpaqueType)
-            deprecationSupplemental(e.loc, "perhaps use `%s.init`", e.toChars);
+            eSink.deprecationSupplemental(e.loc, "perhaps use `%s.init`", e.toChars);
         return false;
     }
 
@@ -16890,8 +16941,9 @@ private bool checkReadModifyWrite(Expression e, EXP rmwOp, Expression ex = null)
         break;
     }
 
-    error(e.loc, "read-modify-write operations are not allowed for `shared` variables");
-    errorSupplemental(e.loc, "Use `core.atomic.atomicOp!\"%s\"(%s, %s)` instead",
+    auto eSink = global.errorSink;
+    eSink.error(e.loc, "read-modify-write operations are not allowed for `shared` variables");
+    eSink.errorSupplemental(e.loc, "Use `core.atomic.atomicOp!\"%s\"(%s, %s)` instead",
                         EXPtoString(rmwOp).ptr, e.toErrMsg(), ex ? ex.toErrMsg() : "1");
     return true;
 }
@@ -16927,11 +16979,12 @@ private bool checkArithmeticBin(BinExp e)
  */
 bool checkValue(Expression e)
 {
+    auto eSink = global.errorSink;
     if (auto te = e.isTypeExp())
     {
-        error(e.loc, "type `%s` has no value", e.toErrMsg());
+        eSink.error(e.loc, "type `%s` has no value", e.toErrMsg());
         if (!e.type.isOpaqueType)
-            errorSupplemental(e.loc, "perhaps use `%s.init`", e.toErrMsg());
+            eSink.errorSupplemental(e.loc, "perhaps use `%s.init`", e.toErrMsg());
         return true;
     }
 
@@ -16941,21 +16994,21 @@ bool checkValue(Expression e)
             dtie.ti.semantictiargsdone &&
             dtie.ti.semanticRun == PASS.initial)
 
-            error(e.loc, "partial %s `%s` has no value", dtie.ti.kind(), e.toErrMsg());
+            eSink.error(e.loc, "partial %s `%s` has no value", dtie.ti.kind(), e.toErrMsg());
         else
-            error(e.loc, "%s `%s` has no value", dtie.ti.kind(), dtie.ti.toErrMsg());
+            eSink.error(e.loc, "%s `%s` has no value", dtie.ti.kind(), dtie.ti.toErrMsg());
         return true;
     }
 
     if (auto se = e.isScopeExp())
     {
-        error(e.loc, "%s `%s` has no value", se.sds.kind(), se.sds.toErrMsg());
+        eSink.error(e.loc, "%s `%s` has no value", se.sds.kind(), se.sds.toErrMsg());
         return true;
     }
 
     if (auto te = e.isTemplateExp())
     {
-        error(e.loc, "%s `%s` has no value", te.td.kind(), te.toErrMsg());
+        eSink.error(e.loc, "%s `%s` has no value", te.td.kind(), te.toErrMsg());
         return true;
     }
 
@@ -16963,7 +17016,7 @@ bool checkValue(Expression e)
     {
         if (fe.td)
         {
-            error(e.loc, "template lambda has no value");
+            eSink.error(e.loc, "template lambda has no value");
             return true;
         }
         return false;
@@ -16971,13 +17024,13 @@ bool checkValue(Expression e)
 
     if (auto dte = e.isDotTemplateExp())
     {
-        error(e.loc, "%s `%s` has no value", dte.td.kind(), e.toErrMsg());
+        eSink.error(e.loc, "%s `%s` has no value", dte.td.kind(), e.toErrMsg());
         return true;
     }
 
     if (e.type && e.type.toBasetype().ty == Tvoid)
     {
-        error(e.loc, "expression `%s` is `void` and has no value", e.toErrMsg());
+        eSink.error(e.loc, "expression `%s` is `void` and has no value", e.toErrMsg());
         //print(); assert(0);
         if (!global.gag)
             e.type = Type.terror;
@@ -17032,6 +17085,8 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
         }
     }
 
+    auto eSink = global.errorSink;
+
     //printf("checkSharedAccess() `%s` returnRef: %d\n", e.toErrMsg(), returnRef);
 
     bool check(Expression e, bool allowRef)
@@ -17039,7 +17094,7 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
         bool sharedError(Expression e)
         {
             // https://dlang.org/phobos/core_atomic.html
-            error(e.loc, "direct access to shared `%s` is not allowed, see `core.atomic`", e.toErrMsg());
+            eSink.error(e.loc, "direct access to shared `%s` is not allowed, see `core.atomic`", e.toErrMsg());
             return true;
         }
 
@@ -17315,6 +17370,8 @@ Expression toLvalue(Expression _this, Scope* sc, const(char)* action, Expression
     if (!action)
         action = "create lvalue of";
 
+    auto eSink = global.errorSink;
+
     assert(eorig);
     Expression visit(Expression _this)
     {
@@ -17327,11 +17384,11 @@ Expression toLvalue(Expression _this, Scope* sc, const(char)* action, Expression
             _this.loc = eorig.loc;
 
         if (eorig.op == EXP.type)
-            error(_this.loc, "cannot %s type `%s`", action, eorig.type.toErrMsg());
+            eSink.error(_this.loc, "cannot %s type `%s`", action, eorig.type.toErrMsg());
         else if (eorig.op == EXP.template_)
-            error(_this.loc, "cannot %s template `%s`, perhaps instantiate it first", action, eorig.toErrMsg());
+            eSink.error(_this.loc, "cannot %s template `%s`, perhaps instantiate it first", action, eorig.toErrMsg());
         else
-            error(_this.loc, "cannot %s expression `%s` because it is not an lvalue", action, eorig.toErrMsg());
+            eSink.error(_this.loc, "cannot %s expression `%s` because it is not an lvalue", action, eorig.toErrMsg());
 
         return ErrorExp.get();
     }
@@ -17340,7 +17397,7 @@ Expression toLvalue(Expression _this, Scope* sc, const(char)* action, Expression
     {
         if (!_this.loc.isValid())
             _this.loc = eorig.loc;
-        error(eorig.loc, "cannot %s constant `%s`", action, eorig.toErrMsg());
+        eSink.error(eorig.loc, "cannot %s constant `%s`", action, eorig.toErrMsg());
         return ErrorExp.get();
     }
 
@@ -17384,22 +17441,22 @@ Expression toLvalue(Expression _this, Scope* sc, const(char)* action, Expression
         auto var = _this.var;
         if (var.storage_class & STC.manifest)
         {
-            error(_this.loc, "cannot %s manifest constant `%s`", action, var.toErrMsg());
+            eSink.error(_this.loc, "cannot %s manifest constant `%s`", action, var.toErrMsg());
             return ErrorExp.get();
         }
         if (var.storage_class & STC.lazy_ && !_this.delegateWasExtracted)
         {
-            error(_this.loc, "cannot %s lazy variable `%s`", action, var.toErrMsg());
+            eSink.error(_this.loc, "cannot %s lazy variable `%s`", action, var.toErrMsg());
             return ErrorExp.get();
         }
         if (var.ident == Id.ctfe)
         {
-            error(_this.loc, "cannot %s compiler-generated variable `__ctfe`", action);
+            eSink.error(_this.loc, "cannot %s compiler-generated variable `__ctfe`", action);
             return ErrorExp.get();
         }
         if (var.ident == Id.dollar) // https://issues.dlang.org/show_bug.cgi?id=13574
         {
-            error(_this.loc, "cannot %s operator `$`", action);
+            eSink.error(_this.loc, "cannot %s operator `$`", action);
             return ErrorExp.get();
         }
         return _this;
@@ -17491,7 +17548,7 @@ Expression toLvalue(Expression _this, Scope* sc, const(char)* action, Expression
     Expression visitArray(ArrayExp _this)
     {
         if (_this.type && _this.type.toBasetype().ty == Tvoid)
-            error(_this.loc, "`void`s have no value");
+            eSink.error(_this.loc, "`void`s have no value");
         return _this;
     }
 
@@ -17748,6 +17805,8 @@ Expression modifiableLvalue(Expression _this, Scope* sc, Expression eorig = null
     if (!eorig)
         eorig = _this;
 
+    auto eSink = global.errorSink;
+
     Expression visit(Expression exp)
     {
         //printf("Expression::modifiableLvalue() %s, type = %s\n", exp.toErrMsg(), exp.type.toErrMsg());
@@ -17771,17 +17830,17 @@ Expression modifiableLvalue(Expression _this, Scope* sc, Expression eorig = null
                             break;
                         if (!ff.type.isMutable)
                         {
-                            error(exp.loc, "cannot modify `%s` in `%s` function", exp.toErrMsg(), MODtoChars(type.mod));
+                            eSink.error(exp.loc, "cannot modify `%s` in `%s` function", exp.toErrMsg(), MODtoChars(type.mod));
                             return ErrorExp.get();
                         }
                     }
                 }
-                error(exp.loc, "cannot modify `%s` expression `%s`", MODtoChars(type.mod), exp.toErrMsg());
+                eSink.error(exp.loc, "cannot modify `%s` expression `%s`", MODtoChars(type.mod), exp.toErrMsg());
                 return ErrorExp.get();
             }
             else if (!type.isAssignable())
             {
-                error(exp.loc, "cannot modify struct instance `%s` of type `%s` because it contains `const` or `immutable` members",
+                eSink.error(exp.loc, "cannot modify struct instance `%s` of type `%s` because it contains `const` or `immutable` members",
                     exp.toErrMsg(), type.toErrMsg());
                 return ErrorExp.get();
             }
@@ -17791,7 +17850,7 @@ Expression modifiableLvalue(Expression _this, Scope* sc, Expression eorig = null
 
     Expression visitString(StringExp exp)
     {
-        error(exp.loc, "cannot modify string literal `%s`", exp.toErrMsg());
+        eSink.error(exp.loc, "cannot modify string literal `%s`", exp.toErrMsg());
         return ErrorExp.get();
     }
 
@@ -17800,7 +17859,7 @@ Expression modifiableLvalue(Expression _this, Scope* sc, Expression eorig = null
         //printf("VarExp::modifiableLvalue('%s')\n", exp.var.toErrMsg());
         if (exp.var.storage_class & STC.manifest)
         {
-            error(exp.loc, "cannot modify manifest constant `%s`", exp.toErrMsg());
+            eSink.error(exp.loc, "cannot modify manifest constant `%s`", exp.toErrMsg());
             return ErrorExp.get();
         }
         // See if this expression is a modifiable lvalue (i.e. not const)
@@ -17819,9 +17878,9 @@ Expression modifiableLvalue(Expression _this, Scope* sc, Expression eorig = null
         if (var && var.type.isFunction_Delegate_PtrToFunction())
         {
             if (var.type.isTypeFunction())
-                error(exp.loc, "function `%s` is not an lvalue and cannot be modified", var.toErrMsg());
+                eSink.error(exp.loc, "function `%s` is not an lvalue and cannot be modified", var.toErrMsg());
             else
-                error(exp.loc, "function pointed to by `%s` is not an lvalue and cannot be modified", var.toErrMsg());
+                eSink.error(exp.loc, "function pointed to by `%s` is not an lvalue and cannot be modified", var.toErrMsg());
             return ErrorExp.get();
         }
         return visit(exp);
@@ -17829,7 +17888,7 @@ Expression modifiableLvalue(Expression _this, Scope* sc, Expression eorig = null
 
     Expression visitSlice(SliceExp exp)
     {
-        error(exp.loc, "slice expression `%s` is not a modifiable lvalue", exp.toErrMsg());
+        eSink.error(exp.loc, "slice expression `%s` is not a modifiable lvalue", exp.toErrMsg());
         return exp;
     }
 
@@ -17861,7 +17920,7 @@ Expression modifiableLvalue(Expression _this, Scope* sc, Expression eorig = null
     {
         if (!exp.e1.isLvalue() && !exp.e2.isLvalue())
         {
-            error(exp.loc, "conditional expression `%s` is not a modifiable lvalue", exp.toErrMsg());
+            eSink.error(exp.loc, "conditional expression `%s` is not a modifiable lvalue", exp.toErrMsg());
             return ErrorExp.get();
         }
         exp.e1 = exp.e1.modifiableLvalue(sc);
@@ -17901,7 +17960,8 @@ private bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
 
     if (!v.canTakeAddressOf())
     {
-        error(exp.loc, "cannot take address of `%s`", exp.toErrMsg());
+        auto eSink = global.errorSink;
+        eSink.error(exp.loc, "cannot take address of `%s`", exp.toErrMsg());
         return false;
     }
     if (sc.func && !sc.intypeof && !v.isDataseg())
@@ -18045,7 +18105,8 @@ Expression getThisSkipNestedFuncs(Loc loc, Scope* sc, Dsymbol s, AggregateDeclar
         {
             if (flag)
                 return null;
-            error(e1.loc, "need `this` of type `%s` to access member `%s` from static function `%s`", ad.toErrMsg(), var.toErrMsg(), f.toErrMsg());
+            auto eSink = global.errorSink;
+            eSink.error(e1.loc, "need `this` of type `%s` to access member `%s` from static function `%s`", ad.toErrMsg(), var.toErrMsg(), f.toErrMsg());
             e1 = ErrorExp.get();
             return e1;
         }
@@ -18113,7 +18174,8 @@ bool verifyHookExist(Loc loc, ref Scope sc, Identifier id, string description, I
     if (auto moduleSymbol = rootSymbol.search(loc, module_))
         if (moduleSymbol.search(loc, id))
           return true;
-    error(loc, "`%s.%s` not found. The current runtime does not support %.*s, or the runtime is corrupt.", module_.toErrMsg(), id.toErrMsg(), cast(int)description.length, description.ptr);
+    auto eSink = global.errorSink;
+    eSink.error(loc, "`%s.%s` not found. The current runtime does not support %.*s, or the runtime is corrupt.", module_.toErrMsg(), id.toErrMsg(), cast(int)description.length, description.ptr);
     return false;
 }
 
@@ -18135,6 +18197,8 @@ private bool fit(StructDeclaration sd, Loc loc, Scope* sc, Expressions* elements
     if (!elements)
         return true;
 
+    auto eSink = global.errorSink;
+
     const nfields = sd.nonHiddenFields();
     ulong bitoffset = 0;
     for (size_t i = 0; i < elements.length; i++)
@@ -18151,7 +18215,7 @@ private bool fit(StructDeclaration sd, Loc loc, Scope* sc, Expressions* elements
                 // CTFE sometimes creates null as hidden pointer; we'll allow this.
                 continue;
             }
-                .error(loc, "more initializers than fields (%llu) of `%s`", cast(ulong)nfields, sd.toErrMsg());
+                eSink.error(loc, "more initializers than fields (%llu) of `%s`", cast(ulong)nfields, sd.toErrMsg());
             return false;
         }
         VarDeclaration v = sd.fields[i];
@@ -18163,13 +18227,13 @@ private bool fit(StructDeclaration sd, Loc loc, Scope* sc, Expressions* elements
 
         if (vbitoffset < bitoffset)
         {
-            .error(loc, "overlapping initialization for `%s`", v.toErrMsg());
+            eSink.error(loc, "overlapping initialization for `%s`", v.toErrMsg());
             if (!sd.isUnionDeclaration())
             {
                 enum errorMsg = "`struct` initializers that contain anonymous unions" ~
                     " must initialize only the first member of a `union`. All subsequent" ~
                     " non-overlapping fields are default initialized";
-                .errorSupplemental(loc, errorMsg);
+                eSink.errorSupplemental(loc, errorMsg);
             }
             return false;
         }
@@ -18217,7 +18281,7 @@ private bool fit(StructDeclaration sd, Loc loc, Scope* sc, Expressions* elements
                 string s;
                 size_t len = se.numberOfCodeUnits(tynto, s);
                 if (s)
-                    error(se.loc, "%.*s", cast(int)s.length, s.ptr);
+                    eSink.error(se.loc, "%.*s", cast(int)s.length, s.ptr);
                 if (len < (cast(TypeSArray)tb).dim.toInteger())
                 {
                     e = se.castTo(sc, t);
@@ -18297,10 +18361,11 @@ Expression getVarExp(EnumMember em, Loc loc, Scope* sc)
  */
 Expression toBoolean(Expression exp, Scope* sc)
 {
+    auto eSink = global.errorSink;
     switch(exp.op)
     {
         case EXP.delete_:
-            error(exp.loc, "`delete` does not give a boolean result");
+            eSink.error(exp.loc, "`delete` does not give a boolean result");
             return ErrorExp.get();
 
         case EXP.comma:
@@ -18321,7 +18386,7 @@ Expression toBoolean(Expression exp, Scope* sc)
             // Things like:
             //  if (a = b) ...
             // are usually mistakes.
-            error(exp.loc, "assignment cannot be used as a condition, perhaps `==` was meant?");
+            eSink.error(exp.loc, "assignment cannot be used as a condition, perhaps `==` was meant?");
             return ErrorExp.get();
 
         //LogicalExp
@@ -18387,10 +18452,10 @@ Expression toBoolean(Expression exp, Scope* sc)
             {
                 if (tb != Type.terror)
                 {
-                    error(exp.loc, "expression `%s` of type `%s` does not have a boolean value",
+                    eSink.error(exp.loc, "expression `%s` of type `%s` does not have a boolean value",
                               exp.toErrMsg(), t.toErrMsg());
                     if (auto ts = tb.isTypeStruct())
-                        errorSupplemental(ts.sym.loc, "perhaps add Cast Operator Overloading with `bool opCast(T : bool)() => ...`");
+                        eSink.errorSupplemental(ts.sym.loc, "perhaps add Cast Operator Overloading with `bool opCast(T : bool)() => ...`");
                 }
                 return ErrorExp.get();
             }
@@ -18483,7 +18548,10 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
         if (opt.isEmpty())
         {
             if (!e.type.isTypeError())
-                error(e.loc, "expression `%s` is not constant", e.toErrMsg());
+            {
+                auto eSink = global.errorSink;
+                eSink.error(e.loc, "expression `%s` is not constant", e.toErrMsg());
+            }
             errors = true;
             return false;
         }
@@ -18512,7 +18580,8 @@ bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, size_t iStart
         //printf("sparent2 = %p %s [%s], parent: %s\n", sparent2, sparent2.toErrMsg(), sparent2.loc.toErrMsg(), sparent2.parent,toChars());
         if (!ensureStaticLinkTo(s, sparent) || sparent != sparent2 && !ensureStaticLinkTo(s, sparent2))
         {
-            error(loc, "cannot access frame pointer of `%s`", ad.toPrettyChars());
+            auto eSink = global.errorSink;
+            eSink.error(loc, "cannot access frame pointer of `%s`", ad.toPrettyChars());
             return true;
         }
     }
@@ -18575,6 +18644,8 @@ private Modifiable checkModify(Declaration d, Loc loc, Scope* sc, Expression e1,
     if (v && v.canassign)
         return Modifiable.initialization;
 
+    auto eSink = global.errorSink;
+
     if (d.isParameter() || d.isResult())
     {
         for (Scope* scx = sc; scx; scx = scx.enclosing)
@@ -18583,7 +18654,7 @@ private Modifiable checkModify(Declaration d, Loc loc, Scope* sc, Expression e1,
             {
                 const(char)* s = d.isParameter() && d.parent.ident != Id.ensure ? "parameter" : "result";
                 if (!(flag & ModifyFlags.noError))
-                    error(loc, "%s `%s` cannot modify %s `%s` in contract", d.kind, d.toPrettyChars, s, d.toErrMsg());
+                    eSink.error(loc, "%s `%s` cannot modify %s `%s` in contract", d.kind, d.toPrettyChars, s, d.toErrMsg());
                 return Modifiable.initialization; // do not report type related errors
             }
         }
@@ -18597,7 +18668,7 @@ private Modifiable checkModify(Declaration d, Loc loc, Scope* sc, Expression e1,
             if (scx.func == vthis.parent && scx.contract != Contract.none)
             {
                 if (!(flag & ModifyFlags.noError))
-                    error(loc, "cannot modify member variable `%s` in contract", d.toPrettyChars());
+                    eSink.error(loc, "cannot modify member variable `%s` in contract", d.toPrettyChars());
                 return Modifiable.initialization; // do not report type related errors
             }
         }
@@ -18629,6 +18700,8 @@ private Modifiable checkModify(Declaration d, Loc loc, Scope* sc, Expression e1,
 private bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
 {
     //printf("modifyFieldVar(var: %s, e1: %s)\n", var.toErrMsg(), e1.toErrMsg());
+    auto eSink = global.errorSink;
+
     Dsymbol s = sc.func;
     while (1)
     {
@@ -18678,8 +18751,8 @@ private bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e
                     else
                     {
                         const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
-                        .error(loc, "%s field `%s` initialized multiple times", modStr, var.toErrMsg());
-                        .errorSupplemental(fieldInit.loc, "Previous initialization is here.");
+                        eSink.error(loc, "%s field `%s` initialized multiple times", modStr, var.toErrMsg());
+                        eSink.errorSupplemental(fieldInit.loc, "Previous initialization is here.");
                     }
                 }
                 else if (sc.inLoop || (fi & CSX.label))
@@ -18689,7 +18762,7 @@ private bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e
                     else
                     {
                         const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
-                        .error(loc, "%s field `%s` initialization is not allowed in loops or after labels", modStr, var.toErrMsg());
+                        eSink.error(loc, "%s field `%s` initialization is not allowed in loops or after labels", modStr, var.toErrMsg());
                     }
                 }
 
@@ -18713,31 +18786,31 @@ private bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e
                 else if (sc.func.fes)
                 {
                     const(char)* p = var.isField() ? "field" : var.kind();
-                    .error(loc, "%s %s `%s` initialization is not allowed in foreach loop",
+                    eSink.error(loc, "%s %s `%s` initialization is not allowed in foreach loop",
                         MODtoChars(var.type.mod), p, var.toErrMsg());
                 }
                 else
                 {
                     const(char)* p = var.isField() ? "field" : var.kind();
-                    .error(loc, "%s %s `%s` initialization is not allowed in nested function `%s`",
+                    eSink.error(loc, "%s %s `%s` initialization is not allowed in nested function `%s`",
                         MODtoChars(var.type.mod), p, var.toErrMsg(), sc.func.toErrMsg());
                 }
             }
             else if (fd.isStaticCtorDeclaration() && !fd.isSharedStaticCtorDeclaration() &&
                      var.type.isImmutable())
             {
-                .error(loc, "%s %s `%s` initialization is not allowed in `static this`",
+                eSink.error(loc, "%s %s `%s` initialization is not allowed in `static this`",
                     MODtoChars(var.type.mod), var.kind(), var.toErrMsg());
-                errorSupplemental(loc, "Use `shared static this` instead.");
+                eSink.errorSupplemental(loc, "Use `shared static this` instead.");
             }
             else if (fd.isStaticCtorDeclaration() && !fd.isSharedStaticCtorDeclaration() &&
                     var.type.isConst())
             {
                 // @@@DEPRECATED_2.116@@@
                 // Turn this into an error, merging with the branch above
-                .deprecation(loc, "%s %s `%s` initialization is not allowed in `static this`",
+                eSink.deprecation(loc, "%s %s `%s` initialization is not allowed in `static this`",
                     MODtoChars(var.type.mod), var.kind(), var.toErrMsg());
-                deprecationSupplemental(loc, "Use `shared static this` instead.");
+                eSink.deprecationSupplemental(loc, "Use `shared static this` instead.");
             }
             return result;
         }
@@ -18907,6 +18980,8 @@ bool checkDisabled(Declaration d, Loc loc, Scope* sc, bool isAliasedDeclaration 
     if (sc.inIsDisabledTrait)
         return true;
 
+    auto eSink = global.errorSink;
+
     if (auto p = d.toParent())
     {
         if (auto postblit = d.isPostBlitDeclaration())
@@ -18935,12 +19010,12 @@ bool checkDisabled(Declaration d, Loc loc, Scope* sc, bool isAliasedDeclaration 
                         continue;
                     if (sdv.postblit.isDisabled())
                     {
-                        .error(loc, "%s `%s` is not copyable because field `%s` is not copyable", p.kind, p.toPrettyChars, structField.toErrMsg());
+                        eSink.error(loc, "%s `%s` is not copyable because field `%s` is not copyable", p.kind, p.toPrettyChars, structField.toErrMsg());
                         return true;
                     }
                 }
             }
-            .error(loc, "%s `%s` is not copyable because it has a disabled postblit", p.kind, p.toPrettyChars);
+            eSink.error(loc, "%s `%s` is not copyable because it has a disabled postblit", p.kind, p.toPrettyChars);
             return true;
         }
     }
@@ -18962,11 +19037,11 @@ bool checkDisabled(Declaration d, Loc loc, Scope* sc, bool isAliasedDeclaration 
         //printf("checkDisabled() %s %s\n", ctor.toPrettyChars(), toChars(ctor.type));
         if (ctor.isCpCtor && ctor.isGenerated)
         {
-            .error(loc, "generating an `inout` copy constructor for `struct %s` failed, therefore instances of it are uncopyable", d.parent.toPrettyChars());
+            eSink.error(loc, "generating an `inout` copy constructor for `struct %s` failed, therefore instances of it are uncopyable", d.parent.toPrettyChars());
             return true;
         }
     }
-    .error(loc, "%s `%s` cannot be used because it is annotated with `@disable`", d.kind, d.toPrettyChars);
+    eSink.error(loc, "%s `%s` cannot be used because it is annotated with `@disable`", d.kind, d.toPrettyChars);
     return true;
 }
 
@@ -19036,7 +19111,8 @@ private Expression expandInitializer(VarDeclaration vd, Loc loc)
     auto e = vd.getConstInitializer();
     if (!e)
     {
-        .error(loc, "cannot make expression out of initializer for `%s`", vd.toErrMsg());
+        auto eSink = global.errorSink;
+        eSink.error(loc, "cannot make expression out of initializer for `%s`", vd.toErrMsg());
         return ErrorExp.get();
     }
 
@@ -19061,6 +19137,8 @@ private bool needsTypeInference(TemplateInstance ti, Scope* sc, int flag = 0)
     //printf("TemplateInstance.needsTypeInference() %s\n", toChars());
     if (ti.semanticRun != PASS.initial)
         return false;
+
+    auto eSink = global.errorSink;
 
     const olderrs = global.errors;
     Objects dedtypes;
@@ -19146,7 +19224,7 @@ private bool needsTypeInference(TemplateInstance ti, Scope* sc, int flag = 0)
                     }
                     if (td.semanticRun == PASS.initial)
                     {
-                        .error(ti.loc, "%s `%s` `%s` forward references template declaration `%s`",
+                        eSink.error(ti.loc, "%s `%s` `%s` forward references template declaration `%s`",
                                ti.kind, ti.toPrettyChars, ti.toErrMsg(), td.toErrMsg());
                         return 1;
                     }
@@ -19169,7 +19247,7 @@ private bool needsTypeInference(TemplateInstance ti, Scope* sc, int flag = 0)
     {
         if (!global.gag)
         {
-            errorSupplemental(ti.loc, "while looking for match for `%s`", ti.toErrMsg());
+            eSink.errorSupplemental(ti.loc, "while looking for match for `%s`", ti.toErrMsg());
             ti.semanticRun = PASS.semanticdone;
             ti.inst = ti;
         }
@@ -19201,6 +19279,8 @@ bool fill(StructDeclaration sd, Loc loc, ref Expressions elements, bool ctorinit
     elements.setDim(nfields);
     foreach (size_t i; dim .. nfields)
         elements[i] = null;
+
+    auto eSink = global.errorSink;
 
     // Fill in missing any elements with default initializers
     foreach (i; 0 .. nfields)
@@ -19244,7 +19324,7 @@ bool fill(StructDeclaration sd, Loc loc, ref Expressions elements, bool ctorinit
                 }
                 else if (v2._init)
                 {
-                    .error(loc, "overlapping initialization for field `%s` and `%s`", v2.toErrMsg(), vd.toErrMsg());
+                    eSink.error(loc, "overlapping initialization for field `%s` and `%s`", v2.toErrMsg(), vd.toErrMsg());
                     errors = true;
                 }
             }
@@ -19267,7 +19347,7 @@ bool fill(StructDeclaration sd, Loc loc, ref Expressions elements, bool ctorinit
                 }
                 else if (vx._init && v2._init)
                 {
-                    .error(loc, "overlapping default initialization for field `%s` and `%s`",
+                    eSink.error(loc, "overlapping default initialization for field `%s` and `%s`",
                         v2.toErrMsg(), vd.toErrMsg());
                     errors = true;
                 }
@@ -19288,7 +19368,7 @@ bool fill(StructDeclaration sd, Loc loc, ref Expressions elements, bool ctorinit
             assert(!vx._init.isVoidInitializer());
             if (vx.inuse)   // https://issues.dlang.org/show_bug.cgi?id=18057
             {
-                .error(loc, "%s `%s` recursive initialization of field", vx.kind(), vx.toPrettyChars());
+                eSink.error(loc, "%s `%s` recursive initialization of field", vx.kind(), vx.toPrettyChars());
                 errors = true;
             }
             else
@@ -19298,7 +19378,7 @@ bool fill(StructDeclaration sd, Loc loc, ref Expressions elements, bool ctorinit
         {
             if ((vx.storage_class & STC.nodefaultctor) && !ctorinit)
             {
-                .error(loc, "field `%s.%s` must be initialized because it has no default constructor",
+                eSink.error(loc, "field `%s.%s` must be initialized because it has no default constructor",
                     sd.type.toErrMsg(), vx.toErrMsg());
                 errors = true;
             }
@@ -19596,8 +19676,9 @@ Dsymbol searchCtor(AggregateDeclaration ad)
               s.isTemplateDeclaration() ||
               s.isOverloadSet()))
         {
-            error(s.loc, "%s name `__ctor` is not allowed", s.kind);
-            errorSupplemental(s.loc, "identifiers starting with `__` are reserved for internal use");
+            auto eSink = global.errorSink;
+            eSink.error(s.loc, "%s name `__ctor` is not allowed", s.kind);
+            eSink.errorSupplemental(s.loc, "identifiers starting with `__` are reserved for internal use");
             ad.errors = true;
             s = null;
         }
@@ -19629,10 +19710,12 @@ private extern(C++) class IncludeVisitor : Visitor {
 
     Scope *sc;
     int result;
+    ErrorSink eSink;
 
     this(Scope* sc)
     {
         this.sc = sc;
+        this.eSink = global.errorSink;
     }
 
     override void visit(DebugCondition dc)
@@ -19724,7 +19807,7 @@ private extern(C++) class IncludeVisitor : Visitor {
 
         if (!sc)
         {
-            error(sic.loc, "`static if` conditional cannot be at global scope");
+            eSink.error(sic.loc, "`static if` conditional cannot be at global scope");
             sic.inc = Include.no;
             result = 0;
             return;
@@ -19960,7 +20043,8 @@ private Expression rewriteAAIndexAssign(BinExp exp, Scope* sc, ref Type[2] alias
         Type tidx = ekey.type.toBasetype();
         if (tidx.ty == Tarray && tidx.nextOf().isMutable() && !ekey.isArrayLiteralExp())
         {
-            error(loc, "associative arrays can only be assigned values with immutable keys, not `%s`", tidx.toErrMsg());
+            auto eSink = global.errorSink;
+            eSink.error(loc, "associative arrays can only be assigned values with immutable keys, not `%s`", tidx.toErrMsg());
             return ErrorExp.get();
         }
     }
