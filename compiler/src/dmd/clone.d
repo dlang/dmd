@@ -906,9 +906,7 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
     if (ad.isUnionDeclaration())
         return;                    // unions don't have destructors
 
-    STC stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
     Loc declLoc = ad.userDtors.length ? ad.userDtors[0].loc : ad.loc;
-    Loc loc; // internal code should have no loc to prevent coverage
     FuncDeclaration xdtor_fwd = null;
 
     // Build the field destructor (`ad.fieldDtor`), if needed.
@@ -916,95 +914,7 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
     const bool dtorIsCppPrototype = ad.userDtors.length && ad.userDtors[0]._linkage == LINK.cpp && !ad.userDtors[0].fbody;
     if (!dtorIsCppPrototype)
     {
-        Expression e = null;
-        for (size_t i = 0; i < ad.fields.length; i++)
-        {
-            auto v = ad.fields[i];
-            if (v.storage_class & STC.ref_)
-                continue;
-            if (v.overlapped)
-                continue;
-            auto tvs = v.type.baseElemOf().isTypeStruct();
-            if (!tvs)
-                continue;
-            auto sdv = tvs.sym;
-            if (!sdv.dtor)
-                continue;
-
-            // fix: https://issues.dlang.org/show_bug.cgi?id=17257
-            // braces for shrink wrapping scope of a
-            {
-                xdtor_fwd = sdv.dtor; // this dtor is temporary it could be anything
-                auto a = new AliasDeclaration(Loc.initial, Id.__xdtor, xdtor_fwd);
-                a.addMember(sc, ad); // temporarily add to symbol table
-            }
-
-            functionSemantic(sdv.dtor);
-
-            stc = mergeFuncAttrs(stc, sdv.dtor);
-            if (stc & STC.disable)
-            {
-                e = null;
-                break;
-            }
-
-            Expression ex;
-            Type tv = v.type.toBasetype();
-            if (tv.isTypeStruct())
-            {
-                // this.v.__xdtor()
-
-                ex = new ThisExp(loc);
-                ex = new DotVarExp(loc, ex, v);
-
-                // This is a hack so we can call destructors on const/immutable objects.
-                // Do it as a type 'paint', `cast()`
-                ex = new CastExp(loc, ex, MODFlags.none);
-                if (stc & STC.safe)
-                    stc = (stc & ~STC.safe) | STC.trusted;
-
-                ex = new DotVarExp(loc, ex, sdv.dtor, false);
-                ex = new CallExp(loc, ex);
-            }
-            else
-            {
-                // __ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
-
-                const n = tv.numberOfElems(loc);
-                if (n == 0)
-                    continue;
-
-                ex = new ThisExp(loc);
-                ex = new DotVarExp(loc, ex, v);
-
-                // This is a hack so we can call destructors on const/immutable objects.
-                ex = new DotIdExp(loc, ex, Id.ptr);
-                ex = new CastExp(loc, ex, sdv.type.pointerTo());
-                if (stc & STC.safe)
-                    stc = (stc & ~STC.safe) | STC.trusted;
-
-                SliceExp se = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
-                                           new IntegerExp(loc, n, Type.tsize_t));
-                // Prevent redundant bounds check
-                se.upperIsInBounds = true;
-                se.lowerIsLessThanUpper = true;
-
-                ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayDtor), se);
-            }
-            e = Expression.combine(ex, e); // combine in reverse order
-        }
-
-        if (e || (stc & STC.disable))
-        {
-            //printf("Building __fieldDtor(), %s\n", e.toChars());
-            auto dd = new DtorDeclaration(declLoc, Loc.initial, stc, Id.__fieldDtor);
-            dd.isGenerated = true;
-            dd.storage_class |= STC.inference;
-            dd.fbody = new ExpStatement(loc, e);
-            ad.members.push(dd);
-            dd.dsymbolSemantic(sc);
-            ad.fieldDtor = dd;
-        }
+        ad.fieldDtor = buildFieldDtor(ad, declLoc, xdtor_fwd, sc);
     }
 
     // Generate list of dtors to call in that order
@@ -1044,38 +954,7 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
     default:
         // Build the aggregate destructor, calling all dtors in order.
         assert(!dtorIsCppPrototype);
-        Expression e = null;
-        e = null;
-        stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
-        foreach (FuncDeclaration fd; dtors)
-        {
-            stc = mergeFuncAttrs(stc, fd);
-            if (stc & STC.disable)
-            {
-                e = null;
-                break;
-            }
-            Expression ex = new ThisExp(loc);
-            ex = new DotVarExp(loc, ex, fd, false);
-            CallExp ce = new CallExp(loc, ex);
-            ce.directcall = true;
-            e = Expression.combine(e, ce);
-        }
-
-        auto sc2 = sc.push();
-        sc2.stc &= ~STC.static_; // not a static destructor
-        if (landsInCppVtbl)
-            sc2.linkage = LINK.cpp;
-
-        auto dd = new DtorDeclaration(declLoc, Loc.initial, stc, Id.__aggrDtor);
-        dd.isGenerated = true;
-        dd.storage_class |= STC.inference;
-        dd.fbody = new ExpStatement(loc, e);
-        ad.members.push(dd);
-        dd.dsymbolSemantic(sc2);
-        ad.aggrDtor = dd;
-
-        sc2.pop();
+        ad.aggrDtor = buildAggregateDtor(ad, declLoc, dtors, landsInCppVtbl, sc);
         break;
     }
 
@@ -1099,6 +978,162 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
 
     // Set/build `ad.tidtor`
     ad.tidtor = buildExternDDtor(ad, sc);
+}
+
+/**
+ * Build the field destructor, which calls the destructors for all fields.
+ *
+ * Params:
+ *  ad = the aggregate that contains the fields
+ *  declLoc = the location to be used for the destructor
+ *  xdtor_fwd = temporary alias for __xdtor
+ *  sc = the scope in which to analyze the new function
+ *
+ * Returns:
+ *  the field destructor, semantically analyzed and added to the class as a member
+ */
+private DtorDeclaration buildFieldDtor(AggregateDeclaration ad, Loc declLoc, ref FuncDeclaration xdtor_fwd, Scope* sc)
+{
+    STC stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+    Loc loc; // internal code should have no loc to prevent coverage
+    Expression e = null;
+    for (size_t i = 0; i < ad.fields.length; i++)
+    {
+        auto v = ad.fields[i];
+        if (v.storage_class & STC.ref_)
+            continue;
+        if (v.overlapped)
+            continue;
+        auto tvs = v.type.baseElemOf().isTypeStruct();
+        if (!tvs)
+            continue;
+        auto sdv = tvs.sym;
+        if (!sdv.dtor)
+            continue;
+
+        // fix: https://issues.dlang.org/show_bug.cgi?id=17257
+        // braces for shrink wrapping scope of a
+        {
+            xdtor_fwd = sdv.dtor; // this dtor is temporary it could be anything
+            auto a = new AliasDeclaration(Loc.initial, Id.__xdtor, xdtor_fwd);
+            a.addMember(sc, ad); // temporarily add to symbol table
+        }
+
+        functionSemantic(sdv.dtor);
+
+        stc = mergeFuncAttrs(stc, sdv.dtor);
+        if (stc & STC.disable)
+        {
+            e = null;
+            break;
+        }
+
+        Expression ex;
+        Type tv = v.type.toBasetype();
+        if (tv.isTypeStruct())
+        {
+            // this.v.__xdtor()
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
+
+            // This is a hack so we can call destructors on const/immutable objects.
+            // Do it as a type 'paint', `cast()`
+            ex = new CastExp(loc, ex, MODFlags.none);
+            if (stc & STC.safe)
+                stc = (stc & ~STC.safe) | STC.trusted;
+
+            ex = new DotVarExp(loc, ex, sdv.dtor, false);
+            ex = new CallExp(loc, ex);
+        }
+        else
+        {
+            // __ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
+
+            const n = tv.numberOfElems(loc);
+            if (n == 0)
+                continue;
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
+
+            // This is a hack so we can call destructors on const/immutable objects.
+            ex = new DotIdExp(loc, ex, Id.ptr);
+            ex = new CastExp(loc, ex, sdv.type.pointerTo());
+            if (stc & STC.safe)
+                stc = (stc & ~STC.safe) | STC.trusted;
+
+            SliceExp se = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                                       new IntegerExp(loc, n, Type.tsize_t));
+            // Prevent redundant bounds check
+            se.upperIsInBounds = true;
+            se.lowerIsLessThanUpper = true;
+
+            ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayDtor), se);
+        }
+        e = Expression.combine(ex, e); // combine in reverse order
+    }
+
+    if (!e && !(stc & STC.disable))
+        return null;
+
+    //printf("Building __fieldDtor(), %s\n", e.toChars());
+    auto dd = new DtorDeclaration(declLoc, Loc.initial, stc, Id.__fieldDtor);
+    dd.isGenerated = true;
+    dd.storage_class |= STC.inference;
+    dd.fbody = new ExpStatement(loc, e);
+    ad.members.push(dd);
+    dd.dsymbolSemantic(sc);
+    return dd;
+}
+
+/**
+ * Build the aggregate destructor, which calls other destructors passed in `dtors`.
+ *
+ * Params:
+ *  ad = the aggregate that contains the destructor to wrap
+ *  declLoc = the location to be used for the destructor
+ *  dtors = the destructors to wrap
+ *  landsInCppVtbl = should aggregate destructor be `extern(C++)`
+ *  sc = the scope in which to analyze the new function
+ *
+ * Returns:
+ *  the aggregate destructor, semantically analyzed
+ */
+private DtorDeclaration buildAggregateDtor(AggregateDeclaration ad, Loc declLoc, ref DtorDeclarations dtors, bool landsInCppVtbl, Scope* sc)
+{
+    Loc loc; // internal code should have no loc to prevent coverage
+    Expression e = null;
+    STC stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+    foreach (FuncDeclaration fd; dtors)
+    {
+        stc = mergeFuncAttrs(stc, fd);
+        if (stc & STC.disable)
+        {
+            e = null;
+            break;
+        }
+        Expression ex = new ThisExp(loc);
+        ex = new DotVarExp(loc, ex, fd, false);
+        CallExp ce = new CallExp(loc, ex);
+        ce.directcall = true;
+        e = Expression.combine(e, ce);
+    }
+
+    auto sc2 = sc.push();
+    sc2.stc &= ~STC.static_; // not a static destructor
+    if (landsInCppVtbl)
+        sc2.linkage = LINK.cpp;
+
+    auto dd = new DtorDeclaration(declLoc, Loc.initial, stc, Id.__aggrDtor);
+    dd.isGenerated = true;
+    dd.storage_class |= STC.inference;
+    dd.fbody = new ExpStatement(loc, e);
+    ad.members.push(dd);
+    dd.dsymbolSemantic(sc2);
+
+    sc2.pop();
+    return dd;
 }
 
 /**
