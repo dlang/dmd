@@ -631,8 +631,23 @@ Dsymbol search_correct(Scope* _this, Identifier ident)
 
         // Do not show `@disable`d declarations
         if (auto decl = s.isDeclaration())
+        {
             if (decl.storage_class & STC.disable)
                 return null;
+            // Do not suggest an alias as a fix for its own undefined
+            // target while it is still resolving that target (`inuse`
+            // is set for the duration of that resolution). Using the
+            // suggestion would make the alias refer to itself, e.g.
+            // `alias Foo = Foo1;` with an undefined `Foo1` would
+            // otherwise suggest `Foo`, which is circular by
+            // construction: `alias Foo = Foo;`. This is specific to
+            // aliases: e.g. `Foo foo;` legitimately suggesting the
+            // variable `foo` itself is not circular in the same way
+            // and should still be shown.
+            // https://github.com/dlang/dmd/issues/18763
+            if (decl.isAliasDeclaration() && decl.inuse)
+                return null;
+        }
         // Or `deprecated` ones if we're not in a deprecated scope
         if (s.isDeprecated() && !sc.isDeprecated())
             return null;
