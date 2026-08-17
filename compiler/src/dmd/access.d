@@ -21,9 +21,10 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem : toAlias;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.funcsem : overloadApply;
+import dmd.hdrgen : toErrMsg;
 import dmd.location;
 import dmd.tokens;
 
@@ -50,7 +51,9 @@ bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
 
     if (!symbolIsVisible(sc, smember))
     {
-        error(loc, "%s `%s` %s `%s` is not accessible", ad.kind(), ad.toPrettyChars(), smember.kind(), smember.toErrMsg());
+        import dmd.globals : global;
+        auto eSink = global.errorSink;
+        eSink.error(loc, "%s `%s` %s `%s` is not accessible", ad.kind(), ad.toPrettyChars(), smember.kind(), smember.toErrMsg());
         //printf("smember = %s %s, vis = %d, semanticRun = %d\n",
         //        smember.kind(), smember.toPrettyChars(), smember.visible() smember.semanticRun);
         return true;
