@@ -6469,8 +6469,6 @@ public:
     static ClassDeclaration* create(Loc loc, Identifier* id, Array<BaseClass* >* baseclasses, Array<Dsymbol* >* members, bool inObject);
     const char* toPrettyChars(bool qualifyTypes = false) override;
     ClassDeclaration* syntaxCopy(Dsymbol* s) override;
-    enum : int32_t { OFFSET_RUNTIME = 1985229328 };
-
     enum : int32_t { OFFSET_FWDREF = 1985229329 };
 
     virtual bool isBaseOf(ClassDeclaration* cd, int32_t* poffset);
