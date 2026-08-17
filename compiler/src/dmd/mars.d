@@ -1015,11 +1015,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             target.setArch(Target.Arch.wasm32);
             target.os = Target.OS.WASM;
         }
-        else if (arg == "-mwasm64")
-        {
-            target.setArch(Target.Arch.wasm64);
-            target.os = Target.OS.WASM;
-        }
         else if (startsWith(p + 1, "mscrtlib="))
         {
             driverParams.mscrtlib = arg[10 .. $];
@@ -1176,7 +1171,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             enum len = "-os=".length;
             // Parse:
             //      -os=identifier
-            immutable string msg = "Only `host`, `linux`, `windows`, `osx`,`openbsd`, `freebsd`, `solaris`, `dragonflybsd`, `hurd`, `wasm` allowed for `-os`";
+            immutable string msg = "Only `host`, `linux`, `windows`, `osx`,`openbsd`, `freebsd`, `solaris`, `dragonflybsd`, `hurd`, `wasm`, `wasi`, `wasip1` allowed for `-os`";
             if (Identifier.isValidIdentifier(p + len))
             {
                 const ident = p + len;
@@ -1191,11 +1186,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
                 case "solaris":      target.os = Target.OS.Solaris;      break;
                 case "dragonflybsd": target.os = Target.OS.DragonFlyBSD; break;
                 case "hurd":         target.os = Target.OS.Hurd;         break;
-                case "wasm":         target.os = Target.OS.WASM;
-                    target.isWasm = true;
-                    target.isX86 = false;
-                    target.isX86_64 = false;
-                    target.isAArch64 = false;
+                case "wasm":
+                case "wasi":
+                case "wasip1":
+                    target.os = Target.OS.WASM;
+                    target.setArch(Target.Arch.wasm32);
                     break;
                 default:
                     errorInvalidSwitch(p, msg);

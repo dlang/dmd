@@ -40,6 +40,8 @@ version (SystemZ) version = IBMZ_Any;
 version (X86)     version = X86_Any;
 version (X86_64)  version = X86_Any;
 
+version (CRuntime_WASI) version (DigitalMars) version = WASI_DoubleReal;
+
 extern (C):
 @trusted: // All functions here operate on floating point and integer values only.
 nothrow:
@@ -4920,7 +4922,7 @@ else
         ///
         alias fmal = __fmaieee128;
     }
-    else version (CRuntime_WASI)
+    else version (WASI_DoubleReal)
     {
         // wasi-libc's `*l` symbols have a 128 bit long double ABI, incompatible
         // with a 64 bit `real`, so forward to the `double` versions instead

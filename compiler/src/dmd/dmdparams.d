@@ -171,11 +171,6 @@ struct Triple
             isWasm = true;
             isX86_64 = false;
         }
-        else if (matches("wasm64"))
-        {
-            isWasm = true;
-            isX86_64 = true;
-        }
         else
             return unknown(arch, "architecture");
 
@@ -242,7 +237,7 @@ struct Triple
             os =  Target.OS.Hurd;
         else if (matches("windows"))
             os =  Target.OS.Windows;
-        else if (matches("wasm") || matches("wasip1"))
+        else if (matches("wasm") || matches("wasi") || matches("wasip1"))
             os =  Target.OS.WASM;
         else
         {

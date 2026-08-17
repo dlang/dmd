@@ -407,10 +407,6 @@ COPY=\
 	$(IMPDIR)\core\sys\hurd\time.d \
 	$(IMPDIR)\core\sys\hurd\unistd.d \
 	\
-	$(IMPDIR)\core\sys\wasi\posix\time.d \
-	\
-	$(IMPDIR)\core\sys\wasi\posix\stdc\time.d \
-	\
 	$(IMPDIR)\core\sys\windows\accctrl.d \
 	$(IMPDIR)\core\sys\windows\aclapi.d \
 	$(IMPDIR)\core\sys\windows\aclui.d \

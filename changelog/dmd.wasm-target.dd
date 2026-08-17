@@ -26,14 +26,26 @@ $(CONSOLE
 $ dmd -mwasm32 -os=wasm -run hello.d
 )
 
-Version identifiers defined when targeting WebAssembly:
+WebAssembly is an architecture, not an operating system, so `-os=wasm` is really
+a shorthand for "the WebAssembly System Interface, preview 1" (`wasm32-wasip1` in
+target triple terms). `-os=wasi` and `-os=wasip1` are accepted as synonyms. Only
+WASI preview 1 is supported; preview 2 replaces the preview 1 syscalls with the
+component model and would need its own `-os` value.
+
+Version identifiers describing the architecture:
 $(UL
     $(LI `WebAssembly`)
-    $(LI `WASM32`)
-    $(LI `CRuntime_WASI`)
-    $(LI `WASI`)
-    $(LI `CppRuntime_LLVM`)
     $(LI `LittleEndian`)
+    $(LI `D_SIMD`)
+)
+
+Version identifiers describing the platform:
+$(UL
+    $(LI `WASI`)
+    $(LI `WASIp1`)
+    $(LI `Posix`, since `wasi-libc` implements a subset of Posix on top of WASI)
+    $(LI `CRuntime_WASI`)
+    $(LI `CppRuntime_LLVM`, `CppRuntime_Clang`)
 )
 
 The .wasm should be binary compatible with ldc2.
