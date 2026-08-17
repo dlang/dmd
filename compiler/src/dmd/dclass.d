@@ -284,7 +284,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return false;
     }
 
-    enum OFFSET_RUNTIME = 0x76543210;
     enum OFFSET_FWDREF = 0x76543211;
 
     /*******************************************
@@ -439,7 +438,6 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
      * (Actually, if it is an interface supported by cd)
      * Output:
      *      *poffset        offset to start of class
-     *                      OFFSET_RUNTIME  must determine offset at runtime
      * Returns:
      *      false   not a base
      *      true    is a base

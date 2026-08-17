@@ -291,7 +291,6 @@ public:
     const char *toPrettyChars(bool QualifyTypes = false, bool keepOneMember = false) override;
     ClassDeclaration *syntaxCopy(Dsymbol *s) override;
 
-    #define OFFSET_RUNTIME 0x76543210
     #define OFFSET_FWDREF 0x76543211
     virtual bool isBaseOf(ClassDeclaration *cd, int *poffset);
 
