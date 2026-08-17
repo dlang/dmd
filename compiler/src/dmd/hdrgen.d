@@ -3602,7 +3602,16 @@ void argExpTypesToCBuffer(ref OutBuffer buf, Expressions* arguments)
     {
         if (i)
             buf.put(", ");
-        typeToBuffer(arg.type, null, buf, hgs);
+        // An untyped lambda argument (e.g. `x => x`) that couldn't be
+        // matched against any candidate parameter type has no concrete
+        // signature to show here and would otherwise print as `void`,
+        // which isn't useful when several such arguments are involved.
+        // Show its source text instead.
+        // https://github.com/dlang/dmd/issues/18923
+        if (arg.type && arg.type.ty == Tvoid && arg.isFuncExp())
+            buf.writestring(arg.toErrMsg());
+        else
+            typeToBuffer(arg.type, null, buf, hgs);
     }
 }
 
