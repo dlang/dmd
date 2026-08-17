@@ -23,7 +23,7 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -1294,7 +1294,8 @@ FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
                 version (all)
                 {
                     // currently rejects
-                    .error(inv.loc, "%s `%s` mixing invariants with different `shared`/`synchronized` qualifiers is not supported", ad.kind(), ad.toPrettyChars());
+                    auto eSink = global.errorSink;
+                    eSink.error(inv.loc, "%s `%s` mixing invariants with different `shared`/`synchronized` qualifiers is not supported", ad.kind(), ad.toPrettyChars());
                     e = null;
                     break;
                 }
@@ -1586,9 +1587,10 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         // we have fields with postblits, so print deprecations
         if (xpostblit && !xpostblit.isDisabled())
         {
-            deprecation(sd.loc, "`struct %s` implicitly-generated postblit hides copy constructor.", sd.toChars);
-            deprecationSupplemental(sd.loc, "The field postblit will have priority over the copy constructor.");
-            deprecationSupplemental(sd.loc, "To change this, the postblit should be disabled for `struct %s`", sd.toChars());
+            auto eSink = global.errorSink;
+            eSink.deprecation(sd.loc, "`struct %s` implicitly-generated postblit hides copy constructor.", sd.toChars);
+            eSink.deprecationSupplemental(sd.loc, "The field postblit will have priority over the copy constructor.");
+            eSink.deprecationSupplemental(sd.loc, "To change this, the postblit should be disabled for `struct %s`", sd.toChars());
             sd.hasCopyCtor = false;
         }
         else
@@ -1781,11 +1783,12 @@ void needCopyOrMoveCtor(StructDeclaration sd, out bool hasCopyCtor, out bool has
         }
     }
 
-    if (0 && fieldWithCpCtor && moveCtor)
+    static if (0)
+    if (fieldWithCpCtor && moveCtor)
     {
-        .error(sd.loc, "`struct %s` may not define a rvalue constructor and have fields with copy constructors", sd.toErrMsg());
-        errorSupplemental(moveCtor.loc,"rvalue constructor defined here");
-        errorSupplemental(fieldWithCpCtor.loc, "field with copy constructor defined here");
+        eSink.error(sd.loc, "`struct %s` may not define a rvalue constructor and have fields with copy constructors", sd.toErrMsg());
+        eSink.errorSupplemental(moveCtor.loc,"rvalue constructor defined here");
+        eSink.errorSupplemental(fieldWithCpCtor.loc, "field with copy constructor defined here");
         return;
     }
 
