@@ -232,7 +232,6 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
                 predef("WASI");
                 predef("WASIp1");
                 predef("Posix");
-                predef("WASI_EMULATED_PROCESS_CLOCKS");
                 break;
             }
             default: assert(0);
@@ -251,11 +250,7 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition.addPredefinedGlobalIdent("X86_64");
     }
-    else if (tgt.isWasm)
-    {
-        VersionCondition.addPredefinedGlobalIdent("WASM32");
-    }
-    else
+    else if (!tgt.isWasm)
     {
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
@@ -397,15 +392,15 @@ extern (C++) struct Target
     bool isWasm;            // generate WebAssembly code
     bool isLP64;            // pointers are 64 bits
 
-    enum Arch : ubyte { aarch64, x86, x86_64, wasm32, wasm64 }
+    enum Arch : ubyte { aarch64, x86, x86_64, wasm32 }
 
     /// Set the target architecture, clearing the other arch flags.
     extern (D) void setArch(Arch arch) @safe
     {
         isAArch64 = arch == Arch.aarch64;
         isX86     = arch == Arch.x86;
-        isX86_64  = arch == Arch.x86_64 || arch == Arch.wasm64;
-        isWasm    = arch == Arch.wasm32 || arch == Arch.wasm64;
+        isX86_64  = arch == Arch.x86_64;
+        isWasm    = arch == Arch.wasm32;
     }
 
     // Environmental

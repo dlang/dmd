@@ -892,7 +892,7 @@ else version (AArch64)
         asm { "mrs %0, cntfrq_el0" : "=r" (*freq); }
     }
 }
-else version (WASI)
+else version (WASIp1)
 {
     import core.attribute : wasmImportModule;
 

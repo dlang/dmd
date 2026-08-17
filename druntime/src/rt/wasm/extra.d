@@ -6,23 +6,6 @@
  */
 module rt.wasm.extra;
 
-private extern (C) noreturn _wasm_trap(int code) @nogc nothrow;
-
-/// The libc assert handler, the D `assert` throws an AssertError instead
-extern (C) noreturn __assert(const(char)* file, int line, const(char)* msg) @nogc nothrow
-{
-    import core.stdc.stdio : fprintf, stderr;
-    fprintf(stderr, "%s(%d): Assertion `%s` failed\n", file, line, msg);
-    _wasm_trap(1);
-}
-
-/// wasi-libc exposes errno as a plain global, druntime expects an accessor
-private extern (C) extern __gshared int errno;
-extern (C) ref int __errno_location() @nogc nothrow
-{
-    return errno;
-}
-
 private extern (C) void* gc_calloc(size_t sz, uint ba = 0, const scope TypeInfo ti = null) @nogc nothrow;
 
 // Only for &alloca, the wasm backend lowers direct alloca() calls to a dynamic
@@ -30,19 +13,6 @@ private extern (C) void* gc_calloc(size_t sz, uint ba = 0, const scope TypeInfo 
 extern (C) void* alloca(size_t size) nothrow
 {
     return gc_calloc(size);
-}
-
-import core.attribute : wasmImportModule;
-
-@wasmImportModule("wasi_snapshot_preview1")
-private extern (C) int clock_time_get(uint clockId, ulong precision, ulong* timestamp) @nogc nothrow;
-
-extern (C) long clock() @nogc nothrow
-{
-    ulong t;
-    if (clock_time_get(2, 1, &t) != 0 && clock_time_get(1, 1, &t) != 0)
-        return -1;
-    return cast(long) t;
 }
 
 // wasi-libc emits these for 128 bit multiply (strtod/scanf long double paths)
