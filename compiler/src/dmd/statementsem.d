@@ -34,7 +34,7 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.escape;
 import dmd.expression;
 import dmd.expressionsem;
@@ -171,7 +171,8 @@ private Expression checkAssignmentAsCondition(Expression e, Scope* sc)
     auto ec = lastComma(e);
     if (ec.op == EXP.assign)
     {
-        error(ec.loc, "assignment cannot be used as a condition, perhaps `==` was meant?");
+        auto eSink = global.errorSink;
+        eSink.error(ec.loc, "assignment cannot be used as a condition, perhaps `==` was meant?");
         return ErrorExp.get();
     }
     return e;
@@ -3908,16 +3909,18 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
  */
 public bool throwSemantic(Loc loc, ref Expression exp, Scope* sc)
 {
+    auto eSink = global.errorSink;
+
     if (!global.params.useExceptions)
     {
         const(char)* s = SwitchExceptions ? SwitchExceptions : global.params.betterC ? "betterC".ptr : "nothrow".ptr;
-        loc.error("cannot use `throw` statements with `-%s`", s);
+        eSink.error(loc, "cannot use `throw` statements with `-%s`", s);
         return false;
     }
 
     if (!ClassDeclaration.throwable)
     {
-        loc.error("cannot use `throw` statements because `object.Throwable` was not declared");
+        eSink.error(loc, "cannot use `throw` statements because `object.Throwable` was not declared");
         return false;
     }
 
@@ -3935,7 +3938,7 @@ public bool throwSemantic(Loc loc, ref Expression exp, Scope* sc)
     {
         // @@@DEPRECATED_2.112@@@
         // Deprecated in 2.102, change into an error & return false in 2.112
-        exp.loc.deprecation("cannot throw object of qualified type `%s`", exp.type.toErrMsg());
+        eSink.deprecation(exp.loc, "cannot throw object of qualified type `%s`", exp.type.toErrMsg());
         //return false;
     }
     checkThrowEscape(*sc, exp, false);
@@ -3943,7 +3946,7 @@ public bool throwSemantic(Loc loc, ref Expression exp, Scope* sc)
     ClassDeclaration cd = exp.type.toBasetype().isClassHandle();
     if (!cd || ((cd != ClassDeclaration.throwable) && !ClassDeclaration.throwable.isBaseOf(cd, null)))
     {
-        loc.error("can only throw class objects derived from `Throwable`, not type `%s`", exp.type.toErrMsg());
+        eSink.error(loc, "can only throw class objects derived from `Throwable`, not type `%s`", exp.type.toErrMsg());
         return false;
     }
     return true;
@@ -3952,11 +3955,12 @@ public bool throwSemantic(Loc loc, ref Expression exp, Scope* sc)
 private extern(D) Expression applyOpApply(ForeachStatement fs, Expression flde,
             Type tab, Scope* sc2, Dsymbol sapply)
 {
+    auto eSink = global.errorSink;
     version (none)
     {
         if (sc2.useDIP1000 == FeatureState.enabled)
         {
-            message(loc, "To enforce `@safe`, the compiler allocates a closure unless `opApply()` uses `scope`");
+            eSink.message(loc, "To enforce `@safe`, the compiler allocates a closure unless `opApply()` uses `scope`");
         }
         flde.isFuncExp().fd.tookAddressOf = 1;
     }
@@ -3978,7 +3982,7 @@ private extern(D) Expression applyOpApply(ForeachStatement fs, Expression flde,
         return null;
     if (ec.type != Type.tint32)
     {
-        error(fs.loc, "`opApply()` function for `%s` must return an `int`", tab.toErrMsg());
+        eSink.error(fs.loc, "`opApply()` function for `%s` must return an `int`", tab.toErrMsg());
         return null;
     }
     return ec;
@@ -4004,7 +4008,8 @@ private extern(D) Expression applyDelegate(ForeachStatement fs, Expression flde,
         return null;
     if (ec.type != Type.tint32)
     {
-        error(fs.loc, "`opApply()` function for `%s` must return an `int`", tab.toErrMsg());
+        auto eSink = global.errorSink;
+        eSink.error(fs.loc, "`opApply()` function for `%s` must return an `int`", tab.toErrMsg());
         return null;
     }
     return ec;
@@ -4077,6 +4082,7 @@ private extern(D) Expression applyArray(ForeachStatement fs, Expression flde,
 
 private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression flde, Type tab)
 {
+    auto eSink = global.errorSink;
     auto taa = tab.isTypeAArray();
     const dim = fs.parameters.length;
     // Check types
@@ -4088,7 +4094,7 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
         Type ti = (isRef ? taa.index.addMod(MODFlags.const_) : taa.index);
         if (isRef ? !ti.constConv(ta) : !ti.implicitConvTo(ta))
         {
-            error(fs.loc, "`foreach`: index parameter `%s%s` must be type `%s`, not `%s`",
+            eSink.error(fs.loc, "`foreach`: index parameter `%s%s` must be type `%s`, not `%s`",
                  isRef ? "ref ".ptr : "".ptr, p.toChars(), ti.toErrMsg(), ta.toErrMsg());
             return null;
         }
@@ -4099,7 +4105,7 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
     Type taav = taa.nextOf();
     if (isRef ? !taav.constConv(ta) : !taav.implicitConvTo(ta))
     {
-        error(fs.loc, "`foreach`: value parameter `%s%s` must be type `%s`, not `%s`",
+        eSink.error(fs.loc, "`foreach`: value parameter `%s%s` must be type `%s`, not `%s`",
             isRef ? "ref ".ptr : "".ptr, p.toChars(), taav.toErrMsg(), ta.toErrMsg());
         return null;
     }
@@ -4187,7 +4193,8 @@ private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFuncti
             {
                 if (!(param.storageClass & STC.ref_))
                 {
-                    error(fs.loc, "`foreach`: cannot make `%s` `ref`", p.ident.toErrMsg());
+                    auto eSink = global.errorSink;
+                    eSink.error(fs.loc, "`foreach`: cannot make `%s` `ref`", p.ident.toErrMsg());
                     return null;
                 }
                 goto LcopyArg;
@@ -4253,11 +4260,12 @@ private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFuncti
 void catchSemantic(Catch c, Scope* sc)
 {
     //printf("Catch::semantic(%s)\n", ident.toChars());
+    auto eSink = global.errorSink;
 
     if (sc.scopeGuard && sc.scopeGuard.tok != TOK.onScopeFailure)
     {
         // If enclosing is scope(success) or scope(exit), this will be placed in finally block.
-        error(c.loc, "cannot put `catch` statement inside `%s`", Token.toChars(sc.scopeGuard.tok));
+        eSink.error(c.loc, "cannot put `catch` statement inside `%s`", Token.toChars(sc.scopeGuard.tok));
         c.errors = true;
     }
     if (sc.tryFinally)
@@ -4268,7 +4276,7 @@ void catchSemantic(Catch c, Scope* sc)
          * To fix, have the compiler automatically convert the finally
          * body into a nested function.
          */
-        error(c.loc, "cannot put `catch` statement inside `finally` block");
+        eSink.error(c.loc, "cannot put `catch` statement inside `finally` block");
         c.errors = true;
     }
 
@@ -4278,8 +4286,8 @@ void catchSemantic(Catch c, Scope* sc)
 
     if (!c.type)
     {
-        error(c.loc, "`catch` statement without an exception specification is deprecated");
-        errorSupplemental(c.loc, "use `catch(Throwable)` for old behavior");
+        eSink.error(c.loc, "`catch` statement without an exception specification is deprecated");
+        eSink.errorSupplemental(c.loc, "use `catch(Throwable)` for old behavior");
         c.errors = true;
 
         // reference .object.Throwable
@@ -4289,7 +4297,7 @@ void catchSemantic(Catch c, Scope* sc)
     {
         // @@@DEPRECATED_2.115@@@
         // Deprecated in 2.105, change into an error & uncomment assign in 2.115
-        deprecation(c.loc, "can only catch mutable or const qualified types, not `%s`", c.type.toErrMsg());
+        eSink.deprecation(c.loc, "can only catch mutable or const qualified types, not `%s`", c.type.toErrMsg());
         //c.errors = true;
     }
     c.type = c.type.typeSemantic(c.loc, sc);
@@ -4304,14 +4312,14 @@ void catchSemantic(Catch c, Scope* sc)
     auto cd = c.type.toBasetype().isClassHandle();
     if (!cd)
     {
-        error(c.loc, "can only catch class objects, not `%s`", c.type.toErrMsg());
+        eSink.error(c.loc, "can only catch class objects, not `%s`", c.type.toErrMsg());
         c.errors = true;
     }
     else if (cd.isCPPclass())
     {
         if (!target.cpp.exceptions)
         {
-            error(c.loc, "catching C++ class objects not supported for this target");
+            eSink.error(c.loc, "catching C++ class objects not supported for this target");
             c.errors = true;
         }
         if (!c.internalCatch)
@@ -4322,7 +4330,7 @@ void catchSemantic(Catch c, Scope* sc)
     }
     else if (cd != ClassDeclaration.throwable && !ClassDeclaration.throwable.isBaseOf(cd, null))
     {
-        error(c.loc, "can only catch class objects derived from `Throwable`, not `%s`", c.type.toErrMsg());
+        eSink.error(c.loc, "can only catch class objects derived from `Throwable`, not `%s`", c.type.toErrMsg());
         c.errors = true;
     }
     else if (!c.internalCatch && ClassDeclaration.exception &&
@@ -4510,6 +4518,8 @@ Statement scopeCode(Statement statement, Scope* sc, out Statement sentry, out St
  */
 public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachStatement fs, Dsymbols* dbody, bool needExpansion)
 {
+    auto eSink = global.errorSink;
+
     // Voldemort return type
     union U
     {
@@ -4533,7 +4543,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
     const bool skipCheck = isStatic && needExpansion;
     if (!skipCheck && (dim < 1 || dim > 2))
     {
-        error(fs.loc, "only one (element) or two (index, element) arguments allowed for sequence `foreach`, not %llu",
+        eSink.error(fs.loc, "only one (element) or two (index, element) arguments allowed for sequence `foreach`, not %llu",
             ulong(dim));
         return returnEarly();
     }
@@ -4592,7 +4602,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
             // Declare index
             if (p.isReference() || p.isLazy())
             {
-                error(fs.loc, "invalid storage class `%s` for index `%s`",
+                eSink.error(fs.loc, "invalid storage class `%s` for index `%s`",
                     stcToString(p.storageClass).ptr, p.ident.toErrMsg());
                 return returnEarly();
             }
@@ -4608,14 +4618,14 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
 
             if (!p.type.isIntegral())
             {
-                error(fs.loc, "foreach: index cannot be of non-integral type `%s`",
+                eSink.error(fs.loc, "foreach: index cannot be of non-integral type `%s`",
                          p.type.toErrMsg());
                 return returnEarly();
             }
 
             if (p.unpack)
             {
-                error(fs.loc, "foreach: cannot unpack key");
+                eSink.error(fs.loc, "foreach: cannot unpack key");
                 return returnEarly();
             }
 
@@ -4625,7 +4635,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
             dimrange.imax = SignExtendedNumber(dimrange.imax.value-1);
             if (!intRangeFromType(p.type).contains(dimrange))
             {
-                error(fs.loc, "index type `%s` cannot cover index range 0..%llu",
+                eSink.error(fs.loc, "index type `%s` cannot cover index range 0..%llu",
                          p.type.toErrMsg(), cast(ulong)length);
                 return returnEarly();
             }
@@ -4661,7 +4671,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
             if (storageClass & (STC.out_ | STC.lazy_) ||
                 storageClass & STC.ref_ && !te)
             {
-                error(fs.loc, "invalid storage class `%s` for element `%s`",
+                eSink.error(fs.loc, "invalid storage class `%s` for element `%s`",
                     stcToString(p.storageClass).ptr, ident.toErrMsg());
                 return false;
             }
@@ -4690,7 +4700,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                 }
                 else if (storageClass & STC.alias_)
                 {
-                    error(fs.loc, "`foreach` loop variable cannot be both `enum` and `alias`");
+                    eSink.error(fs.loc, "`foreach` loop variable cannot be both `enum` and `alias`");
                     return false;
                 }
 
@@ -4699,12 +4709,12 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                     var = new AliasDeclaration(loc, ident, ds);
                     if (storageClass & STC.ref_)
                     {
-                        error(fs.loc, "symbol `%s` cannot be `ref`", ds.toErrMsg());
+                        eSink.error(fs.loc, "symbol `%s` cannot be `ref`", ds.toErrMsg());
                         return false;
                     }
                     if (paramtype)
                     {
-                        error(fs.loc, "cannot specify element type for symbol `%s`", ds.toErrMsg());
+                        eSink.error(fs.loc, "cannot specify element type for symbol `%s`", ds.toErrMsg());
                         return false;
                     }
                 }
@@ -4713,7 +4723,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                     var = new AliasDeclaration(loc, ident, e.type);
                     if (paramtype)
                     {
-                        error(fs.loc, "cannot specify element type for type `%s`", e.type.toErrMsg());
+                        eSink.error(fs.loc, "cannot specify element type for type `%s`", e.type.toErrMsg());
                         return false;
                     }
                 }
@@ -4734,17 +4744,17 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                         {
                             if (!isStatic)
                             {
-                                error(fs.loc, "constant value `%s` cannot be `ref`", toChars(ie));
+                                eSink.error(fs.loc, "constant value `%s` cannot be `ref`", toChars(ie));
                             }
                             else
                             {
                                 if (!needExpansion)
                                 {
-                                    error(fs.loc, "constant value `%s` cannot be `ref`", toChars(ie));
+                                    eSink.error(fs.loc, "constant value `%s` cannot be `ref`", toChars(ie));
                                 }
                                 else
                                 {
-                                    error(fs.loc, "constant value `%s` cannot be `ref`", ident.toErrMsg());
+                                    eSink.error(fs.loc, "constant value `%s` cannot be `ref`", ident.toErrMsg());
                                 }
                             }
                             return false;
@@ -4760,12 +4770,12 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                 var = new AliasDeclaration(loc, ident, t);
                 if (paramtype)
                 {
-                    error(fs.loc, "cannot specify element type for symbol `%s`", ident.toErrMsg());
+                    eSink.error(fs.loc, "cannot specify element type for symbol `%s`", ident.toErrMsg());
                     return false;
                 }
                 if (storageClass & STC.manifest)
                 {
-                    error(fs.loc, "invalid storage class `enum` for element `%s`",
+                    eSink.error(fs.loc, "invalid storage class `enum` for element `%s`",
                         ident.toErrMsg());
                     return false;
                 }
@@ -5067,7 +5077,8 @@ private Statements* flatten(Statement statement, Scope* sc)
                 Statement s = p.parseStatement(ParseStatementFlags.curlyScope);
                 if (!s || global.errors != errors)
                 {
-                    errorSupplemental(s.loc, "while parsing string mixin statement");
+                    auto eSink = global.errorSink;
+                    eSink.errorSupplemental(s.loc, "while parsing string mixin statement");
                     return errorStatements();
                 }
                 a.push(s);
@@ -5139,7 +5150,8 @@ private Statement toStatement(Dsymbol s)
     }
     else
     {
-        .error(Loc.initial, "internal compiler error: cannot mixin %s `%s`\n", s.kind(), s.toErrMsg());
+        auto eSink = global.errorSink;
+        eSink.error(Loc.initial, "internal compiler error: cannot mixin %s `%s`\n", s.kind(), s.toErrMsg());
         result = ErrorStatement.get();
     }
 
@@ -5195,15 +5207,16 @@ private bool checkLabel(SwitchStatement ss)
      */
     bool checkVar(VarDeclaration vd)
     {
+        auto eSink = global.errorSink;
         for (auto v = vd; v && v != ss.lastVar; v = v.lastVar)
         {
             if (v.isDataseg() || (v.storage_class & (STC.manifest | STC.temp) && vd.ident != Id.withSym) || v._init.isVoidInitializer())
                 continue;
             if (vd.ident == Id.withSym)
-                error(ss.loc, "`switch` skips declaration of `with` temporary");
+                eSink.error(ss.loc, "`switch` skips declaration of `with` temporary");
             else
-                error(ss.loc, "`switch` skips declaration of variable `%s`", v.toPrettyChars());
-            errorSupplemental(v.loc, "declared here");
+                eSink.error(ss.loc, "`switch` skips declaration of variable `%s`", v.toPrettyChars());
+            eSink.errorSupplemental(v.loc, "declared here");
             return true;
         }
         return false;
@@ -5234,6 +5247,8 @@ bool checkLabel(GotoStatement gs)
     if (!gs.label.statement)
         return true;        // error should have been issued for this already
 
+    auto eSink = global.errorSink;
+
     if (gs.label.statement.os != gs.os)
     {
         if (gs.os && gs.os.tok == TOK.onScopeFailure && !gs.label.statement.os)
@@ -5243,22 +5258,22 @@ bool checkLabel(GotoStatement gs)
         else
         {
             if (gs.label.statement.os)
-                error(gs.loc, "cannot `goto` in to `%s` block", Token.toChars(gs.label.statement.os.tok));
+                eSink.error(gs.loc, "cannot `goto` in to `%s` block", Token.toChars(gs.label.statement.os.tok));
             else
-                error(gs.loc, "cannot `goto` out of `%s` block", Token.toChars(gs.os.tok));
+                eSink.error(gs.loc, "cannot `goto` out of `%s` block", Token.toChars(gs.os.tok));
             return true;
         }
     }
 
     if (gs.label.statement.tf != gs.tf)
     {
-        error(gs.loc, "cannot `goto` in or out of `finally` block");
+        eSink.error(gs.loc, "cannot `goto` in or out of `finally` block");
         return true;
     }
 
     if (gs.label.statement.inCtfeBlock && !gs.inCtfeBlock)
     {
-        error(gs.loc, "cannot `goto` into `if (__ctfe)` block");
+        eSink.error(gs.loc, "cannot `goto` into `if (__ctfe)` block");
         return true;
     }
 
@@ -5274,8 +5289,8 @@ bool checkLabel(GotoStatement gs)
             {
                 if (stf.loweredFrom)
                 {
-                    error(gs.loc, "`goto` skips declaration of variable `%s`", stf.loweredFrom.toPrettyChars());
-                    errorSupplemental(stf.loweredFrom.loc, "declared here");
+                    eSink.error(gs.loc, "`goto` skips declaration of variable `%s`", stf.loweredFrom.toPrettyChars());
+                    eSink.errorSupplemental(stf.loweredFrom.loc, "declared here");
                     return true;
                 }
                 loweredFromScopeGuard = stf.loweredFromScopeGuard;
@@ -5284,17 +5299,17 @@ bool checkLabel(GotoStatement gs)
             {
                 if (stc.loweredFromScopeGuard)
                 {
-                    error(gs.loc, "cannot `goto` past `%s` block", Token.toChars(stc.loweredFromScopeGuard));
+                    eSink.error(gs.loc, "cannot `goto` past `%s` block", Token.toChars(stc.loweredFromScopeGuard));
                     return true;
                 }
                 loweredFromScopeGuard = stc.loweredFromScopeGuard;
             }
             if (loweredFromScopeGuard)
             {
-                error(gs.loc, "cannot `goto` past `%s` block", Token.toChars(loweredFromScopeGuard));
+                eSink.error(gs.loc, "cannot `goto` past `%s` block", Token.toChars(loweredFromScopeGuard));
                 return true;
             }
-            error(gs.loc, "cannot `goto` into `try` block");
+            eSink.error(gs.loc, "cannot `goto` into `try` block");
             return true;
         }
         if (auto stf = stb.isTryFinallyStatement())
@@ -5323,10 +5338,10 @@ bool checkLabel(GotoStatement gs)
     else
     {
         if (vd.ident == Id.withSym)
-            error(gs.loc, "`goto` skips declaration of `with` temporary");
+            eSink.error(gs.loc, "`goto` skips declaration of `with` temporary");
         else
-            error(gs.loc, "`goto` skips declaration of variable `%s`", vd.toPrettyChars());
-        errorSupplemental(vd.loc, "declared here");
+            eSink.error(gs.loc, "`goto` skips declaration of variable `%s`", vd.toPrettyChars());
+       eSink.errorSupplemental(vd.loc, "declared here");
         return true;
     }
     return false;
