@@ -4701,7 +4701,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
         ClassDeclaration cdto   = t.isClassHandle();
 
         int offset;
-        if (cdto.isBaseOf(cdfrom, &offset) && offset != ClassDeclaration.OFFSET_RUNTIME)
+        if (cdto.isBaseOf(cdfrom, &offset))
         {
             /* The offset from cdfrom => cdto is known at compile time.
              * Cases:
@@ -4736,26 +4736,13 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
                 // Casting from derived class to base class is a no-op
             }
         }
-        else if (cdfrom.classKind == ClassKind.cpp)
+        else if (cdfrom.classKind == cdto.classKind)
         {
-            if (cdto.classKind == ClassKind.cpp)
-            {
-                /* Casting from a C++ interface to a C++ interface
-                 * is always a 'paint' operation
-                 */
-                return Lret(ce, e);                  // no-op
-            }
-
-            /* Casting from a C++ interface to a class
-             * always results in null because there is no runtime
-             * information available to do it.
-             *
-             * Casting from a C++ interface to a non-C++ interface
-             * always results in null because there is no way one
-             * can be derived from the other.
+            /* Casting from a non-D linkage class/interface to a unrelated class/interface
+             * is always a 'paint' operation (for dmd, other backends might use RTTI
+             * of other languages)
              */
-            e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
-            return Lret(ce, e);
+            return Lret(ce, e);                  // no-op
         }
         else
         {

@@ -279,7 +279,6 @@ elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol
 
                 int offset;
                 cdp.isBaseOf(cd, &offset);
-                assert(offset != ClassDeclaration.OFFSET_RUNTIME);
                 //printf("%s to %s, offset = %d\n", cd.toChars(), cdp.toChars(), offset);
                 if (offset)
                 {
