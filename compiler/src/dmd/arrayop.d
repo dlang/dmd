@@ -19,10 +19,11 @@ import dmd.astenums;
 import dmd.dcast : implicitConvTo;
 import dmd.declaration;
 import dmd.dscope;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.funcsem;
+import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
@@ -94,7 +95,8 @@ bool checkNonAssignmentArrayOp(Expression e, bool suggestion = false)
         const(char)* s = "";
         if (suggestion)
             s = " (possible missing [])";
-        error(e.loc, "array operation `%s` without destination memory not allowed%s", e.toErrMsg(), s);
+        auto eSink = global.errorSink;
+        eSink.error(e.loc, "array operation `%s` without destination memory not allowed%s", e.toErrMsg(), s);
         return true;
     }
     return false;
@@ -123,7 +125,8 @@ Expression arrayOp(BinExp e, Scope* sc)
     Type tbn = tb.nextOf().toBasetype();
     if (tbn.ty == Tvoid)
     {
-        error(e.loc, "cannot perform array operations on `void[]` arrays");
+        auto eSink = global.errorSink;
+        eSink.error(e.loc, "cannot perform array operations on `void[]` arrays");
         return ErrorExp.get();
     }
     if (!isArrayOpValid(e))
@@ -169,7 +172,8 @@ Expression arrayOp(BinAssignExp e, Scope* sc)
 
     if (tn && (!tn.isMutable() || !tn.isAssignable()))
     {
-        error(e.loc, "slice `%s` is not mutable", e.e1.toErrMsg());
+        auto eSink = global.errorSink;
+        eSink.error(e.loc, "slice `%s` is not mutable", e.e1.toErrMsg());
         if (e.op == EXP.addAssign)
             checkPossibleAddCatError!(AddAssignExp, CatAssignExp)(e.isAddAssignExp);
         return ErrorExp.get();
@@ -372,7 +376,8 @@ bool isArrayOpOperand(Expression e)
 
 ErrorExp arrayOpInvalidError(Expression e)
 {
-    error(e.loc, "invalid array operation `%s` (possible missing [])", e.toErrMsg());
+    auto eSink = global.errorSink;
+    eSink.error(e.loc, "invalid array operation `%s` (possible missing [])", e.toErrMsg());
     if (e.op == EXP.add)
         checkPossibleAddCatError!(AddExp, CatExp)(e.isAddExp());
     else if (e.op == EXP.addAssign)
@@ -385,5 +390,6 @@ private void checkPossibleAddCatError(AddT, CatT)(AddT ae)
     if (!ae.e2.type || ae.e2.type.ty != Tarray || !ae.e2.type.implicitConvTo(ae.e1.type))
         return;
     CatT ce = new CatT(ae.loc, ae.e1, ae.e2);
-    errorSupplemental(ae.loc, "did you mean to concatenate (`%s`) instead ?", ce.toChars());
+    auto eSink = global.errorSink;
+    eSink.errorSupplemental(ae.loc, "did you mean to concatenate (`%s`) instead ?", ce.toChars());
 }
