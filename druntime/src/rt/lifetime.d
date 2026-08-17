@@ -1129,7 +1129,8 @@ unittest
 {
     static void testAlign(int algn)()
     {
-        struct S
+        pragma(inline, false); // avoid optimizer seeing too many instructions
+        static struct S
         {
             align(algn) int x;
         }
@@ -1147,16 +1148,21 @@ unittest
             assert((cast(size_t)(a.ptr) & (algn - 1)) == 0);
         }
 
-        class C
+        static class C
         {
             align(algn) int x;
         }
         auto c = new C;
         assert((cast(size_t)(&c.x) & (algn - 1)) == 0);
     }
-    static foreach (algn; 0..16) // compiler does not support alignment > 32768
+    // compiler supports alignment up to 32768, but can get too slow, see https://github.com/dlang/dmd/issues/23629
+    static foreach (algn; 0..13)
         testAlign!(1 << algn)();
+}
 
+debug(SENTINEL) {} else
+unittest
+{
     static void testAlignMalloc(int algn)()
     {
         // alignment larger than size
