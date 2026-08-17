@@ -23,10 +23,11 @@ import dmd.ctfeexpr;
 import dmd.dcast;
 import dmd.declaration;
 import dmd.dstruct;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.location;
 import dmd.mtype;
 import dmd.root.complex;
@@ -309,6 +310,7 @@ UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
     }
     else
     {
+        auto eSink = global.errorSink;
         sinteger_t n1;
         sinteger_t n2;
         sinteger_t n;
@@ -316,7 +318,7 @@ UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
         n2 = e2.toInteger();
         if (n2 == 0)
         {
-            error(e2.loc, "divide by 0");
+            eSink.error(e2.loc, "divide by 0");
             emplaceExp!(ErrorExp)(&ue);
             return ue;
         }
@@ -325,13 +327,13 @@ UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
             // Check for int.min / -1
             if (n1 == 0xFFFFFFFF80000000UL && type.toBasetype().ty != Tint64)
             {
-                error(e2.loc, "integer overflow: `int.min / -1`");
+                eSink.error(e2.loc, "integer overflow: `int.min / -1`");
                 emplaceExp!(ErrorExp)(&ue);
                 return ue;
             }
             else if (n1 == 0x8000000000000000L) // long.min / -1
             {
-                error(e2.loc, "integer overflow: `long.min / -1L`");
+                eSink.error(e2.loc, "integer overflow: `long.min / -1L`");
                 emplaceExp!(ErrorExp)(&ue);
                 return ue;
             }
@@ -374,6 +376,7 @@ UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
     }
     else
     {
+        auto eSink = global.errorSink;
         sinteger_t n1;
         sinteger_t n2;
         sinteger_t n;
@@ -381,7 +384,7 @@ UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
         n2 = e2.toInteger();
         if (n2 == 0)
         {
-            error(e2.loc, "divide by 0");
+            eSink.error(e2.loc, "divide by 0");
             emplaceExp!(ErrorExp)(&ue);
             return ue;
         }
@@ -390,13 +393,13 @@ UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
             // Check for int.min % -1
             if (n1 == 0xFFFFFFFF80000000UL && type.toBasetype().ty != Tint64)
             {
-                error(e2.loc, "integer overflow: `int.min %% -1`");
+                eSink.error(e2.loc, "integer overflow: `int.min %% -1`");
                 emplaceExp!(ErrorExp)(&ue);
                 return ue;
             }
             else if (n1 == 0x8000000000000000L) // long.min % -1
             {
-                error(e2.loc, "integer overflow: `long.min %% -1L`");
+                eSink.error(e2.loc, "integer overflow: `long.min %% -1L`");
                 emplaceExp!(ErrorExp)(&ue);
                 return ue;
             }
@@ -1084,7 +1087,8 @@ UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
         {
             // have to change to internal compiler error
             // all invalid casts should be handled already in Expression::castTo().
-            error(loc, "cannot cast `%s` to `%s`", e1.type.toErrMsg(), type.toErrMsg());
+            auto eSink = global.errorSink;
+            eSink.error(loc, "cannot cast `%s` to `%s`", e1.type.toErrMsg(), type.toErrMsg());
         }
         emplaceExp!(ErrorExp)(&ue);
     }
@@ -1127,6 +1131,7 @@ UnionExp ArrayLength(Type type, Expression e1)
  */
 UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
 {
+    auto eSink = global.errorSink;
     UnionExp ue = void;
     Loc loc = e1.loc;
     //printf("Index(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
@@ -1137,7 +1142,7 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
         uinteger_t i = e2.toInteger();
         if (i >= es1.len)
         {
-            error(e1.loc, "string index %llu is out of bounds `[0 .. %llu]`", i, cast(ulong)es1.len);
+            eSink.error(e1.loc, "string index %llu is out of bounds `[0 .. %llu]`", i, cast(ulong)es1.len);
             emplaceExp!(ErrorExp)(&ue);
         }
         else
@@ -1153,7 +1158,7 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
         if (i >= length && (e1.op == EXP.arrayLiteral || !indexIsInBounds))
         {
             // C code only checks bounds if an ArrayLiteralExp
-            error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toErrMsg(), length);
+            eSink.error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toErrMsg(), length);
             emplaceExp!(ErrorExp)(&ue);
         }
         else if (ArrayLiteralExp ale = e1.isArrayLiteralExp())
@@ -1176,7 +1181,7 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
         {
             if (i >= ale.length)
             {
-                error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toErrMsg(), cast(ulong) ale.length);
+                eSink.error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toErrMsg(), cast(ulong) ale.length);
                 emplaceExp!(ErrorExp)(&ue);
             }
             else
