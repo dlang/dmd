@@ -1,4 +1,7 @@
-// EXTRA_OBJC_SOURCES:
+// also check cross compilation, ensure targeting 64-bit
+// REQUIRED_ARGS: -m64 -os=osx
+// doesn't compile with mingw option -mscrtlib=msvcrt120
+// DISABLED: win32
 
 import core.attribute : selector;
 
