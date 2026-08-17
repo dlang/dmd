@@ -12453,7 +12453,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // We delay checking the value for structs/classes as these might have
             // an opAssign defined.
             if ((t1.ty != Tstruct && t1.ty != Tclass && e2x.checkValue()) ||
-                e2x.checkSharedAccess(sc))
+                // A ref initializer only takes the address of its source.  This is
+                // permitted for shared data, just like passing a shared value to a
+                // ref parameter.
+                e2x.checkSharedAccess(sc, exp.op == EXP.construct &&
+                    exp.e1.isVarExp() && exp.e1.isVarExp().var.storage_class & STC.ref_))
                 return setError();
 
             // taking address of noreturn instance is OK
