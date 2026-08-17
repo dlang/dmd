@@ -30,6 +30,7 @@ import dmd.cond;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.hdrgen : visibilityToBuffer;
 import dmd.id;
@@ -763,6 +764,7 @@ extern (C++) final class UnpackDeclaration : AttribDeclaration
     STC storage_class;
     bool onStack = false;
     bool lowered = false;
+    ErrorSink eSink;
 
     final extern (D) this(const ref Loc loc, Dsymbols* vars, Expression _init, STC storage_class)
     {
@@ -771,11 +773,13 @@ extern (C++) final class UnpackDeclaration : AttribDeclaration
         this.declared_storage_class = storage_class;
         this.storage_class = storage_class;
         this.dsym = DSYM.unpackDeclaration;
+
+        import dmd.globals : global;
+        this.eSink = global.errorSink;
     }
 
     bool propagateStorageClasses()
     {
-        static import dmd.errors;
         foreach (d; *decl)
         {
             STC d_storage_class;
@@ -797,15 +801,14 @@ extern (C++) final class UnpackDeclaration : AttribDeclaration
             {
                 assert(0);
             }
-            import dmd.errors;
             if (d_storage_class & STC.static_ && !(storage_class & STC.static_))
             {
-                dmd.errors.error(loc, "cannot specify `static` for individual components of an unpack declaration");
+                eSink.error(loc, "cannot specify `static` for individual components of an unpack declaration");
                 return false;
             }
             if (d_storage_class & STC.manifest && !(storage_class & STC.manifest))
             {
-                dmd.errors.error(loc, "cannot specify `enum` for individual components of an unpack declaration");
+                eSink.error(loc, "cannot specify `enum` for individual components of an unpack declaration");
                 return false;
             }
             if (d_storage_class & (STC.ref_ | STC.out_))
@@ -832,7 +835,7 @@ extern (C++) final class UnpackDeclaration : AttribDeclaration
         static import dmd.errors;
         if (auto uda = userAttribDecl)
         {
-            dmd.errors.error(loc, "user defined attributes are not supported yet on unpack declarations");
+            eSink.error(loc, "user defined attributes are not supported yet on unpack declarations");
             return fail();
         }
 
@@ -877,13 +880,13 @@ extern (C++) final class UnpackDeclaration : AttribDeclaration
 
         if (!tup)
         {
-            dmd.errors.error(loc, "right hand side of unpack declaration must resolve to a tuple or expression sequence, not `%s`",
+            eSink.error(loc, "right hand side of unpack declaration must resolve to a tuple or expression sequence, not `%s`",
                 tinit.toChars());
             return fail();
         }
         if (decl.length != tup.exps.length)
         {
-            dmd.errors.error(loc, "incompatible number of components for unpack declaration (`%d` vs. `%d`)", cast(int)decl.length, cast(int)tup.exps.length);
+            eSink.error(loc, "incompatible number of components for unpack declaration (`%d` vs. `%d`)", cast(int)decl.length, cast(int)tup.exps.length);
             return fail();
         }
 

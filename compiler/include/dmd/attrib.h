@@ -213,6 +213,7 @@ public:
     StorageClass storage_class;
     bool onStack;
     bool lowered;
+    void *eSink;
 
     UnpackDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
