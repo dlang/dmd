@@ -44,12 +44,3 @@ import core.attribute : wasmImportModule;
 
 @wasmImportModule("wasi_snapshot_preview1")
 private extern(C) void proc_exit(int code) @nogc nothrow;
-
-private extern(C) int fflush(void* stream) @nogc nothrow;
-
-noreturn _wasm_trap(int code) @nogc nothrow
-{
-    fflush(null);
-    proc_exit(code);
-    while (true) {}
-}

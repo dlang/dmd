@@ -803,7 +803,7 @@ private bool emitLinkingSection(ref OutBuffer out_, ref WasmModule wmod)
             seginfo.writeuLEB128(cast(uint) segName.length);
             seginfo.write(segName.ptr, cast(uint) segName.length);
             seginfo.writeuLEB128(ds.alignLog2);
-            const uint segFlags = ds.name == "minfo" ? WASM_SEG.RETAIN : 0;
+            const uint segFlags = ds.name == "__minfo" ? WASM_SEG.RETAIN : 0;
             seginfo.writeuLEB128(segFlags);
         }
 
@@ -1337,7 +1337,7 @@ void WasmObj_moduleinfo(Symbol* scc)
     if (!scc)
         return;
 
-    pushDataSeg(4, 4, null, "minfo");
+    pushDataSeg(4, 4, null, "__minfo");
 
     const uint segIdx = wmod.activeSegIdx;
     uint zero = 0;
