@@ -1505,9 +1505,23 @@ extern (D) Expression incompatibleTypes(BinExp e, Scope* sc = null)
         e.e1.type.toBasetype().ty == Tpointer &&
         e.e2.type.toBasetype().ty == Tpointer)
     {
-        errorSupplemental(e.loc,
-            "`~` concatenates arrays, not pointers; " ~
-            "convert the pointer to an array first, e.g. with `std.string.fromStringz`");
+        // Only point users at `fromStringz` when both pointers are to
+        // character types (e.g. `const(char)*`); for other pointer
+        // types (e.g. `int*`) that hint would be misleading.
+        auto e1Next = (cast(TypePointer)e.e1.type.toBasetype()).next.toBasetype();
+        auto e2Next = (cast(TypePointer)e.e2.type.toBasetype()).next.toBasetype();
+        bool isCharType(Type t) => t.ty == Tchar || t.ty == Twchar || t.ty == Tdchar;
+
+        if (isCharType(e1Next) && isCharType(e2Next))
+        {
+            errorSupplemental(e.loc,
+                "`~` concatenates arrays, not pointers; " ~
+                "convert the pointer to an array first, e.g. with `std.string.fromStringz`");
+        }
+        else
+        {
+            errorSupplemental(e.loc, "`~` concatenates arrays, not pointers");
+        }
     }
 
     if (sc && sc.tinst)
