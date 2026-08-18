@@ -19,6 +19,7 @@ import core.stdc.string;
 
 import dmd.astenums;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.link;
 import dmd.location;
 import dmd.target;
@@ -53,14 +54,15 @@ DArray!ubyte preprocess(FileName csrcfile, Loc loc, ref OutBuffer defines)
      */
     const(char)* importc_h = findImportcH(global.importPaths[]);
 
+    auto eSink = global.errorSink;
     if (importc_h)
     {
         if (global.params.v.verbose)
-            message("include   %s", importc_h);
+            eSink.message(Loc.init, "include   %s", importc_h);
     }
     else
     {
-        error(loc, "cannot find \"importc.h\" along import path");
+        eSink.error(loc, "cannot find \"importc.h\" along import path");
         fatal();
     }
 
@@ -125,7 +127,9 @@ private const(char)[] cppCommand()
             //if the path to cl.exe is found, check if cl.exe is in the path.
             if(FileName.exists(path) != 1)
             {
-                error(Loc.initial, "cl.exe not found. Please ensure that Visual Studio Build Tools are installed and properly configured.");
+                import dmd.globals : global;
+                auto eSink = global.errorSink;
+                eSink.error(Loc.initial, "cl.exe not found. Please ensure that Visual Studio Build Tools are installed and properly configured.");
                 fatal();
             }
             return toDString(path);
