@@ -21,12 +21,12 @@ struct MetricDef
 // Some initial metrics to measure will add more later
 immutable MetricDef[] initials = [
     MetricDef("compile_hello_debug_instr",    "compile hello.d (instr)",        "count", "cachegrind"),
-    MetricDef("compile_hello_release_instr",  "compile hello.d -O (instr)",     "count", "cachegrind"),
+    MetricDef("compile_hello_release_instr",  "compile hello.d -O -release (instr)", "count", "cachegrind"),
     MetricDef("compile_phobos_instr",         "compile Phobos (instr)",         "count", "cachegrind"),
     MetricDef("compile_phobos_codegen_instr", "compile Phobos codegen (instr)", "count", "cachegrind"),
     MetricDef("compile_vibed_instr",          "compile vibe.d (instr)",         "count", "cachegrind"),
     MetricDef("dmd_binary_size",              "dmd binary size (stripped)",     "bytes", "stat"),
-    MetricDef("hello_binary_size",            "hello binary size",              "bytes", "stat"),
+    MetricDef("hello_binary_size",            "hello binary size (stripped)",   "bytes", "stat"),
     MetricDef("hello_max_rss",                "peak RSS (compile hello.d)",     "kb",    "time -v"),
     MetricDef("phobos_max_rss",               "peak RSS (compile Phobos)",      "kb",    "time -v"),
     MetricDef("vibed_max_rss",                "peak RSS (compile vibe.d)",      "kb",    "time -v"),
