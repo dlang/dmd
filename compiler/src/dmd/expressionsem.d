@@ -1510,7 +1510,10 @@ extern (D) Expression incompatibleTypes(BinExp e, Scope* sc = null)
         // types (e.g. `int*`) that hint would be misleading.
         auto e1Next = (cast(TypePointer)e.e1.type.toBasetype()).next.toBasetype();
         auto e2Next = (cast(TypePointer)e.e2.type.toBasetype()).next.toBasetype();
-        bool isCharType(Type t) => t.ty == Tchar || t.ty == Twchar || t.ty == Tdchar;
+        static bool isCharType(Type t)
+        {
+            return t.ty == Tchar || t.ty == Twchar || t.ty == Tdchar;
+        }
 
         if (isCharType(e1Next) && isCharType(e2Next))
         {
