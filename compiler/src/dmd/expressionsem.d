@@ -1496,6 +1496,20 @@ extern (D) Expression incompatibleTypes(BinExp e, Scope* sc = null)
             e.e1.toErrMsg(), thisOp, e.e2.toErrMsg(), ts[0], ts[1]);
     }
 
+    // https://github.com/dlang/dmd/issues/17758
+    // `~` concatenates arrays; using it on two pointers (e.g. two
+    // `const(char)*`) is a common mistake, typically when a C string
+    // was meant to be treated as a D array. Point users at the
+    // fix instead of leaving them to guess.
+    if (e.op == EXP.concatenate &&
+        e.e1.type.toBasetype().ty == Tpointer &&
+        e.e2.type.toBasetype().ty == Tpointer)
+    {
+        errorSupplemental(e.loc,
+            "`~` concatenates arrays, not pointers; " ~
+            "convert the pointer to an array first, e.g. with `std.string.fromStringz`");
+    }
+
     if (sc && sc.tinst)
         sc.tinst.printInstantiationTrace();
 
