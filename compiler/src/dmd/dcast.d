@@ -4397,8 +4397,13 @@ void fix16997(Scope* sc, UnaExp ue)
         case Tchar:
         case Twchar:
         case Tdchar:
-            deprecation(ue.loc, "integral promotion not done for `%s`, remove '-revert=intpromote' switch or `%scast(int)(%s)`",
-                ue.toErrMsg(), EXPtoString(ue.op).ptr, ue.e1.toErrMsg());
+            // https://github.com/dlang/dmd/issues/17834
+            // Show the operand's type (previously omitted, forcing the
+            // reader to look it up themselves) and word the suggested
+            // rewrite as "rewrite as" so the leading `-` isn't misread
+            // as a second compiler switch alongside `-revert=intpromote`.
+            deprecation(ue.loc, "integral promotion not done for `%s` (operand type `%s`), remove '-revert=intpromote' switch or rewrite as `%scast(int)(%s)`",
+                ue.toErrMsg(), ue.e1.type.toErrMsg(), EXPtoString(ue.op).ptr, ue.e1.toErrMsg());
             return;
 
         default:
