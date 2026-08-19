@@ -24,12 +24,12 @@ import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem : determineSize;
-import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
 import dmd.funcsem : isRootTraitsCompilesScope;
 import dmd.globals : FeatureState, global;
+import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
@@ -481,6 +481,8 @@ bool setUnsafe(Scope* sc, bool gag, Loc loc, VarDeclaration scopeVar,
     if (sc.debug_) // debug {} scopes are permissive
         return false;
 
+    ErrorSink eSink = global.errorSink;
+
     if (!sc.func)
     {
         if (sc.varDecl)
@@ -488,7 +490,7 @@ bool setUnsafe(Scope* sc, bool gag, Loc loc, VarDeclaration scopeVar,
             if (sc.varDecl.storage_class & STC.safe)
             {
                 string action = AttributeViolation(loc, format, args).action;
-                .error(loc, "%.*s can't initialize `@safe` variable `%s`", action.fTuple.expand, sc.varDecl.toErrMsg());
+                eSink.error(loc, "%.*s can't initialize `@safe` variable `%s`", action.fTuple.expand, sc.varDecl.toErrMsg());
                 return true;
             }
             else if (!(sc.varDecl.storage_class & STC.trusted))
@@ -508,7 +510,7 @@ bool setUnsafe(Scope* sc, bool gag, Loc loc, VarDeclaration scopeVar,
             // Message wil be gagged, but still call error() to update global.errors and for
             // -verrors=spec
             string action = AttributeViolation(loc, format, args).action;
-            .error(loc, "%.*s is not allowed in a `@safe` function", action.fTuple.expand);
+            eSink.error(loc, "%.*s is not allowed in a `@safe` function", action.fTuple.expand);
             return true;
         }
         return false;
@@ -571,7 +573,8 @@ bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, VarDeclarat
             if (!gag && !sc.isDeprecated())
             {
                 string action = AttributeViolation(loc, format, args).action;
-                deprecation(loc, "%.*s will become `@system` in a future release", action.fTuple.expand);
+                ErrorSink eSink = global.errorSink;
+                eSink.deprecation(loc, "%.*s will become `@system` in a future release", action.fTuple.expand);
             }
         }
         else if (!sc.func.safetyViolation)
