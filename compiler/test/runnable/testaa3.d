@@ -555,6 +555,48 @@ void test19829()
     assert(bar == [true]);
 }
 
+// https://github.com/dlang/dmd/issues/23642
+void test23642()
+{
+    Bson23642[string] fts;
+    fts["key"] = Bson23642();
+    fts["key"]["1"] = 1;
+    fts["key"]["2".."3"] = 23;
+    assert(fts["key"]["1"] == 1);
+    assert(fts["key"]["2"] == 2);
+    assert(fts["key"]["3"] == 3);
+
+    fts["key"]["1"] += 10;
+    fts["key"]["2"]++;
+    --fts["key"]["3"];
+    assert(fts["key"]["1"] == 11);
+    assert(fts["key"]["2"] == 3);
+    assert(fts["key"]["3"] == 2);
+}
+
+struct Bson23642
+{
+    int[string] data;
+
+    ref int opIndex(string idx)
+    {
+        return data[idx];
+    }
+    void opIndexAssign(int val, string idx)
+    {
+        data[idx] = val;
+    }
+    void opSliceAssign(int val, string idx1, string idx2)
+    {
+        data[idx1] = val / 10;
+        data[idx2] = val % 10;
+    }
+    void opIndexOpAssign(string op)(int val, string idx)
+    {
+        data[idx] += val;
+    }
+}
+
 /***************************************************/
 
 void main()
@@ -588,4 +630,5 @@ void main()
     test22556();
     test19829();
     test23182();
+    test23642();
 }

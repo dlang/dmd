@@ -354,6 +354,10 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
                 goto Lfallback;
             if (ae2.isErrorExp())
                 return ae2;
+
+            if (auto ie1 = ae.e1.isIndexExp())
+                ae.e1 = ie1.revertIndexAssignToRvalues(sc);
+
             /* Rewrite e1[arguments] as:
              *      e1.opIndex(arguments)
              */
@@ -942,6 +946,9 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
                 e.e2 = e.e2.expressionSemantic(sc);
                 if (e.e2.isErrorExp())
                     return e.e2;
+
+                if (auto ie1 = ae.e1.isIndexExp())
+                    ae.e1 = ie1.revertIndexAssignToRvalues(sc);
 
                 /* Rewrite a[arguments] op= e2 as:
                  *      a.opIndexOpAssign!(op)(e2, arguments)
