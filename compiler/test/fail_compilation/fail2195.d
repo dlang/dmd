@@ -2,8 +2,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail2195.d(16): Error: variable `variable` is shadowing variable `fail2195.main.variable`
-fail_compilation/fail2195.d(13):        declared here
+fail_compilation/fail2195.d(17): Error: variable `variable` is shadowing variable `fail2195.main.variable`
+fail_compilation/fail2195.d(14):        declared here
 ---
 */
 
