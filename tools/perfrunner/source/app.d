@@ -6,7 +6,7 @@ import std.parallelism : task;
 import std.path : buildPath, dirName;
 import std.stdio : stderr, writeln;
 
-import metrics : collectTraces, initials, measure;
+import metrics : collectTraces, initials, measure, MetricDef, selfBuild, selfBuildMs;
 import report : CommitRecord, MetricResult, render, renderCommit, Report;
 import vibed : describeFlags;
 
@@ -22,6 +22,7 @@ version (unittest) {} else
 int main(string[] args)
 {
     string baseDmd, headDmd, basePhobos, headPhobos, baseSha, headSha, hostDmd, os;
+    string baseSrc, headSrc, hostDmdBin;
     string before, committedAt;
     string outPath = "results.json";
     long pr, commits = 1;
@@ -31,6 +32,9 @@ int main(string[] args)
         "head-dmd", "path to the head (PR) dmd binary", &headDmd,
         "base-phobos", "path to the base phobos checkout", &basePhobos,
         "head-phobos", "path to the head phobos checkout", &headPhobos,
+        "base-src", "path to the base dmd source tree (self-build timing)", &baseSrc,
+        "head-src", "path to the head dmd source tree (self-build timing)", &headSrc,
+        "host-dmd-bin", "host compiler command for the self-build timing", &hostDmdBin,
         "base-sha", "base commit sha (metadata)", &baseSha,
         "head-sha", "head commit sha (metadata)", &headSha,
         "pr",       "pull request number (metadata)", &pr,
@@ -74,6 +78,8 @@ int main(string[] args)
     {
         auto m = measure(headDmd, workload, headPhobos, vibedRoot, vibedFlags, tmp, "head");
         auto t = collectTraces(headDmd, workload, headPhobos, tmp, "head");
+        if (headSrc.length && hostDmdBin.length)
+            m[selfBuild.id] = selfBuildMs(headSrc, hostDmdBin);
         write(outPath, renderCommit(CommitRecord(headSha, committedAt, before, commits,
             os, hostDmd, m, t.hello, t.phobos)));
         writeln("wrote ", outPath);
@@ -89,8 +95,16 @@ int main(string[] args)
     auto baseTraces = collectTraces(baseDmd, workload, basePhobos, tmp, "base");
     auto headTraces = collectTraces(headDmd, workload, headPhobos, tmp, "head");
 
+    immutable(MetricDef)[] defs = initials;
+    if (baseSrc.length && headSrc.length && hostDmdBin.length)
+    {
+        base[selfBuild.id] = selfBuildMs(baseSrc, hostDmdBin);
+        head[selfBuild.id] = selfBuildMs(headSrc, hostDmdBin);
+        defs ~= selfBuild;
+    }
+
     MetricResult[] metrics;
-    foreach (def; initials)
+    foreach (def; defs)
         metrics ~= MetricResult(def.id, def.label, def.unit, def.method,
             base[def.id], head[def.id]);
 

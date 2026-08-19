@@ -11,7 +11,7 @@ import sys
 import urllib.request
 
 MARKER = "<!-- dmd-perf-bot -->"
-THRESHOLDS = {"cachegrind": 0.1, "stat": 0.1, "time -v": 2.0}
+THRESHOLDS = {"cachegrind": 0.1, "stat": 0.1, "time -v": 2.0, "wall": 2.0}
 DOCS = "https://github.com/%s/blob/master/.github/PERF.md"
 
 TRACE_GATES = {"hello": "compile_hello_debug_instr", "phobos": "compile_phobos_instr"}
@@ -34,6 +34,8 @@ def fmt_value(value, unit):
     if unit == "us":
         ms = value / 1000
         return f"{ms:,.1f} ms" if ms < 100 else f"{ms:,.0f} ms"
+    if unit == "ms":
+        return f"{value / 1000:.1f} s"
     return str(value)
 
 
