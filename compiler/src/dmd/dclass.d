@@ -21,7 +21,6 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.dsymbol;
-import dmd.errors;
 import dmd.func;
 import dmd.id;
 import dmd.identifier;
@@ -229,7 +228,10 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
     extern (D) final void classError(const(char)* fmt, const(char)* arg)
     {
-        .error(loc, fmt, kind, toPrettyChars, arg);
+        import dmd.globals : global;
+        import dmd.errorsink;
+        auto eSink = global.errorSink;
+        eSink.error(loc, fmt, kind, toPrettyChars, arg);
     }
 
     static ClassDeclaration create(Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
