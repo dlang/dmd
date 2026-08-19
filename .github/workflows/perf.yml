@@ -127,15 +127,18 @@ jobs:
           args=(
             --head-dmd "$RUNNER_TEMP/head/dmd/$built"
             --head-phobos "$RUNNER_TEMP/head/phobos"
+            --head-src "$RUNNER_TEMP/head/dmd"
             --head-sha "${{ steps.refs.outputs.head }}"
             --os ubuntu-24.04
             --host-dmd "$HOST_DMD"
+            --host-dmd-bin "$DMD"
             --out "$GITHUB_WORKSPACE/results.json"
           )
           if [ -n "$BASE_SHA" ]; then
             args+=(
               --base-dmd "$RUNNER_TEMP/base/dmd/$built"
               --base-phobos "$RUNNER_TEMP/base/phobos"
+              --base-src "$RUNNER_TEMP/base/dmd"
               --base-sha "$BASE_SHA"
               --pr "${{ github.event.pull_request.number || 0 }}"
             )
