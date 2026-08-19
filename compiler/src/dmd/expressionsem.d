@@ -12031,6 +12031,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         return setResult(res);
                     exp.e2 = res;
 
+                    if (auto ie1 = ae.e1.isIndexExp())
+                        ae.e1 = ie1.revertIndexAssignToRvalues(sc);
+
                     /* Rewrite (a[arguments] = e2) as:
                      *      a.opIndexAssign(e2, arguments)
                      */
@@ -12059,6 +12062,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         return setResult(res);
 
                     exp.e2 = res;
+
+                    if (auto ie1 = ae.e1.isIndexExp())
+                        ae.e1 = ie1.revertIndexAssignToRvalues(sc);
 
                     /* Rewrite (a[i..j] = e2) as:
                      *      a.opSliceAssign(e2, i, j)
