@@ -1089,6 +1089,8 @@ private Expression pickBestBinaryOverload(Scope* sc, Objects* tiargs, Dsymbol s,
         {
             // Error, ambiguous
             error(e.loc, "overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toErrMsg(), m.nextf.type.toErrMsg(), m.lastf.toErrMsg());
+            errorSupplemental(m.lastf.loc, "`%s` is declared here", m.lastf.toPrettyChars());
+            errorSupplemental(m.nextf.loc, "`%s` is declared here", m.nextf.toPrettyChars());
         }
     }
     else if (m.last == MATCH.nomatch)
