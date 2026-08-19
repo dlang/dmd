@@ -21,4 +21,5 @@ percent from run to run on shared CI runners, so it is shown as informational me
 | dmd binary size (stripped) | size of the stripped dmd binary | 0.1% |
 | hello binary size (stripped) | size of the stripped hello executable | 0.1% |
 | peak RSS (compile ...) | maximum resident set size, from `/usr/bin/time -v` | 2% |
+| compile dmd itself (wall) | wall time to build dmd itself, `generated/build dmd BUILD=debug -j1 --force`, min of 3 runs | 2% |
 | compile ... (wall) | total wall time, from `-ftime-trace` | informational |
