@@ -154,7 +154,6 @@ real_t toReal(Expression _this)
         // normalize() is necessary until we fix all the paints of 'type'
         const ty = iexp.type.toBasetype().ty;
         const val = iexp.normalize(ty, iexp.value);
-        iexp.value = val;
         return (ty == Tuns64)
             ? real_t(cast(ulong)val)
             : real_t(cast(long)val);
@@ -194,7 +193,7 @@ dinteger_t toInteger(Expression _this)
     if (auto iexp = _this.isIntegerExp())
     {
         // normalize() is necessary until we fix all the paints of 'type'
-        return iexp.value = IntegerExp.normalize(iexp.type.toBasetype().ty, iexp.value);
+        return IntegerExp.normalize(iexp.type.toBasetype().ty, iexp.value);
     }
     else if (auto rexp = _this.isRealExp())
     {
@@ -5475,7 +5474,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         assert(e.type.deco);
-        e.setInteger(e.getInteger());
+        assert(e.value == IntegerExp.normalize(e.type.toBaseTypeNonSemantic().ty, e.value));
         result = e;
     }
 
