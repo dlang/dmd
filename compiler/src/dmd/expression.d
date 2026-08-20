@@ -190,7 +190,8 @@ extern (C++) abstract class Expression : ASTNode
     extern (D) final Expression copy()
     {
         Expression e;
-        if (!size)
+        size_t sz = size();
+        if (!sz)
         {
             debug
             {
@@ -200,10 +201,19 @@ extern (C++) abstract class Expression : ASTNode
             assert(0);
         }
 
+        if (op == EXP.int64)
+        {
+            if (sz == __traits(classInstanceSize, Integer64Exp))
+            {
+                auto e64 = cast(Integer64Exp)this;
+                if (e64.value_ >= 0 && e64.value_ < short.max)
+                    return new Integer16Exp(loc, cast(short)e64.value_, type);
+            }
+        }
         // memory never freed, so can use the faster bump-pointer-allocation
-        e = cast(Expression)allocmemoryNoFree(size, expAlign[op]);
+        e = cast(Expression)allocmemoryNoFree(sz, expAlign[op]);
         //printf("Expression::copy(op = %d) e = %p\n", op, e);
-        return cast(Expression)memcpy(cast(void*)e, cast(void*)this, size);
+        return cast(Expression)memcpy(cast(void*)e, cast(void*)this, sz);
     }
 
     Expression syntaxCopy()
