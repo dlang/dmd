@@ -92,6 +92,7 @@ public:
     Loc loc;                    // file location
     EXP op;                     // to minimize use of dynamic_cast
     uint8_t bitFields;
+    uint16_t astNodeBitFields;
 
     bool parens() const;
     bool parens(bool v);
@@ -99,6 +100,8 @@ public:
     bool rvalue(bool v);
 
     size_t size() const;
+    virtual size_t classInstanceSize() const;
+
     static void _init();
     virtual Expression *syntaxCopy();
 
@@ -227,16 +230,18 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class IntegerExp final : public Expression
+class IntegerExp : public Expression
 {
 public:
-    dinteger_t value;
 
     static IntegerExp *create(Loc loc, dinteger_t value, Type *type);
     void accept(Visitor *v) override { v->visit(this); }
-    dinteger_t getInteger() { return value; }
+    virtual dinteger_t value() const = 0;
+    virtual dinteger_t getInteger() = 0;
+    virtual void setInteger(dinteger_t val) = 0;
     template<int v>
-    static IntegerExp literal();
+    static IntegerExp* literal();
+    static IntegerExp* createBool(bool b);
 };
 
 class ErrorExp final : public Expression

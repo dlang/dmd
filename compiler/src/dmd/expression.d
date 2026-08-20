@@ -541,7 +541,7 @@ extern (C++) abstract class IntegerExp : Expression
 
     dinteger_t value() const;
     dinteger_t getInteger();
-    extern (D) void setInteger(dinteger_t value);
+    void setInteger(dinteger_t value);
 
     extern (D) static dinteger_t normalize(TY ty, dinteger_t value)
     {
@@ -667,7 +667,7 @@ extern (C++) class Integer64Exp : IntegerExp
         return value_;
     }
 
-    extern (D) override void setInteger(dinteger_t value)
+    override void setInteger(dinteger_t value)
     {
         this.value_ = normalize(type.toBaseTypeNonSemantic().ty, value);
     }
@@ -700,7 +700,7 @@ extern (C++) class Integer16Exp : IntegerExp
         return value();
     }
 
-    extern (D) override void setInteger(dinteger_t val)
+    override void setInteger(dinteger_t val)
     {
         this.value_ = cast(ushort)normalize(type.toBaseTypeNonSemantic().ty, val);
         // should always be a restricting change keeping or lowering the bit range
