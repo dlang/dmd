@@ -18,10 +18,10 @@ import dmd.astenums;
 import dmd.canthrow;
 import dmd.dclass;
 import dmd.declaration;
-import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem : toBool;
+import dmd.hdrgen : toErrMsg;
 import dmd.typesem : toBasetype;
 import dmd.func;
 import dmd.globals;
@@ -145,7 +145,8 @@ int blockExit(Statement s, FuncDeclaration func, ErrorSink eSink)
                     {
                         const(char)* gototype = s.isCaseStatement() ? "case" : "default";
                         // https://issues.dlang.org/show_bug.cgi?id=22999
-                        global.errorSink.error(s.loc, "switch case fallthrough - use 'goto %s;' if intended", gototype);
+                        auto eSink = global.errorSink;
+                        eSink.error(s.loc, "switch case fallthrough - use 'goto %s;' if intended", gototype);
                     }
                 }
 
