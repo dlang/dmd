@@ -134,12 +134,39 @@ void merge(Scope* _this, Loc loc, const ref CtorFlow ctorflow)
     }
 }
 
+/* These ensure that rounding real to float/double is actually done */
+private void toFloat (real_t r, out float  f) { pragma(inline, false); f = cast(float) r; }
+private void toDouble(real_t r, out double d) { pragma(inline, false); d = cast(double)r; }
+
 real_t toImaginary(Expression _this)
 {
     if (auto ie = _this.isIntegerExp())
         return CTFloat.zero;
-    else if (auto re = _this.isRealExp)
-        return re.type.isReal() ? CTFloat.zero : re.value;
+    else if (auto rexp = _this.isRealExp)
+    {
+        real_t result = rexp.value;
+
+        if (!rexp.type.isReal()) // the ! is the only difference from toReal()
+        {
+            const sz = size(rexp.type);
+            if (sz == 4)
+            {
+                float f;
+                toFloat(result, f);     // force round to float with x87 instructions
+                result = f;
+            }
+            else if (sz == 8)
+            {
+                double d;
+                toDouble(result, d);    // force round to double with x87 instructions
+                result = d;
+            }
+            rexp.value = result;        // in case of further casting
+        }
+        else
+            result = CTFloat.zero;
+        return result;
+    }
     else if (auto ce = _this.isComplexExp())
         return cimagl(ce.value);
 
@@ -147,6 +174,14 @@ real_t toImaginary(Expression _this)
     return CTFloat.zero;
 }
 
+/***********************************
+ * Interpret the value from IntegerExp, RealExp, or ComplexExp
+ * as a correctly typed floating point number.
+ * Params:
+ *      _this = Expression
+ * Returns:
+ *      floating point value, zero on error
+ */
 real_t toReal(Expression _this)
 {
     if (auto iexp = _this.isIntegerExp())
@@ -161,7 +196,31 @@ real_t toReal(Expression _this)
     }
     else if (auto rexp = _this.isRealExp())
     {
-        return rexp.type.isReal() ? rexp.value : CTFloat.zero;
+        /* Conversions are handled here instead of in RealExp's constructor
+         * because the type sent to the constructor is not semantically known yet
+         */
+        real_t result = rexp.value;
+
+        if (rexp.type.isReal())
+        {
+            const sz = size(rexp.type);
+            if (sz == 4)
+            {
+                float f;
+                toFloat(result, f);     // force round to float with x87 instructions
+                result = f;
+            }
+            else if (sz == 8)
+            {
+                double d;
+                toDouble(result, d);    // force round to double with x87 instructions
+                result = d;
+            }
+            rexp.value = result;        // in case of further casting
+        }
+        else
+            result = CTFloat.zero;
+        return result;
     }
     else if (auto cexp = _this.isComplexExp())
     {
