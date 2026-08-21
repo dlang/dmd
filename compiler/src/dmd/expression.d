@@ -135,7 +135,9 @@ extern (C++) abstract class Expression : ASTNode
     import dmd.common.bitfields;
     mixin(generateBitFields!(BitFields, ubyte));
 
-    extern (D) this(Loc loc, EXP op) scope @safe
+    private ushort astNodeBitFields;
+
+    extern (D) this(Loc loc, EXP op) scope @trusted
     {
         //printf("Expression::Expression(op = %d) this = %p\n", op, this);
         this.loc = loc;
@@ -143,7 +145,10 @@ extern (C++) abstract class Expression : ASTNode
     }
 
     /// Returns: class instance size of this expression (implemented manually because `extern(C++)`)
-    final size_t size() nothrow @nogc pure @safe const { return expSize[op]; }
+    size_t size() nothrow @nogc pure @safe const
+    {
+        return expSize[op];
+    }
 
     static void _init()
     {
@@ -174,10 +179,11 @@ extern (C++) abstract class Expression : ASTNode
     /*********************************
      * Does *not* do a deep copy.
      */
-    extern (D) final Expression copy()
+    Expression copy()
     {
         Expression e;
-        if (!size)
+        size_t sz = size();
+        if (!sz)
         {
             debug
             {
@@ -187,10 +193,11 @@ extern (C++) abstract class Expression : ASTNode
             assert(0);
         }
 
+        size_t alignment = expAlign[op];
         // memory never freed, so can use the faster bump-pointer-allocation
-        e = cast(Expression)allocmemoryNoFree(size, expAlign[op]);
+        e = cast(Expression)allocmemoryNoFree(sz, alignment);
         //printf("Expression::copy(op = %d) e = %p\n", op, e);
-        return cast(Expression)memcpy(cast(void*)e, cast(void*)this, size);
+        return cast(Expression)memcpy(cast(void*)e, cast(void*)this, sz);
     }
 
     Expression syntaxCopy()
@@ -491,11 +498,9 @@ bool _isRoughlyScalar(Type _this)
 /***********************************************************
  * A compile-time known integer value
  */
-extern (C++) final class IntegerExp : Expression
+extern (C++) abstract class IntegerExp : Expression
 {
-    dinteger_t value;
-
-    extern (D) this(Loc loc, dinteger_t value, Type type)
+    extern (D) this(Loc loc, Type type)
     {
         super(loc, EXP.int64);
         //printf("IntegerExp(value = %lld, type = '%s')\n", value, type ? type.toChars() : "");
@@ -508,19 +513,20 @@ extern (C++) final class IntegerExp : Expression
         assert(_isRoughlyScalar(type) || type.ty == Terror);
 
         this.type = type;
-        this.value = normalize(type.toBaseTypeNonSemantic().ty, value);
-    }
-
-    extern (D) this(dinteger_t value)
-    {
-        super(Loc.initial, EXP.int64);
-        this.type = Type.tint32;
-        this.value = cast(int)value;
     }
 
     static IntegerExp create(Loc loc, dinteger_t value, Type type)
     {
-        return new IntegerExp(loc, value, type);
+        import dmd.typesem;
+        dinteger_t val = type.isUnsigned() ? cast(ushort)value : cast(long)cast(short)value;
+        if (val == value)
+            return new Integer16Exp(loc, cast(short)value, type);
+        return new Integer64Exp(loc, value, type);
+    }
+
+    static IntegerExp create(dinteger_t value)
+    {
+        return create(Loc.initial, value, Type.tint32);
     }
 
     override void accept(Visitor v)
@@ -528,15 +534,9 @@ extern (C++) final class IntegerExp : Expression
         v.visit(this);
     }
 
-    dinteger_t getInteger()
-    {
-        return value;
-    }
-
-    extern (D) void setInteger(dinteger_t value)
-    {
-        this.value = normalize(type.toBaseTypeNonSemantic().ty, value);
-    }
+    dinteger_t value() const;
+    dinteger_t getInteger();
+    void setInteger(dinteger_t value);
 
     extern (D) static dinteger_t normalize(TY ty, dinteger_t value)
     {
@@ -610,7 +610,7 @@ extern (C++) final class IntegerExp : Expression
     {
         __gshared IntegerExp theConstant;
         if (!theConstant)
-            theConstant = new IntegerExp(v);
+            theConstant = IntegerExp.create(v);
         return theConstant;
     }
 
@@ -627,12 +627,110 @@ extern (C++) final class IntegerExp : Expression
         __gshared IntegerExp trueExp, falseExp;
         if (!trueExp)
         {
-            trueExp = new IntegerExp(Loc.initial, 1, Type.tbool);
-            falseExp = new IntegerExp(Loc.initial, 0, Type.tbool);
+            trueExp = IntegerExp.create(Loc.initial, 1, Type.tbool);
+            falseExp = IntegerExp.create(Loc.initial, 0, Type.tbool);
         }
         return b ? trueExp : falseExp;
     }
 }
+
+extern (C++) class Integer64Exp : IntegerExp
+{
+    dinteger_t value_;
+
+    extern (D) this(Loc loc, dinteger_t value, Type type)
+    {
+        super(loc, type);
+        value_ = normalize(type.toBaseTypeNonSemantic().ty, value);
+    }
+
+    extern (D) this(dinteger_t value)
+    {
+        super(Loc.initial, Type.tint32);
+        value_ = cast(int)value;
+    }
+
+    override size_t size() nothrow @nogc pure @safe const
+    {
+        return __traits(classInstanceSize, Integer64Exp);
+    }
+
+    override IntegerExp copy()
+    {
+        import dmd.typesem;
+        dinteger_t val = type.isUnsigned() ? cast(ushort)value_ : cast(long)cast(short)value_;
+        if (val == value_)
+        {
+            auto alignment = classAlignment!Integer16Exp;
+            auto sz = __traits(classInstanceSize, Integer16Exp);
+            auto p = allocmemoryNoFree(sz, alignment);
+            return emplaceClass!Integer16Exp(p, loc, cast(ushort)val, type);
+        }
+        size_t sz = __traits(classInstanceSize, Integer64Exp);
+        size_t alignment = classAlignment!Integer64Exp;
+        // memory never freed, so can use the faster bump-pointer-allocation
+        void* p = allocmemoryNoFree(sz, alignment);
+        return cast(Integer64Exp)memcpy(p, cast(void*)this, sz);
+    }
+
+    override dinteger_t value() const { return value_; }
+
+    override dinteger_t getInteger()
+    {
+        return value_;
+    }
+
+    override void setInteger(dinteger_t value)
+    {
+        this.value_ = normalize(type.toBaseTypeNonSemantic().ty, value);
+    }
+}
+
+extern (C++) class Integer16Exp : IntegerExp
+{
+    alias value_ = astNodeBitFields;
+
+    extern (D) this(Loc loc, ushort value, Type type)
+    {
+        super(loc, type);
+        value_ = value;
+    }
+
+    override size_t size() nothrow @nogc pure @safe const
+    {
+        return __traits(classInstanceSize, Integer16Exp);
+    }
+
+    override Integer16Exp copy()
+    {
+        size_t sz = __traits(classInstanceSize, Integer16Exp);
+        size_t alignment = classAlignment!Integer16Exp;
+        // memory never freed, so can use the faster bump-pointer-allocation
+        void* p = allocmemoryNoFree(sz, alignment);
+        return cast(Integer16Exp)memcpy(p, cast(void*)this, sz);
+    }
+
+
+    override dinteger_t value() const
+    {
+        import dmd.typesem;
+        dinteger_t val = (cast()type).isUnsigned() ? value_ : cast(long)cast(short)value_;
+        return val;
+    }
+
+    override dinteger_t getInteger()
+    {
+        return value();
+    }
+
+    override void setInteger(dinteger_t val)
+    {
+        this.value_ = cast(ushort)normalize(type.toBaseTypeNonSemantic().ty, val);
+        // should always be a restricting change keeping or lowering the bit range
+        assert(val == value);
+    }
+}
+
 
 /***********************************************************
  * Use this expression for error recovery.
@@ -4177,12 +4275,15 @@ immutable ubyte[EXP.max+1] expSize = (){
     return expSize;
 }();
 
+// support for classInstanceAlignment? if not, assume worst case
+static if (__VERSION__ >= 2101)
+    enum classAlignment(T) = __traits(classInstanceAlignment, T);
+else
+    enum classAlignment(T) = 16;
+
 immutable ubyte[EXP.max+1] expAlign = (){
     ubyte[EXP.max+1] expAlign;
     foreach(optype; ExpOpTypePairs)
-        static if (__VERSION__ >= 2101) // support for classInstanceAlignment ?
-            expAlign[optype.op] = __traits(classInstanceAlignment, optype.type);
-        else
-            expAlign[optype.op] = 16; // worst case, GC doesn't guarantee more anyway
+        expAlign[optype.op] = classAlignment!(optype.type);
     return expAlign;
 }();

@@ -2372,7 +2372,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             auto tsa = t.isTypeSArray();
             if (tsa && hasDollarDimension(tsa))
             {
-                tsa.dim = new IntegerExp(loc, 0, Type.tsize_t);
+                tsa.dim = IntegerExp.create(loc, 0, Type.tsize_t);
             }
 
             if (tsa)
@@ -2529,7 +2529,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     auto dim = srcTsa.dim ? srcTsa.dim.isIntegerExp() : null;
                     if (!dim)
                         break;
-                    dstTsa.dim = new IntegerExp(loc, dim.value, Type.tsize_t);
+                    dstTsa.dim = IntegerExp.create(loc, dim.value, Type.tsize_t);
                 }
                 dstTsa = dstTsa.next.isTypeSArray();
                 srcTsa = srcTsa.next ? srcTsa.next.toBasetype().isTypeSArray() : null;
@@ -2547,7 +2547,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (auto ale = ie.isArrayLiteralExp())
             {
                 dinteger_t len = ale.length;
-                tsa.dim = new IntegerExp(loc, len, Type.tsize_t);
+                tsa.dim = IntegerExp.create(loc, len, Type.tsize_t);
                 if (auto innerTsa = tsa.next.isTypeSArray())
                 {
                     if (len)
@@ -2563,7 +2563,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 Type next = tsa.next.toBasetype();
                 if (next.ty == TY.Tchar || next.ty == TY.Twchar || next.ty == TY.Tdchar)
                 {
-                    tsa.dim = new IntegerExp(loc, se.len, Type.tsize_t);
+                    tsa.dim = IntegerExp.create(loc, se.len, Type.tsize_t);
                     return true;
                 }
                 return false;
@@ -2576,7 +2576,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (!inferExprLength(ie, len))
                 return false;
 
-            tsa.dim = new IntegerExp(loc, len, Type.tsize_t);
+            tsa.dim = IntegerExp.create(loc, len, Type.tsize_t);
 
             // For non-literal forms (e.g. concatenation), propagate any known
             // nested static-array dimensions from the expression element type.
@@ -2614,7 +2614,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (!dsym._init || dsym._init.isVoidInitializer())
             {
                 eSink.error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
-                tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
+                tsa.dim = IntegerExp.create(dsym.loc, 0, Type.tsize_t);
                 dsym._init = new ErrorInitializer();
                 dsym.type = Type.terror;
                 dsym.errors = true;
@@ -2640,7 +2640,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     if (!dimInferred)
                     {
                         eSink.error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
-                        tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
+                        tsa.dim = IntegerExp.create(dsym.loc, 0, Type.tsize_t);
                         dsym._init = new ErrorInitializer();
                         dsym.type = Type.terror;
                         dsym.errors = true;
@@ -8018,7 +8018,7 @@ private extern(C++) class SearchVisitor : Visitor
             /* $ gives the number of type entries in the type tuple
              */
             auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
-            Expression e = new IntegerExp(Loc.initial, tt.arguments.length, Type.tsize_t);
+            Expression e = IntegerExp.create(Loc.initial, tt.arguments.length, Type.tsize_t);
             v._init = new ExpInitializer(Loc.initial, e);
             v.storage_class |= STC.temp | STC.static_ | STC.const_;
             v.dsymbolSemantic(sc);
@@ -8033,7 +8033,7 @@ private extern(C++) class SearchVisitor : Visitor
             /* $ gives the number of elements in the tuple
              */
             auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
-            Expression e = new IntegerExp(Loc.initial, td.objects.length, Type.tsize_t);
+            Expression e = IntegerExp.create(Loc.initial, td.objects.length, Type.tsize_t);
             v._init = new ExpInitializer(Loc.initial, e);
             v.storage_class |= STC.temp | STC.static_ | STC.const_;
             v.dsymbolSemantic(ass._scope);
@@ -8096,7 +8096,7 @@ private extern(C++) class SearchVisitor : Visitor
                 /* It is for an expression tuple, so the
                  * length will be a const.
                  */
-                Expression e = new IntegerExp(Loc.initial, tupexp.exps.length, Type.tsize_t);
+                Expression e = IntegerExp.create(Loc.initial, tupexp.exps.length, Type.tsize_t);
                 v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc.initial, e));
                 v.storage_class |= STC.temp | STC.static_ | STC.const_;
             }
@@ -8127,7 +8127,7 @@ private extern(C++) class SearchVisitor : Visitor
                     {
                         assert(0);
                     }
-                    Expression edim = new IntegerExp(Loc.initial, dim, Type.tsize_t);
+                    Expression edim = IntegerExp.create(Loc.initial, dim, Type.tsize_t);
                     edim = edim.expressionSemantic(ass._scope);
                     auto tiargs = new Objects(edim);
                     e = new DotTemplateInstanceExp(loc, ce, td.ident, tiargs);
@@ -9795,8 +9795,8 @@ private Expression callScopeDtor(VarDeclaration vd, Scope* sc)
             const sdsz = sd.type.size();
             assert(sdsz != SIZE_INVALID && sdsz != 0);
             const n = sz / sdsz;
-            SliceExp se = new SliceExp(vd.loc, e, new IntegerExp(vd.loc, 0, Type.tsize_t),
-                new IntegerExp(vd.loc, n, Type.tsize_t));
+            SliceExp se = new SliceExp(vd.loc, e, IntegerExp.create(vd.loc, 0, Type.tsize_t),
+                IntegerExp.create(vd.loc, n, Type.tsize_t));
 
             // Prevent redundant bounds check
             se.upperIsInBounds = true;

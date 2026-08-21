@@ -1915,8 +1915,8 @@ public:
             if (val.type.ty == Tsarray && pointee.ty == Tsarray && elemsize == pointee.nextOf().size())
             {
                 size_t d = cast(size_t)(cast(TypeSArray)pointee).dim.toInteger();
-                Expression elwr = ctfeEmplaceExp!IntegerExp(e.loc, e.offset / elemsize, Type.tsize_t);
-                Expression eupr = ctfeEmplaceExp!IntegerExp(e.loc, e.offset / elemsize + d, Type.tsize_t);
+                Expression elwr = ctfeEmplaceExp!Integer64Exp(e.loc, e.offset / elemsize, Type.tsize_t);
+                Expression eupr = ctfeEmplaceExp!Integer64Exp(e.loc, e.offset / elemsize + d, Type.tsize_t);
 
                 // Create a CTFE pointer &val[ofs..ofs+d]
                 auto se = ctfeEmplaceExp!SliceExp(e.loc, val, elwr, eupr);
@@ -1961,7 +1961,7 @@ public:
             if (aggregate)
             {
                 // Create a CTFE pointer &aggregate[ofs]
-                auto ofs = ctfeEmplaceExp!IntegerExp(e.loc, indx, Type.tsize_t);
+                auto ofs = ctfeEmplaceExp!Integer64Exp(e.loc, indx, Type.tsize_t);
                 auto ei = ctfeEmplaceExp!IndexExp(e.loc, aggregate, ofs);
                 ei.type = elemtype;
                 emplaceExp!(AddrExp)(pue, e.loc, ei, e.type);
@@ -2122,7 +2122,7 @@ public:
                 assert(e.type);
 
                 // There's a terrible hack in `dmd.dsymbolsem` that special case
-                // a struct with all zeros to an `ExpInitializer(BlitExp(IntegerExp(0)))`
+                // a struct with all zeros to an `ExpInitializer(BlitExp(Integer64Exp(0)))`
                 // There's matching code for it in e2ir (toElem's visitAssignExp),
                 // so we need the same hack here.
                 // This does not trigger for global as they get a normal initializer.
@@ -3004,7 +3004,7 @@ public:
             auto ae = ctfeEmplaceExp!ArrayLiteralExp(e.loc, e.newtype.arrayOf(), elements);
             ae.ownedByCtfe = OwnedBy.ctfe;
 
-            auto ei = ctfeEmplaceExp!IndexExp(e.loc, ae, ctfeEmplaceExp!IntegerExp(Loc.initial, 0, Type.tsize_t));
+            auto ei = ctfeEmplaceExp!IndexExp(e.loc, ae, ctfeEmplaceExp!Integer64Exp(Loc.initial, 0, Type.tsize_t));
             ei.type = e.newtype;
             emplaceExp!(AddrExp)(pue, e.loc, ei, e.type);
             result = pue.exp();
@@ -3248,7 +3248,7 @@ public:
                 result = IntegerExp.createBool(cmp != 0);
             else
             {
-                emplaceExp!(IntegerExp)(pue, e.loc, cmp, e.type);
+                emplaceExp!(Integer64Exp)(pue, e.loc, cmp, e.type);
                 result = (*pue).exp();
             }
             return;
@@ -3276,7 +3276,7 @@ public:
             result = IntegerExp.createBool(cmp);
         else
         {
-            emplaceExp!(IntegerExp)(pue, e.loc, cmp, e.type);
+            emplaceExp!(Integer64Exp)(pue, e.loc, cmp, e.type);
             result = (*pue).exp();
         }
     }
@@ -4075,8 +4075,8 @@ public:
             if (goal == CTFEGoal.Nothing)
                 return null; // avoid creating an unused literal
             auto retslice = ctfeEmplaceExp!SliceExp(e.loc, existingSE,
-                        ctfeEmplaceExp!IntegerExp(e.loc, firstIndex, Type.tsize_t),
-                        ctfeEmplaceExp!IntegerExp(e.loc, firstIndex + upperbound - lowerbound, Type.tsize_t));
+                        ctfeEmplaceExp!Integer64Exp(e.loc, firstIndex, Type.tsize_t),
+                        ctfeEmplaceExp!Integer64Exp(e.loc, firstIndex + upperbound - lowerbound, Type.tsize_t));
             retslice.type = e.type;
             return interpret(pue, retslice, istate);
         }
@@ -4278,8 +4278,8 @@ public:
             if (goal == CTFEGoal.Nothing)
                 return null; // avoid creating an unused literal
             auto retslice = ctfeEmplaceExp!SliceExp(e.loc, existingAE,
-                ctfeEmplaceExp!IntegerExp(e.loc, firstIndex, Type.tsize_t),
-                ctfeEmplaceExp!IntegerExp(e.loc, firstIndex + upperbound - lowerbound, Type.tsize_t));
+                ctfeEmplaceExp!Integer64Exp(e.loc, firstIndex, Type.tsize_t),
+                ctfeEmplaceExp!Integer64Exp(e.loc, firstIndex + upperbound - lowerbound, Type.tsize_t));
             retslice.type = e.type;
             return interpret(pue, retslice, istate);
         }
@@ -4504,7 +4504,7 @@ public:
                 (dir1 != dir2 && pointToSameMemoryBlock(agg1, agg3) && pointToSameMemoryBlock(agg2, agg4)))
             {
                 // it's a legal two-sided comparison
-                emplaceExp!(IntegerExp)(pue, e.loc, (e.op == EXP.andAnd) ? 0 : 1, e.type);
+                emplaceExp!(Integer64Exp)(pue, e.loc, (e.op == EXP.andAnd) ? 0 : 1, e.type);
                 result = pue.exp();
                 return;
             }
@@ -4563,7 +4563,7 @@ public:
             result = interpret(pue, e.e2, istate);
             return;
         }
-        emplaceExp!(IntegerExp)(pue, e.loc, (e.op == EXP.andAnd) ? 0 : 1, e.type);
+        emplaceExp!(Integer64Exp)(pue, e.loc, (e.op == EXP.andAnd) ? 0 : 1, e.type);
         result = pue.exp();
     }
 
@@ -4624,7 +4624,7 @@ public:
                 result = IntegerExp.createBool(res);
             else
             {
-                emplaceExp!(IntegerExp)(pue, e.loc, res, e.type);
+                emplaceExp!(Integer64Exp)(pue, e.loc, res, e.type);
                 result = pue.exp();
             }
         }
@@ -4995,7 +4995,7 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
-        emplaceExp!(IntegerExp)(pue, e.loc, resolveArrayLength(e1), e.type);
+        emplaceExp!(Integer64Exp)(pue, e.loc, resolveArrayLength(e1), e.type);
         result = pue.exp();
     }
 
@@ -5192,7 +5192,7 @@ public:
 
         if (e.lengthVar)
         {
-            Expression dollarExp = ctfeEmplaceExp!IntegerExp(e.loc, len, Type.tsize_t);
+            Expression dollarExp = ctfeEmplaceExp!Integer64Exp(e.loc, len, Type.tsize_t);
             ctfeGlobals.stack.push(e.lengthVar);
             setValue(e.lengthVar, dollarExp);
         }
@@ -5256,7 +5256,7 @@ public:
                 {
                     // if we need a reference, IndexExp shouldn't be interpreting
                     // the expression to a value, it should stay as a reference
-                    emplaceExp!(IndexExp)(pue, e.loc, agg, ctfeEmplaceExp!IntegerExp(e.e2.loc, indexToAccess, e.e2.type));
+                    emplaceExp!(IndexExp)(pue, e.loc, agg, ctfeEmplaceExp!Integer64Exp(e.e2.loc, indexToAccess, e.e2.type));
                     result = pue.exp();
                     result.type = e.type;
                     return;
@@ -5290,7 +5290,7 @@ public:
 
         if (goal == CTFEGoal.LValue)
         {
-            Expression e2 = ctfeEmplaceExp!IntegerExp(e.e2.loc, indexToAccess, Type.tsize_t);
+            Expression e2 = ctfeEmplaceExp!Integer64Exp(e.e2.loc, indexToAccess, Type.tsize_t);
             emplaceExp!(IndexExp)(pue, e.loc, agg, e2);
             result = pue.exp();
             result.type = e.type;
@@ -5380,8 +5380,8 @@ public:
             }
             if (ofs != 0)
             {
-                lwr = ctfeEmplaceExp!IntegerExp(e.loc, ilwr, lwr.type);
-                upr = ctfeEmplaceExp!IntegerExp(e.loc, iupr, upr.type);
+                lwr = ctfeEmplaceExp!Integer64Exp(e.loc, ilwr, lwr.type);
+                upr = ctfeEmplaceExp!Integer64Exp(e.loc, iupr, upr.type);
             }
             emplaceExp!(SliceExp)(pue, e.loc, agg, lwr, upr);
             result = pue.exp();
@@ -5433,7 +5433,7 @@ public:
          */
         if (e.lengthVar)
         {
-            auto dollarExp = ctfeEmplaceExp!IntegerExp(e.loc, dollar, Type.tsize_t);
+            auto dollarExp = ctfeEmplaceExp!Integer64Exp(e.loc, dollar, Type.tsize_t);
             ctfeGlobals.stack.push(e.lengthVar);
             setValue(e.lengthVar, dollarExp);
         }
@@ -5485,8 +5485,8 @@ public:
             ilwr += lo1;
             iupr += lo1;
             emplaceExp!(SliceExp)(pue, e.loc, se.e1,
-                ctfeEmplaceExp!IntegerExp(e.loc, ilwr, lwr.type),
-                ctfeEmplaceExp!IntegerExp(e.loc, iupr, upr.type));
+                ctfeEmplaceExp!Integer64Exp(e.loc, ilwr, lwr.type),
+                ctfeEmplaceExp!Integer64Exp(e.loc, iupr, upr.type));
             result = pue.exp();
             result.type = e.type;
             return;
@@ -5721,7 +5721,7 @@ public:
             if (e1.op == EXP.arrayLiteral || e1.op == EXP.string_)
             {
                 // Create a CTFE pointer &[1,2,3][0] or &"abc"[0]
-                auto ei = ctfeEmplaceExp!IndexExp(e.loc, e1, ctfeEmplaceExp!IntegerExp(e.loc, 0, Type.tsize_t));
+                auto ei = ctfeEmplaceExp!IndexExp(e.loc, e1, ctfeEmplaceExp!Integer64Exp(e.loc, 0, Type.tsize_t));
                 ei.type = e.type.nextOf();
                 emplaceExp!(AddrExp)(pue, e.loc, ei, e.type);
                 result = pue.exp();
@@ -5782,7 +5782,7 @@ public:
                     dinteger_t dim = (cast(TypeSArray)pointee.toBasetype()).dim.toInteger();
                     IndexExp ie = ae.e1.isIndexExp();
                     Expression lwr = ie.e2;
-                    Expression upr = ctfeEmplaceExp!IntegerExp(ie.e2.loc, ie.e2.toInteger() + dim, Type.tsize_t);
+                    Expression upr = ctfeEmplaceExp!Integer64Exp(ie.e2.loc, ie.e2.toInteger() + dim, Type.tsize_t);
 
                     // Create a CTFE pointer &val[idx..idx+dim]
                     auto er = ctfeEmplaceExp!SliceExp(e.loc, ie.e1, lwr, upr);
@@ -5883,14 +5883,14 @@ public:
         auto tobt = e.to.toBasetype();
         if (tobt.ty == Tbool && e1.type.ty == Tpointer)
         {
-            emplaceExp!(IntegerExp)(pue, e.loc, e1.op != EXP.null_, e.to);
+            emplaceExp!(Integer64Exp)(pue, e.loc, e1.op != EXP.null_, e.to);
             result = pue.exp();
             return;
         }
         else if (tobt.isTypeBasic() && e1.op == EXP.null_)
         {
             if (tobt.isIntegral())
-                emplaceExp!(IntegerExp)(pue, e.loc, 0, e.to);
+                emplaceExp!(Integer64Exp)(pue, e.loc, 0, e.to);
             else if (tobt.isReal())
                 emplaceExp!(RealExp)(pue, e.loc, CTFloat.zero, e.to);
             result = pue.exp();
@@ -6874,7 +6874,7 @@ private Expression interpret_length(UnionExp* pue, InterState* istate, Expressio
         len = aae.keys.length;
     else
         assert(earg.op == EXP.null_);
-    emplaceExp!(IntegerExp)(pue, earg.loc, len, Type.tsize_t);
+    emplaceExp!(Integer64Exp)(pue, earg.loc, len, Type.tsize_t);
     return pue.exp();
 }
 
@@ -7115,7 +7115,7 @@ private Expression pointerToAAValue(UnionExp* pue, Expression aa, AssocArrayLite
     auto arr = ctfeEmplaceExp!(ArrayLiteralExp)(aa.loc, aa.type.nextOf().arrayOf(), aalit.values);
     arr.ownedByCtfe = aalit.ownedByCtfe;
     arr.aaLiteral = aalit;
-    auto len = ctfeEmplaceExp!(IntegerExp)(aa.loc, idx, Type.tsize_t);
+    auto len = ctfeEmplaceExp!(Integer64Exp)(aa.loc, idx, Type.tsize_t);
     auto idxexp = ctfeEmplaceExp!(IndexExp)(aa.loc, arr, len);
     idxexp.type = arr.type.nextOf();
     emplaceExp!(AddrExp)(pue, aa.loc, idxexp);
@@ -7131,7 +7131,7 @@ private Expression interpret_aaApply(UnionExp* pue, InterState* istate, Expressi
         return aa;
     if (aa.op != EXP.assocArrayLiteral)
     {
-        emplaceExp!(IntegerExp)(pue, deleg.loc, 0, Type.tsize_t);
+        emplaceExp!(Integer64Exp)(pue, deleg.loc, 0, Type.tsize_t);
         return pue.exp();
     }
 
@@ -7157,7 +7157,7 @@ private Expression interpret_aaApply(UnionExp* pue, InterState* istate, Expressi
 
     AssocArrayLiteralExp ae = aa.isAssocArrayLiteralExp();
     if (!ae.keys || ae.keys.length == 0)
-        return ctfeEmplaceExp!IntegerExp(deleg.loc, 0, Type.tsize_t);
+        return ctfeEmplaceExp!Integer64Exp(deleg.loc, 0, Type.tsize_t);
     Expression eresult;
 
     for (size_t i = 0; i < ae.keys.length; ++i)
@@ -7169,7 +7169,7 @@ private Expression interpret_aaApply(UnionExp* pue, InterState* istate, Expressi
             Type t = evalue.type;
             auto arr = ctfeEmplaceExp!(ArrayLiteralExp)(aa.loc, t.arrayOf(), ae.values);
             arr.ownedByCtfe = ae.ownedByCtfe;
-            auto idx = ctfeEmplaceExp!(IntegerExp)(aa.loc, i, Type.tsize_t);
+            auto idx = ctfeEmplaceExp!(Integer64Exp)(aa.loc, i, Type.tsize_t);
             evalue = ctfeEmplaceExp!(IndexExp)(aa.loc, arr, idx);
             evalue.type = t;
         }
@@ -7190,7 +7190,7 @@ private Expression interpret_aaApply(UnionExp* pue, InterState* istate, Expressi
     return eresult;
 }
 
-/// Returns: equivalent `StringExp` from `ArrayLiteralExp ale` containing only `IntegerExp` elements
+/// Returns: equivalent `StringExp` from `ArrayLiteralExp ale` containing only `Integer64Exp` elements
 StringExp arrayLiteralToString(ArrayLiteralExp ale)
 {
     const len = ale.length;
@@ -7248,7 +7248,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
     size_t len = cast(size_t)resolveArrayLength(str);
     if (len == 0)
     {
-        emplaceExp!(IntegerExp)(pue, deleg.loc, 0, indexType);
+        emplaceExp!(Integer64Exp)(pue, deleg.loc, 0, indexType);
         return pue.exp();
     }
 
@@ -7365,7 +7365,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
 
         // The index only needs to be set once
         if (numParams == 2)
-            args[0] = ctfeEmplaceExp!IntegerExp(deleg.loc, currentIndex, indexType);
+            args[0] = ctfeEmplaceExp!Integer64Exp(deleg.loc, currentIndex, indexType);
 
         Expression val = null;
 
@@ -7386,7 +7386,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
             default:
                 assert(0);
             }
-            val = ctfeEmplaceExp!IntegerExp(str.loc, codepoint, charType);
+            val = ctfeEmplaceExp!Integer64Exp(str.loc, codepoint, charType);
 
             args[numParams - 1] = val;
 

@@ -495,7 +495,7 @@ public:
 
                 if (e.offset)
                 {
-                    auto ie = new IntegerExp(e.loc, e.offset, Type.tsize_t);
+                    auto ie = IntegerExp.create(e.loc, e.offset, Type.tsize_t);
                     result = new AddExp(e.loc, result, ie);
                     result.type = e.type;
                 }
@@ -596,7 +596,7 @@ public:
                         }
                         result = new PtrExp(e.loc, result);
                         result.type = Type.tvoidptr.sarrayOf(2);
-                        auto ie = new IndexExp(e.loc, result, new IntegerExp(i));
+                        auto ie = new IndexExp(e.loc, result, IntegerExp.create(i));
                         ie.indexIsInBounds = true; // no runtime bounds checking
                         result = ie;
                         result.type = Type.tvoidptr;

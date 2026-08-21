@@ -154,7 +154,6 @@ real_t toReal(Expression _this)
         // normalize() is necessary until we fix all the paints of 'type'
         const ty = iexp.type.toBasetype().ty;
         const val = iexp.normalize(ty, iexp.value);
-        iexp.value = val;
         return (ty == Tuns64)
             ? real_t(cast(ulong)val)
             : real_t(cast(long)val);
@@ -194,7 +193,7 @@ dinteger_t toInteger(Expression _this)
     if (auto iexp = _this.isIntegerExp())
     {
         // normalize() is necessary until we fix all the paints of 'type'
-        return iexp.value = IntegerExp.normalize(iexp.type.toBasetype().ty, iexp.value);
+        return IntegerExp.normalize(iexp.type.toBasetype().ty, iexp.value);
     }
     else if (auto rexp = _this.isRealExp())
     {
@@ -1851,7 +1850,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, out Expression pe0)
 
         if (auto ie = e.isIntervalExp())
         {
-            Expression edim = new IntegerExp(ae.loc, i, Type.tsize_t);
+            Expression edim = IntegerExp.create(ae.loc, i, Type.tsize_t);
             edim = edim.expressionSemantic(sc);
             auto tiargs = new Objects(edim);
 
@@ -5309,7 +5308,7 @@ Expression lowerArrayLiteral(ArrayLiteralExp ale, Scope* sc)
     auto tiargs = new Objects(t);
     lowering = new DotTemplateInstanceExp(ale.loc, lowering, hook, tiargs);
 
-    auto arguments = new Expressions(new IntegerExp(dim));
+    auto arguments = new Expressions(IntegerExp.create(dim));
     lowering = new CallExp(ale.loc, lowering, arguments);
     ale.lowering = lowering.expressionSemantic(sc);
 
@@ -5475,7 +5474,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         assert(e.type.deco);
-        e.setInteger(e.getInteger());
+        assert(e.value == IntegerExp.normalize(e.type.toBaseTypeNonSemantic().ty, e.value));
         result = e;
     }
 
@@ -7162,7 +7161,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 auto tiargs = new Objects(t);
                 lowering = new DotTemplateInstanceExp(exp.loc, lowering, hook, tiargs);
 
-                auto arguments = new Expressions((*exp.arguments)[0], new IntegerExp(exp.loc, isShared, Type.tbool));
+                auto arguments = new Expressions((*exp.arguments)[0], IntegerExp.create(exp.loc, isShared, Type.tbool));
 
                 lowering = new CallExp(exp.loc, lowering, arguments);
                 exp.lowering = lowering.expressionSemantic(sc);
@@ -7190,7 +7189,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 lowering = new DotTemplateInstanceExp(exp.loc, lowering, hook, tiargs);
 
                 auto arguments = new Expressions(new ArrayLiteralExp(exp.loc, Type.tsize_t.sarrayOf(nargs), exp.arguments),
-                                                 new IntegerExp(exp.loc, tbn.isShared(), Type.tbool));
+                                                 IntegerExp.create(exp.loc, tbn.isShared(), Type.tbool));
 
                 lowering = new CallExp(exp.loc, lowering, arguments);
                 exp.lowering = lowering.expressionSemantic(sc);
@@ -8712,7 +8711,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                         // Add expression `*cast(void**)(cast(void*)this) + offset)` for accessing the interface vptr
                         Expression vptr = new CastExp(loc, new ThisExp(loc), Type.tvoidptr);
-                        vptr = new AddExp(loc, vptr, new IntegerExp(loc, b.offset, Type.tsize_t));
+                        vptr = new AddExp(loc, vptr, IntegerExp.create(loc, b.offset, Type.tsize_t));
                         vptr = new PtrExp(loc, new CastExp(loc, vptr, Type.tvoidptr.pointerTo()));
                         vptrs.push(vptr);
                     }
@@ -13783,7 +13782,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression eValue1;
                 Expression value1 = extractSideEffect(sc, "__appendtmp", eValue1, exp.e1);
 
-                auto arguments = new Expressions(value1, new IntegerExp(exp.loc, 1, Type.tsize_t));
+                auto arguments = new Expressions(value1, IntegerExp.create(exp.loc, 1, Type.tsize_t));
 
                 Expression ce = new CallExp(exp.loc, id, arguments);
 
@@ -13987,13 +13986,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 stride = t2.nextOf().size();
                 if (stride == 0)
                 {
-                    e = new IntegerExp(exp.loc, 0, Type.tptrdiff_t);
+                    e = IntegerExp.create(exp.loc, 0, Type.tptrdiff_t);
                 }
                 else if (stride == cast(long)SIZE_INVALID)
                     e = ErrorExp.get();
                 else
                 {
-                    e = new DivExp(exp.loc, exp, new IntegerExp(Loc.initial, stride, Type.tptrdiff_t));
+                    e = new DivExp(exp.loc, exp, IntegerExp.create(Loc.initial, stride, Type.tptrdiff_t));
                     e.type = Type.tptrdiff_t;
                 }
             }
@@ -14558,7 +14557,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             Expression one;
             if (pe.e1.type.isIntegral()) {
-                one = new IntegerExp(e.loc, 1, pe.e1.type);
+                one = IntegerExp.create(e.loc, 1, pe.e1.type);
             } else {
                 one = new RealExp(e.loc, CTFloat.one, pe.e1.type);
             }
@@ -14753,7 +14752,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (e1x.toBool().hasValue(exp.op == EXP.orOr))
             {
                 if (sc.inCfile)
-                    result = new IntegerExp(exp.op == EXP.orOr);
+                    result = IntegerExp.create(exp.op == EXP.orOr);
                 else
                     result = IntegerExp.createBool(exp.op == EXP.orOr);
                 return;
@@ -15758,7 +15757,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 break;
             }
             case TOK.line:
-                result = new IntegerExp(loc, loc.linnum, Type.tint32).expressionSemantic(sc);
+                result = IntegerExp.create(loc, loc.linnum, Type.tint32).expressionSemantic(sc);
                 break;
             case TOK.moduleString:
             {
@@ -16057,7 +16056,7 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
         if (exp.ident == Id.length)
         {
             // Don't evaluate te.e0 in runtime
-            return new IntegerExp(exp.loc, te.exps.length, Type.tsize_t);
+            return IntegerExp.create(exp.loc, te.exps.length, Type.tsize_t);
         }
     }
 
@@ -16408,14 +16407,14 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
         const explicitAlignment = exp.e1.isVarExp().var.isVarDeclaration().alignment;
         const naturalAlignment = exp.e1.type.alignsize();
         const actualAlignment = explicitAlignment.isDefault() ? naturalAlignment : explicitAlignment.get();
-        Expression e = new IntegerExp(exp.loc, actualAlignment, Type.tsize_t);
+        Expression e = IntegerExp.create(exp.loc, actualAlignment, Type.tsize_t);
         return e;
     }
     else if ((exp.ident == Id.max || exp.ident == Id.min) && exp.e1.isBitField())
     {
         // For `x.max` and `x.min` get the max/min of the bitfield, not the max/min of its type
         auto bf = exp.e1.isBitField();
-        return new IntegerExp(exp.loc, bf.getMinMax(exp.ident), bf.type);
+        return IntegerExp.create(exp.loc, bf.getMinMax(exp.ident), bf.type);
     }
     else
     {
@@ -18036,7 +18035,7 @@ Expression getThisSkipNestedFuncs(Loc loc, Scope* sc, Dsymbol s, AggregateDeclar
                     e1 = e1.expressionSemantic(sc);
                 e1 = new PtrExp(loc, e1);
                 uint i = f.followInstantiationContext(ad);
-                e1 = new IndexExp(loc, e1, new IntegerExp(i));
+                e1 = new IndexExp(loc, e1, IntegerExp.create(i));
                 s = f.toParentP(ad);
                 continue;
             }
@@ -19468,13 +19467,13 @@ void lowerNonArrayAggregate(StaticForeach sfe, Scope* sc)
         if (sfe.rangefe.op == TOK.foreach_)
         {
             foreach (i; 0 .. length)
-                (*exps)[i] = new IntegerExp(aloc, lwr + i, indexty);
+                (*exps)[i] = IntegerExp.create(aloc, lwr + i, indexty);
         }
         else
         {
             --upr;
             foreach (i; 0 .. length)
-                (*exps)[i] = new IntegerExp(aloc, upr - i, indexty);
+                (*exps)[i] = IntegerExp.create(aloc, upr - i, indexty);
         }
         aggr = new ArrayLiteralExp(aloc, indexty.arrayOf(), exps);
     }
@@ -19566,7 +19565,7 @@ extern(D) void lowerArrayAggregate(StaticForeach sfe, Scope* sc)
         es = new Expressions(length);
         foreach (i; 0 .. length)
         {
-            auto index = new IntegerExp(sfe.loc, i, Type.tsize_t);
+            auto index = IntegerExp.create(sfe.loc, i, Type.tsize_t);
             auto value = new IndexExp(aggr.loc, aggr, index);
             (*es)[i] = value;
         }

@@ -235,7 +235,7 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Expression arr)
             return; // we don't know the length yet
         len = tsa.dim.toInteger();
     }
-    Expression dollar = new IntegerExp(Loc.initial, len, Type.tsize_t);
+    Expression dollar = IntegerExp.create(Loc.initial, len, Type.tsize_t);
     lengthVar._init = new ExpInitializer(Loc.initial, dollar);
     lengthVar.storage_class |= STC.static_ | STC.const_;
 }
@@ -256,7 +256,7 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type)
     if (!tsa)
         return; // we don't know the length yet
     const len = tsa.dim.toInteger();
-    Expression dollar = new IntegerExp(Loc.initial, len, Type.tsize_t);
+    Expression dollar = IntegerExp.create(Loc.initial, len, Type.tsize_t);
     lengthVar._init = new ExpInitializer(Loc.initial, dollar);
     lengthVar.storage_class |= STC.static_ | STC.const_;
 }
@@ -567,7 +567,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
             }
             if (eint)
             {
-                ret = new IntegerExp(e.loc, eint.toInteger() + offset, e.type);
+                ret = IntegerExp.create(e.loc, eint.toInteger() + offset, e.type);
                 return;
             }
         }
@@ -601,7 +601,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
                     Expression ex = new AddrExp(ae1.loc, ae1);  // &a[i]
                     ex.type = ae1.type.pointerTo();
 
-                    Expression add = new AddExp(ae.loc, ex, new IntegerExp(ae.e2.loc, offset, ae.e2.type));
+                    Expression add = new AddExp(ae.loc, ex, IntegerExp.create(ae.e2.loc, offset, ae.e2.type));
                     add.type = e.type;
                     ret = optimize(add, result, keepLvalue);
                     return;
@@ -675,7 +675,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
 
                     auto pe = new AddrExp(e.loc, ve);
                     pe.type = e.type;
-                    ret = new AddExp(e.loc, pe, new IntegerExp(e.loc, offset, Type.tsize_t));
+                    ret = new AddExp(e.loc, pe, IntegerExp.create(e.loc, offset, Type.tsize_t));
                     ret.type = e.type;
                     return;
                 }
@@ -1096,7 +1096,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
         {
             // This only applies to floating point, or positive integral powers.
             if (e.e1.type.isFloating() || cast(sinteger_t)e.e2.toInteger() >= 0)
-                e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
+                e.e2 = IntegerExp.create(e.loc, e.e2.toInteger(), Type.tint64);
         }
         if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
         {
@@ -1284,7 +1284,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
             {
                 bool n1 = e1Opt.get();
                 bool n2 = e.e2.toBool().get();
-                ret = new IntegerExp(e.loc, oror ? (n1 || n2) : (n1 && n2), e.type);
+                ret = IntegerExp.create(e.loc, oror ? (n1 || n2) : (n1 && n2), e.type);
             }
             else if (e1Opt.hasValue(!oror))
             {

@@ -905,7 +905,7 @@ Expression opOverloadCmp(CmpExp exp, Scope* sc, Type[2] aliasThisStop)
 
     auto ce = new CallExp(e.loc, cl, arguments);
     ce.fromOpOverload = true;
-    cl = new CmpExp(cmpOp, exp.loc, ce, new IntegerExp(0));
+    cl = new CmpExp(cmpOp, exp.loc, ce, IntegerExp.create(0));
     return cl.expressionSemantic(sc);
 }
 
