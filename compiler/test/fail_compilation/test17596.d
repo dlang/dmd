@@ -19,7 +19,7 @@ struct S2
     int opBinaryRight(string op)(S1 lhs) if (true) { return 2; }
 }
 
-void main()
+void test17596()
 {
     auto x = S1.init + S2.init;
 }
