@@ -9351,7 +9351,6 @@ Dsymbols* include(Dsymbol d, Scope* sc)
 
 bool propagateStorageClasses(UnpackDeclaration upd)
 {
-    static import dmd.errors;
     foreach (d; *upd.decl)
     {
         STC d_storage_class;
@@ -9373,15 +9372,16 @@ bool propagateStorageClasses(UnpackDeclaration upd)
         {
             assert(0);
         }
-        import dmd.errors;
+
+        auto eSink = global.errorSink;
         if (d_storage_class & STC.static_ && !(upd.storage_class & STC.static_))
         {
-            dmd.errors.error(upd.loc, "cannot specify `static` for individual components of an unpack declaration");
+            eSink.error(upd.loc, "cannot specify `static` for individual components of an unpack declaration");
             return false;
         }
         if (d_storage_class & STC.manifest && !(upd.storage_class & STC.manifest))
         {
-            dmd.errors.error(upd.loc, "cannot specify `enum` for individual components of an unpack declaration");
+            eSink.error(upd.loc, "cannot specify `enum` for individual components of an unpack declaration");
             return false;
         }
         if (d_storage_class & (STC.ref_ | STC.out_))
@@ -9405,10 +9405,9 @@ private void lowerUnpack(UnpackDeclaration upd, Scope* sc)
         upd.decl = null;
         upd.lowered = true;
     }
-    static import dmd.errors;
     if (auto uda = upd.userAttribDecl)
     {
-        dmd.errors.error(upd.loc, "user defined attributes are not supported yet on unpack declarations");
+        sc.eSink.error(upd.loc, "user defined attributes are not supported yet on unpack declarations");
         return fail();
     }
 
@@ -9453,13 +9452,13 @@ private void lowerUnpack(UnpackDeclaration upd, Scope* sc)
 
     if (!tup)
     {
-        dmd.errors.error(upd.loc, "right hand side of unpack declaration must resolve to a tuple or expression sequence, not `%s`",
+        sc.eSink.error(upd.loc, "right hand side of unpack declaration must resolve to a tuple or expression sequence, not `%s`",
             tinit.toChars());
         return fail();
     }
     if (upd.decl.length != tup.exps.length)
     {
-        dmd.errors.error(upd.loc, "incompatible number of components for unpack declaration (`%d` vs. `%d`)", cast(int)upd.decl.length, cast(int)tup.exps.length);
+        sc.eSink.error(upd.loc, "incompatible number of components for unpack declaration (`%d` vs. `%d`)", cast(int)upd.decl.length, cast(int)tup.exps.length);
         return fail();
     }
 
