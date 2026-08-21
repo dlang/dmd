@@ -1413,7 +1413,7 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
 
     Expression visitDefault(DefaultInitializer di)
     {
-        return di.type ? di.type.defaultInit(Loc.initial, isCfile) : null;
+        return di.type ? di.type.defaultInit(init.loc, isCfile) : null;
     }
 
     Expression visitError(ErrorInitializer)
@@ -1559,7 +1559,7 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
                 if (!telem) // don't know what type to use
                     return null;
                 if (!defaultInit)
-                    defaultInit = telem.defaultInit(Loc.initial, isCfile);
+                    defaultInit = telem.defaultInit(init.loc, isCfile);
                 element = defaultInit;
             }
         }

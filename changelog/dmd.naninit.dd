@@ -1,0 +1,15 @@
+Give informational message about use of default NaN initializers
+
+Adding the compiler switch -vnan will cause the compiler to emit
+messages where the compiler default initializes a floating point
+value to NaN.
+
+---
+float f;
+void test() { float g; }
+struct S { float h; }
+cfloat cf;
+---
+
+This is an informational message only, it does not alter the
+generated code.

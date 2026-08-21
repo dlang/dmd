@@ -1050,6 +1050,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             params.vcg_ast = true;
         else if (arg == "-vasm") // https://dlang.org/dmd.html#switch-vasm
             driverParams.vasm = true;
+        else if (arg == "-vnan")  // https://dlang.org/dmd.html#switch-vnan
+            params.v.nanInit = true;
         else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
             params.v.tls = true;
         else if (startsWith(p + 1, "vtemplates")) // https://dlang.org/dmd.html#switch-vtemplates

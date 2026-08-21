@@ -999,6 +999,12 @@ dmd -cov -unittest myprog.d
                $(LI $(I public):  Export all symbols)
             )",
         ),
+        Option("vnan",
+            "warnings about default initalization of floating point variables to nan",
+            `floating point variables are initialized to nan by default. This switch
+            will cause a warning to be emitted for default nan initialization`,
+            TargetOS.all, false,
+        ),
         Option("vtls",
             "list all variables going into thread local storage"
         ),

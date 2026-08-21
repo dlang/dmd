@@ -168,7 +168,7 @@ Expression expandVar(int result, VarDeclaration v)
                 else
                 {
                     // BUG: what if const is initialized in constructor?
-                    auto e = v.type.defaultInit();
+                    auto e = defaultInit(v.type, v.loc);
                     e.loc = e1.loc;
                     return initializerReturn(e);
                 }

@@ -645,7 +645,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
             else
             {
-                Type_toDt(vd.type, dtb, vd.isCsymbol());
+                Type_toDt(vd.loc, vd.type, dtb, vd.isCsymbol());
             }
             s.Sdt = dtb.finish();
 
@@ -944,7 +944,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             else if (vd._init)
                 initializerToDt(vd, tlvInitDtb, isCfile);
             else
-                Type_toDt(vd.type, tlvInitDtb);
+                Type_toDt(vd.loc, vd.type, tlvInitDtb);
 
             tlvInit.Sdt = tlvInitDtb.finish();
             outdata(tlvInit);

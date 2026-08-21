@@ -130,7 +130,8 @@ void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isCfile)
             length++;
         }
 
-        Expression edefault = tb.nextOf().defaultInit(Loc.initial, isCfile);
+        assert(ai);
+        Expression edefault = tb.nextOf().defaultInit(ai.loc, isCfile);
 
         const n = tn.numberOfElems(ai.loc);
 
@@ -1024,7 +1025,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
             Expression e = (*elements)[firstFieldIndex + k];
             //printf("elements initializer %s\n", e.toChars());
             if (auto tsa = vd.type.toBasetype().isTypeSArray())
-                toDtElem(tsa, dtbx, e, isCtype);
+                toDtElem(e.loc, tsa, dtbx, e, isCtype);
             else if (bf)
             {
                 auto ie = e.isIntegerExp();
@@ -1070,14 +1071,14 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
                 auto ei = init.isExpInitializer();
                 auto tsa = vd.type.toBasetype().isTypeSArray();
                 if (ei && tsa)
-                    toDtElem(tsa, dtbx, ei.exp, isCtype);
+                    toDtElem(init.loc, tsa, dtbx, ei.exp, isCtype);
                 else
                     Initializer_toDt(init, dtbx, isCtype);
             }
             else if (offset <= vd.offset)
             {
                 //printf("\t\tdefault initializer\n");
-                Type_toDt(vd.type, dtbx);
+                Type_toDt(vd.loc, vd.type, dtbx);
             }
             if (dtbx.isZeroLength())
                 continue;
@@ -1106,16 +1107,16 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
 
 /* ================================================================= */
 
-void Type_toDt(Type t, ref DtBuilder dtb, bool isCtype = false)
+void Type_toDt(Loc loc, Type t, ref DtBuilder dtb, bool isCtype = false)
 {
     switch (t.ty)
     {
         case Tvector:
-            toDtElem(t.isTypeVector().basetype.isTypeSArray(), dtb, null, isCtype);
+            toDtElem(loc, t.isTypeVector().basetype.isTypeSArray(), dtb, null, isCtype);
             break;
 
         case Tsarray:
-            toDtElem(t.isTypeSArray(), dtb, null, isCtype);
+            toDtElem(loc, t.isTypeSArray(), dtb, null, isCtype);
             break;
 
         case Tstruct:
@@ -1123,12 +1124,12 @@ void Type_toDt(Type t, ref DtBuilder dtb, bool isCtype = false)
             break;
 
         default:
-            Expression_toDt(t.defaultInit(Loc.initial, isCtype), dtb);
+            Expression_toDt(t.defaultInit(loc, isCtype), dtb);
             break;
     }
 }
 
-private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e, bool isCtype)
+private void toDtElem(Loc loc, TypeSArray tsa, ref DtBuilder dtb, Expression e, bool isCtype)
 {
     //printf("TypeSArray.toDtElem() tsa = %s\n", tsa.toChars());
     if (tsa.size(Loc.initial) == 0)
@@ -1151,7 +1152,7 @@ private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e, bool isCt
             tbn = tnext.toBasetype();
         }
         if (!e)                             // if not already supplied
-            e = tsa.defaultInit(Loc.initial, isCtype);    // use default initializer
+            e = tsa.defaultInit(loc, isCtype);    // use default initializer
 
         if (!e.type.implicitConvTo(tnext))    // https://issues.dlang.org/show_bug.cgi?id=14996
         {
