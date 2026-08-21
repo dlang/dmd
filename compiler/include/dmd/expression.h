@@ -99,10 +99,12 @@ public:
     bool rvalue() const;
     bool rvalue(bool v);
 
-    size_t size() const;
-    virtual size_t classInstanceSize() const;
+    virtual size_t size() const;
 
     static void _init();
+    static void deinitialize();
+
+    virtual Expression copy();
     virtual Expression *syntaxCopy();
 
     // kludge for template.isExpression()

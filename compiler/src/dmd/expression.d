@@ -145,15 +145,7 @@ extern (C++) abstract class Expression : ASTNode
     }
 
     /// Returns: class instance size of this expression (implemented manually because `extern(C++)`)
-    final size_t size() nothrow @nogc pure @safe const
-    {
-        if (op == EXP.int64)
-            return classInstanceSize();
-        return expSize[op];
-    }
-
-    // virtual version of size()
-    size_t classInstanceSize() nothrow @nogc pure @safe const
+    size_t size() nothrow @nogc pure @safe const
     {
         return expSize[op];
     }
@@ -187,7 +179,7 @@ extern (C++) abstract class Expression : ASTNode
     /*********************************
      * Does *not* do a deep copy.
      */
-    extern (D) final Expression copy()
+    Expression copy()
     {
         Expression e;
         size_t sz = size();
@@ -201,17 +193,9 @@ extern (C++) abstract class Expression : ASTNode
             assert(0);
         }
 
-        if (op == EXP.int64)
-        {
-            if (sz == __traits(classInstanceSize, Integer64Exp))
-            {
-                auto e64 = cast(Integer64Exp)this;
-                if (e64.value_ >= 0 && e64.value_ < short.max)
-                    return new Integer16Exp(loc, cast(short)e64.value_, type);
-            }
-        }
+        size_t alignment = expAlign[op];
         // memory never freed, so can use the faster bump-pointer-allocation
-        e = cast(Expression)allocmemoryNoFree(sz, expAlign[op]);
+        e = cast(Expression)allocmemoryNoFree(sz, alignment);
         //printf("Expression::copy(op = %d) e = %p\n", op, e);
         return cast(Expression)memcpy(cast(void*)e, cast(void*)this, sz);
     }
@@ -533,8 +517,9 @@ extern (C++) abstract class IntegerExp : Expression
 
     static IntegerExp create(Loc loc, dinteger_t value, Type type)
     {
-        dinteger_t norm = normalize(type.toBaseTypeNonSemantic().ty, value);
-        if (norm >= 0 && norm <= short.max)
+        import dmd.typesem;
+        dinteger_t val = type.isUnsigned() ? cast(ushort)value : cast(long)cast(short)value;
+        if (val == value)
             return new Integer16Exp(loc, cast(short)value, type);
         return new Integer64Exp(loc, value, type);
     }
@@ -665,9 +650,27 @@ extern (C++) class Integer64Exp : IntegerExp
         value_ = cast(int)value;
     }
 
-    override size_t classInstanceSize() nothrow @nogc pure @safe const
+    override size_t size() nothrow @nogc pure @safe const
     {
         return __traits(classInstanceSize, Integer64Exp);
+    }
+
+    override IntegerExp copy()
+    {
+        import dmd.typesem;
+        dinteger_t val = type.isUnsigned() ? cast(ushort)value_ : cast(long)cast(short)value_;
+        if (val == value_)
+        {
+            auto alignment = classAlignment!Integer16Exp;
+            auto sz = __traits(classInstanceSize, Integer16Exp);
+            auto p = allocmemoryNoFree(sz, alignment);
+            return emplaceClass!Integer16Exp(p, loc, cast(ushort)val, type);
+        }
+        size_t sz = __traits(classInstanceSize, Integer64Exp);
+        size_t alignment = classAlignment!Integer64Exp;
+        // memory never freed, so can use the faster bump-pointer-allocation
+        void* p = allocmemoryNoFree(sz, alignment);
+        return cast(Integer64Exp)memcpy(p, cast(void*)this, sz);
     }
 
     override dinteger_t value() const { return value_; }
@@ -693,10 +696,20 @@ extern (C++) class Integer16Exp : IntegerExp
         value_ = value;
     }
 
-    override size_t classInstanceSize() nothrow @nogc pure @safe const
+    override size_t size() nothrow @nogc pure @safe const
     {
         return __traits(classInstanceSize, Integer16Exp);
     }
+
+    override Integer16Exp copy()
+    {
+        size_t sz = __traits(classInstanceSize, Integer16Exp);
+        size_t alignment = classAlignment!Integer16Exp;
+        // memory never freed, so can use the faster bump-pointer-allocation
+        void* p = allocmemoryNoFree(sz, alignment);
+        return cast(Integer16Exp)memcpy(p, cast(void*)this, sz);
+    }
+
 
     override dinteger_t value() const
     {
@@ -4262,12 +4275,15 @@ immutable ubyte[EXP.max+1] expSize = (){
     return expSize;
 }();
 
+// support for classInstanceAlignment? if not, assume worst case
+static if (__VERSION__ >= 2101)
+    enum classAlignment(T) = __traits(classInstanceAlignment, T);
+else
+    enum classAlignment(T) = 16;
+
 immutable ubyte[EXP.max+1] expAlign = (){
     ubyte[EXP.max+1] expAlign;
     foreach(optype; ExpOpTypePairs)
-        static if (__VERSION__ >= 2101) // support for classInstanceAlignment ?
-            expAlign[optype.op] = __traits(classInstanceAlignment, optype.type);
-        else
-            expAlign[optype.op] = 16; // worst case, GC doesn't guarantee more anyway
+        expAlign[optype.op] = classAlignment!(optype.type);
     return expAlign;
 }();
