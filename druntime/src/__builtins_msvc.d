@@ -210,6 +210,30 @@ version (MSVCIntrinsics)
         }
     }
 
+    /* Most of these intrinsics boil down to a single instruction,
+       and so we'd like for them to be inlined regardless of
+       what flags and optimisation-level the compiler was invoked with;
+       this goes doubly so for intrinsics which require inlining
+       for correctness (like __readeflags),
+       or for to behave as expected (like __debugbreak).
+       Thus, we apply `pragma(inline, true)` to their implementations.
+       However, DMD is oft unable to inline these functions,
+       resulting in a barrage of warnings when compiling with the `-wi` switch.
+
+       We temper our usage of `pragma(inline, true)`
+       to avoid warnings when compiling with DMD,
+       while still enforcing it for other compilers.
+       We use a string mixin for this, instead of `pragma(inline, someVariable)`,
+       to avoid pessimising DMD should its inliner improve in future. */
+    version (DigitalMars)
+    {
+        private enum string alwaysInlineIfAble = q{};
+    }
+    else
+    {
+        private enum string alwaysInlineIfAble = q{pragma(inline, true);};
+    }
+
     /* If you are adding an intrinsic which is declared
      * using `#pragma intrinsic` in the Windows SDK's headers,
      * please do not forget to add that intrinsic's name
@@ -336,7 +360,6 @@ version (MSVCIntrinsics)
     {
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         private I multiplyWithDoubleWidthProduct(I, bool onlyHighHalf)(
             I low,
             I high,
@@ -344,6 +367,8 @@ version (MSVCIntrinsics)
         ) @trusted
         if (is(I == ulong) || is(I == long))
         {
+            mixin(alwaysInlineIfAble);
+
             enum bool unsigned = is(I == ulong);
 
             static if (unsigned)
@@ -1370,10 +1395,11 @@ version (MSVCIntrinsics)
     /* This is trusted so that it's @safe without DIP1000 enabled. */
     @llvm_target(prefetchWriteTarget)
     extern(C)
-    pragma(inline, true)
     private void prefetchData(bool write, ubyte level)(scope const(void)* address) @trusted pure nothrow @nogc
     if (level <= 3)
     {
+        mixin(alwaysInlineIfAble);
+
         if (__ctfe)
         {
             /* Do nothing. */
@@ -1631,9 +1657,10 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         uint _mm_getcsr()() @trusted nothrow @nogc
         {
+            mixin(alwaysInlineIfAble);
+
             version (LDC)
             {
                 uint mxcsr = void;
@@ -1672,9 +1699,10 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         void _mm_setcsr()(uint MxCsr) @trusted nothrow @nogc
         {
+            mixin(alwaysInlineIfAble);
+
             version (LDC)
             {
                 __builtin_ia32_ldmxcsr(&MxCsr);
@@ -2012,10 +2040,11 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         private void cpuID(Args...)(scope int[4]* cpuInfo, int function_id, Args args) @safe pure nothrow @nogc
         if (Args.length == 0 || (Args.length == 1 && is(Args[0] == int)))
         {
+            mixin(alwaysInlineIfAble);
+
             version (LDC_Or_GNU)
             {
                 asm @trusted pure nothrow @nogc
@@ -2149,7 +2178,6 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         int _cvt_ftoi_fast()(float value) @safe pure nothrow @nogc
         {
             if (__ctfe)
@@ -2229,7 +2257,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         long _cvt_ftoll_fast()(float value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -2372,7 +2399,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         uint _cvt_ftoui_fast()(float value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -2456,7 +2482,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         ulong _cvt_ftoull_fast()(float value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -2571,7 +2596,6 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         int _cvt_dtoi_fast()(double value) @safe pure nothrow @nogc
         {
             if (__ctfe)
@@ -2651,7 +2675,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         long _cvt_dtoll_fast()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -2788,7 +2811,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         uint _cvt_dtoui_fast()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -2870,7 +2892,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         ulong _cvt_dtoull_fast()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -2986,7 +3007,6 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         int _cvt_ftoi_sat()(float value) @safe pure nothrow @nogc
         {
             if (__ctfe)
@@ -3106,7 +3126,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         long _cvt_ftoll_sat()(float value) @trusted pure nothrow @nogc
         {
             if (__ctfe)
@@ -3271,7 +3290,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         uint _cvt_ftoui_sat()(float value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -3356,7 +3374,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         ulong _cvt_ftoull_sat()(float value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -3467,7 +3484,6 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         int _cvt_dtoi_sat()(double value) @safe pure nothrow @nogc
         {
             if (__ctfe)
@@ -3587,7 +3603,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         long _cvt_dtoll_sat()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -3752,7 +3767,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         uint _cvt_dtoui_sat()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -3835,7 +3849,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         ulong _cvt_dtoull_sat()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -3946,7 +3959,6 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         int _cvt_ftoi_sent()(float value) @safe pure nothrow @nogc
         {
             return _cvt_ftoi_fast(value);
@@ -3991,7 +4003,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         long _cvt_ftoll_sent()(float value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -4086,7 +4097,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         uint _cvt_ftoui_sent()(float value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -4160,7 +4170,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         ulong _cvt_ftoull_sent()(float value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -4271,7 +4280,6 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         int _cvt_dtoi_sent()(double value) @safe pure nothrow @nogc
         {
             return _cvt_dtoi_fast(value);
@@ -4316,7 +4324,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         uint _cvt_dtoui_sent()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -4391,7 +4398,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         long _cvt_dtoll_sent()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -4486,7 +4492,6 @@ version (MSVCIntrinsics)
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         extern(C)
-        pragma(inline, true)
         ulong _cvt_dtoull_sent()(double value) @trusted pure nothrow @nogc
         {
             version (X86_64)
@@ -4841,7 +4846,6 @@ version (MSVCIntrinsics)
     version (X86_64_Or_X86)
     {
         extern(C)
-        pragma(inline, true)
         private
         mixin(Args.length == 0 && operator == null ? "Integer" : "void")
         manipulateMemoryThroughTIBSegmentRegister(
@@ -4858,6 +4862,8 @@ version (MSVCIntrinsics)
             : (Args.length == 0 && __traits(isIntegral, Integer) && (operator == null || operator == "++"))
         )
         {
+            mixin(alwaysInlineIfAble);
+
             enum bool reading = Args.length == 0 && operator == null;
             static if (Args.length == 0) alias Int = Integer; else alias Int = Args[0];
 
@@ -5411,9 +5417,10 @@ version (MSVCIntrinsics)
     }
 
     extern(C)
-    pragma(inline, true)
     void __debugbreak()() @safe pure nothrow @nogc
     {
+        mixin(alwaysInlineIfAble);
+
         version (LDC)
         {
             import ldc.intrinsics : llvm_debugtrap;
@@ -5455,9 +5462,10 @@ version (MSVCIntrinsics)
     }
 
     extern(C)
-    pragma(inline, true)
     noreturn __fastfail()(uint code) @safe pure nothrow @nogc
     {
+        mixin(alwaysInlineIfAble);
+
         if (__ctfe)
         {
             version (D_BetterC)
@@ -7185,9 +7193,10 @@ version (MSVCIntrinsics)
     }
 
     extern(C)
-    pragma(inline, true)
     long _interlockedexchange64()(scope long* Target, long Value) @trusted pure nothrow @nogc
     {
+        mixin(alwaysInlineIfAble);
+
         static if (__traits(compiles, interlockedExchange(Target, Value)))
         {
             return interlockedExchange(Target, Value);
@@ -8425,7 +8434,6 @@ version (MSVCIntrinsics)
     }
 
     extern(C)
-    pragma(inline, true)
     private ubyte interlockedBitTestOp(
         string x86OpCode,
         string ldcName,
@@ -8437,6 +8445,8 @@ version (MSVCIntrinsics)
         T
     )(scope T* address, T bitIndex) @system pure nothrow @nogc
     {
+        mixin(alwaysInlineIfAble);
+
         static ubyte bitTestOpViaSoftware(scope T* address, T bitIndex)
         {
             import core.bitop : bsr, popcnt;
@@ -8549,9 +8559,10 @@ version (MSVCIntrinsics)
     version (X86_64_Or_X86)
     {
         extern(C)
-        pragma(inline, true)
         private T interlockedExchangeAddHLE(bool acquire, T)(scope T* address, scope T value) @trusted
         {
+            mixin(alwaysInlineIfAble);
+
             if (__ctfe)
             {
                 return interlockedExchangeAdd!(MemoryOrder.seq, T)(address, value);
@@ -8642,11 +8653,12 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         private T interlockedOpHLE(bool acquire, string op, string x86OpCode, T)(scope T* address, T operand)
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         @trusted
         {
+            mixin(alwaysInlineIfAble);
+
             if (__ctfe)
             {
                 T oldValue = *address;
@@ -8829,13 +8841,14 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         private T interlockedCASHLE(bool acquire, T)(
             scope T* address,
             scope T valueToSet,
             return scope T expectedValue
         ) @trusted
         {
+            mixin(alwaysInlineIfAble);
+
             if (__ctfe)
             {
                 return interlockedCAS!(MemoryOrder.seq, MemoryOrder.seq, T)(address, valueToSet, expectedValue);
@@ -9017,10 +9030,11 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         private T interlockedExchangeHLE(bool acquire, T)(scope T* address, scope T value)
         @trusted
         {
+            mixin(alwaysInlineIfAble);
+
             if (__ctfe)
             {
                 T oldValue = *cast(T*) address;
@@ -9227,7 +9241,6 @@ version (MSVCIntrinsics)
     }
 
     extern(C)
-    pragma(inline, true)
     private ubyte interlockedCAS128(MemoryOrder success = MemoryOrder.seq, MemoryOrder failure = success)(
         scope long* address,
         long valueToSetHigh,
@@ -9235,6 +9248,8 @@ version (MSVCIntrinsics)
         scope long* expectedValue
     ) @system pure nothrow @nogc
     {
+        mixin(alwaysInlineIfAble);
+
         import core.internal.atomic : atomicCompareExchangeStrong;
 
         version (LittleEndian)
@@ -9290,7 +9305,6 @@ version (MSVCIntrinsics)
     }
 
     extern(C)
-    pragma(inline, true)
     private T interlockedOp(
         string ldcName,
         string gdcName,
@@ -9303,6 +9317,8 @@ version (MSVCIntrinsics)
         T operand
     ) @trusted pure nothrow @nogc
     {
+        mixin(alwaysInlineIfAble);
+
         if (__ctfe)
         {
             T oldValue = *address;
@@ -10246,9 +10262,10 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         private T leadingZeroCount(T)(T value) @safe pure nothrow @nogc
         {
+            mixin(alwaysInlineIfAble);
+
             /* We use inline assembly for this, instead of intrinsics or relying on the optimiser,
                so that lzcnt is emitted even for targets that don't support it, just like MSVC does. */
 
@@ -10423,9 +10440,10 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         private T trailingZeroCount(T)(T value) @safe pure nothrow @nogc
         {
+            mixin(alwaysInlineIfAble);
+
             /* We use inline assembly for this, instead of intrinsics or relying on the optimiser,
                so that tzcnt is emitted even for targets that don't support it, just like MSVC does. */
 
@@ -10717,9 +10735,10 @@ version (MSVCIntrinsics)
         version (X86_64_Or_X86)
         {
             extern(C)
-            pragma(inline, true)
             int4 _mm_extract_si64()(int4 Source, int4 Descriptor) @safe pure nothrow @nogc
             {
+                mixin(alwaysInlineIfAble);
+
                 if (__ctfe)
                 {
                     return ctfeExtrq(Source, Descriptor);
@@ -10920,9 +10939,10 @@ version (MSVCIntrinsics)
             }
 
             extern(C)
-            pragma(inline, true)
             int4 _mm_insert_si64()(int4 Source1, int4 Source2) @safe pure nothrow @nogc
             {
+                mixin(alwaysInlineIfAble);
+
                 if (__ctfe)
                 {
                     return ctfeInsertq(Source1, Source2);
@@ -11597,9 +11617,10 @@ version (MSVCIntrinsics)
     version (X86_64_Or_X86)
     {
         extern(C)
-        pragma(inline, true)
         private void repMovs(T)(scope T* destination, scope const(T)* source, size_t length) @system pure nothrow @nogc
         {
+            mixin(alwaysInlineIfAble);
+
             import core.bitop : bsr;
 
             if (__ctfe)
@@ -11955,9 +11976,10 @@ version (MSVCIntrinsics)
     version (X86_64_Or_X86)
     {
         extern(C)
-        pragma(inline, true)
         ulong __rdtsc()() @safe nothrow @nogc
         {
+            mixin(alwaysInlineIfAble);
+
             version (LDC_Or_GNU)
             {
                 return __builtin_ia32_rdtsc();
@@ -12001,9 +12023,10 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         ulong __rdtscp()(scope uint* AUX) @trusted nothrow @nogc
         {
+            mixin(alwaysInlineIfAble);
+
             version (LDC)
             {
                 import ldc.llvmasm : __irEx;
@@ -12372,9 +12395,10 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         uint __segmentlimit()(uint a) @safe nothrow @nogc
         {
+            mixin(alwaysInlineIfAble);
+
             version (LDC)
             {
                 import ldc.llvmasm : __ir;
@@ -12471,10 +12495,11 @@ version (MSVCIntrinsics)
     version (X86_64_Or_X86)
     {
         extern(C)
-        pragma(inline, true)
         private I funnelShiftLeft(I)(I low, I high, ubyte shiftCount) @safe pure nothrow @nogc
         if (__traits(isIntegral, I) && (I.sizeof == 8 || I.sizeof == 4))
         {
+            mixin(alwaysInlineIfAble);
+
             enum uint operandBitWidth = I.sizeof << 3;
             enum uint shiftMask = operandBitWidth - 1;
 
@@ -12548,10 +12573,11 @@ version (MSVCIntrinsics)
         }
 
         extern(C)
-        pragma(inline, true)
         private I funnelShiftRight(I)(I low, I high, ubyte shiftCount) @safe pure nothrow @nogc
         if (__traits(isIntegral, I) && (I.sizeof == 8 || I.sizeof == 4))
         {
+            mixin(alwaysInlineIfAble);
+
             enum uint operandBitWidth = I.sizeof << 3;
             enum uint shiftMask = operandBitWidth - 1;
 
@@ -12627,9 +12653,10 @@ version (MSVCIntrinsics)
     version (X86_64_Or_X86)
     {
         extern(C)
-        pragma(inline, true)
         void __sidt()(scope void* Destination) @system nothrow @nogc
         {
+            mixin(alwaysInlineIfAble);
+
             version (LDC_Or_GNU)
             {
                 version (X86_64)
@@ -12752,10 +12779,11 @@ version (MSVCIntrinsics)
     version (X86_64_Or_X86)
     {
         extern(C)
-        pragma(inline, true)
         private void repStos(I)(scope I* destination, I data, size_t length) @system pure nothrow @nogc
         if (__traits(isIntegral, I))
         {
+            mixin(alwaysInlineIfAble);
+
             if (__ctfe)
             {
                 foreach (index; 0 .. length)
@@ -14237,9 +14265,10 @@ version (MSVCIntrinsics)
     }
 
     extern(C)
-    pragma(inline, true)
     private ubyte bitScan(alias scan, I)(scope uint* index, I mask) @safe pure nothrow @nogc
     {
+        mixin(alwaysInlineIfAble);
+
         if (__ctfe)
         {
             if (mask == 0)
