@@ -143,6 +143,7 @@ struct Verbose
     d_bool verbose;           // verbose compile
     d_bool showColumns;       // print character (column) numbers in diagnostics
     d_bool tls;               // identify thread local variables
+    d_bool nanInit;           // print default initializing a floating point variable to NaN
     d_bool templates;         // collect and list statistics on template instantiations
     // collect and list statistics on template instantiations origins.
     // TODO: make this an enum when we want to list other kinds of instances
