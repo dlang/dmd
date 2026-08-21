@@ -882,6 +882,7 @@ else
 //
 /*
 int shm_open(const scope char*, int, mode_t);
+int shm_open(const scope char*, int, ...); (Darwin)
 int shm_unlink(const scope char*);
 */
 
@@ -892,7 +893,7 @@ version (CRuntime_Glibc)
 }
 else version (Darwin)
 {
-    int shm_open(const scope char*, int, mode_t);
+    int shm_open(const scope char*, int, ...);
     int shm_unlink(const scope char*);
 }
 else version (FreeBSD)
