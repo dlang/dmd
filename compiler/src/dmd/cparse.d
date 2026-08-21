@@ -2963,6 +2963,7 @@ final class CParser(AST) : Parser!AST
                     case TOK.leftBracket:
                     {
                         // post [] syntax, pick up any leading type qualifiers, `static` and `*`
+                        const arrayLoc = token.loc;
                         AST.Type ta;
                         nextToken();
 
@@ -3003,11 +3004,11 @@ final class CParser(AST) : Parser!AST
                         // Issue errors for unsupported types.
                         if (isVLA) // C11 6.7.6.2
                         {
-                            error("variable length arrays are not supported");
+                            error(arrayLoc, "variable length arrays are not supported");
                         }
                         if (isStatic) // C11 6.7.6.3
                         {
-                            error("static array parameters are not supported");
+                            error(arrayLoc, "static array parameters are not supported");
                         }
                         if (declarator != DTR.xparameter)
                         {
