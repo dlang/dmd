@@ -72,7 +72,7 @@ public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
         }
     }
 
-    const bool doUnittests = global.params.parsingUnittestsRequired();
+    const bool doUnittests = global.params.parsingUnittestsRequired(sc._module.isRoot);
     scope p = new Parser!ASTCodegen(sc._module, "", false, global.errorSink, &global.compileEnv, doUnittests);
 
     /* Set list of tokens that will be the input to the parser, and starting line number to use.
