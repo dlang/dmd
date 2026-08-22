@@ -6021,11 +6021,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         buildDtors(cldec, sc2);
 
-        // If this class has no explicit cpp destructor, but the base class
-        // has, then set cppDtorVtblIndex, so destructors for fields can be called.
-        if (cldec.cppDtorVtblIndex == -1 && cldec.baseClass && cldec.dtor)
-            cldec.cppDtorVtblIndex = cldec.baseClass.cppDtorVtblIndex;
-
         if (cldec.classKind == ClassKind.cpp && cldec.cppDtorVtblIndex != -1)
         {
             // now we've built the aggregate destructor, we'll make it virtual and assign it to the reserved vtable slot
@@ -6034,9 +6029,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (target.cpp.twoDtorInVtable)
             {
-                // TODO: create a C++ compatible deleting destructor (call out to `operator delete`)
-                //       for the moment, we'll call the non-deleting destructor and leak
-                cldec.vtbl[cldec.cppDtorVtblIndex + 1] = cldec.dtor;
+                // Assign the deleting destructor (call out to `operator delete`)
+                if (cldec.dtor != cldec.delDtor)
+                    cldec.delDtor.vtblIndex = cldec.cppDtorVtblIndex + 1;
+                cldec.vtbl[cldec.cppDtorVtblIndex + 1] = cldec.delDtor;
             }
         }
 
@@ -7602,6 +7598,20 @@ Module loadCoreStdcConfig()
     pkgids[0] = Id.core;
     pkgids[1] = Id.stdc;
     return loadModuleFromLibrary(core_stdc_config, pkgids, Id.config);
+}
+
+/****************************
+ * A Singleton that loads core.stdcpp.new_
+ * Returns:
+ *  Module of core.stdcpp.new_, null if couldn't find it
+ */
+Module loadCoreStdcppNew()
+{
+    __gshared Module core_stdcpp_new_;
+    auto pkgids = new Identifier[2];
+    pkgids[0] = Id.core;
+    pkgids[1] = Id.stdcpp;
+    return loadModuleFromLibrary(core_stdcpp_new_, pkgids, Id.new_);
 }
 
 /**********************************

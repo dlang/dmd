@@ -129,6 +129,23 @@ bool isAggregateDtor(const Dsymbol sym)
     return dtor == ad.aggrDtor;
 }
 
+/******************************
+ * Determine if sym is a deleting destructor.
+ * Params:
+ *      sym = Dsymbol
+ * Returns:
+ *      true if sym is a deleting destructor
+ */
+bool isDeletingDtor(const Dsymbol sym)
+{
+    const dtor = sym.isDtorDeclaration();
+    if (!dtor)
+        return false;
+    const ad = dtor.isMember();
+    assert(ad);
+    return dtor == ad.delDtor;
+}
+
 /// Context used when processing pre-semantic AST
 private struct Context
 {
@@ -1108,6 +1125,8 @@ private final class CppMangleVisitor : Visitor
                 buf.writestring(ctor.isCpCtor ? "C2" : "C1");
             else if (d.isAggregateDtor())
                 buf.writestring("D1");
+            else if (d.isDeletingDtor())
+                buf.writestring("D0");
             else if (d.ident && d.ident == Id.opAssign)
                 buf.writestring("aS");
             else if (d.ident && d.ident == Id.opEquals)
