@@ -69,3 +69,12 @@ int pr16199c()
 #define BARE_CALL DOUBLE(5)          // bare function-like macro call (no outer parens)
 #define PAREN_CALL (DOUBLE(5))       // parenthesized call (already works)
 #define WRAPPER(x) DOUBLE(x)         // function-like macro calling another macro
+
+// https://github.com/dlang/dmd/issues/23143 - alias macros for declared identifiers
+int __real_func(int x) { return x + 1; }
+#define ALIAS_FUNC __real_func       // alias macro to a function
+typedef int real_int;
+#define ALIAS_TYPE real_int          // alias macro to a type
+#define ALIAS_ENUM ABC               // alias macro to a manifest constant
+int self_ref;
+#define self_ref self_ref            // self-referential macro (cf. glibc stdin), must not alias
