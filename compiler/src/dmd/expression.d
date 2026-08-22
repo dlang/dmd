@@ -135,6 +135,11 @@ extern (C++) abstract class Expression : ASTNode
     import dmd.common.bitfields;
     mixin(generateBitFields!(BitFields, ubyte));
 
+    // This is the remaining padding between Expression and all of its derived
+    // classes, it is used as a space to hold per-expression bitfields, flags,
+    // or a value of these derived AST nodes to save on space.
+    private ushort astNodeBitFields;
+
     extern (D) this(Loc loc, EXP op) scope @safe
     {
         //printf("Expression::Expression(op = %d) this = %p\n", op, this);
@@ -1441,10 +1446,10 @@ extern (C++) final class StructLiteralExp : Expression
         bool useStaticInit;     /// if this is true, use the StructDeclaration's init symbol
         bool isOriginal = false; /// used when moving instances to indicate `this is this.origin`
         OwnedBy ownedByCtfe = OwnedBy.code;
+        StageFlags stageflags;
     }
     import dmd.common.bitfields;
-    mixin(generateBitFields!(BitFields, ubyte));
-    StageFlags stageflags;
+    mixin(generateBitFields!(BitFields, ushort, "astNodeBitFields"));
 
     StructDeclaration sd;   /// which aggregate this is for
     Expressions* elements;  /// parallels sd.fields[] with null entries for fields to skip
@@ -1506,6 +1511,19 @@ extern (C++) final class StructLiteralExp : Expression
         auto exp = new StructLiteralExp(loc, sd, arraySyntaxCopy(elements), type ? type : stype);
         exp.origin = this;
         return exp;
+    }
+
+    /** Mark `stageflags` with the bit `flag`
+     * Params:
+     *       flag = StageFlag to set
+     * Returns:
+     *       The previous value of `stageflags`
+     */
+    extern (D) StageFlags setStageFlag(StageFlags flag)
+    {
+        const old = stageflags;
+        stageflags = StageFlags(old | flag);
+        return old;
     }
 
     override void accept(Visitor v)
@@ -2730,7 +2748,7 @@ extern (C++) final class SliceExp : UnaExp
         bool arrayop;               // an array operation, rather than a slice
     }
     import dmd.common.bitfields : generateBitFields;
-    mixin(generateBitFields!(BitFields, ubyte));
+    mixin(generateBitFields!(BitFields, ushort, "astNodeBitFields"));
 
     /************************************************************/
     extern (D) this(Loc loc, Expression e1, IntervalExp ie) @safe

@@ -2490,8 +2490,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             buf.put("<recursion>");
         else
         {
-            const old = e.stageflags;
-            e.stageflags |= StructLiteralExp.StageFlags.toCBuffer;
+            const old = e.setStageFlag(StructLiteralExp.StageFlags.toCBuffer);
             argsToBuffer(e.elements, buf, hgs);
             e.stageflags = old;
         }

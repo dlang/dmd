@@ -1670,8 +1670,7 @@ private bool hasNonConstPointers(Expression e)
         {
             if (!(se.stageflags & StructLiteralExp.StageFlags.searchPointers))
             {
-                const old = se.stageflags;
-                se.stageflags |= StructLiteralExp.StageFlags.searchPointers;
+                const old = se.setStageFlag(StructLiteralExp.StageFlags.searchPointers);
                 bool ret = checkArray(se.elements);
                 se.stageflags = old;
                 return ret;
