@@ -4687,7 +4687,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
              */
             return Lret(ce, e);                  // no-op
         }
-        else
+        else if (cdfrom !is cdto)
         {
             assert(ce.lowering, "This case should have been rewritten to `_d_cast` in the semantic phase");
         }
