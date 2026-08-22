@@ -3721,6 +3721,7 @@ bool findBestMatch(TemplateInstance ti, Scope* sc, ArgumentList argumentList)
     const errs = global.errors;
     TemplateDeclaration td_last = null;
     Objects dedtypes;
+    Array!TemplateDeclaration tds;
 
     /* Since there can be multiple TemplateDeclaration's with the same
      * name, look for the best match.
@@ -3732,14 +3733,21 @@ bool findBestMatch(TemplateInstance ti, Scope* sc, ArgumentList argumentList)
         TemplateDeclaration td_ambig;
         MATCH m_best = MATCH.nomatch;
 
+        tds.setDim(0);
         Dsymbol dstart = tovers ? tovers.a[oi] : ti.tempdecl;
         overloadApply(dstart, (Dsymbol s)
         {
-            auto td = s.isTemplateDeclaration();
-            if (!td)
-                return 0;
+            if (auto td = s.isTemplateDeclaration())
+                tds.push(td);
+            return 0;
+        });
+        // With more than one candidate, gag deduction errors so that a failing
+        // candidate is merely a non-match and the remaining ones get a chance.
+        const gagCandidates = tds.length > 1;
+        foreach (td; tds[])
+        {
             if (td == td_best)   // skip duplicates
-                return 0;
+                continue;
 
             //printf("td = %s\n", td.toPrettyChars());
             // If more arguments than parameters,
@@ -3747,17 +3755,19 @@ bool findBestMatch(TemplateInstance ti, Scope* sc, ArgumentList argumentList)
             if (td.parameters.length < ti.tiargs.length)
             {
                 if (!td.isVariadic())
-                    return 0;
+                    continue;
             }
 
             dedtypes.setDim(td.parameters.length);
             dedtypes.zero();
             assert(td.semanticRun != PASS.initial);
 
+            const olderrors = gagCandidates ? global.startGagging() : 0u;
             MATCH m = matchWithInstance(sc, td, ti, dedtypes, argumentList, 0);
+            const errors = gagCandidates && global.endGagging(olderrors);
             //printf("matchWithInstance = %d\n", m);
-            if (m == MATCH.nomatch) // no match at all
-                return 0;
+            if (errors || m == MATCH.nomatch) // no match at all
+                continue;
             if (m < m_best) goto Ltd_best;
             if (m > m_best) goto Ltd;
 
@@ -3771,12 +3781,12 @@ bool findBestMatch(TemplateInstance ti, Scope* sc, ArgumentList argumentList)
             }
 
             td_ambig = td;
-            return 0;
+            continue;
 
         Ltd_best:
             // td_best is the best match so far
             td_ambig = null;
-            return 0;
+            continue;
 
         Ltd:
             // td is the new best match
@@ -3785,8 +3795,7 @@ bool findBestMatch(TemplateInstance ti, Scope* sc, ArgumentList argumentList)
             m_best = m;
             ti.tdtypes.setDim(dedtypes.length);
             memcpy(ti.tdtypes.tdata(), dedtypes.tdata(), ti.tdtypes.length * (void*).sizeof);
-            return 0;
-        });
+        }
 
         if (td_ambig)
         {
@@ -5535,9 +5544,17 @@ bool TemplateInstance_semanticTiargs(Loc loc, Scope* sc, Objects* tiargs, int fl
             }
             else
             {
-                sc = sc.startCTFE();
-                ea = ea.expressionSemantic(sc);
-                sc = sc.endCTFE();
+                const mightBeAlias = ea.op == EXP.variable || !definitelyValueParameter(ea);
+                if (mightBeAlias)
+                {
+                    ea = ea.expressionSemantic(sc);
+                }
+                else
+                {
+                    sc = sc.startCTFE();
+                    ea = ea.expressionSemantic(sc);
+                    sc = sc.endCTFE();
+                }
 
                 if (auto varExp = ea.isVarExp())
                 {
