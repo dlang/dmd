@@ -2652,8 +2652,17 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
          */
         auto arguments = new Expressions(1);
         (*arguments)[0] = eleft;
-        e = new CallExp(loc, e, arguments);
-        e = e.expressionSemantic(sc);
+        auto ce = new CallExp(loc, e, arguments);
+        // Only mark as a UFCS rewrite for error-message purposes when the
+        // resolved symbol is definitely not callable (e.g. a plain variable),
+        // to avoid affecting diagnostics for genuine (template) function
+        // candidates that simply fail to match the given arguments.
+        if (auto dse = e.isDsymbolExp())
+        {
+            if (!dse.s.isFuncDeclaration() && !dse.s.isTemplateDeclaration() && !dse.s.isOverloadSet())
+                ce.isUfcsRewrite = true;
+        }
+        e = ce.expressionSemantic(sc);
         return e;
     }
 }
@@ -8499,6 +8508,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else
             {
+                if (exp.isUfcsRewrite && exp.argumentList.arguments && exp.argumentList.arguments.length)
+                {
+                    const arg = (*exp.argumentList.arguments)[0];
+                    sc.eSink.error(exp.loc, "no property `%s` for `%s` of type `%s`", exp.e1.toErrMsg(), arg.toErrMsg(), arg.type.toErrMsg());
+                    return setError();
+                }
                 error(exp.loc, "function expected before `()`, not `%s` of type `%s`", exp.e1.toErrMsg(), exp.e1.type.toErrMsg());
                 return setError();
             }
