@@ -3582,10 +3582,12 @@ private enum bool isSafeCopyable(T) = is(typeof(() @safe { union U { T x; } T *x
  *      create = The callable to create a value for `key`.
  *               Must return V.
  *      update = The callable to call if `key` exists.
- *               Takes a V argument, returns a V or void.
+ *               Takes a ref V or V argument. Returns a V or void.
+ *               If it returns void, the parameter must be ref.
  */
 void update(K, V, C, U)(ref V[K] aa, K key, scope C create, scope U update)
-if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V) || is(typeof(update(aa[K.init])) == void)))
+if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V)
+    || (is(typeof(update(aa[K.init])) == void) && !is(typeof(update(V.init)) == void))))
 {
     bool found;
     auto p = _aaGetX(aa, key, found, create());
@@ -3606,7 +3608,7 @@ if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V) || is(typeof
     // create
     aa.update("key",
         () => 1,
-        (int) {} // not executed
+        (ref int) {} // not executed
         );
     assert(aa["key"] == 1);
 
@@ -3628,7 +3630,7 @@ if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V) || is(typeof
     // 'update' without changing value
     aa.update("key",
         () => 0, // not executed
-        (int) {
+        (ref int) {
             // do something else
         });
     assert(aa["key"] == 4);
@@ -3662,6 +3664,18 @@ if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V) || is(typeof
     static assert(is(typeof(() { aais.update(S(1234), { return 1234; }, (ref int x) { x++; return x; }); })));
     static assert(!is(typeof(() @safe { aais.require(S(1234), 1234); })));
     static assert(!is(typeof(() @safe { aais.update(S(1234), { return 1234; }, (ref int x) { x++; return x; }); })));
+}
+
+// void-returning update callback must take parameter by ref (issue 22175)
+@safe unittest
+{
+    int[string] aa;
+    // void-returning by-value must be rejected
+    static assert(!is(typeof(() { aa.update("key", () => 0, (int v) { }); })));
+    // void-returning by-ref must be accepted
+    static assert(is(typeof(() { aa.update("key", () => 0, (ref int v) { }); })));
+    // non-void returning by-value is fine (value used to update)
+    static assert(is(typeof(() { aa.update("key", () => 0, (int v) => v * 2); })));
 }
 
 @safe unittest
