@@ -302,17 +302,16 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
 }
 
 /**
- * Parse command line arguments for the last instance of -m32, -m64, -m32mscoff, -marm64
- * to detect the desired architecture.
+ * Parse command line arguments for the last instance of -m32, -m64, -m32mscoff,
+ * -marm64, -mwasm32 to detect the desired architecture.
  *
  * Params:
  *   args = Command line arguments
  *   arch = Default value to use for architecture.
- *          Should be "32", "64", or "arm64"
+ *          Should be "32", "64", "arm64", or "wasm32"
  *
  * Returns:
- *   "32", or "64" if the "-m32", "-m64" flags were passed,
- *   respectively. If they weren't, return `arch`.
+ *   The architecture named by the last such flag, or `arch` if none was passed.
  */
 const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
 {
@@ -329,6 +328,9 @@ const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
                 continue;
             case "-marm64":
                 arch = arg[2 .. 7];
+                continue;
+            case "-mwasm32":
+                arch = arg[2 .. 8];
                 continue;
             case "-run":   // end of args to dmd
                 break;
@@ -396,6 +398,10 @@ void setDefaultLibraries(const ref Target target, ref const(char)[] defaultlibna
         else if (target.os == Target.OS.OSX)
         {
             defaultlibname = "phobos2";
+        }
+        else if (target.os == Target.OS.WASM)
+        {
+            defaultlibname = "libphobos2-wasm.a";
         }
         else
         {
@@ -997,28 +1003,17 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             continue; // skip druntime options, e.g. used to configure the GC
         }
         else if (arg == "-marm64") // https://dlang.org/dmd.html#switch-marm64
-        {
-            target.isAArch64 = true;
-            target.isX86    = false;
-            target.isX86_64 = false;
-        }
+            target.setArch(Target.Arch.aarch64);
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
-        {
-            target.isAArch64 = false;
-            target.isX86     = true;
-            target.isX86_64  = false;
-        }
+            target.setArch(Target.Arch.x86);
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
-        {
-            target.isAArch64 = false;
-            target.isX86     = false;
-            target.isX86_64  = true;
-        }
+            target.setArch(Target.Arch.x86_64);
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
+            target.setArch(Target.Arch.x86);
+        else if (arg == "-mwasm32")
         {
-            target.isAArch64 = false;
-            target.isX86     = true;
-            target.isX86_64  = false;
+            target.setArch(Target.Arch.wasm32);
+            target.os = Target.OS.WASM;
         }
         else if (startsWith(p + 1, "mscrtlib="))
         {
@@ -1178,7 +1173,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             enum len = "-os=".length;
             // Parse:
             //      -os=identifier
-            immutable string msg = "Only `host`, `linux`, `windows`, `osx`,`openbsd`, `freebsd`, `solaris`, `dragonflybsd`, `hurd` allowed for `-os`";
+            immutable string msg = "Only `host`, `linux`, `windows`, `osx`,`openbsd`, `freebsd`, `solaris`, `dragonflybsd`, `hurd`, `wasm`, `wasi`, `wasip1` allowed for `-os`";
             if (Identifier.isValidIdentifier(p + len))
             {
                 const ident = p + len;
@@ -1193,6 +1188,12 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
                 case "solaris":      target.os = Target.OS.Solaris;      break;
                 case "dragonflybsd": target.os = Target.OS.DragonFlyBSD; break;
                 case "hurd":         target.os = Target.OS.Hurd;         break;
+                case "wasm":
+                case "wasi":
+                case "wasip1":
+                    target.os = Target.OS.WASM;
+                    target.setArch(Target.Arch.wasm32);
+                    break;
                 default:
                     errorInvalidSwitch(p, msg);
                     return false;

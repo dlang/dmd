@@ -22,3 +22,5 @@ void main()
     auto x = 32;
     foo(x);
 }
+
+// DISABLED: wasm

@@ -164,6 +164,9 @@ need to be started.
                         them under qemu-aarch64; requires clang, ld.lld, qemu-aarch64,
                         and an AArch64 sysroot for clang (e.g. gcc-aarch64-linux-gnu);
                         skipped automatically if any prerequisite is missing
+    wasm:               Runs compilable and runnable tests with OS=wasm and no permuted args.
+                        Requires the wasm libraries: `make -C ../../phobos wasm`
+                        (which builds the wasm druntime as a dependency).
 
     clean:              remove all temporary or result files from previous runs
 

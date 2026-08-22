@@ -15,3 +15,5 @@ void foo()
 void main()
 {
 }
+
+// DISABLED: wasm

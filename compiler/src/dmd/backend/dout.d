@@ -63,7 +63,13 @@ void outthunk(Symbol* sthunk, Symbol* sfunc, uint p, tym_t thisty,
         targ_size_t d, int i, targ_size_t d2)
 {
     sthunk.Sseg = cseg;
-    cod3_thunk(sthunk,sfunc,p,thisty,cast(uint)d,i,cast(uint)d2);
+    if (config.objfmt == OBJ_WASM)
+    {
+        import dmd.backend.wasm.obj : WasmObj_thunk;
+        WasmObj_thunk(sthunk, sfunc, p, thisty, cast(int)d, i, cast(uint)d2);
+    }
+    else
+        cod3_thunk(sthunk,sfunc,p,thisty,cast(uint)d,i,cast(uint)d2);
     sthunk.Sfunc.Fflags &= ~Fpending;
     sthunk.Sfunc.Fflags |= Foutput;   /* mark it as having been output */
 }
@@ -288,6 +294,15 @@ void outdata(Symbol* s)
         }
         case mTYthread:
         {
+            if (config.objfmt == OBJ_WASM)
+            {
+                // WASM: TLS not supported; treat as regular data
+                if (s.Sseg == 0 || s.Sseg == UNKNOWN)
+                    s.Sseg = DATA;
+                seg = objmod.data_start(s, datasize, DATA);
+                s.Sfl = FL.data;
+                break;
+            }
             if (config.objfmt == OBJ_MACH && config.target_cpu == TARGET_AArch64)
             {
                 // Special handling
@@ -537,6 +552,7 @@ Symbol* out_string_literal(const(char)* str, uint len, uint sz)
     {
         case OBJ_ELF:
         case OBJ_MACH:
+        case OBJ_WASM:
             s.Sseg = objmod.string_literal_segment(sz);
             break;
 
@@ -1008,6 +1024,20 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
     assert(funcsym_p == sfunc);
     const int CSEGSAVE_DEFAULT = int.max;        // some unlikely number
     int csegsave = CSEGSAVE_DEFAULT;
+
+    // WASM uses a separate code generator; skip the x86-specific code path.
+    // Run after blockopt() so jmptab/ifthen conversion has occurred.
+    if (config.objfmt == OBJ_WASM)
+    {
+        objmod.func_start(sfunc);
+        sfunc.Sfunc.Fstartblock = bo.startblock;
+        bo.startblock = null;
+        objmod.func_term(sfunc);
+        funcsym_p = null;
+        globsym.setLength(0);
+        return;
+    }
+
     if (eecontext.EEcompile != 1)
     {
         if (symbol_iscomdat2(sfunc))
@@ -1192,7 +1222,8 @@ Symbol* out_readonly_sym(tym_t ty, void[] data)
     Symbol* s;
 
     bool cdata = config.objfmt == OBJ_ELF ||
-                 config.objfmt == OBJ_MSCOFF;
+                 config.objfmt == OBJ_MSCOFF ||
+                 config.objfmt == OBJ_WASM;
     if (cdata)
     {
         /* MACHOBJ can't go here, because the const data segment goes into

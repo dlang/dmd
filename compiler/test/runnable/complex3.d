@@ -29,3 +29,5 @@ void main()
     c_complex_real n = toNative2(123, 456);
     assert(123 == n.re && 456 == n.im);
 }
+
+// DISABLED: wasm

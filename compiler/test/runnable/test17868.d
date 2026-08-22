@@ -43,3 +43,5 @@ int main()
     puts("main");
     return 0;
 }
+
+// DISABLED: wasm

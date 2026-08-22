@@ -1,5 +1,5 @@
 /* test bitfields for Microsoft C
- * DISABLED: win32 linux freebsd openbsd osx hurd
+ * DISABLED: win32 linux freebsd openbsd osx hurd wasm
  * RUN_OUTPUT:
 ---
                 DM |   MS |  P32 |  P64

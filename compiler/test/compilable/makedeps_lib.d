@@ -1,5 +1,5 @@
 /**
-DISABLED: win
+DISABLED: win wasm
 REQUIRED_ARGS: -makedeps -Jcompilable/extra-files -lib
 LINK:
 TRANSFORM_OUTPUT: remove_lines(druntime)

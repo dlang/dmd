@@ -1,4 +1,4 @@
-/* DISABLED: win linux freebsd openbsd osx32 dragonflybsd netbsd hurd
+/* DISABLED: win linux freebsd openbsd osx32 dragonflybsd netbsd hurd wasm
  */
 
 /* https://issues.dlang.org/show_bug.cgi?id=23343

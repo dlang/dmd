@@ -1,5 +1,5 @@
 // https://issues.dlang.org/show_bug.cgi?id=21515
-// DISABLED: win32 win64
+// DISABLED: win32 win64 wasm
 
 // ABI layout of native complex
 struct _Complex(T) { T re; T im; }

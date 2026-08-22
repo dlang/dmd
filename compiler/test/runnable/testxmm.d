@@ -1,5 +1,6 @@
 // REQUIRED_ARGS:
 // PERMUTE_ARGS: -mcpu=native -inline -O
+// DISABLED: wasm
 
 version (D_SIMD)
 {
