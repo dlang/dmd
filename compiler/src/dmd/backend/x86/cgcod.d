@@ -631,6 +631,25 @@ void prolog(ref CGstate cg, ref CodeBuilder cdb)
     if (config.flags3 & CFG3ibt && !I16)
         cdb.gen1(I32 ? ENDBR32 : ENDBR64);
 
+    // Generate remaining NOPs for patchable-function-entry
+    if (config.patchableFunctionEntryTotal > config.patchableFunctionEntryPrefix)
+    {
+        uint remainingNops = config.patchableFunctionEntryTotal - config.patchableFunctionEntryPrefix;
+        foreach (i; 0 .. remainingNops)
+        {
+            if (cg.AArch64)
+            {
+                // https://developer.arm.com/documentation/ddi0602/2026-03/Base-Instructions/NOP--No-operation-?lang=en
+                cdb.genasm([0x1F, 0x20, 0x03, 0xD5]);
+            }
+            else
+            {
+                // https://www.felixcloutier.com/x86/nop
+                cdb.gen1(0x90);
+            }
+        }
+    }
+
     // Special Intel 64 bit ABI prolog setup for variadic functions
     Symbol* sv64 = null;                        // set to __va_argsave
     if (I64 && variadic(funcsym_p.Stype))
