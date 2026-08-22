@@ -28,6 +28,7 @@ import dmd.declaration;
 import dmd.dmacro;
 import dmd.dsymbol;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.file_manager;
 import dmd.func;
@@ -398,10 +399,13 @@ extern (C++) final class Module : Package
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
 
+    ErrorSink eSink;
+
     extern (D) this(Loc loc, const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
     {
         super(loc, ident);
         this.dsym = DSYM.module_;
+        eSink = global.errorSink;
         const(char)[] srcfilename;
         //printf("Module::Module(filename = '%.*s', ident = '%s')\n", cast(int)filename.length, filename.ptr, ident.toChars());
         this.arg = filename;
@@ -422,7 +426,7 @@ extern (C++) final class Module : Package
                  !FileName.equalsExt(srcfilename, dd_ext))
         {
 
-            error(loc, "%s `%s` source file name '%.*s' must have .%.*s extension",
+            eSink.error(loc, "%s `%s` source file name '%.*s' must have .%.*s extension",
                   kind, toPrettyChars,
                   cast(int)srcfilename.length, srcfilename.ptr,
                   cast(int)mars_ext.length, mars_ext.ptr);
@@ -565,7 +569,7 @@ extern (C++) final class Module : Package
         }
         if (FileName.equals(docfilename, srcfile.toString()))
         {
-            error(loc, "%s `%s` source file and output file have same name '%s'",
+            eSink.error(loc, "%s `%s` source file and output file have same name '%s'",
                 kind, toPrettyChars, srcfile.toChars());
             fatal();
         }
@@ -599,17 +603,17 @@ extern (C++) final class Module : Package
             // Modules whose original argument name has an extension, or do not
             // have a valid location come from the command-line.
             // Error that their file cannot be found and return early.
-            .error(loc, "cannot find input file `%.*s`", cast(int)name.length, name.ptr);
+            eSink.error(loc, "cannot find input file `%.*s`", cast(int)name.length, name.ptr);
         }
         else
         {
             // if module is not named 'package' but we're trying to read 'package.d', we're looking for a package module
             bool isPackageMod = (strcmp(toChars(), "package") != 0) && isPackageFileName(srcfile);
             if (isPackageMod)
-                .error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%.*s'", toChars(), cast(int)name.length, name.ptr);
+                eSink.error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%.*s'", toChars(), cast(int)name.length, name.ptr);
             else
             {
-                .error(loc, "unable to read module `%s`", toChars());
+                eSink.error(loc, "unable to read module `%s`", toChars());
                 const pkgfile = FileName.combine(FileName.sansExt(name), package_d);
                 .errorSupplemental(loc, "Expected '%.*s' or '%.*s' in one of the following import paths:",
                     cast(int)name.length, name.ptr, cast(int)pkgfile.length, pkgfile.ptr);
@@ -815,7 +819,7 @@ extern (C++) final class Module : Package
             Module m = ppack ? ppack.isModule() : null;
             if (m && !isPackageFileName(m.srcfile))
             {
-                .error(md.loc, "package name '%s' conflicts with usage as a module name in file %s", ppack.toPrettyChars(), m.srcfile.toChars());
+                eSink.error(md.loc, "package name '%s' conflicts with usage as a module name in file %s", ppack.toPrettyChars(), m.srcfile.toChars());
             }
         }
         else
@@ -827,7 +831,7 @@ extern (C++) final class Module : Package
             /* Check to see if module name is a valid identifier
              */
             if (!Identifier.isValidIdentifier(this.ident.toChars()))
-                error(loc, "%s `%s` has non-identifier characters in filename, use module declaration instead", kind, toPrettyChars);
+                eSink.error(loc, "%s `%s` has non-identifier characters in filename, use module declaration instead", kind, toPrettyChars);
         }
         // Insert module into the symbol table
         Dsymbol s = this;
@@ -880,11 +884,11 @@ extern (C++) final class Module : Package
             if (Module mprev = prev.isModule())
             {
                 if (!FileName.equals(srcname, mprev.srcfile.toChars()))
-                    error(loc, "%s `%s` from file %s conflicts with another module %s from file %s", kind, toPrettyChars, srcname, mprev.toErrMsg(), mprev.srcfile.toChars());
+                    eSink.error(loc, "%s `%s` from file %s conflicts with another module %s from file %s", kind, toPrettyChars, srcname, mprev.toErrMsg(), mprev.srcfile.toChars());
                 else if (isRoot() && mprev.isRoot())
-                    error(loc, "%s `%s` from file %s is specified twice on the command line", kind, toPrettyChars, srcname);
+                    eSink.error(loc, "%s `%s` from file %s is specified twice on the command line", kind, toPrettyChars, srcname);
                 else
-                    error(loc, "%s `%s` from file %s must be imported with 'import %s;'", kind, toPrettyChars, srcname, toPrettyChars());
+                    eSink.error(loc, "%s `%s` from file %s must be imported with 'import %s;'", kind, toPrettyChars, srcname, toPrettyChars());
                 // https://issues.dlang.org/show_bug.cgi?id=14446
                 // Return previously parsed module to avoid AST duplication ICE.
                 return mprev;
@@ -895,7 +899,7 @@ extern (C++) final class Module : Package
                 if (isPackageFile)
                     amodules.push(this); // Add to global array of all modules
                 else
-                    error(md ? md.loc : loc, "%s `%s` from file %s conflicts with package name %s", kind, toPrettyChars, srcname, pkg.toErrMsg());
+                    eSink.error(md ? md.loc : loc, "%s `%s` from file %s conflicts with package name %s", kind, toPrettyChars, srcname, pkg.toErrMsg());
             }
             else
                 assert(global.errors);
@@ -1081,6 +1085,7 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
     enum SourceEncoding { utf16, utf32}
     enum Endian { little, big}
     immutable loc = mod.loc;
+    auto eSink = global.errorSink;
 
     /*
      * Convert a buffer from UTF32 to UTF8
@@ -1100,7 +1105,7 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
 
         if (buf.length & 3)
         {
-            .error(loc, "%s `%s` odd length of UTF-32 char source %llu",
+            eSink.error(loc, "%s `%s` odd length of UTF-32 char source %llu",
                 mod.kind, mod.toPrettyChars, cast(ulong) buf.length);
             return null;
         }
@@ -1117,7 +1122,7 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
             {
                 if (u > 0x10FFFF)
                 {
-                    .error(loc, "%s `%s` UTF-32 value %08x greater than 0x10FFFF", mod.kind, mod.toPrettyChars, u);
+                    eSink.error(loc, "%s `%s` UTF-32 value %08x greater than 0x10FFFF", mod.kind, mod.toPrettyChars, u);
                     return null;
                 }
                 dbuf.writeUTF8(u);
@@ -1147,7 +1152,7 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
 
         if (buf.length & 1)
         {
-            .error(loc, "%s `%s` odd length of UTF-16 char source %llu", mod.kind, mod.toPrettyChars, cast(ulong) buf.length);
+            eSink.error(loc, "%s `%s` odd length of UTF-16 char source %llu", mod.kind, mod.toPrettyChars, cast(ulong) buf.length);
             return null;
         }
 
@@ -1167,13 +1172,13 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
                     i++;
                     if (i >= eBuf.length)
                     {
-                        .error(loc, "%s `%s` surrogate UTF-16 high value %04x at end of file", mod.kind, mod.toPrettyChars, u);
+                        eSink.error(loc, "%s `%s` surrogate UTF-16 high value %04x at end of file", mod.kind, mod.toPrettyChars, u);
                         return null;
                     }
                     const u2 = readNext(&eBuf[i]);
                     if (u2 < 0xDC00 || 0xE000 <= u2)
                     {
-                        .error(loc, "%s `%s` surrogate UTF-16 low value %04x out of range", mod.kind, mod.toPrettyChars, u2);
+                        eSink.error(loc, "%s `%s` surrogate UTF-16 low value %04x out of range", mod.kind, mod.toPrettyChars, u2);
                         return null;
                     }
                     u = (u - 0xD7C0) << 10;
@@ -1181,12 +1186,12 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
                 }
                 else if (u >= 0xDC00 && u <= 0xDFFF)
                 {
-                    .error(loc, "%s `%s` unpaired surrogate UTF-16 value %04x", mod.kind, mod.toPrettyChars, u);
+                    eSink.error(loc, "%s `%s` unpaired surrogate UTF-16 value %04x", mod.kind, mod.toPrettyChars, u);
                     return null;
                 }
                 else if (u == 0xFFFE || u == 0xFFFF)
                 {
-                    .error(loc, "%s `%s` illegal UTF-16 value %04x", mod.kind, mod.toPrettyChars, u);
+                    eSink.error(loc, "%s `%s` illegal UTF-16 value %04x", mod.kind, mod.toPrettyChars, u);
                     return null;
                 }
                 dbuf.writeUTF8(u);
@@ -1245,7 +1250,7 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
     // It's UTF-8
     if (buf[0] >= 0x80)
     {
-        .error(loc, "%s `%s` source file must start with BOM or ASCII character, not \\x%02X", mod.kind, mod.toPrettyChars, buf[0]);
+        eSink.error(loc, "%s `%s` source file must start with BOM or ASCII character, not \\x%02X", mod.kind, mod.toPrettyChars, buf[0]);
         return null;
     }
 
