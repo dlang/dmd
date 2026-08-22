@@ -1,0 +1,25 @@
+module core.stdc;
+
+public import core.stdc.assert_;
+public import core.stdc.complex;
+public import core.stdc.config;
+public import core.stdc.ctype;
+public import core.stdc.errno;
+public import core.stdc.errno;
+public import core.stdc.fenv;
+public import core.stdc.float_;
+public import core.stdc.inttypes;
+public import core.stdc.limits;
+public import core.stdc.locale;
+public import core.stdc.math;
+public import core.stdc.signal;
+public import core.stdc.stdarg;
+public import core.stdc.stddef;
+public import core.stdc.stdint;
+public import core.stdc.stdio;
+public import core.stdc.stdlib;
+public import core.stdc.string;
+public import core.stdc.tgmath;
+public import core.stdc.time;
+public import core.stdc.wchar_;
+public import core.stdc.wctype;
