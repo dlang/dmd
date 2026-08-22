@@ -8188,7 +8188,10 @@ private bool resolveTemplateInstantiation(Scope* sc, TemplateParameters* paramet
                 // (it may be from a parent template, for example)
             }
 
+            const errors = global.startGagging();
             e2 = e2.expressionSemantic(sc); // https://issues.dlang.org/show_bug.cgi?id=13417
+            if (global.endGagging(errors))
+                return false;
             e2 = e2.ctfeInterpret();
 
             //printf("e1 = %s, type = %s %d\n", e1.toChars(), e1.type.toChars(), e1.type.ty);
