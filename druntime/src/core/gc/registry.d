@@ -60,9 +60,9 @@ alias GCThreadInitFunction = void function(ThreadBase base) nothrow @nogc;
 void registerGCFactory(string name, GCFactory factory,
         GCThreadInitFunction threadInit = null) nothrow @nogc
 {
-    import core.stdc.stdlib : realloc;
+    import core.internal.config.memory : reallocate;
 
-    auto ptr = cast(Entry*)realloc(entries.ptr, (entries.length + 1) * Entry.sizeof);
+    auto ptr = cast(Entry*) reallocate(entries.ptr, (entries.length + 1) * Entry.sizeof);
     entries = ptr[0 .. entries.length + 1];
     entries[$ - 1] = Entry(name, factory, threadInit);
 }
@@ -77,7 +77,7 @@ void registerGCFactory(string name, GCFactory factory,
  */
 GC createGCInstance(string name)
 {
-    import core.stdc.stdlib : free;
+    import core.internal.config.memory : freeMem;
 
     foreach (entry; entries)
     {
@@ -85,7 +85,7 @@ GC createGCInstance(string name)
             continue;
         auto instance = entry.factory();
         // only one GC at a time for now, so free the registry to not leak
-        free(entries.ptr);
+        freeMem(entries.ptr);
         entries = null;
         return instance;
     }

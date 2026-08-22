@@ -10,6 +10,8 @@
 
 module core.runtime;
 
+import core.internal.config.memory : allocateOne, freeMem;
+
 version (OSX)
     version = Darwin;
 else version (iOS)
@@ -209,7 +211,6 @@ struct Runtime
      */
     static void* loadLibrary()(const scope char[] name)
     {
-        import core.stdc.stdlib : free, malloc;
         version (Windows)
         {
             import core.sys.windows.winnls : CP_UTF8, MultiByteToWideChar;
@@ -222,9 +223,9 @@ struct Runtime
             if (len == 0)
                 return null;
 
-            auto buf = cast(WCHAR*)malloc((len+1) * WCHAR.sizeof);
+            auto buf = cast(WCHAR*) allocateOne((len+1) * WCHAR.sizeof);
             if (buf is null) return null;
-            scope (exit) free(buf);
+            scope (exit) freeMem(buf);
 
             len = MultiByteToWideChar(
                 CP_UTF8, 0, name.ptr, cast(int)name.length, buf, len);
@@ -240,9 +241,9 @@ struct Runtime
             /* Need a 0-terminated C string for the dll name
              */
             immutable len = name.length;
-            auto buf = cast(char*)malloc(len + 1);
+            auto buf = cast(char*) allocateOne(len + 1);
             if (!buf) return null;
-            scope (exit) free(buf);
+            scope (exit) freeMem(buf);
 
             buf[0 .. len] = name[];
             buf[len] = 0;
@@ -743,8 +744,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null ) // @nogc
     static T allocate(T, Args...)(auto ref Args args) @nogc
     {
         import core.lifetime : emplace;
-        import core.stdc.stdlib : malloc;
-        auto result = cast(T)malloc(__traits(classInstanceSize, T));
+        auto result = cast(T) allocateOne(__traits(classInstanceSize, T));
         return emplace(result, args);
     }
     version (Windows)
@@ -803,8 +803,7 @@ void defaultTraceDeallocator(Throwable.TraceInfo info) nothrow
         return;
     auto obj = cast(Object)info;
     destroy(obj);
-    import core.stdc.stdlib : free;
-    free(cast(void *)obj);
+    freeMem(cast(void *)obj);
 }
 
 /// Default implementation for most POSIX systems
@@ -812,7 +811,6 @@ version (WASI) {}
 else version (Posix) private class DefaultTraceInfo : Throwable.TraceInfo
 {
     import core.demangle;
-    import core.stdc.stdlib : free;
     import core.stdc.string : strlen, memchr, memmove;
 
     this() @nogc
@@ -879,7 +877,7 @@ else version (Posix) private class DefaultTraceInfo : Throwable.TraceInfo
         static if (hasExecinfo)
         {
             const framelist = backtrace_symbols( callstack.ptr, numframes );
-            scope(exit) free(cast(void*) framelist);
+            scope(exit) freeMem(cast(void*) framelist);
 
             static if (enableDwarf)
             {

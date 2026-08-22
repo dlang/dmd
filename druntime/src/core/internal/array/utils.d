@@ -11,6 +11,7 @@ module core.internal.array.utils;
 
 import core.internal.traits : Parameters;
 import core.memory : GC;
+debug(PRINTF) import core.stdc.stdio : printf;
 
 alias BlkAttr = GC.BlkAttr;
 

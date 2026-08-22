@@ -9,12 +9,24 @@ module core.gc.config;
 
 import core.internal.parseoptions;
 import core.stdc.stdio : printf;
+import core.internal.config : Sys;
+import core.internal.config.opt : Opt;
+
+alias Config = Opt.GcConfig;
 
 __gshared Config config;
 
 private __gshared bool _initialized;
 
-struct Config
+package(core) bool initialize(ref Config cfg) nothrow @nogc
+{
+    if (!_initialized)
+        _initialized = cfg.tryToInitialize();
+
+    return _initialized;
+}
+
+struct ConfigT()
 {
     bool disable;            // start disabled
     bool fork = false;       // optional concurrent behaviour
@@ -37,32 +49,30 @@ struct Config
 
 @nogc nothrow:
 
-    bool initialize()
+    private bool tryToInitialize()
     {
-        if (!_initialized)
-            _initialized = initConfigOptions(this, "gcopt");
-        return _initialized;
+        return initConfigOptions(this, "gcopt");
     }
 
     void help() @nogc nothrow
     {
         import core.gc.registry : registeredGCFactories;
 
-        printf("GC options are specified as white space separated assignments:
+        Sys.printf("GC options are specified as white space separated assignments:
     disable:0|1    - start disabled (%d)
     fork:0|1       - set fork behaviour (%d)
     profile:0|1|2  - enable profiling with summary when terminating program (%d)
-    gc:".ptr, disable, fork, profile);
+    gc:", disable, fork, profile);
         foreach (i, entry; registeredGCFactories)
         {
-            if (i) printf("|");
-            printf("%.*s", cast(int) entry.name.length, entry.name.ptr);
+            if (i) Sys.print("|");
+            Sys.printf("%.*s", cast(int) entry.name.length, entry.name.ptr);
         }
         auto _initReserve = initReserve.bytes2prettyStruct;
         auto _minPoolSize = minPoolSize.bytes2prettyStruct;
         auto _maxPoolSize = maxPoolSize.bytes2prettyStruct;
         auto _incPoolSize = incPoolSize.bytes2prettyStruct;
-        printf(" - select gc implementation (default = conservative)
+        Sys.printf(" - select gc implementation (default = conservative)
 
     initReserve:N  - initial memory to reserve in MB (%lld%c)
     minPoolSize:N  - initial and minimum pool size in MB (%lld%c)
@@ -73,7 +83,7 @@ struct Config
     cleanup:none|collect|finalize - how to treat live objects when terminating (collect)
 
     Memory-related values can use B, K, M or G suffixes.
-".ptr,
+",
                _initReserve.v, _initReserve.u,
                _minPoolSize.v, _minPoolSize.u,
                _maxPoolSize.v, _maxPoolSize.u,
