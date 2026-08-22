@@ -29,6 +29,7 @@ import dmd.func;
 import dmd.declaration;
 import dmd.astenums;
 import dmd.mtype;
+import dmd.typesem;
 import dmd.root.array;
 import dmd.common.outbuffer;
 import core.stdc.stdio;
@@ -179,6 +180,12 @@ struct DFAAnalyzer
                 cctx.obj.derivedFrom = dfaCommon.makeInCellObject(source);
                 return;
             case ParameterDFAInfo.EscapedRelationship.Borrows:
+                // The return value borrows from the source object, one level deep.
+                // Registration of the borrow against the ultimate cells happens
+                // when the return value is assigned to a variable.
+                cctx.obj = dfaCommon.makeObject(cctx.obj);
+                cctx.obj.isBorrow = true;
+                cctx.obj.borrowsFrom = source;
                 return;
             }
         }
@@ -200,6 +207,42 @@ struct DFAAnalyzer
             ParameterDFAInfo* paramInfo = list.each[i].paramInfo;
             DFAObject* sourceObject = list.each[i].lr.getContextObject;
 
+            // A by-ref argument of a value type has no object of its own,
+            // but the callee receives the cell of the variable itself.
+            if (sourceObject is null && paramInfo.isByRef)
+            {
+                if (DFAVar* ctxVar = list.each[i].lr.getContextVar)
+                    sourceObject = dfaCommon.makeObject(ctxVar);
+            }
+
+            // The argument object is only reliable immediately after the argument
+            // walk; the later convergence drops it from the lattice. The borrow
+            // checker needs it to dispatch the borrow-source relationship.
+            ParameterDFAInfo.Inferrable tempUserForSource = paramInfo.userSupplied;
+            const isBorrow = tempUserForSource.willEscape(-3)
+                == ParameterDFAInfo.EscapedRelationship.Borrows;
+
+            if (sourceObject is null && isBorrow)
+                sourceObject = list.each[i].argObject;
+
+            // A borrow from an object that is not a stack variable's cell (e.g. a
+            // class instance, or a by-ref argument with no object of its own) must
+            // be anchored to the variable holding the object, so that the owner
+            // object is guaranteed to outlive the borrow; the variable's lifetime
+            // bounds the object's lifetime. A dereference has created a child
+            // deref-var, so walk back (indirection aware) to the root variable to
+            // find the DFAObject of the `this` pointer.
+            if (isBorrow && (sourceObject is null || sourceObject.storageFor is null))
+            {
+                if (DFAVar* ctxVar = list.each[i].lr.getContextVar)
+                {
+                    ctxVar.visitIfReferenceToAnotherVar((DFAVar* root) {
+                        if (sourceObject is null)
+                            sourceObject = dfaCommon.makeObject(root);
+                    });
+                }
+            }
+
             // I.e. could be because of meet due to unknown resolution of branches
             if (sourceObject is null)
                 continue;
@@ -215,6 +258,13 @@ struct DFAAnalyzer
 
             ulong escapesInto = paramInfo.inferred.escapesInto != 0
                 ? paramInfo.inferred.escapesInto : paramInfo.userSupplied.escapesInto;
+
+            // Explicitly declared borrows win over inference: the body analysis can
+            // only infer ByValue/PointerTo relationships, which would silently
+            // downgrade a user declared `Borrows` (via the __fastdfa_returnborrow UDA).
+            ParameterDFAInfo.Inferrable tempUser = paramInfo.userSupplied;
+            if (tempUser.willEscape(-3) == ParameterDFAInfo.EscapedRelationship.Borrows)
+                escapesInto = paramInfo.userSupplied.escapesInto;
             int outputParamId = -3;
 
             if (escapesInto != 0)
@@ -1081,6 +1131,8 @@ struct DFAAnalyzer
         // A function call argument, may initialize the parameter if its by-ref or if its the this pointer.
         this.onRead(lr, loc, isByRef, isByRef);
 
+        this.checkBorrowArgument(argListItem, loc);
+
         DFAVar* ctx;
         DFAConsequence* cctx = lr.getContext(ctx);
 
@@ -1119,7 +1171,7 @@ struct DFAAnalyzer
                         newCctx.obj = dfaCommon.makeObject(rootCctx !is null ? rootCctx.obj : null);
                     }
 
-                    seeWrite(root, temp);
+                    seeWrite(root, temp, loc);
                     this.convergeExpression(temp, true);
 
                     // now its all set to unknown
@@ -1144,7 +1196,7 @@ struct DFAAnalyzer
                 {
                     DFAScope* sideEffectScope = dfaCommon.getSideEffectScope();
                     DFAScopeVar* scv = sideEffectScope.getScopeVar(root.storageFor);
-                    seeWrite(root.storageFor, scv.lr);
+                    seeWrite(root.storageFor, scv.lr, loc);
                 }
             });
         }
@@ -1171,6 +1223,60 @@ struct DFAAnalyzer
 
         this.convergeExpression(lr.copy, true);
         argListItem.lr = lr;
+    }
+
+    /***********************************************************
+     * Borrow checker: an owner with an active borrow may only be
+     * passed to a function whose parameter cannot mutate it.
+     *
+     * The parameter must be const/immutable where it reaches the cell.
+     * The borrow source parameter itself is exempt, allowing multiple
+     * borrows of one owner.
+     */
+    void checkBorrowArgument(DFAArgumentList.Each* argListItem, ref Loc loc)
+    {
+        ParameterDFAInfo* paramInfo = argListItem.paramInfo;
+        if (paramInfo is null || argListItem.paramType is null)
+            return;
+
+        // The borrow source parameter is exempt: it exists to create borrows,
+        // so multiple borrows of one owner are allowed.
+        ParameterDFAInfo.Inferrable tempUser = paramInfo.userSupplied;
+        if (tempUser.willEscape(-3) == ParameterDFAInfo.EscapedRelationship.Borrows)
+            return;
+
+        bool canMutate;
+        if (paramInfo.isByRef)
+            canMutate = !(argListItem.paramType.isConst || argListItem.paramType.isImmutable);
+        else
+        {
+            // A by-value reference type parameter can still reach the cell
+            // through the pointee; by-value value types are copies.
+            if (!(argListItem.paramType.isTypePointer || argListItem.paramType.isTypeDArray
+                    || argListItem.paramType.isTypeAArray || argListItem.paramType.isTypeClass))
+                return;
+
+            // nextOf() may be null (e.g. a class with no base class).
+            auto next = argListItem.paramType.nextOf();
+            canMutate = next is null || !(next.isConst || next.isImmutable);
+        }
+
+        if (!canMutate)
+            return;
+
+        DFABorrowEntry* entry;
+
+        if (DFAObject* argObj = argListItem.argObject)
+        {
+            dfaCommon.resolveBorrowCells(argObj, (cellVar, cellObj) {
+                if (entry is null)
+                    entry = dfaCommon.findBorrowEntry(cellObj);
+            });
+        }
+
+        if (entry !is null)
+            reporter.onBorrowOwnerPassedToMutatingFunction(entry,
+                    argListItem.paramIdent !is null ? argListItem.paramIdent.toChars : null, loc);
     }
 
     void transferAssert(DFALatticeRef lr, ref Loc loc, bool ignoreWriteCount,
@@ -1468,6 +1574,35 @@ struct DFAAnalyzer
                 if (!construct && noLR)
                     assignToCtx.markUnmodellable();
             }
+
+            // Borrow checker: handle borrows entering or leaving variables.
+            if (!wasDereferenced)
+            {
+                DFAConsequence* lhsCctx = assignTo.getContext;
+
+                if (lhsCctx !is null && lhsCctx.obj !is null && lhsCctx.obj.isBorrow
+                        && !construct)
+                {
+                    // The variable currently holds a borrow; changing it is only
+                    // allowed for borrow variables declared inside the loop.
+                    const loopDepth = dfaCommon.lastLoopyLabel.depth;
+
+                    if (loopDepth == 1
+                            || assignToCtx.youngestLifeTimeAllowedDepth <= loopDepth)
+                        reporter.onBorrowVariableReassignment(assignToCtx, loc);
+                    else
+                        dfaCommon.removeBorrowEntries(assignToCtx);
+                }
+
+                if (lrCctx !is null && lrCctx.obj !is null && lrCctx.obj.isBorrow)
+                    this.registerBorrows(assignToCtx, lrCctx.obj, loc);
+            }
+            else if (lrCctx !is null && lrCctx.obj !is null && lrCctx.obj.isBorrow)
+            {
+                // *p = borrow(...);
+                // The borrow lives in memory, not a tracked variable.
+                reporter.onBorrowStoredThroughDereference(loc);
+            }
         }
         else
         {
@@ -1566,7 +1701,7 @@ struct DFAAnalyzer
                     if (rootCount == 1)
                     {
                         exactlyOneRoot = true;
-                        this.seeWrite(firstRoot, ret);
+                        this.seeWrite(firstRoot, ret, loc);
 
                         DFAConsequence* c2 = ret.addConsequence(firstRoot);
                         c2.truthiness = retCctx.truthiness;
@@ -1602,7 +1737,7 @@ struct DFAAnalyzer
                 }
             }
 
-            seeWrite(assignToCtx, ret);
+            seeWrite(assignToCtx, ret, loc);
 
             ret.setContext(assignToCtx);
             DFAScopeVar* scv = this.convergeExpression(ret.copy, true);
@@ -2621,7 +2756,7 @@ struct DFAAnalyzer
         DFAVar* ctx = lr.getContextVar;
 
         if (ctx !is null)
-            this.seeWrite(ctx, lr);
+            this.seeWrite(ctx, lr, loc);
     }
 
 private:
@@ -2929,7 +3064,63 @@ private:
             couldBeUnknown = true;
     }
 
-    void seeWrite(DFAVar* assignTo, ref DFALatticeRef from)
+    void registerBorrows(DFAVar* borrower, DFAObject* borrowObj, ref Loc loc)
+    {
+        borrowObj.walkBorrowSources((DFAObject* node) {
+            DFAObject* source = node.borrowsFrom;
+            assert(source !is null);
+
+            // Direct owner, one level deep: when the source is itself a borrow,
+            // the owner is the variable holding the borrowed value.
+            DFAVar* owner;
+            if (source.isBorrow)
+            {
+                owner = source.holderVar;
+                if (owner is null)
+                {
+                    dfaCommon.resolveBorrowCells(source, (cellVar, cellObj) {
+                        if (owner is null)
+                            owner = cellVar;
+                    });
+                }
+            }
+
+            bool reportedOutlives;
+            dfaCommon.resolveBorrowCells(source, (cellVar, cellObj) {
+                if (!cellObj.onTheStack)
+                    return;
+
+                if (owner is null)
+                    owner = cellVar;
+
+                if (!reportedOutlives && owner !is null)
+                {
+                    // Returning a borrow of a stack local escapes the function
+                    // with a dangling pointer. The depth comparison alone cannot
+                    // catch this, since the return variable shares the function
+                    // scope with the local.
+                    if (borrower is dfaCommon.getReturnVariable && owner.var !is null
+                            && !owner.var.isParameter())
+                    {
+                        reportedOutlives = true;
+                        reporter.onBorrowOutlivesOwner(borrower, owner, loc);
+                    }
+                    else if (borrower.youngestLifeTimeAllowedDepth < owner.youngestLifeTimeAllowedDepth)
+                    {
+                        reportedOutlives = true;
+                        reporter.onBorrowOutlivesOwner(borrower, owner, loc);
+                    }
+                }
+
+                if (!reportedOutlives)
+                    dfaCommon.registerBorrow(borrower, cellObj, loc);
+            });
+
+            node.holderVar = borrower;
+        });
+    }
+
+    void seeWrite(DFAVar* assignTo, ref DFALatticeRef from, ref Loc loc)
     {
         version (none)
         {
@@ -2953,6 +3144,17 @@ private:
 
             DFAConsequence* c = from.addConsequence(root);
             c.writeOnVarAtThisPoint = root.writeCount;
+
+            // Borrow checker: reassigning a reference-type owner of an active
+            // borrow could invalidate the borrow. Mutating a basic type's value
+            // (e.g. `int x; x = 5;`) never does, so only reference-type owners
+            // are checked here.
+            if (root.storageFor !is null && root.var !is null
+                    && isTypeNullable(root.var.type))
+            {
+                if (DFABorrowEntry* entry = dfaCommon.findBorrowEntry(root.storageFor))
+                    reporter.onBorrowOwnerMutation(root, entry, loc);
+            }
         });
 
         version (none)

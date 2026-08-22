@@ -48,6 +48,34 @@ fail_compilation/fastdfa.d(1350): Error: Expression reads from an uninitialized 
 fail_compilation/fastdfa.d(1349):        For variable `foo`
 fail_compilation/fastdfa.d(1361): Error: Dereference on null variable `foo`
 fail_compilation/fastdfa.d(1368): Error: Dereference on null object
+fail_compilation/fastdfa.d(1399): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1397):        For variable `p`
+fail_compilation/fastdfa.d(1398):        Borrowed here
+fail_compilation/fastdfa.d(1406): Error: Cannot change a borrow variable declared outside of a loop
+fail_compilation/fastdfa.d(1405):        For variable `b`
+fail_compilation/fastdfa.d(1411): Error: Cannot store a borrow through a dereference in @safe code
+fail_compilation/fastdfa.d(1418): Error: Cannot pass the owner of an active borrow to a function that may mutate it
+fail_compilation/fastdfa.d(1418):        Parameter `p` must be const or immutable
+fail_compilation/fastdfa.d(1417):        Borrowed here
+fail_compilation/fastdfa.d(1425): Error: Cannot pass the owner of an active borrow to a function that may mutate it
+fail_compilation/fastdfa.d(1425):        Parameter `p` must be const or immutable
+fail_compilation/fastdfa.d(1424):        Borrowed here
+fail_compilation/fastdfa.d(1433): Error: A borrow cannot outlive the variable it borrows from
+fail_compilation/fastdfa.d(1432):        For variable `s`
+fail_compilation/fastdfa.d(1430):        The borrow is stored in variable `b`
+fail_compilation/fastdfa.d(1441): Error: Cannot pass the owner of an active borrow to a function that may mutate it
+fail_compilation/fastdfa.d(1441):        Parameter `p` must be const or immutable
+fail_compilation/fastdfa.d(1440):        Borrowed here
+fail_compilation/fastdfa.d(1449): Error: A borrow cannot outlive the variable it borrows from
+fail_compilation/fastdfa.d(1448):        For variable `x`
+fail_compilation/fastdfa.d(1446):        The borrow is stored in variable `b`
+fail_compilation/fastdfa.d(1456): Error: A borrow cannot outlive the variable it borrows from
+fail_compilation/fastdfa.d(1455):        For variable `x`
+fail_compilation/fastdfa.d(1465): Error: Cannot change a borrow variable declared outside of a loop
+fail_compilation/fastdfa.d(1462):        For variable `b`
+fail_compilation/fastdfa.d(1481): Error: A borrow cannot outlive the variable it borrows from
+fail_compilation/fastdfa.d(1480):        For variable `c`
+fail_compilation/fastdfa.d(1478):        The borrow is stored in variable `b`
 ---
 */
 
@@ -422,3 +450,119 @@ void checkViaObjNullDeref(bool cond, int** ptrArg) @system
     int** ptr = cond ? &var : ptrArg;
     **ptr = 2; // error
 }
+
+/****************** Borrow checker (errors) ******************/
+
+@system:
+
+enum __fastdfa_returnborrow;
+
+int* borrowFn(@__fastdfa_returnborrow int* x) @trusted { return x; }
+int** borrowFn2(@__fastdfa_returnborrow int** x) @trusted { return x; }
+
+void borrowTake(int* p) @safe {}
+void borrowTakeConst(const(int)* p) @safe {}
+
+struct BorrowS { int field; }
+struct BorrowDtor { ~this() {} int field; }
+
+struct BorrowStruct
+{
+    int* p;
+
+    int** get() @__fastdfa_returnborrow @trusted { return &this.p; }
+}
+
+void methodTake(int** p) @safe {}
+
+void borrowErr1()
+{
+    int* p;
+    int** b = borrowFn2(&p);
+    p = null; // error: reassigning a reference-type owner of an active borrow
+}
+
+void borrowErr2()
+{
+    int x;
+    int* b = borrowFn(&x);
+    b = null; // error
+}
+
+void borrowSafeErr(int** p, int* src) @safe
+{
+    *p = borrowFn(src); // error
+}
+
+void borrowErr4()
+{
+    int x;
+    int* b = borrowFn(&x);
+    borrowTake(&x); // error
+}
+
+void borrowErr5()
+{
+    int x;
+    int* b = borrowFn(&x);
+    borrowTake(b); // error, borrow passed to mutating function
+}
+
+void methodOutliveErr()
+{
+    int** b;
+    {
+        BorrowStruct s;
+        b = s.get(); // error: borrow of this outlives the owner
+    }
+}
+
+void methodPassErr()
+{
+    BorrowStruct s;
+    int** b = s.get(); // error: passing the borrowed owner to a mutating function
+    methodTake(&s.p);
+}
+
+void borrowOutliveErr1()
+{
+    int* b;
+    {
+        BorrowDtor x;
+        b = borrowFn(&x.field); // error: borrow outlives owner
+    }
+}
+
+int* borrowOutliveErr2()
+{
+    int x;
+    return borrowFn(&x); // error: returning a borrow of a local
+}
+
+void borrowLoopErr1()
+{
+    int x;
+    int* b = borrowFn(&x);
+    for (int i = 0; i < 2; ++i)
+    {
+        b = null; // error: changing a borrow declared outside the loop
+    }
+}
+
+class BorrowClass
+{
+    int* p;
+
+    int** get() @__fastdfa_returnborrow @trusted { return &this.p; }
+}
+
+void classOutliveErr()
+{
+    int** b;
+    {
+        BorrowClass c = new BorrowClass;
+        b = c.get(); // error: borrow of this outlives the owner object
+    }
+}
+
+/****************** End borrow checker (errors) ******************/

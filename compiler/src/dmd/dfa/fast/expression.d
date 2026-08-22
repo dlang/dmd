@@ -2635,6 +2635,16 @@ struct ExpressionWalker
                     });
 
                     DFALatticeRef argExp = this.walk(arg);
+                    list.each[i].argObject = argExp.getContextObject;
+
+                    if (toCallFunctionType !is null && toCallFunctionType.parameterList.parameters !is null
+                            && argOffset < toCallFunctionType.parameterList.parameters.length)
+                    {
+                        auto param = (*toCallFunctionType.parameterList.parameters)[argOffset];
+                        list.each[i].paramType = param.type;
+                        list.each[i].paramIdent = param.ident;
+                    }
+
                     this.seeFunctionCallArgument(argExp, &list.each[i], toCallFunction, loc);
 
                     if (dfaCommon.currentDFAScope.controlFlowJumped)
