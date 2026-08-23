@@ -8210,6 +8210,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (!exp.f || exp.f.errors || exp.f.type.ty == Terror)
                 return setError();
 
+            auto originalF = exp.f;
+            bool isSuperCall = (ue.e1.op == EXP.super_);
+
             if (exp.f.interfaceVirtual)
             {
                 /* Cast 'this' to the type of the interface, and replace f with the interface's equivalent
@@ -8234,6 +8237,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 ethis = ue.e1;
                 tthis = ue.e1.type;
+                if (isSuperCall && originalF)
+                    exp.f = originalF;
                 if (!(exp.f.type.ty == Tfunction && (cast(TypeFunction)exp.f.type).isScopeQual))
                 {
                     if (checkParamArgumentEscape(*sc, exp.f, Id.This, exp.f.vthis, STC.none, ethis, false, false))
@@ -8307,7 +8312,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         ue.e1 = (cast(DotTypeExp)ue.e1).e1;
                         exp.directcall = true;
                     }
-                    else if (ue.e1.op == EXP.super_)
+                    else if (ue.e1.op == EXP.super_ || isSuperCall)
                         exp.directcall = true;
                     else if ((cd.storage_class & STC.final_) != 0) // https://issues.dlang.org/show_bug.cgi?id=14211
                         exp.directcall = true;
