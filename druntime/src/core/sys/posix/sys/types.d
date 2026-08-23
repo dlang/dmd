@@ -810,18 +810,25 @@ version (CRuntime_Glibc)
 
             alias pthread_once_t = int;
 
-            struct pthread_rwlock_t
+            union pthread_rwlock_t
             {
                 byte[__SIZEOF_PTHREAD_RWLOCK_T] __size;
                 c_long __align;
             }
 
-            struct pthread_rwlockattr_t
+            union pthread_rwlockattr_t
             {
                 byte[__SIZEOF_PTHREAD_RWLOCKATTR_T] __size;
                 c_long __align;
             }
 
+            version (X86_64)
+            {
+                static assert(pthread_rwlock_t.sizeof == 56,
+                    "pthread_rwlock_t size mismatch with glibc");
+                static assert(pthread_rwlockattr_t.sizeof == 8,
+                    "pthread_rwlockattr_t size mismatch with glibc");
+            }
             alias pthread_t = c_ulong;
     }
     else version (Hurd)
@@ -1597,16 +1604,23 @@ version (CRuntime_Glibc)
 {
   version (linux)
   {
-      struct pthread_barrier_t
+      union pthread_barrier_t
       {
           byte[__SIZEOF_PTHREAD_BARRIER_T] __size;
           c_long __align;
       }
 
-      struct pthread_barrierattr_t
+      union pthread_barrierattr_t
       {
           byte[__SIZEOF_PTHREAD_BARRIERATTR_T] __size;
           int __align;
+      }
+      version (X86_64)
+      {
+          static assert(pthread_barrier_t.sizeof == 32,
+              "pthread_barrier_t size mismatch with glibc");
+          static assert(pthread_barrierattr_t.sizeof == 4,
+              "pthread_barrierattr_t size mismatch with glibc");
       }
   }
   else version (Hurd)
