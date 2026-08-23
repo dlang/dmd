@@ -1,4 +1,5 @@
 // https://issues.dlang.org/show_bug.cgi?id=23569
+// DISABLED: linux freebsd openbsd osx hurd dragonflybsd netbsd
 
 extern(C++) class A
 {
