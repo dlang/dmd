@@ -6808,7 +6808,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             if (!cd.ctor)
                 cd.ctor = cd.searchCtor();
-            if (!nargs && !cd.defaultCtor && checkDefCtor(exp.loc, cd.type))
+            if (!nargs && !cd.ctor && checkDefCtor(exp.loc, cd.type))
                 return setError();
 
             if (cd.isInterfaceDeclaration())
