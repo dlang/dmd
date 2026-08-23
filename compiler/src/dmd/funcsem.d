@@ -1963,7 +1963,13 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                 return null;
 
     MatchAccumulator m;
-    functionResolve(m, s, loc, sc, tiargs, tthis, argumentList);
+    OutBuffer templateDeduceErrorBuf;
+    void collectTemplateDeduceError(const(char)* failMessage, Loc argloc = Loc.initial) scope
+    {
+        if (!templateDeduceErrorBuf.length)
+            templateDeduceErrorBuf.writestring(failMessage);
+    }
+    functionResolve(m, s, loc, sc, tiargs, tthis, argumentList, &collectTemplateDeduceError);
     auto orig_s = s;
 
     if (m.last > MATCH.nomatch && m.lastf)
@@ -2064,6 +2070,9 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                     td.kind(), td.ident.toErrMsg(), tiargsBuf.peekChars(), fargsBuf.peekChars());
 
                 checkNamedArgErrorAndReport(td, argumentList, loc);
+
+                if (templateDeduceErrorBuf.length)
+                    eSink.errorSupplemental(loc, "%s", templateDeduceErrorBuf.peekChars());
             }
             else
             {

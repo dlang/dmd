@@ -4170,7 +4170,8 @@ private RootObject defaultArg(TemplateParameter tp, Loc instLoc, Scope* sc)
  * Returns:
  *      match pair of initial and inferred template arguments
  */
-private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateInstance ti, Scope* sc, ref FuncDeclaration fd, Type tthis, ArgumentList argumentList)
+private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateInstance ti, Scope* sc, ref FuncDeclaration fd, Type tthis, ArgumentList argumentList,
+    scope void delegate(const(char)*, Loc argloc = Loc.initial) scope errorHelper = null)
 {
     version (none)
     {
@@ -5122,7 +5123,16 @@ Lmatch:
                     oded = new Tuple();
                 }
                 else
+                {
+                    if (errorHelper && global.errorSink.emitAdditionalContext())
+                    {
+                        OutBuffer buf2;
+                        buf2.printf("missing argument for template parameter #%d: `%s`",
+                            cast(int) i + 1, tparam.ident.toChars());
+                        errorHelper(buf2.extractChars());
+                    }
                     return nomatch();
+                }
             }
             if (isError(oded))
                 return matcherror();
@@ -6091,7 +6101,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             ti.parent = td.parent;  // Maybe calculating valid 'enclosing' is unnecessary.
 
             auto fd = f;
-            MATCHpair x = td.deduceFunctionTemplateMatch(ti, sc, fd, tthis, argumentList);
+            MATCHpair x = td.deduceFunctionTemplateMatch(ti, sc, fd, tthis, argumentList, errorHelper);
             MATCH mta = x.mta;
             MATCH mfa = x.mfa;
             //printf("match:t/f = %d/%d\n", mta, mfa);
