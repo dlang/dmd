@@ -3193,6 +3193,19 @@ class Lexer
         return scanloc;
     }
 
+    /*****************************************
+     * https://github.com/dlang/dmd/issues/20040
+     * Start of the source line containing `p`. Exposed (protected) so
+     * Parser can use it as a proxy for "indentation level" without
+     * needing direct access to the private `base` buffer pointer.
+     */
+    protected final const(char)* lineStartOf(const(char)* p) const @nogc
+    {
+        while (p > base && p[-1] != '\n')
+            --p;
+        return p;
+    }
+
     void error(T...)(const(char)* format, T args)
     {
         eSink.error(token.loc, format, args);
