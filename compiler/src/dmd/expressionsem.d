@@ -5601,7 +5601,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     Dsymbol s2;
                     if (scx.scopesym && scx.scopesym.symtab && (s2 = scx.scopesym.symtab.lookup(s.ident)) !is null && s != s2)
                     {
-                        error(exp.loc, "with symbol `%s` is shadowing local symbol `%s`", s.toPrettyChars(), s2.toPrettyChars());
+                        eSink.error(exp.loc, "with symbol `%s` is shadowing local symbol `%s`", s.toPrettyChars(), s2.toPrettyChars());
                         return setError();
                     }
                 }
@@ -5700,7 +5700,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (sc.ctfe)
             {
-                error(exp.loc, "variable `__ctfe` cannot be read at compile time");
+                eSink.error(exp.loc, "variable `__ctfe` cannot be read at compile time");
                 return setError();
             }
 
@@ -5766,24 +5766,24 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!(sc && sc.inCfile))
         {
             if (const n = importHint(exp.ident.toString()))
-                error(exp.loc, "`%s` is not defined, perhaps `import %.*s;` is needed?", exp.ident.toErrMsg(), cast(int)n.length, n.ptr);
+                eSink.error(exp.loc, "`%s` is not defined, perhaps `import %.*s;` is needed?", exp.ident.toErrMsg(), cast(int)n.length, n.ptr);
             else if (auto s2 = sc.search_correct(exp.ident))
-                error(exp.loc, "undefined identifier `%s`, did you mean %s `%s`?", exp.ident.toErrMsg(), s2.kind(), s2.toErrMsg());
+                eSink.error(exp.loc, "undefined identifier `%s`, did you mean %s `%s`?", exp.ident.toErrMsg(), s2.kind(), s2.toErrMsg());
             else if (const p = search_correct_C(exp.ident))
-                error(exp.loc, "undefined identifier `%s`, did you mean `%s`?", exp.ident.toErrMsg(), p);
+                eSink.error(exp.loc, "undefined identifier `%s`, did you mean `%s`?", exp.ident.toErrMsg(), p);
             else if (exp.ident == Id.dollar)
-                error(exp.loc, "undefined identifier `$`");
+                eSink.error(exp.loc, "undefined identifier `$`");
             else
-                error(exp.loc, "undefined identifier `%s`", exp.ident.toErrMsg());
+                eSink.error(exp.loc, "undefined identifier `%s`", exp.ident.toErrMsg());
         }
         else
         {
             if (const n = cIncludeHint(exp.ident.toString()))
-                error(exp.loc, "`%s` is not defined, perhaps `#include %.*s` is needed?", exp.ident.toErrMsg(), cast(int)n.length, n.ptr);
+                eSink.error(exp.loc, "`%s` is not defined, perhaps `#include %.*s` is needed?", exp.ident.toErrMsg(), cast(int)n.length, n.ptr);
             else if (auto s2 = sc.search_correct(exp.ident))
-                error(exp.loc, "undefined identifier `%s`, did you mean %s `%s`?", exp.ident.toErrMsg(), s2.kind(), s2.toErrMsg());
+                eSink.error(exp.loc, "undefined identifier `%s`, did you mean %s `%s`?", exp.ident.toErrMsg(), s2.kind(), s2.toErrMsg());
             else
-                error(exp.loc, "undefined identifier `%s`", exp.ident.toErrMsg());
+                eSink.error(exp.loc, "undefined identifier `%s`", exp.ident.toErrMsg());
         }
 
         result = ErrorExp.get();
@@ -5814,7 +5814,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (!s)
                 {
-                    error(e.loc, "`%s` is not in a class or struct scope", e.toErrMsg());
+                    eSink.error(e.loc, "`%s` is not in a class or struct scope", e.toErrMsg());
                     return setError();
                 }
                 ClassDeclaration cd = s.isClassDeclaration();
@@ -5835,7 +5835,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (!fd)
         {
-            error(e.loc, "`this` is only defined in non-static member functions, not `%s`", sc.parent.toErrMsg());
+            eSink.error(e.loc, "`this` is only defined in non-static member functions, not `%s`", sc.parent.toErrMsg());
             return setError();
         }
 
@@ -5867,7 +5867,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         void err()
         {
-            error(e.loc, "`super` is only allowed in non-static class member functions");
+            eSink.error(e.loc, "`super` is only allowed in non-static class member functions");
             result = ErrorExp.get();
         }
         /* Special case for typeof(this) and typeof(super) since both
@@ -5880,7 +5880,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (!s)
                 {
-                    error(e.loc, "`%s` is not in a class scope", e.toErrMsg());
+                    eSink.error(e.loc, "`%s` is not in a class scope", e.toErrMsg());
                     return setError();
                 }
                 cd = s.isClassDeclaration();
@@ -5890,7 +5890,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 cd = cd.baseClass;
                 if (!cd)
                 {
-                    error(e.loc, "class `%s` has no `super`", s.toErrMsg());
+                    eSink.error(e.loc, "class `%s` has no `super`", s.toErrMsg());
                     return setError();
                 }
                 e.type = cd.type;
@@ -5914,7 +5914,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return err();
         if (!cd.baseClass)
         {
-            error(e.loc, "no base class for `%s`", cd.toErrMsg());
+            eSink.error(e.loc, "no base class for `%s`", cd.toErrMsg());
             e.type = cd.type.addMod(e.var.type.mod);
         }
         else
@@ -5961,7 +5961,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         +/
 
         if (e.postfix)
-            error(e.loc, "String postfixes on interpolated expression sequences are not allowed.");
+            eSink.error(e.loc, "String postfixes on interpolated expression sequences are not allowed.");
 
         Expression makeNonTemplateItem(Identifier which) {
             Expression id = new IdentifierExp(e.loc, Id.empty);
@@ -6063,7 +6063,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     break;
             }
             if ((e.len % e.sz) != 0)
-                error(e.loc, "hex string with `%s` type needs to be multiple of %d bytes, not %d",
+                eSink.error(e.loc, "hex string with `%s` type needs to be multiple of %d bytes, not %d",
                     e.type.toErrMsg(), e.sz, cast(int) e.len);
 
             e.setData(arrayCastBigEndian(e.peekData(), e.sz).ptr, e.len / e.sz, e.sz);
@@ -6075,7 +6075,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (const p = utf_decodeChar(e.peekString(), u, c))
                 {
-                    error(e.loc, "%.*s", cast(int)p.length, p.ptr);
+                    eSink.error(e.loc, "%.*s", cast(int)p.length, p.ptr);
                     return setError();
                 }
                 else
@@ -6098,7 +6098,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (const p = utf_decodeChar(e.peekString(), u, c))
                 {
-                    error(e.loc, "%.*s", cast(int)p.length, p.ptr);
+                    eSink.error(e.loc, "%.*s", cast(int)p.length, p.ptr);
                     return setError();
                 }
                 else
@@ -6154,7 +6154,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             e = e.expressionSemantic(sc);
             if (!e.type)
             {
-                error(exp.loc, "`%s` has no value", e.toErrMsg());
+                eSink.error(exp.loc, "`%s` has no value", e.toErrMsg());
                 err = true;
             }
             else if (e.op == EXP.error)
