@@ -29,7 +29,6 @@ import dmd.rootobject;
 import dmd.root.string;
 import dmd.tokens;
 import dmd.expression;
-import dmd.globals;
 
 alias CompileEnv = dmd.lexer.CompileEnv;
 
@@ -60,7 +59,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             Loc loc;              // location of the `{`
             const(char)* ptr;     // token.ptr at the `{`; indentation is computed
                                    // lazily from this, only if a hint ends up being needed
-            uint errcountAtOpen;  // global.errors snapshot when this brace was opened
+            uint errcountAtOpen;  // errorsSeenLocal snapshot when this brace was opened
         }
         OpenBrace[] braceStack;
         size_t braceDepth;    // current nesting depth; braceStack only ever grows,
@@ -72,6 +71,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             Loc closeLoc;
         }
         BraceHint[] pendingBraceHints; // suspects awaiting a report
+        uint errorsSeenLocal; // counts only check() mismatches (see check(Loc, TOK)),
+                               // not every diagnostic; avoids depending on the global error count
     }
 
     /*********************
@@ -6200,18 +6201,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 hint.closeLoc.linnum, hint.openLoc.linnum);
     }
 
-    extern (D) void error(T...)(const(char)* format, T args)
-    {
-        super.error(format, args);
-        flushBraceMismatchHint(token.loc);
-    }
-
-    extern (D) void error(T...)(Loc loc, const(char)* format, T args)
-    {
-        super.error(loc, format, args);
-        flushBraceMismatchHint(loc);
-    }
-
     /*****************************************
      * Input:
      *      flags   PSxxxx
@@ -6577,9 +6566,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 // Only grow the backing array on a new maximum depth; otherwise
                 // reuse the existing slot so pushing never calls into the GC.
                 if (braceDepth == braceStack.length)
-                    braceStack ~= OpenBrace(lcLoc, token.ptr, global.errors);
+                    braceStack ~= OpenBrace(lcLoc, token.ptr, errorsSeenLocal);
                 else
-                    braceStack[braceDepth] = OpenBrace(lcLoc, token.ptr, global.errors);
+                    braceStack[braceDepth] = OpenBrace(lcLoc, token.ptr, errorsSeenLocal);
                 ++braceDepth;
 
                 nextToken();
@@ -6618,7 +6607,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     // Indentation is only ever computed here, on the rare path where
                     // a multi-line, error-free block is closing - never on every
                     // `{`/`}` pair.
-                    if (lcLoc.linnum != token.loc.linnum && global.errors == open.errcountAtOpen)
+                    if (lcLoc.linnum != token.loc.linnum && errorsSeenLocal == open.errcountAtOpen)
                     {
                         if (lineIndentColumn(open.ptr) != lineIndentColumn(token.ptr))
                             pendingBraceHints ~= BraceHint(open.loc, token.loc);
@@ -7620,7 +7609,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     void check(Loc loc, TOK value)
     {
         if (token.value != value)
+        {
             error(loc, "found `%s` when expecting `%s`", token.toChars(), Token.toChars(value));
+            ++errorsSeenLocal;
+            flushBraceMismatchHint(loc);
+        }
         nextToken();
     }
 
