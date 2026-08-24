@@ -58,10 +58,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         static struct OpenBrace
         {
             Loc loc;              // location of the `{`
-            uint indentCol;       // indentation column of the line containing it
+            const(char)* ptr;     // token.ptr at the `{`; indentation is computed
+                                   // lazily from this, only if a hint ends up being needed
             uint errcountAtOpen;  // global.errors snapshot when this brace was opened
         }
         OpenBrace[] braceStack;
+        size_t braceDepth;    // current nesting depth; braceStack only ever grows,
+                               // so popping is a pointer move, not a GC call
 
         static struct BraceHint
         {
@@ -6571,7 +6574,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 lookingForElse = Loc.initial;
 
                 // https://github.com/dlang/dmd/issues/20040
-                braceStack ~= OpenBrace(lcLoc, lineIndentColumn(token.ptr), global.errors);
+                // Only grow the backing array on a new maximum depth; otherwise
+                // reuse the existing slot so pushing never calls into the GC.
+                if (braceDepth == braceStack.length)
+                    braceStack ~= OpenBrace(lcLoc, token.ptr, global.errors);
+                else
+                    braceStack[braceDepth] = OpenBrace(lcLoc, token.ptr, global.errors);
+                ++braceDepth;
 
                 nextToken();
                 //if (token.value == TOK.semicolon)
@@ -6597,22 +6606,21 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     error(token.loc, "matching `}` expected following compound statement, not `%s`",
                         token.toChars());
                     eSink.errorSupplemental(lcLoc, "unmatched `{`");
-                    braceStack.length = braceStack.length - 1;
-                    braceStack.assumeSafeAppend();
+                    --braceDepth;
                 }
                 else
                 {
                     // https://github.com/dlang/dmd/issues/20040
-                    auto open = braceStack[$ - 1];
-                    braceStack.length = braceStack.length - 1;
-                    braceStack.assumeSafeAppend();
+                    auto open = braceStack[--braceDepth];
                     // Skip one-line `{ ... }` blocks, and skip blocks that already
                     // had a real error reported inside them - error recovery paths
                     // can desync the brace stack, producing bogus pairings.
+                    // Indentation is only ever computed here, on the rare path where
+                    // a multi-line, error-free block is closing - never on every
+                    // `{`/`}` pair.
                     if (lcLoc.linnum != token.loc.linnum && global.errors == open.errcountAtOpen)
                     {
-                        const closeIndent = lineIndentColumn(token.ptr);
-                        if (closeIndent != open.indentCol)
+                        if (lineIndentColumn(open.ptr) != lineIndentColumn(token.ptr))
                             pendingBraceHints ~= BraceHint(open.loc, token.loc);
                     }
                     nextToken();
