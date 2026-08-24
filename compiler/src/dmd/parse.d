@@ -29,6 +29,7 @@ import dmd.rootobject;
 import dmd.root.string;
 import dmd.tokens;
 import dmd.expression;
+import dmd.globals;
 
 alias CompileEnv = dmd.lexer.CompileEnv;
 
@@ -56,8 +57,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         // misplaced/extra `}` far above.
         static struct OpenBrace
         {
-            Loc loc;         // location of the `{`
-            uint indentCol;  // indentation column of the line containing it
+            Loc loc;              // location of the `{`
+            uint indentCol;       // indentation column of the line containing it
+            uint errcountAtOpen;  // global.errors snapshot when this brace was opened
         }
         OpenBrace[] braceStack;
 
@@ -6569,7 +6571,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 lookingForElse = Loc.initial;
 
                 // https://github.com/dlang/dmd/issues/20040
-                braceStack ~= OpenBrace(lcLoc, lineIndentColumn(token.ptr));
+                braceStack ~= OpenBrace(lcLoc, lineIndentColumn(token.ptr), global.errors);
 
                 nextToken();
                 //if (token.value == TOK.semicolon)
@@ -6602,7 +6604,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     // https://github.com/dlang/dmd/issues/20040
                     auto open = braceStack[$ - 1];
                     braceStack.length = braceStack.length - 1;
-                    if (lcLoc.linnum != token.loc.linnum) // skip one-line `{ ... }` blocks
+                    // Skip one-line `{ ... }` blocks, and skip blocks that already
+                    // had a real error reported inside them - error recovery paths
+                    // can desync the brace stack, producing bogus pairings.
+                    if (lcLoc.linnum != token.loc.linnum && global.errors == open.errcountAtOpen)
                     {
                         const closeIndent = lineIndentColumn(token.ptr);
                         if (closeIndent != open.indentCol)
