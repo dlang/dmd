@@ -5464,6 +5464,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     alias visit = Visitor.visit;
 
     Scope* sc;
+    ErrorSink eSink;
     Expression result;
 
     // For binary expressions, stores recursive 'alias this' types of lhs and rhs to prevent endless loops.
@@ -5473,9 +5474,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     // (Optional) the expression this was lowered from, for better error messages
     Expression parent;
 
-    this(Scope* sc) scope @safe
+    this(Scope* sc) scope
     {
         this.sc = sc;
+        this.eSink = global.errorSink;
     }
 
     private void setError()
@@ -5487,7 +5489,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         auto t = f.isThis();
         assert(t);
-        .error(loc, "calling non-static function `%s` requires an instance of type `%s`", f.toErrMsg(), t.toErrMsg());
+        eSink.error(loc, "calling non-static function `%s` requires an instance of type `%s`", f.toErrMsg(), t.toErrMsg());
         setError();
     }
 
@@ -8166,7 +8168,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return null;
             if (f)
                 return f;
-            .error(loc, "no overload matches for `%s`", exp.toErrMsg());
+            eSink.error(loc, "no overload matches for `%s`", exp.toErrMsg());
             errorSupplemental(loc, "Candidates are:");
             foreach (s; os.a)
             {
@@ -8534,7 +8536,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     tthis.modToBuffer(buf);
 
                 //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
-                .error(exp.loc, "%s `%s` is not callable using argument types `%s`",
+                eSink.error(exp.loc, "%s `%s` is not callable using argument types `%s`",
                     p, exp.e1.toErrMsg(), buf.peekChars());
                 if (failMessage)
                     errorSupplemental((argloc !is Loc.initial) ? argloc : exp.loc, "%s", failMessage);
@@ -8611,15 +8613,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     if (exp.isUfcsRewrite)
                     {
                         const arg = (*exp.argumentList.arguments)[0];
-                        .error(exp.loc, "no property `%s` for `%s` of type `%s`", exp.f.ident.toErrMsg(), arg.toErrMsg(), arg.type.toErrMsg());
-                        .errorSupplemental(exp.loc, "the following error occured while looking for a UFCS match");
+                        eSink.error(exp.loc, "no property `%s` for `%s` of type `%s`", exp.f.ident.toErrMsg(), arg.toErrMsg(), arg.type.toErrMsg());
+                        eSink.errorSupplemental(exp.loc, "the following error occured while looking for a UFCS match");
                     }
 
-                    .error(exp.loc, "%s `%s` is not callable using argument types `%s`",
+                    eSink.error(exp.loc, "%s `%s` is not callable using argument types `%s`",
                         exp.f.kind(), exp.f.toErrMsg(), buf.peekChars());
                     if (failMessage)
-                        errorSupplemental((argloc !is Loc.initial) ? argloc : exp.loc, "%s", failMessage);
-                    .errorSupplemental(exp.f.loc, "`%s%s` declared here", exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList));
+                        eSink.errorSupplemental((argloc !is Loc.initial) ? argloc : exp.loc, "%s", failMessage);
+                    eSink.errorSupplemental(exp.f.loc, "`%s%s` declared here", exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList));
                     exp.f = null;
                 }
 
@@ -8815,7 +8817,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (supDotFun && supDotFun.e1.isSuperExp() && exp.f && exp.f.isAbstract() && !exp.f.fbody)
         {
             error(exp.loc, "call to unimplemented abstract function `%s`", exp.f.toFullSignature());
-            errorSupplemental(exp.loc, "declared here: %s", exp.f.loc.toChars());
+            eSink.errorSupplemental(exp.loc, "declared here: %s", exp.f.loc.toChars());
         }
 
         // declare dual-context container
@@ -8927,7 +8929,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Dsymbol pscopesym;
                 auto conflict = sc.search(Loc.initial, s.ident, pscopesym);
                 error(e.loc, "declaration `%s` is already defined", s.toPrettyChars());
-                errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
+                eSink.errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
                                   conflict.kind(), conflict.toErrMsg());
                 return setError();
             }
@@ -8994,7 +8996,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         if (decl && (decl.storage_class & STC.local))
                             continue;
                         error(e.loc, "%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toErrMsg(), s2.kind(), s2.toPrettyChars());
-                        errorSupplemental(s2.loc, "declared here");
+                        eSink.errorSupplemental(s2.loc, "declared here");
                         if (!sc.func.fes)
                             return setError();
                     }
@@ -9158,7 +9160,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Dsymbol pscopesym;
                 auto conflict = sc.search(Loc.initial, s.ident, pscopesym);
                 error(e.loc, "declaration `%s` is already defined", s.toPrettyChars());
-                errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
+                eSink.errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
                                   conflict.kind(), conflict.toErrMsg());
             }
 
@@ -9462,7 +9464,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     Dsymbol pscopesym;
                     auto conflict = sc.search(Loc.initial, s.ident, pscopesym);
                     error(e.loc, "declaration `%s` is already defined", s.toPrettyChars());
-                    errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
+                    eSink.errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
                                         conflict.kind(), conflict.toErrMsg());
                 }
 
@@ -9606,7 +9608,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             error(e.loc, "unexpected token `%s` after %s expression",
                 p.token.toChars(), EXPtoString(e.op).ptr);
-            errorSupplemental(e.loc, "while parsing string mixin expression `%s`",
+            eSink.errorSupplemental(e.loc, "while parsing string mixin expression `%s`",
                 str.ptr);
             return null;
         }
@@ -9669,7 +9671,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (idxReserved != size_t.max)
         {
             error(e.loc, "`%s` is not a valid filename on this platform", se.toErrMsg());
-            errorSupplemental(e.loc, "Character `'%c'` is reserved and cannot be used", namez[idxReserved]);
+            eSink.errorSupplemental(e.loc, "Character `'%c'` is reserved and cannot be used", namez[idxReserved]);
             return setError();
         }
 
@@ -9683,13 +9685,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!resolvedNamez)
         {
             error(e.loc, "file `%s` cannot be found or not in a path specified with `-J`", se.toErrMsg());
-            errorSupplemental(e.loc, "Path(s) searched (as provided by `-J`):");
+            eSink.errorSupplemental(e.loc, "Path(s) searched (as provided by `-J`):");
             foreach (idx, path; global.filePath[])
             {
                 const attr = FileName.exists(path);
                 const(char)* err = attr == 2 ? "" :
                     (attr == 1 ? " (not a directory)" : " (path not found)");
-                errorSupplemental(e.loc, "[%llu]: `%s`%s", cast(ulong)idx, path, err);
+                eSink.errorSupplemental(e.loc, "[%llu]: `%s`%s", cast(ulong)idx, path, err);
             }
             return setError();
         }
@@ -11145,7 +11147,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 "cast from `%s` to `%s`", exp.e1.type, exp.to))
             {
                 if (msg.length)
-                    errorSupplemental(exp.loc, "%.*s", msg.fTuple.expand);
+                    eSink.errorSupplemental(exp.loc, "%.*s", msg.fTuple.expand);
                 return setError();
             }
         }
@@ -11395,7 +11397,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         auto fd = s.isFuncDeclaration();
                         if ((fd && !fd.getParameterList().length) || s.isTemplateDeclaration())
                         {
-                            errorSupplemental(exp.loc,
+                            eSink.errorSupplemental(exp.loc,
                                 "pointer `%s` points to an aggregate that defines an `%s`, perhaps you meant `(*%s)[]`",
                                 exp.e1.toErrMsg(),
                                 s.ident.toErrMsg(),
@@ -11632,7 +11634,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.arguments.length == 0)
             {
                 error(exp.loc, "no `[]` operator overload for type `%s`", exp.e1.type.toErrMsg());
-                errorSupplemental(ad.loc, "perhaps define `auto opIndex() {}` for `%s`", ad.toPrettyChars());
+                eSink.errorSupplemental(ad.loc, "perhaps define `auto opIndex() {}` for `%s`", ad.toPrettyChars());
             }
             else
             {
@@ -11647,7 +11649,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (auto ie = (*exp.arguments)[0].isIntervalExp())
                 {
                     error(exp.loc, "no `[%s]` operator overload for type `%s`", ie.toErrMsg(), exp.e1.type.toErrMsg());
-                    errorSupplemental(ad.loc, "perhaps define `auto opSlice(%s lower, %s upper) {}` for `%s`",
+                    eSink.errorSupplemental(ad.loc, "perhaps define `auto opSlice(%s lower, %s upper) {}` for `%s`",
                         typeString(ie.lwr), typeString(ie.upr), ad.toPrettyChars());
                 }
                 else
@@ -11658,7 +11660,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         buf.printf(", %s", typeString(e));
 
                     error(exp.loc, "no `[]` operator overload for type `%s`", exp.e1.type.toErrMsg());
-                    errorSupplemental(ad.loc, "perhaps define `auto opIndex(%s) {}` for `%s`",
+                    eSink.errorSupplemental(ad.loc, "perhaps define `auto opIndex(%s) {}` for `%s`",
                         buf.extractChars, ad.toPrettyChars());
                 }
             }
@@ -12851,7 +12853,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             {
                                 error(exp.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`",
                                       newExp.toErrMsg(), newExp.type.toErrMsg(), t1.toErrMsg());
-                                errorSupplemental(exp.loc, "Perhaps remove the `new` keyword?");
+                                eSink.errorSupplemental(exp.loc, "Perhaps remove the `new` keyword?");
                                 return setError();
                             }
                         }
@@ -13296,10 +13298,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     if (opAssign)
                     {
                         // offer more information about the cause of the problem
-                        errorSupplemental(exp.loc,
+                        eSink.errorSupplemental(exp.loc,
                                           "`%s` is the first assignment of `%s` therefore it represents its initialization",
                                           exp.toErrMsg(), exp.e1.toErrMsg());
-                        errorSupplemental(exp.loc,
+                        eSink.errorSupplemental(exp.loc,
                                           "`opAssign` methods are not used for initialization, but for subsequent assignments");
                     }
                 }
@@ -13333,9 +13335,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 error(exp.loc, "cannot copy `%s` to `%s`",
                     t2.toErrMsg(), t1.toErrMsg());
-                errorSupplemental(exp.loc,
+                eSink.errorSupplemental(exp.loc,
                     "Source data has incompatible type qualifier(s)");
-                errorSupplemental(exp.loc, "Use `cast(%s)` to force copy", t1.toErrMsg());
+                eSink.errorSupplemental(exp.loc, "Use `cast(%s)` to force copy", t1.toErrMsg());
                 return setError();
             }
         }
@@ -15092,9 +15094,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         case Tarray, Tsarray:
             result = exp.incompatibleTypes(sc);
-            errorSupplemental(exp.loc, "`in` is only allowed on associative arrays");
+            eSink.errorSupplemental(exp.loc, "`in` is only allowed on associative arrays");
             const(char)* slice = (t2b.ty == Tsarray) ? "[]" : "";
-            errorSupplemental(exp.loc, "perhaps use `std.algorithm.find(%s, %s%s)` instead",
+            eSink.errorSupplemental(exp.loc, "perhaps use `std.algorithm.find(%s, %s%s)` instead",
                 exp.e1.toErrMsg(), exp.e2.toErrMsg(), slice);
             return;
 
