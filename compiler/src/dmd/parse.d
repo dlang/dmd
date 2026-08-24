@@ -6598,12 +6598,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         token.toChars());
                     eSink.errorSupplemental(lcLoc, "unmatched `{`");
                     braceStack.length = braceStack.length - 1;
+                    braceStack.assumeSafeAppend();
                 }
                 else
                 {
                     // https://github.com/dlang/dmd/issues/20040
                     auto open = braceStack[$ - 1];
                     braceStack.length = braceStack.length - 1;
+                    braceStack.assumeSafeAppend();
                     // Skip one-line `{ ... }` blocks, and skip blocks that already
                     // had a real error reported inside them - error recovery paths
                     // can desync the brace stack, producing bogus pairings.
