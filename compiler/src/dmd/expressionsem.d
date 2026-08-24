@@ -7299,7 +7299,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     LskipNewArrayLowering:
         //printf("NewExp: '%s'\n", toChars());
         //printf("NewExp:type '%s'\n", type.toChars());
-        if (!exp.placement)
+        if (!exp.placement && global.params.useGC)
             semanticTypeInfo(sc, exp.type);
 
         if (newprefix)

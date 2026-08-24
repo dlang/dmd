@@ -1448,6 +1448,12 @@ elem* toElem(Expression e, ref IRState irs)
             else if (auto lowering = ne.lowering)
                 // Call _d_newitemT()
                 ex = toElem(ne.lowering, irs);
+            else if (!irs.params.useGC)
+            {
+                // new is allowed in CTFE, so this can only be checked at codegen
+                irs.eSink.error(ne.loc, "`new` expression `%s` requires the GC which is not available with `-betterC`", ne.toErrMsg());
+                return el_long(TYnptr, 0);
+            }
             else
                 assert(0, "This case should have been rewritten to `_d_newitemT` in the semantic phase");
 
@@ -1526,6 +1532,11 @@ elem* toElem(Expression e, ref IRState irs)
             else if (auto lowering = ne.lowering)
                 // Call _d_newitemT()
                 e = toElem(ne.lowering, irs);
+            else if (!irs.params.useGC)
+            {
+                irs.eSink.error(ne.loc, "`new` expression `%s` requires the GC which is not available with `-betterC`", ne.toErrMsg());
+                return el_long(TYnptr, 0);
+            }
             else
                 assert(0, "This case should have been rewritten to `_d_newitemT` in the semantic phase");
 
@@ -1549,6 +1560,11 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else if (auto taa = t.isTypeAArray())
         {
+            if (!irs.params.useGC)
+            {
+                irs.eSink.error(ne.loc, "`new` expression `%s` requires the GC which is not available with `-betterC`", ne.toErrMsg());
+                return el_long(TYnptr, 0);
+            }
             assert(ne.lowering, "This case should have been rewritten to `_d_aaNew` in the semantic phase");
             return toElem(ne.lowering, irs);
         }
