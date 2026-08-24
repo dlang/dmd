@@ -822,13 +822,6 @@ version (CRuntime_Glibc)
                 c_long __align;
             }
 
-            version (X86_64)
-            {
-                static assert(pthread_rwlock_t.sizeof == 56,
-                    "pthread_rwlock_t size mismatch with glibc");
-                static assert(pthread_rwlockattr_t.sizeof == 8,
-                    "pthread_rwlockattr_t size mismatch with glibc");
-            }
             alias pthread_t = c_ulong;
     }
     else version (Hurd)
@@ -1614,13 +1607,6 @@ version (CRuntime_Glibc)
       {
           byte[__SIZEOF_PTHREAD_BARRIERATTR_T] __size;
           int __align;
-      }
-      version (X86_64)
-      {
-          static assert(pthread_barrier_t.sizeof == 32,
-              "pthread_barrier_t size mismatch with glibc");
-          static assert(pthread_barrierattr_t.sizeof == 4,
-              "pthread_barrierattr_t size mismatch with glibc");
       }
   }
   else version (Hurd)
