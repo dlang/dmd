@@ -1451,7 +1451,7 @@ elem* toElem(Expression e, ref IRState irs)
             else if (!irs.params.useGC)
             {
                 // new is allowed in CTFE, so this can only be checked at codegen
-                irs.eSink.error(ne.loc, "`new` expression `%s` requires the GC which is not available with -betterC", ne.toErrMsg());
+                irs.eSink.error(ne.loc, "`new` expression `%s` requires the GC which is not available with `-betterC`", ne.toErrMsg());
                 return el_long(TYnptr, 0);
             }
             else
@@ -1534,7 +1534,7 @@ elem* toElem(Expression e, ref IRState irs)
                 e = toElem(ne.lowering, irs);
             else if (!irs.params.useGC)
             {
-                irs.eSink.error(ne.loc, "`new` expression `%s` requires the GC which is not available with -betterC", ne.toErrMsg());
+                irs.eSink.error(ne.loc, "`new` expression `%s` requires the GC which is not available with `-betterC`", ne.toErrMsg());
                 return el_long(TYnptr, 0);
             }
             else
@@ -1562,7 +1562,7 @@ elem* toElem(Expression e, ref IRState irs)
         {
             if (!irs.params.useGC)
             {
-                irs.eSink.error(ne.loc, "`new` expression `%s` requires the GC which is not available with -betterC", ne.toErrMsg());
+                irs.eSink.error(ne.loc, "`new` expression `%s` requires the GC which is not available with `-betterC`", ne.toErrMsg());
                 return el_long(TYnptr, 0);
             }
             assert(ne.lowering, "This case should have been rewritten to `_d_aaNew` in the semantic phase");
