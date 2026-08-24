@@ -15070,8 +15070,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     // Convert key to type of key
                     exp.e1 = exp.e1.implicitCastTo(sc, ta.index);
-                    if (auto ce = exp.e1.isCastExp())
-                        ce.trusted = true;
                 }
 
                 // for backward compatibility, type accepted during semantic, but errors in glue layer
