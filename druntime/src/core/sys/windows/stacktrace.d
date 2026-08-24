@@ -357,8 +357,9 @@ private string generateSearchPath()
 
 shared static this()
 {
-    auto dbghelp = DbgHelp.get();
+    InitializeCriticalSection(&mutex);
 
+    auto dbghelp = DbgHelp.get();
     if ( dbghelp is null )
         return; // dbghelp.dll not available
 
@@ -392,6 +393,5 @@ shared static this()
     if (!dbghelp.SymInitialize(hProcess, generateSearchPath().ptr, TRUE))
         return;
 
-    InitializeCriticalSection(&mutex);
     initialized = true;
 }
