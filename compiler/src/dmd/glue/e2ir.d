@@ -1995,7 +1995,7 @@ elem* toElem(Expression e, ref IRState irs)
          */
         if (!irs.params.useGC)
         {
-            irs.eSink.error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with -betterC", ce.toErrMsg());
+            irs.eSink.error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with `-betterC`", ce.toErrMsg());
             return el_long(TYint, 0);
         }
 
@@ -3129,7 +3129,7 @@ elem* toElem(Expression e, ref IRState irs)
                 if (!irs.params.useGC)
                 {
                     irs.eSink.error(ce.loc,
-                        "appending to array in `%s` requires the GC which is not available with -betterC",
+                        "appending to array in `%s` requires the GC which is not available with `-betterC`",
                         ce.toErrMsg());
                     return el_long(TYint, 0);
                 }
