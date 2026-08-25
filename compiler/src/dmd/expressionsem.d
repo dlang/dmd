@@ -7673,6 +7673,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("CallExp::semantic() %s\n", exp.toChars());
         }
 
+        __gshared int nest;
+        if (++nest > global.recursionLimit)
+        {
+            eSink.error(exp.loc, "recursive evaluation of `%s`", exp.toErrMsg());
+            --nest;
+            return setError();
+        }
+        scope(exit) --nest;
+
         scope (exit)
         {
             if (TypeFunction tf = exp.f && exp.f.type ? exp.f.type.isTypeFunction() : null)
@@ -7854,15 +7863,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else
             {
-                __gshared int nest;
-                if (++nest > global.recursionLimit)
-                {
-                    eSink.error(exp.loc, "recursive evaluation of `%s`", exp.toErrMsg());
-                    --nest;
-                    return setError();
-                }
                 Expression ex = unaSemantic(exp, sc);
-                --nest;
                 if (ex)
                 {
                     result = ex;
