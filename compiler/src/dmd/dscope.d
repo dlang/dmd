@@ -62,7 +62,6 @@ private extern (D) struct FlagBitFields
     bool canFree;            /// is on free list
     bool fullinst;          /// fully instantiate templates
     bool ctfeBlock;         /// inside a `if (__ctfe)` block
-    bool inUda;             /// inside a UserAttributeDeclaration's attribute expressions
 
     /**
     Is any symbol this scope is applied to known to have a compile time only accessible context.
@@ -271,7 +270,6 @@ extern (C++) struct Scope
         s.ignoresymbolvisibility = this.ignoresymbolvisibility;
         s.inCfile = this.inCfile;
         s.ctfeBlock = this.ctfeBlock;
-        s.inUda = this.inUda;
         s.previews = this.previews;
         s.lastdc = null;
         s.knownACompileTimeOnlyContext = this.knownACompileTimeOnlyContext;
