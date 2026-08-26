@@ -17,8 +17,8 @@ import core.stdc.stdio;
 import core.stdc.string : memcpy;
 
 import dmd.astenums;
-import dmd.errors;
 import dmd.errorsink;
+import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
 import dmd.lexer;

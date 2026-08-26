@@ -18,7 +18,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.astenums;
-import dmd.errors;
+import dmd.errors : fatal;
 import dmd.errorsink;
 import dmd.link;
 import dmd.location;

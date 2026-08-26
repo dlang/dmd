@@ -44,7 +44,7 @@ import dmd.dmodule;
 import dmd.dmsc : backend_init, backend_term;
 import dmd.doc;
 import dmd.dsymbol;
-import dmd.errors;
+import dmd.errors : fatal;
 import dmd.expression;
 import dmd.file_manager;
 import dmd.hdrgen;
@@ -517,7 +517,7 @@ private int tryMain(const(char)[][] argv, out Param params)
     {
         Module m = modules[modi];
         if (params.v.verbose)
-            message("parse     %s", m.toChars());
+            eSink.message(Loc.init, "parse     %s", m.toChars());
         if (!Module.rootModule)
             Module.rootModule = m;
         m.importedFrom = m; // m.isRoot() == true
