@@ -820,15 +820,8 @@ public:
         override void visit(CastExp e)
         {
             auto ce = cast(CastExp)e.copy();
-            if (auto lowering = ce.lowering)
-            {
-                ce.lowering = doInlineAs!Expression(lowering, ids);
-            }
-            else
-            {
-                ce.e1 = doInlineAs!Expression(e.e1, ids);
-            }
-
+            ce.lowering = doInlineAs!Expression(ce.lowering, ids);
+            ce.e1 = doInlineAs!Expression(e.e1, ids);
             result = ce;
         }
 
@@ -843,30 +836,18 @@ public:
         override void visit(CatExp e)
         {
             auto ce = e.copy().isCatExp();
-
-            if (auto lowering = ce.lowering)
-                ce.lowering = doInlineAs!Expression(lowering, ids);
-            else
-            {
-                ce.e1 = doInlineAs!Expression(e.e1, ids);
-                ce.e2 = doInlineAs!Expression(e.e2, ids);
-            }
-
+            ce.lowering = doInlineAs!Expression(ce.lowering, ids);
+            ce.e1 = doInlineAs!Expression(e.e1, ids);
+            ce.e2 = doInlineAs!Expression(e.e2, ids);
             result = ce;
         }
 
         override void visit(CatAssignExp e)
         {
             auto cae = cast(CatAssignExp) e.copy();
-
-            if (auto lowering = cae.lowering)
-                cae.lowering = doInlineAs!Expression(cae.lowering, ids);
-            else
-            {
-                cae.e1 = doInlineAs!Expression(e.e1, ids);
-                cae.e2 = doInlineAs!Expression(e.e2, ids);
-            }
-
+            cae.lowering = doInlineAs!Expression(cae.lowering, ids);
+            cae.e1 = doInlineAs!Expression(e.e1, ids);
+            cae.e2 = doInlineAs!Expression(e.e2, ids);
             result = cae;
         }
 
@@ -893,14 +874,11 @@ public:
 
         override void visit(ConstructExp e)
         {
-            if (e.lowering)
-            {
-                auto ce = cast(ConstructExp)e.copy();
-                ce.lowering = doInlineAs!Expression(ce.lowering, ids);
-                result = ce;
-            }
-            else
-                visit(cast(AssignExp) e);
+            auto ce = cast(ConstructExp)e.copy();
+            ce.lowering = doInlineAs!Expression(ce.lowering, ids);
+            ce.e1 = doInlineAs!Expression(e.e1, ids);
+            ce.e2 = doInlineAs!Expression(e.e2, ids);
+            result = ce;
         }
 
         override void visit(LoweredAssignExp e)
@@ -911,11 +889,7 @@ public:
         override void visit(EqualExp e)
         {
             auto ee = cast(EqualExp)e.copy();
-            if (auto lowering = ee.lowering)
-            {
-                ee.lowering = doInlineAs!Expression(lowering, ids);
-            }
-
+            ee.lowering = doInlineAs!Expression(ee.lowering, ids);
             ee.e1 = doInlineAs!Expression(e.e1, ids);
             ee.e2 = doInlineAs!Expression(e.e2, ids);
 
@@ -1017,9 +991,7 @@ public:
             auto ce = e.copy().isAssocArrayLiteralExp();
             ce.keys = arrayExpressionDoInline(e.keys);
             ce.values = arrayExpressionDoInline(e.values);
-            if (e.lowering)
-                ce.lowering = doInlineAs!Expression(e.lowering, ids);
-
+            ce.lowering = doInlineAs!Expression(e.lowering, ids);
             result = ce;
 
             semanticTypeInfo(null, e.type);
