@@ -1862,9 +1862,9 @@ else version (CRuntime_WASI)
 
     enum
     {
-        SHUT_RD,
-        SHUT_WR,
-        SHUT_RDWR
+        SHUT_RD = 1,
+        SHUT_WR = 2,
+        SHUT_RDWR = 3
     }
 }
 else

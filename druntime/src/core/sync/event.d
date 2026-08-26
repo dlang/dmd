@@ -280,7 +280,10 @@ nothrow @nogc:
                     timespec t = void;
                     mktspec(t, tmout);
 
-                    result = pthread_cond_timedwait(&m_cond, &m_mutex, &t);
+                    version (WASI)   // wasi-libc traps for single-thread futex
+                        result = -1;
+                    else
+                        result = pthread_cond_timedwait(&m_cond, &m_mutex, &t);
                 }
             }
             if (result == 0 && !m_manualReset)
