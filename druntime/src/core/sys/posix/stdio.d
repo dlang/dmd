@@ -551,13 +551,9 @@ else version (CRuntime_Musl)
 }
 else version (CRuntime_WASI)
 {
-    // TODO: once WebAssembly/wasi-libc#851 makes its way to wasi-sdk release
-    version (none)
-    {
-        void   flockfile(FILE*);
-        int    ftrylockfile(FILE*);
-        void   funlockfile(FILE*);
-    }
+    void   flockfile(FILE*);
+    int    ftrylockfile(FILE*);
+    void   funlockfile(FILE*);
     int    getc_unlocked(FILE*);
     int    getchar_unlocked();
     int    putc_unlocked(int, FILE*);
