@@ -385,7 +385,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 if (auto ad = funcdecl.isMember2())
                 {
-                    if (!sc.intypeof && !sc.inUda)
+                    if (!sc.intypeof)
                     {
                         if (fld.tok == TOK.delegate_)
                             eSink.error(funcdecl.loc, "%s `%s` cannot be %s members", funcdecl.kind, funcdecl.toErrMsg, ad.kind());
