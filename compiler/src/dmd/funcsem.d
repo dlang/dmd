@@ -1354,7 +1354,7 @@ Linterfaces:
         goto L2;
     }
 
-    if (!doesoverride && funcdecl.isOverride() && (funcdecl.type.nextOf() || !may_override))
+    if (!doesoverride && !cd.errors && funcdecl.isOverride() && (funcdecl.type.nextOf() || !may_override))
     {
         BaseClass* bc = null;
         Dsymbol s = null;

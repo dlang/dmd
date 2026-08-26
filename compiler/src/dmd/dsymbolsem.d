@@ -5604,6 +5604,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     if (b.type != Type.terror)
                         eSink.error(cldec.loc, "%s `%s` base type must be `class` or `interface`, not `%s`", cldec.kind, cldec.toPrettyChars, b.type.toErrMsg());
+                    else
+                        cldec.errors = true;
                     cldec.baseclasses.remove(0);
                     goto L7;
                 }
