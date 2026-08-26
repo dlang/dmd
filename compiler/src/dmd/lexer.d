@@ -326,7 +326,6 @@ class Lexer
     final void scan(Token* t)
     {
         const lastLine = linnum;
-        const afterOpenCurly = token.value == TOK.leftCurly;
         Loc startLoc;
         t.blockComment = null;
         t.lineComment = null;
@@ -740,7 +739,7 @@ class Lexer
                     if (doDocComment && t.ptr[2] == '*' && p - 4 != t.ptr)
                     {
                         // if /** but not /**/
-                        getDocComment(t, lastLine == startLoc.linnum && !afterOpenCurly, startLoc.linnum - lastDocLine > 1);
+                        getDocComment(t, lastLine == startLoc.linnum && token.value != TOK.leftCurly, startLoc.linnum - lastDocLine > 1);
                         lastDocLine = linnum;
                     }
                     continue;
@@ -768,7 +767,7 @@ class Lexer
                             }
                             if (doDocComment && t.ptr[2] == '/')
                             {
-                                getDocComment(t, lastLine == startLoc.linnum && !afterOpenCurly, startLoc.linnum - lastDocLine > 1);
+                                getDocComment(t, lastLine == startLoc.linnum && token.value != TOK.leftCurly, startLoc.linnum - lastDocLine > 1);
                                 lastDocLine = linnum;
                             }
                             //p = end;
@@ -800,7 +799,7 @@ class Lexer
                     }
                     if (doDocComment && t.ptr[2] == '/')
                     {
-                        getDocComment(t, lastLine == startLoc.linnum && !afterOpenCurly, startLoc.linnum - lastDocLine > 1);
+                        getDocComment(t, lastLine == startLoc.linnum && token.value != TOK.leftCurly, startLoc.linnum - lastDocLine > 1);
                         lastDocLine = linnum;
                     }
                     p++;
@@ -872,7 +871,7 @@ class Lexer
                         if (doDocComment && t.ptr[2] == '+' && p - 4 != t.ptr)
                         {
                             // if /++ but not /++/
-                            getDocComment(t, lastLine == startLoc.linnum && !afterOpenCurly, startLoc.linnum - lastDocLine > 1);
+                            getDocComment(t, lastLine == startLoc.linnum && token.value != TOK.leftCurly, startLoc.linnum - lastDocLine > 1);
                             lastDocLine = linnum;
                         }
                         continue;
