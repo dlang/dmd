@@ -28,7 +28,7 @@
  *   arguments, and uses it if found.
  * - Otherwise, the rest of semantic is run on the `TemplateInstance`.
  *
- * Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dtemplate.d, _dtemplate.d)
@@ -157,7 +157,12 @@ bool isError(const RootObject o)
  */
 bool arrayObjectIsError(const ref Objects args)
 {
-    return args[].any!isError;
+    foreach (const o; args)
+    {
+        if (isError(o))
+            return true;
+    }
+    return false;
 }
 
 /***********************
@@ -292,44 +297,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         this.isstatic = true;
         this.haveComputedOneMember = false;
         this.visibility = Visibility(Visibility.Kind.undefined);
-    }
-
-    extern(D) void computeIsTrivialAlias(Dsymbol s)
-    {
-        /* Set isTrivialAliasSeq if this fits the pattern:
-         *   template AliasSeq(T...) { alias AliasSeq = T; }
-         * or set isTrivialAlias if this fits the pattern:
-         *   template Alias(T) { alias Alias = qualifiers(T); }
-         */
-        if (!(parameters && parameters.length == 1))
-            return;
-
-        auto ad = s.isAliasDeclaration();
-        if (!ad || !ad.type)
-            return;
-
-        auto ti = ad.type.isTypeIdentifier();
-
-        if (!ti || ti.idents.length != 0)
-            return;
-
-        if (auto ttp = (*parameters)[0].isTemplateTupleParameter())
-        {
-            if (ti.ident is ttp.ident &&
-                ti.mod == 0)
-            {
-                //printf("found isTrivialAliasSeq %s %s\n", s.toChars(), ad.type.toChars());
-                isTrivialAliasSeq = true;
-            }
-        }
-        else if (auto ttp = (*parameters)[0].isTemplateTypeParameter())
-        {
-            if (ti.ident is ttp.ident)
-            {
-                //printf("found isTrivialAlias %s %s\n", s.toChars(), ad.type.toChars());
-                isTrivialAlias = true;
-            }
-        }
     }
 
     override TemplateDeclaration syntaxCopy(Dsymbol)
@@ -985,8 +952,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             // Set error here as we don't want it to depend on the number of
             // entries that are being printed.
             if (cl == Classification.error ||
-                (cl == Classification.warning && global.params.useWarnings == DiagnosticReporting.error) ||
-                (cl == Classification.deprecation && global.params.useDeprecated == DiagnosticReporting.error))
+                (cl == Classification.warning && global.errorSink.useWarnings == DiagnosticReporting.error) ||
+                (cl == Classification.deprecation && global.errorSink.useDeprecated == DiagnosticReporting.error))
                 cur.errors = true;
 
             // If two instantiations use the same declaration, they are recursive.
