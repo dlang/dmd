@@ -7183,6 +7183,19 @@ MATCH deduceType(scope RootObject o, scope Scope* sc, scope Type tparam,
                 return;
             }
 
+            // https://github.com/dlang/dmd/issues/19718
+            // The argument's safety must satisfy what the parameter type requires;
+            // an @system (or unmarked) function/delegate cannot match an @safe or
+            // @trusted parameter type. Without this check, template argument
+            // deduction only compares parameter lists and ignores the function's
+            // own attributes, so an unsafe argument can be wrongly deduced to
+            // match an @safe (or stronger) parameter type.
+            if (t.trust <= TRUST.system && tp.trust >= TRUST.trusted)
+            {
+                result = MATCH.nomatch;
+                return;
+            }
+
             foreach (fparam; *tp.parameterList.parameters)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=2579
