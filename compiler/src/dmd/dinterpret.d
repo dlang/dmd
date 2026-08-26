@@ -3732,7 +3732,7 @@ public:
                 continue;
             auto e = (*sle.elements)[i];
             if (e !is null && e.op != EXP.void_)
-                (*sle.elements)[i] = voidInitLiteral(e.type, v).copy();
+                (*sle.elements)[i] = voidInitLiteral(e.type, v2).copy();
         }
     }
 
