@@ -269,7 +269,12 @@ nothrow @nogc:
             int result = 0;
             if (!m_state)
             {
-                if (tmout == Duration.max)
+                version (Emscripten)
+                {
+                    // pthread_cond_[timed]wait() seems to be a stub always returning 0
+                    result = -1;
+                }
+                else if (tmout == Duration.max)
                 {
                     result = pthread_cond_wait(&m_cond, &m_mutex);
                 }

@@ -193,6 +193,14 @@ else version (Hurd)
     enum POSIX_MADV_WILLNEED    = 3;
     enum POSIX_MADV_DONTNEED    = 4;
 }
+else version (Emscripten)
+{
+    enum POSIX_MADV_NORMAL      = 0;
+    enum POSIX_MADV_RANDOM      = 1;
+    enum POSIX_MADV_SEQUENTIAL  = 2;
+    enum POSIX_MADV_WILLNEED    = 3;
+    enum POSIX_MADV_DONTNEED    = 4;
+}
 else version (CRuntime_WASI)
 {
     enum POSIX_MADV_NORMAL      = 0;
@@ -271,6 +279,13 @@ else version (Hurd)
     enum PROT_READ      = 0x04;
     enum PROT_WRITE     = 0x02;
     enum PROT_EXEC      = 0x01;
+}
+else version (Emscripten)
+{
+    enum PROT_NONE = 0x00;
+    enum PROT_READ = 0x01;
+    enum PROT_WRITE = 0x02;
+    enum PROT_EXEC = 0x04;
 }
 else version (CRuntime_WASI)
 {
@@ -527,7 +542,7 @@ else version (Solaris)
     enum MS_ASYNC = 0x0001;
     enum MS_INVALIDATE  = 0x0002;
 }
- else version (Hurd)
+else version (Hurd)
 {
     enum MAP_SHARED     = 0x0010;
     enum MAP_PRIVATE    = 0x0000;
@@ -539,6 +554,19 @@ else version (Solaris)
     enum MS_ASYNC       = 1;
     enum MS_INVALIDATE  = 0;
     enum MS_SYNC        = 2;
+}
+else version (Emscripten)
+{
+    enum MAP_SHARED     = 0x0001;
+    enum MAP_PRIVATE    = 0x0002;
+    enum MAP_FIXED      = 0x0010;
+    enum MAP_ANON       = 0x0020;
+
+    enum MAP_FAILED     = cast(void*)-1;
+
+    enum MS_ASYNC       = 0x0001;
+    enum MS_INVALIDATE  = 0x0002;
+    enum MS_SYNC        = 0x0004;
 }
 else version (CRuntime_WASI)
 {
@@ -677,6 +705,11 @@ else version (Hurd)
 {
     enum MCL_CURRENT    = 0x0001;
     enum MCL_FUTURE     = 0x0002;
+}
+else version (Emscripten)
+{
+    enum MCL_CURRENT = 0x0001;
+    enum MCL_FUTURE = 0x0002;
 }
 else version (CRuntime_WASI)
 {

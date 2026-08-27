@@ -169,6 +169,17 @@ else version (Hurd)
         char[1]     d_name = 0;
     }
 }
+else version (Emscripten)
+{
+    struct dirent
+    {
+        ino_t d_ino;
+        off_t d_off;
+        ushort d_reclen;
+        ubyte d_type;
+        char[256] d_name = 0;
+    }
+}
 else version (CRuntime_WASI)
 {
     struct dirent

@@ -8,7 +8,7 @@
  */
 module core.sys.posix.aio;
 
-version (CRuntime_WASI) {}
+version (WASI) {}
 else:
 
 import core.stdc.config;

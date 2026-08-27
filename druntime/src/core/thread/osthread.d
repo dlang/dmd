@@ -81,7 +81,7 @@ else version (Posix)
     static import core.sys.posix.pthread;
     import core.stdc.errno : EINTR, errno;
 
-    version (CRuntime_WASI)
+    version (WASI)
         import core.sys.posix.pthread : pthread_attr_destroy, pthread_attr_getstack,
             pthread_attr_init, pthread_attr_setstacksize, pthread_create, pthread_detach,
             pthread_join, pthread_self, sched_yield;

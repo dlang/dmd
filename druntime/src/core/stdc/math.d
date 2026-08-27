@@ -214,8 +214,16 @@ else
 enum int MATH_ERRNO       = 1;
 ///
 enum int MATH_ERREXCEPT   = 2;
-///
-enum int math_errhandling = MATH_ERRNO | MATH_ERREXCEPT;
+version (WASI) // incl. Emscripten
+{
+    ///
+    enum int math_errhandling = 2;
+}
+else
+{
+    ///
+    enum int math_errhandling = MATH_ERRNO | MATH_ERREXCEPT;
+}
 
 version (none)
 {

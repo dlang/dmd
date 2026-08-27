@@ -437,6 +437,11 @@ else version (Hurd)
         ushort ws_ypixel;
     }
 }
+else version (Emscripten)
+{
+    enum FIONREAD = 0x541B;
+    enum FIONBIO  = 0x5421;
+}
 else version (CRuntime_WASI)
 {
     enum FIONREAD = 1;
