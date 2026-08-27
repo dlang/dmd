@@ -7668,6 +7668,33 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         return (new ScopeExp(exp.loc, ti)).expressionSemantic(sc);
     }
 
+    /**
+     * If `f` is an anonymous function literal reached through a simple
+     * alias/identifier (i.e. `e1org` is an `IdentifierExp`), emit a
+     * supplemental error line naming that identifier, so the user can
+     * trace the error back to the alias they actually wrote.
+     *
+     * Params:
+     *   loc = location of the call
+     *   f = the resolved callee (may be null)
+     *   e1org = the original, pre-resolution `e1` expression of the call
+     *   kind = kind string to use ("function literal", "delegate", etc.)
+     *   errMsg = the error-message rendering of the callee, matching
+     *            what was used in the primary error message
+     */
+    void errorSupplementalAliasName(Loc loc, FuncDeclaration f, Expression e1org, const(char)* kind, const(char)* errMsg)
+    {
+        if (!f)
+            return;
+        auto fld = f.isFuncLiteralDeclaration();
+        if (!fld)
+            return;
+        auto ie = e1org ? e1org.isIdentifierExp() : null;
+        if (!ie)
+            return;
+        eSink.errorSupplemental(loc, "%s `%s` is also known as `%s`", kind, errMsg, ie.ident.toChars());
+    }
+
     override void visit(CallExp exp)
     {
         static if (LOGSEMANTIC)
@@ -8541,12 +8568,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
                 eSink.error(exp.loc, "%s `%s` is not callable using argument types `%s`",
                     p, exp.e1.toErrMsg(), buf.peekChars());
-                if (auto fld = exp.f ? exp.f.isFuncLiteralDeclaration() : null)
-                {
-                    if (auto ie = e1org.isIdentifierExp())
-                        eSink.errorSupplemental(exp.loc, "%s `%s` is also known as `%s`",
-                            p, exp.e1.toErrMsg(), ie.ident.toChars());
-                }
+                errorSupplementalAliasName(exp.loc, exp.f, e1org, p, exp.e1.toErrMsg());
                 if (failMessage)
                     eSink.errorSupplemental((argloc !is Loc.initial) ? argloc : exp.loc, "%s", failMessage);
             }
@@ -8628,12 +8650,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                     eSink.error(exp.loc, "%s `%s` is not callable using argument types `%s`",
                         exp.f.kind(), exp.f.toErrMsg(), buf.peekChars());
-                    if (auto fld = exp.f.isFuncLiteralDeclaration())
-                    {
-                        if (auto ie = e1org.isIdentifierExp())
-                            eSink.errorSupplemental(exp.loc, "%s `%s` is also known as `%s`",
-                                exp.f.kind(), exp.f.toErrMsg(), ie.ident.toChars());
-                    }
+                    errorSupplementalAliasName(exp.loc, exp.f, e1org, exp.f.kind(), exp.f.toErrMsg());
                     if (failMessage)
                         eSink.errorSupplemental((argloc !is Loc.initial) ? argloc : exp.loc, "%s", failMessage);
                     eSink.errorSupplemental(exp.f.loc, "`%s%s` declared here", exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList));
