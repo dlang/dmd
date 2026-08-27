@@ -573,14 +573,17 @@ alias DiagnosticHandler = bool delegate(const ref SourceLoc location, Color head
  */
 __gshared DiagnosticHandler diagnosticHandler;
 
+static if (__VERSION__ < 2092)
+    version = preD2092; // because a symbol selectively imported through a static if is not seen
+
 /**
  * Print a tip message with the prefix and highlighting.
  * Params:
  *      format = printf-style format specification
  *      ...    = printf-style variadic arguments
  */
-static if (__VERSION__ < 2092)
-    extern (C++) void tip(const(char)* format, ...)
+version (preD2092)
+    public extern (C++) void tip(const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -588,7 +591,7 @@ static if (__VERSION__ < 2092)
         va_end(ap);
     }
 else
-    pragma(printf) extern (C++) void tip(const(char)* format, ...)
+    public pragma(printf) extern (C++) void tip(const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);

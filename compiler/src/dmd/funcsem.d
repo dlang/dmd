@@ -32,7 +32,7 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
-import dmd.errors;
+import dmd.errors : tip;
 import dmd.errorsink;
 import dmd.escape;
 import dmd.expression;
