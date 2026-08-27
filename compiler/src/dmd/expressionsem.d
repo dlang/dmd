@@ -6245,6 +6245,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         auto ale1 = new ArrayLiteralExp(aaExp.loc, keytype.arrayOf(), keys);
         auto ale2 = new ArrayLiteralExp(aaExp.loc, valtype.arrayOf(), values);
+        ale1.onstack = true;
+        ale2.onstack = true;
         lowerArrayLiteral(ale1, sc);
         lowerArrayLiteral(ale2, sc);
         auto arguments = new Expressions(ale1, ale2);
