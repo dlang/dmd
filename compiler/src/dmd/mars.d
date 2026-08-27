@@ -529,6 +529,18 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
         errors = true;
     }
 
+    // emits an informational-only warning
+    void emitNotice(Supplementals...)(string msg, Supplementals supplementals)
+    {
+        const backup = global.errorSink.useWarnings;
+        scope (exit) global.errorSink.useWarnings = backup;
+
+        global.errorSink.useWarnings = DiagnosticReporting.inform;
+        eSink.warning(Loc.initial, "%.*s".ptr, cast(int) msg.length, msg.ptr);
+        foreach(suppl; supplementals)
+            eSink.warningSupplemental(Loc.initial, "%.*s".ptr, cast(int) suppl.length, suppl.ptr);
+    }
+
     /**
      * Print an error messsage about an invalid switch.
      * If an optional supplemental message has been provided,
@@ -1348,8 +1360,59 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             // Rather, these old features will just be accepted without warning.
             // See also: @__edition_latest_do_not_use
         }
-        else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
-            driverParams.optimize = true;
+        else if (startsWith(p + 1, "O")) // https://dlang.org/dmd.html#switch-O
+        {
+            static immutable msgSupplementalCompat =
+                "Optimization-level switches are solely accepted for command-line compatibility with other compilers.";
+            bool enableOptimize = true;
+
+            if (arg.length >= 3)
+            {
+                const optLevel = arg[2 .. $];
+                if (optLevel == "s" || optLevel == "z")
+                    emitNotice(
+                        "This compiler does not support optimization for size.",
+                        "Will optimize for speed instead.",
+                        msgSupplementalCompat,
+                    );
+                else if (optLevel == "fast")
+                    emitNotice(
+                        "This compiler does not support optimization for non-strict standards compliance.",
+                        "Will optimize for speed instead.",
+                        msgSupplementalCompat,
+                    );
+                else if (optLevel == "g")
+                {
+                    enableOptimize = false;
+                    emitNotice(
+                        "This compiler does not support optimization for debugging experience.",
+                        "Will disable non-mandatory optimizations instead.",
+                        msgSupplementalCompat,
+                    );
+                }
+                else if (optLevel.ptr[0].isdigit)
+                {
+                    uint optLevelNum;
+                    if (!parseDigits(optLevelNum, optLevel))
+                        goto Lerror;
+                    if (optLevelNum == 0)
+                        enableOptimize = false;
+                    version (none) if (optLevelNum > 1)
+                        emitNotice(
+                            "This compiler does not support optimization levels.",
+                            msgSupplementalCompat,
+                        );
+                }
+                else
+                    goto Lerror;
+            }
+
+            if (driverParams.optimizeHasBeenSet && (driverParams.optimize != enableOptimize))
+                error("Switch `%s` effectively contradicts a previously encountered optimization-level switch.", p);
+
+            driverParams.optimize = enableOptimize;
+            driverParams.optimizeHasBeenSet = true;
+        }
         else if (arg == "-o-")  // https://dlang.org/dmd.html#switch-o-
             params.obj = false;
         else if (p[1] == 'o')
