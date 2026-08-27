@@ -73,6 +73,10 @@ immutable ErrorFilter[] knownProblems = [
     ErrorFilter("core.sys.posix.sys.types.pthread_mutex_t", "", "CRuntime_WASI", 0, ""),
     ErrorFilter("core.sys.posix.sys.types.pthread_rwlock_t", "", "CRuntime_WASI", 0, ""),
     ErrorFilter("core.sys.posix.sys.types.pthread_barrier_t", "", "CRuntime_WASI", 0, ""),
+    ErrorFilter("core.sys.posix.sys.types.pthread_cond_t", "", "Emscripten", 0, ""),
+    ErrorFilter("core.sys.posix.sys.types.pthread_mutex_t", "", "Emscripten", 0, ""),
+    ErrorFilter("core.sys.posix.sys.types.pthread_rwlock_t", "", "Emscripten", 0, ""),
+    ErrorFilter("core.sys.posix.sys.types.pthread_barrier_t", "", "Emscripten", 0, ""),
 ];
 
 struct ErrorFilter

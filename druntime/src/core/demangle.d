@@ -2997,6 +2997,7 @@ CXX_DEMANGLER getCXXDemangler() nothrow @trusted
         version (Darwin) import core.sys.darwin.dlfcn : RTLD_DEFAULT;
         version (Solaris) import core.sys.solaris.dlfcn : RTLD_DEFAULT;
         version (Hurd) import core.sys.hurd.dlfcn : RTLD_DEFAULT;
+        version (Emscripten) import core.sys.posix.dlfcn : RTLD_DEFAULT;
         version (CRuntime_WASI) import core.sys.posix.dlfcn : RTLD_DEFAULT;
 
         if (auto found = cast(CXX_DEMANGLER) dlsym(RTLD_DEFAULT, "__cxa_demangle"))

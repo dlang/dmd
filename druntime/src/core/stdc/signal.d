@@ -63,8 +63,16 @@ version (Posix)
     enum SIG_ERR    = cast(sigfn_t) -1;
     ///
     enum SIG_DFL    = cast(sigfn_t) 0;
-    ///
-    enum SIG_IGN    = cast(sigfn_t) 1;
+    version (Emscripten)
+    {
+        ///
+        enum SIG_IGN    = cast(sigfn_t) -2;
+    }
+    else
+    {
+        ///
+        enum SIG_IGN    = cast(sigfn_t) 1;
+    }
 
     // standard C signals
     ///

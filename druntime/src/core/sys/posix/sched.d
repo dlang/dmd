@@ -180,6 +180,28 @@ else version (Hurd)
     enum SCHED_OTHER    = 0;
     enum SCHED_RR       = 2;
 }
+else version (Emscripten)
+{
+    struct sched_param
+    {
+        int sched_priority;
+        int __reserved1;
+        struct __timespec32
+        {
+            time_t __reserved1;
+            c_long __reserved2;
+        }
+        __timespec32[2] __reserved2;
+        int __reserved3;
+    }
+
+    enum SCHED_OTHER = 0;
+    enum SCHED_FIFO = 1;
+    enum SCHED_RR = 2;
+    enum SCHED_BATCH = 3;
+    enum SCHED_IDLE = 5;
+    enum SCHED_RESET_ON_FORK = 0x40000000;
+}
 else version (CRuntime_WASI)
 {
     struct sched_param

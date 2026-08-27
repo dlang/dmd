@@ -474,7 +474,7 @@ else version (CRuntime_Musl)
 {
     enum FD_SETSIZE = 1024;
 
-    alias fd_mask = ulong;
+    alias fd_mask = c_ulong;
 
     private
     {
@@ -492,7 +492,7 @@ else version (CRuntime_Musl)
     }
 
     struct fd_set {
-        ulong[FD_SETSIZE / 8 / long.sizeof] fds_bits;
+        c_ulong[FD_SETSIZE / 8 / c_long.sizeof] fds_bits;
     }
 
     extern (D) void FD_CLR()( int fd, fd_set* fdset ) pure

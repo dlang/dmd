@@ -977,6 +977,74 @@ else version (Hurd)
     enum AT_SYMLINK_FOLLOW   = 0x400;
     enum AT_REMOVEDIR        = 0x200;
 }
+else version (Emscripten)
+{
+    enum F_GETFD         = 1;
+    enum F_SETFD         = 2;
+    enum F_GETFL         = 3;
+    enum F_SETFL         = 4;
+    enum F_DUPFD         = 0;
+    enum F_DUPFD_CLOEXEC = 1030;
+    version (D_LP64)
+    {
+        enum F_GETLK         = 5;
+        enum F_SETLK         = 6;
+        enum F_SETLKW        = 7;
+    }
+    else
+    {
+        enum F_GETLK         = 12;
+        enum F_SETLK         = 13;
+        enum F_SETLKW        = 14;
+    }
+
+    enum F_RDLCK         = 0;
+    enum F_WRLCK         = 1;
+    enum F_UNLCK         = 2;
+
+    enum FD_CLOEXEC      = 1;
+
+    enum O_APPEND    = 0x400;    // octal 02000
+    enum O_DSYNC     = 0x1000;   // octal 010000
+    enum O_NONBLOCK  = 0x800;    // octal 04000
+    enum O_RSYNC     = 0x101000; // octal 04010000
+    enum O_SYNC      = 0x101000; // octal 04010000
+    enum O_CREAT     = 0x40;     // octal 0100
+    enum O_DIRECTORY = 0x10000;  // octal 0200000
+    enum O_EXCL      = 0x80;     // octal 0200
+    enum O_TRUNC     = 0x200;    // octal 01000
+
+    enum O_NOFOLLOW = 0x20000;  // octal 0400000
+    enum O_EXEC     = 0x200000; // octal 010000000
+    enum O_RDONLY   = 0;
+    enum O_SEARCH   = 0x200000; // octal 010000000
+    enum O_WRONLY   = 1;
+
+    enum O_CLOEXEC = 0x80000; // octal 02000000
+
+    enum O_TTY_INIT = 0;
+
+    enum O_NOCTTY = 0x100; // octal 0400
+
+    enum O_RDWR = 2;
+    enum O_ACCMODE = 3 | O_SEARCH;
+
+    struct flock
+    {
+        short   l_type;
+        short   l_whence;
+        off_t   l_start;
+        off_t   l_len;
+        pid_t   l_pid;
+    }
+
+    enum AT_EACCESS          = 0x200;
+    enum AT_SYMLINK_NOFOLLOW = 0x100;
+    enum AT_SYMLINK_FOLLOW   = 0x400;
+    enum AT_REMOVEDIR        = 0x200;
+
+    enum AT_FDCWD            = -100;
+}
 else version (CRuntime_WASI)
 {
     enum F_GETFD         = 1;

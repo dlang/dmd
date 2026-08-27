@@ -642,7 +642,9 @@ version (unittest)
 // https://musl.libc.org/time64.html
 version (CRuntime_Musl)
 {
-    version (CRuntime_Musl_Pre_Time64)
+    version (Emscripten)
+        enum muslRedirTime64 = false;
+    else version (CRuntime_Musl_Pre_Time64)
         enum muslRedirTime64 = false;
     else
     {

@@ -113,6 +113,14 @@ else version (Hurd)
         byte[108]   sun_path;
     }
 }
+else version (Emscripten)
+{
+    struct sockaddr_un
+    {
+        sa_family_t  sun_family;
+        byte[108]    sun_path;
+    }
+}
 else version (CRuntime_WASI)
 {
     struct sockaddr_un

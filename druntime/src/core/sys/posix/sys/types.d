@@ -367,6 +367,27 @@ else version (Hurd)
 
     alias time_t = slong_t;
 }
+else version (Emscripten)
+{
+    alias blkcnt_t = int; // for wasm64 too
+    alias ino_t = ulong;
+    alias off_t = long;
+
+    alias blksize_t = int; // for wasm64 too
+
+    alias dev_t = uint; // for wasm64 too
+    alias gid_t = uint;
+    alias mode_t = uint;
+
+    alias nlink_t = size_t;
+
+    alias pid_t = int;
+    //size_t (defined in core.stdc.stddef)
+    alias ssize_t = ptrdiff_t;
+    alias uid_t = uint;
+
+    alias time_t = long;
+}
 else version (CRuntime_WASI)
 {
     alias blkcnt_t = long;
@@ -504,6 +525,17 @@ else version (Hurd)
     alias id_t = uint;
     alias key_t = int;
     alias suseconds_t = slong_t;
+    alias useconds_t = uint;
+}
+else version (Emscripten)
+{
+    alias fsblkcnt_t = ulong;
+    alias fsfilcnt_t = ulong;
+
+    alias clock_t = int; // for wasm64 too
+    alias id_t = uint;
+    alias key_t = int;
+    alias suseconds_t = int; // for wasm64 too
     alias useconds_t = uint;
 }
 else version (CRuntime_WASI)
@@ -917,10 +949,25 @@ else version (CRuntime_Musl)
 {
     version (D_LP64)
     {
-        union pthread_attr_t
+        version (Emscripten)
         {
-            int[14] __i;
-            ulong[7] __s;
+            struct pthread_attr_t
+            {
+                union
+                {
+                    int[10] __i;
+                    c_ulong[10] __s;
+                }
+                const(char)* _a_transferredcanvases;
+            }
+        }
+        else
+        {
+            union pthread_attr_t
+            {
+                int[14] __i;
+                ulong[7] __s;
+            }
         }
 
         union pthread_cond_t
@@ -943,10 +990,25 @@ else version (CRuntime_Musl)
     }
     else
     {
-        union pthread_attr_t
+        version (Emscripten)
         {
-            int[9] __i;
-            uint[9] __s;
+            struct pthread_attr_t
+            {
+                union
+                {
+                    int[10] __i;
+                    c_ulong[10] __s;
+                }
+                const(char)* _a_transferredcanvases;
+            }
+        }
+        else
+        {
+            union pthread_attr_t
+            {
+                int[9] __i;
+                uint[9] __s;
+            }
         }
 
         union pthread_cond_t

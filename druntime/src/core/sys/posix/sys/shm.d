@@ -14,7 +14,7 @@
  */
 module core.sys.posix.sys.shm;
 
-version (CRuntime_WASI) {}
+version (WASI) {}
 else:
 
 import core.sys.posix.config;

@@ -367,6 +367,22 @@ else version (Hurd)
         POLLNVAL    = 0x020,  /* ocatal 040 */
     }
 }
+else version (Emscripten)
+{
+    enum
+    {
+        POLLIN      = 0x0001,
+        POLLPRI     = 0x0002,
+        POLLOUT     = 0x0004,
+        POLLERR     = 0x0008,
+        POLLHUP     = 0x0010,
+        POLLNVAL    = 0x0020,
+        POLLRDNORM  = 0x0040,
+        POLLRDBAND  = 0x0080,
+        POLLWRNORM  = 0x0100,
+        POLLWRBAND  = 0x0200,
+    }
+}
 else version (CRuntime_WASI)
 {
     enum
