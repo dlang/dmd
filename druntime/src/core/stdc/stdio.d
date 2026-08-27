@@ -1999,3 +1999,11 @@ version (Windows)
         SH_DENYNO = _SH_DENYNO, /// deny none mode
     }
 }
+
+unittest
+{
+    char[100] buf;
+    real r = 1;
+    auto len = .snprintf(buf.ptr, buf.length, "%Lf", r);
+    assert(buf[0 .. len] == "1.000000");
+}
