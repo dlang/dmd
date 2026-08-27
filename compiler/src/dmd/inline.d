@@ -30,7 +30,6 @@ import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.expressionsem : canElideCopy, semanticTypeInfo;
-import dmd.errors;
 import dmd.errorsink;
 import dmd.func;
 import dmd.funcsem;
@@ -1660,7 +1659,10 @@ public:
         inlineFd(fd, explicitThis);
 
         if (global.params.v.verbose && (eresult || sresult))
-            message("inlined   %s =>\n          %s", fd.toPrettyChars(), parent.toPrettyChars());
+        {
+            auto eSink = global.errorSink;
+            eSink.message(Loc.init, "inlined   %s =>\n          %s", fd.toPrettyChars(), parent.toPrettyChars());
+        }
 
         if (eresult && e.type.ty != Tvoid)
         {

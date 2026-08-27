@@ -13,8 +13,8 @@ module dmd.frontend;
 import dmd.astcodegen : ASTCodegen;
 import dmd.astenums : CHECKENABLE;
 import dmd.dmodule : Module;
-import dmd.globals : DiagnosticReporting;
 import dmd.errors;
+import dmd.globals : DiagnosticReporting;
 import dmd.location;
 
 import std.range.primitives : isInputRange, ElementType;

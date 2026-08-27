@@ -22,6 +22,7 @@ import dmd.dsymbolsem;
 import dmd.templatesem : computeOneMember;
 import dmd.expressionsem : toInteger;
 import dmd.funcsem : isVirtual;
+//import dmd.errors : fatal;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.globals;

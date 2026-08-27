@@ -28,6 +28,7 @@ import dmd.expressionsem;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals : FeatureState;
+import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;

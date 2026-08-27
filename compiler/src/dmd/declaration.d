@@ -18,7 +18,7 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.dsymbol;
 import dmd.dtemplate;
-import dmd.errors;
+import dmd.errors : fatal;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
