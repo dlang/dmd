@@ -21,7 +21,7 @@ import dmd.dclass;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.globals;
@@ -47,6 +47,7 @@ import dmd.visitor;
 Expression expandVar(int result, VarDeclaration v)
 {
     //printf("expandVar(result = %d, v = %p, %s)\n", result, v, v ? v.toChars() : "null");
+    auto eSink = global.errorSink;
 
     /********
      * Params:
@@ -93,7 +94,7 @@ Expression expandVar(int result, VarDeclaration v)
                 {
                     if (v.storage_class & STC.manifest)
                     {
-                        .error(v.loc, "%s `%s` recursive initialization of constant", v.kind, v.toPrettyChars);
+                        eSink.error(v.loc, "%s `%s` recursive initialization of constant", v.kind, v.toPrettyChars);
                         return errorReturn();
                     }
                     return nullReturn();
@@ -103,7 +104,7 @@ Expression expandVar(int result, VarDeclaration v)
                 {
                     if (v.storage_class & STC.manifest)
                     {
-                        .error(v.loc, "%s `%s` enum cannot be initialized with `%s`", v.kind, v.toPrettyChars, dmd.hdrgen.toChars(v._init));
+                        eSink.error(v.loc, "%s `%s` enum cannot be initialized with `%s`", v.kind, v.toPrettyChars, dmd.hdrgen.toChars(v._init));
                         return errorReturn();
                     }
                     return nullReturn();
@@ -274,6 +275,7 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type)
 Expression optimize(Expression e, int result, bool keepLvalue = false)
 {
     //printf("optimize() e: %s result: %d keepLvalue %d\n", e.toChars(), result, keepLvalue);
+    auto eSink = global.errorSink;
     Expression ret = e;
 
     void errorReturn()
@@ -466,7 +468,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
                     {
                         auto t = v.isThis();
                         assert(t);
-                        .error(e.loc, "taking the address of non-static variable `%s` requires an instance of `%s`", v.toErrMsg(), t.toErrMsg());
+                        eSink.error(e.loc, "taking the address of non-static variable `%s` requires an instance of `%s`", v.toErrMsg(), t.toErrMsg());
                         ret = ErrorExp.get();
                         return;
                     }
@@ -585,7 +587,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
 
                     if (index < 0 || index > dim)
                     {
-                        error(e.loc, "array index %lld is out of bounds `[0..%lld]`", index, dim);
+                        eSink.error(e.loc, "array index %lld is out of bounds `[0..%lld]`", index, dim);
                         return errorReturn();
                     }
 
@@ -594,7 +596,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
                     const offset = mulu(index, ts.nextOf().size(e.loc), overflow); // offset = index*size
                     if (overflow)
                     {
-                        error(e.loc, "array offset overflow");
+                        eSink.error(e.loc, "array offset overflow");
                         return errorReturn();
                     }
 
@@ -624,7 +626,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
                          */
                         if (!((dim == 0 || dim == index) && ve.var.isCsymbol()))
                         {
-                            error(e.loc, "array index %lld is out of bounds `[0..%lld]`", index, dim);
+                            eSink.error(e.loc, "array index %lld is out of bounds `[0..%lld]`", index, dim);
                             return errorReturn();
                         }
                     }
@@ -634,7 +636,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
                     const offset = mulu(index, ts.nextOf().size(e.loc), overflow);
                     if (overflow)
                     {
-                        error(e.loc, "array offset overflow");
+                        eSink.error(e.loc, "array offset overflow");
                         return errorReturn();
                     }
 
@@ -659,7 +661,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
                          */
                         if (!((dim == 0 || dim == index) && ve.var.isCsymbol()))
                         {
-                            error(e.loc, "array index %lld is out of bounds `[0..%lld]`", index, dim);
+                            eSink.error(e.loc, "array index %lld is out of bounds `[0..%lld]`", index, dim);
                             return errorReturn();
                         }
                     }
@@ -669,7 +671,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
                     const offset = mulu(index, ts.nextOf().size(e.loc), overflow); // index*elementsize
                     if (overflow)
                     {
-                        error(e.loc, "array offset overflow");
+                        eSink.error(e.loc, "array offset overflow");
                         return errorReturn();
                     }
 
@@ -936,7 +938,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
                 sz *= 8;
                 if (i2 < 0 || i2 >= sz)
                 {
-                    error(e.loc, "shift assign by %lld is outside the range `0..%llu`", i2, cast(ulong)sz - 1);
+                    eSink.error(e.loc, "shift assign by %lld is outside the range `0..%llu`", i2, cast(ulong)sz - 1);
                     return errorReturn();
                 }
             }
@@ -1030,7 +1032,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
             sz *= 8;
             if (i2 < 0 || i2 >= sz)
             {
-                error(e.loc, "shift by %lld is outside the range `0..%llu`", i2, cast(ulong)sz - 1);
+                eSink.error(e.loc, "shift by %lld is outside the range `0..%llu`", i2, cast(ulong)sz - 1);
                 return errorReturn();
             }
             if (e.e1.isConst() == 1)
@@ -1087,8 +1089,8 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
         // All negative integral powers are illegal.
         if (e.e1.type.isIntegral() && (e.e2.op == EXP.int64) && cast(sinteger_t)e.e2.toInteger() < 0)
         {
-            error(e.loc, "cannot raise `%s` to a negative integer power.", e.e1.type.toBasetype().toErrMsg());
-            errorSupplemental(e.loc, "did you mean `(cast(real)%s)^^%s` ?", e.e1.toChars(), e.e2.toChars());
+            eSink.error(e.loc, "cannot raise `%s` to a negative integer power.", e.e1.type.toBasetype().toErrMsg());
+            eSink.errorSupplemental(e.loc, "did you mean `(cast(real)%s)^^%s` ?", e.e1.toChars(), e.e2.toChars());
             return errorReturn();
         }
         // If e2 *could* have been an integer, make it one.
@@ -1397,7 +1399,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
     {
         if (b++ == global.recursionLimit)
         {
-            error(e.loc, "infinite loop while optimizing expression");
+            eSink.error(e.loc, "infinite loop while optimizing expression");
             return ErrorExp.get();
         }
 
