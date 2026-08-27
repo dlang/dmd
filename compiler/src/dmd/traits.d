@@ -29,7 +29,6 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
-import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
@@ -700,7 +699,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     {
         // @@@DEPRECATED2.121@@@
         // Deprecated in 2.101 - Can be removed from 2.121
-        deprecation(e.loc, "`traits(isVirtualFunction)` is deprecated. Use `traits(isVirtualMethod)` instead");
+        eSink.deprecation(e.loc, "`traits(isVirtualFunction)` is deprecated. Use `traits(isVirtualMethod)` instead");
 
         if (dim != 1)
             return dimError(1);
@@ -1185,7 +1184,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             {
                 // @@@DEPRECATED2.121@@@
                 // Deprecated in 2.101 - Can be removed from 2.121
-                deprecation(e.loc, "`traits(getVirtualFunctions)` is deprecated. Use `traits(getVirtualMethods)` instead");
+                eSink.deprecation(e.loc, "`traits(getVirtualFunctions)` is deprecated. Use `traits(getVirtualMethods)` instead");
             }
 
             /* Create tuple of functions of ex
@@ -1398,8 +1397,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             {
                 if (fd.overnext)
                 {
-                    deprecation(e.loc, "`__traits(getAttributes)` may only be used for individual functions, not the overload set `%s`", fd.toErrMsg());
-                    deprecationSupplemental(e.loc, "the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from");
+                    eSink.deprecation(e.loc, "`__traits(getAttributes)` may only be used for individual functions, not the overload set `%s`", fd.toErrMsg());
+                    eSink.deprecationSupplemental(e.loc, "the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from");
                 }
             }
 
@@ -1408,8 +1407,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             {
                 if (td.overnext)
                 {
-                    deprecation(e.loc, "`__traits(getAttributes)` may only be used for individual functions, not the overload set `%s`", td.ident.toErrMsg());
-                    deprecationSupplemental(e.loc, "the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from");
+                    eSink.deprecation(e.loc, "`__traits(getAttributes)` may only be used for individual functions, not the overload set `%s`", td.ident.toErrMsg());
+                    eSink.deprecationSupplemental(e.loc, "the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from");
                 }
             }
             if (s.isImport())
@@ -1732,7 +1731,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!s)
         {
             eSink.error(e.loc, "in expression `%s` `%s` can't have members", e.toErrMsg(), o.toErrMsg());
-            errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, a union, a class, an interface or a template instantiation", o.toChars());
+            eSink.errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, a union, a class, an interface or a template instantiation", o.toChars());
 
             return ErrorExp.get();
         }
@@ -1755,7 +1754,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!sds || sds.isTemplateDeclaration())
         {
             eSink.error(e.loc, "in expression `%s` %s `%s` has no members", e.toErrMsg(), s.kind(), s.toErrMsg());
-            errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, a union, a class, an interface or a template instantiation", s.toChars());
+            eSink.errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, a union, a class, an interface or a template instantiation", s.toChars());
             return ErrorExp.get();
         }
         // https://issues.dlang.org/show_bug.cgi?id=13668
