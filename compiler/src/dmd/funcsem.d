@@ -2424,7 +2424,7 @@ private void printCandidates(Decl)(Loc loc, Decl declaration, bool showDeprecate
         eSink.errorSupplemental(loc, "All possible candidates are marked as `deprecated` or `@disable`");
     // should be only in verbose mode
     if (constraintsTip)
-        tip(constraintsTip);
+        eSink.errorSupplemental(Loc.init, constraintsTip);
 }
 
 /********************************************************

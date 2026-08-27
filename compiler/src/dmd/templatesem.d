@@ -3676,7 +3676,7 @@ const(char)* getConstraintEvalError(TemplateDeclaration td, ref const(char)* tip
         buf.writestring(msg);
         buf.writeByte('`');
         buf.writestring(sep);
-        tip = "not satisfied constraints are marked with `>`";
+        tip = "Tip: not satisfied constraints are marked with `>`";
     }
     return buf.extractChars();
 }
@@ -3862,18 +3862,18 @@ bool findBestMatch(TemplateInstance ti, Scope* sc, ArgumentList argumentList)
         {
             // Only one template, so we can give better error message
             const(char)* msg = "does not match template declaration";
-            const(char)* tip;
             OutBuffer buf;
             HdrGenState hgs;
             hgs.skipConstraints = true;
             toCharsMaybeConstraints(tdecl, buf, hgs);
             const tmsg = buf.peekChars();
+            const(char)* tip;
             const cmsg = tdecl.getConstraintEvalError(tip);
             if (cmsg)
             {
                 eSink.error(ti.loc, "%s `%s` %s `%s`\n%s", ti.kind, ti.toPrettyChars, msg, tmsg, cmsg);
                 if (tip)
-                    .tip(tip);
+                    eSink.errorSupplemental(Loc.init, tip);
             }
             else
             {
