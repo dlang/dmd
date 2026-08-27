@@ -17412,12 +17412,7 @@ Expression toLvalue(Expression _this, Scope* sc, const(char)* action, Expression
         else if (eorig.op == EXP.template_)
             eSink.error(_this.loc, "cannot %s template `%s`, perhaps instantiate it first", action, eorig.toErrMsg());
         else if (auto se = _this.isScopeExp())
-        {
-            if (se.sds.isModule() || se.sds.isPackage())
-                eSink.error(_this.loc, "cannot %s %s `%s`", action, se.sds.kind(), se.sds.toErrMsg());
-            else
-                eSink.error(_this.loc, "cannot %s expression `%s` because it is not an lvalue", action, eorig.toErrMsg());
-        }
+            eSink.error(_this.loc, "cannot %s %s `%s`", action, se.sds.kind(), se.sds.toErrMsg());
         else
             eSink.error(_this.loc, "cannot %s expression `%s` because it is not an lvalue", action, eorig.toErrMsg());
 
