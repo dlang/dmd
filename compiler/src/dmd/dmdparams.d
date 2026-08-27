@@ -51,6 +51,7 @@ struct DMDparams
     bool oneobj;            // write one object file instead of multiple ones
 
     bool optimize;          // run optimizer
+    bool optimizeHasBeenSet;// whether `optimize` has been set by the driver (without regard to the assigned value)
     bool nofloat;           // code should not pull in floating point support
     bool ibt;               // generate indirect branch tracking
     PIC pic = PIC.fixed;    // generate fixed, pic or pie code
