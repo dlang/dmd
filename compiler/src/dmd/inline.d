@@ -146,6 +146,11 @@ public:
 
     enum asStatements = is(Result == Statement);
 
+    static if (asStatements)
+        alias StatementsResult = Statements;
+    else
+        alias StatementsResult = Expression;
+
     extern (D) this(InlineDoState ids) scope
     {
         this.ids = ids;
@@ -175,91 +180,145 @@ public:
             result = exp;
     }
 
-    override void visit(CompoundStatement s)
+    static Result buildConditional(Loc loc, Expression econd, Result e1, Result e2, Loc endloc)
     {
-        //printf("CompoundStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.length);
         static if (asStatements)
         {
-            auto as = Statements();
-            as.reserve(s.statements.length);
+            return new IfStatement(loc, null, econd, e1, e2, endloc);
+        }
+        else
+        {
+            if (e1 && e2)
+            {
+                auto ce = new CondExp(loc, econd, e1, e2);
+
+                if (e1.type.ty == Tvoid || e2.type.ty == Tvoid)
+                    ce.type = Type.tvoid;
+                else if (e1.type.ty == Tnoreturn)
+                    ce.type = e2.type;
+                else
+                    ce.type = e1.type;
+
+                if (ce.type.ty == Ttuple)
+                {
+                    ce.e1.type = Type.tvoid;
+                    ce.e2.type = Type.tvoid;
+                    ce.type = Type.tvoid;
+                }
+
+                return ce;
+            }
+            else if (e1)
+            {
+                auto le = new LogicalExp(loc, EXP.andAnd, econd, e1);
+                le.type = Type.tvoid;
+                return le;
+            }
+            else if (e2)
+            {
+                auto le = new LogicalExp(loc, EXP.orOr, econd, e2);
+                le.type = Type.tvoid;
+                return le;
+            }
+
+            return econd;
+        }
+    }
+
+    StatementsResult statementsDoInline(ref scope Statements stmts)
+    {
+        static if (asStatements)
+        {
+            Statements result;
+            result.reserve(stmts.length);
+        }
+        else
+        {
+            Expression result;
         }
 
-        foreach (i, sx; s.statements)
+        foreach (i, sx; stmts)
         {
             if (!sx)
                 continue;
-            static if (asStatements)
+
+            Result r;
+
+            if (auto ifs = sx.isIfStatement())
             {
-                as.push(doInlineAs!Statement(sx, ids));
+                assert(!ifs.param);
+                auto econd = doInlineAs!Expression(ifs.condition, ids);
+                assert(econd);
+
+                ids.foundReturn = false;
+                auto ifbody = doInlineAs!Result(ifs.ifbody, ids);
+                bool ifReturned = ids.foundReturn;
+
+                ids.foundReturn = false;
+                auto elsebody = doInlineAs!Result(ifs.elsebody, ids);
+                bool elseReturned = ids.foundReturn;
+
+                ids.foundReturn = ifReturned && elseReturned;
+
+                if (ifReturned != elseReturned)
+                {
+                    /* One branch returns, but the other does not.
+                     * Merge the remaining statements in stmts into
+                     * the branch that does not return, and recurse.
+                     */
+
+                    if (elseReturned)
+                    {
+                        /* Rewrite
+                         *   if (cond) stmt; else return exp;
+                         * into
+                         *   if (!cond) return exp; else stmt;
+                         */
+                        econd = new NotExp(econd.loc, econd);
+                        econd.type = Type.tbool;
+
+                        auto tmp = ifbody;
+                        ifbody = elsebody;
+                        elsebody = tmp;
+                    }
+
+                    if (i < stmts.length - 1)
+                    {
+                        ids.foundReturn = false;
+                        scope rem = Statements(stmts[i + 1 .. $]);
+                        auto rembody = statementsDoInline(rem);
+
+                        static if (asStatements)
+                        {
+                            /* Rewrite
+                             *   if (cond) return exp; else stmt1; stmt2;
+                             * into
+                             *   if (cond) return exp; else { { stmt1; } stmt2; }
+                             */
+                            auto ss = new ScopeStatement(ifs.loc, elsebody, ifs.endloc);
+                            auto cs = new CompoundStatement(ifs.loc, ss);
+                            cs.statements.append(&rembody);
+                            elsebody = cs;
+                        }
+                        else
+                        {
+                            elsebody = combineInlineSequence(elsebody, rembody);
+                        }
+                    }
+
+                    ids.foundReturn = true;
+                }
+
+                r = buildConditional(ifs.loc, econd, ifbody, elsebody, ifs.endloc);
             }
             else
             {
-                /* Specifically allow:
-                 *  if (condition)
-                 *      return exp1;
-                 *  return exp2;
-                 */
-                IfStatement ifs;
-                Statement s3;
-                if ((ifs = sx.isIfStatement()) !is null &&
-                    ifs.ifbody &&
-                    ifs.ifbody.endsWithReturnStatement() &&
-                    !ifs.elsebody &&
-                    i + 1 < s.statements.length &&
-                    (s3 = s.statements[i + 1]) !is null &&
-                    s3.endsWithReturnStatement()
-                   )
-                {
-                    /* Rewrite as ?:
-                     */
-                    auto econd = doInlineAs!Expression(ifs.condition, ids);
-                    assert(econd);
-                    auto e1 = doInlineAs!Expression(ifs.ifbody, ids);
-                    assert(ids.foundReturn);
-                    auto e2 = doInlineAs!Expression(s3, ids);
-                    assert(e2);
-                    Expression e = new CondExp(econd.loc, econd, e1, e2);
-                    e.type = e1.type;
-                    if (e.type.ty == Ttuple)
-                    {
-                        e1.type = Type.tvoid;
-                        e2.type = Type.tvoid;
-                        e.type = Type.tvoid;
-                    }
-                    result = combineInlineSequence(result, e);
-                }
-                else
-                {
-                    ids.foundReturn = false;
-                    auto e = doInlineAs!Expression(sx, ids);
-                    result = combineInlineSequence(result, e);
-                }
+                ids.foundReturn = false;
+                r = doInlineAs!Result(sx, ids);
             }
 
-            if (ids.foundReturn)
-                break;
-        }
-
-        static if (asStatements)
-            result = new CompoundStatement(s.loc, as.move());
-    }
-
-    override void visit(UnrolledLoopStatement s)
-    {
-        //printf("UnrolledLoopStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.length);
-        static if (asStatements)
-        {
-            auto as = Statements();
-            as.reserve(s.statements.length);
-        }
-
-        foreach (sx; s.statements)
-        {
-            if (!sx)
-                continue;
-            auto r = doInlineAs!Result(sx, ids);
             static if (asStatements)
-                as.push(r);
+                result.push(r);
             else
                 result = combineInlineSequence(result, r);
 
@@ -268,7 +327,29 @@ public:
         }
 
         static if (asStatements)
-            result = new UnrolledLoopStatement(s.loc, as.move());
+            return result.move();
+        else
+            return result;
+    }
+
+    override void visit(CompoundStatement s)
+    {
+        //printf("CompoundStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.length);
+        auto r = statementsDoInline(s.statements);
+        static if (asStatements)
+            result = new CompoundStatement(s.loc, r.move());
+        else
+            result = r;
+    }
+
+    override void visit(UnrolledLoopStatement s)
+    {
+        //printf("UnrolledLoopStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.length);
+        auto r = statementsDoInline(s.statements);
+        static if (asStatements)
+            result = new UnrolledLoopStatement(s.loc, r.move());
+        else
+            result = r;
     }
 
     override void visit(ScopeStatement s)
@@ -287,47 +368,19 @@ public:
         auto econd = doInlineAs!Expression(s.condition, ids);
         assert(econd);
 
+        ids.foundReturn = false;
         auto ifbody = doInlineAs!Result(s.ifbody, ids);
-        bool bodyReturn = ids.foundReturn;
+        bool ifReturned = ids.foundReturn;
 
         ids.foundReturn = false;
         auto elsebody = doInlineAs!Result(s.elsebody, ids);
+        bool elseReturned = ids.foundReturn;
 
-        static if (asStatements)
-        {
-            result = new IfStatement(s.loc, s.param, econd, ifbody, elsebody, s.endloc);
-        }
-        else
-        {
-            alias e1 = ifbody;
-            alias e2 = elsebody;
-            if (e1 && e2)
-            {
-                result = new CondExp(econd.loc, econd, e1, e2);
-                result.type = e1.type;
-                if (result.type.ty == Ttuple)
-                {
-                    e1.type = Type.tvoid;
-                    e2.type = Type.tvoid;
-                    result.type = Type.tvoid;
-                }
-            }
-            else if (e1)
-            {
-                result = new LogicalExp(econd.loc, EXP.andAnd, econd, e1);
-                result.type = Type.tvoid;
-            }
-            else if (e2)
-            {
-                result = new LogicalExp(econd.loc, EXP.orOr, econd, e2);
-                result.type = Type.tvoid;
-            }
-            else
-            {
-                result = econd;
-            }
-        }
-        ids.foundReturn = ids.foundReturn && bodyReturn;
+        // Top-level if statements should have been handled in statementsDoInline().
+        // Here we're handling nested if statements, which must be symmetrical.
+        assert(ifReturned == elseReturned);
+        ids.foundReturn = ifReturned && elseReturned;
+        result = buildConditional(s.loc, econd, ifbody, elsebody, s.endloc);
     }
 
     override void visit(ReturnStatement s)
