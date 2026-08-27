@@ -189,6 +189,8 @@ public:
             return;
         if (setGC(e, "this associative array literal"))
             return;
+        if (e.lowering)
+            walkPostorder(e.lowering, this);
         f.printGCUsage(e.loc, "associative array literal may cause a GC allocation");
     }
 

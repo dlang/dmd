@@ -518,6 +518,14 @@ void test23182()
     assert(calls == 1);
 }
 
+// https://github.com/dlang/dmd/issues/23711
+void test23711()
+{
+    alias AliasSeq(T...) = T;
+    alias Cases = AliasSeq!(["first": [1]]);
+    assert(Cases[0]);
+}
+
 /***************************************************/
 
 // https://github.com/dlang/dmd/issues/22567
@@ -588,4 +596,5 @@ void main()
     test22556();
     test19829();
     test23182();
+    test23711();
 }
