@@ -5129,6 +5129,9 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
             s = s.search_correct(ident);
         if (s && !symbolIsVisible(scope_, s))
             s = null;
+        if (s && s.isDtorDeclaration())
+            // Don't suggest `~this()` as it isn't valid syntax to call it (https://issues.dlang.org/show_bug.cgi?id=23938)
+            s = null;
 
         if (mt == Type.terror)
             return ErrorExp.get();
