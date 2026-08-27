@@ -724,6 +724,8 @@ struct DFACommon
         ret.onTheStack = (base1 !is null && base1.onTheStack) || (base2 !is null && base2
                 .onTheStack);
 
+        ret.isBorrow = (base1 !is null && base1.isBorrow) || (base2 !is null && base2.isBorrow);
+
         ret.minimumDeclaredAtDepth = -1;
         if (base1 !is null && base1.minimumDeclaredAtDepth > -1)
             ret.minimumDeclaredAtDepth = base1.minimumDeclaredAtDepth;
@@ -750,6 +752,181 @@ struct DFACommon
                 ret.minimumDeclaredAtDepth = cell.minimumDeclaredAtDepth;
         }
         return ret;
+    }
+
+    /***********************************************************
+     * Finds the scope that a variable was declared in.
+     *
+     * Depths strictly decrease up the scope chain, and the variable
+     * must be in scope at the current position, so walking up until
+     * the depth matches the variable's youngest allowed lifetime is
+     * unambiguous.
+     *
+     * Returns:
+     *      The declaring scope of the variable.
+     */
+    DFAScope* findDeclaringScope(DFAVar* var)
+    {
+        assert(var !is null);
+
+        DFAScope* sc = this.currentDFAScope;
+        assert(sc !is null);
+
+        while (sc.depth > var.youngestLifeTimeAllowedDepth)
+        {
+            sc = sc.parent;
+            assert(sc !is null);
+        }
+
+        return sc;
+    }
+
+    /***********************************************************
+     * Registers that `borrower` holds a borrow of the cell `cell`.
+     *
+     * The entry is attached to the declaring scope of the borrower and
+     * deduplicated per (borrower, cell) pair. It lives until that scope
+     * is popped, at which point it is freed with the scope.
+     */
+    void registerBorrow(DFAVar* borrower, DFAObject* cell, ref const Loc loc)
+    {
+        DFAScope* sc = findDeclaringScope(borrower);
+
+        DFABorrowEntry* entry = sc.borrowEntries;
+        while (entry !is null)
+        {
+            if (entry.borrower is borrower && entry.borrowedFrom is cell)
+                return;
+
+            entry = entry.next;
+        }
+
+        entry = allocator.makeBorrowEntry(borrower, cell, loc);
+        entry.next = sc.borrowEntries;
+        sc.borrowEntries = entry;
+    }
+
+    /***********************************************************
+     * Removes all borrow entries of the given borrower from its
+     * declaring scope.
+     *
+     * Callers must ensure the borrower currently holds a borrow on
+     * this path (the lattice is path-sensitive), so entries registered
+     * from sibling branches are never removed.
+     */
+    void removeBorrowEntries(DFAVar* borrower)
+    {
+        DFAScope* sc = findDeclaringScope(borrower);
+
+        DFABorrowEntry** bucket = &sc.borrowEntries;
+        while (*bucket !is null)
+        {
+            if ((*bucket).borrower is borrower)
+            {
+                DFABorrowEntry* toFree = *bucket;
+                *bucket = toFree.next;
+                allocator.free(toFree);
+            }
+            else
+                bucket = &(*bucket).next;
+        }
+    }
+
+    /***********************************************************
+     * Finds a borrow entry for the given cell on the current scope chain.
+     *
+     * Only scopes that are still live (ancestors of the current scope)
+     * are consulted, so a borrow that has ended no longer protects its
+     * owner.
+     *
+     * Returns:
+     *      The first matching entry, or null.
+     */
+    DFABorrowEntry* findBorrowEntry(DFAObject* cell)
+    {
+        if (cell is null)
+            return null;
+
+        for (DFAScope* sc = this.currentDFAScope; sc !is null; sc = sc.parent)
+        {
+            DFABorrowEntry* entry = sc.borrowEntries;
+            while (entry !is null)
+            {
+                if (entry.borrowedFrom is cell)
+                    return entry;
+
+                entry = entry.next;
+            }
+        }
+
+        return null;
+    }
+
+    /***********************************************************
+     * Is the cell currently borrowed from on this path?
+     */
+    bool isCellBorrowed(DFAObject* cell)
+    {
+        return findBorrowEntry(cell) !is null;
+    }
+
+    /***********************************************************
+     * Resolves an object graph to the ultimate cell objects it is
+     * derived from.
+     *
+     * Only used by the borrow checker, this is additive and does not
+     * alter the behaviour of the existing walks (`walkIndirection`,
+     * `walkRoots`). Traverses `base1`, `base2`, `derivedFrom`, `inCell`
+     * and `borrowsFrom` chains, delivering each root that is a cell of
+     * a variable (i.e. `storageFor` is set on a variable without a base).
+     */
+    void resolveBorrowCells(DFAObject* obj,
+            scope void delegate(DFAVar* cellVar, DFAObject* cellObj) del)
+    {
+        void resolve(DFAObject* current)
+        {
+            while (current !is null
+                    && (current.base1 !is null || current.derivedFrom !is null
+                        || current.inCell !is null || current.borrowsFrom !is null))
+            {
+                if (current.derivedFrom !is null)
+                {
+                    if (current.base1 !is null)
+                        resolve(current.derivedFrom);
+                    else
+                    {
+                        current = current.derivedFrom;
+                        continue;
+                    }
+                }
+
+                if (current.borrowsFrom !is null)
+                {
+                    if (current.base1 !is null)
+                        resolve(current.borrowsFrom);
+                    else
+                    {
+                        current = current.borrowsFrom;
+                        continue;
+                    }
+                }
+
+                if (current.inCell !is null)
+                    resolve(current.inCell);
+
+                if (current.base2 !is null)
+                    resolve(current.base2);
+
+                current = current.base1;
+            }
+
+            if (current !is null && current.storageFor !is null
+                    && current.storageFor.var !is null && !current.storageFor.haveBase)
+                del(current.storageFor, current);
+        }
+
+        if (obj !is null)
+            resolve(obj);
     }
 
     DFAArgumentListRef makeArgumentListRef(size_t countArgs)
@@ -1078,6 +1255,7 @@ struct DFAAllocator
         DFAArgumentList* freelistarglist;
         DFALattice* freelistlattice;
         DFAConsequence* freelistconsequence;
+        DFABorrowEntry* freelistborrow;
 
         Region* currentRegion;
         size_t regionUsed;
@@ -1267,6 +1445,26 @@ struct DFAAllocator
         return ret;
     }
 
+    DFABorrowEntry* makeBorrowEntry(DFAVar* borrower, DFAObject* borrowedFrom, ref const Loc loc)
+    {
+        DFABorrowEntry* ret = allocInternal!DFABorrowEntry(freelistborrow);
+        ret.borrower = borrower;
+        ret.borrowedFrom = borrowedFrom;
+        ret.loc = loc;
+        return ret;
+    }
+
+    void free(DFABorrowEntry* s)
+    {
+        s.borrower = null;
+        s.borrowedFrom = null;
+        s.next = null;
+        s.loc = Loc.init;
+
+        s.listnext = freelistborrow;
+        freelistborrow = s;
+    }
+
     DFACaseState* makeCaseState(Statement caseStatement)
     {
         DFACaseState* ret = allocInternal!DFACaseState(freelistcase);
@@ -1311,6 +1509,15 @@ struct DFAAllocator
         s.beforeScopeState = DFAScopeRef.init;
         s.afterScopeState = DFAScopeRef.init;
 
+        DFABorrowEntry* borrowEntry = s.borrowEntries;
+        while (borrowEntry !is null)
+        {
+            DFABorrowEntry* next = borrowEntry.next;
+            this.free(borrowEntry);
+            borrowEntry = next;
+        }
+        s.borrowEntries = null;
+
         foreach (ref bucket; s.buckets)
         {
             DFAScopeVar* next;
@@ -1333,6 +1540,9 @@ struct DFAAllocator
         {
             list.each[i].lr = DFALatticeRef.init;
             list.each[i].paramInfo = null;
+            list.each[i].argObject = null;
+            list.each[i].paramType = null;
+            list.each[i].paramIdent = null;
         }
 
         list.listnext = freelistarglist;
@@ -1986,6 +2196,15 @@ struct DFAObject
     // This is in the following cell i.e. pointer to array member or pointer to variable
     DFAObject* inCell;
 
+    // This object is a borrow of the following object (the direct source, one level deep)
+    DFAObject* borrowsFrom;
+
+    // This object is the result of a borrow call, or combines one
+    bool isBorrow;
+
+    // The variable currently holding this borrow value (most recent holder wins)
+    DFAVar* holderVar;
+
     // Having a base means it could be one of these.
     // We do not know which one object specifically this will have at runtime.
     DFAObject* base1;
@@ -2128,6 +2347,36 @@ struct DFAObject
             findRoots(&this, 0, -1, false);
         if (findConstraintsDel !is null)
             findConstraints(&this, 0, -1);
+    }
+
+    /***********************************************************
+     * Visits every borrow node in this object's graph.
+     *
+     * A borrow node is an object that has `borrowsFrom` set (it is the
+     * result of a borrow call, or a combine base of one). Only used by
+     * the borrow checker, this is additive and does not alter the
+     * behaviour of the existing walks.
+     *
+     * Params:
+     *      del = Receives each borrow node.
+     */
+    void walkBorrowSources(scope void delegate(DFAObject* borrowNode) del)
+    {
+        void walk(DFAObject* current)
+        {
+            while (current !is null)
+            {
+                if (current.base2 !is null)
+                    walk(current.base2);
+
+                if (current.borrowsFrom !is null)
+                    del(current);
+
+                current = current.base1;
+            }
+        }
+
+        walk(&this);
     }
 }
 
@@ -2309,6 +2558,34 @@ struct DFAScopeRef
 }
 
 /***********************************************************
+ * Represents a borrow of a cell object by a variable.
+ *
+ * Entries live on the declaring scope of the borrower variable and
+ * are only consulted while that scope is on the current scope chain,
+ * so a borrow stops protecting its owner once its scope is popped.
+ * Only used by the borrow checker.
+ */
+struct DFABorrowEntry
+{
+    private
+    {
+        DFABorrowEntry* listnext;
+    }
+
+    /// The variable holding the borrow.
+    DFAVar* borrower;
+
+    /// The cell object that is borrowed from.
+    DFAObject* borrowedFrom;
+
+    /// Where the borrow was created, for error supplements.
+    Loc loc;
+
+    /// Next entry in the scope's list.
+    DFABorrowEntry* next;
+}
+
+/***********************************************************
  * Represents a specific region of code execution (a scope).
  *
  * As the DFA walks through the code, it pushes and pops scopes.
@@ -2331,6 +2608,9 @@ struct DFAScope
     DFAScope* parent, child;
     DFAScopeVar*[16] buckets;
     int depth;
+
+    /// Borrow entries created by variables declared in this scope.
+    DFABorrowEntry* borrowEntries;
 
     uint controlFlow;
     bool isLoopyLabel; // Is a loop or label
@@ -2766,6 +3046,16 @@ struct DFAArgumentList
     {
         DFALatticeRef lr;
         ParameterDFAInfo* paramInfo;
+
+        /// The object of the argument as computed immediately after its walk,
+        /// which later convergence drops from the lattice. Used by the borrow
+        /// checker for the borrow-source dispatch.
+        DFAObject* argObject;
+
+        /// The parameter type and identifier, captured at the call site for the
+        /// borrow checker's const/immutable parameter check.
+        Type paramType;
+        Identifier paramIdent;
     }
 }
 

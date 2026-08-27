@@ -1274,3 +1274,160 @@ void checkCtfeOnly() @__ctfe
     int* ptr;
     int val = *ptr;
 }
+
+/****************** Borrow checker (ok) ******************/
+
+@system:
+
+enum __fastdfa_returnborrow;
+
+int* borrowFn(@__fastdfa_returnborrow int* x) @trusted { return x; }
+int** borrowFn2(@__fastdfa_returnborrow int** x) @trusted { return x; }
+
+struct BorrowS { int field; }
+struct BorrowDtor { ~this() {} int field; }
+
+struct BorrowStruct
+{
+    int* p;
+
+    int** get() @__fastdfa_returnborrow @trusted { return &this.p; }
+}
+
+class BorrowClass
+{
+    int* p;
+
+    int** get() @__fastdfa_returnborrow @trusted { return &this.p; }
+}
+
+void borrowTakeConst(const(int)* p) @safe {}
+void methodTakeConst(const(int**) p) @safe {}
+
+void borrowOk1()
+{
+    int x;
+    {
+        int* b = borrowFn(&x);
+        int v = *b;
+    }
+    x = 5; // ok, borrow scope ended
+}
+
+void borrowOk2()
+{
+    int x;
+    {
+        int* b = borrowFn(&x);
+    }
+    x = 5; // ok
+}
+
+void borrowOk3()
+{
+    int x;
+    int* b1 = borrowFn(&x);
+    int* b2 = borrowFn(&x); // ok, multiple borrows
+}
+
+void borrowOk4()
+{
+    int x;
+    {
+        int* b = borrowFn(&x);
+        int* c = b; // ok, propagation
+        int v = *c;
+    }
+    x = 5;
+}
+
+void borrowOk5()
+{
+    int x;
+    int* b = borrowFn(&x);
+    borrowTakeConst(&x); // ok
+}
+
+void borrowOk6()
+{
+    BorrowS s;
+    {
+        int* b = borrowFn(&s.field);
+    }
+    s.field = 5; // ok
+}
+
+void borrowOk7()
+{
+    int x;
+    int* b = borrowFn(&x);
+    x = 5; // ok: mutating a basic type value doesn't invalidate the borrow
+}
+
+void borrowOk8()
+{
+    int x;
+    int* b = borrowFn(&x);
+    int* c = borrowFn(&x);
+    x = 5; // ok: basic type mutation
+}
+
+void borrowOk9()
+{
+    BorrowS s;
+    int* b = borrowFn(&s.field);
+    s.field = 5; // ok: basic type field mutation
+}
+
+void borrowSysOk(int** p) @system
+{
+    int x;
+    *p = borrowFn(&x); // ok
+}
+
+void borrowLoopOk1()
+{
+    int x;
+    for (int i = 0; i < 2; ++i)
+    {
+        int* b = borrowFn(&x); // loop-local borrow
+        b = null; // ok, loop-local change allowed
+    }
+    x = 5; // ok
+}
+
+void borrowLoopOk2()
+{
+    int x;
+    int* b;
+    for (int i = 0; i < 2; ++i)
+    {
+        b = borrowFn(&x); // first assignment, b declared outside loop
+    }
+    // b holds a borrow of x here; no mutation, so ok
+}
+
+void methodPassOk()
+{
+    BorrowStruct s;
+    int** b = s.get();
+    methodTakeConst(&s.p); // ok: const parameter
+}
+
+void methodOk()
+{
+    BorrowStruct s;
+    {
+        int** b = s.get();
+        int v = **b;
+    }
+    s.p = null; // ok: borrow scope ended
+}
+
+void classOk()
+{
+    BorrowClass c = new BorrowClass;
+    int** b = c.get(); // ok: heap owner, no lifetime constraint
+}
+
+/****************** End borrow checker (ok) ******************/

@@ -15,9 +15,74 @@ import dmd.mtype;
 import dmd.visitor;
 import dmd.identifier;
 import dmd.expression;
-import dmd.typesem : isFloating;
+import dmd.typesem : isFloating, toBasetype;
 import dmd.func;
+import dmd.attrib;
 import core.stdc.stdio;
+
+/***********************************************************
+ * Is the given UDA expression the `__fastdfa_returnborrow` marker?
+ *
+ * The marker is used to tell the borrow checker that the return value
+ * of a function borrows from a parameter (or `this`, when the UDA is
+ * placed on the function). It is written as `enum __fastdfa_returnborrow;`
+ * and applied as `@__fastdfa_returnborrow`.
+ */
+private bool isBorrowUDA(const(Expression) e)
+{
+    import core.stdc.string : strcmp;
+
+    if (e is null)
+        return false;
+
+    const(char)* name;
+
+    if (auto ie = e.isIdentifierExp)
+        name = ie.ident.toChars;
+    else if (auto te = e.isTypeExp)
+    {
+        auto bt = (cast() te.type).toBasetype();
+        if (auto ts = bt.isTypeStruct)
+        {
+            if (ts.sym !is null && ts.sym.ident !is null)
+               name = ts.sym.ident.toChars;
+        }
+        else if (auto ts = bt.isTypeEnum)
+        {
+            if (ts.sym !is null && ts.sym.ident !is null)
+              name = ts.sym.ident.toChars;
+        }
+        else if (auto ti = bt.isTypeIdentifier)
+        {
+            if (ti.ident !is null)
+              name = ti.ident.toChars;
+        }
+    }
+    else if (auto sl = e.isStructLiteralExp)
+    {
+        if (sl.sd !is null && sl.sd.ident !is null)
+           name = sl.sd.ident.toChars;
+    }
+
+    return name !is null && strcmp(name, "__fastdfa_returnborrow") == 0;
+}
+
+/***********************************************************
+ * Does the symbol carry the `__fastdfa_returnborrow` UDA?
+ */
+private bool hasBorrowUDA(const(UserAttributeDeclaration) uad)
+{
+    if (uad is null || uad.atts is null)
+        return false;
+
+    foreach (const(Expression) e; *uad.atts)
+    {
+        if (isBorrowUDA(e))
+            return true;
+    }
+
+    return false;
+}
 
 /// Ensure that a function declaration is properly attributed for the fast DFA engine.
 ParametersDFAInfo* ensureDFAParameters(FuncDeclaration fd)
@@ -55,6 +120,11 @@ ParametersDFAInfo* ensureDFAParameters(FuncDeclaration fd)
             fd.parametersDFAInfo.thisPointer.userSupplied.escapeIntoNothing = true;
     }
 
+    // Function-level __fastdfa_returnborrow means the return borrows from `this`.
+    if (hasBorrowUDA(fd.userAttribDecl))
+        fd.parametersDFAInfo.thisPointer.userSupplied.willEscape(-3,
+                ParameterDFAInfo.EscapedRelationship.Borrows);
+
     {
         // Getting the actual number of parameters is all over the place, depending on the stage of compilation.
 
@@ -88,6 +158,13 @@ ParametersDFAInfo* ensureDFAParameters(FuncDeclaration fd)
                         : ParameterDFAInfo.EscapedRelationship.ByValue);
             if ((stc & STC.scope_) && (stc & (STC.scopeinferred | STC.returnScope | STC.returnRef)) == 0)
                 paramDFAInfo.userSupplied.escapeIntoNothing = true;
+
+            // Parameter-level __fastdfa_returnborrow means the return borrows
+            // from this parameter.
+            if (hasBorrowUDA(param.userAttribDecl)
+                    || hasBorrowUDA(vd !is null ? vd.userAttribDecl : null))
+                paramDFAInfo.userSupplied.willEscape(-3,
+                        ParameterDFAInfo.EscapedRelationship.Borrows);
         }
     }
 
@@ -127,6 +204,12 @@ void ensureDFAParameter(int id, FuncDeclaration fd, TypeFunction tf,
                     : ParameterDFAInfo.EscapedRelationship.ByValue);
         if ((stc & STC.scope_) && (stc & (STC.scopeinferred | STC.returnScope | STC.returnRef)) == 0)
             paramDFAInfo.userSupplied.escapeIntoNothing = true;
+
+        // Parameter-level __fastdfa_returnborrow means the return borrows
+        // from this parameter.
+        if (hasBorrowUDA((*tf.parameterList.parameters)[id].userAttribDecl))
+            paramDFAInfo.userSupplied.willEscape(-3,
+                    ParameterDFAInfo.EscapedRelationship.Borrows);
     }
 }
 
