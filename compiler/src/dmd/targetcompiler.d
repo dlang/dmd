@@ -215,7 +215,7 @@ mixin template HostObjectNotFound()
         else version (MARS)
         {
             eSink.errorSupplemental(loc, "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
-            eSink.errorSupplemental(loc, "config file: %.*s", configFile.length, configFile.ptr);
+            eSink.errorSupplemental(loc, "config file: %.*s", cast(int)configFile.length, configFile.ptr);
         }
         else
             static assert(0, "unknown compiler being built");
