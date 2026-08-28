@@ -2785,6 +2785,10 @@ private immutable nothrow void function (ref CGstate, ref CodeBuilder,elem *,ref
     OPvecfill: &cdvecfill,
     OPva_start: &cderr,
     OPprefetch: &cdprefetch,
+    OPmemgrow: &cderr,    // wasm only
+    OPmemsize: &cderr,    // wasm only
+    OPthrow: &cderr,      // wasm only
+    OPrethrow: &cderr,    // wasm only
 ];
 
 

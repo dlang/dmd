@@ -115,7 +115,7 @@ struct TargetObjC
 
 struct Target
 {
-    typedef unsigned char OS;
+    typedef uint16_t OS;
     enum
     {
         /* These are mutually exclusive; one and only one is set.
@@ -130,9 +130,10 @@ struct Target
         OS_Solaris      = 0x20,
         OS_DragonFlyBSD = 0x40,
         OS_Hurd         = 0x80,
+        OS_WASM         = 0x100,
 
         // Combination masks
-        all = OS_linux | OS_Windows | OS_OSX | OS_OpenBSD | OS_FreeBSD | OS_Solaris | OS_DragonFlyBSD | OS_Hurd,
+        all = OS_linux | OS_Windows | OS_OSX | OS_OpenBSD | OS_FreeBSD | OS_Solaris | OS_DragonFlyBSD | OS_Hurd | OS_WASM,
         Posix = OS_linux | OS_OSX | OS_OpenBSD | OS_FreeBSD | OS_Solaris | OS_DragonFlyBSD | OS_Hurd,
     };
 
@@ -159,6 +160,7 @@ struct Target
     d_bool isAArch64;         // generate 64 bit Arm code
     d_bool isX86_64;          // generate 64 bit code for x86_64; true by default for 64 bit dmd
     d_bool isX86;             // generate 32 bit Intel x86 code
+    d_bool isWasm;            // generate WebAssembly code
     d_bool isLP64;            // pointers are 64 bits
 
     // Environmental

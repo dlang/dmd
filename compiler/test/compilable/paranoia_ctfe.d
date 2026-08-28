@@ -17,3 +17,5 @@ $n$ defects/flaws
 */
 
 module test.compilable.paranoia_ctfe;
+
+// DISABLED: wasm

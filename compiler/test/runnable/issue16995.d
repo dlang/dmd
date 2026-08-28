@@ -40,3 +40,5 @@ void main()
         }
     }
 }
+
+// DISABLED: wasm

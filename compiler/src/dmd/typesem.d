@@ -3251,11 +3251,6 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         return t.merge();
     }
 
-    Type visitComplex(TypeBasic t)
-    {
-        return visitType(t);
-    }
-
     Type visitVector(TypeVector mtype)
     {
         const errors = global.errors;
@@ -4776,9 +4771,6 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
     switch (type.ty)
     {
         default:         return visitType(type);
-        case Tcomplex32:
-        case Tcomplex64:
-        case Tcomplex80: return visitComplex(type.isTypeBasic());
         case Tvector:    return visitVector(type.isTypeVector());
         case Tsarray:    return visitSArray(type.isTypeSArray());
         case Tarray:     return visitDArray(type.isTypeDArray());

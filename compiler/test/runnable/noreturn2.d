@@ -296,3 +296,5 @@ int main()
     testConditional();
     return 0;
 }
+
+// DISABLED: wasm

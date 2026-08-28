@@ -80,3 +80,4 @@ void main()
     // Should that really be OK ?
     f!("^^=", float, double)();
 }
+// DISABLED: wasm

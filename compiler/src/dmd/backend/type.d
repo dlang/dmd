@@ -53,6 +53,8 @@ enum TF : ushort
     generated   = 4,      // C: if we generated the prototype ourselves
     dependent   = 4,      // CPP: template dependent type
     forward     = 8,      // TYstruct: if forward reference of tag name
+    dstylevararg = 8,     // tyfunc: D-style (extern(D)) `...` variadic, has a
+                          // leading _arguments TypeInfo param (vs C-style `...`)
     sizeunknown = 0x10,   // TYstruct,TYarray: if size of type is unknown
     funcret     = 0x20,   // C++,tyfunc(): overload based on function return value
     funcparam   = 0x20,   // TYarray: top level function parameter
@@ -99,6 +101,10 @@ Mangle type_mangle(const type* t) { return t.Tmangle; }
 
 // Return true if function type has a variable number of arguments
 bool variadic(const type* t) { return (t.Tflags & (TF.prototype | TF.fixed)) == TF.prototype; }
+
+// True for an extern(D) `...` variadic, which carries a hidden leading
+// `_arguments` (TypeInfo[]) parameter — unlike a C-style `...` variadic.
+bool dstyleVariadic(const type* t) { return variadic(t) && (t.Tflags & TF.dstylevararg) != 0; }
 
 @trusted
 struct_t* struct_calloc() { return cast(struct_t*) mem_calloc(struct_t.sizeof); }

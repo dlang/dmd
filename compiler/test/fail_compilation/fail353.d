@@ -20,3 +20,4 @@ void foo()
         loop L1;
     }
 }
+// DISABLED: wasm

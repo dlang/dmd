@@ -32,6 +32,8 @@ else version (CRuntime_Newlib)
     version = AlignedAllocSupported;
 else {}
 
+version (CRuntime_WASI) version (DigitalMars) version = WASI_DoubleReal;
+
 extern (C):
 
 /* Placed outside `nothrow` and `@nogc` in order to not constrain what the callback does.
@@ -143,6 +145,14 @@ version (CRuntime_Microsoft)
         {   // Fake it 'till we make it
             return strtod(nptr, endptr);
         }
+    }
+}
+else version (WASI_DoubleReal)
+{
+    // wasi-libc's strtold has a 128 bit long double ABI, incompatible with a 64 bit `real`
+    extern (D) real strtold(scope inout(char)* nptr, inout(char)** endptr)
+    {
+        return strtod(nptr, endptr);
     }
 }
 else

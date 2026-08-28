@@ -307,6 +307,9 @@ DFLAGS=-I%@P%/../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/
 
 [Environment64]
 DFLAGS=-I%@P%/../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/64{exportDynamic} -fPIC
+
+[Environmentwasm32]
+DFLAGS=-I%@P%/../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../wasm/release/wasm32 -L-L%@P%/../../../../../phobos/generated/wasm/release/wasm32
 `;
     }
 
@@ -1511,11 +1514,11 @@ auto sourceFiles()
             dmsc.d iasm/dmdx86.d iasm/dmdaarch64.d glue/package.d glue/e2ir.d glue/objc.d
             glue/s2ir.d glue/tocsym.d glue/toctype.d glue/tocvdebug.d glue/todt.d glue/toir.d glue/toobj.d
         "),
-        driver: fileArray(env["D"], "dinifile.d dmdparams.d lib/package.d lib/elf.d lib/mach.d lib/mscoff.d
-            link.d mars.d main.d sarif.d lib/scanelf.d lib/scanmach.d lib/scanmscoff.d timetrace.d vsoptions.d
+        driver: fileArray(env["D"], "dinifile.d dmdparams.d lib/package.d lib/elf.d lib/mach.d lib/mscoff.d lib/wasm.d
+            link.d mars.d main.d sarif.d lib/scanelf.d lib/scanmach.d lib/scanmscoff.d lib/scanwasm.d timetrace.d vsoptions.d
         "),
         frontend: fileArray(env["D"], "
-            access.d aggregate.d aliasthis.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
+            access.d aggregate.d aliasthis.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d argtypes_wasm.d arrayop.d
             arraytypes.d astenums.d ast_node.d astcodegen.d asttypename.d attrib.d attribsem.d blockexit.d builtin.d canthrow.d chkformat.d
             cli.d clone.d compiler.d cond.d constfold.d  cpreprocess.d ctfeexpr.d
             ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d deps.d dimport.d
@@ -1582,7 +1585,8 @@ auto sourceFiles()
             pdata.d util2.d backconfig.d rtlsym.d ptrntab.d
             dvarstats.d cgen.d barray.d cgcse.d elpicpie.d
             dwarfeh.d dwarfdbginf.d cv8.d
-            machobj.d elfobj.d mscoffobj.d
+            machobj.d elfobj.d mscoffobj.d wasm/obj.d
+            wasm/enums.d wasm/util.d wasm/blocks.d wasm/codgen.d wasm/simd.d wasm/wat.d
             x86/nteh.d x86/cgreg.d x86/cg87.d x86/cgxmm.d x86/disasm86.d
             x86/cgcod.d x86/cod1.d x86/cod2.d x86/cod3.d x86/cod4.d x86/cod5.d
             arm/disasmarm.d arm/instr.d arm/cod1.d arm/cod2.d arm/cod3.d arm/cod4.d

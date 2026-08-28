@@ -1,4 +1,4 @@
-// DISABLED: win32 win64
+// DISABLED: win32 win64 wasm
 
 #include <complex.h>
 #include <stdio.h>

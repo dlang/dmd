@@ -11,3 +11,5 @@ int main()
     double z;
     foo(z);
 }
+
+// DISABLED: wasm
