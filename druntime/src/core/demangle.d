@@ -2878,10 +2878,11 @@ extern (C) private
         import core.stdc.stdlib : strtold;
         import core.stdc.stdio : snprintf;
         import core.stdc.errno : errno;
+        import core.stdc.config : c_long_double;
 
         const err = errno;
         real val = strtold(nptr.ptr, null);
-        snprintf(nptr.ptr, nptr.length, "%#Lg", val);
+        snprintf(nptr.ptr, nptr.length, "%#Lg", cast(c_long_double)val);
         errno = err;
     }
 }

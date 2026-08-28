@@ -366,12 +366,13 @@ void test17()
 
 void test18()
 {
+    import core.stdc.config;
     real t = 0.;
     for(int i=0; i<10; i++)
     {
         t += 1.;
         real r =  (2*t);
-        printf("%Lg  %Lg  %Lg\n", t, r, 2*t);
+        printf("%Lg  %Lg  %Lg\n", cast(c_long_double)t, cast(c_long_double)r, 2*cast(c_long_double)t);
         assert(2*t == (i+1)*2);
     }
 }

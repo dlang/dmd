@@ -1135,11 +1135,13 @@ class A59 {
 
 void test60()
 {
+    import core.stdc.config : c_long_double;
+
     enum real ONE = 1.0;
     real x;
     for (x=0.0; x<10.0; x+=ONE)
-        printf("%Lg\n", x);
-    printf("%Lg\n", x);
+        printf("%Lg\n", cast(c_long_double)x);
+    printf("%Lg\n", cast(c_long_double)x);
     assert(x == 10);
 }
 

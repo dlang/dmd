@@ -156,8 +156,13 @@ bool checkPrintfFormat(Loc loc, scope const char[] format, scope Expression[] ar
             switch (tb.ty)
             {
                 case Tfloat32:
-                case Tfloat64: suggestion = "%g";  break;
-                case Tfloat80: suggestion = "%Lg"; break;
+                case Tfloat64: suggestion = "%g"; break;
+                case Tfloat80:
+                    if (target.realsize != target.c.long_doublesize)
+                        eSink.deprecationSupplemental(arg.loc, "this target has no format specifier for `%s`", tactual.toErrMsg());
+                    else
+                        suggestion = "%Lg";
+                    break;
                 case Tpointer:
                     auto tn = tb.nextOf();
                     if (tn && (tn.ty == Tchar || tn.ty == Tint8 || tn.ty == Tuns8))
@@ -277,7 +282,13 @@ bool checkPrintfFormat(Loc loc, scope const char[] format, scope Expression[] ar
                 break;
 
             case Format.Lg:     // long double
-                if (t.ty != Tfloat80 && t.ty != Timaginary80)
+                if (target.realsize != target.c.long_doublesize)
+                {
+                    assert(target.c.long_doublesize == 8);
+                    if (t.ty != Tfloat64 && t.ty != Timaginary64)
+                        errorMsg(null, e, "c_long_double", t);
+                }
+                else if (t.ty != Tfloat80 && t.ty != Timaginary80)
                     errorMsg(null, e, "real", t);
                 break;
 
