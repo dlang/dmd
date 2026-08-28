@@ -515,7 +515,10 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     fd.semanticRun = PASS.obj;
 
     if (global.params.v.verbose)
-        message("function  %s", fd.toPrettyChars());
+    {
+        auto eSink = global.errorSink;
+        eSink.message(Loc.init, "function  %s", fd.toPrettyChars());
+    }
 
     // tunnel type of "this" to debug info generation
     if (AggregateDeclaration ad = fd.parent.isAggregateDeclaration())
