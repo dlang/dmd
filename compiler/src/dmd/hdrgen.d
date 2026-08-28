@@ -156,14 +156,28 @@ const(char)* toErrMsg(const Dsymbol d)
 private void truncateForError(ref OutBuffer buf, size_t maxLength)
 {
     // Remove newlines, escape backticks ` by doubling them
-    for (size_t i = 0; i < buf.length; i++)
+    for (size_t i = 0; i < buf.length; )
     {
-        if (buf[i] == '\r')
-            buf.remove(i, 1);
-        if (buf[i] == '\n')
-            buf.peekSlice[i] = ' ';
-        if (buf[i] == '`')
-            i = buf.insert(i, "`");
+        switch (buf[i])
+        {
+            case '\r':
+                if (i + 1 < buf.length && buf[i + 1] == '\n')
+                {
+                    buf.remove(i, 1); // convert \r\n to \n
+                    continue;
+                }
+                goto case;
+            case '\n':
+                buf.peekSlice[i] = ' ';
+                break;
+            case '`':
+                buf.insert(i, "`");
+                ++i;
+                break;
+            default:
+                break;
+        }
+        ++i;
     }
 
     // Strip trailing whitespace
