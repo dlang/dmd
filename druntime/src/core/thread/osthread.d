@@ -169,61 +169,9 @@ version (GNU)
  *         where the stack was last swapped out, or null when a fiber stack
  *         is switched in for the first time.
  */
-private extern(C) void* _d_eh_swapContext(void* newContext) nothrow @nogc;
+package extern(C) void* _d_eh_swapContext(void* newContext) nothrow @nogc;
 
-version (DigitalMars)
-{
-    version (Windows)
-    {
-        extern(D) void* swapContext(void* newContext) nothrow @nogc
-        {
-            return _d_eh_swapContext(newContext);
-        }
-    }
-    else
-    {
-        extern(C) void* _d_eh_swapContextDwarf(void* newContext) nothrow @nogc;
-
-        extern(D) void* swapContext(void* newContext) nothrow @nogc
-        {
-            /* Detect at runtime which scheme is being used.
-             * Eventually, determine it statically.
-             */
-            static int which = 0;
-            final switch (which)
-            {
-                case 0:
-                {
-                    assert(newContext == null);
-                    auto p = _d_eh_swapContext(newContext);
-                    auto pdwarf = _d_eh_swapContextDwarf(newContext);
-                    if (p)
-                    {
-                        which = 1;
-                        return p;
-                    }
-                    else if (pdwarf)
-                    {
-                        which = 2;
-                        return pdwarf;
-                    }
-                    return null;
-                }
-                case 1:
-                    return _d_eh_swapContext(newContext);
-                case 2:
-                    return _d_eh_swapContextDwarf(newContext);
-            }
-        }
-    }
-}
-else
-{
-    extern(D) void* swapContext(void* newContext) nothrow @nogc
-    {
-        return _d_eh_swapContext(newContext);
-    }
-}
+extern(D) void* swapContext(void* newContext) nothrow @nogc => swapContextImpl(newContext);
 
 /**
  * This class encapsulates all threading functionality for the D

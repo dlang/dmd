@@ -112,6 +112,50 @@ version (GNU)
     import gcc.builtins;
 }
 
+version (DigitalMars)
+{
+    extern(C) void* _d_eh_swapContextDwarf(void* newContext) nothrow @nogc;
+
+    package void* swapContextImpl(void* newContext) nothrow @nogc
+    {
+        /* Detect at runtime which scheme is being used.
+         * Eventually, determine it statically.
+         */
+        static int which = 0;
+        final switch (which)
+        {
+            case 0:
+            {
+                assert(newContext == null);
+                auto p = _d_eh_swapContext(newContext);
+                auto pdwarf = _d_eh_swapContextDwarf(newContext);
+                if (p)
+                {
+                    which = 1;
+                    return p;
+                }
+                else if (pdwarf)
+                {
+                    which = 2;
+                    return pdwarf;
+                }
+                return null;
+            }
+            case 1:
+                return _d_eh_swapContext(newContext);
+            case 2:
+                return _d_eh_swapContextDwarf(newContext);
+        }
+    }
+}
+else
+{
+    package void* swapContextImpl(void* newContext) nothrow @nogc
+    {
+        return _d_eh_swapContext(newContext);
+    }
+}
+
 package enum isSingleThreaded = false;
 
 version (CoreDdoc) {} else

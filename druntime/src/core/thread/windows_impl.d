@@ -45,6 +45,11 @@ version (GNU)
     import gcc.builtins;
 }
 
+package void* swapContextImpl()(void* newContext) nothrow @nogc
+{
+    return _d_eh_swapContext(newContext);
+}
+
 package enum isSingleThreaded = false;
 
 version (CoreDdoc) {} else
