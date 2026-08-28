@@ -100,7 +100,7 @@ class ErrorSinkCompiler : ErrorSink
     }
 
     // SourceLoc-taking entry points used directly by `error(filename,linnum,...)`,
-    // `errorBackend`, `tip()` and supplemental sites; also called by the Loc
+    // `errorBackend` and supplemental sites; also called by the Loc
     // overloads above.
 
     final void verror(const SourceLoc loc, const(char)* format, va_list ap)
@@ -175,13 +175,6 @@ class ErrorSinkCompiler : ErrorSink
         emit(loc, format, ap, ErrorKind.message, false, false);
     }
 
-    final void vtip(const(char)* format, va_list ap)
-    {
-        if (global.gag)
-            return;
-        emit(SourceLoc.init, format, ap, ErrorKind.tip, false, false);
-    }
-
     final void verrorSupplemental(const SourceLoc loc, const(char)* format, va_list ap)
     {
         if (global.gag)
@@ -233,7 +226,7 @@ class ErrorSinkCompiler : ErrorSink
      *      loc          = location of the diagnostic
      *      format       = printf-style format string
      *      ap           = arguments for `format`
-     *      kind         = error / warning / deprecation / tip / message
+     *      kind         = error / warning / deprecation / message
      *      supplemental = follow-on note, not a primary diagnostic
      *      gagged       = diagnostic occurred under speculative gagging
      */
@@ -269,7 +262,6 @@ private Classification classificationFor(ErrorKind kind) @safe @nogc pure nothro
         case ErrorKind.error:       return Classification.error;
         case ErrorKind.warning:     return Classification.warning;
         case ErrorKind.deprecation: return Classification.deprecation;
-        case ErrorKind.tip:         return Classification.tip;
         case ErrorKind.message:     return Classification.error; // unused (handled above)
     }
 }
@@ -284,7 +276,6 @@ enum Classification : Color
     gagged = Color.brightBlue,        /// for gagged errors
     warning = Color.brightYellow,     /// for warnings
     deprecation = Color.brightCyan,   /// for deprecations
-    tip = Color.brightGreen,          /// for tip messages
 }
 
 
@@ -573,30 +564,6 @@ alias DiagnosticHandler = bool delegate(const ref SourceLoc location, Color head
  */
 __gshared DiagnosticHandler diagnosticHandler;
 
-/**
- * Print a tip message with the prefix and highlighting.
- * Params:
- *      format = printf-style format specification
- *      ...    = printf-style variadic arguments
- */
-static if (__VERSION__ < 2092)
-    extern (C++) void tip(const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        global.errorSink.vtip(format, ap);
-        va_end(ap);
-    }
-else
-    pragma(printf) extern (C++) void tip(const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        global.errorSink.vtip(format, ap);
-        va_end(ap);
-    }
-
-
 // Encapsulates a diagnostic as described by its location, format message, and kind.
 private struct DiagnosticContext
 {
@@ -636,7 +603,6 @@ private void printDiagnostic(const(char)* format, va_list ap, ref DiagnosticCont
             case ErrorKind.error:       header = "Error: "; break;
             case ErrorKind.deprecation: header = "Deprecation: "; break;
             case ErrorKind.warning:     header = "Warning: "; break;
-            case ErrorKind.tip:         header = "  Tip: "; break;
             case ErrorKind.message:     assert(0);
         }
     }
