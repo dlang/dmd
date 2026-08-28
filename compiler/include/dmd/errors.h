@@ -20,8 +20,7 @@ enum class ErrorKind
     warning = 0,
     deprecation = 1,
     error = 2,
-    tip = 3,
-    message = 4,
+    message = 3,
 };
 
 #if defined(__GNUC__)
@@ -40,7 +39,6 @@ D_ATTRIBUTE_FORMAT(4, 5) void error(const char *filename, unsigned linnum, unsig
 D_ATTRIBUTE_FORMAT(2, 3) void errorSupplemental(Loc loc, const char *format, ...);
 D_ATTRIBUTE_FORMAT(1, 2) void message(const char *format, ...);
 D_ATTRIBUTE_FORMAT(2, 3) void message(Loc loc, const char *format, ...);
-D_ATTRIBUTE_FORMAT(1, 2) void tip(const char *format, ...);
 
 #if defined(__GNUC__) || defined(__clang__)
 #define D_ATTRIBUTE_NORETURN __attribute__((noreturn))

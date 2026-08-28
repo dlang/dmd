@@ -21,7 +21,6 @@ enum ErrorKind
     warning,
     deprecation,
     error,
-    tip,
     message,
 }
 
