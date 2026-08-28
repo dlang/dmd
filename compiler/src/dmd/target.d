@@ -1480,7 +1480,7 @@ struct TargetC
             else if (os == Target.OS.OSX)
                 longsize = 8;
         }
-        if ((target.isX86_64 || target.isAArch64) && os == Target.OS.Windows)
+        if (os == Target.OS.Windows)
             long_doublesize = 8;
         else
             long_doublesize = target.realsize;
