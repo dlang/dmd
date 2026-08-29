@@ -622,69 +622,6 @@ extern(C) Thread thread_attachThis()
     return thread_attachThis_tpl!Thread();
 }
 
-
-version (Windows)
-{
-    // NOTE: These calls are not safe on Posix systems that use signals to
-    //       perform garbage collection.  The suspendHandler uses getThis()
-    //       to get the thread handle so getThis() must be a simple call.
-    //       Mutexes can't safely be acquired inside signal handlers, and
-    //       even if they could, the mutex needed (Thread.slock) is held by
-    //       thread_suspendAll().  So in short, these routines will remain
-    //       Windows-specific.  If they are truly needed elsewhere, the
-    //       suspendHandler will need a way to call a version of getThis()
-    //       that only does the TLS lookup without the fancy fallback stuff.
-
-    /// ditto
-    extern (C) Thread thread_attachByAddr( ThreadID addr )
-    {
-        return thread_attachByAddrB( addr, getThreadStackBottom( addr ) );
-    }
-
-
-    /// ditto
-    extern (C) Thread thread_attachByAddrB( ThreadID addr, void* bstack )
-    {
-        GC.disable(); scope(exit) GC.enable();
-
-        if (auto t = thread_findByAddr(addr).toThread)
-            return t;
-
-        Thread        thisThread  = new Thread();
-        StackContext* thisContext = &thisThread.m_main;
-        assert( thisContext == thisThread.m_curr );
-
-        thisThread.m_tdescr.tid  = addr;
-        thisContext.bstack = bstack;
-        thisContext.tstack = thisContext.bstack;
-
-        thisThread.m_isDaemon = true;
-
-        if ( addr == GetCurrentThreadId() )
-        {
-            thisThread.m_tdescr.hndl = GetCurrentThreadHandle();
-            thisThread.tlsRTdataInit();
-            Thread.setThis( thisThread );
-        }
-        else
-        {
-            thisThread.m_tdescr.hndl = OpenThreadHandle( addr );
-            impersonate_thread(addr,
-            {
-                thisThread.tlsRTdataInit();
-                Thread.setThis( thisThread );
-            });
-        }
-
-        Thread.add( thisThread, false );
-        Thread.add( thisContext );
-        if ( Thread.sm_main !is null )
-            multiThreadedFlag = true;
-        return thisThread;
-    }
-}
-
-
 // Calls the given delegate, passing the current thread's stack pointer to it.
 package extern(D) void callWithStackShell(scope callWithStackShellDg fn) nothrow
 in (fn)

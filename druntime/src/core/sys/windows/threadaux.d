@@ -20,6 +20,7 @@ import core.stdc.stdlib;
 import core.memory;
 
 public import core.thread;
+public import core.thread.windows_impl : thread_attachByAddr;
 
 extern(Windows)
 HANDLE OpenThread(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwThreadId) nothrow @nogc;
