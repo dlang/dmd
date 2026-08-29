@@ -54,6 +54,7 @@ struct ASTBase
     alias Parameters            = Array!(Parameter);
     alias Statements            = Array!(Statement);
     alias Catches               = Array!(Catch);
+    inout(SwitchExp) isSwitchExp() { return op == EXP.switchExpression ? cast(typeof(return))this : null; }
     alias Identifiers           = Array!(Identifier);
     alias Initializers          = Array!(Initializer);
     alias Ensures               = Array!(Ensure);
