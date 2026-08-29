@@ -422,6 +422,34 @@ public  alias getpid = imported!"core.sys.windows.winbase".GetCurrentProcessId;
 
 package alias gettid = imported!"core.sys.windows.winbase".GetCurrentThreadId;
 
+package void* getStackBottomImpl() nothrow @nogc
+{
+    version (D_InlineAsm_X86)
+        asm pure nothrow @nogc { naked; mov EAX, FS:4; ret; }
+    else version (D_InlineAsm_X86_64)
+        asm pure nothrow @nogc
+        {    naked;
+             mov RAX, 8;
+             mov RAX, GS:[RAX];
+             ret;
+        }
+    else version (GNU_InlineAsm)
+    {
+        void *bottom;
+
+        version (X86)
+            asm pure nothrow @nogc { "movl %%fs:4, %0;" : "=r" (bottom); }
+        else version (X86_64)
+            asm pure nothrow @nogc { "movq %%gs:8, %0;" : "=r" (bottom); }
+        else
+            static assert(false, "Architecture not supported.");
+
+        return bottom;
+    }
+    else
+        static assert(false, "Architecture not supported.");
+}
+
 // Returns true on success
 package bool suspendThreadImpl(Thread t) @nogc nothrow
 {

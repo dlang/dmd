@@ -829,23 +829,6 @@ version (CoreDdoc)
     size_t getpid() nothrow @nogc { return 0; }
 }
 
-extern (C) @nogc nothrow
-{
-    version (CRuntime_Glibc)  version = PThread_Getattr_NP;
-    version (CRuntime_Bionic) version = PThread_Getattr_NP;
-    version (CRuntime_Musl)   version = PThread_Getattr_NP;
-    version (CRuntime_UClibc) version = PThread_Getattr_NP;
-
-    version (FreeBSD)         version = PThread_Attr_Get_NP;
-    version (NetBSD)          version = PThread_Attr_Get_NP;
-    version (DragonFlyBSD)    version = PThread_Attr_Get_NP;
-
-    version (PThread_Getattr_NP)  int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
-    version (PThread_Attr_Get_NP) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
-    version (OpenBSD) int pthread_stackseg_np(pthread_t thread, stack_t* sinfo);
-}
-
-
 private extern(D) void* getStackTop() nothrow @nogc
 {
     version (D_InlineAsm_X86)
@@ -864,83 +847,7 @@ private extern(D) void* getStackTop() nothrow @nogc
 }
 
 
-private extern(D) void* getStackBottom() nothrow @nogc
-{
-    version (Windows)
-    {
-        version (D_InlineAsm_X86)
-            asm pure nothrow @nogc { naked; mov EAX, FS:4; ret; }
-        else version (D_InlineAsm_X86_64)
-            asm pure nothrow @nogc
-            {    naked;
-                 mov RAX, 8;
-                 mov RAX, GS:[RAX];
-                 ret;
-            }
-        else version (GNU_InlineAsm)
-        {
-            void *bottom;
-
-            version (X86)
-                asm pure nothrow @nogc { "movl %%fs:4, %0;" : "=r" (bottom); }
-            else version (X86_64)
-                asm pure nothrow @nogc { "movq %%gs:8, %0;" : "=r" (bottom); }
-            else
-                static assert(false, "Architecture not supported.");
-
-            return bottom;
-        }
-        else
-            static assert(false, "Architecture not supported.");
-    }
-    else version (Darwin)
-    {
-        import core.sys.darwin.pthread : pthread_get_stackaddr_np;
-        return pthread_get_stackaddr_np(pthread_self());
-    }
-    else version (PThread_Getattr_NP)
-    {
-        pthread_attr_t attr;
-        void* addr; size_t size;
-
-        pthread_attr_init(&attr);
-        pthread_getattr_np(pthread_self(), &attr);
-        pthread_attr_getstack(&attr, &addr, &size);
-        pthread_attr_destroy(&attr);
-        static if (isStackGrowingDown)
-            addr += size;
-        return addr;
-    }
-    else version (PThread_Attr_Get_NP)
-    {
-        pthread_attr_t attr;
-        void* addr; size_t size;
-
-        pthread_attr_init(&attr);
-        pthread_attr_get_np(pthread_self(), &attr);
-        pthread_attr_getstack(&attr, &addr, &size);
-        pthread_attr_destroy(&attr);
-        static if (isStackGrowingDown)
-            addr += size;
-        return addr;
-    }
-    else version (OpenBSD)
-    {
-        stack_t stk;
-
-        pthread_stackseg_np(pthread_self(), &stk);
-        return stk.ss_sp;
-    }
-    else version (Solaris)
-    {
-        stack_t stk;
-
-        thr_stksegment(&stk);
-        return stk.ss_sp;
-    }
-    else
-        static assert(false, "Platform not supported.");
-}
+private extern(D) void* getStackBottom() nothrow @nogc => getStackBottomImpl();
 
 
 /**

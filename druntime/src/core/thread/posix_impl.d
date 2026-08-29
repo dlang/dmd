@@ -17,7 +17,7 @@ import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
 import core.thread.osthread;
 import core.thread.threadbase;
-import core.thread.types : ThreadID, ThreadDescr, ll_ThreadData;
+import core.thread.types : isStackGrowingDown, ThreadID, ThreadDescr, ll_ThreadData;
 import core.time;
 
 version (Posix):
@@ -1407,6 +1407,73 @@ version (CoreDdoc) {} else
 public  alias getpid = imported!"core.sys.posix.unistd".getpid;
 
 package alias gettid = imported!"core.sys.posix.pthread".pthread_self;
+
+extern (C) @nogc nothrow
+{
+    version (CRuntime_Glibc)  version = PThread_Getattr_NP;
+    version (CRuntime_Bionic) version = PThread_Getattr_NP;
+    version (CRuntime_Musl)   version = PThread_Getattr_NP;
+    version (CRuntime_UClibc) version = PThread_Getattr_NP;
+
+    version (FreeBSD)         version = PThread_Attr_Get_NP;
+    version (NetBSD)          version = PThread_Attr_Get_NP;
+    version (DragonFlyBSD)    version = PThread_Attr_Get_NP;
+
+    version (PThread_Getattr_NP)  int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
+    version (PThread_Attr_Get_NP) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
+    version (OpenBSD) int pthread_stackseg_np(pthread_t thread, stack_t* sinfo);
+}
+
+package void* getStackBottomImpl() nothrow @nogc
+{
+    version (Darwin)
+    {
+        import core.sys.darwin.pthread : pthread_get_stackaddr_np;
+        return pthread_get_stackaddr_np(pthread_self());
+    }
+    else version (PThread_Getattr_NP)
+    {
+        pthread_attr_t attr;
+        void* addr; size_t size;
+
+        pthread_attr_init(&attr);
+        pthread_getattr_np(pthread_self(), &attr);
+        pthread_attr_getstack(&attr, &addr, &size);
+        pthread_attr_destroy(&attr);
+        static if (isStackGrowingDown)
+            addr += size;
+        return addr;
+    }
+    else version (PThread_Attr_Get_NP)
+    {
+        pthread_attr_t attr;
+        void* addr; size_t size;
+
+        pthread_attr_init(&attr);
+        pthread_attr_get_np(pthread_self(), &attr);
+        pthread_attr_getstack(&attr, &addr, &size);
+        pthread_attr_destroy(&attr);
+        static if (isStackGrowingDown)
+            addr += size;
+        return addr;
+    }
+    else version (OpenBSD)
+    {
+        stack_t stk;
+
+        pthread_stackseg_np(pthread_self(), &stk);
+        return stk.ss_sp;
+    }
+    else version (Solaris)
+    {
+        stack_t stk;
+
+        thr_stksegment(&stk);
+        return stk.ss_sp;
+    }
+    else
+        static assert(false, "Platform not supported.");
+}
 
 package struct LLThreadProperties
 {
