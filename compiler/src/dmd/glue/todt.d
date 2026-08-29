@@ -35,12 +35,14 @@ import dmd.denum;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
-import dmd.errors;
+import dmd.errors : fatal;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.id;
 import dmd.expressionsem : toBool, toInteger;
 import dmd.func;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
@@ -72,6 +74,8 @@ alias Dts = Array!(dt_t*);
 
 void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isCfile)
 {
+    auto eSink = global.errorSink;
+
     void visitError(ErrorInitializer)
     {
         assert(0);
@@ -125,7 +129,7 @@ void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isCfile)
             auto dtb = DtBuilder(0);
             Initializer_toDt(ai.value[i], dtb, isCfile);
             if (dts[length] && !ai.isCarray)
-                error(ai.loc, "duplicate initializations for index `%d`", length);
+                eSink.error(ai.loc, "duplicate initializations for index `%d`", length);
             dts[length] = dtb.finish();
             length++;
         }
@@ -182,7 +186,7 @@ void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isCfile)
                 }
                 else if (ai.dim > tadim)
                 {
-                    error(ai.loc, "too many initializers, %u, for array[%llu]", ai.dim, cast(ulong) tadim);
+                    eSink.error(ai.loc, "too many initializers, %u, for array[%llu]", ai.dim, cast(ulong) tadim);
                 }
                 dtb.cat(dtbarray);
                 break;
@@ -235,6 +239,8 @@ void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isCfile)
 
 void Expression_toDt(Expression e, ref DtBuilder dtb)
 {
+    auto eSink = global.errorSink;
+
     dtb.checkInitialized();
 
     void nonConstExpError(Expression e)
@@ -243,7 +249,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
         {
             printf("Expression.toDt() op = %d e = %s \n", e.op, e.toChars());
         }
-        error(e.loc, "non-constant expression `%s`", e.toErrMsg());
+        eSink.error(e.loc, "non-constant expression `%s`", e.toErrMsg());
         dtb.nzeros(1);
     }
 
@@ -526,7 +532,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
     {
         if (!e.loweringCtfe)
         {
-            error(e.loc, "internal compiler error: failed to detect static initialization of associative array");
+            eSink.error(e.loc, "internal compiler error: failed to detect static initialization of associative array");
             assert(0);
         }
         Expression_toDt(e.loweringCtfe, dtb);
@@ -561,7 +567,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             if ((v.isConst() || v.isImmutable()) &&
                 e.type.toBasetype().ty != Tsarray && v._init)
             {
-                error(e.loc, "recursive reference `%s`", e.toErrMsg());
+                eSink.error(e.loc, "recursive reference `%s`", e.toErrMsg());
                 return;
             }
             v.inuse++;
@@ -1243,9 +1249,10 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
                 printf("expected = x%x, %s.structsize = x%x\n", cast(uint)expected,
                     typeclass.toChars(), cast(uint)typeclass.structsize);
             }
-            error(typeclass.loc, "`%s`: mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
+            auto eSink = global.errorSink;
+            eSink.error(typeclass.loc, "`%s`: mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
                 typeclass.toErrMsg(), cast(uint)expected, cast(uint)typeclass.structsize);
-            errorSupplemental(typeclass.loc, "check installation and import paths with `-v` compiler switch");
+            eSink.errorSupplemental(typeclass.loc, "check installation and import paths with `-v` compiler switch");
             fatal();
         }
     }
