@@ -603,8 +603,8 @@ struct DFACommon
         {
             if (current.compoundStatement !is null)
             {
-                foreach (s; current.compoundStatement.statements[current.inProgressCompoundStatement
-                        .. $])
+                foreach (s; current.compoundStatement
+                        .statements[current.inProgressCompoundStatement .. $])
                 {
                     if (walkStatement(s))
                         return current;
@@ -880,14 +880,13 @@ struct DFACommon
      * and `borrowsFrom` chains, delivering each root that is a cell of
      * a variable (i.e. `storageFor` is set on a variable without a base).
      */
-    void resolveBorrowCells(DFAObject* obj,
-            scope void delegate(DFAVar* cellVar, DFAObject* cellObj) del)
+    void resolveBorrowCells(DFAObject* obj, scope void delegate(DFAVar* cellVar,
+            DFAObject* cellObj) del)
     {
         void resolve(DFAObject* current)
         {
-            while (current !is null
-                    && (current.base1 !is null || current.derivedFrom !is null
-                        || current.inCell !is null || current.borrowsFrom !is null))
+            while (current !is null && (current.base1 !is null || current.derivedFrom !is null
+                    || current.inCell !is null || current.borrowsFrom !is null))
             {
                 if (current.derivedFrom !is null)
                 {
@@ -920,8 +919,7 @@ struct DFACommon
                 current = current.base1;
             }
 
-            if (current !is null && current.storageFor !is null
-                    && current.storageFor.var !is null && !current.storageFor.haveBase)
+            if (current !is null && current.storageFor !is null)
                 del(current.storageFor, current);
         }
 

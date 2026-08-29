@@ -100,7 +100,7 @@ void fastDFA(FuncDeclaration fd, Scope* sc)
     }
 
     // Use these if statements for debugging specific things.
-    //if (fd.ident.toString != "theSitchFinally2") return;
+    //if (fd.ident.toString != "borrowOk5") return;
     //if (!(fd.ident.toString == "checkViaObjNullDeref" || fd.ident.toString == "typeNextIterate")) return;
     //if (fd.loc.linnum != 54) return;
     //if (fd.getModule.ident.toString != "doc") return;
@@ -249,10 +249,11 @@ void fastDFA(FuncDeclaration fd, Scope* sc)
             });
             dfaCommon.allocator.allObjects((DFAObject* obj) {
                 prefix("object");
-                ob.printf(" %p base1=%p, base2=%p, storageFor=%p, derivedFrom=%p, inCell=%p, constrainedBy=%p, mayNotBeExactPointer=%d, minimumDeclaredAtDepth=%d, onTheStack=%d, lifeTimeUnderstood=%d, delayOnReadErrorOfEscape=%d\n",
+                ob.printf(" %p base1=%p, base2=%p, storageFor=%p, derivedFrom=%p, inCell=%p, constrainedBy=%p, borrows=%d/%p, mayNotBeExactPointer=%d, minimumDeclaredAtDepth=%d, onTheStack=%d, lifeTimeUnderstood=%d, delayOnReadErrorOfEscape=%d\n",
                 obj, obj.base1, obj.base2, obj.storageFor, obj.derivedFrom,
-                obj.inCell, obj.constrainedBy, obj.mayNotBeExactPointer, obj.minimumDeclaredAtDepth,
-                obj.onTheStack, obj.lifeTimeUnderstood, obj.delayOnReadErrorOfEscape);
+                obj.inCell, obj.constrainedBy, obj.isBorrow, obj.borrowsFrom, obj.mayNotBeExactPointer,
+                obj.minimumDeclaredAtDepth, obj.onTheStack,
+                obj.lifeTimeUnderstood, obj.delayOnReadErrorOfEscape);
             });
         });
 

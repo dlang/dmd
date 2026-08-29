@@ -2663,21 +2663,26 @@ struct ExpressionWalker
                 || (toCallFunctionType !is null
                         && toCallFunctionType.next !is null
                         && toCallFunctionType.next.isTypeNoreturn !is null);
+            const returnIsNullable = toCallFunctionType !is null
+                && toCallFunctionType.next !is null && toCallFunctionType.next.isTypeNullable;
 
             ret = dfaCommon.makeLatticeRef;
-            DFAConsequence* returnConsequence;
+            DFAConsequence* returnConsequence = ret.acquireConstantAsContext;
 
-            if (returnInfo.notNullOut == Fact.Guaranteed)
-                returnConsequence = ret.acquireConstantAsContext(Truthiness.True,
-                        Nullable.NonNull, null);
-            else
-                returnConsequence = ret.acquireConstantAsContext;
-
-            if (returnInfo.notNullOut != Fact.NotGuaranteed)
+            if (returnIsNullable)
             {
-                returnConsequence.obj = dfaCommon.makeObject();
-                returnConsequence.obj.minimumDeclaredAtDepth = dfaCommon.currentDFAScope.depth;
-                returnConsequence.obj.defaultTrackObj = true;
+                if (returnInfo.notNullOut == Fact.Guaranteed)
+                {
+                    returnConsequence.truthiness = Truthiness.True;
+                    returnConsequence.nullable = Nullable.NonNull;
+                }
+
+                if (returnInfo.notNullOut != Fact.NotGuaranteed)
+                {
+                    returnConsequence.obj = dfaCommon.makeObject();
+                    returnConsequence.obj.minimumDeclaredAtDepth = dfaCommon.currentDFAScope.depth;
+                    returnConsequence.obj.defaultTrackObj = true;
+                }
             }
 
             // If the function is no return, or it hasn't been semantically analysed yet,

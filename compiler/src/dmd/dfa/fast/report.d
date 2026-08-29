@@ -410,7 +410,8 @@ struct DFAReporter
         errorSink.error(loc, "Cannot mutate the owner of an active borrow");
 
         if (owner !is null && owner.var !is null)
-            errorSink.errorSupplemental(owner.var.loc, "For variable `%s`", owner.var.ident.toChars);
+            errorSink.errorSupplemental(owner.var.loc, "For variable `%s`",
+                    owner.var.ident.toChars);
 
         if (entry !is null)
             errorSink.errorSupplemental(entry.loc, "Borrowed here");
@@ -424,8 +425,15 @@ struct DFAReporter
     {
         errorSink.error(loc, "A borrow cannot outlive the variable it borrows from");
 
-        if (owner !is null && owner.var !is null)
-            errorSink.errorSupplemental(owner.var.loc, "For variable `%s`", owner.var.ident.toChars);
+        if (owner !is null)
+        {
+            owner.walkRoots((DFAVar* var) {
+                if (var.var is null)
+                    return;
+                errorSink.errorSupplemental(var.var.loc,
+                    "Possible source `%s`", var.var.ident.toChars);
+            });
+        }
 
         if (borrower !is null && borrower.var !is null)
             errorSink.errorSupplemental(borrower.var.loc,
@@ -441,8 +449,8 @@ struct DFAReporter
         errorSink.error(loc, "Cannot change a borrow variable declared outside of a loop");
 
         if (borrower !is null && borrower.var !is null)
-            errorSink.errorSupplemental(borrower.var.loc,
-                    "For variable `%s`", borrower.var.ident.toChars);
+            errorSink.errorSupplemental(borrower.var.loc, "For variable `%s`",
+                    borrower.var.ident.toChars);
     }
 
     /***********************************************************
@@ -472,7 +480,8 @@ struct DFAReporter
                 "Cannot pass the owner of an active borrow to a function that may mutate it");
 
         if (paramName !is null)
-            errorSink.errorSupplemental(loc, "Parameter `%s` must be const or immutable", paramName);
+            errorSink.errorSupplemental(loc,
+                    "Parameter `%s` must be const or immutable", paramName);
         else
             errorSink.errorSupplemental(loc, "The parameter must be const or immutable");
 

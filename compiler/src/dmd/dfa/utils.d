@@ -15,7 +15,7 @@ import dmd.mtype;
 import dmd.visitor;
 import dmd.identifier;
 import dmd.expression;
-import dmd.typesem : isFloating, toBasetype;
+import dmd.typesem : isFloating, toBasetype, nextOf;
 import dmd.func;
 import dmd.attrib;
 import core.stdc.stdio;
@@ -414,4 +414,10 @@ EqualityArgType equalityArgTypes(Type lhs, Type rhs)
         return EqualityArgType.Nullable;
     else
         return EqualityArgType.Unknown;
+}
+
+bool isTypeMutable(Type t)
+{
+    auto tb = t.toBasetype();
+    return (tb.nextOf() ? tb.nextOf() : tb).isMutable();
 }

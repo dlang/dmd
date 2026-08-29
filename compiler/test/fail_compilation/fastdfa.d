@@ -57,25 +57,28 @@ fail_compilation/fastdfa.d(1411): Error: Cannot store a borrow through a derefer
 fail_compilation/fastdfa.d(1418): Error: Cannot pass the owner of an active borrow to a function that may mutate it
 fail_compilation/fastdfa.d(1418):        Parameter `p` must be const or immutable
 fail_compilation/fastdfa.d(1417):        Borrowed here
-fail_compilation/fastdfa.d(1425): Error: Cannot pass the owner of an active borrow to a function that may mutate it
-fail_compilation/fastdfa.d(1425):        Parameter `p` must be const or immutable
-fail_compilation/fastdfa.d(1424):        Borrowed here
-fail_compilation/fastdfa.d(1433): Error: A borrow cannot outlive the variable it borrows from
-fail_compilation/fastdfa.d(1432):        For variable `s`
-fail_compilation/fastdfa.d(1430):        The borrow is stored in variable `b`
-fail_compilation/fastdfa.d(1441): Error: Cannot pass the owner of an active borrow to a function that may mutate it
-fail_compilation/fastdfa.d(1441):        Parameter `p` must be const or immutable
-fail_compilation/fastdfa.d(1440):        Borrowed here
+fail_compilation/fastdfa.d(1426): Error: A borrow cannot outlive the variable it borrows from
+fail_compilation/fastdfa.d(1425):        Possible source `s`
+fail_compilation/fastdfa.d(1423):        The borrow is stored in variable `b`
+fail_compilation/fastdfa.d(1434): Error: Cannot pass the owner of an active borrow to a function that may mutate it
+fail_compilation/fastdfa.d(1434):        Parameter `p` must be const or immutable
+fail_compilation/fastdfa.d(1433):        Borrowed here
+fail_compilation/fastdfa.d(1442): Error: A borrow cannot outlive the variable it borrows from
+fail_compilation/fastdfa.d(1441):        Possible source `x`
+fail_compilation/fastdfa.d(1439):        The borrow is stored in variable `b`
 fail_compilation/fastdfa.d(1449): Error: A borrow cannot outlive the variable it borrows from
-fail_compilation/fastdfa.d(1448):        For variable `x`
-fail_compilation/fastdfa.d(1446):        The borrow is stored in variable `b`
-fail_compilation/fastdfa.d(1456): Error: A borrow cannot outlive the variable it borrows from
-fail_compilation/fastdfa.d(1455):        For variable `x`
-fail_compilation/fastdfa.d(1465): Error: Cannot change a borrow variable declared outside of a loop
-fail_compilation/fastdfa.d(1462):        For variable `b`
-fail_compilation/fastdfa.d(1481): Error: A borrow cannot outlive the variable it borrows from
-fail_compilation/fastdfa.d(1480):        For variable `c`
-fail_compilation/fastdfa.d(1478):        The borrow is stored in variable `b`
+fail_compilation/fastdfa.d(1448):        Possible source `x`
+fail_compilation/fastdfa.d(1458): Error: Cannot change a borrow variable declared outside of a loop
+fail_compilation/fastdfa.d(1455):        For variable `b`
+fail_compilation/fastdfa.d(1474): Error: A borrow cannot outlive the variable it borrows from
+fail_compilation/fastdfa.d(1473):        Possible source `c`
+fail_compilation/fastdfa.d(1471):        The borrow is stored in variable `b`
+fail_compilation/fastdfa.d(1487): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1482):        For variable `s`
+fail_compilation/fastdfa.d(1483):        Borrowed here
+fail_compilation/fastdfa.d(1488): Error: Cannot pass the owner of an active borrow to a function that may mutate it
+fail_compilation/fastdfa.d(1488):        Parameter `obj` must be const or immutable
+fail_compilation/fastdfa.d(1483):        Borrowed here
 ---
 */
 
@@ -501,13 +504,6 @@ void borrowErr4()
     borrowTake(&x); // error
 }
 
-void borrowErr5()
-{
-    int x;
-    int* b = borrowFn(&x);
-    borrowTake(b); // error, borrow passed to mutating function
-}
-
 void methodOutliveErr()
 {
     int** b;
@@ -563,6 +559,19 @@ void classOutliveErr()
         BorrowClass c = new BorrowClass;
         b = c.get(); // error: borrow of this outlives the owner object
     }
+}
+
+void borrowMutateAssignCall() {
+    void call(ref const BorrowStruct, scope int**) {}
+    void borrow(scope int**) {}
+
+    BorrowStruct s;
+    int** c = s.get();
+    call(s, c); // ok
+    borrow(c); // ok
+
+    s = s.init; // error
+    destroy(s); // error
 }
 
 /****************** End borrow checker (errors) ******************/
