@@ -1468,6 +1468,13 @@ struct ExpressionWalker
                 return inProgress;
             }
 
+        case EXP.switchExpression:
+            auto switchExp = expr.isSwitchExp;
+            this.walk(switchExp.condition);
+            foreach (arm; switchExp.arms)
+                this.walk(arm.action);
+            return DFALatticeRef.init;
+
         case EXP.question:
             {
                 auto qe = expr.isCondExp;

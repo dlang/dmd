@@ -18,6 +18,8 @@ import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.declaration;
+import dmd.denum;
 import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.func;
@@ -31,6 +33,15 @@ enum StructFlags : int
 {
     none        = 0x0,
     hasPointers = 0x1, // NB: should use noPointers as in ClassFlags
+}
+
+struct EnumUnionVariant
+{
+    Identifier ident;
+    Type[] payload;
+    Dsymbols* members;
+    StructDeclaration payloadType;
+    VarDeclaration payloadVar;
 }
 
 /***********************************************************
@@ -138,6 +149,40 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     }
 }
 
+
+/***********************************************************
+ * Tagged aggregate used by `enum union` declarations.
+ */
+extern (C++) final class EnumUnionDeclaration : StructDeclaration
+{
+    EnumUnionVariant[] variants;
+    VarDeclaration tagVar;
+    UnionDeclaration payloadUnion;
+
+    extern (D) this(Loc loc, Identifier id)
+    {
+        super(loc, id, false);
+        this.dsym = DSYM.enumUnionDeclaration;
+    }
+
+    override EnumUnionDeclaration syntaxCopy(Dsymbol s)
+    {
+        auto eu = new EnumUnionDeclaration(loc, ident);
+        eu.variants = variants;
+        StructDeclaration.syntaxCopy(eu);
+        return eu;
+    }
+
+    override const(char)* kind() const
+    {
+        return "enum union";
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
 
 /***********************************************************
  * Unions are a variation on structs.

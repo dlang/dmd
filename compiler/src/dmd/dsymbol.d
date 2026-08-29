@@ -343,6 +343,7 @@ enum DSYM : ubyte
     classDeclaration,
     structDeclaration,
     unionDeclaration,
+    enumUnionDeclaration,
     interfaceDeclaration,
     scopeDsymbol,
     forwardingScopeDsymbol,
@@ -976,6 +977,7 @@ extern (C++) class Dsymbol : ASTNode
         case DSYM.aggregateDeclaration:
         case DSYM.structDeclaration:
         case DSYM.unionDeclaration:
+        case DSYM.enumUnionDeclaration:
         case DSYM.classDeclaration:
         case DSYM.interfaceDeclaration:
             return cast(inout(AggregateDeclaration)) cast(void*) this;
@@ -1033,8 +1035,9 @@ extern (C++) class Dsymbol : ASTNode
     inout(VersionSymbol)               isVersionSymbol()               inout { return dsym == DSYM.versionSymbol ? cast(inout(VersionSymbol)) cast(void*) this : null; }
     inout(DebugSymbol)                 isDebugSymbol()                 inout { return dsym == DSYM.debugSymbol ? cast(inout(DebugSymbol)) cast(void*) this : null; }
     inout(ClassDeclaration)            isClassDeclaration()            inout { return (dsym == DSYM.classDeclaration || dsym == DSYM.interfaceDeclaration) ? cast(inout(ClassDeclaration)) cast(void*) this : null; }
-    inout(StructDeclaration)           isStructDeclaration()           inout { return (dsym == DSYM.structDeclaration || dsym == DSYM.unionDeclaration) ? cast(inout(StructDeclaration)) cast(void*) this : null; }
+    inout(StructDeclaration)           isStructDeclaration()           inout { return (dsym == DSYM.structDeclaration || dsym == DSYM.unionDeclaration || dsym == DSYM.enumUnionDeclaration) ? cast(inout(StructDeclaration)) cast(void*) this : null; }
     inout(UnionDeclaration)            isUnionDeclaration()            inout { return dsym == DSYM.unionDeclaration ? cast(inout(UnionDeclaration)) cast(void*) this : null; }
+    inout(EnumUnionDeclaration)        isEnumUnionDeclaration()        inout { return dsym == DSYM.enumUnionDeclaration ? cast(inout(EnumUnionDeclaration)) cast(void*) this : null; }
     inout(InterfaceDeclaration)        isInterfaceDeclaration()        inout { return dsym == DSYM.interfaceDeclaration ? cast(inout(InterfaceDeclaration)) cast(void*) this : null; }
     inout(ScopeDsymbol)                isScopeDsymbol()                inout {
         switch (dsym)
@@ -1050,6 +1053,7 @@ extern (C++) class Dsymbol : ASTNode
         case DSYM.aggregateDeclaration:
             case DSYM.structDeclaration:
                 case DSYM.unionDeclaration:
+                case DSYM.enumUnionDeclaration:
             case DSYM.classDeclaration:
                 case DSYM.interfaceDeclaration:
         case DSYM.withScopeSymbol:

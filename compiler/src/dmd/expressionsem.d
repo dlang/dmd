@@ -15540,6 +15540,338 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = exp;
     }
 
+    override void visit(SwitchExp exp)
+    {
+        exp.condition = exp.condition.expressionSemantic(sc);
+        if (exp.condition.op == EXP.error)
+            return setError();
+
+        Type resultType;
+        foreach (ref arm; exp.arms)
+        {
+            Scope* armScope = sc.push(new ScopeDsymbol());
+            if (!arm.isDefault && exp.condition.type.toBasetype().isTypeStruct())
+            {
+                auto ts = exp.condition.type.toBasetype().isTypeStruct();
+                if (auto eu = ts.sym.isEnumUnionDeclaration())
+                {
+                    Identifier variantId;
+                    Expressions* arguments;
+                    if (arm.pattern)
+                    {
+                        if (auto call = arm.pattern.isCallExp())
+                        {
+                            if (auto id = call.e1.isIdentifierExp())
+                                variantId = id.ident;
+                            arguments = call.arguments;
+                        }
+                        else if (auto id = arm.pattern.isIdentifierExp())
+                            variantId = id.ident;
+                    }
+
+                    if (arm.typePattern)
+                        arm.typePattern = arm.typePattern.typeSemantic(arm.loc, armScope);
+
+                    foreach (variantIndex, variant; eu.variants)
+                    {
+                        if (arm.typePattern)
+                        {
+                            auto payloadType = variant.payloadType && variant.payloadType.fields.length
+                                ? variant.payloadType.fields[0].type
+                                : variant.payload.length ? variant.payload[0] : null;
+                            if (variant.ident || variant.payload.length != 1 || !payloadType ||
+                                !payloadType.equals(arm.typePattern))
+                                continue;
+                        }
+                        else if (variant.ident != variantId)
+                            continue;
+                        arm.hasVariant = true;
+                        arm.variantIndex = variantIndex;
+                        if (arm.typeBinding)
+                        {
+                            auto variable = new VarDeclaration(arm.loc, arm.typePattern,
+                                arm.typeBinding, null);
+                            auto payloadVar = variant.payloadVar;
+                            auto payload = new DotVarExp(arm.loc, exp.condition, payloadVar);
+                            payload.type = payloadVar.type;
+                            if (variant.payloadType && variant.payloadType.fields.length)
+                            {
+                                auto field = variant.payloadType.fields[0];
+                                auto value = new DotVarExp(arm.loc, payload, field);
+                                value.type = field.type;
+                                variable._init = new ExpInitializer(arm.loc, value);
+                            }
+                            else if (variant.payload.length == 1)
+                            {
+                                auto value = new DotVarExp(arm.loc, exp.condition, payloadVar);
+                                value.type = payloadVar.type;
+                                variable._init = new ExpInitializer(arm.loc, value);
+                            }
+                            variable.dsymbolSemantic(armScope);
+                            armScope.insert(variable);
+                            arm.bindings ~= variable;
+                        }
+                        else if (arguments)
+                        {
+                            foreach (i, argument; *arguments)
+                            {
+                                auto binding = argument.isIdentifierExp();
+                                if (!binding || !variant.payloadType ||
+                                    i >= variant.payloadType.fields.length)
+                                    continue;
+                                auto field = variant.payloadType.fields[i];
+                                auto variable = new VarDeclaration(binding.loc, field.type,
+                                    binding.ident, null);
+                                auto payloadVar = variant.payloadVar;
+                                auto payload = new DotVarExp(binding.loc, exp.condition, payloadVar);
+                                payload.type = payloadVar.type;
+                                auto value = new DotVarExp(binding.loc, payload, field);
+                                value.type = field.type;
+                                variable._init = new ExpInitializer(binding.loc, value);
+                                variable.dsymbolSemantic(armScope);
+                                armScope.insert(variable);
+                                arm.bindings ~= variable;
+                            }
+                        }
+                        else if (arm.recordBindings.length)
+                        {
+                            if (!variant.payloadType)
+                                continue;
+                            foreach (bindingName; arm.recordBindings)
+                            {
+                                VarDeclaration field;
+                                foreach (candidate; variant.payloadType.fields)
+                                {
+                                    if (candidate.ident == bindingName)
+                                    {
+                                        field = candidate;
+                                        break;
+                                    }
+                                }
+                                if (!field)
+                                {
+                                    eSink.error(arm.loc, "record pattern field `%s` is not a field of `%s`",
+                                        bindingName.toChars(), variant.ident ? variant.ident.toChars() : "variant");
+                                    return setError();
+                                }
+                                auto variable = new VarDeclaration(arm.loc, field.type,
+                                    bindingName, null);
+                                auto payloadVar = variant.payloadVar;
+                                auto payload = new DotVarExp(arm.loc, exp.condition, payloadVar);
+                                payload.type = payloadVar.type;
+                                auto value = new DotVarExp(arm.loc, payload, field);
+                                value.type = field.type;
+                                variable._init = new ExpInitializer(arm.loc, value);
+                                variable.dsymbolSemantic(armScope);
+                                armScope.insert(variable);
+                                arm.bindings ~= variable;
+                            }
+                        }
+                        break;
+                    }
+                    if (!arm.hasVariant)
+                    {
+                        eSink.error(arm.loc, "switch expression pattern does not match any variant of `%s`",
+                            eu.toPrettyChars());
+                        return setError();
+                    }
+                }
+            }
+            if (arm.guard)
+            {
+                arm.guard = arm.guard.expressionSemantic(armScope);
+                arm.guard = resolveProperties(armScope, arm.guard);
+                arm.guard = arm.guard.toBoolean(armScope);
+                if (arm.guard.op == EXP.error)
+                    return setError();
+            }
+            arm.action = arm.action.expressionSemantic(armScope);
+            armScope.pop();
+            if (arm.action.op == EXP.error)
+                return setError();
+            if (!resultType || arm.action.type.ty == Tnoreturn)
+                resultType = resultType ? resultType : arm.action.type;
+            else if (resultType.ty == Tnoreturn)
+                resultType = arm.action.type;
+            else if (resultType != arm.action.type)
+            {
+                eSink.error(arm.loc, "switch expression arms must have the same type, not `%s` and `%s`",
+                    resultType.toErrMsg(), arm.action.type.toErrMsg());
+                return setError();
+            }
+        }
+        if (!resultType)
+        {
+            eSink.error(exp.loc, "switch expression must have at least one arm");
+            return setError();
+        }
+        foreach (ref arm; exp.arms)
+        {
+            if (arm.guard && !exp.hasDefault)
+            {
+                eSink.error(arm.loc, "switch expression arm with an `if` guard requires a `default` arm");
+                return setError();
+            }
+        }
+        if (auto ts = exp.condition.type.toBasetype().isTypeStruct())
+        {
+            if (auto eu = ts.sym.isEnumUnionDeclaration())
+            {
+                auto covered = new bool[](eu.variants.length);
+                bool defaultSeen;
+                foreach (ref arm; exp.arms)
+                {
+                    if (arm.isDefault)
+                    {
+                        defaultSeen = true;
+                        continue;
+                    }
+                    if (!arm.hasVariant)
+                        continue;
+                    if (covered[arm.variantIndex])
+                    {
+                        eSink.error(arm.loc, "redundant match arm; pattern is unreachable");
+                        return setError();
+                    }
+                    // A guarded arm doesn't unconditionally cover its variant:
+                    // later arms (or `default`) may still be reached for it.
+                    if (!arm.guard)
+                        covered[arm.variantIndex] = true;
+                }
+                if (!defaultSeen)
+                {
+                    OutBuffer missing;
+                    foreach (i, variant; eu.variants)
+                    {
+                        if (covered[i])
+                            continue;
+                        if (missing.length)
+                            missing.writestring(", ");
+                        if (variant.ident)
+                            missing.writestring(variant.ident.toString());
+                        else if (variant.payloadType && variant.payloadType.fields.length)
+                            missing.writestring(variant.payloadType.fields[0].type.toErrMsg());
+                        else
+                            missing.writestring("<unknown>");
+                    }
+                    if (missing.length)
+                    {
+                        eSink.error(exp.loc, "switch expression is not exhaustive; missing variant(s) `%s`",
+                            missing.peekChars());
+                        return setError();
+                    }
+                }
+            }
+        }
+        exp.type = resultType;
+        Expression defaultAction;
+        foreach (ref arm; exp.arms)
+        {
+            if (arm.isDefault)
+                defaultAction = arm.action;
+        }
+        Expression lowered;
+        foreach_reverse (ref arm; exp.arms)
+        {
+            if (arm.isDefault)
+                continue;
+            Expression action = arm.action;
+            if (arm.hasVariant)
+            {
+                auto eu = exp.condition.type.toBasetype().isTypeStruct().sym.isEnumUnionDeclaration();
+                auto variant = eu.variants[arm.variantIndex];
+                auto tagVar = (*eu.members)[0].isVarDeclaration();
+                auto anon = (*eu.members)[1].isAnonDeclaration();
+                auto payloadVar = (*anon.decl)[arm.variantIndex].isVarDeclaration();
+                if (!payloadVar || !payloadVar.type || !payloadVar.type.toBasetype().isTypeStruct())
+                {
+                    eSink.error(arm.loc, "unable to resolve switch expression payload");
+                    return setError();
+                }
+                auto payloadType = payloadVar.type.toBasetype().isTypeStruct().sym;
+                // Bindings must be declared before the guard runs (the guard may
+                // reference them), so when a guard is present the declarations are
+                // threaded through the guard instead of the action; the action then
+                // just reuses the same (already-declared) binding variables.
+                Expression guardExpr = arm.guard;
+                foreach_reverse (binding; arm.bindings)
+                {
+                    if (!binding._init)
+                    {
+                        VarDeclaration field;
+                        foreach (candidate; payloadType.fields)
+                        {
+                            if (candidate.ident == binding.ident)
+                            {
+                                field = candidate;
+                                break;
+                            }
+                        }
+                        if (!field && payloadType.members)
+                        {
+                            foreach (member; *payloadType.members)
+                            {
+                                if (auto candidate = member.isVarDeclaration())
+                                {
+                                    if (candidate.ident == binding.ident)
+                                    {
+                                        field = candidate;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (!field)
+                        {
+                            eSink.error(arm.loc, "unable to resolve switch pattern payload field `%s`",
+                                binding.ident.toChars());
+                            return setError();
+                        }
+                        auto payload = new DotVarExp(arm.loc, exp.condition, payloadVar);
+                        payload.type = payloadVar.type;
+                        auto value = new DotVarExp(arm.loc, payload, field);
+                        value.type = field.type;
+                        binding._init = new ExpInitializer(arm.loc, value);
+                    }
+                    auto declaration = new DeclarationExp(arm.loc, binding);
+                    if (guardExpr)
+                    {
+                        guardExpr = new CommaExp(arm.loc, declaration, guardExpr);
+                        guardExpr.type = Type.tbool;
+                    }
+                    else
+                    {
+                        action = new CommaExp(arm.loc, declaration, action);
+                        action.type = arm.action.type;
+                    }
+                }
+                auto tag = new DotVarExp(arm.loc, exp.condition, tagVar);
+                tag.type = tagVar.type;
+                Expression match = new EqualExp(EXP.equal, arm.loc, tag,
+                    new IntegerExp(arm.loc, arm.variantIndex, Type.tuns8));
+                match.type = Type.tbool;
+                if (guardExpr)
+                {
+                    match = new LogicalExp(arm.loc, EXP.andAnd, match, guardExpr);
+                    match.type = Type.tbool;
+                }
+                if (lowered)
+                    lowered = new CondExp(arm.loc, match, action, lowered);
+                else if (arm.guard || defaultAction)
+                    lowered = new CondExp(arm.loc, match, action, defaultAction);
+                else
+                    lowered = action; // last arm of an exhaustive match with no `default`
+                if (lowered.op == EXP.question)
+                    lowered.type = resultType;
+            }
+        }
+        if (!lowered)
+            lowered = defaultAction;
+        if (!lowered)
+            return setError();
+        result = lowered;
+    }
+
     override void visit(CondExp exp)
     {
         static if (LOGSEMANTIC)

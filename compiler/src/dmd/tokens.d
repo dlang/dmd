@@ -377,6 +377,7 @@ enum EXP : ubyte
     dot,
     comma,
     question,
+    switchExpression,
     andAnd,
     orOr,
     prePlusPlus,

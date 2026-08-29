@@ -2091,6 +2091,239 @@ private void checkImportDeprecation(Module m, Loc loc, Scope* sc)
     eSink.deprecation(m.loc, "%s `%s` is deprecated", m.kind, m.toPrettyChars);
 }
 
+private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
+{
+    auto eSink = global.errorSink;
+    if (eu.parent && eu.parent.isTemplateDeclaration())
+        return;
+    if (eu.members.length < 2)
+        return;
+
+    if (!(*eu.members)[1])
+        return;
+    auto anon = (*eu.members)[1].isAnonDeclaration();
+    if (!anon)
+        return;
+    auto tag = (*eu.members)[0].isVarDeclaration();
+    // Any trailing declarations after the tag/payload-union are the enum
+    // union's own member declarations (functions, aliases, etc.), which must
+    // survive the members array being rebuilt below.
+    Dsymbol[] extraMembers = (*eu.members)[2 .. eu.members.length];
+
+    // Duplicate-case rule: no two variants (of any kind - unit, positional,
+    // or record) may share the same identifier, regardless of their payload
+    // types/signatures. Without this, two same-named variants with different
+    // signatures would just look like ordinary D function overloads to the
+    // synthesized factory functions, silently accepted instead of rejected.
+    bool hasErrors;
+    foreach (i, variant; eu.variants)
+    {
+        if (!variant.ident)
+            continue;
+        bool isDup;
+        foreach (k; 0 .. i)
+            isDup = isDup || eu.variants[k].ident == variant.ident;
+        if (isDup)
+            continue; // already reported when this name was first seen
+        foreach (j; i + 1 .. eu.variants.length)
+        {
+            if (eu.variants[j].ident == variant.ident)
+            {
+                eSink.error(eu.loc, "duplicate case `%s` in enum union `%s`",
+                    variant.ident.toChars(), eu.toPrettyChars());
+                hasErrors = true;
+                break;
+            }
+        }
+    }
+
+    StructDeclaration[] payloadTypes;
+    VarDeclaration[] payloadVars;
+    Dsymbols* payloadMembers = new Dsymbols();
+    foreach (ref variant; eu.variants)
+    {
+        auto payloadType = new StructDeclaration(eu.loc,
+            Identifier.generateId("__enumVariantPayload"), false);
+        payloadType.members = variant.members;
+        if (!payloadType.members)
+        {
+            payloadType.members = new Dsymbols();
+            foreach (payload; variant.payload)
+                payloadType.members.push(new VarDeclaration(eu.loc, payload,
+                    Identifier.generateId("__enumPayload"), null));
+        }
+        variant.payloadType = payloadType;
+        payloadType.parent = eu;
+        payloadType.dsymbolSemantic(sc);
+        payloadTypes ~= payloadType;
+        auto payloadVar = new VarDeclaration(eu.loc, new TypeStruct(payloadType),
+            Identifier.generateId("__enumPayload"), null);
+        variant.payloadVar = payloadVar;
+        payloadVars ~= payloadVar;
+        payloadMembers.push(payloadVar);
+    }
+
+    // Move-only rule: a variant whose payload has a move constructor but no
+    // copy constructor cannot be safely stored, since ordinary copies of the
+    // enum union (e.g. assignment, passing by value) perform a raw bitcopy of
+    // the payload union rather than invoking the move constructor, leading to
+    // double-destruction of the payload.
+    foreach (variant; eu.variants)
+    {
+        if (!variant.payloadType)
+            continue;
+        foreach (field; variant.payloadType.fields)
+        {
+            auto fieldType = field.type.baseElemOf().isTypeStruct();
+            if (!fieldType)
+                continue;
+            if (fieldType.sym.hasMoveCtor && !fieldType.sym.hasCopyCtor)
+            {
+                eSink.error(eu.loc,
+                    "cannot create enum union with element type `%s` that has a move constructor but no copy constructor",
+                    fieldType.sym.toChars());
+                hasErrors = true;
+            }
+        }
+    }
+
+    // Duplicate-type rule: unlabeled (bare-type) variants must have distinct
+    // payload types; ambiguous constructions like `case double, case double,`
+    // are rejected at compile time.
+    foreach (i, variant; eu.variants)
+    {
+        if (variant.ident || variant.payload.length != 1 ||
+            !variant.payloadType || !variant.payloadType.fields.length)
+            continue;
+        auto typeI = variant.payloadType.fields[0].type;
+        foreach (j; i + 1 .. eu.variants.length)
+        {
+            auto other = eu.variants[j];
+            if (other.ident || other.payload.length != 1 ||
+                !other.payloadType || !other.payloadType.fields.length)
+                continue;
+            auto typeJ = other.payloadType.fields[0].type;
+            if (typeI.equals(typeJ))
+            {
+                eSink.error(eu.loc, "duplicate case `%s` in enum union `%s`",
+                    typeI.toErrMsg(), eu.toPrettyChars());
+                hasErrors = true;
+                break;
+            }
+        }
+    }
+    if (hasErrors)
+        return; // don't synthesize factories for a broken declaration
+
+    anon.decl = payloadMembers;
+    eu.members = new Dsymbols();
+    eu.members.push(tag);
+    eu.members.push(anon);
+
+    foreach (i, variant; eu.variants)
+    {
+        if (!variant.ident)
+            continue;
+
+        auto parameters = new Parameters();
+        const nfields = variant.payloadType ? variant.payloadType.fields.length : 1;
+        foreach (k; 0 .. nfields)
+        {
+            auto pident = Identifier.generateId("__enumPayloadParam");
+            auto fieldType = variant.payloadType ? variant.payloadType.fields[k].type : variant.payload[0];
+            parameters.push(new Parameter(eu.loc, STC.none, fieldType,
+                pident, null, null, null));
+        }
+
+        const stc = variant.payload.length ? STC.none : STC.property;
+        auto functionType = new TypeFunction(ParameterList(parameters), eu.type, LINK.d, stc);
+        auto fd = new FuncDeclaration(eu.loc, eu.loc, variant.ident, STC.static_, functionType);
+        auto result = new VarDeclaration(eu.loc, eu.type, Identifier.generateId("__enumResult"), null);
+        Statements statements;
+        statements.push(new ExpStatement(eu.loc, result));
+        auto tagExp = new DotVarExp(eu.loc, new VarExp(eu.loc, result), tag);
+        tagExp.type = tag.type;
+        statements.push(new ExpStatement(eu.loc, new AssignExp(eu.loc, tagExp,
+            new IntegerExp(eu.loc, i, Type.tuns8))));
+        foreach (k; 0 .. nfields)
+        {
+            Expression payloadExp = new DotVarExp(eu.loc, new VarExp(eu.loc, result), payloadVars[i]);
+            payloadExp.type = payloadVars[i].type;
+            if (variant.payloadType)
+            {
+                auto field = variant.payloadType.fields[k];
+                payloadExp = new DotVarExp(eu.loc, payloadExp, field);
+                payloadExp.type = field.type;
+            }
+            statements.push(new ExpStatement(eu.loc, new ConstructExp(eu.loc, payloadExp,
+                new IdentifierExp(eu.loc, (*parameters)[k].ident))));
+        }
+        statements.push(new ReturnStatement(eu.loc, new VarExp(eu.loc, result)));
+        fd.fbody = new CompoundStatement(eu.loc, statements.move());
+        eu.members.push(fd);
+    }
+
+    foreach (m; extraMembers)
+        eu.members.push(m);
+}
+
+private void synthesizeEnumUnionDtor(EnumUnionDeclaration eu, Scope* sc)
+{
+    if (eu.dtor)
+        return;
+
+    CaseStatements cases;
+    bool hasDtor;
+    foreach (i, variant; eu.variants)
+    {
+        if (!variant.payloadType)
+            continue;
+
+        Statements caseStatements;
+        foreach (field; variant.payloadType.fields)
+        {
+            auto fieldType = field.type.baseElemOf().isTypeStruct();
+            if (!fieldType || !fieldType.sym.dtor)
+                continue;
+
+            hasDtor = true;
+            auto payload = new DotVarExp(Loc.initial, new ThisExp(Loc.initial), variant.payloadVar);
+            auto fieldExp = new DotVarExp(Loc.initial, payload, field);
+            auto call = new CallExp(Loc.initial,
+                new DotVarExp(Loc.initial, fieldExp, fieldType.sym.dtor, false));
+            call.directcall = true;
+            caseStatements.push(new ExpStatement(Loc.initial, call));
+        }
+        if (!caseStatements.length)
+            continue;
+        caseStatements.push(new BreakStatement(Loc.initial, null));
+        auto body = new CompoundStatement(Loc.initial, caseStatements.move());
+        cases.push(new CaseStatement(Loc.initial,
+            new IntegerExp(Loc.initial, i, Type.tuns8), body));
+    }
+    if (!hasDtor)
+        return;
+
+    Statements bodyStatements;
+    foreach (c; cases)
+        bodyStatements.push(c);
+    bodyStatements.push(new DefaultStatement(Loc.initial,
+        new BreakStatement(Loc.initial, null)));
+    auto switchStatement = new SwitchStatement(Loc.initial, null,
+        new DotVarExp(Loc.initial, new ThisExp(Loc.initial), eu.tagVar),
+        new CompoundStatement(Loc.initial, bodyStatements.move()), false, Loc.initial);
+    Statements statements;
+    statements.push(switchStatement);
+
+    auto dd = new DtorDeclaration(eu.loc, Loc.initial, STC.inference, Id.dtor);
+    dd.isGenerated = true;
+    dd.fbody = new CompoundStatement(Loc.initial, statements.move());
+    eu.members.push(dd);
+    dd.addMember(sc, eu);
+    dd.dsymbolSemantic(sc);
+    eu.dtor = dd;
+}
+
 private extern(C++) final class DsymbolSemanticVisitor : Visitor
 {
     import dmd.typesem: size;
@@ -5011,6 +5244,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sd.semanticRun = PASS.semanticdone;
             return;
         }
+        if (auto eu = sd.isEnumUnionDeclaration())
+            synthesizeEnumUnionFactories(eu, sc);
         if (!sd.symtab)
         {
             sd.symtab = new DsymbolTable();
@@ -5071,6 +5306,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sd.ctor = sd.searchCtor();
 
         buildDtors(sd, sc2);
+        if (auto eu = sd.isEnumUnionDeclaration())
+            synthesizeEnumUnionDtor(eu, sc2);
 
         bool hasCopyCtor;
         bool hasMoveCtor;
