@@ -954,36 +954,7 @@ extern (C) void thread_suspendAll() nothrow
             t = tn;
         }
 
-        version (Darwin)
-        {}
-        else version (Solaris)
-        {}
-        else version (WASI)
-        {}
-        else version (Posix)
-        {
-            // Subtract own thread if we called suspend() on ourselves.
-            // For example, suspendedSelf would be false if the current
-            // thread ran thread_detachThis().
-            assert(cnt >= 1);
-            if (suspendedSelf)
-                --cnt;
-            // wait for semaphore notifications
-            for (; cnt; --cnt)
-            {
-                while (sem_wait(&suspendCount) != 0)
-                {
-                    if (errno != EINTR)
-                        onThreadError("Unable to wait for semaphore");
-                    errno = 0;
-                }
-            }
-        }
-        else version (Windows)
-        {
-        }
-        else
-            static assert(0, "unsupported os");
+        afterStopTheWorld(suspendedSelf, cnt);
     }
 }
 
