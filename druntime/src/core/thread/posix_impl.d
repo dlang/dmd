@@ -864,6 +864,35 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
         return pthread_kill(t.m_tdescr.tid, resumeSignalNumber) == 0;
 }
 
+package void afterStopTheWorld(bool suspendedSelf, size_t cnt) @nogc nothrow
+{
+    version (Darwin)
+    {}
+    else version (Solaris)
+    {}
+    else version (WASI)
+    {}
+    else version (Posix)
+    {
+        // Subtract own thread if we called suspend() on ourselves.
+        // For example, suspendedSelf would be false if the current
+        // thread ran thread_detachThis().
+        assert(cnt >= 1);
+        if (suspendedSelf)
+            --cnt;
+        // wait for semaphore notifications
+        for (; cnt; --cnt)
+        {
+            while (sem_wait(&suspendCount) != 0)
+            {
+                if (errno != EINTR)
+                    onThreadError("Unable to wait for semaphore");
+                errno = 0;
+            }
+        }
+    }
+}
+
 package void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
 {
     version (Darwin)

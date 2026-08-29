@@ -462,6 +462,8 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
     return ResumeThread(t.m_tdescr.hndl) != 0xFFFFFFFF;
 }
 
+package void afterStopTheWorld(bool suspendedSelf, size_t cnt) @nogc nothrow { /* do nothing */ }
+
 package void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
 {
     CONTEXT context = void;
