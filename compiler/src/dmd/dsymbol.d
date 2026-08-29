@@ -698,22 +698,16 @@ extern (C++) class Dsymbol : ASTNode
             {
                 addQualifiers(p.parent);
 
-                bool isOneMember(T)(T t)
+                if (!keepOneMember)
                 {
-                    import dmd.dsymbolsem;
+                    import dmd.dsymbolsem : oneMembers;
                     Dsymbol sym;
                     if (auto ti = p.parent.isTemplateInstance())
                         if (auto ident = p.getIdent())
                             if (ident is ti.name)
                                 if (oneMembers(ti.members, sym, ident) && sym is p)
-                                    return true;
-                    return false;
+                                    return;
                 }
-
-                if (!keepOneMember)
-                    if (isOneMember(p.parent.isTemplateInstance()) ||
-                        isOneMember(p.parent.isTemplateDeclaration()))
-                        return;
 
                 buf.writeByte('.');
             }
