@@ -161,7 +161,7 @@ package enum isSingleThreaded = false;
 version (CoreDdoc) {} else
 class Thread : ThreadBase
 {
-    package shared bool     m_isRunning;
+    private shared bool m_isRunning;
 
     version (Solaris)
     {
@@ -631,6 +631,11 @@ class Thread : ThreadBase
             return false;
 
         return atomicLoad(m_isRunning);
+    }
+
+    override final protected @property void isRunning(bool newState) nothrow @nogc
+    {
+        atomicStore!(MemoryOrder.raw)(m_isRunning, newState);
     }
 
     static void sleep( Duration val ) @nogc nothrow @trusted

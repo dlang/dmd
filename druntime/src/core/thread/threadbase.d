@@ -332,6 +332,16 @@ class ThreadBase
         return true;
     }
 
+    protected @property void isRunning(bool newState) nothrow @nogc
+    {
+        // Just make sure the new value doesn't change the state
+        assert(isRunning == newState);
+    }
+
+    package void setIsRunning() nothrow @nogc
+    {
+        isRunning(true);
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     // Thread Accessors

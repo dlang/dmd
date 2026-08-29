@@ -590,9 +590,7 @@ private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
     thisContext.bstack = getStackBottom();
     thisContext.tstack = thisContext.bstack;
 
-    version (Posix)
-        atomicStore!(MemoryOrder.raw)(thisThread.toThread.m_isRunning, true);
-
+    thisThread.setIsRunning();
     thisThread.m_isDaemon = true;
     thisThread.tlsRTdataInit();
     Thread.setThis( thisThread );
