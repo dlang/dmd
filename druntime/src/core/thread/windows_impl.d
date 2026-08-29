@@ -261,6 +261,87 @@ class Thread : ThreadBase
     package static void afterDeploy() nothrow @nogc { /* do nothing */ }
 }
 
+package
+{
+    //
+    // Entry point for Windows threads
+    //
+    extern (Windows) uint thread_entryPoint( void* arg ) nothrow
+    {
+        Thread  obj = cast(Thread) arg;
+        assert( obj );
+
+        obj.initDataStorage();
+
+        Thread.registerThis(obj);
+
+        scope (exit)
+        {
+            // allow the GC to clean up any resources it allocated for this thread.
+            import core.internal.gc.proxy : gc_getProxy;
+            gc_getProxy().cleanupThread(obj);
+
+            Thread.remove(obj);
+            obj.destroyDataStorage();
+        }
+        Thread.add(&obj.m_main);
+
+        // NOTE: No GC allocations may occur until the stack pointers have
+        //       been set and Thread.getThis returns a valid reference to
+        //       this thread object (this latter condition is not strictly
+        //       necessary on Windows but it should be followed for the
+        //       sake of consistency).
+
+        // TODO: Consider putting an auto exception object here (using
+        //       alloca) forOutOfMemoryError plus something to track
+        //       whether an exception is in-flight?
+
+        void append( Throwable t )
+        {
+            obj.filterCaughtThrowable(t);
+            if (t !is null)
+                obj.m_unhandled = Throwable.chainTogether(obj.m_unhandled, t);
+        }
+
+        version (D_InlineAsm_X86)
+        {
+            asm nothrow @nogc { fninit; }
+        }
+
+        try
+        {
+            core.thread.osthread.rt_moduleTlsCtor();
+            try
+            {
+                obj.runFromEntryPoint();
+            }
+            catch ( Throwable t )
+            {
+                append( t );
+            }
+            core.thread.osthread.rt_moduleTlsDtor();
+        }
+        catch ( Throwable t )
+        {
+            append( t );
+        }
+        return 0;
+    }
+
+
+    HANDLE GetCurrentThreadHandle() nothrow @nogc
+    {
+        const uint DUPLICATE_SAME_ACCESS = 0x00000002;
+
+        HANDLE curr = GetCurrentThread(),
+               proc = GetCurrentProcess(),
+               hndl;
+
+        DuplicateHandle( proc, curr, proc, &hndl, 0, TRUE, DUPLICATE_SAME_ACCESS );
+        return hndl;
+    }
+}
+
 version (CoreDdoc) {} else
 public  alias getpid = imported!"core.sys.windows.winbase".GetCurrentProcessId;
 

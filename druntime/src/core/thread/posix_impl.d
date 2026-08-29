@@ -1131,6 +1131,273 @@ package void purgeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
     }
 }
 
+package(core)
+{
+    // NOTE: A thread's cancelability state, determined by pthread_setcancelstate,
+    //       can be enabled (the default for new threads) or disabled.
+    //       If a thread has disabled cancelation, then a cancelation request remains
+    //       queued until the thread enables cancelation.  If a thread has enabled
+    //       cancelation, then its cancelability type determines when cancelation occurs.
+    //
+    // Call these routines when entering/leaving critical sections of the code that
+    // are not cancellation points.
+
+    extern (C) int thread_cancelDisable() nothrow
+    {
+        static if (__traits(compiles, core.sys.posix.pthread.PTHREAD_CANCEL_DISABLE))
+        {
+            import core.sys.posix.pthread : pthread_setcancelstate, PTHREAD_CANCEL_DISABLE;
+            int oldstate;
+            pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &oldstate);
+            return oldstate;
+        }
+        else
+        {
+            return 0;   // No thread cancellation on platform
+        }
+    }
+
+    extern (C) void thread_cancelRestore(int oldstate) nothrow
+    {
+        static if (__traits(compiles, core.sys.posix.pthread.PTHREAD_CANCEL_DISABLE))
+        {
+            import core.sys.posix.pthread : pthread_setcancelstate;
+            pthread_setcancelstate(oldstate, null);
+        }
+    }
+}
+
+package
+{
+    //
+    // Entry point for POSIX threads
+    //
+    version (CoreDdoc) {} else
+    extern (C) void* thread_entryPoint( void* arg ) nothrow
+    {
+        version (Shared)
+        {
+            Thread obj = cast(Thread)(cast(void**)arg)[0];
+            auto loadedLibraries = (cast(void**)arg)[1];
+            .free(arg);
+        }
+        else
+        {
+            Thread obj = cast(Thread)arg;
+        }
+        assert( obj );
+
+        // loadedLibraries need to be inherited from parent thread
+        // before initilizing GC for TLS (rt_tlsgc_init)
+        version (Shared)
+        {
+            externDFunc!("rt.sections_elf_shared.inheritLoadedLibraries",
+                         void function(void*) @nogc nothrow)(loadedLibraries);
+        }
+
+        obj.initDataStorage();
+
+        atomicStore!(MemoryOrder.raw)(obj.m_isRunning, true);
+
+        Thread.registerThis(obj); // can only receive signals from here on
+
+        scope (exit)
+        {
+            // allow the GC to clean up any resources it allocated for this thread.
+            import core.internal.gc.proxy : gc_getProxy;
+            gc_getProxy().cleanupThread(obj);
+
+            Thread.remove(obj);
+            atomicStore!(MemoryOrder.raw)(obj.m_isRunning, false);
+            obj.destroyDataStorage();
+        }
+        Thread.add(&obj.m_main);
+
+        static extern (C) void thread_cleanupHandler( void* arg ) nothrow @nogc
+        {
+            Thread  obj = cast(Thread) arg;
+            assert( obj );
+
+            // NOTE: If the thread terminated abnormally, just set it as
+            //       not running and let thread_suspendAll remove it from
+            //       the thread list.  This is safer and is consistent
+            //       with the Windows thread code.
+            atomicStore!(MemoryOrder.raw)(obj.m_isRunning,false);
+        }
+
+        // NOTE: Using void to skip the initialization here relies on
+        //       knowledge of how pthread_cleanup is implemented.  It may
+        //       not be appropriate for all platforms.  However, it does
+        //       avoid the need to link the pthread module.  If any
+        //       implementation actually requires default initialization
+        //       then pthread_cleanup should be restructured to maintain
+        //       the current lack of a link dependency.
+        static if (__traits(compiles, core.sys.posix.pthread.pthread_cleanup))
+        {
+            import core.sys.posix.pthread : pthread_cleanup;
+
+            pthread_cleanup cleanup = void;
+            cleanup.push( &thread_cleanupHandler, cast(void*) obj );
+        }
+        else static if (__traits(compiles, core.sys.posix.pthread.pthread_cleanup_push))
+        {
+            import core.sys.posix.pthread : pthread_cleanup_push;
+
+            pthread_cleanup_push(&thread_cleanupHandler, cast(void*) obj);
+        }
+        else
+        {
+            static assert( false, "Platform not supported." );
+        }
+
+        // NOTE: No GC allocations may occur until the stack pointers have
+        //       been set and Thread.getThis returns a valid reference to
+        //       this thread object (this latter condition is not strictly
+        //       necessary on Windows but it should be followed for the
+        //       sake of consistency).
+
+        // TODO: Consider putting an auto exception object here (using
+        //       alloca) forOutOfMemoryError plus something to track
+        //       whether an exception is in-flight?
+
+        void append( Throwable t )
+        {
+            obj.filterCaughtThrowable(t);
+            if (t !is null)
+                obj.m_unhandled = Throwable.chainTogether(obj.m_unhandled, t);
+        }
+        try
+        {
+            rt_moduleTlsCtor();
+            try
+            {
+                obj.runFromEntryPoint();
+            }
+            catch ( Throwable t )
+            {
+                append( t );
+            }
+            rt_moduleTlsDtor();
+            version (Shared)
+            {
+                externDFunc!("rt.sections_elf_shared.cleanupLoadedLibraries",
+                             void function() @nogc nothrow)();
+            }
+        }
+        catch ( Throwable t )
+        {
+            append( t );
+        }
+
+        // NOTE: Normal cleanup is handled by scope(exit).
+
+        static if (__traits(compiles, core.sys.posix.pthread.pthread_cleanup))
+        {
+            cleanup.pop( 0 );
+        }
+        else static if (__traits(compiles, core.sys.posix.pthread.pthread_cleanup_push))
+        {
+            import core.sys.posix.pthread : pthread_cleanup_pop;
+
+            pthread_cleanup_pop( 0 );
+        }
+
+        return null;
+    }
+
+    version (WASI) {}
+    else
+    {
+        //
+        // Used to track the number of suspended threads
+        //
+        __gshared sem_t suspendCount;
+
+
+        extern (C) bool thread_preSuspend( void* sp ) nothrow {
+            // NOTE: Since registers are being pushed and popped from the
+            //       stack, any other stack data used by this function should
+            //       be gone before the stack cleanup code is called below.
+            Thread obj = Thread.getThis();
+            if (obj is null)
+            {
+                return false;
+            }
+
+            if ( !obj.m_lock )
+            {
+                obj.m_curr.tstack = sp;
+            }
+
+            return true;
+        }
+
+        extern (C) bool thread_postSuspend() nothrow {
+            Thread obj = Thread.getThis();
+            if (obj is null)
+            {
+                return false;
+            }
+
+            if ( !obj.m_lock )
+            {
+                obj.m_curr.tstack = obj.m_curr.bstack;
+            }
+
+            return true;
+        }
+
+        extern (C) void thread_suspendHandler( int sig ) nothrow
+        in
+        {
+            assert( sig == suspendSignalNumber );
+        }
+        do
+        {
+            void op(void* sp) nothrow
+            {
+                int cancel_state = thread_cancelDisable();
+                scope(exit) thread_cancelRestore(cancel_state);
+
+                bool supported = thread_preSuspend(getStackTop());
+                assert(supported, "Tried to suspend a detached thread!");
+
+                scope(exit)
+                {
+                    supported = thread_postSuspend();
+                    assert(supported, "Tried to suspend a detached thread!");
+                }
+
+                sigset_t    sigres = void;
+                int         status;
+
+                status = sigfillset( &sigres );
+                assert( status == 0 );
+
+                status = sigdelset( &sigres, resumeSignalNumber );
+                assert( status == 0 );
+
+                status = sem_post( &suspendCount );
+                assert( status == 0 );
+
+                sigsuspend( &sigres );
+            }
+            callWithStackShell(&op);
+        }
+
+
+        extern (C) void thread_resumeHandler( int sig ) nothrow
+        in
+        {
+            assert( sig == resumeSignalNumber );
+        }
+        do
+        {
+
+        }
+    }
+}
+
 version (CoreDdoc) {} else
 public  alias getpid = imported!"core.sys.posix.unistd".getpid;
 
