@@ -4736,6 +4736,7 @@ string EXPtoString(EXP op)
         EXP.assocArrayLiteral : "assocarrayliteral",
         EXP.classReference : "classreference",
         EXP.defaultInit : "defaultinit",
+        EXP.switchExpression : "switchExpression",
         EXP.typeid_ : "typeid",
         EXP.is_ : "is",
         EXP.assert_ : "assert",
