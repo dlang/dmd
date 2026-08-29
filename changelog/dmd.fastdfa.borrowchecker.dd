@@ -8,7 +8,7 @@ A function signals that its return value borrows from a parameter (or from
 `__fastdfa_returnborrow` attribute:
 
 ```d
-enum __fastdfa_returnborrow; // declared in core.attributes
+import core.attribute : __fastdfa_returnborrow;
 
 struct Buffer
 {
@@ -20,10 +20,10 @@ struct Buffer
 
 void methodOutliveErr()
 {
-    int** b;
+    int* b;
     {
         Buffer s;
-        b = s.get(); // error: borrow of this outlives the owner
+        b = s.get(); // error: borrow of `this` outlives the owner
     }
 }
 ```
@@ -42,7 +42,7 @@ The borrow checker enforces the following protections at the call site:
 * Storing a borrow through a dereference is rejected in `@safe` code.
 
 It is intended to protect reference counting types, and gates the introduction of reference counting in language.
-And may be used to protect other forms of borrowing such as by-ref match expressions for sumtypes.
+It may be used to protect other forms of borrowing such as by-ref match expressions for sumtypes.
 
 Unlike traditional borrow checkers (such as Rust's or D's `@live`) which focus primarily on aliasing guarantees through whole-function analysis, this implementation permits aliasing.
 Instead, it focuses on intra-procedural flow checks to safeguard reference-counted types and safely enable potential future language features (such as language-level reference counting and by-ref match expressions for sumtypes).
@@ -51,7 +51,7 @@ While `@live` relies on DIP1000 annotations (`scope`, `return`, `return ref`), t
 Currently the engine's escape analysis does not offer in language attributes, so the UDA `__fastdfa_returnborrow` is required, however it would slot into any future syntax cleanly.
 
 No breaking changes are expected.
-This is an opt-in feature of the fast dfa engine, which itself is opt-in.
+This is an opt-in feature of the fast DFA engine, which itself is opt-in.
 
 This is an experimental feature, enabled with the `-preview=fastdfa` switch. It
 is subject to change and may be removed at a later date.
