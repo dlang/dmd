@@ -176,11 +176,13 @@ void toObjFile(Dsymbol ds, bool multiobj)
     public:
         bool multiobj;
         bool isCfile;
+        ErrorSink eSink;
 
-        this(bool multiobj, bool isCfile) scope @safe
+        this(bool multiobj, bool isCfile) scope @trusted
         {
             this.multiobj = multiobj;
             this.isCfile = isCfile;
+            this.eSink = global.errorSink;
         }
 
         void visitNoMultiObj(Dsymbol ds)
@@ -209,7 +211,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (cd.type.ty == Terror)
             {
-                .error(cd.loc, "%s `%s` had semantic errors when compiling", cd.kind, cd.toPrettyChars);
+                eSink.error(cd.loc, "%s `%s` had semantic errors when compiling", cd.kind, cd.toPrettyChars);
                 return;
             }
 
@@ -330,7 +332,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (id.type.ty == Terror)
             {
-                .error(id.loc, "had semantic errors when compiling", id.kind, id.toPrettyChars);
+                eSink.error(id.loc, "had semantic errors when compiling", id.kind, id.toPrettyChars);
                 return;
             }
 
@@ -379,11 +381,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (sd.type.ty == Terror)
             {
-                .error(sd.loc, "%s `%s` had semantic errors when compiling", sd.kind, sd.toPrettyChars);
+                eSink.error(sd.loc, "%s `%s` had semantic errors when compiling", sd.kind, sd.toPrettyChars);
                 foreach (field; sd.fields)
                 {
                     if (field.errors)
-                        errorSupplemental(field.loc, "field `%s` failed semantic analysis", field.toChars());
+                        eSink.errorSupplemental(field.loc, "field `%s` failed semantic analysis", field.toChars());
                 }
                 return;
             }
@@ -462,7 +464,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (vd.type.ty == Terror)
             {
-                .error(vd.loc, "%s `%s` had semantic errors when compiling", vd.kind, vd.toPrettyChars);
+                eSink.error(vd.loc, "%s `%s` had semantic errors when compiling", vd.kind, vd.toPrettyChars);
                 return;
             }
 
@@ -490,12 +492,12 @@ void toObjFile(Dsymbol ds, bool multiobj)
             const sz64 = vd.type.size(vd.loc);
             if (sz64 == SIZE_INVALID)
             {
-                .error(vd.loc, "%s `%s` size overflow", vd.kind, vd.toPrettyChars);
+                eSink.error(vd.loc, "%s `%s` size overflow", vd.kind, vd.toPrettyChars);
                 return;
             }
             if (sz64 > target.maxStaticDataSize)
             {
-                .error(vd.loc, "%s `%s` size of 0x%llx exceeds max allowed size 0x%llx", vd.kind, vd.toPrettyChars, sz64, target.maxStaticDataSize);
+                eSink.error(vd.loc, "%s `%s` size of 0x%llx exceeds max allowed size 0x%llx", vd.kind, vd.toPrettyChars, sz64, target.maxStaticDataSize);
             }
             uint sz = cast(uint)sz64;
 
@@ -678,7 +680,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (ed.errors || ed.type.ty == Terror)
             {
-                .error(ed.loc, "%s `%s` had semantic errors when compiling", ed.kind, ed.toPrettyChars);
+                eSink.error(ed.loc, "%s `%s` had semantic errors when compiling", ed.kind, ed.toPrettyChars);
                 return;
             }
 
@@ -1133,7 +1135,8 @@ private bool finishVtbl(ClassDeclaration cd)
                 continue;
             // Hiding detected: same name, overlapping specializations
             TypeFunction tf = fd.type.toTypeFunction();
-            .error(cd.loc, "%s `%s` use of `%s%s` is hidden by `%s`; use `alias %s = %s.%s;` to introduce base class overload set", cd.kind, cd.toPrettyChars,
+            auto eSink = global.errorSink;
+            eSink.error(cd.loc, "%s `%s` use of `%s%s` is hidden by `%s`; use `alias %s = %s.%s;` to introduce base class overload set", cd.kind, cd.toPrettyChars,
                 fd.toPrettyChars(),
                 parametersTypeToChars(tf.parameterList),
                 cd.toChars(),
@@ -1220,9 +1223,10 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
         if (Type.typeinfoclass.structsize != classInfoSize())
         {
             debug printf("classInfoSize() = x%x, Type.typeinfoclass.structsize = x%x\n", classInfoSize(), Type.typeinfoclass.structsize);
-            .error(cd.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
+            auto eSink = global.errorSink;
+            eSink.error(cd.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
                    cd.kind, cd.toPrettyChars, cast(uint)classInfoSize(), cast(uint)Type.typeinfoclass.structsize);
-            .errorSupplemental(cd.loc, "check installation and import paths with `-v` compiler switch");
+            eSink.errorSupplemental(cd.loc, "check installation and import paths with `-v` compiler switch");
             fatal();
         }
     }
@@ -1561,9 +1565,10 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
         {
             if (Type.typeinfoclass.structsize != offset)
             {
-                .error(id.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
+                auto eSink = global.errorSink;
+                eSink.error(id.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
                        id.kind, id.toPrettyChars, cast(uint)offset, cast(uint)Type.typeinfoclass.structsize);
-                .errorSupplemental(id.loc, "check installation and import paths with `-v` compiler switch");
+                eSink.errorSupplemental(id.loc, "check installation and import paths with `-v` compiler switch");
                 fatal();
             }
         }
