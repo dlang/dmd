@@ -32,6 +32,7 @@ import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
+import dmd.identifier;
 import dmd.location;
 import dmd.impcnvtab;
 import dmd.importc;
@@ -112,6 +113,76 @@ IntRange intRangeFromType(Type type, bool isUnsigned)
 Expression implicitCastTo(Expression e, Scope* sc, Type t)
 {
     auto eSink = global.errorSink;
+
+    if (auto ts = t.toBasetype().isTypeStruct())
+    {
+        if (auto eu = ts.sym.isEnumUnionDeclaration())
+        {
+            size_t matchIndex = size_t.max;
+            foreach (i, variant; eu.variants)
+            {
+                auto payloadType = variant.payloadType && variant.payloadType.fields.length
+                    ? variant.payloadType.fields[0].type : variant.payload.length ? variant.payload[0] : null;
+                // Function pointers/delegates may only differ from each other by
+                // attributes (e.g. inferred `pure nothrow @nogc @safe` on a lambda),
+                // never by parameter/return types, so allowing attribute-widening
+                // implicit conversion here cannot introduce cross-variant ambiguity
+                // the way e.g. `int` -> `double` numeric widening would. Only loosen
+                // when the source is ITSELF already callable: other types (e.g.
+                // `noreturn*`) can have unrelated implicit conversions to callable
+                // types that must not be treated the same way.
+                const requiredMatch = payloadType && payloadType.isFunction_Delegate_PtrToFunction() &&
+                    e.type && e.type.isFunction_Delegate_PtrToFunction()
+                    ? MATCH.convert : MATCH.exact;
+                const isNullUnitVariant = e.type && e.type.toBasetype().ty == Tnull &&
+                    variant.payload.length == 0 && variant.ident == Identifier.idPool("None");
+                if ((!variant.ident && variant.payload.length == 1 && payloadType &&
+                    e.implicitConvTo(payloadType) >= requiredMatch) || isNullUnitVariant)
+                {
+                    if (matchIndex != size_t.max)
+                    {
+                        eSink.error(e.loc, "`%s` is ambiguous between variants `%s` and `%s` of enum union `%s`",
+                            e.toErrMsg(), eu.variants[matchIndex].payloadType && eu.variants[matchIndex].payloadType.fields.length
+                                ? eu.variants[matchIndex].payloadType.fields[0].type.toErrMsg()
+                                : "None",
+                            payloadType ? payloadType.toErrMsg() : "None",
+                            eu.toPrettyChars());
+                        return ErrorExp.get();
+                    }
+                    matchIndex = i;
+                }
+            }
+            if (matchIndex != size_t.max)
+            {
+                auto variant = eu.variants[matchIndex];
+                // Build `(tmp; tmp.__tag = i; tmp.<payloadVar>.<field> = e; tmp)`
+                // rather than a positional struct literal: the payload union
+                // promotes one field per variant, so a 2-element literal would
+                // target the wrong (first) union member when there is more
+                // than one bare-type variant.
+                auto tmp = new VarDeclaration(e.loc, t, Identifier.generateId("__enumConv"), null);
+                tmp.storage_class |= STC.temp;
+                Expression result = new DeclarationExp(e.loc, tmp);
+                Expression tmpVar = new VarExp(e.loc, tmp);
+
+                auto tagExp = new DotVarExp(e.loc, tmpVar, eu.tagVar);
+                Expression tagAssign = new AssignExp(e.loc, tagExp, new IntegerExp(e.loc, matchIndex, Type.tuns8));
+                result = new CommaExp(e.loc, result, tagAssign);
+
+                if (variant.payloadType && variant.payloadType.fields.length)
+                {
+                    auto field = variant.payloadType.fields[0];
+                    auto payloadAccess = new DotVarExp(e.loc,
+                        new DotVarExp(e.loc, tmpVar, variant.payloadVar), field);
+                    Expression payloadAssign = new AssignExp(e.loc, payloadAccess, e);
+                    result = new CommaExp(e.loc, result, payloadAssign);
+                }
+
+                result = new CommaExp(e.loc, result, tmpVar);
+                return result.expressionSemantic(sc);
+            }
+        }
+    }
 
     Expression visit(Expression e)
     {
@@ -1561,6 +1632,26 @@ MATCH implicitConvTo(Expression e, Type t)
  */
 MATCH implicitConvTo(Type from, Type to)
 {
+    if (auto ts = to.toBasetype().isTypeStruct())
+    {
+        if (auto eu = ts.sym.isEnumUnionDeclaration())
+        {
+            foreach (variant; eu.variants)
+            {
+                auto payloadType = variant.payloadType && variant.payloadType.fields.length
+                    ? variant.payloadType.fields[0].type : variant.payload.length ? variant.payload[0] : null;
+                const requiredMatch = payloadType && payloadType.isFunction_Delegate_PtrToFunction() &&
+                    from.isFunction_Delegate_PtrToFunction()
+                    ? MATCH.convert : MATCH.exact;
+                const isNullUnitVariant = from.toBasetype().ty == Tnull &&
+                    variant.payload.length == 0 && variant.ident == Identifier.idPool("None");
+                if ((!variant.ident && variant.payload.length == 1 && payloadType &&
+                    from.implicitConvTo(payloadType) >= requiredMatch) || isNullUnitVariant)
+                    return MATCH.convert;
+            }
+        }
+    }
+
     MATCH visitType(Type from)
     {
         //printf("Type::implicitConvTo(this=%p, to=%p)\n", this, to);
