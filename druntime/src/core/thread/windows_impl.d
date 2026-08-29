@@ -15,6 +15,8 @@ module core.thread.windows_impl;
 import core.atomic;
 import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
+import core.memory : GC;
+import core.thread.context : StackContext;
 import core.thread.osthread;
 import core.thread.threadbase;
 import core.thread.types : ThreadID, ThreadDescr, ll_ThreadData;
@@ -27,7 +29,7 @@ version (all)
     import core.stdc.stdint : uintptr_t; // for _beginthreadex decl below
     import core.stdc.stdlib : free, malloc, realloc;
     import core.sys.windows.basetsd /+: HANDLE+/;
-    import core.sys.windows.threadaux /+: getThreadStackBottom, impersonate_thread, OpenThreadHandle+/;
+    import core.sys.windows.threadaux : getThreadStackBottom, impersonate_thread, OpenThreadHandle;
     import core.sys.windows.winbase /+: CloseHandle, CREATE_SUSPENDED, DuplicateHandle, GetCurrentThread,
         GetCurrentThreadId, GetCurrentProcess, GetExitCodeThread, GetSystemInfo, GetThreadContext,
         GetThreadPriority, INFINITE, ResumeThread, SetThreadPriority, Sleep,  STILL_ACTIVE,
@@ -261,6 +263,79 @@ class Thread : ThreadBase
     package static void afterDeploy() nothrow @nogc { /* do nothing */ }
 }
 
+private
+{
+    // NOTE: These calls are not safe on Posix systems that use signals to
+    //       perform garbage collection.  The suspendHandler uses getThis()
+    //       to get the thread handle so getThis() must be a simple call.
+    //       Mutexes can't safely be acquired inside signal handlers, and
+    //       even if they could, the mutex needed (Thread.slock) is held by
+    //       thread_suspendAll().  So in short, these routines will remain
+    //       Windows-specific.  If they are truly needed elsewhere, the
+    //       suspendHandler will need a way to call a version of getThis()
+    //       that only does the TLS lookup without the fancy fallback stuff.
+
+    /**
+     * Registers the calling thread for use with the D Runtime.  If this routine
+     * is called for a thread which is already registered, no action is performed.
+     *
+     * NOTE: This routine does not run thread-local static constructors when called.
+     *       If full functionality as a D thread is desired, the following function
+     *       must be called after thread_attachThis:
+     *
+     *       extern (C) void rt_moduleTlsCtor();
+     *
+     * See_Also:
+     *     $(REF thread_detachThis, core,thread,threadbase)
+     */
+    package(core) extern (C) Thread thread_attachByAddr( ThreadID addr )
+    {
+        return thread_attachByAddrB( addr, getThreadStackBottom( addr ) );
+    }
+
+
+    /// ditto
+    extern (C) Thread thread_attachByAddrB( ThreadID addr, void* bstack )
+    {
+        GC.disable(); scope(exit) GC.enable();
+
+        if (auto t = thread_findByAddr(addr).toThread)
+            return t;
+
+        Thread        thisThread  = new Thread();
+        StackContext* thisContext = &thisThread.m_main;
+        assert( thisContext == thisThread.m_curr );
+
+        thisThread.m_tdescr.tid  = addr;
+        thisContext.bstack = bstack;
+        thisContext.tstack = thisContext.bstack;
+
+        thisThread.m_isDaemon = true;
+
+        if ( addr == GetCurrentThreadId() )
+        {
+            thisThread.m_tdescr.hndl = GetCurrentThreadHandle();
+            thisThread.tlsRTdataInit();
+            Thread.setThis( thisThread );
+        }
+        else
+        {
+            thisThread.m_tdescr.hndl = OpenThreadHandle( addr );
+            impersonate_thread(addr,
+            {
+                thisThread.tlsRTdataInit();
+                Thread.setThis( thisThread );
+            });
+        }
+
+        Thread.add( thisThread, false );
+        Thread.add( thisContext );
+        if ( Thread.sm_main !is null )
+            multiThreadedFlag = true;
+        return thisThread;
+    }
+}
+
 package
 {
     //
@@ -310,7 +385,7 @@ package
 
         try
         {
-            core.thread.osthread.rt_moduleTlsCtor();
+            rt_moduleTlsCtor();
             try
             {
                 obj.runFromEntryPoint();
@@ -319,7 +394,7 @@ package
             {
                 append( t );
             }
-            core.thread.osthread.rt_moduleTlsDtor();
+            rt_moduleTlsDtor();
         }
         catch ( Throwable t )
         {
