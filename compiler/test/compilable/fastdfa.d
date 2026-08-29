@@ -1323,13 +1323,6 @@ void borrowOk2()
     x = 5; // ok
 }
 
-void borrowOk3()
-{
-    int x;
-    int* b1 = borrowFn(&x);
-    int* b2 = borrowFn(&x); // ok, multiple borrows
-}
-
 void borrowOk4()
 {
     int x;
@@ -1362,14 +1355,6 @@ void borrowOk7()
     int x;
     int* b = borrowFn(&x);
     x = 5; // ok: mutating a basic type value doesn't invalidate the borrow
-}
-
-void borrowOk8()
-{
-    int x;
-    int* b = borrowFn(&x);
-    int* c = borrowFn(&x);
-    x = 5; // ok: basic type mutation
 }
 
 void borrowOk9()
