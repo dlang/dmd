@@ -30,6 +30,7 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.funcsem;
+import dmd.globals : global;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
@@ -292,8 +293,9 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
         // For ++ and --, rewrites to += and -= are also tried, so don't error yet
         if (!e.isPreExp())
         {
-            error(e.loc, "operator `%s` is not defined for `%s`", EXPtoString(e.op).ptr, ad.toErrMsg());
-            errorSupplemental(ad.loc, "perhaps overload the operator with `auto opUnary(string op : \"%s\")() {}`",
+            auto eSink = global.errorSink;
+            eSink.error(e.loc, "operator `%s` is not defined for `%s`", EXPtoString(e.op).ptr, ad.toErrMsg());
+            eSink.errorSupplemental(ad.loc, "perhaps overload the operator with `auto opUnary(string op : \"%s\")() {}`",
                 EXPtoString(e.op).ptr);
             return ErrorExp.get();
         }
@@ -385,8 +387,10 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
             if (ae2.isErrorExp())
             {
                 if (!e0 && !search_function(ad, Id.dollar))
-                    ad.loc.errorSupplemental("perhaps define `opDollar` for `%s`", ad.toChars());
-
+                {
+                    auto eSink = global.errorSink;
+                    eSink.errorSupplemental(ad.loc, "perhaps define `opDollar` for `%s`", ad.toChars());
+                }
                 return ae2;
             }
             /* Rewrite a[i..j] as:
@@ -512,7 +516,8 @@ Expression binAliasThis(BinExp e, Scope* sc, Type[2] aliasThisStop)
     }
     if (rewrittenLhs)
     {
-        error(e.loc, "cannot use `alias this` to partially initialize variable `%s` of type `%s`. Use `%s`",
+        auto eSink = global.errorSink;
+        eSink.error(e.loc, "cannot use `alias this` to partially initialize variable `%s` of type `%s`. Use `%s`",
                 e.e1.toErrMsg(), ad1.toErrMsg(), rewrittenLhs.toErrMsg());
         return ErrorExp.get();
     }
@@ -551,6 +556,8 @@ Expression opOverloadBinary(BinExp e, Scope* sc, Type[2] aliasThisStop)
     if (Expression err = binSemanticProp(e, sc))
         return err;
 
+    auto eSink = global.errorSink;
+
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
     AggregateDeclaration ad2 = isAggregate(e.e2.type);
 
@@ -559,14 +566,14 @@ Expression opOverloadBinary(BinExp e, Scope* sc, Type[2] aliasThisStop)
 
     if (s && !(s.isTemplateDeclaration() || s.isOverloadSet))
     {
-        error(e.e1.loc, "`%s.opBinary` isn't a template", e.e1.toErrMsg());
+        eSink.error(e.e1.loc, "`%s.opBinary` isn't a template", e.e1.toErrMsg());
         return ErrorExp.get();
     }
 
     Dsymbol s_r = search_function(ad2, Id.opBinaryRight);
     if (s_r && !(s_r.isTemplateDeclaration() || s_r.isOverloadSet()))
     {
-        error(e.e2.loc, "`%s.opBinaryRight` isn't a template", e.e2.toErrMsg());
+        eSink.error(e.e2.loc, "`%s.opBinaryRight` isn't a template", e.e2.toErrMsg());
         return ErrorExp.get();
     }
     if (s_r && s_r == s) // https://issues.dlang.org/show_bug.cgi?id=12778
@@ -591,6 +598,8 @@ bool suggestBinaryOverloads(BinExp e, Scope* sc)
     if (!e.op.hasOpBinary)
         return false;
 
+    auto eSink = global.errorSink;
+
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
     AggregateDeclaration ad2 = isAggregate(e.e2.type);
 
@@ -600,11 +609,11 @@ bool suggestBinaryOverloads(BinExp e, Scope* sc)
         {
             // This expressionSemantic will fail, otherwise operator overloading would have succeeded before
             dotTemplateCall(e.e1, Id.opBinary, opToArg(sc, e.op), e.e2).expressionSemantic(sc);
-            errorSupplemental(s.loc, "`opBinary` defined here");
+            eSink.errorSupplemental(s.loc, "`opBinary` defined here");
             return true;
         }
-        error(e.loc, "operator `%s` is not defined for type `%s`", EXPtoString(e.op).ptr, e.e1.type.toChars);
-        errorSupplemental(ad1.loc, "perhaps overload the operator with `auto opBinary(string op : \"%s\")(%s rhs) {}`", EXPtoString(e.op).ptr, e.e2.type.toChars);
+        eSink.error(e.loc, "operator `%s` is not defined for type `%s`", EXPtoString(e.op).ptr, e.e1.type.toChars);
+        eSink.errorSupplemental(ad1.loc, "perhaps overload the operator with `auto opBinary(string op : \"%s\")(%s rhs) {}`", EXPtoString(e.op).ptr, e.e2.type.toChars);
         return true;
     }
     else if (ad2)
@@ -612,11 +621,11 @@ bool suggestBinaryOverloads(BinExp e, Scope* sc)
         if (Dsymbol s_r = search_function(ad1, Id.opBinaryRight))
         {
             dotTemplateCall(e.e2, Id.opBinaryRight, opToArg(sc, e.op), e.e1).expressionSemantic(sc);
-            errorSupplemental(s_r.loc, "`opBinaryRight` defined here");
+            eSink.errorSupplemental(s_r.loc, "`opBinaryRight` defined here");
             return true;
         }
-        error(e.loc, "operator `%s` is not defined for type `%s`", EXPtoString(e.op).ptr, e.e2.type.toChars);
-        errorSupplemental(ad2.loc, "perhaps overload the operator with `auto opBinaryRight(string op : \"%s\")(%s lhs) {}`", EXPtoString(e.op).ptr, e.e1.type.toChars);
+        eSink.error(e.loc, "operator `%s` is not defined for type `%s`", EXPtoString(e.op).ptr, e.e2.type.toChars);
+        eSink.errorSupplemental(ad2.loc, "perhaps overload the operator with `auto opBinaryRight(string op : \"%s\")(%s lhs) {}`", EXPtoString(e.op).ptr, e.e1.type.toChars);
         return true;
     }
     return false;
@@ -636,10 +645,12 @@ bool suggestOpOpAssign(BinAssignExp exp, Scope* sc, Expression parent)
     if (!ad)
         return false;
 
+    auto eSink = global.errorSink;
+
     if (parent && (parent.isPreExp() || parent.isPostExp()))
     {
-        error(exp.loc, "operator `%s` not supported for `%s` of type `%s`", EXPtoString(parent.op).ptr, exp.e1.toErrMsg(), ad.toErrMsg());
-        errorSupplemental(ad.loc,
+        eSink.error(exp.loc, "operator `%s` not supported for `%s` of type `%s`", EXPtoString(parent.op).ptr, exp.e1.toErrMsg(), ad.toErrMsg());
+        eSink.errorSupplemental(ad.loc,
             "perhaps implement `auto opUnary(string op : \"%s\")() {}`"~
             " or `auto opOpAssign(string op : \"%s\")(int) {}`",
             EXPtoString(stripAssignOp(parent.op)).ptr,
@@ -655,8 +666,8 @@ bool suggestOpOpAssign(BinAssignExp exp, Scope* sc, Expression parent)
     }
     else
     {
-        error(exp.loc, "operator `%s` not supported for `%s` of type `%s`", EXPtoString(exp.op).ptr, exp.e1.toErrMsg(), ad.toErrMsg());
-        errorSupplemental(ad.loc, "perhaps implement `auto opOpAssign(string op : \"%s\")(%s) {}`",
+        eSink.error(exp.loc, "operator `%s` not supported for `%s` of type `%s`", EXPtoString(exp.op).ptr, exp.e1.toErrMsg(), ad.toErrMsg());
+        eSink.errorSupplemental(ad.loc, "perhaps implement `auto opOpAssign(string op : \"%s\")(%s) {}`",
             EXPtoString(stripAssignOp(exp.op)).ptr, exp.e2.type.toChars());
     }
     return true;
@@ -675,6 +686,8 @@ private Expression dotTemplateCall(Expression e, Identifier id, Objects* tiargs,
 
 Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
 {
+    auto eSink = global.errorSink;
+
     Type t1 = e.e1.type.toBasetype();
     Type t2 = e.e2.type.toBasetype();
 
@@ -692,7 +705,7 @@ Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
     if (t1.isTypeClass() && e.e2.isNullExp() ||
         t2.isTypeClass() && e.e1.isNullExp())
     {
-        error(e.loc, "use `%s` instead of `%s` when comparing with `null`",
+        eSink.error(e.loc, "use `%s` instead of `%s` when comparing with `null`",
             EXPtoString(e.op == EXP.equal ? EXP.identity : EXP.notIdentity).ptr,
             EXPtoString(e.op).ptr);
         return ErrorExp.get();
@@ -717,7 +730,7 @@ Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
              */
             if (!ClassDeclaration.object)
             {
-                error(e.loc, "cannot compare classes for equality because `object.Object` was not declared");
+                eSink.error(e.loc, "cannot compare classes for equality because `object.Object` was not declared");
                 return null;
             }
 
@@ -821,7 +834,7 @@ Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
         size_t dim = tup1.exps.length;
         if (dim != tup2.exps.length)
         {
-            error(e.loc, "mismatched sequence lengths, `%d` and `%d`",
+            eSink.error(e.loc, "mismatched sequence lengths, `%d` and `%d`",
                 cast(int)dim, cast(int)tup2.exps.length);
             return ErrorExp.get();
         }
@@ -867,7 +880,8 @@ Expression opOverloadCmp(CmpExp exp, Scope* sc, Type[2] aliasThisStop)
 
     if (!e.type.isScalar() && e.type.equals(exp.e1.type))
     {
-        error(e.loc, "recursive `opCmp` expansion");
+        auto eSink = global.errorSink;
+        eSink.error(e.loc, "recursive `opCmp` expansion");
         return ErrorExp.get();
     }
     if (!e.isCallExp())
@@ -1016,7 +1030,8 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
     Dsymbol s = search_function(ad1, Id.opOpAssign);
     if (s && !(s.isTemplateDeclaration() || s.isOverloadSet()))
     {
-        error(e.loc, "`%s.opOpAssign` isn't a template", e.e1.toErrMsg());
+        auto eSink = global.errorSink;
+        eSink.error(e.loc, "`%s.opOpAssign` isn't a template", e.e1.toErrMsg());
         return ErrorExp.get();
     }
 
@@ -1088,9 +1103,10 @@ private Expression pickBestBinaryOverload(Scope* sc, Objects* tiargs, Dsymbol s,
         if (!(m.lastf == lastf && m.count == 2 && count == 1))
         {
             // Error, ambiguous
-            error(e.loc, "overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toErrMsg(), m.nextf.type.toErrMsg(), m.lastf.toErrMsg());
-            errorSupplemental(m.lastf.loc, "`%s` is declared here", m.lastf.toPrettyChars());
-            errorSupplemental(m.nextf.loc, "`%s` is declared here", m.nextf.toPrettyChars());
+            auto eSink = global.errorSink;
+            eSink.error(e.loc, "overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toErrMsg(), m.nextf.type.toErrMsg(), m.lastf.toErrMsg());
+            eSink.errorSupplemental(m.lastf.loc, "`%s` is declared here", m.lastf.toPrettyChars());
+            eSink.errorSupplemental(m.nextf.loc, "`%s` is declared here", m.nextf.toPrettyChars());
         }
     }
     else if (m.last == MATCH.nomatch)
@@ -1156,9 +1172,10 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id, ref EXP 
 
     Expression suggestOverloading(Expression other, AggregateDeclaration ad)
     {
-        error(e.loc, "no operator `%s` for type `%s`", EXPtoString(e.op).ptr, ad.toChars);
+        auto eSink = global.errorSink;
+        eSink.error(e.loc, "no operator `%s` for type `%s`", EXPtoString(e.op).ptr, ad.toChars);
         string op = e.isEqualExp() ? "bool" : "int";
-        errorSupplemental(ad.loc, "perhaps overload it with `%.*s %s(%s other) const {}`", op.fTuple.expand, id.toChars, other.type.toChars);
+        eSink.errorSupplemental(ad.loc, "perhaps overload it with `%.*s %s(%s other) const {}`", op.fTuple.expand, id.toChars, other.type.toChars);
         return ErrorExp.get();
     }
 
@@ -1536,10 +1553,11 @@ private FuncDeclaration findBestOpApplyMatch(Expression ethis, FuncDeclaration f
 
     if (fd_ambig)
     {
-        .error(ethis.loc, "`%s.%s` matches more than one declaration:",
+        auto eSink = global.errorSink;
+        eSink.error(ethis.loc, "`%s.%s` matches more than one declaration:",
             ethis.toErrMsg(), fstart.ident.toErrMsg());
-        .errorSupplemental(fd_best.loc, "`%s`\nand:", fd_best.type.toChars());
-        .errorSupplemental(fd_ambig.loc, "`%s`", fd_ambig.type.toChars());
+        eSink.errorSupplemental(fd_best.loc, "`%s`\nand:", fd_best.type.toChars());
+        eSink.errorSupplemental(fd_ambig.loc, "`%s`", fd_ambig.type.toChars());
         return null;
     }
 
