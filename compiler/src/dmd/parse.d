@@ -5133,7 +5133,17 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     /// The parser is expected to sit on the next token after the type.
     private void noIdentifierForDeclarator(AST.Type t, Token tok)
     {
-        error("variable name expected after type `%s`, not `%s`", t.toChars(), tok.toChars);
+        import core.stdc.string : strchr;
+        // The type may embed a broken default argument (e.g. a malformed
+        // function literal produced during error recovery), whose printed
+        // form can contain newlines and leak internal placeholders like
+        // `__error__` into this message. Fall back to a generic string
+        // in that case instead of reproducing the raw internal AST dump.
+        // See https://github.com/dlang/dmd/issues/19824
+        const(char)* ts = t.toChars();
+        if (strchr(ts, '\n'))
+            ts = "<error type>";
+        error("variable name expected after type `%s`, not `%s`", ts, tok.toChars);
 
         // A common mistake is to use a reserved keyword as an identifier, e.g. `in` or `out`
         if (token.isKeyword)
