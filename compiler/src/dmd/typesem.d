@@ -6190,6 +6190,9 @@ void resolve(Type mt, Loc loc, Scope* sc, out Expression pe, out Type pt, out Ds
  *  e = expression to convert
  *  ident = identifier being used
  *  flag = DotExpFlag bit flags
+ *  identLoc = location of `ident` itself, used for accurate error reporting
+ *             when it differs from `e.loc` (e.g. across multiple lines);
+ *             defaults to `e.loc` when not specified
  *
  * Returns:
  *  resulting expression with e.ident resolved
