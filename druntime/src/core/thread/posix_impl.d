@@ -829,13 +829,11 @@ do
     resumeSignalNo  = resumeSignalNumber;
 }
 
-//TODO: private
-
 version (CRuntime_WASI) {}
 else
 {
-    package __gshared int suspendSignalNumber;
-    package __gshared int resumeSignalNumber;
+    private __gshared int suspendSignalNumber;
+    private __gshared int resumeSignalNumber;
 }
 
 // Returns true on success
