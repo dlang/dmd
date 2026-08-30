@@ -626,11 +626,11 @@ extern (C++) final class Module : Package
             if (global.path.length)
             {
                 foreach (i, p; global.path[])
-                    fprintf(stderr, "import path[%llu] = %s\n", cast(ulong)i, p.path);
+                    eSink.message(Loc.init, "import path[%llu] = %s", cast(ulong)i, p.path);
             }
             else
             {
-                fprintf(stderr, "Specify path to file '%.*s' with -I switch\n", cast(int)name.length, name.ptr);
+                eSink.message(Loc.init, "Specify path to file '%.*s' with -I switch", cast(int)name.length, name.ptr);
             }
 
             removeHdrFilesAndFail(removeHeaders, Module.amodules);
