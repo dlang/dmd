@@ -27,8 +27,8 @@ version (Windows)
     import core.stdc.wchar_ : wcslen;
     import core.sys.windows.basetsd : HANDLE;
     import core.sys.windows.shellapi : CommandLineToArgvW;
-    import core.sys.windows.winbase : FreeLibrary, GetCommandLineW, GetProcAddress, IsDebuggerPresent, LoadLibraryW,
-        LocalFree, WriteFile;
+    import core.sys.windows.winbase : FreeLibrary, GetCommandLineW, GetProcAddress, IsDebuggerPresent, LoadLibraryExW,
+        LocalFree, WriteFile, LOAD_LIBRARY_SEARCH_SYSTEM32;
     import core.sys.windows.wincon : CONSOLE_SCREEN_BUFFER_INFO, GetConsoleOutputCP,
         GetConsoleScreenBufferInfo;
     import core.sys.windows.winnls : CP_UTF8, MultiByteToWideChar, WideCharToMultiByte;
@@ -695,7 +695,7 @@ extern (C) void _d_print_throwable(Throwable t)
 
                 // Avoid static user32.dll dependency for console applications
                 // by loading it dynamically as needed
-                if (auto user32 = LoadLibraryW("user32.dll"))
+                if (auto user32 = LoadLibraryExW("user32.dll", null, LOAD_LIBRARY_SEARCH_SYSTEM32))
                 {
                     alias PMessageBoxW = typeof(&MessageBoxW) ;
                     if (auto pMessageBoxW = cast(PMessageBoxW) GetProcAddress(user32, "MessageBoxW"))
