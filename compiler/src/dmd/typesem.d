@@ -6194,7 +6194,7 @@ void resolve(Type mt, Loc loc, Scope* sc, out Expression pe, out Type pt, out Ds
  * Returns:
  *  resulting expression with e.ident resolved
  */
-Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag flag)
+Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag flag, Loc identLoc = Loc.init)
 {
     enum LOGDOTEXP = false;
     if (LOGDOTEXP)
@@ -7045,11 +7045,12 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             Expression res = mt.sym.getMemtype(Loc.initial).dotExp(sc, e, ident, DotExpFlag.gag);
             if (!(flag & 1) && !res)
             {
+                const errLoc = identLoc.isValid() ? identLoc : e.loc;
                 if (auto ns = mt.sym.search_correct(ident))
-                    eSink.error(e.loc, "no property `%s` for type `%s`. Did you mean `%s.%s` ?", ident.toErrMsg(), mt.toErrMsg(), mt.toErrMsg(),
+                    eSink.error(errLoc, "no property `%s` for type `%s`. Did you mean `%s.%s` ?", ident.toErrMsg(), mt.toErrMsg(), mt.toErrMsg(),
                         ns.toErrMsg());
                 else
-                    eSink.error(e.loc, "no property `%s` for type `%s`", ident.toErrMsg(),
+                    eSink.error(errLoc, "no property `%s` for type `%s`", ident.toErrMsg(),
                         mt.toErrMsg());
 
                 eSink.errorSupplemental(mt.sym.loc, "%s `%s` defined here",
