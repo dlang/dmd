@@ -336,7 +336,7 @@ private
     }
 }
 
-package
+private
 {
     //
     // Entry point for Windows threads

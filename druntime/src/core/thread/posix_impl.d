@@ -1199,7 +1199,7 @@ package(core)
     }
 }
 
-package
+private
 {
     //
     // Entry point for POSIX threads
