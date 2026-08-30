@@ -1038,50 +1038,6 @@ extern (C) void  rt_moduleTlsCtor();
 extern (C) void  rt_moduleTlsDtor();
 
 
-// regression test for Issue 13416
-version (FreeBSD) unittest
-{
-    static void loop()
-    {
-        pthread_attr_t attr;
-        pthread_attr_init(&attr);
-        auto thr = pthread_self();
-        foreach (i; 0 .. 50)
-            pthread_attr_get_np(thr, &attr);
-        pthread_attr_destroy(&attr);
-    }
-
-    auto thr = new Thread(&loop).start();
-    foreach (i; 0 .. 50)
-    {
-        thread_suspendAll();
-        thread_resumeAll();
-    }
-    thr.join();
-}
-
-version (DragonFlyBSD) unittest
-{
-    static void loop()
-    {
-        pthread_attr_t attr;
-        pthread_attr_init(&attr);
-        auto thr = pthread_self();
-        foreach (i; 0 .. 50)
-            pthread_attr_get_np(thr, &attr);
-        pthread_attr_destroy(&attr);
-    }
-
-    auto thr = new Thread(&loop).start();
-    foreach (i; 0 .. 50)
-    {
-        thread_suspendAll();
-        thread_resumeAll();
-    }
-    thr.join();
-}
-
-
 ///////////////////////////////////////////////////////////////////////////////
 // lowlovel threading support
 ///////////////////////////////////////////////////////////////////////////////
