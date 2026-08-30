@@ -363,7 +363,7 @@ shared static this()
     if ( dbghelp is null )
         return; // dbghelp.dll not available
 
-    auto kernel32Handle = LoadLibraryA( "kernel32.dll" );
+    auto kernel32Handle = LoadLibraryExW("kernel32.dll", null, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (kernel32Handle !is null)
     {
         RtlCaptureStackBackTrace = cast(RtlCaptureStackBackTraceFunc) GetProcAddress(kernel32Handle, "RtlCaptureStackBackTrace");
