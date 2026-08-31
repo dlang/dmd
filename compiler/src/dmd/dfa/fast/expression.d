@@ -696,10 +696,6 @@ struct ExpressionWalker
                                     }
                                 }
 
-                                // does this var escape another? Can't model that.
-                                if (dfaVar.isByRef)
-                                    markUnmodellable(ei.exp);
-
                                 DFALatticeRef lr = this.walk(ei.exp);
 
                                 if (!(ei.exp.isConstructExp || ei.exp.isBlitExp))
@@ -905,18 +901,26 @@ struct ExpressionWalker
                 // See Slice
                 auto ie = expr.isIndexExp;
 
-                dfaCommon.printStateln("index rhs");
-                DFALatticeRef index = this.walk(ie.e2);
+                dfaCommon.printStructureln("Index[key] expression");
+
                 dfaCommon.printStateln("index lhs");
                 DFALatticeRef lhs = this.walk(ie.e1);
+                lhs.printState("lhs");
+
+                dfaCommon.printStateln("index rhs");
+                DFALatticeRef index = this.walk(ie.e2);
+                index.printState("rhs");
 
                 DFAVar* lhsCtx;
                 DFAConsequence* lhsCctx = lhs.getContext(lhsCtx);
+                DFAVar* indexVar = dfaCommon.findIndexVar(lhsCtx);
 
                 DFAObject* lhsObject;
 
                 Type lhsType = ie.e1.type;
                 bool resultHasEffect;
+
+                DFALatticeRef ret;
 
                 if (lhsCctx !is null)
                 {
@@ -941,31 +945,39 @@ struct ExpressionWalker
                     }
                 }
 
-                if (lhsCtx !is null && lhsCtx.isNullable)
+                if (lhsType.isTypeSArray !is null)
                 {
-                    // Dereference the lhs if its a pointer,
-                    //  this really should be the case, but it prevents unnecessary work for static arrays.
-                    lhs = seeDereference(ie.loc, lhs);
+                    // T[X] lhs;
+                    // lhs[index]
+
+                    ret = this.seeLogicalAnd(lhs, index);
+                    DFAConsequence* newCctx = ret.setContext(indexVar);
+
+                    if (lhsObject !is null && lhsObject.onTheStack)
+                        newCctx.obj = dfaCommon.makeInCellObject(lhsObject);
+                }
+                else
+                {
+                    // T[] lhs;
+                    // lhs[index]
+
+                    if (lhsCtx !is null && lhsCtx.isNullable)
+                    {
+                        // Dereference the lhs if its a pointer,
+                        //  this really should be the case, but it prevents unnecessary work for static arrays.
+                        lhs = seeDereference(ie.loc, lhs);
+                    }
+
+                    // (*lhs)[index]
+
+                    ret = this.seeLogicalAnd(lhs, index);
+                    DFAConsequence* newCctx = ret.setContext(indexVar);
+
+                    if (lhsObject !is null)
+                        newCctx.obj = dfaCommon.makeObject(lhsObject);
                 }
 
-                DFAVar* indexVar = dfaCommon.findIndexVar(lhsCtx);
-                DFALatticeRef combined = this.seeLogicalAnd(lhs, index);
-
-                DFAConsequence* newCctx = combined.addConsequence(indexVar);
-                combined.setContext(newCctx);
-
-                if (lhsObject !is null)
-                    newCctx.obj = dfaCommon.makeInCellObject(lhsObject);
-
-                if (resultHasEffect && indexVar !is null)
-                {
-                    if (indexVar.isTruthy)
-                        newCctx.truthiness = Truthiness.True;
-                    if (indexVar.isNullable)
-                        newCctx.nullable = Nullable.NonNull;
-                }
-
-                return combined;
+                return ret;
             }
 
         case EXP.slice:
@@ -1488,18 +1500,17 @@ struct ExpressionWalker
                 {
                     stmtWalker.startScope;
                     dfaCommon.currentDFAScope.sideEffectFree = true;
+                    dfaCommon.currentDFAScope.inConditional = true;
 
                     dfaCommon.printStateln("Question condition:");
                     conditionLR = this.walkCondition(qe.econd, predicateNegation);
                     conditionVar = conditionLR.getGateConsequenceVariable;
 
-                    stmtWalker.endScope;
+                    dfaCommon.currentDFAScope.sideEffectFree = false;
                 }
 
                 {
                     dfaCommon.printStateln("Question true branch:");
-                    stmtWalker.startScope;
-                    dfaCommon.currentDFAScope.inConditional = true;
 
                     DFAConsequence* c = conditionLR.getContext;
                     if (c !is null)

@@ -575,6 +575,13 @@ private:
         void inferParameter(DFAVar* from, bool hadAnIndirection,
                 bool haveConstraintOnLifeTime, bool inCell)
         {
+            version (none)
+            {
+                printf("wanting to infer param rel from=%p, hadAnIndirection=%d, haveConstraintOnLifeTime=%d, inCell=%d, intoVar=%p, paramId=%d\n",
+                        from, hadAnIndirection, haveConstraintOnLifeTime,
+                        inCell, intoVar, intoVar.param.parameterId);
+            }
+
             EscapedRelationship currentRel = from.param.inferred.willEscape(
                     intoVar.param.parameterId);
 
@@ -614,7 +621,7 @@ private:
 
             version (none)
             {
-                printf("potential escape 1 obj %p, hadAnIndirection=%d, haveConstraintOnLifeTime=%d, inCell=%d\n",
+                printf("potential escape 1 obj=%p, hadAnIndirection=%d, haveConstraintOnLifeTime=%d, inCell=%d\n",
                     obj, hadAnIndirection, haveConstraintOnLifeTime, inCell);
             }
 

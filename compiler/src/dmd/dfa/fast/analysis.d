@@ -1189,7 +1189,15 @@ struct DFAAnalyzer
                     DFAScope* sideEffectScope = dfaCommon.getSideEffectScope();
                     DFAScopeVar* scv = sideEffectScope.getScopeVar(root.storageFor);
 
-                    if (argListItem.paramType is null || argListItem.paramType.isTypeMutable)
+                    version(none)
+                    {
+                        printf("walking root=%p, cell=%p\n", root, lr.findConsequence(root.storageFor));
+                    }
+
+                    // Check to see if the object is the storage for a variable that we can model.
+                    // If so we probably already handled it with seePointer, so if we were to do it again it would be a duplicate.
+                    if (lr.findConsequence(root.storageFor) is null
+                        && (argListItem.paramType is null || argListItem.paramType.isTypeMutable))
                         seeWrite(root.storageFor, scv.lr, loc, silenceWriteError);
                 }
             });
@@ -1512,7 +1520,6 @@ struct DFAAnalyzer
             DFALatticeRef lr, int alteredState, ref Loc loc,
             DFALatticeRef indexLR = DFALatticeRef.init)
     {
-
         DFAVar* assignToCtx = assignTo.getContextVar;
         DFAVar* lrCtx;
         DFAConsequence* lrCctx = lr.getContext(lrCtx);
@@ -1520,6 +1527,11 @@ struct DFAAnalyzer
         const lrIsTruthy = !noLR ? lrCctx.truthiness == Truthiness.True : false;
         const unmodellable = lrCtx !is null && !lrCtx.isModellable;
         DFALatticeRef ret;
+
+        version(none)
+        {
+            printf("assigning to var=%p, construct=%d, isBlit=%d, alteredState=%d, noLR=%d, lrIsTruthy=%d, unmodellable=%d\n", assignToCtx, construct, isBlit, alteredState, noLR, lrIsTruthy, unmodellable);
+        }
 
         this.onRead(assignTo, loc, true);
         // Explicitly allow returns of uninitialized variables.
@@ -2573,6 +2585,7 @@ struct DFAAnalyzer
                 printf("found storage %p, hadAnIndirection=%d, hadAnOuterDeref=%d, takenAddressOf=%d, hadFields=%d, isOffsetOfStorage=%d, unknown=%d\n",
                     var, hadAnIndirection, hadAnOuterDeref, takenAddressOf,
                     hadFields, isOffsetOfStorage, unknown);
+                printf("   isByRef=%d\n", var.isByRef);
             }
 
             // Storage consequence may not have a object available for it.
@@ -3190,6 +3203,13 @@ private:
         {
             assignTo.visitIndirectSources((DFAVar* var, bool hadAnIndirection, bool hadAnInnerDeref, bool hadAnOuterDeref,
                     bool takenAddressOf, bool hadFields, bool isOffsetOfStorage, ref bool unknown) {
+                version (none)
+                {
+                    printf("Indirect source for %p, hadAnIndirection=%d, hadAnInnerDeref=%d, hadAnOuterDeref=%d, takenAddressOf=%d, hadFields=%d, isOffsetOfStorage=%d\n",
+                        var, hadAnIndirection, hadAnInnerDeref, hadAnOuterDeref,
+                        takenAddressOf, hadFields, isOffsetOfStorage);
+                }
+
                 if (hadAnIndirection || hadAnInnerDeref)
                     return;
 

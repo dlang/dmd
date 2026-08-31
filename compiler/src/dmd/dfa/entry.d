@@ -100,7 +100,7 @@ void fastDFA(FuncDeclaration fd, Scope* sc)
     }
 
     // Use these if statements for debugging specific things.
-    //if (fd.ident.toString != "borrowOk5") return;
+    //if (fd.ident.toString != "borrowInTernaryConditionInfect") return;
     //if (!(fd.ident.toString == "checkViaObjNullDeref" || fd.ident.toString == "typeNextIterate")) return;
     //if (fd.loc.linnum != 54) return;
     //if (fd.getModule.ident.toString != "doc") return;
@@ -234,10 +234,10 @@ void fastDFA(FuncDeclaration fd, Scope* sc)
 
             dfaCommon.allocator.allVariables((DFAVar* var) {
                 prefix("var");
-                ob.printf(" %p base1=%p, base2=%p, dereferenceVar=%p, oldestLifeTimeAllowedDepth=%d<%d, writeCount=%d, unmodel=%d, isScope=%d, isByRef=%d, mayEscapeInitialValue=%d",
-                var, var.base1, var.base2, var.dereferenceVar, var.oldestLifeTimeAllowedDepth,
-                var.youngestLifeTimeAllowedDepth, var.writeCount, var.unmodellable,
-                var.isScope, var.isByRef, var.mayEscapeInitialValue);
+                ob.printf(" %p base1=%p, base2=%p, dereferenceVar=%p, storageFor=%p, oldestLifeTimeAllowedDepth=%d<%d, writeCount=%d, unmodel=%d, isScope=%d, isByRef=%d, mayEscapeInitialValue=%d",
+                var, var.base1, var.base2, var.dereferenceVar, var.storageFor,
+                var.oldestLifeTimeAllowedDepth, var.youngestLifeTimeAllowedDepth, var.writeCount,
+                var.unmodellable, var.isScope, var.isByRef, var.mayEscapeInitialValue);
 
                 if (var.var !is null)
                 {
