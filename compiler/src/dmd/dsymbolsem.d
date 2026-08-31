@@ -647,6 +647,11 @@ Dsymbol search_correct(Scope* _this, Identifier ident)
             // https://github.com/dlang/dmd/issues/18763
             if (decl.isAliasDeclaration() && decl.inuse)
                 return null;
+
+            // Same reasoning, but for a variable whose own initializer
+            // is still being resolved. https://github.com/dlang/dmd/issues/20411
+            if (decl.isVarDeclaration() && sc.varDecl == decl)
+                return null;
         }
         // Or `deprecated` ones if we're not in a deprecated scope
         if (s.isDeprecated() && !sc.isDeprecated())
@@ -2410,7 +2415,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 return;
             }
             //printf("inferring type for %s with init %s\n", dsym.toChars(), dsym._init.toChars());
+            sc = sc.push();
+            sc.varDecl = dsym; // https://github.com/dlang/dmd/issues/20411
             dsym._init = dsym._init.inferInitializerType(sc, dsym.type, global.errorSink);
+            sc = sc.pop();
             dsym.type = dsym._init.initializerToExpression(null, sc.inCfile).type;
 
             if (autoDollarDims.length)
