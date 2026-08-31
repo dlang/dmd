@@ -47,7 +47,7 @@ import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.errors;
+import dmd.errors : Classification;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
@@ -932,12 +932,13 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
         // This returns a function pointer
         scope printFn = () {
+            auto eSink = global.errorSink;
             final switch (cl)
             {
                 case Classification.error:
-                    return &errorSupplemental;
+                    return &eSink.errorSupplemental;
                 case Classification.deprecation:
-                    return &deprecationSupplemental;
+                    return &eSink.deprecationSupplemental;
                 case Classification.gagged, Classification.warning:
                     assert(0);
             }

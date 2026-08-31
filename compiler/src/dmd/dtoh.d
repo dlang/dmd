@@ -12,6 +12,7 @@
 module dmd.dtoh;
 
 import core.stdc.stdio;
+import core.stdc.stdarg;
 import core.stdc.string;
 import core.stdc.ctype;
 
@@ -22,8 +23,7 @@ import dmd.dsymbolsem;
 import dmd.templatesem : computeOneMember;
 import dmd.expressionsem : toInteger;
 import dmd.funcsem : isVirtual;
-//import dmd.errors : fatal;
-import dmd.errors;
+import dmd.errors : fatal;
 import dmd.errorsink;
 import dmd.globals;
 import dmd.hdrgen;

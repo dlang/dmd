@@ -27,12 +27,13 @@ import dmd.cparse;
 import dmd.declaration;
 import dmd.dmacro;
 import dmd.dsymbol;
-import dmd.errors;
+import dmd.errors : fatal;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.file_manager;
 import dmd.func;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
@@ -503,9 +504,10 @@ extern (C++) final class Module : Package
                 buf.writeByte('.');
             }
             buf.printf("%s\t(%s)", ident.toChars(), m.srcfile.toChars());
-            message("import    %s", buf.peekChars());
+            auto eSink = global.errorSink;
+            eSink.message(Loc.init, "import    %s", buf.peekChars());
             if (loc != Loc.initial)
-                message("(imported from %s)", loc.toChars());
+                eSink.message(Loc.init, "(imported from %s)", loc.toChars());
         }
         if((m = m.parse()) is null) return null;
 
@@ -615,7 +617,7 @@ extern (C++) final class Module : Package
             {
                 eSink.error(loc, "unable to read module `%s`", toChars());
                 const pkgfile = FileName.combine(FileName.sansExt(name), package_d);
-                .errorSupplemental(loc, "Expected '%.*s' or '%.*s' in one of the following import paths:",
+                eSink.errorSupplemental(loc, "Expected '%.*s' or '%.*s' in one of the following import paths:",
                     cast(int)name.length, name.ptr, cast(int)pkgfile.length, pkgfile.ptr);
             }
         }
