@@ -43,7 +43,6 @@ import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dtemplate;
-import dmd.errors;
 import dmd.errorsink;
 import dmd.enumsem;
 import dmd.escape;
