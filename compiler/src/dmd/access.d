@@ -226,17 +226,8 @@ bool checkAccess(Loc loc, Scope* sc, Expression e, Dsymbol d)
  */
 bool checkAccess(Scope* sc, Package p)
 {
-    if (sc._module == p)
+    if (sc._module == p || sc._module == p.isPackageMod())
         return false;
-
-    // https://issues.dlang.org/show_bug.cgi?id=24632
-    // A `package.d` module referring to its own fully qualified package
-    // name resolves to the semantic `Package` symbol, not the `Module`
-    // symbol for `package.d` itself, so the check above misses this case.
-    // Treat that as a self-reference too.
-    if (auto m = p.isPackageMod())
-        if (sc._module == m)
-            return false;
 
     for (; sc; sc = sc.enclosing)
     {
