@@ -45,7 +45,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : hasPointers, hasStaticCtorOrDtor, include, isFuncHidden,
                         isAbstract, toAlias, fillVtbl;
 import dmd.dtemplate;
-import dmd.errors;
+import dmd.errors : fatal;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem : getDsymbol, toInteger;
@@ -522,7 +522,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                     if (userDefinedSection)
                     {
-                        error(vd.loc, "%s `%s` can only have one section attribute", vd.kind, vd.toPrettyChars);
+                        auto eSink = global.errorSink;
+                        eSink.error(vd.loc, "%s `%s` can only have one section attribute", vd.kind, vd.toPrettyChars);
                         return 1;
                     }
 
