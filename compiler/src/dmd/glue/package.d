@@ -63,11 +63,13 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : getLocalClasses, getType, findGetMembers;
 import dmd.expressionsem : toInteger;
 import dmd.dtemplate;
-import dmd.errors;
+import dmd.errors : fatal;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
 import dmd.funcsem : onlyOneMain, isVirtual;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.identifier;
 import dmd.id;
 import dmd.lib;
@@ -312,7 +314,8 @@ tym_t totym(Type tx)
         case Ttypeof:
         case Tmixin:
             //printf("ty = %d, '%s'\n", tx.ty, tx.toChars());
-            error(Loc.initial, "forward reference of `%s`", tx.toErrMsg());
+            auto eSink = global.errorSink;
+            eSink.error(Loc.initial, "forward reference of `%s`", tx.toErrMsg());
             t = TYint;
             break;
 
@@ -479,7 +482,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
          * but the errors were gagged.
          * Try to reproduce those errors, and then fail.
          */
-        .error(fd.loc, "%s `%s` errors compiling the function", fd.kind, fd.toPrettyChars);
+        auto eSink = global.errorSink;
+        eSink.error(fd.loc, "%s `%s` errors compiling the function", fd.kind, fd.toPrettyChars);
         return;
     }
     assert(fd.semanticRun >= PASS.semantic3done && fd.semanticRun <= PASS.inlineAll);

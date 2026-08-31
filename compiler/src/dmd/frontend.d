@@ -13,7 +13,7 @@ module dmd.frontend;
 import dmd.astcodegen : ASTCodegen;
 import dmd.astenums : CHECKENABLE;
 import dmd.dmodule : Module;
-import dmd.errors;
+import dmd.errors : DiagnosticHandler, diagnosticHandler, FatalErrorHandler, fatalErrorHandler, Classification;
 import dmd.globals : DiagnosticReporting;
 import dmd.location;
 

@@ -25,7 +25,6 @@ import dmd.declaration;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
-import dmd.errors;
 import dmd.func;
 import dmd.globals : dinteger_t, global;
 import dmd.hdrgen : toChars;

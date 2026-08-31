@@ -22,7 +22,7 @@ import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.errors;
+import dmd.errors : previewSupplementalFunc, previewErrorFunc;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
