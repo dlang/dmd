@@ -73,12 +73,30 @@ fail_compilation/fastdfa.d(1455):        For variable `b`
 fail_compilation/fastdfa.d(1474): Error: A borrow cannot outlive the variable it borrows from
 fail_compilation/fastdfa.d(1473):        Possible source `c`
 fail_compilation/fastdfa.d(1471):        The borrow is stored in variable `b`
-fail_compilation/fastdfa.d(1487): Error: Cannot mutate the owner of an active borrow
-fail_compilation/fastdfa.d(1482):        For variable `s`
-fail_compilation/fastdfa.d(1483):        Borrowed here
-fail_compilation/fastdfa.d(1488): Error: Cannot pass the owner of an active borrow to a function that may mutate it
-fail_compilation/fastdfa.d(1488):        Parameter `obj` must be const or immutable
-fail_compilation/fastdfa.d(1483):        Borrowed here
+fail_compilation/fastdfa.d(1488): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1483):        For variable `s`
+fail_compilation/fastdfa.d(1484):        Borrowed here
+fail_compilation/fastdfa.d(1489): Error: Cannot pass the owner of an active borrow to a function that may mutate it
+fail_compilation/fastdfa.d(1489):        Parameter `obj` must be const or immutable
+fail_compilation/fastdfa.d(1484):        Borrowed here
+fail_compilation/fastdfa.d(1497): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1494):        For variable `x`
+fail_compilation/fastdfa.d(1495):        Borrowed here
+fail_compilation/fastdfa.d(1498): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1494):        For variable `x`
+fail_compilation/fastdfa.d(1495):        Borrowed here
+fail_compilation/fastdfa.d(1499): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1494):        For variable `x`
+fail_compilation/fastdfa.d(1496):        Borrowed here
+fail_compilation/fastdfa.d(1509): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1504):        For variable `x`
+fail_compilation/fastdfa.d(1506):        Borrowed here
+fail_compilation/fastdfa.d(1517): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1513):        For variable `x`
+fail_compilation/fastdfa.d(1516):        Borrowed here
+fail_compilation/fastdfa.d(1526): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1523):        For variable `x`
+fail_compilation/fastdfa.d(1524):        Borrowed here
 ---
 */
 
@@ -516,8 +534,8 @@ void methodOutliveErr()
 void methodPassErr()
 {
     BorrowStruct s;
-    int** b = s.get(); // error: passing the borrowed owner to a mutating function
-    methodTake(&s.p);
+    int** b = s.get();
+    methodTake(&s.p); // error: passing the borrowed owner to a mutating function
 }
 
 void borrowOutliveErr1()
@@ -561,7 +579,8 @@ void classOutliveErr()
     }
 }
 
-void borrowMutateAssignCall() {
+void borrowMutateAssignCall()
+{
     void call(ref const BorrowStruct, scope int**) {}
     void borrow(scope int**) {}
 
@@ -572,6 +591,48 @@ void borrowMutateAssignCall() {
 
     s = s.init; // error
     destroy(s); // error
+}
+
+void ternaryByRefNoInfect(bool condition)
+{
+    int* x;
+    int** q = condition ? borrowFn2(&x) : &x;
+    int** r = condition ?
+        borrowFn2(&x) : // error borrow could be in here, and param is not const
+        borrowFn2(&x);  // error
+    x = null;
+}
+
+void borrowInTernaryConditionNoInfect()
+{
+    int* x;
+    int* y;
+    int** result = (borrowFn2(&x) != null) ?
+        borrowFn2(&x) : // ok, the previous borrow wasn't stored
+        &y;
+    x = null; // error could be a borrow
+}
+
+void borrowInTernaryConditionInfect() {
+    int* x;
+    int* y;
+    int** temp;
+    int** result = ((temp = borrowFn2(&x)) !is null) ?
+        borrowFn2(&x) : // error
+        &y;
+}
+
+void borrowInConditionInfect()
+{
+    int* x = new int;
+    if (int** temp = borrowFn2(&x))
+    {
+        x = null; // error
+    }
+    else
+    {
+        x = null; // ok - borrow not active in false branch
+    }
 }
 
 /****************** End borrow checker (errors) ******************/

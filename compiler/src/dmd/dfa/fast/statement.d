@@ -647,9 +647,14 @@ final:
             DFAVar* conditionVar;
 
             {
+                this.startScope;
+                dfaCommon.currentDFAScope.inConditional = true;
+                dfaCommon.currentDFAScope.sideEffectFree = true;
+
                 conditionLR = expWalker.walkCondition(ifs.condition, predicateNegation);
                 conditionVar = conditionLR.getGateConsequenceVariable;
 
+                dfaCommon.currentDFAScope.sideEffectFree = false;
                 seeRead(conditionLR, ifs.condition.loc);
             }
 
@@ -678,9 +683,6 @@ final:
 
             {
                 dfaCommon.printStructureln("If true branch:");
-                this.startScope;
-                dfaCommon.currentDFAScope.inConditional = true;
-
                 expWalker.seeSilentAssert(trueCondition, true, true);
                 this.applyGateOnBranch(conditionVar, predicateNegation, true);
             }

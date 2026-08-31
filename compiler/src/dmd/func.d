@@ -253,8 +253,7 @@ extern(D) struct ParameterDFAInfo
             else if (id == -1)
                 return cast(EscapedRelationship)((this.escapesInto >> 4) & 0x3);
 
-            this.escapesInto >>= 6 + (id * 2);
-            return cast(EscapedRelationship)(this.escapesInto & 0x3);
+            return cast(EscapedRelationship)((this.escapesInto >> (6 + (id * 2))) & 0x3);
         }
 
         /// Set this parameter's relationship strength to the following parameter id.

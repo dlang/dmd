@@ -1415,4 +1415,17 @@ void classOk()
     int** b = c.get(); // ok: heap owner, no lifetime constraint
 }
 
+void borrowInConditionNoInfectElse()
+{
+    int* x;
+    if (borrowFn2(&x) != null)
+    {
+        // true branch - borrow active
+    }
+    else
+    {
+        x = null; // ok - borrow not active in false branch
+    }
+}
+
 /****************** End borrow checker (ok) ******************/
