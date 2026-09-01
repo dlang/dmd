@@ -4150,6 +4150,7 @@ void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, size_t of
     int inBacktick = 0;
     int macroLevel = 0;
     int previousMacroLevel = 0;
+    bool expectMacroName = false;
     int parenLevel = 0;
     size_t iCodeStart = 0; // start of code section
     size_t codeFenceLength = 0;
@@ -4857,7 +4858,10 @@ void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, size_t of
             const slice = buf[];
             auto p = &slice[i];
             if (p[1] == '(' && isIdStart(&p[2]))
+            {
                 ++macroLevel;
+                expectMacroName = true;
+            }
             break;
         }
 
@@ -4940,24 +4944,34 @@ void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, size_t of
                     i = buf.bracket(i, "$(DDOC_AUTO_PSYMBOL_SUPPRESS ", j - 1, ")") - 1;
                     break;
                 }
-                if (!macroLevel)
+                if (expectMacroName)
                 {
-                    if (isIdentifier(a, start[0 .. len]))
-                    {
-                        i = buf.bracket(i, "$(DDOC_AUTO_PSYMBOL ", j, ")") - 1;
-                        break;
-                    }
-                    if (isKeyword(start[0 .. len]))
-                    {
-                        i = buf.bracket(i, "$(DDOC_AUTO_KEYWORD ", j, ")") - 1;
-                        break;
-                    }
-                    if (isFunctionParameter(a, start[0 .. len]))
-                    {
-                        //printf("highlighting arg '%s', i = %d, j = %d\n", arg.ident.toChars(), i, j);
-                        i = buf.bracket(i, "$(DDOC_AUTO_PARAM ", j, ")") - 1;
-                        break;
-                    }
+                    /* This identifier is the macro name right after `$(`,
+                     * e.g. the first `test` in `$(test test)`. Leave it
+                     * alone so the macro can still be recognized/expanded;
+                     * only the macro's *arguments* (below) may be
+                     * auto-highlighted like normal text.
+                     * https://github.com/dlang/dmd/issues/19080
+                     */
+                    expectMacroName = false;
+                    i = j - 1;
+                    break;
+                }
+                if (isIdentifier(a, start[0 .. len]))
+                {
+                    i = buf.bracket(i, "$(DDOC_AUTO_PSYMBOL ", j, ")") - 1;
+                    break;
+                }
+                if (isKeyword(start[0 .. len]))
+                {
+                    i = buf.bracket(i, "$(DDOC_AUTO_KEYWORD ", j, ")") - 1;
+                    break;
+                }
+                if (isFunctionParameter(a, start[0 .. len]))
+                {
+                    //printf("highlighting arg '%s', i = %d, j = %d\n", arg.ident.toChars(), i, j);
+                    i = buf.bracket(i, "$(DDOC_AUTO_PARAM ", j, ")") - 1;
+                    break;
                 }
                 i = j - 1;
             }
