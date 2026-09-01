@@ -40,12 +40,14 @@ void worker()
 void main()
 {
     import core.stdc.string : strcmp;
-    assert(_d_tgc_version() && !strcmp(_d_tgc_version(), "0.2.0"));
+    auto ver = _d_tgc_version();
+    assert(ver !is null && !strcmp(ver, "0.2.0"));
 
     // Shared region scaffold: create, attach, alloc
     auto rid = _d_tgc_region_create();
     assert(rid != 0);
-    assert(_d_tgc_region_attach(rid));
+    bool attached = _d_tgc_region_attach(rid);
+    assert(attached);
     auto rp = cast(int*) _d_tgc_region_malloc(rid, int.sizeof, 0);
     assert(rp !is null);
     *rp = 123;
