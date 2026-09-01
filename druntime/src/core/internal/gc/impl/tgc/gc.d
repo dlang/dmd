@@ -1,14 +1,16 @@
 /**
- * Opt-in thread-local garbage collector (`tgc`).
+ * Opt-in thread-local garbage collector (`tgc`) — **0.1.0 prototype**.
  *
- * Each attached thread owns a private heap arena. Collection scans and sweeps
- * only that thread's stack, TLS, roots/ranges, and blocks — it does not call
- * `thread_suspendAll`. Detached `@nogc` threads are never paused by `tgc`.
+ * Target design: per-thread private heaps plus partitioned shared regions
+ * (many-to-many). Collecting a region pauses only threads attached to that
+ * region. See dlang-supplemental design notes for the full architecture.
  *
- * Cross-thread pointer sharing of GC blocks is unsupported in v1 except via
- * explicit ownership transfer that returns memory through a remote free list.
- * Prefer copy or `immutable` message passing (`std.concurrency`). Partitioned
- * shared regions are planned as Phase 2.
+ * **0.1.0 ships:** private per-thread heaps, local collect without global
+ * `thread_suspendAll`, remote-free stub on private heaps, shared-region API
+ * scaffold only (region collect / selective suspend not implemented).
+ *
+ * Cross-thread sharing on private heaps via remote free is interim, not the
+ * target model. Prefer attaching workers to a shared region once implemented.
  *
  * Select with `--DRT-gcopt=gc:tgc`. Informal side-name: "realtime GC".
  *
@@ -16,6 +18,9 @@
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  */
 module core.internal.gc.impl.tgc.gc;
+
+/// Semantic version of the `tgc` prototype (not druntime release version).
+enum tgcVersion = "0.1.0";
 
 import core.gc.gcinterface;
 
@@ -171,6 +176,183 @@ private struct ThreadHeap
     }
 }
 
+/**
+ * Partitioned shared region heap (target cross-thread model).
+ *
+ * Threads attach explicitly; collecting this region must pause only members
+ * (selective suspend not implemented in 0.1.0).
+ */
+private struct SharedRegion
+{
+    uint id;
+    ThreadHeap* heap;
+    ThreadHeap** members;
+    size_t memberLen;
+    size_t memberCap;
+    SpinLock lock;
+
+    static SharedRegion* create(uint id) nothrow @nogc
+    {
+        auto r = cast(SharedRegion*) cstdlib.calloc(1, SharedRegion.sizeof);
+        if (!r)
+            onOutOfMemoryError();
+        r.id = id;
+        r.heap = ThreadHeap.create();
+        r.lock = SpinLock(SpinLock.Contention.brief);
+        return r;
+    }
+
+    bool isAttached(ThreadHeap* h) nothrow @nogc
+    {
+        foreach (i; 0 .. memberLen)
+            if (members[i] is h)
+                return true;
+        return false;
+    }
+
+    bool attach(ThreadHeap* h) nothrow @nogc
+    {
+        if (!h)
+            return false;
+        lock.lock();
+        if (isAttached(h))
+        {
+            lock.unlock();
+            return true;
+        }
+        if (memberLen == memberCap)
+        {
+            size_t ncap = memberCap ? memberCap * 2 : 4;
+            auto np = cast(ThreadHeap**) cstdlib.realloc(members, ncap * (ThreadHeap*).sizeof);
+            if (!np)
+            {
+                lock.unlock();
+                onOutOfMemoryError();
+            }
+            members = np;
+            memberCap = ncap;
+        }
+        members[memberLen++] = h;
+        lock.unlock();
+        return true;
+    }
+
+    bool detach(ThreadHeap* h) nothrow @nogc
+    {
+        if (!h)
+            return false;
+        lock.lock();
+        foreach (i; 0 .. memberLen)
+        {
+            if (members[i] is h)
+            {
+                members[i] = members[memberLen - 1];
+                memberLen--;
+                lock.unlock();
+                return true;
+            }
+        }
+        lock.unlock();
+        return false;
+    }
+
+    void collectRegion() nothrow @nogc
+    {
+        // 0.1.0: region-scoped STW requires selective thread suspend (not in druntime).
+        // Stub: mark/sweep region heap blocks only; member stacks not scanned yet.
+        heap.drainRemote();
+        for (auto b = heap.head; b; b = b.next)
+            b.marked = 0;
+        // TODO(>0.1.0): suspend attached threads only, mark from their stacks/TLS, sweep.
+    }
+}
+
+private __gshared SharedRegion*[] allRegions;
+private __gshared uint nextRegionId = 1;
+private __gshared SpinLock regionsLock;
+
+private SharedRegion* findRegion(uint id) nothrow @nogc
+{
+    regionsLock.lock();
+    foreach (r; allRegions)
+    {
+        if (r && r.id == id)
+        {
+            regionsLock.unlock();
+            return r;
+        }
+    }
+    regionsLock.unlock();
+    return null;
+}
+
+/// Create a partitioned shared region; returns region id (0 on failure).
+extern (C) uint _d_tgc_region_create() nothrow @nogc
+{
+    regionsLock.lock();
+    uint id = nextRegionId++;
+    auto r = SharedRegion.create(id);
+    allRegions ~= r;
+    regionsLock.unlock();
+    return id;
+}
+
+/// Attach the calling thread's private heap to `regionId`.
+extern (C) bool _d_tgc_region_attach(uint regionId) nothrow @nogc
+{
+    auto r = findRegion(regionId);
+    if (!r)
+        return false;
+    return r.attach(currentHeap());
+}
+
+/// Detach the calling thread from `regionId`.
+extern (C) bool _d_tgc_region_detach(uint regionId) nothrow @nogc
+{
+    auto r = findRegion(regionId);
+    if (!r)
+        return false;
+    return r.detach(currentHeap());
+}
+
+/// Allocate in a shared region (attached threads only). Returns null if unknown region or not attached.
+extern (C) void* _d_tgc_region_malloc(uint regionId, size_t size, uint bits) nothrow @nogc
+{
+    auto r = findRegion(regionId);
+    if (!r)
+        return null;
+    auto local = currentHeap();
+    r.lock.lock();
+    if (!r.isAttached(local))
+    {
+        r.lock.unlock();
+        return null;
+    }
+    r.lock.unlock();
+
+    r.heap.drainRemote();
+    size_t total = BlkHeader.sizeof + size;
+    auto raw = cstdlib.malloc(total);
+    if (size && raw is null)
+        onOutOfMemoryError();
+    memset(raw, 0, BlkHeader.sizeof);
+    auto h = cast(BlkHeader*) raw;
+    h.size = size;
+    h.attr = bits;
+    h.marked = 0;
+    h.heap = r.heap;
+    h.next = null;
+    h.prev = null;
+    r.heap.link(h);
+    r.heap.allocatedTotal += size;
+    return cast(void*)(h + 1);
+}
+
+extern (C) const(char)* _d_tgc_version() nothrow @nogc
+{
+    return tgcVersion.ptr;
+}
+
 // TLS pointer to the calling thread's heap
 private static ThreadHeap* tlsHeap;
 
@@ -229,6 +411,7 @@ private ThreadHeap* currentHeap() nothrow @nogc
 private pragma(crt_constructor) void gc_tgc_ctor()
 {
     heapsLock = SpinLock(SpinLock.Contention.brief);
+    regionsLock = SpinLock(SpinLock.Contention.brief);
     _d_register_tgc_gc();
 }
 
@@ -261,9 +444,9 @@ private GC initialize()
 }
 
 /**
- * Thread-local GC implementation.
+ * Thread-local GC implementation (`tgc` 0.1.0 prototype).
  *
- * Also known informally as a "realtime GC" because collection does not
+ * Also known informally as a "realtime GC" because local collection does not
  * globally stop-the-world; the name registered with the runtime is `tgc`.
  */
 class ThreadGC : GC
@@ -641,6 +824,18 @@ private:
             }
         }
         heapsLock.unlock();
+        regionsLock.lock();
+        foreach (r; allRegions)
+        {
+            if (!r || !r.heap)
+                continue;
+            if (auto b = r.heap.findBlock(p))
+            {
+                regionsLock.unlock();
+                return b;
+            }
+        }
+        regionsLock.unlock();
         return null;
     }
 
