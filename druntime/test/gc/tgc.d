@@ -1,11 +1,16 @@
 /**
- * Smoke tests for the opt-in thread-local GC (`tgc`).
+ * Smoke tests for the opt-in thread-local GC (`tgc`, 0.1.0 prototype).
  *
  * Run with: --DRT-gcopt=gc:tgc
  */
 import core.memory;
 import core.thread;
 import core.atomic;
+
+extern (C) uint _d_tgc_region_create() nothrow @nogc;
+extern (C) bool _d_tgc_region_attach(uint regionId) nothrow @nogc;
+extern (C) void* _d_tgc_region_malloc(uint regionId, size_t size, uint bits) nothrow @nogc;
+extern (C) const(char)* _d_tgc_version() nothrow @nogc;
 
 shared size_t otherThreadAllocs;
 shared bool otherDone;
@@ -34,6 +39,18 @@ void worker()
 
 void main()
 {
+    import core.stdc.string : strcmp;
+    assert(_d_tgc_version() && !strcmp(_d_tgc_version(), "0.1.0"));
+
+    // Shared region scaffold: create, attach, alloc
+    auto rid = _d_tgc_region_create();
+    assert(rid != 0);
+    assert(_d_tgc_region_attach(rid));
+    auto rp = cast(int*) _d_tgc_region_malloc(rid, int.sizeof, 0);
+    assert(rp !is null);
+    *rp = 123;
+    assert(*rp == 123);
+
     auto before = GC.profileStats().numCollections;
 
     // Local allocations
