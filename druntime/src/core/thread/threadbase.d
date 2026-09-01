@@ -1053,6 +1053,9 @@ package __gshared bool multiThreadedFlag = false;
 // Used for suspendAll/resumeAll below.
 package __gshared uint suspendDepth = 0;
 
+// Partial STW for opt-in GC region collect (tgc). Separate from suspendDepth.
+package __gshared uint listSuspendDepth = 0;
+
 private alias resume = externDFunc!("core.thread.osthread.resume", void function(ThreadBase) nothrow @nogc);
 
 /**
@@ -1217,7 +1220,7 @@ extern (C) void thread_scanAll(scope ScanAllThreadsFn scan) nothrow
 /**
  * Scan stacks/registers/TLS of threads suspended by thread_suspendList.
  */
-extern (C) void thread_scanList(ThreadBase** list, size_t count, scope ScanAllThreadsFn scan) nothrow
+extern (C) void thread_scanList(ThreadBase* list, size_t count, scope ScanAllThreadsFn scan) nothrow
 in
 {
     assert(listSuspendDepth > 0);
@@ -1227,7 +1230,7 @@ do
     callWithStackShell(sp => scanListImpl(list, count, scan, sp));
 }
 
-private void scanListImpl(ThreadBase** list, size_t count, scope ScanAllThreadsFn scan, void* curStackTop) nothrow
+private void scanListImpl(ThreadBase* list, size_t count, scope ScanAllThreadsFn scan, void* curStackTop) nothrow
 {
     ThreadBase thisThread = null;
     void* oldStackTop = null;

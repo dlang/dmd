@@ -1513,16 +1513,12 @@ extern (C) void thread_suspendAll() nothrow
     }
 }
 
-// Partial STW for opt-in GC region collect (tgc). Separate from suspendDepth
-// used by thread_suspendAll so region collect does not nest with global STW.
-private __gshared uint listSuspendDepth;
-
 /**
  * Suspend only the listed threads for partial stop-the-world collection.
  * The calling thread is never blocked; if listed, only its registers are captured.
  * Must be paired with thread_resumeList.
  */
-extern (C) void thread_suspendList(ThreadBase** list, size_t count) nothrow
+extern (C) void thread_suspendList(ThreadBase* list, size_t count) nothrow
 {
     thread_preStopTheWorld();
     if (++listSuspendDepth > 1)
@@ -1573,7 +1569,7 @@ extern (C) void thread_suspendList(ThreadBase** list, size_t count) nothrow
 /**
  * Resume threads suspended by thread_suspendList.
  */
-extern (C) void thread_resumeList(ThreadBase** list, size_t count) nothrow
+extern (C) void thread_resumeList(ThreadBase* list, size_t count) nothrow
 in
 {
     assert(listSuspendDepth > 0);
