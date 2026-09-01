@@ -19,6 +19,7 @@ module core.sync.rwmutex;
 public import core.sync.exception;
 import core.sync.condition;
 import core.sync.mutex;
+import core.thread : isSingleThreaded;
 import core.memory;
 import core.atomic : atomicLoad;
 
@@ -562,8 +563,7 @@ private:
 // Unit Tests
 ////////////////////////////////////////////////////////////////////////////////
 
-version (WASI) {} // WASI is single-threaded
-else
+static if(!isSingleThreaded)
 unittest
 {
     import core.atomic, core.thread, core.sync.semaphore;
@@ -703,8 +703,7 @@ unittest
     runTest(ReadWriteMutex.Policy.PREFER_WRITERS);
 }
 
-version (WASI) {} // WASI is single-threaded
-else
+static if(!isSingleThreaded)
 unittest
 {
     import core.atomic, core.thread;
@@ -781,8 +780,7 @@ unittest
     }
 }
 
-version (WASI) {} // WASI is single-threaded
-else
+static if(!isSingleThreaded)
 unittest
 {
     import core.atomic, core.thread, core.sync.semaphore;
@@ -924,8 +922,7 @@ unittest
     runTest(ReadWriteMutex.Policy.PREFER_WRITERS);
 }
 
-version (WASI) {} // WASI is single-threaded
-else
+static if(!isSingleThreaded)
 unittest
 {
     import core.atomic, core.thread;

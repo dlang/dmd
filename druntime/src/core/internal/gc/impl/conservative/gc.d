@@ -29,8 +29,7 @@ module core.internal.gc.impl.conservative.gc;
 //debug = VALGRIND;             // Valgrind memcheck integration
 
 /***************************************************/
-version (WASI) {} // WASI is single-threaded
-else
+static if (!isSingleThreaded)
 {
     version = COLLECT_PARALLEL;  // parallel scanning
 
