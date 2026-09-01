@@ -1,17 +1,15 @@
-Opt-in thread-local GC (`tgc`, 0.1.1 prototype)
+Opt-in thread-local GC (`tgc`, 0.2.0 prototype)
 
-A new garbage collector implementation can be selected with
-`--DRT-gcopt=gc:tgc`.
+Select with `--DRT-gcopt=gc:tgc`.
 
-**0.1.0:** per-thread private heap arenas with local collection (no
-process-wide stop-the-world for a private-heap collect).
+**0.2.0:** working partitioned shared regions with region-scoped collection
+(selective thread suspend via `thread_suspendList`), per-heap list locks,
+basic array append metadata, and benchmark/test harness.
 
-**0.1.1:** adds shared-region API scaffold (`_d_tgc_region_*`); region
-collect and selective thread suspend are not implemented.
+Region API: `_d_tgc_region_create`, `_d_tgc_region_attach`, `_d_tgc_region_malloc`,
+`_d_tgc_region_collect`, `_d_tgc_version`.
 
-**0.2.0 (planned):** working partitioned shared regions (breaking).
+Optional: `--DRT-gcopt=gc:tgc tgcShared:symgc` (SymGC shared backend stub for 0.3.0).
 
-Cross-thread use of private heaps may queue frees via a remote free list
-(interim bring-up only).
-
-Prototype version: 0.1.1 (`_d_tgc_version()`).
+Tests: `druntime/test/gc/tgc.d`, `tgc_regions.d`, `tgc_bench.d`.
+Benchmarks: `tools/tgc-bench/run-benchmarks.ps1`.

@@ -1,12 +1,13 @@
 /**
- * Opt-in thread-local garbage collector (`tgc`) — **0.1.1 prototype**.
+ * Opt-in thread-local garbage collector (`tgc`) — **0.2.0 prototype**.
  *
  * Target design: per-thread private heaps plus partitioned shared regions
  * (many-to-many). Collecting a region pauses only threads attached to that
  * region. See dlang-supplemental design notes for the full architecture.
  *
  * **0.1.0:** private per-thread heaps, local collect, remote-free stub.
- * **0.1.1:** adds shared-region API scaffold (no region collect yet).
+ * **0.1.1:** shared-region API scaffold.
+ * **0.2.0:** region collect (selective suspend), heap locks, array append metadata.
  *
  * Cross-thread sharing on private heaps via remote free is interim, not the
  * target model. Prefer attaching workers to a shared region once implemented.
@@ -19,7 +20,15 @@
 module core.internal.gc.impl.tgc.gc;
 
 /// Semantic version of the `tgc` prototype (not druntime release version).
-enum tgcVersion = "0.1.1";
+enum tgcVersion = "0.2.0";
+
+extern (C) void thread_suspendList(ThreadBase**, size_t) nothrow;
+extern (C) void thread_resumeList(ThreadBase**, size_t) nothrow;
+extern (C) void thread_scanList(ThreadBase**, size_t, scope void delegate(void*, void*) nothrow) nothrow;
+
+/// Shared-region backend selection (0.3.0 SymGC hybrid uses `symgc` when enabled).
+enum TgcSharedBackend : ubyte { tgcNative, symgc }
+private __gshared TgcSharedBackend tgcSharedBackend = TgcSharedBackend.tgcNative;
 
 import core.gc.gcinterface;
 
@@ -42,10 +51,11 @@ private enum size_t collectThresholdInit = 256 * 1024;
 
 private struct BlkHeader
 {
-    size_t size;       /// user-visible allocation size
+    size_t size;       /// user-visible capacity (alloc size)
+    size_t arrayUsed;  /// used bytes when BlkAttr.APPENDABLE (else 0)
     uint attr;
     uint marked;       /// non-zero when marked during collect
-    ThreadHeap* heap;  /// owning thread heap
+    ThreadHeap* heap;  /// owning heap
     BlkHeader* next;   /// intrusive list in owner heap
     BlkHeader* prev;
 }
@@ -65,6 +75,8 @@ private struct ThreadHeap
     SpinLock remoteLock;
 
     bool collecting;
+    SpinLock listLock;
+    ThreadBase* owner;
 
     static ThreadHeap* create() nothrow @nogc
     {
@@ -73,6 +85,7 @@ private struct ThreadHeap
             onOutOfMemoryError();
         h.collectThreshold = collectThresholdInit;
         h.remoteLock = SpinLock(SpinLock.Contention.brief);
+        h.listLock = SpinLock(SpinLock.Contention.brief);
         return h;
     }
 
@@ -116,16 +129,19 @@ private struct ThreadHeap
 
     void link(BlkHeader* h) nothrow @nogc
     {
+        listLock.lock();
         h.prev = null;
         h.next = head;
         if (head)
             head.prev = h;
         head = h;
         usedBytes += h.size;
+        listLock.unlock();
     }
 
     void unlink(BlkHeader* h) nothrow @nogc
     {
+        listLock.lock();
         if (h.prev)
             h.prev.next = h.next;
         else
@@ -136,6 +152,7 @@ private struct ThreadHeap
             usedBytes -= h.size;
         else
             usedBytes = 0;
+        listLock.unlock();
     }
 
     void unlinkAndFree(BlkHeader* h) nothrow @nogc
@@ -164,6 +181,8 @@ private struct ThreadHeap
     {
         if (!p)
             return null;
+        listLock.lock();
+        scope (exit) listLock.unlock();
         for (auto h = head; h; h = h.next)
         {
             void* base = h + 1;
@@ -185,7 +204,8 @@ private struct SharedRegion
 {
     uint id;
     ThreadHeap* heap;
-    ThreadHeap** members;
+    ThreadHeap** memberHeaps;
+    ThreadBase** memberThreads;
     size_t memberLen;
     size_t memberCap;
     SpinLock lock;
@@ -198,19 +218,27 @@ private struct SharedRegion
         r.id = id;
         r.heap = ThreadHeap.create();
         r.lock = SpinLock(SpinLock.Contention.brief);
+        if (tgcSharedBackend == TgcSharedBackend.symgc)
+        {
+            import core.stdc.stdio : fprintf, stderr;
+            fprintf(stderr, "tgc: tgcShared:symgc requested; using native shared-region backend (0.3.0)\n".ptr);
+        }
         return r;
     }
 
     bool isAttached(ThreadHeap* h) nothrow @nogc
     {
         foreach (i; 0 .. memberLen)
-            if (members[i] is h)
+            if (memberHeaps[i] is h)
                 return true;
         return false;
     }
 
-    bool attach(ThreadHeap* h) nothrow @nogc
+    bool attachThread(ThreadBase* tb) nothrow @nogc
     {
+        if (!tb)
+            return false;
+        auto h = cast(ThreadHeap*) tb.tlsGCData();
         if (!h)
             return false;
         lock.lock();
@@ -222,30 +250,38 @@ private struct SharedRegion
         if (memberLen == memberCap)
         {
             size_t ncap = memberCap ? memberCap * 2 : 4;
-            auto np = cast(ThreadHeap**) cstdlib.realloc(members, ncap * (ThreadHeap*).sizeof);
-            if (!np)
+            auto hp = cast(ThreadHeap**) cstdlib.realloc(memberHeaps, ncap * (ThreadHeap*).sizeof);
+            auto tp = cast(ThreadBase**) cstdlib.realloc(memberThreads, ncap * (ThreadBase*).sizeof);
+            if (!hp || !tp)
             {
                 lock.unlock();
                 onOutOfMemoryError();
             }
-            members = np;
+            memberHeaps = hp;
+            memberThreads = tp;
             memberCap = ncap;
         }
-        members[memberLen++] = h;
+        memberHeaps[memberLen] = h;
+        memberThreads[memberLen] = tb;
+        memberLen++;
         lock.unlock();
         return true;
     }
 
-    bool detach(ThreadHeap* h) nothrow @nogc
+    bool detachThread(ThreadBase* tb) nothrow @nogc
     {
+        if (!tb)
+            return false;
+        auto h = cast(ThreadHeap*) tb.tlsGCData();
         if (!h)
             return false;
         lock.lock();
         foreach (i; 0 .. memberLen)
         {
-            if (members[i] is h)
+            if (memberHeaps[i] is h)
             {
-                members[i] = members[memberLen - 1];
+                memberHeaps[i] = memberHeaps[memberLen - 1];
+                memberThreads[i] = memberThreads[memberLen - 1];
                 memberLen--;
                 lock.unlock();
                 return true;
@@ -255,20 +291,71 @@ private struct SharedRegion
         return false;
     }
 
-    void collectRegion() nothrow @nogc
+    void collectRegion() nothrow
     {
-        // 0.1.0: region-scoped STW requires selective thread suspend (not in druntime).
-        // Stub: mark/sweep region heap blocks only; member stacks not scanned yet.
+        if (!heap || heap.collecting)
+            return;
+        auto gc = cast(ThreadGC) tgcInstance;
+        if (!gc)
+            return;
+
+        heap.collecting = true;
         heap.drainRemote();
+
+        heap.listLock.lock();
         for (auto b = heap.head; b; b = b.next)
             b.marked = 0;
-        // TODO(>0.1.0): suspend attached threads only, mark from their stacks/TLS, sweep.
+        heap.listLock.unlock();
+
+        ThreadBase** tlist = null;
+        size_t n = 0;
+        lock.lock();
+        n = memberLen;
+        if (n)
+        {
+            tlist = cast(ThreadBase**) cstdlib.malloc(n * (ThreadBase*).sizeof);
+            if (!tlist)
+            {
+                lock.unlock();
+                onOutOfMemoryError();
+            }
+            memcpy(tlist, memberThreads, n * (ThreadBase*).sizeof);
+        }
+        lock.unlock();
+
+        if (n)
+        {
+            thread_suspendList(tlist, n);
+            thread_scanList(tlist, n, (void* p1, void* p2) nothrow {
+                gc.markRangeHeap(heap, p1, p2);
+            });
+            thread_resumeList(tlist, n);
+            cstdlib.free(tlist);
+        }
+
+        gc.rootsLock.lock();
+        foreach (ref r; gc.roots)
+        {
+            if (r.proot)
+                gc.markPtrHeap(heap, *cast(void**) r.proot);
+            gc.markPtrHeap(heap, r.proot);
+        }
+        foreach (ref r; gc.ranges)
+            gc.markRangeHeap(heap, r.pbot, r.ptop);
+        gc.rootsLock.unlock();
+
+        gc.markHeapFixpoint(heap);
+        gc.sweepHeap(heap);
+        heap.numCollections++;
+        gc.profileCollections++;
+        heap.collecting = false;
     }
 }
 
 private __gshared SharedRegion*[] allRegions;
 private __gshared uint nextRegionId = 1;
 private __gshared SpinLock regionsLock;
+private __gshared GC tgcInstance;
 
 private SharedRegion* findRegion(uint id) nothrow @nogc
 {
@@ -302,7 +389,10 @@ extern (C) bool _d_tgc_region_attach(uint regionId) nothrow @nogc
     auto r = findRegion(regionId);
     if (!r)
         return false;
-    return r.attach(currentHeap());
+    auto tb = ThreadBase.getThis();
+    if (!tb)
+        return false;
+    return r.attachThread(tb);
 }
 
 /// Detach the calling thread from `regionId`.
@@ -311,7 +401,20 @@ extern (C) bool _d_tgc_region_detach(uint regionId) nothrow @nogc
     auto r = findRegion(regionId);
     if (!r)
         return false;
-    return r.detach(currentHeap());
+    auto tb = ThreadBase.getThis();
+    if (!tb)
+        return false;
+    return r.detachThread(tb);
+}
+
+/// Collect a shared region (pauses only attached threads).
+extern (C) bool _d_tgc_region_collect(uint regionId) nothrow
+{
+    auto r = findRegion(regionId);
+    if (!r)
+        return false;
+    r.collectRegion();
+    return true;
 }
 
 /// Allocate in a shared region (attached threads only). Returns null if unknown region or not attached.
@@ -431,15 +534,38 @@ private void threadInitHook(ThreadBase base) nothrow @nogc
     base.tlsGCData() = tlsHeap;
 }
 
+private bool isSharedRegionHeap(ThreadHeap* h) nothrow @nogc
+{
+    if (!h)
+        return false;
+    regionsLock.lock();
+    foreach (r; allRegions)
+    {
+        if (r && r.heap is h)
+        {
+            regionsLock.unlock();
+            return true;
+        }
+    }
+    regionsLock.unlock();
+    return false;
+}
+
 private GC initialize()
 {
     import core.lifetime : emplace;
+    import core.gc.config;
+
+    if (config.tgcShared == "symgc")
+        tgcSharedBackend = TgcSharedBackend.symgc;
 
     auto gc = cast(ThreadGC) cstdlib.malloc(__traits(classInstanceSize, ThreadGC));
     if (!gc)
         onOutOfMemoryError();
 
-    return emplace(gc);
+    auto inst = emplace(gc);
+    tgcInstance = inst;
+    return inst;
 }
 
 /**
@@ -593,13 +719,11 @@ class ThreadGC : GC
             return;
         auto owner = blk.heap;
         auto local = tlsHeap;
-        if (owner is local || local is null)
+        if (isSharedRegionHeap(owner) || owner is local || local is null)
         {
-            if (owner)
-                owner.unlinkAndFree(blk);
+            owner.unlinkAndFree(blk);
             return;
         }
-        // Cross-thread free: queue for owning thread (ownership transfer).
         owner.pushRemote(p);
     }
 
@@ -749,22 +873,132 @@ class ThreadGC : GC
 
     void[] getArrayUsed(void* ptr, bool atomic = false) nothrow
     {
-        return null;
+        auto blk = queryBlock(ptr);
+        if (!blk || !(blk.attr & BlkAttr.APPENDABLE))
+            return null;
+        auto used = blk.arrayUsed ? blk.arrayUsed : blk.size;
+        return (cast(void*)(blk + 1))[0 .. used];
     }
 
     bool expandArrayUsed(void[] slice, size_t newUsed, bool atomic = false) nothrow @safe
     {
-        return false;
+        if (!slice.ptr)
+            return false;
+        auto blk = queryBlock(slice.ptr);
+        if (!blk || !(blk.attr & BlkAttr.APPENDABLE))
+            return false;
+        if (newUsed > blk.size)
+            return false;
+        blk.arrayUsed = newUsed;
+        return true;
     }
 
     size_t reserveArrayCapacity(void[] slice, size_t request, bool atomic = false) nothrow @safe
     {
-        return 0;
+        if (!slice.ptr || !request)
+            return 0;
+        auto blk = queryBlock(slice.ptr);
+        if (!blk || !(blk.attr & BlkAttr.APPENDABLE))
+            return 0;
+        if (request <= blk.size)
+            return blk.size;
+        auto bits = blk.attr;
+        auto oldUsed = blk.arrayUsed ? blk.arrayUsed : slice.length;
+        auto np = alloc(request, bits, false);
+        memcpy(np, slice.ptr, oldUsed < slice.length ? oldUsed : slice.length);
+        free(slice.ptr);
+        auto nblk = headerOf(np);
+        nblk.arrayUsed = oldUsed;
+        return request;
     }
 
     bool shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic = false) nothrow
     {
-        return false;
+        if (!slice.ptr)
+            return false;
+        auto blk = queryBlock(slice.ptr);
+        if (!blk || !(blk.attr & BlkAttr.APPENDABLE))
+            return false;
+        if (existingUsed > blk.size)
+            return false;
+        blk.arrayUsed = existingUsed;
+        return true;
+    }
+
+    package void markPtrHeap(ThreadHeap* heap, void* p) nothrow @nogc
+    {
+        markPtrInHeap(heap, p);
+    }
+
+    package void markRangeHeap(ThreadHeap* heap, void* pbot, void* ptop) nothrow @nogc
+    {
+        markRangeInHeap(heap, pbot, ptop);
+    }
+
+    package void markHeapFixpoint(ThreadHeap* heap) nothrow @nogc
+    {
+        size_t markedCount = 0;
+        heap.listLock.lock();
+        for (auto b = heap.head; b; b = b.next)
+            if (b.marked)
+                markedCount++;
+        heap.listLock.unlock();
+
+        size_t prevMarked = size_t.max;
+        while (prevMarked != markedCount)
+        {
+            prevMarked = markedCount;
+            heap.listLock.lock();
+            for (auto b = heap.head; b; b = b.next)
+            {
+                if (!b.marked || (b.attr & BlkAttr.NO_SCAN))
+                    continue;
+                void* base = b + 1;
+                markRangeInHeap(heap, base, base + b.size);
+            }
+            markedCount = 0;
+            for (auto b = heap.head; b; b = b.next)
+                if (b.marked)
+                    markedCount++;
+            heap.listLock.unlock();
+        }
+    }
+
+    package void sweepHeap(ThreadHeap* heap) nothrow
+    {
+        BlkHeader* doomed;
+        heap.listLock.lock();
+        auto b = heap.head;
+        while (b)
+        {
+            auto next = b.next;
+            if (!b.marked)
+            {
+                if (b.prev)
+                    b.prev.next = b.next;
+                else
+                    heap.head = b.next;
+                if (b.next)
+                    b.next.prev = b.prev;
+                if (heap.usedBytes >= b.size)
+                    heap.usedBytes -= b.size;
+                else
+                    heap.usedBytes = 0;
+                b.next = doomed;
+                doomed = b;
+            }
+            b = next;
+        }
+        heap.listLock.unlock();
+
+        while (doomed)
+        {
+            auto n = doomed.next;
+            if (doomed.attr & BlkAttr.FINALIZE)
+                rt_finalizeFromGC(doomed + 1, doomed.size, doomed.attr, null);
+            cstdlib.free(doomed);
+            doomed = n;
+        }
     }
 
     void initThread(ThreadBase t) nothrow @nogc
@@ -774,6 +1008,7 @@ class ThreadGC : GC
             tlsHeap = ThreadHeap.create();
             registerHeap(tlsHeap);
         }
+        tlsHeap.owner = t;
         t.tlsGCData() = tlsHeap;
     }
 
@@ -858,6 +1093,7 @@ private:
         h.size = size;
         h.attr = bits;
         h.marked = 0;
+        h.arrayUsed = (bits & BlkAttr.APPENDABLE) ? size : 0;
         h.heap = heap;
         h.next = null;
         h.prev = null;
@@ -878,11 +1114,11 @@ private:
         heap.collecting = true;
         heap.drainRemote();
 
-        // Clear marks
+        heap.listLock.lock();
         for (auto b = heap.head; b; b = b.next)
             b.marked = 0;
+        heap.listLock.unlock();
 
-        // Mark from stack (current thread only — no STW)
         void* top;
         void* bot;
         tryStackBounds(top, bot);
@@ -894,55 +1130,24 @@ private:
                 top = bot;
                 bot = tmp;
             }
-            markRange(heap, top, bot);
+            markRangeInHeap(heap, top, bot);
         }
 
-        // Mark from TLS of this thread
-        markTLS(heap);
+        markTLSHeap(heap);
 
-        // Mark from global roots/ranges
         rootsLock.lock();
         foreach (ref r; roots)
         {
             if (r.proot)
-                markPtr(heap, *cast(void**) r.proot);
-            markPtr(heap, r.proot);
+                markPtrInHeap(heap, *cast(void**) r.proot);
+            markPtrInHeap(heap, r.proot);
         }
         foreach (ref r; ranges)
-            markRange(heap, r.pbot, r.ptop);
+            markRangeInHeap(heap, r.pbot, r.ptop);
         rootsLock.unlock();
 
-        // Fixpoint: scan marked blocks for interior pointers (conservative)
-        size_t markedCount = 0;
-        for (auto b = heap.head; b; b = b.next)
-            if (b.marked)
-                markedCount++;
-        size_t prevMarked = size_t.max;
-        while (prevMarked != markedCount)
-        {
-            prevMarked = markedCount;
-            for (auto b = heap.head; b; b = b.next)
-            {
-                if (!b.marked || (b.attr & BlkAttr.NO_SCAN))
-                    continue;
-                void* base = b + 1;
-                markRange(heap, base, base + b.size);
-            }
-            markedCount = 0;
-            for (auto b = heap.head; b; b = b.next)
-                if (b.marked)
-                    markedCount++;
-        }
-
-        // Sweep unmarked
-        auto b = heap.head;
-        while (b)
-        {
-            auto next = b.next;
-            if (!b.marked)
-                heap.unlinkAndFreeFinalize(b);
-            b = next;
-        }
+        markHeapFixpoint(heap);
+        sweepHeap(heap);
 
         heap.numCollections++;
         profileCollections++;
@@ -965,35 +1170,39 @@ private:
         bot = thread_stackBottom();
     }
 
-    void markTLS(ThreadHeap* heap) nothrow
+    void markTLSHeap(ThreadHeap* heap) nothrow
     {
         import rt.sections;
         auto rng = initTLSRanges();
         scanTLSRanges(rng, (void* pbeg, void* pend) nothrow {
-            markRange(heap, pbeg, pend);
+            markRangeInHeap(heap, pbeg, pend);
         });
     }
 
-    void markRange(ThreadHeap* heap, void* pbot, void* ptop) nothrow
+    void markRangeInHeap(ThreadHeap* heap, void* pbot, void* ptop) nothrow @nogc
     {
         if (!pbot || !ptop || pbot >= ptop)
             return;
         auto p = cast(void**) pbot;
         auto e = cast(void**) ptop;
-        // Align
         auto addr = cast(size_t) p;
         addr = (addr + (void*).sizeof - 1) & ~((void*).sizeof - 1);
         p = cast(void**) addr;
         for (; p + 1 <= e; ++p)
-            markPtr(heap, *p);
+            markPtrInHeap(heap, *p);
     }
 
-    void markPtr(ThreadHeap* heap, void* p) nothrow
+    void markPtrInHeap(ThreadHeap* heap, void* p) nothrow @nogc
     {
         if (!p)
             return;
         auto b = heap.findBlock(p);
         if (b)
             b.marked = 1;
+    }
+
+    static BlkHeader* headerOf(void* p) nothrow @nogc
+    {
+        return ThreadHeap.headerOf(p);
     }
 }
