@@ -1581,7 +1581,7 @@ public:
              */
             if (auto pe = e.isPtrExp())
             {
-                if (pe.e1.isVarExp())
+                if (pe.e1.isVarExp() || pe.e1.isFuncExp())
                     e = pe.e1;
                 else if (auto se = pe.e1.isSymOffExp())
                     return se.var.isFuncDeclaration();
@@ -2089,6 +2089,8 @@ private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, PAS
     }
 
     {
+        scope v = new InlineScanVisitorDsymbol(pass, eSink);
+        fd.accept(v);
         cost = inlineCostFunction(fd, hasThis);
     }
     static if (CANINLINE_LOG)
@@ -2105,11 +2107,6 @@ private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, PAS
         fd.inlineStatusStmt = ILS.yes;
     else
         fd.inlineStatusExp = ILS.yes;
-
-    {
-        scope v = new InlineScanVisitorDsymbol(pass, eSink);
-        fd.accept(v);
-    }
 
     if (fd.inlineStatusExp == ILS.uninitialized)
     {
