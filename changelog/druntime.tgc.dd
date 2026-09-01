@@ -1,18 +1,17 @@
-Opt-in thread-local GC (`tgc`, 0.1.0 prototype)
+Opt-in thread-local GC (`tgc`, 0.1.1 prototype)
 
 A new garbage collector implementation can be selected with
 `--DRT-gcopt=gc:tgc`.
 
-**0.1.0 scope:** per-thread private heap arenas with local collection (no
-process-wide stop-the-world for a private-heap collect). Partitioned shared
-regions are the target cross-thread model; this release adds a region API
-scaffold (`_d_tgc_region_create`, attach, region malloc) but not region-scoped
-collection or selective thread suspend.
+**0.1.0:** per-thread private heap arenas with local collection (no
+process-wide stop-the-world for a private-heap collect).
+
+**0.1.1:** adds shared-region API scaffold (`_d_tgc_region_*`); region
+collect and selective thread suspend are not implemented.
+
+**0.2.0 (planned):** working partitioned shared regions (breaking).
 
 Cross-thread use of private heaps may queue frees via a remote free list
-(interim bring-up only). Prefer shared regions for pipelines that intentionally
-share memory.
+(interim bring-up only).
 
-Informally this collector is sometimes called a "realtime GC" because local
-collection avoids global pauses; the registered name is `tgc` (thread garbage
-collection). Prototype version: 0.1.0.
+Prototype version: 0.1.1 (`_d_tgc_version()`).

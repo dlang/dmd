@@ -20,7 +20,7 @@
 module core.internal.gc.impl.tgc.gc;
 
 /// Semantic version of the `tgc` prototype (not druntime release version).
-enum tgcVersion = "0.1.0";
+enum tgcVersion = "0.1.1";
 
 import core.gc.gcinterface;
 
