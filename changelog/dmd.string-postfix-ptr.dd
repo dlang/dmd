@@ -1,0 +1,19 @@
+String literals with a postfix can now implicitly convert to a `const` pointer
+
+A string literal with a `StringPostfix` (`c`, `w`, or `d`) can now implicitly
+convert to a `const` or `immutable` pointer of the corresponding character type,
+consistent with how unpostfixed string literals behave:
+
+-------
+const(char)*  p1 = "hello"c;
+const(wchar)* p2 = "hello"w;
+const(dchar)* p3 = "hello"d;
+-------
+
+This makes it easier to pass a string literal with an explicit wide character type to a C API.
+
+----
+GetModuleHandleW("opengl32.dll"); // already possible
+GetModuleHandle("opengl32.dll"w.ptr); // already possible
+GetModuleHandle("opengl32.dll"w); // now also allowed
+---
