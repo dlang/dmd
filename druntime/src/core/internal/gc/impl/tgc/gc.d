@@ -1,13 +1,12 @@
 /**
- * Opt-in thread-local garbage collector (`tgc`) — **0.1.0 prototype**.
+ * Opt-in thread-local garbage collector (`tgc`) — **0.1.1 prototype**.
  *
  * Target design: per-thread private heaps plus partitioned shared regions
  * (many-to-many). Collecting a region pauses only threads attached to that
  * region. See dlang-supplemental design notes for the full architecture.
  *
- * **0.1.0 ships:** private per-thread heaps, local collect without global
- * `thread_suspendAll`, remote-free stub on private heaps, shared-region API
- * scaffold only (region collect / selective suspend not implemented).
+ * **0.1.0:** private per-thread heaps, local collect, remote-free stub.
+ * **0.1.1:** adds shared-region API scaffold (no region collect yet).
  *
  * Cross-thread sharing on private heaps via remote free is interim, not the
  * target model. Prefer attaching workers to a shared region once implemented.
