@@ -774,8 +774,12 @@ $(H3 $(LNAME2 slice_assignment_operator, Slice Assignment Operator Overloading))
         `opIndexAssign` member function that takes the return value of the
         `opSlice` function as parameter(s).
         Expressions of the form $(CODE a[)$(SLICE)$(D ] = c) are rewritten as
-        $(CODE a.opIndexAssign$(LPAREN)c,) $(D a.opSlice!0$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN)),
-        and $(CODE a[] = c) as $(CODE a.opIndexAssign(c)).
+        $(CODE a.opIndexAssign$(LPAREN)c,) $(D a.opSlice!0$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN))
+        when `opSlice` is a template, or
+        $(CODE a.opIndexAssign$(LPAREN)c,) $(D a.opSlice$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN))
+        when `opSlice` is declared without the compile-time parameter
+        (for one-dimensional slicing only).
+        $(CODE a[] = c) is rewritten as $(CODE a.opIndexAssign(c)).
         )
 
         $(P See $(RELATIVE_LINK2 array-ops, Array
