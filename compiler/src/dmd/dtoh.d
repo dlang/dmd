@@ -1160,6 +1160,7 @@ public:
         }
         if (auto sd = ad.aliassym.isStructDeclaration())
         {
+            includeSymbol(sd);
             buf.writestring("typedef ");
             sd.type.accept(this);
             buf.writestring(" ");
