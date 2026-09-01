@@ -4940,21 +4940,24 @@ void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, size_t of
                     i = buf.bracket(i, "$(DDOC_AUTO_PSYMBOL_SUPPRESS ", j - 1, ")") - 1;
                     break;
                 }
-                if (isIdentifier(a, start[0 .. len]))
+                if (!macroLevel)
                 {
-                    i = buf.bracket(i, "$(DDOC_AUTO_PSYMBOL ", j, ")") - 1;
-                    break;
-                }
-                if (isKeyword(start[0 .. len]))
-                {
-                    i = buf.bracket(i, "$(DDOC_AUTO_KEYWORD ", j, ")") - 1;
-                    break;
-                }
-                if (isFunctionParameter(a, start[0 .. len]))
-                {
-                    //printf("highlighting arg '%s', i = %d, j = %d\n", arg.ident.toChars(), i, j);
-                    i = buf.bracket(i, "$(DDOC_AUTO_PARAM ", j, ")") - 1;
-                    break;
+                    if (isIdentifier(a, start[0 .. len]))
+                    {
+                        i = buf.bracket(i, "$(DDOC_AUTO_PSYMBOL ", j, ")") - 1;
+                        break;
+                    }
+                    if (isKeyword(start[0 .. len]))
+                    {
+                        i = buf.bracket(i, "$(DDOC_AUTO_KEYWORD ", j, ")") - 1;
+                        break;
+                    }
+                    if (isFunctionParameter(a, start[0 .. len]))
+                    {
+                        //printf("highlighting arg '%s', i = %d, j = %d\n", arg.ident.toChars(), i, j);
+                        i = buf.bracket(i, "$(DDOC_AUTO_PARAM ", j, ")") - 1;
+                        break;
+                    }
                 }
                 i = j - 1;
             }
