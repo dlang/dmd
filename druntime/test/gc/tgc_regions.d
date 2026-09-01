@@ -21,8 +21,9 @@ shared int* sharedCell;
 
 void worker()
 {
-    assert(_d_tgc_region_attach(regionId));
-    sharedCell = cast(int*) _d_tgc_region_malloc(regionId, int.sizeof, 0);
+    bool attached = _d_tgc_region_attach(regionId);
+    assert(attached);
+    sharedCell = cast(shared int*) _d_tgc_region_malloc(regionId, int.sizeof, 0);
     assert(sharedCell !is null);
     atomicStore(workerReady, true);
 
@@ -35,11 +36,13 @@ void worker()
 
 void main()
 {
-    assert(_d_tgc_version() && !strcmp(_d_tgc_version(), "0.2.0"));
+    auto ver = _d_tgc_version();
+    assert(ver !is null && !strcmp(ver, "0.2.0"));
 
     regionId = _d_tgc_region_create();
     assert(regionId != 0);
-    assert(_d_tgc_region_attach(regionId));
+    bool attached = _d_tgc_region_attach(regionId);
+    assert(attached);
 
     auto t = new Thread(&worker);
     t.start();
@@ -52,7 +55,8 @@ void main()
     assert(localRef !is null);
     *localRef = 42;
 
-    assert(_d_tgc_region_collect(regionId));
+    bool collected = _d_tgc_region_collect(regionId);
+    assert(collected);
     atomicStore(collectDone, true);
     t.join();
 

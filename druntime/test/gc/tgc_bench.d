@@ -52,27 +52,24 @@ void main()
 
     const char* ver = _d_tgc_version();
     if (ver && ver[0])
-        printf("tgc version: %s\n", ver.ptr);
+        printf("tgc version: %s\n", ver);
 
     foreach (i; 0 .. 1000)
         auto w = new byte[128];
     GC.collect();
 
-    auto sw = StopWatch(AutoStart.yes);
+    MonoTime t0 = MonoTime.currTime;
     foreach (i; 0 .. iters)
     {
         auto p = new byte[64 + (i & 63)];
         p[0] = cast(byte) i;
     }
-    sw.stop();
     printf("single-thread alloc: %llu ms (%zu allocs)\n",
-           cast(ulong) sw.elapsed.total!"msecs", iters);
+           cast(ulong)(MonoTime.currTime - t0).total!"msecs", iters);
 
-    sw.reset();
-    sw.start();
+    t0 = MonoTime.currTime;
     GC.collect();
-    sw.stop();
-    printf("GC.collect pause: %llu ms\n", cast(ulong) sw.elapsed.total!"msecs");
+    printf("GC.collect pause: %llu ms\n", cast(ulong)(MonoTime.currTime - t0).total!"msecs");
 
     if (_d_tgc_version()[0])
     {
@@ -82,8 +79,7 @@ void main()
 
     Thread[] threads;
     threads.length = nThreads;
-    sw.reset();
-    sw.start();
+    t0 = MonoTime.currTime;
     foreach (i; 0 .. nThreads)
     {
         threads[i] = new Thread(&allocWorker);
@@ -91,9 +87,8 @@ void main()
     }
     foreach (t; threads)
         t.join();
-    sw.stop();
     printf("multi-thread worker phase: %llu ms (%zu threads)\n",
-           cast(ulong) sw.elapsed.total!"msecs", nThreads);
+           cast(ulong)(MonoTime.currTime - t0).total!"msecs", nThreads);
 
     auto stats = GC.profileStats();
     printf("collections: %llu\n", cast(ulong) stats.numCollections);
