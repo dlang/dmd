@@ -40,7 +40,7 @@ void worker()
 void main()
 {
     import core.stdc.string : strcmp;
-    assert(_d_tgc_version() && !strcmp(_d_tgc_version(), "0.1.1"));
+    assert(_d_tgc_version() && !strcmp(_d_tgc_version(), "0.2.0"));
 
     // Shared region scaffold: create, attach, alloc
     auto rid = _d_tgc_region_create();
