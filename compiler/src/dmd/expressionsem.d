@@ -58,7 +58,6 @@ import dmd.imphint;
 import dmd.importc;
 import dmd.init;
 import dmd.initsem;
-import dmd.inline;
 import dmd.intrange;
 import dmd.location;
 import dmd.mangle;
