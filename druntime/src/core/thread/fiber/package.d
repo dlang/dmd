@@ -620,6 +620,63 @@ class Fiber : FiberBase
         return cast(Fiber) FiberBase.getThis();
     }
 
+    ///////////////////////////////////////////////////////////////////////////
+    // Forwarded from FiberBase; keep docs in sync with fiber/base.d.
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Transfers execution to this fiber object. The calling context will be
+     * suspended until the fiber calls Fiber.yield() or until it terminates
+     * via an unhandled exception.
+     *
+     * This fiber must be in state HOLD.
+     *
+     * Throws:
+     *  Any exception not handled by the joined thread.
+     *
+     * Returns:
+     *  Any exception not handled by this fiber if rethrow = false, null
+     *  otherwise.
+     */
+    alias call = FiberBase.call;
+
+    /// Flag to control rethrow behavior of $(REF call, core, thread, fiber)
+    alias Rethrow = FiberBase.Rethrow;
+
+    /**
+     * Resets this fiber so that it may be re-used, optionally with a
+     * new function/delegate. This routine should only be called for
+     * fibers that have terminated, as doing otherwise could result in
+     * scope-dependent functionality that is not executed.
+     * Stack-based classes, for example, may not be cleaned up
+     * properly if a fiber is reset before it has terminated.
+     *
+     * In:
+     *  This fiber must be in state TERM or HOLD.
+     */
+    alias reset = FiberBase.reset;
+
+    /// A fiber may occupy one of three states: HOLD, EXEC, and TERM.
+    alias State = FiberBase.State;
+
+    /**
+     * Gets the current state of this fiber.
+     *
+     * Returns:
+     *  The state of this fiber as an enumerated value.
+     */
+    alias state = FiberBase.state;
+
+    /// Forces a context switch to occur away from the calling fiber.
+    alias yield = FiberBase.yield;
+
+    /**
+     * Forces a context switch to occur away from the calling fiber and then
+     * throws obj in the calling fiber. The passed exception must not be null.
+     */
+    alias yieldAndThrow = FiberBase.yieldAndThrow;
+
+
 
     ///////////////////////////////////////////////////////////////////////////
     // Static Initialization
