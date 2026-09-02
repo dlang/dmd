@@ -629,12 +629,7 @@ class Fiber : FiberBase
      * suspended until the fiber calls Fiber.yield() or until it terminates
      * via an unhandled exception.
      *
-     * Params:
-     *  rethrow = Rethrow any unhandled exception which may have caused this
-     *            fiber to terminate.
-     *
-     * In:
-     *  This fiber must be in state HOLD.
+     * This fiber must be in state HOLD.
      *
      * Throws:
      *  Any exception not handled by the joined thread.
@@ -677,13 +672,7 @@ class Fiber : FiberBase
 
     /**
      * Forces a context switch to occur away from the calling fiber and then
-     * throws obj in the calling fiber.
-     *
-     * Params:
-     *  t = The object to throw.
-     *
-     * In:
-     *  t must not be null.
+     * throws obj in the calling fiber. The passed exception must not be null.
      */
     alias yieldAndThrow = FiberBase.yieldAndThrow;
 
