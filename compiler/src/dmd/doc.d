@@ -1533,7 +1533,17 @@ void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 return;
             if (Dsymbol ss = getEponymousMember(td))
             {
-                ss.accept(this);
+                // `ss` may be the head of an overload chain of same-named
+                // functions collapsed together by computeOneMember(); walk
+                // the whole chain and emit docs for each one, otherwise
+                // later overloads are silently dropped (issue 19927).
+                if (FuncDeclaration fd = ss.isFuncDeclaration())
+                {
+                    for (FuncDeclaration f = fd; f; f = f.overnext0)
+                        f.accept(this);
+                }
+                else
+                    ss.accept(this);
                 return;
             }
             emit(sc, td, td.comment);
