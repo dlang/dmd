@@ -82,6 +82,7 @@ immutable char[TMAX] mangleChar =
     Tmixin       : '@',
     Ttag         : '@',
     Tnoreturn    : '@',         // becomes 'Nn'
+    Tsumtype     : '@',
 ];
 
 unittest

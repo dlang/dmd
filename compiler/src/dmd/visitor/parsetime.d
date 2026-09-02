@@ -154,6 +154,7 @@ public:
     void visit(AST.TypeTraits t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeMixin t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeTag t) { visit(cast(AST.Type)t); }
+    void visit(AST.TypeSumType t) { visit(cast(AST.Type)t); }
 
     // TypeNext
     void visit(AST.TypeReference t) { visit(cast(AST.TypeNext)t); }
@@ -204,6 +205,7 @@ public:
     void visit(AST.TupleExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.ThisExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.GenericExp e) { visit(cast(AST.Expression)e); }
+    void visit(AST.MatchExp e) { visit(cast(AST.Expression)e); }
 
     // Miscellaneous
     void visit(AST.VarExp e) { visit(cast(AST.SymbolExp)e); }
