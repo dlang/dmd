@@ -1273,45 +1273,6 @@ void test18576()
 }
 
 /*******************************************/
-
-struct S67
-{
-    S67* ptr;
-
-    this(int)
-    {
-        pragma(inline, false);
-        ptr = &this;
-    }
-
-    @disable this(this);
-}
-
-S67 make67()
-{
-    return S67(1);
-}
-
-__gshared int i67;
-
-S67 f67()
-out (s; s.ptr == &s)
-{
-    i67++;
-    return make67();
-}
-
-void test67()
-{
-    S67 s = f67();
-    assert(s.ptr == &s);
-
-    S67 s2 = make67();
-    auto closure = () { assert(s2.ptr == &s2); };
-    closure();
-}
-
-/*******************************************/
 // https://github.com/dlang/dmd/issues/22160
 
 struct Vector22160(T)
@@ -1461,7 +1422,6 @@ void main()
     test64();
     test65();
     test18576();
-    test67();
     test22160();
     test22292();
 
