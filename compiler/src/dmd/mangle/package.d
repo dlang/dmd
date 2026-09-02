@@ -153,6 +153,7 @@ import dmd.expression;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;

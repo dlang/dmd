@@ -13,7 +13,6 @@ module dmd.errors;
 
 public import core.stdc.stdarg;
 public import dmd.root.string: fTuple;
-public import dmd.hdrgen : toErrMsg;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
