@@ -17,6 +17,7 @@ module core.sync.semaphore;
 
 public import core.sync.exception;
 public import core.time;
+import core.thread : isSingleThreaded;
 
 version (OSX)
     version = Darwin;
@@ -398,8 +399,7 @@ protected:
 // Unit Tests
 ////////////////////////////////////////////////////////////////////////////////
 
-version (WASI) {} // WASI is single-threaded
-else
+static if(!isSingleThreaded)
 unittest
 {
     import core.atomic;

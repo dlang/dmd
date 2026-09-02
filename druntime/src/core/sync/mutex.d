@@ -17,6 +17,7 @@ module core.sync.mutex;
 
 
 public import core.sync.exception;
+import core.thread : isSingleThreaded;
 
 version (Windows)
 {
@@ -309,8 +310,7 @@ package:
 ///
 /* @safe nothrow -> see druntime PR 1726 */
 // Test regular usage.
-version (WASI) {} // WASI is single-threaded
-else
+static if(!isSingleThreaded)
 unittest
 {
     import core.thread : Thread;
@@ -417,8 +417,7 @@ unittest
     m.unlock();
 }
 
-version (WASI) {} // WASI is single-threaded
-else
+static if(!isSingleThreaded)
 unittest
 {
     import core.thread;

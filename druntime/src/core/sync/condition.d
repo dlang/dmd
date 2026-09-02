@@ -21,6 +21,7 @@ public import core.sync.mutex;
 public import core.time;
 
 import core.exception : AssertError, staticError;
+import core.thread : isSingleThreaded;
 
 
 version (Windows)
@@ -623,8 +624,7 @@ private:
 // Unit Tests
 ////////////////////////////////////////////////////////////////////////////////
 
-version (WASI) {} // WASI is single-threaded
-else
+static if(!isSingleThreaded)
 unittest
 {
     import core.atomic : atomicLoad;
@@ -792,8 +792,7 @@ unittest
     testWaitTimeout();
 }
 
-version (WASI) {} // WASI is single-threaded
-else
+static if(!isSingleThreaded)
 unittest
 {
     import core.atomic : atomicLoad;

@@ -52,7 +52,7 @@ package void* swapContextImpl()(void* newContext) nothrow @nogc
     return _d_eh_swapContext(newContext);
 }
 
-package enum isSingleThreaded = false;
+package(core) enum isSingleThreaded = false;
 
 version (CoreDdoc) {} else
 class Thread : ThreadBase

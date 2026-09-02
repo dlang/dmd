@@ -33,6 +33,7 @@ else
 
 import core.internal.abort : abort;
 import core.time;
+import core.thread : isSingleThreaded;
 
 /**
  * represents an event. Clients of an event are suspended while waiting
@@ -333,8 +334,7 @@ private:
     assert(!ev2.wait(1.dur!"msecs"));
 }
 
-version (WASI) {} // WASI is single-threaded
-else
+static if(!isSingleThreaded)
 unittest
 {
     import core.atomic;
