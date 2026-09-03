@@ -65,6 +65,12 @@ YELLOW = <span class="color_yellow">$0</span>
 BLACK = <span class="color_black">$0</span>
 WHITE = <span class="color_white">$0</span>
 
+NOALLOC = <span class="ddoc_flag ddoc_flag_noalloc" title="Does not allocate">no&#8209;alloc</span>
+NOGC = <span class="ddoc_flag ddoc_flag_nogc" title="Does not use the garbage collector">@nogc</span>
+NOTHROW = <span class="ddoc_flag ddoc_flag_nothrow" title="Does not throw exceptions">nothrow</span>
+PURE = <span class="ddoc_flag ddoc_flag_pure" title="Has no observable side effects">pure</span>
+DDOC_FLAGS = <div class="ddoc_flags">$0</div>$(LF)
+
 D_CODE =
 <section class="code_listing">
   <div class="code_sample">
@@ -163,6 +169,32 @@ DDOC =
       .color_yellow { color: #b58901; }
       .color_black { color: black; }
       .color_white { color: white; }
+
+      .ddoc_flags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 6px 0 4px;
+      }
+
+      .ddoc_flag {
+        display: inline-block;
+        margin: 2px 4px 2px 0;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: Menlo, monospace;
+        font-size: 11px;
+        font-weight: bold;
+        line-height: 1.6;
+        color: #ffffff;
+        white-space: nowrap;
+        vertical-align: middle;
+      }
+
+      .ddoc_flag_noalloc { background-color: #8e44ad; }
+      .ddoc_flag_nogc    { background-color: #d33682; }
+      .ddoc_flag_nothrow { background-color: #859901; }
+      .ddoc_flag_pure    { background-color: #268bd2; }
 
       .font_big {
         font-size: 1.2em;

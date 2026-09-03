@@ -1344,6 +1344,122 @@ void emitVisibility(ref OutBuffer buf, Visibility vis)
     buf.writeByte(' ');
 }
 
+/****************************************************
+ * Emit the behavior-flag badges (`@nogc`, `nothrow`, `pure`, and the
+ * manual-only `no-alloc`) directly under a declaration's title.
+ *
+ * A flag is emitted automatically when the matching attribute is present on any
+ * of the documented declarations. Flag macros written manually anywhere in the
+ * comment body are moved here too. Duplicates are collapsed into one badge.
+ * Params:
+ *  buf   = buffer holding the description, which the flags are inserted into
+ *  start = the index in `buf` where the description begins
+ *  a     = the declarations sharing this documentation comment
+ */
+void emitBehaviorFlags(ref OutBuffer buf, size_t start, Dsymbols* a)
+{
+    static immutable string[4] names = ["NOALLOC", "NOGC", "NOTHROW", "PURE"];
+    bool[4] present;
+
+    bool matchAt(size_t pos, string name)
+    {
+        if (pos + 3 + name.length > buf.length || buf[pos] != '$' || buf[pos + 1] != '(')
+            return false;
+        foreach (k, ch; name)
+            if (buf[pos + 2 + k] != ch)
+                return false;
+        return buf[pos + 2 + name.length] == ')';
+    }
+
+    // Pull any manually-written flag macros out of the body.
+    for (size_t i = start; i < buf.length;)
+    {
+        bool removed = false;
+        foreach (fi, name; names)
+            if (matchAt(i, name))
+            {
+                present[fi] = true;
+                buf.remove(i, name.length + 3);
+                removed = true;
+                break;
+            }
+        if (!removed)
+            ++i;
+    }
+
+    // Add flags implied by the declarations' attributes (NOALLOC has none).
+    foreach (sym; *a)
+    {
+        if (TypeFunction tf = isTypeFunction(sym))
+        {
+            if (tf.isNogc)
+                present[1] = true;
+            if (tf.isNothrow)
+                present[2] = true;
+            if (tf.purity != PURE.impure)
+                present[3] = true;
+        }
+    }
+
+    bool any = false;
+    foreach (p; present)
+        any |= p;
+    if (!any)
+        return;
+
+    OutBuffer flags;
+    flags.writestring("$(DDOC_FLAGS ");
+    foreach (fi, name; names)
+        if (present[fi])
+        {
+            flags.writestring("$(");
+            flags.writestring(name);
+            flags.writeByte(')');
+        }
+    flags.writeByte(')');
+    buf.insert(start, flags[]);
+}
+
+unittest
+{
+    // No flags: buffer is left untouched.
+    Dsymbols a;
+    OutBuffer buf;
+    buf.writestring("no flags here");
+    emitBehaviorFlags(buf, 0, &a);
+    assert(buf[] == "no flags here");
+}
+
+unittest
+{
+    // Manual flag macros are hoisted to the front and duplicates collapsed.
+    Dsymbols a;
+    OutBuffer buf;
+    buf.writestring("text $(NOGC) more $(PURE) and $(NOGC) end");
+    emitBehaviorFlags(buf, 0, &a);
+    assert(buf[] == "$(DDOC_FLAGS $(NOGC)$(PURE))text  more  and  end");
+}
+
+unittest
+{
+    // Flags are always emitted in canonical order regardless of input order.
+    Dsymbols a;
+    OutBuffer buf;
+    buf.writestring("$(PURE)$(NOTHROW)$(NOALLOC)");
+    emitBehaviorFlags(buf, 0, &a);
+    assert(buf[] == "$(DDOC_FLAGS $(NOALLOC)$(NOTHROW)$(PURE))");
+}
+
+unittest
+{
+    // Text before `start` is not scanned or modified.
+    Dsymbols a;
+    OutBuffer buf;
+    buf.writestring("$(NOGC)|$(PURE)");
+    emitBehaviorFlags(buf, 8, &a);
+    assert(buf[] == "$(NOGC)|$(DDOC_FLAGS $(PURE))");
+}
+
 void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
 {
     extern (C++) final class EmitComment : Visitor
@@ -1439,6 +1555,7 @@ void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 // Put the ddoc comment as the document 'description'
                 buf.writestring(ddoc_decl_dd_s);
                 {
+                    size_t iDescStart = buf.length;
                     dc.writeSections(sc, &dc.a, *buf);
                     foreach (sym; dc.a)
                         if (ScopeDsymbol sds = sym.isScopeDsymbol())
@@ -1446,6 +1563,7 @@ void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
                             emitMemberComments(sds, *buf, sc);
                             break;
                         }
+                    emitBehaviorFlags(*buf, iDescStart, &dc.a);
                 }
                 buf.writestring(ddoc_decl_dd_e);
                 buf.writeByte(')');
