@@ -2907,7 +2907,8 @@ public:
             for (ClassDeclaration c = cd; c; c = c.baseClass)
                 totalFieldCount += c.fields.length;
 
-            totalFieldCount -= cd.hasMonitor(); // skip __monitor field
+            if (totalFieldCount)
+                totalFieldCount -= cd.hasMonitor(); // skip __monitor field
 
             auto elems = new Expressions(totalFieldCount);
             ptrdiff_t fieldsSoFar = totalFieldCount;
