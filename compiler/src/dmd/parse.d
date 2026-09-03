@@ -9024,7 +9024,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     values.push(e);
                     if (token.value == TOK.rightBracket)
                         break;
-                    check(TOK.comma);
+                    if (token.value != TOK.comma)
+                    {
+                        check(TOK.comma);
+                        break;
+                    }
+                    nextToken();
                 }
                 check(loc, TOK.rightBracket);
 
@@ -9441,7 +9446,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             arguments.push(index);
                         if (token.value == TOK.rightBracket)
                             break;
-                        check(TOK.comma);
+                        if (token.value != TOK.comma)
+                        {
+                            check(TOK.comma);
+                            break;
+                        }
+                        nextToken();
                     }
                     check(TOK.rightBracket);
                     inBrackets--;
