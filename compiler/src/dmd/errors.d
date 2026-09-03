@@ -36,7 +36,7 @@ nothrow:
  * and delegates the actual output to the virtual $(D emit) method, which
  * subclasses such as $(D dmd.sarif.ErrorSinkSarif) override to change format.
  */
-class ErrorSinkCompiler : ErrorSink
+extern (C++) class ErrorSinkCompiler : ErrorSink
 {
     /// Maximum number of errors/deprecations to display before calling $(D fatal).
     /// 0 means unlimited.
@@ -59,7 +59,6 @@ class ErrorSinkCompiler : ErrorSink
     }
 
   nothrow:
-  extern (C++):
 
     // Overrides of the abstract ErrorSink methods convert Loc to SourceLoc
     // and dispatch to the SourceLoc-taking overload that holds the gating body.
