@@ -27,10 +27,9 @@ enum ErrorKind
 /***************************************
  * Where error/warning/deprecation messages go.
  */
-abstract class ErrorSink
+extern (C++) abstract class ErrorSink
 {
   nothrow:
-  extern (C++):
 
     void verror(Loc loc, const(char)* format, va_list ap);
     void verrorSupplemental(Loc loc, const(char)* format, va_list ap);
@@ -177,10 +176,9 @@ else
 /*****************************************
  * Just ignores the messages.
  */
-class ErrorSinkNull : ErrorSink
+extern (C++) class ErrorSinkNull : ErrorSink
 {
   nothrow:
-  extern (C++):
   override:
 
     void verror(Loc loc, const(char)* format, va_list ap) { }
@@ -201,10 +199,9 @@ class ErrorSinkNull : ErrorSink
 /*****************************************
  * Ignores the messages, but sets `sawErrors` for any calls to `error()`
  */
-class ErrorSinkLatch : ErrorSinkNull
+extern (C++) class ErrorSinkLatch : ErrorSinkNull
 {
   nothrow:
-  extern (C++):
   override:
 
     bool sawErrors;
@@ -216,13 +213,12 @@ class ErrorSinkLatch : ErrorSinkNull
  * Simplest implementation, just sends messages to stderr.
  * See also: ErrorSinkCompiler.
  */
-class ErrorSinkStderr : ErrorSink
+extern (C++) class ErrorSinkStderr : ErrorSink
 {
     import core.stdc.stdio;
     import core.stdc.stdarg;
 
   nothrow:
-  extern (C++):
   override:
 
     void verror(Loc loc, const(char)* format, va_list ap)

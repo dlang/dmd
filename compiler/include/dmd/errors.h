@@ -11,17 +11,8 @@
 #pragma once
 
 #include "root/dsystem.h"
-
-struct Loc;
-
-// Constants used to discriminate kinds of error messages.
-enum class ErrorKind
-{
-    warning = 0,
-    deprecation = 1,
-    error = 2,
-    message = 3,
-};
+#include "errorsink.h"
+#include "globals.h"
 
 #if defined(__GNUC__)
 #define D_ATTRIBUTE_FORMAT(m, n) __attribute__((format(printf, m, n))) __attribute__((nonnull (m)))
@@ -51,3 +42,12 @@ D_ATTRIBUTE_FORMAT(2, 3) void message(Loc loc, const char *format, ...);
 // Called after printing out fatal error messages.
 D_ATTRIBUTE_NORETURN void fatal();
 D_ATTRIBUTE_NORETURN void halt();
+
+class ErrorSinkCompiler : public ErrorSink
+{
+public:
+    uint32_t errorLimit;
+    Diagnostic useWarnings;
+    Diagnostic useDeprecated;
+    d_bool showGaggedErrors;
+};
