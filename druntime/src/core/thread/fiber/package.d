@@ -176,7 +176,6 @@ package
 
 package
 {
-    import core.atomic : atomicStore, cas, MemoryOrder;
     import core.exception : onOutOfMemoryError;
     import core.stdc.stdlib : abort;
 
