@@ -1557,13 +1557,15 @@ void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 {
                     size_t iDescStart = buf.length;
                     dc.writeSections(sc, &dc.a, *buf);
+                    // Emit flags from this declaration's own sections, before
+                    // members are written, so nested member flags aren't consumed.
+                    emitBehaviorFlags(*buf, iDescStart, &dc.a);
                     foreach (sym; dc.a)
                         if (ScopeDsymbol sds = sym.isScopeDsymbol())
                         {
                             emitMemberComments(sds, *buf, sc);
                             break;
                         }
-                    emitBehaviorFlags(*buf, iDescStart, &dc.a);
                 }
                 buf.writestring(ddoc_decl_dd_e);
                 buf.writeByte(')');
