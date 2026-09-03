@@ -859,7 +859,7 @@ $(P
 Functions can advertise behavioral guarantees with badge-like $(I behavior flags)
 that are displayed under the declaration, similar to the build-status badges
 seen in project READMEs. When any are present, the badges are introduced by a
-$(D Behaviors:) label. Four flags are available: `$(DOLLAR)(NOALLOC)` (rendered
+$(D Current Behaviors:) label. Four flags are available: `$(DOLLAR)(NOALLOC)` (rendered
 $(I No Allocations)), `$(DOLLAR)(NOGC)` (rendered $(I No GC)),
 `$(DOLLAR)(NOTHROW)` (rendered $(I No Exceptions Thrown)) and `$(DOLLAR)(PURE)`
 (rendered $(I Is Pure)). Each flag is shown only when it applies, and each is
@@ -893,7 +893,7 @@ $(P
 The example above renders a $(I No Allocations) badge (written manually) next to
 the $(I No GC), $(I No Exceptions Thrown) and $(I Is Pure) badges (added
 automatically from the attributes), all shown under the function's title after a
-$(D Behaviors:) label.
+$(D Current Behaviors:) label.
 )
 
 $(H3 $(LNAME2 character_entities, Character Entities))

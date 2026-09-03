@@ -2,7 +2,7 @@ Ddoc now emits behavior-flag badges for function guarantees
 
 Documented functions now display badge-like $(I behavior flags) under their
 title, similar to the build-status badges seen in project READMEs. When any are
-present, the badges are introduced by a `Behaviors:` label. Four flags are
+present, the badges are introduced by a `Current Behaviors:` label. Four flags are
 available, each shown only when it applies and each in a distinct color:
 
 $(UL
@@ -31,7 +31,7 @@ void* fastCopy(void* dst, const(void)* src, size_t n) @nogc nothrow pure;
 
 The example above renders a $(I No Allocations) badge (written manually) next to
 the $(I No GC), $(I No Exceptions Thrown) and $(I Is Pure) badges (added
-automatically from the attributes), all shown after a `Behaviors:` label.
+automatically from the attributes), all shown after a `Current Behaviors:` label.
 
 The badges and their grouping container are produced by the new `NOALLOC`,
 `NOGC`, `NOTHROW`, `PURE` and `DDOC_FLAGS` macros, which can be redefined like
