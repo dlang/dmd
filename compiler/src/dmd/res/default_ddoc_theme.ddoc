@@ -69,7 +69,7 @@ NOALLOC = <span class="ddoc_flag ddoc_flag_noalloc" title="Does not allocate">No
 NOGC = <span class="ddoc_flag ddoc_flag_nogc" title="Does not use the garbage collector">No GC</span>
 NOTHROW = <span class="ddoc_flag ddoc_flag_nothrow" title="Does not throw exceptions">No Exceptions Thrown</span>
 PURE = <span class="ddoc_flag ddoc_flag_pure" title="Has no observable side effects">Is Pure</span>
-DDOC_FLAGS = <div class="ddoc_flags"><span class="ddoc_flags_label">Behaviors:</span>$0</div>$(LF)
+DDOC_FLAGS = <div class="ddoc_flags"><span class="ddoc_flags_label">Current Behaviors:</span>$0</div>$(LF)
 
 D_CODE =
 <section class="code_listing">
