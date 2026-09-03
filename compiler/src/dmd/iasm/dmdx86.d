@@ -31,6 +31,7 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.funcsem : checkNestedReference;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
