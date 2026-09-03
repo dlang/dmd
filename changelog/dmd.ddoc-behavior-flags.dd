@@ -1,0 +1,37 @@
+Ddoc now emits behavior-flag badges for function guarantees
+
+Documented functions now display badge-like $(I behavior flags) under their
+title, similar to the build-status badges seen in project READMEs. Four flags
+are available, each shown only when it applies and each in a distinct color:
+
+$(UL
+$(LI `$(DOLLAR)(NOGC)` $(MDASH) emitted automatically for `@nogc` functions)
+$(LI `$(DOLLAR)(NOTHROW)` $(MDASH) emitted automatically for `nothrow` functions)
+$(LI `$(DOLLAR)(PURE)` $(MDASH) emitted automatically for `pure` functions)
+$(LI `$(DOLLAR)(NOALLOC)` $(MDASH) a manual-only "no-alloc" flag with no
+corresponding language attribute)
+)
+
+The `$(DOLLAR)(NOGC)`, `$(DOLLAR)(NOTHROW)` and `$(DOLLAR)(PURE)` flags appear
+automatically whenever the matching attribute is present on the documented
+declaration. Any flag may also be written manually anywhere in a documentation
+comment; manually-written flags are moved to appear under the declaration's
+title, and duplicate flags $(MDASH) whether written manually or added
+automatically $(MDASH) are collapsed into a single badge.
+
+-------
+/++
+Copy `n` bytes.
+
+$(DOLLAR)(NOALLOC)
++/
+void* fastCopy(void* dst, const(void)* src, size_t n) @nogc nothrow pure;
+-------
+
+The example above renders a `no-alloc` badge (written manually) next to the
+`@nogc`, `nothrow` and `pure` badges (added automatically from the attributes).
+
+The badges and their grouping container are produced by the new `NOALLOC`,
+`NOGC`, `NOTHROW`, `PURE` and `DDOC_FLAGS` macros, which can be redefined like
+any other Ddoc macro. See $(LINK2 $(ROOT_DIR)spec/ddoc.html#behavior_flags,
+Behavior Flags) for details.

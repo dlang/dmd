@@ -853,6 +853,46 @@ To prevent unintended emphasis of an identifier, it can be preceded by
 an underscore ($(UNDERSCORE)). The underscore will be stripped from the output.
 )
 
+$(H3 $(LNAME2 behavior_flags, Behavior Flags))
+
+$(P
+Functions can advertise behavioral guarantees with badge-like $(I behavior flags)
+that are displayed under the declaration, similar to the build-status badges
+seen in project READMEs. Four flags are available: `$(DOLLAR)(NOALLOC)` (does not
+allocate), `$(DOLLAR)(NOGC)` (is `@nogc`), `$(DOLLAR)(NOTHROW)` (is `nothrow`)
+and `$(DOLLAR)(PURE)` (is `pure`). Each flag is shown only when it applies, and
+each is rendered in a distinct color.
+)
+
+$(P
+The `$(DOLLAR)(NOGC)`, `$(DOLLAR)(NOTHROW)` and `$(DOLLAR)(PURE)` flags are
+emitted automatically when the corresponding `@nogc`, `nothrow` or `pure`
+attribute is present on the documented declaration. The `$(DOLLAR)(NOALLOC)` flag
+has no corresponding language attribute and is only shown when written manually.
+)
+
+$(P
+Any flag may also be written manually anywhere in a documentation comment.
+Manually-written flags are moved to appear under the declaration's title, and
+duplicate flags $(MDASH) whether written manually or added automatically from an
+attribute $(MDASH) are collapsed into a single badge.
+)
+
+------------------------------------
+/++
+Copy `n` bytes.
+
+$(DOLLAR)(NOALLOC)
++/
+void* fastCopy(void* dst, const(void)* src, size_t n) @nogc nothrow pure;
+------------------------------------
+
+$(P
+The example above renders a `no-alloc` badge (written manually) next to the
+`@nogc`, `nothrow` and `pure` badges (added automatically from the attributes),
+all shown under the function's title.
+)
+
 $(H3 $(LNAME2 character_entities, Character Entities))
 
 $(P
@@ -1083,6 +1123,10 @@ $(P
     $(TROW $(ARGS $(D YELLOW)), $(ARGS argument is set to be yellow))
     $(TROW $(ARGS $(D BLACK)), $(ARGS argument is set to be black))
     $(TROW $(ARGS $(D WHITE)), $(ARGS argument is set to be white))
+    $(TROW $(ARGS $(D NOALLOC)), $(ARGS behavior flag badge: does not allocate))
+    $(TROW $(ARGS $(D NOGC)), $(ARGS behavior flag badge: $(D @nogc)))
+    $(TROW $(ARGS $(D NOTHROW)), $(ARGS behavior flag badge: $(D nothrow)))
+    $(TROW $(ARGS $(D PURE)), $(ARGS behavior flag badge: $(D pure)))
     $(TROW $(ARGS $(D D_CODE)), $(ARGS argument is D code))
     $(TROW $(ARGS $(D D_INLINECODE)), $(ARGS argument is inline D code))
     $(TROW $(ARGS $(D LF)), $(ARGS Insert a line feed (newline)))
@@ -1198,6 +1242,7 @@ $(P
     $(TROW $(ARGS $(D DDOC_KEYWORD)), $(ARGS Highlighting of D keywords.))
     $(TROW $(ARGS $(D DDOC_PARAM)), $(ARGS Highlighting of function parameters.))
     $(TROW $(ARGS $(D DDOC_BACKQUOTED)), $(ARGS Inserts inline code.))
+    $(TROW $(ARGS $(D DDOC_FLAGS)), $(ARGS Container for the behavior flag badges emitted under a declaration.))
     $(TROW $(ARGS $(D DDOC_AUTO_PSYMBOL_SUPPRESS)), $(ARGS Highlighting of auto-detected symbol that starts with underscore))
     $(TROW $(ARGS $(D DDOC_AUTO_PSYMBOL)), $(ARGS Highlighting of auto-detected symbol))
     $(TROW $(ARGS $(D DDOC_AUTO_KEYWORD)), $(ARGS Highlighting of auto-detected keywords))
