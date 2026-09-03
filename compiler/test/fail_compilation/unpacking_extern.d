@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -preview=tuples -vcolumns
+REQUIRED_ARGS: -vcolumns
 TEST_OUTPUT:
 ---
 fail_compilation/unpacking_extern.d(19,9): Error: variable `unpacking_extern.a` extern symbols cannot have initializers
