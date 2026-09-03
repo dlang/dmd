@@ -1,6 +1,3 @@
-/*
-REQUIRED_ARGS: -preview=tuples
-*/
 
 // test unpacking works with custom struct
 struct Tuple(T...)

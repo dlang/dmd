@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -preview=tuples -vcolumns
+REQUIRED_ARGS: -vcolumns
 TEST_OUTPUT:
 ---
 fail_compilation/unpacking.d(30,14): Error: unpacked variable `b` needs a type or at least one storage class, did you mean `auto b`?
