@@ -1564,16 +1564,13 @@ private FuncDeclaration findBestOpApplyMatch(Expression ethis, FuncDeclaration f
     return fd_best;
 }
 
-/**
- * Print supplemental diagnostics explaining why no `opApply` overload
- * matched the `foreach` statement's parameters, to clarify the generic
- * "cannot uniquely infer foreach argument types" error (issue 19465).
- * Only call this when no more-specific error (e.g. ambiguity) was
- * already printed for the same failure.
+/******************************
+ * Print supplemental messages explaining why no opApply overload
+ * matched the foreach parameters.
  * Params:
- *      fstart = first opApply overload (start of overload chain)
- *      parameters = foreach parameters, as written (types may be missing)
- *      aggrMod = mutability qualifier of the foreach aggregate
+ *      fstart = first opApply overload
+ *      parameters = foreach parameters
+ *      aggrMod = mutability of the foreach aggregate
  */
 void explainForeachArgMismatch(FuncDeclaration fstart, Parameters* parameters, MOD aggrMod)
 {
