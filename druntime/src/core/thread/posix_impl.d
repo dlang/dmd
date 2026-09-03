@@ -1449,8 +1449,15 @@ extern (C) @nogc nothrow
     version (NetBSD)          version = PThread_Attr_Get_NP;
     version (DragonFlyBSD)    version = PThread_Attr_Get_NP;
 
-    version (PThread_Getattr_NP)  int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
-    version (PThread_Attr_Get_NP) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
+    version (PThread_Attr_Get_NP)
+    {
+        int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
+        alias pthread_getattr_np = pthread_attr_get_np;
+        version = PThread_Getattr_NP;
+    }
+    else
+        version (PThread_Getattr_NP) int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
+
     version (OpenBSD) int pthread_stackseg_np(pthread_t thread, stack_t* sinfo);
 }
 
@@ -1468,19 +1475,6 @@ package void* getStackBottomImpl() nothrow @nogc
 
         pthread_attr_init(&attr);
         pthread_getattr_np(pthread_self(), &attr);
-        pthread_attr_getstack(&attr, &addr, &size);
-        pthread_attr_destroy(&attr);
-        static if (isStackGrowingDown)
-            addr += size;
-        return addr;
-    }
-    else version (PThread_Attr_Get_NP)
-    {
-        pthread_attr_t attr;
-        void* addr; size_t size;
-
-        pthread_attr_init(&attr);
-        pthread_attr_get_np(pthread_self(), &attr);
         pthread_attr_getstack(&attr, &addr, &size);
         pthread_attr_destroy(&attr);
         static if (isStackGrowingDown)
