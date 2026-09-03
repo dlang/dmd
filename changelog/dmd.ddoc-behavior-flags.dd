@@ -1,15 +1,16 @@
 Ddoc now emits behavior-flag badges for function guarantees
 
 Documented functions now display badge-like $(I behavior flags) under their
-title, similar to the build-status badges seen in project READMEs. Four flags
-are available, each shown only when it applies and each in a distinct color:
+title, similar to the build-status badges seen in project READMEs. When any are
+present, the badges are introduced by a `Behaviors:` label. Four flags are
+available, each shown only when it applies and each in a distinct color:
 
 $(UL
-$(LI `$(DOLLAR)(NOGC)` $(MDASH) emitted automatically for `@nogc` functions)
-$(LI `$(DOLLAR)(NOTHROW)` $(MDASH) emitted automatically for `nothrow` functions)
-$(LI `$(DOLLAR)(PURE)` $(MDASH) emitted automatically for `pure` functions)
-$(LI `$(DOLLAR)(NOALLOC)` $(MDASH) a manual-only "no-alloc" flag with no
-corresponding language attribute)
+$(LI `$(DOLLAR)(NOGC)` (rendered $(I No GC)) $(MDASH) emitted automatically for `@nogc` functions)
+$(LI `$(DOLLAR)(NOTHROW)` (rendered $(I No Exceptions Thrown)) $(MDASH) emitted automatically for `nothrow` functions)
+$(LI `$(DOLLAR)(PURE)` (rendered $(I Is Pure)) $(MDASH) emitted automatically for `pure` functions)
+$(LI `$(DOLLAR)(NOALLOC)` (rendered $(I No Allocations)) $(MDASH) a manual-only
+flag with no corresponding language attribute)
 )
 
 The `$(DOLLAR)(NOGC)`, `$(DOLLAR)(NOTHROW)` and `$(DOLLAR)(PURE)` flags appear
@@ -28,8 +29,9 @@ $(DOLLAR)(NOALLOC)
 void* fastCopy(void* dst, const(void)* src, size_t n) @nogc nothrow pure;
 -------
 
-The example above renders a `no-alloc` badge (written manually) next to the
-`@nogc`, `nothrow` and `pure` badges (added automatically from the attributes).
+The example above renders a $(I No Allocations) badge (written manually) next to
+the $(I No GC), $(I No Exceptions Thrown) and $(I Is Pure) badges (added
+automatically from the attributes), all shown after a `Behaviors:` label.
 
 The badges and their grouping container are produced by the new `NOALLOC`,
 `NOGC`, `NOTHROW`, `PURE` and `DDOC_FLAGS` macros, which can be redefined like

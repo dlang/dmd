@@ -65,11 +65,11 @@ YELLOW = <span class="color_yellow">$0</span>
 BLACK = <span class="color_black">$0</span>
 WHITE = <span class="color_white">$0</span>
 
-NOALLOC = <span class="ddoc_flag ddoc_flag_noalloc" title="Does not allocate">no&#8209;alloc</span>
-NOGC = <span class="ddoc_flag ddoc_flag_nogc" title="Does not use the garbage collector">@nogc</span>
-NOTHROW = <span class="ddoc_flag ddoc_flag_nothrow" title="Does not throw exceptions">nothrow</span>
-PURE = <span class="ddoc_flag ddoc_flag_pure" title="Has no observable side effects">pure</span>
-DDOC_FLAGS = <div class="ddoc_flags">$0</div>$(LF)
+NOALLOC = <span class="ddoc_flag ddoc_flag_noalloc" title="Does not allocate">No Allocations</span>
+NOGC = <span class="ddoc_flag ddoc_flag_nogc" title="Does not use the garbage collector">No GC</span>
+NOTHROW = <span class="ddoc_flag ddoc_flag_nothrow" title="Does not throw exceptions">No Exceptions Thrown</span>
+PURE = <span class="ddoc_flag ddoc_flag_pure" title="Has no observable side effects">Is Pure</span>
+DDOC_FLAGS = <div class="ddoc_flags"><span class="ddoc_flags_label">Behaviors:</span>$0</div>$(LF)
 
 D_CODE =
 <section class="code_listing">
@@ -174,7 +174,14 @@ DDOC =
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
-        margin: 6px 0 4px;
+        margin: 0px 5px 5px 5px;
+      }
+
+      .ddoc_flags_label {
+        align-self: center;
+        font-weight: bold;
+        font-size: 11px;
+        margin-right: 2px;
       }
 
       .ddoc_flag {

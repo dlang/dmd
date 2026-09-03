@@ -858,10 +858,12 @@ $(H3 $(LNAME2 behavior_flags, Behavior Flags))
 $(P
 Functions can advertise behavioral guarantees with badge-like $(I behavior flags)
 that are displayed under the declaration, similar to the build-status badges
-seen in project READMEs. Four flags are available: `$(DOLLAR)(NOALLOC)` (does not
-allocate), `$(DOLLAR)(NOGC)` (is `@nogc`), `$(DOLLAR)(NOTHROW)` (is `nothrow`)
-and `$(DOLLAR)(PURE)` (is `pure`). Each flag is shown only when it applies, and
-each is rendered in a distinct color.
+seen in project READMEs. When any are present, the badges are introduced by a
+$(D Behaviors:) label. Four flags are available: `$(DOLLAR)(NOALLOC)` (rendered
+$(I No Allocations)), `$(DOLLAR)(NOGC)` (rendered $(I No GC)),
+`$(DOLLAR)(NOTHROW)` (rendered $(I No Exceptions Thrown)) and `$(DOLLAR)(PURE)`
+(rendered $(I Is Pure)). Each flag is shown only when it applies, and each is
+rendered in a distinct color.
 )
 
 $(P
@@ -888,9 +890,10 @@ void* fastCopy(void* dst, const(void)* src, size_t n) @nogc nothrow pure;
 ------------------------------------
 
 $(P
-The example above renders a `no-alloc` badge (written manually) next to the
-`@nogc`, `nothrow` and `pure` badges (added automatically from the attributes),
-all shown under the function's title.
+The example above renders a $(I No Allocations) badge (written manually) next to
+the $(I No GC), $(I No Exceptions Thrown) and $(I Is Pure) badges (added
+automatically from the attributes), all shown under the function's title after a
+$(D Behaviors:) label.
 )
 
 $(H3 $(LNAME2 character_entities, Character Entities))
@@ -1123,10 +1126,10 @@ $(P
     $(TROW $(ARGS $(D YELLOW)), $(ARGS argument is set to be yellow))
     $(TROW $(ARGS $(D BLACK)), $(ARGS argument is set to be black))
     $(TROW $(ARGS $(D WHITE)), $(ARGS argument is set to be white))
-    $(TROW $(ARGS $(D NOALLOC)), $(ARGS behavior flag badge: does not allocate))
-    $(TROW $(ARGS $(D NOGC)), $(ARGS behavior flag badge: $(D @nogc)))
-    $(TROW $(ARGS $(D NOTHROW)), $(ARGS behavior flag badge: $(D nothrow)))
-    $(TROW $(ARGS $(D PURE)), $(ARGS behavior flag badge: $(D pure)))
+    $(TROW $(ARGS $(D NOALLOC)), $(ARGS behavior flag badge for functions that do not allocate))
+    $(TROW $(ARGS $(D NOGC)), $(ARGS behavior flag badge for $(D @nogc) functions))
+    $(TROW $(ARGS $(D NOTHROW)), $(ARGS behavior flag badge for $(D nothrow) functions))
+    $(TROW $(ARGS $(D PURE)), $(ARGS behavior flag badge for $(D pure) functions))
     $(TROW $(ARGS $(D D_CODE)), $(ARGS argument is D code))
     $(TROW $(ARGS $(D D_INLINECODE)), $(ARGS argument is inline D code))
     $(TROW $(ARGS $(D LF)), $(ARGS Insert a line feed (newline)))
