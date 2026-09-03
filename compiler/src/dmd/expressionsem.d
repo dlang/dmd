@@ -16887,7 +16887,7 @@ MATCH matchType(FuncExp funcExp, Type to, Scope* sc, FuncExp* presult, ErrorSink
             (*presult).fd.modifyReturns(sc, tof.next);
         }
     }
-    else if (!cast(ErrorSinkNull)eSink)
+    else
     {
         auto ts = toAutoQualChars(tx, to);
         eSink.error(loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`",
