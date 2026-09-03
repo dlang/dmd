@@ -1564,6 +1564,72 @@ private FuncDeclaration findBestOpApplyMatch(Expression ethis, FuncDeclaration f
     return fd_best;
 }
 
+/**
+ * Print supplemental diagnostics explaining why no `opApply` overload
+ * matched the `foreach` statement's parameters, to clarify the generic
+ * "cannot uniquely infer foreach argument types" error (issue 19465).
+ * Only call this when no more-specific error (e.g. ambiguity) was
+ * already printed for the same failure.
+ * Params:
+ *      fstart = first opApply overload (start of overload chain)
+ *      parameters = foreach parameters, as written (types may be missing)
+ *      aggrMod = mutability qualifier of the foreach aggregate
+ */
+void explainForeachArgMismatch(FuncDeclaration fstart, Parameters* parameters, MOD aggrMod)
+{
+    auto eSink = global.errorSink;
+    const nGiven = parameters.length;
+
+    overloadApply(fstart, (Dsymbol s)
+    {
+        auto f = s.isFuncDeclaration();
+        if (!f)
+            return 0;
+        auto tf = f.type.isTypeFunction();
+        if (tf.parameterList.length < 1)
+            return 0;
+        auto de = tf.parameterList[0].type.isTypeDelegate();
+        if (!de)
+            return 0;
+        auto tdg = de.next.isTypeFunction();
+        const nExpected = tdg.parameterList.length;
+
+        if (f.isThis() && !MODimplicitConv(aggrMod, tf.mod))
+        {
+            eSink.errorSupplemental(f.loc, "`%s` is not callable using a `%s` aggregate",
+                tf.toChars(), MODtoChars(aggrMod));
+            return 0;
+        }
+
+        if (nExpected != nGiven)
+        {
+            const(char)* plural = nExpected > 1 ? "s" : "";
+            eSink.errorSupplemental(f.loc, "`%s` expects %llu argument%s, not %llu",
+                tf.toChars(), cast(ulong) nExpected, plural, cast(ulong) nGiven);
+            return 0;
+        }
+
+        bool headerPrinted = false;
+        foreach (u, p; *parameters)
+        {
+            if (!p.type)
+                continue;
+            Parameter param = tdg.parameterList[u];
+            if (!p.type.equals(param.type))
+            {
+                if (!headerPrinted)
+                {
+                    eSink.errorSupplemental(f.loc, "`%s`:", tf.toChars());
+                    headerPrinted = true;
+                }
+                eSink.errorSupplemental(f.loc, "    parameter %llu: `foreach` declares `%s`, expected `%s`",
+                    cast(ulong)(u + 1), p.type.toErrMsg(), param.type.toErrMsg());
+            }
+        }
+        return 0;
+    });
+}
+
 /******************************
  * Determine if foreach parameters match opApply parameters.
  * Infer missing foreach parameter types from type of opApply delegate.

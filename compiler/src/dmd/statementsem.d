@@ -864,6 +864,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         Dsymbol sapplyOld = sapply; // 'sapply' will be NULL if and after 'inferApplyArgTypes' errors
 
         /* Check for inference errors and apply modifier checks inline */
+        const errorsBeforeInfer = global.errors;
         if (!inferApplyArgTypes(fs, sc, sapply))
         {
             bool foundMismatch = false;
@@ -911,7 +912,13 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     cast(ulong) foreachParamCount, plural, cast(ulong) dim);
             }
             else
+            {
+                const bool alreadyExplained = global.errors > errorsBeforeInfer;
                 eSink.error(fs.loc, "cannot uniquely infer `foreach` argument types");
+                if (!alreadyExplained && sapplyOld)
+                    if (auto fd = sapplyOld.isFuncDeclaration())
+                        explainForeachArgMismatch(fd, fs.parameters, fs.aggr.type.mod);
+            }
 
             return setError();
         }
