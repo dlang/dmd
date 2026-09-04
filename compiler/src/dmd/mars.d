@@ -947,6 +947,49 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
                 goto Lnoarg;
             params.timeTraceFile = mem.xstrdup(tmp);
         }
+        else if (startsWith(p + 1, "fpatchable-function-entry="))
+        {
+            enum len = "-fpatchable-function-entry=".length;
+            const(char)[] val = arg[len .. $];
+            int commaIdx = -1;
+            foreach (j, c; val)
+            {
+                if (c == ',')
+                {
+                    commaIdx = cast(int) j;
+                    break;
+                }
+            }
+            if (commaIdx != -1)
+            {
+                const(char)[] totalStr = val[0 .. commaIdx];
+                const(char)[] prefixStr = val[commaIdx + 1 .. $];
+                uint totalNops, prefixNops;
+                if (!totalNops.parseDigits(totalStr) || !prefixNops.parseDigits(prefixStr))
+                {
+                    error("`-fpatchable-function-entry` requires a non-negative integer parameter", p);
+                    return false;
+                }
+                if (prefixNops > totalNops)
+                {
+                    error("`-fpatchable-function-entry` prefix_nops (%u) must be less than or equal to total_nops (%u)", prefixNops, totalNops);
+                    return false;
+                }
+                params.patchableFunctionEntryTotal = totalNops;
+                params.patchableFunctionEntryPrefix = prefixNops;
+            }
+            else
+            {
+                uint totalNops;
+                if (!totalNops.parseDigits(val))
+                {
+                    error("`-fpatchable-function-entry` requires a non-negative integer parameter", p);
+                    return false;
+                }
+                params.patchableFunctionEntryTotal = totalNops;
+                params.patchableFunctionEntryPrefix = 0;
+            }
+        }
         else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
             driverParams.map = true;
         else if (arg == "-multiobj")

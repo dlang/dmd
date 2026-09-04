@@ -1,0 +1,6 @@
+Added the `-fpatchable-function-entry` flag for hotpatching function entries
+
+The `-fpatchable-function-entry=total_nops[,prefix_nops]` compiler flag enables NOP padding for function entries.
+`total_nops` specifies the total number of NOPs to generate, while `prefix_nops` specifies the number of NOPs to generate before the function entry label (defaults to 0).
+
+Supported on both x86/x86_64 and AArch64 targets.
