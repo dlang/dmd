@@ -234,11 +234,10 @@ assert(*p == 6);
         or point to a valid instance of type $(I T).)
 
         $(IMPLEMENTATION_DEFINED
-        $(OL
-        $(LI The behavior when a $(I null) pointer is dereferenced. Typically the program
+        The behavior when a $(I null) pointer is dereferenced. Typically the program
         will be aborted - $(DDSUBLINK spec/function, null-dereferences, that is required)
         in `@safe` code.)
-        ))
+        )
 
         $(UNDEFINED_BEHAVIOR dereferencing a pointer that is not $(I null) and does not point
         to a valid instance of type $(I T).)
@@ -257,14 +256,20 @@ assert(*p == 2);
 assert(i == 4);
 ---------
 )
+        $(P The `.` operator will dereference a
+        $(DDSUBLINK spec/struct, struct-pointer, pointer to an aggregate type) instance
+        and access a member of it.)
+
+        $(NOTE There is no `->` operator as in C.)
+
         $(P See also:)
         * $(DDSUBLINK spec/expression, pointer_arithmetic, Pointer Arithmetic)
         * $(DDSUBLINK spec/expression, slice_expressions, Pointer Slicing)
         * $(RELATIVE_LINK2 pointer-conversions, Pointer Conversions)
 
-        $(BEST_PRACTICE Use a $(DDSUBLINK spec/function, ref-params,
+        $(BEST_PRACTICE Consider using a $(DDSUBLINK spec/function, ref-params,
         `ref` function parameter) or a $(DDSUBLINK spec/declaration, ref-variables,
-        `ref` local variable) when the address doesn't escape.)
+        `ref` local variable) instead when the pointer address doesn't escape.)
 
 
 $(H2 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User-Defined Types))
