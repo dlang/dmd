@@ -128,6 +128,9 @@ Options:
     }
 
     // allow overwrites from the environment
+    // HOST_DMD must be either a command on PATH (e.g. `dmd`, `ldmd2`) or an
+    // absolute path; it is used to build test-harness code (dshell scripts,
+    // tools) which runs from various working directories.
     hostDMD = environment.get("HOST_DMD", "dmd");
     unitTestRunnerCommand = resultsDir.buildPath("unit_test_runner").exeName;
 
@@ -145,6 +148,7 @@ Options:
     }
 
     verifyCompilerExists(env);
+    ensureDruntime(env);
     prepareOutputDirectory(env);
 
     if (runUnitTests)
@@ -227,6 +231,48 @@ void verifyCompilerExists(const string[string] env)
     }
 }
 
+/**
+Maps the test runner's `BUILD` to a runtime library build flavor.
+
+`BUILD` may be a dmd build configuration that only describes the compiler
+binary (e.g. VisualD passes `Debug` or `RelWithAsserts`), whereas the
+druntime/phobos makefiles only accept `debug` or `release`. The runtime
+library flavor is independent from the compiler's configuration, so anything
+that isn't explicitly a debug build maps to `release`.
+*/
+string runtimeBuild(string build)
+{
+    return build.toLower == "debug" ? "debug" : "release";
+}
+
+/**
+Builds (or rebuilds) the druntime library that the tests link against.
+
+Prevent test failures due to forgetting to make druntime manually.
+*/
+void ensureDruntime(const string[string] env)
+{
+    const make = environment.get("MAKE", "make");
+    const druntimeDir = environment.get("DRUNTIME_PATH", testPath(buildPath("..", "..", "druntime")));
+    const buildCommand = [
+        make, "-C", druntimeDir,
+        "MODEL=" ~ env["MODEL"],
+        "BUILD=" ~ runtimeBuild(env["BUILD"]),
+        // Pass the existing compiler so the druntime Makefile doesn't try to
+        // (re)build dmd itself, which fails when the compiler lives in a
+        // different generated/ subdirectory (e.g. VisualD's RelWithAsserts).
+        "DMD=" ~ env["DMD"],
+    ];
+
+    writefln("Building druntime: %-(%s %)", buildCommand);
+    stdout.flush();
+    if (spawnProcess(buildCommand, env, Config.none, scriptDir).wait)
+    {
+        stderr.writeln("failed to build druntime");
+        quitSilently(1);
+    }
+}
+
 /// Creates the necessary directories and files for the test runner(s)
 void prepareOutputDirectory(const string[string] env)
 {
@@ -286,20 +332,18 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
         auto lastModifiedBin = targetBin.timeLastModified.ifThrown(SysTime.init);
         if (lastModifiedBin >= sourceFile.timeLastModified)
         {
-            auto lastModifiedDmd = env["DMD"].timeLastModified.ifThrown(SysTime.init);
-            if (!tool.linksWithTests || lastModifiedBin >= lastModifiedDmd)
-            {
-                log("%s is already up-to-date", tool);
-                continue;
-            }
+            log("%s is already up-to-date", tool);
+            continue;
         }
 
         string[] buildCommand;
-        bool overrideEnv;
+        string[string] buildEnv = null;
         if (tool.linksWithTests)
         {
-            // This will compile the dshell library thus needs the actual
-            // DMD compiler under test
+            // The dshell library imports Phobos and is linked against the tests,
+            // so it must be built by the compiler under test (the host compiler
+            // may be too old to parse the current druntime/Phobos) using the
+            // Phobos DFLAGS rather than the druntime-only default.
             buildCommand = [
                 env["DMD"],
                 "-conf=",
@@ -308,7 +352,9 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
                 "-c",
                 sourceFile
             ] ~ getPicFlags(env);
-            overrideEnv = true;
+            foreach (k, v; env)
+                buildEnv[k] = v;
+            buildEnv["DFLAGS"] = env.get("PHOBOS_DFLAGS", "");
         }
         else
         {
@@ -322,7 +368,7 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
 
         writefln("Executing: %-(%s %)", buildCommand);
         stdout.flush();
-        if (spawnProcess(buildCommand, overrideEnv ? env : null).wait)
+        if (spawnProcess(buildCommand, buildEnv).wait)
         {
             stderr.writefln("failed to build '%s'", targetBin);
             atomicOp!"+="(failCount, 1);
@@ -551,9 +597,15 @@ string[string] getEnvironment()
     env["BUILD"] = build;
     env["EXE"] = exeExtension;
     env["DMD"] = dmdPath;
+    env["HOST_DMD"] = hostDMD;
     env.setDefault("DMD_TEST_COVERAGE", "0");
 
     const generatedSuffix = "generated/%s/%s/%s".format(os, build, model);
+
+    const druntimePath = environment.get("DRUNTIME_PATH", projectRootDir.buildPath("druntime"));
+    const druntimeLibDir = generatedDir.buildPath(os, runtimeBuild(build), model);
+
+    const phobosPath = environment.get("PHOBOS_PATH", projectRootDir.dirName.buildPath("phobos"));
 
     version(Windows)
     {
@@ -561,10 +613,9 @@ string[string] getEnvironment()
         env["OBJ"] = ".obj";
         env["DSEP"] = `\\`;
         env["SEP"] = `\`;
-        auto druntimePath = environment.get("DRUNTIME_PATH", testPath(`..\..\druntime`));
-        auto phobosPath = environment.get("PHOBOS_PATH", testPath(`..\..\..\phobos`));
-        env["DFLAGS"] = `-I"%s\import" -I"%s"`.format(druntimePath, phobosPath);
-        env["LIB"] = phobosPath ~ ";" ~ environment.get("LIB");
+        env["DFLAGS"] = `-I"%s\import" -defaultlib=druntime -debuglib=druntime`.format(druntimePath);
+        env["LIB"] = druntimeLibDir ~ ";" ~ phobosPath ~ ";" ~ environment.get("LIB");
+        env["PHOBOS_DFLAGS"] = `-I"%s\import" -I"%s"`.format(druntimePath, phobosPath);
     }
     else
     {
@@ -572,8 +623,6 @@ string[string] getEnvironment()
         env["OBJ"] = ".o";
         env["DSEP"] = "/";
         env["SEP"] = "/";
-        auto druntimePath = environment.get("DRUNTIME_PATH", testPath(`../../druntime`));
-        auto phobosPath = environment.get("PHOBOS_PATH", testPath(`../../../phobos`));
 
         // default to PIC, use PIC=1/0 to en-/disable PIC.
         // Note that shared libraries and C files are always compiled with PIC.
@@ -582,11 +631,13 @@ string[string] getEnvironment()
             pic = false;
 
         env["PIC_FLAG"]  = pic ? "-fPIC" : "";
-        env["DFLAGS"] = "-I%s/import -I%s".format(druntimePath, phobosPath)
-            ~ " -L-L%s/%s".format(phobosPath, generatedSuffix);
+        env["DFLAGS"] = "-I%s/import -defaultlib=druntime -debuglib=druntime".format(druntimePath)
+            ~ " -L-L%s".format(druntimeLibDir);
+
+        env["PHOBOS_DFLAGS"] = "-I%s/import -I%s -L-L%s/%s".format(druntimePath, phobosPath, phobosPath, generatedSuffix);
         bool isShared = environment.get("SHARED") != "0" && os.among("linux", "freebsd", "hurd") > 0;
         if (isShared)
-            env["DFLAGS"] = env["DFLAGS"] ~ " -defaultlib=libphobos2.so -L-rpath=%s/%s".format(phobosPath, generatedSuffix);
+            env["PHOBOS_DFLAGS"] = env["PHOBOS_DFLAGS"] ~ " -defaultlib=libphobos2.so -L-rpath=%s/%s".format(phobosPath, generatedSuffix);
 
         if (pic)
             env["REQUIRED_ARGS"] = environment.get("REQUIRED_ARGS") ~ " " ~ env["PIC_FLAG"];
