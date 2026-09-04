@@ -18,8 +18,6 @@ pragma(lib, "winmm");
 
 import core.sys.windows.w32api, core.sys.windows.windef, core.sys.windows.winver;
 
-align(1):
-
 enum MAXPNAMELEN = 32;
 enum MAXERRORLENGTH = 256;
 enum MAX_JOYSTICKOEMVXDNAME = 260;
