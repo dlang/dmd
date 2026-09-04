@@ -658,6 +658,8 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         ds.condition = ds.condition.expressionSemantic(sc);
         ds.condition = resolveProperties(sc, ds.condition);
+        if (!ds.condition.hasValidType())
+            ds.condition = ErrorExp.get();
         if (checkNonAssignmentArrayOp(ds.condition))
             ds.condition = ErrorExp.get();
         ds.condition = ds.condition.optimize(WANTvalue);
@@ -730,6 +732,8 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
             fs.condition = fs.condition.expressionSemantic(sc);
             fs.condition = resolveProperties(sc, fs.condition);
+            if (!fs.condition.hasValidType())
+                fs.condition = ErrorExp.get();
             if (checkNonAssignmentArrayOp(fs.condition))
                 fs.condition = ErrorExp.get();
             fs.condition = fs.condition.optimize(WANTvalue);
@@ -1798,6 +1802,8 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             ifs.condition = resolveProperties(scd, ifs.condition);
             ifs.condition = ifs.condition.addDtorHook(scd);
         }
+        if (!ifs.condition.hasValidType())
+            ifs.condition = ErrorExp.get();
         if (checkNonAssignmentArrayOp(ifs.condition))
             ifs.condition = ErrorExp.get();
 
