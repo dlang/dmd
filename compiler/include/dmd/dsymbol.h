@@ -375,6 +375,7 @@ public:
 class ForwardingScopeDsymbol final : public ScopeDsymbol
 {
 public:
+    int32_t idCounter;
     Dsymbol *symtabInsert(Dsymbol *s) override;
     Dsymbol *symtabLookup(Dsymbol *s, Identifier *id) override;
     void importScope(Dsymbol *s, Visibility visibility) override;
