@@ -37,7 +37,7 @@ void worker()
 void main()
 {
     auto ver = _d_tgc_version();
-    assert(ver !is null && !strcmp(ver, "0.2.0"));
+    assert(ver !is null && !strcmp(ver, "0.2.1"));
 
     regionId = _d_tgc_region_create();
     assert(regionId != 0);

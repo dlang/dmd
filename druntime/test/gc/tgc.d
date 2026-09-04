@@ -41,7 +41,7 @@ void main()
 {
     import core.stdc.string : strcmp;
     auto ver = _d_tgc_version();
-    assert(ver !is null && !strcmp(ver, "0.2.0"));
+    assert(ver !is null && !strcmp(ver, "0.2.1"));
 
     // Shared region scaffold: create, attach, alloc
     auto rid = _d_tgc_region_create();
