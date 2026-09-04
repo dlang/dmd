@@ -81,7 +81,6 @@ $(H3 $(LNAME2 storage, Storage))
     assert(q.i == 2); // q points to the same struct instance as p
     ---
     )
-    $(NOTE There is no `->` operator as in C.)
     )
 
     $(P **See also:** $(RELATIVE_LINK2 struct_layout, Struct Layout).)

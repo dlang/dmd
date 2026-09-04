@@ -1827,7 +1827,7 @@ $(TABLE
         * Access a $(DDLINK spec/property, Properties, property) of a type or expression.
         * Access a member of a module, package, aggregate type or instance, enum
           or template instance.
-        * Dereference a $(DDSUBLINK spec/struct, struct-pointer, pointer to a struct/union)
+        * Dereference a $(DDSUBLINK spec/struct, struct-pointer, pointer to an aggregate type)
           instance and access a member of it.
         * Call a free function using $(DDSUBLINK spec/function, pseudo-member, UFCS).
     )
