@@ -1,10 +1,14 @@
 import core.stdc.stdio : printf;
 
 /*
-This test tries to automatically find types with a wrong size in
-druntime C bindings. This is done by also getting type sizes from
-C headers using ImportC and comparing them. Differences between the
-sizes can have different reasons:
+This test tries to verify the druntime C bindings against the C headers,
+using ImportC to compare them. Currently limited to:
+
+* type checks (size, and layout for aggregates)
+* numerical constants checks
+* TODO: function signatures
+
+Type size differences can have different reasons:
 
 * Bugs in ImportC (e.g. for bitfields) can result in a wrong size
 * Type definitions in druntime can be wrong
@@ -174,6 +178,30 @@ template collectTypes(string modulename)
     }();
 }
 
+struct ConstantInfo
+{
+    string name;
+    string modulename;
+    long value;
+}
+
+template collectConstants(string modulename)
+{
+    immutable ConstantInfo[] collectConstants = () {
+        ConstantInfo[] r;
+        mixin("import M = " ~ modulename ~ ";");
+        static foreach (member; __traits(allMembers, M))
+        {
+            static if (__traits(compiles, { enum x = cast(long) __traits(getMember, M, member); }))
+            {{
+                enum value = cast(long) __traits(getMember, M, member);
+                r ~= ConstantInfo(member, modulename, value);
+            }}
+        }
+        return r;
+    }();
+}
+
 // Some helper functions, so this druntime test does not depend on phobos.
 const(char)* toStringz(string s)
 {
@@ -211,6 +239,7 @@ int main()
         else
             importcInfos[info.name] = info;
     }
+    printf("Collected %zd C types.\n", importcInfos.length);
 
     bool anyFailure;
 
@@ -336,6 +365,30 @@ int main()
         }
     }
 
+    ConstantInfo[string] importcConstants;
+    foreach (info; collectConstants!"importc_includes")
+        importcConstants[info.name] = info;
+    printf("Collected %zd numerical C constants.\n", importcConstants.length);
+
+    void checkConstants(immutable ConstantInfo[] infosD)
+    {
+        foreach (infoD; infosD)
+        {
+            auto infoC = infoD.name in importcConstants;
+            if (!infoC)
+            {
+                //printf("Warning: Constant %s.%s not found in C\n", infoD.modulename.toStringz, infoD.name.toStringz);
+                continue;
+            }
+
+            if (infoD.value != infoC.value)
+            {
+                printf("Error: Constant %s.%s diverges: %lld (D) vs. %lld (ImportC)\n", infoD.modulename.toStringz, infoD.name.toStringz, infoD.value, infoC.value);
+                anyFailure = true;
+            }
+        }
+    }
+
     static foreach (modulename; [
         "core.stdc.complex",
         "core.stdc.stdint",
@@ -453,6 +506,7 @@ int main()
         ])
     {
         checkInfos(collectTypes!modulename);
+        checkConstants(collectConstants!modulename);
     }
     return anyFailure;
 }
