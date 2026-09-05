@@ -706,6 +706,7 @@ class DotVarExp final : public UnaExp
 public:
     Declaration *var;
     d_bool hasOverloads;
+    d_bool compilerOverlappedAccess;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -1250,6 +1251,30 @@ class GenericExp final : Expression
     Expressions *exps;
 
     GenericExp *syntaxCopy() override;
+
+    void accept(Visitor *v) override { v->visit(this); }
+};
+
+/****************************************************************/
+
+struct SumTypeMatchArmInfo
+{
+    VarDeclaration *vd;
+    Expression *guard;
+    int variantIndex;
+    int originalIndex;
+};
+
+class MatchExp final : Expression
+{
+public:
+    Expression *arg;
+    Array<SumTypeMatchArmInfo> *armInfos;
+    Type *resultType;
+    StructDeclaration *loweredStruct;
+    TypeSumType *sumtypeType;
+
+    MatchExp *syntaxCopy() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };

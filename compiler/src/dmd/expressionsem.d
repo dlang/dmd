@@ -7989,6 +7989,130 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // Check for call operator overload
         if (t1)
         {
+            // Handle sumtype constructor: S(42) or S(x: 5)
+            if (exp.e1.op == EXP.type)
+            {
+                TypeSumType ts;
+                StructDeclaration sd;
+                if (t1.ty == Tsumtype)
+                {
+                    ts = t1.isTypeSumType();
+                    sd = ts.loweredStruct;
+                }
+                else if (t1.ty == Tstruct)
+                {
+                    sd = (cast(TypeStruct)t1).sym;
+                    ts = sd.sumtype;
+                    if (ts is null)
+                        sd = null;
+                }
+                if (sd !is null)
+                {
+                    if ((*ts.variantInfos).length == 0)
+                    {
+                        eSink.error(exp.loc, "cannot construct empty sumtype");
+                        return setError();
+                    }
+
+                    // Determine which variant to initialize
+                    int variantIdx = -1;
+
+                    // Check if first argument has a name (named variant syntax)
+                    bool hasName = exp.names && exp.names.length > 0 && (*exp.names)[0].name !is null;
+
+                    if (hasName)
+                    {
+                        // Named variant: S(x: 5)
+                        auto name = (*exp.names)[0].name;
+
+                        foreach (j, vi; (*ts.variantInfos))
+                        {
+                            if (vi.name !is null && vi.name.toString() == name.toString())
+                            {
+                                variantIdx = cast(int)j;
+                                break;
+                            }
+                        }
+
+                        if (variantIdx == -1)
+                        {
+                            eSink.error(exp.loc, "no variant named `%s` in sumtype", name.toChars());
+                            return setError();
+                        }
+                        else if (exp.arguments.length != 1)
+                        {
+                            eSink.error(exp.loc, "expected exactly one argument for named variant `%s`", name.toChars());
+                            return setError();
+                        }
+                    }
+                    else if (exp.arguments && exp.arguments.length == 1)
+                    {
+                        // Unnamed variant type inference: S(42)
+                        auto argType = (*exp.arguments)[0].type;
+
+                        if (argType)
+                        {
+                            argType = argType.toBasetype();
+
+                            // Variant selection is two-pass: first look for an
+                            // exact type match, then fall back to an implicit
+                            // conversion. This is deliberate — with a single
+                            // "equals || implicitConvTo" check, S(true) on
+                            // __sumtype(int | bool) would pick the int variant,
+                            // because bool implicitly converts to int. Preferring
+                            // the exact match keeps the value 1 (which represents
+                            // both `true` and the int 1) from silently choosing
+                            // the wrong variant.
+                            foreach (j, vi; (*ts.variantInfos))
+                            {
+                                if (argType.equals(vi.type))
+                                {
+                                    variantIdx = cast(int)j;
+                                    break;
+                                }
+                            }
+                            if (variantIdx == -1)
+                            {
+                                foreach (j, vi; (*ts.variantInfos))
+                                {
+                                    if (argType.implicitConvTo(vi.type))
+                                    {
+                                        variantIdx = cast(int)j;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (variantIdx == -1)
+                        {
+                            eSink.error(exp.loc, "cannot determine which variant to initialize from argument type `%s`",
+                                  argType ? argType.toErrMsg() : "unknown");
+                            return setError();
+                        }
+                    }
+                    else
+                    {
+                        eSink.error(exp.loc, "sumtype constructor requires exactly one argument");
+                        return setError();
+                    }
+
+                    // Generate StructLiteralExp:
+                    // elements[0] = IntegerExp(variantIdx) (the tag field)
+                    // elements[variantIdx+1] = the argument value
+                    auto elements = new Expressions(sd.fields.length);
+                    elements.zero;
+                    (*elements)[0] = new IntegerExp(exp.loc, variantIdx, sd.fields[0].type);
+
+                    // Set the variant field
+                    auto arg = (*exp.arguments)[0];
+                    (*elements)[variantIdx + 1] = arg;
+
+                    auto sle = new StructLiteralExp(exp.loc, sd, elements, sd.type);
+                    result = sle.expressionSemantic(sc);
+                    return;
+                }
+            }
+
             if (t1.ty == Tstruct)
             {
                 auto sd = (cast(TypeStruct)t1).sym;
@@ -7997,6 +8121,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
                 if (!sd.ctor)
                     sd.ctor = sd.searchCtor();
+
                 /* If `sd.ctor` is a generated copy constructor, this means that it
                    is the single constructor that this struct has. In order to not
                    disable default construction, the ctor is nullified. The side effect
@@ -9398,6 +9523,25 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return no();
                 tded = (cast(TypeVector)e.targ).basetype;
                 break;
+
+            case TOK.sumtype_:
+                // is(T == __sumtype) is true when T is a sumtype, whether it is
+                // referred to by its source `__sumtype(...)` type or by its
+                // lowered struct form.
+                if (e.targ.isTypeSumType())
+                {
+                    tded = e.targ;
+                    break;
+                }
+                if (auto tsa = e.targ.isTypeStruct())
+                {
+                    if (tsa.sym && tsa.sym.sumtype !is null)
+                    {
+                        tded = e.targ;
+                        break;
+                    }
+                }
+                return no();
 
             default:
                 assert(0);
@@ -12259,6 +12403,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Expression e1old = exp.e1;
+        // Save auto-tag info before e1 is resolved
+        DotIdExp autoTagDie = null;
+        if (auto die = e1old.isDotIdExp())
+            autoTagDie = die;
 
         if (auto e2comma = exp.e2.isCommaExp())
         {
@@ -12663,6 +12811,49 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             auto e1x = exp.e1;
             auto e2x = exp.e2;
             auto sd = (cast(TypeStruct)t1).sym;
+
+            /*
+            We need to handle the following cases:
+            exp.op == EXP.assign
+            exp.op == EXP.construct
+            */
+
+            // Sumtype assignment: lower to direct field copies via CondExp chain
+            // Works for both same-type and cross-sumtype assignments.
+            // Avoids MatchExp/opAssign temporaries that cause extra copies/destructors.
+            // We don't execute this code for blit's, this is a byte-by-byte move.
+            if (sd.sumtype && e2x.type && exp.op != EXP.blit)
+            {
+                auto t2 = e2x.type.toBasetype();
+                StructDeclaration sd2;
+                if (t2.ty == Tsumtype)
+                    sd2 = t2.isTypeSumType().loweredStruct;
+                else if (t2.ty == Tstruct)
+                    sd2 = (cast(TypeStruct)t2).sym;
+
+                // We need to handle the case where lhs != rhs types
+                // Basically we gotta convert rhs into the same type as lhs
+                if (sd2 && sd2.sumtype && sd !is sd2)
+                {
+                    auto srcTs = sd2.sumtype;
+                    auto dstTs = sd.sumtype;
+                    auto loc = exp.loc;
+
+                    // Reuse the shared sumtype widening lowering. It builds the
+                    // CondExp chain that dispatches on the source tag and copies
+                    // the active variant field into a freshly constructed value
+                    // of the target sumtype — the same lowering used for implicit
+                    // widening in return values and function call arguments.
+                    if (auto widened = sumtypeWidenExpression(e2x, sc, t1))
+                        e2x = widened;
+                    else
+                    {
+                        eSink.error(loc, "cannot assign `%s` to `%s`: not all source variants are covered",
+                            srcTs.toChars(), dstTs.toChars());
+                        return setError();
+                    }
+                }
+            }
 
             if (exp.op == EXP.construct)
             {
@@ -13532,6 +13723,54 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 ce.e1 = lowerArrayAssign(ae1, true);
             if (auto ae2 = ce.e2.isAssignExp())
                 ce.e2 = lowerArrayAssign(ae2, true);
+        }
+
+        // Auto-tag: if assigning to a named variant field of a sumtype,
+        // prepend a tag assignment via comma expression.
+        // e.g. n.x = 42 => (n.tag = index, n.x = 42)
+        if (autoTagDie)
+        {
+            // Look up the struct from the VarExp's type
+            if (auto ve = autoTagDie.e1.isVarExp())
+            {
+                auto varType = ve.type;
+                if (varType)
+                    varType = varType.toBasetype();
+                StructDeclaration sd = null;
+                if (varType)
+                {
+                    if (auto ts = varType.isTypeSumType())
+                        sd = ts.loweredStruct;
+                    else if (auto tsa = varType.isTypeStruct())
+                        sd = tsa.sym;
+                }
+                if (sd !is null)
+                {
+                    if (auto ts = sd.sumtype)
+                    {
+                        foreach (j, name; (*ts.variantInfos))
+                        {
+                            if (name.name !is null && autoTagDie.ident == name.name)
+                            {
+                                // Get the resolved receiver from exp.e1
+                                Expression tagObj;
+
+                                if (auto dve = exp.e1.isDotVarExp())
+                                    tagObj = dve.e1;
+                                else
+                                    tagObj = ve;
+
+                                auto tagLhs = new DotIdExp(exp.loc, tagObj, Id.tag);
+                                auto tagRhs = new IntegerExp(exp.loc, cast(int)j, sd.fields[0].type);
+                                auto tagAssign = new AssignExp(exp.loc, tagLhs, tagRhs);
+
+                                res = Expression.combine(tagAssign.expressionSemantic(sc), res);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         return setResult(res);
@@ -15826,6 +16065,606 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         result = exps[imatch];
+    }
+
+    override void visit(MatchExp exp)
+    {
+        static if (LOGSEMANTIC)
+        {
+            printf("MatchExp::semantic('%s')\n", exp.toErrMsg());
+        }
+
+        static Type integerPromote(Type a, Type b)
+        {
+            auto tb1 = a.toBasetype().isTypeBasic();
+            auto tb2 = b.toBasetype().isTypeBasic();
+            if (tb1 is null || tb2 is null)
+                return null;
+            if (tb1.ty == Tbool || tb2.ty == Tbool)
+                return null;
+            if ((tb1.flags & TFlags.integral) == 0 || (tb2.flags & TFlags.integral) == 0)
+                return null;
+            if ((tb1.flags & TFlags.floating) || (tb2.flags & TFlags.floating))
+                return null;
+
+            if (a.equals(b))
+                return a;
+
+            int w1 = cast(int)tb1.size();
+            int w2 = cast(int)tb2.size();
+            bool u1 = (tb1.flags & TFlags.unsigned) != 0;
+            bool u2 = (tb2.flags & TFlags.unsigned) != 0;
+
+            // Same signedness → take wider
+            if (u1 == u2)
+                return w1 > w2 ? a : b;
+
+            // Different signedness
+            Type signedType, unsignedType;
+            int signedW, unsignedW;
+            if (!u1 && u2)
+            {
+                signedType = a; signedW = w1;
+                unsignedType = b; unsignedW = w2;
+            }
+            else
+            {
+                signedType = b; signedW = w2;
+                unsignedType = a; unsignedW = w1;
+            }
+
+            // Signed type is wider → it can hold all unsigned values
+            if (signedW > unsignedW)
+                return signedType;
+
+            // Same width → promote to next wider signed type
+            // size() returns bytes, so widths are 1, 2, 4, 8 for 8/16/32/64-bit types
+            if (signedW == unsignedW)
+            {
+                if (signedW < 2) return Type.tint16;
+                if (signedW < 4) return Type.tint32;
+                if (signedW < 8) return Type.tint64;
+                return null;
+            }
+
+            // Unsigned is wider → error
+            return null;
+        }
+
+        // Step 1 — Validate scrutinee
+        exp.arg = exp.arg.expressionSemantic(sc).arrayFuncConv(sc);
+        if (exp.arg.isErrorExp())
+            return setError();
+
+        auto scrutineeType = exp.arg.type;
+        if (scrutineeType is null)
+        {
+            eSink.error(exp.loc, "cannot match on expression type `%s`", exp.arg.toChars());
+            return setError();
+        }
+
+        auto ts = scrutineeType.isTypeSumType();
+        if (ts is null)
+        {
+            auto tsa = scrutineeType.isTypeStruct();
+            if (tsa is null || tsa.sym is null || tsa.sym.sumtype is null)
+            {
+                eSink.error(exp.loc, ".match requires a sumtype, not `%s`", scrutineeType.toErrMsg());
+                return setError();
+            }
+        }
+
+        StructDeclaration sd;
+        SumTypeVariantInfos* variantInfos;
+        if (ts)
+        {
+            sd = ts.loweredStruct;
+            variantInfos = ts.variantInfos;
+        }
+        else
+        {
+            auto tsa = scrutineeType.isTypeStruct();
+            sd = tsa.sym;
+            auto ts2 = sd.sumtype;
+            variantInfos = ts2.variantInfos;
+        }
+
+        if ((*variantInfos).length == 0)
+        {
+            eSink.error(exp.loc, "cannot match on empty sumtype");
+            return setError();
+        }
+
+        // Step 2 — Classify arms: fill in variantIndex for each MatchArmInfo
+        int wildcardIndex = -1;
+
+        foreach (i, ref ai; *exp.armInfos)
+        {
+            auto vd = ai.vd;
+            if (vd.type is null)
+            {
+                // Typeless (catch-all)
+                wildcardIndex = cast(int)i;
+                ai.variantIndex = -2;
+                continue;
+            }
+
+            // Typed arm: match by name against variant names, fall back to positional
+            bool found = false;
+            if ((*variantInfos).length > 0 && vd.ident !is null)
+            {
+                foreach (j, vi; (*variantInfos))
+                {
+                    if (vi.name !is null && vi.name.toString() == vd.ident.toString())
+                    {
+                        ai.variantIndex = cast(int)j;
+                        found = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!found)
+            {
+                // Positional fallback: match arm type against variant type
+                if (vd.type !is null)
+                {
+                    foreach (j, vi; (*variantInfos))
+                    {
+                        if (vd.type.ty == vi.type.ty)
+                        {
+                            ai.variantIndex = cast(int)j;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                if (!found)
+                    ai.variantIndex = cast(int)i;
+            }
+        }
+
+        // Step 3 — Sort armInfos by variantIndex (catch-all last, unclassified after that)
+        // For same variant: guarded arms first, unguarded last (so inside-out builds correctly)
+        // Within same variant and guard status: preserve source order
+        static int armInfoCmp(const SumTypeMatchArmInfo* a, const SumTypeMatchArmInfo* b) @safe
+        {
+            // catch-all (-2) sorts last
+            if (a.variantIndex == -2) return 1;
+            if (b.variantIndex == -2) return -1;
+            // unclassified (-1) sorts after catch-all
+            if (a.variantIndex == -1) return 1;
+            if (b.variantIndex == -1) return -1;
+            // normal: sort by variant index
+            if (a.variantIndex < b.variantIndex) return -1;
+            if (a.variantIndex > b.variantIndex) return 1;
+            // same variant: guarded arms first, unguarded last
+            if (a.guard !is null && b.guard is null) return -1;
+            if (a.guard is null && b.guard !is null) return 1;
+            // same variant, same guard status: preserve source order
+            return a.originalIndex - b.originalIndex;
+        }
+        exp.armInfos.sort!(armInfoCmp);
+
+        // Step 4 — Exhaustiveness check
+        // Only unguarded typed arms count toward coverage
+        int numCoveredByTyped = 0;
+        foreach (ref ai; *exp.armInfos)
+        {
+            if (ai.variantIndex >= 0 && ai.guard is null)
+                numCoveredByTyped++;
+        }
+        int numUncovered = cast(int)(*variantInfos).length - numCoveredByTyped;
+
+        if (numUncovered == 0 && wildcardIndex >= 0)
+        {
+            eSink.error(exp.loc, "redundant catch-all in match expression");
+            return setError();
+        }
+        if (numUncovered > 0 && wildcardIndex < 0)
+        {
+            eSink.error(exp.loc, "non-exhaustive match, missing variant for type `%s`", (*variantInfos)[numCoveredByTyped].type.toChars());
+            return setError();
+        }
+
+        // Step 5 — Build per-variant expressions
+        auto variantExprs = new Expression[]((*variantInfos).length);
+        auto pendingBodies = new Expression[]((*variantInfos).length);
+
+        // Handle scrutinee side effects: if arg has side effects, use a temp
+        Expression scrutRef = exp.arg;
+        Expression declPrefix = null;
+        if (exp.arg.hasSideEffect())
+        {
+            auto scrutTmp = copyToTemp(STC.ref_, "__matchScrut", exp.arg);
+            scrutTmp.dsymbolSemantic(sc);
+            declPrefix = new DeclarationExp(exp.loc, scrutTmp);
+            scrutRef = new VarExp(exp.loc, scrutTmp);
+            scrutRef.type = exp.arg.type;
+        }
+
+        // Analyze the tag expression up front
+        auto tag = new DotVarExp(exp.loc, scrutRef, sd.fields[0]);
+        tag.type = sd.fields[0].type;
+        auto tagResolved = tag.expressionSemantic(sc);
+
+        Type resultType = null;
+        Array!Type armTypes;
+        armTypes.reserve(exp.armInfos.length);
+
+        // Substitute arm parameter name with a VarExp in an expression tree
+        Expression substitute(Expression e, Identifier paramName, VarExp replacement)
+        {
+            if (e is null) return null;
+            if (auto ie = e.isIdentifierExp())
+            {
+                if (paramName !is null && ie.ident == paramName)
+                    return replacement;
+            }
+            // CondExp must be checked before BinExp (CondExp extends BinExp)
+            if (auto ce = e.isCondExp())
+            {
+                ce.econd = substitute(ce.econd, paramName, replacement);
+                ce.e1 = substitute(ce.e1, paramName, replacement);
+                ce.e2 = substitute(ce.e2, paramName, replacement);
+                return e;
+            }
+            if (auto ce = e.isCommaExp())
+            {
+                ce.e1 = substitute(ce.e1, paramName, replacement);
+                ce.e2 = substitute(ce.e2, paramName, replacement);
+                return e;
+            }
+            if (auto be = e.isBinExp())
+            {
+                be.e1 = substitute(be.e1, paramName, replacement);
+                be.e2 = substitute(be.e2, paramName, replacement);
+                return e;
+            }
+            if (auto ce = e.isCallExp())
+            {
+                ce.e1 = substitute(ce.e1, paramName, replacement);
+                if (ce.arguments)
+                {
+                    foreach (ref arg; *ce.arguments)
+                        arg = substitute(arg, paramName, replacement);
+                }
+                return e;
+            }
+            if (auto ue = e.isUnaExp())
+            {
+                ue.e1 = substitute(ue.e1, paramName, replacement);
+                return e;
+            }
+            if (auto ae = e.isCastExp())
+            {
+                ae.e1 = substitute(ae.e1, paramName, replacement);
+                return e;
+            }
+            return e;
+        }
+
+        // For each variant, find all arms that match it (may be multiple if guards are present)
+        // and build a nested CondExp chain for guard fallthrough.
+        // Build inside-out: last arm is the base, earlier arms wrap it in CondExp.
+        foreach (vi; 0 .. (*variantInfos).length)
+        {
+            // Collect all arms for this variant in source order
+            // Typed arms matching this variant, plus wildcard as fallback
+            Array!SumTypeMatchArmInfo matchingArms;
+            foreach (ref ai; *exp.armInfos)
+            {
+                if (ai.variantIndex == vi)
+                    matchingArms.push(ai);
+            }
+
+            // If no typed arm matched, use the wildcard (catch-all) arm
+            if (matchingArms.length == 0 && wildcardIndex >= 0)
+                matchingArms.push((*exp.armInfos)[wildcardIndex]);
+
+            // Also append catch-all as final fallthrough when all typed arms are guarded
+            // (when a guard fails, execution should fall through to the catch-all)
+            if (wildcardIndex >= 0 && matchingArms.length > 0 &&
+                matchingArms[matchingArms.length - 1].variantIndex != -2)
+            {
+                // Only if all matching arms are guarded (none unguarded)
+                bool allGuarded = true;
+                foreach (ref mai; matchingArms)
+                {
+                    if (mai.guard is null)
+                    {
+                        allGuarded = false;
+                        break;
+                    }
+                }
+                if (allGuarded)
+                    matchingArms.push((*exp.armInfos)[wildcardIndex]);
+            }
+
+            if (matchingArms.length == 0)
+                continue;
+
+            // Build from last arm to first (inside-out)
+            Expression fallthrough = null;
+
+            for (int i = cast(int)matchingArms.length - 1; i >= 0; i--)
+            {
+                auto armVD = matchingArms[i].vd;
+
+                // Create DotVarExp for scrut.field_i
+                auto variantField = sd.fields[vi + 1]; // +1 for tag
+                auto scrutVariant = new DotVarExp(exp.loc, scrutRef, variantField);
+                scrutVariant.compilerOverlappedAccess = true;
+
+                // Create VarDeclaration for this branch — use generateId for unique naming
+                auto branchVD = new VarDeclaration(exp.loc, null, Identifier.generateId("__matchArm"),
+                    new ExpInitializer(exp.loc, scrutVariant), armVD.storage_class | STC.ctfe);
+
+                if (!global.params.useFastDFA && (armVD.storage_class & STC.ref_) != 0)
+                {
+                    sc.setUnsafePreview(FeatureState.enabled, false, armVD.loc, armVD,
+                        "by-ref match handlers only allowed in @safe code with -preview=fastdfa");
+                }
+
+                // Build: (branchVD = scrutVariant, substitutedBody)
+                // Use syntaxCopy to get a fresh expression that hasn't been
+                // semantically analyzed yet, so the substitution + re-analysis works.
+                auto armBody = armVD._init.isExpInitializer().exp.syntaxCopy();
+                auto branchVar = new VarExp(exp.loc, branchVD);
+
+                auto substitutedBody = substitute(armBody, armVD.ident, branchVar);
+                auto declExp = new DeclarationExp(exp.loc, branchVD);
+
+                if (matchingArms[i].guard !is null)
+                {
+                    // Substitute parameter name in guard too
+                    auto substitutedGuard = substitute(matchingArms[i].guard, armVD.ident, branchVar);
+                    // Guard present: CommaExp(decl, CondExp(guard, body, fallthrough))
+                    fallthrough = new CommaExp(exp.loc, declExp,
+                        new CondExp(exp.loc, substitutedGuard, substitutedBody,
+                            fallthrough !is null ? fallthrough : substitutedBody));
+                }
+                else
+                {
+                    // No guard: CommaExp(decl, body) — always matches, becomes new base
+                    fallthrough = new CommaExp(exp.loc, declExp, substitutedBody);
+                }
+            }
+
+            // Analyze the complete tree in a pushed scope.
+            // Use trySemantic to detect forward references from recursive
+            // calls (returns null on error). The un-analyzed tree is
+            // retained in `pendingBodies` so it can be re-attempted in
+            // Step 6 once `resultType` is known.
+            auto ss = new ScopeDsymbol();
+            auto branchSc = sc.push(ss);
+            auto resolved = trySemantic(fallthrough, branchSc);
+            branchSc.pop();
+
+            if (resolved is null)
+            {
+                pendingBodies[vi] = fallthrough;
+                variantExprs[vi] = null;
+                continue;
+            }
+
+            // Collect the arm's result type for later unification
+            if (resolved.type !is null && resolved.type.ty != Terror)
+                armTypes.push(resolved.type);
+
+            variantExprs[vi] = resolved;
+        }
+
+        // Unify arm result types to determine the match expression result type.
+        if (armTypes.length > 0)
+        {
+            // First pass: find the maximum integer type by promoting all integer
+            // types together. If any pair of integer types cannot be promoted
+            // (e.g. long + ulong — no wider signed type), emit an error.
+            // bool is excluded from integer promotion/error handling.
+            Type maxIntType = null;
+            foreach (t; armTypes)
+            {
+                if (t is null || t.ty == Terror)
+                    continue;
+                auto tb = t.toBasetype().isTypeBasic();
+                if (tb is null || tb.ty == Tbool)
+                    continue;
+                if ((tb.flags & TFlags.integral) == 0 || (tb.flags & TFlags.floating))
+                    continue;
+                if (maxIntType is null)
+                {
+                    maxIntType = t;
+                }
+                else
+                {
+                    auto promoted = integerPromote(maxIntType, t);
+                    if (promoted is null)
+                    {
+                        eSink.error(exp.loc, "cannot unify integer types `%s` and `%s` — no wider signed type available",
+                            maxIntType.toErrMsg(), t.toErrMsg());
+                        return setError();
+                    }
+                    maxIntType = promoted;
+                }
+            }
+
+            // Second pass: collect all distinct types, replacing every integer
+            // type with the unified maxIntType so the resulting sumtype contains
+            // the promoted type rather than each individual integer type.
+            Array!Type unifiedTypes;
+            foreach (t; armTypes)
+            {
+                if (t is null || t.ty == Terror)
+                    continue;
+                auto tb = t.toBasetype().isTypeBasic();
+                bool isInteger = tb && tb.ty != Tbool &&
+                    (tb.flags & TFlags.integral) != 0 && (tb.flags & TFlags.floating) == 0;
+
+                Type useType = (isInteger && maxIntType !is null) ? maxIntType : t;
+
+                bool found = false;
+                foreach (ref u; unifiedTypes)
+                {
+                    if (u.equals(useType))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                    unifiedTypes.push(useType);
+            }
+
+            if (unifiedTypes.length == 1)
+            {
+                resultType = unifiedTypes[0];
+            }
+            else
+            {
+                auto variants = new SumTypeVariantInfos();
+                foreach (t; unifiedTypes)
+                {
+                    SumTypeVariantInfo vi;
+                    vi.type = t;
+                    variants.push(vi);
+                }
+                auto sumtype = new TypeSumType(variants);
+                auto resolvedType = sumtype.typeSemantic(exp.loc, sc);
+                if (resolvedType is null || resolvedType.ty == Terror)
+                    return setError();
+                resultType = resolvedType;
+            }
+        }
+
+        // Step 6 — Realize any pending arm bodies, wrap each to the unified
+        // result type, and build the CondExp chain (right-folded).
+        //
+        // Wrapping happens here (not in a separate pre-chain pass) because
+        // deferred arms need `resultType` to know what to coerce to, and we
+        // want a single, uniform path that surfaces errors with a proper
+        // diagnostic instead of silently dropping the arm.
+        Expression chain = null;
+
+        foreach_reverse (vi; 0 .. (*variantInfos).length)
+        {
+            Expression armExpr = variantExprs[vi];
+
+            // Realize any pending body. If semantic still fails, emit a
+            // diagnostic — this is the single error site for arm-body
+            // analysis failures.
+            if (armExpr is null && pendingBodies[vi] !is null)
+            {
+                armExpr = pendingBodies[vi].expressionSemantic(sc);
+                if (armExpr is null || armExpr.isErrorExp())
+                {
+                    eSink.error(exp.loc,
+                        "cannot analyze match arm body for variant `%s`",
+                        (*variantInfos)[vi].type.toErrMsg());
+                    return setError();
+                }
+            }
+
+            if (armExpr is null)
+                continue;
+
+            // Wrap arm to resultType.
+            if (resultType !is null)
+            {
+                auto resultTs = resultType.isTypeStruct();
+                if (resultTs !is null && resultTs.sym !is null && resultTs.sym.sumtype !is null)
+                {
+                    auto resultSd = resultTs.sym;
+                    auto sumtypeVariants = resultSd.sumtype.variantInfos;
+                    auto armType = armExpr.type;
+
+                    size_t variantIdx = 0;
+                    bool found = false;
+                    foreach (i, ref svi; *sumtypeVariants)
+                    {
+                        if (svi.type.equals(armType))
+                        {
+                            variantIdx = i;
+                            found = true;
+                            break;
+                        }
+                        // Check if arm type promotes to variant type
+                        // (e.g., uint arm → long variant after integer promotion)
+                        auto promoted = integerPromote(armType, svi.type);
+                        if (promoted !is null && promoted.equals(svi.type))
+                        {
+                            variantIdx = i;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                    {
+                        eSink.error(exp.loc,
+                            "match arm of type `%s` is not a variant of result sumtype `%s`",
+                            armType.toErrMsg(), resultType.toErrMsg());
+                        return setError();
+                    }
+
+                    auto elements = new Expressions(resultSd.fields.length);
+                    elements.zero;
+                    (*elements)[0] = new IntegerExp(exp.loc, cast(int)variantIdx, resultSd.fields[0].type);
+
+                    // The arm's type may differ from the result variant type
+                    // (e.g., uint arm vs long variant after integer promotion).
+                    // Insert an explicit cast so the code generator doesn't
+                    // get confused about conversion direction.
+                    auto variantType = resultSd.fields[variantIdx + 1].type;
+                    if (!armType.equals(variantType))
+                    {
+                        armExpr = new CastExp(exp.loc, armExpr, variantType);
+                    }
+                    (*elements)[variantIdx + 1] = armExpr;
+
+                    auto sle = new StructLiteralExp(exp.loc, resultSd, elements, resultSd.type);
+                    armExpr = sle.expressionSemantic(sc);
+                    if (armExpr is null || armExpr.isErrorExp())
+                        return setError();
+                }
+                else if (!armExpr.type.equals(resultType))
+                {
+                    armExpr = new CastExp(exp.loc, armExpr, resultType);
+                    armExpr = armExpr.expressionSemantic(sc);
+                    if (armExpr is null || armExpr.isErrorExp())
+                    {
+                        eSink.error(exp.loc,
+                            "cannot coerce match arm of type `%s` to result type `%s`",
+                            armExpr ? armExpr.type.toErrMsg() : "?",
+                            resultType.toErrMsg());
+                        return setError();
+                    }
+                }
+            }
+
+            variantExprs[vi] = armExpr;
+
+            if (chain is null)
+            {
+                chain = armExpr;
+            }
+            else
+            {
+                auto cmp = new EqualExp(EXP.equal, exp.loc, tagResolved,
+                    new IntegerExp(exp.loc, vi, tagResolved.type));
+                chain = new CondExp(exp.loc, cmp, armExpr, chain);
+            }
+        }
+
+        // Prepend scrutinee temp declaration if needed
+        if (declPrefix !is null)
+        {
+            auto ce = new CommaExp(exp.loc, declPrefix, chain);
+            ce.type = resultType;
+            chain = ce;
+        }
+
+        // Step 7 — Return lowered expression
+        result = chain.expressionSemantic(sc);
     }
 
     override void visit(DefaultInitExp e)
@@ -20258,4 +21097,159 @@ BitFieldDeclaration isBitField(Expression e)
         return dve.var.isBitFieldDeclaration();
 
     return null;
+}
+
+/***************************************
+ * Build an expression that widens a sumtype value `e` into the wider
+ * sumtype type `to`.
+ *
+ * Every variant of `e`'s type must be a variant of `to`. The result
+ * reads `e.tag` and, depending on its value, copies the matching variant
+ * field into a freshly constructed value of `to`.
+ *
+ * Params:
+ *  e  = source expression (a sumtype value)
+ *  sc = scope
+ *  to = destination sumtype type (either the `__sumtype(...)` form or its
+ *       lowered struct form)
+ *
+ * Returns:
+ *  The widened expression, or null if the widening is not applicable.
+ */
+Expression sumtypeWidenExpression(Expression e, Scope* sc, Type to)
+{
+    Type toB = to.toBasetype();
+    TypeSumType toTs;
+    StructDeclaration toSd;
+    if (auto ts = toB.isTypeSumType())
+    {
+        toTs = ts;
+        toSd = ts.loweredStruct;
+    }
+    else if (auto tsa = toB.isTypeStruct())
+    {
+        toSd = tsa.sym;
+        toTs = toSd.sumtype;
+    }
+    if (!toTs || !toSd)
+        return null;
+
+    Type fromB = e.type.toBasetype();
+    TypeSumType fromTs;
+    StructDeclaration fromSd;
+    if (auto ts = fromB.isTypeSumType())
+    {
+        fromTs = ts;
+        fromSd = ts.loweredStruct;
+    }
+    else if (auto tsa = fromB.isTypeStruct())
+    {
+        fromSd = tsa.sym;
+        fromTs = fromSd.sumtype;
+    }
+    if (!fromTs || !fromSd || fromTs == toTs || fromSd == toSd)
+        return null;
+
+    // Validate: every source variant must have a matching target variant.
+    //
+    // This is two-pass: first look for an exact type match, then fall back to
+    // an implicit conversion. This is deliberate — with a single
+    // "equals || implicitConvTo" check, a bool source variant would match an
+    // int target variant (because bool implicitly converts to int), corrupting
+    // the active variant during widening. Preferring the exact match preserves
+    // which variant is active.
+    foreach (srcVI; *fromTs.variantInfos)
+    {
+        bool found = false;
+        foreach (dstVI; *toTs.variantInfos)
+        {
+            if (srcVI.type.equals(dstVI.type))
+            {
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+        {
+            foreach (dstVI; *toTs.variantInfos)
+            {
+                if (srcVI.type.implicitConvTo(dstVI.type) != MATCH.nomatch)
+                {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found)
+            return null;
+    }
+
+    auto loc = e.loc;
+
+    Expression rhsRef, rhsRefVarsDecl;
+    if (e.isVarExp is null)
+    {
+        VarDeclaration rhsRefVar = copyToTemp(STC.ref_, "__sumtypewiden", e);
+        rhsRefVarsDecl = new DeclarationExp(loc, rhsRefVar);
+        rhsRef = new VarExp(loc, rhsRefVar);
+    }
+    else
+        rhsRef = e;
+
+    auto srcTagDecl = fromSd.fields[0].isDeclaration;
+    Expression chain = new HaltExp(loc);
+
+    foreach_reverse (i, srcVI; *fromTs.variantInfos)
+    {
+        // Find the matching target variant.
+        //
+        // This is two-pass: first look for an exact type match, then fall back
+        // to an implicit conversion. This is deliberate — with a single
+        // "equals || implicitConvTo" check, a bool source variant would map to
+        // an int target variant (because bool implicitly converts to int),
+        // corrupting the active variant during widening. Preferring the exact
+        // match preserves which variant is active.
+        int targetIdx = -1;
+        foreach (j, dstVI; *toTs.variantInfos)
+        {
+            if (srcVI.type.equals(dstVI.type))
+            {
+                targetIdx = cast(int)j;
+                break;
+            }
+        }
+        if (targetIdx == -1)
+        {
+            foreach (j, dstVI; *toTs.variantInfos)
+            {
+                if (srcVI.type.implicitConvTo(dstVI.type) != MATCH.nomatch)
+                {
+                    targetIdx = cast(int)j;
+                    break;
+                }
+            }
+        }
+        assert(targetIdx != -1);
+
+        // Build target struct literal with tag = targetIdx, field = src.__vi
+        auto toConstructArgs = new Expressions(toSd.fields.length);
+        toConstructArgs.zero;
+        (*toConstructArgs)[0] = new IntegerExp(loc, targetIdx, toSd.fields[0].type);
+
+        auto srcFieldDecl = fromSd.fields[i + 1].isDeclaration;
+        auto srcFieldExp = new DotVarExp(loc, rhsRef, srcFieldDecl);
+        srcFieldExp.compilerOverlappedAccess = true;
+        (*toConstructArgs)[targetIdx + 1] = srcFieldExp.expressionSemantic(sc);
+
+        Expression buildExp = new StructLiteralExp(loc, toSd, toConstructArgs, toSd.type);
+        buildExp = buildExp.expressionSemantic(sc);
+
+        auto cond = new EqualExp(EXP.equal, loc,
+            new DotVarExp(loc, rhsRef, srcTagDecl),
+            new IntegerExp(loc, i, fromSd.fields[0].type));
+
+        chain = new CondExp(loc, cond, buildExp, chain);
+    }
+
+    return Expression.combine(rhsRefVarsDecl, chain).expressionSemantic(sc);
 }

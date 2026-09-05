@@ -517,6 +517,7 @@ enum ignoreTokens
     objcClassReference,
     vectorArray,
     interpolated,
+    sumtype_,
 
     wchar_tLiteral,
     endOfLine,
