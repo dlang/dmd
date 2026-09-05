@@ -1822,10 +1822,21 @@ public:
 
         if (fd.localsymtab)
         {
+            // Sort by name: table order follows Identifier addresses,
+            // and inline decisions are order-dependent
+            Dsymbols symbols;
+            symbols.reserve(fd.localsymtab.length);
             foreach (keyValue; fd.localsymtab.tab.asRange)
+                symbols.push(keyValue.value);
+
+            static int compare(const Dsymbol* a, const Dsymbol* b)
             {
-                keyValue.value.accept(this);
+                return strcmp(a.ident.toChars(), b.ident.toChars());
             }
+            symbols.sort!compare();
+
+            foreach (s; symbols)
+                s.accept(this);
         }
     }
 
