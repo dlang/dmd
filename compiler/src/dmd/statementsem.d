@@ -3942,10 +3942,8 @@ public bool throwSemantic(Loc loc, ref Expression exp, Scope* sc)
         return false;
     if (!exp.type.isNaked)
     {
-        // @@@DEPRECATED_2.112@@@
-        // Deprecated in 2.102, change into an error & return false in 2.112
-        eSink.deprecation(exp.loc, "cannot throw object of qualified type `%s`", exp.type.toErrMsg());
-        //return false;
+        eSink.error(exp.loc, "cannot throw object of qualified type `%s`", exp.type.toErrMsg());
+        return false;
     }
     checkThrowEscape(*sc, exp, false);
 
