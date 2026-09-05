@@ -17,7 +17,7 @@ import core.sys.windows.windef;
 
 public import core.sys.windows.dbghelp_types;
 
-extern(Windows)
+extern(Windows) @nogc nothrow
 {
     alias ReadProcessMemoryProc64 = BOOL         function(HANDLE hProcess, DWORD64 lpBaseAddress, PVOID lpBuffer, DWORD nSize, LPDWORD lpNumberOfBytesRead);
     alias FunctionTableAccessProc64 = PVOID        function(HANDLE hProcess, DWORD64 AddrBase);
