@@ -5617,11 +5617,13 @@ struct ASTBase
     extern (C++) final class DotIdExp : UnaExp
     {
         Identifier ident;
+        Loc identLoc;
 
-        extern (D) this(Loc loc, Expression e, Identifier ident)
+        extern (D) this(Loc loc, Expression e, Identifier ident, Loc identLoc = Loc.init)
         {
             super(loc, EXP.dotIdentifier, __traits(classInstanceSize, DotIdExp), e);
             this.ident = ident;
+            this.identLoc = identLoc.isValid() ? identLoc : loc;
         }
 
         override void accept(Visitor v)
