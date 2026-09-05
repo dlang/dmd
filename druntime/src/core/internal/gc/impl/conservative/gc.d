@@ -1803,8 +1803,7 @@ struct Gcx
         usedSmallPages = usedLargePages = 0;
         mappedPages = 0;
         //printf("gcx = %p, self = %x\n", &this, self);
-        version (WASI) {}
-        else version (Posix)
+        version (Posix) static if(!isSingleThreaded)
         {
             import core.sys.posix.pthread : pthread_atfork;
             instance = &this;
@@ -3523,7 +3522,7 @@ Lmark:
         return IsMarked.unknown;
     }
 
-    version (Posix)
+    version (Posix) static if(!isSingleThreaded)
     {
         // A fork might happen while GC code is running in a different thread.
         // Because that would leave the GC in an inconsistent state,

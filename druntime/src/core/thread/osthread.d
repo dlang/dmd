@@ -25,7 +25,9 @@ import core.time;
 // Platform Detection and Memory Allocation
 ///////////////////////////////////////////////////////////////////////////////
 
-version (Posix)
+version (FreeStanding)
+    public import core.thread.stub_impl;
+else version (Posix)
     public import core.thread.posix_impl;
 else version (Windows)
     public import core.thread.windows_impl;
@@ -277,9 +279,9 @@ class Thread : ThreadBase
     }
 }
 
-package Thread toThread(return scope ThreadBase t) @trusted nothrow @nogc pure
+package T toThread(T : ThreadBase = Thread)(return scope ThreadBase t) @trusted nothrow @nogc pure
 {
-    return cast(Thread) cast(void*) t;
+    return cast(T) cast(void*) t;
 }
 
 private extern(D) static void thread_yield() @nogc nothrow
@@ -288,7 +290,6 @@ private extern(D) static void thread_yield() @nogc nothrow
 }
 
 ///
-static if (!isSingleThreaded)
 unittest
 {
     class DerivedThread : Thread
@@ -319,6 +320,8 @@ unittest
 }
 
 static if (!isSingleThreaded)
+{
+
 unittest
 {
     int x = 0;
@@ -330,7 +333,6 @@ unittest
     assert( x == 1 );
 }
 
-static if (!isSingleThreaded)
 unittest
 {
     enum MSG = "Test message.";
@@ -351,7 +353,6 @@ unittest
     }
 }
 
-static if (!isSingleThreaded)
 unittest
 {
     // use >pageSize to avoid stack overflow (e.g. in an syscall)
@@ -359,7 +360,6 @@ unittest
     thr.join();
 }
 
-static if (!isSingleThreaded)
 unittest
 {
     import core.memory : GC;
@@ -376,7 +376,6 @@ unittest
     t2.join();
 }
 
-static if (!isSingleThreaded)
 unittest
 {
     import core.sync.semaphore;
@@ -430,7 +429,6 @@ unittest
     }
 }
 
-static if (!isSingleThreaded)
 unittest // Bugzilla 8960
 {
     import core.sync.semaphore;
@@ -444,6 +442,8 @@ unittest // Bugzilla 8960
         auto prio = thr.priority;    // getting priority doesn't cause error
         assert(prio >= PRIORITY_MIN && prio <= PRIORITY_MAX);
     }
+}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -910,6 +910,7 @@ extern (C) void thread_init() @nogc nothrow
 
     _mainThreadStore[] = cast(void[]) __traits(initSymbol, Thread)[];
     Thread.sm_main = attachThread((cast(Thread)_mainThreadStore.ptr).__ctor());
+    assert(Thread.sm_main !is null);
 }
 
 private alias MainThreadStore = void[__traits(classInstanceSize, Thread)];
