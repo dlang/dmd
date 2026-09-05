@@ -38,6 +38,8 @@ COPY=\
 	$(IMPDIR)\core\internal\destruction.d \
 	$(IMPDIR)\core\internal\entrypoint.d \
 	$(IMPDIR)\core\internal\execinfo.d \
+	$(IMPDIR)\core\internal\ftot\decimal.d \
+	$(IMPDIR)\core\internal\ftot\package.d \
 	$(IMPDIR)\core\internal\hash.d \
 	$(IMPDIR)\core\internal\moving.d \
 	$(IMPDIR)\core\internal\newaa.d \
