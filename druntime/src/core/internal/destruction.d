@@ -18,9 +18,7 @@ void __ArrayDtor(T)(scope T[] a)
 
 public void destructRecurse(E, size_t n)(ref E[n] arr)
 {
-    import core.internal.traits : hasElaborateDestructor;
-
-    static if (hasElaborateDestructor!E)
+    static if (__traits(needsDestruction, E))
     {
         foreach_reverse (ref elem; arr)
             destructRecurse(elem);

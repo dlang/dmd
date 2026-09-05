@@ -1,5 +1,5 @@
 /*
- * DISABLED: freebsd32 freebsd64 linux32 linux64 osx32 osx64 win64 dragonflybsd openbsd
+ * DISABLED: freebsd32 freebsd64 linux32 linux64 osx32 osx64 win64 dragonflybsd openbsd hurd
  */
 
 // https://issues.dlang.org/show_bug.cgi?id=24130

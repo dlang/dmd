@@ -14,7 +14,8 @@ module dmd.glue.toctype;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 
-import dmd.backend.cc : Classsym, Symbol;
+import dmd.backend.cc : Classsym;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -30,12 +31,13 @@ import dmd.dmdparams;
 import dmd.dstruct;
 import dmd.dsymbolsem : isPOD;
 import dmd.expressionsem : toInteger;
-import dmd.globals;
 import dmd.id;
 import dmd.mtype;
 import dmd.typesem;
 
 package(dmd.glue):
+
+private:
 
 /*******************
  * Determine backend tym bits corresponding to MOD
@@ -44,6 +46,7 @@ package(dmd.glue):
  * Returns:
  *  corresponding tym_t bits
  */
+package(dmd.glue)
 tym_t modToTym(MOD mod) pure @safe
 {
     switch (mod)
@@ -81,6 +84,7 @@ tym_t modToTym(MOD mod) pure @safe
  * Returns:
  *      back end equivalent `type`
  */
+package(dmd.glue)
 type* Type_toCtype(Type t)
 {
     if (t.ctype)
@@ -191,6 +195,7 @@ type* Type_toCtype(Type t)
             /* Add in fields of the struct
              * (after setting ctype to avoid infinite recursion)
              */
+            import dmd.globals;
             if (driverParams.symdebug && !global.errors)
             {
                 foreach (v; sym.fields)

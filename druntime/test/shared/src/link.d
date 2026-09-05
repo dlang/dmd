@@ -27,36 +27,36 @@ void testGC()
     lib.free();
 }
 
-import core.atomic : atomicOp;
-shared static this() { _assert(lib.shared_static_ctor == 1); }
-shared static ~this() { _assert(lib.shared_static_dtor == 0); }
+import core.atomic : atomicLoad, atomicOp;
+shared static this() { _assert(atomicLoad(lib.shared_static_ctor) == 1); }
+shared static ~this() { _assert(atomicLoad(lib.shared_static_dtor) == 0); }
 shared uint static_ctor, static_dtor;
-static this() { _assert(lib.static_ctor == atomicOp!"+="(static_ctor, 1)); }
-static ~this() { _assert(lib.static_dtor + 1 == atomicOp!"+="(static_dtor, 1)); }
+static this() { _assert(atomicLoad(lib.static_ctor) == atomicOp!"+="(static_ctor, 1)); }
+static ~this() { _assert(atomicLoad(lib.static_dtor) + 1 == atomicOp!"+="(static_dtor, 1)); }
 
 void testInit()
 {
     import core.thread;
 
-    _assert(shared_static_ctor == 1);
-    _assert(static_ctor == 1);
+    _assert(atomicLoad(shared_static_ctor) == 1);
+    _assert(atomicLoad(static_ctor) == 1);
 
-    _assert(lib.static_ctor == 1);
-    _assert(lib.static_dtor == 0);
+    _assert(atomicLoad(lib.static_ctor) == 1);
+    _assert(atomicLoad(lib.static_dtor) == 0);
     static void foo()
     {
-        _assert(lib.shared_static_ctor == 1);
-        _assert(lib.shared_static_dtor == 0);
-        _assert(lib.static_ctor == 2);
-        _assert(lib.static_dtor == 0);
+        _assert(atomicLoad(lib.shared_static_ctor) == 1);
+        _assert(atomicLoad(lib.shared_static_dtor) == 0);
+        _assert(atomicLoad(lib.static_ctor) == 2);
+        _assert(atomicLoad(lib.static_dtor) == 0);
     }
     auto thr = new Thread(&foo);
     thr.start();
     _assert(thr.join() is null);
-    _assert(lib.shared_static_ctor == 1);
-    _assert(lib.shared_static_dtor == 0);
-    _assert(lib.static_ctor == 2);
-    _assert(lib.static_dtor == 1);
+    _assert(atomicLoad(lib.shared_static_ctor) == 1);
+    _assert(atomicLoad(lib.shared_static_dtor) == 0);
+    _assert(atomicLoad(lib.static_ctor) == 2);
+    _assert(atomicLoad(lib.static_dtor) == 1);
 }
 
 void main()

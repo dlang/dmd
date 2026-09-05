@@ -1,0 +1,600 @@
+Ddoc
+
+$(SPEC_S Interfacing to Objective-C,
+
+$(HEADERNAV_TOC)
+
+    $(P
+        D supports interfacing with Objective-C. It supports protocols, classes,
+        subclasses, instance variables, instance methods and class methods.
+        Platform support might vary between different compilers.
+    )
+
+    $(P
+        Fully working example is available at
+        $(LINK2 #usage-example, the bottom).
+    )
+
+    $(SECTION2 $(LNAME2 classes, Classes))
+
+    $(SECTION3 $(LNAME2 external-class, Declaring an External Class))
+
+    ---
+    import core.attribute : selector;
+
+    extern (Objective-C)
+    extern class NSString
+    {
+        const(char)* UTF8String() @selector("UTF8String");
+    }
+    ---
+
+    $(P
+        All Objective-C classes that should be accessible from within D need to
+        be declared with the $(LINK2 #objc-linkage, Objective-C linkage). If the
+        class is declared as `extern` (in addition to `extern (Objective-C)`) it
+        is expected to be defined externally.
+    )
+
+    $(P
+        The $(LINK2 #selector-attribute, `@selector`) attribute indicates which
+        Objective-C selector should be used when calling this method.
+        This attribute needs to be attached to all methods with the
+        `Objective-C` linkage.
+    )
+
+    $(SECTION3 $(LNAME2 external-class, Binding to a @property (Accessor Methods)))
+
+    ---
+    import core.attribute : selector;
+
+    extern (Objective-C)
+    extern class MTLRenderPipelineDescriptor : NSObject
+    {
+        NSString label() @selector("label");
+        NSString label(NSString) @selector("setLabel:");
+    }
+    ---
+
+    $(P
+        Whenever needing to bind to Objective-C classes `@property`, one must be aware
+        that it generates both a getter and setter. The method to get its value (getter)
+        is the same name as the property's name. The method to set its value (setter)
+        starts with the word "set" and then uses the capitalized property name.
+        The setter for the property `label` is `setLabel:`.
+    )
+
+    $(SECTION3 $(LNAME2 defining-class, Defining a Class))
+
+    ---
+    import core.attribute : selector;
+
+    // externally defined
+    extern (Objective-C)
+    extern class NSObject
+    {
+        static NSObject alloc() @selector("alloc");
+        NSObject init() @selector("init");
+    }
+
+    extern (Objective-C)
+    class Foo : NSObject
+    {
+        override static Foo alloc() @selector("alloc");
+        override Foo init() @selector("init");
+
+        final int bar(int a) @selector("bar:")
+        {
+            return a;
+        }
+    }
+
+    void main()
+    {
+        assert(Foo.alloc.init.bar(3) == 3);
+    }
+    ---
+
+    $(P
+        Defining an Objective-C class is exactly the same as declaring an
+        external class but it should not be declared as `extern`.
+    )
+
+    $(P
+        To match the Objective-C semantics, `static` and `final` methods are
+        virtual. `static` methods are overridable as well.
+    )
+
+    $(SECTION2 $(LNAME2 protocols, Protocols))
+
+    $(SECTION3 $(LNAME2 declaring-protocol, Declaring a Protocol))
+
+    ---
+    import core.attribute : selector;
+    import core.stdc.stdio : printf;
+
+    extern (Objective-C)
+    interface Foo
+    {
+        static void foo() @selector("foo");
+        void bar() @selector("bar");
+    }
+
+    extern (Objective-C)
+    class Bar : Foo
+    {
+        static void foo() @selector("foo")
+        {
+            printf("foo\n");
+        }
+
+        void bar() @selector("bar")
+        {
+            printf("bar\n");
+        }
+    }
+    ---
+
+    $(P
+        Objective-C protocols are represented as interfaces in D and are
+        declared using the `interface` keyword.
+    )
+
+    $(P
+        All Objective-C protocols that should be accessible from within D need
+        to be declared with the [Objective-C linkage](#objc-linkage).
+    )
+
+    $(P
+        Objective-C protocols support virtual class (static) methods. These
+        methods must be implemented by the class that implements the protocol
+        (unless they are [optional](#optional-methods)). To match these
+        semantics, `static` methods are virtual. That also means that static
+        methods with Objective-C linkage, inside an interface cannot have a body.
+    )
+
+    $(SECTION3 $(LNAME2 optional-methods, Optional Methods))
+
+    ---
+    import core.attribute : optional, selector;
+    import core.stdc.stdio : printf;
+
+    struct objc_selector;
+    alias SEL = objc_selector*;
+
+    extern (C) SEL sel_registerName(in char* str);
+
+    extern (Objective-C)
+    extern class NSObject
+    {
+        static NSObject alloc() @selector("alloc");
+        NSObject init() @selector("init");
+    }
+
+    extern (Objective-C)
+    interface Foo
+    {
+        bool respondsToSelector(SEL sel) @selector("respondsToSelector:");
+        void foo() @selector("foo");
+
+        // this is an optional method
+        @optional void bar() @selector("bar");
+    }
+
+    extern (Objective-C)
+    class Bar : NSObject, Foo
+    {
+        override static Bar alloc() @selector("alloc");
+        override Bar init() @selector("init");
+
+        bool respondsToSelector(SEL sel) @selector("respondsToSelector:");
+
+        void foo() @selector("foo")
+        {
+            printf("foo\n");
+        }
+    }
+
+    void main()
+    {
+        Foo f = Bar.alloc.init;
+
+        // check, at runtime, if the instance `f` implements the method `bar`
+        if (f.respondsToSelector(sel_registerName("bar")))
+            f.bar();
+        else
+            f.foo();
+    }
+    ---
+    $(P
+        Objective-C protocols support optional methods. Optional methods are
+        **not** required to be implemented by the class that implements the
+        protocol. To safely call an optional method, a runtime check should be
+        performed to make sure the receiver implements the method.
+    )
+
+    $(P
+        In D, optional methods are represented using the
+        [`@optional`](#optional-attribute) attribute.
+    )
+
+    $(SECTION2 $(LNAME2 instance-variables, Instance Variables))
+
+    ---
+    import core.attribute : selector;
+
+    // externally defined
+    extern (Objective-C)
+    extern class NSObject
+    {
+        static NSObject alloc() @selector("alloc");
+        NSObject init() @selector("init");
+    }
+
+    extern (Objective-C)
+    class Foo : NSObject
+    {
+        int bar_;
+
+        override static Foo alloc() @selector("alloc");
+        override Foo init() @selector("init");
+
+        int bar() @selector("bar")
+        {
+            return bar_;
+        }
+    }
+
+    void main()
+    {
+        auto foo = Foo.alloc.init;
+        foo.bar_ = 3;
+        assert(foo.bar == 3);
+    }
+    ---
+
+    $(P
+        Declaring an instance variable looks exactly the same as for a regular
+        D class.
+    )
+
+    $(P
+        To solve the fragile base class problem, instance variables in
+        Objective-C has a dynamic offset. That means that the base class can
+        change (add or remove instance variables) without the subclasses needing
+        to recompile or relink. Thanks to this feature it's not necessary to
+        declare instance variables when creating bindings to Objective-C classes.
+    )
+
+    $(SECTION2 $(LNAME2 instance-method, Calling an Instance Method))
+
+    $(P
+        Calling an Objective-C instance method uses the same syntax as calling
+        regular D methods:
+    )
+
+    ---
+    const(char)* result = object.UTF8String();
+    ---
+
+    $(P
+        When the compiler sees a call to a method with Objective-C linkage it
+        will generate a call similar to how an Objective-C compiler would call
+        the method.
+    )
+
+    $(SECTION2 $(LNAME2 selector-attribute, The `@selector` Attribute))
+
+    $(P
+        The `@selector` attribute is a compiler recognized
+        $(LINK2 attribute.html#uda, UDA). It is used to tell the compiler which
+        selector to use when calling an Objective-C method.
+    )
+
+    $(P
+        Selectors in Objective-C can contain the colon character, which is not valid in D
+        identifiers. D supports method overloading while Objective-C
+        achieves something similar by using different selectors. For these two
+        reasons it is better to be able to specify the selectors manually in D,
+        instead of trying to infer it. This allows to have a more natural names
+        for the methods in D. Example:
+    )
+
+    ---
+    import core.attribute : selector;
+
+    extern (Objective-C)
+    extern class NSString
+    {
+        NSString initWith(in char*) @selector("initWithUTF8String:");
+        NSString initWith(NSString) @selector("initWithString:");
+    }
+    ---
+
+    $(P
+        Here the method `initWith` is overloaded with two versions, one
+        accepting `in char*`, the other one `NSString`. These two methods are
+        mapped to two different Objective-C selectors, `initWithUTF8String:`
+        and `initWithString:`.
+    )
+
+    $(P
+        The attribute is defined in druntime in
+        $(DPLLINK phobos/core_attribute.html, `core.attribute`). The attribute
+        is only defined when the version identifier
+        $(LINK2 #objc-version-identifier, `D_ObjectiveC`) is enabled.
+    )
+
+    $(SECTION3 $(LNAME2 compiler-checks, Compiler Checks))
+
+    $(P
+        The compiler performs the following checks to enforce the correct usage
+        of the `@selector` attribute:
+    )
+
+    $(UL
+        $(LI
+            The attribute can only be attached to methods with Objective-C
+            linkage
+        )
+
+        $(LI The attribute can only be attached once to a method)
+        $(LI The attribute cannot be attached to a template method)
+
+        $(LI
+            The number of colons in the selector needs to match the number of
+            parameters the method is declared with
+        )
+    )
+
+    $(P If any of the checks fail, a compile error will occur.)
+
+    $(SECTION2 $(LNAME2 optional-attribute, The `@optional` Attribute))
+
+    $(P
+        The `@optional` attribute is a compiler recognized
+        $(LINK2 attribute.html#uda, UDA). It is used to tell the compiler that a
+        method, with Objective-C linkage, declared inside an interface is
+        optional. That means that the class that implements the interface does
+        **not** have to implement the method.
+    )
+
+    $(P
+        To safely call an optional method, a runtime check should be performed
+        to make sure the receiver implements the method.
+    )
+
+    $(P
+        The attribute is defined in druntime in
+        $(DPLLINK phobos/core_attribute.html, `core.attribute`). The attribute
+        is only defined when the version identifier
+        [`D_ObjectiveC`](#objc-version-identifier) is enabled.
+    )
+
+    $(SECTION3 $(LNAME2 compiler-checks, Compiler Checks))
+
+    $(P
+        The compiler performs the following checks to enforce the correct usage
+        of the `@optional` attribute:
+    )
+
+    * The attribute can only be attached to methods with Objective-C linkage
+    * The attribute can only be attached to a method inside an interface
+    * The attribute can only be attached once to a method
+    * The attribute cannot be attached to a template method
+
+    $(P If any of the checks fail, a compile error will occur.)
+
+    $(SECTION2
+        $(LNAME2 objc-version-identifier, The `D_ObjectiveC` Version Identifier)
+    )
+
+    $(P
+        The `D_ObjectiveC` version identifier is a predefined version
+        identifier. It is enabled if Objective-C support is available for the
+        target.
+    )
+
+    $(SECTION2 $(LNAME2 objc-linkage, Objective-C Linkage))
+
+    $(P
+        Objective-C linkage is achieved by attaching the `extern (Objective-C)`
+        attribute to a class. Example:
+    )
+
+    ---
+    import core.attribute : selector;
+
+    extern (Objective-C)
+    extern class NSObject
+    {
+        NSObject init() @selector("init");
+    }
+    ---
+
+    $(P
+        All methods inside a class declared as `extern (Objective-C)` will
+        get implicit Objective-C linkage.
+    )
+
+    $(P
+        The linkage is recognized on all platforms but will issue a compile
+        error if it is used on a platform where Objective-C support is not
+        available. This allows to easily hide Objective-C declarations from
+        platforms where it is not available using the
+        $(LINK2 version.html#version, `version`) statement, without resorting to
+        string mixins or other workarounds.
+    )
+
+    $(SECTION2 $(LNAME2 memory-management, Memory Management))
+
+    $(P
+        The preferred way to do memory management in Objective-C is to use
+        Automatic Reference Counting, $(LINK2 https://developer.apple.com/library/mac/releasenotes/ObjectiveC/RN-TransitioningToARC/Introduction/Introduction.html, ARC).
+        This is not supported in D, therefore manual memory management is
+        required to be used instead. This is achieved by calling $(LINK2 https://developer.apple.com/library/mac/documentation/Cocoa/Reference/Foundation/Protocols/NSObject_Protocol/index.html#//apple_ref/occ/intfm/NSObject/release, `release`)
+        on an Objective-C instance, like in the old days of Objective-C.
+    )
+
+    $(SECTION2 $(LNAME2 frameworks, Frameworks))
+
+    $(P
+        Most Objective-C code is bundled in something called a "Framework".
+        This is basically a regular directory, with the `.framework` extension
+        and a specific directory layout. A framework contains a dynamic
+        library, all public header files and any resources (images, sounds and
+        so on) required by the framework.
+    )
+
+    $(P
+        These directories are recognized by some tools, like the Objective-C
+        compiler and linker, to be frameworks. To link with a framework from
+        DMD, use the following flags:
+    )
+
+    ---
+    -L-framework -L<Framework>
+    ---
+
+        where `<Framework>` is the name of the framework to link with, without
+        the `.framework` extension. The two `-L` flags are required because the
+        linker expects a space between the `-framework` flag and the name of
+        the framework. DMD cannot handle this and will instead interpret the
+        name of the framework as a separate flag.
+
+    $(SECTION3 $(LNAME2 framework-paths, Framework Paths))
+
+    $(P
+        Using the above flag, the linker will search in the standard framework
+        paths. The standard search paths for frameworks are:
+    )
+
+    $(UL
+        $(LI `/System/Library/Frameworks`)
+        $(LI `/Library/Frameworks`)
+    )
+
+    $(P
+        The following flag from DMD can be used to add a new path in which to
+        search for frameworks:
+    )
+
+    ---
+    -L-F<framework_path>
+    ---
+
+    $(P
+        For more information see the $(LINK2 https://developer.apple.com/library/mac/documentation/MacOSX/Conceptual/BPFrameworks/Tasks/IncludingFrameworks.html, reference documentation)
+        and the `ld` man page.
+    )
+
+    $(SECTION2 $(LNAME2 usage-example, Full Usage Example))
+
+    $(P
+        This example will create an Objective-C string, `NSString`, and log the
+        message using `NSLog` to stderr.
+    )
+
+    ---
+    import core.attribute : selector;
+
+    extern (Objective-C)
+    extern class NSString
+    {
+        static NSString alloc() @selector("alloc");
+        NSString initWithUTF8String(in char* str) @selector("initWithUTF8String:");
+        void release() @selector("release");
+    }
+    ---
+
+    $(P
+        This is a simplified declaration of the $(LINK2 https://developer.apple.com/documentation/foundation/nsstring?language=objc, `NSString`)
+        class. The $(LINK2 https://developer.apple.com/documentation/objectivec/nsobject/1571958-alloc?language=objc, `alloc`)
+        method allocates an instance of the class. The $(LINK2 https://developer.apple.com/documentation/foundation/nsstring/1412128-initwithutf8string?language=objc, `initWithUTF8String:`)
+        method will be used to convert a C string in UTF-8 to an Objective-C
+        string, `NSString`. The $(LINK2 https://developer.apple.com/documentation/objectivec/1418956-nsobject/1571957-release?language=objc, `release`)
+        method is used to release an deallocate the string. Since D doesn't
+        support $(LINK2 https://developer.apple.com/library/mac/releasenotes/ObjectiveC/RN-TransitioningToARC/Introduction/Introduction.html, ARC)
+        it's needed to manually release Objective-C instances.
+    )
+
+    ---
+    extern (C) void NSLog(NSString, ...);
+    ---
+
+    $(P
+        This $(LINK2 https://developer.apple.com/library/mac/documentation/Cocoa/Reference/Foundation/Miscellaneous/Foundation_Functions/index.html#//apple_ref/c/func/NSLog, `NSLog`)
+        function prints a message to the System Log facility, i.e. to stderr
+        and Console.
+    )
+
+    ---
+    auto str = NSString.alloc();
+    ---
+
+    $(P Allocate an instance of the class, `NSString`.)
+
+    ---
+    str = str.initWithUTF8String("Hello World!")
+    ---
+
+    $(P Initialize the Objective-C string using a C string.)
+
+    ---
+    NSLog(str);
+    ---
+
+    $(P
+        Log the string to stderr, this will print something like this in the
+        terminal:
+    )
+
+    ---
+    2015-07-18 13:14:27.978 main[11045:2934950] Hello World!
+    ---
+
+    ---
+    str.release();
+    ---
+
+    $(P Release and deallocate the string.)
+
+    $(P All steps combined look like this:)
+
+    ---
+    module main;
+
+    import core.attribute : selector;
+
+    extern (Objective-C)
+    extern class NSString
+    {
+        static NSString alloc() @selector("alloc");
+        NSString initWithUTF8String(in char* str) @selector("initWithUTF8String:");
+        void release() @selector("release");
+    }
+
+    extern (C) void NSLog(NSString, ...);
+
+    void main()
+    {
+        auto str = NSString.alloc().initWithUTF8String("Hello World!");
+        NSLog(str);
+        str.release();
+    }
+    ---
+
+    $(P
+        When compiling the application remember to link with the required
+        libraries, in this case the Foundation framework. Example:
+    )
+
+    ---
+    dmd -L-framework -LFoundation main.d
+    ---
+$(SPEC_SUBNAV_PREV_NEXT cpp_interface, Interfacing to C++, portability, Portability Guide)
+)
+
+Macros:
+    CHAPTER=35
+        TITLE=Interfacing to Objective-C

@@ -269,7 +269,7 @@ void test_semantic()
     /* Mini object.d source. Module::parse will add internal members also. */
     const char *buf =
         "module object;\n"
-        "class Object { }\n"
+        "class Object { void* __monitor; }\n"
         "class Throwable { }\n"
         "class Error : Throwable { this(immutable(char)[]); }";
 
@@ -354,8 +354,8 @@ void test_target()
 void test_parameters()
 {
     Parameters *args = new Parameters;
-    args->push(Parameter::create(Loc(), STCundefined, Type::tint32, NULL, NULL, NULL));
-    args->push(Parameter::create(Loc(), STCundefined, Type::tint64, NULL, NULL, NULL));
+    args->push(Parameter::create(Loc(), STCundefined, Type::tint32, NULL, NULL, NULL, NULL));
+    args->push(Parameter::create(Loc(), STCundefined, Type::tint64, NULL, NULL, NULL, NULL));
 
     TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINK::c);
 
@@ -1007,7 +1007,7 @@ public:
             return;
         TypeFunction *tf = func->type->toTypeFunction();
         Type *type = func->tintro != NULL ? func->tintro->nextOf() : tf->nextOf();
-        if ((func->isMain() || func->isCMain()) && type->toBasetype()->ty == TY::Tvoid)
+        if ((func->isDMain() || func->isCMain()) && type->toBasetype()->ty == TY::Tvoid)
             type = Type::tint32;
         if (func->shidden)
         {
@@ -1055,23 +1055,19 @@ public:
     }
     void visit(CompoundStatement *s) override
     {
-        if (s->statements == NULL)
-            return;
-        for (size_t i = 0; i < s->statements->length; i++)
+        for (size_t i = 0; i < s->statements.length; i++)
         {
-            Statement *statement = (*s->statements)[i];
+            Statement *statement = s->statements[i];
             if (statement)
                 statement->accept(this);
         }
     }
     void visit(UnrolledLoopStatement *s) override
     {
-        if (s->statements == NULL)
-            return;
         s->getRelatedLabeled()->accept(this);
-        for (size_t i = 0; i < s->statements->length; i++)
+        for (size_t i = 0; i < s->statements.length; i++)
         {
-            Statement *statement = (*s->statements)[i];
+            Statement *statement = s->statements[i];
             if (statement != NULL)
                 statement->accept(this);
         }
@@ -1780,7 +1776,7 @@ void hdrgen_h(Module *m, OutBuffer &buf, Modules &ms, ParameterList pl,
               Expression *e, Initializer *i, Statement *s, Type *t, ErrorSink *sink)
 {
     dmd::genhdrfile(m, true, buf);
-    dmd::genCppHdrFiles(ms, sink);
+    dmd::genCppHdrFiles(ms, sink, CppStdRevisionCpp11);
     dmd::moduleToBuffer(buf, true, m);
     dmd::parametersTypeToChars(pl);
     dmd::toChars(e);

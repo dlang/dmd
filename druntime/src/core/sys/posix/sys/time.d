@@ -94,6 +94,16 @@ else version (CRuntime_Musl)
     pragma(mangle, muslRedirTime64Mangle!("utimes", "__utimes_time64"))
     int utimes(const scope char*, ref const(timeval)[2]);
 }
+else version (CRuntime_WASI)
+{
+    struct timeval
+    {
+        time_t      tv_sec;
+        suseconds_t tv_usec;
+    }
+    int gettimeofday(timeval*, void*);
+    int utimes(const scope char*, ref const(timeval)[2]);
+}
 else version (Darwin)
 {
     struct timeval
@@ -160,9 +170,13 @@ else version (NetBSD)
         timeval it_value;
     }
 
+    pragma(mangle, "__getitimer50")
     int getitimer(int, itimerval*);
+    pragma(mangle, "__gettimeofday50")
     int gettimeofday(timeval*, void*); // timezone_t* is normally void*
+    pragma(mangle, "__setitimer50")
     int setitimer(int, const scope itimerval*, itimerval*);
+    pragma(mangle, "__utimes50")
     int utimes(const scope char*, ref const(timeval)[2]);
 }
 else version (OpenBSD)

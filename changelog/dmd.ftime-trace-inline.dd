@@ -1,0 +1,9 @@
+`-ftime-trace`: add instrumentation for the inliner pass
+
+The `-ftime-trace` output previously had no coverage for the inliner pass.
+When compiling with `-inline`, the time spent scanning and inlining functions
+did not appear in the trace at all.
+
+Two new spans are now emitted: `Inlining` covers the entire inliner pass, and
+`Inline: <function>` covers each function scanned individually.
+These are visible in trace viewers like $(LINK2 https://ui.perfetto.dev/, Perfetto).

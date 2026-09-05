@@ -21,6 +21,7 @@ import dmd.expression;
 import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.root.string : toDString;
+import dmd.json : writeEscapeJSONString;
 
 // Thread local profiler instance (multithread currently not supported because compiler is single-threaded)
 TimeTraceProfiler* timeTraceProfiler = null;
@@ -150,7 +151,7 @@ void timeTraceEndEvent(TimeTraceEventType eventType, Dsymbol sym, scope const(ch
         timeTraceProfiler.endScope(
             eventType,
             () => sym.isImport() ? sym.toPrettyChars().toDString() : sym.toChars().toDString(),
-            detail ? detail : () => sym.toPrettyChars().toDString(),
+            () => detail ? detail() : sym.toPrettyChars().toDString(),
             sym.loc
         );
     }
@@ -176,9 +177,16 @@ enum TimeTraceEventType
     sema1Module,
     sema1TemplateDecl,
     sema1TemplateInstance,
+    sema1TemplateArgSemantic,        /// semantic analysis of template arguments (semanticTiargs)
+    sema1TemplateOverloadResolution, /// overload resolution / best-match selection (findBestMatch)
+    sema1TemplateMembers,            /// sema1 pass on template instance members (expandMembers)
+    sema1TemplateInstanceSema2,      /// sema2 pass on template instance members
+    sema1TemplateInstanceSema3,      /// sema3 pass on template instance members
     sema1Function,
     sema2,
     sema3,
+    inlineGeneral,   /// top-level span for the entire inliner pass
+    inlineFunction,  /// per-function span during inlining
     dfa,
     ctfe,
     ctfeCall,
@@ -198,9 +206,16 @@ private immutable string[] eventPrefixes = [
     "Sema1: Module ",
     "Sema1: Template Declaration ",
     "Sema1: Template Instance ",
+    "Sema1: Template Arg Semantic: ", /// sema1TemplateArgSemantic
+    "Sema1: Overload Resolution: ",   /// sema1TemplateOverloadResolution
+    "Sema1: Template Members: ",      /// sema1TemplateMembers
+    "Sema2: Template Instance: ",     /// sema1TemplateInstanceSema2
+    "Sema3: Template Instance: ",     /// sema1TemplateInstanceSema3
     "Sema1: Function ",
     "Sema2: ",
     "Sema3: ",
+    "Inlining",
+    "Inline: ",
     "DFA: ",
     "Ctfe: ",
     "Ctfe: call ",
@@ -319,7 +334,8 @@ private struct TimeTraceProfiler
         else
         {
             counters.allocatedMemory = dmd.root.rmem.heapTotal;
-            counters.memoryInUse = dmd.root.rmem.heapTotal - dmd.root.rmem.heapleft;
+            counters.memoryInUse = dmd.root.rmem.heapTotal -
+                (dmd.root.rmem.CHUNK_SIZE - dmd.root.rmem.heappos);
         }
         counters.timepoint = timepoint;
         return counters;
@@ -427,52 +443,6 @@ private struct TimeTraceProfiler
             buf.write(`"},`);
             buf.write(pidtidString);
             buf.write("},\n");
-        }
-    }
-}
-
-/**
- * Escape special characters (such as quotes and whitespaces) for a JSON string literal
- * Params:
- *   buf = buffer to write to
- *   str = string to escape and write as string literal
- */
-private void writeEscapeJSONString(ref OutBuffer buf, const(char[]) str)
-{
-    foreach (char c; str)
-    {
-        switch (c)
-        {
-        case '\n':
-            buf.writestring("\\n");
-            break;
-        case '\r':
-            buf.writestring("\\r");
-            break;
-        case '\t':
-            buf.writestring("\\t");
-            break;
-        case '\"':
-            buf.writestring("\\\"");
-            break;
-        case '\\':
-            buf.writestring("\\\\");
-            break;
-        case '\b':
-            buf.writestring("\\b");
-            break;
-        case '\f':
-            buf.writestring("\\f");
-            break;
-        default:
-            if (c < 0x20)
-                buf.printf("\\u%04x", c);
-            else
-            {
-                // Note that UTF-8 chars pass through here just fine
-                buf.writeByte(c);
-            }
-            break;
         }
     }
 }

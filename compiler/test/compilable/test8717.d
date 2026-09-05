@@ -60,4 +60,6 @@ static if(SPT.init.sii != 1) { static assert(0); }
 static if(SPT.sf() != 1) { static assert(0); }
 static if(SPT.init.f() != 1) { static assert(0); }
 
-void main() { }
+// https://github.com/dlang/dmd/issues/22699
+struct S{ int[8] e; }
+static assert(S().e[0..4] == S.init.e[0..4]);

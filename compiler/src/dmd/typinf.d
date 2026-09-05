@@ -18,8 +18,9 @@ import dmd.dscope;
 import dmd.dclass;
 import dmd.dstruct;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
-import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.location;
 import dmd.mtype;
 import dmd.templatesem;
@@ -41,19 +42,22 @@ import core.stdc.stdio;
 bool genTypeInfo(Expression e, Loc loc, Type torig, Scope* sc)
 {
     // printf("genTypeInfo() %s\n", torig.toChars());
+    import dmd.globals : global;
+    auto eSink = global.errorSink;
 
     // Even when compiling without `useTypeInfo` (e.g. -betterC) we should
     // still be able to evaluate `TypeInfo` at compile-time, just not at runtime.
     // https://issues.dlang.org/show_bug.cgi?id=18472
     if (!sc || !sc.ctfe)
     {
+        import dmd.globals;
         if (!global.params.useTypeInfo)
         {
             global.gag = 0;
             if (e)
-                .error(loc, "expression `%s` uses the GC and cannot be used with switch `-betterC`", e.toChars());
+                eSink.error(loc, "expression `%s` uses the GC and cannot be used with switch `-betterC`", e.toErrMsg());
             else
-                .error(loc, "`TypeInfo` cannot be used with `-betterC`");
+                eSink.error(loc, "`TypeInfo` cannot be used with `-betterC`");
 
             if (sc && sc.tinst)
                 sc.tinst.printInstantiationTrace(Classification.error, uint.max);
@@ -64,7 +68,7 @@ bool genTypeInfo(Expression e, Loc loc, Type torig, Scope* sc)
 
     if (!Type.dtypeinfo)
     {
-        .error(loc, "`object.TypeInfo` could not be found, but is implicitly used");
+        eSink.error(loc, "`object.TypeInfo` could not be found, but is implicitly used");
         fatal();
     }
 

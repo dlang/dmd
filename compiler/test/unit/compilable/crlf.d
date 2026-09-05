@@ -24,7 +24,6 @@ unittest
 
     import support : compiles, stripDelimited;
 
-    // not using token string due to https://issues.dlang.org/show_bug.cgi?id=19315
     enum crLFCode = `
         #!/usr/bin/env dmd -run
 
@@ -67,7 +66,11 @@ unittest
         `static assert(wstr == "foo\nbar\nbaz\n");`,
 
         format!`enum dstr = q"(%s)";`("\r\nfoo\r\nbar\nbaz\r\n"),
-        `static assert(dstr == "\nfoo\nbar\nbaz\n");`
+        `static assert(dstr == "\nfoo\nbar\nbaz\n");`,
+
+        // https://github.com/dlang/dmd/issues/17751
+        format!`enum tstr = q{%s};`("\r\nfoo\r\nbar\nbaz\r\n"),
+        `static assert(tstr == "\nfoo\nbar\nbaz\n");`,
     ];
 
     enum code = crLFCode ~ "\r\n" ~ codeLines.join('\n') ~ '\n';

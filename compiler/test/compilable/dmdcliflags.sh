@@ -13,20 +13,20 @@ function grep() {
 
 for w in "check" "check=" ; do
     output="$(! $DMD "-${w}" 2>&1)"
-    echo "$output" | grep "Enable or disable specific checks:"
-    echo "$output" | grep "=on                   Enable all assertion checking"
+    echo "$output" | grep "Enable or disable specific checks"
+    echo "$output" | grep "=on                   Enable all checking"
     echo "$output" | grep "Error: \`-check=<action>\` requires an action"
 done
 
 for w in "check=?" "check=h" "check=help" ; do
     output="$($DMD "-${w}")"
-    echo "$output" | grep "Enable or disable specific checks:"
+    echo "$output" | grep "Enable or disable specific checks"
 done
 
 output="$(! $DMD -check=foo 2>&1)"
 echo "$output" | grep "Error: switch \`-check=foo\` is invalid"
-echo "$output" | grep "Enable or disable specific checks:"
-echo "$output" | grep "=on                   Enable all assertion checking"
+echo "$output" | grep "Enable or disable specific checks"
+echo "$output" | grep "=on                   Enable all checking"
 
 output="$(! $DMD -checkf 2>&1)"
 echo "$output" | grep "Error: unrecognized switch '-checkf'"

@@ -1,0 +1,174 @@
+name: perf
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'spec/**'
+      - 'changelog/**'
+      - '**/*.md'
+  push:
+    branches: [master]
+
+concurrency:
+  group: perf-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  perf:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      OS_NAME: linux
+      MODEL: 64
+      FULL_BUILD: false
+      HOST_DMD: ldc-1.42.0
+      ENABLE_LTO: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set parallelism
+        run: echo "N=$(nproc)" >> "$GITHUB_ENV"
+
+      - name: Compute base/head SHAs
+        id: refs
+        run: |
+          set -uexo pipefail
+          HEAD_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "head=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "branch=${GITHUB_BASE_REF:-master}" >> "$GITHUB_OUTPUT"
+
+          # A pushed commit is its own merge-base with master, so nothing
+          # to diff against there. Measure alone and record it as history.
+          if [ "${{ github.event_name }}" = pull_request ]; then
+            git fetch --no-tags origin master
+            echo "base=$(git merge-base "$HEAD_SHA" origin/master)" >> "$GITHUB_OUTPUT"
+          else
+            BEFORE="${{ github.event.before }}"
+            # All zeroes on the first push to a branch.
+            git rev-parse -q --verify "$BEFORE^{commit}" > /dev/null || BEFORE="$HEAD_SHA~"
+            echo "base=" >> "$GITHUB_OUTPUT"
+            echo "before=$BEFORE" >> "$GITHUB_OUTPUT"
+            echo "commits=$(git rev-list --count "$BEFORE..$HEAD_SHA")" >> "$GITHUB_OUTPUT"
+            echo "date=$(TZ=UTC git show -s --format=%cd --date=iso-strict-local "$HEAD_SHA")" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y valgrind time
+          valgrind --version
+
+      - name: Install host compiler
+        run: |
+          ci/run.sh install_host_compiler
+          source ~/dlang/*/activate
+          which ldc-profdata
+          deactivate
+
+      - name: Build dmd at base and head
+        run: |
+          set -uexo pipefail
+          source ~/dlang/*/activate
+          built=generated/$OS_NAME/release/$MODEL
+          profile="$RUNNER_TEMP/pgo/merged.data"
+          BASE_SHA="${{ steps.refs.outputs.base }}"
+          mkdir -p "$RUNNER_TEMP/pgo"
+
+          # Check out a ref and build a plain dmd + phobos
+          setup_ref() {
+            local dir="$RUNNER_TEMP/$2/dmd"
+            mkdir -p "$RUNNER_TEMP/$2"
+            git worktree add --force "$dir" "$1"
+            ( cd "$dir" && ci/run.sh setup_repos "${{ steps.refs.outputs.branch }}" )
+            ( cd "$dir" && $DMD -of=generated/build -g compiler/src/build.d )
+            ( cd "$dir" && generated/build HOST_DMD=$DMD MODEL=$MODEL -j$N )
+            ( cd "$dir/../phobos" && make -j$N MODEL=$MODEL )
+          }
+
+          setup_ref "${{ steps.refs.outputs.head }}" head
+          if [ -n "$BASE_SHA" ]; then
+            setup_ref "$BASE_SHA" base
+            train=base
+          else
+            train=head
+          fi
+
+          # dmd-pgo trains and rebuilds $train with the merged profile, the other ref just reuses it
+          ( cd "$RUNNER_TEMP/$train/dmd" && generated/build HOST_DMD=$DMD MODEL=$MODEL dmd-pgo -j$N --force )
+          cp "$RUNNER_TEMP/$train/dmd/$built/dmd_profdata/merged.data" "$profile"
+          if [ -n "$BASE_SHA" ]; then
+            ( cd "$RUNNER_TEMP/head/dmd" && generated/build HOST_DMD=$DMD MODEL=$MODEL \
+                ENABLE_RELEASE=1 ENABLE_LTO=1 \
+                DFLAGS="-fprofile-instr-use=$profile -wi" -j$N --force )
+          fi
+          deactivate
+
+      - name: Cache dub packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.dub/packages
+          key: dub-packages-${{ hashFiles('tools/perfrunner/workloads/vibed/dub.selections.json') }}
+
+      - name: Measure
+        run: |
+          set -uexo pipefail
+          source ~/dlang/*/activate
+          built=generated/$OS_NAME/release/$MODEL/dmd
+          BASE_SHA="${{ steps.refs.outputs.base }}"
+
+          args=(
+            --head-dmd "$RUNNER_TEMP/head/dmd/$built"
+            --head-phobos "$RUNNER_TEMP/head/phobos"
+            --head-src "$RUNNER_TEMP/head/dmd"
+            --head-sha "${{ steps.refs.outputs.head }}"
+            --os ubuntu-24.04
+            --host-dmd "$HOST_DMD"
+            --host-dmd-bin "$DMD"
+            --out "$GITHUB_WORKSPACE/results.json"
+          )
+          if [ -n "$BASE_SHA" ]; then
+            args+=(
+              --base-dmd "$RUNNER_TEMP/base/dmd/$built"
+              --base-phobos "$RUNNER_TEMP/base/phobos"
+              --base-src "$RUNNER_TEMP/base/dmd"
+              --base-sha "$BASE_SHA"
+              --pr "${{ github.event.pull_request.number || 0 }}"
+            )
+          else
+            args+=(
+              --before "${{ steps.refs.outputs.before }}"
+              --commits "${{ steps.refs.outputs.commits }}"
+              --committed-at "${{ steps.refs.outputs.date }}"
+            )
+          fi
+
+          cd tools/perfrunner
+          dub run -- "${args[@]}"
+
+      - name: Show results
+        run: cat "$GITHUB_WORKSPACE/results.json"
+
+      # perf-comment.yml picks this up and posts the comment.
+      - name: Upload results
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-results
+          path: results.json
+
+      - name: Publish to the history repo
+        if: github.event_name == 'push' && vars.PERF_DATA_REPO != ''
+        env:
+          PERF_DATA_REPO: ${{ vars.PERF_DATA_REPO }}
+          PERF_DATA_KEY: ${{ secrets.PERF_DATA_KEY }}
+          SHA: ${{ steps.refs.outputs.head }}
+          COMMITTED_AT: ${{ steps.refs.outputs.date }}
+        run: .github/scripts/perf_publish.sh "$GITHUB_WORKSPACE/results.json"

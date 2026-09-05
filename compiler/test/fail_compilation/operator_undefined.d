@@ -6,7 +6,7 @@ fail_compilation/operator_undefined.d(11):        perhaps overload the operator 
 ---
 */
 
-import std.stdio;
+
 
 struct Json
 {

@@ -269,6 +269,8 @@ immutable Msgtable[] msgtable =
     { "_d_aaLen" },
     { "_d_aaApply" },
     { "_d_aaApply2" },
+    { "_d_pow" },
+    { "_d_sqrt" },
     { "monitorenter", "_d_monitorenter" },
     { "monitorexit", "_d_monitorexit" },
     { "criticalenter", "_d_criticalenter2" },
@@ -278,17 +280,11 @@ immutable Msgtable[] msgtable =
     { "_d_delThrowable" },
     { "_d_newThrowable" },
     { "_d_newclassT" },
-    { "_d_newclassTTrace" },
     { "_d_newitemT" },
-    { "_d_newitemTTrace" },
     { "_d_newarrayT" },
-    { "_d_newarrayTTrace" },
     { "_d_newarrayU" },
-    { "_d_newarrayUTrace" },
     { "_d_newarraymTX" },
-    { "_d_newarraymTXTrace" },
     { "_d_arrayliteralTX" },
-    { "_d_arrayliteralTXTrace" },
     { "_d_assert_fail" },
     { "_d_arrayctor" },
     { "_d_arraysetctor" },
@@ -296,6 +292,7 @@ immutable Msgtable[] msgtable =
     { "_d_arrayassign_l" },
     { "_d_arrayassign_r" },
     { "_d_cast" },
+    { "_d_atomicOp" },
 
     { "imported" },
     { "InterpolationHeader" },
@@ -323,7 +320,7 @@ immutable Msgtable[] msgtable =
     { "main" },
     { "WinMain" },
     { "DllMain" },
-    { "CMain", "_d_cmain" },
+    { "_d_cmain" },
     { "rt_init" },
     { "__cmp" },
     { "__equals"},
@@ -332,13 +329,9 @@ immutable Msgtable[] msgtable =
     { "__ArrayCast"},
     { "_d_HookTraceImpl" },
     { "_d_arraysetlengthT"},
-    { "_d_arraysetlengthTTrace"},
     { "_d_arrayappendT" },
-    { "_d_arrayappendTTrace" },
     { "_d_arrayappendcTX" },
-    { "_d_arrayappendcTXTrace" },
     { "_d_arraycatnTX" },
-    { "_d_arraycatnTXTrace" },
     { "_d_assocarrayliteralTX" },
 
     // varargs implementation
@@ -500,6 +493,7 @@ immutable Msgtable[] msgtable =
     { "udaOptional", "optional"},
     { "udaMustUse", "mustuse" },
     { "udaStandalone", "standalone" },
+    { "udaSection", "section" },
 
     // Editions
     { "__edition_latest_do_not_use", },
@@ -537,11 +531,18 @@ immutable Msgtable[] msgtable =
     { "show" },
     { "push" },
     { "pop" },
+    { "ignore" },
+    { "consider" },
+    { "function_decl" },
+    { "function_def" },
     { "_pure", "pure" },
     { "define" },
     { "undef" },
     { "ident" },
     { "packed" },
+
+    // for inline assembler
+    { "op" },
 ];
 
 

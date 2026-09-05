@@ -1,0 +1,282 @@
+Ddoc
+
+$(SPEC_S Vector Extensions,
+
+$(HEADERNAV_TOC)
+
+        $(P CPUs often support specialized vector types and vector
+        operations (a.k.a. $(I media instructions)).
+        Vector types are a fixed array of floating or integer types, and
+        vector operations operate simultaneously on them.)
+
+        $(P Specialized $(GLINK2 type, Vector) types provide access to them.)
+
+        $(P The $(GLINK2 type, VectorBaseType) must be a $(DDSUBLINK spec/arrays, static-arrays, Static Array).
+        The $(GNAME VectorElementType) is the unqualified element type of the
+        static array.
+        The dimension of the static array is the number
+        of elements in the vector.
+        )
+
+        $(IMPLEMENTATION_DEFINED Which vector types are supported depends
+        on the target. The implementation is expected to only support
+        the vector types and operations that are implemented in the target's hardware.
+        )
+
+        $(RATIONALE Emulating unsupported vector types and operations can exhibit
+        such poor performance that the user is likely better off selecting a different
+        algorithm than relying on emulation.)
+
+        $(BEST_PRACTICE Use the declarations in $(CORE_SIMD) instead of
+        the language $(GLINK2 type, Vector) grammar.
+        )
+
+$(H2 $(LNAME2 core_simd, $(D core.simd)))
+
+        $(P Vector types and operations are introduced by importing
+        $(CORE_SIMD):)
+
+---
+import core.simd;
+---
+
+        $(IMPLEMENTATION_DEFINED
+        These types and operations will be the ones defined for the architecture
+        the compiler is targeting. If a particular CPU family has varying
+        support for vector types, an additional runtime check may be necessary.
+        The compiler does not emit runtime checks; those must be done by the
+        programmer.
+        )
+
+        $(IMPLEMENTATION_DEFINED Depending on the target architecture, compiler flags
+        may be required to
+        activate support for SIMD types.
+        )
+
+        $(P The types defined will all follow the naming convention:)
+
+$(GRAMMAR_INFORMATIVE
+$(I typeNN)
+)
+        where $(I type) is the vector element type and $(I NN) is the number
+        of those elements in the vector type.
+        The type names will not be keywords.
+
+$(H3 $(LNAME2 properties, Properties))
+
+        $(P Vector types have the property:)
+
+        $(TABLE2 Vector Type Properties,
+        $(THEAD Property, Description)
+        $(TROW .array, Returns static array representation)
+        )
+
+        $(P Vectors support the following properties based
+        on the vector element type.
+        The value produced is that of a
+        vector of the same type with each element set to the
+        value corresponding to the property value for the element
+        type.)
+
+        $(TABLE2 Integral Vector Type Properties,
+        $(THEAD Property, Description)
+        $(TROW .min, minimum value)
+        $(TROW .max, maximum value)
+        )
+
+        $(TABLE2 Floating Point Vector Type Properties,
+        $(THEAD Property, Description)
+        $(TROW .epsilon, smallest increment to the value 1)
+        $(TROW .infinity, infinity value)
+        $(TROW .max, largest representable value that is not infinity)
+        $(TROW .min_normal, smallest representable value that is not 0)
+        $(TROW .nan, NaN value)
+        )
+
+$(H3 $(LNAME2 conversions, Conversions))
+
+        $(P Vector types of the same size (number_of_elements * size_of_element)
+        can be implicitly converted among
+        each other, this is done as a reinterpret cast (a type paint).
+        Vector types can be cast to their $(GLINK2 type, VectorBaseType).)
+
+        $(P Integers and floating point values can be implicitly converted
+        to their vector equivalents:)
+
+---
+int4 v = 7;
+v = 3 + v;   // add 3 to each element in v
+---
+
+$(H3 $(LNAME2 accessing_individual_elems, Accessing Individual Vector Elements))
+
+        $(P They cannot be accessed directly, but can be when converted to
+        an array type:)
+
+----
+int4 v;
+(cast(int*)&v)[3] = 2;   // set 3rd element of the 4 int vector
+(cast(int[4])v)[3] = 2;  // set 3rd element of the 4 int vector
+v.array[3] = 2;          // set 3rd element of the 4 int vector
+v.ptr[3] = 2;            // set 3rd element of the 4 int vector
+----
+
+
+$(H3 $(LNAME2 conditional_compilation, Conditional Compilation))
+
+        $(P If vector extensions are implemented, the
+        $(DDSUBLINK spec/version, PredefinedVersions, version identifier)
+        $(D D_SIMD) is set.)
+
+        $(P Whether a type exists or not can be tested at compile time with
+        an $(DDSUBLINK spec/expression, IsExpression, $(I IsExpression)):
+        )
+
+---
+static if (is(typeNN))
+    ... yes, it is supported ...
+else
+    ... nope, use workaround ...
+---
+
+        $(P Whether a particular operation on a type is supported can be tested
+        at compile time with:
+        )
+
+---
+float4 a,b;
+static if (__traits(compiles, a+b))
+    ... yes, add is supported for float4 ...
+else
+    ... nope, use workaround ...
+---
+
+        $(P For runtime testing to see if certain vector instructions are
+        available, see the functions in
+        $(LINK2 $(ROOT_DIR)phobos/core_cpuid.html, core.cpuid).
+        )
+
+        $(P A typical workaround for unsupported vector operations would be to
+        use array operations instead:)
+
+---
+float4 a,b;
+static if (__traits(compiles, a/b))
+    c = a / b;
+else
+    c[] = a[] / b[];
+---
+
+$(H2 $(LNAME2 x86_64_vec, X86 And X86$(UNDERSCORE)64 Vector Extension Implementation))
+
+    $(IMPLEMENTATION_DEFINED
+
+        $(P The following describes the specific implementation of the
+        vector types for the X86 and X86$(UNDERSCORE)64 architectures.
+        )
+
+        $(P The vector extensions are currently implemented for the OS X 32
+        bit target, and all 64 bit targets.)
+
+        $(P $(CORE_SIMD) defines the following types: )
+
+        $(TABLE2 Vector Types,
+        $(THEAD Type Name, Description, gcc Equivalent)
+        $(TROW void16, 16 bytes of untyped data, $(I no equivalent))
+        $(TROW byte16, 16 $(D byte)s, $(D signed char __attribute__((vector_size(16)))))
+        $(TROW ubyte16, 16 $(D ubyte)s, $(D unsigned char __attribute__((vector_size(16)))))
+        $(TROW short8, 8 $(D short)s, $(D short __attribute__((vector_size(16)))))
+        $(TROW ushort8, 8 $(D ushort)s, $(D ushort __attribute__((vector_size(16)))))
+        $(TROW int4, 4 $(D int)s, $(D int __attribute__((vector_size(16)))))
+        $(TROW uint4, 4 $(D uint)s, $(D unsigned __attribute__((vector_size(16)))))
+        $(TROW long2, 2 $(D long)s, $(D long __attribute__((vector_size(16)))))
+        $(TROW ulong2, 2 $(D ulong)s, $(D unsigned long __attribute__((vector_size(16)))))
+        $(TROW float4, 4 $(D float)s, $(D float __attribute__((vector_size(16)))))
+        $(TROW double2, 2 $(D double)s, $(D double __attribute__((vector_size(16)))))
+        $(TROW void32, 32 bytes of untyped data, $(I no equivalent))
+        $(TROW byte32, 32 $(D byte)s, $(D signed char __attribute__((vector_size(32)))))
+        $(TROW ubyte32, 32 $(D ubyte)s, $(D unsigned char __attribute__((vector_size(32)))))
+        $(TROW short16, 16 $(D short)s, $(D short __attribute__((vector_size(32)))))
+        $(TROW ushort16, 16 $(D ushort)s, $(D ushort __attribute__((vector_size(32)))))
+        $(TROW int8, 8 $(D int)s, $(D int __attribute__((vector_size(32)))))
+        $(TROW uint8, 8 $(D uint)s, $(D unsigned __attribute__((vector_size(32)))))
+        $(TROW long4, 4 $(D long)s, $(D long __attribute__((vector_size(32)))))
+        $(TROW ulong4, 4 $(D ulong)s, $(D unsigned long __attribute__((vector_size(32)))))
+        $(TROW float8, 8 $(D float)s, $(D float __attribute__((vector_size(32)))))
+        $(TROW double4, 4 $(D double)s, $(D double __attribute__((vector_size(32)))))
+        )
+
+        $(NOTE for 32 bit gcc and clang, it's $(D long long) instead of $(D long).)
+
+        $(TABLE2 Supported 128-bit Vector Operators,
+        $(THEAD Operator,void16,byte16,ubyte16,short8,ushort8,int4,uint4,long2,ulong2,float4,double2)
+        $(TROW =,$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW +,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW -,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW *,$(N),$(N),$(N),$(Y),$(Y),$(N),$(N),$(N),$(N),$(Y),$(Y))
+        $(TROW /,$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(Y),$(Y))
+        $(TROW $(CODE_AMP),$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
+        $(TROW |,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
+        $(TROW $(D ^),$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
+        $(TROW +=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW -=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW *=,$(N),$(N),$(N),$(Y),$(Y),$(N),$(N),$(N),$(N),$(Y),$(Y))
+        $(TROW /=,$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(Y),$(Y))
+        $(TROW $(CODE_AMP)=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
+        $(TROW |=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
+        $(TROW $(D ^=),$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
+        $(TROW ==,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW !=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW <, $(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW <=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW >=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW >, $(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW $(I unary)$(D ~),$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
+        $(TROW $(I unary)+,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW $(I unary)-,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        )
+
+        $(TABLE2 Supported 256-bit Vector Operators,
+        $(THEAD Operator,void32,byte32,ubyte32,short16,ushort16,int8,uint8,long4,ulong4,float8,double4)
+        $(TROW =,$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW +,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW -,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW *,$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(Y),$(Y))
+        $(TROW /,$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(Y),$(Y))
+        $(TROW $(CODE_AMP),$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
+        $(TROW |,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
+        $(TROW $(D ^),$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
+        $(TROW +=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW -=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW *=,$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(Y),$(Y))
+        $(TROW /=,$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(N),$(Y),$(Y))
+        $(TROW $(CODE_AMP)=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
+        $(TROW |=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
+        $(TROW $(D ^=),$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
+        $(TROW ==,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW !=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW <, $(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW <=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW >=,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW >, $(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW $(I unary)$(D ~),$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(N),$(N))
+        $(TROW $(I unary)+,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        $(TROW $(I unary)-,$(N),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y),$(Y))
+        )
+
+        $(P Operators not listed are not supported at all.)
+
+    )
+
+$(H3 $(LNAME2 vector_op_intrinsics, Vector Operation Intrinsics))
+
+        $(P See $(CORE_SIMD) for the supported intrinsics.)
+$(SPEC_SUBNAV_PREV_NEXT abi, Application Binary Interface, betterc, Better C)
+)
+
+Macros:
+        CHAPTER=40
+        TITLE=Vector Extensions
+        Y=$(TIMES)
+        N=$(NDASH)
+        CORE_SIMD=$(LINK2 $(ROOT_DIR)phobos/core_simd.html, $(D core.simd))

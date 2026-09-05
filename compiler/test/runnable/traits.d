@@ -1392,6 +1392,15 @@ void testIsDisabled()
     static assert(!__traits(isDisabled, D1));
 }
 
+// https://github.com/dlang/dmd/issues/22496
+@disable int i;
+@disable void f() {}
+
+static assert(__traits(isDisabled, i));
+static assert(__traits(isDisabled, .i));
+static assert(__traits(isDisabled, f));
+static assert(__traits(isDisabled, .f));
+
 /********************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=10100
 

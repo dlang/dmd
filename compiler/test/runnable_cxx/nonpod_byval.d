@@ -1,5 +1,5 @@
 // EXTRA_CPP_SOURCES: cpp_nonpod_byval.cpp
-// CXXFLAGS(linux osx freebsd dragonflybsd): -std=c++11
+// CXXFLAGS(linux osx freebsd dragonflybsd hurd): -std=c++11
 
 extern (C) int printf(const(char)*, ...);
 

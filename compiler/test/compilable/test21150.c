@@ -50,7 +50,6 @@ _Static_assert(_Alignof(struct D)==8, "D");
      unsigned long long b;
  } __attribute__((aligned(4), packed));
 _Static_assert(_Alignof(struct Spacked) == 4, "Spacked");
-_Static_assert(_Alignof(struct Spacked) == 4, "Spacked");
 _Static_assert(offsetof(struct Spacked, a) == 0, "Spacked.a");
 _Static_assert(offsetof(struct Spacked, b) == sizeof(unsigned), "Spacked.b");
 _Static_assert(sizeof(struct Spacked) == sizeof(unsigned) + sizeof(unsigned long long), "sizeof(Spacked)");

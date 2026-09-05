@@ -85,6 +85,9 @@ void test24731()
     assert(solve!2(m) == 2);
 }
 
+// https://github.com/dlang/dmd/issues/20529
+int test20529(ubyte n)(int[n] a...) => n;
+static assert(test20529(1, 2, 3) == 3);
 
 void main() {
     Tst!(int) t = new Tst!(int);
@@ -114,11 +117,12 @@ void main() {
     t[];
     t[1..2];
     u[1..2.5];
-    t == t;
-    auto b = t != t; // without assignment -> "! has no effect in expression"
-    t == u;
-    u == t;
-    u == u;
+    // without assignment -> discard error
+    auto b = t == t;
+    b = t != t;
+    b = t == u;
+    b = u == t;
+    b = u == u;
     b = u != u;
     foreach(int i;t) {
         printf("%d\n", i);

@@ -30,6 +30,7 @@ import dmd.expression;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
@@ -79,16 +80,17 @@ private extern (C++) final class VisualCPPMangler : Visitor
 
     extern (D) this(VisualCPPMangler rvl) scope @safe
     {
-        saved_idents[] = rvl.saved_idents[];
-        saved_types[]  = rvl.saved_types[];
-        loc            = rvl.loc;
+        this.saved_idents[] = rvl.saved_idents[];
+        this.saved_types[] = rvl.saved_types[];
+        this.loc = rvl.loc;
+        this.eSink = rvl.eSink;
     }
 
 public:
     extern (D) this(Loc loc, ErrorSink eSink) scope @safe
     {
-        saved_idents[] = null;
-        saved_types[] = null;
+        this.saved_idents[] = null;
+        this.saved_types[] = null;
         this.loc = loc;
         this.eSink = eSink;
     }
@@ -98,7 +100,7 @@ public:
         if (checkImmutableShared(type, loc))
             return;
 
-        eSink.error(loc, "internal compiler error: type `%s` cannot be mapped to C++\n", type.toChars());
+        eSink.error(loc, "internal compiler error: type `%s` cannot be mapped to C++\n", type.toErrMsg());
         errors = true;
     }
 
@@ -550,7 +552,7 @@ extern(D):
     {
         if (!tv.valType.isIntegral())
         {
-            eSink.error(sym.loc, "%s `%s` internal compiler error: C++ %s template value parameter is not supported", sym.kind, sym.toPrettyChars, tv.valType.toChars());
+            eSink.error(sym.loc, "%s `%s` internal compiler error: C++ %s template value parameter is not supported", sym.kind, sym.toPrettyChars, tv.valType.toErrMsg());
             errors = true;
             return;
         }
@@ -626,7 +628,7 @@ extern(D):
         }
         else
         {
-            eSink.error(sym.loc, "%s `%s` internal compiler error: `%s` is unsupported parameter for C++ template", sym.kind, sym.toPrettyChars, o.toChars());
+            eSink.error(sym.loc, "%s `%s` internal compiler error: `%s` is unsupported parameter for C++ template", sym.kind, sym.toPrettyChars, o.toErrMsg());
             errors = true;
         }
     }
@@ -765,7 +767,7 @@ extern(D):
                 if (t is null)
                 {
                     eSink.error(actualti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported",
-                        actualti.kind, actualti.toPrettyChars, o.toChars());
+                        actualti.kind, actualti.toPrettyChars, o.toErrMsg());
                     errors = true;
                     return;
                 }
@@ -823,7 +825,7 @@ extern(D):
     {
         if (type.isImmutable() || type.isShared())
         {
-            eSink.error(loc, "internal compiler error: `shared` or `immutable` types cannot be mapped to C++ (%s)", type.toChars());
+            eSink.error(loc, "internal compiler error: `shared` or `immutable` types cannot be mapped to C++ (%s)", type.toErrMsg());
             errors = true;
             return true;
         }
@@ -1116,7 +1118,7 @@ string mangleSpecialName(Dsymbol sym)
  */
 bool mangleOperator(ref OutBuffer buf, TemplateInstance ti, ref const(char)[] symName, ref int firstTemplateArg)
 {
-    auto whichOp = isCppOperator(ti.name);
+    auto whichOp = isCppOperator(ti.tempdecl.ident);
     final switch (whichOp)
     {
     case CppOperator.Unknown:

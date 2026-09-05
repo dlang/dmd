@@ -13,6 +13,9 @@ module core.internal.elf.io;
 
 version (Posix):
 
+version (WASI) {}
+else:
+
 import core.lifetime : move;
 import core.memory : pageSize;
 import core.stdc.stdlib : free, malloc;
@@ -48,6 +51,11 @@ else version (OpenBSD)
 else version (Solaris)
 {
     import core.sys.solaris.link : ElfW;
+    version = LinuxOrBSD;
+}
+else version (Hurd)
+{
+    import core.sys.hurd.link : ElfW;
     version = LinuxOrBSD;
 }
 
@@ -402,6 +410,10 @@ char* thisExePath()
         import core.stdc.string : strdup;
         import core.sys.openbsd.stdlib : getprogname;
         return strdup(getprogname());
+    }
+    else version (Hurd)
+    {
+        return readLink("/proc/self/exe");
     }
     else
     {

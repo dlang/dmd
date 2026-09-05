@@ -18,6 +18,7 @@ import dmd.cond;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
@@ -64,7 +65,7 @@ bool isFormatSafe(scope const char[] format)
  *
  * Follows the C99 specification for printf.
  *
- * Takes a generous, rather than strict, view of compatiblity.
+ * Takes a generous, rather than strict, view of compatibility.
  * For example, an unsigned value can be formatted with a signed specifier.
  *
  * Diagnosed incompatibilities are:
@@ -142,8 +143,37 @@ bool checkPrintfFormat(Loc loc, scope const char[] format, scope Expression[] ar
 
         void errorMsg(const char* prefix, Expression arg, const char* texpect, Type tactual)
         {
-            eSink.deprecation(arg.loc, "%sargument `%s` for format specification `\"%.*s\"` must be `%s`, not `%s`",
-                  prefix ? prefix : "", arg.toChars(), cast(int)slice.length, slice.ptr, texpect, tactual.toChars());
+            eSink.deprecation(arg.loc, "%sargument `%s` of type `%s` does not match format specification",
+                  prefix ? prefix : "", arg.toErrMsg(), tactual.toErrMsg());
+
+            eSink.deprecationSupplemental(arg.loc, "`\"%.*s\"` requires `%s`", cast(int) slice.length, slice.ptr, texpect);
+
+            if (prefix)
+                return; // width/precision args must be int; no useful format suggestion
+            auto tb = tactual.toBasetype();
+            const(char)* suggestion = integralFormatSpecifier(tb.ty);
+            if (!suggestion)
+            switch (tb.ty)
+            {
+                case Tfloat32:
+                case Tfloat64: suggestion = "%g"; break;
+                case Tfloat80:
+                    if (target.realsize != target.c.long_doublesize)
+                        eSink.deprecationSupplemental(arg.loc, "this target has no format specifier for `%s`", tactual.toErrMsg());
+                    else
+                        suggestion = "%Lg";
+                    break;
+                case Tpointer:
+                    auto tn = tb.nextOf();
+                    if (tn && (tn.ty == Tchar || tn.ty == Tint8 || tn.ty == Tuns8))
+                        suggestion = "%s";
+                    else
+                        suggestion = "%p";
+                    break;
+                default: break;
+            }
+            if (suggestion)
+                eSink.deprecationSupplemental(arg.loc, "`%s` may be formatted with `\"%s\"`", tactual.toErrMsg(), suggestion);
         }
 
         if (widthStar)
@@ -252,7 +282,13 @@ bool checkPrintfFormat(Loc loc, scope const char[] format, scope Expression[] ar
                 break;
 
             case Format.Lg:     // long double
-                if (t.ty != Tfloat80 && t.ty != Timaginary80)
+                if (target.realsize != target.c.long_doublesize)
+                {
+                    assert(target.c.long_doublesize == 8);
+                    if (t.ty != Tfloat64 && t.ty != Timaginary64)
+                        errorMsg(null, e, "c_long_double", t);
+                }
+                else if (t.ty != Tfloat80 && t.ty != Timaginary80)
                     errorMsg(null, e, "real", t);
                 break;
 
@@ -341,7 +377,7 @@ bool checkPrintfFormat(Loc loc, scope const char[] format, scope Expression[] ar
  *
  * Follows the C99 specification for scanf.
  *
- * Takes a generous, rather than strict, view of compatiblity.
+ * Takes a generous, rather than strict, view of compatibility.
  * For example, an unsigned value can be formatted with a signed specifier.
  *
  * Diagnosed incompatibilities are:
@@ -412,8 +448,30 @@ bool checkScanfFormat(Loc loc, scope const char[] format, scope Expression[] arg
 
         void errorMsg(const char* prefix, Expression arg, const char* texpect, Type tactual)
         {
-            eSink.deprecation(arg.loc, "%sargument `%s` for format specification `\"%.*s\"` must be `%s`, not `%s`",
-                  prefix ? prefix : "", arg.toChars(), cast(int)slice.length, slice.ptr, texpect, tactual.toChars());
+            eSink.deprecation(arg.loc, "%sargument `%s` of type `%s` does not match format specification",
+                  prefix ? prefix : "", arg.toErrMsg(), tactual.toErrMsg());
+
+            eSink.deprecationSupplemental(arg.loc, "`\"%.*s\"` requires `%s`", cast(int)slice.length, slice.ptr, texpect);
+
+            auto tb = tactual.toBasetype();
+            if (tb.ty != Tpointer)
+                return;
+            auto tnb = tb.nextOf();
+            if (!tnb)
+                return;
+            tnb = tnb.toBasetype();
+            const(char)* suggestion = integralFormatSpecifier(tnb.ty);
+            if (!suggestion)
+                switch (tnb.ty)
+                {
+                    case Tchar:    suggestion = "%s";  break;
+                    case Tfloat32: suggestion = "%g";  break;
+                    case Tfloat64: suggestion = "%lg"; break;
+                    case Tfloat80: suggestion = "%Lg"; break;
+                    default: break;
+                }
+            if (suggestion)
+                eSink.deprecationSupplemental(arg.loc, "`%s` may be formatted with `\"%s\"`", tactual.toChars(), suggestion);
         }
 
         auto e = getNextArg();
@@ -564,6 +622,23 @@ bool checkScanfFormat(Loc loc, scope const char[] format, scope Expression[] arg
 /*****************************************************************************************************/
 
 private:
+
+/// Returns: format specifier string for `ty`, or `null` if not a recognized integer type
+const(char)* integralFormatSpecifier(TY ty) pure nothrow
+{
+    switch (ty)
+    {
+        case Tint8:  return "%hhd";
+        case Tuns8:  return "%hhu";
+        case Tint16: return "%hd";
+        case Tuns16: return "%hu";
+        case Tint32: return "%d";
+        case Tuns32: return "%u";
+        case Tint64: return "%lld";
+        case Tuns64: return "%llu";
+        default:     return null;
+    }
+}
 
 /**************************************
  * Parse the *format specifier* which is of the form:

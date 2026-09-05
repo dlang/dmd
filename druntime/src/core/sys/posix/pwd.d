@@ -14,6 +14,9 @@
  */
 module core.sys.posix.pwd;
 
+version (CRuntime_WASI) {}
+else:
+
 import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for gid_t, uid_t
 
@@ -201,8 +204,16 @@ else
     static assert(false, "Unsupported platform");
 }
 
-passwd* getpwnam(const scope char*);
-passwd* getpwuid(uid_t);
+version (NetBSD)
+{
+    pragma(mangle, "__getpwnam50") passwd* getpwnam(const scope char*);
+    pragma(mangle, "__getpwuid50") passwd* getpwuid(uid_t);
+}
+else
+{
+    passwd* getpwnam(const scope char*);
+    passwd* getpwuid(uid_t);
+}
 
 //
 // Thread-Safe Functions (TSF)
@@ -301,7 +312,7 @@ else version (FreeBSD)
 else version (NetBSD)
 {
     void    endpwent();
-    passwd* getpwent();
+    pragma(mangle, "__getpwent50") passwd* getpwent();
     void    setpwent();
 }
 else version (OpenBSD)

@@ -27,8 +27,9 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errorsink;
 import dmd.func;
-import dmd.globals;
+import dmd.globals : FeatureState, Param;
 import dmd.identifier;
+import dmd.location : Loc;
 import dmd.root.rmem;
 import dmd.statement;
 
@@ -69,6 +70,17 @@ private extern (D) struct FlagBitFields
       to prevent perceived false positives for meta-programming heavy code.
     */
     bool knownACompileTimeOnlyContext;
+    bool inIsDisabledTrait;  /// inside __traits(isDisabled, ...)
+
+    /**
+    When lowering builtin operations to druntime implementations, some assumptions
+    made by the previous implementations might no longer hold or have to be inferred
+    from the code. With recursive data structures this can easily hit limitations
+    of the semantic analysis. To help with backward compatibility, this flag will
+    cause semantic analysis of function bodies and template instances to be delayed
+    assuming that attribute inference is not necessary.
+    */
+    bool deferSemantic3InCompilerHook;
 }
 
 private extern (D) struct NonFlagBitFields
@@ -137,6 +149,7 @@ extern (C++) struct Scope
     Dsymbol parent;                 /// parent to use
     LabelStatement slabel;          /// enclosing labelled statement
     SwitchStatement switchStatement;/// enclosing switch statement
+    void* switchCases;              /// AA for O(n) duplicate case detection
     Statement tryBody;              /// enclosing _body of TryCatchStatement or TryFinallyStatement
     TryFinallyStatement tryFinally; /// enclosing try finally statement
     ScopeGuardStatement scopeGuard; /// enclosing scope(xxx) statement
@@ -144,6 +157,7 @@ extern (C++) struct Scope
     Statement scontinue;            /// enclosing statement that supports "continue"
     ForeachStatement fes;           /// if nested function for ForeachStatement, this is it
     Scope* callsc;                  /// used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
+    Loc callLoc;                    /// call-site location for __FILE__, __LINE__, and __FILE_FULL_PATH__
     Dsymbol inunion;                /// != null if processing members of a union
     VarDeclaration lastVar;         /// Previous symbol used to prevent goto-skips-init
     ErrorSink eSink;                /// sink for error messages
@@ -181,7 +195,7 @@ extern (C++) struct Scope
     DeprecatedDeclaration depdecl;  /// customized deprecation message
 
     import dmd.common.bitfields : generateBitFields;
-    mixin(generateBitFields!(FlagBitFields, ushort));
+    mixin(generateBitFields!(FlagBitFields, uint));
     private ushort bitFields2;
     mixin(generateBitFields!(NonFlagBitFields, ushort, "bitFields2"));
     Previews previews;
@@ -259,6 +273,8 @@ extern (C++) struct Scope
         s.previews = this.previews;
         s.lastdc = null;
         s.knownACompileTimeOnlyContext = this.knownACompileTimeOnlyContext;
+        s.inIsDisabledTrait = this.inIsDisabledTrait;
+        s.deferSemantic3InCompilerHook = this.deferSemantic3InCompilerHook;
         assert(&this != s);
         return s;
     }

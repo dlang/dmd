@@ -1,0 +1,597 @@
+Ddoc
+
+$(SPEC_S Automatic Memory Management,
+
+$(HEADERNAV_TOC)
+
+        $(HTMLTAG3V img, src="$(ROOT_DIR)images/MemoryLeak.png" border="0" align="right" alt="Memory Leak" width="300" height="347")
+
+        $(P D is a systems programming language with support for optional automatic
+        memory mangagement. Usually it is not necessary
+        to free memory explicitly. Just allocate as needed, and the automatic memory manager's $(I collector) will
+        periodically return all unused memory to the pool of available memory.
+        )
+
+        $(P D also provides the mechanisms to write code where automatic memory mangagement
+        is $(B not involved). More information is provided below.
+        )
+
+        $(P Programmers accustomed to explicitly managing memory
+        allocation and
+        deallocation will likely be skeptical of the benefits and efficacy of
+        automatic memory management. Experience both with new projects written with
+        automatic memory management in mind, and converting existing projects to automatic
+        memory management shows that:
+        )
+
+        $(UL
+
+        $(LI Programs using automatic memory management are often faster. This is
+        counterintuitive, but the reasons are:
+
+        $(UL
+            $(LI Reference counting is a common solution to solve explicit
+            memory allocation problems. The code to implement the increment and
+            decrement operations whenever assignments are made is one source
+            of slowdown. Hiding it behind smart pointer classes doesn't help
+            the speed. (Reference counting methods are not a general solution
+            anyway, as circular references never get deleted.)
+            )
+
+            $(LI Destructors are used to deallocate resources acquired by an object.
+            For most classes, this resource is allocated memory.
+            With automatic memory management, most destructors then become empty and
+            can be discarded entirely.
+            )
+
+            $(LI All those destructors freeing memory can become significant when
+            objects are allocated on the stack. For each one, some mechanism must
+            be established so that if an exception happens, the destructors all
+            get called in each frame to release any memory they hold. If the
+            destructors become irrelevant, then there's no need to set up special
+            stack frames to handle exceptions, and the code runs faster.
+            )
+
+            $(LI Collection kicks in only when memory gets tight. When
+            memory is not tight, the program runs at full speed and does not
+            spend any time tracing and freeing memory.
+            )
+
+            $(LI Programs using automatic memory management do not suffer from
+            gradual deterioration due to an accumulation of memory leaks.
+            )
+        )
+        )
+
+        $(LI Automatic memory management's collector reclaims unused memory, therefore it does not suffer
+        from "memory leaks" which can cause long running applications to gradually
+        consume more and more memory until they bring down the system. Automatic memory
+        management programs have longer term stability.
+        )
+
+        $(LI Programs using automatic memory management have fewer hard-to-find pointer bugs. This
+        is because there are no dangling references to freed memory. There is no
+        code to explicitly manage memory, hence no bugs in such code.
+        )
+
+        $(LI Programs using automatic memory management are faster to develop and debug, because
+        there's no need for developing, debugging, testing, or maintaining the
+        explicit deallocation code.
+        )
+
+        )
+
+        $(P Automatic memory management is not a panacea. There are some downsides:
+        )
+
+        $(UL
+
+        $(LI It is not always obvious when the automatic memory manager allocates memory, which in
+        turn can trigger a collection, so the program can pause unexpectedly.
+        )
+
+        $(LI The time it takes for a collection to complete is not bounded.
+        While in practice it is very quick, this cannot normally be guaranteed.
+        )
+
+        $(LI Normally, all threads other than the collector thread must be
+        halted while the collection is in progress.
+        )
+
+        $(LI Automatic memory managers can keep around some memory that an explicit
+        deallocator would not.
+        )
+
+        $(LI Automatic memory managing programs must
+        carry around with them the collector implementation. While this
+        can be a shared library, it is still there.
+        )
+        )
+
+        $(P These constraints are addressed by techniques outlined
+        in $(LINK2 https://wiki.dlang.org/Memory_Management, Memory Management), including the mechanisms provided by
+        D to control allocations outside the collector heap.
+        )
+
+        $(P There is currently work in progress to make the runtime library free of automatic heap allocations,
+        to allow its use in scenarios where the use of automatic memory management infrastructure is not possible.
+        )
+
+$(H2 $(LNAME2 how_gc_works, How Automatic Memory Management Works))
+
+        $(P It works by:)
+
+        $(OL
+        $(LI Stopping all other threads than the thread currently trying to
+        allocate memory.)
+
+        $(LI $(SINGLEQUOTE Hijacking) the current thread for collection work.)
+
+        $(LI Scanning all $(SINGLEQUOTE root) memory ranges for pointers into
+        allocated memory.)
+
+        $(LI Recursively scanning all allocated memory pointed to by
+        roots looking for more pointers into allocated memory.)
+
+        $(LI Freeing all allocated memory that has no active pointers
+        to it and do not need destructors to run.)
+
+        $(LI Queueing all unreachable memory that needs destructors to run.)
+
+        $(LI Resuming all other threads.)
+
+        $(LI Running destructors for all queued memory.)
+
+        $(LI Freeing any remaining unreachable memory.)
+
+        $(LI Returning the current thread to whatever work it was doing.)
+        )
+
+$(H2 $(LNAME2 gc_foreign_obj, Interfacing Automatic Memory Management Allocated Objects With Foreign Code))
+
+        $(P The collector looks for roots in:)
+        $(OL
+        $(LI the static data segment)
+        $(LI the stacks and register contents of each thread)
+        $(LI the TLS (thread-local storage) areas of each thread)
+        $(LI any roots added by core.memory.GC.addRoot() or core.memory.GC.addRange())
+        )
+
+        $(P If the only pointer to an object
+        is held outside of these areas, then the collector will miss it and free the
+        memory.
+        )
+
+        $(P To avoid this from happening, either)
+
+        $(UL
+        $(LI maintain a pointer to the object in an area the collector does scan
+        for pointers;)
+
+        $(LI add a root where a pointer to the object is stored using core.memory.GC.addRoot()
+        or core.memory.GC.addRange().)
+
+        $(LI reallocate and copy the object using the foreign code's storage
+        allocator
+        or using the C runtime library's malloc/free.
+        )
+        )
+
+$(H2 $(LNAME2 pointers_and_gc, Pointers and the Automatic Memory Management Collector))
+
+        $(P Pointers in D can be broadly divided into two categories: Those that
+        point to collector memory, and those that do not. Examples
+        of the latter are pointers created by calls to C's malloc(), pointers
+        received from C library routines, pointers to static data,
+        pointers to objects on the stack, etc. For those pointers, anything
+        that is legal in C can be done with them.
+        )
+
+        $(P For collector pointers and references, however, there are
+        some
+        restrictions. These restrictions are minor, but they are intended
+        to enable the maximum flexibility in collector design.
+        )
+
+        $(UNDEFINED_BEHAVIOR
+
+        $(UL
+
+        $(LI Do not xor pointers with other values, like the
+        xor pointer linked list trick used in C.
+        )
+
+        $(LI Do not use the xor trick to swap two pointer values.
+        )
+
+        $(LI Do not store pointers into non-pointer variables using casts and
+        other tricks.
+
+------
+void* p;
+...
+int x = cast(int)p;   // error: undefined behavior
+------
+
+        The collector does not scan non-pointer fields for pointers into allocated
+        memory.
+        )
+
+        $(LI Do not take advantage of alignment of pointers to store bit flags
+        in the low order bits:
+
+------
+p = cast(void*)(cast(int)p | 1);  // error: undefined behavior
+------
+        )
+
+        $(LI Do not store into pointers values that may point into the
+        collector's heap:
+
+------
+p = cast(void*)12345678;   // error: undefined behavior
+------
+
+        A copying collector may change this value.
+        )
+
+        $(LI Do not store magic values into pointers, other than $(D null).
+        )
+
+        $(LI Do not write pointer values out to disk and read them back in
+        again.
+        )
+
+        $(LI Do not use pointer values to compute a hash function. A copying
+        collector can arbitrarily move objects around in memory,
+        thus invalidating
+        the computed hash value.
+        )
+
+        $(LI Do not depend on the ordering of pointers:
+
+------
+if (p1 < p2)  // error: undefined behavior
+    ...
+------
+        since, again, the collector can move objects around in
+        memory.
+        )
+
+        $(LI Do not add or subtract an offset to a pointer such that the result
+        points outside of the bounds of the collected object originally
+        allocated.
+
+------
+char* p = new char[10];
+char* q = p + 6; // ok
+q = p + 11;      // error: undefined behavior
+q = p - 1;       // error: undefined behavior
+------
+        )
+
+        $(LI Do not misalign pointers if those pointers may
+        point into the collector heap, such as:
+
+------
+struct Foo
+{
+  align (1):
+    byte b;
+    char* p;  // misaligned pointer
+}
+------
+
+        Misaligned pointers may be used if the underlying hardware
+        supports them $(B and) the pointer is never used to point
+        into the collector heap.
+        )
+
+        $(LI Do not use byte-by-byte memory copies to copy pointer values.
+        This may result in intermediate conditions where there is
+        not a valid pointer, and if the collector pauses the thread in such a
+        condition, it can corrupt memory.
+        Most implementations of $(D memcpy()) will work since the
+        internal implementation of it does the copy in aligned chunks
+        greater than or equal to the pointer size, but since this kind of
+        implementation is not guaranteed by the C standard, use
+        $(D memcpy()) only with extreme caution.
+        )
+
+        $(LI Do not have pointers in a struct instance that point back
+        to the same instance. The trouble with this is if the instance
+        gets moved in memory, the pointer will point back to where it
+        came from, with likely disastrous results.
+        )
+
+        )
+        )
+
+        $(P Things that are reliable and can be done:)
+
+        $(UL
+
+        $(LI Use a union to share storage with a pointer:
+
+------
+union U { void* ptr; int value }
+------
+        )
+
+        $(LI A pointer to the start of a collector object need not
+        be maintained if a pointer to the interior of the object exists.
+
+------
+char[] p = new char[10];
+char[] q = p[3..6];
+// q is enough to hold on to the object, don't need to keep
+// p as well.
+------
+        )
+        )
+
+        $(P One can avoid using pointers anyway for most tasks. D provides
+        features
+        rendering most explicit pointer uses obsolete, such as reference
+        objects,
+        dynamic arrays, and automatic memory management. Pointers
+        are provided in order to interface successfully with C APIs and for
+        some low level work.
+        )
+
+$(H2 $(LNAME2 working_with_the_gc, Working with the Collector))
+
+        $(P Automatic memory allocation doesn't solve every memory deallocation problem.
+        For
+        example, if a pointer to a large data structure is kept, the
+        collector cannot reclaim it, even if it is never referred to again. To
+        eliminate this problem, it is good practice to set a reference or
+        pointer to an object to null when no longer needed.
+        )
+
+        $(P This advice applies only to static references or references embedded
+        inside other objects. There is not much point for such stored on the
+        stack to be nulled because new stack frames are initialized anyway.
+        )
+
+$(H2 $(LNAME2 obj_pinning_and_gc, Object Pinning and a Moving Collector))
+
+        $(P Although D does not currently use a moving collector, by following
+        the rules listed above one can be implemented. No special action is required
+        to pin objects. A moving collector will only move objects for which there
+        are no ambiguous references, and for which it can update those references.
+        All other objects will be automatically pinned.
+        )
+
+$(H2 D $(LNAME2 op_involving_gc, Operations That Involve the Collector))
+
+        $(P Some sections of code may need to avoid using the collector.
+        The following constructs may allocate memory using the collector:
+        )
+
+        $(UL
+        $(LI $(GLINK2 expression, NewExpression))
+        $(LI Array appending)
+        $(LI Array concatenation)
+        $(LI Array literals (see $(DDSUBLINK spec/expression, array-literal-heap, exceptions)))
+        $(LI Associative array literals)
+        $(LI Any insertion or removal in an associative array)
+        $(LI Extracting keys or values from an associative array)
+        $(LI Taking the address of (i.e. making a delegate to) a nested function that
+         accesses variables in an outer scope)
+        $(LI A function literal that accesses variables in an outer scope)
+        $(LI An $(GLINK2 expression, AssertExpression) that fails its condition)
+        )
+
+        $(P There is a $(DDSUBLINK spec/function, nogc-functions, `@nogc` function attribute)
+        which will error at compile-time if any construct is used which would make a collector
+        allocation.)
+
+$(H2 $(LNAME2 gc_config, Configuring the Collector))
+
+    $(P Since version 2.067, The collector can now be configured
+        through the command line, the environment or by options embedded
+        into the executable.
+    )
+
+    $(P By default, GC options can only be passed on the command line of the program
+        to run, e.g.)
+
+        ---------
+        app "--DRT-gcopt=profile:1 minPoolSize:16" arguments to app
+        ---------
+
+    $(P Available GC options are:)
+        $(UL
+        $(LI disable:0|1    - start disabled)
+        $(LI profile:0|1    - enable profiling with summary when terminating program)
+        $(LI gc:conservative|precise|manual - select collector implementation (default = conservative))
+        $(LI initReserve:N  - initial memory to reserve in MB)
+        $(LI minPoolSize:N  - initial and minimum pool size in MB)
+        $(LI maxPoolSize:N  - maximum pool size in MB)
+        $(LI incPoolSize:N  - pool size increment MB)
+        $(LI parallel:N     - number of additional threads for marking)
+        $(LI heapSizeFactor:N - targeted heap size to used memory ratio)
+        $(LI cleanup:none|collect|finalize - how to treat live objects when terminating
+          $(UL
+            $(LI collect: run a collection (the default for backward compatibility))
+            $(LI none: do nothing)
+            $(LI finalize: all live objects are finalized unconditionally)
+          )
+        ))
+
+
+    $(P In addition, --DRT-gcopt=help will show the list of options and their current settings.
+    )
+    $(P Command line options starting with "--DRT-" are filtered out before calling main,
+        so the program will not see them. They are still available via `rt_args`.
+    )
+    $(P Configuration via the command line can be disabled by declaring a variable for the
+        linker to pick up before using its default from the runtime:)
+        ---------
+        extern(C) __gshared bool rt_cmdline_enabled = false;
+        ---------
+
+    $(P Likewise, declare a boolean `rt_envvars_enabled` to enable configuration via the
+        environment variable `DRT_GCOPT`:)
+        ---------
+        extern(C) __gshared bool rt_envvars_enabled = true;
+        ---------
+
+    $(P Setting default configuration properties in the executable can be done by specifying an
+        array of options named `rt_options`:)
+        ---------
+        extern(C) __gshared string[] rt_options = [ "gcopt=initReserve:100 profile:1" ];
+        ---------
+
+    $(P Evaluation order of options is `rt_options`, then environment variables, then command
+        line arguments, i.e. if command line arguments are not disabled, they can override
+        options specified through the environment or embedded in the executable.
+    )
+
+$(H2 $(LNAME2 precise_gc, Precise Heap Scanning))
+
+    $(P Selecting `precise` as the collector via the options above means type
+        information will be used to identify actual or possible pointers or
+        references within heap allocated data objects. Non-pointer data will not
+        be interpreted as a reference to other memory as a "false pointer". The collector
+        has to make pessimistic assumptions if a memory slot can contain both a pointer or
+        an integer value, it will still be scanned (e.g. in a `union`).
+    )
+
+    $(P To use the collector memory functions from `core.memory`
+        for data with a mixture of pointers and non-pointer data, pass the
+        TypeInfo of the allocated struct, class, or type as the optional parameter.
+        The default `null` is interpreted as memory that might contain pointers everywhere.)
+        ---------
+        struct S { size_t hash; Data* data; }
+        S* s = cast(S*)GC.malloc(S.sizeof, 0, typeid(S));
+        ---------
+
+    $(P $(RED Attention:) Enabling precise scanning needs slightly more caution with
+        type declarations. For example, when reserving a buffer as part of a struct and later
+        emplacing an object instance with references to other allocations into this memory,
+        do not use basic integer types to reserve the space. Doing so will cause the
+        garbage collector not to detect the references. Instead, use an array type that
+        will scan this area conservatively. Using `void*` is usually the best option as it also
+        ensures proper alignment for pointers being scanned by the GC.
+    )
+
+$(H2 $(LNAME2 precise_dataseg, Precise Scanning of the DATA and TLS segment))
+
+    $(P $(B Windows only:) As of version 2.075, the DATA (global shared data)
+        and TLS segment (thread local data) of an executable
+        or DLL can be configured to be scanned precisely by the garbage collector
+        instead of conservatively. This takes
+        advantage of information emitted by the compiler to
+        identify possible mutable pointers inside these segments. Immutable pointers
+        $(DDSUBLINK spec/const3, immutable_storage_class, with initializers)
+        are excluded from scanning, too, as they can only point to preallocated memory.
+    )
+
+    $(P Precise scanning can be enabled with the D runtime option "scanDataSeg". Possible option
+        values are "conservative" (default) and "precise". As with the collector options, it can be
+        specified on the command line, in the environment or embedded into the executable, e.g.)
+        ---------
+        extern(C) __gshared string[] rt_options = [ "scanDataSeg=precise" ];
+        ---------
+
+
+    $(P $(RED Attention:) Enabling precise scanning needs slightly more caution typing
+        global memory. For example, to pre-allocate memory in the DATA/TLS segment and later
+        emplace an object instance with references to other allocations into this memory,
+        do not use basic integer types to reserve the space. Doing so will cause the
+        garbage collector not to detect the references. Instead, use an array type that
+        will scan this area conservatively. Using `void*` is usually the best option as it also
+        ensures proper alignment for pointers being scanned by the GC.)
+        ---------
+        class Singleton { void[] mem; }
+        align(__traits(classInstanceAlignment, Singleton))
+            void*[(__traits(classInstanceSize, Singleton) - 1) / (void*).sizeof + 1]
+            singleton_store;
+        static this()
+        {
+            emplace!Singleton(singleton_store).mem = allocateMem();
+        }
+        Singleton singleton() { return cast(Singleton)singleton_store.ptr; }
+        ---------
+        For precise typing of that area, let the compiler generate the class
+        instance into the DATA segment:
+        ---------
+        class Singleton { void[] mem; }
+        shared(Singleton) singleton = new Singleton;
+        shared static this() { singleton.mem = allocateSharedMem(); }
+        ---------
+        This doesn't work for TLS memory, though.
+
+        See also: $(DDSUBLINK spec/arrays, void_arrays, void arrays).
+
+$(H2 $(LNAME2 gc_parallel, Parallel marking))
+
+    $(P By default the collector uses all available CPU cores to mark the heap.)
+
+    $(P This might affect your application if it has threads that are not suspended
+        during the mark phase of the collection. Configure the number of
+        additional threads used for marking by collector option `parallel`,
+        e.g. by passing `--DRT-gcopt=parallel:2` on the command
+        line or embedding the option into the binary via `rt_options`.
+        The number of threads actually created is limited to
+        $(LINK2 $(ROOT_DIR)library/core/cpuid/threads_per_cpu.html, `core.cpuid.threadsPerCPU-1`).
+        A value of `0` disables parallel marking completely.)
+
+$(H2 $(LNAME2 gc_registry, Adding your own Collector))
+
+    $(P Collector implementations are added to a registry that allows to supply
+        more implementations by just linking them into
+        the binary. To do so add a function that is executed before the
+        D runtime initialization using `pragma(crt_constructor)`:)
+        ---
+        import core.gc.gcinterface, core.gc.registry;
+        extern (C) pragma(crt_constructor) void registerMyGC()
+        {
+            registerGCFactory("mygc", &createMyGC);
+        }
+
+        GC createMyGC()
+        {
+            __gshared instance = new MyGC;
+            instance.initialize();
+            return instance;
+        }
+
+        class MyGC : GC { /*...*/ }
+        ---
+
+    $(P [The collector modules defining the interface (gc.interface) and registration
+        (gc.registry) are currently not public and are subject to
+        change from version to version. Add an import search path to the
+        druntime/src path to compile the example.])
+
+    $(P The new collector is added to the list of available collectors that
+        can be selected via the usual configuration options, e.g. by embedding
+        `rt_options` into the binary:)
+        ---
+        extern (C) __gshared string[] rt_options = ["gcopt=gc:mygc"];
+        ---
+
+    $(P The standard GC implementation from a statically
+        linked binary can be removed by redefining the function `extern(C) void* register_default_gcs()`.
+        If no custom garbage collector has been registered
+        all attempts to allocate collector managed memory will terminate
+        the application with an appropriate message.)
+
+$(H2 $(LNAME2 references, References))
+
+        $(UL
+        $(LI $(LINK2 https://en.wikipedia.org/wiki/Garbage_collection_$(PERCENT)28computer_science$(PERCENT)29, Wikipedia))
+        $(LI $(LINK2 http://www.iecc.com/gclist/GC-faq.html, GC FAQ))
+        $(LI $(LINK2 ftp://ftp.cs.utexas.edu/pub/garbage/gcsurvey.ps, Uniprocessor Garbage Collector Techniques))
+        $(LI $(AMAZONLINK 0471941484, Garbage Collection: Algorithms for Automatic Dynamic Memory Management))
+        )
+
+$(SPEC_SUBNAV_PREV_NEXT unittest, Unit Tests, float, Floating Point)
+)
+
+Macros:
+        CHAPTER=29
+        TITLE=Automatic Memory Management

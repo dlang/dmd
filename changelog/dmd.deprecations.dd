@@ -1,0 +1,3 @@
+Many deprections have been turned in errors
+
+Using `return` statements in scope guards is now an error (in addition to contracts and `try...finally`)

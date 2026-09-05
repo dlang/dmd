@@ -424,7 +424,7 @@ DDOC =
         color: rgba(128, 128, 128, 1);
         font-family: Menlo,monospace;
         font-size: 0.85em;
-        word-wrap: break-word;
+        white-space: nowrap;
       }
 
       .ddoc .code i {
@@ -487,6 +487,8 @@ DDOC =
 
       .ddoc .code_sample .code_lines .code {
         color: #000;
+        white-space: normal;
+        word-wrap: break-word;
       }
 
       .ddoc div.dlang {

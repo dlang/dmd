@@ -36,6 +36,11 @@ else version (Solaris)
     import core.sys.solaris.sys.elf : SHF_COMPRESSED, ET_DYN;
     version = LinuxOrBSD;
 }
+else version (Hurd)
+{
+    import core.sys.hurd.elf : SHF_COMPRESSED, ET_DYN;
+    version = LinuxOrBSD;
+}
 
 version (LinuxOrBSD):
 

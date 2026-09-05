@@ -1,0 +1,32 @@
+Implicit Function Template Instantiation (IFTI) handled named arguments better
+
+https://github.com/dlang/dmd/issues/21335
+https://github.com/dlang/dmd/issues/22878
+
+When calling a function template with named arguments, parameters that are
+skipped (because their named argument was not provided) now correctly use
+their template parameter defaults for type deduction.
+
+---
+void f(A = int, B = int)(A a = A.init, B b = B.init) {}
+
+void main()
+{
+    f(b: "hello"); // A = int (template default), B = string (deduced)
+}
+---
+
+Named arguments that appear behind variadic arguments can now be assigned to:
+
+---
+void error(T...)(T args, string file = __FILE__, int line = __LINE__) {}
+
+auto text(T...)(T args, Allocator alloc) {}
+
+void foo(Allocator gc)
+{
+    error("Code: ", code, file: __FILE__, line: __LINE__)
+
+    return text("hello", "world", alloc: gc);
+}
+---

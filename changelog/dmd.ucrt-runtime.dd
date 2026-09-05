@@ -1,0 +1,22 @@
+UCRT is now used for the C runtime on Windows
+
+DMD on Windows now uses the Universal CRT (UCRT) for its C runtime in all cases.
+
+For installations with Visual Studio 2015 (or later) or the Windows 10 SDK, the default
+C runtime is unchanged: it remains $(TT libcmt), which statically links the UCRT.
+
+When no such Visual C installation is found, DMD now falls back on the UCRT-based
+libraries bundled in the MinGW folder shipped with DMD ($(TT ucrtbase.lib) together with
+$(TT vcruntime140.lib)), instead of the old $(TT msvcrt120) runtime which did not support
+modern format specifiers such as `%zd`. This fallback is fully supported.
+
+If no UCRT-capable toolchain is detected and no $(TT -mscrtlib) switch is given, DMD now
+reports a clear error instead of silently producing a non-working link.
+
+Detection of Visual Studio versions older than 2015 (2008 - 2013) is deprecated, because
+those versions predate the UCRT. Falling back on such an installation emits a deprecation
+warning.
+
+The $(TT -mscrtlib) switch is unchanged and can still be used to select any C runtime,
+including $(TT msvcrt) (dynamic), the debug variants $(TT libcmtd) / $(TT msvcrtd), or a
+legacy $(TT msvcrtNNN) runtime.

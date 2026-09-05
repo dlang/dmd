@@ -2298,10 +2298,13 @@ union ULARGE_INTEGER {
 }
 alias PULARGE_INTEGER = ULARGE_INTEGER*;
 
-alias LUID = LARGE_INTEGER;
+struct LUID {
+    uint LowPart;
+    int  HighPart;
+}
 alias PLUID = LUID*;
 
-enum LUID SYSTEM_LUID = { QuadPart:999 };
+enum LUID SYSTEM_LUID = { LowPart:999 };
 
 align(4) struct LUID_AND_ATTRIBUTES {
     LUID  Luid;

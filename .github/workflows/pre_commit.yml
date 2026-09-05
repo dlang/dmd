@@ -10,6 +10,7 @@ on:
       - master
       - stable
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   pre-commit:

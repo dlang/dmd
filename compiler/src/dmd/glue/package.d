@@ -29,7 +29,6 @@ import dmd.root.string;
 public import dmd.glue.objc;
 
 import dmd.glue.e2ir;
-import dmd.glue.s2ir;
 import dmd.glue.tocsym;
 import dmd.glue.toctype;
 import dmd.glue.toir;
@@ -40,14 +39,17 @@ import dmd.backend.cc;
 import dmd.backend.code;
 import dmd.backend.dt;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.blockopt;
+import dmd.backend.cg : localgot;
+import dmd.backend.dout : out_readonly, out_reset, outdata, writefunc;
+import dmd.backend.x86.cg87 : cg87_reset;
 import dmd.backend.obj;
-import dmd.backend.var : bo;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.glue.s2ir;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
@@ -61,11 +63,13 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : getLocalClasses, getType, findGetMembers;
 import dmd.expressionsem : toInteger;
 import dmd.dtemplate;
-import dmd.errors;
+import dmd.errors : fatal;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
 import dmd.funcsem : onlyOneMain, isVirtual;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.identifier;
 import dmd.id;
 import dmd.lib;
@@ -310,7 +314,8 @@ tym_t totym(Type tx)
         case Ttypeof:
         case Tmixin:
             //printf("ty = %d, '%s'\n", tx.ty, tx.toChars());
-            error(Loc.initial, "forward reference of `%s`", tx.toChars());
+            auto eSink = global.errorSink;
+            eSink.error(Loc.initial, "forward reference of `%s`", tx.toErrMsg());
             t = TYint;
             break;
 
@@ -477,7 +482,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
          * but the errors were gagged.
          * Try to reproduce those errors, and then fail.
          */
-        .error(fd.loc, "%s `%s` errors compiling the function", fd.kind, fd.toPrettyChars);
+        auto eSink = global.errorSink;
+        eSink.error(fd.loc, "%s `%s` errors compiling the function", fd.kind, fd.toPrettyChars);
         return;
     }
     assert(fd.semanticRun >= PASS.semantic3done && fd.semanticRun <= PASS.inlineAll);
@@ -513,7 +519,10 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     fd.semanticRun = PASS.obj;
 
     if (global.params.v.verbose)
-        message("function  %s", fd.toPrettyChars());
+    {
+        auto eSink = global.errorSink;
+        eSink.message(Loc.init, "function  %s", fd.toPrettyChars());
+    }
 
     // tunnel type of "this" to debug info generation
     if (AggregateDeclaration ad = fd.parent.isAggregateDeclaration())
@@ -530,11 +539,11 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
      * and the stack offsets are the same.
      */
     if (fd.isVirtual() && (fd.fensure || fd.frequire))
-        f.Fflags3 |= Ffakeeh;
+        f.Fflags |= Ffakeeh;
 
     if (fd.hasNoEH)
         // Same as config.ehmethod==EH_NONE, but only for this function
-        f.Fflags3 |= Feh_none;
+        f.Fflags |= Feh_none;
 
     s.Sclass = target.os == Target.OS.OSX ? SC.comdat : SC.global;
 
@@ -586,7 +595,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         //if (!(config.flags3 & CFG3pic))
         //    s.Sclass = SCstatic;
-        f.Fflags3 |= Fnested;
+        f.Fflags |= Fnested;
 
         /* The enclosing function must have its code generated first,
          * in order to calculate correct frame pointer offset.
@@ -638,15 +647,17 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         char[hiddenparamLen] hiddenparam = void;
         __gshared uint hiddenparami;    // how many we've generated so far
 
-        const(char)* name;
+        const(char)[] name;
         if (fd.isNRVO && fd.nrvo_var)
-            name = fd.nrvo_var.ident.toChars();
+            name = fd.nrvo_var.ident.toString();
         else
         {
-            snprintf(hiddenparam.ptr, hiddenparamLen, "__HID%u", ++hiddenparami);
-            name = hiddenparam.ptr;
+            int length = snprintf(hiddenparam.ptr, hiddenparamLen, "__HID%u", ++hiddenparami);
+            assert(length != -1 &&     // for bad old snprintf()
+                   length < hiddenparamLen);
+            name = hiddenparam[0 .. length];
         }
-        shidden = symbol_name(name[0 .. strlen(name)], SC.parameter, thidden);
+        shidden = symbol_name(name, SC.parameter, thidden);
         shidden.Sflags |= SFLtrue | SFLfree | SFLhidden;
         if (fd.isNRVO && fd.nrvo_var && fd.nrvo_var.nestedrefs.length)
             type_setcv(&shidden.Stype, shidden.Stype.Tty | mTYvolatile);
@@ -667,8 +678,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         sthis = toSymbol(fd.vthis);
         sthis.Stype = getParentClosureType(sthis, fd);
         irs.sthis = sthis;
-        if (!(f.Fflags3 & Fnested))
-            f.Fflags3 |= Fmember;
+        if (!(f.Fflags & Fnested))
+            f.Fflags |= Fmember;
     }
 
     // Estimate number of parameters, pi
@@ -888,7 +899,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         /* The "jmonitor" hack uses an optimized exception handling frame
          * which is a little shorter than the more general EH frame.
          */
-        s.Sfunc.Fflags3 |= Fjmonitor;
+        s.Sfunc.Fflags |= Fjmonitor;
     }
 
     Statement_toIR(sbody, irs);
@@ -919,7 +930,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             }
         }
     }
-    if (config.ehmethod == EHmethod.EH_NONE || f.Fflags3 & Feh_none)
+    if (config.ehmethod == EHmethod.EH_NONE || f.Fflags & Feh_none)
         insertFinallyBlockGotos(f.Fstartblock);
     else if (config.ehmethod == EHmethod.EH_DWARF)
         insertFinallyBlockCalls(f.Fstartblock);
@@ -1049,7 +1060,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             block_appendexp(startBlk, exec); //payload
             startBlk.bc = BC.goto_;
             auto next = block_calloc(bo);
-            startBlk.appendSucc(next);
+            startBlk.Bsucc.push(next);
             startBlk.Bnext = next;
             next.bc = BC.ret;
             //Emit in binary
@@ -1255,18 +1266,10 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
     //printf("obj_start()\n");
 
     bzeroSymbol = null;
+    resetCtfeSymbolCache();
     rtlsym_reset();
     clearStringTab();
-
-    version (Windows)
-    {
-        import dmd.backend.mscoffobj;
-        objmod = MsCoffObj_init(&objbuf, srcfile, null);
-    }
-    else
-    {
-        objmod = Obj.initialize(&objbuf, srcfile, null);
-    }
+    objmod = Obj.initialize(&objbuf, srcfile, null);
 
     OutBuffer buf;
     buf.write("DMD ");
@@ -1336,6 +1339,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
     glue.ectorgates.setDim(0);
     glue.sdtors.setDim(0);
     glue.ssharedctors.setDim(0);
+    glue.sisharedctors.setDim(0);
     glue.esharedctorgates.setDim(0);
     glue.sshareddtors.setDim(0);
     glue.stests.setDim(0);
@@ -1725,10 +1729,11 @@ private UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
 private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
 {
     // D main()
-    if (fd.isMain() && onlyOneMain(fd))
+    if (fd.isDMain() && onlyOneMain(fd))
     {
         /* Reference the C main() to pull it in to the executable
          */
+        static if (0) // superceded by object's import of core.internal.entrypoint : _d_cmain
         final switch (target.objectFormat())
         {
             case Target.ObjectFormat.elf:

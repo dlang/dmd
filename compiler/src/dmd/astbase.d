@@ -17,7 +17,7 @@ import dmd.expression;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with
   * no semantic information. It defines all the AST nodes that the parser needs
-  * and also all the conveniance methods and variables. The resulting AST can be
+  * and also all the convenience methods and variables. The resulting AST can be
   * visited with the strict, permissive and transitive visitors.
   * The ASTBase family is used to instantiate the parser in the parser library.
   */
@@ -261,6 +261,20 @@ struct ASTBase
         override void accept(Visitor v)
         {
             v.visit(this);
+        }
+
+        extern (D) static Dsymbols* arraySyntaxCopy(Dsymbols* a)
+        {
+            Dsymbols* b = null;
+            if (a)
+            {
+                b = a.copy();
+                for (size_t i = 0; i < b.length; i++)
+                {
+                    (*b)[i] = (*b)[i].syntaxCopy(null);
+                }
+            }
+            return b;
         }
     }
 
@@ -1346,6 +1360,33 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class UnpackDeclaration : AttribDeclaration
+    {
+        Dsymbols* vars;
+        Expression _init;
+        StorageClass storage_class;
+
+        extern (D) this(Loc loc, Dsymbols* vars, Expression _init, StorageClass storage_class)
+        {
+            super(null);
+            this.loc = loc;
+            this.vars = vars;
+            this._init = _init;
+            this.storage_class = storage_class;
+        }
+
+        override UnpackDeclaration syntaxCopy(Dsymbol s)
+        {
+            return new UnpackDeclaration(loc, Dsymbol.arraySyntaxCopy(vars), _init ? _init.syntaxCopy() : null, storage_class);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+
     extern (C++) final class EnumMember : VarDeclaration
     {
         Expression origValue;
@@ -1703,16 +1744,18 @@ struct ASTBase
         Identifier ident;
         Expression defaultArg;
         UserAttributeDeclaration userAttribDecl; // user defined attributes
+        UnpackDeclaration unpack;
 
         extern (D) alias ForeachDg = int delegate(size_t idx, Parameter param);
 
-        final extern (D) this(Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
+        final extern (D) this(Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl, UnpackDeclaration unpack)
         {
             this.storageClass = storageClass;
             this.type = type;
             this.ident = ident;
             this.defaultArg = defaultArg;
             this.userAttribDecl = userAttribDecl;
+            this.unpack = unpack;
         }
 
         static size_t dim(Parameters* parameters)
@@ -1779,7 +1822,7 @@ struct ASTBase
 
         Parameter syntaxCopy()
         {
-            return new Parameter(loc, storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null);
+            return new Parameter(loc, storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null, unpack ? unpack.syntaxCopy(null) : null);
         }
 
         override void accept(Visitor v)
@@ -2464,24 +2507,23 @@ struct ASTBase
 
     extern (C++) class CompoundStatement : Statement
     {
-        Statements* statements;
+        Statements statements;
 
-        final extern (D) this(Loc loc, Statements* statements)
+        final extern (D) this(Loc loc, Statements statements)
         {
             super(loc, STMT.Compound);
-            this.statements = statements;
+            this.statements = statements.move();
         }
 
-        final extern (D) this(Loc loc, Statements* statements, STMT stmt)
+        final extern (D) this(Loc loc, Statements statements, STMT stmt)
         {
             super(loc, stmt);
-            this.statements = statements;
+            this.statements = statements.move();
         }
 
         final extern (D) this(Loc loc, Statement[] sts...)
         {
             super(loc, STMT.Compound);
-            statements = new Statements();
             statements.reserve(sts.length);
             foreach (s; sts)
                 statements.push(s);
@@ -2509,9 +2551,9 @@ struct ASTBase
 
     extern (C++) final class CompoundDeclarationStatement : CompoundStatement
     {
-        final extern (D) this(Loc loc, Statements* statements)
+        final extern (D) this(Loc loc, Statements statements)
         {
-            super(loc, statements, STMT.CompoundDeclaration);
+            super(loc, statements.move(), STMT.CompoundDeclaration);
         }
 
         override void accept(Visitor v)
@@ -2524,9 +2566,9 @@ struct ASTBase
     {
         StorageClass stc;
 
-        final extern (D) this(Loc loc, Statements* s, StorageClass stc)
+        final extern (D) this(Loc loc, Statements s, StorageClass stc)
         {
-            super(loc, s, STMT.CompoundAsm);
+            super(loc, s.move(), STMT.CompoundAsm);
             this.stc = stc;
         }
 
@@ -3638,7 +3680,7 @@ struct ASTBase
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
                         error(e.loc, "cannot form sequence of sequences");
-                    auto arg = new Parameter(e.loc, STC.none, e.type, null, null, null);
+                    auto arg = new Parameter(e.loc, STC.none, e.type, null, null, null, null);
                     (*arguments)[i] = arg;
                 }
             }
@@ -3883,6 +3925,7 @@ struct ASTBase
             incomplete      = 0x0200, // return type or default arguments removed
             inoutParam      = 0x0400, // inout on the parameters
             inoutQual       = 0x0800, // inout on the qualifier
+            isCtfeOnly      = 0x1000, // is @__ctfe
         }
 
         LINK linkage;               // calling convention
@@ -3909,6 +3952,8 @@ struct ASTBase
                 this.isProperty = true;
             if (stc & STC.live)
                 this.isLive = true;
+            if (stc & STC.ctfeOnly)
+                this.isCtfeOnly = true;
 
             if (stc & STC.ref_)
                 this.isRef = true;
@@ -3943,6 +3988,7 @@ struct ASTBase
             t.isScopeInferred = isScopeInferred;
             t.isInOutParam = isInOutParam;
             t.isInOutQual = isInOutQual;
+            t.isCtfeOnly = isCtfeOnly;
             t.trust = trust;
             t.fargs = fargs;
             return t;
@@ -4091,6 +4137,19 @@ struct ASTBase
             if (v) funcFlags |= FunctionFlag.inoutQual;
             else funcFlags &= ~FunctionFlag.inoutQual;
         }
+
+        /// set or get if the function has the `@__ctfe` attribute
+        bool isCtfeOnly() const pure nothrow @safe @nogc
+        {
+            return (funcFlags & FunctionFlag.isCtfeOnly) != 0;
+        }
+        /// ditto
+        void isCtfeOnly(bool v) pure nothrow @safe @nogc
+        {
+            if (v) funcFlags |= FunctionFlag.isCtfeOnly;
+            else funcFlags &= ~FunctionFlag.isCtfeOnly;
+        }
+
         /// Returns: `true` the function is `isInOutQual` or `isInOutParam` ,`false` otherwise.
         bool iswild() const pure nothrow @safe @nogc
         {
@@ -4605,11 +4664,7 @@ struct ASTBase
             inout(IdentityExp) isIdentityExp() { return (op == EXP.identity || op == EXP.notIdentity) ? cast(typeof(return))this : null; }
             inout(CondExp)     isCondExp() { return op == EXP.question ? cast(typeof(return))this : null; }
             inout(GenericExp)  isGenericExp() { return op == EXP._Generic ? cast(typeof(return))this : null; }
-            inout(FileInitExp)       isFileInitExp() { return (op == EXP.file || op == EXP.fileFullPath) ? cast(typeof(return))this : null; }
-            inout(LineInitExp)       isLineInitExp() { return op == EXP.line ? cast(typeof(return))this : null; }
-            inout(ModuleInitExp)     isModuleInitExp() { return op == EXP.moduleString ? cast(typeof(return))this : null; }
-            inout(FuncInitExp)       isFuncInitExp() { return op == EXP.functionString ? cast(typeof(return))this : null; }
-            inout(PrettyFuncInitExp) isPrettyFuncInitExp() { return op == EXP.prettyFunction ? cast(typeof(return))this : null; }
+            inout(DefaultInitExp)    isDefaultInitExp() { return op == EXP.defaultInit ? cast(typeof(return))this : null; }
             inout(AssignExp)         isConstructExp() { return op == EXP.construct ? cast(typeof(return))this : null; }
             inout(AssignExp)         isBlitExp()      { return op == EXP.blit ? cast(typeof(return))this : null; }
 
@@ -5139,9 +5194,12 @@ struct ASTBase
 
     extern (C++) class DefaultInitExp : Expression
     {
-        final extern (D) this(Loc loc, EXP op, int size)
+        TOK tok; /// which special token this is
+
+        final extern (D) this(Loc loc, TOK tok)
         {
-            super(loc, op, size);
+            super(loc, EXP.defaultInit, __traits(classInstanceSize, DefaultInitExp));
+            this.tok = tok;
         }
 
         override void accept(Visitor v)
@@ -5681,74 +5739,11 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class FuncInitExp : DefaultInitExp
-    {
-        extern (D) this(Loc loc)
-        {
-            super(loc, EXP.functionString, __traits(classInstanceSize, FuncInitExp));
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class PrettyFuncInitExp : DefaultInitExp
-    {
-        extern (D) this(Loc loc)
-        {
-            super(loc, EXP.prettyFunction, __traits(classInstanceSize, PrettyFuncInitExp));
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class FileInitExp : DefaultInitExp
-    {
-        extern (D) this(Loc loc, EXP tok)
-        {
-            super(loc, tok, __traits(classInstanceSize, FileInitExp));
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class LineInitExp : DefaultInitExp
-    {
-        extern (D) this(Loc loc)
-        {
-            super(loc, EXP.line, __traits(classInstanceSize, LineInitExp));
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class ModuleInitExp : DefaultInitExp
-    {
-        extern (D) this(Loc loc)
-        {
-            super(loc, EXP.moduleString, __traits(classInstanceSize, ModuleInitExp));
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
 
     extern (C++) final class CommaExp : BinExp
     {
         const bool isGenerated;
+        bool isInlineSequence;
         bool allowCommaExp;
 
         extern (D) this(Loc loc, Expression e1, Expression e2, bool generated = true)
@@ -6860,6 +6855,7 @@ struct ASTBase
             SCstring(STC.disable, "@disable"),
             SCstring(STC.future, "@__future"),
             SCstring(STC.local, "__local"),
+            SCstring(STC.ctfeOnly, "@__ctfe"),
         ];
         foreach (ref entry; table)
         {

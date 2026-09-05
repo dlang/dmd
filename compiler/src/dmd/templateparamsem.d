@@ -16,7 +16,6 @@ import dmd.dinterpret;
 import dmd.dsymbol;
 import dmd.dscope;
 import dmd.dtemplate;
-import dmd.globals;
 import dmd.location;
 import dmd.expression;
 import dmd.expressionsem;
@@ -78,10 +77,11 @@ private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
 
     override void visit(TemplateThisParameter ttp)
     {
-        import dmd.errors;
+        import dmd.globals;
+        auto eSink = global.errorSink;
 
         if (!sc.getStructClassScope())
-            error(ttp.loc, "cannot use `this` outside an aggregate type");
+            eSink.error(ttp.loc, "cannot use `this` outside an aggregate type");
         visit(cast(TemplateTypeParameter)ttp);
     }
 
@@ -173,6 +173,8 @@ RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o, TemplatePara
             return s;
         if (TypeInstance ti = ta.isTypeInstance())
         {
+            import dmd.globals;
+
             Type t;
             const errors = global.errors;
             ta.resolve(loc, sc, ea, t, s);

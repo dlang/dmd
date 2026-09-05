@@ -10,10 +10,12 @@
 module core.sys.windows.schannel;
 version (Windows):
 
+import core.sys.windows.ntdef;   // UNICODE_STRING
 import core.sys.windows.wincrypt;
 import core.sys.windows.windef;
 
 enum DWORD SCHANNEL_CRED_VERSION = 4;
+enum DWORD SCH_CREDENTIALS_VERSION = 5;
 enum SCHANNEL_SHUTDOWN           = 1;
 /* Comment from MinGW
     ? Do these belong here or in wincrypt.h
@@ -30,12 +32,21 @@ enum DWORD
     SP_PROT_SSL2_CLIENT = 0x08,
     SP_PROT_SSL3_SERVER = 0x10,
     SP_PROT_SSL3_CLIENT = 0x20,
-    SP_PROT_TLS1_SERVER = 0x40,
-    SP_PROT_TLS1_CLIENT = 0x80,
-    SP_PROT_PCT1        = SP_PROT_PCT1_CLIENT | SP_PROT_PCT1_SERVER,
-    SP_PROT_TLS1        = SP_PROT_TLS1_CLIENT | SP_PROT_TLS1_SERVER,
-    SP_PROT_SSL2        = SP_PROT_SSL2_CLIENT | SP_PROT_SSL2_SERVER,
-    SP_PROT_SSL3        = SP_PROT_SSL3_CLIENT | SP_PROT_SSL3_SERVER;
+    SP_PROT_TLS1_SERVER   = 0x40,
+    SP_PROT_TLS1_CLIENT   = 0x80,
+    SP_PROT_TLS1_1_SERVER = 0x100,
+    SP_PROT_TLS1_1_CLIENT = 0x200,
+    SP_PROT_TLS1_2_SERVER = 0x400,
+    SP_PROT_TLS1_2_CLIENT = 0x800,
+    SP_PROT_TLS1_3_SERVER = 0x1000,
+    SP_PROT_TLS1_3_CLIENT = 0x2000,
+    SP_PROT_PCT1          = SP_PROT_PCT1_CLIENT | SP_PROT_PCT1_SERVER,
+    SP_PROT_TLS1          = SP_PROT_TLS1_CLIENT | SP_PROT_TLS1_SERVER,
+    SP_PROT_TLS1_1        = SP_PROT_TLS1_1_CLIENT | SP_PROT_TLS1_1_SERVER,
+    SP_PROT_TLS1_2        = SP_PROT_TLS1_2_CLIENT | SP_PROT_TLS1_2_SERVER,
+    SP_PROT_TLS1_3        = SP_PROT_TLS1_3_CLIENT | SP_PROT_TLS1_3_SERVER,
+    SP_PROT_SSL2          = SP_PROT_SSL2_CLIENT | SP_PROT_SSL2_SERVER,
+    SP_PROT_SSL3          = SP_PROT_SSL3_CLIENT | SP_PROT_SSL3_SERVER;
 
 enum DWORD
     SCH_CRED_NO_SYSTEM_MAPPER                    = 0x0002,
@@ -104,3 +115,50 @@ struct SecPkgContext_ConnectionInfo {
     DWORD  dwExchStrength;
 }
 alias PSecPkgContext_ConnectionInfo = SecPkgContext_ConnectionInfo*;
+
+enum eTlsAlgorithmUsage
+{
+    TlsParametersCngAlgUsageKeyExchange,
+    TlsParametersCngAlgUsageSignature,
+    TlsParametersCngAlgUsageCipher,
+    TlsParametersCngAlgUsageDigest,
+    TlsParametersCngAlgUsageCertSig,
+}
+
+struct CRYPTO_SETTINGS
+{
+    eTlsAlgorithmUsage  eAlgorithmUsage;
+    UNICODE_STRING      strCngAlgId;
+    DWORD               cChainingModes;
+    UNICODE_STRING*     rgstrChainingModes;
+    DWORD               dwMinBitLength;
+    DWORD               dwMaxBitLength;
+}
+alias PCRYPTO_SETTINGS = CRYPTO_SETTINGS*;
+
+struct TLS_PARAMETERS
+{
+    DWORD               cAlpnIds;
+    UNICODE_STRING*     rgstrAlpnIds;
+    DWORD               grbitDisabledProtocols;
+    DWORD               cDisabledCrypto;
+    CRYPTO_SETTINGS*    pDisabledCrypto;
+    DWORD               dwFlags;
+}
+alias PTLS_PARAMETERS = TLS_PARAMETERS*;
+
+struct SCH_CREDENTIALS
+{
+    DWORD               dwVersion;          // SCH_CREDENTIALS_VERSION
+    DWORD               dwCredFormat;
+    DWORD               cCreds;
+    PCCERT_CONTEXT*     paCred;
+    HCERTSTORE          hRootStore;
+    DWORD               cMappers;
+    _HMAPPER**          aphMappers;
+    DWORD               dwSessionLifespan;
+    DWORD               dwFlags;
+    DWORD               cTlsParameters;
+    TLS_PARAMETERS*     pTlsParameters;
+}
+alias PSCH_CREDENTIALS = SCH_CREDENTIALS*;

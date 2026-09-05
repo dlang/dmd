@@ -105,11 +105,17 @@ else version (AArch64)
     else version = WithArgTypes;
 }
 
+static assert(Object.__monitor.offsetof == size_t.sizeof);
+
 /**
  * All D class objects inherit from Object.
  */
 class Object
 {
+    // This is an internal field that is omitted from .tupleof, __traits(allMembers), pointer bitmaps etc.
+    // It can be removed in a custom druntime, but if it's there it must remain the first field.
+    void* __monitor;
+
     /**
      * Convert Object to a human readable string.
      */
@@ -518,11 +524,15 @@ unittest
 // https://issues.dlang.org/show_bug.cgi?id=23291
 @system unittest
 {
+    import core.atomic : atomicLoad;
+
     static shared class C { bool opEquals(const(shared(C)) rhs) const shared  { return true;}}
     const(C) c = new C();
     const(C)[] a = [c];
     const(C)[] b = [c];
-    assert(a[0] == b[0]);
+    // Call the shared-aware overload directly to avoid `==` introducing
+    // additional shared reads during lowering.
+    assert(atomicLoad(a[0]).opEquals(atomicLoad(b[0])));
 }
 
 private extern(C) void _d_setSameMutex(shared Object ownee, shared Object owner) nothrow;
@@ -541,6 +551,8 @@ void setSameMutex(shared Object ownee, shared Object owner)
 
 @system unittest
 {
+    import core.atomic : atomicLoad;
+
     shared Object obj1 = new Object;
     synchronized class C
     {
@@ -552,7 +564,7 @@ void setSameMutex(shared Object ownee, shared Object owner)
     assert(obj1.__monitor != obj2.__monitor);
     assert(obj1.__monitor is null);
 
-    setSameMutex(obj1, obj2);
+    setSameMutex(atomicLoad(obj1), atomicLoad(obj2));
     assert(obj1.__monitor == obj2.__monitor);
     assert(obj1.__monitor !is null);
 }
@@ -2986,14 +2998,28 @@ alias AssociativeArray(Key, Value) = Value[Key];
  *      aa =     The associative array.
  */
 void clear(Value, Key)(Value[Key] aa) @trusted
+if (!is(Value == shared))
 {
     _aaClear(aa);
 }
 
 /** ditto */
 void clear(Value, Key)(Value[Key]* aa) @trusted
+if (!is(Value == shared))
 {
     (*aa).clear();
+}
+
+/** ditto */
+void clear(Value, Key)(shared(Value)[Key] aa)
+{
+    return (cast(Value[Key])aa).clear();
+}
+
+/** ditto */
+void clear(Value, Key)(shared(Value)[Key]* aa)
+{
+    (cast(Value[Key])*aa).clear();
 }
 
 ///
@@ -3066,11 +3092,23 @@ Value[Key] rehash(T : shared Value[Key], Value, Key)(T* aa)
  */
 auto dup(T : V[K], K, V)(T aa)
 {
-    // Bug10720 - check whether V is copyable
-    static assert(is(typeof({ V v = aa[K.init]; })),
-        "cannot call " ~ T.stringof ~ ".dup because " ~ V.stringof ~ " is not copyable");
+    import core.internal.traits : substInout, Unconst;
 
-    return _aaDup(aa);
+    // Bug10720 - check whether V is copyable
+    static if (is(typeof({ Unconst!V v = aa[K.init]; })))
+        alias Vret = Unconst!V;
+    else static if (is(typeof({ V v = aa[K.init]; })))
+        alias Vret = V;
+    else
+        static assert(false, "cannot call " ~ T.stringof ~ ".dup because " ~ V.stringof ~ " is not copyable");
+    alias Kret = typeof([K.init][0]); // strip const if possible by copy
+
+    alias K1 = substInout!K;
+    alias V1 = substInout!Vret;
+
+    auto naa = _aaDup((() @trusted => cast(V1[K1])aa)());
+    auto maa = ((inout T) @trusted => cast(Vret[Kret])naa)(aa);
+    return maa;
 }
 
 /** ditto */
@@ -3880,6 +3918,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 }
 
 
+import core.internal.array.capacity : _d_arraygetcapacity;
 // HACK:  This is a lie.  `_d_arraysetcapacity` is neither `nothrow` nor `pure`, but this lie is
 // necessary for now to prevent breaking code.
 import core.internal.array.capacity : _d_arraysetcapacityPureNothrow;
@@ -3899,9 +3938,7 @@ Note: The _capacity of a slice may be impacted by operations on other slices.
 @property size_t capacity(T)(T[] arr) pure nothrow @trusted
 {
     const isshared = is(T == shared);
-    alias Unqual_T = Unqual!T;
-    // The postblit of T may be impure, so we need to use the `pure nothrow` wrapper
-    return _d_arraysetcapacityPureNothrow!Unqual_T(0, cast(void[]*)&arr, isshared);
+    return _d_arraygetcapacity(T.sizeof, cast(void[]*)&arr, isshared);
 }
 
 ///
@@ -3925,6 +3962,18 @@ Note: The _capacity of a slice may be impacted by operations on other slices.
         assert(a.capacity == b.capacity + 1); //both a and b share the same tail
     }
     assert(c.capacity == 0);              //an append to c must relocate c.
+}
+
+// https://github.com/dlang/dmd/issues/23102
+@safe unittest
+{
+    static struct S
+    {
+        @disable this(this);
+    }
+
+    S[] s;
+    auto c = s.capacity;
 }
 
 /**
@@ -4015,22 +4064,36 @@ auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
     return arr;
 }
 
-///
-@system unittest
+version (D_Ddoc)
 {
-    int[] a = [1, 2, 3, 4];
-
-    // Without assumeSafeAppend. Appending relocates.
-    int[] b = a [0 .. 3];
-    b ~= 5;
-    assert(a.ptr != b.ptr);
-
-    debug(SENTINEL) {} else
+    ///
+    @system unittest
     {
+        int[] a = [1, 2, 3, 4];
+        // Without assumeSafeAppend. Appending relocates.
+        int[] b = a [0 .. 3];
+        b ~= 5;
+        assert(a.ptr != b.ptr);
         // With assumeSafeAppend. Appending overwrites.
         int[] c = a [0 .. 3];
         c.assumeSafeAppend() ~= 5;
         assert(a.ptr == c.ptr);
+    }
+}
+else
+{
+    @system unittest
+    {
+        debug (SENTINEL) {} else
+        {
+            int[] a = [1, 2, 3, 4];
+            int[] b = a [0 .. 3];
+            b ~= 5;
+            assert(a.ptr != b.ptr);
+            int[] c = a [0 .. 3];
+            c.assumeSafeAppend() ~= 5;
+            assert(a.ptr == c.ptr);
+        }
     }
 }
 
@@ -4673,34 +4736,40 @@ they are only intended to be instantiated by the compiler, not the user.
 
 public import core.internal.entrypoint : _d_cmain;
 
-public import core.internal.array.appending : _d_arrayappendT;
 version (D_ProfileGC)
 {
-    public import core.internal.array.appending : _d_arrayappendTTrace;
-    public import core.internal.array.appending : _d_arrayappendcTXTrace;
-    public import core.internal.array.concatenation : _d_arraycatnTXTrace;
-    public import core.lifetime : _d_newitemTTrace;
-    public import core.internal.array.construction : _d_newarrayTTrace;
-    public import core.internal.array.construction : _d_newarrayUTrace;
-    public import core.internal.array.construction : _d_newarraymTXTrace;
-    public import core.internal.array.capacity: _d_arraysetlengthTTrace;
-    public import core.internal.array.construction : _d_arrayliteralTXTrace;
+    public import core.internal.profile_gc : _d_arrayappendT;
+    public import core.internal.profile_gc : _d_arrayappendcTX;
+    public import core.internal.profile_gc : _d_arraycatnTX;
+    public import core.internal.profile_gc : _d_newitemT;
+    public import core.internal.profile_gc : _d_newarrayT;
+    public import core.internal.profile_gc : _d_newarrayU;
+    public import core.internal.profile_gc : _d_newarraymTX;
+    public import core.internal.profile_gc : _d_arraysetlengthT;
+    public import core.internal.profile_gc : _d_arrayliteralTX;
+    public import core.internal.profile_gc : _d_newclassT;
 }
-public import core.internal.array.appending : _d_arrayappendcTX;
+else
+{
+    public import core.internal.array.appending : _d_arrayappendT;
+    public import core.internal.array.appending : _d_arrayappendcTX;
+    public import core.internal.array.concatenation : _d_arraycatnTX;
+    public import core.lifetime : _d_newitemT;
+    public import core.internal.array.construction : _d_newarrayT;
+    public import core.internal.array.construction : _d_newarrayU;
+    public import core.internal.array.construction : _d_newarraymTX;
+    public import core.internal.array.capacity : _d_arraysetlengthT;
+    public import core.internal.array.construction : _d_arrayliteralTX;
+    public import core.lifetime : _d_newclassT;
+}
 public import core.internal.array.comparison : __cmp;
 public import core.internal.array.equality : __equals;
 public import core.internal.array.casting: __ArrayCast;
-public import core.internal.array.concatenation : _d_arraycatnTX;
 public import core.internal.array.construction : _d_arrayctor;
 public import core.internal.array.construction : _d_arraysetctor;
-public import core.internal.array.construction : _d_newarrayT;
-public import core.internal.array.construction : _d_newarrayU;
-public import core.internal.array.construction : _d_newarraymTX;
-public import core.internal.array.construction : _d_arrayliteralTX;
 public import core.internal.array.arrayassign : _d_arrayassign_l;
 public import core.internal.array.arrayassign : _d_arrayassign_r;
 public import core.internal.array.arrayassign : _d_arraysetassign;
-public import core.internal.array.capacity : _d_arraysetlengthT;
 public import core.internal.cast_: _d_cast;
 
 public import core.internal.dassert: _d_assert_fail;
@@ -4714,11 +4783,29 @@ public import core.internal.postblit: __ArrayPostblit;
 public import core.internal.switch_: __switch;
 public import core.internal.switch_: __switch_error;
 
-public import core.lifetime : _d_delstructImpl;
+// Forwarding hook for the ^^ (pow) operator on floating-point types.
+// TODO: move implementation to druntime instead of Phobos.
+auto _d_pow(Base, Exp)(Base base, Exp exp)
+{
+    import std.math : pow;
+    return pow(base, exp);
+}
+
+// Forwarding hook for the e1 ^^ 0.5 optimisation (square root).
+auto _d_sqrt(T)(T x)
+{
+    import core.math : sqrt;
+    return sqrt(x);
+}
+
+// Forwarding hook for shared static ctor/dtor gate operations.
+auto _d_atomicOp(string op, T, V1)(ref shared T val, V1 mod)
+{
+    import core.atomic : atomicOp;
+    return atomicOp!op(val, mod);
+}
+
 public import core.lifetime : _d_newThrowable;
-public import core.lifetime : _d_newclassT;
-public import core.lifetime : _d_newclassTTrace;
-public import core.lifetime : _d_newitemT;
 
 public @trusted @nogc nothrow pure extern (C) void _d_delThrowable(scope Throwable);
 

@@ -65,6 +65,16 @@ else version (CRuntime_Musl)
     pragma(mangle, muslRedirTime64Mangle!("utime", "__utime64"))
     int utime(const scope char*, const scope utimbuf*);
 }
+else version (CRuntime_WASI)
+{
+    struct utimbuf
+    {
+        time_t  actime;
+        time_t  modtime;
+    }
+
+    int utime(const scope char*, const scope utimbuf*);
+}
 else version (Darwin)
 {
     struct utimbuf
@@ -93,7 +103,7 @@ else version (NetBSD)
         time_t  modtime;
     }
 
-    int utime(const scope char*, const scope utimbuf*);
+    pragma(mangle, "__utime50") int utime(const scope char*, const scope utimbuf*);
 }
 else version (OpenBSD)
 {

@@ -15,9 +15,9 @@ module dmd.backend.cg;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
-import dmd.backend.global;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
+import dmd.backend.symbol;
 import dmd.backend.type;
 
 
@@ -38,7 +38,6 @@ targ_size_t localsize;          /* amt subtracted from SP for local vars */
  * will change them as appropriate.
  */
 int     BPRM = 6;               /* R/M value for [BP] or [EBP]          */
-regm_t  fregsaved;              // mask of registers saved across function calls
 
 regm_t  FLOATREGS = FLOATREGS_16;
 regm_t  FLOATREGS2 = FLOATREGS2_16;

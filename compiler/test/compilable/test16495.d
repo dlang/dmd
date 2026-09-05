@@ -60,13 +60,13 @@ void symbols()
     static assert(__traits(fullyQualifiedName, qnTests.Inner)           == prefix ~ "Inner");
     static assert(__traits(fullyQualifiedName, qnTests.func)            == prefix ~ "func");
 
-    static assert(__traits(fullyQualifiedName, qnTests.Data!int)        == prefix ~ "Data!int.Data");
-    static assert(__traits(fullyQualifiedName, qnTests.Data!int.x)      == prefix ~ "Data!int.Data.x");
-    static assert(__traits(fullyQualifiedName, qnTests.tfunc!(int[]))   == prefix ~ "tfunc!(int[]).tfunc");
+    static assert(__traits(fullyQualifiedName, qnTests.Data!int)        == prefix ~ "Data!int");
+    static assert(__traits(fullyQualifiedName, qnTests.Data!int.x)      == prefix ~ "Data!int.x");
+    static assert(__traits(fullyQualifiedName, qnTests.tfunc!(int[]))   == prefix ~ "tfunc!(int[])");
     static assert(__traits(fullyQualifiedName, qnTests.Inst!(Object))   == prefix ~ "Inst!(Object)");
     static assert(__traits(fullyQualifiedName, qnTests.Inst!(Object).x) == prefix ~ "Inst!(Object).x");
     static assert(__traits(fullyQualifiedName, qnTests.Test12309!(int, 10, "str"))
-                                                == prefix ~ "Test12309!(int, 10, \"str\").Test12309");
+                                                == prefix ~ "Test12309!(int, 10, \"str\")");
 }
 
 void names()

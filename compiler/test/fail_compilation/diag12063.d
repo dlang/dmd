@@ -2,7 +2,8 @@
 TEST_OUTPUT:
 ---
 fail_compilation/diag12063.d(21): Error: cannot check `diag12063.Bar.b` value for overflow
-fail_compilation/diag12063.d(18): Error: no property `max` for type `Foo`, perhaps `import std.algorithm;` is needed?
+fail_compilation/diag12063.d(18): Error: no property `max` for type `diag12063.Foo`
+fail_compilation/diag12063.d(16):        struct `Foo` defined here
 fail_compilation/diag12063.d(21): Error: cannot generate value for `diag12063.Bar.b`
 fail_compilation/diag12063.d(21): Error: operator `+` is not defined for type `Bar`
 fail_compilation/diag12063.d(16):        perhaps overload the operator with `auto opBinary(string op : "+")(int rhs) {}`
@@ -12,7 +13,6 @@ fail_compilation/diag12063.d(24):        perhaps overload it with `bool opEquals
 fail_compilation/diag12063.d(40): Error: enum member `diag12063.d` initialization with `__anonymous.c+1` causes overflow for type `Q`
 ---
 */
-
 struct Foo {}
 
 enum Bar : Foo

@@ -29,7 +29,6 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
-import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
@@ -115,7 +114,7 @@ ulong getTypePointerBitmap(Loc loc, Type t, ref Array!(ulong) data, ErrorSink eS
     assert(sz_size_t <= ulong.sizeof);
     if (sz > sz.max - sz_size_t)
     {
-        eSink.error(loc, "size overflow for type `%s`", t.toChars());
+        eSink.error(loc, "size overflow for type `%s`", t.toErrMsg());
         return ulong.max;
     }
 
@@ -267,6 +266,8 @@ ulong getTypePointerBitmap(Loc loc, Type t, ref Array!(ulong) data, ErrorSink eS
                 visitTopLevelClass(t.sym.baseClass.type.isTypeClass());
             foreach (v; t.sym.fields)
             {
+                if (v.ident == Id.__monitor)
+                    continue; // __monitor is not GC-managed
                 offset = classoff + v.offset;
                 visit(v.type);
             }
@@ -301,7 +302,7 @@ private Expression pointerBitmap(TraitsExp e, ErrorSink eSink)
     Type t = getType((*e.args)[0]);
     if (!t)
     {
-        eSink.error(e.loc, "`%s` is not a type", (*e.args)[0].toChars());
+        eSink.error(e.loc, "`%s` is not a type", (*e.args)[0].toErrMsg());
         return ErrorExp.get();
     }
 
@@ -326,6 +327,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         printf("TraitsExp::semantic() %s\n", e.toChars());
     }
 
+    auto eSink = global.errorSink;
+
     if (e.ident != Id.compiles &&
         e.ident != Id.isSame &&
         e.ident != Id.identifier &&
@@ -337,20 +340,26 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         const save = sc.stc;
         if (e.ident == Id.isDeprecated)
             sc.stc |= STC.deprecated_;
+        // Suppress @disable errors when checking if a symbol is disabled
+        const saveInIsDisabledTrait = sc.inIsDisabledTrait;
+        if (e.ident == Id.isDisabled)
+            sc.inIsDisabledTrait = true;
         Scope* sc2 = sc.startCTFE();
         scope(exit) { sc2.endCTFE(); }
         if (!TemplateInstance_semanticTiargs(e.loc, sc2, e.args, 1))
         {
             sc.stc = save;
+            sc.inIsDisabledTrait = saveInIsDisabledTrait;
             return ErrorExp.get();
         }
         sc.stc = save;
+        sc.inIsDisabledTrait = saveInIsDisabledTrait;
     }
     size_t dim = e.args ? e.args.length : 0;
 
     Expression dimError(int expected)
     {
-        error(e.loc, "expected %d arguments for `%s` but had %d", expected, e.ident.toChars(), cast(int)dim);
+        eSink.error(e.loc, "expected %d arguments for `%s` but had %d", expected, e.ident.toErrMsg(), cast(int)dim);
         return ErrorExp.get();
     }
 
@@ -402,7 +411,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         return null;
     }
 
-    IntegerExp isX(T)(bool delegate(T) fp)
+    IntegerExp isX(T)(scope bool delegate(T) fp)
     {
         if (!dim)
             return False();
@@ -435,7 +444,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     alias isDeclX = isX!Declaration;
     alias isFuncX = isX!FuncDeclaration;
 
-    Expression isPkgX(bool function(Package) fp)
+    Expression isPkgX(scope bool function(Package) fp)
     {
         return isDsymX((Dsymbol sym) {
             Package p = resolveIsPackage(sym);
@@ -551,8 +560,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto t = isType(o);
         if (!t)
         {
-            error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
-                e.ident.toChars(), o.toChars());
+            eSink.error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
+                e.ident.toErrMsg(), o.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -575,8 +584,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto t = isType(o);
         if (!t)
         {
-            error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
-                e.ident.toChars(), o.toChars());
+            eSink.error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
+                e.ident.toErrMsg(), o.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -604,8 +613,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto t = isType(o);
         if (!t)
         {
-            error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
-                    e.ident.toChars(), o.toChars());
+            eSink.error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
+                    e.ident.toErrMsg(), o.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -628,8 +637,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto t = isType(o);
         if (!t)
         {
-            error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
-                    e.ident.toChars(), o.toChars());
+            eSink.error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
+                    e.ident.toErrMsg(), o.toErrMsg());
             return ErrorExp.get();
         }
         // FIXME should just check t.needsDestruction() but that doesn't run dsymbolSemantic
@@ -669,7 +678,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return fd.isNested() ? True() : False();
         }
 
-        error(e.loc, "aggregate or function expected instead of `%s`", o.toChars());
+        eSink.error(e.loc, "aggregate or function expected instead of `%s`", o.toErrMsg());
         return ErrorExp.get();
     }
     if (e.ident == Id.isDisabled)
@@ -690,7 +699,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     {
         // @@@DEPRECATED2.121@@@
         // Deprecated in 2.101 - Can be removed from 2.121
-        deprecation(e.loc, "`traits(isVirtualFunction)` is deprecated. Use `traits(isVirtualMethod)` instead");
+        eSink.deprecation(e.loc, "`traits(isVirtualFunction)` is deprecated. Use `traits(isVirtualMethod)` instead");
 
         if (dim != 1)
             return dimError(1);
@@ -771,7 +780,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         if (!s || ((agg = s.isAggregateDeclaration()) is null))
         {
-            error(e.loc, "argument to `__traits(isCOMClass, %s)` is not a declaration", o.toChars());
+            eSink.error(e.loc, "argument to `__traits(isCOMClass, %s)` is not a declaration", o.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -797,7 +806,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             if (!po.ident)
             {
-                error(e.loc, "argument `%s` has no identifier", po.type.toChars());
+                eSink.error(e.loc, "argument `%s` has no identifier", po.type.toErrMsg());
                 return ErrorExp.get();
             }
             id = po.ident;
@@ -807,7 +816,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             Dsymbol s = getDsymbolWithoutExpCtx(o);
             if (!s || !s.ident)
             {
-                error(e.loc, "argument `%s` has no identifier", o.toChars());
+                eSink.error(e.loc, "argument `%s` has no identifier", o.toErrMsg());
                 return ErrorExp.get();
             }
             id = s.ident;
@@ -846,7 +855,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         else
         {
             if (!isError(o))
-                error(e.loc, "argument `%s` has no identifier", o.toChars());
+                eSink.error(e.loc, "argument `%s` has no identifier", o.toErrMsg());
             return ErrorExp.get();
         }
         assert(fqn);
@@ -863,14 +872,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto s = getDsymbolWithoutExpCtx(o);
         if (!s)
         {
-            error(e.loc, "bitfield symbol expected not `%s`", o.toChars());
+            eSink.error(e.loc, "bitfield symbol expected not `%s`", o.toErrMsg());
             return ErrorExp.get();
         }
 
         auto vd = s.toAlias.isVarDeclaration();
         if (!vd || !(vd.storage_class & STC.field))
         {
-            error(e.loc, "bitfield symbol expected not %s `%s`", s.kind, s.toPrettyChars);
+            eSink.error(e.loc, "bitfield symbol expected not %s `%s`", s.kind, s.toPrettyChars);
             return ErrorExp.get();
         }
 
@@ -910,7 +919,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!s)
         {
             if (!isError(o))
-                error(e.loc, "argument `%s` has no visibility", o.toChars());
+                eSink.error(e.loc, "argument `%s` has no visibility", o.toErrMsg());
             return ErrorExp.get();
         }
         if (s.semanticRun == PASS.initial)
@@ -961,7 +970,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         if (!s || s.isImport())
         {
-            error(e.loc, "argument `%s` has no parent", o.toChars());
+            eSink.error(e.loc, "argument `%s` has no parent", o.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -997,7 +1006,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             ex = exp;
         else
         {
-            error(e.loc, "symbol or expression expected as first argument of __traits `child` instead of `%s`", op.toChars());
+            eSink.error(e.loc, "symbol or expression expected as first argument of __traits `child` instead of `%s`", op.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -1006,7 +1015,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto symc = getDsymbol(oc);
         if (!symc)
         {
-            error(e.loc, "symbol expected as second argument of __traits `child` instead of `%s`", oc.toChars());
+            eSink.error(e.loc, "symbol expected as second argument of __traits `child` instead of `%s`", oc.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -1030,7 +1039,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto ex = isExpression((*e.args)[0]);
         if (!ex)
         {
-            error(e.loc, "expression expected as second argument of __traits `%s`", e.ident.toChars());
+            eSink.error(e.loc, "expression expected as second argument of __traits `%s`", e.ident.toErrMsg());
             return ErrorExp.get();
         }
         ex = ex.ctfeInterpret();
@@ -1043,7 +1052,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         Type t = decoToType(se.toUTF8(sc).peekString());
         if (!t)
         {
-            error(e.loc, "cannot determine `%s`", e.toChars());
+            eSink.error(e.loc, "cannot determine `%s`", e.toErrMsg());
             return ErrorExp.get();
         }
         return (new TypeExp(e.loc, t)).expressionSemantic(sc);
@@ -1061,7 +1070,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto ex = isExpression((*e.args)[1]);
         if (!ex)
         {
-            error(e.loc, "expression expected as second argument of __traits `%s`", e.ident.toChars());
+            eSink.error(e.loc, "expression expected as second argument of __traits `%s`", e.ident.toErrMsg());
             return ErrorExp.get();
         }
         ex = ex.ctfeInterpret();
@@ -1073,7 +1082,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             b = b.ctfeInterpret();
             if (!b.type.equals(Type.tbool))
             {
-                error(e.loc, "`bool` expected as third argument of `__traits(getOverloads)`, not `%s` of type `%s`", b.toChars(), b.type.toChars());
+                eSink.error(e.loc, "`bool` expected as third argument of `__traits(getOverloads)`, not `%s` of type `%s`", b.toErrMsg(), b.type.toErrMsg());
                 return ErrorExp.get();
             }
             includeTemplates = b.toBool().get();
@@ -1082,14 +1091,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         StringExp se = ex.toStringExp();
         if (!se || se.len == 0)
         {
-            error(e.loc, "string expected as second argument of __traits `%s` instead of `%s`", e.ident.toChars(), ex.toChars());
+            eSink.error(e.loc, "string expected as second argument of __traits `%s` instead of `%s`", e.ident.toErrMsg(), ex.toErrMsg());
             return ErrorExp.get();
         }
         se = se.toUTF8(sc);
 
         if (se.sz != 1)
         {
-            error(e.loc, "string must be chars");
+            eSink.error(e.loc, "string must be chars");
             return ErrorExp.get();
         }
         auto id = Identifier.idPool(se.peekString());
@@ -1124,7 +1133,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             ex = new DotIdExp(e.loc, ex2, id);
         else
         {
-            error(e.loc, "invalid first argument");
+            eSink.error(e.loc, "invalid first argument");
             return ErrorExp.get();
         }
     doSemantic:
@@ -1169,13 +1178,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             Expression eorig = ex;
             ex = ex.expressionSemantic(scx);
             if (errors < global.errors)
-                error(e.loc, "`%s` cannot be resolved", eorig.toChars());
+                eSink.error(e.loc, "`%s` cannot be resolved", eorig.toErrMsg());
 
             if (e.ident == Id.getVirtualFunctions)
             {
                 // @@@DEPRECATED2.121@@@
                 // Deprecated in 2.101 - Can be removed from 2.121
-                deprecation(e.loc, "`traits(getVirtualFunctions)` is deprecated. Use `traits(getVirtualMethods)` instead");
+                eSink.deprecation(e.loc, "`traits(getVirtualFunctions)` is deprecated. Use `traits(getVirtualMethods)` instead");
             }
 
             /* Create tuple of functions of ex
@@ -1219,7 +1228,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
             /* Compute the function signature and insert it in the
              * hashtable, if not present. This is needed so that
-             * traits(getOverlods, F3, "visit") does not count `int visit(int)`
+             * traits(getOverloads, F3, "visit") does not count `int visit(int)`
              * twice in the following example:
              *
              * =============================================
@@ -1329,7 +1338,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto cd = s ? s.isClassDeclaration() : null;
         if (!cd)
         {
-            error(e.loc, "first argument is not a class");
+            eSink.error(e.loc, "first argument is not a class");
             return ErrorExp.get();
         }
         if (cd.sizeok != Sizeok.done)
@@ -1338,7 +1347,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         if (cd.sizeok != Sizeok.done)
         {
-            error(e.loc, "%s `%s` is forward referenced", cd.kind(), cd.toChars());
+            eSink.error(e.loc, "%s `%s` is forward referenced", cd.kind(), cd.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -1388,8 +1397,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             {
                 if (fd.overnext)
                 {
-                    deprecation(e.loc, "`__traits(getAttributes)` may only be used for individual functions, not the overload set `%s`", fd.toChars());
-                    deprecationSupplemental(e.loc, "the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from");
+                    eSink.deprecation(e.loc, "`__traits(getAttributes)` may only be used for individual functions, not the overload set `%s`", fd.toErrMsg());
+                    eSink.deprecationSupplemental(e.loc, "the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from");
                 }
             }
 
@@ -1398,8 +1407,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             {
                 if (td.overnext)
                 {
-                    deprecation(e.loc, "`__traits(getAttributes)` may only be used for individual functions, not the overload set `%s`", td.ident.toChars());
-                    deprecationSupplemental(e.loc, "the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from");
+                    eSink.deprecation(e.loc, "`__traits(getAttributes)` may only be used for individual functions, not the overload set `%s`", td.ident.toErrMsg());
+                    eSink.deprecationSupplemental(e.loc, "the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from");
                 }
             }
             if (s.isImport())
@@ -1424,7 +1433,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 if (t)
                     printf("t = %d %s\n", t.ty, t.toChars());
             }
-            error(e.loc, "first argument is not a symbol");
+            eSink.error(e.loc, "first argument is not a symbol");
             return ErrorExp.get();
         }
 
@@ -1445,7 +1454,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         if (!tf)
         {
-            error(e.loc, "first argument is not a function");
+            eSink.error(e.loc, "first argument is not a function");
             return ErrorExp.get();
         }
 
@@ -1488,7 +1497,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         if (!tf)
         {
-            error(e.loc, "argument to `__traits(isReturnOnStack, %s)` is not a function", o.toChars());
+            eSink.error(e.loc, "argument to `__traits(isReturnOnStack, %s)` is not a function", o.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -1524,7 +1533,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             if (!fd)
             {
-                error(e.loc, "argument to `__traits(getFunctionVariadicStyle, %s)` is not a function", o.toChars());
+                eSink.error(e.loc, "argument to `__traits(getFunctionVariadicStyle, %s)` is not a function", o.toErrMsg());
                 return ErrorExp.get();
             }
             link = fd._linkage;
@@ -1575,8 +1584,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 fparams = fd.getParameterList();
             else
             {
-                error(e.loc, "first argument to `__traits(getParameterStorageClasses, %s, %s)` is not a function or a function call",
-                    o.toChars(), o1.toChars());
+                eSink.error(e.loc, "first argument to `__traits(getParameterStorageClasses, %s, %s)` is not a function or a function call",
+                    o.toErrMsg(), o1.toErrMsg());
                 return ErrorExp.get();
             }
         }
@@ -1591,15 +1600,15 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto ex = isExpression((*e.args)[1]);
         if (!ex)
         {
-            error(e.loc, "expression expected as second argument of `__traits(getParameterStorageClasses, %s, %s)`",
-                o.toChars(), o1.toChars());
+            eSink.error(e.loc, "expression expected as second argument of `__traits(getParameterStorageClasses, %s, %s)`",
+                o.toErrMsg(), o1.toErrMsg());
             return ErrorExp.get();
         }
         ex = ex.ctfeInterpret();
         auto ii = ex.toUInteger();
         if (ii >= fparams.length)
         {
-            error(e.loc, "parameter index must be in range 0..%u not %s", cast(uint)fparams.length, ex.toChars());
+            eSink.error(e.loc, "parameter index must be in range 0..%u not %s", cast(uint)fparams.length, ex.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -1671,7 +1680,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             AggregateDeclaration agg;
             if (!s || ((d = s.isDeclaration()) is null && (agg = s.isAggregateDeclaration()) is null))
             {
-                error(e.loc, "argument to `__traits(getLinkage, %s)` is not a declaration", o.toChars());
+                eSink.error(e.loc, "argument to `__traits(getLinkage, %s)` is not a declaration", o.toErrMsg());
                 return ErrorExp.get();
             }
 
@@ -1685,7 +1694,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     agg.size(e.loc);
                     if (agg.sizeok != Sizeok.done)
                     {
-                        error(e.loc, "%s `%s` is forward referenced", agg.kind(), agg.toChars());
+                        eSink.error(e.loc, "%s `%s` is forward referenced", agg.kind(), agg.toErrMsg());
                         return ErrorExp.get();
                     }
                 }
@@ -1721,8 +1730,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto s = getDsymbol(o);
         if (!s)
         {
-            error(e.loc, "in expression `%s` `%s` can't have members", e.toChars(), o.toChars());
-            errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", o.toChars());
+            eSink.error(e.loc, "in expression `%s` `%s` can't have members", e.toErrMsg(), o.toErrMsg());
+            eSink.errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, a union, a class, an interface or a template instantiation", o.toChars());
 
             return ErrorExp.get();
         }
@@ -1744,8 +1753,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto sds = s.isScopeDsymbol();
         if (!sds || sds.isTemplateDeclaration())
         {
-            error(e.loc, "in expression `%s` %s `%s` has no members", e.toChars(), s.kind(), s.toChars());
-            errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", s.toChars());
+            eSink.error(e.loc, "in expression `%s` %s `%s` has no members", e.toErrMsg(), s.kind(), s.toErrMsg());
+            eSink.errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, a union, a class, an interface or a template instantiation", s.toChars());
             return ErrorExp.get();
         }
         // https://issues.dlang.org/show_bug.cgi?id=13668
@@ -1786,6 +1795,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 // Skip over internal members in __traits(allMembers)
                 if ((sm.isCtorDeclaration() && sm.ident != Id.ctor) ||
                     (sm.isDtorDeclaration() && sm.ident != Id.dtor) ||
+                    (sm.ident == Id.__monitor) ||
                     (sm.isPostBlitDeclaration() && sm.ident != Id.postblit) ||
                     sm.isInvariantDeclaration() ||
                     sm.isUnitTestDeclaration())
@@ -1965,8 +1975,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto s = getDsymbolWithoutExpCtx(o);
         if (!s)
         {
-            error(e.loc, "argument `%s` to __traits(getUnitTests) must be a module or aggregate",
-                o.toChars());
+            eSink.error(e.loc, "argument `%s` to __traits(getUnitTests) must be a module or aggregate",
+                o.toErrMsg());
             return ErrorExp.get();
         }
         if (auto imp = s.isImport()) // https://issues.dlang.org/show_bug.cgi?id=10990
@@ -1975,8 +1985,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto sds = s.isScopeDsymbol();
         if (!sds || sds.isTemplateDeclaration())
         {
-            error(e.loc, "argument `%s` to __traits(getUnitTests) must be a module or aggregate, not a %s",
-                s.toChars(), s.kind());
+            eSink.error(e.loc, "argument `%s` to __traits(getUnitTests) must be a module or aggregate, not a %s",
+                s.toErrMsg(), s.kind());
             return ErrorExp.get();
         }
 
@@ -2026,7 +2036,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto fd = s ? s.isFuncDeclaration() : null;
         if (!fd)
         {
-            error(e.loc, "first argument to __traits(getVirtualIndex) must be a function");
+            eSink.error(e.loc, "first argument to __traits(getVirtualIndex) must be a function");
             return ErrorExp.get();
         }
 
@@ -2046,7 +2056,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         ErrorExp badArgument()
         {
-            error(e.loc, "struct / class type expected as argument to __traits(initSymbol) instead of `%s`", o.toChars());
+            eSink.error(e.loc, "struct / class type expected as argument to __traits(initSymbol) instead of `%s`", o.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -2075,8 +2085,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         Type t = isType(o);
         if (!t)
         {
-            error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
-                e.ident.toChars(), o.toChars());
+            eSink.error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
+                e.ident.toErrMsg(), o.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -2097,7 +2107,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         StringExp se = ex ? ex.ctfeInterpret().toStringExp() : null;
         if (!ex || !se || se.len == 0)
         {
-            error(e.loc, "string expected as argument of __traits `%s` instead of `%s`", e.ident.toChars(), (*e.args)[0].toChars());
+            eSink.error(e.loc, "string expected as argument of __traits `%s` instead of `%s`", e.ident.toErrMsg(), (*e.args)[0].toErrMsg());
             return ErrorExp.get();
         }
         se = se.toUTF8(sc);
@@ -2106,7 +2116,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         Expression r = target.getTargetInfo(slice.ptr, e.loc); // BUG: reliance on terminating 0
         if (!r)
         {
-            error(e.loc, "`getTargetInfo` key `\"%.*s\"` not supported by this implementation",
+            eSink.error(e.loc, "`getTargetInfo` key `\"%.*s\"` not supported by this implementation",
                 cast(int)slice.length, slice.ptr);
             return ErrorExp.get();
         }
@@ -2120,7 +2130,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         Dsymbol s = getDsymbolWithoutExpCtx(arg0);
         if (!s || !s.loc.isValid() || s.isModule())
         {
-            error(e.loc, "can only get the location of a symbol, not `%s`", s ? s.toPrettyChars() : arg0.toChars());
+            eSink.error(e.loc, "can only get the location of a symbol, not `%s`", s ? s.toPrettyChars() : arg0.toErrMsg());
             return ErrorExp.get();
         }
 
@@ -2129,10 +2139,10 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         //const td = s.isTemplateDeclaration();
         if ((fd && fd.overnext) /*|| (td && td.overnext)*/)
         {
-            error(e.loc, "cannot get location of an overload set, " ~
+            eSink.error(e.loc, "cannot get location of an overload set, " ~
                     "use `__traits(getOverloads, ..., \"%s\"%s)[N]` " ~
                     "to get the Nth overload",
-                    arg0.toChars(), /*td ? ", true".ptr :*/ "".ptr);
+                    arg0.toErrMsg(), /*td ? ", true".ptr :*/ "".ptr);
             return ErrorExp.get();
         }
 
@@ -2152,7 +2162,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             if (d.inuse)
             {
-                .error(d.loc, "%s `%s` circular reference in `__traits(GetCppNamespaces,...)`", d.kind, d.toPrettyChars);
+                eSink.error(d.loc, "%s `%s` circular reference in `__traits(GetCppNamespaces,...)`", d.kind, d.toPrettyChars);
                 return ErrorExp.get();
             }
             d.inuse = 1;
@@ -2167,7 +2177,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             // Semantic processing will convert `extern(C++, "a", "b", "c")`
             // into `extern(C++, "a") extern(C++, "b") extern(C++, "c")`,
-            // creating a linked list what `a`'s `cppnamespace` points to `b`,
+            // creating a linked list where `a`'s `cppnamespace` points to `b`,
             // and `b`'s points to `c`. Our entry point is `a`.
             for (; ns !is null; ns = ns.cppnamespace)
             {
@@ -2230,14 +2240,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             char[] contents = cast(char[]) e.args.toString();
             contents = contents[1..$];
             contents[$-1] = '\0';
-            error(e.loc, "`__traits(parameters)` cannot have arguments, but `%s` was supplied", contents.ptr);
+            eSink.error(e.loc, "`__traits(parameters)` cannot have arguments, but `%s` was supplied", contents.ptr);
             return ErrorExp.get();
         }
 
         auto fd = sc.getEnclosingFunction();
         if (!fd)
         {
-            error(e.loc, "`__traits(parameters)` may only be used inside a function");
+            eSink.error(e.loc, "`__traits(parameters)` may only be used inside a function");
             return ErrorExp.get();
         }
 
@@ -2493,8 +2503,9 @@ private void traitNotFound(TraitsExp e)
         return sv ? sv.toString() : null;
     }
 
+    auto eSink = global.errorSink;
     if (auto sub = speller!trait_search_fp(e.ident.toString()))
-        error(e.loc, "unrecognized trait `%s`, did you mean `%.*s`?", e.ident.toChars(), cast(int) sub.length, sub.ptr);
+        eSink.error(e.loc, "unrecognized trait `%s`, did you mean `%.*s`?", e.ident.toErrMsg(), cast(int) sub.length, sub.ptr);
     else
-        error(e.loc, "unrecognized trait `%s`", e.ident.toChars());
+        eSink.error(e.loc, "unrecognized trait `%s`", e.ident.toErrMsg());
 }

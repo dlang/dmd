@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parse14285.d(10): Error: variable name expected after type `this`, not `;`
+fail_compilation/parse14285.d(10): Error: basic type expected, not `this`, did you mean `typeof(this)`?
 ---
 */
 

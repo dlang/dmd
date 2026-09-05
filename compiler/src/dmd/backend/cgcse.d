@@ -23,7 +23,7 @@ import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE;
 import dmd.backend.ty;
 
 import dmd.backend.barray;

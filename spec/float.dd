@@ -1,0 +1,163 @@
+Ddoc
+
+$(SPEC_S Floating-Point,
+
+$(HEADERNAV_TOC)
+
+$(H2 $(LNAME2 fp_intermediate_values, Floating-Point Intermediate Values))
+
+        $(P For floating-point operations and expression intermediate values,
+        a greater precision can be used than the type of the
+        expression.
+        Only the minimum precision is set by the types of the
+        operands, not the maximum. $(B Implementation Note:) On Intel
+        x86 machines, for example,
+        it is expected (but not required) that the intermediate
+        calculations be done to the full 80 bits of precision
+        implemented by the hardware.
+        )
+
+        $(P Execution of floating-point expressions may yield a result of greater precision than dictated
+        by the source.)
+
+$(H2 $(LNAME2 fp_const_folding, Floating-Point Constant Folding))
+
+        $(P Regardless of the type of the operands, floating-point
+        constant folding is done in $(D real) or greater precision.
+        It is always done following $(LINK2 https://standards.ieee.org/standard/754-2019.html, IEEE-754) rules and round-to-nearest
+        is used.)
+
+        $(P Floating-point constants are internally represented in
+        the implementation in at least $(D real) precision, regardless
+        of the constant's type. The extra precision is available for
+        constant folding. Committing to the precision of the result is
+        done as late as possible in the compilation process. For example:)
+
+---
+const float f = 0.2f;
+writeln(f - 0.2);
+---
+        $(P will print 0. A non-const static variable's value cannot be
+        propagated at compile time, so:)
+
+---
+static float f = 0.2f;
+writeln(f - 0.2);
+---
+        $(P will print 2.98023e-09. Hex floating-point constants can also
+        be used when specific floating-point bit patterns are needed that
+        are unaffected by rounding. To find the hex value of 0.2f:)
+
+---
+import std.stdio;
+
+void main()
+{
+    writefln("%a", 0.2f);
+}
+---
+        $(P which is 0x1.99999ap-3. Using the hex constant:)
+
+---
+const float f = 0x1.99999ap-3f;
+writeln(f - 0.2);
+---
+
+        $(P prints 2.98023e-09.)
+
+        $(P Different compiler settings, optimization settings,
+        and inlining settings can affect opportunities for constant
+        folding, therefore the results of floating-point calculations may differ
+        depending on those settings.)
+
+$(H2 $(LNAME2 rounding_control, Rounding Control))
+
+        $(P IEEE 754 floating-point arithmetic includes the ability to set 4
+        different rounding modes.
+        These are accessible via the functions in $(D core.stdc.fenv).
+        )
+
+        $(P If the floating-point rounding mode is changed within a function,
+        it must be restored before the function exits. If this rule is violated
+        (for example, by the use of inline asm), the rounding mode used for
+        subsequent calculations is undefined.
+        )
+
+
+$(H2 $(LNAME2 exception_flags, Exception Flags))
+
+        $(P IEEE 754 floating-point arithmetic can set several flags based on what
+        happened with a
+        computation:)
+
+        $(TABLE
+        $(TR $(TD $(D FE_INVALID)))
+        $(TR $(TD $(D FE_DENORMAL)))
+        $(TR $(TD $(D FE_DIVBYZERO)))
+        $(TR $(TD $(D FE_OVERFLOW)))
+        $(TR $(TD $(D FE_UNDERFLOW)))
+        $(TR $(TD $(D FE_INEXACT)))
+        )
+
+        $(P These flags can be set/reset via the functions in $(D core.stdc.fenv).)
+
+$(H2 $(LNAME2 floating-point-transformations, Floating-Point Transformations))
+
+        $(P An implementation may perform transformations on
+        floating-point computations in order to reduce their strength.
+        )
+
+        $(P Not all transformations are valid: The following
+        transformations of floating-point expressions
+        are not allowed because under IEEE rules they could produce
+        different results.
+        )
+
+        $(TABLE2 Disallowed Floating-Point Transformations,
+        $(THEAD transformation, comments)
+        $(TROW
+        $(ARGS $(I x) + 0 $(RARR) $(I x)) , $(ARGS not valid if $(I x) is -0)
+        )
+        $(TROW
+        $(ARGS $(I x) - 0 $(RARR) $(I x)) , $(ARGS not valid if $(I x) is $(PLUSMN)0 and rounding is towards -$(INFIN))
+        )
+        $(TROW
+        $(ARGS -$(I x) $(HARR) 0 - $(I x)) , $(ARGS not valid if $(I x) is +0)
+        )
+        $(TROW
+        $(ARGS $(I x) - $(I x) $(RARR) 0) , $(ARGS not valid if $(I x) is NaN or $(PLUSMN)$(INFIN))
+        )
+        $(TROW
+        $(ARGS $(I x) - $(I y) $(HARR) -($(I y) - $(I x))) , $(ARGS not valid because (1-1=+0) whereas -(1-1)=-0)
+        )
+        $(TROW
+        $(ARGS $(I x) * 0 $(RARR) 0) , $(ARGS not valid if $(I x) is NaN or $(PLUSMN)$(INFIN))
+        )
+$(COMMENT
+        $(TROW
+        $(ARGS $(I x) * 1 $(RARR) $(I x)) , $(ARGS not valid if $(I x) is a signaling NaN)
+        )
+)
+        $(TROW
+        $(ARGS $(I x) / $(I c) $(HARR) $(I x) * (1/$(I c))) , $(ARGS valid if (1/$(I c)) yields an e$(I x)act result)
+        )
+        $(TROW
+        $(ARGS $(I x) != $(I x) $(RARR) false) , $(ARGS not valid if $(I x) is a NaN)
+        )
+        $(TROW
+        $(ARGS $(I x) == $(I x) $(RARR) true) , $(ARGS not valid if $(I x) is a NaN)
+        )
+        $(TROW
+        $(ARGS $(I x) !$(I op) $(I y) $(HARR) !($(I x) $(I op) $(I y))) , $(ARGS not valid if $(I x) or $(I y) is a NaN)
+        )
+        )
+
+        $(P Of course, transformations that would alter side effects are also
+        invalid.)
+
+$(SPEC_SUBNAV_PREV_NEXT garbage, Garbage Collection, iasm, D x86 Inline Assembler)
+)
+
+Macros:
+        CHAPTER=30
+        TITLE=Floating-Point

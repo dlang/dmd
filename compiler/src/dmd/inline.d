@@ -30,7 +30,6 @@ import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.expressionsem : canElideCopy, semanticTypeInfo;
-import dmd.errors : message;
 import dmd.errorsink;
 import dmd.func;
 import dmd.funcsem;
@@ -82,44 +81,6 @@ public void inlineScanAllFunctions(Module m, ErrorSink eSink)
     inlineScanModule(m, PASS.inlineAll, eSink);
 }
 
-/***********************************************************
- * Perform the "inline copying" of a default argument for a function parameter.
- *
- * Todo:
- *  The hack for https://issues.dlang.org/show_bug.cgi?id=4820 case is still questionable.
- *  Perhaps would have to handle a delegate expression with 'null' context properly in front-end.
- */
-public Expression inlineCopy(Expression e, Scope* sc)
-{
-    /* See https://issues.dlang.org/show_bug.cgi?id=2935
-     * for explanation of why just a copy() is broken
-     */
-    //return e.copy();
-    if (auto de = e.isDelegateExp())
-    {
-        if (de.func.isNested())
-        {
-            /* https://issues.dlang.org/show_bug.cgi?id=4820
-             * Defer checking until later if we actually need the 'this' pointer
-             */
-            return de.copy();
-        }
-    }
-    const cost = inlineCostExpression(e);
-    if (cost >= COST_MAX)
-    {
-        sc.eSink.error(e.loc, "cannot inline default argument `%s`", e.toChars());
-        return ErrorExp.get();
-    }
-    scope ids = new InlineDoState(sc.parent, null);
-    return doInlineAs!Expression(e, ids);
-}
-
-
-
-
-
-
 private:
 
 
@@ -156,6 +117,15 @@ private final class InlineDoState
         this.parent = parent;
         this.fd = fd;
     }
+}
+
+private Expression combineInlineSequence(Expression e1, Expression e2)
+{
+    auto result = Expression.combine(e1, e2);
+    if (result)
+        if (auto ce = result.isCommaExp())
+            ce.isInlineSequence = true;
+    return result;
 }
 
 /***********************************************************
@@ -210,11 +180,11 @@ public:
         //printf("CompoundStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.length);
         static if (asStatements)
         {
-            auto as = new Statements();
+            auto as = Statements();
             as.reserve(s.statements.length);
         }
 
-        foreach (i, sx; *s.statements)
+        foreach (i, sx; s.statements)
         {
             if (!sx)
                 continue;
@@ -236,7 +206,7 @@ public:
                     ifs.ifbody.endsWithReturnStatement() &&
                     !ifs.elsebody &&
                     i + 1 < s.statements.length &&
-                    (s3 = (*s.statements)[i + 1]) !is null &&
+                    (s3 = s.statements[i + 1]) !is null &&
                     s3.endsWithReturnStatement()
                    )
                 {
@@ -256,13 +226,13 @@ public:
                         e2.type = Type.tvoid;
                         e.type = Type.tvoid;
                     }
-                    result = Expression.combine(result, e);
+                    result = combineInlineSequence(result, e);
                 }
                 else
                 {
                     ids.foundReturn = false;
                     auto e = doInlineAs!Expression(sx, ids);
-                    result = Expression.combine(result, e);
+                    result = combineInlineSequence(result, e);
                 }
             }
 
@@ -271,7 +241,7 @@ public:
         }
 
         static if (asStatements)
-            result = new CompoundStatement(s.loc, as);
+            result = new CompoundStatement(s.loc, as.move());
     }
 
     override void visit(UnrolledLoopStatement s)
@@ -279,11 +249,11 @@ public:
         //printf("UnrolledLoopStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.length);
         static if (asStatements)
         {
-            auto as = new Statements();
+            auto as = Statements();
             as.reserve(s.statements.length);
         }
 
-        foreach (sx; *s.statements)
+        foreach (sx; s.statements)
         {
             if (!sx)
                 continue;
@@ -291,14 +261,14 @@ public:
             static if (asStatements)
                 as.push(r);
             else
-                result = Expression.combine(result, r);
+                result = combineInlineSequence(result, r);
 
             if (ids.foundReturn)
                 break;
         }
 
         static if (asStatements)
-            result = new UnrolledLoopStatement(s.loc, as);
+            result = new UnrolledLoopStatement(s.loc, as.move());
     }
 
     override void visit(ScopeStatement s)
@@ -682,7 +652,7 @@ public:
         override void visit(ThisExp e)
         {
             //if (!ids.vthis)
-            //    e.error("no `this` when inlining `%s`", ids.parent.toChars());
+            //    e.error("no `this` when inlining `%s`", ids.parent.toErrMsg());
             if (!ids.vthis)
             {
                 result = e;
@@ -849,15 +819,8 @@ public:
         override void visit(CastExp e)
         {
             auto ce = cast(CastExp)e.copy();
-            if (auto lowering = ce.lowering)
-            {
-                ce.lowering = doInlineAs!Expression(lowering, ids);
-            }
-            else
-            {
-                ce.e1 = doInlineAs!Expression(e.e1, ids);
-            }
-
+            ce.lowering = doInlineAs!Expression(ce.lowering, ids);
+            ce.e1 = doInlineAs!Expression(e.e1, ids);
             result = ce;
         }
 
@@ -872,30 +835,18 @@ public:
         override void visit(CatExp e)
         {
             auto ce = e.copy().isCatExp();
-
-            if (auto lowering = ce.lowering)
-                ce.lowering = doInlineAs!Expression(lowering, ids);
-            else
-            {
-                ce.e1 = doInlineAs!Expression(e.e1, ids);
-                ce.e2 = doInlineAs!Expression(e.e2, ids);
-            }
-
+            ce.lowering = doInlineAs!Expression(ce.lowering, ids);
+            ce.e1 = doInlineAs!Expression(e.e1, ids);
+            ce.e2 = doInlineAs!Expression(e.e2, ids);
             result = ce;
         }
 
         override void visit(CatAssignExp e)
         {
             auto cae = cast(CatAssignExp) e.copy();
-
-            if (auto lowering = cae.lowering)
-                cae.lowering = doInlineAs!Expression(cae.lowering, ids);
-            else
-            {
-                cae.e1 = doInlineAs!Expression(e.e1, ids);
-                cae.e2 = doInlineAs!Expression(e.e2, ids);
-            }
-
+            cae.lowering = doInlineAs!Expression(cae.lowering, ids);
+            cae.e1 = doInlineAs!Expression(e.e1, ids);
+            cae.e2 = doInlineAs!Expression(e.e2, ids);
             result = cae;
         }
 
@@ -922,14 +873,11 @@ public:
 
         override void visit(ConstructExp e)
         {
-            if (e.lowering)
-            {
-                auto ce = cast(ConstructExp)e.copy();
-                ce.lowering = doInlineAs!Expression(ce.lowering, ids);
-                result = ce;
-            }
-            else
-                visit(cast(AssignExp) e);
+            auto ce = cast(ConstructExp)e.copy();
+            ce.lowering = doInlineAs!Expression(ce.lowering, ids);
+            ce.e1 = doInlineAs!Expression(e.e1, ids);
+            ce.e2 = doInlineAs!Expression(e.e2, ids);
+            result = ce;
         }
 
         override void visit(LoweredAssignExp e)
@@ -940,11 +888,7 @@ public:
         override void visit(EqualExp e)
         {
             auto ee = cast(EqualExp)e.copy();
-            if (auto lowering = ee.lowering)
-            {
-                ee.lowering = doInlineAs!Expression(lowering, ids);
-            }
-
+            ee.lowering = doInlineAs!Expression(ee.lowering, ids);
             ee.e1 = doInlineAs!Expression(e.e1, ids);
             ee.e2 = doInlineAs!Expression(e.e2, ids);
 
@@ -1046,9 +990,7 @@ public:
             auto ce = e.copy().isAssocArrayLiteralExp();
             ce.keys = arrayExpressionDoInline(e.keys);
             ce.values = arrayExpressionDoInline(e.values);
-            if (e.lowering)
-                ce.lowering = doInlineAs!Expression(e.lowering, ids);
-
+            ce.lowering = doInlineAs!Expression(e.lowering, ids);
             result = ce;
 
             semanticTypeInfo(null, e.type);
@@ -1197,9 +1139,9 @@ public:
                 auto s2 = inlineScanExpAsStatement(e.e2);
                 if (!s1 && !s2)
                     return null;
-                auto a = new Statements(!s1 ? new ExpStatement(e.e1.loc, e.e1) : s1,
-                                        !s2 ? new ExpStatement(e.e2.loc, e.e2) : s2);
-                return new CompoundStatement(exp.loc, a);
+                auto a = Statements(!s1 ? new ExpStatement(e.e1.loc, e.e1) : s1,
+                                    !s2 ? new ExpStatement(e.e2.loc, e.e2) : s2);
+                return new CompoundStatement(exp.loc, a.move());
             }
 
             // inline as an expression
@@ -1214,7 +1156,7 @@ public:
     {
         foreach (i; 0 .. s.statements.length)
         {
-            inlineScan((*s.statements)[i]);
+            inlineScan(s.statements[i]);
         }
     }
 
@@ -1222,7 +1164,7 @@ public:
     {
         foreach (i; 0 .. s.statements.length)
         {
-            inlineScan((*s.statements)[i]);
+            inlineScan(s.statements[i]);
         }
     }
 
@@ -1639,7 +1581,7 @@ public:
              */
             if (auto pe = e.isPtrExp())
             {
-                if (pe.e1.isVarExp())
+                if (pe.e1.isVarExp() || pe.e1.isFuncExp())
                     e = pe.e1;
                 else if (auto se = pe.e1.isSymOffExp())
                     return se.var.isFuncDeclaration();
@@ -1717,7 +1659,10 @@ public:
         inlineFd(fd, explicitThis);
 
         if (global.params.v.verbose && (eresult || sresult))
-            message("inlined   %s =>\n          %s", fd.toPrettyChars(), parent.toPrettyChars());
+        {
+            auto eSink = global.errorSink;
+            eSink.message(Loc.init, "inlined   %s =>\n          %s", fd.toPrettyChars(), parent.toPrettyChars());
+        }
 
         if (eresult && e.type.ty != Tvoid)
         {
@@ -1860,6 +1805,10 @@ public:
 
         fd.inlineScanned = true;
         fd.semanticRun = pass;
+
+        import dmd.timetrace;
+        timeTraceBeginEvent(TimeTraceEventType.inlineFunction);
+        scope (exit) timeTraceEndEvent(TimeTraceEventType.inlineFunction, fd);
 
         scope InlineScanVisitor v = new InlineScanVisitor(fd, pass, eSink);
 
@@ -2140,6 +2089,8 @@ private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, PAS
     }
 
     {
+        scope v = new InlineScanVisitorDsymbol(pass, eSink);
+        fd.accept(v);
         cost = inlineCostFunction(fd, hasThis);
     }
     static if (CANINLINE_LOG)
@@ -2156,11 +2107,6 @@ private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, PAS
         fd.inlineStatusStmt = ILS.yes;
     else
         fd.inlineStatusExp = ILS.yes;
-
-    {
-        scope v = new InlineScanVisitorDsymbol(pass, eSink);
-        fd.accept(v);
-    }
 
     if (fd.inlineStatusExp == ILS.uninitialized)
     {
@@ -2190,7 +2136,7 @@ private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, PAS
 
 Lno:
     if (fd.inlining == PINLINE.always && pass == PASS.inlinePragma &&
-        global.params.useWarnings == DiagnosticReporting.inform)
+        global.errorSink.useWarnings == DiagnosticReporting.inform)
     {
         eSink.warning(fd.loc, "cannot inline function `%s`", fd.toPrettyChars());
     }
@@ -2384,7 +2330,7 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
             ids.from.push(vfrom);
             ids.to.push(vto);
 
-            auto de = new DeclarationExp(vto.loc, vto);
+            auto de = new DeclarationExp(Loc.initial, vto);
             de.type = Type.tvoid;
             eparams = Expression.combine(eparams, de);
 
@@ -2419,19 +2365,20 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
          *  { eret; ethis; try { eparams; fd.fbody; } finally { vthis.edtor; } }
          */
 
-        auto as = new Statements();
+        auto as = Statements();
+        auto asDtor = Statements();
         if (eret)
             as.push(new ExpStatement(callLoc, eret));
         if (ethis)
             as.push(new ExpStatement(callLoc, ethis));
 
-        auto as2 = as;
+        auto as2 = &as;
         if (vthis && !vthis.isDataseg())
         {
             if (vthis.needsScopeDtor())
             {
                 // same with ExpStatement.scopeCode()
-                as2 = new Statements();
+                as2 = &asDtor;
                 vthis.storage_class |= STC.nodtor;
             }
         }
@@ -2444,14 +2391,14 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
         fd.inlineNest--;
         as2.push(s);
 
-        if (as2 != as)
+        if (as2 != &as)
         {
             as.push(new TryFinallyStatement(callLoc,
-                        new CompoundStatement(callLoc, as2),
+                        new CompoundStatement(callLoc, as2.move()),
                         new DtorExpStatement(callLoc, vthis.edtor, vthis)));
         }
 
-        sresult = new ScopeStatement(callLoc, new CompoundStatement(callLoc, as), callLoc);
+        sresult = new ScopeStatement(callLoc, new CompoundStatement(callLoc, as.move()), callLoc);
 
         static if (EXPANDINLINE_LOG)
             printf("\n[%s] %s expandInline sresult =\n%s\n",
@@ -2479,8 +2426,10 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
             e.type = Type.tvoid;
         }
 
-        eresult = Expression.combine(eresult, eret, ethis, eparams);
-        eresult = Expression.combine(eresult, e);
+        eresult = combineInlineSequence(eresult, eret);
+        eresult = combineInlineSequence(eresult, ethis);
+        eresult = combineInlineSequence(eresult, eparams);
+        eresult = combineInlineSequence(eresult, e);
 
         if (ecall.rvalue || tf.isRvalue)
             eresult.rvalue = true;

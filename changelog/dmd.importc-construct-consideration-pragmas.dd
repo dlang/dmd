@@ -1,0 +1,61 @@
+ImportC pragmas for C construct consideration
+
+ImportC now has a number of pragmas which may be used to alter
+whether ImportC considers or ignores declarations and definitions with specific identifiers.
+
+Those pragmas are:
+- `#pragma function_decl(ignore, <identifier>,...)`
+- `#pragma function_decl(consider, <identifier>,...)`
+- `#pragma function_def(ignore, <identifier>,...)`
+- `#pragma function_def(consider, <identifier>,...)`
+
+These pragmas are for situations where it is desirable for ImportC to look past
+a C declaration/definition of a symbol, and to instead use a declaration/definition
+from an `__import`ed D module.
+
+For example, a small subset of a C library's functions may rely
+on non-standard compiler extensions that are unsupported by ImportC;
+in such a situation `#pragma function_def(ignore, <identifier>,...)`
+can be used to ignore the offending functions so that they can
+instead be implemented in D and made available to ImportC via an `__import`ed D module.
+
+Likewise, a C library may rely on externally-defined functions
+which are not defined when compiling via ImportC;
+`#pragma function_decl(ignore, <identifier>,...)` can be used to ignore the function declarations
+and those functions can instead be implemented in D and `__import`ed in C.
+
+$(HR)
+
+The Construct Consideration pragmas are used as follows:
+- `#pragma function_decl(ignore, <identifier>,...)`
+- `#pragma function_decl(consider, <identifier>,...)`
+- `#pragma function_def(ignore, <identifier>,...)`
+- `#pragma function_def(consider, <identifier>,...)`
+
+`#pragma function_decl` is used to alter whether ImportC ignores or considers (stops ignoring) *function declarations*
+with the same name as any of the identifiers supplied to the pragma.
+
+`#pragma function_def` is used to alter whether ImportC ignores or considers (stops ignoring) *function definitions*
+with the same name as any of the identifiers supplied to the pragma.
+
+For example:
+```c
+// We start ignoring function-declarations and function-definitions of `foo` and `bar`.
+#pragma function_decl(ignore, foo, bar)
+#pragma function_def(ignore, foo, bar)
+// This declaration of `foo` is ignored.
+void foo(int);
+// As is this definition of `foo`.
+void foo(int x)
+{}
+
+// We stop ignoring function-definitions of `bar`.
+#pragma function_def(consider, bar)
+// This declaration of `bar` is ignored.
+void bar(int);
+// This definition of `bar` is not ignored.
+float bar(float x, float y)
+{
+    return x * y;
+}
+```

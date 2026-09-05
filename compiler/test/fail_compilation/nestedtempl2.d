@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nestedtempl2.d(22): Deprecation: function `nestedtempl2.B.func!(n).func` function requires a dual-context, which is deprecated
+fail_compilation/nestedtempl2.d(22): Deprecation: function `nestedtempl2.B.func!(n)` function requires a dual-context, which is deprecated
 fail_compilation/nestedtempl2.d(34):        instantiated from here: `func!(n)`
 fail_compilation/nestedtempl2.d(34): Error: `this` is only defined in non-static member functions, not `test`
 fail_compilation/nestedtempl2.d(34): Error: need `this` of type `B` to call function `func`

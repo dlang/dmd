@@ -37,10 +37,14 @@ immutable ErrorFilter[] knownProblems = [
     ErrorFilter("core.stdc.locale.lconv", "", "Windows", 0, "https://issues.dlang.org/show_bug.cgi?id=24652"),
     ErrorFilter("core.stdc.math.double_t", "", "linux", 0, ""),
     ErrorFilter("core.stdc.math.float_t", "", "linux", 0, ""),
+    ErrorFilter("core.stdc.math.double_t", "", "Hurd", 0, ""),
+    ErrorFilter("core.stdc.math.float_t", "", "Hurd", 0, ""),
     ErrorFilter("core.stdc.signal.sig_atomic_t", "", "FreeBSD", 0, ""),
     ErrorFilter("core.stdc.stdio.FILE", "", "FreeBSD", 0, ""),
     ErrorFilter("core.stdc.stdio.FILE", "", "linux", 0, ""),
     ErrorFilter("core.stdc.stdio._IO_FILE", "", "linux", 0, ""),
+    ErrorFilter("core.stdc.stdio.FILE", "", "Hurd", 0, ""),
+    ErrorFilter("core.stdc.stdio._IO_FILE", "", "Hurd", 0, ""),
     ErrorFilter("core.stdc.stdio.__sFILE", "", "FreeBSD", 0, ""),
     ErrorFilter("core.stdc.wchar_.mbstate_t", "", "Apple", 0, ""),
     ErrorFilter("core.stdc.wchar_.mbstate_t", "", "Windows", 0, ""),
@@ -54,16 +58,25 @@ immutable ErrorFilter[] knownProblems = [
     ErrorFilter("core.sys.posix.sys.shm.shmatt_t", "", "FreeBSD", 0, ""),
     ErrorFilter("core.sys.posix.sys.shm.shmid_ds", "", "FreeBSD", 0, ""),
     ErrorFilter("core.sys.posix.sys.types.clock_t", "", "FreeBSD", 0, ""),
-    ErrorFilter("core.sys.posix.sys.types.pthread_barrierattr_t", "", "linux", 0, "See https://issues.dlang.org/show_bug.cgi?id=24593"),
-    ErrorFilter("core.sys.posix.sys.types.pthread_barrier_t", "", "linux", 0, "See https://issues.dlang.org/show_bug.cgi?id=24593"),
     ErrorFilter("core.sys.posix.sys.types.pthread_key_t", "", "FreeBSD", 0, ""),
     ErrorFilter("core.sys.posix.sys.types.pthread_once_t", "", "FreeBSD", 0, ""),
     ErrorFilter("core.sys.posix.sys.types.pthread_once_t", "", "FreeBSD", 0, ""),
-    ErrorFilter("core.sys.posix.sys.types.pthread_rwlockattr_t", "", "linux", 0, "See https://issues.dlang.org/show_bug.cgi?id=24593"),
-    ErrorFilter("core.sys.posix.sys.types.pthread_rwlock_t", "", "linux", 0, "See https://issues.dlang.org/show_bug.cgi?id=24593"),
     ErrorFilter("core.sys.posix.time.timer_t", "", "FreeBSD", 0, ""),
     ErrorFilter("core.sys.posix.ucontext.ucontext_t", "", "Apple", 0, ""),
     ErrorFilter("core.sys.posix.ucontext.ucontext_t", "", "FreeBSD", 0, ""),
+
+    // Ignore complaint about `union` vs `struct`. Defined in C headers
+    // As a single union __u wrapped in a struct. In D, we just define it
+    // as a union directly.
+    ErrorFilter("core.sys.posix.sys.types.pthread_attr_t", "", "CRuntime_WASI", 0, ""),
+    ErrorFilter("core.sys.posix.sys.types.pthread_cond_t", "", "CRuntime_WASI", 0, ""),
+    ErrorFilter("core.sys.posix.sys.types.pthread_mutex_t", "", "CRuntime_WASI", 0, ""),
+    ErrorFilter("core.sys.posix.sys.types.pthread_rwlock_t", "", "CRuntime_WASI", 0, ""),
+    ErrorFilter("core.sys.posix.sys.types.pthread_barrier_t", "", "CRuntime_WASI", 0, ""),
+    ErrorFilter("core.sys.posix.sys.types.pthread_cond_t", "", "Emscripten", 0, ""),
+    ErrorFilter("core.sys.posix.sys.types.pthread_mutex_t", "", "Emscripten", 0, ""),
+    ErrorFilter("core.sys.posix.sys.types.pthread_rwlock_t", "", "Emscripten", 0, ""),
+    ErrorFilter("core.sys.posix.sys.types.pthread_barrier_t", "", "Emscripten", 0, ""),
 ];
 
 struct ErrorFilter

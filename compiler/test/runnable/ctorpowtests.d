@@ -266,9 +266,34 @@ int anotherPowTest()
 
 /************************************/
 
+// https://github.com/dlang/dmd/issues/19075
+// ^^= must compile for small integer types
+
+void test19075()
+{
+    byte bw = 10;
+    bw ^^= 3;
+    assert(bw == cast(byte) 1000);
+
+    ubyte ubw = 10;
+    ubw ^^= 3;
+    assert(ubw == cast(ubyte) 1000);
+
+    short sw = 100;
+    sw ^^= 3;
+    assert(sw == cast(short) 1_000_000);
+
+    ushort usw = 100;
+    usw ^^= 3;
+    assert(usw == cast(ushort) 1_000_000);
+}
+
+/************************************/
+
 void main()
 {
     assert(!__ctfe);
     assert(magicVariable()==2);
     test11159();
+    test19075();
 }

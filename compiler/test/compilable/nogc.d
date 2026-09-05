@@ -125,3 +125,47 @@ version (D_SIMD) void f24072() @nogc
     int4 b = cast(int4)[1, 2, 3, 4];
     int4 c = cast(int4)[1, 2];
 }
+
+// https://github.com/dlang/dmd/issues/22671
+
+bool odd22671(int n)
+{
+    auto p = new int[n];
+    return p.length & 1;
+}
+
+char[] test22671(int n) @nogc
+{
+    import core.stdc.stdlib;
+
+    enum odd3 = odd22671(3); // ok to evaluate constant via CTFE, does not change function attributes
+    char[] buf;
+    if (__ctfe)
+    {
+        if (odd22671(n)) // allow calling GC function
+            buf = new char[n + 1]; // ~ new char[1]; // ~ char[int].init.values; // some GC operations
+    }
+    else
+    {
+        if (n & 1)
+            buf = (cast(char*)malloc(n + 1))[0..n];
+    }
+    if (!buf)
+    {
+        if (!__ctfe)
+        {
+            buf = (cast(char*)malloc(n))[0..n];
+        }
+        else
+        {
+            return new char[n];
+        }
+    }
+    debug
+    {
+        buf = new char[0]; // was ok
+        if (!buf)
+            return new char[2]; // used to be bad
+    }
+   return buf;
+}

@@ -21,9 +21,9 @@ import dmd.dsymbolsem : include, toAlias;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
+import dmd.hdrgen : toErrMsg;
 import dmd.typesem;
 import dmd.func;
-import dmd.globals;
 import dmd.mtype;
 import dmd.tokens;
 import dmd.visitor;
@@ -62,10 +62,14 @@ CT canThrow(Expression e, FuncDeclaration func, ErrorSink eSink)
     {
         alias visit = typeof(super).visit;
         CT result;
+        FuncDeclaration func;
+        ErrorSink eSink;
 
     public:
-        extern (D) this() scope @safe
+        extern (D) this(FuncDeclaration func, ErrorSink eSink) scope @safe
         {
+            this.func = func;
+            this.eSink = eSink;
         }
 
         void checkFuncThrows(Expression e, FuncDeclaration f)
@@ -104,6 +108,7 @@ CT canThrow(Expression e, FuncDeclaration func, ErrorSink eSink)
             if (ce.inDebugStatement)
                 return;
 
+            import dmd.globals;
             if (global.errors && !ce.e1.type)
                 return; // error recovery
 
@@ -142,7 +147,7 @@ CT canThrow(Expression e, FuncDeclaration func, ErrorSink eSink)
                 auto e1 = ce.e1;
                 if (auto pe = e1.isPtrExp())   // print 'fp' if e1 is (*fp)
                     e1 = pe.e1;
-                eSink.error(ce.loc, "`%s` is not `nothrow`", e1.toChars());
+                eSink.error(ce.loc, "`%s` is not `nothrow`", e1.toErrMsg());
             }
             result |= CT.exception;
         }
@@ -212,7 +217,7 @@ CT canThrow(Expression e, FuncDeclaration func, ErrorSink eSink)
         }
     }
 
-    scope CanThrow ct = new CanThrow();
+    scope CanThrow ct = new CanThrow(func, eSink);
     walkPostorder(e, ct);
     return ct.result;
 }

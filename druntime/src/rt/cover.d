@@ -11,6 +11,9 @@
 
 module rt.cover;
 
+version (WASI) {}
+else:
+
 import core.internal.utf;
 import core.internal.util.math : max, min;
 import core.stdc.stdio : EOF, fclose, fgetc, FILE, fileno, fprintf, fread, fseek, ftell, printf, SEEK_END, SEEK_SET,

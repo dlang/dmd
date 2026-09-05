@@ -19,7 +19,7 @@ import dmd.astenums;
 import dmd.ast_node;
 import dmd.dmodule;
 import dmd.dscope;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.globals;
 import dmd.identifier;
@@ -442,6 +442,9 @@ extern (C++) final class VersionCondition : DVCondition
             case "unittest":
             case "VisionOS":
             case "WASI":
+            case "WASIp1":
+            case "WASIp2":
+            case "WASIp3":
             case "WatchOS":
             case "WebAssembly":
             case "Win32":
@@ -471,8 +474,11 @@ extern (C++) final class VersionCondition : DVCondition
     extern(D) static void checkReserved(Loc loc, const(char)[] ident)
     {
         if (isReserved(ident))
-            error(loc, "version identifier `%s` is reserved and cannot be set",
+        {
+            auto eSink = global.errorSink;
+            eSink.error(loc, "version identifier `%s` is reserved and cannot be set",
                   ident.ptr);
+        }
     }
 
     /**

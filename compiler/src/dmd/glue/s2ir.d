@@ -53,34 +53,39 @@ import dmd.funcsem : genCfunc;
 import dmd.visitor;
 
 import dmd.backend.barray;
-import dmd.backend.blockopt : BlockOpt, block_next;
+import dmd.backend.blockopt : BlockOpt, block_next, bo;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.cv4;
-import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.blockopt : block_appendexp, block_calloc, block_goto, blockopt;
+import dmd.backend.debugprint : WRblock, numberBlocks;
+import dmd.backend.evalu8 : iftrue;
+import dmd.backend.symbol : symbol_add, symbol_genauto, symbol_name, SYMIDX;
 import dmd.backend.obj;
-import dmd.backend.var : bo;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
 package(dmd.glue):
 
+private:  // detect unmarked symbols that should be public
+
 alias StmtState = dmd.stmtstate.StmtState!block;
 
+package(dmd.glue)
 void elem_setLoc(elem* e, Loc loc) nothrow
 {
     e.Esrcpos = toSrcpos(loc);
 }
 
+package(dmd.glue)
 void Statement_toIR(Statement s, ref IRState irs)
 {
     /* Generate a block for each label
@@ -92,13 +97,14 @@ void Statement_toIR(Statement s, ref IRState irs)
             //printf("  KV: %s = %s\n", keyValue.key.toChars(), keyValue.value.toChars());
             LabelDsymbol label = cast(LabelDsymbol)keyValue.value;
             if (label.statement)
-                label.statement.extra = dmd.backend.global.block_calloc(bo);
+                label.statement.extra = block_calloc(bo);
         }
 
     StmtState stmtstate;
     Statement_toIR(s, irs, &stmtstate);
 }
 
+package(dmd.glue)
 void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 {
     static import dmd.backend.blockopt;
@@ -143,7 +149,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         StmtState mystate = StmtState(stmtstate, s);
 
         // bexit is the block that gets control after this IfStatement is done
-        block* bexit = mystate.breakBlock ? mystate.breakBlock : dmd.backend.global.block_calloc(bo);
+        block* bexit = mystate.breakBlock ? mystate.breakBlock : block_calloc(bo);
 
         incUsage(irs, s.loc);
         e = toElemDtor(s.condition, irs);
@@ -151,23 +157,23 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         block* bcond = blx.curblock;
         block_next(blx, BC.iftrue, null);
 
-        bcond.appendSucc(blx.curblock);
+        bcond.Bsucc.push(blx.curblock);
         if (s.ifbody)
         {
             if (!s.isIfCtfeBlock())         // __ctfe is always false at runtime
                 Statement_toIR(s.ifbody, irs, &mystate);
         }
-        blx.curblock.appendSucc(bexit);
+        blx.curblock.Bsucc.push(bexit);
 
         if (s.elsebody)
         {
             block_next(blx, BC.goto_, null);
-            bcond.appendSucc(blx.curblock);
+            bcond.Bsucc.push(blx.curblock);
             Statement_toIR(s.elsebody, irs, &mystate);
-            blx.curblock.appendSucc(bexit);
+            blx.curblock.Bsucc.push(bexit);
         }
         else
-            bcond.appendSucc(bexit);
+            bcond.Bsucc.push(bexit);
 
         block_next(blx, BC.goto_, bexit);
 
@@ -204,14 +210,14 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
         block* bpre = blx.curblock;
         block_next(blx, BC.goto_, null);
-        bpre.appendSucc(blx.curblock);
+        bpre.Bsucc.push(blx.curblock);
 
-        mystate.contBlock.appendSucc(blx.curblock);
-        mystate.contBlock.appendSucc(mystate.breakBlock);
+        mystate.contBlock.Bsucc.push(blx.curblock);
+        mystate.contBlock.Bsucc.push(mystate.breakBlock);
 
         if (s._body)
             Statement_toIR(s._body, irs, &mystate);
-        blx.curblock.appendSucc(mystate.contBlock);
+        blx.curblock.Bsucc.push(mystate.contBlock);
 
         block_next(blx, BC.goto_, mystate.contBlock);
         incUsage(irs, s.condition.loc);
@@ -237,28 +243,28 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         block* bpre = blx.curblock;
         block_next(blx,BC.goto_,null);
         block* bcond = blx.curblock;
-        bpre.appendSucc(bcond);
-        mystate.contBlock.appendSucc(bcond);
+        bpre.Bsucc.push(bcond);
+        mystate.contBlock.Bsucc.push(bcond);
         if (s.condition)
         {
             incUsage(irs, s.condition.loc);
             block_appendexp(bcond, toElemDtor(s.condition, irs));
             block_next(blx,BC.iftrue,null);
-            bcond.appendSucc(blx.curblock);
-            bcond.appendSucc(mystate.breakBlock);
+            bcond.Bsucc.push(blx.curblock);
+            bcond.Bsucc.push(mystate.breakBlock);
         }
         else
         {   /* No conditional, it's a straight goto
              */
             block_next(blx,BC.goto_,null);
-            bcond.appendSucc(blx.curblock);
+            bcond.Bsucc.push(blx.curblock);
         }
 
         if (s._body)
             Statement_toIR(s._body, irs, &mystate);
         /* End of the body goes to the continue block
          */
-        blx.curblock.appendSucc(mystate.contBlock);
+        blx.curblock.Bsucc.push(mystate.contBlock);
         block_setLoc(blx.curblock, s.endloc);
         block_next(blx, BC.goto_, mystate.contBlock);
 
@@ -295,7 +301,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
         /* Nothing more than a 'goto' to the current break destination
          */
-        b.appendSucc(bbreak);
+        b.Bsucc.push(bbreak);
         block_setLoc(b, s.loc);
         block_next(blx, BC.goto_, null);
     }
@@ -323,7 +329,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
         /* Nothing more than a 'goto' to the current continue destination
          */
-        b.appendSucc(bcont);
+        b.Bsucc.push(bcont);
         block_setLoc(b, s.loc);
         block_next(blx, BC.goto_, null);
     }
@@ -342,7 +348,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         block* bdest = cast(block*)s.label.statement.extra;
         block* b = blx.curblock;
         incUsage(irs, s.loc);
-        b.appendSucc(bdest);
+        b.Bsucc.push(bdest);
         block_setLoc(b, s.loc);
 
         block_next(blx,BC.goto_,null);
@@ -361,7 +367,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         bdest.Btry = blx.tryblock;
 
         block_next(blx, BC.goto_, bdest);
-        bc.appendSucc(blx.curblock);
+        bc.Bsucc.push(blx.curblock);
         if (s.statement)
             Statement_toIR(s.statement, irs, &mystate);
     }
@@ -421,15 +427,15 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                     block_appendexp(b, e);
                     block* cb = cast(block*)cs.extra;
                     block_next(blx, BC.iftrue, null);
-                    b.appendSucc(cb);
-                    b.appendSucc(blx.curblock);
+                    b.Bsucc.push(cb);
+                    b.Bsucc.push(blx.curblock);
                 }
 
             /* The final 'else' clause goes to the default
              */
             block* b = blx.curblock;
             block_next(blx, BC.goto_, null);
-            b.appendSucc(mystate.defaultBlock);
+            b.Bsucc.push(mystate.defaultBlock);
 
             Statement_toIR(s._body, irs, &mystate);
 
@@ -452,7 +458,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
         /* First successor is the default block
          */
-        mystate.switchBlock.appendSucc(mystate.defaultBlock);
+        mystate.switchBlock.Bsucc.push(mystate.defaultBlock);
 
         if (numcases)
         {
@@ -485,8 +491,8 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         block_next(blx, BC.goto_, cb);
         block* bsw = stmtstate.getSwitchBlock();
         if (bsw.bc == BC.switch_)
-            bsw.appendSucc(cb);   // second entry in pair
-        bcase.appendSucc(cb);
+            bsw.Bsucc.push(cb);   // second entry in pair
+        bcase.Bsucc.push(cb);
         if (!isAssertFalse(s.statement))
             incUsage(irs, s.loc);
         if (s.statement)
@@ -499,7 +505,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         block* bcase = blx.curblock;
         block* bdefault = stmtstate.getDefaultBlock();
         block_next(blx,BC.goto_,bdefault);
-        bcase.appendSucc(blx.curblock);
+        bcase.Bsucc.push(blx.curblock);
         if (!isAssertFalse(s.statement))
             incUsage(irs, s.loc);
         if (s.statement)
@@ -516,7 +522,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
         // The rest is equivalent to GotoStatement
 
-        b.appendSucc(bdest);
+        b.Bsucc.push(bdest);
         incUsage(irs, s.loc);
         block_next(blx,BC.goto_,null);
     }
@@ -529,7 +535,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
         // The rest is equivalent to GotoStatement
 
-        b.appendSucc(bdest);
+        b.Bsucc.push(bdest);
         incUsage(irs, s.loc);
         block_next(blx,BC.goto_,null);
     }
@@ -564,8 +570,8 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 !irs.isNothrow() &&
                 (finallyBlock = stmtstate.getFinallyBlock()) != null)
             {
-                assert(finallyBlock.bc == BC._finally);
-                blx.curblock.appendSucc(finallyBlock);
+                assert(finallyBlock.bc == BC.finally_);
+                blx.curblock.Bsucc.push(finallyBlock);
             }
 
             block_setLoc(blx.curblock, s.loc);
@@ -696,7 +702,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         // goto the next block
         block* b = blx.curblock;
         block_next(blx, BC.goto_, null);
-        b.appendSucc(blx.curblock);
+        b.Bsucc.push(blx.curblock);
     }
 
     /**************************************
@@ -712,9 +718,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
     void visitCompound(CompoundStatement s)
     {
-        if (!s.statements)
-            return;
-        foreach (s2; *s.statements)
+        foreach (s2; s.statements)
         {
             if (s2)
                 Statement_toIR(s2, irs, stmtstate);
@@ -743,11 +747,11 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         block_next(blx, BC.goto_, null);
 
         block* bdo = blx.curblock;
-        bpre.appendSucc(bdo);
+        bpre.Bsucc.push(bdo);
 
         block* bdox;
 
-        foreach (s2; *s.statements)
+        foreach (s2; s.statements)
         {
             if (s2)
             {
@@ -757,13 +761,13 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
                 bdox = blx.curblock;
                 block_next(blx, BC.goto_, mystate.contBlock);
-                bdox.appendSucc(mystate.contBlock);
+                bdox.Bsucc.push(mystate.contBlock);
             }
         }
 
         bdox = blx.curblock;
         block_next(blx, BC.goto_, mystate.breakBlock);
-        bdox.appendSucc(mystate.breakBlock);
+        bdox.Bsucc.push(mystate.breakBlock);
     }
 
 
@@ -836,7 +840,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
     /***************************************
      * Builds the following:
-     *      _try
+     *      try_
      *      block
      *      jcatch
      *      handler
@@ -847,8 +851,8 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
     {
         BlockState* blx = irs.blx;
 
-        if (blx.funcsym.Sfunc.Fflags3 & Feh_none) printf("visit %s\n", blx.funcsym.Sident.ptr);
-        if (blx.funcsym.Sfunc.Fflags3 & Feh_none) assert(0);
+        if (blx.funcsym.Sfunc.Fflags & Feh_none) printf("visit %s\n", blx.funcsym.Sident.ptr);
+        if (blx.funcsym.Sfunc.Fflags & Feh_none) assert(0);
 
         if (config.ehmethod == EHmethod.EH_WIN32)
             nteh_declarvars(blx);
@@ -869,7 +873,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
         blx.tryblock = tryblock;
         block* breakblock = block_calloc(blx);
-        block_goto(blx,BC._try,null);
+        block_goto(blx,BC.try_,null);
         if (s._body)
         {
             Statement_toIR(s._body, irs, &mystate);
@@ -885,7 +889,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         // create new break block that follows all the catches
         block* breakblock2 = block_calloc(blx);
 
-        blx.curblock.appendSucc(breakblock2);
+        blx.curblock.Bsucc.push(breakblock2);
         block_next(blx,BC.goto_,null);
 
         assert(s.catches);
@@ -947,7 +951,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
             }
 
             block* bcatch = blx.curblock;
-            tryblock.appendSucc(bcatch);
+            tryblock.Bsucc.push(bcatch);
             block_goto(blx, BC.jcatch, null);
 
             block* defaultblock = block_calloc(blx);
@@ -962,7 +966,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 long* pu = cast(long*) Mem.check(.malloc(long.sizeof * numcases));
                 bswitch.Bswitch = pu[0 .. numcases];
             }
-            bswitch.appendSucc(defaultblock);
+            bswitch.Bsucc.push(defaultblock);
             block_next(blx, BC.switch_, null);
 
             foreach (i, cs; *s.catches)
@@ -1013,7 +1017,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 bswitch.Bswitch[i] = f.typesTable.length;  // index starts at 1
            L1:
                 block* bcase = blx.curblock;
-                bswitch.appendSucc(bcase);
+                bswitch.Bsucc.push(bcase);
 
                 if (cs.handler !is null)
                 {
@@ -1050,7 +1054,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                     else
                         Statement_toIR(cs.handler, irs, &catchState);
                 }
-                blx.curblock.appendSucc(breakblock2);
+                blx.curblock.Bsucc.push(breakblock2);
                 if (i + 1 == numcases)
                 {
                     block_next(blx, BC.goto_, defaultblock);
@@ -1081,7 +1085,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 block* bcatch = blx.curblock;
                 if (cs.type)
                     bcatch.Bcatchtype = toSymbol(cs.type.toBasetype());
-                tryblock.appendSucc(bcatch);
+                tryblock.Bsucc.push(bcatch);
                 block_goto(blx, BC.jcatch, null);
 
                 if (cs.type && irs.target.os == Target.OS.Windows && irs.target.isX86_64) // Win64
@@ -1119,7 +1123,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                     }
                     Statement_toIR(cs.handler, irs, &catchState);
                 }
-                blx.curblock.appendSucc(breakblock2);
+                blx.curblock.Bsucc.push(breakblock2);
                 block_next(blx, BC.goto_, null);
             }
         }
@@ -1130,9 +1134,9 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
     /****************************************
      * A try-finally statement.
      * Builds the following:
-     *      _try
+     *      try_
      *      block
-     *      _finally
+     *      finally_
      *      finalbody
      *      _ret
      */
@@ -1143,12 +1147,12 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
         BlockState* blx = irs.blx;
 
-        if (config.ehmethod == EHmethod.EH_WIN32 && !(blx.funcsym.Sfunc.Fflags3 & Feh_none))
+        if (config.ehmethod == EHmethod.EH_WIN32 && !(blx.funcsym.Sfunc.Fflags & Feh_none))
             nteh_declarvars(blx);
 
-        /* Successors to BC._try block:
+        /* Successors to BC.try_ block:
          *      [0] start of try block code
-         *      [1] BC._finally
+         *      [1] BC.finally_
          */
         block* tryblock = block_goto(blx, BC.goto_, null);
 
@@ -1161,14 +1165,14 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         setScopeIndex(blx,tryblock,tryblock.Bscope_index);
 
         blx.tryblock = tryblock;
-        block_goto(blx,BC._try,null);
+        block_goto(blx,BC.try_,null);
 
         StmtState bodyirs = StmtState(stmtstate, s);
 
         block* finallyblock = block_calloc(blx);
 
-        tryblock.appendSucc(finallyblock);
-        finallyblock.bc = BC._finally;
+        tryblock.Bsucc.push(finallyblock);
+        finallyblock.bc = BC.finally_;
         bodyirs.finallyBlock = finallyblock;
 
         if (s._body)
@@ -1181,27 +1185,27 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         block* breakblock = block_calloc(blx);
         block* retblock = block_calloc(blx);
 
-        if (config.ehmethod == EHmethod.EH_DWARF && !(blx.funcsym.Sfunc.Fflags3 & Feh_none))
+        if (config.ehmethod == EHmethod.EH_DWARF && !(blx.funcsym.Sfunc.Fflags & Feh_none))
         {
             /* Build this:
-             *  BC.goto_     [BC._try]
-             *  BC._try     [body] [BC._finally]
+             *  BC.goto_     [BC.try_]
+             *  BC.try_     [body] [BC.finally_]
              *  body
              *  BC.goto_     [breakblock]
-             *  BC._finally [BC._lpad] [finalbody] [breakblock]
-             *  BC._lpad    [finalbody]
+             *  BC.finally_ [BC.lpad] [finalbody] [breakblock]
+             *  BC.lpad    [finalbody]
              *  finalbody
-             *  BC.goto_     [BC._ret]
-             *  BC._ret
+             *  BC.goto_     [BC.finRet]
+             *  BC.finRet
              *  breakblock
              */
-            blx.curblock.appendSucc(breakblock);
+            blx.curblock.Bsucc.push(breakblock);
             block_next(blx,BC.goto_,finallyblock);
 
-            block* landingPad = block_goto(blx,BC._finally,null);
-            block_goto(blx,BC._lpad,null);               // lpad is [0]
-            finallyblock.appendSucc(blx.curblock);    // start of finalybody is [1]
-            finallyblock.appendSucc(breakblock);       // breakblock is [2]
+            block* landingPad = block_goto(blx,BC.finally_,null);
+            block_goto(blx,BC.lpad,null);               // lpad is [0]
+            finallyblock.Bsucc.push(blx.curblock);    // start of finalybody is [1]
+            finallyblock.Bsucc.push(breakblock);       // breakblock is [2]
 
             /* Declare flag variable
              */
@@ -1225,7 +1229,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
             elem* e = el_bin(OPeq, TYvoid, el_var(seo), el_var(sreg));
             landingPad.Belem = el_combine(e, el_bin(OPeq, TYvoid, el_var(sflag), el_long(TYint, 0)));
 
-            /* Add code to BC._ret block:
+            /* Add code to BC.finRet block:
              *  (!_flag && _Unwind_Resume(exception_object));
              */
             elem* eu = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.UNWIND_RESUME)), el_var(seo));
@@ -1240,26 +1244,26 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 Statement_toIR(s.finalbody, irs, &finallyState);
             block_goto(blx, BC.goto_, retblock);
 
-            block_next(blx, BC._ret, breakblock);
+            block_next(blx, BC.finRet, breakblock);
         }
-        else if (config.ehmethod == EHmethod.EH_NONE || blx.funcsym.Sfunc.Fflags3 & Feh_none)
+        else if (config.ehmethod == EHmethod.EH_NONE || blx.funcsym.Sfunc.Fflags & Feh_none)
         {
             /* Build this:
-             *  BC.goto_     [BC._try]
-             *  BC._try     [body] [BC._finally]
+             *  BC.goto_     [BC.try_]
+             *  BC.try_     [body] [BC.finally_]
              *  body
              *  BC.goto_     [breakblock]
-             *  BC._finally [BC._lpad] [finalbody] [breakblock]
-             *  BC._lpad    [finalbody]
+             *  BC.finally_ [BC.lpad] [finalbody] [breakblock]
+             *  BC.lpad    [finalbody]
              *  finalbody
-             *  BC.goto_     [BC._ret]
-             *  BC._ret
+             *  BC.goto_     [BC.finRet]
+             *  BC.finRet
              *  breakblock
              */
             if (s.bodyFallsThru)
             {
                 // BC.goto_ [breakblock]
-                blx.curblock.appendSucc(breakblock);
+                blx.curblock.Bsucc.push(breakblock);
                 block_next(blx,BC.goto_,finallyblock);
             }
             else
@@ -1282,10 +1286,10 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 block_next(blx,BC.exit,finallyblock);
             }
 
-            block* landingPad = block_goto(blx,BC._finally,null);
-            block_goto(blx,BC._lpad,null);               // lpad is [0]
-            finallyblock.appendSucc(blx.curblock);    // start of finalybody is [1]
-            finallyblock.appendSucc(breakblock);       // breakblock is [2]
+            block* landingPad = block_goto(blx,BC.finally_,null);
+            block_goto(blx,BC.lpad,null);               // lpad is [0]
+            finallyblock.Bsucc.push(blx.curblock);    // start of finalybody is [1]
+            finallyblock.Bsucc.push(breakblock);       // breakblock is [2]
 
             /* Declare flag variable
              */
@@ -1304,18 +1308,18 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 Statement_toIR(s.finalbody, irs, &finallyState);
             block_goto(blx, BC.goto_, retblock);
 
-            block_next(blx,BC._ret,breakblock);
+            block_next(blx,BC.finRet,breakblock);
         }
         else
         {
             block_goto(blx,BC.goto_, breakblock);
             block_goto(blx,BC.goto_,finallyblock);
 
-            /* Successors to BC._finally block:
+            /* Successors to BC.finally_ block:
              *  [0] landing pad, same as start of finally code
-             *  [1] block that comes after BC._ret
+             *  [1] block that comes after BC.finRet
              */
-            block_goto(blx,BC._finally,null);
+            block_goto(blx,BC.finally_,null);
 
             StmtState finallyState = StmtState(stmtstate, s);
 
@@ -1324,53 +1328,53 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 Statement_toIR(s.finalbody, irs, &finallyState);
             block_goto(blx, BC.goto_, retblock);
 
-            block_next(blx,BC._ret,null);
+            block_next(blx,BC.finRet,null);
 
-            /* Append the last successor to finallyblock, which is the first block past the BC._ret block.
+            /* Append the last successor to finallyblock, which is the first block past the BC.finRet block.
              */
-            finallyblock.appendSucc(blx.curblock);
+            finallyblock.Bsucc.push(blx.curblock);
 
-            retblock.appendSucc(blx.curblock);
+            retblock.Bsucc.push(blx.curblock);
 
-            /* The BC.finally..bc._ret blocks form a function that gets called from stack unwinding.
-             * The successors to BC._ret blocks are both the next outer BC.finally and the destination
+            /* The BC.finally..bc.finRet blocks form a function that gets called from stack unwinding.
+             * The successors to BC.finRet blocks are both the next outer BC.finally and the destination
              * after the unwinding is complete.
              */
             for (block* b = tryblock; b != finallyblock; b = b.Bnext)
             {
                 block* btry = b.Btry;
 
-                if (b.bc == BC.goto_ && b.numSucc() == 1)
+                if (b.bc == BC.goto_ && b.Bsucc.length == 1)
                 {
-                    block* bdest = b.nthSucc(0);
+                    block* bdest = b.Bsucc[0];
                     if (btry && bdest.Btry != btry)
                     {
                         //printf("test1 b %p b.Btry %p bdest %p bdest.Btry %p\n", b, btry, bdest, bdest.Btry);
-                        block* bfinally = btry.nthSucc(1);
+                        block* bfinally = btry.Bsucc[1];
                         if (bfinally == finallyblock)
                         {
-                            b.appendSucc(finallyblock);
+                            b.Bsucc.push(finallyblock);
                         }
                     }
                 }
 
                 // If the goto exits a try block, then the finally block is also a successor
-                if (b.bc == BC.goto_ && b.numSucc() == 2) // if goto exited a tryblock
+                if (b.bc == BC.goto_ && b.Bsucc.length == 2) // if goto exited a tryblock
                 {
-                    block* bdest = b.nthSucc(0);
+                    block* bdest = b.Bsucc[0];
 
                     // If the last finally block executed by the goto
                     if (bdest.Btry == tryblock.Btry)
                     {
                         // The finally block will exit and return to the destination block
-                        retblock.appendSucc(bdest);
+                        retblock.Bsucc.push(bdest);
                     }
                 }
 
-                if (b.bc == BC._ret && b.Btry == tryblock)
+                if (b.bc == BC.finRet && b.Btry == tryblock)
                 {
                     // b is nested inside this TryFinally, and so this finally will be called next
-                    b.appendSucc(finallyblock);
+                    b.Bsucc.push(finallyblock);
                 }
             }
         }
@@ -1391,7 +1395,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         bpre = blx.curblock;
         block_next(blx,BC.goto_,null);
         basm = blx.curblock;
-        bpre.appendSucc(basm);
+        bpre.Bsucc.push(basm);
         basm.Bcode = cast(code*)s.asmcode;
         basm.Balign = cast(ubyte)s.asmalign;
 
@@ -1406,7 +1410,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                     // FL.block and FL.blockoff have LabelDsymbol's - convert to blocks
                     LabelDsymbol label = cast(LabelDsymbol)c.IEV1.Vlsym;
                     block* b = cast(block*)label.statement.extra;
-                    basm.appendSucc(b);
+                    basm.Bsucc.push(b);
                     c.IEV1.Vblock = b;
                     break;
                 }
@@ -1432,7 +1436,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 {
                     LabelDsymbol label = cast(LabelDsymbol)c.IEV2.Vlsym;
                     block* b = cast(block*)label.statement.extra;
-                    basm.appendSucc(b);
+                    basm.Bsucc.push(b);
                     c.IEV2.Vblock = b;
                     break;
                 }
@@ -1460,7 +1464,8 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         basm.usIasmregs = s.regs;                    // registers modified
 
         block_next(blx,BC.asm_, null);
-        basm.prependSucc(blx.curblock);
+        basm.Bsucc.insert(blx.curblock, 0);
+        //basm.prependSucc(blx.curblock);
 
         if (s.naked)
         {
@@ -1488,7 +1493,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
  * Params:
  *      startblock = first block in function
  */
-
+package(dmd.glue)
 void insertFinallyBlockCalls(block* startblock)
 {
     int flagvalue = 0;          // 0 is forunwind_resume
@@ -1522,11 +1527,11 @@ void insertFinallyBlockCalls(block* startblock)
                 // Rewrite into a BC.goto_ => BC.ret
                 if (!bcret)
                 {
-                    bcret = dmd.backend.global.block_calloc(bo);
+                    bcret = block_calloc(bo);
                     bcret.bc = BC.ret;
                 }
                 b.bc = BC.goto_;
-                b.appendSucc(bcret);
+                b.Bsucc.push(bcret);
                 goto case_goto;
 
             case BC.retexp:
@@ -1538,7 +1543,7 @@ void insertFinallyBlockCalls(block* startblock)
                     goto case BC.ret;
                 if (!bcretexp)
                 {
-                    bcretexp = dmd.backend.global.block_calloc(bo);
+                    bcretexp = block_calloc(bo);
                     bcretexp.bc = BC.retexp;
                     type* t;
                     if ((ty == TYstruct || ty == TYarray) && e.ET)
@@ -1551,7 +1556,7 @@ void insertFinallyBlockCalls(block* startblock)
                         bcretexp.Belem.ET = t;
                 }
                 b.bc = BC.goto_;
-                b.appendSucc(bcretexp);
+                b.Bsucc.push(bcretexp);
                 b.Belem = elAssign(el_var(stmp), e, null, e.ET);
                 goto case_goto;
             }
@@ -1561,44 +1566,44 @@ void insertFinallyBlockCalls(block* startblock)
             {
                 /* From this:
                  *  BC.goto_     [breakblock]
-                 *  BC._try     [body] [BC._finally]
+                 *  BC.try_     [body] [BC.finally_]
                  *  body
                  *  BC.goto_     [breakblock]
-                 *  BC._finally [BC._lpad] [finalbody] [breakblock]
-                 *  BC._lpad    [finalbody]
+                 *  BC.finally_ [BC.lpad] [finalbody] [breakblock]
+                 *  BC.lpad    [finalbody]
                  *  finalbody
-                 *  BC.goto_     [BC._ret]
-                 *  BC._ret
+                 *  BC.goto_     [BC.finRet]
+                 *  BC.finRet
                  *  breakblock
                  *
                  * Build this:
-                 *  BC.goto_     [BC._try]
-                 *  BC._try     [body] [BC._finally]
+                 *  BC.goto_     [BC.try_]
+                 *  BC.try_     [body] [BC.finally_]
                  *  body
-                 *x BC.goto_     sflag=n; [BC._finally]
-                 *  BC._finally [BC._lpad] [finalbody] [breakblock]
-                 *  BC._lpad    [finalbody]
+                 *x BC.goto_     sflag=n; [BC.finally_]
+                 *  BC.finally_ [BC.lpad] [finalbody] [breakblock]
+                 *  BC.lpad    [finalbody]
                  *  finalbody
                  *  BC.goto_     [BC.iftrue]
                  *x BC.iftrue   (sflag==n) [breakblock]
-                 *x BC._ret
+                 *x BC.finRet
                  *  breakblock
                  */
-                block* breakblock = b.nthSucc(0);
+                block* breakblock = b.Bsucc[0];
                 block* lasttry = breakblock.Btry;
                 block* blast = b;
                 ++flagvalue;
                 for (block* bt = b.Btry; bt != lasttry; bt = bt.Btry)
                 {
-                    assert(bt.bc == BC._try);
-                    block* bf = bt.nthSucc(1);
+                    assert(bt.bc == BC.try_);
+                    block* bf = bt.Bsucc[1];
                     if (bf.bc == BC.jcatch)
                         continue;                       // skip try-catch
-                    assert(bf.bc == BC._finally);
+                    assert(bf.bc == BC.finally_);
 
                     block* retblock = bf.b_ret;
-                    assert(retblock.bc == BC._ret);
-                    assert(retblock.numSucc() == 0);
+                    assert(retblock.bc == BC.finRet);
+                    assert(retblock.Bsucc.length == 0);
 
                     // Append (_flag = flagvalue) to b.Belem
                     Symbol* sflag = bf.flag;
@@ -1606,24 +1611,24 @@ void insertFinallyBlockCalls(block* startblock)
                     b.Belem = el_combine(b.Belem, e);
 
                     assert(blast.bc == BC.goto_ || blast.bc == BC.iftrue);
-                    blast.setNthSucc(0, bf);
+                    blast.Bsucc[0] = bf;
 
                     // Create new block, bnew, which will replace retblock
-                    block* bnew = dmd.backend.global.block_calloc(bo);
+                    block* bnew = block_calloc(bo);
 
-                    /* Rewrite BC._ret block as:
+                    /* Rewrite BC.finRet block as:
                      *  if (sflag == flagvalue) goto breakblock; else goto bnew;
                      */
                     e = el_bin(OPeqeq, TYbool, el_var(sflag), el_long(TYint, flagvalue));
                     retblock.Belem = el_combine(retblock.Belem, e);
                     retblock.bc = BC.iftrue;
-                    retblock.appendSucc(breakblock);
-                    retblock.appendSucc(bnew);
+                    retblock.Bsucc.push(breakblock);
+                    retblock.Bsucc.push(bnew);
 
                     bnew.Bnext = retblock.Bnext;
                     retblock.Bnext = bnew;
 
-                    bnew.bc = BC._ret;
+                    bnew.bc = BC.finRet;
                     bnew.Btry = retblock.Btry;
                     bf.b_ret = bnew;
 
@@ -1663,7 +1668,7 @@ void insertFinallyBlockCalls(block* startblock)
  * Params:
  *      startblock = first block in function
  */
-
+package(dmd.glue)
 void insertFinallyBlockGotos(block* startblock)
 {
     enum log = false;
@@ -1671,7 +1676,7 @@ void insertFinallyBlockGotos(block* startblock)
     // Insert all the goto's
     insertFinallyBlockCalls(startblock);
 
-    /* Remove all the BC._try, BC._finally, BC._lpad and BC._ret
+    /* Remove all the BC.try_, BC.finally_, BC.lpad and BC.finRet
      * blocks.
      * Actually, just make them into no-ops and let the optimizer
      * delete them.
@@ -1681,22 +1686,22 @@ void insertFinallyBlockGotos(block* startblock)
         b.Btry = null;
         switch (b.bc)
         {
-            case BC._try:
+            case BC.try_:
                 b.bc = BC.goto_;
-                list_subtract(&b.Bsucc, b.nthSucc(1));
+                b.Bsucc.subtracti(1);
                 break;
 
-            case BC._finally:
+            case BC.finally_:
                 b.bc = BC.goto_;
-                list_subtract(&b.Bsucc, b.nthSucc(2));
-                list_subtract(&b.Bsucc, b.nthSucc(0));
+                b.Bsucc.subtracti(2);
+                b.Bsucc.subtracti(0);
                 break;
 
-            case BC._lpad:
+            case BC.lpad:
                 b.bc = BC.goto_;
                 break;
 
-            case BC._ret:
+            case BC.finRet:
                 b.bc = BC.exit;
                 break;
 
@@ -1713,6 +1718,12 @@ void insertFinallyBlockGotos(block* startblock)
         printf("-------------------------\n");
     }
 }
+
+/*************************************** private *******************************************/
+/*                              No public declarations past this                           */
+/*************************************** private *******************************************/
+
+private:
 
 private void block_setLoc(block* b, Loc loc) nothrow
 {
@@ -1741,7 +1752,7 @@ private bool isAssertFalse(const Statement s) nothrow
 
 private void setScopeIndex(BlockState* blx, block* b, int scope_index)
 {
-    if (config.ehmethod == EHmethod.EH_WIN32 && !(blx.funcsym.Sfunc.Fflags3 & Feh_none))
+    if (config.ehmethod == EHmethod.EH_WIN32 && !(blx.funcsym.Sfunc.Fflags & Feh_none))
         block_appendexp(b, nteh_setScopeTableIndex(blx, scope_index));
 }
 
@@ -1751,7 +1762,7 @@ private void setScopeIndex(BlockState* blx, block* b, int scope_index)
 
 private block* block_calloc(BlockState* blx) @trusted
 {
-    block* b = dmd.backend.global.block_calloc(bo);
+    block* b = block_calloc(bo);
     b.Btry = blx.tryblock;
     return b;
 }

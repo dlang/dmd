@@ -1,0 +1,14 @@
+Coverage counters are now emitted at call sites of inlined functions
+
+Functions marked `pragma(inline, true)` (and functions inlined via the
+`-inline` flag) would always show `0000000` in `-cov` coverage reports
+even when executed. The inlined function body is never called as a
+standalone function at runtime - only the inlined copy inside the caller
+runs, so its coverage counters stayed at zero.
+
+Coverage counters are now emitted at each call site where a function is
+inlined, so the function's lines correctly reflect how many times they
+were executed.
+
+Fixes $(LINK2 https://issues.dlang.org/show_bug.cgi?id=5848, Issue 5848) /
+$(LINK2 https://github.com/dlang/dmd/issues/18337, #18337)

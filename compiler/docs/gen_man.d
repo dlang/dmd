@@ -99,26 +99,22 @@ void main()
     {
         if (option.os.isCurrentTargetOS)
         {
-            auto flag = option.flag.dup;
-            string help = option.helpText.dup;
-            if (flag.canFind("<") && flag.canFind(">"))
-            {
-                // detect special words in <...> and highlight them
-                auto specialWord = flag.findSplit("<")[2].until(">").to!string;
-                flag = flag.replace("<" ~ specialWord ~ ">", specialWord.bold);
+            import std.regex : regex, replaceAll;
+            string flag = option.flag;
+            string helpText = option.helpText;
 
-                // highlight individual words in the description
-                help = help.splitter(" ")
-                    .map!((w){
-                        auto wPlain = w.filter!(c => !c.among('<', '>', '`', '\'')).to!string;
-                        return wPlain == specialWord ? wPlain.bold  : w;
-                    })
-                    .joiner(" ")
-                    .to!string;
-            }
+            // match <foo> or <foo.bar> in flag
+            enum fr = regex(r"<(\w+?\.?\w*?)>");
+            alias fcb = caps => caps[1].bold;
+            flag = flag.replaceAll!fcb(fr);
+
+            // replace any <foo> in helpText
+            alias hcb = hc => hc[1].bold;
+            helpText = helpText.replaceAll!hcb(fr);
+
             writefln(".IP -%s", flag);
             // Capitalize the first letter
-            writeln(help.capitalize);
+            writeln(helpText.capitalize);
         }
     }
 

@@ -3,7 +3,9 @@ TESTS := tlsgc_sections test_import tlsstack filterthrownglobal filterthrownmeth
 #TESTS += join_detach
 
 # some .d files support Posix only
-ifneq ($(OS),windows)
+ifeq ($(OS),windows)
+    TESTS += winfiber
+else
     TESTS += fiber_guard_page external_threads
 endif
 

@@ -6,9 +6,9 @@ fail_compilation/fail344.d(20): Error: undefined identifier `Q`
 fail_compilation/fail344.d(20): Error: undefined identifier `Q`
 fail_compilation/fail344.d(20): Error: undefined identifier `V`
 fail_compilation/fail344.d(23):        while evaluating: `static assert(Alike!(SIB!(crayon)))`
-fail_compilation/fail344.d(23): Error: template instance `fail344.SIB!(crayon).SIB.Alike!(SIB!(crayon))` error instantiating
+fail_compilation/fail344.d(23): Error: template instance `fail344.SIB!(crayon).Alike!(SIB!(crayon))` error instantiating
 fail_compilation/fail344.d(23):        while evaluating: `static assert(Alike!(SIB!(crayon)))`
-fail_compilation/fail344.d(28): Error: template instance `fail344.SIB!(crayon).SIB.opDispatch!"E"` error instantiating
+fail_compilation/fail344.d(28): Error: template instance `fail344.SIB!(crayon).opDispatch!"E"` error instantiating
 ---
 */
 

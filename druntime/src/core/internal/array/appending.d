@@ -111,26 +111,6 @@ private ref Tarr _d_arrayappendcTX_(Tarr : T[], T)(return ref scope Tarr px, siz
         assert(0, "Cannot append to array if compiling without support for runtime type information!");
 }
 
-version (D_ProfileGC)
-{
-    /**
-     * TraceGC wrapper around _d_arrayappendcTX.
-     */
-    ref Tarr _d_arrayappendcTXTrace(Tarr : T[], T)(return ref scope Tarr px, size_t n,
-        string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
-    {
-        version (D_TypeInfo)
-        {
-            import core.internal.array.utils: TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!("Tarr", "_d_arrayappendcTX"));
-
-            return _d_arrayappendcTX(px, n);
-        }
-        else
-            static assert(0, "Cannot append to array if compiling without support for runtime type information!");
-    }
-}
-
 /// Implementation of `_d_arrayappendT`
 ref Tarr _d_arrayappendT(Tarr : T[], T)(return ref scope Tarr x, scope Tarr y) @trusted
 {
@@ -195,25 +175,6 @@ ref Tarr _d_arrayappendT(Tarr : T[], T)(return ref scope Tarr x, scope Tarr y) @
     }
 
     return x;
-}
-
-version (D_ProfileGC)
-{
-    /**
-     * TraceGC wrapper around $(REF _d_arrayappendT, core,internal,array,appending).
-     */
-    ref Tarr _d_arrayappendTTrace(Tarr : T[], T)(return ref scope Tarr x, scope Tarr y, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
-    {
-        version (D_TypeInfo)
-        {
-            import core.internal.array.utils: TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!("Tarr", "_d_arrayappendT"));
-
-            return _d_arrayappendT(x, y);
-        }
-        else
-            static assert(0, "Cannot append to array if compiling without support for runtime type information!");
-    }
 }
 
 @safe unittest

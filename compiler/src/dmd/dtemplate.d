@@ -47,7 +47,7 @@ import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.errors;
+import dmd.errors : Classification;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
@@ -932,13 +932,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
         // This returns a function pointer
         scope printFn = () {
+            auto eSink = global.errorSink;
             final switch (cl)
             {
                 case Classification.error:
-                    return &errorSupplemental;
+                    return &eSink.errorSupplemental;
                 case Classification.deprecation:
-                    return &deprecationSupplemental;
-                case Classification.gagged, Classification.tip, Classification.warning:
+                    return &eSink.deprecationSupplemental;
+                case Classification.gagged, Classification.warning:
                     assert(0);
             }
         }();
@@ -952,8 +953,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             // Set error here as we don't want it to depend on the number of
             // entries that are being printed.
             if (cl == Classification.error ||
-                (cl == Classification.warning && global.params.useWarnings == DiagnosticReporting.error) ||
-                (cl == Classification.deprecation && global.params.useDeprecated == DiagnosticReporting.error))
+                (cl == Classification.warning && global.errorSink.useWarnings == DiagnosticReporting.error) ||
+                (cl == Classification.deprecation && global.errorSink.useDeprecated == DiagnosticReporting.error))
                 cur.errors = true;
 
             // If two instantiations use the same declaration, they are recursive.

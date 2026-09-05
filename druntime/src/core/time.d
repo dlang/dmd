@@ -92,7 +92,6 @@ else version (Posix)
     import core.sys.posix.sys.time : gettimeofday, timeval;
     import core.sys.posix.time : clock_getres, clock_gettime, CLOCK_MONOTONIC, timespec;
 }
-
 version (unittest) import core.stdc.stdio : printf;
 
 
@@ -337,6 +336,24 @@ else version (Solaris) enum ClockType
     second = 6,
     threadCPUTime = 7,
 }
+else version (Hurd) enum ClockType
+{
+    normal = 0,
+    coarse = 2,
+    precise = 3,
+    // processCPUTime = 4,
+    raw = 5,
+    second = 6,
+    // threadCPUTime = 7,
+
+}
+else version (WASI) enum ClockType
+{
+    normal = 0,
+    coarse = 2,
+    precise = 3,
+    second = 6
+}
 else
 {
     // It needs to be decided (and implemented in an appropriate version branch
@@ -434,6 +451,30 @@ version (Posix)
             case processCPUTime: return CLOCK_PROCESS_CPUTIME_ID;
             case threadCPUTime: return CLOCK_THREAD_CPUTIME_ID;
             case second: assert(0);
+            }
+        }
+        else version (Hurd)
+        {
+            import core.sys.hurd.time;
+            with(ClockType) final switch (clockType)
+            {
+            case coarse: return CLOCK_MONOTONIC_COARSE;
+            case normal: return CLOCK_MONOTONIC;
+            case precise: return CLOCK_MONOTONIC;
+            // case processCPUTime: return CLOCK_PROCESS_CPUTIME_ID;
+            case raw: return CLOCK_MONOTONIC_RAW;
+            // case threadCPUTime: return CLOCK_THREAD_CPUTIME_ID;
+            case second: assert(0);
+            }
+        }
+        else version (WASI)
+        {
+            with(ClockType) final switch (clockType)
+            {
+                case coarse: return CLOCK_MONOTONIC;
+                case normal: return CLOCK_MONOTONIC;
+                case precise: return CLOCK_MONOTONIC;
+                case second: assert(0);
             }
         }
         else
@@ -1819,7 +1860,7 @@ T to(string units, T, D)(D td) @safe pure nothrow @nogc
     {
         enum unitsPerSec = convert!("seconds", units)(1);
 
-        return cast(T) (td.length / (TickDuration.ticksPerSec / cast(real) unitsPerSec));
+        return cast(T) convClockFreq(td.length, TickDuration.ticksPerSec, unitsPerSec);
     }
     else static if (__traits(isFloating, T))
     {
@@ -2991,7 +3032,7 @@ deprecated:
     {
         enum unitsPerSec = convert!("seconds", units)(1);
 
-        return TickDuration(cast(long)(length * (ticksPerSec / cast(real)unitsPerSec)));
+        return TickDuration(convClockFreq(length, unitsPerSec, ticksPerSec));
     }
 
     version (CoreUnittest) unittest

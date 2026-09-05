@@ -30,6 +30,13 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
+// TODO: figure out when to set WASICooperativeThreads for WASIp3
+
+version (CRuntime_WASI)
+{
+    version (WASICooperativeThreads) version = FullySupported;
+} else version = FullySupported;
+
 version (Posix):
 extern (C)
 nothrow:
@@ -104,41 +111,83 @@ void pthread_testcancel();
 */
 version (CRuntime_Glibc)
 {
-    enum
+    version (linux)
     {
-        PTHREAD_CANCEL_ENABLE,
-        PTHREAD_CANCEL_DISABLE
+        enum
+        {
+            PTHREAD_CANCEL_ENABLE,
+            PTHREAD_CANCEL_DISABLE
+        }
+
+        enum
+        {
+            PTHREAD_CANCEL_DEFERRED,
+            PTHREAD_CANCEL_ASYNCHRONOUS
+        }
+
+        enum PTHREAD_CANCELED = cast(void*) -1;
+
+        //enum pthread_mutex_t PTHREAD_COND_INITIALIZER = { __LOCK_ALT_INITIALIZER, 0, "", 0 };
+
+        enum
+        {
+            PTHREAD_CREATE_JOINABLE,
+            PTHREAD_CREATE_DETACHED
+        }
+
+        enum
+        {
+            PTHREAD_INHERIT_SCHED,
+            PTHREAD_EXPLICIT_SCHED
+        }
+
+        enum PTHREAD_MUTEX_INITIALIZER  = pthread_mutex_t.init;
+        enum PTHREAD_ONCE_INIT          = pthread_once_t.init;
+
+        enum
+        {
+            PTHREAD_PROCESS_PRIVATE,
+            PTHREAD_PROCESS_SHARED
+        }
     }
-
-    enum
+    else version (Hurd)
     {
-        PTHREAD_CANCEL_DEFERRED,
-        PTHREAD_CANCEL_ASYNCHRONOUS
-    }
+        enum
+        {
+            PTHREAD_CANCEL_DISABLE,
+            PTHREAD_CANCEL_ENABLE,
+        }
 
-    enum PTHREAD_CANCELED = cast(void*) -1;
+        enum
+        {
+            PTHREAD_CANCEL_DEFERRED,
+            PTHREAD_CANCEL_ASYNCHRONOUS
+        }
 
-    //enum pthread_mutex_t PTHREAD_COND_INITIALIZER = { __LOCK_ALT_INITIALIZER, 0, "", 0 };
+        enum PTHREAD_CANCELED = cast(void*) -1;
 
-    enum
-    {
-        PTHREAD_CREATE_JOINABLE,
-        PTHREAD_CREATE_DETACHED
-    }
+        // enum __pthread_cond PTHREAD_COND_INITIALIZER = { __PTHREAD_SPIN_LOCK_INITIALIZER, NULL, NULL, 0, NULL }
 
-    enum
-    {
-        PTHREAD_INHERIT_SCHED,
-        PTHREAD_EXPLICIT_SCHED
-    }
+        enum
+        {
+            PTHREAD_CREATE_JOINABLE = 0,
+            PTHREAD_CREATE_DETACHED,
+        }
 
-    enum PTHREAD_MUTEX_INITIALIZER  = pthread_mutex_t.init;
-    enum PTHREAD_ONCE_INIT          = pthread_once_t.init;
+        enum
+        {
+            PTHREAD_EXPLICIT_SCHED = 0,
+            PTHREAD_INHERIT_SCHED ,
+        }
 
-    enum
-    {
-        PTHREAD_PROCESS_PRIVATE,
-        PTHREAD_PROCESS_SHARED
+        enum PTHREAD_MUTEX_INITIALIZER  = pthread_mutex_t.init;
+        enum PTHREAD_ONCE_INIT          = pthread_once_t.init;
+
+        enum
+        {
+            PTHREAD_PROCESS_PRIVATE = 0,
+            PTHREAD_PROCESS_SHARED,
+        }
     }
 }
 else version (Darwin)
@@ -419,6 +468,39 @@ else version (CRuntime_Musl)
         PTHREAD_PROCESS_SHARED = 1
     }
 }
+else version (CRuntime_WASI)
+{
+    enum
+    {
+        PTHREAD_CANCEL_ENABLE = 0,
+        PTHREAD_CANCEL_DISABLE = 1,
+        PTHREAD_CANCEL_DEFERRED = 0,
+        PTHREAD_CANCEL_ASYNCHRONOUS = 1,
+    }
+
+    enum PTHREAD_CANCELED = cast(void*) -1;
+
+    enum
+    {
+        PTHREAD_CREATE_JOINABLE = 0,
+        PTHREAD_CREATE_DETACHED = 1
+    }
+
+    enum
+    {
+        PTHREAD_INHERIT_SCHED = 0,
+        PTHREAD_EXPLICIT_SCHED = 1,
+    }
+
+    enum PTHREAD_MUTEX_INITIALIZER = pthread_mutex_t.init;
+    enum PTHREAD_ONCE_INIT = pthread_once_t.init;
+
+    enum
+    {
+        PTHREAD_PROCESS_PRIVATE = 0,
+        PTHREAD_PROCESS_SHARED = 1
+    }
+}
 else version (CRuntime_UClibc)
 {
     enum
@@ -466,43 +548,84 @@ int pthread_atfork(void function(), void function(), void function());
     int pthread_atfork(void function() @nogc, void function() @nogc, void function() @nogc);
     int pthread_attr_destroy(pthread_attr_t*);
     int pthread_attr_getdetachstate(const scope pthread_attr_t*, int*);
-    int pthread_attr_getschedparam(const scope pthread_attr_t*, sched_param*);
     int pthread_attr_init(pthread_attr_t*);
     int pthread_attr_setdetachstate(pthread_attr_t*, int);
-    int pthread_attr_setschedparam(const scope pthread_attr_t*, sched_param*);
-    int pthread_cancel(pthread_t);
+    version (FullySupported)
+    {
+        int pthread_attr_getschedparam(const scope pthread_attr_t*, sched_param*);
+        int pthread_attr_setschedparam(const scope pthread_attr_t*, sched_param*);
+        int pthread_cancel(pthread_t);
+    }
 }
 
 alias _pthread_cleanup_routine = void function(void*);
 alias _pthread_cleanup_routine_nogc = void function(void*) @nogc;
 version (CRuntime_Glibc)
 {
-    struct _pthread_cleanup_buffer
+    version (linux)
     {
-        _pthread_cleanup_routine    __routine;
-        void*                       __arg;
-        int                         __canceltype;
-        _pthread_cleanup_buffer*    __prev;
-    }
-
-    void _pthread_cleanup_push(_pthread_cleanup_buffer*, _pthread_cleanup_routine, void*);
-    void _pthread_cleanup_push(_pthread_cleanup_buffer*, _pthread_cleanup_routine_nogc, void*) @nogc;
-    void _pthread_cleanup_pop(_pthread_cleanup_buffer*, int);
-
-    struct pthread_cleanup
-    {
-        _pthread_cleanup_buffer buffer = void;
-
-        extern (D) void push(F: _pthread_cleanup_routine)(F routine, void* arg )
+        struct _pthread_cleanup_buffer
         {
-            _pthread_cleanup_push( &buffer, routine, arg );
+            _pthread_cleanup_routine    __routine;
+            void*                       __arg;
+            int                         __canceltype;
+            _pthread_cleanup_buffer*    __prev;
         }
 
-        extern (D) void pop()( int execute )
+        void _pthread_cleanup_push(_pthread_cleanup_buffer*, _pthread_cleanup_routine, void*);
+        void _pthread_cleanup_push(_pthread_cleanup_buffer*, _pthread_cleanup_routine_nogc, void*) @nogc;
+        void _pthread_cleanup_pop(_pthread_cleanup_buffer*, int);
+
+        struct pthread_cleanup
         {
-            _pthread_cleanup_pop( &buffer, execute );
+            _pthread_cleanup_buffer buffer = void;
+
+            extern (D) void push(F: _pthread_cleanup_routine)(F routine, void* arg )
+            {
+                _pthread_cleanup_push( &buffer, routine, arg );
+            }
+
+            extern (D) void pop()( int execute )
+            {
+                _pthread_cleanup_pop( &buffer, execute );
+            }
         }
     }
+    else version (Hurd)
+    {
+        struct __pthread_cancelation_handler
+        {
+          _pthread_cleanup_routine       __handler;
+            void*                          __arg;
+            __pthread_cancelation_handler* __next;
+        }
+
+        private __pthread_cancelation_handler** __pthread_get_cleanup_stack();
+
+        struct pthread_cleanup
+        {
+            __pthread_cancelation_handler** handlers = void;
+            __pthread_cancelation_handler handler = void;
+
+            extern (D) void push(F: _pthread_cleanup_routine)(F routine, void* arg)
+            {
+                handlers = __pthread_get_cleanup_stack();
+                handler = __pthread_cancelation_handler(routine, arg, *handlers);
+                *handlers = &handler;
+            }
+            extern (D) void pop()(int execute)
+            {
+                if (execute)
+                    handler.__handler(handler.__arg);
+                *handlers = handler.__next;
+            }
+        }
+    }
+    else
+    {
+        static assert(false, "Unsupported platform");
+    }
+
 }
 else version (Darwin)
 {
@@ -675,6 +798,31 @@ else version (CRuntime_Bionic)
     }
 }
 else version (CRuntime_Musl)
+{
+    struct __ptcb {
+        _pthread_cleanup_routine f;
+        void* __x;
+        __ptcb* __next;
+    }
+    void _pthread_cleanup_push(__ptcb*, _pthread_cleanup_routine, void*);
+    void _pthread_cleanup_pop(__ptcb*, int);
+
+    struct pthread_cleanup
+    {
+        __ptcb __cleanup = void;
+
+        extern (D) void push(F: _pthread_cleanup_routine)(F routine, void* arg )
+        {
+            _pthread_cleanup_push( &__cleanup, routine, arg );
+        }
+
+        extern (D) void pop()( int execute )
+        {
+            _pthread_cleanup_pop( &__cleanup, execute );
+        }
+    }
+}
+else version (CRuntime_WASI)
 {
     struct __ptcb {
         _pthread_cleanup_routine f;
@@ -885,6 +1033,18 @@ else version (CRuntime_Musl)
     int pthread_barrierattr_init(pthread_barrierattr_t*);
     int pthread_barrierattr_setpshared(pthread_barrierattr_t*, int);
 }
+else version (CRuntime_WASI)
+{
+    enum PTHREAD_BARRIER_SERIAL_THREAD = -1;
+
+    int pthread_barrier_destroy(pthread_barrier_t*);
+    int pthread_barrier_init(pthread_barrier_t*, const scope pthread_barrierattr_t*, uint);
+    int pthread_barrier_wait(pthread_barrier_t*);
+    int pthread_barrierattr_destroy(pthread_barrierattr_t*);
+    int pthread_barrierattr_getpshared(const scope pthread_barrierattr_t*, int*);
+    int pthread_barrierattr_init(pthread_barrierattr_t*);
+    int pthread_barrierattr_setpshared(pthread_barrierattr_t*, int);
+}
 else version (CRuntime_UClibc)
 {
     enum PTHREAD_BARRIER_SERIAL_THREAD = -1;
@@ -945,6 +1105,11 @@ else version (CRuntime_Bionic)
 {
 }
 else version (CRuntime_Musl)
+{
+    int pthread_condattr_getclock(const scope pthread_condattr_t*, clockid_t*);
+    int pthread_condattr_setclock(pthread_condattr_t*, clockid_t);
+}
+else version (CRuntime_WASI)
 {
     int pthread_condattr_getclock(const scope pthread_condattr_t*, clockid_t*);
     int pthread_condattr_setclock(pthread_condattr_t*, clockid_t);
@@ -1032,6 +1197,14 @@ else version (CRuntime_Musl)
     int pthread_spin_trylock(pthread_spinlock_t*);
     int pthread_spin_unlock(pthread_spinlock_t*);
 }
+else version (CRuntime_WASI)
+{
+    int pthread_spin_destroy(pthread_spinlock_t*);
+    int pthread_spin_init(pthread_spinlock_t*, int);
+    int pthread_spin_lock(pthread_spinlock_t*);
+    int pthread_spin_trylock(pthread_spinlock_t*);
+    int pthread_spin_unlock(pthread_spinlock_t*);
+}
 else version (CRuntime_UClibc)
 {
     int pthread_spin_destroy(pthread_spinlock_t*);
@@ -1064,9 +1237,24 @@ int pthread_setconcurrency(int);
 
 version (CRuntime_Glibc)
 {
-    enum PTHREAD_MUTEX_NORMAL       = 0;
-    enum PTHREAD_MUTEX_RECURSIVE    = 1;
-    enum PTHREAD_MUTEX_ERRORCHECK   = 2;
+
+    version(linux)
+    {
+        enum PTHREAD_MUTEX_NORMAL       = 0;
+        enum PTHREAD_MUTEX_RECURSIVE    = 1;
+        enum PTHREAD_MUTEX_ERRORCHECK   = 2;
+    }
+    else version(Hurd)
+    {
+        enum PTHREAD_MUTEX_NORMAL       = 0;
+        enum PTHREAD_MUTEX_ERRORCHECK   = 1;
+        enum PTHREAD_MUTEX_RECURSIVE    = 2;
+
+    }
+    else
+    {
+        static assert(false, "Unsupported platform");
+    }
     enum PTHREAD_MUTEX_DEFAULT      = PTHREAD_MUTEX_NORMAL;
 
     int pthread_attr_getguardsize(const scope pthread_attr_t*, size_t*);
@@ -1204,6 +1392,16 @@ else version (CRuntime_Musl)
     }
     int pthread_mutexattr_settype(pthread_mutexattr_t*, int) @trusted;
 }
+else version (CRuntime_WASI)
+{
+    enum {
+        PTHREAD_MUTEX_NORMAL      = 0,
+        PTHREAD_MUTEX_RECURSIVE   = 1,
+        PTHREAD_MUTEX_ERRORCHECK  = 2,
+        PTHREAD_MUTEX_DEFAULT     = PTHREAD_MUTEX_NORMAL,
+    }
+    int pthread_mutexattr_settype(pthread_mutexattr_t*, int) @trusted;
+}
 else version (CRuntime_UClibc)
 {
     enum
@@ -1268,6 +1466,10 @@ else version (CRuntime_Bionic)
     int pthread_getcpuclockid(pthread_t, clockid_t*);
 }
 else version (CRuntime_Musl)
+{
+    int pthread_getcpuclockid(pthread_t, clockid_t*);
+}
+else version (CRuntime_WASI)
 {
     int pthread_getcpuclockid(pthread_t, clockid_t*);
 }
@@ -1342,6 +1544,12 @@ else version (CRuntime_Musl)
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, const scope timespec*);
     int pthread_rwlock_timedwrlock(pthread_rwlock_t*, const scope timespec*);
 }
+else version (CRuntime_WASI)
+{
+    int pthread_mutex_timedlock(pthread_mutex_t*, const scope timespec*);
+    int pthread_rwlock_timedrdlock(pthread_rwlock_t*, const scope timespec*);
+    int pthread_rwlock_timedwrlock(pthread_rwlock_t*, const scope timespec*);
+}
 else version (CRuntime_UClibc)
 {
     int pthread_mutex_timedlock(pthread_mutex_t*, const scope timespec*);
@@ -1400,6 +1608,22 @@ else version (Solaris)
     int pthread_mutexattr_setprioceiling(pthread_mutexattr_t*, int);
     int pthread_mutexattr_setprotocol(pthread_mutexattr_t*, int);
 }
+else version (Hurd)
+{
+  enum
+  {
+      PTHREAD_PRIO_NONE = 0,
+      PTHREAD_PRIO_INHERIT,
+      PTHREAD_PRIO_PROTECT,
+  }
+
+  int pthread_mutex_getprioceiling(const scope pthread_mutex_t*, int*);
+  int pthread_mutex_setprioceiling(pthread_mutex_t*, int, int*);
+  int pthread_mutexattr_getprioceiling(const scope pthread_mutexattr_t*, int*);
+  int pthread_mutexattr_getprotocol(const scope pthread_mutexattr_t*, int*);
+  int pthread_mutexattr_setprioceiling(pthread_mutexattr_t*, int);
+  int pthread_mutexattr_setprotocol(pthread_mutexattr_t*, int);
+}
 
 //
 // Scheduling (TPS)
@@ -1421,10 +1645,21 @@ int pthread_setschedprio(pthread_t, int);
 
 version (CRuntime_Glibc)
 {
-    enum
+    version (linux)
     {
-        PTHREAD_SCOPE_SYSTEM,
-        PTHREAD_SCOPE_PROCESS
+        enum
+        {
+            PTHREAD_SCOPE_SYSTEM,
+            PTHREAD_SCOPE_PROCESS
+        }
+    }
+    else version (Hurd)
+    {
+        enum
+        {
+            PTHREAD_SCOPE_SYSTEM = 0,
+            PTHREAD_SCOPE_PROCESS,
+        }
     }
 
     int pthread_attr_getinheritsched(const scope pthread_attr_t*, int*);
@@ -1571,6 +1806,18 @@ else version (CRuntime_Musl)
     int pthread_setschedparam(pthread_t, int, const scope sched_param*);
     int pthread_setschedprio(pthread_t, int);
 }
+else version (CRuntime_WASI)
+{
+    enum
+    {
+        PTHREAD_SCOPE_SYSTEM,
+        PTHREAD_SCOPE_PROCESS
+    }
+
+    int pthread_getschedparam(pthread_t, int*, sched_param*);
+    int pthread_setschedparam(pthread_t, int, const scope sched_param*);
+    int pthread_setschedprio(pthread_t, int);
+}
 else version (CRuntime_UClibc)
 {
     enum
@@ -1683,6 +1930,11 @@ else version (CRuntime_Musl)
     int pthread_attr_getstack(const scope pthread_attr_t*, void**, size_t*);
     int pthread_attr_setstacksize(pthread_attr_t*, size_t);
 }
+else version (CRuntime_WASI)
+{
+    int pthread_attr_getstack(const scope pthread_attr_t*, void**, size_t*);
+    int pthread_attr_setstacksize(pthread_attr_t*, size_t);
+}
 else version (CRuntime_UClibc)
 {
     int pthread_attr_getstack(const scope pthread_attr_t*, void**, size_t*);
@@ -1776,6 +2028,15 @@ else version (CRuntime_Bionic)
     int pthread_rwlockattr_setpshared(pthread_rwlockattr_t*, int);
 }
 else version (CRuntime_Musl)
+{
+    int pthread_condattr_getpshared(pthread_condattr_t*, int*);
+    int pthread_condattr_setpshared(pthread_condattr_t*, int);
+    int pthread_mutexattr_getpshared(pthread_mutexattr_t*, int*);
+    int pthread_mutexattr_setpshared(pthread_mutexattr_t*, int);
+    int pthread_rwlockattr_getpshared(pthread_rwlockattr_t*, int*);
+    int pthread_rwlockattr_setpshared(pthread_rwlockattr_t*, int);
+}
+else version (CRuntime_WASI)
 {
     int pthread_condattr_getpshared(pthread_condattr_t*, int*);
     int pthread_condattr_setpshared(pthread_condattr_t*, int);

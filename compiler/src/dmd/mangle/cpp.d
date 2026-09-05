@@ -34,6 +34,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
@@ -500,7 +501,7 @@ private final class CppMangleVisitor : Visitor
             }
             else
             {
-                .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported", ti.kind, ti.toPrettyChars, tv.valType.toChars());
+                .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported", ti.kind, ti.toPrettyChars, tv.valType.toErrMsg());
                 errors = true;
                 return;
             }
@@ -540,13 +541,13 @@ private final class CppMangleVisitor : Visitor
             }
             else
             {
-                .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template alias parameter is not supported", ti.kind, ti.toPrettyChars, o.toChars());
+                .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template alias parameter is not supported", ti.kind, ti.toPrettyChars, o.toErrMsg());
                 errors = true;
             }
         }
         else if (tp.isTemplateThisParameter())
         {
-            .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template this parameter is not supported", ti.kind, ti.toPrettyChars, o.toChars());
+            .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template this parameter is not supported", ti.kind, ti.toPrettyChars, o.toErrMsg());
             errors = true;
         }
         else
@@ -595,7 +596,7 @@ private final class CppMangleVisitor : Visitor
                     Type t = isType((*ti.tiargs)[j]);
                     if (t is null)
                     {
-                        .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported", ti.kind, ti.toPrettyChars, (*ti.tiargs)[j].toChars());
+                        .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported", ti.kind, ti.toPrettyChars, (*ti.tiargs)[j].toErrMsg());
                         errors = true;
                         return false;
                     }
@@ -1234,7 +1235,7 @@ private final class CppMangleVisitor : Visitor
         string symName;
 
         // test for special symbols
-        CppOperator whichOp = isCppOperator(ti.name);
+        CppOperator whichOp = isCppOperator(ti.tempdecl.ident);
         final switch (whichOp)
         {
         case CppOperator.Unknown:
@@ -1369,7 +1370,7 @@ private final class CppMangleVisitor : Visitor
             {
                 // Static arrays in D are passed by value; no counterpart in C++
                 .error(loc, "internal compiler error: unable to pass static array `%s` to extern(C++) function, use pointer instead",
-                    t.toChars());
+                    t.toErrMsg());
                 errors = true;
                 return;
             }
@@ -1408,7 +1409,7 @@ private final class CppMangleVisitor : Visitor
             p = "`shared` ";
         else
             p = "";
-        .error(loc, "internal compiler error: %stype `%s` cannot be mapped to C++\n", p, t.toChars());
+        .error(loc, "internal compiler error: %stype `%s` cannot be mapped to C++\n", p, t.toErrMsg());
         errors = true; //Fatal, because this error should be handled in frontend
     }
 

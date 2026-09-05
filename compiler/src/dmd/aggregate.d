@@ -23,7 +23,7 @@ import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
 import dmd.identifier;
@@ -72,7 +72,7 @@ const(char)* ClassKindToChars(ClassKind c) @safe
 }
 
 /**
- * If an aggregate has a pargma(mangle, ...) this holds the information
+ * If an aggregate has a pragma(mangle, ...) this holds the information
  * to mangle.
  */
 struct MangleOverride
@@ -294,7 +294,9 @@ public uint placeField(Loc loc, ref uint nextoffset, uint memsize, uint memalign
     addu(ofs, sz, overflow);
     if (overflow)
     {
-        error(loc, "max object size %u exceeded from adding field size %u + alignment adjustment %u + field offset %u when placing field in aggregate",
+        import dmd.globals : global;
+        auto eSink = global.errorSink;
+        eSink.error(loc, "max object size %u exceeded from adding field size %u + alignment adjustment %u + field offset %u when placing field in aggregate",
                 uint.max, memsize, actualAlignment, ofs);
         return 0;
     }

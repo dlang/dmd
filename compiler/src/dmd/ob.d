@@ -409,12 +409,9 @@ void toObNodes(ref ObNodes obnodes, Statement s)
 
         void visitCompound(CompoundStatement s)
         {
-            if (s.statements)
+            foreach (s2; s.statements)
             {
-                foreach (s2; *s.statements)
-                {
-                    visit(s2, stmtstate);
-                }
+                visit(s2, stmtstate);
             }
         }
 
@@ -430,7 +427,7 @@ void toObNodes(ref ObNodes obnodes, Statement s)
 
             gotoNextNode();
 
-            foreach (s2; *s.statements)
+            foreach (s2; s.statements)
             {
                 if (s2)
                 {
@@ -1356,8 +1353,8 @@ void genKill(ref ObState obstate, ObNode* ob)
             ObNode* ob;
             ObState* obstate;
 
-            extern (D) this(void delegate(ObNode*, VarDeclaration, Expression, bool) dgWriteVar,
-                            void delegate(Loc loc, ObNode* ob, VarDeclaration v, bool mutable) dgReadVar,
+            extern (D) this(scope void delegate(ObNode*, VarDeclaration, Expression, bool) dgWriteVar,
+                            scope void delegate(Loc loc, ObNode* ob, VarDeclaration v, bool mutable) dgReadVar,
                             ObNode* ob, ref ObState obstate) scope
             {
                 this.dgWriteVar = dgWriteVar;
@@ -2052,12 +2049,12 @@ void checkObErrors(ref ObState obstate)
 
                     if (pvsr.state == Undefined)
                     {
-                        .error(e.loc, "%s `%s` is reading from `%s` which is Undefined", v.kind, v.toPrettyChars, r.toChars());
+                        .error(e.loc, "%s `%s` is reading from `%s` which is Undefined", v.kind, v.toPrettyChars, r.toErrMsg());
                     }
                     else if (isBorrowedPtr(v))  // v is going to borrow from r
                     {
                         if (pvsr.state == Readonly)
-                            .error(e.loc, "%s `%s` is borrowing from `%s` which is Readonly", v.kind, v.toPrettyChars, r.toChars());
+                            .error(e.loc, "%s `%s` is borrowing from `%s` which is Readonly", v.kind, v.toPrettyChars, r.toErrMsg());
 
                         pvs.state = Borrowed;
                     }
@@ -2111,8 +2108,8 @@ void checkObErrors(ref ObState obstate)
             ObNode* ob;
             ObState* obstate;
 
-            extern (D) this(void delegate(Loc loc, ObNode* ob, VarDeclaration v, bool mutable, PtrVarState[]) dgReadVar,
-                            void delegate(ObNode*, PtrVarState[], VarDeclaration, Expression) dgWriteVar,
+            extern (D) this(scope void delegate(Loc loc, ObNode* ob, VarDeclaration v, bool mutable, PtrVarState[]) dgReadVar,
+                            scope void delegate(ObNode*, PtrVarState[], VarDeclaration, Expression) dgWriteVar,
                             PtrVarState[] cpvs, ObNode* ob, ref ObState obstate) scope
             {
                 this.dgReadVar  = dgReadVar;

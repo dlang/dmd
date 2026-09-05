@@ -27,7 +27,6 @@ import dmd.dclass;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.dtemplate;
-import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
@@ -185,16 +184,16 @@ extern(D) struct ParametersDFAInfo
 /// Information for data flow analysis per parameter
 extern(D) struct ParameterDFAInfo
 {
-    /// Parameter id: -1 this, -2 return, otherwise it is FuncDeclaration.parameters index
+    /// Parameter id: -1 for into unknown, -2 this, -3 return, otherwise it is FuncDeclaration.parameters index
     int parameterId;
 
-    /// Is the parameter non-null upon input, only applies to pointers.
-    Fact notNullIn;
-    /// Is the parameter non-null, applies only for by-ref parameters that are pointers.
-    Fact notNullOut;
+    /// User supplied attributes
+    Inferrable userSupplied;
+    /// Inferred attributes
+    Inferrable inferred;
 
-    /// Was the attributes for this parameter specified by the user?
-    bool specifiedByUser;
+    /// Is parameter by-ref, so will be unpredictable after call from callee's perspective
+    bool isByRef;
 
     /// Given a property, has it been specificed and is it guaranteed?
     enum Fact : ubyte
@@ -205,6 +204,95 @@ extern(D) struct ParameterDFAInfo
         NotGuaranteed,
         ///
         Guaranteed
+    }
+
+    ///
+    enum EscapedRelationship
+    {
+        ///
+        Unknown = 0b00,
+        ///
+        ByValue = 0b01,
+        ///
+        PointerTo = 0b10,
+        ///
+        Borrows = 0b11,
+    }
+
+    ///
+    struct Inferrable
+    {
+        /// Is the parameter non-null upon input, only applies to pointers.
+        Fact notNullIn;
+        /// Is the parameter non-null, applies only for by-ref parameters that are pointers.
+        Fact notNullOut;
+
+        /// If we escape into nothing, and still modellable (scope)
+        bool escapeIntoNothing;
+
+        /**
+        return, this, into-the-unknown, (29x) parameters...
+
+        00 = unknown
+        01 = by-value
+        10 = pointer-to
+        11 = borrows
+        */
+        ulong escapesInto;
+
+        /// Will this parameter escape into the following parameter id, at what relationship strength?
+        EscapedRelationship willEscape(int id)
+        {
+            if (id >= 29)
+                return EscapedRelationship.Unknown;
+
+            if (id == -3)
+                return cast(EscapedRelationship)(this.escapesInto & 0x3);
+            else if (id == -2)
+                return cast(EscapedRelationship)((this.escapesInto >> 2) & 0x3);
+            else if (id == -1)
+                return cast(EscapedRelationship)((this.escapesInto >> 4) & 0x3);
+
+            return cast(EscapedRelationship)((this.escapesInto >> (6 + (id * 2))) & 0x3);
+        }
+
+        /// Set this parameter's relationship strength to the following parameter id.
+        void willEscape(int id, EscapedRelationship as)
+        {
+            if (id >= 29)
+                return;
+
+            int shift;
+
+            if (id == -3)
+                shift = 0;
+            else if (id == -2)
+                shift = 2;
+            else if (id == -1)
+                shift = 4;
+            else
+                shift = 6 + (id * 2);
+
+            const ulong mask = 3UL << shift;
+            this.escapesInto = (this.escapesInto & ~mask) | ((cast(ulong) as & 0x3) << shift);
+        }
+    }
+
+    ///
+    Fact notNullIn()
+    {
+        return inferred.notNullIn > userSupplied.notNullIn ? inferred.notNullIn : userSupplied.notNullIn;
+    }
+
+    ///
+    Fact notNullOut()
+    {
+        return inferred.notNullOut > inferred.notNullOut ? inferred.notNullOut : userSupplied.notNullOut;
+    }
+
+    bool escapeIntoNothing()
+    {
+        return userSupplied.escapeIntoNothing || inferred.escapeIntoNothing;
     }
 }
 
@@ -389,7 +477,7 @@ extern (C++) class FuncDeclaration : Declaration
         //printf("FuncDeclaration::syntaxCopy('%s')\n", toChars());
         FuncDeclaration f = s ? cast(FuncDeclaration)s
                               : new FuncDeclaration(loc, endloc, ident, storage_class, type.syntaxCopy(), this.noreturn != 0);
-        f.frequires = frequires ? Statement.arraySyntaxCopy(frequires) : null;
+        f.frequires = frequires ? Statement.arraySyntaxCopy(frequires, null) : null;
         f.fensures = fensures ? Ensure.arraySyntaxCopy(fensures) : null;
         f.fbody = fbody ? fbody.syntaxCopy() : null;
         return f;
@@ -453,11 +541,11 @@ extern (C++) class FuncDeclaration : Declaration
         return cast(LabelDsymbol)s;
     }
 
-    override const(char)* toPrettyChars(bool QualifyTypes = false)
+    override const(char)* toPrettyChars(bool QualifyTypes = false, bool keepOneMember = false)
     {
-        if (isMain())
+        if (isDMain())
             return "D main";
-        return Dsymbol.toPrettyChars(QualifyTypes);
+        return Dsymbol.toPrettyChars(QualifyTypes, keepOneMember);
     }
 
     /** for diagnostics, e.g. 'int foo(int x, int y) pure' */
@@ -468,7 +556,7 @@ extern (C++) class FuncDeclaration : Declaration
         return buf.extractChars();
     }
 
-    final bool isMain() const
+    final bool isDMain() const
     {
         return ident == Id.main && resolvedLinkage() != LINK.c && !isMember() && !isNested();
     }
@@ -861,14 +949,14 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
         return (tok != TOK.function_) ? "delegate" : "function";
     }
 
-    override const(char)* toPrettyChars(bool QualifyTypes = false)
+    override const(char)* toPrettyChars(bool QualifyTypes = false, bool keepOneMember = false)
     {
         if (parent)
         {
             if (TemplateInstance ti = parent.isTemplateInstance())
-                return ti.tempdecl.toPrettyChars(QualifyTypes);
+                return ti.tempdecl.toPrettyChars(QualifyTypes, keepOneMember);
         }
-        return Dsymbol.toPrettyChars(QualifyTypes);
+        return Dsymbol.toPrettyChars(QualifyTypes, keepOneMember);
     }
 
     override void accept(Visitor v)

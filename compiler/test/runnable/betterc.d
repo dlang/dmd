@@ -43,6 +43,7 @@ extern (C) void main()
     testRuntimeLowerings();
     test18457();
     test20737();
+    ctfeOnly();
 }
 
 /*******************************************/
@@ -220,4 +221,23 @@ void test22427()
 
     char[] p;
     auto a = cast(int[])p;
+}
+
+void ctfeOnly() {
+    static int[] Data = ctfeOnlyArray(1, 2);
+}
+
+int[] ctfeOnlyArray(int a, int b) @__ctfe {
+    int[] result;
+
+    // Due to @__ctfe this will not codegen and therefore no error to ctfeOnlyAppend
+    ctfeOnlyAppend(result, a);
+    ctfeOnlyAppend(result, b);
+
+    return result;
+}
+
+void ctfeOnlyAppend(ref int[] result, int value) @__ctfe {
+    // Due to @__ctfe this will not codegen and therefore no error
+    result ~= value;
 }

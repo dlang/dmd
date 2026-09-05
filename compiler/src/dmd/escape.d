@@ -22,7 +22,7 @@ import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.errors;
+import dmd.errors : previewSupplementalFunc, previewErrorFunc;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -197,7 +197,7 @@ bool checkMutableArguments(ref Scope sc, FuncDeclaration fd, TypeFunction tf,
                                 : "mutable and const references %s `%s` in arguments to `%s()`";
             sc.eSink.error((*arguments)[i].loc, msg,
                   referenceVerb,
-                  v.toChars(),
+                  v.toErrMsg(),
                   fd ? fd.toPrettyChars() : "indirectly");
         }
         errors = true;
@@ -284,7 +284,7 @@ bool checkAssocArrayLiteralEscape(ref Scope sc, AssocArrayLiteralExp ae, bool ga
 }
 
 /**
- * An error occured due to `v` either being or not being `scope`.
+ * An error occurred due to `v` either being or not being `scope`.
  * If applicable, print why the `v` was inferred that way.
  *
  * Params:
@@ -891,7 +891,7 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
         {
             if (!gag)
                 sc.eSink.deprecation(ee.loc, "slice of static array temporary returned by `%s` assigned to longer lived variable `%s`",
-                    ee.toChars(), e1.toChars());
+                    ee.toErrMsg(), e1.toErrMsg());
             //result = true;
             return;
         }
@@ -1080,7 +1080,7 @@ bool checkNewEscape(ref Scope sc, Expression e, bool gag)
         if (log) printf("byexp %s\n", ee.toChars());
         if (!gag)
             sc.eSink.error(ee.loc, "escaping reference to stack allocated value returned by `%s` into allocated memory",
-                  ee.toChars());
+                  ee.toErrMsg());
         result = true;
     }
 
@@ -1162,10 +1162,11 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
             return;
         }
 
-        if (v.isTypesafeVariadicArray && p == sc.func)
+        if (v.isTypesafeVariadicArray && p == sc.func &&
+            v.type.toBasetype().isTypeDArray())
         {
             if (!gag)
-                sc.eSink.error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toChars(), v.toChars());
+                sc.eSink.error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toErrMsg(), v.toErrMsg());
             result = false;
         }
         else if (v.isScope())
@@ -1376,7 +1377,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
         else
         {
             if (!gag)
-                sc.eSink.error(ee.loc, "escaping reference to stack allocated value returned by `%s`", ee.toChars());
+                sc.eSink.error(ee.loc, "escaping reference to stack allocated value returned by `%s`", ee.toErrMsg());
             result = true;
         }
     }
@@ -1398,7 +1399,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
  * Params:
  *      va = variable to infer scope for
  *      reason = optional Expression that causes `va` to infer scope, used for supplemental error message
- * Returns: `true` if succesful or already `scope`
+ * Returns: `true` if successful or already `scope`
  */
 private
 bool inferScope(VarDeclaration va, RootObject reason)

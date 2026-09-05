@@ -71,7 +71,11 @@ else
 /**********************************
  * Extra Fields for FuncDeclaration
  */
-version (IN_GCC)
+version (NoBackend)
+{
+    mixin template FuncDeclarationExtra() { }
+}
+else version (IN_GCC)
 {
     mixin template FuncDeclarationExtra() { }
 }
@@ -84,7 +88,7 @@ else version (MARS)
     mixin template FuncDeclarationExtra()
     {
         VarDeclarations* alignSectionVars;  /// local variables with alignment needs larger than stackAlign
-        import dmd.backend.cc : Symbol;
+        import dmd.backend.symbol : Symbol;
         Symbol* salignSection;              /// pointer to aligned section, if any
     }
 }
@@ -94,7 +98,11 @@ else
 /**********************************
  * Extra Fields for FuncDeclaration
  */
-version (IN_GCC)
+version (NoBackend)
+{
+    mixin template alignSectionVarsExtra() { void doAlign() { } }
+}
+else version (IN_GCC)
 {
     mixin template alignSectionVarsExtra() { void doAlign() { } }
 }
@@ -131,7 +139,11 @@ else
  */
 mixin template alignSectionVarsContains()
 {
-    version (IN_GCC)
+    version (NoBackend)
+    {
+        bool isAlignSectionVar(VarDeclaration v) { return false; }
+    }
+    else version (IN_GCC)
     {
         bool isAlignSectionVar(VarDeclaration v) { return false; }
     }
@@ -203,7 +215,7 @@ mixin template HostObjectNotFound()
         else version (MARS)
         {
             eSink.errorSupplemental(loc, "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
-            eSink.errorSupplemental(loc, "config file: %.*s", configFile.length, configFile.ptr);
+            eSink.errorSupplemental(loc, "config file: %.*s", cast(int)configFile.length, configFile.ptr);
         }
         else
             static assert(0, "unknown compiler being built");

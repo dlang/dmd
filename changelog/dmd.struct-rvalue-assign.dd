@@ -1,0 +1,31 @@
+Disallow discarding an assignment to a struct rvalue
+
+It has always been an error for $(DDSUBLINK spec/struct, POD, POD) structs
+to assign from an rvalue. It is now an error to discard the result of an
+assignment from a struct rvalue when it would call `opAssign`, `opOpAssign`,
+`opUnary!"++"`, or `opUnary!"--"` and the struct has no tail-mutable pointer
+fields:
+
+---
+struct S
+{
+    int i;
+
+    void opAssign(S s);
+}
+
+S foo();
+
+void main()
+{
+    foo() = S(2); // Error, possible no-op
+}
+---
+
+Above, unless `opAssign` mutates global data, the assignment in `main`
+will have no effect and indicates a bug.
+
+If a struct rvalue assignment is needed to mutate global state, either
+call the operator overload method directly or use an lvalue.
+Note: Calling a non-const method on a struct rvalue
+$(DDSUBLINK spec/struct, member-functions, is allowed).

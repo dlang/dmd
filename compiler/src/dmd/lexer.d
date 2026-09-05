@@ -62,7 +62,11 @@ struct CompileEnv
  */
 class Lexer
 {
-    private __gshared OutBuffer stringbuffer;
+    private __gshared
+    {
+        OutBuffer stringbuffer;
+        OutBuffer stringbuffersecondary; // functions that use stringbuffer can call scan that needs this.
+    }
 
     BaseLoc* baseLoc;       // Used to generate `scanloc`, which is just an index into this data structure
     Loc scanloc;            // for error messages
@@ -734,7 +738,7 @@ class Lexer
                     if (doDocComment && t.ptr[2] == '*' && p - 4 != t.ptr)
                     {
                         // if /** but not /**/
-                        getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
+                        getDocComment(t, lastLine == startLoc.linnum && token.value != TOK.leftCurly, startLoc.linnum - lastDocLine > 1);
                         lastDocLine = linnum;
                     }
                     continue;
@@ -762,7 +766,7 @@ class Lexer
                             }
                             if (doDocComment && t.ptr[2] == '/')
                             {
-                                getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
+                                getDocComment(t, lastLine == startLoc.linnum && token.value != TOK.leftCurly, startLoc.linnum - lastDocLine > 1);
                                 lastDocLine = linnum;
                             }
                             //p = end;
@@ -794,7 +798,7 @@ class Lexer
                     }
                     if (doDocComment && t.ptr[2] == '/')
                     {
-                        getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
+                        getDocComment(t, lastLine == startLoc.linnum && token.value != TOK.leftCurly, startLoc.linnum - lastDocLine > 1);
                         lastDocLine = linnum;
                     }
                     p++;
@@ -866,7 +870,7 @@ class Lexer
                         if (doDocComment && t.ptr[2] == '+' && p - 4 != t.ptr)
                         {
                             // if /++ but not /++/
-                            getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
+                            getDocComment(t, lastLine == startLoc.linnum && token.value != TOK.leftCurly, startLoc.linnum - lastDocLine > 1);
                             lastDocLine = linnum;
                         }
                         continue;
@@ -1283,6 +1287,53 @@ class Lexer
         }
     }
 
+    /*********************************
+     * tk is on an opening $(LPAREN).
+     * Look ahead and determine if there is a comma at paren level 1.
+     */
+    final bool isTupleNotation(Token* tk)
+    {
+        int parens = 1;
+        int curlynest = 0;
+        while (1)
+        {
+            tk = peek(tk);
+            switch (tk.value)
+            {
+            case TOK.leftParenthesis:
+                parens++;
+                continue;
+            case TOK.rightParenthesis:
+                --parens;
+                if (parens)
+                    continue;
+                break;
+            case TOK.comma:
+                if (curlynest)
+                    continue;
+                if (parens == 1)
+                    return true;
+                continue;
+            case TOK.leftCurly:
+                curlynest++;
+                continue;
+            case TOK.rightCurly:
+                if (--curlynest >= 0)
+                    continue;
+                break;
+            case TOK.semicolon:
+                if (curlynest)
+                    continue;
+                break;
+            case TOK.endOfFile:
+                break;
+            default:
+                continue;
+            }
+            return false;
+        }
+    }
+
     /*******************************************
      * Parse escape sequence.
      */
@@ -1431,7 +1482,7 @@ class Lexer
                     p++;
                     break;
                 default:
-                    if (isalpha(*p) || (p != idstart && isdigit(*p)))
+                    if (isAlphaASCII(*p) || (p != idstart && isdigit(*p)))
                         continue;
                     error(loc, "unterminated named entity &%.*s;", cast(int)(p - idstart + 1), idstart);
                     c = '?';
@@ -1631,7 +1682,7 @@ class Lexer
             case 0:
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
-                result.setString();
+                result.setString(null);
                 // rewind `p` so it points to the EOF character
                 p--;
                 return;
@@ -1639,9 +1690,9 @@ class Lexer
                 if (c == terminator)
                 {
                     if (supportInterpolation)
-                        result.appendInterpolatedPart(stringbuffer);
+                        result.appendInterpolatedPart(stringbuffer[], Loc.init);
                     else
-                        result.setString(stringbuffer);
+                        result.setString(stringbuffer[]);
 
                     stringPostfix(result);
                     return;
@@ -1694,7 +1745,7 @@ class Lexer
             case 0:
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
-                t.setString();
+                t.setString(null);
                 // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOK.endOfFile token).
                 p--;
                 return TOK.hexadecimalString;
@@ -1704,7 +1755,7 @@ class Lexer
                     error("odd number (%d) of hex characters in hex string", n);
                     stringbuffer.writeByte(cast(char)v);
                 }
-                t.setString(stringbuffer);
+                t.setString(stringbuffer[]);
                 stringPostfix(t);
                 return TOK.hexadecimalString;
             default:
@@ -1766,7 +1817,7 @@ class Lexer
         uint blankrol = 0;
         uint startline = 0;
         p++;
-        stringbuffer.setsize(0);
+        stringbuffersecondary.setsize(0);
         while (1)
         {
             const s = p;
@@ -1785,7 +1836,7 @@ class Lexer
                 }
                 if (hereid)
                 {
-                    stringbuffer.writeUTF8(c);
+                    stringbuffersecondary.writeUTF8(c);
                     continue;
                 }
                 break;
@@ -1797,7 +1848,7 @@ class Lexer
             case 0:
             case 0x1A:
                 error("unterminated delimited string constant starting at %s", start.toChars());
-                result.setString();
+                result.setString(null);
                 // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOK.endOfFile token).
                 p--;
                 return;
@@ -1825,7 +1876,7 @@ class Lexer
                     delimright = ']';
                 else if (c == '<')
                     delimright = '>';
-                else if (isalpha(c) || c == '_' || (c >= 0x80 && charLookup.isStart(c)))
+                else if (isAlphaASCII(c) || c == '_' || (c >= 0x80 && charLookup.isStart(c)))
                 {
                     // Start of identifier; must be a heredoc
                     Token tok;
@@ -1875,7 +1926,7 @@ class Lexer
                     goto Ldone;
 
                 // we're looking for a new identifier token
-                if (startline && (isalpha(c) || c == '_' || (c >= 0x80 && charLookup.isStart(c))) && hereid)
+                if (startline && (isAlphaASCII(c) || c == '_' || (c >= 0x80 && charLookup.isStart(c))) && hereid)
                 {
                     Token tok;
                     auto psave = p;
@@ -1890,7 +1941,7 @@ class Lexer
                     }
                     p = psave;
                 }
-                stringbuffer.writeUTF8(c);
+                stringbuffersecondary.writeUTF8(c);
                 startline = 0;
             }
         }
@@ -1903,7 +1954,7 @@ class Lexer
             error("delimited string must end in `\"`");
         else
             error(token.loc, "delimited string must end in `%c\"`", delimright);
-        result.setString(stringbuffer);
+        result.setString(stringbuffersecondary[]);
         stringPostfix(result);
     }
 
@@ -1947,10 +1998,17 @@ class Lexer
             case TOK.rightCurly:
                 if (--nest == 0)
                 {
+                    const length = p - 1 - pstart;
                     if (supportInterpolation)
-                        result.appendInterpolatedPart(pstart, p - 1 - pstart);
+                    {
+                        normalizeCRLF(pstart[0 .. length]);
+                        result.appendInterpolatedPart(stringbuffer[], Loc.init);
+                    }
                     else
-                        result.setString(pstart, p - 1 - pstart);
+                    {
+                        normalizeCRLF(pstart[0 .. length]);
+                        result.setString(stringbuffer[]);
+                    }
 
                     stringPostfix(result);
                     return;
@@ -1960,8 +2018,7 @@ class Lexer
                 if (!supportInterpolation)
                     goto default;
 
-                stringbuffer.setsize(0);
-                stringbuffer.write(pstart, p - 1 - pstart);
+                normalizeCRLF(pstart[0 .. p - 1 - pstart]);
                 if (!handleInterpolatedSegment(result, start))
                     goto default;
 
@@ -1972,11 +2029,28 @@ class Lexer
                 continue;
             case TOK.endOfFile:
                 error("unterminated token string constant starting at %s", start.toChars());
-                result.setString();
+                result.setString(null);
                 return;
             default:
                 continue;
             }
+        }
+    }
+
+    // Normalize CRLF to LF in raw source bytes and write into stringbuffer
+    private void normalizeCRLF(const(char)[] src)
+    {
+        stringbuffer.setsize(0);
+        foreach (i, char c; src)
+        {
+            if (c == '\r')
+            {
+                if (i + 1 < src.length && src[i + 1] == '\n')
+                    continue;
+                stringbuffer.writeByte('\n');
+            }
+            else
+                stringbuffer.writeByte(c);
         }
     }
 
@@ -1990,12 +2064,13 @@ class Lexer
             // expression, at this level we need to scan until the closing ')'
 
             // always put the string part in first
-            token.appendInterpolatedPart(stringbuffer);
+            token.appendInterpolatedPart(stringbuffer[], Loc.init);
             stringbuffer.setsize(0);
 
             int openParenCount = 1;
             p++; // skip the first open paren
             auto pstart = p;
+            auto exprLoc = baseLoc.getLoc(cast(uint)(pstart - base));
             while (openParenCount > 0)
             {
                 // need to scan with the lexer to support embedded strings and other complex cases
@@ -2014,7 +2089,7 @@ class Lexer
             }
 
             // then put the interpolated string segment
-            token.appendInterpolatedPart(pstart[0 .. p - 1 - pstart]);
+            token.appendInterpolatedPart(pstart[0 .. p - 1 - pstart], exprLoc);
 
             stringbuffer.setsize(0); // make sure this is reset from the last token scan
             // otherwise something like i"$(func("thing")) stuff" can still include it
@@ -2115,9 +2190,9 @@ class Lexer
                 if (c != tc)
                     goto default;
                 if (supportInterpolation)
-                    t.appendInterpolatedPart(stringbuffer);
+                    t.appendInterpolatedPart(stringbuffer[], Loc.init);
                 else
-                    t.setString(stringbuffer);
+                    t.setString(stringbuffer[]);
                 if (!Ccompile)
                     stringPostfix(t);
                 return;
@@ -2127,7 +2202,7 @@ class Lexer
                 p--;
             Lunterminated:
                 error("unterminated string constant starting at %s", start.toChars());
-                t.setString();
+                t.setString(null);
                 return;
             default:
                 if (c & 0x80)
@@ -2404,7 +2479,7 @@ class Lexer
             case '.':
                 if (p[1] == '.')
                     goto Ldone; // if ".."
-                if (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80)
+                if (isAlphaASCII(p[1]) || p[1] == '_' || p[1] & 0x80)
                 {
                     if (Ccompile && (p[1] == 'f' || p[1] == 'F' || p[1] == 'l' || p[1] == 'L'))
                         goto Lreal;  // if `0.f` or `0.L`
@@ -2477,7 +2552,7 @@ class Lexer
             case '.':
                 if (p[1] == '.')
                     goto Ldone; // if ".."
-                if (base <= 10 && n > 0 && (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80))
+                if (base <= 10 && n > 0 && (isAlphaASCII(p[1]) || p[1] == '_' || p[1] & 0x80))
                 {
                     if (Ccompile && base == 10 &&
                         (p[1] == 'e' || p[1] == 'E' || p[1] == 'f' || p[1] == 'F' || p[1] == 'l' || p[1] == 'L'))
@@ -3285,9 +3360,9 @@ class Lexer
     /***************************************
      * Scan forward to start of next line.
      * Params:
-     *    defines = send characters to `defines`
+     *    sink = send characters in the line to this delegate
      */
-    final void skipToNextLine(OutBuffer* defines = null)
+    final void skipToNextLine(scope void delegate(char c) nothrow sink = null)
     {
         while (1)
         {
@@ -3308,8 +3383,8 @@ class Lexer
                 break;
 
             default:
-                if (defines)
-                    defines.writeByte(*p); // don't care about Unicode line endings for C
+                if (sink)
+                    sink(*p); // don't care about Unicode line endings for C
                 else if (*p & 0x80)
                 {
                     const u = decodeUTF();

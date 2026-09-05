@@ -11,6 +11,8 @@
 
 module rt.alloca;
 
+version (DigitalMars):
+
 /*******************************************
  * Allocate data from the caller's stack frame.
  * This is a 'magic' function that needs help from the compiler to
@@ -197,6 +199,11 @@ extern (C) void* __alloca(int nbytes)
         ret                     ;
     }
     }
+  }
+  else version (AArch64)
+  {
+        import core.stdc.stdlib : malloc;
+	return malloc(nbytes);   // TODO AArch64
   }
   else
         static assert(0);

@@ -84,6 +84,32 @@ else
 }
 
 /**
+* When applied to a global variable, causes it to be emitted to a
+* non-standard object file/executable section.
+*
+* The target platform might impose certain restrictions on the format for
+* section names.
+*
+* Examples:
+* ---
+* import core.attributes;
+*
+* @section("mySection") int myGlobal;
+* ---
+*/
+version (DigitalMars)
+{
+    struct section
+    {
+        string name;
+    }
+}
+else
+{
+    // GDC and LDC declare this attribute in their own modules.
+}
+
+/**
  * Use this attribute to attach an Objective-C selector to a method.
  *
  * This is a special compiler recognized attribute, it has several
@@ -320,3 +346,14 @@ enum mustuse;
  * This is only allowed on `shared` static constructors, not thread-local module constructors.
  */
 enum standalone;
+
+/**
+ * Use this attribute on a function parameter or on a function to tell the
+ * fast DFA engine's borrow checker that the function's return value borrows
+ * from that parameter (or from `this`, when placed on the function).
+ *
+ * This is an experimental feature used by the fast DFA engine (enabled with
+ * the `-preview=fastdfa` switch). It is subject to change and may be removed
+ * at a later date without notice; do not rely on it in production code.
+ */
+enum __fastdfa_returnborrow;

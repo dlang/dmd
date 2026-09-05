@@ -1,0 +1,32 @@
+Foreach variable shadowing is now an error
+
+A deprecation introduced in DMD 2.089.0 for foreach variables shadowing
+outer scope symbols has been upgraded to an error.
+
+This affects both variables declared inside a foreach body that shadow
+outer variables, and duplicate variable names in foreach parameter lists
+when using `opApply`.
+
+---
+void main()
+{
+    int[int] arr;
+    int x;
+    foreach (i, j; arr)
+    {
+        int x; // Error: variable `x` is shadowing variable `...x`
+    }
+}
+---
+
+---
+struct Foo
+{
+    int opApply(scope int delegate(size_t, size_t, ref uint)) => 0;
+}
+
+void main()
+{
+    foreach (x, y, x; Foo()) {} // Error: variable `x` is shadowing variable `...x`
+}
+---

@@ -55,6 +55,24 @@ void test20908()
     shared U u;
 }
 
+// https://github.com/dlang/dmd/issues/20496
+void test20496()
+{
+    shared(int)[] dynamicArray;
+    foreach (ref element; dynamicArray)
+    {
+        void byRef(ref shared(int)) {}
+        byRef(element);
+    }
+
+    shared int[1] staticArray;
+    foreach (ref element; staticArray)
+    {
+        void byRef(ref shared(int)) {}
+        byRef(element);
+    }
+}
+
 // Simple tests for `DotVarExp`
 // A `DotVarExp` is `a.b`. If `a` is a `shared ref`,
 // it is of type `shared(T)*` (as opposed to `shared(T*)`).
@@ -155,4 +173,18 @@ struct Argh
     {
         while(!cas(&locked, false, true)) {}
     }
+}
+
+// https://github.com/dlang/dmd/issues/23233
+class ClassWithSharedMember
+{
+    void fail(shared(uint)* x);
+
+    void test()
+    {
+        fail(&x);
+    }
+
+private:
+    shared uint x;
 }

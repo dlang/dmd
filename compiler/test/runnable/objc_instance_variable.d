@@ -29,6 +29,8 @@ class Bar : Foo
     void bar() @selector("bar") {}
 }
 
+extern (Objective-C) extern class NSString {}
+
 // This is implemented in `runnable/extra-files/objc_instance_variable.m` and
 // returns the value of instance variable `c`.
 extern (C) int getInstanceVariableC(Foo);
@@ -49,4 +51,25 @@ void main()
 
     // if non-fragile instance variables didn't work this would be `4`.
     assert(getInstanceVariableC(bar) == 3);
+
+    // static/dynamic casting
+    Foo foo = bar;
+    auto bar2 = cast(Bar) foo;
+    assert(bar is bar2);
+
+    NSObject nsobj = foo;
+    auto foo2 = cast(Foo) nsobj;
+    assert(foo is foo2);
+
+    // for dmd, casting within Objective-C is a reinterpret cast
+    version(DigitalMars)
+        assert(cast(NSString) bar !is null);
+
+    // casting from/to other linkage is always null
+    static extern(C++) class Cpp {}
+    assert(cast(Object) bar is null);
+    assert(cast(Cpp) bar is null);
+
+    auto obj = new Object;
+    assert(cast(Bar) obj is null);
 }

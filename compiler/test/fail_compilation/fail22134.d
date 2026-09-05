@@ -1,8 +1,8 @@
 // https://issues.dlang.org/show_bug.cgi?id=22134
-/* REQUIRED_ARGS: -de
+/*
 TEST_OUTPUT:
 ---
-fail_compilation/fail22134.d(12): Deprecation: `this.arr[i]` has no effect
+fail_compilation/fail22134.d(12): Error: `this.arr[i]` has no effect
 ---
 */
 struct StackBuffer

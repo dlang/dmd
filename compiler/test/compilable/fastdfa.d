@@ -2,6 +2,32 @@
  * REQUIRED_ARGS: -preview=fastdfa
  */
 
+struct S1
+{
+    S2 s2;
+}
+
+struct S2
+{
+    int field;
+}
+
+struct S3
+{
+    S2* s2;
+}
+
+struct S4
+{
+    int* field;
+}
+
+struct S5
+{
+    S5* next;
+    S5* another;
+}
+
 void typeNextIterate(Type t)
 {
     Type ts;
@@ -69,6 +95,86 @@ void pickPtr(bool condition)
     int* ptr = condition ? &i1 : &i2;
 }
 
+void uninitInitStruct()
+{
+    S1 s = void;
+    s.s2 = S2(); // ok, may init
+}
+
+void uninitFieldWillInit()
+{
+    S2 s = void;
+    s.field = 2; // ok
+}
+
+void uninitTakePointer()
+{
+    int var = void;
+    int* ptr = &var; // ok
+}
+
+void uninitBufferTakePointer1()
+{
+    char[64] buf = void;
+    char* ptr = buf.ptr; // ok
+}
+
+void uninitBufferTakePointer2()
+{
+    char[64] buf = void;
+    char* ptr = &buf[0]; // ok
+}
+
+void pointerToUninitBufferCall()
+{
+    void toCall(ubyte*)
+    {
+    }
+
+    ubyte[64] buf = void;
+    ubyte* ptr = buf.ptr;
+
+    toCall(ptr);
+}
+
+void uninitPointerArithmetic()
+{
+    ubyte[16] result = void;
+    auto p2 = cast(ulong*)((cast(void*)&result) + 8); // ok
+}
+
+void escapeCleanupRequiredNoRead()
+{
+    struct S
+    {
+        ~this()
+        {
+        }
+    }
+
+    S* ptr;
+
+    {
+        S buf;
+        ptr = &buf;
+        buf.__xdtor;
+    } // ok
+}
+
+void escapeToGlobalSystem1()
+{
+    __gshared int* ptr;
+    int var;
+
+    ptr = &var; // ok
+}
+
+void nullPtrVarDerefOuter()
+{
+    int* ptr;
+    *(&ptr) = new int;
+}
+
 @safe:
 
 bool isNull1(int* ptr)
@@ -115,12 +221,12 @@ int* nullable1(int* ptr)
     return ret;
 }
 
-void nullable2a(S2* head, S2* previous)
+void nullable2a(S5* head, S5* previous)
 {
-    S2* start;
+    S5* start;
 
     {
-        S2* current;
+        S5* current;
 
         if (start is null)
         {
@@ -137,10 +243,10 @@ void nullable2a(S2* head, S2* previous)
     }
 }
 
-void nullable2b(S2* start, S2* head, S2* previous)
+void nullable2b(S5* start, S5* head, S5* previous)
 {
     {
-        S2* current;
+        S5* current;
 
         if (start is null)
         {
@@ -157,7 +263,7 @@ void nullable2b(S2* start, S2* head, S2* previous)
     }
 }
 
-void nullable3(S2** nextParent, S2* r)
+void nullable3(S5** nextParent, S5* r)
 {
     if (*nextParent is null)
         *nextParent = r; // should not error
@@ -168,7 +274,7 @@ void nullable4(int* temp) @trusted
     int buffer;
 
     if (temp is null)
-        temp = &buffer;
+        temp = &buffer; // okay, same loopy label lifetime
 
     int v = *temp; // should not error
 }
@@ -182,18 +288,28 @@ void truthiness1()
     bool b = !a, c = a != false, d = a == false;
 }
 
-struct S1
+void theSitchFinally1()
 {
-    int* field;
+    {
+        goto Label;
+    } // have jumped
+
+    {
+        Label: // don't know that we consumed the jump
+    }
+
+    // \/ ignored
+
+    int* ptr;
+
+    scope (exit)
+        int vS = *ptr; // ok
+
+    int vMid = *ptr; // ok
+    truthinessNo;
 }
 
-struct S2
-{
-    S2* next;
-    S2* another;
-}
-
-void trackS1(S1 s)
+void trackS1(S4 s)
 {
     bool b = s.field !is null;
 }
@@ -389,7 +505,7 @@ void rotateForChildren(void** parent)
         return;
 }
 
-void removeValue(S2* valueNode)
+void removeValue(S5* valueNode)
 {
     if (valueNode.another !is null)
         valueNode.next.next = valueNode.next;
@@ -1121,3 +1237,195 @@ void checkFloatInit5() {
         float t = var * 2;
     }
 }
+
+ubyte[] copySliceAssign1(ubyte[] input)
+{
+    ubyte[] output = new ubyte[input.length];
+    return output[] = input[];
+} // ok
+
+ubyte[][] copySliceAssign2(ubyte[] input)
+{
+    ubyte[][] output = new ubyte[][input.length];
+    return output[] = input;
+} // ok
+
+void branchMayNull(S2 cond)
+{
+    int* ptr;
+
+    if (cond.field == 2)
+        ptr = new int;
+    else
+        ptr = null;
+
+    if (cond.field == 2)
+        int val = *ptr;
+}
+
+void unsafeThrowOfStack1()
+{
+    scope string myText = "hi";
+    throw new Exception(myText); // ok, constructor for Exception is not annotated
+}
+
+void checkCtfeOnly() @__ctfe
+{
+    int* ptr;
+    int val = *ptr;
+}
+
+/****************** Borrow checker (ok) ******************/
+
+@system:
+
+enum __fastdfa_returnborrow;
+
+int* borrowFn(@__fastdfa_returnborrow int* x) @trusted { return x; }
+int** borrowFn2(@__fastdfa_returnborrow int** x) @trusted { return x; }
+
+struct BorrowS { int field; }
+struct BorrowDtor { ~this() {} int field; }
+
+struct BorrowStruct
+{
+    int* p;
+
+    int** get() @__fastdfa_returnborrow @trusted { return &this.p; }
+}
+
+class BorrowClass
+{
+    int* p;
+
+    int** get() @__fastdfa_returnborrow @trusted { return &this.p; }
+}
+
+void borrowTakeConst(const(int)* p) @safe {}
+void methodTakeConst(const(int**) p) @safe {}
+
+void borrowOk1()
+{
+    int x;
+    {
+        int* b = borrowFn(&x);
+        int v = *b;
+    }
+    x = 5; // ok, borrow scope ended
+}
+
+void borrowOk2()
+{
+    int x;
+    {
+        int* b = borrowFn(&x);
+    }
+    x = 5; // ok
+}
+
+void borrowOk4()
+{
+    int x;
+    {
+        int* b = borrowFn(&x);
+        int* c = b; // ok, propagation
+        int v = *c;
+    }
+    x = 5;
+}
+
+void borrowOk5()
+{
+    int x;
+    int* b = borrowFn(&x);
+    borrowTakeConst(&x); // ok
+}
+
+void borrowOk6()
+{
+    BorrowS s;
+    {
+        int* b = borrowFn(&s.field);
+    }
+    s.field = 5; // ok
+}
+
+void borrowOk7()
+{
+    int x;
+    int* b = borrowFn(&x);
+    x = 5; // ok: mutating a basic type value doesn't invalidate the borrow
+}
+
+void borrowOk9()
+{
+    BorrowS s;
+    int* b = borrowFn(&s.field);
+    s.field = 5; // ok: basic type field mutation
+}
+
+void borrowSysOk(int** p) @system
+{
+    int x;
+    *p = borrowFn(&x); // ok
+}
+
+void borrowLoopOk1()
+{
+    int x;
+    for (int i = 0; i < 2; ++i)
+    {
+        int* b = borrowFn(&x); // loop-local borrow
+        b = null; // ok, loop-local change allowed
+    }
+    x = 5; // ok
+}
+
+void borrowLoopOk2()
+{
+    int x;
+    int* b;
+    for (int i = 0; i < 2; ++i)
+    {
+        b = borrowFn(&x); // first assignment, b declared outside loop
+    }
+    // b holds a borrow of x here; no mutation, so ok
+}
+
+void methodPassOk()
+{
+    BorrowStruct s;
+    int** b = s.get();
+    methodTakeConst(&s.p); // ok: const parameter
+}
+
+void methodOk()
+{
+    BorrowStruct s;
+    {
+        int** b = s.get();
+        int v = **b;
+    }
+    s.p = null; // ok: borrow scope ended
+}
+
+void classOk()
+{
+    BorrowClass c = new BorrowClass;
+    int** b = c.get(); // ok: heap owner, no lifetime constraint
+}
+
+void borrowInConditionNoInfectElse()
+{
+    int* x;
+    if (borrowFn2(&x) != null)
+    {
+        // true branch - borrow active
+    }
+    else
+    {
+        x = null; // ok - borrow not active in false branch
+    }
+}
+
+/****************** End borrow checker (ok) ******************/

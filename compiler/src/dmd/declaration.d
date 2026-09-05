@@ -18,11 +18,10 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.dsymbol;
 import dmd.dtemplate;
-import dmd.errors;
+import dmd.errors : fatal;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
-import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -40,6 +39,7 @@ import dmd.visitor;
  */
 void ObjectNotFound(Loc loc, Identifier id)
 {
+    import dmd.globals;
     global.gag = 0; // never gag the fatal error
     const dmdConfFile = global.inifilename.length ? FileName.canonicalName(global.inifilename) : "not found";
 
@@ -495,7 +495,6 @@ extern (C++) class VarDeclaration : Declaration
             }
         }
 
-        assert(type || _init);
         this.type = type;
         this._init = _init;
         ctfeAdrOnStack = AdrOnStackNone;
@@ -597,7 +596,10 @@ extern (C++) class VarDeclaration : Declaration
             Dsymbol parent = toParent();
             if (!parent && !(storage_class & STC.static_))
             {
-                .error(loc, "%s `%s` forward referenced", kind, toPrettyChars);
+                import dmd.globals : global;
+                import dmd.errorsink;
+                auto eSink = global.errorSink;
+                eSink.error(loc, "%s `%s` forward referenced", kind, toPrettyChars);
                 type = Type.terror;
             }
             else if (storage_class & (STC.static_ | STC.extern_ | STC.gshared) ||
@@ -709,33 +711,25 @@ extern (C++) final class SymbolDeclaration : Declaration
 }
 
 /***********************************************************
+ * Generate Identifier for TypeInfo corresponding to `t`
+ * Params:
+ *      t = type to generate TypeInfo identifier for
+ * Returns:
+ *      the identifier
  */
 private Identifier getTypeInfoIdent(Type t)
 {
-    import dmd.mangle;
-    import core.stdc.stdlib;
-    import dmd.root.rmem;
     // _init_10TypeInfo_%s
     OutBuffer buf;
     buf.reserve(32);
+    import dmd.mangle;
     mangleToBuffer(t, buf);
 
-    const slice = buf[];
+    OutBuffer buf2;
+    buf2.reserve(19 + size_t.sizeof * 3 + buf.length + 1);
+    buf2.printf("_D%uTypeInfo_%.*s6__initZ", cast(uint)(9+buf.length), cast(int)buf.length, buf[].ptr);
 
-    // Allocate buffer on stack, fail over to using malloc()
-    char[128] namebuf;
-    const namelen = 19 + size_t.sizeof * 3 + slice.length + 1;
-    auto name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)Mem.check(malloc(namelen));
-
-    const length = snprintf(name, namelen, "_D%lluTypeInfo_%.*s6__initZ",
-            cast(ulong)(9 + slice.length), cast(int)slice.length, slice.ptr);
-    //printf("%p %s, deco = %s, name = %s\n", this, toChars(), deco, name);
-    assert(0 < length && length < namelen); // don't overflow the buffer
-
-    auto id = Identifier.idPool(name[0 .. length]);
-
-    if (name != namebuf.ptr)
-        free(name);
+    auto id = Identifier.idPool(buf2[]);
     return id;
 }
 

@@ -805,7 +805,7 @@ pure @safe:
             return ret;
         }
 
-        // call parseType() and return error if occured
+        // call parseType() and return error if occurred
         enum parseTypeOrF = "parseType(errStatus); if (errStatus) return dst.bslice_empty;";
 
         switch ( t )
@@ -1286,7 +1286,7 @@ pure @safe:
                     pos--;
             }
 
-            // call parseType() and return error if occured
+            // call parseType() and return error if occurred
             enum parseTypeOrF = "parseType(errStatus); if (errStatus) return;";
 
             switch ( front )
@@ -2878,10 +2878,11 @@ extern (C) private
         import core.stdc.stdlib : strtold;
         import core.stdc.stdio : snprintf;
         import core.stdc.errno : errno;
+        import core.stdc.config : c_long_double;
 
         const err = errno;
         real val = strtold(nptr.ptr, null);
-        snprintf(nptr.ptr, nptr.length, "%#Lg", val);
+        snprintf(nptr.ptr, nptr.length, "%#Lg", cast(c_long_double)val);
         errno = err;
     }
 }
@@ -2996,6 +2997,9 @@ CXX_DEMANGLER getCXXDemangler() nothrow @trusted
         version (OpenBSD) import core.sys.openbsd.dlfcn : RTLD_DEFAULT;
         version (Darwin) import core.sys.darwin.dlfcn : RTLD_DEFAULT;
         version (Solaris) import core.sys.solaris.dlfcn : RTLD_DEFAULT;
+        version (Hurd) import core.sys.hurd.dlfcn : RTLD_DEFAULT;
+        version (Emscripten) import core.sys.posix.dlfcn : RTLD_DEFAULT;
+        version (CRuntime_WASI) import core.sys.posix.dlfcn : RTLD_DEFAULT;
 
         if (auto found = cast(CXX_DEMANGLER) dlsym(RTLD_DEFAULT, "__cxa_demangle"))
             atomicStore(__cxa_demangle, found);

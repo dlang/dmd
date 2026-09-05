@@ -194,12 +194,15 @@ extern (C++) final class ArrayInitializer : Initializer
 
     bool isAssociativeArray() const pure
     {
+        if (!index.length)
+            return false;
+
         foreach (idx; index)
         {
-            if (idx)
-                return true;
+            if (!idx)
+                return false;
         }
-        return false;
+        return true;
     }
 
     override void accept(Visitor v)

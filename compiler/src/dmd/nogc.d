@@ -32,6 +32,7 @@ import dmd.expressionsem;
 import dmd.func;
 import dmd.funcsem : isRootTraitsCompilesScope;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -114,7 +115,7 @@ public:
      */
     private bool setGC(Expression e, const(char)* msg)
     {
-        if (sc.debug_)
+        if (sc.debug_ || sc.ctfe || sc.ctfeBlock)
             return false;
         if (checkOnly)
         {
@@ -123,7 +124,7 @@ public:
         }
         if (sc.setGC(f, e.loc, msg))
         {
-            error(e.loc, "%s causes a GC allocation in `@nogc` %s `%s`", msg, f.kind(), f.toChars());
+            error(e.loc, "%s causes a GC allocation in `@nogc` %s `%s`", msg, f.kind(), f.toErrMsg());
             err = true;
             return true;
         }
@@ -149,7 +150,7 @@ public:
 
     override void visit(ArrayLiteralExp e)
     {
-        const dim = e.elements ? e.elements.length : 0;
+        const dim = e.length;
         if (e.type.toBasetype().isTypeSArray() || dim == 0 || e.onstack)
             return;
         if (setGC(e, "this array literal"))
@@ -189,6 +190,8 @@ public:
             return;
         if (setGC(e, "this associative array literal"))
             return;
+        if (e.lowering)
+            walkPostorder(e.lowering, this);
         f.printGCUsage(e.loc, "associative array literal may cause a GC allocation");
     }
 

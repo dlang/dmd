@@ -46,6 +46,8 @@ void main()
     testNew();
     testAliasThis();
     testAliasThis2();
+    testStringKey();
+    test17641();
 }
 
 void testKeysValues1()
@@ -1047,4 +1049,75 @@ void testAliasThis2()
     aa[B(5)] = true;
     assert(B(5) in aa);
     assert(A(false, 5) in aa);
+}
+
+void testStringKey()
+{
+    // allow conversion of key of type const(char)[] to string for backward compatibility
+    int[string] properties;
+
+    properties["0"] = 0;
+
+    const(char)[] keyName = "1";
+    properties[keyName] = 1;
+
+    // https://github.com/dlang/dmd/issues/23320
+    const keyName2 = keyName;
+    properties[keyName2] = 2;
+}
+
+void test22510()
+{
+    static struct S(AA)
+    {
+        AA aa_;
+        auto aa() inout => this.aa_.dup;
+    }
+    auto testDup(AA)()
+    {
+        S!AA s;
+        return s.aa();
+    }
+    auto aa_ii = testDup!(int[int])();
+    static assert(is(typeof(aa_ii) == int[int]));
+
+    auto aa_cii = testDup!(const(int[int]))();
+    static assert(is(typeof(aa_cii) == int[int]));
+
+    static struct T
+    {
+        char[] s; // non const indirection disallows conversion of const(T) -> T when copying
+    }
+    auto aa_it = testDup!(int[T])();
+    static assert(is(typeof(aa_it) == int[T]));
+
+    auto aa_cit = testDup!(const(int[T]))();
+    static assert(is(typeof(aa_cit) == int[T]));
+
+    auto aa_ti = testDup!(T[int])();
+    static assert(is(typeof(aa_ti) == T[int]));
+
+    auto aa_cti = testDup!(const(T[int]))();
+    static assert(is(typeof(aa_cti) == const(T)[int]));
+}
+
+void test17641() @safe
+{
+    alias BinBlob = int[32];
+    BinBlob rv(int i) @safe { BinBlob r = i; return r; }
+
+    int[BinBlob] myMap;
+    foreach (int i; 1 .. 10)
+        myMap[rv(i)] = i;
+
+    int i = 10;
+    BinBlob[] keys_second_pass;
+    foreach (key, value; myMap) // terminates because it iterates over the initial bucket array only
+    {
+        version (BugFree) { /* Not storing the key does not segv */ }
+        else               keys_second_pass ~= key;
+
+        foreach (int j; 0 .. 100_000)
+            myMap[rv(++i)]=i;
+    }
 }

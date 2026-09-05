@@ -1,0 +1,57 @@
+The fast DFA engine has gained a borrow checker
+
+The fast DFA engine's escape analysis can now track borrows, protecting against
+mutation of, and outliving, the borrowed-from object.
+
+A function signals that its return value borrows from a parameter (or from
+`this`, when placed on the function) by annotating it with the
+`__fastdfa_returnborrow` attribute:
+
+```d
+import core.attribute : __fastdfa_returnborrow;
+
+struct Buffer
+{
+    int* data;
+
+    // return borrows from `this`
+    int* get() @__fastdfa_returnborrow => data;
+}
+
+void methodOutliveErr()
+{
+    int* b;
+    {
+        Buffer s;
+        b = s.get(); // error: borrow of `this` outlives the owner
+    }
+}
+```
+
+The borrow checker enforces the following protections at the call site:
+
+* The owner of an active borrow cannot have a reference-typed value reassigned
+  while the borrow is alive.
+* A borrow variable cannot be changed (reassigned, set to null, etc.) unless it
+  is declared inside the loop it is changed in.
+* A borrow cannot outlive the variable it borrows from (including being returned
+  from a function when the borrow is of a stack local).
+* The owner of an active borrow may not be passed to a function whose parameter
+  could mutate it; the parameter must be `const`/`immutable` where it reaches
+  the cell.
+* Storing a borrow through a dereference is rejected in `@safe` code.
+
+It is intended to protect reference counting types, and gates the introduction of reference counting in language.
+It may be used to protect other forms of borrowing such as by-ref match expressions for sumtypes.
+
+Unlike traditional borrow checkers (such as Rust's or D's `@live`) which focus primarily on aliasing guarantees through whole-function analysis, this implementation permits aliasing.
+Instead, it focuses on intra-procedural flow checks to safeguard reference-counted types and safely enable potential future language features (such as language-level reference counting and by-ref match expressions for sumtypes).
+
+While `@live` relies on DIP1000 annotations (`scope`, `return`, `return ref`), this feature builds directly on the fast DFA engine's abstract points-to graph, offering richer modeling of how memory moves through code.
+Currently the engine's escape analysis does not offer in language attributes, so the UDA `__fastdfa_returnborrow` is required, however it would slot into any future syntax cleanly.
+
+No breaking changes are expected.
+This is an opt-in feature of the fast DFA engine, which itself is opt-in.
+
+This is an experimental feature, enabled with the `-preview=fastdfa` switch. It
+is subject to change and may be removed at a later date.

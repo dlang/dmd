@@ -21,7 +21,6 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
-import dmd.backend.global;
 import dmd.backend.mem;
 
 
@@ -81,7 +80,7 @@ void code_free(code* cstart)
         {
             if (c.Iop == ASM)
             {
-                mem_free(c.IEV1.bytes);
+                mem_free(c.IEV1.data.ptr);
             }
             code* cnext = code_next(c);
             if (!cnext)

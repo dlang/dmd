@@ -27,7 +27,7 @@ import dmd.backend.bcomplex;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.oper;
-import dmd.backend.global;
+import dmd.backend.global : error;
 import dmd.backend.el;
 import dmd.backend.ty;
 import dmd.backend.type;
@@ -70,7 +70,6 @@ int boolres(elem* e)
                 case TYbool:
                 case TYwchar_t:
                 case TYenum:
-                case TYmemptr:
                 case TYlong:
                 case TYulong:
                 case TYdchar:

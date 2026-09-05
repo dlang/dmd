@@ -257,8 +257,8 @@ else version (NetBSD)
         static assert(0);
     alias jmp_buf = _jmp_buf[_JBLEN];
 
-    int  setjmp(ref jmp_buf);
-    void longjmp(ref jmp_buf, int);
+    pragma(mangle, "__setjmp14")  int  setjmp(ref jmp_buf);
+    pragma(mangle, "__longjmp14") void longjmp(ref jmp_buf, int);
 }
 else version (OpenBSD)
 {
@@ -486,8 +486,8 @@ else version (NetBSD)
         static assert(0);
     alias sigjmp_buf = _sigjmp_buf[_JBLEN + 1];
 
-    int  sigsetjmp(ref sigjmp_buf);
-    void siglongjmp(ref sigjmp_buf, int);
+    pragma(mangle, "__sigsetjmp14")  int  sigsetjmp(ref sigjmp_buf);
+    pragma(mangle, "__siglongjmp14") void siglongjmp(ref sigjmp_buf, int);
 }
 else version (OpenBSD)
 {

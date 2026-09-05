@@ -115,7 +115,7 @@ private ref compat_key(K, K2)(ref K2 key)
 {
     static if(!(is(K2 == struct) && __traits(isNested, K2)))
         pragma(inline, true);
-    static if (is(K2 == const(char)[]) && is(K == string))
+    static if (is(Unconstify!K2 == const(char)[]) && is(K == string))
         return (ref (ref return K2 k2) @trusted => *cast(string*)&k2)(key);
     else
         return key;
@@ -196,7 +196,7 @@ template pure_hashOf(K)
     }
 }
 
-// for backward compatibilty pretend the comparison is @safe, pure, etc
+// for backward compatibility pretend the comparison is @safe, pure, etc
 // this also breaks cyclic inference on recursive data types
 template pure_keyEqual(K1, K2 = K1)
 {
@@ -339,7 +339,7 @@ private:
         firstUsed = 0;
         used -= deleted;
         deleted = 0;
-        obuckets.length = 0; // safe to free b/c impossible to reference, but doesn't really free
+        // must not free obuckets, because it might still be iterated over
     }
 
     void clear() pure nothrow
@@ -462,6 +462,18 @@ size_t _d_aaLen(K, V)(inout V[K] a)
 {
     auto aa = _toAA!(K, V)(a);
     return aa ? aa.length : 0;
+}
+/// ditto
+size_t _d_aaLen(K, V)(shared V[K] a)
+{
+    // accept shared for backward compatibility, should be deprecated
+    return _d_aaLen(cast(V[K]) a);
+}
+/// ditto
+size_t _d_aaLen(K, V)(const shared V[K] a)
+{
+    // accept shared for backward compatibility, should be deprecated
+    return _d_aaLen(cast(V[K]) a);
 }
 
 /******************************
@@ -630,6 +642,12 @@ auto _d_aaIn(T : V[K], K, V, K2)(inout T a, auto ref scope K2 key)
     if (auto p = aa.findSlotLookup(hash, key2))
         return &p.entry.value;
     return null;
+}
+/// ditto
+auto _d_aaIn(T : V[K], K, V, K2)(shared T a, auto ref scope K2 key)
+{
+    // accept shared for backward compatibility, should be deprecated
+    return _d_aaIn(cast(V[K]) a, key);
 }
 
 // fake purity for backward compatibility with runtime hooks
@@ -874,12 +892,18 @@ bool _aaEqual(T : AA!(K, V), K, V)(scope T aa1, scope T aa2)
     return true;
 }
 
-/// compares 2 AAs for equality (compiler hook)
-bool _d_aaEqual(K, V)(scope const V[K] a1, scope const V[K] a2)
+private bool impl_aaEqual(K, V)(scope const V[K] a1, scope const V[K] a2) @trusted
 {
     scope aa1 = _toAA!(K, V)(a1);
     scope aa2 = _toAA!(K, V)(a2);
     return _aaEqual(aa1, aa2);
+}
+
+/// compares 2 AAs for equality (compiler hook)
+bool _d_aaEqual(K, V)(scope const V[K] a1, scope const V[K] a2) pure @nogc @safe nothrow
+{
+    enum pure_aaEqual(K, V) = cast(bool function(scope const V[K] a1, scope const V[K] a2) pure @nogc @safe nothrow) &impl_aaEqual!(K, V);
+    return pure_aaEqual!(K, V)(a1, a2);
 }
 
 /// callback from TypeInfo_AssociativeArray.equals (ignore const for now)
