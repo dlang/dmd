@@ -14,7 +14,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  call-precommit:
+    uses: ./.github/workflows/pre_commit.yml
+
   main:
+    needs: call-precommit
     strategy:
       fail-fast: false
       matrix:
@@ -183,6 +187,7 @@ jobs:
         run: ci/run.sh codecov
 
   freebsd-vm:
+    needs: call-precommit
     strategy:
       fail-fast: false
       matrix:
@@ -285,6 +290,7 @@ jobs:
         run: echo 'FreeBSD VM check made optional because of random time outs'
 
   arm-qemu:
+    needs: call-precommit
     name: 'Ubuntu 24.04 x64, DMD (AArch64 cross-compile via QEMU)'
     runs-on: ubuntu-latest
     timeout-minutes: 30
