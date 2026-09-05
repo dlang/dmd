@@ -203,6 +203,9 @@ $(DOC_OUTPUT_DIR)/core_internal_gc_impl_conservative_%.html : import/core/intern
 $(DOC_OUTPUT_DIR)/core_internal_gc_impl_manual_%.html : import/core/internal/gc/impl/manual/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+$(DOC_OUTPUT_DIR)/core_internal_gc_impl_tgc_%.html : import/core/internal/gc/impl/tgc/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
 $(DOC_OUTPUT_DIR)/core_internal_gc_impl_proto_%.html : import/core/internal/gc/impl/proto/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 

@@ -853,6 +853,83 @@ extern (C) void thread_suspendAll() nothrow
 }
 
 /**
+ * Suspend only the listed threads for partial stop-the-world collection.
+ * The calling thread is never blocked; if listed, only its registers are captured.
+ * Must be paired with thread_resumeList.
+ */
+extern (C) void thread_suspendList(ThreadBase* list, size_t count) nothrow
+{
+    thread_preStopTheWorld();
+    if (++listSuspendDepth > 1)
+        return;
+
+    size_t cnt;
+    bool suspendedSelf;
+    ThreadBase caller = ThreadBase.sm_tbeg ? ThreadBase.getThis() : null;
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        auto tb = list[i];
+        if (!tb)
+            continue;
+        if (suspend(tb.toThread))
+        {
+            if (tb is caller)
+                suspendedSelf = true;
+            ++cnt;
+        }
+    }
+
+    version (Darwin) {}
+    else version (Solaris) {}
+    else version (WASI) {}
+    else version (Posix)
+    {
+        if (!multiThreadedFlag)
+            return;
+        assert(cnt >= 1);
+        if (suspendedSelf)
+            --cnt;
+        for (; cnt; --cnt)
+        {
+            while (sem_wait(&suspendCount) != 0)
+            {
+                if (errno != EINTR)
+                    onThreadError("Unable to wait for semaphore");
+                errno = 0;
+            }
+        }
+    }
+    else version (Windows) {}
+    else
+        static assert(0, "unsupported os");
+}
+
+/**
+ * Resume threads suspended by thread_suspendList.
+ */
+extern (C) void thread_resumeList(ThreadBase* list, size_t count) nothrow
+in
+{
+    assert(listSuspendDepth > 0);
+}
+do
+{
+    if (--listSuspendDepth > 0)
+        return;
+
+    scope (exit) thread_postRestartTheWorld();
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        auto tb = list[i];
+        if (!tb)
+            continue;
+        resume(tb);
+    }
+}
+
+/**
  * Resume the specified thread and unload stack and register information.
  * If the supplied thread is the calling thread, stack and register
  * information will be unloaded but the thread will not be resumed.  If

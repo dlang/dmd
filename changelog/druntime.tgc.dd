@@ -1,0 +1,15 @@
+Opt-in thread-local GC (`tgc`, 0.2.0 prototype)
+
+Select with `--DRT-gcopt=gc:tgc`.
+
+**0.2.0:** working partitioned shared regions with region-scoped collection
+(selective thread suspend via `thread_suspendList`), per-heap list locks,
+basic array append metadata, and benchmark/test harness.
+
+Region API: `_d_tgc_region_create`, `_d_tgc_region_attach`, `_d_tgc_region_malloc`,
+`_d_tgc_region_collect`, `_d_tgc_version`.
+
+Optional: `--DRT-gcopt=gc:tgc tgcShared:symgc` (SymGC shared backend stub for 0.3.0).
+
+Tests: `druntime/test/gc/tgc.d`, `tgc_regions.d`, `tgc_bench.d`.
+Benchmarks: `tools/tgc-bench/run-benchmarks.ps1`.
