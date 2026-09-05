@@ -105,6 +105,9 @@ git checkout -b fix-bug
 
 - Confine a PR to addressing one issue, unless multiple issues are different aspects of the same bug.
 
+- Using tools to help you contribute is a good thing, but if a tool produced slop, and you contributed it then it's your slop.
+    If you need help please ask for it, don't let an unthinking tool rule the PR queue, that's for humans to mess up!
+    Please note that LLM's are considered tools by the D community.
 
 - If the pull request affects the language specifications in any way (i.e. changing the grammar, deprecating a feature, or adding a new one),
   a pull request to [the specification in the dlang.org repository](https://github.com/dlang/dlang.org) should be submitted in parallel.
