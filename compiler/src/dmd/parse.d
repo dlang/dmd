@@ -48,6 +48,31 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         int inBrackets; // inside [] of array index or slice
         Loc lookingForElse; // location of lonely if looking for an else
         bool doUnittests; // parse unittest blocks
+
+        // --- https://github.com/dlang/dmd/issues/20040 ---
+        // Track `{ }` pairs that don't share the same line-indentation so we
+        // can offer a "closing brace appears mismatched" hint on the next
+        // real parse error, which is often the actual symptom of a
+        // misplaced/extra `}` far above.
+        static struct OpenBrace
+        {
+            Loc loc;              // location of the `{`
+            const(char)* ptr;     // token.ptr at the `{`; indentation is computed
+                                   // lazily from this, only if a hint ends up being needed
+            uint errcountAtOpen;  // errorsSeenLocal snapshot when this brace was opened
+        }
+        OpenBrace[] braceStack;
+        size_t braceDepth;    // current nesting depth; braceStack only ever grows,
+                               // so popping is a pointer move, not a GC call
+
+        static struct BraceHint
+        {
+            Loc openLoc;
+            Loc closeLoc;
+        }
+        BraceHint[] pendingBraceHints; // suspects awaiting a report
+        uint errorsSeenLocal; // counts only check() mismatches (see check(Loc, TOK)),
+                               // not every diagnostic; avoids depending on the global error count
     }
 
     /*********************
@@ -6149,6 +6174,43 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     }
 
     /*****************************************
+     * https://github.com/dlang/dmd/issues/20040
+     * Column of the first non-whitespace character on the source line
+     * containing `p`. Used as a cheap proxy for "indentation level".
+     */
+    private uint lineIndentColumn(const(char)* p)
+    {
+        const(char)* start = lineStartOf(p);
+        const(char)* q = start;
+        while (*q == ' ' || *q == '\t')
+            ++q;
+        return cast(uint)(q - start);
+    }
+
+    /*****************************************
+     * https://github.com/dlang/dmd/issues/20040
+     * Report (once) the most recent suspected-mismatched brace as a
+     * supplemental hint, right before the next real error is issued.
+     * A stray extra `}` often doesn't fail immediately - it just closes
+     * an enclosing scope early, and the *real* symptom shows up later.
+     */
+    private void flushBraceMismatchHint(Loc errLoc)
+    {
+        if (!pendingBraceHints.length)
+            return;
+        // Report the *earliest* anomaly: that's the actual root cause,
+        // even if several braces look mismatched by the time an error
+        // finally surfaces (each subsequent one is usually a knock-on
+        // effect of the first).
+        auto hint = pendingBraceHints[0];
+        pendingBraceHints.length = 0; // one-shot: don't spam cascading errors
+        if (hint.closeLoc.linnum <= errLoc.linnum)
+            eSink.errorSupplemental(hint.closeLoc,
+                "closing brace on line %d appears mismatched (opened on line %d)",
+                hint.closeLoc.linnum, hint.openLoc.linnum);
+    }
+
+    /*****************************************
      * Input:
      *      flags   PSxxxx
      * Output:
@@ -6509,6 +6571,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 const lookingForElseSave = lookingForElse;
                 lookingForElse = Loc.initial;
 
+                // https://github.com/dlang/dmd/issues/20040
+                // Only grow the backing array on a new maximum depth; otherwise
+                // reuse the existing slot so pushing never calls into the GC.
+                if (braceDepth == braceStack.length)
+                    braceStack ~= OpenBrace(lcLoc, token.ptr, errorsSeenLocal);
+                else
+                    braceStack[braceDepth] = OpenBrace(lcLoc, token.ptr, errorsSeenLocal);
+                ++braceDepth;
+
                 nextToken();
                 //if (token.value == TOK.semicolon)
                 //    error("use `{ }` for an empty statement, not `;`");
@@ -6533,9 +6604,25 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     error(token.loc, "matching `}` expected following compound statement, not `%s`",
                         token.toChars());
                     eSink.errorSupplemental(lcLoc, "unmatched `{`");
+                    --braceDepth;
                 }
                 else
+                {
+                    // https://github.com/dlang/dmd/issues/20040
+                    auto open = braceStack[--braceDepth];
+                    // Skip one-line `{ ... }` blocks, and skip blocks that already
+                    // had a real error reported inside them - error recovery paths
+                    // can desync the brace stack, producing bogus pairings.
+                    // Indentation is only ever computed here, on the rare path where
+                    // a multi-line, error-free block is closing - never on every
+                    // `{`/`}` pair.
+                    if (lcLoc.linnum != token.loc.linnum && errorsSeenLocal == open.errcountAtOpen)
+                    {
+                        if (lineIndentColumn(open.ptr) != lineIndentColumn(token.ptr))
+                            pendingBraceHints ~= BraceHint(open.loc, token.loc);
+                    }
                     nextToken();
+                }
                 lookingForElse = lookingForElseSave;
                 break;
             }
@@ -7531,7 +7618,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     void check(Loc loc, TOK value)
     {
         if (token.value != value)
+        {
             error(loc, "found `%s` when expecting `%s`", token.toChars(), Token.toChars(value));
+            ++errorsSeenLocal;
+            flushBraceMismatchHint(loc);
+        }
         nextToken();
     }
 
