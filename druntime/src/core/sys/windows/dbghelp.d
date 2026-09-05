@@ -24,26 +24,26 @@ extern(Windows)
     alias GetModuleBaseProc64 = DWORD64      function(HANDLE hProcess, DWORD64 Address);
     alias TranslateAddressProc64 = DWORD64      function(HANDLE hProcess, HANDLE hThread, ADDRESS64 *lpaddr);
 
-    alias SymInitializeFunc = BOOL         function(HANDLE hProcess, PCSTR UserSearchPath, bool fInvadeProcess);
-    alias SymCleanupFunc = BOOL         function(HANDLE hProcess);
-    alias SymSetOptionsFunc = DWORD        function(DWORD SymOptions);
-    alias SymGetOptionsFunc = DWORD        function();
-    alias SymFunctionTableAccess64Func = PVOID        function(HANDLE hProcess, DWORD64 AddrBase);
+    alias SymInitializeFunc = BOOL         function(HANDLE hProcess, PCSTR UserSearchPath, bool fInvadeProcess) @nogc nothrow;
+    alias SymCleanupFunc = BOOL         function(HANDLE hProcess) @nogc nothrow;
+    alias SymSetOptionsFunc = DWORD        function(DWORD SymOptions) @nogc nothrow;
+    alias SymGetOptionsFunc = DWORD        function() @nogc nothrow;
+    alias SymFunctionTableAccess64Func = PVOID        function(HANDLE hProcess, DWORD64 AddrBase) @nogc nothrow;
     alias StackWalk64Func = BOOL         function(DWORD MachineType, HANDLE hProcess, HANDLE hThread, STACKFRAME64 *StackFrame, PVOID ContextRecord,
                                 ReadProcessMemoryProc64 ReadMemoryRoutine, FunctionTableAccessProc64 FunctoinTableAccess,
-                                GetModuleBaseProc64 GetModuleBaseRoutine, TranslateAddressProc64 TranslateAddress) @nogc;
-    alias SymGetLineFromAddr64Func = BOOL         function(HANDLE hProcess, DWORD64 dwAddr, PDWORD pdwDisplacement, IMAGEHLP_LINEA64 *line);
-    alias SymGetModuleBase64Func = DWORD64      function(HANDLE hProcess, DWORD64 dwAddr);
-    alias SymGetModuleInfo64Func = BOOL         function(HANDLE hProcess, DWORD64 dwAddr, IMAGEHLP_MODULEA64 *ModuleInfo);
-    alias SymGetSymFromAddr64Func = BOOL         function(HANDLE hProcess, DWORD64 Address, DWORD64 *Displacement, IMAGEHLP_SYMBOLA64 *Symbol);
-    alias UnDecorateSymbolNameFunc = DWORD        function(PCSTR DecoratedName, PSTR UnDecoratedName, DWORD UndecoratedLength, DWORD Flags);
-    alias SymLoadModule64Func = DWORD64      function(HANDLE hProcess, HANDLE hFile, PCSTR ImageName, PCSTR ModuleName, DWORD64 BaseOfDll, DWORD SizeOfDll);
-    alias SymGetSearchPathFunc = BOOL         function(HANDLE hProcess, PSTR SearchPath, DWORD SearchPathLength);
-    alias SymSetSearchPathFunc = BOOL         function(HANDLE hProcess, PCSTR SearchPath);
-    alias SymUnloadModule64Func = BOOL         function(HANDLE hProcess, DWORD64 Address);
+                                GetModuleBaseProc64 GetModuleBaseRoutine, TranslateAddressProc64 TranslateAddress) @nogc nothrow;
+    alias SymGetLineFromAddr64Func = BOOL         function(HANDLE hProcess, DWORD64 dwAddr, PDWORD pdwDisplacement, IMAGEHLP_LINEA64 *line) @nogc nothrow;
+    alias SymGetModuleBase64Func = DWORD64      function(HANDLE hProcess, DWORD64 dwAddr) @nogc nothrow;
+    alias SymGetModuleInfo64Func = BOOL         function(HANDLE hProcess, DWORD64 dwAddr, IMAGEHLP_MODULEA64 *ModuleInfo) @nogc nothrow;
+    alias SymGetSymFromAddr64Func = BOOL         function(HANDLE hProcess, DWORD64 Address, DWORD64 *Displacement, IMAGEHLP_SYMBOLA64 *Symbol) @nogc nothrow;
+    alias UnDecorateSymbolNameFunc = DWORD        function(PCSTR DecoratedName, PSTR UnDecoratedName, DWORD UndecoratedLength, DWORD Flags) @nogc nothrow;
+    alias SymLoadModule64Func = DWORD64      function(HANDLE hProcess, HANDLE hFile, PCSTR ImageName, PCSTR ModuleName, DWORD64 BaseOfDll, DWORD SizeOfDll) @nogc nothrow;
+    alias SymGetSearchPathFunc = BOOL         function(HANDLE hProcess, PSTR SearchPath, DWORD SearchPathLength) @nogc nothrow;
+    alias SymSetSearchPathFunc = BOOL         function(HANDLE hProcess, PCSTR SearchPath) @nogc nothrow;
+    alias SymUnloadModule64Func = BOOL         function(HANDLE hProcess, DWORD64 Address) @nogc nothrow;
     alias PSYMBOL_REGISTERED_CALLBACK64 = BOOL         function(HANDLE hProcess, ULONG ActionCode, ulong CallbackContext, ulong UserContext);
-    alias SymRegisterCallback64Func = BOOL         function(HANDLE hProcess, PSYMBOL_REGISTERED_CALLBACK64 CallbackFunction, ulong UserContext);
-    alias ImagehlpApiVersionFunc = API_VERSION* function();
+    alias SymRegisterCallback64Func = BOOL         function(HANDLE hProcess, PSYMBOL_REGISTERED_CALLBACK64 CallbackFunction, ulong UserContext) @nogc nothrow;
+    alias ImagehlpApiVersionFunc = API_VERSION* function() @nogc nothrow;
 }
 
 struct DbgHelp
