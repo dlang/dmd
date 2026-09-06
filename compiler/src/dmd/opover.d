@@ -1612,7 +1612,8 @@ void explainForeachArgMismatch(FuncDeclaration fstart, Parameters* parameters, M
             if (!p.type)
                 continue;
             Parameter param = tdg.parameterList[u];
-            if (!p.type.equals(param.type))
+            if (p.type.equals(param.type))
+                continue;
             {
                 if (!headerPrinted)
                 {
