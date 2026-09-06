@@ -15416,11 +15416,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              */
             static void unqualifyExp(Expression e)
             {
-                e.type = e.type.unqualify(MODFlags.wild | MODFlags.immutable_ | MODFlags.shared_);
-                auto eNext = e.type.nextOf();
-                if (eNext && !eNext.toBasetype().isTypeStruct())
-                    e.type = e.type.unqualify(MODFlags.const_);
-
+                // unqualify strips recursively, but that's too aggressive for aggregates and AAs
+                for (auto tn = e.type.nextOf(); tn; tn = tn.nextOf())
+                {
+                    tn = tn.toBasetype();
+                    if (!tn.isTypeBasic() && !tn.isTypeDArray() && !tn.isTypeSArray())
+                        return;
+                }
+                e.type = e.type.unqualify(MODFlags.wild | MODFlags.const_ | MODFlags.immutable_ | MODFlags.shared_);
                 auto ale = e.isArrayLiteralExp();
                 if (!ale)
                     return;
@@ -15447,11 +15450,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             lowering = lowering.trySemantic(sc); // for better error message
             if (!lowering)
             {
-                if (sc.func)
-                    eSink.error(exp.loc, "can't infer return type in function `%s`", sc.func.toErrMsg());
-                else
-                    eSink.error(exp.loc, "incompatible types for array comparison: `%s` and `%s`",
-                  exp.e1.type.toErrMsg(), exp.e2.type.toErrMsg());
+                eSink.error(exp.loc, "failed to lower array comparison between types `%s` and `%s`",
+                    exp.e1.type.toErrMsg(), exp.e2.type.toErrMsg());
                 lowering = ErrorExp.get();
             }
             exp.lowering = lowering;
