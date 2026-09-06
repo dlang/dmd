@@ -2119,26 +2119,6 @@ private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, PAS
     else
         fd.inlineStatusExp = ILS.yes;
 
-    if (fd.inlineStatusExp == ILS.uninitialized)
-    {
-        // Need to redo cost computation, as some statements or expressions have been inlined
-        cost = inlineCostFunction(fd, hasThis);
-        static if (CANINLINE_LOG)
-        {
-            printf("recomputed cost = %d for %s\n", cost, fd.toChars());
-        }
-
-        if (tooCostly(cost))
-            goto Lno;
-        if (!statementsToo && cost > COST_MAX)
-            goto Lno;
-
-        if (statementsToo)
-            fd.inlineStatusStmt = ILS.yes;
-        else
-            fd.inlineStatusExp = ILS.yes;
-    }
-
     static if (CANINLINE_LOG)
     {
         printf("\t2: yes %s\n", fd.toChars());

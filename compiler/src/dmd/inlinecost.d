@@ -60,21 +60,6 @@ bool tooCostly(int cost) pure nothrow @safe
 }
 
 /*********************************
- * Determine cost of inlining Expression
- * Params:
- *      e = Expression to determine cost of
- * Returns:
- *      cost of inlining e
- */
-int inlineCostExpression(Expression e)
-{
-    scope InlineCostVisitor icv = new InlineCostVisitor(true, false);
-    icv.expressionInlineCost(e);
-    return icv.cost;
-}
-
-
-/*********************************
  * Determine cost of inlining function
  * Params:
  *      fd = function to determine cost of
@@ -84,7 +69,7 @@ int inlineCostExpression(Expression e)
  */
 int inlineCostFunction(FuncDeclaration fd, bool hasThis)
 {
-    scope InlineCostVisitor icv = new InlineCostVisitor(false, hasThis);
+    scope InlineCostVisitor icv = new InlineCostVisitor(hasThis);
     fd.fbody.accept(icv);
     return icv.cost;
 }
@@ -149,27 +134,20 @@ extern (C++) final class InlineCostVisitor : Visitor
 {
     alias visit = Visitor.visit;
 public:
-    // if the expression being visited is a default argument, which is
-    // specified to be copied at call site and can contain more types of
-    // expression (like alloca) than regular inlining
-    immutable bool callerCopy;
-
     // if the caller can access the callee's this pointer
     immutable bool hasThis;
 
     int nested;
     int cost;           // zero start for subsequent AST
 
-    extern (D) this(bool callerCopy, bool hasThis) scope @safe
+    extern (D) this(bool hasThis) scope @safe
     {
-        this.callerCopy = callerCopy;
         this.hasThis = hasThis;
     }
 
     extern (D) this(InlineCostVisitor icv) scope @safe
     {
         nested = icv.nested;
-        callerCopy = icv.callerCopy;
         hasThis = icv.hasThis;
     }
 
@@ -445,7 +423,7 @@ public:
                 cost = COST_MAX; // finish DeclarationExp.doInlineAs
                 return;
             }
-            if (!callerCopy && vd.isDataseg())
+            if (vd.isDataseg())
             {
                 cost = COST_MAX;
                 return;
@@ -496,7 +474,7 @@ public:
         // can't handle that at present.
         if (e.e1.op == EXP.dotVariable && (cast(DotVarExp)e.e1).e1.op == EXP.super_)
             cost = COST_MAX;
-        else if (e.f && e.f.ident == Id.__alloca && e.f._linkage == LINK.c && !callerCopy)
+        else if (e.f && e.f.ident == Id.__alloca && e.f._linkage == LINK.c)
             cost = COST_MAX; // inlining alloca may cause stack overflows
         else
             cost++;
