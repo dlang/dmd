@@ -21,7 +21,7 @@ double[]
 {}
 AliasSeq!("m")
 true
-TFunction1: extern (C) void function()
+TFunction1: extern(C) void function()
 ---
 */
 
@@ -4784,8 +4784,8 @@ void test2997()
 
 extern (C) int function() pfunc6596;
 extern (C) int cfunc6596(){ return 0; }
-static assert(typeof(pfunc6596).stringof == "extern (C) int function()");
-static assert(typeof(cfunc6596).stringof == "extern (C) int()");
+static assert(typeof(pfunc6596).stringof == "extern(C) int function()");
+static assert(typeof(cfunc6596).stringof == "extern(C) int()");
 
 
 /***************************************************/
