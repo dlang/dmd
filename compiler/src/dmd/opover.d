@@ -1614,15 +1614,13 @@ void explainForeachArgMismatch(FuncDeclaration fstart, Parameters* parameters, M
             Parameter param = tdg.parameterList[u];
             if (p.type.equals(param.type))
                 continue;
+            if (!headerPrinted)
             {
-                if (!headerPrinted)
-                {
-                    eSink.errorSupplemental(f.loc, "`%s`:", tf.toChars());
-                    headerPrinted = true;
-                }
-                eSink.errorSupplemental(f.loc, "    parameter %llu: `foreach` declares `%s`, expected `%s`",
-                    cast(ulong)(u + 1), p.type.toErrMsg(), param.type.toErrMsg());
+                eSink.errorSupplemental(f.loc, "`%s`:", tf.toChars());
+                headerPrinted = true;
             }
+            eSink.errorSupplemental(f.loc, "    parameter %llu: `foreach` declares `%s`, expected `%s`",
+                cast(ulong)(u + 1), p.type.toErrMsg(), param.type.toErrMsg());
         }
         return 0;
     });
