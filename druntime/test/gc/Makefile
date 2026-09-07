@@ -1,6 +1,6 @@
 TESTS:=attributes sentinel printf memstomp invariant logging \
        precise precisegc \
-       recoverfree collect nocollect tgc tgc_regions tgc_bench
+       recoverfree collect nocollect tgc tgc_regions tgc_remote_free tgc_bench
 
 ifneq ($(OS),windows)
     # some .d files are for Posix only
@@ -88,6 +88,7 @@ $(ROOT)/precise_concurrent.done: run_args+="--DRT-gcopt=gc:precise fork:1"
 $(ROOT)/attributes$(DOTEXE): extra_dflags += $(core_ut)
 $(ROOT)/tgc.done: run_args+=--DRT-gcopt=gc:tgc
 $(ROOT)/tgc_regions.done: run_args+=--DRT-gcopt=gc:tgc
+$(ROOT)/tgc_remote_free.done: run_args+=--DRT-gcopt=gc:tgc
 $(ROOT)/tgc_bench.done: run_args+=--DRT-gcopt=gc:tgc
 $(ROOT)/forkgc$(DOTEXE): extra_dflags += $(core_ut)
 $(ROOT)/sigmaskgc$(DOTEXE): extra_dflags += $(core_ut)

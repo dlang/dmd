@@ -1,5 +1,5 @@
 /**
- * Opt-in thread-local garbage collector (`tgc`) — **0.2.0 prototype**.
+ * Opt-in thread-local garbage collector (`tgc`) — **0.2.2 prototype**.
  *
  * Target design: per-thread private heaps plus partitioned shared regions
  * (many-to-many). Collecting a region pauses only threads attached to that
@@ -21,7 +21,7 @@
 module core.internal.gc.impl.tgc.gc;
 
 /// Semantic version of the `tgc` prototype (not druntime release version).
-enum tgcVersion = "0.2.1";
+enum tgcVersion = "0.2.2";
 
 import core.gc.gcinterface;
 
@@ -38,7 +38,7 @@ enum TgcSharedBackend : ubyte { tgcNative, symgc }
 private __gshared TgcSharedBackend tgcSharedBackend = TgcSharedBackend.tgcNative;
 
 import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
-import core.stdc.string : memcpy, memset;
+import core.stdc.string : memcpy, memmove, memset;
 static import core.memory;
 
 extern (C) noreturn onOutOfMemoryError(void* pretend_sideffect = null, string file = __FILE__, size_t line = __LINE__) @trusted pure nothrow @nogc; /* dmd @@@BUG11461@@@ */
@@ -56,9 +56,11 @@ private struct BlkHeader
     size_t size;       /// user-visible capacity (alloc size)
     size_t arrayUsed;  /// used bytes when BlkAttr.APPENDABLE (else 0)
     uint attr;         /// BlkAttr bits (user-visible)
-    uint marked;       /// non-zero when marked during collect
+    uint marked;       /// 0 white, 1 marked/unscanned, 2 marked/scanned
     ThreadHeap* heap;  /// owning heap
 }
+
+static assert(BlkHeader.sizeof == 32 || (void*).sizeof != 8);
 
 private struct ThreadHeap
 {
@@ -66,6 +68,8 @@ private struct ThreadHeap
     BlkHeader** blocks;
     size_t blockLen;
     size_t blockCap;
+    void* minAddr;
+    void* maxAddr;
 
     size_t usedBytes;
     size_t allocatedTotal; /// bytes allocated on this thread since start
@@ -154,12 +158,15 @@ private struct ThreadHeap
             else
                 hi = mid;
         }
-        // Shift right from lo.
-        for (size_t i = blockLen; i > lo; --i)
-            blocks[i] = blocks[i - 1];
+        if (lo != blockLen)
+            memmove(blocks + lo + 1, blocks + lo,
+                    (blockLen - lo) * (BlkHeader*).sizeof);
         blocks[lo] = h;
         blockLen++;
         usedBytes += h.size;
+        minAddr = blocks[0] + 1;
+        auto last = blocks[blockLen - 1];
+        maxAddr = cast(void*)(last + 1) + last.size;
     }
 
     /// Remove `h` from the address-sorted index. Caller holds listLock.
@@ -177,13 +184,22 @@ private struct ThreadHeap
                 hi = mid;
             else
             {
-                for (size_t i = mid; i + 1 < blockLen; ++i)
-                    blocks[i] = blocks[i + 1];
+                if (mid + 1 != blockLen)
+                    memmove(blocks + mid, blocks + mid + 1,
+                            (blockLen - mid - 1) * (BlkHeader*).sizeof);
                 blockLen--;
                 if (usedBytes >= h.size)
                     usedBytes -= h.size;
                 else
                     usedBytes = 0;
+                if (blockLen)
+                {
+                    minAddr = blocks[0] + 1;
+                    auto last = blocks[blockLen - 1];
+                    maxAddr = cast(void*)(last + 1) + last.size;
+                }
+                else
+                    minAddr = maxAddr = null;
                 return;
             }
         }
@@ -225,15 +241,33 @@ private struct ThreadHeap
         return cast(BlkHeader*) p - 1;
     }
 
-    /// O(log n) interior-pointer lookup via sorted payload bases.
+    /// Layered interior-pointer lookup:
+    /// range reject O(1), linear for tiny heaps, binary predecessor otherwise.
     BlkHeader* findBlock(void* p) nothrow @nogc
     {
         if (!p)
             return null;
         listLock.lock();
         scope (exit) listLock.unlock();
-        if (!blockLen)
+        if (!blockLen || p < minAddr || p >= maxAddr)
             return null;
+
+        // Linear wins for tiny arrays by avoiding branchy binary-search setup.
+        enum linearLookupLimit = 8;
+        if (blockLen <= linearLookupLimit)
+        {
+            foreach (i; 0 .. blockLen)
+            {
+                auto h = blocks[i];
+                void* base = h + 1;
+                if (p < base)
+                    return null;
+                if (p < base + h.size)
+                    return h;
+            }
+            return null;
+        }
+
         // Find rightmost block with payload base <= p.
         size_t lo = 0, hi = blockLen;
         while (lo < hi)
@@ -399,8 +433,6 @@ private struct SharedRegion
             thread_scanList(tlist, n, (void* p1, void* p2) nothrow {
                 gc.markRangeHeap(heap, p1, p2);
             });
-            thread_resumeList(tlist, n);
-            cstdlib.free(tlist);
         }
 
         gc.rootsLock.lock();
@@ -418,6 +450,11 @@ private struct SharedRegion
             gc.sweepHeap(heap);
         // If fixpoint did not converge, skip sweep (leak until next collect) rather
         // than free possibly-reachable blocks.
+        if (n)
+        {
+            thread_resumeList(tlist, n);
+            cstdlib.free(tlist);
+        }
         heap.numCollections++;
         gc.profileCollections++;
         heap.collecting = false;
@@ -527,6 +564,7 @@ extern (C) void* _d_tgc_region_malloc(uint regionId, size_t size, uint bits) not
     memset(raw, 0, BlkHeader.sizeof);
     auto h = cast(BlkHeader*) raw;
     h.size = size;
+    h.arrayUsed = (bits & BlkAttr.APPENDABLE) ? size : 0;
     h.attr = bits;
     h.marked = 0;
     h.heap = r.heap;
@@ -990,40 +1028,57 @@ class ThreadGC : GC
         auto blk = queryBlock(ptr);
         if (!blk || !(blk.attr & BlkAttr.APPENDABLE))
             return null;
-        auto used = blk.arrayUsed ? blk.arrayUsed : blk.size;
+        auto heap = blk.heap;
+        heap.listLock.lock();
+        auto used = blk.arrayUsed;
+        heap.listLock.unlock();
         return (cast(void*)(blk + 1))[0 .. used];
     }
 
     bool expandArrayUsed(void[] slice, size_t newUsed, bool atomic = false) nothrow @trusted
     {
-        if (!slice.length)
+        if (!slice.ptr || newUsed < slice.length)
             return false;
-        auto blk = queryBlock(&slice[0]);
+        auto blk = queryBlock(slice.ptr);
         if (!blk || !(blk.attr & BlkAttr.APPENDABLE))
             return false;
-        if (newUsed > blk.size)
+        auto base = cast(void*)(blk + 1);
+        size_t offset = slice.ptr - base;
+        if (offset > blk.size || newUsed > blk.size - offset)
             return false;
-        blk.arrayUsed = newUsed;
+        auto heap = blk.heap;
+        heap.listLock.lock();
+        if (offset + slice.length != blk.arrayUsed)
+        {
+            heap.listLock.unlock();
+            return false;
+        }
+        blk.arrayUsed = offset + newUsed;
+        heap.listLock.unlock();
         return true;
     }
 
     size_t reserveArrayCapacity(void[] slice, size_t request, bool atomic = false) nothrow @trusted
     {
-        if (!slice.length || !request)
+        if (!slice.ptr)
             return 0;
-        auto blk = queryBlock(&slice[0]);
+        auto blk = queryBlock(slice.ptr);
         if (!blk || !(blk.attr & BlkAttr.APPENDABLE))
             return 0;
-        if (request <= blk.size)
-            return blk.size;
-        auto bits = blk.attr;
-        auto oldUsed = blk.arrayUsed ? blk.arrayUsed : slice.length;
-        auto np = alloc(request, bits, false);
-        memcpy(np, &slice[0], oldUsed < slice.length ? oldUsed : slice.length);
-        free(&slice[0]);
-        auto nblk = headerOf(np);
-        nblk.arrayUsed = oldUsed;
-        return request;
+        auto base = cast(void*)(blk + 1);
+        size_t offset = slice.ptr - base;
+        if (offset > blk.size || slice.length > blk.size - offset)
+            return 0;
+        auto heap = blk.heap;
+        heap.listLock.lock();
+        bool isTail = offset + slice.length == blk.arrayUsed;
+        size_t capacity = isTail && request <= blk.size - offset
+            ? blk.size - offset : 0;
+        heap.listLock.unlock();
+        // This malloc-backed prototype cannot extend in place. Returning zero
+        // makes the array runtime allocate/copy safely instead of retaining a
+        // pointer to storage that reserve moved behind its back.
+        return capacity;
     }
 
     bool shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic = false) nothrow
@@ -1033,9 +1088,21 @@ class ThreadGC : GC
         auto blk = queryBlock(slice.ptr);
         if (!blk || !(blk.attr & BlkAttr.APPENDABLE))
             return false;
-        if (existingUsed > blk.size)
+        if (existingUsed < slice.length)
             return false;
-        blk.arrayUsed = existingUsed;
+        auto base = cast(void*)(blk + 1);
+        size_t offset = slice.ptr - base;
+        if (offset > blk.size || existingUsed > blk.size - offset)
+            return false;
+        auto heap = blk.heap;
+        heap.listLock.lock();
+        if (offset + existingUsed != blk.arrayUsed)
+        {
+            heap.listLock.unlock();
+            return false;
+        }
+        blk.arrayUsed = offset + slice.length;
+        heap.listLock.unlock();
         return true;
     }
 
@@ -1052,28 +1119,23 @@ class ThreadGC : GC
     /// Returns true if fixpoint converged (safe to sweep).
     package bool markHeapFixpoint(ThreadHeap* heap) nothrow @nogc
     {
-        size_t markedCount = 0;
-        heap.listLock.lock();
-        foreach (i; 0 .. heap.blockLen)
-            if (heap.blocks[i].marked)
-                markedCount++;
-        heap.listLock.unlock();
-
-        size_t prevMarked = size_t.max;
         enum maxFixpointPasses = 256;
         BlkHeader** work = null;
         size_t workCap = 0;
 
-        for (uint pass = 0; pass < maxFixpointPasses && prevMarked != markedCount; ++pass)
+        foreach (pass; 0 .. maxFixpointPasses)
         {
-            prevMarked = markedCount;
-            // Snapshot scan candidates under lock; scan unlocked (findBlock takes lock).
+            // Snapshot newly marked candidates under lock; scan unlocked because
+            // findBlock takes the same lock. State 2 prevents rescanning blocks.
             heap.listLock.lock();
             size_t workLen = 0;
             foreach (i; 0 .. heap.blockLen)
             {
                 auto b = heap.blocks[i];
-                if (!b.marked || (b.attr & BlkAttr.NO_SCAN))
+                if (b.marked != 1)
+                    continue;
+                b.marked = 2;
+                if (b.attr & BlkAttr.NO_SCAN)
                     continue;
                 if (workLen == workCap)
                 {
@@ -1100,16 +1162,17 @@ class ThreadGC : GC
                     ? b.arrayUsed : b.size;
                 markRangeInHeap(heap, base, base + scanLen);
             }
-
-            markedCount = 0;
-            heap.listLock.lock();
-            foreach (i; 0 .. heap.blockLen)
-                if (heap.blocks[i].marked)
-                    markedCount++;
-            heap.listLock.unlock();
+            if (!workLen)
+            {
+                cstdlib.free(work);
+                return true;
+            }
         }
+
+        // A pointer chain deeper than the safety bound remains live. Skip sweep
+        // rather than risk freeing a block not reached yet.
         cstdlib.free(work);
-        return prevMarked == markedCount;
+        return false;
     }
 
     package void sweepHeap(ThreadHeap* heap) nothrow
@@ -1346,17 +1409,12 @@ private:
     {
         if (!pbot || !ptop || pbot >= ptop)
             return;
-        enum maxScanBytes = 4 * 1024 * 1024;
-        auto scanTop = ptop;
-        if (cast(size_t)(scanTop - pbot) > maxScanBytes)
-            scanTop = pbot + maxScanBytes;
         auto p = cast(void**) pbot;
-        auto e = cast(void**) scanTop;
+        auto e = cast(void**) ptop;
         auto addr = cast(size_t) p;
         addr = (addr + (void*).sizeof - 1) & ~((void*).sizeof - 1);
         p = cast(void**) addr;
-        size_t steps;
-        for (; p + 1 <= e && steps < maxScanBytes / (void*).sizeof; ++p, ++steps)
+        for (; p + 1 <= e; ++p)
             markPtrInHeap(heap, *p);
     }
 
@@ -1365,7 +1423,7 @@ private:
         if (!p)
             return;
         auto b = heap.findBlock(p);
-        if (b)
+        if (b && b.marked == 0)
             b.marked = 1;
     }
 

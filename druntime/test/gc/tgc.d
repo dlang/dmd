@@ -6,6 +6,8 @@
 import core.memory;
 import core.thread;
 import core.atomic;
+import cstdlib = core.stdc.stdlib;
+import core.stdc.string : memset;
 
 extern (C) uint _d_tgc_region_create() nothrow @nogc;
 extern (C) bool _d_tgc_region_attach(uint regionId) nothrow @nogc;
@@ -16,8 +18,54 @@ shared size_t otherThreadAllocs;
 shared bool otherDone;
 shared bool collectDone;
 
+class ChainNode
+{
+    ChainNode next;
+    size_t value;
+}
+
+pragma(inline, false)
+ChainNode makeChain(size_t length)
+{
+    ChainNode head;
+    foreach_reverse (i; 0 .. length)
+    {
+        auto node = new ChainNode;
+        node.next = head;
+        node.value = i;
+        head = node;
+    }
+    return head;
+}
+
+pragma(inline, false)
+void installTailRoot(void* range, size_t bytes)
+{
+    auto target = new ubyte[256];
+    target[0] = 0x5A;
+    *cast(void**)(range + bytes - (void*).sizeof) = target.ptr;
+}
+
+pragma(inline, false)
+void clobberStack()
+{
+    void*[8192] zeros;
+    zeros[] = null;
+}
+
 void worker()
 {
+    // A fresh worker heap exercises the tiny-index linear lookup tier.
+    void*[4] tinyBlocks;
+    foreach (ref p; tinyBlocks)
+        p = GC.malloc(32, GC.BlkAttr.NO_SCAN);
+    foreach (p; tinyBlocks)
+    {
+        auto found = GC.addrOf(p + 7);
+        assert(found == p);
+        GC.free(p);
+    }
+
     // Allocate on this thread's private heap
     foreach (i; 0 .. 100)
     {
@@ -41,7 +89,7 @@ void main()
 {
     import core.stdc.string : strcmp;
     auto ver = _d_tgc_version();
-    assert(ver !is null && !strcmp(ver, "0.2.1"));
+    assert(ver !is null && !strcmp(ver, "0.2.2"));
 
     // Shared region scaffold: create, attach, alloc
     auto rid = _d_tgc_region_create();
@@ -53,6 +101,24 @@ void main()
     *rp = 123;
     assert(*rp == 123);
 
+    // Exercise both lookup tiers and interior-pointer handling.
+    void*[16] blocks;
+    foreach (i; 0 .. blocks.length)
+        blocks[i] = GC.malloc(64, GC.BlkAttr.NO_SCAN);
+    foreach (p; blocks)
+    {
+        auto interior = p + 31;
+        auto found = GC.addrOf(interior);
+        assert(found == p);
+    }
+    auto removed = blocks[7];
+    GC.free(removed);
+    auto removedLookup = GC.addrOf(removed + 1);
+    assert(removedLookup is null);
+    blocks[7] = null;
+    foreach (p; blocks)
+        GC.free(p);
+
     auto before = GC.profileStats().numCollections;
 
     // Local allocations
@@ -60,6 +126,31 @@ void main()
     foreach (i; 0 .. 50)
         local ~= cast(int) i;
     assert(local.length == 50);
+
+    // A heap pointer chain requires fixpoint marking beyond direct roots.
+    auto chain = makeChain(64);
+    GC.collect();
+    size_t chainLength;
+    for (auto node = chain; node; node = node.next)
+    {
+        assert(node.value == chainLength);
+        chainLength++;
+    }
+    assert(chainLength == 64);
+
+    // The sole deliberate root is beyond the old 4 MiB scan cutoff.
+    enum registeredBytes = 5 * 1024 * 1024;
+    auto registered = cstdlib.malloc(registeredBytes);
+    assert(registered !is null);
+    memset(registered, 0, registeredBytes);
+    GC.addRange(registered, registeredBytes);
+    installTailRoot(registered, registeredBytes);
+    clobberStack();
+    GC.collect();
+    auto tailRoot = *cast(void**)(registered + registeredBytes - (void*).sizeof);
+    assert((cast(ubyte*) tailRoot)[0] == 0x5A);
+    GC.removeRange(registered);
+    cstdlib.free(registered);
 
     auto t = new Thread(&worker);
     t.start();
