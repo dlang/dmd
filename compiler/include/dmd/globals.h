@@ -20,6 +20,7 @@
 template <typename TYPE> struct Array;
 
 class ErrorSink;
+class ErrorSinkCompiler;
 class FileManager;
 struct Loc;
 
@@ -373,8 +374,8 @@ struct Global
     unsigned varSequenceNumber;
 
     FileManager* fileManager;
-    ErrorSink* errorSink;       // where the error messages go
-    ErrorSink* errorSinkNull;   // where the error messages disappear
+    ErrorSinkCompiler* errorSink; // where the error messages go
+    ErrorSink* errorSinkNull;     // where the error messages disappear
 
     DArray<unsigned char> (*preprocess)(FileName, Loc, OutBuffer&);
 
