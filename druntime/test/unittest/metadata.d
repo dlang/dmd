@@ -39,15 +39,20 @@ void main()
         assert(tests.length == 5);
         alias aggregateTest = __traits(getUnitTests, Aggregate)[0];
         assert(tests[1].func == &aggregateTest);
-        assert(tests[1].name == __traits(identifier, aggregateTest));
         static assert(!__traits(compiles, tests[0] = null));
         static assert(!__traits(compiles, tests[0].name = "changed"));
-        foreach (test; tests)
+        immutable expectedNames = [
+            "__unittest_L6_C1",
+            "__unittest_L9_C5",
+            "__unittest_L11_C1",
+            "__unittest_L14_C5_1",
+            "__unittest_L14_C5_2",
+        ];
+        foreach (i, test; tests)
         {
             assert(test.size == UnitTestInfo.sizeof);
             assert(test.func !is null);
-            assert(test.name.length > "__unittest_".length);
-            assert(test.name[0 .. "__unittest_".length] == "__unittest_");
+            assert(test.name == expectedNames[i]);
             test.func();
         }
         auto individualCalls = calls.dup;
