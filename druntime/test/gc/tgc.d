@@ -6,6 +6,7 @@
 import core.memory;
 import core.thread;
 import core.atomic;
+import core.exception : OutOfMemoryError;
 import cstdlib = core.stdc.stdlib;
 import core.stdc.string : memset;
 
@@ -89,7 +90,7 @@ void main()
 {
     import core.stdc.string : strcmp;
     auto ver = _d_tgc_version();
-    assert(ver !is null && !strcmp(ver, "0.2.2"));
+    assert(ver !is null && !strcmp(ver, "0.2.3"));
 
     // Shared region scaffold: create, attach, alloc
     auto rid = _d_tgc_region_create();
@@ -110,6 +111,19 @@ void main()
         auto interior = p + 31;
         auto found = GC.addrOf(interior);
         assert(found == p);
+        assert(GC.sizeOf(interior) == 0);
+        assert(GC.getAttr(interior) == 0);
+        auto setResult = GC.setAttr(interior, GC.BlkAttr.NO_MOVE);
+        auto clearResult = GC.clrAttr(interior, GC.BlkAttr.NO_SCAN);
+        assert(setResult == 0);
+        assert(clearResult == 0);
+        auto resized = GC.realloc(interior, 128);
+        assert(resized is null);
+        GC.free(interior);
+        auto stillLive = GC.addrOf(p);
+        assert(stillLive == p);
+        auto atEnd = GC.addrOf(p + 64);
+        assert(atEnd is null);
     }
     auto removed = blocks[7];
     GC.free(removed);
@@ -118,6 +132,17 @@ void main()
     blocks[7] = null;
     foreach (p; blocks)
         GC.free(p);
+
+    bool overflowRejected;
+    try
+    {
+        auto impossible = GC.malloc(size_t.max);
+        if (impossible)
+            GC.free(impossible);
+    }
+    catch (OutOfMemoryError)
+        overflowRejected = true;
+    assert(overflowRejected);
 
     auto before = GC.profileStats().numCollections;
 
@@ -128,7 +153,7 @@ void main()
     assert(local.length == 50);
 
     // A heap pointer chain requires fixpoint marking beyond direct roots.
-    auto chain = makeChain(64);
+    auto chain = makeChain(300);
     GC.collect();
     size_t chainLength;
     for (auto node = chain; node; node = node.next)
@@ -136,7 +161,7 @@ void main()
         assert(node.value == chainLength);
         chainLength++;
     }
-    assert(chainLength == 64);
+    assert(chainLength == 300);
 
     // The sole deliberate root is beyond the old 4 MiB scan cutoff.
     enum registeredBytes = 5 * 1024 * 1024;
