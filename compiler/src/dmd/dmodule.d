@@ -891,7 +891,11 @@ extern (C++) final class Module : Package
                 else if (isRoot() && mprev.isRoot())
                     eSink.error(loc, "%s `%s` from file %s is specified twice on the command line", kind, toPrettyChars, srcname);
                 else
+                {
                     eSink.error(loc, "%s `%s` from file %s must be imported with 'import %s;'", kind, toPrettyChars, srcname, toPrettyChars());
+                    if (mprev.md is null)
+                        eSink.errorSupplemental(loc, "`%s` has no module declaration, so its module name was inferred as `%s` from the filename", srcname, mprev.toChars());
+                }
                 // https://issues.dlang.org/show_bug.cgi?id=14446
                 // Return previously parsed module to avoid AST duplication ICE.
                 return mprev;
