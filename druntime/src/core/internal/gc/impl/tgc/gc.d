@@ -1,5 +1,5 @@
 /**
- * Opt-in thread-local garbage collector (`tgc`) — **0.2.2 prototype**.
+ * Opt-in thread-local garbage collector (`tgc`) — **0.2.3 prototype**.
  *
  * Target design: per-thread private heaps plus partitioned shared regions
  * (many-to-many). Collecting a region pauses only threads attached to that
@@ -21,7 +21,7 @@
 module core.internal.gc.impl.tgc.gc;
 
 /// Semantic version of the `tgc` prototype (not druntime release version).
-enum tgcVersion = "0.2.2";
+enum tgcVersion = "0.2.3";
 
 import core.gc.gcinterface;
 
@@ -48,6 +48,8 @@ extern (C) void* thread_stackBottom() nothrow @nogc;
 
 private enum size_t headerAlign = (void*).sizeof;
 private enum size_t collectThresholdInit = 256 * 1024;
+private enum uint markMask = 0x3;
+private enum uint remoteQueuedBit = 0x4;
 
 /// Per-block metadata placed immediately before user payload.
 /// 32 bytes on 64-bit (was 48 with intrusive list links).
@@ -56,7 +58,7 @@ private struct BlkHeader
     size_t size;       /// user-visible capacity (alloc size)
     size_t arrayUsed;  /// used bytes when BlkAttr.APPENDABLE (else 0)
     uint attr;         /// BlkAttr bits (user-visible)
-    uint marked;       /// 0 white, 1 marked/unscanned, 2 marked/scanned
+    uint marked;       /// low bits: mark state; remoteQueuedBit: pending free
     ThreadHeap* heap;  /// owning heap
 }
 
@@ -97,8 +99,17 @@ private struct ThreadHeap
         return h;
     }
 
-    void pushRemote(void* p) nothrow @nogc
+    bool queueRemote(void* p) nothrow @nogc
     {
+        listLock.lock();
+        auto h = findBlockUnlocked(p);
+        if (!h || cast(void*)(h + 1) !is p || (h.marked & remoteQueuedBit))
+        {
+            listLock.unlock();
+            return false;
+        }
+        h.marked |= remoteQueuedBit;
+
         remoteLock.lock();
         if (remoteLen == remoteCap)
         {
@@ -107,6 +118,7 @@ private struct ThreadHeap
             if (!np)
             {
                 remoteLock.unlock();
+                listLock.unlock();
                 onOutOfMemoryError();
             }
             remotePtrs = np;
@@ -114,6 +126,8 @@ private struct ThreadHeap
         }
         remotePtrs[remoteLen++] = p;
         remoteLock.unlock();
+        listLock.unlock();
+        return true;
     }
 
     void drainRemote() nothrow @nogc
@@ -121,7 +135,9 @@ private struct ThreadHeap
         remoteLock.lock();
         size_t n = remoteLen;
         void** ptrs = remotePtrs;
+        remotePtrs = null;
         remoteLen = 0;
+        remoteCap = 0;
         remoteLock.unlock();
 
         foreach (i; 0 .. n)
@@ -129,10 +145,18 @@ private struct ThreadHeap
             auto p = ptrs[i];
             if (!p)
                 continue;
-            auto h = headerOf(p);
-            if (h && h.heap is &this)
-                unlinkAndFree(h);
+            listLock.lock();
+            auto h = findBlockUnlocked(p);
+            if (h && cast(void*)(h + 1) is p && (h.marked & remoteQueuedBit))
+            {
+                indexRemove(h);
+                listLock.unlock();
+                cstdlib.free(h);
+            }
+            else
+                listLock.unlock();
         }
+        cstdlib.free(ptrs);
     }
 
     /// Insert `h` into the address-sorted index. Caller holds listLock or is sole owner.
@@ -226,6 +250,21 @@ private struct ThreadHeap
         cstdlib.free(h);
     }
 
+    bool freeExact(void* p) nothrow @nogc
+    {
+        listLock.lock();
+        auto h = findBlockUnlocked(p);
+        if (!h || cast(void*)(h + 1) !is p)
+        {
+            listLock.unlock();
+            return false;
+        }
+        indexRemove(h);
+        listLock.unlock();
+        cstdlib.free(h);
+        return true;
+    }
+
     void unlinkAndFreeFinalize(BlkHeader* h) nothrow
     {
         unlink(h);
@@ -249,6 +288,12 @@ private struct ThreadHeap
             return null;
         listLock.lock();
         scope (exit) listLock.unlock();
+        return findBlockUnlocked(p);
+    }
+
+    /// Caller holds listLock.
+    BlkHeader* findBlockUnlocked(void* p) nothrow @nogc
+    {
         if (!blockLen || p < minAddr || p >= maxAddr)
             return null;
 
@@ -397,45 +442,61 @@ private struct SharedRegion
 
     void collectRegion() nothrow
     {
-        if (!heap || heap.collecting)
+        if (!heap)
             return;
         auto gc = cast(ThreadGC) tgcInstance;
         if (!gc)
             return;
 
+        // Establish lock barriers before suspension so no member can be
+        // frozen while owning a lock needed by the collector. Keep the region
+        // lock through resume to serialize collectors, attach/detach, and
+        // allocation admission.
+        gc.rootsLock.lock();
+        lock.lock();
+        if (heap.collecting)
+        {
+            lock.unlock();
+            gc.rootsLock.unlock();
+            return;
+        }
         heap.collecting = true;
         heap.drainRemote();
 
         heap.listLock.lock();
         foreach (i; 0 .. heap.blockLen)
-            heap.blocks[i].marked = 0;
-        heap.listLock.unlock();
+            heap.blocks[i].marked &= remoteQueuedBit;
 
         ThreadBase* tlist = null;
-        size_t n = 0;
-        lock.lock();
-        n = memberLen;
+        size_t n = memberLen;
         if (n)
         {
             tlist = cast(ThreadBase*) cstdlib.malloc(n * ThreadBase.sizeof);
             if (!tlist)
-            {
-                lock.unlock();
                 onOutOfMemoryError();
-            }
             memcpy(tlist, memberThreads, n * ThreadBase.sizeof);
+            // Barrier every member-private index before suspension. Once the
+            // members stop, releasing these locks leaves stable indexes for
+            // region-root scanning.
+            foreach (i; 0 .. n)
+                memberHeaps[i].listLock.lock();
         }
-        lock.unlock();
+
+        if (n)
+            thread_suspendList(tlist, n);
+        heap.listLock.unlock();
+        foreach (i; 0 .. n)
+            memberHeaps[i].listLock.unlock();
 
         if (n)
         {
-            thread_suspendList(tlist, n);
             thread_scanList(tlist, n, (void* p1, void* p2) nothrow {
                 gc.markRangeHeap(heap, p1, p2);
             });
+            foreach (i; 0 .. n)
+                gc.markHeapContentsInto(memberHeaps[i], heap);
         }
 
-        gc.rootsLock.lock();
         foreach (ref r; gc.roots)
         {
             if (r.proot)
@@ -448,8 +509,6 @@ private struct SharedRegion
 
         if (gc.markHeapFixpoint(heap))
             gc.sweepHeap(heap);
-        // If fixpoint did not converge, skip sweep (leak until next collect) rather
-        // than free possibly-reachable blocks.
         if (n)
         {
             thread_resumeList(tlist, n);
@@ -458,6 +517,7 @@ private struct SharedRegion
         heap.numCollections++;
         gc.profileCollections++;
         heap.collecting = false;
+        lock.unlock();
     }
 }
 
@@ -557,6 +617,8 @@ extern (C) void* _d_tgc_region_malloc(uint regionId, size_t size, uint bits) not
     r.lock.unlock();
 
     r.heap.drainRemote();
+    if (size > size_t.max - BlkHeader.sizeof)
+        onOutOfMemoryError();
     size_t total = BlkHeader.sizeof + size;
     auto raw = cstdlib.malloc(total);
     if (size && raw is null)
@@ -770,13 +832,13 @@ class ThreadGC : GC
     uint getAttr(void* p) nothrow
     {
         auto blk = queryBlock(p);
-        return blk ? blk.attr : 0;
+        return isExactBase(blk, p) ? blk.attr : 0;
     }
 
     uint setAttr(void* p, uint mask) nothrow
     {
         auto blk = queryBlock(p);
-        if (!blk)
+        if (!isExactBase(blk, p))
             return 0;
         blk.attr |= mask;
         return blk.attr;
@@ -785,7 +847,7 @@ class ThreadGC : GC
     uint clrAttr(void* p, uint mask) nothrow
     {
         auto blk = queryBlock(p);
-        if (!blk)
+        if (!isExactBase(blk, p))
             return 0;
         blk.attr &= ~mask;
         return blk.attr;
@@ -821,11 +883,8 @@ class ThreadGC : GC
         }
 
         auto blk = queryBlock(p);
-        if (!blk)
-        {
-            // Unknown pointer — allocate fresh
-            return alloc(size, bits, false);
-        }
+        if (!isExactBase(blk, p))
+            return null;
 
         auto heap = blk.heap;
         if (heap !is currentHeap())
@@ -840,9 +899,17 @@ class ThreadGC : GC
 
         if (size <= blk.size)
         {
+            auto oldSize = blk.size;
+            heap.listLock.lock();
             blk.size = size;
+            if (blk.arrayUsed > size)
+                blk.arrayUsed = size;
             if (bits)
                 blk.attr = bits;
+            heap.usedBytes -= oldSize - size;
+            if (heap.blockLen && heap.blocks[heap.blockLen - 1] is blk)
+                heap.maxAddr = cast(void*)(blk + 1) + size;
+            heap.listLock.unlock();
             return p;
         }
 
@@ -866,17 +933,41 @@ class ThreadGC : GC
     {
         if (!p)
             return;
-        auto blk = queryBlock(p);
-        if (!blk)
-            return;
-        auto owner = blk.heap;
+
         auto local = tlsHeap;
-        if (isSharedRegionHeap(owner) || owner is local || local is null)
-        {
-            owner.unlinkAndFree(blk);
+        if (local && local.freeExact(p))
             return;
+
+        regionsLock.lock();
+        foreach (i; 0 .. allRegionsLen)
+        {
+            auto r = allRegions[i];
+            if (!r || !r.heap)
+                continue;
+            r.lock.lock();
+            bool freed = r.heap.freeExact(p);
+            r.lock.unlock();
+            if (freed)
+            {
+                regionsLock.unlock();
+                return;
+            }
         }
-        owner.pushRemote(p);
+        regionsLock.unlock();
+
+        // Keep the registry lock until the owner has accepted the request.
+        // cleanupThread unregisters before destroying a heap.
+        heapsLock.lock();
+        foreach (i; 0 .. allHeapsLen)
+        {
+            auto owner = allHeaps[i];
+            if (owner !is local && owner.queueRemote(p))
+            {
+                heapsLock.unlock();
+                return;
+            }
+        }
+        heapsLock.unlock();
     }
 
     void* addrOf(void* p) nothrow @nogc
@@ -888,7 +979,7 @@ class ThreadGC : GC
     size_t sizeOf(void* p) nothrow @nogc
     {
         auto blk = queryBlock(p);
-        return blk ? blk.size : 0;
+        return isExactBase(blk, p) ? blk.size : 0;
     }
 
     BlkInfo query(void* p) nothrow
@@ -1116,14 +1207,31 @@ class ThreadGC : GC
         markRangeInHeap(heap, pbot, ptop);
     }
 
+    package void markHeapContentsInto(ThreadHeap* source, ThreadHeap* target) nothrow @nogc
+    {
+        if (!source || !target)
+            return;
+        source.listLock.lock();
+        foreach (i; 0 .. source.blockLen)
+        {
+            auto b = source.blocks[i];
+            if (b.attr & BlkAttr.NO_SCAN)
+                continue;
+            auto base = cast(void*)(b + 1);
+            size_t scanLen = (b.attr & BlkAttr.APPENDABLE) && b.arrayUsed
+                ? b.arrayUsed : b.size;
+            markRangeInHeap(target, base, base + scanLen);
+        }
+        source.listLock.unlock();
+    }
+
     /// Returns true if fixpoint converged (safe to sweep).
     package bool markHeapFixpoint(ThreadHeap* heap) nothrow @nogc
     {
-        enum maxFixpointPasses = 256;
         BlkHeader** work = null;
         size_t workCap = 0;
 
-        foreach (pass; 0 .. maxFixpointPasses)
+        while (true)
         {
             // Snapshot newly marked candidates under lock; scan unlocked because
             // findBlock takes the same lock. State 2 prevents rescanning blocks.
@@ -1132,9 +1240,9 @@ class ThreadGC : GC
             foreach (i; 0 .. heap.blockLen)
             {
                 auto b = heap.blocks[i];
-                if (b.marked != 1)
+                if ((b.marked & markMask) != 1)
                     continue;
-                b.marked = 2;
+                b.marked = (b.marked & ~markMask) | 2;
                 if (b.attr & BlkAttr.NO_SCAN)
                     continue;
                 if (workLen == workCap)
@@ -1169,10 +1277,6 @@ class ThreadGC : GC
             }
         }
 
-        // A pointer chain deeper than the safety bound remains live. Skip sweep
-        // rather than risk freeing a block not reached yet.
-        cstdlib.free(work);
-        return false;
     }
 
     package void sweepHeap(ThreadHeap* heap) nothrow
@@ -1184,7 +1288,7 @@ class ThreadGC : GC
         for (size_t i = heap.blockLen; i > 0; --i)
         {
             auto b = heap.blocks[i - 1];
-            if (b.marked)
+            if (b.marked & markMask)
                 continue;
             heap.indexRemove(b);
             if (doomedLen == doomedCap)
@@ -1225,14 +1329,14 @@ class ThreadGC : GC
         auto h = cast(ThreadHeap*) t.tlsGCData();
         if (!h)
             return;
-        // Free remaining blocks; do not leave memory owned by a dead thread.
+        // Stop new foreign lookups before draining and destroying this heap.
+        unregisterHeap(h);
         h.drainRemote();
         while (h.blockLen)
         {
             auto cur = h.blocks[h.blockLen - 1];
             h.unlinkAndFree(cur);
         }
-        unregisterHeap(h);
         if (tlsHeap is h)
             tlsHeap = null;
         t.tlsGCData() = null;
@@ -1300,6 +1404,11 @@ private:
         return null;
     }
 
+    static bool isExactBase(BlkHeader* blk, void* p) nothrow @nogc
+    {
+        return blk !is null && cast(void*)(blk + 1) is p;
+    }
+
     void* alloc(size_t size, uint bits, bool zero) nothrow
     {
         auto heap = currentHeap();
@@ -1308,6 +1417,8 @@ private:
         if (!disabled && heap.usedBytes >= heap.collectThreshold)
             collectHeap(heap);
 
+        if (size > size_t.max - BlkHeader.sizeof)
+            onOutOfMemoryError();
         size_t total = BlkHeader.sizeof + size;
         // Align user payload
         auto raw = zero ? cstdlib.calloc(1, total) : cstdlib.malloc(total);
@@ -1341,7 +1452,7 @@ private:
 
         heap.listLock.lock();
         foreach (i; 0 .. heap.blockLen)
-            heap.blocks[i].marked = 0;
+            heap.blocks[i].marked &= remoteQueuedBit;
         heap.listLock.unlock();
 
         void* top;
@@ -1423,8 +1534,8 @@ private:
         if (!p)
             return;
         auto b = heap.findBlock(p);
-        if (b && b.marked == 0)
-            b.marked = 1;
+        if (b && !(b.marked & markMask))
+            b.marked = (b.marked & ~markMask) | 1;
     }
 
     static BlkHeader* headerOf(void* p) nothrow @nogc

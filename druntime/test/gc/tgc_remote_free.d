@@ -44,6 +44,7 @@ void main()
 
     auto foreign = cast(void*) address;
     GC.free(foreign);
+    GC.free(foreign); // duplicate requests must coalesce safely
     atomicStore(freeQueued, true);
 
     while (!atomicLoad(queueDrained))

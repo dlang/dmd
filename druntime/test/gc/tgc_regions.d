@@ -19,12 +19,21 @@ shared bool workerReady;
 shared bool collectDone;
 shared int* sharedCell;
 
+class RegionHolder
+{
+    shared int* cell;
+}
+
 void worker()
 {
     bool attached = _d_tgc_region_attach(regionId);
     assert(attached);
     sharedCell = cast(shared int*) _d_tgc_region_malloc(regionId, int.sizeof, 0);
     assert(sharedCell !is null);
+    auto holder = new RegionHolder;
+    holder.cell = cast(shared int*) _d_tgc_region_malloc(regionId, int.sizeof, 0);
+    assert(holder.cell !is null);
+    *holder.cell = 77;
     atomicStore(workerReady, true);
 
     while (!atomicLoad(collectDone))
@@ -32,12 +41,13 @@ void worker()
 
     // Must still be valid after region collect from main (root on main after join setup)
     assert(*sharedCell == 42);
+    assert(*holder.cell == 77);
 }
 
 void main()
 {
     auto ver = _d_tgc_version();
-    assert(ver !is null && !strcmp(ver, "0.2.2"));
+    assert(ver !is null && !strcmp(ver, "0.2.3"));
 
     regionId = _d_tgc_region_create();
     assert(regionId != 0);
@@ -57,6 +67,12 @@ void main()
 
     bool collected = _d_tgc_region_collect(regionId);
     assert(collected);
+    foreach (i; 0 .. 64)
+    {
+        auto overwrite = cast(int*) _d_tgc_region_malloc(regionId, int.sizeof, 0);
+        assert(overwrite !is null);
+        *overwrite = -1;
+    }
     atomicStore(collectDone, true);
     t.join();
 
