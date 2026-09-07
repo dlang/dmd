@@ -971,7 +971,8 @@ $(H2 $(LNAME2 ModuleInfo, ModuleInfo Instance))
 
         $(UL
         $(LI If the module has a static constructor, static destructor, shared static constructor, or shared static destructor.)
-        $(LI A reference to any unit tests defined by the module.)
+        $(LI A reference to the function running the module's unit tests, and metadata
+            for individual emitted unittest blocks.)
         $(LI An array of references to any imported modules that have one or more of:
             $(OL
             $(LI static constructors)
@@ -993,6 +994,15 @@ $(H2 $(LNAME2 ModuleInfo, ModuleInfo Instance))
         )
 
         $(P `ModuleInfo` is defined in Druntime's $(DRUNTIMESRC object.d), which must match the compiler's output in both the values of flags and layout of fields.)
+
+        $(P The optional individual unittest metadata uses flag $(TT 0x2000).
+        It follows the NUL-terminated module name, padded to pointer alignment,
+        and consists of a slice (length, pointer) of pointers to immutable
+        $(D UnitTestInfo) records. Each record begins with its byte size, a
+        $(D void function()) pointer, and a string (length, pointer) containing
+        the compiler-generated test name. These fields have fixed offsets;
+        future fields may be appended and must be checked against the emitted
+        byte size before access. Existing ModuleInfo fields retain their offsets.)
 
         $(P Modules compiled with $(DDSUBLINK dmd, switch-betterC, $(TT -betterC))
         do not have a `ModuleInfo` instance generated, because such modules must work
