@@ -6,7 +6,8 @@
  *   tgc_bench --DRT-gcopt=gc:tgc
  *   tgc_bench --DRT-gcopt=gc:tgc tgcShared:symgc
  *
- * Environment: TGC_BENCH_ITERS (default 50000), TGC_BENCH_THREADS (default 4)
+ * Environment: TGC_BENCH_ITERS (default 50000), TGC_BENCH_THREADS (default 4),
+ *              TGC_BENCH_LOOKUPS (default 200000)
  */
 import core.memory;
 import core.thread;
@@ -45,10 +46,13 @@ void main()
 {
     size_t iters = 50_000;
     size_t nThreads = 4;
+    size_t lookups = 200_000;
     if (const v = getenv("TGC_BENCH_ITERS"))
         iters = cast(size_t) atol(v);
     if (const v = getenv("TGC_BENCH_THREADS"))
         nThreads = cast(size_t) atol(v);
+    if (const v = getenv("TGC_BENCH_LOOKUPS"))
+        lookups = cast(size_t) atol(v);
 
     const char* ver = _d_tgc_version();
     if (ver && ver[0])
@@ -70,6 +74,23 @@ void main()
     t0 = MonoTime.currTime;
     GC.collect();
     printf("GC.collect pause: %llu ms\n", cast(ulong)(MonoTime.currTime - t0).total!"msecs");
+
+    enum lookupBlockCount = 4096;
+    void*[lookupBlockCount] lookupBlocks;
+    foreach (ref p; lookupBlocks)
+        p = GC.malloc(64, GC.BlkAttr.NO_SCAN);
+    t0 = MonoTime.currTime;
+    foreach (i; 0 .. lookups)
+    {
+        auto base = lookupBlocks[i % lookupBlockCount];
+        auto found = GC.addrOf(base + (i & 63));
+        assert(found == base);
+    }
+    printf("interior-pointer lookup: %llu ms (%zu lookups, %u blocks)\n",
+           cast(ulong)(MonoTime.currTime - t0).total!"msecs",
+           lookups, lookupBlockCount);
+    foreach (p; lookupBlocks)
+        GC.free(p);
 
     if (_d_tgc_version()[0])
     {
