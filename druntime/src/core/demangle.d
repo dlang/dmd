@@ -569,9 +569,9 @@ pure @safe:
         TypeEnum
         TypeTypedef
         TypeDelegate
-        TypeNone
         TypeVoid
         TypeNoreturn
+        TypeNull
         TypeByte
         TypeUbyte
         TypeShort
@@ -645,14 +645,14 @@ pure @safe:
     TypeDelegate:
         D TypeFunction
 
-    TypeNone:
-        n
 
     TypeVoid:
         v
 
     TypeNoreturn
         Nn
+    TypeNull:
+        n
 
     TypeByte:
         g
@@ -742,7 +742,7 @@ pure @safe:
             "uint", // k
             "long", // l
             "ulong", // m
-            null, // n
+            "typeof(null)", // n
             "ifloat", // o
             "idouble", // p
             "cfloat", // q
@@ -929,10 +929,6 @@ pure @safe:
                     put(str);
                 }
             }
-            return dst[beg .. $];
-        case 'n': // TypeNone (n)
-            popFront();
-            // TODO: Anything needed here?
             return dst[beg .. $];
         case 'B': // TypeTuple (B Number Arguments)
             popFront();
