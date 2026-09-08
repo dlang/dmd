@@ -17,7 +17,7 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dclass;
 import dmd.dstruct;
-import dmd.errors;
+import dmd.errors : fatal, Classification;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.hdrgen : toErrMsg;
@@ -50,7 +50,7 @@ bool genTypeInfo(Expression e, Loc loc, Type torig, Scope* sc)
     // https://issues.dlang.org/show_bug.cgi?id=18472
     if (!sc || !sc.ctfe)
     {
-        import dmd.globals;
+        import dmd.globals : global;
         if (!global.params.useTypeInfo)
         {
             global.gag = 0;
