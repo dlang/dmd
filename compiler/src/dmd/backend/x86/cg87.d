@@ -1736,6 +1736,8 @@ L5:
         case OPd_f:
         case OPf_d:
         case OPd_ld:
+            if (e.Ecount)
+                goto Ldefault;
             mf1 = (tybasic(e.E1.Ety) == TYfloat || tybasic(e.E1.Ety) == TYifloat)
                     ? MFfloat : MFdouble;
             if (op != -1 && global87.stackused && !noted)
