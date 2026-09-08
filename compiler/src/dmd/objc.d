@@ -26,10 +26,12 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
-import dmd.errors;
+//import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
+import dmd.globals : global;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
@@ -435,12 +437,14 @@ extern(C++) private final class Unsupported : Objc
 
     override void setObjc(ClassDeclaration cd)
     {
-        .error(cd.loc, "%s `%s` Objective-C classes not supported", cd.kind, cd.toPrettyChars);
+        auto eSink = global.errorSink;
+        eSink.error(cd.loc, "%s `%s` Objective-C classes not supported", cd.kind, cd.toPrettyChars);
     }
 
     override void setObjc(InterfaceDeclaration id)
     {
-        .error(id.loc, "%s `%s` Objective-C interfaces not supported", id.kind, id.toPrettyChars);
+        auto eSink = global.errorSink;
+        eSink.error(id.loc, "%s `%s` Objective-C interfaces not supported", id.kind, id.toPrettyChars);
     }
 
     override const(char)* toPrettyChars(ClassDeclaration, bool qualifyTypes) const
@@ -576,7 +580,8 @@ extern(C++) private final class Supported : Objc
 
             if (fd.objc.selector)
             {
-                .error(fd.loc, "%s `%s` can only have one Objective-C selector per method", fd.kind, fd.toPrettyChars);
+                auto eSink = global.errorSink;
+                eSink.error(fd.loc, "%s `%s` can only have one Objective-C selector per method", fd.kind, fd.toPrettyChars);
                 return 1;
             }
 
@@ -605,16 +610,20 @@ extern(C++) private final class Supported : Objc
         if (!fd.objc.selector)
             return;
         auto tf = cast(TypeFunction)fd.type;
+        auto eSink = global.errorSink;
         if (fd.objc.selector.paramCount != tf.parameterList.parameters.length)
-            .error(fd.loc, "%s `%s` number of colons in Objective-C selector must match number of parameters", fd.kind, fd.toPrettyChars);
+            eSink.error(fd.loc, "%s `%s` number of colons in Objective-C selector must match number of parameters", fd.kind, fd.toPrettyChars);
         if (fd.parent && fd.parent.isTemplateInstance())
-            .error(fd.loc, "%s `%s` template cannot have an Objective-C selector attached", fd.kind, fd.toPrettyChars);
+            eSink.error(fd.loc, "%s `%s` template cannot have an Objective-C selector attached", fd.kind, fd.toPrettyChars);
     }
 
     override void checkLinkage(FuncDeclaration fd)
     {
         if (fd._linkage != LINK.objc && fd.objc.selector)
-            .error(fd.loc, "%s `%s` must have Objective-C linkage to attach a selector", fd.kind, fd.toPrettyChars);
+        {
+            auto eSink = global.errorSink;
+            eSink.error(fd.loc, "%s `%s` must have Objective-C linkage to attach a selector", fd.kind, fd.toPrettyChars);
+        }
     }
 
     override bool isVirtual(const FuncDeclaration fd) const
@@ -642,7 +651,10 @@ extern(C++) private final class Supported : Objc
         fd.objc.isOptional = count > 0;
 
         if (count > 1)
-            .error(fd.loc, "%s `%s` can only declare a function as optional once", fd.kind, fd.toPrettyChars);
+        {
+            auto eSink = global.errorSink;
+            eSink.error(fd.loc, "%s `%s` can only declare a function as optional once", fd.kind, fd.toPrettyChars);
+        }
     }
 
     /// Returns: the number of times `fd` has been declared as optional.
@@ -675,13 +687,14 @@ extern(C++) private final class Supported : Objc
         if (!fd.objc.isOptional)
             return;
 
+        auto eSink = global.errorSink;
         if (fd._linkage != LINK.objc)
         {
-            .error(fd.loc, "%s `%s` only functions with Objective-C linkage can be declared as optional", fd.kind, fd.toPrettyChars);
+            eSink.error(fd.loc, "%s `%s` only functions with Objective-C linkage can be declared as optional", fd.kind, fd.toPrettyChars);
 
             const linkage = linkageToString(fd._linkage);
 
-            errorSupplemental(fd.loc, "function is declared with %.*s linkage",
+            eSink.errorSupplemental(fd.loc, "function is declared with %.*s linkage",
                 cast(uint) linkage.length, linkage.ptr);
         }
 
@@ -689,15 +702,15 @@ extern(C++) private final class Supported : Objc
 
         if (parent && parent.isTemplateInstance())
         {
-            .error(fd.loc, "%s `%s` template cannot be optional", fd.kind, fd.toPrettyChars);
+            eSink.error(fd.loc, "%s `%s` template cannot be optional", fd.kind, fd.toPrettyChars);
             parent = parent.parent;
             assert(parent);
         }
 
         if (parent && !parent.isInterfaceDeclaration())
         {
-            .error(fd.loc, "%s `%s` only functions declared inside interfaces can be optional", fd.kind, fd.toPrettyChars);
-            errorSupplemental(fd.loc, "function is declared inside %s", fd.parent.kind);
+            eSink.error(fd.loc, "%s `%s` only functions declared inside interfaces can be optional", fd.kind, fd.toPrettyChars);
+            eSink.errorSupplemental(fd.loc, "function is declared inside %s", fd.parent.kind);
         }
     }
 
@@ -838,9 +851,10 @@ extern(C++) private final class Supported : Objc
         enum supplementalMessage = "`offsetof` is not available for members " ~
             "of Objective-C classes. Please use the Objective-C runtime instead";
 
-        error(expression.loc, errorMessage, expression.toErrMsg(),
+        auto eSink = global.errorSink;
+        eSink.error(expression.loc, errorMessage, expression.toErrMsg(),
             expression.type.toErrMsg());
-        errorSupplemental(expression.loc, supplementalMessage);
+        eSink.errorSupplemental(expression.loc, supplementalMessage);
     }
 
     override void checkTupleof(Expression expression, TypeClass type) const
@@ -848,8 +862,9 @@ extern(C++) private final class Supported : Objc
         if (type.sym.classKind != ClassKind.objc)
             return;
 
-        error(expression.loc, "no property `tupleof` for type `%s`", type.toErrMsg());
-        errorSupplemental(expression.loc, "`tupleof` is not available for members " ~
+        auto eSink = global.errorSink;
+        eSink.error(expression.loc, "no property `tupleof` for type `%s`", type.toErrMsg());
+        eSink.errorSupplemental(expression.loc, "`tupleof` is not available for members " ~
             "of Objective-C classes. Please use the Objective-C runtime instead");
     }
 }
@@ -899,7 +914,8 @@ if (is(T == ClassDeclaration) || is(T == InterfaceDeclaration))
             }
             else
             {
-                .error(classDeclaration.loc, "%s `%s` base " ~ errorType ~ " for an Objective-C " ~
+                auto eSink = global.errorSink;
+                eSink.error(classDeclaration.loc, "%s `%s` base " ~ errorType ~ " for an Objective-C " ~
                       errorType ~ " must be `extern (Objective-C)`", classDeclaration.kind, classDeclaration.toPrettyChars);
             }
         }
