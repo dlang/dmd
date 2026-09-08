@@ -18,6 +18,7 @@ version(WebAssembly) {} else:
 package:
 
 import core.thread.fiber;
+import core.thread : isSingleThreaded;
 import core.thread.threadbase;
 import core.thread.threadgroup;
 import core.thread.types;
@@ -769,6 +770,7 @@ unittest
 
 
 // Multiple threads running separate fibers
+static if(!isSingleThreaded)
 unittest
 {
     auto group = new ThreadGroup();
@@ -781,6 +783,7 @@ unittest
 
 
 // Multiple threads running shared fibers
+static if(!isSingleThreaded)
 unittest
 {
     shared bool[10] locks;
@@ -987,6 +990,7 @@ unittest
 }
 
 // stress testing GC stack scanning
+static if(!isSingleThreaded)
 unittest
 {
     import core.memory;

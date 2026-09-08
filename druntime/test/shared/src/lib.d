@@ -55,6 +55,7 @@ void testGC()
 }
 
 // test Init
+import core.internal.thread : isSingleThreaded;
 import core.atomic : atomicLoad, atomicOp, atomicStore;
 shared uint shared_static_ctor, shared_static_dtor, static_ctor, static_dtor;
 shared static this() { _assert(atomicOp!"+="(shared_static_ctor, 1) == 1); }
@@ -64,6 +65,9 @@ static ~this() { atomicOp!"+="(static_dtor, 1); }
 
 extern(C) int runTests()
 {
+    static if(isSingleThreaded)
+        return 1;
+
     try
         runTestsImpl();
     catch (Throwable)

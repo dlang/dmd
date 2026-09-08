@@ -97,7 +97,7 @@ class Thread : ThreadBase
 
     static Thread getThis() @safe nothrow @nogc
     {
-        return ThreadBase.getThis().toThread;
+        return ThreadBase.getThis().toThread!Thread;
     }
 
     version (all)
