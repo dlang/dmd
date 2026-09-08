@@ -51,7 +51,7 @@ struct ConnectionHandler
             case ubyte[] frame => processFrame(frame),
             case Heartbeat => 0,
             case Ping(ts, seq) => sendPong(ts, seq),
-            case HttpRequest { statusCode, .. } => cast(int) statusCode, // Partial record destructuring
+            case HttpRequest { statusCode, ... } => cast(int) statusCode, // Partial record destructuring
             case Disconnected => throw new Exception("Terminating disconnected session"),
         };
     }
