@@ -36,6 +36,7 @@ import dmd.declaration;
 import dmd.dclass;
 import dmd.dcast;
 import dmd.delegatize;
+import dmd.decisiontree;
 import dmd.denum;
 import dmd.deps;
 import dmd.dimport;
@@ -15546,21 +15547,36 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.condition.op == EXP.error)
             return setError();
 
+        EnumUnionDeclaration enumUnion;
+        if (auto ts = exp.condition.type.toBasetype().isTypeStruct())
+            enumUnion = ts.sym.isEnumUnionDeclaration();
+
         Type resultType;
+        bool semanticDefaultSeen;
         foreach (ref arm; exp.arms)
         {
-            Scope* armScope = sc.push(new ScopeDsymbol());
-            if (!arm.isDefault && exp.condition.type.toBasetype().isTypeStruct())
+            if (arm.isDefault)
             {
-                auto ts = exp.condition.type.toBasetype().isTypeStruct();
-                if (auto eu = ts.sym.isEnumUnionDeclaration())
+                if (semanticDefaultSeen)
+                {
+                    eSink.error(arm.loc, "duplicate `default` arm in switch expression");
+                    return setError();
+                }
+                semanticDefaultSeen = true;
+            }
+            Scope* armScope = sc.push(new ScopeDsymbol());
+            if (!arm.isDefault && enumUnion)
+            {
+                auto eu = enumUnion;
                 {
                     Identifier variantId;
                     Expressions* arguments;
+                    ArgumentLabels* argumentNames;
                     if (arm.pattern)
                     {
                         if (auto call = arm.pattern.isCallExp())
                         {
+                            argumentNames = call.names;
                             if (auto id = call.e1.isIdentifierExp())
                                 variantId = id.ident;
                             arguments = call.arguments;
@@ -15579,7 +15595,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             auto payloadType = variant.payloadType && variant.payloadType.fields.length
                                 ? variant.payloadType.fields[0].type
                                 : variant.payload.length ? variant.payload[0] : null;
-                            if (variant.ident || variant.payload.length != 1 || !payloadType ||
+                            if ((variant.ident && !variant.isTypeAlias) || variant.payload.length != 1 || !payloadType ||
                                 !payloadType.equals(arm.typePattern))
                                 continue;
                         }
@@ -15613,34 +15629,197 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         }
                         else if (arguments)
                         {
+                            const fieldCount = variant.payloadType ? variant.payloadType.fields.length : 0;
+                            if (arm.hasRestPattern)
+                            {
+                                if (arm.restBinding)
+                                {
+                                    Expressions* restValues = new Expressions();
+                                    auto payloadVar = variant.payloadVar;
+                                    auto payload = new DotVarExp(arm.loc, exp.condition, payloadVar);
+                                    payload.type = payloadVar.type;
+                                    foreach (field; variant.payloadType.fields)
+                                    {
+                                        auto fieldValue = new DotVarExp(arm.loc, payload, field);
+                                        fieldValue.type = field.type;
+                                        restValues.push(fieldValue);
+                                    }
+                                    auto rest = new VarDeclaration(arm.loc, null, arm.restBinding,
+                                        new ExpInitializer(arm.loc, new TupleExp(arm.loc, restValues)));
+                                    rest.dsymbolSemantic(armScope);
+                                    armScope.insert(rest);
+                                    arm.bindings ~= rest;
+                                }
+                                break;
+                            }
+                            if (arguments.length > fieldCount)
+                            {
+                                eSink.error(arm.loc,
+                                    "pattern for variant `%s` has %llu argument(s), expected %llu",
+                                    variant.ident.toChars(), cast(ulong) arguments.length, cast(ulong) fieldCount);
+                                return setError();
+                            }
+                            bool[] used = new bool[](fieldCount);
+                            size_t nextField;
                             foreach (i, argument; *arguments)
                             {
+                                auto label = argumentNames && i < argumentNames.length
+                                    ? (*argumentNames)[i].name : null;
+                                size_t fieldIndex = size_t.max;
+                                if (label)
+                                {
+                                    foreach (j, field; variant.payloadType.fields)
+                                        if (field.ident == label)
+                                        {
+                                            fieldIndex = j;
+                                            break;
+                                        }
+                                }
+                                else
+                                {
+                                    while (nextField < used.length && used[nextField])
+                                        ++nextField;
+                                    if (nextField < used.length)
+                                        fieldIndex = nextField++;
+                                }
+                                if (fieldIndex == size_t.max || used[fieldIndex])
+                                {
+                                    eSink.error(arm.loc, "no such or duplicate field `%s` in variant pattern",
+                                        label ? label.toChars() : "");
+                                    return setError();
+                                }
+                                used[fieldIndex] = true;
+                                auto field = variant.payloadType.fields[fieldIndex];
                                 auto binding = argument.isIdentifierExp();
-                                if (!binding || !variant.payloadType ||
-                                    i >= variant.payloadType.fields.length)
+                                if (binding && !label)
+                                {
+                                    auto variable = new VarDeclaration(binding.loc, field.type,
+                                        binding.ident, null);
+                                    auto payloadVar = variant.payloadVar;
+                                    auto payload = new DotVarExp(binding.loc, exp.condition, payloadVar);
+                                    payload.type = payloadVar.type;
+                                    auto value = new DotVarExp(binding.loc, payload, field);
+                                    value.type = field.type;
+                                    variable._init = new ExpInitializer(binding.loc, value);
+                                    variable.dsymbolSemantic(armScope);
+                                    armScope.insert(variable);
+                                    arm.bindings ~= variable;
                                     continue;
-                                auto field = variant.payloadType.fields[i];
-                                auto variable = new VarDeclaration(binding.loc, field.type,
-                                    binding.ident, null);
+                                }
+                                argument = argument.expressionSemantic(armScope);
                                 auto payloadVar = variant.payloadVar;
-                                auto payload = new DotVarExp(binding.loc, exp.condition, payloadVar);
+                                auto payload = new DotVarExp(arm.loc, exp.condition, payloadVar);
                                 payload.type = payloadVar.type;
-                                auto value = new DotVarExp(binding.loc, payload, field);
+                                auto value = new DotVarExp(arm.loc, payload, field);
                                 value.type = field.type;
-                                variable._init = new ExpInitializer(binding.loc, value);
-                                variable.dsymbolSemantic(armScope);
-                                armScope.insert(variable);
-                                arm.bindings ~= variable;
+                                auto check = new EqualExp(EXP.equal, arm.loc, value, argument);
+                                check.type = Type.tbool;
+                                arm.patternChecks ~= check;
                             }
                         }
-                        else if (arm.recordBindings.length)
+                        else if (arm.recordBindings.length || arm.recordPatternNames.length || arm.hasRestPattern)
                         {
                             if (!variant.payloadType)
                                 continue;
+                            auto aliasPayloadType = variant.isTypeAlias && variant.payloadType.fields.length
+                                ? variant.payloadType.fields[0].type : null;
+                            auto recordType = aliasPayloadType && aliasPayloadType.toBasetype().isTypeStruct()
+                                ? aliasPayloadType.toBasetype().isTypeStruct().sym : variant.payloadType;
+                            VarDeclaration[] recordFields;
+                            foreach (field; recordType.fields)
+                                recordFields ~= field;
+                            if (!recordFields.length && recordType.members)
+                                foreach (member; *recordType.members)
+                                    if (auto field = member.isVarDeclaration())
+                                        recordFields ~= field;
+                            if (!arm.hasRestPattern && arm.recordBindings.length + arm.recordPatternNames.length != recordFields.length)
+                            {
+                                eSink.error(arm.loc,
+                                    "record pattern for variant `%s` must list all fields or use `...`",
+                                    variant.ident ? variant.ident.toChars() : "variant");
+                                return setError();
+                            }
+                            bool[] usedFields = new bool[](recordFields.length);
+                            foreach (fieldName; arm.recordBindings)
+                                foreach (i, field; recordFields)
+                                    if (field.ident == fieldName)
+                                        usedFields[i] = true;
+                            foreach (i, fieldName; arm.recordPatternNames)
+                            {
+                                size_t fieldIndex = size_t.max;
+                                foreach (j, field; recordFields)
+                                    if (field.ident == fieldName)
+                                    {
+                                        fieldIndex = j;
+                                        break;
+                                    }
+                                if (fieldIndex == size_t.max || usedFields[fieldIndex])
+                                {
+                                    eSink.error(arm.loc, "no such or duplicate field `%s` in variant pattern",
+                                        fieldName.toChars());
+                                    return setError();
+                                }
+                                usedFields[fieldIndex] = true;
+                                auto payloadVar = variant.payloadVar;
+                                auto payload = new DotVarExp(arm.loc, exp.condition, payloadVar);
+                                payload.type = payloadVar.type;
+                                auto payloadField = variant.isTypeAlias ? variant.payloadType.fields[0] : null;
+                                if (payloadField)
+                                {
+                                    payload = new DotVarExp(arm.loc, payload, payloadField);
+                                    payload.type = payloadField.type;
+                                }
+                                auto fieldValue = new DotVarExp(arm.loc, payload, recordFields[fieldIndex]);
+                                fieldValue.type = recordFields[fieldIndex].type;
+                                auto patternValue = arm.recordPatterns[i];
+                                auto patternBinding = patternValue.isIdentifierExp();
+                                if (!patternBinding)
+                                    patternValue = patternValue.expressionSemantic(armScope);
+                                if (patternBinding)
+                                {
+                                    auto variable = new VarDeclaration(patternBinding.loc,
+                                        recordFields[fieldIndex].type, patternBinding.ident, null);
+                                    variable._init = new ExpInitializer(patternBinding.loc, fieldValue);
+                                    variable.dsymbolSemantic(armScope);
+                                    armScope.insert(variable);
+                                    arm.bindings ~= variable;
+                                }
+                                else
+                                {
+                                    auto check = new EqualExp(EXP.equal, arm.loc, fieldValue, patternValue);
+                                    check.type = Type.tbool;
+                                    arm.patternChecks ~= check;
+                                }
+                            }
+                            if (arm.restBinding)
+                            {
+                                Expressions* restValues = new Expressions();
+                                auto payloadVar = variant.payloadVar;
+                                auto payload = new DotVarExp(arm.loc, exp.condition, payloadVar);
+                                payload.type = payloadVar.type;
+                                auto payloadField = variant.isTypeAlias ? variant.payloadType.fields[0] : null;
+                                if (payloadField)
+                                {
+                                    payload = new DotVarExp(arm.loc, payload, payloadField);
+                                    payload.type = payloadField.type;
+                                }
+                                foreach (i, field; recordFields)
+                                    if (!usedFields[i])
+                                    {
+                                        auto fieldValue = new DotVarExp(arm.loc, payload, field);
+                                        fieldValue.type = field.type;
+                                        restValues.push(fieldValue);
+                                    }
+                                auto rest = new VarDeclaration(arm.loc, null, arm.restBinding,
+                                    new ExpInitializer(arm.loc, new TupleExp(arm.loc, restValues)));
+                                rest.dsymbolSemantic(armScope);
+                                armScope.insert(rest);
+                                arm.bindings ~= rest;
+                            }
                             foreach (bindingName; arm.recordBindings)
                             {
                                 VarDeclaration field;
-                                foreach (candidate; variant.payloadType.fields)
+                                foreach (candidate; recordFields)
                                 {
                                     if (candidate.ident == bindingName)
                                     {
@@ -15677,6 +15856,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     }
                 }
             }
+            else if (!arm.isDefault)
+            {
+                eSink.error(arm.loc, "switch expression patterns require an enum union condition");
+                armScope.pop();
+                return setError();
+            }
             if (arm.guard)
             {
                 arm.guard = arm.guard.expressionSemantic(armScope);
@@ -15705,64 +15890,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             eSink.error(exp.loc, "switch expression must have at least one arm");
             return setError();
         }
-        foreach (ref arm; exp.arms)
-        {
-            if (arm.guard && !exp.hasDefault)
-            {
-                eSink.error(arm.loc, "switch expression arm with an `if` guard requires a `default` arm");
-                return setError();
-            }
-        }
         if (auto ts = exp.condition.type.toBasetype().isTypeStruct())
-        {
             if (auto eu = ts.sym.isEnumUnionDeclaration())
-            {
-                auto covered = new bool[](eu.variants.length);
-                bool defaultSeen;
-                foreach (ref arm; exp.arms)
-                {
-                    if (arm.isDefault)
-                    {
-                        defaultSeen = true;
-                        continue;
-                    }
-                    if (!arm.hasVariant)
-                        continue;
-                    if (covered[arm.variantIndex])
-                    {
-                        eSink.error(arm.loc, "redundant match arm; pattern is unreachable");
-                        return setError();
-                    }
-                    // A guarded arm doesn't unconditionally cover its variant:
-                    // later arms (or `default`) may still be reached for it.
-                    if (!arm.guard)
-                        covered[arm.variantIndex] = true;
-                }
-                if (!defaultSeen)
-                {
-                    OutBuffer missing;
-                    foreach (i, variant; eu.variants)
-                    {
-                        if (covered[i])
-                            continue;
-                        if (missing.length)
-                            missing.writestring(", ");
-                        if (variant.ident)
-                            missing.writestring(variant.ident.toString());
-                        else if (variant.payloadType && variant.payloadType.fields.length)
-                            missing.writestring(variant.payloadType.fields[0].type.toErrMsg());
-                        else
-                            missing.writestring("<unknown>");
-                    }
-                    if (missing.length)
-                    {
-                        eSink.error(exp.loc, "switch expression is not exhaustive; missing variant(s) `%s`",
-                            missing.peekChars());
-                        return setError();
-                    }
-                }
-            }
-        }
+                if (!checkExhaustivenessAndRedundancy(exp, eu, eSink))
+                    return setError();
         exp.type = resultType;
         Expression defaultAction;
         foreach (ref arm; exp.arms)
@@ -15789,6 +15920,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
                 }
                 auto payloadType = payloadVar.type.toBasetype().isTypeStruct().sym;
+                auto aliasPayloadType = variant.isTypeAlias && variant.payloadType.fields.length
+                    ? variant.payloadType.fields[0].type : null;
+                auto aliasStruct = aliasPayloadType ? aliasPayloadType.toBasetype().isTypeStruct() : null;
+                auto recordType = aliasStruct ? aliasStruct.sym : payloadType;
+                VarDeclaration[] recordFields;
+                foreach (field; recordType.fields)
+                    recordFields ~= field;
+                if (!recordFields.length && recordType.members)
+                    foreach (member; *recordType.members)
+                        if (auto field = member.isVarDeclaration())
+                            recordFields ~= field;
                 // Bindings must be declared before the guard runs (the guard may
                 // reference them), so when a guard is present the declarations are
                 // threaded through the guard instead of the action; the action then
@@ -15799,7 +15941,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     if (!binding._init)
                     {
                         VarDeclaration field;
-                        foreach (candidate; payloadType.fields)
+                        foreach (candidate; recordFields)
                         {
                             if (candidate.ident == binding.ident)
                             {
@@ -15807,7 +15949,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 break;
                             }
                         }
-                        if (!field && payloadType.members)
+                        if (!field && !aliasStruct && payloadType.members)
                         {
                             foreach (member; *payloadType.members)
                             {
@@ -15829,6 +15971,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         }
                         auto payload = new DotVarExp(arm.loc, exp.condition, payloadVar);
                         payload.type = payloadVar.type;
+                        if (aliasStruct)
+                        {
+                            auto payloadField = payloadType.fields[0];
+                            payload = new DotVarExp(arm.loc, payload, payloadField);
+                            payload.type = payloadField.type;
+                        }
                         auto value = new DotVarExp(arm.loc, payload, field);
                         value.type = field.type;
                         binding._init = new ExpInitializer(arm.loc, value);
@@ -15850,6 +15998,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression match = new EqualExp(EXP.equal, arm.loc, tag,
                     new IntegerExp(arm.loc, arm.variantIndex, Type.tuns8));
                 match.type = Type.tbool;
+                foreach_reverse (check; arm.patternChecks)
+                {
+                    match = new LogicalExp(arm.loc, EXP.andAnd, match, check);
+                    match.type = Type.tbool;
+                }
                 if (guardExpr)
                 {
                     match = new LogicalExp(arm.loc, EXP.andAnd, match, guardExpr);

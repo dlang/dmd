@@ -27,6 +27,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
+import dmd.rootobject;
 import dmd.visitor;
 
 enum StructFlags : int
@@ -38,10 +39,34 @@ enum StructFlags : int
 struct EnumUnionVariant
 {
     Identifier ident;
+    bool isTypeAlias;
+    bool generated;
     Type[] payload;
+    Identifier[] payloadNames;
     Dsymbols* members;
     StructDeclaration payloadType;
     VarDeclaration payloadVar;
+}
+
+extern (C++) final class EnumUnionCaseDeclaration : Declaration
+{
+    EnumUnionVariant variant;
+
+    extern (D) this(Loc loc, EnumUnionVariant variant)
+    {
+        super(DSYM.enumUnionCaseDeclaration, loc, null);
+        this.variant = variant;
+    }
+
+    override EnumUnionCaseDeclaration syntaxCopy(Dsymbol s)
+    {
+        return new EnumUnionCaseDeclaration(loc, variant);
+    }
+
+    override const(char)* kind() const
+    {
+        return "enum union case";
+    }
 }
 
 /***********************************************************
@@ -156,6 +181,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 extern (C++) final class EnumUnionDeclaration : StructDeclaration
 {
     EnumUnionVariant[] variants;
+    bool enumUnionCasesExpanded;
+    bool enumUnionFactoriesSynthesized;
     VarDeclaration tagVar;
     UnionDeclaration payloadUnion;
 
@@ -170,6 +197,11 @@ extern (C++) final class EnumUnionDeclaration : StructDeclaration
         auto eu = new EnumUnionDeclaration(loc, ident);
         eu.variants = variants;
         StructDeclaration.syntaxCopy(eu);
+        // `members` was just deep-copied above; `tagVar` must point at the
+        // copy (it's always the first member, see parse.d), not the original
+        // declaration, or later semantic passes on this instance dereference
+        // a stale/absent tag variable (null for template instantiations).
+        eu.tagVar = eu.members && eu.members.length ? (*eu.members)[0].isVarDeclaration() : null;
         return eu;
     }
 

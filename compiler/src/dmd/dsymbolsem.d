@@ -2091,11 +2091,123 @@ private void checkImportDeprecation(Module m, Loc loc, Scope* sc)
     eSink.deprecation(m.loc, "%s `%s` is deprecated", m.kind, m.toPrettyChars);
 }
 
+private void collectEnumUnionCases(Dsymbols* symbols, Scope* sc,
+    ref EnumUnionVariant[] variants, Dsymbols* retained, Type forcedPayload = null,
+    bool discardLoopBindings = false)
+{
+    if (!symbols)
+        return;
+
+    foreach (d; *symbols)
+    {
+        if (d.dsym == DSYM.enumUnionCaseDeclaration)
+        {
+            auto caseDecl = cast(EnumUnionCaseDeclaration)d;
+            auto variant = caseDecl.variant;
+            variant.payload = variant.payload.dup;
+            if (variant.payload.length)
+            {
+                if (forcedPayload)
+                    variant.payload[0] = forcedPayload;
+                else if (auto typeIdent = variant.payload[0].toBasetype().isTypeIdentifier())
+                {
+                    Dsymbol scopesym;
+                    auto symbol = sc.search(caseDecl.loc, typeIdent.ident, scopesym);
+                    if (auto aliasDecl = symbol ? symbol.isAliasDeclaration() : null)
+                        variant.payload[0] = aliasDecl.type;
+                }
+                variant.payload[0] = variant.payload[0].typeSemantic(caseDecl.loc, sc);
+            }
+            variant.generated = forcedPayload !is null;
+            if (variant.generated)
+            {
+                foreach (existing; variants)
+                {
+                    if (existing.generated && !existing.ident && existing.payload.length == 1 &&
+                        variant.payload.length == 1 && existing.payload[0].equals(variant.payload[0]))
+                        goto skipGeneratedCase;
+                }
+            }
+            variants ~= variant;
+        skipGeneratedCase:
+            continue;
+        }
+        if (auto sif = d.isStaticIfDeclaration())
+        {
+            auto conditionScope = sc;
+            if (sif._scope != conditionScope)
+                sif.setScope(conditionScope);
+            if (auto sic = sif.condition.isStaticIfCondition())
+            {
+                sic.inc = Include.notComputed;
+            }
+            auto conditionResult = dmd.expressionsem.include(sif.condition, conditionScope);
+            auto selected = conditionResult ? sif.decl : sif.elsedecl;
+            collectEnumUnionCases(selected, conditionScope, variants, retained,
+                forcedPayload, discardLoopBindings);
+            continue;
+        }
+        if (auto sfd = d.isStaticForeachDeclaration())
+        {
+            if (!sfd.cached)
+            {
+                sfd.sfe.prepare(sfd._scope);
+                dmd.dsymbolsem.include(sfd, sc);
+            }
+            if (sfd.cache)
+            {
+                foreach (i, expanded; *sfd.cache)
+                {
+                    if (auto fad = expanded.isForwardingAttribDeclaration())
+                    {
+                        auto iterationScope = sc.push(fad.sym);
+                        fad.decl.foreachDsymbol(s => s.setScope(iterationScope));
+                        Type payload;
+                        foreach (member; *fad.decl)
+                        {
+                            if (auto loopAlias = member.isAliasDeclaration())
+                            {
+                                payload = loopAlias.type;
+                                if (!payload && loopAlias.aliassym)
+                                    payload = loopAlias.aliassym.isType();
+                                break;
+                            }
+                        }
+                        collectEnumUnionCases(fad.decl, iterationScope, variants, retained,
+                            payload, true);
+                    }
+                }
+            }
+            continue;
+        }
+        if (d.isForwardingAttribDeclaration())
+        {
+            auto fad = cast(ForwardingAttribDeclaration)d;
+            auto iterationScope = sc.push(fad.sym);
+            fad.decl.foreachDsymbol(s => s.setScope(iterationScope));
+            collectEnumUnionCases(fad.decl, iterationScope, variants, retained, null, true);
+            continue;
+        }
+        if (discardLoopBindings && d.dsym == DSYM.pragmaDeclaration)
+        {
+            d.setScope(sc);
+            d.dsymbolSemantic(sc);
+            continue;
+        }
+        if (discardLoopBindings && d.isAliasDeclaration())
+            continue;
+        retained.push(d);
+    }
+}
+
 private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
 {
     auto eSink = global.errorSink;
     if (eu.parent && eu.parent.isTemplateDeclaration())
         return;
+    if (eu.enumUnionFactoriesSynthesized)
+        return;
+    eu.enumUnionFactoriesSynthesized = true;
     if (eu.members.length < 2)
         return;
 
@@ -2109,13 +2221,13 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
     // union's own member declarations (functions, aliases, etc.), which must
     // survive the members array being rebuilt below.
     Dsymbol[] extraMembers = (*eu.members)[2 .. eu.members.length];
+    bool hasErrors;
 
     // Duplicate-case rule: no two variants (of any kind - unit, positional,
     // or record) may share the same identifier, regardless of their payload
     // types/signatures. Without this, two same-named variants with different
     // signatures would just look like ordinary D function overloads to the
     // synthesized factory functions, silently accepted instead of rejected.
-    bool hasErrors;
     foreach (i, variant; eu.variants)
     {
         if (!variant.ident)
@@ -2137,7 +2249,6 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
         }
     }
 
-    StructDeclaration[] payloadTypes;
     VarDeclaration[] payloadVars;
     Dsymbols* payloadMembers = new Dsymbols();
     foreach (ref variant; eu.variants)
@@ -2148,14 +2259,16 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
         if (!payloadType.members)
         {
             payloadType.members = new Dsymbols();
-            foreach (payload; variant.payload)
-                payloadType.members.push(new VarDeclaration(eu.loc, payload,
-                    Identifier.generateId("__enumPayload"), null));
+            foreach (k, payload; variant.payload)
+            {
+                auto ident = k < variant.payloadNames.length && variant.payloadNames[k]
+                    ? variant.payloadNames[k] : Identifier.generateId("__enumPayload");
+                payloadType.members.push(new VarDeclaration(eu.loc, payload, ident, null));
+            }
         }
         variant.payloadType = payloadType;
         payloadType.parent = eu;
         payloadType.dsymbolSemantic(sc);
-        payloadTypes ~= payloadType;
         auto payloadVar = new VarDeclaration(eu.loc, new TypeStruct(payloadType),
             Identifier.generateId("__enumPayload"), null);
         variant.payloadVar = payloadVar;
@@ -2226,16 +2339,35 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
             continue;
 
         auto parameters = new Parameters();
-        const nfields = variant.payloadType ? variant.payloadType.fields.length : 1;
+        auto aliasPayloadType = variant.isTypeAlias && variant.payloadType.fields.length
+            ? variant.payloadType.fields[0].type : null;
+        auto aliasStruct = aliasPayloadType ? aliasPayloadType.toBasetype().isTypeStruct() : null;
+        VarDeclaration[] aliasFields;
+        if (aliasStruct)
+        {
+            foreach (field; aliasStruct.sym.fields)
+                aliasFields ~= field;
+            if (!aliasFields.length && aliasStruct.sym.members)
+                foreach (member; *aliasStruct.sym.members)
+                    if (auto field = member.isVarDeclaration())
+                        aliasFields ~= field;
+        }
+        const nfields = aliasStruct ? aliasFields.length
+            : variant.payloadType ? variant.payloadType.fields.length : 1;
         foreach (k; 0 .. nfields)
         {
             auto pident = Identifier.generateId("__enumPayloadParam");
-            auto fieldType = variant.payloadType ? variant.payloadType.fields[k].type : variant.payload[0];
+            if (k < variant.payloadNames.length && variant.payloadNames[k])
+                pident = variant.payloadNames[k];
+            else if (!aliasStruct && variant.payloadType && variant.payloadType.fields.length > k)
+                pident = variant.payloadType.fields[k].ident;
+            auto fieldType = aliasStruct ? aliasFields[k].type
+                : variant.payloadType ? variant.payloadType.fields[k].type : variant.payload[0];
             parameters.push(new Parameter(eu.loc, STC.none, fieldType,
                 pident, null, null, null));
         }
 
-        const stc = variant.payload.length ? STC.none : STC.property;
+        const stc = nfields ? STC.none : STC.property;
         auto functionType = new TypeFunction(ParameterList(parameters), eu.type, LINK.d, stc);
         auto fd = new FuncDeclaration(eu.loc, eu.loc, variant.ident, STC.static_, functionType);
         auto result = new VarDeclaration(eu.loc, eu.type, Identifier.generateId("__enumResult"), null);
@@ -2245,7 +2377,20 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
         tagExp.type = tag.type;
         statements.push(new ExpStatement(eu.loc, new AssignExp(eu.loc, tagExp,
             new IntegerExp(eu.loc, i, Type.tuns8))));
-        foreach (k; 0 .. nfields)
+        if (aliasStruct)
+        {
+            auto payloadExp = new DotVarExp(eu.loc, new VarExp(eu.loc, result), payloadVars[i]);
+            payloadExp.type = payloadVars[i].type;
+            auto payloadField = variant.payloadType.fields[0];
+            payloadExp = new DotVarExp(eu.loc, payloadExp, payloadField);
+            payloadExp.type = payloadField.type;
+            auto arguments = new Expressions();
+            foreach (parameter; *parameters)
+                arguments.push(new IdentifierExp(eu.loc, parameter.ident));
+            auto literal = new StructLiteralExp(eu.loc, aliasStruct.sym, arguments, aliasPayloadType);
+            statements.push(new ExpStatement(eu.loc, new ConstructExp(eu.loc, payloadExp, literal)));
+        }
+        else foreach (k; 0 .. nfields)
         {
             Expression payloadExp = new DotVarExp(eu.loc, new VarExp(eu.loc, result), payloadVars[i]);
             payloadExp.type = payloadVars[i].type;
@@ -5244,8 +5389,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sd.semanticRun = PASS.semanticdone;
             return;
         }
-        if (auto eu = sd.isEnumUnionDeclaration())
-            synthesizeEnumUnionFactories(eu, sc);
         if (!sd.symtab)
         {
             sd.symtab = new DsymbolTable();
@@ -5260,6 +5403,43 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          */
         sd.members.foreachDsymbol( s => s.setScope(sc2) );
         sd.members.foreachDsymbol( s => s.importAll(sc2) );
+
+        if (auto eu = sd.isEnumUnionDeclaration())
+        {
+            // Compile-time declarations must be expanded while the aggregate
+            // symbol table and forwarding scopes are live. Factory synthesis
+            // consumes the normalized variant list produced by this prepass.
+            if (!eu.enumUnionCasesExpanded)
+            {
+                eu.enumUnionCasesExpanded = true;
+                auto originalMembers = eu.members;
+                auto compileTimeMembers = new Dsymbols();
+                foreach (i, member; *originalMembers)
+                {
+                    if (i >= 2)
+                        compileTimeMembers.push(member);
+                }
+                auto retainedMembers = new Dsymbols();
+                collectEnumUnionCases(compileTimeMembers, sc2, eu.variants, retainedMembers);
+                eu.members = new Dsymbols();
+                eu.members.push((*originalMembers)[0]);
+                eu.members.push((*originalMembers)[1]);
+                eu.members.append(retainedMembers);
+
+                eu.symtab = new DsymbolTable();
+                eu.members.foreachDsymbol(s => s.addMember(sc, eu));
+                eu.members.foreachDsymbol(s => s.setScope(sc2));
+                eu.members.foreachDsymbol(s => s.importAll(sc2));
+
+                synthesizeEnumUnionFactories(eu, sc2);
+
+                eu.symtab = new DsymbolTable();
+                eu.members.foreachDsymbol(s => s.addMember(sc, eu));
+                eu.members.foreachDsymbol(s => s.setScope(sc2));
+                eu.members.foreachDsymbol(s => s.importAll(sc2));
+            }
+        }
+
         sd.members.foreachDsymbol( (s) { s.dsymbolSemantic(sc2); if (sd.errors) s.errors = true; } );
 
         if (sd.errors)

@@ -14,7 +14,6 @@
 module dmd.parse;
 
 import core.stdc.stdio;
-import core.stdc.string;
 
 import dmd.astenums;
 import dmd.errorsink;
@@ -388,6 +387,28 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             switch (token.value)
             {
+            case TOK.case_:
+                if (pLastDecl && (pLastDecl.dsym == AST.DSYM.enumUnionDeclaration ||
+                    pLastDecl.dsym == AST.DSYM.enumUnionCaseDeclaration ||
+                    pLastDecl.dsym == AST.DSYM.staticIfDeclaration ||
+                    pLastDecl.dsym == AST.DSYM.staticForeachDeclaration ||
+                    pLastDecl.dsym == AST.DSYM.pragmaDeclaration))
+                {
+                    const loc = token.loc;
+                    nextToken();
+                    AST.EnumUnionVariant variant;
+                    variant.payload ~= parseType();
+                    if (!variant.payload.length)
+                    {
+                        error(loc, "enum union variant type expected");
+                        break;
+                    }
+                    check(TOK.semicolon);
+                    s = new AST.EnumUnionCaseDeclaration(loc, variant);
+                    break;
+                }
+                goto default;
+
             case TOK.enum_:
                 {
                     /* Determine if this is a manifest constant declaration,
@@ -3375,17 +3396,42 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         else if (isUnion && token.value == TOK.leftCurly)
         {
             eu.variants = [];
+            auto memberDecls = new AST.Dsymbols();
             nextToken();
             while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
             {
                 const variantLoc = token.loc;
                 AST.EnumUnionVariant variant;
 
+                if (token.value == TOK.static_ || token.value == TOK.pragma_)
+                {
+                    AST.Dsymbol lastDecl = cast(AST.Dsymbol) eu;
+                    auto declarations = parseDeclDefs(1, &lastDecl);
+                    if (declarations)
+                        memberDecls.append(declarations);
+                    continue;
+                }
+
                 if (token.value == TOK.case_)
                 {
                     nextToken();
                     if (token.value == TOK.identifier)
                     {
+                        if (peekNext() == TOK.assign)
+                        {
+                            variant.ident = token.ident;
+                            variant.isTypeAlias = true;
+                            nextToken();
+                            nextToken();
+                            variant.payload ~= parseType();
+                            if (!variant.payload.length)
+                            {
+                                error(variantLoc, "enum union variant type expected");
+                                break;
+                            }
+                        }
+                        else
+                        {
                         // Disambiguate `case Name` / `case Name(...)` / `case Name { ... }`
                         // (a named variant) from `case SomeIdentifierType`, e.g. `case string`,
                         // `case noreturn`, `case noreturn*`, `case noreturn[]` (a bare type
@@ -3393,6 +3439,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         // `*` or `[` can only mean the identifier started a type.
                         const afterIdent = peekNext();
                         const isBareIdentType = afterIdent == TOK.mul || afterIdent == TOK.leftBracket ||
+                            afterIdent == TOK.not ||
                             (afterIdent != TOK.leftParenthesis && afterIdent != TOK.leftCurly &&
                              (token.ident == Identifier.idPool("string") ||
                               token.ident == Identifier.idPool("wstring") ||
@@ -3411,7 +3458,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                                 nextToken();
                                 while (token.value != TOK.rightParenthesis && token.value != TOK.endOfFile)
                                 {
-                                    variant.payload ~= parseType();
+                                    Identifier payloadIdent;
+                                    variant.payload ~= parseType(&payloadIdent);
+                                    variant.payloadNames ~= payloadIdent;
                                     if (token.value != TOK.comma)
                                         break;
                                     nextToken();
@@ -3424,6 +3473,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                                 variant.members = parseDeclDefs(0);
                                 check(TOK.rightCurly);
                             }
+                        }
                         }
                     }
                     else
@@ -3450,13 +3500,17 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 else if (token.value != TOK.rightCurly)
                     error(token.loc, "`,` or `}` expected after enum union variant");
             }
-            AST.Dsymbols* memberDecls;
             if (token.value == TOK.semicolon)
             {
                 nextToken();
-                memberDecls = parseDeclDefs(0);
+                auto declarations = parseDeclDefs(0);
+                if (declarations)
+                    memberDecls.append(declarations);
             }
             check(TOK.rightCurly);
+
+            if (eu.variants.length > 256)
+                error(loc, "enum union cannot have more than 256 variants");
 
             eu.tagVar = new AST.VarDeclaration(loc, AST.Type.tuns8, Id.__tag, null);
             eu.payloadUnion = new AST.UnionDeclaration(loc, null);
@@ -8600,29 +8654,20 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     AST.Type typePattern;
                     Identifier typeBinding;
                     Identifier[] recordBindings;
-                    bool hasRestPattern = false;
+                    bool hasRestPattern;
+                    Identifier[] recordPatternNames;
+                    AST.Expression[] recordPatterns;
+                    Identifier restBinding;
                     bool isDefault;
                     if (token.value == TOK.case_)
                     {
                         nextToken();
-                        if (token.value == TOK.float64 || token.value == TOK.string_ ||
+                        Token* patternEnd = &token;
+                        if ((token.value != TOK.identifier && isBasicType(&patternEnd)) ||
                             (token.value == TOK.identifier &&
-                             (token.ident == Identifier.idPool("string") ||
-                              token.ident == Identifier.idPool("wstring") ||
-                              token.ident == Identifier.idPool("dstring"))))
+                             (peekNext() == TOK.identifier || peekNext() == TOK.not)))
                         {
-                            if (token.value == TOK.identifier)
-                            {
-                                typePattern = new AST.TypeIdentifier(armLoc, token.ident);
-                                nextToken();
-                            }
-                            else
-                                typePattern = parseBasicType();
-                            if (token.value == TOK.identifier)
-                            {
-                                typeBinding = token.ident;
-                                nextToken();
-                            }
+                            typePattern = parseType(&typeBinding);
                         }
                         else if (token.value == TOK.identifier)
                         {
@@ -8641,10 +8686,28 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                                     }
                                     if (token.value == TOK.identifier)
                                     {
-                                        recordBindings ~= token.ident;
-                                        nextToken();
+                                        auto fieldName = token.ident;
+                                        if (peekNext() == TOK.colon)
+                                        {
+                                            nextToken();
+                                            nextToken();
+                                            recordPatternNames ~= fieldName;
+                                            recordPatterns ~= parseAssignExp();
+                                        }
+                                        else if (peekNext() == TOK.dotDotDot)
+                                        {
+                                            restBinding = fieldName;
+                                            hasRestPattern = true;
+                                            nextToken();
+                                            nextToken();
+                                        }
+                                        else
+                                        {
+                                            recordBindings ~= fieldName;
+                                            nextToken();
+                                        }
                                     }
-                                    else if (token.value == TOK.slice || token.value == TOK.dotDotDot)
+                                    else if (token.value == TOK.dotDotDot)
                                     {
                                         hasRestPattern = true;
                                         nextToken();
@@ -8670,7 +8733,24 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         {
                             auto args = new AST.Expressions();
                             auto names = new AST.ArgumentLabels();
-                            parseNamedArguments(args, names);
+                            if (peekNext() == TOK.dotDotDot)
+                            {
+                                nextToken();
+                                nextToken();
+                                check(TOK.rightParenthesis);
+                                hasRestPattern = true;
+                            }
+                            else if (peekNext() == TOK.identifier && peekNext2() == TOK.dotDotDot)
+                            {
+                                nextToken();
+                                restBinding = token.ident;
+                                nextToken();
+                                nextToken();
+                                check(TOK.rightParenthesis);
+                                hasRestPattern = true;
+                            }
+                            else
+                                parseNamedArguments(args, names);
                             pattern = new AST.CallExp(pattern.loc, pattern, args, names);
                         }
                     }
@@ -8711,6 +8791,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     arm.typeBinding = typeBinding;
                     arm.recordBindings = recordBindings;
                     arm.hasRestPattern = hasRestPattern;
+                    arm.recordPatternNames = recordPatternNames;
+                    arm.recordPatterns = recordPatterns;
+                    arm.restBinding = restBinding;
                     arm.guard = guard;
                     arm.isDefault = isDefault;
                     arm.action = action;

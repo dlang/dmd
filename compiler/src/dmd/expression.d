@@ -3794,6 +3794,10 @@ struct CaseExpArm
     Identifier typeBinding;
     Identifier[] recordBindings;
     bool hasRestPattern;
+    Identifier[] recordPatternNames;
+    Expression[] recordPatterns;
+    Identifier restBinding;
+    Expression[] patternChecks;
     Expression guard;
     bool isDefault;
     Expression action;
@@ -3826,6 +3830,10 @@ extern (C++) final class SwitchExp : Expression
             copiedArms[i].typePattern = arm.typePattern ? arm.typePattern.syntaxCopy() : null;
             copiedArms[i].recordBindings = arm.recordBindings.dup;
             copiedArms[i].hasRestPattern = arm.hasRestPattern;
+            copiedArms[i].recordPatternNames = arm.recordPatternNames.dup;
+            copiedArms[i].recordPatterns = arm.recordPatterns.dup;
+            copiedArms[i].restBinding = arm.restBinding;
+            copiedArms[i].patternChecks = arm.patternChecks.dup;
             copiedArms[i].guard = arm.guard ? arm.guard.syntaxCopy() : null;
             copiedArms[i].isDefault = arm.isDefault;
             copiedArms[i].action = arm.action ? arm.action.syntaxCopy() : null;

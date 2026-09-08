@@ -36,6 +36,20 @@ enum union Entity {
     case Monster { int id; int hp; },
 }
 
+struct Box(T) {
+    T value;
+}
+
+struct Struct {
+    int n;
+}
+
+enum union GenericValue {
+    case Box!int,
+    case Struct = .Struct,
+    case Done,
+}
+
 void main() {
     // Test Option Matching & Type Unification
     Option!int opt = Option!int.Some(42);
@@ -60,7 +74,7 @@ void main() {
         case double d             => "Floating-point",
         case string s             => "String",
         case Timeout              => "Timeout",
-        case Success { code, .. } => "Success",
+        case Success { code, ... } => "Success",
     };
     assert(status == "Floating-point");
 
@@ -68,7 +82,7 @@ void main() {
         case double d             => -1,
         case string s             => -2,
         case Timeout              => -3,
-        case Success { code, .. } => code,
+        case Success { code, ... } => code,
     };
     assert(successCode == 200);
 
@@ -86,8 +100,27 @@ void main() {
     // Field access across variants goes through a switch, not direct `.field`.
     Entity e = Entity.Player(10, "Hero");
     int id = switch (e) {
-        case Player { id, .. } => id,
-        case Monster { id, .. } => id,
+        case Player { id, ... } => id,
+        case Monster { id, ... } => id,
     };
     assert(id == 10);
+
+    GenericValue generic = Box!int(7);
+    int genericValue = switch (generic) {
+        case Box!int box => box.value,
+        case Struct value => value.n,
+        case Done => 0,
+    };
+    assert(genericValue == 7);
+
+    GenericValue structValue = Struct(42);
+    int structResult = switch (structValue) {
+        case Struct { n } => n,
+        case Box!int box => box.value,
+        case Done => 0,
+    };
+    assert(structResult == 42);
+
+    GenericValue factoryValue = GenericValue.Struct(43);
+    assert(factoryValue.__tag == 1);
 }

@@ -344,6 +344,7 @@ enum DSYM : ubyte
     structDeclaration,
     unionDeclaration,
     enumUnionDeclaration,
+    enumUnionCaseDeclaration,
     interfaceDeclaration,
     scopeDsymbol,
     forwardingScopeDsymbol,
@@ -931,6 +932,7 @@ extern (C++) class Dsymbol : ASTNode
     inout(TemplateInstance)            isTemplateInstance()            inout { return (dsym == DSYM.templateInstance || dsym == DSYM.templateMixin) ? cast(inout(TemplateInstance)) cast(void*) this : null; }
     inout(TemplateMixin)               isTemplateMixin()               inout { return dsym == DSYM.templateMixin ? cast(inout(TemplateMixin)) cast(void*) this : null; }
     inout(ForwardingAttribDeclaration) isForwardingAttribDeclaration() inout { return dsym == DSYM.forwardingAttribDeclaration ? cast(inout(ForwardingAttribDeclaration)) cast(void*) this : null; }
+    inout(StaticForeachDeclaration)     isStaticForeachDeclaration()     inout { return dsym == DSYM.staticForeachDeclaration ? cast(inout(StaticForeachDeclaration)) cast(void*) this : null; }
     inout(Nspace)                      isNspace()                      inout { return dsym == DSYM.nspace ? cast(inout(Nspace)) cast(void*) this : null; }
     inout(Declaration)                 isDeclaration()                 inout {
         switch (dsym)
