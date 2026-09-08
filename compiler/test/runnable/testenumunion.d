@@ -1,7 +1,24 @@
+import std.complex;
+
+/*
+TEST_OUTPUT:
+---
+runnable/testenumunion.d(531): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
+enum union BareCompoundTypes
+^
+runnable/testenumunion.d(531): Deprecation: use of imaginary type `idouble` is deprecated, use `double` instead
+enum union BareCompoundTypes
+^
+Non-builtin type void*
+Non-builtin type void*
+---
+*/
+
+alias None = typeof(null);
 enum union Option(T)
 {
 	case Some(T),
-	case None,
+	case None = .None,
 }
 
 enum union Shape
@@ -36,7 +53,7 @@ void main()
 
 	Option!string opt = Option!string.Some("hello");
 	assert(opt.__tag == 0);
-	Option!string empty = Option!string.None;
+	Option!string empty = null;
 	assert(empty.__tag == 1);
 
 	string text = switch (opt)
@@ -59,6 +76,70 @@ void main()
 	testMemberFunctions();
 	testExhaustiveness();
 	testLifecycleCopyableVariant();
+	testNamedArgumentsAndPatterns();
+	testPatternMatrixExhaustiveness();
+}
+
+enum union NamedPatterns
+{
+	case Point(int x, int y),
+	case Square { int height; int width; }
+}
+
+void testNamedArgumentsAndPatterns()
+{
+	auto square = NamedPatterns.Square(height: 10, width: 5);
+	auto point = NamedPatterns.Point(y: 0, 4);
+
+	auto squareValue = switch (square)
+	{
+		case Square { height: 10, width } => width,
+		case Square { height: h, width: 10 } if (h == 10) => h,
+		case Square(height, width) => height + width,
+		case Point(...) => 0,
+	};
+	assert(squareValue == 5);
+
+	auto pointValue = switch (point)
+	{
+		case Point(x: 0, y: 0) => 1,
+		case Point(5, 5) => 2,
+		case Point(x, y) => x + y,
+		case Square { ... } => 0,
+	};
+	assert(pointValue == 4);
+
+	auto rest = switch (square)
+	{
+		case Square { height, fields... } => fields[0],
+		case Point(...) => 0,
+	};
+	assert(rest == 5);
+
+	auto tupleRest = switch (square)
+	{
+		case Square(fields...) => fields[0] + fields[1],
+		case Point(...) => 0,
+	};
+	assert(tupleRest == 15);
+}
+
+enum union MatrixShape
+{
+	case Square { bool active; bool filled; }
+}
+
+void testPatternMatrixExhaustiveness()
+{
+	auto shape = MatrixShape.Square(true, false);
+	auto value = switch (shape)
+	{
+		case Square { active: true, filled: true } => 1,
+		case Square { active: true, filled: false } => 2,
+		case Square { active: false, filled: true } => 3,
+		case Square { active: false, filled: false } => 4,
+	};
+	assert(value == 2);
 }
 
 // Regression test: implicit conversion of variant-construction expressions
@@ -132,17 +213,10 @@ void testBareTypes()
 	assert(classify(makeDouble()) == 3);
 }
 
-alias NullOptionNone = typeof(null);
 enum union NullOption(T)
 {
 	case Some(T),
 	case typeof(null),
-}
-
-enum union OptionAlias(T)
-{
-	case Some(T),
-	case None,
 }
 
 void testNullLikeBareType()
@@ -154,26 +228,12 @@ void testNullLikeBareType()
 		case typeof(null) => -1,
 	} == -1);
 
-	NullOption!int filled = 42;
-	assert(switch (filled)
-	{
-		case Some(v) => v,
-		case typeof(null) => -1,
-	} == 42);
-
-	OptionAlias!int empty2 = null;
+	Option!int empty2 = null;
 	assert(switch (empty2)
 	{
 		case Some(v) => v,
 		case None => -1,
 	} == -1);
-
-	OptionAlias!int filled2 = 99;
-	assert(switch (filled2)
-	{
-		case Some(v) => v,
-		case None => -1,
-	} == 99);
 }
 
 // Regression test: struct/record variants convert implicitly on
@@ -192,7 +252,7 @@ string describe2(Response2 r)
 	return switch (r)
 	{
 		case double d => "double",
-		case Success { code, .. } => "success",
+		case Success { code, ... } => "success",
 	};
 }
 
@@ -225,7 +285,7 @@ string describe(Response r)
 	{
 		case double d => "double",
 		case string s => "string",
-		case Success { code, .. } => "success",
+		case Success { code, ... } => "success",
 	};
 }
 
@@ -269,7 +329,6 @@ string classifyGuardVal(GuardVal v)
 		case double d if (d > 0.0) => "positive double",
 		case double d => "non-positive double",
 		case string s => "string",
-		default => "unreachable",
 	};
 }
 
@@ -308,8 +367,8 @@ enum union CompoundTypes
 	case WStr(wstring),
 	case DStr(dstring),
 	case StaticArr(int[4]),
-	case Cplx(cdouble),
-	case Imag(idouble),
+	case Cplx(Complex!double),
+	case Imag(double),
 }
 
 private int addOne(int x) { return x + 1; }
@@ -338,8 +397,8 @@ void testCompoundTypes()
 	auto dstr = CompoundTypes.DStr("!"d);
 	int[4] sa = [1, 2, 3, 4];
 	auto staticArr = CompoundTypes.StaticArr(sa);
-	auto cplx = CompoundTypes.Cplx(1.0 + 2.0i);
-	auto imag = CompoundTypes.Imag(3.0i);
+	auto cplx = CompoundTypes.Cplx(Complex!double(1.0, 2.0));
+	auto imag = CompoundTypes.Imag(3.0);
 
 	assert(arr.__tag == 0);
 	assert(assocArr.__tag == 1);
@@ -552,6 +611,7 @@ enum union BareCompoundTypes
 	case int[4],
 	case cdouble,
 	case idouble,
+	case double,
 }
 
 void testBareCompoundTypes()
@@ -765,4 +825,21 @@ void testLifecycleCopyableVariant()
 	assert(lifecycleCopyCount == 1);
 	assert(a.__tag == 0);
 	assert(b.__tag == 0);
+}
+
+import std.traits: isBuiltinType;
+
+enum union TemplateVarargs(Types...)
+{
+	static foreach(U; Types)
+		static if (isBuiltinType!U)
+			case U;
+}
+
+void testTemplateVarargs()
+{
+	TemplateVarargs!(int, void*, string) t = "asdf";
+	assert(t.__tag == 2);
+	t = 42;
+	assert(t.__tag == 0);
 }

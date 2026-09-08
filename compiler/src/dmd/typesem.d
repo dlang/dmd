@@ -2115,6 +2115,12 @@ extern(D) Expressions* resolveNamedArgs(TypeFunction tf, ArgumentList argumentLi
             }
             ci = pi;
         }
+        else if (hasNamedArgs)
+        {
+            ci = 0;
+            while (ci < newArgs.length && (*newArgs)[ci])
+                ++ci;
+        }
         if (ci >= newArgs.length)
         {
             if (!isVariadic)

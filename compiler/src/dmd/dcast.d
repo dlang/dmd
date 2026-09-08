@@ -134,18 +134,16 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
                 const requiredMatch = payloadType && payloadType.isFunction_Delegate_PtrToFunction() &&
                     e.type && e.type.isFunction_Delegate_PtrToFunction()
                     ? MATCH.convert : MATCH.exact;
-                const isNullUnitVariant = e.type && e.type.toBasetype().ty == Tnull &&
-                    variant.payload.length == 0 && variant.ident == Identifier.idPool("None");
-                if ((!variant.ident && variant.payload.length == 1 && payloadType &&
-                    e.implicitConvTo(payloadType) >= requiredMatch) || isNullUnitVariant)
+                if ((!variant.ident || variant.isTypeAlias) && variant.payload.length == 1 && payloadType &&
+                    e.implicitConvTo(payloadType) >= requiredMatch)
                 {
                     if (matchIndex != size_t.max)
                     {
                         eSink.error(e.loc, "`%s` is ambiguous between variants `%s` and `%s` of enum union `%s`",
                             e.toErrMsg(), eu.variants[matchIndex].payloadType && eu.variants[matchIndex].payloadType.fields.length
                                 ? eu.variants[matchIndex].payloadType.fields[0].type.toErrMsg()
-                                : "None",
-                            payloadType ? payloadType.toErrMsg() : "None",
+                                : "<unknown>",
+                            payloadType ? payloadType.toErrMsg() : "<unknown>",
                             eu.toPrettyChars());
                         return ErrorExp.get();
                     }
@@ -1643,10 +1641,8 @@ MATCH implicitConvTo(Type from, Type to)
                 const requiredMatch = payloadType && payloadType.isFunction_Delegate_PtrToFunction() &&
                     from.isFunction_Delegate_PtrToFunction()
                     ? MATCH.convert : MATCH.exact;
-                const isNullUnitVariant = from.toBasetype().ty == Tnull &&
-                    variant.payload.length == 0 && variant.ident == Identifier.idPool("None");
-                if ((!variant.ident && variant.payload.length == 1 && payloadType &&
-                    from.implicitConvTo(payloadType) >= requiredMatch) || isNullUnitVariant)
+                if ((!variant.ident || variant.isTypeAlias) && variant.payload.length == 1 && payloadType &&
+                    from.implicitConvTo(payloadType) >= requiredMatch)
                     return MATCH.convert;
             }
         }
