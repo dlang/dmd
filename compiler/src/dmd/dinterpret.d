@@ -2239,6 +2239,19 @@ public:
         }
         else
             eSink.error(loc, "cannot interpret declaration `%s` at compile time", d.toErrMsg());
+
+        // https://issues.dlang.org/show_bug.cgi?id=21960
+        // Manifest constants (e.g. enum members) cache a shared value expression.
+        // Don't let that expression's original declaration loc leak into errors
+        // reported at a different point of use.
+        if (auto v = d.isVarDeclaration())
+        {
+            if ((v.storage_class & STC.manifest) && e && e.loc != loc)
+            {
+                e = e.copy();
+                e.loc = loc;
+            }
+        }
         return e;
     }
 
