@@ -26,7 +26,10 @@ import core.time;
 ///////////////////////////////////////////////////////////////////////////////
 
 version (FreeStanding)
+{
+    package enum useStub = true;
     public import core.thread.stub_impl;
+}
 else version (Posix)
     public import core.thread.posix_impl;
 else version (Windows)

@@ -1,12 +1,15 @@
 /// Single-threaded Thread stub
 module core.thread.stub_impl;
 
-import core.thread.osthread: toThread;
+import core.thread.osthread;
 import core.thread.threadbase;
 import core.time: Duration;
 import core.thread.types: ll_ThreadData, ThreadDescr;
 
 package(core) enum isSingleThreaded = true;
+
+static if(__traits(compiles, useStub) && useStub == true)
+{
 
 private alias ThreadID = size_t;
 private immutable assertMsg = "threading not implemented";
@@ -198,4 +201,6 @@ version (CoreDdoc) {} else
 void joinLowLevelThread(ThreadID tid) nothrow @nogc
 {
     assert(false, assertMsg);
+}
+
 }
