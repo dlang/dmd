@@ -25,6 +25,7 @@ import dmd.astcodegen;
 import dmd.astenums;
 import dmd.canthrow;
 import dmd.chkformat;
+import dmd.clone;
 import dmd.cond;
 import dmd.ctorflow;
 import dmd.ctfeexpr : isCtfeReferenceValid;
@@ -19077,6 +19078,29 @@ bool checkDisabled(Declaration d, Loc loc, Scope* sc, bool isAliasedDeclaration 
             }
             eSink.error(loc, "%s `%s` is not copyable because it has a disabled postblit", p.kind, p.toPrettyChars);
             return true;
+        }
+        else if (auto fd = d.isFuncDeclaration())
+        {
+            if (fd.isGenerated && fd.ident == Id.opAssign)
+            {
+                if (auto sd = p.isStructDeclaration())
+                {
+                    foreach (v; sd.fields)
+                    {
+                        if (v.overlapped)
+                            continue;
+                        Type tv = v.type.baseElemOf();
+                        auto tvs = tv.isTypeStruct();
+                        if (!tvs)
+                            continue;
+                        auto f2 = hasIdentityOpAssign(tvs.sym, sc);
+                        if (!f2 || !(f2.storage_class & STC.disable))
+                            continue;
+                        eSink.error(loc, "%s `%s` is not assignable because field `%s` is not assignable", p.kind, p.toPrettyChars, v.toErrMsg());
+                        return true;
+                    }
+                }
+            }
         }
     }
 
