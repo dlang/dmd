@@ -2177,6 +2177,7 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     {
         eSink.error(loc, "none of the overloads of `%s` are callable using argument types `%s`",
                fd.toErrMsg(), fargsBuf.peekChars());
+        checkNamedArgErrorAndReportOverload(fd, argumentList, loc);
         printCandidates(loc, fd, sc.isDeprecated());
         return null;
     }
