@@ -17089,6 +17089,24 @@ bool checkValue(Expression e)
 
     if (e.type && e.type.toBasetype().ty == Tvoid)
     {
+        // https://issues.dlang.org/show_bug.cgi?id=5010
+        if (auto ce = e.isCallExp())
+        {
+            if (ce.f && ce.f.type)
+            {
+                if (auto tf = ce.f.type.isTypeFunction())
+                {
+                    if (tf.isProperty && ce.arguments && ce.arguments.length == 1)
+                    {
+                        eSink.error(e.loc, "cannot use result of property assignment `%s = %s`, `%s` returns `void`",
+                            ce.f.toErrMsg(), (*ce.arguments)[0].toErrMsg(), ce.f.toErrMsg());
+                        if (!global.gag)
+                            e.type = Type.terror;
+                        return true;
+                    }
+                }
+            }
+        }
         eSink.error(e.loc, "expression `%s` is `void` and has no value", e.toErrMsg());
         //print(); assert(0);
         if (!global.gag)
