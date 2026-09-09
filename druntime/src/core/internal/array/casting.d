@@ -26,6 +26,16 @@ Params:
 private void onArrayCastError()(string fromType, size_t fromSize, size_t fromLength, string toType, size_t toElemSize) @trusted
 {
     import core.internal.string : unsignedToTempString;
+
+    if (__ctfe)
+    {
+        string msg = ("`" ~ fromType ~ "[]` of length " ~ unsignedToTempString(fromLength)[] ~
+            " cannot be cast to `" ~ toType ~ "[]` as its length in bytes (" ~
+            unsignedToTempString(fromSize)[] ~ ") is not a multiple of `" ~ toType ~
+            ".sizeof` (" ~ unsignedToTempString(toElemSize)[] ~ ").").idup;
+        assert(false, msg);
+    }
+
     import core.memory : pureMalloc;
 
     // convert discontiguous `msgComponents` to contiguous string on the C heap
