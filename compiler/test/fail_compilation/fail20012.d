@@ -1,4 +1,5 @@
 /* https://issues.dlang.org/show_bug.cgi?id=22546
+DISABLED: linux32 win32
 TEST_OUTPUT:
 ---
 fail_compilation/fail20012.d(10): Error: array cast from `string` to `dstring` is not supported at compile time
