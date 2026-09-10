@@ -906,6 +906,7 @@ struct ASTBase
 
     struct EnumUnionVariant
     {
+        Loc loc;
         Identifier ident;
         bool isTypeAlias;
         Expressions* udas;
