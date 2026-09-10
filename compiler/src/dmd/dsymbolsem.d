@@ -2223,6 +2223,26 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
     Dsymbol[] extraMembers = (*eu.members)[2 .. eu.members.length];
     bool hasErrors;
 
+    Identifier variantName(ref EnumUnionVariant variant)
+    {
+        if (variant.ident)
+            return variant.ident;
+        if (variant.payload.length != 1)
+            return null;
+
+        auto payloadType = variant.payload[0];
+        if (auto identifierType = payloadType.isTypeIdentifier())
+            return identifierType.ident;
+        payloadType = payloadType.toBasetype();
+        if (auto structType = payloadType.isTypeStruct())
+            return structType.sym.ident;
+        if (auto classType = payloadType.isTypeClass())
+            return classType.sym.ident;
+        if (auto enumType = payloadType.isTypeEnum())
+            return enumType.sym.ident;
+        return null;
+    }
+
     // Duplicate-case rule: no two variants (of any kind - unit, positional,
     // or record) may share the same identifier, regardless of their payload
     // types/signatures. Without this, two same-named variants with different
@@ -2230,19 +2250,20 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
     // synthesized factory functions, silently accepted instead of rejected.
     foreach (i, variant; eu.variants)
     {
-        if (!variant.ident)
+        auto ident = variantName(variant);
+        if (!ident)
             continue;
         bool isDup;
         foreach (k; 0 .. i)
-            isDup = isDup || eu.variants[k].ident == variant.ident;
+            isDup = isDup || variantName(eu.variants[k]) == ident;
         if (isDup)
             continue; // already reported when this name was first seen
         foreach (j; i + 1 .. eu.variants.length)
         {
-            if (eu.variants[j].ident == variant.ident)
+            if (variantName(eu.variants[j]) == ident)
             {
                 eSink.error(eu.loc, "duplicate case `%s` in enum union `%s`",
-                    variant.ident.toChars(), eu.toPrettyChars());
+                    ident.toChars(), eu.toPrettyChars());
                 hasErrors = true;
                 break;
             }
@@ -2253,23 +2274,45 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
     Dsymbols* payloadMembers = new Dsymbols();
     foreach (ref variant; eu.variants)
     {
-        auto payloadType = new StructDeclaration(eu.loc,
-            Identifier.generateId("__enumVariantPayload"), false);
-        payloadType.members = variant.members;
-        if (!payloadType.members)
+        auto payloadType = variant.payload.length ? variant.payload[0] : null;
+        auto typeOf = payloadType ? payloadType.isTypeTypeof() : null;
+        if (payloadType && (payloadType.ty == Terror || typeOf && typeOf.exp.op == EXP.error))
         {
-            payloadType.members = new Dsymbols();
+            hasErrors = true;
+            continue;
+        }
+        auto payloadStruct = new StructDeclaration(eu.loc,
+            Identifier.generateId("__enumVariantPayload"), false);
+        payloadStruct.members = variant.members;
+        if (!payloadStruct.members)
+        {
+            payloadStruct.members = new Dsymbols();
             foreach (k, payload; variant.payload)
             {
                 auto ident = k < variant.payloadNames.length && variant.payloadNames[k]
                     ? variant.payloadNames[k] : Identifier.generateId("__enumPayload");
-                payloadType.members.push(new VarDeclaration(eu.loc, payload, ident, null));
+                payloadStruct.members.push(new VarDeclaration(eu.loc, payload, ident, null));
             }
         }
-        variant.payloadType = payloadType;
-        payloadType.parent = eu;
-        payloadType.dsymbolSemantic(sc);
-        auto payloadVar = new VarDeclaration(eu.loc, new TypeStruct(payloadType),
+        variant.payloadType = payloadStruct;
+        payloadStruct.parent = eu;
+        payloadStruct.dsymbolSemantic(sc);
+        if (payloadStruct.errors || payloadStruct.type.ty == Terror)
+        {
+            hasErrors = true;
+            continue;
+        }
+        foreach (field; payloadStruct.fields)
+        {
+            if (field.type.ty == Terror)
+            {
+                hasErrors = true;
+                break;
+            }
+        }
+        if (hasErrors)
+            continue;
+        auto payloadVar = new VarDeclaration(eu.loc, new TypeStruct(payloadStruct),
             Identifier.generateId("__enumPayload"), null);
         variant.payloadVar = payloadVar;
         payloadVars ~= payloadVar;
@@ -2326,7 +2369,11 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
         }
     }
     if (hasErrors)
+    {
+        anon.decl = payloadMembers;
+        eu.errors = true;
         return; // don't synthesize factories for a broken declaration
+    }
 
     anon.decl = payloadMembers;
     eu.members = new Dsymbols();
@@ -2405,11 +2452,59 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
         }
         statements.push(new ReturnStatement(eu.loc, new VarExp(eu.loc, result)));
         fd.fbody = new CompoundStatement(eu.loc, statements.move());
-        eu.members.push(fd);
+        if (variant.udas)
+        {
+            auto declarations = new Dsymbols(fd);
+            eu.members.push(new UserAttributeDeclaration(variant.udas, declarations));
+        }
+        else
+            eu.members.push(fd);
     }
 
     foreach (m; extraMembers)
         eu.members.push(m);
+}
+
+private void synthesizeEnumUnionConstructors(EnumUnionDeclaration eu, Scope* sc)
+{
+    foreach (i, variant; eu.variants)
+    {
+        if (variant.ident || variant.payload.length != 1 || !variant.payloadType ||
+            !variant.payloadType.fields.length || !variant.payloadVar)
+            continue;
+
+        auto field = variant.payloadType.fields[0];
+        auto parameter = new Parameter(eu.loc, STC.none, field.type,
+            Identifier.generateId("__enumPayloadParam"), null, null, null);
+        auto parameters = new Parameters(parameter);
+        auto functionType = new TypeFunction(ParameterList(parameters), eu.type, LINK.d, STC.ref_);
+        auto ctor = new CtorDeclaration(eu.loc, eu.loc, STC.ref_, functionType);
+        ctor.isGenerated = true;
+
+        Statements statements;
+        auto tagExp = new DotVarExp(eu.loc, new ThisExp(eu.loc), eu.tagVar);
+        statements.push(new ExpStatement(eu.loc, new AssignExp(eu.loc, tagExp,
+            new IntegerExp(eu.loc, i, Type.tuns8))));
+
+        Expression payloadExp = new DotVarExp(eu.loc, new ThisExp(eu.loc), variant.payloadVar);
+        payloadExp = new DotVarExp(eu.loc, payloadExp, field);
+        statements.push(new ExpStatement(eu.loc, new ConstructExp(eu.loc, payloadExp,
+            new IdentifierExp(eu.loc, parameter.ident))));
+
+        ctor.fbody = new CompoundStatement(eu.loc, statements.move());
+        eu.members.push(ctor);
+        ctor.addMember(sc, eu);
+
+        Scope* sc2 = sc.push();
+        if (variant.udas)
+            sc2.userAttribDecl = new UserAttributeDeclaration(variant.udas, null);
+        sc2.stc = STC.none;
+        sc2.linkage = LINK.d;
+        ctor.dsymbolSemantic(sc2);
+        ctor.semantic2(sc2);
+        ctor.semantic3(sc2);
+        sc2.pop();
+    }
 }
 
 private void synthesizeEnumUnionDtor(EnumUnionDeclaration eu, Scope* sc)
@@ -3099,7 +3194,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("sc.stc = %x\n", sc.stc);
         //printf("storage_class = x%x\n", storage_class);
 
-        dsym.type.checkComplexTransition(dsym.loc, sc);
+        if (!sc.func || !sc.func.isGenerated)
+            dsym.type.checkComplexTransition(dsym.loc, sc);
 
         // Calculate type size + safety checks
         if (dsym.storage_class & STC.gshared && !dsym.isMember())
@@ -5481,6 +5577,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         /* Look for special member functions.
          */
         sd.disableNew = sd.search(Loc.initial, Id.classNew) !is null;
+
+        if (auto eu = sd.isEnumUnionDeclaration())
+            synthesizeEnumUnionConstructors(eu, sc2);
 
         // Look for the constructor
         sd.ctor = sd.searchCtor();

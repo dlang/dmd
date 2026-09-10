@@ -112,6 +112,8 @@ void merge(Scope* _this, Loc loc, const ref CtorFlow ctorflow)
 {
     auto eSink = global.errorSink;
 
+    mergeThisInitialized(_this.ctorflow.thisInitialized, ctorflow.thisInitialized,
+        _this.ctorflow.callSuper, ctorflow.callSuper);
     if (!mergeCallSuper(_this.ctorflow.callSuper, ctorflow.callSuper))
         eSink.error(loc, "one path skips constructor");
 
@@ -5804,6 +5806,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         FuncDeclaration fd = hasThis(sc); // fd is the uplevel function with the 'this' variable
         AggregateDeclaration ad;
+
+        if (fd && fd.isCtorDeclaration() && !fd.isGenerated && !sc.allowUninitializedThis &&
+            !sc.ctorflow.thisInitialized && !(sc.ctorflow.callSuper & CSX.this_ctor))
+        {
+            if (auto eu = fd.isMemberLocal().isEnumUnionDeclaration())
+            {
+                eSink.error(e.loc, "cannot read `this` in constructor `%s` before it is initialized",
+                    fd.toPrettyChars());
+                return setError();
+            }
+        }
 
         /* Special case for typeof(this) and typeof(super) since both
          * should work even if they are not inside a non-static member function
@@ -12234,6 +12247,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Expression e1old = exp.e1;
 
+        const assignsThis = exp.op == EXP.assign && exp.e1.isThisExp() &&
+            sc.func && sc.func.isCtorDeclaration() &&
+            sc.func.isMemberLocal().isEnumUnionDeclaration();
+
         if (auto e2comma = exp.e2.isCommaExp())
         {
             if (!e2comma.isGenerated && !sc.inCfile)
@@ -12363,6 +12380,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* Run this.e1 semantic.
          */
         {
+            const allowUninitializedThis = sc.allowUninitializedThis;
+            if (assignsThis)
+                sc.allowUninitializedThis = true;
+            scope (exit) sc.allowUninitializedThis = allowUninitializedThis;
             Expression e1x = exp.e1;
 
             /* With UFCS, e.f = value
@@ -13508,6 +13529,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 ce.e2 = lowerArrayAssign(ae2, true);
         }
 
+        if (assignsThis && !res.isErrorExp())
+            sc.ctorflow.thisInitialized = true;
         return setResult(res);
     }
 
@@ -15572,10 +15595,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     Identifier variantId;
                     Expressions* arguments;
                     ArgumentLabels* argumentNames;
+                    bool isCallPattern;
                     if (arm.pattern)
                     {
                         if (auto call = arm.pattern.isCallExp())
                         {
+                            isCallPattern = true;
                             argumentNames = call.names;
                             if (auto id = call.e1.isIdentifierExp())
                                 variantId = id.ident;
@@ -15587,6 +15612,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                     if (arm.typePattern)
                         arm.typePattern = arm.typePattern.typeSemantic(arm.loc, armScope);
+
+                    if (!arm.typePattern && !variantId)
+                    {
+                        if (isCallPattern)
+                            eSink.error(arm.loc, "switch expression call pattern requires a named variant callee");
+                        else
+                            eSink.error(arm.loc, "switch expression value and expression patterns are not supported; use a named variant or type pattern");
+                        return setError();
+                    }
 
                     foreach (variantIndex, variant; eu.variants)
                     {
@@ -15652,7 +15686,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 }
                                 break;
                             }
-                            if (arguments.length > fieldCount)
+                            if (arguments.length != fieldCount)
                             {
                                 eSink.error(arm.loc,
                                     "pattern for variant `%s` has %llu argument(s), expected %llu",
@@ -15850,8 +15884,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     }
                     if (!arm.hasVariant)
                     {
-                        eSink.error(arm.loc, "switch expression pattern does not match any variant of `%s`",
-                            eu.toPrettyChars());
+                        if (isCallPattern)
+                            eSink.error(arm.loc, "switch expression call pattern `%s` does not name a variant of `%s`",
+                                variantId.toChars(), eu.toPrettyChars());
+                        else
+                            eSink.error(arm.loc, "switch expression pattern does not match any variant of `%s`",
+                                eu.toPrettyChars());
                         return setError();
                     }
                 }

@@ -388,11 +388,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             switch (token.value)
             {
             case TOK.case_:
-                if (pLastDecl && (pLastDecl.dsym == AST.DSYM.enumUnionDeclaration ||
-                    pLastDecl.dsym == AST.DSYM.enumUnionCaseDeclaration ||
-                    pLastDecl.dsym == AST.DSYM.staticIfDeclaration ||
-                    pLastDecl.dsym == AST.DSYM.staticForeachDeclaration ||
-                    pLastDecl.dsym == AST.DSYM.pragmaDeclaration))
+                if (pLastDecl && *pLastDecl && ((*pLastDecl).dsym == AST.DSYM.enumUnionDeclaration ||
+                    (*pLastDecl).dsym == AST.DSYM.enumUnionCaseDeclaration ||
+                    (*pLastDecl).dsym == AST.DSYM.staticIfDeclaration ||
+                    (*pLastDecl).dsym == AST.DSYM.staticForeachDeclaration ||
+                    (*pLastDecl).dsym == AST.DSYM.pragmaDeclaration))
                 {
                     const loc = token.loc;
                     nextToken();
@@ -3403,6 +3403,16 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 const variantLoc = token.loc;
                 AST.EnumUnionVariant variant;
 
+                while (token.value == TOK.at)
+                {
+                    if (STC stc = parseAttribute(variant.udas))
+                    {
+                        error(variantLoc, "attribute `%s` is not allowed on enum union variants",
+                            token.toChars());
+                        nextToken();
+                    }
+                }
+
                 if (token.value == TOK.static_ || token.value == TOK.pragma_)
                 {
                     AST.Dsymbol lastDecl = cast(AST.Dsymbol) eu;
@@ -3432,48 +3442,33 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         }
                         else
                         {
-                        // Disambiguate `case Name` / `case Name(...)` / `case Name { ... }`
-                        // (a named variant) from `case SomeIdentifierType`, e.g. `case string`,
-                        // `case noreturn`, `case noreturn*`, `case noreturn[]` (a bare type
-                        // variant referring to a builtin identifier-spelled type). A trailing
-                        // `*` or `[` can only mean the identifier started a type.
-                        const afterIdent = peekNext();
-                        const isBareIdentType = afterIdent == TOK.mul || afterIdent == TOK.leftBracket ||
-                            afterIdent == TOK.not ||
-                            (afterIdent != TOK.leftParenthesis && afterIdent != TOK.leftCurly &&
-                             (token.ident == Identifier.idPool("string") ||
-                              token.ident == Identifier.idPool("wstring") ||
-                              token.ident == Identifier.idPool("dstring") ||
-                              token.ident == Identifier.idPool("noreturn")));
-                        if (isBareIdentType)
-                        {
-                            variant.payload ~= parseType();
-                        }
-                        else
-                        {
-                            variant.ident = token.ident;
-                            nextToken();
-                            if (token.value == TOK.leftParenthesis)
+                            if (peekNext() != TOK.leftParenthesis && peekNext() != TOK.leftCurly)
+                                variant.payload ~= parseType();
+                            else
                             {
+                                variant.ident = token.ident;
                                 nextToken();
-                                while (token.value != TOK.rightParenthesis && token.value != TOK.endOfFile)
+                                if (token.value == TOK.leftParenthesis)
                                 {
-                                    Identifier payloadIdent;
-                                    variant.payload ~= parseType(&payloadIdent);
-                                    variant.payloadNames ~= payloadIdent;
-                                    if (token.value != TOK.comma)
-                                        break;
                                     nextToken();
+                                    while (token.value != TOK.rightParenthesis && token.value != TOK.endOfFile)
+                                    {
+                                        Identifier payloadIdent;
+                                        variant.payload ~= parseType(&payloadIdent);
+                                        variant.payloadNames ~= payloadIdent;
+                                        if (token.value != TOK.comma)
+                                            break;
+                                        nextToken();
+                                    }
+                                    check(TOK.rightParenthesis);
                                 }
-                                check(TOK.rightParenthesis);
+                                else if (token.value == TOK.leftCurly)
+                                {
+                                    nextToken();
+                                    variant.members = parseDeclDefs(0);
+                                    check(TOK.rightCurly);
+                                }
                             }
-                            else if (token.value == TOK.leftCurly)
-                            {
-                                nextToken();
-                                variant.members = parseDeclDefs(0);
-                                check(TOK.rightCurly);
-                            }
-                        }
                         }
                     }
                     else
@@ -4789,12 +4784,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             case TOK.enum_:
                 {
                     const tv = peekNext();
-                    if (tv == TOK.leftCurly || tv == TOK.colon)
+                    if (tv == TOK.union_ || tv == TOK.leftCurly || tv == TOK.colon)
                         break;
                     if (tv == TOK.identifier)
                     {
                         const nextv = peekNext2();
-                        if (nextv == TOK.leftCurly || nextv == TOK.colon || nextv == TOK.semicolon)
+                        if (nextv == TOK.union_ || nextv == TOK.leftCurly || nextv == TOK.colon || nextv == TOK.semicolon)
                             break;
                     }
                     stc = STC.manifest;
@@ -4926,6 +4921,27 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 auto a = new AST.Dsymbols();
                 a.push(d);
 
+                if (d.dsym == AST.DSYM.enumUnionDeclaration)
+                {
+                    if (storage_class)
+                    {
+                        d = new AST.StorageClassDeclaration(storage_class, a);
+                        a = new AST.Dsymbols();
+                        a.push(d);
+                    }
+                    if (setAlignment)
+                    {
+                        d = new AST.AlignDeclaration(d.loc, ealign, a);
+                        a = new AST.Dsymbols();
+                        a.push(d);
+                    }
+                    if (link != linkage)
+                    {
+                        d = new AST.LinkDeclaration(linkloc, link, a);
+                        a = new AST.Dsymbols();
+                        a.push(d);
+                    }
+                }
                 if (udas)
                 {
                     d = new AST.UserAttributeDeclaration(udas, a);
@@ -6616,7 +6632,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                  */
                 AST.Dsymbol d;
                 const tv = peekNext();
-                if (tv == TOK.leftCurly || tv == TOK.colon)
+                if (tv == TOK.union_ || tv == TOK.leftCurly || tv == TOK.colon)
                     d = parseEnum();
                 else if (tv != TOK.identifier)
                     goto Ldeclaration;
