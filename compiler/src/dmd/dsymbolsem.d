@@ -2095,6 +2095,7 @@ private void collectEnumUnionCases(Dsymbols* symbols, Scope* sc,
     ref EnumUnionVariant[] variants, Dsymbols* retained, Type forcedPayload = null,
     bool discardLoopBindings = false)
 {
+    auto eSink = global.errorSink;
     if (!symbols)
         return;
 
@@ -2109,14 +2110,21 @@ private void collectEnumUnionCases(Dsymbols* symbols, Scope* sc,
             {
                 if (forcedPayload)
                     variant.payload[0] = forcedPayload;
-                else if (auto typeIdent = variant.payload[0].toBasetype().isTypeIdentifier())
+                else
                 {
-                    Dsymbol scopesym;
-                    auto symbol = sc.search(caseDecl.loc, typeIdent.ident, scopesym);
-                    if (auto aliasDecl = symbol ? symbol.isAliasDeclaration() : null)
-                        variant.payload[0] = aliasDecl.type;
+                    const typeName = variant.payload[0].toErrMsg();
+                    auto resolvedType = trySemantic(variant.payload[0], caseDecl.loc, sc);
+                    if (!resolvedType)
+                    {
+                        eSink.error(caseDecl.loc,
+                            "unknown type `%s`; for a named unit variant, use `case %s()`",
+                            typeName, typeName);
+                        variant.payload[0] = Type.terror;
+                        variants ~= variant;
+                        continue;
+                    }
+                    variant.payload[0] = resolvedType;
                 }
-                variant.payload[0] = variant.payload[0].typeSemantic(caseDecl.loc, sc);
             }
             variant.generated = forcedPayload !is null;
             if (variant.generated)
@@ -2272,36 +2280,74 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
 
     VarDeclaration[] payloadVars;
     Dsymbols* payloadMembers = new Dsymbols();
+    StructDeclaration unitPayloadType;
     foreach (ref variant; eu.variants)
     {
         auto payloadType = variant.payload.length ? variant.payload[0] : null;
+        if (!variant.ident && variant.payload.length == 1 && payloadType)
+        {
+            const typeName = payloadType.toErrMsg();
+            auto resolvedType = trySemantic(payloadType, variant.loc, sc);
+            if (!resolvedType)
+            {
+                eSink.error(variant.loc,
+                    "unknown type `%s`; for a named unit variant, use `case %s()`",
+                    typeName, typeName);
+                hasErrors = true;
+                continue;
+            }
+            variant.payload[0] = resolvedType;
+            payloadType = resolvedType;
+        }
         auto typeOf = payloadType ? payloadType.isTypeTypeof() : null;
         if (payloadType && (payloadType.ty == Terror || typeOf && typeOf.exp.op == EXP.error))
         {
             hasErrors = true;
             continue;
         }
-        auto payloadStruct = new StructDeclaration(eu.loc,
-            Identifier.generateId("__enumVariantPayload"), false);
-        payloadStruct.members = variant.members;
-        if (!payloadStruct.members)
+        const isUnitVariant = !variant.payload.length && !variant.members;
+        StructDeclaration payloadStruct;
+        if (isUnitVariant)
         {
-            payloadStruct.members = new Dsymbols();
-            foreach (k, payload; variant.payload)
+            if (!unitPayloadType)
             {
-                auto ident = k < variant.payloadNames.length && variant.payloadNames[k]
-                    ? variant.payloadNames[k] : Identifier.generateId("__enumPayload");
-                payloadStruct.members.push(new VarDeclaration(eu.loc, payload, ident, null));
+                unitPayloadType = new StructDeclaration(eu.loc,
+                    Identifier.generateId("__enumUnitPayload"), false);
+                unitPayloadType.members = new Dsymbols();
+                unitPayloadType.parent = eu;
+                unitPayloadType.dsymbolSemantic(sc);
+                if (unitPayloadType.errors || unitPayloadType.type.ty == Terror)
+                {
+                    hasErrors = true;
+                    continue;
+                }
+            }
+            payloadStruct = unitPayloadType;
+        }
+        else
+        {
+            payloadStruct = new StructDeclaration(eu.loc,
+                Identifier.generateId("__enumVariantPayload"), false);
+            payloadStruct.members = variant.members;
+            if (!payloadStruct.members)
+            {
+                payloadStruct.members = new Dsymbols();
+                foreach (k, payload; variant.payload)
+                {
+                    auto ident = k < variant.payloadNames.length && variant.payloadNames[k]
+                        ? variant.payloadNames[k] : Identifier.generateId("__enumPayload");
+                    payloadStruct.members.push(new VarDeclaration(eu.loc, payload, ident, null));
+                }
+            }
+            payloadStruct.parent = eu;
+            payloadStruct.dsymbolSemantic(sc);
+            if (payloadStruct.errors || payloadStruct.type.ty == Terror)
+            {
+                hasErrors = true;
+                continue;
             }
         }
         variant.payloadType = payloadStruct;
-        payloadStruct.parent = eu;
-        payloadStruct.dsymbolSemantic(sc);
-        if (payloadStruct.errors || payloadStruct.type.ty == Terror)
-        {
-            hasErrors = true;
-            continue;
-        }
         foreach (field; payloadStruct.fields)
         {
             if (field.type.ty == Terror)
@@ -2417,6 +2463,7 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
         const stc = nfields ? STC.none : STC.property;
         auto functionType = new TypeFunction(ParameterList(parameters), eu.type, LINK.d, stc);
         auto fd = new FuncDeclaration(eu.loc, eu.loc, variant.ident, STC.static_, functionType);
+        fd.isGenerated = true;
         auto result = new VarDeclaration(eu.loc, eu.type, Identifier.generateId("__enumResult"), null);
         Statements statements;
         statements.push(new ExpStatement(eu.loc, result));
@@ -2469,7 +2516,7 @@ private void synthesizeEnumUnionConstructors(EnumUnionDeclaration eu, Scope* sc)
 {
     foreach (i, variant; eu.variants)
     {
-        if (variant.ident || variant.payload.length != 1 || !variant.payloadType ||
+        if ((variant.ident && !variant.isTypeAlias) || variant.payload.length != 1 || !variant.payloadType ||
             !variant.payloadType.fields.length || !variant.payloadVar)
             continue;
 
@@ -4983,6 +5030,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         TypeFunction tf = ctd.type.toTypeFunction();
         immutable dim = tf.parameterList.length;
         auto sd = ad.isStructDeclaration();
+        if (auto eu = ad.isEnumUnionDeclaration())
+        {
+            if (!ctd.isGenerated && dim == 0 && tf.parameterList.varargs == VarArg.none)
+            {
+                eSink.error(ctd.loc, "enum union `%s` cannot have a no-argument constructor; use `.init` instead",
+                    eu.toPrettyChars());
+                ctd.errors = true;
+                return;
+            }
+        }
 
         /* See if it's the default constructor
          * But, template constructor should not become a default constructor.

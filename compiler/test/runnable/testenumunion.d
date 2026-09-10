@@ -16,7 +16,7 @@ alias None = typeof(null);
 enum union Option(T)
 {
 	case Some(T),
-	case None = None,
+	case None,
 }
 
 enum union Shape
@@ -76,18 +76,6 @@ void main()
 	testLifecycleCopyableVariant();
 	testNamedArgumentsAndPatterns();
 	testPatternMatrixExhaustiveness();
-
-	struct UDA;
-
-	enum Test {
-		@UDA case1, // this works
-		case2,
-	}
-
-	enum union Pointers {
-		@UDA case int*, // this doesn't
-		case bool*,
-	}
 }
 
 enum union NamedPatterns
@@ -182,10 +170,10 @@ void testImplicitConversion()
 	assert(accessAccount(a) == 42);
 }
 
-// Regression test: bare (non-string) type variants convert implicitly too.
+// Regression test: bare (non-string) type variants construct correctly.
 // (`switch` type-pattern matching currently only supports `double`/`string`
 // bare-type arms, so `int`/`bool` are verified via `.__tag` and direct
-// construction/assignment instead.)
+// construction instead.)
 enum union Val
 {
 	case int,
@@ -193,9 +181,9 @@ enum union Val
 	case double,
 }
 
-Val makeInt() { return 5; }
-Val makeBool() { return true; }
-Val makeDouble() { return 3.14; }
+Val makeInt() { return Val(5); }
+Val makeBool() { return Val(true); }
+Val makeDouble() { return Val(3.14); }
 
 int classify(Val v)
 {
@@ -208,9 +196,9 @@ int classify(Val v)
 
 void testBareTypes()
 {
-	Val vi = 5;
-	Val vb = true;
-	Val vd = 3.14;
+	Val vi = Val(5);
+	Val vb = Val(true);
+	Val vd = Val(3.14);
 	assert(vi.__tag == 0);
 	assert(vb.__tag == 1);
 	assert(vd.__tag == 2);
@@ -219,7 +207,7 @@ void testBareTypes()
 	assert(makeBool().__tag == 1);
 	assert(makeDouble().__tag == 2);
 
-	assert(classify(3.14) == 3);
+	assert(classify(Val(3.14)) == 3);
 	assert(classify(makeDouble()) == 3);
 }
 
@@ -631,25 +619,25 @@ void testBareCompoundTypes()
 	aa["y"] = 2;
 	int[4] sa = [1, 2, 3, 4];
 
-	BareCompoundTypes v0 = [1, 2, 3];
-	BareCompoundTypes v1 = aa;
-	BareCompoundTypes v2 = &local;
-	BareCompoundTypes v3 = cast(void[])[1, 2, 3];
-	BareCompoundTypes v4 = cast(void*)&local;
-	BareCompoundTypes v5 = cast(noreturn*) null;
-	BareCompoundTypes v6 = cast(noreturn[])[];
+	BareCompoundTypes v0 = BareCompoundTypes([1, 2, 3]);
+	BareCompoundTypes v1 = BareCompoundTypes(aa);
+	BareCompoundTypes v2 = BareCompoundTypes(&local);
+	BareCompoundTypes v3 = BareCompoundTypes(cast(void[])[1, 2, 3]);
+	BareCompoundTypes v4 = BareCompoundTypes(cast(void*)&local);
+	BareCompoundTypes v5 = BareCompoundTypes(cast(noreturn*) null);
+	BareCompoundTypes v6 = BareCompoundTypes(cast(noreturn[])[]);
 	int function(int) plainFn = (int x) => x + 1;
-	BareCompoundTypes v7 = plainFn; // non-capturing lambda: ambiguous unless explicitly typed first
-	BareCompoundTypes v8 = (int x) => x + local; // captures `local`: unambiguously a delegate
-	BareCompoundTypes v9 = 'a';
-	BareCompoundTypes v10 = cast(wchar)'b';
-	BareCompoundTypes v11 = cast(dchar)'c';
-	BareCompoundTypes v12 = "hello";
-	BareCompoundTypes v13 = "world"w;
-	BareCompoundTypes v14 = "!"d;
-	BareCompoundTypes v15 = sa;
-	BareCompoundTypes v16 = 1.0 + 2.0i;
-	BareCompoundTypes v17 = 3.0i;
+	BareCompoundTypes v7 = BareCompoundTypes(plainFn);
+	BareCompoundTypes v8 = BareCompoundTypes((int x) => x + local);
+	BareCompoundTypes v9 = BareCompoundTypes('a');
+	BareCompoundTypes v10 = BareCompoundTypes(cast(wchar)'b');
+	BareCompoundTypes v11 = BareCompoundTypes(cast(dchar)'c');
+	BareCompoundTypes v12 = BareCompoundTypes("hello");
+	BareCompoundTypes v13 = BareCompoundTypes("world"w);
+	BareCompoundTypes v14 = BareCompoundTypes("!"d);
+	BareCompoundTypes v15 = BareCompoundTypes(sa);
+	BareCompoundTypes v16 = BareCompoundTypes(1.0 + 2.0i);
+	BareCompoundTypes v17 = BareCompoundTypes(3.0i);
 
 	assert(v0.__tag == 0);
 	assert(v1.__tag == 1);

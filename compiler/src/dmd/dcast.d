@@ -123,19 +123,8 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
             {
                 auto payloadType = variant.payloadType && variant.payloadType.fields.length
                     ? variant.payloadType.fields[0].type : variant.payload.length ? variant.payload[0] : null;
-                // Function pointers/delegates may only differ from each other by
-                // attributes (e.g. inferred `pure nothrow @nogc @safe` on a lambda),
-                // never by parameter/return types, so allowing attribute-widening
-                // implicit conversion here cannot introduce cross-variant ambiguity
-                // the way e.g. `int` -> `double` numeric widening would. Only loosen
-                // when the source is ITSELF already callable: other types (e.g.
-                // `noreturn*`) can have unrelated implicit conversions to callable
-                // types that must not be treated the same way.
-                const requiredMatch = payloadType && payloadType.isFunction_Delegate_PtrToFunction() &&
-                    e.type && e.type.isFunction_Delegate_PtrToFunction()
-                    ? MATCH.convert : MATCH.exact;
                 if ((!variant.ident || variant.isTypeAlias) && variant.payload.length == 1 && payloadType &&
-                    e.implicitConvTo(payloadType) >= requiredMatch)
+                    e.implicitConvTo(payloadType) >= MATCH.convert)
                 {
                     if (matchIndex != size_t.max)
                     {

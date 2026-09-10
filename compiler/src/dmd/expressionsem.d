@@ -7981,6 +7981,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (t1.ty == Tstruct)
             {
                 auto sd = (cast(TypeStruct)t1).sym;
+                if (exp.e1.op == EXP.type && sd.isEnumUnionDeclaration() &&
+                    (!exp.arguments || exp.arguments.length == 0))
+                {
+                    eSink.error(exp.loc, "enum union `%s` cannot be constructed with no arguments; use `.init` instead",
+                        sd.toPrettyChars());
+                    return setError();
+                }
                 sd.size(exp.loc); // Resolve forward references to construct object
                 if (sd.sizeok != Sizeok.done)
                     return setError();
@@ -15567,6 +15574,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     override void visit(SwitchExp exp)
     {
         exp.condition = exp.condition.expressionSemantic(sc);
+        exp.condition = resolveProperties(sc, exp.condition);
         if (exp.condition.op == EXP.error)
             return setError();
 
@@ -15596,6 +15604,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     Expressions* arguments;
                     ArgumentLabels* argumentNames;
                     bool isCallPattern;
+                    bool bindsNamedVariant;
                     if (arm.pattern)
                     {
                         if (auto call = arm.pattern.isCallExp())
@@ -15604,14 +15613,63 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             argumentNames = call.names;
                             if (auto id = call.e1.isIdentifierExp())
                                 variantId = id.ident;
+                            else if (auto dot = call.e1.isDotIdExp())
+                            {
+                                auto callee = call.e1.expressionSemantic(armScope);
+                                if (callee.op == EXP.error)
+                                    return setError();
+                                variantId = dot.ident;
+                            }
                             arguments = call.arguments;
                         }
                         else if (auto id = arm.pattern.isIdentifierExp())
                             variantId = id.ident;
+                        else if (auto dot = arm.pattern.isDotIdExp())
+                        {
+                            auto qualified = arm.pattern.expressionSemantic(armScope);
+                            if (qualified.op == EXP.error)
+                                return setError();
+                            if (auto typeExp = qualified.isTypeExp())
+                                arm.typePattern = typeExp.type;
+                            else
+                                variantId = dot.ident;
+                        }
+                    }
+
+                    if (arm.typePattern && arm.typeBinding)
+                    {
+                        if (auto typeId = arm.typePattern.isTypeIdentifier())
+                        {
+                            foreach (variant; eu.variants)
+                            {
+                                if (variant.ident == typeId.ident)
+                                {
+                                    variantId = typeId.ident;
+                                    arm.typePattern = null;
+                                    bindsNamedVariant = true;
+                                    break;
+                                }
+                            }
+                        }
                     }
 
                     if (arm.typePattern)
                         arm.typePattern = arm.typePattern.typeSemantic(arm.loc, armScope);
+
+                    // An identifier-only arm first denotes a named variant. If
+                    // there is no such variant, resolve it as an unbound bare
+                    // payload type (e.g. `case MyStruct =>`).
+                    if (!arm.typePattern && variantId && !isCallPattern)
+                    {
+                        bool hasNamedVariant;
+                        foreach (variant; eu.variants)
+                            hasNamedVariant = hasNamedVariant || variant.ident == variantId;
+                        if (!hasNamedVariant)
+                        {
+                            auto typePattern = new TypeIdentifier(arm.loc, variantId);
+                            arm.typePattern = typePattern.typeSemantic(arm.loc, armScope);
+                        }
+                    }
 
                     if (!arm.typePattern && !variantId)
                     {
@@ -15639,23 +15697,33 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         arm.variantIndex = variantIndex;
                         if (arm.typeBinding)
                         {
-                            auto variable = new VarDeclaration(arm.loc, arm.typePattern,
+                            auto variable = new VarDeclaration(arm.loc,
+                                bindsNamedVariant ? variant.payloadVar.type : arm.typePattern,
                                 arm.typeBinding, null);
-                            auto payloadVar = variant.payloadVar;
-                            auto payload = new DotVarExp(arm.loc, exp.condition, payloadVar);
-                            payload.type = payloadVar.type;
-                            if (variant.payloadType && variant.payloadType.fields.length)
+                            if (bindsNamedVariant)
                             {
-                                auto field = variant.payloadType.fields[0];
-                                auto value = new DotVarExp(arm.loc, payload, field);
-                                value.type = field.type;
-                                variable._init = new ExpInitializer(arm.loc, value);
+                                auto payload = new DotVarExp(arm.loc, exp.condition, variant.payloadVar);
+                                payload.type = variant.payloadVar.type;
+                                variable._init = new ExpInitializer(arm.loc, payload);
                             }
-                            else if (variant.payload.length == 1)
+                            else
                             {
-                                auto value = new DotVarExp(arm.loc, exp.condition, payloadVar);
-                                value.type = payloadVar.type;
-                                variable._init = new ExpInitializer(arm.loc, value);
+                                auto payloadVar = variant.payloadVar;
+                                auto payload = new DotVarExp(arm.loc, exp.condition, payloadVar);
+                                payload.type = payloadVar.type;
+                                if (variant.payloadType && variant.payloadType.fields.length)
+                                {
+                                    auto field = variant.payloadType.fields[0];
+                                    auto value = new DotVarExp(arm.loc, payload, field);
+                                    value.type = field.type;
+                                    variable._init = new ExpInitializer(arm.loc, value);
+                                }
+                                else if (variant.payload.length == 1)
+                                {
+                                    auto value = new DotVarExp(arm.loc, exp.condition, payloadVar);
+                                    value.type = payloadVar.type;
+                                    variable._init = new ExpInitializer(arm.loc, value);
+                                }
                             }
                             variable.dsymbolSemantic(armScope);
                             armScope.insert(variable);

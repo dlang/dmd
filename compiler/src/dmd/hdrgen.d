@@ -3083,6 +3083,81 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         expToBuffer(e.e2, PREC.cond, buf, hgs);
     }
 
+    void visitSwitch(SwitchExp e)
+    {
+        buf.put("switch (");
+        expToBuffer(e.condition, PREC.expr, buf, hgs);
+        buf.put(") {");
+        foreach (arm; e.arms)
+        {
+            buf.put(" ");
+            if (arm.isDefault)
+                buf.put("default");
+            else
+            {
+                buf.put("case ");
+                if (arm.typePattern)
+                {
+                    typeToBuffer(arm.typePattern, null, buf, hgs);
+                    if (arm.typeBinding)
+                    {
+                        buf.put(" ");
+                        buf.put(arm.typeBinding.toString());
+                    }
+                }
+                else if (arm.pattern)
+                    expToBuffer(arm.pattern, PREC.assign, buf, hgs);
+                if (arm.recordBindings.length || arm.recordPatternNames.length || arm.hasRestPattern)
+                {
+                    buf.put(" {");
+                    bool needsComma;
+                    foreach (binding; arm.recordBindings)
+                    {
+                        if (needsComma)
+                            buf.put(",");
+                        buf.put(" ");
+                        buf.put(binding.toString());
+                        needsComma = true;
+                    }
+                    foreach (i, name; arm.recordPatternNames)
+                    {
+                        if (needsComma)
+                            buf.put(",");
+                        buf.put(" ");
+                        buf.put(name.toString());
+                        buf.put(": ");
+                        expToBuffer(arm.recordPatterns[i], PREC.assign, buf, hgs);
+                        needsComma = true;
+                    }
+                    if (arm.hasRestPattern)
+                    {
+                        if (needsComma)
+                            buf.put(",");
+                        buf.put(" ");
+                        if (arm.restBinding)
+                        {
+                            buf.put(arm.restBinding.toString());
+                            buf.put("...");
+                        }
+                        else
+                            buf.put("...");
+                    }
+                    buf.put(" }");
+                }
+            }
+            if (arm.guard)
+            {
+                buf.put(" if (");
+                expToBuffer(arm.guard, PREC.expr, buf, hgs);
+                buf.put(")");
+            }
+            buf.put(" => ");
+            expToBuffer(arm.action, PREC.assign, buf, hgs);
+            buf.put(",");
+        }
+        buf.put(" }");
+    }
+
     void visitDefaultInit(DefaultInitExp e)
     {
         buf.put(Token.toString(e.tok));
@@ -3178,6 +3253,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.prePlusPlus:   return visitPre(e.isPreExp());
         case EXP.remove:        return visitRemove(e.isRemoveExp());
         case EXP.question:      return visitCond(e.isCondExp());
+        case EXP.switchExpression:      return visitSwitch(e.isSwitchExp());
         case EXP.classReference:        return visitClassReference(e.isClassReferenceExp());
         case EXP.loweredAssignExp:      return visitLoweredAssignExp(e.isLoweredAssignExp());
         case EXP.construct:     return visitConstructExp(e.isConstructExp());
@@ -3927,6 +4003,8 @@ private Expression arrowFuncLiteralResult(FuncLiteralDeclaration f)
 // to be called if e could be loweredFrom another expression instead of acessing precedence[e.op] directly
 private PREC expPrecedence(ref HdrGenState hgs, Expression e)
 {
+    if (e.op == EXP.switchExpression)
+        return PREC.assign;
     if (!hgs.vcg_ast)
     {
         if (auto ce = e.isCallExp())

@@ -3402,6 +3402,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             {
                 const variantLoc = token.loc;
                 AST.EnumUnionVariant variant;
+                variant.loc = variantLoc;
 
                 while (token.value == TOK.at)
                 {
@@ -3433,6 +3434,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             variant.isTypeAlias = true;
                             nextToken();
                             nextToken();
+                            if (token.value == TOK.identifier && token.ident is variant.ident &&
+                                (peekNext() == TOK.comma || peekNext() == TOK.semicolon ||
+                                 peekNext() == TOK.rightCurly))
+                            {
+                                error(variantLoc, "`case %s = %s` cannot alias itself, use a qualified name",
+                                    variant.ident.toChars(), token.ident.toChars());
+                            }
                             variant.payload ~= parseType();
                             if (!variant.payload.length)
                             {
@@ -6486,7 +6494,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                      * we check if the next token is a semicolon and simply output the error,
                      * otherwise we fall back on the old path (advancing the token).
                      */
-                    if (token.value != TOK.semicolon && peek(&token).value == TOK.semicolon)
+                    if (token.value != TOK.semicolon &&
+                        (token.value == TOK.rightCurly || peek(&token).value == TOK.semicolon))
                         error("found `%s` when expecting `;` following expression", token.toChars());
                     else
                     {
@@ -6952,8 +6961,39 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 break;
             }
         case TOK.switch_:
-            isfinal = false;
-            goto Lswitch;
+            {
+                auto afterCondition = peekPastParen(peek(&token));
+                if (afterCondition.value == TOK.leftCurly)
+                {
+                    size_t nesting;
+                    for (auto lookahead = peek(afterCondition); lookahead.value != TOK.endOfFile;
+                         lookahead = peek(lookahead))
+                    {
+                        if (lookahead.value == TOK.leftParenthesis || lookahead.value == TOK.leftBracket ||
+                            lookahead.value == TOK.leftCurly)
+                            ++nesting;
+                        else if (lookahead.value == TOK.rightParenthesis || lookahead.value == TOK.rightBracket ||
+                                 lookahead.value == TOK.rightCurly)
+                        {
+                            if (!nesting)
+                                break;
+                            --nesting;
+                        }
+                        else if (!nesting && lookahead.value == TOK.goesTo)
+                        {
+                            auto exp = parsePrimaryExp();
+                            s = new AST.ExpStatement(loc, exp);
+                            break;
+                        }
+                        else if (!nesting && lookahead.value == TOK.colon)
+                            break;
+                    }
+                }
+                if (s)
+                    break;
+                isfinal = false;
+                goto Lswitch;
+            }
 
         Lswitch:
             {
@@ -8690,6 +8730,18 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             auto patternLoc = token.loc;
                             pattern = new AST.IdentifierExp(patternLoc, token.ident);
                             nextToken();
+                            while (token.value == TOK.dot)
+                            {
+                                const dotLoc = token.loc;
+                                nextToken();
+                                if (token.value != TOK.identifier)
+                                {
+                                    error(token.loc, "identifier expected following `.` in switch expression pattern");
+                                    break;
+                                }
+                                pattern = new AST.DotIdExp(dotLoc, pattern, token.ident);
+                                nextToken();
+                            }
                             if (token.value == TOK.leftCurly)
                             {
                                 nextToken();
