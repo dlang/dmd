@@ -3,14 +3,12 @@ import std.complex;
 /*
 TEST_OUTPUT:
 ---
-runnable/testenumunion.d(531): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
+runnable/testenumunion.d(592): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
 enum union BareCompoundTypes
 ^
-runnable/testenumunion.d(531): Deprecation: use of imaginary type `idouble` is deprecated, use `double` instead
+runnable/testenumunion.d(592): Deprecation: use of imaginary type `idouble` is deprecated, use `double` instead
 enum union BareCompoundTypes
 ^
-Non-builtin type void*
-Non-builtin type void*
 ---
 */
 
@@ -18,14 +16,14 @@ alias None = typeof(null);
 enum union Option(T)
 {
 	case Some(T),
-	case None = .None,
+	case None = None,
 }
 
 enum union Shape
 {
 	case Circle(double),
 	case Rectangle(double, double),
-	case Point,
+	case Point(),
 }
 
 void main()
@@ -41,7 +39,7 @@ void main()
 		{
 			case Circle(r) => cast(int)(r * 2),
 			case Rectangle(w, h) => cast(int)(w * h),
-			case Point => 1,
+			case Point() => 1,
 		};
 	}
 	assert(getScore(s1) == 7);
@@ -78,6 +76,18 @@ void main()
 	testLifecycleCopyableVariant();
 	testNamedArgumentsAndPatterns();
 	testPatternMatrixExhaustiveness();
+
+	struct UDA;
+
+	enum Test {
+		@UDA case1, // this works
+		case2,
+	}
+
+	enum union Pointers {
+		@UDA case int*, // this doesn't
+		case bool*,
+	}
 }
 
 enum union NamedPatterns
@@ -89,7 +99,7 @@ enum union NamedPatterns
 void testNamedArgumentsAndPatterns()
 {
 	auto square = NamedPatterns.Square(height: 10, width: 5);
-	auto point = NamedPatterns.Point(y: 0, 4);
+	auto point = NamedPatterns.Point(4, y: 0);
 
 	auto squareValue = switch (square)
 	{
@@ -311,7 +321,7 @@ string classifyShape(Shape s)
 		case Circle(r) if (r <= 10.0) => "small circle",
 		case Rectangle(w, h) if (w == h) => "square",
 		case Rectangle(w, h) => "rectangle",
-		case Point => "point",
+		case Point() => "point",
 		default => "unreachable",
 	};
 }
@@ -707,7 +717,7 @@ enum union ShapeWithMethods
 {
 	case Circle(double),
 	case Rectangle(double, double),
-	case Point;
+	case Point();
 
 	double area()
 	{
@@ -715,7 +725,7 @@ enum union ShapeWithMethods
 		{
 			case Circle(r) => 3.14159 * r * r,
 			case Rectangle(w, h) => w * h,
-			case Point => 0.0,
+			case Point() => 0.0,
 		};
 	}
 
@@ -725,7 +735,7 @@ enum union ShapeWithMethods
 		{
 			case Circle(r) => "circle",
 			case Rectangle(w, h) => "rectangle",
-			case Point => "point",
+			case Point() => "point",
 		};
 	}
 
@@ -757,18 +767,18 @@ void testMemberFunctions()
 // `default` for the rest is exhaustive and non-redundant.
 enum union Traffic
 {
-	case Red,
-	case Yellow,
-	case Green,
+	case Red(),
+	case Yellow(),
+	case Green(),
 }
 
 string classifyTraffic(Traffic t)
 {
 	return switch (t)
 	{
-		case Red => "stop",
-		case Yellow => "caution",
-		case Green => "go",
+		case Red() => "stop",
+		case Yellow() => "caution",
+		case Green() => "go",
 	};
 }
 

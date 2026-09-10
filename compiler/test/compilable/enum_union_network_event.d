@@ -11,8 +11,8 @@ enum union NetworkEvent
     case ubyte[],                // Unparsed raw payload buffer
 
     // Unit variants
-    case Disconnected,
-    case Heartbeat,
+    case Disconnected(),
+    case Heartbeat(),
 
     // Positional (tuple-like) variants
     case Ping(ulong timestamp, ushort sequenceId),
@@ -28,8 +28,8 @@ enum union NetworkEvent
         {
             case int errCode               => format("Socket Error: %d", errCode),
             case ubyte[] data              => format("Raw Frame (%d bytes)", data.length),
-            case Disconnected              => "Connection Closed",
-            case Heartbeat                 => "Keep-Alive ACK",
+            case Disconnected()            => "Connection Closed",
+            case Heartbeat()               => "Keep-Alive ACK",
             case Ping(ts, seq)             => format("Ping [seq=%d, ts=%d]", seq, ts),
             case HttpRequest { method, path, statusCode } => format("%s %s -> %d", method, path, statusCode),
         };
@@ -49,10 +49,10 @@ struct ConnectionHandler
         {
             case int err => err < 0 ? err : -1,
             case ubyte[] frame => processFrame(frame),
-            case Heartbeat => 0,
+            case Heartbeat() => 0,
             case Ping(ts, seq) => sendPong(ts, seq),
             case HttpRequest { statusCode, ... } => cast(int) statusCode, // Partial record destructuring
-            case Disconnected => throw new Exception("Terminating disconnected session"),
+            case Disconnected() => throw new Exception("Terminating disconnected session"),
         };
     }
 

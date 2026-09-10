@@ -41,6 +41,7 @@ struct EnumUnionVariant
     Identifier ident;
     bool isTypeAlias;
     bool generated;
+    Expressions* udas;
     Type[] payload;
     Identifier[] payloadNames;
     Dsymbols* members;

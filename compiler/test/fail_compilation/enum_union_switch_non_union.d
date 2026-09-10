@@ -1,7 +1,9 @@
-// TEST_OUTPUT:
-// ---
-// fail_compilation/enum_union_switch_non_union.d(10): Error: switch expression patterns require an enum union condition
-// ---
+/*
+TEST_OUTPUT:
+---
+fail_compilation/enum_union_switch_non_union.d(12): Error: switch expression patterns require an enum union condition
+---
+*/
 
 int test()
 {

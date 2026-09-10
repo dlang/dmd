@@ -9,7 +9,7 @@ enum union Shape
 {
     case Circle(double),
     case Rectangle(double, double),
-    case Point,
+    case Point(),
 }
 ```
 
@@ -23,7 +23,7 @@ Each named case is also a factory function:
 
 ```d
 Shape s1 = Shape.Circle(3.5);
-Shape s2 = Shape.Point;
+Shape s2 = Shape.Point();
 ```
 
 The active variant is stored internally as a tag. The generated field is `.__tag`.
@@ -39,13 +39,14 @@ An enum union case can be one of four forms.
 ```d
 enum union State
 {
-    case Idle,
-    case Running,
-    case Stopped,
+    case Idle(),
+    case Running(),
+    case Stopped(),
 }
 ```
 
-These cases carry no payload.
+These cases carry no payload. Empty parentheses are required so an
+unparenthesized identifier can always be parsed as a type payload.
 
 ### Bare types
 
@@ -79,11 +80,12 @@ enum union Response
 {
     case Success,
     case Failure(string),
-    case Timeout,
+    case Timeout(),
 }
 ```
 
-Here `Success` is the case name, while the struct `Success` is a separate type. The bare-type form is only one of the valid enum-union patterns.
+Here `Success` is a bare type payload, while `Failure` and `Timeout` are named
+variants. A named unit variant always uses empty parentheses.
 
 The compiler checks for duplicate bare types and for ambiguous construction when more than one bare case can accept the same value.
 
@@ -94,7 +96,7 @@ enum union Shape
 {
     case Circle(double),
     case Rectangle(double, double),
-    case Point,
+    case Point(),
 }
 ```
 
@@ -107,7 +109,7 @@ enum union Response
 {
     case Success { int code; string message; },
     case Failure { string reason; },
-    case Timeout,
+    case Timeout(),
 }
 ```
 
@@ -162,7 +164,7 @@ enum union ShapeWithMethods
 {
     case Circle(double),
     case Rectangle(double, double),
-    case Point;
+    case Point();
 
     double area()
     {
@@ -170,7 +172,7 @@ enum union ShapeWithMethods
         {
             case Circle(r) => 3.14159 * r * r,
             case Rectangle(w, h) => w * h,
-            case Point => 0.0,
+            case Point() => 0.0,
         };
     }
 }
@@ -221,7 +223,7 @@ int score(Shape s)
     {
         case Circle(r) => cast(int)(r * 2),
         case Rectangle(w, h) => cast(int)(w * h),
-        case Point => 1,
+        case Point() => 1,
     };
 }
 ```
@@ -231,7 +233,7 @@ The switch arm pattern binds the currently active payload.
 ```d
 case Circle(r) => ...
 case Rectangle(w, h) => ...
-case Point => ...
+case Point() => ...
 ```
 
 A `default` arm is the fallback branch for a `switch` expression. It runs when no earlier pattern matches. It does not bind a value, because it is not a case pattern; it is simply the catch-all branch for the remaining cases.
@@ -275,9 +277,9 @@ string classifyTraffic(Traffic t)
 {
     return switch (t)
     {
-        case Red => "stop",
-        case Yellow => "caution",
-        case Green => "go",
+        case Red() => "stop",
+        case Yellow() => "caution",
+        case Green() => "go",
     };
 }
 ```
@@ -289,8 +291,8 @@ string classifyTraffic(Traffic t)
 {
     return switch (t)
     {
-        case Red => "stop",
-        case Yellow => "caution",
+        case Red() => "stop",
+        case Yellow() => "caution",
     };
 }
 ```
@@ -308,10 +310,10 @@ string bad(Traffic t)
 {
     return switch (t)
     {
-        case Red => "stop",
-        case Red => "again",
-        case Yellow => "caution",
-        case Green => "go",
+        case Red() => "stop",
+        case Red() => "again",
+        case Yellow() => "caution",
+        case Green() => "go",
     };
 }
 ```
@@ -325,7 +327,7 @@ string bad(Shape s)
     {
         case Circle(r) => "circle",
         case Square(r) => "square",
-        case Point => "point",
+        case Point() => "point",
     };
 }
 ```
@@ -338,7 +340,7 @@ This is rejected because `Square` is not a variant of `Shape`.
 enum union Option(T)
 {
     case Some(T),
-    case None,
+    case None(),
 }
 
 string describe(Option!string value)
@@ -346,14 +348,14 @@ string describe(Option!string value)
     return switch (value)
     {
         case Some(msg) => "value: " ~ msg,
-        case None => "empty",
+        case None() => "empty",
     };
 }
 
 void main()
 {
     Option!string a = Option!string.Some("hello");
-    Option!string b = Option!string.None;
+    Option!string b = Option!string.None();
 
     assert(describe(a) == "value: hello");
     assert(describe(b) == "empty");

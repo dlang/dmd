@@ -5,14 +5,14 @@ import core.stdc.stdio;
 // 1. Basic Unit & Positional Variants
 enum union Option(T) {
     case Some(T),
-    case None,
+    case None(),
 }
 
 // 2. Hybrid Union: Bare Types, Records, and Unit Sentinels
 enum union Response {
     case double,                           // Bare type
     case string,                           // Bare type
-    case Timeout,                          // Unit variant
+    case Timeout(),                        // Unit variant
     case Success { int code; string payload; } // Record variant
 }
 
@@ -27,7 +27,7 @@ struct Resource {
 
 enum union Managed {
     case Handle(Resource),
-    case Empty,
+    case Empty(),
 }
 
 // 4. Field access across variants
@@ -47,7 +47,7 @@ struct Struct {
 enum union GenericValue {
     case Box!int,
     case Struct = .Struct,
-    case Done,
+    case Done(),
 }
 
 void main() {
@@ -55,14 +55,14 @@ void main() {
     Option!int opt = Option!int.Some(42);
     int val = switch (opt) {
         case Some(v) => v * 2,
-        case None    => 0,
+        case None()  => 0,
     };
     assert(val == 84);
 
     // Test 'noreturn' arm unification
     int safeVal = switch (opt) {
         case Some(v) => v,
-        case None    => throw new Exception("Empty"), // Unifies: LUB(int, noreturn) -> int
+        case None()  => throw new Exception("Empty"), // Unifies: LUB(int, noreturn) -> int
     };
     assert(safeVal == 42);
 
@@ -73,7 +73,7 @@ void main() {
     string status = switch (r1) {
         case double d             => "Floating-point",
         case string s             => "String",
-        case Timeout              => "Timeout",
+        case Timeout()            => "Timeout",
         case Success { code, ... } => "Success",
     };
     assert(status == "Floating-point");
@@ -81,7 +81,7 @@ void main() {
     int successCode = switch (r2) {
         case double d             => -1,
         case string s             => -2,
-        case Timeout              => -3,
+        case Timeout()            => -3,
         case Success { code, ... } => code,
     };
     assert(successCode == 200);
@@ -109,7 +109,7 @@ void main() {
     int genericValue = switch (generic) {
         case Box!int box => box.value,
         case Struct value => value.n,
-        case Done => 0,
+        case Done() => 0,
     };
     assert(genericValue == 7);
 
@@ -117,7 +117,7 @@ void main() {
     int structResult = switch (structValue) {
         case Struct { n } => n,
         case Box!int box => box.value,
-        case Done => 0,
+        case Done() => 0,
     };
     assert(structResult == 42);
 
