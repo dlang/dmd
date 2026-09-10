@@ -40,6 +40,7 @@ struct FieldInit
 struct CtorFlow
 {
     CSX callSuper;      /// state of calling other constructors
+    bool thisInitialized; /// an enum-union constructor assigned a complete value to `this`
 
     FieldInit[] fieldinit;    /// state of field initializations
 
@@ -63,7 +64,7 @@ struct CtorFlow
      */
     CtorFlow clone()
     {
-        return CtorFlow(callSuper, fieldinit.arraydup);
+        return CtorFlow(callSuper, thisInitialized, fieldinit.arraydup);
     }
 
     /**********************************
@@ -86,6 +87,7 @@ struct CtorFlow
     void OR(const ref CtorFlow ctorflow) pure nothrow @safe
     {
         callSuper |= ctorflow.callSuper;
+        thisInitialized |= ctorflow.thisInitialized;
         if (fieldinit.length && ctorflow.fieldinit.length)
         {
             assert(fieldinit.length == ctorflow.fieldinit.length);
@@ -98,6 +100,24 @@ struct CtorFlow
             }
         }
     }
+}
+
+/****************************************
+ * Merge whether `this` has been initialized along all continuing paths.
+ */
+void mergeThisInitialized(ref bool a, const bool b, const CSX aCSX, const CSX bCSX)
+    pure nothrow @safe
+{
+    const aExits = aCSX & (CSX.return_ | CSX.halt);
+    const bExits = bCSX & (CSX.return_ | CSX.halt);
+    if (bExits && !aExits)
+        return;
+    if (aExits && !bExits)
+    {
+        a = b;
+        return;
+    }
+    a &= b;
 }
 
 
