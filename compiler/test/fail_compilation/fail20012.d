@@ -1,4 +1,4 @@
-/* https://issues.dlang.org/show_bug.cgi?id=22546
+/* https://github.com/dlang/dmd/issues/20012
 TEST_OUTPUT:
 ---
 fail_compilation/fail20012.d(8): Error: array cast from `string` to `dstring` is not supported at compile time
