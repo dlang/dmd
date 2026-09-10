@@ -1,4 +1,4 @@
-/* Bad diagnostic for CTFE array cast of a string literal inside a UDA context
+/* https://issues.dlang.org/show_bug.cgi?id=22546
 TEST_OUTPUT:
 ---
 fail_compilation/fail20012.d(8): Error: array cast from `string` to `dstring` is not supported at compile time
