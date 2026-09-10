@@ -1324,7 +1324,26 @@ Initializer inferInitializerType(Initializer init, Scope* sc, Type itype, ErrorS
             ? new AssocArrayLiteralExp(init.loc, keys, values)
             : new ArrayLiteralExp(init.loc, null, values);
         auto ei = new ExpInitializer(init.loc, e);
-        return ei.inferInitializerType(sc, itype, eSink);
+        auto result = ei.inferInitializerType(sc, itype, eSink);
+        // Sparse array literals with an inferred type are completed here, now
+        // that the element type is known. `auto[$]` static arrays are completed
+        // in dsymbolsem.d, after their `$` dimensions have been resolved.
+        if (itype)
+            return result;
+
+        auto ale = e.isArrayLiteralExp();
+        if (!ale || ale.basis || !ale.type)
+            return result;
+
+        foreach (el; *ale.elements)
+        {
+            if (!el)
+            {
+                ale.basis = ale.type.nextOf().defaultInitLiteral(init.loc);
+                break;
+            }
+        }
+        return result;
     }
 
     Initializer visitExp(ExpInitializer init)
