@@ -38,7 +38,7 @@ elif [ "$OS_NAME" == "osx" ]; then
   brew install make
   sudo ln -s /usr/local/opt/make/libexec/gnubin/make /usr/local/bin/make
 elif [ "$OS_NAME" == "freebsd" ]; then
-  packages="git gmake devel/llvm12"
+  packages="git gmake binutils"
   if [ "$HOST_DMD" == "dmd-2.079.0" ] ; then
     packages="$packages lang/gcc9"
   fi
@@ -46,5 +46,4 @@ elif [ "$OS_NAME" == "freebsd" ]; then
   # replace default make by GNU make
   rm /usr/bin/make
   ln -s /usr/local/bin/gmake /usr/bin/make
-  ln -s /usr/local/bin/llvm-dwarfdump12 /usr/bin/llvm-dwarfdump
 fi

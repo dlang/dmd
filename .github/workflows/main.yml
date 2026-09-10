@@ -81,15 +81,29 @@ jobs:
             os: windows-2022
             host_dmd: dmd-latest
             model: 32
+          # FreeBSD (VMs on Ubuntu)
+          - job_name: FreeBSD 14.4 x64, DMD (latest)
+            os: ubuntu-latest
+            vm_os: freebsd
+            vm_os_version: '14.4'
+            dflags: -version=TARGET_FREEBSD14
+            host_dmd: dmd
+          - job_name: FreeBSD 14.4 x64, DMD (bootstrap)
+            os: ubuntu-latest
+            vm_os: freebsd
+            vm_os_version: '14.4'
+            dflags: -version=TARGET_FREEBSD14
+            host_dmd: dmd-2.095.0
     name: ${{ matrix.job_name }}
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container_image }}
     timeout-minutes: 60 # OSX tests can still be running runnable at 40
     env:
       # for ci/run.sh:
-      OS_NAME: ${{ startsWith(matrix.os, 'ubuntu') && 'linux' || (startsWith(matrix.os, 'macos') && 'osx' || (startsWith(matrix.os, 'windows') && 'windows' || '')) }}
+      OS_NAME: ${{ matrix.vm_os || (startsWith(matrix.os, 'ubuntu') && 'linux' || (startsWith(matrix.os, 'macos') && 'osx' || (startsWith(matrix.os, 'windows') && 'windows' || ''))) }}
       MODEL: ${{ matrix.model || '64' }}
       HOST_DMD: ${{ matrix.host_dmd }}
+      CI_DFLAGS: ${{ matrix.dflags }}
       # N is set dynamically below
       FULL_BUILD: true
       # for coverage:
@@ -98,8 +112,21 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: '11'
     defaults:
       run:
-        shell: bash
+        # cpa.sh comes with cross-platform-actions and delegates to the VM.
+        # Use it by default for all `run` steps below, i.e., run them in the VM (with a bash shell).
+        shell: ${{ matrix.vm_os && 'cpa.sh {0} --sync-files runner-to-vm --environment-variables OS_NAME MODEL HOST_DMD CI_DFLAGS N FULL_BUILD DMD_TEST_COVERAGE' || 'bash' }}
     steps:
+      - name: Start VM
+        if: matrix.vm_os
+        uses: cross-platform-actions/action@v1.5.0
+        with:
+          operating_system: ${{ matrix.vm_os }}
+          version: ${{ matrix.vm_os_version }}
+          shell: bash
+          memory: 12G
+          cpu_count: 4
+          sync_files: runner-to-vm
+
       - name: 'Alpine container: Pre-install bash, git and sudo'
         if: startsWith(matrix.container_image, 'alpine')
         shell: sh
@@ -111,6 +138,7 @@ jobs:
 
       - name: Set environment variable N (parallelism)
         run: echo "N=$(${{ runner.os == 'macOS' && 'sysctl -n hw.logicalcpu' || 'nproc' }})" >> $GITHUB_ENV
+        shell: bash  # don't run in VM, but host runner (for exporting env var)
 
       - name: 'Posix: Install prerequisites'
         if: runner.os != 'Windows'
@@ -185,109 +213,6 @@ jobs:
       - name: Upload coverage report
         if: matrix.coverage
         run: ci/run.sh codecov
-
-  freebsd-vm:
-    needs: call-precommit
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - job_name: FreeBSD 14.4 x64, DMD (latest)
-            freebsd_version: '14.4'
-            host_dmd: dmd
-          - job_name: FreeBSD 14.4 x64, DMD (bootstrap)
-            freebsd_version: '14.4'
-            host_dmd: dmd-2.095.0
-    name: ${{ matrix.job_name }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20  # Should complete in 11 minutes
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 50
-      - name: Start VM
-        uses: cross-platform-actions/action@v1.3.0
-        with:
-          operating_system: freebsd
-          memory: 12G
-          cpu_count: 4
-          sync_files: runner-to-vm
-          version: ${{ matrix.freebsd_version }}
-          shell: bash
-      - name: Run in VM
-        timeout-minutes: 19
-        shell: cpa.sh {0} --sync-files runner-to-vm
-        run: |
-          set -uexo pipefail
-
-            freebsd_version='${{ matrix.freebsd_version }}'
-            freebsd_major="${freebsd_version:0:2}"
-
-            export OS_NAME=freebsd
-            export MODEL=64
-            export HOST_DMD='${{ matrix.host_dmd }}'
-            export N="$(nproc)"
-            export FULL_BUILD=true
-            export CI_DFLAGS="-version=TARGET_FREEBSD${freebsd_major}"
-
-            bash --version
-
-            # compiler/test/dshell/dwarf.d needs objdump from binutils.
-            # It will also optionally use llvm-dwarfdump from llvm.
-            # So, this installs both.
-            sudo pkg install -y binutils llvm
-
-            echo '::group::Install prerequisites'
-            sudo -E ci/cirrusci.sh
-            echo '::endgroup::'
-
-            echo '::group::Install host compiler'
-            ci/run.sh install_host_compiler
-            echo '::endgroup::'
-
-            echo '::group::Set up repos'
-
-            ref='${{ github.ref }}'
-            if [[ "$ref" =~ ^refs/pull/ ]]; then
-              REPO_BRANCH="$GITHUB_BASE_REF"
-            elif [[ "$ref" =~ ^refs/(heads|tags)/(.*)$ ]]; then
-              REPO_BRANCH="${BASH_REMATCH[2]}"
-            else
-              echo "Error: unexpected GitHub ref '$ref'" >&2
-              exit 1
-            fi
-
-            ci/run.sh setup_repos "$REPO_BRANCH"
-            echo '::endgroup::'
-
-            echo '::group::Build'
-            ci/run.sh build
-            echo '::endgroup::'
-
-            echo '::group::Test dmd'
-            ci/run.sh test_dmd
-            echo '::endgroup::'
-
-            if [ "$HOST_DMD" = "dmd" ]; then
-              echo '::group::Test frontend subpackage'
-              ci/run.sh test_frontend_subpackage
-              echo '::endgroup::'
-            fi
-
-            echo '::group::Test druntime'
-            ci/run.sh test_druntime
-            echo '::endgroup::'
-
-            echo '::group::Test phobos'
-            ci/run.sh test_phobos
-            echo '::endgroup::'
-
-            echo '::group::Test self-compile'
-            ENABLE_RELEASE=0 ci/run.sh rebuild
-            echo '::endgroup::'
-      - name: Backup
-        if: ${{ failure() }}
-        run: echo 'FreeBSD VM check made optional because of random time outs'
 
   arm-qemu:
     needs: call-precommit
