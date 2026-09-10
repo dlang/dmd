@@ -8,7 +8,7 @@ fail_compilation/enum_union_switch_redundant_default.d(20): Error: redundant mat
 enum union Shape
 {
     case Circle(double),
-    case Point,
+    case Point(),
 }
 
 string describe(Shape shape)
@@ -16,7 +16,7 @@ string describe(Shape shape)
     return switch (shape)
     {
         case Circle(radius) => "circle",
-        case Point => "point",
+        case Point() => "point",
         default => "unreachable",
     };
 }

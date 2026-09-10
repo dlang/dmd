@@ -160,24 +160,32 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
                 // than one bare-type variant.
                 auto tmp = new VarDeclaration(e.loc, t, Identifier.generateId("__enumConv"), null);
                 tmp.storage_class |= STC.temp;
-                Expression result = new DeclarationExp(e.loc, tmp);
+                Expression result = new DeclarationExp(e.loc, tmp).expressionSemantic(sc);
                 Expression tmpVar = new VarExp(e.loc, tmp);
 
                 auto tagExp = new DotVarExp(e.loc, tmpVar, eu.tagVar);
-                Expression tagAssign = new AssignExp(e.loc, tagExp, new IntegerExp(e.loc, matchIndex, Type.tuns8));
+                tagExp.type = eu.tagVar.type;
+                Expression tagAssign = new AssignExp(e.loc, tagExp,
+                    new IntegerExp(e.loc, matchIndex, Type.tuns8)).expressionSemantic(sc);
                 result = new CommaExp(e.loc, result, tagAssign);
+                result.type = tagAssign.type;
 
                 if (variant.payloadType && variant.payloadType.fields.length)
                 {
                     auto field = variant.payloadType.fields[0];
                     auto payloadAccess = new DotVarExp(e.loc,
                         new DotVarExp(e.loc, tmpVar, variant.payloadVar), field);
+                    payloadAccess.e1.type = variant.payloadVar.type;
+                    payloadAccess.type = field.type;
                     Expression payloadAssign = new AssignExp(e.loc, payloadAccess, e);
+                    payloadAssign.type = field.type;
                     result = new CommaExp(e.loc, result, payloadAssign);
+                    result.type = payloadAssign.type;
                 }
 
                 result = new CommaExp(e.loc, result, tmpVar);
-                return result.expressionSemantic(sc);
+                result.type = t;
+                return result;
             }
         }
     }

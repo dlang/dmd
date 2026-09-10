@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/enum_union_switch_not_exhaustive.d(17): Error: switch expression is not exhaustive; missing variant(s) `Point`
+fail_compilation/enum_union_switch_not_exhaustive.d(17): Error: switch expression is not exhaustive; missing pattern `Point`
 ---
 */
 
@@ -9,7 +9,7 @@ enum union Shape
 {
     case Circle(double),
     case Rectangle(double, double),
-    case Point,
+    case Point(),
 }
 
 string describe(Shape s)
