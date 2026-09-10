@@ -26,47 +26,10 @@ Params:
 private void onArrayCastError()(string fromType, size_t fromSize, size_t fromLength, string toType, size_t toElemSize) @trusted
 {
     import core.internal.string : unsignedToTempString;
-
-    enum msgLength = 2048;
-
-    if (__ctfe)
-    {
-        // Build the message on the stack with no heap/GC allocation
-        // (no `~`, no `.idup`) so attribute inference keeps this
-        // function @nogc - required since __ArrayCast is @nogc.
-        char[msgLength] buf = void;
-        size_t index;
-        void add(const(char)[] m)
-        {
-            auto N = msgLength - 1 - index;
-            if (N > m.length)
-                N = m.length;
-            buf[index .. index + N] = m[0 .. N];
-            index += N;
-        }
-
-        add("`");
-        add(fromType);
-        add("[]` of length ");
-        auto s = unsignedToTempString(fromLength);
-        add(s[]);
-        add(" cannot be cast to `");
-        add(toType);
-        add("[]` as its length in bytes (");
-        s = unsignedToTempString(fromSize);
-        add(s[]);
-        add(") is not a multiple of `");
-        add(toType);
-        add(".sizeof` (");
-        s = unsignedToTempString(toElemSize);
-        add(s[]);
-        add(").");
-        assert(false, buf[0 .. index]);
-    }
-
     import core.memory : pureMalloc;
 
     // convert discontiguous `msgComponents` to contiguous string on the C heap
+    enum msgLength = 2048;
     // note: never freed!
     char* msg = cast(char *)pureMalloc(msgLength);
 
