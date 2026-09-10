@@ -275,10 +275,10 @@ public bool checkExhaustivenessAndRedundancy(SwitchExp exp, EnumUnionDeclaration
             hasDefault = true;
             continue;
         }
-        auto row = makeRow(arm, eu, fieldOffsets, totalColumns, armIndex);
         size_t[] allRows;
         foreach (index; 0 .. matrix.rows.length)
             allRows ~= index;
+        auto row = makeRow(arm, eu, fieldOffsets, totalColumns, armIndex);
         if (!isUseful(matrix, allRows, row.columns, 0, eu, fieldOffsets))
         {
             eSink.error(arm.loc, "redundant match arm; pattern is unreachable");

@@ -242,11 +242,20 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             result = s;
             return;
         }
+
+        bool hasSwitchExpressionSideEffect(Expression exp)
+        {
+            if (auto call = exp.isCallExp())
+                if (call.f && call.f.isGenerated && call.f.parent.isEnumUnionDeclaration())
+                    return false;
+            return hasSideEffect(exp);
+        }
         //printf("ExpStatement::semantic() %s\n", exp.toChars());
 
         // Allow CommaExp in ExpStatement because return isn't used
         CommaExp.allow(s.exp);
 
+        auto switchExp = s.exp.isSwitchExp();
         s.exp = s.exp.expressionSemantic(sc);
         s.exp = resolveProperties(sc, s.exp);
         s.exp = s.exp.addDtorHook(sc);
@@ -259,8 +268,24 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         }
         if (checkMustUse(s.exp, sc))
             s.exp = ErrorExp.get();
-        if (!sc.inCfile && discardValue(s.exp))
-            s.exp = ErrorExp.get();
+        if (!sc.inCfile)
+        {
+            if (switchExp)
+            {
+                bool hasEffect = hasSwitchExpressionSideEffect(switchExp.condition);
+                foreach (arm; switchExp.arms)
+                    hasEffect = hasEffect || hasSideEffect(arm.action) ||
+                        (arm.guard && hasSideEffect(arm.guard));
+                if (!hasEffect)
+                {
+                    eSink.error(switchExp.loc,
+                        "switch expression has no effect; use `cast(void)` to discard its value");
+                    s.exp = ErrorExp.get();
+                }
+            }
+            else if (discardValue(s.exp))
+                s.exp = ErrorExp.get();
+        }
 
         s.exp = s.exp.optimize(WANTvalue);
         s.exp = s.exp.checkGC(sc);

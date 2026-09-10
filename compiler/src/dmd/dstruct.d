@@ -38,6 +38,7 @@ enum StructFlags : int
 
 struct EnumUnionVariant
 {
+    Loc loc;
     Identifier ident;
     bool isTypeAlias;
     bool generated;
