@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Implements CI steps for Cirrus CI and Semaphore.
-# This file is invoked by .cirrus.yml and semaphoreci.sh.
+# Implements CI steps for multiple CI services.
+# This file is invoked from the DMD and Phobos CI YAMLs.
 
 set -uexo pipefail
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Installs the OS-specific prerequisites for Cirrus CI jobs.
-# This file is invoked by DMD, druntime and Phobos' .cirrus.yml
+# Installs the OS-specific prerequisites for CI jobs on Posix platforms.
+# This file is invoked from the DMD and Phobos CI YAMLs
 # and sets up the machine for the later steps with ci/run.sh.
 
 set -uexo pipefail
