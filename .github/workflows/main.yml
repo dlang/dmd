@@ -86,13 +86,11 @@ jobs:
             os: ubuntu-latest
             vm_os: freebsd
             vm_os_version: '14.4'
-            dflags: -version=TARGET_FREEBSD14
             host_dmd: dmd
           - job_name: FreeBSD 14.4 x64, DMD (bootstrap)
             os: ubuntu-latest
             vm_os: freebsd
             vm_os_version: '14.4'
-            dflags: -version=TARGET_FREEBSD14
             host_dmd: dmd-2.095.0
     name: ${{ matrix.job_name }}
     runs-on: ${{ matrix.os }}
@@ -103,7 +101,6 @@ jobs:
       OS_NAME: ${{ matrix.vm_os || (startsWith(matrix.os, 'ubuntu') && 'linux' || (startsWith(matrix.os, 'macos') && 'osx' || (startsWith(matrix.os, 'windows') && 'windows' || ''))) }}
       MODEL: ${{ matrix.model || '64' }}
       HOST_DMD: ${{ matrix.host_dmd }}
-      CI_DFLAGS: ${{ matrix.dflags }}
       # N is set dynamically below
       FULL_BUILD: true
       # for coverage:
