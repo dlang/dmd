@@ -130,12 +130,12 @@ jobs:
     #    Checking out DMD and Phobos    #
     #####################################
     - name: Checkout DMD
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: dmd
         persist-credentials: false
     - name: Checkout Phobos
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: phobos
         repository: dlang/phobos
@@ -163,7 +163,7 @@ jobs:
 
     - name: 'Windows: Set up MSVC environment' # puts cl.exe in PATH etc.
       if: runner.os == 'Windows'
-      uses: seanmiddleditch/gha-setup-vsdevenv@v4
+      uses: seanmiddleditch/gha-setup-vsdevenv@v5
       with:
         arch: ${{ matrix.model == '64' && 'x64' || 'x86' }}
 
