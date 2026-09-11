@@ -18,7 +18,7 @@ jobs:
     env:
       SKIP: no-commit-to-branch
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Configure Git
       run: |
         git config --global color.diff.meta       "11"
@@ -30,7 +30,7 @@ jobs:
         git config --global color.diff.whitespace "red reverse"
 
         git config --global diff.wsErrorHighlight "all"
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v7
       with:
         python-version: '3.x'
     - uses: pre-commit/action@v3.0.1

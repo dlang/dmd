@@ -132,7 +132,7 @@ jobs:
         shell: sh
         run: apk add bash git sudo
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 50
 
@@ -153,7 +153,7 @@ jobs:
         run: ci/run.sh install_host_compiler
       - name: 'Windows: Install host compiler'
         if: runner.os == 'Windows'
-        uses: dlang-community/setup-dlang@v1.3.0
+        uses: dlang-community/setup-dlang@v2
         with:
           compiler: ${{ matrix.host_dmd }}
 
@@ -186,7 +186,7 @@ jobs:
         run: ENABLE_RELEASE=0 ENABLE_DEBUG=1 ENABLE_COVERAGE=1 ci/run.sh rebuild
       - name: 'Windows: Set up MSVC environment' # some tests need cl.exe etc. in PATH
         if: runner.os == 'Windows'
-        uses: seanmiddleditch/gha-setup-vsdevenv@v4
+        uses: seanmiddleditch/gha-setup-vsdevenv@v5
         with:
           arch: ${{ env.MODEL == '64' && 'x64' || 'x86' }}
       - name: Test dmd
@@ -228,7 +228,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 50
 
