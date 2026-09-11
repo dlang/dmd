@@ -1,15 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail10115.d(39): Error: cannot have `out` parameter of type `S` because the default construction is disabled
-fail_compilation/fail10115.d(39): Error: cannot have `out` parameter of type `E` because the default construction is disabled
-fail_compilation/fail10115.d(39): Error: cannot have `out` parameter of type `U` because the default construction is disabled
-fail_compilation/fail10115.d(44): Error: default construction is disabled for type `S`
+fail_compilation/fail10115.d(39): Error: cannot have `out` parameter of type `S` because the default initialization is disabled
+fail_compilation/fail10115.d(39): Error: cannot have `out` parameter of type `E` because the default initialization is disabled
+fail_compilation/fail10115.d(39): Error: cannot have `out` parameter of type `U` because the default initialization is disabled
+fail_compilation/fail10115.d(44): Error: default initialization is disabled for type `S`
 fail_compilation/fail10115.d(20):        because of `@disable this();` here
-fail_compilation/fail10115.d(45): Error: default construction is disabled for type `S`
+fail_compilation/fail10115.d(45): Error: default initialization is disabled for type `S`
 fail_compilation/fail10115.d(20):        because of `@disable this();` here
-fail_compilation/fail10115.d(46): Error: default construction is disabled for type `U`
-fail_compilation/fail10115.d(32):        because field `s` of type `S` has disabled default construction
+fail_compilation/fail10115.d(46): Error: default initialization is disabled for type `U`
+fail_compilation/fail10115.d(32):        because field `s` of type `S` has disabled default initialization
 fail_compilation/fail10115.d(20):        because of `@disable this();` here
 ---
 */
