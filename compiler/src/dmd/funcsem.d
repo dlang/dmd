@@ -2263,6 +2263,8 @@ private void checkNamedArgErrorAndReport(TemplateDeclaration td, ArgumentList ar
  *      od = overload declaration to check
  *      argumentList = arguments to check
  *      loc = location for error report
+ * Returns:
+ *      true if a named argument error was found and reported, false otherwise
  */
 private bool checkNamedArgErrorAndReportOverload(Dsymbol od, ArgumentList argumentList, Loc loc)
 {
