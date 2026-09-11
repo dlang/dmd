@@ -25,6 +25,7 @@ import dmd.astcodegen;
 import dmd.astenums;
 import dmd.canthrow;
 import dmd.chkformat;
+import dmd.clone;
 import dmd.cond;
 import dmd.ctorflow;
 import dmd.ctfeexpr : isCtfeReferenceValid;
@@ -8058,8 +8059,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     }
                     else
                         assert(0);
-                    e = new CallExp(exp.loc, e, exp.arguments, exp.names);
-                    e = e.expressionSemantic(sc);
+                    auto ce = new CallExp(exp.loc, e, exp.arguments, exp.names);
+                    ce.loweredFrom = exp;
+                    e = ce.expressionSemantic(sc);
                     result = e;
                     return;
                 }
@@ -15415,11 +15417,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              */
             static void unqualifyExp(Expression e)
             {
-                e.type = e.type.unqualify(MODFlags.wild | MODFlags.immutable_ | MODFlags.shared_);
-                auto eNext = e.type.nextOf();
-                if (eNext && !eNext.toBasetype().isTypeStruct())
-                    e.type = e.type.unqualify(MODFlags.const_);
-
+                // unqualify strips recursively, but that's too aggressive for aggregates and AAs
+                for (auto tn = e.type.nextOf(); tn; tn = tn.nextOf())
+                {
+                    tn = tn.toBasetype();
+                    if (!tn.isTypeBasic() && !tn.isTypeDArray() && !tn.isTypeSArray())
+                        return;
+                }
+                e.type = e.type.unqualify(MODFlags.wild | MODFlags.const_ | MODFlags.immutable_ | MODFlags.shared_);
                 auto ale = e.isArrayLiteralExp();
                 if (!ale)
                     return;
@@ -15446,11 +15451,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             lowering = lowering.trySemantic(sc); // for better error message
             if (!lowering)
             {
-                if (sc.func)
-                    eSink.error(exp.loc, "can't infer return type in function `%s`", sc.func.toErrMsg());
-                else
-                    eSink.error(exp.loc, "incompatible types for array comparison: `%s` and `%s`",
-                  exp.e1.type.toErrMsg(), exp.e2.type.toErrMsg());
+                eSink.error(exp.loc, "failed to lower array comparison between types `%s` and `%s`",
+                    exp.e1.type.toErrMsg(), exp.e2.type.toErrMsg());
                 lowering = ErrorExp.get();
             }
             exp.lowering = lowering;
@@ -17087,6 +17089,24 @@ bool checkValue(Expression e)
 
     if (e.type && e.type.toBasetype().ty == Tvoid)
     {
+        // https://issues.dlang.org/show_bug.cgi?id=5010
+        if (auto ce = e.isCallExp())
+        {
+            if (ce.f && ce.f.type)
+            {
+                if (auto tf = ce.f.type.isTypeFunction())
+                {
+                    if (tf.isProperty && ce.arguments && ce.arguments.length == 1)
+                    {
+                        eSink.error(e.loc, "cannot use result of property assignment `%s = %s`, `%s` returns `void`",
+                            ce.f.toErrMsg(), (*ce.arguments)[0].toErrMsg(), ce.f.toErrMsg());
+                        if (!global.gag)
+                            e.type = Type.terror;
+                        return true;
+                    }
+                }
+            }
+        }
         eSink.error(e.loc, "expression `%s` is `void` and has no value", e.toErrMsg());
         //print(); assert(0);
         if (!global.gag)
@@ -19076,6 +19096,29 @@ bool checkDisabled(Declaration d, Loc loc, Scope* sc, bool isAliasedDeclaration 
             }
             eSink.error(loc, "%s `%s` is not copyable because it has a disabled postblit", p.kind, p.toPrettyChars);
             return true;
+        }
+        else if (auto fd = d.isFuncDeclaration())
+        {
+            if (fd.isGenerated && fd.ident == Id.opAssign)
+            {
+                if (auto sd = p.isStructDeclaration())
+                {
+                    foreach (v; sd.fields)
+                    {
+                        if (v.overlapped)
+                            continue;
+                        Type tv = v.type.baseElemOf();
+                        auto tvs = tv.isTypeStruct();
+                        if (!tvs)
+                            continue;
+                        auto f2 = hasIdentityOpAssign(tvs.sym, sc);
+                        if (!f2 || !(f2.storage_class & STC.disable))
+                            continue;
+                        eSink.error(loc, "%s `%s` is not assignable because field `%s` is not assignable", p.kind, p.toPrettyChars, v.toErrMsg());
+                        return true;
+                    }
+                }
+            }
         }
     }
 

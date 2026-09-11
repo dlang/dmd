@@ -277,39 +277,33 @@ enum Classification : Color
 }
 
 
-static if (__VERSION__ < 2092)
-    private extern (C++) void noop(Loc loc, const(char)* format, ...) {}
-else
-    pragma(printf) private extern (C++) void noop(Loc loc, const(char)* format, ...) {}
-
-
-package auto previewErrorFunc(bool isDeprecated, FeatureState featureState) @safe @nogc pure nothrow
+package auto previewErrorFunc(ErrorSink eSink, bool isDeprecated, FeatureState featureState) @trusted @nogc nothrow
 {
     with (FeatureState) final switch (featureState)
     {
         case enabled:
-            return &error;
+            return &eSink.error;
 
         case disabled:
-            return &noop;
+            return &global.errorSinkNull.error;
 
         case default_:
-            return isDeprecated ? &noop : &deprecation;
+            return isDeprecated ? &global.errorSinkNull.deprecation : &eSink.deprecation;
     }
 }
 
-package auto previewSupplementalFunc(bool isDeprecated, FeatureState featureState) @safe @nogc pure nothrow
+package auto previewSupplementalFunc(ErrorSink eSink, bool isDeprecated, FeatureState featureState) @trusted @nogc nothrow
 {
     with (FeatureState) final switch (featureState)
     {
         case enabled:
-            return &errorSupplemental;
+            return &eSink.errorSupplemental;
 
         case disabled:
-            return &noop;
+            return &global.errorSinkNull.errorSupplemental;
 
         case default_:
-            return isDeprecated ? &noop : &deprecationSupplemental;
+            return isDeprecated ? &global.errorSinkNull.deprecation : &eSink.deprecationSupplemental;
     }
 }
 

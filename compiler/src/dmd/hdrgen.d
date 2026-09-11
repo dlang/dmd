@@ -3549,7 +3549,7 @@ private void linkageToBuffer(ref OutBuffer buf, LINK linkage) @safe
     const s = linkageToString(linkage);
     if (s.length)
     {
-        buf.put("extern (");
+        buf.put("extern(");
         buf.put(s);
         buf.put(')');
     }

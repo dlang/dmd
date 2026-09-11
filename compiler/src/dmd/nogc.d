@@ -25,7 +25,7 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol : PASS, Dsymbol;
 import dmd.dtemplate : isDsymbol;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.escape;
 import dmd.expression;
 import dmd.expressionsem;
@@ -39,6 +39,7 @@ import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.rootobject : RootObject, DYNCAST;
+import dmd.root.string: fTuple;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.tokens;
@@ -124,7 +125,8 @@ public:
         }
         if (sc.setGC(f, e.loc, msg))
         {
-            error(e.loc, "%s causes a GC allocation in `@nogc` %s `%s`", msg, f.kind(), f.toErrMsg());
+            auto eSink = global.errorSink;
+            eSink.error(e.loc, "%s causes a GC allocation in `@nogc` %s `%s`", msg, f.kind(), f.toErrMsg());
             err = true;
             return true;
         }
@@ -166,10 +168,11 @@ public:
         {
             if (!checkOnly)
             {
+                auto eSink = global.errorSink;
                 version (IN_GCC)
-                    error(e.loc, "this array literal requires the GC and cannot be used with `???`");
+                    eSink.error(e.loc, "this array literal requires the GC and cannot be used with `???`");
                 else
-                    error(e.loc, "this array literal requires the GC and cannot be used with `-betterC`");
+                    eSink.error(e.loc, "this array literal requires the GC and cannot be used with `-betterC`");
             }
             err = true;
             return;
@@ -310,7 +313,10 @@ extern (D) bool vgcEnabled(FuncDeclaration fd)
 extern (D) void printGCUsage(FuncDeclaration fd, Loc loc, const(char)* warn)
 {
     if (vgcEnabled(fd))
-        message(loc, "vgc: %s", warn);
+    {
+        auto eSink = global.errorSink;
+        eSink.message(loc, "vgc: %s", warn);
+    }
 }
 
 /**
@@ -365,7 +371,8 @@ extern (D) bool setGC(Scope* sc, FuncDeclaration fd, Loc loc, const(char)* fmt, 
             // Message wil be gagged, but still call error() to update global.errors and for
             // -verrors=spec
             string action = AttributeViolation(loc, fmt, args).action;
-            .error(loc, "%.*s is not allowed in a `@nogc` function", action.fTuple.expand);
+            auto eSink = global.errorSink;
+            eSink.error(loc, "%.*s is not allowed in a `@nogc` function", action.fTuple.expand);
             return true;
         }
         return false;

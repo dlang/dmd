@@ -2326,6 +2326,21 @@ enum
     MIimportedModules = 0x400,
     MIlocalClasses = 0x800,
     MIname       = 0x1000,
+    MIunitTests  = 0x2000,
+}
+
+/*****************************************
+ * Information about an individual compiled unittest block.
+ *
+ * Records are emitted by the compiler and live for the lifetime of their module.
+ * Future fields may be appended; existing fields retain their offsets and types.
+ * Check `size` before accessing a field introduced by a newer runtime.
+ */
+struct UnitTestInfo
+{
+    size_t size;           /// Size of this emitted record in bytes.
+    void function() func;  /// Function executing this unittest block.
+    string name;           /// Compiler-generated name; not guaranteed unique or stable across builds.
 }
 
 /*****************************************
@@ -2353,7 +2368,7 @@ const:
     private void* addrOf(int flag) return nothrow pure @nogc
     in
     {
-        assert(flag >= MItlsctor && flag <= MIname);
+        assert(flag >= MItlsctor && flag <= MIunitTests);
         assert(!(flag & (flag - 1)) && !(flag & ~(flag - 1) << 1));
     }
     do
@@ -2410,7 +2425,12 @@ const:
         if (true || flags & MIname) // always available for now
         {
             if (flag == MIname) return p;
-            p += strlen(cast(immutable char*)p);
+            p += strlen(cast(immutable char*)p) + 1;
+        }
+        if (flags & MIunitTests)
+        {
+            p += (size_t.sizeof - cast(size_t)p % size_t.sizeof) % size_t.sizeof;
+            if (flag == MIunitTests) return p;
         }
         assert(0);
     }
@@ -2480,6 +2500,22 @@ const:
     @property void function() unitTest() nothrow pure @nogc
     {
         return flags & MIunitTest ? *cast(typeof(return)*)addrOf(MIunitTest) : null;
+    }
+
+    /************************
+     * Discover individual unittest blocks in the order used by `unitTest`.
+     * Calling these functions does not perform module initialization or catch
+     * test failures; those remain the responsibility of the caller.
+     *
+     * Returns:
+     *  Read-only pointers to immutable, compiler-emitted records. The slice and
+     *  records remain valid while the module is loaded. Returns an empty slice
+     *  when metadata is unavailable, including modules built by older compilers
+     *  and modules without emitted tests. `unitTest` may still be non-null.
+     */
+    @property const(immutable(UnitTestInfo)*)[] unitTests() return nothrow pure @nogc
+    {
+        return flags & MIunitTests ? *cast(typeof(return)*)addrOf(MIunitTests) : null;
     }
 
     /****************

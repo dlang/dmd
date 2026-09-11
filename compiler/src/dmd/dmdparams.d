@@ -333,8 +333,37 @@ void setTargetBuildDefaults(ref Target target) @safe
     target.os = defaultTargetOS();
     target.osMajor = defaultTargetOSMajor();
     target.cpu = CPU.baseline;
-    target.isX86_64 = (size_t.sizeof == 8);
-    target.isX86 = !target.isX86_64;
+    version (AArch64)
+    {
+        target.isAArch64 = true;
+    }
+    else
+    {
+        target.isX86_64 = (size_t.sizeof == 8);
+        target.isX86 = !target.isX86_64;
+    }
+}
+
+unittest
+{
+    Target t;
+    setTargetBuildDefaults(t);
+    version (AArch64)
+    {
+        assert(t.isAArch64);
+        assert(!t.isX86_64);
+    }
+    else version (X86_64)
+    {
+        assert(!t.isAArch64);
+        assert(t.isX86_64);
+    }
+    else version (X86)
+    {
+        assert(!t.isAArch64);
+        assert(!t.isX86_64);
+        assert(t.isX86);
+    }
 }
 
 void setTriple(ref Target target, const ref Triple triple) @safe

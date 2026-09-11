@@ -48,6 +48,7 @@ COPY=\
 	$(IMPDIR)\core\internal\spinlock.d \
 	$(IMPDIR)\core\internal\string.d \
 	$(IMPDIR)\core\internal\switch_.d \
+	$(IMPDIR)\core\internal\thread.d \
 	$(IMPDIR)\core\internal\traits.d \
 	$(IMPDIR)\core\internal\utf.d \
 	$(IMPDIR)\core\internal\lifetime.d \
@@ -585,6 +586,7 @@ COPY=\
 	$(IMPDIR)\core\thread\threadbase.d \
 	$(IMPDIR)\core\thread\osthread.d \
 	$(IMPDIR)\core\thread\posix_impl.d \
+	$(IMPDIR)\core\thread\stub_impl.d \
 	$(IMPDIR)\core\thread\windows_impl.d \
 	$(IMPDIR)\core\thread\package.d \
 	\

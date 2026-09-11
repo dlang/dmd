@@ -980,6 +980,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (ud)
     {
         glue.stests.push(s);
+        glue.testNames.push(ud.ident);
     }
 
     if (global.errors)
@@ -1103,6 +1104,7 @@ struct Glue
     StaticDtorDeclarations ectorgates;
     symbols sdtors;
     symbols stests;
+    Array!Identifier testNames;
 
     symbols ssharedctors; // shared static constructors
     symbols sisharedctors; // standalone shared static constructors
@@ -1343,6 +1345,7 @@ private void genObjFile(Module m, bool multiobj, bool doppelganger)
     glue.esharedctorgates.setDim(0);
     glue.sshareddtors.setDim(0);
     glue.stests.setDim(0);
+    glue.testNames.setDim(0);
 
     if (doppelganger)
     {
@@ -1605,6 +1608,7 @@ private void genModuleInfo(Module m, Symbol* msictor,
         MIimportedModules = 0x400,
         MIlocalClasses    = 0x800,
         MIname            = 0x1000,
+        MIunitTests       = 0x2000,
     }
 
     uint flags = 0;
@@ -1623,7 +1627,7 @@ private void genModuleInfo(Module m, Symbol* msictor,
     if (msictor)
         flags |= MIictor;
     if (mstest)
-        flags |= MIunitTest;
+        flags |= MIunitTest | MIunitTests;
     if (aimports_dim)
         flags |= MIimportedModules;
     if (aclasses.length)
@@ -1684,6 +1688,34 @@ private void genModuleInfo(Module m, Symbol* msictor,
         m.namelen = strlen(name);
         dtb.nbytes(name[0 .. m.namelen + 1]);
         //printf("nameoffset = x%x\n", nameoffset);
+    }
+
+    if (flags & MIunitTests)
+    {
+        // Preserve all existing offsets, including the NUL-terminated name.
+        const pointerSize = target.ptrsize;
+        dtb.nzeros((pointerSize - dtb.length() % pointerSize) % pointerSize);
+        const count = glue.stests.length;
+        const arrayOffset = dtb.length() + 2 * pointerSize;
+        const recordsOffset = arrayOffset + count * pointerSize;
+        // object.UnitTestInfo: size, func, name.length, name.ptr.
+        const recordSize = 4 * pointerSize;
+        auto nameOffset = recordsOffset + count * recordSize;
+        dtb.size(count);
+        dtb.xoff(csym, arrayOffset, TYnptr);
+        foreach (i; 0 .. count)
+            dtb.xoff(csym, recordsOffset + i * recordSize, TYnptr);
+        foreach (i, test; glue.stests[])
+        {
+            const name = glue.testNames[i].toString();
+            dtb.size(recordSize);
+            dtb.xoff(test, 0, TYnptr);
+            dtb.size(name.length);
+            dtb.xoff(csym, nameOffset, TYnptr);
+            nameOffset += name.length;
+        }
+        foreach (name; glue.testNames[])
+            dtb.nbytes(name.toString());
     }
 
     objc.generateModuleInfo(m);

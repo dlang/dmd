@@ -1,4 +1,5 @@
 import core.atomic : atomicLoad;
+import core.internal.thread : isSingleThreaded;
 import core.runtime;
 import core.stdc.string : strrchr;
 import core.thread;
@@ -122,7 +123,9 @@ void runTests(string libName)
 
     testEH();
     testGC();
-    testInit();
+
+    static if(!isSingleThreaded)
+        testInit();
 
     closeLib(handle);
     assert(findModuleInfo("lib") is null);

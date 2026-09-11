@@ -1822,10 +1822,21 @@ public:
 
         if (fd.localsymtab)
         {
+            // Sort by name: table order follows Identifier addresses,
+            // and inline decisions are order-dependent
+            Dsymbols symbols;
+            symbols.reserve(fd.localsymtab.length);
             foreach (keyValue; fd.localsymtab.tab.asRange)
+                symbols.push(keyValue.value);
+
+            static int compare(const Dsymbol* a, const Dsymbol* b)
             {
-                keyValue.value.accept(this);
+                return strcmp(a.ident.toChars(), b.ident.toChars());
             }
+            symbols.sort!compare();
+
+            foreach (s; symbols)
+                s.accept(this);
         }
     }
 
@@ -2107,26 +2118,6 @@ private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, PAS
         fd.inlineStatusStmt = ILS.yes;
     else
         fd.inlineStatusExp = ILS.yes;
-
-    if (fd.inlineStatusExp == ILS.uninitialized)
-    {
-        // Need to redo cost computation, as some statements or expressions have been inlined
-        cost = inlineCostFunction(fd, hasThis);
-        static if (CANINLINE_LOG)
-        {
-            printf("recomputed cost = %d for %s\n", cost, fd.toChars());
-        }
-
-        if (tooCostly(cost))
-            goto Lno;
-        if (!statementsToo && cost > COST_MAX)
-            goto Lno;
-
-        if (statementsToo)
-            fd.inlineStatusStmt = ILS.yes;
-        else
-            fd.inlineStatusExp = ILS.yes;
-    }
 
     static if (CANINLINE_LOG)
     {

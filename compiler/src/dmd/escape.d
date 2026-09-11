@@ -27,7 +27,7 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.funcsem;
-import dmd.globals : FeatureState;
+import dmd.globals : FeatureState, global;
 import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
@@ -379,8 +379,9 @@ bool checkParamArgumentEscape(ref Scope sc, FuncDeclaration fdc, Identifier parI
             sc.setUnsafeDIP1000(gag, arg.loc, vPar, msg, v, parId ? parId : fdc, fdc))
         {
             result = true;
-            printScopeReason(previewSupplementalFunc(sc.isDeprecated(), sc.useDIP1000), vPar, 10, false);
-            printScopeReason(previewSupplementalFunc(sc.isDeprecated(), sc.useDIP1000), v, 10, true);
+            auto eSink = global.errorSink;
+            printScopeReason(previewSupplementalFunc(eSink, sc.isDeprecated(), sc.useDIP1000), vPar, 10, false);
+            printScopeReason(previewSupplementalFunc(eSink, sc.isDeprecated(), sc.useDIP1000), v, 10, true);
         }
     }
 
@@ -969,7 +970,6 @@ public
 bool checkNewEscape(ref Scope sc, Expression e, bool gag)
 {
     import dmd.globals: FeatureState;
-    import dmd.errors: previewErrorFunc;
 
     //printf("[%s] checkNewEscape, e = %s\n", e.loc.toChars(), e.toChars());
     enum log = false;
@@ -1059,7 +1059,8 @@ bool checkNewEscape(ref Scope sc, Expression e, bool gag)
             const(char)* msg = "storing reference to outer local variable `%s` into allocated memory causes it to escape";
             if (!gag)
             {
-                previewErrorFunc(sc.isDeprecated(), sc.useDIP25)(e.loc, msg, v.toChars());
+                auto eSink = global.errorSink;
+                previewErrorFunc(eSink, sc.isDeprecated(), sc.useDIP25)(e.loc, msg, v.toChars());
             }
 
             // If -preview=dip25 is used, the user wants an error
@@ -1204,12 +1205,13 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                     return;
                 }
 
+                auto eSink = global.errorSink;
                 if (v.isParameter() && !v.isReturn())
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=23191
                     if (!gag)
                     {
-                        previewErrorFunc(sc.isDeprecated(), sc.useDIP1000)(e.loc,
+                        previewErrorFunc(eSink, sc.isDeprecated(), sc.useDIP1000)(e.loc,
                             "scope parameter `%s` may not be returned", v.toChars()
                         );
                         result = true;
@@ -1221,7 +1223,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                     // https://issues.dlang.org/show_bug.cgi?id=17029
                     if (sc.setUnsafeDIP1000(gag, e.loc, "returning scope variable `%s`", v))
                     {
-                        printScopeReason(previewSupplementalFunc(sc.isDeprecated(), sc.useDIP1000), v, 10, true);
+                        printScopeReason(previewSupplementalFunc(eSink, sc.isDeprecated(), sc.useDIP1000), v, 10, true);
                         result = true;
                         return;
                     }
@@ -1241,6 +1243,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
         {
             printf("byref `%s` %s\n", v.toChars(), ScopeRefToChars(buildScopeRef(v.storage_class)));
         }
+        auto eSink = global.errorSink;
 
         // 'featureState' tells us whether to emit an error or a deprecation,
         // depending on the flag passed to the CLI for DIP25
@@ -1257,13 +1260,13 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                     result = true;
                     if (v.storage_class & STC.returnScope)
                     {
-                        previewSupplementalFunc(sc.isDeprecated(), featureState)(v.loc,
+                        previewSupplementalFunc(eSink, sc.isDeprecated(), featureState)(v.loc,
                             "perhaps change the `return scope` into `scope return`");
                     }
                     else
                     {
                         const(char)* annotateKind = (v.ident is Id.This) ? "function" : "parameter";
-                        previewSupplementalFunc(sc.isDeprecated(), featureState)(v.loc,
+                        previewSupplementalFunc(eSink, sc.isDeprecated(), featureState)(v.loc,
                             "perhaps annotate the %s with `return`", annotateKind);
                     }
                 }
@@ -1280,7 +1283,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                         "returning `%s` escapes a reference to parameter `%s`" :
                         "returning `%s` escapes a reference to local variable `%s`";
                     if (!gag)
-                        previewErrorFunc(sc.isDeprecated(), featureState)(e.loc, msg, e.toChars(), v.toChars());
+                        previewErrorFunc(eSink, sc.isDeprecated(), featureState)(e.loc, msg, e.toChars(), v.toChars());
                     result = true;
                 }
             }
@@ -1350,7 +1353,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                     {
                         const(char)* msg = "escaping reference to outer local variable `%s`";
                         if (!gag)
-                            previewErrorFunc(sc.isDeprecated(), sc.useDIP25)(e.loc, msg, v.toChars());
+                            previewErrorFunc(eSink, sc.isDeprecated(), sc.useDIP25)(e.loc, msg, v.toChars());
                         result = true;
                         return;
                     }

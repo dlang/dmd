@@ -15,11 +15,12 @@ import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
+import core.stdc.stdarg;
 
 import dmd.astenums;
 import dmd.compiler : includeImports;
 import dmd.dmdparams;
-import dmd.errors;
+import dmd.errors : ErrorSinkCompiler;
 import dmd.errorsink;
 import dmd.globals;
 import dmd.location;
@@ -835,7 +836,7 @@ version (Windows)
             else
             {
                 eSink.error(Loc.initial, "linker exited with status %d", status);
-                errorSupplemental(Loc.initial, "%s %s", cmd, args);
+                eSink.errorSupplemental(Loc.initial, "%s %s", cmd, args);
             }
         }
         return status;

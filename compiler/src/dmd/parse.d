@@ -8637,7 +8637,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             postfix = token.postfix;
                         }
 
-                        error("implicit string concatenation is error-prone and disallowed in D");
+                        error("implicit string concatenation is disallowed");
                         eSink.errorSupplemental(token.loc, "Use the explicit syntax instead " ~
                              "(concatenating literals is `@nogc`): %s ~ %s",
                              prev.toChars(), token.toChars());
