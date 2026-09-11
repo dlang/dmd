@@ -934,7 +934,7 @@ void noDefaultCtorSupplemental(AggregateDeclaration ad)
         auto ts = field.type.baseElemOf().isTypeStruct();
         if (ts && ts.sym.noDefaultCtor)
         {
-            eSink.errorSupplemental(field.loc, "because field `%s` of type `%s` has disabled default construction",
+            eSink.errorSupplemental(field.loc, "because field `%s` of type `%s` has disabled default initialization",
                 field.toChars(), field.type.toErrMsg());
             noDefaultCtorSupplemental(ts.sym);
         }
@@ -3093,7 +3093,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 else
                 {
-                    eSink.error(dsym.loc, "%s `%s` - default construction is disabled for type `%s`", dsym.kind, dsym.toPrettyChars, dsym.type.toErrMsg());
+                    eSink.error(dsym.loc, "%s `%s` - default initialization is disabled for type `%s`", dsym.kind, dsym.toPrettyChars, dsym.type.toErrMsg());
                     noDefaultCtorSupplemental(tbn.isTypeStruct().sym);
                 }
             }

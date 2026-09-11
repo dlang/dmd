@@ -4220,7 +4220,7 @@ private bool checkDefCtor(Loc loc, Type t)
     if (ad && ad.noDefaultCtor)
     {
         auto eSink = global.errorSink;
-        eSink.error(loc, "default construction is disabled for type `%s`", tb.toErrMsg());
+        eSink.error(loc, "default initialization is disabled for type `%s`", tb.toErrMsg());
         noDefaultCtorSupplemental(ad);
         return true;
     }

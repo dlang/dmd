@@ -4127,7 +4127,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                         Type tv = t.baseElemOf();
                         if (tv.ty == Tstruct && tv.isTypeStruct().sym.noDefaultCtor)
                         {
-                            eSink.error(loc, "cannot have `out` parameter of type `%s` because the default construction is disabled", fparam.type.toErrMsg());
+                            eSink.error(loc, "cannot have `out` parameter of type `%s` because the default initialization is disabled", fparam.type.toErrMsg());
                             errors = true;
                         }
                     }
