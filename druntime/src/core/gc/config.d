@@ -14,6 +14,14 @@ __gshared Config config;
 
 private __gshared bool _initialized;
 
+package(core) bool initialize(ref Config cfg) nothrow @nogc
+{
+    if (!_initialized)
+        _initialized = cfg.tryToInitialize();
+
+    return _initialized;
+}
+
 struct Config
 {
     bool disable;            // start disabled
@@ -37,11 +45,9 @@ struct Config
 
 @nogc nothrow:
 
-    bool initialize()
+    private bool tryToInitialize()
     {
-        if (!_initialized)
-            _initialized = initConfigOptions(this, "gcopt");
-        return _initialized;
+        return initConfigOptions(this, "gcopt");
     }
 
     void help() @nogc nothrow
