@@ -10,7 +10,7 @@ Creating library {{RESULTS_DIR}}/runnable/traits_0.lib and object {{RESULTS_DIR}
 TRANSFORM_OUTPUT: remove_lines("Creating library")
 TEST_OUTPUT:
 ---
-__lambda_L1073_C5
+__lambda_L1109_C5
 ---
 */
 
@@ -237,6 +237,12 @@ void test6()
 
 void test7()
 {
+    test7s();
+    test7d();
+}
+
+void test7s()
+{
     assert(__traits(isStaticArray) == false);
     assert(__traits(isStaticArray, S) == false);
     assert(__traits(isStaticArray, C) == false);
@@ -263,6 +269,36 @@ void test7()
     assert(__traits(isStaticArray, char) == false);
     assert(__traits(isStaticArray, wchar) == false);
     assert(__traits(isStaticArray, dchar) == false);
+}
+
+void test7d()
+{
+    assert(__traits(isDynamicArray) == false);
+    assert(__traits(isDynamicArray, S) == false);
+    assert(__traits(isDynamicArray, C) == false);
+    assert(__traits(isDynamicArray, E) == false);
+    assert(__traits(isDynamicArray, void*) == false);
+    assert(__traits(isDynamicArray, void[]) == true);
+    assert(__traits(isDynamicArray, void[3]) == false);
+    assert(__traits(isDynamicArray, int[char]) == false);
+    assert(__traits(isDynamicArray, float, float) == false);
+    assert(__traits(isDynamicArray, float, S) == false);
+
+    assert(__traits(isDynamicArray, void) == false);
+    assert(__traits(isDynamicArray, byte) == false);
+    assert(__traits(isDynamicArray, ubyte) == false);
+    assert(__traits(isDynamicArray, short) == false);
+    assert(__traits(isDynamicArray, ushort) == false);
+    assert(__traits(isDynamicArray, int) == false);
+    assert(__traits(isDynamicArray, uint) == false);
+    assert(__traits(isDynamicArray, long) == false);
+    assert(__traits(isDynamicArray, ulong) == false);
+    assert(__traits(isDynamicArray, float) == false);
+    assert(__traits(isDynamicArray, double) == false);
+    assert(__traits(isDynamicArray, real) == false);
+    assert(__traits(isDynamicArray, char) == false);
+    assert(__traits(isDynamicArray, wchar) == false);
+    assert(__traits(isDynamicArray, dchar) == false);
 }
 
 /********************************************************/
