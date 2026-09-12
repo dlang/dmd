@@ -159,7 +159,10 @@ void TypeInfo_toObjFile(Expression e, Loc loc, Type t)
     genTypeInfo(e, loc, t, null);
 
     // ClassInfos are generated as part of ClassDeclaration codegen
-    const isUnqualifiedClassInfo = (t.ty == Tclass && !t.mod);
+    bool isUnqualifiedClassInfo = false;
+    if (t.mod == 0)
+        if (auto tc = t.isTypeClass())
+            isUnqualifiedClassInfo = !tc.sym.isInterfaceDeclaration();
 
     if (!isUnqualifiedClassInfo && !builtinTypeInfo(t))
     {
@@ -265,7 +268,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
 
             const bool gentypeinfo = global.params.useTypeInfo && Type.dtypeinfo;
-            const bool genclassinfo = gentypeinfo || !(cd.isCPPclass || cd.isCOMclass);
+            const bool genclassinfo = gentypeinfo || cd.classKind == ClassKind.d;
 
             // Generate C symbols
             if (genclassinfo)
@@ -291,16 +294,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
-            if (gentypeinfo)
-            {
-                genTypeInfo(null, cd.loc, cd.type, null);
-                //toObjFile(cd.type.vtinfo, multiobj);
-            }
-
             if (genclassinfo)
-            {
                 genClassInfoForClass(cd, sinit);
-            }
 
             //////////////////////////////////////////////
 
@@ -366,8 +361,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
 
             const bool gentypeinfo = global.params.useTypeInfo && Type.dtypeinfo;
-            const bool genclassinfo = gentypeinfo || !(id.isCPPclass || id.isCOMclass);
-
+            const bool genclassinfo = gentypeinfo || id.classKind == ClassKind.d;
 
             // Generate C symbols
             if (genclassinfo)
@@ -375,14 +369,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             //////////////////////////////////////////////
 
-            // Put out the TypeInfo
-            if (gentypeinfo)
-            {
-                genTypeInfo(null, id.loc, id.type, null);
-                toObjFile(id.type.vtinfo, multiobj);
-            }
-
-            //////////////////////////////////////////////
+            // Note: the TypeInfo_Interface (a wrapper around the interface's ClassInfo)
+            //       is emitted lazily in TypeInfo_toObjFile()
 
             if (genclassinfo)
                 genClassInfoForInterface(id);
@@ -418,11 +406,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 else if (driverParams.symdebug)
                     toDebug(sd);
 
-                if (0 && global.params.useTypeInfo && Type.dtypeinfo)
-                {
-                    genTypeInfo(null, sd.loc, sd.type, null);
-                    toObjFile(sd.type.vtinfo, multiobj);
-                }
+                // Note: the TypeInfo_Struct is emitted lazily in TypeInfo_toObjFile()
 
                 // Generate static initializer
                 auto sinit = toInitializer(sd);
@@ -709,11 +693,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             else if (driverParams.symdebug)
                 toDebug(ed);
 
-            if (0 && global.params.useTypeInfo && Type.dtypeinfo)
-            {
-                genTypeInfo(null, ed.loc, ed.type, null);
-                toObjFile(ed.type.vtinfo, multiobj);
-            }
+            // Note: the TypeInfo_Enum is emitted lazily in TypeInfo_toObjFile()
 
             TypeEnum tc = ed.type.isTypeEnum();
             import dmd.typesem : isZeroInit;
