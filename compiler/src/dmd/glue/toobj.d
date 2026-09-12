@@ -158,6 +158,9 @@ void TypeInfo_toObjFile(Expression e, Loc loc, Type t)
     // printf("TypeInfo_toObjFIle() %s\n", torig.toChars());
     genTypeInfo(e, loc, t, null);
 
+    if (t.vtinfo.hadCodegen)
+        return;
+
     // ClassInfos are generated as part of ClassDeclaration codegen
     bool isUnqualifiedClassInfo = false;
     if (t.mod == 0)
@@ -168,12 +171,8 @@ void TypeInfo_toObjFile(Expression e, Loc loc, Type t)
     {
         // Generate a COMDAT for other TypeInfos not available as builtins in druntime -
         // but only once per compiler run (into the first referencing object file).
-        // FIXME: is there a nicer place for the bool, outside the frontend?
-        if (!t.vtinfo.emitted)
-        {
-            toObjFile(t.vtinfo, global.params.multiobj);
-            t.vtinfo.emitted = true;
-        }
+        toObjFile(t.vtinfo, global.params.multiobj);
+        t.vtinfo.hadCodegen = true;
     }
 }
 

@@ -742,7 +742,8 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
     else version (IN_LLVM) {}
     else // MARS
     {
-        bool emitted; // hack to keep track of whether it was codegen'd already
+        // FIXME: is there a nicer place for this bool, outside the frontend?
+        bool hadCodegen; // whether it was codegen'd already
     }
 
     final extern (D) this(Type tinfo)

@@ -332,7 +332,7 @@ class TypeInfoDeclaration : public VarDeclaration
 public:
     Type *tinfo;
 #if MARS
-    d_bool emitted;
+    d_bool hadCodegen;
 #endif
 
     static TypeInfoDeclaration *create(Type *tinfo);
