@@ -4014,7 +4014,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("UserAttributeDeclaration::semantic() %p\n", this);
         if (uad.decl && !uad._scope)
             uad.Dsymbol.setScope(sc); // for function local symbols
-        arrayExpressionSemantic(uad.atts.peekSlice(), sc, true);
+        Scope* sc2 = sc.startCTFE();
+        arrayExpressionSemantic(uad.atts.peekSlice(), sc2, true);
+        sc2.endCTFE();
         return attribSemantic(uad);
     }
 
