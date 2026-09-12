@@ -156,9 +156,16 @@ package(dmd.glue)
 void TypeInfo_toObjFile(Expression e, Loc loc, Type t)
 {
     // printf("TypeInfo_toObjFIle() %s\n", torig.toChars());
-    if (genTypeInfo(e, loc, t, null))
+    genTypeInfo(e, loc, t, null);
+
+    // ClassInfos are generated as part of ClassDeclaration codegen
+    const isUnqualifiedClassInfo = (t.ty == Tclass && !t.mod);
+
+    if (!isUnqualifiedClassInfo && !builtinTypeInfo(t))
     {
         // generate a COMDAT for other TypeInfos not available as builtins in druntime
+        // FIXME: emit only once (into the first referencing object file,
+        //        or once per object file)
         toObjFile(t.vtinfo, global.params.multiobj);
     }
 }
@@ -281,8 +288,10 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             // Put out the TypeInfo
             if (gentypeinfo)
-                TypeInfo_toObjFile(null, cd.loc, cd.type);
-            //toObjFile(cd.type.vtinfo, multiobj);
+            {
+                genTypeInfo(null, cd.loc, cd.type, null);
+                //toObjFile(cd.type.vtinfo, multiobj);
+            }
 
             if (genclassinfo)
             {
@@ -365,8 +374,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
             // Put out the TypeInfo
             if (gentypeinfo)
             {
-                TypeInfo_toObjFile(null, id.loc, id.type);
-                id.type.vtinfo.accept(this);
+                genTypeInfo(null, id.loc, id.type, null);
+                toObjFile(id.type.vtinfo, multiobj);
             }
 
             //////////////////////////////////////////////
@@ -405,8 +414,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 else if (driverParams.symdebug)
                     toDebug(sd);
 
-                if (global.params.useTypeInfo && Type.dtypeinfo)
-                    TypeInfo_toObjFile(null, sd.loc, sd.type);
+                if (0 && global.params.useTypeInfo && Type.dtypeinfo)
+                {
+                    genTypeInfo(null, sd.loc, sd.type, null);
+                    toObjFile(sd.type.vtinfo, multiobj);
+                }
 
                 // Generate static initializer
                 auto sinit = toInitializer(sd);
@@ -693,8 +705,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
             else if (driverParams.symdebug)
                 toDebug(ed);
 
-            if (global.params.useTypeInfo && Type.dtypeinfo)
-                TypeInfo_toObjFile(null, ed.loc, ed.type);
+            if (0 && global.params.useTypeInfo && Type.dtypeinfo)
+            {
+                genTypeInfo(null, ed.loc, ed.type, null);
+                toObjFile(ed.type.vtinfo, multiobj);
+            }
 
             TypeEnum tc = ed.type.isTypeEnum();
             import dmd.typesem : isZeroInit;
@@ -721,11 +736,6 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(TypeInfoDeclaration tid)
         {
-            if (isSpeculativeType(tid.tinfo))
-            {
-                //printf("-speculative '%s'\n", tid.toPrettyChars());
-                return;
-            }
             //printf("TypeInfoDeclaration.toObjFile(%p '%s') visibility %d\n", tid, tid.toChars(), tid.visibility);
 
             if (multiobj)

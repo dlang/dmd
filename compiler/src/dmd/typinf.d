@@ -36,10 +36,8 @@ import core.stdc.stdio;
  *      loc   = the location for reporting line numbers in errors
  *      torig = the type to generate the `TypeInfo` object for
  *      sc    = the scope
- * Returns:
- *      true if `TypeInfo` was generated and needs compiling to object file
  */
-bool genTypeInfo(Expression e, Loc loc, Type torig, Scope* sc)
+void genTypeInfo(Expression e, Loc loc, Type torig, Scope* sc)
 {
     // printf("genTypeInfo() %s\n", torig.toChars());
     import dmd.globals : global;
@@ -77,7 +75,6 @@ bool genTypeInfo(Expression e, Loc loc, Type torig, Scope* sc)
     if (t.ty == Taarray)
         t = makeNakedAssociativeArray(cast(TypeAArray)t);
 
-    bool needsCodegen = false;
     if (!t.vtinfo)
     {
         if (t.isShared()) // does both 'shared' and 'shared const'
@@ -91,17 +88,10 @@ bool genTypeInfo(Expression e, Loc loc, Type torig, Scope* sc)
         else
             t.vtinfo = getTypeInfoDeclaration(t, sc);
         assert(t.vtinfo);
-
-        // ClassInfos are generated as part of ClassDeclaration codegen
-        const isUnqualifiedClassInfo = (t.ty == Tclass && !t.mod);
-
-        if (!isUnqualifiedClassInfo && !builtinTypeInfo(t))
-            needsCodegen = true;
     }
     if (!torig.vtinfo)
         torig.vtinfo = t.vtinfo; // Types aren't merged, but we can share the vtinfo's
     assert(torig.vtinfo);
-    return needsCodegen;
 }
 
 /****************************************************
@@ -116,12 +106,7 @@ bool genTypeInfo(Expression e, Loc loc, Type torig, Scope* sc)
 extern (C++) Type getTypeInfoType(Loc loc, Type t, Scope* sc)
 {
     assert(t.ty != Terror);
-    if (genTypeInfo(null, loc, t, sc))
-    {
-        // Find module that will go all the way to an object file
-        Module m = sc._module.importedFrom;
-        m.members.push(t.vtinfo);
-    }
+    genTypeInfo(null, loc, t, sc);
     return t.vtinfo.type;
 }
 
@@ -205,103 +190,6 @@ Type makeNakedAssociativeArray(TypeAArray t)
 
     t = new TypeAArray(tnext, tindex);
     return t.merge();
-}
-
-/**************************************************
- * Returns:
- *      true if any part of type t is speculative.
- *      if t is null, returns false.
- */
-bool isSpeculativeType(Type t)
-{
-    static bool visitVector(TypeVector t)
-    {
-        return isSpeculativeType(t.basetype);
-    }
-
-    static bool visitAArray(TypeAArray t)
-    {
-        return isSpeculativeType(t.index) ||
-               isSpeculativeType(t.next);
-    }
-
-    static bool visitStruct(TypeStruct t)
-    {
-        StructDeclaration sd = t.sym;
-        if (auto ti = sd.isInstantiated())
-        {
-            if (!ti.needsCodegen())
-            {
-                if (ti.minst || sd.requestTypeInfo)
-                    return false;
-
-                /* https://issues.dlang.org/show_bug.cgi?id=14425
-                 * TypeInfo_Struct would refer the members of
-                 * struct (e.g. opEquals via xopEquals field), so if it's instantiated
-                 * in speculative context, TypeInfo creation should also be
-                 * stopped to avoid 'unresolved symbol' linker errors.
-                 */
-                /* When -debug/-unittest is specified, all of non-root instances are
-                 * automatically changed to speculative, and here is always reached
-                 * from those instantiated non-root structs.
-                 * Therefore, if the TypeInfo is not auctually requested,
-                 * we have to elide its codegen.
-                 */
-                return true;
-            }
-        }
-        else
-        {
-            //assert(!sd.inNonRoot() || sd.requestTypeInfo);    // valid?
-        }
-        return false;
-    }
-
-    static bool visitClass(TypeClass t)
-    {
-        ClassDeclaration sd = t.sym;
-        if (auto ti = sd.isInstantiated())
-        {
-            if (!ti.needsCodegen() && !ti.minst)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-
-    static bool visitTuple(TypeTuple t)
-    {
-        if (t.arguments)
-        {
-            foreach (arg; *t.arguments)
-            {
-                if (isSpeculativeType(arg.type))
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    if (!t)
-        return false;
-    Type tb = t.toBasetype();
-    switch (tb.ty)
-    {
-        case Tvector:   return visitVector(tb.isTypeVector());
-        case Taarray:   return visitAArray(tb.isTypeAArray());
-        case Tstruct:   return visitStruct(tb.isTypeStruct());
-        case Tclass:    return visitClass(tb.isTypeClass());
-        case Ttuple:    return visitTuple(tb.isTypeTuple());
-        case Tenum:     return false;
-        default:
-        return isSpeculativeType(tb.nextOf());
-
-        /* For TypeFunction, TypeInfo_Function doesn't store parameter types,
-         * so only the .next (the return type) is checked here.
-         */
-    }
 }
 
 /* ========================================================================= */
