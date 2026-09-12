@@ -152,8 +152,7 @@ extern (C++) class SemanticTimeTransitiveVisitor : SemanticTimePermissiveVisitor
         alias flag = ASTCodegen.StructLiteralExp.StageFlags.toCBuffer;
         if (!(e.stageflags & flag))
         {
-            const old = e.stageflags;
-            e.stageflags |= flag;
+            const old = e.setStageFlag(flag);
             foreach (el; *e.elements)
                 if (el)
                     el.accept(this);
