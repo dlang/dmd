@@ -137,8 +137,10 @@ immutable Msgtable[] msgtable =
     { "_assert", "assert" },
     { "_unittest", "unittest" },
     { "_body", "body" },
+    { "match" },
     { "printf" },
     { "scanf" },
+    { "tag" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },
@@ -507,7 +509,6 @@ immutable Msgtable[] msgtable =
 
     // for C compiler
     { "ImportC", "__C" },
-    { "__tag" },
     { "dllimport" },
     { "dllexport" },
     { "naked" },

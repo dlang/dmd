@@ -526,6 +526,7 @@ extern (C++) abstract class Type : ASTNode
         TyType!(Tmixin, TypeMixin),
         TyType!(Tnoreturn, TypeNoreturn),
         TyType!(Ttag, TypeTag),
+        TyType!(Tsumtype, TypeSumType),
     );
 
     extern (D) private static immutable ubyte[TMAX] sizeTy = ()
@@ -827,6 +828,7 @@ extern (C++) abstract class Type : ASTNode
         inout(TypeTraits)     isTypeTraits()     { return ty == Ttraits    ? cast(typeof(return))this : null; }
         inout(TypeNoreturn)   isTypeNoreturn()   { return ty == Tnoreturn  ? cast(typeof(return))this : null; }
         inout(TypeTag)        isTypeTag()        { return ty == Ttag       ? cast(typeof(return))this : null; }
+        inout(TypeSumType)    isTypeSumType()    { return ty == Tsumtype   ? cast(typeof(return))this : null; }
 
         extern (D) bool isStaticOrDynamicArray() const { return ty == Tarray || ty == Tsarray; }
     }
@@ -2203,6 +2205,111 @@ extern (C++) final class TypeTag : Type
 }
 
 /***********************************************************
+ */
+
+struct SumTypeVariantInfo
+{
+    Type type;
+    Identifier name;
+    Expressions* udas;
+    const(char)* comment;
+}
+
+extern (C++) final class TypeSumType : Type
+{
+    SumTypeVariantInfos* variantInfos;
+    StructDeclaration loweredStruct; /// lowered struct representation
+    size_t defaultVariantIdx; /// index of the default variant for .init
+
+    extern (D) this(SumTypeVariantInfos* variantInfos) @safe
+    {
+        super(Tsumtype);
+        this.variantInfos = variantInfos;
+    }
+
+
+    override const(char)* kind() const
+    {
+        return "sumtype";
+    }
+
+    override TypeSumType syntaxCopy()
+    {
+        // No semantic analysis done, no need to copy
+        return this;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * Collation key for sumtype declarations.
+ * Uses pointer-based hashing for zero-allocation key generation.
+ * Order-independent: combines per-variant hashes via mixHash.
+ * For named variants, names are included in both hash and equality.
+ */
+struct SumTypeKey
+{
+    SumTypeVariantInfos* variants;
+
+    this(SumTypeVariantInfos* variants) @safe
+    {
+        this.variants = variants;
+    }
+
+    size_t toHash() const nothrow
+    {
+        import dmd.root.hash : mixHash;
+        if (variants is null)
+            return 0;
+        size_t h = 0;
+        foreach (ref vi; (*variants))
+        {
+            // Hash based on type pointer (order-independent via mixHash)
+            size_t viHash = cast(size_t)cast(void*)vi.type;
+            // Include name pointer if named
+            if (vi.name !is null)
+                viHash = mixHash(viHash, cast(size_t)cast(void*)vi.name);
+            h = mixHash(h, viHash);
+        }
+        return h;
+    }
+
+    bool opEquals(ref const SumTypeKey other) const @safe
+    {
+        if (variants is null)
+            return other.variants is null;
+        if (other.variants is null)
+            return false;
+        if ((*variants).length != (*other.variants).length)
+            return false;
+
+        // Each variant in this must have a matching variant in other.
+        // Since mixHash is order-independent, we need pairwise comparison.
+        foreach (ref vi; (*variants))
+        {
+            bool found = false;
+            foreach (ref ovi; (*other.variants))
+            {
+                if (vi.type is ovi.type &&
+                    ((vi.name is null && ovi.name is null) ||
+                     (vi.name !is null && ovi.name !is null && vi.name is ovi.name)))
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                return false;
+        }
+        return true;
+    }
+}
+
+/***********************************************************
  * Represents a function's formal parameters + variadics info.
  * Length, indexing and iteration are based on a depth-first tuple expansion.
  * https://dlang.org/spec/function.html#ParameterList
@@ -2896,6 +3003,7 @@ mixin template VisitType(Result)
             case TY.Tmixin:     mixin(visitTYCase("Mixin"));
             case TY.Tnoreturn:  mixin(visitTYCase("Noreturn"));
             case TY.Ttag:       mixin(visitTYCase("Tag"));
+            case TY.Tsumtype:   mixin(visitTYCase("SumType"));
             case TY.Tnone:      assert(0);
         }
     }

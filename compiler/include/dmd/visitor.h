@@ -86,6 +86,7 @@ class TypeNoreturn;
 class TypeTraits;
 class TypeMixin;
 class TypeTag;
+class TypeSumType;
 
 class Dsymbol;
 
@@ -298,6 +299,7 @@ class ClassReferenceExp;
 class VoidInitExp;
 class ThrownExceptionExp;
 class GenericExp;
+class MatchExp;
 
 class TemplateParameter;
 class TemplateTypeParameter;
@@ -450,6 +452,7 @@ public:
     virtual void visit(TypeTraits *t) { visit((Type *)t); }
     virtual void visit(TypeMixin *t) { visit((Type *)t); }
     virtual void visit(TypeTag *t) { visit((Type *)t); }
+    virtual void visit(TypeSumType *t) { visit((Type *)t); }
 
     // TypeNext
     virtual void visit(TypeReference *t) { visit((TypeNext *)t); }
@@ -499,6 +502,7 @@ public:
     virtual void visit(TupleExp *e) { visit((Expression *)e); }
     virtual void visit(ThisExp *e) { visit((Expression *)e); }
     virtual void visit(GenericExp *e) { visit((Expression *)e); }
+    virtual void visit(MatchExp *e) { visit((Expression *)e); }
 
     // Miscellaneous
     virtual void visit(VarExp *e) { visit((SymbolExp *)e); }

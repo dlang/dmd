@@ -97,6 +97,9 @@ fail_compilation/fastdfa.d(1516):        Borrowed here
 fail_compilation/fastdfa.d(1526): Error: Cannot mutate the owner of an active borrow
 fail_compilation/fastdfa.d(1523):        For variable `x`
 fail_compilation/fastdfa.d(1524):        Borrowed here
+fail_compilation/fastdfa.d(1543): Error: Cannot pass the owner of an active borrow to a function that may mutate it
+fail_compilation/fastdfa.d(1543):        Parameter `st` must be const or immutable
+fail_compilation/fastdfa.d(1541):        Borrowed here
 ---
 */
 
@@ -633,6 +636,19 @@ void borrowInConditionInfect()
     {
         x = null; // ok - borrow not active in false branch
     }
+}
+
+void matchBorrow()
+{
+    __sumtype ST = int* | int;
+
+    int modify(ref ST st) => 2;
+
+    ST st;
+    st.match {
+        (int v) => 0,
+        (ref int* v) => modify(st)
+    };
 }
 
 /****************** End borrow checker (errors) ******************/

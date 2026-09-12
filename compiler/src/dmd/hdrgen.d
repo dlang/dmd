@@ -3194,6 +3194,36 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.question:      return visitCond(e.isCondExp());
         case EXP.classReference:        return visitClassReference(e.isClassReferenceExp());
         case EXP.loweredAssignExp:      return visitLoweredAssignExp(e.isLoweredAssignExp());
+        case EXP.matchExp:
+        {
+            auto me = e.isMatchExp();
+            me.arg.expressionToBuffer(buf, hgs);
+            buf.put(".match {");
+            foreach (i, ref ai; *me.armInfos)
+            {
+                if (i > 0)
+                    buf.put(',');
+                buf.put(" (");
+                if (ai.vd.storage_class & STC.ref_)
+                    buf.put("ref ");
+                if (ai.vd.type)
+                    typeToBuffer(ai.vd.type, ai.vd.ident, buf, hgs);
+                else if (ai.vd.ident)
+                    buf.put(ai.vd.ident.toString());
+                buf.put(")");
+                if (ai.guard)
+                {
+                    buf.put(" if (");
+                    ai.guard.expressionToBuffer(buf, hgs);
+                    buf.put(")");
+                }
+                buf.put(" => ");
+                if (ai.vd._init && ai.vd._init.isExpInitializer())
+                    ai.vd._init.isExpInitializer().exp.expressionToBuffer(buf, hgs);
+            }
+            buf.put(" }");
+            return;
+        }
         case EXP.construct:     return visitConstructExp(e.isConstructExp());
         case EXP.equal:
         case EXP.notEqual:      return visitEqualExp(e.isEqualExp());
@@ -4623,6 +4653,10 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
         }
     }
 
+    void visitSumType(TypeSumType t)
+    {
+    }
+
     void visitTuple(TypeTuple t)
     {
         parametersToBuffer(ParameterList(t.arguments, VarArg.none), buf, hgs);
@@ -4690,6 +4724,7 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
         case Tmixin:     return visitMixin(cast(TypeMixin)t);
         case Tnoreturn:  return visitNoreturn(cast(TypeNoreturn)t);
         case Ttag:       return visitTag(cast(TypeTag)t);
+        case Tsumtype:   return visitSumType(cast(TypeSumType)t);
     }
 }
 
@@ -4743,6 +4778,7 @@ string EXPtoString(EXP op)
         EXP.void_ : "void",
         EXP.vectorArray : "vectorarray",
         EXP._Generic : "_Generic",
+        EXP.matchExp : "match",
 
         // post
         EXP.dotTemplateInstance : "dotti",

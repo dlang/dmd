@@ -26,6 +26,7 @@ import dmd.compiler;
 import dmd.cparse;
 import dmd.declaration;
 import dmd.dmacro;
+import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.errors : fatal;
 import dmd.errorsink;
@@ -37,6 +38,7 @@ import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
+import dmd.mtype;
 import dmd.parse;
 import dmd.root.array;
 import dmd.root.file;
@@ -399,6 +401,11 @@ extern (C++) final class Module : Package
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
+
+    /// Collation table for sumtype declarations: maps variant-set key to
+    /// the lowered StructDeclaration, so identical sumtype declarations
+    /// share a single struct. Only used on the root module.
+    StructDeclaration[SumTypeKey] sumtypeCollations;
 
     extern (D) this(Loc loc, const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
     {

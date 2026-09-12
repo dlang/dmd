@@ -55,3 +55,5 @@ alias TemplateInstances = Array!(TemplateInstance);
 alias Ensures = Array!(Ensure);
 alias Designators = Array!(Designator);
 alias DesigInits = Array!(DesigInit);
+alias SumTypeVariantInfos = Array!(SumTypeVariantInfo);
+alias SumTypeMatchArmInfos = Array!(SumTypeMatchArmInfo);

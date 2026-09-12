@@ -2702,6 +2702,7 @@ struct ASTBase
                 sizeTy[Tmixin] = __traits(classInstanceSize, TypeMixin);
                 sizeTy[Tnoreturn] = __traits(classInstanceSize, TypeNoreturn);
                 sizeTy[Ttag] = __traits(classInstanceSize, TypeTag);
+                sizeTy[Tsumtype] = __traits(classInstanceSize, TypeSumType);
                 return sizeTy;
             }();
 
@@ -3774,6 +3775,39 @@ struct ASTBase
         }
 
         override TypeTag syntaxCopy()
+        {
+            return this;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    struct SumTypeVariantInfo
+    {
+        Type type;
+        Identifier name;
+        Expressions* udas;
+        const(char)* comment;
+    }
+
+    alias SumTypeVariantInfos   = Array!(SumTypeVariantInfo);
+
+    extern (C++) final class TypeSumType : Type
+    {
+        SumTypeVariantInfos* variantInfos;
+        StructDeclaration loweredStruct;
+        size_t defaultVariantIdx;
+
+        extern (D) this(SumTypeVariantInfos* variantInfos = null)
+        {
+            super(Tsumtype);
+            this.variantInfos = variantInfos;
+        }
+
+        override TypeSumType syntaxCopy()
         {
             return this;
         }
@@ -6262,6 +6296,35 @@ struct ASTBase
             this.cntlExp = cntlExp;
             this.types = types;
             this.exps = exps;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    struct SumTypeMatchArmInfo
+    {
+        VarDeclaration vd;
+        Expression guard;
+        int variantIndex;
+        int originalIndex;
+    }
+
+    alias SumTypeMatchArmInfos  = Array!(SumTypeMatchArmInfo);
+
+    extern (C++) final class MatchExp : Expression
+    {
+        Expression arg;
+        SumTypeMatchArmInfos* armInfos;
+        Type resultType;
+
+        extern (D) this(Loc loc, Expression arg, SumTypeMatchArmInfos* armInfos)
+        {
+            super(loc, EXP.matchExp, __traits(classInstanceSize, MatchExp));
+            this.arg = arg;
+            this.armInfos = armInfos;
         }
 
         override void accept(Visitor v)

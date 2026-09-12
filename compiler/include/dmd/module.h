@@ -113,6 +113,8 @@ public:
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
 
+    void* sumtypeCollations;    // AA: collation table for sumtype declarations (SumTypeKey -> StructDeclaration)
+
     static Module* create(const char *arg, Identifier *ident, int doDocComment, int doHdrGen);
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 

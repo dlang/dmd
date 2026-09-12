@@ -759,6 +759,20 @@ struct ExpressionWalker
             dfaCommon.printStateln("construct rhs");
             DFALatticeRef rhs = this.walk(ce.e2);
 
+            auto dve = ce.e2.isDotVarExp;
+
+            if (dve !is null && dve.compilerOverlappedAccess)
+            {
+                rhs.getContextVar.visitIndirectSources((DFAVar* var,
+                        bool hadAnIndirection, bool hadAnInnerDeref, bool hadAnOuterDeref,
+                        bool takenAddressOf, bool hadFields, bool isOffsetOfStorage, ref bool unknown) {
+                    if (hadAnIndirection || hadAnInnerDeref)
+                        return;
+                    DFAObject* cell = dfaCommon.makeObject(var);
+                    dfaCommon.registerBorrow(lhs.getContextVar, cell, dve.loc);
+                });
+            }
+
             return seeAssign(lhs, true, rhs, ce.loc);
 
         case EXP.negate: // -x
@@ -1654,6 +1668,7 @@ struct ExpressionWalker
         case EXP._Generic:
         case EXP.interval:
 
+        case EXP.matchExp:
         case EXP.rvalue:
             if (dfaCommon.debugUnknownAST)
             {
