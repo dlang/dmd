@@ -2748,13 +2748,22 @@ int getLevelAndCheck(FuncDeclaration fd, Loc loc, Scope* sc, FuncDeclaration tar
     // Don't give error if in template constraint
     if (!sc.inTemplateConstraint)
     {
-        const(char)* xstatic = fd.isStatic() ? "`static` " : "";
-        // better diagnostics for static functions
         auto eSink = global.errorSink;
-        eSink.error(loc, "%s%s `%s` cannot access %s `%s` in frame of function `%s`",
-               xstatic, fd.kind(), fd.toPrettyChars(), decl.kind(), decl.toErrMsg(),
-               target.toPrettyChars());
-           eSink.errorSupplemental(decl.loc, "`%s` declared here", decl.toChars());
+        auto fld = fd.isFuncLiteralDeclaration();
+        if (fld && fld.parent && fld.parent.isTemplateInstance())
+        {
+            eSink.error(loc, "lambda function cannot access %s `%s` in frame of function `%s`",
+                   decl.kind(), decl.toErrMsg(), target.toPrettyChars());
+        }
+        else
+        {
+            const(char)* xstatic = fd.isStatic() ? "`static` " : "";
+            // better diagnostics for static functions
+            eSink.error(loc, "%s%s `%s` cannot access %s `%s` in frame of function `%s`",
+                   xstatic, fd.kind(), fd.toPrettyChars(), decl.kind(), decl.toErrMsg(),
+                   target.toPrettyChars());
+        }
+        eSink.errorSupplemental(decl.loc, "`%s` declared here", decl.toChars());
         return LevelError;
     }
     return 1;
