@@ -20,6 +20,7 @@ struct Config
     bool fork = false;       // optional concurrent behaviour
     ubyte profile;           // enable profiling with summary when terminating program
     string gc = "conservative"; // select gc implementation conservative|precise|manual
+    string tgcShared = "native"; // tgc shared-region backend: native|symgc (symgc: 0.3.0 stub)
 
     @MemVal size_t initReserve;      // initial reserve (bytes)
     @MemVal size_t minPoolSize = 1  << 20;  // initial and minimum pool size (bytes)

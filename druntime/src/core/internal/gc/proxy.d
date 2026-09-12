@@ -37,6 +37,7 @@ extern (C)
     // do not import GC modules, they might add a dependency to this whole module
     void _d_register_conservative_gc();
     void _d_register_manual_gc();
+    void _d_register_tgc_gc();
 
     // if you don't want to include the default GCs, replace during link by another implementation
     void* register_default_gcs() @weak
@@ -46,7 +47,9 @@ extern (C)
         // avoid being optimized away
         auto reg1 = &_d_register_conservative_gc;
         auto reg2 = &_d_register_manual_gc;
-        return reg1 < reg2 ? reg1 : reg2;
+        auto reg3 = &_d_register_tgc_gc;
+        auto m = reg1 < reg2 ? reg1 : reg2;
+        return m < reg3 ? m : reg3;
     }
 
     void gc_init()
