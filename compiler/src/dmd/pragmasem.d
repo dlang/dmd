@@ -31,6 +31,7 @@ import dmd.hdrgen : toErrMsg;
 import dmd.location;
 import dmd.id;
 import dmd.statement;
+import dmd.mtype;
 
 /**
  * Run semantic on `pragma` declaration.
@@ -66,6 +67,16 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
             if (pd.ident == Id.printf || pd.ident == Id.scanf)
             {
                 s.setPragmaPrintf(pd.ident == Id.printf);
+                s.dsymbolSemantic(sc2);
+                continue;
+            }
+            if (pd.ident == Id.cpp_use_deleting_destructor)
+            {
+                if (pd.args && (*pd.args).length)
+                {
+                    auto ie = (*pd.args)[0].isIntegerExp();
+                    s.setCppUseDelDtor(ie && ie.value);
+                }
                 s.dsymbolSemantic(sc2);
                 continue;
             }
@@ -207,6 +218,22 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
     {
         if (pd.args && pd.args.length != 0)
             eSink.error(pd.loc, "%s `%s` takes no argument", pd.kind, pd.toPrettyChars);
+        return declarations();
+    }
+    else if (pd.ident == Id.cpp_use_deleting_destructor)
+    {
+        if (!pd.args || (*pd.args).length != 1)
+        {
+            eSink.error(pd.loc, "%s `%s` one bool argument expected", pd.kind, pd.toPrettyChars);
+        }
+        else
+        {
+            auto ie = (*pd.args)[0].isIntegerExp();
+            if (!ie || ie.type != Type.tbool)
+            {
+                eSink.error(pd.loc, "%s `%s` one bool argument expected", pd.kind, pd.toPrettyChars);
+            }
+        }
         return declarations();
     }
     else if (!global.params.ignoreUnsupportedPragmas)
@@ -467,6 +494,29 @@ private void setPragmaPrintf(Dsymbol s, bool printf)
     if (auto ad = s.isAttribDeclaration())
     {
         ad.include(null).foreachDsymbol( (s) { setPragmaPrintf(s, printf); } );
+    }
+}
+
+/**
+ * Apply pragma cpp_use_deleting_destructor to ClassDeclarations under `s`,
+ * poking through attribute declarations such as `extern(C)`
+ * but not through aggregates or function bodies.
+ *
+ * Params:
+ *    s = symbol to apply
+ *    cppUseDelDtor = argument of pragma
+ */
+private void setCppUseDelDtor(Dsymbol s, bool cppUseDelDtor)
+{
+    if (auto cd = s.isClassDeclaration())
+    {
+        cd.cppUseDelDtor = cppUseDelDtor;
+        cd.cppUseDelDtorSet = true;
+    }
+
+    if (auto ad = s.isAttribDeclaration())
+    {
+        ad.include(null).foreachDsymbol( (s) { setCppUseDelDtor(s, cppUseDelDtor); } );
     }
 }
 
