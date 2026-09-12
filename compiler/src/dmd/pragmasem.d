@@ -442,8 +442,8 @@ private bool pragmaMsgSemantic(Loc loc, Scope* sc, Expressions* args)
     if (expressionsToString(buf, sc, args, loc, "while evaluating `pragma(msg, %s)`", false))
         return false;
 
-    buf.writestring("\n");
-    fprintf(stderr, "%s", buf.extractChars);
+    auto eSink = global.errorSink;
+    eSink.message(Loc.init, "%s", buf.extractChars);
     return true;
 }
 
