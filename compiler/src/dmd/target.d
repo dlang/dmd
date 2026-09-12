@@ -1320,9 +1320,9 @@ extern (C++) struct Target
                     return stringExp(driverParams.mscrtlib);
                 return stringExp("");
             case cppStd.stringof:
-                return new IntegerExp(params.cplusplus);
+                return IntegerExp.create(params.cplusplus);
             case CET.stringof:
-                return new IntegerExp(driverParams.ibt);
+                return IntegerExp.create(driverParams.ibt);
 
             default:
                 return null;

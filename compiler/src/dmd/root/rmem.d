@@ -18,8 +18,6 @@ import core.stdc.string;
 
 import core.memory : GC;
 
-nothrow:
-
 extern (C++) struct Mem
 {
     static char* xstrdup(const(char)* s) nothrow
@@ -198,6 +196,20 @@ extern (D) void* allocmemoryNoFree(size_t m_size, size_t alignment) nothrow
     allocatedNoFree += m_size;
     return _allocmemoryNoFree(m_size, alignment);
 }
+
+T emplaceClass(T, Args...)(void* p, Args args)
+if(is(T == class))
+{
+    static if (__VERSION__ < 2099)
+        const init = typeid(T).initializer;
+    else
+        const init = __traits(initSymbol, T);
+    p[0 .. __traits(classInstanceSize, T)] = init[];
+    auto t = cast(T)p;
+    t.__ctor(args);
+    return t;
+}
+
 
 extern (C) pure @nogc nothrow
 {

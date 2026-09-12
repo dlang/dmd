@@ -81,7 +81,7 @@ private:
     align(8) union _AnonStruct_u
     {
         char[__traits(classInstanceSize, Expression)] exp;
-        char[__traits(classInstanceSize, IntegerExp)] integerexp;
+        char[__traits(classInstanceSize, Integer64Exp)] integerexp;
         char[__traits(classInstanceSize, ErrorExp)] errorexp;
         char[__traits(classInstanceSize, RealExp)] realexp;
         char[__traits(classInstanceSize, ComplexExp)] complexexp;
@@ -102,15 +102,7 @@ private:
     _AnonStruct_u u;
 }
 
-void emplaceExp(T : Expression, Args...)(void* p, Args args)
-{
-    static if (__VERSION__ < 2099)
-        const init = typeid(T).initializer;
-    else
-        const init = __traits(initSymbol, T);
-    p[0 .. __traits(classInstanceSize, T)] = init[];
-    (cast(T)p).__ctor(args);
-}
+alias emplaceExp = emplaceClass;
 
 void emplaceExp(T : UnionExp)(T* p, Expression e) nothrow
 {
@@ -439,12 +431,12 @@ private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
     }
     else if (lit.op == EXP.arrayLiteral)
     {
-        emplaceExp!(SliceExp)(&ue, lit.loc, lit, ctfeEmplaceExp!IntegerExp(Loc.initial, 0, Type.tsize_t), ArrayLength(Type.tsize_t, lit).copy());
+        emplaceExp!(SliceExp)(&ue, lit.loc, lit, ctfeEmplaceExp!Integer64Exp(Loc.initial, 0, Type.tsize_t), ArrayLength(Type.tsize_t, lit).copy());
     }
     else if (lit.op == EXP.string_)
     {
         // For strings, we need to introduce another level of indirection
-        emplaceExp!(SliceExp)(&ue, lit.loc, lit, ctfeEmplaceExp!IntegerExp(Loc.initial, 0, Type.tsize_t), ArrayLength(Type.tsize_t, lit).copy());
+        emplaceExp!(SliceExp)(&ue, lit.loc, lit, ctfeEmplaceExp!Integer64Exp(Loc.initial, 0, Type.tsize_t), ArrayLength(Type.tsize_t, lit).copy());
     }
     else if (auto aae = lit.isAssocArrayLiteralExp())
     {
@@ -775,19 +767,19 @@ Expression pointerDifference(UnionExp* pue, Loc loc, Type type, Expression e1, E
     {
         Type pointee = agg1.type.nextOf();
         const sz = pointee.size();
-        emplaceExp!(IntegerExp)(pue, loc, (ofs1 - ofs2) * sz, type);
+        emplaceExp!(Integer64Exp)(pue, loc, (ofs1 - ofs2) * sz, type);
     }
     else if (agg1.op == EXP.string_ && agg2.op == EXP.string_ &&
              agg1.isStringExp().peekString().ptr == agg2.isStringExp().peekString().ptr)
     {
         Type pointee = agg1.type.nextOf();
         const sz = pointee.size();
-        emplaceExp!(IntegerExp)(pue, loc, (ofs1 - ofs2) * sz, type);
+        emplaceExp!(Integer64Exp)(pue, loc, (ofs1 - ofs2) * sz, type);
     }
     else if (agg1.op == EXP.symbolOffset && agg2.op == EXP.symbolOffset &&
              agg1.isSymOffExp().var == agg2.isSymOffExp().var)
     {
-        emplaceExp!(IntegerExp)(pue, loc, ofs1 - ofs2, type);
+        emplaceExp!(Integer64Exp)(pue, loc, ofs1 - ofs2, type);
     }
     else
     {
@@ -879,15 +871,15 @@ Expression pointerArithmetic(UnionExp* pue, Loc loc, EXP op, Type type, Expressi
         dinteger_t dim = tsa.dim.toInteger();
         // Create a CTFE pointer &agg1[indx .. indx+dim]
         auto se = ctfeEmplaceExp!SliceExp(loc, agg1,
-                ctfeEmplaceExp!IntegerExp(loc, indx, Type.tsize_t),
-                ctfeEmplaceExp!IntegerExp(loc, indx + dim, Type.tsize_t));
+                ctfeEmplaceExp!Integer64Exp(loc, indx, Type.tsize_t),
+                ctfeEmplaceExp!Integer64Exp(loc, indx + dim, Type.tsize_t));
         se.type = type.toBasetype().nextOf();
         emplaceExp!(AddrExp)(pue, loc, se);
         pue.exp().type = type;
         return pue.exp();
     }
     // Create a CTFE pointer &agg1[indx]
-    auto ofs = ctfeEmplaceExp!IntegerExp(loc, indx, Type.tsize_t);
+    auto ofs = ctfeEmplaceExp!Integer64Exp(loc, indx, Type.tsize_t);
     Expression ie = ctfeEmplaceExp!IndexExp(loc, agg1, ofs);
     ie.type = type.toBasetype().nextOf(); // https://issues.dlang.org/show_bug.cgi?id=13992
     emplaceExp!(AddrExp)(pue, loc, ie);
@@ -1526,7 +1518,7 @@ Expression ctfeIndex(UnionExp* pue, Loc loc, Type type, Expression e1, uinteger_
             eSink.error(loc, "string index %llu is out of bounds `[0 .. %llu]`", indx, cast(ulong)es1.len);
             return CTFEExp.cantexp;
         }
-        emplaceExp!IntegerExp(pue, loc, es1.getIndex(cast(size_t) indx), type);
+        emplaceExp!Integer64Exp(pue, loc, es1.getIndex(cast(size_t) indx), type);
         return pue.exp();
     }
 

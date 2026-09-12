@@ -1153,7 +1153,7 @@ extern (C++) final class TypeSArray : TypeArray
     {
         super(Tsarray, t);
         //printf("TypeSArray()\n");
-        this.dim = new IntegerExp(0);
+        this.dim = IntegerExp.create(0);
     }
 
     override const(char)* kind() const
