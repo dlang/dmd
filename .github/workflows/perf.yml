@@ -77,12 +77,10 @@ jobs:
         run: |
           set -uexo pipefail
           source ~/dlang/*/activate
-          built=generated/$OS_NAME/release/$MODEL
-          profile="$RUNNER_TEMP/pgo/merged.data"
           BASE_SHA="${{ steps.refs.outputs.base }}"
-          mkdir -p "$RUNNER_TEMP/pgo"
 
-          # Check out a ref and build a plain dmd + phobos
+          # Check out a ref and build a plain dmd + phobos, then dmd-pgo trains a profile
+          # on the ref's own testsuite and rebuilds with it.
           setup_ref() {
             local dir="$RUNNER_TEMP/$2/dmd"
             mkdir -p "$RUNNER_TEMP/$2"
@@ -91,23 +89,12 @@ jobs:
             ( cd "$dir" && $DMD -of=generated/build -g compiler/src/build.d )
             ( cd "$dir" && generated/build HOST_DMD=$DMD MODEL=$MODEL -j$N )
             ( cd "$dir/../phobos" && make -j$N MODEL=$MODEL )
+            ( cd "$dir" && generated/build HOST_DMD=$DMD MODEL=$MODEL dmd-pgo -j$N --force )
           }
 
           setup_ref "${{ steps.refs.outputs.head }}" head
           if [ -n "$BASE_SHA" ]; then
             setup_ref "$BASE_SHA" base
-            train=base
-          else
-            train=head
-          fi
-
-          # dmd-pgo trains and rebuilds $train with the merged profile, the other ref just reuses it
-          ( cd "$RUNNER_TEMP/$train/dmd" && generated/build HOST_DMD=$DMD MODEL=$MODEL dmd-pgo -j$N --force )
-          cp "$RUNNER_TEMP/$train/dmd/$built/dmd_profdata/merged.data" "$profile"
-          if [ -n "$BASE_SHA" ]; then
-            ( cd "$RUNNER_TEMP/head/dmd" && generated/build HOST_DMD=$DMD MODEL=$MODEL \
-                ENABLE_RELEASE=1 ENABLE_LTO=1 \
-                DFLAGS="-fprofile-instr-use=$profile -wi" -j$N --force )
           fi
           deactivate
 
