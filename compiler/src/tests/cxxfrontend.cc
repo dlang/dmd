@@ -1875,7 +1875,6 @@ void typinf_h(Expression *e, Loc loc, Type *t, Scope *sc)
 {
     dmd::genTypeInfo(e, loc, t, sc);
     ::getTypeInfoType(loc, t, sc);
-    dmd::isSpeculativeType(t);
     dmd::builtinTypeInfo(t);
     dmd::makeNakedAssociativeArray(t->isTypeAArray());
     dmd::getTypeInfoAssocArrayDeclaration(t->isTypeAArray(), sc);

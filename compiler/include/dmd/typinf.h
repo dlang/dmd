@@ -20,8 +20,7 @@ struct Scope;
 
 namespace dmd
 {
-    bool genTypeInfo(Expression *e, Loc loc, Type *torig, Scope *sc);
-    bool isSpeculativeType(Type *t);
+    void genTypeInfo(Expression *e, Loc loc, Type *torig, Scope *sc);
     bool builtinTypeInfo(Type *t);
     Type *makeNakedAssociativeArray(TypeAArray *t);
     TypeInfoDeclaration *getTypeInfoAssocArrayDeclaration(TypeAArray *t, Scope *sc);

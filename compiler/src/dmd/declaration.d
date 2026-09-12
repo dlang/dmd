@@ -737,6 +737,15 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
 {
     Type tinfo;
 
+    version (NoBackend) {}
+    else version (IN_GCC) {}
+    else version (IN_LLVM) {}
+    else // MARS
+    {
+        // FIXME: is there a nicer place for this bool, outside the frontend?
+        bool hadCodegen; // whether it was codegen'd already
+    }
+
     final extern (D) this(Type tinfo)
     {
         super(Loc.initial, Type.dtypeinfo.type, tinfo.getTypeInfoIdent(), null);

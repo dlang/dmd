@@ -1163,16 +1163,10 @@ bool needsCopyOrPostblit(Type type)
 /***********************************************************
  * typinf.d
  */
-bool genTypeInfo(Expression e, Loc loc, Type torig, Scope* sc)
+void genTypeInfo(Expression e, Loc loc, Type torig, Scope* sc)
 {
     import dmd.typinf;
     return dmd.typinf.genTypeInfo(e, loc, torig, sc);
-}
-
-bool isSpeculativeType(Type t)
-{
-    import dmd.typinf;
-    return dmd.typinf.isSpeculativeType(t);
 }
 
 bool builtinTypeInfo(Type t)
