@@ -2096,10 +2096,12 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
 
     if (od)
     {
+        if (checkNamedArgErrorAndReportOverload(od, argumentList, loc))
+            return null;
+
         eSink.error(loc, "none of the overloads of `%s` are callable using argument types `!(%s)%s`",
             od.ident.toErrMsg(), tiargsBuf.peekChars(), fargsBuf.peekChars());
 
-        checkNamedArgErrorAndReportOverload(od, argumentList, loc);
         printCandidates(loc, od, sc.isDeprecated());
         return null;
     }
@@ -2175,6 +2177,9 @@ FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     //printf("tf = %s, args = %s\n", tf.deco, (*fargs)[0].type.deco);
     if (hasOverloads)
     {
+        if (checkNamedArgErrorAndReportOverload(fd, argumentList, loc))
+            return null;
+
         eSink.error(loc, "none of the overloads of `%s` are callable using argument types `%s`",
                fd.toErrMsg(), fargsBuf.peekChars());
         printCandidates(loc, fd, sc.isDeprecated());
@@ -2258,11 +2263,13 @@ private void checkNamedArgErrorAndReport(TemplateDeclaration td, ArgumentList ar
  *      od = overload declaration to check
  *      argumentList = arguments to check
  *      loc = location for error report
+ * Returns:
+ *      true if a named argument error was found and reported, false otherwise
  */
-private void checkNamedArgErrorAndReportOverload(Dsymbol od, ArgumentList argumentList, Loc loc)
+private bool checkNamedArgErrorAndReportOverload(Dsymbol od, ArgumentList argumentList, Loc loc)
 {
     if (!argumentList.hasArgNames())
-        return;
+        return false;
 
     FuncDeclaration tf = null;
     overloadApply(od, (Dsymbol s) {
@@ -2285,8 +2292,12 @@ private void checkNamedArgErrorAndReportOverload(Dsymbol od, ArgumentList argume
         OutBuffer buf;
         auto resolvedArgs = tf.type.isTypeFunction().resolveNamedArgs(argumentList, &buf);
         if (!resolvedArgs && buf.length)
-            global.errorSink.errorSupplemental(loc, "%s", buf.peekChars());
+        {
+            global.errorSink.error(loc, "%s", buf.peekChars());
+            return true;
+        }
     }
+    return false;
 }
 
 /*******************************************
