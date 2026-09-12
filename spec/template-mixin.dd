@@ -20,11 +20,14 @@ $(GNAME MixinTemplateName):
     $(D .) $(GLINK MixinQualifiedIdentifier)
     $(GLINK MixinQualifiedIdentifier)
     $(GLINK2 type, Typeof) $(D .) $(GLINK MixinQualifiedIdentifier)
+    $(GLINK2 type, Typeof) $(D [) $(GLINK2 expression, AssignExpression) $(D] .) $(GLINK MixinQualifiedIdentifier)
 
 $(GNAME MixinQualifiedIdentifier):
     $(GLINK_LEX Identifier)
     $(GLINK_LEX Identifier) $(D .) $(GSELF MixinQualifiedIdentifier)
     $(GLINK2 template, TemplateInstance) $(D .) $(GSELF MixinQualifiedIdentifier)
+    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D])
+    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D] .) $(GSELF MixinQualifiedIdentifier)
 )
 
         $(P A $(I TemplateMixin) can occur in declaration lists of modules,
