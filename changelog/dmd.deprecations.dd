@@ -2,3 +2,5 @@ Many deprecations have been turned into errors
 
 Using `return` statements in the body of a `scope(failure)` guard is now an error
 (in addition to use in other scope guards, `in/out` contract and `finally` blocks).
+
+Throwing `Throwable`s of qualified types
