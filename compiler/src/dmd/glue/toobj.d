@@ -163,10 +163,14 @@ void TypeInfo_toObjFile(Expression e, Loc loc, Type t)
 
     if (!isUnqualifiedClassInfo && !builtinTypeInfo(t))
     {
-        // generate a COMDAT for other TypeInfos not available as builtins in druntime
-        // FIXME: emit only once (into the first referencing object file,
-        //        or once per object file)
-        toObjFile(t.vtinfo, global.params.multiobj);
+        // Generate a COMDAT for other TypeInfos not available as builtins in druntime -
+        // but only once per compiler run (into the first referencing object file).
+        // FIXME: is there a nicer place for the bool, outside the frontend?
+        if (!t.vtinfo.emitted)
+        {
+            toObjFile(t.vtinfo, global.params.multiobj);
+            t.vtinfo.emitted = true;
+        }
     }
 }
 
