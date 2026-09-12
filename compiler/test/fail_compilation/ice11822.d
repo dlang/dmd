@@ -6,7 +6,7 @@ TEST_OUTPUT:
 ---
 fail_compilation/ice11822.d(34): Deprecation: function `ice11822.d` is deprecated
 fail_compilation/ice11822.d(26):        `d` is declared here
-fail_compilation/ice11822.d(17):        instantiated from here: `__lambda_L34_C15!int`
+fail_compilation/ice11822.d(17):        instantiated from here: `lambda function`
 fail_compilation/ice11822.d(23):        instantiated from here: `S!(__lambda_L34_C15)`
 fail_compilation/ice11822.d(34):        instantiated from here: `g!((n) => d(i))`
 ---

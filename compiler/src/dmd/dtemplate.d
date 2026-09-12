@@ -930,6 +930,16 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         // Print full trace for verbose mode, otherwise only short traces
         const(char)* format = "instantiated from here: `%s`";
 
+        // https://issues.dlang.org/show_bug.cgi?id=23847
+        // Avoid exposing compiler-generated lambda template identifiers
+        // (e.g. __lambda_L4_C31!int) in instantiation traces.
+        static bool isLambdaInstance(TemplateInstance ti)
+        {
+            if (auto td = ti.tempdecl ? ti.tempdecl.isTemplateDeclaration() : null)
+                return td.onemember && td.onemember.isFuncLiteralDeclaration() !is null;
+            return false;
+        }
+
         // This returns a function pointer
         scope printFn = () {
             auto eSink = global.errorSink;
@@ -969,7 +979,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         if (n_instantiations <= max_shown)
         {
             for (TemplateInstance cur = this; cur; cur = cur.tinst)
-                printFn(cur.loc, format, cur.toErrMsg());
+                printFn(cur.loc, format, isLambdaInstance(cur) ? "lambda function" : cur.toErrMsg());
         }
         else if (n_instantiations - n_totalrecursions <= max_shown)
         {
@@ -985,9 +995,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 else
                 {
                     if (recursionDepth)
-                        printFn(cur.loc, "%d recursive instantiations from here: `%s`", recursionDepth + 2, cur.toChars());
+                        printFn(cur.loc, "%d recursive instantiations from here: `%s`", recursionDepth + 2, isLambdaInstance(cur) ? "lambda function" : cur.toChars());
                     else
-                        printFn(cur.loc, format, cur.toChars());
+                        printFn(cur.loc, format, isLambdaInstance(cur) ? "lambda function" : cur.toChars());
                     recursionDepth = 0;
                 }
             }
@@ -1003,7 +1013,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     printFn(cur.loc, "... (%d instantiations, -v to show) ...", n_instantiations - max_shown);
 
                 if (i < max_shown / 2 || i >= n_instantiations - max_shown + max_shown / 2)
-                    printFn(cur.loc, format, cur.toChars());
+                    printFn(cur.loc, format, isLambdaInstance(cur) ? "lambda function" : cur.toChars());
                 ++i;
             }
         }
