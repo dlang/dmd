@@ -453,11 +453,13 @@ immutable Msgtable[] msgtable =
     { "classInstanceSize" },
     { "classInstanceAlignment" },
     { "allMembers" },
+    { "allVariants" },
     { "derivedMembers" },
     { "isSame" },
     { "compiles" },
     { "getAliasThis" },
     { "getAttributes" },
+    { "getTag" },
     { "getFunctionAttributes" },
     { "getFunctionVariadicStyle" },
     { "getParameterStorageClasses" },
@@ -477,6 +479,7 @@ immutable Msgtable[] msgtable =
     { "isCopyable" },
     { "toType" },
     { "parameters" },
+    { "variantConstructorParams" },
     { "needsDestruction" },
 
     // For C++ mangling
