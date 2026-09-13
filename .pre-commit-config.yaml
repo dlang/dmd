@@ -22,6 +22,6 @@ repos:
   - id: no-commit-to-branch
     args: [--branch, master]
 - repo: https://github.com/python-jsonschema/check-jsonschema
-  rev: 0.37.1
+  rev: 0.38.0
   hooks:
     - id: check-github-workflows
