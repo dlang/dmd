@@ -6175,6 +6175,41 @@ public:
             return;
         }
 
+        if (auto eu = se.sd.isEnumUnionDeclaration())
+        {
+            size_t variantIndex = size_t.max;
+            if (eu.members && eu.members.length > 1)
+            {
+                if (auto anon = (*eu.members)[1].isAnonDeclaration())
+                {
+                    foreach (index, member; *anon.decl)
+                    {
+                        if (v is member.isVarDeclaration())
+                        {
+                            variantIndex = index;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (variantIndex != size_t.max)
+            {
+                const tagIndex = findFieldIndexByName(se.sd, eu.tagVar);
+                if (tagIndex != -1)
+                {
+                    if (auto tag = (*se.elements)[tagIndex].isIntegerExp())
+                    {
+                        if (tag.toUInteger() != variantIndex)
+                        {
+                            eSink.error(e.loc, "reinterpretation through overlapped field `%s` is not allowed in CTFE", v.toChars());
+                            result = CTFEExp.cantexp;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
         // https://issues.dlang.org/show_bug.cgi?id=19897
         // https://issues.dlang.org/show_bug.cgi?id=20710
         // Zero-elements fields don't have an initializer. See: scrubArray function
