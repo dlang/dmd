@@ -102,7 +102,6 @@ private extern(C++) final class Semantic2Visitor : Visitor
         //printf("StaticAssert::semantic2() %s\n", sa.toChars());
         if (const e = sa.exp.isStringExp())
         {
-            // deprecated in 2.107, now an error
             eSink.error(e.loc, "static assert condition cannot be a string literal");
             eSink.errorSupplemental(e.loc, "If intentional, use `%s !is null` instead to preserve behaviour",
                 e.toChars());

@@ -9762,7 +9762,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (auto e = exp.e1.isStringExp())
         {
-            // deprecated in 2.107, now an error
             eSink.error(e.loc, "assert condition cannot be a string literal");
             eSink.errorSupplemental(e.loc, "If intentional, use `%s !is null` instead to preserve behaviour",
                 e.toErrMsg());
