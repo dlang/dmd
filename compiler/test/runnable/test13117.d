@@ -1,4 +1,5 @@
 // PERMUTE_ARGS: -O -release -g
+// RUNNABLE_PHOBOS_TEST
 import std.file, std.stdio;
 
 int main()

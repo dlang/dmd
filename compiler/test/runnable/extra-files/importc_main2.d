@@ -1,5 +1,4 @@
 
-import std.stdio;
 import importc_test;
 
 int main()
