@@ -149,6 +149,76 @@ static assert(Foo.init.b == 7);
 ----------------
 )
 
+$(H3 $(LNAME2 default-nan-initialization, Default NaN Initialization for Floating Point))
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+float f = 0;
+float g = float.nan;
+float h;  // default initialization to float.nan
+
+float[3] af = 0;         // initialize all elements to 0.0
+float[3] ag = float.nan; // initialize all elements to nan
+float[3] ah;             // initialize all elements to nan
+
+import core.stdc.math;
+
+int main()
+{
+    assert(f == 0.0);
+    assert(isnan(g));
+    assert(isnan(h));
+    return 0;
+}
+---
+)
+
+    $(P Struct and class fields can set a default floating point initializer
+    as required:)
+
+---
+struct S
+{
+    float f = 0.0;  // default initialize S.f to 0
+}
+---
+
+    $(RATIONALE Default initialization to NaN is unusual in programming languages.
+    When NaN appears in code as an operand, it will propagate through
+    mathematical expressions, providing an obvious error that
+    can be checked for and quickly located and resolved.
+    Alternatively, default initialization to 0.0 is prevalent in other
+    languages, but there is no particular
+    reason why 0.0 would always be intended by the programmer and it being erronous may easily escape
+    detection. A code reviewer looking at a default initialization will wonder whether it
+    is intended or not. If the initialization is explicitly `= 0` then the odds are good it was
+    intentional.)
+
+    $(BEST_PRACTICE When importing declarations and structs from C and C++,
+    check for floats and doubles and floating point fields and adjust the
+    default initializations for them.)
+
+    $(P If a declaration in a C file is imported, the default initializations
+    will be 0, not NaN.)
+
+$(CCODE
+// file testc.c
+struct S { float f; }
+)
+---
+import core.stdc.stdio;
+import testc;
+
+int main()
+{
+    S s;
+    assert(s.f == 0.0);
+    return 0;
+}
+---
+
+
+
 $(H3 $(LNAME2 init-vs-construction, `.init` vs Default Construction))
 
     $(P Note that $(D .init) produces a default initialized object, not a
