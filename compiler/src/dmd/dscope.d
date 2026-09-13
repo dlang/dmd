@@ -211,6 +211,9 @@ extern (C++) struct Scope
                                /// do not set wasRead for it
     StructDeclaration argStruct;    /// elimiate recursion when looking for rvalue construction
 
+    int idCounter;    /// disambiguator for `Identifier.generateIdWithLoc`, set per `static foreach` /
+                      /// unrolled `foreach` iteration so generated identifiers are unique and stable
+
     extern (D) __gshared Scope* freelist;
 
     extern (D) static Scope* alloc()

@@ -145,4 +145,6 @@ struct Scope final
     AliasDeclaration *aliasAsg; // if set, then aliasAsg is being assigned a new value,
                                 // do not set wasRead for it
     StructDeclaration *argStruct; // elimiate recursion when looking for rvalue construction
+
+    int32_t idCounter;
 };
