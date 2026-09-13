@@ -324,8 +324,8 @@ public int runLINK(bool verbose, ErrorSink eSink)
                 cmdbuf.writestring(" vcruntime140.lib");
             // And legacy_stdio_definitions.lib, as the printf/scanf family is defined
             // inline in the MSVC 2015+ headers.
-            //if (driverParams.mscrtlib == "ucrtbase" || driverParams.mscrtlib == "vcruntime140")
-            //    cmdbuf.writestring(" legacy_stdio_definitions.lib");
+            if (driverParams.mscrtlib == "ucrtbase" || driverParams.mscrtlib == "vcruntime140")
+                cmdbuf.writestring(" legacy_stdio_definitions.lib");
 
             if (const(char)* lflags = vsopt.linkOptions(target.isX86_64))
             {
