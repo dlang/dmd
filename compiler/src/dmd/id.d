@@ -480,6 +480,7 @@ immutable Msgtable[] msgtable =
     { "toType" },
     { "parameters" },
     { "variantConstructorParams" },
+    { "variantKind" },
     { "needsDestruction" },
 
     // For C++ mangling
