@@ -899,6 +899,48 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             variantObject.toErrMsg(), eu.toPrettyChars());
         return ErrorExp.get();
     }
+    if (e.ident == Id.variantKind)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto object = (*e.args)[0];
+        auto symbol = getDsymbolWithoutExpCtx(object);
+        const(char)[] kind;
+        if (auto factory = symbol ? symbol.isFuncDeclaration() : null)
+        {
+            auto eu = factory.toParent2().isEnumUnionDeclaration();
+            if (eu && factory.isGenerated)
+            {
+                auto functionType = factory.type
+                    ? factory.type.toBasetype().isTypeFunction() : null;
+                if (functionType)
+                    kind = functionType.parameterList.length ? "tuple" : "unit";
+            }
+        }
+        else if (symbol)
+        {
+            auto eu = symbol.parent ? symbol.parent.isEnumUnionDeclaration() : null;
+            if (eu)
+            {
+                foreach (variant; eu.variants)
+                {
+                    if (variant.declaration != symbol)
+                        continue;
+                    kind = variant.isTypeAlias ? "alias" : "struct";
+                    break;
+                }
+            }
+        }
+        if (!kind.length && getType(object))
+            kind = "bare";
+        if (!kind.length)
+        {
+            eSink.error(e.loc, "argument `%s` is not an enum union variant", object.toErrMsg());
+            return ErrorExp.get();
+        }
+        return (new StringExp(e.loc, kind)).expressionSemantic(sc);
+    }
     if (e.ident == Id.variantConstructorParams)
     {
         if (dim != 1)
@@ -2592,7 +2634,7 @@ private void traitNotFound(TraitsExp e)
         initialized = true;     // lazy initialization
 
         // All possible traits
-        __gshared Identifier*[63] idents =
+        __gshared Identifier*[64] idents =
         [
             &Id.allMembers,
             &Id.allVariants,
@@ -2657,6 +2699,7 @@ private void traitNotFound(TraitsExp e)
             &Id.parameters,
             &Id.parent,
             &Id.variantConstructorParams,
+            &Id.variantKind,
         ];
 
         StringTable!(bool)* stringTable = cast(StringTable!(bool)*) &traitsStringTable;
