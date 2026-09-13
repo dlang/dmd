@@ -129,6 +129,8 @@ struct Scope final
     bool fullinst(bool v);
     bool ctfeBlock() const;
     bool ctfeBlock(bool v);
+    bool unreachableCode() const;
+    bool unreachableCode(bool v);
     bool knownACompileTimeOnlyContext() const;
     bool knownACompileTimeOnlyContext(bool v);
     bool inIsDisabledTrait() const;
