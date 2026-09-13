@@ -58,6 +58,7 @@ endif
 
 .PHONY: all clean test html install \
         dmd dmd-unittest dmd-test druntime druntime-test \
+        phobos dmd-pgo \
         auto-tester-build auto-tester-test buildkite-test \
         toolchain-info check-clean-git style
 
@@ -102,6 +103,14 @@ druntime-test: dmd
 	$(QUIET)$(MAKE) -C druntime unittest
 
 test: dmd-test druntime-test
+
+phobos: ../phobos druntime
+	$(MAKE) -C ../phobos
+
+# The PGO profile generated in build.d is based on running the compiler/test/compilable/ test suite.
+# Running that with a fresh PGO-instrumented compiler requires prebuilt druntime and phobos (not handled in build.d).
+dmd-pgo: phobos
+	$(BUILD_CMD) $@ --force
 
 html: $(BUILD_EXE)
 	$(BUILD_CMD) $@

@@ -25,7 +25,6 @@ jobs:
       MODEL: 64
       FULL_BUILD: false
       HOST_DMD: ldc-1.42.0
-      ENABLE_LTO: 1
     defaults:
       run:
         shell: bash
@@ -79,17 +78,13 @@ jobs:
           source ~/dlang/*/activate
           BASE_SHA="${{ steps.refs.outputs.base }}"
 
-          # Check out a ref and build a plain dmd + phobos, then dmd-pgo trains a profile
-          # on the ref's own testsuite and rebuilds with it.
+          # Check out a ref in an isolated temp dir, clone phobos and build (LTO+PGO'd dmd, druntime and phobos).
           setup_ref() {
             local dir="$RUNNER_TEMP/$2/dmd"
             mkdir -p "$RUNNER_TEMP/$2"
             git worktree add --force "$dir" "$1"
             ( cd "$dir" && ci/run.sh setup_repos "${{ steps.refs.outputs.branch }}" )
-            ( cd "$dir" && $DMD -of=generated/build -g compiler/src/build.d )
-            ( cd "$dir" && generated/build HOST_DMD=$DMD MODEL=$MODEL -j$N )
-            ( cd "$dir/../phobos" && make -j$N MODEL=$MODEL )
-            ( cd "$dir" && generated/build HOST_DMD=$DMD MODEL=$MODEL dmd-pgo -j$N --force )
+            make -C "$dir" -j$N HOST_DMD=$DMD MODEL=$MODEL dmd-pgo
           }
 
           setup_ref "${{ steps.refs.outputs.head }}" head

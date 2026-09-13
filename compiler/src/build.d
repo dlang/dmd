@@ -530,7 +530,16 @@ struct PGOState
         switch(hostKind)
         {
             case "ldc":
-                return ["-fprofile-instr-use=" ~ buildPath(pgoDataPath(), "merged.data")];
+            {
+                auto flags = ["-fprofile-instr-use=" ~ buildPath(pgoDataPath(), "merged.data")];
+                version (linux)
+                {
+                    // on Linux, default to ld.gold to use the LTO plugin bundled with LDC
+                    // (with matching LLVM version)
+                    flags ~= "-linker=gold";
+                }
+                return flags;
+            }
             default:
                 return [""];
         }
@@ -584,7 +593,8 @@ alias dmdPGO = makeRule!((builder, rule) {
         .deps([genDmdData])
         .commandFunction({
             // Run dmd test suite to get data
-            scope cmd = ["ldc-profdata", "merge", "--output=merged.data"];
+            const ldcProfdataPath = buildPath(env["HOST_DMD_RUN"].dirName, "ldc-profdata");
+            scope cmd = [ldcProfdataPath, "merge", "--output=merged.data"];
             import std.file : dirEntries;
             auto files = dirEntries(pgoState.pgoDataPath, "*.raw", SpanMode.shallow).map!(f => f.name);
 
