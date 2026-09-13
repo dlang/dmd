@@ -14,7 +14,6 @@
 module dmd.parse;
 
 import core.stdc.stdio;
-import core.stdc.string;
 
 import dmd.astenums;
 import dmd.errorsink;
@@ -388,20 +387,42 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
             switch (token.value)
             {
+            case TOK.case_:
+                if (pLastDecl && *pLastDecl && ((*pLastDecl).dsym == AST.DSYM.enumUnionDeclaration ||
+                    (*pLastDecl).dsym == AST.DSYM.enumUnionCaseDeclaration ||
+                    (*pLastDecl).dsym == AST.DSYM.staticIfDeclaration ||
+                    (*pLastDecl).dsym == AST.DSYM.staticForeachDeclaration ||
+                    (*pLastDecl).dsym == AST.DSYM.pragmaDeclaration))
+                {
+                    const loc = token.loc;
+                    nextToken();
+                    AST.EnumUnionVariant variant;
+                    variant.payload ~= parseType();
+                    if (!variant.payload.length)
+                    {
+                        error(loc, "enum union variant type expected");
+                        break;
+                    }
+                    check(TOK.semicolon);
+                    s = new AST.EnumUnionCaseDeclaration(loc, variant);
+                    break;
+                }
+                goto default;
+
             case TOK.enum_:
                 {
                     /* Determine if this is a manifest constant declaration,
                      * or a conventional enum.
                      */
                     const tv = peekNext();
-                    if (tv == TOK.leftCurly || tv == TOK.colon)
+                    if (tv == TOK.union_ || tv == TOK.leftCurly || tv == TOK.colon)
                         s = parseEnum();
                     else if (tv != TOK.identifier)
                         goto Ldeclaration;
                     else
                     {
                         const nextv = peekNext2();
-                        if (nextv == TOK.leftCurly || nextv == TOK.colon || nextv == TOK.semicolon)
+                        if (nextv == TOK.union_ || nextv == TOK.leftCurly || nextv == TOK.colon || nextv == TOK.semicolon)
                             s = parseEnum();
                         else
                             goto Ldeclaration;
@@ -3327,20 +3348,30 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
     /*************************************
      */
-    private AST.EnumDeclaration parseEnum()
+    private AST.Dsymbol parseEnum()
     {
-        AST.EnumDeclaration e;
+        AST.EnumDeclaration e = null;
+        AST.EnumUnionDeclaration eu = null;
         Identifier id;
         AST.Type memtype;
+        AST.TemplateParameters* tpl = null;
+        bool isUnion = false;
         auto loc = token.loc;
 
         // printf("Parser::parseEnum()\n");
         nextToken();
+        if (token.value == TOK.union_)
+        {
+            isUnion = true;
+            nextToken();
+        }
         id = null;
         if (token.value == TOK.identifier)
         {
             id = token.ident;
             nextToken();
+            if (isUnion && token.value == TOK.leftParenthesis)
+                tpl = parseTemplateParameterList();
         }
 
         memtype = null;
@@ -3354,10 +3385,150 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             checkCstyleTypeSyntax(typeLoc, memtype, alt, null);
         }
 
-        e = new AST.EnumDeclaration(loc, id, memtype);
+        if (isUnion)
+            eu = new AST.EnumUnionDeclaration(loc, id);
+        else
+            e = new AST.EnumDeclaration(loc, id, memtype);
         // opaque type
         if (token.value == TOK.semicolon && id)
             nextToken();
+        else if (isUnion && token.value == TOK.leftCurly)
+        {
+            eu.variants = [];
+            auto memberDecls = new AST.Dsymbols();
+            nextToken();
+            while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
+            {
+                const variantLoc = token.loc;
+                AST.EnumUnionVariant variant;
+                variant.loc = variantLoc;
+
+                while (token.value == TOK.at)
+                {
+                    if (STC stc = parseAttribute(variant.udas))
+                    {
+                        error(variantLoc, "attribute `%s` is not allowed on enum union variants",
+                            token.toChars());
+                        nextToken();
+                    }
+                }
+
+                if (token.value == TOK.static_ || token.value == TOK.pragma_)
+                {
+                    AST.Dsymbol lastDecl = cast(AST.Dsymbol) eu;
+                    auto declarations = parseDeclDefs(1, &lastDecl);
+                    if (declarations)
+                        memberDecls.append(declarations);
+                    continue;
+                }
+
+                if (token.value == TOK.case_)
+                {
+                    nextToken();
+                    if (token.value == TOK.identifier)
+                    {
+                        if (peekNext() == TOK.assign)
+                        {
+                            variant.ident = token.ident;
+                            variant.isTypeAlias = true;
+                            nextToken();
+                            nextToken();
+                            if (token.value == TOK.identifier && token.ident is variant.ident &&
+                                (peekNext() == TOK.comma || peekNext() == TOK.semicolon ||
+                                 peekNext() == TOK.rightCurly))
+                            {
+                                error(variantLoc, "`case %s = %s` cannot alias itself, use a qualified name",
+                                    variant.ident.toChars(), token.ident.toChars());
+                            }
+                            variant.payload ~= parseType();
+                            if (!variant.payload.length)
+                            {
+                                error(variantLoc, "enum union variant type expected");
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            if (peekNext() != TOK.leftParenthesis && peekNext() != TOK.leftCurly)
+                                variant.payload ~= parseType();
+                            else
+                            {
+                                variant.ident = token.ident;
+                                nextToken();
+                                if (token.value == TOK.leftParenthesis)
+                                {
+                                    nextToken();
+                                    while (token.value != TOK.rightParenthesis && token.value != TOK.endOfFile)
+                                    {
+                                        Identifier payloadIdent;
+                                        variant.payload ~= parseType(&payloadIdent);
+                                        variant.payloadNames ~= payloadIdent;
+                                        if (token.value != TOK.comma)
+                                            break;
+                                        nextToken();
+                                    }
+                                    check(TOK.rightParenthesis);
+                                }
+                                else if (token.value == TOK.leftCurly)
+                                {
+                                    nextToken();
+                                    variant.members = parseDeclDefs(0);
+                                    check(TOK.rightCurly);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        variant.payload ~= parseType();
+                        if (!variant.payload.length)
+                        {
+                            error(variantLoc, "enum union variant name expected");
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    error(variantLoc, "`case` expected for enum union variant");
+                    break;
+                }
+
+                eu.variants ~= variant;
+                if (token.value == TOK.comma)
+                    nextToken();
+                else if (token.value == TOK.semicolon)
+                    break; // `;` introduces a trailing MemberDeclarationList
+                else if (token.value != TOK.rightCurly)
+                    error(token.loc, "`,` or `}` expected after enum union variant");
+            }
+            if (token.value == TOK.semicolon)
+            {
+                nextToken();
+                auto declarations = parseDeclDefs(0);
+                if (declarations)
+                    memberDecls.append(declarations);
+            }
+            check(TOK.rightCurly);
+
+            if (eu.variants.length > 256)
+                error(loc, "enum union cannot have more than 256 variants");
+
+            eu.tagVar = new AST.VarDeclaration(loc, AST.Type.tuns8, Id.__tag, null);
+            eu.payloadUnion = new AST.UnionDeclaration(loc, null);
+            eu.payloadUnion.members = new AST.Dsymbols();
+            foreach (variant; eu.variants)
+            {
+                foreach (i, payload; variant.payload)
+                    eu.payloadUnion.members.push(new AST.VarDeclaration(
+                        loc, payload, Identifier.generateId("__enumPayload"), null));
+            }
+            eu.members = new AST.Dsymbols();
+            eu.members.push(eu.tagVar);
+            eu.members.push(new AST.AnonDeclaration(loc, true, eu.payloadUnion.members));
+            if (memberDecls)
+                eu.members.append(memberDecls);
+        }
         else if (token.value == TOK.leftCurly)
         {
             bool isAnonymousEnum = !id;
@@ -3528,7 +3699,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             error("expected `{`, not `%s` for enum declaration", token.toChars());
         }
         //printf("-parseEnum() %s\n", e.toChars());
-        return e;
+        if (tpl)
+        {
+            auto members = new AST.Dsymbols();
+            members.push(isUnion ? cast(AST.Dsymbol) eu : cast(AST.Dsymbol) e);
+            return new AST.TemplateDeclaration(loc, id, tpl, null, members);
+        }
+        return isUnion ? cast(AST.Dsymbol) eu : cast(AST.Dsymbol) e;
     }
 
     /********************************
@@ -4614,12 +4791,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             case TOK.enum_:
                 {
                     const tv = peekNext();
-                    if (tv == TOK.leftCurly || tv == TOK.colon)
+                    if (tv == TOK.union_ || tv == TOK.leftCurly || tv == TOK.colon)
                         break;
                     if (tv == TOK.identifier)
                     {
                         const nextv = peekNext2();
-                        if (nextv == TOK.leftCurly || nextv == TOK.colon || nextv == TOK.semicolon)
+                        if (nextv == TOK.union_ || nextv == TOK.leftCurly || nextv == TOK.colon || nextv == TOK.semicolon)
                             break;
                     }
                     stc = STC.manifest;
@@ -4751,6 +4928,27 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 auto a = new AST.Dsymbols();
                 a.push(d);
 
+                if (d.dsym == AST.DSYM.enumUnionDeclaration)
+                {
+                    if (storage_class)
+                    {
+                        d = new AST.StorageClassDeclaration(storage_class, a);
+                        a = new AST.Dsymbols();
+                        a.push(d);
+                    }
+                    if (setAlignment)
+                    {
+                        d = new AST.AlignDeclaration(d.loc, ealign, a);
+                        a = new AST.Dsymbols();
+                        a.push(d);
+                    }
+                    if (link != linkage)
+                    {
+                        d = new AST.LinkDeclaration(linkloc, link, a);
+                        a = new AST.Dsymbols();
+                        a.push(d);
+                    }
+                }
                 if (udas)
                 {
                     d = new AST.UserAttributeDeclaration(udas, a);
@@ -6305,7 +6503,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                      * we check if the next token is a semicolon and simply output the error,
                      * otherwise we fall back on the old path (advancing the token).
                      */
-                    if (token.value != TOK.semicolon && peek(&token).value == TOK.semicolon)
+                    if (token.value != TOK.semicolon &&
+                        (token.value == TOK.rightCurly || peek(&token).value == TOK.semicolon))
                         error("found `%s` when expecting `;` following expression", token.toChars());
                     else
                     {
@@ -6451,7 +6650,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                  */
                 AST.Dsymbol d;
                 const tv = peekNext();
-                if (tv == TOK.leftCurly || tv == TOK.colon)
+                if (tv == TOK.union_ || tv == TOK.leftCurly || tv == TOK.colon)
                     d = parseEnum();
                 else if (tv != TOK.identifier)
                     goto Ldeclaration;
@@ -6771,8 +6970,39 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 break;
             }
         case TOK.switch_:
-            isfinal = false;
-            goto Lswitch;
+            {
+                auto afterCondition = peekPastParen(peek(&token));
+                if (afterCondition.value == TOK.leftCurly)
+                {
+                    size_t nesting;
+                    for (auto lookahead = peek(afterCondition); lookahead.value != TOK.endOfFile;
+                         lookahead = peek(lookahead))
+                    {
+                        if (lookahead.value == TOK.leftParenthesis || lookahead.value == TOK.leftBracket ||
+                            lookahead.value == TOK.leftCurly)
+                            ++nesting;
+                        else if (lookahead.value == TOK.rightParenthesis || lookahead.value == TOK.rightBracket ||
+                                 lookahead.value == TOK.rightCurly)
+                        {
+                            if (!nesting)
+                                break;
+                            --nesting;
+                        }
+                        else if (!nesting && lookahead.value == TOK.goesTo)
+                        {
+                            auto exp = parsePrimaryExp();
+                            s = new AST.ExpStatement(loc, exp);
+                            break;
+                        }
+                        else if (!nesting && lookahead.value == TOK.colon)
+                            break;
+                    }
+                }
+                if (s)
+                    break;
+                isfinal = false;
+                goto Lswitch;
+            }
 
         Lswitch:
             {
@@ -8472,6 +8702,191 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         //printf("parsePrimaryExp(): loc = %d\n", loc.linnum);
         switch (token.value)
         {
+        case TOK.switch_:
+            {
+                nextToken();
+                check(TOK.leftParenthesis);
+                auto condition = parseExpression();
+                check(TOK.rightParenthesis);
+                check(TOK.leftCurly);
+
+                AST.CaseExpArm[] arms;
+                bool hasDefault;
+                while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
+                {
+                    auto armLoc = token.loc;
+                    AST.Expression pattern;
+                    AST.Type typePattern;
+                    Identifier typeBinding;
+                    Identifier[] recordBindings;
+                    bool hasRestPattern;
+                    Identifier[] recordPatternNames;
+                    AST.Expression[] recordPatterns;
+                    Identifier restBinding;
+                    bool isDefault;
+                    if (token.value == TOK.case_)
+                    {
+                        nextToken();
+                        Token* patternEnd = &token;
+                        if ((token.value != TOK.identifier && isBasicType(&patternEnd)) ||
+                            (token.value == TOK.identifier &&
+                             (peekNext() == TOK.identifier || peekNext() == TOK.not)))
+                        {
+                            typePattern = parseType(&typeBinding);
+                        }
+                        else if (token.value == TOK.identifier)
+                        {
+                            auto patternLoc = token.loc;
+                            pattern = new AST.IdentifierExp(patternLoc, token.ident);
+                            nextToken();
+                            while (token.value == TOK.dot)
+                            {
+                                const dotLoc = token.loc;
+                                nextToken();
+                                if (token.value != TOK.identifier)
+                                {
+                                    error(token.loc, "identifier expected following `.` in switch expression pattern");
+                                    break;
+                                }
+                                pattern = new AST.DotIdExp(dotLoc, pattern, token.ident);
+                                nextToken();
+                            }
+                            if (token.value == TOK.leftCurly)
+                            {
+                                nextToken();
+                                while (1)
+                                {
+                                    if (token.value == TOK.rightCurly)
+                                    {
+                                        nextToken();
+                                        break;
+                                    }
+                                    if (token.value == TOK.identifier)
+                                    {
+                                        auto fieldName = token.ident;
+                                        if (peekNext() == TOK.colon)
+                                        {
+                                            nextToken();
+                                            nextToken();
+                                            recordPatternNames ~= fieldName;
+                                            recordPatterns ~= parseAssignExp();
+                                        }
+                                        else if (peekNext() == TOK.dotDotDot)
+                                        {
+                                            restBinding = fieldName;
+                                            hasRestPattern = true;
+                                            nextToken();
+                                            nextToken();
+                                        }
+                                        else
+                                        {
+                                            recordBindings ~= fieldName;
+                                            nextToken();
+                                        }
+                                    }
+                                    else if (token.value == TOK.dotDotDot)
+                                    {
+                                        hasRestPattern = true;
+                                        nextToken();
+                                    }
+                                    else if (token.value == TOK.comma)
+                                    {
+                                        nextToken();
+                                    }
+                                    else if (token.value == TOK.endOfFile)
+                                    {
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        else
+                            pattern = parsePrimaryExp();
+                        while (token.value == TOK.leftParenthesis)
+                        {
+                            auto args = new AST.Expressions();
+                            auto names = new AST.ArgumentLabels();
+                            if (peekNext() == TOK.dotDotDot)
+                            {
+                                nextToken();
+                                nextToken();
+                                check(TOK.rightParenthesis);
+                                hasRestPattern = true;
+                            }
+                            else if (peekNext() == TOK.identifier && peekNext2() == TOK.dotDotDot)
+                            {
+                                nextToken();
+                                restBinding = token.ident;
+                                nextToken();
+                                nextToken();
+                                check(TOK.rightParenthesis);
+                                hasRestPattern = true;
+                            }
+                            else
+                                parseNamedArguments(args, names);
+                            pattern = new AST.CallExp(pattern.loc, pattern, args, names);
+                        }
+                    }
+                    else if (token.value == TOK.default_)
+                    {
+                        hasDefault = true;
+                        isDefault = true;
+                        nextToken();
+                    }
+                    else
+                    {
+                        error(armLoc, "`case` or `default` expected in switch expression");
+                        goto Lerr;
+                    }
+                    AST.Expression guard;
+                    if (token.value == TOK.if_)
+                    {
+                        if (isDefault)
+                            error(token.loc, "`default` arm cannot have an `if` guard");
+                        nextToken();
+                        check(TOK.leftParenthesis);
+                        guard = parseExpression();
+                        check(TOK.rightParenthesis);
+                    }
+                    if (token.value != TOK.goesTo)
+                    {
+                        error(token.loc, "`=>` expected in switch expression arm");
+                        goto Lerr;
+                    }
+                    nextToken();
+                    auto action = parseAssignExp();
+                    if (typePattern)
+                        pattern = new AST.TypeExp(armLoc, typePattern);
+                    auto arm = AST.CaseExpArm();
+                    arm.loc = armLoc;
+                    arm.pattern = pattern;
+                    arm.typePattern = typePattern;
+                    arm.typeBinding = typeBinding;
+                    arm.recordBindings = recordBindings;
+                    arm.hasRestPattern = hasRestPattern;
+                    arm.recordPatternNames = recordPatternNames;
+                    arm.recordPatterns = recordPatterns;
+                    arm.restBinding = restBinding;
+                    arm.guard = guard;
+                    arm.isDefault = isDefault;
+                    arm.action = action;
+                    arms ~= arm;
+                    if (token.value == TOK.comma)
+                        nextToken();
+                    else if (token.value != TOK.rightCurly)
+                    {
+                        error(token.loc, "`,` or `}` expected after switch expression arm");
+                        goto Lerr;
+                    }
+                }
+                check(TOK.rightCurly);
+                e = new AST.SwitchExp(loc, condition, arms, hasDefault);
+                break;
+            }
         case TOK.identifier:
             {
                 if (peekNext() == TOK.arrow)
@@ -8865,7 +9280,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     {
                         tok = token.value;
                         nextToken();
-                        if (tok == TOK.equal && (token.value == TOK.struct_ || token.value == TOK.union_
+                        if (tok == TOK.equal && token.value == TOK.enum_ && peekNext() == TOK.union_)
+                        {
+                            tok2 = TOK.enumUnion;
+                            nextToken();
+                            nextToken();
+                        }
+                        else if (tok == TOK.equal && (token.value == TOK.struct_ || token.value == TOK.union_
                             || token.value == TOK.class_ || token.value == TOK.super_ || token.value == TOK.enum_
                             || token.value == TOK.interface_ || token.value == TOK.package_ || token.value == TOK.module_
                             || token.value == TOK.argumentTypes || token.value == TOK.parameters

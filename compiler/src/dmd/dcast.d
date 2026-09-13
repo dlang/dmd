@@ -32,6 +32,7 @@ import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
+import dmd.identifier;
 import dmd.location;
 import dmd.impcnvtab;
 import dmd.importc;
@@ -94,6 +95,50 @@ IntRange intRangeFromType(Type type, bool isUnsigned)
     return IntRange(lower, upper);
 }
 
+Expression constructEnumUnionVariant(Expression value, Scope* sc, Type type,
+    EnumUnionDeclaration enumUnion, size_t variantIndex)
+{
+    auto variant = enumUnion.variants[variantIndex];
+    auto temporary = new VarDeclaration(value.loc, type, Identifier.generateId("__enumConv"), null);
+    temporary.storage_class |= STC.temp;
+    Expression result = new DeclarationExp(value.loc, temporary).expressionSemantic(sc);
+    Expression temporaryValue = new VarExp(value.loc, temporary);
+
+    auto tagExp = new DotVarExp(value.loc, temporaryValue, enumUnion.tagVar);
+    tagExp.type = enumUnion.tagVar.type;
+    Expression tagAssign = new AssignExp(value.loc, tagExp,
+        new IntegerExp(value.loc, variantIndex, Type.tuns8)).expressionSemantic(sc);
+    result = new CommaExp(value.loc, result, tagAssign);
+    result.type = tagAssign.type;
+
+    if (auto recordDeclaration = variant.declaration
+            ? variant.declaration.isStructDeclaration() : null)
+    {
+        auto payloadAccess = new DotVarExp(value.loc, temporaryValue, variant.payloadVar);
+        payloadAccess.type = variant.payloadVar.type;
+        Expression payloadAssign = new AssignExp(value.loc, payloadAccess, value);
+        payloadAssign.type = recordDeclaration.type;
+        result = new CommaExp(value.loc, result, payloadAssign);
+        result.type = payloadAssign.type;
+    }
+    else if (variant.payloadType && variant.payloadType.fields.length)
+    {
+        auto field = variant.payloadType.fields[0];
+        auto payloadAccess = new DotVarExp(value.loc,
+            new DotVarExp(value.loc, temporaryValue, variant.payloadVar), field);
+        payloadAccess.e1.type = variant.payloadVar.type;
+        payloadAccess.type = field.type;
+        Expression payloadAssign = new AssignExp(value.loc, payloadAccess, value);
+        payloadAssign.type = field.type;
+        result = new CommaExp(value.loc, result, payloadAssign);
+        result.type = payloadAssign.type;
+    }
+
+    result = new CommaExp(value.loc, result, temporaryValue);
+    result.type = type;
+    return result;
+}
+
 /**
  * Attempt to implicitly cast the expression into type `t`.
  *
@@ -112,6 +157,55 @@ IntRange intRangeFromType(Type type, bool isUnsigned)
 Expression implicitCastTo(Expression e, Scope* sc, Type t)
 {
     auto eSink = global.errorSink;
+
+    if (auto ts = t.toBasetype().isTypeStruct())
+    {
+        if (auto eu = ts.sym.isEnumUnionDeclaration())
+        {
+            size_t matchIndex = size_t.max;
+            size_t ambiguousIndex = size_t.max;
+            MATCH bestMatch = MATCH.nomatch;
+            foreach (i, variant; eu.variants)
+            {
+                auto recordDeclaration = variant.declaration
+                    ? variant.declaration.isStructDeclaration() : null;
+                auto payloadType = recordDeclaration ? recordDeclaration.type
+                    : variant.payloadType && variant.payloadType.fields.length
+                    ? variant.payloadType.fields[0].type : variant.payload.length ? variant.payload[0] : null;
+                if ((!variant.ident || variant.isTypeAlias || recordDeclaration) &&
+                    (recordDeclaration || variant.payload.length == 1) && payloadType)
+                {
+                    const match = e.implicitConvTo(payloadType);
+                    if (match < MATCH.convert)
+                        continue;
+                    if (match > bestMatch)
+                    {
+                        bestMatch = match;
+                        matchIndex = i;
+                        ambiguousIndex = size_t.max;
+                    }
+                    else if (match == bestMatch)
+                        ambiguousIndex = i;
+                }
+            }
+            if (ambiguousIndex != size_t.max)
+            {
+                auto ambiguousVariant = eu.variants[ambiguousIndex];
+                auto ambiguousType = ambiguousVariant.payloadType && ambiguousVariant.payloadType.fields.length
+                    ? ambiguousVariant.payloadType.fields[0].type
+                    : ambiguousVariant.payload.length ? ambiguousVariant.payload[0] : null;
+                eSink.error(e.loc, "`%s` is ambiguous between variants `%s` and `%s` of enum union `%s`",
+                    e.toErrMsg(), eu.variants[matchIndex].payloadType && eu.variants[matchIndex].payloadType.fields.length
+                        ? eu.variants[matchIndex].payloadType.fields[0].type.toErrMsg()
+                        : "<unknown>",
+                    ambiguousType ? ambiguousType.toErrMsg() : "<unknown>",
+                    eu.toPrettyChars());
+                return ErrorExp.get();
+            }
+            if (matchIndex != size_t.max)
+                return constructEnumUnionVariant(e, sc, t, eu, matchIndex);
+        }
+    }
 
     Expression visit(Expression e)
     {
@@ -1561,6 +1655,28 @@ MATCH implicitConvTo(Expression e, Type t)
  */
 MATCH implicitConvTo(Type from, Type to)
 {
+    if (auto ts = to.toBasetype().isTypeStruct())
+    {
+        if (auto eu = ts.sym.isEnumUnionDeclaration())
+        {
+            foreach (variant; eu.variants)
+            {
+                auto recordDeclaration = variant.declaration
+                    ? variant.declaration.isStructDeclaration() : null;
+                auto payloadType = recordDeclaration ? recordDeclaration.type
+                    : variant.payloadType && variant.payloadType.fields.length
+                    ? variant.payloadType.fields[0].type : variant.payload.length ? variant.payload[0] : null;
+                const requiredMatch = payloadType && payloadType.isFunction_Delegate_PtrToFunction() &&
+                    from.isFunction_Delegate_PtrToFunction()
+                    ? MATCH.convert : MATCH.exact;
+                if ((!variant.ident || variant.isTypeAlias || recordDeclaration) &&
+                    (recordDeclaration || variant.payload.length == 1) && payloadType &&
+                    from.implicitConvTo(payloadType) >= requiredMatch)
+                    return MATCH.convert;
+            }
+        }
+    }
+
     MATCH visitType(Type from)
     {
         //printf("Type::implicitConvTo(this=%p, to=%p)\n", this, to);
