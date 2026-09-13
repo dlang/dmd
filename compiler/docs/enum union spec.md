@@ -7,6 +7,7 @@ An enum union is a nominal tagged sum type. It may contain:
 - unit variants: `case Name`
 - positional variants: `case Name(T1, T2, ...)`
 - record variants: `case Name { ... }`
+- named type variants: `case Name = T`
 - bare-type variants: `case T`
 
 ```ebnf
@@ -20,6 +21,7 @@ EnumUnionMember:
     "case" Identifier
   | "case" Identifier "(" ParameterList ")"
   | "case" Identifier "{" StructBody "}"
+    | "case" Identifier "=" Type
   | "case" Type
 ```
 
@@ -69,7 +71,35 @@ enum union Response
 }
 ```
 
-The payload is materialized as a nested struct-like object. In a `switch` arm, record fields can be bound by name.
+The declaration introduces a real nested struct and uses that type as the
+variant payload. It is equivalent to declaring the struct and then using it as
+a bare-type variant:
+
+```d
+enum union Response
+{
+    struct Success { int code; string payload; }
+    case Success,
+    case Timeout,
+}
+```
+
+In a `switch` arm, record fields can be bound by name.
+
+#### Named type variants
+
+A named type variant introduces a real nested alias and uses its target type as
+the variant payload:
+
+```d
+enum union Value
+{
+    case Bytes = ubyte[],
+}
+```
+
+This is equivalent to `alias Bytes = ubyte[]; case Bytes`. The alias remains
+available as `Value.Bytes` for type use and compile-time reflection.
 
 #### Bare-type variants
 

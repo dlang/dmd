@@ -20,6 +20,8 @@ void main()
 {
     assert(classify(Pointers(new C1)) == "C1");
     assert(classify(Pointers(new C2)) == "C2");
-    assert(classify(Pointers.First(new C1)) == "C1");
-    assert(classify(Pointers.Second(new C2)) == "C2");
+    Pointers.First first = new C1;
+    Pointers.Second second = new C2;
+    assert(classify(Pointers.First(first)) == "C1");
+    assert(classify(Pointers.Second(second)) == "C2");
 }

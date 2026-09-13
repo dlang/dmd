@@ -5292,6 +5292,7 @@ struct ASTBase
     {
         Dsymbol s;
         bool hasOverloads;
+        bool preserveSymbol;
 
         extern (D) this(Loc loc, Dsymbol s, bool hasOverloads = true)
         {
