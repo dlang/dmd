@@ -159,7 +159,7 @@ enum B = StructWithCtor(7, 2.3);
 static assert(A.n == 1);
 static assert(A.x == 5.0);
 static assert(B.n == 7);
-static assert(B.x == 2.3);
+static assert(B.x == 2.3f);
 
 int bazra(int x)
 {
