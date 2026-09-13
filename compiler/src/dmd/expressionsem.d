@@ -5384,6 +5384,8 @@ Dsymbol getDsymbol(RootObject oarg)
     if (auto ea = isExpression(oarg))
     {
         // Try to convert Expression to symbol
+        if (auto de = ea.isDsymbolExp())
+            return de.s;
         if (auto ve = ea.isVarExp())
             return ve.var;
         if (auto fe = ea.isFuncExp())
@@ -5794,6 +5796,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(DsymbolExp e)
     {
+        if (e.preserveSymbol)
+        {
+            result = e;
+            return;
+        }
         result = symbolToExp(e.s, e.loc, sc, e.hasOverloads);
     }
 
@@ -7728,6 +7735,44 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
+        if (auto dot = exp.e1.isDotIdExp())
+        {
+            auto aggregate = dot.e1.expressionSemantic(sc);
+            auto typeExp = aggregate.isTypeExp();
+            auto structType = typeExp ? typeExp.type.toBasetype().isTypeStruct() : null;
+            auto enumUnion = structType ? structType.sym.isEnumUnionDeclaration() : null;
+            if (enumUnion)
+            {
+                foreach (variantIndex, variant; enumUnion.variants)
+                {
+                    if (!variant.isTypeAlias || variant.ident != dot.ident)
+                        continue;
+                    if (!exp.arguments || exp.arguments.length != 1)
+                    {
+                        eSink.error(exp.loc, "enum union alias variant `%s` expects one argument",
+                            variant.ident.toChars());
+                        return setError();
+                    }
+                    auto argument = (*exp.arguments)[0].expressionSemantic(sc);
+                    argument = resolveProperties(sc, argument);
+                    auto payloadType = variant.payloadType && variant.payloadType.fields.length
+                        ? variant.payloadType.fields[0].type : variant.payload[0];
+                    if (argument.implicitConvTo(payloadType) == MATCH.nomatch)
+                    {
+                        eSink.error(argument.loc,
+                            "cannot implicitly convert expression `%s` of type `%s` to `%s`",
+                            argument.toErrMsg(), argument.type.toErrMsg(), payloadType.toErrMsg());
+                        return setError();
+                    }
+                    argument = argument.implicitCastTo(sc, payloadType);
+                    result = constructEnumUnionVariant(argument, sc, enumUnion.type,
+                        enumUnion, variantIndex);
+                    return;
+                }
+            }
+            dot.e1 = aggregate;
+        }
+
         Objects* tiargs = null; // initial list of template arguments
         Expression ethis = null;
         Type tthis = null;
@@ -9256,6 +9301,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (e.targ.ty != Tstruct)
                     return no();
                 if (!(cast(TypeStruct)e.targ).sym.isUnionDeclaration())
+                    return no();
+                tded = e.targ;
+                break;
+
+            case TOK.enumUnion:
+                if (e.targ.ty != Tstruct)
+                    return no();
+                if (!(cast(TypeStruct)e.targ).sym.isEnumUnionDeclaration())
                     return no();
                 tded = e.targ;
                 break;
@@ -15573,10 +15626,26 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(SwitchExp exp)
     {
+        Expression conditionPrefix;
         exp.condition = exp.condition.expressionSemantic(sc);
         exp.condition = resolveProperties(sc, exp.condition);
         if (exp.condition.op == EXP.error)
             return setError();
+
+        if (auto conditionType = exp.condition.type.toBasetype().isTypeStruct())
+        {
+            auto parentEnumUnion = conditionType.sym.parent
+                ? conditionType.sym.parent.isEnumUnionDeclaration() : null;
+            bool isRecordVariant;
+            if (parentEnumUnion)
+                foreach (variant; parentEnumUnion.variants)
+                    isRecordVariant = isRecordVariant || variant.declaration == conditionType.sym;
+            if (isRecordVariant)
+            {
+                exp.condition = exp.condition.implicitCastTo(sc, parentEnumUnion.type);
+                exp.condition = extractSideEffect(sc, "__switch", conditionPrefix, exp.condition);
+            }
+        }
 
         EnumUnionDeclaration enumUnion;
         if (auto ts = exp.condition.type.toBasetype().isTypeStruct())
@@ -16128,7 +16197,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             lowered = defaultAction;
         if (!lowered)
             return setError();
-        result = lowered;
+        result = Expression.combine(conditionPrefix, lowered);
     }
 
     override void visit(CondExp exp)

@@ -2278,6 +2278,32 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
         }
     }
 
+    foreach (ref variant; eu.variants)
+    {
+        Dsymbol declaration;
+        if (variant.members)
+        {
+            auto payloadStruct = new StructDeclaration(variant.loc, variant.ident, false);
+            payloadStruct.members = variant.members;
+            declaration = payloadStruct;
+        }
+        else if (variant.isTypeAlias)
+            declaration = new AliasDeclaration(variant.loc, variant.ident, variant.payload[0]);
+        if (!declaration)
+            continue;
+
+        variant.declaration = declaration;
+        Dsymbol member = declaration;
+        if (variant.udas)
+            member = new UserAttributeDeclaration(variant.udas, new Dsymbols(declaration));
+        extraMembers ~= member;
+        member.addMember(sc, eu);
+        member.setScope(sc);
+        member.dsymbolSemantic(sc);
+        if (declaration.errors)
+            hasErrors = true;
+    }
+
     VarDeclaration[] payloadVars;
     Dsymbols* payloadMembers = new Dsymbols();
     StructDeclaration unitPayloadType;
@@ -2307,7 +2333,10 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
         }
         const isUnitVariant = !variant.payload.length && !variant.members;
         StructDeclaration payloadStruct;
-        if (isUnitVariant)
+        if (auto recordDeclaration = variant.declaration
+                ? variant.declaration.isStructDeclaration() : null)
+            payloadStruct = recordDeclaration;
+        else if (isUnitVariant)
         {
             if (!unitPayloadType)
             {
@@ -2428,7 +2457,7 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
 
     foreach (i, variant; eu.variants)
     {
-        if (!variant.ident)
+        if (!variant.ident || variant.declaration)
             continue;
 
         auto parameters = new Parameters();

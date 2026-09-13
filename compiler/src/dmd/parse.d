@@ -9271,7 +9271,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     {
                         tok = token.value;
                         nextToken();
-                        if (tok == TOK.equal && (token.value == TOK.struct_ || token.value == TOK.union_
+                        if (tok == TOK.equal && token.value == TOK.enum_ && peekNext() == TOK.union_)
+                        {
+                            tok2 = TOK.enumUnion;
+                            nextToken();
+                            nextToken();
+                        }
+                        else if (tok == TOK.equal && (token.value == TOK.struct_ || token.value == TOK.union_
                             || token.value == TOK.class_ || token.value == TOK.super_ || token.value == TOK.enum_
                             || token.value == TOK.interface_ || token.value == TOK.package_ || token.value == TOK.module_
                             || token.value == TOK.argumentTypes || token.value == TOK.parameters
