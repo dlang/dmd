@@ -8201,7 +8201,15 @@ private extern(C++) class SearchVisitor : Visitor
         //printf("%s.Import.search(ident = '%s', flags = x%x)\n", imp.toChars(), ident.toChars(), flags);
         if (!imp.pkg)
         {
-            imp.load(null);
+            // Load may fail (eg; for dmd as a library users who continue for sema)
+            if (imp.load(null))
+            {
+                if (imp.mod)
+                    imp.mod.errors = true;
+                return setResult(null);
+            }
+            if (!imp.mod)
+                return setResult(null); // Failed
             imp.mod.importAll(null);
             imp.mod.dsymbolSemantic(null);
         }
