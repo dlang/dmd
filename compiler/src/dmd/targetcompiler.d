@@ -11,9 +11,9 @@
 
 module dmd.targetcompiler;
 
-version (IN_GCC) {}        // compiler is being built with gdc
-else version (IN_LLVM) {}  // compiler is being built with ldc
-else version = MARS;       // default means compiler is built with Digital Mars compiler (DMD)
+version (IN_GCC) {}        // frontend is being built for gdc
+else version (IN_LLVM) {}  // frontend is being built for ldc
+else version = MARS;       // default means compiler being built is Digital Mars compiler (DMD)
 
 /***************************
  */
