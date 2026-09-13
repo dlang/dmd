@@ -1,7 +1,7 @@
 # DMD perf check
 
 Every pull request is measured against its merge-base with master. CI builds dmd at both commits the same way on the runner:
-host compiler ldc-1.42.0, one shared PGO profile, and LTO. So any difference in the numbers comes from the PR itself.
+host compiler ldc-1.42.0, a PGO profile trained on each commit's own testsuite, and LTO. So any difference in the numbers comes from the PR itself.
 
 The bot posts one sticky comment when at least one metric crosses its noise threshold, and updates that same comment on every push.
 If nothing crosses the threshold, it doesn't post at all.
