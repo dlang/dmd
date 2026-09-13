@@ -10,9 +10,11 @@
 #     make -j$(nproc)
 # - Build compiler (optimized) and druntime using an LDC host compiler:
 #     make -j$(nproc) HOST_DMD=ldmd2 ENABLE_RELEASE=1 [ENABLE_LTO=1]
+# - Build heavily (LTO+PGO) optimized compiler, incl. druntime and Phobos as side-effects:
+#     make -j$(nproc) HOST_DMD=path/to/ldmd2 dmd-pgo
 # - Build and run druntime tests:
 #     make -j$(nproc) druntime-test
-# - Run compiler tests (needs a built Phobos as prerequisite):
+# - Run compiler tests (involving a Phobos build):
 #     make -j$(nproc) dmd-test
 #
 # See compiler/src/build.d for variables affecting the compiler build.
@@ -93,8 +95,13 @@ dmd: $(BUILD_EXE)
 dmd-unittest: $(BUILD_EXE)
 	$(BUILD_CMD) unittest
 
-dmd-test: dmd-unittest dmd druntime $(RUN_EXE)
+dmd-test: dmd-unittest dmd druntime phobos $(RUN_EXE)
 	$(RUN_EXE) --environment
+
+# The PGO profile generated in build.d is based on running the compiler/test/compilable/ test suite (a subset of the `dmd-test` target above).
+# Running that with a fresh PGO-instrumented compiler requires prebuilt druntime and phobos (not handled in build.d).
+dmd-pgo: phobos
+	$(BUILD_CMD) $@ --force
 
 druntime: dmd
 	$(QUIET)$(MAKE) -C druntime
@@ -104,13 +111,11 @@ druntime-test: dmd
 
 test: dmd-test druntime-test
 
+../phobos:
+	git clone --depth=1 https://github.com/dlang/phobos $@
+
 phobos: ../phobos druntime
 	$(MAKE) -C ../phobos
-
-# The PGO profile generated in build.d is based on running the compiler/test/compilable/ test suite.
-# Running that with a fresh PGO-instrumented compiler requires prebuilt druntime and phobos (not handled in build.d).
-dmd-pgo: phobos
-	$(BUILD_CMD) $@ --force
 
 html: $(BUILD_EXE)
 	$(BUILD_CMD) $@
