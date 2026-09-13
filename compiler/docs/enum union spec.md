@@ -160,7 +160,22 @@ The conversion check matches the payload type of a bare variant against the sour
 
 A bare-type duplicate is rejected at compile time, as are duplicate named cases.
 
-### 5. Internal representation
+### 5. Compile-time reflection
+
+Enum unions support these reflection operations:
+
+- `is(T == enum union)` identifies an enum-union type.
+- `__traits(allVariants, T)` returns the variants in declaration order.
+- `__traits(getTag, T, V)` returns the discriminator value for `V`.
+- `__traits(variantConstructorParams, V)` returns the variant's constructor parameter types.
+- `__traits(variantKind, V)` returns `"unit"`, `"tuple"`, `"struct"`, `"alias"`, or `"bare"`.
+
+The argument `V` is a variant element produced by `__traits(allVariants, T)`.
+`"struct"` specifically denotes an inline record variant such as
+`case User { int id; }`. A bare variant such as `case ExternalStruct` returns
+`"bare"`, even when its externally declared payload type is itself a struct.
+
+### 6. Internal representation
 
 Each enum union lowers to a tagged aggregate with:
 

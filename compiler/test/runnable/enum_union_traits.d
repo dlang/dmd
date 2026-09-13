@@ -35,6 +35,13 @@ void main()
     static assert(__traits(getTag, Message, Variants[5]) == 5);
     static assert(is(typeof(__traits(getTag, Message, Variants[0])) == ubyte));
 
+    static assert(__traits(variantKind, Variants[0]) == "unit");
+    static assert(__traits(variantKind, Variants[1]) == "tuple");
+    static assert(__traits(variantKind, Variants[2]) == "struct");
+    static assert(__traits(variantKind, Variants[3]) == "bare");
+    static assert(__traits(variantKind, Variants[4]) == "bare");
+    static assert(__traits(variantKind, Variants[5]) == "alias");
+
     static assert(__traits(variantConstructorParams, Variants[0]).length == 0);
     static assert(is(__traits(variantConstructorParams, Variants[1]) == AliasSeq!(int, int)));
     static assert(is(__traits(variantConstructorParams, Variants[2]) == AliasSeq!(int, string)));
@@ -65,6 +72,7 @@ void main()
 
     static assert(!__traits(compiles, __traits(allVariants, int)));
     static assert(!__traits(compiles, __traits(getTag, Message, double)));
+    static assert(!__traits(compiles, __traits(variantKind, main)));
     static assert(!__traits(compiles, __traits(variantConstructorParams, main)));
 }
 
