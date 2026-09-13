@@ -3684,6 +3684,8 @@ extern (D) bool checkNRVO(FuncDeclaration fd)
 
     foreach (rs; *fd.returns)
     {
+        if (rs.scope_ && rs.scope_.unreachableCode)
+            continue; // unreachable return, e.g. `if (false) return ...;`
         if (auto ve = rs.exp.isVarExp())
         {
             auto v = ve.var.isVarDeclaration();

@@ -62,6 +62,7 @@ private extern (D) struct FlagBitFields
     bool canFree;            /// is on free list
     bool fullinst;          /// fully instantiate templates
     bool ctfeBlock;         /// inside a `if (__ctfe)` block
+    bool unreachableCode;    /// inside a statically unreachable branch
 
     /**
     Is any symbol this scope is applied to known to have a compile time only accessible context.

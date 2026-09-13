@@ -1828,6 +1828,16 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         // compile time constants are reduced.
         ifs.condition = ifs.condition.checkGC(scd);
 
+        // check for a compile-time-constant condition (needed below for NRVO)
+        bool conditionIsFalse, conditionIsTrue;
+        if (auto ie = ifs.condition.isIntegerExp())
+        {
+            if (ie.toInteger() == 0)
+                conditionIsFalse = true;
+            else
+                conditionIsTrue = true;
+        }
+
         // Save 'root' of two branches (then and else) at the point where it forks
         CtorFlow ctorflow_root = scd.ctorflow.clone();
 
@@ -1855,13 +1865,23 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             scd2.pop();
         }
         else
+        {
+            if (conditionIsFalse)
+                scd.unreachableCode = true;
             ifs.ifbody = ifs.ifbody.semanticNoScope(scd);
+        }
         scd.pop();
 
         CtorFlow ctorflow_then = sc.ctorflow;   // move flow results
         sc.ctorflow = ctorflow_root;            // reset flow analysis back to root
         if (ifs.elsebody)
+        {
+            const wasUnreachable = sc.unreachableCode;
+            if (conditionIsTrue)
+                sc.unreachableCode = true;
             ifs.elsebody = ifs.elsebody.semanticScope(sc, null, null, null);
+            sc.unreachableCode = wasUnreachable;
+        }
 
         // Merge 'then' results into 'else' results
         sc.merge(ifs.loc, ctorflow_then);
