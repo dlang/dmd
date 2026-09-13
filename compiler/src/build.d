@@ -554,10 +554,12 @@ alias dmdPGO = makeRule!((builder, rule) {
 
     alias buildInstrumentedDmd = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
         .msg("Built dmd with PGO instrumentation")
+        .condition(() => PGOState.checkPGO(dmdKind))
         .deps([dmdExe(null, pgoState.pgoGenerateFlags(), pgoState.pgoGenerateFlags()), dmdConf]));
 
     alias genDmdData = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
         .msg("Compiling dmd testsuite to generate PGO data")
+        .condition(() => PGOState.checkPGO(dmdKind))
         .sources([ testDir.buildPath( "run.d") ])
         .deps([buildInstrumentedDmd, testRunner])
         .commandFunction({
@@ -569,6 +571,7 @@ alias dmdPGO = makeRule!((builder, rule) {
         }));
     alias genPhobosData = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
         .msg("Compiling phobos testsuite to generate PGO data")
+        .condition(() => PGOState.checkPGO(dmdKind))
         .deps([buildInstrumentedDmd])
         .commandFunction({
             // Run phobos unittests
@@ -581,6 +584,7 @@ alias dmdPGO = makeRule!((builder, rule) {
         }));
     alias finalDataMerge = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
         .msg("Merging PGO data")
+        .condition(() => PGOState.checkPGO(dmdKind))
         .deps([genDmdData])
         .commandFunction({
             // Run dmd test suite to get data
