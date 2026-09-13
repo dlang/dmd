@@ -1866,7 +1866,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         }
         else
         {
-            if (conditionIsFalse)
+            if (conditionIsFalse && !ifs.ifbody.comeFrom())
                 scd.unreachableCode = true;
             ifs.ifbody = ifs.ifbody.semanticNoScope(scd);
         }
@@ -1877,7 +1877,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         if (ifs.elsebody)
         {
             const wasUnreachable = sc.unreachableCode;
-            if (conditionIsTrue)
+            if (conditionIsTrue && !ifs.elsebody.comeFrom())
                 sc.unreachableCode = true;
             ifs.elsebody = ifs.elsebody.semanticScope(sc, null, null, null);
             sc.unreachableCode = wasUnreachable;
