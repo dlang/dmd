@@ -1710,8 +1710,8 @@ $(H3 $(LNAME2 ref-params, Ref and Out Parameters))
         $(P A `ref` parameter can also be returned by reference, see
         $(RELATIVE_LINK2 return-ref-parameters, Return Ref Parameters.))
 
-        $(P An `out` parameter is similar to a `ref` parameter, except it is initialized
-        by $(DDSUBLINK spec/property, init-vs-construction, default construction) upon
+        $(P An `out` parameter is similar to a `ref` parameter, except it is
+        $(DDSUBLINK spec/property, init-vs-construction, default initialized) upon
         function invocation.)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
