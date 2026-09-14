@@ -534,6 +534,7 @@ int mach_numbersyms()
 
     foreach (s; machobj.localSymbols[])
     {
+        //printf("assigning %2d to %s\n", n, s.Sident.ptr);
         s.Sxtrnnum = n;
         n++;
     }
@@ -541,6 +542,7 @@ int mach_numbersyms()
     foreach (s; machobj.publicSymbols[])
     {
         assert(s.Sclass != SC.extern_);
+        //printf("assigning %2d to %s\n", n, s.Sident.ptr);
         s.Sxtrnnum = n;
         n++;
     }
@@ -560,7 +562,7 @@ int mach_numbersyms()
             assert(sfwd.Sclass != SC.extern_);
             s.Sforward = sfwd;
             machobj.externSymbols.remove(i);    // remove s
-            //printf("extern %p %s forwarded to %p %s\n", s, s.Sident.ptr, sfwd, sfwd.Sident.ptr);
+            //printf("extern %p %s forwarded to %p %s %d\n", s, s.Sident.ptr, sfwd, sfwd.Sident.ptr, sfwd.Sxtrnnum);
             continue;
         }
         ++i;
@@ -568,12 +570,14 @@ int mach_numbersyms()
 
     foreach (s; machobj.externSymbols[])
     {
+        //printf("assigning %2d to %s\n", n, s.Sident.ptr);
         s.Sxtrnnum = n;
         n++;
     }
 
     foreach (ref c; machobj.comdefs[])
     {
+        //printf("assigning %2d to %s\n", n, c.sym.Sident.ptr);
         c.sym.Sxtrnnum = n;
         n++;
     }
@@ -863,7 +867,7 @@ void MachObj_term(const(char)[] objfilename)
         }
     }
 
-//    if (!machobj.AArch64)
+    if (!machobj.AArch64)
         foreach (i; 0 .. table.length)
             table[i] = cast(int)i;
 
@@ -923,7 +927,7 @@ void MachObj_term(const(char)[] objfilename)
             foreach (ref r; pseg.relocations[])
             {
                 Symbol* s = r.targsym;
-                if (s && s.Sforward && !s.Sxtrnnum)
+                if (s && s.Sforward /*&& !s.Sxtrnnum*/)
                 {
                     static if (0)
                     if (s.Sforward.Sxtrnnum == 0)
@@ -1050,7 +1054,8 @@ void MachObj_term(const(char)[] objfilename)
                                 case SC.global:
                                     if (/*s.Sfl == FL.func &&*/ r.rtype == REL.rel26)
                                         goto case SC.extern_;
-                                    rel.r_type = r.rtype == REL.add ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
+                                    rel.r_type = r.rtype == REL.add ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
+                                    //rel.r_type = r.rtype == REL.add ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;
                                     //rel.r_type = r.rtype == REL.add ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                     if (s.Sfl == FL.tlsdata || s.Sfl == FL.data && (s.ty() & mTYLINK) == mTYthread)
                                         rel.r_type = r.rtype == REL.add ? ARM64_RELOC_TLVP_LOAD_PAGEOFF12 : ARM64_RELOC_TLVP_LOAD_PAGE21;
@@ -3492,7 +3497,7 @@ int mach_dwarf_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t va
 @trusted
 int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol* s, targ_size_t val, Symbol* fdesym)
 {
-    //printf("dwarf_eh_frame_fixup() %s\n", fdesym.Sident.ptr);
+    //printf("dwarf_eh_frame_fixup() dfseg:%d, offset:x%zx, s:%s val:x%zx fdesym:%s\n", dfseg, offset, s.Sident.ptr, val, fdesym.Sident.ptr);
     OutBuffer* buf = SegData[dfseg].SDbuf;
     assert(offset == buf.length());
     assert(fdesym.Sseg == dfseg);
