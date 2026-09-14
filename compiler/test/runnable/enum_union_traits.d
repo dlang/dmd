@@ -8,12 +8,12 @@ struct CustomPayload
 enum union Message
 {
     @("tag_none") case None(),
-    case Move(int x, int y);
+    case Move(int x, int y),
     @("tag_user") case User { int id; string name; },
-    case CustomPayload;
-    case int;
+    case CustomPayload,
+    case int,
     @("tag_slice") case Slice = ubyte[],
-    case Payload = CustomPayload;
+    case Payload = CustomPayload,
 }
 
 void main()
@@ -25,8 +25,8 @@ void main()
 
     enum union LocalMessage
     {
-        case None();
-        case Payload = LocalPayload;
+        case None(),
+        case Payload = LocalPayload,
     }
 
     static foreach (index, Variant; __traits(allVariants, LocalMessage))

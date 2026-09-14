@@ -2,10 +2,10 @@ module enum_union_variant_lookup_traits;
 
 enum union Source
 {
-    case None();
-    case Point(double x, double y);
-    case User { int id; string name; };
-    case Slice = const(ubyte)[];
+    case None(),
+    case Point(double x, double y),
+    case User { int id; string name; },
+    case Slice = const(ubyte)[],
     case int;
 
     static void helper() {}
