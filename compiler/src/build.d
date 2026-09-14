@@ -530,16 +530,7 @@ struct PGOState
         switch(hostKind)
         {
             case "ldc":
-            {
-                auto flags = ["-fprofile-instr-use=" ~ buildPath(pgoDataPath(), "merged.data")];
-                version (linux)
-                {
-                    // on Linux, default to ld.gold to use the LTO plugin bundled with LDC
-                    // (with matching LLVM version)
-                    flags ~= "-linker=gold";
-                }
-                return flags;
-            }
+                return ["-fprofile-instr-use=" ~ buildPath(pgoDataPath(), "merged.data")];
             default:
                 return [""];
         }
