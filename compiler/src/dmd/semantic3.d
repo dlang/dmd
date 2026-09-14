@@ -1682,6 +1682,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
         auto e = expressionSemantic(tempinst, sc2);
         assert(e.type);
         ti.entry = e.type;
+        if (auto ts = ti.entry.isTypeStruct())
+        {
+            if (auto tmpl = ts.sym.isInstantiated())
+                tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
+        }
         semanticTypeInfo(sc2, ti.entry); // might get deferred
 
         // generate ti.xtoHash
