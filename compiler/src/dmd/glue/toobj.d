@@ -161,6 +161,8 @@ void TypeInfo_toObjFile(Expression e, Loc loc, Type t)
     if (t.vtinfo.hadCodegen)
         return;
 
+    t.vtinfo.hadCodegen = true;
+
     // ClassInfos are generated as part of ClassDeclaration codegen
     bool isUnqualifiedClassInfo = false;
     if (t.mod == 0)
@@ -172,7 +174,6 @@ void TypeInfo_toObjFile(Expression e, Loc loc, Type t)
         // Generate a COMDAT for other TypeInfos not available as builtins in druntime -
         // but only once per compiler run (into the first referencing object file).
         toObjFile(t.vtinfo, global.params.multiobj);
-        t.vtinfo.hadCodegen = true;
     }
 }
 
