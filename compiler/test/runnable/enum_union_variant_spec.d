@@ -4,13 +4,13 @@ template AliasSeq(T...) { alias AliasSeq = T; }
 
 enum union Source
 {
-    case None();
-    case Point(double x, double y);
-    case Move(double, double);
-    case Arc(double, double, double radius);
-    case User { int id; string name; };
-    case Slice = const(ubyte)[];
-    case int;
+    case None(),
+    case Point(double x, double y),
+    case Move(double, double),
+    case Arc(double, double, double radius),
+    case User { int id; string name; },
+    case Slice = const(ubyte)[],
+    case int,
 }
 
 void testReflection()
