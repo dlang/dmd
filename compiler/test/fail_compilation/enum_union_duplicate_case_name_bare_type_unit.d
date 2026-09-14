@@ -9,6 +9,6 @@ struct ExternalStruct {}
 
 enum union Test
 {
-    case ExternalStruct,
-    case ExternalStruct(),
+    case ExternalStruct;
+    case ExternalStruct();
 }

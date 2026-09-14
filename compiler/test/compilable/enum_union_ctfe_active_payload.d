@@ -1,7 +1,7 @@
 enum union Value
 {
-    case First(int),
-    case Second(int),
+    case First(int);
+    case Second(int);
 }
 
 enum value = Value.Second(42);

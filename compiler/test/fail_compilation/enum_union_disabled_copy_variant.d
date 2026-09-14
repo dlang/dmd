@@ -14,6 +14,6 @@ struct DisabledCopy
 
 enum union HasDisabledCopy
 {
-    case Wrapped(DisabledCopy),
-    case Flag(bool),
+    case Wrapped(DisabledCopy);
+    case Flag(bool);
 }

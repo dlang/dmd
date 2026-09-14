@@ -9,6 +9,6 @@ fail_compilation/enum_union_duplicate_case_name.d(10): Error: duplicate case `St
 // bodies are identical (or, as tested separately, different).
 enum union Test1
 {
-    case StructVariant {},
-    case StructVariant {},
+    case StructVariant {};
+    case StructVariant {};
 }

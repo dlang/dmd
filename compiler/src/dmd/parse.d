@@ -3407,6 +3407,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             eu.variants = [];
             auto memberDecls = new AST.Dsymbols();
             nextToken();
+            bool inCaseDeclaration = false;
             while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
             {
                 const variantLoc = token.loc;
@@ -3434,99 +3435,118 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 if (token.value == TOK.case_)
                 {
-                    nextToken();
-                    if (token.value == TOK.traits)
+                    if (inCaseDeclaration)
                     {
-                        variant.variantSplice = cast(AST.TraitsExp) parsePrimaryExp();
-                        if (!variant.variantSplice || variant.variantSplice.ident != Id.variantDeclarationOf)
-                            error(variantLoc, "`__traits(variantDeclarationOf, ...)` expected");
-                        check(TOK.semicolon);
-                        eu.variants ~= variant;
-                        continue;
+                        error(variantLoc, "`;` expected after enum union case declaration");
+                        break;
                     }
-                    else if (token.value == TOK.identifier)
+                    nextToken();
+                    inCaseDeclaration = true;
+                }
+                else if (!inCaseDeclaration)
+                {
+                    error(variantLoc, "`case` expected for enum union variant");
+                    break;
+                }
+
+                if (token.value == TOK.traits)
+                {
+                    variant.variantSplice = cast(AST.TraitsExp) parsePrimaryExp();
+                    if (!variant.variantSplice || variant.variantSplice.ident != Id.variantDeclarationOf)
+                        error(variantLoc, "`__traits(variantDeclarationOf, ...)` expected");
+                }
+                else if (token.value == TOK.identifier)
+                {
+                    if (peekNext() == TOK.assign)
                     {
-                        if (peekNext() == TOK.assign)
+                        variant.ident = token.ident;
+                        variant.isTypeAlias = true;
+                        nextToken();
+                        nextToken();
+                        if (token.value == TOK.identifier && token.ident is variant.ident &&
+                            (peekNext() == TOK.comma || peekNext() == TOK.semicolon ||
+                             peekNext() == TOK.rightCurly))
                         {
-                            variant.ident = token.ident;
-                            variant.isTypeAlias = true;
-                            nextToken();
-                            nextToken();
-                            if (token.value == TOK.identifier && token.ident is variant.ident &&
-                                (peekNext() == TOK.comma || peekNext() == TOK.semicolon ||
-                                 peekNext() == TOK.rightCurly))
-                            {
-                                error(variantLoc, "`case %s = %s` cannot alias itself, use a qualified name",
-                                    variant.ident.toChars(), token.ident.toChars());
-                            }
-                            variant.payload ~= parseType();
-                            if (!variant.payload.length)
-                            {
-                                error(variantLoc, "enum union variant type expected");
-                                break;
-                            }
+                            error(variantLoc, "`case %s = %s` cannot alias itself, use a qualified name",
+                                variant.ident.toChars(), token.ident.toChars());
                         }
-                        else
+                        variant.payload ~= parseType();
+                        if (!variant.payload.length)
                         {
-                            if (peekNext() != TOK.leftParenthesis && peekNext() != TOK.leftCurly)
-                                variant.payload ~= parseType();
-                            else
-                            {
-                                variant.ident = token.ident;
-                                nextToken();
-                                if (token.value == TOK.leftParenthesis)
-                                {
-                                    nextToken();
-                                    while (token.value != TOK.rightParenthesis && token.value != TOK.endOfFile)
-                                    {
-                                        Identifier payloadIdent;
-                                        variant.payload ~= parseType(&payloadIdent);
-                                        variant.payloadNames ~= payloadIdent;
-                                        if (token.value != TOK.comma)
-                                            break;
-                                        nextToken();
-                                    }
-                                    check(TOK.rightParenthesis);
-                                }
-                                else if (token.value == TOK.leftCurly)
-                                {
-                                    nextToken();
-                                    variant.members = parseDeclDefs(0);
-                                    check(TOK.rightCurly);
-                                }
-                            }
+                            error(variantLoc, "enum union variant type expected");
+                            break;
                         }
                     }
                     else
                     {
-                        variant.payload ~= parseType();
-                        if (!variant.payload.length)
+                        if (peekNext() != TOK.leftParenthesis && peekNext() != TOK.leftCurly)
+                            variant.payload ~= parseType();
+                        else
                         {
-                            error(variantLoc, "enum union variant name expected");
-                            break;
+                            variant.ident = token.ident;
+                            nextToken();
+                            if (token.value == TOK.leftParenthesis)
+                            {
+                                nextToken();
+                                while (token.value != TOK.rightParenthesis && token.value != TOK.endOfFile)
+                                {
+                                    Identifier payloadIdent;
+                                    variant.payload ~= parseType(&payloadIdent);
+                                    variant.payloadNames ~= payloadIdent;
+                                    if (token.value != TOK.comma)
+                                        break;
+                                    nextToken();
+                                }
+                                check(TOK.rightParenthesis);
+                            }
+                            else if (token.value == TOK.leftCurly)
+                            {
+                                nextToken();
+                                variant.members = parseDeclDefs(0);
+                                check(TOK.rightCurly);
+                            }
                         }
                     }
                 }
                 else
                 {
-                    error(variantLoc, "`case` expected for enum union variant");
-                    break;
+                    variant.payload ~= parseType();
+                    if (!variant.payload.length)
+                    {
+                        error(variantLoc, "enum union variant name expected");
+                        break;
+                    }
                 }
 
                 eu.variants ~= variant;
                 if (token.value == TOK.comma)
                     nextToken();
                 else if (token.value == TOK.semicolon)
-                    break; // `;` introduces a trailing MemberDeclarationList
-                else if (token.value != TOK.rightCurly)
-                    error(token.loc, "`,` or `}` expected after enum union variant");
-            }
-            if (token.value == TOK.semicolon)
-            {
-                nextToken();
-                auto declarations = parseDeclDefs(0);
-                if (declarations)
-                    memberDecls.append(declarations);
+                {
+                    nextToken();
+                    inCaseDeclaration = false;
+                    if (token.value != TOK.case_ && token.value != TOK.rightCurly &&
+                        token.value != TOK.static_ && token.value != TOK.pragma_)
+                    {
+                        auto declarations = parseDeclDefs(0);
+                        if (declarations)
+                            memberDecls.append(declarations);
+                    }
+                }
+                else
+                {
+                    error(token.loc, "`,` or `;` expected after enum union variant");
+                    while (token.value != TOK.semicolon && token.value != TOK.rightCurly &&
+                           token.value != TOK.endOfFile)
+                    {
+                        nextToken();
+                    }
+                    if (token.value == TOK.semicolon)
+                    {
+                        nextToken();
+                        inCaseDeclaration = false;
+                    }
+                }
             }
             check(TOK.rightCurly);
 

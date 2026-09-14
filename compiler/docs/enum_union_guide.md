@@ -7,9 +7,9 @@ An enum union is a tagged union whose value is one of a fixed set of variants. E
 ```d
 enum union Shape
 {
-    case Circle(double),
-    case Rectangle(double, double),
-    case Point(),
+    case Circle(double);
+    case Rectangle(double, double);
+    case Point();
 }
 ```
 
@@ -39,9 +39,9 @@ An enum union case can be one of four forms.
 ```d
 enum union State
 {
-    case Idle(),
-    case Running(),
-    case Stopped(),
+    case Idle();
+    case Running();
+    case Stopped();
 }
 ```
 
@@ -53,9 +53,9 @@ unparenthesized identifier can always be parsed as a type payload.
 ```d
 enum union Value
 {
-    case int,
-    case string,
-    case bool,
+    case int;
+    case string;
+    case bool;
 }
 ```
 
@@ -78,9 +78,9 @@ struct Success
 
 enum union Response
 {
-    case Success,
-    case Failure(string),
-    case Timeout(),
+    case Success;
+    case Failure(string);
+    case Timeout();
 }
 ```
 
@@ -94,9 +94,9 @@ The compiler checks for duplicate bare types and for ambiguous construction when
 ```d
 enum union Shape
 {
-    case Circle(double),
-    case Rectangle(double, double),
-    case Point(),
+    case Circle(double);
+    case Rectangle(double, double);
+    case Point();
 }
 ```
 
@@ -107,9 +107,9 @@ The constructor parameters match the payload fields.
 ```d
 enum union Response
 {
-    case Success { int code; string message; },
-    case Failure { string reason; },
-    case Timeout(),
+    case Success { int code; string message; };
+    case Failure { string reason; };
+    case Timeout();
 }
 ```
 
@@ -124,8 +124,8 @@ The compiler rejects invalid declarations.
 ```d
 enum union LatLong
 {
-    case double,
-    case double,
+    case double;
+    case double;
 }
 ```
 
@@ -134,8 +134,8 @@ This is rejected because the bare type appears twice.
 ```d
 enum union BadNames
 {
-    case A { int x; },
-    case A { string s; },
+    case A { int x; };
+    case A { string s; };
 }
 ```
 
@@ -144,8 +144,8 @@ This is rejected because the case name is duplicated, even when the payloads dif
 ```d
 enum union Funs
 {
-    case int function(int),
-    case int delegate(int),
+    case int function(int);
+    case int delegate(int);
 }
 
 Funs f = () {};
@@ -162,8 +162,8 @@ Enum unions can include member declarations after the case list.
 ```d
 enum union ShapeWithMethods
 {
-    case Circle(double),
-    case Rectangle(double, double),
+    case Circle(double);
+    case Rectangle(double, double);
     case Point();
 
     double area()
@@ -201,8 +201,8 @@ struct MoveOnly
 
 enum union Bad
 {
-    case M(MoveOnly),
-    case Other(bool),
+    case M(MoveOnly);
+    case Other(bool);
 }
 ```
 
@@ -249,8 +249,8 @@ A switch arm may include a guard.
 ```d
 enum union Level
 {
-    case double,
-    case string,
+    case double;
+    case string;
 }
 
 string classify(Level v)
@@ -339,8 +339,8 @@ This is rejected because `Square` is not a variant of `Shape`.
 ```d
 enum union Option(T)
 {
-    case Some(T),
-    case None(),
+    case Some(T);
+    case None();
 }
 
 string describe(Option!string value)
@@ -369,7 +369,7 @@ An alternate form is to use the bare type `typeof(null)` for the "none" case:
 ```d
 enum union Option(T)
 {
-    case Some(T),
+    case Some(T);
     typeof(null),
 }
 

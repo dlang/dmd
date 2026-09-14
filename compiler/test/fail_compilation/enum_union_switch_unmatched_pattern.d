@@ -7,8 +7,8 @@ fail_compilation/enum_union_switch_unmatched_pattern.d(18): Error: switch expres
 
 enum union Shape
 {
-    case Circle(double),
-    case Point(),
+    case Circle(double);
+    case Point();
 }
 
 string describe(Shape s)

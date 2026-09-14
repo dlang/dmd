@@ -13,6 +13,6 @@ struct DisabledPostBlit
 
 enum union HasDisabledPostBlit
 {
-    case Wrapped(DisabledPostBlit),
-    case Flag(bool),
+    case Wrapped(DisabledPostBlit);
+    case Flag(bool);
 }

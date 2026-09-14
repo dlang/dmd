@@ -5,10 +5,10 @@ class C2 : C1 {}
 
 enum union Value
 {
-    case C1,
-    case C3 = C2,
-    case Unit(),
-    case Tuple(int),
+    case C1;
+    case C3 = C2;
+    case Unit();
+    case Tuple(int);
 }
 
 string classify(Value value)

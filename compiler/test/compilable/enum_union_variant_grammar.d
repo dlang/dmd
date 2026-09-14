@@ -10,21 +10,21 @@ struct Wrapper(T)
 
 enum union Result(T)
 {
-    case Success(T),
-    case Failure(),
-    case ExternalStruct,
-    case Wrapper!int,
-    case string,
+    case Success(T);
+    case Failure();
+    case ExternalStruct;
+    case Wrapper!int;
+    case string;
 }
 
 enum union NamedUnit
 {
-    case ExternalStruct(),
+    case ExternalStruct();
 }
 
 enum union VariantPack(Types...)
 {
-    case Empty(),
+    case Empty();
     static foreach (T; Types)
         case T;
 }

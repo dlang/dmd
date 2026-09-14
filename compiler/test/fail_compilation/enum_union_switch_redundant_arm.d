@@ -7,8 +7,8 @@ fail_compilation/enum_union_switch_redundant_arm.d(20): Error: redundant match a
 
 enum union Shape
 {
-    case Circle(double),
-    case Point(),
+    case Circle(double);
+    case Point();
 }
 
 string describe(Shape s)

@@ -7,6 +7,6 @@ fail_compilation/enum_union_duplicate_bare_type.d(8): Error: duplicate case `dou
 
 enum union LatLong
 {
-    case double,
-    case double,
+    case double;
+    case double;
 }
