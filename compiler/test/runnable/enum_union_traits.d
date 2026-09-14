@@ -13,16 +13,37 @@ enum union Message
     case CustomPayload,
     case int,
     @("tag_slice") case Slice = ubyte[],
+    case Payload = CustomPayload,
 }
 
 void main()
 {
+    struct LocalPayload
+    {
+        int value;
+    }
+
+    enum union LocalMessage
+    {
+        case None(),
+        case Payload = LocalPayload,
+    }
+
+    static foreach (index, Variant; __traits(allVariants, LocalMessage))
+    {
+        static if (index == 1)
+        {
+            static assert(__traits(variantParams, Variant).length == 0);
+            static assert(__traits(variantParamNames, Variant).length == 0);
+        }
+    }
+
     static assert(is(Message == enum union));
     static assert(!is(int == enum union));
     static assert(!is(CustomPayload == enum union));
 
     alias Variants = __traits(allVariants, Message);
-    static assert(Variants.length == 6);
+    static assert(Variants.length == 7);
     static assert(is(Message.User == struct));
     static assert(is(Message.Slice == ubyte[]));
     static assert(__traits(isSame, Variants[2], Message.User));
@@ -33,6 +54,7 @@ void main()
     static assert(__traits(getTag, Message, Variants[3]) == 3);
     static assert(__traits(getTag, Message, Variants[4]) == 4);
     static assert(__traits(getTag, Message, Variants[5]) == 5);
+    static assert(__traits(getTag, Message, Variants[6]) == 6);
     static assert(is(typeof(__traits(getTag, Message, Variants[0])) == ubyte));
 
     static assert(__traits(variantKind, Variants[0]) == "unit");
@@ -41,13 +63,30 @@ void main()
     static assert(__traits(variantKind, Variants[3]) == "bare");
     static assert(__traits(variantKind, Variants[4]) == "bare");
     static assert(__traits(variantKind, Variants[5]) == "alias");
+    static assert(__traits(variantKind, Variants[6]) == "alias");
 
-    static assert(__traits(variantConstructorParams, Variants[0]).length == 0);
-    static assert(is(__traits(variantConstructorParams, Variants[1]) == AliasSeq!(int, int)));
-    static assert(is(__traits(variantConstructorParams, Variants[2]) == AliasSeq!(int, string)));
-    static assert(is(__traits(variantConstructorParams, Variants[3]) == AliasSeq!(CustomPayload)));
-    static assert(is(__traits(variantConstructorParams, Variants[4]) == AliasSeq!(int)));
-    static assert(is(__traits(variantConstructorParams, Variants[5]) == AliasSeq!(ubyte[])));
+    static assert(__traits(variantParams, Variants[0]).length == 0);
+    static assert(is(__traits(variantParams, Variants[1]) == AliasSeq!(int, int)));
+    static assert(is(__traits(variantParams, Variants[2]) == AliasSeq!(int, string)));
+    static assert(__traits(variantParams, Variants[3]).length == 0);
+    static assert(__traits(variantParams, Variants[4]).length == 0);
+    static assert(__traits(variantParams, Variants[5]).length == 0);
+    static assert(__traits(variantParams, Variants[6]).length == 0);
+
+    static assert(__traits(variantParamNames, Variants[0]).length == 0);
+    static assert(__traits(variantParamNames, Variants[1]) == AliasSeq!("x", "y"));
+    static assert(__traits(variantParamNames, Variants[2]) == AliasSeq!("id", "name"));
+    static assert(__traits(variantParamNames, Variants[3]).length == 0);
+    static assert(__traits(variantParamNames, Variants[4]).length == 0);
+    static assert(__traits(variantParamNames, Variants[5]).length == 0);
+    static assert(__traits(variantParamNames, Variants[6]).length == 0);
+
+    static foreach (Variant; Variants)
+    {
+        static assert(__traits(compiles, __traits(variantParams, Variant)));
+        static assert(__traits(variantParams, Variant).length ==
+            __traits(variantParamNames, Variant).length);
+    }
 
     static assert(__traits(identifier, Variants[0]) == "None");
     static assert(__traits(identifier, Variants[1]) == "Move");
@@ -55,6 +94,7 @@ void main()
     static assert(__traits(identifier, Variants[3]) == "CustomPayload");
     static assert(__traits(identifier, Variants[4]) == "");
     static assert(__traits(identifier, Variants[5]) == "Slice");
+    static assert(__traits(identifier, Variants[6]) == "Payload");
 
     alias NoneAttrs = __traits(getAttributes, Variants[0]);
     static assert(NoneAttrs.length == 1 && NoneAttrs[0] == "tag_none");
@@ -73,7 +113,8 @@ void main()
     static assert(!__traits(compiles, __traits(allVariants, int)));
     static assert(!__traits(compiles, __traits(getTag, Message, double)));
     static assert(!__traits(compiles, __traits(variantKind, main)));
-    static assert(!__traits(compiles, __traits(variantConstructorParams, main)));
+    static assert(!__traits(compiles, __traits(variantParams, main)));
+    static assert(!__traits(compiles, __traits(variantParamNames, main)));
 }
 
 template AliasSeq(T...)

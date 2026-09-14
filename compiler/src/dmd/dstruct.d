@@ -22,6 +22,7 @@ import dmd.declaration;
 import dmd.denum;
 import dmd.dmodule;
 import dmd.dsymbol;
+import dmd.expression;
 import dmd.func;
 import dmd.id;
 import dmd.identifier;
@@ -47,8 +48,25 @@ struct EnumUnionVariant
     Type[] payload;
     Identifier[] payloadNames;
     Dsymbols* members;
+    TraitsExp variantSplice;
     StructDeclaration payloadType;
     VarDeclaration payloadVar;
+}
+
+package EnumUnionVariant syntaxCopyEnumUnionVariant(ref EnumUnionVariant variant)
+{
+    EnumUnionVariant copy;
+    copy.loc = variant.loc;
+    copy.ident = variant.ident;
+    copy.isTypeAlias = variant.isTypeAlias;
+    copy.udas = Expression.arraySyntaxCopy(variant.udas);
+    copy.payload.reserve(variant.payload.length);
+    foreach (payload; variant.payload)
+        copy.payload ~= payload.syntaxCopy();
+    copy.payloadNames = variant.payloadNames.dup;
+    copy.members = Dsymbol.arraySyntaxCopy(variant.members);
+    copy.variantSplice = variant.variantSplice ? variant.variantSplice.syntaxCopy() : null;
+    return copy;
 }
 
 extern (C++) final class EnumUnionCaseDeclaration : Declaration
@@ -63,7 +81,7 @@ extern (C++) final class EnumUnionCaseDeclaration : Declaration
 
     override EnumUnionCaseDeclaration syntaxCopy(Dsymbol s)
     {
-        return new EnumUnionCaseDeclaration(loc, variant);
+        return new EnumUnionCaseDeclaration(loc, syntaxCopyEnumUnionVariant(variant));
     }
 
     override const(char)* kind() const
@@ -194,7 +212,9 @@ extern (C++) final class EnumUnionDeclaration : StructDeclaration
     override EnumUnionDeclaration syntaxCopy(Dsymbol s)
     {
         auto eu = new EnumUnionDeclaration(loc, ident);
-        eu.variants = variants;
+        eu.variants.reserve(variants.length);
+        foreach (ref variant; variants)
+            eu.variants ~= syntaxCopyEnumUnionVariant(variant);
         StructDeclaration.syntaxCopy(eu);
         // `members` was just deep-copied above; `tagVar` must point at the
         // copy (it's always the first member, see parse.d), not the original
