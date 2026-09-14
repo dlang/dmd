@@ -829,7 +829,7 @@ static if (1)
             {
                 length           : 20 + cast(uint)cfa_buf.length(),
                 CIE_pointer      : cast(int)sfunc.Ssize,
-                initial_location : 0, // sfunc.Soffset ?
+                initial_location : 0, //sfunc.Soffset,
                 address_range    : sfunc.Ssize,
             };
 
@@ -865,7 +865,7 @@ static if (1)
             {
                 length           : 12 + cast(uint)cfa_buf.length(),
                 CIE_pointer      : 0,
-                initial_location : 0, // sfunc.Soffset?
+                initial_location : 0, //cast(uint)sfunc.Soffset, ?
                 address_range    : cast(uint)sfunc.Ssize,
             };
 
@@ -1008,6 +1008,7 @@ static if (1)
 //symbol_print(*sfunc);
 //symbol_print(*fdesym);
             dwarf_eh_frame_fixup(dfseg, buf.length(), sfunc, 0, fdesym); // PC Begin
+            //dwarf_eh_frame_fixup(dfseg, buf.length(), sfunc, sfunc.Soffset, fdesym); // PC Begin
 
             if (I64)
                 buf.write64(sfunc.Ssize);                     // PC Range
