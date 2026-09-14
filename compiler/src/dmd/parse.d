@@ -3407,7 +3407,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             eu.variants = [];
             auto memberDecls = new AST.Dsymbols();
             nextToken();
-            bool inCaseDeclaration = false;
+            bool inCaseDeclaration;
             while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
             {
                 const variantLoc = token.loc;
@@ -3424,15 +3424,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     }
                 }
 
-                if (token.value == TOK.static_ || token.value == TOK.pragma_)
-                {
-                    AST.Dsymbol lastDecl = cast(AST.Dsymbol) eu;
-                    auto declarations = parseDeclDefs(1, &lastDecl);
-                    if (declarations)
-                        memberDecls.append(declarations);
-                    continue;
-                }
-
                 if (token.value == TOK.case_)
                 {
                     if (inCaseDeclaration)
@@ -3445,8 +3436,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 else if (!inCaseDeclaration)
                 {
-                    error(variantLoc, "`case` expected for enum union variant");
-                    break;
+                    AST.Dsymbol lastDecl = cast(AST.Dsymbol) eu;
+                    auto declarations = parseDeclDefs(1, &lastDecl);
+                    if (declarations)
+                        memberDecls.append(declarations);
+                    continue;
                 }
 
                 if (token.value == TOK.traits)
@@ -3454,6 +3448,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     variant.variantSplice = cast(AST.TraitsExp) parsePrimaryExp();
                     if (!variant.variantSplice || variant.variantSplice.ident != Id.variantDeclarationOf)
                         error(variantLoc, "`__traits(variantDeclarationOf, ...)` expected");
+                    check(TOK.semicolon);
+                    eu.variants ~= variant;
+                    inCaseDeclaration = false;
+                    continue;
                 }
                 else if (token.value == TOK.identifier)
                 {
@@ -3525,28 +3523,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 {
                     nextToken();
                     inCaseDeclaration = false;
-                    if (token.value != TOK.case_ && token.value != TOK.rightCurly &&
-                        token.value != TOK.static_ && token.value != TOK.pragma_)
-                    {
-                        auto declarations = parseDeclDefs(0);
-                        if (declarations)
-                            memberDecls.append(declarations);
-                    }
                 }
-                else
-                {
-                    error(token.loc, "`,` or `;` expected after enum union variant");
-                    while (token.value != TOK.semicolon && token.value != TOK.rightCurly &&
-                           token.value != TOK.endOfFile)
-                    {
-                        nextToken();
-                    }
-                    if (token.value == TOK.semicolon)
-                    {
-                        nextToken();
-                        inCaseDeclaration = false;
-                    }
-                }
+                else if (token.value != TOK.rightCurly)
+                    error(token.loc, "`,` or `}` expected after enum union variant");
             }
             check(TOK.rightCurly);
 
