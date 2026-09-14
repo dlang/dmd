@@ -7,8 +7,8 @@ fail_compilation/enum_union_switch_default_guard.d(19): Error: `default` arm can
 
 enum union Shape
 {
-    case Circle(double),
-    case Point(),
+    case Circle(double);
+    case Point();
 }
 
 string guardedDefault(Shape s)

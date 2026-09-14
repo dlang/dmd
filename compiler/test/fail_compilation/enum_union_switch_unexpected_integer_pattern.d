@@ -7,8 +7,8 @@ fail_compilation/enum_union_switch_unexpected_integer_pattern.d(18): Error: swit
 
 enum union Value
 {
-    case int,
-    case string,
+    case int;
+    case string;
 }
 
 string classify(Value value)

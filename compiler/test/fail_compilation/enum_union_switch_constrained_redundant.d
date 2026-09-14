@@ -7,7 +7,7 @@ fail_compilation/enum_union_switch_constrained_redundant.d(18): Error: redundant
 
 enum union Shape
 {
-    case Square(int height, int width),
+    case Square(int height, int width);
 }
 
 int describe(Shape shape)

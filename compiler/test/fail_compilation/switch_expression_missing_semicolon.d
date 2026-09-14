@@ -7,7 +7,7 @@ fail_compilation/switch_expression_missing_semicolon.d(19): Error: found `}` whe
 
 enum union Value
 {
-    case Unit(),
+    case Unit();
 }
 
 void test()

@@ -17,6 +17,6 @@ struct MoveOnly
 
 enum union WithMoveOnly
 {
-    case Moved(MoveOnly),
-    case Other(bool),
+    case Moved(MoveOnly);
+    case Other(bool);
 }

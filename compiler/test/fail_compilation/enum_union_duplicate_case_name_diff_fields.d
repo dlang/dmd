@@ -11,6 +11,6 @@ fail_compilation/enum_union_duplicate_case_name_diff_fields.d(12): Error: duplic
 // like two ordinary (differently-signatured) D function overloads.
 enum union Test2
 {
-    case StructVariant { int id; },
-    case StructVariant { string s; },
+    case StructVariant { int id; };
+    case StructVariant { string s; };
 }

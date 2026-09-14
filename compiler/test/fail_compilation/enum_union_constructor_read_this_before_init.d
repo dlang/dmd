@@ -7,7 +7,7 @@ fail_compilation/enum_union_constructor_read_this_before_init.d(15): Error: cann
 
 enum union Pointers
 {
-    case int*,
+    case int*;
     case bool*;
 
     this(typeof(null) value)

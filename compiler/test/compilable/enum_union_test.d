@@ -4,8 +4,8 @@ import core.stdc.stdio;
 
 // 1. Basic Unit & Positional Variants
 enum union Option(T) {
-    case Some(T),
-    case None(),
+    case Some(T);
+    case None();
 }
 
 // 2. Hybrid Union: Bare Types, Records, and Unit Sentinels
@@ -13,7 +13,7 @@ enum union Response {
     case double,                           // Bare type
     case string,                           // Bare type
     case Timeout(),                        // Unit variant
-    case Success { int code; string payload; } // Record variant
+    case Success { int code; string payload; } // Record variant;
 }
 
 // 3. RAII Resource Tracking
@@ -26,14 +26,14 @@ struct Resource {
 }
 
 enum union Managed {
-    case Handle(Resource),
-    case Empty(),
+    case Handle(Resource);
+    case Empty();
 }
 
 // 4. Field access across variants
 enum union Entity {
-    case Player { int id; string name; },
-    case Monster { int id; int hp; },
+    case Player { int id; string name; };
+    case Monster { int id; int hp; };
 }
 
 struct Box(T) {
@@ -45,9 +45,9 @@ struct Struct {
 }
 
 enum union GenericValue {
-    case Box!int,
-    case Struct = .Struct,
-    case Done(),
+    case Box!int;
+    case Struct = .Struct;
+    case Done();
 }
 
 void main() {

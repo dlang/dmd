@@ -7,5 +7,5 @@ fail_compilation/enum_union_unknown_bare_type.d(10): Error: unknown type `Extern
 
 enum union Test
 {
-    case ExternalStruct,
+    case ExternalStruct;
 }

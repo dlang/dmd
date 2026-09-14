@@ -11,7 +11,7 @@ fail_compilation/enum_union_deprecated_message.d(12):        `OldValue` is decla
 
 deprecated("use NewValue") enum union OldValue
 {
-	case None(),
+	case None();
 }
 
 OldValue value;

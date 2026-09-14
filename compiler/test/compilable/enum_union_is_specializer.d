@@ -1,6 +1,6 @@
 enum union Value
 {
-    case None(),
+    case None();
 }
 
 struct Payload {}

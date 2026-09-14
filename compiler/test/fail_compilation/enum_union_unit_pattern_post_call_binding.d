@@ -9,7 +9,7 @@ fail_compilation/enum_union_unit_pattern_post_call_binding.d(17): Error: declara
 
 enum union Value
 {
-    case Unit(),
+    case Unit();
 }
 
 auto value = switch (Value.Unit)

@@ -1,14 +1,14 @@
 enum union Value
 {
-    case Unit(),
-    case Pair(int left, int right),
-    case Record { int value; }
+    case Unit();
+    case Pair(int left, int right);
+    case Record { int value; };
 }
 
 enum union Units
 {
-    case First(),
-    case Second(),
+    case First();
+    case Second();
 }
 
 auto unitPayload(Units value)

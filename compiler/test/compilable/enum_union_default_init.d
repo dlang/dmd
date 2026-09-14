@@ -1,6 +1,6 @@
 enum union Value
 {
-    case Number(int),
+    case Number(int);
 }
 
 void main()

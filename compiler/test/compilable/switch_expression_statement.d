@@ -1,7 +1,7 @@
 enum union Value
 {
-    case Unit(),
-    case Number(int),
+    case Unit();
+    case Number(int);
 }
 
 void consume()

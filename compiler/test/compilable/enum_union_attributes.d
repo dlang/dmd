@@ -4,49 +4,49 @@ enum Marker;
 
 deprecated enum union DeprecatedValue
 {
-    case None(),
+    case None();
 }
 
 deprecated("use ReplacementValue") enum union DeprecatedMessageValue
 {
-    case None(),
+    case None();
 }
 
 align(16) enum union AlignedValue
 {
-    case long,
+    case long;
 }
 
 extern(C) enum union CValue
 {
-    case int,
+    case int;
 }
 
 extern(C++) enum union CppValue
 {
-    case int,
+    case int;
 }
 
 export enum union ExportedValue
 {
-    case int,
+    case int;
 }
 
 package enum union PackageValue
 {
-    case int,
+    case int;
 }
 
 @Marker enum union AnnotatedValue
 {
-    case int,
+    case int;
 }
 
 struct Container
 {
     private align(8) enum union NestedValue
     {
-        case int,
+        case int;
     }
 
     static assert(__traits(getProtection, NestedValue) == "private");
@@ -66,12 +66,12 @@ void acceptAttributes()
 {
     deprecated enum union LocalDeprecatedValue
     {
-        case None(),
+        case None();
     }
 
     align(8) enum union LocalAlignedValue
     {
-        case int,
+        case int;
     }
 
     static assert(__traits(isDeprecated, LocalDeprecatedValue));

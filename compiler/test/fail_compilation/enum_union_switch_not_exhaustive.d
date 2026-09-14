@@ -7,9 +7,9 @@ fail_compilation/enum_union_switch_not_exhaustive.d(17): Error: switch expressio
 
 enum union Shape
 {
-    case Circle(double),
-    case Rectangle(double, double),
-    case Point(),
+    case Circle(double);
+    case Rectangle(double, double);
+    case Point();
 }
 
 string describe(Shape s)

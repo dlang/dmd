@@ -7,8 +7,8 @@ fail_compilation/enum_union_bare_construct_ambiguous_lambda.d(18): Error: `() { 
 
 enum union Funs
 {
-    case void function(),
-    case void delegate(),
+    case void function();
+    case void delegate();
 }
 
 void test()

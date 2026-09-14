@@ -7,8 +7,8 @@ fail_compilation/enum_union_switch_positional_pattern.d(18): Error: pattern for 
 
 enum union E
 {
-    case Pair(int, int),
-    case Done(),
+    case Pair(int, int);
+    case Done();
 }
 
 int test(E value)

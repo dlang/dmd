@@ -11,8 +11,8 @@ fail_compilation/enum_union_shorthand_lambda_no_infer.d(20): Error: template lam
 // parameter type from.
 enum union Funs
 {
-    case int delegate(int),
-    case int function(int),
+    case int delegate(int);
+    case int function(int);
 }
 
 void test()

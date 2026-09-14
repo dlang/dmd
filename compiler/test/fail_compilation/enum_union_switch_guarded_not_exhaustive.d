@@ -7,7 +7,7 @@ fail_compilation/enum_union_switch_guarded_not_exhaustive.d(15): Error: switch e
 
 enum union Shape
 {
-    case Square(int height, int width),
+    case Square(int height, int width);
 }
 
 int describe(Shape shape)

@@ -15,15 +15,14 @@ enum union BareCompoundTypes
 alias None = typeof(null);
 enum union Option(T)
 {
-	case Some(T),
-	case None,
+	case Some(T), None;
 }
 
 enum union Shape
 {
-	case Circle(double),
-	case Rectangle(double, double),
-	case Point(),
+	case Circle(double);
+	case Rectangle(double, double);
+	case Point();
 }
 
 void main()
@@ -88,7 +87,7 @@ void main()
 		case Tuple(int, string),            // returns AliasSeq!(int, string)
 		case Struct { bool b; double d; },  // returns AliasSeq!(bool, double)
 		case int,                           // returns AliasSeq!()
-		case MyStruct = ExternalStruct,     // returns AliasSeq!()
+		case MyStruct = ExternalStruct,     // returns AliasSeq!();
 	}
 
 	static foreach (V; __traits(allVariants, Vals))
@@ -97,8 +96,8 @@ void main()
 
 enum union NamedPatterns
 {
-	case Point(int x, int y),
-	case Square { int height; int width; }
+	case Point(int x, int y);
+	case Square { int height; int width; };
 }
 
 void testNamedArgumentsAndPatterns()
@@ -141,7 +140,7 @@ void testNamedArgumentsAndPatterns()
 
 enum union MatrixShape
 {
-	case Square { bool active; bool filled; }
+	case Square { bool active; bool filled; };
 }
 
 void testPatternMatrixExhaustiveness()
@@ -161,8 +160,8 @@ void testPatternMatrixExhaustiveness()
 // on `return` and when passing arguments to a function parameter.
 enum union Account
 {
-	case User(int, string),
-	case Admin(int, string),
+	case User(int, string);
+	case Admin(int, string);
 }
 
 Account getAccount()
@@ -193,9 +192,9 @@ void testImplicitConversion()
 // construction instead.)
 enum union Val
 {
-	case int,
-	case bool,
-	case double,
+	case int;
+	case bool;
+	case double;
 }
 
 Val makeInt() { return Val(5); }
@@ -230,8 +229,8 @@ void testBareTypes()
 
 enum union NullOption(T)
 {
-	case Some(T),
-	case typeof(null),
+	case Some(T);
+	case typeof(null);
 }
 
 void testNullLikeBareType()
@@ -255,8 +254,8 @@ void testNullLikeBareType()
 // both argument passing and `return`.
 enum union Response2
 {
-	case double,
-	case Success { int code; string payload; }
+	case double;
+	case Success { int code; string payload; };
 }
 
 Response2 makeDouble2() { return 3.14; }
@@ -285,9 +284,9 @@ void testStructVariant()
 // `typeSemantic()` on it first. See dcast.d/expressionsem.d fixes.
 enum union Response
 {
-	case double,
-	case string,
-	case Success { int code; string payload; }
+	case double;
+	case string;
+	case Success { int code; string payload; };
 }
 
 Response makeDouble3() { return 3.14; }
@@ -333,8 +332,8 @@ string classifyShape(Shape s)
 
 enum union GuardVal
 {
-	case double,
-	case string,
+	case double;
+	case string;
 }
 
 string classifyGuardVal(GuardVal v)
@@ -366,24 +365,24 @@ void testGuards()
 // static arrays, and complex/imaginary numerics.
 enum union CompoundTypes
 {
-	case Arr(int[]),
-	case AssocArr(int[string]),
-	case Ptr(int*),
-	case VoidArr(void[]),
-	case VoidPtr(void*),
-	case NoReturnPtr(noreturn*),
-	case NoReturnArr(noreturn[]),
-	case FuncPtr(int function(int)),
-	case Del(int delegate(int)),
-	case Ch(char),
-	case WCh(wchar),
-	case DCh(dchar),
-	case Str(string),
-	case WStr(wstring),
-	case DStr(dstring),
-	case StaticArr(int[4]),
-	case Cplx(Complex!double),
-	case Imag(double),
+	case Arr(int[]);
+	case AssocArr(int[string]);
+	case Ptr(int*);
+	case VoidArr(void[]);
+	case VoidPtr(void*);
+	case NoReturnPtr(noreturn*);
+	case NoReturnArr(noreturn[]);
+	case FuncPtr(int function(int));
+	case Del(int delegate(int));
+	case Ch(char);
+	case WCh(wchar);
+	case DCh(dchar);
+	case Str(string);
+	case WStr(wstring);
+	case DStr(dstring);
+	case StaticArr(int[4]);
+	case Cplx(Complex!double);
+	case Imag(double);
 }
 
 private int addOne(int x) { return x + 1; }
@@ -511,9 +510,9 @@ void testCompoundTypes()
 // delegate context pointer behind.
 enum union Callable
 {
-	case Fn(int function(int)),
-	case Dg(int delegate(int)),
-	case Dg2(int delegate(int)),
+	case Fn(int function(int));
+	case Dg(int delegate(int));
+	case Dg2(int delegate(int));
 }
 
 private int call(Callable c)
@@ -534,8 +533,8 @@ private int makeClosureAndCall(int captured)
 
 enum union Handler
 {
-	case OnClick { int delegate(int) callback; },
-	case OnHover { int delegate(int) callback; },
+	case OnClick { int delegate(int) callback; };
+	case OnHover { int delegate(int) callback; };
 }
 
 private int callHandler(Handler h, int x)
@@ -608,25 +607,25 @@ void testCallables()
 // mis-parsed as a named unit variant called e.g. `noreturn`.
 enum union BareCompoundTypes
 {
-	case int[],
-	case int[string],
-	case int*,
-	case void[],
-	case void*,
-	case noreturn*,
-	case noreturn[],
-	case int function(int),
-	case int delegate(int),
-	case char,
-	case wchar,
-	case dchar,
-	case string,
-	case wstring,
-	case dstring,
-	case int[4],
-	case cdouble,
-	case idouble,
-	case double,
+	case int[];
+	case int[string];
+	case int*;
+	case void[];
+	case void*;
+	case noreturn*;
+	case noreturn[];
+	case int function(int);
+	case int delegate(int);
+	case char;
+	case wchar;
+	case dchar;
+	case string;
+	case wstring;
+	case dstring;
+	case int[4];
+	case cdouble;
+	case idouble;
+	case double;
 }
 
 void testBareCompoundTypes()
@@ -685,8 +684,8 @@ void testBareCompoundTypes()
 // never introduce cross-variant ambiguity the way numeric widening would).
 enum union Funs
 {
-	case int function(int),
-	case int delegate(int),
+	case int function(int);
+	case int delegate(int);
 }
 
 void testBareCallables()
@@ -720,8 +719,8 @@ void testBareCallables()
 // alongside user-declared members.
 enum union ShapeWithMethods
 {
-	case Circle(double),
-	case Rectangle(double, double),
+	case Circle(double);
+	case Rectangle(double, double);
 	case Point();
 
 	double area()
@@ -772,9 +771,9 @@ void testMemberFunctions()
 // `default` for the rest is exhaustive and non-redundant.
 enum union Traffic
 {
-	case Red(),
-	case Yellow(),
-	case Green(),
+	case Red();
+	case Yellow();
+	case Green();
 }
 
 string classifyTraffic(Traffic t)
@@ -789,8 +788,8 @@ string classifyTraffic(Traffic t)
 
 enum union Level
 {
-	case double,
-	case string,
+	case double;
+	case string;
 }
 
 string classifyLevel(Level v)
@@ -828,8 +827,8 @@ struct CopyablePayload
 
 enum union WithCopyable
 {
-	case Wrapped(CopyablePayload),
-	case Flag(bool),
+	case Wrapped(CopyablePayload);
+	case Flag(bool);
 }
 
 void testLifecycleCopyableVariant()
