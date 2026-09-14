@@ -713,6 +713,10 @@ class Lexer
                                 t.loc = loc();
                                 t.value = TOK.endOfFile;
                                 return;
+                            case '"':
+                            case '\'':
+                                skipQuotedInComment(c);
+                                continue;
                             default:
                                 if (c & 0x80)
                                 {
@@ -849,6 +853,10 @@ class Lexer
                                 t.loc = loc();
                                 t.value = TOK.endOfFile;
                                 return;
+                            case '"':
+                            case '\'':
+                                skipQuotedInComment(c);
+                                continue;
                             default:
                                 if (c & 0x80)
                                 {
@@ -2099,6 +2107,30 @@ class Lexer
             // nothing special
             return false;
         }
+    }
+
+    /**
+     * Skip a same-line quoted string inside a comment so a delimiter
+     * inside it isn't mistaken for the comment's closing delimiter.
+     * Returns: true if a closing quote was found on the same line
+     */
+    private bool skipQuotedInComment(dchar quote)
+    {
+        const start = p;
+        p++;
+        while (*p != 0 && *p != 0x1A && *p != '\n')
+        {
+            if (*p == quote)
+            {
+                p++;
+                return true;
+            }
+            if (*p == '\\' && p[1] != 0 && p[1] != '\n')
+                p++;
+            p++;
+        }
+        p = start + 1;
+        return false;
     }
 
     /**
