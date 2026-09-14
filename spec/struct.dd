@@ -357,9 +357,9 @@ $(H2 $(LNAME2 initialization, Initialization))
 
 $(H3 $(LNAME2 default_struct_init, Default Initialization of Structs))
 
-        $(P Struct fields are by default initialized to whatever the
-        $(GLINK2 declaration, Initializer) for the field is, and if none is supplied, to
-        the $(DDSUBLINK spec/property, init, default initializer) for the field's type.
+        $(P By default, a struct field is initialized to its
+        $(GLINK2 declaration, Initializer) if one is supplied, otherwise the field is
+        $(DDSUBLINK spec/property, init, default initialized).
         )
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -369,7 +369,10 @@ $(H3 $(LNAME2 default_struct_init, Default Initialization of Structs))
         ---
         )
 
-        $(P The default initializers are evaluated at compile time.)
+        $(P Field *Initializer*s are evaluated at compile time.)
+
+        $(P For a nested struct, the context pointer is
+        $(DDSUBLINK spec/property, init-vs-construction, default initialized).)
 
 $(H3 $(LNAME2 static_struct_init, Static Initialization of Structs))
 
@@ -1018,20 +1021,18 @@ $(H4 $(LNAME2 pure-constructors, Pure Constructors))
 
 
 
-$(H3 $(LNAME2 disable_default_construction, Disabling Default Struct Construction))
+$(H3 $(LNAME2 disable_default_construction, Disabling Default Initialization))
 
-        $(P If a struct constructor is annotated with $(D @disable) and has
-        an empty $(GLINK2 function, ParameterList), the struct has disabled default construction.
+        $(P If a struct constructor is annotated with $(DDSUBLINK spec/attribute, disable, `@disable`) and has
+        an empty $(GLINK2 function, ParameterList), the struct has disabled default initialization.
         The only way it can be constructed is via a call to another constructor with a non-empty
         $(I ParameterList).
-        )
-
-        $(P A struct with a disabled default constructor, and no other constructors, cannot
+        If there are no other valid constructors, it cannot
         be instantiated other than via a $(GLINK2 declaration, VoidInitializer).)
 
-        $(P A disabled default constructor may not have a $(GLINK2 function, FunctionBody).)
+        $(P A disabled constructor may not have a $(GLINK2 function, FunctionBody).)
 
-        $(P If any fields have disabled default construction, struct default construction is
+        $(P If any fields have disabled default initialization, struct default initialization is
         also disabled.)
 
         $(SPEC_RUNNABLE_EXAMPLE_FAIL
@@ -1040,7 +1041,7 @@ $(H3 $(LNAME2 disable_default_construction, Disabling Default Struct Constructio
         {
             int x;
 
-            // Disables default construction
+            // Disables default initialization
             @disable this();
 
             this(int v) { x = v; }
@@ -1052,20 +1053,20 @@ $(H3 $(LNAME2 disable_default_construction, Disabling Default Struct Constructio
         }
         void main()
         {
-            S s;          // error: default construction is disabled
+            S s;          // error: default initialization is disabled
             S t = S();    // error: also disabled
             S u = S(1);   // constructed by calling `S.this(1)`
             S v = void;   // not initialized, but allowed
             S w = { 1 };  // error: cannot use { } since constructor exists
-            S[3] a;       // error: default construction is disabled
+            S[3] a;       // error: default initialization is disabled
             S[3] b = [S(1), S(20), S(-2)]; // ok
-            T t;          // error: default construction is disabled
+            T t;          // error: default initialization is disabled
         }
         ---
         )
 
-        $(BEST_PRACTICE Disabling default construction is useful when the default value,
-        such as `null`, is not acceptable.)
+        $(BEST_PRACTICE Disabling default initialization is useful when the default value
+        of a field, such as `null`, is not acceptable.)
 
 
 $(H3 $(LNAME2 field-init, Field initialization inside a constructor))
@@ -2743,12 +2744,12 @@ void main()
 
 $(H2 $(LNAME2 nested, Nested Structs))
 
-    $(P A struct is a $(I nested struct) if)
+    $(P A struct is a $(I nested struct) if:)
 
         $(OL
         $(LI it is declared inside the scope of a function, or)
         $(LI it is a templated struct with one or more template arguments
-             that alias local functions.)
+             which alias a local function's stack data.)
         )
 
     $(P A nested struct can have member functions.
@@ -2793,7 +2794,7 @@ $(H2 $(LNAME2 nested, Nested Structs))
         )
 
     $(P $(B Warning): For nested structs, $(DDSUBLINK spec/property, init-vs-construction,
-        `.init` is not the same as default construction).)
+        `.init` is not the same as default initialization).)
 
 
 $(SPEC_SUBNAV_PREV_NEXT hash-map, Associative Arrays, class, Classes)
