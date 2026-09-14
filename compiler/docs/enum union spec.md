@@ -15,10 +15,7 @@ EnumUnionDeclaration:
     "enum" "union" [Identifier] "{" EnumUnionMemberList "}"
 
 EnumUnionMemberList:
-    EnumUnionCaseDeclaration* [MemberDeclarationList]
-
-EnumUnionCaseDeclaration:
-    "case" EnumUnionMember ("," EnumUnionMember)* ";"
+    EnumUnionMember ("," EnumUnionMember)* ","? [";" MemberDeclarationList]
 
 EnumUnionMember:
     "case" Identifier
@@ -28,7 +25,7 @@ EnumUnionMember:
   | "case" Type
 ```
 
-Every case declaration is terminated by `;`. A declaration may contain a comma-separated list of variants after a single `case` keyword, or a single variant per `case` declaration. `case` is required for the first variant of every declaration, including bare types and unit cases.
+The declaration is parsed in the current frontend as a `case`-prefixed variant list. `case` is required for every variant form, including bare types and unit cases.
 
 ### 2. Variant forms
 
@@ -39,7 +36,9 @@ A unit variant carries no payload and is represented by a distinct tag value.
 ```d
 enum union Traffic
 {
-    case Red, Yellow, Green;
+    case Red,
+    case Yellow,
+    case Green,
 }
 ```
 
@@ -52,9 +51,9 @@ A positional variant holds a payload created from the specified parameter list.
 ```d
 enum union Shape
 {
-    case Circle(double);
-    case Rectangle(double, double);
-    case Point;
+    case Circle(double),
+    case Rectangle(double, double),
+    case Point,
 }
 ```
 
@@ -67,8 +66,8 @@ A record variant stores a synthesized nested payload struct.
 ```d
 enum union Response
 {
-    case Success { int code; string payload; };
-    case Timeout;
+    case Success { int code; string payload; },
+    case Timeout,
 }
 ```
 
@@ -80,8 +79,8 @@ a bare-type variant:
 enum union Response
 {
     struct Success { int code; string payload; }
-    case Success;
-    case Timeout;
+    case Success,
+    case Timeout,
 }
 ```
 
@@ -95,7 +94,7 @@ the variant payload:
 ```d
 enum union Value
 {
-    case Bytes = ubyte[];
+    case Bytes = ubyte[],
 }
 ```
 
@@ -109,9 +108,9 @@ A bare-type variant is a single type, not a variant name.
 ```d
 enum union Value
 {
-    case int;
-    case double;
-    case string;
+    case int,
+    case double,
+    case string,
 }
 ```
 
@@ -126,14 +125,14 @@ alias None = typeof(null);
 
 enum union Option(T)
 {
-    case Some(T);
-    case None;
+    case Some(T),
+    case None,
 }
 
 enum union NullOption(T)
 {
-    case Some(T);
-    case typeof(null);
+    case Some(T),
+    case typeof(null),
 }
 ```
 
@@ -194,9 +193,9 @@ For example:
 ```d
 enum union Shape
 {
-    case Circle(double);
-    case Rectangle(double, double);
-    case Point;
+    case Circle(double),
+    case Rectangle(double, double),
+    case Point,
 }
 ```
 
@@ -301,8 +300,8 @@ After the variant list, an enum union may continue with member declarations afte
 ```d
 enum union ShapeWithMethods
 {
-    case Circle(double);
-    case Rectangle(double, double);
+    case Circle(double),
+    case Rectangle(double, double),
     case Point;
 
     double area()
