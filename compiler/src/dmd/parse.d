@@ -397,11 +397,20 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     const loc = token.loc;
                     nextToken();
                     AST.EnumUnionVariant variant;
-                    variant.payload ~= parseType();
-                    if (!variant.payload.length)
+                    if (token.value == TOK.traits)
                     {
-                        error(loc, "enum union variant type expected");
-                        break;
+                        variant.variantSplice = cast(AST.TraitsExp) parsePrimaryExp();
+                        if (!variant.variantSplice || variant.variantSplice.ident != Id.variantDeclarationOf)
+                            error(loc, "`__traits(variantDeclarationOf, ...)` expected");
+                    }
+                    else
+                    {
+                        variant.payload ~= parseType();
+                        if (!variant.payload.length)
+                        {
+                            error(loc, "enum union variant type expected");
+                            break;
+                        }
                     }
                     check(TOK.semicolon);
                     s = new AST.EnumUnionCaseDeclaration(loc, variant);
@@ -3426,7 +3435,16 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (token.value == TOK.case_)
                 {
                     nextToken();
-                    if (token.value == TOK.identifier)
+                    if (token.value == TOK.traits)
+                    {
+                        variant.variantSplice = cast(AST.TraitsExp) parsePrimaryExp();
+                        if (!variant.variantSplice || variant.variantSplice.ident != Id.variantDeclarationOf)
+                            error(variantLoc, "`__traits(variantDeclarationOf, ...)` expected");
+                        check(TOK.semicolon);
+                        eu.variants ~= variant;
+                        continue;
+                    }
+                    else if (token.value == TOK.identifier)
                     {
                         if (peekNext() == TOK.assign)
                         {

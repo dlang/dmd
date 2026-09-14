@@ -460,6 +460,8 @@ immutable Msgtable[] msgtable =
     { "getAliasThis" },
     { "getAttributes" },
     { "getTag" },
+    { "hasVariant" },
+    { "getVariant" },
     { "getFunctionAttributes" },
     { "getFunctionVariadicStyle" },
     { "getParameterStorageClasses" },
@@ -479,8 +481,10 @@ immutable Msgtable[] msgtable =
     { "isCopyable" },
     { "toType" },
     { "parameters" },
-    { "variantConstructorParams" },
+    { "variantParams" },
+    { "variantParamNames" },
     { "variantKind" },
+    { "variantDeclarationOf" },
     { "needsDestruction" },
 
     // For C++ mangling

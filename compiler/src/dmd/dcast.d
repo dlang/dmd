@@ -172,7 +172,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
                 auto payloadType = recordDeclaration ? recordDeclaration.type
                     : variant.payloadType && variant.payloadType.fields.length
                     ? variant.payloadType.fields[0].type : variant.payload.length ? variant.payload[0] : null;
-                if ((!variant.ident || variant.isTypeAlias || recordDeclaration) &&
+                if ((!variant.ident || recordDeclaration) &&
                     (recordDeclaration || variant.payload.length == 1) && payloadType)
                 {
                     const match = e.implicitConvTo(payloadType);
@@ -1669,7 +1669,7 @@ MATCH implicitConvTo(Type from, Type to)
                 const requiredMatch = payloadType && payloadType.isFunction_Delegate_PtrToFunction() &&
                     from.isFunction_Delegate_PtrToFunction()
                     ? MATCH.convert : MATCH.exact;
-                if ((!variant.ident || variant.isTypeAlias || recordDeclaration) &&
+                if ((!variant.ident || recordDeclaration) &&
                     (recordDeclaration || variant.payload.length == 1) && payloadType &&
                     from.implicitConvTo(payloadType) >= requiredMatch)
                     return MATCH.convert;

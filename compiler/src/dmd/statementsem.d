@@ -4709,7 +4709,9 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                 {
                     if (isStatic || tb.ty == Tfunction || storageClass & STC.alias_)
                     {
-                        if (auto ve = e.isVarExp())
+                        if (auto de = e.isDsymbolExp())
+                            ds = de.s;
+                        else if (auto ve = e.isVarExp())
                             ds = ve.var;
                         else if (auto dve = e.isDotVarExp())
                             ds = dve.var;

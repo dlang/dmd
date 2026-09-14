@@ -5549,7 +5549,15 @@ bool TemplateInstance_semanticTiargs(Loc loc, Scope* sc, Objects* tiargs, int fl
                 ea = ea.expressionSemantic(sc);
                 sc = sc.endCTFE();
 
-                if (auto varExp = ea.isVarExp())
+                if (auto symbolExp = ea.isDsymbolExp())
+                {
+                    if (symbolExp.preserveSymbol)
+                    {
+                        sa = symbolExp.s;
+                        goto Ldsym;
+                    }
+                }
+                else if (auto varExp = ea.isVarExp())
                 {
                     /* If the parameter is a function that is not called
                      * explicitly, i.e. `foo!func` as opposed to `foo!func()`,
