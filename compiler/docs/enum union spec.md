@@ -167,7 +167,10 @@ Enum unions support these reflection operations:
 - `is(T == enum union)` identifies an enum-union type.
 - `__traits(allVariants, T)` returns the variants in declaration order.
 - `__traits(getTag, T, V)` returns the discriminator value for `V`.
-- `__traits(variantConstructorParams, V)` returns the variant's constructor parameter types.
+- `__traits(variantParams, V)` returns the declared parameter or field types
+    for tuple and inline struct variants, and an empty tuple for other variant kinds.
+- `__traits(variantParamNames, V)` returns the corresponding parameter or field
+    names as strings, and an empty tuple for other variant kinds.
 - `__traits(variantKind, V)` returns `"unit"`, `"tuple"`, `"struct"`, `"alias"`, or `"bare"`.
 
 The argument `V` is a variant element produced by `__traits(allVariants, T)`.
