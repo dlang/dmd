@@ -2620,7 +2620,8 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
         auto functionType = new TypeFunction(ParameterList(parameters), eu.type, LINK.d, stc);
         auto fd = new FuncDeclaration(eu.loc, eu.loc, variant.ident, STC.static_, functionType);
         fd.isGenerated = true;
-        auto result = new VarDeclaration(eu.loc, eu.type, Identifier.generateId("__enumResult"), null);
+        auto result = new VarDeclaration(eu.loc, eu.type, Identifier.generateId("__enumResult"),
+            new VoidInitializer(eu.loc));
         Statements statements;
         statements.push(new ExpStatement(eu.loc, result));
         auto tagExp = new DotVarExp(eu.loc, new VarExp(eu.loc, result), tag);
