@@ -7,7 +7,7 @@ fail_compilation/enum_union_constructor_read_this_partial_init.d(18): Error: can
 
 enum union Pointers
 {
-    case int*,
+    case int*;
     case bool*;
 
     this(typeof(null) value, bool selectInt)

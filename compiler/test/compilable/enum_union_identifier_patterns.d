@@ -4,15 +4,15 @@ struct S {}
 
 enum union Bare
 {
-    case C1,
-    case C2,
-    case S,
+    case C1;
+    case C2;
+    case S;
 }
 
 enum union Named
 {
-    case Unit(),
-    case Tuple(int),
+    case Unit();
+    case Tuple(int);
 }
 
 string classifyBare(Bare value)

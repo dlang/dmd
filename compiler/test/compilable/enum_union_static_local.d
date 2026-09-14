@@ -2,7 +2,7 @@ void main()
 {
     static enum union Value
     {
-        case int,
+        case int;
         case string;
     }
 

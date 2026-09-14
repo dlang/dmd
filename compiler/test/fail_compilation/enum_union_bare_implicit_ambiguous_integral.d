@@ -10,8 +10,8 @@ fail_compilation/enum_union_bare_implicit_ambiguous_integral.d(11):     `enum_un
 
 enum union Integral
 {
-    case short,
-    case ushort,
+    case short;
+    case ushort;
 }
 
 void main()

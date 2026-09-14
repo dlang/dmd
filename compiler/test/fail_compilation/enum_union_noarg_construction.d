@@ -7,7 +7,7 @@ fail_compilation/enum_union_noarg_construction.d(13): Error: enum union `enum_un
 
 enum union Value
 {
-    case Number(int),
+    case Number(int);
 }
 
 auto value = Value();

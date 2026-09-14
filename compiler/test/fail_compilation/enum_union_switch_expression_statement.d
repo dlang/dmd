@@ -9,7 +9,7 @@ fail_compilation/enum_union_switch_expression_statement.d(16):        unmatched 
 
 enum union Test
 {
-    case Variant(),
+    case Variant();
 }
 
 void main()

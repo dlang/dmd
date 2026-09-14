@@ -7,8 +7,8 @@ fail_compilation/enum_union_bare_construct_ambiguous_array.d(16): Error: `[]` is
 
 enum union Arrs
 {
-    case int[],
-    case void[],
+    case int[];
+    case void[];
 }
 
 void test()

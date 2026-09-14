@@ -4,13 +4,13 @@ template AliasSeq(T...) { alias AliasSeq = T; }
 
 enum union Shape
 {
-    case None(),
-    case MoveTo(double, double),
-    case Circle(double x, double y, double radius),
-    case Arc(double, double, double radius),
-    case User { int id; string name; },
-    case int,
-    case Slice = ubyte[],
+    case None();
+    case MoveTo(double, double);
+    case Circle(double x, double y, double radius);
+    case Arc(double, double, double radius);
+    case User { int id; string name; };
+    case int;
+    case Slice = ubyte[];
 }
 
 void main()

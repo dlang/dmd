@@ -2,11 +2,11 @@ module enum_union_conversion_ranking;
 
 enum union ConfigValue
 {
-    case bool,
-    case long,
-    case double,
-    case string,
-    case string[],
+    case bool;
+    case long;
+    case double;
+    case string;
+    case string[];
 }
 
 struct Empty
@@ -15,8 +15,8 @@ struct Empty
 
 enum union WithUnitVariant
 {
-    case None(),
-    case int,
+    case None();
+    case int;
 }
 
 void main()

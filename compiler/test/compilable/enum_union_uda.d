@@ -1,12 +1,12 @@
 enum union Tag
 {
-    case Number(int),
+    case Number(int);
     case Empty();
 }
 
 enum union BareTag
 {
-    case int,
+    case int;
     case bool;
 }
 
