@@ -588,7 +588,8 @@ alias dmdPGO = makeRule!((builder, rule) {
         .deps([genDmdData])
         .commandFunction({
             // Run dmd test suite to get data
-            scope cmd = ["ldc-profdata", "merge", "--output=merged.data"];
+            const ldcProfdataPath = buildPath(env["HOST_DMD_RUN"].dirName, "ldc-profdata");
+            scope cmd = [ldcProfdataPath, "merge", "--output=merged.data"];
             import std.file : dirEntries;
             auto files = dirEntries(pgoState.pgoDataPath, "*.raw", SpanMode.shallow).map!(f => f.name);
 
