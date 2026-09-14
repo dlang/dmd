@@ -7,8 +7,8 @@ fail_compilation/enum_union_switch_unexpected_null_pattern.d(18): Error: switch 
 
 enum union Pointers
 {
-    case int*,
-    case bool*,
+    case int*;
+    case bool*;
 }
 
 string classify(Pointers pointers)

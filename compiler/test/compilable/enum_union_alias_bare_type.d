@@ -3,8 +3,8 @@ class C2 : C1 {}
 
 enum union Pointers
 {
-    case First = C1,
-    case Second = C2,
+    case First = C1;
+    case Second = C2;
 }
 
 string classify(Pointers value)

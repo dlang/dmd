@@ -1,7 +1,7 @@
 enum union Pointers
 {
-    case int*,
-    case bool*,
+    case int*;
+    case bool*;
 }
 
 int classify(Pointers pointers)

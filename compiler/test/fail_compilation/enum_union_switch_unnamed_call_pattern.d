@@ -7,7 +7,7 @@ fail_compilation/enum_union_switch_unnamed_call_pattern.d(17): Error: switch exp
 
 enum union Value
 {
-    case int,
+    case int;
 }
 
 int classify(Value value)

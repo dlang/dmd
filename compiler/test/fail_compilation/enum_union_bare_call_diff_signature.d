@@ -13,8 +13,8 @@ fail_compilation/enum_union_bare_call_diff_signature.d(23): Error: enum union `F
 // against.
 enum union Funs
 {
-    case int function(int),
-    case void delegate(string),
+    case int function(int);
+    case void delegate(string);
 }
 
 void test()

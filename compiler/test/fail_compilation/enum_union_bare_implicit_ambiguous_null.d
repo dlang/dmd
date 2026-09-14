@@ -10,8 +10,8 @@ fail_compilation/enum_union_bare_implicit_ambiguous_null.d(11):     `enum_union_
 
 enum union Pointers
 {
-    case int*,
-    case bool*,
+    case int*;
+    case bool*;
 }
 
 void main()

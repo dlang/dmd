@@ -7,7 +7,7 @@ fail_compilation/enum_union_switch_duplicate_default.d(19): Error: duplicate `de
 
 enum union E
 {
-    case A(),
+    case A();
 }
 
 int test(E value)

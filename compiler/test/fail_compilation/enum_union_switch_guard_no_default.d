@@ -7,8 +7,8 @@ fail_compilation/enum_union_switch_guard_no_default.d(16): Error: switch express
 
 enum union Shape
 {
-    case Circle(double),
-    case Point(),
+    case Circle(double);
+    case Point();
 }
 
 string missingDefault(Shape s)

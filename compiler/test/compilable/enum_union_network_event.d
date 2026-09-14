@@ -11,11 +11,11 @@ enum union NetworkEvent
     case ubyte[],                // Unparsed raw payload buffer
 
     // Unit variants
-    case Disconnected(),
-    case Heartbeat(),
+    case Disconnected();
+    case Heartbeat();
 
     // Positional (tuple-like) variants
-    case Ping(ulong timestamp, ushort sequenceId),
+    case Ping(ulong timestamp, ushort sequenceId);
 
     // Named record variants
     case HttpRequest { string method; string path; ushort statusCode; };

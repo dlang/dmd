@@ -9,5 +9,5 @@ class C1 {}
 
 enum union Pointers
 {
-    case C1 = C1,
+    case C1 = C1;
 }

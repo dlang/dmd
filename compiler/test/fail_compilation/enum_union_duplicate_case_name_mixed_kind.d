@@ -9,6 +9,6 @@ fail_compilation/enum_union_duplicate_case_name_mixed_kind.d(10): Error: duplica
 // is also rejected.
 enum union Test5
 {
-    case Variant1 { int id; },
-    case Variant1(int),
+    case Variant1 { int id; };
+    case Variant1(int);
 }

@@ -10,8 +10,8 @@ fail_compilation/enum_union_bare_call_same_signature.d(20): Error: enum union `F
 // callable variants share the same signature.
 enum union Funs
 {
-    case int function(int),
-    case int delegate(int),
+    case int function(int);
+    case int delegate(int);
 }
 
 void test()

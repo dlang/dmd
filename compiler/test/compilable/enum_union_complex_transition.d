@@ -10,6 +10,6 @@ compilable/enum_union_complex_transition.d(11): Deprecation: use of imaginary ty
 
 enum union Values
 {
-    case cdouble,
+    case cdouble;
     case idouble;
 }

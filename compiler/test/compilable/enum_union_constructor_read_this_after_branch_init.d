@@ -1,6 +1,6 @@
 enum union Pointers
 {
-    case int*,
+    case int*;
     case bool*;
 
     this(typeof(null) value, bool selectInt)

@@ -7,8 +7,8 @@ fail_compilation/switch_expression_statement_no_effect.d(16): Error: switch expr
 
 enum union Value
 {
-    case Unit(),
-    case Number(int),
+    case Unit();
+    case Number(int);
 }
 
 void main()
