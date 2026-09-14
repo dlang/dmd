@@ -913,6 +913,7 @@ struct ASTBase
         Type[] payload;
         Identifier[] payloadNames;
         Dsymbols* members;
+        TraitsExp variantSplice;
     }
 
     extern (C++) final class EnumUnionCaseDeclaration : Declaration

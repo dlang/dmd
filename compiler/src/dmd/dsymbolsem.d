@@ -2091,6 +2091,126 @@ private void checkImportDeprecation(Module m, Loc loc, Scope* sc)
     eSink.deprecation(m.loc, "%s `%s` is deprecated", m.kind, m.toPrettyChars);
 }
 
+private bool expandEnumUnionVariantSplice(ref EnumUnionVariant splice, Scope* sc,
+    out EnumUnionVariant expanded)
+{
+    auto eSink = global.errorSink;
+    auto trait = splice.variantSplice;
+    const dim = trait.args ? trait.args.length : 0;
+    if (dim < 1 || dim > 2)
+    {
+        eSink.error(trait.loc, "expected 1 or 2 arguments for `%s` but had %d",
+            trait.ident.toErrMsg(), cast(int) dim);
+        return false;
+    }
+
+    Identifier overrideName;
+    if (dim == 2)
+    {
+        auto renameExpression = isExpression((*trait.args)[1]);
+        auto rename = renameExpression
+            ? semanticString(sc, renameExpression, "variant name in `__traits(variantDeclarationOf)`")
+            : null;
+        if (!rename)
+            return false;
+        auto name = rename.toUTF8(sc).peekString();
+        if (name.length)
+        {
+            if (!Identifier.isValidIdentifier(name))
+            {
+                eSink.error(trait.loc,
+                    "`%.*s` is not a valid identifier token for variant declaration in `__traits(variantDeclarationOf)`",
+                    cast(int) name.length, name.ptr);
+                return false;
+            }
+            overrideName = Identifier.idPool(name);
+            const token = cast(TOK) overrideName.getValue();
+            if (token != TOK.identifier && token < FirstCKeyword)
+            {
+                eSink.error(trait.loc,
+                    "cannot use reserved keyword `%s` as a variant identifier in `__traits(variantDeclarationOf)`",
+                    overrideName.toErrMsg());
+                return false;
+            }
+        }
+    }
+
+    auto sourceObject = (*trait.args)[0];
+    EnumUnionDeclaration sourceEnum;
+    if (auto sourceTrait = isExpression(sourceObject)
+            ? isExpression(sourceObject).isTraitsExp() : null)
+    {
+        if (sourceTrait.ident == Id.getVariant && sourceTrait.args && sourceTrait.args.length == 2)
+        {
+            Objects enumArgument;
+            enumArgument.push((*sourceTrait.args)[0]);
+            if (!TemplateInstance_semanticTiargs(sourceTrait.loc, sc, &enumArgument, 0))
+                return false;
+            auto enumType = dmd.dtemplate.getType(enumArgument[0]);
+            auto structType = enumType ? enumType.toBasetype().isTypeStruct() : null;
+            sourceEnum = structType ? structType.sym.isEnumUnionDeclaration() : null;
+        }
+    }
+
+    Objects sourceArgument;
+    sourceArgument.push(sourceObject);
+    if (!TemplateInstance_semanticTiargs(trait.loc, sc, &sourceArgument, 0))
+        return false;
+    sourceObject = sourceArgument[0];
+    auto sourceSymbol = dmd.expressionsem.getDsymbol(sourceObject);
+    if (!sourceEnum && sourceSymbol)
+        sourceEnum = sourceSymbol.toParent2().isEnumUnionDeclaration();
+    if (!sourceEnum)
+    {
+        eSink.error(trait.loc, "argument `%s` is not an enum union variant",
+            sourceObject.toErrMsg());
+        return false;
+    }
+
+    auto sourceType = dmd.dtemplate.getType(sourceObject);
+    EnumUnionVariant* sourceVariant;
+    foreach (ref variant; sourceEnum.variants)
+    {
+        bool matches;
+        if (variant.declaration && sourceSymbol)
+            matches = variant.declaration == sourceSymbol;
+        else if (variant.ident && sourceSymbol)
+        {
+            auto factory = sourceSymbol.isFuncDeclaration();
+            matches = factory && factory.isGenerated && factory.ident == variant.ident &&
+                factory.toParent2() == sourceEnum;
+        }
+        else if (!variant.ident && sourceType)
+        {
+            auto payloadType = variant.payloadType && variant.payloadType.fields.length
+                ? variant.payloadType.fields[0].type
+                : variant.payload.length == 1 ? variant.payload[0] : null;
+            matches = payloadType && payloadType.toBasetype().equals(sourceType.toBasetype());
+        }
+        if (matches)
+        {
+            sourceVariant = &variant;
+            break;
+        }
+    }
+    if (!sourceVariant)
+    {
+        eSink.error(trait.loc, "argument `%s` is not an enum union variant",
+            sourceObject.toErrMsg());
+        return false;
+    }
+
+    expanded = syntaxCopyEnumUnionVariant(*sourceVariant);
+    expanded.loc = splice.loc;
+    if (overrideName)
+    {
+        expanded.ident = overrideName;
+        if (!sourceVariant.ident)
+            expanded.isTypeAlias = true;
+    }
+    return true;
+}
+
 private void collectEnumUnionCases(Dsymbols* symbols, Scope* sc,
     ref EnumUnionVariant[] variants, Dsymbols* retained, Type forcedPayload = null,
     bool discardLoopBindings = false)
@@ -2105,6 +2225,13 @@ private void collectEnumUnionCases(Dsymbols* symbols, Scope* sc,
         {
             auto caseDecl = cast(EnumUnionCaseDeclaration)d;
             auto variant = caseDecl.variant;
+            if (variant.variantSplice)
+            {
+                EnumUnionVariant expanded;
+                if (expandEnumUnionVariantSplice(variant, sc, expanded))
+                    variants ~= expanded;
+                continue;
+            }
             variant.payload = variant.payload.dup;
             if (variant.payload.length)
             {
@@ -5596,6 +5723,19 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (!eu.enumUnionCasesExpanded)
             {
                 eu.enumUnionCasesExpanded = true;
+                EnumUnionVariant[] expandedVariants;
+                foreach (ref variant; eu.variants)
+                {
+                    if (!variant.variantSplice)
+                    {
+                        expandedVariants ~= variant;
+                        continue;
+                    }
+                    EnumUnionVariant expanded;
+                    if (expandEnumUnionVariantSplice(variant, sc2, expanded))
+                        expandedVariants ~= expanded;
+                }
+                eu.variants = expandedVariants;
                 auto originalMembers = eu.members;
                 auto compileTimeMembers = new Dsymbols();
                 foreach (i, member; *originalMembers)
