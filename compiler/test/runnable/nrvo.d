@@ -104,7 +104,7 @@ void test3()
     closure();
     s3.check();
     assert(i3 == 3);
-/*
+
     struct S3A
     {
         int a;
@@ -121,7 +121,6 @@ void test3()
     }
 
     f3().b.check();
-*/
 }
 
 /***************************************************/
