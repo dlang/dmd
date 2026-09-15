@@ -2176,6 +2176,10 @@ struct ExpressionWalker
                             }
 
                             DFAVar* var = dfaCommon.findVariable(vd);
+
+                            if (var !is null)
+                                var = var.resolveReference();
+
                             var.mayBeGlobal = !var.isStackVar;
 
                             if (var !is null)
@@ -2765,6 +2769,14 @@ struct ExpressionWalker
         if (assign)
         {
             rhsCctx.pa = pa;
+
+            // `lhs ~= rhs` lowers to `object._d_arrayappendT(lhs, rhs)`, which
+            //  copies rhs into lhs's (possibly reallocated) buffer. It does not
+            //  alias rhs, so the operand object must never be propagated to the
+            //  lhs. Otherwise a `scope` rhs would look like it was stored into
+            //  lhs, producing a false escape/lifetime error.
+            rhsCctx.obj = lhsCctx.obj;
+
             ret = this.seeAssign(lhs, false, rhs, be.loc, false,
                     nullableResult == 1 || nullableResult == 2 ? 3 : 0);
         }
@@ -2806,7 +2818,11 @@ struct ExpressionWalker
         {
             DFAVar* var = dfaCommon.findVariable(vd);
             if (var !is null)
+            {
+                // If this is a `ref` alias, the aliased variable is what escapes.
+                var = var.resolveReference();
                 var.markUnmodellable();
+            }
         }
 
         void perExpr(Expression expr)

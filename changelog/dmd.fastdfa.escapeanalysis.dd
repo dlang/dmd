@@ -31,3 +31,6 @@ No attributes have been added at this time for users to use, you must rely solel
 
 Experimentally it may promote stack variables that are typed as a class to the stack automatically.
 This may be disabled in the future if it is shown to cause problems.
+
+Like DIP1000, the fast DFA engine will error if you escape stack memory in a `@safe` function to a global.
+Allowing taking a pointer to stack memory has been enabled with ``-preview=fastdfa`` set.

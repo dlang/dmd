@@ -140,8 +140,11 @@ struct DFAReporter
                 // intoVar is a known location, so it won't be a global.
                 // If we have returned, then we also consider the return value.
 
+                // If its a global var is non-null and our oldest lifetime allowed will be zero.
+
                 if (intoVar is returnVar || (intoVar.var !is null
-                        && intoVar.oldestLifeTimeAllowedDepth > 0))
+                        && (intoVar.oldestLifeTimeAllowedDepth > 0
+                        || fd.type.isTypeFunction.trust == TRUST.safe)))
                 {
                     // We're going into a stack variable, lets make sure any object we're putting into it as <= for other stack variables.
 
