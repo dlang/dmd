@@ -98,11 +98,6 @@ dmd-unittest: $(BUILD_EXE)
 dmd-test: dmd-unittest dmd druntime phobos $(RUN_EXE)
 	$(RUN_EXE) --environment
 
-# The PGO profile generated in build.d is based on running the compiler/test/compilable/ test suite (a subset of the `dmd-test` target above).
-# Running that with a fresh PGO-instrumented compiler requires prebuilt druntime and phobos (not handled in build.d).
-dmd-pgo: phobos
-	$(BUILD_CMD) $@ --force
-
 druntime: dmd
 	$(QUIET)$(MAKE) -C druntime
 
@@ -149,6 +144,29 @@ check-clean-git:
 
 style: $(BUILD_EXE)
 	$(BUILD_CMD) $@
+
+# PGO+LTO'd compiler
+ifeq (,$(findstring ldmd2,$(notdir $(HOST_DMD))))
+dmd-pgo:
+	@echo "Error: dmd-pgo currently requires an ldmd2 host compiler, not $(notdir $(HOST_DMD)). Please set HOST_DMD appropriately, or activate an LDC compiler."
+	@exit 1
+else # ldmd2
+# Running the compiler/test/compilable/ test suite (a subset of the `dmd-test` target)
+# for gathering the PGO profile requires prebuilt druntime and phobos.
+dmd-pgo: phobos $(RUN_EXE)
+	@echo "PGO step 1/4: Building instrumented compiler"
+	$(BUILD_EXE) DFLAGS='-fprofile-instr-generate=$(abspath $(GENERATED))/%p.profraw -release $(HOST_DFLAGS)' dmd --force
+	@echo "PGO step 2/4: Gathering profiles by running 'compilable' test suite"
+	$(RUN_EXE) compilable
+	@echo "PGO step 3/4: Merging profiles"
+# using a response file with list of generated *.profraw files, to avoid cmdline-length problems with many files
+	cd $(GENERATED) && find -maxdepth 1 -name '*.profraw' > profraw_list.rsp
+	cd $(GENERATED) && $(dir $(shell which $(HOST_DMD)))ldc-profdata merge --output=merged.profdata --input-files=profraw_list.rsp
+	$(RM) $(GENERATED)/*.profraw $(GENERATED)/profraw_list.rsp
+	@echo "PGO step 4/4: Building PGO+LTO'd compiler"
+	$(BUILD_EXE) ENABLE_RELEASE=1 ENABLE_LTO=1 DFLAGS='-fprofile-instr-use=$(abspath $(GENERATED))/merged.profdata $(HOST_DFLAGS)' dmd --force
+	$(RM) $(GENERATED)/merged.profdata
+endif # ldmd2
 
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)
 

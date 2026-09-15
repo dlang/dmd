@@ -98,7 +98,6 @@ Examples
     ./build.d unittest      # runs internal unittests
     ./build.d clean         # remove all generated files
     ./build.d generated/linux/release/64/dmd.conf
-    ./build.d dmd-pgo       # builds dmd with PGO data, currently only LDC is supported
 
 Important variables:
 --------------------
@@ -486,146 +485,20 @@ alias dmdDefault = makeRule!((builder, rule) => builder
     .description("Build dmd")
     .deps([dmdExe(null, null, null), dmdConf])
 );
-struct PGOState
-{
-    //Does the host compiler actually support PGO, if not print a message
-    static bool checkPGO(string x)
-    {
-        switch (env["HOST_DMD_KIND"])
-        {
-            case "dmd":
-                abortBuild(`DMD does not support PGO!`);
-                break;
-            case "ldc":
-                return true;
-                break;
-            case "gdc":
-                abortBuild(`PGO (or AutoFDO) builds are not yet supported for gdc`);
-                break;
-            default:
-                assert(false, "Unknown host compiler kind: " ~ env["HOST_DMD_KIND"]);
-        }
-        assert(0);
-    }
-    this(string set)
-    {
-        hostKind = set;
-        profDirPath = buildPath(env["G"], "dmd_profdata");
-        mkdirRecurse(profDirPath);
-    }
-    string profDirPath;
-    string hostKind;
-    string[] pgoGenerateFlags() const
-    {
-        switch(hostKind)
-        {
-            case "ldc":
-                return ["-fprofile-instr-generate=" ~ pgoDataPath ~ "/data.%p.raw"];
-            default:
-                return [""];
-        }
-    }
-    string[] pgoUseFlags() const
-    {
-        switch(hostKind)
-        {
-            case "ldc":
-                return ["-fprofile-instr-use=" ~ buildPath(pgoDataPath(), "merged.data")];
-            default:
-                return [""];
-        }
-    }
-    string pgoDataPath() const
-    {
-        return profDirPath;
-    }
-}
+
+alias dmdPGO = makeRule!((builder, rule) => builder
+    .name("dmd-pgo")
+    .commandFunction(() {
+        abortBuild("The dmd-pgo target has moved to the Makefile. Run something like this in the repo root directory: make -j8 HOST_DMD=ldmd2 dmd-pgo");
+    })
+);
+
  // Compiles the test runner
 alias testRunner = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
     .msg("(DC) RUN.D")
     .sources([ testDir.buildPath( "run.d") ])
     .target(env["GENERATED"].buildPath("run".exeName))
     .command([ env["HOST_DMD_RUN"], "-of=" ~ rundRule.target, "-i", "-I" ~ testDir] ~ rundRule.sources));
-
-
-alias dmdPGO = makeRule!((builder, rule) {
-    const dmdKind = env["HOST_DMD_KIND"];
-    PGOState pgoState = PGOState(dmdKind);
-
-    alias buildInstrumentedDmd = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
-        .msg("Built dmd with PGO instrumentation")
-        .condition(() => PGOState.checkPGO(dmdKind))
-        .deps([dmdExe(null, pgoState.pgoGenerateFlags(), pgoState.pgoGenerateFlags()), dmdConf]));
-
-    alias genDmdData = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
-        .msg("Compiling dmd testsuite to generate PGO data")
-        .condition(() => PGOState.checkPGO(dmdKind))
-        .sources([ testDir.buildPath( "run.d") ])
-        .deps([buildInstrumentedDmd, testRunner])
-        .commandFunction({
-            // Run dmd test suite to get data
-            const scope cmd = [ testRunner.targets[0], "compilable", "-j" ~ jobs.to!string ];
-            log("%-(%s %)", cmd);
-            if (spawnProcess(cmd, null, Config.init, testDir).wait())
-                stderr.writeln("dmd tests failed! This will not end the PGO build because some data may have been gathered");
-        }));
-    alias genPhobosData = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
-        .msg("Compiling phobos testsuite to generate PGO data")
-        .condition(() => PGOState.checkPGO(dmdKind))
-        .deps([buildInstrumentedDmd])
-        .commandFunction({
-            // Run phobos unittests
-            //TODO makefiles
-            //generated/linux/release/64/unittest/test_runner builds the unittests without running them.
-            const scope cmd = ["make", "-C", "../phobos", "-j" ~ jobs.to!string, "generated/linux/release/64/unittest/test_runner", "DMD_DIR="~compilerDir];
-            log("%-(%s %)", cmd);
-            if (spawnProcess(cmd, null, Config.init, compilerDir).wait())
-                stderr.writeln("Phobos Tests failed! This will not end the PGO build because some data may have been gathered");
-        }));
-    alias finalDataMerge = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
-        .msg("Merging PGO data")
-        .condition(() => PGOState.checkPGO(dmdKind))
-        .deps([genDmdData])
-        .commandFunction({
-            // Run dmd test suite to get data
-            const ldcProfdataPath = buildPath(env["HOST_DMD_RUN"].dirName, "ldc-profdata");
-            scope cmd = [ldcProfdataPath, "merge", "--output=merged.data"];
-            import std.file : dirEntries;
-            auto files = dirEntries(pgoState.pgoDataPath, "*.raw", SpanMode.shallow).map!(f => f.name);
-
-            // Use a separate file to work around the windows command limit
-            version (Windows)
-            {{
-                const listFile = buildPath(env["G"], "pgo_file_list.txt");
-                File list = File(listFile, "w");
-                foreach (file; files)
-                    list.writeln(file);
-                cmd ~= [ "--input-files=" ~ listFile ];
-            }}
-            else
-                cmd = chain(cmd, files).array;
-            log("%-(%s %)", cmd);
-            if (spawnProcess(cmd, null, Config.init, pgoState.pgoDataPath).wait())
-                abortBuild("Merge failed");
-            files.each!(f => remove(f));
-        }));
-    builder
-        .name("dmd-pgo")
-        .description("Build dmd with PGO data collected from the dmd and phobos testsuites")
-        .msg("Build with collected PGO data")
-        .condition(() => PGOState.checkPGO(dmdKind))
-        .deps([finalDataMerge])
-        .commandFunction({
-            const extraFlags = pgoState.pgoUseFlags ~ "-wi";
-            const scope cmd = [thisExePath, "HOST_DMD="~env["HOST_DMD_RUN"],
-                "ENABLE_RELEASE=1", "ENABLE_LTO=1", "DFLAGS="~extraFlags.join(" "),
-                "--force", "-j"~jobs.to!string];
-            log("%-(%s %)", cmd);
-            if (spawnProcess(cmd, null, Config.init).wait())
-                abortBuild("PGO Compilation failed");
-        });
-}
-);
 
 /// Run's the test suite (unittests & `run.d`)
 alias runTests = makeRule!((testBuilder, testRule)
