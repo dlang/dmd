@@ -4535,6 +4535,7 @@ elem* toElemRVO(Expression e, elem* ehidden, ref IRState irs, Type forceType = n
         {
             case EXP.comma:         return doCommaRVO(e.isCommaExp());
             case EXP.question:      return doCondRVO(e.isCondExp());
+            case EXP.dotVariable:   return doDotVariableRVO(e.isDotVarExp());
             case EXP.structLiteral: return doStructElementRVO(e.isStructLiteralExp());
             default:                return blitToStorage(e);
         }
@@ -7194,12 +7195,11 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
             e1 = el_ptr(stmp);
         }
 
-        elem* ep = toElem(element, irs);
-
         Type t1b = v.type.toBasetype();
         Type t2b = element.type.toBasetype();
         if (t1b.ty == Tsarray)
         {
+            elem* ep = toElem(element, irs);
             e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v.offset));
             if (t2b.implicitConvTo(t1b))
             {
@@ -7247,6 +7247,7 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
         }
         if (bf)
         {
+            elem* ep = toElem(element, irs);
             if (!vbf || vbf.offset + vbf.type.size() <= v.offset)
             {
                 /* Initialize entire location the bitfield is in
@@ -7263,10 +7264,20 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
                 auto mos = el_long(TYuint, bitfieldArg);
                 e1 = el_bin(OPbit, e1.Ety, e1, mos);
             }
+            e1 = elAssign(e1, ep, v.type, e1.ET);
+        }
+        else if (op == EXP.construct && tybasic(tym) == TYstruct && canElideCopy(element, t1b))
+        {
+            e1 = toElemRVO(element, e1, irs);
         }
         else
+        {
+            elem* ep = toElem(element, irs);
+            e1 = elAssign(e1, ep, v.type, e1.ET);
+        }
+
+        if (!bf)
             vbf = null;
-        e1 = elAssign(e1, ep, v.type, e1.ET);
 
         e = el_combine(e, e1);
     }
