@@ -18038,7 +18038,7 @@ private bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
         auto msg = (v.storage_class & STC.ref_) ?
             "taking the address of local variable `%s`" :
             "taking the address of stack-allocated local variable `%s`";
-        if (sc.useDIP1000 != FeatureState.enabled &&
+        if (!(sc.useDIP1000 == FeatureState.enabled || global.params.useFastDFA) &&
             (!(v.storage_class & STC.temp) || v.storage_class & STC.result) &&
             sc.setUnsafe(false, exp.loc, msg.ptr, v))
         {

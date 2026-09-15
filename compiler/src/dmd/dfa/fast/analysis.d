@@ -1542,6 +1542,21 @@ struct DFAAnalyzer
             if (assignToCtx.mayBeGlobal && !noLR)
                 reporter.onGlobalEscape(assignToCtx, lrCctx.obj, loc);
 
+            // `ref var = other;` aliases `other`. Record the alias so reads and
+            //  writes of `var` resolve through to `other` for value/lifetime
+            //  tracking. This must not be guarded by an object as value types
+            //  (i.e. `int`) have no `DFAObject` but still alias.
+            // Parameters are initialized elsewhere, and the return variable is
+            //  a by-ref variable with no `VarDeclaration`, which we must not alias.
+            if (construct && assignToCtx.isByRef
+                && assignToCtx.var !is null
+                && (assignToCtx.var.storage_class & STC.ref_) != 0
+                && lrCtx !is null && lrCtx !is assignToCtx
+                && lrCtx.var !is null && !lrCtx.haveBase)
+            {
+                assignToCtx.refsTo = lrCtx;
+            }
+
             // *var = expr;
             // is very different from:
             // var = expr;

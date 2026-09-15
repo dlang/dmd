@@ -1046,6 +1046,10 @@ struct DFACommon
 
     DFALatticeRef acquireLattice(DFAVar* var)
     {
+        // `ref` locals alias another variable, reads and writes resolve through to it.
+        if (var !is null)
+            var = var.resolveReference();
+
         DFAScopeVar* scv = this.acquireScopeVar(var);
         if (scv is null)
             return DFALatticeRef.init;
@@ -1756,9 +1760,25 @@ struct DFAVar
 
     DFAObject* storageFor;
 
+    // `ref` local variables alias another variable. Reads and writes of this
+    //  variable must resolve through this to the aliased variable.
+    DFAVar* refsTo;
+
     bool haveBase()
     {
         return this.base1 !is null;
+    }
+
+    /// Resolves a chain of `ref` aliases to the variable they ultimately refer to.
+    DFAVar* resolveReference()
+    {
+        DFAVar* var = &this;
+
+        // Bounded to protect against malformed/cyclic aliases.
+        for (size_t i = 0; var.refsTo !is null && i < 64; ++i)
+            var = var.refsTo;
+
+        return var;
     }
 
     void markUnmodellable()

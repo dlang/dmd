@@ -48,55 +48,58 @@ fail_compilation/fastdfa.d(1350): Error: Expression reads from an uninitialized 
 fail_compilation/fastdfa.d(1349):        For variable `foo`
 fail_compilation/fastdfa.d(1361): Error: Dereference on null variable `foo`
 fail_compilation/fastdfa.d(1368): Error: Dereference on null object
-fail_compilation/fastdfa.d(1399): Error: Cannot mutate the owner of an active borrow
-fail_compilation/fastdfa.d(1397):        For variable `p`
-fail_compilation/fastdfa.d(1398):        Borrowed here
-fail_compilation/fastdfa.d(1406): Error: Cannot change a borrow variable declared outside of a loop
-fail_compilation/fastdfa.d(1405):        For variable `b`
-fail_compilation/fastdfa.d(1411): Error: Cannot store a borrow through a dereference in @safe code
-fail_compilation/fastdfa.d(1418): Error: Cannot pass the owner of an active borrow to a function that may mutate it
-fail_compilation/fastdfa.d(1418):        Parameter `p` must be const or immutable
-fail_compilation/fastdfa.d(1417):        Borrowed here
-fail_compilation/fastdfa.d(1426): Error: A borrow cannot outlive the variable it borrows from
-fail_compilation/fastdfa.d(1425):        Possible source `s`
-fail_compilation/fastdfa.d(1423):        The borrow is stored in variable `b`
-fail_compilation/fastdfa.d(1434): Error: Cannot pass the owner of an active borrow to a function that may mutate it
-fail_compilation/fastdfa.d(1434):        Parameter `p` must be const or immutable
-fail_compilation/fastdfa.d(1433):        Borrowed here
-fail_compilation/fastdfa.d(1442): Error: A borrow cannot outlive the variable it borrows from
-fail_compilation/fastdfa.d(1441):        Possible source `x`
-fail_compilation/fastdfa.d(1439):        The borrow is stored in variable `b`
+fail_compilation/fastdfa.d(1376): Error: Stack variable stores a lifetime that exceeds its own
+fail_compilation/fastdfa.d(1373):        For variable `global`
+fail_compilation/fastdfa.d(1374):        A pointer to the cell of the variable `var` has potentially escaped
+fail_compilation/fastdfa.d(1406): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1404):        For variable `p`
+fail_compilation/fastdfa.d(1405):        Borrowed here
+fail_compilation/fastdfa.d(1413): Error: Cannot change a borrow variable declared outside of a loop
+fail_compilation/fastdfa.d(1412):        For variable `b`
+fail_compilation/fastdfa.d(1418): Error: Cannot store a borrow through a dereference in @safe code
+fail_compilation/fastdfa.d(1425): Error: Cannot pass the owner of an active borrow to a function that may mutate it
+fail_compilation/fastdfa.d(1425):        Parameter `p` must be const or immutable
+fail_compilation/fastdfa.d(1424):        Borrowed here
+fail_compilation/fastdfa.d(1433): Error: A borrow cannot outlive the variable it borrows from
+fail_compilation/fastdfa.d(1432):        Possible source `s`
+fail_compilation/fastdfa.d(1430):        The borrow is stored in variable `b`
+fail_compilation/fastdfa.d(1441): Error: Cannot pass the owner of an active borrow to a function that may mutate it
+fail_compilation/fastdfa.d(1441):        Parameter `p` must be const or immutable
+fail_compilation/fastdfa.d(1440):        Borrowed here
 fail_compilation/fastdfa.d(1449): Error: A borrow cannot outlive the variable it borrows from
 fail_compilation/fastdfa.d(1448):        Possible source `x`
-fail_compilation/fastdfa.d(1458): Error: Cannot change a borrow variable declared outside of a loop
-fail_compilation/fastdfa.d(1455):        For variable `b`
-fail_compilation/fastdfa.d(1474): Error: A borrow cannot outlive the variable it borrows from
-fail_compilation/fastdfa.d(1473):        Possible source `c`
-fail_compilation/fastdfa.d(1471):        The borrow is stored in variable `b`
-fail_compilation/fastdfa.d(1488): Error: Cannot mutate the owner of an active borrow
-fail_compilation/fastdfa.d(1483):        For variable `s`
-fail_compilation/fastdfa.d(1484):        Borrowed here
-fail_compilation/fastdfa.d(1489): Error: Cannot pass the owner of an active borrow to a function that may mutate it
-fail_compilation/fastdfa.d(1489):        Parameter `obj` must be const or immutable
-fail_compilation/fastdfa.d(1484):        Borrowed here
-fail_compilation/fastdfa.d(1497): Error: Cannot mutate the owner of an active borrow
-fail_compilation/fastdfa.d(1494):        For variable `x`
-fail_compilation/fastdfa.d(1495):        Borrowed here
-fail_compilation/fastdfa.d(1498): Error: Cannot mutate the owner of an active borrow
-fail_compilation/fastdfa.d(1494):        For variable `x`
-fail_compilation/fastdfa.d(1495):        Borrowed here
-fail_compilation/fastdfa.d(1499): Error: Cannot mutate the owner of an active borrow
-fail_compilation/fastdfa.d(1494):        For variable `x`
-fail_compilation/fastdfa.d(1496):        Borrowed here
-fail_compilation/fastdfa.d(1509): Error: Cannot mutate the owner of an active borrow
-fail_compilation/fastdfa.d(1504):        For variable `x`
-fail_compilation/fastdfa.d(1506):        Borrowed here
-fail_compilation/fastdfa.d(1517): Error: Cannot mutate the owner of an active borrow
-fail_compilation/fastdfa.d(1513):        For variable `x`
-fail_compilation/fastdfa.d(1516):        Borrowed here
-fail_compilation/fastdfa.d(1526): Error: Cannot mutate the owner of an active borrow
-fail_compilation/fastdfa.d(1523):        For variable `x`
-fail_compilation/fastdfa.d(1524):        Borrowed here
+fail_compilation/fastdfa.d(1446):        The borrow is stored in variable `b`
+fail_compilation/fastdfa.d(1456): Error: A borrow cannot outlive the variable it borrows from
+fail_compilation/fastdfa.d(1455):        Possible source `x`
+fail_compilation/fastdfa.d(1465): Error: Cannot change a borrow variable declared outside of a loop
+fail_compilation/fastdfa.d(1462):        For variable `b`
+fail_compilation/fastdfa.d(1481): Error: A borrow cannot outlive the variable it borrows from
+fail_compilation/fastdfa.d(1480):        Possible source `c`
+fail_compilation/fastdfa.d(1478):        The borrow is stored in variable `b`
+fail_compilation/fastdfa.d(1495): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1490):        For variable `s`
+fail_compilation/fastdfa.d(1491):        Borrowed here
+fail_compilation/fastdfa.d(1496): Error: Cannot pass the owner of an active borrow to a function that may mutate it
+fail_compilation/fastdfa.d(1496):        Parameter `obj` must be const or immutable
+fail_compilation/fastdfa.d(1491):        Borrowed here
+fail_compilation/fastdfa.d(1504): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1501):        For variable `x`
+fail_compilation/fastdfa.d(1502):        Borrowed here
+fail_compilation/fastdfa.d(1505): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1501):        For variable `x`
+fail_compilation/fastdfa.d(1502):        Borrowed here
+fail_compilation/fastdfa.d(1506): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1501):        For variable `x`
+fail_compilation/fastdfa.d(1503):        Borrowed here
+fail_compilation/fastdfa.d(1516): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1511):        For variable `x`
+fail_compilation/fastdfa.d(1513):        Borrowed here
+fail_compilation/fastdfa.d(1524): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1520):        For variable `x`
+fail_compilation/fastdfa.d(1523):        Borrowed here
+fail_compilation/fastdfa.d(1533): Error: Cannot mutate the owner of an active borrow
+fail_compilation/fastdfa.d(1530):        For variable `x`
+fail_compilation/fastdfa.d(1531):        Borrowed here
 ---
 */
 
@@ -470,6 +473,13 @@ void checkViaObjNullDeref(bool cond, int** ptrArg) @system
     int* var;
     int** ptr = cond ? &var : ptrArg;
     **ptr = 2; // error
+}
+
+void stackEscapeUnsafe() @safe
+{
+    static int* global;
+    int var;
+    global = &var;
 }
 
 /****************** Borrow checker (errors) ******************/
