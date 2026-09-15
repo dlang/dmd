@@ -536,3 +536,45 @@ enum
     PLATFORM_WATCHOSSIMULATOR = 9,
     PLATFORM_DRIVERKIT = 10
 }
+
+// https://github.com/llvm/llvm-project/blob/main/libunwind/include/mach-o/compact_unwind_encoding.h
+
+struct compact_unwind_entry
+{
+    ulong functionAddress;
+    uint functionLength;
+    uint encoding;
+    ulong personality;
+    ulong lsda;
+}
+
+static assert(compact_unwind_entry.sizeof == 32);
+
+// masks for compact_unwind_entry.encoding:
+
+enum : uint
+{
+    UNWIND_IS_NOT_FUNCTION_START           = 0x8000_0000,
+    UNWIND_HAS_LSDA                        = 0x4000_0000,
+    UNWIND_PERSONALITY_MASK                = 0x3000_0000,
+    UNWIND_ARM64_MODE_MASK                 = 0x0F00_0000,
+    UNWIND_ARM64_MODE_DWARF_FRAMELESS      = 0x0200_0000,
+    UNWIND_ARM64_MODE_DWARF_DWARF          = 0x0300_0000,
+    UNWIND_ARM64_MODE_DWARF_FRAME          = 0x0400_0000,
+    UNWIND_ARM64_MODE_DWARF_FRAME_PAUTH_LR = 0x0500_0000,
+}
+
+// Callee-saved register pairs
+
+enum : uint
+{
+    X19_X20 = 1,
+    X21_X22 = 2,
+    X23_X24 = 4,
+    X25_X26 = 8,
+    X27_X28 = 0x10,
+    D8_D9   = 0x100,
+    D10_D11 = 0x200,
+    D12_D13 = 0x400,
+    D14_D15 = 0x800,
+}
