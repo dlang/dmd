@@ -179,6 +179,11 @@ Symbol* toSymbol(Type t)
 }
 
 /*************************************
+ * Turn a D symbol into a C Symbol.
+ * Params:
+ *      s = D symbol
+ * Returns:
+ *      corresponding Symbol
  */
 package(dmd.glue)
 Symbol* toSymbol(Dsymbol s)
@@ -645,6 +650,44 @@ Symbol* toSymbol(Dsymbol s)
     }
 
     return v.result;
+}
+
+/*************************************
+ * Turn a D symbol into a C Symbol, but
+ * also substitute NRVO variables for the
+ * hidden symbol along the way.
+ *
+ * Params:
+ *      s = D symbol
+ * Returns:
+ *      corresponding Symbol
+ */
+package(dmd.glue)
+Symbol* toSymbolNRVO(Dsymbol s)
+{
+    if (auto parent = s.toParent2())
+    {
+        auto fd = parent.isFuncDeclaration();
+        auto var = s.isVarDeclaration();
+
+        if (fd && var &&
+            (fd.isNRVO && fd.nrvo_var == var ||
+             fd.shidden && var.nrvo))
+        {
+            auto shidden = cast(Symbol*)fd.shidden;
+
+            /* Nested function accessing NRVO variable.
+             * Consider the variable volatile in the same way
+             * other variables with nested ref do.
+             */
+            if (var.nestedrefs.length)
+                type_setcv(&shidden.Stype, shidden.Stype.Tty | mTYvolatile);
+
+            return shidden;
+        }
+    }
+
+    return toSymbol(s);
 }
 
 
