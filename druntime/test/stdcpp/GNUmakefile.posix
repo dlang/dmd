@@ -6,19 +6,19 @@ TESTS17:=string_view
 TESTSOLDABI:=
 
 ifeq (osx,$(OS))
-    TESTS11+=memory
-#   TESTS98+=string
+    TESTS11+=memory string
+    TESTS98+=string
 #   TESTS98+=vector
 endif
 ifeq (linux,$(OS))
-    TESTS11+=exception typeinfo
+    TESTS11+=exception typeinfo string
     TESTS98+=typeinfo
-#   TESTS98+=string
+    TESTS98+=string
 #   TESTS98+=vector
     TESTSOLDABI+=string
 endif
 ifeq (freebsd,$(OS))
-    TESTS11+=memory
+    TESTS11+=memory string
     TESTS98+=string
 #   TESTS98+=vector
 endif

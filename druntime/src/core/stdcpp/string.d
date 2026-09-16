@@ -1406,8 +1406,6 @@ extern(D):
         }
         else
         {
-            pragma(msg, "libstdc++ std::__cxx11::basic_string is not yet supported; the struct contains an interior pointer which breaks D move semantics!");
-
             //----------------------------------------------------------------------------------
             // GCC/libstdc++ modern implementation
             //----------------------------------------------------------------------------------
@@ -1423,10 +1421,12 @@ extern(D):
                 _M_construct(str.ptr, str.length);
             }
             ///
-            this(this)
+            this(const ref basic_string str)
             {
-                assert(false);
-                // TODO: how do I know if it was local before?!
+                static if (!is_empty!allocator_type.value)
+                    _M_assign_allocator(allocator_traits!allocator_type.select_on_container_copy_construction(str._M_get_allocator()));
+                _M_p = _M_local_data();
+                _M_construct(str._M_data, str._M_string_length);
             }
 
             ///
