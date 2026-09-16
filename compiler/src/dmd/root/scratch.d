@@ -128,8 +128,16 @@ extern (D) struct ScratchAllocator
             }
 
             const total = Header.sizeof + cap;
-            auto c = chunks;
-            if (!c || c.used + total > c.cap)
+            Chunk* c = null;
+            for (auto it = chunks; it; it = it.next)
+            {
+                if (it.cap - it.used >= total)
+                {
+                    c = it;
+                    break;
+                }
+            }
+            if (!c)
             {
                 c = newChunk(total);
                 if (!c)

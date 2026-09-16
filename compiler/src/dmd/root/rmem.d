@@ -40,6 +40,8 @@ extern (C++) struct Mem
 
     static void* xmalloc(size_t size) pure nothrow
     {
+        if (isArenaEnabled)
+            return size ? GC.malloc(size, arenaBit) : null;
         if (isGCEnabled)
             return size ? GC.malloc(size) : null;
 
@@ -48,6 +50,8 @@ extern (C++) struct Mem
 
     static void* xmalloc_noscan(size_t size) pure nothrow
     {
+        if (isArenaEnabled)
+            return size ? GC.malloc(size, arenaBit | GC.BlkAttr.NO_SCAN) : null;
         if (isGCEnabled)
             return size ? GC.malloc(size, GC.BlkAttr.NO_SCAN) : null;
 
@@ -56,6 +60,8 @@ extern (C++) struct Mem
 
     static void* xcalloc(size_t size, size_t n) pure nothrow
     {
+        if (isArenaEnabled)
+            return size * n ? GC.calloc(size * n, arenaBit) : null;
         if (isGCEnabled)
             return size * n ? GC.calloc(size * n) : null;
 
@@ -64,6 +70,8 @@ extern (C++) struct Mem
 
     static void* xcalloc_noscan(size_t size, size_t n) pure nothrow
     {
+        if (isArenaEnabled)
+            return size * n ? GC.calloc(size * n, arenaBit | GC.BlkAttr.NO_SCAN) : null;
         if (isGCEnabled)
             return size * n ? GC.calloc(size * n, GC.BlkAttr.NO_SCAN) : null;
 
@@ -72,6 +80,8 @@ extern (C++) struct Mem
 
     static void* xrealloc(void* p, size_t size) pure nothrow
     {
+        if (isArenaEnabled)
+            return GC.realloc(p, size, arenaBit);
         if (isGCEnabled)
             return GC.realloc(p, size);
 
@@ -86,6 +96,8 @@ extern (C++) struct Mem
 
     static void* xrealloc_noscan(void* p, size_t size) pure nothrow
     {
+        if (isArenaEnabled)
+            return GC.realloc(p, size, arenaBit | GC.BlkAttr.NO_SCAN);
         if (isGCEnabled)
             return GC.realloc(p, size, GC.BlkAttr.NO_SCAN);
 
@@ -118,13 +130,28 @@ extern (C++) struct Mem
     }
 
     __gshared bool _isGCEnabled = true;
+    // Route dmd's allocations to the GC arena pool
+    // high bit is passed to GC.malloc so a region GC can recognise them.
+    enum arenaBit = 0x8000_0000;
+    __gshared bool _isArenaEnabled = false;
 
-    // fake purity by making global variable immutable (_isGCEnabled only modified before startup)
+    // fake purity by making global variables immutable (only modified before startup)
     enum _pIsGCEnabled = cast(immutable bool*) &_isGCEnabled;
+    enum _pIsArenaEnabled = cast(immutable bool*) &_isArenaEnabled;
 
     static bool isGCEnabled() pure nothrow @nogc @safe
     {
         return *_pIsGCEnabled;
+    }
+
+    static bool isArenaEnabled() pure nothrow @nogc @safe
+    {
+        return *_pIsArenaEnabled;
+    }
+
+    static void enableArena(bool on = true) nothrow @nogc
+    {
+        _isArenaEnabled = on;
     }
 
     static void disableGC() nothrow @nogc
@@ -193,7 +220,7 @@ extern (C) void* _d_allocmemory(size_t m_size) nothrow
 extern (D) void* allocmemoryNoFree(size_t m_size, size_t alignment) nothrow
 {
     if (mem.isGCEnabled)
-        return GC.malloc(m_size);
+        return GC.malloc(m_size, Mem.isArenaEnabled ? Mem.arenaBit : 0);
 
     allocatedNoFree += m_size;
     return _allocmemoryNoFree(m_size, alignment);
