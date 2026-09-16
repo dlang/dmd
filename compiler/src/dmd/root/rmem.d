@@ -43,7 +43,7 @@ extern (C++) struct Mem
         if (isArenaEnabled)
             return size ? GC.malloc(size, arenaBit) : null;
         if (isGCEnabled)
-            return size ? GC.malloc(size) : null;
+            return size ? (isZeroEnabled ? GC.calloc(size) : GC.malloc(size)) : null;
 
         return size ? check(pureMalloc(size)) : null;
     }
@@ -152,6 +152,21 @@ extern (C++) struct Mem
     static void enableArena(bool on = true) nothrow @nogc
     {
         _isArenaEnabled = on;
+    }
+
+    // Zero `xmalloc` memory: the GC scans it, so uninitialized garbage acts as
+    // false roots and retains the previous compilation's objects.
+    __gshared bool _isZeroEnabled = false;
+    enum _pIsZeroEnabled = cast(immutable bool*) &_isZeroEnabled;
+
+    static bool isZeroEnabled() pure nothrow @nogc @safe
+    {
+        return *_pIsZeroEnabled;
+    }
+
+    static void enableZero(bool on = true) nothrow @nogc
+    {
+        _isZeroEnabled = on;
     }
 
     static void disableGC() nothrow @nogc
