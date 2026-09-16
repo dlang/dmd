@@ -17,9 +17,6 @@ import dmd.errors : DiagnosticHandler, diagnosticHandler, FatalErrorHandler, fat
 import dmd.globals : DiagnosticReporting;
 import dmd.location;
 
-import std.range.primitives : isInputRange, ElementType;
-import std.traits : isNarrowString;
-import std.typecons : Tuple;
 import core.stdc.stdarg;
 
 version (Windows) private enum sep = ";", exe = ".exe";
@@ -45,6 +42,13 @@ immutable struct Diagnostics
     {
         return warnings > 0;
     }
+}
+
+/// Result of parseModule().
+struct ParsedModule
+{
+    Module module_;
+    Diagnostics diagnostics;
 }
 
 /// Indicates the checking state of various contracts.
@@ -107,8 +111,6 @@ void initDMD(
     ContractChecks contractChecks = ContractChecks()
 )
 {
-    import std.algorithm : each;
-
     import dmd.root.ctfloat : CTFloat;
 
     version (CRuntime_Microsoft)
@@ -142,7 +144,8 @@ void initDMD(
         useSwitchError = contractChecks.switchError;
     }
 
-    versionIdentifiers.each!(VersionCondition.addGlobalIdent);
+    foreach (id; versionIdentifiers)
+        VersionCondition.addGlobalIdent(id);
 
     target.os = defaultTargetOS();
     target.isX86_64 = (size_t.sizeof == 8);
@@ -192,8 +195,7 @@ void deinitializeDMD()
     global.deinitialize();
 
     Type.deinitialize();
-    Id.deinitialize();
-    Module.deinitialize();
+    Id.deinitialize();    Module.deinitialize();
     target.deinitialize();
     Expression.deinitialize();
     Objc.deinitialize();
@@ -210,9 +212,9 @@ Params:
 void addImport(const(char)[] path)
 {
     import dmd.globals : global, ImportPathInfo;
-    import std.string : toStringz;
+    import dmd.root.string : toCString;
 
-    global.path.push(ImportPathInfo(path.toStringz));
+    global.path.push(ImportPathInfo(path.toCString.ptr));
 }
 
 /**
@@ -222,12 +224,12 @@ Params:
 */
 void addStringImport(const(char)[] path)
 {
-    import std.string : toStringz;
+    import dmd.root.string : toCString;
 
     import dmd.globals : global;
     import dmd.arraytypes : Strings;
 
-    global.filePath.push(path.toStringz);
+    global.filePath.push(path.toCString.ptr);
 }
 
 /**
@@ -260,29 +262,28 @@ Returns: full path to the found `ldc2.conf`, `null` otherwise.
 */
 string findLDCConfig(const(char)[] ldcFilePath)
 {
-    import std.file : getcwd;
-    import std.path : buildPath, dirName;
-    import std.algorithm.iteration : filter;
-    import std.file : exists;
+    import dmd.root.filename : FileName;
 
-    auto execDir = ldcFilePath.dirName;
+    string execDir = dirNameOf(ldcFilePath);
 
     immutable ldcConfig = "ldc2.conf";
     // https://wiki.dlang.org/Using_LDC
-    auto ldcConfigs = [
-        getcwd.buildPath(ldcConfig),
-        execDir.buildPath(ldcConfig),
-        execDir.dirName.buildPath("etc", ldcConfig),
-        "~/.ldc".buildPath(ldcConfig),
-        execDir.buildPath("etc", ldcConfig),
-        execDir.buildPath("etc", "ldc", ldcConfig),
-        "/etc".buildPath(ldcConfig),
-        "/etc/ldc".buildPath(ldcConfig),
-    ].filter!exists;
-    if (ldcConfigs.empty)
-        return null;
-
-    return ldcConfigs.front;
+    string[8] candidates = [
+        FileName.combine(currentDir(), ldcConfig).idup,
+        FileName.combine(execDir, ldcConfig).idup,
+        FileName.combine(FileName.combine(dirNameOf(execDir), "etc"), ldcConfig).idup,
+        FileName.combine("~/.ldc", ldcConfig).idup,
+        FileName.combine(FileName.combine(execDir, "etc"), ldcConfig).idup,
+        FileName.combine(FileName.combine(FileName.combine(execDir, "etc"), "ldc"), ldcConfig).idup,
+        FileName.combine("/etc", ldcConfig).idup,
+        FileName.combine("/etc/ldc", ldcConfig).idup,
+    ];
+    foreach (c; candidates)
+    {
+        if (FileName.exists(c))
+            return c;
+    }
+    return null;
 }
 
 /**
@@ -291,21 +292,45 @@ Returns: full path to the executable of the found compiler, `null` otherwise.
 */
 string determineDefaultCompiler()
 {
-    import std.algorithm.iteration : filter, joiner, map, splitter;
-    import std.file : exists;
-    import std.path : buildPath;
-    import std.process : environment;
-    import std.range : front, empty, transposed;
+    import dmd.root.filename : FileName;
+
     // adapted from DUB: https://github.com/dlang/dub/blob/350a0315c38fab9d3d0c4c9d30ff6bb90efb54d6/source/dub/dub.d#L1183
 
-    auto compilers = ["dmd", "gdc", "gdmd", "ldc2", "ldmd2"];
+    string[5] compilers = ["dmd", "gdc", "gdmd", "ldc2", "ldmd2"];
 
-    // Search the user's PATH for the compiler binary
-    if ("DMD" in environment)
-        compilers = environment.get("DMD") ~ compilers;
-    auto paths = environment.get("PATH", "").splitter(sep);
-    auto res = compilers.map!(c => paths.map!(p => p.buildPath(c~exe))).joiner.filter!exists;
-    return !res.empty ? res.front : null;
+    // Search the user's PATH for the compiler binary.
+    // Outer loop over compilers, inner over PATH entries.
+    const(char)[] dmdEnv = getenvOr("DMD", null);
+    const(char)[] pathEnv = getenvOr("PATH", "");
+
+    string[] names;
+    if (dmdEnv.length)
+        names ~= dmdEnv.idup;
+    names ~= compilers[];
+
+    // split PATH on the platform separator (quotes are not special here)
+    string[] dirs;
+    size_t start = 0;
+    for (size_t i = 0; i <= pathEnv.length; i++)
+    {
+        if (i == pathEnv.length || pathEnv[i] == sep[0])
+        {
+            dirs ~= pathEnv[start .. i].idup;
+            start = i + 1;
+        }
+    }
+
+    foreach (c; names)
+    {
+        string binary = c ~ exe;
+        foreach (p; dirs)
+        {
+            string candidate = FileName.combine(p, binary).idup;
+            if (FileName.exists(candidate))
+                return candidate;
+        }
+    }
+    return null;
 }
 
 /**
@@ -315,31 +340,40 @@ Params:
     iniFile = iniFile to parse imports from
     execDir = directory of the compiler binary
 
-Returns: forward range of import paths found in `iniFile`
+Returns: array of normalized import paths found in `iniFile`
 */
 auto parseImportPathsFromConfig(const(char)[] iniFile, const(char)[] execDir)
 {
-    import std.algorithm, std.range, std.regex;
-    import std.stdio : File;
-    import std.path : buildNormalizedPath;
+    string text = readFileBytes(iniFile);
+    string[] found;
+    if (text is null)
+        return found;
 
-    alias expandConfigVariables = a => a.drop(2) // -I
-                                // "set" common config variables
-                                .replace("%@P%", execDir)
-                                .replace("%%ldcbinarypath%%", execDir);
+    // search for all `-I` imports in this file: `-I` followed by a run
+    // of non-space, non-quote characters, possibly several per line
+    size_t i = 0;
+    while (i + 1 < text.length)
+    {
+        if (text[i] == '-' && text[i + 1] == 'I')
+        {
+            size_t j = i + 2;
+            while (j < text.length && text[j] != ' ' && text[j] != '"')
+                j++;
+            if (j > i + 2)
+                found ~= expandConfigVariables(text[i .. j], execDir);
+            i = j;
+        }
+        else
+            i++;
+    }
 
-    // search for all -I imports in this file
-    alias searchForImports = l => l.matchAll(`-I[^ "]+`.regex).joiner.map!expandConfigVariables;
+    // dedup sorted import paths
+    sortDedup(found);
 
-    return File(iniFile, "r")
-        .byLineCopy
-        .map!searchForImports
-        .joiner
-        // remove duplicated imports paths
-        .array
-        .sort
-        .uniq
-        .map!buildNormalizedPath;
+    // normalize each path
+    foreach (ref p; found)
+        p = normalizeImportPath(p);
+    return found;
 }
 
 /**
@@ -348,28 +382,26 @@ This depends on the `$DMD` environment variable.
 If `$DMD` is set to `ldmd`, it will try to detect and parse a `ldc2.conf` instead.
 
 Returns:
-    A forward range of normalized import paths.
+    Array of normalized import paths.
 
 See_Also: $(LREF determineDefaultCompiler), $(LREF parseImportPathsFromConfig)
 */
 auto findImportPaths()
 {
-    import std.algorithm.searching : endsWith;
-    import std.file : exists;
-    import std.path : dirName;
+    import dmd.root.filename : FileName;
 
     string execFilePath = determineDefaultCompiler();
     assert(execFilePath !is null, "No D compiler found. `Use parseImportsFromConfig` manually.");
 
-    immutable execDir = execFilePath.dirName;
+    immutable execDir = dirNameOf(execFilePath);
 
     string iniFile;
-    if (execFilePath.endsWith("ldc"~exe, "ldc2"~exe, "ldmd"~exe, "ldmd2"~exe))
+    if (endsWithAny(execFilePath, ["ldc" ~ exe, "ldc2" ~ exe, "ldmd" ~ exe, "ldmd2" ~ exe]))
         iniFile = findLDCConfig(execFilePath);
     else
         iniFile = findDMDConfig(execFilePath);
 
-    assert(iniFile !is null && iniFile.exists, "No valid config found.");
+    assert(iniFile !is null && FileName.exists(iniFile), "No valid config found.");
     return iniFile.parseImportPathsFromConfig(execDir);
 }
 
@@ -382,7 +414,7 @@ Params:
 
 Returns: the parsed module object
 */
-Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodegen)(
+ParsedModule parseModule(AST = ASTCodegen)(
     const(char)[] fileName,
     const(char)[] code = null)
 {
@@ -394,19 +426,15 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
     import dmd.identifier : Identifier;
     import dmd.tokens : TOK;
 
-    import std.path : baseName, stripExtension;
-    import std.string : toStringz;
-    import std.typecons : tuple;
+    import dmd.root.filename : FileName;
 
-    auto id = Identifier.idPool(fileName.baseName.stripExtension);
+    auto id = Identifier.idPool(FileName.removeExt(FileName.name(fileName)));
     auto m = new Module(fileName, id, 1, 0);
 
     if (code is null)
         m.read(Loc.initial);
     else
     {
-        import dmd.root.filename : FileName;
-
         auto fb = cast(ubyte[]) code.dup ~ '\0';
         global.fileManager.add(FileName(fileName), fb);
         m.src = fb;
@@ -415,12 +443,7 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
     m.importedFrom = m;
     m = m.parseModule!AST();
 
-    Diagnostics diagnostics = {
-        errors: global.errors,
-        warnings: global.warnings
-    };
-
-    return typeof(return)(m, diagnostics);
+    return ParsedModule(m, Diagnostics(global.errors, global.warnings));
 }
 
 /**
@@ -461,11 +484,28 @@ string prettyPrint(Module m)
     HdrGenState hgs = { fullDump: 1 };
     moduleToBuffer2(m, buf, hgs);
 
-    import std.string : replace, fromStringz;
-    import std.exception : assumeUnique;
-
-    auto generated = buf.extractSlice.replace("\t", "    ");
-    return generated.assumeUnique;
+    auto generated = buf.extractSlice;
+    size_t tabs = 0;
+    foreach (c; generated)
+    {
+        if (c == '\t')
+            tabs++;
+    }
+    if (!tabs)
+        return cast(string)generated;
+    char[] out_ = new char[generated.length + 3 * tabs];
+    size_t k = 0;
+    foreach (c; generated)
+    {
+        if (c == '\t')
+        {
+            out_[k .. k + 4] = "    ";
+            k += 4;
+        }
+        else
+            out_[k++] = c;
+    }
+    return cast(string)out_;
 }
 
 /// Interface for diagnostic reporting.
@@ -680,4 +720,296 @@ nothrow:
     {
         return false;
     }
+}
+
+// Private path/config helpers.
+
+private bool isPathSep(char c) nothrow @nogc @safe pure
+{
+    import dmd.root.filename : isDirSeparator;
+    return isDirSeparator(c);
+}
+
+// Directory portion of a path, "." when there is none.
+private string dirNameOf(const(char)[] path)
+{
+    if (!path.length)
+        return ".";
+    // strip trailing separators, keeping a lone root
+    size_t end = path.length;
+    while (end > 1 && isPathSep(path[end - 1]))
+    {
+        // keep Windows drive roots like `C:\` intact
+        if (end == 2 && path[1] == ':')
+            break;
+        end--;
+    }
+    // find last separator in path[0 .. end]
+    size_t i = end;
+    while (i > 0 && !isPathSep(path[i - 1]))
+        i--;
+    if (i == 0)
+        return ".";
+    if (i == 1)
+        return path[0 .. 1].idup; // root "/"
+    size_t dirEnd = i - 1;
+    // keep `C:` style prefixes
+    if (dirEnd == 2 && path[1] == ':')
+        return path[0 .. 2].idup;
+    while (dirEnd > 1 && isPathSep(path[dirEnd - 1]))
+        dirEnd--;
+    return path[0 .. dirEnd].idup;
+}
+
+///
+unittest
+{
+    assert(dirNameOf("") == ".");
+    assert(dirNameOf("foo") == ".");
+    assert(dirNameOf("foo/bar") == "foo");
+    assert(dirNameOf("foo/bar/") == "foo");
+    assert(dirNameOf("/foo/bar") == "/foo");
+    assert(dirNameOf("/foo") == "/");
+    assert(dirNameOf("/") == "/");
+    assert(dirNameOf("a/b/c") == "a/b");
+}
+
+// Replace all (non-overlapping).
+private string replaceAll(const(char)[] s, const(char)[] from, const(char)[] to)
+{
+    if (!from.length)
+        return s.idup;
+    string r;
+    size_t i = 0;
+    while (i < s.length)
+    {
+        if (i + from.length <= s.length && s[i .. i + from.length] == from)
+        {
+            r ~= to;
+            i += from.length;
+        }
+        else
+        {
+            r ~= s[i];
+            i++;
+        }
+    }
+    return r;
+}
+
+///
+unittest
+{
+    assert(replaceAll("aaa", "aa", "b") == "ba");
+    assert(replaceAll("%@P%/x/%@P%", "%@P%", "E") == "E/x/E");
+    assert(replaceAll("abc", "", "x") == "abc");
+    assert(replaceAll("", "a", "b") == "");
+}
+
+// normalize an import path.
+private string normalizeImportPath(const(char)[] path)
+{
+    if (!path.length)
+        return "";
+    string prefix;
+    size_t i = 0;
+    version (Windows)
+    {
+        // drive letter prefix
+        if (path.length >= 2 && path[1] == ':' &&
+            ((path[0] >= 'a' && path[0] <= 'z') || (path[0] >= 'A' && path[0] <= 'Z')))
+        {
+            prefix = path[0 .. 2].idup;
+            i = 2;
+        }
+    }
+    bool rooted = false;
+    if (i < path.length && isPathSep(path[i]))
+    {
+        rooted = true;
+        prefix ~= '/';
+        while (i < path.length && isPathSep(path[i]))
+            i++;
+    }
+    string[] parts;
+    while (i < path.length)
+    {
+        size_t j = i;
+        while (j < path.length && !isPathSep(path[j]))
+            j++;
+        auto seg = path[i .. j];
+        i = j;
+        while (i < path.length && isPathSep(path[i]))
+            i++;
+        if (!seg.length || seg == ".")
+            continue;
+        if (seg == "..")
+        {
+            if (parts.length && parts[$ - 1] != "..")
+            {
+                parts = parts[0 .. $ - 1];
+                continue;
+            }
+            if (rooted)
+                continue; // `..` above root is dropped
+        }
+        parts ~= seg.idup;
+    }
+    if (!parts.length)
+        return rooted ? prefix : ".";
+    string r = prefix.idup;
+    foreach (k, p; parts)
+    {
+        if (k > 0)
+            r ~= '/';
+        r ~= p;
+    }
+    return r;
+}
+
+///
+unittest
+{
+    assert(normalizeImportPath("") == "");
+    assert(normalizeImportPath("a/b/../c") == "a/c");
+    assert(normalizeImportPath("a/b/../../c") == "c");
+    assert(normalizeImportPath("../../x") == "../../x");
+    assert(normalizeImportPath("a/./b") == "a/b");
+    assert(normalizeImportPath("/a/b/../../c") == "/c");
+    assert(normalizeImportPath("/../x") == "/x");
+    assert(normalizeImportPath("a//b") == "a/b");
+    assert(normalizeImportPath(".") == ".");
+    version (Windows)
+    {
+        assert(normalizeImportPath("C:\\a\\..\\b") == "C:/b");
+    }
+    else
+    {
+        assert(normalizeImportPath("a/b/c") == "a/b/c");
+    }
+}
+
+// Expand `-I` argument & drop the prefix
+private string expandConfigVariables(const(char)[] arg, const(char)[] execDir)
+{
+    auto s = arg.length >= 2 ? arg[2 .. $] : arg[0 .. 0];
+    string r = replaceAll(s, "%@P%", execDir);
+    return replaceAll(r, "%%ldcbinarypath%%", execDir);
+}
+
+private void sortDedup(ref string[] paths)
+{
+    foreach (i; 1 .. paths.length)
+    {
+        auto key = paths[i];
+        size_t j = i;
+        while (j > 0 && paths[j - 1] > key)
+        {
+            paths[j] = paths[j - 1];
+            j--;
+        }
+        paths[j] = key;
+    }
+    size_t w = 0;
+    foreach (i; 0 .. paths.length)
+    {
+        if (w == 0 || paths[i] != paths[w - 1])
+            paths[w++] = paths[i];
+    }
+    paths = paths[0 .. w];
+}
+
+///
+unittest
+{
+    string[] p = ["b", "a", "b", "c", "a"];
+    sortDedup(p);
+    assert(p == ["a", "b", "c"]);
+    assert(expandConfigVariables("-I%@P%/../src", "/bin") == "/bin/../src");
+}
+
+private bool endsWithAny(const(char)[] s, scope const(char)[][] suffixes)
+{
+    foreach (suf; suffixes)
+    {
+        if (suf.length <= s.length && s[$ - suf.length .. $] == suf)
+            return true;
+    }
+    return false;
+}
+
+///
+unittest
+{
+    assert(endsWithAny("foo/ldc2", ["ldc", "ldc2"]));
+    assert(!endsWithAny("foo/ldc2x", ["ldc", "ldc2"]));
+    assert(!endsWithAny("ld", ["ldc", "ldc2"]));
+}
+
+// Read a whole file, null on failure.
+private string readFileBytes(const(char)[] path)
+{
+    import core.stdc.stdio : fopen, fread, fseek, ftell, rewind, fclose, SEEK_END;
+
+    if (path.length + 1 >= 4096)
+        return null;
+    char[4096] zpath;
+    zpath[0 .. path.length] = path[];
+    zpath[path.length] = 0;
+    auto f = fopen(zpath.ptr, "rb");
+    if (!f)
+        return null;
+    scope (exit)
+        fclose(f);
+    if (fseek(f, 0, SEEK_END) != 0)
+        return null;
+    long n = ftell(f);
+    if (n < 0)
+        return null;
+    rewind(f);
+    char[] buf = new char[cast(size_t)n];
+    size_t got = 0;
+    while (got < buf.length)
+    {
+        auto k = fread(buf.ptr + got, 1, buf.length - got, f);
+        if (k == 0)
+            break;
+        got += k;
+    }
+    return buf[0 .. got].idup;
+}
+
+// Current working directory, null on failure.
+private string currentDir()
+{
+    version (Posix)
+    {
+        import core.sys.posix.unistd : getcwd;
+        import dmd.root.string : toDString;
+
+        return getcwd(null, 0).toDString().idup;
+    }
+    else version (Windows)
+    {
+        import core.sys.windows.winbase : GetCurrentDirectoryA;
+        import core.sys.windows.windef : DWORD;
+
+        char[4096] buf;
+        auto len = GetCurrentDirectoryA(cast(DWORD)buf.length, buf.ptr);
+        if (len == 0 || len >= buf.length)
+            return null;
+        return buf[0 .. len].idup;
+    }
+    else
+        return null;
+}
+
+// getenv with a fallback default.
+private const(char)[] getenvOr(const(char)* name, const(char)[] def)
+{
+    import core.stdc.stdlib : getenv;
+    import dmd.root.string : toDString;
+
+    const(char)* v = getenv(name);
+    return v ? toDString(v) : def;
 }
