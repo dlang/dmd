@@ -3510,8 +3510,18 @@ int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol* s, targ_size_t v
     rel.offset = offset;
     rel.targsym = s;
     rel.targseg = 0;
+
+static if (0)
+{
     rel.rtype = machobj.AArch64 ? REL.rel : REL.address;
     rel.subtractor = !machobj.AArch64;
+}
+else
+{
+    rel.rtype = REL.address;
+    rel.subtractor = 1;
+}
+
     rel.funcsym = fdesym;
     rel.val = 0;
 
