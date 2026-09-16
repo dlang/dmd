@@ -89,6 +89,16 @@ out(v; v.ptr == &v)
     return b3 ? make3() : f3();
 }
 
+S3 h3()
+{
+    static S3 lazyS3(lazy S3 s)
+    {
+        return s();
+    }
+
+    return b3 ? assert(0) : lazyS3(f3());
+}
+
 void test3()
 {
     S3 s1 = f3();
@@ -121,6 +131,10 @@ void test3()
     }
 
     f3().b.check();
+
+    S3 s5 = h3();
+    s5.check();
+    assert(i3 == 5);
 }
 
 /***************************************************/

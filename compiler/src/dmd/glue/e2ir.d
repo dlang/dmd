@@ -754,7 +754,7 @@ elem* toElem(Expression e, ref IRState irs)
             }
         }
 
-        Symbol* s = toSymbol(se.var);
+        Symbol* s = toSymbolNRVO(se.var);
 
         // VarExp generated for `__traits(initSymbol, Aggregate)`?
         if (auto symDec = se.var.isSymbolDeclaration())
@@ -781,9 +781,7 @@ elem* toElem(Expression e, ref IRState irs)
         if (se.var.toParent2())
             fd = se.var.toParent2().isFuncDeclaration();
 
-        const bool nrvo = fd && (fd.isNRVO && fd.nrvo_var == se.var || se.var.nrvo && fd.shidden);
-        if (nrvo)
-            s = cast(Symbol*)fd.shidden;
+        const bool nrvo = fd && s == fd.shidden;
 
         if (s.Sclass == SC.auto_ || s.Sclass == SC.parameter || s.Sclass == SC.shadowreg)
         {
@@ -4419,7 +4417,7 @@ elem* toElemRVO(Expression e, elem* ehidden, ref IRState irs, Type forceType = n
          * replace it with ehidden.
          */
         if (ehidden.Eoper == OPvar && ehidden.Voffset == 0 &&
-            ehidden.Vsym == toSymbol(ve.var))
+            ehidden.Vsym == toSymbolNRVO(ve.var))
         {
             if (tybasic(ehidden.Ety) == TYnptr)
             {
