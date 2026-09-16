@@ -195,13 +195,49 @@ void deinitializeDMD()
     global.deinitialize();
 
     Type.deinitialize();
-    Id.deinitialize();    Module.deinitialize();
+    Id.deinitialize();
+    // Drop the process-global identifier pool, then re-register the keywords.
+    {
+        import dmd.identifier : Identifier;
+        import dmd.tokens : initializeKeywords;
+
+        Identifier.deinitialize();
+        initializeKeywords();
+    }
+    Module.deinitialize();
     target.deinitialize();
     Expression.deinitialize();
     Objc.deinitialize();
     Dsymbol.deinitialize();
     EscapeState.reset();
     DFAAllocator.deinitialize();
+
+    // Drop module-scoped caches that would otherwise retain the old universe.
+    {
+        import funcsem = dmd.funcsem;
+        import dsymbolsem = dmd.dsymbolsem;
+        import typesem = dmd.typesem;
+        import semantic3 = dmd.semantic3;
+        import templatesem = dmd.templatesem;
+        import dtemplate = dmd.dtemplate;
+        import dmd.dscope : Scope;
+        import clone = dmd.clone;
+        import arrayop = dmd.arrayop;
+        import dinterpret = dmd.dinterpret;
+        import dmd.location : Loc;
+
+        funcsem.deinitialize();
+        dsymbolsem.deinitialize();
+        typesem.deinitialize();
+        semantic3.deinitialize();
+        templatesem.deinitialize();
+        dtemplate.deinitialize();
+        clone.deinitialize();
+        arrayop.deinitialize();
+        dinterpret.deinitialize();
+        Scope.freelist = null;
+        Loc._init();
+    }
 }
 
 /**

@@ -13,6 +13,11 @@
 
 module dmd.arrayop;
 
+import dmd.dtemplate : TemplateDeclaration;
+
+// Cache for object._arrayOp; hoisted so deinitialize can reset it.
+private __gshared TemplateDeclaration arrayOpTemplate;
+
 import core.stdc.stdio;
 import dmd.arraytypes;
 import dmd.astenums;
@@ -135,9 +140,7 @@ Expression arrayOp(BinExp e, Scope* sc)
     auto tiargs = new Objects();
     auto args = buildArrayOp(sc, e, tiargs);
 
-    import dmd.dtemplate : TemplateDeclaration;
-    __gshared TemplateDeclaration arrayOp;
-    if (arrayOp is null)
+    if (arrayOpTemplate is null)
     {
         // Create .object._arrayOp
         Identifier idArrayOp = Identifier.idPool("_arrayOp");
@@ -147,7 +150,7 @@ Expression arrayOp(BinExp e, Scope* sc)
 
         id = id.expressionSemantic(sc);
         if (auto te = id.isTemplateExp())
-            arrayOp = te.td;
+            arrayOpTemplate = te.td;
         else
         {
             ObjectNotFound(e.loc, idArrayOp);   // fatal error
@@ -155,7 +158,7 @@ Expression arrayOp(BinExp e, Scope* sc)
         }
     }
 
-    auto fd = resolveFuncCall(e.loc, sc, arrayOp, tiargs, null, ArgumentList(args), FuncResolveFlag.standard);
+    auto fd = resolveFuncCall(e.loc, sc, arrayOpTemplate, tiargs, null, ArgumentList(args), FuncResolveFlag.standard);
     if (!fd || fd.errors)
         return ErrorExp.get();
     return new CallExp(e.loc, new VarExp(e.loc, fd, false), args).expressionSemantic(sc);
@@ -392,4 +395,10 @@ private void checkPossibleAddCatError(AddT, CatT)(AddT ae)
     CatT ce = new CatT(ae.loc, ae.e1, ae.e2);
     auto eSink = global.errorSink;
     eSink.errorSupplemental(ae.loc, "did you mean to concatenate (`%s`) instead ?", ce.toChars());
+}
+
+/// Reset the module's global state between analyses.
+void deinitialize() nothrow
+{
+    arrayOpTemplate = null;
 }

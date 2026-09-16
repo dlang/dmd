@@ -239,6 +239,26 @@ struct CtfeGlobals
 
 __gshared CtfeGlobals ctfeGlobals;
 
+/// Re-initialise after the region holding ctfeGlobals' buffers was freed.
+/// Blit `.init`: assignment would run destructors over the freed memory.
+public void reinitAfterRegion() nothrow
+{
+    import core.stdc.string : memcpy;
+    CtfeGlobals z;
+    memcpy(&ctfeGlobals, &z, CtfeGlobals.sizeof);
+}
+
+/// Reset CTFE global state between analyses.
+public void deinitialize() nothrow
+{
+    ctfeGlobals.stack.resetGlobalValues();
+    ctfeGlobals.callDepth = 0;
+    ctfeGlobals.stackTraceCallsToSuppress = 0;
+    ctfeGlobals.maxCallDepth = 0;
+    ctfeGlobals.numArrayAllocs = 0;
+    ctfeGlobals.numAssignments = 0;
+}
+
 enum CTFEGoal : int
 {
     RValue,     /// Must return an Rvalue (== CTFE value)
@@ -282,6 +302,7 @@ private:
      * have to redo them. This saves a lot of time and memory.
      */
     Expressions globalValues;   // values of global constants
+    VarDeclarations savedGlobals; // corresponding declarations (for invalidation)
 
     size_t framepointer;        // current frame pointer
     size_t maxStackPointer;     // most stack we've ever used
@@ -401,6 +422,16 @@ public:
         assert(v._init && (v.isConst() || v.isImmutable() || v.storage_class & STC.manifest) && !v.isCTFE());
         v.ctfeAdrOnStack = cast(uint)globalValues.length;
         globalValues.push(copyRegionExp(e));
+        savedGlobals.push(v);
+    }
+
+    /// Drop the cached global constants and clear their stack indices.
+    void resetGlobalValues() nothrow
+    {
+        foreach (v; savedGlobals)
+            v.ctfeAdrOnStack = VarDeclaration.AdrOnStackNone;
+        savedGlobals.setDim(0);
+        globalValues.setDim(0);
     }
 }
 

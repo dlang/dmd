@@ -11,6 +11,10 @@
 
 module dmd.identifier;
 
+// Cache of generated-identifier counters; hoisted so deinitialize can reset it.
+private struct Key { string locKey; string prefix; const(void)* parent; }
+private __gshared uint[Key] counters;
+
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;
@@ -260,9 +264,6 @@ nothrow:
          * directly, but that would unnecessary lengthen symbols names. See issue:
          * https://issues.dlang.org/show_bug.cgi?id=23722
          */
-        static struct Key { string locKey; string prefix; const(void)* parent; }
-        __gshared uint[Key] counters;
-
         const locKey = cast(string) (sl.filename ~ idBuf[]);
         const key = Key(locKey, prefix, parent);
         static if (__traits(compiles, counters.update(Key.init, () => 0u, (ref uint a) => 0u)))
@@ -434,5 +435,19 @@ nothrow:
     extern (D) static void initTable()
     {
         stringtable._init(28_000);
+    }
+
+    /// Reset the identifier cache between analyses.
+    static void deinitialize() nothrow
+    {
+        stringtable.reset(28_000);
+        counters = null;
+    }
+
+    /// Re-initialise after the region backing the pool and counters was freed.
+    static void reinitAfterRegion() nothrow
+    {
+        stringtable._init(28_000);
+        *cast(void**) &counters = null;
     }
 }

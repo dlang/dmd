@@ -12,6 +12,9 @@
 
 module dmd.clone;
 
+// Cache for buildXtoHash; hoisted so deinitialize can reset it.
+private __gshared TypeFunction tftohash;
+
 import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -819,7 +822,6 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
 {
     if (Dsymbol s = search_function(sd, Id.tohash))
     {
-        __gshared TypeFunction tftohash;
         if (!tftohash)
         {
             tftohash = new TypeFunction(ParameterList(), Type.thash_t, LINK.d);
@@ -1839,4 +1841,10 @@ void buildCopyOrMoveCtor(StructDeclaration sd, Scope* sc, bool move)
         ccd.storage_class |= STC.disable;
         ccd.fbody = null;
     }
+}
+
+/// Reset the module's global state between analyses.
+void deinitialize() nothrow
+{
+    tftohash = null;
 }

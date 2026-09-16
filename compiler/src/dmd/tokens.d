@@ -592,15 +592,21 @@ private immutable TOK[] keywords =
     TOK.__attribute__,
 ];
 
-// Initialize the identifier pool
-shared static this() nothrow
+// Register the keywords with the identifier pool (also repopulates it after deinitialize).
+extern (D) static void initializeKeywords() nothrow
 {
-    Identifier.initTable();
     foreach (kw; keywords)
     {
         //printf("keyword[%d] = '%s'\n",kw, Token.tochars[kw].ptr);
         Identifier.idPool(Token.tochars[kw], kw);
     }
+}
+
+// Initialize the identifier pool
+shared static this() nothrow
+{
+    Identifier.initTable();
+    initializeKeywords();
 }
 
 /************************************
