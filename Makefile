@@ -171,7 +171,7 @@ dmd-pgo: phobos $(RUN_EXE)
 # using a response file with list of generated *.profraw files, to avoid cmdline-length problems with many files
 	cd $(GENERATED) && find -maxdepth 1 -name '*.profraw' > profraw_list.rsp
 	cd $(GENERATED) && $(LDC_PROFDATA) merge --output=merged.profdata --input-files=profraw_list.rsp
-	$(RM) $(GENERATED)/*.profraw $(GENERATED)/profraw_list.rsp
+	cd $(GENERATED) && xargs $(RM) < profraw_list.rsp && $(RM) profraw_list.rsp
 	@echo "PGO step 4/4: Building PGO+LTO'd compiler"
 	$(BUILD_EXE) ENABLE_RELEASE=1 ENABLE_LTO=1 DFLAGS='-fprofile-instr-use=$(abspath $(GENERATED))/merged.profdata $(HOST_DFLAGS)' dmd --force
 	$(RM) $(GENERATED)/merged.profdata
