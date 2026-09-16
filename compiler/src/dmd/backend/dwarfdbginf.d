@@ -95,6 +95,7 @@ static if (1)
             int except_table_num = 0;       // sequence number for GCC_except_table%d symbols
             int eh_frame_seg = UNKNOWN;     // __eh_frame segment
             Symbol* eh_frame_sym = null;    // past end of __eh_frame
+            int compact_unwind_seg = UNKNOWN; // __compact_unwind segment
 
         uint CIE_offset_unwind;     // CIE offset for unwind data
         uint CIE_offset_no_unwind;  // CIE offset for no unwind data
@@ -199,6 +200,22 @@ static if (1)
                 Obj.pubdef(seg, eh_frame_sym, 0);
                 symbol_keep(eh_frame_sym);
             }
+            return seg;
+        }
+        assert(0);
+    }
+
+    /*****************
+     * Returns the __compact_unwind segment number, create segment if necessary.
+     * Returns:
+     *  segment index of compact_unwind
+     */
+    IDXSEC dwarf_compact_unwind_alloc()
+    {
+        if (config.objfmt == OBJ_MACH && AArch64())
+        {
+            int flags = S_REGULAR | S_ATTR_DEBUG;
+            int seg = getsegment2(compact_unwind_seg, "__compact_unwind", "__LD", 3, flags);
             return seg;
         }
         assert(0);
@@ -1071,7 +1088,10 @@ static if (1)
             CIE_offset_unwind = ~0;
             CIE_offset_no_unwind = ~0;
             //dwarf_except_table_alloc();
-            dwarf_eh_frame_alloc();
+            if (config.objfmt == OBJ_MACH && AArch64())
+                dwarf_compact_unwind_alloc();
+            else
+                dwarf_eh_frame_alloc();
         }
         if (!config.fulltypes)
             return;
@@ -1812,18 +1832,39 @@ static if (1)
 
         if (config.ehmethod == EHmethod.EH_DWARF)
         {
-            bool ehunwind = doUnwindEhFrame();
+            if (config.objfmt == OBJ_MACH && AArch64())
+            {
+                bool ehunwind = doUnwindEhFrame();
 
-            IDXSEC dfseg = dwarf_eh_frame_alloc();
+                IDXSEC dfseg = dwarf_compact_unwind_alloc();
 
-            OutBuffer* buf = SegData[dfseg].SDbuf;
-            buf.reserve(1000);
+                OutBuffer* buf = SegData[dfseg].SDbuf;
+                buf.reserve(1000);
 
-            uint* poffset = ehunwind ? &CIE_offset_unwind : &CIE_offset_no_unwind;
-            if (*poffset == ~0)
-                *poffset = writeEhFrameHeader(dfseg, buf, getRtlsymPersonality(), ehunwind);
+                static if (0)
+                {
+                uint* poffset = ehunwind ? &CIE_offset_unwind : &CIE_offset_no_unwind;
+                if (*poffset == ~0)
+                    *poffset = writeEhFrameHeader(dfseg, buf, getRtlsymPersonality(), ehunwind);
 
-            writeEhFrameFDE(dfseg, sfunc, ehunwind, *poffset);
+                writeEhFrameFDE(dfseg, sfunc, ehunwind, *poffset);
+                }
+            }
+            else
+            {
+                bool ehunwind = doUnwindEhFrame();
+
+                IDXSEC dfseg = dwarf_eh_frame_alloc();
+
+                OutBuffer* buf = SegData[dfseg].SDbuf;
+                buf.reserve(1000);
+
+                uint* poffset = ehunwind ? &CIE_offset_unwind : &CIE_offset_no_unwind;
+                if (*poffset == ~0)
+                    *poffset = writeEhFrameHeader(dfseg, buf, getRtlsymPersonality(), ehunwind);
+
+                writeEhFrameFDE(dfseg, sfunc, ehunwind, *poffset);
+            }
         }
         if (!config.fulltypes)
             return;
