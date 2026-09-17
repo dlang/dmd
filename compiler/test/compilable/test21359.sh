@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if [[ $OS = "win"* ]] && ! which -s nm; then
+    echo 'No `nm` tool found in PATH, skipping test on Windows.'
+    exit 0
+fi
+
 objfile="${OUTPUT_BASE}${OBJ}"
 $DMD -c -m${MODEL} -allinst -of${objfile} ${EXTRA_FILES}/${TEST_NAME}a.d -I${EXTRA_FILES}
 
