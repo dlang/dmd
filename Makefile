@@ -160,12 +160,11 @@ ifeq (,$(wildcard $(LDC_PROFDATA)))
     LDC_PROFDATA:=ldc-profdata
 endif
 
-# Running the compiler/test/compilable/ test suite (a subset of the `dmd-test` target)
-# for gathering the PGO profile requires prebuilt druntime and phobos.
-dmd-pgo: phobos $(RUN_EXE)
+dmd-pgo: $(BUILD_EXE) $(RUN_EXE) ../phobos
 	@echo "PGO step 1/4: Building instrumented compiler"
 	$(BUILD_EXE) DFLAGS='-fprofile-instr-generate=$(abspath $(GENERATED))/%p.profraw -release $(HOST_DFLAGS)' dmd --force
-	@echo "PGO step 2/4: Gathering profiles by running 'compilable' test suite"
+	@echo "PGO step 2/4: Gathering profiles by compiling druntime & phobos and running 'compilable' test suite"
+	$(MAKE) -C ../phobos
 	$(RUN_EXE) compilable
 	@echo "PGO step 3/4: Merging profiles"
 # using a response file with list of generated *.profraw files, to avoid cmdline-length problems with many files
