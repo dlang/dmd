@@ -602,13 +602,6 @@ extern (D) static void initializeKeywords() nothrow
     }
 }
 
-// Initialize the identifier pool
-shared static this() nothrow
-{
-    Identifier.initTable();
-    initializeKeywords();
-}
-
 /************************************
  * This is used to pick the C keywords out of the tokens.
  * If it's not a C keyword, then it's an identifier.

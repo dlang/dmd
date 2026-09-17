@@ -196,14 +196,6 @@ void deinitializeDMD()
 
     Type.deinitialize();
     Id.deinitialize();
-    // Drop the process-global identifier pool, then re-register the keywords.
-    {
-        import dmd.identifier : Identifier;
-        import dmd.tokens : initializeKeywords;
-
-        Identifier.deinitialize();
-        initializeKeywords();
-    }
     Module.deinitialize();
     target.deinitialize();
     Expression.deinitialize();
