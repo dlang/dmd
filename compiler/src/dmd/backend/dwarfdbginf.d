@@ -1067,6 +1067,23 @@ static if (1)
         assert(startsize + length + 4 == buf.length());
     }
 
+    private
+    void writeCompactUnwindEntry(ref OutBuffer buf, IDXSEC dfseg, Symbol* sfunc, Symbol* personality)
+    {
+        mach_dwarf_reftoident(dfseg, buf.length(), sfunc, 0);   // functionAddress
+
+        buf.write32(cast(uint)sfunc.Ssize);             // functionLength
+
+        uint functionEncoding = UNWIND_ARM64_MODE_FRAME;  // standard stack frame
+        buf.write64(functionEncoding);                    // functionEncoding
+
+        //mach_dwarf_reftoident(dfseg, buf.length(), personality, 0);   // personality
+        buf.write64(0);
+
+        //mach_dwarf_reftoident(dfseg, buf.length(), sfunc.Sfunc.LSDAsym, 0, sfunc);    // LSDA
+        buf.write64(0);
+    }
+
     public
     void dwarf_initfile(const(char)* filename)
     {
@@ -1835,19 +1852,13 @@ static if (1)
             if (config.objfmt == OBJ_MACH && AArch64())
             {
                 bool ehunwind = doUnwindEhFrame();
-
-                IDXSEC dfseg = dwarf_compact_unwind_alloc();
-
-                OutBuffer* buf = SegData[dfseg].SDbuf;
-                buf.reserve(1000);
-
-                static if (0)
+                if (ehunwind)
                 {
-                uint* poffset = ehunwind ? &CIE_offset_unwind : &CIE_offset_no_unwind;
-                if (*poffset == ~0)
-                    *poffset = writeEhFrameHeader(dfseg, buf, getRtlsymPersonality(), ehunwind);
+                    IDXSEC dfseg = dwarf_compact_unwind_alloc();
+                    OutBuffer* buf = SegData[dfseg].SDbuf;
+                    buf.reserve(32);    // 32 bytes per instance of struct compact_unwind_entry
 
-                writeEhFrameFDE(dfseg, sfunc, ehunwind, *poffset);
+                    writeCompactUnwindEntry(*buf, dfseg, sfunc, getRtlsymPersonality());
                 }
             }
             else
