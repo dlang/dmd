@@ -162,7 +162,7 @@ endif
 
 dmd-pgo: $(BUILD_EXE) $(RUN_EXE) ../phobos
 	@echo "PGO step 1/4: Building instrumented compiler"
-	$(BUILD_EXE) DFLAGS='-fprofile-instr-generate=$(abspath $(GENERATED))/%p.profraw -release $(HOST_DFLAGS)' dmd --force
+	$(BUILD_EXE) ENABLE_RELEASE=1 DFLAGS='-fprofile-generate=$(abspath $(GENERATED))/%p.profraw $(HOST_DFLAGS)' dmd --force
 	@echo "PGO step 2/4: Gathering profiles by compiling druntime & phobos and running 'compilable' test suite"
 	$(MAKE) -C ../phobos
 	$(RUN_EXE) compilable
@@ -172,7 +172,7 @@ dmd-pgo: $(BUILD_EXE) $(RUN_EXE) ../phobos
 	cd $(GENERATED) && $(LDC_PROFDATA) merge --output=merged.profdata --input-files=profraw_list.rsp
 	cd $(GENERATED) && xargs $(RM) < profraw_list.rsp && $(RM) profraw_list.rsp
 	@echo "PGO step 4/4: Building PGO+LTO'd compiler"
-	$(BUILD_EXE) ENABLE_RELEASE=1 ENABLE_LTO=1 DFLAGS='-fprofile-instr-use=$(abspath $(GENERATED))/merged.profdata $(HOST_DFLAGS)' dmd --force
+	$(BUILD_EXE) ENABLE_RELEASE=1 ENABLE_LTO=1 DFLAGS='-fprofile-use=$(abspath $(GENERATED))/merged.profdata $(HOST_DFLAGS)' dmd --force
 	$(RM) $(GENERATED)/merged.profdata
 
 endif # ldmd2
