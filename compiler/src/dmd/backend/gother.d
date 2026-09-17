@@ -138,7 +138,7 @@ public
 void constprop(ref GlobalOptimizer go, ref BlockOpt bo)
 {
     rd_compute(go, bo, eqrelinc);
-    intranges(go, eqrelinc.rellist, eqrelinc.inclist);        // compute integer ranges
+    intranges(eqrelinc.rellist, eqrelinc.inclist, go.changes);        // compute integer ranges
     eqeqranges(eqrelinc.eqeqlist);       // see if we can eliminate some relationals
 
     eqrelinc.reset();           // reset for next time
@@ -747,10 +747,11 @@ private void eqeqranges(ref Elemdatas eqeqlist)
  * Params:
  *      rellist = array of relationals in function
  *      inclist = array of increment elems in function
+ *      changes = increment for any changes
  */
 
 @trusted
-private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemdatas inclist)
+private void intranges(ref Elemdatas rellist, ref Elemdatas inclist, ref uint changes)
 {
     block* rb;
     block* ib;
@@ -891,7 +892,7 @@ private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemda
                             printf(" made unsigned, initial = %lld, increment = %lld," ~
                                    " final_ = %lld\n",cast(long)initial,cast(long)increment,cast(long)final_);
                         }
-                        go.changes++;
+                        ++changes;
                     }
                 }
             }
