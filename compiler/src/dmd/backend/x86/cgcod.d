@@ -132,7 +132,7 @@ void codgenx(ref CGstate cg, Symbol* sfunc)
         cg.needframe = 0;
         cg.enforcealign = false;
         cg.gotref = 0;
-        cg.stackchanged = 0;
+        cg.stackchanged = false;
         cg.stackpush = 0;
         cg.refparam = 0;
         cg.calledafunc = 0;
@@ -3036,7 +3036,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs,r
     else
         cg.mfuncreg = (XMMREGS | mBP | mES | ALLREGS) & ~cg.regcon.mvar;
     uint stackpushsave = cg.stackpush;
-    char calledafuncsave = cg.calledafunc;
+    bool calledafuncsave = cg.calledafunc;
     cg.calledafunc = 0;
     CodeBuilder cdbx; cdbx.ctor();
     codelem(cg,cdbx,e,pretregs,constflag);    // generate code for the elem
@@ -3129,7 +3129,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs,r
                 cs2 = cat(cdby.finish(),cs2);
                 if (size)
                 {
-                    cg.stackchanged = 1;
+                    cg.stackchanged = true;
                     adjesp += size;
                 }
             }

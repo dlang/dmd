@@ -2183,7 +2183,7 @@ static if (0)
             {
                 cdb.genpush(reg);        // PUSH reg
                 cdb.genadjesp(REGSIZE);
-                cg.stackchanged = 1;
+                cg.stackchanged = true;
             }
         }
         else if (config.exe & EX_windos)
@@ -2253,7 +2253,7 @@ static if (0)
             cs.IEV1.Voffset = e.Voffset;
         L3:
             if (reg == STACK)
-            {   cg.stackchanged = 1;
+            {   cg.stackchanged = true;
                 cs.Iop = 0x68;              /* PUSH immed16                 */
                 cdb.genadjesp(REGSIZE);
                 cs.IFL1 = fl;
@@ -2296,7 +2296,7 @@ static if (0)
                     code_orrex(cdb.last(), REX_W);
                 cdb.genpush(reg);               // PUSH reg
                 cdb.genadjesp(REGSIZE);
-                cg.stackchanged = 1;
+                cg.stackchanged = true;
             }
             else
             {

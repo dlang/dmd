@@ -3371,7 +3371,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             cs.Iop = 0xFF;
             cs.Irm |= modregrm(0,6,0);
             cs.IEV1.Voffset += 8 - REGSIZE;
-            cg.stackchanged = 1;
+            cg.stackchanged = true;
             i = 8 - REGSIZE;
             do
             {
@@ -3868,7 +3868,7 @@ void cdstrcpy(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         POP     DS
     */
 
-    cg.stackchanged = 1;
+    cg.stackchanged = true;
     regm_t retregs = mDI;
     tym_t ty2 = tybasic(e.E2.Ety);
     if (!tyreg(ty2))
@@ -4851,7 +4851,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
             {
                 cdb.genpush(reg);        // PUSH reg
                 cdb.genadjesp(REGSIZE);
-                cg.stackchanged = 1;
+                cg.stackchanged = true;
             }
             break;
         }
@@ -4899,7 +4899,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
             cs.IEV2.Voffset = e.Voffset;
         L3:
             if (reg == STACK)
-            {   cg.stackchanged = 1;
+            {   cg.stackchanged = true;
                 cs.Iop = 0x68;              /* PUSH immed16                 */
                 cdb.genadjesp(REGSIZE);
             }
@@ -4949,7 +4949,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
                     code_orrex(cdb.last(), REX_W);
                 cdb.genpush(reg);               // PUSH reg
                 cdb.genadjesp(REGSIZE);
-                cg.stackchanged = 1;
+                cg.stackchanged = true;
             }
             else
             {
@@ -5231,7 +5231,7 @@ if (config.exe & EX_windos)
         regm_t idxregs = idxregm(&cs);  // mask of index regs used
         cs.Iop = 0x8B;                  /* MOV DOUBLEREGS,EA            */
         fltregs(cdb,&cs,tyml);
-        cg.stackchanged = 1;
+        cg.stackchanged = true;
         int stackpushsave = cg.stackpush;
         regm_t retregs;
         if (sz == 8)

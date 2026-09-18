@@ -2807,7 +2807,7 @@ void cod3_ptrchk(ref CGstate cg, ref CodeBuilder cdb,ref code pcs,regm_t keepmsk
         {
             int push,pop;
 
-            cg.stackchanged = 1;
+            cg.stackchanged = true;
             if (i == ES)
             {   push = 0x06;
                 pop = 0x07;

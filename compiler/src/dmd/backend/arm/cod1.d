@@ -2789,7 +2789,7 @@ void loaddata(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t outretreg
             if (0 && (outretregs & (mSTACK | mPSW)) == mSTACK)
             {
                 // Note that we allocreg(DOUBLEREGS) needlessly
-                cg.stackchanged = 1;
+                cg.stackchanged = true;
                 int i = sz - REGSIZE;
                 do
                 {
