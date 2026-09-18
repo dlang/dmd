@@ -9,6 +9,7 @@ $DMD -c -preview=dip1008 -m${MODEL} -of${OUTPUT_BASE}${OBJ} -I${EXTRA_FILES} ${E
 echo ".: ================================================="
 nm ${OUTPUT_BASE}${OBJ}
 echo ".: ================================================="
-nm ${OUTPUT_BASE}${OBJ} | (! grep _d_newclass)
+nm ${OUTPUT_BASE}${OBJ} > ${OUTPUT_BASE}.symbols
+! grep _d_newclass ${OUTPUT_BASE}.symbols
 
-rm_retry ${OUTPUT_BASE}${OBJ}
+rm_retry ${OUTPUT_BASE}${OBJ} ${OUTPUT_BASE}.symbols
