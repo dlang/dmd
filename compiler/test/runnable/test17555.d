@@ -86,8 +86,11 @@ void main4()
     { // some keys, gap
         int[] a = [1 : 2, 3];
         int[3] b = [1 : 2, 3];
-        // auto c = [1 : 2, 3];
-        // static assert(is(typeof(c) == int[])); // should fill in gaps with int.init
+    static if(all || __VERSION__ > 2114)
+    {
+        auto c = [1 : 2, 3];
+        static assert(is(typeof(c) == int[])); // should fill in gaps with int.init
+    }
     }
     { // value is AA
     static if(all || __VERSION__ > 2112)
@@ -125,14 +128,19 @@ void main4()
         static assert(is(typeof(c) == int[int[]]));
     }
     { // value has gap
-        // int[][int] a = [0 : [1 : 2, 3]];
+    static if(all || __VERSION__ > 2114)
+        int[][int] a = [0 : [1 : 2, 3]];
     static if(all || __VERSION__ < 2112 || __VERSION__ > 2113)
         int[][] b = [0 : [1 : 2, 3]];
-        // int[3][int] c = [0 : [1 : 2, 3]];
+    static if(all || __VERSION__ > 2114)
+        int[3][int] c = [0 : [1 : 2, 3]];
     static if(all || __VERSION__ < 2112 || __VERSION__ > 2113)
         int[3][] d = [0 : [1 : 2, 3]];
-        // auto e = [0 : [1 : 2, 3]];
-        // static assert(is(typeof(e) == int[][int]));
+    static if(all || __VERSION__ > 2114)
+    {
+        auto e = [0 : [1 : 2, 3]];
+        static assert(is(typeof(e) == int[][int]));
+    }
     }
     { // key has gap
         // int[int[]] a = [[1 : 2, 3] : 0];
@@ -265,7 +273,7 @@ void testInference()
       auto a = [1:2, 3, 0:1];
       static assert(is(typeof(a) == int[]));
     }}
-    static if((all || __VERSION__ > 2113) && false) // crashes
+    static if(all || __VERSION__ > 2113)
     {{
       auto a2 = [1:2, 3];
       static assert(is(typeof(a2) == int[]));
