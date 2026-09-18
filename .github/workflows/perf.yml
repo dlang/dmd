@@ -78,19 +78,28 @@ jobs:
           source ~/dlang/*/activate
           BASE_SHA="${{ steps.refs.outputs.base }}"
 
-          # Check out a ref in an isolated temp dir, clone phobos and build (LTO+PGO'd dmd, druntime and phobos).
+          # Check out a ref in an isolated temp dir and clone phobos.
           setup_ref() {
             local dir="$RUNNER_TEMP/$2/dmd"
             mkdir -p "$RUNNER_TEMP/$2"
             git worktree add --force "$dir" "$1"
             ( cd "$dir" && ci/run.sh setup_repos "${{ steps.refs.outputs.branch }}" )
-            make -C "$dir" -j$N HOST_DMD=$DMD MODEL=$MODEL dmd-pgo
           }
 
+          # Build LTO+PGO'd dmd, druntime and phobos, Lines are tagged with the ref.
+          build_ref() {
+            make -C "$RUNNER_TEMP/$1/dmd" -j$N HOST_DMD=$DMD MODEL=$MODEL dmd-pgo 2>&1 | sed -u "s/^/[$1] /"
+          }
+
+          # Both build in parallel
           setup_ref "${{ steps.refs.outputs.head }}" head
+          build_ref head & head_pid=$!
           if [ -n "$BASE_SHA" ]; then
             setup_ref "$BASE_SHA" base
+            build_ref base & base_pid=$!
+            wait $base_pid
           fi
+          wait $head_pid
           deactivate
 
       - name: Cache dub packages
