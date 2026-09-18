@@ -1,8 +1,8 @@
 /* TEST_OUTPUT:
 ---
 fail_compilation/fail21347.d(19): Error: expression expected, not `;`
-fail_compilation/fail21347.d(20): Error: found `}` when expecting `,`
-fail_compilation/fail21347.d(19): Error: found `End of File` when expecting `]`
+fail_compilation/fail21347.d(19): Error: found `;` when expecting `,`
+fail_compilation/fail21347.d(19): Error: found `}` when expecting `]`
 fail_compilation/fail21347.d(19): Error: found `End of File` when expecting `)`
 fail_compilation/fail21347.d(21): Error: found `End of File` when expecting `;` following expression
 fail_compilation/fail21347.d(19):        expression: `[(__error)]`

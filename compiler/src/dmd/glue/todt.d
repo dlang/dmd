@@ -122,7 +122,8 @@ void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isCfile)
         foreach (i, idx; ai.index)
         {
             if (idx)
-                length = cast(uint)idx.toInteger();
+                if (auto ei = idx.isExpInitializer())
+                    length = cast(uint)ei.exp.toInteger();
             //printf("\tindex[%d] = %p, length = %u, dim = %u\n", i, idx, length, ai.dim);
 
             assert(length < ai.dim);

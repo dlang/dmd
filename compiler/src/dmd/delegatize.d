@@ -176,7 +176,7 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
             foreach (i, ex; ai.index)
             {
                 if (ex)
-                    walkPostorder(ex, this);
+                    ex.accept(this);
                 if (Initializer iz = ai.value[i])
                     iz.accept(this);
             }

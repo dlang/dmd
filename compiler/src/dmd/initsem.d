@@ -70,6 +70,7 @@ Expression toAssocArrayLiteral(ArrayInitializer ai, Type itype, ErrorSink eSink)
     }
 
     auto vtype  = itype ? itype.nextOf() : null;
+    auto ktype  = itype && itype.ty == Taarray ? itype.isTypeAArray().index : null;
     auto keys   = new Expressions(dim);
     auto values = new Expressions(dim);
     foreach (i, iz; ai.value[])
@@ -83,7 +84,8 @@ Expression toAssocArrayLiteral(ArrayInitializer ai, Type itype, ErrorSink eSink)
         }
         (*values)[i] = ev;
 
-        auto ei = ai.index[i];
+        auto ik = ai.index[i];
+        auto ei = ik ? ik.initializerToExpression(ktype) : null;
         if (!ei)
         {
             eSink.error(iz.loc, "missing key for value `%s` in initializer", toChars(iz));
@@ -261,23 +263,27 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         length = 0;
         for (size_t j = 0; j < i.index.length; j++) // don't replace with foreach; j is modified
         {
-            Expression idx = i.index[j];
+            Initializer idx = i.index[j];
             if (idx)
             {
-                sc = sc.startCTFE();
-                idx = idx.expressionSemantic(sc);
-                sc = sc.endCTFE();
-                idx = idx.ctfeInterpret();
+                auto ti = t.ty == Taarray ? t.isTypeAArray().index : Type.tsize_t;
+                idx = idx.initializerSemantic(sc, ti, needInterpret, eSink);
+                if (idx.isErrorInitializer())
+                    errors = true;
                 i.index[j] = idx;
-                const uinteger_t idxvalue = idx.toInteger();
+                auto eidx = idx.isExpInitializer();
+                if (!eidx)
+                {
+                    eSink.error(i.loc, "array index not an expression");
+                    errors = true;
+                }
+                const uinteger_t idxvalue = eidx ? eidx.exp.toInteger() : 0;
                 if (idxvalue >= amax)
                 {
                     eSink.error(i.loc, "array index %llu overflow", idxvalue);
                     errors = true;
                 }
                 length = cast(uint)idxvalue;
-                if (idx.op == EXP.error)
-                    errors = true;
             }
             Initializer val = i.value[j];
             ExpInitializer ei = val.isExpInitializer();
@@ -296,7 +302,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 i.value.remove(j);
                 foreach (k, e; (*te.exps)[])
                 {
-                    i.index.insert(j + k, cast(Expression)null);
+                    i.index.insert(j + k, cast(Initializer)null);
                     i.value.insert(j + k, new ExpInitializer(e.loc, e));
                 }
                 j--;
@@ -831,15 +837,15 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                     ExpInitializer ei = di.initializer.isExpInitializer();
                     if (ei.exp.isStringExp() && tnsa.nextOf().isIntegral())
                     {
-                        ai.addInit(null, ei);
+                        ai.addValue(ei);
                         ++index;
                     }
                     else
-                        ai.addInit(null, subArray(tnsa, index));
+                        ai.addValue(subArray(tnsa, index));
                 }
                 else
                 {
-                    ai.addInit(null, di.initializer);
+                    ai.addValue(di.initializer);
                     ++index;
                 }
             }
@@ -1127,7 +1133,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                     {
                         // Wrap initializer in [ ]
                         auto ain = new ArrayInitializer(ci.loc);
-                        ain.addInit(null, di.initializer);
+                        ain.addValue(di.initializer);
                         ix = ain;
                         ai.addInit((*dlist)[0].exp, initializerSemantic(ix, sc, tn, needInterpret, eSink));
                         ++index;
@@ -1156,11 +1162,11 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                     ExpInitializer ei = di.initializer.isExpInitializer();
                     if (ei.exp.isStringExp() && tnsa.nextOf().isIntegral())
                     {
-                        ai.addInit(null, ei);
+                        ai.addValue(ei);
                         ++index;
                     }
                     else
-                        ai.addInit(null, subArray(tnsa, index));
+                        ai.addValue(subArray(tnsa, index));
                 }
                 else if (tns && di.initializer.isExpInitializer())
                 {
@@ -1169,15 +1175,15 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                      */
                     if (representsStruct(di.initializer.isExpInitializer(), tns)) // initializer represents the entire struct
                     {
-                        ai.addInit(null, initializerSemantic(di.initializer, sc, tn, needInterpret, eSink));
+                        ai.addValue(initializerSemantic(di.initializer, sc, tn, needInterpret, eSink));
                         ++index;
                     }
                     else                                // field initializers for struct
-                        ai.addInit(null, subStruct(tns, index)); // the first field
+                        ai.addValue(subStruct(tns, index)); // the first field
                 }
                 else
                 {
-                    ai.addInit(null, initializerSemantic(di.initializer, sc, tn, needInterpret, eSink));
+                    ai.addValue(initializerSemantic(di.initializer, sc, tn, needInterpret, eSink));
                     ++index;
                 }
             }
@@ -1272,21 +1278,30 @@ Initializer inferInitializerType(Initializer init, Scope* sc, Type itype, ErrorS
             keys = new Expressions(init.value.length);
         else
             values.zero();
+        auto ktype = itype && itype.ty == Taarray ? itype.isTypeAArray().index : null;
 
         size_t idx = 0;
         for (size_t i = 0; i < init.value.length; i++, idx++)
         {
             if (isAssoc)
             {
-                Expression e = init.index[i];
-                assert(e); // already asserted by isAssociativeArray()
-                (*keys)[i] = e;
+                Initializer ik = init.index[i];
+                assert(ik); // already asserted by isAssociativeArray()
+                ik = ik.inferInitializerType(sc, ktype, eSink);
+                if (ik.isErrorInitializer())
+                {
+                    return ik;
+                }
+                (*keys)[i] = ik.isExpInitializer().exp;
             }
             else
             {
-                if (Expression e = init.index[i])
+                if (Initializer ie = init.index[i])
                 {
-                    dinteger_t nidx = e.toInteger();
+                    ie = ie.inferInitializerType(sc, Type.tsize_t, eSink);
+                    if (ie.isErrorInitializer())
+                        return ie;
+                    dinteger_t nidx = ie.isExpInitializer().exp.toInteger();
                     // sanity check: some arbitrary limit that allows a 32-bit process to continue
                     if (nidx > uint.max / 32)
                     {
@@ -1509,10 +1524,11 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
             bool hasIndex = false;
             foreach (i; 0 .. init.value.length)
             {
-                if (auto e = init.index[i])
+                if (auto ei = init.index[i])
                 {
                     hasIndex = true;
-                    if (e.op == EXP.int64)
+                    Expression e = ei.initializerToExpression(Type.tsize_t, isCfile);
+                    if (e && e.op == EXP.int64)
                     {
                         const uinteger_t idxval = e.toInteger();
                         if (idxval >= amax)
@@ -1548,8 +1564,9 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
         size_t j = 0;
         foreach (i; 0 .. init.value.length)
         {
-            if (auto e = init.index[i])
-                j = cast(size_t)e.toInteger();
+            if (auto ei = init.index[i])
+                if (auto e = ei.initializerToExpression(Type.tsize_t, isCfile))
+                    j = cast(size_t)e.toInteger();
             assert(j < edim);
             if (Initializer iz = init.value[i])
             {

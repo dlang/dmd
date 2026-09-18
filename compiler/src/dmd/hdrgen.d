@@ -4360,7 +4360,7 @@ private void initializerToBuffer(Initializer inx, ref OutBuffer buf, ref HdrGenS
                 buf.put(", ");
             if (ex)
             {
-                ex.expressionToBuffer(buf, hgs);
+                ex.initializerToBuffer(buf, hgs);
                 buf.put(':');
             }
             if (auto iz = ai.value[i])
