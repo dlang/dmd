@@ -99,7 +99,7 @@ void localize(ref GlobalOptimizer go, ref BlockOpt bo)
              */
             !b.Btry)
         {
-            local_exp(go, loctab,b.Belem,0);
+            local_exp(loctab, b.Belem, 0, go.changes);
         }
     }
 }
@@ -110,7 +110,7 @@ void localize(ref GlobalOptimizer go, ref BlockOpt bo)
 //
 
 @trusted
-private void local_exp(ref GlobalOptimizer go, ref Barray!loc_t lt, elem* e, int goal)
+private void local_exp(ref Barray!loc_t lt, elem* e, int goal, ref uint changes)
 {
     elem* e1;
     OPER op1;
@@ -121,13 +121,13 @@ Loop:
     switch (op)
     {
         case OPcomma:
-            local_exp(go, lt,e.E1,0);
+            local_exp(lt,e.E1,0, changes);
             e = e.E2;
             goto Loop;
 
         case OPandand:
         case OPoror:
-            local_exp(go, lt,e.E1,1);
+            local_exp(lt,e.E1,1, changes);
             lt.setLength(0);         // we can do better than this, fix later
             break;
 
@@ -153,7 +153,7 @@ Loop:
         case OPddtor:
             lt.setLength(0);         // don't move expressions across ctor/dtor
                                 // boundaries, it would goof up EH cleanup
-            local_exp(go, lt,e.E1,0);
+            local_exp(lt,e.E1,0, changes);
             lt.setLength(0);
             break;
 
@@ -161,7 +161,7 @@ Loop:
         case OPstreq:
         case OPvecsto:
             e1 = e.E1;
-            local_exp(go, lt,e.E2,1);
+            local_exp(lt,e.E2,1, changes);
             if (e1.Eoper == OPvar)
             {
                 const s = e1.Vsym;
@@ -176,9 +176,9 @@ Loop:
             else
             {
                 assert(!OTleaf(e1.Eoper));
-                local_exp(go, lt,e1.E1,1);
+                local_exp(lt,e1.E1,1, changes);
                 if (OTbinary(e1.Eoper))
-                    local_exp(go, lt,e1.E2,1);
+                    local_exp(lt,e1.E2,1, changes);
                 local_ambigdef(lt);
             }
             break;
@@ -198,15 +198,15 @@ Loop:
         case OPorass:
         case OPcmpxchg:
             if (ERTOL(e))
-            {   local_exp(go, lt,e.E2,1);
+            {   local_exp(lt,e.E2,1, changes);
         case OPnegass:
                 e1 = e.E1;
                 op1 = e1.Eoper;
                 if (op1 != OPvar)
                 {
-                    local_exp(go, lt,e1.E1,1);
+                    local_exp(lt,e1.E1,1, changes);
                     if (OTbinary(op1))
-                        local_exp(go, lt,e1.E2,1);
+                        local_exp(lt,e1.E2,1, changes);
                 }
                 else if (lt.length && (op == OPaddass || op == OPxorass))
                 {
@@ -223,7 +223,7 @@ Loop:
                            )
                         {   // Change (x += a),(x += b) to
                             // (x + a),(x += a + b)
-                            go.changes++;
+                            ++changes;
                             e.E2 = el_bin(opeqtoop(op),e.E2.Ety,em.E2,e.E2);
                             em.Eoper = cast(ubyte)opeqtoop(op);
                             em.E2 = el_copytree(em.E2);
@@ -247,9 +247,9 @@ Loop:
                 op1 = e1.Eoper;
                 if (op1 != OPvar)
                 {
-                    local_exp(go, lt,e1.E1,1);
+                    local_exp(lt,e1.E1,1, changes);
                     if (OTbinary(op1))
-                        local_exp(go, lt,e1.E2,1);
+                        local_exp(lt,e1.E2,1, changes);
                 }
                 if (lt.length)
                 {
@@ -260,7 +260,7 @@ Loop:
                     else
                         local_ambigref(lt);
                 }
-                local_exp(go, lt,e.E2,1);
+                local_exp(lt,e.E2,1, changes);
             }
 
             Symbol* s;
@@ -279,15 +279,15 @@ Loop:
 
         case OPstrlen:
         case OPind:
-            local_exp(go, lt,e.E1,1);
+            local_exp(lt,e.E1,1, changes);
             local_ambigref(lt);
             break;
 
         case OPstrcmp:
         case OPmemcmp:
         case OPbt:
-            local_exp(go, lt,e.E1,1);
-            local_exp(go, lt,e.E2,1);
+            local_exp(lt,e.E1,1, changes);
+            local_exp(lt,e.E2,1, changes);
             local_ambigref(lt);
             break;
 
@@ -296,21 +296,21 @@ Loop:
         case OPstrcat:
         case OPcall:
         case OPcallns:
-            local_exp(go, lt,e.E2,1);
-            local_exp(go, lt,e.E1,1);
+            local_exp(lt,e.E2,1, changes);
+            local_exp(lt,e.E1,1, changes);
             goto Lrd;
 
         case OPstrctor:
         case OPucall:
         case OPucallns:
-            local_exp(go, lt,e.E1,1);
+            local_exp(lt,e.E1,1, changes);
             goto Lrd;
 
         case OPbtc:
         case OPbtr:
         case OPbts:
-            local_exp(go, lt,e.E1,1);
-            local_exp(go, lt,e.E2,1);
+            local_exp(lt,e.E1,1, changes);
+            local_exp(lt,e.E2,1, changes);
             goto Lrd;
 
         case OPasm:
@@ -319,7 +319,7 @@ Loop:
             break;
 
         case OPmemset:
-            local_exp(go, lt,e.E2,1);
+            local_exp(lt,e.E2,1, changes);
             if (e.E1.Eoper == OPvar)
             {
                 /* Don't want to rearrange (p = get(); p memset 0;)
@@ -332,7 +332,7 @@ Loop:
                     local_ambigref(lt);     // ambiguous reference
             }
             else
-                local_exp(go, lt,e.E1,1);
+                local_exp(lt,e.E1,1, changes);
             local_ambigdef(lt);
             break;
 
@@ -371,7 +371,7 @@ Loop:
                                     printf(";\n");
                                 }
 
-                                go.changes++;
+                                changes++;
                                 em.Ety = e.Ety;
                                 el_copy(e,em);
                                 em.E1 = em.E2 = null;
@@ -434,7 +434,7 @@ Loop:
             }
         case_bin:
             if (OTbinary(e.Eoper))
-            {   local_exp(go, lt,e.E1,1);
+            {   local_exp(lt,e.E1,1, changes);
                 goal = 1;
                 e = e.E2;
                 goto Loop;
