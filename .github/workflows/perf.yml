@@ -93,13 +93,14 @@ jobs:
 
           # Both build in parallel
           setup_ref "${{ steps.refs.outputs.head }}" head
-          build_ref head & head_pid=$!
           if [ -n "$BASE_SHA" ]; then
             setup_ref "$BASE_SHA" base
             build_ref base & base_pid=$!
+          fi
+          build_ref head
+          if [ -n "$BASE_SHA" ]; then
             wait $base_pid
           fi
-          wait $head_pid
           deactivate
 
       - name: Cache dub packages
