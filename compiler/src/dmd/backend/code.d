@@ -156,7 +156,7 @@ struct CGstate
     bool enforcealign;          // enforced stack alignment
     bool anyiasm;               // !=0 if any inline assembler
     bool setSPtoFPonEpilog;     // set SP to FP in function epilog
-    char calledafunc;           // !=0 if we called a function
+    bool calledafunc;           // true if called a function
 
     int stackclean;             // if != 0, then clean the stack after function call
 
@@ -173,10 +173,10 @@ struct CGstate
     targ_size_t pushoff;        // offset of saved registers
     bool pushoffuse;            // save/restore registers using pushoff rather than PUSH/POP
 
-    char needframe;             // if true, then we will need the frame
+    bool needframe;             // if true, then need the frame
                                 // pointer (BP for the 8088)
 
-    int stackchanged;           /* set to !=0 if any use of the stack
+    bool stackchanged;          /* true if any use of the stack
                                    other than accessing parameters. Used
                                    to see if we can address parameters
                                    with ESP rather than EBP.
@@ -198,7 +198,7 @@ struct CGstate
                                 // as if they were 'pushed' on the stack.
                                 // Special case: if funcargtos==~0, then no
                                 // arguments are there.
-    char gotref;                // !=0 if the GOTsym was referenced
+    bool gotref;                // true if the GOTsym was referenced
     int refparam;               // !=0 if we referenced any parameters
     bool accessedTLS;           // set if accessed Thread Local Storage (TLS)
     bool calledFinally;         // true if called a BC.finally_ block
