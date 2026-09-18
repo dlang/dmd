@@ -629,7 +629,7 @@ void boolopt(ref GlobalOptimizer go, ref BlockOpt bo)
            )
             vec_clear(aevec);
         if (b.Belem)           /* if there is an expression    */
-            abewalk(go, b.Belem, aevec, aevecval);
+            abewalk(go, b.Belem, aevec, aevecval, go.changes);
     }
     vec_free(aevec);
     vec_free(aevecval);
@@ -644,7 +644,7 @@ void boolopt(ref GlobalOptimizer go, ref BlockOpt bo)
  */
 
 @trusted
-private void abewalk(ref GlobalOptimizer go, elem* n, vec_t ae, vec_t aeval)
+private void abewalk(ref GlobalOptimizer go, elem* n, vec_t ae, vec_t aeval, ref uint changes)
 {
     elem* t;
 
@@ -658,24 +658,24 @@ private void abewalk(ref GlobalOptimizer go, elem* n, vec_t ae, vec_t aeval)
         case OPcond:
         {
             assert(n.E2.Eoper == OPcolon || n.E2.Eoper == OPcolon2);
-            abewalk(go, n.E1, ae, aeval);
-            abeboolres(go.expnod[], n.E1, ae, aeval, go.changes);
+            abewalk(go, n.E1, ae, aeval, changes);
+            abeboolres(go.expnod[], n.E1, ae, aeval, changes);
             vec_t aer = vec_clone(ae);
             vec_t aerval = vec_clone(aeval);
             elem*[] expnods = go.expnod[];
             if (!el_returns(n.E2.E1))
             {
                 abeset(expnods, n.E1, aer, aerval, true);
-                abewalk(go, n.E2.E1, aer, aerval);
+                abewalk(go, n.E2.E1, aer, aerval, changes);
                 abeset(expnods, n.E1,ae, aeval, false);
-                abewalk(go, n.E2.E2, ae, aeval);
+                abewalk(go, n.E2.E2, ae, aeval, changes);
             }
             else if (!el_returns(n.E2.E2))
             {
                 abeset(expnods, n.E1,ae, aeval, true);
-                abewalk(go, n.E2.E1, ae,aeval);
+                abewalk(go, n.E2.E1, ae,aeval, changes);
                 abeset(expnods, n.E1,aer, aerval, false);
-                abewalk(go, n.E2.E2, aer, aerval);
+                abewalk(go, n.E2.E2, aer, aerval, changes);
             }
             else
             {
@@ -683,9 +683,9 @@ private void abewalk(ref GlobalOptimizer go, elem* n, vec_t ae, vec_t aeval)
                  * AEs gened by ael and aer are mutually exclusive
                  */
                 abeset(expnods, n.E1, aer, aerval, true);
-                abewalk(go, n.E2.E1, aer, aerval);
+                abewalk(go, n.E2.E1, aer, aerval, changes);
                 abeset(expnods, n.E1, ae, aeval, false);
-                abewalk(go, n.E2.E2, ae, aeval);
+                abewalk(go, n.E2.E2, ae, aeval, changes);
 
                 vec_xorass(aerval,aeval);
                 vec_subass(aer,aerval);
@@ -704,14 +704,14 @@ private void abewalk(ref GlobalOptimizer go, elem* n, vec_t ae, vec_t aeval)
         case OPoror:
         {
             //printf("test1 %p: ", n); WReqn(n); printf("\n");
-            abewalk(go, n.E1, ae, aeval);
-            abeboolres(go.expnod[], n.E1, ae, aeval, go.changes);
+            abewalk(go, n.E1, ae, aeval, changes);
+            abeboolres(go.expnod[], n.E1, ae, aeval, changes);
             vec_t aer = vec_clone(ae);
             vec_t aerval = vec_clone(aeval);
             if (!el_returns(n.E2))
             {
                 abeset(go.expnod[], n.E1, aer, aerval, (op == OPandand));
-                abewalk(go, n.E2, aer, aerval);
+                abewalk(go, n.E2, aer, aerval, changes);
                 abeset(go.expnod[], n.E1, ae, aeval, (op != OPandand));
             }
             else
@@ -719,7 +719,7 @@ private void abewalk(ref GlobalOptimizer go, elem* n, vec_t ae, vec_t aeval)
                 /* ae &= aer
                  */
                 abeset(go.expnod, n.E1, aer, aerval, (op == OPandand));
-                abewalk(go, n.E2, aer, aerval);
+                abewalk(go, n.E2, aer, aerval, changes);
 
                 vec_xorass(aerval,aeval);
                 vec_subass(aer,aerval);
@@ -733,8 +733,8 @@ private void abewalk(ref GlobalOptimizer go, elem* n, vec_t ae, vec_t aeval)
 
         case OPbool:
         case OPnot:
-            abewalk(go, n.E1, ae, aeval);
-            abeboolres(go.expnod[], n.E1, ae, aeval, go.changes);
+            abewalk(go, n.E1, ae, aeval, changes);
+            abeboolres(go.expnod[], n.E1, ae, aeval, changes);
             break;
 
         case OPeqeq:
@@ -748,15 +748,15 @@ private void abewalk(ref GlobalOptimizer go, elem* n, vec_t ae, vec_t aeval)
         case OPngt:     case OPnge:     case OPnlt:     case OPnle:
         case OPord:     case OPnlg:     case OPnleg:    case OPnule:
         case OPnul:     case OPnuge:    case OPnug:     case OPnue:
-            abewalk(go, n.E1, ae, aeval);
-            abewalk(go, n.E2, ae, aeval);
-            abeboolres(go.expnod[], n, ae, aeval, go.changes);
+            abewalk(go, n.E1, ae, aeval, changes);
+            abewalk(go, n.E2, ae, aeval, changes);
+            abeboolres(go.expnod[], n, ae, aeval, changes);
             break;
 
         case OPnegass:
             t = n.E1;
             if (t.Eoper == OPind)
-                abewalk(go, t.E1, ae, aeval);
+                abewalk(go, t.E1, ae, aeval, changes);
             break;
 
         case OPasm:
@@ -766,19 +766,19 @@ private void abewalk(ref GlobalOptimizer go, elem* n, vec_t ae, vec_t aeval)
         default:
             if (OTbinary(op))
             {   if (ERTOL(n))
-                    abewalk(go, n.E2, ae, aeval);
+                    abewalk(go, n.E2, ae, aeval, changes);
                 if (OTassign(op))
                 {   t = n.E1;
                     if (t.Eoper == OPind)
-                        abewalk(go, t.E1, ae, aeval);
+                        abewalk(go, t.E1, ae, aeval, changes);
                 }
                 else
-                        abewalk(go, n.E1, ae, aeval);
+                        abewalk(go, n.E1, ae, aeval, changes);
                 if (!ERTOL(n))
-                    abewalk(go, n.E2,ae, aeval);
+                    abewalk(go, n.E2,ae, aeval, changes);
             }
             else if (OTunary(op))
-                abewalk(go, n.E1, ae, aeval);
+                abewalk(go, n.E1, ae, aeval, changes);
             break;
     }
 
