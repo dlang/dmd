@@ -137,7 +137,7 @@ private __gshared
 public
 void constprop(ref GlobalOptimizer go, ref BlockOpt bo)
 {
-    rd_compute(go, bo, eqrelinc);
+    rd_compute(go.defnod, bo, eqrelinc);
     intranges(eqrelinc.rellist, eqrelinc.inclist, go.changes);        // compute integer ranges
     eqeqranges(eqrelinc.eqeqlist);       // see if we can eliminate some relationals
 
@@ -150,12 +150,12 @@ void constprop(ref GlobalOptimizer go, ref BlockOpt bo)
  */
 
 @trusted
-private void rd_compute(ref GlobalOptimizer go, ref BlockOpt bo, ref EqRelInc eqrelinc)
+private void rd_compute(ref Barray!DefNode defnod, ref BlockOpt bo, ref EqRelInc eqrelinc)
 {
     if (debugc) printf("constprop()\n");
     assert(bo.dfo);
     flowrd(go, bo);           /* compute reaching definitions (rd)    */
-    if (go.defnod.length == 0)     /* if no reaching defs                  */
+    if (defnod.length == 0)   /* if no reaching defs                  */
         return;
     assert(eqrelinc.rellist.length == 0 && eqrelinc.inclist.length == 0 && eqrelinc.eqeqlist.length == 0);
     block_clearvisit(bo.startblock);
@@ -198,7 +198,7 @@ private void rd_compute(ref GlobalOptimizer go, ref BlockOpt bo, ref EqRelInc eq
                 printf("\n");
                 vec_xorass(b.Binrd,b.Boutrd);
                 j = cast(int)vec_index(0,b.Binrd);
-                WReqn(go.defnod[j].DNelem);
+                WReqn(defnod[j].DNelem);
                 printf("\n");
             }
 
@@ -934,7 +934,7 @@ public bool findloopparameters(ref GlobalOptimizer go, elem* erel, ref elem* rde
     if (!(sytab[v.Sclass] & SCRD))
         return false;
 
-    rd_compute(go, bo, eqrelinc);     // compute rellist, inclist, eqeqlist
+    rd_compute(go.defnod, bo, eqrelinc);     // compute rellist, inclist, eqeqlist
 
     /* Find `erel` in `rellist`
      */
