@@ -143,10 +143,10 @@ void main4()
     }
     }
     { // key has gap
-        // int[int[]] a = [[1 : 2, 3] : 0];
-        // int[int[3]] b = [[1 : 2, 3] : 0];
-        // auto c = [[1 : 2, 3] : 0];
-        // static assert(is(typeof(c) == int[int[]]));
+        int[int[]] a = [[1 : 2, 3] : 0];
+        int[int[3]] b = [[1 : 2, 3] : 0];
+        auto c = [[1 : 2, 3] : 0];
+        static assert(is(typeof(c) == int[int[]]));
     }
 }
 
@@ -247,14 +247,14 @@ void testInitializer2()
     // key is AA (currently not supported in grammar)
     {
         int[int[int]] a = [[0:0]:0];
-      //int[int[]]    b = [[0:0]:0];    // [0:0] is not AssignExp
-      //int[int[1]]   c = [[0:0]:0];    // [0:0] is not AssignExp
+        int[int[]]    b = [[0:0]:0];    // [0:0] is not AssignExp
+        int[int[1]]   c = [[0:0]:0];    // [0:0] is not AssignExp
     }
 
     // key has gap (currently not supported in grammar)
     {
-      //int[int[]]  a = [[1:2, 3]:0]; // Error: `key:value` expected for associative array literal
-      //int[int[3]] b = [[1:2, 3]:0];
+        int[int[]]  a = [[1:2, 3]:0]; // Error: `key:value` expected for associative array literal
+        int[int[3]] b = [[1:2, 3]:0];
     }
 }
 

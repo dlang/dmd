@@ -7294,7 +7294,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     if (--brackets == 0)
                     {
                         t = peek(t);
-                        if (t.value != TOK.semicolon && t.value != TOK.comma && t.value != TOK.rightBracket && t.value != TOK.rightCurly)
+                        if (t.value != TOK.semicolon && t.value != TOK.colon && t.value != TOK.comma && t.value != TOK.rightBracket && t.value != TOK.rightCurly)
                             return parseExpInitializer(loc);
                         break;
                     }
@@ -7328,18 +7328,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     if (!e)
                         break;
 
-                    AST.Initializer value;
+                    AST.Initializer value = new AST.ExpInitializer(e.loc, e);
+                    AST.Initializer index;
                     if (token.value == TOK.colon)
                     {
                         nextToken();
+                        index = value;
                         value = parseInitializer();
                     }
-                    else
-                    {
-                        value = new AST.ExpInitializer(e.loc, e);
-                        e = null;
-                    }
-                    ia.addInit(e, value);
+                    ia.addInit(index, value);
                     commaExpected = true;
                     continue;
 
@@ -7348,20 +7345,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     if (commaExpected)
                         error("comma expected separating array initializers, not `%s`", token.toChars());
                     auto value = parseInitializer();
-                    AST.Expression e;
+                    AST.Initializer index;
 
                     if (token.value == TOK.colon)
                     {
                         nextToken();
-                        if (auto ei = value.isExpInitializer())
-                        {
-                            e = ei.exp;
-                            value = parseInitializer();
-                        }
-                        else
-                            error("initializer expression expected following colon, not `%s`", token.toChars());
+                        index = value;
+                        value = parseInitializer();
                     }
-                    ia.addInit(e, value);
+                    ia.addInit(index, value);
                     commaExpected = true;
                     continue;
 
@@ -8996,8 +8988,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
         case TOK.leftBracket:
             {
-                /* Parse array literals and associative array literals:
+                /* Parse (sparse) array literals and associative array literals:
                  *  [ value, value, value ... ]
+                 *  [ value, index: value, value ... ]
                  *  [ key:value, key:value, key:value ... ]
                  */
                 auto values = new AST.Expressions();
@@ -9017,8 +9010,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     }
                     else if (keys)
                     {
-                        error("`key:value` expected for associative array literal");
-                        keys = null;
+                        keys.push(null);
                     }
                     values.push(e);
                     if (token.value == TOK.rightBracket)
@@ -9053,7 +9045,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         Lerr:
             // Anything for e, as long as it's not NULL
             e = new AST.ErrorExp();
-            nextToken();
+            // don't skip tokens that are unlikely to be part of the current expression
+            if (token.value != TOK.rightBracket &&
+                token.value != TOK.rightCurly &&
+                token.value != TOK.semicolon)
+                nextToken();
             break;
         }
         return e;

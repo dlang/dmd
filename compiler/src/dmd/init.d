@@ -173,7 +173,7 @@ extern (C++) final class StructInitializer : Initializer
  */
 extern (C++) final class ArrayInitializer : Initializer
 {
-    Expressions index;      // indices
+    Initializers index;     // indices
     Initializers value;     // of Initializer *'s
     uint dim;               // length of array being initialized
     Type type;              // type that array will be used to initialize
@@ -184,12 +184,22 @@ extern (C++) final class ArrayInitializer : Initializer
         super(loc, InitKind.array);
     }
 
-    extern (D) void addInit(Expression index, Initializer value)
+    extern (D) void addInit(Initializer index, Initializer value)
     {
         this.index.push(index);
         this.value.push(value);
         dim = 0;
         type = null;
+    }
+
+    extern (D) void addInit(Expression exp, Initializer value)
+    {
+        addInit(exp ? new ExpInitializer(exp.loc, exp) : null, value);
+    }
+
+    extern (D) void addValue(Initializer value)
+    {
+        addInit(Initializer.init, value);
     }
 
     bool isAssociativeArray() const pure

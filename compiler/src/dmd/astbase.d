@@ -6584,7 +6584,7 @@ struct ASTBase
 
     extern (C++) final class ArrayInitializer : Initializer
     {
-        Expressions index;
+        Initializers index;
         Initializers value;
         uint dim;
         Type type;
@@ -6594,7 +6594,7 @@ struct ASTBase
             super(loc, InitKind.array);
         }
 
-        void addInit(Expression index, Initializer value)
+        void addInit(Initializer index, Initializer value)
         {
             this.index.push(index);
             this.value.push(value);
