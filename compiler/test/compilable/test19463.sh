@@ -6,10 +6,6 @@ if [[ $OS = "win"* ]] && ! which -s nm; then
 fi
 
 $DMD -c -preview=dip1008 -m${MODEL} -of${OUTPUT_BASE}${OBJ} -I${EXTRA_FILES} ${EXTRA_FILES}/${TEST_NAME}.d
-echo ".: ================================================="
-nm ${OUTPUT_BASE}${OBJ}
-echo ".: ================================================="
-nm ${OUTPUT_BASE}${OBJ} > ${OUTPUT_BASE}.symbols
-! grep _d_newclass ${OUTPUT_BASE}.symbols
+nm ${OUTPUT_BASE}${OBJ} | { ! grep _d_newclass; }
 
 rm_retry ${OUTPUT_BASE}${OBJ} ${OUTPUT_BASE}.symbols
