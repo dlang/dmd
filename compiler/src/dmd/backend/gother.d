@@ -185,7 +185,7 @@ private void rd_compute(ref GlobalOptimizer go, ref BlockOpt bo, ref EqRelInc eq
             continue;                   // not reliable for this block
         if (b.Belem)
         {
-            constantPropagation(go, b, eqrelinc);
+            constantPropagation(b, eqrelinc, go.changes);
 
             debug
             if (!(vec_equal(b.Binrd,b.Boutrd)))
@@ -222,9 +222,10 @@ private void rd_compute(ref GlobalOptimizer go, ref BlockOpt bo, ref EqRelInc eq
  * Params:
  *      thisblock = block being constant propagated
  *      eqrelinc  = fill with data collected
+ *      changes = incremented with changes
  */
 @trusted
-private void constantPropagation(ref GlobalOptimizer go, block* thisblock, ref EqRelInc eqrelinc)
+private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc, ref uint changes)
 {
     void conpropwalk(elem* n,vec_t IN)
     {
@@ -293,7 +294,7 @@ private void constantPropagation(ref GlobalOptimizer go, block* thisblock, ref E
                         listrds(go, IN,t,null,&rdl);
                         if (!(config.flags & CFGnowarning)) // if warnings are enabled
                             chkrd(t,rdl);
-                        if (auto e = chkprop(go.changes, t, rdl))
+                        if (auto e = chkprop(changes, t, rdl))
                         {   // Replace (t op= exp) with (t = e op exp)
 
                             e = el_copytree(e);
@@ -389,11 +390,10 @@ private void constantPropagation(ref GlobalOptimizer go, block* thisblock, ref E
 
             if (!(config.flags & CFGnowarning))     // if warnings are enabled
                 chkrd(n,rdl);
-            elem* e = chkprop(go.changes, n, rdl);
+            elem* e = chkprop(changes, n, rdl);
             if (e)
-            {   tym_t nty;
-
-                nty = n.Ety;
+            {
+                tym_t nty = n.Ety;
                 el_copy(n,e);
                 n.Ety = nty;                       // retain original type
             }
