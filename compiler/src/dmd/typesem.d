@@ -3882,7 +3882,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                 sc2.inDefaultArg = true;
                 Initializer iz = new ExpInitializer(e.loc, e);
                 iz = iz.initializerSemantic(sc2, fparam.type, INITnointerpret, eSink);
-                e = iz.initializerToExpression();
+                e = iz.initializerToExpression(sc2, null, eSink);
                 sc2.pop();
             }
             if (e.op == EXP.function_) // https://issues.dlang.org/show_bug.cgi?id=4820

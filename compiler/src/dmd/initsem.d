@@ -57,7 +57,7 @@ import dmd.typesem;
  *     The converted associative array initializer or ErrorExp if `ai`
  *     is not an associative array initializer.
  */
-Expression toAssocArrayLiteral(ArrayInitializer ai, Type itype, ErrorSink eSink)
+Expression toAssocArrayLiteral(ArrayInitializer ai, Scope* sc, Type itype, ErrorSink eSink)
 {
     //printf("ArrayInitializer::toAssocArrayInitializer(%s)\n", ai.toChars());
     //static int i; if (++i == 2) assert(0);
@@ -76,7 +76,7 @@ Expression toAssocArrayLiteral(ArrayInitializer ai, Type itype, ErrorSink eSink)
     foreach (i, iz; ai.value[])
     {
         assert(iz);
-        auto ev = iz.initializerToExpression(vtype);
+        auto ev = iz.initializerToExpression(sc, vtype, eSink);
         if (!ev)
         {
             eSink.error(iz.loc, "invalid value `%s` in initializer", toChars(iz));
@@ -85,7 +85,7 @@ Expression toAssocArrayLiteral(ArrayInitializer ai, Type itype, ErrorSink eSink)
         (*values)[i] = ev;
 
         auto ik = ai.index[i];
-        auto ei = ik ? ik.initializerToExpression(ktype) : null;
+        auto ei = ik ? ik.initializerToExpression(sc, ktype, eSink) : null;
         if (!ei)
         {
             eSink.error(iz.loc, "missing key for value `%s` in initializer", toChars(iz));
@@ -175,7 +175,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 // Convert initializer to Expression `ex`
                 auto tm = fieldType.addMod(t.mod);
                 auto iz = i.value[j].initializerSemantic(sc, tm, needInterpret, eSink);
-                auto ex = iz.initializerToExpression(fieldType, sc.inCfile);
+                auto ex = iz.initializerToExpression(sc, fieldType, eSink);
                 if (ex.op != EXP.error)
                     i.value[j] = iz;
                 return ex;
@@ -234,9 +234,9 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 Expression e;
                 // note: MyStruct foo = [1:2, 3:4] is correct code if MyStruct has a this(int[int])
                 if (t.ty == Taarray || i.isAssociativeArray())
-                    e = i.toAssocArrayLiteral(t, global.errorSink);
+                    e = i.toAssocArrayLiteral(sc, t, global.errorSink);
                 else
-                    e = i.initializerToExpression();
+                    e = i.initializerToExpression(sc, null, global.errorSink);
                 // Bugzilla 13987
                 if (!e)
                 {
@@ -1201,8 +1201,8 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 eSink.error(ci.loc, "only two initializers required for complex type `%s`", t.toErrMsg());
                 return err();
             }
-            auto rexp = ci.initializerList[0].initializer.initializerToExpression();
-            auto imexp = ci.initializerList[1].initializer.initializerToExpression();
+            auto rexp = ci.initializerList[0].initializer.initializerToExpression(sc, null, eSink);
+            auto imexp = ci.initializerList[1].initializer.initializerToExpression(sc, null, eSink);
 
             import dmd.root.ctfloat;
             auto newExpr = new AddExp(ci.loc, rexp,
@@ -1435,8 +1435,9 @@ Initializer inferInitializerType(Initializer init, Scope* sc, Type itype, ErrorS
  * Returns:
  *      `Expression` created, `null` if cannot, `ErrorExp` for other errors
  */
-Expression initializerToExpression(Initializer init, Type itype = null, const bool isCfile = false)
+Expression initializerToExpression(Initializer init, Scope* sc, Type itype, ErrorSink eSink)
 {
+    bool isCfile = sc && sc.inCfile;
     //printf("initializerToExpression() isCfile: %d\n", isCfile);
 
     Expression visitVoid(VoidInitializer)
@@ -1459,10 +1460,15 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
      * a struct literal. In the future, the two should be the
      * same thing.
      */
-    Expression visitStruct(StructInitializer)
+    Expression visitStruct(StructInitializer si)
     {
         // cannot convert to an expression without target 'ad'
-        return null;
+        if (!itype || !sc)
+            return null;
+        auto i = si.initializerSemantic(sc, itype, NeedInterpret.INITnointerpret, eSink);
+        if (auto ei = i.isExpInitializer())
+            return ei.exp;
+        return ErrorExp.get();
     }
 
     /********************************
@@ -1476,7 +1482,7 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
         if (!itype || itype.toBasetype().isTypeAArray())
             if (!init.type || init.type.isTypeAArray())
                 if (init.isAssociativeArray())
-                    return init.toAssocArrayLiteral(itype, global.errorSink);
+                    return init.toAssocArrayLiteral(sc, itype, global.errorSink);
 
         uint edim;      // the length of the resulting array literal
         const(uint) amax = 0x80000000;
@@ -1527,7 +1533,7 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
                 if (auto ei = init.index[i])
                 {
                     hasIndex = true;
-                    Expression e = ei.initializerToExpression(Type.tsize_t, isCfile);
+                    Expression e = ei.initializerToExpression(sc, Type.tsize_t, eSink);
                     if (e && e.op == EXP.int64)
                     {
                         const uinteger_t idxval = e.toInteger();
@@ -1565,12 +1571,12 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
         foreach (i; 0 .. init.value.length)
         {
             if (auto ei = init.index[i])
-                if (auto e = ei.initializerToExpression(Type.tsize_t, isCfile))
+                if (auto e = ei.initializerToExpression(sc, Type.tsize_t, eSink))
                     j = cast(size_t)e.toInteger();
             assert(j < edim);
             if (Initializer iz = init.value[i])
             {
-                if (Expression ex = iz.initializerToExpression(telem, isCfile))
+                if (Expression ex = iz.initializerToExpression(sc, telem, eSink))
                 {
                     (*elements)[j] = ex;
                     ++j;

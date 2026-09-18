@@ -640,11 +640,12 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx,
     return dmd.initsem.initializerSemantic(init, sc, tx, needInterpret, eSink);
 }
 
-Expression initializerToExpression(Initializer init, Type itype = null, const
-                                   bool isCfile = false)
+Expression initializerToExpression(Initializer init, Scope* sc, Type itype)
 {
     import dmd.initsem;
-    return dmd.initsem.initializerToExpression(init, itype, isCfile);
+    import dmd.globals : global;
+    auto eSink = global.errorSink;
+    return dmd.initsem.initializerToExpression(init, sc, itype, eSink);
 }
 
 /***********************************************************

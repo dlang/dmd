@@ -2059,7 +2059,7 @@ public:
         }
     }
 
-    static Expression interpretInitializerExpression(VarDeclaration v)
+    Expression interpretInitializerExpression(VarDeclaration v)
     {
         // It is a bit strange that the interpreter has to deal with initializers
         // at all as they should have been converted to ConstructExp or similar
@@ -2069,7 +2069,7 @@ public:
         // is duplicated in ExpressionSemanticVisitor.visit(AssignExp exp). Until
         // initializer semantics are removed from the interpreter, it has been
         // moved here.
-        Expression iexp = v._init.initializerToExpression(v.type);
+        Expression iexp = v._init.initializerToExpression(null, v.type, eSink);
 
         Type tb = v.type.toBasetype();
         Expression e = (iexp.op == EXP.construct || iexp.op == EXP.blit) ? (cast(AssignExp)iexp).e2 : iexp;
@@ -2171,7 +2171,7 @@ public:
                         eSink.error(loc, "CTFE internal error: trying to access uninitialized var");
                         assert(0);
                     }
-                    e = v._init.initializerToExpression();
+                    e = v._init.initializerToExpression(null, null, eSink);
                 }
                 else
                     // Zero-length arrays don't have an initializer
@@ -4930,7 +4930,7 @@ public:
             }
             if (!getValue(v))
             {
-                Expression newval = v._init.initializerToExpression();
+                Expression newval = v._init.initializerToExpression(null, null, eSink);
                 // Bug 4027. Copy constructors are a weird case where the
                 // initializer is a void function (the variable is modified
                 // through a reference parameter instead).

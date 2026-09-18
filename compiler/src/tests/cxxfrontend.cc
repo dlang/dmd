@@ -1493,7 +1493,7 @@ public:
             {
                 if (vd->_init && !vd->_init->isVoidInitializer())
                 {
-                    Expression *ie = dmd::initializerToExpression(vd->_init);
+                    Expression *ie = dmd::initializerToExpression(vd->_init, nullptr, nullptr);
                     ie->accept(this);
                 }
             }
@@ -1557,7 +1557,7 @@ public:
             {
                 if (!d->_init->isVoidInitializer())
                 {
-                    Expression *e = dmd::initializerToExpression(d->_init, d->type);
+                    Expression *e = dmd::initializerToExpression(d->_init, nullptr, d->type);
                     e->accept(this);
                 }
             }
@@ -1573,7 +1573,7 @@ public:
             if (d->_init && !d->_init->isVoidInitializer())
             {
                 ExpInitializer *vinit = d->_init->isExpInitializer();
-                dmd::initializerToExpression(vinit)->accept(this);
+                dmd::initializerToExpression(vinit, nullptr, nullptr)->accept(this);
                 if (d->needsScopeDtor())
                     d->edtor->accept(this);
             }
@@ -1787,7 +1787,7 @@ void hdrgen_h(Module *m, OutBuffer &buf, Modules &ms, ParameterList pl,
 
 void init_h(Initializer *i, Type *t, Scope *sc, NeedInterpret ni)
 {
-    dmd::initializerToExpression(i, t, true);
+    dmd::initializerToExpression(i, sc, t);
     dmd::initializerSemantic(i, sc, t, ni);
 }
 
