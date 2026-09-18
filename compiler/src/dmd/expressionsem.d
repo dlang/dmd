@@ -6359,7 +6359,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         Type t = cle.type.typeSemantic(cle.loc, sc);
         auto init = initializerSemantic(cle.initializer, sc, t, INITnointerpret, global.errorSink);
-        auto e = initializerToExpression(init, t, sc.inCfile);
+        auto e = initializerToExpression(init, sc, t, eSink);
         if (!e)
         {
             eSink.error(cle.loc, "cannot convert initializer `%s` to expression", toChars(init));
@@ -19165,7 +19165,7 @@ Expression getConstInitializer(VarDeclaration vd, bool needFullType = true)
         vd.inuse--;
     }
 
-    Expression e = vd._init.initializerToExpression(needFullType ? vd.type : null);
+    Expression e = vd._init.initializerToExpression(null, needFullType ? vd.type : null, global.errorSink);
     global.gag = oldgag;
     return e;
 }

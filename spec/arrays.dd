@@ -1149,7 +1149,7 @@ $(GNAME ArrayElementInitializers):
 
 $(GNAME ArrayElementInitializer):
     $(GLINK2 declaration, NonVoidInitializer)
-    $(GLINK2 expression, AssignExpression) $(D :) $(GLINK2 declaration, NonVoidInitializer)
+    $(GLINK2 declaration, NonVoidInitializer) $(D :) $(GLINK2 declaration, NonVoidInitializer)
 )
 
         $(P An *ArrayInitializer* is a list of element initializers enclosed in `[ ]`.

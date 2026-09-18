@@ -1015,7 +1015,7 @@ public:
                     buf.writestring(" { ");
                     writeIdentifier(vd, true);
                     buf.writestring(" = ");
-                    auto ie = AST.initializerToExpression(vd._init).isIntegerExp();
+                    auto ie = AST.initializerToExpression(vd._init, null, null, eSink).isIntegerExp();
                     visitInteger(ie.toInteger(), type);
                     buf.writestring(" };");
                     break;
@@ -1034,7 +1034,7 @@ public:
                         buf.writestring(" ");
                     writeIdentifier(vd, true);
                     buf.writestring(" = ");
-                    auto e = AST.initializerToExpression(vd._init);
+                    auto e = AST.initializerToExpression(vd._init, null, null, eSink);
                     printExpressionFor(target, e);
                     buf.writestring(";");
                     break;
@@ -1397,7 +1397,7 @@ public:
 
                 if (vd._init)
                 {
-                    auto e = AST.initializerToExpression(vd._init);
+                    auto e = AST.initializerToExpression(vd._init, null, null, eSink);
                     printExpressionFor(vd.type, e, true);
                 }
                 buf.printf(")");
@@ -2846,7 +2846,7 @@ public:
     private static AST.Expression findDefaultInitializer(AST.VarDeclaration vd)
     {
         if (vd._init && !vd._init.isVoidInitializer())
-            return AST.initializerToExpression(vd._init);
+            return AST.initializerToExpression(vd._init, null, null, global.errorSink);
         if (auto ts = vd.type.isTypeStruct())
         {
             if (!ts.sym.noDefaultCtor && !ts.sym.isUnionDeclaration())

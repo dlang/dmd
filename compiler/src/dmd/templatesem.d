@@ -5420,7 +5420,7 @@ private RootObject declareParameter(TemplateDeclaration td, Scope* sc, TemplateP
     /* So the caller's o gets updated with the result of semantic() being run on o
      */
     if (v)
-        o = v._init.initializerToExpression();
+        o = v._init.initializerToExpression(sc, null, global.errorSink);
     return o;
 }
 

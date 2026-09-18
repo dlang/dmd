@@ -256,7 +256,8 @@ bool lambdaCheckForNestedRef(Expression e, Scope* sc)
                  */
                 if (v._init && v._init.isExpInitializer())
                 {
-                    Expression ie = v._init.initializerToExpression();
+                    import dmd.globals : global;
+                    Expression ie = v._init.initializerToExpression(sc, null, global.errorSink);
                     result = lambdaCheckForNestedRef(ie, sc);
                 }
             }

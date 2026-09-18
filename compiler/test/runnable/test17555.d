@@ -16,6 +16,7 @@ void main()
     main5();
     main6();
     main7();
+    main8();
     testBugs();
     testInference();
     testInitializer1();
@@ -245,17 +246,19 @@ void testInitializer2()
     }
 
     // key is AA (currently not supported in grammar)
-    {
+    static if(all || __VERSION__ > 2114)
+    {{
         int[int[int]] a = [[0:0]:0];
         int[int[]]    b = [[0:0]:0];    // [0:0] is not AssignExp
         int[int[1]]   c = [[0:0]:0];    // [0:0] is not AssignExp
-    }
+    }}
 
     // key has gap (currently not supported in grammar)
-    {
+    static if(all || __VERSION__ > 2114)
+    {{
         int[int[]]  a = [[1:2, 3]:0]; // Error: `key:value` expected for associative array literal
         int[int[3]] b = [[1:2, 3]:0];
-    }
+    }}
 }
 
 void testInference()
@@ -280,6 +283,7 @@ void testInference()
     }}
 
     // indexed array literal to associative array literal
+    static if(all || __VERSION__ > 2114)
     {
         auto a = [1:2, 2:3, 0:1];
         static assert(is(typeof(a) == int[int]));
@@ -301,4 +305,17 @@ void main7() {
     enum Foo { A }
     int[]     a1 = [Foo.A: 10]; // OK
     // int[] a2; a2 = [Foo.A: 10]; // Error (not an initializer)
+}
+
+// https://github.com/dlang/dmd/issues/18516
+struct Foo { int x; }
+void main8()
+{
+  static if(all || __VERSION__ > 2114)
+  {
+    auto a1 = [Foo(10), Foo(20)]; // OK
+    Foo[] a2 = [{10}, {20}]; // OK
+    auto aa1 = [Foo(1): Foo(10), Foo(2): Foo(20)]; // OK
+    Foo[Foo] aa2 = [{1}: {10}, {2}: {20}]; // Line6, error
+  }
 }
