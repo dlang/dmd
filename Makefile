@@ -154,7 +154,7 @@ dmd-pgo:
 
 else # ldmd2
 
-LDC_PROFDATA:=$(dir $(shell which $(HOST_DMD)))ldc-profdata$(EXE)
+LDC_PROFDATA:=$(dir $(shell which $(if $(findstring $(OS),windows),$(shell cygpath --unix $(HOST_DMD)),$(HOST_DMD))))ldc-profdata$(EXE)
 ifeq (,$(wildcard $(LDC_PROFDATA)))
     # if the ldc-profdata tool isn't found in the same dir as ldmd2, fall back to PATH
     LDC_PROFDATA:=ldc-profdata
