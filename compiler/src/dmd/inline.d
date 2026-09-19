@@ -1709,8 +1709,7 @@ public:
         //printf("StructLiteralExp.inlineScan()\n");
         if (e.stageflags & StructLiteralExp.StageFlags.inlineScan)
             return;
-        const old = e.stageflags;
-        e.stageflags |= StructLiteralExp.StageFlags.inlineScan;
+        const old = e.setStageFlag(StructLiteralExp.StageFlags.inlineScan);
         arrayInlineScan(e.elements);
         e.stageflags = old;
     }
