@@ -27,7 +27,6 @@ import dmd.backend.oper;
 import dmd.backend.blockopt : blockopt;
 import dmd.backend.cgelem : doptelem;
 import dmd.backend.debugprint : WReqn;
-import dmd.backend.go;
 import dmd.backend.el;
 import dmd.backend.symbol;
 import dmd.backend.ty;
@@ -77,7 +76,7 @@ struct loc_t
 // temporary generation and register usage.
 
 @trusted
-void localize(ref GlobalOptimizer go, ref BlockOpt bo)
+void localize(ref BlockOpt bo, ref uint changes)
 {
     if (debugc) printf("localize()\n");
 
@@ -99,7 +98,7 @@ void localize(ref GlobalOptimizer go, ref BlockOpt bo)
              */
             !b.Btry)
         {
-            local_exp(loctab, b.Belem, 0, go.changes);
+            local_exp(loctab, b.Belem, 0, changes);
         }
     }
 }
