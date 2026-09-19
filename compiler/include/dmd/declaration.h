@@ -331,6 +331,9 @@ class TypeInfoDeclaration : public VarDeclaration
 {
 public:
     Type *tinfo;
+#if MARS
+    d_bool hadCodegen;
+#endif
 
     static TypeInfoDeclaration *create(Type *tinfo);
     TypeInfoDeclaration *syntaxCopy(Dsymbol *) override final;

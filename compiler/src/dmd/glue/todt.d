@@ -1596,7 +1596,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoClassDeclaration d)
     {
         //printf("TypeInfoClassDeclaration.toDt() %s\n", tinfo.toChars());
-        assert(0);
+        assert(0, "TypeInfo_Class instances are emitted once as part of ClassDeclaration codegen");
     }
 
     override void visit(TypeInfoInterfaceDeclaration d)
