@@ -7603,9 +7603,16 @@ bool determineFields(AggregateDeclaration ad)
  * Returns:
  *  Module of core.stdc.config, null if couldn't find it
  */
+private __gshared Module core_stdc_config;
+
+/// Reset the module's global state between analyses.
+void deinitialize() nothrow
+{
+    core_stdc_config = null;
+}
+
 Module loadCoreStdcConfig()
 {
-    __gshared Module core_stdc_config;
     auto pkgids = new Identifier[2];
     pkgids[0] = Id.core;
     pkgids[1] = Id.stdc;

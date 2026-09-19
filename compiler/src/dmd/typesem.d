@@ -3642,9 +3642,6 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                 return error();
             }
 
-            __gshared FuncDeclaration feq = null;
-            __gshared FuncDeclaration fcmp = null;
-            __gshared FuncDeclaration fhash = null;
             if (!feq)
                 feq = search_function(ClassDeclaration.object, Id.opEquals).isFuncDeclaration();
             if (!fcmp)
@@ -4935,7 +4932,16 @@ Type merge2(Type type)
         assert(t.deco);
     }
     else
-        assert(0);
+    {
+        version (DMDLIB)
+        {
+            // Tooling may evict entries during re-analysis; merge anew instead.
+            t.deco = null;
+            return t.merge();
+        }
+        else
+            assert(0);
+    }
     return t;
 }
 
@@ -8008,13 +8014,27 @@ Type addStorageClass(Type type, STC stc)
  *      Complex!float, Complex!double, Complex!real or null for error
  */
 
+// Caches for getComplexLibraryType and the AA-key functions; hoisted so deinitialize can reset them.
+private __gshared Type complex_float;
+private __gshared Type complex_double;
+private __gshared Type complex_real;
+private __gshared FuncDeclaration feq = null;
+private __gshared FuncDeclaration fcmp = null;
+private __gshared FuncDeclaration fhash = null;
+
+/// Reset the module's global state between analyses.
+void deinitialize() nothrow
+{
+    complex_float = null;
+    complex_double = null;
+    complex_real = null;
+    feq = null;
+    fcmp = null;
+    fhash = null;
+}
+
 Type getComplexLibraryType(Loc loc, Scope* sc, TY ty)
 {
-    // singleton
-    __gshared Type complex_float;
-    __gshared Type complex_double;
-    __gshared Type complex_real;
-
     Type* pt;
     Identifier id;
     switch (ty)
