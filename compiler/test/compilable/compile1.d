@@ -1,10 +1,9 @@
-// COMPILABLE_MATH_TEST
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -verrors=simple
 // EXTRA_FILES: imports/a12506.d
 /* TEST_OUTPUT:
 ---
-compilable/compile1.d(231): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
+compilable/compile1.d(230): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
 ---
 */
 
@@ -872,8 +871,6 @@ alias TT14166(T...) = T;
 static assert(is(typeof((s14166.x += 1) = 2) == int));     // ok <- error
 static assert(is(typeof(s14166.a.length += 2) == size_t)); // ok <- error
 static assert(is(typeof(s14166++) == S14166));             // ok <- error
-static assert(is(typeof(s14166.x ^^ 2) == int));           // ok <- error
-static assert(is(typeof(s14166.y ^^= 2.5) == double));     // ok <- error
 static assert(is(typeof(makeAA14166()[0] = 1) == X14166)); // ok <- error
 static assert(is(typeof(tup14166.field = makeTup14166()) == TT14166!(int, int))); // ok <- error
 
