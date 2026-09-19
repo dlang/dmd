@@ -16,6 +16,7 @@ module dmd.backend.oper;
 @nogc:
 nothrow:
 @safe:
+pure:
 
 alias OPER = int;
 enum
