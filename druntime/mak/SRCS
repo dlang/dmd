@@ -35,6 +35,8 @@ SRCS=\
 	src\core\internal\destruction.d \
 	src\core\internal\entrypoint.d \
 	src\core\internal\execinfo.d \
+	src\core\internal\ftot\decimal.d \
+	src\core\internal\ftot\package.d \
 	src\core\internal\hash.d \
 	src\core\internal\moving.d \
 	src\core\internal\newaa.d \
