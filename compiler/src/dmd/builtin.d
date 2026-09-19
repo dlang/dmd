@@ -383,7 +383,7 @@ Expression eval_bsf(Loc loc, FuncDeclaration fd, Expression[] arguments)
         auto eSink = global.errorSink;
         eSink.error(loc, "`bsf(0)` is undefined");
     }
-    return new IntegerExp(loc, core.bitop.bsf(n), Type.tint32);
+    return IntegerExp.create(loc, core.bitop.bsf(n), Type.tint32);
 }
 
 Expression eval_bsr(Loc loc, FuncDeclaration fd, Expression[] arguments)
@@ -397,7 +397,7 @@ Expression eval_bsr(Loc loc, FuncDeclaration fd, Expression[] arguments)
         auto eSink = global.errorSink;
         eSink.error(loc, "`bsr(0)` is undefined");
     }
-    return new IntegerExp(loc, core.bitop.bsr(n), Type.tint32);
+    return IntegerExp.create(loc, core.bitop.bsr(n), Type.tint32);
 }
 
 Expression eval_bswap(Loc loc, FuncDeclaration fd, Expression[] arguments)
@@ -407,9 +407,9 @@ Expression eval_bswap(Loc loc, FuncDeclaration fd, Expression[] arguments)
     auto n = arg0.toInteger();
     TY ty = arg0.type.toBasetype().ty;
     if (ty == Tint64 || ty == Tuns64)
-        return new IntegerExp(loc, core.bitop.bswap(cast(ulong) n), arg0.type);
+        return IntegerExp.create(loc, core.bitop.bswap(cast(ulong) n), arg0.type);
     else
-        return new IntegerExp(loc, core.bitop.bswap(cast(uint) n), arg0.type);
+        return IntegerExp.create(loc, core.bitop.bswap(cast(uint) n), arg0.type);
 }
 
 Expression eval_popcnt(Loc loc, FuncDeclaration fd, Expression[] arguments)
@@ -417,7 +417,7 @@ Expression eval_popcnt(Loc loc, FuncDeclaration fd, Expression[] arguments)
     Expression arg0 = arguments[0];
     assert(arg0.op == EXP.int64);
     auto n = arg0.toInteger();
-    return new IntegerExp(loc, core.bitop.popcnt(n), Type.tint32);
+    return IntegerExp.create(loc, core.bitop.popcnt(n), Type.tint32);
 }
 
 Expression eval_yl2x(Loc loc, FuncDeclaration fd, Expression[] arguments)

@@ -76,7 +76,7 @@ Statement asmSemantic(AsmStatement s, Scope* sc)
             /* Replace the asm statement with an assert(0, msg) that trips at runtime.
              */
             const loc = s.loc;
-            auto e = new IntegerExp(loc, 0, Type.tint32);
+            auto e = IntegerExp.create(loc, 0, Type.tint32);
             auto msg = new StringExp(loc, "Gnu Asm not supported - compile this function with gcc or clang");
             auto ae = new AssertExp(loc, e, msg);
             auto se = new ExpStatement(loc, ae);

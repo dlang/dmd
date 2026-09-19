@@ -93,12 +93,12 @@ extern (C++) struct Compiler
         {
         case Tint32:
         case Tuns32:
-            emplaceExp!(IntegerExp)(pue, e.loc, u.int32value, type);
+            emplaceExp!(Integer64Exp)(pue, e.loc, u.int32value, type);
             break;
 
         case Tint64:
         case Tuns64:
-            emplaceExp!(IntegerExp)(pue, e.loc, u.int64value, type);
+            emplaceExp!(Integer64Exp)(pue, e.loc, u.int64value, type);
             break;
 
         case Tfloat32:
