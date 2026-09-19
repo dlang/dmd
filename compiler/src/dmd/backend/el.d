@@ -169,11 +169,13 @@ struct elem
     Srcpos Esrcpos;      // source file position
 }
 
+pure
 void elem_debug(const elem* e)
 {
     debug assert(e.id == e.IDelem);
 }
 
+pure
 tym_t typemask(const elem* e)
 {
     return e.Ety;
