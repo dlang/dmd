@@ -1,0 +1,7 @@
+Make subtraction of two pointers illegal in `@safe` code
+
+This is because there is a potential for undefined behavior, and
+so shouldn't be in `@safe` code. To work around, put it in `@trusted`
+or `@system` code, or cast the pointers to `size_t`.
+
+Enabled for Edition 2024.
