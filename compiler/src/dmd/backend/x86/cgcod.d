@@ -1022,6 +1022,8 @@ else
 
 Lcont:
     //printf("2 prolog() needframe %d\n", cg.needframe);
+    if (cg.hasframe)
+        funcsym_p.Sfunc.Fflags |= Fhasframe;    // tell context_unwind there's a standard stack frame
 
     if (config.exe == EX_WIN64)
     {

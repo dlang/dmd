@@ -1074,8 +1074,10 @@ static if (1)
 
         buf.write32(cast(uint)sfunc.Ssize);             // functionLength
 
-        uint functionEncoding = UNWIND_ARM64_MODE_FRAME;  // standard stack frame
-        buf.write64(functionEncoding);                    // functionEncoding
+        uint functionEncoding = funcsym_p.Sfunc.Fflags & Fhasframe
+                    ? UNWIND_ARM64_MODE_FRAME           // standard stack frame
+                    : UNWIND_ARM64_MODE_FRAMELESS;      // no stack frame
+        buf.write64(functionEncoding);                  // functionEncoding
 
         //mach_dwarf_reftoident(dfseg, buf.length(), personality, 0);   // personality
         buf.write64(0);

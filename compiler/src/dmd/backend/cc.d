@@ -389,6 +389,7 @@ enum
     Feh_none         =  0x80_0000, // ehmethod==EH_NONE for this function only
     F3hiddenPtr      = 0x100_0000, // function has hidden pointer to return value
     F3safe           = 0x200_0000, // function is @safe
+    Fhasframe        = 0x400_0000, // function has standard stack frame
 }
 
 struct func_t
