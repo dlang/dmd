@@ -10,12 +10,12 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.func;
+import dmd.globals;
 import dmd.id;
 import dmd.statement;
 import dmd.visitor;
 import dmd.init;
 
-import dmd.errors;
 
 extern (D) enum LintFlags : uint
 {
@@ -178,7 +178,7 @@ extern(C++) final class LintVisitor : Visitor
             {
                 if (!activeParams[i].used)
                 {
-                    warning(activeParams[i].decl.loc, "[unusedParams] function parameter `%s` is never used", activeParams[i].decl.ident.toChars());
+                    global.errorSink.warning(activeParams[i].decl.loc, "[unusedParams] function parameter `%s` is never used", activeParams[i].decl.ident.toChars());
                 }
             }
         }
@@ -198,7 +198,7 @@ extern(C++) final class LintVisitor : Visitor
         if (!fd.toParent2() || !fd.toParent2().isStructDeclaration())
             return;
 
-        warning(fd.loc, "[constSpecial] special method `%s` should be marked as `const`", fd.ident ? fd.ident.toChars() : fd.toChars());
+        global.errorSink.warning(fd.loc, "[constSpecial] special method `%s` should be marked as `const`", fd.ident ? fd.ident.toChars() : fd.toChars());
     }
 
     private bool pushLintFlags(PragmaDeclaration pd)
