@@ -480,7 +480,7 @@ private void accumrd(ref GlobalOptimizer go, vec_t GEN,vec_t KILL,elem* n,uint d
     }
 
     if (OTdef(op))                  /* if definition elem           */
-        updaterd(go, n, GEN, KILL);
+        updaterd(go.defnod, n, GEN, KILL);
 }
 
 /******************** AVAILABLE EXPRESSIONS ***********************/

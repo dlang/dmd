@@ -984,7 +984,7 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
                     gref = 1;
                 }
 
-                updaterd(go, n, rd, null);
+                updaterd(go.defnod, n, rd, null);
                 break;
 
             case OPcallns:
@@ -998,7 +998,7 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
             case OPmemset:
                 markinvar(n.E2,rd);
                 markinvar(n.E1,rd);
-                updaterd(go, n, rd, null);
+                updaterd(go.defnod, n, rd, null);
                 break;
 
             case OPbtc:
@@ -1006,7 +1006,7 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
             case OPbts:
                 markinvar(n.E1,rd);
                 markinvar(n.E2,rd);
-                updaterd(go, n, rd, null);
+                updaterd(go.defnod, n, rd, null);
                 break;
 
             case OPucall:
@@ -1015,7 +1015,7 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
 
             case OPasm:
                 gref = 1;
-                updaterd(go, n, rd, null);
+                updaterd(go.defnod, n, rd, null);
                 break;
 
             case OPucallns:
@@ -1308,17 +1308,16 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
 }
 
 /********************
- * Update rd vector.
- * Input:
- *      n       assignment elem or function call elem or OPasm elem
- *      rd      reaching def vector to update
- *              (clear bits for defs we kill, set bit for n (which is the
- *               def we are genning))
- *      vecdim  go.defnod.length
+ * Update rd (reaching definition) vector.
+ * Params:
+ *     defnod = definition elems
+ *     n      = assignment elem or function call elem or OPasm elem
+ *     GEN    = gen vector for defitions
+ *     KILL   = kill vector for definitions
  */
 
 @trusted
-void updaterd(ref GlobalOptimizer go, elem* n,vec_t GEN,vec_t KILL)
+void updaterd(ref Barray!DefNode defnod, elem* n,vec_t GEN,vec_t KILL)
 {
     const op = n.Eoper;
     elem* t;
@@ -1333,7 +1332,7 @@ void updaterd(ref GlobalOptimizer go, elem* n,vec_t GEN,vec_t KILL)
     // If unambiguous def
     if (OTassign(op) && (t = n.E1).Eoper == OPvar)
     {
-        vec_t v = go.defnod[ni].DNunambig;
+        vec_t v = defnod[ni].DNunambig;
         assert(v);
         if (KILL)
             vec_orass(KILL, v);
@@ -1346,9 +1345,9 @@ void updaterd(ref GlobalOptimizer go, elem* n,vec_t GEN,vec_t KILL)
             if (OTassign(op) && t.Eoper != OPvar && t.Ejty)
             {
                 // for all unambig defs in go.defnod[]
-                foreach (uint i; 0 .. go.defnod.length)
+                foreach (uint i; 0 .. defnod.length)
                 {
-                    elem* tn = go.defnod[i].DNelem;
+                    elem* tn = defnod[i].DNelem;
                     elem* tn1;
 
                     if (tn == n)
