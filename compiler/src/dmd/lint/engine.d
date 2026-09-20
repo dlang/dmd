@@ -316,8 +316,8 @@ extern(C++) final class LintVisitor : Visitor
 
     override void visit(CompoundStatement s)
     {
-        if (s && s.statements)
-            foreach (stmt; *s.statements)
+        if (s)
+            foreach (stmt; s.statements)
                 if (stmt) stmt.accept(this);
     }
 
