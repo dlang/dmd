@@ -1068,6 +1068,7 @@ Louter:
     while (1)
     {
         flowcp(go, bo);           /* compute available copy statements    */
+        assert(go.exptop == go.expnod.length);
         if (go.exptop <= 1)
             return;             // none available
         static if (0)
@@ -1208,6 +1209,7 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN, ref uint ch
             int ambig;              /* true if ambiguous def        */
 
             ambig = !OTassign(op) || t.Eoper == OPind;
+            assert(go.exptop == go.expnod.length);
             for (size_t i = 0; (i = vec_index(i, IN)) < go.exptop; ++i) // for each active copy elem
             {
                 Symbol* v;
@@ -1265,6 +1267,7 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN, ref uint ch
 
             elem* foundelem = null;
             Symbol* f;
+            assert(go.exptop == go.expnod.length);
             for (size_t i = 0; (i = vec_index(i, IN)) < go.exptop; ++i) // for all active copy elems
             {
                 elem* c = go.expnod[i];
@@ -1318,6 +1321,7 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN, ref uint ch
                  *  d = g   => d = f !!error
                  * Therefore, if n appears as an rvalue in go.expnod[], then recalc
                  */
+                assert(go.exptop == go.expnod.length);
                 foreach (j; 1 .. go.exptop)
                 {
                     //printf("go.expnod[%d]: ", j); elem_print(go.expnod[j]);
@@ -1903,6 +1907,7 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo, ref uint change
 
         /* false if elem j is used in block bp (and reaches the end     */
         /* of bp, indicated by it being an AE in Bgen)                  */
+        assert(go.exptop == go.expnod.length);
         for (size_t i = 0; (i = vec_index(i, bp.Bgen)) < go.exptop; ++i) // look thru used expressions
         {
             if (i != j && go.expnod[i] && el_match(go.expnod[i],go.expnod[j]))
@@ -1967,6 +1972,7 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo, ref uint change
             vec_println(b.Bout);
         }
         done = true;
+        assert(go.exptop == go.expnod.length);
         for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             if (go.expnod[j] == null ||
@@ -1985,6 +1991,7 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo, ref uint change
             printf("block %d Bout = ",i);
             vec_println(b.Bout);
         }
+        assert(go.exptop == go.expnod.length);
         for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             vec_clear(blockseen);
@@ -2008,6 +2015,7 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo, ref uint change
             vec_println(b.Bout);
         }
 
+        assert(go.exptop == go.expnod.length);
         for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             vec_clear(blockseen);
