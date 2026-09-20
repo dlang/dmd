@@ -15,7 +15,7 @@ import dmd.statement;
 import dmd.visitor;
 import dmd.init;
 
-import dmd.errors : warning;
+import dmd.errors;
 
 extern (D) enum LintFlags : uint
 {
