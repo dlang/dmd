@@ -378,7 +378,7 @@ private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc, ref ui
 
 
         if (OTdef(op))                  /* if definition elem           */
-            updaterd(go, n, IN, null);        /* then update IN vector        */
+            updaterd(go.defnod, n, IN, null);        /* then update IN vector        */
 
         /* now we get to the part that checks to see if we can  */
         /* propagate a constant.                                */
