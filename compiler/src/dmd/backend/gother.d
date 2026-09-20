@@ -135,10 +135,10 @@ private __gshared
 
 @trusted
 public
-void constprop(ref GlobalOptimizer go, ref BlockOpt bo)
+void constprop(ref GlobalOptimizer go, ref BlockOpt bo, ref uint changes)
 {
-    rd_compute(go.defnod, bo, eqrelinc);
-    intranges(eqrelinc.rellist, eqrelinc.inclist, go.changes);        // compute integer ranges
+    rd_compute(go.defnod, bo, eqrelinc, changes);
+    intranges(eqrelinc.rellist, eqrelinc.inclist, changes);        // compute integer ranges
     eqeqranges(eqrelinc.eqeqlist);       // see if we can eliminate some relationals
 
     eqrelinc.reset();           // reset for next time
@@ -150,7 +150,7 @@ void constprop(ref GlobalOptimizer go, ref BlockOpt bo)
  */
 
 @trusted
-private void rd_compute(ref Barray!DefNode defnod, ref BlockOpt bo, ref EqRelInc eqrelinc)
+private void rd_compute(ref Barray!DefNode defnod, ref BlockOpt bo, ref EqRelInc eqrelinc, ref uint changes)
 {
     if (debugc) printf("constprop()\n");
     assert(bo.dfo);
@@ -185,7 +185,7 @@ private void rd_compute(ref Barray!DefNode defnod, ref BlockOpt bo, ref EqRelInc
             continue;                   // not reliable for this block
         if (b.Belem)
         {
-            constantPropagation(b, eqrelinc, go.changes);
+            constantPropagation(b, eqrelinc, changes);
 
             debug
             if (!(vec_equal(b.Binrd,b.Boutrd)))
@@ -934,7 +934,7 @@ public bool findloopparameters(ref GlobalOptimizer go, elem* erel, ref elem* rde
     if (!(sytab[v.Sclass] & SCRD))
         return false;
 
-    rd_compute(go.defnod, bo, eqrelinc);     // compute rellist, inclist, eqeqlist
+    rd_compute(go.defnod, bo, eqrelinc, go.changes);     // compute rellist, inclist, eqeqlist
 
     /* Find `erel` in `rellist`
      */
@@ -1097,7 +1097,7 @@ Louter:
                 }
                 else
                 {
-                    recalc = copyPropWalk(go, b.Belem, b.Bin);
+                    recalc = copyPropWalk(go, b.Belem, b.Bin, go.changes);
                 }
                 /*assert(vec_equal(b.Bin,b.Bout));              */
                 /* The previous assert() is correct except      */
@@ -1127,7 +1127,7 @@ Louter:
  */
 
 @trusted
-private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN)
+private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN, ref uint changes)
 {
     bool recalc = false;
     int nocp = 0;
@@ -1328,7 +1328,7 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN)
                     }
                 }
 
-                go.changes++;
+                ++changes;
             }
             //else printf("not found\n");
         noprop:
@@ -1354,7 +1354,7 @@ private __gshared
 }
 
 @trusted
-public void rmdeadass(ref GlobalOptimizer go, ref BlockOpt bo)
+public void rmdeadass(ref GlobalOptimizer go, ref BlockOpt bo, ref uint changes)
 {
     if (debugc) printf("rmdeadass()\n");
     flowlv(bo);                     /* compute live variables       */
@@ -1424,7 +1424,7 @@ public void rmdeadass(ref GlobalOptimizer go, ref BlockOpt bo)
                     printf(") Boutlv\n");
             }
             elimass(n);
-            go.changes++;
+            ++changes;
         } /* foreach */
         vec_free(DEAD);
         vec_free(POSS);
@@ -1849,7 +1849,7 @@ private void dvwalk(elem* n,uint i)
  */
 
 @trusted
-public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
+public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo, ref uint changes)
 {
     if (debugc) printf("verybusyexp()\n");
 
@@ -2069,7 +2069,7 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo)
                     vec_clearbit(k,b.Bout);
                 }
             } while (++k < go.exptop);
-            go.changes++;
+            changes++;
         } /* foreach */
     } /* for */
     vec_free(blockseen);

@@ -381,7 +381,7 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
         go.changes = 0;                 // no changes yet
         sliceStructs(globsym, bo.startblock);
         if (go.mfoptim & MFcnp)
-            constprop(go, bo);              /* make relationals unsigned     */
+            constprop(go, bo, go.changes);  /* make relationals unsigned     */
         if (go.mfoptim & (MFli | MFliv))
             loopopt(go, bo);                /* remove loop invariants and    */
                                         /* induction vars                */
@@ -397,7 +397,7 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
             continue;
 
         if (go.mfoptim & MFcnp)
-            constprop(go, bo);          /* constant propagation          */
+            constprop(go, bo, go.changes); /* constant propagation          */
         if (go.mfoptim & MFcp)
             copyprop(go, bo);           /* do copy propagation           */
 
@@ -430,9 +430,9 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
          * code generation which assumes at most one (localgotoffset).
          */
         if (go.mfoptim & MFlocal)
-            localize(bo, go.changes);     // improve expression locality
+            localize(bo, go.changes);      // improve expression locality
         if (go.mfoptim & MFda)
-            rmdeadass(go, bo);            /* remove dead assignments       */
+            rmdeadass(go, bo, go.changes); /* remove dead assignments       */
 
         if (debugc) printf("changes = %d\n", go.changes);
         if (!(go.changes && go.mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC))
@@ -449,7 +449,7 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
             postoptelem(b.Belem);
     }
     if (go.mfoptim & MFvbe)
-        verybusyexp(go, bo);          /* very busy expressions         */
+        verybusyexp(go, bo, go.changes); /* very busy expressions         */
     if (go.mfoptim & MFcse)
         builddags(go, bo);            /* common subexpressions         */
     if (go.mfoptim & MFdv)
