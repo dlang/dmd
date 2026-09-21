@@ -165,7 +165,7 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
             if (verbose)
                 eSink.message(Loc.initial, "code      %s", m.toChars());
             obj_start(objbuf, m.srcfile.toChars());
-            genObjFile(m, multiobj, false);
+            genObjFile(m, multiobj && m.filetype != FileType.c, false);   // a C file is one translation unit
             obj_end(objbuf, library, m.objfile.toString());
             obj_write_deferred(objbuf, library, glue.obj_symbols_towrite);
             if (global.errors && !writeLibrary)
