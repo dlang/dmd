@@ -71,7 +71,7 @@ static if (1)
     import dmd.backend.mem;
     import dmd.backend.el;
     import dmd.backend.elfobj : addSegmentToComdat;
-    import dmd.backend.machobj : getsegment2;
+    import dmd.backend.machobj : getsegment2, MachObj_reftoident;
     import dmd.backend.global;
     import dmd.backend.symbol : symbol_name, symbol_reset, globsym;
     import dmd.backend.obj;
@@ -1067,17 +1067,27 @@ static if (1)
         assert(startsize + length + 4 == buf.length());
     }
 
+    /****************************
+     * Append compact unwind entry to buf.
+     * Params:
+     *      dfseg = SegData[] index for __compact_unwind
+     *      buf = write raw data here
+     *      personality = "__dmd_personality_v0"
+     *      ehunwind = will have EH unwind table
+     * Returns:
+     *      offset of start of this header
+     */
     private
-    void writeCompactUnwindEntry(ref OutBuffer buf, IDXSEC dfseg, Symbol* sfunc, Symbol* personality)
+    void writeCompactUnwindEntry(ref OutBuffer buf, IDXSEC dfseg, Symbol* sfunc, Symbol* personality, bool ehunwind)
     {
-        mach_dwarf_reftoident(dfseg, buf.length(), sfunc, 0);   // functionAddress
+        MachObj_reftoident(dfseg, buf.length(), sfunc, 0, CF.offset64);
 
         buf.write32(cast(uint)sfunc.Ssize);             // functionLength
 
         uint functionEncoding = funcsym_p.Sfunc.Fflags & Fhasframe
                     ? UNWIND_ARM64_MODE_FRAME           // standard stack frame
                     : UNWIND_ARM64_MODE_FRAMELESS;      // no stack frame
-        buf.write64(functionEncoding);                  // functionEncoding
+        buf.write32(functionEncoding);                  // functionEncoding
 
         //mach_dwarf_reftoident(dfseg, buf.length(), personality, 0);   // personality
         buf.write64(0);
@@ -1854,14 +1864,11 @@ static if (1)
             if (config.objfmt == OBJ_MACH && AArch64())
             {
                 bool ehunwind = doUnwindEhFrame();
-                if (ehunwind)
-                {
-                    IDXSEC dfseg = dwarf_compact_unwind_alloc();
-                    OutBuffer* buf = SegData[dfseg].SDbuf;
-                    buf.reserve(32);    // 32 bytes per instance of struct compact_unwind_entry
+                IDXSEC dfseg = dwarf_compact_unwind_alloc();
+                OutBuffer* buf = SegData[dfseg].SDbuf;
+                buf.reserve(32);    // 32 bytes per instance of struct compact_unwind_entry
 
-                    writeCompactUnwindEntry(*buf, dfseg, sfunc, getRtlsymPersonality());
-                }
+                writeCompactUnwindEntry(*buf, dfseg, sfunc, getRtlsymPersonality(), ehunwind);
             }
             else
             {
