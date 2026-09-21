@@ -4297,16 +4297,8 @@ void catchSemantic(Catch c, Scope* sc)
     sym.parent = sc.scopesym;
     sc = sc.push(sym);
 
-    if (!c.type)
-    {
-        eSink.error(c.loc, "`catch` statement without an exception specification is deprecated");
-        eSink.errorSupplemental(c.loc, "use `catch(Throwable)` for old behavior");
-        c.errors = true;
-
-        // reference .object.Throwable
-        c.type = getThrowable();
-    }
-    else if (!c.type.isNaked && !c.type.isConst())
+    assert(c.type);
+    if (!c.type.isNaked && !c.type.isConst())
     {
         // @@@DEPRECATED_2.115@@@
         // Deprecated in 2.105, change into an error & uncomment assign in 2.115

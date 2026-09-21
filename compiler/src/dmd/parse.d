@@ -7004,10 +7004,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     nextToken();
                     if (token.value != TOK.leftParenthesis)
                     {
-                        deprecation("`catch` statement without an exception specification is deprecated");
-                        deprecationSupplemental("use `catch(Throwable)` for old behavior");
-                        t = null;
-                        id = null;
+                        error("`catch` statement without an exception specification is disallowed");
+                        errorSupplemental("use `catch(Throwable)` for old behavior");
                     }
                     else
                     {
