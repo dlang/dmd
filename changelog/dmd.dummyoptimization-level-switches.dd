@@ -1,0 +1,27 @@
+Add dummy optimization-level switches
+
+Optimization-level switches as supported by compilers like $(I GDC) or $(I LDC) are now accepted.
+As DMD does not actually implement support for multiple optimization levels,
+these switches merely turn the optimizer on or off.
+
+This streamlines the user experience to bring it in line with $(I LDC)'s $(I $(CODE ldmd2)) wrapper.
+
+$(TABLE2 Optimization-level switches
+    <thead>
+        $(TR $(TH Switch)    $(TH Optimizer)  $(TH Emits warning))
+    </thead>
+    <tbody>
+        $(TR $(TH `-O`)      $(TD on)         $(TD no))
+        $(TR $(TH `-O0`)     $(TD off)        $(TD no))
+        $(TR $(TH `-O1`)     $(TD on)         $(TD no))
+        $(TR $(TH `-O2`)     $(TD on)         $(TD no))
+        $(TR $(TH `-O3`)     $(TD on)         $(TD no))
+        $(TR $(TH `-Og`)     $(TD off)        $(TD yes))
+        $(TR $(TH `-Os`)     $(TD on)         $(TD yes))
+        $(TR $(TH `-Oz`)     $(TD on)         $(TD yes))
+        $(TR $(TH `-Ofast`)  $(TD on)         $(TD yes))
+    </tbody>
+)
+
+DMD will conditionally accept multiple differing optimization-level switches in one compiler invocation.
+This is as long as they do not effectively contradict each other with reference to the activation of the optimizer.
