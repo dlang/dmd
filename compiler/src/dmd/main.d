@@ -694,10 +694,6 @@ private int tryMain(const(char)[][] argv, out Param params)
 
     runLinter(modules[]);
 
-    {
-    timeTraceBeginEvent(TimeTraceEventType.inlineGeneral);
-    scope (exit) timeTraceEndEvent(TimeTraceEventType.inlineGeneral);
-
     // Scan for modules with always inline functions
     foreach (m; modules)
     {
