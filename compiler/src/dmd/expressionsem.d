@@ -85,6 +85,7 @@ import dmd.semantic2;
 import dmd.semantic3;
 import dmd.sideeffect;
 import dmd.safe;
+import dmd.statement;
 import dmd.target;
 import dmd.targetcompiler;
 import dmd.templatesem : matchWithInstance, deduceType, matchArg, updateTempDecl, semanticTiargs, findTempDecl;
@@ -1963,19 +1964,20 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, ref Expressio
  * Perform semantic() on an array of Expressions.
  */
 extern(D) bool arrayExpressionSemantic(
-    Expression[] exps, Scope* sc, bool preserveErrors = false)
+    Expression[] exps, Scope* sc, bool preserveErrors = false, Type expectedType = null)
 {
     Expression basis = null;
-    return arrayExpressionSemantic(exps, basis, sc, preserveErrors);
+    return arrayExpressionSemantic(exps, basis, sc, preserveErrors, expectedType);
 }
 
 extern(D) bool arrayExpressionSemantic(
-    Expression[] exps, ref Expression basis, Scope* sc, bool preserveErrors = false)
+    Expression[] exps, ref Expression basis, Scope* sc, bool preserveErrors = false, Type expectedType = null)
 {
     bool err = false;
 
     Expression check(Expression e)
     {
+        sc.expectedType = expectedType;
         auto e2 = e.expressionSemantic(sc);
         if (e2.op == EXP.error)
         {
@@ -2346,11 +2348,8 @@ private void hookDtors(CondExp ce, Scope* sc)
             if (!v || v.isDataseg())
                 return;
 
-            if (v._init)
-            {
-                if (auto ei = v._init.isExpInitializer())
-                    walkPostorder(ei.exp, this);
-            }
+            if (v._init && !v._init.isVoidInitializer())
+                walkPostorder(v._init, this);
 
             if (v.edtor)
                 walkPostorder(v.edtor, this);
@@ -5469,6 +5468,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     Scope* sc;
     ErrorSink eSink;
     Expression result;
+    Type expectedType;
 
     // For binary expressions, stores recursive 'alias this' types of lhs and rhs to prevent endless loops.
     // See tryAliasThisSemantic
@@ -6186,21 +6186,165 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* Perhaps an empty array literal [ ] should be rewritten as null?
          */
 
-        if (arrayExpressionSemantic(e.elements.peekSlice(), e.basis, sc))
+        Type tb = expectedType ? expectedType.toBasetype() : null;
+        if (tb && tb.ty == Tvector)
+            tb = tb.isTypeVector().basetype;
+        Type telem;
+        if (tb) switch (tb.ty)
+        {
+            case Tsarray:
+            case Tarray:
+                telem = tb.nextOf();
+                break;
+            case Tpointer:
+                if (tb.nextOf().isTypeFunction())
+                    goto default;
+                telem = tb.nextOf();
+                break;
+            case Taarray:
+            case Terror:
+                break;
+            case Tstruct:
+                foreach (el; *e.elements)
+                    if (el && el.isStructInitExp())
+                        goto default;
+                break;
+            default:
+                if (tb.ty != Terror)
+                    eSink.error(e.loc, "cannot use array to initialize `%s`", expectedType.toErrMsg());
+                return setError();
+        }
+        if (telem && telem.ty == Tvoid)
+            telem = null;
+
+        if (telem)
+        {
+            bool err;
+            Expression elemInit(Expression el)
+            {
+                sc.expectedType = telem;
+                el = el.expressionSemantic(sc);
+                if (el.op == EXP.error)
+                {
+                    err = true;
+                    return el;
+                }
+                if (auto tt = el.type ? el.type.isTypeTuple() : null)
+                {
+                    if (tt.arguments.length == 0)
+                    {
+                        Type et = el.type;
+                        el = new TupleExp(el.loc, new Expressions());
+                        el.type = et;
+                    }
+                    return el;
+                }
+                if (el.isTupleExp())
+                    return el;
+                Type tx = telem;
+                el = initializerSemantic(el, sc, tx, sc.ctfe ? INITinterpret : INITnointerpret);
+                if (el.op == EXP.error)
+                    err = true;
+                return el;
+            }
+            foreach (ref el; *e.elements)
+                if (el)
+                    el = elemInit(el);
+            if (e.basis)
+                e.basis = elemInit(e.basis);
+            if (err)
+                return setError();
+        }
+        else if (arrayExpressionSemantic(e.elements.peekSlice(), e.basis, sc))
             return setError();
 
         expandTuples(e.elements);
 
-        if (e.basis)
-            e.elements.push(e.basis);
-        Type t0 = arrayExpressionToCommonType(sc, *e.elements);
-        if (e.basis)
-            e.basis = e.elements.pop();
+        if (telem)
+        {
+            auto tsa = tb.isTypeSArray();
+            auto edim = tsa ? tsa.dim.isIntegerExp() : null;
+            if (edim && !(sc.inCfile && tsa.isIncomplete()))
+            {
+                const dim = edim.getInteger();
+                if (e.elements.length > dim)
+                {
+                    eSink.error(e.loc, "array initializer has %u elements, but array length is %llu", cast(uint)e.elements.length, cast(ulong)dim);
+                    return setError();
+                }
+                const sz = telem.size();
+                if (sz == SIZE_INVALID)
+                    return setError();
+                import core.checkedint : mulu;
+                bool overflow;
+                const max = mulu(dim, sz, overflow);
+                if (overflow || max >= 0x8000_0000)
+                {
+                    eSink.error(e.loc, "array dimension %llu exceeds max of %llu", cast(ulong)dim, ulong(0x8000_0000 / sz));
+                    return setError();
+                }
+                if (e.elements.length < dim)
+                    e.elements.insert(e.elements.length, cast(size_t)dim - e.elements.length, null);
+            }
+        }
+
+        bool hasGap;
+        foreach (el; *e.elements)
+            if (!el)
+            {
+                hasGap = true;
+                break;
+            }
+
+        if (hasGap && !e.basis && telem)
+        {
+            Expression def = telem.defaultInit(e.loc, sc.inCfile).expressionSemantic(sc);
+            def = broadcastArrayInit(def, telem, sc);
+            foreach (ref el; *e.elements)
+                if (!el)
+                    el = def;
+            hasGap = false;
+        }
+
+        bool converted = telem && telem.isTypeBasic() && !e.basis;
+        if (converted)
+            foreach (el; *e.elements)
+                if (!el || !el.type || !el.type.equals(telem))
+                {
+                    converted = false;
+                    break;
+                }
+
+        Type t0;
+        if (converted)
+            t0 = telem;
+        else
+        {
+            if (e.basis)
+                e.elements.push(e.basis);
+            t0 = arrayExpressionToCommonType(sc, *e.elements);
+            if (e.basis)
+                e.basis = e.elements.pop();
+        }
         if (t0 is null)
             return setError();
 
+        if (hasGap && !e.basis)
+        {
+            Expression def = t0.defaultInitLiteral(e.loc);
+            foreach (ref el; *e.elements)
+                if (!el)
+                    el = def;
+        }
+
         e.type = t0.arrayOf();
         e.type = e.type.typeSemantic(e.loc, sc);
+        if (telem)
+        {
+            auto tsa = tb.isTypeSArray();
+            if (tsa && tsa.dim.isIntegerExp() && tsa.dim.toInteger() == e.elements.length && telem.equals(t0))
+                e.type = tb;
+        }
 
         /* Disallow array literals of type void being used.
          */
@@ -6278,9 +6422,33 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = e;
             return;
         }
+        Type tb = expectedType ? expectedType.toBasetype() : null;
+        if (tb && tb.ty == Tvector)
+            tb = tb.isTypeVector().basetype;
+        bool hasNullKey;
+        foreach (k; *e.keys)
+            if (!k)
+            {
+                hasNullKey = true;
+                break;
+            }
+        auto taa = tb ? tb.isTypeAArray() : null;
+        if (tb ? (tb.ty == Tsarray || tb.ty == Tarray || (hasNullKey && !taa)) : hasNullKey)
+        {
+            result = indexedToArrayLiteral(e, sc, expectedType);
+            return;
+        }
+        if (hasNullKey)
+        {
+            foreach (i, k; *e.keys)
+                if (!k)
+                    eSink.error((*e.values)[i].loc, "missing key for value `%s` in initializer", (*e.values)[i].toErrMsg());
+            return setError();
+        }
+
         // Run semantic() on each element
-        bool err_keys = arrayExpressionSemantic(e.keys.peekSlice(), sc);
-        bool err_vals = arrayExpressionSemantic(e.values.peekSlice(), sc);
+        bool err_keys = arrayExpressionSemantic(e.keys.peekSlice(), sc, false, taa ? taa.index : null);
+        bool err_vals = arrayExpressionSemantic(e.values.peekSlice(), sc, false, taa ? taa.nextOf() : null);
         if (err_keys || err_vals)
             return setError();
 
@@ -6351,6 +6519,96 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = e;
     }
 
+
+    override void visit(StructInitExp si)
+    {
+        static if (LOGSEMANTIC)
+        {
+            printf("StructInitExp::semantic('%s')\n", si.toChars());
+        }
+        if (!expectedType)
+        {
+            eSink.error(si.loc, "cannot infer type from struct initializer");
+            return setError();
+        }
+        Type t = expectedType.toBasetype();
+        if (auto tsa = t.isTypeSArray())
+        {
+            if (auto ts = tsa.nextOf().toBasetype().isTypeStruct())
+                t = ts;
+        }
+        if (auto ts = t.isTypeStruct())
+        {
+            StructDeclaration sd = ts.sym;
+            if (sd.hasRegularCtor(true))
+            {
+                eSink.error(si.loc, "Cannot use %s initializer syntax for %s `%s` because it has a constructor",
+                    sd.kind(), sd.kind(), sd.toErrMsg());
+                eSink.errorSupplemental(si.loc, "Use `%s( arguments )` instead of `{ initializers }`",
+                    sd.toChars());
+                return setError();
+            }
+            sd.size(si.loc);
+            if (sd.sizeok != Sizeok.done)
+                return setError();
+
+            Expression getExp(size_t j, Type fieldType)
+            {
+                Type tm = fieldType.addMod(t.mod);
+                auto ex = initializerSemantic(si.value[j], sc, tm, INITnointerpret);
+                if (ex.op != EXP.error)
+                    si.value[j] = ex;
+                return ex;
+            }
+
+            auto elements = resolveStructLiteralNamedArgs(sd, t, sc, si.loc, si.field.length, (size_t j) => si.field[j], &getExp, (size_t j) => si.value[j].loc, (size_t j) => si.value[j].loc,
+                                 global.errorSink);
+            if (!elements)
+                return setError();
+
+            auto sle = new StructLiteralExp(si.loc, sd, elements, t);
+            if (!sd.fill(si.loc, *elements, false))
+                return setError();
+            sle.type = t;
+            result = sle;
+            return;
+        }
+        if ((t.ty == Tdelegate || t.isPtrToFunction()) && si.value.length == 0)
+        {
+            const tok = (t.ty == Tdelegate) ? TOK.delegate_ : TOK.function_;
+            /* Rewrite as empty delegate literal { }
+             */
+            Type tf = new TypeFunction(ParameterList(), null, LINK.d);
+            auto fd = new FuncLiteralDeclaration(si.loc, Loc.initial, tf, tok, null);
+            fd.fbody = new CompoundStatement(si.loc);
+            fd.endloc = si.loc;
+            Expression e = new FuncExp(si.loc, fd);
+            result = e.expressionSemantic(sc);
+            return;
+        }
+        if (t.ty != Terror)
+            eSink.error(si.loc, "a struct is not a valid initializer for a `%s`", t.toErrMsg());
+        return setError();
+    }
+
+    override void visit(CInitExp ci)
+    {
+        static if (LOGSEMANTIC)
+        {
+            printf("CInitExp::semantic('%s')\n", ci.toChars());
+        }
+        if (!expectedType)
+        {
+            eSink.error(ci.loc, "cannot infer type from C initializer `%s`", ci.toErrMsg());
+            return setError();
+        }
+        Expression e = cInitializerSemantic(ci, sc, expectedType);
+        if (e.isErrorExp())
+            return setError();
+        sc.expectedType = expectedType;
+        result = e.expressionSemantic(sc);
+    }
+
     override void visit(CompoundLiteralExp cle)
     {
         static if (LOGSEMANTIC)
@@ -6358,11 +6616,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("CompoundLiteralExp::semantic('%s')\n", cle.toChars());
         }
         Type t = cle.type.typeSemantic(cle.loc, sc);
-        auto init = initializerSemantic(cle.initializer, sc, t, INITnointerpret, global.errorSink);
-        auto e = initializerToExpression(init, sc, t, eSink);
-        if (!e)
+        auto e = initializerSemantic(cle.initializer, sc, t, INITnointerpret);
+        if (e.isErrorExp() || e.isVoidInitializer())
         {
-            eSink.error(cle.loc, "cannot convert initializer `%s` to expression", toChars(init));
+            eSink.error(cle.loc, "cannot convert initializer `%s` to expression", cle.initializer.toErrMsg());
             return setError();
         }
 
@@ -6385,7 +6642,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         else //global variables
         {
             Identifier ident = Identifier.generateId("__cl");
-            auto tmp = new VarDeclaration(cle.loc, t, ident, new ExpInitializer(cle.loc, e));
+            auto tmp = new VarDeclaration(cle.loc, t, ident, e);
 
             // static const type ???
             tmp.storage_class = STC.static_ | STC.const_ | STC.ctfe;
@@ -6989,7 +7246,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             v._init.isVoidInitializer() || v.semanticRun >= PASS.semantic2done)
                             continue;
                         v.inuse++;
-                        v._init = v._init.initializerSemantic(v._scope, v.type, INITinterpret, global.errorSink);
+                        v.initializerSemantic(v._scope, INITinterpret);
                         import dmd.semantic2 : lowerStaticAAs;
                         lowerStaticAAs(v, sc);
                         v.inuse--;
@@ -7959,7 +8216,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     if (auto ie = (*exp.arguments)[0].isIdentifierExp())
                     {
                         TypeExp te = cast(TypeExp)exp.e1;
-                        auto initializer = new VoidInitializer(ie.loc);
+                        auto initializer = voidInitializer(ie.loc);
                         Dsymbol s = new VarDeclaration(ie.loc, te.type, ie.ident, initializer);
                         auto decls = new Dsymbols(1);
                         (*decls)[0] = s;
@@ -15574,11 +15831,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         ec = ec.toBoolean(sc);
 
         CtorFlow ctorflow_root = sc.ctorflow.clone();
+        sc.expectedType = expectedType;
         Expression e1x = exp.e1.expressionSemantic(sc).arrayFuncConv(sc);
         e1x = resolveProperties(sc, e1x);
 
         CtorFlow ctorflow1 = sc.ctorflow;
         sc.ctorflow = ctorflow_root;
+        sc.expectedType = expectedType;
         Expression e2x = exp.e2.expressionSemantic(sc).arrayFuncConv(sc);
         e2x = resolveProperties(sc, e2x);
 
@@ -16015,21 +16274,21 @@ private bool expressionSemanticDone(Expression e)
 // entrypoint for semantic ExpressionSemanticVisitor
 Expression expressionSemantic(Expression e, Scope* sc)
 {
-    if (e.expressionSemanticDone)
-        return e;
-
-    scope v = new ExpressionSemanticVisitor(sc);
-    e.accept(v);
-    return v.result;
+    Type[2] aliasThisStop;
+    return expressionSemantic(e, sc, aliasThisStop);
 }
 
 // ditto, but passes alias this stop types, see trySemanticAliasThis
 private Expression expressionSemantic(Expression e, Scope* sc, Type[2] aliasThisStop)
 {
+    Type expectedType = sc ? sc.expectedType : null;
+    if (sc)
+        sc.expectedType = null;
     if (e.expressionSemanticDone)
         return e;
 
     scope v = new ExpressionSemanticVisitor(sc);
+    v.expectedType = expectedType;
     v.aliasThisStop = aliasThisStop;
     e.accept(v);
     return v.result;
@@ -19137,7 +19396,7 @@ bool checkDisabled(Declaration d, Loc loc, Scope* sc, bool isAliasedDeclaration 
  * If variable has a constant expression initializer, get it.
  * Otherwise, return null.
  */
-Expression getConstInitializer(VarDeclaration vd, bool needFullType = true)
+Expression getConstInitializer(VarDeclaration vd)
 {
     assert(vd.type && vd._init);
 
@@ -19153,14 +19412,14 @@ Expression getConstInitializer(VarDeclaration vd, bool needFullType = true)
     if (vd._scope)
     {
         vd.inuse++;
-        vd._init = vd._init.initializerSemantic(vd._scope, vd.type, INITinterpret, global.errorSink);
+        vd.initializerSemantic(vd._scope, INITinterpret);
         import dmd.semantic2 : lowerStaticAAs;
         lowerStaticAAs(vd, vd._scope);
         vd._scope = null;
         vd.inuse--;
     }
 
-    Expression e = vd._init.initializerToExpression(null, needFullType ? vd.type : null, global.errorSink);
+    Expression e = vd._init.isVoidInitializer() ? null : vd._init;
     global.gag = oldgag;
     return e;
 }
@@ -19459,7 +19718,7 @@ bool fill(StructDeclaration sd, Loc loc, ref Expressions elements, bool ctorinit
                 errors = true;
             }
             else
-                e = vx.getConstInitializer(false);
+                e = vx.getConstInitializer();
         }
         else
         {
@@ -20001,9 +20260,8 @@ private Expression buildAAIndexRValueX(Type t, Expression eaa, Expression ekey, 
     if (sc.func && arrayBoundsCheck(sc.func))
     {
         // __aaget = _d_aaGetRvalueX(aa, key), __aaget ? __aaget : onRangeError(__FILE__, __LINE__)
-        auto ei = new ExpInitializer(loc, e0);
         auto id = Identifier.generateId("__aaget");
-        auto vardecl = new VarDeclaration(loc, null, id, ei, STC.exptemp);
+        auto vardecl = new VarDeclaration(loc, null, id, e0, STC.exptemp);
         auto declexp = new DeclarationExp(loc, vardecl);
 
         //Expression idrange = new IdentifierExp(loc, Identifier.idPool("_d_arraybounds"));

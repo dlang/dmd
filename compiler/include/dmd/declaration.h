@@ -282,6 +282,8 @@ public:
 #endif
     bool systemInferred() const;
     bool systemInferred(bool v);
+    bool initSemanticDone() const;
+    bool initSemanticDone(bool v);
     static VarDeclaration *create(Loc loc, Type *t, Identifier *id, Expression *init, StorageClass storage_class = STCundefined);
     VarDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
