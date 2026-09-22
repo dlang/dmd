@@ -176,15 +176,6 @@ class InvariantDeclaration;
 class UnitTestDeclaration;
 class NewDeclaration;
 
-class Initializer;
-class VoidInitializer;
-class DefaultInitializer;
-class ErrorInitializer;
-class StructInitializer;
-class ArrayInitializer;
-class ExpInitializer;
-class CInitializer;
-
 class Expression;
 class IntegerExp;
 class ErrorExp;
@@ -201,6 +192,8 @@ class InterpExp;
 class TupleExp;
 class ArrayLiteralExp;
 class AssocArrayLiteralExp;
+class StructInitExp;
+class CInitExp;
 class StructLiteralExp;
 class CompoundLiteralExp;
 class ObjcClassReferenceExp;
@@ -324,7 +317,6 @@ public:
     virtual void visit(Expression *) { assert(0); }
     virtual void visit(TemplateParameter *) { assert(0); }
     virtual void visit(Condition *) { assert(0); }
-    virtual void visit(Initializer *) { assert(0); }
 
     // Dsymbols
     virtual void visit(AliasThis *s) { visit((Dsymbol *)s); }
@@ -484,6 +476,8 @@ public:
     virtual void visit(NewExp *e) { visit((Expression *)e); }
     virtual void visit(AssocArrayLiteralExp *e) { visit((Expression *)e); }
     virtual void visit(ArrayLiteralExp *e) { visit((Expression *)e); }
+    virtual void visit(StructInitExp *e) { visit((Expression *)e); }
+    virtual void visit(CInitExp *e) { visit((Expression *)e); }
     virtual void visit(MixinExp *e) { visit((Expression *)e); }
     virtual void visit(FuncExp *e) { visit((Expression *)e); }
     virtual void visit(IntervalExp *e) { visit((Expression *)e); }
@@ -581,14 +575,6 @@ public:
     virtual void visit(DVCondition *c) { visit((Condition *)c); }
     virtual void visit(DebugCondition *c) { visit((DVCondition *)c); }
     virtual void visit(VersionCondition *c) { visit((DVCondition *)c); }
-
-    // Initializer
-    virtual void visit(ExpInitializer *i) { visit((Initializer *)i); }
-    virtual void visit(StructInitializer *i) { visit((Initializer *)i); }
-    virtual void visit(ArrayInitializer *i) { visit((Initializer *)i); }
-    virtual void visit(VoidInitializer *i) { visit((Initializer *)i); }
-    virtual void visit(DefaultInitializer *i) { visit((Initializer *)i); }
-    virtual void visit(CInitializer *i) { visit((Initializer *)i); }
 };
 
 class Visitor : public ParseTimeVisitor
@@ -630,7 +616,6 @@ public:
     virtual void visit(TypeInfoWildDeclaration *s) { visit((TypeInfoDeclaration *)s); }
     virtual void visit(TypeInfoVectorDeclaration *s) { visit((TypeInfoDeclaration *)s); }
     virtual void visit(FuncAliasDeclaration *s) { visit((FuncDeclaration *)s); }
-    virtual void visit(ErrorInitializer *i) { visit((Initializer *)i); }
     virtual void visit(ErrorExp *e) { visit((Expression *)e); }
     virtual void visit(ComplexExp *e) { visit((Expression *)e); }
     virtual void visit(StructLiteralExp *e) { visit((Expression *)e); }

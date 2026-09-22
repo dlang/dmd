@@ -217,14 +217,6 @@ public const(char)* toChars(const Expression e)
     return buf.extractChars();
 }
 
-public const(char)* toChars(const Initializer i)
-{
-    OutBuffer buf;
-    HdrGenState hgs;
-    toCBuffer(i, buf, hgs);
-    return buf.extractChars();
-}
-
 public const(char)* toChars(const Type t)
 {
     OutBuffer buf;
@@ -275,14 +267,6 @@ public const(char)* toChars(const Dsymbol d)
     }
 
     return d.ident ? d.ident.toHChars2() : "__anonymous";
-}
-
-public const(char)[] toString(const Initializer i)
-{
-    OutBuffer buf;
-    HdrGenState hgs;
-    toCBuffer(i, buf, hgs);
-    return buf.extractSlice();
 }
 
 /**
@@ -1565,11 +1549,7 @@ private final class DsymbolPrettyPrintVisitor : Visitor
             if (vd._init)
             {
                 buf.put(" = ");
-                ExpInitializer ie = vd._init.isExpInitializer();
-                if (ie && (ie.exp.op == EXP.construct || ie.exp.op == EXP.blit))
-                    (cast(AssignExp)ie.exp).e2.expressionToBuffer(*buf, *hgs);
-                else
-                    vd._init.initializerToBuffer(*buf, *hgs);
+                vd._init.initializerExp().expressionToBuffer(*buf, *hgs);
             }
             buf.put(';');
             buf.writenl();
@@ -2144,11 +2124,7 @@ private void visitVarDecl(VarDeclaration v, bool anywritten, ref OutBuffer buf, 
 
     void vinit(VarDeclaration v)
     {
-        auto ie = v._init.isExpInitializer();
-        if (ie && (ie.exp.op == EXP.construct || ie.exp.op == EXP.blit))
-            (cast(AssignExp)ie.exp).e2.expressionToBuffer(buf, hgs);
-        else
-            v._init.initializerToBuffer(buf, hgs);
+        v._init.initializerExp().expressionToBuffer(buf, hgs);
     }
 
     const commentIt = hgs.importcHdr && isSpecialCName(v.ident);
@@ -2484,8 +2460,11 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         {
             if (i)
                 buf.put(", ");
-            expToBuffer(key, PREC.assign, buf, hgs);
-            buf.put(':');
+            if (key)
+            {
+                expToBuffer(key, PREC.assign, buf, hgs);
+                buf.put(':');
+            }
             auto value = (*e.values)[i];
             expToBuffer(value, PREC.assign, buf, hgs);
         }
@@ -2517,7 +2496,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         buf.put('(');
         typeToBuffer(e.type, null, buf, hgs);
         buf.put(')');
-        e.initializer.initializerToBuffer(buf, hgs);
+        expToBuffer(e.initializer, PREC.assign, buf, hgs);
     }
 
     void visitType(TypeExp e)
@@ -2803,10 +2782,10 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         auto vd = ve.var.isVarDeclaration();
         assert(vd && vd._init);
 
-        if (auto ei = vd._init.isExpInitializer())
+        if (!vd._init.isVoidInitializer())
         {
             Expression commaExtract;
-            auto exp = ei.exp;
+            auto exp = vd._init;
             if (auto ce = exp.isConstructExp())
                 commaExtract = ce.e2;
             else if (auto se = exp.isStructLiteralExp())
@@ -3141,6 +3120,8 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.assocArrayLiteral:     return visitAssocArrayLiteral(e.isAssocArrayLiteralExp());
         case EXP.structLiteral: return visitStructLiteral(e.isStructLiteralExp());
         case EXP.compoundLiteral:       return visitCompoundLiteral(e.isCompoundLiteralExp());
+        case EXP.structInit:    return structInitToBuffer(e.isStructInitExp(), buf, hgs);
+        case EXP.cInit:         return cInitToBuffer(e.isCInitExp(), buf, hgs);
         case EXP.type:          return visitType(e.isTypeExp());
         case EXP.scope_:        return visitScope(e.isScopeExp());
         case EXP.template_:     return visitTemplate(e.isTemplateExp());
@@ -3411,11 +3392,6 @@ void toCBufferInstance(const TemplateInstance ti, ref OutBuffer buf, bool qualif
 
     buf.put(ti.name == Id.ctor ? "this" : ti.name.toChars());
     tiargsToBuffer(cast() ti, buf, hgs);
-}
-
-void toCBuffer(const Initializer iz, ref OutBuffer buf, ref HdrGenState hgs)
-{
-    initializerToBuffer(cast() iz, buf, hgs);
 }
 
 bool stcToBuffer(ref OutBuffer buf, STC stc) @safe
@@ -4315,97 +4291,53 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
 }
 
 
-private void initializerToBuffer(Initializer inx, ref OutBuffer buf, ref HdrGenState hgs)
+
+private void structInitToBuffer(StructInitExp si, ref OutBuffer buf, ref HdrGenState hgs)
 {
-    void visitError(ErrorInitializer iz)
+    buf.put('{');
+    foreach (i, const id; si.field)
     {
-        buf.put("__error__");
-    }
-
-    void visitVoid(VoidInitializer iz)
-    {
-        buf.put("void");
-    }
-
-    void visitDefault(DefaultInitializer iz)
-    {
-        buf.put("{ }");
-    }
-
-    void visitStruct(StructInitializer si)
-    {
-        //printf("StructInitializer::toCBuffer()\n");
-        buf.put('{');
-        foreach (i, const id; si.field)
+        if (i)
+            buf.put(", ");
+        if (id)
         {
-            if (i)
-                buf.put(", ");
-            if (id)
-            {
-                buf.put(id.toString());
-                buf.put(':');
-            }
-            if (auto iz = si.value[i])
-                initializerToBuffer(iz, buf, hgs);
+            buf.put(id.toString());
+            buf.put(':');
         }
-        buf.put('}');
+        if (auto iz = si.value[i])
+            expToBuffer(iz, PREC.assign, buf, hgs);
     }
+    buf.put('}');
+}
 
-    void visitArray(ArrayInitializer ai)
+private void cInitToBuffer(CInitExp ci, ref OutBuffer buf, ref HdrGenState hgs)
+{
+    buf.put('{');
+    foreach (i, ref DesigInit di; ci.initializerList)
     {
-        buf.put('[');
-        foreach (i, ex; ai.index)
+        if (i)
+            buf.put(", ");
+        if (di.designatorList)
         {
-            if (i)
-                buf.put(", ");
-            if (ex)
+            foreach (ref Designator d; (*di.designatorList)[])
             {
-                ex.initializerToBuffer(buf, hgs);
-                buf.put(':');
-            }
-            if (auto iz = ai.value[i])
-                initializerToBuffer(iz, buf, hgs);
-        }
-        buf.put(']');
-    }
-
-    void visitExp(ExpInitializer ei)
-    {
-        ei.exp.expressionToBuffer(buf, hgs);
-    }
-
-    void visitC(CInitializer ci)
-    {
-        buf.put('{');
-        foreach (i, ref DesigInit di; ci.initializerList)
-        {
-            if (i)
-                buf.put(", ");
-            if (di.designatorList)
-            {
-                foreach (ref Designator d; (*di.designatorList)[])
+                if (d.exp)
                 {
-                    if (d.exp)
-                    {
-                        buf.put('[');
-                        toCBuffer(d.exp, buf, hgs);
-                        buf.put(']');
-                    }
-                    else
-                    {
-                        buf.put('.');
-                        buf.put(d.ident.toString());
-                    }
+                    buf.put('[');
+                    toCBuffer(d.exp, buf, hgs);
+                    buf.put(']');
                 }
-                buf.put('=');
+                else
+                {
+                    buf.put('.');
+                    buf.put(d.ident.toString());
+                }
             }
-            initializerToBuffer(di.initializer, buf, hgs);
+            buf.put('=');
         }
-        buf.put('}');
+        expToBuffer(di.initializer, PREC.assign, buf, hgs);
     }
-
-    mixin VisitInitializer!void visit;
-    visit.VisitInitializer(inx);
+    buf.put('}');
 }
 
 

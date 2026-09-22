@@ -23,7 +23,6 @@ import dmd.dsymbol;
 import dmd.expression;
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.visitor;
@@ -126,7 +125,7 @@ extern (C++) final class EnumMember : VarDeclaration
      *  2. id = value
      *  3. type id = value
      */
-    @property ref value() { return (cast(ExpInitializer)_init).exp; }
+    @property ref value() { return _init; }
 
     // A cast() is injected to 'value' after dsymbolSemantic(),
     // but 'origValue' will preserve the original value,
@@ -139,7 +138,7 @@ extern (C++) final class EnumMember : VarDeclaration
 
     extern (D) this(Loc loc, Identifier id, Expression value, Type origType)
     {
-        super(loc, null, id ? id : Id.empty, new ExpInitializer(loc, value));
+        super(loc, null, id ? id : Id.empty, value);
         this.origValue = value;
         this.origType = origType;
         this.dsym = DSYM.enumMember;
