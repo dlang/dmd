@@ -324,6 +324,7 @@ struct Rarray(T)
 
     ref inout(T) opIndex(size_t i) inout nothrow pure @nogc
     {
+        debug if (i >= length) printf("i: %zd length: %zd\n", i, length);
         assert(i < length);
         return barray[i];
     }

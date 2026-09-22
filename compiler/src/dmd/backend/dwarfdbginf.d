@@ -1113,6 +1113,7 @@ static if (1)
                 except_table_num = 0;
                 eh_frame_seg = UNKNOWN;
                 eh_frame_sym = null;
+                compact_unwind_seg = UNKNOWN;
             }
             CIE_offset_unwind = ~0;
             CIE_offset_no_unwind = ~0;
@@ -1866,7 +1867,7 @@ static if (1)
                 bool ehunwind = doUnwindEhFrame();
                 IDXSEC dfseg = dwarf_compact_unwind_alloc();
                 OutBuffer* buf = SegData[dfseg].SDbuf;
-                buf.reserve(32);    // 32 bytes per instance of struct compact_unwind_entry
+                buf.reserve(32 * 10);    // 32 bytes per instance of struct compact_unwind_entry
 
                 writeCompactUnwindEntry(*buf, dfseg, sfunc, getRtlsymPersonality(), ehunwind);
             }
