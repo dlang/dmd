@@ -96,6 +96,42 @@ Expression toAssocArrayLiteral(ArrayInitializer ai, Scope* sc, Type itype, Error
     return new AssocArrayLiteralExp(ai.loc, keys, values);
 }
 
+/***********************
+ * Look for the case of statically initializing an array with a single member.
+ * Recursively strip static array / enum layers until a compatible element is found.
+ * 
+ * int[2][3] = 7       => [[7, 7], [7, 7], [7, 7]]
+ * int[2] = new Object => null
+ *
+ * Params:
+ *      e = scalar (or partially-broadcast) expression to expand
+ *      tb = static array type `e` should be broadcast up to (base type)
+ *      sc = scope in which `e` gets cast
+ * Returns: 
+ *      `ArrayLiteralExp` repeating the initializer, or `null` if no match found
+ */
+private Expression sarrayRepeat(Expression e, Type tb, Scope* sc)
+{
+    auto tsa = tb.isTypeSArray();
+    if (!tsa)
+        return null;
+
+    assert(e.type);
+
+    Expression elem;
+    if (e.implicitConvTo(tsa.next))
+        elem = e.implicitCastTo(sc, tsa.next);
+    else if (auto ae = sarrayRepeat(e, tsa.next.toBasetype(), sc))
+        elem = ae;
+    else
+        return null;
+
+    auto elements = new Expressions(cast(size_t) tsa.dim.toInteger());
+    foreach (ref e2; *elements)
+        e2 = elem;
+    return new ArrayLiteralExp(e.loc, tb, elem, elements);
+}
+
 /******************************************
  * Perform semantic analysis on init.
  * Params:
@@ -558,33 +594,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             }
         }
 
-        // Look for the case of statically initializing an array with a single member.
-        // Recursively strip static array / enum layers until a compatible element is found,
-        // and return an `ArrayLiteralExp` repeating the initializer, or `null` if no match found
-        // int[2][3] = 7       => [[7, 7], [7, 7], [7, 7]]
-        // int[2] = new Object => null
-        Expression sarrayRepeat(Type tb)
-        {
-            auto tsa = tb.isTypeSArray();
-            if (!tsa)
-                return null;
-
-            // printf("i.exp = %s, tsa = %s\n", i.exp.toChars(), tsa.toChars());
-            Expression elem = null;
-            if (i.exp.implicitConvTo(tb.nextOf()))
-                elem = i.exp.implicitCastTo(sc, tb.nextOf());
-            else if (auto ae = sarrayRepeat(tb.nextOf().toBasetype()))
-                elem = ae;
-            else
-                return null;
-
-            auto arrayElements = new Expressions(cast(size_t) tsa.dim.toInteger());
-            foreach (ref e; *arrayElements)
-                e = elem;
-            return new ArrayLiteralExp(i.exp.loc, tb, elem, arrayElements);
-        }
-
-        if (auto sa = sarrayRepeat(tb))
+        if (auto sa = sarrayRepeat(i.exp, tb, sc))
         {
             // printf("sa = %s\n", sa.toChars());
             i.exp = sa;
@@ -1565,6 +1575,10 @@ Expression initializerToExpression(Initializer init, Scope* sc, Type itype, Erro
 
         Type telem = itype ? itype.nextOf() : null;
 
+        // https://github.com/dlang/dmd/issues/23900
+        if (!t && itype)
+            t = itype.toBasetype();
+
         auto elements = new Expressions(edim);
         elements.zero();
         size_t j = 0;
@@ -1608,24 +1622,21 @@ Expression initializerToExpression(Initializer init, Scope* sc, Type itype, Erro
         /* Expand any static array initializers that are a single expression
          * into an array of them
          *    e => [e, e, ..., e, e]
+         *    e => [[e, e], [e, e], [e, e]]  (etc, for deeper static arrays)
          */
         if (t)
         {
             Type tn = t.nextOf().toBasetype();
-            if (tn.ty == Tsarray)
+            foreach (ref e; *elements)
             {
-                const dim = cast(size_t)(cast(TypeSArray)tn).dim.toInteger();
-                Type te = tn.nextOf().toBasetype();
-                foreach (ref e; *elements)
-                {
-                    if (te.equals(e.type))
-                    {
-                        auto elements2 = new Expressions(dim);
-                        foreach (ref e2; *elements2)
-                            e2 = e;
-                        e = new ArrayLiteralExp(e.loc, tn, elements2);
-                    }
-                }
+                if (!e.type)
+                    e = e.expressionSemantic(sc);
+                if (e.op == EXP.error)
+                    continue;
+                if (auto ae = sarrayRepeat(e, tn, sc))
+                    e = ae;
+                else if (e.implicitConvTo(tn))
+                    e = e.implicitCastTo(sc, tn);
             }
         }
 
