@@ -29,7 +29,6 @@ import dmd.func;
 import dmd.dmodule;
 import dmd.mtype;
 import dmd.identifier;
-import dmd.init;
 import dmd.root.complex;
 import dmd.rootobject;
 import dmd.statement;
@@ -64,8 +63,6 @@ string astTypeName(RootObject node)
             return astTypeName(cast(Condition) node);
         case DYNCAST.templateparameter:
             return astTypeName(cast(TemplateParameter) node);
-        case DYNCAST.initializer:
-            return astTypeName(cast(Initializer) node);
     }
 }
 

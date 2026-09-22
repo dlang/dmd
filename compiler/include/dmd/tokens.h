@@ -432,6 +432,8 @@ enum class EXP : unsigned char
 
     loweredAssignExp,
     rvalue,
+    structInit, // { a: 1, 2 }
+    cInit, // { [0] = 1, .a = 2 }
 
     MAX
 };

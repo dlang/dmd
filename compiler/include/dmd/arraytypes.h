@@ -37,8 +37,6 @@ typedef Array<class Parameter *> Parameters;
 
 typedef Array<class Identifier *> Identifiers;
 
-typedef Array<class Initializer *> Initializers;
-
 typedef Array<class VarDeclaration *> VarDeclarations;
 
 typedef Array<class Type *> Types;
