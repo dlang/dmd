@@ -252,8 +252,8 @@ private CT Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, ErrorSink eSink)
         {
             if (vd._init)
             {
-                if (auto ie = vd._init.isExpInitializer())
-                    result |= canThrow(ie.exp, func, eSink);
+                if (!vd._init.isVoidInitializer())
+                    result |= canThrow(vd._init, func, eSink);
             }
             if (vd.needsScopeDtor())
                 result |= canThrow(vd.edtor, func, eSink);
