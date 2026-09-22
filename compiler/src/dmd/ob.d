@@ -35,7 +35,6 @@ import dmd.func;
 import dmd.globals : global;
 import dmd.hdrgen;
 import dmd.identifier;
-import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.printast;
@@ -1402,9 +1401,8 @@ void genKill(ref ObState obstate, ObNode* ob)
 
                         if (!(vd._init && vd._init.isVoidInitializer()))
                         {
-                            auto ei = vd._init ? vd._init.isExpInitializer() : null;
-                            if (ei)
-                                visitAssign(cast(AssignExp)ei.exp, true);
+                            if (vd._init && !vd._init.isErrorExp())
+                                visitAssign(cast(AssignExp)vd._init, true);
                             else
                                 dgWriteVar(ob, vd, null, false);
                         }
@@ -2140,10 +2138,9 @@ void checkObErrors(ref ObState obstate)
                         if (vd._init && vd._init.isVoidInitializer())
                             return;
 
-                        auto ei = vd._init ? vd._init.isExpInitializer() : null;
-                        if (ei)
+                        if (vd._init)
                         {
-                            auto e = ei.exp;
+                            auto e = vd._init;
                             if (auto ae = e.isConstructExp())
                                 e = ae.e2;
                             dgWriteVar(ob, cpvs, vd, e);

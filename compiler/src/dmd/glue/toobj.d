@@ -55,7 +55,6 @@ import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
-import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.nspace;
@@ -874,18 +873,18 @@ void toObjFile(Dsymbol ds, bool multiobj)
     private:
         static void initializerToDt(VarDeclaration vd, ref DtBuilder dtb, bool isCfile)
         {
-            Initializer_toDt(vd._init, dtb, isCfile);
+            Initializer_toDt(vd._init, vd.type, dtb);
 
             // Look for static array that is block initialized
-            ExpInitializer ie = vd._init.isExpInitializer();
+            Expression ie = vd._init.isVoidInitializer() ? null : vd._init;
 
             Type tb = vd.type.toBasetype();
             if (auto tbsa = tb.isTypeSArray())
             {
                 auto tbsaNext = tbsa.nextOf();
                 if (ie &&
-                    !tbsaNext.equals(ie.exp.type.toBasetype().nextOf()) &&
-                    ie.exp.implicitConvTo(tbsaNext)
+                    !tbsaNext.equals(ie.type.toBasetype().nextOf()) &&
+                    ie.implicitConvTo(tbsaNext)
                     )
                 {
                     auto dim = tbsa.dim.toInteger();
@@ -893,7 +892,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     // Duplicate Sdt 'dim-1' times, as we already have the first one
                     while (--dim > 0)
                     {
-                        Expression_toDt(ie.exp, dtb);
+                        Expression_toDt(ie, dtb);
                     }
                 }
             }

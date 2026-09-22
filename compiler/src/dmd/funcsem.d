@@ -41,7 +41,6 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.importc;
-import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.mustuse;
@@ -2836,7 +2835,7 @@ void buildResultVar(FuncDeclaration fd, Scope* sc, Type tret)
          * fbody.dsymbolSemantic() running, vresult.type might be modified.
          */
         fd.vresult = new VarDeclaration(loc, tret, Id.result, null);
-        fd.vresult._init = new VoidInitializer(loc); // hdrgen requires _init
+        fd.vresult._init = voidInitializer(loc); // hdrgen requires _init
         fd.vresult.storage_class |= STC.nodtor | STC.temp;
         if (!fd.isVirtual())
             fd.vresult.storage_class |= STC.const_;
@@ -3042,9 +3041,8 @@ void buildEnsureRequire(FuncDeclaration thisfd)
             {
                 auto rloc = r.ensure.loc;
                 auto resultId = new IdentifierExp(rloc, Id.result);
-                auto init = new ExpInitializer(rloc, resultId);
                 auto stc = STC.ref_ | STC.temp | STC.result;
-                auto decl = new VarDeclaration(rloc, null, r.id, init, stc);
+                auto decl = new VarDeclaration(rloc, null, r.id, resultId, stc);
                 auto sdecl = new ExpStatement(rloc, decl);
                 s.push(new ScopeStatement(rloc, new CompoundStatement(rloc, sdecl, r.ensure), rloc));
             }
@@ -3217,8 +3215,7 @@ Statement mergeFensure(FuncDeclaration fd, Statement sf, Identifier oid, Express
                  * https://issues.dlang.org/show_bug.cgi?id=10479
                  */
                 Expression* eresult = &(*params)[0];
-                auto ei = new ExpInitializer(Loc.initial, *eresult);
-                auto v = new VarDeclaration(Loc.initial, t1, Identifier.generateId("__covres"), ei);
+                auto v = new VarDeclaration(Loc.initial, t1, Identifier.generateId("__covres"), *eresult);
                 v.storage_class |= STC.temp;
                 auto de = new DeclarationExp(Loc.initial, v);
                 auto ve = new VarExp(Loc.initial, v);
@@ -4357,9 +4354,7 @@ extern (D) bool checkNestedReference(VarDeclaration vd, Scope* sc, Loc loc)
     }
     if (vd.ident == Id.withSym) // https://issues.dlang.org/show_bug.cgi?id=1759
     {
-        ExpInitializer ez = vd._init.isExpInitializer();
-        assert(ez);
-        Expression e = ez.exp;
+        Expression e = vd._init;
         if (e.op == EXP.construct || e.op == EXP.blit)
             e = (cast(AssignExp)e).e2;
         return lambdaCheckForNestedRef(e, sc);

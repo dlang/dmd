@@ -35,7 +35,6 @@ import dmd.globals;
 import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.rootobject : RootObject, DYNCAST;
@@ -85,10 +84,8 @@ public:
             {
                 if (!(v.storage_class & STC.manifest) && !v.isDataseg() && v._init && !v.isCsymbol())
                 {
-                    if (ExpInitializer ei = v._init.isExpInitializer())
-                    {
-                        doCond(ei.exp);
-                    }
+                    if (!v._init.isVoidInitializer())
+                        doCond(v._init);
                 }
             }
             else if (AttribDeclaration ad = d.isAttribDeclaration())

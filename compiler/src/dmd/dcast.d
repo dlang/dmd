@@ -1399,28 +1399,16 @@ MATCH implicitConvTo(Expression e, Type t)
             {
                 VarDeclaration v = cd.fields[i];
                 Initializer _init = v._init;
-                if (_init)
+                if (_init && !_init.isVoidInitializer())
                 {
-                    if (_init.isVoidInitializer())
-                    {
-                    }
-                    else if (ExpInitializer ei = _init.isExpInitializer())
-                    {
-                        // https://issues.dlang.org/show_bug.cgi?id=21319
-                        // This is to prevent re-analyzing the same expression
-                        // over and over again.
-                        if (ei.exp == e)
-                            return false;
-                        Type tb = v.type.toBasetype();
-                        if (implicitMod(ei.exp, tb, mod) == MATCH.nomatch)
-                            return false;
-                    }
-                    else
-                    {
-                        /* Enhancement: handle StructInitializer and ArrayInitializer
-                         */
+                    // https://issues.dlang.org/show_bug.cgi?id=21319
+                    // This is to prevent re-analyzing the same expression
+                    // over and over again.
+                    if (_init == e)
                         return false;
-                    }
+                    Type tb = v.type.toBasetype();
+                    if (implicitMod(_init, tb, mod) == MATCH.nomatch)
+                        return false;
                 }
                 else if (!v.type.isZeroInit(e.loc))
                     return false;

@@ -44,7 +44,6 @@ import dmd.globals;
 import dmd.glue;
 import dmd.identifier;
 import dmd.id;
-import dmd.init;
 import dmd.location;
 import dmd.mangle;
 import dmd.mtype;
