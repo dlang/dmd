@@ -2625,8 +2625,8 @@ private void visitDsymbolTree(Dsymbol s, ImportCInlineUsageVisitor v)
     }
     if (auto vd = s.isVarDeclaration())
     {
-        if (auto ei = vd._init ? vd._init.isExpInitializer() : null)
-            ei.exp.accept(v);
+        if (vd._init && !vd._init.isVoidInitializer())
+            vd._init.accept(v);
         return;
     }
     if (s.isTemplateDeclaration()) // instances are walked as members of their module
