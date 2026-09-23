@@ -3626,6 +3626,7 @@ Lmark:
                     scanStack!precise.push(ScanRange!precise(pbot, pbot + pointersPerThread));
                     pbot += pointersPerThread;
                 }
+                evStackFilled.setIfInitialized(); // background threads start now
                 stackLock.unlock();
             }
             if (ConservativeGC.isPrecise)
@@ -3634,8 +3635,6 @@ Lmark:
                 pushRanges!false();
         }
         assert(pbot < ptop);
-
-        evStackFilled.setIfInitialized(); // background threads start now
 
         debug(PARALLEL_PRINTF) printf("mark %lld roots\n", cast(ulong)(ptop - pbot));
 
