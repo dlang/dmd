@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -mwasm32 -os=wasm
+REQUIRED_ARGS: -mwasm32 -os=wasi
 TEST_OUTPUT:
 ---
 fail_compilation/wasm_simd.d(103): Error: incompatible types for `(a) / (b)`: both operands are of type `__vector(int[4])`

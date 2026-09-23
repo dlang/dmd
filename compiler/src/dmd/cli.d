@@ -661,7 +661,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("mwasm32",
             "generate WebAssembly 32 bit code",
-            `Compile a WebAssembly 32 bit module. Use together with $(SWLINK -os=wasm).
+            `Compile a WebAssembly 32 bit module. Targets WASI unless $(SWLINK -os=emscripten) is given.
             Defines the $(D WebAssembly), $(D WASI), $(D WASIp1), $(D Posix), and $(D CRuntime_WASI) version identifiers.`,
         ),
         Option("main",
@@ -823,7 +823,9 @@ dmd -cov -unittest myprog.d
                     $(LI $(I solaris): Solaris)
                     $(LI $(I hurd): Hurd)
                     $(LI $(I windows): Windows)
-                    $(LI $(I wasm), $(I wasi), $(I wasip1): WebAssembly with WASI preview 1)
+                    $(LI $(I wasi), $(I wasip1): WebAssembly with WASI preview 1)
+                    $(LI $(I wasip2): WebAssembly with WASI preview 2)
+                    $(LI $(I emscripten): WebAssembly linked by Emscripten's $(D emcc))
                 )`
         ),
         Option("P=<preprocessorflag>",

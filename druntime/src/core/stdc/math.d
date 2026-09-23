@@ -40,7 +40,7 @@ version (SystemZ) version = IBMZ_Any;
 version (X86)     version = X86_Any;
 version (X86_64)  version = X86_Any;
 
-version (CRuntime_WASI) version (DigitalMars) version = WASI_DoubleReal;
+version (WASI) version (DigitalMars) version = WASI_DoubleReal;
 
 extern (C):
 @trusted: // All functions here operate on floating point and integer values only.

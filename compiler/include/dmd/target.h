@@ -130,10 +130,11 @@ struct Target
         OS_Solaris      = 0x20,
         OS_DragonFlyBSD = 0x40,
         OS_Hurd         = 0x80,
-        OS_WASM         = 0x100,
+        OS_WASI         = 0x100,
+        OS_Emscripten   = 0x200,
 
         // Combination masks
-        all = OS_linux | OS_Windows | OS_OSX | OS_OpenBSD | OS_FreeBSD | OS_Solaris | OS_DragonFlyBSD | OS_Hurd | OS_WASM,
+        all = OS_linux | OS_Windows | OS_OSX | OS_OpenBSD | OS_FreeBSD | OS_Solaris | OS_DragonFlyBSD | OS_Hurd | OS_WASI | OS_Emscripten,
         Posix = OS_linux | OS_OSX | OS_OpenBSD | OS_FreeBSD | OS_Solaris | OS_DragonFlyBSD | OS_Hurd,
     };
 

@@ -415,7 +415,7 @@ public WasmFuncType buildFuncType(type* t, Symbol* sfunc, uint hiddenLeadingPtrs
     {
         if (sfunc.identifier == "_Dmain")
             return WasmFuncType([WASM_I32, WASM_PTR], [WASM_I32]);
-        if (sfunc.identifier == "__main_argc_argv")
+        if (sfunc.identifier == "__main_argc_argv" || sfunc.identifier == "main")
             return WasmFuncType([WASM_I32, WASM_I32], [WASM_I32]);
         if (sfunc.identifier == "__main_void")
             return WasmFuncType([], [WASM_I32]);

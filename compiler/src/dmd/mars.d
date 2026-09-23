@@ -315,9 +315,25 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
  */
 const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
 {
+    bool emscripten = arch == "wasm32-emscripten";
     foreach (const p; *args)
     {
         const arg = p.toDString;
+
+        if (arg.startsWith("-os="))
+        {
+            const os = arg[4 .. $];
+            emscripten = os == "emscripten";
+            if (emscripten || os.startsWith("wasi"))
+                arch = "wasm32";
+            continue;
+        }
+        if (arg.startsWith("-target=wasm32"))
+        {
+            arch = "wasm32";
+            emscripten = arg.length >= 10 && arg[$ - 10 .. $] == "emscripten";
+            continue;
+        }
 
         switch (arg)
         {
@@ -339,6 +355,8 @@ const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
         }
         break;
     }
+    if (arch == "wasm32" && emscripten)
+        return "wasm32-emscripten";
     return arch;
 }
 
@@ -399,7 +417,7 @@ void setDefaultLibraries(const ref Target target, ref const(char)[] defaultlibna
         {
             defaultlibname = "phobos2";
         }
-        else if (target.os == Target.OS.WASM)
+        else if (target.isWasm)
         {
             defaultlibname = "libphobos2-wasm.a";
         }
@@ -1013,7 +1031,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
         else if (arg == "-mwasm32")
         {
             target.setArch(Target.Arch.wasm32);
-            target.os = Target.OS.WASM;
+            if (!(target.os & (Target.OS.WASI | Target.OS.Emscripten)))
+                target.os = Target.OS.WASI;
         }
         else if (startsWith(p + 1, "mscrtlib="))
         {
@@ -1173,7 +1192,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             enum len = "-os=".length;
             // Parse:
             //      -os=identifier
-            immutable string msg = "Only `host`, `linux`, `windows`, `osx`,`openbsd`, `freebsd`, `solaris`, `dragonflybsd`, `hurd`, `wasm`, `wasi`, `wasip1` allowed for `-os`";
+            immutable string msg = "Only `host`, `linux`, `windows`, `osx`,`openbsd`, `freebsd`, `solaris`, `dragonflybsd`, `hurd`, `wasi`, `wasip1`, `wasip2`, `emscripten` allowed for `-os`";
             if (Identifier.isValidIdentifier(p + len))
             {
                 const ident = p + len;
@@ -1188,10 +1207,15 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
                 case "solaris":      target.os = Target.OS.Solaris;      break;
                 case "dragonflybsd": target.os = Target.OS.DragonFlyBSD; break;
                 case "hurd":         target.os = Target.OS.Hurd;         break;
-                case "wasm":
                 case "wasi":
                 case "wasip1":
-                    target.os = Target.OS.WASM;
+                case "wasip2":
+                    target.os = Target.OS.WASI;
+                    target.osMajor = ident.toDString() == "wasip2" ? 2 : 1;
+                    target.setArch(Target.Arch.wasm32);
+                    break;
+                case "emscripten":
+                    target.os = Target.OS.Emscripten;
                     target.setArch(Target.Arch.wasm32);
                     break;
                 default:

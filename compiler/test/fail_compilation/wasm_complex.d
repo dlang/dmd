@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -mwasm32 -os=wasm
+REQUIRED_ARGS: -mwasm32 -os=wasi
 TEST_OUTPUT:
 ---
 fail_compilation/wasm_complex.d(111): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead

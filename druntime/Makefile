@@ -431,16 +431,25 @@ $(DRUNTIME): $(OBJS) $(SRCS) $(DMD)
 lib: $(DRUNTIME)
 
 ################### WASM cross-target #########################
-# Cross-compile the druntime archive for wasm32-wasip1, independent of the
-# host build (OS/MODEL/BUILD).
+# Cross-compile the druntime archive for wasm32, independent of the host
+# build (OS/MODEL/BUILD).  WASM_OS=wasi (wasm32-wasip1, linked by wasm-ld
+# against wasi-libc) or WASM_OS=emscripten (linked by emcc, which brings its
+# own libc and startup code).
 
+WASM_OS     ?= wasi
 WASM_DMD    ?= $(DMD)
+ifeq ($(WASM_OS),emscripten)
+WASM_ROOT   := $(ROOT_OF_THEM_ALL)/wasm/release/wasm32-emscripten
+WASM_MODULES :=
+else
 WASM_ROOT   := $(ROOT_OF_THEM_ALL)/wasm/release/wasm32
+WASM_MODULES := start
+endif
+WASM_TARGET := -mwasm32 -os=$(WASM_OS)
 WASM_LIB    := $(WASM_ROOT)/libdruntime-wasm.a
 WASM_RT_DIR := src/rt/wasm
-WASM_MODULES := start
 WASM_OBJS   := $(addprefix $(WASM_ROOT)/rt_,$(addsuffix .o,$(WASM_MODULES)))
-WASM_FLAGS  := -c -mwasm32 -os=wasm -betterC -conf= -Isrc -Iimport -w -de
+WASM_FLAGS  := -c $(WASM_TARGET) -betterC -conf= -Isrc -Iimport -w -de
 
 # Built from the shared $(SRCS): OS-specific modules self-gate to empty on
 # wasm through their existing `version` guards.  Filtered out here are the
@@ -453,7 +462,7 @@ WASM_DRT_SRCS := $(filter-out $(WASM_DRT_EXCLUDE),$(SRCS)) \
 	src/rt/sections_wasm.d \
 	src/rt/wasm/extra.d \
 	src/rt/wasm/eh.d
-WASM_DRT_FLAGS := -c -mwasm32 -os=wasm -conf= -Isrc -Iimport -w -de
+WASM_DRT_FLAGS := -c $(WASM_TARGET) -conf= -Isrc -Iimport -w -de
 # Map a source path to a unique object name: several sources share a basename,
 # e.g. impl/{proto,manual,conservative}/gc.d and thread/package.d
 wasm_obj = $(WASM_ROOT)/drt_$(subst /,_,$(basename $(patsubst src/%,%,$(1)))).o
@@ -471,6 +480,8 @@ WASM_BETTERC_OBJ := $(WASM_ROOT)/crt1-command.o
 # .github/workflows/main.yml.  Set WASI_LIBC_LOCAL to a path to use a
 # locally built libc.a instead.
 WASM_LIBC            := $(WASM_ROOT)/libc.a
+# wasi-libc's C headers, for preprocessing ImportC sources with clang --sysroot
+WASM_SYSROOT_INC     := $(WASM_ROOT)/sysroot/include/wasm32-wasip1/stdio.h
 WASI_SDK_VERSION     ?= 33
 WASI_SYSROOT_SHA256  ?= 063bc1b56582b9923e08ac9b89e58789618d851763f01530b3ff20b9e5df0ca3
 # GitHub percent-encodes the '+' in the asset name as %2B in the download URL.
@@ -485,7 +496,7 @@ $(WASM_ROOT)/rt_%.o : $(WASM_RT_DIR)/%.d $(DMD)
 
 $(WASM_BETTERC_CRT) : $(WASM_BETTERC_OBJ)
 	rm -f $@
-	$(WASM_DMD) -lib -mwasm32 -os=wasm -conf= -of$@ $<
+	$(WASM_DMD) -lib $(WASM_TARGET) -conf= -of$@ $<
 
 # One pattern-free rule per real druntime source (sources live in different
 # directories, so a static pattern rule can't map them).
@@ -502,7 +513,7 @@ $(WASM_DRT_OBJS) $(WASM_OBJS): $(WASM_DRT_SRCS) $(wildcard src/core/stdc/*.d) $(
 
 $(WASM_LIB): $(WASM_OBJS) $(WASM_DRT_OBJS)
 	rm -f $@
-	$(WASM_DMD) -lib -mwasm32 -os=wasm -conf= -of$@ $(WASM_OBJS) $(WASM_DRT_OBJS)
+	$(WASM_DMD) -lib $(WASM_TARGET) -conf= -of$@ $(WASM_OBJS) $(WASM_DRT_OBJS)
 
 $(WASM_LIBC) $(WASM_BETTERC_OBJ): $(WASM_ROOT)/% :
 	@mkdir -p $(WASM_ROOT)
@@ -516,8 +527,24 @@ else
 	test -s $@ || { echo "wasm32-wasip1/$* not found in $(WASI_SYSROOT_TARBALL)"; rm -f $@; exit 1; }
 endif
 
+$(WASM_SYSROOT_INC):
+	@mkdir -p $(WASM_ROOT)/sysroot
+ifneq ($(WASI_LIBC_LOCAL),)
+	cp -r $(dir $(WASI_LIBC_LOCAL))../../include $(WASM_ROOT)/sysroot/
+else
+	@mkdir -p $(dir $(WASI_SYSROOT_TARBALL))
+	test -f $(WASI_SYSROOT_TARBALL) || curl -fSL -o $(WASI_SYSROOT_TARBALL) '$(WASI_SYSROOT_URL)'
+	echo '$(WASI_SYSROOT_SHA256)  $(WASI_SYSROOT_TARBALL)' | $(SHA256SUM) -c -
+	tar -xzf $(WASI_SYSROOT_TARBALL) -C $(WASM_ROOT)/sysroot --strip-components=1 --wildcards '*/include/wasm32-wasip1/*' --exclude='*/c++/*'
+endif
+	test -s $@
+
 .PHONY: wasm
-wasm: copy $(WASM_LIB) $(WASM_BETTERC_CRT) $(WASM_LIBC)
+ifeq ($(WASM_OS),emscripten)
+wasm: copy $(WASM_LIB)
+else
+wasm: copy $(WASM_LIB) $(WASM_BETTERC_CRT) $(WASM_LIBC) $(WASM_SYSROOT_INC)
+endif
 
 UT_SRCS:=$(SRCS)
 UT_MODULES:=$(patsubst src/%.d,$(ROOT)/unittest/%,$(UT_SRCS))

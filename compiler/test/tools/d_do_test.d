@@ -145,7 +145,7 @@ struct EnvData
     bool tryDisabled;            /// `TRY_DISABLED`:Silently try disabled tests (ignore failure and report success)
 
     /// Returns the `-mXX` model flag, or `""` for wasm (which passes
-    /// `-mwasm32 -os=wasm` through REQUIRED_ARGS instead)
+    /// `-mwasm32 -os=wasi` through REQUIRED_ARGS instead)
     string modelFlag() const { return os == "wasm" ? "" : "-m" ~ model; }
 }
 
