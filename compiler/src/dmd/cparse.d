@@ -421,6 +421,8 @@ final class CParser(AST) : Parser!AST
              *    statement
              */
             nextToken();
+            if (flags & ParseStatementFlags.curlyScope)
+                typedefTab.push(null);  // introduce new block scope
             AST.Statements statements;
             while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
             {
@@ -481,6 +483,7 @@ final class CParser(AST) : Parser!AST
 
             nextToken();
             check(TOK.leftParenthesis);
+            typedefTab.push(null);      // C11 6.8.5-5 a for statement is a block
             if (token.value == TOK.semicolon)
             {
                 _init = null;
@@ -2241,6 +2244,14 @@ final class CParser(AST) : Parser!AST
                     p.type = AST.Type.terror;
                 }
             }
+        }
+
+        /* Parameter names hide typedefs of the same name in the function body, C11 6.2.1-4
+         */
+        foreach (i; 0 .. ft.parameterList.length)
+        {
+            if (auto pid = ft.parameterList[i].ident)
+                insertIdToTypedefTab(pid);
         }
 
         /* gets set to true if somebody references __func__ in this function, //ditto for __FUNCTION__ */
@@ -5088,6 +5099,7 @@ final class CParser(AST) : Parser!AST
              */
             auto tab = cast(void*[void*])(typedefTab[$ - 1]);
             tab[cast(void*)id] = cast(void*)null;
+            typedefTab[$ - 1] = cast(void*)tab;
         }
     }
 
