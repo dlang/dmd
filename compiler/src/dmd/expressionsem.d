@@ -7107,6 +7107,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else
             {
+                if (sd.isEnumUnionDeclaration())
+                {
+                    eSink.error(exp.loc, "enum union `%s` cannot be constructed directly; use a variant",
+                        sd.toPrettyChars());
+                    return setError();
+                }
                 if (exp.names)
                 {
                     exp.arguments = resolveStructLiteralNamedArgs(sd, exp.type, sc, exp.loc, exp.names.length,
@@ -7735,6 +7741,29 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         scope(exit) --nest;
 
+        if (auto identifier = exp.e1.isIdentifierExp())
+        {
+            Dsymbol scopesym;
+            sc.search(identifier.loc, identifier.ident, scopesym);
+            auto withsym = scopesym.isWithScopeSymbol();
+            auto typeExp = withsym && !withsym.withstate.wthis
+                ? withsym.withstate.exp.isTypeExp() : null;
+            auto structType = typeExp ? typeExp.type.toBasetype().isTypeStruct() : null;
+            auto enumUnion = structType ? structType.sym.isEnumUnionDeclaration() : null;
+            if (enumUnion)
+            {
+                foreach (variant; enumUnion.variants)
+                {
+                    if (variant.isTypeAlias && variant.ident == identifier.ident)
+                    {
+                        exp.e1 = new DotIdExp(identifier.loc,
+                            new TypeExp(identifier.loc, typeExp.type), identifier.ident);
+                        break;
+                    }
+                }
+            }
+        }
+
         scope (exit)
         {
             if (TypeFunction tf = exp.f && exp.f.type ? exp.f.type.isTypeFunction() : null)
@@ -8158,6 +8187,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 /* It's a struct literal
                  */
             Lx:
+                if (sd.isEnumUnionDeclaration())
+                {
+                    eSink.error(exp.loc, "enum union `%s` cannot be constructed directly; use a variant",
+                        sd.toPrettyChars());
+                    return setError();
+                }
                 Expressions* resolvedArgs = exp.arguments;
                 if (exp.names)
                 {
