@@ -50,6 +50,7 @@ import dmd.typesem;
  *
  *  Params:
  *     ai = array initializer to be converted
+ *     sc = context
  *     itype = if not `null`, the AA type to coerce the initializer to
  *     eSink = error message sink
  *
@@ -1430,8 +1431,9 @@ Initializer inferInitializerType(Initializer init, Scope* sc, Type itype, ErrorS
  * Translate init to an `Expression`.
  * Params:
  *      init = `Initializer` AST node
+ *      sc = context
  *      itype = if not `null`, type to coerce expression to
- *      isCfile = default initializers are different with C
+ *      eSink = error message sink
  * Returns:
  *      `Expression` created, `null` if cannot, `ErrorExp` for other errors
  */
