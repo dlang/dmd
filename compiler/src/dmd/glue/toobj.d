@@ -156,9 +156,23 @@ package(dmd.glue)
 void TypeInfo_toObjFile(Expression e, Loc loc, Type t)
 {
     // printf("TypeInfo_toObjFIle() %s\n", torig.toChars());
-    if (genTypeInfo(e, loc, t, null))
+    genTypeInfo(e, loc, t, null);
+
+    if (t.vtinfo.hadCodegen)
+        return;
+
+    t.vtinfo.hadCodegen = true;
+
+    // ClassInfos are generated as part of ClassDeclaration codegen
+    bool isUnqualifiedClassInfo = false;
+    if (t.mod == 0)
+        if (auto tc = t.isTypeClass())
+            isUnqualifiedClassInfo = !tc.sym.isInterfaceDeclaration();
+
+    if (!isUnqualifiedClassInfo && !builtinTypeInfo(t))
     {
-        // generate a COMDAT for other TypeInfos not available as builtins in druntime
+        // Generate a COMDAT for other TypeInfos not available as builtins in druntime -
+        // but only once per compiler run (into the first referencing object file).
         toObjFile(t.vtinfo, global.params.multiobj);
     }
 }
@@ -252,7 +266,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
 
             const bool gentypeinfo = global.params.useTypeInfo && Type.dtypeinfo;
-            const bool genclassinfo = gentypeinfo || !(cd.isCPPclass || cd.isCOMclass);
+            const bool genclassinfo = gentypeinfo || cd.classKind == ClassKind.d;
 
             // Generate C symbols
             if (genclassinfo)
@@ -278,14 +292,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
-            if (gentypeinfo)
-                TypeInfo_toObjFile(null, cd.loc, cd.type);
-            //toObjFile(cd.type.vtinfo, multiobj);
-
             if (genclassinfo)
-            {
                 genClassInfoForClass(cd, sinit);
-            }
 
             //////////////////////////////////////////////
 
@@ -351,8 +359,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
 
             const bool gentypeinfo = global.params.useTypeInfo && Type.dtypeinfo;
-            const bool genclassinfo = gentypeinfo || !(id.isCPPclass || id.isCOMclass);
-
+            const bool genclassinfo = gentypeinfo || id.classKind == ClassKind.d;
 
             // Generate C symbols
             if (genclassinfo)
@@ -360,14 +367,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             //////////////////////////////////////////////
 
-            // Put out the TypeInfo
-            if (gentypeinfo)
-            {
-                TypeInfo_toObjFile(null, id.loc, id.type);
-                id.type.vtinfo.accept(this);
-            }
-
-            //////////////////////////////////////////////
+            // Note: the TypeInfo_Interface (a wrapper around the interface's ClassInfo)
+            //       is emitted lazily in TypeInfo_toObjFile()
 
             if (genclassinfo)
                 genClassInfoForInterface(id);
@@ -403,8 +404,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 else if (driverParams.symdebug)
                     toDebug(sd);
 
-                if (global.params.useTypeInfo && Type.dtypeinfo)
-                    TypeInfo_toObjFile(null, sd.loc, sd.type);
+                // Note: the TypeInfo_Struct is emitted lazily in TypeInfo_toObjFile()
 
                 // Generate static initializer
                 auto sinit = toInitializer(sd);
@@ -690,8 +690,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             else if (driverParams.symdebug)
                 toDebug(ed);
 
-            if (global.params.useTypeInfo && Type.dtypeinfo)
-                TypeInfo_toObjFile(null, ed.loc, ed.type);
+            // Note: the TypeInfo_Enum is emitted lazily in TypeInfo_toObjFile()
 
             TypeEnum tc = ed.type.isTypeEnum();
             import dmd.typesem : isZeroInit;
@@ -718,11 +717,6 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(TypeInfoDeclaration tid)
         {
-            if (isSpeculativeType(tid.tinfo))
-            {
-                //printf("-speculative '%s'\n", tid.toPrettyChars());
-                return;
-            }
             //printf("TypeInfoDeclaration.toObjFile(%p '%s') visibility %d\n", tid, tid.toChars(), tid.visibility);
 
             if (multiobj)

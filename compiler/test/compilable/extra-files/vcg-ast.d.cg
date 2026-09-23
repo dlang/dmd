@@ -251,7 +251,6 @@ Unqual!(dchar, dchar)
 	alias Unqual = dchar;
 
 }
-static __gshared TypeInfo_Enum _D27TypeInfo_E3vcg11__c_wchar_t6__initZ;
 RTInfo!(_R)
 {
 	enum immutable(void)* RTInfo = null;
