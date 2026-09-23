@@ -36,6 +36,8 @@ def fmt_value(value, unit):
         return f"{ms:,.1f} ms" if ms < 100 else f"{ms:,.0f} ms"
     if unit == "ms":
         return f"{value / 1000:.1f} s"
+    if unit == "faults":
+        return f"{value:,}"
     return str(value)
 
 
