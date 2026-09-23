@@ -8977,7 +8977,8 @@ Type substWildTo(Type type, uint mod)
         //printf("+Type.substWildTo this = %s, mod = x%x\n", toChars(), mod);
         Type t;
 
-        if (Type tn = type.nextOf())
+        Type tn = type.ty == Tenum ? null : type.nextOf();
+        if (tn)
         {
             // substitution has no effect on function pointer type.
             if (type.ty == Tpointer && tn.ty == Tfunction)
