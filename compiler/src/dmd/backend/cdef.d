@@ -536,6 +536,7 @@ struct Config
     bool useModuleInfo;         // implement ModuleInfo
     bool useTypeInfo;           // implement TypeInfo
     bool useExceptions;         // implement exception handling
+    bool wasmSpillGcPtrs;       // in f(g(), h()), spill g()'s returned (GC) pointer on the stack in case h() scans
     ubyte dwarf;                // DWARF version
 
     // Configuration that is not saved in precompiled header
