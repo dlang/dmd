@@ -1684,7 +1684,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
         ti.entry = e.type;
         if (auto ts = ti.entry.isTypeStruct())
         {
-            ts.sym.requestTypeInfo = true;
             if (auto tmpl = ts.sym.isInstantiated())
                 tmpl.minst = sc2._module.importedFrom; // ensure it gets emitted
         }

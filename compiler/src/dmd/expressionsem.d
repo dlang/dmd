@@ -18944,7 +18944,6 @@ void semanticTypeInfo(Scope* sc, Type t)
             if (global.params.useTypeInfo)
             {
                 getTypeInfoType(sd.loc, t, &scx);
-                sd.requestTypeInfo = true;
             }
         }
         else if (!sc.minst)
@@ -18955,7 +18954,6 @@ void semanticTypeInfo(Scope* sc, Type t)
         else
         {
             getTypeInfoType(sd.loc, t, sc);
-            sd.requestTypeInfo = true;
 
             // https://issues.dlang.org/show_bug.cgi?id=15149
             // if the typeid operand type comes from a
@@ -19003,9 +19001,6 @@ void semanticTypeInfo(Scope* sc, Type t)
             }
         }
     }
-
-    /* Note structural similarity of this Type walker to that in isSpeculativeType()
-     */
 
     Type tb = t.toBasetype();
     switch (tb.ty)
