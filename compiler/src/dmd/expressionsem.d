@@ -6650,7 +6650,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         */
         Expression id = new IdentifierExp(ne.loc, Id.empty);
         id = new DotIdExp(ne.loc, id, Id.object);
-        auto taa = ne.type.isTypeAArray();
+        auto taa = ne.type.toBasetype().isTypeAArray();
         assert(taa);
         auto tiargs = new Objects(taa.index, taa.next);
         id = new DotTemplateInstanceExp(ne.loc, id, hook, tiargs);
