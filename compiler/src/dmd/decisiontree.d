@@ -227,9 +227,16 @@ private void missingWitness(ref OutBuffer witness, ref const PatternMatrix matri
         candidate[0] = Pattern(PatternKind.constructor, variantIndex, loc);
         if (!isUseful(matrix, allRows, candidate, 0, eu, fieldOffsets))
             continue;
-        witness.writestring(variant.ident ? variant.ident.toString() : "_");
+        if (variant.ident)
+            witness.writestring(variant.ident.toString());
+        else if (variant.payloadType && variant.payloadType.fields.length == 1)
+            witness.writestring(variant.payloadType.fields[0].type.toChars());
+        else
+            witness.writestring("_");
         if (variant.payloadType && variant.payloadType.fields.length)
         {
+            if (!variant.ident)
+                return;
             witness.writeByte('(');
             foreach (index; 0 .. variant.payloadType.fields.length)
             {

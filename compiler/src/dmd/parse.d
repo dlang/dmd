@@ -1160,9 +1160,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             default:
                 error("declaration expected, not `%s`", token.toChars());
             Lerror:
-                while (token.value != TOK.semicolon && token.value != TOK.endOfFile)
+                while (token.value != TOK.semicolon && token.value != TOK.rightCurly &&
+                       token.value != TOK.endOfFile)
                     nextToken();
-                nextToken();
+                if (token.value == TOK.semicolon)
+                    nextToken();
                 s = null;
                 continue;
             }
@@ -3524,7 +3526,21 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     inCaseDeclaration = false;
                 }
                 else if (token.value != TOK.rightCurly)
+                {
                     error(token.loc, "`,` or `}` expected after enum union variant");
+                    while (token.value != TOK.comma && token.value != TOK.semicolon &&
+                           token.value != TOK.rightCurly && token.value != TOK.endOfFile)
+                    {
+                        nextToken();
+                    }
+                    if (token.value == TOK.comma)
+                        nextToken();
+                    else if (token.value == TOK.semicolon)
+                    {
+                        nextToken();
+                        inCaseDeclaration = false;
+                    }
+                }
             }
             check(TOK.rightCurly);
 
