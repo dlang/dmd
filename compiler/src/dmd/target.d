@@ -226,9 +226,18 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
                 }
                 break;
             }
-            case OS.WASM:
+            case OS.WASI:
             {
                 predef("WebAssembly");
+                predef("WASI");
+                predef(tgt.osMajor == 2 ? "WASIp2" : "WASIp1");
+                predef("Posix");
+                break;
+            }
+            case OS.Emscripten:
+            {
+                predef("WebAssembly");
+                predef("Emscripten");
                 predef("WASI");
                 predef("WASIp1");
                 predef("Posix");
@@ -349,10 +358,11 @@ extern (C++) struct Target
         Solaris      = 0x20,
         DragonFlyBSD = 0x40,
         Hurd         = 0x80,
-        WASM         = 0x100,
+        WASI         = 0x100,
+        Emscripten   = 0x200,
 
         // Combination masks
-        all = linux | Windows | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD | Hurd | WASM,
+        all = linux | Windows | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD | Hurd | WASI | Emscripten,
         Posix = linux | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD | Hurd,
     }
 
@@ -511,7 +521,7 @@ extern (C++) struct Target
             realpad = 0;
             realalignsize = 2;
         }
-        else if (os == Target.OS.WASM)
+        else if (isWasm)
         {
             realsize = 8;
             realpad = 0;
@@ -574,7 +584,7 @@ extern (C++) struct Target
                 dll_ext = "so";
             run_noext = true;
         }
-        else if (os == Target.OS.WASM)
+        else if (isWasm)
         {
             // Could be all .wasm, but distinct extensions avoid name clashes
             // under separate compilation (cland/wasm-ld convention)
@@ -598,7 +608,7 @@ extern (C++) struct Target
             return Target.ObjectFormat.elf;
         if (os == Target.OS.Windows)
             return Target.ObjectFormat.coff;
-        if (os == Target.OS.WASM)
+        if (isWasm)
             return Target.ObjectFormat.wasm;
         assert(0, "unkown object format");
     }
@@ -1534,7 +1544,7 @@ extern (C++) struct Target
      *  true if generating code for POSIX
      */
     extern (D) @property bool isPOSIX() scope const nothrow @nogc @safe
-    out(result) { assert(result || os == Target.OS.Windows || os == Target.OS.WASM); }
+    out(result) { assert(result || os == Target.OS.Windows || os & (Target.OS.WASI | Target.OS.Emscripten)); }
     do
     {
         return (os & Target.OS.Posix) != 0;
@@ -1608,7 +1618,7 @@ struct TargetC
             longsize = 4;
         else if (os == Target.OS.Windows)
             longsize = 4;
-        else if (os == Target.OS.WASM)
+        else if (os & (Target.OS.WASI | Target.OS.Emscripten))
             longsize = 4;
         else
             assert(0);
@@ -1643,8 +1653,10 @@ struct TargetC
         {
             runtime = Runtime.Glibc;
         }
-        else if (os == Target.OS.WASM)
+        else if (os == Target.OS.WASI)
             runtime = Runtime.WASI;
+        else if (os == Target.OS.Emscripten)
+            runtime = Runtime.Musl;
 
         if (os == Target.OS.Windows)
             bitFieldStyle = BitFieldStyle.MS;
@@ -1652,7 +1664,7 @@ struct TargetC
                        Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris |
                        Target.OS.Hurd))
             bitFieldStyle = BitFieldStyle.Gcc_Clang;
-        else if (os == Target.OS.WASM)
+        else if (os & (Target.OS.WASI | Target.OS.Emscripten))
             bitFieldStyle = BitFieldStyle.Gcc_Clang;
         else
             assert(0);
@@ -1722,7 +1734,7 @@ struct TargetCPP
             reverseOverloads = true;
             splitVBasetable = true;
         }
-        else if (os == Target.OS.WASM)
+        else if (os & (Target.OS.WASI | Target.OS.Emscripten))
         {
             twoDtorInVtable = true;
         }
@@ -1737,7 +1749,7 @@ struct TargetCPP
             runtime = Runtime.LLVM;
         else if (os == Target.OS.Solaris)
             runtime = Runtime.GNU;
-        else if (os == Target.OS.WASM)
+        else if (os & (Target.OS.WASI | Target.OS.Emscripten))
             runtime = Runtime.LLVM;
         else
             assert(0);
@@ -1757,7 +1769,7 @@ struct TargetCPP
         import dmd.mangle.cpp : toCppMangleItanium;
         import dmd.mangle.cppwin : toCppMangleMSVC;
 
-        if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD | Target.OS.Hurd | Target.OS.WASM))
+        if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD | Target.OS.Hurd | Target.OS.WASI | Target.OS.Emscripten))
             return toCppMangleItanium(s);
         if (target.os == Target.OS.Windows)
             return toCppMangleMSVC(s);

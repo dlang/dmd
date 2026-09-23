@@ -402,7 +402,7 @@ tym_t totym(Type tx)
 
                 case LINK.d:
                     t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYjfunc;
-                    if (target.os == Target.OS.WASM)
+                    if (target.isWasm)
                     {
                         t = TYnfunc; // No need for wasm to inherit the reversed param nonsense
                     }

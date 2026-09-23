@@ -32,7 +32,7 @@ else version (CRuntime_Newlib)
     version = AlignedAllocSupported;
 else {}
 
-version (CRuntime_WASI) version (DigitalMars) version = WASI_DoubleReal;
+version (WASI) version (DigitalMars) version = WASI_DoubleReal;
 
 extern (C):
 

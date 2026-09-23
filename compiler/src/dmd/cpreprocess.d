@@ -117,6 +117,13 @@ private const(char)[] cppCommand()
     if (const p = getenv("CPPCMD"))
         return toDString(p);
 
+    if (target.isWasm)
+    {
+        if (const cc = getenv("WASM_CC"))
+            return toDString(cc);
+        return target.os == Target.OS.Emscripten ? "emcc" : "clang";
+    }
+
     version (Windows)
     {
         if (target.objectFormat() == Target.ObjectFormat.coff)

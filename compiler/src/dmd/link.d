@@ -258,11 +258,29 @@ private void pushFlag(ref Strings argv, string prefix, const(char)[] arg) nothro
     argv.push(s);
 }
 
+private void splitWords(ref Strings argv, const(char)* cmd) nothrow
+{
+    const(char)[] s = cmd.toDString();
+    while (s.length)
+    {
+        while (s.length && (s[0] == ' ' || s[0] == '\t'))
+            s = s[1 .. $];
+        size_t i = 0;
+        while (i < s.length && s[i] != ' ' && s[i] != '\t')
+            i++;
+        if (i)
+            argv.push(s[0 .. i].xarraydup.ptr);
+        s = s[i .. $];
+    }
+}
+
 /***********************************
- * Link WebAssembly object files with wasm-ld.
+ * Link WebAssembly object files.
  *
- * wasm-ld is a linker, not a compiler driver, so link switches are passed
- * through directly and host-native switches and shared libraries are dropped.
+ * By default wasm-ld is invoked directly with the WASI libc from the dmd
+ * installation. When `WASM_CC` is set, or when targeting Emscripten (`emcc`),
+ * a C compiler driver is used instead, which supplies libc and startup code
+ * itself, and linker switches are passed as `-Wl,`.
  *
  * Params:
  *   verbose = print the command before executing
@@ -272,60 +290,109 @@ private void pushFlag(ref Strings argv, string prefix, const(char)[] arg) nothro
  */
 private int runWasmLINK(bool verbose, ref Param params, ErrorSink eSink)
 {
+    if (target.os == Target.OS.WASI && target.osMajor == 2)
+    {
+        eSink.error(Loc.initial, "linking for WASI preview 2 is not supported yet");
+        return STATUS_FAILED;
+    }
+
     // dmd -defaultlib= main.d     // program supplies its own runtime and `_start`
     // finalDefaultlibname() is always null under betterC, so read driverParams
     const(char)[] defaultlib = driverParams.symdebug ? driverParams.debuglibname : driverParams.defaultlibname;
     const bool customRuntime = !params.betterC && defaultlib is null;
     const bool noAutoLibs = params.betterC && defaultlib is null;
     const bool hasDruntime = !params.betterC && !customRuntime;
+    const bool emscripten = target.os == Target.OS.Emscripten;
+
+    const(char)* cc = getenv("WASM_CC");
+    if (!cc && emscripten)
+        cc = "emcc";
+    const bool driver = cc !is null;
 
     Strings argv;
-    const(char)* wasmld = getenv("WASM_LD");
-    argv.push(wasmld ? wasmld : "wasm-ld");
+    if (driver)
+        splitWords(argv, cc);
+    else
+    {
+        const(char)* wasmld = getenv("WASM_LD");
+        argv.push(wasmld ? wasmld : "wasm-ld");
+    }
+
+    void ld(const(char)* flag)
+    {
+        if (driver)
+            pushFlag(argv, "-Wl,", flag.toDString());
+        else
+            argv.push(flag);
+    }
 
     argv.append(&params.objfiles);
 
     argv.push("-o");
-    if (params.exefile)
-    {
-        argv.push(params.exefile.xarraydup.ptr);
-    }
-    else
+    if (!params.exefile)
     {
         const(char)[] n = FileName.name(params.objfiles[0].toDString);
-        const(char)[] ex = FileName.forceExt(n, target.obj_ext);
-        params.exefile = ex;
-        argv.push(ex.xarraydup.ptr);
+        params.exefile = FileName.forceExt(n, emscripten ? "js" : target.dll_ext);
     }
+    argv.push(params.exefile.xarraydup.ptr);
     if (!ensurePathToNameExists(Loc.initial, params.exefile))
         return STATUS_FAILED;
-
-    if (hasDruntime)
-        argv.push("--export=_start"); // WASI entry from the default library
-    argv.push("--import-undefined");  // undefined data is an error, not address 0
-    argv.push("--gc-sections");
 
     // dmd -L-z -Lstack-size=65536   // otherwise default to 1 MiB, not wasm-ld's 64 KiB
     bool userStackSize = false;
     foreach (pi, p; params.linkswitches)
-        if (p && !params.linkswitchIsForCC[pi] && startsWith(p[0 .. strlen(p)], "stack-size="))
+        if (p && startsWith(p[0 .. strlen(p)], params.linkswitchIsForCC[pi] ? "-sSTACK_SIZE=" : "stack-size="))
             userStackSize = true;
-    if (!userStackSize)
+
+    if (emscripten)
     {
-        argv.push("-z");
-        argv.push("stack-size=1048576");
+        argv.push("-fwasm-exceptions");
+        argv.push("-sWASM_LEGACY_EXCEPTIONS=0");
+        argv.push("-sALLOW_MEMORY_GROWTH");
+        if (!userStackSize)
+            argv.push("-sSTACK_SIZE=1048576");
+    }
+    else
+    {
+        if (hasDruntime && !driver)
+            argv.push("--export=_start"); // WASI entry from the default library
+        ld("--import-undefined");         // undefined data is an error, not address 0
+        ld("--gc-sections");
+        if (!userStackSize)
+            ld(driver ? "-z,stack-size=1048576" : "-z");
+        if (!userStackSize && !driver)
+            argv.push("stack-size=1048576");
     }
 
+    const(char)* pendingZ = null;
     foreach (pi, p; params.linkswitches)
     {
-        if (!p || !p[0] || params.linkswitchIsForCC[pi])
+        if (!p || !p[0])
             continue;
+        if (params.linkswitchIsForCC[pi])
+        {
+            if (driver)
+                argv.push(p);
+            continue;
+        }
         const sw = p[0 .. strlen(p)];
         if (startsWith(sw, "-rpath") || startsWith(sw, "--rpath") ||
             startsWith(sw, "-Wl,-rpath") || startsWith(sw, "-soname") ||
             startsWith(sw, "-dynamic"))
             continue;
-        argv.push(p);
+        if (!driver)
+            argv.push(p);
+        else if (startsWith(sw, "-L") || startsWith(sw, "-l"))
+            argv.push(p);
+        else if (sw == "-z")
+            pendingZ = p;
+        else if (pendingZ)
+        {
+            pushFlag(argv, "-Wl,-z,", sw);
+            pendingZ = null;
+        }
+        else
+            pushFlag(argv, "-Wl,", sw);
     }
 
     // .a archives pass through, shared libraries don't exist for wasm,
@@ -348,10 +415,13 @@ private int runWasmLINK(bool verbose, ref Param params, ErrorSink eSink)
     {
         if (hasDruntime)
             pushFlag(argv, FileName.equalsExt(defaultlib, "a") ? "-l:" : "-l", defaultlib);
-        else
+        else if (!driver)
             argv.push("-l:libcrt1_betterc.a");
-        argv.push("-l:libc.a");
+        if (!driver)
+            argv.push("-l:libc.a");
     }
+    else if (driver && !emscripten)
+        argv.push("-nostdlib");
 
     foreach (p; params.dllfiles)
         argv.push(p);
@@ -1043,22 +1113,29 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
 {
     //printf("runProgram()\n");
 
-    const(char)* wasmtime;
-    if (target.isWasm)
+    Strings launcher;
+    if (target.os == Target.OS.Emscripten)
     {
-        wasmtime = getenv("WASMTIME");
-        if (!wasmtime)
-            wasmtime = "wasmtime";
+        const(char)* node = getenv("NODE");
+        launcher.push(node ? node : "node");
+    }
+    else if (target.isWasm)
+    {
+        const(char)* wasmtime = getenv("WASMTIME");
+        launcher.push(wasmtime ? wasmtime : "wasmtime");
+        launcher.push("run");
+        launcher.push("-W");
+        launcher.push("exceptions=y");
     }
 
     // print command line to user
     if (verbose)
     {
         OutBuffer buf;
-        if (wasmtime)
+        foreach (l; launcher)
         {
-            buf.writestring(wasmtime);
-            buf.writestring(" run ");
+            buf.writestring(l);
+            buf.writeByte(' ');
         }
         buf.writestring(exefile);
         foreach (arg; runargs)
@@ -1071,11 +1148,7 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
 
     // Build argv[]
     Strings argv;
-    if (wasmtime)
-    {
-        argv.push(wasmtime);
-        argv.push("run");
-    }
+    argv.append(&launcher);
     argv.push(exefile.xarraydup.ptr);
     foreach (arg; runargs)
     {
@@ -1368,9 +1441,18 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
     {
         // Build argv[]
         Strings argv;
-        argv.push(cpp.xarraydup.ptr);       // null terminated copy
+        if (target.isWasm)
+            splitWords(argv, cpp.xarraydup.ptr);
+        else
+            argv.push(cpp.xarraydup.ptr);       // null terminated copy
 
         argv.push("-std=c11");
+        if (target.isWasm)
+        {
+            if (target.os == Target.OS.WASI)
+                argv.push(target.osMajor == 2 ? "--target=wasm32-wasip2" : "--target=wasm32-wasip1");
+            argv.push("-E");
+        }
 
         foreach (p; cppswitches)
         {
@@ -1379,7 +1461,8 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
         }
 
         // Set memory model
-        argv.push(target.isX86_64 || target.isAArch64 ? "-m64" : "-m32");
+        if (!target.isWasm)
+            argv.push(target.isX86_64 || target.isAArch64 ? "-m64" : "-m32");
 
         // merge #define's with output
         argv.push("-dD");       // https://gcc.gnu.org/onlinedocs/cpp/Invocation.html#index-dD

@@ -584,7 +584,7 @@ string[string] getEnvironment()
         auto phobosPath = environment.get("PHOBOS_PATH", testPath(`../../../phobos`));
         auto phobosLibPath = "%s/generated/wasm/release/wasm32".format(phobosPath);
         const extra = environment.get("REQUIRED_ARGS", "");
-        env["REQUIRED_ARGS"] = "-mwasm32 -os=wasm -L-L%s -L-L%s".format(wasmLibPath, phobosLibPath)
+        env["REQUIRED_ARGS"] = "-mwasm32 -os=wasi -L-L%s -L-L%s -P=--sysroot=%s/sysroot".format(wasmLibPath, phobosLibPath, wasmLibPath)
             ~ (extra.length ? " " ~ extra : "");
         // --dir=/ preopens the host filesystem so absolute paths resolve,
         // $PWD gives the guest a working directory

@@ -1,6 +1,6 @@
 WebAssembly target support added to DMD
 
-DMD now recognizes WebAssembly as a compilation target via the `-mwasm32` and `-os=wasm` flags.
+DMD now recognizes WebAssembly as a compilation target via the `-mwasm32` switch.
 This can be used to run D code in web browsers, or in local sandbox environments such as `wasmtime`.
 See also: https://github.com/jcbhmr/awesome-webassembly-runtimes
 
@@ -16,21 +16,41 @@ void main()
 ```
 
 $(CONSOLE
-$ dmd -mwasm32 -os=wasm hello.d
+$ dmd -mwasm32 hello.d
 $ wasmtime run hello.wasm
 )
 
 Or:
 
 $(CONSOLE
-$ dmd -mwasm32 -os=wasm -run hello.d
+$ dmd -mwasm32 -run hello.d
 )
 
-WebAssembly is an architecture, not an operating system, so `-os=wasm` is really
-a shorthand for "the WebAssembly System Interface, preview 1" (`wasm32-wasip1` in
-target triple terms). `-os=wasi` and `-os=wasip1` are accepted as synonyms. Only
-WASI preview 1 is supported; preview 2 replaces the preview 1 syscalls with the
-component model and would need its own `-os` value.
+WebAssembly is the architecture. The `-os` switch selects the runtime
+environment: which C library, startup code and linker to use, and which version
+identifiers are predefined. These match the target triples of LDC and clang:
+
+$(TABLE
+    $(THEAD `-os`, triple, links with, output)
+    $(TROW `wasi` or `wasip1`, `wasm32-unknown-wasip1`, `wasm-ld` and wasi-libc (default for `-mwasm32`), `.wasm`)
+    $(TROW `wasip2`, `wasm32-unknown-wasip2`, not supported yet, )
+    $(TROW `emscripten`, `wasm32-unknown-emscripten`, `emcc`, `.js` + `.wasm`)
+)
+
+By default, WASI programs are linked by invoking `wasm-ld` directly with the
+wasi-libc `libc.a` and C headers that the Phobos build places next to
+`libphobos2-wasm.a`. Set the `WASM_CC` environment
+variable to link through a C compiler driver instead (`WASM_CC=wasm32-wasip1-clang`), or set `WASM_LD` to override
+the `wasm-ld` executable.
+
+`-os=emscripten` links with Emscripten's `emcc` (override with `WASM_CC`),
+which brings its own C library, JavaScript runtime and ports (SDL, OpenGL, a
+virtual file system). The output is a `.js` loader next to the `.wasm` module,
+and `-run` uses `node` (override with `NODE`). Emscripten needs its own druntime
+and Phobos build: `make -C phobos WASM_OS=emscripten wasm`.
+
+ImportC sources are preprocessed with `clang --target=wasm32-wasip1` against
+the wasi-libc headers, or with `$WASM_CC -E` / `emcc -E`.
 
 Version identifiers describing the architecture:
 $(UL
@@ -41,10 +61,11 @@ $(UL
 
 Version identifiers describing the platform:
 $(UL
-    $(LI `WASI`)
-    $(LI `WASIp1`)
-    $(LI `Posix`, since `wasi-libc` implements a subset of Posix on top of WASI)
-    $(LI `CRuntime_WASI`)
+    $(LI `WASI`, also for Emscripten, like LDC)
+    $(LI `WASIp1` or `WASIp2`)
+    $(LI `Emscripten`, for `-os=emscripten`)
+    $(LI `Posix`, since `wasi-libc` and Emscripten implement a subset of Posix)
+    $(LI `CRuntime_WASI`, or `CRuntime_Musl` for Emscripten)
     $(LI `CppRuntime_LLVM`, `CppRuntime_Clang`)
 )
 
@@ -79,7 +100,8 @@ extern (C) void internalStep() { }
 Phobos is linked by default, just like on the native targets. Building it
 mirrors the native library: `make -C phobos wasm` produces `libphobos2-wasm.a`
 (which, like `libphobos2.a`, also contains druntime) in
-`phobos/generated/wasm/release/wasm32`, and `dmd.conf` points `-mwasm32` at it.
+`phobos/generated/wasm/release/wasm32`, and `dmd.conf` points `-mwasm32` at it
+(the `[Environmentwasm32]` section, or `[Environmentwasm32-emscripten]`).
 As usual, `-defaultlib=` selects a different library, and an empty
 `-defaultlib=` opts out of the runtime entirely.
 

@@ -730,12 +730,13 @@ public:
             return;
         }
 
-        if (fd.isCMain() && target.isWasm)
+        if (fd.isCMain() && target.isWasm && target.os != Target.OS.Emscripten)
         {
             // x86 is loose so the runtime calling a function `void main()` as `main(argc, argv)`
             // is allowed (the arguments are ignored). wasm has strict type validation of every,
             // call instruction, so different signatures need to be distinguished
-            buf.writestring(fd.parameters && fd.parameters.length ? "__main_argc_argv" : "__main_void");
+            auto tf = fd.type.isTypeFunction();
+            buf.writestring(tf && tf.parameterList.length ? "__main_argc_argv" : "__main_void");
             return;
         }
 
