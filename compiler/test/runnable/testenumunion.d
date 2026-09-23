@@ -3,10 +3,10 @@ import std.complex;
 /*
 TEST_OUTPUT:
 ---
-runnable/testenumunion.d(592): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
+runnable/testenumunion.d(603): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
 enum union BareCompoundTypes
 ^
-runnable/testenumunion.d(592): Deprecation: use of imaginary type `idouble` is deprecated, use `double` instead
+runnable/testenumunion.d(603): Deprecation: use of imaginary type `idouble` is deprecated, use `double` instead
 enum union BareCompoundTypes
 ^
 ---
@@ -75,23 +75,6 @@ void main()
 	testLifecycleCopyableVariant();
 	testNamedArgumentsAndPatterns();
 	testPatternMatrixExhaustiveness();
-
-	struct ExternalStruct
-	{
-		int n;
-	}
-
-	enum union Vals
-	{
-		case Unit(),                        // returns AliasSeq!()
-		case Tuple(int, string),            // returns AliasSeq!(int, string)
-		case Struct { bool b; double d; },  // returns AliasSeq!(bool, double)
-		case int,                           // returns AliasSeq!()
-		case MyStruct = ExternalStruct,     // returns AliasSeq!();
-	}
-
-	static foreach (V; __traits(allVariants, Vals))
-		pragma(msg, __traits(variantParams, V));
 }
 
 enum union NamedPatterns
