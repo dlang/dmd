@@ -7,9 +7,12 @@ module dmd.decisiontree;
 
 import dmd.dstruct;
 import dmd.declaration;
+import dmd.astenums;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.location;
+import dmd.mtype;
+import dmd.typesem;
 import dmd.common.outbuffer;
 
 private enum PatternKind : ubyte
@@ -24,6 +27,8 @@ private struct Pattern
     PatternKind kind;
     size_t value;
     Loc loc;
+    bool isBool;
+    Expression expr;
 }
 
 private struct MatrixRow
@@ -38,10 +43,41 @@ private struct PatternMatrix
     size_t numColumns;
 }
 
+private bool expressionsEqual(const(Expression) e1, const(Expression) e2)
+{
+    if (e1 is e2)
+        return true;
+    if (!e1 || !e2)
+        return false;
+    if (e1.op != e2.op)
+        return false;
+    if (auto ie1 = (cast()e1).isIntegerExp())
+        if (auto ie2 = (cast()e2).isIntegerExp())
+            return ie1.getInteger() == ie2.getInteger();
+    if (auto re1 = (cast()e1).isRealExp())
+        if (auto re2 = (cast()e2).isRealExp())
+            return re1.value == re2.value;
+    if (auto se1 = (cast()e1).isStringExp())
+        if (auto se2 = (cast()e2).isStringExp())
+            return se1.peekData() == se2.peekData();
+    if ((cast()e1).isNullExp() && (cast()e2).isNullExp())
+        return true;
+    return e1.toString() == e2.toString();
+}
+
 private bool matches(ref const Pattern row, ref const Pattern value)
 {
-    return row.kind == PatternKind.wildcard ||
-        (row.kind == value.kind && row.value == value.value);
+    if (row.kind == PatternKind.wildcard || value.kind == PatternKind.wildcard)
+        return true;
+    if (row.kind != value.kind)
+        return false;
+    if (row.expr || value.expr)
+    {
+        if (!row.expr || !value.expr)
+            return false;
+        return expressionsEqual(row.expr, value.expr);
+    }
+    return row.value == value.value;
 }
 
 private size_t constructorCount(EnumUnionDeclaration eu, size_t column, size_t[] fieldOffsets)
@@ -67,7 +103,7 @@ private bool isUseful(ref const PatternMatrix matrix, size_t[] rowIndices,
 
     const candidate = vector[column];
     const constructors = constructorCount(eu, column, fieldOffsets);
-    if (candidate.kind == PatternKind.constructor)
+    if (candidate.kind == PatternKind.constructor || candidate.kind == PatternKind.literal)
     {
         size_t[] specialized;
         foreach (rowIndex; rowIndices)
@@ -109,14 +145,14 @@ private bool isUseful(ref const PatternMatrix matrix, size_t[] rowIndices,
     foreach (rowIndex; rowIndices)
     {
         const pattern = matrix.rows[rowIndex].columns[column];
-        if (pattern.kind == PatternKind.literal && pattern.value <= 1)
+        if (pattern.kind == PatternKind.literal && pattern.isBool)
             isBool = true;
     }
     if (isBool)
     {
         foreach (value; 0 .. 2)
         {
-            Pattern literal = Pattern(PatternKind.literal, value, candidate.loc);
+            Pattern literal = Pattern(PatternKind.literal, value, candidate.loc, true);
             size_t[] rows;
             foreach (rowIndex; rowIndices)
                 if (matches(matrix.rows[rowIndex].columns[column], literal))
@@ -142,7 +178,7 @@ private bool isUseful(ref const PatternMatrix matrix, size_t[] rowIndices,
             if (previous == rowIndex)
                 break;
             const other = matrix.rows[previous].columns[column];
-            if (other.kind == PatternKind.literal && other.value == literal.value)
+            if (other.kind == PatternKind.literal && matches(other, literal))
             {
                 seen = true;
                 break;
@@ -155,7 +191,7 @@ private bool isUseful(ref const PatternMatrix matrix, size_t[] rowIndices,
             if (matches(matrix.rows[index].columns[column], literal))
                 rows ~= index;
         auto trial = vector.dup;
-        trial[column] = literal;
+        trial[column] = cast()literal;
         if (isUseful(matrix, rows, trial, column + 1, eu, fieldOffsets))
             return true;
     }
@@ -208,10 +244,20 @@ private MatrixRow makeRow(ref CaseExpArm arm, EnumUnionDeclaration eu, size_t[] 
         auto check = checkExpression.isEqualExp();
         if (!check)
             continue;
-        size_t value;
         const index = fieldIndex(check, fields);
-        if (index != size_t.max && integerLiteral(check.e2, value))
-            row.columns[fieldOffsets[arm.variantIndex] + index] = Pattern(PatternKind.literal, value, check.loc);
+        if (index != size_t.max)
+        {
+            size_t value;
+            if (integerLiteral(check.e2, value))
+            {
+                const isBool = check.e2.type && check.e2.type.toBasetype().ty == Tbool;
+                row.columns[fieldOffsets[arm.variantIndex] + index] = Pattern(PatternKind.literal, value, check.loc, isBool, null);
+            }
+            else
+            {
+                row.columns[fieldOffsets[arm.variantIndex] + index] = Pattern(PatternKind.literal, 0, check.loc, false, cast()check.e2);
+            }
+        }
     }
     return row;
 }
