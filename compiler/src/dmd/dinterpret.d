@@ -6178,18 +6178,12 @@ public:
         if (auto eu = se.sd.isEnumUnionDeclaration())
         {
             size_t variantIndex = size_t.max;
-            if (eu.members && eu.members.length > 1)
+            foreach (index, variant; eu.variants)
             {
-                if (auto anon = (*eu.members)[1].isAnonDeclaration())
+                if (v is variant.payloadVar)
                 {
-                    foreach (index, member; *anon.decl)
-                    {
-                        if (v is member.isVarDeclaration())
-                        {
-                            variantIndex = index;
-                            break;
-                        }
-                    }
+                    variantIndex = index;
+                    break;
                 }
             }
             if (variantIndex != size_t.max)

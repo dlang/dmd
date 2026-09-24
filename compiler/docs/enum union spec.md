@@ -12,20 +12,23 @@ An enum union is a nominal tagged sum type. It may contain:
 
 ```ebnf
 EnumUnionDeclaration:
-    "enum" "union" [Identifier] "{" EnumUnionMemberList "}"
+    "enum" "union" [Identifier] "{" EnumUnionBody "}"
 
-EnumUnionMemberList:
-    EnumUnionMember ("," EnumUnionMember)* ","? [";" MemberDeclarationList]
+EnumUnionBody:
+    EnumUnionCaseDeclaration* [MemberDeclarationList]
 
-EnumUnionMember:
-    "case" Identifier
-  | "case" Identifier "(" ParameterList ")"
-  | "case" Identifier "{" StructBody "}"
-    | "case" Identifier "=" Type
-  | "case" Type
+EnumUnionCaseDeclaration:
+    "case" EnumUnionCase ("," EnumUnionCase)* [";"]
+
+EnumUnionCase:
+    Identifier
+  | Identifier "(" ParameterList ")"
+  | Identifier "{" StructBody "}"
+  | Identifier "=" Type
+  | Type
 ```
 
-The declaration is parsed in the current frontend as a `case`-prefixed variant list. `case` is required for every variant form, including bare types and unit cases.
+The declaration is parsed in the current frontend as a `case`-prefixed variant list terminated with semicolons. Multiple cases may appear in a single declaration separated by commas (e.g. `case Some(T), None;`). The trailing semicolon or comma on the final case immediately preceding the closing `}` is optional and can be omitted. `case` is required for every variant form, including bare types and unit cases.
 
 ### 2. Variant forms
 
@@ -36,9 +39,9 @@ A unit variant carries no payload and is represented by a distinct tag value.
 ```d
 enum union Traffic
 {
-    case Red,
-    case Yellow,
-    case Green,
+    case Red;
+    case Yellow;
+    case Green;
 }
 ```
 
@@ -51,9 +54,9 @@ A positional variant holds a payload created from the specified parameter list.
 ```d
 enum union Shape
 {
-    case Circle(double),
-    case Rectangle(double, double),
-    case Point,
+    case Circle(double);
+    case Rectangle(double, double);
+    case Point;
 }
 ```
 
@@ -66,8 +69,8 @@ A record variant stores a synthesized nested payload struct.
 ```d
 enum union Response
 {
-    case Success { int code; string payload; },
-    case Timeout,
+    case Success { int code; string payload; };
+    case Timeout;
 }
 ```
 
@@ -79,8 +82,8 @@ a bare-type variant:
 enum union Response
 {
     struct Success { int code; string payload; }
-    case Success,
-    case Timeout,
+    case Success;
+    case Timeout;
 }
 ```
 
@@ -94,11 +97,11 @@ the variant payload:
 ```d
 enum union Value
 {
-    case Bytes = ubyte[],
+    case Bytes = ubyte[];
 }
 ```
 
-This is equivalent to `alias Bytes = ubyte[]; case Bytes`. The alias remains
+This is equivalent to `alias Bytes = ubyte[]; case Bytes;`. The alias remains
 available as `Value.Bytes` for type use and compile-time reflection.
 
 #### Bare-type variants
@@ -108,9 +111,9 @@ A bare-type variant is a single type, not a variant name.
 ```d
 enum union Value
 {
-    case int,
-    case double,
-    case string,
+    case int;
+    case double;
+    case string;
 }
 ```
 
@@ -125,14 +128,14 @@ alias None = typeof(null);
 
 enum union Option(T)
 {
-    case Some(T),
-    case None,
+    case Some(T);
+    case None;
 }
 
 enum union NullOption(T)
 {
-    case Some(T),
-    case typeof(null),
+    case Some(T);
+    case typeof(null);
 }
 ```
 
@@ -168,9 +171,9 @@ Enum unions support these reflection operations:
 - `__traits(allVariants, T)` returns the variants in declaration order.
 - `__traits(getTag, T, V)` returns the discriminator value for `V`.
 - `__traits(variantParams, V)` returns the declared parameter or field types
-    for tuple and inline struct variants, and an empty tuple for other variant kinds.
+  for tuple and inline struct variants, and an empty tuple for other variant kinds.
 - `__traits(variantParamNames, V)` returns the corresponding parameter or field
-    names as strings, and an empty tuple for other variant kinds.
+  names as strings, and an empty tuple for other variant kinds.
 - `__traits(variantKind, V)` returns `"unit"`, `"tuple"`, `"struct"`, `"alias"`, or `"bare"`.
 
 The argument `V` is a variant element produced by `__traits(allVariants, T)`.
@@ -193,15 +196,15 @@ For example:
 ```d
 enum union Shape
 {
-    case Circle(double),
-    case Rectangle(double, double),
-    case Point,
+    case Circle(double);
+    case Rectangle(double, double);
+    case Point;
 }
 ```
 
 has tag values corresponding to `0`, `1`, and `2` in declaration order.
 
-### 6. Switch expressions
+### 7. Switch expressions
 
 Switch on an enum union is expression-based and uses fat-arrow arms:
 
@@ -263,7 +266,44 @@ The guard executes with the pattern-bound variables in scope. If a guarded arm i
 
 The implementation rejects guard-only redundant cases and invalid pattern matches in the same way it rejects non-exhaustive or unreachable switch arms.
 
-### 7. Exhaustiveness and redundancy checks
+#### Static foreach and static if in switch expressions
+
+Switch expressions support `static foreach` and `static if` constructs directly within their body, enabling programmatic generation of `case` arms at compile time without string mixins:
+enum union DynamicNumber
+{
+case long,
+float,
+double,
+error(string),
+}
+
+DynamicNumber sum(DynamicNumber a, DynamicNumber b) @safe
+{
+enum isBare(alias V) = **traits(variantKind, V) == "bare";
+alias NumericVariants = Filter!(isBare, **traits(allVariants, DynamicNumber));
+return switch (a)
+{
+case error() => a,
+static foreach (V1; NumericVariants)
+case V1 v1 => switch (b)
+{
+case error() => b,
+static foreach (V2; NumericVariants)
+case V2 v2 => DynamicNumber(v1 + v2)
+}
+};
+
+}
+
+````
+
+Key rules:
+- **Scoping:** Each unrolled iteration creates an iteration scope. Loop indices, elements, and type aliases are available within the unrolled arm and any enclosed expressions or nested switch expressions.
+- **Syntax:** Both single-arm bodies (`static foreach (...) case ... => ...`) and braced block bodies (`static foreach (...) { case ... => ..., }`) are permitted.
+- **Delimiters:** Elements unrolled by `static foreach` do not require explicit comma separators between iterations. When a `static foreach` or `static if` block directly precedes the closing `}`, trailing commas or semicolons are optional.
+- **Exhaustiveness and Diagnostics:** Compile-time conditionals and iterations are expanded before exhaustiveness, redundancy, and decision-tree checking. Duplicated arms generated across iterations are flagged as redundant, and unhandled variants are reported as non-exhaustive.
+
+### 8. Exhaustiveness and redundancy checks
 
 The implementation enforces compile-time checking for:
 
@@ -274,7 +314,7 @@ The implementation enforces compile-time checking for:
 
 If the switch is exhaustive without a `default`, no default arm is required. If not exhaustive, a `default` arm is required.
 
-### 8. Duplicate and ambiguity rules
+### 9. Duplicate and ambiguity rules
 
 The implementation rejects:
 
@@ -283,7 +323,7 @@ The implementation rejects:
 - ambiguous implicit construction when the source expression could match more than one bare variant
 - record/positional patterns that do not match the active variant
 
-### 9. Lifecycle rules
+### 10. Lifecycle rules
 
 Enum unions obey the lifecycle rules of their payloads.
 
@@ -293,15 +333,15 @@ Enum unions obey the lifecycle rules of their payloads.
 
 This is enforced during semantic analysis to avoid raw bitcopying of payloads that require destruction or special copy semantics.
 
-### 10. Member functions and trailing declarations
+### 11. Member functions and trailing declarations
 
-After the variant list, an enum union may continue with member declarations after a semicolon:
+Alongside or following the variant list, an enum union may declare member functions and other declarations:
 
 ```d
 enum union ShapeWithMethods
 {
-    case Circle(double),
-    case Rectangle(double, double),
+    case Circle(double);
+    case Rectangle(double, double);
     case Point;
 
     double area()
@@ -316,9 +356,9 @@ enum union ShapeWithMethods
 }
 ```
 
-This is supported by the implementation. Member declarations are part of the enum union after the semicolon following the last variant.
+Member declarations are part of the enum union aggregate. Member functions can use `switch (this)` to dispatch on the active variant.
 
-### 11. Summary
+### 12. Summary
 
 The implemented model is a D-native tagged sum type with these practical rules:
 
@@ -329,3 +369,4 @@ The implemented model is a D-native tagged sum type with these practical rules:
 - duplicate named cases and duplicate bare types are rejected
 - `null` can initialize a null-like no-value variant, including `case None` and `case typeof(null)`
 - payload lifecycle safety is enforced through the same semantic checks as aggregate destructors and copying
+````
