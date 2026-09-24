@@ -269,33 +269,34 @@ The implementation rejects guard-only redundant cases and invalid pattern matche
 #### Static foreach and static if in switch expressions
 
 Switch expressions support `static foreach` and `static if` constructs directly within their body, enabling programmatic generation of `case` arms at compile time without string mixins:
+
+```d
 enum union DynamicNumber
 {
-case long,
-float,
-double,
-error(string),
+    case long;
+    case float;
+    case double;
+    case error(string);
 }
 
 DynamicNumber sum(DynamicNumber a, DynamicNumber b) @safe
 {
-enum isBare(alias V) = **traits(variantKind, V) == "bare";
-alias NumericVariants = Filter!(isBare, **traits(allVariants, DynamicNumber));
-return switch (a)
-{
-case error() => a,
-static foreach (V1; NumericVariants)
-case V1 v1 => switch (b)
-{
-case error() => b,
-static foreach (V2; NumericVariants)
-case V2 v2 => DynamicNumber(v1 + v2)
-}
-};
+    enum isBare(alias V) = __traits(variantKind, V) == "bare";
+    alias NumericVariants = Filter!(isBare, __traits(allVariants, DynamicNumber));
 
+    return switch (a)
+    {
+        case error(msg) => a,
+        static foreach (V1; NumericVariants)
+            case V1 v1 => switch (b)
+            {
+                case error(msg) => b,
+                static foreach (V2; NumericVariants)
+                    case V2 v2 => DynamicNumber(v1 + v2)
+            }
+    };
 }
-
-````
+```
 
 Key rules:
 - **Scoping:** Each unrolled iteration creates an iteration scope. Loop indices, elements, and type aliases are available within the unrolled arm and any enclosed expressions or nested switch expressions.

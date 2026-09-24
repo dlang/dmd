@@ -20,6 +20,7 @@ import core.stdc.string;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
+import dmd.cond : StaticForeach, Condition;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dstruct;
@@ -3804,6 +3805,51 @@ struct CaseExpArm
     VarDeclaration[] bindings;
     size_t variantIndex;
     bool hasVariant;
+
+    StaticForeach sfe;
+    CaseExpArm[] nestedArms;
+    Condition staticIfCond;
+    CaseExpArm[] elseArms;
+    ScopeDsymbol[] iterationScopes;
+
+    CaseExpArm syntaxCopy()
+    {
+        CaseExpArm copy = this;
+        copy.pattern = pattern ? pattern.syntaxCopy() : null;
+        copy.typePattern = typePattern ? typePattern.syntaxCopy() : null;
+        copy.recordBindings = recordBindings.dup;
+        copy.recordPatternNames = recordPatternNames.dup;
+        if (recordPatterns)
+        {
+            copy.recordPatterns = new Expression[](recordPatterns.length);
+            foreach (j, pat; recordPatterns)
+                copy.recordPatterns[j] = pat ? pat.syntaxCopy() : null;
+        }
+        copy.patternChecks = null;
+        copy.bindings = null;
+        copy.hasVariant = false;
+        copy.variantIndex = 0;
+        copy.guard = guard ? guard.syntaxCopy() : null;
+        copy.action = action ? action.syntaxCopy() : null;
+        copy.iterationScopes = null;
+        if (sfe)
+            copy.sfe = sfe.syntaxCopy();
+        if (nestedArms)
+        {
+            copy.nestedArms = new CaseExpArm[](nestedArms.length);
+            foreach (j, ref na; nestedArms)
+                copy.nestedArms[j] = na.syntaxCopy();
+        }
+        if (staticIfCond)
+            copy.staticIfCond = staticIfCond.syntaxCopy();
+        if (elseArms)
+        {
+            copy.elseArms = new CaseExpArm[](elseArms.length);
+            foreach (j, ref ea; elseArms)
+                copy.elseArms[j] = ea.syntaxCopy();
+        }
+        return copy;
+    }
 }
 
 extern (C++) final class SwitchExp : Expression
@@ -3824,20 +3870,7 @@ extern (C++) final class SwitchExp : Expression
     {
         auto copiedArms = new CaseExpArm[](arms.length);
         foreach (i, arm; arms)
-        {
-            copiedArms[i] = arm;
-            copiedArms[i].pattern = arm.pattern ? arm.pattern.syntaxCopy() : null;
-            copiedArms[i].typePattern = arm.typePattern ? arm.typePattern.syntaxCopy() : null;
-            copiedArms[i].recordBindings = arm.recordBindings.dup;
-            copiedArms[i].hasRestPattern = arm.hasRestPattern;
-            copiedArms[i].recordPatternNames = arm.recordPatternNames.dup;
-            copiedArms[i].recordPatterns = arm.recordPatterns.dup;
-            copiedArms[i].restBinding = arm.restBinding;
-            copiedArms[i].patternChecks = arm.patternChecks.dup;
-            copiedArms[i].guard = arm.guard ? arm.guard.syntaxCopy() : null;
-            copiedArms[i].isDefault = arm.isDefault;
-            copiedArms[i].action = arm.action ? arm.action.syntaxCopy() : null;
-        }
+            copiedArms[i] = arm.syntaxCopy();
         return new SwitchExp(loc, condition.syntaxCopy(), copiedArms, hasDefault);
     }
 

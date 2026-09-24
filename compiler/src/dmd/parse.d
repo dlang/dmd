@@ -45,6 +45,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         CPPMANGLE cppmangle;
         Loc endloc; // set to location of last right curly
         int inBrackets; // inside [] of array index or slice
+        int inEnumUnion; // inside enum union body
         Loc lookingForElse; // location of lonely if looking for an else
         bool doUnittests; // parse unittest blocks
     }
@@ -388,11 +389,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             switch (token.value)
             {
             case TOK.case_:
-                if (pLastDecl && *pLastDecl && ((*pLastDecl).dsym == AST.DSYM.enumUnionDeclaration ||
-                    (*pLastDecl).dsym == AST.DSYM.enumUnionCaseDeclaration ||
-                    (*pLastDecl).dsym == AST.DSYM.staticIfDeclaration ||
-                    (*pLastDecl).dsym == AST.DSYM.staticForeachDeclaration ||
-                    (*pLastDecl).dsym == AST.DSYM.pragmaDeclaration))
+                if (inEnumUnion > 0)
                 {
                     const loc = token.loc;
                     nextToken();
@@ -3405,6 +3402,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             nextToken();
         else if (isUnion && token.value == TOK.leftCurly)
         {
+            inEnumUnion++;
+            scope(exit) inEnumUnion--;
             eu.variants = [];
             auto memberDecls = new AST.Dsymbols();
             nextToken();
@@ -3427,11 +3426,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 if (token.value == TOK.case_)
                 {
-                    if (inCaseDeclaration)
-                    {
-                        error(variantLoc, "`;` expected after enum union case declaration");
-                        break;
-                    }
                     nextToken();
                     inCaseDeclaration = true;
                 }
@@ -3519,7 +3513,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 eu.variants ~= variant;
                 if (token.value == TOK.comma)
+                {
                     nextToken();
+                    if (token.value == TOK.case_)
+                        inCaseDeclaration = false;
+                }
                 else if (token.value == TOK.semicolon)
                 {
                     nextToken();
@@ -3527,19 +3525,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 else if (token.value != TOK.rightCurly)
                 {
-                    error(token.loc, "`,` or `}` expected after enum union variant");
-                    while (token.value != TOK.comma && token.value != TOK.semicolon &&
-                           token.value != TOK.rightCurly && token.value != TOK.endOfFile)
-                    {
-                        nextToken();
-                    }
-                    if (token.value == TOK.comma)
-                        nextToken();
-                    else if (token.value == TOK.semicolon)
-                    {
-                        nextToken();
-                        inCaseDeclaration = false;
-                    }
+                    error(token.loc, "`,` or `;` expected after enum union variant");
+                    inCaseDeclaration = false;
                 }
             }
             check(TOK.rightCurly);
@@ -4961,7 +4948,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 auto a = new AST.Dsymbols();
                 a.push(d);
 
-                if (d.dsym == AST.DSYM.enumUnionDeclaration)
+                if (d.isEnumUnionDeclaration())
                 {
                     if (storage_class)
                     {
@@ -6095,7 +6082,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      */
     private Foreach parseForeach(alias Foreach)(Loc loc, AST.Dsymbol* pLastDecl)
     {
-        static if (is(Foreach == AST.StaticForeachStatement) || is(Foreach == AST.StaticForeachDeclaration))
+        static if (is(Foreach == AST.StaticForeachStatement) || is(Foreach == AST.StaticForeachDeclaration) || is(Foreach == AST.StaticForeach))
         {
             nextToken();
         }
@@ -6256,6 +6243,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             {
                 return new AST.StaticForeachStatement(loc, new AST.StaticForeach(loc, null, rangefe));
             }
+            else static if (is(Foreach == AST.StaticForeach))
+            {
+                return new AST.StaticForeach(loc, null, rangefe);
+            }
         }
         else
         {
@@ -6281,6 +6272,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             else static if (is(Foreach == AST.StaticForeachStatement))
             {
                 return new AST.StaticForeachStatement(loc, new AST.StaticForeach(loc, aggrfe, null));
+            }
+            else static if (is(Foreach == AST.StaticForeach))
+            {
+                return new AST.StaticForeach(loc, aggrfe, null);
             }
         }
 
@@ -8713,6 +8708,265 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         return e;
     }
 
+    private bool parseSwitchExpArm(ref AST.CaseExpArm[] arms, ref bool hasDefault)
+    {
+        auto armLoc = token.loc;
+        if (token.value == TOK.static_)
+        {
+            if (peekNext() == TOK.foreach_)
+            {
+                auto sfeLoc = token.loc;
+                auto sfe = parseForeach!(AST.StaticForeach)(sfeLoc, null);
+                if (!sfe)
+                    return false;
+                auto arm = AST.CaseExpArm();
+                arm.loc = sfeLoc;
+                arm.sfe = sfe;
+                if (token.value == TOK.leftCurly)
+                {
+                    nextToken();
+                    while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
+                    {
+                        if (!parseSwitchExpArm(arm.nestedArms, hasDefault))
+                            return false;
+                    }
+                    check(TOK.rightCurly);
+                }
+                else
+                {
+                    if (!parseSwitchExpArm(arm.nestedArms, hasDefault))
+                        return false;
+                }
+                arms ~= arm;
+                if (token.value == TOK.comma || token.value == TOK.semicolon)
+                    nextToken();
+                return true;
+            }
+            else if (peekNext() == TOK.if_)
+            {
+                auto sifLoc = token.loc;
+                auto cond = parseStaticIfCondition();
+                if (!cond)
+                    return false;
+                auto arm = AST.CaseExpArm();
+                arm.loc = sifLoc;
+                arm.staticIfCond = cond;
+                if (token.value == TOK.leftCurly)
+                {
+                    nextToken();
+                    while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
+                    {
+                        if (!parseSwitchExpArm(arm.nestedArms, hasDefault))
+                            return false;
+                    }
+                    check(TOK.rightCurly);
+                }
+                else
+                {
+                    if (!parseSwitchExpArm(arm.nestedArms, hasDefault))
+                        return false;
+                }
+                if (token.value == TOK.else_)
+                {
+                    nextToken();
+                    if (token.value == TOK.leftCurly)
+                    {
+                        nextToken();
+                        while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
+                        {
+                            if (!parseSwitchExpArm(arm.elseArms, hasDefault))
+                                return false;
+                        }
+                        check(TOK.rightCurly);
+                    }
+                    else
+                    {
+                        if (!parseSwitchExpArm(arm.elseArms, hasDefault))
+                            return false;
+                    }
+                }
+                arms ~= arm;
+                if (token.value == TOK.comma || token.value == TOK.semicolon)
+                    nextToken();
+                return true;
+            }
+            else
+            {
+                error(armLoc, "`static foreach` or `static if` expected in switch expression");
+                return false;
+            }
+        }
+
+        AST.Expression pattern;
+        AST.Type typePattern;
+        Identifier typeBinding;
+        Identifier[] recordBindings;
+        bool hasRestPattern;
+        Identifier[] recordPatternNames;
+        AST.Expression[] recordPatterns;
+        Identifier restBinding;
+        bool isDefault;
+        if (token.value == TOK.case_)
+        {
+            nextToken();
+            Token* patternEnd = &token;
+            if ((token.value != TOK.identifier && isBasicType(&patternEnd)) ||
+                (token.value == TOK.identifier &&
+                 (peekNext() == TOK.identifier || peekNext() == TOK.not)))
+            {
+                typePattern = parseType(&typeBinding);
+            }
+            else if (token.value == TOK.identifier)
+            {
+                auto patternLoc = token.loc;
+                pattern = new AST.IdentifierExp(patternLoc, token.ident);
+                nextToken();
+                while (token.value == TOK.dot)
+                {
+                    const dotLoc = token.loc;
+                    nextToken();
+                    if (token.value != TOK.identifier)
+                    {
+                        error(token.loc, "identifier expected following `.` in switch expression pattern");
+                        break;
+                    }
+                    pattern = new AST.DotIdExp(dotLoc, pattern, token.ident);
+                    nextToken();
+                }
+                if (token.value == TOK.leftCurly)
+                {
+                    nextToken();
+                    while (1)
+                    {
+                        if (token.value == TOK.rightCurly)
+                        {
+                            nextToken();
+                            break;
+                        }
+                        if (token.value == TOK.identifier)
+                        {
+                            auto fieldName = token.ident;
+                            if (peekNext() == TOK.colon)
+                            {
+                                nextToken();
+                                nextToken();
+                                recordPatternNames ~= fieldName;
+                                recordPatterns ~= parseAssignExp();
+                            }
+                            else if (peekNext() == TOK.dotDotDot)
+                            {
+                                restBinding = fieldName;
+                                hasRestPattern = true;
+                                nextToken();
+                                nextToken();
+                            }
+                            else
+                            {
+                                recordBindings ~= fieldName;
+                                nextToken();
+                            }
+                        }
+                        else if (token.value == TOK.dotDotDot)
+                        {
+                            hasRestPattern = true;
+                            nextToken();
+                        }
+                        else if (token.value == TOK.comma)
+                        {
+                            nextToken();
+                        }
+                        else if (token.value == TOK.endOfFile)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+                pattern = parsePrimaryExp();
+            while (token.value == TOK.leftParenthesis)
+            {
+                auto args = new AST.Expressions();
+                auto names = new AST.ArgumentLabels();
+                if (peekNext() == TOK.dotDotDot)
+                {
+                    nextToken();
+                    nextToken();
+                    check(TOK.rightParenthesis);
+                    hasRestPattern = true;
+                }
+                else if (peekNext() == TOK.identifier && peekNext2() == TOK.dotDotDot)
+                {
+                    nextToken();
+                    restBinding = token.ident;
+                    nextToken();
+                    nextToken();
+                    check(TOK.rightParenthesis);
+                    hasRestPattern = true;
+                }
+                else
+                    parseNamedArguments(args, names);
+                pattern = new AST.CallExp(pattern.loc, pattern, args, names);
+            }
+        }
+        else if (token.value == TOK.default_)
+        {
+            hasDefault = true;
+            isDefault = true;
+            nextToken();
+        }
+        else
+        {
+            error(armLoc, "`case`, `default`, `static foreach`, or `static if` expected in switch expression");
+            return false;
+        }
+        AST.Expression guard;
+        if (token.value == TOK.if_)
+        {
+            if (isDefault)
+                error(token.loc, "`default` arm cannot have an `if` guard");
+            nextToken();
+            check(TOK.leftParenthesis);
+            guard = parseExpression();
+            check(TOK.rightParenthesis);
+        }
+        if (token.value != TOK.goesTo)
+        {
+            error(token.loc, "`=>` expected in switch expression arm");
+            return false;
+        }
+        nextToken();
+        auto action = parseAssignExp();
+        if (typePattern)
+            pattern = new AST.TypeExp(armLoc, typePattern);
+        auto arm = AST.CaseExpArm();
+        arm.loc = armLoc;
+        arm.pattern = pattern;
+        arm.typePattern = typePattern;
+        arm.typeBinding = typeBinding;
+        arm.recordBindings = recordBindings;
+        arm.hasRestPattern = hasRestPattern;
+        arm.recordPatternNames = recordPatternNames;
+        arm.recordPatterns = recordPatterns;
+        arm.restBinding = restBinding;
+        arm.guard = guard;
+        arm.isDefault = isDefault;
+        arm.action = action;
+        arms ~= arm;
+        if (token.value == TOK.comma)
+            nextToken();
+        else if (token.value != TOK.rightCurly)
+        {
+            error(token.loc, "`,` or `}` expected after switch expression arm");
+            return false;
+        }
+        return true;
+    }
+
     /********************************* Expression Parser ***************************/
 
     AST.Expression parsePrimaryExp()
@@ -8737,174 +8991,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 bool hasDefault;
                 while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
                 {
-                    auto armLoc = token.loc;
-                    AST.Expression pattern;
-                    AST.Type typePattern;
-                    Identifier typeBinding;
-                    Identifier[] recordBindings;
-                    bool hasRestPattern;
-                    Identifier[] recordPatternNames;
-                    AST.Expression[] recordPatterns;
-                    Identifier restBinding;
-                    bool isDefault;
-                    if (token.value == TOK.case_)
-                    {
-                        nextToken();
-                        Token* patternEnd = &token;
-                        if ((token.value != TOK.identifier && isBasicType(&patternEnd)) ||
-                            (token.value == TOK.identifier &&
-                             (peekNext() == TOK.identifier || peekNext() == TOK.not)))
-                        {
-                            typePattern = parseType(&typeBinding);
-                        }
-                        else if (token.value == TOK.identifier)
-                        {
-                            auto patternLoc = token.loc;
-                            pattern = new AST.IdentifierExp(patternLoc, token.ident);
-                            nextToken();
-                            while (token.value == TOK.dot)
-                            {
-                                const dotLoc = token.loc;
-                                nextToken();
-                                if (token.value != TOK.identifier)
-                                {
-                                    error(token.loc, "identifier expected following `.` in switch expression pattern");
-                                    break;
-                                }
-                                pattern = new AST.DotIdExp(dotLoc, pattern, token.ident);
-                                nextToken();
-                            }
-                            if (token.value == TOK.leftCurly)
-                            {
-                                nextToken();
-                                while (1)
-                                {
-                                    if (token.value == TOK.rightCurly)
-                                    {
-                                        nextToken();
-                                        break;
-                                    }
-                                    if (token.value == TOK.identifier)
-                                    {
-                                        auto fieldName = token.ident;
-                                        if (peekNext() == TOK.colon)
-                                        {
-                                            nextToken();
-                                            nextToken();
-                                            recordPatternNames ~= fieldName;
-                                            recordPatterns ~= parseAssignExp();
-                                        }
-                                        else if (peekNext() == TOK.dotDotDot)
-                                        {
-                                            restBinding = fieldName;
-                                            hasRestPattern = true;
-                                            nextToken();
-                                            nextToken();
-                                        }
-                                        else
-                                        {
-                                            recordBindings ~= fieldName;
-                                            nextToken();
-                                        }
-                                    }
-                                    else if (token.value == TOK.dotDotDot)
-                                    {
-                                        hasRestPattern = true;
-                                        nextToken();
-                                    }
-                                    else if (token.value == TOK.comma)
-                                    {
-                                        nextToken();
-                                    }
-                                    else if (token.value == TOK.endOfFile)
-                                    {
-                                        break;
-                                    }
-                                    else
-                                    {
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        else
-                            pattern = parsePrimaryExp();
-                        while (token.value == TOK.leftParenthesis)
-                        {
-                            auto args = new AST.Expressions();
-                            auto names = new AST.ArgumentLabels();
-                            if (peekNext() == TOK.dotDotDot)
-                            {
-                                nextToken();
-                                nextToken();
-                                check(TOK.rightParenthesis);
-                                hasRestPattern = true;
-                            }
-                            else if (peekNext() == TOK.identifier && peekNext2() == TOK.dotDotDot)
-                            {
-                                nextToken();
-                                restBinding = token.ident;
-                                nextToken();
-                                nextToken();
-                                check(TOK.rightParenthesis);
-                                hasRestPattern = true;
-                            }
-                            else
-                                parseNamedArguments(args, names);
-                            pattern = new AST.CallExp(pattern.loc, pattern, args, names);
-                        }
-                    }
-                    else if (token.value == TOK.default_)
-                    {
-                        hasDefault = true;
-                        isDefault = true;
-                        nextToken();
-                    }
-                    else
-                    {
-                        error(armLoc, "`case` or `default` expected in switch expression");
+                    if (!parseSwitchExpArm(arms, hasDefault))
                         goto Lerr;
-                    }
-                    AST.Expression guard;
-                    if (token.value == TOK.if_)
-                    {
-                        if (isDefault)
-                            error(token.loc, "`default` arm cannot have an `if` guard");
-                        nextToken();
-                        check(TOK.leftParenthesis);
-                        guard = parseExpression();
-                        check(TOK.rightParenthesis);
-                    }
-                    if (token.value != TOK.goesTo)
-                    {
-                        error(token.loc, "`=>` expected in switch expression arm");
-                        goto Lerr;
-                    }
-                    nextToken();
-                    auto action = parseAssignExp();
-                    if (typePattern)
-                        pattern = new AST.TypeExp(armLoc, typePattern);
-                    auto arm = AST.CaseExpArm();
-                    arm.loc = armLoc;
-                    arm.pattern = pattern;
-                    arm.typePattern = typePattern;
-                    arm.typeBinding = typeBinding;
-                    arm.recordBindings = recordBindings;
-                    arm.hasRestPattern = hasRestPattern;
-                    arm.recordPatternNames = recordPatternNames;
-                    arm.recordPatterns = recordPatterns;
-                    arm.restBinding = restBinding;
-                    arm.guard = guard;
-                    arm.isDefault = isDefault;
-                    arm.action = action;
-                    arms ~= arm;
-                    if (token.value == TOK.comma)
-                        nextToken();
-                    else if (token.value != TOK.rightCurly)
-                    {
-                        error(token.loc, "`,` or `}` expected after switch expression arm");
-                        goto Lerr;
-                    }
                 }
                 check(TOK.rightCurly);
                 e = new AST.SwitchExp(loc, condition, arms, hasDefault);
