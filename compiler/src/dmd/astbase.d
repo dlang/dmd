@@ -62,15 +62,6 @@ struct ASTBase
 
     alias Visitor = ParseTimeVisitor!ASTBase;
 
-    enum DSYM : ubyte
-    {
-        none,
-        enumUnionDeclaration,
-        enumUnionCaseDeclaration,
-        staticIfDeclaration,
-        staticForeachDeclaration,
-        pragmaDeclaration,
-    }
 
     extern (C++) abstract class ASTNode : RootObject
     {
@@ -81,7 +72,6 @@ struct ASTBase
     {
         Loc loc;
         Identifier ident;
-        DSYM dsym;
         UnitTestDeclaration ddocUnittest;
         UserAttributeDeclaration userAttribDecl;
         Dsymbol parent;
@@ -235,6 +225,16 @@ struct ASTBase
         }
 
         inout(UnionDeclaration) isUnionDeclaration() inout
+        {
+            return null;
+        }
+
+        inout(EnumUnionDeclaration) isEnumUnionDeclaration() inout
+        {
+            return null;
+        }
+
+        inout(EnumUnionCaseDeclaration) isEnumUnionCaseDeclaration() inout
         {
             return null;
         }
@@ -924,13 +924,17 @@ struct ASTBase
         {
             super(null);
             this.loc = loc;
-            this.dsym = DSYM.enumUnionCaseDeclaration;
             this.variant = variant;
         }
 
         override void accept(Visitor v)
         {
             v.visit(cast(Declaration) this);
+        }
+
+        override final inout(EnumUnionCaseDeclaration) isEnumUnionCaseDeclaration() inout
+        {
+            return this;
         }
     }
 
@@ -943,12 +947,16 @@ struct ASTBase
         extern (D) this(Loc loc, Identifier id)
         {
             super(loc, id);
-            this.dsym = DSYM.enumUnionDeclaration;
         }
 
         override void accept(Visitor v)
         {
             v.visit(cast(ScopeDsymbol) this);
+        }
+
+        override final inout(EnumUnionDeclaration) isEnumUnionDeclaration() inout
+        {
+            return this;
         }
     }
 
@@ -1320,7 +1328,6 @@ struct ASTBase
             this.loc = loc;
             this.ident = ident;
             this.args = args;
-            this.dsym = DSYM.pragmaDeclaration;
         }
 
         override void accept(Visitor v)
@@ -1396,7 +1403,6 @@ struct ASTBase
         extern (D) this(Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
         {
             super(loc, condition, decl, elsedecl);
-            this.dsym = DSYM.staticIfDeclaration;
         }
 
         override void accept(Visitor v)
@@ -1413,7 +1419,6 @@ struct ASTBase
         {
             super(sfe.loc, null, decl);
             this.sfe = sfe;
-            this.dsym = DSYM.staticForeachDeclaration;
         }
 
         override void accept(Visitor v)
@@ -6100,6 +6105,45 @@ struct ASTBase
         Expression guard;
         bool isDefault;
         Expression action;
+
+        StaticForeach sfe;
+        CaseExpArm[] nestedArms;
+        Condition staticIfCond;
+        CaseExpArm[] elseArms;
+
+        CaseExpArm syntaxCopy()
+        {
+            CaseExpArm copy = this;
+            copy.pattern = pattern ? pattern.syntaxCopy() : null;
+            copy.typePattern = typePattern ? typePattern.syntaxCopy() : null;
+            copy.recordBindings = recordBindings.dup;
+            copy.recordPatternNames = recordPatternNames.dup;
+            if (recordPatterns)
+            {
+                copy.recordPatterns = new Expression[](recordPatterns.length);
+                foreach (j, pat; recordPatterns)
+                    copy.recordPatterns[j] = pat ? pat.syntaxCopy() : null;
+            }
+            copy.guard = guard ? guard.syntaxCopy() : null;
+            copy.action = action ? action.syntaxCopy() : null;
+            if (sfe)
+                copy.sfe = sfe.syntaxCopy();
+            if (nestedArms)
+            {
+                copy.nestedArms = new CaseExpArm[](nestedArms.length);
+                foreach (j, ref na; nestedArms)
+                    copy.nestedArms[j] = na.syntaxCopy();
+            }
+            if (staticIfCond)
+                copy.staticIfCond = staticIfCond.syntaxCopy();
+            if (elseArms)
+            {
+                copy.elseArms = new CaseExpArm[](elseArms.length);
+                foreach (j, ref ea; elseArms)
+                    copy.elseArms[j] = ea.syntaxCopy();
+            }
+            return copy;
+        }
     }
 
     extern (C++) final class SwitchExp : Expression
@@ -6120,16 +6164,7 @@ struct ASTBase
         {
             auto copiedArms = new CaseExpArm[](arms.length);
             foreach (i, arm; arms)
-            {
-                copiedArms[i] = arm;
-                copiedArms[i].pattern = arm.pattern ? arm.pattern.syntaxCopy() : null;
-                copiedArms[i].typePattern = arm.typePattern ? arm.typePattern.syntaxCopy() : null;
-                copiedArms[i].recordBindings = arm.recordBindings.dup;
-                copiedArms[i].recordPatternNames = arm.recordPatternNames.dup;
-                copiedArms[i].recordPatterns = arm.recordPatterns.dup;
-                copiedArms[i].guard = arm.guard ? arm.guard.syntaxCopy() : null;
-                copiedArms[i].action = arm.action ? arm.action.syntaxCopy() : null;
-            }
+                copiedArms[i] = arm.syntaxCopy();
             return new SwitchExp(loc, condition.syntaxCopy(), copiedArms, hasDefault);
         }
 

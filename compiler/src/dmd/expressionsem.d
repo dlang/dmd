@@ -15714,6 +15714,159 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = exp;
     }
 
+    private void expandSwitchExpArms(SwitchExp exp)
+    {
+        CaseExpArm[] flattened;
+        bool hasDefault = exp.hasDefault;
+
+        void expandArms(ref CaseExpArm[] dest, CaseExpArm[] src, Scope* curScope, ScopeDsymbol[] currentIterScopes)
+        {
+            foreach (ref arm; src)
+            {
+                if (arm.sfe)
+                {
+                    prepare(arm.sfe, curScope);
+                    import dmd.statementsem : ready;
+                    if (!arm.sfe.ready())
+                        continue;
+
+                    auto fs = arm.sfe.aggrfe;
+                    if (!fs)
+                        continue;
+
+                    size_t n;
+                    TupleExp te = fs.aggr.isTupleExp();
+                    TypeTuple tuple = fs.aggr.type ? fs.aggr.type.toBasetype().isTypeTuple() : null;
+                    if (te)
+                        n = te.exps.length;
+                    else if (fs.aggr.isTypeExp() && tuple)
+                        n = Parameter.dim(tuple.arguments);
+                    else
+                        continue;
+
+                    const dim = fs.parameters.length;
+                    if (dim < 1 || dim > 2)
+                    {
+                        eSink.error(arm.sfe.loc,
+                            "only one (element) or two (index, element) arguments allowed for `static foreach`, not %llu",
+                            cast(ulong)dim);
+                        continue;
+                    }
+
+                    foreach (j; 0 .. n)
+                    {
+                        size_t k = (fs.op == TOK.foreach_) ? j : n - 1 - j;
+                        auto fwd = new ForwardingScopeDsymbol();
+                        fwd.symtab = new DsymbolTable();
+                        fwd.parent = curScope.scopesym ? curScope.scopesym : curScope.parent;
+                        Scope* iterScope = curScope.push(fwd);
+
+                        if (dim == 2)
+                        {
+                            auto pIndex = (*fs.parameters)[0];
+                            Type ptype = pIndex.type ? pIndex.type : Type.tsize_t;
+                            ptype = ptype.typeSemantic(arm.sfe.loc, iterScope);
+                            auto ie = new ExpInitializer(arm.sfe.loc, new IntegerExp(arm.sfe.loc, k, ptype));
+                            auto idxVar = new VarDeclaration(arm.sfe.loc, ptype, pIndex.ident, ie);
+                            idxVar.storage_class |= STC.manifest | STC.local;
+                            idxVar.dsymbolSemantic(iterScope);
+                            iterScope.insert(idxVar);
+                        }
+
+                        auto pValue = (*fs.parameters)[dim - 1];
+                        Expression elemExp = te ? (*te.exps)[k] : null;
+                        Type elemType = (!te && tuple) ? Parameter.getNth(tuple.arguments, k).type : null;
+
+                        Declaration var;
+                        if (elemExp)
+                        {
+                            Type tb = elemExp.type ? elemExp.type.toBasetype() : null;
+                            Dsymbol ds = null;
+                            if (tb && tb.ty == Tfunction)
+                            {
+                                if (auto de = elemExp.isDsymbolExp()) ds = de.s;
+                                else if (auto ve = elemExp.isVarExp()) ds = ve.var;
+                            }
+                            if (!ds)
+                            {
+                                if (auto de = elemExp.isDsymbolExp()) ds = de.s;
+                                else if (auto ve = elemExp.isVarExp()) ds = ve.var;
+                                else if (auto dve = elemExp.isDotVarExp()) ds = dve.var;
+                                else if (auto te2 = elemExp.isTemplateExp()) ds = te2.td;
+                                else if (auto se = elemExp.isScopeExp()) ds = se.sds;
+                                else if (auto fe = elemExp.isFuncExp()) ds = fe.td ? fe.td : fe.fd;
+                                else if (auto oe = elemExp.isOverExp()) ds = oe.vars;
+                            }
+                            if (auto typeExp = elemExp.isTypeExp())
+                            {
+                                var = new AliasDeclaration(arm.sfe.loc, pValue.ident, typeExp.type);
+                            }
+                            else if (ds)
+                            {
+                                var = new AliasDeclaration(arm.sfe.loc, pValue.ident, ds);
+                            }
+                            else
+                            {
+                                elemExp = resolveProperties(iterScope, elemExp);
+                                auto ie = new ExpInitializer(arm.sfe.loc, elemExp);
+                                Type vtype = pValue.type ? pValue.type.typeSemantic(arm.sfe.loc, iterScope) : elemExp.type;
+                                auto vd = new VarDeclaration(arm.sfe.loc, vtype, pValue.ident, ie, pValue.storageClass);
+                                vd.storage_class |= STC.manifest;
+                                var = vd;
+                            }
+                        }
+                        else if (elemType)
+                        {
+                            var = new AliasDeclaration(arm.sfe.loc, pValue.ident, elemType);
+                        }
+                        if (var)
+                        {
+                            var.storage_class |= STC.local;
+                            var.dsymbolSemantic(iterScope);
+                            iterScope.insert(var);
+                        }
+
+                        ScopeDsymbol[] nextIterScopes = currentIterScopes ~ fwd;
+                        CaseExpArm[] iterationArms;
+                        foreach (ref na; arm.nestedArms)
+                            iterationArms ~= na.syntaxCopy();
+                        expandArms(dest, iterationArms, iterScope, nextIterScopes);
+
+                        iterScope.pop();
+                    }
+                }
+                else if (arm.staticIfCond)
+                {
+                    if (include(arm.staticIfCond, curScope))
+                    {
+                        CaseExpArm[] copied;
+                        foreach (ref na; arm.nestedArms)
+                            copied ~= na.syntaxCopy();
+                        expandArms(dest, copied, curScope, currentIterScopes);
+                    }
+                    else if (arm.elseArms.length)
+                    {
+                        CaseExpArm[] copied;
+                        foreach (ref ea; arm.elseArms)
+                            copied ~= ea.syntaxCopy();
+                        expandArms(dest, copied, curScope, currentIterScopes);
+                    }
+                }
+                else
+                {
+                    if (arm.isDefault)
+                        hasDefault = true;
+                    arm.iterationScopes = currentIterScopes.dup;
+                    dest ~= arm;
+                }
+            }
+        }
+
+        expandArms(flattened, exp.arms, sc, null);
+        exp.arms = flattened;
+        exp.hasDefault = hasDefault;
+    }
+
     override void visit(SwitchExp exp)
     {
         Expression conditionPrefix;
@@ -15741,6 +15894,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.condition = new VarExp(vd.loc, vd).expressionSemantic(sc);
         }
 
+        expandSwitchExpArms(exp);
+
         EnumUnionDeclaration enumUnion;
         if (auto ts = exp.condition.type.toBasetype().isTypeStruct())
             enumUnion = ts.sym.isEnumUnionDeclaration();
@@ -15758,7 +15913,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 semanticDefaultSeen = true;
             }
-            Scope* armScope = sc.push(new ScopeDsymbol());
+            Scope* iterScope = sc;
+            foreach (sds; arm.iterationScopes)
+                iterScope = iterScope.push(sds);
+            Scope* armScope = iterScope.push(new ScopeDsymbol());
+            scope (exit)
+            {
+                armScope.pop();
+                for (size_t i = 0; i < arm.iterationScopes.length; ++i)
+                    iterScope = iterScope.pop();
+            }
             if (!arm.isDefault && enumUnion)
             {
                 auto eu = enumUnion;
@@ -16153,7 +16317,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else if (!arm.isDefault)
             {
                 eSink.error(arm.loc, "switch expression patterns require an enum union condition");
-                armScope.pop();
                 return setError();
             }
             if (arm.guard)
@@ -16165,7 +16328,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
             }
             arm.action = arm.action.expressionSemantic(armScope);
-            armScope.pop();
             if (arm.action.op == EXP.error)
                 return setError();
             if (!resultType || arm.action.type.ty == Tnoreturn)
