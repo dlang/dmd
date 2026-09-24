@@ -1098,6 +1098,9 @@ extern (C++) class Dsymbol : ASTNode
     inout(StaticAssert)                isStaticAssert()                inout { return dsym == DSYM.staticAssert ? cast(inout(StaticAssert)) cast(void*) this : null; }
     inout(StaticIfDeclaration)         isStaticIfDeclaration()         inout { return dsym == DSYM.staticIfDeclaration ? cast(inout(StaticIfDeclaration)) cast(void*) this : null; }
     inout(CAsmDeclaration)             isCAsmDeclaration()             inout { return dsym == DSYM.cAsmDeclaration ? cast(inout(CAsmDeclaration)) cast(void*) this : null; }
+    inout(PragmaDeclaration)           isPragmaDeclaration()           inout { return dsym == DSYM.pragmaDeclaration ? cast(inout(PragmaDeclaration)) cast(void*) this : null; }
+    inout(UserAttributeDeclaration)    isUserAttributeDeclaration()    inout { return dsym == DSYM.userAttributeDeclaration ? cast(inout(UserAttributeDeclaration)) cast(void*) this : null; }
+    inout(EnumUnionCaseDeclaration)    isEnumUnionCaseDeclaration()    inout { return dsym == DSYM.enumUnionCaseDeclaration ? cast(inout(EnumUnionCaseDeclaration)) cast(void*) this : null; }
 }
 
 /***********************************************************

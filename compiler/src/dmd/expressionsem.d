@@ -7745,7 +7745,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             Dsymbol scopesym;
             sc.search(identifier.loc, identifier.ident, scopesym);
-            auto withsym = scopesym.isWithScopeSymbol();
+            auto withsym = scopesym ? scopesym.isWithScopeSymbol() : null;
             auto typeExp = withsym && !withsym.withstate.wthis
                 ? withsym.withstate.exp.isTypeExp() : null;
             auto structType = typeExp ? typeExp.type.toBasetype().isTypeStruct() : null;
@@ -7796,40 +7796,76 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (auto dot = exp.e1.isDotIdExp())
         {
-            auto aggregate = dot.e1.expressionSemantic(sc);
-            auto typeExp = aggregate.isTypeExp();
-            auto structType = typeExp ? typeExp.type.toBasetype().isTypeStruct() : null;
-            auto enumUnion = structType ? structType.sym.isEnumUnionDeclaration() : null;
+            EnumUnionDeclaration enumUnion = null;
+            if (auto te = dot.e1.isTypeExp())
+            {
+                if (auto st = te.type.toBasetype().isTypeStruct())
+                    enumUnion = st.sym.isEnumUnionDeclaration();
+            }
+            else
+            {
+                const errors = global.startGagging();
+                auto aggregate = dot.e1.expressionSemantic(sc);
+                if (!global.endGagging(errors) && aggregate && aggregate.op != EXP.error)
+                {
+                    if (auto te = aggregate.isTypeExp())
+                    {
+                        if (auto st = te.type.toBasetype().isTypeStruct())
+                            enumUnion = st.sym.isEnumUnionDeclaration();
+                    }
+                }
+            }
+
             if (enumUnion)
             {
                 foreach (variantIndex, variant; enumUnion.variants)
                 {
                     if (!variant.isTypeAlias || variant.ident != dot.ident)
                         continue;
-                    if (!exp.arguments || exp.arguments.length != 1)
-                    {
-                        eSink.error(exp.loc, "enum union alias variant `%s` expects one argument",
-                            variant.ident.toChars());
-                        return setError();
-                    }
-                    auto argument = (*exp.arguments)[0].expressionSemantic(sc);
-                    argument = resolveProperties(sc, argument);
                     auto payloadType = variant.payloadType && variant.payloadType.fields.length
                         ? variant.payloadType.fields[0].type : variant.payload[0];
-                    if (argument.implicitConvTo(payloadType) == MATCH.nomatch)
+                    Expression argument = null;
+                    if (exp.arguments && exp.arguments.length == 1)
                     {
-                        eSink.error(argument.loc,
-                            "cannot implicitly convert expression `%s` of type `%s` to `%s`",
-                            argument.toErrMsg(), argument.type.toErrMsg(), payloadType.toErrMsg());
-                        return setError();
+                        auto arg = (*exp.arguments)[0].expressionSemantic(sc);
+                        arg = resolveProperties(sc, arg);
+                        if (arg.implicitConvTo(payloadType) != MATCH.nomatch)
+                            argument = arg.implicitCastTo(sc, payloadType);
                     }
-                    argument = argument.implicitCastTo(sc, payloadType);
+                    if (!argument)
+                    {
+                        if (payloadType.toBasetype().isTypeStruct())
+                        {
+                            auto call = new CallExp(exp.loc, new TypeExp(exp.loc, payloadType), exp.arguments);
+                            argument = call.expressionSemantic(sc);
+                            if (argument.op == EXP.error)
+                                return setError();
+                        }
+                        else
+                        {
+                            if (!exp.arguments || exp.arguments.length != 1)
+                            {
+                                eSink.error(exp.loc, "enum union alias variant `%s` expects one argument",
+                                    variant.ident.toChars());
+                                return setError();
+                            }
+                            auto arg = (*exp.arguments)[0].expressionSemantic(sc);
+                            arg = resolveProperties(sc, arg);
+                            if (arg.implicitConvTo(payloadType) == MATCH.nomatch)
+                            {
+                                eSink.error(arg.loc,
+                                    "cannot implicitly convert expression `%s` of type `%s` to `%s`",
+                                    arg.toErrMsg(), arg.type.toErrMsg(), payloadType.toErrMsg());
+                                return setError();
+                            }
+                            argument = arg.implicitCastTo(sc, payloadType);
+                        }
+                    }
                     result = constructEnumUnionVariant(argument, sc, enumUnion.type,
                         enumUnion, variantIndex);
                     return;
                 }
             }
-            dot.e1 = aggregate;
         }
 
         Objects* tiargs = null; // initial list of template arguments
@@ -15695,10 +15731,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 foreach (variant; parentEnumUnion.variants)
                     isRecordVariant = isRecordVariant || variant.declaration == conditionType.sym;
             if (isRecordVariant)
-            {
                 exp.condition = exp.condition.implicitCastTo(sc, parentEnumUnion.type);
-                exp.condition = extractSideEffect(sc, "__switch", conditionPrefix, exp.condition);
-            }
+        }
+        if (exp.condition.op != EXP.variable)
+        {
+            auto vd = copyToTemp(STC.rvalue, "__switch", exp.condition);
+            conditionPrefix = Expression.combine(conditionPrefix,
+                new DeclarationExp(vd.loc, vd).expressionSemantic(sc));
+            exp.condition = new VarExp(vd.loc, vd).expressionSemantic(sc);
         }
 
         EnumUnionDeclaration enumUnion;
@@ -15825,9 +15865,29 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 arm.typeBinding, null);
                             if (bindsNamedVariant)
                             {
-                                auto payload = new DotVarExp(arm.loc, exp.condition, variant.payloadVar);
-                                payload.type = variant.payloadVar.type;
-                                variable._init = new ExpInitializer(arm.loc, payload);
+                                auto payloadVar = variant.payloadVar;
+                                auto payload = new DotVarExp(arm.loc, exp.condition, payloadVar);
+                                payload.type = payloadVar.type;
+                                if (variant.isTypeAlias && variant.payloadType && variant.payloadType.fields.length)
+                                {
+                                    auto field = variant.payloadType.fields[0];
+                                    auto value = new DotVarExp(arm.loc, payload, field);
+                                    value.type = field.type;
+                                    variable = new VarDeclaration(arm.loc, field.type, arm.typeBinding,
+                                        new ExpInitializer(arm.loc, value));
+                                }
+                                else if (!variant.declaration && variant.payloadType && variant.payloadType.fields.length == 1)
+                                {
+                                    auto field = variant.payloadType.fields[0];
+                                    auto value = new DotVarExp(arm.loc, payload, field);
+                                    value.type = field.type;
+                                    variable = new VarDeclaration(arm.loc, field.type, arm.typeBinding,
+                                        new ExpInitializer(arm.loc, value));
+                                }
+                                else
+                                {
+                                    variable._init = new ExpInitializer(arm.loc, payload);
+                                }
                             }
                             else
                             {
@@ -15918,13 +15978,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 auto binding = argument.isIdentifierExp();
                                 if (binding && !label)
                                 {
-                                    auto variable = new VarDeclaration(binding.loc, field.type,
+                                    auto qualifiedType = exp.condition.type ? field.type.addMod(exp.condition.type.mod) : field.type;
+                                    auto variable = new VarDeclaration(binding.loc, qualifiedType,
                                         binding.ident, null);
                                     auto payloadVar = variant.payloadVar;
                                     auto payload = new DotVarExp(binding.loc, exp.condition, payloadVar);
                                     payload.type = payloadVar.type;
                                     auto value = new DotVarExp(binding.loc, payload, field);
-                                    value.type = field.type;
+                                    value.type = qualifiedType;
                                     variable._init = new ExpInitializer(binding.loc, value);
                                     variable.dsymbolSemantic(armScope);
                                     armScope.insert(variable);
@@ -16002,8 +16063,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                     patternValue = patternValue.expressionSemantic(armScope);
                                 if (patternBinding)
                                 {
+                                    auto qualifiedType = exp.condition.type
+                                        ? recordFields[fieldIndex].type.addMod(exp.condition.type.mod)
+                                        : recordFields[fieldIndex].type;
                                     auto variable = new VarDeclaration(patternBinding.loc,
-                                        recordFields[fieldIndex].type, patternBinding.ident, null);
+                                        qualifiedType, patternBinding.ident, null);
                                     variable._init = new ExpInitializer(patternBinding.loc, fieldValue);
                                     variable.dsymbolSemantic(armScope);
                                     armScope.insert(variable);
@@ -16058,13 +16122,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                         bindingName.toChars(), variant.ident ? variant.ident.toChars() : "variant");
                                     return setError();
                                 }
-                                auto variable = new VarDeclaration(arm.loc, field.type,
+                                auto qualifiedType = exp.condition.type ? field.type.addMod(exp.condition.type.mod) : field.type;
+                                auto variable = new VarDeclaration(arm.loc, qualifiedType,
                                     bindingName, null);
                                 auto payloadVar = variant.payloadVar;
                                 auto payload = new DotVarExp(arm.loc, exp.condition, payloadVar);
                                 payload.type = payloadVar.type;
                                 auto value = new DotVarExp(arm.loc, payload, field);
-                                value.type = field.type;
+                                value.type = qualifiedType;
                                 variable._init = new ExpInitializer(arm.loc, value);
                                 variable.dsymbolSemantic(armScope);
                                 armScope.insert(variable);
@@ -16140,9 +16205,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 auto eu = exp.condition.type.toBasetype().isTypeStruct().sym.isEnumUnionDeclaration();
                 auto variant = eu.variants[arm.variantIndex];
-                auto tagVar = (*eu.members)[0].isVarDeclaration();
-                auto anon = (*eu.members)[1].isAnonDeclaration();
-                auto payloadVar = (*anon.decl)[arm.variantIndex].isVarDeclaration();
+                auto tagVar = eu.tagVar;
+                auto payloadVar = variant.payloadVar;
                 if (!payloadVar || !payloadVar.type || !payloadVar.type.toBasetype().isTypeStruct())
                 {
                     eSink.error(arm.loc, "unable to resolve switch expression payload");
@@ -16239,8 +16303,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 if (lowered)
                     lowered = new CondExp(arm.loc, match, action, lowered);
-                else if (arm.guard || defaultAction)
-                    lowered = new CondExp(arm.loc, match, action, defaultAction);
+                else if (arm.guard || arm.patternChecks.length || defaultAction)
+                {
+                    auto fallback = defaultAction;
+                    if (!fallback)
+                    {
+                        auto assertExp = new AssertExp(arm.loc, new IntegerExp(arm.loc, 0, Type.tint32),
+                            new StringExp(arm.loc, "non-exhaustive pattern match"));
+                        fallback = assertExp.expressionSemantic(sc);
+                    }
+                    lowered = new CondExp(arm.loc, match, action, fallback);
+                }
                 else
                     lowered = action; // last arm of an exhaustive match with no `default`
                 if (lowered.op == EXP.question)

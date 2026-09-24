@@ -1719,8 +1719,111 @@ private final class DsymbolPrettyPrintVisitor : Visitor
         buf.writenl();
     }
 
+    void visitEnumUnionDeclaration(EnumUnionDeclaration eu)
+    {
+        buf.put("enum union ");
+        if (!eu.isAnonymous())
+            buf.put(eu.toChars());
+        buf.writenl();
+        buf.put('{');
+        buf.writenl();
+        buf.level++;
+        hgs.insideAggregate++;
+        foreach (variant; eu.variants)
+        {
+            buf.put("case ");
+            if (variant.ident)
+            {
+                buf.put(variant.ident.toString());
+                if (variant.isTypeAlias && variant.payload.length)
+                {
+                    buf.put(" = ");
+                    toCBuffer(variant.payload[0], *buf, null, *hgs);
+                }
+                else if (variant.members)
+                {
+                    buf.writenl();
+                    buf.put('{');
+                    buf.writenl();
+                    buf.level++;
+                    foreach (m; *variant.members)
+                        toCBuffer(m, *buf, *hgs);
+                    buf.level--;
+                    buf.put('}');
+                }
+                else
+                {
+                    buf.put('(');
+                    foreach (i, p; variant.payload)
+                    {
+                        if (i) buf.put(", ");
+                        toCBuffer(p, *buf, null, *hgs);
+                        if (i < variant.payloadNames.length && variant.payloadNames[i])
+                        {
+                            buf.put(' ');
+                            buf.put(variant.payloadNames[i].toString());
+                        }
+                    }
+                    buf.put(')');
+                }
+            }
+            else if (variant.payload.length)
+            {
+                toCBuffer(variant.payload[0], *buf, null, *hgs);
+            }
+            buf.put(';');
+            buf.writenl();
+        }
+        bool isInternalOrVariantMember(Dsymbol m)
+        {
+            if (m is eu.tagVar)
+                return true;
+            if (m.isAnonDeclaration())
+                return true;
+            if (auto fd = m.isFuncDeclaration())
+            {
+                if (fd.isGenerated)
+                    return true;
+            }
+            if (auto uad = m.isUserAttributeDeclaration())
+            {
+                if (uad.decl && uad.decl.length == 1)
+                    return isInternalOrVariantMember((*uad.decl)[0]);
+            }
+            foreach (ref variant; eu.variants)
+            {
+                if (m is variant.declaration)
+                    return true;
+                if (m is variant.payloadType)
+                    return true;
+                if (m is variant.payloadVar)
+                    return true;
+            }
+            return false;
+        }
+
+        if (eu.members)
+        {
+            foreach (m; *eu.members)
+            {
+                if (isInternalOrVariantMember(m))
+                    continue;
+                toCBuffer(m, *buf, *hgs);
+            }
+        }
+        hgs.insideAggregate--;
+        buf.level--;
+        buf.put('}');
+        buf.writenl();
+    }
+
     void visitStructDeclaration(StructDeclaration d)
     {
+        if (auto eu = d.isEnumUnionDeclaration())
+        {
+            visitEnumUnionDeclaration(eu);
+            return;
+        }
         //printf("visitStructDeclaration() %s\n", d.ident.toChars());
         buf.put(d.kind());
         buf.put(' ');

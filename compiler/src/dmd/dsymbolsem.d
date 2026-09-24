@@ -2221,9 +2221,8 @@ private void collectEnumUnionCases(Dsymbols* symbols, Scope* sc,
 
     foreach (d; *symbols)
     {
-        if (d.dsym == DSYM.enumUnionCaseDeclaration)
+        if (auto caseDecl = d.isEnumUnionCaseDeclaration())
         {
-            auto caseDecl = cast(EnumUnionCaseDeclaration)d;
             auto variant = caseDecl.variant;
             if (variant.variantSplice)
             {
@@ -2315,15 +2314,14 @@ private void collectEnumUnionCases(Dsymbols* symbols, Scope* sc,
             }
             continue;
         }
-        if (d.isForwardingAttribDeclaration())
+        if (auto fad = d.isForwardingAttribDeclaration())
         {
-            auto fad = cast(ForwardingAttribDeclaration)d;
             auto iterationScope = sc.push(fad.sym);
             fad.decl.foreachDsymbol(s => s.setScope(iterationScope));
             collectEnumUnionCases(fad.decl, iterationScope, variants, retained, null, true);
             continue;
         }
-        if (discardLoopBindings && d.dsym == DSYM.pragmaDeclaration)
+        if (discardLoopBindings && d.isPragmaDeclaration())
         {
             d.setScope(sc);
             d.dsymbolSemantic(sc);
@@ -2351,11 +2349,7 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
     auto anon = (*eu.members)[1].isAnonDeclaration();
     if (!anon)
         return;
-    auto tag = (*eu.members)[0].isVarDeclaration();
-    // Any trailing declarations after the tag/payload-union are the enum
-    // union's own member declarations (functions, aliases, etc.), which must
-    // survive the members array being rebuilt below.
-    Dsymbol[] extraMembers = (*eu.members)[2 .. eu.members.length];
+    auto tag = eu.tagVar ? eu.tagVar : (*eu.members)[0].isVarDeclaration();
     bool hasErrors;
 
     Identifier variantName(ref EnumUnionVariant variant)
@@ -2423,9 +2417,10 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
         Dsymbol member = declaration;
         if (variant.udas)
             member = new UserAttributeDeclaration(variant.udas, new Dsymbols(declaration));
-        extraMembers ~= member;
+        eu.members.push(member);
         member.addMember(sc, eu);
         member.setScope(sc);
+        member.importAll(sc);
         member.dsymbolSemantic(sc);
         if (declaration.errors)
             hasErrors = true;
@@ -2578,9 +2573,12 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
     }
 
     anon.decl = payloadMembers;
-    eu.members = new Dsymbols();
-    eu.members.push(tag);
-    eu.members.push(anon);
+    foreach (m; *payloadMembers)
+    {
+        m.addMember(sc, eu);
+        m.setScope(sc);
+        m.importAll(sc);
+    }
 
     foreach (i, variant; eu.variants)
     {
@@ -2656,21 +2654,19 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
         }
         statements.push(new ReturnStatement(eu.loc, new VarExp(eu.loc, result)));
         fd.fbody = new CompoundStatement(eu.loc, statements.move());
+        Dsymbol factoryMember = fd;
         if (variant.udas)
-        {
-            auto declarations = new Dsymbols(fd);
-            eu.members.push(new UserAttributeDeclaration(variant.udas, declarations));
-        }
-        else
-            eu.members.push(fd);
+            factoryMember = new UserAttributeDeclaration(variant.udas, new Dsymbols(fd));
+        eu.members.push(factoryMember);
+        factoryMember.addMember(sc, eu);
+        factoryMember.setScope(sc);
+        factoryMember.importAll(sc);
     }
-
-    foreach (m; extraMembers)
-        eu.members.push(m);
 }
 
 private void synthesizeEnumUnionConstructors(EnumUnionDeclaration eu, Scope* sc)
 {
+    Type[] synthesizedTypes;
     foreach (i, variant; eu.variants)
     {
         if ((variant.ident && !variant.isTypeAlias) || variant.payload.length != 1 || !variant.payloadType ||
@@ -2678,6 +2674,19 @@ private void synthesizeEnumUnionConstructors(EnumUnionDeclaration eu, Scope* sc)
             continue;
 
         auto field = variant.payloadType.fields[0];
+        bool isDup = false;
+        foreach (st; synthesizedTypes)
+        {
+            if (st.equals(field.type))
+            {
+                isDup = true;
+                break;
+            }
+        }
+        if (isDup)
+            continue;
+        synthesizedTypes ~= field.type;
+
         auto parameter = new Parameter(eu.loc, STC.none, field.type,
             Identifier.generateId("__enumPayloadParam"), null, null, null);
         auto parameters = new Parameters(parameter);
@@ -2711,11 +2720,88 @@ private void synthesizeEnumUnionConstructors(EnumUnionDeclaration eu, Scope* sc)
     }
 }
 
-private void synthesizeEnumUnionDtor(EnumUnionDeclaration eu, Scope* sc)
+private void synthesizeEnumUnionCpCtor(EnumUnionDeclaration eu, Scope* sc)
 {
-    if (eu.dtor)
+    if (eu.hasCopyCtor)
         return;
 
+    bool hasElaborate;
+    foreach (variant; eu.variants)
+    {
+        if (!variant.payloadType)
+            continue;
+        foreach (field; variant.payloadType.fields)
+        {
+            auto ts = field.type.baseElemOf().isTypeStruct();
+            if (!ts)
+                continue;
+            if (ts.sym.hasCopyCtor || ts.sym.postblit || ts.sym.dtor)
+                hasElaborate = true;
+        }
+    }
+    if (!hasElaborate)
+        return;
+
+    auto rhsIdent = Identifier.generateId("__rhs");
+    auto rhsParam = new Parameter(eu.loc, STC.ref_ | STC.return_ | STC.scope_, eu.type,
+        rhsIdent, null, null, null);
+    auto parameters = new Parameters(rhsParam);
+    auto functionType = new TypeFunction(ParameterList(parameters), eu.type, LINK.d, STC.ref_);
+    auto ctor = new CtorDeclaration(eu.loc, eu.loc, STC.ref_, functionType);
+    ctor.isGenerated = true;
+
+    Statements statements;
+        auto thisTag = new DotVarExp(eu.loc, new ThisExp(eu.loc), eu.tagVar);
+        auto rhsTag = new DotVarExp(eu.loc, new IdentifierExp(eu.loc, rhsIdent), eu.tagVar);
+        statements.push(new ExpStatement(eu.loc, new AssignExp(eu.loc, thisTag, rhsTag)));
+
+        CaseStatements cases;
+        foreach (i, variant; eu.variants)
+        {
+            if (!variant.payloadType || !variant.payloadVar)
+                continue;
+            Statements caseStatements;
+            auto thisPayload = new DotVarExp(eu.loc, new ThisExp(eu.loc), variant.payloadVar);
+            auto rhsPayload = new DotVarExp(eu.loc, new IdentifierExp(eu.loc, rhsIdent), variant.payloadVar);
+
+            foreach (field; variant.payloadType.fields)
+            {
+                auto thisField = new DotVarExp(eu.loc, thisPayload, field);
+                auto rhsField = new DotVarExp(eu.loc, rhsPayload, field);
+                caseStatements.push(new ExpStatement(eu.loc, new ConstructExp(eu.loc, thisField, rhsField)));
+            }
+            caseStatements.push(new BreakStatement(eu.loc, null));
+            auto body = new CompoundStatement(eu.loc, caseStatements.move());
+            cases.push(new CaseStatement(eu.loc,
+                new IntegerExp(eu.loc, i, Type.tuns8), body));
+        }
+
+        Statements bodyStatements;
+        foreach (c; cases)
+            bodyStatements.push(c);
+        bodyStatements.push(new DefaultStatement(eu.loc,
+            new BreakStatement(eu.loc, null)));
+        auto switchStatement = new SwitchStatement(eu.loc, null,
+            new DotVarExp(eu.loc, new ThisExp(eu.loc), eu.tagVar),
+            new CompoundStatement(eu.loc, bodyStatements.move()), false, eu.loc);
+        statements.push(switchStatement);
+        ctor.fbody = new CompoundStatement(eu.loc, statements.move());
+
+    eu.members.push(ctor);
+    ctor.addMember(sc, eu);
+
+    Scope* sc2 = sc.push();
+    sc2.stc = STC.none;
+    sc2.linkage = LINK.d;
+    ctor.dsymbolSemantic(sc2);
+    ctor.semantic2(sc2);
+    ctor.semantic3(sc2);
+    sc2.pop();
+    eu.hasCopyCtor = true;
+}
+
+private void synthesizeEnumUnionDtor(EnumUnionDeclaration eu, Scope* sc)
+{
     CaseStatements cases;
     bool hasDtor;
     foreach (i, variant; eu.variants)
@@ -2756,6 +2842,23 @@ private void synthesizeEnumUnionDtor(EnumUnionDeclaration eu, Scope* sc)
     auto switchStatement = new SwitchStatement(Loc.initial, null,
         new DotVarExp(Loc.initial, new ThisExp(Loc.initial), eu.tagVar),
         new CompoundStatement(Loc.initial, bodyStatements.move()), false, Loc.initial);
+
+    if (eu.dtor)
+    {
+        if (auto cs = eu.dtor.fbody ? eu.dtor.fbody.isCompoundStatement() : null)
+            cs.statements.push(switchStatement);
+        else if (eu.dtor.fbody)
+        {
+            Statements stmts;
+            stmts.push(eu.dtor.fbody);
+            stmts.push(switchStatement);
+            eu.dtor.fbody = new CompoundStatement(eu.loc, stmts.move());
+        }
+        else
+            eu.dtor.fbody = switchStatement;
+        return;
+    }
+
     Statements statements;
     statements.push(switchStatement);
 
@@ -5739,16 +5842,18 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 eu.variants = expandedVariants;
                 auto originalMembers = eu.members;
                 auto compileTimeMembers = new Dsymbols();
-                foreach (i, member; *originalMembers)
+                foreach (member; *originalMembers)
                 {
-                    if (i >= 2)
+                    if (member !is eu.tagVar && !member.isAnonDeclaration())
                         compileTimeMembers.push(member);
                 }
                 auto retainedMembers = new Dsymbols();
                 collectEnumUnionCases(compileTimeMembers, sc2, eu.variants, retainedMembers);
                 eu.members = new Dsymbols();
-                eu.members.push((*originalMembers)[0]);
-                eu.members.push((*originalMembers)[1]);
+                if (eu.tagVar)
+                    eu.members.push(eu.tagVar);
+                if (originalMembers && originalMembers.length > 1 && (*originalMembers)[1].isAnonDeclaration())
+                    eu.members.push((*originalMembers)[1]);
                 eu.members.append(retainedMembers);
 
                 eu.symtab = new DsymbolTable();
@@ -5808,7 +5913,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sd.disableNew = sd.search(Loc.initial, Id.classNew) !is null;
 
         if (auto eu = sd.isEnumUnionDeclaration())
+        {
             synthesizeEnumUnionConstructors(eu, sc2);
+            synthesizeEnumUnionCpCtor(eu, sc2);
+        }
 
         // Look for the constructor
         sd.ctor = sd.searchCtor();

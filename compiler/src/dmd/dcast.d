@@ -116,7 +116,7 @@ Expression constructEnumUnionVariant(Expression value, Scope* sc, Type type,
     {
         auto payloadAccess = new DotVarExp(value.loc, temporaryValue, variant.payloadVar);
         payloadAccess.type = variant.payloadVar.type;
-        Expression payloadAssign = new AssignExp(value.loc, payloadAccess, value);
+        Expression payloadAssign = new ConstructExp(value.loc, payloadAccess, value);
         payloadAssign.type = recordDeclaration.type;
         result = new CommaExp(value.loc, result, payloadAssign);
         result.type = payloadAssign.type;
@@ -128,7 +128,7 @@ Expression constructEnumUnionVariant(Expression value, Scope* sc, Type type,
             new DotVarExp(value.loc, temporaryValue, variant.payloadVar), field);
         payloadAccess.e1.type = variant.payloadVar.type;
         payloadAccess.type = field.type;
-        Expression payloadAssign = new AssignExp(value.loc, payloadAccess, value);
+        Expression payloadAssign = new ConstructExp(value.loc, payloadAccess, value);
         payloadAssign.type = field.type;
         result = new CommaExp(value.loc, result, payloadAssign);
         result.type = payloadAssign.type;
@@ -175,9 +175,14 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
                 if ((!variant.ident || recordDeclaration) &&
                     (recordDeclaration || variant.payload.length == 1) && payloadType)
                 {
-                    const match = e.implicitConvTo(payloadType);
+                    auto match = e.implicitConvTo(payloadType);
                     if (match < MATCH.convert)
                         continue;
+                    if (auto fe = e.isFuncExp())
+                    {
+                        if (fe.fd && fe.fd.tok == TOK.reserved && payloadType.isFunction_Delegate_PtrToFunction())
+                            match = MATCH.convert;
+                    }
                     if (match > bestMatch)
                     {
                         bestMatch = match;

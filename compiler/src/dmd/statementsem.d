@@ -246,7 +246,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         bool hasSwitchExpressionSideEffect(Expression exp)
         {
             if (auto call = exp.isCallExp())
-                if (call.f && call.f.isGenerated && call.f.parent.isEnumUnionDeclaration())
+                if (call.f && call.f.isGenerated && call.f.parent && call.f.parent.isEnumUnionDeclaration())
                     return false;
             return hasSideEffect(exp);
         }
