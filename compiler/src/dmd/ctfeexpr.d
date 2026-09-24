@@ -195,7 +195,7 @@ bool needToCopyLiteral(const Expression expr) nothrow
     }
 }
 
-// oldelems can have null elements when the ArrayLiteralExp uses 'basis'.
+// oldelems can have a null element e.g. for `ArrayLiteralExp.elements` when `basis` is set
 // This preserves the sparse encoding; callers that need dense arrays
 // should use copyLiteralArrayExpand.
 private Expressions* copyLiteralArray(Expressions* oldelems)
