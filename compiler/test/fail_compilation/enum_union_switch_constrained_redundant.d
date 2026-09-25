@@ -15,6 +15,6 @@ int describe(Shape shape)
     return switch (shape)
     {
         case Square(height, width) => 1,
-        case Square(10, 5) => 2,
+        case Square(height, width) if (height == 10 && width == 5) => 2,
     };
 }

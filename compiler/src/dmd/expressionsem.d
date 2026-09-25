@@ -15946,7 +15946,8 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
             if (isRecordVariant)
                 exp.condition = exp.condition.implicitCastTo(sc, parentEnumUnion.type);
         }
-        if (exp.condition.op != EXP.variable)
+        auto conditionVar = exp.condition.isVarExp();
+        if (!conditionVar || conditionVar.var.storage_class & STC.manifest)
         {
             auto vd = copyToTemp(STC.rvalue, "__switch", exp.condition);
             conditionPrefix = Expression.combine(conditionPrefix,
@@ -16132,6 +16133,7 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                                     variable._init = new ExpInitializer(arm.loc, value);
                                 }
                             }
+                            variable.storage_class |= STC.temp | STC.ctfe;
                             variable.dsymbolSemantic(armScope);
                             armScope.insert(variable);
                             arm.bindings ~= variable;
@@ -16155,6 +16157,7 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                                     }
                                     auto rest = new VarDeclaration(arm.loc, null, arm.restBinding,
                                         new ExpInitializer(arm.loc, new TupleExp(arm.loc, restValues)));
+                                    rest.storage_class |= STC.temp | STC.ctfe;
                                     rest.dsymbolSemantic(armScope);
                                     armScope.insert(rest);
                                     arm.bindings ~= rest;
@@ -16200,31 +16203,25 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                                 used[fieldIndex] = true;
                                 auto field = variant.payloadType.fields[fieldIndex];
                                 auto binding = argument.isIdentifierExp();
-                                if (binding && !label)
+                                if (!binding)
                                 {
-                                    auto qualifiedType = exp.condition.type ? field.type.addMod(exp.condition.type.mod) : field.type;
-                                    auto variable = new VarDeclaration(binding.loc, qualifiedType,
-                                        binding.ident, null);
-                                    auto payloadVar = variant.payloadVar;
-                                    auto payload = new DotVarExp(binding.loc, exp.condition, payloadVar);
-                                    payload.type = payloadVar.type;
-                                    auto value = new DotVarExp(binding.loc, payload, field);
-                                    value.type = qualifiedType;
-                                    variable._init = new ExpInitializer(binding.loc, value);
-                                    variable.dsymbolSemantic(armScope);
-                                    armScope.insert(variable);
-                                    arm.bindings ~= variable;
-                                    continue;
+                                    eSink.error(argument.loc,
+                                        "value tests in patterns are not supported; bind the value and use an `if` guard");
+                                    return setError();
                                 }
-                                argument = argument.expressionSemantic(armScope);
+                                auto qualifiedType = exp.condition.type ? field.type.addMod(exp.condition.type.mod) : field.type;
+                                auto variable = new VarDeclaration(binding.loc, qualifiedType,
+                                    binding.ident, null);
                                 auto payloadVar = variant.payloadVar;
-                                auto payload = new DotVarExp(arm.loc, exp.condition, payloadVar);
+                                auto payload = new DotVarExp(binding.loc, exp.condition, payloadVar);
                                 payload.type = payloadVar.type;
-                                auto value = new DotVarExp(arm.loc, payload, field);
-                                value.type = field.type;
-                                auto check = new EqualExp(EXP.equal, arm.loc, value, argument);
-                                check.type = Type.tbool;
-                                arm.patternChecks ~= check;
+                                auto value = new DotVarExp(binding.loc, payload, field);
+                                value.type = qualifiedType;
+                                variable._init = new ExpInitializer(binding.loc, value);
+                                variable.storage_class |= STC.temp | STC.ctfe;
+                                variable.dsymbolSemantic(armScope);
+                                armScope.insert(variable);
+                                arm.bindings ~= variable;
                             }
                         }
                         else if (arm.recordBindings.length || arm.recordPatternNames.length || arm.hasRestPattern)
@@ -16284,25 +16281,21 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                                 auto patternValue = arm.recordPatterns[i];
                                 auto patternBinding = patternValue.isIdentifierExp();
                                 if (!patternBinding)
-                                    patternValue = patternValue.expressionSemantic(armScope);
-                                if (patternBinding)
                                 {
-                                    auto qualifiedType = exp.condition.type
-                                        ? recordFields[fieldIndex].type.addMod(exp.condition.type.mod)
-                                        : recordFields[fieldIndex].type;
-                                    auto variable = new VarDeclaration(patternBinding.loc,
-                                        qualifiedType, patternBinding.ident, null);
-                                    variable._init = new ExpInitializer(patternBinding.loc, fieldValue);
-                                    variable.dsymbolSemantic(armScope);
-                                    armScope.insert(variable);
-                                    arm.bindings ~= variable;
+                                    eSink.error(patternValue.loc,
+                                        "value tests in patterns are not supported; bind the value and use an `if` guard");
+                                    return setError();
                                 }
-                                else
-                                {
-                                    auto check = new EqualExp(EXP.equal, arm.loc, fieldValue, patternValue);
-                                    check.type = Type.tbool;
-                                    arm.patternChecks ~= check;
-                                }
+                                auto qualifiedType = exp.condition.type
+                                    ? recordFields[fieldIndex].type.addMod(exp.condition.type.mod)
+                                    : recordFields[fieldIndex].type;
+                                auto variable = new VarDeclaration(patternBinding.loc,
+                                    qualifiedType, patternBinding.ident, null);
+                                variable._init = new ExpInitializer(patternBinding.loc, fieldValue);
+                                variable.storage_class |= STC.temp | STC.ctfe;
+                                variable.dsymbolSemantic(armScope);
+                                armScope.insert(variable);
+                                arm.bindings ~= variable;
                             }
                             if (arm.restBinding)
                             {
@@ -16325,6 +16318,7 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                                     }
                                 auto rest = new VarDeclaration(arm.loc, null, arm.restBinding,
                                     new ExpInitializer(arm.loc, new TupleExp(arm.loc, restValues)));
+                                rest.storage_class |= STC.temp | STC.ctfe;
                                 rest.dsymbolSemantic(armScope);
                                 armScope.insert(rest);
                                 arm.bindings ~= rest;
@@ -16355,6 +16349,7 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                                 auto value = new DotVarExp(arm.loc, payload, field);
                                 value.type = qualifiedType;
                                 variable._init = new ExpInitializer(arm.loc, value);
+                                variable.storage_class |= STC.temp | STC.ctfe;
                                 variable.dsymbolSemantic(armScope);
                                 armScope.insert(variable);
                                 arm.bindings ~= variable;
@@ -16513,11 +16508,6 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                 Expression match = new EqualExp(EXP.equal, arm.loc, tag,
                     new IntegerExp(arm.loc, arm.variantIndex, Type.tuns8));
                 match.type = Type.tbool;
-                foreach_reverse (check; arm.patternChecks)
-                {
-                    match = new LogicalExp(arm.loc, EXP.andAnd, match, check);
-                    match.type = Type.tbool;
-                }
                 if (guardExpr)
                 {
                     match = new LogicalExp(arm.loc, EXP.andAnd, match, guardExpr);
@@ -16525,7 +16515,7 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                 }
                 if (lowered)
                     lowered = new CondExp(arm.loc, match, action, lowered);
-                else if (arm.guard || arm.patternChecks.length || defaultAction)
+                else if (arm.guard || defaultAction)
                 {
                     auto fallback = defaultAction;
                     if (!fallback)
