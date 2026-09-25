@@ -557,6 +557,8 @@ enum ignoreTokens
     __typeof__,
     __typeof,
 
+    enumUnion,
+
     max_,
 };
 

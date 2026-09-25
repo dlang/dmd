@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/enum_union_const_mutation.d(20): Error: cannot modify `const` expression `*p`
-fail_compilation/enum_union_const_mutation.d(18): Error: switch expression has no effect; use `cast(void)` to discard its value
+fail_compilation/enum_union_const_mutation.d(21): Error: cannot modify `const` expression `*p`
+fail_compilation/enum_union_const_mutation.d(19): Error: switch expression has no effect; use `cast(void)` to discard its value
 ---
 */
 

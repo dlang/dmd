@@ -606,8 +606,8 @@ enum union BareCompoundTypes
 	case wstring;
 	case dstring;
 	case int[4];
-	case cdouble;
-	case idouble;
+	case float;
+	case real;
 	case double;
 }
 
@@ -635,8 +635,8 @@ void testBareCompoundTypes()
 	BareCompoundTypes v13 = BareCompoundTypes("world"w);
 	BareCompoundTypes v14 = BareCompoundTypes("!"d);
 	BareCompoundTypes v15 = BareCompoundTypes(sa);
-	BareCompoundTypes v16 = BareCompoundTypes(1.0 + 2.0i);
-	BareCompoundTypes v17 = BareCompoundTypes(3.0i);
+	BareCompoundTypes v16 = BareCompoundTypes(1.0f);
+	BareCompoundTypes v17 = BareCompoundTypes(3.0L);
 
 	assert(v0.__tag == 0);
 	assert(v1.__tag == 1);
