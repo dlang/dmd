@@ -6126,16 +6126,12 @@ struct ASTBase
             }
             copy.guard = guard ? guard.syntaxCopy() : null;
             copy.action = action ? action.syntaxCopy() : null;
-            if (sfe)
-                copy.sfe = sfe.syntaxCopy();
             if (nestedArms)
             {
                 copy.nestedArms = new CaseExpArm[](nestedArms.length);
                 foreach (j, ref na; nestedArms)
                     copy.nestedArms[j] = na.syntaxCopy();
             }
-            if (staticIfCond)
-                copy.staticIfCond = staticIfCond.syntaxCopy();
             if (elseArms)
             {
                 copy.elseArms = new CaseExpArm[](elseArms.length);
