@@ -1046,7 +1046,7 @@ nothrow:
                 if (path_max > 0)
                 {
                     char *buf = cast(char*)mem.xmalloc_noscan(path_max);
-                    scope(exit) mem.xfree(buf);
+                    scope(exit) mem.xfree(buf, path_max);
                     auto path = name.toCStringThen!((n) => realpath(n.ptr, buf));
                     if (path !is null)
                         return xarraydup(path.toDString);

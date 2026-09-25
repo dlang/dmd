@@ -713,8 +713,8 @@ bool findFiles(const char* dir_path, const char[][] exts, bool recurse, void del
             const count = dir_pathLength + 1 + strlen(entry.d_name.ptr);
             if (count > fullPathLength)
             {
+                fullPath = cast(char*)Mem.xrealloc_noscan(fullPath == buf.ptr ? null : fullPath, count + 1, fullPathLength + 1);
                 fullPathLength = count;
-                fullPath = cast(char*)Mem.xrealloc_noscan(fullPath == buf.ptr ? null : fullPath, fullPathLength + 1);
             }
             memcpy(fullPath, dir_path, dir_pathLength);
             fullPath[dir_pathLength] = '/';
@@ -747,7 +747,7 @@ bool findFiles(const char* dir_path, const char[][] exts, bool recurse, void del
         }
 
         if (fullPath != buf.ptr)
-            mem.xfree(fullPath);
+            mem.xfree(fullPath, fullPathLength + 1);
         closedir(dir);
         return false;
     }
