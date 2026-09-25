@@ -331,10 +331,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     }
 
     auto eSink = global.errorSink;
+    auto rawParentArgument = e.ident == Id.parent && e.args && e.args.length == 1
+        ? (*e.args)[0] : null;
 
     if (e.ident != Id.compiles &&
         e.ident != Id.isSame &&
         e.ident != Id.identifier &&
+        e.ident != Id.variantKind &&
         e.ident != Id.variantParams &&
         e.ident != Id.variantParamNames &&
         e.ident != Id.hasVariant &&
@@ -395,26 +398,127 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         return variant.payload.length == 1 ? variant.payload[0] : null;
     }
 
+    bool enumUnionVariant(RootObject object, out EnumUnionDeclaration eu,
+        out size_t index)
+    {
+        Dsymbol variantSymbol(RootObject candidate)
+        {
+            auto symbol = getDsymbolWithoutExpCtx(candidate);
+            if (!symbol)
+            {
+                auto type = getType(candidate);
+                if (auto identifierType = type ? type.isTypeIdentifier() : null)
+                {
+                    Dsymbol scopeSymbol;
+                    auto base = sc.search(identifierType.loc, identifierType.ident,
+                        scopeSymbol);
+                    if (identifierType.idents.length == 1 && base)
+                    {
+                        if (auto aliasDeclaration = base.isAliasDeclaration())
+                        {
+                            aliasDeclaration.dsymbolSemantic(sc);
+                            base = aliasDeclaration.toAlias();
+                        }
+                        if (auto tuple = base.isTupleDeclaration())
+                        {
+                            if (auto indexExpression = isExpression(identifierType.idents[0]))
+                            {
+                                auto indexValue = indexExpression.expressionSemantic(sc)
+                                    .ctfeInterpret();
+                                if (indexValue.op != EXP.error && indexValue.type &&
+                                    indexValue.type.isIntegral() &&
+                                    indexValue.toUInteger() < tuple.objects.length)
+                                    symbol = variantSymbol((*tuple.objects)[
+                                        cast(size_t) indexValue.toUInteger()]);
+                            }
+                        }
+                    }
+                    if (!symbol)
+                        symbol = identifierType.idents.length
+                            ? identifierType.toDsymbol(sc) : base;
+                }
+                auto expression = isExpression(candidate);
+                if (!symbol && (expression ? expression.isIdentifierExp() : null))
+                {
+                    auto identifier = expression.isIdentifierExp();
+                    Dsymbol scopeSymbol;
+                    symbol = sc.search(identifier.loc, identifier.ident, scopeSymbol);
+                }
+                else if (!symbol && (expression ? expression.isTraitsExp() : null))
+                {
+                    auto trait = expression.isTraitsExp();
+                    if (trait.ident == Id.getVariant)
+                        symbol = getDsymbolWithoutExpCtx(trait.expressionSemantic(sc));
+                }
+                else if (!symbol && (expression ? expression.isIndexExp() : null))
+                {
+                    auto indexExpression = expression.isIndexExp();
+                    auto aggregate = variantSymbol(indexExpression.e1);
+                    if (auto aliasDeclaration = aggregate
+                            ? aggregate.isAliasDeclaration() : null)
+                    {
+                        aliasDeclaration.dsymbolSemantic(sc);
+                        aggregate = aliasDeclaration.toAlias();
+                    }
+                    if (auto tuple = aggregate ? aggregate.isTupleDeclaration() : null)
+                    {
+                        auto indexValue = indexExpression.e2.expressionSemantic(sc).ctfeInterpret();
+                        if (indexValue.op != EXP.error && indexValue.type &&
+                            indexValue.type.isIntegral() &&
+                            indexValue.toUInteger() < tuple.objects.length)
+                            symbol = variantSymbol((*tuple.objects)[
+                                cast(size_t) indexValue.toUInteger()]);
+                    }
+                }
+            }
+            return symbol;
+        }
+
+        auto symbol = variantSymbol(object);
+        while (symbol)
+        {
+            auto aliasDeclaration = symbol.isAliasDeclaration();
+            if (!aliasDeclaration)
+                break;
+            if (!aliasDeclaration.aliassym)
+                break;
+            symbol = aliasDeclaration.aliassym;
+        }
+        if (auto descriptor = symbol ? symbol.isEnumUnionCaseDeclaration() : null)
+        {
+            eu = descriptor.parent ? descriptor.parent.isEnumUnionDeclaration() : null;
+            if (eu)
+                foreach (variantIndex, ref variant; eu.variants)
+                    if (variant.descriptor is descriptor)
+                    {
+                        index = variantIndex;
+                        return true;
+                    }
+        }
+        if (symbol)
+        {
+            auto parent = symbol.toParent2();
+            eu = parent ? parent.isEnumUnionDeclaration() : null;
+            if (eu)
+                foreach (variantIndex, ref variant; eu.variants)
+                    if (variant.declaration is symbol)
+                    {
+                        index = variantIndex;
+                        return true;
+                    }
+        }
+        eu = null;
+        return false;
+    }
+
     Expression enumUnionVariantObject(EnumUnionDeclaration eu, ref EnumUnionVariant variant)
     {
-        if (variant.declaration)
-        {
-            auto result = new DsymbolExp(e.loc, variant.declaration, false);
-            if (variant.isTypeAlias)
-            {
-                auto aliasDeclaration = variant.declaration.isAliasDeclaration();
-                result.type = aliasDeclaration.type;
-                result.preserveSymbol = true;
-            }
-            return result;
-        }
-        if (variant.ident)
-        {
-            auto symbol = eu.search(e.loc, variant.ident);
-            return symbol ? new DsymbolExp(e.loc, symbol, false) : null;
-        }
-        auto payloadType = enumUnionPayloadType(variant);
-        return payloadType ? new TypeExp(e.loc, payloadType.toBasetype()) : null;
+        if (!variant.descriptor)
+            return null;
+        auto result = new DsymbolExp(e.loc, variant.descriptor, false);
+        result.type = variant.descriptor.type;
+        result.preserveSymbol = true;
+        return result;
     }
 
     /********
@@ -846,40 +950,16 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto exps = new Expressions();
         exps.reserve(eu.variants.length);
-        foreach (variant; eu.variants)
+        foreach (ref variant; eu.variants)
         {
-            if (variant.declaration)
+            auto variantObject = enumUnionVariantObject(eu, variant);
+            if (!variantObject)
             {
-                auto symbolExp = new DsymbolExp(e.loc, variant.declaration, false);
-                if (variant.isTypeAlias)
-                {
-                    auto aliasDeclaration = variant.declaration.isAliasDeclaration();
-                    symbolExp.type = aliasDeclaration.type;
-                    symbolExp.preserveSymbol = true;
-                }
-                exps.push(symbolExp);
+                eSink.error(e.loc, "unable to resolve variant of enum union `%s`",
+                    eu.toPrettyChars());
+                return ErrorExp.get();
             }
-            else if (variant.ident)
-            {
-                auto symbol = eu.search(e.loc, variant.ident);
-                if (!symbol)
-                {
-                    eSink.error(e.loc, "unable to resolve variant `%s` of enum union `%s`",
-                        variant.ident.toChars(), eu.toPrettyChars());
-                    return ErrorExp.get();
-                }
-                exps.push(new DsymbolExp(e.loc, symbol, false));
-            }
-            else
-            {
-                auto payloadType = enumUnionPayloadType(variant);
-                if (!payloadType)
-                {
-                    eSink.error(e.loc, "unable to resolve bare variant of enum union `%s`", eu.toPrettyChars());
-                    return ErrorExp.get();
-                }
-                exps.push(new TypeExp(e.loc, payloadType));
-            }
+            exps.push(variantObject);
         }
         return (new TupleExp(e.loc, exps)).expressionSemantic(sc);
     }
@@ -936,48 +1016,21 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.variantTag)
     {
-        if (!TemplateInstance_semanticTiargs(e.loc, sc, e.args, 0))
-            return ErrorExp.get();
-        if (dim != 2)
-            return dimError(2);
+        if (dim != 1)
+            return dimError(1);
 
-        auto eu = enumUnionType((*e.args)[0]);
-        if (!eu)
+        EnumUnionDeclaration eu;
+        size_t index;
+        if (!enumUnionVariant((*e.args)[0], eu, index) &&
+            (!TemplateInstance_semanticTiargs(e.loc, sc, e.args, 0) ||
+             !enumUnionVariant((*e.args)[0], eu, index)))
         {
-            eSink.error(e.loc, "first argument `%s` is not an enum union type", (*e.args)[0].toErrMsg());
+            eSink.error(e.loc, "argument `%s` is not an enum union variant",
+                (*e.args)[0].toErrMsg());
             return ErrorExp.get();
         }
-
-        auto variantObject = (*e.args)[1];
-        auto variantSymbol = getDsymbolWithoutExpCtx(variantObject);
-        auto variantType = getType(variantObject);
-        foreach (index, variant; eu.variants)
-        {
-            bool matches;
-            if (variant.declaration && variantSymbol)
-                matches = variantSymbol == variant.declaration;
-            else if (variant.isTypeAlias && variantType)
-            {
-                auto payloadType = enumUnionPayloadType(variant);
-                matches = payloadType && payloadType.equals(variantType);
-            }
-            else if (variant.ident && variantSymbol)
-            {
-                auto factory = variantSymbol.isFuncDeclaration();
-                matches = factory && factory.isGenerated && factory.ident == variant.ident &&
-                    factory.toParent2() == eu;
-            }
-            else if (!variant.ident && variantType)
-            {
-                auto payloadType = enumUnionPayloadType(variant);
-                matches = payloadType && payloadType.equals(variantType);
-            }
-            if (matches)
-                return new IntegerExp(e.loc, index, eu.tagVar.type);
-        }
-        eSink.error(e.loc, "argument `%s` is not a variant of enum union `%s`",
-            variantObject.toErrMsg(), eu.toPrettyChars());
-        return ErrorExp.get();
+        else
+            return new IntegerExp(e.loc, index, eu.tagVar.type);
     }
     if (e.ident == Id.variantKind)
     {
@@ -985,154 +1038,93 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         auto object = (*e.args)[0];
-        auto symbol = getDsymbolWithoutExpCtx(object);
-        const(char)[] kind;
-        if (auto factory = symbol ? symbol.isFuncDeclaration() : null)
+        EnumUnionDeclaration eu;
+        size_t index;
+        if (!enumUnionVariant(object, eu, index))
         {
-            auto eu = factory.toParent2().isEnumUnionDeclaration();
-            if (eu && factory.isGenerated)
+            if (!TemplateInstance_semanticTiargs(e.loc, sc, e.args, 0))
+                return ErrorExp.get();
+            object = (*e.args)[0];
+            if (!enumUnionVariant(object, eu, index))
             {
-                auto functionType = factory.type
-                    ? factory.type.toBasetype().isTypeFunction() : null;
-                if (functionType)
-                    kind = functionType.parameterList.length ? "tuple" : "unit";
+                eSink.error(e.loc, "argument `%s` is not an enum union variant", object.toErrMsg());
+                return ErrorExp.get();
             }
         }
-        else if (symbol)
-        {
-            auto eu = symbol.parent ? symbol.parent.isEnumUnionDeclaration() : null;
-            if (eu)
-            {
-                foreach (variant; eu.variants)
-                {
-                    if (variant.declaration != symbol)
-                        continue;
-                    kind = variant.isTypeAlias ? "alias" : "struct";
-                    break;
-                }
-            }
-        }
-        if (!kind.length && getType(object))
-            kind = "bare";
-        if (!kind.length)
-        {
-            eSink.error(e.loc, "argument `%s` is not an enum union variant", object.toErrMsg());
-            return ErrorExp.get();
-        }
+        auto variant = &eu.variants[index];
+        const kind = !variant.ident ? "bare"
+            : variant.isTypeAlias ? "alias"
+            : variant.members ? "struct"
+            : variant.payload.length ? "tuple" : "unit";
         return (new StringExp(e.loc, kind)).expressionSemantic(sc);
     }
     if (e.ident == Id.variantParams)
     {
-        if (!TemplateInstance_semanticTiargs(e.loc, sc, e.args, 0))
-            return ErrorExp.get();
         if (dim != 1)
             return dimError(1);
 
-        auto parameters = new Parameters();
         auto object = (*e.args)[0];
-        auto symbol = getDsymbolWithoutExpCtx(object);
-        auto fd = symbol ? symbol.isFuncDeclaration() : null;
-        auto eu = fd && fd.parent ? fd.parent.isEnumUnionDeclaration() : null;
-        if (eu && fd.isGenerated)
+        EnumUnionDeclaration eu;
+        size_t variantIndex;
+        if (!enumUnionVariant(object, eu, variantIndex))
         {
-            auto functionType = fd && fd.type ? fd.type.toBasetype().isTypeFunction() : null;
-            if (!functionType)
-            {
-                eSink.error(e.loc, "argument `%s` is not an enum union variant", object.toErrMsg());
+            if (!TemplateInstance_semanticTiargs(e.loc, sc, e.args, 0))
                 return ErrorExp.get();
-            }
-            foreach (index; 0 .. functionType.parameterList.length)
-                parameters.push(new Parameter(e.loc, STC.none,
-                    functionType.parameterList[index].type, null, null, null, null));
-        }
-        else if (auto record = symbol ? symbol.isStructDeclaration() : null)
-        {
-            auto recordEu = record.parent ? record.parent.isEnumUnionDeclaration() : null;
-            bool isVariant;
-            if (recordEu)
-                foreach (variant; recordEu.variants)
-                    isVariant = isVariant || variant.declaration == record;
-            if (isVariant)
-            {
-                foreach (field; record.fields)
-                    parameters.push(new Parameter(e.loc, STC.none, field.type, null, null, null, null));
-            }
-        }
-        else if (auto aliasDeclaration = symbol ? symbol.isAliasDeclaration() : null)
-        {
-            auto aliasEu = aliasDeclaration.parent
-                ? aliasDeclaration.parent.isEnumUnionDeclaration() : null;
-            if (!aliasEu)
+            object = (*e.args)[0];
+            if (!enumUnionVariant(object, eu, variantIndex))
             {
                 eSink.error(e.loc, "argument `%s` is not an enum union variant", object.toErrMsg());
                 return ErrorExp.get();
             }
         }
-        else if (!getType(object))
+        auto parameters = new Parameters();
+        auto variant = &eu.variants[variantIndex];
+        if (variant.ident && !variant.isTypeAlias)
         {
-            eSink.error(e.loc, "argument `%s` is not an enum union variant", object.toErrMsg());
-            return ErrorExp.get();
+            if (variant.members)
+                foreach (field; variant.payloadType.fields)
+                    parameters.push(new Parameter(e.loc, STC.none, field.type,
+                        null, null, null, null));
+            else
+                foreach (payload; variant.payload)
+                    parameters.push(new Parameter(e.loc, STC.none, payload,
+                        null, null, null, null));
         }
         return (new TypeExp(e.loc, new TypeTuple(parameters))).expressionSemantic(sc);
     }
     if (e.ident == Id.variantParamNames)
     {
-        if (!TemplateInstance_semanticTiargs(e.loc, sc, e.args, 0))
-            return ErrorExp.get();
         if (dim != 1)
             return dimError(1);
 
-        auto names = new Expressions();
         auto object = (*e.args)[0];
-        auto symbol = getDsymbolWithoutExpCtx(object);
-        auto fd = symbol ? symbol.isFuncDeclaration() : null;
-        auto eu = fd && fd.parent ? fd.parent.isEnumUnionDeclaration() : null;
-        if (eu && fd.isGenerated)
+        EnumUnionDeclaration eu;
+        size_t variantIndex;
+        if (!enumUnionVariant(object, eu, variantIndex))
         {
-            auto functionType = fd.type ? fd.type.toBasetype().isTypeFunction() : null;
-            if (!functionType)
-            {
-                eSink.error(e.loc, "argument `%s` is not an enum union variant", object.toErrMsg());
+            if (!TemplateInstance_semanticTiargs(e.loc, sc, e.args, 0))
                 return ErrorExp.get();
-            }
-            foreach (variant; eu.variants)
-            {
-                if (variant.ident != fd.ident || variant.declaration)
-                    continue;
-                foreach (index; 0 .. functionType.parameterList.length)
-                {
-                    auto ident = index < variant.payloadNames.length
-                        ? variant.payloadNames[index] : null;
-                    names.push(new StringExp(e.loc, ident ? ident.toString() : ""));
-                }
-                break;
-            }
-        }
-        else if (auto record = symbol ? symbol.isStructDeclaration() : null)
-        {
-            auto recordEu = record.parent ? record.parent.isEnumUnionDeclaration() : null;
-            bool isVariant;
-            if (recordEu)
-                foreach (variant; recordEu.variants)
-                    isVariant = isVariant || variant.declaration == record;
-            if (isVariant)
-                foreach (field; record.fields)
-                    names.push(new StringExp(e.loc, field.ident ? field.ident.toString() : ""));
-        }
-        else if (auto aliasDeclaration = symbol ? symbol.isAliasDeclaration() : null)
-        {
-            auto aliasEu = aliasDeclaration.parent
-                ? aliasDeclaration.parent.isEnumUnionDeclaration() : null;
-            if (!aliasEu)
+            object = (*e.args)[0];
+            if (!enumUnionVariant(object, eu, variantIndex))
             {
                 eSink.error(e.loc, "argument `%s` is not an enum union variant", object.toErrMsg());
                 return ErrorExp.get();
             }
         }
-        else if (!getType(object))
+        auto names = new Expressions();
+        auto variant = &eu.variants[variantIndex];
+        if (variant.ident && !variant.isTypeAlias)
         {
-            eSink.error(e.loc, "argument `%s` is not an enum union variant", object.toErrMsg());
-            return ErrorExp.get();
+            auto parameterCount = variant.members
+                ? variant.payloadType.fields.length : variant.payload.length;
+            foreach (parameterIndex; 0 .. parameterCount)
+            {
+                auto ident = variant.members
+                    ? variant.payloadType.fields[parameterIndex].ident
+                    : parameterIndex < variant.payloadNames.length
+                        ? variant.payloadNames[parameterIndex] : null;
+                names.push(new StringExp(e.loc, ident ? ident.toString() : ""));
+            }
         }
         return (new TupleExp(e.loc, names)).expressionSemantic(sc);
     }
@@ -1144,6 +1136,17 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.identifier)
     {
+        if (dim == 1)
+        {
+            EnumUnionDeclaration variantEnum;
+            size_t variantIndex;
+            if (enumUnionVariant((*e.args)[0], variantEnum, variantIndex))
+            {
+                auto ident = variantEnum.variants[variantIndex].descriptor.ident;
+                return (new StringExp(e.loc,
+                    ident ? ident.toString() : "")).expressionSemantic(sc);
+            }
+        }
         // Get identifier for symbol as a string literal
         /* Specify 0 for bit 0 of the flags argument to semanticTiargs() so that
          * a symbol should not be folded to a constant.
@@ -1168,6 +1171,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         else
         {
             Dsymbol s = getDsymbolWithoutExpCtx(o);
+            if (auto variant = s ? s.isEnumUnionCaseDeclaration() : null)
+                return (new StringExp(e.loc,
+                    variant.ident ? variant.ident.toString() : "")).expressionSemantic(sc);
             if (!s || !s.ident)
             {
                 if (isType(o))
@@ -1292,7 +1298,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         auto o = (*e.args)[0];
-        auto s = getDsymbolWithoutExpCtx(o);
+        EnumUnionDeclaration variantEnum;
+        size_t variantIndex;
+        Dsymbol s;
+        if (rawParentArgument &&
+            enumUnionVariant(rawParentArgument, variantEnum, variantIndex))
+            s = variantEnum.variants[variantIndex].descriptor;
+        else
+            s = getDsymbolWithoutExpCtx(o);
         if (s)
         {
             // https://issues.dlang.org/show_bug.cgi?id=12496
@@ -1727,6 +1740,17 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.getAttributes)
     {
+        if (dim == 1)
+        {
+            EnumUnionDeclaration variantEnum;
+            size_t variantIndex;
+            if (enumUnionVariant((*e.args)[0], variantEnum, variantIndex))
+            {
+                auto udad = variantEnum.variants[variantIndex].descriptor.userAttribDecl;
+                auto attributes = udad ? udad.getAttributes() : new Expressions();
+                return (new TupleExp(e.loc, attributes)).expressionSemantic(sc);
+            }
+        }
         /* Specify 0 for bit 0 of the flags argument to semanticTiargs() so that
          * a symbol should not be folded to a constant.
          * Bit 1 means don't convert Parameter to Type if Parameter has an identifier
@@ -2299,6 +2323,37 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
          */
         if (dim != 2)
             return dimError(2);
+
+        EnumUnionDeclaration leftEnum;
+        EnumUnionDeclaration rightEnum;
+        size_t leftIndex;
+        size_t rightIndex;
+        bool canBeVariant(RootObject object)
+        {
+            auto type = getType(object);
+            return !type || type.isTypeIdentifier() !is null;
+        }
+        bool leftIsVariant = canBeVariant((*e.args)[0]) &&
+            enumUnionVariant((*e.args)[0], leftEnum, leftIndex);
+        bool rightIsVariant = canBeVariant((*e.args)[1]) &&
+            enumUnionVariant((*e.args)[1], rightEnum, rightIndex);
+        if (leftIsVariant && !rightIsVariant)
+        {
+            Objects rightArgument;
+            rightArgument.push((*e.args)[1]);
+            if (TemplateInstance_semanticTiargs(e.loc, sc, &rightArgument, 0))
+                rightIsVariant = enumUnionVariant(rightArgument[0], rightEnum, rightIndex);
+        }
+        else if (rightIsVariant && !leftIsVariant)
+        {
+            Objects leftArgument;
+            leftArgument.push((*e.args)[0]);
+            if (TemplateInstance_semanticTiargs(e.loc, sc, &leftArgument, 0))
+                leftIsVariant = enumUnionVariant(leftArgument[0], leftEnum, leftIndex);
+        }
+        if (leftIsVariant || rightIsVariant)
+            return leftIsVariant && rightIsVariant && leftEnum is rightEnum &&
+                leftIndex == rightIndex ? True() : False();
 
         // https://issues.dlang.org/show_bug.cgi?id=20761
         // tiarg semantic may expand in place the list of arguments, for example:
