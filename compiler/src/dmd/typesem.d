@@ -6764,6 +6764,19 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             return mt.getProperty(sc, e.loc, ident, flag & 1);
         }
 
+        auto eu = mt.sym.isEnumUnionDeclaration();
+        if (eu)
+        {
+            if (ident == Id.__tag && e.op != EXP.type)
+            {
+                e = e.expressionSemantic(sc);
+                auto tag = new DotVarExp(e.loc, e, eu.tagVar);
+                tag.type = eu.tagVar.type.addMod(e.type.mod);
+                auto value = new AddExp(e.loc, tag, new IntegerExp(e.loc, 0, Type.tint32));
+                return (new CastExp(e.loc, value, eu.tagVar.type)).expressionSemantic(sc);
+            }
+        }
+
         /* If e.tupleof
          */
         if (ident == Id._tupleof)
@@ -6788,6 +6801,8 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             for (size_t i = 0; i < mt.sym.fields.length; i++)
             {
                 VarDeclaration v = mt.sym.fields[i];
+                if (eu && v is eu.tagVar)
+                    continue;
                 Expression ex;
                 if (ev)
                     ex = new DotVarExp(e.loc, ev, v);
