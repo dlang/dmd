@@ -72,7 +72,7 @@ void testSplicing()
     assert(t1.__tag != t2.__tag);
     assert(t3.__tag != t4.__tag);
     assert(t5.__tag != t6.__tag);
-    assert(t7.__tag == __traits(getTag, Target, __traits(getVariant, Target, "Code")));
+    assert(t7.__tag == __traits(variantTag, Target, __traits(getVariant, Target, "Code")));
 }
 
 void main()

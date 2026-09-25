@@ -339,7 +339,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         e.ident != Id.variantParamNames &&
         e.ident != Id.hasVariant &&
         e.ident != Id.getVariant &&
-        e.ident != Id.getTag &&
+        e.ident != Id.variantTag &&
         e.ident != Id.getProtection && e.ident != Id.getVisibility &&
         e.ident != Id.getAttributes)
     {
@@ -934,7 +934,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             key.toErrMsg(), eu.toPrettyChars());
         return ErrorExp.get();
     }
-    if (e.ident == Id.getTag)
+    if (e.ident == Id.variantTag)
     {
         if (!TemplateInstance_semanticTiargs(e.loc, sc, e.args, 0))
             return ErrorExp.get();
@@ -2787,7 +2787,7 @@ private void traitNotFound(TraitsExp e)
             &Id.fullyQualifiedName,
             &Id.getAliasThis,
             &Id.getAttributes,
-            &Id.getTag,
+            &Id.variantTag,
             &Id.getFunctionAttributes,
             &Id.getFunctionVariadicStyle,
             &Id.getLinkage,

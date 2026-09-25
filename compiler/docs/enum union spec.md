@@ -176,7 +176,7 @@ Enum unions support these reflection operations:
     by a string key or the unnamed bare variant given by a type key.
 - `__traits(getVariant, T, key)` returns that variant symbol or bare type and
     reports an error if it does not exist.
-- `__traits(getTag, T, V)` returns the discriminator value for `V`.
+- `__traits(variantTag, T, V)` returns the discriminator value for `V`.
 - `__traits(variantParams, V)` returns the declared parameter or field types
   for tuple and inline struct variants, and an empty tuple for other variant kinds.
 - `__traits(variantParamNames, V)` returns the corresponding parameter or field
@@ -213,7 +213,7 @@ enum union Shape
 ```
 
 Its tag values follow declaration order. Programs should compare `value.__tag`
-with `__traits(getTag, Shape, Shape.Point)`, rather than hard-code a numeric tag.
+with `__traits(variantTag, Shape, Shape.Point)`, rather than hard-code a numeric tag.
 
 ### 7. Switch expressions
 

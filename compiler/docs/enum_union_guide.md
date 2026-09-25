@@ -33,7 +33,7 @@ property exposes it for inspection. Compare it with a reflected tag instead of
 hard-coding a number:
 
 ```d
-assert(s1.__tag == __traits(getTag, Shape, Shape.Circle));
+assert(s1.__tag == __traits(variantTag, Shape, Shape.Circle));
 ```
 
 ---
@@ -144,7 +144,7 @@ The implementation provides enum-union-specific traits:
 - `__traits(hasVariant, T, key)` tests for a named variant using a string key,
   or for an unnamed bare variant using a type key.
 - `__traits(getVariant, T, key)` returns the matching variant symbol or type.
-- `__traits(getTag, T, V)` returns the variant's `ubyte` discriminator.
+- `__traits(variantTag, T, V)` returns the variant's `ubyte` discriminator.
 - `__traits(variantKind, V)` returns `"unit"`, `"tuple"`, `"struct"`,
   `"alias"`, or `"bare"`.
 - `__traits(variantParams, V)` and `__traits(variantParamNames, V)` return the
@@ -471,5 +471,5 @@ The key rules are:
 - the switch must be exhaustive unless a `default` is present
 - unreachable and invalid arms are rejected
 - payload patterns bind values; value predicates belong in guards
-- `.__tag` is read-only and should be compared with `__traits(getTag, ...)`
+- `.__tag` is read-only and should be compared with `__traits(variantTag, ...)`
 - unsafe lifecycle payloads are rejected
