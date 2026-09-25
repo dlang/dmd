@@ -1680,6 +1680,8 @@ private bool findStructConstructorRoot(StructDeclaration sd, out Dsymbol ctor)
     ctor = sd.search(sd.loc, Id.ctor); // Aggregate.searchCtor() ?
     if (ctor)
     {
+        if (ctor.isOverloadSet())
+            return false;
         if (auto td = ctor.isTemplateDeclaration())
             ctor = td.funcroot;
     }
