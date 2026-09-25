@@ -643,7 +643,7 @@ Symbol* toStringSymbol(StringExp se)
         auto p = cast(char *)mem.xmalloc(n * se.sz);
         se.writeTo(p, false);
         si = toStringSymbol(p, n, se.sz);
-        mem.xfree(p);
+        mem.xfree(p, n * se.sz);
     }
     return si;
 }

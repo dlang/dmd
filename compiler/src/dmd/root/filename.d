@@ -714,7 +714,7 @@ nothrow:
             //combine might return name
             if (n.ptr != name.ptr)
             {
-                mem.xfree(cast(void*)n.ptr);
+                FileName.free(n.ptr);
             }
         }
         return null;
@@ -738,7 +738,7 @@ nothrow:
             int sink(const(char)* p) nothrow
             {
                 auto n = combine(p.toDString, name);
-                mem.xfree(cast(void*)p);
+                FileName.free(p);
                 if (exists(n))
                 {
                     result = n;
@@ -934,12 +934,12 @@ nothrow:
                 if (path.length == p.length ||
                     (path.length > 2 && path[1] == ':' && path[2 .. $] == p))
                 {
-                    mem.xfree(cast(void*)p.ptr);
+                    FileName.free(p.ptr);
                     return true;
                 }
             }
             const r = ensurePathExists(p);
-            mem.xfree(cast(void*)p);
+            FileName.free(p.ptr);
 
             if (!r)
                 return r;
@@ -1043,7 +1043,7 @@ nothrow:
                 if (path_max > 0)
                 {
                     char *buf = cast(char*)mem.xmalloc_noscan(path_max);
-                    scope(exit) mem.xfree(buf);
+                    scope(exit) mem.xfree(buf, path_max);
                     auto path = name.toCStringThen!((n) => realpath(n.ptr, buf));
                     if (path !is null)
                         return xarraydup(path.toDString);
@@ -1067,7 +1067,7 @@ nothrow:
                 const capacity = GetFullPathNameW(&wname[0], 0, null, null);
                 if (!capacity) return null;
                 auto buffer = cast(wchar*) mem.xmalloc_noscan(capacity * wchar.sizeof);
-                scope(exit) mem.xfree(buffer);
+                scope(exit) mem.xfree(buffer, capacity * wchar.sizeof);
 
                 // Actually get the full path name. If the buffer is large enough,
                 // the returned length does NOT include the terminating null...
@@ -1097,12 +1097,13 @@ nothrow:
      */
     extern (C++) static void free(const(char)* str) pure
     {
+        size_t msize = strlen(str) + 1;
         if (str)
         {
             assert(str[0] != cast(char)0xAB);
-            memset(cast(void*)str, 0xAB, strlen(str) + 1); // stomp
+            memset(cast(void*)str, 0xAB, msize); // stomp
         }
-        mem.xfree(cast(void*)str);
+        mem.xfree(cast(void*)str, msize);
     }
 
     extern (C++) const(char)* toChars() const pure nothrow @nogc @trusted
@@ -1206,7 +1207,7 @@ version(Windows)
         wchar[1024] support = void;
         auto buf = SmallBuffer!wchar(support.length, support);
         wchar[] wide = toWStringz(str, buf);
-        scope(exit) wide.ptr != buf.ptr && mem.xfree(wide.ptr);
+        scope(exit) wide.ptr != buf.ptr && mem.xfree(wide.ptr, (wide.length + 1) * wide[0].sizeof);
 
         return F(wide);
     }

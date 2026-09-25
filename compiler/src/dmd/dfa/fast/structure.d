@@ -1282,7 +1282,7 @@ struct DFAAllocator
 
             assert(toFree !is staticRegion.ptr);
             if (toFree !is null)
-                Mem.xfree(toFree);
+                Mem.xfree(toFree, RegionAllocationStep);
         }
     }
 
