@@ -3793,7 +3793,6 @@ struct CaseExpArm
     Identifier[] recordPatternNames;
     Expression[] recordPatterns;
     Identifier restBinding;
-    Expression[] patternChecks;
     Expression guard;
     bool isDefault;
     Expression action;
@@ -3820,7 +3819,6 @@ struct CaseExpArm
             foreach (j, pat; recordPatterns)
                 copy.recordPatterns[j] = pat ? pat.syntaxCopy() : null;
         }
-        copy.patternChecks = null;
         copy.bindings = null;
         copy.hasVariant = false;
         copy.variantIndex = 0;

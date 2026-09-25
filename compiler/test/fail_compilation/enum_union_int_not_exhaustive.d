@@ -14,7 +14,7 @@ string test(IntVal v)
 {
     return switch (v)
     {
-        case Num(0) => "zero",
-        case Num(1) => "one",
+        case Num(number) if (number == 0) => "zero",
+        case Num(number) if (number == 1) => "one",
     };
 }
