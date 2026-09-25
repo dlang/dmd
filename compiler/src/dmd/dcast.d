@@ -95,48 +95,44 @@ IntRange intRangeFromType(Type type, bool isUnsigned)
     return IntRange(lower, upper);
 }
 
+Expression initializeEnumUnionVariant(Loc loc, VarDeclaration temporary,
+    EnumUnionDeclaration enumUnion, size_t variantIndex, Expressions* values)
+{
+    auto variant = enumUnion.variants[variantIndex];
+    Expression result;
+
+    if (variant.payloadType && variant.payloadType.fields.length)
+    {
+        Expression payload;
+        if (variant.declaration && variant.declaration.isStructDeclaration())
+            payload = (*values)[0];
+        else
+            payload = new StructLiteralExp(loc, variant.payloadType, values,
+                variant.payloadType.type);
+        auto payloadAccess = new DotVarExp(loc, new VarExp(loc, temporary),
+            variant.payloadVar);
+        result = new ConstructExp(loc, payloadAccess, payload);
+    }
+
+    auto tagExp = new DotVarExp(loc, new VarExp(loc, temporary), enumUnion.tagVar);
+    result = Expression.combine(result, new AssignExp(loc, tagExp,
+        new IntegerExp(loc, variantIndex, Type.tuns8)));
+    return result;
+}
+
 Expression constructEnumUnionVariant(Expression value, Scope* sc, Type type,
     EnumUnionDeclaration enumUnion, size_t variantIndex)
 {
-    auto variant = enumUnion.variants[variantIndex];
-    auto temporary = new VarDeclaration(value.loc, type, Identifier.generateId("__enumConv"), null);
-    temporary.storage_class |= STC.temp;
+    auto temporary = new VarDeclaration(value.loc, type, Identifier.generateId("__enumConv"),
+        new VoidInitializer(value.loc));
+    temporary.storage_class |= STC.temp | STC.nodtor;
     Expression result = new DeclarationExp(value.loc, temporary).expressionSemantic(sc);
-    Expression temporaryValue = new VarExp(value.loc, temporary);
-
-    auto tagExp = new DotVarExp(value.loc, temporaryValue, enumUnion.tagVar);
-    tagExp.type = enumUnion.tagVar.type;
-    Expression tagAssign = new AssignExp(value.loc, tagExp,
-        new IntegerExp(value.loc, variantIndex, Type.tuns8)).expressionSemantic(sc);
-    result = new CommaExp(value.loc, result, tagAssign);
-    result.type = tagAssign.type;
-
-    if (auto recordDeclaration = variant.declaration
-            ? variant.declaration.isStructDeclaration() : null)
-    {
-        auto payloadAccess = new DotVarExp(value.loc, temporaryValue, variant.payloadVar);
-        payloadAccess.type = variant.payloadVar.type;
-        Expression payloadAssign = new ConstructExp(value.loc, payloadAccess, value);
-        payloadAssign.type = recordDeclaration.type;
-        result = new CommaExp(value.loc, result, payloadAssign);
-        result.type = payloadAssign.type;
-    }
-    else if (variant.payloadType && variant.payloadType.fields.length)
-    {
-        auto field = variant.payloadType.fields[0];
-        auto payloadAccess = new DotVarExp(value.loc,
-            new DotVarExp(value.loc, temporaryValue, variant.payloadVar), field);
-        payloadAccess.e1.type = variant.payloadVar.type;
-        payloadAccess.type = field.type;
-        Expression payloadAssign = new ConstructExp(value.loc, payloadAccess, value);
-        payloadAssign.type = field.type;
-        result = new CommaExp(value.loc, result, payloadAssign);
-        result.type = payloadAssign.type;
-    }
-
-    result = new CommaExp(value.loc, result, temporaryValue);
-    result.type = type;
-    return result;
+    auto values = new Expressions(value);
+    auto initialize = initializeEnumUnionVariant(value.loc, temporary, enumUnion,
+        variantIndex, values).expressionSemantic(sc);
+    result = Expression.combine(result, initialize);
+    auto temporaryValue = new VarExp(value.loc, temporary).expressionSemantic(sc);
+    return Expression.combine(result, temporaryValue);
 }
 
 /**
