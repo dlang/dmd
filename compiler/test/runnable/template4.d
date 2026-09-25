@@ -589,11 +589,12 @@ template sqrt(real x, real root = x/2, int ntries = 0)
 
 void test20()
 {
+    import core.stdc.config;
     real x = sqrt!(2);
-    static if (real.sizeof > double.sizeof)
-        printf("%.20Lg\n", x); // 1.4142135623730950487
-    else
+    version (WebAssembly)
         printf("%.20g\n", cast(double) x);
+    else
+        printf("%.20Lg\n", cast(c_long_double)x); // 1.4142135623730950487
 }
 
 /*********************************************************/

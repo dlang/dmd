@@ -170,9 +170,6 @@ type* Type_toCtype(Type t)
         //printf("TypeStruct::toCtype() '%s'\n", t.sym.toChars());
         if (t.mod == 0)
         {
-            foreach (vd; t.sym.fields)
-                checkWasmComplex(vd.loc, vd.type);
-
             StructDeclaration sym = t.sym;
             auto arg1type = sym.argType(0);
             auto arg2type = sym.argType(1);
