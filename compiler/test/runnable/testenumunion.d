@@ -1,17 +1,5 @@
 import std.complex;
 
-/*
-TEST_OUTPUT:
----
-runnable/testenumunion.d(603): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
-enum union BareCompoundTypes
-^
-runnable/testenumunion.d(603): Deprecation: use of imaginary type `idouble` is deprecated, use `double` instead
-enum union BareCompoundTypes
-^
----
-*/
-
 alias None = typeof(null);
 enum union Option(T)
 {
