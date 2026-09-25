@@ -15988,6 +15988,35 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
             {
                 auto eu = enumUnion;
                 {
+                    bool bindUnpack(UnpackDeclaration unpack, Expression initializer)
+                    {
+                        unpack._init = initializer;
+                        import dmd.dsymbolsem : include;
+
+                        bool appendBindings(Dsymbols* declarations)
+                        {
+                            if (!declarations)
+                                return false;
+                            foreach (declaration; *declarations)
+                            {
+                                if (auto variable = declaration.isVarDeclaration())
+                                {
+                                    variable.dsymbolSemantic(armScope);
+                                    armScope.insert(variable);
+                                    arm.bindings ~= variable;
+                                }
+                                else if (auto nested = declaration.isUnpackDeclaration())
+                                {
+                                    if (!appendBindings(nested.include(armScope)))
+                                        return false;
+                                }
+                            }
+                            return true;
+                        }
+
+                        return appendBindings(unpack.include(armScope));
+                    }
+
                     Identifier variantId;
                     Expressions* arguments;
                     ArgumentLabels* argumentNames;
@@ -16202,6 +16231,18 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                                 }
                                 used[fieldIndex] = true;
                                 auto field = variant.payloadType.fields[fieldIndex];
+                                auto payloadVar = variant.payloadVar;
+                                auto payload = new DotVarExp(argument.loc, exp.condition, payloadVar);
+                                payload.type = payloadVar.type;
+                                auto value = new DotVarExp(argument.loc, payload, field);
+                                value.type = exp.condition.type ? field.type.addMod(exp.condition.type.mod) : field.type;
+                                if (auto declaration = argument.isDeclarationExp())
+                                {
+                                    auto unpack = declaration.declaration.isUnpackDeclaration();
+                                    if (!unpack || !bindUnpack(unpack, value))
+                                        return setError();
+                                    continue;
+                                }
                                 auto binding = argument.isIdentifierExp();
                                 if (!binding)
                                 {
@@ -16212,10 +16253,7 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                                 auto qualifiedType = exp.condition.type ? field.type.addMod(exp.condition.type.mod) : field.type;
                                 auto variable = new VarDeclaration(binding.loc, qualifiedType,
                                     binding.ident, null);
-                                auto payloadVar = variant.payloadVar;
-                                auto payload = new DotVarExp(binding.loc, exp.condition, payloadVar);
-                                payload.type = payloadVar.type;
-                                auto value = new DotVarExp(binding.loc, payload, field);
+                                value.loc = binding.loc;
                                 value.type = qualifiedType;
                                 variable._init = new ExpInitializer(binding.loc, value);
                                 variable.storage_class |= STC.temp | STC.ctfe;
@@ -16279,6 +16317,13 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                                 auto fieldValue = new DotVarExp(arm.loc, payload, recordFields[fieldIndex]);
                                 fieldValue.type = recordFields[fieldIndex].type;
                                 auto patternValue = arm.recordPatterns[i];
+                                if (auto declaration = patternValue.isDeclarationExp())
+                                {
+                                    auto unpack = declaration.declaration.isUnpackDeclaration();
+                                    if (!unpack || !bindUnpack(unpack, fieldValue))
+                                        return setError();
+                                    continue;
+                                }
                                 auto patternBinding = patternValue.isIdentifierExp();
                                 if (!patternBinding)
                                 {
