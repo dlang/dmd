@@ -216,11 +216,21 @@ extern (C++) final class EnumUnionDeclaration : StructDeclaration
         foreach (ref variant; variants)
             eu.variants ~= syntaxCopyEnumUnionVariant(variant);
         StructDeclaration.syntaxCopy(eu);
-        // `members` was just deep-copied above; `tagVar` must point at the
-        // copy (it's always the first member, see parse.d), not the original
-        // declaration, or later semantic passes on this instance dereference
-        // a stale/absent tag variable (null for template instantiations).
-        eu.tagVar = eu.members && eu.members.length ? (*eu.members)[0].isVarDeclaration() : null;
+        if (members && eu.members)
+            foreach (i, member; *members)
+            {
+                if (i >= eu.members.length)
+                    break;
+                if (member is tagVar)
+                    eu.tagVar = (*eu.members)[i].isVarDeclaration();
+                if (auto anon = member.isAnonDeclaration())
+                    if (anon.isunion)
+                    {
+                        auto copy = (*eu.members)[i].isAnonDeclaration();
+                        eu.payloadUnion = new UnionDeclaration(payloadUnion.loc, payloadUnion.ident);
+                        eu.payloadUnion.members = copy ? copy.decl : null;
+                    }
+            }
         return eu;
     }
 
