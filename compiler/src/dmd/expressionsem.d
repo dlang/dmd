@@ -2877,6 +2877,13 @@ Lagain:
         }
     }
 
+    if (auto variant = s.isEnumUnionCaseDeclaration())
+    {
+        auto result = new DsymbolExp(loc, variant, false);
+        result.type = variant.type;
+        result.preserveSymbol = true;
+        return result;
+    }
     if (auto em = s.isEnumMember())
     {
         return em.getVarExp(loc, sc);
@@ -9545,7 +9552,13 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
             sc2.minst = null;
             sc2.fullinst = true;
             sc2.traitsCompiles = true;
+            auto variantTraits = e.targ.isTypeTraits();
             Type t = dmd.typesem.trySemantic(e.targ, e.loc, sc2);
+            if (!t && variantTraits)
+                if (auto variant = variantTraits.obj
+                        ? variantTraits.obj.isDsymbol() : null)
+                    if (auto descriptor = variant.isEnumUnionCaseDeclaration())
+                        t = descriptor.type;
             sc2.pop();
             if (!t) // errors, so condition is false
                 return no();
