@@ -247,8 +247,31 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         {
             if (auto call = exp.isCallExp())
                 if (call.f && call.f.isGenerated && call.f.parent && call.f.parent.isEnumUnionDeclaration())
+                {
+                    if (call.arguments)
+                        foreach (argument; *call.arguments)
+                            if (hasSwitchExpressionSideEffect(argument))
+                                return true;
                     return false;
+                }
             return hasSideEffect(exp);
+        }
+
+        bool hasBindingInitializerSideEffect(Expression exp)
+        {
+            if (auto comma = exp.isCommaExp())
+                return hasBindingInitializerSideEffect(comma.e1) ||
+                    hasBindingInitializerSideEffect(comma.e2);
+            if (auto declaration = exp.isDeclarationExp())
+            {
+                if (auto variable = declaration.declaration.isVarDeclaration())
+                    if (auto initializer = variable._init ? variable._init.isExpInitializer() : null)
+                        return hasBindingInitializerSideEffect(initializer.exp);
+                return false;
+            }
+            if (auto construct = exp.isConstructExp())
+                return hasBindingInitializerSideEffect(construct.e2);
+            return hasSwitchExpressionSideEffect(exp);
         }
         //printf("ExpStatement::semantic() %s\n", exp.toChars());
 
@@ -256,6 +279,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         CommaExp.allow(s.exp);
 
         auto switchExp = s.exp.isSwitchExp();
+        auto switchCondition = switchExp ? switchExp.condition : null;
         s.exp = s.exp.expressionSemantic(sc);
         s.exp = resolveProperties(sc, s.exp);
         s.exp = s.exp.addDtorHook(sc);
@@ -272,10 +296,15 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         {
             if (switchExp)
             {
-                bool hasEffect = hasSwitchExpressionSideEffect(switchExp.condition);
+                bool hasEffect = hasSwitchExpressionSideEffect(switchCondition);
                 foreach (arm; switchExp.arms)
+                {
                     hasEffect = hasEffect || hasSideEffect(arm.action) ||
                         (arm.guard && hasSideEffect(arm.guard));
+                    foreach (binding; arm.bindings)
+                        if (auto initializer = binding._init ? binding._init.isExpInitializer() : null)
+                            hasEffect = hasEffect || hasBindingInitializerSideEffect(initializer.exp);
+                }
                 if (!hasEffect)
                 {
                     eSink.error(switchExp.loc,
