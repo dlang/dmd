@@ -1,12 +1,16 @@
+struct MyUDA {}
+
 enum union Tag
 {
-    case Number(int);
+    @MyUDA case Number(int);
     case Empty();
 }
 
+static assert(__traits(getAttributes, Tag.Number).length == 1);
+
 enum union BareTag
 {
-    case int;
+    @MyUDA case int;
     case bool;
 }
 

@@ -16,6 +16,12 @@ void main()
         case Number value => consume(),
     }
 
+    switch (Value.Unit)
+    {
+        case Unit value => "unit",
+        case Number value => { consume(); return "number"; }(),
+    }
+
     switch (0)
     {
         case 0:
