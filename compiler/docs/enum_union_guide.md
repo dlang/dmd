@@ -19,6 +19,8 @@ This declares a type that is either:
 - a rectangle with two `double`s
 - a point with no payload
 
+An enum union may contain at most 256 variants.
+
 Each named case is also a factory function:
 
 ```d
@@ -38,7 +40,7 @@ assert(s1.__tag == __traits(getTag, Shape, Shape.Circle));
 
 ## 2. Variant forms
 
-An enum union case can be one of four forms.
+An enum union case can be one of five forms.
 
 ### Unit cases
 
@@ -120,6 +122,39 @@ enum union Response
 ```
 
 The payload is a record-like structure. The compiler synthesizes the corresponding constructor for the case.
+
+### Named type aliases
+
+```d
+enum union Buffer
+{
+    case Bytes = ubyte[];
+    case Empty();
+}
+```
+
+The alias remains available as `Buffer.Bytes`, and the compiler synthesizes a
+named factory such as `Buffer.Bytes([ubyte(1), 2, 3])`.
+
+### Reflection
+
+The implementation provides enum-union-specific traits:
+
+- `__traits(allVariants, T)` returns variants in declaration order.
+- `__traits(hasVariant, T, key)` tests for a named variant using a string key,
+  or for an unnamed bare variant using a type key.
+- `__traits(getVariant, T, key)` returns the matching variant symbol or type.
+- `__traits(getTag, T, V)` returns the variant's `ubyte` discriminator.
+- `__traits(variantKind, V)` returns `"unit"`, `"tuple"`, `"struct"`,
+  `"alias"`, or `"bare"`.
+- `__traits(variantParams, V)` and `__traits(variantParamNames, V)` return the
+  payload types and names for positional and record variants. Unit, alias, and
+  bare variants return empty tuples.
+
+Variant declarations can be copied into another enum union with
+`case __traits(variantDeclarationOf, V);`. A second string argument renames the
+copied variant. Variant UDAs are preserved by reflection and declaration
+splicing.
 
 ---
 
@@ -258,6 +293,10 @@ return switch (value)
 The tuple shape is recursive and follows unpack-declaration syntax, but tuple
 patterns are available independently of the tuple-declaration preview switch.
 Literals and arbitrary expressions cannot appear in payload binding positions.
+
+All non-`noreturn` arm actions must currently have the same type. The compiler
+does not yet compute a least upper bound or insert common-type conversions for
+different arm types.
 
 A `default` arm is the fallback branch for a `switch` expression. It runs when no earlier pattern matches. It does not bind a value, because it is not a case pattern; it is simply the catch-all branch for the remaining cases.
 
