@@ -3401,6 +3401,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             memtype = parseBasicType();
             memtype = parseDeclarator(memtype, alt, null);
             checkCstyleTypeSyntax(typeLoc, memtype, alt, null);
+            if (isUnion)
+                error(typeLoc, "enum union declarations cannot have a base type");
         }
 
         if (isUnion)
@@ -8821,9 +8823,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         {
             nextToken();
             Token* patternEnd = &token;
+            Token* qualifiedEnd = &token;
+            while (qualifiedEnd.value == TOK.identifier && peek(qualifiedEnd).value == TOK.dot &&
+                peek(peek(qualifiedEnd)).value == TOK.identifier)
+                qualifiedEnd = peek(peek(qualifiedEnd));
+            const isQualifiedTypeBinding = qualifiedEnd !is &token &&
+                peek(qualifiedEnd).value == TOK.identifier;
             if ((token.value != TOK.identifier && isBasicType(&patternEnd)) ||
                 (token.value == TOK.identifier &&
-                 (peekNext() == TOK.identifier || peekNext() == TOK.not)))
+                 (peekNext() == TOK.identifier || peekNext() == TOK.not || isQualifiedTypeBinding)))
             {
                 typePattern = parseType(&typeBinding);
             }
