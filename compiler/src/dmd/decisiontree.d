@@ -279,6 +279,7 @@ public bool checkExhaustivenessAndRedundancy(SwitchExp exp, EnumUnionDeclaration
                 eSink.error(arm.loc, "redundant match arm; pattern is unreachable");
                 return false;
             }
+            matrix.rows ~= MatrixRow(wildcard, armIndex);
             hasDefault = true;
             continue;
         }
