@@ -67,3 +67,5 @@ void test()
     result[] = arr[] ^^ s;
     result[] = s ^^ arr[];
 }
+
+// DISABLED: wasm

@@ -14,7 +14,7 @@
  */
 module core.sys.posix.termios;
 
-version (CRuntime_WASI) {}
+version (WASI) {}
 else:
 
 import core.sys.posix.config;

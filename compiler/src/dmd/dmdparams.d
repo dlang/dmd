@@ -88,6 +88,7 @@ struct Triple
     CPU               cpu;
     bool              isX86_64;
     bool              isLP64;
+    bool              isWasm;
     Target.OS         os;
     ubyte             osMajor;
     TargetC.Runtime   cenv;
@@ -167,6 +168,11 @@ struct Triple
             isX86_64 = true;
             isLP64 = false;
         }
+        else if (matches("wasm32"))
+        {
+            isWasm = true;
+            isX86_64 = false;
+        }
         else
             return unknown(arch, "architecture");
 
@@ -233,6 +239,10 @@ struct Triple
             os =  Target.OS.Hurd;
         else if (matches("windows"))
             os =  Target.OS.Windows;
+        else if (matches("wasip") || matches("wasi"))
+            os =  Target.OS.WASI;
+        else if (matches("emscripten"))
+            os =  Target.OS.Emscripten;
         else
         {
             unknown(_os, "operating system");
@@ -370,7 +380,8 @@ void setTriple(ref Target target, const ref Triple triple) @safe
 {
     target.cpu     = triple.cpu;
     target.isX86_64 = triple.isX86_64;
-    target.isX86    = !target.isX86_64;
+    target.isWasm  = triple.isWasm;
+    target.isX86    = !target.isX86_64 && !target.isWasm;
     target.isLP64  = triple.isLP64;
     target.os      = triple.os;
     target.osMajor = triple.osMajor;

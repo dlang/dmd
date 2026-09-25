@@ -11,3 +11,5 @@ float f;
 void test() { float g; }
 struct S { float h; }
 cfloat cf;
+
+// DISABLED: wasm

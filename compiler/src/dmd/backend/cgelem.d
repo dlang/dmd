@@ -2746,7 +2746,8 @@ private elem* eldiv(elem* e, Goal goal)
             int sz = tysize(tym);
 
             // See if we can replace with OPremquo
-            if (sz == REGSIZE
+            // (not wasm: no combined div+rem instruction or register pair)
+            if (sz == REGSIZE && config.objfmt != OBJ_WASM
                 // Currently don't allow this because OPmsw doesn't work for the case
                 //|| (I64 && sz == 4)
                 )
@@ -3578,6 +3579,10 @@ elem* elstruct(elem* e, Goal goal)
 
     if (!e.ET)
         return e;
+
+    // WASM passes all aggregates by pointer for now
+    if (e.Eoper == OPstrpar && config.objfmt == OBJ_WASM)
+        return e;
     //printf("\tnumbytes = %d\n", cast(int)type_size(e.ET));
 
     type* t = e.ET;
@@ -3858,6 +3863,55 @@ static if (0)  // Doesn't work too well, removed
     }
 }
 
+    // Replace (a=(r1 pair r2)) with (a1=r1), (a2=r2)
+    // For WASM this must run even at -O0 so slices/delegates are lowered to two
+    // independent REGSIZE memory stores instead of being packed into an i64.
+    if ((OPTIMIZER || config.objfmt == OBJ_WASM) &&
+        tysize(e1.Ety) == 2 * REGSIZE &&
+        e1.Eoper == OPvar &&
+        (e.E2.Eoper == OPpair || e.E2.Eoper == OPrpair) &&
+        goal == Goal.none &&
+        !el_appears(e.E2, e1.Vsym) &&
+// this clause needs investigation because the code doesn't match the comment
+        // Disable this rewrite if we're using x87 and `e1` is a FP-value
+        // but `e2` is not, or vice versa
+        // https://issues.dlang.org/show_bug.cgi?id=18197
+        (config.fpxmmregs ||
+         (tyfloating(e.E2.E1.Ety) != 0) == (tyfloating(e.E2.Ety) != 0))
+       )
+    {
+        elem* e2 = e.E2;
+        // printf("** before:\n"); elem_print(e); printf("\n");
+        tym_t ty = (REGSIZE == 8) ? TYllong : TYint;
+        if (tyfloating(e1.Ety) && REGSIZE >= 4)
+            ty = (REGSIZE == 8) ? TYdouble : TYfloat;
+        ty |= e1.Ety & ~mTYbasic;
+        e2.Ety = ty;
+        e.Ety = ty;
+        e1.Ety = ty;
+        elem* eb = el_copytree(e1);
+        eb.Voffset += REGSIZE;
+
+        if (e2.Eoper == OPpair)
+        {
+            e.E2 = e2.E1;
+            eb = el_bin(OPeq,ty,eb,e2.E2);
+            e2.E1 = e;
+            e2.E2 = eb;
+        }
+        else
+        {
+            e.E2 = e2.E2;
+            eb = el_bin(OPeq,ty,eb,e2.E1);
+            e2.E1 = eb;
+            e2.E2 = e;
+        }
+
+        e2.Eoper = OPcomma;
+        // printf("** after:\n"); elem_print(e2); printf("\n");
+        return optelem(e2,goal);
+    }
+
     if (OPTIMIZER)
     {
         elem* e2 = e.E2;
@@ -4024,51 +4078,6 @@ static if (0)  // Doesn't work too well, removed
                 default:
                     break;
             }
-        }
-
-        // Replace (a=(r1 pair r2)) with (a1=r1), (a2=r2)
-        if (tysize(e1.Ety) == 2 * REGSIZE &&
-            e1.Eoper == OPvar &&
-            (e2.Eoper == OPpair || e2.Eoper == OPrpair) &&
-            goal == Goal.none &&
-            !el_appears(e2, e1.Vsym) &&
-// this clause needs investigation because the code doesn't match the comment
-            // Disable this rewrite if we're using x87 and `e1` is a FP-value
-            // but `e2` is not, or vice versa
-            // https://issues.dlang.org/show_bug.cgi?id=18197
-            (config.fpxmmregs ||
-             (tyfloating(e2.E1.Ety) != 0) == (tyfloating(e2.Ety) != 0))
-           )
-        {
-            // printf("** before:\n"); elem_print(e); printf("\n");
-            tym_t ty = (REGSIZE == 8) ? TYllong : TYint;
-            if (tyfloating(e1.Ety) && REGSIZE >= 4)
-                ty = (REGSIZE == 8) ? TYdouble : TYfloat;
-            ty |= e1.Ety & ~mTYbasic;
-            e2.Ety = ty;
-            e.Ety = ty;
-            e1.Ety = ty;
-            elem* eb = el_copytree(e1);
-            eb.Voffset += REGSIZE;
-
-            if (e2.Eoper == OPpair)
-            {
-                e.E2 = e2.E1;
-                eb = el_bin(OPeq,ty,eb,e2.E2);
-                e2.E1 = e;
-                e2.E2 = eb;
-            }
-            else
-            {
-                e.E2 = e2.E2;
-                eb = el_bin(OPeq,ty,eb,e2.E1);
-                e2.E1 = eb;
-                e2.E2 = e;
-            }
-
-            e2.Eoper = OPcomma;
-            // printf("** after:\n"); elem_print(e2); printf("\n");
-            return optelem(e2,goal);
         }
 
         // Replace (a=b) with (a1=b1),(a2=b2)
@@ -5474,7 +5483,7 @@ elem* elmsw(elem* e, Goal goal)
     tym_t ty = e.Ety;
     elem* e1 = e.E1;
 
-    if (OPTIMIZER &&
+    if ((OPTIMIZER || config.objfmt == OBJ_WASM) &&
         tysize(e1.Ety) == LLONGSIZE &&
         tysize(ty) == LONGSIZE)
     {
@@ -5583,6 +5592,10 @@ private elem* elinfo(elem* e, Goal goal)
 private elem* elva_start(elem* e, Goal goal)
 {
     assert(e.Eoper == OPva_start);
+
+    if (config.objfmt == OBJ_WASM)
+        // WASM lowers OPva_start directly in its own code generator
+        return e;
 
     if (funcsym_p.ty() & mTYnaked)
     {   // do not generate prolog
@@ -6711,4 +6724,8 @@ private immutable elfp_t[OPMAX] elxxx =
     OPvecfill: &elzot,
     OPva_start: &elva_start,
     OPprefetch: &elzot,
+    OPmemgrow: &elzot,
+    OPmemsize: &elzot,
+    OPthrow: &elzot,
+    OPrethrow: &elzot,
 ];

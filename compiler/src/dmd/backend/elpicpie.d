@@ -111,6 +111,10 @@ elem* el_var(Symbol* s)
     {
         return e;
     }
+    else if (config.exe & EX_WASM)
+    {
+        return e;
+    }
     else if (config.exe & EX_posix)
     {
         if (config.target_cpu == TARGET_AArch64)

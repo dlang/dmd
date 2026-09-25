@@ -13,3 +13,4 @@ Error: corrupt $?:windows=MS Coff|osx=Mach|ELF$ object `$r:.*$` module $?:window
 ----
 */
 void main() {}
+// DISABLED: wasm

@@ -1,6 +1,7 @@
 /*
 PERMUTE_ARGS: -O
 TRANSFORM_OUTPUT: remove_lines("warning: sprintf\(\) is often misused")
+DISABLED: wasm
 */
 
 /*

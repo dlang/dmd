@@ -1,4 +1,4 @@
-// DISABLED: osx64
+// DISABLED: osx64 wasm
 
 bool flag;
 

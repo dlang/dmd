@@ -591,7 +591,10 @@ void test20()
 {
     import core.stdc.config;
     real x = sqrt!(2);
-    printf("%.20Lg\n", cast(c_long_double)x); // 1.4142135623730950487
+    version (WebAssembly)
+        printf("%.20g\n", cast(double) x);
+    else
+        printf("%.20Lg\n", cast(c_long_double)x); // 1.4142135623730950487
 }
 
 /*********************************************************/

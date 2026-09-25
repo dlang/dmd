@@ -302,23 +302,38 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
 }
 
 /**
- * Parse command line arguments for the last instance of -m32, -m64, -m32mscoff, -marm64
- * to detect the desired architecture.
+ * Parse command line arguments for the last instance of -m32, -m64, -m32mscoff,
+ * -marm64, -mwasm32 to detect the desired architecture.
  *
  * Params:
  *   args = Command line arguments
  *   arch = Default value to use for architecture.
- *          Should be "32", "64", or "arm64"
+ *          Should be "32", "64", "arm64", or "wasm32"
  *
  * Returns:
- *   "32", or "64" if the "-m32", "-m64" flags were passed,
- *   respectively. If they weren't, return `arch`.
+ *   The architecture named by the last such flag, or `arch` if none was passed.
  */
 const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
 {
+    bool emscripten = arch == "wasm32-emscripten";
     foreach (const p; *args)
     {
         const arg = p.toDString;
+
+        if (arg.startsWith("-os="))
+        {
+            const os = arg[4 .. $];
+            emscripten = os == "emscripten";
+            if (emscripten || os.startsWith("wasi"))
+                arch = "wasm32";
+            continue;
+        }
+        if (arg.startsWith("-target=wasm32"))
+        {
+            arch = "wasm32";
+            emscripten = arg.length >= 10 && arg[$ - 10 .. $] == "emscripten";
+            continue;
+        }
 
         switch (arg)
         {
@@ -330,6 +345,9 @@ const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
             case "-marm64":
                 arch = arg[2 .. 7];
                 continue;
+            case "-mwasm32":
+                arch = arg[2 .. 8];
+                continue;
             case "-run":   // end of args to dmd
                 break;
             default:
@@ -337,6 +355,8 @@ const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
         }
         break;
     }
+    if (arch == "wasm32" && emscripten)
+        return "wasm32-emscripten";
     return arch;
 }
 
@@ -396,6 +416,10 @@ void setDefaultLibraries(const ref Target target, ref const(char)[] defaultlibna
         else if (target.os == Target.OS.OSX)
         {
             defaultlibname = "phobos2";
+        }
+        else if (target.isWasm)
+        {
+            defaultlibname = "libphobos2-wasm.a";
         }
         else
         {
@@ -997,28 +1021,18 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             continue; // skip druntime options, e.g. used to configure the GC
         }
         else if (arg == "-marm64") // https://dlang.org/dmd.html#switch-marm64
-        {
-            target.isAArch64 = true;
-            target.isX86    = false;
-            target.isX86_64 = false;
-        }
+            target.setArch(Target.Arch.aarch64);
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
-        {
-            target.isAArch64 = false;
-            target.isX86     = true;
-            target.isX86_64  = false;
-        }
+            target.setArch(Target.Arch.x86);
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
-        {
-            target.isAArch64 = false;
-            target.isX86     = false;
-            target.isX86_64  = true;
-        }
+            target.setArch(Target.Arch.x86_64);
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
+            target.setArch(Target.Arch.x86);
+        else if (arg == "-mwasm32")
         {
-            target.isAArch64 = false;
-            target.isX86     = true;
-            target.isX86_64  = false;
+            target.setArch(Target.Arch.wasm32);
+            if (!(target.os & (Target.OS.WASI | Target.OS.Emscripten)))
+                target.os = Target.OS.WASI;
         }
         else if (startsWith(p + 1, "mscrtlib="))
         {
@@ -1178,7 +1192,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             enum len = "-os=".length;
             // Parse:
             //      -os=identifier
-            immutable string msg = "Only `host`, `linux`, `windows`, `osx`,`openbsd`, `freebsd`, `solaris`, `dragonflybsd`, `hurd` allowed for `-os`";
+            immutable string msg = "Only `host`, `linux`, `windows`, `osx`,`openbsd`, `freebsd`, `solaris`, `dragonflybsd`, `hurd`, `wasi`, `wasip1`, `wasip2`, `emscripten` allowed for `-os`";
             if (Identifier.isValidIdentifier(p + len))
             {
                 const ident = p + len;
@@ -1193,6 +1207,17 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
                 case "solaris":      target.os = Target.OS.Solaris;      break;
                 case "dragonflybsd": target.os = Target.OS.DragonFlyBSD; break;
                 case "hurd":         target.os = Target.OS.Hurd;         break;
+                case "wasi":
+                case "wasip1":
+                case "wasip2":
+                    target.os = Target.OS.WASI;
+                    target.osMajor = ident.toDString() == "wasip2" ? 2 : 1;
+                    target.setArch(Target.Arch.wasm32);
+                    break;
+                case "emscripten":
+                    target.os = Target.OS.Emscripten;
+                    target.setArch(Target.Arch.wasm32);
+                    break;
                 default:
                     errorInvalidSwitch(p, msg);
                     return false;

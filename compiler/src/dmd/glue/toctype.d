@@ -34,6 +34,7 @@ import dmd.expressionsem : toInteger;
 import dmd.id;
 import dmd.mtype;
 import dmd.typesem;
+import dmd.target;
 
 package(dmd.glue):
 
@@ -150,7 +151,11 @@ type* Type_toCtype(Type t)
         type* tret = Type_toCtype(t.next);
         if (t.isRef && tret && tret.Tty != TYvoid && tret.Tty != TYnoreturn) // skip ref for `ref void` or `ref noreturn`
             tret = type_allocn(TYnref, tret);
-        return type_function(totym(t), types, t.parameterList.varargs == VarArg.variadic, tret);
+        type* tf = type_function(totym(t), types, t.parameterList.varargs == VarArg.variadic, tret);
+        // void f(...) // extern(D), unlike C, has a hidden _arguments parameter
+        if (t.parameterList.varargs == VarArg.variadic && t.linkage == LINK.d)
+            tf.Tflags |= TF.dstylevararg;
+        return tf;
     }
 
     static type* visitDelegate(TypeDelegate t)
@@ -250,9 +255,10 @@ type* Type_toCtype(Type t)
                 t.ctype = Type_toCtype(Type.tvoid);
             }
             else if (sym.ident == Id.__c_long ||
-                     sym.ident == Id.__c_complex_float ||
-                     sym.ident == Id.__c_complex_double ||
-                     sym.ident == Id.__c_complex_real)
+                     (!target.isWasm &&
+                      (sym.ident == Id.__c_complex_float ||
+                       sym.ident == Id.__c_complex_double ||
+                       sym.ident == Id.__c_complex_real)))
             {
                 t.ctype = type_fake(totym(t));
                 (cast(type*)t.ctype).Tcount++;

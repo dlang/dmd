@@ -16,3 +16,4 @@ void main()
 {
     bar();
 }
+// DISABLED: wasm

@@ -16,3 +16,4 @@ struct NullAllocator
     import Ternary;
     Ternary owns() { }
 }
+// DISABLED: wasm

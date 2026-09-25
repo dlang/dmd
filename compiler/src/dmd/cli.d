@@ -659,6 +659,11 @@ dmd -cov -unittest myprog.d
             "generate Arm 64 bit code",
             "Compile an Arm 64 bit executable. Only supported for OSX.",
         ),
+        Option("mwasm32",
+            "generate WebAssembly 32 bit code",
+            `Compile a WebAssembly 32 bit module. Targets WASI unless $(SWLINK -os=emscripten) is given.
+            Defines the $(D WebAssembly), $(D WASI), $(D WASIp1), $(D Posix), and $(D CRuntime_WASI) version identifiers.`,
+        ),
         Option("main",
             "add default main() if not present already (e.g. for unittesting)",
             `Add a default $(D main()) function when compiling. This is useful when
@@ -818,6 +823,9 @@ dmd -cov -unittest myprog.d
                     $(LI $(I solaris): Solaris)
                     $(LI $(I hurd): Hurd)
                     $(LI $(I windows): Windows)
+                    $(LI $(I wasi), $(I wasip1): WebAssembly with WASI preview 1)
+                    $(LI $(I wasip2): WebAssembly with WASI preview 2)
+                    $(LI $(I emscripten): WebAssembly linked by Emscripten's $(D emcc))
                 )`
         ),
         Option("P=<preprocessorflag>",

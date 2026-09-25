@@ -17,3 +17,4 @@ void main()
         fld ST(0), ST(1), ST(2), ST(3);
     }
 }
+// DISABLED: wasm

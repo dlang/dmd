@@ -303,3 +303,5 @@ int main()
     test23120();
     return 0;
 }
+
+// DISABLED: wasm

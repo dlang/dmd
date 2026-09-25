@@ -21,6 +21,7 @@ SRCS=\
 	src\core\time.d \
 	src\core\vararg.d \
 	src\core\volatile.d \
+	src\core\wasm.d \
 	\
 	src\core\gc\config.d \
 	src\core\gc\gcinterface.d \

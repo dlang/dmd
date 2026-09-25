@@ -1,10 +1,11 @@
 /*
+DISABLED: wasm
 REQUIRED_ARGS: -verrors=simple -inline -wi
 TEST_OUTPUT:
 ---
-compilable/pragmainline2.d(14): Warning: cannot inline function `pragmainline2.foo`
-compilable/pragmainline2.d(22): Warning: cannot inline function `pragmainline2.f1t`
-compilable/pragmainline2.d(25): Warning: cannot inline function `pragmainline2.f2t`
+compilable/pragmainline2.d(15): Warning: cannot inline function `pragmainline2.foo`
+compilable/pragmainline2.d(23): Warning: cannot inline function `pragmainline2.f1t`
+compilable/pragmainline2.d(26): Warning: cannot inline function `pragmainline2.f2t`
 ---
 */
 
@@ -41,8 +42,8 @@ void main()
 /*
 TEST_OUTPUT:
 ---
-compilable/pragmainline2.d(50): Warning: cannot inline function `pragmainline2.jazz`
-compilable/pragmainline2.d(63): Warning: cannot inline function `pragmainline2.metal`
+compilable/pragmainline2.d(51): Warning: cannot inline function `pragmainline2.jazz`
+compilable/pragmainline2.d(64): Warning: cannot inline function `pragmainline2.metal`
 ---
 */
 

@@ -112,3 +112,5 @@ void main()
         }
     }
 }
+
+// DISABLED: wasm
