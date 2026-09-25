@@ -606,6 +606,34 @@ void logexp(ref CGstate cg, ref CodeBuilder cdb, elem* e, int jcond, FL fltarg, 
                 return;
             }
 
+            case OPeqeq:
+            case OPne:
+                if (config.flags4 & CFG4optimized &&
+                    e.E2.Eoper == OPconst && !boolres(e.E2))
+                {
+                    // Can't handle 80-bit real here.
+                    if (tysize(e.E1.Ety) > REGSIZE)
+                        break;
+
+                    regm_t regm;
+                    reg_t reg;
+
+                    /* For values in registers, save a few instructions
+                     * by not generating x87 code at all.
+                     */
+                    if (isregvar(e.E1, regm, reg) && !(regm & (mST0 | mST01)) ||
+                        evalinregister(e.E1))
+                    {
+                        break;
+                    }
+
+                    if (e.Eoper == OPeqeq)
+                        jcond ^= 1;
+
+                    goto case OPbool;
+                }
+                break;
+
             default:
                 break;
         }

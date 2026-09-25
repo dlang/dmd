@@ -4599,7 +4599,7 @@ private elem* elcmp(elem* e, Goal goal)
             e.E1.Ety = tym;
             e = optelem(e, Goal.value);
         }
-        else if (!boolres(e2))
+        else if (!boolres(e2) && !tyfloating(e2.Ety))
         {
             targ_int i;
             switch (e.Eoper)
