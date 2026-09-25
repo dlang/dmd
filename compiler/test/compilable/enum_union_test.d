@@ -123,4 +123,38 @@ void main() {
 
     GenericValue factoryValue = GenericValue.Struct(43);
     assert(factoryValue.__tag == 1);
+
+    // Default init tag
+    Option!int defaultOpt = Option!int.init;
+    assert(defaultOpt.__tag == 0);
+
+    // Static local enum union
+    static enum union LocalEnum
+    {
+        case int;
+        case string;
+    }
+    LocalEnum localVal = 1;
+    assert(localVal.__tag == 0);
 }
+
+// is-expression specializer
+static assert(is(Response == enum union));
+static assert(!is(int == enum union));
+static assert(!is(Resource == enum union));
+
+// CTFE switch expression matching active payload
+enum union CtfeVal
+{
+    case First(int);
+    case Second(int);
+}
+
+enum ctfeInstance = CtfeVal.Second(42);
+enum ctfeResult = switch (ctfeInstance)
+{
+    case First(...) => 0,
+    case Second(number) if (number == 42) => 42,
+    case Second(...) => 0,
+};
+static assert(ctfeResult == 42);
