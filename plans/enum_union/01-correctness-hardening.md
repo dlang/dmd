@@ -135,12 +135,12 @@ Tests:
 
 Files: `decisiontree.d`, `expressionsem.d`, tests.
 
-- Remove literal columns and `Expression.toString()` comparison from usefulness analysis.
+- Keep the matrix/usefulness architecture and its literal-pattern support available for a future full-pattern-matching DIP. Current enum-union bindings contribute wildcard payload columns only.
 - Because supported payload patterns only bind or discard values, they do not constrain coverage. Exhaustiveness is determined by enum-union variant coverage plus source `default`.
 - A guarded arm does not cover its variant. A later unguarded arm for that variant does.
 - An unguarded arm makes later arms for the same variant redundant; a source `default` makes all later arms redundant.
 - Diagnose duplicate/unreachable arms in source order.
-- Delete `decisiontree.d` if no remaining non-enum-union consumer requires the matrix algorithm; otherwise reduce its enum-union input to constructor-only patterns.
+- Retain `decisiontree.d`; specialize current enum-union inputs to constructor coverage without removing machinery needed by future pattern forms.
 - Keep diagnostics phrased in source-level variant terms rather than synthetic payload columns.
 
 Tests:
