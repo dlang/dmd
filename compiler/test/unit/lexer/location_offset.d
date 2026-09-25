@@ -461,6 +461,7 @@ enum Test[string] tests = [
 enum ignoreTokens
 {
     reserved,
+    enumUnion,
     negate,
     array,
     call,
