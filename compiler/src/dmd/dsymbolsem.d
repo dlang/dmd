@@ -2349,7 +2349,6 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
     auto anon = (*eu.members)[1].isAnonDeclaration();
     if (!anon)
         return;
-    auto tag = eu.tagVar ? eu.tagVar : (*eu.members)[0].isVarDeclaration();
     bool hasErrors;
 
     Identifier variantName(ref EnumUnionVariant variant)
@@ -2634,38 +2633,19 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
         fd.isGenerated = true;
         auto result = new VarDeclaration(eu.loc, eu.type, Identifier.generateId("__enumResult"),
             new VoidInitializer(eu.loc));
-        Statements statements;
-        statements.push(new ExpStatement(eu.loc, result));
-        auto tagExp = new DotVarExp(eu.loc, new VarExp(eu.loc, result), tag);
-        tagExp.type = tag.type;
-        statements.push(new ExpStatement(eu.loc, new AssignExp(eu.loc, tagExp,
-            new IntegerExp(eu.loc, i, Type.tuns8))));
+        result.storage_class |= STC.nodtor;
+        auto arguments = new Expressions();
+        foreach (parameter; *parameters)
+            arguments.push(new IdentifierExp(eu.loc, parameter.ident));
         if (aliasStruct)
         {
-            auto payloadExp = new DotVarExp(eu.loc, new VarExp(eu.loc, result), payloadVars[i]);
-            payloadExp.type = payloadVars[i].type;
-            auto payloadField = variant.payloadType.fields[0];
-            payloadExp = new DotVarExp(eu.loc, payloadExp, payloadField);
-            payloadExp.type = payloadField.type;
-            auto arguments = new Expressions();
-            foreach (parameter; *parameters)
-                arguments.push(new IdentifierExp(eu.loc, parameter.ident));
             auto literal = new StructLiteralExp(eu.loc, aliasStruct.sym, arguments, aliasPayloadType);
-            statements.push(new ExpStatement(eu.loc, new ConstructExp(eu.loc, payloadExp, literal)));
+            arguments = new Expressions(literal);
         }
-        else foreach (k; 0 .. nfields)
-        {
-            Expression payloadExp = new DotVarExp(eu.loc, new VarExp(eu.loc, result), payloadVars[i]);
-            payloadExp.type = payloadVars[i].type;
-            if (variant.payloadType)
-            {
-                auto field = variant.payloadType.fields[k];
-                payloadExp = new DotVarExp(eu.loc, payloadExp, field);
-                payloadExp.type = field.type;
-            }
-            statements.push(new ExpStatement(eu.loc, new ConstructExp(eu.loc, payloadExp,
-                new IdentifierExp(eu.loc, (*parameters)[k].ident))));
-        }
+        auto initialize = initializeEnumUnionVariant(eu.loc, result, eu, i, arguments);
+        Statements statements;
+        statements.push(new ExpStatement(eu.loc, result));
+        statements.push(new ExpStatement(eu.loc, initialize));
         statements.push(new ReturnStatement(eu.loc, new VarExp(eu.loc, result)));
         fd.fbody = new CompoundStatement(eu.loc, statements.move());
         Dsymbol factoryMember = fd;
