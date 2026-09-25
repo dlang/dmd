@@ -205,7 +205,7 @@ Files: `parse.d`, `hdrgen.d`, `expression.d`, tests.
 - Extend type-pattern lookahead to recognize qualified types followed by a binding identifier.
 - Reject `enum union` base types immediately with a focused diagnostic.
 - Detect duplicate positional and shorthand binding names by checking scope insertion results and explicit field-use state.
-- Reject value/expression payload patterns during parsing where possible, with recovery to the next arm delimiter.
+- Parse expression-shaped payload patterns far enough to preserve delimiters, then reject them during semantic analysis with the focused binding-only diagnostic. This intentionally favors a descriptive error over generic parser recovery; rejected expressions never reach lowering or execution.
 - Teach `visitSwitch` to print or safely traverse `static foreach` and `static if` container arms before semantic flattening; never dereference a null `arm.action`.
 - Emit variant UDAs before each case in generated headers.
 - Add a generated-header round-trip test that compiles the `.di` and verifies UDA reflection.
@@ -235,7 +235,7 @@ Files: `dstruct.d`, `visitor/parsetime.d`, relevant visitors.
 
 - Add explicit `EnumUnionDeclaration` forwarding in parse-time/transitive visitors where consumers need to distinguish it from a plain struct.
 - Replace positional assumptions such as `members[0]`/`members[1]` with `tagVar`, `payloadUnion`, and `variant.payloadVar` wherever possible.
-- Verify `syntaxCopy` reconnects every synthesized declaration pointer, including payload declarations and the payload union, rather than retaining symbols from the source instance.
+- Use reset-and-resynthesize ownership in `syntaxCopy`: reconnect persistent parser-owned pointers such as `tagVar` and `payloadUnion`, clear semantic-only variant pointers (`declaration`, `payloadType`, and `payloadVar`), and verify ordinary semantic analysis recreates them without retaining symbols from the source instance.
 - Grep for bare `cast(EnumUnionDeclaration)` and require `isEnumUnionDeclaration()` for extern(C++) downcasts.
 
 ## Validation Matrix
