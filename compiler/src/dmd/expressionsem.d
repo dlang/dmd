@@ -7725,6 +7725,84 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         eSink.errorSupplemental(loc, "%s `%s` is also known as `%s`", kind, errMsg, ie.ident.toChars());
     }
 
+private EnumUnionDeclaration resolveEnumUnionTemplateInstance(TemplateInstance ti, Scope* sc)
+{
+    if (!ti)
+        return null;
+    if (!ti.tempdecl)
+        ti.findTempDecl(sc, null);
+    if (auto td = ti.tempdecl ? ti.tempdecl.isTemplateDeclaration() : null)
+    {
+        Dsymbol m = td.onemember ? td.onemember : (td.members && td.members.length == 1 ? (*td.members)[0] : null);
+        if (m && m.isEnumUnionDeclaration())
+        {
+            ti.dsymbolSemantic(sc);
+            if (ti.inst)
+            {
+                Dsymbol a = ti.toAlias();
+                if (a)
+                    return a.isEnumUnionDeclaration();
+            }
+        }
+    }
+    return null;
+}
+
+private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
+{
+    if (!e)
+        return null;
+    if (auto te = e.isTypeExp())
+    {
+        if (auto st = te.type.toBasetype().isTypeStruct())
+            return st.sym.isEnumUnionDeclaration();
+    }
+    else if (auto se = e.isScopeExp())
+    {
+        if (auto eu = se.sds.isEnumUnionDeclaration())
+            return eu;
+        if (auto ti = se.sds.isTemplateInstance())
+            return resolveEnumUnionTemplateInstance(ti, sc);
+    }
+    else if (auto dti = e.isDotTemplateInstanceExp())
+    {
+        if (dti.ti)
+            return resolveEnumUnionTemplateInstance(dti.ti, sc);
+    }
+    else if (auto ide = e.isIdentifierExp())
+    {
+        Dsymbol scopesym;
+        Dsymbol s = sc.search(ide.loc, ide.ident, scopesym);
+        if (s)
+        {
+            s = s.toAlias();
+            if (auto eu = s.isEnumUnionDeclaration())
+                return eu;
+            if (auto t = dmd.dsymbolsem.getType(s))
+            {
+                if (auto st = t.toBasetype().isTypeStruct())
+                    return st.sym.isEnumUnionDeclaration();
+            }
+        }
+    }
+    else if (auto die = e.isDotIdExp())
+    {
+        Dsymbol s = getDsymbol(die);
+        if (s)
+        {
+            s = s.toAlias();
+            if (auto eu = s.isEnumUnionDeclaration())
+                return eu;
+            if (auto t = dmd.dsymbolsem.getType(s))
+            {
+                if (auto st = t.toBasetype().isTypeStruct())
+                    return st.sym.isEnumUnionDeclaration();
+            }
+        }
+    }
+    return null;
+}
+
     override void visit(CallExp exp)
     {
         static if (LOGSEMANTIC)
@@ -7796,29 +7874,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (auto dot = exp.e1.isDotIdExp())
         {
-            EnumUnionDeclaration enumUnion = null;
-            if (auto te = dot.e1.isTypeExp())
-            {
-                if (auto st = te.type.toBasetype().isTypeStruct())
-                    enumUnion = st.sym.isEnumUnionDeclaration();
-            }
-            else if (auto se = dot.e1.isScopeExp())
-            {
-                enumUnion = se.sds.isEnumUnionDeclaration();
-            }
-            else if (auto ide = dot.e1.isIdentifierExp())
-            {
-                Dsymbol scopesym;
-                sc.search(ide.loc, ide.ident, scopesym);
-                if (scopesym)
-                    enumUnion = scopesym.toAlias().isEnumUnionDeclaration();
-            }
-            else if (auto die = dot.e1.isDotIdExp())
-            {
-                Dsymbol s = getDsymbol(dot.e1);
-                if (s)
-                    enumUnion = s.toAlias().isEnumUnionDeclaration();
-            }
+            EnumUnionDeclaration enumUnion = findEnumUnionFromExp(dot.e1, sc);
 
             if (enumUnion)
             {

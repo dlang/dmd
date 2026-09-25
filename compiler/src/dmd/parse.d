@@ -1157,22 +1157,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             default:
                 error("declaration expected, not `%s`", token.toChars());
             Lerror:
-                int curlies = 0;
-                while (token.value != TOK.endOfFile)
-                {
-                    if (token.value == TOK.leftCurly)
-                        curlies++;
-                    else if (token.value == TOK.rightCurly)
-                    {
-                        if (curlies == 0)
-                            break;
-                        curlies--;
-                    }
-                    else if (token.value == TOK.semicolon && curlies == 0)
-                        break;
+                while (token.value != TOK.semicolon &&
+                       (!inEnumUnion || token.value != TOK.rightCurly) &&
+                       token.value != TOK.endOfFile)
                     nextToken();
-                }
-                if (token.value == TOK.semicolon)
+                if (!inEnumUnion || token.value == TOK.semicolon)
                     nextToken();
                 s = null;
                 continue;
@@ -6543,8 +6532,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                      * we check if the next token is a semicolon and simply output the error,
                      * otherwise we fall back on the old path (advancing the token).
                      */
+                    const isSwitchExpr = exp.isSwitchExp() || (exp.isCastExp() && exp.isCastExp().e1.isSwitchExp());
                     if (token.value != TOK.semicolon &&
-                        (token.value == TOK.rightCurly || peek(&token).value == TOK.semicolon))
+                        (peek(&token).value == TOK.semicolon || (token.value == TOK.rightCurly && isSwitchExpr)))
                         error("found `%s` when expecting `;` following expression", token.toChars());
                     else
                     {
