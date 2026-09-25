@@ -63,7 +63,7 @@ public:
                 memset(_ptr, 0xFF, allocated * T.sizeof);
         }
         if (allocated > SMALLARRAYCAP)
-            mem.xfree(_ptr);
+            mem.xfree(_ptr, allocated);
     }
 
     // this is using a template constraint because of ambiguity with this(size_t) when T is
@@ -124,7 +124,7 @@ public:
             *p++ = ']';
             *p = 0;
             assert(p - str.ptr == str.length - 1); // null terminator
-            mem.xfree(buf.ptr);
+            mem.xfree(buf.ptr, buf.length);
             return str[0 .. $-1];
         }
 
@@ -211,11 +211,11 @@ public:
                     auto p = cast(T*)mem.xmalloc(allocdim * T.sizeof);
                     memcpy(p, _ptr, length * T.sizeof);
                     memset(_ptr, 0xFF, allocated * T.sizeof);
-                    mem.xfree(_ptr);
+                    mem.xfree(_ptr, allocated);
                 }
                 else
                 {
-                    auto p = cast(T*)mem.xrealloc(_ptr, allocdim * T.sizeof);
+                    auto p = cast(T*)mem.xrealloc(_ptr, allocdim * T.sizeof, allocated * T.sizeof);
                 }
                 _ptr = p;
                 allocated = cast(uint)allocdim;

@@ -140,7 +140,7 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
                 ob.writestring(name);
                 ob.writenl();
             }
-            mem.xfree(name.ptr);
+            mem.xfree(name.ptr, name.length + 1);
         }
         return noDeclarations();
     }
@@ -560,7 +560,7 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
         auto slice = se.toStringz();
         if (strlen(slice.ptr) != se.len)
             eSink.error(loc, "pragma `mangle` null character not allowed in mangled name");
-        mem.xfree(cast(void*)slice.ptr);
+        mem.xfree(cast(void*)slice.ptr, se.len + 1);
         return se;
     }
 

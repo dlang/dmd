@@ -627,7 +627,7 @@ bool findFiles(const char* dir_path, const char[][] exts, bool recurse, void del
         if (count > fullPathLength)
         {
             fullPathLength = count;
-            fullPath = cast(char*)Mem.xrealloc_noscan(fullPath == buf.ptr ? null : fullPath, fullPathLength + 1);
+            fullPath = cast(char*)Mem.xmalloc_noscan(fullPathLength + 1);
         }
         memcpy(fullPath, dir_path, dir_pathLength);
         strcpy(fullPath + dir_pathLength, "\\*.*".ptr);
@@ -655,8 +655,8 @@ bool findFiles(const char* dir_path, const char[][] exts, bool recurse, void del
             count = dir_pathLength + 1 + name.length;
             if (count > fullPathLength)
             {
+                fullPath = cast(char*)Mem.xrealloc_noscan(fullPath == buf.ptr ? null : fullPath, count + 1, fullPathLength + 1);
                 fullPathLength = count;
-                fullPath = cast(char*)Mem.xrealloc_noscan(fullPath == buf.ptr ? null : fullPath, fullPathLength + 1);
             }
             strcpy(fullPath + dir_pathLength + 1, name.ptr);
 
@@ -677,12 +677,12 @@ bool findFiles(const char* dir_path, const char[][] exts, bool recurse, void del
                     }
                 }
             }
-            mem.xfree(cast(void*)name.ptr);
+            mem.xfree(cast(void*)name.ptr, name.length + 1);
 
         } while (FindNextFileW(hFind, &ffd) != 0);
 
         if (fullPath != buf.ptr)
-            mem.xfree(fullPath);
+            mem.xfree(fullPath, fullPathLength + 1);
         FindClose(hFind);
         if (log) printf("findFiles() exit\n");
         return false;
