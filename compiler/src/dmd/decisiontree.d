@@ -202,27 +202,6 @@ private bool isUseful(ref const PatternMatrix matrix, size_t[] rowIndices,
     return isUseful(matrix, defaults, vector, column + 1, eu, fieldOffsets);
 }
 
-private bool integerLiteral(Expression expression, out size_t value)
-{
-    if (auto integer = expression.isIntegerExp())
-    {
-        value = cast(size_t) integer.getInteger();
-        return true;
-    }
-    return false;
-}
-
-private size_t fieldIndex(EqualExp check, VarDeclaration[] fields)
-{
-    auto dot = check.e1.isDotVarExp();
-    if (!dot)
-        return size_t.max;
-    foreach (index, field; fields)
-        if (dot.var == field)
-            return index;
-    return size_t.max;
-}
-
 private MatrixRow makeRow(ref CaseExpArm arm, EnumUnionDeclaration eu, size_t[] fieldOffsets,
     size_t totalColumns, size_t armIndex)
 {
@@ -234,31 +213,6 @@ private MatrixRow makeRow(ref CaseExpArm arm, EnumUnionDeclaration eu, size_t[] 
     if (arm.isDefault)
         return row;
     row.columns[0] = Pattern(PatternKind.constructor, arm.variantIndex, arm.loc);
-    auto variant = eu.variants[arm.variantIndex];
-    VarDeclaration[] fields;
-    if (variant.payloadType)
-        foreach (field; variant.payloadType.fields)
-            fields ~= field;
-    foreach (checkExpression; arm.patternChecks)
-    {
-        auto check = checkExpression.isEqualExp();
-        if (!check)
-            continue;
-        const index = fieldIndex(check, fields);
-        if (index != size_t.max)
-        {
-            size_t value;
-            if (integerLiteral(check.e2, value))
-            {
-                const isBool = check.e2.type && check.e2.type.toBasetype().ty == Tbool;
-                row.columns[fieldOffsets[arm.variantIndex] + index] = Pattern(PatternKind.literal, value, check.loc, isBool, null);
-            }
-            else
-            {
-                row.columns[fieldOffsets[arm.variantIndex] + index] = Pattern(PatternKind.literal, 0, check.loc, false, cast()check.e2);
-            }
-        }
-    }
     return row;
 }
 

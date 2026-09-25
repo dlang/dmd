@@ -22,6 +22,19 @@ auto unitPayload(Units value)
 
 static assert(unitPayload(Units.First).sizeof == 1);
 
+enum left = 100;
+
+int pairLeft(Value value)
+{
+    return switch (value)
+    {
+        case Pair(left, right) => left,
+        default => 0,
+    };
+}
+
+static assert(pairLeft(Value.Pair(1, 2)) == 1);
+
 int main()
 {
     return switch (Value.Unit)

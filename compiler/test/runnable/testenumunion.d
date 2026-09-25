@@ -78,8 +78,8 @@ void testNamedArgumentsAndPatterns()
 
 	auto squareValue = switch (square)
 	{
-		case Square { height: 10, width } => width,
-		case Square { height: h, width: 10 } if (h == 10) => h,
+		case Square { height: h, width } if (h == 10) => width,
+		case Square { height: h, width: w } if (h == 10 && w == 10) => h,
 		case Square(height, width) => height + width,
 		case Point(...) => 0,
 	};
@@ -87,8 +87,8 @@ void testNamedArgumentsAndPatterns()
 
 	auto pointValue = switch (point)
 	{
-		case Point(x: 0, y: 0) => 1,
-		case Point(5, 5) => 2,
+		case Point(x, y) if (x == 0 && y == 0) => 1,
+		case Point(x, y) if (x == 5 && y == 5) => 2,
 		case Point(x, y) => x + y,
 		case Square { ... } => 0,
 	};
@@ -119,10 +119,10 @@ void testPatternMatrixExhaustiveness()
 	auto shape = MatrixShape.Square(true, false);
 	auto value = switch (shape)
 	{
-		case Square { active: true, filled: true } => 1,
-		case Square { active: true, filled: false } => 2,
-		case Square { active: false, filled: true } => 3,
-		case Square { active: false, filled: false } => 4,
+		case Square { active, filled } if (active && filled) => 1,
+		case Square { active, filled } if (active && !filled) => 2,
+		case Square { active, filled } if (!active && filled) => 3,
+		case Square { active, filled } => 4,
 	};
 	assert(value == 2);
 }

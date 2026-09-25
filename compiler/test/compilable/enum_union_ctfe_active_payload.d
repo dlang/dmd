@@ -8,7 +8,7 @@ enum value = Value.Second(42);
 enum result = switch (value)
 {
     case First(...) => 0,
-    case Second(42) => 42,
+    case Second(number) if (number == 42) => 42,
     case Second(...) => 0,
 };
 
