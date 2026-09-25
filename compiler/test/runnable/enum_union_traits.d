@@ -46,16 +46,17 @@ void main()
     static assert(Variants.length == 7);
     static assert(is(Message.User == struct));
     static assert(is(Message.Slice == ubyte[]));
-    static assert(__traits(isSame, Variants[2], Message.User));
+    static assert(__traits(isSame, Variants[2],
+        __traits(getVariant, Message, "User")));
 
-    static assert(__traits(variantTag, Message, Variants[0]) == 0);
-    static assert(__traits(variantTag, Message, Variants[1]) == 1);
-    static assert(__traits(variantTag, Message, Variants[2]) == 2);
-    static assert(__traits(variantTag, Message, Variants[3]) == 3);
-    static assert(__traits(variantTag, Message, Variants[4]) == 4);
-    static assert(__traits(variantTag, Message, Variants[5]) == 5);
-    static assert(__traits(variantTag, Message, Variants[6]) == 6);
-    static assert(is(typeof(__traits(variantTag, Message, Variants[0])) == ubyte));
+    static assert(__traits(variantTag, Variants[0]) == 0);
+    static assert(__traits(variantTag, Variants[1]) == 1);
+    static assert(__traits(variantTag, Variants[2]) == 2);
+    static assert(__traits(variantTag, Variants[3]) == 3);
+    static assert(__traits(variantTag, Variants[4]) == 4);
+    static assert(__traits(variantTag, Variants[5]) == 5);
+    static assert(__traits(variantTag, Variants[6]) == 6);
+    static assert(is(typeof(__traits(variantTag, Variants[0])) == ubyte));
 
     static assert(__traits(variantKind, Variants[0]) == "unit");
     static assert(__traits(variantKind, Variants[1]) == "tuple");
@@ -105,16 +106,16 @@ void main()
 
     Message.User user = Message.User(7, "Ada");
     Message userMessage = user;
-    assert(userMessage.__tag == __traits(variantTag, Message, Variants[2]));
+    assert(userMessage.__tag == __traits(variantTag, Variants[2]));
     const constMessage = userMessage;
     immutable immutableMessage = Message.None();
     shared Message sharedMessage;
-    assert(constMessage.__tag == __traits(variantTag, Message, Variants[2]));
-    assert(immutableMessage.__tag == __traits(variantTag, Message, Variants[0]));
-    assert(sharedMessage.__tag == __traits(variantTag, Message, Variants[0]));
+    assert(constMessage.__tag == __traits(variantTag, Variants[2]));
+    assert(immutableMessage.__tag == __traits(variantTag, Variants[0]));
+    assert(sharedMessage.__tag == __traits(variantTag, Variants[0]));
     static assert(__traits(hasMember, Message, "__tag"));
     assert(__traits(getMember, userMessage, "__tag") ==
-        __traits(variantTag, Message, Variants[2]));
+        __traits(variantTag, Variants[2]));
     static assert(CountTag!(__traits(allMembers, Message)) == 1);
     static foreach (member; Message.tupleof)
         static assert(__traits(identifier, member) != "__tag");
@@ -125,11 +126,12 @@ void main()
     static assert(!__traits(compiles, (ref Message value) { ref ubyte tag = value.__tag; }));
     Message.Slice bytes = [ubyte(1), 2, 3];
     Message bytesMessage = bytes;
-    assert(bytesMessage.__tag == __traits(variantTag, Message, Variants[5]));
+    assert(bytesMessage.__tag == __traits(variantTag, Variants[5]));
 
     static assert(!__traits(compiles, __traits(allVariants, int)));
     static assert(!__traits(compiles, __traits(getTag, Message, Variants[0])));
-    static assert(!__traits(compiles, __traits(variantTag, Message, double)));
+    static assert(!__traits(compiles, __traits(variantTag, double)));
+    static assert(!__traits(compiles, __traits(variantTag, Message, Variants[0])));
     static assert(!__traits(compiles, __traits(variantKind, main)));
     static assert(!__traits(compiles, __traits(variantParams, main)));
     static assert(!__traits(compiles, __traits(variantParamNames, main)));
@@ -147,7 +149,7 @@ void main()
     static assert(__traits(isSame, __traits(getVariant, Message, "Move"), Variants[1]));
     static assert(__traits(isSame, __traits(getVariant, Message, "User"), Variants[2]));
     static assert(__traits(isSame, __traits(getVariant, Message, "Slice"), Variants[5]));
-    static assert(is(__traits(getVariant, Message, int) == Variants[4]));
+    static assert(__traits(isSame, __traits(getVariant, Message, int), Variants[4]));
 
     // Partially-named tuple variant parameter traits
     enum union Shape

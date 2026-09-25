@@ -6070,6 +6070,11 @@ void resolve(Type mt, Loc loc, Scope* sc, out Expression pe, out Type pt, out Ds
             pt = mt.obj.isType();
             ps = mt.obj.isDsymbol();
             pe = mt.obj.isExpression();
+            if (auto variant = ps ? ps.isEnumUnionCaseDeclaration() : null)
+            {
+                ps = null;
+                pt = variant.type.addMod(mt.mod);
+            }
             return;
         }
 
@@ -6154,7 +6159,11 @@ void resolve(Type mt, Loc loc, Scope* sc, out Expression pe, out Type pt, out Ds
                 returnType(t);
             }
             else if (auto s = mt.obj.isDsymbol())
+            {
+                if (auto variant = s.isEnumUnionCaseDeclaration())
+                    returnType(variant.type.addMod(mt.mod));
                 returnSymbol(s);
+            }
             else if (auto e = mt.obj.isExpression())
                 returnExp(e);
         }

@@ -1030,6 +1030,8 @@ Type getType(Dsymbol _this)
         return aggregateDeclGetType(agd);
     else if (auto ed = _this.isEnumDeclaration())
         return ed.type;
+    else if (auto variant = _this.isEnumUnionCaseDeclaration())
+        return variant.type;
 
     // is this a type?
     return null;
@@ -2092,7 +2094,7 @@ private void checkImportDeprecation(Module m, Loc loc, Scope* sc)
 }
 
 private bool expandEnumUnionVariantSplice(ref EnumUnionVariant splice, Scope* sc,
-    out EnumUnionVariant expanded)
+    out EnumUnionVariant expanded, Dsymbol forcedSourceSymbol = null)
 {
     auto eSink = global.errorSink;
     auto trait = splice.variantSplice;
@@ -2136,6 +2138,32 @@ private bool expandEnumUnionVariantSplice(ref EnumUnionVariant splice, Scope* sc
     }
 
     auto sourceObject = (*trait.args)[0];
+    Dsymbol sourceSymbol = forcedSourceSymbol;
+    if (!sourceSymbol)
+    {
+        auto sourceExpression = isExpression(sourceObject);
+        if (auto identifier = sourceExpression
+                ? sourceExpression.isIdentifierExp() : null)
+        {
+            Dsymbol scopeSymbol;
+            sourceSymbol = sc.search(identifier.loc, identifier.ident, scopeSymbol);
+        }
+        else if (sourceExpression)
+        {
+            if (sourceExpression.isTraitsExp())
+                sourceSymbol = dmd.expressionsem.getDsymbol(
+                    sourceExpression.expressionSemantic(sc));
+            else
+                sourceSymbol = dmd.expressionsem.getDsymbol(sourceExpression);
+        }
+    }
+    while (sourceSymbol)
+    {
+        auto aliasDeclaration = sourceSymbol.isAliasDeclaration();
+        if (!aliasDeclaration || !aliasDeclaration.aliassym)
+            break;
+        sourceSymbol = aliasDeclaration.aliassym;
+    }
     EnumUnionDeclaration sourceEnum;
     if (auto sourceTrait = isExpression(sourceObject)
             ? isExpression(sourceObject).isTraitsExp() : null)
@@ -2157,9 +2185,20 @@ private bool expandEnumUnionVariantSplice(ref EnumUnionVariant splice, Scope* sc
     if (!TemplateInstance_semanticTiargs(trait.loc, sc, &sourceArgument, 0))
         return false;
     sourceObject = sourceArgument[0];
-    auto sourceSymbol = dmd.expressionsem.getDsymbol(sourceObject);
     if (!sourceEnum && sourceSymbol)
-        sourceEnum = sourceSymbol.toParent2().isEnumUnionDeclaration();
+    {
+        auto parent = sourceSymbol.toParent2();
+        sourceEnum = parent ? parent.isEnumUnionDeclaration() : null;
+    }
+    if (!sourceEnum)
+    {
+        sourceSymbol = dmd.expressionsem.getDsymbol(sourceObject);
+        if (sourceSymbol)
+        {
+            auto parent = sourceSymbol.toParent2();
+            sourceEnum = parent ? parent.isEnumUnionDeclaration() : null;
+        }
+    }
     if (!sourceEnum)
     {
         eSink.error(trait.loc, "argument `%s` is not an enum union variant",
@@ -2168,19 +2207,26 @@ private bool expandEnumUnionVariantSplice(ref EnumUnionVariant splice, Scope* sc
     }
 
     auto sourceType = dmd.dtemplate.getType(sourceObject);
+    if (!sourceSymbol && sourceType)
+        sourceSymbol = sourceType.toDsymbol(sc);
+    auto resolvedSourceSymbol = sourceSymbol ? sourceSymbol.toAlias() : null;
     EnumUnionVariant* sourceVariant;
     foreach (ref variant; sourceEnum.variants)
     {
         bool matches;
-        if (variant.declaration && sourceSymbol)
+        if (variant.descriptor && sourceSymbol)
+            matches = variant.descriptor is sourceSymbol;
+        if (!matches && variant.declaration && resolvedSourceSymbol)
+            matches = variant.declaration == resolvedSourceSymbol;
+        if (!matches && variant.declaration && sourceSymbol)
             matches = variant.declaration == sourceSymbol;
-        else if (variant.ident && sourceSymbol)
+        if (!matches && variant.ident && resolvedSourceSymbol)
         {
-            auto factory = sourceSymbol.isFuncDeclaration();
+            auto factory = resolvedSourceSymbol.isFuncDeclaration();
             matches = factory && factory.isGenerated && factory.ident == variant.ident &&
                 factory.toParent2() == sourceEnum;
         }
-        else if (!variant.ident && sourceType)
+        if (!matches && !variant.ident && sourceType)
         {
             auto payloadType = variant.payloadType && variant.payloadType.fields.length
                 ? variant.payloadType.fields[0].type
@@ -2211,9 +2257,74 @@ private bool expandEnumUnionVariantSplice(ref EnumUnionVariant splice, Scope* sc
     return true;
 }
 
+private bool equivalentEnumUnionVariants(ref EnumUnionVariant left,
+    ref EnumUnionVariant right)
+{
+    bool equivalentExpressions(Expressions* leftExpressions,
+        Expressions* rightExpressions)
+    {
+        if (!leftExpressions || !rightExpressions)
+            return leftExpressions is rightExpressions;
+        if (leftExpressions.length != rightExpressions.length)
+            return false;
+        foreach (index; 0 .. leftExpressions.length)
+            if (!dmd.expressionsem.equals((*leftExpressions)[index],
+                    (*rightExpressions)[index]))
+                return false;
+        return true;
+    }
+
+    if (left.ident != right.ident || left.isTypeAlias != right.isTypeAlias ||
+        !!left.members != !!right.members || left.payload.length != right.payload.length ||
+        left.payloadNames.length != right.payloadNames.length ||
+        !equivalentExpressions(left.udas, right.udas))
+        return false;
+
+    foreach (index; 0 .. left.payload.length)
+        if (!left.payload[index] || !right.payload[index] ||
+            !left.payload[index].equals(right.payload[index]))
+            return false;
+    foreach (index; 0 .. left.payloadNames.length)
+        if (left.payloadNames[index] != right.payloadNames[index])
+            return false;
+
+    if (left.members)
+    {
+        VarDeclaration[] leftFields;
+        VarDeclaration[] rightFields;
+        foreach (member; *left.members)
+            if (auto field = member.isVarDeclaration())
+                leftFields ~= field;
+            else
+                return false;
+        foreach (member; *right.members)
+            if (auto field = member.isVarDeclaration())
+                rightFields ~= field;
+            else
+                return false;
+        if (leftFields.length != rightFields.length)
+            return false;
+        foreach (index; 0 .. leftFields.length)
+            if (leftFields[index].ident != rightFields[index].ident ||
+                !leftFields[index].type || !rightFields[index].type ||
+                !leftFields[index].type.equals(rightFields[index].type))
+                return false;
+    }
+    return true;
+}
+
+private void appendEnumUnionVariant(ref EnumUnionVariant[] variants,
+    EnumUnionVariant variant)
+{
+    foreach (ref existing; variants)
+        if (equivalentEnumUnionVariants(existing, variant))
+            return;
+    variants ~= variant;
+}
+
 private void collectEnumUnionCases(Dsymbols* symbols, Scope* sc,
     ref EnumUnionVariant[] variants, Dsymbols* retained, Type forcedPayload = null,
-    bool discardLoopBindings = false)
+    bool discardLoopBindings = false, Dsymbol forcedSourceSymbol = null)
 {
     auto eSink = global.errorSink;
     if (!symbols)
@@ -2227,8 +2338,9 @@ private void collectEnumUnionCases(Dsymbols* symbols, Scope* sc,
             if (variant.variantSplice)
             {
                 EnumUnionVariant expanded;
-                if (expandEnumUnionVariantSplice(variant, sc, expanded))
-                    variants ~= expanded;
+                if (expandEnumUnionVariantSplice(variant, sc, expanded,
+                    forcedSourceSymbol))
+                    appendEnumUnionVariant(variants, expanded);
                 continue;
             }
             variant.payload = variant.payload.dup;
@@ -2297,6 +2409,7 @@ private void collectEnumUnionCases(Dsymbols* symbols, Scope* sc,
                         auto iterationScope = sc.push(fad.sym);
                         fad.decl.foreachDsymbol(s => s.setScope(iterationScope));
                         Type payload;
+                        Dsymbol sourceSymbol;
                         foreach (member; *fad.decl)
                         {
                             if (auto loopAlias = member.isAliasDeclaration())
@@ -2307,8 +2420,13 @@ private void collectEnumUnionCases(Dsymbols* symbols, Scope* sc,
                                 break;
                             }
                         }
+                        if (sfd.sfe.aggrfe)
+                            if (auto tuple = sfd.sfe.aggrfe.aggr.isTupleExp())
+                                if (i < tuple.exps.length)
+                                    sourceSymbol = dmd.expressionsem.getDsymbol(
+                                        (*tuple.exps)[i]);
                         collectEnumUnionCases(fad.decl, iterationScope, variants, retained,
-                            payload, true);
+                            payload, true, sourceSymbol);
                     }
                 }
             }
@@ -2595,7 +2713,7 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
         m.importAll(sc);
     }
 
-    foreach (i, variant; eu.variants)
+    foreach (i, ref variant; eu.variants)
     {
         if (!variant.ident || variant.declaration)
             continue;
@@ -2657,6 +2775,39 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
         factoryMember.addMember(sc, eu);
         factoryMember.setScope(sc);
         factoryMember.importAll(sc);
+        variant.declaration = fd;
+    }
+}
+
+private void synthesizeEnumUnionVariantDescriptors(EnumUnionDeclaration eu, Scope* sc)
+{
+    foreach (ref variant; eu.variants)
+    {
+        auto descriptor = new EnumUnionCaseDeclaration(variant.loc,
+            syntaxCopyEnumUnionVariant(variant));
+        descriptor.ident = variant.ident;
+        descriptor.parent = eu;
+        descriptor._scope = sc;
+        if (auto declaration = variant.declaration
+                ? variant.declaration.isDeclaration() : null)
+            descriptor.type = declaration.type;
+        else if (auto aggregate = variant.declaration
+                ? variant.declaration.isAggregateDeclaration() : null)
+            descriptor.type = aggregate.type;
+        else
+            descriptor.type = variant.payloadType && variant.payloadType.fields.length
+                ? variant.payloadType.fields[0].type
+                : variant.payload.length == 1 ? variant.payload[0] : null;
+        if (!eu.errors && !descriptor.ident && descriptor.type &&
+            descriptor.type.ty != Terror)
+            if (auto payloadSymbol = descriptor.type.toDsymbol(sc))
+                descriptor.ident = payloadSymbol.ident;
+        if (variant.udas)
+        {
+            descriptor.userAttribDecl = new UserAttributeDeclaration(variant.udas, null);
+            descriptor.userAttribDecl.setScope(sc);
+        }
+        variant.descriptor = descriptor;
     }
 }
 
@@ -5833,7 +5984,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     }
                     EnumUnionVariant expanded;
                     if (expandEnumUnionVariantSplice(variant, sc2, expanded))
-                        expandedVariants ~= expanded;
+                        appendEnumUnionVariant(expandedVariants, expanded);
                 }
                 eu.variants = expandedVariants;
                 auto originalMembers = eu.members;
@@ -5864,6 +6015,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 eu.members.foreachDsymbol(s => s.importAll(sc2));
 
                 synthesizeEnumUnionFactories(eu, sc2);
+                synthesizeEnumUnionVariantDescriptors(eu, sc2);
 
                 eu.symtab = new DsymbolTable();
                 eu.members.foreachDsymbol(s => s.addMember(sc, eu));

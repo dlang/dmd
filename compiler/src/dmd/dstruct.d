@@ -44,6 +44,7 @@ struct EnumUnionVariant
     bool isTypeAlias;
     bool generated;
     Dsymbol declaration;
+    EnumUnionCaseDeclaration descriptor;
     Expressions* udas;
     Type[] payload;
     Identifier[] payloadNames;
