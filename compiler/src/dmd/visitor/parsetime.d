@@ -89,6 +89,13 @@ public:
     void visit(AST.Module s) { visit(cast(AST.Package)s); }
     void visit(AST.StructDeclaration s) { visit(cast(AST.AggregateDeclaration)s); }
     void visit(AST.UnionDeclaration s) { visit(cast(AST.StructDeclaration)s); }
+    void visit(AST.EnumUnionDeclaration s)
+    {
+      static if (is(AST.EnumUnionDeclaration : AST.StructDeclaration))
+        visit(cast(AST.StructDeclaration)s);
+      else
+        visit(cast(AST.ScopeDsymbol)s);
+    }
     void visit(AST.ClassDeclaration s) { visit(cast(AST.AggregateDeclaration)s); }
     void visit(AST.InterfaceDeclaration s) { visit(cast(AST.ClassDeclaration)s); }
     void visit(AST.TemplateMixin s) { visit(cast(AST.TemplateInstance)s); }
