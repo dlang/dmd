@@ -1283,7 +1283,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                  */
                 auto id = Identifier.generateId("__r");
                 auto ie = new ExpInitializer(loc, new SliceExp(loc, fs.aggr, null, null));
-                const valueIsRef = (*fs.parameters)[$ - 1].isReference();
+                const valueIsRef = fs.value.isReference();
                 VarDeclaration tmp;
                 if (fs.aggr.isArrayLiteralExp() && !valueIsRef)
                 {
