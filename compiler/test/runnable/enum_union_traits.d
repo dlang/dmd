@@ -133,6 +133,30 @@ void main()
     static assert(!__traits(compiles, __traits(variantKind, main)));
     static assert(!__traits(compiles, __traits(variantParams, main)));
     static assert(!__traits(compiles, __traits(variantParamNames, main)));
+
+    // hasVariant and getVariant tests
+    static assert(__traits(hasVariant, Message, "None"));
+    static assert(__traits(hasVariant, Message, "Move"));
+    static assert(__traits(hasVariant, Message, "User"));
+    static assert(__traits(hasVariant, Message, "Slice"));
+    static assert(__traits(hasVariant, Message, int));
+    static assert(!__traits(hasVariant, Message, "missing"));
+    static assert(!__traits(hasVariant, Message, double));
+
+    static assert(__traits(isSame, __traits(getVariant, Message, "None"), Variants[0]));
+    static assert(__traits(isSame, __traits(getVariant, Message, "Move"), Variants[1]));
+    static assert(__traits(isSame, __traits(getVariant, Message, "User"), Variants[2]));
+    static assert(__traits(isSame, __traits(getVariant, Message, "Slice"), Variants[5]));
+    static assert(is(__traits(getVariant, Message, int) == Variants[4]));
+
+    // Partially-named tuple variant parameter traits
+    enum union Shape
+    {
+        case Arc(double, double, double radius);
+    }
+    alias ShapeVars = __traits(allVariants, Shape);
+    static assert(is(__traits(variantParams, ShapeVars[0]) == AliasSeq!(double, double, double)));
+    static assert(__traits(variantParamNames, ShapeVars[0]) == AliasSeq!("", "", "radius"));
 }
 
 template AliasSeq(T...)
