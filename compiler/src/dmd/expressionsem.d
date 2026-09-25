@@ -7802,18 +7802,22 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (auto st = te.type.toBasetype().isTypeStruct())
                     enumUnion = st.sym.isEnumUnionDeclaration();
             }
-            else
+            else if (auto se = dot.e1.isScopeExp())
             {
-                const errors = global.startGagging();
-                auto aggregate = dot.e1.expressionSemantic(sc);
-                if (!global.endGagging(errors) && aggregate && aggregate.op != EXP.error)
-                {
-                    if (auto te = aggregate.isTypeExp())
-                    {
-                        if (auto st = te.type.toBasetype().isTypeStruct())
-                            enumUnion = st.sym.isEnumUnionDeclaration();
-                    }
-                }
+                enumUnion = se.sds.isEnumUnionDeclaration();
+            }
+            else if (auto ide = dot.e1.isIdentifierExp())
+            {
+                Dsymbol scopesym;
+                sc.search(ide.loc, ide.ident, scopesym);
+                if (scopesym)
+                    enumUnion = scopesym.toAlias().isEnumUnionDeclaration();
+            }
+            else if (auto die = dot.e1.isDotIdExp())
+            {
+                Dsymbol s = getDsymbol(dot.e1);
+                if (s)
+                    enumUnion = s.toAlias().isEnumUnionDeclaration();
             }
 
             if (enumUnion)

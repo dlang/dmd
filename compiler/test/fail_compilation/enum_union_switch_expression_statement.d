@@ -1,9 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/enum_union_switch_expression_statement.d(20): Error: found `}` when expecting `:`
-fail_compilation/enum_union_switch_expression_statement.d(21): Error: matching `}` expected following compound statement, not `End of File`
-fail_compilation/enum_union_switch_expression_statement.d(16):        unmatched `{`
+fail_compilation/enum_union_switch_expression_statement.d(17): Error: switch expression has no effect; use `cast(void)` to discard its value
 ---
 */
 

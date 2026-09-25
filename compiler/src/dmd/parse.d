@@ -1157,9 +1157,21 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             default:
                 error("declaration expected, not `%s`", token.toChars());
             Lerror:
-                while (token.value != TOK.semicolon && token.value != TOK.rightCurly &&
-                       token.value != TOK.endOfFile)
+                int curlies = 0;
+                while (token.value != TOK.endOfFile)
+                {
+                    if (token.value == TOK.leftCurly)
+                        curlies++;
+                    else if (token.value == TOK.rightCurly)
+                    {
+                        if (curlies == 0)
+                            break;
+                        curlies--;
+                    }
+                    else if (token.value == TOK.semicolon && curlies == 0)
+                        break;
                     nextToken();
+                }
                 if (token.value == TOK.semicolon)
                     nextToken();
                 s = null;
@@ -8992,7 +9004,25 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
                 {
                     if (!parseSwitchExpArm(arms, hasDefault))
+                    {
+                        int curlies = 1;
+                        while (token.value != TOK.endOfFile)
+                        {
+                            if (token.value == TOK.leftCurly)
+                                curlies++;
+                            else if (token.value == TOK.rightCurly)
+                            {
+                                curlies--;
+                                if (curlies == 0)
+                                {
+                                    nextToken();
+                                    break;
+                                }
+                            }
+                            nextToken();
+                        }
                         goto Lerr;
+                    }
                 }
                 check(TOK.rightCurly);
                 e = new AST.SwitchExp(loc, condition, arms, hasDefault);
