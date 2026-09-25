@@ -106,6 +106,23 @@ void main()
     Message.User user = Message.User(7, "Ada");
     Message userMessage = user;
     assert(userMessage.__tag == __traits(getTag, Message, Variants[2]));
+    const constMessage = userMessage;
+    immutable immutableMessage = Message.None();
+    shared Message sharedMessage;
+    assert(constMessage.__tag == __traits(getTag, Message, Variants[2]));
+    assert(immutableMessage.__tag == __traits(getTag, Message, Variants[0]));
+    assert(sharedMessage.__tag == __traits(getTag, Message, Variants[0]));
+    static assert(__traits(hasMember, Message, "__tag"));
+    assert(__traits(getMember, userMessage, "__tag") ==
+        __traits(getTag, Message, Variants[2]));
+    static assert(CountTag!(__traits(allMembers, Message)) == 1);
+    static foreach (member; Message.tupleof)
+        static assert(__traits(identifier, member) != "__tag");
+    static assert(!__traits(compiles, (ref Message value) { value.__tag = 1; }));
+    static assert(!__traits(compiles, (ref Message value) { value.__tag += 1; }));
+    static assert(!__traits(compiles, (ref Message value) { value.__tag++; }));
+    static assert(!__traits(compiles, (ref Message value) { auto pointer = &value.__tag; }));
+    static assert(!__traits(compiles, (ref Message value) { ref ubyte tag = value.__tag; }));
     Message.Slice bytes = [ubyte(1), 2, 3];
     Message bytesMessage = bytes;
     assert(bytesMessage.__tag == __traits(getTag, Message, Variants[5]));
@@ -120,4 +137,16 @@ void main()
 template AliasSeq(T...)
 {
     alias AliasSeq = T;
+}
+
+template CountTag(names...)
+{
+    enum CountTag = ()
+    {
+        size_t count;
+        static foreach (name; names)
+            if (name == "__tag")
+                count++;
+        return count;
+    }();
 }
