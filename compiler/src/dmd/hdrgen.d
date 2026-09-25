@@ -2756,6 +2756,23 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitDeclaration(DeclarationExp e)
     {
+        void unpackPatternToBuffer(UnpackDeclaration unpack, bool nested = false)
+        {
+            if (nested)
+                buf.put('(');
+            foreach (index, declaration; *unpack.decl)
+            {
+                if (index)
+                    buf.put(", ");
+                if (auto variable = declaration.isVarDeclaration())
+                    buf.put(variable.ident.toString());
+                else if (auto child = declaration.isUnpackDeclaration())
+                    unpackPatternToBuffer(child, true);
+            }
+            if (nested)
+                buf.put(')');
+        }
+
         /* Normal dmd execution won't reach here - regular variable declarations
          * are handled in visit(ExpStatement), so here would be used only when
          * we'll directly call Expression.toChars() for debugging.
@@ -2775,6 +2792,8 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
                 buf.put(';');
                 buf.put(')');
             }
+            else if (auto unpack = e.declaration.isUnpackDeclaration())
+                unpackPatternToBuffer(unpack);
             else e.declaration.dsymbolToBuffer(buf, hgs);
         }
     }

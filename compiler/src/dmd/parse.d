@@ -1211,7 +1211,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         }
     }
 
-    AST.UnpackDeclaration parseUnpackDeclaration(STC g_storage_class, bool parseInitializer = true, bool isParameter = false)
+    AST.UnpackDeclaration parseUnpackDeclaration(STC g_storage_class, bool parseInitializer = true,
+        bool isParameter = false, bool isPattern = false)
     in
     {
         assert(token.value == TOK.leftParenthesis);
@@ -1231,7 +1232,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             AST.Expressions* udas = null;
             Loc linkloc = this.linkLoc; // (ignored)
             auto storage_class = g_storage_class;
-            parseStorageClasses(storage_class, link, setAlignment, ealign, udas, linkloc);
+            if (!isPattern)
+                parseStorageClasses(storage_class, link, setAlignment, ealign, udas, linkloc);
 
             /+if (link)
                 error("linkage specification not allowed within unpack declarations");+/
@@ -1240,7 +1242,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (token.value == TOK.leftParenthesis)
             {
                 // recurse
-                vars.push(parseUnpackDeclaration(storage_class, false, isParameter));
+                vars.push(parseUnpackDeclaration(storage_class, false, isParameter, isPattern));
             }
             else
             {
@@ -1252,7 +1254,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     i = token.ident;
                     nextToken();
                 }
-                else
+                else if (!isPattern)
                 {
                     t = parseBasicType();
                     t = parseTypeSuffixes(t);
@@ -1272,11 +1274,18 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     i = token.ident;
                     nextToken();
                 }
+                else
+                {
+                    error(token.loc,
+                        "value tests in tuple patterns are not supported; bind the value and use an `if` guard");
+                    parseAssignExp();
+                    i = Identifier.generateId("__patternError");
+                }
                 if (storage_class & STC.autoref)
                 {
                     error("`auto ref` unpacked variables are not supported");
                 }
-                if (!t && storage_class == STC.none)
+                if (!t && storage_class == STC.none && !isPattern)
                 {
                     error("unpacked variable `%s` needs a type or at least one storage class, did you mean `auto %s`?",
                         i.toChars(), i.toChars());
@@ -8853,7 +8862,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                                 nextToken();
                                 nextToken();
                                 recordPatternNames ~= fieldName;
-                                recordPatterns ~= parseAssignExp();
+                                if (token.value == TOK.leftParenthesis)
+                                {
+                                    auto unpack = parseUnpackDeclaration(
+                                        STC.auto_ | STC.temp | STC.ctfe, false, false, true);
+                                    recordPatterns ~= new AST.DeclarationExp(unpack.loc, unpack);
+                                }
+                                else
+                                    recordPatterns ~= parseAssignExp();
                             }
                             else if (peekNext() == TOK.dotDotDot)
                             {
@@ -8911,7 +8927,37 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     hasRestPattern = true;
                 }
                 else
-                    parseNamedArguments(args, names);
+                {
+                    nextToken();
+                    while (token.value != TOK.rightParenthesis && token.value != TOK.endOfFile)
+                    {
+                        if (peekNext() == TOK.colon)
+                        {
+                            const labelLoc = token.loc;
+                            auto label = token.ident;
+                            check(TOK.identifier);
+                            check(TOK.colon);
+                            names.push(ArgumentLabel(label, labelLoc));
+                        }
+                        else
+                            names.push(ArgumentLabel(null, Loc.init));
+
+                        AST.Expression argument;
+                        if (token.value == TOK.leftParenthesis)
+                        {
+                            auto unpack = parseUnpackDeclaration(
+                                STC.auto_ | STC.temp | STC.ctfe, false, false, true);
+                            argument = new AST.DeclarationExp(unpack.loc, unpack);
+                        }
+                        else
+                            argument = parseAssignExp();
+                        args.push(argument);
+                        if (token.value != TOK.comma)
+                            break;
+                        nextToken();
+                    }
+                    check(TOK.rightParenthesis);
+                }
                 pattern = new AST.CallExp(pattern.loc, pattern, args, names);
             }
         }
