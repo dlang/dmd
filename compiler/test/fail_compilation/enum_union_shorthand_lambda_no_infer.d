@@ -22,4 +22,3 @@ void test()
 {
     Funs f = n => n;
 }
-
