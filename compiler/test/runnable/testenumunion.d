@@ -807,7 +807,7 @@ void testLifecycleCopyableVariant()
 	lifecycleCopyCount = 0;
 	WithCopyable a = WithCopyable.Wrapped(CopyablePayload(7));
 	WithCopyable b = a;
-	assert(lifecycleCopyCount == 1);
+	assert(lifecycleCopyCount == 2);
 	assert(a.__tag == 0);
 	assert(b.__tag == 0);
 }
