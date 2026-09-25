@@ -1638,6 +1638,15 @@ public:
                     return null;
                 }
 
+                if (asStatements && expNeedsDtor(dve.e1))
+                {
+                    /* If inlining as statements, temporaries in dve.e1
+                     * will be destructed immediately, possibly rendering
+                     * whatever referenced by explicitThis invalid.
+                     */
+                    return null;
+                }
+
                 explicitThis = dve.e1;
                 return dve.var.isFuncDeclaration();
             }
