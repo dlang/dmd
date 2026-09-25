@@ -2386,6 +2386,11 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
             }
         }
     }
+    if (hasErrors)
+    {
+        eu.errors = true;
+        return;
+    }
 
     foreach (i, ref variant; eu.variants)
     {
