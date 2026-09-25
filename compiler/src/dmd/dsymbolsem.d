@@ -2341,12 +2341,14 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
     if (eu.enumUnionFactoriesSynthesized)
         return;
     eu.enumUnionFactoriesSynthesized = true;
-    if (eu.members.length < 2)
-        return;
-
-    if (!(*eu.members)[1])
-        return;
-    auto anon = (*eu.members)[1].isAnonDeclaration();
+    AnonDeclaration anon;
+    foreach (member; *eu.members)
+        if (auto candidate = member.isAnonDeclaration())
+            if (candidate.isunion)
+            {
+                anon = candidate;
+                break;
+            }
     if (!anon)
         return;
     bool hasErrors;
@@ -5846,8 +5848,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 eu.members = new Dsymbols();
                 if (eu.tagVar)
                     eu.members.push(eu.tagVar);
-                if (originalMembers && originalMembers.length > 1 && (*originalMembers)[1].isAnonDeclaration())
-                    eu.members.push((*originalMembers)[1]);
+                if (originalMembers)
+                    foreach (member; *originalMembers)
+                        if (auto anon = member.isAnonDeclaration())
+                            if (anon.isunion)
+                            {
+                                eu.members.push(anon);
+                                break;
+                            }
                 eu.members.append(retainedMembers);
 
                 eu.symtab = new DsymbolTable();

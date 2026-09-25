@@ -387,6 +387,7 @@ public:
     virtual void visit(Module *s) { visit((Package *)s); }
     virtual void visit(StructDeclaration *s) { visit((AggregateDeclaration *)s); }
     virtual void visit(UnionDeclaration *s) { visit((StructDeclaration *)s); }
+    virtual void visit(EnumUnionDeclaration *s) { visit((StructDeclaration *)s); }
     virtual void visit(ClassDeclaration *s) { visit((AggregateDeclaration *)s); }
     virtual void visit(InterfaceDeclaration *s) { visit((ClassDeclaration *)s); }
     virtual void visit(TemplateMixin *s) { visit((TemplateInstance *)s); }

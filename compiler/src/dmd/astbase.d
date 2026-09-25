@@ -951,7 +951,7 @@ struct ASTBase
 
         override void accept(Visitor v)
         {
-            v.visit(cast(ScopeDsymbol) this);
+            v.visit(this);
         }
 
         override final inout(EnumUnionDeclaration) isEnumUnionDeclaration() inout
