@@ -26,7 +26,13 @@ Shape s1 = Shape.Circle(3.5);
 Shape s2 = Shape.Point();
 ```
 
-The active variant is stored internally as a tag. The generated field is `.__tag`.
+The active variant is stored internally as a tag. The read-only `.__tag`
+property exposes it for inspection. Compare it with a reflected tag instead of
+hard-coding a number:
+
+```d
+assert(s1.__tag == __traits(getTag, Shape, Shape.Circle));
+```
 
 ---
 
@@ -236,6 +242,23 @@ case Rectangle(w, h) => ...
 case Point() => ...
 ```
 
+Payload patterns introduce bindings only. Use identifiers, discards, rest
+patterns, or nested tuple bindings; use a guard for a value predicate:
+
+```d
+return switch (value)
+{
+    case Wrapped((left, right)) => left + right,
+    case Record { point: (x, y), ... } => x + y,
+    case Number(number) if (number == 42) => number,
+    default => 0,
+};
+```
+
+The tuple shape is recursive and follows unpack-declaration syntax, but tuple
+patterns are available independently of the tuple-declaration preview switch.
+Literals and arbitrary expressions cannot appear in payload binding positions.
+
 A `default` arm is the fallback branch for a `switch` expression. It runs when no earlier pattern matches. It does not bind a value, because it is not a case pattern; it is simply the catch-all branch for the remaining cases.
 
 This is the normal way to inspect an enum union.
@@ -370,15 +393,15 @@ An alternate form is to use the bare type `typeof(null)` for the "none" case:
 enum union Option(T)
 {
     case Some(T);
-    typeof(null),
+    case typeof(null);
 }
 
-string describe(Option!string value)
+int extract(Option!int value)
 {
     return switch (value)
     {
-        case Some(n) => "value: " ~ n.to!string(),
-        case typeof(null) => "empty",
+        case Some(n) => n,
+        case typeof(null) => 0,
     };
 }
 
@@ -387,8 +410,8 @@ void main()
     Option!int n = Option!int.Some(42);
     Option!int m = null;
 
-    assert(describe(n) == "value: 42");
-    assert(describe(m) == "empty");
+    assert(extract(n) == 42);
+    assert(extract(m) == 0);
 }
 ```
 
@@ -403,8 +426,11 @@ An enum union is a fixed set of tagged variants. The declaration form is D-nativ
 The key rules are:
 
 - each case name must be unique
+- named unit variants use `Name()`; a bare identifier denotes a type
 - bare type duplicates are rejected
 - ambiguous bare conversions are rejected
 - the switch must be exhaustive unless a `default` is present
 - unreachable and invalid arms are rejected
+- payload patterns bind values; value predicates belong in guards
+- `.__tag` is read-only and should be compared with `__traits(getTag, ...)`
 - unsafe lifecycle payloads are rejected

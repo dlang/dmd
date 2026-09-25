@@ -77,7 +77,8 @@ void main()
     assert(resultValue(ExternalStruct(10)) == 10);
     assert(resultValue(Wrapper!int(20)) == 20);
     assert(resultValue("hello") == 5);
-    assert(NamedUnit.ExternalStruct().__tag == 0);
+    assert(NamedUnit.ExternalStruct().__tag ==
+        __traits(getTag, NamedUnit, NamedUnit.ExternalStruct));
     assert(namedUnitBare(NamedUnit.ExternalStruct) == 1);
     assert(namedUnitCall(NamedUnit.ExternalStruct()) == 2);
 
