@@ -1494,6 +1494,9 @@ Expression initializerToExpression(Initializer init, Scope* sc, Type itype, Erro
                 if (init.isAssociativeArray())
                     return init.toAssocArrayLiteral(sc, itype, global.errorSink);
 
+        if (auto tv = itype ? itype.toBasetype().isTypeVector() : null)
+            itype = tv.basetype;  // normalize to array type
+
         uint edim;      // the length of the resulting array literal
         const(uint) amax = 0x80000000;
         Type t = null;  // type of the array literal being initialized
@@ -1614,7 +1617,7 @@ Expression initializerToExpression(Initializer init, Scope* sc, Type itype, Erro
                 if (!telem) // don't know what type to use
                     return null;
                 if (!defaultInit)
-                    defaultInit = telem.defaultInit(init.loc, isCfile);
+                    defaultInit = telem.defaultInitLiteral(init.loc, isCfile); // need properly expanded static arrays
                 element = defaultInit;
             }
         }
@@ -1624,15 +1627,29 @@ Expression initializerToExpression(Initializer init, Scope* sc, Type itype, Erro
          *    e => [e, e, ..., e, e]
          *    e => [[e, e], [e, e], [e, e]]  (etc, for deeper static arrays)
          */
-        if (t)
+        if (t && telem)
         {
-            Type tn = t.nextOf().toBasetype();
             foreach (ref e; *elements)
             {
                 if (!e.type)
                     e = e.expressionSemantic(sc);
                 if (e.op == EXP.error)
                     continue;
+                // prefer [a, b] => [[a, b], [a, b]] over [[a, a], [b, b]]
+                // so try to find a dimension that fits the element type
+                Type tn = telem;
+                while (tn)
+                {
+                    auto tsa = tn.isTypeSArray();
+                    if (!tsa)
+                    {
+                        tn = telem;
+                        break;
+                    }
+                    tn = tsa.next;
+                    if (tsa.dim.toInteger() == elements.length && e.implicitConvTo(tsa.next))
+                        break;
+                }
                 if (auto ae = sarrayRepeat(e, tn, sc))
                     e = ae;
                 else if (e.implicitConvTo(tn))
