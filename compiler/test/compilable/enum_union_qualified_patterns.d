@@ -44,6 +44,15 @@ string classifyExplicitUnit(Value value)
     };
 }
 
+bool classifyQualifiedBinding(Value value)
+{
+    return switch (value)
+    {
+        case enum_union_qualified_patterns.C2 instance => instance !is null,
+        default => false,
+    };
+}
+
 void main()
 {
     assert(classify(Value(new C1)) == "C1");
@@ -52,4 +61,5 @@ void main()
     assert(classify(Value.Tuple(1)) == "tuple");
     assert(classifyByType(Value(new C2)) == "C2");
     assert(classifyExplicitUnit(Value.Unit()) == "unit");
+    assert(classifyQualifiedBinding(Value(new C2)));
 }
