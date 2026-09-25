@@ -99,7 +99,7 @@ Expression toAssocArrayLiteral(ArrayInitializer ai, Scope* sc, Type itype, Error
 /***********************
  * Look for the case of statically initializing an array with a single member.
  * Recursively strip static array / enum layers until a compatible element is found.
- * 
+ *
  * int[2][3] = 7       => [[7, 7], [7, 7], [7, 7]]
  * int[2] = new Object => null
  *
@@ -107,7 +107,7 @@ Expression toAssocArrayLiteral(ArrayInitializer ai, Scope* sc, Type itype, Error
  *      e = scalar (or partially-broadcast) expression to expand
  *      tb = static array type `e` should be broadcast up to (base type)
  *      sc = scope in which `e` gets cast
- * Returns: 
+ * Returns:
  *      `ArrayLiteralExp` repeating the initializer, or `null` if no match found
  */
 private Expression sarrayRepeat(Expression e, Type tb, Scope* sc)
