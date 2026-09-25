@@ -4,7 +4,7 @@
 
 An enum union is a nominal tagged sum type. It may contain:
 
-- unit variants: `case Name`
+- unit variants: `case Name()`
 - positional variants: `case Name(T1, T2, ...)`
 - record variants: `case Name { ... }`
 - named type variants: `case Name = T`
@@ -21,14 +21,13 @@ EnumUnionCaseDeclaration:
     "case" EnumUnionCase ("," EnumUnionCase)* [";"]
 
 EnumUnionCase:
-    Identifier
-  | Identifier "(" ParameterList ")"
+        Identifier "(" [ParameterList] ")"
   | Identifier "{" StructBody "}"
   | Identifier "=" Type
   | Type
 ```
 
-The declaration is parsed in the current frontend as a `case`-prefixed variant list terminated with semicolons. Multiple cases may appear in a single declaration separated by commas (e.g. `case Some(T), None;`). The trailing semicolon or comma on the final case immediately preceding the closing `}` is optional and can be omitted. `case` is required for every variant form, including bare types and unit cases.
+The declaration is parsed in the current frontend as a `case`-prefixed variant list terminated with semicolons. Multiple cases may appear in a single declaration separated by commas (e.g. `case Some(T), None();`). The trailing semicolon or comma on the final case immediately preceding the closing `}` is optional and can be omitted. `case` is required for every variant form, including bare types and unit cases. Empty parentheses distinguish a named unit variant from a bare identifier type.
 
 ### 2. Variant forms
 
@@ -39,13 +38,14 @@ A unit variant carries no payload and is represented by a distinct tag value.
 ```d
 enum union Traffic
 {
-    case Red;
-    case Yellow;
-    case Green;
+    case Red();
+    case Yellow();
+    case Green();
 }
 ```
 
-This is the canonical zero-byte state form for an enum union.
+This is the canonical zero-byte state form for an enum union. The empty
+parentheses are required; `case Red;` denotes a bare type named `Red`.
 
 #### Positional variants
 
@@ -56,7 +56,7 @@ enum union Shape
 {
     case Circle(double);
     case Rectangle(double, double);
-    case Point;
+    case Point();
 }
 ```
 
@@ -70,7 +70,7 @@ A record variant stores a synthesized nested payload struct.
 enum union Response
 {
     case Success { int code; string payload; };
-    case Timeout;
+    case Timeout();
 }
 ```
 
@@ -83,9 +83,12 @@ enum union Response
 {
     struct Success { int code; string payload; }
     case Success;
-    case Timeout;
+    case Timeout();
 }
 ```
+
+Here `case Success;` is a bare-type variant whose payload type is the nested
+`Success` struct. It is not unit-variant shorthand.
 
 In a `switch` arm, record fields can be bound by name.
 
@@ -185,11 +188,11 @@ The argument `V` is a variant element produced by `__traits(allVariants, T)`.
 
 Each enum union lowers to a tagged aggregate with:
 
-- a synthesized discriminant field, usually named `__tag`
+- synthesized discriminant storage
 - an anonymous union payload that overlays the storage of all variants
 - one synthesized payload field per variant for the active payload storage
 
-The discriminator is an index into the declaration order of the enum union variants.
+The discriminator is an index into the declaration order of the enum union variants. It is exposed as the read-only `.__tag` property; assigning to it is invalid.
 
 For example:
 
@@ -198,11 +201,12 @@ enum union Shape
 {
     case Circle(double);
     case Rectangle(double, double);
-    case Point;
+    case Point();
 }
 ```
 
-has tag values corresponding to `0`, `1`, and `2` in declaration order.
+Its tag values follow declaration order. Programs should compare `value.__tag`
+with `__traits(getTag, Shape, Shape.Point)`, rather than hard-code a numeric tag.
 
 ### 7. Switch expressions
 
@@ -213,7 +217,7 @@ int score = switch (s)
 {
     case Circle(r) => cast(int) (r * 2),
     case Rectangle(w, h) => cast(int) (w * h),
-    case Point => 1,
+    case Point() => 1,
 };
 ```
 
@@ -230,6 +234,27 @@ string classify(Value v)
         default => "other",
     };
 }
+```
+
+Payload positions are binding patterns, not value expressions. They may contain
+identifiers, discards, rest patterns, or recursively nested tuple bindings:
+
+```d
+return switch (value)
+{
+    case Wrapped((left, right)) => left + right,
+    case Record { point: (x, y), ... } => x + y,
+    case Pair(first, ...) => first,
+};
+```
+
+Tuple patterns use the same recursive shape as unpack declarations, but are
+part of switch-expression syntax and do not depend on the tuple-declaration
+preview switch. Literals and arbitrary expressions are not payload patterns.
+Bind the payload and place value predicates in an `if` guard instead:
+
+```d
+case Number(number) if (number == 42) => "answer",
 ```
 
 #### Default arm
@@ -319,7 +344,7 @@ If the switch is exhaustive without a `default`, no default arm is required. If 
 
 The implementation rejects:
 
-- duplicate named cases: two `case Name` entries with the same identifier
+- duplicate named cases: two `case Name(...)` entries with the same identifier
 - duplicate bare types: two `case T` entries with the same type
 - ambiguous implicit construction when the source expression could match more than one bare variant
 - record/positional patterns that do not match the active variant
@@ -343,7 +368,7 @@ enum union ShapeWithMethods
 {
     case Circle(double);
     case Rectangle(double, double);
-    case Point;
+    case Point();
 
     double area()
     {
@@ -351,7 +376,7 @@ enum union ShapeWithMethods
         {
             case Circle(r) => 3.14159 * r * r,
             case Rectangle(w, h) => w * h,
-            case Point => 0.0,
+            case Point() => 0.0,
         };
     }
 }
@@ -368,6 +393,5 @@ The implemented model is a D-native tagged sum type with these practical rules:
 - `switch` over an enum union matches the active tag and binds payload fields as needed
 - `default` is a catch-all branch and is required for guarded arms unless the switch is exhaustive
 - duplicate named cases and duplicate bare types are rejected
-- `null` can initialize a null-like no-value variant, including `case None` and `case typeof(null)`
+- `null` can initialize a null-like no-value bare-type variant, including `case None` when `None` aliases `typeof(null)`, and `case typeof(null)`
 - payload lifecycle safety is enforced through the same semantic checks as aggregate destructors and copying
-````
