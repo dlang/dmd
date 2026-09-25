@@ -91,7 +91,7 @@ void main() {
         assert(Resource.liveCount == 0);
         Managed m = Managed.Handle(Resource(1));
         assert(Resource.liveCount == 1);
-        
+
         m = Managed.Empty; // Overwrite must invoke Resource.~this()
         assert(Resource.liveCount == 0);
     }
