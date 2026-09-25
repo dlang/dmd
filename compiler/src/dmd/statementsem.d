@@ -2075,7 +2075,11 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                     }
                 }
             }
-            eSink.error(gcs.loc, "`case %s` not found", gcs.exp.toErrMsg());
+            if (gcs.exp.isConst())
+                eSink.error(gcs.loc, "`case %s` not found", gcs.exp.toErrMsg());
+            else
+                eSink.error(gcs.loc, "case expression `%s` cannot be read at compile time",
+                    gcs.exp.toErrMsg());
             sc.pop();
             return setError();
         }
