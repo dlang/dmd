@@ -15994,6 +15994,18 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
             {
                 auto eu = enumUnion;
                 {
+                    bool addPatternBinding(VarDeclaration variable)
+                    {
+                        variable.dsymbolSemantic(armScope);
+                        if (!armScope.insert(variable))
+                        {
+                            eSink.error(variable.loc, "duplicate pattern binding `%s`", variable.ident.toChars());
+                            return false;
+                        }
+                        arm.bindings ~= variable;
+                        return true;
+                    }
+
                     bool bindUnpack(UnpackDeclaration unpack, Expression initializer)
                     {
                         unpack._init = initializer;
@@ -16007,9 +16019,8 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                             {
                                 if (auto variable = declaration.isVarDeclaration())
                                 {
-                                    variable.dsymbolSemantic(armScope);
-                                    armScope.insert(variable);
-                                    arm.bindings ~= variable;
+                                    if (!addPatternBinding(variable))
+                                        return false;
                                 }
                                 else if (auto nested = declaration.isUnpackDeclaration())
                                 {
@@ -16169,9 +16180,8 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                                 }
                             }
                             variable.storage_class |= STC.temp | STC.ctfe;
-                            variable.dsymbolSemantic(armScope);
-                            armScope.insert(variable);
-                            arm.bindings ~= variable;
+                            if (!addPatternBinding(variable))
+                                return setError();
                         }
                         else if (arguments)
                         {
@@ -16193,9 +16203,8 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                                     auto rest = new VarDeclaration(arm.loc, null, arm.restBinding,
                                         new ExpInitializer(arm.loc, new TupleExp(arm.loc, restValues)));
                                     rest.storage_class |= STC.temp | STC.ctfe;
-                                    rest.dsymbolSemantic(armScope);
-                                    armScope.insert(rest);
-                                    arm.bindings ~= rest;
+                                    if (!addPatternBinding(rest))
+                                        return setError();
                                 }
                                 break;
                             }
@@ -16263,9 +16272,8 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                                 value.type = qualifiedType;
                                 variable._init = new ExpInitializer(binding.loc, value);
                                 variable.storage_class |= STC.temp | STC.ctfe;
-                                variable.dsymbolSemantic(armScope);
-                                armScope.insert(variable);
-                                arm.bindings ~= variable;
+                                if (!addPatternBinding(variable))
+                                    return setError();
                             }
                         }
                         else if (arm.recordBindings.length || arm.recordPatternNames.length || arm.hasRestPattern)
@@ -16344,9 +16352,8 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                                     qualifiedType, patternBinding.ident, null);
                                 variable._init = new ExpInitializer(patternBinding.loc, fieldValue);
                                 variable.storage_class |= STC.temp | STC.ctfe;
-                                variable.dsymbolSemantic(armScope);
-                                armScope.insert(variable);
-                                arm.bindings ~= variable;
+                                if (!addPatternBinding(variable))
+                                    return setError();
                             }
                             if (arm.restBinding)
                             {
@@ -16370,9 +16377,8 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                                 auto rest = new VarDeclaration(arm.loc, null, arm.restBinding,
                                     new ExpInitializer(arm.loc, new TupleExp(arm.loc, restValues)));
                                 rest.storage_class |= STC.temp | STC.ctfe;
-                                rest.dsymbolSemantic(armScope);
-                                armScope.insert(rest);
-                                arm.bindings ~= rest;
+                                if (!addPatternBinding(rest))
+                                    return setError();
                             }
                             foreach (bindingName; arm.recordBindings)
                             {
@@ -16401,9 +16407,8 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
                                 value.type = qualifiedType;
                                 variable._init = new ExpInitializer(arm.loc, value);
                                 variable.storage_class |= STC.temp | STC.ctfe;
-                                variable.dsymbolSemantic(armScope);
-                                armScope.insert(variable);
-                                arm.bindings ~= variable;
+                                if (!addPatternBinding(variable))
+                                    return setError();
                             }
                         }
                         break;

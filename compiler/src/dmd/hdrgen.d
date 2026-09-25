@@ -1731,6 +1731,13 @@ private final class DsymbolPrettyPrintVisitor : Visitor
         hgs.insideAggregate++;
         foreach (variant; eu.variants)
         {
+            if (variant.udas)
+            {
+                buf.put("@(");
+                argsToBuffer(variant.udas, *buf, *hgs);
+                buf.put(')');
+                buf.writenl();
+            }
             buf.put("case ");
             if (variant.ident)
             {
@@ -3221,76 +3228,144 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitSwitch(SwitchExp e)
     {
+        void staticForeachHeader(StaticForeach sfe)
+        {
+            buf.put("static ");
+            if (auto statement = sfe.aggrfe)
+            {
+                buf.put(Token.toString(statement.op));
+                buf.put(" (");
+                foreach (i, parameter; *statement.parameters)
+                {
+                    if (i)
+                        buf.put(", ");
+                    if (stcToBuffer(buf, parameter.storageClass))
+                        buf.put(' ');
+                    if (parameter.type)
+                        typeToBuffer(parameter.type, parameter.ident, buf, hgs);
+                    else
+                        buf.put(parameter.ident.toString());
+                }
+                buf.put("; ");
+                expToBuffer(statement.aggr, PREC.expr, buf, hgs);
+            }
+            else
+            {
+                auto statement = sfe.rangefe;
+                buf.put(Token.toString(statement.op));
+                buf.put(" (");
+                if (statement.param.type)
+                    typeToBuffer(statement.param.type, statement.param.ident, buf, hgs);
+                else
+                    buf.put(statement.param.ident.toString());
+                buf.put("; ");
+                expToBuffer(statement.lwr, PREC.expr, buf, hgs);
+                buf.put(" .. ");
+                expToBuffer(statement.upr, PREC.expr, buf, hgs);
+            }
+            buf.put(")");
+        }
+
+        void armsToBuffer(CaseExpArm[] arms)
+        {
+            foreach (arm; arms)
+            {
+                if (arm.sfe)
+                {
+                    buf.put(" ");
+                    staticForeachHeader(arm.sfe);
+                    buf.put(" {");
+                    armsToBuffer(arm.nestedArms);
+                    buf.put(" }");
+                    continue;
+                }
+                if (arm.staticIfCond)
+                {
+                    buf.put(" ");
+                    conditionToBuffer(arm.staticIfCond, buf, hgs);
+                    buf.put(" {");
+                    armsToBuffer(arm.nestedArms);
+                    buf.put(" }");
+                    if (arm.elseArms)
+                    {
+                        buf.put(" else {");
+                        armsToBuffer(arm.elseArms);
+                        buf.put(" }");
+                    }
+                    continue;
+                }
+
+                buf.put(" ");
+                if (arm.isDefault)
+                    buf.put("default");
+                else
+                {
+                    buf.put("case ");
+                    if (arm.typePattern)
+                    {
+                        typeToBuffer(arm.typePattern, null, buf, hgs);
+                        if (arm.typeBinding)
+                        {
+                            buf.put(" ");
+                            buf.put(arm.typeBinding.toString());
+                        }
+                    }
+                    else if (arm.pattern)
+                        expToBuffer(arm.pattern, PREC.assign, buf, hgs);
+                    if (arm.recordBindings.length || arm.recordPatternNames.length || arm.hasRestPattern)
+                    {
+                        buf.put(" {");
+                        bool needsComma;
+                        foreach (binding; arm.recordBindings)
+                        {
+                            if (needsComma)
+                                buf.put(",");
+                            buf.put(" ");
+                            buf.put(binding.toString());
+                            needsComma = true;
+                        }
+                        foreach (i, name; arm.recordPatternNames)
+                        {
+                            if (needsComma)
+                                buf.put(",");
+                            buf.put(" ");
+                            buf.put(name.toString());
+                            buf.put(": ");
+                            expToBuffer(arm.recordPatterns[i], PREC.assign, buf, hgs);
+                            needsComma = true;
+                        }
+                        if (arm.hasRestPattern)
+                        {
+                            if (needsComma)
+                                buf.put(",");
+                            buf.put(" ");
+                            if (arm.restBinding)
+                            {
+                                buf.put(arm.restBinding.toString());
+                                buf.put("...");
+                            }
+                            else
+                                buf.put("...");
+                        }
+                        buf.put(" }");
+                    }
+                }
+                if (arm.guard)
+                {
+                    buf.put(" if (");
+                    expToBuffer(arm.guard, PREC.expr, buf, hgs);
+                    buf.put(")");
+                }
+                buf.put(" => ");
+                expToBuffer(arm.action, PREC.assign, buf, hgs);
+                buf.put(",");
+            }
+        }
+
         buf.put("switch (");
         expToBuffer(e.condition, PREC.expr, buf, hgs);
         buf.put(") {");
-        foreach (arm; e.arms)
-        {
-            buf.put(" ");
-            if (arm.isDefault)
-                buf.put("default");
-            else
-            {
-                buf.put("case ");
-                if (arm.typePattern)
-                {
-                    typeToBuffer(arm.typePattern, null, buf, hgs);
-                    if (arm.typeBinding)
-                    {
-                        buf.put(" ");
-                        buf.put(arm.typeBinding.toString());
-                    }
-                }
-                else if (arm.pattern)
-                    expToBuffer(arm.pattern, PREC.assign, buf, hgs);
-                if (arm.recordBindings.length || arm.recordPatternNames.length || arm.hasRestPattern)
-                {
-                    buf.put(" {");
-                    bool needsComma;
-                    foreach (binding; arm.recordBindings)
-                    {
-                        if (needsComma)
-                            buf.put(",");
-                        buf.put(" ");
-                        buf.put(binding.toString());
-                        needsComma = true;
-                    }
-                    foreach (i, name; arm.recordPatternNames)
-                    {
-                        if (needsComma)
-                            buf.put(",");
-                        buf.put(" ");
-                        buf.put(name.toString());
-                        buf.put(": ");
-                        expToBuffer(arm.recordPatterns[i], PREC.assign, buf, hgs);
-                        needsComma = true;
-                    }
-                    if (arm.hasRestPattern)
-                    {
-                        if (needsComma)
-                            buf.put(",");
-                        buf.put(" ");
-                        if (arm.restBinding)
-                        {
-                            buf.put(arm.restBinding.toString());
-                            buf.put("...");
-                        }
-                        else
-                            buf.put("...");
-                    }
-                    buf.put(" }");
-                }
-            }
-            if (arm.guard)
-            {
-                buf.put(" if (");
-                expToBuffer(arm.guard, PREC.expr, buf, hgs);
-                buf.put(")");
-            }
-            buf.put(" => ");
-            expToBuffer(arm.action, PREC.assign, buf, hgs);
-            buf.put(",");
-        }
+        armsToBuffer(e.arms);
         buf.put(" }");
     }
 
