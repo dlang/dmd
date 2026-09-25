@@ -161,6 +161,7 @@ void testEnumInit()
 {
     E e = E.init;
     assert(e[123] == 456);
+    auto aa = new E;
 }
 
 /////////////////////////////////////////////
