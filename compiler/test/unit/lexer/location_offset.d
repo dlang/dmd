@@ -551,6 +551,8 @@ enum ignoreTokens
     __int128,
     __attribute__,
 
+    enumUnion,
+
     max_,
 };
 

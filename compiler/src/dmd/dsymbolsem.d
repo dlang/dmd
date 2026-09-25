@@ -2399,8 +2399,17 @@ private void synthesizeEnumUnionFactories(EnumUnionDeclaration eu, Scope* sc)
         }
     }
 
-    foreach (ref variant; eu.variants)
+    foreach (i, ref variant; eu.variants)
     {
+        if (variant.ident)
+        {
+            bool isDup;
+            foreach (k; 0 .. i)
+                isDup = isDup || variantName(eu.variants[k]) == variant.ident;
+            if (isDup)
+                continue;
+        }
+
         Dsymbol declaration;
         if (variant.members)
         {
