@@ -459,7 +459,7 @@ immutable Msgtable[] msgtable =
     { "compiles" },
     { "getAliasThis" },
     { "getAttributes" },
-    { "getTag" },
+    { "variantTag" },
     { "hasVariant" },
     { "getVariant" },
     { "getFunctionAttributes" },
