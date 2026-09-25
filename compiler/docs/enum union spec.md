@@ -12,13 +12,13 @@ An enum union is a nominal tagged sum type. It may contain:
 
 ```ebnf
 EnumUnionDeclaration:
-    "enum" "union" [Identifier] "{" EnumUnionBody "}"
+    "enum" "union" [Identifier [TemplateParameterList]] "{" EnumUnionBody "}"
 
 EnumUnionBody:
     EnumUnionCaseDeclaration* [MemberDeclarationList]
 
 EnumUnionCaseDeclaration:
-    "case" EnumUnionCase ("," EnumUnionCase)* [";"]
+    UDA* "case" EnumUnionCase ("," EnumUnionCase)* [";"]
 
 EnumUnionCase:
         Identifier "(" [ParameterList] ")"
@@ -27,7 +27,7 @@ EnumUnionCase:
   | Type
 ```
 
-The declaration is parsed in the current frontend as a `case`-prefixed variant list terminated with semicolons. Multiple cases may appear in a single declaration separated by commas (e.g. `case Some(T), None();`). The trailing semicolon or comma on the final case immediately preceding the closing `}` is optional and can be omitted. `case` is required for every variant form, including bare types and unit cases. Empty parentheses distinguish a named unit variant from a bare identifier type.
+The declaration is parsed in the current frontend as a `case`-prefixed variant list terminated with semicolons. Multiple cases may appear in a single declaration separated by commas (e.g. `case Some(T), None();`). The trailing semicolon or comma on the final case immediately preceding the closing `}` is optional and can be omitted. `case` is required for every variant form, including bare types and unit cases. Empty parentheses distinguish a named unit variant from a bare identifier type. User-defined attributes may precede a case declaration. An enum union may contain at most 256 variants because its discriminator is a `ubyte`.
 
 ### 2. Variant forms
 
@@ -172,12 +172,19 @@ Enum unions support these reflection operations:
 
 - `is(T == enum union)` identifies an enum-union type.
 - `__traits(allVariants, T)` returns the variants in declaration order.
+- `__traits(hasVariant, T, key)` tests whether `T` has the named variant given
+    by a string key or the unnamed bare variant given by a type key.
+- `__traits(getVariant, T, key)` returns that variant symbol or bare type and
+    reports an error if it does not exist.
 - `__traits(getTag, T, V)` returns the discriminator value for `V`.
 - `__traits(variantParams, V)` returns the declared parameter or field types
   for tuple and inline struct variants, and an empty tuple for other variant kinds.
 - `__traits(variantParamNames, V)` returns the corresponding parameter or field
   names as strings, and an empty tuple for other variant kinds.
 - `__traits(variantKind, V)` returns `"unit"`, `"tuple"`, `"struct"`, `"alias"`, or `"bare"`.
+- `__traits(variantDeclarationOf, V [, name])` may appear after `case` in an
+    enum-union body to copy a variant declaration. The optional string renames
+    the copied variant; an empty string preserves its original form.
 
 The argument `V` is a variant element produced by `__traits(allVariants, T)`.
 `"struct"` specifically denotes an inline record variant such as
@@ -256,6 +263,13 @@ Bind the payload and place value predicates in an `if` guard instead:
 ```d
 case Number(number) if (number == 42) => "answer",
 ```
+
+#### Result type
+
+All arm actions other than those of type `noreturn` must currently have the same
+type. That type is the type of the switch expression. The implementation does
+not currently compute a least upper bound or insert common-type conversions for
+different arm types.
 
 #### Default arm
 
