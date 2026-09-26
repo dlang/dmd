@@ -1054,6 +1054,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
             params.v.nanInit = true;
         else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
             params.v.tls = true;
+        else if (arg == "-vzeroinit") // https://dlang.org/dmd.html#switch-vzeroinit
+            params.v.zeroInit = true;
         else if (startsWith(p + 1, "vtemplates")) // https://dlang.org/dmd.html#switch-vtemplates
         {
             params.v.templates = true;

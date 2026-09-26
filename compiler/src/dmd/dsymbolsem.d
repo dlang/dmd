@@ -10295,6 +10295,98 @@ void finalizeSize(AggregateDeclaration ad)
 }
 
 /**********************************
+ * For `-vzeroinit`: print why the default initializer of `t` is not all zeros,
+ * following every offending field down to the enum, type or field initializer
+ * responsible.
+ * Params:
+ *      t = type whose default initializer is not all zeros
+ *      loc = location to report `t` itself at
+ *      eSink = where to send the messages
+ *      depth = nesting level, used for indentation
+ */
+void explainNonZeroInit(Type t, Loc loc, ErrorSink eSink, int depth = 1)
+{
+    const indent = depth * 4;
+    switch (t.ty)
+    {
+        case Tsarray:
+            return explainNonZeroInit(t.nextOf(), loc, eSink, depth);
+
+        case Tvector:
+            return explainNonZeroInit(t.isTypeVector().basetype, loc, eSink, depth);
+
+        case Tstruct:
+            return explainNonZeroInit(t.isTypeStruct().sym, eSink, depth);
+
+        case Tenum:
+        {
+            auto ed = t.isTypeEnum().sym;
+            EnumMember first;
+            if (ed.members)
+            {
+                foreach (s; *ed.members)
+                {
+                    if (auto em = s.isEnumMember())
+                    {
+                        first = em;
+                        break;
+                    }
+                }
+            }
+            if (first)
+                eSink.message(first.loc, "%*senum `%s` defaults to its first member `%s`, which is not zero", indent, "".ptr,
+                    ed.toPrettyChars(), first.value.toChars());
+            else
+                eSink.message(ed.loc, "%*senum `%s` defaults to `%s`", indent, "".ptr,
+                    ed.toPrettyChars(), ed.getDefaultValue(loc).toChars());
+            return;
+        }
+
+        default:
+            eSink.message(loc, "%*stype `%s` defaults to `%s`", indent, "".ptr,
+                t.toChars(), t.defaultInitLiteral(loc).toChars());
+            return;
+    }
+}
+
+/// ditto
+void explainNonZeroInit(StructDeclaration sd, ErrorSink eSink, int depth = 1)
+{
+    import dmd.typesem: size;
+
+    const indent = depth * 4;
+    // Mirrors the zeroInit computation in finalizeSize()
+    auto lastOffset = -1;
+    foreach (vd; sd.fields)
+    {
+        if (vd.type.size(vd.loc) == 0)
+            continue;
+        if (vd.overlapped && vd.offset == lastOffset)
+            continue;
+        lastOffset = vd.offset;
+
+        if (vd._init)
+        {
+            if (vd._init.isVoidInitializer())
+                continue;
+            auto exp = vd.getConstInitializer();
+            if (!exp)
+                eSink.message(vd.loc, "%*sfield `%s.%s` has a non-constant initializer", indent, "".ptr,
+                    sd.toChars(), vd.toChars());
+            else if (!_isZeroInit(exp))
+                eSink.message(vd.loc, "%*sfield `%s.%s` is initialized to `%s`", indent, "".ptr,
+                    sd.toChars(), vd.toChars(), exp.toChars());
+        }
+        else if (!vd.type.isZeroInit(vd.loc))
+        {
+            eSink.message(vd.loc, "%*sfield `%s.%s` of type `%s`", indent, "".ptr,
+                sd.toChars(), vd.toChars(), vd.type.toChars());
+            explainNonZeroInit(vd.type, vd.loc, eSink, depth + 1);
+        }
+    }
+}
+
+/**********************************
  * Determine if exp is all binary zeros.
  * Params:
  *      exp = expression to check
