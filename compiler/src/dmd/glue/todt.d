@@ -72,168 +72,18 @@ alias Dts = Array!(dt_t*);
 
 /* ================================================================ */
 
-void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isCfile)
+void Initializer_toDt(Expression init, Type type, ref DtBuilder dtb)
 {
-    auto eSink = global.errorSink;
-
-    void visitError(ErrorInitializer)
-    {
-        assert(0);
-    }
-
-    void visitVoid(VoidInitializer vi)
+    if (init.isVoidInitializer())
     {
         /* Void initializers are set to 0, just because we need something
          * to set them to in the static data segment.
          */
-        dtb.nzeros(cast(uint)vi.type.size());
+        dtb.nzeros(cast(uint)type.size());
+        return;
     }
-
-    void visitStruct(StructInitializer si)
-    {
-        /* The StructInitializer was converted to a StructLiteralExp,
-         * which is converted to dtb by membersToDt()
-         */
-        //printf("StructInitializer.toDt('%s')\n", si.toChars());
-        assert(0);
-    }
-
-    void visitArray(ArrayInitializer ai)
-    {
-        //printf("ArrayInitializer.toDt('%s')\n", ai.toChars());
-        Type tb = ai.type.toBasetype();
-        if (tb.ty == Tvector)
-            tb = (cast(TypeVector)tb).basetype;
-
-        if (ai.dim == 0 && tb.isZeroInit(ai.loc))
-        {
-            dtb.nzeros(cast(uint)ai.type.size());
-            return;
-        }
-        Type tn = tb.nextOf().toBasetype();
-
-        //printf("\tdim = %d\n", ai.dim);
-        Dts dts = Dts(ai.dim);
-        dts.zero();
-
-        uint size = cast(uint)tn.size();
-
-        uint length = 0;
-        foreach (i, idx; ai.index)
-        {
-            if (idx)
-                if (auto ei = idx.isExpInitializer())
-                    length = cast(uint)ei.exp.toInteger();
-            //printf("\tindex[%d] = %p, length = %u, dim = %u\n", i, idx, length, ai.dim);
-
-            assert(length < ai.dim);
-            auto dtb = DtBuilder(0);
-            Initializer_toDt(ai.value[i], dtb, isCfile);
-            if (dts[length] && !ai.isCarray)
-                eSink.error(ai.loc, "duplicate initializations for index `%d`", length);
-            dts[length] = dtb.finish();
-            length++;
-        }
-
-        assert(ai);
-        Expression edefault = tb.nextOf().defaultInit(ai.loc, isCfile);
-
-        const n = tn.numberOfElems(ai.loc);
-
-        dt_t* dtdefault = null;
-
-        auto dtbarray = DtBuilder(0);
-        foreach (dt; dts)
-        {
-            if (dt)
-                dtbarray.cat(dt);
-            else
-            {
-                if (!dtdefault)
-                {
-                    auto dtb = DtBuilder(0);
-                    Expression_toDt(edefault, dtb);
-                    dtdefault = dtb.finish();
-                }
-                dtbarray.repeat(dtdefault, n);
-            }
-        }
-        switch (tb.ty)
-        {
-            case Tsarray:
-            {
-                TypeSArray ta = cast(TypeSArray)tb;
-                size_t tadim = cast(size_t)ta.dim.toInteger();
-                if (ai.dim < tadim)
-                {
-                    if (edefault.toBool().hasValue(false))
-                    {
-                        // pad out end of array
-                        dtbarray.nzeros(cast(uint)(size * (tadim - ai.dim)));
-                    }
-                    else
-                    {
-                        if (!dtdefault)
-                        {
-                            auto dtb = DtBuilder(0);
-                            Expression_toDt(edefault, dtb);
-                            dtdefault = dtb.finish();
-                        }
-
-                        const m = n * (tadim - ai.dim);
-                        assert(m <= uint.max);
-                        dtbarray.repeat(dtdefault, cast(uint)m);
-                    }
-                }
-                else if (ai.dim > tadim)
-                {
-                    eSink.error(ai.loc, "too many initializers, %u, for array[%llu]", ai.dim, cast(ulong) tadim);
-                }
-                dtb.cat(dtbarray);
-                break;
-            }
-
-            case Tpointer:
-            case Tarray:
-            {
-                if (tb.ty == Tarray)
-                    dtb.size(ai.dim);
-                Symbol* s = dtb.dtoff(dtbarray.finish(), 0);
-                if (tn.isMutable())
-                    foreach (i; 0 .. ai.dim)
-                        write_pointers(tn, s, size * cast(int)i);
-                break;
-            }
-
-            default:
-                assert(0);
-        }
-        dt_free(dtdefault);
-    }
-
-    void visitExp(ExpInitializer ei)
-    {
-        //printf("ExpInitializer.toDt() %s\n", ei.exp.toChars());
-        ei.exp = ei.exp.optimize(WANTvalue);
-        Expression_toDt(ei.exp, dtb);
-    }
-
-    void visitC(CInitializer ci)
-    {
-        /* Should have been rewritten to Exp/Struct/ArrayInitializer by semantic()
-         */
-        assert(0);
-    }
-
-    void visitDefault(DefaultInitializer di)
-    {
-        /* Default initializers are set to 0, because C23 says so
-         */
-        dtb.nzeros(cast(uint)di.type.size());
-    }
-
-    mixin VisitInitializer!void visit;
-    visit.VisitInitializer(init);
+    //printf("Initializer_toDt() %s\n", init.toChars());
+    Expression_toDt(init.optimize(WANTvalue), dtb);
 }
 
 /* ================================================================ */
@@ -515,7 +365,13 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
 
             case Tpointer:
                 if (auto d = dtbarray.finish())
-                    dtb.dtoff(d, 0);
+                {
+                    Symbol* s = dtb.dtoff(d, 0);
+                    Type tn = t.nextOf().toBasetype();
+                    if (tn.isMutable())
+                        foreach (i; 0 .. e.length)
+                            write_pointers(tn, s, cast(uint)(tn.size() * i));
+                }
                 else
                     dtb.size(0);
 
@@ -572,7 +428,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
                 return;
             }
             v.inuse++;
-            Initializer_toDt(v._init, dtb, v.isCsymbol());
+            Initializer_toDt(v._init, v.type, dtb);
             v.inuse--;
             return;
         }
@@ -1054,9 +910,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
                     continue;
 
                 assert(vd.semanticRun >= PASS.semantic2done);
-                auto ei = init.isExpInitializer();
-                assert(ei);
-                auto ie = ei.exp.isIntegerExp();
+                auto ie = init.isIntegerExp();
                 assert(ie);
 
                 auto value = ie.getInteger();
@@ -1075,12 +929,11 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
 
                 assert(vd.semanticRun >= PASS.semantic2done);
 
-                auto ei = init.isExpInitializer();
                 auto tsa = vd.type.toBasetype().isTypeSArray();
-                if (ei && tsa)
-                    toDtElem(init.loc, tsa, dtbx, ei.exp, isCtype);
+                if (tsa)
+                    toDtElem(init.loc, tsa, dtbx, init, isCtype);
                 else
-                    Initializer_toDt(init, dtbx, isCtype);
+                    Initializer_toDt(init, vd.type, dtbx);
             }
             else if (offset <= vd.offset)
             {

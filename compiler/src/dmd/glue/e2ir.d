@@ -53,7 +53,6 @@ import dmd.funcsem : isVirtual;
 import dmd.func;
 import dmd.hdrgen;
 import dmd.id;
-import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.printast;
@@ -4579,11 +4578,8 @@ elem* Dsymbol_toElem(Dsymbol s, ref IRState irs)
             Symbol* sp = toSymbol(s);
             symbol_add(sp);
             //printf("\tadding symbol '%s'\n", sp.Sident);
-            if (vd._init)
-            {
-                if (auto ie = vd._init.isExpInitializer())
-                    e = toElem(ie.exp, irs);
-            }
+            if (vd._init && !vd._init.isVoidInitializer())
+                e = toElem(vd._init, irs);
 
             /* Mark the point of construction of a variable that needs to be destructed.
              */

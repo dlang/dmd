@@ -21,6 +21,7 @@ import dmd.errorsink;
 import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
+import dmd.init;
 import dmd.lexer;
 import dmd.location;
 import dmd.parse;
@@ -2074,7 +2075,7 @@ final class CParser(AST) : Parser!AST
                     // if one has not been explicitly set.
                     if (!hasInitializer &&
                         !(specifier.scw & (SCW.xextern | SCW.xstatic | SCW.x_Thread_local) || level == LVL.global))
-                        initializer = new AST.VoidInitializer(token.loc);
+                        initializer = new AST.TypeExp(token.loc, AST.Type.tvoid);
                     auto vd = new AST.VarDeclaration(id.loc, dt, id.name, initializer, specifiersToSTC(level, specifier));
                     specifiersToVarDeclaration(vd, specifier);
                     s = vd;
@@ -2303,26 +2304,25 @@ final class CParser(AST) : Parser!AST
      * Returns:
      *    initializer
      */
-    AST.Initializer cparseInitializer()
+    AST.Expression cparseInitializer()
     {
         if (token.value != TOK.leftCurly)
         {
-            auto ae = cparseAssignExp();        // assignment-expression
-            return new AST.ExpInitializer(token.loc, ae);
+            return cparseAssignExp();        // assignment-expression
         }
         nextToken();
         const loc = token.loc;
 
+        auto ci = new AST.CInitExp(loc);
         if (token.value == TOK.rightCurly)      // { }
         {
             nextToken();
-            return new AST.DefaultInitializer(loc);
+            return ci;
         }
 
         /* Collect one or more `designation (opt) initializer`
-         * into ci.initializerList, but lazily create ci
+         * into ci.initializerList
          */
-        AST.CInitializer ci;
         while (1)
         {
             /* There can be 0 or more designators preceding an initializer.
@@ -2362,8 +2362,6 @@ final class CParser(AST) : Parser!AST
             }
 
             desigInit.initializer = cparseInitializer();
-            if (!ci)
-                ci = new AST.CInitializer(loc);
             ci.initializerList.push(desigInit);
             if (token.value == TOK.comma)
             {
@@ -2374,7 +2372,6 @@ final class CParser(AST) : Parser!AST
             break;
         }
         check(TOK.rightCurly);
-        //printf("ci: %s\n", ci.toChars());
         return ci;
     }
 
@@ -4279,7 +4276,7 @@ final class CParser(AST) : Parser!AST
 
                 // declare the symbol
                 // Give member variables an implicit void initializer
-                auto initializer = new AST.VoidInitializer(token.loc);
+                auto initializer = new AST.TypeExp(token.loc, AST.Type.tvoid);
                 AST.Dsymbol s = new AST.VarDeclaration(id.loc, dt, id.name, initializer, specifiersToSTC(LVL.member, specifier));
                 s = applySpecifier(s, specifier);
                 members.push(s);
@@ -4906,12 +4903,11 @@ final class CParser(AST) : Parser!AST
     {
         const fn = id.toString();  // function-name
         auto efn = new AST.StringExp(loc, fn, fn.length, 1, 'c');
-        auto ifn = new AST.ExpInitializer(loc, efn);
         auto lenfn = new AST.IntegerExp(loc, fn.length + 1, AST.Type.tuns32); // +1 for terminating 0, ditto for __pretty_chars__
         auto tfn = new AST.TypeSArray(AST.Type.tchar, lenfn);
         efn.type = tfn.makeImmutable();
         efn.committed = true;
-        auto sfn = new AST.VarDeclaration(loc, tfn, cident, ifn, STC.gshared | STC.immutable_);
+        auto sfn = new AST.VarDeclaration(loc, tfn, cident, efn, STC.gshared | STC.immutable_);
         auto e = new AST.DeclarationExp(loc, sfn);
         return new AST.ExpStatement(loc, e);
     }
@@ -4936,12 +4932,11 @@ final class CParser(AST) : Parser!AST
         funcSig ~= ")";
 
         auto efn = new AST.StringExp(loc, funcSig);
-        auto ifn = new AST.ExpInitializer(loc, efn);
         auto lenfn = new AST.IntegerExp(loc, funcSig.length + 1, AST.Type.tuns32); // +1 for terminating 0
         auto tfn = new AST.TypeSArray(AST.Type.tchar, lenfn);
         efn.type = tfn.makeImmutable();
         efn.committed = true;
-        auto sfn = new AST.VarDeclaration(loc, tfn, Id.PRETTY_FUNCTION, ifn, STC.gshared | STC.immutable_);
+        auto sfn = new AST.VarDeclaration(loc, tfn, Id.PRETTY_FUNCTION, efn, STC.gshared | STC.immutable_);
         auto e = new AST.DeclarationExp(loc, sfn);
         return new AST.ExpStatement(loc, e);
     }
@@ -5902,7 +5897,7 @@ final class CParser(AST) : Parser!AST
                                 AST.Expression e = new AST.IntegerExp(scanloc, intvalue, t);
                                 if (hasMinus)
                                     e = new AST.NegExp(scanloc, e);
-                                auto v = new AST.VarDeclaration(scanloc, t, id, new AST.ExpInitializer(scanloc, e), STC.manifest);
+                                auto v = new AST.VarDeclaration(scanloc, t, id, e, STC.manifest);
                                 addSym(v);
                                 ++p;
                                 continue;
@@ -5927,7 +5922,7 @@ final class CParser(AST) : Parser!AST
                                 AST.Expression e = new AST.RealExp(scanloc, floatvalue, t);
                                 if (hasMinus)
                                     e = new AST.NegExp(scanloc, e);
-                                auto v = new AST.VarDeclaration(scanloc, t, id, new AST.ExpInitializer(scanloc, e), STC.manifest);
+                                auto v = new AST.VarDeclaration(scanloc, t, id, e, STC.manifest);
                                 addSym(v);
                                 ++p;
                                 continue;
@@ -5945,7 +5940,7 @@ final class CParser(AST) : Parser!AST
                                  *  enum id = "string";
                                  */
                                 AST.Expression e = new AST.StringExp(scanloc, str[0 .. len], len, 1, postfix, true);
-                                auto v = new AST.VarDeclaration(scanloc, null, id, new AST.ExpInitializer(scanloc, e), STC.manifest);
+                                auto v = new AST.VarDeclaration(scanloc, null, id, e, STC.manifest);
                                 addSym(v);
                                 ++p;
                                 continue;

@@ -1083,7 +1083,7 @@ public:
         if (s->wthis)
         {
             s->wthis->accept(this);
-            s->wthis->_init->isExpInitializer()->exp->accept(this);
+            s->wthis->_init->accept(this);
         }
         if (s->_body)
             s->_body->accept(this);
@@ -1491,11 +1491,8 @@ public:
             (void)vd->storage_class;
             if (vd->storage_class & STCmanifest)
             {
-                if (vd->_init && !vd->_init->isVoidInitializer())
-                {
-                    Expression *ie = dmd::initializerToExpression(vd->_init, nullptr, nullptr);
-                    ie->accept(this);
-                }
+                if (vd->_init && !dmd::isVoidInitializer(vd->_init))
+                    vd->_init->accept(this);
             }
         }
         if (decl->isCodeseg() || decl->isDataseg())
@@ -1531,7 +1528,7 @@ public:
         if (d->type->isTypeNoreturn())
         {
             if (!d->isDataseg() && !d->isMember() &&
-                d->_init && !d->_init->isVoidInitializer())
+                d->_init && !dmd::isVoidInitializer(d->_init))
             {
                 Expression *e = dmd::defaultInitLiteral(d->type, d->loc);
                 e->accept(this);
@@ -1555,11 +1552,8 @@ public:
             dmd::size(d->type, d->loc);
             if (d->_init)
             {
-                if (!d->_init->isVoidInitializer())
-                {
-                    Expression *e = dmd::initializerToExpression(d->_init, nullptr, d->type);
-                    e->accept(this);
-                }
+                if (!dmd::isVoidInitializer(d->_init))
+                    d->_init->accept(this);
             }
             else
             {
@@ -1570,10 +1564,9 @@ public:
         else if (!d->isDataseg() && !d->isMember())
         {
             visitDeclaration(d);
-            if (d->_init && !d->_init->isVoidInitializer())
+            if (d->_init && !dmd::isVoidInitializer(d->_init))
             {
-                ExpInitializer *vinit = d->_init->isExpInitializer();
-                dmd::initializerToExpression(vinit, nullptr, nullptr)->accept(this);
+                d->_init->accept(this);
                 if (d->needsScopeDtor())
                     d->edtor->accept(this);
             }
@@ -1773,22 +1766,21 @@ void expression_h(Expression *e, Scope *sc, Type *t, Loc loc, Expressions *es)
 }
 
 void hdrgen_h(Module *m, OutBuffer &buf, Modules &ms, ParameterList pl,
-              Expression *e, Initializer *i, Statement *s, Type *t, ErrorSink *sink)
+              Expression *e, Statement *s, Type *t, ErrorSink *sink)
 {
     dmd::genhdrfile(m, true, buf);
     dmd::genCppHdrFiles(ms, sink, CppStdRevisionCpp11);
     dmd::moduleToBuffer(buf, true, m);
     dmd::parametersTypeToChars(pl);
     dmd::toChars(e);
-    dmd::toChars(i);
     dmd::toChars(s);
     dmd::toChars(t);
 }
 
-void init_h(Initializer *i, Type *t, Scope *sc, NeedInterpret ni)
+void init_h(Expression *e, Loc loc)
 {
-    dmd::initializerToExpression(i, sc, t);
-    dmd::initializerSemantic(i, sc, t, ni);
+    dmd::voidInitializer(loc);
+    dmd::isVoidInitializer(e);
 }
 
 void json_h(Modules &ms, OutBuffer &buf, const char *name)

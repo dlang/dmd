@@ -13,6 +13,7 @@
 #include "ast_node.h"
 #include "globals.h"
 #include "arraytypes.h"
+#include "init.h"
 #include "visitor.h"
 #include "tokens.h"
 
@@ -51,6 +52,9 @@ namespace dmd
 {
     // in expressionsem.d
     Expression *expressionSemantic(Expression *e, Scope *sc);
+    // in expression.d
+    Expression *voidInitializer(Loc loc);
+    bool isVoidInitializer(const Expression *e);
     // in typesem.d
     Expression *defaultInit(Type *mt, Loc loc, const bool isCfile = false);
 
@@ -390,6 +394,27 @@ public:
     Expression* loweringCtfe;
 
     AssocArrayLiteralExp *syntaxCopy() override;
+
+    void accept(Visitor *v) override { v->visit(this); }
+};
+
+class StructInitExp final : public Expression
+{
+public:
+    Identifiers field;
+    Expressions value;
+
+    StructInitExp *syntaxCopy() override;
+
+    void accept(Visitor *v) override { v->visit(this); }
+};
+
+class CInitExp final : public Expression
+{
+public:
+    DesigInits initializerList;
+
+    CInitExp *syntaxCopy() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };

@@ -2410,8 +2410,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 return;
             }
             //printf("inferring type for %s with init %s\n", dsym.toChars(), dsym._init.toChars());
-            dsym._init = dsym._init.inferInitializerType(sc, dsym.type, global.errorSink);
-            dsym.type = dsym._init.initializerToExpression(sc, null, eSink).type;
+            if (autoDollarDims.length)
+                if (auto aae = dsym._init.isAssocArrayLiteralExp())
+                    dsym._init = indexedToArrayLiteral(aae, sc, null);
+            dsym._init = inferInitializerType(dsym._init, sc);
+            dsym.type = dsym._init.type;
 
             if (autoDollarDims.length)
             {
@@ -2619,7 +2622,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 eSink.error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
                 tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
-                dsym._init = new ErrorInitializer();
+                dsym._init = ErrorExp.get();
                 dsym.type = Type.terror;
                 dsym.errors = true;
                 dsym.semanticRun = PASS.semanticdone;
@@ -2627,7 +2630,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             else
             {
-                Expression ie = dsym._init.initializerToExpression(sc, tsa, eSink);
+                Expression ie = dsym._init;
+                if (ie.isAssocArrayLiteralExp())
+                {
+                    sc.expectedType = tsa;
+                    ie = ie.expressionSemantic(sc);
+                    dsym._init = ie;
+                }
                 if (ie && ie.op != EXP.error)
                 {
                     // Infer from literal syntax first to avoid prematurely
@@ -2645,7 +2654,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     {
                         eSink.error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
                         tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
-                        dsym._init = new ErrorInitializer();
+                        dsym._init = ErrorExp.get();
                         dsym.type = Type.terror;
                         dsym.errors = true;
                         dsym.semanticRun = PASS.semanticdone;
@@ -2653,18 +2662,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     }
                     if (auto ale = ie.isArrayLiteralExp())
                     {
-                        // Fill null gaps left by sparse auto[$] inference,
-                        // now that dimensions are fully resolved.
-                        if (ale.elements)
+                        /* auto[$][$] a = [[0, 1], 2: [1, 1]];   // [[0, 1], [0, 0], [1, 1]]
+                         */
+                        if (autoDollarDims.length && tsa.next.toBasetype().isTypeSArray())
                         {
-                            foreach (e; (*ale.elements)[])
-                                if (!e)
-                                {
-                                    ale.basis = tsa.next.toBasetype().defaultInitLiteral(dsym.loc);
-                                    break;
-                                }
+                            foreach (ref e; (*ale.elements)[])
+                                if (e.isNullExp())
+                                    e = tsa.next.toBasetype().defaultInitLiteral(dsym.loc);
                         }
-                        dsym._init = new ExpInitializer(dsym.loc, ale);
+                        dsym._init = ale;
                     }
                 }
             }
@@ -2738,7 +2744,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (inferred)
             {
                 eSink.error(dsym.loc, "%s `%s` - type `%s` is inferred from initializer `%s`, and variables cannot be of type `void`",
-                    dsym.kind, dsym.toPrettyChars, dsym.type.toErrMsg(), toChars(dsym._init));
+                    dsym.kind, dsym.toPrettyChars, dsym.type.toErrMsg(), dsym._init.toChars());
             }
             else
                 eSink.error(dsym.loc, "%s `%s` - variables cannot be of type `void`", dsym.kind, dsym.toPrettyChars);
@@ -2783,7 +2789,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              * and add those.
              */
             size_t nelems = Parameter.dim(tt.arguments);
-            Expression ie = (dsym._init && !dsym._init.isVoidInitializer()) ? dsym._init.initializerToExpression(sc, null, eSink) : null;
+            Expression ie = (dsym._init && !dsym._init.isVoidInitializer()) ? dsym._init : null;
             if (ie)
                 ie = ie.expressionSemantic(sc);
             if (nelems > 0 && ie)
@@ -2892,16 +2898,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 Initializer ti;
                 if (ie)
                 {
-                    Expression einit = ie;
+                    ti = ie;
                     if (auto te = ie.isTupleExp())
                     {
-                        einit = (*te.exps)[i];
+                        ti = (*te.exps)[i];
                         if (i == 0)
-                            einit = Expression.combine(te.e0, einit);
+                            ti = Expression.combine(te.e0, ti);
                     }
-                    // Use the original initializer location, not the tuple element's location,
-                    // so error messages point to the declaration site
-                    ti = new ExpInitializer(dsym._init ? dsym._init.loc : einit.loc, einit);
+                    const isLocal = dsym.parent.isFuncDeclaration() && !(dsym.storage_class & (STC.manifest | STC.static_ | STC.gshared | STC.extern_));
+                    if (!isLocal && ti.op == EXP.type && ti.loc != dsym._init.loc)
+                        ti = typeAsInitializerError(ti, dsym._init.loc);
                 }
                 else
                     ti = dsym._init ? dsym._init.syntaxCopy() : null;
@@ -3219,7 +3225,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 Expression e = tv.defaultInitLiteral(dsym.loc);
                 e = new BlitExp(dsym.loc, new VarExp(dsym.loc, dsym), e);
                 e = e.expressionSemantic(sc);
-                dsym._init = new ExpInitializer(dsym.loc, e);
+                dsym._init = e;
                 goto Ldtor;
             }
             if (tv.ty == Tstruct && tv.isTypeStruct().sym.zeroInit)
@@ -3233,7 +3239,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 Expression e = IntegerExp.literal!0;
                 e = new BlitExp(dsym.loc, new VarExp(dsym.loc, dsym), e);
                 e.type = dsym.type;      // don't type check this, it would fail
-                dsym._init = new ExpInitializer(dsym.loc, e);
+                dsym._init = e;
                 goto Ldtor;
             }
             if (dsym.type.baseElemOf().ty == Tvoid)
@@ -3242,7 +3248,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             else if (auto e = dsym.type.defaultInit(dsym.loc))
             {
-                dsym._init = new ExpInitializer(dsym.loc, e);
+                dsym._init = e;
             }
 
             // Default initializer is always a blit
@@ -3262,11 +3268,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 eSink.error(dsym.loc, "%s `%s` - incomplete array type must have initializer", dsym.kind, dsym.toPrettyChars);
             }
 
-            ExpInitializer ei = dsym._init.isExpInitializer();
-
-            if (ei) // https://issues.dlang.org/show_bug.cgi?id=13424
+            const isVoidInit = dsym._init.isVoidInitializer();
+            if (!isVoidInit) // https://issues.dlang.org/show_bug.cgi?id=13424
                     // Preset the required type to fail in FuncLiteralDeclaration::semantic3
-                ei.exp = inferExpType(ei.exp, dsym.type);
+                dsym._init = inferExpType(dsym._init, dsym.type);
 
             /*
              * https://issues.dlang.org/show_bug.cgi?id=24474
@@ -3282,42 +3287,24 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 // If local variable, use AssignExp to handle all the various
                 // possibilities.
-                if (fd && !(dsym.storage_class & (STC.manifest | STC.static_ | STC.gshared | STC.extern_)) && !dsym._init.isVoidInitializer())
+                if (fd && !(dsym.storage_class & (STC.manifest | STC.static_ | STC.gshared | STC.extern_)) && !isVoidInit)
                 {
                     //printf("fd = '%s', var = '%s'\n", fd.toChars(), dsym.toChars());
-                    if (!ei)
+                    if (hasInitializerLiterals(dsym._init))
                     {
-                        ArrayInitializer ai = dsym._init.isArrayInitializer();
-                        Expression e;
-                        if (ai && tb.ty == Taarray)
-                            e = ai.toAssocArrayLiteral(sc, tb, global.errorSink);
-                        else
-                            e = dsym._init.initializerToExpression(sc, dsym.type, eSink);
-                        if (!e)
-                        {
-                            // Run semantic, but don't need to interpret
-                            dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITnointerpret, global.errorSink);
-                            e = dsym._init.initializerToExpression(sc, null, eSink);
-                            if (!e)
-                            {
-                                eSink.error(dsym.loc, "%s `%s` is not a static and cannot have static initializer", dsym.kind, dsym.toPrettyChars);
-                                e = ErrorExp.get();
-                            }
-                        }
-                        ei = new ExpInitializer(dsym._init.loc, e);
-                        dsym._init = ei;
+                        dsym.initializerSemantic(sc, INITnointerpret);
                     }
                     else if (sc.inCfile && dsym.type.isTypeSArray() &&
-                             dsym.type.isTypeSArray().isIncomplete())
+                        dsym.type.isTypeSArray().isIncomplete())
                     {
                         // C11 6.7.9-22 determine the size of the incomplete array,
                         // or issue an error that the initializer is invalid.
-                        dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITinterpret, global.errorSink);
+                        dsym.initializerSemantic(sc, INITinterpret);
                     }
 
-                    if (ei && dsym.isScope())
+                    if (dsym.isScope())
                     {
-                        Expression ex = ei.exp.lastComma();
+                        Expression ex = dsym._init.lastComma();
                         if (ex.op == EXP.blit || ex.op == EXP.construct)
                             ex = (cast(AssignExp)ex).e2;
                         if (auto ne = ex.isNewExp())
@@ -3359,7 +3346,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         }
                     }
 
-                    Expression exp = ei.exp;
+                    Expression exp = dsym._init;
                     Expression e1 = new VarExp(dsym.loc, dsym);
 
                     void constructInit(bool isBlit)
@@ -3428,25 +3415,18 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         constructInit(isBlit);
                     }
 
-                    if (exp.op == EXP.error)
-                    {
-                        dsym._init = new ErrorInitializer();
-                        ei = null;
-                    }
-                    else
-                        ei.exp = exp.optimize(WANTvalue);
+                    dsym._init = exp.op == EXP.error ? ErrorExp.get() : exp.optimize(WANTvalue);
                 }
                 else
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=14166
                     // Don't run CTFE for the temporary variables inside typeof
-                    dsym._init = dsym._init.initializerSemantic(sc, dsym.type, sc.intypeof == 1 ? INITnointerpret : INITinterpret, global.errorSink);
+                    dsym.initializerSemantic(sc, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
                     import dmd.semantic2 : lowerStaticAAs;
                     lowerStaticAAs(dsym, sc);
-                    auto init_err = dsym._init.isExpInitializer();
-                    if (init_err && init_err.exp.op == EXP.showCtfeContext)
+                    if (dsym._init.op == EXP.showCtfeContext)
                     {
-                        init_err.exp = ErrorExp.get();
+                        dsym._init = ErrorExp.get();
                         eSink.errorSupplemental(dsym.loc, "compile time context created here");
                     }
                 }
@@ -3473,9 +3453,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     dsym.inuse++;
                     // Bug 20549. Don't try this on modules or packages, syntaxCopy
                     // could crash (inf. recursion) on a mod/pkg referencing itself
-                    if (ei && (ei.exp.op != EXP.scope_ ? true : !ei.exp.isScopeExp().sds.isPackage()))
+                    if (!isVoidInit && (dsym._init.op != EXP.scope_ ? true : !dsym._init.isScopeExp().sds.isPackage()))
                     {
-                        if (ei.exp.type)
+                        if (dsym._init.type)
                         {
                             // If exp is already resolved we are done, our original init exp
                             // could have a type painting that we need to respect
@@ -3484,23 +3464,24 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         }
                         else
                         {
-                            Expression exp = ei.exp.syntaxCopy();
+                            Expression exp = dsym._init.syntaxCopy();
 
                             bool needctfe = dsym.isDataseg() || (dsym.storage_class & STC.manifest);
                             if (needctfe)
                                 sc = sc.startCTFE();
                             sc = sc.push();
                             sc.varDecl = dsym; // https://issues.dlang.org/show_bug.cgi?id=24051
+                            sc.expectedType = dsym.type;
                             exp = exp.expressionSemantic(sc);
                             exp = resolveProperties(sc, exp);
                             sc = sc.pop();
                             if (needctfe)
                                 sc = sc.endCTFE();
-                            ei.exp = exp;
+                            dsym._init = exp;
                         }
 
                         Type tb2 = dsym.type.toBasetype();
-                        Type ti = ei.exp.type.toBasetype();
+                        Type ti = dsym._init.type.toBasetype();
 
                         /* The problem is the following code:
                          *  struct CopyTest {
@@ -3524,17 +3505,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             if (sd.postblit && tb2.toDsymbol(null) == sd)
                             {
                                 // The only allowable initializer is a (non-copy) constructor
-                                if (ei.exp.isLvalue())
+                                if (dsym._init.isLvalue())
                                     eSink.error(dsym.loc, "%s `%s` of type struct `%s` uses `this(this)`, which is not allowed in static initialization", dsym.kind, dsym.toPrettyChars, tb2.toErrMsg());
                             }
                         }
                     }
 
-                    dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITinterpret, global.errorSink);
+                    dsym.initializerSemantic(sc, INITinterpret);
                     dsym.inuse--;
                     if (global.errors > errors)
                     {
-                        dsym._init = new ErrorInitializer();
+                        dsym._init = ErrorExp.get();
                         dsym.type = Type.terror;
                     }
                 }
@@ -8027,7 +8008,7 @@ private extern(C++) class SearchVisitor : Visitor
              */
             auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
             Expression e = new IntegerExp(Loc.initial, tt.arguments.length, Type.tsize_t);
-            v._init = new ExpInitializer(Loc.initial, e);
+            v._init = e;
             v.storage_class |= STC.temp | STC.static_ | STC.const_;
             v.dsymbolSemantic(sc);
             return v;
@@ -8042,7 +8023,7 @@ private extern(C++) class SearchVisitor : Visitor
              */
             auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
             Expression e = new IntegerExp(Loc.initial, td.objects.length, Type.tsize_t);
-            v._init = new ExpInitializer(Loc.initial, e);
+            v._init = e;
             v.storage_class |= STC.temp | STC.static_ | STC.const_;
             v.dsymbolSemantic(ass._scope);
             return setResult(v);
@@ -8105,7 +8086,7 @@ private extern(C++) class SearchVisitor : Visitor
                  * length will be a const.
                  */
                 Expression e = new IntegerExp(Loc.initial, tupexp.exps.length, Type.tsize_t);
-                v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc.initial, e));
+                v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, e);
                 v.storage_class |= STC.temp | STC.static_ | STC.const_;
             }
             else if (ce.type && (t = ce.type.toBasetype()) !is null && (t.ty == Tstruct || t.ty == Tclass))
@@ -8163,7 +8144,7 @@ private extern(C++) class SearchVisitor : Visitor
                 t = e.type.toBasetype();
                 if (t && t.ty == Tfunction)
                     e = new CallExp(e.loc, e);
-                v = new VarDeclaration(loc, null, Id.dollar, new ExpInitializer(Loc.initial, e));
+                v = new VarDeclaration(loc, null, Id.dollar, e);
                 v.storage_class |= STC.temp | STC.ctfe | STC.rvalue;
             }
             else
@@ -8180,13 +8161,11 @@ private extern(C++) class SearchVisitor : Visitor
                 auto tsa = ce.type ? ce.type.isTypeSArray() : null;
                 if (tsa)
                 {
-                    auto e = new ExpInitializer(loc, tsa.dim);
-                    v = new VarDeclaration(loc, tsa.dim.type, Id.dollar, e, STC.manifest);
+                    v = new VarDeclaration(loc, tsa.dim.type, Id.dollar, tsa.dim, STC.manifest);
                 }
                 else
                 {
-                    auto e = new VoidInitializer(Loc.initial);
-                    e.type = Type.tsize_t;
+                    auto e = voidInitializer(Loc.initial);
                     v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, e);
                     v.storage_class |= STC.temp | STC.ctfe; // it's never a true static variable
                 }
@@ -9514,7 +9493,7 @@ private void lowerUnpack(UnpackDeclaration upd, Scope* sc)
         if (auto var = d.isVarDeclaration())
         {
             assert (!var._init);
-            var._init = new ExpInitializer(exp.loc, exp);
+            var._init = exp;
         }
         else if (auto unp = d.isUnpackDeclaration())
         {
@@ -10461,7 +10440,7 @@ private bool checkOverlappedFields(AggregateDeclaration ad)
             else if (v2._init && i < j)
             {
                 eSink.error(v2.loc, "union field `%s` with default initialization `%s` must be before field `%s`",
-                    v2.toErrMsg(), dmd.hdrgen.toChars(v2._init), vd.toErrMsg());
+                    v2.toErrMsg(), v2._init.toChars(), vd.toErrMsg());
                 errors = true;
             }
         }

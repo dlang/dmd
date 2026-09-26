@@ -37,7 +37,6 @@ import dmd.identifier;
 import dmd.location;
 import dmd.common.outbuffer;
 import dmd.visitor;
-import dmd.init; // TODO: maybe remove this?
 
 /***********************************************************
  * Abstract attribute applied to Dsymbol's used as a common

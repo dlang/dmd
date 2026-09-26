@@ -21,6 +21,7 @@ import dmd.astenums;
 import dmd.arraytypes;
 import dmd.dsymbolsem;
 import dmd.templatesem : computeOneMember;
+import dmd.expression : isVoidInitializer;
 import dmd.expressionsem : toInteger;
 import dmd.funcsem : isVirtual;
 import dmd.errors : fatal;
@@ -977,8 +978,8 @@ public:
             if (!vd._init)
                 return;
 
-            if (auto ei = vd._init.isExpInitializer())
-                type = ei.exp.type;
+            if (!vd._init.isVoidInitializer())
+                type = vd._init.type;
 
             // Can happen if the expression needs further semantic
             if (!type)
@@ -1015,7 +1016,7 @@ public:
                     buf.writestring(" { ");
                     writeIdentifier(vd, true);
                     buf.writestring(" = ");
-                    auto ie = AST.initializerToExpression(vd._init, null, null, eSink).isIntegerExp();
+                    auto ie = vd._init.isIntegerExp();
                     visitInteger(ie.toInteger(), type);
                     buf.writestring(" };");
                     break;
@@ -1034,7 +1035,7 @@ public:
                         buf.writestring(" ");
                     writeIdentifier(vd, true);
                     buf.writestring(" = ");
-                    auto e = AST.initializerToExpression(vd._init, null, null, eSink);
+                    auto e = vd._init;
                     printExpressionFor(target, e);
                     buf.writestring(";");
                     break;
@@ -1397,7 +1398,7 @@ public:
 
                 if (vd._init)
                 {
-                    auto e = AST.initializerToExpression(vd._init, null, null, eSink);
+                    auto e = vd._init;
                     printExpressionFor(vd.type, e, true);
                 }
                 buf.printf(")");
@@ -2846,7 +2847,7 @@ public:
     private static AST.Expression findDefaultInitializer(AST.VarDeclaration vd)
     {
         if (vd._init && !vd._init.isVoidInitializer())
-            return AST.initializerToExpression(vd._init, null, null, global.errorSink);
+            return vd._init;
         if (auto ts = vd.type.isTypeStruct())
         {
             if (!ts.sym.noDefaultCtor && !ts.sym.isUnionDeclaration())

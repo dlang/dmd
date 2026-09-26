@@ -3880,9 +3880,8 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                 e = inferExpType(e, fparam.type);
                 Scope* sc2 = sc.push();
                 sc2.inDefaultArg = true;
-                Initializer iz = new ExpInitializer(e.loc, e);
-                iz = iz.initializerSemantic(sc2, fparam.type, INITnointerpret, eSink);
-                e = iz.initializerToExpression(sc2, null, eSink);
+                Type tx = fparam.type;
+                e = initializerSemantic(e, sc2, tx, INITnointerpret);
                 sc2.pop();
             }
             if (e.op == EXP.function_) // https://issues.dlang.org/show_bug.cgi?id=4820
@@ -4985,7 +4984,7 @@ Expression defaultInitLiteral(Type t, Loc loc)
                 if (vd._init.isVoidInitializer())
                     e = null;
                 else
-                    e = vd.getConstInitializer(false);
+                    e = vd.getConstInitializer();
             }
             else
                 e = vd.type.defaultInitLiteral(loc);

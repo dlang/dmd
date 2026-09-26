@@ -96,7 +96,7 @@ Note that these groups have no strict meaning, the category assignments are a bi
 | [aggregate.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/aggregate.d)       | Define an aggregate (`struct`, `union` or `class`) AST node |
 | [dclass.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dclass.d)             | Define a `class` AST node                                   |
 | [dstruct.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dstruct.d)           | Define a `struct` or `union` AST node                       |
-| [init.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/init.d)                 | Define variable initializers                                |
+| [init.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/init.d)                 | Define auxiliary types for variable initializers            |
 
 **AST visitors**
 

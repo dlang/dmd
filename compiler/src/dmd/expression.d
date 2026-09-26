@@ -353,6 +353,8 @@ extern (C++) abstract class Expression : ASTNode
         inout(StructLiteralExp) isStructLiteralExp() { return op == EXP.structLiteral ? cast(typeof(return))this : null; }
         inout(CompoundLiteralExp) isCompoundLiteralExp() { return op == EXP.compoundLiteral ? cast(typeof(return))this : null; }
         inout(TypeExp)      isTypeExp() { return op == EXP.type ? cast(typeof(return))this : null; }
+        inout(StructInitExp) isStructInitExp() { return op == EXP.structInit ? cast(typeof(return))this : null; }
+        inout(CInitExp)     isCInitExp() { return op == EXP.cInit ? cast(typeof(return))this : null; }
         inout(ScopeExp)     isScopeExp() { return op == EXP.scope_ ? cast(typeof(return))this : null; }
         inout(TemplateExp)  isTemplateExp() { return op == EXP.template_ ? cast(typeof(return))this : null; }
         inout(NewExp) isNewExp() { return op == EXP.new_ ? cast(typeof(return))this : null; }
@@ -1530,10 +1532,125 @@ extern (C++) final class CompoundLiteralExp : Expression
         //printf("CompoundLiteralExp::CompoundLiteralExp(%s)\n", toChars());
     }
 
+    override CompoundLiteralExp syntaxCopy()
+    {
+        return new CompoundLiteralExp(loc, type.syntaxCopy(), initializer.syntaxCopy());
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
     }
+}
+
+/***********************************************************
+ * S s = { a: 1, 2 };
+ */
+extern (C++) final class StructInitExp : Expression
+{
+    Identifiers field;
+    Expressions value;
+
+    extern (D) this(Loc loc)
+    {
+        super(loc, EXP.structInit);
+    }
+
+    extern (D) void addInit(Identifier field, Expression value)
+    {
+        this.field.push(field);
+        this.value.push(value);
+    }
+
+    override StructInitExp syntaxCopy()
+    {
+        auto si = new StructInitExp(loc);
+        si.field.setDim(field.length);
+        si.value.setDim(value.length);
+        foreach (const i; 0 .. field.length)
+        {
+            si.field[i] = field[i];
+            si.value[i] = value[i].syntaxCopy();
+        }
+        return si;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * struct S s = { [0] = 1, .a = 2 };
+ */
+extern (C++) final class CInitExp : Expression
+{
+    DesigInits initializerList; /// initializer-list
+
+    extern (D) this(Loc loc)
+    {
+        super(loc, EXP.cInit);
+    }
+
+    override CInitExp syntaxCopy()
+    {
+        auto ci = new CInitExp(loc);
+        ci.initializerList.setDim(initializerList.length);
+        foreach (const i; 0 .. initializerList.length)
+        {
+            DesigInit* cdi = &ci.initializerList[i];
+            DesigInit* vdi = &initializerList[i];
+            cdi.designatorList = null;
+            cdi.initializer = vdi.initializer.syntaxCopy();
+            if (vdi.designatorList)
+            {
+                cdi.designatorList = new Designators();
+                cdi.designatorList.setDim(vdi.designatorList.length);
+                foreach (const j; 0 .. vdi.designatorList.length)
+                {
+                    Designator* cdid = &(*cdi.designatorList)[j];
+                    Designator* vdid = &(*vdi.designatorList)[j];
+                    cdid.exp = vdid.exp ? vdid.exp.syntaxCopy() : null;
+                    cdid.ident = vdid.ident;
+                }
+            }
+        }
+        return ci;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * int x = void;
+ */
+bool isVoidInitializer(const Expression e) @safe
+{
+    auto te = e ? e.isTypeExp() : null;
+    return te && te.type.ty == Tvoid;
+}
+
+/// ditto
+Expression voidInitializer(Loc loc)
+{
+    return new TypeExp(loc, Type.tvoid);
+}
+
+/***********************************************************
+ * S s = S(1);  // ConstructExp
+ * int i = 1;   // BlitExp
+ */
+Expression initializerExp(Expression init) @safe
+{
+    if (auto ce = init.isConstructExp())
+        return ce.e2;
+    if (auto be = init.isBlitExp())
+        return be.e2;
+    return init;
 }
 
 /***********************************************************
@@ -4166,6 +4283,8 @@ alias ExpOpTypePairs = AliasSeq!
     OpType!(EXP._Generic, GenericExp),
     OpType!(EXP.interval, IntervalExp),
     OpType!(EXP.loweredAssignExp, LoweredAssignExp),
+    OpType!(EXP.structInit, StructInitExp),
+    OpType!(EXP.cInit, CInitExp),
 );
 
 /// Given a member of the EXP enum, get the class instance size of the corresponding Expression class.

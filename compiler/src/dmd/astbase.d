@@ -55,6 +55,7 @@ struct ASTBase
     alias Statements            = Array!(Statement);
     alias Catches               = Array!(Catch);
     alias Identifiers           = Array!(Identifier);
+    alias Initializer           = Expression;
     alias Initializers          = Array!(Initializer);
     alias Ensures               = Array!(Ensure);
     alias Designators           = Array!(Designator);
@@ -1392,11 +1393,11 @@ struct ASTBase
         Expression origValue;
         Type origType;
 
-        @property ref value() { return (cast(ExpInitializer)_init).exp; }
+        @property ref value() { return _init; }
 
         extern (D) this(Loc loc, Identifier id, Expression value, Type origType)
         {
-            super(loc, null, id ? id : Id.empty, new ExpInitializer(loc, value));
+            super(loc, null, id ? id : Id.empty, value);
             this.origValue = value;
             this.origType = origType;
         }
@@ -6516,116 +6517,20 @@ struct ASTBase
         }
     }
 
-    extern (C++) class Initializer : ASTNode
-    {
-        Loc loc;
-        InitKind kind;
-
-        final extern (D) this(Loc loc, InitKind kind)
-        {
-            this.loc = loc;
-            this.kind = kind;
-        }
-
-        // this should be abstract and implemented in child classes
-        Expression toExpression(Type t = null)
-        {
-            return null;
-        }
-
-        final ExpInitializer isExpInitializer()
-        {
-            return kind == InitKind.exp ? cast(ExpInitializer)cast(void*)this : null;
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class ExpInitializer : Initializer
-    {
-        Expression exp;
-
-        extern (D) this(Loc loc, Expression exp)
-        {
-            super(loc, InitKind.exp);
-            this.exp = exp;
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class StructInitializer : Initializer
+    extern (C++) final class StructInitExp : Expression
     {
         Identifiers field;
         Initializers value;
 
         extern (D) this(Loc loc)
         {
-            super(loc, InitKind.struct_);
+            super(loc, EXP.structInit, __traits(classInstanceSize, StructInitExp));
         }
 
         void addInit(Identifier field, Initializer value)
         {
             this.field.push(field);
             this.value.push(value);
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class ArrayInitializer : Initializer
-    {
-        Initializers index;
-        Initializers value;
-        uint dim;
-        Type type;
-
-        extern (D) this(Loc loc)
-        {
-            super(loc, InitKind.array);
-        }
-
-        void addInit(Initializer index, Initializer value)
-        {
-            this.index.push(index);
-            this.value.push(value);
-            dim = 0;
-            type = null;
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class VoidInitializer : Initializer
-    {
-        extern (D) this(Loc loc)
-        {
-            super(loc, InitKind.void_);
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class DefaultInitializer : Initializer
-    {
-        extern (D) this(Loc loc)
-        {
-            super(loc, InitKind.default_);
         }
 
         override void accept(Visitor v)
@@ -6646,16 +6551,16 @@ struct ASTBase
     struct DesigInit
     {
         Designators* designatorList; /// designation (opt)
-        Initializer initializer;     /// initializer
+        Expression initializer;      /// initializer
     }
 
-    extern (C++) final class CInitializer : Initializer
+    extern (C++) final class CInitExp : Expression
     {
         DesigInits initializerList; /// initializer-list
 
         extern (D) this(Loc loc)
         {
-            super(loc, InitKind.C_);
+            super(loc, EXP.cInit, __traits(classInstanceSize, CInitExp));
         }
 
         override void accept(Visitor v)

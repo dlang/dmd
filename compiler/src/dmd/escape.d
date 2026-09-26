@@ -31,7 +31,6 @@ import dmd.globals : FeatureState, global;
 import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.printast;
@@ -1545,7 +1544,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
                 //   (ref v = ex; ex)
                 // e.g. to extract side effects of `Tuple!(int, int).modify().expand[0]`
                 // look at the initializer instead
-                if (ExpInitializer ez = v._init.isExpInitializer())
+                if (!v._init.isVoidInitializer() && !v._init.isErrorExp())
                 {
                     // Prevent endless loops. Consider:
                     // `__field0 = (S __tup1 = S(x, y);) , __field0 = __tup1.__fields_field_0`
@@ -1554,14 +1553,14 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
                     // Also consider appending a struct with a `return scope` constructor:
                     // __appendtmp34 = __appendtmp34.this(null)
                     // In that case we just break the cycle using `lastTemp`.
-                    auto lc = ez.exp.lastComma();
+                    auto lc = v._init.lastComma();
                     auto restoreLastTemp = er.lastTemp;
                     er.lastTemp = v;
                     // printf("%s %s    TO    %s\n", e.loc.toChars, e.toChars, lc.toChars);
                     if (lc.isAssignExp || lc.isConstructExp || lc.isBlitExp)
                         escapeExp(lc.isBinExp().e2, er, deref);
                     else
-                        escapeExp(ez.exp, er, deref);
+                        escapeExp(v._init, er, deref);
 
                     er.lastTemp = restoreLastTemp;
                     return;

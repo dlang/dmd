@@ -32,7 +32,6 @@ import dmd.funcsem : checkNestedReference;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.parse;

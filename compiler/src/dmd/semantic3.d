@@ -47,8 +47,6 @@ import dmd.funcsem;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
-import dmd.initsem;
 import dmd.hdrgen;
 import dmd.location;
 import dmd.mtype;
@@ -461,7 +459,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     // Declare _argptr
                     Type t = target.va_listType(funcdecl.loc, sc);
                     // Init is handled in FuncDeclaration_toObjFile
-                    funcdecl.v_argptr = new VarDeclaration(funcdecl.loc, t, Id._argptr, new VoidInitializer(funcdecl.loc));
+                    funcdecl.v_argptr = new VarDeclaration(funcdecl.loc, t, Id._argptr, voidInitializer(funcdecl.loc));
                     funcdecl.v_argptr.storage_class |= STC.temp;
                     funcdecl.v_argptr.dsymbolSemantic(sc2);
                     sc2.insert(funcdecl.v_argptr);
@@ -1153,16 +1151,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                 eSink.error(v.loc, "%s `%s` zero-length `out` parameters are not allowed.", v.kind, v.toPrettyChars);
                                 return;
                             }
-                            ExpInitializer ie = v._init.isExpInitializer();
-                            assert(ie);
-                            if (auto iec = ie.exp.isConstructExp())
+                            if (auto iec = v._init.isConstructExp())
                             {
                                 // construction occurred in parameter processing
                                 auto ec = new AssignExp(iec.loc, iec.e1, iec.e2);
                                 ec.type = iec.type;
-                                ie.exp = ec;
+                                v._init = ec;
                             }
-                            a.push(new ExpStatement(Loc.initial, ie.exp));
+                            a.push(new ExpStatement(Loc.initial, v._init));
                         }
                     }
                 }
@@ -1177,7 +1173,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     e = new ConstructExp(Loc.initial, _arguments, e);
                     e = e.expressionSemantic(sc2);
 
-                    _arguments._init = new ExpInitializer(Loc.initial, e);
+                    _arguments._init = e;
                     auto de = new DeclarationExp(Loc.initial, _arguments);
                     a.push(new ExpStatement(Loc.initial, de));
                 }

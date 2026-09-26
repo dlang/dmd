@@ -37,8 +37,6 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
-import dmd.initsem;
 import dmd.location;
 import dmd.mtype;
 import dmd.opover;
@@ -393,15 +391,14 @@ public:
                  * inlined body of the function:
                  *   tret __inlineretval = e;
                  */
-                auto ei = new ExpInitializer(s.loc, exp);
                 auto tmp = Identifier.generateId("__inlineretval");
-                auto vd = new VarDeclaration(s.loc, tf.next, tmp, ei);
+                auto vd = new VarDeclaration(s.loc, tf.next, tmp, exp);
                 vd.storage_class = STC.temp | (tf.isRef ? STC.ref_ : STC.rvalue);
                 vd._linkage = tf.linkage;
                 vd.parent = ids.parent;
 
-                ei.exp = new ConstructExp(s.loc, vd, exp);
-                ei.exp.type = vd.type;
+                vd._init = new ConstructExp(s.loc, vd, exp);
+                vd._init.type = vd.type;
 
                 auto de = new DeclarationExp(s.loc, vd);
                 de.type = Type.tvoid;
@@ -719,9 +716,7 @@ public:
                 {
                     if (vd._init && !vd._init.isVoidInitializer())
                     {
-                        result = vd._init.initializerToExpression(null, null, global.errorSink);
-                        assert(result);
-                        result = doInlineAs!Expression(result, ids);
+                        result = doInlineAs!Expression(vd._init, ids);
                     }
                     else
                         result = IntegerExp.literal!0;
@@ -740,15 +735,9 @@ public:
                 if (vd._init)
                 {
                     if (vd._init.isVoidInitializer())
-                    {
-                        vto._init = new VoidInitializer(vd._init.loc);
-                    }
+                        vto._init = voidInitializer(vd._init.loc);
                     else
-                    {
-                        auto ei = vd._init.initializerToExpression(null, null, global.errorSink);
-                        assert(ei);
-                        vto._init = new ExpInitializer(ei.loc, doInlineAs!Expression(ei, ids));
-                    }
+                        vto._init = doInlineAs!Expression(vd._init, ids);
                 }
                 if (vd.edtor)
                 {
@@ -926,11 +915,7 @@ public:
                 ids.to.push(vto);
 
                 if (vd._init && !vd._init.isVoidInitializer())
-                {
-                    auto ie = vd._init.isExpInitializer();
-                    assert(ie);
-                    vto._init = new ExpInitializer(ie.loc, doInlineAs!Expression(ie.exp, ids));
-                }
+                    vto._init = doInlineAs!Expression(vd._init, ids);
                 are.lengthVar = vto;
             }
             are.e2 = doInlineAs!Expression(e.e2, ids);
@@ -954,11 +939,7 @@ public:
                 ids.to.push(vto);
 
                 if (vd._init && !vd._init.isVoidInitializer())
-                {
-                    auto ie = vd._init.isExpInitializer();
-                    assert(ie);
-                    vto._init = new ExpInitializer(ie.loc, doInlineAs!Expression(ie.exp, ids));
-                }
+                    vto._init = doInlineAs!Expression(vd._init, ids);
 
                 are.lengthVar = vto;
             }
@@ -1283,10 +1264,8 @@ public:
     {
         if (s.wthis && s.wthis._init)
         {
-            if (auto ie = s.wthis._init.isExpInitializer())
-            {
-                inlineScan(ie.exp);
-            }
+            if (!s.wthis._init.isVoidInitializer())
+                inlineScan(s.wthis._init);
         }
         inlineScan(s._body);
     }
@@ -1370,10 +1349,8 @@ public:
             }
             else if (vd._init)
             {
-                if (ExpInitializer ie = vd._init.isExpInitializer())
-                {
-                    inlineScan(ie.exp);
-                }
+                if (!vd._init.isVoidInitializer())
+                    inlineScan(vd._init);
             }
         }
     }
@@ -1604,11 +1581,11 @@ public:
                     return null;
 
                 //printf("init: %s\n", v._init.toChars());
-                auto ei = v._init.isExpInitializer();
-                if (!ei || (ei.exp.op != EXP.blit && ei.exp.op != EXP.construct))
+                auto ei = v._init;
+                if (ei.isVoidInitializer() || (ei.op != EXP.blit && ei.op != EXP.construct))
                     return null;
 
-                Expression e2 = (cast(AssignExp)ei.exp).e2;
+                Expression e2 = (cast(AssignExp)ei).e2;
                 if (auto se = e2.isSymOffExp())
                 {
                     // function pointer call
@@ -2195,15 +2172,14 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
         {
             // Use a pointer to the expression (field or static array) to be initialized.
 
-            auto ei = new ExpInitializer(callLoc, null);
             auto tmp = Identifier.generateId("__retptr");
-            auto vd = new VarDeclaration(fd.loc, eret.type.pointerTo(), tmp, ei);
+            auto vd = new VarDeclaration(fd.loc, eret.type.pointerTo(), tmp, null);
             vd.storage_class |= STC.temp;
             vd._linkage = LINK.d;
             vd.parent = parent;
 
-            ei.exp = new ConstructExp(fd.loc, vd, new AddrExp(fd.loc, eret, vd.type));
-            ei.exp.type = vd.type;
+            vd._init = new ConstructExp(fd.loc, vd, new AddrExp(fd.loc, eret, vd.type));
+            vd._init.type = vd.type;
 
             auto de = new DeclarationExp(fd.loc, vd);
             de.type = Type.tvoid;
@@ -2237,7 +2213,7 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
             Expression ae = new ArrayLiteralExp(vthis2.loc, vthis2.type, elements);
             Expression ce = new ConstructExp(vthis2.loc, vthis2, ae);
             ce.type = vthis2.type;
-            vthis2._init = new ExpInitializer(vthis2.loc, ce);
+            vthis2._init = ce;
             vthis = vthis2;
         }
         else if (auto ve = ethis.isVarExp())
@@ -2253,8 +2229,7 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
                 ethis.type = t;
             }
 
-            auto ei = new ExpInitializer(fd.loc, null);
-            vthis = new VarDeclaration(fd.loc, ethis.type, Id.This, ei);
+            vthis = new VarDeclaration(fd.loc, ethis.type, Id.This, null);
             vthis._linkage = LINK.d;
             vthis.parent = parent;
 
@@ -2270,8 +2245,8 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
                 vthis.storage_class = STC.ref_;
             }
 
-            ei.exp = new ConstructExp(fd.loc, vthis, ethis);
-            ei.exp.type = vthis.type;
+            vthis._init = new ConstructExp(fd.loc, vthis, ethis);
+            vthis._init.type = vthis.type;
 
             auto de = new DeclarationExp(fd.loc, vthis);
             de.type = Type.tvoid;
@@ -2292,8 +2267,7 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
             auto vfrom = (*fd.parameters)[i];
             auto arg = (*ecall.arguments)[i];
 
-            auto ei = new ExpInitializer(vfrom.loc, arg);
-            auto vto = new VarDeclaration(vfrom.loc, vfrom.type, vfrom.ident, ei);
+            auto vto = new VarDeclaration(vfrom.loc, vfrom.type, vfrom.ident, arg);
             vto.storage_class |= vfrom.storage_class & (STC.temp | STC.IOR | STC.lazy_ | STC.nodtor);
             vto._linkage = vfrom._linkage;
             vto.parent = parent;
@@ -2315,8 +2289,8 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
                 vto.storage_class |= STC.ref_;
 
             // Even if vto is STC.lazy_, `vto = arg` is handled correctly in glue layer.
-            ei.exp = new BlitExp(vto.loc, vto, arg);
-            ei.exp.type = vto.type;
+            vto._init = new BlitExp(vto.loc, vto, arg);
+            vto._init.type = vto.type;
 
             ids.from.push(vfrom);
             ids.to.push(vto);
