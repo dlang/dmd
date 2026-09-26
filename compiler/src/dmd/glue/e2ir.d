@@ -1909,6 +1909,9 @@ elem* toElem(Expression e, ref IRState irs)
         }
         elem* er = toElem(be.e2, irs);
 
+        if (tybasic(er.Ety) == TYnoreturn)
+            op = OPcomma;
+
         elem* e;
         if (op == OPmodass &&
             target.isAArch64 &&                 // x87 has FPREM instruction, others use fmod()
@@ -4769,8 +4772,9 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
     TY fty;
     TY tty;
     if (t.equals(tfrom) ||
-        t.equals(Type.tvoid)) // https://issues.dlang.org/show_bug.cgi?id=18573
-                              // Remember to pop value left on FPU stack
+        t.equals(Type.tvoid) ||       // https://issues.dlang.org/show_bug.cgi?id=18573
+        tybasic(e.Ety) == TYnoreturn) // https://issues.dlang.org/show_bug.cgi?id=23950
+                                      // Remember to pop value left on FPU stack
         return e;
 
     fty = tfrom.ty;
