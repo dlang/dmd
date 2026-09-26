@@ -2166,7 +2166,7 @@ private elem* elcond(elem* e, Goal goal)
                 el_free(e1);
                 return elcond(e,goal);
             }
-            if (e1.Ety == TYnoreturn)
+            if (tybasic(e1.Ety) == TYnoreturn)
             {
                 return el_selecte1(e);
             }
@@ -2501,7 +2501,7 @@ L2:
         goto L2;
     }
 
-    if (e1.Ety == TYnoreturn)
+    if (tybasic(e1.Ety) == TYnoreturn)
     {
         e = el_selecte1(e);
         goto Lret;
@@ -2807,7 +2807,7 @@ private elem* eloror(elem* e, Goal goal)
         return eloror(e, goal);
     }
 
-    if (e1.Ety == TYnoreturn)
+    if (tybasic(e1.Ety) == TYnoreturn)
     {
         return el_selecte1(e);
     }
@@ -3111,7 +3111,7 @@ private elem* elandand(elem* e, Goal goal)
         el_free(e1);
         return elandand(e, goal);
     }
-    if (e1.Ety == TYnoreturn)
+    if (tybasic(e1.Ety) == TYnoreturn)
     {
         return el_selecte1(e);
     }
@@ -3569,11 +3569,21 @@ elem* elstruct(elem* e, Goal goal)
         return optelem(e, goal);
     }
 
-    // Replace (e = e) with (e, e)
-    if (e.Eoper == OPstreq && el_match(e.E1, e.E2))
+    if (e.Eoper == OPstreq)
     {
-        e.Eoper = OPcomma;
-        return optelem(e, goal);
+        // Replace (e = noreturn) with (e, noreturn)
+        if (tybasic(e.E2.Ety) == TYnoreturn)
+        {
+            e.Eoper = OPcomma;
+            return optelem(e, Goal.none);
+        }
+
+        // Replace (e = e) with (e, e)
+        if (el_match(e.E1, e.E2))
+        {
+            e.Eoper = OPcomma;
+            return optelem(e, goal);
+        }
     }
 
     if (!e.ET)
@@ -3857,6 +3867,12 @@ static if (0)  // Doesn't work too well, removed
         return optelem(e, Goal.value);
     }
 }
+
+    if (tybasic(e.E2.Ety) == TYnoreturn)
+    {
+        e.Eoper = OPcomma;
+        return optelem(e, Goal.none);
+    }
 
     if (OPTIMIZER)
     {
