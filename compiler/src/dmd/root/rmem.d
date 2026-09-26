@@ -637,7 +637,7 @@ void* bumpMalloc(size_t size)
     {
         size = (size + hugeAlignment - 1) & ~(hugeAlignment - 1);
         void** pfree = &firstHugeFree;
-        while (auto p = cast(void**)*pfree)
+        for (auto p = cast(void**)*pfree; p; p = cast(void**)*pfree)
         {
             if (cast(size_t) p[1] == size)
             {
