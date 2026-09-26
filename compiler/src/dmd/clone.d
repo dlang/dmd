@@ -958,6 +958,14 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
         break;
     }
 
+    if (ClassDeclaration cldec = ad.isClassDeclaration())
+    {
+        // If this class has no explicit cpp destructor, but the base class
+        // has, then set cppDtorVtblIndex, so destructors for fields can be called.
+        if (cldec.cppDtorVtblIndex == -1 && cldec.baseClass && cldec.aggrDtor)
+            cldec.cppDtorVtblIndex = cldec.baseClass.cppDtorVtblIndex;
+    }
+
     // Set/build `ad.dtor`.
     // On Windows, the dtor in the vtable is a shim with different signature.
     ad.dtor = (ad.aggrDtor && ad.aggrDtor._linkage == LINK.cpp && !target.cpp.twoDtorInVtable)
