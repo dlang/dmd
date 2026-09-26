@@ -306,6 +306,8 @@ struct seg_data
     {
         SDseg = 0;
         SDoffset = 0;
+        SDalignment = 0;
+
         isfarseg = false;
         segidx = 0;
         lnameidx = 0;
@@ -314,9 +316,12 @@ struct seg_data
         origsize = 0;
         seek = 0;
         ledata = null;
+
         SDshtidx = 0;
+        if (SDrel) SDrel.reset();
         if (SDbuf) SDbuf.reset();
         relocations.reset();
+
         SDsymidx = 0;
         SDrelidx = 0;
         SDrelcnt = 0;
