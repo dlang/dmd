@@ -601,6 +601,17 @@ void MachObj_termfile()
     }
 }
 
+void segsizes() @trusted
+{
+	printf("Segsizes\n");
+        for (int seg = 1; seg < SegData.length; seg++)
+	{
+            seg_data* pseg = SegData[seg];
+            if (pseg.SDbuf && pseg.SDbuf.length())
+                printf("\tpseg: %p SDbuf: %p %d SDbuf.length %zx\n", pseg, pseg.SDbuf, seg, pseg.SDbuf.length());
+	}
+}
+
 /*********************************
  * Terminate package.
  */
@@ -617,6 +628,8 @@ void MachObj_term(const(char)[] objfilename)
     {
         dwarf_termfile();
     }
+
+    segsizes();
 
 
     /* Write out the object file in the following order:
@@ -787,12 +800,19 @@ void MachObj_term(const(char)[] objfilename)
     foreach (i, s; table)
         printf("table[%d] = %d %d\n", cast(int)i, table[i], table[table[i]]);
 
-    //printf("Setup offsets and sizes foffset %d\n\tsection_length %d, SegData.length %d\n",foffset,section_length,SegData.length);
+    printf("\nSetup offsets and sizes foffset %d\n\tSegData.length %zx\n",foffset,SegData.length);
     {
+        for (int seg = 1; seg < SegData.length; seg++)
+	{
+            seg_data* pseg = SegData[seg];
+            if (pseg.SDbuf && pseg.SDbuf.length())
+                printf("%d\tSDbuf.length %zx\n", seg, pseg.SDbuf.length());
+	}
+
         /* For each segment, write the segment data bytes out to fobjbuf */
         for (int seg = 1; seg < SegData.length; seg++)
         {
-            //printf("writing seg %d as %d\n", seg, table[seg]);
+            printf("writing seg %d as %d\n", seg, table[seg]);
             seg_data* pseg = SegData[table[seg]];
             if (I64)
             {
@@ -810,22 +830,22 @@ void MachObj_term(const(char)[] objfilename)
                 {
                     psechdr.offset = 0;
                     psechdr.size = pseg.SDoffset; // accumulated size
-                    //printf("\tzero section name %s size %d\n", psechdr.sectname.ptr, cast(int)pseg.SDoffset);
+                    printf("\tzero section name %s size %zx\n", psechdr.sectname.ptr, pseg.SDoffset);
                 }
                 else
                 {
                     psechdr.offset = foffset;
                     psechdr.size = 0;
-                    //printf("\tsection name %s,", psechdr.sectname.ptr);
+                    printf("\t%d section name %s,", table[seg], psechdr.sectname.ptr);
                     if (pseg.SDbuf && pseg.SDbuf.length())
                     {
-                        //printf("\tsize %d\n", cast(int)pseg.SDbuf.length());
+                        printf("\tSDbuf.length %zx\n", pseg.SDbuf.length());
                         psechdr.size = pseg.SDbuf.length();
                         machobj.fobjbuf.write(pseg.SDbuf.buf, cast(uint)psechdr.size);
                         foffset += psechdr.size;
                     }
-                    //else
-                        //printf("\n");
+                    else
+                        printf("\n");
                 }
                 psechdr.addr = vmaddr;
                 vmaddr += psechdr.size;
@@ -2709,6 +2729,8 @@ void MachObj_func_term(Symbol* sfunc)
     //dbg_printf("MachObj_func_term(%s) offset %x, Coffset %x symidx %d\n",
     //           sfunc.Sident.ptr, sfunc.Soffset,SegData[cseg].SDoffset,sfunc.Sxtrnnum);
     dwarf_func_term(sfunc);
+import dmd.backend.machobj : segsizes;
+printf("segsizes B "); segsizes();
 }
 
 /********************************

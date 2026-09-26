@@ -1024,6 +1024,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
     scope v = new ToObjFile(multiobj, ds.isCsymbol());
     ds.accept(v);
+
+import dmd.backend.machobj : segsizes;
+printf("segsizes G "); segsizes();
 }
 
 
