@@ -39,7 +39,7 @@ struct Array
     ~Array()
     {
         if (allocated > SMALLARRAYCAP)
-            mem.xfree(_ptr);
+            mem.xfree(_ptr, allocated * sizeof(TYPE));
     }
 
     char *toChars() const
@@ -65,7 +65,7 @@ struct Array
         }
         *p++ = ']';
         *p = 0;
-        mem.xfree(buf);
+        mem.xfree(buf, length * sizeof(const char*));
         return str;
     }
 
@@ -112,8 +112,9 @@ struct Array
                 auto increment = length / 2;
                 if (nentries > increment)       // if 1.5 is not enough
                     increment = (uint32_t)nentries;
-                allocated = length + increment;
-                _ptr = (TYPE *)mem.xrealloc(_ptr, allocated * sizeof(TYPE));
+                auto count = length + increment;
+                _ptr = (TYPE *)mem.xrealloc(_ptr, count * sizeof(TYPE), allocated * sizeof(TYPE));
+                allocated = count;
             }
         }
     }

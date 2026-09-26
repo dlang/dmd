@@ -20,8 +20,11 @@ struct BitArray
 
     ~BitArray()
     {
-        mem.xfree(ptr);
+        auto chunks = (len + BitsPerChunk - 1) / BitsPerChunk;
+        mem.xfree(ptr, chunks);
     }
+
+    static const size_t BitsPerChunk = sizeof(size_t) * 8;
 
     d_size_t len;
     d_size_t *ptr;
