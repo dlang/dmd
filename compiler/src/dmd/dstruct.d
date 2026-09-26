@@ -18,19 +18,77 @@ import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.declaration;
+import dmd.denum;
 import dmd.dmodule;
 import dmd.dsymbol;
+import dmd.expression;
 import dmd.func;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
+import dmd.rootobject;
 import dmd.visitor;
 
 enum StructFlags : int
 {
     none        = 0x0,
     hasPointers = 0x1, // NB: should use noPointers as in ClassFlags
+}
+
+struct EnumUnionVariant
+{
+    Loc loc;
+    Identifier ident;
+    bool isTypeAlias;
+    bool generated;
+    Dsymbol declaration;
+    EnumUnionCaseDeclaration descriptor;
+    Expressions* udas;
+    Type[] payload;
+    Identifier[] payloadNames;
+    Dsymbols* members;
+    TraitsExp variantSplice;
+    StructDeclaration payloadType;
+    VarDeclaration payloadVar;
+}
+
+package EnumUnionVariant syntaxCopyEnumUnionVariant(ref EnumUnionVariant variant)
+{
+    EnumUnionVariant copy;
+    copy.loc = variant.loc;
+    copy.ident = variant.ident;
+    copy.isTypeAlias = variant.isTypeAlias;
+    copy.udas = Expression.arraySyntaxCopy(variant.udas);
+    copy.payload.reserve(variant.payload.length);
+    foreach (payload; variant.payload)
+        copy.payload ~= payload.syntaxCopy();
+    copy.payloadNames = variant.payloadNames.dup;
+    copy.members = Dsymbol.arraySyntaxCopy(variant.members);
+    copy.variantSplice = variant.variantSplice ? variant.variantSplice.syntaxCopy() : null;
+    return copy;
+}
+
+extern (C++) final class EnumUnionCaseDeclaration : Declaration
+{
+    EnumUnionVariant variant;
+
+    extern (D) this(Loc loc, EnumUnionVariant variant)
+    {
+        super(DSYM.enumUnionCaseDeclaration, loc, null);
+        this.variant = variant;
+    }
+
+    override EnumUnionCaseDeclaration syntaxCopy(Dsymbol s)
+    {
+        return new EnumUnionCaseDeclaration(loc, syntaxCopyEnumUnionVariant(variant));
+    }
+
+    override const(char)* kind() const
+    {
+        return "enum union case";
+    }
 }
 
 /***********************************************************
@@ -134,6 +192,59 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     }
 }
 
+
+/***********************************************************
+ * Tagged aggregate used by `enum union` declarations.
+ */
+extern (C++) final class EnumUnionDeclaration : StructDeclaration
+{
+    EnumUnionVariant[] variants;
+    bool enumUnionCasesExpanded;
+    bool enumUnionFactoriesSynthesized;
+    VarDeclaration tagVar;
+    UnionDeclaration payloadUnion;
+
+    extern (D) this(Loc loc, Identifier id)
+    {
+        super(loc, id, false);
+        this.dsym = DSYM.enumUnionDeclaration;
+    }
+
+    override EnumUnionDeclaration syntaxCopy(Dsymbol s)
+    {
+        auto eu = new EnumUnionDeclaration(loc, ident);
+        eu.variants.reserve(variants.length);
+        foreach (ref variant; variants)
+            eu.variants ~= syntaxCopyEnumUnionVariant(variant);
+        StructDeclaration.syntaxCopy(eu);
+        if (members && eu.members)
+            foreach (i, member; *members)
+            {
+                if (i >= eu.members.length)
+                    break;
+                if (member is tagVar)
+                    eu.tagVar = (*eu.members)[i].isVarDeclaration();
+                if (auto anon = member.isAnonDeclaration())
+                    if (anon.isunion)
+                    {
+                        auto copy = (*eu.members)[i].isAnonDeclaration();
+                        eu.payloadUnion = new UnionDeclaration(payloadUnion.loc, payloadUnion.ident);
+                        eu.payloadUnion.members = copy ? copy.decl : null;
+                    }
+            }
+        return eu;
+    }
+
+    override const(char)* kind() const
+    {
+        return "enum union";
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
 
 /***********************************************************
  * Unions are a variation on structs.

@@ -461,6 +461,7 @@ enum Test[string] tests = [
 enum ignoreTokens
 {
     reserved,
+    enumUnion,
     negate,
     array,
     call,
@@ -550,6 +551,8 @@ enum ignoreTokens
     __pragma,
     __int128,
     __attribute__,
+
+    enumUnion,
 
     max_,
 };

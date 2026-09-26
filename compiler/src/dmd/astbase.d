@@ -62,6 +62,7 @@ struct ASTBase
 
     alias Visitor = ParseTimeVisitor!ASTBase;
 
+
     extern (C++) abstract class ASTNode : RootObject
     {
         abstract void accept(Visitor v);
@@ -224,6 +225,16 @@ struct ASTBase
         }
 
         inout(UnionDeclaration) isUnionDeclaration() inout
+        {
+            return null;
+        }
+
+        inout(EnumUnionDeclaration) isEnumUnionDeclaration() inout
+        {
+            return null;
+        }
+
+        inout(EnumUnionCaseDeclaration) isEnumUnionCaseDeclaration() inout
         {
             return null;
         }
@@ -890,6 +901,62 @@ struct ASTBase
         override void accept(Visitor v)
         {
             v.visit(this);
+        }
+    }
+
+    struct EnumUnionVariant
+    {
+        Loc loc;
+        Identifier ident;
+        bool isTypeAlias;
+        Expressions* udas;
+        Type[] payload;
+        Identifier[] payloadNames;
+        Dsymbols* members;
+        TraitsExp variantSplice;
+    }
+
+    extern (C++) final class EnumUnionCaseDeclaration : Declaration
+    {
+        EnumUnionVariant variant;
+
+        extern (D) this(Loc loc, EnumUnionVariant variant)
+        {
+            super(null);
+            this.loc = loc;
+            this.variant = variant;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(cast(Declaration) this);
+        }
+
+        override final inout(EnumUnionCaseDeclaration) isEnumUnionCaseDeclaration() inout
+        {
+            return this;
+        }
+    }
+
+    extern (C++) final class EnumUnionDeclaration : ScopeDsymbol
+    {
+        EnumUnionVariant[] variants;
+        VarDeclaration tagVar;
+        UnionDeclaration payloadUnion;
+
+        extern (D) this(Loc loc, Identifier id)
+        {
+            super(loc, id);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+
+        override final inout(EnumUnionDeclaration) isEnumUnionDeclaration() inout
+        {
+            return this;
         }
     }
 
@@ -4604,6 +4671,7 @@ struct ASTBase
             inout(DotIdExp)     isDotIdExp() { return op == EXP.dotIdentifier ? cast(typeof(return))this : null; }
             inout(DotTemplateInstanceExp) isDotTemplateInstanceExp() { return op == EXP.dotTemplateInstance ? cast(typeof(return))this : null; }
             inout(CallExp)      isCallExp() { return op == EXP.call ? cast(typeof(return))this : null; }
+            inout(SwitchExp)    isSwitchExp() { return op == EXP.switchExpression ? cast(typeof(return))this : null; }
             inout(AddrExp)      isAddrExp() { return op == EXP.address ? cast(typeof(return))this : null; }
             inout(PtrExp)       isPtrExp() { return op == EXP.star ? cast(typeof(return))this : null; }
             inout(NegExp)       isNegExp() { return op == EXP.negate ? cast(typeof(return))this : null; }
@@ -5230,6 +5298,7 @@ struct ASTBase
     {
         Dsymbol s;
         bool hasOverloads;
+        bool preserveSymbol;
 
         extern (D) this(Loc loc, Dsymbol s, bool hasOverloads = true)
         {
@@ -6014,6 +6083,85 @@ struct ASTBase
         {
             super(loc, EXP.question, __traits(classInstanceSize, CondExp), e1, e2);
             this.econd = econd;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    struct CaseExpArm
+    {
+        Loc loc;
+        Expression pattern;
+        Type typePattern;
+        Identifier typeBinding;
+        Identifier[] recordBindings;
+        bool hasRestPattern;
+        Identifier[] recordPatternNames;
+        Expression[] recordPatterns;
+        Identifier restBinding;
+        Expression guard;
+        bool isDefault;
+        Expression action;
+
+        StaticForeach sfe;
+        CaseExpArm[] nestedArms;
+        Condition staticIfCond;
+        CaseExpArm[] elseArms;
+
+        CaseExpArm syntaxCopy()
+        {
+            CaseExpArm copy = this;
+            copy.pattern = pattern ? pattern.syntaxCopy() : null;
+            copy.typePattern = typePattern ? typePattern.syntaxCopy() : null;
+            copy.recordBindings = recordBindings.dup;
+            copy.recordPatternNames = recordPatternNames.dup;
+            if (recordPatterns)
+            {
+                copy.recordPatterns = new Expression[](recordPatterns.length);
+                foreach (j, pat; recordPatterns)
+                    copy.recordPatterns[j] = pat ? pat.syntaxCopy() : null;
+            }
+            copy.guard = guard ? guard.syntaxCopy() : null;
+            copy.action = action ? action.syntaxCopy() : null;
+            if (nestedArms)
+            {
+                copy.nestedArms = new CaseExpArm[](nestedArms.length);
+                foreach (j, ref na; nestedArms)
+                    copy.nestedArms[j] = na.syntaxCopy();
+            }
+            if (elseArms)
+            {
+                copy.elseArms = new CaseExpArm[](elseArms.length);
+                foreach (j, ref ea; elseArms)
+                    copy.elseArms[j] = ea.syntaxCopy();
+            }
+            return copy;
+        }
+    }
+
+    extern (C++) final class SwitchExp : Expression
+    {
+        Expression condition;
+        CaseExpArm[] arms;
+        bool hasDefault;
+
+        final extern (D) this(Loc loc, Expression condition, CaseExpArm[] arms, bool hasDefault)
+        {
+            super(loc, EXP.switchExpression, __traits(classInstanceSize, SwitchExp));
+            this.condition = condition;
+            this.arms = arms;
+            this.hasDefault = hasDefault;
+        }
+
+        override SwitchExp syntaxCopy()
+        {
+            auto copiedArms = new CaseExpArm[](arms.length);
+            foreach (i, arm; arms)
+                copiedArms[i] = arm.syntaxCopy();
+            return new SwitchExp(loc, condition.syntaxCopy(), copiedArms, hasDefault);
         }
 
         override void accept(Visitor v)

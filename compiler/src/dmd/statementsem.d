@@ -242,11 +242,44 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             result = s;
             return;
         }
+
+        bool hasSwitchExpressionSideEffect(Expression exp)
+        {
+            if (auto call = exp.isCallExp())
+                if (call.f && call.f.isGenerated && call.f.parent && call.f.parent.isEnumUnionDeclaration())
+                {
+                    if (call.arguments)
+                        foreach (argument; *call.arguments)
+                            if (hasSwitchExpressionSideEffect(argument))
+                                return true;
+                    return false;
+                }
+            return hasSideEffect(exp);
+        }
+
+        bool hasBindingInitializerSideEffect(Expression exp)
+        {
+            if (auto comma = exp.isCommaExp())
+                return hasBindingInitializerSideEffect(comma.e1) ||
+                    hasBindingInitializerSideEffect(comma.e2);
+            if (auto declaration = exp.isDeclarationExp())
+            {
+                if (auto variable = declaration.declaration.isVarDeclaration())
+                    if (auto initializer = variable._init ? variable._init.isExpInitializer() : null)
+                        return hasBindingInitializerSideEffect(initializer.exp);
+                return false;
+            }
+            if (auto construct = exp.isConstructExp())
+                return hasBindingInitializerSideEffect(construct.e2);
+            return hasSwitchExpressionSideEffect(exp);
+        }
         //printf("ExpStatement::semantic() %s\n", exp.toChars());
 
         // Allow CommaExp in ExpStatement because return isn't used
         CommaExp.allow(s.exp);
 
+        auto switchExp = s.exp.isSwitchExp();
+        auto switchCondition = switchExp ? switchExp.condition : null;
         s.exp = s.exp.expressionSemantic(sc);
         s.exp = resolveProperties(sc, s.exp);
         s.exp = s.exp.addDtorHook(sc);
@@ -259,8 +292,29 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         }
         if (checkMustUse(s.exp, sc))
             s.exp = ErrorExp.get();
-        if (!sc.inCfile && discardValue(s.exp))
-            s.exp = ErrorExp.get();
+        if (!sc.inCfile)
+        {
+            if (switchExp)
+            {
+                bool hasEffect = hasSwitchExpressionSideEffect(switchCondition);
+                foreach (arm; switchExp.arms)
+                {
+                    hasEffect = hasEffect || hasSideEffect(arm.action) ||
+                        (arm.guard && hasSideEffect(arm.guard));
+                    foreach (binding; arm.bindings)
+                        if (auto initializer = binding._init ? binding._init.isExpInitializer() : null)
+                            hasEffect = hasEffect || hasBindingInitializerSideEffect(initializer.exp);
+                }
+                if (!hasEffect)
+                {
+                    eSink.error(switchExp.loc,
+                        "switch expression has no effect; use `cast(void)` to discard its value");
+                    s.exp = ErrorExp.get();
+                }
+            }
+            else if (discardValue(s.exp))
+                s.exp = ErrorExp.get();
+        }
 
         s.exp = s.exp.optimize(WANTvalue);
         s.exp = s.exp.checkGC(sc);
@@ -1229,7 +1283,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                  */
                 auto id = Identifier.generateId("__r");
                 auto ie = new ExpInitializer(loc, new SliceExp(loc, fs.aggr, null, null));
-                const valueIsRef = (*fs.parameters)[$ - 1].isReference();
+                const valueIsRef = fs.value.isReference();
                 VarDeclaration tmp;
                 if (fs.aggr.isArrayLiteralExp() && !valueIsRef)
                 {
@@ -4693,7 +4747,9 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
                 {
                     if (isStatic || tb.ty == Tfunction || storageClass & STC.alias_)
                     {
-                        if (auto ve = e.isVarExp())
+                        if (auto de = e.isDsymbolExp())
+                            ds = de.s;
+                        else if (auto ve = e.isVarExp())
                             ds = ve.var;
                         else if (auto dve = e.isDotVarExp())
                             ds = dve.var;

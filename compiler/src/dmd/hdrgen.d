@@ -1719,8 +1719,118 @@ private final class DsymbolPrettyPrintVisitor : Visitor
         buf.writenl();
     }
 
+    void visitEnumUnionDeclaration(EnumUnionDeclaration eu)
+    {
+        buf.put("enum union ");
+        if (!eu.isAnonymous())
+            buf.put(eu.toChars());
+        buf.writenl();
+        buf.put('{');
+        buf.writenl();
+        buf.level++;
+        hgs.insideAggregate++;
+        foreach (variant; eu.variants)
+        {
+            if (variant.udas)
+            {
+                buf.put("@(");
+                argsToBuffer(variant.udas, *buf, *hgs);
+                buf.put(')');
+                buf.writenl();
+            }
+            buf.put("case ");
+            if (variant.ident)
+            {
+                buf.put(variant.ident.toString());
+                if (variant.isTypeAlias && variant.payload.length)
+                {
+                    buf.put(" = ");
+                    toCBuffer(variant.payload[0], *buf, null, *hgs);
+                }
+                else if (variant.members)
+                {
+                    buf.writenl();
+                    buf.put('{');
+                    buf.writenl();
+                    buf.level++;
+                    foreach (m; *variant.members)
+                        toCBuffer(m, *buf, *hgs);
+                    buf.level--;
+                    buf.put('}');
+                }
+                else
+                {
+                    buf.put('(');
+                    foreach (i, p; variant.payload)
+                    {
+                        if (i) buf.put(", ");
+                        toCBuffer(p, *buf, null, *hgs);
+                        if (i < variant.payloadNames.length && variant.payloadNames[i])
+                        {
+                            buf.put(' ');
+                            buf.put(variant.payloadNames[i].toString());
+                        }
+                    }
+                    buf.put(')');
+                }
+            }
+            else if (variant.payload.length)
+            {
+                toCBuffer(variant.payload[0], *buf, null, *hgs);
+            }
+            buf.put(';');
+            buf.writenl();
+        }
+        bool isInternalOrVariantMember(Dsymbol m)
+        {
+            if (m is eu.tagVar)
+                return true;
+            if (m.isAnonDeclaration())
+                return true;
+            if (auto fd = m.isFuncDeclaration())
+            {
+                if (fd.isGenerated)
+                    return true;
+            }
+            if (auto uad = m.isUserAttributeDeclaration())
+            {
+                if (uad.decl && uad.decl.length == 1)
+                    return isInternalOrVariantMember((*uad.decl)[0]);
+            }
+            foreach (ref variant; eu.variants)
+            {
+                if (m is variant.declaration)
+                    return true;
+                if (m is variant.payloadType)
+                    return true;
+                if (m is variant.payloadVar)
+                    return true;
+            }
+            return false;
+        }
+
+        if (eu.members)
+        {
+            foreach (m; *eu.members)
+            {
+                if (isInternalOrVariantMember(m))
+                    continue;
+                toCBuffer(m, *buf, *hgs);
+            }
+        }
+        hgs.insideAggregate--;
+        buf.level--;
+        buf.put('}');
+        buf.writenl();
+    }
+
     void visitStructDeclaration(StructDeclaration d)
     {
+        if (auto eu = d.isEnumUnionDeclaration())
+        {
+            visitEnumUnionDeclaration(eu);
+            return;
+        }
         //printf("visitStructDeclaration() %s\n", d.ident.toChars());
         buf.put(d.kind());
         buf.put(' ');
@@ -2653,6 +2763,23 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitDeclaration(DeclarationExp e)
     {
+        void unpackPatternToBuffer(UnpackDeclaration unpack, bool nested = false)
+        {
+            if (nested)
+                buf.put('(');
+            foreach (index, declaration; *unpack.decl)
+            {
+                if (index)
+                    buf.put(", ");
+                if (auto variable = declaration.isVarDeclaration())
+                    buf.put(variable.ident.toString());
+                else if (auto child = declaration.isUnpackDeclaration())
+                    unpackPatternToBuffer(child, true);
+            }
+            if (nested)
+                buf.put(')');
+        }
+
         /* Normal dmd execution won't reach here - regular variable declarations
          * are handled in visit(ExpStatement), so here would be used only when
          * we'll directly call Expression.toChars() for debugging.
@@ -2672,6 +2799,8 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
                 buf.put(';');
                 buf.put(')');
             }
+            else if (auto unpack = e.declaration.isUnpackDeclaration())
+                unpackPatternToBuffer(unpack);
             else e.declaration.dsymbolToBuffer(buf, hgs);
         }
     }
@@ -3097,6 +3226,149 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         expToBuffer(e.e2, PREC.cond, buf, hgs);
     }
 
+    void visitSwitch(SwitchExp e)
+    {
+        void staticForeachHeader(StaticForeach sfe)
+        {
+            buf.put("static ");
+            if (auto statement = sfe.aggrfe)
+            {
+                buf.put(Token.toString(statement.op));
+                buf.put(" (");
+                foreach (i, parameter; *statement.parameters)
+                {
+                    if (i)
+                        buf.put(", ");
+                    if (stcToBuffer(buf, parameter.storageClass))
+                        buf.put(' ');
+                    if (parameter.type)
+                        typeToBuffer(parameter.type, parameter.ident, buf, hgs);
+                    else
+                        buf.put(parameter.ident.toString());
+                }
+                buf.put("; ");
+                expToBuffer(statement.aggr, PREC.expr, buf, hgs);
+            }
+            else
+            {
+                auto statement = sfe.rangefe;
+                buf.put(Token.toString(statement.op));
+                buf.put(" (");
+                if (statement.param.type)
+                    typeToBuffer(statement.param.type, statement.param.ident, buf, hgs);
+                else
+                    buf.put(statement.param.ident.toString());
+                buf.put("; ");
+                expToBuffer(statement.lwr, PREC.expr, buf, hgs);
+                buf.put(" .. ");
+                expToBuffer(statement.upr, PREC.expr, buf, hgs);
+            }
+            buf.put(")");
+        }
+
+        void armsToBuffer(CaseExpArm[] arms)
+        {
+            foreach (arm; arms)
+            {
+                if (arm.sfe)
+                {
+                    buf.put(" ");
+                    staticForeachHeader(arm.sfe);
+                    buf.put(" {");
+                    armsToBuffer(arm.nestedArms);
+                    buf.put(" }");
+                    continue;
+                }
+                if (arm.staticIfCond)
+                {
+                    buf.put(" ");
+                    conditionToBuffer(arm.staticIfCond, buf, hgs);
+                    buf.put(" {");
+                    armsToBuffer(arm.nestedArms);
+                    buf.put(" }");
+                    if (arm.elseArms)
+                    {
+                        buf.put(" else {");
+                        armsToBuffer(arm.elseArms);
+                        buf.put(" }");
+                    }
+                    continue;
+                }
+
+                buf.put(" ");
+                if (arm.isDefault)
+                    buf.put("default");
+                else
+                {
+                    buf.put("case ");
+                    if (arm.typePattern)
+                    {
+                        typeToBuffer(arm.typePattern, null, buf, hgs);
+                        if (arm.typeBinding)
+                        {
+                            buf.put(" ");
+                            buf.put(arm.typeBinding.toString());
+                        }
+                    }
+                    else if (arm.pattern)
+                        expToBuffer(arm.pattern, PREC.assign, buf, hgs);
+                    if (arm.recordBindings.length || arm.recordPatternNames.length || arm.hasRestPattern)
+                    {
+                        buf.put(" {");
+                        bool needsComma;
+                        foreach (binding; arm.recordBindings)
+                        {
+                            if (needsComma)
+                                buf.put(",");
+                            buf.put(" ");
+                            buf.put(binding.toString());
+                            needsComma = true;
+                        }
+                        foreach (i, name; arm.recordPatternNames)
+                        {
+                            if (needsComma)
+                                buf.put(",");
+                            buf.put(" ");
+                            buf.put(name.toString());
+                            buf.put(": ");
+                            expToBuffer(arm.recordPatterns[i], PREC.assign, buf, hgs);
+                            needsComma = true;
+                        }
+                        if (arm.hasRestPattern)
+                        {
+                            if (needsComma)
+                                buf.put(",");
+                            buf.put(" ");
+                            if (arm.restBinding)
+                            {
+                                buf.put(arm.restBinding.toString());
+                                buf.put("...");
+                            }
+                            else
+                                buf.put("...");
+                        }
+                        buf.put(" }");
+                    }
+                }
+                if (arm.guard)
+                {
+                    buf.put(" if (");
+                    expToBuffer(arm.guard, PREC.expr, buf, hgs);
+                    buf.put(")");
+                }
+                buf.put(" => ");
+                expToBuffer(arm.action, PREC.assign, buf, hgs);
+                buf.put(",");
+            }
+        }
+
+        buf.put("switch (");
+        expToBuffer(e.condition, PREC.expr, buf, hgs);
+        buf.put(") {");
+        armsToBuffer(e.arms);
+        buf.put(" }");
+    }
+
     void visitDefaultInit(DefaultInitExp e)
     {
         buf.put(Token.toString(e.tok));
@@ -3192,6 +3464,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.prePlusPlus:   return visitPre(e.isPreExp());
         case EXP.remove:        return visitRemove(e.isRemoveExp());
         case EXP.question:      return visitCond(e.isCondExp());
+        case EXP.switchExpression:      return visitSwitch(e.isSwitchExp());
         case EXP.classReference:        return visitClassReference(e.isClassReferenceExp());
         case EXP.loweredAssignExp:      return visitLoweredAssignExp(e.isLoweredAssignExp());
         case EXP.construct:     return visitConstructExp(e.isConstructExp());
@@ -3941,6 +4214,8 @@ private Expression arrowFuncLiteralResult(FuncLiteralDeclaration f)
 // to be called if e could be loweredFrom another expression instead of acessing precedence[e.op] directly
 private PREC expPrecedence(ref HdrGenState hgs, Expression e)
 {
+    if (e.op == EXP.switchExpression)
+        return PREC.assign;
     if (!hgs.vcg_ast)
     {
         if (auto ce = e.isCallExp())
@@ -4722,6 +4997,7 @@ string EXPtoString(EXP op)
         EXP.assocArrayLiteral : "assocarrayliteral",
         EXP.classReference : "classreference",
         EXP.defaultInit : "defaultinit",
+        EXP.switchExpression : "switchExpression",
         EXP.typeid_ : "typeid",
         EXP.is_ : "is",
         EXP.assert_ : "assert",

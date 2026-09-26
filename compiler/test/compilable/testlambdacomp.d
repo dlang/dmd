@@ -4,7 +4,7 @@ module testlambdacomp;
 void test1()
 {
     static assert(__traits(isSame, (a, b) => a + b, (c, d) => c + d));
-    static assert(__traits(isSame, a => ++a, b => ++b));
+        static assert(__traits(isSame, a => ++a, b => ++b));
     static assert(!__traits(isSame, (int a, int b) => a + b, (a, b) => a + b));
     static assert(__traits(isSame, (a, b) => a + b + 10, (c, d) => c + d + 10));
 }
@@ -63,10 +63,10 @@ void test2()
     B q = new B(7);
     alias pred = (A a, A b) => ++a.a.x + (--b.a.x);
     foo3!pred();
-    static assert(!__traits(isSame, (A a) => ++a.a.x + 2, (A b) => ++b.a.x + 3));
+        static assert(!__traits(isSame, (A a) => ++a.a.x + 2, (A b) => ++b.a.x + 3));
     static assert(__traits(isSame,  pred, (A x, A y) => ++x.a.x + (--y.a.x)));
-    static assert(!__traits(isSame, (B a) => ++a.a + 2, (B b) => ++b.a + 3));
-    static assert(__traits(isSame, (B a) => ++a.a, (B a) => ++a.a));
+        static assert(!__traits(isSame, (B a) => ++a.a + 2, (B b) => ++b.a + 3));
+        static assert(__traits(isSame, (B a) => ++a.a, (B a) => ++a.a));
 
     B cl = new B(7);
     static assert(!__traits(isSame, a => a + q.a, c => c + cl.a));
@@ -106,7 +106,7 @@ void test3()
     }
     enum r1 = Bar(1);
     enum r2 = Bar(1);
-    static assert(__traits(isSame, a => a + r1.a, b => b + r2.a));
+        static assert(__traits(isSame, a => a + r1.a, b => b + r2.a));
 
     enum X { A, B, C}
     static assert(__traits(isSame, a => a + X.A, a => a + 0));

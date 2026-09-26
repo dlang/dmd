@@ -801,6 +801,39 @@ package(dmd.visitor) mixin template ParseVisitMethods(AST)
             s.accept(this);
     }
 
+    override void visit(AST.EnumUnionDeclaration d)
+    {
+        static if (is(AST.EnumUnionDeclaration : AST.StructDeclaration))
+        {
+            visit(cast(AST.StructDeclaration)d);
+        }
+        else
+        {
+            foreach (ref variant; d.variants)
+            {
+                visitArgs(variant.udas.peekSlice());
+                foreach (payload; variant.payload)
+                    visitType(payload);
+                if (variant.members)
+                    foreach (member; *variant.members)
+                        member.accept(this);
+                if (variant.variantSplice)
+                    variant.variantSplice.accept(this);
+            }
+            if (!d.members)
+                return;
+            foreach (member; *d.members)
+            {
+                if (member is d.tagVar)
+                    continue;
+                if (auto attribute = member.isAttribDeclaration())
+                    if (d.payloadUnion && attribute.decl is d.payloadUnion.members)
+                        continue;
+                member.accept(this);
+            }
+        }
+    }
+
     override void visit(AST.ClassDeclaration d)
     {
         //printf("Visiting ClassDeclaration\n");

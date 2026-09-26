@@ -20,6 +20,7 @@ import core.stdc.string;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
+import dmd.cond : StaticForeach, Condition;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dstruct;
@@ -449,6 +450,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(EqualExp)    isEqualExp() { return (op == EXP.equal || op == EXP.notEqual) ? cast(typeof(return))this : null; }
         inout(IdentityExp) isIdentityExp() { return (op == EXP.identity || op == EXP.notIdentity) ? cast(typeof(return))this : null; }
         inout(CondExp)     isCondExp() { return op == EXP.question ? cast(typeof(return))this : null; }
+        inout(SwitchExp)   isSwitchExp() { return op == EXP.switchExpression ? cast(typeof(return))this : null; }
         inout(GenericExp)  isGenericExp() { return op == EXP._Generic ? cast(typeof(return))this : null; }
         inout(DefaultInitExp)    isDefaultInitExp() { return op == EXP.defaultInit ? cast(typeof(return))this : null; }
         inout(ObjcClassReferenceExp) isObjcClassReferenceExp() { return op == EXP.objcClassReference ? cast(typeof(return))this : null; }
@@ -805,6 +807,7 @@ extern (C++) final class DsymbolExp : Expression
 {
     Dsymbol s;
     bool hasOverloads;
+    bool preserveSymbol;
 
     extern (D) this(Loc loc, Dsymbol s, bool hasOverloads = true) @safe
     {
@@ -3782,6 +3785,100 @@ extern (C++) final class CondExp : BinExp
 }
 
 /***********************************************************
+ * Expression-position switch with pattern/action arms.
+ */
+struct CaseExpArm
+{
+    Loc loc;
+    Expression pattern;
+    Type typePattern;
+    Identifier typeBinding;
+    Identifier[] recordBindings;
+    bool hasRestPattern;
+    Identifier[] recordPatternNames;
+    Expression[] recordPatterns;
+    Identifier restBinding;
+    Expression guard;
+    bool isDefault;
+    Expression action;
+    VarDeclaration[] bindings;
+    size_t variantIndex;
+    bool hasVariant;
+
+    StaticForeach sfe;
+    CaseExpArm[] nestedArms;
+    Condition staticIfCond;
+    CaseExpArm[] elseArms;
+    ScopeDsymbol[] iterationScopes;
+
+    CaseExpArm syntaxCopy()
+    {
+        CaseExpArm copy = this;
+        copy.pattern = pattern ? pattern.syntaxCopy() : null;
+        copy.typePattern = typePattern ? typePattern.syntaxCopy() : null;
+        copy.recordBindings = recordBindings.dup;
+        copy.recordPatternNames = recordPatternNames.dup;
+        if (recordPatterns)
+        {
+            copy.recordPatterns = new Expression[](recordPatterns.length);
+            foreach (j, pat; recordPatterns)
+                copy.recordPatterns[j] = pat ? pat.syntaxCopy() : null;
+        }
+        copy.bindings = null;
+        copy.hasVariant = false;
+        copy.variantIndex = 0;
+        copy.guard = guard ? guard.syntaxCopy() : null;
+        copy.action = action ? action.syntaxCopy() : null;
+        copy.iterationScopes = null;
+        if (sfe)
+            copy.sfe = sfe.syntaxCopy();
+        if (nestedArms)
+        {
+            copy.nestedArms = new CaseExpArm[](nestedArms.length);
+            foreach (j, ref na; nestedArms)
+                copy.nestedArms[j] = na.syntaxCopy();
+        }
+        if (staticIfCond)
+            copy.staticIfCond = staticIfCond.syntaxCopy();
+        if (elseArms)
+        {
+            copy.elseArms = new CaseExpArm[](elseArms.length);
+            foreach (j, ref ea; elseArms)
+                copy.elseArms[j] = ea.syntaxCopy();
+        }
+        return copy;
+    }
+}
+
+extern (C++) final class SwitchExp : Expression
+{
+    Expression condition;
+    CaseExpArm[] arms;
+    bool hasDefault;
+
+    extern (D) this(Loc loc, Expression condition, CaseExpArm[] arms, bool hasDefault)
+    {
+        super(loc, EXP.switchExpression);
+        this.condition = condition;
+        this.arms = arms;
+        this.hasDefault = hasDefault;
+    }
+
+    override SwitchExp syntaxCopy()
+    {
+        auto copiedArms = new CaseExpArm[](arms.length);
+        foreach (i, arm; arms)
+            copiedArms[i] = arm.syntaxCopy();
+        return new SwitchExp(loc, condition.syntaxCopy(), copiedArms, hasDefault);
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
  * A special keyword when used as a function's default argument
  *
  * When possible, special keywords are resolved in the parser, but when
@@ -4126,6 +4223,7 @@ alias ExpOpTypePairs = AliasSeq!
     OpType!(EXP.dot, DotExp),
     OpType!(EXP.comma, CommaExp),
     OpType!(EXP.question, CondExp),
+    OpType!(EXP.switchExpression, SwitchExp),
     OpType!(EXP.andAnd, LogicalExp),
     OpType!(EXP.orOr, LogicalExp),
     OpType!(EXP.prePlusPlus, PreExp),
