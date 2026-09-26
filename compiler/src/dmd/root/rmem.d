@@ -20,7 +20,8 @@ import core.memory : GC;
 
 nothrow:
 
-enum UseBumpMalloc = true;
+// dmd 2.097: CTFE cannot cast on function, GDC bootstrap fails
+enum UseBumpMalloc = __VERSION__ > 2_097;
 
 extern (C++) struct Mem
 {
@@ -258,113 +259,116 @@ extern (C) pure @nogc nothrow
 
 }
 
-/////////////////////////////////////
-// replacement for C malloc/realloc/free using the bump-allocation
-// memory. As free and realloc are required to pass the allocated
-// size of the existing allocation, it does not need any extra memory
-// but for alignment.
-// It takes advantage of being single threaded, and allows releasing
-// all memory in one go with the bump allocator.
-
-enum smallAlignmentShift = 4;
-enum smallAlignment = 1 << smallAlignmentShift;
-enum maxSmallSize = 1024;
-void*[maxSmallSize >> smallAlignmentShift] firstSmallFree;
-
-enum largeAlignmentShift = 8;
-enum largeAlignment = 1 << largeAlignmentShift;
-enum maxLargeSize = 64 * 1024;
-void*[maxLargeSize >> largeAlignmentShift] firstLargeFree;
-
-enum hugeAlignment = 4096;
-void* firstHugeFree;
-
-void* bumpMalloc(size_t size)
+static if (UseBumpMalloc)
 {
-    if (size <= maxSmallSize - smallAlignment)
+    /////////////////////////////////////
+    // replacement for C malloc/realloc/free using the bump-allocation
+    // memory. As free and realloc are required to pass the allocated
+    // size of the existing allocation, it does not need any extra memory
+    // but for alignment.
+    // It takes advantage of being single threaded, and allows releasing
+    // all memory in one go with the bump allocator.
+
+    enum smallAlignmentShift = 4;
+    enum smallAlignment = 1 << smallAlignmentShift;
+    enum maxSmallSize = 1024;
+    void*[maxSmallSize >> smallAlignmentShift] firstSmallFree;
+
+    enum largeAlignmentShift = 8;
+    enum largeAlignment = 1 << largeAlignmentShift;
+    enum maxLargeSize = 64 * 1024;
+    void*[maxLargeSize >> largeAlignmentShift] firstLargeFree;
+
+    enum hugeAlignment = 4096;
+    void* firstHugeFree;
+
+    void* bumpMalloc(size_t size)
     {
-        size = (size + smallAlignment - 1) & ~(smallAlignment - 1);
-        size_t bin = size >> smallAlignmentShift;
-        if (void* p = firstSmallFree[bin])
+        if (size <= maxSmallSize - smallAlignment)
         {
-            firstSmallFree[bin] = *cast(void**)p;
-            return p;
-        }
-    }
-    else if (size <= maxLargeSize - largeAlignment)
-    {
-        size = (size + largeAlignment - 1) & ~(largeAlignment - 1);
-        size_t bin = size >> largeAlignmentShift;
-        if (void* p = firstLargeFree[bin])
-        {
-            firstLargeFree[bin] = *cast(void**)p;
-            return p;
-        }
-    }
-    else
-    {
-        size = (size + hugeAlignment - 1) & ~(hugeAlignment - 1);
-        void** pfree = &firstHugeFree;
-        for (auto p = cast(void**)*pfree; p; p = cast(void**)*pfree)
-        {
-            if (cast(size_t) p[1] == size)
+            size = (size + smallAlignment - 1) & ~(smallAlignment - 1);
+            size_t bin = size >> smallAlignmentShift;
+            if (void* p = firstSmallFree[bin])
             {
-                *pfree = *p;
+                firstSmallFree[bin] = *cast(void**)p;
                 return p;
             }
-            pfree = p;
+        }
+        else if (size <= maxLargeSize - largeAlignment)
+        {
+            size = (size + largeAlignment - 1) & ~(largeAlignment - 1);
+            size_t bin = size >> largeAlignmentShift;
+            if (void* p = firstLargeFree[bin])
+            {
+                firstLargeFree[bin] = *cast(void**)p;
+                return p;
+            }
+        }
+        else
+        {
+            size = (size + hugeAlignment - 1) & ~(hugeAlignment - 1);
+            void** pfree = &firstHugeFree;
+            for (auto p = cast(void**)*pfree; p; p = cast(void**)*pfree)
+            {
+                if (cast(size_t) p[1] == size)
+                {
+                    *pfree = *p;
+                    return p;
+                }
+                pfree = p;
+            }
+        }
+        return _allocmemoryNoFree(size, DEFAULT_ALIGNMENT);
+    }
+
+    void bumpFree(void* p, size_t size)
+    {
+        if (!p)
+            return;
+
+        if (size <= maxSmallSize - smallAlignment)
+        {
+            size = (size + smallAlignment - 1) & ~(smallAlignment - 1);
+            size_t bin = size >> smallAlignmentShift;
+
+            *cast(void**)p = firstSmallFree[bin];
+            firstSmallFree[bin] = p;
+        }
+        else if (size <= maxLargeSize - largeAlignment)
+        {
+            size = (size + largeAlignment - 1) & ~(largeAlignment - 1);
+            size_t bin = size >> largeAlignmentShift;
+
+            *cast(void**)p = firstLargeFree[bin];
+            firstLargeFree[bin] = p;
+        }
+        else
+        {
+            size = (size + hugeAlignment - 1) & ~(hugeAlignment - 1);
+            *cast(void**)p = firstHugeFree;
+            (cast(size_t*)p)[1] = size;
         }
     }
-    return _allocmemoryNoFree(size, DEFAULT_ALIGNMENT);
-}
 
-void bumpFree(void* p, size_t size)
-{
-    if (!p)
-        return;
+    enum pureBumpMalloc = cast(void* function(size_t) pure nothrow)&bumpMalloc;
+    enum pureBumpFree  = cast(void function(void*p, size_t) pure nothrow)&bumpFree;
 
-    if (size <= maxSmallSize - smallAlignment)
+    void* pureBumpCalloc(size_t size, size_t n) pure nothrow
     {
-        size = (size + smallAlignment - 1) & ~(smallAlignment - 1);
-        size_t bin = size >> smallAlignmentShift;
-
-        *cast(void**)p = firstSmallFree[bin];
-        firstSmallFree[bin] = p;
+        size_t nsize = n * size;
+        void* p = pureBumpMalloc(nsize);
+        memset(p, 0, nsize);
+        return p;
     }
-    else if (size <= maxLargeSize - largeAlignment)
+
+    void* pureBumpRealloc(void* p, size_t size, size_t oldsize) pure nothrow
     {
-        size = (size + largeAlignment - 1) & ~(largeAlignment - 1);
-        size_t bin = size >> largeAlignmentShift;
-
-        *cast(void**)p = firstLargeFree[bin];
-        firstLargeFree[bin] = p;
+        void* np = pureBumpMalloc(size);
+        memcpy(np, p, size < oldsize ? size : oldsize);
+        pureBumpFree(p, oldsize);
+        return np;
     }
-    else
-    {
-        size = (size + hugeAlignment - 1) & ~(hugeAlignment - 1);
-        *cast(void**)p = firstHugeFree;
-        (cast(size_t*)p)[1] = size;
-    }
-}
-
-enum pureBumpMalloc = cast(void* function(size_t) pure nothrow)&bumpMalloc;
-enum pureBumpFree  = cast(void function(void*p, size_t) pure nothrow)&bumpFree;
-
-void* pureBumpCalloc(size_t size, size_t n) pure nothrow
-{
-    size_t nsize = n * size;
-    void* p = pureBumpMalloc(nsize);
-    memset(p, 0, nsize);
-    return p;
-}
-
-void* pureBumpRealloc(void* p, size_t size, size_t oldsize) pure nothrow
-{
-    void* np = pureBumpMalloc(size);
-    memcpy(np, p, size < oldsize ? size : oldsize);
-    pureBumpFree(p, oldsize);
-    return np;
-}
+} // UseBumpMalloc
 
 /**
 Makes a null-terminated copy of the given string on newly allocated memory.
