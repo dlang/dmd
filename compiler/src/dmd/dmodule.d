@@ -138,6 +138,9 @@ private const(char)[] getFilename(Identifier[] packages, Identifier ident) nothr
 
 /***********************************************************
  */
+// Auto-incremented package tag; reset between sessions.
+private __gshared uint packageTag;
+
 extern (C++) class Package : ScopeDsymbol
 {
     PKG isPkgMod = PKG.unknown;
@@ -147,7 +150,6 @@ extern (C++) class Package : ScopeDsymbol
     final extern (D) this(Loc loc, Identifier ident) nothrow
     {
         super(loc, ident);
-        __gshared uint packageTag;
         this.tag = packageTag++;
         this.dsym = DSYM.package_;
     }
@@ -299,6 +301,7 @@ extern (C++) final class Module : Package
     static void deinitialize()
     {
         modules = modules.init;
+        packageTag = 0;
     }
 
     extern (C++) __gshared AggregateDeclaration moduleinfo;

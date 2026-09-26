@@ -18,13 +18,34 @@ import core.stdc.stdlib;
 
 nothrow:
 
-// In theory these functions should also restore errno, but we don't care because
-// we abort application on error anyway.
-extern (C) private pure @system @nogc nothrow
+version (DMDLIB)
 {
-    pragma(mangle, "malloc") void* pureMalloc(size_t);
-    pragma(mangle, "realloc") void* pureRealloc(void* ptr, size_t size);
-    pragma(mangle, "free") void pureFree(void* ptr);
+    // OutBuffer's store is transient; serve it from the scratch allocator so
+    // freed blocks are reused and the rest is reclaimed in one go on reset.
+    import dmd.root.scratch : scratch;
+
+    private void* ossMalloc(size_t n) @system { return scratch.alloc(n); }
+    private void* ossRealloc(void* p, size_t n) @system { return scratch.realloc(p, n); }
+    private void ossFree(void* p) @system { scratch.free(p); }
+
+    private alias PureMallocFn  = void* function(size_t) pure nothrow @nogc @system;
+    private alias PureReallocFn = void* function(void*, size_t) pure nothrow @nogc @system;
+    private alias PureFreeFn    = void  function(void*) pure nothrow @nogc @system;
+
+    private static immutable PureMallocFn  pureMalloc  = cast(PureMallocFn)  &ossMalloc;
+    private static immutable PureReallocFn pureRealloc = cast(PureReallocFn) &ossRealloc;
+    private static immutable PureFreeFn    pureFree    = cast(PureFreeFn)    &ossFree;
+}
+else
+{
+    // In theory these functions should also restore errno, but we don't care
+    // because we abort application on error anyway.
+    extern (C) private pure @system @nogc nothrow
+    {
+        pragma(mangle, "malloc") void* pureMalloc(size_t);
+        pragma(mangle, "realloc") void* pureRealloc(void* ptr, size_t size);
+        pragma(mangle, "free") void pureFree(void* ptr);
+    }
 }
 
 debug
@@ -76,7 +97,7 @@ struct OutBuffer
     @trusted this(const(char)* filename)
     {
         FileMapping!ubyte model;
-        fileMapping = cast(FileMapping!ubyte*) malloc(model.sizeof);
+        fileMapping = cast(FileMapping!ubyte*) pureMalloc(model.sizeof);
         memcpy(fileMapping, &model, model.sizeof);
         fileMapping.__ctor(filename);
         //fileMapping = new FileMapping!ubyte(filename);

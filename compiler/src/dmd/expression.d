@@ -168,6 +168,10 @@ extern (C++) abstract class Expression : ASTNode
         CTFEExp.continueexp = CTFEExp.continueexp.init;
         CTFEExp.gotoexp = CTFEExp.gotoexp.init;
         CTFEExp.showcontext = CTFEExp.showcontext.init;
+        ErrorExp.errorexp = null;
+        IntegerExp.theConstant = null;
+        IntegerExp.trueExp = null;
+        IntegerExp.falseExp = null;
     }
 
     /*********************************
@@ -492,6 +496,9 @@ bool _isRoughlyScalar(Type _this)
  */
 extern (C++) final class IntegerExp : Expression
 {
+    __gshared IntegerExp theConstant;  // cached literal 0
+    __gshared IntegerExp trueExp, falseExp; // cached bool literals
+
     dinteger_t value;
 
     extern (D) this(Loc loc, dinteger_t value, Type type)
@@ -607,7 +614,6 @@ extern (C++) final class IntegerExp : Expression
      */
     static IntegerExp literal(int v)()
     {
-        __gshared IntegerExp theConstant;
         if (!theConstant)
             theConstant = new IntegerExp(v);
         return theConstant;
@@ -623,7 +629,6 @@ extern (C++) final class IntegerExp : Expression
      */
     static IntegerExp createBool(bool b)
     {
-        __gshared IntegerExp trueExp, falseExp;
         if (!trueExp)
         {
             trueExp = new IntegerExp(Loc.initial, 1, Type.tbool);
