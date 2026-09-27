@@ -2039,6 +2039,25 @@ version (MSVCIntrinsics)
             cpuID(cpuInfo, function_id, subfunction_id);
         }
 
+        /* MSVC's documented prototype takes `int cpuInfo[4]`, which decays to a plain
+         * pointer, not a pointer to a 4-element array. C callers (including ImportC)
+         * pass `int*`, so these overloads accept that directly instead of requiring
+         * every caller to cast.
+         */
+        extern(C)
+        pragma(inline, true)
+        void __cpuid()(scope int* cpuInfo, int function_id) @trusted pure nothrow @nogc
+        {
+            cpuID(cast(int[4]*) cpuInfo, function_id);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __cpuidex()(scope int* cpuInfo, int function_id, int subfunction_id) @trusted pure nothrow @nogc
+        {
+            cpuID(cast(int[4]*) cpuInfo, function_id, subfunction_id);
+        }
+
         extern(C)
         private void cpuID(Args...)(scope int[4]* cpuInfo, int function_id, Args args) @safe pure nothrow @nogc
         if (Args.length == 0 || (Args.length == 1 && is(Args[0] == int)))
@@ -2105,6 +2124,47 @@ version (MSVCIntrinsics)
             {
                 static assert(false);
             }
+        }
+
+        /* https://learn.microsoft.com/cpp/intrinsics/xgetbv
+         * Reads the extended control register selected by `ext_ctrl_reg`. Only
+         * reachable via the `_MSC_VER` branch of code guarded by it, so no CPUID
+         * feature check is done here; the caller is expected to have already
+         * confirmed XSAVE/AVX support before calling this.
+         */
+        extern(C)
+        pragma(inline, true)
+        ulong _xgetbv()(uint ext_ctrl_reg) @trusted pure nothrow @nogc
+        {
+            mixin(alwaysInlineIfAble);
+
+            uint lo, hi;
+
+            version (LDC_Or_GNU)
+            {
+                asm @trusted pure nothrow @nogc
+                {
+                      "xgetbv"
+                    : "=a" (lo), "=d" (hi)
+                    : "c" (ext_ctrl_reg);
+                }
+            }
+            else version (InlineAsm_X86_64_Or_X86)
+            {
+                asm @trusted pure nothrow @nogc
+                {
+                    mov ECX, ext_ctrl_reg;
+                    xgetbv;
+                    mov lo, EAX;
+                    mov hi, EDX;
+                }
+            }
+            else
+            {
+                static assert(false);
+            }
+
+            return (cast(ulong) hi << 32) | lo;
         }
 
         /* This is trusted so that it's @safe without DIP1000 enabled. */
