@@ -829,7 +829,10 @@ foo(a1, a2, ..., an);
 
         $(P The callee cleans the stack.)
 
-        $(P The parameters to the variadic function:)
+$(H4 $(LNAME2 variadic-parameters, Variadic Parameters))
+
+        $(P The parameters to the $(DDSUBLINK spec/function, typesafe_variadic_functions,
+        typesafe variadic) function:)
 
 ---
 void foo(int p1, int p2, int[] p3...)
@@ -841,7 +844,7 @@ foo(a1, a2, ..., an);
         $(TABLE
         $(TR $(TD p1))
         $(TR $(TD p2))
-        $(TR $(TD a3))
+        $(TR $(TD p3))
         $(TR $(TD hidden))
         $(TR $(TD this))
         )
@@ -849,7 +852,8 @@ foo(a1, a2, ..., an);
         $(P The variadic part is converted to a dynamic array and the
         rest is the same as for non-variadic functions.)
 
-        $(P The parameters to the variadic function:)
+        $(P The parameters to the $(DDSUBLINK spec/function, d_style_variadic_functions,
+        D-style variadic) function:)
 
 ---
 void foo(int p1, int p2, ...)
