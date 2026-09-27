@@ -2430,17 +2430,10 @@ $(H4 $(LNAME2 d_style_variadic_functions, D-style Variadic Functions))
         ------
         )
 
-        $(P Two hidden arguments are passed to the function:)
-
-        $(UL
-        $(LI `_argptr`)
-        $(LI `TypeInfo[] _arguments`)
-        )
-
-        $(P $(D _argptr) is a pointer to the first of the variadic
-        arguments. To access the variadic arguments,
-        import $(LINK2 $(ROOT_DIR)phobos/core_vararg.html, $(D core.vararg)).
-        Use $(D _argptr) in conjunction with $(REF_SHORT va_arg, core,stdc,stdarg):)
+        $(P `va_list _argptr` is declared & initialized as a pointer to the
+        first of the variadic arguments. To access the variadic arguments,
+        import $(LINK2 $(ROOT_DIR)phobos/core_vararg.html, $(D core.vararg)) and
+        use $(D _argptr) in conjunction with $(REF_SHORT va_arg, core,stdc,stdarg):)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
@@ -2460,8 +2453,11 @@ void main()
 }
 ------
 )
-        $(P $(D _arguments) gives the number of arguments and the `typeid`
-        of each, enabling type safety to be checked at run time.)
+        $(P A hidden function parameter `TypeInfo[] _arguments` gives
+        the number of arguments and the $(REF1 TypeInfo, object) of each argument's
+        type. This enables type safety to be manually checked at run time by
+        comparing each element against a $(DDSUBLINK spec/expression, typeid_expressions,
+        `typeid(`*Type*`)`) expression.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
@@ -2742,7 +2738,7 @@ $(H3 $(LNAME2 hidden-parameters, Hidden Parameters))
             the function is called.
         )
         $(LI $(RELATIVE_LINK2 d_style_variadic_functions, D-style variadic functions)
-            have hidden parameters.)
+            have a hidden `_arguments` parameter.)
         $(LI $(RELATIVE_LINK2 nested, Nested functions) have a hidden context
             pointer parameter.)
         $(LI
@@ -2750,7 +2746,7 @@ $(H3 $(LNAME2 hidden-parameters, Hidden Parameters))
                 Member functions with `Objective-C` linkage) have a hidden parameter.
         )
         )
-
+        $(P See $(DDSUBLINK spec/abi, parameters, ABI) for details.)
 
 
 $(H2 $(LNAME2 refscopereturn, Ref Scope Return Cases))
