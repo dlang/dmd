@@ -272,15 +272,15 @@ static if (UseBumpMalloc)
     enum smallAlignmentShift = 4;
     enum smallAlignment = 1 << smallAlignmentShift;
     enum maxSmallSize = 1024;
-    void*[maxSmallSize >> smallAlignmentShift] firstSmallFree;
+    __gshared void*[maxSmallSize >> smallAlignmentShift] firstSmallFree;
 
     enum largeAlignmentShift = 8;
     enum largeAlignment = 1 << largeAlignmentShift;
     enum maxLargeSize = 64 * 1024;
-    void*[maxLargeSize >> largeAlignmentShift] firstLargeFree;
+    __gshared void*[maxLargeSize >> largeAlignmentShift] firstLargeFree;
 
     enum hugeAlignment = 4096;
-    void* firstHugeFree;
+    __gshared void* firstHugeFree;
 
     void* bumpMalloc(size_t size)
     {
