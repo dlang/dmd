@@ -2614,7 +2614,7 @@ int jmpopcode(elem* e)
 
     op = e.Eoper;
     tym_t tymx = tybasic(e.Ety);
-    bool needsNanCheck = tyfloating(tymx) && config.inline8087 &&
+    bool needsNanCheck = tyfloating(tymx) && config.inline8087 && op != OPconst &&
         (tymx == TYreal || tymx == TYireal || tymx == TYcreal ||
          tymx == TYcdouble || tymx == TYcfloat ||
          (tyxmmreg(tymx) && config.fpxmmregs && e.Ecount != e.Ecomsub) ||
