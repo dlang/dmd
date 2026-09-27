@@ -280,12 +280,12 @@ private IDXSTR mach_addmangled(Symbol* s)
 @trusted
 Symbol* MachObj_sym_cdata(tym_t ty,const(void)[] data)
 {
-    //printf("MachObj_sym_cdata(ty = %x, p = %x, len = %d, Offset(CDATA) = %x)\n", ty, p, len, Offset(CDATA));
+    //printf("MachObj_sym_cdata(ty = %x, p = %x, len = %d, SegData[CDATA].SDoffset = %x)\n", ty, p, len, SegData[CDATA].SDoffset);
     alignOffset(CDATA, tysize(ty));
-    Symbol* s = symboldata(Offset(CDATA), ty);
+    Symbol* s = symboldata(SegData[CDATA].SDoffset, ty);
     s.Sseg = CDATA;
-    //MachObj_pubdef(CDATA, s, Offset(CDATA));
-    MachObj_bytes(CDATA, Offset(CDATA), data);
+    //MachObj_pubdef(CDATA, s, SegData[CDATA].SDoffset);
+    MachObj_bytes(CDATA, SegData[CDATA].SDoffset, data);
 
     s.Sfl = /*(config.flags3 & CFG3pic) ? FL.gotoff :*/ FL.extern_;
     return s;
@@ -298,10 +298,10 @@ Symbol* MachObj_sym_cdata(tym_t ty,const(void)[] data)
 @trusted
 int MachObj_data_readonly(void[] data, int* pseg)
 {
-    int oldoff = cast(int)Offset(CDATA);
+    int oldoff = cast(int)SegData[CDATA].SDoffset;
     SegData[CDATA].SDbuf.reserve(data.length);
     SegData[CDATA].SDbuf.writen(data.ptr, data.length);
-    Offset(CDATA) += data.length;
+    SegData[CDATA].SDoffset += data.length;
     *pseg = CDATA;
     return oldoff;
 }
@@ -2662,7 +2662,7 @@ int MachObj_data_start(Symbol* sdata, targ_size_t datasize, int seg)
         sdata.Sseg = seg;      // wasn't any segment override
     else
         seg = sdata.Sseg;
-    targ_size_t offset = Offset(seg);
+    targ_size_t offset = SegData[seg].SDoffset;
     if (sdata.Salignment > 0)
     {   if (SegData[seg].SDalignment < sdata.Salignment)
             SegData[seg].SDalignment = sdata.Salignment;
@@ -2691,11 +2691,11 @@ void MachObj_func_start(Symbol* sfunc)
     assert(sfunc.Sseg);
     if (sfunc.Sseg == UNKNOWN)
         sfunc.Sseg = CODE;
-    //printf("sfunc.Sseg %d CODE %d cseg %d Coffset x%x\n",sfunc.Sseg,CODE,cseg,Offset(cseg));
+    //printf("sfunc.Sseg %d CODE %d cseg %d Coffset x%x\n",sfunc.Sseg,CODE,cseg,SegData[cseg].SDoffset);
     cseg = sfunc.Sseg;
     assert(cseg == CODE || cseg > UDATA);
-    MachObj_pubdef(cseg, sfunc, Offset(cseg));
-    sfunc.Soffset = Offset(cseg);
+    MachObj_pubdef(cseg, sfunc, SegData[cseg].SDoffset);
+    sfunc.Soffset = SegData[cseg].SDoffset;
 
     dwarf_func_start(sfunc);
 }
@@ -2707,7 +2707,7 @@ void MachObj_func_start(Symbol* sfunc)
 void MachObj_func_term(Symbol* sfunc)
 {
     //dbg_printf("MachObj_func_term(%s) offset %x, Coffset %x symidx %d\n",
-    //           sfunc.Sident.ptr, sfunc.Soffset,Offset(cseg),sfunc.Sxtrnnum);
+    //           sfunc.Sident.ptr, sfunc.Soffset,SegData[cseg].SDoffset,sfunc.Sxtrnnum);
     dwarf_func_term(sfunc);
 }
 
@@ -3393,12 +3393,12 @@ void MachObj_moduleinfo(Symbol* scc)
     int p2align = I64 ? 3 : 2; // align to _tysize[TYnptr]
 
     int seg = MachObj_getsegment("__minfodata", "__DATA", p2align, S_REGULAR);
-    //printf("MachObj_moduleinfo(%s) seg = %d:x%x\n", scc.Sident.ptr, seg, Offset(seg));
+    //printf("MachObj_moduleinfo(%s) seg = %d:x%x\n", scc.Sident.ptr, seg, SegData[seg].SDoffset);
 
     int flags = CF.off;
     if (I64)
         flags |= CF.offset64;
-    SegData[seg].SDoffset += MachObj_reftoident(seg, Offset(seg), scc, 0, flags);
+    SegData[seg].SDoffset += MachObj_reftoident(seg, SegData[seg].SDoffset, scc, 0, flags);
 }
 
 /*************************************
