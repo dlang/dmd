@@ -96,6 +96,7 @@ __import __builtins_msvc;
 #pragma function_decl(ignore, _mm_getcsr, _mm_setcsr)
 #pragma function_decl(ignore, _mm_lfence, _mm_mfence, _mm_sfence)
 #pragma function_decl(ignore, __cpuid, __cpuidex)
+#pragma function_decl(ignore, _xgetbv)
 #pragma function_decl(ignore, _cvt_ftoi_fast, _cvt_ftoll_fast, _cvt_ftoui_fast, _cvt_ftoull_fast, _cvt_dtoi_fast, _cvt_dtoll_fast, _cvt_dtoui_fast, _cvt_dtoull_fast, _cvt_ftoi_sat, _cvt_ftoll_sat, _cvt_ftoui_sat, _cvt_ftoull_sat)
 #pragma function_decl(ignore, _cvt_dtoi_sat, _cvt_dtoll_sat, _cvt_dtoui_sat, _cvt_dtoull_sat, _cvt_ftoi_sent, _cvt_ftoll_sent, _cvt_ftoui_sent, _cvt_ftoull_sent, _cvt_dtoi_sent, _cvt_dtoui_sent, _cvt_dtoll_sent, _cvt_dtoull_sent)
 #pragma function_decl(ignore, __halt)
