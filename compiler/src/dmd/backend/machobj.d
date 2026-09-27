@@ -61,11 +61,12 @@ struct MachObj
 
     union
     {
-        Barray!section_64 section_64s; // section table for 64 bit targets
-        Barray!section    sections;   // section table
+        Barray!section_64 section_64s; // array of struct section_64 for 64 bit targets
+        Barray!section    sections;    // array of struct section    for 32 bit targets
     }
+    int section_length;           // number of sections in section_64s/sections array
+
     bool AArch64;                 // true for AArch64, false for X86_64
-    int section_cnt;              // Number of sections in table
 
     /* Three symbol tables, because the different types of symbols
      * are grouped into 3 different types (and a 4th for comdef's).
@@ -414,7 +415,7 @@ Obj MachObj_init(OutBuffer* objbuf, const(char)* filename, const(char)* csegname
         }
     }
 
-    machobj.section_cnt = 1;
+    machobj.section_length = 0;
 
     SegData.reset();   // recycle memory
     SegData.push();    // element 0 is reserved
@@ -649,7 +650,7 @@ void MachObj_term(const(char)[] objfilename)
         header.filetype = MH_OBJECT;
         header.ncmds = 4;
         header.sizeofcmds = cast(uint)(segment_command_64.sizeof +
-                                (machobj.section_cnt - 1) * section_64.sizeof +
+                                machobj.section_length * section_64.sizeof +
                             version_command.size +
                             symtab_command.sizeof +
                             dysymtab_command.sizeof);
@@ -674,7 +675,7 @@ void MachObj_term(const(char)[] objfilename)
         header.filetype = MH_OBJECT;
         header.ncmds = 4;
         header.sizeofcmds = cast(uint)(segment_command.sizeof +
-                                (machobj.section_cnt - 1) * section.sizeof +
+                                machobj.section_length * section.sizeof +
                             version_command.size +
                             symtab_command.sizeof +
                             dysymtab_command.sizeof);
@@ -698,8 +699,8 @@ void MachObj_term(const(char)[] objfilename)
     {
         segment_cmd64.cmd = LC_SEGMENT_64;
         segment_cmd64.cmdsize = cast(uint)(segment_cmd64.sizeof +
-                                    (machobj.section_cnt - 1) * section_64.sizeof);
-        segment_cmd64.nsects = machobj.section_cnt - 1;
+                                    machobj.section_length * section_64.sizeof);
+        segment_cmd64.nsects = machobj.section_length;
         segment_cmd64.maxprot = 7;
         segment_cmd64.initprot = 7;
     }
@@ -707,8 +708,8 @@ void MachObj_term(const(char)[] objfilename)
     {
         segment_cmd.cmd = LC_SEGMENT;
         segment_cmd.cmdsize = cast(uint)(segment_cmd.sizeof +
-                                    (machobj.section_cnt - 1) * section.sizeof);
-        segment_cmd.nsects = machobj.section_cnt - 1;
+                                    machobj.section_length * section.sizeof);
+        segment_cmd.nsects = machobj.section_length;
         segment_cmd.maxprot = 7;
         segment_cmd.initprot = 7;
     }
@@ -786,7 +787,7 @@ void MachObj_term(const(char)[] objfilename)
     foreach (i, s; table)
         printf("table[%d] = %d %d\n", cast(int)i, table[i], table[table[i]]);
 
-    //printf("Setup offsets and sizes foffset %d\n\tsection_cnt %d, SegData.length %d\n",foffset,section_cnt,SegData.length);
+    //printf("Setup offsets and sizes foffset %d\n\tsection_length %d, SegData.length %d\n",foffset,section_length,SegData.length);
     {
         /* For each segment, write the segment data bytes out to fobjbuf */
         for (int seg = 1; seg < SegData.length; seg++)
@@ -1835,7 +1836,7 @@ assert(rel.r_symbolnum);
     if (I64)
     {
         machobj.fobjbuf.write(&segment_cmd64, segment_cmd64.sizeof);
-        //machobj.fobjbuf.write(&machobj.section_64s[1], (machobj.section_cnt - 1) * section_64.sizeof);
+        //machobj.fobjbuf.write(&machobj.section_64s[1], machobj.section_length * section_64.sizeof);
         foreach (i; 1 .. table.length)
         {
             machobj.fobjbuf.write(&machobj.section_64s[table[i]], section_64.sizeof);
@@ -1844,7 +1845,7 @@ assert(rel.r_symbolnum);
     else
     {
         machobj.fobjbuf.write(&segment_cmd, segment_cmd.sizeof);
-        //machobj.fobjbuf.write(&machobj.sections[1], (machobj.section_cnt - 1) * section.sizeof);
+        //machobj.fobjbuf.write(&machobj.sections[1], machobj.section_length * section.sizeof);
         foreach (i; 1 .. table.length)
         {
             machobj.fobjbuf.write(&machobj.sections[table[i]], section_64.sizeof);
@@ -2340,7 +2341,7 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
         sec.flags = flags;
     }
 
-    pseg.SDshtidx = machobj.section_cnt++;
+    pseg.SDshtidx = ++machobj.section_length;
     pseg.SDaranges_offset = 0;
     pseg.SDlinnum_data.reset();
 
