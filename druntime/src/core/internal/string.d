@@ -34,6 +34,12 @@ Returns:
 T[] unsignedToTempString(uint radix = 10, bool upperCase = false, T, U)(in U value, return scope T[] buf)
 if(__traits(isUnsigned, U))
 {
+    return unsignedToTempStringTrailingZerosHandling!(radix, upperCase, true)(value, buf);
+}
+
+package T[] unsignedToTempStringTrailingZerosHandling(uint radix = 10, bool upperCase = false, bool withTrailingZeros, T, U)(in U value, return scope T[] buf)
+if(__traits(isUnsigned, U))
+{
     // Process oversized unsigned on 32 bit CPU?
     static if (size_t.sizeof == 4 && U.sizeof > 4)
     {
@@ -41,11 +47,11 @@ if(__traits(isUnsigned, U))
         {
             // use faster 32 bit arithmetic
             uint val = cast(uint) value;
-            return toTempStringImpl!(radix, upperCase)(val, buf);
+            return toTempStringImpl!(radix, upperCase, withTrailingZeros)(val, buf);
         }
     }
 
-    return toTempStringImpl!(radix, upperCase)(cast()value, buf);
+    return toTempStringImpl!(radix, upperCase, withTrailingZeros)(cast()value, buf);
 }
 
 ///ditto
@@ -56,13 +62,14 @@ if(!__traits(isUnsigned, V))
     return unsignedToTempString!(radix, upperCase)(cast(ulong)value, buf);
 }
 
-private T[] toTempStringImpl(uint radix, bool upperCase, V, T)(V value, ref scope T[] buf)
+private T[] toTempStringImpl(uint radix, bool upperCase, bool withTrailingZeros, V, T)(V value, ref scope T[] buf)
 if (radix >= 2 && radix <= 36 &&
     __traits(isUnsigned, V) &&
     (is(T == char) || is(T == wchar) || is(T == dchar)))
 {
     enum baseChar = upperCase ? 'A' : 'a';
     size_t i = buf.length;
+    static if(!withTrailingZeros) bool trailingPassed;
 
     do
     {
@@ -77,7 +84,15 @@ if (radix >= 2 && radix <= 36 &&
             x = cast(uint)(value % radix);
             value /= radix;
         }
-        buf[--i] = cast(char)((radix <= 10 || x < 10) ? x + '0' : x - 10 + baseChar);
+        auto c = cast(char)((radix <= 10 || x < 10) ? x + '0' : x - 10 + baseChar);
+        static if(!withTrailingZeros)
+        {
+            if(!trailingPassed && c == '0')
+                continue;
+            else
+                trailingPassed = true;
+        }
+        buf[--i] = c;
     } while (value);
     return buf[i .. $];
 }
@@ -140,6 +155,14 @@ unittest
     assert(!is(typeof(100.unsignedToTempString!1(buf))));
     assert(!is(typeof(100.unsignedToTempString!0(buf) == "")));
     assert(!is(typeof(100.unsignedToTempString!37(buf) == "")));
+
+    // ignore trailing zeros
+    assert(1u.unsignedToTempStringTrailingZerosHandling!(10, false, false)(buf) == "1");
+    assert(0u.unsignedToTempStringTrailingZerosHandling!(10, false, false)(buf) == "");
+    assert(1230u.unsignedToTempStringTrailingZerosHandling!(10, false, false)(buf) == "123");
+    assert(12004500u.unsignedToTempStringTrailingZerosHandling!(10, false, false)(buf) == "120045");
+    assert(0x12ab00u.unsignedToTempStringTrailingZerosHandling!(16, false, false)(buf) == "12ab");
+    assert(0x120abu.unsignedToTempStringTrailingZerosHandling!(16, false, false)(buf) == "120ab");
 }
 
 alias SignedStringBuf = char[65];
