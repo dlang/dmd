@@ -800,10 +800,11 @@ foo(a1, a2, ..., an);
         $(TR $(TD this))
         )
 
-        $(P where $(I hidden) is present if needed to return a struct
-        value, and $(I this) is present if needed as the this pointer
-        for a member function or the context pointer for a nested
-        function.)
+        - $(I hidden) is present if needed to
+          $(DDSUBLINK spec/glossary, nrvo, return a struct value).
+        - $(I this) is present if needed as the `this` pointer
+          for a member function or the context pointer for a nested
+          function.
 
         $(P The last parameter is passed in EAX rather than being pushed
         on the stack if the following conditions are met:)
@@ -817,15 +818,19 @@ foo(a1, a2, ..., an);
         $(P Parameters are always pushed as multiples of 4 bytes,
         rounding upwards,
         so the stack is always aligned on 4 byte boundaries.
-        They are pushed most significant first.
-        $(B out) and $(B ref) are passed as pointers.
-        Static arrays are passed as pointers to their first element.
-        On Windows, a real is pushed as a 10 byte quantity,
-        a creal is pushed as a 20 byte quantity.
-        On Linux, a real is pushed as a 12 byte quantity,
-        a creal is pushed as two 12 byte quantities.
-        The extra two bytes of pad occupy the $(SINGLEQUOTE most significant) position.
-        )
+        They are pushed most significant first.)
+
+        - $(D out) and $(D ref) are passed as pointers.
+        - Static arrays are passed as pointers to their first element.
+        - `real` and `creal`:
+            - On Windows, a `real` is pushed as a 10 byte quantity,
+              a `creal` is pushed as a 20 byte quantity.
+            - On Linux, a `real` is pushed as a 12 byte quantity,
+              a `creal` is pushed as two 12 byte quantities.
+              The extra two bytes of padding for each `real` occupy the
+              $(SINGLEQUOTE most significant) position.
+            - On OSX, a `real` is pushed as a 16 byte quantity, with
+              6 bytes of padding.
 
         $(P The callee cleans the stack.)
 

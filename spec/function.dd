@@ -2745,6 +2745,8 @@ $(H3 $(LNAME2 hidden-parameters, Hidden Parameters))
             have hidden parameters.)
         $(LI $(RELATIVE_LINK2 nested, Nested functions) have a hidden context
             pointer parameter.)
+        $(LI A function $(DDSUBLINK spec/glossary, nrvo, returning a struct type) may
+            have a hidden pointer parameter.)
         $(LI
             $(DDSUBLINK spec/class, objc-member-functions,
                 Member functions with `Objective-C` linkage) have a hidden parameter.
