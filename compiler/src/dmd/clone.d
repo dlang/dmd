@@ -954,6 +954,10 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
     default:
         // Build the aggregate destructor, calling all dtors in order.
         assert(!dtorIsCppPrototype);
+        // Itanium C++ ABI: the base-class subobject is destroyed by its base-object destructor
+        if (auto cldec = ad.isClassDeclaration())
+            if (cldec.baseClass && cldec.baseClass.cppBaseDtor && dtors[dtors.length - 1] is cldec.baseClass.aggrDtor)
+                dtors[dtors.length - 1] = cldec.baseClass.cppBaseDtor;
         ad.aggrDtor = buildAggregateDtor(ad, declLoc, dtors, landsInCppVtbl, sc);
         break;
     }
