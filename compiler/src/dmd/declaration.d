@@ -697,6 +697,19 @@ extern (C++) final class SymbolDeclaration : Declaration
 {
     AggregateDeclaration dsym;
 
+    // Symbol identity must not depend on the type of a view of its contents.
+    enum Kind { initializer, initSlice, vtblSlice, interfaceSlice }
+    Kind symbolKind;
+    ulong sliceBytes;       // Set only after aggregate layout is complete.
+    bool sliceIsNull;       // Zero initializers and empty interface tables.
+
+    extern (D) ulong sliceLength(Type viewType)
+    {
+        import dmd.typesem : size, toBasetype, nextOf;
+        assert(symbolKind != Kind.initializer);
+        return sliceBytes / viewType.toBasetype().nextOf().size();
+    }
+
     extern (D) this(Loc loc, AggregateDeclaration dsym) @safe
     {
         super(DSYM.symbolDeclaration, loc, dsym.ident);

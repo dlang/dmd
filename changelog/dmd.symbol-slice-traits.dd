@@ -1,0 +1,21 @@
+Added `__traits(vtblSymbol)` and `__traits(getInterfaces)`
+
+`__traits(vtblSymbol, C)` is the vtable of class `C`, of type `const(void*[])`.
+
+`__traits(getInterfaces, C)` is the `Interface[]` array of class or interface
+`C`, of type `const(Interface[])`. It is the array `TypeInfo_Class.interfaces`
+refers to.
+
+Like `__traits(initSymbol)`, these are slices of symbols whose contents are only
+known at link time. Previously CTFE rejected any use of such a slice. It can now
+be stored in a compile-time value, cast to another array type, and its `.length`
+read. Reading its contents remains an error.
+
+---
+struct S { int a; long b; }
+
+enum init = (() => __traits(initSymbol, S))();
+static assert(init.length == S.sizeof);
+
+enum first = (() => (cast(const(ubyte)[]) init)[0])();  // Error: cannot read the contents
+---
