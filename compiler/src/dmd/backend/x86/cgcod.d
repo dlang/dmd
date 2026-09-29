@@ -564,8 +564,6 @@ static if (0)
     assert(global87.stackused == 0);             /* nobody in 8087 stack         */
 
     global87.save.dtor();       // clean up ndp save array
-import dmd.backend.machobj : segsizes;
-printf("segsizes A "); segsizes();
 }
 
 /*********************************************

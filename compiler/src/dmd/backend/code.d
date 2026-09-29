@@ -256,7 +256,7 @@ alias IDXSTR = uint;
 alias IDXSEC = uint;
 alias IDXSYM = uint;
 
-struct seg_data				// SegData is an array of these, indexed by segment index
+struct seg_data                         // SegData is an array of these, indexed by segment index
 {
     segidx_t             SDseg;         // index into SegData[]
     targ_size_t          SDoffset;      // starting offset for data
@@ -276,7 +276,7 @@ struct seg_data				// SegData is an array of these, indexed by segment index
 
     //ELFOBJ || MACHOBJ
     IDXSEC           SDshtidx;          // ELFOBJ : index into SecHdrTab[]
-					// MACHOBJ: index into section_64s[] or sections[]
+                                        // MACHOBJ: index into section_64s[] or sections[]
     OutBuffer       *SDbuf;             // buffer to hold segment data
 //    union
 //    struct
