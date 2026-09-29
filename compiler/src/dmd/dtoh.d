@@ -774,9 +774,12 @@ public:
         // printf("FuncDeclaration %s %s\n", fd.toPrettyChars(), fd.type.toChars());
         visited[cast(void*)fd] = true;
 
-        // silently ignore non-user-defined destructors
+        // silently ignore non-user-defined destructors and C++ base-object constructors
         if (fd.isGenerated && fd.isDtorDeclaration())
             return;
+        if (auto ctor = fd.isCtorDeclaration())
+            if (ctor.isCppBaseCtor)
+                return;
 
         // Note that tf might be null for templated (member) functions
         auto tf = cast(AST.TypeFunction)fd.type;

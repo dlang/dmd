@@ -765,6 +765,8 @@ class CtorDeclaration final : public FuncDeclaration
 public:
     d_bool isCpCtor;
     d_bool isMoveCtor;
+    d_bool isCppBaseCtor;
+    CtorDeclaration *cppBaseCtor;
     CtorDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
 

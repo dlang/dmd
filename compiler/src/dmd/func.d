@@ -971,6 +971,8 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
 {
     bool isCpCtor;    // copy constructor
     bool isMoveCtor;  // move constructor (aka rvalue constructor)
+    bool isCppBaseCtor; // Itanium C++ ABI base-object constructor (C2) generated for another constructor
+    CtorDeclaration cppBaseCtor; // the base-object constructor (C2) generated for this one
     extern (D) this(Loc loc, Loc endloc, STC stc, Type type)
     {
         super(loc, endloc, Id.ctor, stc, type);
