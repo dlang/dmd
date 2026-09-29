@@ -1797,7 +1797,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     (sm.isDtorDeclaration() && sm.ident != Id.dtor) ||
                     (sm.ident == Id.__monitor) ||
                     (sm.isPostBlitDeclaration() && sm.ident != Id.postblit) ||
-                    sm.isInvariantDeclaration() ||
+                    (sm.isInvariantDeclaration() && sm.ident != Id.classInvariant) ||
                     sm.isUnitTestDeclaration())
 
                 {
