@@ -137,7 +137,8 @@ public:
     // if the caller can access the callee's this pointer
     immutable bool hasThis;
 
-    int nested;
+    int nestedIf;
+    int nestedLoop;
     int cost;           // zero start for subsequent AST
 
     extern (D) this(bool hasThis) scope @safe
@@ -147,8 +148,9 @@ public:
 
     extern (D) this(InlineCostVisitor icv) scope @safe
     {
-        nested = icv.nested;
         hasThis = icv.hasThis;
+        nestedIf = icv.nestedIf;
+        nestedLoop = icv.nestedLoop;
     }
 
     override void visit(Statement s)
@@ -167,40 +169,32 @@ public:
     override void visit(CompoundStatement s)
     {
         scope InlineCostVisitor icv = new InlineCostVisitor(this);
-        foreach (i; 0 .. s.statements.length)
+        bool hasReturn = s.endsWithReturnStatement() !is null;
+        foreach (s2; s.statements)
         {
-            if (Statement s2 = s.statements[i])
+            if (!s2)
+                continue;
+
+            if (auto ifs = s2.isIfStatement())
             {
-                /* Specifically allow:
-                 *  if (condition)
-                 *      return exp1;
-                 *  return exp2;
-                 */
-                IfStatement ifs;
-                Statement s3;
-                if ((ifs = s2.isIfStatement()) !is null &&
-                    ifs.ifbody &&
-                    ifs.ifbody.endsWithReturnStatement() &&
-                    !ifs.elsebody &&
-                    i + 1 < s.statements.length &&
-                    (s3 = s.statements[i + 1]) !is null &&
-                    s3.endsWithReturnStatement()
-                   )
+                bool ifReturned = ifs.ifbody && ifs.ifbody.endsWithReturnStatement();
+                bool elseReturned = ifs.elsebody && ifs.elsebody.endsWithReturnStatement();
+
+                // We can inline an IfStatement, if
+                // - both branches return,
+                // - neither branch returns,
+                // - only one branch returns, and the enclosing CompoundStatement returns.
+                // The last case is handled by moving its successors into another branch.
+                if (!hasReturn && ifReturned != elseReturned)
                 {
-                    if (ifs.param)       // if variables are declared
-                    {
-                        cost = COST_MAX;
-                        return;
-                    }
-                    expressionInlineCost(ifs.condition);
-                    ifs.ifbody.accept(this);
-                    s3.accept(this);
+                    cost = COST_MAX;
+                    return;
                 }
-                else
-                    s2.accept(icv);
-                if (tooCostly(icv.cost))
-                    break;
             }
+
+            s2.accept(icv);
+            if (tooCostly(icv.cost))
+                break;
         }
         cost += icv.cost;
     }
@@ -237,6 +231,7 @@ public:
             cost = COST_MAX;
             return;
         }
+
         expressionInlineCost(s.condition);
 
         /* Specifically allow:
@@ -244,7 +239,9 @@ public:
          *      return exp1;
          *  else
          *      return exp2;
-         * Otherwise, we can't handle return statements nested in if's.
+         *
+         * It can be turned into:
+         *  condition ? exp1 : exp2
          */
         if (s.elsebody && s.ifbody && s.ifbody.endsWithReturnStatement() && s.elsebody.endsWithReturnStatement())
         {
@@ -254,20 +251,21 @@ public:
         }
         else
         {
-            nested += 1;
+            nestedIf += 1;
             if (s.ifbody)
                 s.ifbody.accept(this);
             if (s.elsebody)
                 s.elsebody.accept(this);
-            nested -= 1;
+            nestedIf -= 1;
         }
         //printf("IfStatement.inlineCost = %d\n", cost);
     }
 
     override void visit(ReturnStatement s)
     {
-        // Can't handle return statements nested in if's
-        if (nested)
+        // We can handle return statements nested in one layer of if statement.
+        // Anything more than one layer is not OK, including loops.
+        if (nestedIf > 1 || nestedLoop)
         {
             cost = COST_MAX;
         }
@@ -292,9 +290,9 @@ public:
             s.increment.accept(this);
         if (s._body)
         {
-            nested += 1;
+            nestedLoop += 1;
             s._body.accept(this);
-            nested -= 1;
+            nestedLoop -= 1;
         }
         //printf("ForStatement: inlineCost = %d\n", cost);
     }
