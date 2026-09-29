@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if [[ $OS = "win"* ]] && ! which -s nm; then
+    echo 'No `nm` tool found in PATH, skipping test on Windows.'
+    exit 0
+fi
+
 obj_decl="${OUTPUT_BASE}_decl${OBJ}"
 obj_refs="${OUTPUT_BASE}_refs${OBJ}"
 obj_refs_ctfe="${OUTPUT_BASE}_refs_ctfe${OBJ}"
