@@ -31,9 +31,8 @@ class AggregateDeclaration;
 class EnumDeclaration;
 class ClassDeclaration;
 class StructDeclaration;
-class InterfaceDeclaration;
-class StructDeclaration;
 class UnionDeclaration;
+class EnumUnionDeclaration;
 class FuncDeclaration;
 class FuncAliasDeclaration;
 class OverDeclaration;
@@ -290,6 +289,7 @@ public:
     ClassDeclaration *isClassDeclaration();
     StructDeclaration *isStructDeclaration();
     UnionDeclaration *isUnionDeclaration();
+    EnumUnionDeclaration *isEnumUnionDeclaration();
     InterfaceDeclaration *isInterfaceDeclaration();
     ScopeDsymbol *isScopeDsymbol();
     ForwardingScopeDsymbol *isForwardingScopeDsymbol();

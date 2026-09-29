@@ -132,6 +132,7 @@ class CAsmDeclaration;
 class AggregateDeclaration;
 class StructDeclaration;
 class UnionDeclaration;
+class EnumUnionDeclaration;
 class ClassDeclaration;
 class InterfaceDeclaration;
 
