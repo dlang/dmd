@@ -7737,13 +7737,21 @@ private EnumUnionDeclaration resolveEnumUnionTemplateInstance(TemplateInstance t
     if (!ti)
         return null;
     if (!ti.tempdecl)
+    {
+        const errors = global.startGagging();
         ti.findTempDecl(sc, null);
+        if (global.endGagging(errors))
+            return null;
+    }
     if (auto td = ti.tempdecl ? ti.tempdecl.isTemplateDeclaration() : null)
     {
         Dsymbol m = td.onemember ? td.onemember : (td.members && td.members.length == 1 ? (*td.members)[0] : null);
         if (m && m.isEnumUnionDeclaration())
         {
+            const errors = global.startGagging();
             ti.dsymbolSemantic(sc);
+            if (global.endGagging(errors))
+                return null;
             if (ti.inst)
             {
                 Dsymbol a = ti.toAlias();
@@ -7770,11 +7778,6 @@ private EnumUnionDeclaration findEnumUnionFromExp(Expression e, Scope* sc)
             return eu;
         if (auto ti = se.sds.isTemplateInstance())
             return resolveEnumUnionTemplateInstance(ti, sc);
-    }
-    else if (auto dti = e.isDotTemplateInstanceExp())
-    {
-        if (dti.ti)
-            return resolveEnumUnionTemplateInstance(dti.ti, sc);
     }
     else if (auto ide = e.isIdentifierExp())
     {
