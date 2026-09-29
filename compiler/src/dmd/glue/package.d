@@ -196,8 +196,6 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
         }
         destroy(tmpname);
     }
-import dmd.backend.machobj : segsizes;
-printf("segsizes I: "); segsizes;
 }
 
 // FIXME: does not work on old bootstrap compilers
@@ -993,8 +991,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
 
     writefunc(s); // hand off to backend
-import dmd.backend.machobj : segsizes;
-printf("segsizes E "); segsizes();
 
     buildCapture(fd);
 
@@ -1093,8 +1089,6 @@ printf("segsizes E "); segsizes();
         //printf("Setting start address\n");
         objmod.startaddress(irs.startaddress);
     }
-import dmd.backend.machobj : segsizes;
-printf("segsizes F "); segsizes();
 }
 
 private:

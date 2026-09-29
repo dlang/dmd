@@ -3344,7 +3344,7 @@ static if (1)
             return;
 
         int seg = dwarf_except_table_alloc(sfunc);
-printf("seg: %d except_table_seg: %d\n", seg, except_table_seg);
+        //printf("seg: %d except_table_seg: %d\n", seg, except_table_seg);
         OutBuffer* buf = SegData[seg].SDbuf;
         buf.reserve(100);
 

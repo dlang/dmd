@@ -75,7 +75,7 @@ void genDwarfEh(Funcsym* sfunc, int seg, OutBuffer* et, bool scancode, uint star
 
     et.reserve(100);
     block* startblock = sfunc.Sfunc.Fstartblock;
-    static if (1)
+    static if (0)
     printf("genDwarfEh: sfunc: %s seg: %d offset: x%x startblock.Boffset: x%x, scancode: %d startoffset: x%x retoffset: x%x\n",
       sfunc.Sident.ptr, seg, cast(int)sfunc.Soffset, cast(int)startblock.Boffset, scancode, startoffset, retoffset);
 
@@ -339,20 +339,13 @@ else
          *             [1] address x0000 pcrel 0 length 2 value x160 type 1 RELOC_PAIR
          */
 
-/* Arrgh the segments get renumbered! */
         if (config.objfmt == OBJ_ELF)
             elf_dwarf_reftoident(seg, et.length(), s, 0);
         else if (config.objfmt == OBJ_MACH)
-	{
-printf("seg: %d et.length: %zx\n", seg, et.length());
-printf("SegData[%d].SDbuf.length: %zx\n", seg, SegData[seg].SDbuf.length);
-assert(et == SegData[seg].SDbuf);
+        {
+            assert(et == SegData[seg].SDbuf);
             mach_dwarf_reftoident(seg, et.length(), s, 0);
-printf("SegData[%d].SDbuf.length: %zx et.length: %zx SDoffset: %zx\n", seg, SegData[seg].SDbuf.length, et.length, SegData[seg].SDoffset);
-
-import dmd.backend.machobj : segsizes;
-segsizes();
-	}
+        }
     }
     assert(TToffset == et.length() - startsize);
 }

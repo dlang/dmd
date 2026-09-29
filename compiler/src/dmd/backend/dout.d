@@ -1123,8 +1123,6 @@ Ldone:
     }
     globsym.setLength(0);
 
-import dmd.backend.machobj : segsizes;
-printf("segsizes D "); segsizes();
     //printf("done with writefunc()\n");
     //dfo.dtor();       // save allocation for next time
 }
