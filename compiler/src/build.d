@@ -845,6 +845,7 @@ alias toolchainInfo = makeRule!((builder, rule) => builder
         app.put("==== Toolchain Information ====\n\n");
 
         writeln(app.data);
+        stdout.flush();
     })
 );
 
@@ -1103,6 +1104,7 @@ void parseEnvironment()
     {
         auto hostDMDVer = env.getDefault("HOST_DMD_VER", "2.095.0");
         writefln("Using Bootstrap compiler: %s", hostDMDVer);
+        stdout.flush();
         auto hostDMDRoot = env["G"].buildPath("host_dmd-"~hostDMDVer);
         auto hostDMDBase = hostDMDVer~"."~(os == "freebsd" ? os~"-"~model : os);
         auto hostDMDURL = "https://downloads.dlang.org/releases/2.x/"~hostDMDVer~"/dmd."~hostDMDBase;
@@ -1113,6 +1115,7 @@ void parseEnvironment()
         if (!env["HOST_DMD"].exists)
         {
             writefln("Downloading DMD %s", hostDMDVer);
+            stdout.flush();
             auto curlFlags = "-fsSL --retry 5 --retry-max-time 120 --connect-timeout 5 --speed-time 30 --speed-limit 1024";
             hostDMDRoot.mkdirRecurse;
             ("curl " ~ curlFlags ~ " " ~ hostDMDURL~".tar.xz | tar -C "~hostDMDRoot~" -Jxf - || rm -rf "~hostDMDRoot).spawnShell.wait;
@@ -1821,7 +1824,10 @@ class BuildRule
 
         // Display the execution of the rule
         if (msg)
+        {
             msg.writeln;
+            stdout.flush();
+        }
 
         if(dryRun)
         {
@@ -2065,7 +2071,10 @@ Params:
 void log(T...)(string spec, T args)
 {
     if (verbose)
+    {
         writefln(spec, args);
+        stdout.flush();
+    }
 }
 
 /**
@@ -2196,6 +2205,7 @@ void installRelativeFiles(T)(string targetDir, string sourceBase, T files, uint 
     {
         const nextTargetDir = targetDir.buildPath(dirFilePair.key);
         writefln("copy these files %s from '%s' to '%s'", dirFilePair.value, sourceBase, nextTargetDir);
+        stdout.flush();
         mkdirRecurse(nextTargetDir);
         foreach (fileToCopy; dirFilePair.value)
         {
