@@ -6027,6 +6027,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
+        buildCppBaseCtors(cldec, sc2);
         buildDtors(cldec, sc2);
 
         if (cldec.classKind == ClassKind.cpp && cldec.cppDtorVtblIndex != -1)

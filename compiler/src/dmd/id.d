@@ -76,6 +76,7 @@ immutable Msgtable[] msgtable =
     { "__fieldDtor", "__fieldDtor" },
     { "__aggrDtor", "__aggrDtor" },
     { "cppdtor", "__cppdtor" },
+    { "cppbasedtor", "__cppbasedtor" },
     { "ticppdtor", "__ticppdtor" },
     { "postblit", "__postblit" },
     { "__xpostblit", "__xpostblit" },
