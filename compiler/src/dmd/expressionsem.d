@@ -8439,6 +8439,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
+            // Itanium C++ ABI: a base-class subobject is constructed by its base-object constructor
+            if (isSuper)
+                if (auto baseCtor = exp.f.isCtorDeclaration())
+                    if (baseCtor.cppBaseCtor)
+                        exp.f = baseCtor.cppBaseCtor;
+
             exp.e1 = new DotVarExp(exp.e1.loc, exp.e1, exp.f, false);
             exp.e1 = exp.e1.expressionSemantic(sc);
             // https://issues.dlang.org/show_bug.cgi?id=21095

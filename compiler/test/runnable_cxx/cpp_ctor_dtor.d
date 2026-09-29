@@ -106,6 +106,20 @@ final class DFromCpp : CppBase
     override int id() { return 10; }
 }
 
+// a D class deriving from an abstract C++ class, whose complete-object constructor C++ need not emit
+abstract class CppAbstract
+{
+    this();
+    ~this();
+    abstract int id();
+}
+final class DFromAbstract : CppAbstract
+{
+    this() { super(); }
+    ~this() { trace_log('d'); }
+    override int id() { return 12; }
+}
+
 // a C++ class deriving from a D class; C++ constructs and destroys the D base subobject
 class DBase
 {
@@ -120,6 +134,7 @@ void cpp_destroy_a3(A3 p);
 void cpp_destroy_a5(A5 p);
 void cpp_destroy_cppbase(CppBase p);
 void cpp_destroy_dbase(DBase p);
+void cpp_destroy_abstract(CppAbstract p);
 
 extern(D):
 
@@ -144,6 +159,11 @@ void main()
 
     CppBase cb = make!DFromCpp(); cb.__xdtor(); check("D ~CppBase(): D derived", "dP");
     cpp_destroy_cppbase(make!DFromCpp()); check("C++ ~CppBase(): D derived", "dP");
+
+    CppAbstract ca = make!DFromAbstract(); check("D derived from abstract: constructed", "K");
+    assert(ca.id() == 12);
+    ca.__xdtor(); check("D ~CppAbstract(): D derived", "dQ");
+    cpp_destroy_abstract(make!DFromAbstract()); check("C++ ~CppAbstract(): D derived", "KdQ");
 
     DBase db = make_cpp_from_d(); check("C++ derived: constructed", "AC");
     assert(db.id() == 2);

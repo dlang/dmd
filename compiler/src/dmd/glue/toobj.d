@@ -1382,8 +1382,9 @@ Louter:
     dtb.size(0);
     dtb.size(0);            // null for now, fix later
 
-    // defaultConstructor
-    if (cd.defaultCtor && !(cd.defaultCtor.storage_class & STC.disable))
+    // defaultConstructor; an abstract class is never constructed as a complete object, and C++
+    // compilers need not emit its complete-object constructor
+    if (cd.defaultCtor && !(cd.defaultCtor.storage_class & STC.disable) && !cd.isAbstract())
         dtb.xoff(toSymbol(cd.defaultCtor), 0, TYnptr);
     else
         dtb.size(0);

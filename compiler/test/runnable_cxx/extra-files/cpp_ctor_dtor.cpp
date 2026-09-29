@@ -22,6 +22,19 @@ int CppBase::id() { return 0; }
 
 void cpp_destroy_cppbase(CppBase* p) { p->~CppBase(); }
 
+class CppAbstract
+{
+public:
+    CppAbstract();
+    virtual ~CppAbstract();
+    virtual int id() = 0;
+};
+
+CppAbstract::CppAbstract() { trace_log('K'); }
+CppAbstract::~CppAbstract() { trace_log('Q'); }
+
+void cpp_destroy_abstract(CppAbstract* p) { p->~CppAbstract(); }
+
 class DBase
 {
 public:
