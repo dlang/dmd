@@ -410,6 +410,7 @@ unittest
     assert(conf.parseOptions("help profile:1 help"));
 
     assert(conf.parseOptions("gc:manual") && conf.gc == "manual");
+    assert(conf.parseOptions("gc:tgc") && conf.gc == "tgc");
     assert(conf.parseOptions("gc:my-gc~modified") && conf.gc == "my-gc~modified");
     assert(conf.parseOptions("gc:conservative help profile:1") && conf.gc == "conservative" && conf.profile == 1);
 
