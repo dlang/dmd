@@ -7736,18 +7736,26 @@ private EnumUnionDeclaration resolveEnumUnionTemplateInstance(TemplateInstance t
 {
     if (!ti)
         return null;
-    if (!ti.tempdecl)
+    TemplateDeclaration td = ti.tempdecl ? ti.tempdecl.isTemplateDeclaration() : null;
+    if (!td && !ti.tempdecl && sc)
     {
-        const errors = global.startGagging();
-        ti.findTempDecl(sc, null);
-        if (global.endGagging(errors))
-            return null;
+        Dsymbol scopesym;
+        Dsymbol s = sc.search(ti.loc, ti.name, scopesym);
+        if (s)
+            td = s.toAlias().isTemplateDeclaration();
     }
-    if (auto td = ti.tempdecl ? ti.tempdecl.isTemplateDeclaration() : null)
+    if (td)
     {
         Dsymbol m = td.onemember ? td.onemember : (td.members && td.members.length == 1 ? (*td.members)[0] : null);
         if (m && m.isEnumUnionDeclaration())
         {
+            if (!ti.tempdecl)
+            {
+                const errors = global.startGagging();
+                ti.findTempDecl(sc, null);
+                if (global.endGagging(errors))
+                    return null;
+            }
             const errors = global.startGagging();
             ti.dsymbolSemantic(sc);
             if (global.endGagging(errors))

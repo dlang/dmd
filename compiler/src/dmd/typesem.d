@@ -7845,6 +7845,8 @@ Dsymbol toDsymbol(Type type, Scope* sc)
 
     Dsymbol visitTraits(TypeTraits type)
     {
+        if (!sc)
+            return null;
         Type t;
         Expression e;
         Dsymbol s;
@@ -7859,6 +7861,8 @@ Dsymbol toDsymbol(Type type, Scope* sc)
 
     Dsymbol visitMixin(TypeMixin type)
     {
+        if (!sc)
+            return null;
         Type t;
         Expression e;
         Dsymbol s;
@@ -7890,6 +7894,8 @@ Dsymbol toDsymbol(Type type, Scope* sc)
 
     Dsymbol visitInstance(TypeInstance type)
     {
+        if (!sc)
+            return null;
         Type t;
         Expression e;
         Dsymbol s;
@@ -7903,6 +7909,8 @@ Dsymbol toDsymbol(Type type, Scope* sc)
     Dsymbol visitTypeof(TypeTypeof type)
     {
         //printf("TypeTypeof::toDsymbol('%s')\n", toChars());
+        if (!sc)
+            return null;
         Expression e;
         Type t;
         Dsymbol s;
@@ -7912,6 +7920,8 @@ Dsymbol toDsymbol(Type type, Scope* sc)
 
     Dsymbol visitReturn(TypeReturn type)
     {
+        if (!sc)
+            return null;
         Expression e;
         Type t;
         Dsymbol s;
