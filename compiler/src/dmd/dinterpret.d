@@ -2219,12 +2219,15 @@ public:
         }
         else if (SymbolDeclaration s = d.isSymbolDeclaration())
         {
-            // exclude void[]-typed `__traits(initSymbol)`
-            if (auto ta = s.type.toBasetype().isTypeDArray())
+            // __traits(initSymbol) etc., see isOpaqueSymbolSlice()
+            if (s.symbolKind != SymbolDeclaration.Kind.initializer)
             {
-                assert(ta.next.ty == Tvoid);
-                eSink.error(loc, "cannot determine the address of the initializer symbol during CTFE");
-                return CTFEExp.cantexp;
+                if (goal == CTFEGoal.LValue)
+                {
+                    eSink.error(loc, "cannot determine the address of the initializer symbol during CTFE");
+                    return CTFEExp.cantexp;
+                }
+                return new VarExp(loc, d);
             }
 
             // Struct static initializers, for example
@@ -2318,7 +2321,8 @@ public:
             return;
         }
 
-        if ((e.var.storage_class & (STC.ref_ | STC.out_)) == 0 && e.type.baseElemOf().ty != Tstruct)
+        if (isOpaqueSymbolSlice(result) ||
+            ((e.var.storage_class & (STC.ref_ | STC.out_)) == 0 && e.type.baseElemOf().ty != Tstruct))
         {
             /* Ultimately, STC.ref_|STC.out_ check should be enough to see the
              * necessity of type repainting. But currently front-end paints
@@ -3650,6 +3654,12 @@ public:
             UnionExp utmp = void;
             oldval = resolveSlice(oldval, &utmp);
 
+            if (isOpaqueSymbolSlice(oldval))
+            {
+                eSink.error(e.loc, "cannot resize symbol slice `%s` at compile time", oldval.toErrMsg());
+                result = CTFEExp.cantexp;
+                return;
+            }
             newval = changeArrayLiteralLength(pue, e.loc, cast(TypeArray)t, oldval, oldlen, newlen);
             if (newval == pue.exp())
                 newval = pue.copy();
@@ -5003,6 +5013,12 @@ public:
         assert(e1);
         if (exceptionOrCant(e1))
             return;
+        if (auto sd = isOpaqueSymbolSlice(e1))
+        {
+            emplaceExp!(IntegerExp)(pue, e.loc, sd.sliceLength(e1.type), e.type);
+            result = pue.exp();
+            return;
+        }
         if (e1.op != EXP.string_ && e1.op != EXP.arrayLiteral && e1.op != EXP.slice && e1.op != EXP.null_)
         {
             eSink.error(e.loc, "`%s` cannot be evaluated at compile time", e.toErrMsg());
@@ -5198,7 +5214,10 @@ public:
         {
             if (e1.op != EXP.arrayLiteral && e1.op != EXP.string_ && e1.op != EXP.slice && e1.op != EXP.vector)
             {
-                eSink.error(e.loc, "cannot determine length of `%s` at compile time", e.e1.toErrMsg());
+                if (isOpaqueSymbolSlice(e1))
+                    eSink.error(e.loc, "cannot read the contents of `%s` at compile time, they are only known at link time", e.e1.toErrMsg());
+                else
+                    eSink.error(e.loc, "cannot determine length of `%s` at compile time", e.e1.toErrMsg());
                 return false;
             }
             len = resolveArrayLength(e1);
@@ -5436,7 +5455,10 @@ public:
         {
             if (e1.op != EXP.arrayLiteral && e1.op != EXP.string_ && e1.op != EXP.null_ && e1.op != EXP.slice && e1.op != EXP.vector)
             {
-                eSink.error(e.loc, "cannot determine length of `%s` at compile time", e1.toErrMsg());
+                if (isOpaqueSymbolSlice(e1))
+                    eSink.error(e.loc, "cannot read the contents of `%s` at compile time, they are only known at link time", e1.toErrMsg());
+                else
+                    eSink.error(e.loc, "cannot determine length of `%s` at compile time", e1.toErrMsg());
                 result = CTFEExp.cantexp;
                 return;
             }
@@ -5664,6 +5686,29 @@ public:
         Expression e1 = interpretRegion(e.e1, istate, goal);
         if (exceptionOrCant(e1))
             return;
+        if (auto sd = isOpaqueSymbolSlice(e1))
+        {
+            if (auto ta = e.to.toBasetype().isTypeDArray())
+            {
+                const elementSize = ta.next.size(e.loc);
+                if (elementSize == SIZE_INVALID || !elementSize || sd.sliceBytes % elementSize)
+                {
+                    eSink.error(e.loc, "cannot cast symbol slice of %llu bytes to `%s`", sd.sliceBytes, e.to.toErrMsg());
+                    result = CTFEExp.cantexp;
+                    return;
+                }
+                auto ve = new VarExp(e.loc, e1.isVarExp().var);
+                ve.type = e.type;
+                result = ve;
+                return;
+            }
+            if (e.to.ty != Tvoid)
+            {
+                eSink.error(e.loc, "cannot cast symbol slice `%s` to `%s` at compile time", e1.toErrMsg(), e.to.toErrMsg());
+                result = CTFEExp.cantexp;
+                return;
+            }
+        }
         // If the expression has been cast to void, do nothing.
         if (e.to.ty == Tvoid)
         {
