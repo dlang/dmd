@@ -1314,6 +1314,7 @@ FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
                 Id.classInvariant, new ExpStatement(Loc.initial, e));
         ad.members.push(inv);
         inv.dsymbolSemantic(sc);
+        inv.addMember(sc, ad);
         return inv;
     }
 }
