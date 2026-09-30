@@ -2166,6 +2166,7 @@ private final class DsymbolPrettyPrintVisitor : Visitor
     void visit(EnumDeclaration d)          { visitEnumDeclaration(d); }
     void visit(Nspace d)                   { visitNspace(d); }
     void visit(StructDeclaration d)        { visitStructDeclaration(d); }
+    void visit(EnumUnionDeclaration d)     { visitEnumUnionDeclaration(d); }
     void visit(ClassDeclaration d)         { visitClassDeclaration(d); }
     void visit(AliasDeclaration d)         { visitAliasDeclaration(d); }
     void visit(AliasAssign d)              { visitAliasAssign(d); }

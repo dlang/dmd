@@ -929,7 +929,7 @@ struct ASTBase
 
         override void accept(Visitor v)
         {
-            v.visit(cast(Declaration) this);
+            v.visit(this);
         }
 
         override final inout(EnumUnionCaseDeclaration) isEnumUnionCaseDeclaration() inout

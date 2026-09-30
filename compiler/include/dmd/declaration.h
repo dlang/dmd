@@ -198,6 +198,8 @@ class EnumUnionCaseDeclaration final : public Declaration
 public:
     EnumUnionCaseDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
+
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 /**************************************************************/

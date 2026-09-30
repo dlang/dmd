@@ -141,6 +141,7 @@ class TupleDeclaration;
 class AliasDeclaration;
 class OverDeclaration;
 class VarDeclaration;
+class EnumUnionCaseDeclaration;
 class SymbolDeclaration;
 class ThisDeclaration;
 class BitFieldDeclaration;
@@ -353,6 +354,7 @@ public:
     virtual void visit(FuncDeclaration *s) { visit((Declaration *)s); }
     virtual void visit(AliasDeclaration *s) { visit((Declaration *)s); }
     virtual void visit(TupleDeclaration *s) { visit((Declaration *)s); }
+    virtual void visit(EnumUnionCaseDeclaration *s) { visit((Declaration *)s); }
 
     // FuncDeclarations
     virtual void visit(FuncLiteralDeclaration *s) { visit((FuncDeclaration *)s); }

@@ -89,6 +89,11 @@ extern (C++) final class EnumUnionCaseDeclaration : Declaration
     {
         return "enum union case";
     }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
 }
 
 /***********************************************************
