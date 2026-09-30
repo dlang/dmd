@@ -932,7 +932,7 @@ struct ASTBase
             v.visit(this);
         }
 
-        override final inout(EnumUnionCaseDeclaration) isEnumUnionCaseDeclaration() inout
+        override inout(EnumUnionCaseDeclaration) isEnumUnionCaseDeclaration() inout
         {
             return this;
         }
@@ -1552,7 +1552,7 @@ struct ASTBase
             v.visit(this);
         }
 
-        override final inout(EnumUnionDeclaration) isEnumUnionDeclaration() inout
+        override inout(EnumUnionDeclaration) isEnumUnionDeclaration() inout
         {
             return this;
         }

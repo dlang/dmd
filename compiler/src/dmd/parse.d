@@ -8901,10 +8901,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         {
                             nextToken();
                         }
-                        else if (token.value == TOK.endOfFile)
-                        {
-                            break;
-                        }
                         else
                         {
                             break;
