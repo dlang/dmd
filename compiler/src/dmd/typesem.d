@@ -3062,10 +3062,10 @@ uinteger_t size(Type t, Loc loc)
 }
 
 /*******************************
- * Determine if converting 'this' to 'to' is an identity operation,
+ * Determine if converting 'from' to 'to' is an identity operation,
  * a conversion to const operation, or the types aren't the same.
  * Returns:
- *      MATCH.exact      'this' == 'to'
+ *      MATCH.exact      'from' == 'to'
  *      MATCH.constant      'to' is const
  *      MATCH.nomatch    conversion to mutable or invariant
  */
@@ -3073,7 +3073,7 @@ MATCH constConv(Type from, Type to)
 {
     MATCH visitType(Type from)
     {
-        //printf("Type::constConv(this = %s, to = %s)\n", from.toChars(), to.toChars());
+        //printf("Type::constConv(from = %s, to = %s)\n", from.toChars(), to.toChars());
         if (from.equals(to))
             return MATCH.exact;
         if (from.ty == to.ty && MODimplicitConv(from.mod, to.mod))
@@ -3147,7 +3147,8 @@ MATCH constConv(Type from, Type to)
     MATCH visitFunction(TypeFunction from)
     {
         // Attributes need to match exactly, otherwise it's an implicit conversion
-        if (from.ty != to.ty || !from.attributesEqual(cast(TypeFunction) to))
+        if (from.ty != to.ty || !from.attributesEqual(cast(TypeFunction) to) ||
+            from.covariant(to) != Covariant.yes) // check parameters
             return MATCH.nomatch;
 
         return visitNext(from);
