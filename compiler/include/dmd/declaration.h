@@ -193,6 +193,13 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
+class EnumUnionCaseDeclaration final : public Declaration
+{
+public:
+    EnumUnionCaseDeclaration *syntaxCopy(Dsymbol *) override;
+    const char *kind() const override;
+};
+
 /**************************************************************/
 
 class AliasDeclaration final : public Declaration

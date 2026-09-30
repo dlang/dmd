@@ -803,34 +803,27 @@ package(dmd.visitor) mixin template ParseVisitMethods(AST)
 
     override void visit(AST.EnumUnionDeclaration d)
     {
-        static if (is(AST.EnumUnionDeclaration : AST.StructDeclaration))
+        foreach (ref variant; d.variants)
         {
-            visit(cast(AST.StructDeclaration)d);
+            visitArgs(variant.udas.peekSlice());
+            foreach (payload; variant.payload)
+                visitType(payload);
+            if (variant.members)
+                foreach (member; *variant.members)
+                    member.accept(this);
+            if (variant.variantSplice)
+                variant.variantSplice.accept(this);
         }
-        else
+        if (!d.members)
+            return;
+        foreach (member; *d.members)
         {
-            foreach (ref variant; d.variants)
-            {
-                visitArgs(variant.udas.peekSlice());
-                foreach (payload; variant.payload)
-                    visitType(payload);
-                if (variant.members)
-                    foreach (member; *variant.members)
-                        member.accept(this);
-                if (variant.variantSplice)
-                    variant.variantSplice.accept(this);
-            }
-            if (!d.members)
-                return;
-            foreach (member; *d.members)
-            {
-                if (member is d.tagVar)
+            if (member is d.tagVar)
+                continue;
+            if (auto attribute = member.isAttribDeclaration())
+                if (d.payloadUnion && attribute.decl is d.payloadUnion.members)
                     continue;
-                if (auto attribute = member.isAttribDeclaration())
-                    if (d.payloadUnion && attribute.decl is d.payloadUnion.members)
-                        continue;
-                member.accept(this);
-            }
+            member.accept(this);
         }
     }
 

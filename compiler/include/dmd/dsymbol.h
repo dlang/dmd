@@ -33,6 +33,7 @@ class ClassDeclaration;
 class StructDeclaration;
 class UnionDeclaration;
 class EnumUnionDeclaration;
+class EnumUnionCaseDeclaration;
 class FuncDeclaration;
 class FuncAliasDeclaration;
 class OverDeclaration;
@@ -307,6 +308,7 @@ public:
     StaticAssert *isStaticAssert();
     StaticIfDeclaration *isStaticIfDeclaration();
     CAsmDeclaration *isCAsmDeclaration();
+    EnumUnionCaseDeclaration *isEnumUnionCaseDeclaration();
     void accept(Visitor *v) override { v->visit(this); }
 };
 

@@ -938,28 +938,6 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class EnumUnionDeclaration : ScopeDsymbol
-    {
-        EnumUnionVariant[] variants;
-        VarDeclaration tagVar;
-        UnionDeclaration payloadUnion;
-
-        extern (D) this(Loc loc, Identifier id)
-        {
-            super(loc, id);
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-
-        override final inout(EnumUnionDeclaration) isEnumUnionDeclaration() inout
-        {
-            return this;
-        }
-    }
-
     extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     {
         Visibility visibility;
@@ -1555,6 +1533,28 @@ struct ASTBase
         override void accept(Visitor v)
         {
             v.visit(this);
+        }
+    }
+
+    extern (C++) final class EnumUnionDeclaration : StructDeclaration
+    {
+        EnumUnionVariant[] variants;
+        VarDeclaration tagVar;
+        UnionDeclaration payloadUnion;
+
+        extern (D) this(Loc loc, Identifier id)
+        {
+            super(loc, id, false);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+
+        override final inout(EnumUnionDeclaration) isEnumUnionDeclaration() inout
+        {
+            return this;
         }
     }
 
