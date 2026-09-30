@@ -1109,6 +1109,9 @@ private int classFuncSemantic(ClassDeclaration cd, FuncDeclaration funcdecl,
                     }
                 }
                 cd.vtbl.insert(funcdecl.vtblIndex, funcdecl);
+                // the reserved C++ destructor slot is not a vtblIndex, so shift it explicitly
+                if (found && cd.cppDtorVtblIndex >= funcdecl.vtblIndex)
+                    ++cd.cppDtorVtblIndex;
 
                 debug foreach (const i, s; cd.vtbl)
                 {
