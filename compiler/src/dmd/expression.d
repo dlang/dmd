@@ -20,7 +20,7 @@ import core.stdc.string;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
-import dmd.cond : StaticForeach, Condition;
+import dmd.cond;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dstruct;
