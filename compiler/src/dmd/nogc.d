@@ -361,7 +361,8 @@ extern (D) bool setGC(Scope* sc, FuncDeclaration fd, Loc loc, const(char)* fmt, 
         {
             // Message wil be gagged, but still call error() to update global.errors and for
             // -verrors=spec
-            string action = AttributeViolation(loc, fmt, args).action;
+            string action = fmt ? AttributeViolation(loc, fmt, args).action
+                                : "calling a non-`@nogc` function";
             .error(loc, "%.*s is not allowed in a `@nogc` function", action.fTuple.expand);
             return true;
         }
