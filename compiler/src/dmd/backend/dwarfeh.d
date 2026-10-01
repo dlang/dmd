@@ -274,9 +274,12 @@ else
     if (LPstart != DW_EH_PE_omit)
         et.writeuLEB128(LPbase);
 
-    const ubyte TType = (config.flags3 & CFG3pic)
+    ubyte TType = (config.flags3 & CFG3pic)
                                 ? DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata4
                                 : DW_EH_PE_absptr | DW_EH_PE_udata4;
+
+    //if (config.objfmt == OBJ_MACH && config.target_cpu == TARGET_AArch64)
+
     et.writeByte(TType);
 
     /* Compute TTbase, which is the sum of:
