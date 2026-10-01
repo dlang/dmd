@@ -17,8 +17,10 @@ import core.stdc.stdio;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;
-import dmd.backend.global;
-import dmd.backend.goh : GlobalOptimizer;
+import dmd.backend.global : ErrorCallbackBackend, error, errorCallbackBackend,
+    GetFileContentsCallback, getFileContentsCallback;
+import dmd.backend.go : go_flag, GlobalOptimizer;
+import dmd.backend.rtlsym : rtlsym_init;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -57,6 +59,8 @@ nothrow:
     generatedMain = a main entrypoint is generated
     dataimports   = do not place data symbols into read-only segment,
                     it might be necessary to resolve relocations at runtime
+    go            = the global optimizer state
+    errorCallback = callback for backend error messages
  */
 public
 @trusted
@@ -84,11 +88,13 @@ void out_config_init(
         bool generatedMain,     // a main entrypoint is generated
         bool dataimports,
         ref GlobalOptimizer go,
-        ErrorCallbackBackend errorCallback)
+        ErrorCallbackBackend errorCallback,
+        GetFileContentsCallback getFileContents)
 {
     //printf("out_config_init()\n");
 
     errorCallbackBackend = errorCallback;
+    getFileContentsCallback = getFileContents;
     auto cfg = &config;
 
     cfg._version = _version;
@@ -134,18 +140,15 @@ void out_config_init(
             cfg.avx = avx;
             cfg.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
 
-            cfg.flags |= CFGnoebp;       // test suite fails without this
             //cfg.flags |= CFGalwaysframe;
             cfg.flags |= CFGromable; // put switch tables in code segment
-            cfg.objfmt = OBJ_MSCOFF;
         }
         else
         {
             cfg.ehmethod = useExceptions ? EHmethod.EH_WIN32 : EHmethod.EH_NONE;
-            cfg.flags |= CFGnoebp;       // test suite fails without this
-            cfg.objfmt = OBJ_MSCOFF;
-            cfg.flags |= CFGnoebp;    // test suite fails without this
         }
+        cfg.flags |= CFGnoebp;    // test suite fails without this
+        cfg.objfmt = OBJ_MSCOFF;
 
         if (dataimports)
             cfg.flags2 |= CFG2noreadonly;
@@ -288,6 +291,42 @@ void out_config_init(
         cfg.objfmt = OBJ_ELF;
         cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
     }
+    else if (cfg.exe & (EX_HURD | EX_HURD64))
+    {
+        cfg.fpxmmregs = true;
+        cfg.avx = avx;
+        if (model == 64)
+        {
+            cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+        }
+        else
+        {
+            cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            if (!exe)
+                cfg.flags |= CFGromable; // put switch tables in code segment
+        }
+        cfg.flags |= CFGnoebp;
+        switch (pic)
+        {
+            case 0:         // PIC.fixed
+                break;
+
+            case 1:         // PIC.pic
+                cfg.flags3 |= CFG3pic;
+                break;
+
+            case 2:         // PIC.pie
+                cfg.flags3 |= CFG3pic | CFG3pie;
+                break;
+
+            default:
+                assert(0);
+        }
+        if (symdebug)
+            cfg.flags |= CFGalwaysframe;
+
+        cfg.objfmt = OBJ_ELF;
+    }
 
     cfg.flags2 |= CFG2nodeflib;      // no default library
     cfg.flags3 |= CFG3eseqds;
@@ -310,8 +349,8 @@ static if (0)
     if (nofloat)
         cfg.flags3 |= CFG3wkfloat;
 
-    configv.vasm = vasm;
-    configv.verbose = verbose;
+    cfg.vasm = vasm;
+    cfg.verbose = verbose;
 
     go.AArch64 = arm;
     if (optimize)
@@ -320,32 +359,24 @@ static if (0)
     if (symdebug)
     {
         if (cfg.exe & (EX_LINUX | EX_LINUX64 | EX_OPENBSD | EX_OPENBSD64 | EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64 |
-                          EX_SOLARIS | EX_SOLARIS64 | EX_OSX | EX_OSX64))
+                          EX_SOLARIS | EX_SOLARIS64 | EX_OSX | EX_OSX64 | EX_HURD | EX_HURD64))
         {
-            configv.addlinenumbers = 1;
+            cfg.addlinenumbers = 1;
             cfg.fulltypes = (symdebug == 1) ? CVDWARF_D : CVDWARF_C;
         }
         if (cfg.exe & (EX_windos))
         {
-            if (cfg.objfmt == OBJ_MSCOFF)
-            {
-                configv.addlinenumbers = 1;
-                cfg.fulltypes = CV8;
-                if(symdebug > 1)
-                    cfg.flags2 |= CFG2gms;
-            }
-            else
-            {
-                configv.addlinenumbers = 1;
-                cfg.fulltypes = CV4;
-            }
+            cfg.addlinenumbers = 1;
+            cfg.fulltypes = CV8;
+            if(symdebug > 1)
+                cfg.flags2 |= CFG2gms;
         }
         if (!optimize)
             cfg.flags |= CFGalwaysframe;
     }
     else
     {
-        configv.addlinenumbers = 0;
+        cfg.addlinenumbers = 0;
         cfg.fulltypes = CVNONE;
         //cfg.flags &= ~CFGalwaysframe;
     }
@@ -384,7 +415,7 @@ static if (0)
         machDebugSectionsInit();
     else if (cfg.objfmt == OBJ_ELF)
         elfDebugSectionsInit();
-    rtlsym_init(); // uses fregsaved, so must be after it's set inside cod3_set*
+    rtlsym_init(); // uses cgstate.fregsaved, so must be after it is set inside cod3_set*
 }
 
 /****************************
@@ -409,6 +440,22 @@ void out_config_debug(
     debugx = x;
     debugy = y;
 }
+
+
+/* Global flags:
+ */
+
+__gshared:
+bool debuga = 0; /// cg - watch assignaddr()
+bool debugb = 0; /// watch block optimization
+bool debugc = 0; /// watch code generated
+bool debuge = 0; /// dump eh info
+bool debugf = 0; /// trees after dooptim
+bool debugr = 0; /// watch register allocation
+bool debugs = 0; /// watch common subexp eliminator
+bool debugw = 0; /// watch progress
+bool debugx = 0; /// suppress predefined CPP stuff
+bool debugy = 0; /// watch output to il buffer
 
 /*************************************
  */
@@ -446,7 +493,7 @@ void util_set32(exefmt_t exe)
     _tysize[TYnullptr] = LONGSIZE;
     _tysize[TYnptr] = LONGSIZE;
     _tysize[TYnref] = LONGSIZE;
-if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64))
+if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_HURD | EX_HURD64))
 {
     _tysize[TYreal] = 12;
     _tysize[TYireal] = 12;
@@ -477,7 +524,7 @@ if (exe & EX_windos)
     _tyalignsize[TYnullptr] = LONGSIZE;
     _tyalignsize[TYnref] = LONGSIZE;
     _tyalignsize[TYnptr] = LONGSIZE;
-if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64))
+if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_HURD | EX_HURD64))
 {
     _tyalignsize[TYreal] = 4;
     _tyalignsize[TYireal] = 4;
@@ -533,7 +580,7 @@ void util_set64(exefmt_t exe)
     _tysize[TYnptr] = 8;
     _tysize[TYnref] = 8;
     if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD |
-                      EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_OSX | EX_OSX64))
+                      EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_OSX | EX_OSX64 | EX_HURD | EX_HURD64))
     {
         _tysize[TYreal] = 16;
         _tysize[TYireal] = 16;
@@ -557,7 +604,7 @@ void util_set64(exefmt_t exe)
     _tyalignsize[TYnullptr] = 8;
     _tyalignsize[TYnptr] = 8;
     _tyalignsize[TYnref] = 8;
-    if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64))
+    if (exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_HURD | EX_HURD64))
     {
         _tyalignsize[TYreal] = 16;
         _tyalignsize[TYireal] = 16;

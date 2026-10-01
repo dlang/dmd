@@ -160,6 +160,11 @@ need to be started.
     quick:              run all tests with no default permuted args
                         (individual test specified options still honored)
 
+    arm:                cross-compile AArch64 runnable tests (arm.d, ai.d) and run
+                        them under qemu-aarch64; requires clang, ld.lld, qemu-aarch64,
+                        and an AArch64 sysroot for clang (e.g. gcc-aarch64-linux-gnu);
+                        skipped automatically if any prerequisite is missing
+
     clean:              remove all temporary or result files from previous runs
 
     test_results/compilable/json.d.out      runs an individual test
@@ -306,6 +311,8 @@ The following is a list of all available settings:
                          default: (none)
                          note: the make variable REQUIRED_ARGS is also added to the $(DMD)
                                command line (see below)
+                         note: if you provide a platform string, it becomes a white list.
+                               add a second without the platform list so that it runs on all targets.
 
     RUN_OUTPUT:         output expected from running the compiled executable which must match
                         the actual output. The comparison adheres to the rules defined for

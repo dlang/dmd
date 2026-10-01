@@ -43,6 +43,17 @@ version (SystemZ) version = IBMZ_Any;
 version (X86)     version = X86_Any;
 version (X86_64)  version = X86_Any;
 
+version (CRuntime_WASI)
+{
+    version (WASI_EMULATED_MMAN)
+        version = Supported;
+    else
+        pragma(msg, "WASI lacks a true mmap; to enable minimal mmap"~
+                    " emulation, compile with --d-version=WASI_EMULATED_MMAN"~
+                    " and link with -lwasi-emulated-mman");
+} else version = Supported;
+
+version (Supported):
 version (Posix):
 extern (C) nothrow @nogc:
 
@@ -87,6 +98,10 @@ else version (CRuntime_Bionic)
 {
 }
 else version (CRuntime_Musl)
+{
+    int posix_madvise(void *, size_t, int);
+}
+else version (CRuntime_WASI)
 {
     int posix_madvise(void *, size_t, int);
 }
@@ -170,6 +185,30 @@ else version (DragonFlyBSD)
 else version (Solaris)
 {
 }
+else version (Hurd)
+{
+    enum POSIX_MADV_NORMAL      = 0;
+    enum POSIX_MADV_RANDOM      = 1;
+    enum POSIX_MADV_SEQUENTIAL  = 2;
+    enum POSIX_MADV_WILLNEED    = 3;
+    enum POSIX_MADV_DONTNEED    = 4;
+}
+else version (Emscripten)
+{
+    enum POSIX_MADV_NORMAL      = 0;
+    enum POSIX_MADV_RANDOM      = 1;
+    enum POSIX_MADV_SEQUENTIAL  = 2;
+    enum POSIX_MADV_WILLNEED    = 3;
+    enum POSIX_MADV_DONTNEED    = 4;
+}
+else version (CRuntime_WASI)
+{
+    enum POSIX_MADV_NORMAL      = 0;
+    enum POSIX_MADV_RANDOM      = 1;
+    enum POSIX_MADV_SEQUENTIAL  = 2;
+    enum POSIX_MADV_WILLNEED    = 3;
+    enum POSIX_MADV_DONTNEED    = 4;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -228,6 +267,27 @@ else version (DragonFlyBSD)
     enum PROT_EXEC      = 0x04;
 }
 else version (Solaris)
+{
+    enum PROT_NONE = 0x00;
+    enum PROT_READ = 0x01;
+    enum PROT_WRITE = 0x02;
+    enum PROT_EXEC = 0x04;
+}
+else version (Hurd)
+{
+    enum PROT_NONE      = 0x00;
+    enum PROT_READ      = 0x04;
+    enum PROT_WRITE     = 0x02;
+    enum PROT_EXEC      = 0x01;
+}
+else version (Emscripten)
+{
+    enum PROT_NONE = 0x00;
+    enum PROT_READ = 0x01;
+    enum PROT_WRITE = 0x02;
+    enum PROT_EXEC = 0x04;
+}
+else version (CRuntime_WASI)
 {
     enum PROT_NONE = 0x00;
     enum PROT_READ = 0x01;
@@ -309,6 +369,13 @@ else version (CRuntime_UClibc)
     else
         void* mmap(void*, size_t, int, int, int, off_t);
     int munmap(void*, size_t);
+}
+else version (CRuntime_WASI)
+{
+    void* mmap(void*, size_t, int, int, int, off_t);
+    int munmap(void*, size_t);
+
+    alias mmap64 = mmap;
 }
 else
 {
@@ -475,6 +542,45 @@ else version (Solaris)
     enum MS_ASYNC = 0x0001;
     enum MS_INVALIDATE  = 0x0002;
 }
+else version (Hurd)
+{
+    enum MAP_SHARED     = 0x0010;
+    enum MAP_PRIVATE    = 0x0000;
+    enum MAP_FIXED      = 0x0100;
+    enum MAP_ANON       = 0x0002;
+
+    enum MAP_FAILED     = cast(void*)-1;
+
+    enum MS_ASYNC       = 1;
+    enum MS_INVALIDATE  = 0;
+    enum MS_SYNC        = 2;
+}
+else version (Emscripten)
+{
+    enum MAP_SHARED     = 0x0001;
+    enum MAP_PRIVATE    = 0x0002;
+    enum MAP_FIXED      = 0x0010;
+    enum MAP_ANON       = 0x0020;
+
+    enum MAP_FAILED     = cast(void*)-1;
+
+    enum MS_ASYNC       = 0x0001;
+    enum MS_INVALIDATE  = 0x0002;
+    enum MS_SYNC        = 0x0004;
+}
+else version (CRuntime_WASI)
+{
+    enum MAP_SHARED     = 0x0001;
+    enum MAP_PRIVATE    = 0x0002;
+    enum MAP_FIXED      = 0x0010;
+    enum MAP_ANON       = 0x0020;
+
+    enum MAP_FAILED     = cast(void*)-1;
+
+    enum MS_ASYNC       = 0x0001;
+    enum MS_INVALIDATE  = 0x0002;
+    enum MS_SYNC        = 0x0004;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -518,6 +624,10 @@ else version (CRuntime_Bionic)
     int msync(const scope void*, size_t, int);
 }
 else version (CRuntime_Musl)
+{
+    int msync(void*, size_t, int);
+}
+else version (CRuntime_WASI)
 {
     int msync(void*, size_t, int);
 }
@@ -591,6 +701,21 @@ else version (Solaris)
     enum MCL_CURRENT = 0x0001;
     enum MCL_FUTURE = 0x0002;
 }
+else version (Hurd)
+{
+    enum MCL_CURRENT    = 0x0001;
+    enum MCL_FUTURE     = 0x0002;
+}
+else version (Emscripten)
+{
+    enum MCL_CURRENT = 0x0001;
+    enum MCL_FUTURE = 0x0002;
+}
+else version (CRuntime_WASI)
+{
+    enum MCL_CURRENT = 0x0001;
+    enum MCL_FUTURE = 0x0002;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -642,6 +767,11 @@ else version (CRuntime_Bionic)
     int munlockall();
 }
 else version (CRuntime_Musl)
+{
+    int mlockall(int);
+    int munlockall();
+}
+else version (CRuntime_WASI)
 {
     int mlockall(int);
     int munlockall();
@@ -709,6 +839,11 @@ else version (CRuntime_Musl)
     int mlock(const scope void*, size_t);
     int munlock(const scope void*, size_t);
 }
+else version (CRuntime_WASI)
+{
+    int mlock(const scope void*, size_t);
+    int munlock(const scope void*, size_t);
+}
 else version (CRuntime_UClibc)
 {
     int mlock(const scope void*, size_t);
@@ -762,6 +897,10 @@ else version (CRuntime_Musl)
 {
     int mprotect(void*, size_t, int);
 }
+else version (CRuntime_WASI)
+{
+    int mprotect(void*, size_t, int);
+}
 else version (CRuntime_UClibc)
 {
     int mprotect(void*, size_t, int);
@@ -776,6 +915,7 @@ else
 //
 /*
 int shm_open(const scope char*, int, mode_t);
+int shm_open(const scope char*, int, ...); (Darwin)
 int shm_unlink(const scope char*);
 */
 
@@ -786,7 +926,7 @@ version (CRuntime_Glibc)
 }
 else version (Darwin)
 {
-    int shm_open(const scope char*, int, mode_t);
+    int shm_open(const scope char*, int, ...);
     int shm_unlink(const scope char*);
 }
 else version (FreeBSD)
@@ -818,6 +958,11 @@ else version (CRuntime_Bionic)
 {
 }
 else version (CRuntime_Musl)
+{
+    int shm_open(const scope char*, int, mode_t);
+    int shm_unlink(const scope char*);
+}
+else version (CRuntime_WASI)
 {
     int shm_open(const scope char*, int, mode_t);
     int shm_unlink(const scope char*);

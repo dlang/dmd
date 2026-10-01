@@ -340,7 +340,7 @@ extern (C++) final class ToClassesVisitor : Visitor
         classifyFields(baseOffset, cast(size_t) t.dim.toInteger(), &getNthElement);
     }
 
-    extern(D) void classifyFields(uint baseOffset, size_t nfields, Type delegate(size_t, out uint, out uint) getFieldInfo)
+    extern(D) void classifyFields(uint baseOffset, size_t nfields, scope Type delegate(size_t, out uint, out uint) getFieldInfo)
     {
         // classify each field (recursively for aggregates) and merge all classes per eightbyte
         foreach (n; 0 .. nfields)

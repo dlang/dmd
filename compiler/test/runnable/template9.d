@@ -2086,7 +2086,7 @@ void test9022()
 
 mixin template node9026()
 {
-    static if (is(this == struct))
+    static if (is(typeof(this) == struct))
         alias typeof(this)* E;
     else
         alias typeof(this) E;

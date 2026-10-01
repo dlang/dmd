@@ -1,9 +1,9 @@
 /**
  * Implements the serialization of a lambda function.
  *
- * The serializationis computed by visiting the abstract syntax subtree of the given lambda function.
+ * The serialization is computed by visiting the abstract syntax subtree of the given lambda function.
  * The serialization is a string which contains the type of the parameters and the string
- * represantation of the lambda expression.
+ * representation of the lambda expression.
  *
  * Copyright:   Copyright (C) 1999-2026 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
@@ -64,17 +64,17 @@ private enum ExpType
 bool isSameFuncLiteral(FuncLiteralDeclaration l1, FuncLiteralDeclaration l2, Scope* sc)
 {
     bool result;
-    if (auto ser1 = getSerialization(l1, sc))
+    OutBuffer buf1;
+    if (getSerialization(l1, sc, buf1))
     {
+        OutBuffer buf2;
         //printf("l1 serialization: %.*s\n", cast(int)ser1.length, &ser1[0]);
-        if (auto ser2 = getSerialization(l2, sc))
+        if (getSerialization(l2, sc, buf2))
         {
             //printf("l2 serialization: %.*s\n", cast(int)ser2.length, &ser2[0]);
-            if (ser1 == ser2)
+            if (buf1.peekSlice() == buf2.peekSlice())
                 result = true;
-            mem.xfree(cast(void*)ser2.ptr);
         }
-        mem.xfree(cast(void*)ser1.ptr);
     }
     return result;
 }
@@ -95,19 +95,17 @@ bool isSameFuncLiteral(FuncLiteralDeclaration l1, FuncLiteralDeclaration l2, Sco
  * Params:
  *  fld = the starting AST node for the lambda function
  *  sc = the scope in which the lambda function is located
+ *  buf = serialization of `fld` is written to this buffer
  *
  * Returns:
- *  The serialization of `fld` allocated with mem.
+ *  true if serialization was successful and was added to buf
  */
-private string getSerialization(FuncLiteralDeclaration fld, Scope* sc)
+private bool getSerialization(FuncLiteralDeclaration fld, Scope* sc, ref OutBuffer buf)
 {
-    scope serVisitor = new SerializeVisitor(fld.parent._scope);
+    buf.setsize(0);
+    scope serVisitor = new SerializeVisitor(fld.parent._scope, &buf);
     fld.accept(serVisitor);
-    const len = serVisitor.buf.length;
-    if (len == 0)
-        return null;
-
-    return cast(string)serVisitor.buf.extractSlice();
+    return buf.length != 0;
 }
 
 private extern (C++) class SerializeVisitor : SemanticTimeTransitiveVisitor
@@ -119,12 +117,13 @@ private:
     Dsymbol d;
 
 public:
-    OutBuffer buf;
+    OutBuffer* buf;
     alias visit = SemanticTimeTransitiveVisitor.visit;
 
-    this(Scope* sc) scope
+    this(Scope* sc, OutBuffer* buf) scope
     {
         this.sc = sc;
+        this.buf = buf;
     }
 
     /**
@@ -446,12 +445,12 @@ public:
             visitType(p.type);
     }
 
-    override void visit(StructLiteralExp e)
+    override void visit(StructLiteralExp sle)
     {
         static if (LOG)
-            printf("StructLiteralExp: %s\n", e.toChars);
+            printf("StructLiteralExp: %s\n", sle.toChars);
 
-        auto ty = cast(TypeStruct)e.stype;
+        auto ty = cast(TypeStruct)sle.stype;
         if (!ty)
         {
             buf.setsize(0);
@@ -459,10 +458,10 @@ public:
         }
 
         writeMangledName(ty.sym);
-        auto dim = e.elements.length;
+        auto dim = sle.elements.length;
         foreach (i; 0..dim)
         {
-            auto elem = (*e.elements)[i];
+            auto elem = (*sle.elements)[i];
             if (elem)
                 elem.accept(this);
             else

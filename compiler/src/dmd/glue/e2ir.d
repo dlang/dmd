@@ -73,24 +73,20 @@ import dmd.backend.code;
 import dmd.backend.cv4;
 import dmd.backend.dt;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.dout : out_readonly_comdat, out_string_literal;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.util2 : mem_malloc2;
 
 import dmd.backend.x86.code_x86;
 
 package(dmd.glue):
 
 alias Elems = Array!(elem *);
-
-import dmd.backend.util2 : mem_malloc2;
-
-
-private int registerSize() { return _tysize[TYnptr]; }
 
 /*****
  * If variable var is a value that will actually be passed as a reference
@@ -99,6 +95,7 @@ private int registerSize() { return _tysize[TYnptr]; }
  * Returns:
  *      true if actually implicitly passed by reference
  */
+package(dmd.glue)
 bool ISX64REF(Declaration var)
 {
     if (var.isReference())
@@ -135,6 +132,7 @@ bool ISX64REF(Declaration var)
 
 /* If variable exp of type typ is a reference due to x64 calling conventions
  */
+private
 bool ISX64REF(ref IRState irs, Expression exp)
 {
     if (irs.target.os == Target.OS.Windows && irs.target.isX86_64)
@@ -165,6 +163,7 @@ bool ISX64REF(ref IRState irs, Expression exp)
  * Returns:
  *      generated elem
  */
+package(dmd.glue)
 elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
 {
     //printf("e1:\n"); elem_print(e1);
@@ -203,20 +202,6 @@ elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
     return e;
 }
 
-/*************************************************
- * Determine if zero bits need to be copied for this backend type
- * Params:
- *      t = backend type
- * Returns:
- *      true if 0 bits
- */
-bool type_zeroCopy(type* t)
-{
-    return type_size(t) == 0 ||
-        (tybasic(t.Tty) == TYstruct &&
-         (t.Ttag.Stype.Ttag.Sstruct.Sflags & STR0size));
-}
-
 /*******************************************************
  * Write read-only string to object file, create a local symbol for it.
  * Makes a copy of str's contents, does not keep a reference to it.
@@ -227,7 +212,7 @@ bool type_zeroCopy(type* t)
  * Returns:
  *      Symbol
  */
-
+package(dmd.glue)
 Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
 {
     //printf("toStringSymbol() %s\n", str);
@@ -306,34 +291,10 @@ Symbol* toStringSymbol(const(char)* str, size_t len, size_t sz)
     si.Sflags |= SFLnodebug | SFLartifical;
     si.Sfl = FL.data;
     si.Salignment = cast(ubyte)sz;
-    out_readonly_comdat(si, str, cast(uint)(len * sz), cast(uint)sz);
+    out_readonly_comdat(si, str[0 .. len * sz], cast(uint)sz);
 
     sv.value = si;
     return sv.value;
-}
-
-/*******************************************************
- * Turn StringExp into Symbol.
- */
-
-Symbol* toStringSymbol(StringExp se)
-{
-    Symbol* si;
-    string s;
-    const n = cast(int)se.numberOfCodeUnits(0, s);
-    if (se.sz == 1)
-    {
-        const slice = se.peekString();
-        si = toStringSymbol(slice.ptr, slice.length, 1);
-    }
-    else
-    {
-        auto p = cast(char *)mem.xmalloc(n * se.sz);
-        se.writeTo(p, false);
-        si = toStringSymbol(p, n, se.sz);
-        mem.xfree(p);
-    }
-    return si;
 }
 
 /******************************************************
@@ -343,7 +304,7 @@ Symbol* toStringSymbol(StringExp se)
  *      e = elem to modify in place
  *      loc = to get file/line from
  */
-
+package(dmd.glue)
 void toTraceGC(ref IRState irs, elem* e, Loc loc)
 {
     static immutable RTLSYM[2][5] map =
@@ -387,7 +348,7 @@ void toTraceGC(ref IRState irs, elem* e, Loc loc)
  * Returns:
  *      generated elem tree
  */
-
+package(dmd.glue)
 elem* toElemDtor(Expression e, ref IRState irs, elem* ehidden = null)
 {
     //printf("Expression.toElemDtor() %s\n", e.toChars());
@@ -442,7 +403,7 @@ elem* toElemDtor(Expression e, ref IRState irs, elem* ehidden = null)
  * Returns:
  *      the equivalent of &e
  */
-
+package(dmd.glue)
 elem* addressElem(elem* e, Type t, bool alwaysCopy = false)
 {
     //printf("addressElem()\n");
@@ -514,6 +475,7 @@ elem* addressElem(elem* e, Type t, bool alwaysCopy = false)
 /********************************
  * Reset stringTab[] between object files being emitted, because the symbols are local.
  */
+package(dmd.glue)
 void clearStringTab()
 {
     //printf("clearStringTab()\n");
@@ -534,6 +496,7 @@ private __gshared StringTable!(Symbol*) *stringTab;
  * Returns:
  *      true if symbol should be imported from a DLL
  */
+package(dmd.glue)
 bool isDllImported(Dsymbol symbl)
 {
     // Windows is the only platform which dmd supports, that uses the DllImport/DllExport scheme.
@@ -640,6 +603,51 @@ bool isDllImported(Dsymbol symbl)
     return false;
 }
 
+/**************************************** private ************************************/
+
+private:
+
+
+int registerSize() { return _tysize[TYnptr]; }
+
+/*************************************************
+ * Determine if zero bits need to be copied for this backend type
+ * Params:
+ *      t = backend type
+ * Returns:
+ *      true if 0 bits
+ */
+private
+bool type_zeroCopy(type* t)
+{
+    return type_size(t) == 0 ||
+        (tybasic(t.Tty) == TYstruct &&
+         (t.Ttag.Stype.Ttag.Sstruct.Sflags & STR0size));
+}
+
+/*******************************************************
+ * Turn StringExp into Symbol.
+ */
+Symbol* toStringSymbol(StringExp se)
+{
+    Symbol* si;
+    string s;
+    const n = cast(int)se.numberOfCodeUnits(0, s);
+    if (se.sz == 1)
+    {
+        const slice = se.peekString();
+        si = toStringSymbol(slice.ptr, slice.length, 1);
+    }
+    else
+    {
+        auto p = cast(char *)mem.xmalloc(n * se.sz);
+        se.writeTo(p, false);
+        si = toStringSymbol(p, n, se.sz);
+        mem.xfree(p);
+    }
+    return si;
+}
+
 /*********************************************
  * Generate a backend symbol for a frontend symbol
  * Params:
@@ -656,7 +664,7 @@ Symbol* toExtSymbol(Dsymbol s)
         return toSymbol(s);
 }
 
-private elem* toEfilenamePtr(Module m)
+elem* toEfilenamePtr(Module m)
 {
     //printf("toEfilenamePtr(%s)\n", m.toChars());
     const(char)* id = m.srcfile.toChars();
@@ -692,7 +700,7 @@ elem* toElem(Expression e, ref IRState irs)
         //printf("\tparent = '%s'\n", se.var.parent ? se.var.parent.toChars() : "null");
         if (se.op == EXP.variable && se.var.needThis())
         {
-            irs.eSink.error(se.loc, "need `this` to access member `%s`", se.toChars());
+            irs.eSink.error(se.loc, "need `this` to access member `%s`", se.toErrMsg());
             return el_long(TYsize_t, 0);
         }
 
@@ -718,7 +726,35 @@ elem* toElem(Expression e, ref IRState irs)
             }
         }
 
-        Symbol* s = toSymbol(se.var);
+        /* Check for @__ctfe functions - they cannot be referenced at runtime
+         */
+        if (FuncDeclaration fd = se.var.isFuncDeclaration())
+        {
+            if (auto tf = fd.type.isTypeFunction())
+            {
+                if (tf.isCtfeOnly)
+                {
+                    irs.eSink.error(se.loc, "function `%s` is `@__ctfe` and cannot be used at runtime", fd.toPrettyChars());
+                    return el_long(TYsize_t, 0);
+                }
+            }
+        }
+
+        /* Check for @__ctfe functions - they cannot be referenced at runtime
+         */
+        if (FuncDeclaration fd = se.var.isFuncDeclaration())
+        {
+            if (auto tf = fd.type.isTypeFunction())
+            {
+                if (tf.isCtfeOnly)
+                {
+                    irs.eSink.error(se.loc, "function `%s` is `@__ctfe` and cannot be used at runtime", fd.toPrettyChars());
+                    return el_long(TYsize_t, 0);
+                }
+            }
+        }
+
+        Symbol* s = toSymbolNRVO(se.var);
 
         // VarExp generated for `__traits(initSymbol, Aggregate)`?
         if (auto symDec = se.var.isSymbolDeclaration())
@@ -745,9 +781,7 @@ elem* toElem(Expression e, ref IRState irs)
         if (se.var.toParent2())
             fd = se.var.toParent2().isFuncDeclaration();
 
-        const bool nrvo = fd && (fd.isNRVO && fd.nrvo_var == se.var || se.var.nrvo && fd.shidden);
-        if (nrvo)
-            s = cast(Symbol*)fd.shidden;
+        const bool nrvo = fd && s == fd.shidden;
 
         if (s.Sclass == SC.auto_ || s.Sclass == SC.parameter || s.Sclass == SC.shadowreg)
         {
@@ -979,7 +1013,10 @@ elem* toElem(Expression e, ref IRState irs)
     elem* visitDeclaration(DeclarationExp de)
     {
         //printf("DeclarationExp.toElem() %s\n", de.toChars());
-        return Dsymbol_toElem(de.declaration, irs);
+        elem* e = Dsymbol_toElem(de.declaration, irs);
+        if (e && de.type && de.type.toBasetype().ty == Tvoid)
+            e.Ety = TYvoid;
+        return e;
     }
 
     /***************************************
@@ -1340,7 +1377,7 @@ elem* toElem(Expression e, ref IRState irs)
 
                 if (!cd.vthis)
                 {
-                    irs.eSink.error(ne.loc, "forward reference to `%s`", cd.toChars());
+                    irs.eSink.error(ne.loc, "forward reference to `%s`", cd.toErrMsg());
                 }
                 else
                 {
@@ -1409,6 +1446,12 @@ elem* toElem(Expression e, ref IRState irs)
             else if (auto lowering = ne.lowering)
                 // Call _d_newitemT()
                 ex = toElem(ne.lowering, irs);
+            else if (!irs.params.useGC)
+            {
+                // new is allowed in CTFE, so this can only be checked at codegen
+                irs.eSink.error(ne.loc, "`new` expression `%s` requires the GC which is not available with `-betterC`", ne.toErrMsg());
+                return el_long(TYnptr, 0);
+            }
             else
                 assert(0, "This case should have been rewritten to `_d_newitemT` in the semantic phase");
 
@@ -1487,6 +1530,11 @@ elem* toElem(Expression e, ref IRState irs)
             else if (auto lowering = ne.lowering)
                 // Call _d_newitemT()
                 e = toElem(ne.lowering, irs);
+            else if (!irs.params.useGC)
+            {
+                irs.eSink.error(ne.loc, "`new` expression `%s` requires the GC which is not available with `-betterC`", ne.toErrMsg());
+                return el_long(TYnptr, 0);
+            }
             else
                 assert(0, "This case should have been rewritten to `_d_newitemT` in the semantic phase");
 
@@ -1510,12 +1558,17 @@ elem* toElem(Expression e, ref IRState irs)
         }
         else if (auto taa = t.isTypeAArray())
         {
+            if (!irs.params.useGC)
+            {
+                irs.eSink.error(ne.loc, "`new` expression `%s` requires the GC which is not available with `-betterC`", ne.toErrMsg());
+                return el_long(TYnptr, 0);
+            }
             assert(ne.lowering, "This case should have been rewritten to `_d_aaNew` in the semantic phase");
             return toElem(ne.lowering, irs);
         }
         else
         {
-            irs.eSink.error(ne.loc, "internal compiler error: cannot new type `%s`\n", t.toChars());
+            irs.eSink.error(ne.loc, "internal compiler error: cannot new type `%s`\n", t.toErrMsg());
             assert(0);
         }
 
@@ -1632,11 +1685,12 @@ elem* toElem(Expression e, ref IRState irs)
             return e;
         }
 
+        tym_t ororty = ae.type && ae.type.toBasetype().ty == Tnoreturn ? TYnoreturn : TYvoid;
         if (irs.params.checkAction == CHECKACTION.C)
         {
             auto econd = toElem(ae.e1, irs);
             auto ea = callCAssert(irs, ae.loc, ae.e1, ae.msg, null);
-            auto eo = el_bin(OPoror, TYvoid, econd, ea);
+            auto eo = el_bin(OPoror, ororty, econd, ea);
             elem_setLoc(eo, ae.loc);
             return eo;
         }
@@ -1648,7 +1702,7 @@ elem* toElem(Expression e, ref IRState irs)
              */
             auto econd = toElem(ae.e1, irs);
             auto ea = genHalt(ae.loc);
-            auto eo = el_bin(OPoror, TYvoid, econd, ea);
+            auto eo = el_bin(OPoror, ororty, econd, ea);
             elem_setLoc(eo, ae.loc);
             return eo;
         }
@@ -1735,11 +1789,11 @@ elem* toElem(Expression e, ref IRState irs)
         {
             // tmp = e, e || assert, e.inv
             elem* eassign = el_bin(OPeq, e.Ety, el_var(ts), e);
-            e = el_combine(eassign, el_bin(OPoror, TYvoid, el_var(ts), ea));
+            e = el_combine(eassign, el_bin(OPoror, ororty, el_var(ts), ea));
             e = el_combine(e, einv);
         }
         else
-            e = el_bin(OPoror,TYvoid,e,ea);
+            e = el_bin(OPoror,ororty,e,ea);
         elem_setLoc(e,ae.loc);
         return e;
     }
@@ -1855,6 +1909,9 @@ elem* toElem(Expression e, ref IRState irs)
         }
         elem* er = toElem(be.e2, irs);
 
+        if (tybasic(er.Ety) == TYnoreturn)
+            op = OPcomma;
+
         elem* e;
         if (op == OPmodass &&
             target.isAArch64 &&                 // x87 has FPREM instruction, others use fmod()
@@ -1939,7 +1996,7 @@ elem* toElem(Expression e, ref IRState irs)
          */
         if (!irs.params.useGC)
         {
-            irs.eSink.error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with -betterC", ce.toChars());
+            irs.eSink.error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with `-betterC`", ce.toErrMsg());
             return el_long(TYint, 0);
         }
 
@@ -2528,6 +2585,11 @@ elem* toElem(Expression e, ref IRState irs)
                 elem* eto = toElem(ae.e1, irs);
                 elem* efrom = toElem(ae.e2, irs);
 
+                // https://github.com/dlang/dmd/issues/22659
+                // LHS is a SliceExp with static array type from cast(T[n]) slice.
+                if (t1.ty == Tsarray)
+                    return setResult(elAssign(eto, efrom, ae.e1.type, null));
+
                 uint size = cast(uint)t1.nextOf().size();
                 elem* esize = el_long(TYsize_t, size);
 
@@ -2702,45 +2764,6 @@ elem* toElem(Expression e, ref IRState irs)
                 return setResult2(e);
             }
 
-        /* This will work if we can distinguish an assignment from
-         * an initialization of the lvalue. It'll work if the latter.
-         * If the former, because of aliasing of the return value with
-         * function arguments, it'll fail.
-         */
-        if (ae.op == EXP.construct)
-        {
-            if (CallExp ce = lastComma(ae.e2).isCallExp())
-            {
-                TypeFunction tf = cast(TypeFunction)ce.e1.type.toBasetype();
-                if (tf.ty == Tfunction && retStyle(tf, ce.f && ce.f.needThis()) == RET.stack)
-                {
-                    elem* eh = el_una(OPaddr, TYnptr, e1);
-                    elem* e = toElemRVO(ae.e2, eh, irs);
-                    return setResult2(e);
-                }
-
-                /* Look for:
-                 *  v = structliteral.ctor(args)
-                 * and have the structliteral write into v, rather than create a temporary
-                 * and copy the temporary into v
-                 */
-                if (ae.e1.op == EXP.variable && ce.e1.op == EXP.dotVariable)
-                {
-                    auto dve = cast(DotVarExp)ce.e1;
-                    auto fd = dve.var.isFuncDeclaration();
-                    if (fd && fd.isCtorDeclaration())
-                    {
-                        if (auto sle = dve.e1.isStructLiteralExp())
-                        {
-                            elem* eh = el_una(OPaddr, TYnptr, e1);
-                            elem* e = toElemRVO(ae.e2, eh, irs);
-                            return setResult2(e);
-                        }
-                    }
-                }
-            }
-        }
-
         //if (ae.op == EXP.construct) printf("construct\n");
         if (auto t1s = t1b.isTypeStruct())
         {
@@ -2807,6 +2830,15 @@ elem* toElem(Expression e, ref IRState irs)
             }
 
             /* Implement:
+             *  S struct = func()
+             */
+            if (ae.op == EXP.construct && canElideCopy(ae.e2, ae.e1.type))
+            {
+                elem* e = toElemRVO(ae.e2, e1, irs);
+                return setResult2(e);
+            }
+
+            /* Implement:
              *  (struct = struct)
              */
             elem* e2 = toElem(ae.e2, irs);
@@ -2864,7 +2896,7 @@ elem* toElem(Expression e, ref IRState irs)
             {
                 ArrayLiteralExp ale = cast(ArrayLiteralExp)ae.e2;
                 elem* e;
-                if (ale.elements.length == 0)
+                if (ale.length == 0)
                 {
                     e = e1;
                 }
@@ -2892,6 +2924,15 @@ elem* toElem(Expression e, ref IRState irs)
                     elem* e = el_bin(OPeq, e2.Ety, e1, e2);
                     return setResult2(e);
                 }
+            }
+
+            /* Implement:
+             *  S[n] sarray = func()
+             */
+            if (ae.op == EXP.construct && canElideCopy(ae.e2, ae.e1.type))
+            {
+                elem* e = toElemRVO(ae.e2, e1, irs);
+                return setResult2(e);
             }
 
             /* https://issues.dlang.org/show_bug.cgi?id=13661
@@ -3068,8 +3109,8 @@ elem* toElem(Expression e, ref IRState irs)
                 if (!irs.params.useGC)
                 {
                     irs.eSink.error(ce.loc,
-                        "appending to array in `%s` requires the GC which is not available with -betterC",
-                        ce.toChars());
+                        "appending to array in `%s` requires the GC which is not available with `-betterC`",
+                        ce.toErrMsg());
                     return el_long(TYint, 0);
                 }
 
@@ -3251,8 +3292,27 @@ elem* toElem(Expression e, ref IRState irs)
     elem* visitComma(CommaExp ce)
     {
         assert(ce.e1 && ce.e2);
+        elem* inlineCoverage(Expression e)
+        {
+            if (!ce.isInlineSequence || !irs.params.cov || !e || !e.loc.isValid())
+                return null;
+
+            // Nested inline-sequence commas are accounted for recursively.
+            if (auto nested = e.isCommaExp())
+            {
+                if (nested.isInlineSequence)
+                    return null;
+            }
+
+            return incUsageElem(irs, e.loc);
+        }
+
         elem* eleft  = toElem(ce.e1, irs);
+        eleft = el_combine(inlineCoverage(ce.e1), eleft);
+
         elem* eright = toElem(ce.e2, irs);
+        eright = el_combine(inlineCoverage(ce.e2), eright);
+
         elem* e = el_combine(eleft, eright);
         if (e)
             elem_setLoc(e, ce.loc);
@@ -3324,13 +3384,13 @@ elem* toElem(Expression e, ref IRState irs)
     elem* visitType(TypeExp e)
     {
         //printf("TypeExp.toElem()\n");
-        irs.eSink.error(e.loc, "type `%s` is not an expression", e.toChars());
+        irs.eSink.error(e.loc, "type `%s` is not an expression", e.toErrMsg());
         return el_long(TYint, 0);
     }
 
     elem* visitScope(ScopeExp e)
     {
-        irs.eSink.error(e.loc, "`%s` is not an expression", e.sds.toChars());
+        irs.eSink.error(e.loc, "`%s` is not an expression", e.sds.toErrMsg());
         return el_long(TYint, 0);
     }
 
@@ -3343,7 +3403,7 @@ elem* toElem(Expression e, ref IRState irs)
         VarDeclaration v = dve.var.isVarDeclaration();
         if (!v)
         {
-            irs.eSink.error(dve.loc, "`%s` is not a field, but a %s", dve.var.toChars(), dve.var.kind());
+            irs.eSink.error(dve.loc, "`%s` is not a field, but a %s", dve.var.toErrMsg(), dve.var.kind());
             return el_long(TYint, 0);
         }
 
@@ -4025,7 +4085,7 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitArrayLiteral(ArrayLiteralExp ale)
     {
-        size_t dim = ale.elements ? ale.elements.length : 0;
+        size_t dim = ale.length;
 
         //printf("ArrayLiteralExp.toElem() %s, type = %s\n", ale.toChars(), ale.type.toChars());
         Type tb = ale.type.toBasetype();
@@ -4222,21 +4282,77 @@ elem* toElem(Expression e, ref IRState irs)
  *      e = Expression to convert
  *      ehidden = lvalue element to place the value in these forms:
  *          (OPvar TYnptr), which is a pointer to the storage
- *          (OPvar TYsarray/TYstruct), which is the target symbol
- *          (OPind TYsarray/TYstruct), which is the target location
+ *          (OPvar TYarray/TYstruct), which is the target symbol
+ *          (OPind TYarray/TYstruct), which is the target location
  *      irs = context
+ *      forceType = type to coerce the result into
+ *      offset = offset where value resides
  * Returns:
- *      generated elem tree
+ *      generated elem tree with type TYarray/TYstruct
+ *
+ * For field access, transform:
+ *
+ * [1] v = (exp1, cond ? exp2 : exp3).field
+ *  => (exp1, cond ? (v = exp2.field) : (v = exp3.field))
+ *
+ * [2] v = S(f(), f1: T(f2: U(), f3: g())).f1.f2
+ *  => (f(), v = U(), g())
+ *
+ * For initialization, transform:
+ *
+ * [1] v = (exp1, cond ? exp2 : exp3)
+ *  => (exp1, cond ? (v = exp2) : (v = exp3))
+ *
+ * [2] v = func()
+ *  => pass the address of v to func()
+ *     if func() is ctor or returns on stack
+ *
+ * [3] v = v
+ *  => v
+ *
+ * NOTE: Please keep in sync with dmd.expressionsem.canElideCopy().
  */
-elem* toElemRVO(Expression e, elem* ehidden, ref IRState irs)
+elem* toElemRVO(Expression e, elem* ehidden, ref IRState irs, Type forceType = null, uint offset = 0)
 {
-    assert(e.type.toBasetype().ty == Tstruct || e.type.toBasetype().ty == Tsarray);
+    // RVO is only applicable to structs and static arrays.
+    Type basetype = forceType ? forceType.toBasetype() : e.type.toBasetype();
+    assert(basetype.ty == Tstruct || basetype.ty == Tsarray);
+
+    /* There are cases where RVO appears to be possible in the frontend,
+     * but can't be done here. Generate a blit here and wait for bug reports,
+     * so frontend code can be fixed.
+     */
+    elem* blitToStorage(Expression e)
+    {
+        elem* e1 = toElem(e, irs);
+
+        if (tybasic(e1.Ety) == TYnoreturn)
+            return e1;
+
+        if (offset)
+        {
+            // Generate *(&e+offset)
+            Type tb = e.type.toBasetype();
+            if (tb.ty != Tclass && tb.ty != Tpointer)
+                e1 = addressElem(e1, tb);
+            e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, offset));
+            e1 = el_una(OPind, totym(basetype), e1);
+            e1.ET = Type_toCtype(basetype);
+        }
+
+        // Generate (ehidden=e) or (ehidden=*(&e+offset))
+        if (tybasic(ehidden.Ety) == TYnptr)
+            ehidden = el_una(OPind, e1.Ety, ehidden);
+        elem* ea = elAssign(ehidden, e1, basetype, null);
+        elem_setLoc(ea, e.loc);
+        return ea;
+    }
 
     elem* doCommaRVO(CommaExp ce)
     {
         assert(ce.e1 && ce.e2);
         elem* eleft  = toElem(ce.e1, irs);
-        elem* eright = toElemRVO(ce.e2, ehidden, irs);
+        elem* eright = toElemRVO(ce.e2, ehidden, irs, forceType, offset);
         elem* e = el_combine(eleft, eright);
         if (e)
             elem_setLoc(e, ce.loc);
@@ -4249,15 +4365,15 @@ elem* toElemRVO(Expression e, elem* ehidden, ref IRState irs)
         auto ctfecond = ce.econd.op == EXP.not ? (cast(NotExp)ce.econd).e1 : ce.econd;
         if (auto ve = ctfecond.isVarExp())
             if (ve.var && ve.var.ident == Id.ctfe)
-                return toElemRVO(ctfecond is ce.econd ? ce.e2 : ce.e1, ehidden, irs);
+                return toElemRVO(ctfecond is ce.econd ? ce.e2 : ce.e1, ehidden, irs, forceType, offset);
 
         elem* ec = toElem(ce.econd, irs);
 
-        elem* eleft = toElemRVO(ce.e1, ehidden, irs);
+        elem* eleft = toElemRVO(ce.e1, ehidden, irs, forceType, offset);
         if (irs.params.cov && ce.e1.loc.linnum)
             eleft = el_combine(incUsageElem(irs, ce.e1.loc), eleft);
 
-        elem* eright = toElemRVO(ce.e2, el_copytree(ehidden), irs);
+        elem* eright = toElemRVO(ce.e2, el_copytree(ehidden), irs, forceType, offset);
         if (irs.params.cov && ce.e2.loc.linnum)
             eright = el_combine(incUsageElem(irs, ce.e2.loc), eright);
 
@@ -4277,7 +4393,112 @@ elem* toElemRVO(Expression e, elem* ehidden, ref IRState irs)
 
     elem* doCallRVO(CallExp ce)
     {
-        return toElemCall(ce, irs, ehidden);
+        FuncDeclaration fd = ce.f;
+
+        if (auto dve = ce.e1.isDotVarExp())
+            fd = dve.var.isFuncDeclaration();
+
+        Type tf = ce.e1.type.toBasetype();
+        if (tf.ty == Tdelegate)
+            tf = tf.nextOf();
+
+        if (fd && fd.isCtorDeclaration() ||
+            tf.ty == Tfunction && retStyle(cast(TypeFunction)tf, fd && fd.needThis()) == RET.stack)
+        {
+            // The hidden pointer must be a pointer by definition.
+            if (tybasic(ehidden.Ety) != TYnptr)
+                ehidden = el_una(OPaddr, TYnptr, ehidden);
+            return toElemCall(ce, irs, ehidden);
+        }
+
+        return blitToStorage(ce);
+    }
+
+    elem* doVariableRVO(VarExp ve)
+    {
+        /* If ve.var is already pointing to the hidden pointer,
+         * replace it with ehidden.
+         */
+        if (ehidden.Eoper == OPvar && ehidden.Voffset == 0 &&
+            ehidden.Vsym == toSymbolNRVO(ve.var))
+        {
+            if (tybasic(ehidden.Ety) == TYnptr)
+            {
+                ehidden = el_una(OPind, totym(basetype), ehidden);
+                ehidden.ET = Type_toCtype(basetype);
+            }
+
+            return ehidden;
+        }
+
+        /* Blit otherwise. This means a frontend-generated variable
+         * fails to account for RVO.
+         */
+        return blitToStorage(ve);
+    }
+
+    elem* doDotVariableRVO(DotVarExp dve)
+    {
+        if (auto vd = dve.var.isVarDeclaration())
+        {
+            if (!vd.overlapped && !(vd.storage_class & (STC.out_ | STC.ref_)))
+            {
+                Type tv = forceType ? forceType : vd.type;
+                return toElemRVO(dve.e1, ehidden, irs, tv, offset + vd.offset);
+            }
+        }
+
+        return blitToStorage(dve);
+    }
+
+    elem* doStructElementRVO(StructLiteralExp sle)
+    {
+        if (sle.useStaticInit)
+        {
+            // Generate (ehidden=*(&__init+offset))
+            elem* e1 = el_var(toInitializer(sle.sd));
+            e1 = addressElem(e1, sle.sd.type);
+            e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, offset));
+            e1 = el_una(OPind, totym(basetype), e1);
+            e1.ET = Type_toCtype(basetype);
+            if (tybasic(ehidden.Ety) == TYnptr)
+                ehidden = el_una(OPind, e1.Ety, ehidden);
+            elem* ea = elAssign(ehidden, e1, basetype, null);
+            elem_setLoc(ea, sle.loc);
+            return ea;
+        }
+
+        /* Find the corresponding initializer for offset. For expression
+         * S(f(), g(), h()).field2, generate (f(), ehidden=g(), h(), ehidden)
+         */
+        elem* e1, ex;
+        bool match;
+
+        foreach (i, element; *sle.elements)
+        {
+            auto vd = sle.sd.fields[i];
+
+            if (offset >= vd.offset &&
+                offset + basetype.size() <= vd.offset + vd.type.size())
+            {
+                ex = toElemRVO(element, ehidden, irs, forceType, offset - vd.offset);
+                match = true;
+            }
+            else
+            {
+                ex = toElem(element, irs);
+            }
+
+            e1 = el_combine(e1, ex);
+        }
+
+        assert(match);
+        ehidden = el_copytree(ehidden);
+        if (tybasic(ehidden.Ety) == TYnptr)
+            ehidden = el_una(OPind, e1.Ety, ehidden);
+        e1 = el_combine(e1, ehidden);
+        elem_setLoc(e1, sle.loc);
+        return e1;
     }
 
     elem* doStructLiteralRVO(StructLiteralExp sle)
@@ -4287,7 +4508,7 @@ elem* toElemRVO(Expression e, elem* ehidden, ref IRState irs)
 
         // Generate (tmp=&ehidden, *tmp=struct)
         if (tybasic(ehidden.Ety) != TYnptr)
-            ehidden = addressElem(ehidden, sle.sd.type.toBasetype());
+            ehidden = addressElem(ehidden, sle.sd.type);
         Symbol* stmp = symbol_genauto(TYnptr);
         elem* e1 = el_bin(OPeq, TYnptr, el_var(stmp), ehidden);
         elem* es = toElemStructLit(sle, irs, EXP.construct, stmp, true);
@@ -4296,18 +4517,43 @@ elem* toElemRVO(Expression e, elem* ehidden, ref IRState irs)
         return e1;
     }
 
-    // Please keep in sync with dmd.expressionsem.canElideCopy()
+    bool sameLayout = false;
+
+    if (auto ts1 = basetype.isTypeStruct())
+        if (auto ts2 = e.type.toBasetype().isTypeStruct())
+            sameLayout = ts1.sym == ts2.sym && offset == 0;
+
+    if (auto ts1 = basetype.isTypeSArray())
+        if (auto ts2 = e.type.toBasetype().isTypeSArray())
+            sameLayout = ts1.size() == ts2.size() && offset == 0;
+
+    /* Accessing a field or coercing types. At the moment, the only possible
+     * RVO case is extracting from a struct literal. Blit otherwise.
+     */
+    if (!sameLayout)
+    {
+        switch (e.op)
+        {
+            case EXP.comma:         return doCommaRVO(e.isCommaExp());
+            case EXP.question:      return doCondRVO(e.isCondExp());
+            case EXP.dotVariable:   return doDotVariableRVO(e.isDotVarExp());
+            case EXP.structLiteral: return doStructElementRVO(e.isStructLiteralExp());
+            default:                return blitToStorage(e);
+        }
+    }
+
+    // Ordinary RVO for compatible types.
     switch (e.op)
     {
         case EXP.comma:         return doCommaRVO(e.isCommaExp());
         case EXP.question:      return doCondRVO(e.isCondExp());
         case EXP.call:          return doCallRVO(e.isCallExp());
+        case EXP.variable:      return doVariableRVO(e.isVarExp());
+        case EXP.dotVariable:   return doDotVariableRVO(e.isDotVarExp());
         case EXP.structLiteral: return doStructLiteralRVO(e.isStructLiteralExp());
         default:                assert(0);
     }
 }
-
-private:
 
 /**************************************
  * Mirrors logic in Dsymbol_canThrow().
@@ -4464,7 +4710,7 @@ elem* ExpressionsToStaticArray(ref IRState irs, Loc loc, Expressions* exps, Symb
             el.type.toBasetype().ty == Tsarray)
         {
             ArrayLiteralExp ale = cast(ArrayLiteralExp)el;
-            if (ale.elements && ale.elements.length)
+            if (ale.length)
             {
                 elem* ex = ExpressionsToStaticArray(irs,
                     ale.loc, ale.elements, &stmp, cast(uint)(offset + i * szelem), ale.basis);
@@ -4526,8 +4772,9 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
     TY fty;
     TY tty;
     if (t.equals(tfrom) ||
-        t.equals(Type.tvoid)) // https://issues.dlang.org/show_bug.cgi?id=18573
-                              // Remember to pop value left on FPU stack
+        t.equals(Type.tvoid) ||       // https://issues.dlang.org/show_bug.cgi?id=18573
+        tybasic(e.Ety) == TYnoreturn) // https://issues.dlang.org/show_bug.cgi?id=23950
+                                      // Remember to pop value left on FPU stack
         return e;
 
     fty = tfrom.ty;
@@ -4639,7 +4886,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
         ClassDeclaration cdto   = t.isClassHandle();
 
         int offset;
-        if (cdto.isBaseOf(cdfrom, &offset) && offset != ClassDeclaration.OFFSET_RUNTIME)
+        if (cdto.isBaseOf(cdfrom, &offset))
         {
             /* The offset from cdfrom => cdto is known at compile time.
              * Cases:
@@ -4674,26 +4921,13 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
                 // Casting from derived class to base class is a no-op
             }
         }
-        else if (cdfrom.classKind == ClassKind.cpp)
+        else if (cdfrom.classKind == cdto.classKind)
         {
-            if (cdto.classKind == ClassKind.cpp)
-            {
-                /* Casting from a C++ interface to a C++ interface
-                 * is always a 'paint' operation
-                 */
-                return Lret(ce, e);                  // no-op
-            }
-
-            /* Casting from a C++ interface to a class
-             * always results in null because there is no runtime
-             * information available to do it.
-             *
-             * Casting from a C++ interface to a non-C++ interface
-             * always results in null because there is no way one
-             * can be derived from the other.
+            /* Casting from a non-D linkage class/interface to a unrelated class/interface
+             * is always a 'paint' operation (for dmd, other backends might use RTTI
+             * of other languages)
              */
-            e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
-            return Lret(ce, e);
+            return Lret(ce, e);                  // no-op
         }
         else
         {
@@ -4721,6 +4955,18 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
     ttym = tybasic(totym(t));
     if (ftym == ttym)
         return Lret(ce, e);
+
+    // Allow same-size cast between basic types and aggregate types (structs, static arrays)
+    if ((tty == Tstruct || tty == Tsarray) && tfrom.size() == t.size())
+    {
+        e.Ety = ttym;
+        return Lret(ce, e);
+    }
+    else if ((fty == Tstruct || fty == Tsarray) && tfrom.size() == t.size())
+    {
+        e.Ety = ttym;
+        return Lret(ce, e);
+    }
 
     // OSX AArch64 long doubles are 64 bits
     bool RealIsDouble = target.os == Target.os.OSX && target.isAArch64;
@@ -5374,7 +5620,7 @@ elem* toElemCast(CastExp ce, elem* e, bool isLvalue, ref IRState irs)
                 //dump(0);
                 //printf("fty = %d, tty = %d, %d\n", fty, tty, t.ty);
                 // This error should really be pushed to the front end
-                irs.eSink.error(ce.loc, "e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toChars(), ce.e1.type.toChars(), t.toChars());
+                irs.eSink.error(ce.loc, "e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toErrMsg(), ce.e1.type.toErrMsg(), t.toErrMsg());
                 e = el_long(TYint, 0);
                 return e;
 
@@ -5516,7 +5762,7 @@ elem* callfunc(Loc loc,
         {
             Expression arg = (*arguments)[0];
             if (arg.op != EXP.int64)
-                irs.eSink.error(arg.loc, "simd operator must be an integer constant, not `%s`", arg.toChars());
+                irs.eSink.error(arg.loc, "simd operator must be an integer constant, not `%s`", arg.toErrMsg());
         }
 
         /* Convert arguments[] to elems[] in left-to-right order
@@ -5731,6 +5977,13 @@ elem* callfunc(Loc loc,
                 ethis = el_copytotmp(ex);
                 eside = el_combine(ex, eside);
             }
+
+            // Non-virtual (e.g. final) methods are dispatched statically and
+            // don't dereference 'this' at the call site, so the null check that
+            // the virtual path gets from its vtable lookup would otherwise be
+            // skipped. Insert it here so null 'this' is caught before the call.
+            if (tybasic(ethis.Ety) == TYnptr && irs.nullDerefCheck())
+                applyNullDerefErrorCheck(ethis, TYnptr, irs, loc);
         }
         else
         {
@@ -5760,9 +6013,6 @@ elem* callfunc(Loc loc,
             // make virtual call
             assert(ethis);
             elem* ev = el_same(ethis);
-
-            if (irs.nullDerefCheck())
-                applyNullDerefErrorCheck(ev, TYnptr, irs, loc);
 
             ev = el_una(OPind, TYnptr, ev);
             uint vindex = fd.vtblIndex;
@@ -6261,7 +6511,6 @@ elem* sarray_toDarray(Loc loc, Type tfrom, Type tto, elem* e)
  * Returns:
  *      TypeInfo
  */
-private
 elem* getTypeInfo(Expression e, Type t, ref IRState irs)
 {
     assert(t.ty != Terror);
@@ -6495,7 +6744,6 @@ Lagain:
  * tries to use aligned int stores whereever possible.
  * Update *poffset to end of initialized hole; *poffset will be >= offset2.
  */
-private
 elem* fillHole(Symbol* stmp, size_t poffset, size_t offset2, size_t maxoff)
 {
     elem* e = null;
@@ -6949,12 +7197,11 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
             e1 = el_ptr(stmp);
         }
 
-        elem* ep = toElem(element, irs);
-
         Type t1b = v.type.toBasetype();
         Type t2b = element.type.toBasetype();
         if (t1b.ty == Tsarray)
         {
+            elem* ep = toElem(element, irs);
             e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v.offset));
             if (t2b.implicitConvTo(t1b))
             {
@@ -7002,6 +7249,7 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
         }
         if (bf)
         {
+            elem* ep = toElem(element, irs);
             if (!vbf || vbf.offset + vbf.type.size() <= v.offset)
             {
                 /* Initialize entire location the bitfield is in
@@ -7018,10 +7266,20 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
                 auto mos = el_long(TYuint, bitfieldArg);
                 e1 = el_bin(OPbit, e1.Ety, e1, mos);
             }
+            e1 = elAssign(e1, ep, v.type, e1.ET);
+        }
+        else if (op == EXP.construct && tybasic(tym) == TYstruct && canElideCopy(element, t1b))
+        {
+            e1 = toElemRVO(element, e1, irs);
         }
         else
+        {
+            elem* ep = toElem(element, irs);
+            e1 = elAssign(e1, ep, v.type, e1.ET);
+        }
+
+        if (!bf)
             vbf = null;
-        e1 = elAssign(e1, ep, v.type, e1.ET);
 
         e = el_combine(e, e1);
     }
@@ -7441,7 +7699,6 @@ elem* genHalt(Loc loc)
  * Returns:
  *      `ethis2` if successful, null otherwise
  */
-private
 elem* setEthis2(Loc loc, ref IRState irs, FuncDeclaration fd, elem* ethis2, ref elem* ethis, ref elem* eside)
 {
     if (!fd.hasDualContext)
@@ -7470,7 +7727,6 @@ elem* setEthis2(Loc loc, ref IRState irs, FuncDeclaration fd, elem* ethis2, ref 
  * Returns:
  *      OPva_start elem
  */
-private
 elem* constructVa_start(elem* e)
 {
     assert(e.Eoper == OPparam);
@@ -7503,7 +7759,6 @@ elem* constructVa_start(elem* e)
  * Returns:
  *      `e` or `e` converted to an OPstrpar
  */
-private
 elem* useOPstrpar(elem* e)
 {
     tym_t ty = tybasic(e.Ety);
@@ -7529,7 +7784,7 @@ elem* useOPstrpar(elem* e)
  *      argument is copied to memory allocated by the caller and the argument is replaced
  *      by a pointer to the copy."
  */
-private bool passTypeByRef(ref const Target target, Type t)
+bool passTypeByRef(ref const Target target, Type t)
 {
     return (target.isAArch64 && t.size(Loc.initial) > 16);
 }

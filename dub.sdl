@@ -34,6 +34,7 @@ subPackage {
   sourcePaths
 
   sourceFiles \
+    "compiler/src/dmd/astenums.d" \
     "compiler/src/dmd/console.d" \
     "compiler/src/dmd/entity.d" \
     "compiler/src/dmd/errors.d" \
@@ -96,11 +97,13 @@ subPackage {
     "CallbackAPI"
 
   excludedSourceFiles "compiler/src/dmd/backend/*"
+  excludedSourceFiles "compiler/src/dmd/glue/*"
   excludedSourceFiles "compiler/src/dmd/root/*"
   excludedSourceFiles "compiler/src/dmd/common/*"
   excludedSourceFiles "compiler/src/dmd/lib/*"
   excludedSourceFiles "compiler/src/dmd/irgen/*"
   excludedSourceFiles "compiler/src/dmd/{\
+    astenums,\
     astbase,\
     console,\
     entity,\

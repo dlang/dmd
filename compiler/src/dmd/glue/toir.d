@@ -30,10 +30,10 @@ import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.dt;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.blockopt : block_appendexp;
+import dmd.backend.symbol;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
-import dmd.backend.symtab : SYMIDX;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -54,6 +54,7 @@ import dmd.errorsink;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals : Param;
+import dmd.hdrgen : toErrMsg;
 import dmd.identifier;
 import dmd.id;
 import dmd.location;
@@ -64,10 +65,12 @@ import dmd.target;
 
 package(dmd.glue):
 
+private:
+
 /****************************************
  * Our label symbol
  */
-
+package(dmd.glue)
 struct Label
 {
     block* lblock;      // The block to which the label is defined.
@@ -76,6 +79,7 @@ struct Label
 /***********************************************************
  * Collect state variables needed by the intermediate representation (IR)
  */
+package(dmd.glue)
 struct IRState
 {
     Module m;                       // module
@@ -159,6 +163,7 @@ struct IRState
  * References:
  * https://dlang.org/dmd-windows.html#switch-cov
  */
+package(dmd.glue)
 extern (D) elem* incUsageElem(ref IRState irs, Loc loc)
 {
     uint linnum = loc.linnum;
@@ -201,6 +206,7 @@ extern (D) elem* incUsageElem(ref IRState irs, Loc loc)
  * 'origSc' is the original scope we inlined from.
  * This routine is critical for implementing nested functions.
  */
+package(dmd.glue)
 elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol origSc = null)
 {
     elem* ethis;
@@ -273,7 +279,6 @@ elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol
 
                 int offset;
                 cdp.isBaseOf(cd, &offset);
-                assert(offset != ClassDeclaration.OFFSET_RUNTIME);
                 //printf("%s to %s, offset = %d\n", cd.toChars(), cdp.toChars(), offset);
                 if (offset)
                 {
@@ -337,7 +342,7 @@ elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol
     {
         if (!irs.sthis)                // if no frame pointer for this function
         {
-            irs.eSink.error(loc, "`%s` is a nested function and cannot be accessed from `%s`", fd.toChars(), irs.getFunc().toPrettyChars());
+            irs.eSink.error(loc, "`%s` is a nested function and cannot be accessed from `%s`", fd.toErrMsg(), irs.getFunc().toPrettyChars());
             return el_long(TYnptr, 0); // error recovery
         }
 
@@ -418,6 +423,7 @@ elem* getEthis(Loc loc, ref IRState irs, Dsymbol fd, Dsymbol fdp = null, Dsymbol
  * Returns:
  *      *(ethis + offset);
  */
+package(dmd.glue)
 elem* fixEthis2(elem* ethis, FuncDeclaration fd, bool ctxt2 = false)
 {
     if (fd && fd.hasDualContext)
@@ -435,6 +441,7 @@ elem* fixEthis2(elem* ethis, FuncDeclaration fd, bool ctxt2 = false)
  * Returns:
  *      *(ey + (ethis2 ? ad.vthis2 : ad.vthis).offset) = this;
  */
+package(dmd.glue)
 elem* setEthis(Loc loc, ref IRState irs, elem* ey, AggregateDeclaration ad, bool setthis2 = false)
 {
     elem* ethis;
@@ -477,8 +484,8 @@ elem* setEthis(Loc loc, ref IRState irs, elem* ey, AggregateDeclaration ad, bool
     return ey;
 }
 
-enum NotIntrinsic = -1;
-enum OPtoPrec = OPMAX + 1; // front end only
+package(dmd.glue) enum NotIntrinsic = -1;
+package(dmd.glue) enum OPtoPrec = OPMAX + 1; // front end only
 
 /*******************************************
  * Convert intrinsic function to operator.
@@ -487,6 +494,7 @@ enum OPtoPrec = OPMAX + 1; // front end only
  *      NotIntrinsic if not an intrinsic function,
  *      OPtoPrec if frontend-only intrinsic
  */
+package(dmd.glue)
 int intrinsic_op(FuncDeclaration fd)
 {
     int op = NotIntrinsic;
@@ -632,6 +640,7 @@ Lva_start:
  * Returns:
  *      expression that initializes 'length'
  */
+package(dmd.glue)
 elem* resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
 {
     //printf("resolveLengthVar()\n");
@@ -678,6 +687,7 @@ elem* resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
  *      sthis = the symbol of the current 'this' derived from fd.vthis
  *      fd = the nested function
  */
+package(dmd.glue)
 type* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
 {
     if (sthis)
@@ -713,6 +723,7 @@ type* getParentClosureType(Symbol* sthis, FuncDeclaration fd)
  * Returns:
  *      overall alignment of the closure
  */
+package(dmd.glue)
 uint setClosureVarOffset(FuncDeclaration fd)
 {
     // Nothing to do
@@ -789,6 +800,7 @@ uint setClosureVarOffset(FuncDeclaration fd)
  * getEthis() and NewExp::toElem need to use sclosure, if set, rather
  * than the current frame pointer.
  */
+package(dmd.glue)
 void buildClosure(FuncDeclaration fd, ref IRState irs)
 {
     //printf("buildClosure(fd = %s)\n", fd.toChars());
@@ -974,56 +986,6 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
     }
 }
 
-/**************************************
- * Go through the variables in function fd that are
- * to be allocated in an aligned section, and set the .offset fields
- * for those variables to their positions relative to the start
- * of the aligned section instance.
- * Params:
- *      fd = function
- * Returns:
- *      overall alignment of the align section
- * Reference:
- *      setClosureVarOffset
- */
-private
-uint setAlignSectionVarOffset(FuncDeclaration fd)
-{
-    // Nothing to do
-    if (!fd.alignSectionVars)
-        return 0;
-
-    uint offset = 0;
-    uint aggAlignment = offset;        // overall alignment for the closure
-
-    // first go through and find overall alignment for the entire section
-    foreach (v; (*fd.alignSectionVars)[])
-    {
-        if (v.inClosure)
-            continue;
-
-        /* Align and allocate space for v in the align closure
-         * just like AggregateDeclaration.addField() does.
-         */
-        const memsize = cast(uint)v.type.size();
-        const memalignsize = v.type.alignsize();
-        const xalign = v.alignment;
-
-        offset = alignmember(xalign, memalignsize, offset);
-        v.offset = offset;
-        //printf("align closure var %s, offset = %d\n", v.toChars(), offset);
-
-        offset += memsize;
-
-        uint actualAlignment = xalign.isDefault() ? memalignsize : xalign.get();
-        //printf("actualAlignment = x%x, x%x\n", actualAlignment, xalign.get());
-        if (aggAlignment < actualAlignment)
-            aggAlignment = actualAlignment;     // take the largest
-    }
-
-    return aggAlignment;
-}
-
 /*************************************
  * Aligned sections are implemented by taking the local variables that
  * need alignment that is larger than the stack alignment.
@@ -1053,6 +1015,7 @@ uint setAlignSectionVarOffset(FuncDeclaration fd)
  *      https://github.com/dlang/dmd/pull/9143 was an incomplete attempt to solve this problem
  *      that was merged. It should probably be removed.
  */
+package(dmd.glue)
 void buildAlignSection(FuncDeclaration fd, ref IRState irs)
 {
     enum log = false;
@@ -1157,6 +1120,7 @@ void buildAlignSection(FuncDeclaration fd, ref IRState irs)
  * Params:
  *      fd = function
  */
+package(dmd.glue)
 void buildCapture(FuncDeclaration fd)
 {
     if (!driverParams.symdebug)
@@ -1207,8 +1171,63 @@ void buildCapture(FuncDeclaration fd)
  * Returns:
  *   RET.stack if return value from function is on the stack, RET.regs otherwise
  */
+package(dmd.glue)
 RET retStyle(TypeFunction tf, bool needsThis)
 {
     //printf("TypeFunction.retStyle() %s\n", toChars());
     return target.isReturnOnStack(tf, needsThis) ? RET.stack : RET.regs;
+}
+
+/*********************************** private *********************************/
+/*                           private below the fold                          */
+/*****************************************************************************/
+private:
+/**************************************
+ * Go through the variables in function fd that are
+ * to be allocated in an aligned section, and set the .offset fields
+ * for those variables to their positions relative to the start
+ * of the aligned section instance.
+ * Params:
+ *      fd = function
+ * Returns:
+ *      overall alignment of the align section
+ * Reference:
+ *      setClosureVarOffset
+ */
+private
+uint setAlignSectionVarOffset(FuncDeclaration fd)
+{
+    // Nothing to do
+    if (!fd.alignSectionVars)
+        return 0;
+
+    uint offset = 0;
+    uint aggAlignment = offset;        // overall alignment for the closure
+
+    // first go through and find overall alignment for the entire section
+    foreach (v; (*fd.alignSectionVars)[])
+    {
+        if (v.inClosure)
+            continue;
+
+        /* Align and allocate space for v in the align closure
+         * just like AggregateDeclaration.addField() does.
+         */
+        const memsize = cast(uint)v.type.size();
+        const memalignsize = v.type.alignsize();
+        const xalign = v.alignment;
+
+        offset = alignmember(xalign, memalignsize, offset);
+        v.offset = offset;
+        //printf("align closure var %s, offset = %d\n", v.toChars(), offset);
+
+        offset += memsize;
+
+        uint actualAlignment = xalign.isDefault() ? memalignsize : xalign.get();
+        //printf("actualAlignment = x%x, x%x\n", actualAlignment, xalign.get());
+        if (aggAlignment < actualAlignment)
+            aggAlignment = actualAlignment;     // take the largest
+    }
+
+    return aggAlignment;
 }

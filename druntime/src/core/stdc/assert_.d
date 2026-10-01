@@ -106,6 +106,13 @@ else version (CRuntime_Musl)
      */
     noreturn __assert_fail(const(char)* exp, const(char)* file, uint line, const(char)* func);
 }
+else version (CRuntime_WASI)
+{
+     /***
+     * Assert failure function in the WASI C library.
+     */
+    noreturn __assert_fail(const(char)* exp, const(char)* file, uint line, const(char)* func);
+}
 else version (CRuntime_Newlib)
 {
     /***

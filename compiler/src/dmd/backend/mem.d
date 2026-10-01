@@ -52,15 +52,6 @@ void* mem_calloc(size_t u)
 }
 
 @trusted
-void* mem_realloc(void* p, size_t u)
-{
-    p = realloc(p, u);
-    if (!p && u)
-        err_nomem();
-    return p;
-}
-
-@trusted
 void mem_free(void* p) { free(p); }
 
 void mem_ffree(void *) { }

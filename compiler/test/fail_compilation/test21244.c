@@ -3,7 +3,7 @@
 /*
 * TEST_OUTPUT:
 ---
-fail_compilation/test21244.c(9): Error: no size for type `extern (C) int(int)`
+fail_compilation/test21244.c(9): Error: no size for type `extern(C) int(int)`
 ---
  */
 int x = sizeof(int()(int));

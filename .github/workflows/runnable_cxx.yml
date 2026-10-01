@@ -31,12 +31,16 @@ on:
     branches:
       - master
       - stable
+    paths-ignore:
+      - 'spec/**'
   push:
     branches:
       - master
       - stable
       # Use this branch name in your fork to test changes
       - github-actions
+    paths-ignore:
+      - 'spec/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -126,12 +130,12 @@ jobs:
     #    Checking out DMD and Phobos    #
     #####################################
     - name: Checkout DMD
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: dmd
         persist-credentials: false
     - name: Checkout Phobos
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         path: phobos
         repository: dlang/phobos
@@ -159,7 +163,7 @@ jobs:
 
     - name: 'Windows: Set up MSVC environment' # puts cl.exe in PATH etc.
       if: runner.os == 'Windows'
-      uses: seanmiddleditch/gha-setup-vsdevenv@v4
+      uses: seanmiddleditch/gha-setup-vsdevenv@v5
       with:
         arch: ${{ matrix.model == '64' && 'x64' || 'x86' }}
 
@@ -220,3 +224,10 @@ jobs:
           extraFlags=(HOST_DMD=ldmd2 DFLAGS="-mtriple=x86_64-apple-macos14" CXXFLAGS="-arch x86_64")
         fi
         ./dmd/generated/build cxx-unittest "${extraFlags[@]}"
+
+    - name: 'Posix: Run C++ header layout test'
+      if: runner.os == 'Linux'
+      run: |
+        set -eux
+        python3 -m pip install libclang
+        ./dmd/generated/build cpp-layout-test

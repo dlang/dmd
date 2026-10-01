@@ -2,6 +2,7 @@
 // REQUIRED_ARGS: -D -Dd${RESULTS_DIR}/compilable -o-
 // EXTRA_FILES: ddoc5446a.d ddoc5446b.d
 // POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh
+// EXTRA_SOURCES: extra-files/ddoc_minimal.ddoc
 module ddoc5446;
 import ddoc5446a;
 private import ddoc5446b;

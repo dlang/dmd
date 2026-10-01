@@ -49,6 +49,12 @@ version (CRuntime_Microsoft)
     alias __int64 = long;
 }
 
+/* Make D's character types available in ImportC.
+ */
+alias __importc_char = char;
+alias __importc_wchar = wchar;
+alias __importc_dchar = dchar;
+
 /*********** floating point *************/
 
 /* https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html
@@ -71,6 +77,11 @@ version (DigitalMars)
     alias __builtin_fabs  = imported!"core.stdc.math".fabs;
     alias __builtin_fabsf = imported!"core.stdc.math".fabsf;
     alias __builtin_fabsl = imported!"core.stdc.math".fabsl;
+
+    alias __builtin_memcmp = imported!"core.stdc.string".memcmp;
+    alias __builtin_memcpy = imported!"core.stdc.string".memcpy;
+    alias __builtin_memmove = imported!"core.stdc.string".memmove;
+    alias __builtin_memset = imported!"core.stdc.string".memset;
 
     ushort __builtin_bswap16()(ushort value)
     {

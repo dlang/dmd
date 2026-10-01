@@ -22,6 +22,7 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
 import dmd.backend.oper : OPMAX;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -75,11 +76,7 @@ union evc
         _LabelDsymbol* Vlsym;   /// pointer to D Label
     }
 
-    struct
-    {
-        size_t len;
-        char* bytes;
-    }                           // asm node (FL.asm)
+    ubyte[] data;               /// asm instructions (FL.asm)
 }
 
 /********************** PUBLIC FUNCTIONS *******************/
@@ -112,8 +109,6 @@ struct REGSAVE
   nothrow:
     @trusted
     void reset() { off = 0; top = 0; idx = 0; alignment = _tysize[TYnptr]/*REGSIZE*/; }
-    void save(ref CodeBuilder cdb, reg_t reg, out uint pidx) { REGSAVE_save (this, cdb, reg, pidx); }
-    void restore(ref CodeBuilder cdb, reg_t reg, uint idx) { REGSAVE_restore(this, cdb, reg, idx); }
 }
 
 /************************************
@@ -160,7 +155,8 @@ struct CGstate
     bool hasframe;              // true if this function has a stack frame
     bool enforcealign;          // enforced stack alignment
     bool anyiasm;               // !=0 if any inline assembler
-    char calledafunc;           // !=0 if we called a function
+    bool setSPtoFPonEpilog;     // set SP to FP in function epilog
+    bool calledafunc;           // true if called a function
 
     int stackclean;             // if != 0, then clean the stack after function call
 
@@ -177,10 +173,10 @@ struct CGstate
     targ_size_t pushoff;        // offset of saved registers
     bool pushoffuse;            // save/restore registers using pushoff rather than PUSH/POP
 
-    char needframe;             // if true, then we will need the frame
+    bool needframe;             // if true, then need the frame
                                 // pointer (BP for the 8088)
 
-    int stackchanged;           /* set to !=0 if any use of the stack
+    bool stackchanged;          /* true if any use of the stack
                                    other than accessing parameters. Used
                                    to see if we can address parameters
                                    with ESP rather than EBP.
@@ -202,10 +198,10 @@ struct CGstate
                                 // as if they were 'pushed' on the stack.
                                 // Special case: if funcargtos==~0, then no
                                 // arguments are there.
-    char gotref;                // !=0 if the GOTsym was referenced
+    bool gotref;                // true if the GOTsym was referenced
     int refparam;               // !=0 if we referenced any parameters
     bool accessedTLS;           // set if accessed Thread Local Storage (TLS)
-    bool calledFinally;         // true if called a BC._finally block
+    bool calledFinally;         // true if called a BC.finally_ block
     int reflocal;               // !=0 if we referenced any locals
 
     regm_t[4] lastRetregs;      // used to not allocate the same register over and over again,
@@ -226,6 +222,7 @@ struct CGstate
     regm_t mfuncreg;            // mask of registers preserved by function
     regm_t msavereg;            // Mask of registers that we would like to save.
                                 // they are temporaries (set by scodelem())
+    regm_t  fregsaved;          // mask of registers saved across function calls
 
     uint usednteh;              // if !=0, then used NT exception handling
     con_t regcon;               // register contents
@@ -259,7 +256,7 @@ alias IDXSTR = uint;
 alias IDXSEC = uint;
 alias IDXSYM = uint;
 
-struct seg_data
+struct seg_data                         // SegData is an array of these, indexed by segment index
 {
     segidx_t             SDseg;         // index into SegData[]
     targ_size_t          SDoffset;      // starting offset for data
@@ -278,9 +275,17 @@ struct seg_data
     }
 
     //ELFOBJ || MACHOBJ
-    IDXSEC           SDshtidx;          // section header table index
-    OutBuffer       *SDbuf;             // buffer to hold data
-    OutBuffer       *SDrel;             // buffer to hold relocation info
+    IDXSEC           SDshtidx;          // ELFOBJ : index into SecHdrTab[]
+                                        // MACHOBJ: index into section_64s[] or sections[]
+    OutBuffer       *SDbuf;             // buffer to hold segment data
+//    union
+//    struct
+//    {
+        // ELFOBJ
+        OutBuffer        *SDrel;        // buffer to hold segment relocation info
+        // MACHOBJ MSCOFFOBJ
+        Barray!Relocation relocations;  // hold relocations for this segment
+//    }
 
     //ELFOBJ
     IDXSYM           SDsymidx;          // each section is in the symbol table
@@ -297,7 +302,57 @@ struct seg_data
   nothrow:
     @trusted
     int isCode() { return config.objfmt == OBJ_MACH ? mach_seg_data_isCode(this) : mscoff_seg_data_isCode(this); }
+
+    void reset()
+    {
+        SDseg = 0;
+        SDoffset = 0;
+        SDalignment = 0;
+
+        isfarseg = false;
+        segidx = 0;
+        lnameidx = 0;
+        classidx = 0;
+        attr = 0;
+        origsize = 0;
+        seek = 0;
+        ledata = null;
+
+        SDshtidx = 0;
+        if (SDrel) SDrel.reset();
+        if (SDbuf) SDbuf.reset();
+        relocations.reset();
+
+        SDsymidx = 0;
+        SDrelidx = 0;
+        SDrelcnt = 0;
+        SDshtidxout = 0;
+        SDsym = null;
+        SDaranges_offset = 0;
+        SDlinnum_data.reset();
+    }
 }
+
+/*******************************************************
+ * For Machobj
+ * Because the relocations cannot be computed until after
+ * all the segments are written out, and we need more information
+ * than the relocations provide, make our own relocation
+ * type. Later, translate to Mach-O relocation structures `relocation_info` and `scattered_relocation_info`.
+ */
+struct Relocation
+{   // Relocations are attached to the struct seg_data they refer to
+    targ_size_t offset; // location in segment to be fixed up
+    Symbol* funcsym;    // function in which offset lies, if any
+    Symbol* targsym;    // if !=null, then location is to be fixed up
+                        // to address of this symbol
+    uint targseg;       // if !=0, then location is to be fixed up
+                        // to address of start of this segment
+    REL rtype;          // REL.address or REL.rel or REL.add
+    bool subtractor;    // true: emit SUBTRACTOR/UNSIGNED pair (MACHOBJ)
+    short val;          // 0, -1, -2, -4
+}
+
 
 public import dmd.backend.machobj : mach_seg_data_isCode;
 public import dmd.backend.mscoffobj : mscoff_seg_data_isCode;
@@ -321,10 +376,6 @@ __gshared Rarray!(seg_data*) SegData;
 @trusted
 ref targ_size_t Offset(int seg) { return SegData[seg].SDoffset; }
 
-ref targ_size_t Doffset() { return Offset(DATA); }
-
-ref targ_size_t CDoffset() { return Offset(CDATA); }
-
 /**************************************************/
 
 /* Allocate registers to function parameters
@@ -335,8 +386,9 @@ struct FuncParamRegs
     //this(tym_t tyf);
     static FuncParamRegs create(tym_t tyf) { return FuncParamRegs_create(tyf); }
 
+    @trusted
     bool alloc(type* t, tym_t ty, out reg_t reg1, out reg_t reg2)
-    { return FuncParamRegs_alloc(this, t, ty, reg1, reg2); }
+    { return FuncParamRegs_alloc(cgstate, this, t, ty, reg1, reg2); }
 
   private:
   public: // for the moment

@@ -21,6 +21,8 @@ else version (WatchOS)
 
 version (GNU)
     public import gcc.sections;
+else version (WebAssembly)
+    public import rt.sections_wasm;
 else version (CRuntime_Glibc)
     public import rt.sections_elf_shared;
 else version (CRuntime_Musl)

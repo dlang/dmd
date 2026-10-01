@@ -1,4 +1,5 @@
-TESTS := good goodn bad badn na
+HANDLER_TESTS := good goodn bad badn na
+TESTS := $(HANDLER_TESTS) metadata metadata_disabled
 
 include ../common.mak
 
@@ -31,7 +32,7 @@ $(ROOT)/na$(DOTEXE): private extra_dflags += -version=NoTests
 # Forces the tests to be matched by this rule instead of being matched
 # by the `$(OBJDIR)/%$(DOTEXE)` (`$(OBJDIR)/%` on posix) rule at the
 # end:
-$(TESTS:%=$(OBJDIR)/%.done): $(OBJDIR)/%.done: $(OBJDIR)/%$(DOTEXE)
+$(HANDLER_TESTS:%=$(OBJDIR)/%.done): $(OBJDIR)/%.done: $(OBJDIR)/%$(DOTEXE)
 	@echo Testing $*
 	$(TIMELIMIT)$< > $@ 2>&1; test $$? -eq $(retcode)
 	test $(hasmain) -eq 0 || grep -q main $@
@@ -41,3 +42,9 @@ $(TESTS:%=$(OBJDIR)/%.done): $(OBJDIR)/%.done: $(OBJDIR)/%$(DOTEXE)
 
 $(OBJDIR)/%$(DOTEXE): customhandler.d
 	$(LINK.d) $< $(extra_sources) $(extra_ldlibs.d) $(LDLIBS.d) $(OUTPUT_OPTION.d)
+
+$(OBJDIR)/metadata$(DOTEXE): metadata.d $(DMD_DEP) $(DRUNTIME_DEP) | $(OBJDIR)
+	$(LINK.d) -unittest $< $(extra_ldlibs.d) $(LDLIBS.d) $(OUTPUT_OPTION.d)
+
+$(OBJDIR)/metadata_disabled$(DOTEXE): metadata.d $(DMD_DEP) $(DRUNTIME_DEP) | $(OBJDIR)
+	$(LINK.d) $< $(extra_ldlibs.d) $(LDLIBS.d) $(OUTPUT_OPTION.d)

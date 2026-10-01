@@ -1,6 +1,7 @@
 // PERMUTE_ARGS: -unittest
 // REQUIRED_ARGS: -D -w -o- -Dd${RESULTS_DIR}/compilable -o-
 // POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh
+// EXTRA_SOURCES: extra-files/ddoc_minimal.ddoc
 
 module ddocunittest;
 

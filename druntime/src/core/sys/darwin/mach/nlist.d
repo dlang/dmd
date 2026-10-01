@@ -32,7 +32,7 @@ pure:
  */
 struct nlist_64
 {
-    /// Compatibility alias, as `n_strx` is in an union in C code
+    /// Compatibility alias, as `n_strx` is in a union in C code
     alias n_un = n_strx;
 
     /**

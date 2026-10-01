@@ -12,10 +12,9 @@ codecov:
   bot: dlang-bot
   ci:
     # https://docs.codecov.io/docs/detecting-ci-services
-    # Azure, CircleCI and Cirrus generate coverages files
+    # Azure and CircleCI generate coverages files
     # Don't wait for the other CIs
     - circleci.com
-    - cirrus-ci.com
     - dev.azure.com
     - !dtest.dlang.io
     - !auto-tester.puremagic.com

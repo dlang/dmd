@@ -20,6 +20,7 @@ import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;
 import dmd.backend.el;
+import dmd.backend.symbol;
 
 import dmd.common.outbuffer;
 
@@ -246,7 +247,7 @@ else
 
         void lidata(int seg, targ_size_t offset, targ_size_t count)
         {
-            mixin(genRetVal("lidata(seg, offset, count)"));
+            mixin(genRetVal("lidata(seg, offset, cast(size_t)count)"));
         }
 
         void write_zeros(seg_data* pseg, targ_size_t count)
@@ -269,9 +270,9 @@ else
             mixin(genRetVal("byte(seg, offset, _byte)"));
         }
 
-        size_t bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
+        size_t bytes(int seg, targ_size_t offset, const(void)[] data)
         {
-            mixin(genRetVal("bytes(seg, offset, nbytes, p)"));
+            mixin(genRetVal("bytes(seg, offset, data)"));
         }
 
         void reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags)
@@ -299,14 +300,14 @@ else
             mixin(genRetVal("fltused()"));
         }
 
-        int data_readonly(char* p, int len, int* pseg)
+        int data_readonly(void[] data, int* pseg)
         {
-            mixin(genRetVal("data_readonly(p, len, pseg)"));
+            mixin(genRetVal("data_readonly(data, pseg)"));
         }
 
-        int data_readonly(char* p, int len)
+        int data_readonly(void[] data)
         {
-            mixin(genRetVal("data_readonly(p, len)"));
+            mixin(genRetVal("data_readonly(data)"));
         }
 
         int string_literal_segment(uint sz)
@@ -314,9 +315,9 @@ else
             mixin(genRetVal("string_literal_segment(sz)"));
         }
 
-        Symbol* sym_cdata(tym_t ty, char* p, int len)
+        Symbol* sym_cdata(tym_t ty, const(void)[] data)
         {
-            mixin(genRetVal("sym_cdata(ty, p, len)"));
+            mixin(genRetVal("sym_cdata(ty, data)"));
         }
 
         void func_start(Symbol* sfunc)
@@ -411,7 +412,7 @@ else
             return MsCoffObj_getsegment(sectname, flags);
         }
 
-        void addrel(int seg, targ_size_t offset, Symbol* targsym, uint targseg, int rtype, int val = 0)
+        void addrel(int seg, targ_size_t offset, Symbol* targsym, uint targseg, REL rtype, int val = 0)
         {
             switch (config.objfmt)
             {
@@ -490,7 +491,7 @@ else
     }
 }
 
-public import dmd.backend.var : objmod;
+__gshared Obj objmod = null;
 
 /*****************************************
  * Use to generate 4 function declarations, one for

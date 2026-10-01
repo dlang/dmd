@@ -9,6 +9,7 @@ module dmd.backend.mach;
 // Online documentation: https://dlang.org/phobos/dmd_backend_mach.html
 // location of system .h files on Mac: xcrun --show-sdk-path
 // location of machine.h: usr/include/mach
+// https://alexdremov.me/mystery-of-mach-o-object-file-builders/
 
 @safe:
 
@@ -256,11 +257,12 @@ struct section_64
 {
     char[16] sectname;
     char[16] segname;
-    ulong addr;
+    ulong addr;  // logical location of section
     ulong size;
-    uint offset;
+    uint offset; // offset from start of object file to section contents
+                 // for ZERO_FILL this must be 0
     uint _align;
-    uint reloff;
+    uint reloff; // file offset of relocation entries
     uint nreloc;
     uint flags;
     uint reserved1;
@@ -356,7 +358,11 @@ struct nlist_64
     ubyte n_type;
     ubyte n_sect;
     ushort n_desc;
-    ulong n_value;
+    ulong n_value; // N_SECT: address within its section, not the offset from the section start
+                   // N_UNDF: 0
+                   //       : number of bytes for a common symbol
+                   // N_ABS : the value of the symbol; no relocation
+                   // N_STAB: !=0 meaning depends on STABS record
 }
 
 struct dysymtab_command
@@ -423,16 +429,17 @@ enum
     ARM64_RELOC_AUTHENTICATED_POINTER   = 11,
 }
 
-struct relocation_info
+struct relocation_info  // https://developer.apple.com/documentation/kernel/relocation_info
 {
-    int r_address;
+    int r_address;      // offset from the section start to the item to be relocated
 
     /* LITTLE_ENDIAN for x86
-     * uint r_symbolnum:24,
-     *      r_pcrel    :1,
-     *      r_length   :2,
-     *      r_extern   :1,
-     *      r_type     :4;
+     * uint r_symbolnum:24,  // if r_extern is 1, then index into the symbol table
+     *                       // if r_extern is 0, then ordinal number of the section
+     *      r_pcrel    :1,   // one means PC-relative, 0 means absolute
+     *      r_length   :2,   // 0: 1 byte, 1: 2 bytes, 2: sizeof(long) bytes, 3: 8 bytes
+     *      r_extern   :1,   // see r_symbolnum
+     *      r_type     :4;   // ARM64_RELOC_xxxxx, X86_64_RELOC_xxxxx
      */
     uint xxx;
     nothrow:
@@ -442,7 +449,11 @@ struct relocation_info
     void r_extern   (uint r) { assert(!(r & ~1));           xxx = (xxx & ~0x0800_0000) | (r << (24 + 1 + 2)); }
     void r_type     (uint r) { assert(!(r & ~0xF));         xxx = (xxx & ~0xF000_0000) | (r << (24 + 1 + 2 + 1)); }
 
-    uint r_pcrel() { return (xxx >> 24) & 1; }
+    uint r_symbolnum() { return (xxx & 0x00FF_FFFF); }
+    uint r_pcrel    () { return (xxx >> 24) &   1; }
+    uint r_length   () { return (xxx >> 25) &   3; }
+    uint r_extern   () { return (xxx >> 27) &   1; }
+    uint r_type     () { return (xxx >> 28) & 0xF; }
 }
 
 struct scattered_relocation_info
@@ -524,4 +535,46 @@ enum
     PLATFORM_TVOSSIMULATOR = 8,
     PLATFORM_WATCHOSSIMULATOR = 9,
     PLATFORM_DRIVERKIT = 10
+}
+
+// https://github.com/llvm/llvm-project/blob/main/libunwind/include/mach-o/compact_unwind_encoding.h
+
+struct compact_unwind_entry
+{
+    ulong functionAddress;
+    uint functionLength;
+    uint encoding;
+    ulong personality;
+    ulong lsda;
+}
+
+static assert(compact_unwind_entry.sizeof == 32);
+
+// masks for compact_unwind_entry.encoding:
+
+enum : uint
+{
+    UNWIND_IS_NOT_FUNCTION_START     = 0x8000_0000,
+    UNWIND_HAS_LSDA                  = 0x4000_0000,
+    UNWIND_PERSONALITY_MASK          = 0x3000_0000,
+    UNWIND_ARM64_MODE_MASK           = 0x0F00_0000,
+    UNWIND_ARM64_MODE_FRAMELESS      = 0x0200_0000,
+    UNWIND_ARM64_MODE_DWARF          = 0x0300_0000,
+    UNWIND_ARM64_MODE_FRAME          = 0x0400_0000,
+    UNWIND_ARM64_MODE_FRAME_PAUTH_LR = 0x0500_0000,
+}
+
+// Callee-saved register pairs
+
+enum : uint
+{
+    X19_X20 = 1,
+    X21_X22 = 2,
+    X23_X24 = 4,
+    X25_X26 = 8,
+    X27_X28 = 0x10,
+    D8_D9   = 0x100,
+    D10_D11 = 0x200,
+    D12_D13 = 0x400,
+    D14_D15 = 0x800,
 }

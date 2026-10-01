@@ -284,6 +284,29 @@ else version (CRuntime_Musl)
     const(char)*    inet_ntop(int, const scope void*, char*, socklen_t);
     int             inet_pton(int, const scope char*, void*);
 }
+else version (CRuntime_WASI)
+{
+    alias in_port_t = ushort;
+    alias in_addr_t = uint;
+
+    struct in_addr
+    {
+        in_addr_t s_addr;
+    }
+
+    @trusted pure
+    {
+    uint32_t htonl(uint32_t);
+    uint16_t htons(uint16_t);
+    uint32_t ntohl(uint32_t);
+    uint16_t ntohs(uint16_t);
+    }
+
+    in_addr_t       inet_addr(const scope char*);
+    char*           inet_ntoa(in_addr);
+    const(char)*    inet_ntop(int, const scope void*, char*, socklen_t);
+    int             inet_pton(int, const scope char*, void*);
+}
 else version (CRuntime_UClibc)
 {
     alias in_port_t = uint16_t;

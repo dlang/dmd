@@ -2196,7 +2196,7 @@ enum {
     DTM_GETMONTHCAL   = 0x1008,
     DTM_SETMCFONT     = 0x1009,
     DTM_GETMCFONT     = 0x100a,
-    DTM_SETFORMATW    = 0x1050
+    DTM_SETFORMATW    = 0x1032
 }
 
 static if (_WIN32_WINNT >= 0x600) {

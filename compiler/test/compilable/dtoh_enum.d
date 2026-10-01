@@ -16,7 +16,7 @@ enum : int32_t { Anon = 10 };
 
 enum : bool { Anon2 = true };
 
-static const char* const Anon3 = "wow";
+static constexpr const char* Anon3 = "wow";
 
 enum class Enum
 {
@@ -89,7 +89,7 @@ enum class STC
     b = 2,
 };
 
-static STC const STC_D = (STC)3;
+static constexpr STC STC_D = (STC)3;
 
 struct Foo final
 {
@@ -109,7 +109,7 @@ namespace MyEnum
     static Foo const B = Foo(84);
 };
 
-static /* MyEnum */ Foo const test = Foo(42);
+static constexpr /* MyEnum */ Foo test = Foo(42);
 
 struct FooCpp final
 {
@@ -129,12 +129,22 @@ namespace MyEnumCpp
     static FooCpp const B = FooCpp(84);
 };
 
-static /* MyEnum */ Foo const testCpp = Foo(42);
+static constexpr /* MyEnum */ Foo testCpp = Foo(42);
 
 extern const bool e_b;
 
 enum class opaque;
 enum class typedOpaque : int64_t;
+struct Hello21487 final
+{
+    static constexpr const char* name = "hello";
+
+    static constexpr STC kind = (STC)1;
+
+    Hello21487()
+    {
+    }
+};
 ---
 +/
 
@@ -242,3 +252,10 @@ enum typedOpaque : long;
 enum arrayOpaque : int[4]; // Cannot be exported to C++
 
 extern(D) enum hidden_d = 42; // Linkage prevents being exported to C++
+
+// https://github.com/dlang/dmd/issues/21487
+extern(C++) struct Hello21487
+{
+    enum string name = "hello";
+    enum STC kind = STC.a;
+}

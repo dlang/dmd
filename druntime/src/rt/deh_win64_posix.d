@@ -113,8 +113,11 @@ void terminate()
 {
     version (AArch64)
     {
-        int* p = null;
-        *p = 0;             // TODO AArch64
+        asm
+        {
+            naked;
+            op 0xD440_0000;     // INSTR.hlt https://www.scs.stanford.edu/~zyedidia/arm64/hlt.html
+        }
     }
     else
     asm

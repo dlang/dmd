@@ -173,6 +173,50 @@ version (linux)
         }
     }
 }
+else version (Hurd)
+{
+    import core.sys.hurd.sys.types;
+    enum MSG_STAT = 11;
+    enum MSG_INFO = 12;
+
+    enum MSG_NOERROR = 1 << 12; // octal!10000
+    enum  MSG_EXCEPT = 2 << 12; // octal!20000
+
+    struct msginfo
+    {
+        int msgpool;
+        int msgmap;
+        int msgmax;
+        int msgmnb;
+        int msgmni;
+        int msgssz;
+        int msgtql;
+        ushort msgseg;
+    }
+
+    alias msgqnum_t = ushort;
+    alias msglen_t = ushort;
+
+    private struct msg;
+    private struct __wait_queue;
+
+    struct msqid_ds
+    {
+        ipc_perm msg_perm;
+        msg *__msg_first;
+        msg *__msg_last;
+        time_t msg_stime;
+        time_t msg_rtime;
+        time_t msg_ctime;
+        __wait_queue *__wwait;
+        __wait_queue *__rwait;
+        ushort __msg_cbytes;
+        msgqnum_t msg_qnum;
+        msglen_t msg_qbytes;
+        ipc_pid_t msg_lspid;
+        ipc_pid_t msg_lrpid;
+    }
+}
 else
 {
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=bits/msq.h
@@ -200,7 +244,10 @@ struct msgbuf
     char[1] mtext = 0;
 }
 
-int msgctl(int msqid, int cmd, msqid_ds* __buf);
+version (NetBSD)
+    pragma(mangle, "__msgctl50") int msgctl(int msqid, int cmd, msqid_ds* __buf);
+else
+    int msgctl(int msqid, int cmd, msqid_ds* __buf);
 int msgget(key_t key, int msgflg);
 ssize_t msgrcv(int msqid, void* msgp, size_t msgsz, c_long msgtyp, int msgflg);
 int msgsnd(int msqid, msgbuf* msgp, int msgsz, int msgflg);

@@ -32,6 +32,9 @@ void main()
     th.start();
     th.join();
 
+    static if(isSingleThreaded)
+        return;
+
     printf("### lowlevel thread\n");
     auto llth = createLowLevelThread(() { showThreadInfo(); });
     joinLowLevelThread(llth);

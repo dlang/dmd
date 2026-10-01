@@ -1,5 +1,5 @@
 /**
- * Enforce visibility contrains such as `public` and `private`.
+ * Enforce visibility constraints such as `public` and `private`.
  *
  * Specification: $(LINK2 https://dlang.org/spec/attribute.html#visibility_attributes, Visibility Attributes)
  *
@@ -21,9 +21,10 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem : toAlias;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.funcsem : overloadApply;
+import dmd.hdrgen : toErrMsg;
 import dmd.location;
 import dmd.tokens;
 
@@ -50,7 +51,9 @@ bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
 
     if (!symbolIsVisible(sc, smember))
     {
-        error(loc, "%s `%s` %s `%s` is not accessible", ad.kind(), ad.toPrettyChars(), smember.kind(), smember.toChars());
+        import dmd.globals : global;
+        auto eSink = global.errorSink;
+        eSink.error(loc, "%s `%s` %s `%s` is not accessible", ad.kind(), ad.toPrettyChars(), smember.kind(), smember.toErrMsg());
         //printf("smember = %s %s, vis = %d, semanticRun = %d\n",
         //        smember.kind(), smember.toPrettyChars(), smember.visible() smember.semanticRun);
         return true;
@@ -223,8 +226,9 @@ bool checkAccess(Loc loc, Scope* sc, Expression e, Dsymbol d)
  */
 bool checkAccess(Scope* sc, Package p)
 {
-    if (sc._module == p)
+    if (sc._module == p || sc._module == p.isPackageMod())
         return false;
+
     for (; sc; sc = sc.enclosing)
     {
         if (sc.scopesym && sc.scopesym.isPackageAccessible(p, Visibility(Visibility.Kind.private_)))

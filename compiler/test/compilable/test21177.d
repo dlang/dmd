@@ -13,11 +13,17 @@ compilable/test21177.d(153): Deprecation: more format specifiers than 0 argument
 compilable/test21177.d(154): Deprecation: more format specifiers than 0 arguments
 compilable/test21177.d(155): Deprecation: more format specifiers than 0 arguments
 compilable/test21177.d(202): Deprecation: format specifier `"%m"` is invalid
-compilable/test21177.d(203): Deprecation: argument `d` for format specification `"%mc"` must be `char**`, not `int`
-compilable/test21177.d(204): Deprecation: argument `c` for format specification `"%ms"` must be `char**`, not `char*`
+compilable/test21177.d(203): Deprecation: argument `d` of type `int` does not match format specification
+compilable/test21177.d(203):        `"%mc"` requires `char**`
+compilable/test21177.d(204): Deprecation: argument `c` of type `char*` does not match format specification
+compilable/test21177.d(204):        `"%ms"` requires `char**`
+compilable/test21177.d(204):        `char*` may be formatted with `"%s"`
 compilable/test21177.d(205): Deprecation: format specifier `"%ml"` is invalid
-compilable/test21177.d(206): Deprecation: argument `d` for format specification `"%mlc"` must be `wchar_t**`, not `int`
-compilable/test21177.d(207): Deprecation: argument `c` for format specification `"%mls"` must be `wchar_t**`, not `char*`
+compilable/test21177.d(206): Deprecation: argument `d` of type `int` does not match format specification
+compilable/test21177.d(206):        `"%mlc"` requires `wchar_t**`
+compilable/test21177.d(207): Deprecation: argument `c` of type `char*` does not match format specification
+compilable/test21177.d(207):        `"%mls"` requires `wchar_t**`
+compilable/test21177.d(207):        `char*` may be formatted with `"%s"`
 ---
 */
 

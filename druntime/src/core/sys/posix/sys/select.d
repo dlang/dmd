@@ -12,7 +12,14 @@ import core.sys.posix.config;
 public import core.stdc.time;           // for timespec
 public import core.sys.posix.sys.time;  // for timeval
 public import core.sys.posix.sys.types; // for time_t
-public import core.sys.posix.signal;    // for sigset_t
+
+version (CRuntime_WASI)
+    version (WASI_EMULATED_SIGNAL)
+        public import core.sys.posix.signal;    // for sigset_t
+    else
+        alias sigset_t = ubyte;
+else
+    public import core.sys.posix.signal;    // for sigset_t
 
 //debug=select;  // uncomment to turn on debugging printf's
 
@@ -467,7 +474,7 @@ else version (CRuntime_Musl)
 {
     enum FD_SETSIZE = 1024;
 
-    alias fd_mask = ulong;
+    alias fd_mask = c_ulong;
 
     private
     {
@@ -485,7 +492,7 @@ else version (CRuntime_Musl)
     }
 
     struct fd_set {
-        ulong[FD_SETSIZE / 8 / long.sizeof] fds_bits;
+        c_ulong[FD_SETSIZE / 8 / c_long.sizeof] fds_bits;
     }
 
     extern (D) void FD_CLR()( int fd, fd_set* fdset ) pure
@@ -510,6 +517,54 @@ else version (CRuntime_Musl)
     pragma(mangle, muslRedirTime64Mangle!("pselect", "__pselect_time64"))
     int pselect(int, fd_set*, fd_set*, fd_set*, const scope timespec*, const scope sigset_t*);
     pragma(mangle, muslRedirTime64Mangle!("select", "__select_time64"))
+    int select(int, fd_set*, fd_set*, fd_set*, timeval*);
+}
+else version (CRuntime_WASI)
+{
+    enum FD_SETSIZE = 1024;
+
+    struct fd_set {
+        size_t __nfds;
+        int[FD_SETSIZE] __fds;
+    }
+
+    extern (D) void FD_CLR()( int fd, fd_set* fdset ) pure
+    {
+        auto slice = fdset.__fds[0..fdset.__nfds];
+        foreach (ref elem; slice) {
+            if (elem == fd) {
+                elem = slice[$-1];
+                fdset.__nfds -= 1;
+                return;
+            }
+        }
+    }
+
+    extern (D) bool FD_ISSET()( int fd, const(fd_set)* fdset ) pure
+    {
+        auto slice = fdset.__fds[0..fdset.__nfds];
+        foreach (elem; slice) {
+            if (elem == fd) return true;
+        }
+        return false;
+    }
+
+    extern (D) void FD_SET()( int fd, fd_set* fdset ) pure
+    {
+        auto slice = fdset.__fds[0..fdset.__nfds];
+        foreach (elem; slice) {
+            if (elem == fd) return;
+        }
+
+        fdset.__fds[fdset.__nfds++] = fd;
+    }
+
+    extern (D) void FD_ZERO()( fd_set* fdset ) pure
+    {
+        fdset.__nfds = 0;
+    }
+
+    int pselect(int, fd_set*, fd_set*, fd_set*, const scope timespec*, const scope sigset_t*);
     int select(int, fd_set*, fd_set*, fd_set*, timeval*);
 }
 else version (CRuntime_UClibc)

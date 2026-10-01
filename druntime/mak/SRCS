@@ -1,5 +1,6 @@
 SRCS=\
 	src\object.d \
+	src\__builtins_msvc.d \
 	\
 	src\core\atomic.d \
 	src\core\attribute.d \
@@ -39,10 +40,12 @@ SRCS=\
 	src\core\internal\newaa.d \
 	src\core\internal\parseoptions.d \
 	src\core\internal\postblit.d \
+	src\core\internal\profile_gc.d \
 	src\core\internal\qsort.d \
 	src\core\internal\spinlock.d \
 	src\core\internal\string.d \
 	src\core\internal\switch_.d \
+	src\core\internal\thread.d \
 	src\core\internal\traits.d \
 	src\core\internal\utf.d \
 	src\core\internal\lifetime.d \
@@ -263,6 +266,7 @@ SRCS=\
 	src\core\sys\linux\sys\socket.d \
 	src\core\sys\linux\sys\syscall.d \
 	src\core\sys\linux\sys\sysinfo.d \
+	src\core\sys\linux\sys\timerfd.d \
 	src\core\sys\linux\sys\xattr.d \
 	src\core\sys\linux\sys\time.d \
 	src\core\sys\linux\sys\prctl.d \
@@ -457,6 +461,7 @@ SRCS=\
 	src\core\sys\windows\mshtml.d \
 	src\core\sys\windows\mswsock.d \
 	src\core\sys\windows\nb30.d \
+	src\core\sys\windows\ncrypt.d \
 	src\core\sys\windows\nddeapi.d \
 	src\core\sys\windows\nspapi.d \
 	src\core\sys\windows\ntdef.d \
@@ -561,6 +566,9 @@ SRCS=\
 	src\core\thread\threadgroup.d \
 	src\core\thread\threadbase.d \
 	src\core\thread\osthread.d \
+	src\core\thread\posix_impl.d \
+	src\core\thread\stub_impl.d \
+	src\core\thread\windows_impl.d \
 	src\core\thread\context.d \
 	src\core\thread\package.d \
 	\

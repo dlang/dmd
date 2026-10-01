@@ -31,17 +31,20 @@ import core.stdc.ctype;
 import core.stdc.string;
 import core.stdc.stdlib;
 
-import dmd.backend.cdef;
+import dmd.backend.backconfig : debugc;
+import dmd.backend.blockopt : bo;
 import dmd.backend.cc;
+import dmd.backend.cdef;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE;
+import dmd.backend.debugprint : tym_str;
+import dmd.backend.ee : eecontext_convs;
 import dmd.backend.oper;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.barray;
-import dmd.backend.dlist;
 
 nothrow:
 @safe:
@@ -88,7 +91,7 @@ bool canInlineFunction(Symbol* sfunc)
        )
         return no(__LINE__);
 
-    if (config.ehmethod == EHmethod.EH_WIN32 && !(f.Fflags3 & Feh_none))
+    if (config.ehmethod == EHmethod.EH_WIN32 && !(f.Fflags & Feh_none))
         return no(__LINE__);       // not working properly, so don't inline it
 
     foreach (s; f.Flocsym[])
@@ -107,7 +110,7 @@ bool canInlineFunction(Symbol* sfunc)
         switch (b.bc)
         {
             case BC.goto_:
-                if (b.Bnext != b.nthSucc(0))
+                if (b.Bnext != b.Bsucc[0])
                     return no(__LINE__);
                 b = b.Bnext;
                 continue;
@@ -159,7 +162,7 @@ void scanForInlines(Symbol* sfunc)
     func_t* f = sfunc.Sfunc;
     assert(f && tyfunc(sfunc.Stype.Tty));
     // BUG: flag not set right in dmd
-    if (1 || f.Fflags3 & Fdoinline)  // if any inline functions called
+    if (1 || f.Fflags & Fdoinline)  // if any inline functions called
     {
         f.Fflags |= Finlinenest;
         foreach (b; BlockRange(bo.startblock))
@@ -402,7 +405,7 @@ private elem* inlineCall(elem* e,Symbol* sfunc)
         adjustExpression(ec);
         if (config.flags3 & CFG3eh &&
             (eecontext.EEin ||
-             f.Fflags3 & Fmark ||      // if mark/release around function expansion
+             f.Fflags & Fmark ||      // if mark/release around function expansion
              f.Fflags & Fctor))
         {
             elem* em = el_calloc();
@@ -625,7 +628,7 @@ private void adjustExpression(elem* e)
         //elem_debug(e);
         //dbg_printf("adjustExpression(%p) ",e);WROP(e.Eoper);dbg_printf("\n");
         // the debugger falls over on debugging inlines
-        if (configv.addlinenumbers)
+        if (config.addlinenumbers)
             e.Esrcpos.Slinnum = 0;             // suppress debug info for inlines
         if (!OTleaf(e.Eoper))
         {

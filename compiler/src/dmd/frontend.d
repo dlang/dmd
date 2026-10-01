@@ -13,8 +13,8 @@ module dmd.frontend;
 import dmd.astcodegen : ASTCodegen;
 import dmd.astenums : CHECKENABLE;
 import dmd.dmodule : Module;
+import dmd.errors : DiagnosticHandler, diagnosticHandler, FatalErrorHandler, fatalErrorHandler, Classification;
 import dmd.globals : DiagnosticReporting;
-import dmd.errors;
 import dmd.location;
 
 import std.range.primitives : isInputRange, ElementType;
@@ -97,8 +97,8 @@ This needs to be done $(I before) calling any function.
 Params:
     diagnosticHandler = a delegate to configure what to do with diagnostics (other than printing to console or stderr).
     fatalErrorHandler = a delegate to configure what to do with fatal errors (default is to call exit(EXIT_FAILURE)).
-    contractChecks = indicates which contracts should be enabled or not
     versionIdentifiers = a list of version identifiers that should be enabled
+    contractChecks = indicates which contracts should be enabled or not
 */
 void initDMD(
     DiagnosticHandler diagnosticHandler = null,
@@ -183,7 +183,6 @@ void deinitializeDMD()
     import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.target : target;
-    import dmd.errors : diagnostics;
     import dmd.dfa.fast.structure : DFAAllocator;
 
     diagnosticHandler = null;
@@ -201,8 +200,6 @@ void deinitializeDMD()
     Dsymbol.deinitialize();
     EscapeState.reset();
     DFAAllocator.deinitialize();
-
-    diagnostics.length = 0;
 }
 
 /**

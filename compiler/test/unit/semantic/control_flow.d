@@ -772,7 +772,7 @@ auto getStatements(FuncDeclaration fd)
     assert(fd.fbody);
     auto cs = fd.fbody.isCompoundStatement();
     assert(cs);
-    auto stmts = cs.statements;
+    auto stmts = &cs.statements;
     assert(stmts);
 
     // Body sometimes wrapped in additional CompoundStatments?
@@ -781,7 +781,7 @@ auto getStatements(FuncDeclaration fd)
         auto s = (*stmts)[0].isCompoundStatement();
         if (!s)
             break;
-        stmts = s.statements;
+        stmts = &s.statements;
         assert(stmts);
     }
 

@@ -22,7 +22,7 @@ fail_compilation/fail15616b.d(26):                        `foo(T)(T a)`
   `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
 `  > is(T == char)
 `  `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
-  Tip: not satisfied constraints are marked with `>`
+       Tip: not satisfied constraints are marked with `>`
 ---
 */
 

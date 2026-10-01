@@ -33,6 +33,7 @@ else
 
 import core.internal.abort : abort;
 import core.time;
+import core.thread : isSingleThreaded;
 
 /**
  * represents an event. Clients of an event are suspended while waiting
@@ -217,7 +218,7 @@ nothrow @nogc:
      * Wait for the event to be signaled without timeout.
      *
      * Returns:
-     *  `true` if the event is in signaled state, `false` if the event is uninitialized or another error occured
+     *  `true` if the event is in signaled state, `false` if the event is uninitialized or another error occurred
      */
     bool wait()
     {
@@ -238,7 +239,7 @@ nothrow @nogc:
      *  tmout = the maximum time to wait
      * Returns:
      *  `true` if the event is in signaled state, `false` if the event was nonsignaled for the given time or
-     *  the event is uninitialized or another error occured
+     *  the event is uninitialized or another error occurred
      */
     bool wait(Duration tmout)
     {
@@ -269,7 +270,12 @@ nothrow @nogc:
             int result = 0;
             if (!m_state)
             {
-                if (tmout == Duration.max)
+                version (Emscripten)
+                {
+                    // pthread_cond_[timed]wait() seems to be a stub always returning 0
+                    result = -1;
+                }
+                else if (tmout == Duration.max)
                 {
                     result = pthread_cond_wait(&m_cond, &m_mutex);
                 }
@@ -280,7 +286,10 @@ nothrow @nogc:
                     timespec t = void;
                     mktspec(t, tmout);
 
-                    result = pthread_cond_timedwait(&m_cond, &m_mutex, &t);
+                    version (WASI)   // wasi-libc traps for single-thread futex
+                        result = -1;
+                    else
+                        result = pthread_cond_timedwait(&m_cond, &m_mutex, &t);
                 }
             }
             if (result == 0 && !m_manualReset)
@@ -325,6 +334,7 @@ private:
     assert(!ev2.wait(1.dur!"msecs"));
 }
 
+static if(!isSingleThreaded)
 unittest
 {
     import core.atomic;
@@ -346,12 +356,12 @@ unittest
         group.create(&testFn);
 
     auto start = MonoTime.currTime;
-    assert(numRunning == 0);
+    assert(atomicLoad(numRunning) == 0);
 
     event.setIfInitialized();
     group.joinAll();
 
-    assert(numRunning == numThreads);
+    assert(atomicLoad(numRunning) == numThreads);
 
     assert(MonoTime.currTime - start < 5.dur!"seconds");
 }

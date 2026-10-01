@@ -23,10 +23,14 @@ import dmd.backend.cc;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.el;
-import dmd.backend.global;
+import dmd.backend.global : REGSIZE, symbol_keep, symboldata;
+import dmd.backend.cg : localgot, tls_get_addr_sym;
+import dmd.backend.cgelem : doptelem;
+import dmd.backend.debugprint : class_str;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -258,7 +262,7 @@ elem* el_ptr(Symbol* s)
             Symbol* sd = symboldata(Offset(DATA), typtr);
             sd.Sseg = DATA;
             Obj.data_start(sd, _tysize[TYnptr], DATA);
-            Offset(DATA) += Obj.reftoident(DATA, Offset(DATA), s, 0, CFoff);
+            Offset(DATA) += Obj.reftoident(DATA, Offset(DATA), s, 0, CF.off);
             elem* e = el_picvar(sd);
             e.Ety = typtr;
             return e;
@@ -372,7 +376,7 @@ private Symbol* el_alloc_localgot()
         localgot = symbol_name(name[0 .. length], SC.auto_, t);
         symbol_add(localgot);
         localgot.Sfl = FL.auto_;
-        localgot.Sflags = SFLfree | SFLunambig | GTregcand;
+        localgot.Sflags = SFLfree | SFLdistinct | GTregcand;
     }
     return localgot;
 }
@@ -398,7 +402,7 @@ private elem* el_picvar_OSX(Symbol* s)
     elem* e;
     int x;
 
-    if (log) printf("el_picvar(s = '%s') Sclass = %s\n", s.Sident.ptr, class_str(s.Sclass));
+    if (log) printf("el_picvar(s = '%s') Sclass = SC.%s\n", s.Sident.ptr, class_str(s.Sclass));
     //symbol_print(*s);
     symbol_debug(s);
     type_debug(s.Stype);

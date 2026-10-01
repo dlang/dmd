@@ -51,7 +51,6 @@ import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder : CodeBuilder;
-import dmd.backend.global;
 import dmd.backend.iasm;
 
 /************************
@@ -64,15 +63,6 @@ import dmd.backend.iasm;
  */
 public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
 {
-    const bool doUnittests = global.params.parsingUnittestsRequired();
-    scope p = new Parser!ASTCodegen(sc._module, "", false, global.errorSink, &global.compileEnv, doUnittests);
-
-    // Adjust starting line number of the parser.
-    p.token = *s.tokens;
-    p.baseLoc.startLine = s.loc.linnum;
-    p.linnum = s.loc.linnum;
-
-    int errors;
     static if (1)
     {
         printf("InlineAsmAArch64Statement.semantic()\n");
@@ -80,7 +70,18 @@ public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
         {
             printf("TOK.%s %s\n", token.toString(token.value).ptr, token.toChars());
         }
+    }
 
+    const bool doUnittests = global.params.parsingUnittestsRequired(sc._module.isRoot);
+    scope p = new Parser!ASTCodegen(sc._module, "", false, global.errorSink, &global.compileEnv, doUnittests);
+
+    /* Set list of tokens that will be the input to the parser, and starting line number to use.
+     */
+    p.setTokenList(s.tokens, s.loc.linnum);
+
+    int errors;
+    static if (1)
+    {
         if (p.token.value == TOK.identifier)
         {
             if (p.token.ident == Id.naked)
@@ -99,14 +100,14 @@ public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
                 exp = resolveProperties(sc, exp);
                 exp = exp.ctfeInterpret();
                 if (exp.op == EXP.error)
-                    return new ErrorStatement();
+                    return ErrorStatement.get();
 
                 //printf("expression: %s\n", exp.toChars());
                 Type t = exp.type;
                 if (!(size(t) == 4 && isIntegral(t)))
                     error(s.loc, "size of opcode must be 4 of integral type\n");
                 code* pc = code_calloc();
-                pc.Iflags |= CFpsw;            // assume we want to keep the flags
+                pc.Iflags |= CF.psw;            // assume we want to keep the flags
                 pc.Iop = cast(int)exp.toInteger();
                 s.asmcode = pc;
             }
@@ -114,7 +115,7 @@ public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
             if (p.token.value != TOK.endOfFile && !errors)
             {
                 error(s.loc, "end of instruction expected, not `%s`", p.token.toChars());
-                return new ErrorStatement();
+                return ErrorStatement.get();
             }
             else
                 return s;
@@ -138,5 +139,5 @@ public Statement inlineAsmAArch64Semantic(InlineAsmStatement s, Scope* sc)
      */
 
     error(s.loc, "AArch64 inline assembler not implemented (yet!)");
-    return new ErrorStatement();
+    return ErrorStatement.get();
 }

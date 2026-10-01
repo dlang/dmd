@@ -192,7 +192,7 @@ unittest
     auto expected = [
         Diagnostic(
             SourceLoc(filename, 6, 20),
-            "Error: function test.Foo.foo!().foo template cannot be optional"
+            "Error: function test.Foo.foo!() template cannot be optional"
         ),
         Diagnostic(
             SourceLoc(filename, 17, 10),

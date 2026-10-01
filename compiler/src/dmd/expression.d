@@ -25,9 +25,8 @@ import dmd.declaration;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
-import dmd.errors;
 import dmd.func;
-import dmd.globals;
+import dmd.globals : dinteger_t, global;
 import dmd.hdrgen : toChars;
 import dmd.id;
 import dmd.identifier;
@@ -188,7 +187,7 @@ extern (C++) abstract class Expression : ASTNode
         }
 
         // memory never freed, so can use the faster bump-pointer-allocation
-        e = cast(Expression)allocmemory(size);
+        e = cast(Expression)allocmemoryNoFree(size, expAlign[op]);
         //printf("Expression::copy(op = %d) e = %p\n", op, e);
         return cast(Expression)memcpy(cast(void*)e, cast(void*)this, size);
     }
@@ -451,15 +450,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(IdentityExp) isIdentityExp() { return (op == EXP.identity || op == EXP.notIdentity) ? cast(typeof(return))this : null; }
         inout(CondExp)     isCondExp() { return op == EXP.question ? cast(typeof(return))this : null; }
         inout(GenericExp)  isGenericExp() { return op == EXP._Generic ? cast(typeof(return))this : null; }
-        inout(DefaultInitExp)    isDefaultInitExp() { return
-            (op == EXP.prettyFunction    || op == EXP.functionString ||
-             op == EXP.line              || op == EXP.moduleString   ||
-             op == EXP.file              || op == EXP.fileFullPath   ) ? cast(typeof(return))this : null; }
-        inout(FileInitExp)       isFileInitExp() { return (op == EXP.file || op == EXP.fileFullPath) ? cast(typeof(return))this : null; }
-        inout(LineInitExp)       isLineInitExp() { return op == EXP.line ? cast(typeof(return))this : null; }
-        inout(ModuleInitExp)     isModuleInitExp() { return op == EXP.moduleString ? cast(typeof(return))this : null; }
-        inout(FuncInitExp)       isFuncInitExp() { return op == EXP.functionString ? cast(typeof(return))this : null; }
-        inout(PrettyFuncInitExp) isPrettyFuncInitExp() { return op == EXP.prettyFunction ? cast(typeof(return))this : null; }
+        inout(DefaultInitExp)    isDefaultInitExp() { return op == EXP.defaultInit ? cast(typeof(return))this : null; }
         inout(ObjcClassReferenceExp) isObjcClassReferenceExp() { return op == EXP.objcClassReference ? cast(typeof(return))this : null; }
         inout(ClassReferenceExp) isClassReferenceExp() { return op == EXP.classReference ? cast(typeof(return))this : null; }
         inout(ThrownExceptionExp) isThrownExceptionExp() { return op == EXP.thrownException ? cast(typeof(return))this : null; }
@@ -660,13 +651,15 @@ extern (C++) final class ErrorExp : Expression
         if (errorexp is null)
             errorexp = new ErrorExp();
 
+        import dmd.globals : global;
         if (global.errors == 0 && global.gaggedErrors == 0)
         {
             /* Unfortunately, errors can still leak out of gagged errors,
               * and we need to set the error count to prevent bogus code
               * generation. At least give a message.
               */
-            .error(Loc.initial, "unknown, please file report at https://github.com/dlang/dmd/issues/new");
+            auto eSink = global.errorSink;
+            eSink.error(Loc.initial, "unknown, please file report at https://github.com/dlang/dmd/issues/new");
         }
 
         return errorexp;
@@ -1180,8 +1173,9 @@ extern (C++) final class StringExp : Expression
      */
     extern (D) const(char)[] toStringz() const
     {
+        assert(sz == 1);
         auto nbytes = len * sz;
-        char* s = cast(char*)mem.xmalloc(nbytes + sz);
+        char* s = cast(char*)mem.xmalloc_noscan(nbytes + sz);
         writeTo(s, true);
         return s[0 .. nbytes];
     }
@@ -1383,11 +1377,19 @@ extern (C++) final class ArrayLiteralExp : Expression
         return this[i];
     }
 
-    extern (D) Expression opIndex(size_t i)
+    extern (D) inout(Expression) opIndex(size_t i) inout
     {
         auto el = (*elements)[i];
         return el ? el : basis;
     }
+
+    extern (D) Expression opIndexAssign(Expression value, size_t i)
+    {
+        (*elements)[i] = value;
+        return value;
+    }
+
+    extern (D) size_t length() const { return elements ? elements.length : 0; }
 
     override void accept(Visitor v)
     {
@@ -1454,7 +1456,7 @@ extern (C++) final class StructLiteralExp : Expression
     {
         void* sym;            /// back end symbol to initialize with literal (used as a Symbol*)
 
-        /// those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
+        /// those fields need to prevent an infinite recursion when one field of struct initialized with 'this' pointer.
         StructLiteralExp inlinecopy;
     }
 
@@ -2363,9 +2365,10 @@ extern (C++) final class CallExp : UnaExp
     bool inDebugStatement;  /// true if this was in a debug statement
     bool ignoreAttributes;  /// don't enforce attributes (e.g. call @gc function in @nogc code)
     bool isUfcsRewrite;     /// the first argument was pushed in here by a UFCS rewrite
+    bool fromOpOverload;    // set for operator overload method call
     bool fromOpAssignment;  // set when operator overload method call from assignment (2024 edition)
     VarDeclaration vthis2;  // container for multi-context
-    Expression loweredFrom; // set if this is the result of a lowering
+    Expression loweredFrom; // set if this is the result of a lowering (not for opOverloads)
 
     /// Puts the `arguments` and `names` into an `ArgumentList` for easily passing them around.
     /// The fields are still separate for backwards compatibility
@@ -2401,7 +2404,7 @@ extern (C++) final class CallExp : UnaExp
     }
 
     /***********************************************************
-    * Instatiates a new function call expression
+    * Instantiates a new function call expression
     * Params:
     *       loc   = location
     *       fd    = the declaration of the function to call
@@ -2835,6 +2838,9 @@ extern (C++) final class CommaExp : BinExp
     /// This is needed because AssignExp rewrites CommaExp, hence it needs
     /// to trigger the deprecation.
     const bool isGenerated;
+
+    /// `true` if this comma chain was introduced by inline expansion.
+    bool isInlineSequence;
 
     /// Temporary variable to enable / disable deprecation of comma expression
     /// depending on the context.
@@ -3689,15 +3695,15 @@ extern (C++) final class InExp : BinExp
 }
 
 /***********************************************************
- * Associative array removal, `aa.remove(arg)`
+ * Associative array removal, `aa.remove(key)`
  *
- * This deletes the key e1 from the associative array e2
+ * This deletes the key ekey from the associative array eaa
  */
 extern (C++) final class RemoveExp : BinExp
 {
-    extern (D) this(Loc loc, Expression e1, Expression e2)
+    extern (D) this(Loc loc, Expression eaa, Expression ekey)
     {
-        super(loc, EXP.remove, e1, e2);
+        super(loc, EXP.remove, eaa, ekey);
     }
 
     override void accept(Visitor v)
@@ -3791,100 +3797,22 @@ extern (C++) final class CondExp : BinExp
  */
 extern (C++) class DefaultInitExp : Expression
 {
-    /*************************
-     * Params:
-     *  loc = location
-     *  op = EXP.prettyFunction, EXP.functionString, EXP.moduleString,
-     *       EXP.line, EXP.file, EXP.fileFullPath
-     */
-    extern (D) this(Loc loc, EXP op) @safe
+    TOK tok; /// which special token this is
+
+    extern (D) this(Loc loc, TOK tok) @safe
     {
-        super(loc, op);
+        super(loc, EXP.defaultInit);
+        this.tok = tok;
     }
 
     override void accept(Visitor v)
     {
         v.visit(this);
     }
-}
 
-/***********************************************************
- * The `__FILE__` token as a default argument
- */
-extern (C++) final class FileInitExp : DefaultInitExp
-{
-    extern (D) this(Loc loc, EXP tok) @safe
+    override Expression syntaxCopy()
     {
-        super(loc, tok);
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
-/***********************************************************
- * The `__LINE__` token as a default argument
- */
-extern (C++) final class LineInitExp : DefaultInitExp
-{
-    extern (D) this(Loc loc) @safe
-    {
-        super(loc, EXP.line);
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
-/***********************************************************
- * The `__MODULE__` token as a default argument
- */
-extern (C++) final class ModuleInitExp : DefaultInitExp
-{
-    extern (D) this(Loc loc) @safe
-    {
-        super(loc, EXP.moduleString);
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
-/***********************************************************
- * The `__FUNCTION__` token as a default argument
- */
-extern (C++) final class FuncInitExp : DefaultInitExp
-{
-    extern (D) this(Loc loc) @safe
-    {
-        super(loc, EXP.functionString);
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
-/***********************************************************
- * The `__PRETTY_FUNCTION__` token as a default argument
- */
-extern (C++) final class PrettyFuncInitExp : DefaultInitExp
-{
-    extern (D) this(Loc loc) @safe
-    {
-        super(loc, EXP.prettyFunction);
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
+        return new DefaultInitExp(loc, tok);
     }
 }
 
@@ -4108,135 +4036,153 @@ private enum EbinaryAssign =
         EXP.concatenateAssign, EXP.concatenateElemAssign, EXP.concatenateDcharAssign,
     ];
 
+alias AliasSeq(T...) = T;
+template OpType(EXP e, T)
+{
+    enum op = e;
+    alias type = T;
+}
+alias ExpOpTypePairs = AliasSeq!
+(
+    OpType!(EXP.negate, NegExp),
+    OpType!(EXP.cast_, CastExp),
+    OpType!(EXP.null_, NullExp),
+    OpType!(EXP.assert_, AssertExp),
+    OpType!(EXP.array, ArrayExp),
+    OpType!(EXP.call, CallExp),
+    OpType!(EXP.address, AddrExp),
+    OpType!(EXP.type, TypeExp),
+    OpType!(EXP.throw_, ThrowExp),
+    OpType!(EXP.new_, NewExp),
+    OpType!(EXP.delete_, DeleteExp),
+    OpType!(EXP.star, PtrExp),
+    OpType!(EXP.symbolOffset, SymOffExp),
+    OpType!(EXP.variable, VarExp),
+    OpType!(EXP.dotVariable, DotVarExp),
+    OpType!(EXP.dotIdentifier, DotIdExp),
+    OpType!(EXP.dotTemplateInstance, DotTemplateInstanceExp),
+    OpType!(EXP.dotType, DotTypeExp),
+    OpType!(EXP.slice, SliceExp),
+    OpType!(EXP.arrayLength, ArrayLengthExp),
+    OpType!(EXP.dollar, DollarExp),
+    OpType!(EXP.template_, TemplateExp),
+    OpType!(EXP.dotTemplateDeclaration, DotTemplateExp),
+    OpType!(EXP.declaration, DeclarationExp),
+    OpType!(EXP.dSymbol, DsymbolExp),
+    OpType!(EXP.typeid_, TypeidExp),
+    OpType!(EXP.uadd, UAddExp),
+    OpType!(EXP.remove, RemoveExp),
+    OpType!(EXP.newAnonymousClass, NewAnonClassExp),
+    OpType!(EXP.arrayLiteral, ArrayLiteralExp),
+    OpType!(EXP.assocArrayLiteral, AssocArrayLiteralExp),
+    OpType!(EXP.structLiteral, StructLiteralExp),
+    OpType!(EXP.classReference, ClassReferenceExp),
+    OpType!(EXP.thrownException, ThrownExceptionExp),
+    OpType!(EXP.delegatePointer, DelegatePtrExp),
+    OpType!(EXP.delegateFunctionPointer, DelegateFuncptrExp),
+    OpType!(EXP.lessThan, CmpExp),
+    OpType!(EXP.greaterThan, CmpExp),
+    OpType!(EXP.lessOrEqual, CmpExp),
+    OpType!(EXP.greaterOrEqual, CmpExp),
+    OpType!(EXP.equal, EqualExp),
+    OpType!(EXP.notEqual, EqualExp),
+    OpType!(EXP.identity, IdentityExp),
+    OpType!(EXP.notIdentity, IdentityExp),
+    OpType!(EXP.index, IndexExp),
+    OpType!(EXP.is_, IsExp),
+    OpType!(EXP.leftShift, ShlExp),
+    OpType!(EXP.rightShift, ShrExp),
+    OpType!(EXP.leftShiftAssign, ShlAssignExp),
+    OpType!(EXP.rightShiftAssign, ShrAssignExp),
+    OpType!(EXP.unsignedRightShift, UshrExp),
+    OpType!(EXP.unsignedRightShiftAssign, UshrAssignExp),
+    OpType!(EXP.concatenate, CatExp),
+    OpType!(EXP.concatenateAssign, CatAssignExp),
+    OpType!(EXP.concatenateElemAssign, CatElemAssignExp),
+    OpType!(EXP.concatenateDcharAssign, CatDcharAssignExp),
+    OpType!(EXP.add, AddExp),
+    OpType!(EXP.min, MinExp),
+    OpType!(EXP.addAssign, AddAssignExp),
+    OpType!(EXP.minAssign, MinAssignExp),
+    OpType!(EXP.mul, MulExp),
+    OpType!(EXP.div, DivExp),
+    OpType!(EXP.mod, ModExp),
+    OpType!(EXP.mulAssign, MulAssignExp),
+    OpType!(EXP.divAssign, DivAssignExp),
+    OpType!(EXP.modAssign, ModAssignExp),
+    OpType!(EXP.and, AndExp),
+    OpType!(EXP.or, OrExp),
+    OpType!(EXP.xor, XorExp),
+    OpType!(EXP.andAssign, AndAssignExp),
+    OpType!(EXP.orAssign, OrAssignExp),
+    OpType!(EXP.xorAssign, XorAssignExp),
+    OpType!(EXP.assign, AssignExp),
+    OpType!(EXP.not, NotExp),
+    OpType!(EXP.tilde, ComExp),
+    OpType!(EXP.plusPlus, PostExp),
+    OpType!(EXP.minusMinus, PostExp),
+    OpType!(EXP.construct, ConstructExp),
+    OpType!(EXP.blit, BlitExp),
+    OpType!(EXP.dot, DotExp),
+    OpType!(EXP.comma, CommaExp),
+    OpType!(EXP.question, CondExp),
+    OpType!(EXP.andAnd, LogicalExp),
+    OpType!(EXP.orOr, LogicalExp),
+    OpType!(EXP.prePlusPlus, PreExp),
+    OpType!(EXP.preMinusMinus, PreExp),
+    OpType!(EXP.identifier, IdentifierExp),
+    OpType!(EXP.string_, StringExp),
+    OpType!(EXP.interpolated, InterpExp),
+    OpType!(EXP.this_, ThisExp),
+    OpType!(EXP.super_, SuperExp),
+    OpType!(EXP.halt, HaltExp),
+    OpType!(EXP.tuple, TupleExp),
+    OpType!(EXP.error, ErrorExp),
+    OpType!(EXP.void_, VoidInitExp),
+    OpType!(EXP.int64, IntegerExp),
+    OpType!(EXP.float64, RealExp),
+    OpType!(EXP.complex80, ComplexExp),
+    OpType!(EXP.import_, ImportExp),
+    OpType!(EXP.delegate_, DelegateExp),
+    OpType!(EXP.function_, FuncExp),
+    OpType!(EXP.mixin_, MixinExp),
+    OpType!(EXP.in_, InExp),
+    OpType!(EXP.break_, CTFEExp),
+    OpType!(EXP.continue_, CTFEExp),
+    OpType!(EXP.goto_, CTFEExp),
+    OpType!(EXP.scope_, ScopeExp),
+    OpType!(EXP.traits, TraitsExp),
+    OpType!(EXP.overloadSet, OverExp),
+    OpType!(EXP.defaultInit, DefaultInitExp),
+    OpType!(EXP.pow, PowExp),
+    OpType!(EXP.powAssign, PowAssignExp),
+    OpType!(EXP.vector, VectorExp),
+    OpType!(EXP.voidExpression, CTFEExp),
+    OpType!(EXP.cantExpression, CTFEExp),
+    OpType!(EXP.showCtfeContext, CTFEExp),
+    OpType!(EXP.objcClassReference, ObjcClassReferenceExp),
+    OpType!(EXP.vectorArray, VectorArrayExp),
+    OpType!(EXP.compoundLiteral, CompoundLiteralExp),
+    OpType!(EXP._Generic, GenericExp),
+    OpType!(EXP.interval, IntervalExp),
+    OpType!(EXP.loweredAssignExp, LoweredAssignExp),
+);
+
 /// Given a member of the EXP enum, get the class instance size of the corresponding Expression class.
 /// Needed because the classes are `extern(C++)`
-private immutable ubyte[EXP.max+1] expSize = [
-    EXP.reserved: 0,
-    EXP.negate: __traits(classInstanceSize, NegExp),
-    EXP.cast_: __traits(classInstanceSize, CastExp),
-    EXP.null_: __traits(classInstanceSize, NullExp),
-    EXP.assert_: __traits(classInstanceSize, AssertExp),
-    EXP.array: __traits(classInstanceSize, ArrayExp),
-    EXP.call: __traits(classInstanceSize, CallExp),
-    EXP.address: __traits(classInstanceSize, AddrExp),
-    EXP.type: __traits(classInstanceSize, TypeExp),
-    EXP.throw_: __traits(classInstanceSize, ThrowExp),
-    EXP.new_: __traits(classInstanceSize, NewExp),
-    EXP.delete_: __traits(classInstanceSize, DeleteExp),
-    EXP.star: __traits(classInstanceSize, PtrExp),
-    EXP.symbolOffset: __traits(classInstanceSize, SymOffExp),
-    EXP.variable: __traits(classInstanceSize, VarExp),
-    EXP.dotVariable: __traits(classInstanceSize, DotVarExp),
-    EXP.dotIdentifier: __traits(classInstanceSize, DotIdExp),
-    EXP.dotTemplateInstance: __traits(classInstanceSize, DotTemplateInstanceExp),
-    EXP.dotType: __traits(classInstanceSize, DotTypeExp),
-    EXP.slice: __traits(classInstanceSize, SliceExp),
-    EXP.arrayLength: __traits(classInstanceSize, ArrayLengthExp),
-    EXP.dollar: __traits(classInstanceSize, DollarExp),
-    EXP.template_: __traits(classInstanceSize, TemplateExp),
-    EXP.dotTemplateDeclaration: __traits(classInstanceSize, DotTemplateExp),
-    EXP.declaration: __traits(classInstanceSize, DeclarationExp),
-    EXP.dSymbol: __traits(classInstanceSize, DsymbolExp),
-    EXP.typeid_: __traits(classInstanceSize, TypeidExp),
-    EXP.uadd: __traits(classInstanceSize, UAddExp),
-    EXP.remove: __traits(classInstanceSize, RemoveExp),
-    EXP.newAnonymousClass: __traits(classInstanceSize, NewAnonClassExp),
-    EXP.arrayLiteral: __traits(classInstanceSize, ArrayLiteralExp),
-    EXP.assocArrayLiteral: __traits(classInstanceSize, AssocArrayLiteralExp),
-    EXP.structLiteral: __traits(classInstanceSize, StructLiteralExp),
-    EXP.classReference: __traits(classInstanceSize, ClassReferenceExp),
-    EXP.thrownException: __traits(classInstanceSize, ThrownExceptionExp),
-    EXP.delegatePointer: __traits(classInstanceSize, DelegatePtrExp),
-    EXP.delegateFunctionPointer: __traits(classInstanceSize, DelegateFuncptrExp),
-    EXP.lessThan: __traits(classInstanceSize, CmpExp),
-    EXP.greaterThan: __traits(classInstanceSize, CmpExp),
-    EXP.lessOrEqual: __traits(classInstanceSize, CmpExp),
-    EXP.greaterOrEqual: __traits(classInstanceSize, CmpExp),
-    EXP.equal: __traits(classInstanceSize, EqualExp),
-    EXP.notEqual: __traits(classInstanceSize, EqualExp),
-    EXP.identity: __traits(classInstanceSize, IdentityExp),
-    EXP.notIdentity: __traits(classInstanceSize, IdentityExp),
-    EXP.index: __traits(classInstanceSize, IndexExp),
-    EXP.is_: __traits(classInstanceSize, IsExp),
-    EXP.leftShift: __traits(classInstanceSize, ShlExp),
-    EXP.rightShift: __traits(classInstanceSize, ShrExp),
-    EXP.leftShiftAssign: __traits(classInstanceSize, ShlAssignExp),
-    EXP.rightShiftAssign: __traits(classInstanceSize, ShrAssignExp),
-    EXP.unsignedRightShift: __traits(classInstanceSize, UshrExp),
-    EXP.unsignedRightShiftAssign: __traits(classInstanceSize, UshrAssignExp),
-    EXP.concatenate: __traits(classInstanceSize, CatExp),
-    EXP.concatenateAssign: __traits(classInstanceSize, CatAssignExp),
-    EXP.concatenateElemAssign: __traits(classInstanceSize, CatElemAssignExp),
-    EXP.concatenateDcharAssign: __traits(classInstanceSize, CatDcharAssignExp),
-    EXP.add: __traits(classInstanceSize, AddExp),
-    EXP.min: __traits(classInstanceSize, MinExp),
-    EXP.addAssign: __traits(classInstanceSize, AddAssignExp),
-    EXP.minAssign: __traits(classInstanceSize, MinAssignExp),
-    EXP.mul: __traits(classInstanceSize, MulExp),
-    EXP.div: __traits(classInstanceSize, DivExp),
-    EXP.mod: __traits(classInstanceSize, ModExp),
-    EXP.mulAssign: __traits(classInstanceSize, MulAssignExp),
-    EXP.divAssign: __traits(classInstanceSize, DivAssignExp),
-    EXP.modAssign: __traits(classInstanceSize, ModAssignExp),
-    EXP.and: __traits(classInstanceSize, AndExp),
-    EXP.or: __traits(classInstanceSize, OrExp),
-    EXP.xor: __traits(classInstanceSize, XorExp),
-    EXP.andAssign: __traits(classInstanceSize, AndAssignExp),
-    EXP.orAssign: __traits(classInstanceSize, OrAssignExp),
-    EXP.xorAssign: __traits(classInstanceSize, XorAssignExp),
-    EXP.assign: __traits(classInstanceSize, AssignExp),
-    EXP.not: __traits(classInstanceSize, NotExp),
-    EXP.tilde: __traits(classInstanceSize, ComExp),
-    EXP.plusPlus: __traits(classInstanceSize, PostExp),
-    EXP.minusMinus: __traits(classInstanceSize, PostExp),
-    EXP.construct: __traits(classInstanceSize, ConstructExp),
-    EXP.blit: __traits(classInstanceSize, BlitExp),
-    EXP.dot: __traits(classInstanceSize, DotExp),
-    EXP.comma: __traits(classInstanceSize, CommaExp),
-    EXP.question: __traits(classInstanceSize, CondExp),
-    EXP.andAnd: __traits(classInstanceSize, LogicalExp),
-    EXP.orOr: __traits(classInstanceSize, LogicalExp),
-    EXP.prePlusPlus: __traits(classInstanceSize, PreExp),
-    EXP.preMinusMinus: __traits(classInstanceSize, PreExp),
-    EXP.identifier: __traits(classInstanceSize, IdentifierExp),
-    EXP.string_: __traits(classInstanceSize, StringExp),
-    EXP.interpolated: __traits(classInstanceSize, InterpExp),
-    EXP.this_: __traits(classInstanceSize, ThisExp),
-    EXP.super_: __traits(classInstanceSize, SuperExp),
-    EXP.halt: __traits(classInstanceSize, HaltExp),
-    EXP.tuple: __traits(classInstanceSize, TupleExp),
-    EXP.error: __traits(classInstanceSize, ErrorExp),
-    EXP.void_: __traits(classInstanceSize, VoidInitExp),
-    EXP.int64: __traits(classInstanceSize, IntegerExp),
-    EXP.float64: __traits(classInstanceSize, RealExp),
-    EXP.complex80: __traits(classInstanceSize, ComplexExp),
-    EXP.import_: __traits(classInstanceSize, ImportExp),
-    EXP.delegate_: __traits(classInstanceSize, DelegateExp),
-    EXP.function_: __traits(classInstanceSize, FuncExp),
-    EXP.mixin_: __traits(classInstanceSize, MixinExp),
-    EXP.in_: __traits(classInstanceSize, InExp),
-    EXP.break_: __traits(classInstanceSize, CTFEExp),
-    EXP.continue_: __traits(classInstanceSize, CTFEExp),
-    EXP.goto_: __traits(classInstanceSize, CTFEExp),
-    EXP.scope_: __traits(classInstanceSize, ScopeExp),
-    EXP.traits: __traits(classInstanceSize, TraitsExp),
-    EXP.overloadSet: __traits(classInstanceSize, OverExp),
-    EXP.line: __traits(classInstanceSize, LineInitExp),
-    EXP.file: __traits(classInstanceSize, FileInitExp),
-    EXP.fileFullPath: __traits(classInstanceSize, FileInitExp),
-    EXP.moduleString: __traits(classInstanceSize, ModuleInitExp),
-    EXP.functionString: __traits(classInstanceSize, FuncInitExp),
-    EXP.prettyFunction: __traits(classInstanceSize, PrettyFuncInitExp),
-    EXP.pow: __traits(classInstanceSize, PowExp),
-    EXP.powAssign: __traits(classInstanceSize, PowAssignExp),
-    EXP.vector: __traits(classInstanceSize, VectorExp),
-    EXP.voidExpression: __traits(classInstanceSize, CTFEExp),
-    EXP.cantExpression: __traits(classInstanceSize, CTFEExp),
-    EXP.showCtfeContext: __traits(classInstanceSize, CTFEExp),
-    EXP.objcClassReference: __traits(classInstanceSize, ObjcClassReferenceExp),
-    EXP.vectorArray: __traits(classInstanceSize, VectorArrayExp),
-    EXP.compoundLiteral: __traits(classInstanceSize, CompoundLiteralExp),
-    EXP._Generic: __traits(classInstanceSize, GenericExp),
-    EXP.interval: __traits(classInstanceSize, IntervalExp),
-    EXP.loweredAssignExp : __traits(classInstanceSize, LoweredAssignExp),
-];
+immutable ubyte[EXP.max+1] expSize = (){
+    ubyte[EXP.max+1] expSize;
+    foreach(optype; ExpOpTypePairs)
+        expSize[optype.op] = __traits(classInstanceSize, optype.type);
+    return expSize;
+}();
+
+immutable ubyte[EXP.max+1] expAlign = (){
+    ubyte[EXP.max+1] expAlign;
+    foreach(optype; ExpOpTypePairs)
+        static if (__VERSION__ >= 2101) // support for classInstanceAlignment ?
+            expAlign[optype.op] = __traits(classInstanceAlignment, optype.type);
+        else
+            expAlign[optype.op] = 16; // worst case, GC doesn't guarantee more anyway
+    return expAlign;
+}();

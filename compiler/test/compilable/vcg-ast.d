@@ -5,7 +5,7 @@ OUTPUT_FILES: compilable/vcg-ast.d.cg
 EXTRA_FILES: imports/vcg_ast_import.d
 TEST_OUTPUT_FILE: extra-files/vcg-ast.d.cg
 // size_t currently must be ulong in this test, not uint
-DISABLED: freebsd32 openbsd32 linux32 osx32 win32
+DISABLED: freebsd32 openbsd32 linux32 osx32 win32 hurd32
 */
 
 module vcg;

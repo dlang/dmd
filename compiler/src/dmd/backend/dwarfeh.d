@@ -22,6 +22,7 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.barray : Barray;
 import dmd.backend.dwarf;
 import dmd.backend.dwarf2;
+import dmd.backend.symbol;
 
 import dmd.common.outbuffer;
 
@@ -74,8 +75,9 @@ void genDwarfEh(Funcsym* sfunc, int seg, OutBuffer* et, bool scancode, uint star
 
     et.reserve(100);
     block* startblock = sfunc.Sfunc.Fstartblock;
-    //printf("genDwarfEh: func = %s, offset = x%x, startblock.Boffset = x%x, scancode = %d startoffset=x%x, retoffset=x%x\n",
-      //sfunc.Sident.ptr, cast(int)sfunc.Soffset, cast(int)startblock.Boffset, scancode, startoffset, retoffset);
+    static if (0)
+    printf("genDwarfEh: sfunc: %s seg: %d offset: x%x startblock.Boffset: x%x, scancode: %d startoffset: x%x retoffset: x%x\n",
+      sfunc.Sident.ptr, seg, cast(int)sfunc.Soffset, cast(int)startblock.Boffset, scancode, startoffset, retoffset);
 
 static if (0)
 {
@@ -113,13 +115,13 @@ static if (0)
             if (bprev)
                 bprev = bprev.Btry;
         }
-        if (b.bc == BC._try)
+        if (b.bc == BC.try_)
         {
             uint i = cast(uint) deh.length;
             DwEhTableEntry* d = deh.push();
             d.start = cast(uint)b.Boffset;
 
-            block* bf = b.nthSucc(1);
+            block* bf = b.Bsucc[1];
             if (bf.bc == BC.jcatch)
             {
                 d.lpad = cast(uint)bf.Boffset;
@@ -138,7 +140,7 @@ static if (0)
                 d.action = offset + 1;
             }
             else
-                d.lpad = cast(uint)bf.nthSucc(0).Boffset;
+                d.lpad = cast(uint)bf.Bsucc[0].Boffset;
             d.prev = index;
             index = i;
             bprev = b.Btry;
@@ -340,7 +342,10 @@ else
         if (config.objfmt == OBJ_ELF)
             elf_dwarf_reftoident(seg, et.length(), s, 0);
         else if (config.objfmt == OBJ_MACH)
+        {
+            assert(et == SegData[seg].SDbuf);
             mach_dwarf_reftoident(seg, et.length(), s, 0);
+        }
     }
     assert(TToffset == et.length() - startsize);
 }

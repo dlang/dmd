@@ -22,6 +22,10 @@ version (Windows)
 
     //version = GC_Use_Alloc_Win32;
 }
+else version (WASI)
+{
+    import core.stdc.stdlib : free, malloc;
+}
 else version (Posix)
 {
     version (OSX)
@@ -94,6 +98,8 @@ else version (Posix)
     version (FreeBSD)
         version = GCSignalsUnblock;
     version (Solaris)
+        version = GCSignalsUnblock;
+    version (Hurd)
         version = GCSignalsUnblock;
 
     //version = GC_Use_Alloc_MMap;

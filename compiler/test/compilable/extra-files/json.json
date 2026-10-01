@@ -1156,7 +1156,7 @@
                 "line": 198,
                 "linkage": "system",
                 "name": "flinkageSystem",
-                "originalType": "extern (System) int()",
+                "originalType": "extern(System) int()",
                 "protection": "public"
             },
             {

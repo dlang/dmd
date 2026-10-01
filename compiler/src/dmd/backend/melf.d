@@ -54,7 +54,8 @@ nothrow:
             enum ELFOSABI_SYSV       = 0;       /* UNIX System V ABI */
             enum ELFOSABI_HPUX       = 1;       /* HP-UX */
             enum ELFOSABI_NETBSD     = 2;
-            enum ELFOSABI_LINUX      = 3;
+            enum ELFOSABI_GNU        = 3;
+            enum ELFOSABI_LINUX      = ELFOSABI_GNU;
             enum ELFOSABI_FREEBSD    = 9;
             enum ELFOSABI_OPENBSD    = 12;
             enum ELFOSABI_ARM        = 97;      /* ARM */
@@ -144,6 +145,7 @@ struct Elf32_Ehdr
         enum SHF_GROUP       = 0x200;       // Member of a section group
         enum SHF_TLS         = 0x400;       /* Thread local */
         enum SHF_MASKPROC    = 0xf0000000;  /* Mask for processor-specific */
+        enum SHF_GNU_RETAIN = (1 << 21);    /* Do not garbage collect section */
 
 struct Elf32_Shdr
 {

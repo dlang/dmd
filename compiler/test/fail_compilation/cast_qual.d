@@ -24,3 +24,10 @@ void test() {
     const Object co;
     auto o = cast() co;
 }
+
+double[int] aa;
+
+double theValueFor(in int key) @safe
+{
+    return *(key in aa); // allow compiler generated cast
+}

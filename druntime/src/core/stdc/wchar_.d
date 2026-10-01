@@ -146,17 +146,52 @@ else version (Windows)
     ///
     alias mbstate_t = __mbstate_t;
 }
+else version (Emscripten)
+{
+    ///
+    struct __mbstate_t
+    {
+        uint __opaque1;
+        uint __opaque2;
+    }
+
+    ///
+    alias mbstate_t = __mbstate_t;
+}
+else version (CRuntime_WASI)
+{
+    ///
+    struct __mbstate_t
+    {
+        uint __opaque1;
+        uint __opaque2;
+    }
+
+    ///
+    alias mbstate_t = __mbstate_t;
+}
 else
 {
     ///
     alias mbstate_t = int;
 }
 
-///
-alias wint_t = wchar_t;
+version (WASI) // incl. Emscripten
+{
+    ///
+    alias wint_t = int;
 
-///
-enum wchar_t WEOF = 0xFFFF;
+    ///
+    enum WEOF = uint.max;
+}
+else
+{
+    ///
+    alias wint_t = wchar_t;
+
+    ///
+    enum wchar_t WEOF = 0xFFFF;
+}
 
 version (CRuntime_Glibc)
 {

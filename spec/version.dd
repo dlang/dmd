@@ -153,7 +153,8 @@ version (Foo)
 }
 version = Foo;  // error, Foo already used
 ------
-        $(P $(I VersionSpecification)s may only appear at module scope.)
+        $(P $(I VersionSpecification)s may only appear at module scope,
+        and may not be generated with a $(GLINK2 expression, MixinExpression).)
 
         $(P While the $(RELATIVE_LINK2 debug, debug) and version conditions
         superficially behave the same,
@@ -254,6 +255,10 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D Emscripten)) , $(ARGS The Emscripten platform))
         $(TROW $(ARGS $(D PlayStation)) , $(ARGS The PlayStation platform))
         $(TROW $(ARGS $(D PlayStation4)) , $(ARGS The PlayStation 4 platform))
+        $(TROW $(ARGS $(D WASI)) , $(ARGS Any version of the WebAssembly System Interface))
+        $(TROW $(ARGS $(D WASIp1)) , $(ARGS Preview 1 of the WebAssembly System Interface))
+        $(TROW $(ARGS $(D WASIp2)) , $(ARGS Preview 2 of the WebAssembly System Interface))
+        $(TROW $(ARGS $(D WASIp3)) , $(ARGS Preview 3 of the WebAssembly System Interface))
         $(TROW $(ARGS $(D FreeStanding)) , $(ARGS An environment without an operating system (such as Bare-metal targets)))
 
         $(TROW *Target Environment*)
@@ -317,7 +322,6 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D HPPA64)) , $(ARGS The HP PA-RISC architecture, 64-bit))
         $(TROW $(ARGS $(D SH)) , $(ARGS The SuperH architecture, 32-bit))
         $(TROW $(ARGS $(D WebAssembly)) , $(ARGS The WebAssembly virtual ISA $(LPAREN)instruction set architecture$(RPAREN), 32-bit))
-        $(TROW $(ARGS $(D WASI)) , $(ARGS The WebAssembly System Interface))
         $(TROW $(ARGS $(D Xtensa)) , $(ARGS The Xtensa Architecture, 32-bit))
         $(TROW $(ARGS $(D Alpha)) , $(ARGS The Alpha architecture))
         $(TROW $(ARGS $(D Alpha_SoftFloat)) , $(ARGS The Alpha soft float ABI))
@@ -505,7 +509,8 @@ debug (foo) writeln("Foo");
 debug = foo;    // error, foo used before set
 ------
 
-        $(P $(I DebugSpecification)s may only appear at module scope.)
+        $(P $(I DebugSpecification)s may only appear at module scope,
+        and may not be generated with a $(GLINK2 expression, MixinExpression).)
 
         $(P Various different debug builds can be built with a parameter to
         debug:
@@ -696,8 +701,9 @@ void fun()
 ---
 )
 
-        $(P `static foreach` supports sequence expansion
-        $(DDSUBLINK spec/statement, foreach_over_tuples, like `foreach`).)
+        $(P `static` *AggregateForeach* supports sequence expansion
+        $(DDSUBLINK spec/statement, foreach_over_tuples, like `foreach`),
+        as well as unpacking $(GLINK2 statement, ForeachTuplePattern)s.)
 
 $(H3 $(LNAME2 break-continue, `break` and `continue`))
 

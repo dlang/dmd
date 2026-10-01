@@ -161,6 +161,16 @@ public:
 class ForwardClass : public BaseClass
 {
 };
+
+class CppBase20078
+{
+public:
+    virtual void vfunc();
+};
+
+class DSubclass20078 : public CppBase20078
+{
+};
 ---
 +/
 
@@ -320,3 +330,7 @@ class BaseClass
 {
     void memberFun(ForwardClass sds);
 }
+
+// https://github.com/dlang/dmd/issues/20078
+extern(C++) class CppBase20078 { void vfunc() {} }
+extern(D) class DSubclass20078 : CppBase20078 {}

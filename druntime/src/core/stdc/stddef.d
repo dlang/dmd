@@ -34,8 +34,3 @@ else version (Posix)
     ///
     alias wchar_t = dchar;
 }
-else version (WASI)
-{
-    ///
-    alias wchar_t = dchar;
-}

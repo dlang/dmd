@@ -35,7 +35,7 @@ struct Range
     void* ptop;
     TypeInfo ti; // should be tail const, but doesn't exist for references
     alias pbot this; // only consider pbot for relative ordering (opCmp)
-    bool opEquals(const scope Range rhs) nothrow const { return pbot == rhs.pbot; }
+    bool opEquals(const scope Range rhs) const pure nothrow @nogc @safe { return pbot == rhs.pbot; }
 }
 
 interface GC

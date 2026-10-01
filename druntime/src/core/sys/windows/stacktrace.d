@@ -357,12 +357,13 @@ private string generateSearchPath()
 
 shared static this()
 {
-    auto dbghelp = DbgHelp.get();
+    InitializeCriticalSection(&mutex);
 
+    auto dbghelp = DbgHelp.get();
     if ( dbghelp is null )
         return; // dbghelp.dll not available
 
-    auto kernel32Handle = LoadLibraryA( "kernel32.dll" );
+    auto kernel32Handle = LoadLibraryExW("kernel32.dll", null, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (kernel32Handle !is null)
     {
         RtlCaptureStackBackTrace = cast(RtlCaptureStackBackTraceFunc) GetProcAddress(kernel32Handle, "RtlCaptureStackBackTrace");
@@ -392,6 +393,5 @@ shared static this()
     if (!dbghelp.SymInitialize(hProcess, generateSearchPath().ptr, TRUE))
         return;
 
-    InitializeCriticalSection(&mutex);
     initialized = true;
 }

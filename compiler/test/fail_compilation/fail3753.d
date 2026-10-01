@@ -1,5 +1,5 @@
 /*
-DISABLED: dragonflybsd freebsd linux osx win32 openbsd
+DISABLED: dragonflybsd freebsd linux osx win32 openbsd hurd
 TEST_OUTPUT:
 ---
 Error: cannot mix `core.std.stdlib.alloca()` and exception handling in `_Dmain()`

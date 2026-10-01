@@ -40,7 +40,7 @@ unittest
         class Bar : Foo { }
     }.stripDelimited;
 
-    enum message = "Error: class test.Bar interface function extern (Objective-C) static void foo() is not implemented";
+    enum message = "Error: class test.Bar interface function extern(Objective-C) static void foo() is not implemented";
     auto expected = Diagnostic(SourceLoc(filename, 8, 1), message);
 
     const diagnostics = compiles(code, filename);

@@ -84,3 +84,11 @@ struct Concat
 }
 
 static assert(Concat.init("t0", "t1") == "st0t1");
+
+// https://github.com/dlang/dmd/issues/22980
+struct Foo { int bar; }
+
+const fooC1 = const Foo(bar: 2);
+const fooC2 = (const Foo)(bar: 2);
+const fooD1 = immutable Foo(bar: 2);
+const fooD2 = (immutable Foo)(bar: 2);

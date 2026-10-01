@@ -1,5 +1,4 @@
-/**
- * Instruction tables for inline assembler.
+/* Instruction tables for inline assembler.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (C) 2000-2026 by The D Language Foundation, All Rights Reserved
@@ -20,11 +19,10 @@ import dmd.backend.x86.code_x86;
 import dmd.backend.iasm;
 import dmd.backend.oper;
 import dmd.backend.code;
-import dmd.backend.global;
+import dmd.backend.util2 : binary;
 import dmd.backend.x86.xmm;
 
 import dmd.backend.cdef;
-import dmd.backend.dlist;
 import dmd.backend.ty;
 
 nothrow:

@@ -6,8 +6,8 @@ $(HEADERNAV_TOC)
 
 $(H2 $(LNAME2 declarations, Interface Declarations))
 
-    $(P An $(I Interface) describes a list of functions that a class which inherits
-    from the interface must implement.)
+    $(P An $(I interface) describes a list of functions that a class
+    $(DDSUBLINK spec/class, super_class, inheriting from) the interface must implement.)
 
 $(GRAMMAR
 $(GNAME InterfaceDeclaration):
@@ -19,7 +19,8 @@ $(GNAME BaseInterfaceList):
     $(D :) $(GLINK2 class, Interfaces)
 )
 
-    $(IMPLEMENTATION_DEFINED $(P Specialized interfaces may be supported:)
+    $(PANEL
+    $(IMPLEMENTATION_DEFINED Specialized interfaces may be supported:
 
     $(OL
     $(LI $(RELATIVE_LINK2 com-interfaces, $(I COM Interfaces))
@@ -35,13 +36,14 @@ $(GNAME BaseInterfaceList):
     )
     )
     )
+    )
 
-
-    $(P A class that implements an interface can be implicitly converted to a reference
-    to that interface.)
+    $(P A class that inherits from an interface can be implicitly converted to that
+    interface type.)
 
     $(P Interfaces cannot derive from classes; only from other interfaces.
-    Classes cannot derive from an interface multiple times.
+    An interface instance implicitly converts to any inherited interfaces.
+    A class cannot derive from an interface multiple times.
     )
 
 ------
@@ -55,7 +57,7 @@ class A : I, I  // error, duplicate interface
 }
 ------
 
-$(P An instance of an interface cannot be created.)
+$(P An instance of an interface cannot be created directly:)
 
 ------
 interface I
@@ -67,6 +69,10 @@ interface I
 
 I iface = new I();  // error, cannot create instance of interface
 ------
+
+    $(P An interface instance can be cast to $(REF1 Object, object),
+    or $(DDSUBLINK spec/expression, cast_class, dynamically cast) to
+    another class type.)
 
 $(H3 $(LNAME2 method-bodies, Interface Method Bodies))
 
@@ -179,7 +185,7 @@ class A : I
     int foo() { return 1; }
 }
 
-class B : A, I
+class B : A, I // reimplement I
 {
     override int foo() { return 2; }
 }

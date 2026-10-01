@@ -163,23 +163,3 @@ Tret _d_arraycatnTX(Tret: Tret_El[], Tret_El, Tarr...)(auto ref Tarr froms) @tru
     assert(counter == 4);
     assert(didThrow);
 }
-
-version (D_ProfileGC)
-{
-    /**
-    * TraceGC wrapper around $(REF _d_arraycatnTX, core,internal,array,concatenation).
-    */
-    Tret _d_arraycatnTXTrace(Tret, Tarr...)(scope auto ref Tarr froms, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted
-    {
-        version (D_TypeInfo)
-        {
-            import core.internal.array.utils: TraceHook, gcStatsPure, accumulatePure;
-            mixin(TraceHook!("Tarr", "_d_arraycatnTX"));
-
-            import core.lifetime: forward;
-            return _d_arraycatnTX!Tret(forward!froms);
-        }
-        else
-            assert(0, "Cannot concatenate arrays if compiling without support for runtime type information!");
-    }
-}

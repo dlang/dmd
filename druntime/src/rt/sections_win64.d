@@ -294,6 +294,7 @@ extern(C) bool rt_initSharedModule(void* handle)
     sectionGroup.moduleGroup.sortCtors();
     sectionGroup.moduleGroup.runCtors();
 
+    GC.disable(); scope(exit) GC.enable();
     foreach (t; Thread)
     {
         impersonate_thread(t.id, () => sectionGroup.moduleGroup.runTlsCtors());
@@ -311,9 +312,12 @@ extern(C) bool rt_termSharedModule(void* handle)
         return false;
     auto sectionGroup = _sections[i];
 
-    foreach (t; Thread)
     {
-        impersonate_thread(t.id, () => sectionGroup.moduleGroup.runTlsDtors());
+        GC.disable(); scope(exit) GC.enable();
+        foreach (t; Thread)
+        {
+            impersonate_thread(t.id, () => sectionGroup.moduleGroup.runTlsDtors());
+        }
     }
     sectionGroup.moduleGroup.runDtors();
     foreach (rng; sectionGroup._gcRanges)

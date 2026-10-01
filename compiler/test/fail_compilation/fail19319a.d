@@ -3,8 +3,8 @@ DFLAGS:
 REQUIRED_ARGS: -conf= -Ifail_compilation/extra-files/minimal
 TEST_OUTPUT:
 ---
-fail_compilation/fail19319a.d(16): Error: `7 ^^ g19319` requires `std.math` for `^^` operators
-fail_compilation/fail19319a.d(17): Error: `g19319 ^^ 7` requires `std.math` for `^^` operators
+fail_compilation/fail19319a.d(16): Error: `object._d_pow` not found. The current runtime does not support the ^^ operator, or the runtime is corrupt.
+fail_compilation/fail19319a.d(17): Error: `object._d_pow` not found. The current runtime does not support the ^^ operator, or the runtime is corrupt.
 ---
 */
 

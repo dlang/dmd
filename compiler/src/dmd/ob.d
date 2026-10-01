@@ -28,10 +28,11 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem : toAlias;
 import dmd.dtemplate;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.escape;
 import dmd.expression;
 import dmd.func;
+import dmd.globals : global;
 import dmd.hdrgen;
 import dmd.identifier;
 import dmd.init;
@@ -409,12 +410,9 @@ void toObNodes(ref ObNodes obnodes, Statement s)
 
         void visitCompound(CompoundStatement s)
         {
-            if (s.statements)
+            foreach (s2; s.statements)
             {
-                foreach (s2; *s.statements)
-                {
-                    visit(s2, stmtstate);
-                }
+                visit(s2, stmtstate);
             }
         }
 
@@ -430,7 +428,7 @@ void toObNodes(ref ObNodes obnodes, Statement s)
 
             gotoNextNode();
 
-            foreach (s2; *s.statements)
+            foreach (s2; s.statements)
             {
                 if (s2)
                 {
@@ -1356,8 +1354,8 @@ void genKill(ref ObState obstate, ObNode* ob)
             ObNode* ob;
             ObState* obstate;
 
-            extern (D) this(void delegate(ObNode*, VarDeclaration, Expression, bool) dgWriteVar,
-                            void delegate(Loc loc, ObNode* ob, VarDeclaration v, bool mutable) dgReadVar,
+            extern (D) this(scope void delegate(ObNode*, VarDeclaration, Expression, bool) dgWriteVar,
+                            scope void delegate(Loc loc, ObNode* ob, VarDeclaration v, bool mutable) dgReadVar,
                             ObNode* ob, ref ObState obstate) scope
             {
                 this.dgWriteVar = dgWriteVar;
@@ -2014,6 +2012,7 @@ void checkObErrors(ref ObState obstate)
     enum log = false;
     if (log)
         printf("------------checkObErrors()----------\n");
+    auto eSink = global.errorSink;
 
     void dgWriteVar(ObNode* ob, PtrVarState[] cpvs, VarDeclaration v, Expression e)
     {
@@ -2031,7 +2030,7 @@ void checkObErrors(ref ObState obstate)
             else
             {
                 if (pvs.state == PtrState.Owner && v.type.hasPointersToMutableFields())
-                    .error(e.loc, "%s `%s` assigning to Owner without disposing of owned value", v.kind, v.toPrettyChars);
+                    eSink.error(e.loc, "%s `%s` assigning to Owner without disposing of owned value", v.kind, v.toPrettyChars);
 
                 pvs.state = PtrState.Owner;
             }
@@ -2052,12 +2051,12 @@ void checkObErrors(ref ObState obstate)
 
                     if (pvsr.state == Undefined)
                     {
-                        .error(e.loc, "%s `%s` is reading from `%s` which is Undefined", v.kind, v.toPrettyChars, r.toChars());
+                        eSink.error(e.loc, "%s `%s` is reading from `%s` which is Undefined", v.kind, v.toPrettyChars, r.toErrMsg());
                     }
                     else if (isBorrowedPtr(v))  // v is going to borrow from r
                     {
                         if (pvsr.state == Readonly)
-                            .error(e.loc, "%s `%s` is borrowing from `%s` which is Readonly", v.kind, v.toPrettyChars, r.toChars());
+                            eSink.error(e.loc, "%s `%s` is borrowing from `%s` which is Readonly", v.kind, v.toPrettyChars, r.toErrMsg());
 
                         pvs.state = Borrowed;
                     }
@@ -2095,7 +2094,7 @@ void checkObErrors(ref ObState obstate)
         assert(vi != size_t.max);
         auto pvs = &gen[vi];
         if (pvs.state == PtrState.Undefined)
-            .error(loc, "%s `%s` has undefined state and cannot be read", v.kind, v.toPrettyChars);
+            eSink.error(loc, "%s `%s` has undefined state and cannot be read", v.kind, v.toPrettyChars);
 
         readVar(ob, vi, mutable, gen);
     }
@@ -2111,8 +2110,8 @@ void checkObErrors(ref ObState obstate)
             ObNode* ob;
             ObState* obstate;
 
-            extern (D) this(void delegate(Loc loc, ObNode* ob, VarDeclaration v, bool mutable, PtrVarState[]) dgReadVar,
-                            void delegate(ObNode*, PtrVarState[], VarDeclaration, Expression) dgWriteVar,
+            extern (D) this(scope void delegate(Loc loc, ObNode* ob, VarDeclaration v, bool mutable, PtrVarState[]) dgReadVar,
+                            scope void delegate(ObNode*, PtrVarState[], VarDeclaration, Expression) dgWriteVar,
                             PtrVarState[] cpvs, ObNode* ob, ref ObState obstate) scope
             {
                 this.dgReadVar  = dgReadVar;
@@ -2241,7 +2240,7 @@ void checkObErrors(ref ObState obstate)
                             {
                                 // move (i.e. consume arg)
                                 if (pvs.state != PtrState.Owner)
-                                    .error(arg.loc, "%s `%s` is not Owner, cannot consume its value", v.kind, v.toPrettyChars);
+                                    eSink.error(arg.loc, "%s `%s` is not Owner, cannot consume its value", v.kind, v.toPrettyChars);
                                 makeUndefined(vi, cpvs);
                             }
                         }
@@ -2273,7 +2272,7 @@ void checkObErrors(ref ObState obstate)
                             {
                                 // move (i.e. consume arg)
                                 if (pvs.state != PtrState.Owner)
-                                    .error(arg.loc, "%s `%s` is not Owner, cannot consume its value", v.kind, v.toPrettyChars);
+                                    eSink.error(arg.loc, "%s `%s` is not Owner, cannot consume its value", v.kind, v.toPrettyChars);
                                 makeUndefined(vi, cpvs);
                             }
                         }
@@ -2305,7 +2304,7 @@ void checkObErrors(ref ObState obstate)
                             {
                                 if (obstate.mutableStack[vi] || obstate.mutableStack[vk])
                                 {
-                                    .error(ce.loc, "%s `%s` is passed as Owner more than once", v.kind, v.toPrettyChars);
+                                    eSink.error(ce.loc, "%s `%s` is passed as Owner more than once", v.kind, v.toPrettyChars);
                                     break;  // no need to continue
                                 }
                             }
@@ -2539,7 +2538,7 @@ void checkObErrors(ref ObState obstate)
                         auto v = obstate.vars[i];
                         // Don't worry about non-pointers
                         if (hasPointers(v.type))
-                            .error(ob.exp ? ob.exp.loc : v.loc, "%s `%s` is both %s and %s", v.kind, v.toPrettyChars, PtrStateToChars(s1), PtrStateToChars(s2));
+                            eSink.error(ob.exp ? ob.exp.loc : v.loc, "%s `%s` is both %s and %s", v.kind, v.toPrettyChars, PtrStateToChars(s1), PtrStateToChars(s2));
                     }
                     pvs1.combine(*pvs2, i, ob.gen);
                 }
@@ -2582,7 +2581,7 @@ void checkObErrors(ref ObState obstate)
                     switch (pvsr.state)
                     {
                         case Undefined:
-                            .error(ob.exp.loc, "%s `%s` is returned but is Undefined", r.kind, r.toPrettyChars);
+                            eSink.error(ob.exp.loc, "%s `%s` is returned but is Undefined", r.kind, r.toPrettyChars);
                             break;
 
                         case Owner:
@@ -2611,7 +2610,7 @@ void checkObErrors(ref ObState obstate)
                     import dmd.typesem : hasPointers;
                     auto v = obstate.vars[i];
                     if (v.type.hasPointers())
-                        .error(v.loc, "%s `%s` is not disposed of before return", v.kind, v.toPrettyChars);
+                        eSink.error(v.loc, "%s `%s` is not disposed of before return", v.kind, v.toPrettyChars);
                 }
             }
         }

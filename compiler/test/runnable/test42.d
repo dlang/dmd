@@ -8,7 +8,7 @@ myBool bool
 i
 s
 C6test42__T4T219TiZ1C
-C6test427test219FZ8__mixin11C
+C6test427test219FZ16__mixin_L3578_C31C
 ---
 */
 
@@ -1315,7 +1315,16 @@ void test79()
 //        writeln(c.__monitor);
         assert(c.__monitor !is null);
     }
+
+    // __monitor on a shared object is still void*, not shared(void*)
+    shared C79 sc = new shared C79();
+    void* p = cast(void*) 0x1;
+    sc.__monitor = p;
+    assert(sc.__monitor == p);
 }
+
+// https://github.com/dlang/dmd/issues/22815
+__gshared Object o = new Object();
 
 /***************************************************/
 
@@ -1656,9 +1665,10 @@ void test100()
 {
     static void check(ulong value)
     {
+        import core.stdc.config;
         real r = value;
         ulong d = cast(ulong)r;
-        printf("ulong: %llu => real: %Lg => ulong: %llu\n", value, r, d);
+        printf("ulong: %llu => real: %Lg => ulong: %llu\n", value, cast(c_long_double)r, d);
         assert(d == value);
     }
 
@@ -3986,6 +3996,7 @@ static immutable real[13] postab =
 
 float parse(ref string p)
 {
+    import core.stdc.config;
     printf("test1\n");
 
     real ldval = 0.0;
@@ -3996,7 +4007,7 @@ float parse(ref string p)
     exp = 2;
 
     ldval = msdec;
-    printf("ldval = %Lg\n", ldval);
+    printf("ldval = %Lg\n", cast(c_long_double)ldval);
     if (ldval)
     {
         uint u = 0;

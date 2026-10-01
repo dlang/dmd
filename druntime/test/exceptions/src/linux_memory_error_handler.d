@@ -1,5 +1,5 @@
 import etc.linux.memoryerror;
-import core.stdc.stdio : fprintf, stderr;
+import core.sys.posix.unistd : write;
 
 void main()
 {
@@ -39,5 +39,8 @@ void main()
 
         assert(deregisterMemoryErrorHandler());
     }
-    fprintf(stderr, "success.\n");
+    // Avoid libc's shared stderr FILE* here; Alpine/musl crashes when this
+    // low-level signal-handler test reaches it through atomicLoad(stderr).
+    enum message = "success.\n";
+    write(2, message.ptr, message.length);
 }

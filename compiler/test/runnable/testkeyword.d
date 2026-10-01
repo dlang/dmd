@@ -124,8 +124,8 @@ void main(string[] args) nothrow
     {
         void func(string cs, T1, alias T2, T...)(int x) const
         {
-            enum thisFunc       = `testkeyword.main.S.func!("foo", int, symbol, int[], float[]).func`;
-            enum thisFunc2 = `void testkeyword.main.S.func!("foo", int, symbol, int[], float[]).func(int x) const`;
+            enum thisFunc       = `testkeyword.main.S.func!("foo", int, symbol, int[], float[])`;
+            enum thisFunc2 = `void testkeyword.main.S.func!("foo", int, symbol, int[], float[])(int x) const`;
 
             static assert(getFuncArgFile()  == thisFile);
             static assert(getFuncArgLine()  == 131);

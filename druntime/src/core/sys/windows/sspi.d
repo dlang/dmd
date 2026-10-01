@@ -68,6 +68,7 @@ enum :ULONG{
     SECBUFFER_STREAM_HEADER = 7,
     SECBUFFER_PADDING = 9,
     SECBUFFER_STREAM = 10,
+    SECBUFFER_ALERT = 17,
     SECBUFFER_READONLY = 0x80000000,
     SECBUFFER_ATTRMASK = 0xf0000000,
 }
@@ -237,7 +238,7 @@ struct SecurityFunctionTableW{
     ACCEPT_SECURITY_CONTEXT_FN AcceptSecurityContext;
     COMPLETE_AUTH_TOKEN_FN CompleteAuthToken;
     DELETE_SECURITY_CONTEXT_FN DeleteSecurityContext;
-    APPLY_CONTROL_TOKEN_FN_W ApplyControlTokenW;
+    APPLY_CONTROL_TOKEN_FN_W ApplyControlToken;
     QUERY_CONTEXT_ATTRIBUTES_FN_W QueryContextAttributesW;
     IMPERSONATE_SECURITY_CONTEXT_FN ImpersonateSecurityContext;
     REVERT_SECURITY_CONTEXT_FN RevertSecurityContext;
@@ -267,7 +268,7 @@ struct SecurityFunctionTableA{
     ACCEPT_SECURITY_CONTEXT_FN AcceptSecurityContext;
     COMPLETE_AUTH_TOKEN_FN CompleteAuthToken;
     DELETE_SECURITY_CONTEXT_FN DeleteSecurityContext;
-    APPLY_CONTROL_TOKEN_FN_A ApplyControlTokenA;
+    APPLY_CONTROL_TOKEN_FN_A ApplyControlToken;
     QUERY_CONTEXT_ATTRIBUTES_FN_A QueryContextAttributesA;
     IMPERSONATE_SECURITY_CONTEXT_FN ImpersonateSecurityContext;
     REVERT_SECURITY_CONTEXT_FN RevertSecurityContext;
@@ -309,8 +310,11 @@ SECURITY_STATUS DecryptMessage(PCtxtHandle,PSecBufferDesc,ULONG,PULONG);
 SECURITY_STATUS EncryptMessage(PCtxtHandle,ULONG,PSecBufferDesc,ULONG);
 SECURITY_STATUS DeleteSecurityContext(PCtxtHandle);
 SECURITY_STATUS CompleteAuthToken(PCtxtHandle,PSecBufferDesc);
-SECURITY_STATUS ApplyControlTokenA(PCtxtHandle,PSecBufferDesc);
-SECURITY_STATUS ApplyControlTokenW(PCtxtHandle,PSecBufferDesc);
+SECURITY_STATUS ApplyControlToken(PCtxtHandle,PSecBufferDesc);
+deprecated("ApplyControlTokenW is not exported by secur32.dll; use ApplyControlToken")
+alias ApplyControlTokenW = ApplyControlToken;
+deprecated("ApplyControlTokenA is not exported by secur32.dll; use ApplyControlToken")
+alias ApplyControlTokenA = ApplyControlToken;
 SECURITY_STATUS ImpersonateSecurityContext(PCtxtHandle);
 SECURITY_STATUS RevertSecurityContext(PCtxtHandle);
 SECURITY_STATUS MakeSignature(PCtxtHandle,ULONG,PSecBufferDesc,ULONG);
@@ -340,7 +344,6 @@ version (Unicode) {
     alias QueryContextAttributes = QueryContextAttributesW;
     alias QueryCredentialsAttributes = QueryCredentialsAttributesW;
     alias QuerySecurityPackageInfo = QuerySecurityPackageInfoW;
-    alias ApplyControlToken = ApplyControlTokenW;
     alias ENUMERATE_SECURITY_PACKAGES_FN = ENUMERATE_SECURITY_PACKAGES_FN_W;
     alias QUERY_CREDENTIALS_ATTRIBUTES_FN = QUERY_CREDENTIALS_ATTRIBUTES_FN_W;
     alias ACQUIRE_CREDENTIALS_HANDLE_FN = ACQUIRE_CREDENTIALS_HANDLE_FN_W;
@@ -369,7 +372,6 @@ version (Unicode) {
     alias QueryContextAttributes = QueryContextAttributesA;
     alias QueryCredentialsAttributes = QueryCredentialsAttributesA;
     alias QuerySecurityPackageInfo = QuerySecurityPackageInfoA;
-    alias ApplyControlToken = ApplyControlTokenA;
     alias ENUMERATE_SECURITY_PACKAGES_FN = ENUMERATE_SECURITY_PACKAGES_FN_A;
     alias QUERY_CREDENTIALS_ATTRIBUTES_FN = QUERY_CREDENTIALS_ATTRIBUTES_FN_A;
     alias ACQUIRE_CREDENTIALS_HANDLE_FN = ACQUIRE_CREDENTIALS_HANDLE_FN_A;

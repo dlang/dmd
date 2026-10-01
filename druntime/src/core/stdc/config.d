@@ -182,37 +182,6 @@ else version (Posix)
     alias cpp_ulonglong = ulong;
   }
 }
-else version (WASI)
-{
-    static if ( (void*).sizeof > int.sizeof )
-    {
-        enum __c_longlong  : long;
-        enum __c_ulonglong : ulong;
-
-        alias c_long = long;
-        alias c_ulong = ulong;
-
-        alias cpp_long = long;
-        alias cpp_ulong = ulong;
-
-        alias cpp_longlong = __c_longlong;
-        alias cpp_ulonglong = __c_ulonglong;
-    }
-    else
-    {
-        enum __c_long  : int;
-        enum __c_ulong : uint;
-
-        alias c_long = int;
-        alias c_ulong = uint;
-
-        alias cpp_long = __c_long;
-        alias cpp_ulong = __c_ulong;
-
-        alias cpp_longlong = long;
-        alias cpp_ulonglong = ulong;
-    }
-}
 
 version (GNU)
     alias c_long_double = real;
@@ -259,6 +228,8 @@ else version (DigitalMars)
             alias c_long_double = real;
         else version (Darwin)
             alias c_long_double = real;
+        else version (Hurd)
+            alias c_long_double = real;
     }
     else version (AArch64)
     {
@@ -275,6 +246,8 @@ else version (DigitalMars)
         else version (Solaris)
             alias c_long_double = real;
         else version (Darwin)
+            alias c_long_double = real;
+        else version (Hurd)
             alias c_long_double = real;
     }
 }
@@ -669,7 +642,9 @@ version (unittest)
 // https://musl.libc.org/time64.html
 version (CRuntime_Musl)
 {
-    version (CRuntime_Musl_Pre_Time64)
+    version (Emscripten)
+        enum muslRedirTime64 = false;
+    else version (CRuntime_Musl_Pre_Time64)
         enum muslRedirTime64 = false;
     else
     {

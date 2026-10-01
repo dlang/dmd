@@ -33,10 +33,11 @@ enum TargetOS : ubyte
     FreeBSD      = 0x10,
     Solaris      = 0x20,
     DragonFlyBSD = 0x40,
+    Hurd         = 0x80,
 
     // Combination masks
-    all = linux | Windows | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
-    Posix = linux | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
+    all = linux | Windows | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD | Hurd,
+    Posix = linux | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD | Hurd,
 }
 
 // Detect the current TargetOS
@@ -67,6 +68,10 @@ else version(DragonFlyBSD)
 else version(Solaris)
 {
     private enum targetOS = TargetOS.Solaris;
+}
+else version(Hurd)
+{
+    private enum targetOS = TargetOS.Hurd;
 }
 else
 {
@@ -115,7 +120,7 @@ struct Usage
     /**
     * Representation of a CLI `Option`
     *
-    * The DDoc description `ddoxText` is only available when compiled with `-version=DdocOptions`.
+    * The DDoc description `ddocText` is only available when compiled with `-version=DdocOptions`.
     */
     struct Option
     {
@@ -206,21 +211,33 @@ struct Usage
         Option("c",
             "compile only, do not link"
         ),
-        Option("check=[assert|bounds|in|invariant|out|switch][=[on|off]]",
-            "enable or disable specific checks",
-            q"{Overrides default, `-boundscheck`, `-release` and `-unittest` options to enable or disable specific checks.
+        Option("check=<action>[=[on|off|safeonly]]",
+            "enable or disable specific checks for <action>: assert|bounds|in|invariant|nullderef|out|switch.",
+            q"{Enable or disable specific checks.
+            Overrides default, $(SWLINK -boundscheck), $(SWLINK -release) and
+            $(SWLINK -unittest) options to enable or disable specific checks.
+            *action* can be:
                 $(UL
                     $(LI $(B assert): assertion checking)
                     $(LI $(B bounds): array bounds)
                     $(LI $(B in): in contracts)
                     $(LI $(B invariant): class/struct invariants)
+                    $(LI **nullderef**: null dereference)
                     $(LI $(B out): out contracts)
                     $(LI $(B switch): $(D final switch) failure checking)
                 )
+                Each *action* can be set to:
                 $(UL
-                    $(LI $(B on) or not specified: specified check is enabled.)
+                    $(LI $(B on): specified check is enabled.)
                     $(LI $(B off): specified check is disabled.)
-                )}"
+                    $(LI $(B safeonly): check is enabled only in $(D @safe) functions.)
+                )
+                If no setting for *action* is given, it will default to `on`,
+                except `nullderef` defaults to `off`.}"
+        ),
+        Option("check=[on|off]",
+            "enable or disable all checks above",
+            "Enable or disable all checks above."
         ),
         Option("check=[h|help|?]",
             "list information on all available checks"
@@ -236,12 +253,12 @@ struct Usage
                     $(LI $(B context): Prints the error context as part of the unrecoverable $(D AssertError).)
                 )`
         ),
+        Option("checkaction=[h|help|?]",
+            "list information on all available check actions"
+        ),
         Option("checkactionfinally=[on|off]",
             "do finally statements that do not have an Exception thrown in try body get emitted?",
             "Default behavior is on. Turning this off means destructors may not run."
-        ),
-        Option("checkaction=[h|help|?]",
-            "list information on all available check actions"
         ),
         Option("color",
             "turn colored console output on"
@@ -636,7 +653,11 @@ dmd -cov -unittest myprog.d
             `$(UNIX Compile a 64 bit executable. This is the default for the 64 bit dmd.)
             $(WINDOWS The generated object code is in MS-COFF and is meant to be used with the
             $(LINK2 https://msdn.microsoft.com/en-us/library/dd831853(v=vs.100).aspx, Microsoft Visual Studio 10)
-            or later compiler.`,
+            or later compiler.)`,
+        ),
+        Option("marm64",
+            "generate Arm 64 bit code",
+            "Compile an Arm 64 bit executable. Only supported for OSX.",
         ),
         Option("main",
             "add default main() if not present already (e.g. for unittesting)",
@@ -704,13 +725,13 @@ dmd -cov -unittest myprog.d
             "If building MS-COFF object files when targeting Windows, embed a reference to
             the given C runtime library $(I libname) into the object file containing `main`,
             `DllMain` or `WinMain` for automatic linking. The default is $(TT libcmt)
-            (release version with static linkage), the other usual alternatives are
-            $(TT libcmtd), $(TT msvcrt) and $(TT msvcrtd).
-            If no Visual C installation is detected, a wrapper for the redistributable
-            VC2010 dynamic runtime library and mingw based platform import libraries will
-            be linked instead using the LLD linker provided by the LLVM project.
-            The detection can be skipped explicitly if $(TT msvcrt120) is specified as
-            $(I libname).
+            (release version with static linkage), which uses the Universal CRT (UCRT)
+            shipped with Visual Studio 2015 (or later) and the Windows 10 SDK. The other
+            usual alternatives are $(TT libcmtd), $(TT msvcrt) and $(TT msvcrtd).
+            If no Universal CRT capable Visual C installation is detected, the UCRT-based
+            libraries bundled with DMD (the mingw $(TT ucrtbase.lib) and
+            $(TT vcruntime140.lib)) are linked instead using the LLD linker provided by the
+            LLVM project.
             If $(I libname) is empty, no C runtime library is automatically linked in.",
             TargetOS.Windows,
         ),
@@ -736,6 +757,14 @@ dmd -cov -unittest myprog.d
             without any protection from the type system. Prefer the `nothrow`
             function attribute for partial disabling of Exceptions instead,
             and only use this flag to globally disable Exceptions.",
+        ),
+        Option("nothrow-optimizations",
+            "allow skipping destructors when an Error unwinds through a nothrow function",
+            `Controls whether $(D finally) blocks are emitted when the try body is $(D nothrow).
+             By default, finally blocks always run, ensuring cleanup on $(D Error) as well.
+             With this option, finally blocks are skipped in nothrow try bodies, which may prevent
+             destructors and scope(exit) blocks (which implicitly generate a try-finally block)
+             from running when an $(D Error) is thrown.`
         ),
         Option("O",
             "optimize",
@@ -787,6 +816,7 @@ dmd -cov -unittest myprog.d
                     $(LI $(I openbsd): OpenBSD)
                     $(LI $(I osx): OSX)
                     $(LI $(I solaris): Solaris)
+                    $(LI $(I hurd): Hurd)
                     $(LI $(I windows): Windows)
                 )`
         ),
@@ -866,20 +896,35 @@ dmd -cov -unittest myprog.d
             `$(UNIX Generate shared library)
              $(WINDOWS Generate DLL library)`,
         ),
-        Option("target=<triple>",
-               "use <triple> as <arch>-[<vendor>-]<os>[-<cenv>[-<cppenv]]",
-               "$(I arch) is the architecture: either `x86`, `x64`, `x86_64` or `x32`,
-               $(I vendor) is always ignored, but supported for easier interoperability,
-               $(I os) is the operating system, this may have a trailing version number:
-               `freestanding` for no operating system,
-               `darwin` or `osx` for MacOS, `dragonfly` or `dragonflybsd` for DragonflyBSD,
-               `freebsd`, `openbsd`, `linux`, `solaris` or `windows` for their respective operating systems.
-               $(I cenv) is the C runtime environment and is optional: `musl` for musl-libc,
-               `msvc` for the MSVC runtime, `bionic` for the Andriod libc, `gnu` or `glibc`
-               for the GCC C runtime, `newlib` or `uclibc` for their respective C runtimes.
-               ($ I cppenv) is the C++ runtime environment: `clang` for the LLVM C++ runtime,
-               `gcc` for GCC's C++ runtime, `msvc` for microsoft's MSVC C++ runtime,
-               `sun` for Sun's C++ runtime.
+        Option("target=<arch>-[<vendor>-]<os>[-<cenv>[-<cppenv>]]",
+               "set CPU architecture, OS, C runtime and C++ runtime",
+               "Set CPU architecture, OS, C runtime and C++ runtime:
+               $(UL
+                   $(LI $(I arch) is the architecture: either `x86`, `x64`, `x86_64` or `x32`)
+                   $(LI $(I vendor) is always ignored, but supported for easier interoperability)
+                   $(LI $(I os) is the operating system, this may have a trailing version number:)
+                   $(UL
+                       $(LI `freestanding` for no operating system)
+                       $(LI `darwin` or `osx` for MacOS)
+                       $(LI `dragonfly` or `dragonflybsd` for DragonflyBSD)
+                       $(LI `freebsd`, `openbsd`, `linux`, `solaris`, `hurd` or `windows` for their respective operating systems)
+                   )
+                   $(LI $(I cenv) is the C runtime environment and is optional:)
+                   $(UL
+                       $(LI `musl` for musl-libc)
+                       $(LI `msvc` for the MSVC runtime)
+                       $(LI `bionic` for the Android libc)
+                       $(LI `gnu` or `glibc` for the GCC C runtime)
+                       $(LI `newlib` or `uclibc` for their respective C runtimes)
+                   )
+                   $(LI $(I cppenv) is the C++ runtime environment:)
+                   $(UL
+                       $(LI `clang` for the LLVM C++ runtime)
+                       $(LI `gcc` for GCC's C++ runtime)
+                       $(LI `msvc` for microsoft's MSVC C++ runtime)
+                       $(LI `sun` for Sun's C++ runtime)
+                   )
+               )
                "
         ),
         Option("transition=<name>",
@@ -893,6 +938,11 @@ dmd -cov -unittest myprog.d
             "compile in unit tests",
             `Compile in $(LINK2 spec/unittest.html, unittest) code, turns on asserts, and sets the
              $(D unittest) $(LINK2 spec/version.html#PredefinedVersions, version identifier)`,
+        ),
+        Option("unittest-roots",
+            "compile in unit tests for root modules only",
+            `Compile in $(LINK2 spec/unittest.html, unittest) code, turns on asserts, and sets the
+             $(D unittest) $(LINK2 spec/version.html#PredefinedVersions, version identifier) only for root modules whose sources files are explicitly passed as arguments to compiler`,
         ),
         Option("v",
             "verbose",
@@ -948,6 +998,12 @@ dmd -cov -unittest myprog.d
                $(LI $(I hidden):  Only export symbols marked with `export`)
                $(LI $(I public):  Export all symbols)
             )",
+        ),
+        Option("vnan",
+            "warnings about default initalization of floating point variables to nan",
+            `floating point variables are initialized to nan by default. This switch
+            will cause a warning to be emitted for default nan initialization`,
+            TargetOS.all, false,
         ),
         Option("vtls",
             "list all variables going into thread local storage"
@@ -1185,11 +1241,11 @@ struct CLIUsage
   =in[=[on|off]]        Generate In contracts
   =invariant[=[on|off]] Class/struct invariants
   =out[=[on|off]]       Out contracts
-  =switch[=[on|off]]    Final switch failure checking
+  =switch[=[on|off]]    `final switch` failure checking
   =nullderef[=[on|off]] Null dereference error
-  =on                   Enable all assertion checking
-                        (default for non-release builds)
-  =off                  Disable all assertion checking
+  =on                   Enable all checking
+                        (default for non-release builds, except `nullderef`)
+  =off                  Disable all checking
 ";
 
     /// Options supported by -extern-std

@@ -25,7 +25,7 @@ version (DRuntime_Use_Libunwind)
 
     // This shouldn't be necessary but ensure that code doesn't get mixed
     // It does however prevent the unittest SEGV handler to be installed,
-    // which is desireable as it uses backtrace directly.
+    // which is desirable as it uses backtrace directly.
     private enum hasExecinfo = false;
 }
 else
@@ -808,7 +808,8 @@ void defaultTraceDeallocator(Throwable.TraceInfo info) nothrow
 }
 
 /// Default implementation for most POSIX systems
-version (Posix) private class DefaultTraceInfo : Throwable.TraceInfo
+version (WASI) {}
+else version (Posix) private class DefaultTraceInfo : Throwable.TraceInfo
 {
     import core.demangle;
     import core.stdc.stdlib : free;

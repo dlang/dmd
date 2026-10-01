@@ -180,23 +180,20 @@ void test3()    // between reference types
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting1.d(206): Error: cannot cast expression `0` of type `int` to `int delegate()`
-fail_compilation/fail_casting1.d(207): Error: cannot cast expression `0` of type `int` to `int[]`
-fail_compilation/fail_casting1.d(208): Error: cannot cast expression `0` of type `int` to `int[1]`
-fail_compilation/fail_casting1.d(209): Error: cannot cast expression `0` of type `int` to `int[int]`
-fail_compilation/fail_casting1.d(210): Error: cannot cast expression `0` of type `int` to `fail_casting1.C`
-fail_compilation/fail_casting1.d(211): Error: cannot cast expression `0` of type `int` to `typeof(null)`
-fail_compilation/fail_casting1.d(215): Error: cannot cast expression `i` of type `int` to `int delegate()`
-fail_compilation/fail_casting1.d(216): Error: cannot cast expression `i` of type `int` to `int[]`
-fail_compilation/fail_casting1.d(217): Error: cannot cast expression `i` of type `int` to `int[1]`
-fail_compilation/fail_casting1.d(218): Error: cannot cast expression `i` of type `int` to `int[int]`
-fail_compilation/fail_casting1.d(219): Error: cannot cast expression `i` of type `int` to `fail_casting1.C`
-fail_compilation/fail_casting1.d(220): Error: cannot cast expression `i` of type `int` to `typeof(null)`
-fail_compilation/fail_casting1.d(224): Error: cannot cast expression `dg` of type `int delegate()` to `int`
-fail_compilation/fail_casting1.d(225): Error: cannot cast expression `da` of type `int[]` to `int`
-fail_compilation/fail_casting1.d(226): Error: cannot cast expression `sa` of type `int[1]` to `int`
-fail_compilation/fail_casting1.d(227): Error: cannot cast expression `aa` of type `int[int]` to `int`
-fail_compilation/fail_casting1.d(228): Error: cannot cast expression `c` of type `fail_casting1.C` to `int`
+fail_compilation/fail_casting1.d(203): Error: cannot cast expression `0` of type `int` to `int delegate()`
+fail_compilation/fail_casting1.d(204): Error: cannot cast expression `0` of type `int` to `int[]`
+fail_compilation/fail_casting1.d(206): Error: cannot cast expression `0` of type `int` to `int[int]`
+fail_compilation/fail_casting1.d(207): Error: cannot cast expression `0` of type `int` to `fail_casting1.C`
+fail_compilation/fail_casting1.d(208): Error: cannot cast expression `0` of type `int` to `typeof(null)`
+fail_compilation/fail_casting1.d(212): Error: cannot cast expression `i` of type `int` to `int delegate()`
+fail_compilation/fail_casting1.d(213): Error: cannot cast expression `i` of type `int` to `int[]`
+fail_compilation/fail_casting1.d(215): Error: cannot cast expression `i` of type `int` to `int[int]`
+fail_compilation/fail_casting1.d(216): Error: cannot cast expression `i` of type `int` to `fail_casting1.C`
+fail_compilation/fail_casting1.d(217): Error: cannot cast expression `i` of type `int` to `typeof(null)`
+fail_compilation/fail_casting1.d(221): Error: cannot cast expression `dg` of type `int delegate()` to `int`
+fail_compilation/fail_casting1.d(222): Error: cannot cast expression `da` of type `int[]` to `int`
+fail_compilation/fail_casting1.d(224): Error: cannot cast expression `aa` of type `int[int]` to `int`
+fail_compilation/fail_casting1.d(225): Error: cannot cast expression `c` of type `fail_casting1.C` to `int`
 ---
 */
 void test4()
@@ -205,7 +202,7 @@ void test4()
     { auto x = cast(FP) 0; }    // Accept
     { auto x = cast(DG) 0; }    // Reject (from constfold)
     { auto x = cast(DA) 0; }    // Reject (Bugzilla 11484)
-    { auto x = cast(SA) 0; }    // Reject (Bugzilla 11484)
+    { auto x = cast(SA) 0; }    // Accept (same-size basic <-> sarray)
     { auto x = cast(AA) 0; }    // Reject (from constfold)
     { auto x = cast( C) 0; }    // Reject (Bugzilla 11485)
     { auto x = cast( N) 0; }    // Reject (from constfold)
@@ -214,7 +211,7 @@ void test4()
     { auto x = cast(FP) i; }    // Accept
     { auto x = cast(DG) i; }    // Reject (from e2ir)
     { auto x = cast(DA) i; }    // Reject (Bugzilla 11484)
-    { auto x = cast(SA) i; }    // Reject (Bugzilla 11484)
+    { auto x = cast(SA) i; }    // Accept (same-size basic <-> sarray)
     { auto x = cast(AA) i; }    // Reject (from e2ir)
     { auto x = cast( C) i; }    // Reject (Bugzilla 11485)
     { auto x = cast( N) i; }    // Reject (from e2ir)
@@ -223,7 +220,7 @@ void test4()
     { auto x = cast(int)fp; }   // Accept
     { auto x = cast(int)dg; }   // Reject (from e2ir)
     { auto x = cast(int)da; }   // Reject (Bugzilla 11484)
-    { auto x = cast(int)sa; }   // Reject (Bugzilla 11484)
+    { auto x = cast(int)sa; }   // Accept (same-size basic <-> sarray)
     { auto x = cast(int)aa; }   // Reject (from e2ir)
     { auto x = cast(int) c; }   // Reject (Bugzilla 7472)
     { auto x = cast(int) n; }   // Accept
@@ -232,27 +229,24 @@ void test4()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting1.d(249): Error: cannot cast expression `0` of type `int` to `int[1]`
-fail_compilation/fail_casting1.d(250): Error: cannot cast expression `0` of type `int` to `S`
-fail_compilation/fail_casting1.d(251): Error: cannot cast expression `i` of type `int` to `int[1]`
-fail_compilation/fail_casting1.d(252): Error: cannot cast expression `i` of type `int` to `S`
-fail_compilation/fail_casting1.d(253): Error: cannot cast expression `f` of type `double` to `int[1]`
-fail_compilation/fail_casting1.d(254): Error: cannot cast expression `f` of type `double` to `S`
-fail_compilation/fail_casting1.d(255): Error: cannot cast expression `sa` of type `int[1]` to `int`
-fail_compilation/fail_casting1.d(256): Error: cannot cast expression `s` of type `S` to `int`
-fail_compilation/fail_casting1.d(257): Error: cannot cast expression `sa` of type `int[1]` to `double`
-fail_compilation/fail_casting1.d(258): Error: cannot cast expression `s` of type `S` to `double`
+fail_compilation/fail_casting1.d(244): Error: cannot cast expression `0` of type `int` to `S`
+fail_compilation/fail_casting1.d(246): Error: cannot cast expression `i` of type `int` to `S`
+fail_compilation/fail_casting1.d(247): Error: cannot cast expression `f` of type `double` to `int[1]`
+fail_compilation/fail_casting1.d(248): Error: cannot cast expression `f` of type `double` to `S`
+fail_compilation/fail_casting1.d(250): Error: cannot cast expression `s` of type `S` to `int`
+fail_compilation/fail_casting1.d(251): Error: cannot cast expression `sa` of type `int[1]` to `double`
+fail_compilation/fail_casting1.d(252): Error: cannot cast expression `s` of type `S` to `double`
 ---
 */
 void test5()
 {
-    { auto x = cast(SA) 0; }        // Reject (Bugzilla 14154)
+    { auto x = cast(SA) 0; }        // Accept (same-size basic <-> sarray)
     { auto x = cast( S) 0; }        // Reject (Bugzilla 14154)
-    { auto x = cast(SA) i; }        // Reject (Bugzilla 14154)
+    { auto x = cast(SA) i; }        // Accept (same-size basic <-> sarray)
     { auto x = cast( S) i; }        // Reject (Bugzilla 14154)
     { auto x = cast(SA) f; }        // Reject (Bugzilla 14154)
     { auto x = cast( S) f; }        // Reject (Bugzilla 14154)
-    { auto x = cast(int)sa; }       // Reject (Bugzilla 14154)
+    { auto x = cast(int)sa; }       // Accept (same-size basic <-> sarray)
     { auto x = cast(int) s; }       // Reject (Bugzilla 14154)
     { auto x = cast(double)sa; }    // Reject (Bugzilla 14154)
     { auto x = cast(double) s; }    // Reject (Bugzilla 14154)

@@ -79,6 +79,7 @@ public:
     void visit(AST.StorageClassDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.ConditionalDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.StaticForeachDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
+    void visit(AST.UnpackDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
 
     //==============================================================================================
     // Miscellaneous
@@ -228,11 +229,6 @@ public:
     void visit(AST.ArrayExp e) { visit(cast(AST.UnaExp)e); }
 
     // DefaultInitExp
-    void visit(AST.FuncInitExp e) { visit(cast(AST.DefaultInitExp)e); }
-    void visit(AST.PrettyFuncInitExp e) { visit(cast(AST.DefaultInitExp)e); }
-    void visit(AST.FileInitExp e) { visit(cast(AST.DefaultInitExp)e); }
-    void visit(AST.LineInitExp e) { visit(cast(AST.DefaultInitExp)e); }
-    void visit(AST.ModuleInitExp e) { visit(cast(AST.DefaultInitExp)e); }
 
     // BinExp
     void visit(AST.CommaExp e) { visit(cast(AST.BinExp)e); }

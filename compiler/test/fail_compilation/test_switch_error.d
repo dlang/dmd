@@ -2,9 +2,7 @@
 https://issues.dlang.org/show_bug.cgi?id=22514
 TEST_OUTPUT:
 ---
-fail_compilation/test_switch_error.d(13): Error: undefined identifier `doesNotExist`
-fail_compilation/test_switch_error.d(16): Error: undefined identifier `alsoDoesNotExits`
-fail_compilation/test_switch_error.d(19): Error: duplicate `case 2` in `switch` statement
+fail_compilation/test_switch_error.d(11): Error: undefined identifier `doesNotExist`
 ---
 ++/
 
@@ -104,10 +102,6 @@ void test5(int i)
 TEST_OUTPUT:
 ---
 fail_compilation/test_switch_error.d(513): Error: undefined identifier `undefinedFunc`
-fail_compilation/test_switch_error.d(517): Error: `case` expression must be a compile-time `string` or an integral constant, not `Strukt(1)`
-fail_compilation/test_switch_error.d(518): Error: `case` variables have to be `const` or `immutable`
-fail_compilation/test_switch_error.d(518): Error: `case` variables not allowed in `final switch` statements
-fail_compilation/test_switch_error.d(519): Error: `case` variables not allowed in `final switch` statements
 fail_compilation/test_switch_error.d(522): Error: undefined identifier `undefinedFunc2`
 ---
 ++/
@@ -144,8 +138,6 @@ void errorsWithErrors(int param, immutable int constant)
 TEST_OUTPUT:
 ---
 fail_compilation/test_switch_error.d(622): Error: undefined identifier `undefinedFunc`
-fail_compilation/test_switch_error.d(624): Error: `case` expression must be a compile-time `string` or an integral constant, not `SubtypeOfInt(2)`
-fail_compilation/test_switch_error.d(625): Error: `case` expression must be a compile-time `string` or an integral constant, not `SubtypeOfIntMethod()`
 ---
 ++/
 #line 600

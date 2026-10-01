@@ -1,10 +1,14 @@
 debug (SENTINEL)
 void main()
 {
+    import core.internal.thread : isSingleThreaded;
     import core.stdc.stdio : printf;
     import core.sys.posix.unistd : _exit;
     import core.thread : Thread, thread_detachThis;
     import core.memory : GC;
+
+    static if(isSingleThreaded)
+        return;
 
     // Create a new thread and immediately detach it from the runtime,
     // so that the pointer p will not be visible to the GC.

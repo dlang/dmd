@@ -185,6 +185,13 @@ bool c_isalnum(const int c)
         ( c >= 'A' && c <= 'Z'));
 }
 
+///
+bool isAlphaASCII(const dchar c)
+{
+    return (( c >= 'a' && c <= 'z') ||
+        ( c >= 'A' && c <= 'Z'));
+}
+
 extern(D) private:
 
 // originally from dmd.root.utf

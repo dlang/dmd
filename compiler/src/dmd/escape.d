@@ -22,12 +22,12 @@ import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.errors;
+import dmd.errors : previewSupplementalFunc, previewErrorFunc;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.funcsem;
-import dmd.globals : FeatureState;
+import dmd.globals : FeatureState, global;
 import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
@@ -197,7 +197,7 @@ bool checkMutableArguments(ref Scope sc, FuncDeclaration fd, TypeFunction tf,
                                 : "mutable and const references %s `%s` in arguments to `%s()`";
             sc.eSink.error((*arguments)[i].loc, msg,
                   referenceVerb,
-                  v.toChars(),
+                  v.toErrMsg(),
                   fd ? fd.toPrettyChars() : "indirectly");
         }
         errors = true;
@@ -284,7 +284,7 @@ bool checkAssocArrayLiteralEscape(ref Scope sc, AssocArrayLiteralExp ae, bool ga
 }
 
 /**
- * An error occured due to `v` either being or not being `scope`.
+ * An error occurred due to `v` either being or not being `scope`.
  * If applicable, print why the `v` was inferred that way.
  *
  * Params:
@@ -379,8 +379,9 @@ bool checkParamArgumentEscape(ref Scope sc, FuncDeclaration fdc, Identifier parI
             sc.setUnsafeDIP1000(gag, arg.loc, vPar, msg, v, parId ? parId : fdc, fdc))
         {
             result = true;
-            printScopeReason(previewSupplementalFunc(sc.isDeprecated(), sc.useDIP1000), vPar, 10, false);
-            printScopeReason(previewSupplementalFunc(sc.isDeprecated(), sc.useDIP1000), v, 10, true);
+            auto eSink = global.errorSink;
+            printScopeReason(previewSupplementalFunc(eSink, sc.isDeprecated(), sc.useDIP1000), vPar, 10, false);
+            printScopeReason(previewSupplementalFunc(eSink, sc.isDeprecated(), sc.useDIP1000), v, 10, true);
         }
     }
 
@@ -891,7 +892,7 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
         {
             if (!gag)
                 sc.eSink.deprecation(ee.loc, "slice of static array temporary returned by `%s` assigned to longer lived variable `%s`",
-                    ee.toChars(), e1.toChars());
+                    ee.toErrMsg(), e1.toErrMsg());
             //result = true;
             return;
         }
@@ -969,7 +970,6 @@ public
 bool checkNewEscape(ref Scope sc, Expression e, bool gag)
 {
     import dmd.globals: FeatureState;
-    import dmd.errors: previewErrorFunc;
 
     //printf("[%s] checkNewEscape, e = %s\n", e.loc.toChars(), e.toChars());
     enum log = false;
@@ -1059,7 +1059,8 @@ bool checkNewEscape(ref Scope sc, Expression e, bool gag)
             const(char)* msg = "storing reference to outer local variable `%s` into allocated memory causes it to escape";
             if (!gag)
             {
-                previewErrorFunc(sc.isDeprecated(), sc.useDIP25)(e.loc, msg, v.toChars());
+                auto eSink = global.errorSink;
+                previewErrorFunc(eSink, sc.isDeprecated(), sc.useDIP25)(e.loc, msg, v.toChars());
             }
 
             // If -preview=dip25 is used, the user wants an error
@@ -1080,7 +1081,7 @@ bool checkNewEscape(ref Scope sc, Expression e, bool gag)
         if (log) printf("byexp %s\n", ee.toChars());
         if (!gag)
             sc.eSink.error(ee.loc, "escaping reference to stack allocated value returned by `%s` into allocated memory",
-                  ee.toChars());
+                  ee.toErrMsg());
         result = true;
     }
 
@@ -1162,10 +1163,11 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
             return;
         }
 
-        if (v.isTypesafeVariadicArray && p == sc.func)
+        if (v.isTypesafeVariadicArray && p == sc.func &&
+            v.type.toBasetype().isTypeDArray())
         {
             if (!gag)
-                sc.eSink.error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toChars(), v.toChars());
+                sc.eSink.error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toErrMsg(), v.toErrMsg());
             result = false;
         }
         else if (v.isScope())
@@ -1203,12 +1205,13 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                     return;
                 }
 
+                auto eSink = global.errorSink;
                 if (v.isParameter() && !v.isReturn())
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=23191
                     if (!gag)
                     {
-                        previewErrorFunc(sc.isDeprecated(), sc.useDIP1000)(e.loc,
+                        previewErrorFunc(eSink, sc.isDeprecated(), sc.useDIP1000)(e.loc,
                             "scope parameter `%s` may not be returned", v.toChars()
                         );
                         result = true;
@@ -1220,7 +1223,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                     // https://issues.dlang.org/show_bug.cgi?id=17029
                     if (sc.setUnsafeDIP1000(gag, e.loc, "returning scope variable `%s`", v))
                     {
-                        printScopeReason(previewSupplementalFunc(sc.isDeprecated(), sc.useDIP1000), v, 10, true);
+                        printScopeReason(previewSupplementalFunc(eSink, sc.isDeprecated(), sc.useDIP1000), v, 10, true);
                         result = true;
                         return;
                     }
@@ -1240,6 +1243,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
         {
             printf("byref `%s` %s\n", v.toChars(), ScopeRefToChars(buildScopeRef(v.storage_class)));
         }
+        auto eSink = global.errorSink;
 
         // 'featureState' tells us whether to emit an error or a deprecation,
         // depending on the flag passed to the CLI for DIP25
@@ -1256,13 +1260,13 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                     result = true;
                     if (v.storage_class & STC.returnScope)
                     {
-                        previewSupplementalFunc(sc.isDeprecated(), featureState)(v.loc,
+                        previewSupplementalFunc(eSink, sc.isDeprecated(), featureState)(v.loc,
                             "perhaps change the `return scope` into `scope return`");
                     }
                     else
                     {
                         const(char)* annotateKind = (v.ident is Id.This) ? "function" : "parameter";
-                        previewSupplementalFunc(sc.isDeprecated(), featureState)(v.loc,
+                        previewSupplementalFunc(eSink, sc.isDeprecated(), featureState)(v.loc,
                             "perhaps annotate the %s with `return`", annotateKind);
                     }
                 }
@@ -1279,7 +1283,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                         "returning `%s` escapes a reference to parameter `%s`" :
                         "returning `%s` escapes a reference to local variable `%s`";
                     if (!gag)
-                        previewErrorFunc(sc.isDeprecated(), featureState)(e.loc, msg, e.toChars(), v.toChars());
+                        previewErrorFunc(eSink, sc.isDeprecated(), featureState)(e.loc, msg, e.toChars(), v.toChars());
                     result = true;
                 }
             }
@@ -1349,7 +1353,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                     {
                         const(char)* msg = "escaping reference to outer local variable `%s`";
                         if (!gag)
-                            previewErrorFunc(sc.isDeprecated(), sc.useDIP25)(e.loc, msg, v.toChars());
+                            previewErrorFunc(eSink, sc.isDeprecated(), sc.useDIP25)(e.loc, msg, v.toChars());
                         result = true;
                         return;
                     }
@@ -1376,7 +1380,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
         else
         {
             if (!gag)
-                sc.eSink.error(ee.loc, "escaping reference to stack allocated value returned by `%s`", ee.toChars());
+                sc.eSink.error(ee.loc, "escaping reference to stack allocated value returned by `%s`", ee.toErrMsg());
             result = true;
         }
     }
@@ -1398,7 +1402,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
  * Params:
  *      va = variable to infer scope for
  *      reason = optional Expression that causes `va` to infer scope, used for supplemental error message
- * Returns: `true` if succesful or already `scope`
+ * Returns: `true` if successful or already `scope`
  */
 private
 bool inferScope(VarDeclaration va, RootObject reason)

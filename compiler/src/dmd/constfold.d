@@ -23,10 +23,11 @@ import dmd.ctfeexpr;
 import dmd.dcast;
 import dmd.declaration;
 import dmd.dstruct;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.location;
 import dmd.mtype;
 import dmd.root.complex;
@@ -309,6 +310,7 @@ UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
     }
     else
     {
+        auto eSink = global.errorSink;
         sinteger_t n1;
         sinteger_t n2;
         sinteger_t n;
@@ -316,7 +318,7 @@ UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
         n2 = e2.toInteger();
         if (n2 == 0)
         {
-            error(e2.loc, "divide by 0");
+            eSink.error(e2.loc, "divide by 0");
             emplaceExp!(ErrorExp)(&ue);
             return ue;
         }
@@ -325,13 +327,13 @@ UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
             // Check for int.min / -1
             if (n1 == 0xFFFFFFFF80000000UL && type.toBasetype().ty != Tint64)
             {
-                error(e2.loc, "integer overflow: `int.min / -1`");
+                eSink.error(e2.loc, "integer overflow: `int.min / -1`");
                 emplaceExp!(ErrorExp)(&ue);
                 return ue;
             }
             else if (n1 == 0x8000000000000000L) // long.min / -1
             {
-                error(e2.loc, "integer overflow: `long.min / -1L`");
+                eSink.error(e2.loc, "integer overflow: `long.min / -1L`");
                 emplaceExp!(ErrorExp)(&ue);
                 return ue;
             }
@@ -374,6 +376,7 @@ UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
     }
     else
     {
+        auto eSink = global.errorSink;
         sinteger_t n1;
         sinteger_t n2;
         sinteger_t n;
@@ -381,7 +384,7 @@ UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
         n2 = e2.toInteger();
         if (n2 == 0)
         {
-            error(e2.loc, "divide by 0");
+            eSink.error(e2.loc, "divide by 0");
             emplaceExp!(ErrorExp)(&ue);
             return ue;
         }
@@ -390,13 +393,13 @@ UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
             // Check for int.min % -1
             if (n1 == 0xFFFFFFFF80000000UL && type.toBasetype().ty != Tint64)
             {
-                error(e2.loc, "integer overflow: `int.min %% -1`");
+                eSink.error(e2.loc, "integer overflow: `int.min %% -1`");
                 emplaceExp!(ErrorExp)(&ue);
                 return ue;
             }
             else if (n1 == 0x8000000000000000L) // long.min % -1
             {
-                error(e2.loc, "integer overflow: `long.min %% -1L`");
+                eSink.error(e2.loc, "integer overflow: `long.min %% -1L`");
                 emplaceExp!(ErrorExp)(&ue);
                 return ue;
             }
@@ -625,7 +628,7 @@ UnionExp Equal(EXP op, Loc loc, Type type, Expression e1, Expression e2)
         }
         else if (ArrayLiteralExp es2 = e2.isArrayLiteralExp())
         {
-            cmp = !es2.elements || (0 == es2.elements.length);
+            cmp = (0 == es2.length);
         }
         else
         {
@@ -641,7 +644,7 @@ UnionExp Equal(EXP op, Loc loc, Type type, Expression e1, Expression e2)
         }
         else if (ArrayLiteralExp es1 = e1.isArrayLiteralExp())
         {
-            cmp = !es1.elements || (0 == es1.elements.length);
+            cmp = (0 == es1.length);
         }
         else
         {
@@ -670,15 +673,10 @@ UnionExp Equal(EXP op, Loc loc, Type type, Expression e1, Expression e2)
     {
         ArrayLiteralExp es1 = e1.isArrayLiteralExp();
         ArrayLiteralExp es2 = e2.isArrayLiteralExp();
-        if ((!es1.elements || !es1.elements.length) && (!es2.elements || !es2.elements.length))
-            cmp = 1; // both arrays are empty
-        else if (!es1.elements || !es2.elements)
-            cmp = 0;
-        else if (es1.elements.length != es2.elements.length)
-            cmp = 0;
-        else
+        if (es1.length == es2.length)
         {
-            for (size_t i = 0; i < es1.elements.length; i++)
+            cmp = 1;
+            foreach (size_t i; 0 .. es1.length)
             {
                 auto ee1 = es1[i];
                 auto ee2 = es2[i];
@@ -705,7 +703,7 @@ UnionExp Equal(EXP op, Loc loc, Type type, Expression e1, Expression e2)
         StringExp es1 = e1.isStringExp();
         ArrayLiteralExp es2 = e2.isArrayLiteralExp();
         size_t dim1 = es1.len;
-        size_t dim2 = es2.elements ? es2.elements.length : 0;
+        size_t dim2 = es2.length;
         if (dim1 != dim2)
             cmp = 0;
         else
@@ -1048,6 +1046,22 @@ UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
     {
         cantExp(ue);
     }
+    else if (tb.ty == Tsarray && e1.op == EXP.int64)
+    {
+        TypeSArray tsa = cast(TypeSArray)tb;
+        Type telem = tsa.nextOf();
+        dinteger_t dim = tsa.dim.toInteger();
+        if (dim == 1 && e1.type.size() == telem.size())
+        {
+            auto elements = new Expressions();
+            elements.push(Cast(loc, telem, telem, e1).exp().copy());
+            emplaceExp!(ArrayLiteralExp)(&ue, loc, type, elements);
+        }
+        else
+        {
+            cantExp(ue);
+        }
+    }
     else if (tb.ty == Tstruct && e1.op == EXP.int64)
     {
         // Struct = 0;
@@ -1073,7 +1087,8 @@ UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
         {
             // have to change to internal compiler error
             // all invalid casts should be handled already in Expression::castTo().
-            error(loc, "cannot cast `%s` to `%s`", e1.type.toChars(), type.toChars());
+            auto eSink = global.errorSink;
+            eSink.error(loc, "cannot cast `%s` to `%s`", e1.type.toErrMsg(), type.toErrMsg());
         }
         emplaceExp!(ErrorExp)(&ue);
     }
@@ -1090,7 +1105,7 @@ UnionExp ArrayLength(Type type, Expression e1)
     }
     else if (ArrayLiteralExp ale = e1.isArrayLiteralExp())
     {
-        size_t dim = ale.elements ? ale.elements.length : 0;
+        size_t dim = ale.length;
         emplaceExp!(IntegerExp)(&ue, loc, dim, type);
     }
     else if (AssocArrayLiteralExp ale = e1.isAssocArrayLiteralExp)
@@ -1116,6 +1131,7 @@ UnionExp ArrayLength(Type type, Expression e1)
  */
 UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
 {
+    auto eSink = global.errorSink;
     UnionExp ue = void;
     Loc loc = e1.loc;
     //printf("Index(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
@@ -1126,7 +1142,7 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
         uinteger_t i = e2.toInteger();
         if (i >= es1.len)
         {
-            error(e1.loc, "string index %llu is out of bounds `[0 .. %llu]`", i, cast(ulong)es1.len);
+            eSink.error(e1.loc, "string index %llu is out of bounds `[0 .. %llu]`", i, cast(ulong)es1.len);
             emplaceExp!(ErrorExp)(&ue);
         }
         else
@@ -1142,7 +1158,7 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
         if (i >= length && (e1.op == EXP.arrayLiteral || !indexIsInBounds))
         {
             // C code only checks bounds if an ArrayLiteralExp
-            error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toChars(), length);
+            eSink.error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toErrMsg(), length);
             emplaceExp!(ErrorExp)(&ue);
         }
         else if (ArrayLiteralExp ale = e1.isArrayLiteralExp())
@@ -1163,9 +1179,9 @@ UnionExp Index(Type type, Expression e1, Expression e2, bool indexIsInBounds)
         uinteger_t i = e2.toInteger();
         if (ArrayLiteralExp ale = e1.isArrayLiteralExp())
         {
-            if (i >= ale.elements.length)
+            if (i >= ale.length)
             {
-                error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toChars(), cast(ulong) ale.elements.length);
+                eSink.error(e1.loc, "array index %llu is out of bounds `%s[0 .. %llu]`", i, e1.toErrMsg(), cast(ulong) ale.length);
                 emplaceExp!(ErrorExp)(&ue);
             }
             else
@@ -1247,7 +1263,7 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
         {
             const len = cast(size_t)(iupr - ilwr);
             const sz = es1.sz;
-            void* s = mem.xmalloc(len * sz);
+            void* s = mem.xmalloc_noscan(len * sz);
             const data1 = es1.peekData();
             memcpy(s, data1.ptr + ilwr * sz, len * sz);
             emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz, es1.postfix);
@@ -1261,13 +1277,13 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
         ArrayLiteralExp es1 = e1.isArrayLiteralExp();
         const uinteger_t ilwr = lwr.toInteger();
         const uinteger_t iupr = upr.toInteger();
-        if (sliceBoundsCheck(0, es1.elements.length, ilwr, iupr))
+        if (sliceBoundsCheck(0, es1.length, ilwr, iupr))
             cantExp(ue);
         else
         {
             auto elements = new Expressions(cast(size_t)(iupr - ilwr));
             memcpy(elements.tdata(), es1.elements.tdata() + ilwr, cast(size_t)(iupr - ilwr) * ((*es1.elements)[0]).sizeof);
-            emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, type, elements);
+            emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, type, es1.basis, elements);
         }
     }
     else
@@ -1305,7 +1321,7 @@ void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, const StringE
 void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayLiteralExp newae, size_t firstIndex)
 {
     assert(existingSE.ownedByCtfe != OwnedBy.code);
-    foreach (j; 0 .. newae.elements.length)
+    foreach (j; 0 .. newae.length)
     {
         existingSE.setCodeUnit(firstIndex + j, cast(dchar)newae[j].toInteger());
     }
@@ -1420,7 +1436,7 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
             const sz = cast(ubyte)t.size();
             dinteger_t v = e.toInteger();
             const len = (t.ty == tn.ty) ? 1 : utf_codeLength(sz, cast(dchar)v);
-            void* s = mem.xmalloc(len * sz);
+            void* s = mem.xmalloc_noscan(len * sz);
             if (t.ty == tn.ty)
                 Port.valcpy(s, v, sz);
             else
@@ -1493,7 +1509,7 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
             assert(ue.exp().type);
             return ue;
         }
-        void* s = mem.xmalloc(len * sz);
+        void* s = mem.xmalloc_noscan(len * sz);
         const data1 = es1.peekData();
         const data2 = es2.peekData();
         memcpy(cast(char*)s, data1.ptr, es1.len * sz);
@@ -1510,15 +1526,15 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
         // [chars] ~ string --> [chars]
         StringExp es = e2.isStringExp();
         ArrayLiteralExp ea = e1.isArrayLiteralExp();
-        size_t len = es.len + ea.elements.length;
+        size_t len = es.len + ea.length;
         auto elems = new Expressions(len);
-        for (size_t i = 0; i < ea.elements.length; ++i)
+        for (size_t i = 0; i < ea.length; ++i)
         {
             (*elems)[i] = ea[i];
         }
         emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, type, elems);
         ArrayLiteralExp dest = ue.exp().isArrayLiteralExp();
-        sliceAssignArrayLiteralFromString(dest, es, ea.elements.length);
+        sliceAssignArrayLiteralFromString(dest, es, ea.length);
         assert(ue.exp().type);
         return ue;
     }
@@ -1527,9 +1543,9 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
         // string ~ [chars] --> [chars]
         StringExp es = e1.isStringExp();
         ArrayLiteralExp ea = e2.isArrayLiteralExp();
-        size_t len = es.len + ea.elements.length;
+        size_t len = es.len + ea.length;
         auto elems = new Expressions(len);
-        for (size_t i = 0; i < ea.elements.length; ++i)
+        for (size_t i = 0; i < ea.length; ++i)
         {
             (*elems)[es.len + i] = ea[i];
         }
@@ -1550,7 +1566,7 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
         // (char[] ~ char, wchar[]~wchar, or dchar[]~dchar)
         bool homoConcat = (sz == t2.size());
         const len = es1.len + (homoConcat ? 1 : utf_codeLength(sz, cast(dchar)v));
-        void* s = mem.xmalloc(len * sz);
+        void* s = mem.xmalloc_noscan(len * sz);
         const data1 = es1.peekData();
         memcpy(s, data1.ptr, data1.length);
         if (homoConcat)
@@ -1573,7 +1589,7 @@ UnionExp Cat(Loc loc, Type type, Expression e1, Expression e2)
         const len = 1 + es2.len;
         const sz = es2.sz;
         dinteger_t v = e1.toInteger();
-        void* s = mem.xmalloc(len * sz);
+        void* s = mem.xmalloc_noscan(len * sz);
         Port.valcpy(cast(char*)s, v, sz);
         const data2 = es2.peekData();
         memcpy(cast(char*)s + sz, data2.ptr, data2.length);

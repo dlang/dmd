@@ -1598,6 +1598,393 @@ else version (Solaris)
         SHUT_RDWR
     }
 }
+else version (Hurd)
+{
+    alias socklen_t = uint;
+    alias sa_family_t = ubyte;
+
+    struct sockaddr
+    {
+        ubyte       ss_len;
+        sa_family_t sa_family;
+        byte[14]    sa_data;
+    }
+
+    private enum : size_t
+    {
+        _SS_SIZE    = 128,
+        _SS_PADSIZE = _SS_SIZE - c_ulong.sizeof - sa_family_t.sizeof - ubyte.sizeof,
+    }
+
+    struct sockaddr_storage
+    {
+        ubyte       ss_len;
+        sa_family_t ss_family;
+        byte[_SS_PADSIZE] __ss_padding;
+        c_ulong     __ss_align;
+    }
+    struct msghdr
+    {
+        void*      msg_name;
+        socklen_t  msg_namelen;
+        iovec*     msg_iov;
+        int        msg_iovlen;
+        void*      msg_control;
+        socklen_t  msg_controllen;
+        int        msg_flags;
+    }
+
+    struct cmsghdr
+    {
+        socklen_t cmsg_len;
+        int        cmsg_level;
+        int        cmsg_type;
+    }
+    enum : uint
+    {
+        SCM_RIGHTS = 0x01
+    }
+
+    extern (D) inout(ubyte)*   CMSG_DATA( return scope inout(cmsghdr)* cmsg ) pure nothrow @nogc { return cast(ubyte*)( cmsg + 1 ); }
+    private inout(cmsghdr)* __cmsg_nxthdr(inout(msghdr)*, inout(cmsghdr)*) pure nothrow @nogc;
+    extern (D)  inout(cmsghdr)* CMSG_NXTHDR(inout(msghdr)* msg, inout(cmsghdr)* cmsg) pure nothrow @nogc
+    {
+        return __cmsg_nxthdr(msg, cmsg);
+    }
+
+    extern (D) inout(cmsghdr)* CMSG_FIRSTHDR( inout(msghdr)* mhdr ) pure nothrow @nogc
+    {
+        return ( cast(size_t)mhdr.msg_controllen >= cmsghdr.sizeof
+                 ? cast(inout(cmsghdr)*) mhdr.msg_control
+                 : cast(inout(cmsghdr)*) null );
+    }
+
+    extern (D)
+     {
+         size_t CMSG_ALIGN( size_t len ) pure nothrow @nogc
+         {
+             return (len + size_t.sizeof - 1) & cast(size_t) (~(size_t.sizeof - 1));
+         }
+
+         size_t CMSG_LEN( size_t len ) pure nothrow @nogc
+         {
+             return CMSG_ALIGN(cmsghdr.sizeof) + len;
+         }
+     }
+
+    extern (D) size_t CMSG_SPACE(size_t len) pure nothrow @nogc
+    {
+        return CMSG_ALIGN(len) + CMSG_ALIGN(cmsghdr.sizeof);
+    }
+    struct linger
+    {
+        int l_onoff;
+        int l_linger;
+    }
+
+    enum
+    {
+        SOCK_DGRAM      = 2,
+        SOCK_RDM        = 4,
+        SOCK_SEQPACKET  = 5,
+        SOCK_STREAM     = 1,
+    }
+    enum
+    {
+        SOL_SOCKET      = 0xffff
+    }
+    enum
+    {
+        SO_ACCEPTCONN   = 0x0002,
+        SO_BROADCAST    = 0x0020,
+        SO_DEBUG        = 0x0001,
+        SO_DONTROUTE    = 0x0010,
+        SO_ERROR        = 0x1007,
+        SO_KEEPALIVE    = 0x0008,
+        SO_LINGER       = 0x0080,
+        SO_OOBINLINE    = 0x0100,
+        SO_RCVBUF       = 0x1002,
+        SO_RCVLOWAT     = 0x1004,
+        SO_RCVTIMEO     = 0x1006,
+        SO_REUSEADDR    = 0x0004,
+        SO_REUSEPORT    = 0x0200,
+        SO_SNDBUF       = 0x1002,
+        SO_SNDLOWAT     = 0x1003,
+        SO_SNDTIMEO     = 0x1005,
+        SO_TYPE         = 0x1008
+    }
+    enum
+    {
+        SOMAXCONN       = 128
+    }
+    enum : uint
+    {
+        MSG_CTRUNC      = 0x20,
+        MSG_DONTROUTE   = 0x04,
+        MSG_EOR         = 0x08,
+        MSG_OOB         = 0x01,
+        MSG_PEEK        = 0x02,
+        MSG_TRUNC       = 0x10,
+        MSG_WAITALL     = 0x40,
+        MSG_NOSIGNAL    = 0x0400
+    }
+
+    enum
+    {
+        AF_INET         = 2,
+        AF_LOCAL        = 1,
+        AF_UNIX         = AF_LOCAL,
+        AF_UNSPEC       = 0,
+        AF_APPLETALK    = 16,
+        AF_IPX          = 23
+    }
+    enum
+    {
+        SHUT_RD             = 0,
+        SHUT_WR             = 1,
+        SHUT_RDWR           = 2
+    }
+}
+else version (Emscripten)
+{
+    // note: this is only a subset of the C declarations (covering what CRuntime_WASI does below)
+
+    alias socklen_t = uint;
+    alias sa_family_t = ushort;
+
+    struct sockaddr
+    {
+        sa_family_t sa_family;
+        byte[14]    sa_data;
+    }
+
+    struct sockaddr_storage
+    {
+        sa_family_t ss_family;
+        byte[128 - c_ulong.sizeof - sa_family_t.sizeof] __ss_padding;
+        c_ulong __ss_align;
+    }
+
+    struct msghdr
+    {
+        void*     msg_name;
+        socklen_t msg_namelen;
+        iovec*    msg_iov;
+        version (D_LP64) version (BigEndian)
+            int __pad1;
+        int       msg_iovlen;
+        version (D_LP64) version (LittleEndian)
+            int __pad1;
+        void*     msg_control;
+        version (D_LP64) version (BigEndian)
+            int __pad2;
+        socklen_t msg_controllen;
+        version (D_LP64) version (LittleEndian)
+            int __pad2;
+        int       msg_flags;
+    }
+
+    struct linger
+    {
+        int l_onoff;
+        int l_linger;
+    }
+
+    enum
+    {
+        SOCK_DGRAM      = 2,
+        SOCK_STREAM     = 1,
+    }
+
+    enum
+    {
+        SOL_SOCKET      = 1
+    }
+
+    enum
+    {
+        SO_REUSEADDR = 2,
+        SO_ERROR = 4,
+        SO_SNDBUF = 7,
+        SO_RCVBUF = 8,
+        SO_KEEPALIVE = 9,
+        SO_ACCEPTCONN = 30,
+        SO_PROTOCOL = 38,
+        SO_DOMAIN = 39,
+
+        SO_TYPE = 3
+    }
+
+    version (D_LP64)
+    {
+        enum
+        {
+            SO_RCVTIMEO = 20,
+            SO_SNDTIMEO = 21,
+        }
+    }
+    else
+    {
+        enum
+        {
+            SO_RCVTIMEO = 66,
+            SO_SNDTIMEO = 67,
+        }
+    }
+
+    enum
+    {
+        SOMAXCONN   = 128
+    }
+
+    enum : uint
+    {
+        MSG_DONTWAIT  = 0x0040,
+        MSG_NOSIGNAL  = 0x4000,
+        MSG_PEEK      = 0x0002,
+        MSG_WAITALL   = 0x0100,
+        MSG_TRUNC     = 0x0020
+    }
+
+    enum
+    {
+        PF_UNSPEC = 0,
+        PF_INET = 2,
+
+        AF_UNSPEC  = PF_UNSPEC,
+        AF_INET    = PF_INET,
+        AF_UNIX    = 1,
+    }
+
+    enum
+    {
+        SHUT_RD,
+        SHUT_WR,
+        SHUT_RDWR
+    }
+}
+else version (CRuntime_WASI)
+{
+    alias socklen_t = uint;
+    alias sa_family_t = ushort;
+
+    struct sockaddr
+    {
+        align(16) // __BIGGEST_ALIGNMENT__ on Wasm
+        sa_family_t sa_family;
+
+        byte[0]    sa_data;
+    }
+
+    struct sockaddr_storage
+    {
+        align(16) // __BIGGEST_ALIGNMENT__ on Wasm
+        sa_family_t ss_family;
+        byte[32] __ss_data;
+    }
+
+    struct msghdr
+    {
+        void*     msg_name;
+        socklen_t msg_namelen;
+        iovec*    msg_iov;
+        int       msg_iovlen;
+        void*     msg_control;
+        socklen_t msg_controllen;
+        int       msg_flags;
+    }
+
+    struct linger
+    {
+        int l_onoff;
+        int l_linger;
+    }
+
+    enum
+    {
+        SOCK_DGRAM      = 5,
+        SOCK_STREAM     = 6,
+    }
+
+    enum
+    {
+        SOL_SOCKET      = 0x7fffffff
+    }
+
+    version (WASIp1)
+    {
+        enum : ushort
+        {
+            MSG_PEEK    = (1 << 0), // __WASI_RIFLAGS_RECV_PEEK
+            MSG_WAITALL = (1 << 1), // __WASI_RIFLAGS_RECV_WAITALL
+            MSG_TRUNC   = (1 << 0), // __WASI_ROFLAGS_RECV_DATA_TRUNCATED
+        }
+    }
+    else
+    {
+        enum
+        {
+            SO_REUSEADDR = 2,
+            SO_ERROR = 4,
+            SO_SNDBUF = 7,
+            SO_RCVBUF = 8,
+            SO_KEEPALIVE = 9,
+            SO_ACCEPTCONN = 30,
+            SO_PROTOCOL = 38,
+            SO_DOMAIN = 39,
+
+            SO_TYPE = 3
+        }
+
+        version (D_LP64)
+        {
+            enum
+            {
+                SO_RCVTIMEO = 20,
+                SO_SNDTIMEO = 21,
+            }
+        }
+        else
+        {
+            enum
+            {
+                SO_RCVTIMEO = 66,
+                SO_SNDTIMEO = 67,
+            }
+        }
+
+        enum
+        {
+            SOMAXCONN   = 128
+        }
+
+        enum : uint
+        {
+            MSG_DONTWAIT  = 0x0040,
+            MSG_NOSIGNAL  = 0x4000,
+            MSG_PEEK      = 0x0002,
+            MSG_WAITALL   = 0x0100,
+            MSG_TRUNC     = 0x0020
+        }
+    }
+
+    enum
+    {
+        PF_UNSPEC = 0,
+        PF_INET = 1,
+
+        AF_UNSPEC  = PF_UNSPEC,
+        AF_INET    = PF_INET,
+        AF_UNIX    = 3
+    }
+
+    enum
+    {
+        SHUT_RD = 1,
+        SHUT_WR = 2,
+        SHUT_RDWR = 3
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1817,6 +2204,27 @@ else version (CRuntime_Musl)
     int     sockatmark(int);
     int     socketpair(int, int, int, ref int[2]);
 }
+else version (CRuntime_WASI)
+{
+    int     accept(int, sockaddr*, socklen_t*);
+    int     getsockopt(int, int, int, void*, socklen_t*);
+    ssize_t recv(int, void*, size_t, int);
+    ssize_t send(int, const scope void*, size_t, int);
+    int     shutdown(int, int);
+    version (WASIp1) {}
+    else
+    {
+        int     bind(int, const scope sockaddr*, socklen_t);
+        int     connect(int, const scope sockaddr*, socklen_t);
+        int     listen(int, int);
+        int     getpeername(int, sockaddr*, socklen_t*);
+        int     getsockname(int, sockaddr*, socklen_t*);
+        ssize_t recvfrom(int, void*, size_t, int, sockaddr*, socklen_t*);
+        ssize_t sendto(int, const scope void*, size_t, int, const scope sockaddr*, socklen_t);
+        int     socket(int, int, int);
+        int     setsockopt(int, int, int, const scope void*, socklen_t);
+    }
+}
 else version (CRuntime_UClibc)
 {
     int     accept(int, sockaddr*, socklen_t*);
@@ -1899,6 +2307,29 @@ else version (Solaris)
         AF_INET6 = 26,
     }
 }
+else version (Hurd)
+{
+    enum
+    {
+        AF_INET6 = 26,
+    }
+}
+else version (Emscripten)
+{
+    enum
+    {
+        PF_INET6 = 10,
+        AF_INET6 = PF_INET6,
+    }
+}
+else version (CRuntime_WASI)
+{
+    enum
+    {
+        PF_INET6 = 2,
+        AF_INET6 = PF_INET6,
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1959,6 +2390,23 @@ else version (Solaris)
     {
         SOCK_RAW = 4,
     }
+}
+else version (Hurd)
+{
+    enum
+    {
+        SOCK_RAW = 3,
+    }
+}
+else version (Emscripten)
+{
+    enum
+    {
+        SOCK_RAW    = 3
+    }
+}
+else version (CRuntime_WASI)
+{
 }
 else
 {

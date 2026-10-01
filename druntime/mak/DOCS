@@ -448,6 +448,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_windows_mshtml.html \
 	$(DOCDIR)\core_sys_windows_mswsock.html \
 	$(DOCDIR)\core_sys_windows_nb30.html \
+	$(DOCDIR)\core_sys_windows_ncrypt.html \
 	$(DOCDIR)\core_sys_windows_nddeapi.html \
 	$(DOCDIR)\core_sys_windows_nspapi.html \
 	$(DOCDIR)\core_sys_windows_ntdef.html \

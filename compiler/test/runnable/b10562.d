@@ -90,4 +90,12 @@ void main()
         // arr = slice;
         // assert(arr == [[ slice, slice, slice ], [ slice, slice, slice ]]);
     }
+    {
+        // https://github.com/dlang/dmd/issues/22386
+        const int[3][2] a = [[1:2, 3],[0: 0, 1:2, 2:3]];
+        assert(a == [ [ 0, 2, 3 ], [ 0, 2, 3 ] ]);
+
+        const int[3][2] b = [[1:2, 2:3],[0: 0, 1:2, 2:3]];
+        assert(b == [ [ 0, 2, 3 ], [ 0, 2, 3 ] ]);
+    }
 }

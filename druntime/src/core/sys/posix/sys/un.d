@@ -104,3 +104,32 @@ else version (Solaris)
         byte[108]    sun_path;
     }
 }
+else version (Hurd)
+{
+    struct sockaddr_un
+    {
+        ubyte       sun_len;
+        sa_family_t sun_family;
+        byte[108]   sun_path;
+    }
+}
+else version (Emscripten)
+{
+    struct sockaddr_un
+    {
+        sa_family_t  sun_family;
+        byte[108]    sun_path;
+    }
+}
+else version (CRuntime_WASI)
+{
+    struct sockaddr_un
+    {
+        align(16) // __BIGGEST_ALIGNMENT__ on Wasm
+        sa_family_t  sun_family;
+    }
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}

@@ -3,6 +3,7 @@ REQUIRED_ARGS: -mcpu=native
 PERMUTE_ARGS: -O -inline -release
 */
 
+import core.stdc.config;
 import core.stdc.stdio;
 
 template tuple(A...) { alias tuple = A; }
@@ -713,13 +714,13 @@ void test12095(int k)
 
 bool test3918a( float t, real u )
 {
-        printf("%Lf\n", u );
+        printf("%Lf\n", cast(c_long_double)u );
         return t && u;
 }
 
 bool test3918b( real t, float u )
 {
-        printf("%Lf\n", t );
+        printf("%Lf\n", cast(c_long_double)t );
         return t && u;
 }
 

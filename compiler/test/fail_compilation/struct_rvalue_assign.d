@@ -29,6 +29,7 @@ S foo() => S.init;
 struct S
 {
     int i;
+    const(int)* p; // writes through `p` are not allowed, should ignore
 
     void opAssign(S s);
     void opOpAssign(string op : "+")(int);

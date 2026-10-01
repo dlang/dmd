@@ -176,7 +176,7 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
             foreach (i, ex; ai.index)
             {
                 if (ex)
-                    walkPostorder(ex, this);
+                    ex.accept(this);
                 if (Initializer iz = ai.value[i])
                     iz.accept(this);
             }
@@ -256,7 +256,8 @@ bool lambdaCheckForNestedRef(Expression e, Scope* sc)
                  */
                 if (v._init && v._init.isExpInitializer())
                 {
-                    Expression ie = v._init.initializerToExpression();
+                    import dmd.globals : global;
+                    Expression ie = v._init.initializerToExpression(sc, null, global.errorSink);
                     result = lambdaCheckForNestedRef(ie, sc);
                 }
             }

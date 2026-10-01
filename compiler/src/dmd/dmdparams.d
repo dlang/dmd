@@ -137,10 +137,12 @@ struct Triple
 
     void unknown(const(char)[] unk, const(char)* what)
     {
-        import dmd.errors : error;
+        import dmd.errorsink;
+        import dmd.globals : global;
         import dmd.root.string : toCStringThen;
         import dmd.location;
-        unk.toCStringThen!(p => error(Loc.initial,"unknown %s `%s` for `-target`", what, p.ptr));
+        auto eSink = global.errorSink;
+        unk.toCStringThen!(p => eSink.error(Loc.initial,"unknown %s `%s` for `-target`", what, p.ptr));
     }
 
     void parseArch(const(char)[] arch)
@@ -227,6 +229,8 @@ struct Triple
             os =  Target.OS.OpenBSD;
         else if (matches("linux"))
             os =  Target.OS.linux;
+        else if (matches("hurd"))
+            os =  Target.OS.Hurd;
         else if (matches("windows"))
             os =  Target.OS.Windows;
         else
@@ -239,7 +243,10 @@ struct Triple
         auto major = parseNumber(_os, overflow);
         if (overflow || major >= 255)
         {
-            error(Loc.initial, "OS version overflowed max of 254");
+            import dmd.globals : global;
+            import dmd.errorsink;
+            auto eSink = global.errorSink;
+            eSink.error(Loc.initial, "OS version overflowed max of 254");
             major = 255;
         }
         osMajor = cast(ubyte)major;
@@ -326,8 +333,37 @@ void setTargetBuildDefaults(ref Target target) @safe
     target.os = defaultTargetOS();
     target.osMajor = defaultTargetOSMajor();
     target.cpu = CPU.baseline;
-    target.isX86_64 = (size_t.sizeof == 8);
-    target.isX86 = !target.isX86_64;
+    version (AArch64)
+    {
+        target.isAArch64 = true;
+    }
+    else
+    {
+        target.isX86_64 = (size_t.sizeof == 8);
+        target.isX86 = !target.isX86_64;
+    }
+}
+
+unittest
+{
+    Target t;
+    setTargetBuildDefaults(t);
+    version (AArch64)
+    {
+        assert(t.isAArch64);
+        assert(!t.isX86_64);
+    }
+    else version (X86_64)
+    {
+        assert(!t.isAArch64);
+        assert(t.isX86_64);
+    }
+    else version (X86)
+    {
+        assert(!t.isAArch64);
+        assert(!t.isX86_64);
+        assert(t.isX86);
+    }
 }
 
 void setTriple(ref Target target, const ref Triple triple) @safe

@@ -110,21 +110,21 @@ $(H3 $(GNAME isArithmetic))
         Otherwise, $(D false) is returned.
         If there are no arguments, $(D false) is returned.)
 
-        $(P Arithmetic types are integral types and floating point types.)
+        $(P Arithmetic types are $(RELATIVE_LINK2 isIntegral, integral types) and
+        $(RELATIVE_LINK2 isFloating, floating point) types.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-import std.stdio;
-
-void main()
-{
+    ---
     int i;
     static assert(__traits(isArithmetic, int));
-    static assert(__traits(isArithmetic, i, i+1, int));
+    static assert(__traits(isArithmetic, i, i + 1, int));
+
+    enum E { a, b }
+    static assert(__traits(isArithmetic, E));
+
     static assert(!__traits(isArithmetic));
     static assert(!__traits(isArithmetic, int*));
-}
----
+    ---
 )
 
 $(H3 $(GNAME isOverlapped))
@@ -297,7 +297,7 @@ static assert(!__traits(isUnsigned, void*));
 
 $(H3 $(GNAME isStaticArray))
 
-        $(P Works like $(D isArithmetic), except it's for static array
+        $(P Works like $(RELATIVE_LINK2 isArithmetic, `isArithmetic`), except it's for static array
         types.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -317,7 +317,7 @@ static assert(!__traits(isStaticArray, array));
 
 $(H3 $(GNAME isAssociativeArray))
 
-        $(P Works like $(D isArithmetic), except it's for associative array
+        $(P Works like `isStaticArray`, except it's for associative array
         types.)
 
 $(H3 $(GNAME isAbstractClass))

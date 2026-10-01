@@ -17,7 +17,9 @@ import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;
 
-import dmd.errors;
+import dmd.errors : error;
+import dmd.errorsink;
+import dmd.globals : global;
 import dmd.location;
 import dmd.root.env;
 import dmd.root.rmem;

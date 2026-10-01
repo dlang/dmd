@@ -94,6 +94,16 @@ else version (CRuntime_Musl)
     pragma(mangle, muslRedirTime64Mangle!("utimes", "__utimes_time64"))
     int utimes(const scope char*, ref const(timeval)[2]);
 }
+else version (CRuntime_WASI)
+{
+    struct timeval
+    {
+        time_t      tv_sec;
+        suseconds_t tv_usec;
+    }
+    int gettimeofday(timeval*, void*);
+    int utimes(const scope char*, ref const(timeval)[2]);
+}
 else version (Darwin)
 {
     struct timeval

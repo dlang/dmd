@@ -12,8 +12,8 @@ imports.issue18919b.func4: issue18919.d:35 issue18919.main void issue18919.main(
 imports.issue18919b.func4b: issue18919.d:36 issue18919.main void issue18919.main() issue18919
 imports.issue18919b.func4c: issue18919.d:37 issue18919.main void issue18919.main() issue18919
 imports.issue18919b.func4d: issue18919.d:38 issue18919.main void issue18919.main() issue18919
-imports.issue18919b.func5!("issue18919.d", 39, "issue18919.main", "void issue18919.main()", "issue18919").func5: issue18919.d:39 issue18919.main void issue18919.main() issue18919
-imports.issue18919b.func6!("issue18919.d", 40, "issue18919.main", "void issue18919.main()", "issue18919").func6: issue18919.d:40 issue18919.main void issue18919.main() issue18919
+imports.issue18919b.func5!("issue18919.d", 39, "issue18919.main", "void issue18919.main()", "issue18919"): issue18919.d:39 issue18919.main void issue18919.main() issue18919
+imports.issue18919b.func6!("issue18919.d", 40, "issue18919.main", "void issue18919.main()", "issue18919"): issue18919.d:40 issue18919.main void issue18919.main() issue18919
 imports.issue18919b.func7: expr1=1082, file=issue18919.d func=issue18919.main, expr3=1
 imports.issue18919b.func8: expr1=[42, 1042, ], expr2=[issue18919.d: 42, ], expr3=constant2, expr4=issue18919
 imports.issue18919b.func9.fp: issue18919b.d:216 imports.issue18919b

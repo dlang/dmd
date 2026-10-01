@@ -19,6 +19,7 @@
  * For special casing ImportC code.
  */
 #define __IMPORTC__ 1
+#define __IMPORTC_DMD__ 1
 
 /********************
  * Some compilers define `__restrict` instead of `restrict` as C++ compilers don't
@@ -39,6 +40,7 @@
 #define __volatile__ volatile
 #define __attribute __attribute__
 #define __alignof _Alignof
+#define __alignof__ _Alignof
 #define __vector_size__ vector_size
 #define __typeof typeof
 #define __typeof__ typeof
@@ -73,6 +75,21 @@
 typedef unsigned short __uint16_t;
 typedef unsigned int __uint32_t;
 typedef unsigned long long __uint64_t;
+
+/* wchar_t */
+#if defined(_WIN32)
+#ifndef _WCHAR_T_DEFINED
+// On Windows, wchar_t is defined as an unsigned 16-bit integer: the same as D's wchar.
+typedef __importc_wchar wchar_t;
+#define _WCHAR_T_DEFINED 1
+#define _NATIVE_WCHAR_T_DEFINED 1
+
+#ifdef _MSC_VER
+// Microsoft go a step further and have a proper built-in type.
+typedef __importc_wchar __wchar_t;
+#endif
+#endif
+#endif
 
 /*********************
  * Obsolete detritus
@@ -178,7 +195,7 @@ typedef unsigned long long __uint64_t;
 #endif
 
 #define _Float16 float
-#ifdef __linux__  // Microsoft won't allow the following macro
+#if defined(__linux__) || defined(__GNU__)  // Microsoft won't allow the following macro
 // Ubuntu's assert.h uses this
 #define __PRETTY_FUNCTION__ __func__
 
@@ -201,8 +218,22 @@ typedef struct {} __SVFloat32_t;
 typedef struct {} __SVFloat64_t;
 #endif
 
-#endif // __linux__
+#endif // __linux__ || __GNU__
 
 #if __APPLE__
 #undef __SIZEOF_INT128__
+#endif
+
+#if __ANDROID__
+#undef __SIZEOF_INT128__
+#define __GNUC_VA_LIST
+#define _VA_LIST
+#define __builtin_va_list va_list
+#define __gnuc_va_list va_list
+
+// This macro resolves the ambiguity between Bionic and library ioctl.
+// https://android.googlesource.com/platform/bionic/+/master/libc/include/bits/ioctl.h
+#define BIONIC_IOCTL_NO_SIGNEDNESS_OVERLOAD
+
+#define __sync_synchronize()
 #endif

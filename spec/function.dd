@@ -47,6 +47,8 @@ $(GNAME Parameter):
     $(GLINK ParameterDeclaration) $(D ...)
     $(GLINK ParameterDeclaration) $(D =) $(ASSIGNEXPRESSION)
     $(GLINK ParameterDeclaration) $(D =) $(ASSIGNEXPRESSION) $(D ...)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK ParameterTuplePattern)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK ParameterTuplePattern) = $(GLINK2 expression, AssignExpression)
 
 $(GNAME ParameterDeclaration):
     $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
@@ -112,15 +114,22 @@ $(GNAME MemberFunctionAttribute):
 )
     $(P *FunctionAttributes* come after function parameters in a $(GLINK FuncDeclaration)
     or $(RELATIVE_LINK2 function-pointer-attributes, function pointer), unlike
-    $(GLINK2 attribute, Attributes) which precede a declaration.)
+    $(GLINK2 attribute, Attribute)s which precede a declaration.)
 
     $(P A $(DDSUBLINK spec/struct, constructor-attributes, constructor),
     $(DDSUBLINK spec/struct, member-functions, member function),
     $(DDSUBLINK spec/type, delegates, delegate) or
     $(RELATIVE_LINK2 nested-qualifiers, nested function) can have *MemberFunctionAttributes*,
-    which extends *FunctionAttributes*. Note that some function/method attributes are also
-    declaration *Attributes* - see $(DDSUBLINK spec/declaration, methods-returning-qualified,
-    Methods Returning a Qualified Type).)
+    which extends *FunctionAttributes*.)
+
+    - Many function/method attributes are valid $(DDSUBLINK spec/attribute, Attribute,
+      declaration attributes). Note that the different attribute positions have different
+      meanings for a $(GLINK2 type, TypeCtor) attribute - see
+      $(DDSUBLINK spec/declaration, methods-returning-qualified,
+      Methods Returning a Qualified Type).
+    - Some function attributes $(RELATIVE_LINK2 function-attribute-inference, can be inferred).
+    - Some function attribute checks are turned off inside a
+      $(DDSUBLINK spec/version, DebugStatement, `debug` statement).
 
     $(P See also:)
 
@@ -1494,8 +1503,8 @@ void test()
 
 $(H3 $(LNAME2 overload-sets, Overload Sets))
 
-        $(P Functions declared at the same scope overload against each
-        other, and are called an $(I Overload Set).
+        $(P An $(I Overload Set) is the set of functions with the same name
+        declared in the same scope that participate in overload resolution.
         An example of an overload set are functions defined
         at module level:
         )
@@ -1701,8 +1710,8 @@ $(H3 $(LNAME2 ref-params, Ref and Out Parameters))
         $(P A `ref` parameter can also be returned by reference, see
         $(RELATIVE_LINK2 return-ref-parameters, Return Ref Parameters.))
 
-        $(P An `out` parameter is similar to a `ref` parameter, except it is initialized
-        by $(DDSUBLINK spec/property, init-vs-construction, default construction) upon
+        $(P An `out` parameter is similar to a `ref` parameter, except it is
+        $(DDSUBLINK spec/property, init-vs-construction, default initialized) upon
         function invocation.)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -2275,6 +2284,48 @@ $(H3 $(LNAME2 udas-parameters, User-Defined Attributes for Parameters))
 
 See also: $(GLINK2_ALTTEXT attribute, UserDefinedAttribute, User-Defined Attributes)
 
+$(H3 $(LNAME2 unpacking-parameters, Unpacking Parameters))
+
+$(GRAMMAR
+$(GNAME ParameterTuplePattern):
+    `(` $(GLINK ParameterTupleComponents) `)`
+
+$(GNAME ParameterTupleComponents):
+    $(GLINK ParameterTupleComponent) `,`
+    $(GLINK ParameterTupleComponent) `,` $(GLINK ParameterTupleComponent)
+    $(GLINK ParameterTupleComponent) `,` $(GLINK ParameterTupleComponents)
+
+$(GNAME ParameterTupleComponent):
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK_LEX Identifier)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK ParameterTuplePattern)
+)
+
+        $(P A $(DDSUBLINK spec/expression, function-literal-alias, function literal template)
+        with untyped *ParameterTupleComponents* is supported. The corresponding function
+        argument will be unpacked into component variables:)
+
+---
+import std.typecons : tuple;
+
+alias dg = ((x, y), z) => writeln(x, " ", y, " ", z);
+dg(tuple(1, 2), 3); // "1 2 3\n"
+---
+        $(NOTE A typed *ParameterTupleComponent* is parsed, but cannot be supported without
+        compiler-recognised tuple types.)
+
+        $(P `((x, y), z) { ... }` is lowered to `(__arg0, z) { auto (x, y) = __arg0; ... }`.
+        In general, lowering preserves and copies storage classes from
+        the parameter to an $(DDSUBLINK spec/declaration, unpacking-declarations,
+        unpacking declaration) in the function body.)
+
+        - The `ref` storage class is copied outwards, e.g., `((ref a, b), c) { ... }` gets lowered to
+          `(ref __arg0, c) { (ref a, auto b) = __arg0; ... }`.
+        - `out` can be applied to the whole parameter, but not to individual components.
+        - `auto ref` and `lazy` cannot be applied to an unpacking parameter.
+
+        $(NOTE `out` unpacking parameters are not supported by the current implementation, but may be added at a future date.)
+
 $(H3 $(LNAME2 variadic, Variadic Functions))
 
         $(P $(I Variadic Functions) take a variable number of arguments.
@@ -2379,17 +2430,10 @@ $(H4 $(LNAME2 d_style_variadic_functions, D-style Variadic Functions))
         ------
         )
 
-        $(P Two hidden arguments are passed to the function:)
-
-        $(UL
-        $(LI `_argptr`)
-        $(LI `TypeInfo[] _arguments`)
-        )
-
-        $(P $(D _argptr) is a pointer to the first of the variadic
-        arguments. To access the variadic arguments,
-        import $(LINK2 $(ROOT_DIR)phobos/core_vararg.html, $(D core.vararg)).
-        Use $(D _argptr) in conjunction with $(REF_SHORT va_arg, core,stdc,stdarg):)
+        $(P `va_list _argptr` is declared & initialized as a pointer to the
+        first of the variadic arguments. To access the variadic arguments,
+        import $(LINK2 $(ROOT_DIR)phobos/core_vararg.html, $(D core.vararg)) and
+        use $(D _argptr) in conjunction with $(REF_SHORT va_arg, core,stdc,stdarg):)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
@@ -2409,8 +2453,11 @@ void main()
 }
 ------
 )
-        $(P $(D _arguments) gives the number of arguments and the `typeid`
-        of each, enabling type safety to be checked at run time.)
+        $(P A hidden function parameter `TypeInfo[] _arguments` gives
+        the number of arguments and the $(REF1 TypeInfo, object) of each argument's
+        type. This enables type safety to be manually checked at run time by
+        comparing each element against a $(DDSUBLINK spec/expression, typeid_expressions,
+        `typeid(`*Type*`)`) expression.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
@@ -2691,15 +2738,17 @@ $(H3 $(LNAME2 hidden-parameters, Hidden Parameters))
             the function is called.
         )
         $(LI $(RELATIVE_LINK2 d_style_variadic_functions, D-style variadic functions)
-            have hidden parameters.)
+            have a hidden `_arguments` parameter.)
         $(LI $(RELATIVE_LINK2 nested, Nested functions) have a hidden context
             pointer parameter.)
+        $(LI A function $(DDSUBLINK spec/glossary, nrvo, returning a struct type) may
+            have a hidden pointer parameter.)
         $(LI
             $(DDSUBLINK spec/class, objc-member-functions,
                 Member functions with `Objective-C` linkage) have a hidden parameter.
         )
         )
-
+        $(P See $(DDSUBLINK spec/abi, parameters, ABI) for details.)
 
 
 $(H2 $(LNAME2 refscopereturn, Ref Scope Return Cases))
@@ -3037,7 +3086,7 @@ $(H2 $(LEGACY_LNAME2 Local Variables, local-variables, Local Variables))
 
 $(H3 $(LEGACY_LNAME2 Local Static Variables, local-static-variables, Local Static Variables))
 
-        $(P Local variables in functions declared as `static`, `shared static`
+        $(P Local variables declared as `static`, `shared static`
         or $(D __gshared) are statically allocated
         rather than being allocated on the stack.
         The lifetime of `__gshared` and `shared static` variables begins
@@ -4422,10 +4471,13 @@ $(H2 $(LNAME2 function-attribute-inference, Function Attribute Inference))
         * $(RELATIVE_LINK2 nothrow-functions, $(D nothrow))
         * $(RELATIVE_LINK2 safe-functions, $(D @safe))
         * $(RELATIVE_LINK2 nogc-functions, $(D @nogc))
-        * $(RELATIVE_LINK2 return-ref-parameters, return ref parameters)
-        * $(RELATIVE_LINK2 scope-parameters, scope parameters)
-        * $(RELATIVE_LINK2 return-scope-parameters, return scope parameters)
-        * $(RELATIVE_LINK2 ref-return-scope-parameters, ref return scope parameters)
+
+        $(P Likewise, the following parameter attributes will be inferred:)
+
+        * $(RELATIVE_LINK2 return-ref-parameters, `return ref`)
+        * $(RELATIVE_LINK2 scope-parameters, `scope`)
+        * $(RELATIVE_LINK2 return-scope-parameters, `return scope`)
+        * $(RELATIVE_LINK2 ref-return-scope-parameters, `ref return scope`)
 
         $(P Attribute inference is not done for other functions, even if the function
         body is present.

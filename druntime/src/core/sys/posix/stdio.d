@@ -198,6 +198,23 @@ else version (CRuntime_Musl)
         alias tmpfile64 = tmpfile;
     }
 }
+else version (CRuntime_WASI)
+{
+    int   fgetpos(FILE*, fpos_t *);
+    FILE* fopen(const scope char*, const scope char*);
+    FILE* freopen(const scope char*, const scope char*, FILE*);
+    int   fseek(FILE*, c_long, int);
+    int   fsetpos(FILE*, const scope fpos_t*);
+
+    deprecated("tmpfile is not defined on WASI")
+    FILE* tmpfile();
+
+    alias fgetpos64 = fgetpos;
+    alias fopen64 = fopen;
+    alias freopen64 = freopen;
+    alias fsetpos64 = fsetpos;
+    alias tmpfile64 = tmpfile;
+}
 else version (Solaris)
 {
     static if (__USE_FILE_OFFSET64 && __WORDSIZE != 64)
@@ -318,6 +335,20 @@ else version (CRuntime_Musl)
         alias fseeko64 = fseeko;
         alias ftello64 = ftello;
     }
+
+    ssize_t getdelim(char**, size_t*, int, FILE*);
+    ssize_t getline(char**, size_t*, FILE*);
+    int     renameat(int, const scope char*, int, const scope char*);
+}
+else version (CRuntime_WASI)
+{
+    enum L_ctermid = 20;
+
+    int   fseeko(FILE*, off_t, int);
+    off_t ftello(FILE*);
+
+    alias fseeko64 = fseeko;
+    alias ftello64 = ftello;
 
     ssize_t getdelim(char**, size_t*, int, FILE*);
     ssize_t getline(char**, size_t*, FILE*);
@@ -449,8 +480,13 @@ char*  ctermid(char*);
 FILE*  fdopen(int, const scope char*);
 int    fileno(FILE*);
 char*  gets(char*);
-int    pclose(FILE*);
-FILE*  popen(const scope char*, const scope char*);
+
+version (CRuntime_WASI) {}
+else
+{
+    int    pclose(FILE*);
+    FILE*  popen(const scope char*, const scope char*);
+}
 
 
 // memstream functions are conforming to POSIX.1-2008.  These functions are
@@ -468,6 +504,8 @@ else version (CRuntime_UClibc)
     version = HaveMemstream;
 // http://git.musl-libc.org/cgit/musl/commit/src/stdio/open_memstream.c?id=b158b32a44d56ef20407d4285b58180447ffff1f
 else version (CRuntime_Musl)
+    version = HaveMemstream;
+else version (CRuntime_WASI)
     version = HaveMemstream;
 
 version (HaveMemstream)
@@ -502,6 +540,16 @@ version (CRuntime_Glibc)
     int    putchar_unlocked(int);
 }
 else version (CRuntime_Musl)
+{
+    void   flockfile(FILE*);
+    int    ftrylockfile(FILE*);
+    void   funlockfile(FILE*);
+    int    getc_unlocked(FILE*);
+    int    getchar_unlocked();
+    int    putc_unlocked(int, FILE*);
+    int    putchar_unlocked(int);
+}
+else version (CRuntime_WASI)
 {
     void   flockfile(FILE*);
     int    ftrylockfile(FILE*);
@@ -602,7 +650,11 @@ va_list (defined in core.stdc.stdarg)
 char*  tempnam(const scope char*, const scope char*);
 */
 
-char*  tempnam(const scope char*, const scope char*);
+version (CRuntime_WASI) {}
+else
+{
+    char*  tempnam(const scope char*, const scope char*);
+}
 
 version (CRuntime_Glibc)
 {

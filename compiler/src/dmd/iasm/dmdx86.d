@@ -31,6 +31,7 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.funcsem : checkNestedReference;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -47,12 +48,13 @@ import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.rootobject;
 
+import dmd.backend.backconfig : debuga;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder : CodeBuilder;
-import dmd.backend.global;
+import dmd.backend.util2 : binary, ispow2;
 import dmd.backend.iasm;
 import dmd.backend.ptrntab : asm_opstr, asm_op_lookup;
 import dmd.backend.x86.xmm;
@@ -146,7 +148,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             if (ispow2(_align) == -1)
             {
                 error(asmstate.loc, "`align %d` must be a power of 2", _align);
-                return new ErrorStatement();
+                return ErrorStatement.get();
             }
             else
                 s.asmalign = _align;
@@ -198,7 +200,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
                 {
                     asm_cond_exp(opnds[i]);
                     if (asmstate.errors)
-                        return new ErrorStatement();
+                        return ErrorStatement.get();
                     nOps = i + 1;
                     if (asmstate.tokValue != TOK.comma)
                         break;
@@ -211,7 +213,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
 
             ptb = asm_classify(o, opnds[0 .. nOps], usNumops);
             if (asmstate.errors)
-                return new ErrorStatement();
+                return ErrorStatement.get();
 
             assert(ptb.pptb0);
 
@@ -262,7 +264,7 @@ AFTER_EMIT:
     {
         error(asmstate.loc, "end of instruction expected, not `%s`", asmstate.tok.toChars());  // end of line expected
     }
-    return asmstate.errors ? new ErrorStatement() : s;
+    return asmstate.errors ? ErrorStatement.get() : s;
 }
 
 private:
@@ -707,7 +709,7 @@ PTRNTAB asm_classify(OP* pop, OPND[] opnds, out int outNumops)
 
             if (i == 0 && bRetry && opnd.s && !opnd.s.isLabel())
             {
-                error(asmstate.loc, "label expected", opnd.s.toChars());
+                error(asmstate.loc, "label expected", opnd.s.toErrMsg());
                 return;
             }
             opnd.usFlags |= CONSTRUCT_FLAGS(0, 0, 0, _fanysize);
@@ -1353,13 +1355,13 @@ code* asm_emit(Loc loc,
     uint[2] uRegmaskTable = 0;
 
     pc = code_calloc();
-    pc.Iflags |= CFpsw;            // assume we want to keep the flags
+    pc.Iflags |= CF.psw;            // assume we want to keep the flags
 
 
     void setImmediateFlags(size_t i)
     {
         emit(0x67);
-        pc.Iflags |= CFaddrsize;
+        pc.Iflags |= CF.addrsize;
         if (!target.isX86_64)
             amods[i] = _addr16;
         else
@@ -1388,18 +1390,18 @@ code* asm_emit(Loc loc,
                 {
                     pc.IFL2 = FL.localsize;
                     pc.IEV2.Vdsym = null;
-                    pc.Iflags |= CFoff;
+                    pc.Iflags |= CF.off;
                     pc.IEV2.Voffset = opnd.disp;
                 }
                 else if (d)
                 {
                     //if ((pc.IFL2 = d.Sfl) == 0)
                     pc.IFL2 = FL.dsymbol;
-                    pc.Iflags &= ~(CFseg | CFoff);
+                    pc.Iflags &= ~(CF.seg | CF.off);
                     if (opnd.bSeg)
-                        pc.Iflags |= CFseg;
+                        pc.Iflags |= CF.seg;
                     else
-                        pc.Iflags |= CFoff;
+                        pc.Iflags |= CF.off;
                     pc.IEV2.Voffset = opnd.disp;
                     pc.IEV2.Vdsym = cast(_Declaration*)d;
                 }
@@ -1420,10 +1422,10 @@ code* asm_emit(Loc loc,
         if ((pc.Iop & ~7) == 0xD8 &&
             ADDFWAIT &&
             !(ptb.pptb0.usFlags & _nfwait))
-            pc.Iflags |= CFwait;
+            pc.Iflags |= CF.wait;
         else if ((ptb.pptb0.usFlags & _fwait) &&
                  config.target_cpu >= TARGET_80386)
-            pc.Iflags |= CFwait;
+            pc.Iflags |= CF.wait;
 
         debug (debuga)
         {
@@ -1497,7 +1499,7 @@ code* asm_emit(Loc loc,
             if (ptb.pptb0.usFlags & _16_bit)
             {
                 emit(0x66);
-                pc.Iflags |= CFopsize;
+                pc.Iflags |= CF.opsize;
             }
             break;
 
@@ -1541,7 +1543,7 @@ code* asm_emit(Loc loc,
                 //if (asmstate.ucItype != ITjump)
                 {
                     emit(0x66);
-                    pc.Iflags |= CFopsize;
+                    pc.Iflags |= CF.opsize;
                 }
             }
 
@@ -1577,27 +1579,27 @@ code* asm_emit(Loc loc,
                         {
                         case _CS:
                             emit(SEGCS);
-                            pc.Iflags |= CFcs;
+                            pc.Iflags |= CF.cs;
                             break;
                         case _SS:
                             emit(SEGSS);
-                            pc.Iflags |= CFss;
+                            pc.Iflags |= CF.ss;
                             break;
                         case _DS:
                             emit(SEGDS);
-                            pc.Iflags |= CFds;
+                            pc.Iflags |= CF.ds;
                             break;
                         case _ES:
                             emit(SEGES);
-                            pc.Iflags |= CFes;
+                            pc.Iflags |= CF.es;
                             break;
                         case _FS:
                             emit(SEGFS);
-                            pc.Iflags |= CFfs;
+                            pc.Iflags |= CF.fs;
                             break;
                         case _GS:
                             emit(SEGGS);
-                            pc.Iflags |= CFgs;
+                            pc.Iflags |= CF.gs;
                             break;
                         default:
                             assert(0);
@@ -1714,7 +1716,7 @@ code* asm_emit(Loc loc,
         /* Check if a 3-byte vex is needed.
          */
         checkSetVex3(pc);
-        if (pc.Iflags & CFvex3)
+        if (pc.Iflags & CF.vex3)
         {
             debug
             {
@@ -1724,7 +1726,7 @@ code* asm_emit(Loc loc,
             emit(0xC4);
             emit(cast(ubyte)VEX3_B1(pc.Ivex));
             emit(cast(ubyte)VEX3_B2(pc.Ivex));
-            pc.Iflags |= CFvex3;
+            pc.Iflags |= CF.vex3;
         }
         else
         {
@@ -1736,7 +1738,7 @@ code* asm_emit(Loc loc,
             emit(0xC5);
             emit(cast(ubyte)VEX2_B1(pc.Ivex));
         }
-        pc.Iflags |= CFvex;
+        pc.Iflags |= CF.vex;
         emit(pc.Ivex.op);
         if (popndTmp && aoptyTmp == _imm)
             setCodeForImmediate(*popndTmp, uSizemaskTmp);
@@ -1857,7 +1859,7 @@ L3:
             if (LabelDsymbol label = s.isLabel())
             {
                 if ((pc.Iop & ~0x0F) == 0x70)
-                    pc.Iflags |= CFjmp16;
+                    pc.Iflags |= CF.jmp16;
                 if (usNumops == 1)
                 {
                     pc.IFL2 = FL.block;
@@ -2228,7 +2230,7 @@ void asm_merge_opnds(ref OPND o1, ref OPND o2)
                 break;
             default:
             }
-            error(asmstate.loc, "invalid asm operand `%s`", o1.s.toChars());
+            error(asmstate.loc, "invalid asm operand `%s`", o1.s.toErrMsg());
         }
     }
 
@@ -2365,12 +2367,12 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
 
         if (v.isThreadlocal())
         {
-            error(asmstate.loc, "cannot directly load TLS variable `%s`", v.toChars());
+            error(asmstate.loc, "cannot directly load TLS variable `%s`", v.toErrMsg());
             return;
         }
         else if (v.isDataseg() && driverParams.pic != PIC.fixed)
         {
-            error(asmstate.loc, "cannot directly load global variable `%s` with PIC or PIE code", v.toChars());
+            error(asmstate.loc, "cannot directly load global variable `%s` with PIC or PIE code", v.toErrMsg());
             return;
         }
     }
@@ -2385,10 +2387,10 @@ L2:
     Declaration d = s.isDeclaration();
     if (!d)
     {
-        error(asmstate.loc, "%s `%s` is not a declaration", s.kind(), s.toChars());
+        error(asmstate.loc, "%s `%s` is not a declaration", s.kind(), s.toErrMsg());
     }
     else if (d.getType())
-        error(asmstate.loc, "cannot use type `%s` as an operand", d.getType().toChars());
+        error(asmstate.loc, "cannot use type `%s` as an operand", d.getType().toErrMsg());
     else if (d.isTupleDeclaration())
     {
     }
@@ -2406,7 +2408,7 @@ L2:
  */
 
 void asm_make_modrm_byte(
-        void delegate(ubyte) emit,
+        scope void delegate(ubyte) emit,
         code* pc,
         opflag_t usFlags,
         scope OPND[] opnds)
@@ -2478,7 +2480,7 @@ void asm_make_modrm_byte(
 
         if (amod == _fn16 || amod == _fn32)
         {
-            pc.Iflags |= CFoff;
+            pc.Iflags |= CF.off;
             debug
             {
                 emit(0);
@@ -2493,7 +2495,7 @@ void asm_make_modrm_byte(
             else
             {
                 if (aopty == _p)
-                    pc.Iflags |= CFseg;
+                    pc.Iflags |= CF.seg;
 
                 debug
                 {
@@ -2529,20 +2531,20 @@ void asm_make_modrm_byte(
                     pc.IFL1 = target.isX86_64 ? FL.block : FL.blockoff;
                     pc.IEV1.Vlsym = cast(_LabelDsymbol*)label;
                 }
-                pc.Iflags |= CFoff;
+                pc.Iflags |= CF.off;
             }
             else if (s == asmstate.psLocalsize)
             {
                 pc.IFL1 = FL.localsize;
                 pc.IEV1.Vdsym = null;
-                pc.Iflags |= CFoff;
+                pc.Iflags |= CF.off;
                 pc.IEV1.Voffset = opnds[0].disp;
             }
             else if (s.isFuncDeclaration())
             {
                 pc.IFL1 = FL.func;
                 pc.IEV1.Vdsym = cast(_Declaration*)d;
-                pc.Iflags |= CFoff;
+                pc.Iflags |= CF.off;
                 pc.IEV1.Voffset = opnds[0].disp;
             }
             else
@@ -2551,7 +2553,7 @@ void asm_make_modrm_byte(
                     printf("Setting up symbol %s\n", d.ident.toChars());
                 pc.IFL1 = FL.dsymbol;
                 pc.IEV1.Vdsym = cast(_Declaration*)d;
-                pc.Iflags |= CFoff;
+                pc.Iflags |= CF.off;
                 pc.IEV1.Voffset = opnds[0].disp;
             }
         }
@@ -3494,7 +3496,7 @@ code* asm_da_parse(OP* pop)
             LabelDsymbol label = asmstate.sc.func.searchLabel(asmstate.tok.ident, asmstate.loc);
             if (!label)
             {
-                error(asmstate.loc, "label `%s` not found", asmstate.tok.ident.toChars());
+                error(asmstate.loc, "label `%s` not found", asmstate.tok.ident.toErrMsg());
                 break;
             }
             else
@@ -4163,7 +4165,7 @@ void asm_una_exp(ref OPND o1)
             }
             else
             {
-                error(asmstate.loc, "property of basic type `%s` expected", ptype.toChars());
+                error(asmstate.loc, "property of basic type `%s` expected", ptype.toErrMsg());
             }
             asm_token();
             return;
@@ -4566,7 +4568,7 @@ TOK tryExpressionToOperand(Expression e, out OPND o1, out Dsymbol s)
             return TOK.const_;
         }
     }
-    error(asmstate.loc, "bad type/size of operands `%s`", e.toChars());
+    error(asmstate.loc, "bad type/size of operands `%s`", e.toErrMsg());
     return TOK.error;
 }
 

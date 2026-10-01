@@ -223,6 +223,10 @@ private extern (C) void _initialize() @system
         GetSystemInfo(&si);
         (cast() pageSize) = cast(size_t) si.dwPageSize;
     }
+    else version (WebAssembly)
+    {
+        (cast() pageSize) = cast(size_t) 65536;
+    }
     else
         static assert(false, __FUNCTION__ ~ " is not implemented on this platform");
 }
@@ -352,8 +356,63 @@ extern(D):
         NO_INTERIOR = 0b0001_0000,
 
         STRUCTFINAL = 0b0010_0000, // the block has a finalizer for (an array of) structs
+
+        // specify alignment requirements for block (might not be supported by all GC)
+        ALIGNMENT_MASK  = 0x1f00,
+        ALIGNMENT_NONE  = 0x0000, // default is 16
+        ALIGNMENT_BYTE  = 0x0100,
+        ALIGNMENT_WORD  = 0x0200,
+        ALIGNMENT_DWORD = 0x0300,
+        ALIGNMENT_QWORD = 0x0400,
+        ALIGNMENT_16    = 0x0500,
+        ALIGNMENT_32    = 0x0600,
+        ALIGNMENT_64    = 0x0700,
+        ALIGNMENT_128   = 0x0800,
+        ALIGNMENT_256   = 0x0900,
+        ALIGNMENT_512   = 0x0a00,
+        ALIGNMENT_1K    = 0x0b00,
+        ALIGNMENT_2K    = 0x0c00,
+        ALIGNMENT_4K    = 0x0d00,
+        ALIGNMENT_8K    = 0x0e00,
+        ALIGNMENT_16K   = 0x0f00,
+        ALIGNMENT_32K   = 0x1000,
+        ALIGNMENT_64K   = 0x1100,
+        ALIGNMENT_128K  = 0x1200,
+        ALIGNMENT_256K  = 0x1300,
+        ALIGNMENT_512K  = 0x1400,
+        ALIGNMENT_1M    = 0x1500,
+        ALIGNMENT_2M    = 0x1600,
+        ALIGNMENT_4M    = 0x1700,
+        ALIGNMENT_MAX   = ALIGNMENT_4M,
     }
 
+    /**
+     * Returns the ALIGNMENT_* attribute corresponding to the given alignment
+     *
+     * Params:
+     *  alignment = must be a power of 2 between 1 and 1<<22
+     * Returns:
+     *  one of ALIGNMENT_BYTE to ALIGNMENT_MAX
+     */
+    static BlkAttr convertAlignmentToBlkAttr(size_t alignment) @safe @nogc nothrow pure
+    {
+        import core.bitop;
+        debug assert((alignment & (alignment - 1)) == 0 && alignment > 0 && alignment <= 1 << 22);
+        return cast(BlkAttr)(BlkAttr.ALIGNMENT_BYTE * (bsf(alignment) + 1));
+    }
+    /**
+     * Returns the alignment corresponding to the given ALIGNMENT_* attribute
+     *
+     * Params:
+     *  attr = one of ALIGNMENT_BYTE to ALIGNMENT_MAX
+     * Returns:
+     *  alignment corresponding to the given attribute
+     */
+    static size_t convertBlkAttrToAlignment(BlkAttr attr) @safe @nogc nothrow pure
+    {
+        debug assert(attr >= BlkAttr.ALIGNMENT_BYTE && attr <= BlkAttr.ALIGNMENT_MAX);
+        return 1 << (attr / BlkAttr.ALIGNMENT_BYTE - 1);
+    }
 
     /**
      * Contains aggregate information about a block of managed memory.  The

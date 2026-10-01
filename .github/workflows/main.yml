@@ -2,15 +2,23 @@
 
 name: Main
 on:
-  - pull_request # without merge conflicts
-  - push # branch or tag
+  pull_request: # without merge conflicts
+    paths-ignore:
+      - 'spec/**'
+  push: # branch or tag
+    paths-ignore:
+      - 'spec/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  call-precommit:
+    uses: ./.github/workflows/pre_commit.yml
+
   main:
+    needs: call-precommit
     strategy:
       fail-fast: false
       matrix:
@@ -73,13 +81,24 @@ jobs:
             os: windows-2022
             host_dmd: dmd-latest
             model: 32
+          # FreeBSD (VMs on Ubuntu)
+          - job_name: FreeBSD 14.4 x64, DMD (latest)
+            os: ubuntu-latest
+            vm_os: freebsd
+            vm_os_version: '14.4'
+            host_dmd: dmd
+          - job_name: FreeBSD 14.4 x64, DMD (bootstrap)
+            os: ubuntu-latest
+            vm_os: freebsd
+            vm_os_version: '14.4'
+            host_dmd: dmd-2.095.0
     name: ${{ matrix.job_name }}
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container_image }}
     timeout-minutes: 60 # OSX tests can still be running runnable at 40
     env:
       # for ci/run.sh:
-      OS_NAME: ${{ startsWith(matrix.os, 'ubuntu') && 'linux' || (startsWith(matrix.os, 'macos') && 'osx' || (startsWith(matrix.os, 'windows') && 'windows' || '')) }}
+      OS_NAME: ${{ matrix.vm_os || (startsWith(matrix.os, 'ubuntu') && 'linux' || (startsWith(matrix.os, 'macos') && 'osx' || (startsWith(matrix.os, 'windows') && 'windows' || ''))) }}
       MODEL: ${{ matrix.model || '64' }}
       HOST_DMD: ${{ matrix.host_dmd }}
       # N is set dynamically below
@@ -90,19 +109,33 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: '11'
     defaults:
       run:
-        shell: bash
+        # cpa.sh comes with cross-platform-actions and delegates to the VM.
+        # Use it by default for all `run` steps below, i.e., run them in the VM (with a bash shell).
+        shell: ${{ matrix.vm_os && 'cpa.sh {0} --sync-files runner-to-vm --environment-variables OS_NAME MODEL HOST_DMD CI_DFLAGS N FULL_BUILD DMD_TEST_COVERAGE' || 'bash' }}
     steps:
+      - name: Start VM
+        if: matrix.vm_os
+        uses: cross-platform-actions/action@v1.5.0
+        with:
+          operating_system: ${{ matrix.vm_os }}
+          version: ${{ matrix.vm_os_version }}
+          shell: bash
+          memory: 12G
+          cpu_count: 4
+          sync_files: runner-to-vm
+
       - name: 'Alpine container: Pre-install bash, git and sudo'
         if: startsWith(matrix.container_image, 'alpine')
         shell: sh
         run: apk add bash git sudo
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 50
 
       - name: Set environment variable N (parallelism)
         run: echo "N=$(${{ runner.os == 'macOS' && 'sysctl -n hw.logicalcpu' || 'nproc' }})" >> $GITHUB_ENV
+        shell: bash  # don't run in VM, but host runner (for exporting env var)
 
       - name: 'Posix: Install prerequisites'
         if: runner.os != 'Windows'
@@ -117,7 +150,7 @@ jobs:
         run: ci/run.sh install_host_compiler
       - name: 'Windows: Install host compiler'
         if: runner.os == 'Windows'
-        uses: dlang-community/setup-dlang@v1.3.0
+        uses: dlang-community/setup-dlang@v2
         with:
           compiler: ${{ matrix.host_dmd }}
 
@@ -142,29 +175,31 @@ jobs:
           ci/run.sh setup_repos "$REPO_BRANCH"
       - name: Build
         run: ${{ matrix.disable_debug_for_dmd_unittests && 'ENABLE_DEBUG=0' || '' }} ci/run.sh build
-        env:
-          # on Windows, `ci/run.sh build` expects the DMD env var to be set to the DMD-CLI-compatible host compiler
-          DMD: ${{ runner.os == 'Windows' && (startsWith(matrix.host_dmd, 'ldc') && 'ldmd2' || 'dmd') || '' }}
       - name: Rebuild dmd (with enabled coverage)
         if: matrix.coverage
         run: ENABLE_RELEASE=0 ENABLE_DEBUG=1 ENABLE_COVERAGE=1 ci/run.sh rebuild
       - name: 'Windows: Set up MSVC environment' # some tests need cl.exe etc. in PATH
         if: runner.os == 'Windows'
-        uses: seanmiddleditch/gha-setup-vsdevenv@v4
+        uses: seanmiddleditch/gha-setup-vsdevenv@v5
         with:
           arch: ${{ env.MODEL == '64' && 'x64' || 'x86' }}
       - name: Test dmd
         run: ci/run.sh test_dmd
+      - name: Test frontend subpackage
+        if: '!matrix.coverage && (success() || failure()) && (matrix.host_dmd == ''dmd'' || matrix.host_dmd == ''dmd-latest'')'
+        run: ci/run.sh test_frontend_subpackage
       - name: Test druntime
         if: '!matrix.coverage && (success() || failure())'
         run: ci/run.sh test_druntime
       - name: 'Windows x86: Add 32-bit libcurl.dll to PATH (required for Phobos unittests)'
         if: runner.os == 'Windows' && env.MODEL == '32' && !matrix.coverage && (success() || failure())
         run: |
-          # LDC
-          echo "$(dirname "$(which $DC)")/../lib32" >> $GITHUB_PATH
-          # DMD
-          echo "$(dirname "$(which $DC)")/../bin" >> $GITHUB_PATH
+          set -uexo pipefail
+          if [[ "$HOST_DMD" =~ ^ldc ]]; then
+            echo "$(dirname "$DC")/../lib32" >> $GITHUB_PATH
+          else # DMD
+            echo "$(dirname "$DC")/../bin" >> $GITHUB_PATH
+          fi
       - name: Test phobos
         if: '!matrix.coverage && (success() || failure())'
         run: ci/run.sh test_phobos
@@ -175,96 +210,54 @@ jobs:
         if: matrix.coverage
         run: ci/run.sh codecov
 
-  freebsd-vm:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - job_name: FreeBSD 13.2 x64, DMD (latest)
-            freebsd_version: '13.2'
-            host_dmd: dmd
-          - job_name: FreeBSD 13.2 x64, DMD (bootstrap)
-            freebsd_version: '13.2'
-            host_dmd: dmd-2.095.0
-    name: ${{ matrix.job_name }}
+  arm-qemu:
+    needs: call-precommit
+    name: 'Ubuntu 24.04 x64, DMD (AArch64 cross-compile via QEMU)'
     runs-on: ubuntu-latest
-    timeout-minutes: 20  # Should complete in 11 minutes
+    timeout-minutes: 30
+    env:
+      OS_NAME: linux
+      MODEL: 64
+      HOST_DMD: dmd
+      FULL_BUILD: true
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 50
-      - name: Run in VM
-        uses: cross-platform-actions/action@v0.23.0
-        timeout-minutes: 19
-        with:
-          operating_system: freebsd
-          hypervisor: qemu
-          memory: 12G
-          cpu_count: 4
-          sync_files: runner-to-vm
-          version: ${{ matrix.freebsd_version }}
-          shell: bash
-          run: |
-            set -uexo pipefail
 
-            freebsd_version='${{ matrix.freebsd_version }}'
-            freebsd_major="${freebsd_version:0:2}"
+      - name: Set environment variable N (parallelism)
+        run: echo "N=$(nproc)" >> $GITHUB_ENV
 
-            export OS_NAME=freebsd
-            export MODEL=64
-            export HOST_DMD='${{ matrix.host_dmd }}'
-            export N="$(nproc)"
-            export FULL_BUILD=true
-            export CI_DFLAGS="-version=TARGET_FREEBSD${freebsd_major}"
+      - name: Install prerequisites
+        run: sudo -E ci/cirrusci.sh
 
-            #if [[ "$freebsd_major" == 12 ]]; then
-            #  sudo sed -i '' -e 's|pkg.FreeBSD.org|mirrors.xtom.com/freebsd-pkg|' /etc/pkg/FreeBSD.conf
-            #fi
+      - name: Install host compiler
+        run: ci/run.sh install_host_compiler
 
-            bash --version
+      - name: Set up repos
+        run: |
+          set -uexo pipefail
+          ref='${{ github.ref }}'
+          if [[ "$ref" =~ ^refs/pull/ ]]; then
+            REPO_BRANCH="$GITHUB_BASE_REF"
+          elif [[ "$ref" =~ ^refs/(heads|tags)/(.*)$ ]]; then
+            REPO_BRANCH="${BASH_REMATCH[2]}"
+          else
+            echo "Error: unexpected GitHub ref '$ref'" >&2
+            exit 1
+          fi
+          ci/run.sh setup_repos "$REPO_BRANCH"
 
-            echo '::group::Install prerequisites'
-            sudo -E ci/cirrusci.sh
-            echo '::endgroup::'
+      - name: Build DMD
+        run: ci/run.sh build
 
-            echo '::group::Install host compiler'
-            ci/run.sh install_host_compiler
-            echo '::endgroup::'
+      - name: Install AArch64 cross-compile tools
+        run: sudo apt-get install -y qemu-user clang lld gcc-aarch64-linux-gnu
 
-            echo '::group::Set up repos'
-
-            ref='${{ github.ref }}'
-            if [[ "$ref" =~ ^refs/pull/ ]]; then
-              REPO_BRANCH="$GITHUB_BASE_REF"
-            elif [[ "$ref" =~ ^refs/(heads|tags)/(.*)$ ]]; then
-              REPO_BRANCH="${BASH_REMATCH[2]}"
-            else
-              echo "Error: unexpected GitHub ref '$ref'" >&2
-              exit 1
-            fi
-
-            ci/run.sh setup_repos "$REPO_BRANCH"
-            echo '::endgroup::'
-
-            echo '::group::Build'
-            ci/run.sh build
-            echo '::endgroup::'
-
-            echo '::group::Test dmd'
-            ci/run.sh test_dmd
-            echo '::endgroup::'
-
-            echo '::group::Test druntime'
-            ci/run.sh test_druntime
-            echo '::endgroup::'
-
-            echo '::group::Test phobos'
-            ci/run.sh test_phobos
-            echo '::endgroup::'
-
-            echo '::group::Test self-compile'
-            ENABLE_RELEASE=0 ci/run.sh rebuild
-            echo '::endgroup::'
-      - name: Backup
-        if: ${{ failure() }}
-        run: echo 'FreeBSD VM check made optional because of random time outs'
+      - name: Test AArch64 cross-compile and run via QEMU
+        run: |
+          source ~/dlang/*/activate
+          compiler/test/run.d arm

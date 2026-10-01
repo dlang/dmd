@@ -245,7 +245,7 @@ static assert(is(typeof( (){ C4 g = 7; C4 h = g;})));
 alias uint DWORD;
 MY_API_FUNCTION lpStartAddress;
 extern (Windows) alias DWORD function(void*) MY_API_FUNCTION;
-static assert(MY_API_FUNCTION.stringof == "extern (Windows) uint function(void*)");
+static assert(MY_API_FUNCTION.stringof == "extern(Windows) uint function(void*)");
 
 /************************************/
 

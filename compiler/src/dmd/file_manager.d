@@ -16,7 +16,7 @@ import dmd.root.stringtable : StringTable;
 import dmd.root.file : File;
 import dmd.root.filename : FileName, isDirSeparator;
 import dmd.root.string : toDString;
-import dmd.globals;
+import dmd.globals : mars_ext, hdr_ext, i_ext, h_ext, c_ext, ImportPathInfo;
 import dmd.identifier;
 import dmd.location;
 

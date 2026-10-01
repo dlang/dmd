@@ -42,6 +42,7 @@ $(GNAME FunctionAttributeKwd):
 $(GNAME AtAttribute):
     $(D @) $(RELATIVE_LINK2 disable, $(D disable))
     $(D @) $(RELATIVE_LINK2 future, $(D __future))
+    $(D @) $(RELATIVE_LINK2 ctfeonly, $(D __ctfe))
     $(D @) $(RELATIVE_LINK2 nogc, $(D nogc))
     $(D @) $(DDLINK spec/ob, Live Functions, `live`)
     $(GLINK Property)
@@ -457,6 +458,28 @@ $(H2 $(LNAME2 future, `@__future` attribute))
         ---
         )
 
+$(H2 $(LNAME2 ctfeonly, `@__ctfe` attribute))
+
+    $(P The `@__ctfe` attribute ensures a function is only called with CTFE, disabling
+    object code generation.
+    It will bypass any restrictions on code generation sourced from command-line flags.
+    An `@__ctfe` function cannot be called in a runtime context, and
+    taking its address at runtime is an error:
+    )
+
+    $(COMMENT SPEC_RUNNABLE_EXAMPLE_FAIL)
+    ---
+    int add(int a) @__ctfe => a + 2;
+
+    void main()
+    {
+        static int w = add(1); // OK
+        int x = add(1); // Error: function marked with @__ctfe cannot be called at runtime
+        auto fp = &add; // Error: cannot take address of function marked with @__ctfe
+    }
+    ---
+
+    $(NOTE Virtual methods cannot be marked as `@__ctfe` due to interactions with inheritance.)
 
 $(H2 $(LNAME2 visibility_attributes, Visibility Attributes))
 
@@ -653,27 +676,36 @@ $(H3 $(LNAME2 synchronized, $(D synchronized) Attribute))
 
 $(H2 $(LNAME2 disable, $(D @disable) Attribute))
 
-$(P A reference to a declaration marked with the $(CODE @disable) attribute
-causes a compile time error. This can be used to explicitly disallow certain
-operations or overloads at compile time rather than relying on generating a
+$(P The following declarations can be disabled using the `@disable` attribute:)
+
+- A function, $(GLINK2 class, Constructor) or $(GLINK2 struct, NewDeclaration)
+- A variable, manifest constant or $(GLINK2 enum, EnumMember)
+
+$(P Use of a disabled declaration will cause a compile time error.)
+
+$(BEST_PRACTICE Use `@disable` to explicitly disallow certain
+operations or overloads at compile time, rather than relying on a function generating a
 runtime error.)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 @disable int x;
 @disable void foo();
+void foo(int);
 
 void main()
 {
     x++;   // error, x is disabled
     foo(); // error, foo is disabled
+    foo(5); // OK, not disabled
 }
 ---
+)
+    $(P A user-defined type cannot be disabled, though a constructor can be. In particular:)
 
     $(UL
-        $(LI An $(GLINK2 enum, EnumMember) can have the `@disable` attribute.
-        )
         $(LI $(DDSUBLINK spec/struct, disable_default_construction, `@disable this();`)
-        inside a struct disallows default construction.
+        inside a struct disallows default initialization.
         )
         $(LI $(DDSUBLINK spec/struct, disable-copy, Disabling a struct copy constructor)
         makes the struct not copyable.
@@ -745,7 +777,7 @@ $(H2 $(LNAME2 __rvalue, $(D __rvalue) Attribute))
 
 $(H2 $(LNAME2 static, $(D static) Attribute))
 
-        $(P The $(D static) attribute applies to types, functions and data.
+        $(P The $(D static) attribute applies to types, functions and variables.
         $(D static) is ignored when applied to other declarations.)
 
         $(P Inside an aggregate type, a `static`

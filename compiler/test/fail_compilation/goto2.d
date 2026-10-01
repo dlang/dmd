@@ -141,3 +141,49 @@ L:                                  // line 7
     }
     return false;
 }
+
+/**************************************************
+https://github.com/dlang/dmd/issues/18274
+
+TEST_OUTPUT:
+---
+fail_compilation/goto2.d(1267): Error: `goto` skips declaration of variable `goto2.test_throwing.s`
+fail_compilation/goto2.d(1268):        declared here
+fail_compilation/goto2.d(1274): Error: cannot `goto` past `scope(exit)` block
+fail_compilation/goto2.d(1281): Error: cannot `goto` past `scope(failure)` block
+fail_compilation/goto2.d(1288): Error: cannot `goto` past `scope(success)` block
+---
+*/
+
+struct S
+{
+    ~this() nothrow;
+}
+
+void test_throwing()
+{
+    goto skip;
+    S s;
+skip:
+}
+
+void test_scope_exit(ref int x)
+{
+    goto skip;
+    scope(exit) { x++; }
+skip:
+}
+
+void test_scope_failure(ref int x)
+{
+    goto skip;
+    scope(failure) { x++; }
+skip:
+}
+
+void test_scope_success(ref int x)
+{
+    goto skip;
+    scope(success) { x++; }
+skip:
+}

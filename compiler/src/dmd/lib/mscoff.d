@@ -32,7 +32,6 @@ else
     static assert(0, "unsupported operating system");
 
 import dmd.errors : fatal;
-import dmd.globals;
 import dmd.lib;
 import dmd.location;
 import dmd.utils;
@@ -320,6 +319,7 @@ final class LibMSCoff : Library
         om.length = cast(uint)buffer.length;
         om.offset = 0;
         // remove path, but not extension
+        import dmd.globals;
         auto n = global.params.preservePaths ? module_name : FileName.name(module_name);
         om.name = toCString(n)[0 .. n.length];
         om.scan = 1;

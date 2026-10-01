@@ -945,3 +945,18 @@ version (OpenBSD)
      return q;
     }
 }
+version (Hurd)
+{
+    import core.sys.posix.sys.time;
+
+    double dtime()
+    {
+     double q;
+     timeval tv;
+
+     gettimeofday(&tv,null);
+     q = cast(double)tv.tv_sec + cast(double)tv.tv_usec * 1.0e-6;
+
+     return q;
+    }
+}

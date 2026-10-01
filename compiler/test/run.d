@@ -448,6 +448,11 @@ Target[] predefinedTargets(string[] targets)
                 newTargets.put(findFiles("dshell").map!createTestTarget);
                 break;
 
+            case "arm":
+                newTargets ~= Target("",
+                    [hostDMD, "-i", "-I" ~ scriptDir, "-run", testPath(buildPath("dshell", "arm_cross.d"))]);
+                break;
+
             case "all":
                 version (FreeBSD) { /* ??? unittest runner fails for no good reason on GHA. */ }
                 else
@@ -579,7 +584,7 @@ string[string] getEnvironment()
         env["PIC_FLAG"]  = pic ? "-fPIC" : "";
         env["DFLAGS"] = "-I%s/import -I%s".format(druntimePath, phobosPath)
             ~ " -L-L%s/%s".format(phobosPath, generatedSuffix);
-        bool isShared = environment.get("SHARED") != "0" && os.among("linux", "freebsd") > 0;
+        bool isShared = environment.get("SHARED") != "0" && os.among("linux", "freebsd", "hurd") > 0;
         if (isShared)
             env["DFLAGS"] = env["DFLAGS"] ~ " -defaultlib=libphobos2.so -L-rpath=%s/%s".format(phobosPath, generatedSuffix);
 

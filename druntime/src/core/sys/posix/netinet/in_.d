@@ -85,18 +85,31 @@ version (CRuntime_Glibc)
     //{
     //    in_addr_t s_addr;
     //}
-
-    private enum __SOCK_SIZE__ = 16;
-
-    struct sockaddr_in
+    version (linux)
     {
-        sa_family_t sin_family;
-        in_port_t   sin_port;
-        in_addr     sin_addr;
+        private enum __SOCK_SIZE__ = 16;
 
-        /* Pad to size of `struct sockaddr'. */
-        ubyte[__SOCK_SIZE__ - sa_family_t.sizeof -
-              in_port_t.sizeof - in_addr.sizeof] __pad;
+        struct sockaddr_in
+        {
+            sa_family_t sin_family;
+            in_port_t   sin_port;
+            in_addr     sin_addr;
+
+            /* Pad to size of `struct sockaddr'. */
+            ubyte[__SOCK_SIZE__ - sa_family_t.sizeof -
+                  in_port_t.sizeof - in_addr.sizeof] __pad;
+        }
+    }
+    else version (Hurd)
+    {
+        struct sockaddr_in
+        {
+            ubyte       sin_len;
+            sa_family_t sin_family;
+            in_port_t   sin_port;
+            in_addr     sin_addr;
+            ubyte[8]    sin_zero;
+        }
     }
 
     enum
@@ -442,7 +455,33 @@ else version (linux)
         INADDR_NONE      = 0xFFFFFFFF
     }
 }
+else version (CRuntime_WASI)
+{
+    struct sockaddr_in
+    {
+        align(16) // __BIGGEST_ALIGNMENT__ on Wasm
+        sa_family_t sin_family;
 
+        in_port_t   sin_port;
+        in_addr     sin_addr;
+    }
+
+    enum
+    {
+        IPPROTO_IP   = 0,
+        IPPROTO_ICMP = 1,
+        IPPROTO_TCP  = 6,
+        IPPROTO_UDP  = 17,
+    }
+
+    enum : c_ulong
+    {
+        INADDR_ANY       = 0x00000000,
+        INADDR_BROADCAST = 0xffffffff,
+        INADDR_LOOPBACK  = 0x7f000001,
+        INADDR_NONE      = 0xFFFFFFFF
+    }
+}
 
 //
 // IPV6 (IP6)
@@ -513,13 +552,28 @@ version (CRuntime_Glibc)
         }
     }
 
-    struct sockaddr_in6
+    version (linux)
     {
-        sa_family_t sin6_family;
-        in_port_t   sin6_port;
-        uint32_t    sin6_flowinfo;
-        in6_addr    sin6_addr;
-        uint32_t    sin6_scope_id;
+        struct sockaddr_in6
+        {
+            ushort      sin6_family;
+            uint16_t    sin6_port;
+            uint32_t    sin6_flowinfo;
+            in6_addr    sin6_addr;
+            uint32_t    sin6_scope_id;
+        }
+    }
+    else version (Hurd)
+    {
+        struct sockaddr_in6
+        {
+            uint8_t     sin6_len;
+            sa_family_t sin6_family;
+            uint16_t    sin6_port;
+            uint32_t    sin6_flowinfo;
+            in6_addr    sin6_addr;
+            uint32_t    sin6_scope_id;
+        }
     }
 
     extern __gshared immutable in6_addr in6addr_any;
@@ -547,7 +601,7 @@ version (CRuntime_Glibc)
     }
 
     // macros
-    extern (D) int IN6_IS_ADDR_UNSPECIFIED()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_UNSPECIFIED()(const scope in6_addr* addr) pure
     {
         return (cast(uint32_t*) addr)[0] == 0 &&
                (cast(uint32_t*) addr)[1] == 0 &&
@@ -555,7 +609,7 @@ version (CRuntime_Glibc)
                (cast(uint32_t*) addr)[3] == 0;
     }
 
-    extern (D) int IN6_IS_ADDR_LOOPBACK()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_LOOPBACK()(const scope in6_addr* addr) pure
     {
         return (cast(uint32_t*) addr)[0] == 0  &&
                (cast(uint32_t*) addr)[1] == 0  &&
@@ -563,29 +617,29 @@ version (CRuntime_Glibc)
                (cast(uint32_t*) addr)[3] == htonl( 1 );
     }
 
-    extern (D) int IN6_IS_ADDR_MULTICAST()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_MULTICAST()(const scope in6_addr* addr) pure
     {
         return (cast(uint8_t*) addr)[0] == 0xff;
     }
 
-    extern (D) int IN6_IS_ADDR_LINKLOCAL()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_LINKLOCAL()(const scope in6_addr* addr) pure
     {
         return ((cast(uint32_t*) addr)[0] & htonl( 0xffc00000 )) == htonl( 0xfe800000 );
     }
 
-    extern (D) int IN6_IS_ADDR_SITELOCAL()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_SITELOCAL()(const scope in6_addr* addr) pure
     {
         return ((cast(uint32_t*) addr)[0] & htonl( 0xffc00000 )) == htonl( 0xfec00000 );
     }
 
-    extern (D) int IN6_IS_ADDR_V4MAPPED()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_V4MAPPED()(const scope in6_addr* addr) pure
     {
         return (cast(uint32_t*) addr)[0] == 0 &&
                (cast(uint32_t*) addr)[1] == 0 &&
                (cast(uint32_t*) addr)[2] == htonl( 0xffff );
     }
 
-    extern (D) int IN6_IS_ADDR_V4COMPAT()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_V4COMPAT()(const scope in6_addr* addr) pure
     {
         return (cast(uint32_t*) addr)[0] == 0 &&
                (cast(uint32_t*) addr)[1] == 0 &&
@@ -593,31 +647,31 @@ version (CRuntime_Glibc)
                ntohl( (cast(uint32_t*) addr)[3] ) > 1;
     }
 
-    extern (D) int IN6_IS_ADDR_MC_NODELOCAL()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_MC_NODELOCAL()(const scope in6_addr* addr) pure
     {
         return IN6_IS_ADDR_MULTICAST( addr ) &&
                ((cast(uint8_t*) addr)[1] & 0xf) == 0x1;
     }
 
-    extern (D) int IN6_IS_ADDR_MC_LINKLOCAL()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_MC_LINKLOCAL()(const scope in6_addr* addr) pure
     {
         return IN6_IS_ADDR_MULTICAST( addr ) &&
                ((cast(uint8_t*) addr)[1] & 0xf) == 0x2;
     }
 
-    extern (D) int IN6_IS_ADDR_MC_SITELOCAL()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_MC_SITELOCAL()(const scope in6_addr* addr) pure
     {
         return IN6_IS_ADDR_MULTICAST(addr) &&
                ((cast(uint8_t*) addr)[1] & 0xf) == 0x5;
     }
 
-    extern (D) int IN6_IS_ADDR_MC_ORGLOCAL()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_MC_ORGLOCAL()(const scope in6_addr* addr) pure
     {
         return IN6_IS_ADDR_MULTICAST( addr) &&
                ((cast(uint8_t*) addr)[1] & 0xf) == 0x8;
     }
 
-    extern (D) int IN6_IS_ADDR_MC_GLOBAL()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_MC_GLOBAL()(const scope in6_addr* addr) pure
     {
         return IN6_IS_ADDR_MULTICAST( addr ) &&
                ((cast(uint8_t*) addr)[1] & 0xf) == 0xe;
@@ -670,7 +724,7 @@ else version (Darwin)
     }
 
     // macros
-    extern (D) int IN6_IS_ADDR_UNSPECIFIED()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_UNSPECIFIED()(const scope in6_addr* addr) pure
     {
         return (cast(uint32_t*) addr)[0] == 0 &&
                (cast(uint32_t*) addr)[1] == 0 &&
@@ -678,7 +732,7 @@ else version (Darwin)
                (cast(uint32_t*) addr)[3] == 0;
     }
 
-    extern (D) int IN6_IS_ADDR_LOOPBACK()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_LOOPBACK()(const scope in6_addr* addr) pure
     {
         return (cast(uint32_t*) addr)[0] == 0  &&
                (cast(uint32_t*) addr)[1] == 0  &&
@@ -686,29 +740,29 @@ else version (Darwin)
                (cast(uint32_t*) addr)[3] == ntohl( 1 );
     }
 
-    extern (D) int IN6_IS_ADDR_MULTICAST()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_MULTICAST()(const scope in6_addr* addr) pure
     {
         return addr.s6_addr[0] == 0xff;
     }
 
-    extern (D) int IN6_IS_ADDR_LINKLOCAL()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_LINKLOCAL()(const scope in6_addr* addr) pure
     {
         return addr.s6_addr[0] == 0xfe && (addr.s6_addr[1] & 0xc0) == 0x80;
     }
 
-    extern (D) int IN6_IS_ADDR_SITELOCAL()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_SITELOCAL()(const scope in6_addr* addr) pure
     {
         return addr.s6_addr[0] == 0xfe && (addr.s6_addr[1] & 0xc0) == 0xc0;
     }
 
-    extern (D) int IN6_IS_ADDR_V4MAPPED()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_V4MAPPED()(const scope in6_addr* addr) pure
     {
         return (cast(uint32_t*) addr)[0] == 0 &&
                (cast(uint32_t*) addr)[1] == 0 &&
                (cast(uint32_t*) addr)[2] == ntohl( 0x0000ffff );
     }
 
-    extern (D) int IN6_IS_ADDR_V4COMPAT()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_V4COMPAT()(const scope in6_addr* addr) pure
     {
         return (cast(uint32_t*) addr)[0] == 0 &&
                (cast(uint32_t*) addr)[1] == 0 &&
@@ -717,31 +771,31 @@ else version (Darwin)
                (cast(uint32_t*) addr)[3] != ntohl( 1 );
     }
 
-    extern (D) int IN6_IS_ADDR_MC_NODELOCAL()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_MC_NODELOCAL()(const scope in6_addr* addr) pure
     {
         return IN6_IS_ADDR_MULTICAST( addr ) &&
                ((cast(uint8_t*) addr)[1] & 0xf) == 0x1;
     }
 
-    extern (D) int IN6_IS_ADDR_MC_LINKLOCAL()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_MC_LINKLOCAL()(const scope in6_addr* addr) pure
     {
         return IN6_IS_ADDR_MULTICAST( addr ) &&
                ((cast(uint8_t*) addr)[1] & 0xf) == 0x2;
     }
 
-    extern (D) int IN6_IS_ADDR_MC_SITELOCAL()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_MC_SITELOCAL()(const scope in6_addr* addr) pure
     {
         return IN6_IS_ADDR_MULTICAST(addr) &&
                ((cast(uint8_t*) addr)[1] & 0xf) == 0x5;
     }
 
-    extern (D) int IN6_IS_ADDR_MC_ORGLOCAL()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_MC_ORGLOCAL()(const scope in6_addr* addr) pure
     {
         return IN6_IS_ADDR_MULTICAST( addr) &&
                ((cast(uint8_t*) addr)[1] & 0xf) == 0x8;
     }
 
-    extern (D) int IN6_IS_ADDR_MC_GLOBAL()(const scope in6_addr* add) pure
+    extern (D) int IN6_IS_ADDR_MC_GLOBAL()(const scope in6_addr* addr) pure
     {
         return IN6_IS_ADDR_MULTICAST( addr ) &&
                ((cast(uint8_t*) addr)[1] & 0xf) == 0xe;
@@ -1597,6 +1651,44 @@ else version (CRuntime_Musl)
     extern __gshared immutable in6_addr in6addr_any;
     extern __gshared immutable in6_addr in6addr_loopback;
 }
+else version (CRuntime_WASI)
+{
+
+    struct in6_addr {
+        align(int32_t.alignof)
+        ubyte[16] s6_addr;
+    }
+    struct sockaddr_in6 {
+        align(16) // __BIGGEST_ALIGNMENT__ on Wasm
+        sa_family_t     sin6_family;
+
+        in_port_t       sin6_port;
+        uint            sin6_flowinfo;
+        in6_addr        sin6_addr;
+        uint            sin6_scope_id;
+    }
+
+    struct ipv6_mreq
+    {
+        in6_addr    ipv6mr_multiaddr;
+        uint        ipv6mr_interface;
+    }
+
+    enum : uint
+    {
+        IPPROTO_IPV6 = 41,
+
+        IPV6_UNICAST_HOPS   = 16,
+        IPV6_MULTICAST_IF   = 17,
+        IPV6_MULTICAST_HOPS = 18,
+        IPV6_MULTICAST_LOOP = 19,
+        IPV6_JOIN_GROUP     = 20,
+        IPV6_LEAVE_GROUP    = 21,
+        IPV6_V6ONLY         = 26
+    }
+    extern __gshared immutable in6_addr in6addr_any;
+    extern __gshared immutable in6_addr in6addr_loopback;
+}
 else version (CRuntime_UClibc)
 {
     struct in6_addr
@@ -1766,6 +1858,10 @@ else version (linux)
     enum uint IPPROTO_RAW = 255;
 }
 else version (CRuntime_UClibc)
+{
+    enum uint IPPROTO_RAW = 255;
+}
+else version (CRuntime_WASI)
 {
     enum uint IPPROTO_RAW = 255;
 }

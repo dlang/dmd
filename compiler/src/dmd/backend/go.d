@@ -19,21 +19,108 @@ import core.stdc.stdlib;
 import core.stdc.string;
 import core.stdc.time;
 
+import dmd.backend.barray;
 import dmd.backend.cc;
-import dmd.backend.blockopt : BlockOpt;
 import dmd.backend.cdef;
+import dmd.backend.dvec;
 import dmd.backend.oper;
-import dmd.backend.global;
-import dmd.backend.goh;
 import dmd.backend.el;
-import dmd.backend.inliner;
-import dmd.backend.symtab;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import dmd.backend.barray;
-import dmd.backend.dlist;
-import dmd.backend.dvec;
+import dmd.backend.backconfig : debugb, debugc, debuge, debugf;
+import dmd.backend.blockopt : BlockOpt, bo;
+import dmd.backend.blockopt : bc_goal, block_optimizer_free, blockopt;
+import dmd.backend.cg : localgot;
+import dmd.backend.cgelem : doptelem, postoptelem;
+import dmd.backend.debugprint : WRfunc;
+import dmd.backend.dout : out_regcand;
+import dmd.backend.util2 : binary;
+import dmd.backend.inliner;
+
+public import dmd.backend.gdag : builddags, boolopt;
+public import dmd.backend.gflow : flowrd, flowlv, flowvbe, flowcp, flowae, genkillae;
+public import dmd.backend.glocal : localize;
+public import dmd.backend.gloop : blockinit, compdom, loopopt, updaterd;
+public import dmd.backend.gother : constprop, copyprop, rmdeadass, elimass, deadvar, verybusyexp, listrds;
+public import dmd.backend.gsroa : sliceStructs;
+
+nothrow:
+@safe:
+
+/***************************************
+ * Bit masks for various optimizations.
+ */
+
+alias mftype = uint;        /* a type big enough for all the flags  */
+enum
+{
+    MFdc    = 1,               // dead code
+    MFda    = 2,               // dead assignments
+    MFdv    = 4,               // dead variables
+    MFreg   = 8,               // register variables
+    MFcse   = 0x10,            // global common subexpressions
+    MFvbe   = 0x20,            // very busy expressions
+    MFtime  = 0x40,            // favor time (speed) over space
+    MFli    = 0x80,            // loop invariants
+    MFliv   = 0x100,           // loop induction variables
+    MFcp    = 0x200,           // copy propagation
+    MFcnp   = 0x400,           // constant propagation
+    MFloop  = 0x800,           // loop till no more changes
+    MFtree  = 0x1000,          // optelem (tree optimization)
+    MFlocal = 0x2000,          // localize expressions
+    MFall   = 0xFFFF,          // do everything
+}
+
+enum Aetype { cse, arraybounds }
+
+/**********************************
+ * Definition elem vector, used for reaching definitions.
+ */
+
+struct DefNode
+{
+    elem    *DNelem;        // pointer to definition elem
+    block   *DNblock;       // pointer to block that the elem is in
+    vec_t    DNunambig;     // vector of unambiguous definitions
+}
+
+// which kind of flow analysisis being done
+enum
+{
+    AE = 1,
+    CP,
+    VBE
+}
+
+/* Global Optimizer variables
+ */
+struct GlobalOptimizer
+{
+    bool AArch64;       // AArch64 is the target
+    mftype mfoptim;
+    Aetype aetype;      // cse, arraybounds
+    uint changes;       // # of optimizations performed
+    int flowxx;         // AE, CP or VBE
+
+    Barray!DefNode defnod;    // array of definition elems
+    uint unambigtop;    // number of unambiguous defininitions ( <= deftop )
+
+    Barray!(vec_base_t) dnunambig;  // pool to allocate DNunambig vectors from
+
+    Barray!(elem*) expnod;      // array of expression elems
+    uint exptop;        // top of expnod[]
+    Barray!(block*) expblk;     // parallel array of block pointers
+
+    vec_t defkill;      // vector of AEs killed by an ambiguous definition
+    vec_t starkill;     // vector of AEs killed by a definition of something that somebody could be
+                        // pointing to
+    vec_t vptrkill;     // vector of AEs killed by an access
+}
+
+__gshared GlobalOptimizer go;
+
 
 version (OSX)
 {
@@ -47,7 +134,7 @@ version (OSX)
 nothrow:
 @safe:
 
-/***************************************************************************/
+__gshared bool OPTIMIZER = false;             // indicate we're in the optimizer
 
 
 @trusted
@@ -289,12 +376,12 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
             scanForInlines(funcsym_p);
 
         if (go.mfoptim & MFdc)
-            blockopt(go, bo);           // do block optimization
-        out_regcand(&globsym);          // recompute register candidates
+            blockopt(go, bo, go.changes); // do block optimization
+        out_regcand(globsym[]);         // recompute register candidates
         go.changes = 0;                 // no changes yet
         sliceStructs(globsym, bo.startblock);
         if (go.mfoptim & MFcnp)
-            constprop(go, bo);              /* make relationals unsigned     */
+            constprop(go, bo, go.changes);  /* make relationals unsigned     */
         if (go.mfoptim & (MFli | MFliv))
             loopopt(go, bo);                /* remove loop invariants and    */
                                         /* induction vars                */
@@ -310,7 +397,7 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
             continue;
 
         if (go.mfoptim & MFcnp)
-            constprop(go, bo);          /* constant propagation          */
+            constprop(go, bo, go.changes); /* constant propagation          */
         if (go.mfoptim & MFcp)
             copyprop(go, bo);           /* do copy propagation           */
 
@@ -343,9 +430,9 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
          * code generation which assumes at most one (localgotoffset).
          */
         if (go.mfoptim & MFlocal)
-            localize(go, bo);             // improve expression locality
+            localize(bo, go.changes);      // improve expression locality
         if (go.mfoptim & MFda)
-            rmdeadass(go, bo);            /* remove dead assignments       */
+            rmdeadass(go, bo, go.changes); /* remove dead assignments       */
 
         if (debugc) printf("changes = %d\n", go.changes);
         if (!(go.changes && go.mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC))
@@ -354,7 +441,7 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
     if (debugc) printf("%d iterations\n",iter);
 
     if (go.mfoptim & MFdc)
-        blockopt(go, bo);                 // do block optimization
+        blockopt(go, bo, go.changes);         // do block optimization
 
     for (block* b = bo.startblock; b; b = b.Bnext)
     {
@@ -362,7 +449,7 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
             postoptelem(b.Belem);
     }
     if (go.mfoptim & MFvbe)
-        verybusyexp(go, bo);          /* very busy expressions         */
+        verybusyexp(go, bo, go.changes); /* very busy expressions         */
     if (go.mfoptim & MFcse)
         builddags(go, bo);            /* common subexpressions         */
     if (go.mfoptim & MFdv)

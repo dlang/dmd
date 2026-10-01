@@ -14,6 +14,9 @@
  */
 module core.sys.posix.sys.wait;
 
+version (WASI) {}
+else:
+
 import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for id_t, pid_t
 public import core.sys.posix.signal;    // for siginfo_t (XSI)
@@ -105,6 +108,15 @@ else version (Solaris)
 {
     enum WNOHANG        = 64;
     enum WUNTRACED      = 4;
+}
+else version (Hurd)
+{
+    enum WNOHANG        = 1;
+    enum WUNTRACED      = 2;
+    private
+    {
+        enum __W_CONTINUED = 0xFFFF;
+    }
 }
 else
 {
@@ -429,6 +441,20 @@ else version (Solaris)
         P_CTID,         /* A (process) contract identifier.     */
         P_CPUID,        /* CPU identifier.                      */
         P_PSETID,       /* Processor set identifier             */
+    }
+}
+ else version (Hurd)
+{
+    enum WEXITED    = 16;
+    enum WSTOPPED   = WUNTRACED;
+    enum WCONTINUED = 4;
+    enum WNOWAIT    = 8;
+
+    enum idtype_t
+    {
+        P_ALL,
+        P_PID,
+        P_PGID
     }
 }
 else

@@ -1,7 +1,7 @@
 /* REQUIRED_ARGS: -betterC
 TEST_OUTPUT:
 ---
-fail_compilation/test23710.d(112): Error: array concatenation of expression `foo ~ cast(int[])a` requires the GC which is not available with -betterC
+fail_compilation/test23710.d(112): Error: array concatenation of expression `foo ~ cast(int[])a` requires the GC which is not available with `-betterC`
 ---
  */
 // https://issues.dlang.org/show_bug.cgi?id=23710

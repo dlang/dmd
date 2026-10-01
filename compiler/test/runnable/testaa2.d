@@ -379,10 +379,7 @@ void testEvaluationOrder()
 	seqaa(1).rehash;
 	seqaa(1).clear;
 
-	version (none)
-		seqaa(1) = [seqi(2, 1) : seqi(3, 1), seqi(4, 2) : seqi(5, 4)]; // aa = [1:1, 2:4]
-	else
-		aa = [1:1, 2:4];
+	seqaa(1) = [seqi(2, 1) : seqi(3, 1), seqi(4, 2) : seqi(5, 4)]; // aa = [1:1, 2:4]
 
 	assert(seqaa(1).remove(seqi(2, 1))); // aa.remove(1)
 
