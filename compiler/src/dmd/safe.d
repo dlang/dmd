@@ -487,7 +487,8 @@ bool setUnsafe(Scope* sc, bool gag, Loc loc, VarDeclaration scopeVar,
         {
             if (sc.varDecl.storage_class & STC.safe)
             {
-                string action = AttributeViolation(loc, format, args).action;
+                string action = format ? AttributeViolation(loc, format, args).action
+                                          : "an unsafe operation";
                 .error(loc, "%.*s can't initialize `@safe` variable `%s`", action.fTuple.expand, sc.varDecl.toChars());
                 return true;
             }
@@ -507,7 +508,8 @@ bool setUnsafe(Scope* sc, bool gag, Loc loc, VarDeclaration scopeVar,
         {
             // Message wil be gagged, but still call error() to update global.errors and for
             // -verrors=spec
-            string action = AttributeViolation(loc, format, args).action;
+            string action = format ? AttributeViolation(loc, format, args).action
+                                      : "an unsafe operation";
             .error(loc, "%.*s is not allowed in a `@safe` function", action.fTuple.expand);
             return true;
         }
