@@ -1,0 +1,27 @@
+ImportC now parses C23 `[[...]]` attribute syntax
+
+You can now use C23 attributes in C files imported with ImportC, anywhere a GNU
+`__attribute__` was already accepted: on declarations, pointers, struct/union/enum
+tags, struct members, enumerators, function parameters, and statements.
+
+`[[deprecated]]` (with an optional message) marks a function, variable, type or enum
+member as deprecated in D, and `[[noreturn]]` flags a function as non-returning, just
+like GNU `__attribute__((noreturn))`. Every other standard attribute (such as
+`[[nodiscard]]`, `[[maybe_unused]]` and
+`[[fallthrough]]`), as well as vendor-prefixed ones like `[[gnu::...]]` and
+`[[clang::...]]` and any unknown attribute, is parsed and ignored, so existing C23
+headers keep compiling. The `attr` and `__attr__` spellings are equivalent (C23 6.7.13).
+
+-------
+[[deprecated("use bar instead")]] int foo(void);
+[[nodiscard]] int bar(void);
+
+struct [[deprecated]] S
+{
+    [[maybe_unused]] int a;
+};
+
+enum E { A [[deprecated]], B [[maybe_unused]] = 5 };
+
+int baz(int x [[maybe_unused]]);
+-------
