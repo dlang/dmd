@@ -14,7 +14,6 @@
 #include "mtype.h"
 
 class Expression;
-class Initializer;
 class Module;
 class Statement;
 
@@ -26,7 +25,6 @@ namespace dmd
     const char *parametersTypeToChars(ParameterList pl);
 
     const char* toChars(const Expression* const e);
-    const char* toChars(const Initializer* const i);
     const char* toChars(const Statement* const s);
     const char* toChars(const Type* const t);
 }

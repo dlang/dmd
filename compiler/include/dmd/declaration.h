@@ -18,7 +18,6 @@
 class Expression;
 class Statement;
 class LabelDsymbol;
-class Initializer;
 class ForeachStatement;
 struct Ensure
 {
@@ -231,7 +230,7 @@ public:
 class VarDeclaration : public Declaration
 {
 public:
-    Initializer *_init;
+    Expression *_init;
     FuncDeclarations nestedrefs; // referenced by these lexically nested functions
     TupleDeclaration *aliasTuple;  // if `this` is really a tuple of declarations
     VarDeclaration *lastVar;    // Linked list of variables for goto-skips-init detection
@@ -283,7 +282,9 @@ public:
 #endif
     bool systemInferred() const;
     bool systemInferred(bool v);
-    static VarDeclaration *create(Loc loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);
+    bool initSemanticDone() const;
+    bool initSemanticDone(bool v);
+    static VarDeclaration *create(Loc loc, Type *t, Identifier *id, Expression *init, StorageClass storage_class = STCundefined);
     VarDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
     AggregateDeclaration *isThis() override final;

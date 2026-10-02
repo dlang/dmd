@@ -425,6 +425,8 @@ enum EXP : ubyte
 
     loweredAssignExp,
     rvalue,
+    structInit, // { a: 1, 2 }
+    cInit, // { [0] = 1, .a = 2 }
 }
 
 enum FirstCKeyword = TOK.inline;

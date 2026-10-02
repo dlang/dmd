@@ -28,7 +28,6 @@ import dmd.expression /*: Expression*/;
 import dmd.func : FuncDeclaration;
 import dmd.globals : dinteger_t, uinteger_t, JsonFieldFlags, CppStdRevision;
 import dmd.identifier : Identifier;
-import dmd.init : Initializer, NeedInterpret;
 import dmd.location : Loc;
 import dmd.mtype /*: Covariant, Type, Parameter, ParameterList*/;
 import dmd.rootobject : RootObject;
@@ -405,6 +404,18 @@ Expression expressionSemantic(Expression e, Scope* sc)
     return dmd.expressionsem.expressionSemantic(e, sc);
 }
 
+Expression voidInitializer(Loc loc)
+{
+    import dmd.expression;
+    return dmd.expression.voidInitializer(loc);
+}
+
+bool isVoidInitializer(const Expression e)
+{
+    import dmd.expression;
+    return dmd.expression.isVoidInitializer(e);
+}
+
 bool fill(StructDeclaration sd, Loc loc,
           ref Expressions elements, bool ctorinit)
 {
@@ -574,12 +585,6 @@ const(char)* toChars(const Expression e)
     return dmd.hdrgen.toChars(e);
 }
 
-const(char)* toChars(const Initializer i)
-{
-    import dmd.hdrgen;
-    return dmd.hdrgen.toChars(i);
-}
-
 const(char)* toChars(const Type t)
 {
     import dmd.hdrgen;
@@ -626,26 +631,6 @@ void gccAsmSemantic(CAsmDeclaration d, Scope* sc)
 {
     import dmd.iasm.gcc;
     return dmd.iasm.gcc.gccAsmSemantic(d, sc);
-}
-
-/***********************************************************
- * initsem.d
- */
-Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx,
-                                NeedInterpret needInterpret)
-{
-    import dmd.initsem;
-    import dmd.globals : global;
-    auto eSink = global.errorSink;
-    return dmd.initsem.initializerSemantic(init, sc, tx, needInterpret, eSink);
-}
-
-Expression initializerToExpression(Initializer init, Scope* sc, Type itype)
-{
-    import dmd.initsem;
-    import dmd.globals : global;
-    auto eSink = global.errorSink;
-    return dmd.initsem.initializerToExpression(init, sc, itype, eSink);
 }
 
 /***********************************************************

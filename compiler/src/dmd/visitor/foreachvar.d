@@ -28,8 +28,6 @@ import dmd.expression;
 import dmd.func;
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
-import dmd.initsem;
 import dmd.mtype;
 import dmd.printast;
 import dmd.root.array;
@@ -78,11 +76,8 @@ void foreachVar(Expression e, scope void delegate(VarDeclaration) dgVar)
             else
                 dgVar(v);
             Dsymbol s = v.toAlias();
-            if (s == v && !v.isStatic() && v._init)
-            {
-                if (auto ie = v._init.isExpInitializer())
-                    ie.exp.foreachVar(dgVar);
-            }
+            if (s == v && !v.isStatic() && v._init && !v._init.isVoidInitializer())
+                v._init.foreachVar(dgVar);
         }
 
         override void visit(IndexExp e)

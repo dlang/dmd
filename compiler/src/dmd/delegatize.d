@@ -23,8 +23,6 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.funcsem : checkNestedReference;
-import dmd.init;
-import dmd.initsem;
 import dmd.location;
 import dmd.mtype;
 import dmd.statement;
@@ -151,35 +149,8 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
 
         override void visit(VarDeclaration v)
         {
-            if (v._init)
-                v._init.accept(this);
-        }
-
-        override void visit(Initializer)
-        {
-        }
-
-        override void visit(ExpInitializer ei)
-        {
-            walkPostorder(ei.exp ,this);
-        }
-
-        override void visit(StructInitializer si)
-        {
-            foreach (i, const id; si.field)
-                if (Initializer iz = si.value[i])
-                    iz.accept(this);
-        }
-
-        override void visit(ArrayInitializer ai)
-        {
-            foreach (i, ex; ai.index)
-            {
-                if (ex)
-                    ex.accept(this);
-                if (Initializer iz = ai.value[i])
-                    iz.accept(this);
-            }
+            if (v._init && !v._init.isVoidInitializer())
+                walkPostorder(v._init, this);
         }
         override void visit(AssocArrayLiteralExp e)
         {
@@ -254,12 +225,8 @@ bool lambdaCheckForNestedRef(Expression e, Scope* sc)
                  * expression e does not have any nested references by
                  * checking the declaration initializer too.
                  */
-                if (v._init && v._init.isExpInitializer())
-                {
-                    import dmd.globals : global;
-                    Expression ie = v._init.initializerToExpression(sc, null, global.errorSink);
-                    result = lambdaCheckForNestedRef(ie, sc);
-                }
+                if (v._init && !v._init.isVoidInitializer())
+                    result = lambdaCheckForNestedRef(v._init, sc);
             }
         }
     }

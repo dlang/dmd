@@ -29,6 +29,7 @@ import dmd.rootobject;
 import dmd.root.string;
 import dmd.tokens;
 import dmd.expression;
+import dmd.init;
 
 alias CompileEnv = dmd.lexer.CompileEnv;
 
@@ -1319,7 +1320,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     tpl = parseTemplateParameterList();
 
                 check(TOK.assign);   // skip over '='
-                AST.Initializer _init = parseInitializer();
+                AST.Expression _init = parseInitializer();
                 auto v = new AST.VarDeclaration(loc, null, ident, _init, storageClass);
 
                 s = v;
@@ -7103,13 +7104,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     }
 
 
-    private  AST.ExpInitializer parseExpInitializer(Loc loc)
-    {
-        auto ae = parseAssignExp();
-        return new AST.ExpInitializer(loc, ae);
-    }
-
-    private AST.Initializer parseStructInitializer(Loc loc)
+    private AST.Expression parseStructInitializer(Loc loc)
     {
         /* Scan ahead to discern between a struct initializer and
          * parameterless function literal.
@@ -7174,7 +7169,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 case TOK.while_:
                 case TOK.with_:
                     if (braces == 1)
-                        return parseExpInitializer(loc);
+                        return parseAssignExp();
                     continue;
 
                 case TOK.leftCurly:
@@ -7195,7 +7190,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             break;
         }
 
-        auto _is = new AST.StructInitializer(loc);
+        auto _is = new AST.StructInitExp(loc);
         bool commaExpected = false;
         nextToken();
         while (1)
@@ -7263,9 +7258,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     }
 
     /*****************************************
-     * Parse initializer for variable declaration.
+     * int[3] a = [1: 2, 3];
+     * S s = { a: 1 };
+     * int x = void;
      */
-    private AST.Initializer parseInitializer()
+    private AST.Expression parseInitializer()
     {
         const loc = token.loc;
 
@@ -7293,7 +7290,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     {
                         t = peek(t);
                         if (t.value != TOK.semicolon && t.value != TOK.colon && t.value != TOK.comma && t.value != TOK.rightBracket && t.value != TOK.rightCurly)
-                            return parseExpInitializer(loc);
+                            return parseAssignExp();
                         break;
                     }
                     continue;
@@ -7307,7 +7304,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 break;
             }
 
-            auto ia = new AST.ArrayInitializer(loc);
+            ArrayBuilder!AST ai;
             bool commaExpected = false;
 
             nextToken();
@@ -7326,15 +7323,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     if (!e)
                         break;
 
-                    AST.Initializer value = new AST.ExpInitializer(e.loc, e);
-                    AST.Initializer index;
+                    AST.Expression value = e;
+                    AST.Expression index;
                     if (token.value == TOK.colon)
                     {
                         nextToken();
                         index = value;
                         value = parseInitializer();
                     }
-                    ia.addInit(index, value);
+                    ai.addInit(index, value);
                     commaExpected = true;
                     continue;
 
@@ -7351,7 +7348,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         index = value;
                         value = parseInitializer();
                     }
-                    ia.addInit(index, value);
+                    ai.addInit(index, value);
                     commaExpected = true;
                     continue;
 
@@ -7372,19 +7369,19 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
                 break;
             }
-            return ia;
+            return ai.finish(loc);
 
         case TOK.void_:
             const tv = peekNext();
             if (tv == TOK.semicolon || tv == TOK.comma)
             {
                 nextToken();
-                return new AST.VoidInitializer(loc);
+                return new AST.TypeExp(loc, AST.Type.tvoid);
             }
-            return parseExpInitializer(loc);
+            return parseAssignExp();
 
         default:
-            return parseExpInitializer(loc);
+            return parseAssignExp();
         }
     }
 
@@ -10099,6 +10096,8 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.symbolOffset : PREC.primary,
     EXP.structLiteral : PREC.primary,
     EXP.compoundLiteral : PREC.primary,
+    EXP.structInit : PREC.primary,
+    EXP.cInit : PREC.primary,
     EXP.arrayLength : PREC.primary,
     EXP.delegatePointer : PREC.primary,
     EXP.delegateFunctionPointer : PREC.primary,

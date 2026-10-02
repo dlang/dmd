@@ -67,15 +67,10 @@ package(dmd.visitor) mixin template ParseVisitMethods(AST)
             visitType(v.type);
         if (v._init)
         {
-            if (auto ie = v._init.isExpInitializer())
-            {
-                if (auto ce = ie.exp.isConstructExp())
-                    ce.e2.accept(this);
-                else if (auto be = ie.exp.isBlitExp())
-                    be.e2.accept(this);
-                else
-                    v._init.accept(this);
-            }
+            if (auto ce = v._init.isConstructExp())
+                ce.e2.accept(this);
+            else if (auto be = v._init.isBlitExp())
+                be.e2.accept(this);
             else
                 v._init.accept(this);
         }
@@ -678,15 +673,10 @@ package(dmd.visitor) mixin template ParseVisitMethods(AST)
             if (vd._init)
             {
                 // note similarity of this code with visitVarDecl()
-                if (auto ie = vd._init.isExpInitializer())
-                {
-                    if (auto ce = ie.exp.isConstructExp())
-                        ce.e2.accept(this);
-                    else if (auto be = ie.exp.isBlitExp())
-                        be.e2.accept(this);
-                    else
-                        vd._init.accept(this);
-                }
+                if (auto ce = vd._init.isConstructExp())
+                    ce.e2.accept(this);
+                else if (auto be = vd._init.isBlitExp())
+                    be.e2.accept(this);
                 else
                     vd._init.accept(this);
 
@@ -916,51 +906,31 @@ package(dmd.visitor) mixin template ParseVisitMethods(AST)
         //printf("Visiting NewDeclaration\n");
     }
 
-//   Initializers
-//============================================================
+//      Expressions
+//===================================================
 
-    override void visit(AST.StructInitializer si)
+    override void visit(AST.StructInitExp si)
     {
-        //printf("Visiting StructInitializer\n");
+        //printf("Visiting StructInitExp\n");
         foreach (i, const id; si.field)
             if (auto iz = si.value[i])
                 iz.accept(this);
     }
 
-    override void visit(AST.ArrayInitializer ai)
+    override void visit(AST.CInitExp ci)
     {
-        //printf("Visiting ArrayInitializer\n");
-        foreach (i, ex; ai.index)
-        {
-            if (ex)
-                ex.accept(this);
-            if (auto iz = ai.value[i])
-                iz.accept(this);
-        }
-    }
-
-    override void visit(AST.ExpInitializer ei)
-    {
-        //printf("Visiting ExpInitializer\n");
-        ei.exp.accept(this);
-    }
-
-    override void visit(AST.CInitializer ci)
-    {
-        //printf("Visiting CInitializer\n");
+        //printf("Visiting CInitExp\n");
         foreach (di; ci.initializerList)
         {
-            foreach (des; (*di.designatorList)[])
-            {
-                if (des.exp)
-                    des.exp.accept(this);
-            }
+            if (di.designatorList)
+                foreach (des; (*di.designatorList)[])
+                {
+                    if (des.exp)
+                        des.exp.accept(this);
+                }
             di.initializer.accept(this);
         }
     }
-
-//      Expressions
-//===================================================
 
     override void visit(AST.ArrayLiteralExp e)
     {
@@ -973,7 +943,8 @@ package(dmd.visitor) mixin template ParseVisitMethods(AST)
         //printf("Visiting AssocArrayLiteralExp\n");
         foreach (i, key; *e.keys)
         {
-            key.accept(this);
+            if (key)
+                key.accept(this);
             ((*e.values)[i]).accept(this);
         }
     }

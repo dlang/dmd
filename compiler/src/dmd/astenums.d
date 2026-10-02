@@ -391,20 +391,6 @@ enum STMT : ubyte
     Import,
 }
 
-/**********************
- * Discriminant for which kind of initializer
- */
-enum InitKind : ubyte
-{
-    void_,
-    default_,
-    error,
-    struct_,
-    array,
-    exp,
-    C_,
-}
-
 /// A linkage attribute as defined by `extern(XXX)`
 ///
 /// https://dlang.org/spec/attribute.html#linkage

@@ -24,5 +24,4 @@ extern(C++) class PermissiveVisitor(AST): ParseTimeVisitor!AST
     override void visit(AST.Expression){}
     override void visit(AST.TemplateParameter){}
     override void visit(AST.Condition){}
-    override void visit(AST.Initializer){}
 }

@@ -47,8 +47,6 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.importc;
-import dmd.init;
-import dmd.initsem;
 import dmd.intrange;
 import dmd.hdrgen;
 import dmd.location;

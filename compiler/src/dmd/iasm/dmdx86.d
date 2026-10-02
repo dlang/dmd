@@ -34,7 +34,6 @@ import dmd.globals;
 import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
-import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.optimize;

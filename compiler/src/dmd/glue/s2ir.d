@@ -41,7 +41,6 @@ import dmd.expression;
 import dmd.expressionsem : canElideCopy, getDsymbol, toInteger;
 import dmd.func;
 import dmd.id;
-import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.statement;
@@ -758,9 +757,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
             symbol_add(sp);
 
             // Perform initialization of with handle
-            auto ie = s.wthis._init.isExpInitializer();
-            assert(ie);
-            auto ei = toElemDtor(ie.exp, irs);
+            auto ei = toElemDtor(s.wthis._init, irs);
             auto e = el_var(sp);
             e = el_bin(OPeq,e.Ety, e, ei);
             elem_setLoc(e, s.loc);

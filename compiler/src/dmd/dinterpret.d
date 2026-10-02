@@ -2069,7 +2069,7 @@ public:
         // is duplicated in ExpressionSemanticVisitor.visit(AssignExp exp). Until
         // initializer semantics are removed from the interpreter, it has been
         // moved here.
-        Expression iexp = v._init.initializerToExpression(null, v.type, eSink);
+        Expression iexp = v._init;
 
         Type tb = v.type.toBasetype();
         Expression e = (iexp.op == EXP.construct || iexp.op == EXP.blit) ? (cast(AssignExp)iexp).e2 : iexp;
@@ -2113,7 +2113,7 @@ public:
                 if (v._scope)
                 {
                     v.inuse++;
-                    v._init = v._init.initializerSemantic(v._scope, v.type, INITinterpret, global.errorSink); // might not be run on aggregate members
+                    v.initializerSemantic(v._scope, INITinterpret); // might not be run on aggregate members
                     v.inuse--;
                 }
                 e = interpretInitializerExpression(v);
@@ -2171,7 +2171,7 @@ public:
                         eSink.error(loc, "CTFE internal error: trying to access uninitialized var");
                         assert(0);
                     }
-                    e = v._init.initializerToExpression(null, null, eSink);
+                    e = v._init;
                 }
                 else
                     // Zero-length arrays don't have an initializer
@@ -2364,21 +2364,15 @@ public:
                     if (v2._init)
                     {
                         Expression einit;
-                        if (ExpInitializer ie = v2._init.isExpInitializer())
-                        {
-                            einit = interpretRegion(ie.exp, istate, goal);
-                            if (exceptionOrCant(einit))
-                                return 1;
-                        }
-                        else if (v2._init.isVoidInitializer())
+                        if (v2._init.isVoidInitializer())
                         {
                             einit = voidInitLiteral(v2.type, v2).copy();
                         }
                         else
                         {
-                            eSink.error(e.loc, "declaration `%s` is not yet implemented in CTFE", e.toErrMsg());
-                            result = CTFEExp.cantexp;
-                            return 1;
+                            einit = interpretRegion(v2._init, istate, goal);
+                            if (exceptionOrCant(einit))
+                                return 1;
                         }
                         setValue(v2, einit);
                     }
@@ -2396,15 +2390,7 @@ public:
                 ctfeGlobals.stack.push(v);
             if (v._init)
             {
-                if (ExpInitializer ie = v._init.isExpInitializer())
-                {
-                    result = interpretRegion(ie.exp, istate, goal);
-                    if (result !is null && v.ctfeAdrOnStack != VarDeclaration.AdrOnStackNone)
-                        if (!getValue(v))
-                            setValueWithoutChecking(v, result); // a temporary from extractSideEffects can be a ref
-                    return;
-                }
-                else if (v._init.isVoidInitializer())
+                if (v._init.isVoidInitializer())
                 {
                     result = voidInitLiteral(v.type, v).copy();
                     // There is no AssignExp for void initializers,
@@ -2412,19 +2398,11 @@ public:
                     setValue(v, result);
                     return;
                 }
-                else if (v._init.isArrayInitializer())
-                {
-                    result = interpretInitializerExpression(v);
-                    if (result !is null)
-                    {
-                        if (v.ctfeAdrOnStack != VarDeclaration.AdrOnStackNone)
-                            if (!getValue(v))
-                                setValueWithoutChecking(v, result); // a temporary from extractSideEffects can be a ref
-                        return;
-                    }
-                }
-                eSink.error(e.loc, "declaration `%s` is not yet implemented in CTFE", e.toErrMsg());
-                result = CTFEExp.cantexp;
+                result = interpretRegion(v._init, istate, goal);
+                if (result !is null && v.ctfeAdrOnStack != VarDeclaration.AdrOnStackNone)
+                    if (!getValue(v))
+                        setValueWithoutChecking(v, result); // a temporary from extractSideEffects can be a ref
+                return;
             }
             else if (v.type.size() == 0)
             {
@@ -2945,7 +2923,7 @@ public:
                         if (v._init.isVoidInitializer())
                             m = voidInitLiteral(v.type, v).copy();
                         else
-                            m = v.getConstInitializer(true);
+                            m = v.getConstInitializer();
                     }
                     else if (v.type.isTypeNoreturn())
                     {
@@ -4930,7 +4908,7 @@ public:
             }
             if (!getValue(v))
             {
-                Expression newval = v._init.initializerToExpression(null, null, eSink);
+                Expression newval = v._init;
                 // Bug 4027. Copy constructors are a weird case where the
                 // initializer is a void function (the variable is modified
                 // through a reference parameter instead).

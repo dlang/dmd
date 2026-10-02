@@ -678,50 +678,34 @@ struct ExpressionWalker
 
                         if (var._init !is null)
                         {
-                            final switch (var._init.kind)
+                            auto ei = var._init;
+                            bool voidInit = ei.isVoidInitializer();
+                            Expression e2 = ei.initializerExp();
+
+                            if (!voidInit && e2.loc == var.loc && (var.storage_class & STC.foreach_) == 0)
                             {
-                            case InitKind.exp:
-                                auto ei = var._init.isExpInitializer;
+                                // This is default initialization
 
-                                if (ei.loc == var.loc && (var.storage_class & STC.foreach_) == 0)
+                                if (dfaVar.isFloatingPoint)
                                 {
-                                    // This is default initialization
-
-                                    if (dfaVar.isFloatingPoint)
-                                    {
-                                        // Floating point initializes to NaN which is NOT a good default.
-                                        // Allow explicit, but not default initialization.
-                                        dfaVar.wasDefaultInitialized = true;
-                                        goto case InitKind.void_;
-                                    }
+                                    // Floating point initializes to NaN which is NOT a good default.
+                                    // Allow explicit, but not default initialization.
+                                    dfaVar.wasDefaultInitialized = true;
+                                    voidInit = true;
                                 }
+                            }
 
-                                DFALatticeRef lr = this.walk(ei.exp);
-
-                                if (!(ei.exp.isConstructExp || ei.exp.isBlitExp))
-                                    seeAssign(dfaVar, true, lr, ei.exp.loc);
-                                break;
-
-                            case InitKind.array:
-                                auto ai = var._init.isArrayInitializer;
-                                DFALatticeRef lr = dfaCommon.makeLatticeRef;
-                                DFAConsequence* c = lr.addConsequence(dfaVar);
-                                lr.setContext(c);
-
-                                seeAssign(dfaVar, true, lr, ai.loc, false,
-                                        ai.value.length > 0 ? 3 : 2);
-                                break;
-
-                            case InitKind.void_:
+                            if (voidInit)
+                            {
                                 dfaVar.writeCount = 0;
                                 cctx.writeOnVarAtThisPoint = 0;
-                                break;
+                            }
+                            else if (!ei.isErrorExp())
+                            {
+                                DFALatticeRef lr = this.walk(ei);
 
-                            case InitKind.error:
-                            case InitKind.struct_:
-                            case InitKind.C_:
-                            case InitKind.default_:
-                                break;
+                                if (!(ei.isConstructExp || ei.isBlitExp))
+                                    seeAssign(dfaVar, true, lr, ei.loc);
                             }
                         }
 
@@ -1653,6 +1637,8 @@ struct ExpressionWalker
         case EXP.compoundLiteral: // ( type-name ) { initializer-list }
         case EXP._Generic:
         case EXP.interval:
+        case EXP.structInit:
+        case EXP.cInit:
 
         case EXP.rvalue:
             if (dfaCommon.debugUnknownAST)
@@ -2165,10 +2151,7 @@ struct ExpressionWalker
                                 // With statements sometimes have temporaries that do get written out,
                                 //  pretend we're the initializer instead.
 
-                                auto ez = vd._init.isExpInitializer();
-                                assert(ez);
-
-                                Expression e = ez.exp;
+                                Expression e = vd._init;
                                 if (e.op == EXP.construct || e.op == EXP.blit)
                                     e = (cast(AssignExp) e).e2;
 
