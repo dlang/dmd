@@ -45,3 +45,9 @@ static assert(DOUBLE(5) == 10);
 static assert(BARE_CALL == 10);      // bare call now works
 static assert(PAREN_CALL == 10);     // parenthesized already worked
 static assert(WRAPPER(3) == 6);      // function-like macro calling another macro
+
+// https://github.com/dlang/dmd/issues/23143 - alias macros for declared identifiers
+static assert(ALIAS_FUNC(4) == 5);            // alias to a function
+static assert(is(ALIAS_TYPE == int));         // alias to a type
+static assert(ALIAS_ENUM == 12);              // alias to a manifest constant
+static assert(is(typeof(self_ref) == int));   // self-referential macro stays the variable
