@@ -1,0 +1,31 @@
+New switch `-vzeroinit` lists default initializers that are not all zeros
+
+A struct whose default initializer is all zero bits has its `init` symbol placed
+in the BSS segment, and costs nothing in the binary. If any field is not zero
+initialized (a `float` defaulting to NaN, a `char` defaulting to `0xFF`, an enum
+whose first member is not `0`, or an explicit field initializer), the whole
+initializer is stored in the binary instead, however large the struct is.
+
+`-vzeroinit` reports each such struct and each default-initialized global
+variable, along with the chain of fields leading to the cause:
+
+---
+struct vec3 { float x = 0, y = 0, z = 0; }
+enum Stance : ubyte { LOW = 1, HIGH }
+struct Fighter { vec3 pos; Stance stance; }
+struct World { Fighter[512] fighters; }
+__gshared World world;
+---
+
+$(CONSOLE
+> dmd -c -vzeroinit app.d
+app.d(3): `app.Fighter` has a non-zero default initializer, 16 bytes stored in the binary
+app.d(3):     field `Fighter.stance` of type `Stance`
+app.d(2):         enum `app.Stance` defaults to its first member `Stance.LOW`, which is not zero
+app.d(4): `app.World` has a non-zero default initializer, 8192 bytes stored in the binary
+app.d(4):     field `World.fighters` of type `Fighter[512]`
+app.d(3):         field `Fighter.stance` of type `Stance`
+app.d(2):             enum `app.Stance` defaults to its first member `Stance.LOW`, which is not zero
+app.d(5): `app.world` is default initialized to non-zero data, 8192 bytes stored in the binary
+...
+)

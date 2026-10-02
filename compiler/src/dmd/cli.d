@@ -1008,6 +1008,14 @@ dmd -cov -unittest myprog.d
         Option("vtls",
             "list all variables going into thread local storage"
         ),
+        Option("vzeroinit",
+            "list all default initializers that are not all zeros",
+            `Types and variables whose default initializer is all zeros are placed in
+            the BSS segment and take no space in the binary. This switch lists every
+            struct initializer and global variable whose default initializer is not all
+            zeros, and so is stored in full in the binary, along with the fields, enums
+            and types responsible.`,
+        ),
         Option("vtemplates[=list-instances]",
             "list statistics on template instantiations",
             `List statistics on template instantiations.
