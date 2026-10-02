@@ -1,0 +1,179 @@
+module enum_union_traits;
+
+struct CustomPayload
+{
+    int id;
+}
+
+enum union Message
+{
+    @("tag_none") case None(),
+    case Move(int x, int y),
+    @("tag_user") case User { int id; string name; },
+    case CustomPayload,
+    case int,
+    @("tag_slice") case Slice = ubyte[],
+    case Payload = CustomPayload,
+}
+
+void main()
+{
+    struct LocalPayload
+    {
+        int value;
+    }
+
+    enum union LocalMessage
+    {
+        case None(),
+        case Payload = LocalPayload,
+    }
+
+    static foreach (index, Variant; __traits(allVariants, LocalMessage))
+    {
+        static if (index == 1)
+        {
+            static assert(__traits(variantParams, Variant).length == 0);
+            static assert(__traits(variantParamNames, Variant).length == 0);
+        }
+    }
+
+    static assert(is(Message == enum union));
+    static assert(!is(int == enum union));
+    static assert(!is(CustomPayload == enum union));
+
+    alias Variants = __traits(allVariants, Message);
+    static assert(Variants.length == 7);
+    static assert(is(Message.User == struct));
+    static assert(is(Message.Slice == ubyte[]));
+    static assert(__traits(isSame, Variants[2],
+        __traits(getVariant, Message, "User")));
+
+    static assert(__traits(variantTag, Variants[0]) == 0);
+    static assert(__traits(variantTag, Variants[1]) == 1);
+    static assert(__traits(variantTag, Variants[2]) == 2);
+    static assert(__traits(variantTag, Variants[3]) == 3);
+    static assert(__traits(variantTag, Variants[4]) == 4);
+    static assert(__traits(variantTag, Variants[5]) == 5);
+    static assert(__traits(variantTag, Variants[6]) == 6);
+    static assert(is(typeof(__traits(variantTag, Variants[0])) == ubyte));
+
+    static assert(__traits(variantKind, Variants[0]) == "unit");
+    static assert(__traits(variantKind, Variants[1]) == "tuple");
+    static assert(__traits(variantKind, Variants[2]) == "struct");
+    static assert(__traits(variantKind, Variants[3]) == "bare");
+    static assert(__traits(variantKind, Variants[4]) == "bare");
+    static assert(__traits(variantKind, Variants[5]) == "alias");
+    static assert(__traits(variantKind, Variants[6]) == "alias");
+
+    static assert(__traits(variantParams, Variants[0]).length == 0);
+    static assert(is(__traits(variantParams, Variants[1]) == AliasSeq!(int, int)));
+    static assert(is(__traits(variantParams, Variants[2]) == AliasSeq!(int, string)));
+    static assert(__traits(variantParams, Variants[3]).length == 0);
+    static assert(__traits(variantParams, Variants[4]).length == 0);
+    static assert(__traits(variantParams, Variants[5]).length == 0);
+    static assert(__traits(variantParams, Variants[6]).length == 0);
+
+    static assert(__traits(variantParamNames, Variants[0]).length == 0);
+    static assert(__traits(variantParamNames, Variants[1]) == AliasSeq!("x", "y"));
+    static assert(__traits(variantParamNames, Variants[2]) == AliasSeq!("id", "name"));
+    static assert(__traits(variantParamNames, Variants[3]).length == 0);
+    static assert(__traits(variantParamNames, Variants[4]).length == 0);
+    static assert(__traits(variantParamNames, Variants[5]).length == 0);
+    static assert(__traits(variantParamNames, Variants[6]).length == 0);
+
+    static foreach (Variant; Variants)
+    {
+        static assert(__traits(compiles, __traits(variantParams, Variant)));
+        static assert(__traits(variantParams, Variant).length ==
+            __traits(variantParamNames, Variant).length);
+    }
+
+    static assert(__traits(identifier, Variants[0]) == "None");
+    static assert(__traits(identifier, Variants[1]) == "Move");
+    static assert(__traits(identifier, Variants[2]) == "User");
+    static assert(__traits(identifier, Variants[3]) == "CustomPayload");
+    static assert(__traits(identifier, Variants[4]) == "");
+    static assert(__traits(identifier, Variants[5]) == "Slice");
+    static assert(__traits(identifier, Variants[6]) == "Payload");
+
+    alias NoneAttrs = __traits(getAttributes, Variants[0]);
+    static assert(NoneAttrs.length == 1 && NoneAttrs[0] == "tag_none");
+    alias UserAttrs = __traits(getAttributes, Variants[2]);
+    static assert(UserAttrs.length == 1 && UserAttrs[0] == "tag_user");
+    alias SliceAttrs = __traits(getAttributes, Variants[5]);
+    static assert(SliceAttrs.length == 1 && SliceAttrs[0] == "tag_slice");
+
+    Message.User user = Message.User(7, "Ada");
+    Message userMessage = user;
+    assert(userMessage.__tag == __traits(variantTag, Variants[2]));
+    const constMessage = userMessage;
+    immutable immutableMessage = Message.None();
+    shared Message sharedMessage;
+    assert(constMessage.__tag == __traits(variantTag, Variants[2]));
+    assert(immutableMessage.__tag == __traits(variantTag, Variants[0]));
+    assert(sharedMessage.__tag == __traits(variantTag, Variants[0]));
+    static assert(__traits(hasMember, Message, "__tag"));
+    assert(__traits(getMember, userMessage, "__tag") ==
+        __traits(variantTag, Variants[2]));
+    static assert(CountTag!(__traits(allMembers, Message)) == 1);
+    static foreach (member; Message.tupleof)
+        static assert(__traits(identifier, member) != "__tag");
+    static assert(!__traits(compiles, (ref Message value) { value.__tag = 1; }));
+    static assert(!__traits(compiles, (ref Message value) { value.__tag += 1; }));
+    static assert(!__traits(compiles, (ref Message value) { value.__tag++; }));
+    static assert(!__traits(compiles, (ref Message value) { auto pointer = &value.__tag; }));
+    static assert(!__traits(compiles, (ref Message value) { ref ubyte tag = value.__tag; }));
+    Message.Slice bytes = [ubyte(1), 2, 3];
+    Message bytesMessage = bytes;
+    assert(bytesMessage.__tag == __traits(variantTag, Variants[5]));
+
+    static assert(!__traits(compiles, __traits(allVariants, int)));
+    static assert(!__traits(compiles, __traits(getTag, Message, Variants[0])));
+    static assert(!__traits(compiles, __traits(variantTag, double)));
+    static assert(!__traits(compiles, __traits(variantTag, Message, Variants[0])));
+    static assert(!__traits(compiles, __traits(variantKind, main)));
+    static assert(!__traits(compiles, __traits(variantParams, main)));
+    static assert(!__traits(compiles, __traits(variantParamNames, main)));
+
+    // hasVariant and getVariant tests
+    static assert(__traits(hasVariant, Message, "None"));
+    static assert(__traits(hasVariant, Message, "Move"));
+    static assert(__traits(hasVariant, Message, "User"));
+    static assert(__traits(hasVariant, Message, "Slice"));
+    static assert(__traits(hasVariant, Message, int));
+    static assert(!__traits(hasVariant, Message, "missing"));
+    static assert(!__traits(hasVariant, Message, double));
+
+    static assert(__traits(isSame, __traits(getVariant, Message, "None"), Variants[0]));
+    static assert(__traits(isSame, __traits(getVariant, Message, "Move"), Variants[1]));
+    static assert(__traits(isSame, __traits(getVariant, Message, "User"), Variants[2]));
+    static assert(__traits(isSame, __traits(getVariant, Message, "Slice"), Variants[5]));
+    static assert(__traits(isSame, __traits(getVariant, Message, int), Variants[4]));
+
+    // Partially-named tuple variant parameter traits
+    enum union Shape
+    {
+        case Arc(double, double, double radius);
+    }
+    alias ShapeVars = __traits(allVariants, Shape);
+    static assert(is(__traits(variantParams, ShapeVars[0]) == AliasSeq!(double, double, double)));
+    static assert(__traits(variantParamNames, ShapeVars[0]) == AliasSeq!("", "", "radius"));
+}
+
+template AliasSeq(T...)
+{
+    alias AliasSeq = T;
+}
+
+template CountTag(names...)
+{
+    enum CountTag = ()
+    {
+        size_t count;
+        static foreach (name; names)
+            if (name == "__tag")
+                count++;
+        return count;
+    }();
+}

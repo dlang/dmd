@@ -200,6 +200,15 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
+class EnumUnionDeclaration final : public StructDeclaration
+{
+public:
+    EnumUnionDeclaration *syntaxCopy(Dsymbol *s) override;
+    const char *kind() const override;
+
+    void accept(Visitor *v) override { v->visit(this); }
+};
+
 struct BaseClass
 {
     Type *type;                         // (before semantic processing)

@@ -40,6 +40,7 @@ class OverloadSet;
 class StringExp;
 class InterpExp;
 class LoweredAssignExp;
+class SwitchExp;
 class StaticForeach;
 #ifdef IN_GCC
 typedef union tree_node Symbol;
@@ -215,6 +216,7 @@ public:
     EqualExp* isEqualExp();
     IdentityExp* isIdentityExp();
     CondExp* isCondExp();
+    SwitchExp* isSwitchExp();
     GenericExp* isGenericExp();
     DefaultInitExp* isDefaultInitExp();
     ClassReferenceExp* isClassReferenceExp();
@@ -1240,6 +1242,19 @@ public:
 
     CondExp *syntaxCopy() override;
 
+    void accept(Visitor *v) override { v->visit(this); }
+};
+
+struct CaseExpArm;
+
+class SwitchExp final : public Expression
+{
+public:
+    Expression *condition;
+    DArray<CaseExpArm> arms;
+    bool hasDefault;
+
+    SwitchExp *syntaxCopy() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
