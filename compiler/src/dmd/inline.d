@@ -101,21 +101,186 @@ enum EXPANDINLINE_LOG = false;
  */
 private final class InlineDoState
 {
+    // inline target
+    FuncDeclaration fd; // function being inlined (old parent)
+    Dsymbol parent;     // new parent
+    bool propagateNRVO;
+
     // inline context
+    Expression esetup;  // expression that sets up call site
+    Expression eparams; // expression that binds parameters
     Expression eret;    // expression returned to in case of NRVO
     VarDeclaration vthis;
     Dsymbols from;      // old Dsymbols
     Dsymbols to;        // parallel array of new Dsymbols
-    Dsymbol parent;     // new parent
-    FuncDeclaration fd; // function being inlined (old parent)
+
     // inline result
     bool foundReturn;
-    bool propagateNRVO;
 
-    this(Dsymbol parent, FuncDeclaration fd) scope
+    this(FuncDeclaration fd, Dsymbol parent, bool propagateNRVO) scope
     {
-        this.parent = parent;
         this.fd = fd;
+        this.parent = parent;
+        this.propagateNRVO = propagateNRVO;
+    }
+
+    void setupNRVO(Expression e)
+    {
+        if (e.isVarExp())
+        {
+            eret = e;
+            return;
+        }
+
+        // Use a pointer to the expression (field or static array) to be initialized.
+        auto tmp = Identifier.generateId("__retptr");
+        auto vd = new VarDeclaration(fd.loc, e.type.pointerTo(), tmp, null);
+        vd.storage_class |= STC.temp;
+        vd._linkage = LINK.d;
+        vd.parent = parent;
+
+        auto ce = new ConstructExp(fd.loc, vd, new AddrExp(fd.loc, e, vd.type));
+        ce.type = vd.type;
+        vd._init = new ExpInitializer(e.loc, ce);
+
+        auto de = new DeclarationExp(fd.loc, vd);
+        de.type = Type.tvoid;
+
+        esetup = Expression.combine(esetup, de);
+        eret = new PtrExp(fd.loc, new VarExp(fd.loc, vd));
+        eret.type = e.type;
+    }
+
+    void setupThis(Expression e, VarDeclaration vthis2 = null)
+    {
+        Expression e0;
+        e = Expression.extractLast(e, e0);
+
+        if (vthis2)
+        {
+            // void*[2] __this = [ethis, this]
+            if (e.type.ty == Tstruct)
+            {
+                // &ethis
+                Type t = e.type.pointerTo();
+                e = new AddrExp(e.loc, e);
+                e.type = t;
+            }
+            auto elements = new Expressions(2);
+            (*elements)[0] = e;
+            (*elements)[1] = new NullExp(Loc.initial, Type.tvoidptr);
+            Expression ae = new ArrayLiteralExp(vthis2.loc, vthis2.type, elements);
+            Expression ce = new ConstructExp(vthis2.loc, vthis2, ae);
+            ce.type = vthis2.type;
+            vthis2._init = new ExpInitializer(vthis2.loc, ce);
+            esetup = Expression.combine(esetup, e0);
+            vthis = vthis2;
+            return;
+        }
+
+        if (auto ve = e.isVarExp())
+        {
+            esetup = Expression.combine(esetup, e0);
+            vthis = ve.var.isVarDeclaration();
+            return;
+        }
+
+        if (e.type.ty == Tpointer)
+        {
+            Type t = e.type.nextOf();
+            e = new PtrExp(e.loc, e);
+            e.type = t;
+        }
+
+        vthis = new VarDeclaration(fd.loc, e.type, Id.This, null);
+        vthis._linkage = LINK.d;
+        vthis.parent = parent;
+
+        if (e.isStructLiteralExp())
+        {
+            vthis.storage_class = STC.rvalue;
+
+            if (fd.isCtorDeclaration() && propagateNRVO)
+                vthis.nrvo = true;
+        }
+        else if (e.type.ty != Tclass)
+        {
+            vthis.storage_class = STC.ref_;
+        }
+
+        auto ce = new ConstructExp(fd.loc, vthis, e);
+        ce.type = vthis.type;
+        vthis._init = new ExpInitializer(fd.loc, ce);
+
+        auto de = new DeclarationExp(fd.loc, vthis);
+        de.type = Type.tvoid;
+
+        esetup = Expression.combine(esetup, e0, de);
+    }
+
+    void setupParams(Expressions* arguments, out bool again)
+    {
+        assert(fd.parameters.length == arguments.length);
+
+        foreach (i; 0 .. arguments.length)
+        {
+            auto vfrom = (*fd.parameters)[i];
+            auto arg = (*arguments)[i];
+
+            auto vto = new VarDeclaration(vfrom.loc, vfrom.type, vfrom.ident, null);
+            vto.storage_class |= vfrom.storage_class & (STC.temp | STC.IOR | STC.lazy_ | STC.nodtor);
+            vto._linkage = vfrom._linkage;
+            vto.parent = parent;
+            //printf("vto = '%s', vto.storage_class = x%x\n", vto.toChars(), vto.storage_class);
+            //printf("vto.parent = '%s'\n", parent.toChars());
+
+            if (VarExp ve = arg.isVarExp())
+            {
+                VarDeclaration va = ve.var.isVarDeclaration();
+                if (va && va.isArgDtorVar)
+                {
+                    assert(vto.storage_class & STC.nodtor);
+                    // The destructor is called on va so take it by ref
+                    vto.storage_class |= STC.ref_;
+                }
+            }
+
+            if (arg.rvalue)
+                vto.storage_class |= STC.ref_;
+
+            // Even if vto is STC.lazy_, `vto = arg` is handled correctly in glue layer.
+            auto be = new BlitExp(vto.loc, vto, arg);
+            be.type = vto.type;
+            vto._init = new ExpInitializer(vfrom.loc, be);
+
+            from.push(vfrom);
+            to.push(vto);
+
+            auto de = new DeclarationExp(Loc.initial, vto);
+            de.type = Type.tvoid;
+
+            eparams = Expression.combine(eparams, de);
+
+            /* If function pointer or delegate parameters are present,
+             * inline scan again because if they are initialized to a symbol,
+             * any calls to the fp or dg can be inlined.
+             */
+            if (vfrom.type.ty == Tdelegate || vfrom.type.isPtrToFunction())
+            {
+                if (auto ve = arg.isVarExp())
+                {
+                    if (ve.var.isFuncDeclaration())
+                        again = true;
+                }
+                else if (auto se = arg.isSymOffExp())
+                {
+                    if (se.var.isFuncDeclaration())
+                        again = true;
+                }
+                else if (arg.op == EXP.function_ || arg.op == EXP.delegate_)
+                    again = true;
+            }
+        }
     }
 }
 
@@ -2173,8 +2338,8 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
         if (eret) printf("\teret = %s\n", eret.toChars());
         if (ethis) printf("\tethis = %s\n", ethis.toChars());
     }
-    scope ids = new InlineDoState(parent, fd);
-    ids.propagateNRVO = propagateNRVO;
+
+    scope ids = new InlineDoState(fd, parent, propagateNRVO);
 
     if (fd.isNested())
     {
@@ -2183,185 +2348,29 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
         parent.inlinedNestedCallees.push(fd);
     }
 
-    // Set up eret
     if (eret)
-    {
-        if (eret.isVarExp())
-        {
-            ids.eret = eret;
-            eret = null;
-        }
-        else
-        {
-            // Use a pointer to the expression (field or static array) to be initialized.
+        ids.setupNRVO(eret);
 
-            auto ei = new ExpInitializer(callLoc, null);
-            auto tmp = Identifier.generateId("__retptr");
-            auto vd = new VarDeclaration(fd.loc, eret.type.pointerTo(), tmp, ei);
-            vd.storage_class |= STC.temp;
-            vd._linkage = LINK.d;
-            vd.parent = parent;
-
-            ei.exp = new ConstructExp(fd.loc, vd, new AddrExp(fd.loc, eret, vd.type));
-            ei.exp.type = vd.type;
-
-            auto de = new DeclarationExp(fd.loc, vd);
-            de.type = Type.tvoid;
-
-            ids.eret = new PtrExp(fd.loc, new VarExp(fd.loc, vd));
-            ids.eret.type = eret.type;
-            eret = de;
-        }
-    }
-
-    // Set up vthis
-    VarDeclaration vthis;
     if (ethis)
-    {
-        Expression e0;
-        ethis = Expression.extractLast(ethis, e0);
+        ids.setupThis(ethis, ecall.vthis2);
 
-        if (VarDeclaration vthis2 = ecall.vthis2)
-        {
-            // void*[2] __this = [ethis, this]
-            if (ethis.type.ty == Tstruct)
-            {
-                // &ethis
-                Type t = ethis.type.pointerTo();
-                ethis = new AddrExp(ethis.loc, ethis);
-                ethis.type = t;
-            }
-            auto elements = new Expressions(2);
-            (*elements)[0] = ethis;
-            (*elements)[1] = new NullExp(Loc.initial, Type.tvoidptr);
-            Expression ae = new ArrayLiteralExp(vthis2.loc, vthis2.type, elements);
-            Expression ce = new ConstructExp(vthis2.loc, vthis2, ae);
-            ce.type = vthis2.type;
-            vthis2._init = new ExpInitializer(vthis2.loc, ce);
-            vthis = vthis2;
-        }
-        else if (auto ve = ethis.isVarExp())
-        {
-            vthis = ve.var.isVarDeclaration();
-        }
-        else
-        {
-            if (ethis.type.ty == Tpointer)
-            {
-                Type t = ethis.type.nextOf();
-                ethis = new PtrExp(ethis.loc, ethis);
-                ethis.type = t;
-            }
-
-            auto ei = new ExpInitializer(fd.loc, null);
-            vthis = new VarDeclaration(fd.loc, ethis.type, Id.This, ei);
-            vthis._linkage = LINK.d;
-            vthis.parent = parent;
-
-            if (ethis.isStructLiteralExp())
-            {
-                vthis.storage_class = STC.rvalue;
-
-                if (fd.isCtorDeclaration() && propagateNRVO)
-                    vthis.nrvo = true;
-            }
-            else if (ethis.type.ty != Tclass)
-            {
-                vthis.storage_class = STC.ref_;
-            }
-
-            ei.exp = new ConstructExp(fd.loc, vthis, ethis);
-            ei.exp.type = vthis.type;
-
-            auto de = new DeclarationExp(fd.loc, vthis);
-            de.type = Type.tvoid;
-            e0 = Expression.combine(e0, de);
-        }
-        ethis = e0;
-
-        ids.vthis = vthis;
-    }
-
-    // Set up parameters
-    Expression eparams;
     if (ecall.arguments && ecall.arguments.length)
-    {
-        assert(fd.parameters.length == ecall.arguments.length);
-        foreach (i; 0 .. ecall.arguments.length)
-        {
-            auto vfrom = (*fd.parameters)[i];
-            auto arg = (*ecall.arguments)[i];
-
-            auto ei = new ExpInitializer(vfrom.loc, arg);
-            auto vto = new VarDeclaration(vfrom.loc, vfrom.type, vfrom.ident, ei);
-            vto.storage_class |= vfrom.storage_class & (STC.temp | STC.IOR | STC.lazy_ | STC.nodtor);
-            vto._linkage = vfrom._linkage;
-            vto.parent = parent;
-            //printf("vto = '%s', vto.storage_class = x%x\n", vto.toChars(), vto.storage_class);
-            //printf("vto.parent = '%s'\n", parent.toChars());
-
-            if (VarExp ve = arg.isVarExp())
-            {
-                VarDeclaration va = ve.var.isVarDeclaration();
-                if (va && va.isArgDtorVar)
-                {
-                    assert(vto.storage_class & STC.nodtor);
-                    // The destructor is called on va so take it by ref
-                    vto.storage_class |= STC.ref_;
-                }
-            }
-
-            if (arg.rvalue)
-                vto.storage_class |= STC.ref_;
-
-            // Even if vto is STC.lazy_, `vto = arg` is handled correctly in glue layer.
-            ei.exp = new BlitExp(vto.loc, vto, arg);
-            ei.exp.type = vto.type;
-
-            ids.from.push(vfrom);
-            ids.to.push(vto);
-
-            auto de = new DeclarationExp(Loc.initial, vto);
-            de.type = Type.tvoid;
-            eparams = Expression.combine(eparams, de);
-
-            /* If function pointer or delegate parameters are present,
-             * inline scan again because if they are initialized to a symbol,
-             * any calls to the fp or dg can be inlined.
-             */
-            if (vfrom.type.ty == Tdelegate ||
-                vfrom.type.isPtrToFunction())
-            {
-                if (auto ve = arg.isVarExp())
-                {
-                    if (ve.var.isFuncDeclaration())
-                        again = true;
-                }
-                else if (auto se = arg.isSymOffExp())
-                {
-                    if (se.var.isFuncDeclaration())
-                        again = true;
-                }
-                else if (arg.op == EXP.function_ || arg.op == EXP.delegate_)
-                    again = true;
-            }
-        }
-    }
+        ids.setupParams(ecall.arguments, again);
 
     if (asStatements)
     {
         /* Construct:
-         *  { eret; ethis; eparams; fd.fbody; }
+         *  { esetup; eparams; fd.fbody; }
          * or:
-         *  { eret; ethis; try { eparams; fd.fbody; } finally { vthis.edtor; } }
+         *  { esetup; try { eparams; fd.fbody; } finally { vthis.edtor; } }
          */
 
         auto as = Statements();
         auto asDtor = Statements();
-        if (eret)
-            as.push(new ExpStatement(callLoc, eret));
-        if (ethis)
-            as.push(new ExpStatement(callLoc, ethis));
+        auto vthis = ids.vthis;
+
+        if (ids.esetup)
+            as.push(new ExpStatement(callLoc, ids.esetup));
 
         auto as2 = &as;
         if (vthis && !vthis.isDataseg())
@@ -2374,8 +2383,8 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
             }
         }
 
-        if (eparams)
-            as2.push(new ExpStatement(callLoc, eparams));
+        if (ids.eparams)
+            as2.push(new ExpStatement(callLoc, ids.eparams));
 
         fd.inlineNest++;
         Statement s = doInlineAs!Statement(fd.fbody, ids);
@@ -2398,7 +2407,7 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
     else
     {
         /* Construct:
-         *  (eret, ethis, eparams, fd.fbody)
+         *  (esetup, eparams, fd.fbody)
          */
 
         fd.inlineNest++;
@@ -2417,9 +2426,8 @@ private void expandInline(CallExp ecall, FuncDeclaration fd, FuncDeclaration par
             e.type = Type.tvoid;
         }
 
-        eresult = combineInlineSequence(eresult, eret);
-        eresult = combineInlineSequence(eresult, ethis);
-        eresult = combineInlineSequence(eresult, eparams);
+        eresult = combineInlineSequence(eresult, ids.esetup);
+        eresult = combineInlineSequence(eresult, ids.eparams);
         eresult = combineInlineSequence(eresult, e);
 
         if (ecall.rvalue || tf.isRvalue)
