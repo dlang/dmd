@@ -515,7 +515,7 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
         }
 
         const errors = global.startGagging();
-        Expression e = new IntegerExp(em.loc, 0, t);
+        Expression e = IntegerExp.create(em.loc, 0, t);
         e = e.ctfeInterpret();
         if (global.endGagging(errors) || terror)
         {
