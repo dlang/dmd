@@ -240,6 +240,46 @@ public:
         return 0;
     }
 
+    /********************************
+     * Remove every entry matching `pred`; returns the number removed.
+     * The pools are not freed, as a value may cache a pointer into its string.
+     * Utility for tooling that evicts stale entries when re-parsing in place.
+     */
+    size_t removeWhere(scope bool delegate(const(StringValue!T)*) nothrow pred) nothrow
+    {
+        const ndim = table.length;
+        auto ntab = (cast(StringEntry*)mem.xcalloc_noscan(ndim, StringEntry.sizeof))[0 .. ndim];
+        size_t ncount = 0;
+        size_t removed = 0;
+        foreach (se; table)
+        {
+            if (!se.vptr)
+                continue;
+            auto sv = getValue(se.vptr);
+            if (pred(sv))
+            {
+                // Clear the value so the GC-scanned pool doesn't keep it reachable.
+                sv.value = T.init;
+                ++removed;
+                continue;
+            }
+            size_t i = se.hash & (ndim - 1);
+            for (size_t j = 1; ntab[i].vptr; ++j)
+                i = (i + j) & (ndim - 1);
+            ntab[i] = se;
+            ++ncount;
+        }
+        if (!removed)
+        {
+            mem.xfree(ntab.ptr);
+            return 0;
+        }
+        mem.xfree(table.ptr);
+        table = ntab;
+        count = ncount;
+        return removed;
+    }
+
 private:
     /// Free all memory in use by this StringTable
     void freeMem() nothrow pure

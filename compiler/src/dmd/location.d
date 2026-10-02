@@ -58,6 +58,27 @@ nothrow:
         lastFileTableIndex = 0;
     }
 
+    /// Snapshot of the global (Base)Loc tables, for callers that re-parse.
+    struct Checkpoint
+    {
+        size_t tableLength;
+        uint index;
+    }
+
+    /// Snapshot the (Base)Loc tables.
+    static Checkpoint checkpoint() nothrow
+    {
+        return Checkpoint(locFileTable.length, locIndex);
+    }
+
+    /// Drop every `BaseLoc` created after `cp` and rewind the index allocator.
+    static void rollback(Checkpoint cp) nothrow
+    {
+        locFileTable.length = cp.tableLength;
+        locIndex = cp.index;
+        lastFileTableIndex = 0;
+    }
+
     /*******************************
      * Configure how display is done
      * Params:

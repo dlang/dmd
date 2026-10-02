@@ -655,6 +655,8 @@ extern (C++) abstract class Type : ASTNode
     static void deinitialize() nothrow
     {
         stringtable = stringtable.init;
+        rtinfo = null;
+        typeinfoconst = null;
     }
 
     /*********************************
