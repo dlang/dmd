@@ -3945,32 +3945,26 @@ void main()
     )
 
 
-$(H3 $(LNAME2 string-mixins, String Mixins and Compile Time Function Execution))
+$(H3 $(LNAME2 string-mixins, Run Time Values during CTFE))
 
-        $(P All functions that execute in CTFE must also
-        be executable at run time. The compile time evaluation of
-        a function does the equivalent of running the function at
-        run time. The semantics of a function cannot
-        depend on compile time values of the function. For example:)
+        $(P All functions that execute in CTFE must first pass semantic
+        checks for run time code generation. The compile time evaluation of
+        a function is similar to running the function at
+        run time. The compile time semantics of a function undergoing CTFE cannot
+        depend on values with a run time context. For example:)
 
 ---
 int foo(string s)
 {
-    return mixin(s);
+    enum e = s;      // Error: cannot read `s` at compile time
+    return mixin(s); // ditto
 }
 
 const int x = foo("1");
 ---
 
-        $(COMMENT Intentionally not a $(P ...) so that it doesn't get a
-        paragraph number, because this continues the paragraph above.)
-
-        is illegal, because the runtime code for `foo` cannot be
-        generated.
-
-        $(BEST_PRACTICE A function template, where `s` is a template argument,
-        would be the appropriate
-        method to implement this sort of thing.
+        $(BEST_PRACTICE A function template, where `s` is a template value argument,
+        would be the appropriate way to do this sort of thing.
         )
 
 
