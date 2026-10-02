@@ -1601,11 +1601,7 @@ private void resolveHelper(TypeQualified mt, Loc loc, Scope* sc, Dsymbol s, Dsym
             // Same check as in dotIdSemanticProp(DotIdExp)
             else if (sm.isPackage() && checkAccess(sc, sm.isPackage()))
             {
-                // @@@DEPRECATED_2.106@@@
-                // Should be an error in 2.106. Just remove the deprecation call
-                // and uncomment the null assignment
-                eSink.deprecation(loc, "%s %s is not accessible here, perhaps add 'static import %s;'", sm.kind(), sm.toPrettyChars(), sm.toPrettyChars());
-                //sm = null;
+                sm = null;
             }
         }
         if (global.errors != errorsave)
