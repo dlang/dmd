@@ -2625,47 +2625,44 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 dsym.semanticRun = PASS.semanticdone;
                 return;
             }
-            else
+            Expression ie = dsym._init.initializerToExpression(sc, tsa, eSink);
+            if (ie && ie.op != EXP.error)
             {
-                Expression ie = dsym._init.initializerToExpression(sc, tsa, eSink);
-                if (ie && ie.op != EXP.error)
+                // Infer from literal syntax first to avoid prematurely
+                // semantic-analyzing expressions that may depend on
+                // incomplete types (e.g. recursive initializers).
+                // https://github.com/dlang/dmd/issues/22887
+                bool dimInferred = inferSArrayDim(tsa, ie, dsym.loc, sc);
+                if (!dimInferred && shouldTryDeepSArrayDimInference(ie, sc))
                 {
-                    // Infer from literal syntax first to avoid prematurely
-                    // semantic-analyzing expressions that may depend on
-                    // incomplete types (e.g. recursive initializers).
-                    // https://github.com/dlang/dmd/issues/22887
-                    bool dimInferred = inferSArrayDim(tsa, ie, dsym.loc, sc);
-                    if (!dimInferred && shouldTryDeepSArrayDimInference(ie, sc))
+                    ie = ie.expressionSemantic(sc);
+                    ie = ie.optimize(WANTvalue);
+                    dimInferred = inferSArrayDim(tsa, ie, dsym.loc, sc);
+                }
+                if (!dimInferred)
+                {
+                    eSink.error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
+                    tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
+                    dsym._init = new ErrorInitializer();
+                    dsym.type = Type.terror;
+                    dsym.errors = true;
+                    dsym.semanticRun = PASS.semanticdone;
+                    return;
+                }
+                if (auto ale = ie.isArrayLiteralExp())
+                {
+                    // Fill null gaps left by sparse auto[$] inference,
+                    // now that dimensions are fully resolved.
+                    if (ale.elements)
                     {
-                        ie = ie.expressionSemantic(sc);
-                        ie = ie.optimize(WANTvalue);
-                        dimInferred = inferSArrayDim(tsa, ie, dsym.loc, sc);
+                        foreach (e; (*ale.elements)[])
+                            if (!e)
+                            {
+                                ale.basis = tsa.next.toBasetype().defaultInitLiteral(dsym.loc);
+                                break;
+                            }
                     }
-                    if (!dimInferred)
-                    {
-                        eSink.error(dsym.loc, "cannot infer static array length from `$`, provide an initializer");
-                        tsa.dim = new IntegerExp(dsym.loc, 0, Type.tsize_t);
-                        dsym._init = new ErrorInitializer();
-                        dsym.type = Type.terror;
-                        dsym.errors = true;
-                        dsym.semanticRun = PASS.semanticdone;
-                        return;
-                    }
-                    if (auto ale = ie.isArrayLiteralExp())
-                    {
-                        // Fill null gaps left by sparse auto[$] inference,
-                        // now that dimensions are fully resolved.
-                        if (ale.elements)
-                        {
-                            foreach (e; (*ale.elements)[])
-                                if (!e)
-                                {
-                                    ale.basis = tsa.next.toBasetype().defaultInitLiteral(dsym.loc);
-                                    break;
-                                }
-                        }
-                        dsym._init = new ExpInitializer(dsym.loc, ale);
-                    }
+                    dsym._init = new ExpInitializer(dsym.loc, ale);
                 }
             }
         }
