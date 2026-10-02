@@ -724,12 +724,9 @@ private int tryMain(const(char)[][] argv, out Param params)
     if (global.errors || global.warnings)
         removeHdrFilesAndFail(params.dihdr.doOutput, modules);
 
-    // inlineScan incrementally run semantic3 of each expanded functions.
     // So deps file generation should be moved after the inlining stage.
     if (OutBuffer* ob = params.moduleDeps.buffer)
     {
-        foreach (i; 1 .. modules[0].aimports.length)
-            semantic3OnDependencies(modules[0].aimports[i]);
         runDeferredSemantic3();
 
         const data = (*ob)[];
