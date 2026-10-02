@@ -282,12 +282,25 @@ static if (UseBumpMalloc)
     enum hugeAlignment = 4096;
     __gshared void* firstHugeFree;
 
+    version (BumpMallocStats)
+    {
+        __gshared ulong[maxSmallSize >> smallAlignmentShift] countSmallAlloc;
+        __gshared ulong[maxSmallSize >> smallAlignmentShift] countSmallFree;
+        __gshared ulong[maxLargeSize >> largeAlignmentShift] countLargeAlloc;
+        __gshared ulong[maxLargeSize >> largeAlignmentShift] countLargeFree;
+        __gshared ulong countHugeAlloc;
+        __gshared ulong memHugeAlloc;
+        __gshared ulong countHugeFree;
+        __gshared ulong memHugeFree;
+    }
+
     void* bumpMalloc(size_t size)
     {
         if (size <= maxSmallSize - smallAlignment)
         {
             size = (size + smallAlignment - 1) & ~(smallAlignment - 1);
             size_t bin = size >> smallAlignmentShift;
+            version (BumpMallocStats) countSmallAlloc[bin]++;
             if (void* p = firstSmallFree[bin])
             {
                 firstSmallFree[bin] = *cast(void**)p;
@@ -298,6 +311,7 @@ static if (UseBumpMalloc)
         {
             size = (size + largeAlignment - 1) & ~(largeAlignment - 1);
             size_t bin = size >> largeAlignmentShift;
+            version (BumpMallocStats) countLargeAlloc[bin]++;
             if (void* p = firstLargeFree[bin])
             {
                 firstLargeFree[bin] = *cast(void**)p;
@@ -308,6 +322,8 @@ static if (UseBumpMalloc)
         {
             size = (size + hugeAlignment - 1) & ~(hugeAlignment - 1);
             void** pfree = &firstHugeFree;
+            version (BumpMallocStats) countHugeAlloc++;
+            version (BumpMallocStats) memHugeAlloc += size;
             for (auto p = cast(void**)*pfree; p; p = cast(void**)*pfree)
             {
                 if (cast(size_t) p[1] == size)
@@ -333,6 +349,7 @@ static if (UseBumpMalloc)
 
             *cast(void**)p = firstSmallFree[bin];
             firstSmallFree[bin] = p;
+            version (BumpMallocStats) countSmallFree[bin]++;
         }
         else if (size <= maxLargeSize - largeAlignment)
         {
@@ -341,12 +358,15 @@ static if (UseBumpMalloc)
 
             *cast(void**)p = firstLargeFree[bin];
             firstLargeFree[bin] = p;
+            version (BumpMallocStats) countLargeFree[bin]++;
         }
         else
         {
             size = (size + hugeAlignment - 1) & ~(hugeAlignment - 1);
             *cast(void**)p = firstHugeFree;
             (cast(size_t*)p)[1] = size;
+            version (BumpMallocStats) countHugeFree++;
+            version (BumpMallocStats) memHugeFree += size;
         }
     }
 
@@ -363,10 +383,37 @@ static if (UseBumpMalloc)
 
     void* pureBumpRealloc(void* p, size_t size, size_t oldsize) pure nothrow
     {
+        size_t alignment =
+            size <= maxSmallSize - smallAlignment ? smallAlignment :
+            size <= maxLargeSize - largeAlignment ? largeAlignment : hugeAlignment;
+        size_t oldalignment =
+            oldsize <= maxSmallSize - smallAlignment ? smallAlignment :
+            oldsize <= maxLargeSize - largeAlignment ? largeAlignment : hugeAlignment;
+
+        if (alignment == oldalignment)
+            if (((size + alignment - 1) & ~(alignment - 1)) == ((oldsize + alignment - 1) & ~(alignment - 1)))
+                return p;
+
         void* np = pureBumpMalloc(size);
         memcpy(np, p, size < oldsize ? size : oldsize);
         pureBumpFree(p, oldsize);
         return np;
+    }
+
+    version (BumpMallocStats) shared static ~this()
+    {
+        for (size_t i = 1; i < firstSmallFree.length; i++)
+        {
+            printf("%5zx-%5zx: %llu malloc, %llu free\n", i * smallAlignment - smallAlignment + 1, i * smallAlignment,
+                   countSmallAlloc[i], countSmallFree[i]);
+        }
+        for (size_t i = 1; i < firstLargeFree.length; i++)
+        {
+            printf("%5zx-%5zx: %llu malloc, %llu free\n", i * largeAlignment - largeAlignment + 1, i * largeAlignment,
+                   countLargeAlloc[i], countLargeFree[i]);
+        }
+        printf(">=%9x: %llu malloc, %llu free, %zd MB - %zd MB\n", maxLargeSize,
+               countHugeAlloc, countHugeFree, memHugeAlloc >> 20, memHugeFree >> 20);
     }
 } // UseBumpMalloc
 
