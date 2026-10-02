@@ -426,7 +426,6 @@ namespace dmd
     bool hasPointers(Dsymbol *d);
     Type *getType(Dsymbol *d);
     uinteger_t size(Dsymbol *ds, Loc loc);
-    void semantic3OnDependencies(Module *m);
     void addDeferredSemantic(Dsymbol *s);
     void addDeferredSemantic2(Dsymbol *s);
     void addDeferredSemantic3(Dsymbol *s);
