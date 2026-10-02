@@ -3783,17 +3783,17 @@ $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
     $(P These contexts are:)
 
     $(UL
-    $(LI initialization of a static variable or a
+    $(LI initialization of a global/static variable or a
         $(DDSUBLINK spec/enum, manifest_constants, manifest constant))
-    $(LI static initializers of struct/class members)
-    $(LI dimension of a $(DDSUBLINK spec/arrays, static-arrays, static array))
+    $(LI static initializers of struct/class fields)
+    $(LI dimension of a $(DDSUBLINK spec/arrays, static-arrays, static array) type)
     $(LI argument for a $(DDSUBLINK spec/template, template_value_parameter,
         template value parameter))
     $(LI $(DDSUBLINK spec/version, staticif, `static if`))
     $(LI $(DDSUBLINK spec/version, staticforeach, `static foreach`))
     $(LI $(DDSUBLINK spec/version, static-assert, `static assert`))
     $(LI $(DDSUBLINK spec/statement, mixin-statement,
-        `mixin` statement))
+        `mixin` statement)/expression/declaration)
     $(LI $(DDLINK spec/pragma, Pragmas, `pragma` argument))
     $(LI $(DDLINK spec/traits, Traits, `__traits` argument))
     )
@@ -3825,9 +3825,9 @@ void main()
     $(P CTFE is subject to the following restrictions:)
 
     $(OL
-    $(LI Expressions may not reference any mutable static variables.)
+    $(LI Expressions may not reference any mutable global/static variables.)
 
-    $(LI $(DDSUBLINK spec/iasm, asmstatements, AsmStatements) are not permitted)
+    $(LI $(DDSUBLINK spec/iasm, asmstatements, *AsmStatement*s) are not permitted.)
 
     $(LI Non-portable casts (e.g., from $(D int[]) to $(D float[])), including
         casts which depend on endianness, are not permitted.
@@ -3836,6 +3836,8 @@ void main()
     $(LI Reinterpretation of overlapped fields in a union is not permitted.)
 
     $(LI Undefined behavior must not occur.)
+
+    $(LI Non-recoverable errors (such as $(D_KEYWORD assert) failures) are not permitted.)
     )
 
     $(P Pointers are permitted in CTFE, provided they are used safely:)
@@ -3879,11 +3881,14 @@ void main()
         permitted between all pointers, without restriction.
         )
 
-        $(LI
-        Any pointer may be cast to $(D void*) and from $(D void*) back to
-        its original type. Casting between pointer and non-pointer types is
-        illegal.
-        )
+        $(LI The following pointer casts are permitted:)
+
+        - Casting a pointer to $(D void*) and from that $(D void*) back to
+          its original type.
+        - Casting from an integer pointer to another integer pointer
+          iff each integer type has the same size.
+
+        $(LI Casting between pointer and non-pointer types is illegal.)
     )
 
     $(P The above restrictions apply only to expressions which are
@@ -3900,28 +3905,36 @@ int countTen(int x)
 }
 
 static assert(countTen(6) == 6);    // OK
-static assert(countTen(12) == 12);  // invalid, modifies y.
+static assert(countTen(12) == 12);  // Error, `y` is modified
 ---
     $(P The $(D __ctfe) boolean pseudo-variable evaluates to $(D_KEYWORD true)
         during CTFE but $(D_KEYWORD false) otherwise.
+        It cannot be read in a compile time context (such as a `static if` condition).
     )
-
-    $(NOTE `__ctfe` can be used to provide
+    $(RATIONALE `__ctfe` can be used to provide
         an alternative execution path to avoid operations which are forbidden
-        in CTFE. Every usage of $(D __ctfe) is statically evaluated
-        and has no run-time cost.
+        in CTFE.
     )
+    $(NOTE Every usage of $(D __ctfe) is statically evaluated and has no run time cost.)
 
-    $(P Non-recoverable errors (such as $(D_KEYWORD assert) failures) are illegal.
-    )
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int i = 10;
+int f() => __ctfe ? 5 : i; // only read `i` at runtime
+static assert(f() == 5);
 
-    $(IMPLEMENTATION_DEFINED Executing functions via CTFE can take considerably
-    longer than executing it at run time.
-    If the function goes into an infinite loop, it may cause the compiler to hang.
-    )
+void main()
+{
+    assert(f() == 10);
+}
+---
+)
 
     $(IMPLEMENTATION_DEFINED
-    Functions executed via CTFE can give different results
+  - Executing functions via CTFE can take considerably
+    longer than executing it at run time.
+    If the function goes into an infinite loop, it may cause the compiler to hang.
+  - Functions executed via CTFE can give different results
     from run time when implementation-defined behavior occurs.
     )
 
