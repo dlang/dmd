@@ -3894,6 +3894,8 @@ void main()
     $(P The above restrictions apply only to expressions which are
         actually evaluated. For example:
     )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 static int y = 0;
 
@@ -3905,8 +3907,9 @@ int countTen(int x)
 }
 
 static assert(countTen(6) == 6);    // OK
-static assert(countTen(12) == 12);  // Error, `y` is modified
+//static assert(countTen(12) == 12);  // Error, `y` is modified
 ---
+)
     $(P The $(D __ctfe) boolean pseudo-variable evaluates to $(D_KEYWORD true)
         during CTFE but $(D_KEYWORD false) otherwise.
         It cannot be read in a compile time context (such as a `static if` condition).
