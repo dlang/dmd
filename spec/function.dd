@@ -3933,6 +3933,9 @@ void main()
 ---
 )
 
+    $(P See also: The $(DDSUBLINK spec/attribute, ctfeonly, `@__ctfe` attribute)
+    disables run time code generation of a function.)
+
     $(IMPLEMENTATION_DEFINED
   - Executing functions via CTFE can take considerably
     longer than executing it at run time.
