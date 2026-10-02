@@ -3277,7 +3277,12 @@ void modifyReturns(FuncLiteralDeclaration fld, Scope* sc, Type tret)
     // This is required so the code generator does not try to cast the
     // modified returns back to the original type.
     if (fld.inferRetType && fld.type.nextOf() != tret)
-        fld.type.toTypeFunction().next = tret;
+    {
+        auto tfn = cast(TypeFunction)fld.type.copy();
+        tfn.next = tret;
+        tfn.deco = null;
+        fld.type = tfn.merge();
+    }
 }
 
 /**************************************
