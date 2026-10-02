@@ -147,7 +147,16 @@ extern (C++) struct Mem
 
 extern (C++) const __gshared Mem mem;
 
-enum CHUNK_SIZE = (256 * 4096 - 64);
+version (linux)
+{
+    // Chunks are aligned to the 2MB huge page size
+    // Page faults make up huge chunk of compilation, this can speed up e.g. std.conv
+    // unittest compilation from 1.3s to 1.0s, going from 200K from 30K page faults.
+    enum CHUNK_SIZE = 16 * 1024 * 1024;
+    private enum HUGE_PAGE_SIZE = 2 * 1024 * 1024;
+}
+else
+    enum CHUNK_SIZE = (256 * 4096 - 64);
 
 enum DEFAULT_ALIGNMENT = 16;
 
@@ -171,10 +180,38 @@ private void* _allocmemoryNoFree(size_t m_size, size_t alignment) nothrow @nogc
         return Mem.check(malloc(m_size));
     }
 
-    heapp = Mem.check(malloc(CHUNK_SIZE));
+    heapp = allocChunk();
     heapTotal += CHUNK_SIZE;
     heappos = m_size;
     return heapp;
+}
+
+// druntime < 2.094 doesn't mark madvise nothrow @nogc
+version (linux)
+private extern (C) int madvise(void* addr, size_t length, int advice) nothrow @nogc;
+
+/// Returns: a fresh chunk of `CHUNK_SIZE` bytes for the bump pointer allocator
+private void* allocChunk() nothrow @nogc
+{
+    version (linux)
+    {
+        import core.sys.posix.sys.mman;
+        import core.sys.linux.sys.mman : MADV_HUGEPAGE;
+
+        // over-allocate so the chunk can be aligned to the huge page size, then trim
+        void* p = mmap(null, CHUNK_SIZE + HUGE_PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+        if (p == MAP_FAILED)
+            Mem.error();
+        const head = (-cast(size_t) p) & (HUGE_PAGE_SIZE - 1);
+        if (head)
+            munmap(p, head);
+        munmap(p + head + CHUNK_SIZE, HUGE_PAGE_SIZE - head);
+        p += head;
+        madvise(p, CHUNK_SIZE, MADV_HUGEPAGE);
+        return p;
+    }
+    else
+        return Mem.check(malloc(CHUNK_SIZE));
 }
 
 // Total amount of memory allocated using _d_allocmemory/allocmemoryNoFree
