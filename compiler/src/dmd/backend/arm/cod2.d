@@ -917,7 +917,14 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         fixresult(cg,cdb2,e22,retregs,pretregs);
     }
     else
+    {
+        /* Use the same return registers as E1 unless pretregs is 0
+         * when we want the retregs to be 0
+         */
+        if (pretregs == 0)
+            retregs = 0;
         codelem(cg,cdb2,e22,retregs,false);   // use same regs as E1
+    }
     pretregs = retregs | psw;
     andregcon(regconold);
     andregcon(regconsave);
