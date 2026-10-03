@@ -323,6 +323,11 @@ class SymbolDeclaration final : public Declaration
 public:
     AggregateDeclaration *dsym;
 
+    enum class Kind : int { initializer, initSlice, vtblSlice, interfaceSlice };
+    Kind symbolKind;
+    uinteger_t sliceBytes;
+    d_bool sliceIsNull;
+
     // Eliminate need for dynamic_cast
     void accept(Visitor *v) override { v->visit(this); }
 };

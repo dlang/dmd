@@ -1171,6 +1171,12 @@ private bool isArray(const Expression e) @safe nothrow
  */
 private int ctfeRawCmp(Loc loc, Expression e1, Expression e2, bool identity = false)
 {
+    // This also covers symbol slices nested in arrays, structs and AA values.
+    if (isOpaqueSymbolSlice(e1) || isOpaqueSymbolSlice(e2))
+    {
+        global.errorSink.error(loc, "cannot compare symbol slices at compile time");
+        return 1;
+    }
     if (e1.op == EXP.classReference || e2.op == EXP.classReference)
     {
         if (e1.op == EXP.classReference && e2.op == EXP.classReference &&
@@ -1821,8 +1827,18 @@ Expression changeArrayLiteralLength(UnionExp* pue, Loc loc, TypeArray arrayType,
 
 /*************************** CTFE Sanity Checks ***************************/
 
+/** Identify a link-time symbol slice, independently of its current view type. */
+SymbolDeclaration isOpaqueSymbolSlice(Expression e)
+{
+    auto ve = e.isVarExp();
+    auto sd = ve ? ve.var.isSymbolDeclaration() : null;
+    return sd && sd.symbolKind != SymbolDeclaration.Kind.initializer ? sd : null;
+}
+
 bool isCtfeValueValid(Expression newval)
 {
+    if (isOpaqueSymbolSlice(newval))
+        return true;
     Type tb = newval.type.toBasetype();
     switch (newval.op)
     {

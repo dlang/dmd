@@ -579,6 +579,15 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
 
         if (auto sd = e.var.isSymbolDeclaration())
         {
+            if (sd.symbolKind != SymbolDeclaration.Kind.initializer)
+            {
+                dtb.size(sd.sliceLength(e.type));
+                if (sd.sliceIsNull)
+                    dtb.size(0);
+                else
+                    dtb.xoff(toSymbol(sd), sd.symbolKind == SymbolDeclaration.Kind.interfaceSlice ? classInfoSize() : 0);
+                return;
+            }
             if (sd.dsym)
             {
 
