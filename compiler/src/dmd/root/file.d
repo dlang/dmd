@@ -40,7 +40,7 @@ struct Buffer
 
     ~this() pure nothrow
     {
-        mem.xfree(data.ptr);
+        mem.xfree(data.ptr, data.length);
     }
 
     /// Transfers ownership of the buffer to the caller.

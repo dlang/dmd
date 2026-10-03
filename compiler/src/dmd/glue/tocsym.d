@@ -940,7 +940,7 @@ private Symbol* createImport(Symbol* sym, Loc loc)
     version (AArch64) // TODO AArch64
     {
         char* id = cast(char *) Mem.xmalloc(allocLen);
-        scope (exit) Mem.xfree(id);
+        scope (exit) Mem.xfree(id, allocLen);
     }
     else
         char* id = cast(char *) alloca(allocLen);

@@ -1013,7 +1013,7 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
             OutBuffer buf;
             auto readResult = File.read(ifilename, buf);
             File.remove(ifilename.ptr);
-            Mem.xfree(cast(void*)ifilename.ptr);
+            Mem.xfree(cast(void*)ifilename.ptr, ifilename.length + 1);
             if (readResult)
                 return STATUS_FAILED;
             text = DArray!ubyte(cast(ubyte[])buf.extractSlice(true));
@@ -1133,11 +1133,11 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
                 // Get current environment variable and rollback
                 auto oldIncludePathLen = GetEnvironmentVariableW("INCLUDE"w.ptr, null, 0);
                 wchar* oldIncludePaths = cast(wchar*)mem.xmalloc_noscan(oldIncludePathLen * wchar.sizeof);
-                oldIncludePathLen = GetEnvironmentVariableW("INCLUDE"w.ptr, oldIncludePaths, oldIncludePathLen);
+                auto newIncludePathLen = GetEnvironmentVariableW("INCLUDE"w.ptr, oldIncludePaths, oldIncludePathLen);
                 scope (exit)
                 {
                     SetEnvironmentVariableW("INCLUDE"w.ptr, oldIncludePaths);
-                    mem.xfree(oldIncludePaths);
+                    mem.xfree(oldIncludePaths, oldIncludePathLen * wchar.sizeof);
                 }
 
                 // Make new environment variable
@@ -1150,7 +1150,7 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
                         envbuf.writewchar(';');
                     }
                 }
-                envbuf.write(cast(const ubyte[])oldIncludePaths[0..oldIncludePathLen]);
+                envbuf.write(cast(const ubyte[])oldIncludePaths[0..newIncludePathLen]);
                 envbuf.writewchar('\0');
                 // Temporarily set INCLUDE environment variable
                 SetEnvironmentVariableW("INCLUDE"w.ptr, cast(LPCWSTR)envbuf.buf);

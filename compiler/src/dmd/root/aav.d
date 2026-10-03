@@ -253,7 +253,7 @@ private void dmd_aaRehash(AA** paa) pure nothrow
                 }
             }
             if (aa.b != cast(aaA**)aa.binit)
-                mem.xfree(aa.b);
+                mem.xfree(aa.b, aa.b_length);
             aa.b = newb;
             aa.b_length = len;
         }
