@@ -1151,7 +1151,9 @@ Type toBasetype2(TypeEnum _this)
 {
     if (!_this.sym.members && !_this.sym.memtype)
         return _this;
-    auto tb = _this.sym.getMemtype(Loc.initial).toBasetype();
+    auto tb = _this.sym.getMemtype(Loc.initial);
+    if (auto te = tb.isTypeEnum())
+        tb = te.toBasetype2();
     return tb.castMod(_this.mod); // retain modifier bits from '_this'
 }
 
