@@ -365,7 +365,7 @@ Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
     {
         printf("members: %p\n", sd.members);
         printf("symtab: %p\n", sd.symtab);
-        printf("endlinnum: %d\n", sd.endlinnum);
+        printf("endlinnum: %d\n", sd.endloc.linnum);
         printf("type: %s\n", sd.type.toChars());
         printf("memtype: %s\n", sd.memtype.toChars());
     }

@@ -238,7 +238,7 @@ public:
     Expression *edtor;          // if !=NULL, does the destruction of the variable
     IntRange *range;            // if !NULL, the variable is known to be within the range
 
-    unsigned endlinnum;         // line number of end of scope that this var lives in
+    Loc endloc;                 // line number of end of scope that this var lives in
     unsigned offset;
     unsigned sequenceNumber;     // order the variables are declared
     structalign_t alignment;

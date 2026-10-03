@@ -557,7 +557,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         ScopeDsymbol sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
-        sym.endlinnum = ss.endloc.linnum;
+        sym.endloc = ss.endloc;
         sc = sc.push(sym);
 
         // for CompoundStatement flatten just returns its statements, so no need
@@ -718,7 +718,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
-        sym.endlinnum = fs.endloc.linnum;
+        sym.endloc = fs.endloc;
         sc = sc.push(sym);
         sc.inLoop = true;
 
@@ -821,7 +821,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             // https://issues.dlang.org/show_bug.cgi?id=14653
             // Extend the life of rvalue aggregate till the end of foreach.
             vinit = copyToTemp(STC.rvalue, "__aggr", fs.aggr);
-            vinit.endlinnum = fs.endloc.linnum;
+            vinit.endloc = fs.endloc;
             vinit.dsymbolSemantic(sc);
             fs.aggr = new VarExp(fs.aggr.loc, vinit);
         }
@@ -940,7 +940,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
-        sym.endlinnum = fs.endloc.linnum;
+        sym.endloc = fs.endloc;
         auto sc2 = sc.push(sym);
         sc2.inLoop = true;
 
@@ -1765,7 +1765,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
-        sym.endlinnum = ifs.endloc.linnum;
+        sym.endloc = ifs.endloc;
         Scope* scd = sc.push(sym);
         if (ifs.param)
         {
