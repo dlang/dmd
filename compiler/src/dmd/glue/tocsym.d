@@ -408,7 +408,7 @@ Symbol* toSymbol(Dsymbol s)
             s.Stype = t;
 
             s.lposscopestart = toSrcpos(vd.loc);
-            s.lnoscopeend = vd.endlinnum;
+            s.lnoscopeend = vd.endloc.linnum;
             result = s;
         }
 

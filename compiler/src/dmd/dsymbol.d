@@ -1101,7 +1101,7 @@ extern (C++) class ScopeDsymbol : Dsymbol
 {
     Dsymbols* members;          // all Dsymbol's in this scope
     DsymbolTable symtab;        // members[] sorted into table
-    uint endlinnum;             // the linnumber of the statement after the scope (0 if unknown)
+    Loc endloc;                 // the linnumber of the statement after the scope (0 if unknown)
     /// symbols whose members have been imported, i.e. imported modules and template mixins
     Dsymbols* importedScopes;
     Visibility.Kind* visibilities; // array of Visibility.Kind, one for each import
@@ -1133,7 +1133,7 @@ public:
         ScopeDsymbol sds = s ? cast(ScopeDsymbol)s : new ScopeDsymbol(ident);
         sds.addComment(comment);
         sds.members = arraySyntaxCopy(members);
-        sds.endlinnum = endlinnum;
+        sds.endloc = endloc;
         return sds;
     }
 
@@ -1306,7 +1306,7 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
     extern (D) this(WithStatement withstate, ScopeDsymbol parent) nothrow @safe
     {
         this.withstate = withstate;
-        this.endlinnum = withstate.endloc.linnum;
+        this.endloc = withstate.endloc;
         this.parent = parent;
         this.dsym = DSYM.withScopeSymbol;
     }

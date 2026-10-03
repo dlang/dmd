@@ -3573,9 +3573,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if(sc.scopesym && !sc.scopesym.isAggregateDeclaration())
         {
-            for (ScopeDsymbol sym = sc.scopesym; sym && dsym.endlinnum == 0;
+            for (ScopeDsymbol sym = sc.scopesym; sym && !dsym.endloc.isValid();
                  sym = sym.parent ? sym.parent.isScopeDsymbol() : null)
-                dsym.endlinnum = sym.endlinnum;
+                dsym.endloc = sym.endloc;
         }
     }
 

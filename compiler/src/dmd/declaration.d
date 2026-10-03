@@ -433,7 +433,7 @@ extern (C++) class VarDeclaration : Declaration
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
 
-    uint endlinnum;                 // line number of end of scope that this var lives in
+    Loc endloc;                     // line number of end of scope that this var lives in
     uint offset;
     uint sequenceNumber;            // order the variables are declared
     structalign_t alignment;

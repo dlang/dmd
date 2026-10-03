@@ -317,7 +317,7 @@ class ScopeDsymbol : public Dsymbol
 public:
     Dsymbols *members;          // all Dsymbol's in this scope
     DsymbolTable *symtab;       // members[] sorted into table
-    unsigned endlinnum;         // the linnumber of the statement after the scope (0 if unknown)
+    Loc endloc;                 // the linnumber of the statement after the scope (0 if unknown)
     Dsymbols *importedScopes;   // imported Dsymbol's
     Visibility::Kind *visibilities;   // array of `Visibility.Kind`, one for each import
 
