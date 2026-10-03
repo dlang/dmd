@@ -274,7 +274,7 @@ else
     if (LPstart != DW_EH_PE_omit)
         et.writeuLEB128(LPbase);
 
-    ubyte TType = (config.flags3 & CFG3pic)
+    const ubyte TType = (config.flags3 & CFG3pic)
                                 ? DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata4
                                 : DW_EH_PE_absptr | DW_EH_PE_udata4;
 

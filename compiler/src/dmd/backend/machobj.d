@@ -972,8 +972,8 @@ void MachObj_term(const(char)[] objfilename)
                         //{ printf("seg: %d offset: %llx, contents: %x\n", seg, r.offset, value); }
                         int* pvalue = patchAddr64(seg, r.offset);       // pointer to 32 bit value at the fixup location
                         int value = *pvalue;
-                        bool isPersonality = strcmp(s.Sident.ptr,  "_D6object8TypeInfo8opEqualsMxFNbNfxCQBbZb") == 0;
-                        if (0)//s.Sclass == SC.locstat)
+                        bool isPersonality = strcmp(s.Sident.ptr,  "_D6object9Throwable7__ClassZ") == 0;
+                        if (0 && isPersonality)
                         {   symbol_print(*s);
                             printf("%d:x%04llx isCode %x : targseg %d targsym %s REL%s subtractor %d\n", seg, r.offset, pseg.isCode(), r.targseg, s ? s.Sident.ptr : "0", rs, r.subtractor);
                         }
@@ -1161,14 +1161,15 @@ static if (0)
                                 {
                                     rel.r_pcrel = 1;
                                     rel.r_length = 2;
+                                    rel.r_type = ARM64_RELOC_POINTER_TO_GOT;
                                 }
                                 else
                                 {
                                     rel.r_pcrel = 0;
                                     rel.r_length = 3;
+                                    rel.r_type = ARM64_RELOC_UNSIGNED;
                                 }
                                 rel.r_extern = 1;
-                                rel.r_type = ARM64_RELOC_UNSIGNED; // RELOC_POINTER_TO_GOT?
                                 machobj.fobjbuf.write(&rel, rel.sizeof);
                                 foffset += rel.sizeof;
                                 nreloc++;
@@ -3471,8 +3472,8 @@ int mach_dwarf_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t va
 {
     //printf("dwarf_reftoident(seg=%d offset=x%x s=%s val=x%x\n", seg, cast(int)offset, s.Sident.ptr, cast(int)val);
     if (machobj.AArch64)
-        //MachObj_reftoident(seg, offset, s, val + 4, CF.selfrel);
-        MachObj_reftoident(seg, offset, s, val + 4, CF.off);
+        MachObj_reftoident(seg, offset, s, val, CF.selfrel);
+        //MachObj_reftoident(seg, offset, s, val + 4, CF.off);
     else
         MachObj_reftoident(seg, offset, s, val + 4, I64 ? CF.off : CF.indirect);
     return 4;
