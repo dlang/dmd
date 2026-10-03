@@ -1,0 +1,17 @@
+`-deps` no longer causes spurious `-betterC` errors in unreferenced modules
+
+Using `-deps` together with `-betterC` previously caused spurious errors
+in transitively imported druntime modules the user never referenced —
+`throw` statements in `core.exception` and GC array literals in
+`core.time` being the most common.
+
+This happened because `-deps` triggered `semantic3OnDependencies`, which
+forced full function-body analysis on every transitively imported module.
+Under `-betterC`, that analysis flags constructs that are perfectly legal
+in druntime but illegal in user code.
+
+The `-deps` output is populated during normal semantic passes and does not
+require this additional analysis step, so the call has been removed.
+
+To get recursive dependencies (the original motivation for this behavior),
+combine `-deps` with `-i`.
