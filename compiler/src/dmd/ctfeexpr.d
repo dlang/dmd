@@ -78,7 +78,7 @@ extern (D) struct UnionExp
 
 private:
     // Ensure that the union is suitably aligned.
-    align(8) union _AnonStruct_u
+    align(real_t.alignof > 8 ? real_t.alignof : 8) union _AnonStruct_u
     {
         char[__traits(classInstanceSize, Expression)] exp;
         char[__traits(classInstanceSize, IntegerExp)] integerexp;
