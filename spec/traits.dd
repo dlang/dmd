@@ -1931,13 +1931,14 @@ class D
     ~this() { }
     void foo() { }
     int foo(int) { return 0; }
+    invariant () {}
 }
 
 void main()
 {
     auto b = [ __traits(allMembers, D) ];
     writeln(b);
-    // ["__ctor", "__dtor", "foo", "toString", "toHash", "opCmp", "opEquals",
+    // ["__ctor", "__dtor", "__invariant", "foo", "toString", "toHash", "opCmp", "opEquals",
     // "Monitor", "factory"]
 }
 ---
