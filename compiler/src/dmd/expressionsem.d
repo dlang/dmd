@@ -12616,7 +12616,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     {
                         // @@@DEPRECATED_2.121@@@
                         // Deprecated in 2.111, make it an error in 2.121
-                        eSink.deprecation(exp.e1.loc, "cannot initialize field `%s` with itself", dve1.var.toErrMsg());
+                        eSink.error(exp.e1.loc, "cannot initialize field `%s` with itself", dve1.var.toErrMsg());
                         auto findParameter(const(char)[] s, ref int cost)
                         {
                             foreach (p; *sc.func.parameters)
@@ -12632,7 +12632,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         import dmd.root.speller : speller;
                         if (auto s = speller!findParameter(dve1.var.ident.toString))
                         {
-                            eSink.deprecationSupplemental(sc.func.loc, "did you mean to use parameter `%.*s`?\n", s.fTuple.expand);
+                            eSink.errorSupplemental(sc.func.loc, "did you mean to use parameter `%.*s`?\n", s.fTuple.expand);
                         }
                     }
 
