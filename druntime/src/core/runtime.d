@@ -564,7 +564,18 @@ extern (C) void profilegc_setlogfilename(string name);
  * `--DRT-testmode`, in the `DRT_TESTMODE` environment variable when enabled,
  * or via `rt_options`. An empty value counts as not given.
  *
- * `--DRT-testmode` can have one of 3 values:
+ * The switch `--DRT-testfilter` restricts which unittests are executed. It
+ * takes a comma-separated list of names of packages, modules or unittests, a
+ * unittest being named by its module followed by `.` and its name in
+ * `ModuleInfo.unitTests`. A name prefixed with `-` excludes what it names. A
+ * name that matches no unittest is an error, as is using `--DRT-testfilter`
+ * together with one of the `--DRT-testmode` values below.
+ *
+ * `--DRT-testmode=list` prints the names of the unittests, or of those
+ * selected by `--DRT-testfilter`, without executing them or main.
+ *
+ * Otherwise `--DRT-testmode` can have one of 3 values, any other being an
+ * error:
  * 1. "run-main": even if unit tests are run (and all pass), runMain is set
       to true.
  * 2. "test-or-main": any unit tests present will cause the program to
@@ -623,9 +634,37 @@ extern (C) UnitTestResult runModuleUnitTests()
 
     import core.internal.parseoptions : rt_configOption;
 
+    auto testMode = rt_configOption("testmode", null, false);
+    auto filter = UnitTestFilter(rt_configOption("testfilter", null, false));
+
+    switch (testMode)
+    {
+    case "", "list", "run-main", "test-only", "test-or-main":
+        break;
+    default:
+        import core.stdc.stdio : FILE, fprintf, stderr;
+        fprintf(cast(FILE*) stderr, "Unknown --DRT-testmode option: %.*s\n",
+            cast(int) testMode.length, testMode.ptr);
+        return UnitTestResult.fail;
+    }
+
+    if (testMode == "list")
+        return listUnitTests(filter);
+    if (filter.selectors.length)
+    {
+        if (testMode.length)
+        {
+            import core.stdc.stdio : FILE, fprintf, stderr;
+            fprintf(cast(FILE*) stderr, "--DRT-testfilter cannot be used with --DRT-testmode=%.*s\n",
+                cast(int) testMode.length, testMode.ptr);
+            return UnitTestResult.fail;
+        }
+        return runIndividualUnitTests(filter);
+    }
+
     // An explicit test mode selects the per-module runner below.
-    if (!rt_configOption("testmode", null, false).length && hasUnitTestInfo())
-        return runIndividualUnitTests();
+    if (!testMode.length && hasUnitTestInfo())
+        return runIndividualUnitTests(filter);
 
     UnitTestResult results;
     foreach ( m; ModuleInfo )
@@ -675,7 +714,7 @@ extern (C) UnitTestResult runModuleUnitTests()
         // by default, we always print a summary if there are failures.
         results.summarize = true;
     }
-    else switch (rt_configOption("testmode", null, false))
+    else switch (testMode)
     {
     case "run-main":
         results.runMain = true;
@@ -693,7 +732,7 @@ extern (C) UnitTestResult runModuleUnitTests()
         results.summarize = !results.runMain;
         break;
     default:
-        assert(0, "Unknown --DRT-testmode option: " ~ rt_configOption("testmode", null, false));
+        assert(0);
     }
 
     return results;
@@ -710,11 +749,168 @@ private bool hasUnitTestInfo()
     return false;
 }
 
-// Runs each unittest on its own, reporting progress per module on stderr.
-private UnitTestResult runIndividualUnitTests()
+// Calls dg with the module name and the name of every unittest, the latter
+// being empty for the unittests of a module without information about them.
+private void eachUnitTest(scope void delegate(string moduleName, string testName) dg)
+{
+    foreach ( m; ModuleInfo )
+    {
+        if ( !m )
+            continue;
+        auto tests = m.unitTests;
+        if ( tests.length )
+        {
+            foreach ( test; tests )
+                dg(m.name, test.name);
+        }
+        else if ( m.unitTest )
+            dg(m.name, null);
+    }
+}
+
+// The unittests selected by `--DRT-testfilter`: comma-separated names of
+// packages, modules or unittests, excluded when prefixed with `-`.
+private struct UnitTestFilter
+{
+    string selectors;
+
+    // Splits the next selector off `rest`, returning false if none is left.
+    static bool next(ref string rest, out string selector, out bool exclude)
+    {
+        if ( !rest.length )
+            return false;
+        size_t end;
+        while ( end < rest.length && rest[end] != ',' )
+            ++end;
+        selector = rest[0 .. end];
+        rest = end < rest.length ? rest[end + 1 .. $] : null;
+        exclude = selector.length && selector[0] == '-';
+        if ( exclude )
+            selector = selector[1 .. $];
+        return true;
+    }
+
+    // Whether selector is the name of the unittest, of its module or of a
+    // package containing it.
+    static bool matches(string selector, string moduleName, string testName)
+    {
+        if ( selector.length <= moduleName.length )
+            return moduleName[0 .. selector.length] == selector
+                && (selector.length == moduleName.length || moduleName[selector.length] == '.');
+        return testName.length
+            && selector.length == moduleName.length + 1 + testName.length
+            && selector[0 .. moduleName.length] == moduleName
+            && selector[moduleName.length] == '.'
+            && selector[moduleName.length + 1 .. $] == testName;
+    }
+
+    bool selects(string moduleName, string testName)
+    {
+        bool anyIncluded;
+        bool included;
+        auto rest = selectors;
+        string selector;
+        bool exclude;
+        while ( next(rest, selector, exclude) )
+        {
+            const matched = matches(selector, moduleName, testName);
+            if ( exclude )
+            {
+                if ( matched )
+                    return false;
+            }
+            else
+            {
+                anyIncluded = true;
+                included |= matched;
+            }
+        }
+        return included || !anyIncluded;
+    }
+
+    // Prints why the selectors cannot be honored, returning false if so.
+    bool validate()
+    {
+        import core.stdc.stdio : FILE, fprintf, stderr;
+
+        auto err = cast(FILE*) stderr;
+        bool valid = true;
+        auto rest = selectors;
+        string selector;
+        bool exclude;
+        while ( next(rest, selector, exclude) )
+        {
+            if ( !selector.length )
+            {
+                fprintf(err, "--DRT-testfilter: empty selector\n");
+                valid = false;
+                continue;
+            }
+
+            bool matched;
+            string opaqueModule;
+            eachUnitTest((moduleName, testName) {
+                matched |= matches(selector, moduleName, testName);
+                if ( !testName.length && selector.length > moduleName.length
+                    && matches(moduleName, selector, null) )
+                    opaqueModule = moduleName;
+            });
+            if ( matched )
+                continue;
+
+            valid = false;
+            const prefix = exclude ? "-".ptr : "".ptr;
+            if ( opaqueModule.length )
+                fprintf(err, "--DRT-testfilter: '%s%.*s' cannot be matched, as module '%.*s'"
+                    ~ " has no information about its individual unittests\n",
+                    prefix, cast(int) selector.length, selector.ptr,
+                    cast(int) opaqueModule.length, opaqueModule.ptr);
+            else
+                fprintf(err, "--DRT-testfilter: '%s%.*s' does not match any unittest\n",
+                    prefix, cast(int) selector.length, selector.ptr);
+        }
+        if ( !valid || !selectors.length )
+            return valid;
+
+        bool anySelected;
+        eachUnitTest((moduleName, testName) {
+            anySelected |= selects(moduleName, testName);
+        });
+        if ( !anySelected )
+            fprintf(err, "--DRT-testfilter: no unittests selected\n");
+        return anySelected;
+    }
+}
+
+// Prints the names of the selected unittests on stdout, without running them.
+private UnitTestResult listUnitTests(UnitTestFilter filter)
+{
+    import core.stdc.stdio : printf;
+
+    if ( !filter.validate() )
+        return UnitTestResult.fail;
+
+    eachUnitTest((moduleName, testName) {
+        if ( !filter.selects(moduleName, testName) )
+            return;
+        if ( testName.length )
+            printf("%.*s.%.*s\n", cast(int) moduleName.length, moduleName.ptr,
+                cast(int) testName.length, testName.ptr);
+        else
+            printf("%.*s\n", cast(int) moduleName.length, moduleName.ptr);
+    });
+    return UnitTestResult(0, 0, false, false);
+}
+
+// Runs each selected unittest on its own, reporting progress per module on
+// stderr.
+private UnitTestResult runIndividualUnitTests(UnitTestFilter filter)
 {
     import core.exception : AssertError;
     import core.stdc.stdio : FILE, fprintf, stderr;
+
+    if ( !filter.validate() )
+        return UnitTestResult.fail;
 
     // C stdio owns this shared global; only the current handle is needed.
     auto err = cast(FILE*) stderr;
@@ -731,6 +927,8 @@ private UnitTestResult runIndividualUnitTests()
 
         void run( void function() fp, string testName )
         {
+            if ( !filter.selects(moduleName, testName) )
+                return;
             ++executed;
             try
             {
@@ -774,7 +972,8 @@ private UnitTestResult runIndividualUnitTests()
             // No information about the individual unittests of this module.
             run(fp, null);
         }
-        else
+
+        if ( !executed )
             continue;
 
         if ( passed == executed )
