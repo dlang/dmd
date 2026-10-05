@@ -1708,9 +1708,9 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         if (xpostblit && !xpostblit.isDisabled())
         {
             auto eSink = global.errorSink;
-            eSink.deprecation(sd.loc, "`struct %s` implicitly-generated postblit hides copy constructor.", sd.toChars);
-            eSink.deprecationSupplemental(sd.loc, "The field postblit will have priority over the copy constructor.");
-            eSink.deprecationSupplemental(sd.loc, "To change this, the postblit should be disabled for `struct %s`", sd.toChars());
+            eSink.error(sd.loc, "`struct %s` implicitly-generated postblit hides copy constructor.", sd.toChars);
+            eSink.errorSupplemental(sd.loc, "The field postblit will have priority over the copy constructor.");
+            eSink.errorSupplemental(sd.loc, "To change this, the postblit should be disabled for `struct %s`", sd.toChars());
             sd.hasCopyCtor = false;
         }
         else
