@@ -183,8 +183,8 @@ TypeInfoDeclaration getTypeInfoAssocArrayDeclaration(TypeAArray t, Scope* sc)
  */
 Type makeNakedAssociativeArray(TypeAArray t)
 {
-    Type tindex = t.index.toBasetype().nakedOf().substWildTo(MODFlags.const_);
-    Type tnext = t.next.toBasetype().nakedOf().substWildTo(MODFlags.const_);
+    Type tindex = t.index.nakedOf().substWildTo(MODFlags.const_);
+    Type tnext = t.next.nakedOf().substWildTo(MODFlags.const_);
     if (tindex == t.index && tnext == t.next)
         return t;
 
