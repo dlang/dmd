@@ -12339,6 +12339,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     /* Rewrite (a[arguments] = e2) as:
                      *      a.opIndexAssign(e2, arguments)
                      */
+                    ae.e1 = revertModifiableAAIndexReads(ae.e1, sc);
+
                     Expressions* a = ae.arguments.copy();
                     a.insert(0, exp.e2);
                     res = new DotIdExp(exp.loc, ae.e1, Id.opIndexAssign);

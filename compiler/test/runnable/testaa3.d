@@ -563,6 +563,25 @@ void test19829()
     assert(bar == [true]);
 }
 
+// https://github.com/dlang/dmd/issues/23964
+void test23964()
+{
+    struct S
+    {
+        int[] data;
+
+        void opIndexAssign(int rhs, size_t i)
+        {
+            data[i] = rhs;
+        }
+    }
+
+    S[string] aa;
+    aa["a"] = S([1, 2, 3]);
+    aa["a"][0] = 11;
+    assert(aa["a"].data == [11, 2, 3]);
+}
+
 /***************************************************/
 
 void main()
@@ -597,4 +616,5 @@ void main()
     test19829();
     test23182();
     test23711();
+    test23964();
 }
