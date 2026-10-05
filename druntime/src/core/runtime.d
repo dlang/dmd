@@ -51,12 +51,13 @@ extern(C) int rt_term();
 struct UnitTestResult
 {
     /**
-     * Number of modules which were tested
+     * Number of unittests which were executed, or number of modules which
+     * were tested when the unittests of a module are executed as one
      */
     size_t executed;
 
     /**
-     * Number of modules passed the unittests
+     * Number of unittests, or modules, which passed
      */
     size_t passed;
 
@@ -363,7 +364,8 @@ struct Runtime
      *
      *     writeln("Using customModuleUnitTester");
      *
-     *     // Do the same thing as the default moduleUnitTester:
+     *     // Do the same thing as the per-module runner (selected with
+     *     // `--DRT-testmode`):
      *     UnitTestResult result;
      *     foreach (m; ModuleInfo)
      *     {
@@ -532,25 +534,44 @@ extern (C) void profilegc_setlogfilename(string name);
  * `UnitTestResult.fail`, and `true` maps to `UnitTestResult.pass`. This was
  * the original behavior of the unit testing system.
  *
- * If no unittest custom handlers are registered, the following algorithm is
- * executed (the behavior can be affected by the `--DRT-testmode` switch
- * below):
- * 1. Execute any unittests present. For each that fails, print the stack
- *    trace and continue.
- * 2. If no unittests were present, set summarize to false, and runMain to
- *    true.
- * 3. Otherwise, set summarize to true, and runMain to false.
+ * If no unittest custom handlers are registered and the `--DRT-testmode`
+ * option is not given, each `unittest` block is executed
+ * on its own:
+ * 1. Execute every unittest present, module by module. For each that fails,
+ *    print its name followed by the failure, and continue with the next one.
+ * 2. Print a line per module with the number of unittests that passed and
+ *    failed, followed by a summary of all of them.
+ * 3. If no unittests were present, set runMain to true. Otherwise set it to
+ *    false.
+ *
+ * The counts in the returned `UnitTestResult` are then numbers of unittests,
+ * and summarize is false as the summary has already been printed.
  *
  * See the documentation for `UnitTestResult` for details on how the runtime
  * treats the return value from this function.
  *
- * If the switch `--DRT-testmode` is passed to the executable, it can have
- * one of 3 values:
+ * If the `--DRT-testmode` option is given, or the modules
+ * carry no information about their individual unittests, all the unittests
+ * of a module are executed as one, stopping at the first that fails, and the
+ * counts are numbers of modules:
+ * 1. Execute any unittests present. For each module that fails, print the
+ *    stack trace and continue.
+ * 2. If no unittests were present, set summarize to false, and runMain to
+ *    true.
+ * 3. Otherwise, set summarize to true, and runMain to false.
+ *
+ * The option counts as given however it is supplied: on the command line as
+ * `--DRT-testmode`, in the `DRT_TESTMODE` environment variable when enabled,
+ * or via `rt_options`. An empty value counts as not given.
+ *
+ * `--DRT-testmode` can have one of 3 values:
  * 1. "run-main": even if unit tests are run (and all pass), runMain is set
       to true.
  * 2. "test-or-main": any unit tests present will cause the program to
- *    summarize the results and exit regardless of the result. This is the
- *    default.
+ *    summarize the results and exit regardless of the result. This is what
+ *    the per-module runner does, and was the behavior before unittests were
+ *    run individually. With no `--DRT-testmode` the per-unittest runner is
+ *    used instead.
  * 3. "test-only", runMain is set to false, even with no tests present.
  *
  * This command-line parameter does not affect custom unit test handlers.
@@ -599,6 +620,13 @@ extern (C) UnitTestResult runModuleUnitTests()
         return Runtime.sm_extModuleUnitTester();
     else if (Runtime.sm_moduleUnitTester !is null)
         return Runtime.sm_moduleUnitTester() ? UnitTestResult.pass : UnitTestResult.fail;
+
+    import core.internal.parseoptions : rt_configOption;
+
+    // An explicit test mode selects the per-module runner below.
+    if (!rt_configOption("testmode", null, false).length && hasUnitTestInfo())
+        return runIndividualUnitTests();
+
     UnitTestResult results;
     foreach ( m; ModuleInfo )
     {
@@ -642,8 +670,6 @@ extern (C) UnitTestResult runModuleUnitTests()
         }
     }
 
-    import core.internal.parseoptions : rt_configOption;
-
     if (results.passed != results.executed)
     {
         // by default, we always print a summary if there are failures.
@@ -670,6 +696,106 @@ extern (C) UnitTestResult runModuleUnitTests()
         assert(0, "Unknown --DRT-testmode option: " ~ rt_configOption("testmode", null, false));
     }
 
+    return results;
+}
+
+// Whether any module carries information about its individual unittests.
+private bool hasUnitTestInfo()
+{
+    foreach ( m; ModuleInfo )
+    {
+        if ( m && m.unitTests.length )
+            return true;
+    }
+    return false;
+}
+
+// Runs each unittest on its own, reporting progress per module on stderr.
+private UnitTestResult runIndividualUnitTests()
+{
+    import core.exception : AssertError;
+    import core.stdc.stdio : FILE, fprintf, stderr;
+
+    // C stdio owns this shared global; only the current handle is needed.
+    auto err = cast(FILE*) stderr;
+
+    UnitTestResult results;
+    foreach ( m; ModuleInfo )
+    {
+        if ( !m )
+            continue;
+
+        auto moduleName = m.name;
+        size_t executed;
+        size_t passed;
+
+        void run( void function() fp, string testName )
+        {
+            ++executed;
+            try
+            {
+                fp();
+                ++passed;
+            }
+            catch ( Throwable e )
+            {
+                if ( testName.length )
+                    fprintf(err, "%.*s.%.*s: FAILED\n",
+                        cast(int) moduleName.length, moduleName.ptr,
+                        cast(int) testName.length, testName.ptr);
+                else
+                    fprintf(err, "%.*s: FAILED\n",
+                        cast(int) moduleName.length, moduleName.ptr);
+
+                // Same crude heuristic as the per-module runner to figure
+                // whether the assertion originates in the unittested module.
+                if ( typeid(e) == typeid(AssertError)
+                    && moduleName.length && e.file.length > moduleName.length
+                    && e.file[0 .. moduleName.length] == moduleName)
+                {
+                    // Don't print the stack trace.
+                    fprintf(err, "%.*s(%llu): [unittest] %.*s\n",
+                        cast(int) e.file.length, e.file.ptr, cast(ulong) e.line,
+                        cast(int) e.message.length, e.message.ptr);
+                }
+                else
+                    _d_print_throwable(e);
+            }
+        }
+
+        auto tests = m.unitTests;
+        if ( tests.length )
+        {
+            foreach ( test; tests )
+                run(test.func, test.name);
+        }
+        else if ( auto fp = m.unitTest )
+        {
+            // No information about the individual unittests of this module.
+            run(fp, null);
+        }
+        else
+            continue;
+
+        if ( passed == executed )
+            fprintf(err, "%.*s: %llu passed\n",
+                cast(int) moduleName.length, moduleName.ptr, cast(ulong) passed);
+        else
+            fprintf(err, "%.*s: %llu passed, %llu FAILED\n",
+                cast(int) moduleName.length, moduleName.ptr, cast(ulong) passed,
+                cast(ulong) (executed - passed));
+
+        results.executed += executed;
+        results.passed += passed;
+    }
+
+    if ( results.passed != results.executed )
+        fprintf(err, "%llu/%llu unittests FAILED\n",
+            cast(ulong) (results.executed - results.passed), cast(ulong) results.executed);
+    else
+        fprintf(err, "%llu unittests passed\n", cast(ulong) results.passed);
+
+    // Main is not run as unittests were present.
     return results;
 }
 

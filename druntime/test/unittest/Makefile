@@ -1,5 +1,6 @@
 HANDLER_TESTS := good goodn bad badn na
-TESTS := $(HANDLER_TESTS) metadata metadata_disabled
+PERTEST_TESTS := pertest_pass pertest_fail pertest_legacy pertest_runmain pertest_none
+TESTS := $(HANDLER_TESTS) metadata metadata_disabled $(PERTEST_TESTS)
 
 include ../common.mak
 
@@ -48,3 +49,72 @@ $(OBJDIR)/metadata$(DOTEXE): metadata.d $(DMD_DEP) $(DRUNTIME_DEP) | $(OBJDIR)
 
 $(OBJDIR)/metadata_disabled$(DOTEXE): metadata.d $(DMD_DEP) $(DRUNTIME_DEP) | $(OBJDIR)
 	$(LINK.d) $< $(extra_ldlibs.d) $(LDLIBS.d) $(OUTPUT_OPTION.d)
+
+pertest_sources := pertest.d pertestpkg/sub.d
+
+$(OBJDIR)/pertest_pass$(DOTEXE): $(pertest_sources) $(DMD_DEP) $(DRUNTIME_DEP) | $(OBJDIR)
+	$(LINK.d) -unittest $(pertest_sources) $(extra_ldlibs.d) $(LDLIBS.d) $(OUTPUT_OPTION.d)
+
+$(OBJDIR)/pertest_fail$(DOTEXE): $(pertest_sources) $(DMD_DEP) $(DRUNTIME_DEP) | $(OBJDIR)
+	$(LINK.d) -unittest -version=FailingTest $(pertest_sources) $(extra_ldlibs.d) $(LDLIBS.d) $(OUTPUT_OPTION.d)
+
+$(OBJDIR)/pertest_none$(DOTEXE): $(pertest_sources) $(DMD_DEP) $(DRUNTIME_DEP) | $(OBJDIR)
+	$(LINK.d) $(pertest_sources) $(extra_ldlibs.d) $(LDLIBS.d) $(OUTPUT_OPTION.d)
+
+# The default runner executes each unittest block on its own.
+$(OBJDIR)/pertest_pass.done: $(OBJDIR)/pertest_pass$(DOTEXE)
+	@echo Testing pertest_pass
+	$(TIMELIMIT)$< > $(OBJDIR)/pertest_pass.out 2>&1; test $$? -eq 0
+	grep -q '^pertest: 4 passed' $(OBJDIR)/pertest_pass.out
+	grep -q '^pertestpkg\.sub: 1 passed' $(OBJDIR)/pertest_pass.out
+	grep -q '^5 unittests passed' $(OBJDIR)/pertest_pass.out
+	if grep -q FAILED $(OBJDIR)/pertest_pass.out; then exit 1; fi
+	if grep -q main $(OBJDIR)/pertest_pass.out; then exit 1; fi
+	@touch $@
+
+# A failing unittest block is reported by name and does not stop the others.
+$(OBJDIR)/pertest_fail.done: $(OBJDIR)/pertest_fail$(DOTEXE)
+	@echo Testing pertest_fail
+	$(TIMELIMIT)$< > $(OBJDIR)/pertest_fail.out 2>&1; test $$? -eq 1
+	grep -q '^pertest\.__unittest_L[0-9]*_C1: FAILED' $(OBJDIR)/pertest_fail.out
+	test "$$(grep -c '^pertest\.__unittest_L[0-9]*_C1: FAILED' $(OBJDIR)/pertest_fail.out)" -eq 2
+	grep -q '^pertest\.d([0-9]*): \[unittest\] boom' $(OBJDIR)/pertest_fail.out
+	grep -q '^object\.Exception@pertest\.d(' $(OBJDIR)/pertest_fail.out
+	grep -q 'thrown' $(OBJDIR)/pertest_fail.out
+	grep -q '^after' $(OBJDIR)/pertest_fail.out
+	grep -q '^pertest: 2 passed, 2 FAILED' $(OBJDIR)/pertest_fail.out
+	grep -q '^pertestpkg\.sub: 1 passed' $(OBJDIR)/pertest_fail.out
+	grep -q '^2/5 unittests FAILED' $(OBJDIR)/pertest_fail.out
+	test "$$(grep -n ': FAILED' $(OBJDIR)/pertest_fail.out | head -n 1 | cut -d: -f1)" -lt "$$(grep -n '\[unittest\] boom' $(OBJDIR)/pertest_fail.out | head -n 1 | cut -d: -f1)"
+	tail -n 1 $(OBJDIR)/pertest_fail.out | grep -q '^2/5 unittests FAILED'
+	if grep -q '^main' $(OBJDIR)/pertest_fail.out; then exit 1; fi
+	test -z "$$($(TIMELIMIT)$< 2>/dev/null)"
+	@touch $@
+
+# An explicit --DRT-testmode selects the per-module runner.
+$(OBJDIR)/pertest_legacy.done: $(OBJDIR)/pertest_fail$(DOTEXE)
+	@echo Testing pertest_legacy
+	$(TIMELIMIT)$< --DRT-testmode=test-or-main > $(OBJDIR)/pertest_legacy.out 2>&1; test $$? -eq 1
+	grep -q '^1/2 modules FAILED unittests' $(OBJDIR)/pertest_legacy.out
+	grep -q '^pertest\.d([0-9]*): \[unittest\] boom' $(OBJDIR)/pertest_legacy.out
+	if grep -q after $(OBJDIR)/pertest_legacy.out; then exit 1; fi
+	if grep -q 'passed' $(OBJDIR)/pertest_legacy.out; then exit 1; fi
+	if grep -q main $(OBJDIR)/pertest_legacy.out; then exit 1; fi
+	$(TIMELIMIT)$< --DRT-testmode=test-or-main 2>/dev/null | grep -q '^pertest\.d([0-9]*): \[unittest\] boom'
+	$(TIMELIMIT)$< --DRT-testmode=test-or-main 2>&1 >/dev/null | grep -q '^1/2 modules FAILED unittests'
+	@touch $@
+
+$(OBJDIR)/pertest_runmain.done: $(OBJDIR)/pertest_pass$(DOTEXE)
+	@echo Testing pertest_runmain
+	$(TIMELIMIT)$< --DRT-testmode=run-main > $(OBJDIR)/pertest_runmain.out 2>&1; test $$? -eq 0
+	grep -q '^after' $(OBJDIR)/pertest_runmain.out
+	grep -q '^main' $(OBJDIR)/pertest_runmain.out
+	if grep -q 'passed' $(OBJDIR)/pertest_runmain.out; then exit 1; fi
+	@touch $@
+
+$(OBJDIR)/pertest_none.done: $(OBJDIR)/pertest_none$(DOTEXE)
+	@echo Testing pertest_none
+	$(TIMELIMIT)$< > $(OBJDIR)/pertest_none.out 2>&1; test $$? -eq 0
+	grep -q '^main' $(OBJDIR)/pertest_none.out
+	if grep -q 'passed' $(OBJDIR)/pertest_none.out; then exit 1; fi
+	@touch $@
