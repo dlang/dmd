@@ -12,6 +12,9 @@ import core.internal.traits : Filter, staticMap, Unqual;
 version (GNU) version = GNU_OR_LDC;
 version (LDC) version = GNU_OR_LDC;
 
+version (X86)    version = Have_xmm;
+version (X86_64) version = Have_xmm;
+
 /**
  * Perform array (vector) operations and store the result in `res`.  Operand
  * types and operations are passed as template arguments in Reverse Polish
@@ -79,7 +82,7 @@ private:
 
 // SIMD helpers
 
-version (DigitalMars)
+version (D_SIMD)
 {
     import core.simd;
 
@@ -95,12 +98,17 @@ version (DigitalMars)
         pragma(inline, true);
         alias vec = __vector(T[N]);
 
-        static if (is(T == float))
-            cast(void) __simd_sto(XMM.STOUPS, *cast(vec*) p, val);
-        else static if (is(T == double))
-            cast(void) __simd_sto(XMM.STOUPD, *cast(vec*) p, val);
+        version (Have_xmm)
+        {
+            static if (is(T == float))
+                cast(void) __simd_sto(XMM.STOUPS, *cast(vec*) p, val);
+            else static if (is(T == double))
+                cast(void) __simd_sto(XMM.STOUPD, *cast(vec*) p, val);
+            else
+                cast(void) __simd_sto(XMM.STODQU, *cast(vec*) p, val);
+        }
         else
-            cast(void) __simd_sto(XMM.STODQU, *cast(vec*) p, val);
+            *cast(vec*) p = val;
     }
 
     const(__vector(T[N])) load(T, size_t N)(const scope T* p)
@@ -110,12 +118,17 @@ version (DigitalMars)
         pragma(inline, true);
         alias vec = __vector(T[N]);
 
-        static if (is(T == float))
-            return cast(typeof(return)) __simd(XMM.LODUPS, *cast(const vec*) p);
-        else static if (is(T == double))
-            return cast(typeof(return)) __simd(XMM.LODUPD, *cast(const vec*) p);
+        version (Have_xmm)
+        {
+            static if (is(T == float))
+                return cast(typeof(return)) __simd(XMM.LODUPS, *cast(const vec*) p);
+            else static if (is(T == double))
+                return cast(typeof(return)) __simd(XMM.LODUPD, *cast(const vec*) p);
+            else
+                return cast(typeof(return)) __simd(XMM.LODDQU, *cast(const vec*) p);
+        }
         else
-            return cast(typeof(return)) __simd(XMM.LODDQU, *cast(const vec*) p);
+            return *cast(const vec*) p;
     }
 
     __vector(T[N]) binop(string op, T, size_t N)(const scope __vector(T[N]) a, const scope __vector(T[N]) b)
@@ -220,7 +233,7 @@ version (GNU_OR_LDC)
     // leave it to the auto-vectorizer
     enum vectorizeable(E : E[], Args...) = false;
 }
-else
+else version (D_SIMD)
 {
     // check whether arrayOp is vectorizable
     template vectorizeable(E : E[], Args...)
@@ -243,6 +256,11 @@ else
         // GDC/LDC's auto-vectorizers.
         static assert(!vectorizeable!(double[], const(uint)[], uint, "+", "="));
     }
+}
+else
+{
+    // no SIMD available, use a scalar loop
+    enum vectorizeable(E : E[], Args...) = false;
 }
 
 bool isUnaryOp(scope string op) pure nothrow @safe @nogc
