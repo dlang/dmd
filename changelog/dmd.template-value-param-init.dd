@@ -1,0 +1,32 @@
+Template value parameters now support the same initialization semantics as local variable declarations
+
+Default values for template value parameters now undergo the same initialization
+semantics as regular variable declarations, allowing implicit construction via
+constructors and `static opCall`.
+
+Previously, the following would fail to compile even though equivalent variable
+and function parameter declarations work fine:
+
+---
+struct Color
+{
+    ubyte r, g, b;
+    this(uint hex) { r = (hex >> 16) & 0xFF; g = (hex >> 8) & 0xFF; b = hex & 0xFF; }
+}
+
+template fill(Color c = 0xFF0000) // red by default
+{
+}
+
+alias redFill = fill!(); // now compiles
+---
+
+This also applies to static arrays initialized from a scalar:
+
+---
+template withPadding(byte[4] padding = 0)
+{
+}
+
+alias noPadding = withPadding!(); // now compiles
+---
