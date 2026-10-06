@@ -578,7 +578,7 @@ void test(int i)
 $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
 
         $(P A struct literal consists of the name of the struct followed
-        by a parenthesized named argument list:)
+        by a parenthesized $(GLINK2 expression, NamedArgumentList):)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
@@ -599,8 +599,7 @@ $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
 
         $(P Struct literals are syntactically like function calls.)
 
-        $(PANEL
-        Arguments are assigned to fields as follows:
+        $(P Arguments are assigned to fields as follows:)
 
           1. If the first argument has no name, it will be assigned to the struct field that is defined first lexically.
           1. A named argument is assigned to the struct field with the same name.
@@ -610,13 +609,8 @@ $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
           1. It is also an error to assign a field more than once.
           1. Any fields not assigned a value are initialized with their respective default initializers.
 
-        **Note:**
-            These rules are consistent with function calls, see $(DDSUBLINK spec/function, argument-parameter-matching, Matching Arguments to Parameters).
-        )
-        $(P
-        If there is a union field in the struct, only one
-        member of the union can be initialized inside a
-        struct literal. This matches the behaviour for union literals.
+        $(NOTE These rules are consistent with function calls, see
+            $(DDSUBLINK spec/expression, argument-parameter-matching, Matching Arguments to Parameters).
         )
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -634,24 +628,34 @@ $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
         ---
         )
 
+        $(P If there is a union field in the struct, only one
+        member of the union can be initialized inside a
+        struct literal. This matches the behaviour for union literals.
+        )
+
 $(H2 $(LNAME2 union-literal, Union Literals))
 
     $(P A union literal is like a struct literal, but only one field can
-    be initialized with an initializer expression.
-    The remainder of the union's memory is initialized to zero.
-    )
+    be initialized in the $(GLINK2 expression, NamedArgumentList).
+    To initialize a field other than the first, a *NamedArgument* must be used.)
+
+    $(P Any remainder of the union's memory is initialized to zero.)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 union U
 {
-    byte a;
+    byte a; // overlaps with `b[0]`
     char[2] b;
 }
 
-U u = U(2);
+U u = U(2); // construct `u.a`
 assert(u.a == 2);
 assert(u.b == [2, 0]);
+
+u = U(b: 1);
+assert(u.a == 1);
+assert(u.b == [1, 1]);
 ---
 )
 

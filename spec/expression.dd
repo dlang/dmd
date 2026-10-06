@@ -1890,7 +1890,7 @@ void g()
 $(H4 $(LNAME2 argument-parameter-matching, Matching Arguments to Parameters))
 
     $(P
-        Arguments in a `NamedArgumentList` are matched to function parameters as follows:
+        Arguments in a *NamedArgumentList* are matched to function parameters as follows:
     )
 
     1.  If the first argument has no name, it will be assigned to the first function parameter.
