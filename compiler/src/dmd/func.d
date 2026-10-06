@@ -287,7 +287,7 @@ extern(D) struct ParameterDFAInfo
     ///
     Fact notNullOut()
     {
-        return inferred.notNullOut > inferred.notNullOut ? inferred.notNullOut : userSupplied.notNullOut;
+	return inferred.notNullOut > userSupplied.notNullOut ? inferred.notNullOut : userSupplied.notNullOut;
     }
 
     bool escapeIntoNothing()
