@@ -240,6 +240,33 @@ void testRegression21773()
     assert(a2 == a3);
 }
 
+// https://github.com/dlang/dmd/issues/23900
+void testIndexedNestedStaticArray()
+{
+    const int[3][2] color = [
+        1: [255, 0, 0],
+    ];
+    assert(color[0] == [0, 0, 0]);
+    assert(color[1] == [255, 0, 0]);
+
+    int[3][2] color2 = [
+        0: [255, 0, 0],
+        1: 7,
+    ];
+    assert(color2[0] == [255, 0, 0]);
+    assert(color2[1] == [7, 7, 7]);
+
+    int[2][3][4] cube = [
+        1: [ [1, 2], [3, 4], [5, 6] ],
+        2: 9,
+        3: [ 0: [7, 8] ],
+    ];
+    assert(cube[0] == [[0, 0], [0, 0], [0, 0]]);
+    assert(cube[1] == [[1, 2], [3, 4], [5, 6]]);
+    assert(cube[2] == [[9, 9], [9, 9], [9, 9]]);
+    assert(cube[3] == [[7, 8], [0, 0], [0, 0]]);
+}
+
 // https://github.com/dlang/dmd/issues/19209
 void test19209()
 {
@@ -315,4 +342,5 @@ void main()
     testClassLiteral();
     testMultiDim();
     testMultiDimInit();
+    testIndexedNestedStaticArray();
 }
