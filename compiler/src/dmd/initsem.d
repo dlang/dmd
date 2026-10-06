@@ -53,12 +53,13 @@ import dmd.typesem;
  *     ai = array initializer to be converted
  *     itype = if not `null`, the AA type to coerce the initializer to
  *     eSink = error message sink
+ *     sc = scope, if available
  *
  *  Returns:
  *     The converted associative array initializer or ErrorExp if `ai`
  *     is not an associative array initializer.
  */
-Expression toAssocArrayLiteral(ArrayInitializer ai, Type itype, ErrorSink eSink)
+Expression toAssocArrayLiteral(ArrayInitializer ai, Type itype, ErrorSink eSink, Scope* sc = null)
 {
     //printf("ArrayInitializer::toAssocArrayInitializer(%s)\n", ai.toChars());
     //static int i; if (++i == 2) assert(0);
@@ -76,7 +77,7 @@ Expression toAssocArrayLiteral(ArrayInitializer ai, Type itype, ErrorSink eSink)
     foreach (i, iz; ai.value[])
     {
         assert(iz);
-        auto ev = iz.initializerToExpression(vtype);
+        auto ev = iz.initializerToExpression(vtype, false, sc);
         if (!ev)
         {
             eSink.error(iz.loc, "invalid value `%s` in initializer", toChars(iz));
@@ -93,6 +94,42 @@ Expression toAssocArrayLiteral(ArrayInitializer ai, Type itype, ErrorSink eSink)
         (*keys)[i] = ei;
     }
     return new AssocArrayLiteralExp(ai.loc, keys, values);
+}
+
+/***********************
+ * Look for the case of statically initializing an array with a single member.
+ * Recursively strip static array / enum layers until a compatible element is found.
+ *
+ * int[2][3] = 7       => [[7, 7], [7, 7], [7, 7]]
+ * int[2] = new Object => null
+ *
+ * Params:
+ *      e = scalar (or partially-broadcast) expression to expand
+ *      tb = static array type `e` should be broadcast up to (base type)
+ *      sc = scope in which `e` gets cast
+ * Returns:
+ *      `ArrayLiteralExp` repeating the initializer, or `null` if no match found
+ */
+private Expression sarrayRepeat(Expression e, Type tb, Scope* sc)
+{
+    auto tsa = tb.isTypeSArray();
+    if (!tsa)
+        return null;
+
+    assert(e.type);
+
+    Expression elem;
+    if (e.implicitConvTo(tsa.next))
+        elem = e.implicitCastTo(sc, tsa.next);
+    else if (auto ae = sarrayRepeat(e, tsa.next.toBasetype(), sc))
+        elem = ae;
+    else
+        return null;
+
+    auto elements = new Expressions(cast(size_t) tsa.dim.toInteger());
+    foreach (ref e2; *elements)
+        e2 = elem;
+    return new ArrayLiteralExp(e.loc, tb, elem, elements);
 }
 
 /******************************************
@@ -174,7 +211,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 // Convert initializer to Expression `ex`
                 auto tm = fieldType.addMod(t.mod);
                 auto iz = i.value[j].initializerSemantic(sc, tm, needInterpret, eSink);
-                auto ex = iz.initializerToExpression(fieldType, sc.inCfile);
+                auto ex = iz.initializerToExpression(fieldType, sc.inCfile, sc);
                 if (ex.op != EXP.error)
                     i.value[j] = iz;
                 return ex;
@@ -233,9 +270,9 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 Expression e;
                 // note: MyStruct foo = [1:2, 3:4] is correct code if MyStruct has a this(int[int])
                 if (t.ty == Taarray || i.isAssociativeArray())
-                    e = i.toAssocArrayLiteral(t, global.errorSink);
+                    e = i.toAssocArrayLiteral(t, global.errorSink, sc);
                 else
-                    e = i.initializerToExpression();
+                    e = i.initializerToExpression(null, false, sc);
                 // Bugzilla 13987
                 if (!e)
                 {
@@ -553,33 +590,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             }
         }
 
-        // Look for the case of statically initializing an array with a single member.
-        // Recursively strip static array / enum layers until a compatible element is found,
-        // and return an `ArrayLiteralExp` repeating the initializer, or `null` if no match found
-        // int[2][3] = 7       => [[7, 7], [7, 7], [7, 7]]
-        // int[2] = new Object => null
-        Expression sarrayRepeat(Type tb)
-        {
-            auto tsa = tb.isTypeSArray();
-            if (!tsa)
-                return null;
-
-            // printf("i.exp = %s, tsa = %s\n", i.exp.toChars(), tsa.toChars());
-            Expression elem = null;
-            if (i.exp.implicitConvTo(tb.nextOf()))
-                elem = i.exp.implicitCastTo(sc, tb.nextOf());
-            else if (auto ae = sarrayRepeat(tb.nextOf().toBasetype()))
-                elem = ae;
-            else
-                return null;
-
-            auto arrayElements = new Expressions(cast(size_t) tsa.dim.toInteger());
-            foreach (ref e; *arrayElements)
-                e = elem;
-            return new ArrayLiteralExp(i.exp.loc, tb, elem, arrayElements);
-        }
-
-        if (auto sa = sarrayRepeat(tb))
+        if (auto sa = sarrayRepeat(i.exp, tb, sc))
         {
             // printf("sa = %s\n", sa.toChars());
             i.exp = sa;
@@ -1418,10 +1429,11 @@ Initializer inferInitializerType(Initializer init, Scope* sc, Type itype, ErrorS
  *      init = `Initializer` AST node
  *      itype = if not `null`, type to coerce expression to
  *      isCfile = default initializers are different with C
+ *      sc = scope, if available
  * Returns:
  *      `Expression` created, `null` if cannot, `ErrorExp` for other errors
  */
-Expression initializerToExpression(Initializer init, Type itype = null, const bool isCfile = false)
+Expression initializerToExpression(Initializer init, Type itype = null, const bool isCfile = false, Scope* sc = null)
 {
     //printf("initializerToExpression() isCfile: %d\n", isCfile);
 
@@ -1462,7 +1474,10 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
         if (!itype || itype.toBasetype().isTypeAArray())
             if (!init.type || init.type.isTypeAArray())
                 if (init.isAssociativeArray())
-                    return init.toAssocArrayLiteral(itype, global.errorSink);
+                    return init.toAssocArrayLiteral(itype, global.errorSink, sc);
+
+        if (auto tv = itype ? itype.toBasetype().isTypeVector() : null)
+            itype = tv.basetype;  // normalize to array type
 
         uint edim;      // the length of the resulting array literal
         const(uint) amax = 0x80000000;
@@ -1544,6 +1559,10 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
 
         Type telem = itype ? itype.nextOf() : null;
 
+        // https://github.com/dlang/dmd/issues/23900
+        if (!t && itype)
+            t = itype.toBasetype();
+
         auto elements = new Expressions(edim);
         elements.zero();
         size_t j = 0;
@@ -1554,7 +1573,7 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
             assert(j < edim);
             if (Initializer iz = init.value[i])
             {
-                if (Expression ex = iz.initializerToExpression(telem, isCfile))
+                if (Expression ex = iz.initializerToExpression(telem, isCfile, sc))
                 {
                     (*elements)[j] = ex;
                     ++j;
@@ -1578,7 +1597,7 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
                 if (!telem) // don't know what type to use
                     return null;
                 if (!defaultInit)
-                    defaultInit = telem.defaultInit(Loc.initial, isCfile);
+                    defaultInit = telem.defaultInitLiteral(init.loc, isCfile); // need properly expanded static arrays
                 element = defaultInit;
             }
         }
@@ -1586,24 +1605,35 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
         /* Expand any static array initializers that are a single expression
          * into an array of them
          *    e => [e, e, ..., e, e]
+         *    e => [[e, e], [e, e], [e, e]]  (etc, for deeper static arrays)
          */
-        if (t)
+        if (t && telem)
         {
-            Type tn = t.nextOf().toBasetype();
-            if (tn.ty == Tsarray)
+            foreach (ref e; *elements)
             {
-                const dim = cast(size_t)(cast(TypeSArray)tn).dim.toInteger();
-                Type te = tn.nextOf().toBasetype();
-                foreach (ref e; *elements)
+                if (!e.type)
+                    e = e.expressionSemantic(sc);
+                if (e.op == EXP.error)
+                    continue;
+                // prefer [a, b] => [[a, b], [a, b]] over [[a, a], [b, b]]
+                // so try to find a dimension that fits the element type
+                Type tn = telem;
+                while (tn)
                 {
-                    if (te.equals(e.type))
+                    auto tsa = tn.isTypeSArray();
+                    if (!tsa)
                     {
-                        auto elements2 = new Expressions(dim);
-                        foreach (ref e2; *elements2)
-                            e2 = e;
-                        e = new ArrayLiteralExp(e.loc, tn, elements2);
+                        tn = telem;
+                        break;
                     }
+                    tn = tsa.next;
+                    if (tsa.dim.toInteger() == elements.length && e.implicitConvTo(tsa.next))
+                        break;
                 }
+                if (auto ae = sarrayRepeat(e, tn, sc))
+                    e = ae;
+                else if (e.implicitConvTo(tn))
+                    e = e.implicitCastTo(sc, tn);
             }
         }
 

@@ -4944,7 +4944,7 @@ private enum LOGDEFAULTINIT = 0;
  * Use when we prefer the default initializer to be a literal,
  * rather than a global immutable variable.
  */
-Expression defaultInitLiteral(Type t, Loc loc)
+Expression defaultInitLiteral(Type t, Loc loc, const bool isCfile = false)
 {
 
     if (t.isTypeError())
@@ -4988,7 +4988,7 @@ Expression defaultInitLiteral(Type t, Loc loc)
                     e = vd.getConstInitializer(false);
             }
             else
-                e = vd.type.defaultInitLiteral(loc);
+                e = vd.type.defaultInitLiteral(loc, isCfile);
             if (e && e.op == EXP.error)
                 return e;
             if (e)
@@ -5015,7 +5015,7 @@ Expression defaultInitLiteral(Type t, Loc loc)
     {
         //printf("TypeVector::defaultInitLiteral()\n");
         assert(tv.basetype.ty == Tsarray);
-        Expression e = tv.basetype.defaultInitLiteral(loc);
+        Expression e = tv.basetype.defaultInitLiteral(loc, isCfile);
         auto ve = new VectorExp(loc, e, tv);
         ve.type = tv;
         ve.dim = cast(int)(tv.basetype.size(loc) / tv.elementType().size(loc));
@@ -5030,16 +5030,16 @@ Expression defaultInitLiteral(Type t, Loc loc)
         size_t d = cast(size_t)tsa.dim.toInteger();
         Expression elementinit;
         if (tsa.next.ty == Tvoid)
-            elementinit = Type.tuns8.defaultInitLiteral(loc);
+            elementinit = Type.tuns8.defaultInitLiteral(loc, isCfile);
         else
-            elementinit = tsa.next.defaultInitLiteral(loc);
+            elementinit = tsa.next.defaultInitLiteral(loc, isCfile);
         auto elements = new Expressions(d);
         foreach (ref e; *elements)
             e = null;
         auto ae = new ArrayLiteralExp(loc, tsa, elementinit, elements);
         return ae;
     }
-    return defaultInit(t, loc);
+    return defaultInit(t, loc, isCfile);
 }
 /***************************************
  * Calculate built-in properties which just the type is necessary.
