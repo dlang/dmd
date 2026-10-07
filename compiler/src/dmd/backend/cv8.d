@@ -258,25 +258,6 @@ void cv8_termfile(const(char)[] objfilename)
 
     cv8_writesection(seg, DEBUG_S_SYMBOLS, &buf);
 
-    // S_ENVBLOCK record: build environment (cwd), double-null terminated
-    {
-        auto ebuf = OutBuffer(128);
-        char[260] cwd = 0;
-        if (!getcwd(cwd.ptr, cwd.sizeof))
-            cwd[0] = 0;
-        size_t cwdlen = strlen(cwd.ptr);
-        uint rec = cast(uint)(2 + 1 + 4 + cwdlen + 1 + 4 + 1 + 1);
-        ebuf.write16(cast(int)rec);
-        ebuf.write16(S_ENVBLOCK);
-        ebuf.writeByte(0);                       // flags
-        ebuf.write("cwd\0".ptr, 4);
-        ebuf.write(cwd.ptr, cast(uint)(cwdlen + 1));
-        ebuf.write("cmd\0".ptr, 4);
-        ebuf.writeByte(0);                       // empty cmd value
-        ebuf.writeByte(0);                       // terminating double-null
-        cv8_writesection(seg, DEBUG_S_SYMBOLS, &ebuf);
-    }
-
     // S_BUILDINFO record referencing an LF_BUILDINFO id record
     {
         auto bbuf = OutBuffer(64);
