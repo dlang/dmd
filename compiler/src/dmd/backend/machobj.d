@@ -767,46 +767,80 @@ void MachObj_term(const(char)[] objfilename)
      * a mapping to convert Sseg numbers to seg numbers in the object file
      */
     int[] table  = (cast(int*)mem_malloc(SegData.length * int.sizeof))[0 .. SegData.length];
+    int[] order  = (cast(int*)mem_calloc(SegData.length * int.sizeof))[0 .. SegData.length];
     {
         table[0] = 0;
-        uint n = 1;
-        for (int i = 0; i < 2; i++)
+        order[0] = 0;
+        size_t numZeroFill = table.length;
+        foreach (seg, pseg; SegData[1 .. $])
         {
-            foreach (seg, pseg; SegData[1 .. $])
+            int zeroFill;
+            if (I64)
             {
-                if (I64)
-                {
-                    section_64* psechdr = &machobj.section_64s[pseg.SDshtidx]; // corresponding section
+                section_64* psechdr = &machobj.section_64s[pseg.SDshtidx]; // corresponding section
 
-                    // Do zero-fill the second time through this loop
-                    if (i ^ (psechdr.flags == S_ZEROFILL || psechdr.flags == S_THREAD_LOCAL_ZEROFILL))
-                        continue;
-                }
-                else
-                {
-                    section* psechdr = &machobj.sections[pseg.SDshtidx]; // corresponding section
-
-                    // Do zero-fill the second time through this loop
-                    if (i ^ (psechdr.flags == S_ZEROFILL || psechdr.flags == S_THREAD_LOCAL_ZEROFILL))
-                        continue;
-                }
-                table[n++] = 1 + cast(int)seg;
+                zeroFill = (psechdr.flags == S_ZEROFILL || psechdr.flags == S_THREAD_LOCAL_ZEROFILL);
             }
+            else
+            {
+                section* psechdr = &machobj.sections[pseg.SDshtidx]; // corresponding section
+
+                zeroFill = (psechdr.flags == S_ZEROFILL || psechdr.flags == S_THREAD_LOCAL_ZEROFILL);
+            }
+            table[seg + 1] = zeroFill;
+            numZeroFill -= zeroFill;
+        }
+
+        //printf("numZeroFill: %zd\n", numZeroFill);
+        int j = 0;
+        foreach (i; 0 .. table.length)
+        {
+            if (table[i])
+                continue;
+            order[j++] = cast(int)i;
+        }
+
+        foreach (i; 0 .. table.length)
+        {
+            if (!table[i])
+                continue;
+            order[j++] = cast(int)i;
+        }
+        assert(j == order.length);
+
+        int k = 0;
+        foreach (i; 0 .. table.length)
+        {
+            if (table[i])
+            {
+                table[i] = cast(int)numZeroFill;
+                ++numZeroFill;
+            }
+            else
+                table[i] = k++;
         }
     }
+
+    if (!machobj.AArch64)       // x86_64 can put the bss segment anywhere rather than at the end
+        foreach (i; 1 .. table.length)
+        {
+            table[i] = cast(int)i;
+            order[i] = cast(int)i;
+        }
+
     static if (0)
-    foreach (i, s; table)
-        printf("table[%d] = %d %d\n", cast(int)i, table[i], table[table[i]]);
+        foreach (i; 1 .. table.length)
+            printf("table[%d]: %d order: %d SDshtidx: %d\n", cast(int)i, table[i], order[i], SegData[i].SDshtidx);
 
     //printf("\nSetup offsets and sizes foffset %d\n\tSegData.length %zx\n",foffset,SegData.length);
     {
         /* For each segment, write the segment data bytes out to fobjbuf */
         for (int seg = 1; seg < SegData.length; seg++)
         {
-            //printf("writing seg %d as %d\n", seg, table[seg]);
-            seg_data* pseg = SegData[table[seg]];
+            seg_data* pseg = SegData[order[seg]];
             if (I64)
             {
+                //printf("writing seg %d order: %d SDshtidx: %d\n", seg, order[seg], pseg.SDshtidx);
                 section_64* psechdr = &machobj.section_64s[pseg.SDshtidx]; // corresponding section
 
                 int align_ = 1 << psechdr._align;
@@ -821,13 +855,13 @@ void MachObj_term(const(char)[] objfilename)
                 {
                     psechdr.offset = 0;
                     psechdr.size = pseg.SDoffset; // accumulated size
-                    //printf("\tzero section name %s size %zx\n", psechdr.sectname.ptr, pseg.SDoffset);
+                    //printf("\tzero section name %s size x%zx\n", psechdr.sectname.ptr, pseg.SDoffset);
                 }
                 else
                 {
                     psechdr.offset = foffset;
                     psechdr.size = 0;
-                    //printf("\t%d section name %s,", table[seg], psechdr.sectname.ptr);
+                    //printf("\t%d section name %s,", order[seg], psechdr.sectname.ptr);
                     if (pseg.SDbuf && pseg.SDbuf.length())
                     {
                         //printf("\tSDbuf.length %zx\n", pseg.SDbuf.length());
@@ -878,10 +912,6 @@ void MachObj_term(const(char)[] objfilename)
             }
         }
     }
-
-    if (!machobj.AArch64)
-        foreach (i; 0 .. table.length)
-            table[i] = cast(int)i;
 
     if (I64)
     {
@@ -1179,6 +1209,7 @@ static if (0)
                             {
                                 rel.r_address = cast(int)r.offset;
                                 rel.r_symbolnum = table[s.Sseg];
+                                assert(rel.r_symbolnum < SegData.length);
                                 if (r.rtype == REL.rel)
                                 {
                                     rel.r_pcrel = 1;
@@ -1665,12 +1696,7 @@ assert(rel.r_symbolnum);
     {
         if (!machobj.AArch64)
             return cast(ubyte)seg;
-        foreach (i; 0 .. table.length)
-        {
-            if (table[i] == seg)
-                return cast(ubyte)i;
-        }
-        assert(0);
+        return cast(ubyte)table[seg];
     }
 
     foreach (s; machobj.localSymbols[])
@@ -1851,7 +1877,7 @@ assert(rel.r_symbolnum);
         //machobj.fobjbuf.write(&machobj.section_64s[1], machobj.section_length * section_64.sizeof);
         foreach (i; 1 .. table.length)
         {
-            machobj.fobjbuf.write(&machobj.section_64s[table[i]], section_64.sizeof);
+            machobj.fobjbuf.write(&machobj.section_64s[order[i]], section_64.sizeof);
         }
     }
     else
@@ -1869,6 +1895,7 @@ assert(rel.r_symbolnum);
     machobj.fobjbuf.position(foffset, 0);
 
     mem_free(table.ptr);
+    mem_free(order.ptr);
 
     /* Set Sxtrnnum to zero for symbols so we know they are not in the
      * object file's symbol table.
@@ -2887,6 +2914,7 @@ void MachObj_lidata(int seg,targ_size_t offset, size_t count)
     if (flags == S_ZEROFILL || flags == S_THREAD_LOCAL_ZEROFILL)
     {   // Use SDoffset to record size of bss section
         SegData[seg].SDoffset += count;
+        //printf("MachObj_lidata(seg: %d, offset: x%x, count: x%x)\n", seg, cast(int)offset, cast(int)count);
         //printf("SDoffset: x%x\n", cast(int)SegData[seg].SDoffset);
     }
     else
