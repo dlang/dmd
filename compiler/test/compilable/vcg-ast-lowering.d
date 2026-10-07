@@ -126,18 +126,48 @@ _d_newclassT!(C)
 		import core.memory : pureMalloc;
 		import core.memory : GC;
 		alias BlkAttr = BlkAttr;
-		const const(void[]) init = C;
+		__SymbolSlice!void init = __SymbolSlice($?:32=8u|64=16LU$, & C);
 		void* p = null;
 		enum uint attr = $?:32=768u|64=1024u$;
 		p = malloc(init.length, $?:32=768u|64=1024u$, typeid(C));
-		p[0..init.length] = init[];
+		p[0..init.length] = init.get()[];
 		return cast(C)p;
 	}
+
+}
+__SymbolSlice!void
+{
+	struct __SymbolSlice
+	{
+		immutable immutable($?:32=uint|64=ulong$) length;
+		immutable immutable(void*) ptr;
+		pure nothrow @nogc @system __ctor($?:32=uint|64=ulong$ length, immutable(void*) ptr)
+		{
+			this.length = length;
+			this.ptr = ptr;
+			return this;
+		}
+		const pure nothrow @nogc @trusted immutable(void)[] get()
+		{
+			return this.ptr[0..this.length];
+		}
+		alias get this;
+}
 
 }
 hasIndirections!(C)
 {
 	enum bool hasIndirections = true;
+
+}
+RTInfo!(__SymbolSlice!void)
+{
+	enum immutable($?:32=uint|64=ulong$)* RTInfo = & RTInfoImpl;
+
+}
+RTInfoImpl!([$?:32=8u|64=16LU$, $?:32=2u|64=2LU$])
+{
+	immutable immutable($?:32=uint|64=ulong$[2]) RTInfoImpl = [$?:32=8u|64=16LU$, $?:32=2u|64=2LU$];
 
 }
 _d_cast!(C, Object)

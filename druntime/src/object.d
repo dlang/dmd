@@ -3829,6 +3829,30 @@ template RTInfoImpl(size_t[] pointerBitmap)
     immutable size_t[pointerBitmap.length] RTInfoImpl = pointerBitmap[];
 }
 
+/**
+ * A slice of a symbol whose address is only known at link time.
+ *
+ * At compile time it holds the length and an address, which can be stored but not
+ * dereferenced. Only the compiler constructs it, by `__traits(initSymbol)`,
+ * `__traits(vtblSymbol)` and `__traits(interfaceSymbol)`.
+ */
+struct __SymbolSlice(T)
+{
+    immutable size_t length;
+    immutable T* ptr;
+
+    this(size_t length, immutable T* ptr) @system
+    {
+        this.length = length;
+        this.ptr = ptr;
+    }
+
+    /// Returns: the slice
+    immutable(T)[] get() const @trusted pure nothrow @nogc => ptr[0 .. length];
+
+    alias get this;
+}
+
 template RTInfo(T)
 {
     enum pointerBitmap = __traits(getPointerBitmap, T);
