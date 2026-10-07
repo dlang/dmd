@@ -129,8 +129,8 @@ _d_newclassT!(C)
 		__SymbolSlice!void init = __SymbolSlice($?:32=8u|64=16LU$, & C);
 		void* p = null;
 		enum uint attr = $?:32=768u|64=1024u$;
-		p = malloc(init.length, $?:32=768u|64=1024u$, typeid(C));
-		p[0..init.length] = init.get()[];
+		p = malloc(init.length(), $?:32=768u|64=1024u$, typeid(C));
+		p[0..init.length()] = init.get()[];
 		return cast(C)p;
 	}
 
@@ -139,17 +139,19 @@ __SymbolSlice!void
 {
 	struct __SymbolSlice
 	{
-		immutable immutable($?:32=uint|64=ulong$) length;
-		immutable immutable(void*) ptr;
-		pure nothrow @nogc @system __ctor($?:32=uint|64=ulong$ length, immutable(void*) ptr)
+		@system $?:32=uint|64=ulong$ _length;
+		@system immutable(void)* _ptr;
+		const pure nothrow @nogc @trusted $?:32=uint|64=ulong$ length()
 		{
-			this.length = length;
-			this.ptr = ptr;
-			return this;
+			return this._length;
+		}
+		const pure nothrow @nogc @trusted immutable(void)* ptr()
+		{
+			return this._ptr;
 		}
 		const pure nothrow @nogc @trusted immutable(void)[] get()
 		{
-			return this.ptr[0..this.length];
+			return this._ptr[0..this._length];
 		}
 		alias get this;
 }

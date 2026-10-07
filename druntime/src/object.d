@@ -3838,17 +3838,17 @@ template RTInfoImpl(size_t[] pointerBitmap)
  */
 struct __SymbolSlice(T)
 {
-    immutable size_t length;
-    immutable T* ptr;
+    @system size_t _length;
+    @system immutable(T)* _ptr;
 
-    this(size_t length, immutable T* ptr) @system
-    {
-        this.length = length;
-        this.ptr = ptr;
-    }
+    /// Returns: the number of elements
+    size_t length() const @trusted pure nothrow @nogc => _length;
+
+    /// Returns: the address of the symbol
+    immutable(T)* ptr() const @trusted pure nothrow @nogc => _ptr;
 
     /// Returns: the slice
-    immutable(T)[] get() const @trusted pure nothrow @nogc => ptr[0 .. length];
+    immutable(T)[] get() const @trusted pure nothrow @nogc => _ptr[0 .. _length];
 
     alias get this;
 }

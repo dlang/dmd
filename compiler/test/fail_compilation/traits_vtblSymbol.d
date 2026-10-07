@@ -6,8 +6,8 @@ fail_compilation/traits_vtblSymbol.d(22): Error: class or interface type expecte
 fail_compilation/traits_vtblSymbol.d(27): Error: class `traits_vtblSymbol.Grows` must be completely defined before __traits(vtblSymbol)
 fail_compilation/traits_vtblSymbol.d(32): Error: class `traits_vtblSymbol.Opaque` must be completely defined before __traits(vtblSymbol)
 fail_compilation/traits_vtblSymbol.d(35): Error: cannot dereference pointer to static variable `C` at compile time
-fail_compilation/traits_vtblSymbol.d(37):        called from here: `(*(function () pure nothrow @nogc @safe => *& C))()`
-fail_compilation/traits_vtblSymbol.d(37):        while evaluating: `static assert((*(function () pure nothrow @nogc @safe => *& C))())`
+fail_compilation/traits_vtblSymbol.d(37):        called from here: `(*(function () pure nothrow @nogc @safe => *__SymbolSlice(6$?:32=u|64=LU$, & C).ptr()))()`
+fail_compilation/traits_vtblSymbol.d(37):        while evaluating: `static assert((*(function () pure nothrow @nogc @safe => *__SymbolSlice(6$?:32=u|64=LU$, & C).ptr()))())`
 $p:object.d$($n$): Error: slicing pointers to static variables is not supported in CTFE
 fail_compilation/traits_vtblSymbol.d(36):        called from here: `__SymbolSlice(6$?:32=u|64=LU$, & C).get()`
 fail_compilation/traits_vtblSymbol.d(38):        called from here: `(*(function () pure nothrow @nogc @safe => __SymbolSlice(6$?:32=u|64=LU$, & C).get()[0]))()`
