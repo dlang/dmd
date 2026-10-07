@@ -448,6 +448,16 @@ $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
         the binary operators. Still the left operand must be an lvalue.
     )
 
+    $(P $(DDSUBLINK spec/type.html, vrp, Value Range Propagation) does not apply to assignment operator expressions:)
+
+    ---
+    void f(ubyte b, int i)
+    {
+        b = b * i; // Error: cannot implicitly convert expression `cast(int)b * i` of type `int` to `ubyte`
+        b *= i;    // no error
+    }
+    ---
+
 $(H2 $(LNAME2 conditional_expressions, Conditional Expressions))
 
 $(GRAMMAR
