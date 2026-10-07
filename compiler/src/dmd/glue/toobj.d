@@ -1147,7 +1147,7 @@ private bool finishVtbl(ClassDeclaration cd)
 }
 
 /// Returns: classInstanceSize of TypeInfo_Class for `cd`
-private
+package(dmd.glue)
 uint classInfoSize()
 {
     auto obj = ClassDeclaration.object;

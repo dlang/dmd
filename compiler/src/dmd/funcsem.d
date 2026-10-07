@@ -854,7 +854,12 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
 
     if (ClassDeclaration cd = parent.isClassDeclaration())
     {
-        switch (classFuncSemantic(cd, funcdecl, parent, sc, f))
+        const vtblLength = cd.vtbl.length;
+        const result = classFuncSemantic(cd, funcdecl, parent, sc, f);
+        if (cd.vtblDetermined && cd.vtbl.length != vtblLength)
+            eSink.error(funcdecl.loc, "cannot declare virtual function `%s` because the vtable of `%s` is already sealed",
+                funcdecl.toErrMsg(), cd.toErrMsg());
+        switch (result)
         {
             case 0: break;
             case 1: goto Ldone;
