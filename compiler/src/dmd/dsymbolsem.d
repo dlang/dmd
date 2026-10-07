@@ -7496,6 +7496,75 @@ private TemplateInstance isAliasSeq(Scope* sc, TypeInstance ti)
 }
 
 /***************************************
+ * Fill in the vtbl[] of a class, so that its length is final, and seal it:
+ * a virtual function added to the class afterwards is an error.
+ *
+ * If the class is being analyzed, this runs the semantic of its remaining
+ * members, as determineFields() does for fields.
+ *
+ * Params:
+ *      cd = the class
+ *      loc = for error messages
+ * Returns:
+ *      false if the vtbl[] cannot be determined, after reporting an error
+ */
+bool determineVtbl(ClassDeclaration cd, Loc loc)
+{
+    if (cd.vtblDetermined)
+        return true;
+    auto eSink = global.errorSink;
+    if (cd.vtblBusy)
+    {
+        eSink.error(loc, "circular reference to the vtable of %s `%s`", cd.kind, cd.toPrettyChars);
+        return false;
+    }
+    if (cd._scope)
+        dsymbolSemantic(cd, null);
+    if (cd._scope)
+    {
+        // deferred, because a base class is still being analyzed
+        eSink.error(loc, "the vtable of %s `%s` cannot be determined before its base classes are complete", cd.kind, cd.toPrettyChars);
+        return false;
+    }
+    if (cd.errors)
+        return false;
+
+    if (cd.semanticRun < PASS.semanticdone)
+    {
+        static void complete(Dsymbols* members)
+        {
+            members.foreachDsymbol((s) {
+                if (auto md = s.isMixinDeclaration())
+                {
+                    if (!md.compiled && md._scope)
+                        dsymbolSemantic(md, md._scope);
+                    complete(md.decl);
+                }
+                else if (auto ad = s.isAttribDeclaration())
+                    complete(ad.include(ad._scope));
+                else if (auto tm = s.isTemplateMixin())
+                {
+                    if (tm._scope)
+                        dsymbolSemantic(tm, null);
+                    complete(tm.members);
+                }
+                else if (auto fd = s.isFuncDeclaration())
+                {
+                    if (fd.semanticRun < PASS.semanticdone && fd._scope)
+                        dsymbolSemantic(fd, null);
+                }
+            });
+        }
+
+        cd.vtblBusy = true;
+        complete(cd.members);
+        cd.vtblBusy = false;
+    }
+    cd.vtblDetermined = true;
+    return !cd.errors;
+}
+
+/***************************************
  * Find all instance fields in `ad`, then push them into `fields`.
  *
  * Runs semantic() for all instance field variables, but also
