@@ -323,6 +323,11 @@ extern(C) bool rt_termSharedModule(void* handle)
     foreach (rng; sectionGroup._gcRanges)
         GC.removeRange(rng.ptr);
 
+    // run finalizers whose code is in this module before it is unmapped
+    // (after module dtors, same order as rt_term and the ELF implementation)
+    if (auto code = findImageSection(handle, ".text"))
+        GC.runFinalizers(code);
+
     finiSections(sectionGroup);
     _sections.remove(i);
 
