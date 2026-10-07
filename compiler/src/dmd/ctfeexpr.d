@@ -1197,7 +1197,9 @@ private int ctfeRawCmp(Loc loc, Expression e1, Expression e2, bool identity = fa
         dinteger_t ofs1, ofs2;
         Expression agg1 = getAggregateFromPointer(e1, &ofs1);
         Expression agg2 = getAggregateFromPointer(e2, &ofs2);
-        if ((agg1 == agg2) || (agg1.op == EXP.variable && agg2.op == EXP.variable && agg1.isVarExp().var == agg2.isVarExp().var))
+        if ((agg1 == agg2) ||
+            (agg1.op == EXP.variable && agg2.op == EXP.variable && agg1.isVarExp().var == agg2.isVarExp().var) ||
+            (agg1.op == EXP.symbolOffset && agg2.op == EXP.symbolOffset && agg1.isSymOffExp().var == agg2.isSymOffExp().var))
         {
             if (ofs1 == ofs2)
                 return 0;
