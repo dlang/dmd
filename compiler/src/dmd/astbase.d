@@ -2543,10 +2543,20 @@ struct ASTBase
             assert(global.gaggedErrors || global.errors);
         }
 
+        static ErrorStatement get(Statement orig = null)
+        {
+            assert(global.gaggedErrors || global.errors);
+            if (errorstmt is null)
+                errorstmt = new ErrorStatement();
+            return errorstmt;
+        }
+
         override void accept(Visitor v)
         {
             v.visit(this);
         }
+
+        extern (C++) __gshared ErrorStatement errorstmt;
     }
 
     extern (C++) final class CompoundDeclarationStatement : CompoundStatement

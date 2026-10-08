@@ -1,21 +1,35 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/mixin_version_debug_assign.d-mixin-15(15): Error: version `foo` declaration must be at module level
-fail_compilation/mixin_version_debug_assign.d(15):        while parsing string mixin statement
-fail_compilation/mixin_version_debug_assign.d-mixin-20(20): Error: identifier expected, not `1`
-fail_compilation/mixin_version_debug_assign.d(20):        while parsing string mixin statement
+fail_compilation/mixin_version_debug_assign.d-mixin-19(19): Error: version `foo` declaration must be at module level
+fail_compilation/mixin_version_debug_assign.d(19):        while parsing string mixin statement
+fail_compilation/mixin_version_debug_assign.d-mixin-24(24): Error: debug `bar` declaration must be at module level
+fail_compilation/mixin_version_debug_assign.d(24):        while parsing string mixin statement
+fail_compilation/mixin_version_debug_assign.d-mixin-29(29): Error: identifier expected, not `1`
+fail_compilation/mixin_version_debug_assign.d(29):        while parsing string mixin statement
+fail_compilation/mixin_version_debug_assign.d-mixin-34(34): Error: found `else` without a corresponding `if`, `version` or `debug` statement
+fail_compilation/mixin_version_debug_assign.d(34):        while parsing string mixin statement
 ---
 */
 
-void main()
+// https://github.com/dlang/dmd/issues/23464
+
+void testVersion()
 {
-    // Previously crashed dmd with ACCESS_VIOLATION: parseStatement returned null,
-    // then string-mixin semantic did errorSupplemental(s.loc, ...).
     mixin("version = foo;");
 }
 
-void other()
+void testDebug()
+{
+    mixin("debug = bar;");
+}
+
+void testDebugNumber()
 {
     mixin("debug = 1;");
+}
+
+void testElse()
+{
+    mixin("else");
 }
