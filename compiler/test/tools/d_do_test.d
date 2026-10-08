@@ -93,6 +93,7 @@ struct TestArgs
     bool     compileSeparately;     /// `COMPILE_SEPARATELY`: compile each source file separately
     bool     link;                  /// `LINK`: force linking for `fail_compilation` & `compilable` tests
     bool     clearDflags;           /// `DFLAGS`: whether DFLAGS should be cleared before invoking dmd
+    bool     requirePhobos;         /// `RUNNABLE_PHOBOS_TEST`/`COMPILABLE_MATH_TEST`: test genuinely needs Phobos, so use it instead of druntime-only
     string   executeArgs;           /// `EXECUTE_ARGS`: arguments passed to the compiled executable (for `runnable[_cxx]`)
     string   cxxflags;              /// `CXXFLAGS`: arguments passed to $CXX when compiling `EXTRA_CPP_SOURCES`
     string[] sources;               /// `EXTRA_SOURCES`: additional D sources (+ main source file)
@@ -124,6 +125,8 @@ struct EnvData
 {
     string all_args;             /// `ARGS`: arguments to test in permutations
     string dmd;                  /// `DMD`: compiler under test
+    string hostDmd;              /// `HOST_DMD`: host compiler, used to build test-harness code (e.g. dshell scripts)
+    string phobosDflags;         /// `PHOBOS_DFLAGS`: Phobos-based `DFLAGS` for dshell tests and `RUNNABLE_PHOBOS_TEST` opt-in tests
     string results_dir;          /// `RESULTS_DIR`: directory for temporary files
     string sep;                  /// `SEP`: directory separator (`/` or `\`)
     string dsep;                 /// `DSEP`: double directory separator ( `/` or `\\`)
@@ -171,6 +174,8 @@ immutable(EnvData) processEnvironment()
     envData.exe            = envGetRequired ("EXE");
     envData.os             = environment.get("OS");
     envData.dmd            = replace(envGetRequired("DMD"), "/", envData.sep);
+    envData.hostDmd        = replace(environment.get("HOST_DMD", "dmd"), "/", envData.sep);
+    envData.phobosDflags   = environment.get("PHOBOS_DFLAGS", "");
     envData.compiler       = "dmd"; //should be replaced for other compilers
     envData.ccompiler      = environment.get("CC");
     envData.cxxcompiler    = environment.get("CXX");
@@ -657,6 +662,10 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     string dflagsStr;
     testArgs.clearDflags = findTestParameter(envData, file, "DFLAGS", dflagsStr);
     enforce(dflagsStr.empty, "The DFLAGS test argument must be empty: It is '" ~ dflagsStr ~ "'");
+
+    // Tests are compiled/linked against druntime only; the rare test for which
+    // Phobos is essential opts in with one of these markers and gets Phobos.
+    testArgs.requirePhobos = file.canFind("RUNNABLE_PHOBOS_TEST") || file.canFind("COMPILABLE_MATH_TEST");
 
     findTestParameter(envData, file, "REQUIRED_ARGS", testArgs.requiredArgs);
     if (envData.required_args.length)
@@ -1722,6 +1731,8 @@ int tryMain(string[] args)
     // Clear the DFLAGS environment variable if it was specified in the test file
     if (testArgs.clearDflags)
         environment["DFLAGS"] = "";
+    else if (testArgs.requirePhobos)
+        environment["DFLAGS"] = envData.phobosDflags;
 
     writef(" ... %-30s %s%s(%s)",
             input_file,
@@ -1834,6 +1845,12 @@ int tryMain(string[] args)
 
                 compile_output = compile_output.unifyNewLine();
                 compile_output = std.regex.replaceAll(compile_output, regex(`^DMD v2\.[0-9]+.*\n? DEBUG$`, "m"), "");
+                // druntime.lib is built as a single library with `dmd -lib`, so
+                // it contains several object files with the same basename (e.g.
+                // memory.obj from core.memory and rt.memory). The MS linker emits
+                // a benign LNK4255 warning about this when linking with `-g`;
+                // strip it so it doesn't fail tests that expect no output.
+                compile_output = std.regex.replaceAll(compile_output, regex(`^.*warning LNK4255:.*\n?`, "m"), "");
                 compile_output = std.string.strip(compile_output);
                 // replace test_result path with fixed ones
                 compile_output = compile_output.replace(result_path, resultsDirReplacement);
@@ -2343,6 +2360,13 @@ static this()
 
     auto outfile = File(output_file, "w");
     enum keepFilesOpen = Config.retainStdout | Config.retainStderr;
+
+    // dshell scripts import Phobos (std.process etc.) and link against the
+    // prebuilt dshell library, so build them with the compiler under test and
+    // the Phobos DFLAGS: the host compiler may be too old to parse the current
+    // druntime/Phobos sources, and the prebuilt library is built by the
+    // compiler under test too, so both must agree.
+    environment["DFLAGS"] = envData.phobosDflags;
 
     //
     // compile the test

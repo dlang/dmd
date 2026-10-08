@@ -1,3 +1,4 @@
+// COMPILABLE_MATH_TEST
 /*
 EXTRA_SOURCES: ../runnable/extra-files/paranoia.d
 REQUIRED_ARGS: -o- -version=CTFE
