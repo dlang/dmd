@@ -135,9 +135,9 @@ private __gshared
 
 @trusted
 public
-void constprop(ref GlobalOptimizer go, ref BlockOpt bo, ref uint changes)
+void constprop(ref Barray!DefNode defnod, ref BlockOpt bo, ref uint changes)
 {
-    rd_compute(go.defnod, bo, eqrelinc, changes);
+    rd_compute(defnod, bo, eqrelinc, changes);
     intranges(eqrelinc.rellist, eqrelinc.inclist, changes);        // compute integer ranges
     eqeqranges(eqrelinc.eqeqlist);       // see if we can eliminate some relationals
 
@@ -185,7 +185,7 @@ private void rd_compute(ref Barray!DefNode defnod, ref BlockOpt bo, ref EqRelInc
             continue;                   // not reliable for this block
         if (b.Belem)
         {
-            constantPropagation(b, eqrelinc, changes);
+            constantPropagation(defnod, b, eqrelinc, changes);
 
             debug
             if (!(vec_equal(b.Binrd,b.Boutrd)))
@@ -225,7 +225,7 @@ private void rd_compute(ref Barray!DefNode defnod, ref BlockOpt bo, ref EqRelInc
  *      changes = incremented with changes
  */
 @trusted
-private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc, ref uint changes)
+private void constantPropagation(ref Barray!DefNode defnod, block* thisblock, ref EqRelInc eqrelinc, ref uint changes)
 {
     void conpropwalk(elem* n,vec_t IN)
     {
@@ -291,7 +291,7 @@ private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc, ref ui
                     if (OTopeq(op) && sytab[t.Vsym.Sclass] & SCRD)
                     {
                         Barray!(elem*) rdl;
-                        listrds(go, IN,t,null,&rdl);
+                        listrds(defnod, IN,t,null,&rdl);
                         if (!(config.flags & CFGnowarning)) // if warnings are enabled
                             chkrd(t,rdl);
                         if (auto e = chkprop(changes, t, rdl))
@@ -341,7 +341,7 @@ private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc, ref ui
                         //printf("\trellist IN: "); vec_print(IN); printf("\n");
                         auto pdata = eqrelinc.rellist.push();
                         pdata.emplace(n, thisblock);
-                        listrds(go, IN, n.E1, null, &pdata.rdlist);
+                        listrds(defnod, IN, n.E1, null, &pdata.rdlist);
                     }
                     break;
 
@@ -356,7 +356,7 @@ private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc, ref ui
                         //printf("\tinclist IN: "); vec_print(IN); printf("\n");
                         auto pdata = eqrelinc.inclist.push();
                         pdata.emplace(n, thisblock);
-                        listrds(go, IN, n.E1, null, &pdata.rdlist);
+                        listrds(defnod, IN, n.E1, null, &pdata.rdlist);
                     }
                     break;
 
@@ -367,7 +367,7 @@ private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc, ref ui
                     {   //printf("appending to eqeqlist\n"); elem_print(n);
                         auto pdata = eqrelinc.eqeqlist.push();
                         pdata.emplace(n, thisblock);
-                        listrds(go, IN, n.E1, null, &pdata.rdlist);
+                        listrds(defnod, IN, n.E1, null, &pdata.rdlist);
                     }
                     break;
 
@@ -378,7 +378,7 @@ private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc, ref ui
 
 
         if (OTdef(op))                  /* if definition elem           */
-            updaterd(go.defnod, n, IN, null);        /* then update IN vector        */
+            updaterd(defnod, n, IN, null);        /* then update IN vector        */
 
         /* now we get to the part that checks to see if we can  */
         /* propagate a constant.                                */
@@ -386,7 +386,7 @@ private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc, ref ui
         {
             //printf("const prop: %s\n", n.Vsym.Sident.ptr);
             Barray!(elem*) rdl;
-            listrds(go, IN,n,null,&rdl);
+            listrds(defnod, IN,n,null,&rdl);
 
             if (!(config.flags & CFGnowarning))     // if warnings are enabled
                 chkrd(n,rdl);
@@ -622,7 +622,7 @@ noprop:
 
 @trusted
 public
-void listrds(ref GlobalOptimizer go, vec_t IN, elem* e, vec_t f, Barray!(elem*)* rdlist)
+void listrds(ref Barray!DefNode defnod, vec_t IN, elem* e, vec_t f, Barray!(elem*)* rdlist)
 {
     uint unambig;
     Symbol* s;
@@ -641,9 +641,9 @@ void listrds(ref GlobalOptimizer go, vec_t IN, elem* e, vec_t f, Barray!(elem*)*
     unambig = s.Sflags & SFLdistinct;
     if (f)
         vec_clear(f);
-    for (size_t i = 0; (i = vec_index(i, IN)) < go.defnod.length; ++i)
+    for (size_t i = 0; (i = vec_index(i, IN)) < defnod.length; ++i)
     {
-        elem* d = go.defnod[i].DNelem;
+        elem* d = defnod[i].DNelem;
         //printf("\tlooking at "); WReqn(d); printf("\n");
         const op = d.Eoper;
         if (op == OPasm)                // assume ASM elems define everything
