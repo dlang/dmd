@@ -1082,8 +1082,8 @@ private DtorDeclaration buildFieldDtor(AggregateDeclaration ad, Loc declLoc, ref
             if (stc & STC.safe)
                 stc = (stc & ~STC.safe) | STC.trusted;
 
-            SliceExp se = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
-                                       new IntegerExp(loc, n, Type.tsize_t));
+            SliceExp se = new SliceExp(loc, ex, IntegerExp.create(loc, 0, Type.tsize_t),
+                                       IntegerExp.create(loc, n, Type.tsize_t));
             // Prevent redundant bounds check
             se.upperIsInBounds = true;
             se.lowerIsLessThanUpper = true;
@@ -1280,7 +1280,7 @@ private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclara
     //   // TODO: if (del) delete (char*)this;
     //   return (void*) this;
     // }
-    Parameter delparam = new Parameter(Loc.initial, STC.none, Type.tuns32, Identifier.idPool("del"), new IntegerExp(dtor.loc, 0, Type.tuns32), null, null);
+    Parameter delparam = new Parameter(Loc.initial, STC.none, Type.tuns32, Identifier.idPool("del"), IntegerExp.create(dtor.loc, 0, Type.tuns32), null, null);
     Parameters* params = new Parameters;
     params.push(delparam);
     const stc = dtor.storage_class & ~STC.scope_; // because we add the `return this;` later
@@ -1526,8 +1526,8 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
                     if (stc & STC.safe)
                         stc = (stc & ~STC.safe) | STC.trusted;
 
-                    auto se = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
-                                                    new IntegerExp(loc, length, Type.tsize_t));
+                    auto se = new SliceExp(loc, ex, IntegerExp.create(loc, 0, Type.tsize_t),
+                                                    IntegerExp.create(loc, length, Type.tsize_t));
                     // Prevent redundant bounds check
                     se.upperIsInBounds = true;
                     se.lowerIsLessThanUpper = true;
@@ -1604,8 +1604,8 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
             if (stc & STC.safe)
                 stc = (stc & ~STC.safe) | STC.trusted;
 
-            auto se = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
-                                            new IntegerExp(loc, length, Type.tsize_t));
+            auto se = new SliceExp(loc, ex, IntegerExp.create(loc, 0, Type.tsize_t),
+                                            IntegerExp.create(loc, length, Type.tsize_t));
             // Prevent redundant bounds check
             se.upperIsInBounds = true;
             se.lowerIsLessThanUpper = true;
