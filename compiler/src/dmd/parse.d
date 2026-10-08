@@ -6658,7 +6658,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (condition && ifbody)
                     s = new AST.IfStatement(loc, param, condition, ifbody, elsebody, token.loc);
                 else
-                    s = new AST.ErrorStatement; // don't propagate parsing errors as null
+                    s = AST.ErrorStatement.get(); // don't propagate parsing errors as null
                 break;
             }
 
@@ -6706,7 +6706,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 // Not valid as a statement; return ErrorStatement instead of null so
                 // callers (string mixin semantic) do not null-deref.
-                s = new AST.ErrorStatement;
+                s = AST.ErrorStatement.get();
                 break;
             }
             cond = parseDebugCondition();
@@ -6721,7 +6721,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 // Not valid as a statement; return ErrorStatement instead of null so
                 // callers (string mixin semantic) do not null-deref.
-                s = new AST.ErrorStatement;
+                s = AST.ErrorStatement.get();
                 break;
             }
             cond = parseVersionCondition();
