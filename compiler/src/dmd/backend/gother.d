@@ -906,17 +906,19 @@ private void intranges(ref Elemdatas rellist, ref Elemdatas inclist, ref uint ch
  * Look for initialization and increment expressions in loop.
  * Very similar to intranges().
  * Params:
+ *   defnod = definition nodes
  *   rellist = list of relationals in function
  *   inclist = list of increment elems in function.
  *   erel = loop compare expression of the form (v < c)
  *   rdeq = set to loop initialization of v
  *   rdinc = set to loop increment of v
+ *   changes = increment changes
  * Returns:
  *   false if cannot find rdeq or rdinc
  */
 
 @trusted
-public bool findloopparameters(ref GlobalOptimizer go, elem* erel, ref elem* rdeq, ref elem* rdinc)
+public bool findloopparameters(ref Barray!DefNode defnod, elem* erel, ref elem* rdeq, ref elem* rdinc, ref uint changes)
 {
     if (debugc) printf("findloopparameters()\n");
     const bool log = false;
@@ -934,7 +936,7 @@ public bool findloopparameters(ref GlobalOptimizer go, elem* erel, ref elem* rde
     if (!(sytab[v.Sclass] & SCRD))
         return false;
 
-    rd_compute(go.defnod, bo, eqrelinc, go.changes);     // compute rellist, inclist, eqeqlist
+    rd_compute(defnod, bo, eqrelinc, changes);     // compute rellist, inclist, eqeqlist
 
     /* Find `erel` in `rellist`
      */
@@ -1058,7 +1060,7 @@ private int loopcheck(block* start,block* inc,block* rel)
 
 
 @trusted
-public void copyprop(ref GlobalOptimizer go, ref BlockOpt bo)
+public void copyprop(ref Barray!(elem*) expnod, ref BlockOpt bo, ref uint changes)
 {
     out_regcand(globsym[]);
     if (debugc) printf("copyprop()\n");
@@ -1068,15 +1070,15 @@ Louter:
     while (1)
     {
         flowcp(go, bo);           /* compute available copy statements    */
-        assert(go.exptop == go.expnod.length);
-        if (go.exptop <= 1)
+        assert(go.exptop == expnod.length);
+        if (expnod.length <= 1)
             return;             // none available
         static if (0)
         {
             foreach (i; 1 .. go.exptop)
             {
-                printf("go.expnod[%d] = (",i);
-                WReqn(go.expnod[i]);
+                printf("expnod[%d] = (",i);
+                WReqn(expnod[i]);
                 printf(");\n");
             }
         }
@@ -1098,7 +1100,7 @@ Louter:
                 }
                 else
                 {
-                    recalc = copyPropWalk(go, b.Belem, b.Bin, go.changes);
+                    recalc = copyPropWalk(go, b.Belem, b.Bin, changes);
                 }
                 /*assert(vec_equal(b.Bin,b.Bout));              */
                 /* The previous assert() is correct except      */

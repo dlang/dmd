@@ -3790,7 +3790,7 @@ bool loopunroll(ref GlobalOptimizer go, ref BlockOpt bo, ref Loop l)
      */
     elem* einitial;
     elem* eincrement;
-    if (!findloopparameters(go, etail, einitial, eincrement))
+    if (!findloopparameters(go.defnod, etail, einitial, eincrement, go.changes))
     {
         if (log) printf("\tnot findloopparameters()\n");
         return false;
