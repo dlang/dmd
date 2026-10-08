@@ -399,7 +399,7 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
         if (go.mfoptim & MFcnp)
             constprop(go.defnod, bo, go.changes); /* constant propagation          */
         if (go.mfoptim & MFcp)
-            copyprop(go, bo);           /* do copy propagation           */
+            copyprop(go.expnod, bo, go.changes);  /* do copy propagation           */
 
         /* Floating point constants and string literals need to be
          * replaced with loads from variables in read-only data.
