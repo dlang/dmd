@@ -33,6 +33,9 @@ extern (C++) struct Id
      */
     extern(C++) void initialize()
     {
+        // Seed the identifier pool and register the keywords.
+        Identifier.initTable();
+        initializeKeywords();
         mixin(msgtable.generate(&initializer));
     }
 
@@ -45,6 +48,8 @@ extern (C++) struct Id
     extern (D) void deinitialize()
     {
         mixin(msgtable.generate(&deinitializer));
+        Identifier.deinitialize();
+        initializeKeywords(); // repopulate the keywords
     }
 }
 
