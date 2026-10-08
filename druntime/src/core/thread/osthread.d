@@ -883,29 +883,14 @@ extern (C) void thread_suspendList(ThreadBase* list, size_t count) nothrow
         }
     }
 
-    version (Darwin) {}
-    else version (Solaris) {}
-    else version (WASI) {}
-    else version (Posix)
-    {
-        if (!multiThreadedFlag)
-            return;
-        assert(cnt >= 1);
-        if (suspendedSelf)
-            --cnt;
-        for (; cnt; --cnt)
-        {
-            while (sem_wait(&suspendCount) != 0)
-            {
-                if (errno != EINTR)
-                    onThreadError("Unable to wait for semaphore");
-                errno = 0;
-            }
-        }
-    }
-    else version (Windows) {}
-    else
-        static assert(0, "unsupported os");
+    if (!multiThreadedFlag)
+        return;
+
+    // Wait for the signalled threads to acknowledge the suspend. The POSIX
+    // semaphore wait (sem_wait on suspendCount, retried on EINTR) lives in
+    // core.thread.posix_impl.afterStopTheWorld, which is what thread_suspendAll
+    // uses too; it is a no-op on Windows, Darwin, Solaris and WASI.
+    afterStopTheWorld(suspendedSelf, cnt);
 }
 
 /**
