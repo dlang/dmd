@@ -27,10 +27,19 @@ extern (C++) struct Mem
 {
     static char* xstrdup(const(char)* s) nothrow
     {
-        if (isGCEnabled)
-            return s ? s[0 .. strlen(s) + 1].dup.ptr : null;
+        if (!s)
+            return null;
 
-        return s ? cast(char*)check(.strdup(s)) : null;
+        if (isGCEnabled)
+            return s[0 .. strlen(s) + 1].dup.ptr;
+
+        static if (UseBumpMalloc)
+        {
+            auto size = strlen(s) + 1;
+            return cast(char*)memcpy(pureBumpMalloc(size), s, size);
+        }
+        else
+            return cast(char*)check(.strdup(s));
     }
 
     static void xfree(void* p) pure nothrow
