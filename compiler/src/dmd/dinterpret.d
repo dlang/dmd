@@ -115,7 +115,11 @@ public Expression ctfeInterpret(Expression e)
         result = CTFEExp.cantexp;
     }
     else
+    {
+        timeTraceBeginEvent(TimeTraceEventType.ctfeCopy);
+        scope (exit) timeTraceEndEvent(TimeTraceEventType.ctfeCopy, e);
         result = copyRegionExp(result);
+    }
 
     if (!CTFEExp.isCantExp(result))
         result = scrubReturnValue(e.loc, result);
