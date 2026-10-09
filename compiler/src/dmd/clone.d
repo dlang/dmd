@@ -1229,7 +1229,7 @@ void buildCppBaseCtors(ClassDeclaration cldec, Scope* sc)
         foreach (i, p; tf.parameterList)
         {
             auto id = Identifier.generateId("__p", i);
-            params.push(new Parameter(loc, p.storageClass, p.type, id, null, null, null));
+            params.push(new Parameter(loc, p.storageClass, p.type, id, p.defaultArg ? p.defaultArg.syntaxCopy() : null, null, null));
             args.push(new IdentifierExp(loc, id));
         }
         const STC stc = ctor.storage_class | mergeFuncAttrs(STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc, ctor);
