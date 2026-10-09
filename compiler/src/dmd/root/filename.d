@@ -417,9 +417,18 @@ nothrow:
 
     static const(char)[] buildPath(const char[][] fragments...)
     {
+        bool isSep(char ch)
+        {
+            version (Posix)
+                return isDirSeparator(ch);
+            else version (Windows)
+                return isDirSeparator(ch) || ch == ':';
+            else
+                assert(0);
+        }
         size_t size;
         foreach (f; fragments)
-            size += f.length ? f.length + 1 : 0;
+            size += f.length ? f.length + (isSep(f[$-1]) ? 0 : 1) : 0;
         if (size == 0)
             size = 1;
 
@@ -433,25 +442,19 @@ nothrow:
             p[length .. length + f.length] = f;
             length += f.length;
 
-            const last = p[length - 1];
-            version (Posix)
+            if (!isSep(p[length - 1]))
             {
-                if (!isDirSeparator(last))
+                version (Posix)
                     p[length++] = '/';
-            }
-            else version (Windows)
-            {
-                if (!isDirSeparator(last) && last != ':')
+                else version (Windows)
                     p[length++] = '\\';
+                else
+                    assert(0);
             }
-            else
-                assert(0);
         }
-
-        // overwrite last slash with null terminator
-        p[length ? --length : 0] = 0;
-
-        return p[0 .. length];
+        assert(length == size - 1 || length == size && isSep(p[length-1]));
+        p[size - 1] = 0;
+        return p[0 .. size - 1];
     }
 
     unittest
