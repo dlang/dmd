@@ -337,7 +337,14 @@ static if (UseBumpMalloc)
             }
         }
         enum alignment = real.alignof > double.alignof ? real.alignof : double.alignof;
-        return _allocmemoryNoFree(size, alignment);
+        debug
+        {
+            void* p = _allocmemoryNoFree(size, alignment, size_t.sizeof);
+            (cast(size_t*)p)[-1] = size;
+        }
+        else
+            void* p = _allocmemoryNoFree(size, alignment);
+        return p;
     }
 
     void bumpFree(void* p, size_t size)
@@ -371,6 +378,7 @@ static if (UseBumpMalloc)
             version (BumpMallocStats) countHugeFree++;
             version (BumpMallocStats) memHugeFree += size;
         }
+        debug assert((cast(size_t*)p)[-1] == size);
     }
 
     enum pureBumpMalloc = cast(void* function(size_t) pure nothrow)&bumpMalloc;
