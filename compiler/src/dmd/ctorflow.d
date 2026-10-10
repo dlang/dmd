@@ -51,7 +51,7 @@ struct CtorFlow
     void freeFieldinit()
     {
         if (fieldinit.ptr)
-            mem.xfree(fieldinit.ptr);
+            mem.xfree(fieldinit.ptr, fieldinit.length * fieldinit[0].sizeof);
 
         fieldinit = null;
     }

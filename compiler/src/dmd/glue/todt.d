@@ -489,7 +489,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
                 printf("StringExp.toDt(type = %s)\n", e.type.toChars());
                 assert(0);
         }
-        mem.xfree(q);
+        mem.xfree(q, n * e.sz);
     }
 
     void visitArrayLiteral(ArrayLiteralExp e)

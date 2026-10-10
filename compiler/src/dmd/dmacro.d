@@ -238,7 +238,7 @@ struct MacroTable
                             buf.remove(u, v + 1 - u);
                             end -= v + 1 - u;
                             u += mend - (v + 1);
-                            mem.xfree(cast(char*)marg.ptr);
+                            mem.xfree(cast(char*)marg.ptr, marg.length);
                             //printf("u = %d, end = %d\n", u, end);
                             //printf("#%.*s#\n", cast(int)(end - u), &buf.data[u]);
                             continue;
@@ -255,7 +255,7 @@ struct MacroTable
             }
             u++;
         }
-        mem.xfree(cast(char*)arg);
+        mem.xfree(cast(char*)arg.ptr, arg.length);
         pend = end;
         return true;
     }
