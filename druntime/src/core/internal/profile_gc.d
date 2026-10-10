@@ -114,8 +114,7 @@ Tret _d_arraycatnTX(Tret, Tarr...)(scope auto ref Tarr froms,
     scope(exit)
         accumulatePure(file, line, funcname, Tarr.stringof, currentlyAllocated);
 
-    import core.lifetime : forward;
-    return core.internal.array.concatenation._d_arraycatnTX!Tret(forward!froms);
+    return core.internal.array.concatenation._d_arraycatnTX!Tret(froms);
 }
 
 /// Profiling wrapper around $(REF _d_newitemT, core,lifetime).
