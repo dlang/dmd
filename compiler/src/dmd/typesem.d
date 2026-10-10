@@ -6067,6 +6067,11 @@ void resolve(Type mt, Loc loc, Scope* sc, out Expression pe, out Type pt, out Ds
             pt = mt.obj.isType();
             ps = mt.obj.isDsymbol();
             pe = mt.obj.isExpression();
+            if (auto variant = ps ? ps.isEnumUnionCaseDeclaration() : null)
+            {
+                ps = null;
+                pt = variant.type.addMod(mt.mod);
+            }
             return;
         }
 
@@ -6151,7 +6156,11 @@ void resolve(Type mt, Loc loc, Scope* sc, out Expression pe, out Type pt, out Ds
                 returnType(t);
             }
             else if (auto s = mt.obj.isDsymbol())
+            {
+                if (auto variant = s.isEnumUnionCaseDeclaration())
+                    returnType(variant.type.addMod(mt.mod));
                 returnSymbol(s);
+            }
             else if (auto e = mt.obj.isExpression())
                 returnExp(e);
         }
@@ -6761,6 +6770,19 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             return mt.getProperty(sc, e.loc, ident, flag & 1);
         }
 
+        auto eu = mt.sym.isEnumUnionDeclaration();
+        if (eu)
+        {
+            if (ident == Id.__tag && e.op != EXP.type)
+            {
+                e = e.expressionSemantic(sc);
+                auto tag = new DotVarExp(e.loc, e, eu.tagVar);
+                tag.type = eu.tagVar.type.addMod(e.type.mod);
+                auto value = new AddExp(e.loc, tag, new IntegerExp(e.loc, 0, Type.tint32));
+                return (new CastExp(e.loc, value, eu.tagVar.type)).expressionSemantic(sc);
+            }
+        }
+
         /* If e.tupleof
          */
         if (ident == Id._tupleof)
@@ -6785,6 +6807,8 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             for (size_t i = 0; i < mt.sym.fields.length; i++)
             {
                 VarDeclaration v = mt.sym.fields[i];
+                if (eu && v is eu.tagVar)
+                    continue;
                 Expression ex;
                 if (ev)
                     ex = new DotVarExp(e.loc, ev, v);
@@ -7818,6 +7842,8 @@ Dsymbol toDsymbol(Type type, Scope* sc)
 
     Dsymbol visitTraits(TypeTraits type)
     {
+        if (!sc)
+            return null;
         Type t;
         Expression e;
         Dsymbol s;
@@ -7832,6 +7858,8 @@ Dsymbol toDsymbol(Type type, Scope* sc)
 
     Dsymbol visitMixin(TypeMixin type)
     {
+        if (!sc)
+            return null;
         Type t;
         Expression e;
         Dsymbol s;
@@ -7863,6 +7891,8 @@ Dsymbol toDsymbol(Type type, Scope* sc)
 
     Dsymbol visitInstance(TypeInstance type)
     {
+        if (!sc)
+            return null;
         Type t;
         Expression e;
         Dsymbol s;
@@ -7876,6 +7906,8 @@ Dsymbol toDsymbol(Type type, Scope* sc)
     Dsymbol visitTypeof(TypeTypeof type)
     {
         //printf("TypeTypeof::toDsymbol('%s')\n", toChars());
+        if (!sc)
+            return null;
         Expression e;
         Type t;
         Dsymbol s;
@@ -7885,6 +7917,8 @@ Dsymbol toDsymbol(Type type, Scope* sc)
 
     Dsymbol visitReturn(TypeReturn type)
     {
+        if (!sc)
+            return null;
         Expression e;
         Type t;
         Dsymbol s;

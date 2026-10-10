@@ -31,9 +31,9 @@ class AggregateDeclaration;
 class EnumDeclaration;
 class ClassDeclaration;
 class StructDeclaration;
-class InterfaceDeclaration;
-class StructDeclaration;
 class UnionDeclaration;
+class EnumUnionDeclaration;
+class EnumUnionCaseDeclaration;
 class FuncDeclaration;
 class FuncAliasDeclaration;
 class OverDeclaration;
@@ -290,6 +290,7 @@ public:
     ClassDeclaration *isClassDeclaration();
     StructDeclaration *isStructDeclaration();
     UnionDeclaration *isUnionDeclaration();
+    EnumUnionDeclaration *isEnumUnionDeclaration();
     InterfaceDeclaration *isInterfaceDeclaration();
     ScopeDsymbol *isScopeDsymbol();
     ForwardingScopeDsymbol *isForwardingScopeDsymbol();
@@ -307,6 +308,7 @@ public:
     StaticAssert *isStaticAssert();
     StaticIfDeclaration *isStaticIfDeclaration();
     CAsmDeclaration *isCAsmDeclaration();
+    EnumUnionCaseDeclaration *isEnumUnionCaseDeclaration();
     void accept(Visitor *v) override { v->visit(this); }
 };
 

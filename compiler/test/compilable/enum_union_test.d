@@ -1,0 +1,160 @@
+module enumsunion_test;
+
+import core.stdc.stdio;
+
+// 1. Basic Unit & Positional Variants
+enum union Option(T) {
+    case Some(T);
+    case None();
+}
+
+// 2. Hybrid Union: Bare Types, Records, and Unit Sentinels
+enum union Response {
+    case double,                           // Bare type
+    case string,                           // Bare type
+    case Timeout(),                        // Unit variant
+    case Success { int code; string payload; } // Record variant;
+}
+
+// 3. RAII Resource Tracking
+struct Resource {
+    int id;
+    static int liveCount = 0;
+    this(int id) { this.id = id; liveCount++; }
+    this(ref typeof(this) rhs) { this.id = rhs.id; liveCount++; }
+    ~this() { liveCount--; }
+}
+
+enum union Managed {
+    case Handle(Resource);
+    case Empty();
+}
+
+// 4. Field access across variants
+enum union Entity {
+    case Player { int id; string name; };
+    case Monster { int id; int hp; };
+}
+
+struct Box(T) {
+    T value;
+}
+
+struct Struct {
+    int n;
+}
+
+enum union GenericValue {
+    case Box!int;
+    case Struct = .Struct;
+    case Done();
+}
+
+void main() {
+    // Test Option Matching & Type Unification
+    Option!int opt = Option!int.Some(42);
+    int val = switch (opt) {
+        case Some(v) => v * 2,
+        case None()  => 0,
+    };
+    assert(val == 84);
+
+    // Test 'noreturn' arm unification
+    int safeVal = switch (opt) {
+        case Some(v) => v,
+        case None()  => throw new Exception("Empty"), // Unifies: LUB(int, noreturn) -> int
+    };
+    assert(safeVal == 42);
+
+    // Test Bare Type Matching and Direct Construction
+    Response r1 = 3.14;
+    Response r2 = Response.Success(200, "OK");
+    Response r3 = Response.Timeout;
+    string status = switch (r1) {
+        case double d             => "Floating-point",
+        case string s             => "String",
+        case Timeout()            => "Timeout",
+        case Success { code, ... } => "Success",
+    };
+    assert(status == "Floating-point");
+
+    int successCode = switch (r2) {
+        case double d             => -1,
+        case string s             => -2,
+        case Timeout()            => -3,
+        case Success { code, ... } => code,
+    };
+    assert(successCode == 200);
+
+    // Test RAII Destruction and Re-tagging
+    {
+        assert(Resource.liveCount == 0);
+        Managed m = Managed.Handle(Resource(1));
+        assert(Resource.liveCount == 1);
+
+        m = Managed.Empty; // Overwrite must invoke Resource.~this()
+        assert(Resource.liveCount == 0);
+    }
+    assert(Resource.liveCount == 0);
+
+    // Field access across variants goes through a switch, not direct `.field`.
+    Entity e = Entity.Player(10, "Hero");
+    int id = switch (e) {
+        case Player { id, ... } => id,
+        case Monster { id, ... } => id,
+    };
+    assert(id == 10);
+
+    GenericValue generic = Box!int(7);
+    int genericValue = switch (generic) {
+        case Box!int box => box.value,
+        case Struct value => value.n,
+        case Done() => 0,
+    };
+    assert(genericValue == 7);
+
+    GenericValue structValue = Struct(42);
+    int structResult = switch (structValue) {
+        case Struct { n } => n,
+        case Box!int box => box.value,
+        case Done() => 0,
+    };
+    assert(structResult == 42);
+
+    GenericValue factoryValue = GenericValue.Struct(43);
+    assert(factoryValue.__tag == 1);
+
+    // Default init tag
+    Option!int defaultOpt = Option!int.init;
+    assert(defaultOpt.__tag == 0);
+
+    // Static local enum union
+    static enum union LocalEnum
+    {
+        case int;
+        case string;
+    }
+    LocalEnum localVal = 1;
+    assert(localVal.__tag == 0);
+}
+
+// is-expression specializer
+static assert(is(Response == enum union));
+static assert(!is(int == enum union));
+static assert(!is(Resource == enum union));
+
+// CTFE switch expression matching active payload
+enum union CtfeVal
+{
+    case First(int);
+    case Second(int);
+}
+
+enum ctfeInstance = CtfeVal.Second(42);
+enum ctfeResult = switch (ctfeInstance)
+{
+    case First(...) => 0,
+    case Second(number) if (number == 42) => 42,
+    case Second(...) => 0,
+};
+static assert(ctfeResult == 42);

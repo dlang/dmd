@@ -42,6 +42,7 @@ struct ASTCodegen
     alias Ensure                    = dmd.func.Ensure; // workaround for bug in older DMD frontends
     alias ErrorExp                  = dmd.expression.ErrorExp;
     alias ArgumentLabel             = dmd.expression.ArgumentLabel;
+    alias CaseExpArm                = dmd.expression.CaseExpArm;
 
     alias MODFlags                  = dmd.mtype.MODFlags;
     alias Type                      = dmd.mtype.Type;

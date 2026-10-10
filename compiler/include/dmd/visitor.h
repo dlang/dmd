@@ -132,6 +132,7 @@ class CAsmDeclaration;
 class AggregateDeclaration;
 class StructDeclaration;
 class UnionDeclaration;
+class EnumUnionDeclaration;
 class ClassDeclaration;
 class InterfaceDeclaration;
 
@@ -140,6 +141,7 @@ class TupleDeclaration;
 class AliasDeclaration;
 class OverDeclaration;
 class VarDeclaration;
+class EnumUnionCaseDeclaration;
 class SymbolDeclaration;
 class ThisDeclaration;
 class BitFieldDeclaration;
@@ -298,6 +300,7 @@ class ClassReferenceExp;
 class VoidInitExp;
 class ThrownExceptionExp;
 class GenericExp;
+class SwitchExp;
 
 class TemplateParameter;
 class TemplateTypeParameter;
@@ -351,6 +354,7 @@ public:
     virtual void visit(FuncDeclaration *s) { visit((Declaration *)s); }
     virtual void visit(AliasDeclaration *s) { visit((Declaration *)s); }
     virtual void visit(TupleDeclaration *s) { visit((Declaration *)s); }
+    virtual void visit(EnumUnionCaseDeclaration *s) { visit((Declaration *)s); }
 
     // FuncDeclarations
     virtual void visit(FuncLiteralDeclaration *s) { visit((FuncDeclaration *)s); }
@@ -387,6 +391,7 @@ public:
     virtual void visit(Module *s) { visit((Package *)s); }
     virtual void visit(StructDeclaration *s) { visit((AggregateDeclaration *)s); }
     virtual void visit(UnionDeclaration *s) { visit((StructDeclaration *)s); }
+    virtual void visit(EnumUnionDeclaration *s) { visit((StructDeclaration *)s); }
     virtual void visit(ClassDeclaration *s) { visit((AggregateDeclaration *)s); }
     virtual void visit(InterfaceDeclaration *s) { visit((ClassDeclaration *)s); }
     virtual void visit(TemplateMixin *s) { visit((TemplateInstance *)s); }
@@ -499,6 +504,7 @@ public:
     virtual void visit(TupleExp *e) { visit((Expression *)e); }
     virtual void visit(ThisExp *e) { visit((Expression *)e); }
     virtual void visit(GenericExp *e) { visit((Expression *)e); }
+    virtual void visit(SwitchExp *e) { visit((Expression *)e); }
 
     // Miscellaneous
     virtual void visit(VarExp *e) { visit((SymbolExp *)e); }
