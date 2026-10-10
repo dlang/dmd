@@ -11256,7 +11256,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             auto arguments = new Expressions(exp.e1);
                             Expression ce = new CallExp(exp.loc, dt, arguments);
 
-                            result = expressionSemantic(ce, sc);
+                            // Preserve the cast for CTFE; only code generation needs the hook.
+                            exp.lowering = expressionSemantic(ce, sc);
+                            if (exp.lowering.op == EXP.error)
+                                return setError();
+                            exp.type = exp.to;
+                            result = exp;
                             return;
                         }
                     }
