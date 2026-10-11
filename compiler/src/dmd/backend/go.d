@@ -449,7 +449,7 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
             postoptelem(b.Belem);
     }
     if (go.mfoptim & MFvbe)
-        verybusyexp(go, bo, go.changes); /* very busy expressions         */
+        verybusyexp(go.expnod, bo, go.changes); /* very busy expressions         */
     if (go.mfoptim & MFcse)
         builddags(go, bo);            /* common subexpressions         */
     if (go.mfoptim & MFdv)

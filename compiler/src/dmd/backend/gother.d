@@ -1100,7 +1100,7 @@ Louter:
                 }
                 else
                 {
-                    recalc = copyPropWalk(go.expnod, b.Belem, b.Bin, changes);
+                    recalc = copyPropWalk(expnod, b.Belem, b.Bin, changes);
                 }
                 /*assert(vec_equal(b.Bin,b.Bout));              */
                 /* The previous assert() is correct except      */
@@ -1855,7 +1855,7 @@ private void dvwalk(elem* n,uint i)
  */
 
 @trusted
-public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo, ref uint changes)
+public void verybusyexp(ref Barray!(elem*) expnod, ref BlockOpt bo, ref uint changes)
 {
     if (debugc) printf("verybusyexp()\n");
 
@@ -1894,7 +1894,7 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo, ref uint change
      * Params:
      *      b =    block where we want to put the VBE
      *      bp =   block somewhere between b and block containing j
-     *      j =     VBE expression elem candidate (index into go.expnod[])
+     *      j =     VBE expression elem candidate (index into expnod[])
      * Returns: true if there is a path from b to bp along which
      * elem j is not used.
      */
@@ -1909,10 +1909,10 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo, ref uint change
 
         /* false if elem j is used in block bp (and reaches the end     */
         /* of bp, indicated by it being an AE in Bgen)                  */
-        assert(go.exptop == go.expnod.length);
+        assert(go.exptop == expnod.length);
         for (size_t i = 0; (i = vec_index(i, bp.Bgen)) < go.exptop; ++i) // look thru used expressions
         {
-            if (i != j && go.expnod[i] && el_match(go.expnod[i],go.expnod[j]))
+            if (i != j && expnod[i] && el_match(expnod[i],expnod[j]))
                 return false;
         }
 
@@ -1964,7 +1964,7 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo, ref uint change
         }
 
         /* Eliminate all elems that have already been           */
-        /* hoisted (indicated by go.expnod[] == 0).                */
+        /* hoisted (indicated by expnod[] == 0).                */
         /* Constants are not useful as VBEs.                    */
         /* Eliminate all elems from Bout that are not in blocks */
         /* that are dominated by b.                             */
@@ -1974,11 +1974,11 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo, ref uint change
             vec_println(b.Bout);
         }
         done = true;
-        assert(go.exptop == go.expnod.length);
+        assert(go.exptop == expnod.length);
         for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
         {
-            if (go.expnod[j] == null ||
-                !!OTleaf(go.expnod[j].Eoper) ||
+            if (expnod[j] == null ||
+                !!OTleaf(expnod[j].Eoper) ||
                 !dom(bo, b,go.expblk[j]))
                 vec_clearbit(j,b.Bout);
             else
@@ -1993,7 +1993,7 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo, ref uint change
             printf("block %d Bout = ",i);
             vec_println(b.Bout);
         }
-        assert(go.exptop == go.expnod.length);
+        assert(go.exptop == expnod.length);
         for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             vec_clear(blockseen);
@@ -2017,7 +2017,7 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo, ref uint change
             vec_println(b.Bout);
         }
 
-        assert(go.exptop == go.expnod.length);
+        assert(go.exptop == expnod.length);
         for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             vec_clear(blockseen);
@@ -2044,7 +2044,7 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo, ref uint change
             size_t k;
             for (k = j + 1; k < go.exptop; k++)
             {   if (vec_testbit(k,b.Bout) &&
-                        el_match(go.expnod[j],go.expnod[k]))
+                        el_match(expnod[j],expnod[k]))
                             goto foundvbe;
             }
             continue;               /* no VBE here          */
@@ -2054,28 +2054,28 @@ public void verybusyexp(ref GlobalOptimizer go, ref BlockOpt bo, ref uint change
             {
                 if (debugc)
                 {   printf("VBE %d,%d, block %d (", cast(int)j, cast(int)k, cast(int) i);
-                    WReqn(go.expnod[j]);
+                    WReqn(expnod[j]);
                     printf(");\n");
                 }
             }
             *pn = el_bin(OPcomma,(*pn).Ety,
-                         el_copytree(go.expnod[j]),*pn);
+                         el_copytree(expnod[j]),*pn);
 
             /* Mark all the vbe elems found but one (the    */
-            /* go.expnod[j] one) so that the expression will   */
+            /* expnod[j] one) so that the expression will   */
             /* only be hoisted again if other occurrences   */
             /* of the expression are found later. This      */
             /* will substitute for the fact that the        */
-            /* el_copytree() expression does not appear in go.expnod[]. */
+            /* el_copytree() expression does not appear in expnod[]. */
             const l = k;
             do
             {
                 if (k == l || (vec_testbit(k,b.Bout) &&
-                    el_match(go.expnod[j],go.expnod[k])))
+                    el_match(expnod[j],expnod[k])))
                 {
                     /* Fix so nobody else will      */
                     /* vbe this elem                */
-                    go.expnod[k] = null;
+                    expnod[k] = null;
                     vec_clearbit(k,b.Bout);
                 }
             } while (++k < go.exptop);
