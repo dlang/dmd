@@ -37,6 +37,7 @@ import dmd.root.port;
 import dmd.root.rmem;
 import dmd.tokens;
 import dmd.typesem;
+import dmd.timetrace;
 
 /****************************************************************/
 /* A type meant as a union of all the Expression types,
@@ -228,7 +229,7 @@ private Expressions* copyLiteralArrayExpand(Expressions* oldelems, Expression ba
 
 // Make a copy of the ArrayLiteral, AALiteral, String, or StructLiteral.
 // This value will be used for in-place modification.
-UnionExp copyLiteral(Expression e)
+UnionExp copyLiteralImpl(Expression e)
 {
     UnionExp ue = void;
     if (auto se = e.isStringExp()) // syntaxCopy doesn't make a copy for StringExp!
@@ -2102,4 +2103,18 @@ UnionExp voidInitLiteral(Type t, VarDeclaration var)
     else
         emplaceExp!(VoidInitExp)(&ue, var);
     return ue;
+}
+
+private int copyDepth;
+
+UnionExp copyLiteral(Expression e)
+{
+    if (copyDepth++ == 0)
+        timeTraceBeginEvent(TimeTraceEventType.ctfeLiteralCopy);
+    scope(exit)
+    {
+        if (--copyDepth == 0)
+            timeTraceEndEvent(TimeTraceEventType.ctfeLiteralCopy, e);
+    }
+    return copyLiteralImpl(e);
 }
