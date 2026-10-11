@@ -213,14 +213,14 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
             // Const -> mutable conversion (disallowed)
             if (fromPointee.isConst() && !toPointee.isConst())
             {
-                eSink.error(e.loc, "cannot implicitly convert `%s` to `%s`", e.type.toErrMsg(), t.toErrMsg());
-                eSink.errorSupplemental(e.loc, "Note: Converting const to mutable requires an explicit cast (`cast(int*)`).");
+                eSink.error(e.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`", e.toErrMsg(), ts[0], ts[1]);
+                eSink.errorSupplemental(e.loc, "Note: Converting const to mutable requires an explicit cast (`cast(%s)`).", t.toChars());
                 return ErrorExp.get();
             }
             // Incompatible pointee types (e.g., int* -> float* )
             else if (fromPointee.toBasetype().ty != toPointee.toBasetype().ty)
             {
-                eSink.error(e.loc, "cannot implicitly convert `%s` to `%s`", e.type.toErrMsg(), t.toErrMsg());
+                eSink.error(e.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`", e.toErrMsg(), ts[0], ts[1]);
                 eSink.errorSupplemental(e.loc, "Note: Pointer types point to different base types (`%s` vs `%s`)", fromPointee.toChars(), toPointee.toChars());
                 return ErrorExp.get();
             }
