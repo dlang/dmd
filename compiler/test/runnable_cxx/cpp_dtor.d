@@ -6,6 +6,7 @@
 
 extern(C) __gshared int aDestroyed;
 extern(C) __gshared int cDestroyed;
+extern(C) __gshared int sDestroyed;
 
 extern(C++) void runCPPTests();
 
@@ -25,8 +26,20 @@ class C : B
     ~this() { cDestroyed = 1; }
 }
 
+// https://github.com/dlang/dmd/issues/22942
+struct S
+{
+    ~this() { sDestroyed++; }
+}
+class D : A
+{
+    S s1;
+    S s2;
+}
+
 // D-side factory: C++ calls this to get a C object typed as A*
 A makeC() { return new C; }
+A makeD() { return new D; }
 
 extern(D) void main()
 {

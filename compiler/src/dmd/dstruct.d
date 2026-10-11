@@ -68,10 +68,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         bool hasUnsafeBitpatterns;  // @system members, pointers, bool
         bool hasFieldWithInvariant; // invariants
         bool computedTypeProperties;// the above 3 fields are computed
-        // Even if struct is defined as non-root symbol, some built-in operations
-        // (e.g. TypeidExp, NewExp, ArrayLiteralExp, etc) request its TypeInfo.
-        // For those, today TypeInfo_Struct is generated in COMDAT.
-        bool requestTypeInfo;
     }
 
     import dmd.common.bitfields : generateBitFields;

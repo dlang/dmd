@@ -28,6 +28,7 @@ import dmd.backend.global : error;
 import dmd.backend.dout : outdata;
 import dmd.backend.util2 : err_exit;
 import dmd.backend.obj;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 

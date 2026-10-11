@@ -738,7 +738,7 @@ class Lexer
                     if (doDocComment && t.ptr[2] == '*' && p - 4 != t.ptr)
                     {
                         // if /** but not /**/
-                        getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
+                        getDocComment(t, lastLine == startLoc.linnum && token.value != TOK.leftCurly, startLoc.linnum - lastDocLine > 1);
                         lastDocLine = linnum;
                     }
                     continue;
@@ -766,7 +766,7 @@ class Lexer
                             }
                             if (doDocComment && t.ptr[2] == '/')
                             {
-                                getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
+                                getDocComment(t, lastLine == startLoc.linnum && token.value != TOK.leftCurly, startLoc.linnum - lastDocLine > 1);
                                 lastDocLine = linnum;
                             }
                             //p = end;
@@ -798,7 +798,7 @@ class Lexer
                     }
                     if (doDocComment && t.ptr[2] == '/')
                     {
-                        getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
+                        getDocComment(t, lastLine == startLoc.linnum && token.value != TOK.leftCurly, startLoc.linnum - lastDocLine > 1);
                         lastDocLine = linnum;
                     }
                     p++;
@@ -870,7 +870,7 @@ class Lexer
                         if (doDocComment && t.ptr[2] == '+' && p - 4 != t.ptr)
                         {
                             // if /++ but not /++/
-                            getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
+                            getDocComment(t, lastLine == startLoc.linnum && token.value != TOK.leftCurly, startLoc.linnum - lastDocLine > 1);
                             lastDocLine = linnum;
                         }
                         continue;
@@ -1284,6 +1284,53 @@ class Lexer
                 continue;
             }
             return tk;
+        }
+    }
+
+    /*********************************
+     * tk is on an opening $(LPAREN).
+     * Look ahead and determine if there is a comma at paren level 1.
+     */
+    final bool isTupleNotation(Token* tk)
+    {
+        int parens = 1;
+        int curlynest = 0;
+        while (1)
+        {
+            tk = peek(tk);
+            switch (tk.value)
+            {
+            case TOK.leftParenthesis:
+                parens++;
+                continue;
+            case TOK.rightParenthesis:
+                --parens;
+                if (parens)
+                    continue;
+                break;
+            case TOK.comma:
+                if (curlynest)
+                    continue;
+                if (parens == 1)
+                    return true;
+                continue;
+            case TOK.leftCurly:
+                curlynest++;
+                continue;
+            case TOK.rightCurly:
+                if (--curlynest >= 0)
+                    continue;
+                break;
+            case TOK.semicolon:
+                if (curlynest)
+                    continue;
+                break;
+            case TOK.endOfFile:
+                break;
+            default:
+                continue;
+            }
+            return false;
         }
     }
 
@@ -3315,7 +3362,7 @@ class Lexer
      * Params:
      *    sink = send characters in the line to this delegate
      */
-    final void skipToNextLine(void delegate(char c) nothrow sink = null)
+    final void skipToNextLine(scope void delegate(char c) nothrow sink = null)
     {
         while (1)
         {

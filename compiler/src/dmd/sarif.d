@@ -36,7 +36,6 @@ private string errorKindToString(ErrorKind kind) nothrow
         case ErrorKind.error: return "error";
         case ErrorKind.warning: return "warning";
         case ErrorKind.deprecation: return "note";
-        case ErrorKind.tip: return "note";
         case ErrorKind.message: return "none";
     }
 }

@@ -3084,7 +3084,8 @@ ulong decodeNImmrImms(uint N, uint immr, uint imms)
     if (immr >= size)
         return 0;       // cannot decode it
     ulong pattern = (1L << (length + 1)) - 1;
-    pattern = (pattern >> immr) | (pattern << size - immr); // rotate right
+    if (immr > 0) // avoid shifting by 64
+        pattern = (pattern >> immr) | (pattern << size - immr); // rotate right
     ulong result = 0;
     foreach (i; 0 .. 64 / size)
     {

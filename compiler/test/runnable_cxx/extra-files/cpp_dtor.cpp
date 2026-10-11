@@ -5,6 +5,7 @@
 
 extern "C" int aDestroyed;
 extern "C" int cDestroyed;
+extern "C" int sDestroyed;
 
 // Forward declaration matching D's extern(C++) class A
 class A {
@@ -14,6 +15,7 @@ public:
 
 // D-side factory
 extern "C++" A* makeC();
+extern "C++" A* makeD();
 
 void runCPPTests()
 {
@@ -30,4 +32,14 @@ void runCPPTests()
     assert(cDestroyed);
     // A's destructor must be chained from C's aggregate dtor
     assert(aDestroyed);
+
+    // https://github.com/dlang/dmd/issues/22942
+    obj = makeD();
+
+    aDestroyed = 0;
+    sDestroyed = 0;
+    obj->~A();
+
+    assert(aDestroyed);
+    assert(sDestroyed == 2);
 }

@@ -25,7 +25,7 @@ fail_compilation/fail16575.d(91): Error: function `immEnum` cannot have paramete
 fail_compilation/fail16575.d(92): Error: function `shaEnum` cannot have parameter of type `shared(EPP)*` because its linkage is `extern(C++)`
 fail_compilation/fail16575.d(100): Error: function `typeDArray` cannot have parameter of type `int[]` because its linkage is `extern(C++)`
 fail_compilation/fail16575.d(101): Error: function `typeAArray` cannot have parameter of type `int[int]` because its linkage is `extern(C++)`
-fail_compilation/fail16575.d(102): Error: function `typeDelegate` cannot have parameter of type `extern (C++) int delegate()` because its linkage is `extern(C++)`
+fail_compilation/fail16575.d(102): Error: function `typeDelegate` cannot have parameter of type `extern(C++) int delegate()` because its linkage is `extern(C++)`
 ---
 */
 

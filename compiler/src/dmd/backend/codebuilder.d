@@ -22,6 +22,7 @@ import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.mem;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 

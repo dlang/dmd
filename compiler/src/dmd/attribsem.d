@@ -61,7 +61,7 @@ Expressions* getAttributes(UserAttributeDeclaration a)
  *  If `dg` returns `!= 0`, stops the iteration and returns that value.
  *  Otherwise, returns 0.
  */
-int foreachUda(Dsymbol sym, Scope* sc, int delegate(Expression) dg)
+int foreachUda(Dsymbol sym, Scope* sc, scope int delegate(Expression) dg)
 {
     if (!sym.userAttribDecl)
         return 0;

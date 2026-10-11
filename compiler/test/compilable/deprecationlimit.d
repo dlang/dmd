@@ -21,5 +21,5 @@ void main()
     f();
     f();
     f();
-    static assert("1"); // also surpress deprecationSupplemental
+    f(); // 4th deprecation, gets omitted by -verrors=3
 }

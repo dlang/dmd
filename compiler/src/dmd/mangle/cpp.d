@@ -34,6 +34,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
@@ -127,6 +128,22 @@ bool isAggregateDtor(const Dsymbol sym)
     const ad = dtor.isMember();
     assert(ad);
     return dtor == ad.aggrDtor;
+}
+
+/**
+ * Params:
+ *      sym = Dsymbol
+ * Returns:
+ *      true if sym is the Itanium base-object destructor (D2) of its aggregate
+ */
+bool isCppBaseDtor(const Dsymbol sym)
+{
+    const dtor = sym.isDtorDeclaration();
+    if (!dtor)
+        return false;
+    const ad = dtor.isMember();
+    assert(ad);
+    return dtor == ad.cppBaseDtor;
 }
 
 /// Context used when processing pre-semantic AST
@@ -1105,9 +1122,11 @@ private final class CppMangleVisitor : Visitor
             this.mangleNestedFuncPrefix(tf, p);
 
             if (auto ctor = d.isCtorDeclaration())
-                buf.writestring(ctor.isCpCtor ? "C2" : "C1");
+                buf.writestring(ctor.isCpCtor || ctor.isCppBaseCtor ? "C2" : "C1");
             else if (d.isAggregateDtor())
                 buf.writestring("D1");
+            else if (d.isCppBaseDtor())
+                buf.writestring("D2");
             else if (d.ident && d.ident == Id.opAssign)
                 buf.writestring("aS");
             else if (d.ident && d.ident == Id.opEquals)

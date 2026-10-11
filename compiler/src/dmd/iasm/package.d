@@ -96,7 +96,7 @@ Statement asmSemantic(AsmStatement s, Scope* sc)
     else
     {
         s.error("D inline assembler statements are not supported");
-        return new ErrorStatement();
+        return ErrorStatement.get();
     }
 }
 

@@ -21,7 +21,6 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.dsymbol;
-import dmd.errors;
 import dmd.func;
 import dmd.id;
 import dmd.identifier;
@@ -126,22 +125,29 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     // the ClassInfo object for this ClassDeclaration
     TypeInfoClassDeclaration vclassinfo;
 
-    // true if this is a COM class
-    bool com;
+    /// Bit fields for small fields
+    private extern (D) struct ClassBitFields
+    {
+        // true if this is a COM class
+        bool com;
 
-    /// true if this is a scope class
-    bool stack;
+        /// true if this is a scope class
+        bool stack;
+
+        /// to prevent recursive attempts
+        bool inuse;
+
+        ThreeState isabstract;
+
+        /// set the progress of base classes resolving
+        Baseok baseok;
+    }
+
+    import dmd.common.bitfields : generateBitFields;
+    mixin(generateBitFields!(ClassBitFields, uint));
 
     /// if this is a C++ class, this is the slot reserved for the virtual destructor
     int cppDtorVtblIndex = -1;
-
-    /// to prevent recursive attempts
-    bool inuse;
-
-    ThreeState isabstract;
-
-    /// set the progress of base classes resolving
-    Baseok baseok;
 
     /**
      * Data for a class declaration that is needed for the Objective-C
@@ -222,7 +228,10 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
     extern (D) final void classError(const(char)* fmt, const(char)* arg)
     {
-        .error(loc, fmt, kind, toPrettyChars, arg);
+        import dmd.globals : global;
+        import dmd.errorsink;
+        auto eSink = global.errorSink;
+        eSink.error(loc, fmt, kind, toPrettyChars, arg);
     }
 
     static ClassDeclaration create(Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
@@ -277,7 +286,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return false;
     }
 
-    enum OFFSET_RUNTIME = 0x76543210;
     enum OFFSET_FWDREF = 0x76543211;
 
     /*******************************************
@@ -432,7 +440,6 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
      * (Actually, if it is an interface supported by cd)
      * Output:
      *      *poffset        offset to start of class
-     *                      OFFSET_RUNTIME  must determine offset at runtime
      * Returns:
      *      false   not a base
      *      true    is a base

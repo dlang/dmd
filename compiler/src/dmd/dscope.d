@@ -521,7 +521,7 @@ extern (C++) struct Scope
      */
     extern (D) bool needsCodegen()
     {
-        return !this.ctfe && !this.ctfeBlock && !this.traitsCompiles;
+        return !this.ctfe && !this.ctfeBlock && !this.traitsCompiles && !(this.func && this.func.skipCodegen);
     }
 
     /// Returns: whether to raise DIP1000 warnings (FeatureStabe.default) or errors (FeatureState.enabled)

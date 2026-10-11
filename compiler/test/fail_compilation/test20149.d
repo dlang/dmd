@@ -1,7 +1,7 @@
 /* REQUIRED_ARGS: -preview=dip1000
  * TEST_OUTPUT:
 ---
-fail_compilation/test20149.d(28): Error: escaping reference to stack allocated value returned by `S('\xff').this(1)`
+fail_compilation/test20149.d(28): Error: escaping reference to stack allocated value returned by `S(1)`
 ---
 */
 

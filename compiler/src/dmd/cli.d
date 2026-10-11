@@ -939,6 +939,11 @@ dmd -cov -unittest myprog.d
             `Compile in $(LINK2 spec/unittest.html, unittest) code, turns on asserts, and sets the
              $(D unittest) $(LINK2 spec/version.html#PredefinedVersions, version identifier)`,
         ),
+        Option("unittest-roots",
+            "compile in unit tests for root modules only",
+            `Compile in $(LINK2 spec/unittest.html, unittest) code, turns on asserts, and sets the
+             $(D unittest) $(LINK2 spec/version.html#PredefinedVersions, version identifier) only for root modules whose sources files are explicitly passed as arguments to compiler`,
+        ),
         Option("v",
             "verbose",
             `Enable verbose output for each compiler pass`,
@@ -993,6 +998,12 @@ dmd -cov -unittest myprog.d
                $(LI $(I hidden):  Only export symbols marked with `export`)
                $(LI $(I public):  Export all symbols)
             )",
+        ),
+        Option("vnan",
+            "warnings about default initalization of floating point variables to nan",
+            `floating point variables are initialized to nan by default. This switch
+            will cause a warning to be emitted for default nan initialization`,
+            TargetOS.all, false,
         ),
         Option("vtls",
             "list all variables going into thread local storage"

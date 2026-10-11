@@ -18,6 +18,7 @@ version(WebAssembly) {} else:
 package:
 
 import core.thread.fiber;
+import core.thread : isSingleThreaded;
 import core.thread.threadbase;
 import core.thread.threadgroup;
 import core.thread.types;
@@ -29,6 +30,7 @@ package
 {
     import core.atomic : atomicStore, cas, MemoryOrder;
     import core.exception : onOutOfMemoryError;
+    import core.internal.traits : Unshared;
     import core.stdc.stdlib : abort;
 
     extern (C) void fiber_entryPoint() nothrow
@@ -768,6 +770,7 @@ unittest
 
 
 // Multiple threads running separate fibers
+static if(!isSingleThreaded)
 unittest
 {
     auto group = new ThreadGroup();
@@ -780,6 +783,7 @@ unittest
 
 
 // Multiple threads running shared fibers
+static if(!isSingleThreaded)
 unittest
 {
     shared bool[10] locks;
@@ -792,14 +796,23 @@ unittest
             cont = false;
             foreach (idx; 0 .. 10)
             {
-                if (cas(&locks[idx], false, true))
+                alias UnsharedLocks = Unshared!(typeof(locks));
+                auto lock = (() @trusted
+                {
+                    // `-preview=nosharedaccess` rejects `&locks[idx]` because
+                    // indexing the shared static array counts as a shared read.
+                    // Cast only to form the indexed element address; the actual
+                    // lock access below still goes through atomic operations.
+                    return cast(shared(bool)*) &((*cast(UnsharedLocks*) &locks)[idx]);
+                })();
+                if (cas(lock, false, true))
                 {
                     if (fibs[idx].state == Fiber.State.HOLD)
                     {
                         fibs[idx].call();
                         cont |= fibs[idx].state != Fiber.State.TERM;
                     }
-                    locks[idx] = false;
+                    atomicStore(*lock, false);
                 }
                 else
                 {
@@ -977,6 +990,7 @@ unittest
 }
 
 // stress testing GC stack scanning
+static if(!isSingleThreaded)
 unittest
 {
     import core.memory;

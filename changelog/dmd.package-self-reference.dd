@@ -1,0 +1,18 @@
+Fully qualified self-reference inside `package.d` no longer requires `static import`
+
+Previously, referring to a package's own fully qualified name from
+inside its `package.d` module incorrectly required adding a
+`static import` of itself, even though unqualified access already
+worked without it.
+
+---
+// bug/buggier/package.d
+module bug.buggier;
+
+void fn() {}
+
+void main()
+{
+    bug.buggier.fn(); // used to require `static import bug.buggier;`
+}
+---

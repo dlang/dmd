@@ -67,3 +67,7 @@ else version (linux)
 {
     enum TCP_NODELAY = 1;
 }
+else version (CRuntime_WASI)
+{
+    enum TCP_NODELAY = 1;
+}

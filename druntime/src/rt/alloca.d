@@ -11,6 +11,8 @@
 
 module rt.alloca;
 
+version (DigitalMars):
+
 /*******************************************
  * Allocate data from the caller's stack frame.
  * This is a 'magic' function that needs help from the compiler to

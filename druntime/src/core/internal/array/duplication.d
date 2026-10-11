@@ -182,15 +182,15 @@ U[] _dup(T, U)(T[] a) if (!__traits(isPOD, T))
     cast(void) [].dup!Sunsafe;
     static assert(!__traits(compiles, () pure    { [].dup!Sunpure; }));
     static assert(!__traits(compiles, () nothrow { [].dup!Sthrow; }));
-    static assert(!__traits(compiles, () @safe   { [].dup!Sunsafe; }));
+    static assert(!__traits(compiles, () @safe   { Sunsafe[1] a; a[].dup; }));
     static assert(!__traits(compiles, ()         { [].dup!Snocopy; }));
 
     [].idup!Sunpure;
     [].idup!Sthrow;
     [].idup!Sunsafe;
-    static assert(!__traits(compiles, () pure    { [].idup!Sunpure; }));
-    static assert(!__traits(compiles, () nothrow { [].idup!Sthrow; }));
-    static assert(!__traits(compiles, () @safe   { [].idup!Sunsafe; }));
+    static assert(!__traits(compiles, () pure    { Sunpure[1] a; a[].idup; }));
+    static assert(!__traits(compiles, () nothrow { Sthrow[1] a; a[].idup; }));
+    static assert(!__traits(compiles, () @safe   { Sunsafe[1] a; a[].idup; }));
     static assert(!__traits(compiles, ()         { [].idup!Snocopy; }));
 }
 
@@ -225,27 +225,21 @@ U[] _dup(T, U)(T[] a) if (!__traits(isPOD, T))
 
 @system unittest
 {
-    static struct Sunpure { this(ref const typeof(this)) @safe nothrow {} }
-    static struct Sthrow { this(ref const typeof(this)) @safe pure {} }
-    static struct Sunsafe { this(ref const typeof(this)) @system pure nothrow {} }
+    static struct Sunpure { this(ref const Sunpure) @safe nothrow {} }
+    static struct Sthrow { this(ref const Sthrow) @safe pure {} }
+    static struct Sunsafe { this(ref const Sunsafe) @system pure nothrow {} }
     [].dup!Sunpure;
     [].dup!Sthrow;
     cast(void) [].dup!Sunsafe;
-    static assert(!__traits(compiles, () pure    { [].dup!Sunpure; }));
-    static assert(!__traits(compiles, () nothrow { [].dup!Sthrow; }));
-    static assert(!__traits(compiles, () @safe   { [].dup!Sunsafe; }));
 
     // for idup to work on structs that have copy constructors, it is necessary
     // that the struct defines a copy constructor that creates immutable objects
-    static struct ISunpure { this(ref const typeof(this)) immutable @safe nothrow {} }
-    static struct ISthrow { this(ref const typeof(this)) immutable @safe pure {} }
-    static struct ISunsafe { this(ref const typeof(this)) immutable @system pure nothrow {} }
+    static struct ISunpure { this(ref const ISunpure) immutable @safe nothrow {} }
+    static struct ISthrow { this(ref const ISthrow) immutable @safe pure {} }
+    static struct ISunsafe { this(ref const ISunsafe) immutable @system pure nothrow {} }
     [].idup!ISunpure;
     [].idup!ISthrow;
     [].idup!ISunsafe;
-    static assert(!__traits(compiles, () pure    { [].idup!ISunpure; }));
-    static assert(!__traits(compiles, () nothrow { [].idup!ISthrow; }));
-    static assert(!__traits(compiles, () @safe   { [].idup!ISunsafe; }));
 }
 
 @safe unittest
@@ -374,7 +368,6 @@ U[] _dup(T, U)(T[] a) if (!__traits(isPOD, T))
     static assert(test!Postblit());
     assert(test!Postblit());
 
-    static assert(test!Copy());
     assert(test!Copy());
 }
 

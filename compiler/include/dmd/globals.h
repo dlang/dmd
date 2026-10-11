@@ -20,6 +20,7 @@
 template <typename TYPE> struct Array;
 
 class ErrorSink;
+class ErrorSinkCompiler;
 class FileManager;
 struct Loc;
 
@@ -143,6 +144,7 @@ struct Verbose
     d_bool verbose;           // verbose compile
     d_bool showColumns;       // print character (column) numbers in diagnostics
     d_bool tls;               // identify thread local variables
+    d_bool nanInit;           // print default initializing a floating point variable to NaN
     d_bool templates;         // collect and list statistics on template instantiations
     // collect and list statistics on template instantiations origins.
     // TODO: make this an enum when we want to list other kinds of instances
@@ -187,6 +189,7 @@ struct Param
     d_bool tracegc;       // instrument calls to 'new'
     d_bool vcg_ast;       // write-out codegen-ast
     d_bool useUnitTests;  // generate unittest code
+    d_bool useUnitTestsRootOnly; // generate unittest code for root modules only
     d_bool useInline;     // inline expand functions
     d_bool release;       // build release version
     d_bool preservePaths; // true means don't strip path from source file
@@ -371,8 +374,8 @@ struct Global
     unsigned varSequenceNumber;
 
     FileManager* fileManager;
-    ErrorSink* errorSink;       // where the error messages go
-    ErrorSink* errorSinkNull;   // where the error messages disappear
+    ErrorSinkCompiler* errorSink; // where the error messages go
+    ErrorSink* errorSinkNull;     // where the error messages disappear
 
     DArray<unsigned char> (*preprocess)(FileName, Loc, OutBuffer&);
 

@@ -45,7 +45,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : hasPointers, hasStaticCtorOrDtor, include, isFuncHidden,
                         isAbstract, toAlias, fillVtbl;
 import dmd.dtemplate;
-import dmd.errors;
+import dmd.errors : fatal;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem : getDsymbol, toInteger;
@@ -78,9 +78,9 @@ import dmd.backend.cv4;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.dout : out_readonly, outdata;
-import dmd.backend.symbol : symbol_name;
 import dmd.backend.obj;
 import dmd.backend.oper;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -156,9 +156,23 @@ package(dmd.glue)
 void TypeInfo_toObjFile(Expression e, Loc loc, Type t)
 {
     // printf("TypeInfo_toObjFIle() %s\n", torig.toChars());
-    if (genTypeInfo(e, loc, t, null))
+    genTypeInfo(e, loc, t, null);
+
+    if (t.vtinfo.hadCodegen)
+        return;
+
+    t.vtinfo.hadCodegen = true;
+
+    // ClassInfos are generated as part of ClassDeclaration codegen
+    bool isUnqualifiedClassInfo = false;
+    if (t.mod == 0)
+        if (auto tc = t.isTypeClass())
+            isUnqualifiedClassInfo = !tc.sym.isInterfaceDeclaration();
+
+    if (!isUnqualifiedClassInfo && !builtinTypeInfo(t))
     {
-        // generate a COMDAT for other TypeInfos not available as builtins in druntime
+        // Generate a COMDAT for other TypeInfos not available as builtins in druntime -
+        // but only once per compiler run (into the first referencing object file).
         toObjFile(t.vtinfo, global.params.multiobj);
     }
 }
@@ -170,17 +184,19 @@ void toObjFile(Dsymbol ds, bool multiobj)
 {
     //printf("toObjFile(%s %s)\n", ds.kind(), ds.toChars());
 
-    bool isCfile = ds.isCsymbol();
-
     extern (C++) final class ToObjFile : Visitor
     {
         alias visit = Visitor.visit;
     public:
         bool multiobj;
+        bool isCfile;
+        ErrorSink eSink;
 
-        this(bool multiobj) scope @safe
+        this(bool multiobj, bool isCfile) scope @trusted
         {
             this.multiobj = multiobj;
+            this.isCfile = isCfile;
+            this.eSink = global.errorSink;
         }
 
         void visitNoMultiObj(Dsymbol ds)
@@ -209,7 +225,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (cd.type.ty == Terror)
             {
-                .error(cd.loc, "%s `%s` had semantic errors when compiling", cd.kind, cd.toPrettyChars);
+                eSink.error(cd.loc, "%s `%s` had semantic errors when compiling", cd.kind, cd.toPrettyChars);
                 return;
             }
 
@@ -252,7 +268,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
 
             const bool gentypeinfo = global.params.useTypeInfo && Type.dtypeinfo;
-            const bool genclassinfo = gentypeinfo || !(cd.isCPPclass || cd.isCOMclass);
+            const bool genclassinfo = gentypeinfo || cd.classKind == ClassKind.d;
 
             // Generate C symbols
             if (genclassinfo)
@@ -278,14 +294,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
-            if (gentypeinfo)
-                TypeInfo_toObjFile(null, cd.loc, cd.type);
-            //toObjFile(cd.type.vtinfo, multiobj);
-
             if (genclassinfo)
-            {
                 genClassInfoForClass(cd, sinit);
-            }
 
             //////////////////////////////////////////////
 
@@ -330,7 +340,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (id.type.ty == Terror)
             {
-                .error(id.loc, "had semantic errors when compiling", id.kind, id.toPrettyChars);
+                eSink.error(id.loc, "had semantic errors when compiling", id.kind, id.toPrettyChars);
                 return;
             }
 
@@ -351,8 +361,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
 
             const bool gentypeinfo = global.params.useTypeInfo && Type.dtypeinfo;
-            const bool genclassinfo = gentypeinfo || !(id.isCPPclass || id.isCOMclass);
-
+            const bool genclassinfo = gentypeinfo || id.classKind == ClassKind.d;
 
             // Generate C symbols
             if (genclassinfo)
@@ -360,14 +369,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             //////////////////////////////////////////////
 
-            // Put out the TypeInfo
-            if (gentypeinfo)
-            {
-                TypeInfo_toObjFile(null, id.loc, id.type);
-                id.type.vtinfo.accept(this);
-            }
-
-            //////////////////////////////////////////////
+            // Note: the TypeInfo_Interface (a wrapper around the interface's ClassInfo)
+            //       is emitted lazily in TypeInfo_toObjFile()
 
             if (genclassinfo)
                 genClassInfoForInterface(id);
@@ -379,7 +382,12 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (sd.type.ty == Terror)
             {
-                .error(sd.loc, "%s `%s` had semantic errors when compiling", sd.kind, sd.toPrettyChars);
+                eSink.error(sd.loc, "%s `%s` had semantic errors when compiling", sd.kind, sd.toPrettyChars);
+                foreach (field; sd.fields)
+                {
+                    if (field.errors)
+                        eSink.errorSupplemental(field.loc, "field `%s` failed semantic analysis", field.toChars());
+                }
                 return;
             }
 
@@ -398,8 +406,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 else if (driverParams.symdebug)
                     toDebug(sd);
 
-                if (global.params.useTypeInfo && Type.dtypeinfo)
-                    TypeInfo_toObjFile(null, sd.loc, sd.type);
+                // Note: the TypeInfo_Struct is emitted lazily in TypeInfo_toObjFile()
 
                 // Generate static initializer
                 auto sinit = toInitializer(sd);
@@ -457,7 +464,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (vd.type.ty == Terror)
             {
-                .error(vd.loc, "%s `%s` had semantic errors when compiling", vd.kind, vd.toPrettyChars);
+                eSink.error(vd.loc, "%s `%s` had semantic errors when compiling", vd.kind, vd.toPrettyChars);
                 return;
             }
 
@@ -485,12 +492,12 @@ void toObjFile(Dsymbol ds, bool multiobj)
             const sz64 = vd.type.size(vd.loc);
             if (sz64 == SIZE_INVALID)
             {
-                .error(vd.loc, "%s `%s` size overflow", vd.kind, vd.toPrettyChars);
+                eSink.error(vd.loc, "%s `%s` size overflow", vd.kind, vd.toPrettyChars);
                 return;
             }
             if (sz64 > target.maxStaticDataSize)
             {
-                .error(vd.loc, "%s `%s` size of 0x%llx exceeds max allowed size 0x%llx", vd.kind, vd.toPrettyChars, sz64, target.maxStaticDataSize);
+                eSink.error(vd.loc, "%s `%s` size of 0x%llx exceeds max allowed size 0x%llx", vd.kind, vd.toPrettyChars, sz64, target.maxStaticDataSize);
             }
             uint sz = cast(uint)sz64;
 
@@ -507,20 +514,21 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     if (!e.isStructLiteralExp())
                         return 0;
 
-                    auto literal = e.isStructLiteralExp();
-                    assert(literal.sd);
+                    auto sle = e.isStructLiteralExp();
+                    assert(sle.sd);
 
-                    if (!isCoreUda(literal.sd, Id.udaSection))
+                    if (!isCoreUda(sle.sd, Id.udaSection))
                         return 0;
 
                     if (userDefinedSection)
                     {
-                        error(vd.loc, "%s `%s` can only have one section attribute", vd.kind, vd.toPrettyChars);
+                        auto eSink = global.errorSink;
+                        eSink.error(vd.loc, "%s `%s` can only have one section attribute", vd.kind, vd.toPrettyChars);
                         return 1;
                     }
 
-                    assert(literal.elements.length == 1);
-                    auto se = (*literal.elements)[0].isStringExp();
+                    assert(sle.elements.length == 1);
+                    auto se = (*sle.elements)[0].isStringExp();
                     assert(se);
 
                     userDefinedSection = cast(string)se.toUTF8(vd._scope).toStringz();
@@ -640,7 +648,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
             else
             {
-                Type_toDt(vd.type, dtb, vd.isCsymbol());
+                Type_toDt(vd.loc, vd.type, dtb, vd.isCsymbol());
             }
             s.Sdt = dtb.finish();
 
@@ -673,7 +681,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (ed.errors || ed.type.ty == Terror)
             {
-                .error(ed.loc, "%s `%s` had semantic errors when compiling", ed.kind, ed.toPrettyChars);
+                eSink.error(ed.loc, "%s `%s` had semantic errors when compiling", ed.kind, ed.toPrettyChars);
                 return;
             }
 
@@ -685,8 +693,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             else if (driverParams.symdebug)
                 toDebug(ed);
 
-            if (global.params.useTypeInfo && Type.dtypeinfo)
-                TypeInfo_toObjFile(null, ed.loc, ed.type);
+            // Note: the TypeInfo_Enum is emitted lazily in TypeInfo_toObjFile()
 
             TypeEnum tc = ed.type.isTypeEnum();
             import dmd.typesem : isZeroInit;
@@ -713,11 +720,6 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(TypeInfoDeclaration tid)
         {
-            if (isSpeculativeType(tid.tinfo))
-            {
-                //printf("-speculative '%s'\n", tid.toPrettyChars());
-                return;
-            }
             //printf("TypeInfoDeclaration.toObjFile(%p '%s') visibility %d\n", tid, tid.toChars(), tid.visibility);
 
             if (multiobj)
@@ -927,7 +929,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
          */
         static void tlsToDt(VarDeclaration vd, Symbol* s, uint sz, ref DtBuilder dtb, bool isCfile)
         {
-            assert(config.objfmt == OBJ_MACH && target.isX86_64 && (s.Stype.Tty & mTYLINK) == mTYthread);
+            assert(config.objfmt == OBJ_MACH &&
+                (target.isX86_64 || target.isAArch64) &&
+                (s.Stype.Tty & mTYLINK) == mTYthread);
 
             Symbol* tlvInit = createTLVDataSymbol(vd, s);
             auto tlvInitDtb = DtBuilder(0);
@@ -937,13 +941,13 @@ void toObjFile(Dsymbol ds, bool multiobj)
             else if (vd._init)
                 initializerToDt(vd, tlvInitDtb, isCfile);
             else
-                Type_toDt(vd.type, tlvInitDtb);
+                Type_toDt(vd.loc, vd.type, tlvInitDtb);
 
             tlvInit.Sdt = tlvInitDtb.finish();
             outdata(tlvInit);
 
-            if (target.isX86_64)
-                tlvInit.Sclass = SC.extern_;
+            tlvInit.Sclass = SC.extern_;
+            //tlvInit.Sxtrnnum = 0; // not sure about this
 
             Symbol* tlvBootstrap = objmod.tlv_bootstrap();
             dtb.xoff(tlvBootstrap, 0, TYnptr);
@@ -1018,7 +1022,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
         }
     }
 
-    scope v = new ToObjFile(multiobj);
+    scope v = new ToObjFile(multiobj, ds.isCsymbol());
     ds.accept(v);
 }
 
@@ -1126,7 +1130,8 @@ private bool finishVtbl(ClassDeclaration cd)
                 continue;
             // Hiding detected: same name, overlapping specializations
             TypeFunction tf = fd.type.toTypeFunction();
-            .error(cd.loc, "%s `%s` use of `%s%s` is hidden by `%s`; use `alias %s = %s.%s;` to introduce base class overload set", cd.kind, cd.toPrettyChars,
+            auto eSink = global.errorSink;
+            eSink.error(cd.loc, "%s `%s` use of `%s%s` is hidden by `%s`; use `alias %s = %s.%s;` to introduce base class overload set", cd.kind, cd.toPrettyChars,
                 fd.toPrettyChars(),
                 parametersTypeToChars(tf.parameterList),
                 cd.toChars(),
@@ -1213,9 +1218,10 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
         if (Type.typeinfoclass.structsize != classInfoSize())
         {
             debug printf("classInfoSize() = x%x, Type.typeinfoclass.structsize = x%x\n", classInfoSize(), Type.typeinfoclass.structsize);
-            .error(cd.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
+            auto eSink = global.errorSink;
+            eSink.error(cd.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
                    cd.kind, cd.toPrettyChars, cast(uint)classInfoSize(), cast(uint)Type.typeinfoclass.structsize);
-            .errorSupplemental(cd.loc, "check installation and import paths with `-v` compiler switch");
+            eSink.errorSupplemental(cd.loc, "check installation and import paths with `-v` compiler switch");
             fatal();
         }
     }
@@ -1376,8 +1382,9 @@ Louter:
     dtb.size(0);
     dtb.size(0);            // null for now, fix later
 
-    // defaultConstructor
-    if (cd.defaultCtor && !(cd.defaultCtor.storage_class & STC.disable))
+    // defaultConstructor; an abstract class is never constructed as a complete object, and C++
+    // compilers need not emit its complete-object constructor
+    if (cd.defaultCtor && !(cd.defaultCtor.storage_class & STC.disable) && !cd.isAbstract())
         dtb.xoff(toSymbol(cd.defaultCtor), 0, TYnptr);
     else
         dtb.size(0);
@@ -1554,9 +1561,10 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
         {
             if (Type.typeinfoclass.structsize != offset)
             {
-                .error(id.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
+                auto eSink = global.errorSink;
+                eSink.error(id.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
                        id.kind, id.toPrettyChars, cast(uint)offset, cast(uint)Type.typeinfoclass.structsize);
-                .errorSupplemental(id.loc, "check installation and import paths with `-v` compiler switch");
+                eSink.errorSupplemental(id.loc, "check installation and import paths with `-v` compiler switch");
                 fatal();
             }
         }

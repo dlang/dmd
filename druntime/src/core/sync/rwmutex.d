@@ -19,6 +19,7 @@ module core.sync.rwmutex;
 public import core.sync.exception;
 import core.sync.condition;
 import core.sync.mutex;
+import core.thread : isSingleThreaded;
 import core.memory;
 import core.atomic : atomicLoad;
 
@@ -562,7 +563,7 @@ private:
 // Unit Tests
 ////////////////////////////////////////////////////////////////////////////////
 
-
+static if(!isSingleThreaded)
 unittest
 {
     import core.atomic, core.thread, core.sync.semaphore;
@@ -600,10 +601,13 @@ unittest
         {
             for (;;)
             {
-                synchronized (mutex.m_commonMutex)
+                // This unittest needs the implementation object to inspect
+                // private counters that are protected by m_commonMutex.
+                auto localMutex = (() @trusted => cast(ReadWriteMutex) atomicLoad(mutex))();
+                synchronized (localMutex.m_commonMutex)
                 {
-                    if (mutex.m_numQueuedReaders == queuedReaders &&
-                        mutex.m_numQueuedWriters == queuedWriters)
+                    if (localMutex.m_numQueuedReaders == queuedReaders &&
+                        localMutex.m_numQueuedWriters == queuedWriters)
                         break;
                 }
                 Thread.yield();
@@ -615,23 +619,23 @@ unittest
         // 2 simultaneous readers
         group.create(&readerFn); group.create(&readerFn);
         rdSemA.wait(); rdSemA.wait();
-        assert(numReaders == 2);
+        assert(atomicLoad(numReaders) == 2);
         rdSemB.notify(); rdSemB.notify();
         group.joinAll();
-        assert(numReaders == 0);
+        assert(atomicLoad(numReaders) == 0);
         foreach (t; group) group.remove(t);
 
         // 1 writer at a time
         group.create(&writerFn); group.create(&writerFn);
         wrSemA.wait();
         assert(!wrSemA.tryWait());
-        assert(numWriters == 1);
+        assert(atomicLoad(numWriters) == 1);
         wrSemB.notify();
         wrSemA.wait();
-        assert(numWriters == 1);
+        assert(atomicLoad(numWriters) == 1);
         wrSemB.notify();
         group.joinAll();
-        assert(numWriters == 0);
+        assert(atomicLoad(numWriters) == 0);
         foreach (t; group) group.remove(t);
 
         // reader and writer are mutually exclusive
@@ -640,13 +644,13 @@ unittest
         group.create(&writerFn);
         waitQueued(0, 1);
         assert(!wrSemA.tryWait());
-        assert(numReaders == 1 && numWriters == 0);
+        assert(atomicLoad(numReaders) == 1 && atomicLoad(numWriters) == 0);
         rdSemB.notify();
         wrSemA.wait();
-        assert(numReaders == 0 && numWriters == 1);
+        assert(atomicLoad(numReaders) == 0 && atomicLoad(numWriters) == 1);
         wrSemB.notify();
         group.joinAll();
-        assert(numReaders == 0 && numWriters == 0);
+        assert(atomicLoad(numReaders) == 0 && atomicLoad(numWriters) == 0);
         foreach (t; group) group.remove(t);
 
         // writer and reader are mutually exclusive
@@ -655,13 +659,13 @@ unittest
         group.create(&readerFn);
         waitQueued(1, 0);
         assert(!rdSemA.tryWait());
-        assert(numReaders == 0 && numWriters == 1);
+        assert(atomicLoad(numReaders) == 0 && atomicLoad(numWriters) == 1);
         wrSemB.notify();
         rdSemA.wait();
-        assert(numReaders == 1 && numWriters == 0);
+        assert(atomicLoad(numReaders) == 1 && atomicLoad(numWriters) == 0);
         rdSemB.notify();
         group.joinAll();
-        assert(numReaders == 0 && numWriters == 0);
+        assert(atomicLoad(numReaders) == 0 && atomicLoad(numWriters) == 0);
         foreach (t; group) group.remove(t);
 
         // policy determines whether queued reader or writers progress first
@@ -670,35 +674,36 @@ unittest
         group.create(&readerFn);
         group.create(&writerFn);
         waitQueued(1, 1);
-        assert(numReaders == 0 && numWriters == 1);
+        assert(atomicLoad(numReaders) == 0 && atomicLoad(numWriters) == 1);
         wrSemB.notify();
 
         if (policy == ReadWriteMutex.Policy.PREFER_READERS)
         {
             rdSemA.wait();
-            assert(numReaders == 1 && numWriters == 0);
+            assert(atomicLoad(numReaders) == 1 && atomicLoad(numWriters) == 0);
             rdSemB.notify();
             wrSemA.wait();
-            assert(numReaders == 0 && numWriters == 1);
+            assert(atomicLoad(numReaders) == 0 && atomicLoad(numWriters) == 1);
             wrSemB.notify();
         }
         else if (policy == ReadWriteMutex.Policy.PREFER_WRITERS)
         {
             wrSemA.wait();
-            assert(numReaders == 0 && numWriters == 1);
+            assert(atomicLoad(numReaders) == 0 && atomicLoad(numWriters) == 1);
             wrSemB.notify();
             rdSemA.wait();
-            assert(numReaders == 1 && numWriters == 0);
+            assert(atomicLoad(numReaders) == 1 && atomicLoad(numWriters) == 0);
             rdSemB.notify();
         }
         group.joinAll();
-        assert(numReaders == 0 && numWriters == 0);
+        assert(atomicLoad(numReaders) == 0 && atomicLoad(numWriters) == 0);
         foreach (t; group) group.remove(t);
     }
     runTest(ReadWriteMutex.Policy.PREFER_READERS);
     runTest(ReadWriteMutex.Policy.PREFER_WRITERS);
 }
 
+static if(!isSingleThreaded)
 unittest
 {
     import core.atomic, core.thread;
@@ -775,6 +780,7 @@ unittest
     }
 }
 
+static if(!isSingleThreaded)
 unittest
 {
     import core.atomic, core.thread, core.sync.semaphore;
@@ -812,10 +818,15 @@ unittest
         {
             for (;;)
             {
-                synchronized (mutex.m_commonMutex)
+                // This unittest needs the implementation object to inspect
+                // private counters that are protected by m_commonMutex.
+                auto localMutex = (() @trusted => cast(ReadWriteMutex) atomicLoad(mutex))();
+                synchronized (localMutex.m_commonMutex)
                 {
-                    if (mutex.m_numQueuedReaders == queuedReaders &&
-                        mutex.m_numQueuedWriters == queuedWriters)
+                    // These counters are protected by m_commonMutex; the
+                    // test is intentionally observing the protected internals.
+                    if (localMutex.m_numQueuedReaders == queuedReaders &&
+                        localMutex.m_numQueuedWriters == queuedWriters)
                         break;
                 }
                 Thread.yield();
@@ -827,23 +838,23 @@ unittest
         // 2 simultaneous readers
         group.create(&readerFn); group.create(&readerFn);
         rdSemA.wait(); rdSemA.wait();
-        assert(numReaders == 2);
+        assert(atomicLoad(numReaders) == 2);
         rdSemB.notify(); rdSemB.notify();
         group.joinAll();
-        assert(numReaders == 0);
+        assert(atomicLoad(numReaders) == 0);
         foreach (t; group) group.remove(t);
 
         // 1 writer at a time
         group.create(&writerFn); group.create(&writerFn);
         wrSemA.wait();
         assert(!wrSemA.tryWait());
-        assert(numWriters == 1);
+        assert(atomicLoad(numWriters) == 1);
         wrSemB.notify();
         wrSemA.wait();
-        assert(numWriters == 1);
+        assert(atomicLoad(numWriters) == 1);
         wrSemB.notify();
         group.joinAll();
-        assert(numWriters == 0);
+        assert(atomicLoad(numWriters) == 0);
         foreach (t; group) group.remove(t);
 
         // reader and writer are mutually exclusive
@@ -852,13 +863,13 @@ unittest
         group.create(&writerFn);
         waitQueued(0, 1);
         assert(!wrSemA.tryWait());
-        assert(numReaders == 1 && numWriters == 0);
+        assert(atomicLoad(numReaders) == 1 && atomicLoad(numWriters) == 0);
         rdSemB.notify();
         wrSemA.wait();
-        assert(numReaders == 0 && numWriters == 1);
+        assert(atomicLoad(numReaders) == 0 && atomicLoad(numWriters) == 1);
         wrSemB.notify();
         group.joinAll();
-        assert(numReaders == 0 && numWriters == 0);
+        assert(atomicLoad(numReaders) == 0 && atomicLoad(numWriters) == 0);
         foreach (t; group) group.remove(t);
 
         // writer and reader are mutually exclusive
@@ -867,13 +878,13 @@ unittest
         group.create(&readerFn);
         waitQueued(1, 0);
         assert(!rdSemA.tryWait());
-        assert(numReaders == 0 && numWriters == 1);
+        assert(atomicLoad(numReaders) == 0 && atomicLoad(numWriters) == 1);
         wrSemB.notify();
         rdSemA.wait();
-        assert(numReaders == 1 && numWriters == 0);
+        assert(atomicLoad(numReaders) == 1 && atomicLoad(numWriters) == 0);
         rdSemB.notify();
         group.joinAll();
-        assert(numReaders == 0 && numWriters == 0);
+        assert(atomicLoad(numReaders) == 0 && atomicLoad(numWriters) == 0);
         foreach (t; group) group.remove(t);
 
         // policy determines whether queued reader or writers progress first
@@ -882,35 +893,36 @@ unittest
         group.create(&readerFn);
         group.create(&writerFn);
         waitQueued(1, 1);
-        assert(numReaders == 0 && numWriters == 1);
+        assert(atomicLoad(numReaders) == 0 && atomicLoad(numWriters) == 1);
         wrSemB.notify();
 
         if (policy == ReadWriteMutex.Policy.PREFER_READERS)
         {
             rdSemA.wait();
-            assert(numReaders == 1 && numWriters == 0);
+            assert(atomicLoad(numReaders) == 1 && atomicLoad(numWriters) == 0);
             rdSemB.notify();
             wrSemA.wait();
-            assert(numReaders == 0 && numWriters == 1);
+            assert(atomicLoad(numReaders) == 0 && atomicLoad(numWriters) == 1);
             wrSemB.notify();
         }
         else if (policy == ReadWriteMutex.Policy.PREFER_WRITERS)
         {
             wrSemA.wait();
-            assert(numReaders == 0 && numWriters == 1);
+            assert(atomicLoad(numReaders) == 0 && atomicLoad(numWriters) == 1);
             wrSemB.notify();
             rdSemA.wait();
-            assert(numReaders == 1 && numWriters == 0);
+            assert(atomicLoad(numReaders) == 1 && atomicLoad(numWriters) == 0);
             rdSemB.notify();
         }
         group.joinAll();
-        assert(numReaders == 0 && numWriters == 0);
+        assert(atomicLoad(numReaders) == 0 && atomicLoad(numWriters) == 0);
         foreach (t; group) group.remove(t);
     }
     runTest(ReadWriteMutex.Policy.PREFER_READERS);
     runTest(ReadWriteMutex.Policy.PREFER_WRITERS);
 }
 
+static if(!isSingleThreaded)
 unittest
 {
     import core.atomic, core.thread;
@@ -918,20 +930,22 @@ unittest
     shared static bool threadTriedOnceToGetLock;
     shared static bool threadFinallyGotLock;
 
-    rwmutex = new shared ReadWriteMutex();
+    atomicStore(rwmutex, new shared ReadWriteMutex());
     atomicFence;
     const maxTimeAllowedForTest = dur!"seconds"(20);
     // Test ReadWriteMutex.Reader.tryLock(Duration).
     {
         static void testReaderTryLock()
         {
-            assert(!rwmutex.reader.tryLock(Duration.min));
+            auto mutex = atomicLoad(rwmutex);
+            assert(!mutex.reader.tryLock(Duration.min));
             threadTriedOnceToGetLock.atomicStore(true);
-            assert(rwmutex.reader.tryLock(Duration.max));
+            assert(mutex.reader.tryLock(Duration.max));
             threadFinallyGotLock.atomicStore(true);
-            rwmutex.reader.unlock;
+            mutex.reader.unlock;
         }
-        assert(rwmutex.writer.tryLock(Duration.zero), "should have been able to obtain lock without blocking");
+        auto mutex = atomicLoad(rwmutex);
+        assert(mutex.writer.tryLock(Duration.zero), "should have been able to obtain lock without blocking");
         auto otherThread = new Thread(&testReaderTryLock).start;
         const failIfThisTimeisReached = MonoTime.currTime + maxTimeAllowedForTest;
         Thread.yield;
@@ -942,7 +956,7 @@ unittest
             assert(MonoTime.currTime < failIfThisTimeisReached, "timed out");
             Thread.yield;
         }
-        rwmutex.writer.unlock;
+        mutex.writer.unlock;
         // Soon after we release the writer lock otherThread's second
         // rwlock.reader.tryLock with timeout Duration.max should succeed.
         while (!threadFinallyGotLock.atomicLoad)
@@ -958,13 +972,15 @@ unittest
     {
         static void testWriterTryLock()
         {
-            assert(!rwmutex.writer.tryLock(Duration.min));
+            auto mutex = atomicLoad(rwmutex);
+            assert(!mutex.writer.tryLock(Duration.min));
             threadTriedOnceToGetLock.atomicStore(true);
-            assert(rwmutex.writer.tryLock(Duration.max));
+            assert(mutex.writer.tryLock(Duration.max));
             threadFinallyGotLock.atomicStore(true);
-            rwmutex.writer.unlock;
+            mutex.writer.unlock;
         }
-        assert(rwmutex.reader.tryLock(Duration.zero), "should have been able to obtain lock without blocking");
+        auto mutex = atomicLoad(rwmutex);
+        assert(mutex.reader.tryLock(Duration.zero), "should have been able to obtain lock without blocking");
         auto otherThread = new Thread(&testWriterTryLock).start;
         const failIfThisTimeisReached = MonoTime.currTime + maxTimeAllowedForTest;
         Thread.yield;
@@ -975,7 +991,7 @@ unittest
             assert(MonoTime.currTime < failIfThisTimeisReached, "timed out");
             Thread.yield;
         }
-        rwmutex.reader.unlock;
+        mutex.reader.unlock;
         // Soon after we release the reader lock otherThread's second
         // rwlock.writer.tryLock with timeout Duration.max should succeed.
         while (!threadFinallyGotLock.atomicLoad)

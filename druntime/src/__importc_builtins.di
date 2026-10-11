@@ -117,6 +117,16 @@ version (DigitalMars)
     // https://releases.llvm.org/13.0.0/tools/clang/docs/LanguageExtensions.html#builtin-assume
     void __builtin_assume(T)(lazy T arg) { }
 
+    noreturn __builtin_unreachable()() { assert(0); }
+
+    /* x86 keeps the instruction cache coherent, so there is nothing to flush.
+     * Other targets are left undefined rather than silently doing nothing.
+     */
+    version (X86_64)
+        void __builtin___clear_cache()(void* begin, void* end) { }
+    else version (X86)
+        void __builtin___clear_cache()(void* begin, void* end) { }
+
     /* Header on macOS for arm64 references this.
      * Don't need to implement it, it just needs to compile
      */

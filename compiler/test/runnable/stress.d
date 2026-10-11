@@ -590,6 +590,7 @@ void DOUBLE()
 
 void REAL()
 {
+    import core.stdc.config;
     const int ITERS = 1000000;
     alias real typ;
     typ[] a;
@@ -602,7 +603,7 @@ void REAL()
     if(a.sizeof != (typ[]).sizeof) printf("Size Error: %zd\n",a.sizeof);
     for(int idx = 0; idx < ITERS; idx++) {
         if(a[idx] != idx) {
-            printf("a Data Error: %Lg\n",a[idx]);
+            printf("a Data Error: %Lg\n", cast(c_long_double)a[idx]);
             break;
         }
     }
@@ -613,7 +614,7 @@ void REAL()
     if(b.sizeof != (typ[]).sizeof) printf("Size Error: %zd\n",b.sizeof);
     for(int idx = 0; idx < ITERS; idx++) {
         if(b[idx] != idx) {
-            printf("b Data Error: %Lg\n",b[idx]);
+            printf("b Data Error: %Lg\n", cast(c_long_double)b[idx]);
             break;
         }
     }
@@ -626,7 +627,7 @@ void REAL()
     if(c.sizeof != (typ[]).sizeof) printf("Size Error: %zd\n",c.sizeof);
     for(int idx = 0; idx < ITERS; idx++) {
         if(c[idx] != idx) {
-            printf("c Data Error: %Lg\n",c[idx]);
+            printf("c Data Error: %Lg\n", cast(c_long_double)c[idx]);
             break;
         }
     }

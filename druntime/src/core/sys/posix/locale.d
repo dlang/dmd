@@ -305,6 +305,82 @@ else version (CRuntime_Musl)
     /// Set the per-thread locale
     locale_t uselocale (locale_t locale);
 }
+else version (CRuntime_WASI)
+{
+    ///
+    struct lconv
+    {
+        char*   decimal_point;
+        char*   thousands_sep;
+        char*   grouping;
+        char*   int_curr_symbol;
+        char*   currency_symbol;
+        char*   mon_decimal_point;
+        char*   mon_thousands_sep;
+        char*   mon_grouping;
+        char*   positive_sign;
+        char*   negative_sign;
+        char    int_frac_digits;
+        char    frac_digits;
+        char    p_cs_precedes;
+        char    p_sep_by_space;
+        char    n_cs_precedes;
+        char    n_sep_by_space;
+        char    p_sign_posn;
+        char    n_sign_posn;
+        char    int_p_cs_precedes;
+        char    int_p_sep_by_space;
+        char    int_n_cs_precedes;
+        char    int_n_sep_by_space;
+        char    int_p_sign_posn;
+        char    int_n_sign_posn;
+    }
+
+    ///
+    enum
+    {
+        LC_CTYPE    = 0,
+        LC_NUMERIC  = 1,
+        LC_TIME     = 2,
+        LC_COLLATE  = 3,
+        LC_MONETARY = 4,
+        LC_MESSAGES = 5,
+        LC_ALL      = 6,
+    }
+
+    ///
+    enum
+    {
+        LC_CTYPE_MASK    = (1 << LC_CTYPE),
+        LC_NUMERIC_MASK  = (1 << LC_NUMERIC),
+        LC_TIME_MASK     = (1 << LC_TIME),
+        LC_COLLATE_MASK  = (1 << LC_COLLATE),
+        LC_MONETARY_MASK = (1 << LC_MONETARY),
+        LC_MESSAGES_MASK = (1 << LC_MESSAGES),
+        LC_ALL_MASK      = 0x7fffffff,
+    }
+
+    private struct __locale_struct;
+
+    ///
+    alias locale_t = __locale_struct*;
+
+    ///
+    enum LC_GLOBAL_LOCALE = (cast(locale_t)-1);
+
+    /// Duplicate existing locale
+    locale_t duplocale(locale_t locale);
+    /// Free an allocated locale
+    void     freelocale(locale_t locale);
+    /// Natural language formatting for C
+    lconv*   localeconv();
+    /// Create a new locale
+    locale_t newlocale(int mask, const char* locale, locale_t base);
+    /// Set the C library's notion of natural language formatting style
+    char*    setlocale(int category, const char* locale);
+    /// Set the per-thread locale
+    locale_t uselocale (locale_t locale);
+}
 else version (OpenBSD)
 {
     ///

@@ -4,12 +4,12 @@ TEST_OUTPUT:
 fail_compilation/disable.d(56): Error: function `disable.DisabledOpAssign.opAssign` cannot be used because it is annotated with `@disable`
 fail_compilation/disable.d(59): Error: function `disable.DisabledPostblit.opAssign` cannot be used because it is annotated with `@disable`
 fail_compilation/disable.d(62): Error: function `disable.HasDtor.opAssign` cannot be used because it is annotated with `@disable`
-fail_compilation/disable.d(66): Error: generated function `disable.Nested!(DisabledOpAssign).opAssign` cannot be used because it is annotated with `@disable`
-fail_compilation/disable.d(69): Error: generated function `disable.Nested!(DisabledPostblit).opAssign` cannot be used because it is annotated with `@disable`
-fail_compilation/disable.d(72): Error: generated function `disable.Nested!(HasDtor).opAssign` cannot be used because it is annotated with `@disable`
-fail_compilation/disable.d(76): Error: generated function `disable.NestedDtor!(DisabledOpAssign).opAssign` cannot be used because it is annotated with `@disable`
-fail_compilation/disable.d(79): Error: generated function `disable.NestedDtor!(DisabledPostblit).opAssign` cannot be used because it is annotated with `@disable`
-fail_compilation/disable.d(82): Error: generated function `disable.NestedDtor!(HasDtor).opAssign` cannot be used because it is annotated with `@disable`
+fail_compilation/disable.d(66): Error: struct `disable.Nested!(DisabledOpAssign)` is not assignable because field `b` is not assignable
+fail_compilation/disable.d(69): Error: struct `disable.Nested!(DisabledPostblit)` is not assignable because field `b` is not assignable
+fail_compilation/disable.d(72): Error: struct `disable.Nested!(HasDtor)` is not assignable because field `b` is not assignable
+fail_compilation/disable.d(76): Error: struct `disable.NestedDtor!(DisabledOpAssign)` is not assignable because field `b` is not assignable
+fail_compilation/disable.d(79): Error: struct `disable.NestedDtor!(DisabledPostblit)` is not assignable because field `b` is not assignable
+fail_compilation/disable.d(82): Error: struct `disable.NestedDtor!(HasDtor)` is not assignable because field `b` is not assignable
 fail_compilation/disable.d(84): Error: enum member `disable.Enum1.value` cannot be used because it is annotated with `@disable`
 ---
  */

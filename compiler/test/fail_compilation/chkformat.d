@@ -23,10 +23,10 @@ fail_compilation/chkformat.d(107):        `"%td"` requires `ptrdiff_t`
 fail_compilation/chkformat.d(107):        `double` may be formatted with `"%g"`
 fail_compilation/chkformat.d(108): Deprecation: argument `8.0L` of type `real` does not match format specification
 fail_compilation/chkformat.d(108):        `"%g"` requires `double`
-fail_compilation/chkformat.d(108):        `real` may be formatted with `"%Lg"`
-fail_compilation/chkformat.d(109): Deprecation: argument `9.0` of type `double` does not match format specification
-fail_compilation/chkformat.d(109):        `"%Lg"` requires `real`
-fail_compilation/chkformat.d(109):        `double` may be formatted with `"%g"`
+fail_compilation/chkformat.d(108):        $?:windows=this target has no format specifier for `real`|`real` may be formatted with `"%Lg"`$
+fail_compilation/chkformat.d(109): Deprecation: argument `$?:windows=9|9.0$` of type `$?:windows=int|double$` does not match format specification
+fail_compilation/chkformat.d(109):        `"%Lg"` requires `$?:windows=c_long_double|real$`
+fail_compilation/chkformat.d(109):        `$?:windows=int|double$` may be formatted with `"%$?:windows=d|g$"`
 fail_compilation/chkformat.d(110): Deprecation: argument `10` of type `int` does not match format specification
 fail_compilation/chkformat.d(110):        `"%p"` requires `void*`
 fail_compilation/chkformat.d(110):        `int` may be formatted with `"%d"`
@@ -138,7 +138,7 @@ void test5() {  printf("%jd\n", 5); }
 void test6() {  printf("%zd\n", 6.0); }
 void test7() {  printf("%td\n", 7.0); }
 void test8() {  printf("%g\n", 8.0L); }
-void test9() {  printf("%Lg\n", 9.0); }
+void test9() {  version(Windows) printf("%Lg\n", 9); else printf("%Lg\n", 9.0); } // no error for Windows for double arg, but produce similar output
 void test10() {  printf("%p\n", 10); }
 void test11() { uint u; printf("%n\n", &u); }
 //void test12() { ushort u; printf("%ln\n", &u); }
@@ -266,7 +266,7 @@ fail_compilation/chkformat.d(501): Deprecation: argument `p` of type `char*` doe
 fail_compilation/chkformat.d(501):        `"%a"` requires `double`
 fail_compilation/chkformat.d(501):        `char*` may be formatted with `"%s"`
 fail_compilation/chkformat.d(502): Deprecation: argument `p` of type `char*` does not match format specification
-fail_compilation/chkformat.d(502):        `"%La"` requires `real`
+fail_compilation/chkformat.d(502):        `"%La"` requires `$?:windows=c_long_double|real$`
 fail_compilation/chkformat.d(502):        `char*` may be formatted with `"%s"`
 fail_compilation/chkformat.d(503): Deprecation: argument `p` of type `char*` does not match format specification
 fail_compilation/chkformat.d(503):        `"%a"` requires `float*`

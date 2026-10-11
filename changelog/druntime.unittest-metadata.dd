@@ -1,0 +1,14 @@
+Discover individual unittest blocks through ModuleInfo
+
+$(D ModuleInfo.unitTests) exposes a read-only array of pointers to immutable
+$(D UnitTestInfo) records containing a record size, function pointer, and
+compiler-generated name. Entries follow the order used by the existing
+$(D ModuleInfo.unitTest) wrapper. This enables custom runners to discover and
+invoke individual tests without changing the default runner's behavior.
+
+Generated names are not guaranteed unique or stable across builds. Metadata is
+empty for modules without emitted tests and modules built by older compilers;
+such older modules may still provide a $(D unitTest) wrapper.
+
+Records have module lifetime. Future fields can be appended; consumers must
+check the emitted record's $(D size) before reading newer fields.

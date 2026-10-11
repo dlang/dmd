@@ -27,10 +27,10 @@ import dmd.backend.global : REGSIZE, symbol_keep, symboldata;
 import dmd.backend.cg : localgot, tls_get_addr_sym;
 import dmd.backend.cgelem : doptelem;
 import dmd.backend.debugprint : class_str;
-import dmd.backend.symbol : symbol_add, symbol_name, symbol_pointerType;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
+import dmd.backend.symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 

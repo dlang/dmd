@@ -187,6 +187,22 @@ else version (CRuntime_Musl)
 
     int uname(utsname*);
 }
+else version (CRuntime_WASI)
+{
+    private enum SYS_NMLN = 65;
+
+    struct utsname
+    {
+        char[SYS_NMLN] sysname = 0;
+        char[SYS_NMLN] nodename = 0;
+        char[SYS_NMLN] release = 0;
+        char[SYS_NMLN] _version = 0;
+        char[SYS_NMLN] machine = 0;
+        char[SYS_NMLN] domainname = 0;
+    }
+
+    int uname(utsname*);
+}
 else version (CRuntime_UClibc)
 {
     private enum utsNameLength = 65;

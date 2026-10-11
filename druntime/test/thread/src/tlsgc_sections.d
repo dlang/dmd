@@ -1,3 +1,4 @@
+import core.internal.thread : isSingleThreaded;
 import core.memory;
 import core.sync.condition;
 import core.sync.mutex;
@@ -47,6 +48,9 @@ void test()
 
 void main()
 {
+    if(isSingleThreaded)
+        return;
+
     g_mutex = new Mutex;
     g_cond = new Condition(g_mutex);
 

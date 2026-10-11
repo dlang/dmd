@@ -176,7 +176,6 @@ package
 
 package
 {
-    import core.atomic : atomicStore, cas, MemoryOrder;
     import core.exception : onOutOfMemoryError;
     import core.stdc.stdlib : abort;
 
@@ -619,6 +618,63 @@ class Fiber : FiberBase
     {
         return cast(Fiber) FiberBase.getThis();
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Forwarded from FiberBase; keep docs in sync with fiber/base.d.
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Transfers execution to this fiber object. The calling context will be
+     * suspended until the fiber calls Fiber.yield() or until it terminates
+     * via an unhandled exception.
+     *
+     * This fiber must be in state HOLD.
+     *
+     * Throws:
+     *  Any exception not handled by the joined thread.
+     *
+     * Returns:
+     *  Any exception not handled by this fiber if rethrow = false, null
+     *  otherwise.
+     */
+    alias call = FiberBase.call;
+
+    /// Flag to control rethrow behavior of $(REF call, core, thread, fiber)
+    alias Rethrow = FiberBase.Rethrow;
+
+    /**
+     * Resets this fiber so that it may be re-used, optionally with a
+     * new function/delegate. This routine should only be called for
+     * fibers that have terminated, as doing otherwise could result in
+     * scope-dependent functionality that is not executed.
+     * Stack-based classes, for example, may not be cleaned up
+     * properly if a fiber is reset before it has terminated.
+     *
+     * In:
+     *  This fiber must be in state TERM or HOLD.
+     */
+    alias reset = FiberBase.reset;
+
+    /// A fiber may occupy one of three states: HOLD, EXEC, and TERM.
+    alias State = FiberBase.State;
+
+    /**
+     * Gets the current state of this fiber.
+     *
+     * Returns:
+     *  The state of this fiber as an enumerated value.
+     */
+    alias state = FiberBase.state;
+
+    /// Forces a context switch to occur away from the calling fiber.
+    alias yield = FiberBase.yield;
+
+    /**
+     * Forces a context switch to occur away from the calling fiber and then
+     * throws obj in the calling fiber. The passed exception must not be null.
+     */
+    alias yieldAndThrow = FiberBase.yieldAndThrow;
+
 
 
     ///////////////////////////////////////////////////////////////////////////
@@ -1191,41 +1247,47 @@ protected:
         }
         else version (AsmLoongArch64_Posix)
         {
-            // Like others, FP registers and return address ($r1) are kept
-            // below the saved stack top (tstack) to hide from GC scanning.
+            // Unlike others, the FP registers and return address ($ra) are
+            // NOT hidden below tstack: fs0-fs7 are callee saved, so the
+            // compiler may keep a live GC pointer in one of them across a
+            // suspension, and hiding them lets the GC collect reachable
+            // memory (see switch_context_asm.S).
             // fiber_switchContext expects newp sp to look like this:
-            //   10: $r21 (reserved)
-            //    9: $r22 (frame pointer)
-            //    8: $r23
+            //   18: $fp ($r22)
+            //   17: $s8 ($r31)
             //   ...
-            //    0: $r31 <-- newp tstack
-            //   -1: $r1  (return address)  [&fiber_entryPoint]
-            //   -2: $f24
+            //    9: $s0 ($r23)
+            //    8: $ra           [&fiber_entryPoint]
+            //    7: $fs7
             //   ...
-            //   -9: $f31
+            //    0: $fs0          <-- newp tstack (sp)
 
             version (StackGrowsDown) {}
             else
                 static assert(false, "Only full descending stacks supported on LoongArch64");
 
-            // Only need to set return address ($r1).  Everything else is fine
+            // Only need to set return address ($ra).  Everything else is fine
             // zero initialized.
-            pstack -= size_t.sizeof * 11;    // skip past space reserved for $r21-$r31
-            push(cast(size_t) &fiber_entryPoint);
-            pstack += size_t.sizeof;         // adjust sp (newp) above lr
+            pstack -= size_t.sizeof * 10;    // skip past $s0-$s8 and $fp
+            push(cast(size_t) &fiber_entryPoint); // see switch_context_asm.S for docs
+            pstack -= size_t.sizeof * 8;     // reserve $fs0-$fs7
+            (cast(size_t*) pstack)[0 .. 8] = 0; // now GC-scanned; clear stale data on fiber reuse
         }
         else version (AsmAArch64_Posix)
         {
-            // Like others, FP registers and return address (lr) are kept
-            // below the saved stack top (tstack) to hide from GC scanning.
+            // Unlike others, the FP registers and return address (lr) are
+            // NOT hidden below tstack: d8-d15 are callee saved, so the
+            // compiler may keep a live GC pointer in one of them across a
+            // suspension, and hiding them lets the GC collect reachable
+            // memory (see switch_context_asm.S).
             // fiber_switchContext expects newp sp to look like this:
             //   19: x19
             //   ...
-            //    9: x29 (fp)  <-- newp tstack
+            //    9: x29 (fp)
             //    8: x30 (lr)  [&fiber_entryPoint]
             //    7: d8
             //   ...
-            //    0: d15
+            //    0: d15      <-- newp tstack (sp)
 
             version (StackGrowsDown) {}
             else
@@ -1234,8 +1296,9 @@ protected:
             // Only need to set return address (lr).  Everything else is fine
             // zero initialized.
             pstack -= size_t.sizeof * 11;    // skip past x19-x29
-            push(cast(size_t) &fiber_trampoline); // see threadasm.S for docs
-            pstack += size_t.sizeof;         // adjust sp (newp) above lr
+            push(cast(size_t) &fiber_trampoline); // see switch_context_asm.S for docs
+            pstack -= size_t.sizeof * 8;     // reserve d8-d15
+            (cast(size_t*) pstack)[0 .. 8] = 0; // now GC-scanned; clear stale data on fiber reuse
         }
         else version (AsmARM_Posix)
         {

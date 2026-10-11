@@ -97,6 +97,7 @@ $(GNAME TemplateSingleArgument):
     $(D null)
     $(D this)
     $(GLINK2 expression, SpecialKeyword)
+    $(GLINK2 type, Vector)
 )
 
     $(P A template argument can be a type, compile-time expression

@@ -44,13 +44,15 @@ jobs:
     needs:
       - build-all-releases
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       #################################################################
       # Fetch all artifacts from the jobs defined above
       #
       - name: Download generated releases from the artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: dmd-release-*
           merge-multiple: true

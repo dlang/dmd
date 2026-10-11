@@ -330,7 +330,7 @@ private string miniFormat(V)(const scope ref V v)
         }
         catch (Exception e)
         {
-            return `<toString() failed: "` ~ e.msg ~ `", called on ` ~ formatMembers(v) ~`>`;
+            return `<toString() failed: "` ~ e.msg ~ `", called on ` ~ formatMembersOrTypeName(v) ~`>`;
         }
     }
     // Static arrays or slices (but not aggregates with `alias this`)
@@ -403,7 +403,7 @@ private string miniFormat(V)(const scope ref V v)
     }
     else static if (is(V == struct))
     {
-        return formatMembers(v);
+        return formatMembersOrTypeName(v);
     }
     // Extern C++ classes don't have a toString by default
     else static if (is(V == class) || is(V == interface))
@@ -413,7 +413,7 @@ private string miniFormat(V)(const scope ref V v)
 
         // Extern classes might be opaque
         static if (is(typeof(v.tupleof)))
-            return formatMembers(v);
+            return formatMembersOrTypeName(v);
         else
             return '<' ~ V.stringof ~ '>';
     }
@@ -421,6 +421,14 @@ private string miniFormat(V)(const scope ref V v)
     {
         return V.stringof;
     }
+}
+
+private string formatMembersOrTypeName(V)(const scope ref V v)
+{
+    static if (__traits(compiles, formatMembers(v)))
+        return formatMembers(v);
+    else
+        return V.stringof;
 }
 
 /// Formats `v`'s members as `V(<member 1>, <member 2>, ...)`

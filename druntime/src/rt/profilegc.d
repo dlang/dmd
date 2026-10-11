@@ -13,12 +13,6 @@
 
 module rt.profilegc;
 
-// On Wasm, it increases codesize noticably.
-// Meanwhile, ldc (ldmd2) does not support `-profile-gc`, so there's no point
-// keeping it around on Wasm targets
-version (WASI) {}
-else:
-
 private:
 
 import core.stdc.errno : errno;

@@ -211,6 +211,67 @@ void test14218()
 }
 
 /***************************************************/
+// https://github.com/dlang/dmd/issues/23262
+
+extern (C++) interface iface23262
+{
+    int funCpp();
+}
+
+extern (C++) class cpp23262
+{
+    int funCpp() { return 1; }
+}
+
+class class23262 : Object, iface23262
+{
+    extern (C++) int funCpp() { return 42; }
+}
+
+void test23262()
+{
+    Object obj = new class23262;
+    auto cpp = cast(iface23262) obj; // ok for C++ interface
+    assert(cpp);
+    assert(cpp.funCpp() == 42);
+
+    auto cpp2 = cast(cpp23262) obj;
+    assert(cpp2 is null); // impossible for C++ class
+
+    auto d = cast(class23262) cpp;
+    assert(d is null); // no way back
+
+    auto cppobj = new cpp23262;
+    auto i = cast(iface23262) cppobj;
+    assert(cast(void*)i is cast(void*)cppobj); // reinterpret cast
+
+    auto d2 = cast(class23262) cppobj;
+    assert(d2 is null); // classes of different linkage never mix
+}
+
+/***************************************************/
+
+void test22269()
+{
+    // cast(T[1]) from basic type to static array of same size
+    int foo = 42;
+    (cast(int[1])foo)[] = 1;
+    assert(foo == 1);
+
+    // cast(T) from static array to basic type of same size
+    int bar = 42;
+    auto sa = cast(int[1])bar;
+    bar = 0;
+    bar = cast(int)sa;
+    assert(bar == 42);
+
+    // float <-> int same size (both 4 bytes)
+    float f = 3.14f;
+    int[1] fi = cast(int[1])f;
+    assert(fi[0] != 0); // value was reinterpreted, not zeroed
+}
+
+/***************************************************/
 
 int main()
 {
@@ -223,6 +284,8 @@ int main()
     test10842();
     test11722();
     test14218();
+    test22269();
+    test23262();
 
     printf("Success\n");
     return 0;

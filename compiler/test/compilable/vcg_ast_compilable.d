@@ -17,8 +17,8 @@ void find()(string needle)
 }
 void splitter()
 {
-	find(3);
-	find("");
+	vcg_ast_compilable.find!int(3);
+	vcg_ast_compilable.find!()("");
 }
 binaryFun!int
 {

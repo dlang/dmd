@@ -629,14 +629,17 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx,
                                 NeedInterpret needInterpret)
 {
     import dmd.initsem;
-    return dmd.initsem.initializerSemantic(init, sc, tx, needInterpret);
+    import dmd.globals : global;
+    auto eSink = global.errorSink;
+    return dmd.initsem.initializerSemantic(init, sc, tx, needInterpret, eSink);
 }
 
-Expression initializerToExpression(Initializer init, Type itype = null, const
-                                   bool isCfile = false)
+Expression initializerToExpression(Initializer init, Scope* sc, Type itype)
 {
     import dmd.initsem;
-    return dmd.initsem.initializerToExpression(init, itype, isCfile);
+    import dmd.globals : global;
+    auto eSink = global.errorSink;
+    return dmd.initsem.initializerToExpression(init, sc, itype, eSink);
 }
 
 /***********************************************************
@@ -1155,16 +1158,10 @@ bool needsCopyOrPostblit(Type type)
 /***********************************************************
  * typinf.d
  */
-bool genTypeInfo(Expression e, Loc loc, Type torig, Scope* sc)
+void genTypeInfo(Expression e, Loc loc, Type torig, Scope* sc)
 {
     import dmd.typinf;
     return dmd.typinf.genTypeInfo(e, loc, torig, sc);
-}
-
-bool isSpeculativeType(Type t)
-{
-    import dmd.typinf;
-    return dmd.typinf.isSpeculativeType(t);
 }
 
 bool builtinTypeInfo(Type t)

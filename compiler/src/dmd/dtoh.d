@@ -12,6 +12,7 @@
 module dmd.dtoh;
 
 import core.stdc.stdio;
+import core.stdc.stdarg;
 import core.stdc.string;
 import core.stdc.ctype;
 
@@ -22,7 +23,7 @@ import dmd.dsymbolsem;
 import dmd.templatesem : computeOneMember;
 import dmd.expressionsem : toInteger;
 import dmd.funcsem : isVirtual;
-import dmd.errors;
+import dmd.errors : fatal;
 import dmd.errorsink;
 import dmd.globals;
 import dmd.hdrgen;
@@ -773,9 +774,12 @@ public:
         // printf("FuncDeclaration %s %s\n", fd.toPrettyChars(), fd.type.toChars());
         visited[cast(void*)fd] = true;
 
-        // silently ignore non-user-defined destructors
+        // silently ignore non-user-defined destructors and C++ base-object constructors
         if (fd.isGenerated && fd.isDtorDeclaration())
             return;
+        if (auto ctor = fd.isCtorDeclaration())
+            if (ctor.isCppBaseCtor)
+                return;
 
         // Note that tf might be null for templated (member) functions
         auto tf = cast(AST.TypeFunction)fd.type;
@@ -1014,7 +1018,7 @@ public:
                     buf.writestring(" { ");
                     writeIdentifier(vd, true);
                     buf.writestring(" = ");
-                    auto ie = AST.initializerToExpression(vd._init).isIntegerExp();
+                    auto ie = AST.initializerToExpression(vd._init, null, null, eSink).isIntegerExp();
                     visitInteger(ie.toInteger(), type);
                     buf.writestring(" };");
                     break;
@@ -1033,7 +1037,7 @@ public:
                         buf.writestring(" ");
                     writeIdentifier(vd, true);
                     buf.writestring(" = ");
-                    auto e = AST.initializerToExpression(vd._init);
+                    auto e = AST.initializerToExpression(vd._init, null, null, eSink);
                     printExpressionFor(target, e);
                     buf.writestring(";");
                     break;
@@ -1396,7 +1400,7 @@ public:
 
                 if (vd._init)
                 {
-                    auto e = AST.initializerToExpression(vd._init);
+                    auto e = AST.initializerToExpression(vd._init, null, null, eSink);
                     printExpressionFor(vd.type, e, true);
                 }
                 buf.printf(")");
@@ -2845,7 +2849,7 @@ public:
     private static AST.Expression findDefaultInitializer(AST.VarDeclaration vd)
     {
         if (vd._init && !vd._init.isVoidInitializer())
-            return AST.initializerToExpression(vd._init);
+            return AST.initializerToExpression(vd._init, null, null, global.errorSink);
         if (auto ts = vd.type.isTypeStruct())
         {
             if (!ts.sym.noDefaultCtor && !ts.sym.isUnionDeclaration())

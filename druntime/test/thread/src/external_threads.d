@@ -1,3 +1,4 @@
+import core.internal.thread : isSingleThreaded;
 import core.memory;
 import core.sys.posix.pthread : pthread_create, pthread_join;
 import core.sys.posix.sys.types : pthread_t;
@@ -32,6 +33,9 @@ void* entry_point2(void*)
 
 void main()
 {
+    if(isSingleThreaded)
+        return;
+
     // allocate some garbage
     auto x = new int[1000];
 

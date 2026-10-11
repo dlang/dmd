@@ -474,27 +474,30 @@ void main()
 )
 
 $(P The imports are looked up to satisfy any unresolved symbols at that scope.
-Imported symbols may hide symbols from outer scopes.)
+Locally imported symbols may hide symbols imported from outer scopes.)
 
 $(P In function scopes, imported symbols only become visible after the import
 declaration lexically appears in the function body. In other words, imported
 symbols at function scope cannot be forward referenced.)
 
-$(RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 --------------
 void main()
 {
     void writeln(string) {}
     void foo()
     {
-        writeln("bar"); // calls main.writeln
+        //std.stdio.writeln("stdio"); // error, `std` is undefined
+        writeln("main"); // calls `main.writeln`
         import std.stdio;
-        writeln("bar"); // calls std.stdio.writeln
+        writeln("main"); // still calls `main.writeln`
+        std.stdio.writeln("stdio"); // `std` is now in scope
         void writeln(string) {}
-        writeln("bar"); // calls main.foo.writeln
+        writeln("foo"); // calls `main.foo.writeln`
     }
-    writeln("bar"); // calls main.writeln
-    std.stdio.writeln("bar");  // error, std is undefined
+    foo();
+    writeln("main"); // calls `main.writeln`
+    //std.stdio.writeln("stdio");  // error, `std` is undefined
 }
 --------------
 )

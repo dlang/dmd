@@ -115,7 +115,7 @@ private ref compat_key(K, K2)(ref K2 key)
 {
     static if(!(is(K2 == struct) && __traits(isNested, K2)))
         pragma(inline, true);
-    static if (is(K2 == const(char)[]) && is(K == string))
+    static if (is(Unconstify!K2 == const(char)[]) && is(K == string))
         return (ref (ref return K2 k2) @trusted => *cast(string*)&k2)(key);
     else
         return key;
@@ -450,9 +450,8 @@ pure nothrow @nogc unittest
  */
 V[K] _d_aaNew(K, V)()
 {
-    AA!(K, V) aa;
-    aa.impl = new Impl!(K,V)(INIT_NUM_BUCKETS);
-    return *cast(V[K]*)&aa;
+    auto impl = new Impl!(K,V)(INIT_NUM_BUCKETS);
+    return () @trusted { return *cast(V[K]*)&impl; }();
 }
 
 /// Determine number of entries in associative array.

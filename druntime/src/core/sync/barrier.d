@@ -19,6 +19,7 @@ module core.sync.barrier;
 public import core.sync.exception;
 import core.sync.condition;
 import core.sync.mutex;
+import core.thread : isSingleThreaded;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -106,6 +107,7 @@ private:
 // Unit Tests
 ////////////////////////////////////////////////////////////////////////////////
 
+static if(!isSingleThreaded)
 unittest
 {
     import core.thread;

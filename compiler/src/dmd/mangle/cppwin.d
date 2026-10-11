@@ -30,6 +30,7 @@ import dmd.expression;
 import dmd.func;
 import dmd.funcsem;
 import dmd.globals;
+import dmd.hdrgen : toErrMsg;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
@@ -79,16 +80,17 @@ private extern (C++) final class VisualCPPMangler : Visitor
 
     extern (D) this(VisualCPPMangler rvl) scope @safe
     {
-        saved_idents[] = rvl.saved_idents[];
-        saved_types[]  = rvl.saved_types[];
-        loc            = rvl.loc;
+        this.saved_idents[] = rvl.saved_idents[];
+        this.saved_types[] = rvl.saved_types[];
+        this.loc = rvl.loc;
+        this.eSink = rvl.eSink;
     }
 
 public:
     extern (D) this(Loc loc, ErrorSink eSink) scope @safe
     {
-        saved_idents[] = null;
-        saved_types[] = null;
+        this.saved_idents[] = null;
+        this.saved_types[] = null;
         this.loc = loc;
         this.eSink = eSink;
     }

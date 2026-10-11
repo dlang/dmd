@@ -360,10 +360,7 @@ nothrow:
                 hasTrailingSlash = true;
         }
         const pathlen = str.length - n.length - (hasTrailingSlash ? 1 : 0);
-        char* path = cast(char*)mem.xmalloc_noscan(pathlen + 1);
-        memcpy(path, str.ptr, pathlen);
-        path[pathlen] = 0;
-        return path[0 .. pathlen];
+        return xarraydup(str[0..pathlen]);
     }
 
     unittest

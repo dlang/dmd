@@ -612,11 +612,9 @@ void* _d_arrayliteralTX(T)(size_t length) @trusted pure nothrow
         *  but don't use a nested template function call here to avoid
         *  possible linking errors.
         */
-        uint attrs = BlkAttr.APPENDABLE;
-        static if (!hasIndirections!T)
-            attrs |= BlkAttr.NO_SCAN;
-        static if (is(T == struct) && __traits(needsDestruction, T))
-            attrs |= BlkAttr.FINALIZE;
+        enum uint attrs = BlkAttr.APPENDABLE | GC.convertAlignmentToBlkAttr(T.alignof)
+            | (!hasIndirections!T ? BlkAttr.NO_SCAN : 0)
+            | (is(T == struct) && __traits(needsDestruction, T) ? BlkAttr.FINALIZE : 0);
 
         version (D_TypeInfo)
             return GC.malloc(allocsize, attrs, typeid(T));

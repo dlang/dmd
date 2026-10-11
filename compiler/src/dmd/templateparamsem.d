@@ -77,10 +77,11 @@ private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
 
     override void visit(TemplateThisParameter ttp)
     {
-        import dmd.errors;
+        import dmd.globals;
+        auto eSink = global.errorSink;
 
         if (!sc.getStructClassScope())
-            error(ttp.loc, "cannot use `this` outside an aggregate type");
+            eSink.error(ttp.loc, "cannot use `this` outside an aggregate type");
         visit(cast(TemplateTypeParameter)ttp);
     }
 

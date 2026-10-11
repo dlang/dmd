@@ -13,6 +13,9 @@ module core.internal.elf.io;
 
 version (Posix):
 
+version (WASI) {}
+else:
+
 import core.lifetime : move;
 import core.memory : pageSize;
 import core.stdc.stdlib : free, malloc;

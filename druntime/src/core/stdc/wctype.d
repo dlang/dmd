@@ -32,7 +32,10 @@ version (CRuntime_Glibc)
 else version (CRuntime_Musl)
 {
     ///
-    alias wctype_t = c_ulong;
+    version (Emscripten)
+        alias wctype_t = uint; // for wasm64 too
+    else
+        alias wctype_t = c_ulong;
     ///
     alias wctrans_t = const(int)*;
 }

@@ -14,6 +14,9 @@
  */
 module core.sys.posix.net.if_;
 
+version (CRuntime_WASI) {}
+else:
+
 import core.sys.posix.config;
 
 version (OSX)

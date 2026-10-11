@@ -37,6 +37,7 @@ import dmd.identifier;
 import dmd.location;
 import dmd.common.outbuffer;
 import dmd.visitor;
+import dmd.init; // TODO: maybe remove this?
 
 /***********************************************************
  * Abstract attribute applied to Dsymbol's used as a common
@@ -749,6 +750,46 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
     }
 }
 
+/***********************************************************
+ * Unpack declarations look like, e.g.:
+ * auto (a, b) = init;
+ * (int a, string b) = init;
+ */
+extern (C++) final class UnpackDeclaration : AttribDeclaration
+{
+    Expression _init;
+    ScopeDsymbol scopesym;
+    STC declared_storage_class;
+    STC storage_class;
+    bool onStack = false;
+    bool lowered = false;
+
+    final extern (D) this(const ref Loc loc, Dsymbols* vars, Expression _init, STC storage_class)
+    {
+        super(loc, null, vars);
+        this._init = _init;
+        this.declared_storage_class = storage_class;
+        this.storage_class = storage_class;
+        this.dsym = DSYM.unpackDeclaration;
+    }
+
+    override UnpackDeclaration syntaxCopy(Dsymbol s)
+    {
+        return new UnpackDeclaration(loc, Dsymbol.arraySyntaxCopy(decl), _init ? _init.syntaxCopy() : null, storage_class);
+    }
+
+    override const(char)* kind() const
+    {
+        return "unpack declaration";
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+
 /**
  * Returns `true` if the given symbol is a symbol declared in
  * `core.attribute` and has the given identifier.
@@ -784,7 +825,7 @@ bool isCoreUda(Dsymbol sym, Identifier ident)
  *  If `dg` returns `!= 0`, stops the iteration and returns that value.
  *  Otherwise, returns 0.
  */
-int foreachUdaNoSemantic(Dsymbol sym, int delegate(Expression) dg)
+int foreachUdaNoSemantic(Dsymbol sym, scope int delegate(Expression) dg)
 {
     if (sym.userAttribDecl is null || sym.userAttribDecl.atts is null)
         return 0;

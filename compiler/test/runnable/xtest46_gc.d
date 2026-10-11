@@ -22,7 +22,7 @@ double[]
 {}
 AliasSeq!("m")
 true
-TFunction1: extern (C) void function()
+TFunction1: extern(C) void function()
 ---
 */
 

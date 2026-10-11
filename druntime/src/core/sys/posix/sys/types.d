@@ -367,6 +367,48 @@ else version (Hurd)
 
     alias time_t = slong_t;
 }
+else version (Emscripten)
+{
+    alias blkcnt_t = int; // for wasm64 too
+    alias ino_t = ulong;
+    alias off_t = long;
+
+    alias blksize_t = int; // for wasm64 too
+
+    alias dev_t = uint; // for wasm64 too
+    alias gid_t = uint;
+    alias mode_t = uint;
+
+    alias nlink_t = size_t;
+
+    alias pid_t = int;
+    //size_t (defined in core.stdc.stddef)
+    alias ssize_t = ptrdiff_t;
+    alias uid_t = uint;
+
+    alias time_t = long;
+}
+else version (CRuntime_WASI)
+{
+    alias blkcnt_t = long;
+    alias ino_t = ulong;
+    alias off_t = long;
+
+    alias blksize_t = c_long;
+
+    alias dev_t = ulong;
+    alias gid_t = uint;
+    alias mode_t = uint;
+
+    alias nlink_t = ulong;
+
+    alias pid_t = int;
+    //size_t (defined in core.stdc.stddef)
+    alias ssize_t = c_long;
+    alias uid_t = uint;
+
+    alias time_t = long;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -483,6 +525,28 @@ else version (Hurd)
     alias id_t = uint;
     alias key_t = int;
     alias suseconds_t = slong_t;
+    alias useconds_t = uint;
+}
+else version (Emscripten)
+{
+    alias fsblkcnt_t = ulong;
+    alias fsfilcnt_t = ulong;
+
+    alias clock_t = int; // for wasm64 too
+    alias id_t = uint;
+    alias key_t = int;
+    alias suseconds_t = int; // for wasm64 too
+    alias useconds_t = uint;
+}
+else version (CRuntime_WASI)
+{
+    alias fsblkcnt_t = ulong;
+    alias fsfilcnt_t = ulong;
+
+    alias clock_t = long;
+    alias id_t = uint;
+    alias key_t = int;
+    alias suseconds_t = long;
     alias useconds_t = uint;
 }
 else
@@ -778,13 +842,13 @@ version (CRuntime_Glibc)
 
             alias pthread_once_t = int;
 
-            struct pthread_rwlock_t
+            union pthread_rwlock_t
             {
                 byte[__SIZEOF_PTHREAD_RWLOCK_T] __size;
                 c_long __align;
             }
 
-            struct pthread_rwlockattr_t
+            union pthread_rwlockattr_t
             {
                 byte[__SIZEOF_PTHREAD_RWLOCKATTR_T] __size;
                 c_long __align;
@@ -882,6 +946,112 @@ version (CRuntime_Glibc)
     }
 }
 else version (CRuntime_Musl)
+{
+    version (D_LP64)
+    {
+        version (Emscripten)
+        {
+            struct pthread_attr_t
+            {
+                union
+                {
+                    int[10] __i;
+                    c_ulong[10] __s;
+                }
+                const(char)* _a_transferredcanvases;
+            }
+        }
+        else
+        {
+            union pthread_attr_t
+            {
+                int[14] __i;
+                ulong[7] __s;
+            }
+        }
+
+        union pthread_cond_t
+        {
+            int[12] __i;
+            void*[6] __p;
+        }
+
+        union pthread_mutex_t
+        {
+            int[10] __i;
+            void*[5] __p;
+        }
+
+        union pthread_rwlock_t
+        {
+            int[14] __i;
+            void*[7] __p;
+        }
+    }
+    else
+    {
+        version (Emscripten)
+        {
+            struct pthread_attr_t
+            {
+                union
+                {
+                    int[10] __i;
+                    c_ulong[10] __s;
+                }
+                const(char)* _a_transferredcanvases;
+            }
+        }
+        else
+        {
+            union pthread_attr_t
+            {
+                int[9] __i;
+                uint[9] __s;
+            }
+        }
+
+        union pthread_cond_t
+        {
+            int[12] __i;
+            void*[12] __p;
+        }
+
+        union pthread_mutex_t
+        {
+            int[6] __i;
+            void*[6] __p;
+        }
+
+        union pthread_rwlock_t
+        {
+            int[8] __i;
+            void*[8] __p;
+        }
+    }
+
+    struct pthread_rwlockattr_t
+    {
+        uint[2] __attr;
+    }
+
+    alias pthread_key_t = uint;
+
+    struct pthread_condattr_t
+    {
+        uint __attr;
+    }
+
+    struct pthread_mutexattr_t
+    {
+        uint __attr;
+    }
+
+    alias pthread_once_t = int;
+
+    alias pthread_t = c_ulong;
+}
+else version (CRuntime_WASI)
 {
     version (D_LP64)
     {
@@ -1489,13 +1659,13 @@ version (CRuntime_Glibc)
 {
   version (linux)
   {
-      struct pthread_barrier_t
+      union pthread_barrier_t
       {
           byte[__SIZEOF_PTHREAD_BARRIER_T] __size;
           c_long __align;
       }
 
-      struct pthread_barrierattr_t
+      union pthread_barrierattr_t
       {
           byte[__SIZEOF_PTHREAD_BARRIERATTR_T] __size;
           int __align;
@@ -1586,6 +1756,30 @@ else version (CRuntime_Musl)
         uint __attr;
     }
 }
+else version (CRuntime_WASI)
+{
+    version (D_LP64)
+    {
+        union pthread_barrier_t
+        {
+            int[8] __i;
+            void*[4] __p;
+        }
+    }
+    else
+    {
+        union pthread_barrier_t
+        {
+            int[5] __i;
+            void*[5] __p;
+        }
+    }
+
+    struct pthread_barrierattr_t
+    {
+        uint __attr;
+    }
+}
 else version (CRuntime_UClibc)
 {
     struct pthread_barrier_t
@@ -1641,6 +1835,10 @@ else version (CRuntime_UClibc)
     alias pthread_spinlock_t = int; // volatile
 }
 else version (CRuntime_Musl)
+{
+    alias pthread_spinlock_t = int;
+}
+else version (CRuntime_WASI)
 {
     alias pthread_spinlock_t = int;
 }

@@ -2,9 +2,9 @@
 TEST_OUTPUT:
 ---
 fail_compilation/format.d(101): Error: `pragma(printf)` function `printf1` must have `extern(C)` or `extern(C++)` linkage, not `extern(D)`
-fail_compilation/format.d(102): Error: `pragma(printf)` function `printf2` must have signature `int printf2([parameters...], const(char)*, ...)` not `extern (C) int(const(int)*, ...)`
+fail_compilation/format.d(102): Error: `pragma(printf)` function `printf2` must have signature `int printf2([parameters...], const(char)*, ...)` not `extern(C) int(const(int)*, ...)`
 fail_compilation/format.d(103): Error: `pragma(printf)` function `printf3` must have signature `int printf3([parameters...], const(char)*, va_list)`
-fail_compilation/format.d(104): Error: `pragma(printf)` function `printf4` must have signature `int printf4([parameters...], const(char)*, ...)` not `extern (C) int(const(char)*, int, ...)`
+fail_compilation/format.d(104): Error: `pragma(printf)` function `printf4` must have signature `int printf4([parameters...], const(char)*, ...)` not `extern(C) int(const(char)*, int, ...)`
 ---
  */
 

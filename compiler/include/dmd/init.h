@@ -82,7 +82,7 @@ public:
 class ArrayInitializer final : public Initializer
 {
 public:
-    Expressions index;  // indices
+    Initializers index; // indices
     Initializers value; // of Initializer *'s
     unsigned dim;       // length of array being initialized
     Type *type;         // type that array will be used to initialize
@@ -125,6 +125,6 @@ public:
 
 namespace dmd
 {
-    Expression *initializerToExpression(Initializer *init, Type *t = nullptr, const bool isCfile = false);
+    Expression *initializerToExpression(Initializer *init, Scope* sc, Type *t);
     Initializer *initializerSemantic(Initializer *init, Scope *sc, Type *&tx, NeedInterpret needInterpret);
 }

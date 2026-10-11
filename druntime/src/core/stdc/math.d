@@ -214,8 +214,16 @@ else
 enum int MATH_ERRNO       = 1;
 ///
 enum int MATH_ERREXCEPT   = 2;
-///
-enum int math_errhandling = MATH_ERRNO | MATH_ERREXCEPT;
+version (WASI) // incl. Emscripten
+{
+    ///
+    enum int math_errhandling = 2;
+}
+else
+{
+    ///
+    enum int math_errhandling = MATH_ERRNO | MATH_ERREXCEPT;
+}
 
 version (none)
 {
@@ -796,12 +804,12 @@ else version (CRuntime_WASI)
         bool isnormal(T)(T val) pure => llvm_is_fpclass(val, (1 << 3) | (1 << 8)); // __builtin_isnormal
         bool isfinite(T)(T val) pure => llvm_is_fpclass(val, (1 << 3) | (1 << 4) | (1 << 5) | (1 << 6) | (1 << 7) | (1 << 8)); // __builtin_isfinite
 
-        bool signbit(float val) pure => cast(int)val < 0; // __builtin_signbit
-        bool signbit(double val) pure => cast(long)val < 0; // __builtin_signbit
+        bool signbit(float val) pure => *cast(int*)&val < 0; // __builtin_signbit
+        bool signbit(double val) pure => *cast(long*)&val < 0; // __builtin_signbit
 
         // __builtin_signbit
         // Uses LLVM IR to access i128 ops directly
-        // approximately: cast(cent)val < 0
+        // approximately: *cast(cent*)&val < 0
         import ldc.llvmasm : __ir_pure;
         bool signbit(real val) pure => __ir_pure!(`
             %cast = bitcast fp128 %0 to i128

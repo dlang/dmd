@@ -113,6 +113,7 @@ class StaticIfDeclaration;
 class MixinDeclaration;
 class StaticForeachDeclaration;
 class UserAttributeDeclaration;
+class UnpackDeclaration;
 class ForwardingAttribDeclaration;
 
 class ScopeDsymbol;
@@ -377,6 +378,7 @@ public:
     virtual void visit(StorageClassDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(ConditionalDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(StaticForeachDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(UnpackDeclaration *s) { visit((AttribDeclaration *)s); }
 
     // Miscellaneous
     virtual void visit(DeprecatedDeclaration *s) { visit((StorageClassDeclaration *)s); }

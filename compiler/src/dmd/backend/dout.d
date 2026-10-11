@@ -1002,7 +1002,7 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
     else
     {
         //printf("blockopt()\n");
-        blockopt(go, bo);                   /* optimize                     */
+        blockopt(go, bo, go.changes);       /* optimize                     */
     }
 
     assert(funcsym_p == sfunc);
@@ -1061,12 +1061,6 @@ void writefunc2(Symbol* sfunc, ref GlobalOptimizer go, ref BlockOpt bo)
         !(sfunc.Sclass == SC.inline && !(config.flags2 & CFG2comdat)) &&
         sfunc.ty() & mTYexport)
         objmod.export_symbol(sfunc,cast(uint)cgstate.Para.offset);      // export function definition
-
-    if (config.fulltypes && config.fulltypes != CV8)
-    {
-        if (config.objfmt == OBJ_MSCOFF)
-            cv_func(sfunc);                 // debug info for function
-    }
 
     /* This is to make uplevel references to SCfastpar variables
      * from nested functions work.

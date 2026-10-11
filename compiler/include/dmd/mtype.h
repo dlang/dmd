@@ -33,6 +33,8 @@ class TemplateDeclaration;
 class TypeBasic;
 class Parameter;
 
+class UnpackDeclaration;
+
 // Back end
 #ifdef IN_GCC
 typedef union tree_node type;
@@ -428,9 +430,11 @@ public:
     Identifier *ident;
     Expression *defaultArg;
     UserAttributeDeclaration *userAttribDecl;   // user defined attributes
+    UnpackDeclaration *unpack;
 
     static Parameter *create(Loc loc, StorageClass storageClass, Type *type, Identifier *ident,
-                             Expression *defaultArg, UserAttributeDeclaration *userAttribDecl);
+                             Expression *defaultArg, UserAttributeDeclaration *userAttribDecl,
+                             UnpackDeclaration *unpack);
     Parameter *syntaxCopy();
     bool isLazy() const;
     bool isReference() const;

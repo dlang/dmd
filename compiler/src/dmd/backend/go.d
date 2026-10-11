@@ -376,12 +376,12 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
             scanForInlines(funcsym_p);
 
         if (go.mfoptim & MFdc)
-            blockopt(go, bo);           // do block optimization
+            blockopt(go, bo, go.changes); // do block optimization
         out_regcand(globsym[]);         // recompute register candidates
         go.changes = 0;                 // no changes yet
         sliceStructs(globsym, bo.startblock);
         if (go.mfoptim & MFcnp)
-            constprop(go, bo);              /* make relationals unsigned     */
+            constprop(go.defnod, bo, go.changes);  /* make relationals unsigned     */
         if (go.mfoptim & (MFli | MFliv))
             loopopt(go, bo);                /* remove loop invariants and    */
                                         /* induction vars                */
@@ -397,9 +397,9 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
             continue;
 
         if (go.mfoptim & MFcnp)
-            constprop(go, bo);          /* constant propagation          */
+            constprop(go.defnod, bo, go.changes); /* constant propagation          */
         if (go.mfoptim & MFcp)
-            copyprop(go, bo);           /* do copy propagation           */
+            copyprop(go.expnod, bo, go.changes);  /* do copy propagation           */
 
         /* Floating point constants and string literals need to be
          * replaced with loads from variables in read-only data.
@@ -430,9 +430,9 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
          * code generation which assumes at most one (localgotoffset).
          */
         if (go.mfoptim & MFlocal)
-            localize(go, bo);             // improve expression locality
+            localize(bo, go.changes);      // improve expression locality
         if (go.mfoptim & MFda)
-            rmdeadass(go, bo);            /* remove dead assignments       */
+            rmdeadass(go, bo, go.changes); /* remove dead assignments       */
 
         if (debugc) printf("changes = %d\n", go.changes);
         if (!(go.changes && go.mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC))
@@ -441,7 +441,7 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
     if (debugc) printf("%d iterations\n",iter);
 
     if (go.mfoptim & MFdc)
-        blockopt(go, bo);                 // do block optimization
+        blockopt(go, bo, go.changes);         // do block optimization
 
     for (block* b = bo.startblock; b; b = b.Bnext)
     {
@@ -449,7 +449,7 @@ void optfunc(ref GlobalOptimizer go, ref BlockOpt bo)
             postoptelem(b.Belem);
     }
     if (go.mfoptim & MFvbe)
-        verybusyexp(go, bo);          /* very busy expressions         */
+        verybusyexp(go.expnod, bo, go.changes); /* very busy expressions         */
     if (go.mfoptim & MFcse)
         builddags(go, bo);            /* common subexpressions         */
     if (go.mfoptim & MFdv)

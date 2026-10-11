@@ -19,6 +19,7 @@
  * For special casing ImportC code.
  */
 #define __IMPORTC__ 1
+#define __IMPORTC_DMD__ 1
 
 /********************
  * Some compilers define `__restrict` instead of `restrict` as C++ compilers don't

@@ -1,10 +1,14 @@
 import core.exception;
 import core.thread;
+import core.internal.thread : isSingleThreaded;
 
 __gshared bool caught;
 
 void main()
 {
+    if(isSingleThreaded)
+        return;
+
     filterThreadThrowableHandler = (ref Throwable t) {
         if (auto t2 = cast(AssertError) t)
         {
