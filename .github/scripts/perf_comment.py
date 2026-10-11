@@ -14,8 +14,10 @@ MARKER = "<!-- dmd-perf-bot -->"
 THRESHOLDS = {"cachegrind": 0.1, "stat": 0.1, "time -v": 2.0, "wall": 2.0}
 DOCS = "https://github.com/%s/blob/master/.github/PERF.md"
 
-TRACE_GATES = {"hello": "compile_hello_debug_instr", "phobos": "compile_phobos_instr"}
-TRACE_LABELS = {"hello": "compile hello.d", "phobos": "compile Phobos"}
+TRACE_GATES = {"hello": "compile_hello_debug_instr", "phobos": "compile_phobos_instr",
+               "ctregex": "compile_ctregex_instr"}
+TRACE_LABELS = {"hello": "compile hello.d", "phobos": "compile Phobos",
+                "ctregex": "compile ctRegex tests"}
 
 
 def delta_pct(base, head):

@@ -27,6 +27,7 @@ struct Report
     MetricResult[] metrics;
     Trace helloBase, helloHead;
     Trace phobosBase, phobosHead;
+    Trace ctregexBase, ctregexHead;
 }
 
 // One master commit measured on its own.
@@ -39,7 +40,7 @@ struct CommitRecord
     string os;
     string hostDmd;
     long[string] metrics;
-    Trace hello, phobos;
+    Trace hello, phobos, ctregex;
 }
 
 // Serialise a report to the initial schema
@@ -68,6 +69,7 @@ string render(Report rep)
         "time_trace": JSONValue([
             "hello":  traceJson(rep.helloBase, rep.helloHead),
             "phobos": traceJson(rep.phobosBase, rep.phobosHead),
+            "ctregex": traceJson(rep.ctregexBase, rep.ctregexHead),
         ]),
     ];
 
@@ -91,6 +93,7 @@ string renderCommit(CommitRecord rec)
         "time_trace": JSONValue([
             "hello":  traceJson(rec.hello),
             "phobos": traceJson(rec.phobos),
+            "ctregex": traceJson(rec.ctregex),
         ]),
     ];
 
@@ -157,4 +160,5 @@ unittest
     assert(j["push"]["commits"].integer == 3);
     assert(j["metrics"]["compile_hello_debug_instr"].integer == 1000);
     assert(j["time_trace"]["hello"]["total_us"].integer == 0);
+    assert(j["time_trace"]["ctregex"]["total_us"].integer == 0);
 }

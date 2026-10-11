@@ -81,7 +81,7 @@ int main(string[] args)
         if (headSrc.length && hostDmdBin.length)
             m[selfBuild.id] = selfBuildMs(headSrc, hostDmdBin);
         write(outPath, renderCommit(CommitRecord(headSha, committedAt, before, commits,
-            os, hostDmd, m, t.hello, t.phobos)));
+            os, hostDmd, m, t.hello, t.phobos, t.ctregex)));
         writeln("wrote ", outPath);
         return 0;
     }
@@ -109,7 +109,8 @@ int main(string[] args)
             base[def.id], head[def.id]);
 
     auto rep = Report(baseSha, "merge-base", headSha, pr, os, hostDmd, metrics,
-        baseTraces.hello, headTraces.hello, baseTraces.phobos, headTraces.phobos);
+        baseTraces.hello, headTraces.hello, baseTraces.phobos, headTraces.phobos,
+        baseTraces.ctregex, headTraces.ctregex);
     write(outPath, render(rep));
     writeln("wrote ", outPath);
     return 0;
