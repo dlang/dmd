@@ -1,0 +1,15 @@
+Support @trusted { ... } and @system { ... } block syntax
+
+`@trusted { STATEMENTS... }` and `@system { STATEMENTS... }` are now supported as shorthand for `() @trusted { STATEMENTS... }();` and `() @system { STATEMENTS... }();` in statement and expression contexts.
+-------
+void foo() @safe
+{
+    int x = 0;
+    @trusted {
+		int* p = &x;
+		int* q = p + 1;
+		*(q - 1) = 42;
+    }
+    assert(x == 42);
+}
+-------

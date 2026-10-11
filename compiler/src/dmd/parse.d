@@ -5799,6 +5799,31 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         return f;
     }
+    private bool isSafetyBlock()
+    {
+        if (token.value != TOK.at)
+            return false;
+        Token* next = peek(&token);
+        if (next.value != TOK.identifier)
+            return false;
+        if (next.ident != Id.trusted && next.ident != Id.system && next.ident != Id.safe)
+            return false;
+        return peek(next).value == TOK.leftCurly;
+    }
+
+    private AST.Expression parseSafetyBlockExp(Loc loc)
+    {
+        nextToken(); // consume '@'
+        const stc = (token.ident == Id.trusted) ? STC.trusted :
+                    (token.ident == Id.system ? STC.system : STC.safe);
+        nextToken(); // consume attribute identifier, token is now on '{'
+        auto tf = new AST.TypeFunction(AST.ParameterList(), null, LINK.d, stc);
+        tf = cast(AST.TypeFunction)AST.addSTC(tf, stc);
+        auto fd = new AST.FuncLiteralDeclaration(loc, Loc.initial, tf, TOK.reserved, null, null, STC.none);
+        parseContracts(fd);
+        auto fe = new AST.FuncExp(loc, fd);
+        return new AST.CallExp(loc, fe);
+    }
 
     /*****************************************
      */
@@ -6414,6 +6439,18 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.pure_:
         case TOK.gshared:
         case TOK.at:
+            if (isSafetyBlock())
+            {
+                auto ce = parseSafetyBlockExp(loc);
+                s = new AST.ExpStatement(loc, ce);
+                if (token.value == TOK.semicolon)
+                    nextToken();
+                if (flags & ParseStatementFlags.scope_)
+                    s = new AST.ScopeStatement(loc, s, token.loc);
+                break;
+            }
+            goto Ldeclaration;
+
         case TOK.struct_:
         case TOK.union_:
         case TOK.class_:
@@ -9037,6 +9074,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 e = new AST.FuncExp(loc, s);
                 break;
             }
+
+        case TOK.at:
+            if (isSafetyBlock())
+            {
+                e = parseSafetyBlockExp(loc);
+                break;
+            }
+            goto default;
 
         default:
             error("expression expected, not `%s`", token.toChars());
