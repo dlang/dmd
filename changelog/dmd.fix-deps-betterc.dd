@@ -1,17 +1,12 @@
-`-deps` no longer causes spurious `-betterC` errors in unreferenced modules
+`-deps` no longer runs full semantic analysis on all imported modules
 
-Using `-deps` together with `-betterC` previously caused spurious errors
-in transitively imported druntime modules the user never referenced —
-`throw` statements in `core.exception` and GC array literals in
-`core.time` being the most common.
+`-deps` used to force semantic analysis of every function body in every
+imported module, just to find more dependencies. That made `-deps`
+behave partly like `-i` without actually compiling those modules. It
+slowed things down, listed dependencies that don't matter for
+incremental builds, and could cause errors from library code that wasn't
+being compiled, like `-betterC` errors from druntime.
 
-This happened because `-deps` triggered `semantic3OnDependencies`, which
-forced full function-body analysis on every transitively imported module.
-Under `-betterC`, that analysis flags constructs that are perfectly legal
-in druntime but illegal in user code.
-
-The `-deps` output is populated during normal semantic passes and does not
-require this additional analysis step, so the call has been removed.
-
-To get recursive dependencies (the original motivation for this behavior),
-combine `-deps` with `-i`.
+Now `-deps` only reports what normal compilation finds. Imports inside
+function bodies of modules that aren't being compiled are no longer
+followed. To get the full transitive list, use `-deps` together with `-i`.
