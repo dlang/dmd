@@ -1075,7 +1075,7 @@ Louter:
             return;             // none available
         static if (0)
         {
-            foreach (i; 1 .. go.exptop)
+            foreach (i; 1 .. expnod.length)
             {
                 printf("expnod[%d] = (",i);
                 WReqn(expnod[i]);
@@ -1100,7 +1100,7 @@ Louter:
                 }
                 else
                 {
-                    recalc = copyPropWalk(go, b.Belem, b.Bin, changes);
+                    recalc = copyPropWalk(go.expnod, b.Belem, b.Bin, changes);
                 }
                 /*assert(vec_equal(b.Bin,b.Bout));              */
                 /* The previous assert() is correct except      */
@@ -1130,7 +1130,7 @@ Louter:
  */
 
 @trusted
-private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN, ref uint changes)
+private bool copyPropWalk(ref Barray!(elem*) expnod, elem* n, vec_t IN, ref uint changes)
 {
     bool recalc = false;
     int nocp = 0;
@@ -1211,8 +1211,8 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN, ref uint ch
             int ambig;              /* true if ambiguous def        */
 
             ambig = !OTassign(op) || t.Eoper == OPind;
-            assert(go.exptop == go.expnod.length);
-            for (size_t i = 0; (i = vec_index(i, IN)) < go.exptop; ++i) // for each active copy elem
+            assert(go.exptop == expnod.length);
+            for (size_t i = 0; (i = vec_index(i, IN)) < expnod.length; ++i) // for each active copy elem
             {
                 Symbol* v;
 
@@ -1221,7 +1221,7 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN, ref uint ch
 
                 /* If this elem could kill the lvalue or the rvalue, */
                 /*      Clear bit in IN.                        */
-                v = go.expnod[i].E1.Vsym;
+                v = expnod[i].E1.Vsym;
                 if (ambig)
                 {
                     if (Symbol_isAffected(*v))
@@ -1233,7 +1233,7 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN, ref uint ch
                         goto clr;
                 }
 
-                v = go.expnod[i].E2.Vsym;
+                v = expnod[i].E2.Vsym;
                 if (ambig)
                 {
                     if (Symbol_isAffected(*v))
@@ -1250,7 +1250,7 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN, ref uint ch
                 vec_clearbit(i,IN);     /* so remove it from the vector */
             } /* foreach */
 
-            /* If this is a copy elem in go.expnod[]   */
+            /* If this is a copy elem in expnod[]      */
             /*      Set bit in IN.                     */
             if ((op == OPeq || op == OPstreq) && n.E1.Eoper == OPvar &&
                 n.E2.Eoper == OPvar && n.Eexp)
@@ -1269,10 +1269,10 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN, ref uint ch
 
             elem* foundelem = null;
             Symbol* f;
-            assert(go.exptop == go.expnod.length);
-            for (size_t i = 0; (i = vec_index(i, IN)) < go.exptop; ++i) // for all active copy elems
+            assert(go.exptop == expnod.length);
+            for (size_t i = 0; (i = vec_index(i, IN)) < expnod.length; ++i) // for all active copy elems
             {
-                elem* c = go.expnod[i];
+                elem* c = expnod[i];
                 assert(c);
 
                 uint csz = tysize(c.E1.Ety);
@@ -1321,13 +1321,13 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN, ref uint ch
                  *  g = v   => g = f
                  *  f = x
                  *  d = g   => d = f !!error
-                 * Therefore, if n appears as an rvalue in go.expnod[], then recalc
+                 * Therefore, if n appears as an rvalue in expnod[], then recalc
                  */
-                assert(go.exptop == go.expnod.length);
-                foreach (j; 1 .. go.exptop)
+                assert(go.exptop == expnod.length);
+                foreach (j; 1 .. expnod.length)
                 {
-                    //printf("go.expnod[%d]: ", j); elem_print(go.expnod[j]);
-                    if (go.expnod[j].E2 == n)
+                    //printf("expnod[%d]: ", j); elem_print(expnod[j]);
+                    if (expnod[j].E2 == n)
                     {
                         recalc = true;
                         break;
