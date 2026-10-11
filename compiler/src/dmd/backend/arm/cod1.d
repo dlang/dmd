@@ -113,6 +113,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
     if (cs.reg != NOREG)
     {
         uint sf = szw == 8;
+        assert(cs.reg < 32);
         void mov()
         {
             if (cs.reg != reg)                  // no need to mov onto itself
