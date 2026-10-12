@@ -291,8 +291,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
                 if (hasInvalidEnumInitializer(ei.exp))
                 {
-                    eSink.error(vd.loc, "%s `%s` : Unable to initialize enum with class or pointer to struct", vd.kind, vd.toPrettyChars);
-                    eSink.errorSupplemental(vd.loc, "use static const variable instead");
+                    eSink.error(vd.loc, "%s `%s` cannot be initialized with class or pointer to struct", vd.kind, vd.toPrettyChars);
+                    eSink.errorSupplemental(vd.loc, "use `static immutable` variable instead");
                 }
             }
         }

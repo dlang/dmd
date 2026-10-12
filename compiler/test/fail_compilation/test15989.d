@@ -1,10 +1,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test15989.d(41): Error: variable `test15989.main.ctRegex` : Unable to initialize enum with class or pointer to struct
-fail_compilation/test15989.d(41):        use static const variable instead
-fail_compilation/test15989.d(50): Error: variable `test15989.test.c` : Unable to initialize enum with class or pointer to struct
-fail_compilation/test15989.d(50):        use static const variable instead
+fail_compilation/test15989.d(41): Error: variable `test15989.main.ctRegex` cannot be initialized with class or pointer to struct
+fail_compilation/test15989.d(41):        use `static immutable` variable instead
+fail_compilation/test15989.d(50): Error: variable `test15989.test.c` cannot be initialized with class or pointer to struct
+fail_compilation/test15989.d(50):        use `static immutable` variable instead
 fail_compilation/test15989.d(51): Error: cannot use non-constant CTFE pointer in an initializer `new int(3)`
 ---
 */
