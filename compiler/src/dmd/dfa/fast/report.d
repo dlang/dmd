@@ -21,6 +21,7 @@ import dmd.func;
 import dmd.errorsink;
 import dmd.declaration;
 import dmd.astenums;
+import dmd.typesem : hasPointers, toBasetype;
 import core.stdc.stdio;
 
 ///
@@ -679,8 +680,13 @@ private:
             if (hadAnIndirection)
             {
             }
-            else if (cellOf !is null && !cellOf.unmodellable
-                && intoVar.youngestLifeTimeAllowedDepth < cellOf.oldestLifeTimeAllowedDepth)
+            // The return variable leaves the frame, so any frame-local cell escapes
+            //  regardless of the marking at the return assignment.
+            else if (cellOf !is null
+                && (intoVar is returnVar
+                    ? isCellEscapedByReturn(cellOf)
+                    : !cellOf.unmodellable
+                        && intoVar.youngestLifeTimeAllowedDepth < cellOf.oldestLifeTimeAllowedDepth))
             {
                 cellOf.mayEscapeInitialValue = true;
 
@@ -740,6 +746,35 @@ private:
                 }
             });
         }
+    }
+
+    /***************************************
+     * Whether a cell of this frame may be reported as escaped by the return
+     * value. Only `@safe` code, only storage of a local, and only a cell that
+     * holds no references: a record's field is read by value while the engine
+     * models the access as an offset into the record, and a holder of
+     * references is not storage an address can point into. Under-approximate.
+     */
+    bool isCellEscapedByReturn(DFAVar* cellOf)
+    {
+        auto tf = dfaCommon.currentFunction !is null
+            ? dfaCommon.currentFunction.type.isTypeFunction : null;
+
+        if (tf is null || tf.trust != TRUST.safe)
+            return false;
+
+        if (cellOf.var.type is null || cellOf.oldestLifeTimeAllowedDepth <= 0)
+            return false;
+
+        // A capture's storage is a heap closure or an outer frame, not this frame.
+        foreach (vd; dfaCommon.currentFunction.closureVars)
+            if (vd is cellOf.var)
+                return false;
+        foreach (vd; dfaCommon.currentFunction.outerVars)
+            if (vd is cellOf.var)
+                return false;
+
+        return !cellOf.var.type.toBasetype().hasPointers;
     }
 
     void checkForUnknownEscape(const(char)* escapeMethod,

@@ -1007,7 +1007,13 @@ struct ExpressionWalker
                     DFAConsequence* newCctx = base.addConsequence(asSliceVar);
                     base.setContext(newCctx);
 
-                    if (baseCctx !is null && baseCctx.obj !is null)
+                    if (baseCtx !is null && !baseCtx.haveBase && baseCtx.isStaticArray)
+                    {
+                        // `staticArr[]` aliases the array's own storage: root at
+                        // the cell, not the value the variable last held.
+                        newCctx.obj = dfaCommon.makeObject(baseCtx);
+                    }
+                    else if (baseCctx !is null && baseCctx.obj !is null)
                         newCctx.obj = baseCctx.obj;
                     else if (baseCtx !is null && !baseCtx.haveBase)
                         newCctx.obj = dfaCommon.makeObject(baseCtx);
@@ -1052,6 +1058,15 @@ struct ExpressionWalker
 
                 DFAConsequence* newCctx = ret.addConsequence(asSliceVar);
                 ret.setContext(newCctx);
+
+                if (baseCtx !is null && !baseCtx.haveBase && baseCtx.isStaticArray)
+                {
+                    // Bounded slice of a static array (`arr[lwr .. upr]`): as with
+                    // `arr[]`, the result aliases the array's own storage.
+                    newCctx.obj = dfaCommon.makeObject(baseCtx);
+                }
+                else if (baseCctx !is null && baseCctx.obj !is null)
+                    newCctx.obj = baseCctx.obj;
 
                 if (asSliceVar !is null)
                 {
