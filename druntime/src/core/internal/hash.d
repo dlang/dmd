@@ -193,7 +193,7 @@ if (!is(T == enum) && __traits(isStaticArray, T) && !canBitwiseHash!T)
 }
 
 //dynamic array hash
-size_t hashOf(T)(scope const T val, size_t seed = 0)
+size_t hashOf(T)(scope const auto ref T val, size_t seed = 0)
 if (is(T == S[], S) && (__traits(isScalar, S) || canBitwiseHash!S)) // excludes enum types
 {
     import core.internal.convert : toUbyte;
