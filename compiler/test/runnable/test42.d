@@ -2736,13 +2736,13 @@ class Class171 : Address {
 
     struct FwdStruct  {  }
 
-    override int nameLen()    { return 0; }
+    override int nameLen()    { return 42; }
 }
 
 void test171 ()
 {
-    Class171 xxx = new Class171;
-    assert(typeid(Class171).vtbl.length - typeid(Object).vtbl.length == 1);
+    Address xxx = new Class171;
+    assert(xxx.nameLen() == 42);
 }
 
 /***************************************************/
@@ -5905,17 +5905,18 @@ abstract class B10628
     }
 
     private bool _bar;
-    public void foo();
+    public int foo();
 }
 
 class D10628 : B10628
 {
-    public override void foo() {}
+    public override int foo() { return 42; }
 }
 
 void test10628()
 {
-    assert(typeid(D10628).vtbl.length - typeid(Object).vtbl.length == 1);
+    B10628 o = new D10628;
+    assert(o.foo() == 42);
 }
 
 /***************************************************/
