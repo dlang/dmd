@@ -2,7 +2,7 @@
 
 output_file=${OUTPUT_BASE}.log
 
-echo 'import std.stdio; void main() { writeln("Success"); }' | \
+echo 'import core.stdc.stdio; void main() { puts("Success"); }' | \
 	$DMD -m${MODEL} -run - > ${output_file}
 grep -q 'Success' ${output_file}
 
