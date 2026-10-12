@@ -2233,9 +2233,24 @@ static if (0)
                 cdb.gen1(INSTR.addsub_shift(1,0,0,0,reg,0,r,reg)); // ADD reg,r,reg
                 return;
             }
+            else if (config.objfmt == OBJ_ELF)
+                goto L4;
+            else
+            {
+                uint ins = INSTR.adr(1,0,reg);                     // ADRP reg,0<foo>
+                cdb.gencs1(ins,0,fl,e.Vsym);
+
+                ins = INSTR.ldr_imm_gen(1,reg,reg,0);              // LDR  reg,[reg]
+                cdb.gencs1(ins,0,fl,e.Vsym);
+                cdb.last.Iflags |= CF.add;
+
+                if (e.Voffset)
+                    cdb.gen1(INSTR.addsub_imm(1,0,0,0,cast(uint)e.Voffset,reg,reg)); // ADD reg,reg,#Voffset
+            }
+            break;
 //            if (config.exe & EX_WIN64 && e.Vsym.ty() & mTYthread)
 //                goto Lwin64;
-            goto L4;
+//            goto L4;
 
         case FL.data:
             if (config.exe & EX_OSX64 && cg.AArch64)
