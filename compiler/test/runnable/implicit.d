@@ -475,6 +475,19 @@ void test15778()
 }
 
 /***********************************/
+// https://github.com/dlang/dmd/issues/18342
+const(char)*  cptr  = "tic"c;
+const(wchar)* wcptr = "tac"w;
+immutable(dchar)* dcptr = "toe"d;
+
+void test18342()
+{
+    assert( cptr[0 .. 4] == "tic\0"c);
+    assert(wcptr[0 .. 4] == "tac\0"w);
+    assert(dcptr[0 .. 4] == "toe\0"d);
+}
+
+/***********************************/
 
 void main()
 {
@@ -490,6 +503,7 @@ void main()
     testDIP29_5();
     testDIP29_6();
     test15778();
+    test18342();
 
     printf("Success\n");
 }
