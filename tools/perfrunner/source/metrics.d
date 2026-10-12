@@ -61,6 +61,16 @@ immutable ctfeWorkloads = ["loop", "calls", "arrays", "strings", "aggregates", "
 // The ones whose memory use grows faster than their input.
 immutable ctfeRssWorkloads = ["arrays", "strings"];
 
+private string ctfeInstrId(string name)
+{
+    return "ctfe_" ~ name ~ "_instr";
+}
+
+private string ctfeRssId(string name)
+{
+    return "ctfe_" ~ name ~ "_max_rss";
+}
+
 struct Traces
 {
     Trace hello;
@@ -108,7 +118,7 @@ long[string] measure(string dmd, string workload, string phobos,
 }
 
 // Measure the CTFE workloads in `dir`. Each is compiled frontend-only twice,
-// the second time with the evaluation versioned out, so that the difference
+// the second time evaluating a trivial input instead, so that the difference
 // is the instructions spent interpreting.
 long[string] measureCtfe(string dmd, string dir, string tmp, string tag)
 {
@@ -117,13 +127,13 @@ long[string] measureCtfe(string dmd, string dir, string tmp, string tag)
     {
         auto src = buildPath(dir, name ~ ".d");
         auto runTag = tag ~ "-ctfe-" ~ name;
-        results["ctfe_" ~ name ~ "_instr"] = instructions(dmd, ["-o-"], src, tmp, runTag)
+        results[ctfeInstrId(name)] = instructions(dmd, ["-o-"], src, tmp, runTag)
             - instructions(dmd, ["-o-", "-version=Baseline"], src, tmp, runTag ~ "-baseline");
     }
     foreach (name; ctfeRssWorkloads)
     {
         auto src = buildPath(dir, name ~ ".d");
-        results["ctfe_" ~ name ~ "_max_rss"] = parseMaxRss(timeV(dmd, ["-o-"], src, tmp, tag ~ "-ctfe-" ~ name));
+        results[ctfeRssId(name)] = parseMaxRss(timeV(dmd, ["-o-"], src, tmp, tag ~ "-ctfe-" ~ name));
     }
     return results;
 }
@@ -214,16 +224,20 @@ long parsePageFaults(string output)
     return m[1].to!long;
 }
 
-// Every CTFE measurement needs a metric definition to be reported
+// The CTFE measurements and their metric definitions have to match: one
+// without the other is either not reported or not found when reporting
 unittest
 {
-    import std.algorithm : canFind, map;
+    import std.algorithm : equal, map, sort, startsWith;
+    import std.array : array;
+    import std.range : chain;
 
-    auto ids = initials.map!(def => def.id);
-    foreach (name; ctfeWorkloads)
-        assert(ids.canFind("ctfe_" ~ name ~ "_instr"), name);
-    foreach (name; ctfeRssWorkloads)
-        assert(ids.canFind("ctfe_" ~ name ~ "_max_rss"), name);
+    string[] defined;
+    foreach (def; initials)
+        if (def.id.startsWith("ctfe_"))
+            defined ~= def.id;
+    auto measured = chain(ctfeWorkloads.map!ctfeInstrId, ctfeRssWorkloads.map!ctfeRssId).array;
+    assert(defined.sort.equal(measured.sort));
 }
 
 unittest

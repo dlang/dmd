@@ -19,7 +19,7 @@ percent from run to run on shared CI runners, so it is shown as informational me
 | compile Phobos codegen (instr) | the Phobos compile minus a frontend-only (`-o-`) run | 0.1% |
 | compile vibe.d (instr) | instructions to compile a vibe.d app in one invocation (`-i`) | 0.1% |
 | compile ctRegex tests (instr) | instructions for `dmd -c -unittest std/regex/internal/tests.d`, the `ctRegex` unittests of Phobos | 0.1% |
-| CTFE ... (instr) | instructions spent interpreting one of the workloads in `tools/perfrunner/workloads/ctfe`: a `dmd -c -o-` run minus the same run with `-version=Baseline`, which leaves the evaluation out | 0.1% |
+| CTFE ... (instr) | instructions spent interpreting one of the workloads in `tools/perfrunner/workloads/ctfe`: a `dmd -c -o-` run minus the same run with `-version=Baseline`, which evaluates a trivial input instead | 0.1% |
 | dmd binary size (stripped) | size of the stripped dmd binary | 0.1% |
 | hello binary size (stripped) | size of the stripped hello executable | 0.1% |
 | peak RSS (compile ...) | maximum resident set size, from `/usr/bin/time -v` | 2% |

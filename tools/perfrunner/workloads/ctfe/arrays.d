@@ -14,5 +14,9 @@ long run(int n)
     return sum;
 }
 
-version (Baseline) {} else
-enum result = run(8_000);
+// The baseline evaluates a trivial input, so that both compiles do the same
+// semantic analysis and differ only in the interpreting.
+version (Baseline)
+    enum result = run(1);
+else
+    enum result = run(8_000);

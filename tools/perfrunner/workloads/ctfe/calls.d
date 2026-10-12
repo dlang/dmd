@@ -4,5 +4,9 @@ int fib(int n)
     return n < 2 ? n : fib(n - 1) + fib(n - 2);
 }
 
-version (Baseline) {} else
-enum result = fib(26);
+// The baseline evaluates a trivial input, so that both compiles do the same
+// semantic analysis and differ only in the interpreting.
+version (Baseline)
+    enum result = fib(1);
+else
+    enum result = fib(26);
