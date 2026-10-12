@@ -207,7 +207,7 @@ private Expressions* copyLiteralArray(Expressions* oldelems)
     auto newelems = new Expressions(oldelems.length);
     foreach (i, el; *oldelems)
     {
-        (*newelems)[i] = el ? copyLiteral(el).copy() : null;
+        (*newelems)[i] = el ? copyLiteralImpl(el).copy() : null;
     }
     return newelems;
 }
@@ -248,7 +248,7 @@ UnionExp copyLiteralImpl(Expression e)
     if (auto ale = e.isArrayLiteralExp())
     {
         auto elements = copyLiteralArray(ale.elements);
-        auto basis = ale.basis ? copyLiteral(ale.basis).copy() : null;
+        auto basis = ale.basis ? copyLiteralImpl(ale.basis).copy() : null;
 
         emplaceExp!(ArrayLiteralExp)(&ue, e.loc, e.type, basis, elements);
 
@@ -291,7 +291,7 @@ UnionExp copyLiteralImpl(Expression e)
             else
             {
                 // Buzilla 15681: Copy the source element always.
-                m = copyLiteral(m).copy();
+                m = copyLiteralImpl(m).copy();
 
                 // Block assignment from inside struct literals
                 if (v.type.ty != m.type.ty && v.type.ty == Tsarray)
@@ -2105,16 +2105,9 @@ UnionExp voidInitLiteral(Type t, VarDeclaration var)
     return ue;
 }
 
-private int copyDepth;
-
 UnionExp copyLiteral(Expression e)
 {
-    if (copyDepth++ == 0)
-        timeTraceBeginEvent(TimeTraceEventType.ctfeLiteralCopy);
-    scope(exit)
-    {
-        if (--copyDepth == 0)
-            timeTraceEndEvent(TimeTraceEventType.ctfeLiteralCopy, e);
-    }
+    timeTraceBeginEvent(TimeTraceEventType.ctfeLiteralCopy);
+    scope (exit) timeTraceEndEvent(TimeTraceEventType.ctfeLiteralCopy, e);
     return copyLiteralImpl(e);
 }
