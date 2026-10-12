@@ -1055,7 +1055,7 @@ private int loopcheck(block* start,block* inc,block* rel)
 /****************************
  * Do copy propagation.
  * Copy propagation elems are of the form OPvar=OPvar, and they are
- * in go.expnod[].
+ * in expnod[].
  */
 
 
@@ -1208,9 +1208,7 @@ private bool copyPropWalk(ref Barray!(elem*) expnod, elem* n, vec_t IN, ref uint
 
         if (OTdef(op))                  // if definition elem
         {
-            int ambig;              /* true if ambiguous def        */
-
-            ambig = !OTassign(op) || t.Eoper == OPind;
+            const bool ambig = !OTassign(op) || t.Eoper == OPind;  // true if ambiguous def
             assert(go.exptop == expnod.length);
             for (size_t i = 0; (i = vec_index(i, IN)) < expnod.length; ++i) // for each active copy elem
             {
@@ -1855,13 +1853,14 @@ private void dvwalk(elem* n,uint i)
  */
 
 @trusted
-public void verybusyexp(ref Barray!(elem*) expnod, ref BlockOpt bo, ref uint changes)
+public void verybusyexp(ref Barray!(elem*) expnod, ref Barray!(block*) expblk, ref BlockOpt bo, ref uint changes)
 {
     if (debugc) printf("verybusyexp()\n");
 
     flowvbe(go, bo);                  /* compute VBEs                 */
+    assert(go.exptop == expnod.length);
+    assert(go.exptop == expblk.length);
     if (go.exptop <= 1) return;        /* if no VBEs                   */
-    assert(go.expblk.length);
     if (blockinit(bo))
         return;                     // can't handle ASM blocks
     compdom(bo);                    /* compute dominators           */
@@ -1899,7 +1898,7 @@ public void verybusyexp(ref Barray!(elem*) expnod, ref BlockOpt bo, ref uint cha
      * elem j is not used.
      */
     @trusted
-    int ispath(ref GlobalOptimizer go, uint j, block* bp, block* b)
+    int ispath(uint j, block* bp, block* b)
     {
         /*chkvecdim(go.exptop,0);*/
         if (bp == b) return true;              /* the trivial case             */
@@ -1910,7 +1909,7 @@ public void verybusyexp(ref Barray!(elem*) expnod, ref BlockOpt bo, ref uint cha
         /* false if elem j is used in block bp (and reaches the end     */
         /* of bp, indicated by it being an AE in Bgen)                  */
         assert(go.exptop == expnod.length);
-        for (size_t i = 0; (i = vec_index(i, bp.Bgen)) < go.exptop; ++i) // look thru used expressions
+        for (size_t i = 0; (i = vec_index(i, bp.Bgen)) < expnod.length; ++i) // look thru used expressions
         {
             if (i != j && expnod[i] && el_match(expnod[i],expnod[j]))
                 return false;
@@ -1919,7 +1918,7 @@ public void verybusyexp(ref Barray!(elem*) expnod, ref BlockOpt bo, ref uint cha
         /* Not used in bp, see if there is a path through a predecessor */
         /* of bp                                                        */
         foreach (bl; bp.Bpred[])
-            if (ispath(go, j, bl, b))
+            if (ispath(j, bl, b))
                 return true;
 
         return false;           /* j is used along all paths            */
@@ -1975,11 +1974,11 @@ public void verybusyexp(ref Barray!(elem*) expnod, ref BlockOpt bo, ref uint cha
         }
         done = true;
         assert(go.exptop == expnod.length);
-        for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
+        for (size_t j = 0; (j = vec_index(j, b.Bout)) < expnod.length; ++j)
         {
             if (expnod[j] == null ||
                 !!OTleaf(expnod[j].Eoper) ||
-                !dom(bo, b,go.expblk[j]))
+                !dom(bo,b,go.expblk[j]))
                 vec_clearbit(j,b.Bout);
             else
                 done = false;
@@ -1994,7 +1993,7 @@ public void verybusyexp(ref Barray!(elem*) expnod, ref BlockOpt bo, ref uint cha
             vec_println(b.Bout);
         }
         assert(go.exptop == expnod.length);
-        for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
+        for (size_t j = 0; (j = vec_index(j, b.Bout)) < expnod.length; ++j)
         {
             vec_clear(blockseen);
             foreach (bl; go.expblk[j].Bpred[])
@@ -2018,12 +2017,13 @@ public void verybusyexp(ref Barray!(elem*) expnod, ref BlockOpt bo, ref uint cha
         }
 
         assert(go.exptop == expnod.length);
-        for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
+        assert(go.exptop == expblk.length);
+        for (size_t j = 0; (j = vec_index(j, b.Bout)) < expnod.length; ++j)
         {
             vec_clear(blockseen);
-            foreach (bl; go.expblk[j].Bpred[])
+            foreach (bl; expblk[j].Bpred[])
             {
-                if (ispath(go, cast(uint) j, bl, b))
+                if (ispath(cast(uint) j, bl, b))
                     goto L2;
             }
             vec_clearbit(j,b.Bout);        /* thar ain't no path   */
@@ -2039,10 +2039,10 @@ public void verybusyexp(ref Barray!(elem*) expnod, ref BlockOpt bo, ref uint cha
             vec_println(b.Bout);
         }
 
-        for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
+        for (size_t j = 0; (j = vec_index(j, b.Bout)) < expnod.length; ++j)
         {
             size_t k;
-            for (k = j + 1; k < go.exptop; k++)
+            for (k = j + 1; k < expnod.length; k++)
             {   if (vec_testbit(k,b.Bout) &&
                         el_match(expnod[j],expnod[k]))
                             goto foundvbe;
@@ -2078,7 +2078,7 @@ public void verybusyexp(ref Barray!(elem*) expnod, ref BlockOpt bo, ref uint cha
                     expnod[k] = null;
                     vec_clearbit(k,b.Bout);
                 }
-            } while (++k < go.exptop);
+            } while (++k < expnod.length);
             changes++;
         } /* foreach */
     } /* for */
