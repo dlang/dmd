@@ -1,0 +1,12 @@
+`-deps` no longer runs full semantic analysis on all imported modules
+
+`-deps` used to force semantic analysis of every function body in every
+imported module, just to find more dependencies. That made `-deps`
+behave partly like `-i` without actually compiling those modules. It
+slowed things down, listed dependencies that don't matter for
+incremental builds, and could cause errors from library code that wasn't
+being compiled, like `-betterC` errors from druntime.
+
+Now `-deps` only reports what normal compilation finds. Imports inside
+function bodies of modules that aren't being compiled are no longer
+followed. To get the full transitive list, use `-deps` together with `-i`.
