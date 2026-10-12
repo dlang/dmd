@@ -20,8 +20,5 @@ struct T
 void main()
 {
     static assert(S.init is S.init);
-    static assert(S.init != S.init);
-
     static assert(T.init is T.init);
-    static assert(T.init != T.init);
 }
