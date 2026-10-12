@@ -28,12 +28,21 @@ immutable MetricDef[] initials = [
     MetricDef("compile_phobos_codegen_instr", "compile Phobos codegen (instr)", "count", "cachegrind"),
     MetricDef("compile_vibed_instr",          "compile vibe.d (instr)",         "count", "cachegrind"),
     MetricDef("compile_ctregex_instr",        "compile ctRegex tests (instr)",  "count", "cachegrind"),
+    MetricDef("ctfe_loop_instr",              "CTFE integer loop (instr)",      "count", "cachegrind"),
+    MetricDef("ctfe_calls_instr",             "CTFE function calls (instr)",    "count", "cachegrind"),
+    MetricDef("ctfe_arrays_instr",            "CTFE arrays (instr)",            "count", "cachegrind"),
+    MetricDef("ctfe_strings_instr",           "CTFE strings (instr)",           "count", "cachegrind"),
+    MetricDef("ctfe_aggregates_instr",        "CTFE structs and classes (instr)", "count", "cachegrind"),
+    MetricDef("ctfe_aa_instr",                "CTFE associative arrays (instr)", "count", "cachegrind"),
+    MetricDef("ctfe_parser_instr",            "CTFE parser with Phobos (instr)", "count", "cachegrind"),
     MetricDef("dmd_binary_size",              "dmd binary size (stripped)",     "bytes", "stat"),
     MetricDef("hello_binary_size",            "hello binary size (stripped)",   "bytes", "stat"),
     MetricDef("hello_max_rss",                "peak RSS (compile hello.d)",     "kb",    "time -v"),
     MetricDef("phobos_max_rss",               "peak RSS (compile Phobos)",      "kb",    "time -v"),
     MetricDef("vibed_max_rss",                "peak RSS (compile vibe.d)",      "kb",    "time -v"),
     MetricDef("ctregex_max_rss",              "peak RSS (compile ctRegex tests)", "kb",  "time -v"),
+    MetricDef("ctfe_arrays_max_rss",          "peak RSS (CTFE arrays)",         "kb",    "time -v"),
+    MetricDef("ctfe_strings_max_rss",         "peak RSS (CTFE strings)",        "kb",    "time -v"),
     MetricDef("hello_page_faults",            "page faults (compile hello.d)",  "faults", "time -v"),
     MetricDef("phobos_page_faults",           "page faults (compile Phobos)",   "faults", "time -v"),
     MetricDef("vibed_page_faults",            "page faults (compile vibe.d)",   "faults", "time -v"),
@@ -46,6 +55,12 @@ enum phobosFlags = ["-i=std", "-preview=dip1000"];
 enum ctregexFlags = ["-unittest"];
 enum ctregexTests = buildPath("std", "regex", "internal", "tests.d");
 
+// One file each under workloads/ctfe, sized to spend nearly all of the
+// compile in the interpreter.
+immutable ctfeWorkloads = ["loop", "calls", "arrays", "strings", "aggregates", "aa", "parser"];
+// The ones whose memory use grows faster than their input.
+immutable ctfeRssWorkloads = ["arrays", "strings"];
+
 struct Traces
 {
     Trace hello;
@@ -56,7 +71,7 @@ struct Traces
 // Measure every metric for one dmd binary. `tag` ("base"/"head")
 // keeps the two runs' temp files apart
 long[string] measure(string dmd, string workload, string phobos,
-    string vibed, string[] vibedFlags, string tmp, string tag)
+    string vibed, string[] vibedFlags, string ctfe, string tmp, string tag)
 {
     auto stdPackage = buildPath(phobos, "std", "package.d");
     // Unlike a dub build, which compiles one package per invocation, this pulls
@@ -69,7 +84,7 @@ long[string] measure(string dmd, string workload, string phobos,
     auto vibedTime = timeV(dmd, vibeFlags, vibed, tmp, tag ~ "-vibed");
     auto ctregex = buildPath(phobos, ctregexTests);
     auto ctregexTime = timeV(dmd, ctregexFlags, ctregex, tmp, tag ~ "-ctregex");
-    return [
+    auto results = [
         "compile_hello_debug_instr":    instructions(dmd, [], workload, tmp, tag ~ "-dbg"),
         "compile_hello_release_instr":  instructions(dmd, ["-O", "-release"], workload, tmp, tag ~ "-rel"),
         "compile_phobos_instr":         phobosInstr,
@@ -87,6 +102,30 @@ long[string] measure(string dmd, string workload, string phobos,
         "vibed_page_faults":            parsePageFaults(vibedTime),
         "ctregex_page_faults":          parsePageFaults(ctregexTime),
     ];
+    foreach (id, value; measureCtfe(dmd, ctfe, tmp, tag))
+        results[id] = value;
+    return results;
+}
+
+// Measure the CTFE workloads in `dir`. Each is compiled frontend-only twice,
+// the second time with the evaluation versioned out, so that the difference
+// is the instructions spent interpreting.
+long[string] measureCtfe(string dmd, string dir, string tmp, string tag)
+{
+    long[string] results;
+    foreach (name; ctfeWorkloads)
+    {
+        auto src = buildPath(dir, name ~ ".d");
+        auto runTag = tag ~ "-ctfe-" ~ name;
+        results["ctfe_" ~ name ~ "_instr"] = instructions(dmd, ["-o-"], src, tmp, runTag)
+            - instructions(dmd, ["-o-", "-version=Baseline"], src, tmp, runTag ~ "-baseline");
+    }
+    foreach (name; ctfeRssWorkloads)
+    {
+        auto src = buildPath(dir, name ~ ".d");
+        results["ctfe_" ~ name ~ "_max_rss"] = parseMaxRss(timeV(dmd, ["-o-"], src, tmp, tag ~ "-ctfe-" ~ name));
+    }
+    return results;
 }
 
 // -ftime-trace phase times for hello, phobos and the ctRegex tests
@@ -173,6 +212,18 @@ long parsePageFaults(string output)
     if (m.empty)
         throw new Exception("could not parse page faults");
     return m[1].to!long;
+}
+
+// Every CTFE measurement needs a metric definition to be reported
+unittest
+{
+    import std.algorithm : canFind, map;
+
+    auto ids = initials.map!(def => def.id);
+    foreach (name; ctfeWorkloads)
+        assert(ids.canFind("ctfe_" ~ name ~ "_instr"), name);
+    foreach (name; ctfeRssWorkloads)
+        assert(ids.canFind("ctfe_" ~ name ~ "_max_rss"), name);
 }
 
 unittest
