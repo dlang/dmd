@@ -623,21 +623,34 @@ extern (C) UnitTestResult runModuleUnitTests()
 
     import core.internal.parseoptions : rt_configOption;
 
-    auto testMode = rt_configOption("testmode", null, false);
+    enum TestMode { unspecified, runMain, testOnly, testOrMain }
 
-    switch (testMode)
+    TestMode testMode;
+    const testModeOption = rt_configOption("testmode", null, false);
+
+    switch (testModeOption)
     {
-    case "", "run-main", "test-only", "test-or-main":
+    case "":
+        testMode = TestMode.unspecified;
+        break;
+    case "run-main":
+        testMode = TestMode.runMain;
+        break;
+    case "test-only":
+        testMode = TestMode.testOnly;
+        break;
+    case "test-or-main":
+        testMode = TestMode.testOrMain;
         break;
     default:
         import core.stdc.stdio : FILE, fprintf, stderr;
         fprintf(cast(FILE*) stderr, "Unknown --DRT-testmode option: %.*s\n",
-            cast(int) testMode.length, testMode.ptr);
+            cast(int) testModeOption.length, testModeOption.ptr);
         return UnitTestResult.fail;
     }
 
     // An explicit test mode selects the per-module runner below.
-    if (!testMode.length && hasUnitTestInfo())
+    if (testMode == TestMode.unspecified && hasUnitTestInfo())
         return runIndividualUnitTests();
 
     UnitTestResult results;
@@ -688,25 +701,23 @@ extern (C) UnitTestResult runModuleUnitTests()
         // by default, we always print a summary if there are failures.
         results.summarize = true;
     }
-    else switch (testMode)
+    else final switch (testMode)
     {
-    case "run-main":
+    case TestMode.runMain:
         results.runMain = true;
         break;
-    case "test-only":
+    case TestMode.testOnly:
         // Never run main, always summarize
         results.summarize = true;
         break;
-    case "":
+    case TestMode.unspecified:
         // By default, do not run main if tests are present.
-    case "test-or-main":
+    case TestMode.testOrMain:
         // only run main if there were no tests. Only summarize if we are not
         // running main.
         results.runMain = (results.executed == 0);
         results.summarize = !results.runMain;
         break;
-    default:
-        assert(0);
     }
 
     return results;
