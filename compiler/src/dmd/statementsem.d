@@ -849,14 +849,14 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 if (fs.op == TOK.foreach_reverse_)
                 {
                     eSink.errorSupplemental(fs.loc, "`foreach_reverse` works with bidirectional ranges"~
-                        " (implementing `back` and `popBack`), aggregates implementing" ~
+                        " (implementing `empty`, `back`, and `popBack`), aggregates implementing" ~
                         " `opApplyReverse`, or the result of an aggregate's `.tupleof` property");
                     eSink.errorSupplemental(fs.loc, "https://dlang.org/phobos/std_range_primitives.html#isBidirectionalRange");
                 }
                 else
                 {
                     eSink.errorSupplemental(fs.loc, "`foreach` works with input ranges"~
-                        " (implementing `front` and `popFront`), aggregates implementing" ~
+                        " (implementing `empty`, `front`, and `popFront`), aggregates implementing" ~
                         " `opApply`, or the result of an aggregate's `.tupleof` property");
                     eSink.errorSupplemental(fs.loc, "https://dlang.org/phobos/std_range_primitives.html#isInputRange");
                 }
