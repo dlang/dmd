@@ -5228,7 +5228,7 @@ public:
             uinteger_t ilwr = se.lwr.toInteger();
             uinteger_t iupr = se.upr.toInteger();
 
-            if (index > iupr - ilwr)
+            if (index >= iupr - ilwr)
             {
                 eSink.error(e.loc, "index %llu exceeds array length %llu", index, iupr - ilwr);
                 return false;

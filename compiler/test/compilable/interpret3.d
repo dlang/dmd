@@ -3214,7 +3214,7 @@ int ctfeSort6250()
      x[0] = a[1 .. 2];
      x[1] = a[2 .. $];
      assert(x[0][0] == 18);
-     assert(x[0][1] == 19);
+     assert(x[1][0] == 19);
      swap6250(&x[0], &x[1]);
      assert(x[0][0] == 19);
      assert(x[1][0] == 18);
@@ -3252,7 +3252,7 @@ long ctfeSort6250b()
      x[0] = a[1 .. 2];
      x[1] = a[2 .. $];
      assert(x[0][0] == 18);
-     assert(x[0][1] == 19);
+     assert(x[1][0] == 19);
      swap6250b(&x[0], &x[1]);
      assert(x[0][0] == 19);
      assert(x[1][0] == 18);
