@@ -29,7 +29,7 @@ class NoFinalizeBig : NoFinalize
     ubyte[4096] _big = void;
 }
 
-extern (C) alias SetFinalizeCounter = void function(shared(size_t*));
+extern (C) alias SetFinalizeCounter = void function(shared(size_t)*);
 
 void main(string[] args)
 {
@@ -48,8 +48,7 @@ void main(string[] args)
     static shared size_t finalizeCounter;
     SetFinalizeCounter setFinalizeCounter;
     loadSym(h, setFinalizeCounter, "setFinalizeCounter");
-    ref counter = finalizeCounter;
-    setFinalizeCounter(&counter);
+    setFinalizeCounter(&finalizeCounter);
 
     runTest();
     auto thr = new Thread(&runTest);
