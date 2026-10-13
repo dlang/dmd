@@ -100,7 +100,7 @@ struct ObState
 
     ~this()
     {
-        mem.xfree(varPool.ptr);
+        mem.xfree(varPool.ptr, varPool.length * varPool[0].sizeof);
     }
 }
 
@@ -1619,7 +1619,7 @@ void genKill(ref ObState obstate, ObNode* ob)
                     ob.gen[i].combine(gen1[i], i, ob.gen);
                 }
 
-                mem.xfree(p); // should free .deps too
+                mem.xfree(p, vlen * PtrVarState.sizeof); // should free .deps too
             }
 
             override void visit(CondExp e)
@@ -1655,7 +1655,7 @@ void genKill(ref ObState obstate, ObNode* ob)
                     ob.gen[i].combine(gen1[i], i, ob.gen);
                 }
 
-                mem.xfree(p); // should free .deps too
+                mem.xfree(p, vlen * PtrVarState.sizeof); // should free .deps too
             }
 
             override void visit(AddrExp e)
@@ -2365,7 +2365,7 @@ void checkObErrors(ref ObState obstate)
                     cpvs[i].combine(out1[i], i, cpvs);
                 }
 
-                mem.xfree(p); // should free .deps too
+                mem.xfree(p, vlen * PtrVarState.sizeof); // should free .deps too
             }
 
             override void visit(CondExp e)
@@ -2399,7 +2399,7 @@ void checkObErrors(ref ObState obstate)
                     cpvs[i].combine(out1[i], i, cpvs);
                 }
 
-                mem.xfree(p); // should free .deps too
+                mem.xfree(p, vlen * PtrVarState.sizeof); // should free .deps too
             }
 
             override void visit(AddrExp e)

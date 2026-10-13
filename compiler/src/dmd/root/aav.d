@@ -233,7 +233,7 @@ private KeyValue[] dmd_aaRehash(KeyValue[] b) pure nothrow
         }
     }
     if (b.length > 1)
-        mem.xfree(b.ptr);
+        mem.xfree(b.ptr, KeyValue.sizeof * b.length);
     return newb[0..len];
 }
 

@@ -245,9 +245,13 @@ private:
     void freeMem() nothrow pure
     {
         foreach (pool; pools)
-            mem.xfree(pool);
-        mem.xfree(table.ptr);
-        mem.xfree(pools.ptr);
+        {
+            auto sv = cast(StringValue!(T)*)pools[$ - 1];
+            size_t nbytes = (StringValue!T).sizeof + sv.length + 1;
+            mem.xfree(pool, nbytes < POOL_SIZE ? POOL_SIZE : nbytes);
+        }
+        mem.xfree(table.ptr, table.length * (table[0]).sizeof);
+        mem.xfree(pools.ptr, pools.length * (pools[0]).sizeof);
         table = null;
         pools = null;
     }
@@ -258,7 +262,8 @@ private:
         const(size_t) nbytes = (StringValue!T).sizeof + str.length + 1;
         if (!pools.length || nfill + nbytes > POOL_SIZE)
         {
-            pools = (cast(ubyte**) mem.xrealloc(pools.ptr, (pools.length + 1) * (pools[0]).sizeof))[0 .. pools.length + 1];
+            auto p = mem.xrealloc(pools.ptr, (pools.length + 1) * (pools[0]).sizeof, pools.length * (pools[0]).sizeof);
+            pools = (cast(ubyte**) p)[0 .. pools.length + 1];
             pools[$-1] = cast(ubyte*) mem.xmalloc(nbytes > POOL_SIZE ? nbytes : POOL_SIZE);
             if (mem.isGCEnabled)
                 memset(pools[$ - 1], 0xff, POOL_SIZE); // 0xff less likely to produce GC pointer
@@ -311,7 +316,7 @@ private:
             const sv = getValue(se.vptr);
             table[findSlot(se.hash, sv.toString())] = se;
         }
-        mem.xfree(otab.ptr);
+        mem.xfree(otab.ptr, otab.length * otab[0].sizeof);
     }
 }
 
