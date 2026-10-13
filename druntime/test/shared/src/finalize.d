@@ -1,5 +1,4 @@
 import core.atomic : atomicLoad;
-import core.internal.traits : Unshared;
 import core.runtime;
 import core.stdc.string : strrchr;
 import core.thread;
@@ -30,7 +29,7 @@ class NoFinalizeBig : NoFinalize
     ubyte[4096] _big = void;
 }
 
-extern (C) alias SetFinalizeCounter = void function(shared(size_t*));
+extern (C) alias SetFinalizeCounter = void function(shared(size_t)*);
 
 void main(string[] args)
 {
@@ -49,15 +48,7 @@ void main(string[] args)
     static shared size_t finalizeCounter;
     SetFinalizeCounter setFinalizeCounter;
     loadSym(h, setFinalizeCounter, "setFinalizeCounter");
-    alias UnsharedCounter = Unshared!(typeof(finalizeCounter));
-    auto finalizeCounterPtr = (() @trusted
-    {
-        // This test must publish the address of a shared counter to a
-        // dynamically loaded library; the library performs the actual access
-        // atomically, but address formation itself has no atomic API.
-        return cast(shared(UnsharedCounter)*) &(*cast(UnsharedCounter*) &finalizeCounter);
-    })();
-    setFinalizeCounter(finalizeCounterPtr);
+    setFinalizeCounter(&finalizeCounter);
 
     runTest();
     auto thr = new Thread(&runTest);
