@@ -155,7 +155,7 @@ private bool isIncrementOrDecrement(Expression e)
                         {
                             if (auto op = argExp.isStringExp())
                             {
-                                if (op.len == 2 && op.sz == 1)
+                                if (op.length == 2 && op.sz == 1)
                                 {
                                     const s = op.peekString();
                                     if (s == "++" || s == "--")

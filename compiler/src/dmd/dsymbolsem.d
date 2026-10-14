@@ -2554,7 +2554,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 Type next = tsa.next.toBasetype();
                 if (next.ty == TY.Tchar || next.ty == TY.Twchar || next.ty == TY.Tdchar)
                 {
-                    tsa.dim = new IntegerExp(loc, se.len, Type.tsize_t);
+                    tsa.dim = new IntegerExp(loc, se.length, Type.tsize_t);
                     return true;
                 }
                 return false;
@@ -10341,9 +10341,9 @@ bool _isZeroInit(Expression exp)
             auto se = cast(StringExp)exp;
 
             if (se.type.toBasetype().ty == Tarray) // if initializing a dynamic array
-                return se.len == 0;
+                return se.length == 0;
 
-            foreach (i; 0 .. se.len)
+            foreach (i; 0 .. se.length)
             {
                 if (se.getIndex(i) != 0)
                     return false;

@@ -265,7 +265,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
 
         size_t len;
         if (auto strExp = e.e1.isStringExp())
-            len = strExp.len;
+            len = strExp.length;
         else if (auto arrExp = e.e1.isArrayLiteralExp())
             len = arrExp.length;
         else

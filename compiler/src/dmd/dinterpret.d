@@ -3998,7 +3998,7 @@ public:
             else if (auto se = e1.isStringExp())
             {
                 lowerbound = 0;
-                upperbound = se.len;
+                upperbound = se.length;
             }
             else if (e1.op == EXP.null_)
             {
@@ -5870,16 +5870,16 @@ public:
             if (se && se.hexString && se.postfix == StringExp.NoPostfix && e.to.nextOf().isIntegral)
             {
                 const sz = cast(size_t) e.to.nextOf().size;
-                if ((se.len % sz) != 0)
+                if ((se.length % sz) != 0)
                 {
                     eSink.error(e.loc, "hex string length %d must be a multiple of %d to cast to `%s`",
-                        cast(int) se.len, cast(int) sz, e.to.toErrMsg());
+                        cast(int) se.length, cast(int) sz, e.to.toErrMsg());
                     result = CTFEExp.cantexp;
                     return;
                 }
 
                 auto str = arrayCastBigEndian(se.peekData(), sz);
-                emplaceExp!(StringExp)(pue, e1.loc, str, se.len / sz, cast(ubyte) sz);
+                emplaceExp!(StringExp)(pue, e1.loc, str, se.length / sz, cast(ubyte) sz);
                 result = pue.exp();
                 result.type = e.to;
                 return;
