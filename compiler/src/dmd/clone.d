@@ -1858,7 +1858,9 @@ private void findMoveAndCopyConstructors(Dsymbol ctor, out CtorDeclaration copyC
 void needCopyOrMoveCtor(StructDeclaration sd, out bool hasCopyCtor, out bool hasMoveCtor, out bool needCopyCtor, out bool needMoveCtor)
 {
     //printf("needCopyOrMoveCtor() %s\n", sd.toChars());
-    if (global.errors)
+    // Only real errors stop this: errors gagged by a speculative analysis would otherwise
+    // leave a struct whose semantic finishes inside it without its copy constructor.
+    if (global.errors != global.gaggedErrors)
         return;
 
     Dsymbol ctor;
