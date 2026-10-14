@@ -5256,7 +5256,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     a.toPrettyChars(), a.kind, b.toPrettyChars(), b.kind);
             return false;
         }
-        if (a.isUnionDeclaration())
+        if (a.isUnionDeclaration() && b.isUnionDeclaration())
         {
             // Unions have no member order or offsets to disagree on, so
             // only the overall size and alignment need to match.
@@ -5267,8 +5267,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (a.structsize != b.structsize || a.alignment != b.alignment)
             {
                 incompatError();
-                eSink.errorSupplemental(a.loc, "`%s` has a different size or alignment than `%s`",
-                        a.toPrettyChars(), b.toPrettyChars());
+                eSink.errorSupplemental(a.loc, "`%s` is %u bytes, `%s` is %u bytes",
+                        a.toPrettyChars(), a.structsize, b.toPrettyChars(), b.structsize);
+                if (a.alignment.isDefault())
+                    eSink.errorSupplemental(a.loc, "`%s` alignment: default", a.toPrettyChars());
+                else
+                    eSink.errorSupplemental(a.loc, "`%s` alignment: %u", a.toPrettyChars(), cast(uint)a.alignment.get());
+                if (b.alignment.isDefault())
+                    eSink.errorSupplemental(b.loc, "`%s` alignment: default", b.toPrettyChars());
+                else
+                    eSink.errorSupplemental(b.loc, "`%s` alignment: %u", b.toPrettyChars(), cast(uint)b.alignment.get());
                 return false;
             }
             return true;
