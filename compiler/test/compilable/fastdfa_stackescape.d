@@ -159,6 +159,39 @@ int[] elementOfStaticArrayOfSlices()
     return t[0];
 }
 
+/****************** reassignment away from stack data ****************/
+
+int globalInt;
+
+// A pointer reassigned to global data no longer points at the stack.
+int* reassignPointerToGlobal()
+{
+    int x = 0;
+    int* p = &x;
+    p = &globalInt;
+    return p;
+}
+
+// A slice reassigned to another array no longer aliases the static array.
+int[] reassignSliceToOther()
+{
+    int[3] arr = [1, 2, 3];
+    int[] s = arr[];
+    int[] h = [1, 2];
+    s = h;
+    return s;
+}
+
+// A pointer reassigned to heap data no longer points at the stack.
+int* reassignPointerToHeap()
+{
+    int x = 0;
+    int* p = &x;
+    int* h = new int;
+    p = h;
+    return p;
+}
+
 /****************** known deferrals (future work, not covered) ****************/
 
 // Deferred: a slice stored through a struct field assignment does not yet
