@@ -5264,22 +5264,20 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 a.finalizeSize();
             if (b.sizeok != Sizeok.done)
                 b.finalizeSize();
-            if (a.structsize != b.structsize || a.alignment != b.alignment)
-            {
-                incompatError();
-                eSink.errorSupplemental(a.loc, "`%s` is %u bytes, `%s` is %u bytes",
-                        a.toPrettyChars(), a.structsize, b.toPrettyChars(), b.structsize);
-                if (a.alignment.isDefault())
-                    eSink.errorSupplemental(a.loc, "`%s` alignment: default", a.toPrettyChars());
-                else
-                    eSink.errorSupplemental(a.loc, "`%s` alignment: %u", a.toPrettyChars(), cast(uint)a.alignment.get());
-                if (b.alignment.isDefault())
-                    eSink.errorSupplemental(b.loc, "`%s` alignment: default", b.toPrettyChars());
-                else
-                    eSink.errorSupplemental(b.loc, "`%s` alignment: %u", b.toPrettyChars(), cast(uint)b.alignment.get());
-                return false;
-            }
-            return true;
+            if (a.structsize == b.structsize && a.alignment == b.alignment)
+                return true;
+            incompatError();
+            eSink.errorSupplemental(a.loc, "`%s` is %u bytes, `%s` is %u bytes",
+                    a.toPrettyChars(), a.structsize, b.toPrettyChars(), b.structsize);
+            if (a.alignment.isDefault())
+                eSink.errorSupplemental(a.loc, "`%s` alignment: default", a.toPrettyChars());
+            else
+                eSink.errorSupplemental(a.loc, "`%s` alignment: %u", a.toPrettyChars(), cast(uint)a.alignment.get());
+            if (b.alignment.isDefault())
+                eSink.errorSupplemental(b.loc, "`%s` alignment: default", b.toPrettyChars());
+            else
+                eSink.errorSupplemental(b.loc, "`%s` alignment: %u", b.toPrettyChars(), cast(uint)b.alignment.get());
+            return false;
         }
         if (a.fields.length != b.fields.length)
         {
