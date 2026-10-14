@@ -5,6 +5,7 @@ host compiler ldc-1.42.0, a PGO profile trained on each commit's own testsuite, 
 
 The bot posts one sticky comment when at least one metric crosses its noise threshold, and updates that same comment on every push.
 If nothing crosses the threshold, it doesn't post at all.
+Every pull request merged into master is measured the same way and recorded at [perf.dlang.org](https://perf.dlang.org).
 
 Most metrics are instruction counts measured under cachegrind, which are very much stable between runs. Wall time swings by a few
 percent from run to run on shared CI runners, so it is shown as informational metric.

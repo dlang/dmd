@@ -13,6 +13,7 @@ import urllib.request
 MARKER = "<!-- dmd-perf-bot -->"
 THRESHOLDS = {"cachegrind": 0.1, "stat": 0.1, "time -v": 2.0, "wall": 2.0}
 DOCS = "https://github.com/%s/blob/master/.github/PERF.md"
+DASHBOARD_LINK = "https://perf.dlang.org"
 
 TRACE_GATES = {"hello": "compile_hello_debug_instr", "phobos": "compile_phobos_instr",
                "ctregex": "compile_ctregex_instr"}
@@ -138,8 +139,8 @@ def render(results, repo):
     lines += table(metrics + wall_metrics(results), docs)
     lines += ["</details>", ""]
 
-    lines.append("<sub>{} vs merge-base {} · [about these metrics]({})</sub>".format(
-        results["head"]["sha"][:9], results["base"]["sha"][:9], docs))
+    lines.append("<sub>{} vs merge-base {} · [about these metrics]({}) · [historical dashboard]({})</sub>".format(
+        results["head"]["sha"][:9], results["base"]["sha"][:9], docs, DASHBOARD_LINK))
     return "\n".join(lines) + "\n", bool(changed)
 
 
