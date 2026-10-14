@@ -5248,19 +5248,36 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return isCCompatibleUnnamedStruct(a, b);
         }
 
-        if (a.fields.length != b.fields.length)
-        {
-            incompatError();
-            eSink.errorSupplemental(a.loc, "`%s` has %u field(s) while `%s` has %u field(s)",
-                    a.toPrettyChars(), cast(uint)a.fields.length, b.toPrettyChars(), cast(uint)b.fields.length);
-            return false;
-        }
         // both are structs or both are unions
         if ((a.isUnionDeclaration() is null) != (b.isUnionDeclaration() is null))
         {
             incompatError();
             eSink.errorSupplemental(a.loc, "`%s` is a %s while `%s` is a %s",
                     a.toPrettyChars(), a.kind, b.toPrettyChars(), b.kind);
+            return false;
+        }
+        if (a.isUnionDeclaration())
+        {
+            // Unions have no member order or offsets to disagree on, so
+            // only the overall size and alignment need to match.
+            if (a.sizeok != Sizeok.done)
+                a.finalizeSize();
+            if (b.sizeok != Sizeok.done)
+                b.finalizeSize();
+            if (a.structsize != b.structsize || a.alignment != b.alignment)
+            {
+                incompatError();
+                eSink.errorSupplemental(a.loc, "`%s` has a different size or alignment than `%s`",
+                        a.toPrettyChars(), b.toPrettyChars());
+                return false;
+            }
+            return true;
+        }
+        if (a.fields.length != b.fields.length)
+        {
+            incompatError();
+            eSink.errorSupplemental(a.loc, "`%s` has %u field(s) while `%s` has %u field(s)",
+                    a.toPrettyChars(), cast(uint)a.fields.length, b.toPrettyChars(), cast(uint)b.fields.length);
             return false;
         }
         if (a.alignment != b.alignment)
