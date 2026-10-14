@@ -6933,7 +6933,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         te = getRightThis(exp.loc, sc, ad2, te, cd);
                     if (te.op == EXP.error)
                     {
-                        eSink.error(exp.loc, "need `this` of type `%s` needed to `new` nested class `%s`", ad2.toErrMsg(), cd.toErrMsg());
+                        eSink.error(exp.loc, "need `this` of type `%s` to `new` nested class `%s`", ad2.toErrMsg(), cd.toErrMsg());
                         return setError();
                     }
                 }
