@@ -102,6 +102,10 @@ $(OBJDIR)/pertest_legacy.done: $(OBJDIR)/pertest_fail$(DOTEXE)
 	if grep -q main $(OBJDIR)/pertest_legacy.out; then exit 1; fi
 	$(TIMELIMIT)$< --DRT-testmode=test-or-main 2>/dev/null | grep -q '^pertest\.d([0-9]*): \[unittest\] boom'
 	$(TIMELIMIT)$< --DRT-testmode=test-or-main 2>&1 >/dev/null | grep -q '^1/2 modules FAILED unittests'
+	$(TIMELIMIT)$< --DRT-testmode=bogus > $(OBJDIR)/pertest_legacy.out 2>&1; test $$? -eq 1
+	grep -q 'Unknown --DRT-testmode option: bogus' $(OBJDIR)/pertest_legacy.out
+	if grep -q after $(OBJDIR)/pertest_legacy.out; then exit 1; fi
+	if grep -q main $(OBJDIR)/pertest_legacy.out; then exit 1; fi
 	@touch $@
 
 $(OBJDIR)/pertest_runmain.done: $(OBJDIR)/pertest_pass$(DOTEXE)

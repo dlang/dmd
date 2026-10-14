@@ -564,7 +564,7 @@ extern (C) void profilegc_setlogfilename(string name);
  * `--DRT-testmode`, in the `DRT_TESTMODE` environment variable when enabled,
  * or via `rt_options`. An empty value counts as not given.
  *
- * `--DRT-testmode` can have one of 3 values:
+ * `--DRT-testmode` can have one of 3 values, any other being an error:
  * 1. "run-main": even if unit tests are run (and all pass), runMain is set
       to true.
  * 2. "test-or-main": any unit tests present will cause the program to
@@ -623,8 +623,34 @@ extern (C) UnitTestResult runModuleUnitTests()
 
     import core.internal.parseoptions : rt_configOption;
 
+    enum TestMode { unspecified, runMain, testOnly, testOrMain }
+
+    TestMode testMode;
+    const testModeOption = rt_configOption("testmode", null, false);
+
+    switch (testModeOption)
+    {
+    case "":
+        testMode = TestMode.unspecified;
+        break;
+    case "run-main":
+        testMode = TestMode.runMain;
+        break;
+    case "test-only":
+        testMode = TestMode.testOnly;
+        break;
+    case "test-or-main":
+        testMode = TestMode.testOrMain;
+        break;
+    default:
+        import core.stdc.stdio : FILE, fprintf, stderr;
+        fprintf(cast(FILE*) stderr, "Unknown --DRT-testmode option: %.*s\n",
+            cast(int) testModeOption.length, testModeOption.ptr);
+        return UnitTestResult.fail;
+    }
+
     // An explicit test mode selects the per-module runner below.
-    if (!rt_configOption("testmode", null, false).length && hasUnitTestInfo())
+    if (testMode == TestMode.unspecified && hasUnitTestInfo())
         return runIndividualUnitTests();
 
     UnitTestResult results;
@@ -675,25 +701,23 @@ extern (C) UnitTestResult runModuleUnitTests()
         // by default, we always print a summary if there are failures.
         results.summarize = true;
     }
-    else switch (rt_configOption("testmode", null, false))
+    else final switch (testMode)
     {
-    case "run-main":
+    case TestMode.runMain:
         results.runMain = true;
         break;
-    case "test-only":
+    case TestMode.testOnly:
         // Never run main, always summarize
         results.summarize = true;
         break;
-    case "":
+    case TestMode.unspecified:
         // By default, do not run main if tests are present.
-    case "test-or-main":
+    case TestMode.testOrMain:
         // only run main if there were no tests. Only summarize if we are not
         // running main.
         results.runMain = (results.executed == 0);
         results.summarize = !results.runMain;
         break;
-    default:
-        assert(0, "Unknown --DRT-testmode option: " ~ rt_configOption("testmode", null, false));
     }
 
     return results;
