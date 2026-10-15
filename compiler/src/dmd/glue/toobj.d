@@ -43,7 +43,7 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem : hasPointers, hasStaticCtorOrDtor, include, isFuncHidden,
-                        isAbstract, toAlias, fillVtbl;
+                        isAbstract, toAlias, fillVtbl, explainNonZeroInit;
 import dmd.dtemplate;
 import dmd.errors : fatal;
 import dmd.errorsink;
@@ -419,6 +419,13 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     StructDeclaration_toDt(sd, dtb);
                     sinit.Sdt = dtb.finish();
 
+                    if (global.params.v.zeroInit && !dtallzeros(sinit.Sdt))
+                    {
+                        eSink.message(sd.loc, "`%s` has a non-zero default initializer, %llu bytes stored in the binary",
+                            sd.toPrettyChars(), cast(ulong) sd.structsize);
+                        explainNonZeroInit(sd, eSink);
+                    }
+
                     /* fails to link on OBJ_MACH 64 with:
                      *  ld: in generated/osx/release/64/libphobos2.a(dwarfeh_8dc_56a.o),
                      *  in section __TEXT,__textcoal_nt reloc 6:
@@ -629,6 +636,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
 
             auto dtb = DtBuilder(0);
+            bool defaultInitialized; // for -vzeroinit
             if (config.objfmt == OBJ_MACH && target.isX86_64 && (s.Stype.Tty & mTYLINK) == mTYthread)
             {
                 tlsToDt(vd, s, sz, dtb, isCfile);
@@ -649,8 +657,16 @@ void toObjFile(Dsymbol ds, bool multiobj)
             else
             {
                 Type_toDt(vd.loc, vd.type, dtb, vd.isCsymbol());
+                defaultInitialized = true;
             }
             s.Sdt = dtb.finish();
+
+            if (global.params.v.zeroInit && defaultInitialized && !isCfile && !dtallzeros(s.Sdt))
+            {
+                eSink.message(vd.loc, "`%s` is default initialized to non-zero data, %u bytes stored in the binary",
+                    vd.toPrettyChars(), sz);
+                explainNonZeroInit(vd.type, vd.loc, eSink);
+            }
 
             // See if we can convert a comdat to a comdef,
             // which saves on exe file space.
