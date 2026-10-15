@@ -6155,7 +6155,15 @@ public:
                     auto sym = t.toDsymbol(null);
                     if (auto ident = (sym ? sym.ident : null))
                     {
-                        result = new StringExp(e.loc, ident.toString());
+                        import dmd.root.string : toDString;
+                        const(char)[] name = ident.toString();
+                        // Use the fully qualified name, as the ClassInfo does at run time
+                        if (auto cd = sym.isClassDeclaration())
+                        {
+                            if (!(name.length > 9 && name[0 .. 9] == "TypeInfo_"))
+                                name = cd.toPrettyChars(/*QualifyTypes=*/ true, true).toDString();
+                        }
+                        result = new StringExp(e.loc, name);
                         result.expressionSemantic(null);
                         return ;
                     }
