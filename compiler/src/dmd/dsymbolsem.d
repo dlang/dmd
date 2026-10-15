@@ -5140,6 +5140,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             StructDeclaration sym = ts.sym;
             if (sd.isCsymbol() && sym.isCsymbol())
             {
+                // isCCompatible assumes both sides already have their size
+                // and alignment computed; finalize it here so it stays a
+                // pure comparison.
+                if (sd.sizeok != Sizeok.done)
+                    sd.finalizeSize();
+                if (sym.sizeok != Sizeok.done)
+                    sym.finalizeSize();
 
                 if (!isCCompatible(sd, sym))
                 {
@@ -5260,10 +5267,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             // Unions have no member order or offsets to disagree on, so
             // only the overall size and alignment need to match.
-            if (a.sizeok != Sizeok.done)
-                a.finalizeSize();
-            if (b.sizeok != Sizeok.done)
-                b.finalizeSize();
             if (a.structsize == b.structsize && a.alignment == b.alignment)
                 return true;
             incompatError();
