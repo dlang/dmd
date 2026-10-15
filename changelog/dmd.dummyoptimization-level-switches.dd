@@ -24,4 +24,3 @@ $(TABLE2 Optimization-level switches
 )
 
 DMD will conditionally accept multiple differing optimization-level switches in one compiler invocation.
-This is as long as they do not effectively contradict each other with reference to the activation of the optimizer.

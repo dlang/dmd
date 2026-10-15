@@ -1407,11 +1407,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
                     goto Lerror;
             }
 
-            if (driverParams.optimizeHasBeenSet && (driverParams.optimize != enableOptimize))
-                error("Switch `%s` effectively contradicts a previously encountered optimization-level switch.", p);
-
             driverParams.optimize = enableOptimize;
-            driverParams.optimizeHasBeenSet = true;
         }
         else if (arg == "-o-")  // https://dlang.org/dmd.html#switch-o-
             params.obj = false;
