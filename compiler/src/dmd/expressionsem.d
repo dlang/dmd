@@ -5329,6 +5329,17 @@ private bool checkNestedFuncReference(FuncDeclaration fd, Scope* sc, Loc loc)
                 {
                     fd.siblingCallers.push(fdthis);
                     fd.computedEscapingSiblings = false;
+
+                    /* The call passes the caller's context pointer on, so the caller
+                     * needs what fd needs: `this`, the frame pointer, or nothing.
+                     */
+                    if (fd.contextIsThis)
+                        fdv.vthis.checkNestedReference(sc, loc);
+                    else if (auto c = (fd.noContextIsThis || referencesFrameOf(fd, fdv)) ? directNestedChild(fdthis, fdv) : null)
+                    {
+                        if (auto cf = c.isFuncDeclaration())
+                            cf.noContextIsThis = true;
+                    }
                 }
             }
         }
