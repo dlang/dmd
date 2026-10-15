@@ -3529,6 +3529,16 @@ public:
         Expression newval = interpretRegion(e.e2, istate);
         if (exceptionOrCant(newval))
             return;
+        if (e.op == EXP.concatenateDcharAssign)
+        {
+            const c = cast(dchar)newval.toInteger();
+            if (!utf_isValidDchar(c))
+            {
+                eSink.error(e.loc, "cannot append invalid UTF character `\\U%08x` to `%s`", c, e.e1.type.toErrMsg());
+                result = CTFEExp.cantexp;
+                return;
+            }
+        }
         if (e.op == EXP.blit && newval.op == EXP.int64)
         {
             Type tbn = e.type.baseElemOf();
