@@ -740,6 +740,25 @@ Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
     return e;
 }
 
+/***********************************************
+ * Get the memory block a dynamic array points into, and the offset of its first element.
+ * Params:
+ *      e = an array literal, string, slice or `null`
+ *      ofs = set to the offset of the first element in the memory block
+ * Returns:
+ *      the memory block
+ */
+private Expression getAggregateFromSlice(Expression e, dinteger_t* ofs)
+{
+    *ofs = 0;
+    if (auto se = e.isSliceExp())
+    {
+        *ofs = se.lwr.toInteger();
+        return se.e1;
+    }
+    return e;
+}
+
 /** Return true if agg1 and agg2 are pointers to the same memory block
  */
 bool pointToSameMemoryBlock(Expression agg1, Expression agg2)
@@ -1372,6 +1391,17 @@ bool ctfeIdentity(Loc loc, EXP op, Expression e1, Expression e2)
     }
     else if (e1.type.isFloating())
         cmp = e1.isIdentical(e2);
+    else if (e1.type.toBasetype().ty == Tarray && e2.type.toBasetype().ty == Tarray &&
+             isArray(e1) && isArray(e2))
+    {
+        // Dynamic arrays are identical when they have the same .ptr and .length,
+        // so compare the memory blocks they point into, not their contents
+        dinteger_t ofs1, ofs2;
+        Expression agg1 = getAggregateFromSlice(e1, &ofs1);
+        Expression agg2 = getAggregateFromSlice(e2, &ofs2);
+        cmp = resolveArrayLength(e1) == resolveArrayLength(e2) &&
+              ofs1 == ofs2 && pointToSameMemoryBlock(agg1, agg2);
+    }
     else
     {
         cmp = !ctfeRawCmp(loc, e1, e2, true);

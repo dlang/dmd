@@ -1098,7 +1098,7 @@ static assert(bug8644());
 struct A6159 {}
 
 static assert({ return A6159.init is A6159.init; }());
-static assert({ return [1] is [1]; }());
+static assert({ return [1] !is [1]; }());
 
 /**************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=5685
