@@ -551,6 +551,7 @@ DOCS=\
 	$(DOCDIR)\core_internal_gc_proxy.html \
 	$(DOCDIR)\core_internal_gc_impl_conservative_gc.html \
 	$(DOCDIR)\core_internal_gc_impl_manual_gc.html \
+	$(DOCDIR)\core_internal_gc_impl_tgc_gc.html \
 	$(DOCDIR)\core_internal_gc_impl_proto_gc.html \
 	\
 	$(DOCDIR)\rt_aApply.html \
