@@ -230,8 +230,17 @@ bool isVirtualMethod(FuncDeclaration _this)
  */
 bool hasNestedFrameRefs(FuncDeclaration _this)
 {
-    if (_this.closureVars.length)
-        return true;
+    foreach (v; _this.closureVars)
+    {
+        if (v != _this.vthis)
+            return true;
+        // `this` referenced only from functions that have it as context isn't a frame reference
+        foreach (f; v.nestedrefs)
+        {
+            if (!contextIsThisChild(f, _this))
+                return true;
+        }
+    }
 
     /* If a virtual function has contracts, assume its variables are referenced
      * by those contracts, even if they aren't. Because they might be referenced
@@ -3581,6 +3590,98 @@ bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc, void* p
 }
 
 /*******************************
+ * Returns:
+ *      the symbol (function or local aggregate) directly nested in `outer`
+ *      that `s` is or is in, or null if `s` isn't nested in `outer`
+ */
+Dsymbol directNestedChild(Dsymbol s, FuncDeclaration outer)
+{
+    while (s)
+    {
+        Dsymbol p = s.toParentP(outer);
+        if (p == outer)
+            return s;
+        s = p;
+    }
+    return null;
+}
+
+/*******************************
+ * Returns:
+ *      whether `f`, or a function nested in it, references a variable of `outer`'s frame
+ */
+bool referencesFrameOf(FuncDeclaration f, FuncDeclaration outer)
+{
+    foreach (v; outer.closureVars)
+    {
+        foreach (r; v.nestedrefs)
+        {
+            if (directNestedChild(r, outer) == f)
+                return true;
+        }
+    }
+    return false;
+}
+
+/*******************************
+ * Returns:
+ *      the function directly nested in `outer` that `s` is or is in, if its
+ *      context pointer is `outer`'s `this`, otherwise null
+ */
+FuncDeclaration contextIsThisChild(Dsymbol s, FuncDeclaration outer)
+{
+    auto d = directNestedChild(s, outer);
+    auto c = d ? d.isFuncDeclaration() : null;
+    return c && c.contextIsThis ? c : null;
+}
+
+/*******************************
+ * Decide whether nested function `f` gets `this` as its context pointer.
+ *
+ * A function nested in a member function that references nothing of the
+ * member function's frame except `this` doesn't need the frame pointer: its
+ * context pointer can be `this` itself, making it an anonymous member
+ * function. It can then escape without the member function needing a closure.
+ *
+ * The context pointer kind is part of `f`'s ABI, so it is decided from `f`'s
+ * own body alone, here at the end of `f`'s semantic3, and never revised:
+ * every compilation unit that analyzes `f` must reach the same decision.
+ * Sibling calls count as references to `this` (`checkNestedFuncReference`),
+ * and a template declared in `f`, or a local aggregate of the member
+ * function, could be instantiated from another compilation unit and change
+ * what `f` or that aggregate needs, so they rule `contextIsThis` out when
+ * declared (`noContextIsThis`).
+ *
+ * `closureVars[]` is left as it is: `hasNestedFrameRefs`, `needsClosure`
+ * and `findClosureVars` skip references to `vthis` from flagged functions.
+ */
+extern (D) void inferContextIsThis(FuncDeclaration f)
+{
+    if (!f.isNested() || f.hasDualContext || f.noContextIsThis ||
+        f.ident == Id.require || f.ident == Id.ensure)
+        return;
+    auto fd = f.toParent2().isFuncDeclaration();
+    if (!fd || !fd.vthis || !fd.isThis() || fd.isNested() || fd.hasDualContext || fd.noContextIsThis)
+        return;
+
+    // f, or a function nested in it, references `this` and nothing else of fd's frame
+    bool usesThis;
+    foreach (v; fd.closureVars)
+    {
+        foreach (r; v.nestedrefs)
+        {
+            if (directNestedChild(r, fd) != f)
+                continue;
+            if (v != fd.vthis)
+                return;
+            usesThis = true;
+        }
+    }
+    if (usesThis)
+        f.contextIsThis = true;
+}
+
+/*******************************
  * Look at all the variables in this function that are referenced
  * by nested functions, and determine if a closure needs to be
  * created for them.
@@ -3608,6 +3709,7 @@ bool needsClosure(FuncDeclaration fd)
      */
     //printf("FuncDeclaration::needsClosure() %s\n", toPrettyChars());
 
+    inferContextIsThis(fd);
     if (fd.requiresClosure)
         goto Lyes;
 
@@ -3625,6 +3727,10 @@ bool needsClosure(FuncDeclaration fd)
              * so they never make outer functions closure.
              */
             if (f.ident == Id.require || f.ident == Id.ensure)
+                continue;
+
+            // f has `this` as its context pointer, not fd's frame
+            if (v == fd.vthis && contextIsThisChild(f, fd))
                 continue;
 
             //printf("\t\tf = %p, %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", f, f.toChars(), f.isVirtual(), f.isThis(), f.tookAddressOf);
