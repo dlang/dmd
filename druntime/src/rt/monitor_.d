@@ -43,7 +43,7 @@ else
 extern (C) void _d_setSameMutex(shared Object ownee, shared Object owner) @trusted nothrow
 in
 {
-    assert(getMonitor(cast(Object) cast(void*) ownee) is null);
+    assert(ownee.__monitor is null);
 }
 do
 {

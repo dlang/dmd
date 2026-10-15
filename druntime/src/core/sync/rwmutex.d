@@ -601,13 +601,10 @@ unittest
         {
             for (;;)
             {
-                // This unittest needs the implementation object to inspect
-                // private counters that are protected by m_commonMutex.
-                auto localMutex = (() @trusted => cast(ReadWriteMutex) atomicLoad(mutex))();
-                synchronized (localMutex.m_commonMutex)
+                synchronized (mutex.m_commonMutex)
                 {
-                    if (localMutex.m_numQueuedReaders == queuedReaders &&
-                        localMutex.m_numQueuedWriters == queuedWriters)
+                    if (mutex.m_numQueuedReaders == queuedReaders &&
+                        mutex.m_numQueuedWriters == queuedWriters)
                         break;
                 }
                 Thread.yield();
