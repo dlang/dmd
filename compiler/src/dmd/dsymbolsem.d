@@ -5140,13 +5140,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             StructDeclaration sym = ts.sym;
             if (sd.isCsymbol() && sym.isCsymbol())
             {
-                // isCCompatible assumes both sides already have their size
-                // and alignment computed; finalize it here so it stays a
-                // pure comparison.
-                if (sd.sizeok != Sizeok.done)
-                    sd.finalizeSize();
-                if (sym.sizeok != Sizeok.done)
-                    sym.finalizeSize();
+                // isCCompatible compares sizes directly for unions (they
+                // have no field order to walk), so it needs both sides
+                // already finalized; the struct path walks fields instead
+                // and does its own semantic work, so leave those alone.
+                if (sd.isUnionDeclaration() && sym.isUnionDeclaration())
+                {
+                    if (sd.sizeok != Sizeok.done)
+                        sd.finalizeSize();
+                    if (sym.sizeok != Sizeok.done)
+                        sym.finalizeSize();
+                }
 
                 if (!isCCompatible(sd, sym))
                 {
