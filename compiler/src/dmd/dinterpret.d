@@ -7326,7 +7326,11 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                 auto slice = se.peekString();
                 errmsg = utf_decodeChar(slice, indx, rawvalue);
                 if (rvs)
+                {
+                    if (!errmsg && indx != currentIndex)
+                        errmsg = utf_decodeChar(slice, indx, rawvalue);
                     indx = saveindx;
+                }
                 break;
             }
 
@@ -7343,7 +7347,11 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                 const slice = se.peekWstring();
                 errmsg = utf_decodeWchar(slice, indx, rawvalue);
                 if (rvs)
+                {
+                    if (!errmsg && indx != currentIndex)
+                        errmsg = utf_decodeWchar(slice, indx, rawvalue);
                     indx = saveindx;
+                }
                 break;
 
             case 4:
@@ -7360,7 +7368,10 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
 
         if (errmsg)
         {
-            eSink.error(deleg.loc, "`%.*s`", cast(int)errmsg.length, errmsg.ptr);
+            if (se.sz == 1)
+                eSink.error(deleg.loc, "cannot decode UTF-8 sequence starting with `\\x%02x` (%.*s)", rawvalue, cast(int)errmsg.length, errmsg.ptr);
+            else
+                eSink.error(deleg.loc, "cannot decode UTF-16 sequence starting with `\\u%04x` (%.*s)", rawvalue, cast(int)errmsg.length, errmsg.ptr);
             return CTFEExp.cantexp;
         }
 
