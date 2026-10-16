@@ -28,6 +28,7 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.AliasDeclaration) { assert(0); }
     override void visit(AST.AliasAssign) { assert(0); }
     override void visit(AST.TupleDeclaration) { assert(0); }
+    override void visit(AST.EnumUnionCaseDeclaration) { assert(0); }
     override void visit(AST.FuncLiteralDeclaration) { assert(0); }
     override void visit(AST.PostBlitDeclaration) { assert(0); }
     override void visit(AST.CtorDeclaration) { assert(0); }
@@ -61,6 +62,7 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.Module) { assert(0); }
     override void visit(AST.StructDeclaration) { assert(0); }
     override void visit(AST.UnionDeclaration) { assert(0); }
+    override void visit(AST.EnumUnionDeclaration) { assert(0); }
     override void visit(AST.ClassDeclaration) { assert(0); }
     override void visit(AST.InterfaceDeclaration) { assert(0); }
     override void visit(AST.TemplateMixin) { assert(0); }
@@ -147,6 +149,7 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.TypeExp) { assert(0); }
     override void visit(AST.ScopeExp) { assert(0); }
     override void visit(AST.IdentifierExp) { assert(0); }
+    override void visit(AST.SwitchExp) { assert(0); }
     override void visit(AST.UnaExp) { assert(0); }
     override void visit(AST.DefaultInitExp) { assert(0); }
     override void visit(AST.BinExp) { assert(0); }
