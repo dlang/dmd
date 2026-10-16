@@ -89,6 +89,8 @@ $(GNAME TraitsKeyword):
     $(RELATIVE_LINK2 compiles, $(D compiles))
     $(RELATIVE_LINK2 toType, $(D toType))
     $(RELATIVE_LINK2 initSymbol, $(D initSymbol))
+    $(RELATIVE_LINK2 vtblSymbol, $(D vtblSymbol))
+    $(RELATIVE_LINK2 interfaceSymbol, $(D interfaceSymbol))
     $(RELATIVE_LINK2 parameters, $(D parameters))
 
 $(GNAME TraitsArguments):
@@ -732,8 +734,8 @@ $(H3 $(GNAME classInstanceAlignment))
 $(H3 $(GNAME initSymbol))
 
         $(P Takes a single argument, which must evaluate to a `class`, `struct` or `union` type.
-            Returns a `const(void)[]` that holds the initial state of any instance of the supplied type.
-            The slice is constructed for any type `T` as follows:
+            Returns a `SymbolSlice!(const(void))` that holds the initial state of any instance of the supplied type.
+            It is constructed for any type `T` as follows:
         )
 
             - `ptr` points to either the initializer symbol of `T`
@@ -748,8 +750,9 @@ $(H3 $(GNAME initSymbol))
         )
 
         $(P
-            This trait is not available during $(DDSUBLINK spec/glossary, ctfe, CTFE) because the actual address
-            of the initializer symbol will be set by the linker and hence is not available at compile time.
+            The address of the initializer symbol is set by the linker, so the contents cannot be read
+            during $(DDSUBLINK spec/glossary, ctfe, CTFE). The `length` and `ptr` can be used, and the
+            result can be stored, for example in static data built at compile time.
         )
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -777,6 +780,67 @@ $(H3 $(GNAME initSymbol))
         }
         ---
         )
+
+
+$(H3 $(GNAME vtblSymbol))
+
+        $(P Takes a single argument, which must evaluate to a `class` type.
+            Returns a `SymbolSlice!(const(void*))` that is the virtual function table of the class:
+            `ptr` points to the vtable symbol of the class, and `length` is the number of entries in it.
+            For D classes, the first entry is the `ClassInfo`; `extern(C++)` classes have no such entry.
+        )
+
+        $(P The length counts every virtual function of the class, wherever the trait is used,
+            including inside the class itself. A virtual function that would be added to the class
+            after its vtable has been determined is an error.
+        )
+
+        $(P As with $(RELATIVE_LINK2 initSymbol, `initSymbol`), the `length` and `ptr` can be used
+            and stored during $(DDSUBLINK spec/glossary, ctfe, CTFE), but the contents cannot be read.
+        )
+
+        ---
+        class C
+        {
+            void foo() { }
+        }
+
+        static assert(__traits(vtblSymbol, C).length == 6);   // ClassInfo, 4 methods of Object, foo
+
+        void main()
+        {
+            const(void*)[] vtbl = __traits(vtblSymbol, C);
+            assert(vtbl.ptr is *cast(void**) __traits(initSymbol, C).ptr);   // the vptr of an instance
+        }
+        ---
+
+$(H3 $(GNAME interfaceSymbol))
+
+        $(P Takes a single argument, which must evaluate to a `class` or `interface` type.
+            Returns a `SymbolSlice!(const(Interface))`, the array of `Interface` for the
+            interfaces the type provides a virtual function table for. It is the array
+            `TypeInfo_Class.interfaces` refers to, and directly follows the `ClassInfo` of the type.
+        )
+
+        $(P As with $(RELATIVE_LINK2 initSymbol, `initSymbol`), the `length` and `ptr` can be used
+            and stored during $(DDSUBLINK spec/glossary, ctfe, CTFE), but the contents cannot be read.
+        )
+
+        ---
+        interface I { }
+        interface J { }
+        class C : I, J { }
+        class D : C { }
+
+        static assert(__traits(interfaceSymbol, C).length == 2);
+        static assert(__traits(interfaceSymbol, D).length == 0);   // D inherits them from C
+
+        void main()
+        {
+            assert(__traits(interfaceSymbol, C)[0].classinfo is I.classinfo);
+            assert(__traits(interfaceSymbol, C)[1].classinfo is J.classinfo);
+        }
+        ---
 
 
 $(H2 $(LNAME2 functions, Function Traits))
