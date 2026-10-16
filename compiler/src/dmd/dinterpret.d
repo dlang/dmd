@@ -7326,7 +7326,11 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                 auto slice = se.peekString();
                 errmsg = utf_decodeChar(slice, indx, rawvalue);
                 if (rvs)
+                {
+                    if (!errmsg && indx != currentIndex)
+                        errmsg = utf_decodeChar(slice, indx, rawvalue);
                     indx = saveindx;
+                }
                 break;
             }
 
@@ -7343,7 +7347,11 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                 const slice = se.peekWstring();
                 errmsg = utf_decodeWchar(slice, indx, rawvalue);
                 if (rvs)
+                {
+                    if (!errmsg && indx != currentIndex)
+                        errmsg = utf_decodeWchar(slice, indx, rawvalue);
                     indx = saveindx;
+                }
                 break;
 
             case 4:
