@@ -1208,6 +1208,8 @@ struct AttributeViolation
     {
         this.loc = loc;
         assert(args.length <= 4); // expand if necessary
+        if (!fmt) // callers that only need to flag a violation pass no message
+            return;
         OutBuffer buf;
         buf.printf(fmt,
             args.length > 0 && args[0] ? args[0].toErrMsg() : "",
