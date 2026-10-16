@@ -3,9 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test24022.d(16): Error: `Outside Unicode code space`
+fail_compilation/test24022.d(16): Error: cannot decode UTF-8 sequence starting with `\x80` (Outside Unicode code space)
 fail_compilation/test24022.d(30):        called from here: `f()`
-fail_compilation/test24022.d(25): Error: `Unpaired surrogate`
+fail_compilation/test24022.d(25): Error: cannot decode UTF-16 sequence starting with `\udc00` (Unpaired surrogate)
 fail_compilation/test24022.d(31):        called from here: `g()`
 ---
 */
