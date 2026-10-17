@@ -861,6 +861,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         ReturnStatement rs = (*funcdecl.returns)[i];
                         Expression exp = rs.exp;
                         Scope* sc3 = rs.scope_;
+                        if (rs.fesFunc)
+                        {
+                            sc3 = sc3.push();
+                            sc3.func = funcdecl;
+                        }
                         if (exp.op == EXP.error)
                             continue;
                         if (tret.ty == Terror)
