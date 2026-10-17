@@ -1848,7 +1848,7 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             loadFromEA(csrc,Rv,4,4);
             cdb.genc1(csrc.Iop,0,FL.offset,offset);
             storeToEA(cdst,Rv,4);
-            cdb.genc1(csrc.Iop,0,FL.offset,offset);
+            cdb.genc1(cdst.Iop,0,FL.offset,offset);
             offset += 4;
             numbytes -= 4;
         }
@@ -1858,7 +1858,7 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             loadFromEA(csrc,Rv,4,2);
             cdb.genc1(csrc.Iop,0,FL.offset,offset);
             storeToEA(cdst,Rv,2);
-            cdb.genc1(csrc.Iop,0,FL.offset,offset);
+            cdb.genc1(cdst.Iop,0,FL.offset,offset);
             offset += 2;
             numbytes -= 2;
         }
@@ -1868,7 +1868,7 @@ void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             loadFromEA(csrc,Rv,4,1);
             cdb.genc1(csrc.Iop,0,FL.offset,offset);
             storeToEA(cdst,Rv,1);
-            cdb.genc1(csrc.Iop,0,FL.offset,offset);
+            cdb.genc1(cdst.Iop,0,FL.offset,offset);
         }
     }
     else
