@@ -5087,7 +5087,7 @@ private Statements* flatten(Statement statement, Scope* sc)
                 if (!s || global.errors != errors)
                 {
                     auto eSink = global.errorSink;
-                    eSink.errorSupplemental(s.loc, "while parsing string mixin statement");
+                    eSink.errorSupplemental(cs.loc, "while parsing string mixin statement");
                     return errorStatements();
                 }
                 a.push(s);
