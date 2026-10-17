@@ -361,7 +361,7 @@ bool checkParamArgumentEscape(ref Scope sc, FuncDeclaration fdc, Identifier parI
         if (assertmsg)
         {
             result |= sc.setUnsafeDIP1000(gag, arg.loc,
-                "assigning" ~ desc ~ " `%s` to non-scope parameter calling `assert()`", v);
+                "assigning " ~ desc ~ " `%s` to non-scope parameter calling `assert()`", v);
             return;
         }
 
@@ -898,7 +898,7 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
         }
 
         const(char)* msg = (ee.op == EXP.structLiteral) ?
-            "assigning address of struct literal `%s`  to `%s` with longer lifetime" :
+            "assigning address of struct literal `%s` to `%s` with longer lifetime" :
             "assigning address of expression temporary returned by `%s` to `%s` with longer lifetime";
 
         result |= sc.setUnsafeDIP1000(gag, ee.loc, msg, ee, e1);
@@ -1251,7 +1251,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
         {
             const(char)* safeMsg = v.isParameter() ?
                 "escaping a reference to parameter `%s` by returning `%s`" :
-                "escaping a reference to local variable `%s` by returning `%s` ";
+                "escaping a reference to local variable `%s` by returning `%s`";
             if (v.isParameter() && v.isReference())
             {
                 if (setUnsafePreview(&sc, featureState, gag, e.loc, safeMsg, v, e) ||

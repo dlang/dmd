@@ -3,7 +3,7 @@ REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
 fail_compilation/retscope.d(22): Error: scope parameter `p` may not be returned
-fail_compilation/retscope.d(32): Error: escaping a reference to local variable `j` by returning `b ? nested1(& i) : nested2(& j)`  is not allowed in a `@safe` function
+fail_compilation/retscope.d(32): Error: escaping a reference to local variable `j` by returning `b ? nested1(& i) : nested2(& j)` is not allowed in a `@safe` function
 fail_compilation/retscope.d(45): Error: assigning scope variable `p` to global variable `q` is not allowed in a `@safe` function
 fail_compilation/retscope.d(47): Error: assigning address of variable `i` to `q` with longer lifetime is not allowed in a `@safe` function
 fail_compilation/retscope.d(48): Error: assigning scope variable `a` to global variable `b` is not allowed in a `@safe` function
@@ -107,7 +107,7 @@ int[] bar8(int[] a) @safe
 TEST_OUTPUT:
 ---
 fail_compilation/retscope.d(95): Error: assigning reference to local variable `sa` to non-scope parameter `a` calling `bar8` is not allowed in a `@safe` function
-fail_compilation/retscope.d(123): Error: escaping a reference to local variable `tmp` by returning `foo9(cast(char[])tmp)`  is not allowed in a `@safe` function
+fail_compilation/retscope.d(123): Error: escaping a reference to local variable `tmp` by returning `foo9(cast(char[])tmp)` is not allowed in a `@safe` function
 ---
 */
 
@@ -272,7 +272,7 @@ void escape5() @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(287): Error: escaping a reference to local variable `b` by returning `foo6(& b)`  is not allowed in a `@safe` function
+fail_compilation/retscope.d(287): Error: escaping a reference to local variable `b` by returning `foo6(& b)` is not allowed in a `@safe` function
 ---
 */
 
