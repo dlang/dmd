@@ -2426,7 +2426,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         {
             buf.put('x');
             buf.put('"');
-            foreach (i; 0 .. e.len)
+            foreach (i; 0 .. e.length)
                 buf.printf("%0*llX", e.sz, e.getIndex(i));
             buf.put('"');
             if (e.postfix)
@@ -2435,7 +2435,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         }
         buf.put('"');
         const o = buf.length;
-        foreach (i; 0 .. e.len)
+        foreach (i; 0 .. e.length)
         {
             writeCharLiteral(e.getCodeUnit(i), &buf.put);
         }

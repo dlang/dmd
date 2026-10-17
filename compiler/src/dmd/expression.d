@@ -902,7 +902,7 @@ extern (C++) final class StringExp : Expression
         dchar* dstring; // if sz == 4
         ulong* lstring; // if sz == 8
     }                   // (const if ownedByCtfe == OwnedBy.code)
-    size_t len;         // number of code units
+    size_t length;      // number of code units
     ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
 
     /**
@@ -926,7 +926,7 @@ extern (C++) final class StringExp : Expression
     {
         super(loc, EXP.string_);
         this.string = cast(char*)string.ptr; // note that this.string should be const
-        this.len = string.length;
+        this.length = string.length;
         this.sz = 1;                    // work around LDC bug #1286
     }
 
@@ -934,7 +934,7 @@ extern (C++) final class StringExp : Expression
     {
         super(loc, EXP.string_);
         this.string = cast(char*)string.ptr; // note that this.string should be const
-        this.len = len;
+        this.length = len;
         this.sz = sz;
         this.postfix = postfix;
         this.cMacro = cMacro;
@@ -964,7 +964,7 @@ extern (C++) final class StringExp : Expression
         int encSize;
         switch (tynto)
         {
-            case 0:      return len;
+            case 0:      return length;
             case Tchar:  encSize = 1; break;
             case Twchar: encSize = 2; break;
             case Tdchar: encSize = 4; break;
@@ -972,7 +972,7 @@ extern (C++) final class StringExp : Expression
                 assert(0);
         }
         if (sz == encSize)
-            return len;
+            return length;
 
         size_t result = 0;
         dchar c;
@@ -980,9 +980,9 @@ extern (C++) final class StringExp : Expression
         switch (sz)
         {
         case 1:
-            for (size_t u = 0; u < len;)
+            for (size_t u = 0; u < length;)
             {
-                s = utf_decodeChar(string[0 .. len], u, c);
+                s = utf_decodeChar(string[0 .. length], u, c);
                 if (s)
                     return 0;
                 result += utf_codeLength(encSize, c);
@@ -990,9 +990,9 @@ extern (C++) final class StringExp : Expression
             break;
 
         case 2:
-            for (size_t u = 0; u < len;)
+            for (size_t u = 0; u < length;)
             {
-                s = utf_decodeWchar(wstring[0 .. len], u, c);
+                s = utf_decodeWchar(wstring[0 .. length], u, c);
                 if (s)
                     return 0;
                 result += utf_codeLength(encSize, c);
@@ -1000,7 +1000,7 @@ extern (C++) final class StringExp : Expression
             break;
 
         case 4:
-            foreach (u; 0 .. len)
+            foreach (u; 0 .. length)
             {
                 result += utf_codeLength(encSize, dstring[u]);
             }
@@ -1034,9 +1034,9 @@ extern (C++) final class StringExp : Expression
         }
         if (sz == encSize)
         {
-            memcpy(dest, string, len * sz);
+            memcpy(dest, string, length * sz);
             if (zero)
-                memset(dest + len * sz, 0, sz);
+                memset(dest + length * sz, 0, sz);
         }
         else
             assert(0);
@@ -1058,7 +1058,7 @@ extern (C++) final class StringExp : Expression
     /// Returns: integer at index `i`
     dinteger_t getIndex(size_t i) const pure
     {
-        assert(i < len);
+        assert(i < length);
         final switch (sz)
         {
         case 1:
@@ -1085,7 +1085,7 @@ extern (C++) final class StringExp : Expression
 
     extern (D) void setIndex(size_t i, long c)
     {
-        assert(i < len);
+        assert(i < length);
         final switch (sz)
         {
         case 1:
@@ -1127,8 +1127,8 @@ extern (C++) final class StringExp : Expression
     int compare(const StringExp se2) const nothrow pure @nogc
     {
         //printf("StringExp::compare()\n");
-        const len1 = len;
-        const len2 = se2.len;
+        const len1 = length;
+        const len2 = se2.length;
 
         assert(this.sz == se2.sz, "Comparing string expressions of different sizes");
         //printf("sz = %d, len1 = %d, len2 = %d\n", sz, cast(int)len1, cast(int)len2);
@@ -1143,7 +1143,7 @@ extern (C++) final class StringExp : Expression
             {
                 wchar* s1 = cast(wchar*)string;
                 wchar* s2 = cast(wchar*)se2.string;
-                foreach (u; 0 .. len)
+                foreach (u; 0 .. length)
                 {
                     if (s1[u] != s2[u])
                         return s1[u] - s2[u];
@@ -1154,7 +1154,7 @@ extern (C++) final class StringExp : Expression
             {
                 dchar* s1 = cast(dchar*)string;
                 dchar* s2 = cast(dchar*)se2.string;
-                foreach (u; 0 .. len)
+                foreach (u; 0 .. length)
                 {
                     if (s1[u] != s2[u])
                         return s1[u] - s2[u];
@@ -1174,7 +1174,7 @@ extern (C++) final class StringExp : Expression
     extern (D) const(char)[] toStringz() const
     {
         assert(sz == 1);
-        auto nbytes = len * sz;
+        auto nbytes = length * sz;
         char* s = cast(char*)mem.xmalloc_noscan(nbytes + sz);
         writeTo(s, true);
         return s[0 .. nbytes];
@@ -1183,19 +1183,19 @@ extern (C++) final class StringExp : Expression
     extern (D) const(char)[] peekString() const
     {
         assert(sz == 1);
-        return this.string[0 .. len];
+        return this.string[0 .. length];
     }
 
     extern (D) const(wchar)[] peekWstring() const
     {
         assert(sz == 2);
-        return this.wstring[0 .. len];
+        return this.wstring[0 .. length];
     }
 
     extern (D) const(dchar)[] peekDstring() const
     {
         assert(sz == 4);
-        return this.dstring[0 .. len];
+        return this.dstring[0 .. length];
     }
 
     /*******************
@@ -1203,7 +1203,7 @@ extern (C++) final class StringExp : Expression
      */
     extern (D) const(ubyte)[] peekData() const
     {
-        return cast(const(ubyte)[])this.string[0 .. len * sz];
+        return cast(const(ubyte)[])this.string[0 .. length * sz];
     }
 
     /*******************
@@ -1212,7 +1212,7 @@ extern (C++) final class StringExp : Expression
      */
     extern (D) ubyte[] borrowData()
     {
-        return cast(ubyte[])this.string[0 .. len * sz];
+        return cast(ubyte[])this.string[0 .. length * sz];
     }
 
     /***********************
@@ -1222,7 +1222,7 @@ extern (C++) final class StringExp : Expression
     extern (D) void setData(void* s, size_t len, ubyte sz)
     {
         this.string = cast(char*)s;
-        this.len = len;
+        this.length = len;
         this.sz = sz;
     }
 

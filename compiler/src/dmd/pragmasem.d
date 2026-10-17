@@ -99,7 +99,7 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
                     return noDeclarations();
                 (*pd.args)[0] = se;
                 if (global.params.v.verbose)
-                    eSink.message(Loc.init, "linkopt   %.*s", cast(int)se.len, se.peekString().ptr);
+                    eSink.message(Loc.init, "linkopt   %.*s", cast(int)se.length, se.peekString().ptr);
             }
             return noDeclarations();
         }
@@ -315,7 +315,7 @@ bool pragmaStmtSemantic(PragmaStatement ps, Scope* sc)
 
                 if (global.params.v.verbose)
                 {
-                    eSink.message("library   %.*s", cast(int)se.len, se.string);
+                    eSink.message("library   %.*s", cast(int)se.length, se.string);
                 }
             }
         }
@@ -547,7 +547,7 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
         if (!se)
             return null;
         e = se;
-        if (!se.len)
+        if (!se.length)
         {
             eSink.error(loc, "`pragma(mangle)` zero-length string not allowed for mangled name");
             return null;
@@ -558,7 +558,7 @@ private bool pragmaMangleSemantic(Loc loc, Scope* sc, Expressions* args, Dsymbol
             return null;
         }
         auto slice = se.toStringz();
-        if (strlen(slice.ptr) != se.len)
+        if (strlen(slice.ptr) != se.length)
             eSink.error(loc, "pragma `mangle` null character not allowed in mangled name");
         mem.xfree(cast(void*)slice.ptr);
         return se;

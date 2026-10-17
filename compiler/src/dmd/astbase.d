@@ -4940,7 +4940,7 @@ struct ASTBase
             wchar* wstring; // if sz == 2
             dchar* dstring; // if sz == 4
         }                   // (const if ownedByCtfe == OwnedBy.code)
-        size_t len;         // number of code units
+        size_t length;      // number of code units
         ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
         char postfix = 0;   // 'c', 'w', 'd'
 
@@ -4953,7 +4953,7 @@ struct ASTBase
         {
             super(loc, EXP.string_, __traits(classInstanceSize, StringExp));
             this.string = cast(char*)string.ptr;
-            this.len = string.length;
+            this.length = string.length;
             this.sz = 1;                    // work around LDC bug #1286
         }
 
@@ -4961,7 +4961,7 @@ struct ASTBase
         {
             super(loc, EXP.string_, __traits(classInstanceSize, StringExp));
             this.string = cast(char*)string;
-            this.len = len;
+            this.length = len;
             this.postfix = postfix;
             this.sz = 1;                    // work around LDC bug #1286
             this.cMacro = cMacro;
@@ -4989,9 +4989,9 @@ struct ASTBase
             }
             if (sz == encSize)
             {
-                memcpy(dest, string, len * sz);
+                memcpy(dest, string, length * sz);
                 if (zero)
-                    memset(dest + len * sz, 0, sz);
+                    memset(dest + length * sz, 0, sz);
             }
             else
                 assert(0);
@@ -4999,7 +4999,7 @@ struct ASTBase
 
         extern (D) const(char)[] toStringz() const
         {
-            auto nbytes = len * sz;
+            auto nbytes = length * sz;
             char* s = cast(char*)mem.xmalloc_noscan(nbytes + sz);
             writeTo(s, true);
             return s[0 .. nbytes];

@@ -2526,7 +2526,7 @@ public:
                     }
                 }
 
-                buf.printf("%u, ", cast(uint)se.len);
+                buf.printf("%u, ", cast(uint)se.length);
                 visit(se);
 
                 if (!isCtor)
@@ -2724,7 +2724,7 @@ public:
             buf.writeByte('U');
         buf.writeByte('"');
 
-        foreach (i; 0 .. e.len)
+        foreach (i; 0 .. e.length)
         {
             writeCharLiteral(e.getCodeUnit(i), &buf.put);
         }
