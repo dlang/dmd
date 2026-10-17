@@ -629,7 +629,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
 
             auto dtb = DtBuilder(0);
-            if (config.objfmt == OBJ_MACH && target.isX86_64 && (s.Stype.Tty & mTYLINK) == mTYthread)
+            if (config.objfmt == OBJ_MACH &&
+                (target.isX86_64 || target.isAArch64) &&
+                (s.Stype.Tty & mTYLINK) == mTYthread)
             {
                 tlsToDt(vd, s, sz, dtb, isCfile);
             }
@@ -966,7 +968,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
          */
         static Symbol* createTLVDataSymbol(VarDeclaration vd, Symbol* s)
         {
-            assert(config.objfmt == OBJ_MACH && target.isX86_64 && (s.Stype.Tty & mTYLINK) == mTYthread);
+            assert(config.objfmt == OBJ_MACH && (target.isX86_64 || target.isAArch64) && (s.Stype.Tty & mTYLINK) == mTYthread);
 
             // Compute identifier for tlv symbol
             OutBuffer buffer;
@@ -976,6 +978,15 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             // Compute type for tlv symbol
             type* t = type_fake(vd.type.ty);
+static if (0) {
+            type* t1 = Type_toCtype(vd.type);
+            type* t;
+            if (type_struct(t1))
+                t = type_fake(vd.type.ty);
+            else
+                t = t1;
+}
+
             type_setty(&t, t.Tty | mTYthreadData);
             type_setmangle(&t, mangle(vd));
 

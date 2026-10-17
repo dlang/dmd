@@ -2178,8 +2178,9 @@ int MachObj_comdat(Symbol* s)
         {
             s.Sfl = FL.tlsdata;
             p2align = 4;
-            MachObj_tlsseg();
-            s.Sseg = machobj.seg_tlsseg;
+            //MachObj_tlsseg();
+            //s.Sseg = machobj.seg_tlsseg;
+            s.Sseg = objmod.tlsseg().SDseg;
             MachObj_data_start(s, 1 << p2align, s.Sseg);
         }
         else
@@ -2446,7 +2447,7 @@ int MachObj_codeseg(const char* name,int suffix)
 @trusted
 seg_data* MachObj_tlsseg()
 {
-    //printf("MachObj_tlsseg(\n");
+    //printf("MachObj_tlsseg()\n");
     int seg = I32 ? getsegment2(machobj.seg_tlsseg, "__tls_data", "__DATA", 2, S_REGULAR)
                   : getsegment2(machobj.seg_tlsseg, "__thread_vars", "__DATA", 0, S_THREAD_LOCAL_VARIABLES);
     return SegData[seg];
