@@ -1038,7 +1038,7 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass* bc)
     //printf("ClassDeclaration.baseVtblOffset('%s', bc = %p)\n", cd.toChars(), bc);
     uint csymoffset = classInfoSize();    // must be ClassInfo.size
     //printf("classInfoSize(): %d\n", csymoffset);
-    csymoffset += cd.vtblInterfaces.length * (4 * target.ptrsize);
+    csymoffset += cd.vtblInterfaces.length * (2 * target.ptrsize);
 
     for (size_t i = 0; i < cd.vtblInterfaces.length; i++)
     {
@@ -1153,9 +1153,9 @@ uint classInfoSize()
     auto obj = ClassDeclaration.object;
     const bool hasMonitor = !obj || !obj.symtab || obj.symtab.lookup(Id.__monitor) !is null;
     if (target.ptrsize == 8)
-        return 0x98 + 8 + (hasMonitor ? 8 : 0); // 168 with monitor
+        return 0x88 + 8 + (hasMonitor ? 8 : 0); // 152 with monitor
     else
-        return 0x4C + 12 + (hasMonitor ? 4 : 0); // 92 with monitor
+        return 0x44 + 12 + (hasMonitor ? 4 : 0); // 84 with monitor
 }
 
 /*******************
@@ -1181,7 +1181,7 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass* b, ref FuncDeclarations bv
     if (id.vtblOffset())
     {
         // First entry is struct Interface reference
-        dtb.xoff(toSymbol(pc), cast(uint)(classInfoSize() + k * (4 * target.ptrsize)), TYnptr);
+        dtb.xoff(toSymbol(pc), cast(uint)(classInfoSize() + k * (2 * target.ptrsize)), TYnptr);
         jstart = 1;
     }
 
@@ -1251,7 +1251,6 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
             monitor_t monitor;
             byte[] m_init;              // static initialization data
             string name;                // class name
-            void*[] vtbl;
             Interface[] interfaces;
             ClassInfo base;             // base class
             void* destructor;
@@ -1298,13 +1297,6 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
     dtb.size(namelen);
     auto csym = cast(Symbol*) cd.csym;
     dt_t* pdtname = dtb.xoffpatch(csym, 0, TYnptr);
-
-    // vtbl[]
-    dtb.size(cd.vtbl.length);
-    if (cd.vtbl.length)
-        dtb.xoff(cast(Symbol*)cd.vtblsym.csym, 0, TYnptr);
-    else
-        dtb.size(0);
 
     // interfaces[]
     dtb.size(cd.vtblInterfaces.length);
@@ -1412,7 +1404,7 @@ Louter:
     // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
     // of the fixup (*)
 
-    offset += cd.vtblInterfaces.length * (4 * target.ptrsize);
+    offset += cd.vtblInterfaces.length * (2 * target.ptrsize);
     for (size_t i = 0; i < cd.vtblInterfaces.length; i++)
     {
         BaseClass* b = (*cd.vtblInterfaces)[i];
@@ -1422,7 +1414,6 @@ Louter:
          *  struct Interface
          *  {
          *      ClassInfo classinfo;
-         *      void*[] vtbl;
          *      size_t offset;
          *  }
          */
@@ -1432,10 +1423,6 @@ Louter:
 
         // classinfo
         dtb.xoff(toSymbol(id), 0, TYnptr);
-
-        // vtbl[]
-        dtb.size(id.vtbl.length);
-        dtb.xoff(cast(Symbol*)cd.csym, offset, TYnptr);
 
         // offset
         dtb.size(b.offset);
@@ -1509,7 +1496,6 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
             monitor_t monitor;
             byte[] m_init;              // static initialization data
             string name;                // class name
-            void*[] vtbl;
             Interface[] interfaces;
             ClassInfo base;             // base class
             void* destructor;
@@ -1547,10 +1533,6 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     dtb.size(namelen);
     auto csym = cast(Symbol*)id.csym;
     dt_t* pdtname = dtb.xoffpatch(csym, 0, TYnptr);
-
-    // vtbl[]
-    dtb.size(0);
-    dtb.size(0);
 
     // interfaces[]
     uint offset = classInfoSize();
@@ -1625,7 +1607,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
     // of the fixup (*)
 
-    offset += id.vtblInterfaces.length * (4 * target.ptrsize);
+    offset += id.vtblInterfaces.length * (2 * target.ptrsize);
     for (size_t i = 0; i < id.vtblInterfaces.length; i++)
     {
         BaseClass* b = (*id.vtblInterfaces)[i];
@@ -1633,10 +1615,6 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
 
         // classinfo
         dtb.xoff(toSymbol(base), 0, TYnptr);
-
-        // vtbl[]
-        dtb.size(0);
-        dtb.size(0);
 
         // offset
         dtb.size(b.offset);
