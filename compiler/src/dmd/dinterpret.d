@@ -5905,7 +5905,7 @@ public:
             e1 = resolveSlice(e1);
 
         auto tobt = e.to.toBasetype();
-        if (tobt.ty == Tbool && e1.type.ty == Tpointer)
+        if (tobt.ty == Tbool && (e1.type.ty == Tpointer || e1.type.ty == Tclass))
         {
             emplaceExp!(IntegerExp)(pue, e.loc, e1.op != EXP.null_, e.to);
             result = pue.exp();
