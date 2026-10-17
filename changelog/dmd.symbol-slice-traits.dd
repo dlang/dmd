@@ -1,0 +1,38 @@
+Added `__traits(vtblSymbol)` and `__traits(interfaceSymbol)`, and `__traits(initSymbol)` now yields a symbol slice
+
+`__traits(vtblSymbol, C)` is the vtable of class `C`.
+
+`__traits(interfaceSymbol, C)` is the `Interface[]` array of class or interface
+`C`, the one `TypeInfo_Class.interfaces` refers to.
+
+Like `__traits(initSymbol)`, they refer to symbols whose address is only known at
+link time. All three now yield a symbol slice: an instance of the internal
+`object.__SymbolSlice!T` struct, which holds the length and the address of the
+immutable symbol and converts to `immutable(T)[]`. During
+CTFE its `length` and `ptr` can be used and it can be stored, for example in
+static data built at compile time; only the contents cannot be read. Its fields
+are `@system`, so `@safe` code can read `length` and `ptr` but not modify them.
+Use `typeof` to name its type:
+
+---
+struct S { int a = 1; long b = 2; }
+class C { void f() {} }
+
+struct Info
+{
+    typeof(__traits(initSymbol, S)) init;
+    typeof(__traits(vtblSymbol, C)) vtbl;
+}
+
+immutable Info info = Info(__traits(initSymbol, S), __traits(vtblSymbol, C));
+static assert(info.init.length == S.sizeof);
+---
+
+The class passed to `__traits(vtblSymbol)` or `__traits(interfaceSymbol)` must have
+completed semantic analysis, so they cannot be used inside the class itself, outside
+its member function bodies.
+
+Previously `__traits(initSymbol)` returned a `const(void)[]` and could not be used
+during CTFE at all. Code that checks its type with
+`is(typeof(...) == const(void)[])` needs updating, and a custom `object.d` must
+define `__SymbolSlice` to support these traits.
