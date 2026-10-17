@@ -2638,6 +2638,21 @@ struct DFAAnalyzer
                     return;
                 }
             }
+            else if (isOffsetOfStorage && var.isNullable)
+            {
+                // &(slice[index]) / &(pointer[index]) / &(aa[index]): the
+                // element lives behind the variable's indirection, in its
+                // points-to, not in the variable's own storage. Keep the
+                // target; the in-cell wrap below roots it. An unknown target
+                // is under-approximated (not reported).
+                if (cctx !is null && cctx.obj !is null)
+                    storage = cctx.obj;
+                else
+                {
+                    unknown = true;
+                    return;
+                }
+            }
             else
             {
                 // Taking a pointer for the variable

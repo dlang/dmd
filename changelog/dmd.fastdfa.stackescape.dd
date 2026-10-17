@@ -1,0 +1,30 @@
+Returning a stack reference from an ``@safe`` function is now an error under ``-preview=fastdfa``
+
+A function declared ``@safe`` may not return a value that refers to the storage
+of one of its own local variables. That was already an error with
+``-preview=dip1000``; with ``-preview=fastdfa`` the check no longer needs that
+flag.
+
+---
+@safe:
+int[] viaVariable()
+{
+    int[3] arr = [1, 2, 3];
+    int[] s = arr[];
+    return s;
+} // error: Stack variable exceeds its lifetime by being returned
+---
+
+The reference does not have to be produced by the return statement itself: the
+same error is reported when it comes back through a local variable, when the
+slice is cut again (`s[0 .. 2]`), or when the address of an element of a
+static array local is taken
+($(LINK2 https://github.com/dlang/dmd/issues/20508, #20508)).
+
+``@system`` and ``@trusted`` functions may still return references to their own
+frame. The check stays within one function at a time: escapes that travel
+through a call, for example through
+$(LINK2 https://github.com/dlang/dmd/issues/23878, #23878), are not reported
+yet.
+
+Behavior without ``-preview=fastdfa`` is unchanged.
