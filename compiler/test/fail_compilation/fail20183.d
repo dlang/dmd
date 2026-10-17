@@ -33,7 +33,7 @@ void test()
 TEST_OUTPUT:
 ---
 fail_compilation/fail20183.d(1017): Error: assigning address of expression temporary returned by `s()` to `q` with longer lifetime is not allowed in a `@safe` function
-fail_compilation/fail20183.d(1018): Error: assigning address of struct literal `S(0)`  to `r` with longer lifetime is not allowed in a `@safe` function
+fail_compilation/fail20183.d(1018): Error: assigning address of struct literal `S(0)` to `r` with longer lifetime is not allowed in a `@safe` function
 fail_compilation/fail20183.d(1107): Error: assigning address of expression temporary returned by `s()` to `this.ptr` with longer lifetime is not allowed in a `@safe` function
 ---
  */
