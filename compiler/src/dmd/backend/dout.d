@@ -24,6 +24,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
+import dmd.backend.debugprint;
 import dmd.backend.x86.code_x86;
 import dmd.backend.dt;
 import dmd.backend.el;
@@ -87,7 +88,7 @@ void outdata(Symbol* s)
     debug
     debugy && printf("outdata('%s')\n",s.Sident.ptr);
 
-    //printf("outdata('%s', ty=%s)\n",s.Sident.ptr,tym_str(s.Stype.Tty));
+    //printf("\noutdata('%s', ty=%s)\n",s.Sident.ptr,tym_str(s.Stype.Tty));
     //symbol_print(*s);
 
     // Data segment variables are always live on exit from a function
@@ -159,7 +160,7 @@ void outdata(Symbol* s)
                             assert(config.objfmt == OBJ_MACH && I64);
                             goto case;
                         case mTYthread:
-                        if (config.objfmt == OBJ_MACH && config.target_cpu == TARGET_AArch64)
+                        if (0 && config.objfmt == OBJ_MACH && config.target_cpu == TARGET_AArch64)
                         {
                             // Special handling
                             import dmd.backend.machobj : MachObj_thread_vars;
