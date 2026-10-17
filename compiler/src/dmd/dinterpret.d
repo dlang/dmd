@@ -3593,8 +3593,14 @@ public:
                     }
                 }
                 oldval = resolveSlice(oldval);
+                if (e.e1.op == EXP.cast_)
+                {
+                    oldval = ctfeCast(pue, e.loc, e.e1.type, e.e1.type, oldval);
+                    if (oldval == pue.exp())
+                        oldval = pue.copy();
+                }
 
-                newval = (*fp)(e.loc, e.type, oldval, newval).copy();
+                newval = (*fp)(e.loc, e.e1.type, oldval, newval).copy();
             }
             else if (e.e2.type.isIntegral() &&
                      (e.op == EXP.addAssign ||
