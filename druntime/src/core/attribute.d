@@ -110,6 +110,93 @@ else
 }
 
 /**
+ * When applied to an `extern(C)` function declaration targeting WebAssembly,
+ * specifies the WebAssembly import module name for that function.
+ *
+ * In the WebAssembly binary format, every import has a two-level namespace:
+ * a module name and a function name. Without this attribute the module name
+ * defaults to `"env"`. Use this attribute to import from a specific host
+ * module such as WASI.
+ *
+ * Examples:
+ * ---
+ * import core.attribute : wasmImportModule;
+ *
+ * @wasmImportModule("wasi_snapshot_preview1")
+ * extern (C) void proc_exit(int) nothrow @nogc;
+ * ---
+ */
+version (DigitalMars)
+{
+    struct wasmImportModule
+    {
+        string name;
+    }
+}
+else
+{
+    // LDC uses @llvmAttr("wasm-import-module", ...) for the same purpose.
+}
+
+/**
+ * When applied to an `extern(C)` function declaration targeting WebAssembly,
+ * specifies the WebAssembly import name for that function.
+ *
+ * Without this attribute the import name is the symbol's link name. Use this
+ * attribute when the declaration is given a different link name, for instance
+ * via `pragma(mangle)`.
+ *
+ * Examples:
+ * ---
+ * import core.attribute : wasmImportModule, wasmImportName;
+ *
+ * @wasmImportModule("wasi_snapshot_preview1")
+ * @wasmImportName("proc_exit")
+ * pragma(mangle, "__imported_wasi_snapshot_preview1_proc_exit")
+ * extern (C) void imported_procExit(int) nothrow @nogc;
+ * ---
+ */
+version (DigitalMars)
+{
+    struct wasmImportName
+    {
+        string name;
+    }
+}
+else
+{
+    // LDC uses @llvmAttr("wasm-import-name", ...) for the same purpose.
+}
+
+/**
+ * When applied to an `extern(C)` function definition targeting WebAssembly,
+ * exports the function to the host under `name` and marks it so the linker
+ * keeps it without `--export-dynamic` and even under `--gc-sections`. The
+ * export name may differ from the symbol's mangled link name.
+ *
+ * Counterpart to $(D wasmImportModule), which names the import side.
+ *
+ * Examples:
+ * ---
+ * import core.attribute : wasmExportName;
+ *
+ * @wasmExportName("windowStep")
+ * extern (C) void windowStep(void* w) { ... }
+ * ---
+ */
+version (DigitalMars)
+{
+    struct wasmExportName
+    {
+        string name;
+    }
+}
+else
+{
+    // LDC uses @llvmAttr("wasm-export-name", ...) for the same purpose.
+}
+
+/**
  * Use this attribute to attach an Objective-C selector to a method.
  *
  * This is a special compiler recognized attribute, it has several

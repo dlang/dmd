@@ -36,7 +36,7 @@ version (all)
     static import core.sys.posix.pthread;
     import core.stdc.errno : EINTR, errno;
 
-    version (CRuntime_WASI)
+    version (WASI)
         import core.sys.posix.pthread : pthread_attr_destroy, pthread_attr_getstack,
             pthread_attr_init, pthread_attr_setstacksize, pthread_create, pthread_detach,
             pthread_join, pthread_self, sched_yield;
@@ -339,7 +339,7 @@ class Thread : ThreadBase
         return super.join(rethrow);
     }
 
-    version (CRuntime_WASI)
+    version (WASI)
     {
         @property static int PRIORITY_MIN() @nogc nothrow pure @safe
         {
@@ -492,7 +492,7 @@ class Thread : ThreadBase
         {
            return fakePriority==int.max? PRIORITY_DEFAULT : fakePriority;
         }
-        else version (CRuntime_WASI)
+        else version (WASI)
         {
             return PRIORITY_DEFAULT;
         }
@@ -549,7 +549,7 @@ class Thread : ThreadBase
         {
            fakePriority = val;
         }
-        else version (CRuntime_WASI)
+        else version (WASI)
         {
             // do nothing
         }
@@ -673,7 +673,7 @@ class Thread : ThreadBase
         else version (Solaris)
         {
         }
-        else version (CRuntime_WASI)
+        else version (WASI)
         {
         }
         else
@@ -757,7 +757,7 @@ class Thread : ThreadBase
 }
 
 version (CoreDdoc) {} else
-version (CRuntime_WASI) {} else
+version (WASI) {} else
 extern (C) void thread_setGCSignals(int suspendSignalNo, int resumeSignalNo) nothrow @nogc
 in
 {
@@ -776,7 +776,7 @@ do
 }
 
 version (CoreDdoc) {} else
-version (CRuntime_WASI) {} else
+version (WASI) {} else
 extern (C) void thread_getGCSignals(out int suspendSignalNo, out int resumeSignalNo) nothrow @nogc
 in
 {
@@ -794,7 +794,7 @@ do
     resumeSignalNo  = resumeSignalNumber;
 }
 
-version (CRuntime_WASI) {}
+version (WASI) {}
 else
 {
     private __gshared int suspendSignalNumber;
@@ -808,7 +808,7 @@ package bool suspendThreadImpl(Thread t) @nogc nothrow
         return thread_suspend(t.m_tdescr.tmach) == KERN_SUCCESS;
     else version (Solaris)
         return thr_suspend(t.m_tdescr.tid) == 0;
-    else version (CRuntime_WASI)
+    else version (WASI)
         return false;
     else
         return pthread_kill(t.m_tdescr.tid, suspendSignalNumber) == 0;
@@ -821,7 +821,7 @@ package bool resumeThreadImpl(Thread t) @nogc nothrow
         return thread_resume(t.m_tdescr.tmach) == KERN_SUCCESS;
     else version (Solaris)
         return thr_continue(t.m_tdescr.tid) == 0;
-    else version (CRuntime_WASI)
+    else version (WASI)
         return false;
     else
         return pthread_kill(t.m_tdescr.tid, resumeSignalNumber) == 0;
@@ -1457,8 +1457,18 @@ package void* getStackBottomImpl() nothrow @nogc
         thr_stksegment(&stk);
         return stk.ss_sp;
     }
+    else version (WebAssembly)
+    {
+        // the shadow stack is [.., __stack_high) and grows down
+        return &__stack_high;
+    }
     else
         static assert(false, "Platform not supported.");
+}
+
+version (WebAssembly)
+{
+    private extern(C) extern __gshared ubyte __stack_high;
 }
 
 

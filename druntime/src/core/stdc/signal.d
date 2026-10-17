@@ -57,7 +57,7 @@ version (CRuntime_WASI)
     ///
     enum SIGTERM    = 15; // Termination
 }
-version (Posix)
+else version (Posix)
 {
     ///
     enum SIG_ERR    = cast(sigfn_t) -1;
