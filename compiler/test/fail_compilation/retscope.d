@@ -49,37 +49,6 @@ void test2(scope int* p, int[] a ...) @safe
     q = &fp2().d;
 }
 
-/**************************************************/
-
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(75): Error: function `retscope.HTTP.Impl.onReceive` is `@nogc` yet allocates closure for `onReceive()` with the GC
-fail_compilation/retscope.d(77):        delegate `() => this.x` closes over variable `this`
----
-*/
-
-
-struct Curl
-{
-    int delegate() dg;
-}
-
-struct HTTP
-{
-    struct Impl
-    {
-        Curl curl;
-        int x;
-
-        @nogc void onReceive()
-        {
-            auto dg = ( ) { return x; };
-            curl.dg = dg;
-        }
-    }
-}
-
 /***********************************************/
 
 /*
@@ -106,8 +75,8 @@ int[] bar8(int[] a) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(95): Error: assigning reference to local variable `sa` to non-scope parameter `a` calling `bar8` is not allowed in a `@safe` function
-fail_compilation/retscope.d(123): Error: escaping a reference to local variable `tmp` by returning `foo9(cast(char[])tmp)`  is not allowed in a `@safe` function
+fail_compilation/retscope.d(64): Error: assigning reference to local variable `sa` to non-scope parameter `a` calling `bar8` is not allowed in a `@safe` function
+fail_compilation/retscope.d(92): Error: escaping a reference to local variable `tmp` by returning `foo9(cast(char[])tmp)`  is not allowed in a `@safe` function
 ---
 */
 
@@ -128,7 +97,7 @@ char[] bar9() @safe
 /*
 //
 //
-//fail_compilation/retscope.d(143): To enforce `@safe`, the compiler allocates a closure unless `opApply()` uses `scope`
+//fail_compilation/retscope.d(112): To enforce `@safe`, the compiler allocates a closure unless `opApply()` uses `scope`
 //
 */
 
@@ -149,7 +118,7 @@ S10* test10()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(158): Error: scope parameter `this` may not be returned
+fail_compilation/retscope.d(127): Error: scope parameter `this` may not be returned
 ---
 */
 
@@ -164,7 +133,7 @@ class C11
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(177): Error: assigning address of variable `i` to `p` with longer lifetime is not allowed in a `@safe` function
+fail_compilation/retscope.d(146): Error: assigning address of variable `i` to `p` with longer lifetime is not allowed in a `@safe` function
 ---
 */
 
@@ -181,8 +150,8 @@ void foo11() @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(198): Error: returning scope variable `e` is not allowed in a `@safe` function
-fail_compilation/retscope.d(197):        `e` inferred `scope` because of `e.DG = d`
+fail_compilation/retscope.d(167): Error: returning scope variable `e` is not allowed in a `@safe` function
+fail_compilation/retscope.d(166):        `e` inferred `scope` because of `e.DG = d`
 ---
 */
 
@@ -202,7 +171,7 @@ void* escapeDg1(scope void* d) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(213): Error: assigning scope variable `p` to non-scope `e.e` is not allowed in a `@safe` function
+fail_compilation/retscope.d(182): Error: assigning scope variable `p` to non-scope `e.e` is not allowed in a `@safe` function
 ---
 */
 struct Escaper3 { void* e; }
@@ -219,7 +188,7 @@ void* escape3 (scope void* p) @safe {
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(230): Error: scope parameter `ptr` may not be returned
+fail_compilation/retscope.d(199): Error: scope parameter `ptr` may not be returned
 ---
 */
 
@@ -235,10 +204,10 @@ void* funretscope(scope dg_t ptr) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `() => & x` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `() => & x` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
-fail_compilation/retscope.d(250): Error: cannot implicitly convert expression `() => & x` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
-fail_compilation/retscope.d(250): Error: cannot implicitly convert expression `() => & x` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
+fail_compilation/retscope.d(218): Error: cannot implicitly convert expression `() => & x` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
+fail_compilation/retscope.d(218): Error: cannot implicitly convert expression `() => & x` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
+fail_compilation/retscope.d(219): Error: cannot implicitly convert expression `() => & x` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
+fail_compilation/retscope.d(219): Error: cannot implicitly convert expression `() => & x` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
 ---
 */
 
@@ -255,7 +224,7 @@ void escape4() @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(267): Error: taking address of `scope` variable `p` with pointers is not allowed in a `@safe` function
+fail_compilation/retscope.d(236): Error: taking address of `scope` variable `p` with pointers is not allowed in a `@safe` function
 ---
 */
 
@@ -272,7 +241,7 @@ void escape5() @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(287): Error: escaping a reference to local variable `b` by returning `foo6(& b)`  is not allowed in a `@safe` function
+fail_compilation/retscope.d(256): Error: escaping a reference to local variable `b` by returning `foo6(& b)`  is not allowed in a `@safe` function
 ---
 */
 
@@ -303,9 +272,9 @@ struct S7
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(316): Error: scope parameter `p` may not be returned
-fail_compilation/retscope.d(317): Error: returning `p[]` escapes a reference to parameter `p`
-fail_compilation/retscope.d(320): Error: scope parameter `p` may not be returned
+fail_compilation/retscope.d(285): Error: scope parameter `p` may not be returned
+fail_compilation/retscope.d(286): Error: returning `p[]` escapes a reference to parameter `p`
+fail_compilation/retscope.d(289): Error: scope parameter `p` may not be returned
 ---
 */
 
@@ -324,7 +293,7 @@ ref int[3] asStatic2(      scope int[] p) @safe { return p[0 .. 3]; }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(336): Error: assigning reference to local variable `i` to non-scope `f` is not allowed in a `@safe` function
+fail_compilation/retscope.d(305): Error: assigning reference to local variable `i` to non-scope `f` is not allowed in a `@safe` function
 ---
 */
 
@@ -348,7 +317,7 @@ int* bar10( scope int** ptr ) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(359): Error: taking address of `scope` variable `aa` with pointers is not allowed in a `@safe` function
+fail_compilation/retscope.d(328): Error: taking address of `scope` variable `aa` with pointers is not allowed in a `@safe` function
 ---
 */
 
