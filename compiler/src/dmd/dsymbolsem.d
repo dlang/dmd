@@ -5140,6 +5140,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             StructDeclaration sym = ts.sym;
             if (sd.isCsymbol() && sym.isCsymbol())
             {
+                // isCCompatible compares sizes directly for unions (they
+                // have no field order to walk), so it needs both sides
+                // already finalized; the struct path walks fields instead
+                // and does its own semantic work, so leave those alone.
+                if (sd.isUnionDeclaration() && sym.isUnionDeclaration())
+                {
+                    if (sd.sizeok != Sizeok.done)
+                        sd.finalizeSize();
+                    if (sym.sizeok != Sizeok.done)
+                        sym.finalizeSize();
+                }
 
                 if (!isCCompatible(sd, sym))
                 {
@@ -5248,19 +5259,38 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return isCCompatibleUnnamedStruct(a, b);
         }
 
-        if (a.fields.length != b.fields.length)
-        {
-            incompatError();
-            eSink.errorSupplemental(a.loc, "`%s` has %u field(s) while `%s` has %u field(s)",
-                    a.toPrettyChars(), cast(uint)a.fields.length, b.toPrettyChars(), cast(uint)b.fields.length);
-            return false;
-        }
         // both are structs or both are unions
         if ((a.isUnionDeclaration() is null) != (b.isUnionDeclaration() is null))
         {
             incompatError();
             eSink.errorSupplemental(a.loc, "`%s` is a %s while `%s` is a %s",
                     a.toPrettyChars(), a.kind, b.toPrettyChars(), b.kind);
+            return false;
+        }
+        if (a.isUnionDeclaration() && b.isUnionDeclaration())
+        {
+            // Unions have no member order or offsets to disagree on, so
+            // only the overall size and alignment need to match.
+            if (a.structsize == b.structsize && a.alignment == b.alignment)
+                return true;
+            incompatError();
+            eSink.errorSupplemental(a.loc, "`%s` is %u bytes, `%s` is %u bytes",
+                    a.toPrettyChars(), a.structsize, b.toPrettyChars(), b.structsize);
+            if (a.alignment.isDefault())
+                eSink.errorSupplemental(a.loc, "`%s` alignment: default", a.toPrettyChars());
+            else
+                eSink.errorSupplemental(a.loc, "`%s` alignment: %u", a.toPrettyChars(), cast(uint)a.alignment.get());
+            if (b.alignment.isDefault())
+                eSink.errorSupplemental(b.loc, "`%s` alignment: default", b.toPrettyChars());
+            else
+                eSink.errorSupplemental(b.loc, "`%s` alignment: %u", b.toPrettyChars(), cast(uint)b.alignment.get());
+            return false;
+        }
+        if (a.fields.length != b.fields.length)
+        {
+            incompatError();
+            eSink.errorSupplemental(a.loc, "`%s` has %u field(s) while `%s` has %u field(s)",
+                    a.toPrettyChars(), cast(uint)a.fields.length, b.toPrettyChars(), cast(uint)b.fields.length);
             return false;
         }
         if (a.alignment != b.alignment)
