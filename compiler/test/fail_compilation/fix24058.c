@@ -1,6 +1,6 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/fix24058.c(108): Error: redefinition of `q` with different type: `const(int)*` vs `const(long)*`
+fail_compilation/fix24058.c(108): Error: redefinition of `q` with different type: `const(int)*` vs `const(short)*`
 ---
  */
 
@@ -15,4 +15,4 @@ const int x;
 extern const int x;
 
 extern const int *q;
-const long *q;
+const short *q;
