@@ -861,6 +861,17 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         ReturnStatement rs = (*funcdecl.returns)[i];
                         Expression exp = rs.exp;
                         Scope* sc3 = rs.scope_;
+                        if (rs.fesFunc)
+                        {
+                            // Create a scope with foreach body being `.parent`
+                            // and `funcdecl` as `.func`. So the return value
+                            // is aware of closure access, but picks up
+                            // attributes and instantiates templated copy/move
+                            // ctors in the context of `funcdecl`.
+                            // BUG: remove this fragile hack
+                            sc3 = sc3.push();
+                            sc3.func = funcdecl;
+                        }
                         if (exp.op == EXP.error)
                             continue;
                         if (tret.ty == Terror)
@@ -995,24 +1006,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                         if (funcdecl.vresult)
                         {
-                            Scope* scret = sc3;
-
-                            if (rs.fesFunc)
-                            {
-                                // Create a scope with foreach body being `.parent`
-                                // and `funcdecl` as `.func`. So the return value
-                                // is aware of closure access, but picks up
-                                // attributes and instantiates templated copy/move
-                                // ctors in the context of `funcdecl`.
-                                // BUG: remove this fragile hack
-                                scret = rs.fesFunc._scope.push();
-                                scret.parent = rs.fesFunc;
-                                scret.func = funcdecl;
-                            }
-
                             // Create: return (vresult = exp, vresult);
                             exp = new ConstructExp(rs.loc, funcdecl.vresult, exp);
-                            exp = exp.expressionSemantic(scret);
+                            exp = exp.expressionSemantic(sc3);
                             exp = Expression.combine(exp, new VarExp(rs.loc, funcdecl.vresult));
 
                             if (rs.caseDim)
