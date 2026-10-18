@@ -318,6 +318,11 @@ bool cTypeEquivalence(Type t1, Type t2)
     if (auto tf = t1.isTypeFunction())
         return cFuncEquivalence(tf, tf.isTypeFunction());
 
+    // Basic types (int, char, float, ...) have no further structure to
+    // compare once ty and mod already match above.
+    if (t1.isTypeBasic())
+        return true;
+
     return false;
 }
 
