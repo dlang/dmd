@@ -2147,7 +2147,8 @@ private T trustedMoveImpl(T)(return scope ref T source) @trusted
 private enum bool hasContextPointers(T) = {
     static if (__traits(isStaticArray, T))
     {
-        return hasContextPointers!(typeof(T.init[0]));
+        import core.internal.traits : lvalueOf;
+        return hasContextPointers!(typeof(lvalueOf!T[0]));
     }
     else static if (is(T == struct))
     {
