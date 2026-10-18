@@ -1,7 +1,4 @@
 /*
- * Positive tests for the fastdfa stack-escape check: none of these may error
- * under `-preview=fastdfa` without `-preview=dip1000`.
- *
  * REQUIRED_ARGS: -preview=fastdfa
  */
 @safe:
@@ -21,6 +18,58 @@ int[] returnHeapVariable()
 int[] returnParameter(int[] a)
 {
     return a;
+}
+
+class HasArray
+{
+    int[3] data;
+}
+
+int[] classArrayAlias(HasArray c)
+{
+    ref int[3] a = c.data;
+    int[] s = a[];
+    return s;
+}
+
+int[] classArrayAliasBounded(HasArray c)
+{
+    ref int[3] a = c.data;
+    int[] s = a[1 .. 3];
+    return s;
+}
+
+int[3] globalArray;
+
+int[] globalArraySlice()
+{
+    int[] s = globalArray[];
+    return s;
+}
+
+int[] globalArraySliceBounded()
+{
+    int[] s = globalArray[1 .. 3];
+    return s;
+}
+
+// Ref parameters name caller storage rather than local parameter storage.
+int[] refArraySlice(ref int[3] a)
+{
+    int[] s = a[];
+    return s;
+}
+
+int[] refArraySliceBounded(ref int[3] a)
+{
+    int[] s = a[1 .. 3];
+    return s;
+}
+
+int* refScalarAddress(ref int x)
+{
+    int* p = &x;
+    return p;
 }
 
 void consume(int[] a)
@@ -62,8 +111,6 @@ HasStatic returnStaticArrayInStruct()
     return HasStatic(arr);
 }
 
-/****************** value returns: no indirections, cannot escape ***************/
-
 int sliceIndexValue()
 {
     int[3] s = [1, 2, 3];
@@ -90,8 +137,6 @@ P sliceIndexInStruct()
     return P(t[0]);
 }
 
-/****************** @system / @trusted exemptions *****************************/
-
 @system int[] systemViaIntermediate()
 {
     int[3] arr = [1, 2, 3];
@@ -106,8 +151,6 @@ P sliceIndexInStruct()
     return t;
 }
 
-/****************** nested capture consumed in this frame *********************/
-
 int consumeNestedCaptureInFrame()
 {
     int[3] a = [7, 8, 9];
@@ -120,9 +163,7 @@ int consumeNestedCaptureInFrame()
     return s[1];
 }
 
-/****************** captures and holders of references **********************/
-
-// A capture's storage is a heap closure or an outer frame, not this frame.
+// Escaping delegates keep captured storage alive.
 void delegate() captureSink;
 
 void capturedInEscapedClosure()
@@ -143,8 +184,7 @@ void capturedInEscapedClosure()
     }
 }
 
-// An element read out of a static array of references is a value copy, and
-// the cell is a holder of references: not an escape of the cell itself.
+// These return element values, not the local array's storage.
 int* elementOfStaticArrayOfPointers()
 {
     int*[3] a = [null, null, null];
@@ -159,7 +199,68 @@ int[] elementOfStaticArrayOfSlices()
     return t[0];
 }
 
-/****************** reassignment away from stack data ****************/
+struct SliceHolder
+{
+    const(char)[][1] elem;
+
+    ref const(char)[] opIndex(size_t i) scope return
+    {
+        return elem[i];
+    }
+}
+
+// Copy a slice returned by ref; do not return its descriptor address.
+const(char)[] copyRefSlice(const(char)[] input)
+{
+    auto holder = SliceHolder([input]);
+    return holder[0];
+}
+
+const(char)[] copyRefSliceResliced(const(char)[] input)
+{
+    auto holder = SliceHolder([input]);
+    return holder[0][];
+}
+
+const(char)[] copyRefSliceAlias(const(char)[] input)
+{
+    auto holder = SliceHolder([input]);
+    ref const(char)[] aliasSlice = holder[0];
+    auto copy = aliasSlice;
+    return copy;
+}
+
+struct PointerHolder
+{
+    int* ptr;
+
+    @property ref int* value() scope return
+    {
+        return ptr;
+    }
+}
+
+int* copyRefPointer(int* input)
+{
+    auto holder = PointerHolder(input);
+    return holder.value;
+}
+
+struct DynamicHolder
+{
+    int[] value;
+
+    ref int[] get() scope return @safe
+    {
+        return value;
+    }
+}
+
+int[] copyRefPropertyResliced(int[] input) @safe
+{
+    DynamicHolder holder = DynamicHolder(input);
+    return holder.get()[];
+}
 
 int globalInt;
 
@@ -192,15 +293,12 @@ int* reassignPointerToHeap()
     return p;
 }
 
-/****************** known deferrals (future work, not covered) ****************/
-
-// Deferred: a slice stored through a struct field assignment does not yet
-// root the field's value at the local; this real escape slips through.
 struct View
 {
     int[] values;
 }
 
+// Deferred: storing a slice in a struct field loses its root provenance.
 int[] deferredStructFieldAssign()
 {
     int[3] a = [1, 2, 3];
@@ -209,7 +307,7 @@ int[] deferredStructFieldAssign()
     return v.values;
 }
 
-// Deferred: slices produced inside `with` are not rooted at the local yet.
+// Deferred: the analyzer does not yet root slices created through `with`.
 int[] deferredWith()
 {
     struct W
@@ -225,21 +323,12 @@ int[] deferredWith()
     }
 }
 
-// Deferred: issue 20509, a typesafe variadic's backing storage lives in the
-// caller's frame.
-int[] returnVariadicBacking(int[] args...)
+// Deferred: the variadic's backing storage belongs to the caller.
+int[] deferredVariadicBacking(int[] args...)
 {
     auto saved = args;
     return saved;
 }
-
-void useVariadic()
-{
-    auto arr = returnVariadicBacking(1, 2, 3);
-    assert(arr == [1, 2, 3]);
-}
-
-/****************** valid code pinned by the call-site regressions ***************/
 
 // utf.d(789) `toUTF16z`: the address of an element of a heap-backed slice.
 const(wchar)* heapElementAddress()

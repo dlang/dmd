@@ -974,7 +974,10 @@ struct ExpressionWalker
                     DFAConsequence* newCctx = ret.setContext(indexVar);
 
                     if (lhsObject !is null)
-                        newCctx.obj = dfaCommon.makeObject(lhsObject);
+                    {
+                        newCctx.obj = dfaCommon.makeObject();
+                        newCctx.obj.derivedFrom = lhsObject;
+                    }
                 }
 
                 return ret;
@@ -1015,8 +1018,6 @@ struct ExpressionWalker
                     }
                     else if (baseCctx !is null && baseCctx.obj !is null)
                         newCctx.obj = baseCctx.obj;
-                    else if (baseCtx !is null && !baseCtx.haveBase)
-                        newCctx.obj = dfaCommon.makeObject(baseCtx);
 
                     return base;
                 }
@@ -2723,6 +2724,12 @@ struct ExpressionWalker
         }
 
         this.seeConvergeFunctionCall(ret, returnInfo, alr, loc);
+        if (returnInfo.isByRef)
+        {
+            DFAVar* var = ret.getContextVar;
+            var.isStaticArray = toCallFunctionType !is null
+                && toCallFunctionType.next.isTypeSArray !is null;
+        }
         return ret;
     }
 
