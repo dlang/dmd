@@ -200,7 +200,7 @@ struct DFAReporter
             assert(cctx !is null);
             assert(cctx.var is scv.var);
 
-            Fact suggestedNotNullOut = param.notNullOut;
+            Fact suggestedNotNullOut = param.inferred.notNullOut;
 
             if (suggestedNotNullOut == Fact.Guaranteed && cctx.nullable != Nullable.NonNull)
                 suggestedNotNullOut = Fact.NotGuaranteed;
