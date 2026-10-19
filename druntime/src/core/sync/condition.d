@@ -26,7 +26,6 @@ import core.thread : isSingleThreaded;
 
 version (Windows)
 {
-    import core.atomic : atomicLoad, atomicStore;
     import core.sync.semaphore;
     import core.sys.windows.basetsd /+: HANDLE+/;
     import core.sys.windows.winbase /+: CloseHandle, CreateSemaphoreA, CRITICAL_SECTION,
@@ -435,6 +434,10 @@ private:
                 {
                     return mixin("val " ~ o ~ "mod");
                 }
+
+                auto load(T)(ref T val) { return val; }
+
+                void store(T, V)(ref T val, V newVal) { val = newVal; }
             }
             else
             {
@@ -443,6 +446,18 @@ private:
                     import core.atomic: atomicLoad, atomicOp;
                     // Bind shared operands by reference so the load reads the counter itself.
                     return atomicOp!o(val, atomicLoad(mod));
+                }
+
+                auto load(T)(ref shared T val)
+                {
+                    import core.atomic : atomicLoad;
+                    return atomicLoad(val);
+                }
+
+                void store(T, V)(ref shared T val, V newVal)
+                {
+                    import core.atomic : atomicStore;
+                    atomicStore(val, newVal);
                 }
             }
 
@@ -468,12 +483,12 @@ private:
             EnterCriticalSection( &m_unblockLock );
             scope(failure) LeaveCriticalSection( &m_unblockLock );
 
-            if ( (numSignalsLeft = atomicLoad(m_numWaitersToUnblock)) != 0 )
+            if ( (numSignalsLeft = load(m_numWaitersToUnblock)) != 0 )
             {
                 if ( timedOut )
                 {
                     // timeout (or canceled)
-                    if ( atomicLoad(m_numWaitersBlocked) != 0 )
+                    if ( load(m_numWaitersBlocked) != 0 )
                     {
                         op!"-="(m_numWaitersBlocked, 1);
                         // do not unblock next waiter below (already unblocked)
@@ -482,12 +497,12 @@ private:
                     else
                     {
                         // spurious wakeup pending!!
-                        atomicStore(m_numWaitersGone, 1);
+                        store(m_numWaitersGone, 1);
                     }
                 }
                 if ( op!"-="(m_numWaitersToUnblock, 1) == 0 )
                 {
-                    if ( atomicLoad(m_numWaitersBlocked) != 0 )
+                    if ( load(m_numWaitersBlocked) != 0 )
                     {
                         // open the gate
                         rc = ReleaseSemaphore( cast(HANDLE) m_blockLock, 1, null );
@@ -495,9 +510,9 @@ private:
                         // do not open the gate below again
                         numSignalsLeft = 0;
                     }
-                    else if ( (numWaitersGone = atomicLoad(m_numWaitersGone)) != 0 )
+                    else if ( (numWaitersGone = load(m_numWaitersGone)) != 0 )
                     {
-                        atomicStore(m_numWaitersGone, 0);
+                        store(m_numWaitersGone, 0);
                     }
                 }
             }
@@ -510,7 +525,7 @@ private:
                 op!"-="(m_numWaitersBlocked, m_numWaitersGone);
                 rc = ReleaseSemaphore( cast(HANDLE) m_blockLock, 1, null );
                 assert( rc == WAIT_OBJECT_0 );
-                atomicStore(m_numWaitersGone, 0);
+                store(m_numWaitersGone, 0);
             }
 
             LeaveCriticalSection( &m_unblockLock );
@@ -547,6 +562,10 @@ private:
                 {
                     return mixin("val " ~ o ~ "mod");
                 }
+
+                auto load(T)(ref T val) { return val; }
+
+                void store(T, V)(ref T val, V newVal) { val = newVal; }
             }
             else
             {
@@ -555,6 +574,18 @@ private:
                     import core.atomic: atomicLoad, atomicOp;
                     return atomicOp!o(val, atomicLoad(mod));
                 }
+
+                auto load(T)(ref shared T val)
+                {
+                    import core.atomic : atomicLoad;
+                    return atomicLoad(val);
+                }
+
+                void store(T, V)(ref shared T val, V newVal)
+                {
+                    import core.atomic : atomicStore;
+                    atomicStore(val, newVal);
+                }
             }
 
             DWORD rc;
@@ -562,9 +593,9 @@ private:
             EnterCriticalSection( &m_unblockLock );
             scope(failure) LeaveCriticalSection( &m_unblockLock );
 
-            if ( atomicLoad(m_numWaitersToUnblock) != 0 )
+            if ( load(m_numWaitersToUnblock) != 0 )
             {
-                if ( atomicLoad(m_numWaitersBlocked) == 0 )
+                if ( load(m_numWaitersBlocked) == 0 )
                 {
                     LeaveCriticalSection( &m_unblockLock );
                     return;
@@ -572,7 +603,7 @@ private:
                 if ( all )
                 {
                     op!"+="(m_numWaitersToUnblock, m_numWaitersBlocked);
-                    atomicStore(m_numWaitersBlocked, 0);
+                    store(m_numWaitersBlocked, 0);
                 }
                 else
                 {
@@ -581,23 +612,23 @@ private:
                 }
                 LeaveCriticalSection( &m_unblockLock );
             }
-            else if ( atomicLoad(m_numWaitersBlocked) > atomicLoad(m_numWaitersGone) )
+            else if ( load(m_numWaitersBlocked) > load(m_numWaitersGone) )
             {
                 rc = WaitForSingleObject( cast(HANDLE) m_blockLock, INFINITE );
                 assert( rc == WAIT_OBJECT_0 );
-                if ( 0 != atomicLoad(m_numWaitersGone) )
+                if ( 0 != load(m_numWaitersGone) )
                 {
                     op!"-="(m_numWaitersBlocked, m_numWaitersGone);
-                    atomicStore(m_numWaitersGone, 0);
+                    store(m_numWaitersGone, 0);
                 }
                 if ( all )
                 {
-                    atomicStore(m_numWaitersToUnblock, atomicLoad(m_numWaitersBlocked));
-                    atomicStore(m_numWaitersBlocked, 0);
+                    store(m_numWaitersToUnblock, load(m_numWaitersBlocked));
+                    store(m_numWaitersBlocked, 0);
                 }
                 else
                 {
-                    atomicStore(m_numWaitersToUnblock, 1);
+                    store(m_numWaitersToUnblock, 1);
                     op!"-="(m_numWaitersBlocked, 1);
                 }
                 LeaveCriticalSection( &m_unblockLock );

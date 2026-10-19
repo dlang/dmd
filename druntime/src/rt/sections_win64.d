@@ -120,10 +120,10 @@ void initSections(void* handle) nothrow @nogc
                          cast(ulong)dataSection.length);
 
     import rt.sections;
-    import core.atomic : atomicStore;
+    import core.atomic : atomicLoad, atomicStore;
     atomicStore(conservative, !scanDataSegPrecisely());
 
-    if (conservative)
+    if (atomicLoad(conservative))
     {
         sectionGroup._gcRanges = (cast(void[]*).malloc((void[]).sizeof))[0..1];
         sectionGroup._gcRanges[0] = dataSection;
@@ -201,6 +201,7 @@ version (Shared)
     }
     void scanTLSRanges(void** teb, scope void delegate(void* pbeg, void* pend) nothrow dg) nothrow
     {
+        import core.atomic : atomicLoad;
         foreach (ref sec; _sections)
         {
             auto doshdr = cast(IMAGE_DOS_HEADER*)sec._handle;
@@ -215,7 +216,7 @@ version (Shared)
                 void* beg = tlsarray[tls_index];
                 auto size = tlsdir.EndAddressOfRawData - tlsdir.StartAddressOfRawData + tlsdir.SizeOfZeroFill;
 
-                if (conservative)
+                if (atomicLoad(conservative))
                     dg(beg, beg + size);
                 else
                     scanTLSPrecise(cast(uint*)&sec._tpSection[0], cast(uint*)&sec._tpSection[$], beg, dg);
@@ -277,7 +278,8 @@ void finiTLSRanges(void[] rng) nothrow @nogc
 
 void scanTLSRanges(void[] rng, scope void delegate(void* pbeg, void* pend) nothrow dg) nothrow
 {
-    if (conservative)
+    import core.atomic : atomicLoad;
+    if (atomicLoad(conservative))
         dg(rng.ptr, rng.ptr + rng.length);
     else
         scanTLSPrecise(&_TP_beg, &_TP_end, rng.ptr, dg);
