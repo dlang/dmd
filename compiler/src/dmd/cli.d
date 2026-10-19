@@ -1000,7 +1000,7 @@ dmd -cov -unittest myprog.d
             )",
         ),
         Option("vnan",
-            "warnings about default initalization of floating point variables to nan",
+            "warnings about default initialization of floating point variables to nan",
             `floating point variables are initialized to nan by default. This switch
             will cause a warning to be emitted for default nan initialization`,
             TargetOS.all, false,
