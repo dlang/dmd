@@ -28,6 +28,48 @@ alias Fact = ParameterDFAInfo.Fact;
 ///
 alias EscapedRelationship = ParameterDFAInfo.EscapedRelationship;
 
+// Keep explicitly supplied facts separate from facts inferred by the DFA.
+private void updateInferredNotNullOut(ref ParameterDFAInfo param, Nullable atExit)
+{
+    Fact suggestedNotNullOut = param.inferred.notNullOut;
+
+    if (suggestedNotNullOut == Fact.Guaranteed && atExit != Nullable.NonNull)
+        suggestedNotNullOut = Fact.NotGuaranteed;
+    else if (suggestedNotNullOut == Fact.Unspecified && atExit == Nullable.NonNull)
+        suggestedNotNullOut = Fact.Guaranteed;
+
+    param.inferred.notNullOut = suggestedNotNullOut;
+}
+
+unittest
+{
+    // An explicit guarantee must not become an inferred guarantee or failure.
+    ParameterDFAInfo param;
+    param.userSupplied.notNullOut = Fact.Guaranteed;
+    updateInferredNotNullOut(param, Nullable.Null);
+    assert(param.inferred.notNullOut == Fact.Unspecified);
+    assert(param.userSupplied.notNullOut == Fact.Guaranteed);
+
+    // A user-supplied negative fact must not prevent positive inference.
+    param = ParameterDFAInfo.init;
+    param.userSupplied.notNullOut = Fact.NotGuaranteed;
+    updateInferredNotNullOut(param, Nullable.NonNull);
+    assert(param.inferred.notNullOut == Fact.Guaranteed);
+    assert(param.userSupplied.notNullOut == Fact.NotGuaranteed);
+
+    // An unknown exit alone provides no inference.
+    param = ParameterDFAInfo.init;
+    updateInferredNotNullOut(param, Nullable.Unknown);
+    assert(param.inferred.notNullOut == Fact.Unspecified);
+
+    // A guarantee inferred on one exit is invalidated by a nullable exit.
+    param = ParameterDFAInfo.init;
+    updateInferredNotNullOut(param, Nullable.NonNull);
+    assert(param.inferred.notNullOut == Fact.Guaranteed);
+    updateInferredNotNullOut(param, Nullable.Null);
+    assert(param.inferred.notNullOut == Fact.NotGuaranteed);
+}
+
 /***********************************************************
  * The interface for reporting DFA errors and warnings.
  *
@@ -200,14 +242,7 @@ struct DFAReporter
             assert(cctx !is null);
             assert(cctx.var is scv.var);
 
-            Fact suggestedNotNullOut = param.inferred.notNullOut;
-
-            if (suggestedNotNullOut == Fact.Guaranteed && cctx.nullable != Nullable.NonNull)
-                suggestedNotNullOut = Fact.NotGuaranteed;
-            else if (suggestedNotNullOut == Fact.Unspecified && cctx.nullable == Nullable.NonNull)
-                suggestedNotNullOut = Fact.Guaranteed;
-
-            param.inferred.notNullOut = suggestedNotNullOut;
+            updateInferredNotNullOut(*param, cctx.nullable);
         });
     }
 
