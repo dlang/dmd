@@ -120,7 +120,8 @@ void initSections(void* handle) nothrow @nogc
                          cast(ulong)dataSection.length);
 
     import rt.sections;
-    conservative = !scanDataSegPrecisely();
+    import core.atomic : atomicStore;
+    atomicStore(conservative, !scanDataSegPrecisely());
 
     if (conservative)
     {

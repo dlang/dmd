@@ -116,19 +116,9 @@ class Condition
             scope(failure) CloseHandle( cast(void*) m_blockQueue );
 
             InitializeCriticalSection( cast(RTL_CRITICAL_SECTION*) &m_unblockLock );
-            m_assocMutex = m;
         }
         else version (Posix)
         {
-            static if (is(Q == shared))
-            {
-                import core.atomic : atomicLoad;
-                m_assocMutex = atomicLoad(m);
-            }
-            else
-            {
-                m_assocMutex = m;
-            }
             static if ( is( typeof( imported!"core.sys.posix.pthread".pthread_condattr_setclock ) ) )
             {
                 import core.sys.posix.pthread : pthread_condattr_destroy, pthread_condattr_init,
@@ -158,6 +148,15 @@ class Condition
                 if ( rc )
                     throw staticError!AssertError("Unable to initialize condition", __FILE__, __LINE__);
             }
+        }
+        static if (is(Q == shared))
+        {
+            import core.atomic : atomicLoad;
+            m_assocMutex = atomicLoad(m);
+        }
+        else
+        {
+            m_assocMutex = m;
         }
     }
 
@@ -429,10 +428,11 @@ private:
             }
             else
             {
-                auto op(string o, T, V1)(ref shared T val, V1 mod)
+                auto op(string o, T, V1)(ref shared T val, auto ref V1 mod)
                 {
-                    import core.atomic: atomicOp;
-                    return atomicOp!o(val, mod);
+                    import core.atomic: atomicLoad, atomicOp;
+                    // Bind shared operands by reference so the load reads the counter itself.
+                    return atomicOp!o(val, atomicLoad(mod));
                 }
             }
 
@@ -540,10 +540,10 @@ private:
             }
             else
             {
-                auto op(string o, T, V1)(ref shared T val, V1 mod)
+                auto op(string o, T, V1)(ref shared T val, auto ref V1 mod)
                 {
-                    import core.atomic: atomicOp;
-                    return atomicOp!o(val, mod);
+                    import core.atomic: atomicLoad, atomicOp;
+                    return atomicOp!o(val, atomicLoad(mod));
                 }
             }
 
