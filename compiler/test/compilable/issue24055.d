@@ -6,4 +6,4 @@ int h() { int x = -1; x >>>= 1L; return x; }
 
 static assert(f() == 613_566_755);
 static assert(g() == 6);
-static assert(h() == -1);
+static assert(h() == 2147483647);
