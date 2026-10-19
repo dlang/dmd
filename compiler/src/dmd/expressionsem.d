@@ -9589,7 +9589,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (Expression ex = typeCombine(exp, sc))
+        if (shift && exp.e1.type.toBasetype().ty != Tvector)
+            exp.e1 = integralPromotions(exp.e1, sc);
+        else if (Expression ex = typeCombine(exp, sc))
         {
             result = ex;
             return;
