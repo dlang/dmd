@@ -16239,6 +16239,7 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
     }
 
     Type t1b = exp.e1.type.toBasetype();
+    VarDeclaration alignVar = exp.ident == Id.__xalignof ? isVarAccess(exp.e1.lastComma()) : null;
 
     if (auto ie = eright.isScopeExp()) // also used for template alias's
     {
@@ -16501,13 +16502,10 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
         const newFlag = cast(DotExpFlag) (gag * DotExpFlag.gag | exp.noderef * DotExpFlag.noDeref);
         return e.type.dotExp(sc, e, exp.ident, newFlag);
     }
-    else if (exp.ident == Id.__xalignof &&
-             exp.e1.isVarExp() &&
-             exp.e1.isVarExp().var.isVarDeclaration() &&
-             !exp.e1.isVarExp().var.isVarDeclaration().alignment.isUnknown())
+    else if (alignVar && !alignVar.alignment.isUnknown())
     {
         // For `x.alignof` get the alignment of the variable, not the alignment of its type
-        const explicitAlignment = exp.e1.isVarExp().var.isVarDeclaration().alignment;
+        const explicitAlignment = alignVar.alignment;
         const naturalAlignment = exp.e1.type.alignsize();
         const actualAlignment = explicitAlignment.isDefault() ? naturalAlignment : explicitAlignment.get();
         Expression e = new IntegerExp(exp.loc, actualAlignment, Type.tsize_t);
@@ -20287,11 +20285,19 @@ Expression rewriteIndexAssign(BinExp exp, Scope* sc, Type[2] aliasThisStop)
  */
 BitFieldDeclaration isBitField(Expression e)
 {
+    if (auto v = isVarAccess(e))
+        return v.isBitFieldDeclaration();
+
+    return null;
+}
+
+VarDeclaration isVarAccess(Expression e)
+{
     if (auto ve = e.isVarExp())
-        return ve.var.isBitFieldDeclaration();
+        return ve.var.isVarDeclaration();
 
     if (auto dve = e.isDotVarExp())
-        return dve.var.isBitFieldDeclaration();
+        return dve.var.isVarDeclaration();
 
     return null;
 }

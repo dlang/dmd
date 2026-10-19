@@ -6201,23 +6201,11 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
 
     Expression visitType(Type mt)
     {
-        VarDeclaration v = null;
         static if (LOGDOTEXP)
         {
             printf("Type::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
-        Expression ex = e.lastComma();
-        if (ex.op == EXP.dotVariable)
-        {
-            DotVarExp dv = cast(DotVarExp)ex;
-            v = dv.var.isVarDeclaration();
-        }
-        else if (ex.op == EXP.variable)
-        {
-            VarExp ve = cast(VarExp)ex;
-            v = ve.var.isVarDeclaration();
-        }
-        if (v)
+        if (auto v = isVarAccess(e.lastComma()))
         {
             if (ident == Id.offsetof ||
                 ident == Id.bitoffsetof ||
