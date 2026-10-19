@@ -10034,7 +10034,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     {
         if (mod.edition >= Edition.v2024)
         {
-            eSink.error(token.loc, "usage of identifer `body` as a keyword is obsolete. Use `do` instead.");
+            eSink.error(token.loc, "usage of identifier `body` as a keyword is obsolete. Use `do` instead.");
         }
     }
 }

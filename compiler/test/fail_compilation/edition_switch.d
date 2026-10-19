@@ -2,7 +2,7 @@
 REQUIRED_ARGS: -edition=2024
 TEST_OUTPUT:
 ---
-fail_compilation/edition_switch.d(10): Error: usage of identifer `body` as a keyword is obsolete. Use `do` instead.
+fail_compilation/edition_switch.d(10): Error: usage of identifier `body` as a keyword is obsolete. Use `do` instead.
 ---
 */
 

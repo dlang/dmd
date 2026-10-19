@@ -8655,7 +8655,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     {
                         const arg = (*exp.argumentList.arguments)[0];
                         eSink.error(exp.loc, "no property `%s` for `%s` of type `%s`", exp.f.ident.toErrMsg(), arg.toErrMsg(), arg.type.toErrMsg());
-                        eSink.errorSupplemental(exp.loc, "the following error occured while looking for a UFCS match");
+                        eSink.errorSupplemental(exp.loc, "the following error occurred while looking for a UFCS match");
                     }
 
                     eSink.error(exp.loc, "%s `%s` is not callable using argument types `%s`",
