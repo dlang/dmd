@@ -91,7 +91,10 @@ public:
     Type *type;                 // !=NULL means that semantic() has been run
     Loc loc;                    // file location
     EXP op;                     // to minimize use of dynamic_cast
+private:
     uint8_t bitFields;
+    uint16_t astNodeBitFields;
+public:
 
     bool parens() const;
     bool parens(bool v);
@@ -397,8 +400,6 @@ public:
 class StructLiteralExp final : public Expression
 {
 public:
-    uint8_t bitFields;
-
     // if this is true, use the StructDeclaration's init symbol
     bool useStaticInit() const;
     bool useStaticInit(bool v);
@@ -413,7 +414,8 @@ public:
      * 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
      * (with infinite recursion) of this expression.
      */
-    uint8_t stageflags;
+    uint8_t stageflags() const;
+    uint8_t stageflags(uint8_t v);
 
     StructDeclaration *sd;      // which aggregate this is for
     Expressions *elements;      // parallels sd->fields[] with NULL entries for fields to skip
@@ -882,10 +884,7 @@ public:
     bool lowerIsLessThanUpper(bool v);
     bool arrayop() const; // an array operation, rather than a slice
     bool arrayop(bool v);
-private:
-    uint8_t bitFields;
 
-public:
     SliceExp *syntaxCopy() override;
 
     void accept(Visitor *v) override { v->visit(this); }
