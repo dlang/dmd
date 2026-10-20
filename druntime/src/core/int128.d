@@ -486,7 +486,7 @@ Cent mul(Cent c1, Cent c2)
  *      u1 * u2 in 128-bit precision
  */
 pure
-Cent mul(ulong u1, ulong u2)
+Cent mul(U u1, U u2)
 {
     if (!__ctfe)
     {
@@ -518,6 +518,101 @@ Cent mul(ulong u1, ulong u2)
     }
 
     return mul(Cent(lo: u1), Cent(lo: u2));
+}
+
+// Helper to perform 128x128 -> 256 bit multiplication
+// Returns the lower 128 bits, sets 'excess' to the upper 128 bits.
+private Cent umulExtended(Cent a, Cent b, out Cent excess) pure
+{
+    // Break into 64-bit parts
+    U a_lo = a.lo; U a_hi = a.hi;
+    U b_lo = b.lo; U b_hi = b.hi;
+
+    // 1. lo * lo (Result fits in 128 bits)
+    Cent p0 = mul(a_lo, b_lo);
+
+    // 2. hi * lo (Result fits in 128 bits, shifted by 64)
+    Cent p1 = mul(a_hi, b_lo);
+
+    // 3. lo * hi (Result fits in 128 bits, shifted by 64)
+    Cent p2 = mul(a_lo, b_hi);
+
+    // 4. hi * hi (Result fits in 128 bits, shifted by 128)
+    Cent p3 = mul(a_hi, b_hi);
+
+    // Summing it up to get low and high (excess) parts
+    // Low 128 comes from p0 + (p1 << 64) + (p2 << 64)
+    
+    Cent res = p0;
+    excess = p3; // Start high part with p3
+
+    // Add p1 to middle
+    auto p1_shifted = Cent(hi: p1.lo);
+    res = add(res, p1_shifted);
+    if (res.hi < p1.lo) // Add carry if addition overflowed
+        excess = inc(excess);
+    excess = add(excess, Cent(lo: p1.hi)); // Add high part of p1 to excess
+
+    // Add p2 to middle
+    auto p2_shifted = Cent(hi: p2.lo);
+    res = add(res, p2_shifted);
+    if (res.hi < p2.lo) // Add carry if addition overflowed
+        excess = inc(excess);
+    excess = add(excess, Cent(lo: p2.hi)); // Add high part of p2 to excess
+
+    return res;
+}
+
+/*****************************
+ * Multiply c1 * c2 with unsigned overflow check.
+ * Params:
+ *      c1 = operand 1
+ *      c2 = operand 2
+ *      overflow = set if an overflow occurs, is not affected otherwise
+ * Returns:
+ *      c1 * c2
+ */
+pure
+Cent umul(Cent c1, Cent c2, ref bool overflow)
+{
+    Cent excess;
+    Cent res = umulExtended(c1, c2, excess);
+    // Unsigned overflow happens if the top 128 bits (excess) are not zero
+    overflow |= tst(excess);
+    return res;
+}
+
+/*****************************
+ * Multiply c1 * c2 with signed overflow check.
+ * Params:
+ *      c1 = operand 1
+ *      c2 = operand 2
+ *      overflow = set if an overflow occurs, is not affected otherwise
+ * Returns:
+ *      c1 * c2
+ */
+pure
+Cent mul(Cent c1, Cent c2, ref bool overflow)
+{
+    Cent excess;
+    Cent res = umulExtended(c1, c2, excess);
+
+    // Correct the unsigned product to a signed product
+    // If operand was negative, subtract the other operand from the high part
+    if (cast(I)c1.hi < 0)
+        excess = add(excess, neg(c2));
+    if (cast(I)c2.hi < 0)
+        excess = add(excess, neg(c1));
+
+    // Check for overflow:
+    // If result is negative, excess must be -1 (all ones).
+    // If result is positive, excess must be 0 (all zeros).
+    if (cast(I)res.hi < 0)
+        overflow |= tst(com(excess)); // ~excess != 0
+    else
+        overflow |= tst(excess);      // excess != 0
+
+    return res;
 }
 
 unittest
@@ -944,8 +1039,8 @@ version (unittest)
         @trusted
         void print(Cent c)
         {
-            printf("%lld, %lld\n", cast(ulong)c.lo, cast(ulong)c.hi);
-            printf("x%llx, x%llx\n", cast(ulong)c.lo, cast(ulong)c.hi);
+            printf("%lld, %lld\n", cast(U)c.lo, cast(U)c.hi);
+            printf("x%llx, x%llx\n", cast(U)c.lo, cast(U)c.hi);
         }
     }
 }
@@ -1104,6 +1199,86 @@ unittest
     assert(rol(C7_9, 0) == C7_9);
     assert(ror(C7_9, 0) == C7_9);
 
+
+    // --- Test Overflow operations ---
+    bool overflow;
+    Cent res;
+
+    // 1. Unsigned Overflow
+    // Max * 2 -> Overflow
+    Cent maxU = {lo: U.max, hi: U.max};
+    res = umul(maxU, C2, overflow);
+    assert(overflow);
+    assert(res == mul(maxU, C2));
+
+    // Reset overflow for the next test
+    overflow = false; 
+
+    // Small numbers -> No Overflow
+    res = umul(C10, C3, overflow);
+    assert(!overflow);
+    assert(res == C30);
+
+    // 2. Signed Overflow
+    // Cent.max * 2 -> Overflow (positive becomes too big)
+    Cent maxS = {lo: U.max, hi: I.max}; // 0x7FFF...
+    res = mul(maxS, C2, overflow);
+    assert(overflow);
+
+    // Reset overflow
+    overflow = false;
+
+    // Cent.min * -1 -> Overflow (classic edge case)
+    Cent minS = {lo: 0, hi: 0x8000000000000000UL};
+    res = mul(minS, Cm1, overflow);
+    assert(overflow);
+
+    // Reset overflow
+    overflow = false;
+
+    // Cent.min * 1 -> No Overflow
+    res = mul(minS, C1, overflow);
+    assert(!overflow);
+    assert(res == minS);
+
+    // Reset overflow
+    overflow = false;
+
+    // -2 * -2 = 4 (No Overflow)
+    res = mul(neg(C2), neg(C2), overflow);
+    assert(!overflow);
+    assert(res == Cent(lo: 4));
+    
+    // Reset overflow
+    overflow = false;
+    assert(mul(Cm10, C1, overflow) == Cm10);
+    assert(!overflow);
+    
+    // Reset overflow
+    overflow = false;
+    assert(mul(C1, Cm10, overflow) == Cm10);
+    assert(!overflow);
+    
+    // Reset overflow
+    overflow = false;
+    assert(mul(C9_3, C10, overflow) == C90_30);
+    assert(!overflow);
+    
+    // Cs_3 is {lo:3, hi:I.min}
+    // This expects overflow, so technically reset is optional if prev failed, but good practice
+    overflow = false; 
+    assert(mul(Cs_3, C10, overflow) == C30); 
+    assert(overflow);
+    
+    // Reset overflow
+    overflow = false;
+    assert(mul(Cm10, Cm10, overflow) == C100);
+    assert(!overflow);
+    
+    // Reset overflow
+    overflow = false;
+    assert(mul(C20_0, Cm1, overflow) == Cm20_0);
+    assert(!overflow);
     // Test abs()
     assert(abs(Cm10) == C10);
     assert(abs(C10) == C10);
@@ -1116,3 +1291,4 @@ unittest
 
     assert(urem(Cm10, C3) == C0);
 }
+
