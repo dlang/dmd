@@ -107,21 +107,17 @@ void initDMD(
     ContractChecks contractChecks = ContractChecks()
 )
 {
-    import std.algorithm : each;
-
     import dmd.root.ctfloat : CTFloat;
 
     version (CRuntime_Microsoft)
         import dmd.root.longdouble : initFPU;
 
-    import dmd.astenums : CHECKENABLE;
     import dmd.cond : VersionCondition;
     import dmd.dmodule : Module;
     import dmd.escape : EscapeState;
     import dmd.expression : Expression;
     import dmd.globals : global;
     import dmd.id : Id;
-    import dmd.identifier : Identifier;
     import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.target : target, defaultTargetOS, addDefaultVersionIdentifiers;
@@ -142,7 +138,8 @@ void initDMD(
         useSwitchError = contractChecks.switchError;
     }
 
-    versionIdentifiers.each!(VersionCondition.addGlobalIdent);
+    foreach (id; versionIdentifiers)
+        VersionCondition.addGlobalIdent(id);
 
     target.os = defaultTargetOS();
     target.isX86_64 = (size_t.sizeof == 8);
@@ -163,7 +160,6 @@ void initDMD(
 
     CTFloat.initialize();
 }
-
 /**
 Deinitializes the global variables of the DMD compiler.
 
