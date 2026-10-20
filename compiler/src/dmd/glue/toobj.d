@@ -11,6 +11,7 @@
 
 module dmd.glue.toobj;
 
+import dmd.dsymbolsem;
 import core.stdc.stdio;
 import core.stdc.stddef;
 import core.stdc.string;
@@ -1010,7 +1011,7 @@ static if (0) {
          */
         static Mangle mangle(const VarDeclaration vd)
         {
-            final switch (vd.resolvedLinkage())
+            final switch (dmd.dsymbolsem.resolvedLinkage(vd))
             {
                 case LINK.windows:
                     return target.isX86 ? Mangle.stdcall : Mangle.c;
