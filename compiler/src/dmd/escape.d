@@ -1239,6 +1239,8 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                     sc.func.isSafeBypassingInference())
                 {
                     result = true;
+
+                Lsupplemental:
                     if (v.storage_class & STC.returnScope)
                     {
                         previewSupplementalFunc(eSink, sc.isDeprecated(), featureState)(v.loc,
@@ -1249,6 +1251,15 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                         const(char)* annotateKind = (v.ident is Id.This) ? "function" : "parameter";
                         previewSupplementalFunc(eSink, sc.isDeprecated(), featureState)(v.loc,
                             "perhaps annotate the %s with `return`", annotateKind);
+                    }
+                }
+                else if (sc.func.isTrusted())
+                {
+                    // @trusted functions must have a safe interface
+                    if (!gag)
+                    {
+                        previewErrorFunc(sc.isDeprecated(), FeatureState.default_)(e.loc, msg, e.toChars(), v.toChars());
+                        goto Lsupplemental;
                     }
                 }
             }
