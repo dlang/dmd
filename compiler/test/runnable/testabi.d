@@ -782,7 +782,7 @@ ulong mask(ulong n)
 {
         if ( n == ulong.sizeof )   // may wrap
                 return ~0UL;
-        return 2^^( n*8 ) - 1;
+        return (1UL << (n*8)) - 1;
 }
 
 /************************************************************************/

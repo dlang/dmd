@@ -1,7 +1,6 @@
 // EXECUTE_ARGS: foo bar doo
 // PERMUTE_ARGS:
-import core.stdc.stdio;
-import std.conv;
+import core.stdc.string : strlen;
 import core.runtime;
 
 void main(string[] args)
@@ -12,6 +11,7 @@ void main(string[] args)
     assert(dArgs.length && cArgs.argc);  // ensure we've passed some args
     assert(dArgs.length == cArgs.argc);
 
-    assert(dArgs[1] == to!string(cArgs.argv[1]));
-    assert(args[1] == to!string(cArgs.argv[1]));
+    const cArg = cArgs.argv[1][0 .. strlen(cArgs.argv[1])];
+    assert(dArgs[1] == cArg);
+    assert(args[1] == cArg);
 }

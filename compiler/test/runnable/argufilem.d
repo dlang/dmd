@@ -15,12 +15,13 @@ why is 8 scared of 7? because789
 // main.d -------------------------------------------------------
 
 import argufile;
+import core.stdc.stdio : printf;
 
 int main(string[] args)
 {
         string message = arguments("bob is ", 7, " years old");
 
-        writefln(message);
+        printf("%.*s\n", cast(int) message.length, message.ptr);
 
         argufile.useargs(); // will crash here
 
