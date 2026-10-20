@@ -1070,12 +1070,12 @@ Louter:
     while (1)
     {
         flowcp(go, bo);           /* compute available copy statements    */
-        assert(go.exptop == expnod.length);
-        if (expnod.length <= 1)
+        const expnodLength = expnod.length;
+        if (expnodLength <= 1)
             return;             // none available
         static if (0)
         {
-            foreach (i; 1 .. expnod.length)
+            foreach (i; 1 .. expnodLength)
             {
                 printf("expnod[%d] = (",i);
                 WReqn(expnod[i]);
@@ -1206,11 +1206,11 @@ private bool copyPropWalk(ref Barray!(elem*) expnod, elem* n, vec_t IN, ref uint
             cpwalk(n.E2,IN);
         }
 
+        const expnodLength = expnod.length;
         if (OTdef(op))                  // if definition elem
         {
             const bool ambig = !OTassign(op) || t.Eoper == OPind;  // true if ambiguous def
-            assert(go.exptop == expnod.length);
-            for (size_t i = 0; (i = vec_index(i, IN)) < expnod.length; ++i) // for each active copy elem
+            for (size_t i = 0; (i = vec_index(i, IN)) < expnodLength; ++i) // for each active copy elem
             {
                 Symbol* v;
 
@@ -1267,8 +1267,7 @@ private bool copyPropWalk(ref Barray!(elem*) expnod, elem* n, vec_t IN, ref uint
 
             elem* foundelem = null;
             Symbol* f;
-            assert(go.exptop == expnod.length);
-            for (size_t i = 0; (i = vec_index(i, IN)) < expnod.length; ++i) // for all active copy elems
+            for (size_t i = 0; (i = vec_index(i, IN)) < expnodLength; ++i) // for all active copy elems
             {
                 elem* c = expnod[i];
                 assert(c);
@@ -1321,8 +1320,8 @@ private bool copyPropWalk(ref Barray!(elem*) expnod, elem* n, vec_t IN, ref uint
                  *  d = g   => d = f !!error
                  * Therefore, if n appears as an rvalue in expnod[], then recalc
                  */
-                assert(go.exptop == expnod.length);
-                foreach (j; 1 .. expnod.length)
+                assert(expnodLength == expnod.length);
+                foreach (j; 1 .. expnodLength)
                 {
                     //printf("expnod[%d]: ", j); elem_print(expnod[j]);
                     if (expnod[j].E2 == n)
