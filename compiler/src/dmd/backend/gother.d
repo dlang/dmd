@@ -1978,7 +1978,7 @@ public void verybusyexp(ref Barray!(elem*) expnod, ref Barray!(block*) expblk, r
         {
             if (expnod[j] == null ||
                 !!OTleaf(expnod[j].Eoper) ||
-                !dom(bo,b,go.expblk[j]))
+                !dom(bo,b,expblk[j]))
                 vec_clearbit(j,b.Bout);
             else
                 done = false;
@@ -1996,7 +1996,7 @@ public void verybusyexp(ref Barray!(elem*) expnod, ref Barray!(block*) expblk, r
         for (size_t j = 0; (j = vec_index(j, b.Bout)) < expnod.length; ++j)
         {
             vec_clear(blockseen);
-            foreach (bl; go.expblk[j].Bpred[])
+            foreach (bl; expblk[j].Bpred[])
             {
                 if (killed(cast(uint)j,bl,b))
                 {
