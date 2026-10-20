@@ -16,5 +16,11 @@ void main ()
     const output = shellExpand("$OUTPUT_BASE/source_date_epoch.txt");
     run("$DMD -m$MODEL -o- -c $EXTRA_FILES/source_date_epoch.d", stdout, File(output, "wb"), env);
     const result = readText(output).filterCompilerOutput;
+    if (result != expected)
+    {
+        import core.stdc.stdio : fprintf, stderr;
+        fprintf(stderr, "result  : [%.*s]\n", cast(int)result.length, result.ptr);
+        fprintf(stderr, "expected: [%.*s]\n", cast(int)expected.length, expected.ptr);
+    }
     assert(result == expected, result);
 }
