@@ -201,9 +201,10 @@ void out_config_init(
         if (!exe)
         {
             cfg.flags3 |= CFG3pic;
-            if (model == 64)
+            if (0 && model == 64)
                 cfg.flags |= CFGalwaysframe; // autotester fails without this
                                                 // https://issues.dlang.org/show_bug.cgi?id=21042
+                                                // https://github/dlang/dmd/issues/19746
         }
         if (symdebug)
             cfg.flags |= CFGalwaysframe;
