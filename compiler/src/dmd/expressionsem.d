@@ -1481,6 +1481,32 @@ private Expression incompatibleTypes(UnaExp e)
 }
 
 /********************************
+ * Semantic shared by the unary arithmetic operators `-e`, `+e` and `~e`:
+ * operator overloading, array operations and vector support.
+ * Sets `e.type` to the type of `e.e1`.
+ * Params:
+ *  e = the unary expression
+ *  sc = scope
+ * Returns:
+ *  the resulting expression, or `null` if `e` still needs
+ *  the operand checks of its operator
+ */
+private Expression unaArithSemantic(UnaExp e, Scope* sc)
+{
+    if (Expression ex = e.opOverloadUnary(sc))
+        return ex;
+
+    fix16997(sc, e);
+    e.type = e.e1.type;
+    Type tb = e.type.toBasetype();
+    if (tb.isStaticOrDynamicArray())
+        return isArrayOpValid(e.e1) ? e : arrayOpInvalidError(e);
+    if (!target.isVectorOpSupported(tb, e.op))
+        return e.incompatibleTypes();
+    return null;
+}
+
+/********************************
  * The types for a binary expression are incompatible.
  * Print error message.
  * Returns:
@@ -10816,28 +10842,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("NegExp::semantic('%s')\n", exp.toErrMsg());
         }
 
-        if (Expression e = exp.opOverloadUnary(sc))
+        if (Expression e = unaArithSemantic(exp, sc))
         {
             result = e;
-            return;
-        }
-
-        fix16997(sc, exp);
-        exp.type = exp.e1.type;
-        Type tb = exp.type.toBasetype();
-        if (tb.isStaticOrDynamicArray())
-        {
-            if (!isArrayOpValid(exp.e1))
-            {
-                result = arrayOpInvalidError(exp);
-                return;
-            }
-            result = exp;
-            return;
-        }
-        if (!target.isVectorOpSupported(tb, exp.op))
-        {
-            result = exp.incompatibleTypes();
             return;
         }
         if (exp.e1.checkNoBool() ||
@@ -10855,31 +10862,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("UAddExp::semantic('%s')\n", exp.toErrMsg());
         }
 
-        if (Expression e = exp.opOverloadUnary(sc))
+        if (Expression e = unaArithSemantic(exp, sc))
         {
             result = e;
             return;
         }
-
-        fix16997(sc, exp);
-        Type tb = exp.e1.type.toBasetype();
-        if (tb.isStaticOrDynamicArray())
-        {
-            if (!isArrayOpValid(exp.e1))
-            {
-                result = arrayOpInvalidError(exp);
-                return;
-            }
-            exp.type = exp.e1.type;
-            result = exp;
-            return;
-        }
-        if (!target.isVectorOpSupported(tb, exp.op))
-        {
-            result = exp.incompatibleTypes();
-            return;
-        }
-
         if (exp.e1.checkNoBool() ||
             exp.e1.checkArithmetic(exp.op) ||
             exp.e1.checkSharedAccess(sc))
@@ -10891,28 +10878,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     override void visit(ComExp exp)
     {
 
-        if (Expression e = exp.opOverloadUnary(sc))
+        if (Expression e = unaArithSemantic(exp, sc))
         {
             result = e;
-            return;
-        }
-
-        fix16997(sc, exp);
-        exp.type = exp.e1.type;
-        Type tb = exp.type.toBasetype();
-        if (tb.isStaticOrDynamicArray())
-        {
-            if (!isArrayOpValid(exp.e1))
-            {
-                result = arrayOpInvalidError(exp);
-                return;
-            }
-            result = exp;
-            return;
-        }
-        if (!target.isVectorOpSupported(tb, exp.op))
-        {
-            result = exp.incompatibleTypes();
             return;
         }
         if (exp.e1.checkNoBool() ||
