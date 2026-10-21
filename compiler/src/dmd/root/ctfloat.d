@@ -91,9 +91,10 @@ extern (C++) struct CTFloat
         static real_t floor(real_t x) { return real_t(cast(double)core.stdc.math.floor(cast(double)x)); }
         static real_t ceil(real_t x) { return real_t(cast(double)core.stdc.math.ceil(cast(double)x)); }
         static real_t trunc(real_t x) { return real_t(cast(double)core.stdc.math.trunc(cast(double)x)); }
-        static real_t log(real_t x) { return real_t(cast(double)core.stdc.math.logl(cast(double)x)); }
-        static real_t log2(real_t x) { return real_t(cast(double)core.stdc.math.log2l(cast(double)x)); }
-        static real_t log10(real_t x) { return real_t(cast(double)core.stdc.math.log10l(cast(double)x)); }
+        static import dmd.root.longdouble;
+        alias log = dmd.root.longdouble.logl;
+        alias log2 = dmd.root.longdouble.log2l;
+        alias log10 = dmd.root.longdouble.log10l;
         static real_t pow(real_t x, real_t y) { return real_t(cast(double)core.stdc.math.powl(cast(double)x, cast(double)y)); }
         static real_t exp(real_t x) { return real_t(cast(double)core.stdc.math.expl(cast(double)x)); }
         static real_t expm1(real_t x) { return real_t(cast(double)core.stdc.math.expm1l(cast(double)x)); }
@@ -106,9 +107,34 @@ extern (C++) struct CTFloat
         static real_t floor(real_t x) { return core.stdc.math.floor(x); }
         static real_t ceil(real_t x) { return core.stdc.math.ceil(x); }
         static real_t trunc(real_t x) { return core.stdc.math.trunc(x); }
-        static real_t log(real_t x) { return core.stdc.math.logl(x); }
-        static real_t log2(real_t x) { return core.stdc.math.log2l(x); }
-        static real_t log10(real_t x) { return core.stdc.math.log10l(x); }
+        // Microsoft C-runtime logarithms narrow real to double. Use x87
+        // only when the host supports it; retain the library path elsewhere.
+        version (CRuntime_Microsoft)
+            enum useX87Log = yl2x_supported;
+        else
+            enum useX87Log = false;
+
+        static real_t log(real_t x)
+        {
+            static if (useX87Log)
+                return core.math.yl2x(x, 0xb.17217f7d1cf79acp-4L);
+            else
+                return core.stdc.math.logl(x);
+        }
+        static real_t log2(real_t x)
+        {
+            static if (useX87Log)
+                return core.math.yl2x(x, 1.0L);
+            else
+                return core.stdc.math.log2l(x);
+        }
+        static real_t log10(real_t x)
+        {
+            static if (useX87Log)
+                return core.math.yl2x(x, 0x4.d104d427de7fbccp-4L);
+            else
+                return core.stdc.math.log10l(x);
+        }
         static real_t pow(real_t x, real_t y) { return core.stdc.math.powl(x, y); }
         static real_t exp(real_t x) { return core.stdc.math.expl(x); }
         static real_t expm1(real_t x) { return core.stdc.math.expm1l(x); }
