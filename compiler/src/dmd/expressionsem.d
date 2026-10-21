@@ -10862,7 +10862,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         fix16997(sc, exp);
-        if (!target.isVectorOpSupported(exp.e1.type.toBasetype(), exp.op))
+        Type tb = exp.e1.type.toBasetype();
+        if (tb.isStaticOrDynamicArray())
+        {
+            if (!isArrayOpValid(exp.e1))
+            {
+                result = arrayOpInvalidError(exp);
+                return;
+            }
+            exp.type = exp.e1.type;
+            result = exp;
+            return;
+        }
+        if (!target.isVectorOpSupported(tb, exp.op))
         {
             result = exp.incompatibleTypes();
             return;

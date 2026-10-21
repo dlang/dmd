@@ -578,7 +578,7 @@ a[] = b[] + 4;
 
         $(P The following operations are supported:)
 
-        * Unary: `-`, `~`
+        * Unary: `-`, `+`, `~`
         * Add: `+`, `-`
         * Mul: `*`, `/`, `%`,
         * Bitwise: `^`, `&`, `|`

@@ -288,6 +288,7 @@ bool isUnaArrayOp(EXP op) @safe
     switch (op)
     {
     case EXP.negate:
+    case EXP.uadd:
     case EXP.tilde:
         return true;
     default:
