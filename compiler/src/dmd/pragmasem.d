@@ -15,6 +15,7 @@ module dmd.pragmasem;
 
 import core.stdc.stdio;
 import core.stdc.string;
+import core.stdc.stdlib : strtol;
 
 import dmd.astenums;
 import dmd.arraytypes;
@@ -794,7 +795,8 @@ private void debuggerRepl(Loc loc, Scope* sc)
     {
         import core.stdc.stdio : getchar;
         auto ret = "";
-        while (true){
+        while (true)
+        {
             auto ch = getchar();
             if(ch != '\n')
             {
@@ -805,6 +807,13 @@ private void debuggerRepl(Loc loc, Scope* sc)
                 return ret;
             }
         }
+    }
+
+
+    Scope*[] scopes;
+    for (auto s = sc; s; s = s.enclosing)
+    {
+        scopes ~= s;
     }
 
     const prompt = "(ctdb) ";
@@ -826,12 +835,29 @@ private void debuggerRepl(Loc loc, Scope* sc)
         {
             case "bt":
             case "backtrace":
-                printBacktrace(loc, sc);
+                printBacktrace(scopes);
                 break;
             case "c":
             case "continue":
                 fprintf(stdout, "continuing compilation\n");
                 return;
+            case "m":
+            case "members":
+                if (words.length != 2)
+                {
+                    fprintf(stdout, "usage: members <frame number>\n");
+                }
+                else
+                {
+                    immutable(char)* end;
+                    long frame = strtol(words[1].ptr, &end, 10);
+                    if (end == words[1].ptr)
+                    {
+                        fprintf(stdout, "usage: members <frame number>\n");
+                    }
+                    printScopeFrame(scopes[frame]);
+                }
+                break;
             default:
                 fprintf(stdout, "unknown command\n");
         }
@@ -841,26 +867,27 @@ private void debuggerRepl(Loc loc, Scope* sc)
 
 }
 
-private void printBacktrace(Loc loc, Scope* sc)
+private void printBacktrace(Scope*[] scopes)
 {
     fprintf(stdout,"Backtrace\n");
-    Loc l = loc;
-    Scope*[] scopes;
-    for (auto s = sc; s; s = s.enclosing)
-    {
-        scopes ~= s;
-    }
 
-    foreach(i, s; scopes){
+    foreach(i, s; scopes)
+    {
         if(s.scopesym !is null)
         {
             fprintf(stdout,"frame %ld %s: scope: %s\n", i, s.scopesym.loc.toChars(), s.scopesym.toChars);
-            /*            if(s.parent)
-            {
-                l = s.parent.loc;
-                }*/
         } else {
             fprintf(stdout, "frame %ld, no scope symbol\n", i);
         }
+    }
+}
+
+private void printScopeFrame(Scope* sc)
+{
+    fprintf(stdout, "Members of scope %s\n", sc.scopesym.toChars);
+    if (!sc.scopesym.members) return;
+    foreach (sym; *(sc.scopesym.members))
+    {
+        fprintf(stdout, "%s\n", sym.toPrettyChars);
     }
 }
