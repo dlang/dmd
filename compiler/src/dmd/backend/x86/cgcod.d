@@ -1005,16 +1005,17 @@ else
     }
 
     if (cg.usednteh & NTEHjmonitor)
-    {   Symbol* sthis;
-
+    {
         for (SYMIDX si = 0; 1; si++)
         {   assert(si < globsym.length);
-            sthis = globsym[si];
+            Symbol* sthis = globsym[si];
             if (strcmp(sthis.Sident.ptr,"this".ptr) == 0)
+            {
+                nteh_monitor_prolog(cg,cdbx,sthis);
+                cg.EBPtoESP += 3 * 4;
                 break;
+            }
         }
-        nteh_monitor_prolog(cg,cdbx,sthis);
-        cg.EBPtoESP += 3 * 4;
     }
 
     cdb.append(cdbx);
@@ -1149,9 +1150,8 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
     }
     size_t autosi = 0;  // number used in autos[]
 
-    for (int si = 0; si < symtab.length; si++)
-    {   Symbol* s = symtab[si];
-
+    foreach (s; symtab[])
+    {
         /* Don't allocate space for dead or zero size parameters
          */
         switch (s.Sclass)
@@ -1296,10 +1296,8 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
 
         vec_t tbl = vec_calloc(autosi);
 
-        for (size_t si = 0; si < autosi; si++)
+        foreach (si, s; autos[0 .. autosi])
         {
-            Symbol* s = autos[si];
-
             targ_size_t sz = type_size(s.Stype);
             if (sz == 0)
                 sz++;               // can't handle 0 length structs
@@ -1316,7 +1314,7 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
                 !(cg.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) &&
                 s.Srange && !(s.Sflags & SFLspill))
             {
-                for (size_t i = 0; i < si; i++)
+                foreach (i; 0 .. si)
                 {
                     if (!vec_testbit(i,tbl))
                         continue;
@@ -1381,15 +1379,13 @@ private void blcodgen(ref CGstate cg, block* bl)
         }
         else
         {
-            int i;
-
             cg.regcon.params &= bp.Bregcon.params;
             if ((cg.regcon.immed.mval &= bp.Bregcon.immed.mval) != 0)
                 // Actual values must match, too
-                for (i = 0; i < REGMAX; i++)
+                foreach (r; 0 .. REGMAX)
                 {
-                    if (cg.regcon.immed.value[i] != bp.Bregcon.immed.value[i])
-                        cg.regcon.immed.mval &= ~mask(i);
+                    if (cg.regcon.immed.value[r] != bp.Bregcon.immed.value[r])
+                        cg.regcon.immed.mval &= ~mask(r);
                 }
         }
     }
@@ -1476,7 +1472,7 @@ private void blcodgen(ref CGstate cg, block* bl)
     outblkexitcode(cg, cdb, bl, anyspill, sflsave, &cg.retsym, mfuncregsave);
     bl.Bcode = cdb.finish();
 
-    for (int i = 0; i < anyspill; i++)
+    foreach (i; 0 .. anyspill)
     {
         Symbol* s = globsym[i];
         s.Sfl = sflsave[i];    // undo block register assignments
@@ -1554,9 +1550,9 @@ void freenode(elem* e)
     if (e.Ecount)                        /* if it was a CSE              */
     {
         CGstate* cg = &cgstate;
-        for (size_t i = 0; i < cg.regcon.cse.value.length; i++)
+        foreach (i, value; cg.regcon.cse.value[])
         {
-            if (cg.regcon.cse.value[i] == e)       /* if a register is holding it  */
+            if (value == e)       /* if a register is holding it  */
             {
                 cg.regcon.cse.mval &= ~mask(cast(uint)i);
                 cg.regcon.cse.mops &= ~mask(cast(uint)i);    /* free masks                   */
@@ -2223,9 +2219,10 @@ bool evalinregister(elem* e)
     /* it's in a register already, the computation should be done   */
     /* using that register.                                         */
     regm_t emask = 0;
-    for (uint i = 0; i < cg.regcon.cse.value.length; i++)
-        if (cg.regcon.cse.value[i] == e)
-            emask |= mask(i);
+    foreach (i, value; cg.regcon.cse.value[])
+        if (value == e)
+            emask |= mask(cast(uint)i);
+
     emask &= cg.regcon.cse.mval;       // mask of available CSEs
     if (sz <= REGSIZE)
         return emask != 0;      /* the CSE is in a register     */
@@ -3216,7 +3213,8 @@ const(char)* regm_str(regm_t rm)
     if (++i == NUM)
         i = 0;
     *p = 0;
-    for (uint j = 0; j < (AArch64 ? 64 : 32); j++)
+    const uint numregs = (AArch64 ? 64 : 32);
+    foreach (j; 0 .. numregs)
     {
         if (mask(j) & rm)
         {
@@ -3232,7 +3230,7 @@ const(char)* regm_str(regm_t rm)
                     strcat(p, "PSW");
                 else
                 {
-                    char[4] buf;
+                    char[4] buf = void;
                     char c = j < 32 ? 'r' : 'f';
                     sprintf(buf.ptr, "%c%u", c, j);
                     strcat(p, buf.ptr);
