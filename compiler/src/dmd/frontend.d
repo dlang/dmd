@@ -17,8 +17,6 @@ import dmd.errors : DiagnosticHandler, diagnosticHandler, FatalErrorHandler, fat
 import dmd.globals : DiagnosticReporting;
 import dmd.location;
 
-import std.range.primitives : isInputRange, ElementType;
-import std.traits : isNarrowString;
 import std.typecons : Tuple;
 import core.stdc.stdarg;
 
@@ -291,7 +289,7 @@ string determineDefaultCompiler()
     import std.file : exists;
     import std.path : buildPath;
     import std.process : environment;
-    import std.range : front, empty, transposed;
+    import std.range : front, empty;
     // adapted from DUB: https://github.com/dlang/dub/blob/350a0315c38fab9d3d0c4c9d30ff6bb90efb54d6/source/dub/dub.d#L1183
 
     auto compilers = ["dmd", "gdc", "gdmd", "ldc2", "ldmd2"];
@@ -391,8 +389,6 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
     import dmd.tokens : TOK;
 
     import std.path : baseName, stripExtension;
-    import std.string : toStringz;
-    import std.typecons : tuple;
 
     auto id = Identifier.idPool(fileName.baseName.stripExtension);
     auto m = new Module(fileName, id, 1, 0);
@@ -457,7 +453,7 @@ string prettyPrint(Module m)
     HdrGenState hgs = { fullDump: 1 };
     moduleToBuffer2(m, buf, hgs);
 
-    import std.string : replace, fromStringz;
+    import std.string : replace;
     import std.exception : assumeUnique;
 
     auto generated = buf.extractSlice.replace("\t", "    ");
