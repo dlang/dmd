@@ -209,7 +209,19 @@ Symbol* toSymbol(Dsymbol s)
 
         override void visit(SymbolDeclaration sd)
         {
-            result = toInitializer(sd.dsym);
+            final switch (sd.symbolKind)
+            {
+            case SymbolDeclaration.Kind.initializer:
+            case SymbolDeclaration.Kind.initSlice:
+                result = toInitializer(sd.dsym);
+                break;
+            case SymbolDeclaration.Kind.vtblSlice:
+                result = toVtblSymbol(sd.dsym.isClassDeclaration());
+                break;
+            case SymbolDeclaration.Kind.interfaceSlice:
+                result = toSymbol(sd.dsym);
+                break;
+            }
         }
 
         override void visit(VarDeclaration vd)

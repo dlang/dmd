@@ -2071,8 +2071,87 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!ad || ad.isInterfaceDeclaration())
             return badArgument();
 
-        Declaration d = new SymbolDeclaration(ad.loc, ad);
+        const bytes = ad.size(e.loc);
+        if (bytes == SIZE_INVALID)
+            return ErrorExp.get();
+        auto d = new SymbolDeclaration(ad.loc, ad);
+        d.symbolKind = SymbolDeclaration.Kind.initSlice;
+        d.sliceBytes = bytes;
+        d.sliceIsNull = ad.isStructDeclaration() && ad.type.isZeroInit(e.loc);
         d.type = Type.tvoid.arrayOf().constOf();
+        d.storage_class |= STC.rvalue;
+        return new VarExp(e.loc, d);
+    }
+    if (e.ident == Id.vtblSymbol)
+    {
+        // https://dlang.org/spec/traits.html#vtblSymbol
+        if (dim != 1)
+            return dimError(1);
+        auto o = (*e.args)[0];
+        Type t = isType(o);
+        auto tc = t ? t.toBasetype().isTypeClass() : null;
+        auto cd = tc ? tc.sym : null;
+        if (!cd || cd.isInterfaceDeclaration())
+        {
+            eSink.error(e.loc, "class type expected as argument to __traits(vtblSymbol) instead of `%s`", o.toErrMsg());
+            return ErrorExp.get();
+        }
+        if (cd.size(e.loc) == SIZE_INVALID)
+            return ErrorExp.get();
+        auto d = new SymbolDeclaration(cd.loc, cd);
+        d.symbolKind = SymbolDeclaration.Kind.vtblSlice;
+        d.sliceBytes = cd.vtbl.length * Type.tvoidptr.size();
+        d.type = Type.tvoidptr.arrayOf().constOf();
+        d.storage_class |= STC.rvalue;
+        return new VarExp(e.loc, d);
+    }
+    if (e.ident == Id.interfaceSymbol)
+    {
+        // https://dlang.org/spec/traits.html#interfaceSymbol
+        if (dim != 1)
+            return dimError(1);
+        auto o = (*e.args)[0];
+        Type t = isType(o);
+        auto tc = t ? t.toBasetype().isTypeClass() : null;
+        auto cd = tc ? tc.sym : null;
+        if (!cd)
+        {
+            eSink.error(e.loc, "class or interface expected as argument to __traits(interfaceSymbol) instead of `%s`", o.toErrMsg());
+            return ErrorExp.get();
+        }
+        if (cd.size(e.loc) == SIZE_INVALID)
+            return ErrorExp.get();
+        if (!cd.vtblInterfaces)
+        {
+            eSink.error(e.loc, "%s `%s` is forward referenced in __traits(interfaceSymbol)", cd.kind, cd.toPrettyChars());
+            return ErrorExp.get();
+        }
+        // The Interface[] array following the ClassInfo, see ClassInfoToDt() in toobj.d
+        Type tinterface;
+        if (auto ti = Type.typeinfoclass)
+        {
+            if (auto m = ti.parent ? ti.parent.isModule() : null)
+            {
+                if (auto sym = m.search(e.loc, Identifier.idPool("Interface")))
+                {
+                    if (auto sd = sym.isStructDeclaration())
+                        tinterface = sd.type;
+                }
+            }
+        }
+        if (!tinterface)
+        {
+            eSink.error(e.loc, "`object.Interface` could not be found, but is needed for __traits(interfaceSymbol)");
+            return ErrorExp.get();
+        }
+        const elementSize = tinterface.size(e.loc);
+        if (elementSize == SIZE_INVALID)
+            return ErrorExp.get();
+        auto d = new SymbolDeclaration(cd.loc, cd);
+        d.symbolKind = SymbolDeclaration.Kind.interfaceSlice;
+        d.sliceBytes = cd.vtblInterfaces.length * elementSize;
+        d.sliceIsNull = cd.vtblInterfaces.length == 0;
+        d.type = tinterface.arrayOf().constOf();
         d.storage_class |= STC.rvalue;
         return new VarExp(e.loc, d);
     }
