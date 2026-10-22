@@ -3349,6 +3349,17 @@ public:
 
         case EXP.equal:
         case EXP.notEqual:
+            if (auto lowering = e.isEqualExp().lowering)
+            {
+                Type tb = e.e1.type.toBasetype();
+                while (tb.isStaticOrDynamicArray())
+                    tb = tb.nextOf().toBasetype();
+                if (tb.isTypeStruct() || tb.isTypeClass())
+                {
+                    result = interpret(pue, lowering, istate);
+                    return;
+                }
+            }
             interpretCompareCommon(e, &ctfeEqual);
             return;
 
