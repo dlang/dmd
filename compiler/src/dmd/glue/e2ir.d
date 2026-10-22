@@ -694,6 +694,9 @@ elem* toElem(Expression e, ref IRState irs)
         elem* e;
         Type tb = (se.op == EXP.symbolOffset) ? se.var.type.toBasetype() : se.type.toBasetype();
         long offset = (se.op == EXP.symbolOffset) ? cast(long)(cast(SymOffExp)se).offset : 0;
+        if (auto sd = se.var.isSymbolDeclaration())
+            if (sd.kind == SymbolDeclaration.Kind.interfaces)
+                offset += classInfoSize();      // the Interface[] array follows the ClassInfo
         VarDeclaration v = se.var.isVarDeclaration();
 
         //printf("[%s] SymbolExp.toElem('%s') %p, %s\n", se.loc.toChars(), se.toChars(), se, se.type.toChars());
@@ -755,27 +758,6 @@ elem* toElem(Expression e, ref IRState irs)
         }
 
         Symbol* s = toSymbolNRVO(se.var);
-
-        // VarExp generated for `__traits(initSymbol, Aggregate)`?
-        if (auto symDec = se.var.isSymbolDeclaration())
-        {
-            if (auto ta = se.type.isTypeDArray())
-            {
-                // Type must be const(void)[] or const(void[])
-                assert(ta.nextOf() == Type.tvoid.constOf(), se.type.toString());
-
-                // Generate s[0 .. Aggregate.sizeof] for non-zero initialised aggregates
-                // Otherwise create (null, Aggregate.sizeof)
-                auto ad = symDec.dsym;
-                auto ptr = (ad.isStructDeclaration() && ad.type.isZeroInit(Loc.initial))
-                        ? el_long(TYnptr, 0)
-                        : el_ptr(s);
-                auto length = el_long(TYsize_t, ad.structsize);
-                auto slice = el_pair(TYdarray, length, ptr);
-                elem_setLoc(slice, se.loc);
-                return slice;
-            }
-        }
 
         FuncDeclaration fd = null;
         if (se.var.toParent2())

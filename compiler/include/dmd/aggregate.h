@@ -280,6 +280,14 @@ public:
     Baseok baseok() const;
     Baseok baseok(Baseok v);
 
+    // the length of vtbl[] is final, see determineVtbl()
+    d_bool vtblDetermined() const;
+    d_bool vtblDetermined(d_bool v);
+
+    // determineVtbl() is in progress
+    d_bool vtblBusy() const;
+    d_bool vtblBusy(d_bool v);
+
     int cppDtorVtblIndex;               // slot reserved for the virtual destructor [extern(C++)]
     ObjcClassDeclaration objc;          // Data for a class declaration that is needed for the Objective-C integration
 

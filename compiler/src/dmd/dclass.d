@@ -141,6 +141,12 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         /// set the progress of base classes resolving
         Baseok baseok;
+
+        /// the length of vtbl[] is final, see determineVtbl()
+        bool vtblDetermined;
+
+        /// determineVtbl() is in progress
+        bool vtblBusy;
     }
 
     import dmd.common.bitfields : generateBitFields;
