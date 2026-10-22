@@ -697,11 +697,24 @@ extern (C++) final class SymbolDeclaration : Declaration
 {
     AggregateDeclaration dsym;
 
+    enum Kind : ubyte
+    {
+        initializer,
+        vtbl,
+        interfaces,
+    }
+    Kind kind;
+
     extern (D) this(Loc loc, AggregateDeclaration dsym) @safe
     {
         super(DSYM.symbolDeclaration, loc, dsym.ident);
         this.dsym = dsym;
         storage_class |= STC.const_;
+    }
+
+    override bool isDataseg()
+    {
+        return true;
     }
 
     override void accept(Visitor v)
