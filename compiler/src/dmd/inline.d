@@ -1562,6 +1562,8 @@ public:
 
     override void visit(AssertExp e)
     {
+        if (global.params.checkAction == CHECKACTION.C && !e.origConditionText)
+            e.origConditionText = e.e1.toChars();
         inlineScan(e.e1);
         inlineScan(e.msg);
     }
