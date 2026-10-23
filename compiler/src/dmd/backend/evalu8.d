@@ -1095,12 +1095,8 @@ static if (0)
             if (!boolres(e2))
             {
                 div0:
-                    error(e.Esrcpos, "divide by zero");
-                    break;
-
                 overflow:
-                    error(e.Esrcpos, "integer overflow");
-                    break;
+                    return e; // don't error or const fold, it might be on a branch never taken
             }
         }
         if (uns)
