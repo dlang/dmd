@@ -7966,6 +7966,23 @@ private extern(C++) class SearchVisitor : Visitor
                         if (s.isCsymbol() && s2.isCsymbol())
                             continue;
 
+                        /* A C symbol takes priority over an identically named
+                         * symbol from the implicit `object` import. Every
+                         * module (C ones included) is implicitly given
+                         * visibility of object's declarations, so object's
+                         * own convenience aliases (such as `size_t`) should
+                         * not conflict with an explicitly imported C header's
+                         * declaration of the same name.
+                         * https://issues.dlang.org/show_bug.cgi?id=20709
+                         */
+                        if (s.isCsymbol() && s2.getModule() && s2.getModule().ident == Id.object && !s2.getModule().parent)
+                            continue;
+                        if (s2.isCsymbol() && s.getModule() && s.getModule().ident == Id.object && !s.getModule().parent)
+                        {
+                            s = s2;
+                            continue;
+                        }
+
                         if (!(flags & SearchOpt.ignoreErrors))
                             ScopeDsymbol.multiplyDefined(loc, s, s2);
                         break;
