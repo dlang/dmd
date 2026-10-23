@@ -875,7 +875,7 @@ private void printBacktrace(Scope*[] scopes)
     {
         if(s.scopesym !is null)
         {
-            fprintf(stdout,"frame %ld %s: scope: %s\n", i, s.scopesym.loc.toChars(), s.scopesym.toChars);
+            fprintf(stdout,"frame %ld %s: scope: %s (%s)\n", i, s.scopesym.loc.toChars(), s.scopesym.toChars, s.scopesym.kind);
         } else {
             fprintf(stdout, "frame %ld, no scope symbol\n", i);
         }
