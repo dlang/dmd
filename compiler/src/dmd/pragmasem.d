@@ -850,7 +850,8 @@ private void debuggerRepl(Loc loc, Scope* sc)
                 else
                 {
                     immutable(char)* end;
-                    long frame = strtol(words[1].ptr, &end, 10);
+                    //cast here for 32 bit archs.  4B scopes out to be enough for anyone
+                    const frame = cast(uint)(strtol(words[1].ptr, &end, 10));
                     if (end == words[1].ptr)
                     {
                         fprintf(stdout, "usage: members <frame number>\n");
@@ -875,9 +876,9 @@ private void printBacktrace(Scope*[] scopes)
     {
         if(s.scopesym !is null)
         {
-            fprintf(stdout,"frame %ld %s: scope: %s (%s)\n", i, s.scopesym.loc.toChars(), s.scopesym.toChars, s.scopesym.kind);
+            fprintf(stdout,"frame %zu %s: scope: %s (%s)\n", i, s.scopesym.loc.toChars(), s.scopesym.toChars, s.scopesym.kind);
         } else {
-            fprintf(stdout, "frame %ld, no scope symbol\n", i);
+            fprintf(stdout, "frame %zu, no scope symbol\n", i);
         }
     }
 }
