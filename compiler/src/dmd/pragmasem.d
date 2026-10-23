@@ -471,6 +471,7 @@ private void pragmaBreakpointSemantic(Loc loc, Scope* sc, Expressions* args){
     fprintf(stderr,"Pragma Breakpoint: ");
     // allow support for a message saying where this breakpoint is
     pragmaMsgSemantic(loc, sc, args);
+    fflush(stderr);
 
     debuggerRepl(loc, sc);
 
@@ -821,8 +822,8 @@ private void debuggerRepl(Loc loc, Scope* sc)
 
     while (true)
     {
-        printf("%s", prompt.ptr);
-        fflush(stdin);
+        fprintf(stdout, "%s", prompt.ptr);
+        fflush(stdout);
         auto line = readline();
 
         const words = line.split(' ');
@@ -840,6 +841,7 @@ private void debuggerRepl(Loc loc, Scope* sc)
             case "c":
             case "continue":
                 fprintf(stdout, "continuing compilation\n");
+                fflush(stdout);
                 return;
             case "m":
             case "members":
@@ -862,6 +864,7 @@ private void debuggerRepl(Loc loc, Scope* sc)
             default:
                 fprintf(stdout, "unknown command\n");
         }
+        fflush(stdout);
 
     }
 

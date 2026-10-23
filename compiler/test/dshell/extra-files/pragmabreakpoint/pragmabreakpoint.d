@@ -1,6 +1,6 @@
 module pragmabreakpoint.pragmabreakpoint;
 
-struct T(size_t x){
+struct T(int x){
     static if(x == 0){
         enum done = true;
         //additional arguments are passed to pragma(msg), so they work the same way
