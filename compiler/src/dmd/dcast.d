@@ -1099,10 +1099,23 @@ MATCH implicitConvTo(Expression e, Type t)
             typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
             tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
         {
-            /* I don't think this can ever happen -
-             * it should have been
-             * converted to a SymOffExp.
+            /* Normally this can't happen - it should have been
+             * converted to a SymOffExp by optimize(). But optimize()
+             * deliberately skips that conversion for an imported
+             * (export/dllimport) symbol, and the general check above
+             * (e.type.implicitConvTo(t)) does not always short-circuit
+             * before reaching here for such a symbol (e.g. when its
+             * function type has non-default linkage, such as
+             * extern(Windows)). Treat that known case as a plain
+             * non-match instead of asserting; the existing CTFE-time
+             * check in dinterpret.d still correctly reports a proper
+             * diagnostic when its address is actually taken.
              */
+            if (auto ve = e.e1.isVarExp())
+            {
+                if (ve.var.isImportedSymbol())
+                    return MATCH.nomatch;
+            }
             assert(0);
         }
 
