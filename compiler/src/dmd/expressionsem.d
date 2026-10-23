@@ -6990,8 +6990,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             continue;
                         v.inuse++;
                         v._init = v._init.initializerSemantic(v._scope, v.type, INITinterpret, global.errorSink);
-                        import dmd.semantic2 : lowerStaticAAs;
-                        lowerStaticAAs(v, sc);
                         v.inuse--;
                     }
                 }
@@ -19174,8 +19172,6 @@ Expression getConstInitializer(VarDeclaration vd, bool needFullType = true)
     {
         vd.inuse++;
         vd._init = vd._init.initializerSemantic(vd._scope, vd.type, INITinterpret, global.errorSink);
-        import dmd.semantic2 : lowerStaticAAs;
-        lowerStaticAAs(vd, vd._scope);
         vd._scope = null;
         vd.inuse--;
     }
