@@ -4797,7 +4797,7 @@ private MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, TemplateIn
                     {
                         if (StringExp se = farg.isStringExp())
                         {
-                            argtype = se.type.nextOf().sarrayOf(se.len);
+                            argtype = se.type.nextOf().sarrayOf(se.length);
                         }
                         else if (ArrayLiteralExp ale = farg.isArrayLiteralExp())
                         {
@@ -7685,7 +7685,7 @@ MATCH deduceType(scope RootObject o, scope Scope* sc, scope Type tparam,
             if (e.type.ty == Tarray && (tparam.ty == Tsarray || tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident && (cast(TypeIdentifier)taai).idents.length == 0))
             {
                 // Consider compile-time known boundaries
-                e.type.nextOf().sarrayOf(e.len).accept(this);
+                e.type.nextOf().sarrayOf(e.length).accept(this);
                 return;
             }
             visit(cast(Expression)e);

@@ -226,7 +226,7 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Expression arr)
         return; // we have previously calculated the length
     dinteger_t len;
     if (auto se = arr.isStringExp())
-        len = se.len;
+        len = se.length;
     else if (auto ale = arr.isArrayLiteralExp())
         len = ale.length;
     else

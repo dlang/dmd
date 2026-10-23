@@ -551,7 +551,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             tb.isTypeSArray() && tb.isTypeSArray().isIncomplete())
         {
             StringExp se = i.exp.isStringExp();
-            auto ts = new TypeSArray(tb.nextOf(), new IntegerExp(Loc.initial, se.len + 1, Type.tsize_t));
+            auto ts = new TypeSArray(tb.nextOf(), new IntegerExp(Loc.initial, se.length + 1, Type.tsize_t));
             t = typeSemantic(ts, Loc.initial, sc);
             i.exp.type = t;
             tx = t;

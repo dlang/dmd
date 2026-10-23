@@ -317,7 +317,11 @@ public:
     utf8_t postfix;      // 'c', 'w', 'd'
     OwnedBy ownedByCtfe;
     void *string;       // char, wchar, dchar, or long data
-    size_t len;         // number of chars, wchars, or dchars
+    union
+    {
+        size_t length;  // number of chars, wchars, or dchars
+        size_t len;     // deprecated old name
+    };
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
     d_bool committed;   // if type is committed
     d_bool hexString;   // if string is parsed from a hex string literal

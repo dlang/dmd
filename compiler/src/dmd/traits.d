@@ -1089,7 +1089,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         StringExp se = ex.toStringExp();
-        if (!se || se.len == 0)
+        if (!se || se.length == 0)
         {
             eSink.error(e.loc, "string expected as second argument of __traits `%s` instead of `%s`", e.ident.toErrMsg(), ex.toErrMsg());
             return ErrorExp.get();
@@ -2105,7 +2105,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto ex = isExpression((*e.args)[0]);
         StringExp se = ex ? ex.ctfeInterpret().toStringExp() : null;
-        if (!ex || !se || se.len == 0)
+        if (!ex || !se || se.length == 0)
         {
             eSink.error(e.loc, "string expected as argument of __traits `%s` instead of `%s`", e.ident.toErrMsg(), (*e.args)[0].toErrMsg());
             return ErrorExp.get();
@@ -2190,7 +2190,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 // extern(C++, (emptyTuple))
                 // struct D {}
                 // will produce a blank ident
-                if (!se.len)
+                if (!se.length)
                     continue;
                 es.insert(0, se);
             }

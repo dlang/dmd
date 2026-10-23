@@ -1216,7 +1216,7 @@ bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps,
 
         if (se && se.type.nextOf().ty.isSomeChar)
             buf.writestring(se.toUTF8(sc).peekString());
-        else if (!(se && se.len == 0)) // don't print empty array literal `[]`
+        else if (!(se && se.length == 0)) // don't print empty array literal `[]`
             buf.writestring(e4.toString());
     }
     return false;
@@ -6065,16 +6065,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     e.sz = 1;
                     break;
             }
-            if ((e.len % e.sz) != 0)
+            if ((e.length % e.sz) != 0)
                 eSink.error(e.loc, "hex string with `%s` type needs to be multiple of %d bytes, not %d",
-                    e.type.toErrMsg(), e.sz, cast(int) e.len);
+                    e.type.toErrMsg(), e.sz, cast(int) e.length);
 
-            e.setData(arrayCastBigEndian(e.peekData(), e.sz).ptr, e.len / e.sz, e.sz);
+            e.setData(arrayCastBigEndian(e.peekData(), e.sz).ptr, e.length / e.sz, e.sz);
         }
         else switch (e.postfix)
         {
         case 'd':
-            for (u = 0; u < e.len;)
+            for (u = 0; u < e.length;)
             {
                 if (const p = utf_decodeChar(e.peekString(), u, c))
                 {
@@ -6090,14 +6090,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             buffer.write4(0);
             e.setData(buffer.extractData(), newlen, 4);
             if (!e.cMacro && sc && sc.inCfile)
-                e.type = Type.tuns32.sarrayOf(e.len + 1);
+                e.type = Type.tuns32.sarrayOf(e.length + 1);
             else
                 e.type = Type.tdchar.immutableOf().arrayOf();
             e.committed = true;
             break;
 
         case 'w':
-            for (u = 0; u < e.len;)
+            for (u = 0; u < e.length;)
             {
                 if (const p = utf_decodeChar(e.peekString(), u, c))
                 {
@@ -6115,7 +6115,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             buffer.writeUTF16(0);
             e.setData(buffer.extractData(), newlen, 2);
             if (!e.cMacro && sc && sc.inCfile)
-                e.type = Type.tuns16.sarrayOf(e.len + 1);
+                e.type = Type.tuns16.sarrayOf(e.length + 1);
             else
                 e.type = Type.twchar.immutableOf().arrayOf();
             e.committed = true;
@@ -6127,7 +6127,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         default:
             if (!e.cMacro && sc && sc.inCfile)
-                e.type = Type.tchar.sarrayOf(e.len + 1);
+                e.type = Type.tchar.sarrayOf(e.length + 1);
             else
                 e.type = Type.tchar.immutableOf().arrayOf();
             break;
