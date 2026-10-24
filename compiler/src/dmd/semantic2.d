@@ -250,7 +250,6 @@ private extern(C++) final class Semantic2Visitor : Visitor
             // https://issues.dlang.org/show_bug.cgi?id=20417
             // Don't run CTFE for the temporary variables inside typeof or __traits(compiles)
             vd._init = vd._init.initializerSemantic(sc, vd.type, sc.intypeof == 1 || sc.traitsCompiles ? INITnointerpret : INITinterpret, global.errorSink);
-            lowerStaticAAs(vd, sc);
             vd.inuse--;
         }
         if (vd._init && vd.storage_class & STC.manifest)
@@ -996,22 +995,6 @@ FuncDeclaration findFunc(ClassDeclaration _this, Identifier ident, TypeFunction 
 
 
 /**
- * Try lower a variable's Associative Array initializer to a newaa struct
- * so it can be put in static data.
- * Params:
- *   vd = Variable to lower
- *   sc = Scope
- */
-void lowerStaticAAs(VarDeclaration vd, Scope* sc)
-{
-    if (auto ei = vd._init.isExpInitializer())
-    {
-        scope v = new StaticAAVisitor(sc, vd.storage_class);
-        ei.exp.accept(v);
-    }
-}
-
-/**
  * Try lower all Associative Array literals in an expression to a newaa struct
  * so it can be put in static data.
  * Params:
@@ -1020,7 +1003,7 @@ void lowerStaticAAs(VarDeclaration vd, Scope* sc)
  */
 void lowerStaticAAs(Expression e, Scope* sc)
 {
-    scope v = new StaticAAVisitor(sc, STC.none);
+    scope v = new StaticAAVisitor(sc);
     e.accept(v);
 }
 
@@ -1029,12 +1012,10 @@ private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
 {
     alias visit = SemanticTimeTransitiveVisitor.visit;
     Scope* sc;
-    STC storage_class;
 
-    this(Scope* sc, STC storage_class) scope @safe
+    this(Scope* sc) scope @safe
     {
         this.sc = sc;
-        this.storage_class = storage_class;
     }
 
     override void visit(AssocArrayLiteralExp aaExp)
@@ -1042,17 +1023,16 @@ private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
         if (!aaExp.lowering)
             expressionSemantic(aaExp, sc);
         assert(aaExp.lowering);
-        if (!(storage_class & STC.manifest)) // manifest constants create runtime copies
-            if (!aaExp.loweringCtfe)
-            {
-                aaExp.loweringCtfe = aaExp.lowering.ctfeInterpret();
-                aaExp.loweringCtfe.accept(this); // lower AAs in keys and values
-            }
+        if (!aaExp.loweringCtfe)
+        {
+            aaExp.loweringCtfe = aaExp.lowering.ctfeInterpret();
+            aaExp.loweringCtfe.accept(this); // lower AAs in keys and values
+        }
         semanticTypeInfo(sc, aaExp.lowering.type);
     }
 
     // https://issues.dlang.org/show_bug.cgi?id=24602
-    // TODO: Is this intionally not visited by SemanticTimeTransitiveVisitor?
+    // TODO: Is this intentionally not visited by SemanticTimeTransitiveVisitor?
     override void visit(ClassReferenceExp crExp)
     {
         this.visit(crExp.value);

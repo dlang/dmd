@@ -40,6 +40,7 @@ import dmd.mtype;
 import dmd.opover;
 import dmd.optimize;
 import dmd.safe : setUnsafe;
+import dmd.semantic2;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;
@@ -1232,7 +1233,12 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
     mixin VisitInitializer!Initializer visit;
     auto result = visit.VisitInitializer(init);
     result.semanticDone = true;
-    return (result !is null) ? result : new ErrorInitializer();
+
+    if (needInterpret)
+        if (auto ei = result.isExpInitializer())
+            lowerStaticAAs(ei.exp, sc);
+
+    return result;
 }
 
 /***********************
