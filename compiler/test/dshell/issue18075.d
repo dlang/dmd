@@ -1,5 +1,6 @@
 import dshell;
 import std.algorithm.searching : canFind;
+import std.file : read;
 
 int main()
 {
@@ -23,18 +24,20 @@ int main()
         assert(exitCode != 0, "Expected process to exit with non-zero status on assertion failure");
 
         stderr.close();
-        const output = readText(stderrFile);
+        const output = cast(const(ubyte)[]) read(stderrFile);
 
         foreach (token; expectedTokens)
         {
-            assert(output.canFind(token),
-                "Expected output to contain '" ~ token ~ "' but got:\n" ~ output);
+            const tokenBytes = cast(const(ubyte)[]) token;
+            assert(output.canFind(tokenBytes),
+                "Expected output to contain '" ~ token ~ "' but got:\n" ~ (cast(const(char)[]) output));
         }
 
         foreach (token; forbiddenTokens)
         {
-            assert(!output.canFind(token),
-                "Output unexpectedly contained forbidden '" ~ token ~ "':\n" ~ output);
+            const tokenBytes = cast(const(ubyte)[]) token;
+            assert(!output.canFind(tokenBytes),
+                "Output unexpectedly contained forbidden '" ~ token ~ "':\n" ~ (cast(const(char)[]) output));
         }
     }
 
