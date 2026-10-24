@@ -1689,7 +1689,7 @@ elem* toElem(Expression e, ref IRState irs)
         if (irs.params.checkAction == CHECKACTION.C)
         {
             auto econd = toElem(ae.e1, irs);
-            auto ea = callCAssert(irs, ae.loc, ae.e1, ae.msg, null);
+            auto ea = callCAssert(irs, ae.loc, ae.origConditionText ? null : ae.e1, ae.msg, ae.origConditionText);
             auto eo = el_bin(OPoror, ororty, econd, ea);
             elem_setLoc(eo, ae.loc);
             return eo;
@@ -7639,11 +7639,15 @@ elem* callCAssert(ref IRState irs, Loc loc, Expression exp, Expression emsg, con
     auto eline = el_long(TYint, loc.linnum);
 
     elem* ea;
-    if (irs.target.os == Target.OS.OSX)
+    if (irs.target.os == Target.OS.OSX ||
+        irs.target.os == Target.OS.FreeBSD ||
+        irs.target.os == Target.OS.DragonFlyBSD)
     {
         // __assert_rtn(func, file, line, msg);
+        // __assert(func, file, line, failedexpr);
         elem* efunc = getFuncName();
-        auto eassert = el_var(getRtlsym(RTLSYM.C__ASSERT_RTN));
+        const rtlsym = (irs.target.os == Target.OS.OSX) ? RTLSYM.C__ASSERT_RTN : RTLSYM.C__ASSERT;
+        auto eassert = el_var(getRtlsym(rtlsym));
         ea = el_bin(OPcall, TYvoid, eassert, el_params(elmsg, eline, efilename, efunc, null));
         return ea;
     }
