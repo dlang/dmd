@@ -146,7 +146,7 @@ extern(C++) struct VSOptions
             cmdbuf.writestring(" /LIBPATH:\"");
             cmdbuf.writestring(p);
             cmdbuf.writestring(x64 ? `\Lib\x64"` : `\Lib\x86"`);
-            mem.xfree(p);
+            mem.xfree(p, strlen(p) + 1);
         }
         return cmdbuf.extractChars();
     }
@@ -182,8 +182,8 @@ extern(C++) struct VSOptions
                 memcpy(npath + addpathlen + 1, path, pathlen);
                 if (putenvRestorable("PATH", npath[0 .. length]))
                     assert(0);
-                mem.xfree(npath);
-                mem.xfree(path);
+                mem.xfree(npath, length);
+                mem.xfree(path, strlen(path) + 1);
             }
             return cmdbuf.extractChars();
         }
@@ -414,7 +414,7 @@ private:
             if (auto ver = findLatestVersionDir(msvcDir, r"include\vcruntime.h"))
             {
                 VCToolsInstallDir = FileName.buildPath(msvcDir.toDString, ver.toDString).ptr;
-                mem.xfree(cast(void*)ver);
+                mem.xfree(cast(void*)ver, strlen(ver) + 1);
             }
         }
     }
@@ -702,11 +702,11 @@ extern(D):
                     FileName.exists(FileName.buildPath(dBaseDir, name, testfile)))
                 {
                     if (res)
-                        mem.xfree(res);
+                        mem.xfree(res, strlen(res) + 1);
                     res = name.ptr;
                 }
                 else
-                    mem.xfree(name.ptr);
+                    mem.xfree(name.ptr, name.length + 1);
             }
         }
         while(FindNextFileW(h, &fileinfo));
@@ -758,7 +758,7 @@ extern(D):
             return null;
 
         wchar* wideValue = buf.ptr;
-        scope(exit) wideValue != buf.ptr && mem.xfree(wideValue);
+        scope(exit) wideValue != buf.ptr && mem.xfree(wideValue, size);
         if (hr == ERROR_MORE_DATA)
         {
             wideValue = cast(wchar*) mem.xmalloc_noscan(size);
@@ -938,7 +938,7 @@ const(char)* detectVSInstallDirViaCOM()
         const vcToolsSuffix = `\VC\Tools`w;
         const vcToolsDirLength = installDirLength + vcToolsSuffix.length + 1; // incl. terminating 0
         auto vcToolsDir = (cast(wchar*) mem.xmalloc_noscan(vcToolsDirLength * wchar.sizeof))[0 .. vcToolsDirLength];
-        scope(exit) mem.xfree(vcToolsDir.ptr);
+        scope(exit) mem.xfree(vcToolsDir.ptr, vcToolsDirLength * wchar.sizeof);
         vcToolsDir[0 .. installDirLength] = thisInstallDir.ptr[0 .. installDirLength];
         vcToolsDir[installDirLength .. $-1] = vcToolsSuffix;
         vcToolsDir[$-1] = 0;

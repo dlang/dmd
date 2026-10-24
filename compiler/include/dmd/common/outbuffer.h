@@ -40,7 +40,7 @@ public:
     }
     ~OutBuffer()
     {
-        mem.xfree(data.ptr);
+        mem.xfree(data.ptr, data.length);
     }
     d_size_t length() const { return offset; }
     char *extractData();

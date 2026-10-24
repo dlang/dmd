@@ -1248,13 +1248,15 @@ struct Sink
             enum BUFSIZE = 32;
         char[BUFSIZE] buf = void;       // 32 should be enough for anybody
         uint psize = BUFSIZE;
+        uint prevsize = 0;
         char* pbuf = &buf[0];
         uint count;
         for (;;)
         {
             if (psize > BUFSIZE) // need a bigger boat
             {
-                pbuf = cast(char*)mem.xrealloc_noscan((pbuf is &buf[0]) ? null : pbuf, psize);
+                pbuf = cast(char*)mem.xrealloc_noscan((pbuf is &buf[0]) ? null : pbuf, psize, prevsize);
+                prevsize = psize;
             }
             va_list va;
             va_copy(va, args);
@@ -1279,6 +1281,6 @@ struct Sink
         foreach (c; pbuf[0 .. count])
             put(c);
         if (psize > BUFSIZE)
-            mem.xfree(pbuf);
+            mem.xfree(pbuf, prevsize);
     }
 }
