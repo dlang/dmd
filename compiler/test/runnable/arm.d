@@ -54,5 +54,6 @@ int testmovregconst()
 
 extern(C) int main()
 {
+    assert(!testmovregconst());
     return testmovregconst();
 }

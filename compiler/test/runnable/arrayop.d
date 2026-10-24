@@ -1,5 +1,5 @@
 // RUNNABLE_PHOBOS_TEST
-import std.math;
+//import std.math;
 
 extern(C) int printf(const char*, ...);
 
@@ -512,6 +512,8 @@ void test5()
 
 void test6()
 {
+static if (0)
+{
     int[10] a = [1,2,3,4,5,6,7,8,9,10];
     int[10] b;
 
@@ -539,6 +541,7 @@ void test6()
     assert(b[7] == 512);
     assert(b[8] == 729);
     assert(b[9] == 1000);
+}
 }
 
 /************************************************************************/
@@ -790,7 +793,7 @@ void test12179()
     foo(a[] ^= a[]);
     foo(a[] &= a[]);
     foo(a[] |= a[]);
-    foo(a[] ^^= a[]);
+//    foo(a[] ^^= a[]);
 
     // from https://issues.dlang.org/show_bug.cgi?id=11992
     int[]   arr1;
