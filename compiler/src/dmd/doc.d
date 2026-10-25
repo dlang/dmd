@@ -46,7 +46,6 @@ import dmd.location;
 import dmd.mtype;
 import dmd.root.array;
 import dmd.common.outbuffer;
-import dmd.common.stringutil;
 import dmd.root.port;
 import dmd.root.rmem;
 import dmd.root.string;

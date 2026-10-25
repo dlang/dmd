@@ -5,6 +5,9 @@ module pragmabreakpoint;
 import dshell;
 import std.process;
 import core.time;
+import std.string;
+import std.algorithm;
+import std.array;
 
 //no newlines after the (ctdb) prompt here
 const expectedOutput = `Pragma Breakpoint: static else, before expanding the dependent template
@@ -36,8 +39,7 @@ frame 4 : scope: __anonymous (ScopeDsymbol)
 pragmabreakpoint.pragmabreakpoint.T!0
 (ctdb) continuing compilation
 Pragma Breakpoint: main
-(ctdb) continuing compilation
-`;
+(ctdb) continuing compilation`;
 
 int main(){
 
@@ -62,7 +64,12 @@ int main(){
         }
         Thread.sleep(100.msecs);
     }
-    const output = cast(string) outputPipe.readEnd.byChunk(4096).join();
-    assert(output == expectedOutput,  "actual output:\n" ~ output);
+    const output = (cast(string) outputPipe.readEnd.byChunk(4096).join())
+        .splitLines
+        .map!strip
+        .map!(l => l.replace("\\", "/")) //paths are different on different platforms.  TODO, use module name instead?
+        .filter!(l => l.length > 0)
+        .join("\n");
+    assert(output == expectedOutput,  "actual output:\n" ~ output ~ "\nexpected output:\n" ~ expectedOutput);
     return 0;
 }

@@ -20,7 +20,6 @@ import core.stdc.stdlib : strtol;
 import dmd.astenums;
 import dmd.arraytypes;
 import dmd.attrib;
-import dmd.common.stringutil;
 import dmd.dinterpret;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -32,6 +31,7 @@ import dmd.globals;
 import dmd.hdrgen : toErrMsg;
 import dmd.location;
 import dmd.id;
+import dmd.root.string : split;
 import dmd.statement;
 
 /**
