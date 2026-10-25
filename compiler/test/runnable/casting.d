@@ -144,6 +144,7 @@ void test10834()
 
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=10842
+// See https://github.com/dlang/dmd/pull/24061 for failed attempt to fix this function
 
 template Test10842(F, T)
 {
