@@ -124,55 +124,50 @@ $(OBJDIR)/pertest_none.done: $(OBJDIR)/pertest_none$(DOTEXE)
 	if grep -q 'passed' $(OBJDIR)/pertest_none.out; then exit 1; fi
 	@touch $@
 
-# --DRT-testfilter selects unittests by package, module or full name.
+# --DRT-testfilter selects exact unittest names.
 $(OBJDIR)/pertest_filter.done: out=$(OBJDIR)/pertest_filter.out
 $(OBJDIR)/pertest_filter.done: $(OBJDIR)/pertest_fail$(DOTEXE)
 	@echo Testing pertest_filter
-	$(TIMELIMIT)$< --DRT-testfilter=pertestpkg > $(out) 2>&1; test $$? -eq 0
-	grep -q '^pertestpkg\.sub: 1 passed' $(out)
-	grep -q '^1 unittests passed' $(out)
-	if grep -q '^pertest:' $(out); then exit 1; fi
-	$(TIMELIMIT)$< --DRT-testfilter=pertest > $(out) 2>&1; test $$? -eq 1
-	grep -q '^pertest: 2 passed, 2 FAILED' $(out)
-	grep -q '^2/4 unittests FAILED' $(out)
-	if grep -q pertestpkg $(out); then exit 1; fi
 	$(TIMELIMIT)$< --DRT-testfilter=pertest.__unittest_L14_C1 > $(out) 2>&1; test $$? -eq 0
 	grep -q '^after' $(out)
 	grep -q '^pertest: 1 passed' $(out)
 	grep -q '^1 unittests passed' $(out)
-	$(TIMELIMIT)$< --DRT-testfilter=pertestpkg.sub,pertest.__unittest_L5_C1 > $(out) 2>&1; test $$? -eq 0
+	if grep -q pertestpkg $(out); then exit 1; fi
+	$(TIMELIMIT)$< --DRT-testfilter=pertestpkg.sub.__unittest_L3_C1,pertest.__unittest_L5_C1 > $(out) 2>&1; test $$? -eq 0
 	grep -q '^2 unittests passed' $(out)
 	if grep -q after $(out); then exit 1; fi
-	$(TIMELIMIT)$< --DRT-testfilter=-pertest.__unittest_L9_C1,-pertest.__unittest_L25_C1 > $(out) 2>&1; test $$? -eq 0
-	grep -q '^3 unittests passed' $(out)
-	$(TIMELIMIT)$< --DRT-testfilter=pertest,-pertest.__unittest_L9_C1,-pertest.__unittest_L25_C1 > $(out) 2>&1; test $$? -eq 0
-	grep -q '^2 unittests passed' $(out)
-	$(TIMELIMIT)$< --DRT-testfilter=pertest,-pertest.__unittest_L9_C1 > $(out) 2>&1; test $$? -eq 1
-	grep -q '^1/3 unittests FAILED' $(out)
+	$(TIMELIMIT)$< --DRT-testfilter=pertest.__unittest_L14_C1,pertest.__unittest_L14_C1 > $(out) 2>&1; test $$? -eq 0
+	grep -q '^1 unittests passed' $(out)
+	test "$$(grep -c '^after' $(out))" -eq 1
+	$(TIMELIMIT)$< --DRT-testfilter=pertest.__unittest_L9_C1,pertest.__unittest_L14_C1 > $(out) 2>&1; test $$? -eq 1
+	grep -q '^1/2 unittests FAILED' $(out)
+	grep -q '^after' $(out)
+	if grep -q pertestpkg $(out); then exit 1; fi
+	$(TIMELIMIT)$< --DRT-testfilter= > $(out) 2>&1; test $$? -eq 1
+	grep -q '^2/5 unittests FAILED' $(out)
 	@touch $@
 
-# A filter that cannot do what it says fails without running anything.
+# Invalid names fail before any test or main runs.
 $(OBJDIR)/pertest_filter_errors.done: out=$(OBJDIR)/pertest_filter_errors.out
 $(OBJDIR)/pertest_filter_errors.done: $(OBJDIR)/pertest_fail$(DOTEXE) $(OBJDIR)/pertest_none$(DOTEXE)
 	@echo Testing pertest_filter_errors
-	$(TIMELIMIT)$< --DRT-testfilter=pertestpkg,nosuch > $(out) 2>&1; test $$? -eq 1
-	grep -q "'nosuch' does not match any unittest" $(out)
-	if grep -q 'passed' $(out); then exit 1; fi
-	$(TIMELIMIT)$< --DRT-testfilter=pertestp > $(out) 2>&1; test $$? -eq 1
-	grep -q "'pertestp' does not match any unittest" $(out)
-	$(TIMELIMIT)$< --DRT-testfilter=pertest.__unittest_L14 > $(out) 2>&1; test $$? -eq 1
-	if grep -q after $(out); then exit 1; fi
-	$(TIMELIMIT)$< --DRT-testfilter=pertestpkg,-nosuch > $(out) 2>&1; test $$? -eq 1
-	grep -q "'-nosuch' does not match any unittest" $(out)
-	$(TIMELIMIT)$< --DRT-testfilter=pertestpkg,-pertestpkg.sub > $(out) 2>&1; test $$? -eq 1
-	grep -q 'no unittests selected' $(out)
-	$(TIMELIMIT)$< --DRT-testfilter=pertestpkg,,pertest > $(out) 2>&1; test $$? -eq 1
-	grep -q 'empty selector' $(out)
-	$(TIMELIMIT)$< --DRT-testmode=run-main --DRT-testfilter=pertestpkg > $(out) 2>&1; test $$? -eq 1
-	grep -q 'testmode=run-main' $(out)
-	if grep -q '^main' $(out); then exit 1; fi
-	$(TIMELIMIT)$(OBJDIR)/pertest_none$(DOTEXE) --DRT-testfilter=pertest > $(out) 2>&1; test $$? -eq 1
-	grep -q "'pertest' does not match any unittest" $(out)
+	for name in nosuch pertestpkg pertest pertest.__unittest_L14 -pertest.__unittest_L9_C1; do \
+	    $(TIMELIMIT)$< --DRT-testfilter=pertest.__unittest_L14_C1,$$name > $(out) 2>&1; test $$? -eq 1 || exit 1; \
+	    grep -q "'$$name' does not match any unittest" $(out) || exit 1; \
+	    if grep -Eq 'after|passed|^main|FAILED' $(out); then exit 1; fi; \
+	done
+	for names in ,pertest.__unittest_L14_C1 pertest.__unittest_L14_C1, pertest.__unittest_L14_C1,,pertest.__unittest_L5_C1; do \
+	    $(TIMELIMIT)$< --DRT-testfilter=$$names > $(out) 2>&1; test $$? -eq 1 || exit 1; \
+	    grep -q 'empty unittest name' $(out) || exit 1; \
+	    if grep -Eq 'after|passed|^main|FAILED' $(out); then exit 1; fi; \
+	done
+	for mode in run-main test-only test-or-main; do \
+	    $(TIMELIMIT)$< --DRT-testmode=$$mode --DRT-testfilter=pertest.__unittest_L14_C1 > $(out) 2>&1; test $$? -eq 1 || exit 1; \
+	    grep -q "testmode=$$mode" $(out) || exit 1; \
+	    if grep -Eq 'after|passed|^main|FAILED' $(out); then exit 1; fi; \
+	done
+	$(TIMELIMIT)$(OBJDIR)/pertest_none$(DOTEXE) --DRT-testfilter=pertest.__unittest_L14_C1 > $(out) 2>&1; test $$? -eq 1
+	grep -q 'does not match any unittest' $(out)
 	if grep -q '^main' $(out); then exit 1; fi
 	@touch $@
 
@@ -187,7 +182,7 @@ $(OBJDIR)/pertest_list.done: $(OBJDIR)/pertest_fail$(DOTEXE) $(OBJDIR)/pertest_n
 	grep -q '^pertest\.__unittest_L25_C1' $(out)
 	grep -q '^pertestpkg\.sub\.__unittest_L3_C1' $(out)
 	test $$(grep -c . $(out)) -eq 5
-	$(TIMELIMIT)$< --DRT-testmode=list --DRT-testfilter=pertest,-pertest.__unittest_L9_C1 > $(out) 2>&1; test $$? -eq 0
+	$(TIMELIMIT)$< --DRT-testmode=list --DRT-testfilter=pertest.__unittest_L5_C1,pertest.__unittest_L14_C1,pertest.__unittest_L25_C1 > $(out) 2>&1; test $$? -eq 0
 	grep -q '^pertest\.__unittest_L5_C1' $(out)
 	grep -q '^pertest\.__unittest_L14_C1' $(out)
 	grep -q '^pertest\.__unittest_L25_C1' $(out)
