@@ -565,11 +565,12 @@ extern (C) void profilegc_setlogfilename(string name);
  * or via `rt_options`. An empty value counts as not given.
  *
  * The switch `--DRT-testfilter` restricts which unittests are executed. It
- * takes a comma-separated list of names of packages, modules or unittests, a
- * unittest being named by its module followed by `.` and its name in
- * `ModuleInfo.unitTests`. A name prefixed with `-` excludes what it names. A
- * name that matches no unittest is an error, as is using `--DRT-testfilter`
- * together with one of the `--DRT-testmode` values below.
+ * takes a comma-separated list of exact unittest names, each consisting of
+ * its module followed by `.` and its name in `ModuleInfo.unitTests`.
+ * An empty name or a name that matches no unittest is an error; no tests
+ * are run in either case. Package and module names are not accepted.
+ * Using `--DRT-testfilter` together with one of the `--DRT-testmode` values
+ * below is also an error. An empty option value means no filtering.
  *
  * `--DRT-testmode=list` prints the names of the unittests, or of those
  * selected by `--DRT-testfilter`, without executing them or main.
@@ -760,8 +761,7 @@ private bool hasUnitTestInfo()
     return false;
 }
 
-// Calls dg with the module name and the name of every unittest, the latter
-// being empty for the unittests of a module without information about them.
+// Calls dg with the module name and the name of every recorded unittest.
 private void eachUnitTest(scope void delegate(string moduleName, string testName) dg)
 {
     foreach ( m; ModuleInfo )
@@ -774,40 +774,27 @@ private void eachUnitTest(scope void delegate(string moduleName, string testName
             foreach ( test; tests )
                 dg(m.name, test.name);
         }
-        else if ( m.unitTest )
-            dg(m.name, null);
     }
 }
 
-// The unittests selected by `--DRT-testfilter`: comma-separated names of
-// packages, modules or unittests, excluded when prefixed with `-`.
 private struct UnitTestFilter
 {
     string selectors;
 
-    // Splits the next selector off `rest`, returning false if none is left.
-    static bool next(ref string rest, out string selector, out bool exclude)
+    static bool next(ref string rest, out string selector)
     {
-        if ( !rest.length )
+        if ( rest is null )
             return false;
         size_t end;
         while ( end < rest.length && rest[end] != ',' )
             ++end;
         selector = rest[0 .. end];
         rest = end < rest.length ? rest[end + 1 .. $] : null;
-        exclude = selector.length && selector[0] == '-';
-        if ( exclude )
-            selector = selector[1 .. $];
         return true;
     }
 
-    // Whether selector is the name of the unittest, of its module or of a
-    // package containing it.
     static bool matches(string selector, string moduleName, string testName)
     {
-        if ( selector.length <= moduleName.length )
-            return moduleName[0 .. selector.length] == selector
-                && (selector.length == moduleName.length || moduleName[selector.length] == '.');
         return testName.length
             && selector.length == moduleName.length + 1 + testName.length
             && selector[0 .. moduleName.length] == moduleName
@@ -817,79 +804,47 @@ private struct UnitTestFilter
 
     bool selects(string moduleName, string testName)
     {
-        bool anyIncluded;
-        bool included;
+        if ( !selectors.length )
+            return true;
         auto rest = selectors;
         string selector;
-        bool exclude;
-        while ( next(rest, selector, exclude) )
+        while ( next(rest, selector) )
         {
-            const matched = matches(selector, moduleName, testName);
-            if ( exclude )
-            {
-                if ( matched )
-                    return false;
-            }
-            else
-            {
-                anyIncluded = true;
-                included |= matched;
-            }
+            if ( matches(selector, moduleName, testName) )
+                return true;
         }
-        return included || !anyIncluded;
+        return false;
     }
 
-    // Prints why the selectors cannot be honored, returning false if so.
     bool validate()
     {
         import core.stdc.stdio : FILE, fprintf, stderr;
 
+        if ( !selectors.length )
+            return true;
         auto err = cast(FILE*) stderr;
-        bool valid = true;
         auto rest = selectors;
         string selector;
-        bool exclude;
-        while ( next(rest, selector, exclude) )
+        while ( next(rest, selector) )
         {
             if ( !selector.length )
             {
-                fprintf(err, "--DRT-testfilter: empty selector\n");
-                valid = false;
-                continue;
+                fprintf(err, "--DRT-testfilter: empty unittest name\n");
+                return false;
             }
 
             bool matched;
-            string opaqueModule;
             eachUnitTest((moduleName, testName) {
                 matched |= matches(selector, moduleName, testName);
-                if ( !testName.length && selector.length > moduleName.length
-                    && matches(moduleName, selector, null) )
-                    opaqueModule = moduleName;
             });
-            if ( matched )
-                continue;
-
-            valid = false;
-            const prefix = exclude ? "-".ptr : "".ptr;
-            if ( opaqueModule.length )
-                fprintf(err, "--DRT-testfilter: '%s%.*s' cannot be matched, as module '%.*s'"
-                    ~ " has no information about its individual unittests\n",
-                    prefix, cast(int) selector.length, selector.ptr,
-                    cast(int) opaqueModule.length, opaqueModule.ptr);
-            else
-                fprintf(err, "--DRT-testfilter: '%s%.*s' does not match any unittest\n",
-                    prefix, cast(int) selector.length, selector.ptr);
+            if ( !matched )
+            {
+                fprintf(err, "--DRT-testfilter: '%.*s' does not match any unittest\n",
+                    cast(int) selector.length, selector.ptr);
+                return false;
+            }
         }
-        if ( !valid || !selectors.length )
-            return valid;
-
-        bool anySelected;
-        eachUnitTest((moduleName, testName) {
-            anySelected |= selects(moduleName, testName);
-        });
-        if ( !anySelected )
-            fprintf(err, "--DRT-testfilter: no unittests selected\n");
-        return anySelected;
+        return true;
     }
 }
 
@@ -904,11 +859,8 @@ private UnitTestResult listUnitTests(UnitTestFilter filter)
     eachUnitTest((moduleName, testName) {
         if ( !filter.selects(moduleName, testName) )
             return;
-        if ( testName.length )
-            printf("%.*s.%.*s\n", cast(int) moduleName.length, moduleName.ptr,
-                cast(int) testName.length, testName.ptr);
-        else
-            printf("%.*s\n", cast(int) moduleName.length, moduleName.ptr);
+        printf("%.*s.%.*s\n", cast(int) moduleName.length, moduleName.ptr,
+            cast(int) testName.length, testName.ptr);
     });
     return UnitTestResult(0, 0, false, false);
 }
