@@ -178,7 +178,7 @@ void deinitializeDMD()
     import dmd.objc : Objc;
     import dmd.target : target;
     import dmd.dfa.fast.structure : DFAAllocator;
-    import dmd.root.rmem : mem;                    // ← новое
+    import dmd.root.rmem : mem;
 
     // Free null-terminated copies from addImport / addStringImport
     // (xarraydup → mem.xmalloc_noscan). global.deinitialize() only
@@ -191,7 +191,6 @@ void deinitializeDMD()
     global.path.setDim(0);
     global.filePath.setDim(0);
 
-    // ── original body ──
     diagnosticHandler = null;
     fatalErrorHandler = null;
     FuncDeclaration.lastMain = null;
