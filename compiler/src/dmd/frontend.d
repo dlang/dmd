@@ -178,7 +178,20 @@ void deinitializeDMD()
     import dmd.objc : Objc;
     import dmd.target : target;
     import dmd.dfa.fast.structure : DFAAllocator;
+    import dmd.root.rmem : mem;                    // ← новое
 
+    // Free null-terminated copies from addImport / addStringImport
+    // (xarraydup → mem.xmalloc_noscan). global.deinitialize() only
+    // frees the Array containers, not the pointed-to strings.
+    foreach (info; global.path[])
+        mem.xfree(cast(void*) info.path);
+    foreach (s; global.filePath[])
+        mem.xfree(cast(void*) s);
+    // Reset lengths so a second deinitializeDMD() can't double-free.
+    global.path.setDim(0);
+    global.filePath.setDim(0);
+
+    // ── original body ──
     diagnosticHandler = null;
     fatalErrorHandler = null;
     FuncDeclaration.lastMain = null;
@@ -201,12 +214,14 @@ Add import path to the `global.path`.
 Params:
     path = import to add
 */
-void addImport(const(char)[] path)
+void addImport(const(char)[] path) nothrow
 {
     import dmd.globals : global, ImportPathInfo;
-    import std.string : toStringz;
+    import dmd.root.rmem : xarraydup;
 
-    global.path.push(ImportPathInfo(path.toStringz));
+    // xarraydup: mem-allocated, '\0'-terminated copy (ptr[len] == 0).
+    // Freed in deinitializeDMD — see below.
+    global.path.push(ImportPathInfo(xarraydup(path).ptr));
 }
 
 /**
@@ -214,14 +229,12 @@ Add string import path to `global.filePath`.
 Params:
     path = string import to add
 */
-void addStringImport(const(char)[] path)
+void addStringImport(const(char)[] path) nothrow
 {
-    import std.string : toStringz;
-
     import dmd.globals : global;
-    import dmd.arraytypes : Strings;
+    import dmd.root.rmem : xarraydup;
 
-    global.filePath.push(path.toStringz);
+    global.filePath.push(xarraydup(path).ptr);
 }
 
 /**
