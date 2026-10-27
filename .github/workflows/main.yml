@@ -213,7 +213,7 @@ jobs:
   arm-qemu:
     needs: call-precommit
     name: 'Ubuntu 24.04 x64, DMD (AArch64 cross-compile via QEMU)'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       OS_NAME: linux
