@@ -1424,10 +1424,10 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
         }
         if (istate.start == s)
             istate.start = null;
-        if (istate.start)
+
+        Expression e = interpretStatement(s._body, istate);
+        if (istate.start) // goto target is not in the body
         {
-            Expression e = null;
-            e = interpretStatement(pue, s._body, istate);
             foreach (ca; *s.catches)
             {
                 if (e || !istate.start) // goto target was found
@@ -1437,8 +1437,6 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
             result = e;
             return;
         }
-
-        Expression e = interpretStatement(s._body, istate);
 
         // An exception was thrown
         if (e && e.isThrownExceptionExp())
