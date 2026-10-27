@@ -6843,6 +6843,42 @@ static assert(()
         assert(!c);
     }
 
+    // https://github.com/dlang/dmd/issues/24104
+    // jump inside TryCatchStatement.body, then throw
+    {
+        int c = 0;
+        try
+        {
+            goto L4;
+          L4:
+            c = 1;
+            throw new Exception("");
+        }
+        catch (Exception e)
+        {
+            c += 10;
+        }
+        assert(c == 11);
+    }
+
+    // backward jump inside TryCatchStatement.body, then throw
+    {
+        int c = 0;
+        try
+        {
+          L5:
+            c++;
+            if (c < 2)
+                goto L5;
+            throw new Exception("");
+        }
+        catch (Exception e)
+        {
+            c += 10;
+        }
+        assert(c == 12);
+    }
+
     return 1;
 }());
 
