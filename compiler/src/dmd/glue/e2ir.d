@@ -1689,7 +1689,7 @@ elem* toElem(Expression e, ref IRState irs)
         if (irs.params.checkAction == CHECKACTION.C)
         {
             auto econd = toElem(ae.e1, irs);
-            auto ea = callCAssert(irs, ae.loc, ae.origConditionText ? null : ae.e1, ae.msg, ae.origConditionText);
+            auto ea = callCAssert(irs, ae.loc, ae.e1, ae.msg, null);
             auto eo = el_bin(OPoror, ororty, econd, ea);
             elem_setLoc(eo, ae.loc);
             return eo;

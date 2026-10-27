@@ -10046,6 +10046,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             auto ec = CallExp.create(loc, dt, es);
             exp.msg = ec;
         }
+        else if (!exp.msg &&
+                 sc.needsCodegen() &&
+                 global.params.checkAction == CHECKACTION.C &&
+                 global.params.useAssert == CHECKENABLE.on)
+        {
+            // Set condition as message, before semantic/inlining rewrite it 
+            // (https://github.com/dlang/dmd/issues/18075)
+            exp.msg = new StringExp(Loc.initial, exp.e1.toString());
+        }
 
         LSkip:
         if (Expression ex = unaSemantic(exp, sc))
