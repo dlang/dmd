@@ -139,7 +139,7 @@ jobs:
 
       - name: 'Posix: Install prerequisites'
         if: runner.os != 'Windows'
-        run: ${{ runner.os == 'macOS' && 'ci/cirrusci.sh' || 'sudo -E ci/cirrusci.sh' }}
+        run: ${{ runner.os == 'macOS' && 'ci/cirrusci.sh' || 'sudo --preserve-env=OS_NAME,MODEL,HOST_DMD,FULL_BUILD,N ci/cirrusci.sh' }}
 
       - name: 'macOS: Switch Xcode version if required'
         if: runner.os == 'macOS' && matrix.xcode
@@ -213,7 +213,7 @@ jobs:
   arm-qemu:
     needs: call-precommit
     name: 'Ubuntu 24.04 x64, DMD (AArch64 cross-compile via QEMU)'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       OS_NAME: linux
@@ -232,7 +232,7 @@ jobs:
         run: echo "N=$(nproc)" >> $GITHUB_ENV
 
       - name: Install prerequisites
-        run: sudo -E ci/cirrusci.sh
+        run: sudo --preserve-env=OS_NAME,MODEL,HOST_DMD,FULL_BUILD,N ci/cirrusci.sh
 
       - name: Install host compiler
         run: ci/run.sh install_host_compiler
