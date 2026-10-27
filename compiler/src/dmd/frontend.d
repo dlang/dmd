@@ -180,14 +180,10 @@ void deinitializeDMD()
     import dmd.dfa.fast.structure : DFAAllocator;
     import dmd.root.rmem : mem;
 
-    // Free null-terminated copies from addImport / addStringImport
-    // (xarraydup → mem.xmalloc_noscan). global.deinitialize() only
-    // frees the Array containers, not the pointed-to strings.
     foreach (info; global.path[])
         mem.xfree(cast(void*) info.path);
     foreach (s; global.filePath[])
         mem.xfree(cast(void*) s);
-    // Reset lengths so a second deinitializeDMD() can't double-free.
     global.path.setDim(0);
     global.filePath.setDim(0);
 
