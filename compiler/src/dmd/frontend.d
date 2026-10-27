@@ -214,8 +214,6 @@ void addImport(const(char)[] path) nothrow
     import dmd.globals : global, ImportPathInfo;
     import dmd.root.rmem : xarraydup;
 
-    // xarraydup: mem-allocated, '\0'-terminated copy (ptr[len] == 0).
-    // Freed in deinitializeDMD — see below.
     global.path.push(ImportPathInfo(xarraydup(path).ptr));
 }
 
