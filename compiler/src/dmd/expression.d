@@ -2140,7 +2140,6 @@ extern (C++) final class AssertExp : UnaExp
 {
     Expression msg;
     Expression loweredFrom;
-    const(char)* origConditionText;
 
     extern (D) this(Loc loc, Expression e, Expression msg = null) @safe
     {
@@ -2150,9 +2149,7 @@ extern (C++) final class AssertExp : UnaExp
 
     override AssertExp syntaxCopy()
     {
-        auto a = new AssertExp(loc, e1.syntaxCopy(), msg ? msg.syntaxCopy() : null);
-        a.origConditionText = origConditionText;
-        return a;
+        return new AssertExp(loc, e1.syntaxCopy(), msg ? msg.syntaxCopy() : null);
     }
 
     override void accept(Visitor v)

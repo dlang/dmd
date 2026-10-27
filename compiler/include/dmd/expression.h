@@ -667,7 +667,6 @@ class AssertExp final : public UnaExp
 public:
     Expression *msg;
     Expression* loweredFrom;
-    const char *origConditionText;
 
     AssertExp *syntaxCopy() override;
 

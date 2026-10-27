@@ -104,7 +104,7 @@ struct TestArgs
     string   compileOutput;         /// `TEST_OUTPUT`: expected output of dmd
     string   compileOutputFile;     /// `TEST_OUTPUT_FILE`: file containing the expected `TEST_OUTPUT`
     string   runOutput;             /// `RUN_OUTPUT`: expected output of the compiled executable
-    ubyte    runReturn;             /// `RUN_RETURN` expected exit code of the executable when run
+    bool     runFails;              /// `RUN_FAILS`: whether the executable is expected to fail (non-zero exit or signal)
     string   gdbScript;             /// `GDB_SCRIPT`: script executed when running the compiled executable in GDB
     string   gdbMatch;              /// `GDB_MATCH`: regex describing the expected output from executing `GDB_SSCRIPT`
     string   postScript;            /// `POSTSCRIPT`: bash script executed after a successful test
@@ -825,15 +825,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     findOutputParameter(file, "RUN_OUTPUT", testArgs.runOutput, envData);
 
     string dummy;
-    if (findTestParameter(envData, file, "RUN_RETURN", dummy))
-    {
-        import std.conv : to;
-        scope(failure)
-        {
-            writeln("Something went wrong when parsing RUN_RETURN from " ~ dummy);
-        }
-        testArgs.runReturn = dummy.to!(typeof(testArgs.runReturn));
-    }
+    testArgs.runFails = findTestParameter(envData, file, "RUN_FAILS", dummy);
 
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData);
     findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
@@ -969,19 +961,24 @@ void tryRemove(in char[] filename)
  * Params:
  *  f           = the logfile
  *  command     = the command to execute
- *  expectPass  = whether the command should succeed
+ *  expectedRc  = the expected exit code
+ *  anyFailure  = accept any failure (non-zero exit code or signal) instead of `expectedRc`
  *
  * Returns: the output produced by `command`
  * Throws:
- *   Exception if `command` returns another exit code than 0/1 (depending on expectPass)
+ *   Exception if `command` returns another exit code than `expectedRc`
  */
-string execute(ref File f, string command, const ubyte expectedRc)
+string execute(ref File f, string command, const ubyte expectedRc, bool anyFailure = false)
 {
     f.writeln(command);
     const result = std.process.executeShell(command);
     f.write(result.output);
 
-    if (result.status < 0)
+    if (anyFailure)
+    {
+        enforce(result.status != 0, "Expected failure, but exited with rc == 0");
+    }
+    else if (result.status < 0)
     {
         enforce(false, "caught signal: " ~ to!string(result.status));
     }
@@ -1823,7 +1820,7 @@ int tryMain(string[] args)
                         autoCompileImports ? "extraSourceIncludePaths" : "",
                         envData.required_args, testArgs.requiredArgsForLink, output_dir, test_app_dmd, join(toCleanup, " "));
 
-                    execute(fThisRun, command, testArgs.runReturn);
+                    execute(fThisRun, command, 0);
                 }
             }
 
@@ -1899,7 +1896,7 @@ int tryMain(string[] args)
                     command = test_app_dmd;
                     if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
-                    string output = execute(fThisRun, command, testArgs.runReturn)
+                    string output = execute(fThisRun, command, 0, testArgs.runFails)
                                     .strip()
                                     .unifyNewLine();
 
