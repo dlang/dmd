@@ -1,0 +1,12 @@
+Enable `in` parameter semantics by default
+
+`in` parameters now use the behavior previously selected by `-preview=in`:
+they are `const scope`, accept rvalues, and non-pointer parameters are passed by
+reference. Pointer parameters are passed by value because they are already
+references.
+
+The `-preview=in` switch remains accepted for compatibility. Projects that need
+the previous behavior can use the new `-revert=in` switch.
+
+For more information, see the specification for
+$(LINK2 https://dlang.org/spec/function.html#in-params, `in` parameters).
