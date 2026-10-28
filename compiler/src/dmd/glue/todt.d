@@ -1039,7 +1039,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
                 assert(ie);
                 auto value = ie.getInteger();
                 const width = bf.fieldWidth;
-                const mask = (1L << width) - 1;
+                const mask = ~0UL >> (64 - width);
                 bitFieldValue = (bitFieldValue & ~(mask << bf.bitOffset)) | ((value & mask) << bf.bitOffset);
                 //printf("bitFieldValue x%llx\n", bitFieldValue);
             }
@@ -1061,7 +1061,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
 
                 auto value = ie.getInteger();
                 const width = bf.fieldWidth;
-                const mask = (1L << width) - 1;
+                const mask = ~0UL >> (64 - width);
                 bitFieldValue = (bitFieldValue & ~(mask << bf.bitOffset)) | ((value & mask) << bf.bitOffset);
             }
         }
