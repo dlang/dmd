@@ -46,20 +46,22 @@ int main(){
     auto inputPipe = std.process.pipe();
     auto outputPipe = std.process.pipe();
 
-    auto args = parseCommand("$DMD $EXTRA_FILES/pragmabreakpoint/pragmabreakpoint.d");
+    auto args = parseCommand("$DMD -m$MODEL -of$OUTPUT_BASE/pragmabreakpoint$EXE $EXTRA_FILES/pragmabreakpoint/pragmabreakpoint.d");
 
     auto proc = spawnProcess(args, inputPipe.readEnd, outputPipe.writeEnd, outputPipe.writeEnd);
     inputPipe.writeEnd.write("bt\nm 3\nc\nc\nc\nbt\nm 1\nc\nc\nc\nc\n"); //2 extra "continue" + newlines should be ignored
     inputPipe.writeEnd.flush();
     const deadline = MonoTime.currTime + 5.seconds;
-    while(true)
+    while (true)
     {
         auto result = tryWait(proc);
-        if(result.terminated){
+        if (result.terminated)
+        {
             enforce(result.status == 0);
             break;
         }
-        if(MonoTime.currTime > deadline){
+        if (MonoTime.currTime > deadline)
+        {
             assert(false, "pragmabreakpoint compile test timed out");
         }
         Thread.sleep(100.msecs);
