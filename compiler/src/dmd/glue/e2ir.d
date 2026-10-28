@@ -7255,7 +7255,7 @@ elem* toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol* sym
                 /* Initialize entire location the bitfield is in
                  * ep = (ep & ((1 << bf.fieldWidth) - 1)) << bf.bitOffset
                  */
-                auto ex = el_bin(OPand, tym, ep, el_long(tym, (1L << bf.fieldWidth) - 1));
+                auto ex = el_bin(OPand, tym, ep, el_long(tym, ~0UL >> (64 - bf.fieldWidth)));
                 ep = el_bin(OPshl, tym, ex, el_long(tym, bitOffset));
                 vbf = v;
             }

@@ -111,6 +111,25 @@ void test4()
 }
 
 /********************************************/
+// https://github.com/dlang/dmd/issues/24114
+
+struct S5
+{
+    ulong a:64 = 7;
+}
+
+__gshared S5 gs5 = S5(5);
+
+void test5()
+{
+    S5 s = S5(5);
+    assert(s.a == 5);
+    assert(gs5.a == 5);
+    S5 d;
+    assert(d.a == 7);
+}
+
+/********************************************/
 
 int main()
 {
@@ -118,5 +137,6 @@ int main()
     test2();
     test3();
     test4();
+    test5();
     return 0;
 }
