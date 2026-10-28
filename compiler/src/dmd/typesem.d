@@ -2585,7 +2585,7 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
             if (ta.ty != Tsarray)
             {
                 Type tn = tp.nextOf().castMod(ta.nextOf().mod);
-                dinteger_t dim = (cast(StringExp)arg).len;
+                dinteger_t dim = (cast(StringExp)arg).length;
                 ta = tn.sarrayOf(dim);
             }
         }
@@ -6513,7 +6513,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             if (e.op == EXP.string_)
             {
                 StringExp se = cast(StringExp)e;
-                return new IntegerExp(se.loc, se.len, Type.tsize_t);
+                return new IntegerExp(se.loc, se.length, Type.tsize_t);
             }
             if (e.op == EXP.null_)
             {

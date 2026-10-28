@@ -234,10 +234,10 @@ UnionExp copyLiteralImpl(Expression e)
     UnionExp ue = void;
     if (auto se = e.isStringExp()) // syntaxCopy doesn't make a copy for StringExp!
     {
-        char* s = cast(char*)mem.xcalloc(se.len + 1, se.sz);
+        char* s = cast(char*)mem.xcalloc(se.length + 1, se.sz);
         const slice = se.peekData();
         memcpy(s, slice.ptr, slice.length);
-        emplaceExp!(StringExp)(&ue, se.loc, s[0 .. se.len * se.sz], se.len, se.sz);
+        emplaceExp!(StringExp)(&ue, se.loc, s[0 .. se.length * se.sz], se.length, se.sz);
         StringExp se2 = ue.exp().isStringExp();
         se2.committed = se.committed;
         se2.postfix = se.postfix;
@@ -518,7 +518,7 @@ uinteger_t resolveArrayLength(Expression e)
         }
 
         case EXP.string_:
-            return e.isStringExp().len;
+            return e.isStringExp().length;
 
         case EXP.arrayLiteral:
         {
@@ -1410,7 +1410,7 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         // [chars] ~ string => string (only valid for CTFE)
         StringExp es1 = e2.isStringExp();
         ArrayLiteralExp ale2 = e1.isArrayLiteralExp();
-        const len = es1.len + ale2.length;
+        const len = es1.length + ale2.length;
         const sz = es1.sz;
         void* s = mem.xmalloc_noscan((len + 1) * sz);
         const data1 = es1.peekData();
@@ -1440,7 +1440,7 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         // Concatenate the strings
         StringExp es1 = e1.isStringExp();
         ArrayLiteralExp ale2 = e2.isArrayLiteralExp();
-        const len = es1.len + ale2.length;
+        const len = es1.length + ale2.length;
         const sz = es1.sz;
         void* s = mem.xmalloc_noscan((len + 1) * sz);
         auto slice = es1.peekData();
@@ -1454,7 +1454,7 @@ UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
                 return ue;
             }
             const v = es2e.toInteger();
-            Port.valcpy(cast(char*)s + (es1.len + i) * sz, v, sz);
+            Port.valcpy(cast(char*)s + (es1.length + i) * sz, v, sz);
         }
         // Add terminating 0
         memset(cast(char*)s + len * sz, 0, sz);
@@ -1523,10 +1523,10 @@ Expression ctfeIndex(UnionExp* pue, Loc loc, Type type, Expression e1, uinteger_
     assert(e1.type);
     if (auto es1 = e1.isStringExp())
     {
-        if (indx >= es1.len)
+        if (indx >= es1.length)
         {
             auto eSink = global.errorSink;
-            eSink.error(loc, "string index %llu is out of bounds `[0 .. %llu]`", indx, cast(ulong)es1.len);
+            eSink.error(loc, "string index %llu is out of bounds `[0 .. %llu]`", indx, cast(ulong)es1.length);
             return CTFEExp.cantexp;
         }
         emplaceExp!IntegerExp(pue, loc, es1.getIndex(cast(size_t) indx), type);

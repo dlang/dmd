@@ -1859,10 +1859,10 @@ struct ExpressionWalker
                     DFAConsequence* cctx = ret.addConsequence(var);
                     ret.setContext(cctx);
 
-                    cctx.truthiness = se.len > 0 ? Truthiness.True : Truthiness.Maybe;
+                    cctx.truthiness = se.length > 0 ? Truthiness.True : Truthiness.Maybe;
                     cctx.nullable = Nullable.NonNull;
                     cctx.obj = dfaCommon.makeObject;
-                    cctx.pa = DFAPAValue(se.len);
+                    cctx.pa = DFAPAValue(se.length);
                     return ret;
                 }
 

@@ -793,7 +793,7 @@ MATCH implicitConvTo(Expression e, Type t)
                 if (e.type.ty == t.ty && e.type.nextOf().ty == tn.ty)
                     return m;
             }
-            if (e.type != t && e.hexString && tn.isIntegral && (tn.size == e.sz || (!e.committed && (e.len % tn.size) == 0)))
+            if (e.type != t && e.hexString && tn.isIntegral && (tn.size == e.sz || (!e.committed && (e.length % tn.size) == 0)))
             {
                 m = MATCH.convert;
                 return m;
@@ -2481,7 +2481,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         if (e.hexString && !e.committed && tb.nextOf() && tb.nextOf().isIntegral)
         {
             const szx = cast(ubyte) tb.nextOf().size();
-            if (szx != se.sz && (e.len % szx) == 0)
+            if (szx != se.sz && (e.length % szx) == 0)
             {
                 import dmd.utils: arrayCastBigEndian;
                 const data = e.peekData();
@@ -2520,21 +2520,21 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             uinteger_t szx = tb.nextOf().size();
             assert(szx <= 255);
             se.sz = cast(ubyte)szx;
-            se.len = cast(size_t)tb.isTypeSArray().dim.toInteger();
+            se.length = cast(size_t)tb.isTypeSArray().dim.toInteger();
             se.committed = true;
             se.type = t;
 
             /* If larger than source, pad with zeros.
              */
-            const fullSize = (se.len + 1) * se.sz; // incl. terminating 0
-            if (fullSize > (e.len + 1) * e.sz)
+            const fullSize = (se.length + 1) * se.sz; // incl. terminating 0
+            if (fullSize > (e.length + 1) * e.sz)
             {
                 void* s = mem.xmalloc_noscan(fullSize);
-                const srcSize = e.len * e.sz;
+                const srcSize = e.length * e.sz;
                 const data = se.peekData();
                 memcpy(s, data.ptr, srcSize);
                 memset(s + srcSize, 0, fullSize - srcSize);
-                se.setData(s, se.len, se.sz);
+                se.setData(s, se.length, se.sz);
             }
             return se;
         }
@@ -2597,7 +2597,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 break;
 
             case X(Tchar, Twchar):
-                for (size_t u = 0; u < e.len;)
+                for (size_t u = 0; u < e.length;)
                 {
                     dchar c;
                     if (const s = utf_decodeChar(se.peekString(), u, c))
@@ -2610,7 +2610,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 goto L1;
 
             case X(Tchar, Tdchar):
-                for (size_t u = 0; u < e.len;)
+                for (size_t u = 0; u < e.length;)
                 {
                     dchar c;
                     if (const s = utf_decodeChar(se.peekString(), u, c))
@@ -2622,7 +2622,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 goto L1;
 
             case X(Twchar, Tchar):
-                for (size_t u = 0; u < e.len;)
+                for (size_t u = 0; u < e.length;)
                 {
                     dchar c;
                     if (const s = utf_decodeWchar(se.peekWstring(), u, c))
@@ -2635,7 +2635,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 goto L1;
 
             case X(Twchar, Tdchar):
-                for (size_t u = 0; u < e.len;)
+                for (size_t u = 0; u < e.length;)
                 {
                     dchar c;
                     if (const s = utf_decodeWchar(se.peekWstring(), u, c))
@@ -2647,7 +2647,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 goto L1;
 
             case X(Tdchar, Tchar):
-                for (size_t u = 0; u < e.len; u++)
+                for (size_t u = 0; u < e.length; u++)
                 {
                     uint c = se.peekDstring()[u];
                     if (!utf_isValidDchar(c))
@@ -2661,7 +2661,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 goto L1;
 
             case X(Tdchar, Twchar):
-                for (size_t u = 0; u < e.len; u++)
+                for (size_t u = 0; u < e.length; u++)
                 {
                     uint c = se.peekDstring()[u];
                     if (!utf_isValidDchar(c))
@@ -2703,11 +2703,11 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             //printf("dim from = %d, to = %d\n", cast(int)se.len, cast(int)dim2);
 
             // Changing dimensions
-            if (dim2 != se.len)
+            if (dim2 != se.length)
             {
                 // Copy when changing the string literal
                 const newsz = se.sz;
-                const d = (dim2 < se.len) ? dim2 : se.len;
+                const d = (dim2 < se.length) ? dim2 : se.length;
                 void* s = mem.xmalloc_noscan((dim2 + 1) * newsz);
                 memcpy(s, se.peekData().ptr, d * newsz);
                 // Extend with 0, add terminating 0
