@@ -1047,7 +1047,7 @@ void MachObj_term(const(char)[] objfilename)
                         }
                         else if (pseg.isCode())
                         {
-                            //printf("rel2\n");
+                            //printf("rel2 %s\n", rs);
                             //printf("AArch64\n");
                             //symbol_print(*s);
                             switch (s.Sclass)
@@ -1065,6 +1065,8 @@ void MachObj_term(const(char)[] objfilename)
                                     else if (s.Sfl == FL.unde ||   // special case for __chkstk_darwin, need to research what PAGEOFF12 really means
                                              s.Sfl == FL.extern_ ||
                                              (s.Sclass == SC.extern_ && s.Sfl == FL.func) ||
+                                             (s.Sclass == SC.global  && s.Sfl == FL.func) ||
+                                             (s.Sclass == SC.comdat  && s.Sfl == FL.func) ||
                                              //(s.Sclass == SC.static_ && s.Sfl == FL.data) ||
                                              s.Sfl == FL.tlsdata)
                                     {
@@ -1095,6 +1097,8 @@ void MachObj_term(const(char)[] objfilename)
 
                                 case SC.global:
                                     if (/*s.Sfl == FL.func &&*/ r.rtype == REL.rel26)
+                                        goto case SC.extern_;
+                                    if (s.Sfl == FL.func)
                                         goto case SC.extern_;
                                     rel.r_type = r.rtype == REL.add ? ARM64_RELOC_PAGEOFF12 : ARM64_RELOC_PAGE21;
                                     //rel.r_type = r.rtype == REL.add ? ARM64_RELOC_GOT_LOAD_PAGEOFF12 : ARM64_RELOC_GOT_LOAD_PAGE21;

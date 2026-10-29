@@ -2212,7 +2212,8 @@ static if (0)
 
         case FL.func:
             fl = FL.extern_;                  /* don't want PC relative addresses */
-            goto L4;
+            //goto L4;
+            goto case;
 
         case FL.extern_:
             if (config.exe & EX_posix && (e.Vsym.ty() & mTYthread))
