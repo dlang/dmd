@@ -113,6 +113,8 @@ private struct FUNCFLAG
     bool hasNoEH;            /// No exception unwinding is needed
     bool inferRetType;       /// Return type is to be inferred
     bool hasDualContext;     /// has a dual-context 'this' parameter
+    bool contextIsThis;      /// nested function whose context pointer is the enclosing member function's `this`
+    bool noContextIsThis;    /// nested function that can't have `this` as its context pointer, or member function none of whose nested functions can
 
     bool hasAlwaysInlines;   /// Contains references to functions that must be inlined
     bool isCrtCtor;          /// Has attribute pragma(crt_constructor)
