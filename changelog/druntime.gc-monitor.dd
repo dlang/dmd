@@ -1,0 +1,22 @@
+New `core.gc.monitor` module to observe GC allocations and deallocations at runtime
+
+The new `core.gc.monitor` module allows tooling such as memory profilers
+to receive a callback for every GC allocation and for every block freed,
+including blocks reclaimed during a collection.
+
+---
+import core.gc.monitor;
+
+pragma(crt_constructor) void registerMonitors()
+{
+    setGCMonitor(&onAlloc, &onFree);
+}
+
+void onAlloc(void* ptr, size_t size) nothrow @nogc { /* ... */ }
+void onFree(void* ptr, size_t size, bool collected) nothrow @nogc { /* ... */ }
+---
+
+The callbacks run from inside the GC — with the GC lock held, or with all
+threads suspended during a collection — so they must be `nothrow @nogc`
+and must not allocate or call back into the GC. Only the conservative GC
+(the default) reports to the monitors at the moment.
