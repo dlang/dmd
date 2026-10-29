@@ -1471,6 +1471,19 @@ static if (1)
     }
 
     /*************************************
+     * Add a file to `infoFileName_table`, and return its index in the
+     * line number program's file_names table, as used by `DW_LNS_set_file`
+     * and `DW_AT_decl_file`.
+     * The table is 1-based for DWARF < 5, but 0-based for DWARF 5.
+     */
+    uint dwarf_line_fileindex(const(char)* path)
+    {
+        const id = dwarf_line_addfile(path);
+        assert(id != 0);
+        return config.dwarf >= 5 ? id - 1 : id;
+    }
+
+    /*************************************
      * Adds `str` to `aachars`, and assigns a new index if none
      *
      * Params:
@@ -1579,7 +1592,7 @@ static if (1)
                     }
                     else
                     {
-                        ld.filenumber = dwarf_line_addfile(filename);
+                        ld.filenumber = dwarf_line_fileindex(filename);
                         dwarf_line_add_directory(filename);
 
                         last_filenumber = ld.filenumber;
@@ -1913,7 +1926,7 @@ static if (1)
         IDXSEC seg = sfunc.Sseg;
         seg_data* sd = SegData[seg];
 
-        int filenum = dwarf_line_addfile(filename);
+        int filenum = dwarf_line_fileindex(filename);
 
         uint ret_type = dwarf_typidx(sfunc.Stype.Tnext, sfunc);
         if (tybasic(sfunc.Stype.Tnext.Tty) == TYvoid)
