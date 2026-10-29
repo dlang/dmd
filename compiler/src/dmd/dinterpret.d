@@ -1538,7 +1538,15 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
             ex = bex;
         }
 
+        Statement target = istate.gotoTarget;
         Expression ey = interpretStatement(s.finalbody, istate);
+        while (CTFEExp.isGotoExp(ey))
+        {
+            istate.start = istate.gotoTarget;
+            istate.gotoTarget = null;
+            ey = interpretStatement(s.finalbody, istate);
+        }
+        istate.gotoTarget = target;
         if (CTFEExp.isCantExp(ey))
         {
             result = ey;

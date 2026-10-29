@@ -6976,7 +6976,66 @@ static assert(()
             c = true;
           L4:
             assert(c == false);
+            c = true;
         }
+        assert(c);
+    }
+
+    // https://github.com/dlang/dmd/issues/24057
+    // backward jump inside TryFinallyStatement.finalbody
+    {
+        int c = 0;
+        try
+        {
+        }
+        finally
+        {
+          L5:
+            c++;
+            if (c < 2)
+                goto L5;
+        }
+        assert(c == 2);
+    }
+
+    // exit from TryFinallyStatement.body, with a jump inside finalbody
+    {
+        bool c = false;
+        try
+        {
+            goto L7;
+        }
+        finally
+        {
+            goto L6;
+          L6:
+            c = true;
+        }
+        c = false;
+      L7:
+        assert(c);
+    }
+
+    // labeled break out of TryFinallyStatement.body, with a jump inside finalbody
+    {
+        int c = 0;
+      L8:
+        foreach (i; 0 .. 2)
+            foreach (j; 0 .. 2)
+            {
+                try
+                {
+                    if (j == 1)
+                        break L8;
+                }
+                finally
+                {
+                    goto L9;
+                  L9:
+                    c++;
+                }
+            }
+        assert(c == 2);
     }
 
     return 1;
