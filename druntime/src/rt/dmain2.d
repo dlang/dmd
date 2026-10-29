@@ -14,7 +14,7 @@ module rt.dmain2;
 import core.atomic;
 import core.internal.parseoptions : rt_parseOption;
 import core.stdc.errno : errno;
-import core.stdc.stdio : fflush, fprintf, fwrite, stderr, stdout;
+import core.stdc.stdio : fflush, fprintf, fwrite, stderr, stdout, printf;
 import core.stdc.stdlib : alloca, EXIT_FAILURE, EXIT_SUCCESS, free, malloc, realloc;
 import core.stdc.string : strerror;
 import rt.config : rt_cmdline_enabled, rt_configOption;
@@ -266,6 +266,7 @@ private alias MainFunc = extern(C) int function(char[][] args);
  */
 extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
 {
+    //printf("_d_run_main()\n");
     // Set up _cArgs and array of D char[] slices, then forward to _d_run_main2
 
     // Remember the original C argc/argv
