@@ -468,7 +468,9 @@ void resolveAddresses(ref const DebugSections sections, Location[] locations, si
                     void update(const ref LocationInfo match)
                     {
                         // File indices are 1-based for DWARF < 5
-                        const fileIndex = match.file - (lp.dwarfVersion < 5 ? 1 : 0);
+                        const fileIndex = cast(size_t) match.file - (lp.dwarfVersion < 5 ? 1 : 0);
+                        if (fileIndex >= lp.sourceFiles.length)
+                            return;
                         const sourceFile = lp.sourceFiles[fileIndex];
                         debug (DwarfDebugMachine)
                         {
@@ -480,7 +482,7 @@ void resolveAddresses(ref const DebugSections sections, Location[] locations, si
                         // DMD emits entries with FQN, but other implementations
                         // (e.g. LDC) make use of directories
                         // See https://github.com/dlang/druntime/pull/2945
-                        if (sourceFile.dirIndex != 0)
+                        if (sourceFile.dirIndex != 0 && sourceFile.dirIndex <= lp.includeDirectories.length)
                             loc.directory = lp.includeDirectories[sourceFile.dirIndex - 1];
 
                         loc.file = sourceFile.file;
@@ -1049,7 +1051,8 @@ struct SourceFile
 /// Reads the DWARF 5 directory and file entries into `lp`.
 void readEntries(ref const(ubyte)[] data, ref LineNumberProgram lp, bool is64bitDwarf) @nogc nothrow
 {
-    static void consumeGenericForm(ref const(ubyte)[] data, DW_FORM form, bool is64bitDwarf)
+    /// Returns: `false` if `form` is unknown, as the entry can't be skipped
+    static bool consumeGenericForm(ref const(ubyte)[] data, DW_FORM form, bool is64bitDwarf)
     {
         with (DW_FORM) switch (form)
         {
@@ -1069,20 +1072,26 @@ void readEntries(ref const(ubyte)[] data, ref LineNumberProgram lp, bool is64bit
                 data = data[16 .. $]; break;
             case udata, strx:
                 data.readULEB128(); break;
+            case string_:
+                data.readStringz(); break;
             case block:
                 const length = cast(size_t) data.readULEB128();
                 data = data[length .. $];
                 break;
             default:
-                assert(0); // TODO: support other forms for vendor extensions
+                return false; // TODO: support other forms for vendor extensions
         }
+        return true;
     }
 
+    // Entries that can't be parsed (e.g. due to an unknown form) keep
+    // their fallback value, the program start is known from the header.
     const dirFormat = data.readEntryFormat();
     lp.includeDirectories.length = cast(size_t) data.readULEB128();
     foreach (ref dir; lp.includeDirectories)
-    {
         dir = "<unknown dir>"; // fallback
+    foreach (ref dir; lp.includeDirectories)
+    {
         foreach (ref pair; dirFormat)
         {
             if (pair.type == DW_LNCT.path &&
@@ -1091,16 +1100,17 @@ void readEntries(ref const(ubyte)[] data, ref LineNumberProgram lp, bool is64bit
             {
                 dir = data.readStringz();
             }
-            else // uninteresting type
-                consumeGenericForm(data, pair.form, is64bitDwarf);
+            else if (!consumeGenericForm(data, pair.form, is64bitDwarf))
+                return;
         }
     }
 
     const fileFormat = data.readEntryFormat();
     lp.sourceFiles.length = cast(size_t) data.readULEB128();
     foreach (ref sf; lp.sourceFiles)
-    {
         sf.file = "<unknown file>"; // fallback
+    foreach (ref sf; lp.sourceFiles)
+    {
         foreach (ref pair; fileFormat)
         {
             if (pair.type == DW_LNCT.path &&
@@ -1118,11 +1128,11 @@ void readEntries(ref const(ubyte)[] data, ref LineNumberProgram lp, bool is64bit
                 else if (pair.form == DW_FORM.udata)
                     sf.dirIndex = cast(size_t) data.readULEB128();
                 else
-                    assert(0); // not allowed by DWARF 5 spec
+                    return; // not allowed by DWARF 5 spec
                 sf.dirIndex++; // DWARF v5 indices are 0-based
             }
-            else // uninteresting type
-                consumeGenericForm(data, pair.form, is64bitDwarf);
+            else if (!consumeGenericForm(data, pair.form, is64bitDwarf))
+                return;
         }
     }
 }
