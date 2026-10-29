@@ -75,13 +75,17 @@ struct Image
 
     T processDebugSections(T)(scope T delegate(ref const DebugSections) processor)
     {
-        ElfSection line, str, lineStr;
+        ElfSection line, info, abbrev, str, lineStr;
         mapSection(".debug_line", line);
+        mapSection(".debug_info", info);
+        mapSection(".debug_abbrev", abbrev);
         mapSection(".debug_str", str);
         mapSection(".debug_line_str", lineStr);
 
         const DebugSections sections = {
             line: cast(const(ubyte)[]) line.data(),
+            info: cast(const(ubyte)[]) info.data(),
+            abbrev: cast(const(ubyte)[]) abbrev.data(),
             str: cast(const(ubyte)[]) str.data(),
             lineStr: cast(const(ubyte)[]) lineStr.data(),
         };
