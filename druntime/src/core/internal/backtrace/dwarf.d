@@ -192,8 +192,15 @@ int traceHandlerOpApplyImpl(size_t numFrames,
         return locations[startIdx .. $].processCallstack(null, 0, dg);
 
     // find address -> file, line mapping using dwarf debug_line
-    return image.processDebugLineSectionData(
-        (line) => locations[startIdx .. $].processCallstack(line, image.baseAddress, dg));
+    return image.processDebugSections(
+        (ref const DebugSections sections) => locations[startIdx .. $].processCallstack(&sections, image.baseAddress, dg));
+}
+
+/// The DWARF sections used to resolve addresses, empty if not present
+struct DebugSections
+{
+    /// `.debug_line`: line number programs
+    const(ubyte)[] line;
 }
 
 struct TraceInfoBuffer
@@ -242,14 +249,15 @@ struct TraceInfoBuffer
 
 private:
 
-int processCallstack(Location[] locations, const(ubyte)[] debugLineSectionData,
+int processCallstack(Location[] locations, const(DebugSections)* sections,
                      size_t baseAddress, scope int delegate(ref size_t, ref const(char[])) dg)
 {
-    if (debugLineSectionData)
-        resolveAddresses(debugLineSectionData, locations, baseAddress);
+    const hasDebugLine = sections !is null && sections.line.length;
+    if (hasDebugLine)
+        resolveAddresses(*sections, locations, baseAddress);
     version (Darwin)
     {
-        if (!debugLineSectionData)
+        if (!hasDebugLine)
             resolveAddressesWithAtos(locations);
     }
 
@@ -408,9 +416,9 @@ version (Darwin) {
 }
 
 /**
- * Resolve the addresses of `locations` using `debugLineSectionData`
+ * Resolve the addresses of `locations` using the `.debug_line` section
  *
- * Runs the DWARF state machine on `debugLineSectionData`,
+ * Runs the DWARF state machine on `sections.line`,
  * assuming it represents a debugging program describing the addresses
  * in a continous and increasing manner.
  *
@@ -418,18 +426,18 @@ version (Darwin) {
  * file / lines informations.
  *
  * Note that the lifetime of the `Location` data is bound to the lifetime
- * of `debugLineSectionData`.
+ * of the data in `sections`.
  *
  * Params:
- *   debugLineSectionData = A DWARF program to feed the state machine
+ *   sections = The DWARF sections, `line` being the program to feed the state machine
  *   locations = The locations to resolve
  *   baseAddress = The offset to apply to every address
  */
-void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations, size_t baseAddress) @nogc nothrow
+void resolveAddresses(ref const DebugSections sections, Location[] locations, size_t baseAddress) @nogc nothrow
 {
     size_t numberOfLocationsFound = 0;
 
-    const(ubyte)[] dbg = debugLineSectionData;
+    const(ubyte)[] dbg = sections.line;
     while (dbg.length > 0)
     {
         debug(DwarfDebugMachine) printf("new debug program\n");

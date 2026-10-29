@@ -22,6 +22,7 @@ version (Darwin):
 import core.stdc.config : c_ulong;
 import core.sys.darwin.crt_externs : _NSGetMachExecuteHeader;
 import core.sys.darwin.mach.getsect : mach_header_64, getsectiondata;
+import core.internal.backtrace.dwarf : DebugSections;
 
 struct Image
 {
@@ -37,11 +38,19 @@ struct Image
         return self !is null;
     }
 
-    T processDebugLineSectionData(T)(scope T delegate(const(ubyte)[]) processor)
+    T processDebugSections(T)(scope T delegate(ref const DebugSections) processor)
+    {
+        const DebugSections sections = {
+            line: getSection("__debug_line"),
+        };
+        return processor(sections);
+    }
+
+    private const(ubyte)[] getSection(const(char)* name)
     {
         c_ulong size;
-        auto data = getsectiondata(self, "__DWARF", "__debug_line", &size);
-        return processor(data[0 .. size]);
+        auto data = getsectiondata(self, "__DWARF", name, &size);
+        return data[0 .. size];
     }
 
     @property size_t baseAddress()
