@@ -201,6 +201,10 @@ struct DebugSections
 {
     /// `.debug_line`: line number programs
     const(ubyte)[] line;
+    /// `.debug_str`: string table referenced by `DW_FORM_strp`
+    const(ubyte)[] str;
+    /// `.debug_line_str`: string table referenced by `DW_FORM_line_strp`
+    const(ubyte)[] lineStr;
 }
 
 struct TraceInfoBuffer
@@ -441,7 +445,7 @@ void resolveAddresses(ref const DebugSections sections, Location[] locations, si
     while (dbg.length > 0)
     {
         debug(DwarfDebugMachine) printf("new debug program\n");
-        const lp = readLineNumberProgram(dbg);
+        const lp = readLineNumberProgram(dbg, sections);
 
         LocationInfo lastLoc = LocationInfo(-1, -1);
         const(void)* lastAddress;
@@ -935,6 +939,18 @@ Array!EntryFormatPair readEntryFormat(ref const(ubyte)[] buffer) @nogc nothrow
     return pairs;
 }
 
+/// Reads a null-terminated string at `offset` in `section`, or `null` if out of bounds
+const(char)[] readStringAt(const(ubyte)[] section, size_t offset) @nogc nothrow
+{
+    if (offset >= section.length)
+        return null;
+    const str = cast(const(char)[]) section[offset .. $];
+    foreach (i, c; str)
+        if (c == '\0')
+            return str[0 .. i];
+    return null;
+}
+
 /// Standard opcodes of the line number program.
 ///
 /// Standard opcodes occupy the range `[1, opcode_base)`, where `opcode_base`
@@ -1049,7 +1065,8 @@ struct SourceFile
 }
 
 /// Reads the DWARF 5 directory and file entries into `lp`.
-void readEntries(ref const(ubyte)[] data, ref LineNumberProgram lp, bool is64bitDwarf) @nogc nothrow
+void readEntries(ref const(ubyte)[] data, ref LineNumberProgram lp, bool is64bitDwarf,
+                 ref const DebugSections sections) @nogc nothrow
 {
     /// Returns: `false` if `form` is unknown, as the entry can't be skipped
     static bool consumeGenericForm(ref const(ubyte)[] data, DW_FORM form, bool is64bitDwarf)
@@ -1084,6 +1101,30 @@ void readEntries(ref const(ubyte)[] data, ref LineNumberProgram lp, bool is64bit
         return true;
     }
 
+    /**
+     * Reads a path, either inline or as an offset in a string section
+     *
+     * `path` is left untouched if the string can't be found.
+     * Returns: `false` if `form` is unknown, as the entry can't be skipped
+     */
+    bool readPath(ref const(ubyte)[] data, DW_FORM form, ref const(char)[] path)
+    {
+        switch (form) with (DW_FORM)
+        {
+            case string_:
+                path = data.readStringz();
+                return true;
+            case strp, line_strp:
+                const offset = cast(size_t) (is64bitDwarf ? data.read!ulong() : data.read!uint());
+                if (auto str = readStringAt(form == strp ? sections.str : sections.lineStr, offset))
+                    path = str;
+                return true;
+            default:
+                // TODO: support `strx` forms (requires `DW_AT_str_offsets_base`)
+                return consumeGenericForm(data, form, is64bitDwarf);
+        }
+    }
+
     // Entries that can't be parsed (e.g. due to an unknown form) keep
     // their fallback value, the program start is known from the header.
     const dirFormat = data.readEntryFormat();
@@ -1094,11 +1135,10 @@ void readEntries(ref const(ubyte)[] data, ref LineNumberProgram lp, bool is64bit
     {
         foreach (ref pair; dirFormat)
         {
-            if (pair.type == DW_LNCT.path &&
-                // TODO: support other forms too (offsets in other sections)
-                pair.form == DW_FORM.string_)
+            if (pair.type == DW_LNCT.path)
             {
-                dir = data.readStringz();
+                if (!readPath(data, pair.form, dir))
+                    return;
             }
             else if (!consumeGenericForm(data, pair.form, is64bitDwarf))
                 return;
@@ -1113,11 +1153,10 @@ void readEntries(ref const(ubyte)[] data, ref LineNumberProgram lp, bool is64bit
     {
         foreach (ref pair; fileFormat)
         {
-            if (pair.type == DW_LNCT.path &&
-                // TODO: support other forms too (offsets in other sections)
-                pair.form == DW_FORM.string_)
+            if (pair.type == DW_LNCT.path)
             {
-                sf.file = data.readStringz();
+                if (!readPath(data, pair.form, sf.file))
+                    return;
             }
             else if (pair.type == DW_LNCT.directoryIndex)
             {
@@ -1137,7 +1176,7 @@ void readEntries(ref const(ubyte)[] data, ref LineNumberProgram lp, bool is64bit
     }
 }
 
-LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
+LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data, ref const DebugSections sections) @nogc nothrow
 {
     const originalData = data;
 
@@ -1176,7 +1215,7 @@ LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
     data = data[lp.opcodeBase - 1 .. $];
 
     if (lp.dwarfVersion >= 5)
-        readEntries(data, lp, is64bitDwarf);
+        readEntries(data, lp, is64bitDwarf, sections);
     else
     {
         // A sequence ends with a null-byte.
