@@ -572,7 +572,10 @@ nothrow:
             }
             if (buf.length) // if path is not empty
             {
-                if (sink(buf.extractChars()))
+                // Make sure we mem.xmalloc thing - OutBuffer uses plain malloc
+                // Failure to do so would result in random memory corruption
+                // when using the bump allocator.
+                if (sink(xarraydup(buf[]).ptr))
                     break;
             }
         } while (c);
