@@ -54,6 +54,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.inline;
 import dmd.link;
+import dmd.lint.engine : runLinter;
 import dmd.location;
 import dmd.mars;
 import dmd.mtype;
@@ -690,6 +691,8 @@ private int tryMain(const(char)[][] argv, out Param params)
     {
     timeTraceBeginEvent(TimeTraceEventType.inlineGeneral);
     scope (exit) timeTraceEndEvent(TimeTraceEventType.inlineGeneral);
+
+    runLinter(modules[]);
 
     // Scan for modules with always inline functions
     foreach (m; modules)
