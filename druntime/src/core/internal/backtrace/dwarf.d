@@ -107,6 +107,15 @@ struct Location
     const(char)[] directory;
 
     /**
+     * Compilation directory of the unit this location belongs to
+     *
+     * Per the DWARF spec, a relative `directory` (or a relative `file`
+     * without `directory`) is relative to this directory.
+     * This may be `null` if it's unknown or not needed.
+     */
+    const(char)[] compilationDirectory;
+
+    /**
      * Line within the file that correspond to this `location`.
      *
      * Note that in addition to a positive value, the values `0` and `-1`
@@ -125,12 +134,29 @@ struct Location
         // information. If there is we will simply ignore it.
         if (this.file.length)
         {
-            // Note: Sink needs to handle empty data
-            sink(this.directory);
             // Only POSIX path because this module is not used on Windows
-            if (this.directory.length && this.directory[$ - 1] != '/')
-                sink("/");
-            sink(this.file);
+            static bool isAbsolute(const(char)[] path) { return path.length && path[0] == '/'; }
+            void sinkDir(const(char)[] dir)
+            {
+                if (!dir.length)
+                    return;
+                sink(dir);
+                if (dir[$ - 1] != '/')
+                    sink("/");
+            }
+
+            const(char)[] file = this.file;
+            if (!isAbsolute(file))
+            {
+                if (!isAbsolute(this.directory))
+                    sinkDir(this.compilationDirectory);
+                sinkDir(this.directory);
+                // Avoid printing e.g. `/path/to/./file.d`
+                if ((this.directory.length || this.compilationDirectory.length) &&
+                    file.length > 2 && file[0 .. 2] == "./")
+                    file = file[2 .. $];
+            }
+            sink(file);
         }
         else
             // Most likely, no debug information
@@ -159,6 +185,32 @@ struct Location
         sink(unsignedToTempString!16(cast(size_t) this.address));
         sink("]");
     }
+}
+
+unittest
+{
+    static string format(Location loc)
+    {
+        loc.line = 42;
+        string result;
+        loc.toString((scope const char[] s) { result ~= s; });
+        return result[0 .. $ - " [0x0]".length];
+    }
+
+    // DMD: Fully qualified file name
+    assert(format(Location(file: "/a/b.d")) == "/a/b.d:42");
+    // Relative file in absolute directory
+    assert(format(Location(file: "b.d", directory: "/a")) == "/a/b.d:42");
+    assert(format(Location(file: "b.d", directory: "/a/", compilationDirectory: "/c")) == "/a/b.d:42");
+    // Relative directory, relative to compilation directory
+    assert(format(Location(file: "b.d", directory: "a", compilationDirectory: "/")) == "/a/b.d:42");
+    assert(format(Location(file: "b.d", directory: "a", compilationDirectory: "/c")) == "/c/a/b.d:42");
+    // File relative to compilation directory
+    assert(format(Location(file: "b.d", compilationDirectory: "/c")) == "/c/b.d:42");
+    assert(format(Location(file: "./b.d", compilationDirectory: "/c")) == "/c/b.d:42");
+    assert(format(Location(file: "./b.d")) == "./b.d:42");
+    // Unknown
+    assert(format(Location()) == "??:42");
 }
 
 int traceHandlerOpApplyImpl(size_t numFrames,
@@ -488,6 +540,12 @@ void resolveAddresses(ref const DebugSections sections, Location[] locations, si
                         // See https://github.com/dlang/druntime/pull/2945
                         if (sourceFile.dirIndex != 0 && sourceFile.dirIndex <= lp.includeDirectories.length)
                             loc.directory = lp.includeDirectories[sourceFile.dirIndex - 1];
+
+                        // In DWARF 5, relative paths are relative to the
+                        // compilation directory, which is directory 0
+                        // (`dirIndex` 1, as it's stored 1-based).
+                        if (lp.dwarfVersion >= 5 && sourceFile.dirIndex != 1 && lp.includeDirectories.length)
+                            loc.compilationDirectory = lp.includeDirectories[0];
 
                         loc.file = sourceFile.file;
                         loc.line = match.line;
