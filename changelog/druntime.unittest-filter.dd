@@ -1,0 +1,25 @@
+The default unittest runner can run a selection of unittests
+
+`--DRT-testfilter` restricts which unittests the default runner executes. It
+takes a comma-separated list of exact unittest names, each consisting of its
+module followed by its compiler-generated name:
+
+```
+./app --DRT-testfilter=my.pkg.mod.__unittest_L9_C1
+./app --DRT-testfilter=my.pkg.mod.__unittest_L9_C1,other.mod.__unittest_L5_C1
+```
+
+Package and module names, prefixes, and exclusions are not supported.
+An empty name or a name that does not match any unittest is an error, and no
+unittest is run. An empty option value means no filtering. Repeated names
+select a unittest only once; tests run in the runner's usual order.
+`--DRT-testfilter` cannot be used together with `--DRT-testmode=run-main`,
+`test-only` or `test-or-main`, which run unittests per module.
+
+`--DRT-testmode=list` prints the names accepted by `--DRT-testfilter` on
+`stdout`, one per line, without running tests or `main`. Combined with
+`--DRT-testfilter` it only prints the selected ones. Modules without
+individual unittest metadata cannot be listed or selected.
+
+Custom handlers set with $(D Runtime.moduleUnitTester) or
+$(D Runtime.extendedModuleUnitTester) are not affected by either option.

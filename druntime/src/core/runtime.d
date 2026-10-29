@@ -564,7 +564,18 @@ extern (C) void profilegc_setlogfilename(string name);
  * `--DRT-testmode`, in the `DRT_TESTMODE` environment variable when enabled,
  * or via `rt_options`. An empty value counts as not given.
  *
- * `--DRT-testmode` can have one of 3 values, any other being an error:
+ * The switch `--DRT-testfilter` restricts which unittests are executed. It
+ * takes a comma-separated list of exact unittest names, each consisting of
+ * its module followed by `.` and its name in `ModuleInfo.unitTests`.
+ * An empty name or a name that matches no unittest is an error; no tests
+ * are run in either case. Package and module names are not accepted.
+ * Using `--DRT-testfilter` together with one of the `--DRT-testmode` values
+ * below is also an error. An empty option value means no filtering.
+ *
+ * `--DRT-testmode=list` prints the names of the unittests, or of those
+ * selected by `--DRT-testfilter`, without executing them or main.
+ *
+ * Otherwise `--DRT-testmode` can have one of 3 values, any other being an error:
  * 1. "run-main": even if unit tests are run (and all pass), runMain is set
       to true.
  * 2. "test-or-main": any unit tests present will cause the program to
@@ -627,6 +638,10 @@ extern (C) UnitTestResult runModuleUnitTests()
 
     TestMode testMode;
     const testModeOption = rt_configOption("testmode", null, false);
+    auto filter = UnitTestFilter(rt_configOption("testfilter", null, false));
+
+    if (testModeOption == "list")
+        return listUnitTests(filter);
 
     switch (testModeOption)
     {
@@ -649,9 +664,21 @@ extern (C) UnitTestResult runModuleUnitTests()
         return UnitTestResult.fail;
     }
 
+    if (filter.selectors.length)
+    {
+        if (testMode != TestMode.unspecified)
+        {
+            import core.stdc.stdio : FILE, fprintf, stderr;
+            fprintf(cast(FILE*) stderr, "--DRT-testfilter cannot be used with --DRT-testmode=%.*s\n",
+                cast(int) testModeOption.length, testModeOption.ptr);
+            return UnitTestResult.fail;
+        }
+        return runIndividualUnitTests(filter);
+    }
+
     // An explicit test mode selects the per-module runner below.
     if (testMode == TestMode.unspecified && hasUnitTestInfo())
-        return runIndividualUnitTests();
+        return runIndividualUnitTests(filter);
 
     UnitTestResult results;
     foreach ( m; ModuleInfo )
@@ -734,11 +761,119 @@ private bool hasUnitTestInfo()
     return false;
 }
 
-// Runs each unittest on its own, reporting progress per module on stderr.
-private UnitTestResult runIndividualUnitTests()
+// Calls dg with the module name and the name of every recorded unittest.
+private void eachUnitTest(scope void delegate(string moduleName, string testName) dg)
+{
+    foreach ( m; ModuleInfo )
+    {
+        if ( !m )
+            continue;
+        auto tests = m.unitTests;
+        if ( tests.length )
+        {
+            foreach ( test; tests )
+                dg(m.name, test.name);
+        }
+    }
+}
+
+private struct UnitTestFilter
+{
+    string selectors;
+
+    static bool next(ref string rest, out string selector)
+    {
+        if ( rest is null )
+            return false;
+        size_t end;
+        while ( end < rest.length && rest[end] != ',' )
+            ++end;
+        selector = rest[0 .. end];
+        rest = end < rest.length ? rest[end + 1 .. $] : null;
+        return true;
+    }
+
+    static bool matches(string selector, string moduleName, string testName)
+    {
+        return testName.length
+            && selector.length == moduleName.length + 1 + testName.length
+            && selector[0 .. moduleName.length] == moduleName
+            && selector[moduleName.length] == '.'
+            && selector[moduleName.length + 1 .. $] == testName;
+    }
+
+    bool selects(string moduleName, string testName)
+    {
+        if ( !selectors.length )
+            return true;
+        auto rest = selectors;
+        string selector;
+        while ( next(rest, selector) )
+        {
+            if ( matches(selector, moduleName, testName) )
+                return true;
+        }
+        return false;
+    }
+
+    bool validate()
+    {
+        import core.stdc.stdio : FILE, fprintf, stderr;
+
+        if ( !selectors.length )
+            return true;
+        auto err = cast(FILE*) stderr;
+        auto rest = selectors;
+        string selector;
+        while ( next(rest, selector) )
+        {
+            if ( !selector.length )
+            {
+                fprintf(err, "--DRT-testfilter: empty unittest name\n");
+                return false;
+            }
+
+            bool matched;
+            eachUnitTest((moduleName, testName) {
+                matched |= matches(selector, moduleName, testName);
+            });
+            if ( !matched )
+            {
+                fprintf(err, "--DRT-testfilter: '%.*s' does not match any unittest\n",
+                    cast(int) selector.length, selector.ptr);
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
+// Prints the names of the selected unittests on stdout, without running them.
+private UnitTestResult listUnitTests(UnitTestFilter filter)
+{
+    import core.stdc.stdio : printf;
+
+    if ( !filter.validate() )
+        return UnitTestResult.fail;
+
+    eachUnitTest((moduleName, testName) {
+        if ( !filter.selects(moduleName, testName) )
+            return;
+        printf("%.*s.%.*s\n", cast(int) moduleName.length, moduleName.ptr,
+            cast(int) testName.length, testName.ptr);
+    });
+    return UnitTestResult(0, 0, false, false);
+}
+
+// Runs each selected unittest on its own, reporting progress per module on
+// stderr.
+private UnitTestResult runIndividualUnitTests(UnitTestFilter filter)
 {
     import core.exception : AssertError;
     import core.stdc.stdio : FILE, fprintf, stderr;
+
+    if ( !filter.validate() )
+        return UnitTestResult.fail;
 
     // C stdio owns this shared global; only the current handle is needed.
     auto err = cast(FILE*) stderr;
@@ -755,6 +890,8 @@ private UnitTestResult runIndividualUnitTests()
 
         void run( void function() fp, string testName )
         {
+            if ( !filter.selects(moduleName, testName) )
+                return;
             ++executed;
             try
             {
@@ -798,7 +935,8 @@ private UnitTestResult runIndividualUnitTests()
             // No information about the individual unittests of this module.
             run(fp, null);
         }
-        else
+
+        if ( !executed )
             continue;
 
         if ( passed == executed )
