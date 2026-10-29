@@ -41,6 +41,7 @@ import core.internal.gc.bits;
 import core.internal.gc.os;
 import core.gc.config;
 import core.gc.gcinterface;
+import core.gc.monitor : allocMonitor, freeMonitor;
 
 import core.internal.container.treap;
 import core.internal.spinlock;
@@ -539,6 +540,7 @@ class ConservativeGC : GC
         }
         gcx.leakDetector.log_malloc(p, size);
         bytesAllocated += alloc_size;
+        if (allocMonitor) allocMonitor(p, size);
 
         debug(PRINTF) printf("  => p = %p\n", p);
         return p;
@@ -1026,6 +1028,7 @@ class ConservativeGC : GC
         pool.clrBits(biti, ~BlkAttr.NONE);
 
         gcx.leakDetector.log_free(sentinel_add(p), ssize);
+        if (freeMonitor) freeMonitor(sentinel_add(p), ssize, false);
 
         return true;
     }
@@ -2929,6 +2932,7 @@ struct Gcx
 
                         debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
                         leakDetector.log_free(q, sentinel_size(q, npages * PAGESIZE - SENTINEL_EXTRA));
+                        if (freeMonitor) freeMonitor(q, sentinel_size(q, npages * PAGESIZE - SENTINEL_EXTRA), true);
                         pool.pagetable[pn..pn+npages] = Bins.B_FREE;
                         if (pn < pool.searchStart) pool.searchStart = pn;
                         freedLargePages += npages;
@@ -3003,7 +3007,8 @@ struct Gcx
                             recoverPage = recoverPage && (~freebitsdata[w] == toFree[w]);
 
                         // We need to loop through each object if any have a finalizer,
-                        // or, if any of the debug hooks are enabled.
+                        // if a free monitor is registered, or, if any of the debug
+                        // hooks are enabled.
                         bool doLoop = false;
                         debug (SENTINEL)
                             doLoop = true;
@@ -3014,6 +3019,9 @@ struct Gcx
                         else debug (LOGGING)
                             doLoop = true;
                         else debug (MEMSTOMP)
+                            doLoop = true;
+                        else if (freeMonitor !is null)
+                            // each freed object must be reported to the monitor
                             doLoop = true;
                         else if (pool.finals.data)
                         {
@@ -3057,6 +3065,7 @@ struct Gcx
 
                                 debug(COLLECT_PRINTF) printf("\tcollecting %p\n", p);
                                 leakDetector.log_free(q, sentinel_size(q, size));
+                                if (freeMonitor) freeMonitor(q, sentinel_size(q, size), true);
 
                                 invalidate(p[0 .. size], 0xF3, false);
                             }
