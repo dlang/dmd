@@ -2186,19 +2186,6 @@ private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, PAS
             tf.parameterList.varargs == VarArg.KRvariadic)
             goto Lno;
 
-        /* No lazy parameters when inlining by statement, as the inliner tries to
-         * operate on the created delegate itself rather than the return value.
-         * Discussion: https://github.com/dlang/dmd/pull/6815
-         */
-        if (statementsToo && fd.parameters)
-        {
-            foreach (param; *fd.parameters)
-            {
-                if (param.storage_class & STC.lazy_)
-                    goto Lno;
-            }
-        }
-
         static bool hasDtor(Type t)
         {
             auto tv = t.baseElemOf();
