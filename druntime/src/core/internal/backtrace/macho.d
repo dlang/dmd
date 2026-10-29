@@ -42,6 +42,8 @@ struct Image
     {
         const DebugSections sections = {
             line: getSection("__debug_line"),
+            str: getSection("__debug_str"),
+            lineStr: getSection("__debug_line_str"),
         };
         return processor(sections);
     }
