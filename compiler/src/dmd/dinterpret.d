@@ -3700,7 +3700,17 @@ public:
 
         if (!isBlockAssignment)
         {
-            newval = ctfeCast(pue, e.loc, e.type, e.type, newval);
+            Type tval = e.type;
+
+            // Lazy variables are in fact delegates
+            if (auto ve = e1.isVarExp())
+            {
+                VarDeclaration v = ve.var.isVarDeclaration();
+                if (v.storage_class & STC.lazy_)
+                    tval = e.e2.type;
+            }
+
+            newval = ctfeCast(pue, e.loc, tval, tval, newval);
             if (exceptionOrCant(newval))
                 return;
             if (newval == pue.exp())
@@ -3711,7 +3721,7 @@ public:
                 result = e1;
             else
             {
-                result = ctfeCast(pue, e.loc, e.type, e.type, fp && post ? oldval : newval);
+                result = ctfeCast(pue, e.loc, tval, tval, fp && post ? oldval : newval);
                 if (result == pue.exp())
                     result = pue.copy();
             }
