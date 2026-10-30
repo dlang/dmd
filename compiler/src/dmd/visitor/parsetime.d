@@ -52,6 +52,7 @@ public:
     void visit(AST.FuncDeclaration s) { visit(cast(AST.Declaration)s); }
     void visit(AST.AliasDeclaration s) { visit(cast(AST.Declaration)s); }
     void visit(AST.TupleDeclaration s) { visit(cast(AST.Declaration)s); }
+    void visit(AST.EnumUnionCaseDeclaration s) { visit(cast(AST.Declaration)s); }
 
     // FuncDeclarations
     void visit(AST.FuncLiteralDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
@@ -89,6 +90,7 @@ public:
     void visit(AST.Module s) { visit(cast(AST.Package)s); }
     void visit(AST.StructDeclaration s) { visit(cast(AST.AggregateDeclaration)s); }
     void visit(AST.UnionDeclaration s) { visit(cast(AST.StructDeclaration)s); }
+    void visit(AST.EnumUnionDeclaration s) { visit(cast(AST.StructDeclaration)s); }
     void visit(AST.ClassDeclaration s) { visit(cast(AST.AggregateDeclaration)s); }
     void visit(AST.InterfaceDeclaration s) { visit(cast(AST.ClassDeclaration)s); }
     void visit(AST.TemplateMixin s) { visit(cast(AST.TemplateInstance)s); }
@@ -204,6 +206,7 @@ public:
     void visit(AST.TupleExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.ThisExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.GenericExp e) { visit(cast(AST.Expression)e); }
+    void visit(AST.SwitchExp e) { visit(cast(AST.Expression)e); }
 
     // Miscellaneous
     void visit(AST.VarExp e) { visit(cast(AST.SymbolExp)e); }
