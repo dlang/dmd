@@ -1082,7 +1082,8 @@ private final class DsymbolPrettyPrintVisitor : Visitor
     {
         buf.put("alias ");
         buf.put(d.ident.toString());
-        buf.put(" this;\n");
+        buf.put(" this;");
+        buf.writenl();
     }
 
     void visitAttribDeclaration(AttribDeclaration d)
