@@ -16,7 +16,6 @@ module core.internal.gc.impl.conservative.gc;
 //debug = COLLECT_PRINTF;       // turn on printf's
 //debug = MARK_PRINTF;          // turn on printf's
 //debug = PRINTF_TO_FILE;       // redirect printf's output to file "gcx.log"
-//debug = LOGGING;              // log allocations / frees
 //debug = MEMSTOMP;             // stomp on memory
 //debug = SENTINEL;             // add underrun/overrrun protection
                                 // NOTE: this needs to be enabled globally in the makefiles
@@ -41,7 +40,7 @@ import core.internal.gc.bits;
 import core.internal.gc.os;
 import core.gc.config;
 import core.gc.gcinterface;
-import core.gc.monitor : allocMonitor, freeMonitor;
+import core.gc.monitor : allocMonitor, collectMonitor, freeMonitor;
 
 import core.internal.container.treap;
 import core.internal.spinlock;
@@ -156,10 +155,6 @@ private GC initialize_precise()
 
 class ConservativeGC : GC
 {
-    // For passing to debug code (not thread safe)
-    __gshared size_t line;
-    __gshared char*  file;
-
     Gcx *gcx;                   // implementation
 
     static gcLock = shared(AlignedSpinLock)(SpinLock.Contention.brief);
@@ -538,7 +533,6 @@ class ConservativeGC : GC
             sentinel_init(p, size);
             alloc_size = size;
         }
-        gcx.leakDetector.log_malloc(p, size);
         bytesAllocated += alloc_size;
         if (allocMonitor) allocMonitor(p, size);
 
@@ -1026,8 +1020,6 @@ class ConservativeGC : GC
             pool.freebits.set(biti);
         }
         pool.clrBits(biti, ~BlkAttr.NONE);
-
-        gcx.leakDetector.log_free(sentinel_add(p), ssize);
         if (freeMonitor) freeMonitor(sentinel_add(p), ssize, false);
 
         return true;
@@ -1363,7 +1355,7 @@ class ConservativeGC : GC
                 stats.heapSize, stats.freeSize);
         }
 
-        gcx.leakDetector.log_collect();
+        if (collectMonitor) collectMonitor(result);
         return result;
     }
 
@@ -1788,18 +1780,12 @@ struct Gcx
     // total number of mapped pages
     uint mappedPages;
 
-    debug (LOGGING)
-        LeakDetector leakDetector;
-    else
-        alias leakDetector = LeakDetector;
-
     SmallObjectPool*[Bins.B_NUMSMALL] recoverPool;
     version (Posix) __gshared Gcx* instance;
 
     void initialize()
     {
         (cast(byte*)&this)[0 .. Gcx.sizeof] = 0;
-        leakDetector.initialize(&this);
         roots.initialize(0x243F6A8885A308D3UL);
         ranges.initialize(0x13198A2E03707344UL);
         smallCollectThreshold = largeCollectThreshold = 0.0f;
@@ -2931,7 +2917,6 @@ struct Gcx
                         pool.clrBits(biti, ~BlkAttr.NONE ^ BlkAttr.FINALIZE);
 
                         debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
-                        leakDetector.log_free(q, sentinel_size(q, npages * PAGESIZE - SENTINEL_EXTRA));
                         if (freeMonitor) freeMonitor(q, sentinel_size(q, npages * PAGESIZE - SENTINEL_EXTRA), true);
                         pool.pagetable[pn..pn+npages] = Bins.B_FREE;
                         if (pn < pool.searchStart) pool.searchStart = pn;
@@ -3016,8 +3001,6 @@ struct Gcx
                             doLoop = true;
                         else debug (COLLECT_PRINTF) // need output for each object
                             doLoop = true;
-                        else debug (LOGGING)
-                            doLoop = true;
                         else debug (MEMSTOMP)
                             doLoop = true;
                         else if (freeMonitor !is null)
@@ -3064,7 +3047,6 @@ struct Gcx
                                 assert(core.bitop.bt(toFree.ptr, i));
 
                                 debug(COLLECT_PRINTF) printf("\tcollecting %p\n", p);
-                                leakDetector.log_free(q, sentinel_size(q, size));
                                 if (freeMonitor) freeMonitor(q, sentinel_size(q, size), true);
 
                                 invalidate(p[0 .. size], 0xF3, false);
@@ -4967,225 +4949,6 @@ string debugTypeName(const(TypeInfo) ti) nothrow
     else
         name = typeid(ti).name;
     return name;
-}
-
-/* ======================= Leak Detector =========================== */
-
-debug (LOGGING)
-{
-    struct Log
-    {
-        void*  p;
-        size_t size;
-        size_t line;
-        char*  file;
-        void*  parent;
-
-        void print() nothrow
-        {
-            printf("    p = %p, size = %lld, parent = %p ", p, cast(ulong)size, parent);
-            if (file)
-            {
-                printf("%s(%u)", file, cast(uint)line);
-            }
-            printf("\n");
-        }
-    }
-
-
-    struct LogArray
-    {
-        size_t dim;
-        size_t allocdim;
-        Log *data;
-
-        void Dtor() nothrow @nogc
-        {
-            if (data)
-                cstdlib.free(data);
-            data = null;
-        }
-
-        void reserve(size_t nentries) nothrow @nogc
-        {
-            assert(dim <= allocdim);
-            if (allocdim - dim < nentries)
-            {
-                allocdim = (dim + nentries) * 2;
-                assert(dim + nentries <= allocdim);
-                if (!data)
-                {
-                    data = cast(Log*)cstdlib.malloc(allocdim * Log.sizeof);
-                    if (!data && allocdim)
-                        onOutOfMemoryError();
-                }
-                else
-                {   Log *newdata;
-
-                    newdata = cast(Log*)cstdlib.malloc(allocdim * Log.sizeof);
-                    if (!newdata && allocdim)
-                        onOutOfMemoryError();
-                    memcpy(newdata, data, dim * Log.sizeof);
-                    cstdlib.free(data);
-                    data = newdata;
-                }
-            }
-        }
-
-
-        void push(Log log) nothrow @nogc
-        {
-            reserve(1);
-            data[dim++] = log;
-        }
-
-        void remove(size_t i) nothrow @nogc
-        {
-            memmove(data + i, data + i + 1, (dim - i) * Log.sizeof);
-            dim--;
-        }
-
-
-        size_t find(void *p) nothrow @nogc
-        {
-            for (size_t i = 0; i < dim; i++)
-            {
-                if (data[i].p == p)
-                    return i;
-            }
-            return OPFAIL; // not found
-        }
-
-
-        void copy(LogArray *from) nothrow @nogc
-        {
-            if (allocdim < from.dim)
-                reserve(from.dim - dim);
-            assert(from.dim <= allocdim);
-            memcpy(data, from.data, from.dim * Log.sizeof);
-            dim = from.dim;
-        }
-    }
-
-    struct LeakDetector
-    {
-        Gcx* gcx;
-        LogArray current;
-        LogArray prev;
-
-        private void initialize(Gcx* gc)
-        {
-            gcx = gc;
-            //debug(PRINTF) printf("+log_init()\n");
-            current.reserve(1000);
-            prev.reserve(1000);
-            //debug(PRINTF) printf("-log_init()\n");
-        }
-
-
-        private void log_malloc(void *p, size_t size) nothrow
-        {
-            //debug(PRINTF) printf("+log_malloc(p = %p, size = %zd)\n", p, size);
-            Log log;
-
-            log.p = p;
-            log.size = size;
-            log.line = ConservativeGC.line;
-            log.file = ConservativeGC.file;
-            log.parent = null;
-
-            ConservativeGC.line = 0;
-            ConservativeGC.file = null;
-
-            current.push(log);
-            //debug(PRINTF) printf("-log_malloc()\n");
-        }
-
-
-        private void log_free(void *p, size_t size) nothrow @nogc
-        {
-            //debug(PRINTF) printf("+log_free(%p)\n", p);
-            auto i = current.find(p);
-            if (i == OPFAIL)
-            {
-                debug(PRINTF) printf("free'ing unallocated memory %p (size %zu)\n", p, size);
-            }
-            else
-                current.remove(i);
-            //debug(PRINTF) printf("-log_free()\n");
-        }
-
-
-        private void log_collect() nothrow
-        {
-            //debug(PRINTF) printf("+log_collect()\n");
-            // Print everything in current that is not in prev
-
-            debug(PRINTF) printf("New pointers this cycle: --------------------------------\n");
-            size_t used = 0;
-            for (size_t i = 0; i < current.dim; i++)
-            {
-                auto j = prev.find(current.data[i].p);
-                if (j == OPFAIL)
-                    current.data[i].print();
-                else
-                    used++;
-            }
-
-            debug(PRINTF) printf("All roots this cycle: --------------------------------\n");
-            for (size_t i = 0; i < current.dim; i++)
-            {
-                void* p = current.data[i].p;
-                if (!gcx.findPool(current.data[i].parent))
-                {
-                    auto j = prev.find(current.data[i].p);
-                    debug(PRINTF) printf(j == OPFAIL ? "N" : " ");
-                    current.data[i].print();
-                }
-            }
-
-            debug(PRINTF) printf("Used = %d-------------------------------------------------\n", used);
-            prev.copy(&current);
-
-            debug(PRINTF) printf("-log_collect()\n");
-        }
-
-
-        private void log_parent(void *p, void *parent) nothrow
-        {
-            //debug(PRINTF) printf("+log_parent()\n");
-            auto i = current.find(p);
-            if (i == OPFAIL)
-            {
-                debug(PRINTF) printf("parent'ing unallocated memory %p, parent = %p\n", p, parent);
-                Pool *pool;
-                pool = gcx.findPool(p);
-                assert(pool);
-                size_t offset = cast(size_t)(p - pool.baseAddr);
-                size_t biti;
-                size_t pn = offset / PAGESIZE;
-                Bins bin = pool.pagetable[pn];
-                biti = (offset & (PAGESIZE - 1)) >> pool.shiftBy;
-                debug(PRINTF) printf("\tbin = %d, offset = x%x, biti = x%x\n", bin, offset, biti);
-            }
-            else
-            {
-                current.data[i].parent = parent;
-            }
-            //debug(PRINTF) printf("-log_parent()\n");
-        }
-    }
-}
-else
-{
-    struct LeakDetector
-    {
-        static void initialize(Gcx* gcx) nothrow { }
-        static void log_malloc(void *p, size_t size) nothrow { }
-        static void log_free(void *p, size_t size) nothrow @nogc {}
-        static void log_collect() nothrow { }
-        static void log_parent(void *p, void *parent) nothrow { }
-    }
 }
 
 /* ============================ SENTINEL =============================== */

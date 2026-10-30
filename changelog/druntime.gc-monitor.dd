@@ -2,7 +2,8 @@ New `core.gc.monitor` module to observe GC allocations and deallocations at runt
 
 The new `core.gc.monitor` module allows tooling such as memory profilers
 to receive a callback for every GC allocation and for every block freed,
-including blocks reclaimed during a collection.
+including blocks reclaimed during a collection, as well as after each
+completed collection.
 
 ---
 import core.gc.monitor;

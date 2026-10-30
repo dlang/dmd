@@ -42,6 +42,18 @@ alias GCAllocMonitor = void function(void* ptr, size_t size) nothrow @nogc;
 alias GCFreeMonitor = void function(void* ptr, size_t size, bool collected) nothrow @nogc;
 
 /**
+ * Callback invoked after a full collection has completed.
+ *
+ * Treat this callback like you would a signal handler: do not
+ * allocate, throw, or do any heavy lifting here.
+ *
+ * Params:
+ *   freedPages = number of pages returned to the free state by
+ *                the collection
+ */
+alias GCCollectMonitor = void function(size_t freedPages) nothrow @nogc;
+
+/**
  * Register monitor callbacks for GC allocations and deallocations.
  *
  * The callbacks are invoked from inside the GC: the allocation monitor
@@ -59,15 +71,18 @@ alias GCFreeMonitor = void function(void* ptr, size_t size, bool collected) noth
  * monitors; other GC implementations may not invoke the callbacks.
  *
  * Params:
- *   alloc = callback for allocations, or `null` to disable
- *   free  = callback for deallocations, or `null` to disable
+ *   alloc   = callback for allocations, or `null` to disable
+ *   free    = callback for deallocations, or `null` to disable
+ *   collect = callback for completed collections, or `null` to disable
  */
-void setGCMonitor(GCAllocMonitor alloc, GCFreeMonitor free) nothrow @nogc
+void setGCMonitor(GCAllocMonitor alloc, GCFreeMonitor free, GCCollectMonitor collect = null) nothrow @nogc
 {
     allocMonitor = alloc;
     freeMonitor = free;
+    collectMonitor = collect;
 }
 
 /// Monitors currently in effect; read by GC implementations.
 package(core) __gshared GCAllocMonitor allocMonitor;
 package(core) __gshared GCFreeMonitor freeMonitor;
+package(core) __gshared GCCollectMonitor collectMonitor;
