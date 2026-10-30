@@ -581,13 +581,13 @@ bool runStateMachine(ref const(LineNumberProgram) lp, scope RunStateMachineCallb
         ubyte opcode = program.read!ubyte();
         if (opcode < lp.opcodeBase)
         {
-            switch (opcode) with (StandardOpcode)
+            switch (opcode) with (DW_LNS)
             {
                 case extendedOp:
                     size_t len = cast(size_t) program.readULEB128();
                     ubyte eopcode = program.read!ubyte();
 
-                    switch (eopcode) with (ExtendedOpcode)
+                    switch (eopcode) with (DW_LNE)
                     {
                         case endSequence:
                             machine.isEndSequence = true;
@@ -933,29 +933,70 @@ Array!EntryFormatPair readEntryFormat(ref const(ubyte)[] buffer) @nogc nothrow
     return pairs;
 }
 
-enum StandardOpcode : ubyte
+/// Standard opcodes of the line number program.
+///
+/// Standard opcodes occupy the range `[1, opcode_base)`, where `opcode_base`
+/// comes from the line number program header. Opcodes at or above it are
+/// special opcodes, which are not enumerated here.
+///
+/// See_Also: DWARF v5, Section 6.2.5.2: Standard Opcodes
+enum DW_LNS : ubyte
 {
+    /// Not a standard opcode: introduces an extended opcode (see `DW_LNE`)
     extendedOp = 0,
+    /// Append a row to the matrix, then reset `discriminator`,
+    /// `basic_block`, `prologue_end` and `epilogue_begin`
     copy = 1,
+    /// Advance `address` and `op_index` by a ULEB128 operation advance
     advancePC = 2,
+    /// Advance `line` by a SLEB128 operand
     advanceLine = 3,
+    /// Set `file` to a ULEB128 operand, an index into the `file_names`
+    /// table of the header - 1-based before DWARF5, 0-based since
     setFile = 4,
+    /// Set `column` to a ULEB128 operand
     setColumn = 5,
+    /// Toggle `is_stmt`
     negateStatement = 6,
+    /// Set `basic_block` to `true`
     setBasicBlock = 7,
+    /// Advance `address` and `op_index` as special opcode 255 would,
+    /// without changing `line` or appending a row
     constAddPC = 8,
+    /// Advance `address` by a 2-byte unsigned operand, not scaled by
+    /// `minimum_instruction_length`, and set `op_index` to 0
     fixedAdvancePC = 9,
+    /// Set `prologue_end` to `true`
     setPrologueEnd = 10,
+    /// Set `epilogue_begin` to `true`
     setEpilogueBegin = 11,
+    /// Set `isa` to a ULEB128 operand
     setISA = 12,
 }
 
-enum ExtendedOpcode : ubyte
+/// Extended opcodes of the line number program.
+///
+/// An extended opcode is encoded as a `0` byte, followed by a ULEB128 length,
+/// followed by the extended opcode itself and its operands. The length covers
+/// the extended opcode and its operands, so unknown opcodes can be skipped.
+///
+/// See_Also: DWARF v5, Section 6.2.5.3: Extended Opcodes
+enum DW_LNE : ubyte
 {
+    /// Set `end_sequence` to `true`, append a row to the matrix,
+    /// then reset all registers to their initial values
     endSequence = 1,
+    /// Set `address` to a target-address-sized operand and `op_index` to 0
     setAddress = 2,
+    /// Define an additional source file, using the same encoding as the
+    /// `file_names` entries of the header - Reserved since DWARF5
     defineFile = 3,
+    /// Set `discriminator` to a ULEB128 operand - Introduced in DWARF4
     setDiscriminator = 4,
+    /// First value of the range reserved for vendor extensions
+    loUser = 0x80,
+    /// Last value of the range reserved for vendor extensions
+    hiUser = 0xff,
 }
 
 struct StateMachine
