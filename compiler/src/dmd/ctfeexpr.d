@@ -875,7 +875,8 @@ Expression pointerArithmetic(UnionExp* pue, Loc loc, EXP op, Type type, Expressi
         eSink.error(loc, "CTFE internal error: pointer arithmetic `%s`", agg1.toErrMsg());
         return cant();
     }
-    if (auto tsa = eptr.type.toBasetype().isTypeSArray())
+    auto tsa = eptr.type.toBasetype().isTypeSArray();
+    if (tsa && !tsa.equivalent(pointee))
     {
         dinteger_t dim = tsa.dim.toInteger();
         // Create a CTFE pointer &agg1[indx .. indx+dim]

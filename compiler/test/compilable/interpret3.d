@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/interpret3.d(6351): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
+compilable/interpret3.d(6361): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
 ---
 */
 
@@ -4220,6 +4220,15 @@ int test14028b(int num)
         p = cast(int[2]*)&a[1]; // &a[1..3];
         p = p + 2;              // &a[1..3] -> &a[5..7] (CTFE error)
     }
+    if (num == 6)
+    {
+        // https://github.com/dlang/dmd/issues/24121
+        int[2][2] m;
+        p = &m[0];              // not a reinterpret, just &m[0]
+        p = p + 1;              // &m[0] -> &m[1]
+        (*p)[1] = 3;            // m[1][1] = 3
+        assert(m == [[0,0],[0,3]]);
+    }
     return 1;
 }
 static assert(test14028b(1));
@@ -4227,6 +4236,7 @@ static assert(test14028b(2));
 static assert(!is(typeof(compiles!(test14028b(3)))));
 static assert(test14028b(4));
 static assert(!is(typeof(compiles!(test14028b(5)))));
+static assert(test14028b(6));
 
 /**************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=10275
