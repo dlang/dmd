@@ -810,50 +810,96 @@ enum DW_LNCT : ushort
     hiUser = 0x3fff,
 }
 
+/// Attribute forms defined by the DWARF debugging information format.
+///
+/// The form determines how an attribute value is encoded in DWARF data.
 enum DW_FORM : ubyte
 {
+    /// An address-sized value (unsigned integer in the target's address size)
     addr = 1,
+    /// A 2-byte byte count followed by that many bytes
     block2 = 3,
+    /// A 4-byte byte count followed by that many bytes
     block4 = 4,
+    /// A 2-byte unsigned constant
     data2 = 5,
+    /// A 4-byte unsigned constant
     data4 = 6,
+    /// An 8-byte unsigned constant
     data8 = 7,
+    /// An inline null-terminated string
     string_ = 8,
+    /// An unsigned LEB128 byte count followed by that many bytes
     block = 9,
+    /// A 1-byte byte count followed by that many bytes
     block1 = 10,
+    /// A 1-byte unsigned constant
     data1 = 11,
+    /// A 1-byte flag
     flag = 12,
+    /// A signed LEB128 constant
     sdata = 13,
+    /// A 4- or 8-byte offset into the .debug_str section
     strp = 14,
+    /// An unsigned LEB128 constant
     udata = 15,
+    /// A 4- or 8-byte offset into the .debug_info section
     ref_addr = 16,
+    /// A 1-byte offset from the start of the containing compilation unit
     ref1 = 17,
+    /// A 2-byte offset from the start of the containing compilation unit
     ref2 = 18,
+    /// A 4-byte offset from the start of the containing compilation unit
     ref4 = 19,
+    /// An 8-byte offset from the start of the containing compilation unit
     ref8 = 20,
+    /// An unsigned LEB128 offset from the start of the containing compilation unit
     ref_udata = 21,
+    /// An unsigned LEB128 form code followed by a value in that form
     indirect = 22,
+    /// A 4- or 8-byte offset into the applicable debug section - Introduced in DWARF4
     sec_offset = 23,
+    /// An unsigned LEB128 byte count followed by a DWARF expression or location description - Introduced in DWARF4
     exprloc = 24,
+    /// A flag that is implicitly true and consumes no bytes - Introduced in DWARF4
     flag_present = 25,
+    /// An unsigned LEB128 index into a table of offsets in the .debug_str_offsets section - Introduced in DWARF5
     strx = 26,
+    /// An unsigned LEB128 index into a table of addresses in the .debug_addr section - Introduced in DWARF5
     addrx = 27,
+    /// A 4-byte offset into the .debug_info section of a supplementary object file - Introduced in DWARF5
     ref_sup4 = 28,
+    /// A 4- or 8-byte offset into the .debug_str section of a supplementary object file - Introduced in DWARF5
     strp_sup = 29,
+    /// A 16-byte constant - Introduced in DWARF5
     data16 = 30,
+    /// A 4- or 8-byte offset into the .debug_line_str section - Introduced in DWARF5
     line_strp = 31,
+    /// An 8-byte type signature - Introduced in DWARF4
     ref_sig8 = 32,
+    /// A signed LEB128 constant stored in the abbreviation declaration rather than the attribute value - Introduced in DWARF5
     implicit_const = 33,
+    /// An unsigned LEB128 index into a table of offsets in the .debug_loclists section - Introduced in DWARF5
     loclistx = 34,
+    /// An unsigned LEB128 index into a table of offsets in the .debug_rnglists section - Introduced in DWARF5
     rnglistx = 35,
+    /// An 8-byte offset into the .debug_info section of a supplementary object file - Introduced in DWARF5
     ref_sup8 = 36,
+    /// A 1-byte unsigned index into a table of offsets in the .debug_str_offsets section - Introduced in DWARF5
     strx1 = 37,
+    /// A 2-byte unsigned index into a table of offsets in the .debug_str_offsets section - Introduced in DWARF5
     strx2 = 38,
+    /// A 3-byte unsigned index into a table of offsets in the .debug_str_offsets section - Introduced in DWARF5
     strx3 = 39,
+    /// A 4-byte unsigned index into a table of offsets in the .debug_str_offsets section - Introduced in DWARF5
     strx4 = 40,
+    /// A 1-byte unsigned index into a table of addresses in the .debug_addr section - Introduced in DWARF5
     addrx1 = 41,
+    /// A 2-byte unsigned index into a table of addresses in the .debug_addr section - Introduced in DWARF5
     addrx2 = 42,
+    /// A 3-byte unsigned index into a table of addresses in the .debug_addr section - Introduced in DWARF5
     addrx3 = 43,
+    /// A 4-byte unsigned index into a table of addresses in the .debug_addr section - Introduced in DWARF5
     addrx4 = 44,
 }
 
