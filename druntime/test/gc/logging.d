@@ -29,10 +29,13 @@ struct Log
 // storing the pointers there does not keep the blocks alive.
 __gshared Log* logs;
 __gshared size_t numLogs, capLogs;
+__gshared size_t numAllocs, numFrees, allocBytes;
 __gshared size_t numCollects;
 
 void onAlloc(void* p, size_t size) nothrow @nogc
 {
+    numAllocs++;
+    allocBytes += size;
     if (numLogs == capLogs)
     {
         capLogs = capLogs ? capLogs * 2 : 1024;
@@ -44,6 +47,7 @@ void onAlloc(void* p, size_t size) nothrow @nogc
 
 void onFree(void* p, size_t size, bool collected) nothrow @nogc
 {
+    numFrees++;
     foreach (i; 0 .. numLogs)
     {
         if (logs[i].p is p)
@@ -91,16 +95,34 @@ void main()
 
     GC.collect();
     assert(numCollects >= 1);
+    assert(allocBytes > 0);
 
     // the collection freed the garbage, which the detector then
     // no longer tracks, while the live block is still accounted for
     assert(isLogged(live.ptr));
     assert(numLogs < 100);
 
+    // an explicit free is reported and removed from the live set
+    auto explicitFree = new ubyte[](64);
+    assert(isLogged(explicitFree.ptr));
+    const beforeFree = numFrees;
+    GC.free(explicitFree.ptr);
+    assert(numFrees == beforeFree + 1);
+    assert(!isLogged(explicitFree.ptr));
+
+    // unregistering stops the reporting
+    setGCMonitor(null, null, null);
+    const beforeAllocs = numAllocs, beforeCollects = numCollects;
+    auto uncounted = new ubyte[](32);
+    GC.collect();
+    assert(numAllocs == beforeAllocs);
+    assert(numCollects == beforeCollects);
+
     printf("%zu blocks still live at exit:\n", numLogs);
     foreach (i; 0 .. numLogs)
         printf("    p = %p, size = %llu\n", logs[i].p, cast(ulong) logs[i].size);
 
-    assert(live[0] == 0);
+    // keep `live` and `uncounted` alive until here
+    assert(live[0] == 0 && uncounted[0] == 0);
     free(logs);
 }
