@@ -61,10 +61,6 @@ $(ROOT)/invariant$(DOTEXE): private extra_sources = $(src_lifetime)
 $(ROOT)/invariant$(DOTEXE): extra_dflags += $(core_ut) \
     -debug -debug=INVARIANT -check=invariant -debug=PTRCHECK -debug=PTRCHECK2 -main
 
-$(ROOT)/logging$(DOTEXE): $(src_lifetime)
-$(ROOT)/logging$(DOTEXE): private extra_sources = $(src_lifetime)
-$(ROOT)/logging$(DOTEXE): extra_dflags += -debug=LOGGING -main $(core_ut)
-
 $(ROOT)/precise$(DOTEXE): $(src_lifetime)
 $(ROOT)/precise$(DOTEXE): private extra_sources = $(src_lifetime)
 $(ROOT)/precise$(DOTEXE): extra_dflags += $(core_ut) \
