@@ -687,6 +687,12 @@ private int tryMain(const(char)[][] argv, out Param params)
     if (global.errors)
         removeHdrFilesAndFail(params.dihdr.doOutput, modules);
 
+    // Must run before the inline scans below: they rewrite call sites of
+    // always-inline functions in place, erasing the very call references
+    // this needs to see to tell whether an ImportC inline/__forceinline
+    // function is genuinely unused.
+    scanImportCInlineUsage(&modules);
+
     {
     timeTraceBeginEvent(TimeTraceEventType.inlineGeneral);
     scope (exit) timeTraceEndEvent(TimeTraceEventType.inlineGeneral);

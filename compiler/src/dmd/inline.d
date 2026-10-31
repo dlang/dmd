@@ -2579,3 +2579,105 @@ private bool expNeedsDtor(Expression exp)
     scope NeedsDtor ct = new NeedsDtor(exp);
     return walkPostorder(exp, ct);
 }
+
+/***********************************************************
+ * Dead-code elimination for unreferenced ImportC `inline`/`__forceinline`
+ * functions.
+ *
+ * C expects an unused `inline`/`__forceinline` function definition to produce
+ * no standalone code at all. ImportC instead emits every function it parses
+ * unconditionally, which breaks linking when such a function calls something
+ * that is itself never defined (as happens with some `<windows.h>` inline
+ * wrappers). This scans the whole program, once semantic analysis is done,
+ * for `inline`/`__forceinline` C functions that turn out to be genuinely
+ * unreferenced, and marks them to skip codegen.
+ *
+ * Params:
+ *   modules = every module in the program
+ */
+public void scanImportCInlineUsage(Modules* modules)
+{
+    FuncDeclaration[] candidates;
+    foreach (fd; FuncDeclaration.importCInlineCandidates)
+    {
+        if (fd.fbody && fd.inlining == PINLINE.always && fd.isCsymbol())
+            candidates ~= fd;
+    }
+    FuncDeclaration.importCInlineCandidates = null;
+
+    if (!candidates.length)
+        return;
+
+    scope v = new ImportCInlineUsageVisitor();
+    foreach (m; *modules)
+        visitDsymbolTree(m, v);
+
+    foreach (fd; candidates)
+        if (!fd.importCInlineReferenced)
+            fd.skipCodegen = true;
+}
+
+/// Walk a Dsymbol tree, visiting every function body and variable
+/// initializer with v, recursing into anything that can hold either.
+private void visitDsymbolTree(Dsymbol s, ImportCInlineUsageVisitor v)
+{
+    if (auto fd = s.isFuncDeclaration())
+    {
+        if (fd.fbody)
+            fd.fbody.accept(v);
+        return;
+    }
+    if (auto vd = s.isVarDeclaration())
+    {
+        if (auto ei = vd._init ? vd._init.isExpInitializer() : null)
+            ei.exp.accept(v);
+        return;
+    }
+    if (auto ad = s.isAttribDeclaration())
+    {
+        if (ad.decl)
+            foreach (s2; *ad.decl)
+                visitDsymbolTree(s2, v);
+        return;
+    }
+    if (auto sds = s.isScopeDsymbol())
+    {
+        if (sds.members)
+            foreach (s2; *sds.members)
+                visitDsymbolTree(s2, v);
+        return;
+    }
+}
+
+private extern (C++) final class ImportCInlineUsageVisitor : SemanticTimeTransitiveVisitor
+{
+    alias visit = SemanticTimeTransitiveVisitor.visit;
+
+    // VarExp/SymOffExp have no dedicated override point in this visitor
+    // hierarchy, so this catches them (and everything else) via their
+    // common Expression base instead.
+    override void visit(Expression e)
+    {
+        if (auto ve = e.isVarExp())
+            mark(ve.var);
+        else if (auto se = e.isSymOffExp())
+            mark(se.var);
+    }
+
+    // A direct call's resolved callee is CallExp.f, set independently of
+    // e1 once semantic analysis devirtualizes/resolves the call - e1 alone
+    // (what the base Expression traversal above sees) cannot be relied on
+    // to find it, so this is checked explicitly.
+    override void visit(CallExp ce)
+    {
+        if (ce.f)
+            mark(ce.f);
+        super.visit(ce);
+    }
+
+    private void mark(Declaration d)
+    {
+        if (auto fd = d.isFuncDeclaration())
+            fd.importCInlineReferenced = true;
+    }
+}
