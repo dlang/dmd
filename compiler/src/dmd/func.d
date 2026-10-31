@@ -101,6 +101,7 @@ private struct FUNCFLAG
     bool inlineScanned;      /// function has been scanned for inline possibilities
     bool hasCatches;         /// function has try-catch statements
     bool skipCodegen;        /// do not generate code for this function.
+    bool importCInlineReferenced; /// set by scanImportCInlineUsage while checking ImportC inline/__forceinline candidates for real uses
     bool printf;             /// is a printf-like function
 
     bool scanf;              /// is a scanf-like function
@@ -375,6 +376,22 @@ extern (C++) class FuncDeclaration : Declaration
     // Most recent encountered `main` (`WinMain` or `DllMain`) function.
     // Track it to give error messages for multiple entrypoints
     __gshared FuncDeclaration lastMain;
+
+    /// Functions seen while parsing ImportC that might be dead
+    /// inline/__forceinline candidates; checked for real once semantic
+    /// analysis of the whole program is done, in scanImportCInlineUsage.
+    extern (D) __gshared FuncDeclaration[] importCInlineCandidates;
+
+    /***********************************************************
+     * Register this as a possible ImportC inline/__forceinline dead-code
+     * candidate. Called from the parser, before fbody is attached; fbody
+     * and the other qualifying conditions are checked later, for real, in
+     * scanImportCInlineUsage().
+     */
+    extern (D) final void registerImportCInlineCandidate()
+    {
+        importCInlineCandidates ~= this;
+    }
 
     /// Sibling nested functions which called this one
     FuncDeclarations siblingCallers;

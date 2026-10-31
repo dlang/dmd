@@ -2267,6 +2267,8 @@ final class CParser(AST) : Parser!AST
         stc &= ~STC.gshared;    // no gshared functions
         auto fd = new AST.FuncDeclaration(id.loc, prevloc, id.name, stc, ft, specifier.noreturn);
         specifiersToFuncDeclaration(fd, specifier);
+        if (fd.inlining == PINLINE.always)
+            fd.registerImportCInlineCandidate();
 
         AST.Statements stmts;
 
@@ -2636,7 +2638,7 @@ final class CParser(AST) : Parser!AST
             }
         }
 
-        specifier.scw = scw;
+        specifier.scw |= scw;
         specifier.mod = mod;
 
         // Convert TKW bits to type t
