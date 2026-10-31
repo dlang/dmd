@@ -53,13 +53,18 @@ void test2()
 fail_compilation/iasm1.d(306): Error: operand cannot have both R8 and [R9]
 fail_compilation/iasm1.d(307): Error: operand cannot have both RDX and 0x3
 fail_compilation/iasm1.d(308): Error: cannot have two symbols in addressing mode
-fail_compilation/iasm1.d(309): Error: cannot have two symbols in addressing mode
-fail_compilation/iasm1.d(310): Error: cannot have two symbols in addressing mode
+fail_compilation/iasm1.d(309): Error: RIP-relative addressing cannot be combined with another register
+fail_compilation/iasm1.d(310): Error: RIP-relative addressing cannot be combined with another register
+fail_compilation/iasm1.d(311): Error: RIP-relative addressing cannot be combined with another register
+fail_compilation/iasm1.d(312): Error: RIP-relative addressing cannot be combined with another register
+fail_compilation/iasm1.d(313): Error: RIP-relative addressing cannot be combined with another register
+fail_compilation/iasm1.d(314): Error: RIP-relative addressing cannot be combined with another register
 ---
 */
 
 // https://issues.dlang.org/show_bug.cgi?id=17616
 // https://issues.dlang.org/show_bug.cgi?id=18373
+// https://github.com/dlang/dmd/issues/20036
 
 #line 300
 
@@ -73,6 +78,10 @@ void test3()
 	mov RAX,[RIP][RIP];
 	mov RAX,[RIP][RCX];
 	mov RAX,[RIP]RCX;
+	mov RAX, [RIP+RAX];
+	mov RAX, [RAX+RIP];
+	mov RAX, [RAX*2+RIP];
+	mov RAX, [RIP+RAX*2];
     }
 }
 
