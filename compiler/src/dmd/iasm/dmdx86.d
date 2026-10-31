@@ -2239,6 +2239,17 @@ void asm_merge_opnds(ref OPND o1, ref OPND o2)
     else if (o2.disp)
         o1.disp = o2.disp;
 
+    if (o1.bRIP && o2.bRIP)
+        return illegalAddressError("o1.bRIP && o2.bRIP");
+
+    if ((o1.bRIP || o2.bRIP) &&
+        (o1.base || o2.base || o1.pregDisp1 || o2.pregDisp1 || o1.pregDisp2 || o2.pregDisp2))
+    {
+        error(asmstate.loc, "RIP-relative addressing cannot be combined with another register");
+        return;
+    }
+    o1.bRIP |= o2.bRIP;
+
     /* combine the OPND's base field */
     if (o1.base != null && o2.base != null)
         return illegalAddressError("o1.base != null && o2.base != null");
@@ -2273,10 +2284,6 @@ void asm_merge_opnds(ref OPND o1, ref OPND o2)
 
         o1.pregDisp2 = o2.pregDisp2;
     }
-
-    if (o1.bRIP && (o1.pregDisp1 || o2.bRIP || o1.base))
-        return illegalAddressError("o1.pregDisp1 && RIP");
-    o1.bRIP |= o2.bRIP;
 
     if (o1.base && o1.pregDisp1)
     {
