@@ -363,11 +363,30 @@ public:
                 return;
             }
         }
+
+        VarDeclaration vd = e.var.isVarDeclaration();
+        if (vd && vd.storage_class & STC.static_ && vd.isCsymbol())
+        {
+            cost = COST_MAX;
+            return;
+        }
+
         FuncDeclaration fd = e.var.isFuncDeclaration();
         if (fd && fd.isNested()) // https://issues.dlang.org/show_bug.cgi?id=7199 for test case
             cost = COST_MAX;
         else
             cost++;
+    }
+
+    override void visit(SymOffExp e)
+    {
+        VarDeclaration vd = e.var.isVarDeclaration();
+        if (vd && vd.storage_class & STC.static_ && vd.isCsymbol())
+        {
+            cost = COST_MAX;
+            return;
+        }
+        cost++;
     }
 
     override void visit(ThisExp e)
