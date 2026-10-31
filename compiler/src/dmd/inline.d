@@ -2188,33 +2188,41 @@ private bool canInline(FuncDeclaration fd, bool hasThis, bool statementsToo, PAS
 
         static bool hasDtor(Type t)
         {
-            auto tv = t.baseElemOf();
-            return tv.ty == Tstruct || tv.ty == Tclass; // for now assume these might have a destructor
+            if (auto ts = t.baseElemOf().isTypeStruct())
+                if (ts.sym.dtor)
+                    return true;
+            return false;
+        }
+
+        /* Lifetime of structs in static arrays should be managed by
+         * runtime hooks, so leave non-POD static arrays alone.
+         * https://github.com/dlang/dmd/pull/16145#issuecomment-1932776873
+         */
+        static bool needsLowering(Type t)
+        {
+            if (!t.isTypeSArray())
+                return false;
+            if (auto ts = t.baseElemOf().isTypeStruct())
+                return ts.sym.ispod != ThreeState.yes;
+            return false;
         }
 
         /* Don't inline a function that returns non-void, but has
-         * no or multiple return expression.
-         * When inlining as a statement:
-         * 1. don't inline array operations, because the order the arguments
-         *    get evaluated gets reversed. This is the same issue that e2ir.callfunc()
-         *    has with them
-         * 2. don't inline when the return value has a destructor, as it doesn't
-         *    get handled properly
+         * no return expression.
+         * When inlining as a statement, don't inline when the return
+         * value has a destructor, as it doesn't get handled properly.
          */
-        if (auto tfnext = tf.next)
+        if (tf.next.ty != Tvoid &&
+            tf.next.ty != Tnoreturn &&
+            (!fd.hasReturnExp ||
+             hasDtor(tf.next) && statementsToo ||
+             needsLowering(tf.next)))
         {
-            /* for the isTypeSArray() case see https://github.com/dlang/dmd/pull/16145#issuecomment-1932776873
-             */
-            if (tfnext.ty != Tvoid && tfnext.ty != Tnoreturn &&
-                (!fd.hasReturnExp ||
-                 hasDtor(tfnext) && (statementsToo || tfnext.isTypeSArray())))
+            static if (CANINLINE_LOG)
             {
-                static if (CANINLINE_LOG)
-                {
-                    printf("\t3: no %s\n", fd.toChars());
-                }
-                goto Lno;
+                printf("\t3: no %s\n", fd.toChars());
             }
+            goto Lno;
         }
 
         /* https://issues.dlang.org/show_bug.cgi?id=14560
