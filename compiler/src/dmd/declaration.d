@@ -438,6 +438,39 @@ extern (C++) class VarDeclaration : Declaration
     uint sequenceNumber;            // order the variables are declared
     structalign_t alignment;
 
+    /// Global ImportC `static` variables seen while parsing; their D
+    /// visibility gets forced back to private once dsymbolSemantic() has
+    /// run for every module, in fixImportCStaticVisibility(), since
+    /// dsymbolSemantic() itself unconditionally overwrites whatever
+    /// visibility the parser set with the enclosing scope's own default.
+    extern (D) __gshared VarDeclaration[] importCStaticGlobals;
+
+    /***********************************************************
+     * Register this as a global ImportC `static` variable whose D
+     * visibility needs forcing back to private after semantic analysis,
+     * since C's `static` at file scope means something dsymbolSemantic()
+     * does not otherwise preserve.
+     */
+    extern (D) final void registerImportCStaticGlobal()
+    {
+        importCStaticGlobals ~= this;
+    }
+
+    /***********************************************************
+     * Force D visibility back to private for every registered ImportC
+     * `static` global. Must run after dsymbolSemantic() has completed for
+     * every module, since that pass is what overwrites the visibility in
+     * the first place, and before semantic3 begins, since that is when
+     * expressions referencing these variables get their own access
+     * checked.
+     */
+    extern (D) static void fixImportCStaticVisibility()
+    {
+        foreach (vd; importCStaticGlobals)
+            vd.visibility = Visibility(Visibility.Kind.private_);
+        importCStaticGlobals = null;
+    }
+
     // When interpreting, these point to the value (NULL if value not determinable)
     // The index of this variable on the CTFE stack, AdrOnStackNone if not allocated
     enum AdrOnStackNone = ~0u;

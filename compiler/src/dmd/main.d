@@ -30,6 +30,7 @@ import dmd.compiler;
 import dmd.cond;
 import dmd.console;
 import dmd.cpreprocess;
+import dmd.declaration;
 import dmd.deps;
 import dmd.dinifile;
 import dmd.dinterpret;
@@ -650,6 +651,12 @@ private int tryMain(const(char)[][] argv, out Param params)
         }
         //fatal();
     }
+
+    // Must run after dsymbolSemantic() above, which is what overwrites an
+    // ImportC `static` global's visibility, and before semantic2/3 below,
+    // which is where code referencing such a variable would otherwise be
+    // allowed to access it.
+    VarDeclaration.fixImportCStaticVisibility();
 
     // Do pass 2 semantic analysis
     foreach (m; modules)
