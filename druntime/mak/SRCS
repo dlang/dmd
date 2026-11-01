@@ -25,6 +25,7 @@ SRCS=\
 	src\core\gc\config.d \
 	src\core\gc\gcinterface.d \
 	src\core\gc\registry.d \
+	src\core\gc\monitor.d \
 	\
 	src\core\internal\abort.d \
 	src\core\internal\atomic.d \
