@@ -40,6 +40,7 @@ final class CParser(AST) : Parser!AST
     bool refFuncName;           // declaration of __FUNCTION__
     bool pretFuncName;          // declaration for __PRETTY_FUNCTION__
     bool importBuiltins;        /// seen use of C compiler builtins, so import __importc_builtins;
+    bool usesSEH;               /// seen use of __try/__except, so import object for Throwable
 
     private
     {
@@ -138,6 +139,15 @@ final class CParser(AST) : Parser!AST
                      * Import their definitions
                      */
                     auto s = new AST.Import(Loc.initial, null, Id.importc_builtins, null, false);
+                    wrap.push(s);
+                }
+
+                if (usesSEH)
+                {
+                    /* Seen use of __try/__except, lowered to catch(Throwable).
+                     * C files don't get the implicit `import object;` D modules do.
+                     */
+                    auto s = new AST.Import(Loc.initial, null, Id.object, null, false);
                     wrap.push(s);
                 }
 
@@ -548,6 +558,61 @@ final class CParser(AST) : Parser!AST
         case TOK.else_:
             error("found `else` without a corresponding `if` statement");
             goto Lerror;
+
+        case TOK.__try:
+        {
+            nextToken();
+            auto tryBody = cparseStatement(ParseStatementFlags.scope_);
+            if (token.value == TOK.__except)
+            {
+                nextToken();
+                check(TOK.leftParenthesis);
+                auto filter = cparseExpression();
+                check(TOK.rightParenthesis);
+                auto exceptBody = cparseStatement(ParseStatementFlags.scope_);
+
+                /* Lower:
+                 *   __try { tryBody } __except (filter) { exceptBody }
+                 * to:
+                 *   try { tryBody }
+                 *   catch (Throwable __seh) {
+                 *       if (filter == EXCEPTION_EXECUTE_HANDLER) { exceptBody }
+                 *       else throw __seh;    // EXCEPTION_CONTINUE_EXECUTION can't be done
+                 *   }
+                 */
+                if (tryBody && filter && exceptBody)
+                {
+                    usesSEH = true;
+                    auto seh = Identifier.generateId("__seh");
+                    auto throwable = new AST.TypeIdentifier(loc, Id.empty);
+                    throwable.addIdent(Id.object);
+                    throwable.addIdent(Id.Throwable);
+
+                    auto rethrow = new AST.ThrowStatement(loc, new AST.IdentifierExp(loc, seh));
+                    rethrow.internalThrow = true;
+                    auto executeHandler = new AST.EqualExp(EXP.equal, loc, filter, new AST.IntegerExp(loc, 1, AST.Type.tint32));
+                    auto handler = new AST.IfStatement(loc, null, executeHandler, exceptBody, rethrow, token.loc);
+
+                    auto ctch = new AST.Catch(loc, throwable, seh, handler);
+                    ctch.internalCatch = true;
+                    s = new AST.TryCatchStatement(loc, tryBody, new AST.Catches(ctch));
+                }
+                else
+                    s = null; // don't propagate parsing errors
+            }
+            else if (token.value == TOK.__finally)
+            {
+                nextToken();
+                auto finallyBody = cparseStatement(ParseStatementFlags.scope_);
+                s = (tryBody && finallyBody) ? new AST.TryFinallyStatement(loc, tryBody, finallyBody) : null;
+            }
+            else
+            {
+                error("`__except` or `__finally` expected following `__try`");
+                goto Lerror;
+            }
+            break;
+        }
 
         case TOK.switch_:
         {

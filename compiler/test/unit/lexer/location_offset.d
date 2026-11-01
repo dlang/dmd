@@ -556,6 +556,9 @@ enum ignoreTokens
     __const,
     __typeof__,
     __typeof,
+    __try,
+    __except,
+    __finally,
 
     max_,
 };
