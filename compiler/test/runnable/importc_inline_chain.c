@@ -1,10 +1,7 @@
-// A __forceinline function's own body must not count as evidence that
-// something it calls is referenced, unless the function doing the calling
-// is itself reachable from outside the set of __forceinline candidates -
-// otherwise one never-called __forceinline function can keep another
-// never-called __forceinline function alive just by mentioning it, as
-// happened with real windows.h's RtlZeroVolatileMemory calling
-// RtlFillVolatileMemory, neither of which anything else ever calls.
+// An unreferenced __forceinline function must not generate code, even if
+// its own body calls another __forceinline function that would otherwise
+// also be unreferenced - a candidate counts as referenced only via code
+// outside the set of __forceinline candidates.
 
 int undefined_elsewhere(void);
 

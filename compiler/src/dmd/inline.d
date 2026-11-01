@@ -2579,6 +2579,9 @@ private bool expNeedsDtor(Expression exp)
  * for `inline`/`__forceinline` C functions that turn out to be genuinely
  * unreferenced, and marks them to skip codegen.
  *
+ * A candidate counts as referenced only via code outside the candidate
+ * set, so two candidates that call only each other both stay unreferenced.
+ *
  * Params:
  *   modules = every module in the program
  */
@@ -2599,26 +2602,14 @@ public void scanImportCInlineUsage(Modules* modules)
     foreach (fd; candidates)
         isCandidate[fd] = true;
 
-    // Candidates confirmed referenced but not yet scanned themselves -
-    // scanning a candidate's body may confirm further candidates in turn,
-    // which mark() (below) pushes onto this same worklist as it finds them.
     FuncDeclaration[] worklist;
     scope v = new ImportCInlineUsageVisitor(isCandidate, &worklist);
 
-    // Seed from everything that isn't itself one of the candidates - only
-    // genuinely-reachable code can prove a candidate is actually used.
-    // A candidate's own body is scanned separately below, since otherwise
-    // two candidates that only call each other (and are never called from
-    // anywhere else) would each "vouch" for the other and both would
-    // wrongly survive, as happened with windows.h's RtlZeroVolatileMemory
-    // and RtlFillVolatileMemory, neither of which anything else calls.
     foreach (m; *modules)
         visitDsymbolTree(m, v, isCandidate);
 
-    // Each candidate the seed pass (or a later iteration of this loop)
-    // just confirmed reachable gets its own body scanned too, so a chain
-    // of candidates is only kept alive by a path rooted outside the
-    // candidate set entirely, never by candidates vouching for each other.
+    // A candidate's body is scanned only once the candidate is itself
+    // marked referenced, so an unreferenced candidate cannot mark another.
     while (worklist.length)
     {
         FuncDeclaration fd = worklist[$ - 1];
@@ -2634,7 +2625,7 @@ public void scanImportCInlineUsage(Modules* modules)
 
 /// Walk a Dsymbol tree, visiting every function body and variable
 /// initializer with v, recursing into anything that can hold either.
-/// A candidate's own body is skipped here - see scanImportCInlineUsage.
+/// Skips a candidate's own body - see scanImportCInlineUsage.
 private void visitDsymbolTree(Dsymbol s, ImportCInlineUsageVisitor v, bool[FuncDeclaration] isCandidate)
 {
     if (auto fd = s.isFuncDeclaration())
