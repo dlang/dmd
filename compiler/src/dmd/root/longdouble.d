@@ -578,6 +578,38 @@ longdouble_soft fabsl(longdouble_soft ld)
     return ld;
 }
 
+// Keep logarithm inputs and results in extended precision, including when
+// the host compiler's real type is only double precision.
+/// Returns the natural logarithm of x in extended precision.
+longdouble_soft logl(longdouble_soft x)
+{
+    asm nothrow @nogc pure @trusted { fldln2; }
+    mixin(fld_arg!"x");
+    asm nothrow @nogc pure @trusted { fyl2x; }
+    mixin(fstp_arg!"x");
+    return x;
+}
+
+/// Returns the base-2 logarithm of x in extended precision.
+longdouble_soft log2l(longdouble_soft x)
+{
+    asm nothrow @nogc pure @trusted { fld1; }
+    mixin(fld_arg!"x");
+    asm nothrow @nogc pure @trusted { fyl2x; }
+    mixin(fstp_arg!"x");
+    return x;
+}
+
+/// Returns the base-10 logarithm of x in extended precision.
+longdouble_soft log10l(longdouble_soft x)
+{
+    asm nothrow @nogc pure @trusted { fldlg2; }
+    mixin(fld_arg!"x");
+    asm nothrow @nogc pure @trusted { fyl2x; }
+    mixin(fstp_arg!"x");
+    return x;
+}
+
 longdouble_soft sqrtl(longdouble_soft ld)
 {
     version(AsmX86)
