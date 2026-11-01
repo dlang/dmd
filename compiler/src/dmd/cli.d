@@ -948,8 +948,9 @@ dmd -cov -unittest myprog.d
             "verbose",
             `Enable verbose output for each compiler pass`,
         ),
-        Option("vasm",
-            "list generated assembler for each function"
+        Option("vasm[=<string>]",
+            "list generated assembler for each function",
+            "<string> restricts the disassembly to functions for which <string> is a substring of its name"
         ),
         Option("vcolumns",
             "print character (column) numbers in diagnostics"

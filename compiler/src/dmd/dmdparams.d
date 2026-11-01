@@ -61,6 +61,9 @@ struct DMDparams
     bool symdebug;          // insert debug symbolic information
     bool symdebugref;       // insert debug information for all referenced types, too
 
+    const(char)[] vasmName;       // if non-empty, restricts vasm output to functions
+                                  // for which vasmString is a substring
+
     const(char)[] defaultlibname;   // default library for non-debug builds
     const(char)[] debuglibname;     // default library for debug builds
     const(char)[] mscrtlib;         // MS C runtime library

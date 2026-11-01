@@ -40,6 +40,7 @@ nothrow:
     trace         =  add profiling code
     nofloat       = do not pull in floating point code
     vasm          = print generated assembler for each function
+    vasmName      = file name for vasm
     verbose       = verbose compile
     optimize      = optimize code
     symdebug      = add symbolic debug information,
@@ -71,6 +72,7 @@ void out_config_init(
         bool trace,
         bool nofloat,
         bool vasm,      // print generated assembler for each function
+        const(char)[] vasmName,
         bool verbose,
         bool optimize,
         int symdebug,
@@ -351,6 +353,7 @@ static if (0)
         cfg.flags3 |= CFG3wkfloat;
 
     cfg.vasm = vasm;
+    cfg.vasmName = vasmName;
     cfg.verbose = verbose;
 
     go.AArch64 = arm;

@@ -96,6 +96,7 @@ void backend_init(const ref Param params, const ref DMDparams driverParams, cons
         false, //params.trace,
         driverParams.nofloat,
         driverParams.vasm,
+        driverParams.vasmName,
         params.v.verbose,
         driverParams.optimize || params.useInline,
         driverParams.symdebug,

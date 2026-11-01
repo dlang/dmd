@@ -538,6 +538,7 @@ struct Config
     ubyte verbose;              // 0: compile quietly (no messages)
                                 // 1: show progress to DLL (default)
                                 // 2: full verbosity
+    const(char)[] vasmName;     // name of file to vasm
     char* csegname;             // code segment name
     char* deflibname;           // default library name
     int errmax;                 // max error count

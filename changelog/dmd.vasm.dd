@@ -1,0 +1,7 @@
+Add `vasm=<string>` option to -vasm compiler switch
+
+The existing use of `vasm` will print a disassembly of all functions
+being compiled. This can result in an unmanageably large amount of output.
+The addition of `=<string> enables specification of a pattern (a
+simple string) that is matched against a function's mangled name.
+If it is a match, it is disassembled and displayed.
