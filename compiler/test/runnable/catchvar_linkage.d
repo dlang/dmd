@@ -1,7 +1,5 @@
 // A caught Throwable must always get D linkage for its variable, even
-// inside an extern(C) function - it was inheriting the enclosing scope's
-// C linkage instead, which some backends mishandle when generating the
-// exception landing pad for it (crashed under Windows LDC specifically).
+// inside an extern(C) function.
 
 extern(C) int caughtPath()
 {

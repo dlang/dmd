@@ -4365,11 +4365,7 @@ void catchSemantic(Catch c, Scope* sc)
         c.var.iscatchvar = true;
         c.var.dsymbolSemantic(sc);
         // A caught Throwable is always a D class reference, regardless of
-        // the enclosing function's own linkage - dsymbolSemantic() above
-        // otherwise leaves it with whatever linkage the scope inherited
-        // (e.g. LINK.c inside an extern(C) function), which some backends
-        // then get badly wrong when generating the exception landing pad
-        // for it.
+        // the enclosing scope's linkage.
         c.var._linkage = LINK.d;
         sc.insert(c.var);
 
