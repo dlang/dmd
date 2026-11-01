@@ -467,10 +467,32 @@ static if (0)
 
             assert(0);
         }
+
         sfunc.Ssize = Offset(sfunc.Sseg) - cg.funcoffset;    // size of function
 
         if (config.vasm)
-            disassemble(disasmBuf[]);                   // disassemble the code
+        {
+            const(char)[] fident = funcsym_p.Sident.ptr[0 .. strlen(funcsym_p.Sident.ptr)];
+            const(char)[] name = config.vasmName;
+
+            if (name.length)
+            {
+                // disassemble if name[] is a substring of fident[]
+                if (name.length <= fident.length)
+                {
+                    foreach (i; 0 .. fident.length - name.length)
+                    {
+                        if (name[] == fident[i .. i + name.length])
+                        {
+                            disassemble(*funcsym_p, disasmBuf[]);   // disassemble the code
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+                disassemble(*funcsym_p, disasmBuf[]);             // disassemble the code
+        }
 
         const nteh = cg.usednteh & NTEH_try;
         if (nteh)
@@ -3330,12 +3352,13 @@ void andregcon(const ref con_t pregconsave)
 /**********************************************
  * Disassemble the code instruction bytes
  * Params:
+ *    funcsym = function being disassembled
  *    code = array of instruction bytes
  */
 @trusted
-void disassemble(ubyte[] code)
+void disassemble(ref Symbol funcsym, ubyte[] code)
 {
-    printf("%s:\n", funcsym_p.Sident.ptr);
+    printf("%s:\n", funcsym.Sident.ptr);
 
     @trusted
     void put(char c) { printf("%c", c); }

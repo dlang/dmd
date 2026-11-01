@@ -1046,10 +1046,24 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, out Param 
         }
         else if (arg == "-v") // https://dlang.org/dmd.html#switch-v
             params.v.verbose = true;
+        else if (startsWith(p + 1, "vasm")) // https://dlang.org/dmd.html#switch-vasm
+        {
+            driverParams.vasm = true;
+            enum len = "-vasm".length;
+            const char c = p[len];
+            if (c)
+            {
+                if (c != '=')
+                {
+                    errorInvalidSwitch(p, "Expected string following `-vasm=`, e.g. `-vasm=<string>`");
+                    return true;
+                }
+                driverParams.vasmName = p[len + 1 .. arg.length];
+            }
+            //printf("vasm: %.*s\n", cast(int)driverParams.vasmName.length, driverParams.vasmName.ptr);
+        }
         else if (arg == "-vcg-ast")
             params.vcg_ast = true;
-        else if (arg == "-vasm") // https://dlang.org/dmd.html#switch-vasm
-            driverParams.vasm = true;
         else if (arg == "-vnan")  // https://dlang.org/dmd.html#switch-vnan
             params.v.nanInit = true;
         else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
