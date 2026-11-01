@@ -20,15 +20,18 @@ void test1()
 /********************************************
 TEST_OUTPUT:
 ---
-fail_compilation/traits_initSymbol.d(203): Error: cannot determine the address of the initializer symbol during CTFE
-fail_compilation/traits_initSymbol.d(203):        called from here: `(*(function () pure nothrow @nogc @safe => S))()`
+fail_compilation/traits_initSymbol.d(206): Error: cannot read the contents of `cast(const(ubyte)[])S` at compile time, they are only known at link time
+fail_compilation/traits_initSymbol.d(206):        called from here: `(*(function () pure nothrow @nogc @safe => (cast(const(ubyte)[])S)[0]))()`
 ---
 */
 #line 200
 
+// The slice can be stored and its length read at compile time, but not its contents
 void test2()
 {
-    enum initLen = (() => __traits(initSymbol, S))();
+    enum initLen = (() => __traits(initSymbol, S).length)();
+    static assert(initLen == S.sizeof);
+    enum firstByte = (() => (cast(const(ubyte)[]) __traits(initSymbol, S))[0])();
 }
 
 /********************************************

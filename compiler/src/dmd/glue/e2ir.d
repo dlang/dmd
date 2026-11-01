@@ -756,22 +756,15 @@ elem* toElem(Expression e, ref IRState irs)
 
         Symbol* s = toSymbolNRVO(se.var);
 
-        // VarExp generated for `__traits(initSymbol, Aggregate)`?
-        if (auto symDec = se.var.isSymbolDeclaration())
+        // The frontend fixes symbol identity and extent before constructing a view.
+        if (auto sd = se.var.isSymbolDeclaration())
         {
-            if (auto ta = se.type.isTypeDArray())
+            if (sd.symbolKind != SymbolDeclaration.Kind.initializer)
             {
-                // Type must be const(void)[] or const(void[])
-                assert(ta.nextOf() == Type.tvoid.constOf(), se.type.toString());
-
-                // Generate s[0 .. Aggregate.sizeof] for non-zero initialised aggregates
-                // Otherwise create (null, Aggregate.sizeof)
-                auto ad = symDec.dsym;
-                auto ptr = (ad.isStructDeclaration() && ad.type.isZeroInit(Loc.initial))
-                        ? el_long(TYnptr, 0)
-                        : el_ptr(s);
-                auto length = el_long(TYsize_t, ad.structsize);
-                auto slice = el_pair(TYdarray, length, ptr);
+                auto ptr = sd.sliceIsNull ? el_long(TYnptr, 0) : el_ptr(s);
+                if (!sd.sliceIsNull && sd.symbolKind == SymbolDeclaration.Kind.interfaceSlice)
+                    ptr = el_bin(OPadd, TYnptr, ptr, el_long(TYsize_t, classInfoSize()));
+                auto slice = el_pair(TYdarray, el_long(TYsize_t, sd.sliceLength(se.type)), ptr);
                 elem_setLoc(slice, se.loc);
                 return slice;
             }
@@ -3825,6 +3818,10 @@ elem* toElem(Expression e, ref IRState irs)
         }
         // When there is a lowering availabe, use that
         elem* e = ce.lowering is null ? toElem(ce.e1, irs) : toElem(ce.lowering, irs);
+
+        // The array-cast hook has already adjusted both the pointer and length.
+        if (ce.lowering && ce.to.toBasetype().ty == Tarray)
+            return e;
 
         return toElemCast(ce, e, false, irs);
     }
