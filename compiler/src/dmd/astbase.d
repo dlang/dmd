@@ -5537,12 +5537,9 @@ struct ASTBase
 
     extern (C++) final class DeleteExp : UnaExp
     {
-        bool isRAII;
-
-        extern (D) this(Loc loc, Expression e, bool isRAII)
+        extern (D) this(Loc loc, Expression e)
         {
             super(loc, EXP.delete_, __traits(classInstanceSize, DeleteExp), e);
-            this.isRAII = isRAII;
         }
 
         override void accept(Visitor v)

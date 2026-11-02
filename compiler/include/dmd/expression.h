@@ -836,7 +836,6 @@ public:
 class DeleteExp final : public UnaExp
 {
 public:
-    d_bool isRAII;
     void accept(Visitor *v) override { v->visit(this); }
 };
 

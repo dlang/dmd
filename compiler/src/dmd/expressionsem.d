@@ -10955,8 +10955,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Type tb = exp.e1.type.toBasetype();
 
-        /* Now that `delete` in user code is an error, we only get here when
-         * `isRAII` has been set to true for the deletion of a `scope class`.  */
+        /* Now that `delete` in user code is an error, we only get here for
+         * the compiler-generated deletion of a `scope class`.  */
         if (tb.ty != Tclass)
         {
             eSink.error(exp.loc, "cannot delete type `%s`", exp.e1.type.toErrMsg());
