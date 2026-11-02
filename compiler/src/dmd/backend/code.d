@@ -262,18 +262,6 @@ struct seg_data                         // SegData is an array of these, indexed
     targ_size_t          SDoffset;      // starting offset for data
     int                  SDalignment;   // power of 2
 
-    static if (1) // for Windows
-    {
-        bool isfarseg;
-        int segidx;                     // internal object file segment number
-        int lnameidx;                   // lname idx of segment name
-        int classidx;                   // lname idx of class name
-        uint attr;                      // segment attribute
-        targ_size_t origsize;           // original size
-        int seek;                       // seek position in output file
-        void* ledata;                   // (Ledatarec) current one we're filling in
-    }
-
     //ELFOBJ || MACHOBJ
     IDXSEC           SDshtidx;          // ELFOBJ : index into SecHdrTab[]
                                         // MACHOBJ: index into section_64s[] or sections[]
@@ -308,15 +296,6 @@ struct seg_data                         // SegData is an array of these, indexed
         SDseg = 0;
         SDoffset = 0;
         SDalignment = 0;
-
-        isfarseg = false;
-        segidx = 0;
-        lnameidx = 0;
-        classidx = 0;
-        attr = 0;
-        origsize = 0;
-        seek = 0;
-        ledata = null;
 
         SDshtidx = 0;
         if (SDrel) SDrel.reset();
