@@ -1605,6 +1605,8 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             opr = uns ? 4 : 5;              // MUL/IMUL
             resreg = AX;                    // result register for *
         }
+        // The final store also modifies EA when it is a register.
+        modEA(cdb, &cs);
         code_newreg(&cs,opr);
         cdb.gen(&cs);
 
