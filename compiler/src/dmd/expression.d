@@ -1235,7 +1235,6 @@ extern (C++) final class StringExp : Expression
 extern (C++) final class InterpExp : Expression
 {
     char postfix = NoPostfix;   // 'c', 'w', 'd'
-    OwnedBy ownedByCtfe = OwnedBy.code;
     InterpolatedSet* interpolatedSet;
 
     enum char NoPostfix = 0;
