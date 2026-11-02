@@ -4364,6 +4364,9 @@ void catchSemantic(Catch c, Scope* sc)
         c.var = new VarDeclaration(c.loc, c.type, ident, null, stc);
         c.var.iscatchvar = true;
         c.var.dsymbolSemantic(sc);
+        // A caught Throwable is always a D class reference, regardless of
+        // the enclosing scope's linkage.
+        c.var._linkage = LINK.d;
         sc.insert(c.var);
 
         if (sc.previews.dip1008 && stc & STC.scope_)
