@@ -107,8 +107,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     }
 
     ClassDeclaration baseClass; // NULL only if this is Object
-    FuncDeclaration staticCtor;
-    FuncDeclaration staticDtor;
     Dsymbols vtbl;              // Array of FuncDeclaration's making up the vtbl[]
     Dsymbols vtblFinal;         // More FuncDeclaration's that aren't in vtbl[]
 
