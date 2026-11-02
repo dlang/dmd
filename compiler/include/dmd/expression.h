@@ -882,8 +882,6 @@ public:
     bool upperIsInBounds(bool v);
     bool lowerIsLessThanUpper() const; // true if lwr <= upr
     bool lowerIsLessThanUpper(bool v);
-    bool arrayop() const; // an array operation, rather than a slice
-    bool arrayop(bool v);
 private:
     uint8_t bitFields;
 

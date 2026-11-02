@@ -9568,9 +9568,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (checkNonAssignmentArrayOp(exp.e1))
                 return setError();
 
-            if (exp.e1.op == EXP.slice)
-                (cast(SliceExp)exp.e1).arrayop = true;
-
             // T[] op= ...
             if (exp.e2.implicitConvTo(exp.e1.type.nextOf()))
             {
@@ -12443,9 +12440,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else
             {
-                if (auto se = e1x.isSliceExp())
-                    se.arrayop = true;
-
                 e1x = e1x.expressionSemantic(sc);
             }
 
@@ -12988,7 +12982,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // convert e1 to e1[]
                     // e.g. e1[] = a[] + b[];
                     auto sle = new SliceExp(e1x.loc, e1x, null, null);
-                    sle.arrayop = true;
                     e1x = sle.expressionSemantic(sc);
                 }
                 else
@@ -13062,7 +13055,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     }
                 }
                 auto sle = new SliceExp(e1x.loc, e1x, null, null);
-                sle.arrayop = true;
                 e1x = sle.expressionSemantic(sc);
             }
             if (e1x.op == EXP.error)

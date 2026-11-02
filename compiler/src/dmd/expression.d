@@ -2723,7 +2723,6 @@ extern (C++) final class SliceExp : UnaExp
     {
         bool upperIsInBounds;       // true if upr <= e1.length
         bool lowerIsLessThanUpper;  // true if lwr <= upr
-        bool arrayop;               // an array operation, rather than a slice
     }
     import dmd.common.bitfields : generateBitFields;
     mixin(generateBitFields!(BitFields, ubyte));
