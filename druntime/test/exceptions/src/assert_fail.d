@@ -1,4 +1,4 @@
-import core.stdc.stdio : fprintf, stderr;
+import core.stdc.stdio : FILE, fprintf, stderr;
 import core.internal.dassert : _d_assert_fail;
 
 void test(string comp = "==", A, B)(auto ref A a, auto ref B b, string msg, size_t line = __LINE__)
@@ -581,7 +581,7 @@ int main()
         testDestruction();
 
     if (!__ctfe)
-        fprintf(stderr, "success.\n");
+        fprintf(cast(FILE*) stderr, "success.\n");
     return 0;
 }
 
