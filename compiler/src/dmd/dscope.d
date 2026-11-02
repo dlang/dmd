@@ -47,7 +47,6 @@ enum Contract : ubyte
 /// Bitfield for settable/copyable flags, see `copyFlagsFrom`, `resetAllFlags`
 private extern (D) struct FlagBitFields
 {
-    bool ctor;              /// constructor type
     bool noAccessCheck;     /// don't do access checks
     bool condition;         /// inside static if/assert condition
     bool debug_;            /// inside debug conditional
@@ -206,10 +205,6 @@ extern (C++) struct Scope
     void* lastdc;              /// documentation comment for last symbol at this scope (DocComment*)
     uint[void*] anchorCounts;  /// lookup duplicate anchor name count
     Identifier prevAnchor;     /// qualified symbol name of last doc anchor
-
-    AliasDeclaration aliasAsg; /// if set, then aliasAsg is being assigned a new value,
-                               /// do not set wasRead for it
-    StructDeclaration argStruct;    /// elimiate recursion when looking for rvalue construction
 
     extern (D) __gshared Scope* freelist;
 

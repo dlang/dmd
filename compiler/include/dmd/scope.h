@@ -103,8 +103,6 @@ struct Scope final
     uint16_t flags2;
     uint16_t previews; // state of preview switches
 
-    bool ctor() const;
-    bool ctor(bool v);
     bool noAccessCheck() const;
     bool noAccessCheck(bool v);
     bool condition() const;
@@ -141,8 +139,4 @@ struct Scope final
     void *lastdc;               // documentation comment for last symbol at this scope (DocComment*)
     AA *anchorCounts;           // lookup duplicate anchor name count
     Identifier *prevAnchor;     // qualified symbol name of last doc anchor
-
-    AliasDeclaration *aliasAsg; // if set, then aliasAsg is being assigned a new value,
-                                // do not set wasRead for it
-    StructDeclaration *argStruct; // elimiate recursion when looking for rvalue construction
 };
