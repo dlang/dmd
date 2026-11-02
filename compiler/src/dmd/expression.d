@@ -2608,12 +2608,9 @@ extern (C++) final class NotExp : UnaExp
  */
 extern (C++) final class DeleteExp : UnaExp
 {
-    bool isRAII;        // true if called automatically as a result of scoped destruction
-
-    extern (D) this(Loc loc, Expression e, bool isRAII) @safe
+    extern (D) this(Loc loc, Expression e) @safe
     {
         super(loc, EXP.delete_, e);
-        this.isRAII = isRAII;
     }
 
     override void accept(Visitor v)
