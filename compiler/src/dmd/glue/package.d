@@ -1683,11 +1683,8 @@ private void genModuleInfo(Module m, Symbol* msictor,
     if (flags & MIname)
     {
         // Put out module name as a 0-terminated string, to save bytes
-        m.nameoffset = dtb.length();
         const(char) *name = m.toPrettyChars();
-        m.namelen = strlen(name);
-        dtb.nbytes(name[0 .. m.namelen + 1]);
-        //printf("nameoffset = x%x\n", nameoffset);
+        dtb.nbytes(name[0 .. strlen(name) + 1]);
     }
 
     if (flags & MIunitTests)
