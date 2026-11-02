@@ -2587,6 +2587,9 @@ private bool expNeedsDtor(Expression exp)
  * for `inline`/`__forceinline` C functions that turn out to be genuinely
  * unreferenced, and marks them to skip codegen.
  *
+ * A candidate counts as referenced only via code outside the candidate
+ * set, so two candidates that call only each other both stay unreferenced.
+ *
  * Params:
  *   modules = every module in the program
  */
@@ -2603,9 +2606,25 @@ public void scanImportCInlineUsage(Modules* modules)
     if (!candidates.length)
         return;
 
-    scope v = new ImportCInlineUsageVisitor();
+    bool[FuncDeclaration] isCandidate;
+    foreach (fd; candidates)
+        isCandidate[fd] = true;
+
+    FuncDeclaration[] worklist;
+    scope v = new ImportCInlineUsageVisitor(isCandidate, &worklist);
+
     foreach (m; *modules)
-        visitDsymbolTree(m, v);
+        visitDsymbolTree(m, v, isCandidate);
+
+    // A candidate's body is scanned only once the candidate is itself
+    // marked referenced, so an unreferenced candidate cannot mark another.
+    while (worklist.length)
+    {
+        FuncDeclaration fd = worklist[$ - 1];
+        worklist = worklist[0 .. $ - 1];
+        if (fd.fbody)
+            fd.fbody.accept(v);
+    }
 
     foreach (fd; candidates)
         if (!fd.importCInlineReferenced)
@@ -2614,11 +2633,12 @@ public void scanImportCInlineUsage(Modules* modules)
 
 /// Walk a Dsymbol tree, visiting every function body and variable
 /// initializer with v, recursing into anything that can hold either.
-private void visitDsymbolTree(Dsymbol s, ImportCInlineUsageVisitor v)
+/// Skips a candidate's own body - see scanImportCInlineUsage.
+private void visitDsymbolTree(Dsymbol s, ImportCInlineUsageVisitor v, bool[FuncDeclaration] isCandidate)
 {
     if (auto fd = s.isFuncDeclaration())
     {
-        if (fd.fbody)
+        if (fd.fbody && fd !in isCandidate)
             fd.fbody.accept(v);
         return;
     }
@@ -2632,14 +2652,14 @@ private void visitDsymbolTree(Dsymbol s, ImportCInlineUsageVisitor v)
     {
         if (ad.decl)
             foreach (s2; *ad.decl)
-                visitDsymbolTree(s2, v);
+                visitDsymbolTree(s2, v, isCandidate);
         return;
     }
     if (auto sds = s.isScopeDsymbol())
     {
         if (sds.members)
             foreach (s2; *sds.members)
-                visitDsymbolTree(s2, v);
+                visitDsymbolTree(s2, v, isCandidate);
         return;
     }
 }
@@ -2647,6 +2667,17 @@ private void visitDsymbolTree(Dsymbol s, ImportCInlineUsageVisitor v)
 private extern (C++) final class ImportCInlineUsageVisitor : SemanticTimeTransitiveVisitor
 {
     alias visit = SemanticTimeTransitiveVisitor.visit;
+
+    private bool[FuncDeclaration] isCandidate;
+    private FuncDeclaration[]* worklist;
+
+    // extern (D): the class's own extern(C++) linkage would otherwise
+    // apply here too, and neither parameter type has a C++ ABI mapping.
+    extern (D) this(bool[FuncDeclaration] isCandidate, FuncDeclaration[]* worklist)
+    {
+        this.isCandidate = isCandidate;
+        this.worklist = worklist;
+    }
 
     // VarExp/SymOffExp have no dedicated override point in this visitor
     // hierarchy, so this catches them (and everything else) via their
@@ -2672,7 +2703,11 @@ private extern (C++) final class ImportCInlineUsageVisitor : SemanticTimeTransit
 
     private void mark(Declaration d)
     {
-        if (auto fd = d.isFuncDeclaration())
-            fd.importCInlineReferenced = true;
+        auto fd = d.isFuncDeclaration();
+        if (!fd || fd.importCInlineReferenced)
+            return;
+        fd.importCInlineReferenced = true;
+        if (fd in isCandidate)
+            *worklist ~= fd;
     }
 }
