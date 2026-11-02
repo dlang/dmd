@@ -2896,7 +2896,7 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                             cdb.last().Iop += 0x10;     // short form of shift
                         if (I64 && sz == 1 && resreg >= 4)
                             cdb.last().Irex |= REX;
-                        // 16-bit operand. OPshl too: the flags are the 16-bit result.
+                        // See if we need operand size prefix
                         if (!I16 && sz == 2)
                             cdb.last().Iflags |= CF.opsize;
                         if (forccs)
