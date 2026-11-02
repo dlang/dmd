@@ -359,7 +359,7 @@ string utf_decodeWchar(const(wchar)[] s, ref size_t ridx, out dchar rresult)
         if (s.length <= i + 1)
             return UTF16_DECODE_TRUNCATED_SEQUENCE;
         wchar u2 = s[i + 1];
-        if (u2 < 0xDC00 || 0xDFFF < u)
+        if (u2 < 0xDC00 || 0xDFFF < u2)
             return UTF16_DECODE_INVALID_SURROGATE;
         u = ((u - 0xD7C0) << 10) + (u2 - 0xDC00);
         ++ridx;
