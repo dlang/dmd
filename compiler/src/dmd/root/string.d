@@ -519,3 +519,35 @@ unittest
     assert(findBetween("a b c", "a ", " c") == "b");
     assert(findBetween("a b c", "a ", " d") == null);
 }
+
+/**
+ * Split a string by a delimiter, excluding the delimiter.
+ * Params:
+ *  s         = the string to split
+ *  delimiter = the character to split by
+ * Returns: the resulting array of strings
+ */
+string[] split(string s, char delimiter) pure @safe
+{
+    string[] result;
+    size_t iStart = 0;
+    foreach (size_t i; 0..s.length)
+        if (s[i] == delimiter)
+        {
+            result ~= s[iStart..i];
+            iStart = i + 1;
+        }
+        result ~= s[iStart..$];
+        return result;
+}
+
+///
+unittest
+{
+    assert(split("", ',') == [""]);
+    assert(split("ab", ',') == ["ab"]);
+    assert(split("a,b", ',') == ["a", "b"]);
+    assert(split("a,,b", ',') == ["a", "", "b"]);
+    assert(split(",ab", ',') == ["", "ab"]);
+    assert(split("ab,", ',') == ["ab", ""]);
+}
