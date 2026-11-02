@@ -1012,11 +1012,12 @@ L1:
            e1.E2.Eoper == OPrelconst &&
            e1.E2.Vsym == e2.Vsym)
     {
+        tym_t tym = I64 ? TYllong : TYint;
         e2.Eoper = OPconst;
-        e2.Ety = TYint;
+        e2.Ety = tym;
         e1.Ety = e1.E1.Ety;
         e1.E2.Eoper = OPconst;
-        e1.E2.Ety = TYint;
+        e1.E2.Ety = tym;
         {
             /* Watch out for pointer types changing, requiring a conversion */
             tym_t ety = tybasic(e.Ety);
