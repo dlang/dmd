@@ -290,26 +290,6 @@ struct seg_data                         // SegData is an array of these, indexed
   nothrow:
     @trusted
     int isCode() { return config.objfmt == OBJ_MACH ? mach_seg_data_isCode(this) : mscoff_seg_data_isCode(this); }
-
-    void reset()
-    {
-        SDseg = 0;
-        SDoffset = 0;
-        SDalignment = 0;
-
-        SDshtidx = 0;
-        if (SDrel) SDrel.reset();
-        if (SDbuf) SDbuf.reset();
-        relocations.reset();
-
-        SDsymidx = 0;
-        SDrelidx = 0;
-        SDrelcnt = 0;
-        SDshtidxout = 0;
-        SDsym = null;
-        SDaranges_offset = 0;
-        SDlinnum_data.reset();
-    }
 }
 
 /*******************************************************
