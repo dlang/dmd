@@ -1,5 +1,4 @@
 // EXTRA_SOURCES: imports/importc_seh.d
-// DISABLED: win64 - crashes LDC's backend, not dmd's
 // Verifies __try/__except/__finally, lowered to try/catch/finally.
 
 __import importc_seh;
