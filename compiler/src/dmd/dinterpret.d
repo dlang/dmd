@@ -7377,7 +7377,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                     // find the start
                     --indx;
                     auto wc = se.getCodeUnit(indx);
-                    if (wc >= 0xDC00 && wc <= 0xDFFF)
+                    if (indx > 0 && wc >= 0xDC00 && wc <= 0xDFFF)
                         --indx;
                     saveindx = indx;
                 }
@@ -7397,6 +7397,11 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                 rawvalue = se.getCodeUnit(indx);
                 if (!rvs)
                     ++indx;
+                if (!utf_isValidDchar(rawvalue))
+                {
+                    eSink.error(deleg.loc, "cannot encode invalid UTF character `\\U%08x` as `%s`", rawvalue, charType.toChars());
+                    return CTFEExp.cantexp;
+                }
                 break;
 
             default:
