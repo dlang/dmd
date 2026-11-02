@@ -832,9 +832,9 @@ Expression pointerArithmetic(UnionExp* pue, Loc loc, EXP op, Type type, Expressi
         eSink.error(loc, "cannot perform pointer arithmetic on non-arrays at compile time");
         return cant();
     }
-    dinteger_t ofs2 = e2.toInteger();
+    sinteger_t ofs2 = e2.toInteger();
     Type pointee = agg1.type.toBasetype().nextOf();
-    dinteger_t sz = pointee.size();
+    sinteger_t sz = pointee.size();
     sinteger_t indx;
     dinteger_t len;
     if (auto soe = agg1.isSymOffExp())
