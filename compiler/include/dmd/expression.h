@@ -340,7 +340,6 @@ class InterpExp final : public Expression
 {
 public:
     utf8_t postfix;   // 'c', 'w', 'd'
-    OwnedBy ownedByCtfe;
     void* interpolatedSet;
 
     void accept(Visitor* v) override { v->visit(this); }
