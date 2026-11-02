@@ -3,10 +3,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test24020.d(16): Error: cannot append invalid UTF character `\U00110000` to `string`
-fail_compilation/test24020.d(27):        called from here: `f()`
-fail_compilation/test24020.d(23): Error: cannot append invalid UTF character `\U0000d800` to `string`
-fail_compilation/test24020.d(28):        called from here: `g()`
+fail_compilation/test24020.d(18): Error: cannot append invalid UTF character `\U00110000` to `string`
+fail_compilation/test24020.d(38):        called from here: `f()`
+fail_compilation/test24020.d(25): Error: cannot append invalid UTF character `\U0000d800` to `string`
+fail_compilation/test24020.d(39):        called from here: `g()`
+fail_compilation/test24020.d(33): Error: cannot encode invalid UTF character `\U00110000` as `char`
+fail_compilation/test24020.d(40):        called from here: `h()`
 ---
 */
 
@@ -24,5 +26,15 @@ string g()
     return s;
 }
 
+// https://github.com/dlang/dmd/issues/24153
+string h()
+{
+    string r;
+    foreach (char c; [cast(dchar) 0x110000])
+        r ~= c;
+    return r;
+}
+
 enum x = f();
 enum y = g();
+enum z = h();
