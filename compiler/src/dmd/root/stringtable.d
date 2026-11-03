@@ -112,6 +112,26 @@ public:
         _init(size);
     }
 
+    /********************
+     * Reset the table to empty, keeping the allocated bucket table for reuse.
+     *
+     * Cheaper than reset(): the bucket table (the dominant allocation) is
+     * cleared in place instead of being freed and reallocated. Only the
+     * string pools are released, as their contents are append-only and
+     * cannot be reused.
+     */
+    void clear() nothrow pure
+    {
+        foreach (pool; pools)
+            mem.xfree(pool);
+        mem.xfree(pools.ptr);
+        pools = null;
+        if (table.length)
+            table[] = StringEntry.init;
+        nfill = 0;
+        count = 0;
+    }
+
     ~this() nothrow pure
     {
         freeMem();

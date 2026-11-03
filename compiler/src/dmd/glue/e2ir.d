@@ -480,7 +480,7 @@ void clearStringTab()
 {
     //printf("clearStringTab()\n");
     if (stringTab)
-        stringTab.reset(1000);             // 1000 is arbitrary guess
+        stringTab.clear();               // reuse the bucket table
     else
     {
         stringTab = new StringTable!(Symbol*)();
