@@ -3682,14 +3682,27 @@ public:
             if (exceptionOrCant(e1))
                 return;
 
-            if (oldlen != 0) // Get the old array literal.
-                oldval = interpretRegion(e1, istate);
-            UnionExp utmp = void;
-            oldval = resolveSlice(oldval, &utmp);
+            if (newlen < oldlen)
+            {
+                auto lwr = ctfeEmplaceExp!IntegerExp(e.loc, 0, Type.tsize_t);
+                auto upr = ctfeEmplaceExp!IntegerExp(e.loc, newlen, Type.tsize_t);
+                auto se = ctfeEmplaceExp!SliceExp(e.loc, e1, lwr, upr);
+                se.type = t;
+                newval = interpretRegion(se, istate);
+                if (exceptionOrCant(newval))
+                    return;
+            }
+            else
+            {
+                if (oldlen != 0) // Get the old array literal.
+                    oldval = interpretRegion(e1, istate);
+                UnionExp utmp = void;
+                oldval = resolveSlice(oldval, &utmp);
 
-            newval = changeArrayLiteralLength(pue, e.loc, cast(TypeArray)t, oldval, oldlen, newlen);
-            if (newval == pue.exp())
-                newval = pue.copy();
+                newval = changeArrayLiteralLength(pue, e.loc, cast(TypeArray)t, oldval, oldlen, newlen);
+                if (newval == pue.exp())
+                    newval = pue.copy();
+            }
 
             e1 = assignToLvalue(e, e1, newval, istate);
             if (exceptionOrCant(e1))
