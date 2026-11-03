@@ -5972,9 +5972,10 @@ public:
             e1 = resolveSlice(e1);
 
         auto tobt = e.to.toBasetype();
-        if (tobt.ty == Tbool && (e1.type.ty == Tpointer || e1.type.ty == Tclass))
+        if (tobt.ty == Tbool && (e1.type.ty == Tpointer || e1.type.ty == Tclass || e1.type.ty == Tdelegate ||
+                                 e1.type.ty == Tarray || e1.type.ty == Taarray))
         {
-            emplaceExp!(IntegerExp)(pue, e.loc, e1.op != EXP.null_, e.to);
+            emplaceExp!(IntegerExp)(pue, e.loc, isTrueBool(e1), e.to);
             result = pue.exp();
             return;
         }
