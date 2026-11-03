@@ -2897,7 +2897,7 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                         if (I64 && sz == 1 && resreg >= 4)
                             cdb.last().Irex |= REX;
                         // See if we need operand size prefix
-                        if (!I16 && oper != OPshl && sz == 2)
+                        if (!I16 && sz == 2)
                             cdb.last().Iflags |= CF.opsize;
                         if (forccs)
                             cdb.last().Iflags |= CF.psw;         // need flags result
