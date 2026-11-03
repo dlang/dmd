@@ -3,7 +3,6 @@ Files in the Back End
 
 The backend originated in the [Digital Mars C/C++ compiler (DMC)](https://github.com/DigitalMars/Compiler/tree/master/dm/src/dmc),
 but the two backends are no longer kept in sync.
-When contributing, check compatibility with corresponding DMC code where applicable.
 
 Paths below are relative to this directory.
 
