@@ -427,9 +427,6 @@ enum
 struct enum_t
 {
     enum_flags_t SEflags;
-    Symbol* SEalias;            // pointer to identifier E to use if
-                                // enum was defined as:
-                                //      typedef enum { ... } E;
     Barray!(Symbol*) SEenums;   // all members of enum
 }
 
