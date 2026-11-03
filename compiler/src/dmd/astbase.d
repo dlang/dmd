@@ -2095,7 +2095,6 @@ struct ASTBase
         Expression condition;
         Statement ifbody;
         Statement elsebody;
-        VarDeclaration match;   // for MatchExpression results
         Loc endloc;                 // location of closing curly bracket
 
         extern (D) this(Loc loc, Parameter param, Expression condition, Statement ifbody, Statement elsebody, Loc endloc)

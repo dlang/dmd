@@ -368,7 +368,6 @@ public:
     Expression *condition;
     Statement *ifbody;
     Statement *elsebody;
-    VarDeclaration *match;      // for MatchExpression results
     Loc endloc;                 // location of closing curly bracket
 
     IfStatement *syntaxCopy() override;
