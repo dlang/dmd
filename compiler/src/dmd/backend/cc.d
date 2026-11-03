@@ -385,13 +385,10 @@ struct func_t
     symtab_t Flocsym;           // local Symbol table
     Srcpos Fstartline;          // starting line # of function
     Srcpos Fendline;            // line # of closing brace of function
-    Symbol* F__func__;          // symbol for __func__[] string
     func_flags_t Fflags;
 
     Classsym* Fclass;           // if member of a class, this is the class
                                 // (I think this is redundant with Sscope)
-    Funcsym* Falias;            // SCfuncalias: function Symbol referenced
-                                // by using-declaration
 
     char* Fredirect;            // redirect function name to this name in object
 
