@@ -180,9 +180,8 @@ jobs:
         run: ENABLE_RELEASE=0 ENABLE_DEBUG=1 ENABLE_COVERAGE=1 ci/run.sh rebuild
       - name: 'Windows: Set up MSVC environment' # some tests need cl.exe etc. in PATH
         if: runner.os == 'Windows'
-        uses: seanmiddleditch/gha-setup-vsdevenv@v5
-        with:
-          arch: ${{ env.MODEL == '64' && 'x64' || 'x86' }}
+        shell: pwsh
+        run: ./.github/scripts/setup_msvc.ps1 -Arch ${{ env.MODEL == '64' && 'x64' || 'x86' }}
       - name: Test dmd
         run: ci/run.sh test_dmd
       - name: Test frontend subpackage

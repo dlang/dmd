@@ -33,7 +33,16 @@ jobs:
     - uses: actions/setup-python@v7
       with:
         python-version: '3.x'
-    - uses: pre-commit/action@v3.0.1
+    - name: Install pre-commit
+      run: |
+        python -m pip install pre-commit
+        python -m pip freeze --local
+    - uses: actions/cache@v6
+      with:
+        path: ~/.cache/pre-commit
+        key: pre-commit-3|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+    - name: Run pre-commit
+      run: pre-commit run --show-diff-on-failure --color=always --all-files
     - name: Check changelog entries
       run: |
         check_prefix="$(find changelog -type f -name '*\.dd' -a ! -name 'dmd\.*' -a ! -name 'druntime\.*')"
