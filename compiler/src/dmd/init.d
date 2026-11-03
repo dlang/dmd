@@ -268,7 +268,6 @@ struct DesigInit
 extern (C++) final class CInitializer : Initializer
 {
     DesigInits initializerList; /// initializer-list
-    Type type;              /// type that array will be used to initialize
 
     extern (D) this(Loc loc)
     {
