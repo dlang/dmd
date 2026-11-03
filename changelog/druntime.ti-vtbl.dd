@@ -1,0 +1,15 @@
+`TypeInfo_Class.vtbl` and `Interface.vtbl` have been removed
+
+These opaque `void*[]` tables are hardly useful and have been removed to make
+class TypeInfos slightly leaner, and prepare for generating the TypeInfo in
+library code.
+
+If really needed, the pointer to the vtable of a class (the vptr) is stored at
+the start of each class instance, including init symbol. E.g.:
+
+```
+// for a dynamic type:
+immutable(void*)* vptr = myObject.__vptr;
+// for a static type:
+immutable(void*)* vptr = *cast(immutable(void*)**) __traits(initSymbol, MyClass).ptr;
+```

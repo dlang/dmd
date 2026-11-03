@@ -578,7 +578,6 @@ struct Interface
 {
     /// Class info returned by `typeid` for this interface (not for containing class)
     TypeInfo_Class   classinfo;
-    void*[]     vtbl;
     size_t      offset;     /// offset to Interface 'this' from Object 'this'
 }
 
@@ -1717,7 +1716,6 @@ class TypeInfo_Class : TypeInfo
                                  * (init.length gives size in bytes of class)
                                  */
     string      name;           /// class name
-    void*[]     vtbl;           /// virtual function pointer table
     Interface[] interfaces;     /// interfaces this class implements
     TypeInfo_Class   base;      /// base class
     void*       destructor;
