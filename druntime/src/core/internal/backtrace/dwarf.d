@@ -1046,6 +1046,87 @@ struct SourceFile
     size_t dirIndex; // 1-based
 }
 
+/// Reads the DWARF 5 directory and file entries into `lp`.
+void readEntries(ref const(ubyte)[] data, ref LineNumberProgram lp, bool is64bitDwarf) @nogc nothrow
+{
+    static void consumeGenericForm(ref const(ubyte)[] data, DW_FORM form, bool is64bitDwarf)
+    {
+        with (DW_FORM) switch (form)
+        {
+            case strp, strp_sup, line_strp:
+                data = data[is64bitDwarf ? 8 : 4 .. $]; break;
+            case data1, strx1:
+                data = data[1 .. $]; break;
+            case data2, strx2:
+                data = data[2 .. $]; break;
+            case strx3:
+                data = data[3 .. $]; break;
+            case data4, strx4:
+                data = data[4 .. $]; break;
+            case data8:
+                data = data[8 .. $]; break;
+            case data16:
+                data = data[16 .. $]; break;
+            case udata, strx:
+                data.readULEB128(); break;
+            case block:
+                const length = cast(size_t) data.readULEB128();
+                data = data[length .. $];
+                break;
+            default:
+                assert(0); // TODO: support other forms for vendor extensions
+        }
+    }
+
+    const dirFormat = data.readEntryFormat();
+    lp.includeDirectories.length = cast(size_t) data.readULEB128();
+    foreach (ref dir; lp.includeDirectories)
+    {
+        dir = "<unknown dir>"; // fallback
+        foreach (ref pair; dirFormat)
+        {
+            if (pair.type == DW_LNCT.path &&
+                // TODO: support other forms too (offsets in other sections)
+                pair.form == DW_FORM.string_)
+            {
+                dir = data.readStringz();
+            }
+            else // uninteresting type
+                consumeGenericForm(data, pair.form, is64bitDwarf);
+        }
+    }
+
+    const fileFormat = data.readEntryFormat();
+    lp.sourceFiles.length = cast(size_t) data.readULEB128();
+    foreach (ref sf; lp.sourceFiles)
+    {
+        sf.file = "<unknown file>"; // fallback
+        foreach (ref pair; fileFormat)
+        {
+            if (pair.type == DW_LNCT.path &&
+                // TODO: support other forms too (offsets in other sections)
+                pair.form == DW_FORM.string_)
+            {
+                sf.file = data.readStringz();
+            }
+            else if (pair.type == DW_LNCT.directoryIndex)
+            {
+                if (pair.form == DW_FORM.data1)
+                    sf.dirIndex = data.read!ubyte();
+                else if (pair.form == DW_FORM.data2)
+                    sf.dirIndex = data.read!ushort();
+                else if (pair.form == DW_FORM.udata)
+                    sf.dirIndex = cast(size_t) data.readULEB128();
+                else
+                    assert(0); // not allowed by DWARF 5 spec
+                sf.dirIndex++; // DWARF v5 indices are 0-based
+            }
+            else // uninteresting type
+                consumeGenericForm(data, pair.form, is64bitDwarf);
+        }
+    }
+}
+
 LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
 {
     const originalData = data;
@@ -1085,84 +1166,7 @@ LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
     data = data[lp.opcodeBase - 1 .. $];
 
     if (lp.dwarfVersion >= 5)
-    {
-        static void consumeGenericForm(ref const(ubyte)[] data, DW_FORM form, bool is64bitDwarf)
-        {
-            with (DW_FORM) switch (form)
-            {
-                case strp, strp_sup, line_strp:
-                    data = data[is64bitDwarf ? 8 : 4 .. $]; break;
-                case data1, strx1:
-                    data = data[1 .. $]; break;
-                case data2, strx2:
-                    data = data[2 .. $]; break;
-                case strx3:
-                    data = data[3 .. $]; break;
-                case data4, strx4:
-                    data = data[4 .. $]; break;
-                case data8:
-                    data = data[8 .. $]; break;
-                case data16:
-                    data = data[16 .. $]; break;
-                case udata, strx:
-                    data.readULEB128(); break;
-                case block:
-                    const length = cast(size_t) data.readULEB128();
-                    data = data[length .. $];
-                    break;
-                default:
-                    assert(0); // TODO: support other forms for vendor extensions
-            }
-        }
-
-        const dirFormat = data.readEntryFormat();
-        lp.includeDirectories.length = cast(size_t) data.readULEB128();
-        foreach (ref dir; lp.includeDirectories)
-        {
-            dir = "<unknown dir>"; // fallback
-            foreach (ref pair; dirFormat)
-            {
-                if (pair.type == DW_LNCT.path &&
-                    // TODO: support other forms too (offsets in other sections)
-                    pair.form == DW_FORM.string_)
-                {
-                    dir = data.readStringz();
-                }
-                else // uninteresting type
-                    consumeGenericForm(data, pair.form, is64bitDwarf);
-            }
-        }
-
-        const fileFormat = data.readEntryFormat();
-        lp.sourceFiles.length = cast(size_t) data.readULEB128();
-        foreach (ref sf; lp.sourceFiles)
-        {
-            sf.file = "<unknown file>"; // fallback
-            foreach (ref pair; fileFormat)
-            {
-                if (pair.type == DW_LNCT.path &&
-                    // TODO: support other forms too (offsets in other sections)
-                    pair.form == DW_FORM.string_)
-                {
-                    sf.file = data.readStringz();
-                }
-                else if (pair.type == DW_LNCT.directoryIndex)
-                {
-                    if (pair.form == DW_FORM.data1)
-                        sf.dirIndex = data.read!ubyte();
-                    else if (pair.form == DW_FORM.data2)
-                        sf.dirIndex = data.read!ushort();
-                    else if (pair.form == DW_FORM.udata)
-                        sf.dirIndex = cast(size_t) data.readULEB128();
-                    else
-                        assert(0); // not allowed by DWARF 5 spec
-                    sf.dirIndex++; // DWARF v5 indices are 0-based
-                }
-                else // uninteresting type
-                    consumeGenericForm(data, pair.form, is64bitDwarf);
-            }
-        }
-    }
+        readEntries(data, lp, is64bitDwarf);
     else
     {
         // A sequence ends with a null-byte.
