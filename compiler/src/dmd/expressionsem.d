@@ -514,12 +514,6 @@ Optional!bool toBool(Expression _this)
         return typeof(return)(dim != 0);
     }
 
-    static Optional!bool assocArrayLiteralToBool(AssocArrayLiteralExp _this)
-    {
-        size_t dim = _this.keys.length;
-        return typeof(return)(dim != 0);
-    }
-
     static Optional!bool addrToBool(AddrExp _this)
     {
         if (isCtfeReferenceValid(_this.e1))
@@ -540,7 +534,7 @@ Optional!bool toBool(Expression _this)
         // Should probably match language spec instead and check for length
         case EXP.string_: return typeof(return)(true);
         case EXP.arrayLiteral: return arrayLiteralToBool(_this.isArrayLiteralExp());
-        case EXP.assocArrayLiteral: return assocArrayLiteralToBool(_this.isAssocArrayLiteralExp());
+        case EXP.assocArrayLiteral: return typeof(return)(true);
         case EXP.symbolOffset: return typeof(return)(true);
         // non-null delegate/function literal
         case EXP.delegate_:
