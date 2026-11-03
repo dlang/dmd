@@ -1774,26 +1774,26 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
              */
             // Make sure the location of the initializer reflects the condition, not the if statement.
             auto ei = new ExpInitializer(ifs.condition.loc, ifs.condition);
-            ifs.match = new VarDeclaration(ifs.loc, ifs.param.type, ifs.param.ident, ei);
-            ifs.match.parent = scd.func;
-            ifs.match.storage_class |= ifs.param.storageClass;
-            ifs.match.dsymbolSemantic(scd);
+            auto v = new VarDeclaration(ifs.loc, ifs.param.type, ifs.param.ident, ei);
+            v.parent = scd.func;
+            v.storage_class |= ifs.param.storageClass;
+            v.dsymbolSemantic(scd);
 
-            auto de = new DeclarationExp(ifs.loc, ifs.match);
-            auto ve = new VarExp(ifs.loc, ifs.match);
+            auto de = new DeclarationExp(ifs.loc, v);
+            auto ve = new VarExp(ifs.loc, v);
             ifs.condition = new CommaExp(ifs.loc, de, ve);
             ifs.condition = ifs.condition.expressionSemantic(scd);
 
-            if (ifs.match.edtor)
+            if (v.edtor)
             {
-                Statement sdtor = new DtorExpStatement(ifs.loc, ifs.match.edtor, ifs.match);
+                Statement sdtor = new DtorExpStatement(ifs.loc, v.edtor, v);
                 sdtor = new ScopeGuardStatement(ifs.loc, TOK.onScopeExit, sdtor);
                 ifs.ifbody = new CompoundStatement(ifs.loc, sdtor, ifs.ifbody);
-                ifs.match.storage_class |= STC.nodtor;
+                v.storage_class |= STC.nodtor;
 
                 // the destructor is always called
                 // whether the 'ifbody' is executed or not
-                Statement sdtor2 = new DtorExpStatement(ifs.loc, ifs.match.edtor, ifs.match);
+                Statement sdtor2 = new DtorExpStatement(ifs.loc, v.edtor, v);
                 if (ifs.elsebody)
                     ifs.elsebody = new CompoundStatement(ifs.loc, sdtor2, ifs.elsebody);
                 else
