@@ -163,9 +163,8 @@ jobs:
 
     - name: 'Windows: Set up MSVC environment' # puts cl.exe in PATH etc.
       if: runner.os == 'Windows'
-      uses: seanmiddleditch/gha-setup-vsdevenv@v5
-      with:
-        arch: ${{ matrix.model == '64' && 'x64' || 'x86' }}
+      shell: pwsh
+      run: ./dmd/.github/scripts/setup_msvc.ps1 -Arch ${{ matrix.model == '64' && 'x64' || 'x86' }}
 
     - name: 'Posix: Set up CC and CXX environment variables'
       if: runner.os != 'Windows'
