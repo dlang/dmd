@@ -372,8 +372,6 @@ void WRblock(block* b)
         printf(" flags=x%x weight=%d",b.Bflags,b.Bweight);
         //printf("\tfile %p, line %d",b.Bfilptr,b.Blinnum);
         printf(" BC.%s Btry=%p",bc_str(b.bc),b.Btry);
-        if (b.bc == BC.cpptry)
-            printf(" catchvar = %p",b.catchvar);
         printf("\n");
         printf("\tBpred: "); WRblockarray(b.Bpred[]);
         printf("\tBsucc: "); WRblockarray(b.Bsucc[]);

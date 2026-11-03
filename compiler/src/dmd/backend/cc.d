@@ -201,11 +201,6 @@ nothrow:
 
         struct
         {
-            Symbol* catchvar;           // __throw() fills in this
-        }                               // BC.cpptry
-
-        struct
-        {
             Symbol* Bcatchtype;       // one type for each catch block
             Barray!uint* actionTable; // EH_DWARF: indices into typeTable
         }                             // BC.jcatch
@@ -247,16 +242,9 @@ nothrow:
         // CPP
         struct
         {
-            SYMIDX      Bsymstart;      // (symstart <= symnum < symend) Symbols
-            SYMIDX      Bsymend;        // are declared in this block
-            block*      Bendscope;      // block that forms the end of the
-                                        // scope for the declared Symbols
             uint        Bblknum;        // position of block from startblock
             Symbol*     Binitvar;       // !=NULL points to an auto variable with
                                         // an explicit or implicit initializer
-            block*      Bgotolist;      // BC.cpptry, BC.catch_: backward list of try scopes
-            block*      Bgotothread;    // BC.goto_: threaded list of goto's to
-                                        // unknown labels
         }
 
         // OPTIMIZER
@@ -290,7 +278,6 @@ nothrow:
             targ_size_t Boffset;        // code offset of start of this block
             targ_size_t Bsize;          // code size of this block
             con_t       Bregcon;        // register state at block exit
-            targ_size_t Btryoff;        // BC.cpptry: offset of try block data
         }
     }
 }
