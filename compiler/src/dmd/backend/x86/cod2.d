@@ -4357,8 +4357,10 @@ private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pr
 
     freenode(e2);
 
-    // Get s into ES:DI
-    regm_t mregidx = IDXREGS & ~(mregcx | retregs3);
+    // Only 16-bit addressing requires an index register. Restricting wider
+    // targets to IDXREGS can leave only register variables as candidates,
+    // which allocreg interprets as an explicit variable destination.
+    regm_t mregidx = (I16 ? IDXREGS : cg.allregs) & ~(mregcx | retregs3);
     assert(mregidx);
     tym_t ty1 = tybasic(e.E1.Ety);
     if (!tyreg(ty1))
