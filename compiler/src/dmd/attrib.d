@@ -438,7 +438,6 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
 extern (C++) final class AnonDeclaration : AttribDeclaration
 {
     bool isunion;           /// whether it's a union
-    int sem;                /// 1 if successful semantic()
     uint anonoffset;        /// offset of anonymous struct
     uint anonstructsize;    /// size of anonymous struct
     uint anonalignsize;     /// size of anonymous struct for alignment purposes
