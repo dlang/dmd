@@ -118,7 +118,6 @@ class CInitializer final : public Initializer
 {
 public:
     DesigInits initializerList;
-    Type *type;         // type that array will be used to initialize
 
     void accept(Visitor *v) override { v->visit(this); }
 };
