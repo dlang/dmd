@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/interpret3.d(6361): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
+compilable/interpret3.d(6408): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
 ---
 */
 
@@ -1098,7 +1098,54 @@ static assert(bug8644());
 struct A6159 {}
 
 static assert({ return A6159.init is A6159.init; }());
-static assert({ return [1] is [1]; }());
+static assert({ return [1] !is [1]; }());
+
+/**************************************************/
+// https://github.com/dlang/dmd/issues/24016
+
+bool test24016()
+{
+    int[] a = [1, 1];
+    int[] b = [1, 1];
+    assert(a !is b);
+    assert(a[0 .. 1] !is a[1 .. 2]);
+    double[] d = [double.nan];
+    assert(d is d);
+    struct S { int[] p; double[1] q; }
+    assert(S(a, [double.nan]) is S(a, [double.nan]));
+    assert(S(a, [1]) !is S(b, [1]));
+
+    int[int] x = [1: 2];
+    int[int] y = [1: 2];
+    assert(x !is y);
+    y = x;
+    x[2] = 2;
+    assert(x is y);
+    const(int[int]) cx = x;
+    const(int[int]) cy = x;
+    assert(cx is cy);
+
+    int[] e = [];
+    assert(e is null);
+    assert(a[0 .. 0] !is null);
+    int[0] sa;
+    int[] f = sa;
+    assert(f !is null);
+
+    int[] g = [1, 2, 3];
+    int[] h = g;
+    g.length = 2;
+    g[0] = 5;
+    assert(h[0] == 5);
+    g.length = 0;
+    assert(g !is null);
+    int[] k = h[1 .. 3];
+    k.length = 1;
+    k[0] = 9;
+    assert(h[1] == 9);
+    return true;
+}
+static assert(test24016());
 
 /**************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=5685

@@ -1085,7 +1085,7 @@ bool realCmp(EXP op, real_t r1, real_t r2) @safe nothrow
  * Returns:
  *      -1,0,1
  */
-private int ctfeCmpArrays(Loc loc, Expression e1, Expression e2, uinteger_t len)
+private int ctfeCmpArrays(Loc loc, Expression e1, Expression e2, uinteger_t len, bool identity)
 {
     // Resolve slices, if necessary
     uinteger_t lo1 = 0;
@@ -1135,7 +1135,7 @@ private int ctfeCmpArrays(Loc loc, Expression e1, Expression e2, uinteger_t len)
         }
         else
         {
-            if (ctfeRawCmp(loc, ee1, ee2))
+            if (ctfeRawCmp(loc, ee1, ee2, identity))
                 return 1;
         }
     }
@@ -1159,6 +1159,40 @@ private FuncDeclaration funcptrOf(Expression e) @safe nothrow
 private bool isArray(const Expression e) @safe nothrow
 {
     return e.op == EXP.arrayLiteral || e.op == EXP.string_ || e.op == EXP.slice || e.op == EXP.null_;
+}
+
+/** Return true if e1 and e2 are the same slice of the same memory block.
+ * An empty dynamic array literal is `null`, like at run time.
+ */
+private bool ctfeSameArray(Expression e1, Expression e2)
+{
+    static bool isNull(Expression e)
+    {
+        if (auto ale = e.isArrayLiteralExp())
+            return !ale.length && ale.type.toBasetype().ty == Tarray;
+        return e.op == EXP.null_;
+    }
+    if (resolveArrayLength(e1) != resolveArrayLength(e2))
+        return false;
+    uinteger_t lo1 = 0;
+    uinteger_t lo2 = 0;
+    if (auto se = e1.isSliceExp())
+    {
+        lo1 = se.lwr.toInteger();
+        e1 = se.e1;
+    }
+    if (auto se = e2.isSliceExp())
+    {
+        lo2 = se.lwr.toInteger();
+        e2 = se.e1;
+    }
+    if (lo1 != lo2)
+        return false;
+    if (e1 == e2 || (isNull(e1) && isNull(e2)))
+        return true;
+    auto se1 = e1.isStringExp();
+    auto se2 = e2.isStringExp();
+    return se1 && se2 && se1.peekData().ptr == se2.peekData().ptr;
 }
 
 /*****
@@ -1233,6 +1267,8 @@ private int ctfeRawCmp(Loc loc, Expression e1, Expression e2, bool identity = fa
     }
     if (isArray(e1) && isArray(e2))
     {
+        if (identity && e1.type.toBasetype().ty != Tsarray)
+            return !ctfeSameArray(e1, e2);
         const uinteger_t len1 = resolveArrayLength(e1);
         const uinteger_t len2 = resolveArrayLength(e2);
         // workaround for dmc optimizer bug calculating wrong len for
@@ -1241,7 +1277,7 @@ private int ctfeRawCmp(Loc loc, Expression e1, Expression e2, bool identity = fa
         if (len1 > 0 && len2 > 0)
         {
             const uinteger_t len = (len1 < len2 ? len1 : len2);
-            const int res = ctfeCmpArrays(loc, e1, e2, len);
+            const int res = ctfeCmpArrays(loc, e1, e2, len, identity);
             if (res != 0)
                 return res;
         }
@@ -1303,6 +1339,8 @@ private int ctfeRawCmp(Loc loc, Expression e1, Expression e2, bool identity = fa
     {
         AssocArrayLiteralExp es1 = e1.isAssocArrayLiteralExp();
         AssocArrayLiteralExp es2 = e2.isAssocArrayLiteralExp();
+        if (identity)
+            return es1.keys != es2.keys;
         size_t dim = es1.keys.length;
         if (es2.keys.length != dim)
             return 1;
@@ -1358,14 +1396,10 @@ bool ctfeIdentity(Loc loc, EXP op, Expression e1, Expression e2)
     //printf("ctfeIdentity op = '%s', e1 = %s %s, e2 = %s %s\n", EXPtoString(op).ptr,
     //    EXPtoString(e1.op).ptr, e1.toChars(), EXPtoString(e2.op).ptr, e1.toChars());
     bool cmp;
-    if (e1.op == EXP.null_)
-    {
-        cmp = (e2.op == EXP.null_);
-    }
-    else if (e2.op == EXP.null_)
-    {
+    if (isArray(e1) && isArray(e2))
+        cmp = ctfeSameArray(e1, e2);
+    else if (e1.op == EXP.null_ || e2.op == EXP.null_)
         cmp = false;
-    }
     else if (e1.op == EXP.symbolOffset && e2.op == EXP.symbolOffset)
     {
         SymOffExp es1 = e1.isSymOffExp();
