@@ -506,7 +506,7 @@ static:
         foreach (m ; __traits(allMembers, This))
         {
             static if (is(typeof(__traits(getMember, This, m)) == SymbolCache))
-                __traits(getMember, This, m).reset();
+                __traits(getMember, This, m).clear(); // keep the bucket table
         }
     }
 
