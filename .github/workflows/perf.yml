@@ -10,7 +10,7 @@ on:
     branches: [master]
 
 concurrency:
-  group: perf-${{ github.event.pull_request.number || github.ref }}
+  group: perf-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
