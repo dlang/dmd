@@ -84,7 +84,6 @@ git pull --ff-only upstream master
 ```
 
 - Regressions, bug fixes and new features go to `master`. Regressions and bug fixes and should be labelled with `Backport:2.xxx` where applicable.
-See also: [our release process](https://wiki.dlang.org/DIP75).
 
 Create a new branch, and commit your code changes on there.
 ```
