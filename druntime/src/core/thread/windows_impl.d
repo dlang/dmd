@@ -29,7 +29,7 @@ version (all)
     import core.stdc.stdint : uintptr_t; // for _beginthreadex decl below
     import core.stdc.stdlib : free, malloc, realloc;
     import core.sys.windows.basetsd /+: HANDLE+/;
-    import core.sys.windows.threadaux : getThreadStackBottom, impersonate_thread, OpenThreadHandle;
+    import core.sys.windows.threadaux : getThreadStackBottom, getThreadStackLimit, impersonate_thread, OpenThreadHandle;
     import core.sys.windows.winbase /+: CloseHandle, CREATE_SUSPENDED, DuplicateHandle, GetCurrentThread,
         GetCurrentThreadId, GetCurrentProcess, GetExitCodeThread, GetSystemInfo, GetThreadContext,
         GetThreadPriority, INFINITE, ResumeThread, SetThreadPriority, Sleep,  STILL_ACTIVE,
@@ -528,7 +528,14 @@ package void loadStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
     // captured, but make sure scanning does not crash accessing invalid memory ranges
     // between stacks
     if ( !t.m_lock )
+    {
         t.m_curr.bstack = getThreadStackBottom( t.m_tdescr.hndl );
+
+        // avoid accessing stack below its mapped range, see https://github.com/dlang/dmd/issues/24142
+        auto limit = getThreadStackLimit( t.m_tdescr.hndl );
+        if ( t.m_curr.tstack < limit )
+            t.m_curr.tstack = limit;
+    }
 }
 
 package void purgeStackAndRegInfo(Thread t, const bool sameThread) nothrow @nogc
