@@ -7141,6 +7141,37 @@ static assert(()
 }());
 
 /**************************************************/
+// https://github.com/dlang/dmd/issues/24188
+
+bool test24188()
+{
+    static struct S { int a; }
+    static S f() { S s; scope(exit) s.a = 9; return s; }
+    assert(f().a == 0);
+    static int[2] g() { int[2] a; scope(exit) a[0] = 9; return a; }
+    assert(g() == [0, 0]);
+    static ref S r(return ref S s) { scope(exit) s.a++; return s; }
+    S s;
+    r(s).a = 5;
+    assert(s.a == 5);
+
+    int c;
+    switch (c)
+    {
+    case 1:
+        c += 10;
+        break;
+    case 0:
+        try { c = 1; } finally { goto case 1; }
+    default:
+        c = -1;
+    }
+    assert(c == 11);
+    return true;
+}
+static assert(test24188());
+
+/**************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=11627
 //cast dchar to char at compile time on AA assignment
 

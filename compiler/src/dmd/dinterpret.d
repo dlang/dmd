@@ -1538,13 +1538,25 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
             ex = bex;
         }
 
+        TypeFunction tf = cast(TypeFunction)istate.fd.type;
+        if (ex && !tf.isRef && (ex.type.toBasetype().ty == Tstruct || ex.type.toBasetype().ty == Tsarray))
+            ex = copyLiteral(ex).copy();
+
         Statement target = istate.gotoTarget;
         Expression ey = interpretStatement(s.finalbody, istate);
         while (CTFEExp.isGotoExp(ey))
         {
-            istate.start = istate.gotoTarget;
-            istate.gotoTarget = null;
-            ey = interpretStatement(s.finalbody, istate);
+            InterState istatex = *istate;
+            istatex.start = istate.gotoTarget;
+            istatex.gotoTarget = null;
+            Expression ez = interpretStatement(s.finalbody, &istatex);
+            if (istatex.start)
+            {
+                result = ey;
+                return;
+            }
+            *istate = istatex;
+            ey = ez;
         }
         istate.gotoTarget = target;
         if (CTFEExp.isCantExp(ey))
