@@ -3622,7 +3622,7 @@ public:
                 }
                 if (e.e1.type.toBasetype().ty == Tvector)
                 {
-                    eSink.error(e.loc, "CTFE internal error: non-constant value `%s`", oldval.toErrMsg());
+                    eSink.error(e.loc, "vector operation `%s` is not supported at compile time", e.toErrMsg());
                     result = CTFEExp.cantexp;
                     return;
                 }
