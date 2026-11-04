@@ -556,7 +556,11 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
         {
             return nonConstExpError(e);
         }
-        dtb.xoff(toSymbol(e.var), cast(uint)e.offset);
+        auto offset = cast(uint)e.offset;
+        if (auto sd = e.var.isSymbolDeclaration())
+            if (sd.kind == SymbolDeclaration.Kind.interfaces)
+                offset += classInfoSize();      // the Interface[] array follows the ClassInfo
+        dtb.xoff(toSymbol(e.var), offset);
     }
 
     void visitVar(VarExp e)
