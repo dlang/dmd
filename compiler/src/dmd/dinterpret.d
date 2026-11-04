@@ -3620,6 +3620,23 @@ public:
                     if (oldval == pue.exp())
                         oldval = pue.copy();
                 }
+                if (e.e1.type.toBasetype().ty == Tvector)
+                {
+                    eSink.error(e.loc, "CTFE internal error: non-constant value `%s`", oldval.toErrMsg());
+                    result = CTFEExp.cantexp;
+                    return;
+                }
+                if (e.op == EXP.leftShiftAssign || e.op == EXP.rightShiftAssign || e.op == EXP.unsignedRightShiftAssign)
+                {
+                    const sinteger_t i2 = newval.toInteger();
+                    const uinteger_t sz = e.e1.type.size() * 8;
+                    if (i2 < 0 || i2 >= sz)
+                    {
+                        eSink.error(e.loc, "shift assign by %lld is outside the range `0..%llu`", i2, cast(ulong)sz - 1);
+                        result = CTFEExp.cantexp;
+                        return;
+                    }
+                }
 
                 newval = (*fp)(e.loc, e.e1.type, oldval, newval).copy();
             }
