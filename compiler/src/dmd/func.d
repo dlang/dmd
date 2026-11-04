@@ -102,6 +102,7 @@ private struct FUNCFLAG
     bool hasCatches;         /// function has try-catch statements
     bool skipCodegen;        /// do not generate code for this function.
     bool importCInlineReferenced; /// set by scanImportCInlineUsage while checking ImportC inline/__forceinline candidates for real uses
+    bool isImportCInlineCandidate; /// set by scanImportCInlineUsage while collecting ImportC inline/__forceinline candidates
     bool printf;             /// is a printf-like function
 
     bool scanf;              /// is a scanf-like function

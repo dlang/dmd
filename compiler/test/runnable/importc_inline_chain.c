@@ -1,7 +1,4 @@
-// An unreferenced __forceinline function must not generate code, even if
-// its own body calls another __forceinline function that would otherwise
-// also be unreferenced - a candidate counts as referenced only via code
-// outside the set of __forceinline candidates.
+// __forceinline functions calling only each other stay unreferenced.
 
 int undefined_elsewhere(void);
 
@@ -14,8 +11,6 @@ __forceinline int never_called_caller(void)
 {
     return never_called_callee();
 }
-
-// A real, reachable chain of __forceinline functions must still get code.
 
 int helper(int x);
 
