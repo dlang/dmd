@@ -332,6 +332,9 @@ extern (C++) class FuncDeclaration : Declaration
     ILS inlineStatusExp = ILS.uninitialized;
     PINLINE inlining = PINLINE.default_;
 
+    /// set if this is a known, builtin function we can evaluate at compile time
+    BUILTIN builtin = BUILTIN.unknown;
+
     int inlineNest;                     /// !=0 if nested inline
 
     ForeachStatement fes;               /// if foreach body, this is the foreach
@@ -355,13 +358,8 @@ extern (C++) class FuncDeclaration : Declaration
 
     mixin FuncDeclarationExtra;
 
-    /// set if this is a known, builtin function we can evaluate at compile time
-    BUILTIN builtin = BUILTIN.unknown;
-
     /// set if someone took the address of this function
     int tookAddressOf;
-
-    bool requiresClosure;               // this function needs a closure
 
     /** local variables in this function which are referenced by nested functions
      * (They'll get put into the "closure" for this function.)
@@ -410,6 +408,8 @@ extern (C++) class FuncDeclaration : Declaration
     /// See the `FUNCFLAG` struct
     import dmd.common.bitfields;
     mixin(generateBitFields!(FUNCFLAG, uint));
+
+    bool requiresClosure;               // this function needs a closure
 
     /**
      * Data for a function declaration that is needed for the Objective-C
