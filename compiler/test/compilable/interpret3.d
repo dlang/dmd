@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/interpret3.d(6408): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
+compilable/interpret3.d(6422): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
 ---
 */
 
@@ -2317,6 +2317,20 @@ static assert({
     assert(p > q);
     p = p + 5; // OK, as long as we don't dereference
     assert(p > q);
+    return 6;
+}() == 6);
+
+// https://github.com/dlang/dmd/issues/24148
+static assert({
+    int[12] x;
+    int* p = &x[10];
+    int n = -4;
+    p += n;
+    assert(p == &x[6]);
+    p = p + n;
+    assert(p == &x[2]);
+    p -= n;
+    assert(p == &x[6]);
     return 6;
 }() == 6);
 
