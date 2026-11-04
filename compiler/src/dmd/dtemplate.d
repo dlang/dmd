@@ -400,8 +400,8 @@ extern (C++) final class TypeDeduced : Type
  */
 extern (C++) class TemplateParameter : ASTNode
 {
-    Loc loc;
     Identifier ident;
+    Loc loc;
 
     /* True if this is a part of precedent parameter specialization pattern.
      *
