@@ -2587,6 +2587,8 @@ private bool expNeedsDtor(Expression exp)
  * for `inline`/`__forceinline` C functions that turn out to be genuinely
  * unreferenced, and marks them to skip codegen.
  *
+ * A candidate counts as referenced only via code outside the candidate set.
+ *
  * Params:
  *   modules = every module in the program
  */
@@ -2603,22 +2605,39 @@ public void scanImportCInlineUsage(Modules* modules)
     if (!candidates.length)
         return;
 
-    scope v = new ImportCInlineUsageVisitor();
+    foreach (fd; candidates)
+        fd.isImportCInlineCandidate = true;
+
+    FuncDeclaration[] worklist;
+    scope v = new ImportCInlineUsageVisitor(&worklist);
+
     foreach (m; *modules)
         visitDsymbolTree(m, v);
 
+    while (worklist.length)
+    {
+        FuncDeclaration fd = worklist[$ - 1];
+        worklist = worklist[0 .. $ - 1];
+        if (fd.fbody)
+            fd.fbody.accept(v);
+    }
+
     foreach (fd; candidates)
+    {
         if (!fd.importCInlineReferenced)
             fd.skipCodegen = true;
+        fd.isImportCInlineCandidate = false;
+    }
 }
 
 /// Walk a Dsymbol tree, visiting every function body and variable
 /// initializer with v, recursing into anything that can hold either.
+/// Skips a candidate's own body - see scanImportCInlineUsage.
 private void visitDsymbolTree(Dsymbol s, ImportCInlineUsageVisitor v)
 {
     if (auto fd = s.isFuncDeclaration())
     {
-        if (fd.fbody)
+        if (fd.fbody && !fd.isImportCInlineCandidate)
             fd.fbody.accept(v);
         return;
     }
@@ -2648,6 +2667,14 @@ private extern (C++) final class ImportCInlineUsageVisitor : SemanticTimeTransit
 {
     alias visit = SemanticTimeTransitiveVisitor.visit;
 
+    private FuncDeclaration[]* worklist;
+
+    // extern (D): a pointer to a D dynamic array has no C++ ABI mapping.
+    extern (D) this(FuncDeclaration[]* worklist)
+    {
+        this.worklist = worklist;
+    }
+
     // VarExp/SymOffExp have no dedicated override point in this visitor
     // hierarchy, so this catches them (and everything else) via their
     // common Expression base instead.
@@ -2672,7 +2699,11 @@ private extern (C++) final class ImportCInlineUsageVisitor : SemanticTimeTransit
 
     private void mark(Declaration d)
     {
-        if (auto fd = d.isFuncDeclaration())
-            fd.importCInlineReferenced = true;
+        auto fd = d.isFuncDeclaration();
+        if (!fd || fd.importCInlineReferenced)
+            return;
+        fd.importCInlineReferenced = true;
+        if (fd.isImportCInlineCandidate)
+            *worklist ~= fd;
     }
 }
