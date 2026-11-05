@@ -336,7 +336,7 @@ struct NotAA(T)
     T[foo(1)] calcBuffer;
 }
 
-// Same name but hidden by the template paramter
+// Same name but hidden by the template parameter
 extern (D) struct Buffer {}
 extern (D) struct ActualBuffer {}
 

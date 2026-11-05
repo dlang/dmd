@@ -2,7 +2,7 @@
  * Code generation 3
  *
  * Includes:
- * - generating a function prolog (pushing return address, loading paramters)
+ * - generating a function prolog (pushing return address, loading parameters)
  * - generating a function epilog (restoring registers, returning)
  * - generation / peephole optimizations of jump / branch instructions
  *

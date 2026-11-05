@@ -2733,7 +2733,7 @@ void main()
     assert(!(u1 < u2));    // calls U.opCmp
     assert(!(v1 < v2));    // calls U.opCmp because V does not define an opCmp method
                            // so the alias this of v1 is employed; U.opCmp expects a
-                           // paramter of type U, so alias this of v2 is used
+                           // parameter of type U, so alias this of v2 is used
 
     assert(!(u1 < v1));    // calls u1.opCmp(v1.u);
     assert(!(v1 < u1));    // calls v1.u.opCmp(v1);
