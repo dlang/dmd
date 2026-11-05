@@ -129,6 +129,8 @@ void test5()
     assert(d.a == 7);
 }
 
+static assert({ S5 s; s.a = 5; return s.a; }() == 5);
+
 /********************************************/
 
 int main()
