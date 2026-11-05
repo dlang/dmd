@@ -160,7 +160,7 @@ void outdata(Symbol* s)
                             assert(config.objfmt == OBJ_MACH && I64);
                             goto case;
                         case mTYthread:
-                        if (0 && config.objfmt == OBJ_MACH && config.target_cpu == TARGET_AArch64)
+                        if (config.objfmt == OBJ_MACH && config.target_cpu == TARGET_AArch64)
                         {
                             // Special handling
                             import dmd.backend.machobj : MachObj_thread_vars;

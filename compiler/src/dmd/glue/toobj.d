@@ -630,7 +630,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             auto dtb = DtBuilder(0);
             if (config.objfmt == OBJ_MACH &&
-                (target.isX86_64 || target.isAArch64) &&
+                target.isX86_64 &&  // moved Mach AArch64 logic to backend/dout.d
                 (s.Stype.Tty & mTYLINK) == mTYthread)
             {
                 tlsToDt(vd, s, sz, dtb, isCfile);
@@ -968,6 +968,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
          */
         static Symbol* createTLVDataSymbol(VarDeclaration vd, Symbol* s)
         {
+            //printf("createTLVDataSymbol(s: %s)\n", s.Sident.ptr);
             assert(config.objfmt == OBJ_MACH && (target.isX86_64 || target.isAArch64) && (s.Stype.Tty & mTYLINK) == mTYthread);
 
             // Compute identifier for tlv symbol
