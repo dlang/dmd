@@ -45,7 +45,6 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : hasPointers, hasStaticCtorOrDtor, include, isFuncHidden,
                         isAbstract, toAlias, fillVtbl, size;
 import dmd.dtemplate;
-import dmd.errors : fatal;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem : getDsymbol, toInteger;
@@ -1171,21 +1170,18 @@ uint classInfoSize()
         return 0x44 + 12 + (hasMonitor ? 4 : 0); // 84 with monitor
 }
 
-private void checkInterfaceSize(ClassDeclaration cd)
+private bool checkClassInfoSize(ClassDeclaration cd)
 {
+    bool ok = !Type.typeinfoclass || checkTypeInfoSize(Type.typeinfoclass, classInfoSize(), cd);
+    if (!cd.vtblInterfaces.length)
+        return ok;
     auto obj = ClassDeclaration.object;
-    if (!obj)
-        return;
-    auto m = obj.getModule();
-    if (!m || !m.symtab)
-        return;
-    auto s = m.symtab.lookup(Identifier.idPool("Interface"));
+    auto m = obj ? obj.getModule() : null;
+    auto s = m && m.symtab ? m.symtab.lookup(Identifier.idPool("Interface")) : null;
     auto sd = s ? s.isStructDeclaration() : null;
-    if (!sd)
-        return;
-    const expected = 2 * target.ptrsize;
-    if (sd.size(cd.loc) != expected)
-        typeInfoSizeMismatch(sd, expected, cd);
+    if (!sd || sd.size(cd.loc) == SIZE_INVALID)
+        return ok;
+    return checkTypeInfoSize(sd, 2 * target.ptrsize, cd) && ok;
 }
 
 /*******************
@@ -1243,15 +1239,8 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass* b, ref FuncDeclarations bv
  */
 private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
 {
-    if (Type.typeinfoclass)
-    {
-        if (Type.typeinfoclass.structsize != classInfoSize())
-        {
-            typeInfoSizeMismatch(Type.typeinfoclass, classInfoSize(), cd);
-        }
-    }
-    if (cd.vtblInterfaces.length)
-        checkInterfaceSize(cd);
+    if (!checkClassInfoSize(cd))
+        return;
 
     // Put out the ClassInfo, which will be the __ClassZ symbol in the object file
     SC scclass = SC.comdat;
@@ -1497,6 +1486,9 @@ Louter:
  */
 private void genClassInfoForInterface(InterfaceDeclaration id)
 {
+    if (!checkClassInfoSize(id))
+        return;
+
     SC scclass = SC.comdat;
 
     // Put out the ClassInfo
@@ -1566,14 +1558,6 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     dtb.size(id.vtblInterfaces.length);
     if (id.vtblInterfaces.length)
     {
-        if (Type.typeinfoclass)
-        {
-            if (Type.typeinfoclass.structsize != offset)
-            {
-                typeInfoSizeMismatch(Type.typeinfoclass, offset, id);
-            }
-        }
-        checkInterfaceSize(id);
         dtb.xoff(csym, offset, TYnptr);      // (*)
     }
     else
