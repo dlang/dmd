@@ -1229,12 +1229,7 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
     {
         if (Type.typeinfoclass.structsize != classInfoSize())
         {
-            debug printf("classInfoSize() = x%x, Type.typeinfoclass.structsize = x%x\n", classInfoSize(), Type.typeinfoclass.structsize);
-            auto eSink = global.errorSink;
-            eSink.error(cd.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
-                   cd.kind, cd.toPrettyChars, cast(uint)classInfoSize(), cast(uint)Type.typeinfoclass.structsize);
-            eSink.errorSupplemental(cd.loc, "check installation and import paths with `-v` compiler switch");
-            fatal();
+            typeInfoSizeMismatch(Type.typeinfoclass, classInfoSize(), cd);
         }
     }
 
@@ -1555,11 +1550,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
         {
             if (Type.typeinfoclass.structsize != offset)
             {
-                auto eSink = global.errorSink;
-                eSink.error(id.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
-                       id.kind, id.toPrettyChars, cast(uint)offset, cast(uint)Type.typeinfoclass.structsize);
-                eSink.errorSupplemental(id.loc, "check installation and import paths with `-v` compiler switch");
-                fatal();
+                typeInfoSizeMismatch(Type.typeinfoclass, offset, id);
             }
         }
         dtb.xoff(csym, offset, TYnptr);      // (*)

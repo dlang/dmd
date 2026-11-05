@@ -1229,6 +1229,17 @@ private void classFieldsToDt(ClassDeclaration cd, Expressions* elements, ref DtB
     ClassReferenceExp_toInstanceDt(cre, dtb);
 }
 
+void typeInfoSizeMismatch(ClassDeclaration typeclass, size_t expected, Dsymbol user = null)
+{
+    auto eSink = global.errorSink;
+    eSink.error(typeclass.loc, "`%s` is declared with size %d bytes, but the compiler expects %d bytes",
+        typeclass.toPrettyChars(), cast(uint)typeclass.structsize, cast(uint)expected);
+    if (user)
+        eSink.errorSupplemental(user.loc, "required by %s `%s`", user.kind(), user.toPrettyChars());
+    eSink.errorSupplemental(typeclass.loc, "object.d does not match this compiler version, check installation and import paths with `-v` compiler switch");
+    fatal();
+}
+
 /****************************************************
  */
 private extern (C++) class TypeInfoDtVisitor : Visitor
@@ -1250,11 +1261,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
                 printf("expected = x%x, %s.structsize = x%x\n", cast(uint)expected,
                     typeclass.toChars(), cast(uint)typeclass.structsize);
             }
-            auto eSink = global.errorSink;
-            eSink.error(typeclass.loc, "`%s`: mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
-                typeclass.toErrMsg(), cast(uint)expected, cast(uint)typeclass.structsize);
-            eSink.errorSupplemental(typeclass.loc, "check installation and import paths with `-v` compiler switch");
-            fatal();
+            typeInfoSizeMismatch(typeclass, expected);
         }
     }
 
