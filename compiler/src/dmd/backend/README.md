@@ -83,7 +83,7 @@ Code Generation
 
 * **cg.d**            global variables for code generator
 * **cgcs.d**          compute common subexpressions for non-optimized code generation
-* **cgcse.d**         manage stack storage for common subexpressions
+* **cgcse.d**         manage stack storage for common subexpressions (CSEs)
 * **cgcv.d**          interface for CodeView symbol debug info generation
 * **cgelem.d**        local optimizations of elem trees
 * **cgen.d**          generate/manage linked list of code instructions
