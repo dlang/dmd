@@ -2724,6 +2724,24 @@ public:
         }
     }
 
+    /* Truncate `e` to the width of bitfield `bf`
+     */
+    private static Expression truncateBitField(Expression e, BitFieldDeclaration bf)
+    {
+        auto ival = e.isIntegerExp();
+        if (!ival)
+            return e;
+        sinteger_t value = ival.toInteger();
+        if (bf.type.isUnsigned())
+            value &= ~0UL >> (64 - bf.fieldWidth); // zero extra bits
+        else
+        {   // sign extend extra bits
+            value = value << (64 - bf.fieldWidth);
+            value = value >> (64 - bf.fieldWidth);
+        }
+        return ctfeEmplaceExp!IntegerExp(e.loc, value, e.type);
+    }
+
     override void visit(StructLiteralExp e)
     {
         debug (LOG)
@@ -2775,6 +2793,8 @@ public:
                 ex = interpretRegion(exp, istate);
                 if (exceptionOrCant(ex))
                     return;
+                if (auto bf = v.isBitFieldDeclaration())
+                    ex = truncateBitField(ex, bf);
                 if ((v.type.ty != ex.type.ty) && v.type.ty == Tsarray)
                 {
                     // Block assignment from inside struct literals
@@ -2905,6 +2925,8 @@ public:
                         ex = interpretRegion(ex, istate);
                         if (exceptionOrCant(ex))
                             return;
+                        if (auto bf = sd.fields[i].isBitFieldDeclaration())
+                            ex = truncateBitField(ex, bf);
                         (*exps)[i] = ex;
                     }
                 }
@@ -3745,6 +3767,9 @@ public:
                 return;
             if (newval == pue.exp())
                 newval = pue.copy();
+            if (auto dve = e1.isDotVarExp())
+                if (auto bf = dve.var.isBitFieldDeclaration())
+                    newval = truncateBitField(newval, bf);
 
             // Determine the return value
             if (goal == CTFEGoal.LValue) // https://issues.dlang.org/show_bug.cgi?id=14371
@@ -3875,21 +3900,6 @@ public:
 
             payload = &(*sle.elements)[fieldi];
             oldval = *payload;
-            if (auto ival = newval.isIntegerExp())
-            {
-                if (auto bf = v.isBitFieldDeclaration())
-                {
-                    sinteger_t value = ival.toInteger();
-                    if (bf.type.isUnsigned())
-                        value &= (1L << bf.fieldWidth) - 1; // zero extra bits
-                    else
-                    {   // sign extend extra bits
-                        value = value << (64 - bf.fieldWidth);
-                        value = value >> (64 - bf.fieldWidth);
-                    }
-                    ival.setInteger(value);
-                }
-            }
         }
         else if (auto ie = e1.isIndexExp())
         {

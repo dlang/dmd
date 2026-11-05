@@ -749,7 +749,7 @@ Expression optimize(Expression e, int result, bool keepLvalue = false)
         {
             StructLiteralExp sle = ex.isStructLiteralExp();
             VarDeclaration vf = e.var.isVarDeclaration();
-            if (vf && !vf.overlapped)
+            if (vf && !vf.overlapped && !vf.isBitFieldDeclaration())
             {
                 /* https://issues.dlang.org/show_bug.cgi?id=13021
                  * Prevent optimization if vf has overlapped fields.
