@@ -519,6 +519,7 @@ else
         MADV_SEQUENTIAL = 2,
         MADV_WILLNEED = 3,
         MADV_DONTNEED = 4,
+        MADV_FREE = 8,
         MADV_REMOVE = 9,
         MADV_DONTFORK = 10,
         MADV_DOFORK = 11,
@@ -528,7 +529,18 @@ else
         MADV_NOHUGEPAGE = 15,
         MADV_DONTDUMP = 16,
         MADV_DODUMP = 17,
+        MADV_WIPEONFORK = 18,
+        MADV_KEEPONFORK = 19,
+        MADV_COLD = 20,
+        MADV_PAGEOUT = 21,
+        MADV_POPULATE_READ = 22,
+        MADV_POPULATE_WRITE = 23,
+        MADV_DONTNEED_LOCKED = 24,
+        MADV_COLLAPSE = 25,
         MADV_HWPOISON = 100,
+        MADV_SOFT_OFFLINE = 101,
+        MADV_GUARD_INSTALL = 102,
+        MADV_GUARD_REMOVE = 103,
     }
 
     // in core.sys.posix.sys.mman
