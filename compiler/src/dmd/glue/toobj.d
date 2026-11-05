@@ -43,9 +43,8 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem : hasPointers, hasStaticCtorOrDtor, include, isFuncHidden,
-                        isAbstract, toAlias, fillVtbl;
+                        isAbstract, toAlias, fillVtbl, size;
 import dmd.dtemplate;
-import dmd.errors : fatal;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem : getDsymbol, toInteger;
@@ -55,6 +54,7 @@ import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
+import dmd.identifier;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
@@ -1170,6 +1170,20 @@ uint classInfoSize()
         return 0x44 + 12 + (hasMonitor ? 4 : 0); // 84 with monitor
 }
 
+private bool checkClassInfoSize(ClassDeclaration cd)
+{
+    bool ok = !Type.typeinfoclass || checkTypeInfoSize(Type.typeinfoclass, classInfoSize(), cd);
+    if (!cd.vtblInterfaces.length)
+        return ok;
+    auto obj = ClassDeclaration.object;
+    auto m = obj ? obj.getModule() : null;
+    auto s = m && m.symtab ? m.symtab.lookup(Identifier.idPool("Interface")) : null;
+    auto sd = s ? s.isStructDeclaration() : null;
+    if (!sd || sd.size(cd.loc) == SIZE_INVALID)
+        return ok;
+    return checkTypeInfoSize(sd, 2 * target.ptrsize, cd) && ok;
+}
+
 /*******************
  * Emit the vtbl[] to static data
  * Params:
@@ -1225,18 +1239,8 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass* b, ref FuncDeclarations bv
  */
 private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
 {
-    if (Type.typeinfoclass)
-    {
-        if (Type.typeinfoclass.structsize != classInfoSize())
-        {
-            debug printf("classInfoSize() = x%x, Type.typeinfoclass.structsize = x%x\n", classInfoSize(), Type.typeinfoclass.structsize);
-            auto eSink = global.errorSink;
-            eSink.error(cd.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
-                   cd.kind, cd.toPrettyChars, cast(uint)classInfoSize(), cast(uint)Type.typeinfoclass.structsize);
-            eSink.errorSupplemental(cd.loc, "check installation and import paths with `-v` compiler switch");
-            fatal();
-        }
-    }
+    if (!checkClassInfoSize(cd))
+        return;
 
     // Put out the ClassInfo, which will be the __ClassZ symbol in the object file
     SC scclass = SC.comdat;
@@ -1482,6 +1486,9 @@ Louter:
  */
 private void genClassInfoForInterface(InterfaceDeclaration id)
 {
+    if (!checkClassInfoSize(id))
+        return;
+
     SC scclass = SC.comdat;
 
     // Put out the ClassInfo
@@ -1551,17 +1558,6 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     dtb.size(id.vtblInterfaces.length);
     if (id.vtblInterfaces.length)
     {
-        if (Type.typeinfoclass)
-        {
-            if (Type.typeinfoclass.structsize != offset)
-            {
-                auto eSink = global.errorSink;
-                eSink.error(id.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found",
-                       id.kind, id.toPrettyChars, cast(uint)offset, cast(uint)Type.typeinfoclass.structsize);
-                eSink.errorSupplemental(id.loc, "check installation and import paths with `-v` compiler switch");
-                fatal();
-            }
-        }
         dtb.xoff(csym, offset, TYnptr);      // (*)
     }
     else
