@@ -2,7 +2,9 @@ TESTS:=attributes sentinel printf memstomp invariant logging \
        precise precisegc \
        recoverfree collect nocollect
 
-ifneq ($(OS),windows)
+ifeq ($(OS),windows)
+    TESTS+=stacklimit
+else
     # some .d files are for Posix only
     TESTS+=sentinel1 sentinel2 forkgc sigmaskgc startbackgc issue23081
     # and some tests require the `fork` GC, only supported on Posix

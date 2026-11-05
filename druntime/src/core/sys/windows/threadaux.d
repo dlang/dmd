@@ -219,6 +219,13 @@ struct thread_aux
         return teb[1];
     }
 
+    // get the stack limit (the lowest address) of the thread that is mapped into memory
+    static void* getThreadStackLimit( HANDLE hnd ) nothrow @nogc
+    {
+        void** teb = getTEB( hnd );
+        return teb[2];
+    }
+
     // create a thread handle with full access to the thread with the given identifier
     static HANDLE OpenThreadHandle( uint id ) nothrow @nogc
     {
@@ -345,6 +352,7 @@ public:
 // forward as few symbols as possible into the "global" name space
 alias getTEB = thread_aux.getTEB;
 alias getThreadStackBottom = thread_aux.getThreadStackBottom;
+alias getThreadStackLimit = thread_aux.getThreadStackLimit;
 alias OpenThreadHandle = thread_aux.OpenThreadHandle;
 alias enumProcessThreads = thread_aux.enumProcessThreads;
 alias impersonate_thread = thread_aux.impersonate_thread;
