@@ -43,7 +43,7 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem : hasPointers, hasStaticCtorOrDtor, include, isFuncHidden,
-                        isAbstract, toAlias, fillVtbl;
+                        isAbstract, toAlias, fillVtbl, size;
 import dmd.dtemplate;
 import dmd.errors : fatal;
 import dmd.errorsink;
@@ -55,6 +55,7 @@ import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
+import dmd.identifier;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
@@ -1170,6 +1171,23 @@ uint classInfoSize()
         return 0x44 + 12 + (hasMonitor ? 4 : 0); // 84 with monitor
 }
 
+private void checkInterfaceSize(ClassDeclaration cd)
+{
+    auto obj = ClassDeclaration.object;
+    if (!obj)
+        return;
+    auto m = obj.getModule();
+    if (!m || !m.symtab)
+        return;
+    auto s = m.symtab.lookup(Identifier.idPool("Interface"));
+    auto sd = s ? s.isStructDeclaration() : null;
+    if (!sd)
+        return;
+    const expected = 2 * target.ptrsize;
+    if (sd.size(cd.loc) != expected)
+        typeInfoSizeMismatch(sd, expected, cd);
+}
+
 /*******************
  * Emit the vtbl[] to static data
  * Params:
@@ -1232,6 +1250,8 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
             typeInfoSizeMismatch(Type.typeinfoclass, classInfoSize(), cd);
         }
     }
+    if (cd.vtblInterfaces.length)
+        checkInterfaceSize(cd);
 
     // Put out the ClassInfo, which will be the __ClassZ symbol in the object file
     SC scclass = SC.comdat;
@@ -1553,6 +1573,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
                 typeInfoSizeMismatch(Type.typeinfoclass, offset, id);
             }
         }
+        checkInterfaceSize(id);
         dtb.xoff(csym, offset, TYnptr);      // (*)
     }
     else

@@ -1229,7 +1229,7 @@ private void classFieldsToDt(ClassDeclaration cd, Expressions* elements, ref DtB
     ClassReferenceExp_toInstanceDt(cre, dtb);
 }
 
-void typeInfoSizeMismatch(ClassDeclaration typeclass, size_t expected, Dsymbol user = null)
+void typeInfoSizeMismatch(AggregateDeclaration typeclass, size_t expected, Dsymbol user = null)
 {
     auto eSink = global.errorSink;
     eSink.error(typeclass.loc, "`%s` is declared with size %d bytes, but the compiler expects %d bytes",
