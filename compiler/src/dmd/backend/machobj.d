@@ -2453,7 +2453,7 @@ seg_data* MachObj_tlsseg()
 {
     //printf("MachObj_tlsseg()\n");
     int seg = I32 ? getsegment2(machobj.seg_tlsseg, "__tls_data", "__DATA", 2, S_REGULAR)
-                  : getsegment2(machobj.seg_tlsseg, "__thread_vars", "__DATA", 0, S_THREAD_LOCAL_VARIABLES);
+                  : getsegment2(machobj.seg_tlsseg, "__thread_vars", "__DATA", 3, S_THREAD_LOCAL_VARIABLES);
     return SegData[seg];
 }
 
@@ -2469,10 +2469,10 @@ seg_data* MachObj_tlsseg()
 @trusted
 int MachObj_thread_vars(ref Symbol s, out targ_size_t offset, bool bss)
 {
-    //printf("MachObj_thread_vars(s)\n");
+    //printf("MachObj_thread_vars(s: %s)\n", s.Sident.ptr);
     //symbol_print(s);
 
-    /* create _ident$tlv$init Symbol si
+    /* create _ident$tlv$init Symbol tlvInitName
      */
     Symbol* si;
     {
