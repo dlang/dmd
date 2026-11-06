@@ -856,6 +856,68 @@ extern (C) void thread_suspendAll() nothrow
 }
 
 /**
+ * Suspend only the listed threads for partial stop-the-world collection.
+ * The calling thread is never blocked; if listed, only its registers are captured.
+ * Must be paired with thread_resumeList.
+ */
+extern (C) void thread_suspendList(ThreadBase* list, size_t count) nothrow
+{
+    thread_preStopTheWorld();
+    if (++listSuspendDepth > 1)
+        return;
+
+    size_t cnt;
+    bool suspendedSelf;
+    ThreadBase caller = ThreadBase.sm_tbeg ? ThreadBase.getThis() : null;
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        auto tb = list[i];
+        if (!tb)
+            continue;
+        if (suspend(tb.toThread))
+        {
+            if (tb is caller)
+                suspendedSelf = true;
+            ++cnt;
+        }
+    }
+
+    if (!multiThreadedFlag)
+        return;
+
+    // Wait for the signalled threads to acknowledge the suspend. The POSIX
+    // semaphore wait (sem_wait on suspendCount, retried on EINTR) lives in
+    // core.thread.posix_impl.afterStopTheWorld, which is what thread_suspendAll
+    // uses too; it is a no-op on Windows, Darwin, Solaris and WASI.
+    afterStopTheWorld(suspendedSelf, cnt);
+}
+
+/**
+ * Resume threads suspended by thread_suspendList.
+ */
+extern (C) void thread_resumeList(ThreadBase* list, size_t count) nothrow
+in
+{
+    assert(listSuspendDepth > 0);
+}
+do
+{
+    if (--listSuspendDepth > 0)
+        return;
+
+    scope (exit) thread_postRestartTheWorld();
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        auto tb = list[i];
+        if (!tb)
+            continue;
+        resume(tb);
+    }
+}
+
+/**
  * Resume the specified thread and unload stack and register information.
  * If the supplied thread is the calling thread, stack and register
  * information will be unloaded but the thread will not be resumed.  If

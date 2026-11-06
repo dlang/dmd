@@ -405,7 +405,10 @@ $(H2 $(LNAME2 gc_config, Configuring the Collector))
         $(UL
         $(LI disable:0|1    - start disabled)
         $(LI profile:0|1    - enable profiling with summary when terminating program)
-        $(LI gc:conservative|precise|manual - select collector implementation (default = conservative))
+        $(LI gc:conservative|precise|manual|tgc - select collector implementation (default = conservative).
+          $(TT tgc) is an opt-in thread-local collector (0.1.0 prototype): per-thread private heaps,
+          local collection without global stop-the-world. Target design uses partitioned shared regions
+          for cross-thread data; region collect is not implemented yet.)
         $(LI initReserve:N  - initial memory to reserve in MB)
         $(LI minPoolSize:N  - initial and minimum pool size in MB)
         $(LI maxPoolSize:N  - maximum pool size in MB)

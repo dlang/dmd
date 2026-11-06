@@ -1063,6 +1063,9 @@ package __gshared bool multiThreadedFlag = false;
 // Used for suspendAll/resumeAll below.
 package __gshared uint suspendDepth = 0;
 
+// Partial STW for opt-in GC region collect (tgc). Separate from suspendDepth.
+package __gshared uint listSuspendDepth = 0;
+
 private alias resume = externDFunc!("core.thread.osthread.resume", void function(ThreadBase) nothrow @nogc);
 
 /**
@@ -1222,6 +1225,68 @@ private void scanAllTypeImpl(scope ScanAllThreadsTypeFn scan, void* curStackTop)
 extern (C) void thread_scanAll(scope ScanAllThreadsFn scan) nothrow
 {
     thread_scanAllType((type, p1, p2) => scan(p1, p2));
+}
+
+/**
+ * Scan stacks/registers/TLS of threads suspended by thread_suspendList.
+ */
+extern (C) void thread_scanList(ThreadBase* list, size_t count, scope ScanAllThreadsFn scan) nothrow
+in
+{
+    assert(listSuspendDepth > 0);
+}
+do
+{
+    callWithStackShell(sp => scanListImpl(list, count, scan, sp));
+}
+
+private void scanListImpl(ThreadBase* list, size_t count, scope ScanAllThreadsFn scan, void* curStackTop) nothrow
+{
+    ThreadBase thisThread = null;
+    void* oldStackTop = null;
+
+    if (ThreadBase.sm_tbeg)
+    {
+        thisThread = ThreadBase.getThis();
+        if (thisThread && !thisThread.m_lock)
+        {
+            oldStackTop = thisThread.m_curr.tstack;
+            thisThread.m_curr.tstack = curStackTop;
+        }
+    }
+
+    scope (exit)
+    {
+        if (thisThread && !thisThread.m_lock)
+            thisThread.m_curr.tstack = oldStackTop;
+    }
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        auto t = list[i];
+        if (!t)
+            continue;
+
+        for (StackContext* c = t.m_curr; c; c = c.within)
+        {
+            static if (isStackGrowingDown)
+            {
+                if (c.tstack && c.tstack < c.bstack)
+                    scan(c.tstack, c.bstack);
+            }
+            else
+            {
+                if (c.bstack && c.bstack < c.tstack)
+                    scan(c.bstack, c.tstack + 1);
+            }
+        }
+
+        if (auto regs = t.savedRegisters())
+            scan(regs.ptr, regs.ptr + regs.length);
+
+        if (t.m_tlsrtdata !is null)
+            rt_tlsgc_scan(t.m_tlsrtdata, (p1, p2) => scan(p1, p2));
+    }
 }
 
 private alias thread_yield = externDFunc!("core.thread.osthread.thread_yield", void function() @nogc nothrow);
