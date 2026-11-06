@@ -25,6 +25,7 @@ import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
+import dmd.cond : Include;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
@@ -2647,10 +2648,29 @@ private void visitDsymbolTree(Dsymbol s, ImportCInlineUsageVisitor v)
             ei.exp.accept(v);
         return;
     }
+    if (s.isTemplateDeclaration()) // instances are walked as members of their module
+        return;
     if (auto ad = s.isAttribDeclaration())
     {
-        if (ad.decl)
-            foreach (s2; *ad.decl)
+        // Only follow what semantic analysis has expanded; excluded branches and unexpanded bodies
+        // were never analysed and may hold null expressions (e.g. an enum member without a value)
+        Dsymbols* d = ad.decl;
+        switch (ad.dsym)
+        {
+            case DSYM.conditionalDeclaration:
+            case DSYM.staticIfDeclaration:
+                auto cd = cast(ConditionalDeclaration) cast(void*) ad;
+                d = cd.condition.inc == Include.yes ? cd.decl : cd.condition.inc == Include.no ? cd.elsedecl : null;
+                break;
+            case DSYM.staticForeachDeclaration:
+                auto sfd = cast(StaticForeachDeclaration) cast(void*) ad;
+                d = sfd.cached ? sfd.cache : null;
+                break;
+            default:
+                break;
+        }
+        if (d)
+            foreach (s2; *d)
                 visitDsymbolTree(s2, v);
         return;
     }
