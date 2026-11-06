@@ -759,7 +759,16 @@ bool isLvalue(Expression _this)
          * conversion to reference of static array is only allowed.
          */
         case EXP.string_, EXP.slice: return not_rvalue && (_this.type && _this.type.toBasetype().ty == Tsarray);
-        case EXP.question: return not_rvalue && _this.isCondExp().e1.isLvalue() && _this.isCondExp().e2.isLvalue();
+
+        case EXP.question:
+        {
+            auto ce = _this.isCondExp();
+            const bool e1Noreturn = ce.e1.type.isTypeNoreturn() !is null;
+            const bool e2Noreturn = ce.e2.type.isTypeNoreturn() !is null;
+            return not_rvalue && (e1Noreturn || ce.e1.isLvalue()) &&
+                (e2Noreturn || ce.e2.isLvalue()) && !(e1Noreturn && e2Noreturn);
+        }
+
         case EXP.array: return !( _this.rvalue || (_this.type && _this.type.toBasetype().ty == Tvoid));
 
         case EXP.vectorArray: return not_rvalue && _this.isVectorArrayExp().e1.isLvalue();
