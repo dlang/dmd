@@ -6056,12 +6056,42 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     }
 
     /***
+     * Peek whether the tokens starting at `token` begin an assignment condition
+     * (`auto x = ...`, `Type x = ...`), without consuming anything.
+     *
+     * `parseAssignCondition` consumes leading storage classes and cannot give
+     * them back, so a caller that also accepts a plain expression has to check
+     * first.
+     *
+     * Returns:
+     *      true if an assignment condition follows
+     */
+    private bool peekIsAssignCondition()
+    {
+        Token* t = &token;
+        bool anyStorageClass = false;
+
+        // isDeclaration() steps over leading type qualifiers itself, but `auto`,
+        // `ref` and `scope` are not part of a type, so skip those here.
+        while (t.value == TOK.auto_ || t.value == TOK.ref_ || t.value == TOK.scope_)
+        {
+            anyStorageClass = true;
+            t = peek(t);
+        }
+
+        if (anyStorageClass && t.value == TOK.identifier && peek(t).value == TOK.assign)
+            return true;
+
+        return isDeclaration(t, NeedDeclaratorId.must, TOK.assign, null);
+    }
+
+    /***
      * Parse an assignment condition for `if`, `switch`, `while` or `with` statements.
      *
      * Returns:
      *      The variable that is declared inside the condition
      */
-    AST.Parameter parseAssignCondition(bool _with = false)
+    AST.Parameter parseAssignCondition()
     {
         STC storageClass = STC.none;
         STC stc = STC.none;
@@ -6141,10 +6171,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             check(TOK.assign);
             return new AST.Parameter(aloc, storageClass, at, ai, null, null, null);
         }
-        else if (storageClass != 0 && !_with)
-        {
+        else if (storageClass != 0)
             error("found `%s` while expecting `=` or identifier", n.toChars());
-        }
+
         return null;
     }
 
@@ -6975,7 +7004,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 nextToken();
                 check(TOK.leftParenthesis);
-                auto param = parseAssignCondition(true);
+                // `with` also accepts a plain qualified expression such as
+                // `with(const S())`. Entering parseAssignCondition() there would
+                // consume the qualifier and silently drop it.
+                auto param = peekIsAssignCondition() ? parseAssignCondition() : null;
                 exp = parseExpression();
                 closeCondition("with", param, exp);
                 _body = parseStatement(ParseStatementFlags.scope_, null, &endloc);
